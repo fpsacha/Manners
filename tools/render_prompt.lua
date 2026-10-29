@@ -578,11 +578,21 @@ function R.run(key, atOverride)
 	local button = ns.Prompt:GetButton()
 	-- The texture the prompt's spell icon is drawn into, which every look
 	-- places and shapes for itself (tools/make_look_previews.py records it).
-	local icon = ns.Prompt:Regions().icon
+	local regions = ns.Prompt:Regions()
+	local icon = regions.icon
+	-- The prompt's two lines, whose rectangles, faces and colours the picker's
+	-- cards lay live text at (tools/make_look_previews.py records them), and the
+	-- face the prompt writes in when a look has none of its own.
+	local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+	local profile = ns.db and ns.db.profile and ns.db.profile.prompt
+	local defaultFont = LSM and profile and LSM:Fetch("font", profile.font) or STANDARD_TEXT_FONT
 	return {
 		tree = FrameTree.snapshot(UIParent),
 		button = button and button._serial,
 		icon = icon and icon._serial,
+		name = regions.name and regions.name._serial,
+		sub = regions.sub and regions.sub._serial,
+		defaultFont = defaultFont,
 		now = Mock.now,
 		title = state.title,
 		locale = locale,

@@ -3,6 +3,7 @@
     python tools/make_look_previews.py              # Textures/Previews/*.tga and Looks/Previews.lua
     python tools/make_look_previews.py --out DIR    # the same files, written to DIR
     python tools/make_look_previews.py --check      # are the shipped pictures current? exit 1 if not
+    python tools/make_look_previews.py --check-bare # do the shipped pictures carry no text? (draws)
 
 For every look the registry holds (Looks/Looks.lua: the three Prompt/Panel.lua
 draws and every one in Looks/), this loads the addon on the mock client with
@@ -25,6 +26,21 @@ uses, and whether it is round, in which case the mask file the look masks it
 with. A look is round when its mask lets less than ROUND_BELOW of its square
 through (a disc is 78 %, a squircle or a rounded square 95 % and more).
 
+The text. The pictures carry none: the prompt's name and reason lines are laid out
+but not painted, because a picture has one language and the sample read "Anna Aim"
+and "buffed you" on every client. The options window writes the two lines live over
+each picture, so for each look this records, from the same frame tree, where each
+line sits (a rectangle as fractions of the picture, as the icon's), its
+justification, its size and shadow offsets as fractions of the picture's height, its
+colour (the code a name opens with, else the font string's, the alpha above it
+folded in), an outline, and the look's own face where it has one (`latin`: drawn only
+on a client whose alphabet it has, found by loading the look as OTHER_LOCALE), in
+Looks/Previews.lua's ns.Looks.previewText. The drawing checks the lines were laid
+out where that says, animations applied. --check-bare draws every look with and
+without its two lines and holds the shipped files to the second: no pixel the lines
+would paint is in them, and what they would paint lies inside the recorded
+rectangles.
+
 The pictures are not live and not pixel-true: a look keeps its regions on the
 one secure prompt, so there is no second copy of one to paint in a card, and
 the renderer's font stands in for Friz Quadrata and approximates the light.
@@ -34,7 +50,8 @@ the look told its frames.
 --check is what tests/scenarios/theme-picker.lua runs. It needs lupa only (no
 Pillow, no numpy) and does not draw: it loads the addon once per look, reads
 the frame tree the prompt ends up with, and hashes that together with every
-shipped texture outside Textures/Previews, this file and render_prompt.py. The
+shipped texture outside Textures/Previews, this file and render_prompt.py. Where
+the icons and the lines of text sit is in the hash and is compared with the manifest. The
 hash is in Looks/Previews.lua; a look changed, a look added, a texture
 redrawn, the default settings moved or this tool edited, and it no longer
 matches until the tool is run again. The picture files themselves are checked
@@ -65,6 +82,7 @@ VIEW = (248, 62)
 STUB = """local _, ns = ...
 ns.Looks.previews = {}
 ns.Looks.previewIcon = {}
+ns.Looks.previewText = {}
 """
 # A look's icon is round when its mask lets less of its square than this through.
 ROUND_BELOW = 0.85
@@ -97,13 +115,13 @@ def to_py(v):
     return {k: to_py(val) for k, val in items}
 
 
-def states(style, measure=None):
+def states(style, measure=None, locale=""):
     """render_prompt.lua's states, with `style` the look every state is in."""
     lua = lua51.LuaRuntime(unpack_returned_tuples=True)
     lua.globals().print = lambda *a: None
     run = lua.eval("function(path, dir, addon, locale, style, key, size) "
                    "local f = assert(loadfile(path)) return f(dir, addon, locale, style, key, size) end")
-    R = run(fwd(os.path.join(ROOT, "tools", "render_prompt.lua")), fwd(ROOT), fwd(ROOT), "", style, "", "")
+    R = run(fwd(os.path.join(ROOT, "tools", "render_prompt.lua")), fwd(ROOT), fwd(ROOT), locale, style, "", "")
     if measure:
         lua.globals().FrameTree.measure = measure
     return R
@@ -217,7 +235,132 @@ def icons(snaps):
     return out
 
 
-def fingerprint(keys, snaps, entries):
+# The two lines the cards write live over their pictures: what each is called in
+# Looks/Previews.lua, and which region of the prompt it is (the snapshot's key).
+LINES = (("name", "name"), ("reason", "sub"))
+# The order a line's fields are written in.
+TEXT_FIELDS = ("l", "t", "r", "b", "h", "v", "size", "color", "shadow", "flags", "font", "latin")
+# A client whose alphabet a look's own face lacks: the tool loads such a look as
+# this one, to see which looks drop their face there.
+OTHER_LOCALE = "koKR"
+
+
+def code_colour(text, base):
+    """The colour a line is written in: the colour code it opens with (the class
+    colour of a name), else its own, with the alpha its own."""
+    base = [1 if v is None else v for v in (list(base or [1, 0.82, 0, 1]) + [1, 1, 1, 1])[:4]]
+    m = re.match(r"\|c([0-9a-fA-F]{8})", str(text or ""))
+    if m:
+        hx = m.group(1)
+        return [int(hx[i:i + 2], 16) / 255 for i in (2, 4, 6)] + [base[3]]
+    return base
+
+
+def static_alpha(tree, region):
+    """The alpha a region has through the frames above it, before any animation."""
+    a = 1.0
+    for c in tree.chain(region):
+        own = c.get("alpha")
+        a *= 1.0 if own is None else own
+    return a
+
+
+def face_of(snap, which):
+    """The face a line is written in, as the look set it."""
+    fs = geometry().Tree(snap).regions.get(snap.get(which))
+    path = ((fs or {}).get("font") or {}).get("path")
+    return str(path) if path else None
+
+
+def round_entry(v):
+    """A text entry with every number at the places it is written to."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, float):
+        return round(v, PLACES)
+    if isinstance(v, list):
+        return [round_entry(x) for x in v]
+    if isinstance(v, dict):
+        return {k: round_entry(x) for k, x in v.items()}
+    return v
+
+
+def text_entry(snap, which, other=None):
+    """Where one of the prompt's two lines sits in the look's picture, and how it is
+    written, or None when the look shows none.
+
+    The rectangle is the line's own, from its anchors, as the icon's is: fractions
+    of the picture. `h` and `v` are its justification, `size` and the shadow's
+    offsets fractions of the picture's height, `color` what the line is written in
+    (the code a name opens with, else the font string's colour, the alpha of the
+    frames above it folded in), `flags` an outline, `font` the look's own face when
+    it has one, and `latin` that the face is drawn only in a Latin alphabet's
+    client (`other` is the same look loaded as OTHER_LOCALE)."""
+    tree = geometry().Tree(snap)
+    fs = tree.regions.get(snap.get(which))
+    button = tree.regions.get(snap.get("button"))
+    if not fs or not button or not all(c.get("shown", True) for c in tree.chain(fs)):
+        return None
+    if not str(fs.get("text") or "").strip():
+        return None
+    rect, brect = tree.rect(fs["id"]), tree.rect(button["id"])
+    if rect is None or brect is None:
+        return None
+    cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get("lift") or 0)
+    left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2
+    scale = tree.eff_scale(fs)
+    font = fs.get("font") or {}
+    entry = {
+        "l": (rect[0] - left) / VIEW[0], "r": (rect[2] - left) / VIEW[0],
+        "t": (top - rect[3]) / VIEW[1], "b": (top - rect[1]) / VIEW[1],
+        "h": str(fs.get("justifyH") or "CENTER"), "v": str(fs.get("justifyV") or "MIDDLE"),
+        "size": (font.get("size") or 12) * scale / VIEW[1],
+    }
+    colour = code_colour(fs.get("text"), fs.get("textColor"))
+    colour[3] *= static_alpha(tree, fs)
+    entry["color"] = colour
+    offset, shade = fs.get("shadowOffset"), fs.get("shadowColor")
+    if offset and shade and (offset[0] or offset[1]) and (list(shade) + [1] * 4)[3]:
+        entry["shadow"] = {
+            "x": offset[0] * scale / VIEW[1], "y": offset[1] * scale / VIEW[1],
+            "color": [1 if v is None else v for v in (list(shade) + [1] * 4)[:4]],
+        }
+    if font.get("flags"):
+        entry["flags"] = str(font["flags"])
+    face = face_of(snap, which)
+    if face and face != snap.get("defaultFont"):
+        entry["font"] = face
+        if other is not None:
+            there = face_of(other, which)
+            if there == face:
+                pass
+            elif there == other.get("defaultFont"):
+                entry["latin"] = True
+            else:
+                raise SystemExit("the look draws its %s line in %s as %s, which is neither its face nor "
+                                 "the prompt's own" % (which, OTHER_LOCALE, there))
+    return round_entry(entry)
+
+
+def texts(snaps):
+    """The text entries of every look that shows a name or a reason line."""
+    out = {}
+    for key, snap in snaps.items():
+        found = {}
+        other = None
+        for name, which in LINES:
+            face = face_of(snap, which)
+            if face and face != snap.get("defaultFont") and other is None:
+                other = to_py(states(key, locale=OTHER_LOCALE)["run"](STATE, None))
+            entry = text_entry(snap, which, other)
+            if entry:
+                found[name] = entry
+        if found:
+            out[key] = found
+    return out
+
+
+def fingerprint(keys, snaps, entries, written):
     """What the pictures are drawn from, as one hash: the frame trees, where the
     icons sit in them, the shipped textures and the two tools."""
     h = hashlib.sha256()
@@ -225,6 +368,7 @@ def fingerprint(keys, snaps, entries):
         h.update(key.encode("utf-8") + b"\0")
         h.update(json.dumps(snaps[key], sort_keys=True, default=str).encode("utf-8") + b"\0")
         h.update(json.dumps(entries.get(key), sort_keys=True).encode("utf-8") + b"\0")
+        h.update(json.dumps(written.get(key), sort_keys=True).encode("utf-8") + b"\0")
     art = os.path.join(ROOT, "Textures")
     files = []
     for folder, dirs, names in os.walk(art):
@@ -254,7 +398,22 @@ def lua_entry(entry):
     return "{ " + ", ".join(parts) + " }"
 
 
-def manifest_text(keys, digest, entries):
+def lua_value(v):
+    """A text entry's value as Lua, a table's fields in TEXT_FIELDS' order."""
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        text = lua_number(v)
+        return text[:-2] if text.endswith(".0") else text
+    if isinstance(v, str):
+        return '"%s"' % v.replace("\\", "\\\\").replace('"', '\\"')
+    if isinstance(v, list):
+        return "{ " + ", ".join(lua_value(x) for x in v) + " }"
+    order = [k for k in (("x", "y", "color") if "x" in v else TEXT_FIELDS) if k in v]
+    return "{ " + ", ".join("%s = %s" % (k, lua_value(v[k])) for k in order) + " }"
+
+
+def manifest_text(keys, digest, entries, written):
     lines = [
         "-- Manners -- the looks that have a picture on the options window's cards.",
         "--",
@@ -273,23 +432,39 @@ def manifest_text(keys, digest, entries):
         "ns.Looks.previewIcon = {",
     ]
     lines += ["\t%s = %s," % (key, lua_entry(entries[key])) for key in sorted(entries)]
+    lines += [
+        "}",
+        "-- Where each look writes its two lines in its picture, and how: the rectangle as",
+        "-- fractions of the picture, the justification, the size and the shadow's offsets as",
+        "-- fractions of its height, the colour, an outline, and the look's own face (`latin`:",
+        "-- drawn only on a client whose alphabet has it). The pictures carry no text: the",
+        "-- window writes the name and the reason there live, in the player's language.",
+        "ns.Looks.previewText = {",
+    ]
+    for key in sorted(written):
+        lines.append("\t%s = {" % key)
+        for name, _ in LINES:
+            if name in written[key]:
+                lines.append("\t\t%s = %s," % (name, lua_value(written[key][name])))
+        lines.append("\t},")
     lines += ["}", 'ns.Looks.previewHash = "%s"' % digest, ""]
     return "\n".join(lines)
 
 
-def read_icons():
-    """The icon entries Looks/Previews.lua holds, as a dict, or None."""
+def read_icons(table="previewIcon"):
+    """The entries of one table of Looks/Previews.lua (the icons' by default), as a
+    dict, or None."""
     try:
         with open(MANIFEST, encoding="utf-8") as f:
             text = f.read()
     except OSError:
         return None
     lua = lua51.LuaRuntime(unpack_returned_tuples=True)
-    load = lua.eval("function(src) local ns = { Looks = {} } "
+    load = lua.eval("function(src, table) local ns = { Looks = {} } "
                     "local chunk = assert(loadstring(src, '=Previews.lua')) chunk('Manners', ns) "
-                    "return ns.Looks.previewIcon end")
+                    "return ns.Looks[table] end")
     try:
-        held = to_py(load(text))
+        held = to_py(load(text, table))
     except Exception:  # a manifest that does not run holds nothing
         return None
     if held == []:
@@ -360,10 +535,15 @@ def check():
     if not problems:
         snaps = snapshots(keys)
         entries = icons(snaps)
+        lines = texts(snaps)
         held = read_icons()
+        held_text = read_icons("previewText")
         if held is None or not same_icons(held, entries):
             problems.append("Looks/Previews.lua does not say where the looks draw their icons as they do now")
-        elif digest != fingerprint(keys, snaps, entries):
+        elif held_text is None or not same_icons(held_text, lines):
+            problems.append("Looks/Previews.lua does not say where the looks write their name and reason "
+                            "and how, as they do now")
+        elif digest != fingerprint(keys, snaps, entries, lines):
             problems.append("the pictures were drawn from something that has changed since")
     for p in problems:
         print("  " + p)
@@ -393,41 +573,165 @@ def check_tile(rp, snap, key, entry):
                              "(an animation moves it?)" % (key, name, got, entry[name]))
 
 
-def draw(keys, out, entries):
-    """Every look's picture, into `out`. `entries` is where each look's icon is
-    recorded to sit: the tile drawn there is what the live icon covers, so the two
-    are held to each other."""
-    import numpy as np  # noqa: F401 - render_prompt needs it, and says so here first
+def check_text(rp, snap, key, name, which, entry):
+    """A line's text was laid out where `entry` says (animations applied), at the
+    alpha the frames above it give it: the picture leaves it out, and the window
+    writes it there."""
+    placed = rp.draw_state.placed.get(snap.get(which))
+    if entry is None or placed is None:
+        if entry is not None or placed is not None:
+            raise SystemExit("%s: the %s line is %s in the picture and %s in Looks/Previews.lua" % (
+                key, name, "laid out" if placed else "not laid out", "recorded" if entry else "not recorded"))
+        return
+    tree = rp.Tree(snap)
+    brect = tree.rect(snap["button"])
+    cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get("lift") or 0)
+    left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2
+    drawn = ((placed[0] - left) / VIEW[0], (top - placed[3]) / VIEW[1],
+             (placed[2] - left) / VIEW[0], (top - placed[1]) / VIEW[1])
+    for field, got in zip(("l", "t", "r", "b"), drawn):
+        if abs(got - entry[field]) > 10 ** -(PLACES - 1):
+            raise SystemExit("%s: the %s line is laid out at %s %.5f in the picture, its anchors say %.5f "
+                             "(an animation moves it?)" % (key, name, field, got, entry[field]))
+    alpha = rp.draw_state.alphas.get(snap.get(which))
+    expected = static_alpha(tree, tree.regions[snap[which]])
+    if alpha is None or abs(alpha - expected) > 10 ** -(PLACES - 1):
+        raise SystemExit("%s: the %s line is drawn at alpha %s, its frames say %.5f (an animation fades it?)"
+                         % (key, name, alpha, expected))
+
+
+def hidden(snap, lines):
+    """The regions left out of a look's picture: the lines Looks/Previews.lua says
+    the window writes there."""
+    return {snap[which] for name, which in LINES if name in (lines or {}) and snap.get(which) is not None}
+
+
+def bare_picture(rp, snap, entry):
+    """A look's picture as it is shipped: without the lines `entry` says the window
+    writes there."""
+    return picture(rp, snap, hidden(snap, entry))
+
+
+def picture(rp, snap, skip):
+    """One look's picture as an image: the 248 x 62 unit view round the panel, cut
+    out of the tile and brought to SIZE. `skip`: the regions not painted."""
     from PIL import Image
+
+    tile = rp.draw_state(snap, rp.ZOOM * rp.SUPER, skip=skip)
+    # The button's middle is where the picture is framed (render_prompt's
+    # draw_state): half the tile across, and this far down.
+    # The picture is drawn at SUPER times what it is returned at.
+    scale = tile.width / rp.TILE_W
+    cx = rp.TILE_W / 2 * scale
+    cy = (rp.TILE_H * 0.18 + 22) * scale
+    half_w, half_h = VIEW[0] / 2 * scale, VIEW[1] / 2 * scale
+    view = tile.crop((int(round(cx - half_w)), int(round(cy - half_h)),
+                      int(round(cx + half_w)), int(round(cy + half_h))))
+    return view.resize(SIZE, Image.LANCZOS).convert("RGBA")
+
+
+def renderer():
+    """render_prompt, set up for drawing."""
+    import numpy as np  # noqa: F401 - render_prompt needs it, and says so here first
+    from PIL import Image  # noqa: F401
 
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     import render_prompt as rp
     # Lua 5.1, which is what the game runs, as render_options does.
     rp.lupa = lua51
-    px = rp.ZOOM * rp.SUPER
+    return rp
+
+
+def draw(keys, out, entries, lines):
+    """Every look's picture, into `out`. `entries` is where each look's icon is
+    recorded to sit: the tile drawn there is what the live icon covers, so the two
+    are held to each other. `lines` is where its name and reason sit: they are not
+    drawn at all, the window writes them live, so what is recorded is checked
+    against where they would have been laid out."""
+    rp = renderer()
     written = []
     for key in keys:
         R = rp.load_states(ROOT, style=key)
         snap = rp.to_py(R["run"](STATE, None))
-        tile = rp.draw_state(snap, px)
-        # The button's middle is where the picture is framed (render_prompt's
-        # draw_state): half the tile across, and this far down.
-        # The picture is drawn at SUPER times what it is returned at.
-        scale = tile.width / rp.TILE_W
-        cx = rp.TILE_W / 2 * scale
-        cy = (rp.TILE_H * 0.18 + 22) * scale
-        half_w, half_h = VIEW[0] / 2 * scale, VIEW[1] / 2 * scale
-        view = tile.crop((int(round(cx - half_w)), int(round(cy - half_h)),
-                          int(round(cx + half_w)), int(round(cy + half_h))))
-        view = view.resize(SIZE, Image.LANCZOS).convert("RGBA")
+        view = bare_picture(rp, snap, lines.get(key))
+        skip = hidden(snap, lines.get(key))
         view.save(os.path.join(out, "Preview_%s.tga" % key), "TGA", compression=None)
         written.append(key)
         check_tile(rp, snap, key, entries.get(key))
+        for name, which in LINES:
+            check_text(rp, snap, key, name, which, (lines.get(key) or {}).get(name))
         errors = snap.get("errors") or 0
-        print("  Textures/Previews/Preview_%-12s %dx%d%s" % (key + ".tga", SIZE[0], SIZE[1],
-                                                            "  %d guarded error(s): %s" % (
-                                                                errors, snap.get("firstError")) if errors else ""))
+        print("  Textures/Previews/Preview_%-12s %dx%d  text layers skipped: %s%s" % (
+            key + ".tga", SIZE[0], SIZE[1], ", ".join(n for n, w in LINES if snap.get(w) in skip) or "none",
+            "  %d guarded error(s): %s" % (errors, snap.get("firstError")) if errors else ""))
     return written
+
+
+# The picture's text is looked for where a pixel differs by more than this (of 255)
+# between a drawing with the lines and one without.
+INK = 24
+# What the lines may leave beyond their rectangles, in pixels of the picture: the
+# glyphs' overhang and the shadow.
+OVERHANG = 4
+
+
+def check_bare(keys):
+    """Do the shipped pictures carry no text? Draws every look twice, with its name
+    and reason lines and without, and holds the files to the second: the lines'
+    pixels (what differs between the two drawings) lie inside the rectangles
+    Looks/Previews.lua records for them, there are some, the file is the drawing
+    without them, and it is not the drawing with them. Needs Pillow and numpy."""
+    import numpy as np
+    from PIL import Image
+
+    rp = renderer()
+    snaps = snapshots(keys)
+    lines = texts(snaps)
+    held = read_icons("previewText")
+    if held is None or not same_icons(held, lines):
+        print("  Looks/Previews.lua does not say where the looks write their name and reason as they do now")
+        print("run python tools/make_look_previews.py")
+        return 1
+    problems = []
+    for key in keys:
+        entry = lines.get(key) or {}
+        snap = rp.to_py(rp.load_states(ROOT, style=key)["run"](STATE, None))
+        bare = np.asarray(bare_picture(rp, snap, entry)).astype(int)
+        full = np.asarray(picture(rp, snap, set())).astype(int)
+        path = os.path.join(SHOTS, "Preview_%s.tga" % key)
+        if not os.path.exists(path):
+            problems.append("%s: Textures/Previews/Preview_%s.tga is missing" % (key, key))
+            continue
+        shipped = np.asarray(Image.open(path).convert("RGBA")).astype(int)
+        # Where the lines are allowed to be: their rectangles, a little over.
+        room = np.zeros(bare.shape[:2], dtype=bool)
+        for rect in entry.values():
+            x0 = max(0, int(rect["l"] * SIZE[0]) - OVERHANG)
+            x1 = min(SIZE[0], int(rect["r"] * SIZE[0] + 0.999) + OVERHANG)
+            y0 = max(0, int(rect["t"] * SIZE[1]) - OVERHANG)
+            y1 = min(SIZE[1], int(rect["b"] * SIZE[1] + 0.999) + OVERHANG)
+            room[y0:y1, x0:x1] = True
+        ink = np.abs(full - bare).max(axis=2) > INK
+        if entry and not ink.any():
+            problems.append("%s: drawing the name and reason lines changes nothing in the picture" % key)
+        if (ink & ~room).any():
+            ys, xs = np.nonzero(ink & ~room)
+            problems.append("%s: the lines draw outside their recorded rectangles (%d pixels, from x %d y %d)" % (
+                key, len(xs), xs.min(), ys.min()))
+        left = np.abs(shipped - bare).max(axis=2) > INK
+        if left.any():
+            ys, xs = np.nonzero(left)
+            problems.append("%s: the picture differs from the drawing without its text in %d pixels "
+                            "(from x %d y %d): text baked in?" % (key, len(xs), xs.min(), ys.min()))
+        elif entry and not (np.abs(shipped - full).max(axis=2) > INK).any():
+            problems.append("%s: the picture is the drawing with its text" % key)
+    for p in problems:
+        print("  " + p)
+    if problems:
+        print("run python tools/make_look_previews.py")
+        return 1
+    print("  %d pictures bare: no text in them, and the text lies where Looks/Previews.lua records it" % len(keys))
+    return 0
 
 
 def main():
@@ -438,19 +742,24 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--out", help="where to write the files (default: Textures/Previews and Looks/Previews.lua)")
     ap.add_argument("--check", action="store_true", help="say whether the shipped pictures are current")
+    ap.add_argument("--check-bare", action="store_true",
+                    help="say whether the shipped pictures carry no text (draws; needs Pillow and numpy)")
     args = ap.parse_args()
     if args.check:
         sys.exit(check())
+    if args.check_bare:
+        sys.exit(check_bare(registered()))
     keys = registered()
     out = os.path.abspath(args.out) if args.out else SHOTS
     os.makedirs(out, exist_ok=True)
     snaps = snapshots(keys)
     entries = icons(snaps)
-    draw(keys, out, entries)
-    digest = fingerprint(keys, snaps, entries)
+    lines = texts(snaps)
+    draw(keys, out, entries, lines)
+    digest = fingerprint(keys, snaps, entries, lines)
     target = os.path.join(out, "Previews.lua") if args.out else MANIFEST
     with open(target, "w", encoding="utf-8", newline="") as f:
-        f.write(manifest_text(keys, digest, entries))
+        f.write(manifest_text(keys, digest, entries, lines))
     print("  %s" % os.path.relpath(target, ROOT) if not args.out else "  " + target)
 
 

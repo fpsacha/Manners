@@ -531,7 +531,10 @@ def coverage(x0f, y0f, x1f, y1f):
     return x0, y0, cov
 
 
-def draw_state(snap, px=ZOOM * SUPER, hover=False):
+def draw_state(snap, px=ZOOM * SUPER, hover=False, skip=()):
+    """The snapshot drawn. `skip`: ids of regions to lay out and record but not paint
+    (tools/make_look_previews.py leaves the two text lines out of the cards' pictures,
+    which the options window writes live in the player's language)."""
     tree = Tree(snap)
     regions = tree.regions
     now = snap["now"]
@@ -555,6 +558,8 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
     # (left, bottom, right, top): tools/make_look_previews.py reads where the
     # spell icon sits from here.
     draw_state.placed = {}
+    # And the alpha each was drawn at, animations applied.
+    draw_state.alphas = {}
     canvas = Canvas(int(TILE_W * px), int(TILE_H * px))
     canvas.backdrop(snap.get("backdrop"))
 
@@ -669,6 +674,9 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
             continue
         L, B, R, T = place(r, rect)
         draw_state.placed[r["id"]] = (L, B, R, T)
+        draw_state.alphas[r["id"]] = a
+        if r["id"] in skip:
+            continue
         x0, y0 = to_px(L, T)
         x1, y1 = to_px(R, B)
         if r["kind"] == "FontString":
