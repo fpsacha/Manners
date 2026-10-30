@@ -33,7 +33,11 @@ ns.Looks.previewIcon = {
 -- fractions of the picture, the justification, the size and the shadow's offsets as
 -- fractions of its height, the colour, an outline, and the look's own face (`latin`:
 -- drawn only on a client whose alphabet has it). The pictures carry no text: the
--- window writes the name and the reason there live, in the player's language.
+-- window writes the name and the reason there live, in the player's language. A
+-- reason line the look sets in a tag of its own (`pill`) has the tag's edges, how far
+-- it reaches past the words on either side, its caps' width of its height, and its
+-- layers, each the look's own file as a three-slice in the look's colour: the window
+-- draws it round the live words, as wide as they are.
 ns.Looks.previewText = {
 	arcane = {
 		name = { l = 0.24597, t = 0.29032, r = 0.90323, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
@@ -57,7 +61,7 @@ ns.Looks.previewText = {
 	},
 	luxe = {
 		name = { l = 0.28629, t = 0.25, r = 0.90323, b = 0.45968, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
-		reason = { l = 0.31653, t = 0.56935, r = 0.87298, b = 0.73065, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.857, 0.545, 1 } },
+		reason = { l = 0.31653, t = 0.56935, r = 0.87298, b = 0.73065, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.857, 0.545, 1 }, pill = { t = 0.52903, b = 0.77097, lead = 0.12097, tail = 0.12097, cap = 0.5, layers = { { file = "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_Pill", color = { 0.2, 0.156, 0.06, 0.9 } }, { file = "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_PillEdge", color = { 1, 0.78, 0.3, 0.5 } } } } },
 	},
 	minimal = {
 		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
@@ -72,4 +76,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.25806, t = 0.5329, r = 0.89516, b = 0.69419, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.768, 0.444, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "c7dc50ec175fb14c80f30a5ba25fd51418d0112885acf753215acd1eff577da3"
+ns.Looks.previewHash = "ccf3379ab0f9649e98da0ce2633fedf36c302bdadd565beb0b67a82a0737ae7d"

@@ -600,6 +600,10 @@ function R.run(key, atOverride)
 		icon = icon and icon._serial,
 		name = regions.name and regions.name._serial,
 		sub = regions.sub and regions.sub._serial,
+		-- How wide the reason line's words measure to the prompt, which is
+		-- what a look that sets them in a tag of their own (Luxe) sized the
+		-- tag from: the tool reads how far the tag reaches past the words.
+		subWidth = regions.sub and regions.sub.GetStringWidth and regions.sub:GetStringWidth() or nil,
 		defaultFont = defaultFont,
 		now = Mock.now,
 		title = state.title,
