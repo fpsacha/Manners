@@ -514,6 +514,8 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-list.png` | the prompt with the next four under it, the cursor on the second name: its wash lit and its tooltip up, and what each click does |
 | `manners-options.png` | the options window on Who to buff for a paladin whose buff order is Wisdom, Kings, Might ..., with a ring on the arrows and on Move the prompt |
 | `manners-yourself.png` | three prompts for "You": a mage's armor, a rogue's poison for the main hand, a mage's own Arcane Intellect |
+| `manners-actionbar.png` | the prompt (Arcane) with a key on its chip, a row of the game's action bar slots with the Manners macro on one -- the spell the prompt would cast, part way through a cooldown -- and the prompt with a controller button's glyph on its chip |
+| `manners-tooltip.png` | the prompt twice with its tooltip above it: Short, the default, and the Full one with Shift held; the setting's choices and places named from the options model |
 
 These are **renders of the addon, not captures from the game**, and nothing
 about the prompt, the ledger or the options window is drawn in this script. It
@@ -525,15 +527,18 @@ Settled, the buff order's own move, the row's own `OnEnter`), draws them with
 result over a painted dusk. When the addon's look changes, re-run this and commit
 the images.
 
-Four things are its own. The spell icons are painted emblems rather than the
-renderers' initials -- Blizzard's icons are not ours to ship, and Arcane
-Intellect's initials read as "AI" -- the page icons of the options window's
-sidebar likewise, and the backdrop and captions are painted here. And three
-things are laid over the addon's drawing from what it said and where it put
+Four things are its own. The spell icons are the game's own where `tools/icons`
+keeps them and painted emblems elsewhere, rather than the renderers' initials
+(Arcane Intellect's initials read as "AI"), the page icons of the options
+window's sidebar likewise, and the backdrop and captions are painted here. And
+five things are laid over the addon's drawing from what it said and where it put
 things: the tooltip's box (its words and colours are what the addon handed
-`GameTooltip`, recorded as it called `AddLine`; it hangs from the name's top
-right, as `ANCHOR_RIGHT` does), a mouse pointer, and the gold rings and numbers
-on the options window, placed from the frame tree.
+`GameTooltip`, recorded as it called `AddLine`; it stands over the prompt's
+button, as `PlaceTooltip` puts it), a mouse pointer, the gold rings and numbers
+on the options window, placed from the frame tree, a row of the game's action bar
+slots (the Manners slot's icon is the prompt's own, the spell a press would
+cast), and a controller button's glyph where the prompt's key chip holds the
+client's inline atlas for it, which the renderer has no art for.
 
 `--strict` writes nothing if any picture would show something other than what
 it claims:
@@ -550,6 +555,11 @@ it claims:
 - a ledger row the queue disagrees with -- a buff given to a class it would
   never offer one to, or a favour called beyond anything you cast when it is
   not;
+- a prompt tooltip that no longer says what its caption claims (the Short one
+  its hint, the Full one what the clicks do), a setting whose choices are not
+  the four the caption names, a key chip that does not read the bound key or
+  hold the controller button's glyph, or a bar slot whose icon is not one
+  `tools/icons` keeps;
 - a line the client would cut with an ellipsis;
 - a translated line still in English;
 - a character the face would draw as a box, or no TrueType face at all.
