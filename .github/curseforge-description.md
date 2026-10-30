@@ -95,6 +95,8 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 - **On an action bar.** *Put Manners on an action bar* on Start here (or `/manners macro`) puts the Manners macro on your cursor: drop it on any slot of any bar. The slot shows the spell a press would cast, with its cooldown and range.
 - **Controllers.** Works with the game's own controller support: bind a controller button to *Buff the prompted player*, or put the macro on a bar your controller reaches. The prompt shows the button's picture instead of a key name.
 
+![The prompt with a key on its chip, a row of action bar slots with the Manners macro on one showing the spell a press would cast with its cooldown sweep, and the prompt with a controller button's picture on its chip](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-actionbar.png)
+
 ### Languages and clients
 
 English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese, whichever your client runs in.
@@ -129,6 +131,9 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 - Blizzard does not let an addon cast on its own: nothing is cast until you press the key or click. Manners decides; the game casts.
 - It cannot see line of sight, so a buff can still fail round a corner.
 - Hovering the prompt or a name in the list shows a short tooltip; hold Shift for the full one, or choose Full, Shift only or Off and where it goes under Look.
+
+![The prompt twice with its tooltip above it: the Short one with the name, the spell, why they are offered and Hold Shift for more; the Full one with Shift held, saying what the press and each click do](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-tooltip.png)
+
 - In a fight the prompt keeps what the fight found, and names in the list cannot be clicked until it ends.
 - Passers-by are seen through the game's friendly nameplates. With them off Manners sees almost nobody outside your group; the *Who to buff* tab says so and has a button to turn them on.
 

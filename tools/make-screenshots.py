@@ -8,10 +8,13 @@ ledger or the options window is drawn here. tools/render_prompt.py,
 tools/render_ledger.py and tools/render_options.py load the addon on the mock
 client, put it into a state and draw the frame tree it built; this file only
 chooses the states, lays the results out on a painted backdrop and writes the
-captions. Three things are laid on afterwards, none of them the addon's to
+captions. Five things are laid on afterwards, none of them the addon's to
 draw: a tooltip's box and a mouse pointer (the words in the box are what the
-addon told GameTooltip, with its colours), and a ring round a control of the
-window (found in the frame tree).
+addon told GameTooltip, with its colours), a ring round a control of the
+window (found in the frame tree), a row of action bar slots (the game's, not
+the addon's; the Manners slot shows the spell the prompt would cast, which is
+the prompt's own icon), and a controller button's glyph where the prompt's key
+chip holds the client's inline atlas for it (the renderer has no atlas art).
 
     python tools/make-screenshots.py            # into .github/media
     python tools/make-screenshots.py --strict   # refuse to draw anything doubtful
@@ -29,6 +32,8 @@ What it writes, all 1280 pixels wide:
     manners-list.png       the list under the prompt, a name lit and its tooltip up
     manners-options.png    the options window on Who to buff, a buff order of its own
     manners-yourself.png   three prompts for the player's own buffs
+    manners-actionbar.png  the prompt on a key, the Manners macro on an action bar, and on a controller button
+    manners-tooltip.png    the prompt's Short tooltip above it, and the Full one with Shift held
 
 Every player name is invented. Real names from a live session once reached a
 draft of these images; they belong to real people and were scrubbed. Keep it
@@ -53,6 +58,7 @@ CJK face: Microsoft YaHei on Windows, Noto Sans CJK on Linux (fonts-noto-cjk).
 """
 import argparse
 import os
+import re
 import sys
 
 import numpy as np
@@ -175,6 +181,7 @@ local realUnitClass, realPowerMax = UnitClass, UnitPowerMax
 local realKnown, realPlayerSpell = IsSpellKnown, IsPlayerSpell
 local realLevel, realInventoryItem = rawget(_G, "UnitLevel"), rawget(_G, "GetInventoryItemID")
 local realTip = { GameTooltip.SetOwner, GameTooltip.AddLine, GameTooltip.AddDoubleLine }
+local realShift, realBindingText = rawget(_G, "IsShiftKeyDown"), rawget(_G, "GetBindingText")
 
 local function people(names)
 	Mock.unitNames = names
@@ -329,6 +336,56 @@ local function hover(ns, n)
 	onEnter(button)
 	FrameTree.settle()
 	ShotHover = { id = button._serial, row = n }
+end
+
+-- The mouse on the prompt itself: its own OnEnter puts its tooltip up, as
+-- deep as the setting and Shift allow (Prompt/Button.lua TooltipDepth).
+local function hoverPrompt(ns)
+	local button = ns.Prompt:GetButton()
+	local onEnter = button:GetScript("OnEnter")
+	onEnter(button)
+	FrameTree.settle()
+	ShotHover = { id = button._serial }
+end
+
+-- The tooltip's choices as the options model offers them, for the picture
+-- that names them: what each is called and the order they are listed in, and
+-- the two places it can go.
+local function tipChoices(ns)
+	local look = ns.optionsTable and ns.optionsTable.args.appearance
+	local tip = look and look.args.tooltip
+	local where = look and look.args.tooltipPosition
+	ShotTipChoices = tip and where and {
+		values = tip.values, sorting = tip.sorting, desc = tip.desc,
+		positions = where.values, positionsDesc = where.desc,
+	} or false
+end
+
+-- The prompt with its tooltip up: Short, the default, which Shift held turns
+-- into the full one. The client's own Shift is asked; the mock has none.
+local function tipped(ns, shift)
+	boot(ns, { nameplate1 = ELOWEN })
+	recordTooltip()
+	rawset(_G, "IsShiftKeyDown", function() return shift end)
+	owe(ns, "Elowen Thistledown")
+	settle(ns)
+	tipChoices(ns)
+	hoverPrompt(ns)
+end
+
+-- A key or a controller button bound to the prompt, in a look that shows the
+-- key (Arcane), with the client's own words for it: tests/mockmacros.lua
+-- answers GetBindingText as the client does, a pad button as the inline atlas
+-- of its glyph, which the picture paints where the chip holds it.
+local function keyed(ns, key)
+	Mock.bindings = { [key] = "CLICK MannersPrompt:LeftButton" }
+	rawset(_G, "GetBindingText", Mock.bindingText)
+	boot(ns, { nameplate1 = ELOWEN })
+	ns.db.profile.prompt.style = "arcane"
+	owe(ns, "Elowen Thistledown")
+	settle(ns)
+	ns.ClampSettings()
+	ShotStyle = ns.db.profile.prompt.style
 end
 
 -- A weapon in each hand and what the bags hold, as the client answers about
@@ -492,6 +549,12 @@ local added = {
 		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
 		settle(ns)
 	end },
+	-- The prompt's own tooltip, Short and, with Shift held, Full.
+	{ key = "shot-tip-short", at = 0.85, setup = function(ns) tipped(ns, false) end },
+	{ key = "shot-tip-full", at = 0.85, setup = function(ns) tipped(ns, true) end },
+	-- A key on the prompt, and a controller's first face button.
+	{ key = "shot-key", at = 0.85, setup = function(ns) keyed(ns, "F") end },
+	{ key = "shot-pad", at = 0.85, setup = function(ns) keyed(ns, "PAD1") end },
 	-- Four of the reasons on screen at once, in either palette: the four the
 	-- caption names.
 	{ key = "shot-palette-standard", at = 0.85, setup = function(ns)
@@ -536,8 +599,10 @@ local function restore()
 	rawset(_G, "C_Item", nil)
 	rawset(_G, "UnitLevel", realLevel)
 	rawset(_G, "GetInventoryItemID", realInventoryItem)
+	rawset(_G, "IsShiftKeyDown", realShift)
+	rawset(_G, "GetBindingText", realBindingText)
 	GameTooltip.SetOwner, GameTooltip.AddLine, GameTooltip.AddDoubleLine = realTip[1], realTip[2], realTip[3]
-	ShotTip, ShotHover, ShotQueue = nil, nil, nil
+	ShotTip, ShotHover, ShotQueue, ShotTipChoices = nil, nil, nil, nil
 end
 for _, state in ipairs(added) do
 	local setup = state.setup
@@ -745,6 +810,7 @@ def snap_of(R, lua, key, *args):
     lua.globals().ShotQueue = None
     lua.globals().ShotHover = None
     lua.globals().ShotTip = None
+    lua.globals().ShotTipChoices = None
     try:
         snap = R["run"](key, *args)
     except Exception as e:  # noqa: BLE001 - a Lua error is a state that cannot be built
@@ -865,9 +931,23 @@ rp.Canvas.image = _keep_image
 _cut = []
 _draw_text = rp.draw_text
 
+# An inline atlas in a line: |A:name:height:width|a, which the client draws as a
+# picture in the line (a controller button's glyph on a key chip). The renderer
+# has no atlas art and would draw the markup as letters, so the markup is left
+# out here, the region noted, and the picture paints a glyph where it was.
+ATLAS = re.compile(r"\|A:([^:|]*):(\d+):(\d+)[^|]*\|a")
+_atlases = []
+
 
 def _noting_cuts(canvas, tree, r, box, alpha, px, grown=1.0):
     text = r.get("text")
+    if text is not None and ATLAS.search(str(text)):
+        _atlases.append(r["id"])
+        bare = ATLAS.sub("", str(text))
+        if not bare.strip():
+            return
+        r = dict(r, text=bare)
+        text = bare
     width = box[2] - box[0]
     if text is not None and r.get("wordWrap") is False and width > 0:
         font = r.get("font") or {}
@@ -895,6 +975,7 @@ class Layer:
 
     def __init__(self, draw, key, frame=None):
         del _cut[:]
+        del _atlases[:]
         _matte[0] = 0.0
         draw()
         black = _last[0]
@@ -904,6 +985,8 @@ class Layer:
         _matte[0] = None
         for line in _cut:
             problem("%s: a line is drawn cut: %s" % (key, line))
+        # The lines holding an inline atlas, left blank for a glyph.
+        self.atlases = sorted(set(_atlases))
         add, through = black, np.clip(white - black, 0, 1)
         covered = (add.max(axis=2) > 1.5 / 255) | (through.min(axis=2) < 1 - 1.5 / 255)
         ys, xs = np.nonzero(covered)
@@ -1010,6 +1093,14 @@ class Sheet:
             cx += face.getlength(piece) / (SS * 2)
         return cx - x
 
+    def picture(self, x, y, rgb):
+        """An opaque picture, `rgb` an (h, w, 3) array at the sheet's own
+        resolution, laid with its top left at x, y in output pixels."""
+        h, w = rgb.shape[:2]
+        X, Y = int(round(x * SS)), int(round(y * SS))
+        self.add[Y:Y + h, X:X + w] = rgb
+        self.alpha[Y:Y + h, X:X + w] = 1.0
+
 
 def measure_line(raw, size, bold=False):
     """How wide `raw` is drawn at `size` output pixels, colour codes left out."""
@@ -1047,22 +1138,22 @@ def tooltip_sheet(tip, zoom):
     natural = 0
     first = True
     for line in tip["lines"]:
+        # The game sets a tooltip's first line, single or double, in its
+        # larger header face.
+        size, bold = (head, True) if first else (body, False)
         if "text" in line:
             colour = (line.get("r") or 1, line.get("g") or 1, line.get("b") or 1)
-            if first:
-                rows.append(("one", head, True, (line["text"], colour)))
-                natural = max(natural, measure_line(line["text"], head, True))
-            elif line.get("wrap"):
+            if line.get("wrap") and not first:
                 rows.append(("wrap", body, False, (line["text"], colour)))
             else:
-                rows.append(("one", body, False, (line["text"], colour)))
-                natural = max(natural, measure_line(line["text"], body))
+                rows.append(("one", size, bold, (line["text"], colour)))
+                natural = max(natural, measure_line(line["text"], size, bold))
         else:
             left = (line.get("lr") or 1, line.get("lg") or 1, line.get("lb") or 1)
             right = (line.get("rr") or 1, line.get("rg") or 1, line.get("rb") or 1)
-            rows.append(("two", body, False, (line["left"], left, line["right"], right)))
-            natural = max(natural, measure_line(line["left"], body) + 24 * u
-                          + measure_line(line["right"], body))
+            rows.append(("two", size, bold, (line["left"], left, line["right"], right)))
+            natural = max(natural, measure_line(line["left"], size, bold) + 24 * u
+                          + measure_line(line["right"], size, bold))
         first = False
     # Wrapped lines break at the box's width, which is the widest line that
     # does not wrap, so the box is no wider than its widest unwrapped line.
@@ -1094,11 +1185,104 @@ def tooltip_sheet(tip, zoom):
         x = 1 + pad
         if kind == "two":
             sheet.text(x, y, payload[0], size, payload[1], bold)
-            w = measure_line(payload[2], size)
+            w = measure_line(payload[2], size, bold)
             sheet.text(1 + pad + inner - w, y, payload[2], size, payload[3], bold)
         else:
             sheet.text(x, y, payload[0], size, payload[1], bold)
         y += size + gap
+    return sheet
+
+
+def actionbar_sheet(zoom, slots):
+    """A short row of action bar slots as the game draws its bars: square
+    slots on a dark bevelled frame, the icon inset with a faint gloss, the
+    key in the top right corner and a macro's name along the bottom; a slot
+    on cooldown has the game's dark sweep over what is left of it. Nothing
+    here is the addon's: the bar is the game's, and the only thing of
+    Manners on it is the spell its macro stands for. `slots` is a list of
+    (icon file or None, key text, macro name or None, cooldown left 0..1)."""
+    u = zoom
+    size, gap, pad = 36 * u, 6 * u, 5 * u
+    sheet = Sheet(len(slots) * size + (len(slots) - 1) * gap + pad * 2, size + pad * 2)
+    for i, (file, key, name, left) in enumerate(slots):
+        x0, y0 = pad + i * (size + gap), pad
+        x1, y1 = x0 + size, y0 + size
+
+        def square(d, k, grow=0, x0=x0, y0=y0, x1=x1, y1=y1):
+            d.rounded_rectangle([(x0 - grow) * k, (y0 - grow) * k, (x1 + grow) * k, (y1 + grow) * k],
+                                radius=(2.5 * u + grow) * k, fill=255)
+        # The frame: a dark edge, a grey bevel, the slot's floor.
+        sheet.paint(lambda d, k: square(d, k, 2.2 * u), (0.03, 0.03, 0.04), 0.9)
+        sheet.paint(lambda d, k: square(d, k, 1.2 * u), (0.36, 0.36, 0.40))
+        sheet.paint(square, (0.07, 0.07, 0.09))
+        if file is not None:
+            inset = 1.5 * u
+            w = int(round((size - 2 * inset) * SS))
+            sheet.picture(x0 + inset, y0 + inset, game_tile(file, w, w))
+
+            def gloss(d, k, x0=x0, y0=y0, x1=x1):
+                d.rounded_rectangle([(x0 + inset) * k, (y0 + inset) * k, (x1 - inset) * k, (y0 + size * 0.42) * k],
+                                    radius=2 * u * k, fill=255)
+            sheet.paint(gloss, (1.0, 1.0, 1.0), 0.10)
+        if left:
+            # The sweep: what is still to run, darkened clockwise back to
+            # twelve o'clock, and a bright edge where the hand is.
+            cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+            hand = -90 + 360 * (1 - left)
+
+            def sector(d, k, x0=x0, y0=y0, x1=x1, y1=y1):
+                r = size
+                d.pieslice([(cx - r) * k, (cy - r) * k, (cx + r) * k, (cy + r) * k], hand, 270, fill=255)
+                # Clipped to the slot: everything outside it taken back.
+                d.rectangle([0, 0, sheet.w * k, y0 * k], fill=0)
+                d.rectangle([0, y1 * k, sheet.w * k, sheet.h * k], fill=0)
+                d.rectangle([0, 0, x0 * k, sheet.h * k], fill=0)
+                d.rectangle([x1 * k, 0, sheet.w * k, sheet.h * k], fill=0)
+            sheet.paint(sector, (0.0, 0.0, 0.0), 0.55)
+            a = np.radians(hand)
+            ex, ey = cx + np.cos(a) * size * 0.55, cy + np.sin(a) * size * 0.55
+
+            def edge(d, k):
+                d.line([(cx * k, cy * k), (ex * k, ey * k)], fill=255, width=int(1.4 * u * k))
+                d.rectangle([0, 0, sheet.w * k, y0 * k], fill=0)
+                d.rectangle([0, y1 * k, sheet.w * k, sheet.h * k], fill=0)
+                d.rectangle([0, 0, x0 * k, sheet.h * k], fill=0)
+                d.rectangle([x1 * k, 0, sheet.w * k, sheet.h * k], fill=0)
+            sheet.paint(edge, (1.0, 0.92, 0.70), 0.85)
+        # The key, top right, and the macro's name along the bottom, both in
+        # the small white the game uses.
+        ks = 10 * u
+        kw = measure_line(key, ks)
+        sheet.text(x1 - 3 * u - kw + 0.7 * u, y0 + 2 * u + 1.2 * u, key, ks, (0.0, 0.0, 0.0))
+        sheet.text(x1 - 3 * u - kw, y0 + 2 * u, key, ks, (1.0, 1.0, 1.0))
+        if name:
+            ns_ = 8.5 * u
+            nw = measure_line(name, ns_)
+            nx, ny = (x0 + x1) / 2 - nw / 2, y1 - ns_ - 3.5 * u
+            sheet.text(nx + 0.7 * u, ny + 1.2 * u, name, ns_, (0.0, 0.0, 0.0))
+            sheet.text(nx, ny, name, ns_, (1.0, 1.0, 1.0))
+    return sheet
+
+
+def gamepad_sheet(size):
+    """A controller's face button, `size` output pixels across: a round dark
+    button with a pale rim and its letter, drawn where the prompt's key chip
+    holds the client's atlas for the button (which the renderer cannot
+    draw). A stand-in for the game's own glyph, as the emblems are for
+    icons it does not keep."""
+    sheet = Sheet(size + 4, size + 4)
+    cx = cy = 2 + size / 2
+    r = size / 2
+
+    def disc(d, k, grow=0):
+        d.ellipse([(cx - r - grow) * k, (cy - r - grow) * k, (cx + r + grow) * k, (cy + r + grow) * k], fill=255)
+    sheet.paint(lambda d, k: disc(d, k, 0.5), (0.02, 0.02, 0.03), 0.8)
+    sheet.paint(disc, (0.80, 0.84, 0.90))
+    sheet.paint(lambda d, k: disc(d, k, -size * 0.09), (0.10, 0.11, 0.14))
+
+    def letter(d, k):
+        d.text((cx * k, (cy + size * 0.02) * k), "A", font=rp.get_font(size * 0.72 * k, True), fill=255, anchor="mm")
+    sheet.paint(letter, (0.96, 0.96, 0.98))
     return sheet
 
 
@@ -1693,6 +1877,53 @@ SELF_SHOTS = [
 # list has to stand in: Wisdom moved up one place.
 ORDER_KEYS = ["wisdom", "kings", "might", "salvation", "light"]
 
+# The tooltip picture: the two states, what each tooltip has to say and what
+# it must not, and the title and line under each. Short is the default and
+# says why and no more; Shift held opens the full one, which says what the
+# press and the clicks do.
+TIPS = [
+    ("shot-tip-short", "Short, the default",
+     "The name and the spell, why they are offered, and a hint.",
+     ["Elowen Thistledown", "Buffed you -- return the favour.", "Hold Shift for more"],
+     ["Click to cast", "Right-click"]),
+    ("shot-tip-full", "Hold Shift for the full one",
+     "What the press will do, and what each click does.",
+     ["Manners", "Elowen Thistledown", "Buffed you -- return the favour.", "Click to cast",
+      "Right-click to skip", "Shift-right-click"],
+     ["Hold Shift for more"]),
+]
+# The setting's four choices, by key, in the order the options list them, and
+# the two places: the caption names them from the options model, so it can
+# never list a choice the window does not offer.
+TIP_KEYS = ["short", "full", "shift", "off"]
+TIP_PLACES = ["beside", "game"]
+
+# The keys picture: the prompt on a key, the Manners macro on a bar, and on a
+# controller button. The bar's slots: the icon file (a real one from
+# tools/icons, or None for an empty slot), the key printed on the slot, the
+# macro's name, and how much of a cooldown is left. The Manners slot's icon
+# is filled in from the prompt's own at build time: the spell a press would
+# cast, which is what the slot shows in the game.
+BAR_SLOTS = [
+    ("spell_frost_frostarmor02", "1", None, 0),
+    (None, "2", None, 0),
+    ("MANNERS", "3", "Manners", 0.42),
+    ("inv_misc_map_01", "4", None, 0),
+    ("inv_misc_pocketwatch_01", "5", None, 0),
+    (None, "6", None, 0),
+]
+KEY_COLUMNS = [
+    ("A key of your own",
+     ["Bind Buff the prompted player under",
+      "Options > Keybindings > Manners."]),
+    ("The same press on any action bar slot",
+     ["Drop the Manners macro on any slot of any bar.",
+      "The slot shows the spell a press would cast."]),
+    ("Or a controller button",
+     ["Bound like a key, with the game's own controller",
+      "support; the prompt shows the button's picture."]),
+]
+
 
 def shot_extras(lua):
     """What a state left in the Lua globals besides its tree: the queue, the
@@ -1759,6 +1990,116 @@ def build_yourself(addon_dir, snaps):
         texts = shown_texts(snap, PromptTree)
         expect_names(key, texts, ["You", word])
         check_glyphs(key, texts)
+        snaps[key] = snap
+
+
+def tip_said(tip):
+    """Every word a recorded tooltip shows, one line to a row."""
+    return "\n".join(rp.plain_text(line.get("text") or (line.get("left") or "") + "  " + (line.get("right") or ""))
+                     for line in tip.get("lines", []))
+
+
+def build_tips(addon_dir, snaps):
+    """The prompt with its tooltip up, Short and Full, each held to what its
+    caption says of it, and the setting's choices read from the options model
+    for the caption that names them."""
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
+    for key, _, _, words, never in TIPS:
+        snap, top = snap_of(R, lua, key)
+        if not snap:
+            continue
+        expect_top(key, top, "Elowen Thistledown", "owed")
+        texts = shown_texts(snap, PromptTree)
+        expect_names(key, texts, ["Elowen Thistledown"])
+        check_glyphs(key, texts)
+        got = shot_extras(lua)
+        hover, tip = got["hover"], got["tip"]
+        if not hover or not tip or tip.get("owner") != hover.get("id"):
+            problem("%s: the prompt has no tooltip up" % key)
+            continue
+        if tip.get("anchor") != "ANCHOR_NONE":
+            problem("%s: the tooltip is anchored %s; the picture sets it over the prompt, as "
+                    "Prompt/Button.lua PlaceTooltip does" % (key, tip.get("anchor")))
+        said = tip_said(tip)
+        for want in words:
+            if want not in said:
+                problem("%s: the tooltip no longer says %r, which the picture's caption rests on" % (key, want))
+        for gone in never:
+            if gone in said:
+                problem("%s: the tooltip says %r, which is not this tooltip" % (key, gone))
+        choices = rp.to_py(lua.globals().ShotTipChoices)
+        if not isinstance(choices, dict):
+            problem("%s: the options model has no Tooltip on the prompt control to name the choices from" % key)
+            continue
+        values, sorting = choices.get("values") or {}, choices.get("sorting") or []
+        if list(sorting) != TIP_KEYS or sorted(values) != sorted(TIP_KEYS):
+            problem("%s: the tooltip setting offers %s in the order %s, not %s" % (key, sorted(values), list(sorting), TIP_KEYS))
+        places = choices.get("positions") or {}
+        if sorted(places) != sorted(TIP_PLACES):
+            problem("%s: the tooltip's places are %s, not %s" % (key, sorted(places), TIP_PLACES))
+        # The caption's claim about the place: the option's own words.
+        if "clear of the prompt and its list" not in str(choices.get("positionsDesc") or ""):
+            problem("%s: the position's description no longer says the tooltip keeps clear of the prompt and its list" % key)
+        snap["shot"] = {"tip": tip, "hover": hover,
+                        "choices": [values[k] for k in TIP_KEYS if k in values],
+                        "places": [places[k] for k in TIP_PLACES if k in places]}
+        snaps[key] = snap
+
+
+def atlas_lines(snap):
+    """The shown lines of a snapshot that hold an inline atlas: a controller
+    button's glyph on a key chip."""
+    tree = PromptTree(snap)
+    out = []
+    for r in tree.regions.values():
+        if r["kind"] == "FontString" and r.get("text") and ATLAS.search(str(r["text"])):
+            if all(c.get("shown", True) for c in tree.chain(r)):
+                out.append(r)
+    return out
+
+
+def build_keys(addon_dir, snaps):
+    """The prompt in Arcane with a key bound, and with a controller button
+    bound: the chip reads the key, or holds the client's glyph for the
+    button, which the picture paints there."""
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
+    for key, chip in (("shot-key", "F"), ("shot-pad", None)):
+        lua.globals().ShotStyle = None
+        snap, top = snap_of(R, lua, key)
+        if not snap:
+            continue
+        expect_top(key, top, "Elowen Thistledown", "owed")
+        if lua.globals().ShotStyle != "arcane":
+            problem("%s: the prompt is drawn in %s, not arcane" % (key, lua.globals().ShotStyle))
+        texts = shown_texts(snap, PromptTree)
+        expect_names(key, texts, ["Elowen Thistledown"])
+        check_glyphs(key, [ATLAS.sub("", t) for t in texts])
+        glyphs = atlas_lines(snap)
+        if chip is not None:
+            if chip not in texts:
+                problem("%s: no line on the prompt reads the bound key %r" % (key, chip))
+            if glyphs:
+                problem("%s: the prompt holds a controller glyph with a keyboard key bound" % key)
+        else:
+            if len(glyphs) != 1:
+                problem("%s: the prompt shows %d controller glyph(s), not one" % (key, len(glyphs)))
+                continue
+            m = ATLAS.search(str(glyphs[0]["text"]))
+            if ATLAS.sub("", str(glyphs[0]["text"])).strip():
+                problem("%s: the key chip reads %r round the glyph; a lone button is the glyph alone"
+                        % (key, ATLAS.sub("", str(glyphs[0]["text"]))))
+            snap["shot"] = {"glyph": glyphs[0]["id"], "atlas": m.group(1), "height": int(m.group(2))}
+        # The spell the prompt would cast, whose icon the bar's Manners slot
+        # shows: a real icon, kept in tools/icons.
+        tree = PromptTree(snap)
+        icon = tree.regions.get(snap.get("icon"))
+        file = icon and icon.get("file")
+        if not icon_file(file):
+            problem("%s: the prompt's icon %s is not one tools/icons keeps, so the bar's slot could not show it"
+                    % (key, file))
+        snap.setdefault("shot", {})["icon"] = file
         snaps[key] = snap
 
 
@@ -1899,6 +2240,8 @@ def build(addon_dir):
 
     build_click(addon_dir, snaps)
     build_yourself(addon_dir, snaps)
+    build_tips(addon_dir, snaps)
+    build_keys(addon_dir, snaps)
     build_options(addon_dir, snaps)
     use_faces("enUS")
 
@@ -2221,6 +2564,135 @@ def picture_yourself(snaps):
     return board
 
 
+def fit_caption(lines, size, width, bold=False, least=13):
+    """The largest size down from `size` at which every line of `lines`
+    fits `width`, so a caption is never drawn off its column."""
+    while size > least:
+        if all(caption_face(line, size, bold).getlength(line) <= width for line in lines):
+            break
+        size -= 1
+    return size
+
+
+def picture_keys(snaps):
+    """Three columns: the prompt with a key bound, a row of the game's action
+    bar slots with the Manners macro on one (showing the spell the prompt
+    would cast, part way through a cooldown), and the prompt with a
+    controller button bound, its chip holding the button's glyph."""
+    zoom = 1.5
+    key_layer = prompt_layer("shot-key", snaps["shot-key"], zoom)
+    pad_snap = snaps["shot-pad"]
+    pad_layer = prompt_layer("shot-pad", pad_snap, zoom)
+    if pad_snap["shot"]["glyph"] not in pad_layer.atlases:
+        problem("manners-actionbar.png: the controller glyph's line was drawn as letters")
+    icon = snaps["shot-key"]["shot"]["icon"]
+    slots = [(icon if file == "MANNERS" else file, key, name, left) for file, key, name, left in BAR_SLOTS]
+    # The bar at the game's own proportion to the prompt: its slots are
+    # bigger than the prompt's icon, and the key and the macro's name on
+    # them have to read on a phone.
+    bar = actionbar_sheet(2.0, slots)
+    glyph = gamepad_sheet(pad_snap["shot"]["height"] * zoom * 1.15)
+    widths = [370, 540, 370]
+    panels = [key_layer, bar, pad_layer]
+    h = max(p.size[1] for p in panels)
+    top = 160
+    caption = 150
+    board = Board(top + h + caption, seed=53, sun=(0.50, 0.52))
+    heading(board, "On a key, a bar or a controller",
+            "Bind Buff the prompted player, drop the Manners macro on a bar, or bind a controller button.")
+    x = 0
+    for (title, lines), panel, width in zip(KEY_COLUMNS, panels, widths):
+        cx = x + width / 2
+        w, ph = panel.size
+        px, py = cx - w / 2, top + (h - ph) / 2
+        board.place(panel, px, py)
+        if panel is pad_layer:
+            # The glyph on the chip, where the client's atlas sits: the line
+            # is centred on the chip, so its middle is the glyph's.
+            left, bottom, right, gtop = PromptTree(pad_snap).rect(pad_snap["shot"]["glyph"])
+            gx, gy = pad_layer.at((left + right) / 2, (gtop + bottom) / 2)
+            board.place(glyph, px + gx - glyph.w / 2, py + gy - glyph.h / 2)
+        base = top + h + 34
+        board.shade(x + 10, base - 22, x + width - 10, base + 96, 0.42)
+        tsize = fit_caption([title], 24, width - 30, bold=True)
+        board.text((cx, base), title, tsize, bold=True, anchor="mm")
+        lsize = fit_caption(lines, 17, width - 30)
+        for i, line in enumerate(lines):
+            board.text((cx, base + 34 + i * (lsize + 7)), line, lsize, fill=(214, 206, 214), anchor="mm")
+        x += width
+    return board
+
+
+def picture_tooltips(snaps):
+    """The prompt twice, low on the page with its tooltip above it: Short, the
+    default, and with Shift held, the full one. Under them, the setting's
+    four choices and two places, named from the options model. The zoom is
+    the largest at which the two tooltips sit side by side in the faces CI
+    draws with, which are wider than these."""
+    zoom = 1.5
+    cols = []
+    for key, title, line, _, _ in TIPS:
+        snap = snaps[key]
+        layer = prompt_layer(key, snap, zoom)
+        cols.append((snap, layer, tooltip_sheet(snap["shot"]["tip"], zoom), title, line))
+    pointer = pointer_sheet(zoom)
+    # Each tooltip hangs TIP_GAP above the prompt's button, centred on it, as
+    # Prompt/Button.lua PlaceTooltip puts it for a prompt low on the screen.
+    feet = []
+    for snap, layer, tip, _, _ in cols:
+        bl, bb, br, bt = PromptTree(snap).rect(snap["button"])
+        feet.append(layer.at((bl + br) / 2, bt + 6))
+    first = 136
+    ly = max(first + tip.h - foot[1] + 10 for (_, _, tip, _, _), foot in zip(cols, feet))
+    lh = max(layer.size[1] for _, layer, _, _, _ in cols)
+    caption = 128
+    foot_lines = 92
+    board = Board(ly + lh + caption + foot_lines, seed=59, sun=(0.14, 0.52))
+    heading(board, "A tooltip that stays out of the way",
+            "Above or below the prompt, on the side with more room, clear of the prompt and its list.")
+    # The two tooltips side by side, each centred over its prompt as the addon
+    # centres it, and the room the page has left shared out round them: the
+    # faces CI draws with are wider than these, and the full tooltip's longest
+    # line is set on one line, as the game sets it.
+    edge = 16
+    free = WIDTH - 2 * edge - sum(tip.w for _, _, tip, _, _ in cols)
+    if free < 3 * 4:
+        problem("manners-tooltip.png: the two tooltips do not fit side by side (%d px over)" % -free)
+    gap = free / 3
+    tip_x = []
+    x = edge + gap
+    for _, _, tip, _, _ in cols:
+        tip_x.append(x)
+        x += tip.w + gap
+    centres = [tx + tip.w / 2 for tx, (_, _, tip, _, _) in zip(tip_x, cols)]
+    split = (centres[0] + centres[1]) / 2
+    for i, ((snap, layer, tip, title, line), foot, tx) in enumerate(zip(cols, feet, tip_x)):
+        cx = centres[i]
+        lx = cx - foot[0]
+        board.place(layer, lx, ly)
+        board.place(tip, tx, ly + foot[1] - tip.h)
+        # The pointer rests on the panel, past the words.
+        bl, bb, br, bt = PromptTree(snap).rect(snap["button"])
+        px, py = layer.at(br - 14, (bt + bb) / 2 - 4)
+        board.place(pointer, lx + px - 1, ly + py - 1)
+        base = ly + lh + 26
+        left, right = (20, split - 10) if i == 0 else (split + 10, WIDTH - 20)
+        board.shade(left, base - 14, right, base + 70, 0.42)
+        board.text((cx, base + 6), title, 24, bold=True, anchor="mm")
+        board.text((cx, base + 42), line, fit_caption([line], 17, right - left - 40), fill=(214, 206, 214),
+                   anchor="mm")
+    shot = cols[0][0]["shot"]
+    choices, places = shot["choices"], shot["places"]
+    lines = ["Tooltip on the prompt: %s or %s." % (", ".join(choices[:-1]), choices[-1]),
+             "%s, or %s." % (places[0], places[1][0].lower() + places[1][1:])]
+    base = ly + lh + caption
+    board.shade(120, base - 10, WIDTH - 120, base + 66, 0.42)
+    size = fit_caption(lines, 19, WIDTH - 200)
+    for i, line in enumerate(lines):
+        board.text((WIDTH / 2, base + 12 + i * (size + 10)), line, size, fill=(228, 222, 226), anchor="mm")
+    return board
+
+
 PICTURES = [
     ("manners-prompt.png", picture_prompt),
     ("manners-moment.png", picture_moment),
@@ -2232,6 +2704,8 @@ PICTURES = [
     ("manners-list.png", picture_click),
     ("manners-options.png", picture_options),
     ("manners-yourself.png", picture_yourself),
+    ("manners-actionbar.png", picture_keys),
+    ("manners-tooltip.png", picture_tooltips),
 ]
 
 

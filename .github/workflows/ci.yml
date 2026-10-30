@@ -121,7 +121,7 @@ jobs:
           python - <<'EOF'
           from PIL import Image
           for name in ("prompt", "moment", "reasons", "looks", "ledger", "languages", "palette",
-                       "list", "options", "yourself"):
+                       "list", "options", "yourself", "actionbar", "tooltip"):
               im = Image.open(".github/media/manners-%s.png" % name)
               assert im.width == 1280 and im.height >= 300, (name, im.size)
               print("ok", name, im.size)

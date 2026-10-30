@@ -41,6 +41,21 @@ without its two lines and holds the shipped files to the second: no pixel the li
 would paint is in them, and what they would paint lies inside the recorded
 rectangles.
 
+The tag. A look may set its reason line in a tag of its own (Luxe's pill: a frame
+of the look's that holds the line, with the tag's textures under it, sized to the
+words). Baked into the picture at the English words' width, the tag was wrong under
+every other language's words, so the picture leaves it out with the words and the
+card draws it live round them. For such a look this records, on the reason line
+(`pill`), the tag's own geometry against the words -- how far it reaches past them
+on either side (`lead`, `tail`), its top and bottom, how wide its caps are
+(`cap`, of its height; all fractions of the picture's height, as the letters'
+size is) -- and its `layers`, each a file of the look's cut as a horizontal
+three-slice (the file's outer quarters the caps, its middle stretched) in the
+colour the look tints it. `tail` is read against the prompt's own measure of the
+words (the snapshot's subWidth), which is what the look sized the tag from. A frame
+under the reason line that is not three-slices of one height is refused: the card
+could not draw it.
+
 The pictures are not live and not pixel-true: a look keeps its regions on the
 one secure prompt, so there is no second copy of one to paint in a card, and
 the renderer's font stands in for Friz Quadrata and approximates the light.
@@ -238,8 +253,14 @@ def icons(snaps):
 # The two lines the cards write live over their pictures: what each is called in
 # Looks/Previews.lua, and which region of the prompt it is (the snapshot's key).
 LINES = (("name", "name"), ("reason", "sub"))
-# The order a line's fields are written in.
-TEXT_FIELDS = ("l", "t", "r", "b", "h", "v", "size", "color", "shadow", "flags", "font", "latin")
+# The order a line's fields are written in, and a tag's and a tag layer's.
+TEXT_FIELDS = ("l", "t", "r", "b", "h", "v", "size", "color", "shadow", "flags", "font", "latin", "pill")
+PILL_FIELDS = ("t", "b", "lead", "tail", "cap", "layers")
+LAYER_FIELDS = ("file", "color")
+SHADOW_FIELDS = ("x", "y", "color")
+# A horizontal three-slice's texcoords: the file's outer quarters are the caps.
+THREE = ([0, 0.25, 0, 1], [0.25, 0.75, 0, 1], [0.75, 1, 0, 1])
+LAYER_ORDER = {"BACKGROUND": 1, "BORDER": 2, "ARTWORK": 3, "OVERLAY": 4, "HIGHLIGHT": 5}
 # A client whose alphabet a look's own face lacks: the tool loads such a look as
 # this one, to see which looks drop their face there.
 OTHER_LOCALE = "koKR"
@@ -342,8 +363,99 @@ def text_entry(snap, which, other=None):
     return round_entry(entry)
 
 
+def tag_frame(snap, which):
+    """The frame a look sets the line `which` in when it is one of the look's
+    own -- not the text layer the name line sits on -- and the textures under
+    it, or (None, None)."""
+    tree = geometry().Tree(snap)
+    fs = tree.regions.get(snap.get(which))
+    name = tree.regions.get(snap.get("name"))
+    if not fs or not name or fs.get("parent") is None or fs.get("parent") == name.get("parent"):
+        return None, None
+    frame = tree.regions.get(fs["parent"])
+    if not frame or frame["kind"] == "FontString":
+        return None, None
+    slices = [r for r in tree.regions.values()
+              if r.get("parent") == frame["id"] and r["kind"] == "Texture"]
+    return frame, slices
+
+
+def pill_entry(snap, key, which):
+    """The tag the look sets the line `which` in, as the card has to draw it
+    round the live words, or None where the line sits on the text layer.
+
+    The frame under the line is read as layers of horizontal three-slices,
+    bottom-most first: each a file cut at the quarters, its caps as wide as
+    each other, all one height, tinted one colour. `lead` is how far the tag
+    reaches left of the words, `tail` how far right of them (against the
+    prompt's own measure of the words), `t` and `b` its edges, `cap` the
+    caps' width of its height; all but `cap` fractions of the picture's
+    height. A frame that is not that is refused rather than guessed at."""
+    frame, slices = tag_frame(snap, which)
+    if frame is None:
+        return None
+    tree = geometry().Tree(snap)
+    fs = tree.regions[snap[which]]
+    shown = [r for r in slices if all(c.get("shown", True) for c in tree.chain(r))]
+    if not shown:
+        return None
+    frect, rect, brect = tree.rect(frame["id"]), tree.rect(fs["id"]), tree.rect(snap["button"])
+    if frect is None or rect is None or brect is None:
+        return None
+    where = "%s: the %s line sits in a frame of the look's" % (key, which)
+    height = frect[3] - frect[1]
+    if height <= 0:
+        raise SystemExit(where + " with no height")
+    words = snap.get("subWidth") if which == "sub" else None
+    if not isinstance(words, (int, float)):
+        raise SystemExit(where + ", and the snapshot does not say how wide its words measure")
+    groups = {}
+    for r in shown:
+        groups.setdefault((LAYER_ORDER.get(r.get("layer") or "ARTWORK", 3), r.get("sublevel") or 0,
+                           str(r.get("file"))), []).append(r)
+    layers = []
+    cap = None
+    for (_, _, file), group in sorted(groups.items()):
+        if len(group) != 3 or not texture_file(file):
+            raise SystemExit("%s that is not three slices of a file of the addon (%s: %d piece(s))"
+                             % (where, file, len(group)))
+        group.sort(key=lambda r: tree.rect(r["id"])[0])
+        for r, want in zip(group, THREE):
+            got = [round(float(v), PLACES) for v in (r.get("texCoord") or [])]
+            if got != want:
+                raise SystemExit("%s whose slices are not cut at the quarters (%s: %s)" % (where, file, got))
+            srect = tree.rect(r["id"])
+            if abs(srect[1] - frect[1]) > 0.01 or abs(srect[3] - frect[3]) > 0.01:
+                raise SystemExit("%s whose slices are not its height (%s)" % (where, file))
+        left, right = tree.rect(group[0]["id"]), tree.rect(group[2]["id"])
+        widths = (left[2] - left[0], right[2] - right[0])
+        if abs(widths[0] - widths[1]) > 0.01:
+            raise SystemExit("%s whose caps differ (%s: %.2f and %.2f)" % (where, file, widths[0], widths[1]))
+        if cap is None:
+            cap = widths[0] / height
+        elif abs(cap - widths[0] / height) > 10 ** -PLACES:
+            raise SystemExit("%s whose layers have caps of different widths" % where)
+        colours = {tuple(round(float(v), PLACES) for v in (list(r.get("color") or [1, 1, 1, 1]) + [1])[:4])
+                   for r in group}
+        if len(colours) != 1:
+            raise SystemExit("%s whose slices are not one colour (%s)" % (where, file))
+        layers.append({"file": file, "color": list(colours.pop())})
+    cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get("lift") or 0)
+    top = cy + VIEW[1] / 2
+    entry = {
+        "t": (top - frect[3]) / VIEW[1], "b": (top - frect[1]) / VIEW[1],
+        "lead": (rect[0] - frect[0]) / VIEW[1], "tail": (frect[2] - rect[0] - words) / VIEW[1],
+        "cap": cap, "layers": layers,
+    }
+    if entry["lead"] < 0 or entry["tail"] < 0:
+        raise SystemExit("%s that does not reach past its words (lead %.3f, tail %.3f)"
+                         % (where, entry["lead"] * VIEW[1], entry["tail"] * VIEW[1]))
+    return round_entry(entry)
+
+
 def texts(snaps):
-    """The text entries of every look that shows a name or a reason line."""
+    """The text entries of every look that shows a name or a reason line, with
+    the tag a look sets its reason line in."""
     out = {}
     for key, snap in snaps.items():
         found = {}
@@ -354,6 +466,9 @@ def texts(snaps):
                 other = to_py(states(key, locale=OTHER_LOCALE)["run"](STATE, None))
             entry = text_entry(snap, which, other)
             if entry:
+                pill = pill_entry(snap, key, which)
+                if pill:
+                    entry["pill"] = pill
                 found[name] = entry
         if found:
             out[key] = found
@@ -424,7 +539,14 @@ def lua_value(v):
         return '"%s"' % v.replace("\\", "\\\\").replace('"', '\\"')
     if isinstance(v, list):
         return "{ " + ", ".join(lua_value(x) for x in v) + " }"
-    order = [k for k in (("x", "y", "color") if "x" in v else TEXT_FIELDS) if k in v]
+    # A line, a shadow, a tag or a tag's layer: the first order that names
+    # every field it has.
+    for fields in (TEXT_FIELDS, SHADOW_FIELDS, PILL_FIELDS, LAYER_FIELDS):
+        if all(k in fields for k in v):
+            order = [k for k in fields if k in v]
+            break
+    else:
+        raise SystemExit("a recorded table has fields no order is written for: %s" % sorted(v))
     return "{ " + ", ".join("%s = %s" % (k, lua_value(v[k])) for k in order) + " }"
 
 
@@ -453,7 +575,11 @@ def manifest_text(keys, digest, entries, written):
         "-- fractions of the picture, the justification, the size and the shadow's offsets as",
         "-- fractions of its height, the colour, an outline, and the look's own face (`latin`:",
         "-- drawn only on a client whose alphabet has it). The pictures carry no text: the",
-        "-- window writes the name and the reason there live, in the player's language.",
+        "-- window writes the name and the reason there live, in the player's language. A",
+        "-- reason line the look sets in a tag of its own (`pill`) has the tag's edges, how far",
+        "-- it reaches past the words on either side, its caps' width of its height, and its",
+        "-- layers, each the look's own file as a three-slice in the look's colour: the window",
+        "-- draws it round the live words, as wide as they are.",
         "ns.Looks.previewText = {",
     ]
     for key in sorted(written):
@@ -625,8 +751,16 @@ def check_text(rp, snap, key, name, which, entry):
 
 def hidden(snap, lines):
     """The regions left out of a look's picture: the lines Looks/Previews.lua says
-    the window writes there."""
-    return {snap[which] for name, which in LINES if name in (lines or {}) and snap.get(which) is not None}
+    the window writes there, and the tag a line is recorded as sitting in, which
+    the window draws round the live words."""
+    out = set()
+    for name, which in LINES:
+        if name in (lines or {}) and snap.get(which) is not None:
+            out.add(snap[which])
+            if lines[name].get("pill"):
+                _, slices = tag_frame(snap, which)
+                out.update(r["id"] for r in (slices or []))
+    return out
 
 
 def bare_picture(rp, snap, entry):
@@ -684,8 +818,11 @@ def draw(keys, out, entries, lines):
         for name, which in LINES:
             check_text(rp, snap, key, name, which, (lines.get(key) or {}).get(name))
         errors = snap.get("errors") or 0
+        left_out = [n for n, w in LINES if snap.get(w) in skip]
+        if any((lines.get(key) or {}).get(n, {}).get("pill") for n, _ in LINES):
+            left_out.append("the tag")
         print("  Textures/Previews/Preview_%-12s %dx%d  text layers skipped: %s%s" % (
-            key + ".tga", SIZE[0], SIZE[1], ", ".join(n for n, w in LINES if snap.get(w) in skip) or "none",
+            key + ".tga", SIZE[0], SIZE[1], ", ".join(left_out) or "none",
             "  %d guarded error(s): %s" % (errors, snap.get("firstError")) if errors else ""))
     return written
 
@@ -734,6 +871,15 @@ def check_bare(keys):
             y0 = max(0, int(rect["t"] * SIZE[1]) - OVERHANG)
             y1 = min(SIZE[1], int(rect["b"] * SIZE[1] + 0.999) + OVERHANG)
             room[y0:y1, x0:x1] = True
+            # The tag round a line reaches past the line's rectangle: as far
+            # as its lead, its tail and its own edges say.
+            pill = rect.get("pill")
+            if pill:
+                x0 = max(0, int(rect["l"] * SIZE[0] - pill["lead"] * SIZE[1]) - OVERHANG)
+                x1 = min(SIZE[0], int(rect["r"] * SIZE[0] + pill["tail"] * SIZE[1] + 0.999) + OVERHANG)
+                y0 = max(0, int(pill["t"] * SIZE[1]) - OVERHANG)
+                y1 = min(SIZE[1], int(pill["b"] * SIZE[1] + 0.999) + OVERHANG)
+                room[y0:y1, x0:x1] = True
         ink = np.abs(full - bare).max(axis=2) > INK
         if entry and not ink.any():
             problems.append("%s: drawing the name and reason lines changes nothing in the picture" % key)

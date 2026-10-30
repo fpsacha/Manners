@@ -348,8 +348,12 @@ Looks.previewIcon = {}
 -- fractions of the picture like the icon's, `h` and `v` its justification,
 -- `size` and the shadow's `x` and `y` fractions of the picture's height, `color`,
 -- `flags`, and the look's own `font` (`latin`: only on a client whose alphabet it
--- has). The pictures carry none of this text: the picker writes it there live, in
--- the player's language.
+-- has). A reason line the look sets in a tag of its own (Luxe) carries the tag
+-- as `pill`: its edges `t` and `b`, how far it reaches past the words (`lead`,
+-- `tail`), its caps' width of its height (`cap`), and its `layers`, each the
+-- look's own `file` as a three-slice in the look's `color`. The pictures carry
+-- none of this text, nor the tag: the picker writes the words there live, in the
+-- player's language, and draws the tag round them as wide as they are.
 Looks.previewText = {}
 
 function Looks.PreviewFile(key)
