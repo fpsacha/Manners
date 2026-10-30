@@ -18,6 +18,7 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 - **Paladins:** Blessing of Kings first, and a buff order of your own for any class with several buffs.
 - **The favour ledger** and titles for your manners, from *Well Brought Up* to *The Very Soul of Courtesy*. `/manners ledger`.
 - **Say something**, if you like: four sets, whispers, or **In character**, over two thousand lines picked for your race, class and the moment. Off by default.
+- **Keys, action bars and controllers:** a key binding, a macro for any action bar slot that shows the spell it will cast, and the game's own controller support (bind a controller button; the prompt shows its picture).
 - **Nine looks** picked from cards, effects you can calm, and **Move the prompt** one click away in the options window.
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.
 

@@ -89,6 +89,12 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go.
 - **Minimap button** and addon compartment: click for options, shift-click for the ledger, right-click for a menu.
 
+### Keys, action bars and controllers
+
+- **A key of your own.** Bind *Buff the prompted player* (Options > Keybindings > Manners): one press buffs whoever is on the prompt and hands your target back.
+- **On an action bar.** *Put Manners on an action bar* on Start here (or `/manners macro`) puts the Manners macro on your cursor: drop it on any slot of any bar. The slot shows the spell a press would cast, with its cooldown and range.
+- **Controllers.** Works with the game's own controller support: bind a controller button to *Buff the prompted player*, or put the macro on a bar your controller reaches. The prompt shows the button's picture instead of a key name.
+
 ### Languages and clients
 
 English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese, whichever your client runs in.
