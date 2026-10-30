@@ -24,4 +24,4 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 
 Blizzard does not let an addon cast on its own, so nothing happens until you press the key: Manners decides who deserves the buff, and the game casts when you click. Passers-by are seen through friendly nameplates, which the options can turn on.
 
-`/manners help` lists every command. Free, MIT licensed. Full documentation and bug reports on [GitHub](https://github.com/fpsacha/Manners).
+`/manners help` lists every command. Free, MIT licensed. Full documentation and bug reports on [GitHub](https://github.com/fpsacha/Manners). If you would like to say thanks, you can [buy me a coffee on Ko-fi](https://ko-fi.com/fpsacha).

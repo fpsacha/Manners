@@ -137,3 +137,7 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 Use [the issue templates on GitHub](https://github.com/fpsacha/Manners/issues/new/choose). `/manners selftest` gives you a report to paste, and the Diagnostics tab has a *Copy for a bug report* button.
 
 Also on [Wago](https://addons.wago.io/addons/rNkgzlNa), which is the one WowUp reads. Free, MIT licensed, [source on GitHub](https://github.com/fpsacha/Manners).
+
+### Support
+
+Manners is free and always will be. If it saves you a few clicks and you would like to say thanks, you can [buy me a coffee on Ko-fi](https://ko-fi.com/fpsacha).
