@@ -140,7 +140,7 @@ mutate("Options/Window/Layout.lua", '\t\t\t\t\t{ "appearance.style", widget = "t
 # --- search and the fallback ----------------------------------------------
 
 mutate("Options/Look.lua",
-       '\t\t\t\tdesc = L["Pick a theme for the prompt. Click a card to switch to it at once."],\n', "",
+       '\t\t\t\tdesc = L["Pick a theme for the prompt from the list. It switches at once."],\n', "",
        "theme-picker: the control says nothing a search for theme finds",
        expect="theme-picker: the search finds the picker", script=S)
 
@@ -179,7 +179,7 @@ mutate("Locales/koKR.lua", 'L["Glass"] = "유리"\n', "",
        expect="theme-picker: every string the picker shows has all eight translations", script=S)
 
 mutate("Locales/deDE.lua",
-       'L["Pick a theme for the prompt. Click a card to switch to it at once."] = "Wählt einen Stil für die Anzeige. Ein Klick auf eine Karte wechselt sofort dazu."\n',
+       'L["Pick a theme for the prompt from the list. It switches at once."] = "Wählt einen Stil für die Anzeige aus der Liste. Er wird sofort übernommen."\n',
        "",
        "theme-picker: the picker's tooltip has no German",
        expect="theme-picker: every string the picker shows has all eight translations", script=S)

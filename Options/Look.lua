@@ -190,9 +190,11 @@ function Page.BuildLookTab()
 				type = "select",
 				name = L["Panel style"],
 				-- The window draws this as a gallery of cards (Layout.lua,
-				-- Options/Window/WidgetsTheme.lua); the dropdown is what the
-				-- fallback dialog draws.
-				desc = L["Pick a theme for the prompt. Click a card to switch to it at once."],
+				-- Options/Window/WidgetsTheme.lua), which shows no description of
+				-- its own for the row (the cards carry each look's) and only
+				-- searches this one; the dropdown is what the fallback dialog
+				-- draws, and where this is read, so it speaks of a list.
+				desc = L["Pick a theme for the prompt from the list. It switches at once."],
 				order = 21,
 				-- Every look, the three Prompt/Panel.lua draws and the ones in
 				-- Looks/, from the registry, in its order; profiles holding
