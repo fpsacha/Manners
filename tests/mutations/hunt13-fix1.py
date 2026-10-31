@@ -12,7 +12,7 @@ S = "runscenarios.py"
 # The report: only exactly 0 mana stopped the queue, so an Intellect costing
 # more than the mana left was offered, and failed, on every press.
 mutate("Queue.lua",
-       "\tlocal candidates = Affordable(ns.CastableBuffs())\n",
+       "\tlocal candidates = Affordable(ns.CastableBuffs(), UNPAID)\n",
        "\tlocal candidates = ns.CastableBuffs()\n",
        "fix1: the scan offers what you cannot pay for",
        expect="hunt13-fix1: a buff you cannot pay for is offered to nobody (C_Spell)", script=S)
@@ -20,7 +20,7 @@ mutate("Queue.lua",
 # The debug line asked the whole list, so it named an Intellect the prompt had
 # dropped, with the armor under it.
 mutate("Queue.lua",
-       "\tlocal mine = ns.SelfBuffs(Affordable(ns.CastableBuffs()))\n",
+       "\tlocal mine = ns.SelfBuffs(Affordable(ns.CastableBuffs(), UNPAID))\n",
        "\tlocal mine = ns.SelfBuffs()\n",
        "fix1: debug names a group buff you cannot pay for",
        expect="hunt13-fix1: a buff you cannot pay for is offered to nobody (C_Spell)", script=S)
