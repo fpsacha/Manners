@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.10.3
 
 - **A check for a new client.** `/manners selftest launch` asks the game about
   the looks, the action bar slot, the controller keys, the tooltip and the
