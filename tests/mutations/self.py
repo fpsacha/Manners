@@ -288,8 +288,8 @@ mutate("Core.lua",
        expect="a nonsense switch was kept", script=S)
 
 mutate("Core.lua",
-       "\"reasonGroup\", \"reasonSelf\",\n",
-       "\"reasonGroup\",\n",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"reasonSelf\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "self: broken wording kept",
        expect="a broken wording was kept", script=S)
 

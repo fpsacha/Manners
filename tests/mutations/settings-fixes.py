@@ -76,7 +76,7 @@ mutate("Buffs.lua",
 
 # NaN taken for a number, which no bound then catches.
 mutate("Core.lua",
-       "\t\tlocal number = type(value) == \"number\" and value == value\n",
-       "\t\tlocal number = type(value) == \"number\"\n",
+       "\t\t\t\tif type(value) ~= leaf[3] or value ~= value then\n",
+       "\t\t\t\tif type(value) ~= leaf[3] then\n",
        "settings-fix: NaN kept in a bounded number",
        expect="settings-fix: a NaN in a saved number is put back to its default", script=S)

@@ -333,8 +333,8 @@ mutate("Prompt/Prompt.lua",
 
 # A saved wording that is not text kept, to throw on every repaint.
 mutate("Core.lua",
-       "\t\t\"reasonNearby\", \"reasonAsked\", \"reasonRefresh\", \"reasonUnknown\" }) do\n",
-       "\t\t\"reasonNearby\", \"reasonRefresh\", \"reasonUnknown\" }) do\n",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"reasonAsked\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "a broken request wording kept",
        expect="a broken saved wording for a request is repaired",
        script="runscenarios.py")

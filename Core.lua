@@ -3404,9 +3404,9 @@ function ns.ClampSettings()
 		local group, key, low, high = limit[1], limit[2], limit[3], limit[4]
 		if type(high) == "function" then high = high() end
 		local value = profile[group] and profile[group][key]
-		-- NaN (a hand-edited 0/0) is a number below and above nothing, so it
-		-- counts as no number at all, as for the offsets and colours below.
-		local number = type(value) == "number" and value == value
+		-- NaN (a hand-edited 0/0) is below and above nothing, so it passes
+		-- here untouched and the repair by type below puts it back.
+		local number = type(value) == "number"
 		if not number or value < low or value > high then fixed(group .. "." .. key, value) end
 		if not number then
 			profile[group][key] = ns.defaults.profile[group][key]
@@ -3419,15 +3419,10 @@ function ns.ClampSettings()
 
 	local p = profile.prompt
 	-- Every wording that goes through the substitution must be a string, or
-	-- the swap throws on every repaint. Only the first line has to say
-	-- something; an empty reason line is a wish (no second line) and is kept.
+	-- the swap throws on every repaint; the reason lines are put right by type
+	-- with every other leaf (ns.SettingLeaves, below). Only the first line has
+	-- to say something; an empty reason line is a wish (no second line).
 	if not ns.UsableFormat(p.format) then p.format = ns.defaults.profile.prompt.format end
-	for _, key in ipairs({ "reasonTarget", "reasonOwed", "reasonGroup", "reasonSelf",
-		"reasonNearby", "reasonAsked", "reasonRefresh", "reasonUnknown" }) do
-		if type(p[key]) ~= "string" then
-			p[key] = ns.defaults.profile.prompt[key]
-		end
-	end
 
 	-- skipIfBuffed became a three-way choice. Here rather than OnInitialize
 	-- so every profile is carried over when it becomes active, not only the
