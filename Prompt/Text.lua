@@ -109,7 +109,7 @@ end
 -- again. `paths` names a face for one line where a look sets it apart (the
 -- name's), the rest keeping `path`; ApplyStyle empties it for every style.
 local fit = { path = nil, flags = "", base = {}, size = {}, room = {}, drawn = {}, width = 0, textX = 0,
-	chipRoom = 10, right = nil, twoLine = false, paths = {} }
+	chipRoom = 10, right = nil, twoLine = false, paths = {}, memo = {} }
 
 -- The inset from the right-hand edge when nothing is beside the lines.
 local EDGE_ROOM = 10
@@ -141,27 +141,60 @@ end
 -- client cuts it: German runs a third longer than English, and a list row
 -- with a long name and a long spell name is longer still. A list row has a
 -- width of its own; the panel's two lines end where PlaceLines put them.
-local function FitLine(fs)
+--
+-- `text` is what the line was just set to (SetLine passes it): the answer for
+-- one text at one room, base size, face and outline is the same every time, so
+-- the last one is kept per line (fit.memo, emptied by StyleText), and a
+-- repaint of an unchanged line costs nothing: no measure, no font set. A
+-- caller that does not know the text, or a secret one, measures as ever.
+local function FitLine(fs, text)
 	local base = fit.base[fs]
 	if not base or not fit.path then return end
 	local path = fit.paths[fs] or fit.path
+	local room = fit.room[fs] or math.max(MIN_ROOM, fit.width - (fit.left or fit.textX) - (fit.right or EDGE_ROOM))
+	local memo = text ~= nil and fit.memo[fs] or nil
+	if memo and memo.text == text and memo.room == room and memo.base == base
+		and memo.path == path and memo.flags == fit.flags then
+		if fit.size[fs] ~= memo.size then
+			SafeFont(fs, path, memo.size, fit.flags)
+			fit.size[fs] = memo.size
+		end
+		fit.drawn[fs] = memo.width
+		if S.activeLook then S.activeLook:Fitted(fs) end
+		return
+	end
 	if fit.size[fs] ~= base then
 		SafeFont(fs, path, base, fit.flags)
 		fit.size[fs] = base
 	end
-	local room = fit.room[fs] or math.max(MIN_ROOM, fit.width - (fit.left or fit.textX) - (fit.right or EDGE_ROOM))
 	local least = math.max(7, math.floor(base * 0.8 + 0.5))
 	local size = base
 	local w
+	local measured = false
 	while size > least do
 		w = TextWidth(fs)
-		if not w or w <= room + 0.5 then break end
+		if not w then break end
+		measured = true
+		if w <= room + 0.5 then break end
 		size = size - 1
 		SafeFont(fs, path, size, fit.flags)
 		w = nil
 	end
 	fit.size[fs] = size
 	fit.drawn[fs] = w
+	-- Kept only when the client gave a width to go by (a line already at its
+	-- floor is as good as measured: nothing can change its size).
+	if text ~= nil and (measured or size <= least) then
+		memo = fit.memo[fs]
+		if not memo then
+			memo = {}
+			fit.memo[fs] = memo
+		end
+		memo.text, memo.room, memo.base, memo.path, memo.flags = text, room, base, path, fit.flags
+		memo.size, memo.width = size, w
+	else
+		fit.memo[fs] = nil
+	end
 	if S.activeLook then S.activeLook:Fitted(fs) end
 end
 
@@ -175,9 +208,12 @@ local function SetLine(fs, text)
 	if not ink.light and look and (look.inkOnDark or (fs == R.subText and look.subOnDark)) then
 		fs:SetText(text)
 	else
-		fs:SetText(LegibleText(text))
+		text = LegibleText(text)
+		fs:SetText(text)
 	end
-	FitLine(fs)
+	-- A secret string cannot be compared, so it is fitted unremembered.
+	if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then text = nil end
+	FitLine(fs, text)
 end
 
 -- Where the name and reason line end on the right: clear of the count chip
@@ -303,7 +339,7 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	fit.path, fit.flags, fit.paths = fontPath, outline, {}
 	fit.width, fit.textX, fit.chipRoom, fit.twoLine = p.width, textX, chipRoom, twoLine
 	fit.base[R.nameText], fit.base[R.subText] = p.fontSize, subSize
-	fit.size = {}
+	fit.size, fit.memo = {}, {}
 	SafeFont(R.nameText, fontPath, p.fontSize, outline)
 	SafeFont(R.subText, fontPath, subSize, outline)
 	fit.size[R.nameText], fit.size[R.subText] = p.fontSize, subSize
