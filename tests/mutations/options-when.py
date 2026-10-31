@@ -89,8 +89,8 @@ mutate("Options/When.lua",
 # A string or a number in the saved file left as it is: true on every scan,
 # and no unverified offer ever again, with the box unable to show why.
 mutate("Core.lua",
-       "\tboolean(profile.filters, \"verifiedOnly\", false)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"verifiedOnly\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "when tab: verified-only switch left out of the repair",
        expect="a nonsense value for Only offer people whose buffs can be read survived", script=S)
 

@@ -164,8 +164,8 @@ mutate("Core.lua",
 
 # A damaged value left as it is.
 mutate("Core.lua",
-       "\tboolean(profile.buff, \"kingsFirst\", true)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"kingsFirst\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "hunt27-kings: a damaged switch not repaired",
        expect="hunt27-kings: the switch is on by default and repaired to on",
        script=S)

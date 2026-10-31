@@ -1618,6 +1618,11 @@ local function OwnPick(db, full, now)
 	return nil
 end
 
+-- The buffs Affordable left out of the scan in hand (filled by BuildQueue and
+-- by SelfBuffFirst, each before it asks for anything): handed to PickBuffFor
+-- as opts.unpaid, one table for the file so that no scan makes one.
+local UNPAID = {}
+
 -- Your own group buff, when you are missing it or (with top-ups on) it is
 -- running low: the buff, the reading, the time left and for a top-up how long it
 -- lasts, its lead and the kind of lead, or nil. `mine` is
@@ -1647,6 +1652,7 @@ local function SelfBuff(db, mine, full, now)
 		refreshUnder = f.refreshUnder,
 		name = full,
 		blocked = QueueBlocked,
+		unpaid = UNPAID,
 		now = now,
 	}, reading)
 	-- A pin replaces the list the walk was handed, so a pinned shout still
@@ -1667,7 +1673,13 @@ end
 -- be a form the macro may still get past, and a client that will not say
 -- keeps the buff. The zero-mana stop in BuildQueue stays for a client without
 -- the call; your own buffs and the group spell ask for themselves.
-local function Affordable(candidates)
+-- `unpaid`, when given, is emptied and filled with the buffs left out: they
+-- are still yours on somebody, and a paladin's walk reads them for that alone
+-- (PickBuffFor, opts.unpaid).
+local function Affordable(candidates, unpaid)
+	if unpaid then
+		for i = #unpaid, 1, -1 do unpaid[i] = nil end
+	end
 	local check = C_Spell and C_Spell.IsSpellUsable
 	if type(check) ~= "function" then check = _G.IsUsableSpell end
 	if type(check) ~= "function" then return candidates end
@@ -1682,6 +1694,8 @@ local function Affordable(candidates)
 			-- A pin is "only ever this one": PickBuffFor swaps whatever list
 			-- it is handed for the pin, so one that is left would offer it.
 			return {}
+		elseif unpaid then
+			unpaid[#unpaid + 1] = buff
 		end
 	end
 	return out
@@ -1699,7 +1713,7 @@ function ns.SelfBuffFirst(db, now)
 	if held then return nil end
 	-- The list BuildQueue hands SelfEntry: a group buff you cannot pay for is
 	-- not the one the prompt is on.
-	local mine = ns.SelfBuffs(Affordable(ns.CastableBuffs()))
+	local mine = ns.SelfBuffs(Affordable(ns.CastableBuffs(), UNPAID))
 	if #mine == 0 then return nil end
 	local buff = SelfBuff(db, mine, full, now)
 	local inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0
@@ -1821,7 +1835,7 @@ function ns.BuildQueue(watch)
 	-- Everything below until the walk is asked once per scan, not per person.
 	-- Nothing you cannot pay for is offered to anybody (see Affordable); an
 	-- empty list is the "nothing to give anybody else" below.
-	local candidates = Affordable(ns.CastableBuffs())
+	local candidates = Affordable(ns.CastableBuffs(), UNPAID)
 	-- What a request in chat may name beside them: a spell Automatic never
 	-- walks to (Source of Magic) that somebody asked for. nil for none.
 	local askOnly = ns.AskOnlyBuffs()
@@ -1890,7 +1904,7 @@ function ns.BuildQueue(watch)
 
 	-- What PickBuffFor is told about the person in hand, one table reused for
 	-- everybody the walk reaches.
-	local opts = {}
+	local opts = { unpaid = UNPAID }
 
 	-- `unasked` walks somebody as if they had made no request (see below).
 	local function visit(unit, pointed, unasked)

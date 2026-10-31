@@ -367,7 +367,7 @@ end
 -- And every rank's level itself, Burning Crusade's and the vanilla ones under
 -- them, which this client trains at the same levels (SpellLevels.BaseLevel,
 -- build 2.5.6.69795): the landing above and "skip my own class" both read
--- them. Sanctuary and the shouts have none, as on vanilla (Buffs.lua).
+-- them. The shouts have none, as on vanilla (Buffs.lua).
 local LEVEL = {
 	-- Arcane Intellect
 	[27126] = 70, [10157] = 56, [10156] = 42, [1461] = 28, [1460] = 14, [1459] = 1,
@@ -388,8 +388,10 @@ local LEVEL = {
 	[19740] = 4,
 	-- Blessing of Kings, Salvation, Light; Unending Breath
 	[20217] = 20, [1038] = 26, [27144] = 69, [19979] = 60, [19978] = 50, [19977] = 40, [5697] = 16,
+	-- Blessing of Sanctuary (a talent, with levels all the same)
+	[27168] = 70, [20914] = 60, [20913] = 50, [20912] = 40, [20911] = 30,
 }
-local UNLEVELLED = { sanctuary = true, battleshout = true, commandingshout = true }
+local UNLEVELLED = { battleshout = true, commandingshout = true }
 do
 	local scenario = "tbc: every rank is learned at the level the client trains it"
 	tbc(scenario, {}, function(ns)

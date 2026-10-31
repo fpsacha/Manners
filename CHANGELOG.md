@@ -6,6 +6,12 @@
   the looks, the action bar slot, the controller keys, the tooltip and the
   prompt's layout, says what it answered, and puts back everything it
   touched, so a report can be pasted when something there does not draw right.
+- **Short of mana for one blessing, still no blessing over yours.** Too low on
+  mana for Kings (or another blessing), you are no longer offered a cheaper one
+  for somebody already wearing the Kings you gave them, or for yourself.
+- **Blessing of Sanctuary** from another paladin, at a lower rank than the one
+  you would cast, is no longer taken as covering them (Classic Era and
+  Burning Crusade).
 
 ## 1.10.2
 

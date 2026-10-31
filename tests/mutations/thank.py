@@ -18,8 +18,8 @@ mutate("Core.lua",
        "thank: on by default",
        expect="the emote is not off in a new profile", script=S)
 mutate("Core.lua",
-       "\tboolean(p, \"thankEmote\", false)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"thankEmote\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "thank: a garbage setting is not repaired",
        expect="a setting that is not a yes or no was kept", script=S)
 mutate("Options/Say.lua",

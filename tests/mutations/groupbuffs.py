@@ -197,8 +197,8 @@ mutate("Core.lua",
        "groupbuffs: off by default",
        expect="a new profile has use=", script=S)
 mutate("Core.lua",
-       "\tboolean(profile.groupBuffs, \"use\", true)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"use\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "groupbuffs: a garbage switch is kept",
        expect="was repaired to", script=S)
 mutate("Core.lua",

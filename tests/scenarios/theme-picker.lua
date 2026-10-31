@@ -610,7 +610,7 @@ do
 	Mock.reset()
 	local ns = load(scenario)
 	if ns then
-		local keys = { "Pick a theme for the prompt. Click a card to switch to it at once." }
+		local keys = { "Pick a theme for the prompt from the list. It switches at once." }
 		for key, look in pairs(ns.Looks.list) do
 			if not (look.title and look.description) then
 				fail(scenario, key .. " has no title or no description of its own")

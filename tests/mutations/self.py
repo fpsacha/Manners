@@ -282,8 +282,8 @@ mutate("Clicks.lua",
 # --- saved settings and the options page ---
 
 mutate("Core.lua",
-       "\tboolean(profile.sources, \"self\", true)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"self\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "self: nonsense switch kept",
        expect="a nonsense switch was kept", script=S)
 

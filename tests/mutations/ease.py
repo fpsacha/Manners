@@ -107,8 +107,8 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 mutate("Core.lua",
-       "\tboolean(profile.filters, \"hideMounted\", false)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"hideMounted\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "Not while mounted left out of the repair",
        expect="survived the repair",
        script="runscenarios.py")

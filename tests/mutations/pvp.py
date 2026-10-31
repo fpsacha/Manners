@@ -409,8 +409,8 @@ mutate("Core.lua",
        expect="the settings text leaves the switch out", script=S)
 
 mutate("Core.lua",
-       "\tboolean(profile.filters, \"skipPvP\", true)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"skipPvP\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "pvp: not repaired",
        expect="a saved skipPvP of yes came back as", script=S)
 

@@ -423,10 +423,11 @@ mutate("Looks/Luxe.lua",
        expect="five repaints of the same panel measured",
        script="runscenarios.py")
 
-# FitLine keeping no width for the looks.
+# FitLine keeping no width for the looks, on the repaint of a line it has the
+# answer for (the measured width is part of that answer).
 mutate("Prompt/Text.lua",
-       "\tfit.drawn[fs] = w\n",
-       "",
+       "\t\tfit.drawn[fs] = memo.width\n",
+       "\t\tfit.drawn[fs] = nil\n",
        "FitLine keeps no measured width",
        expect="five repaints of the same panel measured",
        script="runscenarios.py")
