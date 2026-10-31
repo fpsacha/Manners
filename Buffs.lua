@@ -776,6 +776,10 @@ ns.RANK_LEVEL = {
 	-- Blessing of Kings and Divine Spirit: trained on Forever (its SpellLevels),
 	-- talents on Classic Era, where `talent` returns before these are read.
 	[20217] = 20, [14752] = 30, [14818] = 40, [14819] = 50, [27841] = 60,
+	-- Blessing of Sanctuary, a talent whose ranks have levels all the same (its
+	-- SpellLevels, Classic Era 1.15.9.70003): another paladin's weak rank worn
+	-- by somebody your best rank lands on is read as the weaker it is.
+	[20911] = 30, [20912] = 40, [20913] = 50, [20914] = 60,
 }
 function ns.RankLevel(id)
 	return id and ns.RANK_LEVEL[id] or nil
@@ -1172,11 +1176,12 @@ local TBC = {
 
 -- The levels of the ranks above that vanilla's RANK_LEVEL does not have
 -- (SpellLevels, same build). No other set names these ids, so adding them
--- where every set looks changes nothing anywhere else. The shouts and
--- Sanctuary have none, as on vanilla.
+-- where every set looks changes nothing anywhere else. The shouts have none,
+-- as on vanilla.
 for id, level in pairs({
 	[27126] = 70, [25389] = 70, [25433] = 68, [26990] = 70, [26992] = 64,
 	[27142] = 65, [27140] = 70, [27144] = 69, [25312] = 70,
+	[27168] = 70,
 }) do
 	ns.RANK_LEVEL[id] = level
 end
