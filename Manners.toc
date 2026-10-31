@@ -91,3 +91,4 @@ Options\Window\WindowPage.lua
 Options\Window\WindowSearch.lua
 Options\Register.lua
 Selftest.lua
+SelftestLaunch.lua

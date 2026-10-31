@@ -47,7 +47,7 @@ same list (`tests/validate.py` fails until they match).
 | `Prompt/` | the prompt: `Prompt.lua` (ns.BUILD), `Panel` (regions, built-in looks), `Macro` (what the button casts), `Press` (Pre/PostClick), `Paint`, `Text`, `Effects`, `Hold` (hysteresis), `List`, `Rows` (the list's names as secure buttons, armed only for the one press), `Button`, `Refresh` |
 | `Options/` | the settings model, AceConfig-shaped, one file per tab (`Start Who When Say Look Advanced Diagnostics Profiles`), `Shared.lua`, `Launcher.lua` (minimap/broker/compartment), `Register.lua` (registers it; `ns.OpenOptions`; AceConfigDialog is the fallback) |
 | `Options/Window/` | the custom options window drawn from that model; `Layout.lua` places every control (`"tab.key"`) on a page; `WidgetsTheme.lua` is the look picker, a gallery of cards (one per look in the registry, each with the player's own buff icon laid live over its picture) drawn in place of Panel style's dropdown, which the fallback dialog keeps |
-| `Selftest.lua` | the in-game `/manners selftest` (`/manners check`) |
+| `Selftest.lua`, `SelftestLaunch.lua` | the in-game `/manners selftest` (`/manners check`); `/manners selftest launch` adds the launch checks (the looks' font, masks, clipping, tiling and animations, every look on the real prompt, the bar slot's macro calls, controller glyphs, the tooltip's anchors, `/cleartarget`, the display restyle), each put back after |
 | `Textures/` | all generated, all shipped: `Manners64.tga` by `tools/make-icon.py`, the prompt's light (`Glow`, `GlowRound`, `Ring`, `RingSq`, `Sweep`, `Gloss`, `Bevel`) by `tools/make-glow.py`, `Arcane/`, `Luxe/`, `Toast/`, `Ribbon/`, `Letter/` and `Leather/` by `tools/make_arcane_textures.py`, `make_luxe_textures.py`, `make_toast_textures.py`, `make_ribbon_textures.py`, `make_letter_textures.py` and `make_leather_textures.py`, `Previews/` (one picture per look, for the picker's cards) by `tools/make_look_previews.py`: run it after adding or changing a look, `--check` says whether it is current |
 | `tests/` | the suites, `scenarios/` and `mutations/` (one file per topic), the mock client (`mockapi.lua` + `mockwidgets.lua` + `mockwindow.lua`, `Mock.FLAVOURS` per client), `baselines/` (each client's known reds), `frametree.lua`, `baseline.py`, `bughunt.py`, `setversion.py` |
 | `tools/` | checks, lint, anchor lookup, client watch, release, locale and phrase tools, toc generator, renderers, image and texture generators, profilers (none ship) |
@@ -183,7 +183,7 @@ CI (`ci.yml`, every push): validate, runharness, runscenarios,
 selftest does not fit a runner and is run locally.
 
 Nothing here talks to a running client. For the game itself, ask the user to
-run `/manners selftest` (a report to paste) or the `/manners dev` tools
+run `/manners selftest launch` (a report to paste) or the `/manners dev` tools
 (`clicks`, `try`, `look`, `forms`) and paste the output, or for a screenshot.
 
 ## Dev tools

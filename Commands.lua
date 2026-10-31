@@ -1248,7 +1248,7 @@ ns.COMMANDS = {
 		help = L["use settings somebody exported, or undo the last import"] },
 	{ word = "debug", group = "trouble", help = L["what your class and this build allow"] },
 	{ word = "errors", group = "trouble", help = L["the last few things that broke"] },
-	{ word = "selftest", group = "trouble",
+	{ word = "selftest", group = "trouble", args = " [launch]",
 		help = L["check Manners against your game, and get a report to paste"] },
 	{ word = "dev", group = "trouble",
 		help = L["tools for testing the addon on this client: the click log, try, look and forms"] },
@@ -1629,7 +1629,7 @@ function addon:HandleSlash(rawInput)
 	elseif input == "selftest" or input == "check" then
 		-- Selftest.lua: every check guarded on its own, nothing touched.
 		if ns.Selftest then
-			ns.Guard("selftest", ns.Selftest.Command)
+			ns.Guard("selftest", ns.Selftest.Command, rest)
 		else
 			self:Print(L["the self-test did not load -- reinstalling Manners should bring it back."])
 		end

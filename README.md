@@ -769,7 +769,7 @@ Sharing settings
 When something is wrong
 /manners debug              what your class and this build allow
 /manners errors             the last few things that broke, if any did
-/manners selftest           check Manners against your game, with a report to paste (also /manners check)
+/manners selftest [launch]  check Manners against your game, with a report to paste (also /manners check)
 /manners dev                tools for testing the addon on this client: the click log, try, look and forms
 /manners help               this list, grouped the same way
 ```
@@ -969,6 +969,24 @@ reads PASS, WARN or FAIL with what it saw:
 The report opens in a box under *Reporting a bug* on Diagnostics, ready to
 copy, with one line in chat saying how many passed. Target a friendly player
 first, and the range checks have somebody to measure.
+
+`/manners selftest launch` adds the **launch checks**, for a new client or a
+new build. Out of a fight it asks the game, in a blink, about
+what the looks, the action bar slot and the controller keys lean on, and
+puts everything back: the prompt's look (every look is put on it in turn,
+inside one frame, and your own comes back), the *Manners* macro's slot (it is
+set, read back, cleared and given back what it showed; with no such macro, a
+temporary one called MannersSelfTest is made for the test and deleted at the
+end, and the report says so), the cursor, and the tooltip, which is a scratch
+one. Each line reads PASS, CHECK or FAIL with the game's own answer: the font
+file it took, whether a mask was made and attached, whether a frame can clip,
+whether a strip can repeat, what the macro slot answers when it is set and
+cleared, what the game writes for a controller button and the keys that
+stand in for the triggers, whether the tooltip can be placed where each
+setting asks, what it knows of `/cleartarget`, and whether the prompt lays
+itself out again for a new resolution. A line at the top of the report
+counts them. It is the report to paste when a look, the bar slot or a
+controller does not draw right.
 
 ## Building a release
 
