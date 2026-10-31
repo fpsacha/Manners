@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Short of mana for one blessing, still no blessing over yours.** A paladin
+  too low on mana for Kings (or another blessing) is no longer offered a
+  cheaper one for somebody who is wearing the Kings he gave them, on them or
+  on himself.
+- **Blessing of Sanctuary** from another paladin, at a lower rank than the one
+  you would cast, is no longer taken as covering them (Classic Era and
+  Burning Crusade).
+
 ## 1.10.2
 
 - **A smaller tooltip, and a choice of where it goes.** Hovering the prompt, or
