@@ -25,6 +25,33 @@ permissions list, a hook that lints each edited file, and the commands
 
 ## Open
 
+**Launch day (WoW Forever, 2026-11-05): run one command.** Log in on the
+character that has the Manners macro (or any character: the test makes a
+temporary macro and deletes it), out of combat, with something targeted if you
+like, and type `/manners selftest launch`. About half a second later the report
+opens in the box under Reporting a bug on Diagnostics (a line in chat says the
+counts); click in the box, select all, copy, paste it back. The first line after
+the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
+...`), then one line per item with the game's own answer: the Morpheus font
+file, masks, clipping, `REPEAT` tiling, animations, each of the nine looks put
+on the real prompt (regions, font, masks) and the style put back, the picker's
+card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
+empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`), the
+controller glyphs (`GetBindingText` for `PAD1` and `SHIFT-PAD1`, the three
+`GamePadEmulate*` CVars), the tooltip's anchors, `/cleartarget` and the display
+restyle. Do it twice if you can: once with nothing targeted and once with a
+friendly player targeted (the hand-back line reads the difference). It casts
+nothing, and the checks that touch things put them back (the report says what
+it made). What it cannot say, because only eyes can, and what to look at after
+it: Ribbon, Letter and Leather on the prompt (`/manners test` for a preview)
+and the Leather's strips really tiled; the Letter's unroll cut to the paper;
+the bar slot drawing the spell's icon, cooldown and range, and the note icon
+back with nobody to buff; the picker's cards with the live icon on each; a
+controller button's glyph on the chip; pressing with nothing targeted leaving
+you with no target; and the prompt re-laying itself out after a change of UI
+scale (Esc, Options, Video). Any CHECK or FAIL line is the lead: paste it with
+`/manners errors` and `/manners debug`.
+
 **The action bar slot in the game (1.10.1).** SetMacroSpell/SetMacroItem on
 the "Manners" macro, cleared with an empty string, and PickupMacro from the
 options button are untested in a real client: check the slot shows the spell's

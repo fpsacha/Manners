@@ -16,6 +16,11 @@
 --
 -- The report is English, for whoever reads the bug report; the labels go
 -- through L. Each line is PASS, WARN or FAIL, the label, and what was seen.
+--
+-- /manners selftest launch adds the launch checks (SelftestLaunch.lua): the
+-- parts of Manners that have only run on the mock, asked of the real client.
+-- They are the one place this file's report is joined by a section that does
+-- touch things -- briefly, and every one put back.
 
 local _, ns = ...
 local L = ns.L
@@ -145,6 +150,10 @@ local function SomeSpell()
 	end
 	return buffs[1] and buffs[1].ranks[1] or 1459
 end
+
+-- What SelftestLaunch.lua reads and shows values with.
+Selftest.tools = { Show = Show, Secret = Secret, Plain = Plain, Ask = Ask, Field = Field, Strip = Strip,
+	SomeSpell = SomeSpell, MISSING = MISSING, ANY_ITEM = ANY_ITEM }
 
 -- A reading of your own buffs remembers the one up (Core.lua, Remember):
 -- put back as it was, so the test leaves no trace in the saved file.
@@ -1210,7 +1219,7 @@ end
 
 -- The report as one block of text, and the counts. A check's status is its
 -- worst line's.
-function Selftest.Report(results)
+function Selftest.Report(results, launch)
 	local worst, order = {}, {}
 	local rank = { [PASS] = 1, [WARN] = 2, [FAIL] = 3 }
 	for _, r in ipairs(results) do
@@ -1226,6 +1235,11 @@ function Selftest.Report(results)
 		("client %s (%s), interface %s, %s, %s"):format(okB and Show(version) or "?", okB and Show(build) or "?",
 			okB and Show(toc) or "?", tostring(ns.LOCALE), tostring(Class())),
 	}
+	-- The launch checks come first when they were asked for: their summary
+	-- is the line a report is read for.
+	if launch and Selftest.LaunchLines then
+		for _, line in ipairs(Selftest.LaunchLines(launch)) do lines[#lines + 1] = line end
+	end
 	for _, group in ipairs(GROUPS) do
 		local header = false
 		for _, r in ipairs(results) do
@@ -1245,15 +1259,15 @@ function Selftest.Report(results)
 	return table.concat(lines, "\n"), counts[PASS], counts[WARN], counts[FAIL]
 end
 
--- /manners selftest: out of combat, the checks, the report in its box and one
--- line in chat. The last report is kept on Selftest.last.
-function Selftest.Command()
-	if InCombatLockdown() then
-		addon:Print(L["the self-test runs out of combat -- try it again when this fight ends."])
-		return
-	end
-	local text, pass, warn, fail = Selftest.Report(Selftest.Run())
+-- The report in its box with one line in chat, or all of it in chat when the
+-- box would not open. `launchCounts` ({ pass, check, fail }) adds the launch
+-- checks' own line. The last report is kept on Selftest.last.
+function Selftest.Deliver(text, pass, warn, fail, launchCounts)
 	Selftest.last = text
+	if launchCounts then
+		addon:Print(L["launch checks: %d passed, %d to check, %d failed -- the report starts with them."]
+			:format(launchCounts[1], launchCounts[2], launchCounts[3]))
+	end
 	local okBox, shown = pcall(function() return ns.ShowSelftestBox and ns.ShowSelftestBox(text) end)
 	if okBox and shown then
 		addon:Print(L["self-test: %d passed, %d warnings, %d failed -- the report is in the box under Reporting a bug, ready to copy."]
@@ -1263,4 +1277,19 @@ function Selftest.Command()
 	addon:Print(L["self-test: %d passed, %d warnings, %d failed -- the options window would not open, so the report follows here."]
 		:format(pass, warn, fail))
 	for line in text:gmatch("[^\n]+") do addon:Print(line) end
+end
+
+-- /manners selftest: out of combat, the checks, the report in its box and one
+-- line in chat. /manners selftest launch adds the launch checks. The last
+-- report is kept on Selftest.last.
+function Selftest.Command(arg)
+	if InCombatLockdown() then
+		addon:Print(L["the self-test runs out of combat -- try it again when this fight ends."])
+		return
+	end
+	if Selftest.StartLaunch and type(arg) == "string" and arg:lower():match("^%s*launch%s*$") then
+		return Selftest.StartLaunch()
+	end
+	local text, pass, warn, fail = Selftest.Report(Selftest.Run())
+	Selftest.Deliver(text, pass, warn, fail)
 end

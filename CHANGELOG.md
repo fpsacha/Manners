@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **A check for a new client.** `/manners selftest launch` asks the game about
+  the looks, the action bar slot, the controller keys, the tooltip and the
+  prompt's layout, says what it answered, and puts back everything it
+  touched, so a report can be pasted when something there does not draw right.
+
 ## 1.10.2
 
 - **A smaller tooltip, and a choice of where it goes.** Hovering the prompt, or

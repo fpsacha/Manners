@@ -709,6 +709,9 @@ local function newFrame()
 	f.Hide = function(self) self._shown = false return self end
 	f.IsPlaying = function() return false end
 	f.IsOwned = function() return false end
+	-- A tooltip's owner and its lines, as any frame of kind GameTooltip has them.
+	f.SetOwner = function(self, owner) self._owner = owner self.points = {} return self end
+	f.ClearLines = function(self) return self end
 	-- With a screen modelled, the anchor the frame was last given, which is
 	-- what the client hands back after a drag: offsets in the frame's own
 	-- scaled units. A scenario models the drag by writing the anchor the
@@ -795,6 +798,13 @@ function GameTooltip_SetDefaultAnchor(tooltip, parent)
 	tooltip:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -13, 64)
 	Mock.tooltipDefault = true
 end
+-- The slash commands the prompt's macro hands the target back with, as the chat
+-- box lists them: SLASH_<NAME><n> and a handler under SlashCmdList.<NAME>.
+SLASH_CLEARTARGET1 = "/cleartarget"
+SLASH_TARGET_LAST_TARGET1 = "/targetlasttarget"
+SlashCmdList = SlashCmdList or {}
+SlashCmdList.CLEARTARGET = SlashCmdList.CLEARTARGET or function() end
+SlashCmdList.TARGET_LAST_TARGET = SlashCmdList.TARGET_LAST_TARGET or function() end
 DEFAULT_CHAT_FRAME = { AddMessage = function() end }
 
 function CreateFrame() return newFrame() end
