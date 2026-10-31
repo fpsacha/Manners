@@ -107,6 +107,41 @@ function SetMacroSpell(index, spell)
 	if spell == nil or spell == "" then macro.spell = nil else macro.spell = spell end
 end
 
+-- What a macro's slot was given, as the client answers it: the spell's id
+-- (a number; the mock keeps the name it was given, and Mock.spellIds says what
+-- id a name has, else the name itself comes back), and the item's name and
+-- link. Nothing for a macro that was given none, an empty string included.
+function GetMacroSpell(index)
+	local macro = macroAt(index)
+	if not (macro and macro.spell) then return nil end
+	return Mock.spellIds and Mock.spellIds[macro.spell] or macro.spell
+end
+
+function GetMacroItem(index)
+	local macro = macroAt(index)
+	if not (macro and macro.item) then return nil end
+	local id = tostring(macro.item):match("item:(%d+)")
+	return id and ("Item " .. id) or tostring(macro.item), tostring(macro.item)
+end
+
+-- Taking a macro away, by place or by name, as the game does (the list closes
+-- up behind it only in the macro window; here the place is simply free).
+function DeleteMacro(which)
+	if blocked("DeleteMacro") then return end
+	local index = which
+	if type(which) == "string" then index = GetMacroIndexByName(which) end
+	if type(index) ~= "number" or index <= 0 then return end
+	Mock.macroList[index] = nil
+	if Mock.macros then
+		for name, at in pairs(Mock.macros) do
+			if at == index then Mock.macros[name] = nil end
+		end
+	end
+	for slot, at in pairs(Mock.bar) do
+		if at == index then Mock.bar[slot] = nil end
+	end
+end
+
 function SetMacroItem(index, item)
 	if blocked("SetMacroItem") then return end
 	Mock.macroItemCalls = (Mock.macroItemCalls or 0) + 1

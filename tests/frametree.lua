@@ -745,10 +745,41 @@ instrument = function(f, kind, parent, layer, sublevel)
 
 	-- Texture state. SetVertexColor after a gradient replaces it, as it does in
 	-- the client, so each is stamped and the later one wins.
-	f.SetTexture = function(self, file)
+	f.SetTexture = function(self, file, wrapH, wrapV)
 		self._file, self._colorTexture, self._atlas = file, nil, nil
+		-- How the picture wraps past its edge, for a tiled strip
+		-- (GetHorizTile/GetVertTile answer "REPEAT" as a tile).
+		self._ft = self._ft or {}
+		self._ft.wrapH, self._ft.wrapV = wrapH, wrapV
 		return self
 	end
+	-- The four edges it was given (left, right, top, bottom) as the client
+	-- answers them: the four corners, upper left first.
+	f.GetTexCoord = function(self)
+		local c = self._texCoord
+		if not c then return 0, 0, 0, 1, 1, 0, 1, 1 end
+		if #c == 8 then return (table.unpack or unpack)(c) end
+		local l, r, t, b = c[1], c[2], c[3], c[4]
+		return l, t, l, b, r, t, r, b
+	end
+	f.GetHorizTile = function(self) return self._ft ~= nil and self._ft.wrapH == "REPEAT" end
+	f.GetVertTile = function(self) return self._ft ~= nil and self._ft.wrapV == "REPEAT" end
+	-- What the frame holds, as the client lists it: frames by GetChildren,
+	-- everything drawn (textures, strings, masks) by GetRegions.
+	local function listed(self, regions)
+		local out = {}
+		for _, c in ipairs(self._children or {}) do
+			local drawn = c._kind == "Texture" or c._kind == "FontString" or c._kind == "MaskTexture"
+			if drawn == regions then out[#out + 1] = c end
+		end
+		return out
+	end
+	f.GetChildren = function(self) return (table.unpack or unpack)(listed(self, false)) end
+	f.GetRegions = function(self) return (table.unpack or unpack)(listed(self, true)) end
+	f.GetNumChildren = function(self) return #listed(self, false) end
+	f.GetNumRegions = function(self) return #listed(self, true) end
+	f.GetObjectType = function(self) return self._kind end
+	f.GetAnimationGroups = function(self) return (table.unpack or unpack)(self._groups or {}) end
 	f.GetTexture = function(self) return self._file end
 	f.SetColorTexture = function(self, r, g, b, a)
 		self._colorTexture, self._file, self._atlas = { r, g, b, a == nil and 1 or a }, nil, nil
@@ -765,8 +796,27 @@ instrument = function(f, kind, parent, layer, sublevel)
 		self._gradient = { orientation, c1, c2 }
 		return self
 	end
-	f.AddMaskTexture = function(self, mask) self._mask = mask return self end
-	f.RemoveMaskTexture = function(self) self._mask = nil return self end
+	f.AddMaskTexture = function(self, mask)
+		self._mask = mask
+		self._ft = self._ft or {}
+		-- Every mask on it, which the client keeps (the last is not the only one).
+		self._ft.masks = self._ft.masks or {}
+		for _, m in ipairs(self._ft.masks) do
+			if m == mask then return self end
+		end
+		self._ft.masks[#self._ft.masks + 1] = mask
+		return self
+	end
+	f.RemoveMaskTexture = function(self, mask)
+		self._mask = nil
+		local masks = self._ft and self._ft.masks or {}
+		for i, m in ipairs(masks) do
+			if m == mask then table.remove(masks, i) break end
+		end
+		return self
+	end
+	f.GetNumMaskTextures = function(self) return #(self._ft and self._ft.masks or {}) end
+	f.GetMaskTexture = function(self, i) return (self._ft and self._ft.masks or {})[i] end
 
 	-- Font string state.
 	f.SetJustifyH = function(self, v) self._justifyH = v return self end
