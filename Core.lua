@@ -1508,6 +1508,18 @@ do
 					end
 				end
 			end
+			-- The same for one the game says you cannot pay for at this moment
+			-- (Queue.lua, Affordable, which leaves it out of the list): a
+			-- paladin short of mana for Kings, with his Kings on somebody, would
+			-- otherwise be offered Might for them, and a press puts it over the
+			-- Kings. The same exceptions: a pin, and a request by name.
+			local unpaid = opts.unpaid
+			if not pinned and not opts.asked and unpaid then
+				for i = 1, #unpaid do
+					local held, _, mine = has(unpaid[i], opts)
+					if held == true and mine ~= false then return nil, true end
+				end
+			end
 			-- A blessing on cooldown means this person was just offered one: leave
 			-- them alone until it lifts, readable or not. The aura cache is three
 			-- seconds deep, so a "none of yours" here is usually the reading from
@@ -3344,6 +3356,29 @@ end
 -- for Lua 5.1's 200; capped, since it runs on every profile change.
 ns.repairLog = {}
 
+-- Every yes/no, number and text among the defaults, the top level and one
+-- section down, as { section or false, key, type, default }: made once, for
+-- ClampSettings' repair by type.
+function ns.SettingLeaves()
+	local leaves = ns.settingLeaves
+	if leaves then return leaves end
+	leaves = {}
+	for key, default in pairs(ns.defaults.profile) do
+		if type(default) == "table" then
+			for k, v in pairs(default) do
+				local kind = type(v)
+				if type(k) == "string" and (kind == "boolean" or kind == "number" or kind == "string") then
+					leaves[#leaves + 1] = { key, k, kind, v }
+				end
+			end
+		elseif type(default) == "boolean" or type(default) == "number" or type(default) == "string" then
+			leaves[#leaves + 1] = { false, key, type(default), default }
+		end
+	end
+	ns.settingLeaves = leaves
+	return leaves
+end
+
 function ns.ClampSettings()
 	local profile = addon.db and addon.db.profile
 	if not profile then return end
@@ -3438,49 +3473,42 @@ function ns.ClampSettings()
 		end
 	end
 
-	-- The same for a plain yes or no: a string there is truthy forever, and a
-	-- checkbox cannot show it.
-	local function boolean(tbl, key, fallback)
-		if type(tbl[key]) ~= "boolean" then
-			fixed(key, tbl[key])
-			tbl[key] = fallback
+	-- Every yes or no among the defaults, repaired by type from here (a string
+	-- there is truthy forever, and a checkbox cannot show it): before the reads
+	-- below that take a switch for a plain true (skipPvP, kingsFirst: anything
+	-- else a damaged file holds would switch it off unseen). The numbers and
+	-- texts are repaired last. See ns.SettingLeaves.
+	local leaves = ns.SettingLeaves()
+	local function repair(booleans)
+		for i = 1, #leaves do
+			local leaf = leaves[i]
+			if (leaf[3] == "boolean") == booleans then
+				local holder = leaf[1] and profile[leaf[1]] or profile
+				local value = holder[leaf[2]]
+				-- NaN is no number, as above.
+				if type(value) ~= leaf[3] or value ~= value then
+					fixed((leaf[1] and leaf[1] .. "." or "") .. leaf[2], value)
+					holder[leaf[2]] = leaf[4]
+				end
+			end
 		end
 	end
+	repair(true)
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
 	-- Built from the tier list, so a new distance is never rejected here.
 	local proximities = {}
 	for _, tier in ipairs(ns.PROXIMITY) do proximities[tier.key] = true end
 	oneOf(profile.filters, "proximity", proximities, "near")
-	boolean(profile.filters, "restoreTarget", true)
-	boolean(profile.filters, "hideMounted", false)
-	boolean(profile.filters, "verifiedOnly", false)
-	boolean(profile.sound, "owedOnly", true)
-	boolean(profile.timing, "keepDebts", true)
-	boolean(profile.priority, "target", true)
-	boolean(profile.priority, "friends", true)
-	boolean(profile.filters, "restingOnly", false)
-	-- Read on every scan as a switch that only a plain true turns on, so
-	-- anything else a damaged file holds would switch it off unseen.
-	boolean(profile.filters, "skipPvP", true)
-	boolean(profile.filters, "skipSameClass", false)
-	-- Read on every scan as a switch that only a plain true turns on.
-	boolean(profile.buff, "kingsFirst", true)
-	boolean(profile.groupBuffs, "use", true)
 	-- A count of people, so a whole one: a hand-edited 2.5 is a number the
 	-- slider cannot show, and the page would say something the scan does not do.
 	profile.groupBuffs.atLeast = math.floor(profile.groupBuffs.atLeast)
-
-	boolean(profile.priority, "readyCheck", true)
-	boolean(profile.priority, "revived", true)
-	boolean(profile.sources, "self", true)
 
 	-- A family's pick is "auto", "off" or a spell of that family; anything else
 	-- -- a hand-edited file, a spell moved to another family -- is Automatic, and
 	-- a family this client has no data for goes. Written, not cleared: AceDB puts
 	-- a default back only at the next load.
 	local own = profile.ownBuffs
-	boolean(own, "inCities", false)
 	if type(own.pick) ~= "table" then own.pick = {} end
 	for key, value in pairs(own.pick) do
 		local family = ns.FindOwnFamily(key)
@@ -3555,10 +3583,7 @@ function ns.ClampSettings()
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "reasonPalette", { standard = true, colourblind = true }, "standard")
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")
-	boolean(p, "thankEmote", false)
 	oneOf(p, "effects", { full = true, calm = true }, "full")
-	boolean(p, "showCooldown", true)
-	boolean(p, "clickRows", true)
 	oneOf(p, "tooltip", { full = true, short = true, shift = true, off = true }, "short")
 	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
 
@@ -3643,6 +3668,11 @@ function ns.ClampSettings()
 			end
 		end
 	end
+
+	-- Last, the numbers and texts among the defaults of the wrong type: back to
+	-- their default, whatever the repairs above did not reach. Types only: a
+	-- valid value, off its default or not, is left as it is.
+	repair(false)
 end
 
 -- The line for a prompt the anchor carry-over has just moved. Not said by the

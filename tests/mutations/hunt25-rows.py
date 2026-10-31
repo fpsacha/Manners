@@ -286,8 +286,8 @@ mutate(P,
        script=S)
 
 mutate("Core.lua",
-       "\tboolean(p, \"clickRows\", true)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"clickRows\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "hunt25-rows: a click option that is not a yes or no kept",
        expect="hunt25-rows: the click option off leaves the list display-only",
        script=S)

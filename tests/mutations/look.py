@@ -132,8 +132,8 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 mutate("Core.lua",
-       '\tboolean(p, "showCooldown", true)\n',
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"showCooldown\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "cooldown switch not clamped",
        expect="a cooldown switch that is not a yes or a no",
        script="runscenarios.py")

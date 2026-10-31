@@ -255,8 +255,8 @@ mutate("Core.lua",
        expect="a family missing its pick was not given Automatic", script=S)
 
 mutate("Core.lua",
-       "\tboolean(own, \"inCities\", false)\n",
-       "",
+       "\t\t\t\t\tleaves[#leaves + 1] = { key, k, kind, v }\n",
+       "\t\t\t\t\tif k ~= \"inCities\" then leaves[#leaves + 1] = { key, k, kind, v } end\n",
        "own: nonsense cities kept",
        expect="a nonsense Also in cities and inns was kept", script=S)
 
