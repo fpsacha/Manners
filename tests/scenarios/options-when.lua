@@ -42,7 +42,8 @@ do
 	elseif tab then
 		-- The combat switch went to Look: it only stops the flashes, and
 		-- among the switches that stop offers it read as one of them.
-		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "refreshRaid", "alwaysNote", "verifiedOnly",
+		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "refreshRaid", "selfTopUp", "selfLead",
+			"alwaysNote", "verifiedOnly",
 			"wayHeader", "hideMounted", "manaFloor", "manaNote" }
 		local last
 		for _, key in ipairs(ORDER) do

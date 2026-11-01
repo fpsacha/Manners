@@ -83,6 +83,29 @@ function Page.BuildWhenTab()
 				get = fGet,
 				set = fSet,
 			},
+			-- Yours are topped up whatever the choice above says for other
+			-- people (ns.SelfWhenBuffed), so these two are never hidden by it.
+			selfTopUp = {
+				type = "toggle",
+				name = L["Top up my own buffs before they run out"],
+				desc = L["Your own buffs, and the ones you put on yourself, are offered again shortly before they end, whatever If they already have it says for other people."],
+				order = 3.6,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
+			selfLead = {
+				type = "range",
+				name = L["Top up my own buffs this long before they end (minutes)"],
+				desc = L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Raise it to be reminded earlier, before you pull. Never more than half the buff's length."],
+				order = 3.7,
+				min = 0,
+				max = 10,
+				step = 1,
+				disabled = function() return not F().selfTopUp and F().whenBuffed ~= "refresh" end,
+				get = fGet,
+				set = fSet,
+			},
 			alwaysNote = {
 				type = "description",
 				order = 4,

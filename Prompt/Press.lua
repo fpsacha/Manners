@@ -430,9 +430,12 @@ local function OnPostClick(self, mouseButton, down)
 	-- Only assembled when asked for: /manners clicks. The build stamp says
 	-- which build produced the log.
 	if ns.db and ns.db.profile.debugClicks then
-		ns.addon:Print(("|cffffd100CLICK|r build=%s macro=%s"):format(
-			tostring(ns.BUILD),
-			tostring(self:GetAttribute("macrotext1") or "nil"):gsub("%s+", " ")))
+		-- The button and down say how the press arrived: a key or a bar macro's
+		-- /click ... 1 is a down click, the mouse on the prompt follows the
+		-- client's ActionButtonUseKeyDown.
+		ns.addon:Print(("|cffffd100CLICK|r build=%s button=%s down=%s macro=%s"):format(
+			tostring(ns.BUILD), tostring(mouseButton), tostring(down),
+			(tostring(self:GetAttribute("macrotext1") or "nil"):gsub("%s+", " "))))
 	end
 	if not (S.current and S.current.name) then return end
 

@@ -298,6 +298,8 @@ for _, flavour in ipairs({ "camelot", "vanilla" }) do
 	local scenario = ("data-fix: %s: a Water Shield on its last charge is topped up"):format(flavour)
 	session(scenario, flavour, "SHAMAN", { WATER_SHIELD }, {}, function(ns)
 		Mock.advance(60)
+		-- "Top-ups off" below is off for you too (on by default since 1.10.4).
+		ns.db.profile.filters.selfTopUp = false
 		ns.db.profile.filters.whenBuffed = "refresh"
 		local family, spell = ns.FindOwnFamily("shield"), ns.FindOwnSpell("watershield")
 		if not (family and spell and spell.family == family) then

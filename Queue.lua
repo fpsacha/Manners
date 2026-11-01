@@ -1609,7 +1609,7 @@ end
 -- the time left for a top-up, the charges left for a charge shield's, and for
 -- a top-up how long it lasts, its lead and the kind of lead. nil when none does.
 local function OwnPick(db, full, now)
-	local ctx = { name = full, now = now, whenBuffed = db.filters.whenBuffed,
+	local ctx = { name = full, now = now, whenBuffed = ns.SelfWhenBuffed(db.filters),
 		refreshUnder = db.filters.refreshUnder }
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
 		local spell, has, remaining, _, _, charges, seconds, lead, kind = ns.OwnVerdict(family, ctx)
@@ -1648,7 +1648,7 @@ local function SelfBuff(db, mine, full, now)
 		-- The caster is always inside their own party.
 		inParty = true,
 		relevantOnly = f.relevantOnly,
-		whenBuffed = f.whenBuffed,
+		whenBuffed = ns.SelfWhenBuffed(f),
 		refreshUnder = f.refreshUnder,
 		name = full,
 		blocked = QueueBlocked,

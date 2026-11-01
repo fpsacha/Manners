@@ -363,6 +363,9 @@ withTree("Toast in a fight turns to iron and keeps the reason", ANNA, function(n
 		return
 	end
 	local band = look.band._color and { look.band._color[1], look.band._color[2], look.band._color[3] }
+	-- Dim the prompt in combat left on from a built-in look: the toast still
+	-- draws its fight its own way, never dimmed whole.
+	ns.db.profile.prompt.dimInCombat = true
 	Mock.inCombat = true
 	ns.addon:PLAYER_REGEN_DISABLED()
 	tick(ns)

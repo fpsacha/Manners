@@ -290,6 +290,12 @@ local defaults = {
 			-- In a raid or a dungeon the lead is this many times longer: a fight
 			-- and the drinking after it take minutes.
 			refreshRaid = 2,
+			-- Your own buffs, and the ones you put on yourself, are topped up
+			-- before they run out whatever whenBuffed says for other people
+			-- (ns.SelfWhenBuffed), and selfLead minutes ahead when set (0: the
+			-- moment worked out from the buff's length, ns.LeadFor).
+			selfTopUp = true,
+			selfLead = 0,
 			-- Off: somebody whose buffs the client will not show is offered,
 			-- "unverified" (but not in the first seconds after a fight:
 			-- UNVERIFIED_SECONDS). On, never: a player asked for it.
@@ -338,6 +344,10 @@ local defaults = {
 			-- protected frame is refused in combat. The key keeps its old name
 			-- because renaming it would silently reset everyone's setting.
 			hideInCombat = false,
+			-- The built-in looks (Glass, Framed, Minimal) draw the prompt at about
+			-- half strength in a fight when this is on, so it reads as held. Off by
+			-- default: a dim that stacks with a low Opacity made it vanish.
+			dimInCombat = false,
 
 			-- Glass again from 1.5.1: 1.5.0 made Luxe the default, and in the game its
 			-- reason tag read white on white for a passer-by -- the preview renderer draws
@@ -1298,7 +1308,10 @@ do
 		if now ~= nil and raidAt == now then return raidNow end
 		local yes = plain(IsInRaid and IsInRaid()) == true
 		if not yes and type(_G.IsInInstance) == "function" then
-			local inside, kind = _G.IsInInstance()
+			-- Guarded as every other reader of it is: asked once a scan at most
+			-- (your own top-ups are worked out on every one), and a client
+			-- where it throws is not in one.
+			local inside, kind = ns.safecall(_G.IsInInstance)
 			inside, kind = plain(inside), plain(kind)
 			yes = (inside == true or inside == 1) and (kind == "party" or kind == "raid")
 		end
@@ -1306,11 +1319,33 @@ do
 		return yes
 	end
 
+	-- "Top up my own buffs this long before they end" (filters.selfLead,
+	-- minutes; 0 is the moment worked out above): an earlier moment for yours
+	-- alone, never a later one, and never more than half the buff's length, or
+	-- a top-up would be due the moment it was cast.
+	local function SelfEarlier(lead, seconds)
+		local db = addon.db and addon.db.profile
+		local minutes = db and db.filters and db.filters.selfLead
+		if type(minutes) ~= "number" or not (minutes >= 1) then return lead end
+		local want = minutes * 60
+		if seconds and seconds >= 1 and want > seconds / 2 then want = seconds / 2 end
+		if want > lead then return want end
+		return lead
+	end
+
+	-- What "If they already have it" means for your own buffs and the ones you
+	-- put on yourself: with "Top up my own buffs before they run out" on, a
+	-- top-up whatever it says for other people.
+	function ns.SelfWhenBuffed(filters)
+		if filters.selfTopUp ~= false then return "refresh" end
+		return filters.whenBuffed
+	end
+
 	-- The same for one of your own buffs (OwnVerdict), whose ctx has the scan's
 	-- `now` and the ceiling.
 	function ns.OwnLead(ctx, seconds)
 		local kind = Raidish(ctx.now) and OWN_RAID_KIND or OWN_KIND
-		return ns.TopUpLead(seconds, kind, ctx.refreshUnder), kind
+		return SelfEarlier(ns.TopUpLead(seconds, kind, ctx.refreshUnder), seconds), kind
 	end
 
 	-- The lead for one person's buff, from the walk's opts: `own` (yourself),
@@ -1325,7 +1360,9 @@ do
 		else
 			kind = Raidish(opts.now) and RAID_KIND or GROUP_KIND
 		end
-		return ns.TopUpLead(seconds, kind, opts.refreshUnder), kind
+		local lead = ns.TopUpLead(seconds, kind, opts.refreshUnder)
+		if opts.own then lead = SelfEarlier(lead, seconds) end
+		return lead, kind
 	end
 end
 
@@ -3337,6 +3374,7 @@ local LIMITS = {
 	{ "prompt", "fontSize", 6, 32 },
 	{ "prompt", "iconSize", 12, 64 },
 	{ "prompt", "queueRows", 1, 5 },
+	{ "filters", "selfLead", 0, 10 },
 	-- Two is the least a group cast can beat, five a whole party.
 	{ "groupBuffs", "atLeast", 2, 5 },
 }
@@ -3498,6 +3536,11 @@ function ns.ClampSettings()
 	-- A count of people, so a whole one: a hand-edited 2.5 is a number the
 	-- slider cannot show, and the page would say something the scan does not do.
 	profile.groupBuffs.atLeast = math.floor(profile.groupBuffs.atLeast)
+	-- Rows, so whole ones too: a 2.5 listed two in the preview, three on the
+	-- prompt, and hung a list above it half a row off.
+	profile.prompt.queueRows = math.floor(profile.prompt.queueRows)
+	-- Whole minutes, as the slider gives them.
+	profile.filters.selfLead = math.floor(profile.filters.selfLead)
 
 	-- A family's pick is "auto", "off" or a spell of that family; anything else
 	-- -- a hand-edited file, a spell moved to another family -- is Automatic, and

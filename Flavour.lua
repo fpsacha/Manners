@@ -75,10 +75,14 @@ local function ProjectIs(name)
 	return id == want
 end
 
--- WOW_PROJECT_MAINLINE is 1 on both retail and Forever (a fork of Midnight),
--- so it names a family and never a flavour; only the interface number tells
--- those two apart.
+-- WOW_PROJECT_MAINLINE is 1 on retail, and Forever's early beta builds (a
+-- fork of Midnight) answered it too, so it names a family and never a
+-- flavour. Forever's own source sets WOW_PROJECT_ID to WOW_PROJECT_CAMELOT
+-- (18 in Gethe's forever branch at 1.60.1.70532), which names that one client
+-- and no other (`only`): it outranks an interface number outside Forever's
+-- band, where a Forever moved to a 2.x number would read as Burning Crusade.
 local BY_PROJECT = {
+	{ constant = "WOW_PROJECT_CAMELOT", flavour = "camelot", family = "modern", only = true },
 	{ constant = "WOW_PROJECT_MISTS_CLASSIC", flavour = "mists", family = "classic" },
 	{ constant = "WOW_PROJECT_BURNING_CRUSADE_CLASSIC", flavour = "tbc", family = "classic" },
 	{ constant = "WOW_PROJECT_CLASSIC", flavour = "vanilla", family = "classic" },
@@ -105,10 +109,14 @@ local function Decide()
 
 	local band = out.interface and BandFor(out.interface)
 	local project = ByProject()
+	-- A project id that names one client (see BY_PROJECT) wins where the
+	-- interface number has no band or another client's.
+	local overruled = project and project.only and not (band and band.flavour == project.flavour)
+	if overruled then band = { flavour = project.flavour, family = project.family } end
 
 	if band then
 		out.flavour, out.family = band.flavour, band.family
-		out.source = "interface"
+		out.source = overruled and "project" or "interface"
 		out.recognised = true
 
 		-- Recorded, not acted on: the interface number wins, being the only

@@ -639,7 +639,7 @@ local function FillPromptMenu(parent, fight)
 	-- These three are drawing and sound, never where the button is or what it
 	-- casts: the style is put back after the fight by ApplyStyle itself, so
 	-- they stay open in one.
-	Check(parent, L["Keep the prompt dim and still in combat"], function() return ns.db.profile.prompt.hideInCombat end,
+	Check(parent, L["Keep the prompt still in combat"], function() return ns.db.profile.prompt.hideInCombat end,
 		Act(function()
 			local now = ns.db.profile.prompt
 			now.hideInCombat = not now.hideInCombat

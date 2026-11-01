@@ -4958,6 +4958,9 @@ if ns then
 		db.prompt.showQueue = true
 		db.prompt.queueRows = 2
 		db.prompt.hideInCombat = false
+		-- The dim is one of the things that says held, and it is off by
+		-- default since 1.10.4: turned on here, so it is held to it.
+		db.prompt.dimInCombat = true
 
 		wipe(ns.tried)
 		ns.Prompt:ApplyStyle()
@@ -7013,6 +7016,8 @@ if ns then
 	local scenario = "a preview does not keep the dim of a fight that has ended"
 	drive(scenario, ns)
 	local regions = ns.Prompt:Regions()
+	-- The dim is off by default since 1.10.4; this is about the dim.
+	ns.db.profile.prompt.dimInCombat = true
 
 	-- The window is open, which is the one place a preview is of any use and
 	-- the reason it can outlive the fight it was started in.

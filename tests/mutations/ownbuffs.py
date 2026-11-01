@@ -756,3 +756,51 @@ mutate("Options/When.lua",
        "\t\t\t\t\tif false then\n\t\t\t\t\t\treturn L[\"Your own buffs are offered when none",
        "own: a hunter told about favours on When to offer",
        expect="If they already have it tells a hunter", script=S)
+
+# ------------------------------------------------ your own, topped up on Skip
+# "Top up my own buffs before they run out" (Core.lua, ns.SelfWhenBuffed and
+# SelfEarlier; Queue.lua, OwnPick and SelfBuff).
+
+mutate("Core.lua",
+       "\t\t\tselfTopUp = true,\n",
+       "\t\t\tselfTopUp = false,\n",
+       "own: your own top-ups off by default",
+       expect="self: your Thorns running low is topped up before it drops, on Skip", script=S)
+
+mutate("Core.lua",
+       "\t\tif filters.selfTopUp ~= false then return \"refresh\" end\n",
+       "",
+       "own: the switch for your own top-ups ignored",
+       expect="self: your Thorns running low is topped up before it drops, on Skip", script=S)
+
+mutate("Queue.lua",
+       "whenBuffed = ns.SelfWhenBuffed(db.filters),",
+       "whenBuffed = db.filters.whenBuffed,",
+       "own: your own families follow Skip",
+       expect="own: your own armor running low is topped up before it drops, on Skip", script=S)
+
+mutate("Core.lua",
+       "\t\treturn SelfEarlier(ns.TopUpLead(seconds, kind, ctx.refreshUnder), seconds), kind\n",
+       "\t\treturn ns.TopUpLead(seconds, kind, ctx.refreshUnder), kind\n",
+       "own: your armor's earlier moment ignored",
+       expect="own: Top up my own buffs this long before they end moves your armor's moment", script=S)
+
+mutate("Core.lua",
+       "\t\tif opts.own then lead = SelfEarlier(lead, seconds) end\n",
+       "",
+       "own: the earlier moment ignored for what you put on yourself",
+       expect="self: Top up my own buffs this long before they end moves your Thorns", script=S)
+
+mutate("Core.lua",
+       "\t\tif seconds and seconds >= 1 and want > seconds / 2 then want = seconds / 2 end\n",
+       "",
+       "own: the earlier moment past half the buff's length",
+       expect="self: Top up my own buffs this long before they end moves your Thorns", script=S)
+
+# Your own top-ups are worked out on every scan now, so the dungeon check
+# under them meets a client whose IsInInstance throws on every one.
+mutate("Core.lua",
+       "\t\t\tlocal inside, kind = ns.safecall(_G.IsInInstance)\n",
+       "\t\t\tlocal inside, kind = _G.IsInInstance()\n",
+       "own: the top-up's dungeon check unguarded",
+       expect="thank: not in an instance (IsInInstance throws)", script=S)

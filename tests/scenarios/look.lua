@@ -858,6 +858,8 @@ withTree("a fight during the fade out brings the panel back gently",
 	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
 	local scenario = "a fight during the fade out brings the panel back gently"
 	freshPrompt(ns, scenario)
+	-- The dim is the thing under test, so it is turned on here (off by default).
+	ns.db.profile.prompt.dimInCombat = true
 	owe(ns, "Anna Aim")
 	ns.addon:Tick()
 	local r = ns.Prompt:Regions()
@@ -892,6 +894,64 @@ withTree("a fight during the fade out brings the panel back gently",
 		fail(scenario, ("the panel rests at %.2f in the fight, not dimmed"):format(r.art:GetAlpha() or 0))
 	end
 	Mock.inCombat = false
+end)
+
+-- A built-in prompt keeps its full strength in a fight: the dim is off by
+-- default (it stacked with a low Opacity and made the prompt vanish), and
+-- "Dim the prompt in combat" brings it back at half strength.
+withTree("the built-in prompt is not dimmed in a fight unless asked for",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "the built-in prompt is not dimmed in a fight unless asked for"
+	freshPrompt(ns, scenario)
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local r = ns.Prompt:Regions()
+	if ns.db.profile.prompt.dimInCombat then
+		fail(scenario, "SKIPPED -- Dim the prompt in combat is on by default")
+		return
+	end
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	if (r.art:GetAlpha() or 0) < 0.999 then
+		fail(scenario, ("the panel rests at %.2f in a fight with the dim off"):format(r.art:GetAlpha() or 0))
+	end
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_ENABLED()
+	ns.db.profile.prompt.dimInCombat = true
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	if math.abs((r.art:GetAlpha() or 0) - 0.55) > 0.001 then
+		fail(scenario, ("with the dim on the panel rests at %.2f, not 0.55"):format(r.art:GetAlpha() or 0))
+	end
+	Mock.inCombat = false
+end)
+
+-- The dim changed in a fight shows at once: the restyle it asks for waits for
+-- the end of the fight, but the dim is art's alpha, which a fight allows, and
+-- after the fight there is no dim left to show.
+withTree("the dim changed in a fight shows at once",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "the dim changed in a fight shows at once"
+	freshPrompt(ns, scenario)
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local r = ns.Prompt:Regions()
+	local p = ns.db.profile.prompt
+	p.dimInCombat = false
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	p.dimInCombat = true
+	ns.Prompt:ApplyStyle()
+	if math.abs((r.art:GetAlpha() or 0) - 0.55) > 0.001 then
+		fail(scenario, ("turned on in a fight, the panel stays at %.2f"):format(r.art:GetAlpha() or 0))
+	end
+	p.dimInCombat = false
+	ns.Prompt:ApplyStyle()
+	if (r.art:GetAlpha() or 0) < 0.999 then
+		fail(scenario, ("turned off in a fight, the panel stays at %.2f"):format(r.art:GetAlpha() or 0))
+	end
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_ENABLED()
 end)
 
 -- ------------------------------------------------------------------ look 18

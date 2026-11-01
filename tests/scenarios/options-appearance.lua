@@ -63,7 +63,7 @@ local ORDER = {
 	"posHeader", "scale", "alpha", "width", "height",
 	"styleHeader", "style", "bgColor", "accentByReason", "reasonPalette", "accentColor",
 	"accentMode", "accentDead",
-	"attentionHeader", "flashStyle", "effects", "hideInCombat", "soundEnabled", "soundFile",
+	"attentionHeader", "flashStyle", "effects", "hideInCombat", "dimInCombat", "soundEnabled", "soundFile",
 	"soundOwedOnly", "noSound",
 	"tooltipHeader", "tooltip", "tooltipPosition",
 	"textHeader", "font", "fontSize", "fontColor", "classColor", "showSub",
@@ -118,7 +118,7 @@ do
 			style = "Panel style", bgColor = "Panel colour", accentByReason = "Colour marker by reason",
 			reasonPalette = "Reason colours", accentColor = "Marker colour", accentMode = "Colour marker",
 			flashStyle = "Flash when someone buffs me", effects = "Animations",
-			hideInCombat = "Keep the prompt dim and still in combat",
+			hideInCombat = "Keep the prompt still in combat",
 			soundEnabled = "Play a sound", soundFile = "Sound", soundOwedOnly = "Only for people who buff me",
 			fontColor = "Text colour", classColor = "Colour names by class", showSub = "Show a second line",
 			showCount = "Show how many are waiting", showQueue = "List the next few below",
@@ -385,9 +385,9 @@ do
 		end
 		desc = text(args.showCooldown.desc)
 		-- On this tab now, so named without a tab.
-		if not desc:find("|cffffd100Keep the prompt dim and still in combat|r", 1, true)
+		if not desc:find("|cffffd100Keep the prompt still in combat|r", 1, true)
 			or desc:find("(When to offer)", 1, true) then
-			fail(scenario, "Show the global cooldown does not point at Keep the prompt dim: " .. desc)
+			fail(scenario, "Show the global cooldown does not point at Keep the prompt still: " .. desc)
 		end
 		desc = text(args.roundIcon.desc)
 		if desc:find("|cff888888", 1, true) then
@@ -405,6 +405,35 @@ do
 			fail(scenario, "the second line's height does not follow the font: " .. text(args.showSub.desc))
 		end
 		p.fontSize = size
+		noErrors(scenario, ns)
+	end
+end
+
+-- Dim the prompt in combat reaches only the built-in looks: the ones from
+-- Looks/ draw a fight their own way, so on them it is greyed out rather than a
+-- switch that does nothing.
+do
+	local scenario = "look: Dim the prompt in combat is greyed out on a look with its own fight"
+	local ns, tab, args = session(scenario)
+	if ns then
+		local option = args.dimInCombat
+		if not (option and type(option.disabled) == "function") then
+			fail(scenario, "Dim the prompt in combat has no greyed-out rule")
+		else
+			local p = ns.db.profile.prompt
+			local was = p.style
+			for _, style in ipairs({ "glass", "framed", "minimal" }) do
+				p.style = style
+				if option.disabled() then fail(scenario, "greyed out on " .. style .. ", which it dims") end
+			end
+			for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather" }) do
+				p.style = style
+				if ns.Looks.Get(style) and not option.disabled() then
+					fail(scenario, "open on " .. style .. ", which draws a fight its own way")
+				end
+			end
+			p.style = was
+		end
 		noErrors(scenario, ns)
 	end
 end

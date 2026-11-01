@@ -32,7 +32,7 @@ mutate("Queue.lua",
 
 # The top-up setting not passed on.
 mutate("Queue.lua",
-       "\t\twhenBuffed = f.whenBuffed,\n\t\trefreshUnder = f.refreshUnder,\n\t\tname = full,\n",
+       "\t\twhenBuffed = ns.SelfWhenBuffed(f),\n\t\trefreshUnder = f.refreshUnder,\n\t\tname = full,\n",
        "\t\twhenBuffed = \"skip\",\n\t\trefreshUnder = f.refreshUnder,\n\t\tname = full,\n",
        "self: top-up ignored",
        expect="two minutes left and top-ups on", script=S)

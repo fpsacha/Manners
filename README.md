@@ -374,8 +374,9 @@ apart under protanopia and deuteranopia.
 
 <img src=".github/media/manners-palette.png" alt="The same prompt and list in the standard reason colours and in the colour-blind friendly set" width="640">
 
-Set *Animations* to *Calm* for none of that movement. *Keep the prompt dim and
-still in combat* does what it says for a fight.
+Set *Animations* to *Calm* for none of that movement. *Keep the prompt still
+in combat* does what it says for a fight, and *Dim the prompt in combat* draws
+Glass, Framed and Minimal at about half strength while one lasts.
 
 ## The minimap button
 
@@ -564,6 +565,12 @@ list. They used to be at the bottom of *Who to buff*.
   will ever wait, and *In a raid or dungeon, top up this many times earlier*),
   or *Always offer*. *Diagnostics* and `/manners debug` list when a top-up is
   due for each of your buffs.
+- *Top up my own buffs before they run out* (on): your own buffs, and the
+  ones you put on yourself, are offered again shortly before they end,
+  whichever of the three above you pick for other people. *Top up my own
+  buffs this long before they end (minutes)* asks for an earlier moment
+  (0 works it out from the buff's length), so a ten-minute Thorns can come
+  back before you pull, never more than half the buff's length ahead.
   Somebody who buffed you is offered the favour back whichever you pick. Your
   own buffs are always read, so you are never offered one you are wearing;
   a top-up reaches them too, but never an aura or an aspect. A rank below
@@ -691,9 +698,12 @@ exact position, the text, the prompt's wording, and the icon and waiting list.
   default: the next few people the prompt would offer, one line each.
   *Click a name in the list to buff them* (on) makes each line a button, as
   under *Click any name* above; how many are listed is *How many to list*.
-- *Keep the prompt dim and still in combat*: the prompt stays on screen,
-  because your key would still cast, but the flashes stop, and the icon shows
-  no cooldown sweep for the fight.
+- *Keep the prompt still in combat*: the prompt stays on screen, because your
+  key would still cast, but the flashes stop, and the icon shows no cooldown
+  sweep for the fight.
+- *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at
+  about half strength in a fight, so the prompt reads as held. The other looks
+  have their own way of showing a fight, and the setting is greyed out on them.
 - *Reason colours*: the target colour appears only while *My target first* is
   on and *If they already have it* is not *Always offer*.
 - *Exact position*: the prompt's place in numbers. The arrows move it a pixel

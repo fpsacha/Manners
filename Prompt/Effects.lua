@@ -522,11 +522,26 @@ local function FullEffects()
 	return p ~= nil and p.effects ~= "calm"
 end
 
--- The alpha art rests at: dimmed for a fight, full otherwise. The outro leaves
--- art at zero, and every way back has to undo that.
+-- The alpha art takes in a fight: a look's own, else half strength for the
+-- built-in looks when "Dim the prompt in combat" is on, else full.
+local function CombatRestAlpha()
+	local look = S.activeLook
+	if look and look.combatArtAlpha then return look.combatArtAlpha end
+	local p = ns.db and ns.db.profile.prompt
+	return p and p.dimInCombat and 0.55 or 1
+end
+
+-- The alpha art rests at: the fight's, when held, full otherwise. The outro
+-- leaves art at zero, and every way back has to undo that.
 local function RestArtAlpha()
 	R.art.faded = nil
-	R.art:SetAlpha(combatHeld and (S.activeLook and S.activeLook.combatArtAlpha or 0.55) or 1)
+	R.art:SetAlpha(combatHeld and CombatRestAlpha() or 1)
+end
+
+-- The dim asked again mid-fight (a restyle: the setting changed, or the look).
+-- Nothing to do out of one.
+function Prompt:ReapplyCombatDim()
+	if combatHeld then RestArtAlpha() end
 end
 
 -- The entrance: the full one lands, Calm's fades. Played where the panel
@@ -575,7 +590,7 @@ end
 -- nil when no fade was running.
 function Prompt:ComeBack(from)
 	self:StopOutro()
-	local rest = combatHeld and (S.activeLook and S.activeLook.combatArtAlpha or 0.55) or 1
+	local rest = combatHeld and CombatRestAlpha() or 1
 	if from == nil or math.abs(from - rest) < 0.02 then return end
 	if not (R.art.comeback and R.button:IsShown()) then return end
 	R.art.comeback:Stop()

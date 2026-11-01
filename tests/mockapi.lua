@@ -5,10 +5,12 @@
 Mock = Mock or {}
 Mock.now = 1000
 
--- Forever reports retail's project id -- it is a fork of Midnight, not a
--- project of its own -- so WOW_PROJECT_MAINLINE is what both of them answer.
--- Anything that tries to tell those two apart this way is wrong, and now
--- provably so.
+-- Forever's early beta builds reported retail's project id -- it is a fork of
+-- Midnight -- so WOW_PROJECT_MAINLINE is what both of them answer here, the
+-- harder of the two cases: anything that tries to tell those two apart this
+-- way is wrong, and provably so. Its source from 1.60.1.70532 sets a project
+-- of its own (WOW_PROJECT_CAMELOT, 18); tests/scenarios/flavour-project.lua
+-- plays that one.
 --
 -- Declared up here rather than beside the other API stand-ins because
 -- Mock.setFlavour assigns one of them, and Mock.reset calls that before this
@@ -1710,6 +1712,9 @@ local SPELL_NAMES = {
 	-- know one that is not Arcane Intellect.
 	[116] = "Frostbolt",
 	[5504] = "Conjure Water",
+
+	-- Season of Discovery's rune, on Classic Era's client (wago.tools SpellName).
+	[403619] = "Fel Armor",
 }
 
 -- The buffs a class puts on itself alone (Buffs.lua, VANILLA_OWN), every rank
@@ -1725,6 +1730,7 @@ for name, ids in pairs({
 	["Shadowguard"] = { 18137, 19308, 19309, 19310, 19311, 19312 },
 	["Demon Skin"] = { 687, 696 },
 	["Demon Armor"] = { 706, 1086, 11733, 11734, 11735 },
+	["Fel Armor"] = { 403619 },
 	["Devotion Aura"] = { 465, 10290, 643, 10291, 1032, 10292, 10293 },
 	["Retribution Aura"] = { 7294, 10298, 10299, 10300, 10301 },
 	["Concentration Aura"] = { 19746 },

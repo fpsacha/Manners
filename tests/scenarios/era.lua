@@ -376,3 +376,59 @@ for _, withMenu in ipairs({ true, false }) do
 	end)
 	Mock.removeSettings()
 end
+
+-- ------------------------------------------------------------------ Fel Armor
+-- Season of Discovery's Fel Armor is a rune a Warlock buys from the rune
+-- vendor, and it is the armor such a Warlock wants: once known, Automatic
+-- offers it over Demon Skin. Without it, Demon Skin is still the one offered.
+local function felCtx(ns)
+	return { name = ns.UnitFullName("player"), now = GetTime(), whenBuffed = "skip" }
+end
+
+do
+	local scenario = "era: a warlock with the Season of Discovery Fel Armor is offered it before Demon Skin"
+	era(scenario, { class = "WARLOCK", known = { 403619, 687 }, before = function()
+		Mock.playerHeld = {}
+	end }, function(ns)
+		local family = ns.FindOwnFamily("demonarmor")
+		if not family or family.class ~= "WARLOCK" then
+			fail(scenario, "a warlock has no armor family")
+			return
+		end
+		H.clearClicks(ns)
+		local spell, up = ns.OwnVerdict(family, felCtx(ns))
+		if up ~= false then
+			fail(scenario, "SKIPPED -- with nothing worn the family reads " .. tostring(up))
+		elseif not spell or spell.key ~= "felarmor" then
+			fail(scenario, "with Fel Armor known, a warlock is offered " .. tostring(spell and spell.key))
+		elseif ns.BuffName(spell) ~= "Fel Armor" then
+			fail(scenario, "the rune is cast as " .. tostring(ns.BuffName(spell)) .. ", wanted Fel Armor")
+		end
+		Mock.playerHeld = { [403619] = true }
+		local again, upNow = ns.OwnVerdict(family, felCtx(ns))
+		if upNow ~= true or again then
+			fail(scenario, "Fel Armor up reads as " .. tostring(upNow) .. ", and "
+				.. tostring(again and again.key) .. " is offered over it")
+		end
+	end)
+end
+
+do
+	local scenario = "era: a warlock without the rune is still offered Demon Skin"
+	era(scenario, { class = "WARLOCK", known = { 687 }, before = function()
+		Mock.playerHeld = {}
+	end }, function(ns)
+		local family = ns.FindOwnFamily("demonarmor")
+		if not family or family.class ~= "WARLOCK" then
+			fail(scenario, "a warlock has no armor family")
+			return
+		end
+		H.clearClicks(ns)
+		local spell = ns.OwnVerdict(family, felCtx(ns))
+		if not spell or spell.key ~= "demonarmor" then
+			fail(scenario, "without the rune a warlock is offered " .. tostring(spell and spell.key))
+		elseif ns.BuffName(spell) ~= "Demon Skin" then
+			fail(scenario, "Demon Skin is cast as " .. tostring(ns.BuffName(spell)))
+		end
+	end)
+end

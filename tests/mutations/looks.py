@@ -136,7 +136,7 @@ mutate("Looks/Luxe.lua",
 
 # The whole of art dimmed, card and all, as the glass look does.
 mutate("Prompt/Effects.lua",
-       "\tR.art:SetAlpha(combatHeld and (S.activeLook and S.activeLook.combatArtAlpha or 0.55) or 1)\n",
+       "\tR.art:SetAlpha(combatHeld and CombatRestAlpha() or 1)\n",
        "\tR.art:SetAlpha(combatHeld and 0.55 or 1)\n",
        "art dimmed whole on Luxe in a fight",
        expect="art dimmed whole in a fight",

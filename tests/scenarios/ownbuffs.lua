@@ -849,6 +849,8 @@ Mock.reset()
 do
 	local scenario = "own: one entry for you, your group buff first, then a top-up"
 	with(scenario, { known = MAGE }, function(ns)
+		-- "Top-ups off" here is off for you too (on by default since 1.10.4).
+		ns.db.profile.filters.selfTopUp = false
 		Mock.playerHeld = {}
 		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
 		local count = 0
@@ -1709,6 +1711,8 @@ do
 	local scenario = "own: a charge shield on its last charges is topped up"
 	with(scenario, { class = "SHAMAN", known = { SHIELD },
 		wearing = { { id = SHIELD, left = 590, apps = 1 } } }, function(ns)
+		-- "Top-ups off" here is off for you too (on by default since 1.10.4).
+		ns.db.profile.filters.selfTopUp = false
 		if mine(ns) then
 			fail(scenario, "top-ups off, Lightning Shield on its last charge was offered " .. key(mine(ns)))
 		end
@@ -1745,4 +1749,44 @@ do
 		if mine(ns) then fail(scenario, "Inner Fire with 6 of 20 charges was topped up") end
 	end)
 end
+Mock.reset()
+
+-- ------------------------------------------------------------------ own: topped up
+-- Your own buffs are topped up before they run out whatever "If they already
+-- have it" says for other people. "Top up my own buffs before they run out"
+-- turns it off; "this long before they end" asks for an earlier moment. The
+-- ones you put on yourself (Thorns) are held to the same in self.lua.
+local DEMON_SKIN = 687
+
+do
+	local scenario = "own: your own armor running low is topped up before it drops, on Skip"
+	with(scenario, { class = "WARLOCK", known = { DEMON_SKIN } }, function(ns)
+		local f = ns.db.profile.filters
+		-- Thirty minutes long: three minutes, half as much again for yours.
+		wear(ns, { { id = DEMON_SKIN, left = 200 } })
+		if key(mine(ns)) ~= "demonarmor" then
+			fail(scenario, "Demon Skin with 200 s left, on Skip: offered " .. key(mine(ns)))
+		end
+		f.selfTopUp = false
+		wear(ns, { { id = DEMON_SKIN, left = 200 } })
+		if mine(ns) then
+			fail(scenario, "with the switch off and Skip, Demon Skin was topped up: " .. key(mine(ns)))
+		end
+	end)
+end
+
+do
+	local scenario = "own: Top up my own buffs this long before they end moves your armor's moment"
+	with(scenario, { class = "WARLOCK", known = { DEMON_SKIN } }, function(ns)
+		local f = ns.db.profile.filters
+		wear(ns, { { id = DEMON_SKIN, left = 500 } })
+		if mine(ns) then fail(scenario, "Demon Skin with 500 s left was topped up on the automatic moment") end
+		f.selfLead = 10
+		wear(ns, { { id = DEMON_SKIN, left = 500 } })
+		if key(mine(ns)) ~= "demonarmor" then
+			fail(scenario, "ten minutes asked for, Demon Skin with 500 s left: offered " .. key(mine(ns)))
+		end
+	end)
+end
+
 Mock.reset()

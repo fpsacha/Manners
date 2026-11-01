@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+- **Fel Armor, from the Season of Discovery rune.** A Warlock who has learned
+  Fel Armor from the rune vendor is reminded of it, and offered it, before Demon
+  Skin (issue #3). Without the rune, nothing changes: Demon Skin, and Demon
+  Armor from level 20.
+- **The prompt no longer vanishes in a fight.** The built-in looks (Glass,
+  Framed and Minimal) were drawn at about half strength in combat, on top of
+  your Opacity, so a low Opacity could make the prompt disappear. It now keeps
+  your Opacity in a fight. *Dim the prompt in combat* on *Look* turns the dim
+  back on for anybody who wants it, takes effect at once even mid-fight, and is
+  greyed out on the looks that show a fight their own way. The old switch is
+  now called *Keep the prompt still in combat*, which is all it ever did.
+- **Your own buffs come back before they drop.** Your own buffs, and the ones
+  you put on yourself (Thorns, Arcane Intellect, an armor), are now offered
+  again shortly before they run out, even with *If they already have it* on
+  *Skip*. On *When to offer*, *Top up my own buffs this long before they end*
+  asks for an earlier reminder, up to ten minutes (never more than half the
+  buff's length), so it comes up before you pull. *Top up my own buffs before
+  they run out* turns it off.
+- **`/manners clicks`** now says which mouse button a press arrived as and
+  whether it was a down or an up click, to tell a bar macro or a key binding
+  from a click on the prompt in a report.
+- **Reset this page** on *Look* puts the combat dim back too.
+- **How many to list** is always a whole number of rows: an imported settings
+  string or a hand-edited file with a fraction listed a different number in
+  the preview than on the prompt.
+- **Ready for a future Forever client number.** Manners recognises WoW Forever
+  by its own project id as well as its interface number, so a new Forever
+  version cannot be mistaken for Burning Crusade Classic.
+
 ## 1.10.3
 
 - **A check for a new client.** `/manners selftest launch` asks the game about

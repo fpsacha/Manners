@@ -377,10 +377,22 @@ function Page.BuildLookTab()
 			-- writes the prompt's own table, so pGet/pSet (restyle).
 			hideInCombat = {
 				type = "toggle",
-				name = L["Keep the prompt dim and still in combat"],
+				name = L["Keep the prompt still in combat"],
 				desc = L["It stays on screen in combat because your key binding would still cast; this only stops the flashes that say what a click did, red if it failed."],
 				order = 32.5,
 				width = "full",
+				get = pGet,
+				set = pSet,
+			},
+			dimInCombat = {
+				type = "toggle",
+				name = L["Dim the prompt in combat"],
+				desc = L["In a fight the built-in looks are drawn at about half strength, so the prompt reads as held. Off, it stays at the opacity you set."],
+				order = 32.6,
+				width = "full",
+				-- The looks from Looks/ draw a fight their own way (combatArtAlpha,
+				-- Combat), so the setting only reaches Glass, Framed and Minimal.
+				disabled = function() return ns.Looks.Get(P().style) ~= nil end,
 				get = pGet,
 				set = pSet,
 			},
@@ -614,7 +626,7 @@ function Page.BuildLookTab()
 				name = L["Show the global cooldown on the icon"],
 				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
 					.. "\n\n|cff888888" .. L["Not in a fight while this is on:"] .. "|r "
-					.. "|cffffd100" .. L["Keep the prompt dim and still in combat"] .. "|r",
+					.. "|cffffd100" .. L["Keep the prompt still in combat"] .. "|r",
 				order = 54,
 				width = "full",
 				disabled = function() return not P().showIcon end,

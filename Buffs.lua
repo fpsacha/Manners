@@ -821,6 +821,10 @@ local VANILLA_OWN = {
 		{
 			key = "demonarmor",
 			spells = {
+				-- Season of Discovery's Fel Armor, a rune the rune vendor sells
+				-- (30 min, the client's own id for every realm). First, so that
+				-- Automatic picks it over Demon Skin once it is known.
+				{ key = "felarmor", ranks = { 403619 } },
 				-- Demon Skin 1-2, then Demon Armor 1-5 from level 20: one line.
 				{ key = "demonarmor", ranks = { 11735, 11734, 11733, 1086, 706, 696, 687 } },
 			},
@@ -2072,6 +2076,7 @@ do
 		{ 600, 10432, 10431, 8134, 945, 905, 325, 324 }, -- Lightning Shield (10 min)
 		{ 600, 408510 }, -- Water Shield (10 min)
 		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
+		{ 1800, 403619 }, -- Fel Armor, Season of Discovery's rune (30 min)
 	})
 
 	-- Burning Crusade Classic Anniversary 2.5.6.69795.
@@ -2174,6 +2179,7 @@ do
 		{ 600, 10432, 10431, 8134, 945, 905, 325, 324 }, -- Lightning Shield (10 min)
 		{ 600, 408510 }, -- Water Shield (10 min)
 		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
+		{ 1800, 403619 }, -- Fel Armor, the Season of Discovery rune's id (30 min, build 1.60.1.70532)
 	})
 
 	-- Mists of Pandaria Classic 5.5.4.70032.

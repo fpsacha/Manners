@@ -227,6 +227,8 @@ Mock.reset()
 do
 	local scenario = "self: a top-up follows When they already have it"
 	with(scenario, { wearing = set(1459) }, function(ns)
+		-- "Top-ups off" here is off for you too (on by default since 1.10.4).
+		ns.db.profile.filters.selfTopUp = false
 		Mock.playerHeldFor = 120
 		wear(ns, set(1459))
 		if mine(ns) then fail(scenario, "offered a top-up with top-ups off") end
@@ -1334,3 +1336,60 @@ do
 		button.scripts.OnLeave(button)
 	end)
 end
+
+-- ------------------------------------------------------------------ self: topped up
+-- What you put on yourself is topped up before it runs out whatever "If they
+-- already have it" says for other people: a druid pulling packs kept finding
+-- his Thorns gone. "Top up my own buffs before they run out" turns it off;
+-- "this long before they end" asks for an earlier moment, never past half the
+-- buff's length. Thorns lasts ten minutes (playerHeldDuration).
+local THORNS = 467
+
+local function thorns(ns)
+	local me = mine(ns)
+	return me and me.buff and me.buff.key == "thorns"
+end
+
+Mock.reset()
+do
+	local scenario = "self: your Thorns running low is topped up before it drops, on Skip"
+	with(scenario, { class = "DRUID", known = { THORNS } }, function(ns)
+		local f = ns.db.profile.filters
+		if f.whenBuffed ~= "skip" or f.selfTopUp ~= true then
+			fail(scenario, "SKIPPED -- the defaults are not Skip with your own top-ups on")
+			return
+		end
+		Mock.playerHeldDuration = 600
+		-- A tenth of ten minutes, half as much again for yours: 90 s.
+		Mock.playerHeldFor = 60
+		wear(ns, set(THORNS))
+		if not thorns(ns) then fail(scenario, "Thorns with a minute left, on Skip, was not topped up") end
+		f.selfTopUp = false
+		wear(ns, set(THORNS))
+		if mine(ns) then fail(scenario, "with the switch off and Skip, Thorns was topped up") end
+	end)
+end
+
+Mock.reset()
+do
+	local scenario = "self: Top up my own buffs this long before they end moves your Thorns, up to half its length"
+	with(scenario, { class = "DRUID", known = { THORNS } }, function(ns)
+		local f = ns.db.profile.filters
+		Mock.playerHeldDuration = 600
+		Mock.playerHeldFor = 200
+		wear(ns, set(THORNS))
+		if mine(ns) then fail(scenario, "Thorns with 200 s left was topped up on the automatic moment") end
+		f.selfLead = 4
+		wear(ns, set(THORNS))
+		if not thorns(ns) then fail(scenario, "four minutes asked for, Thorns with 200 s left was not topped up") end
+		-- Ten minutes asked of a ten-minute buff: half of it, five, at most.
+		f.selfLead = 10
+		Mock.playerHeldFor = 400
+		wear(ns, set(THORNS))
+		if mine(ns) then fail(scenario, "Thorns with 400 s of 600 left was topped up: past half its length") end
+		Mock.playerHeldFor = 290
+		wear(ns, set(THORNS))
+		if not thorns(ns) then fail(scenario, "ten minutes asked for, Thorns with 290 s left was not topped up") end
+	end)
+end
+Mock.reset()

@@ -380,3 +380,19 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ rows
+-- How many to list is a count of rows: an imported or hand-edited 2.5 listed
+-- two in the preview and three on the prompt, and hung a list above the
+-- prompt half a row off. The repair makes it whole.
+do
+	local scenario = "settings-fix: a fractional list length is a whole number of rows"
+	session(scenario, function(ns)
+		local p = ns.db.profile
+		p.prompt.queueRows = 2.5
+		ns.ClampSettings()
+		if p.prompt.queueRows ~= 2 then
+			fail(scenario, "How many to list is " .. tostring(p.prompt.queueRows) .. " after the repair, not 2")
+		end
+	end)
+end

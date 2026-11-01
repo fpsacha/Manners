@@ -79,7 +79,10 @@ default everywhere in the tests and the only client anybody here plays.
 
 - **Flavour.lua** matches the interface number against bands tried in order
   (camelot first: 16001 and 11509 are both five digits). `WOW_PROJECT_ID` is a
-  cross-check only (it is MAINLINE on Forever and retail alike). An unknown
+  cross-check only (MAINLINE on retail and on Forever's early builds), except
+  Forever's own `WOW_PROJECT_CAMELOT` (18 in its 1.60.1.70532 source), which
+  names one client and wins where the interface number has no band or
+  another client's (`tests/scenarios/flavour-project.lua`). An unknown
   interface falls back to the project id's family, else `modern`.
 - **Buffs.lua** has one set per flavour (`SETS`); an unrecognised flavour gets
   its family's (classic -> vanilla, modern -> mainline). The chosen set fills

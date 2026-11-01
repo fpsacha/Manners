@@ -2079,7 +2079,7 @@ mutate("Options/Advanced.lua",
 # 83. "Hide in combat" over a panel that cannot be hidden. The call that read
 #     it was protected and refused every time it ran, and it is gone.
 mutate("Options/Look.lua",
-       'name = L["Keep the prompt dim and still in combat"],',
+       'name = L["Keep the prompt still in combat"],',
        'name = L["Hide in combat"],',
        "a switch named for something it cannot do",
        expect="is still called",

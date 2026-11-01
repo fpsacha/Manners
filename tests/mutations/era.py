@@ -93,3 +93,20 @@ mutate("Manners.toc",
        "era: the German Notes say what is unverified",
        expect="Manners.toc: ## Notes-deDE:",
        script=V)
+
+# ------------------------------------------------ Fel Armor, the Season of Discovery rune
+# A warlock with the rune is offered it before Demon Skin: the family lists it
+# first, and Automatic never passes over a spell that is not neverAuto.
+mutate("Buffs.lua",
+       "\t\t\t\t{ key = \"felarmor\", ranks = { 403619 } },\n",
+       "",
+       "era: Fel Armor left out of the warlock's armor family",
+       expect="era: a warlock with the Season of Discovery Fel Armor is offered it before Demon Skin",
+       script=S)
+
+mutate("Buffs.lua",
+       "\t\t\t\t{ key = \"felarmor\", ranks = { 403619 } },\n",
+       "\t\t\t\t{ key = \"felarmor\", ranks = { 403619 }, neverAuto = true },\n",
+       "era: Automatic never picks Fel Armor",
+       expect="era: a warlock with the Season of Discovery Fel Armor is offered it before Demon Skin",
+       script=S)

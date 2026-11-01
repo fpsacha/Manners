@@ -80,3 +80,12 @@ mutate("Core.lua",
        "\t\t\t\tif type(value) ~= leaf[3] then\n",
        "settings-fix: NaN kept in a bounded number",
        expect="settings-fix: a NaN in a saved number is put back to its default", script=S)
+
+# ------------------------------------------------ list rows
+
+# A fractional row count kept: the preview and the prompt list different counts.
+mutate("Core.lua",
+       "\tprofile.prompt.queueRows = math.floor(profile.prompt.queueRows)\n",
+       "",
+       "settings-fix: a fractional list length kept",
+       expect="settings-fix: a fractional list length is a whole number of rows", script=S)

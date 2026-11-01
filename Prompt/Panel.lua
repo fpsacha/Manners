@@ -368,6 +368,9 @@ end
 
 function Prompt:ApplyStyle()
 	if not R.button then return end
+	-- The fight's dim is art's alpha, which a fight allows: a change to "Dim
+	-- the prompt in combat" shows at once rather than at the next fight.
+	self:ReapplyCombatDim()
 	if InCombatLockdown() then
 		self.pendingStyle = true
 		return
