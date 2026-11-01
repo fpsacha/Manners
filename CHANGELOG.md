@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.10.4
 
 - **Fel Armor, from the Season of Discovery rune.** A Warlock who has learned
   Fel Armor from the rune vendor is reminded of it, and offered it, before Demon
