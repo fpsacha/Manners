@@ -629,10 +629,6 @@ function Forge:Apply(p, above)
 	-- The bezel: the icon's file frame, held inside the plate. When the cap
 	-- bites, the hole shrinks under the icon, which draws over it.
 	local bz = math.min(iconSize / ICON_FRAME, H - 1)
-	-- Its bloom, GLOW_SCALE larger, held inside the plate with the light's
-	-- own margin top and bottom (THE ROOM): the capped bezel times the scale
-	-- would leave the plate at any icon over 30.
-	local bloom = math.min(bz * GLOW_SCALE, H - 2 * kit.EDGE_MARGIN)
 	local bezelRight = iconX + iconSize + outset
 	local textX = showIcon and (bezelRight + TEXT_GAP) or TEXT_X_BARE
 	self.iconSize, self.iconX, self.bz, self.bezelRight, self.textX = iconSize, iconX, bz, bezelRight, textX
@@ -644,8 +640,21 @@ function Forge:Apply(p, above)
 	local bezelFile = ART .. (round and "BezelRd" or "Bezel")
 	self.bezel:SetTexture(bezelFile)
 	At(self.bezel, art, iconX + iconSize / 2, cy, bz)
+	-- Its bloom, GLOW_SCALE larger, held inside the plate with the light's
+	-- own margin top and bottom (THE ROOM): the capped bezel times the scale
+	-- would leave the plate at any icon over 30.
+	local bloom = math.min(bz * GLOW_SCALE, H - 2 * kit.EDGE_MARGIN)
+	-- The bloom's bright band ends 0.88 of its half-width out. Where the cap
+	-- sinks that band under the icon, which draws over it (icon 36 at the
+	-- default height, the extreme size), the landing's flash is carried on
+	-- the iron itself: the bezel's rim in white (BezelHot, the bezel's own
+	-- outline), additive, at the bezel's size, so the rim goes white-hot
+	-- inside the plate. The bezel's dark iron in ADD would barely show.
+	local hotOnRim = 0.88 * bloom / 2 < iconSize / 2 + 2
 	At(self.bezelWarm, art, iconX + iconSize / 2, cy, bloom)
-	At(self.bezelHot, art, iconX + iconSize / 2, cy, bloom)
+	local hotFile = hotOnRim and (round and "BezelHotRd" or "BezelHot") or "BezelGlow"
+	self.bezelHot:SetTexture(ART .. hotFile)
+	At(self.bezelHot, art, iconX + iconSize / 2, cy, hotOnRim and bz or bloom)
 	self.bezelWarm:SetVertexColor(kit.WARM_WHITE[1], kit.WARM_WHITE[2], kit.WARM_WHITE[3], 1)
 	self.bezelHot:SetVertexColor(1.00, 0.85, 0.60, 1)
 	-- Round only when asked: the mask on the icon and the cooldown's swipe.

@@ -36,7 +36,8 @@ local FLOURISH = 0.6
 -- Every file the generator writes (its docstring lists them), as the Lua
 -- names them without the Forge_ prefix.
 local FILES = { "PlateL", "PlateM", "PlateR", "StrapM", "StrapEnd", "Slot", "SlotCore", "Bezel", "BezelRd",
-	"BezelGlow", "MaskRd", "Heat", "Spark", "Steam", "Ring", "RingSq", "Tag", "Bead", "Shadow", "Check", "Cross" }
+	"BezelGlow", "BezelHot", "BezelHotRd", "MaskRd", "Heat", "Spark", "Steam", "Ring", "RingSq", "Tag", "Bead",
+	"Shadow", "Check", "Cross" }
 
 -- The sizes hunt37-effects asks of every look: width, height, font, icon.
 local SIZES = {
@@ -306,23 +307,32 @@ end)
 -- drawn GLOW_SCALE larger than the bezel, and held with the light's margin
 -- inside the plate's top and bottom (THE ROOM): the capped bezel times the
 -- scale leaves the plate at every icon over 30 and is flush with it at 30.
+-- Where that cap sinks the bloom's bright band (0.82-0.88 of its half-width)
+-- under the icon, which draws over it, the flash is carried on the iron
+-- itself instead: the bezel's outline in white (Forge_BezelHot, or
+-- Forge_BezelHotRd round), additive, on the bezel's own rect, so the rim goes
+-- white-hot inside the plate rather than fading to a fringe.
 withTree("look-forge: the bezel's bloom is held inside the plate", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if skipped(scenario, look) then return end
 	local edge = ns.Prompt:LookKit().EDGE_MARGIN
 	if type(edge) ~= "number" then fail(scenario, "the kit carries no EDGE_MARGIN") return end
+	-- The sixth field says where the flash rides: "glow" (Forge_BezelGlow,
+	-- the bloom's size) or "rim" (the hot rim file, on the bezel's rect).
 	local cases = {
-		{ "icon 30 at the defaults", 220, 44, 13, 30 },
-		{ "icon 30 round", 220, 44, 13, 30, true },
-		{ "icon 36, the biggest at the default height", 220, 44, 13, 36 },
-		{ "icon 40 in 44", 220, 44, 13, 40 },
-		{ "icon 40 in 48 (extreme)", 220, 48, 17, 40 },
-		{ "icon 40 in 58 (large)", 320, 58, 17, 40 },
-		{ "icon 64 in 72", 320, 72, 17, 64 },
+		{ "icon 30 at the defaults", 220, 44, 13, 30, "glow" },
+		{ "icon 30 round", 220, 44, 13, 30, "glow", true },
+		{ "a tiny icon (16)", 220, 44, 13, 16, "glow" },
+		{ "icon 36, the biggest at the default height", 220, 44, 13, 36, "rim" },
+		{ "icon 36 round", 220, 44, 13, 36, "rim", true },
+		{ "icon 40 in 44", 220, 44, 13, 40, "rim" },
+		{ "icon 40 in 48 (extreme)", 220, 48, 17, 40, "rim" },
+		{ "icon 40 in 58 (large)", 320, 58, 17, 40, "glow" },
+		{ "icon 64 in 72", 320, 72, 17, 64, "rim" },
 	}
 	for _, case in ipairs(cases) do
-		local label = case[1]
-		p.width, p.height, p.fontSize, p.iconSize, p.roundIcon = case[2], case[3], case[4], case[5], case[6] and true or false
+		local label, onRim = case[1], case[6] == "rim"
+		p.width, p.height, p.fontSize, p.iconSize, p.roundIcon = case[2], case[3], case[4], case[5], case[7] and true or false
 		ns.Prompt:ApplyStyle()
 		tick(ns)
 		local panel, bezel = rectOf(r.art), rectOf(look.bezel)
@@ -330,7 +340,36 @@ withTree("look-forge: the bezel's bloom is held inside the plate", ANNA, functio
 		local plateH = panel[4] - panel[2]
 		local bz = bezel[3] - bezel[1]
 		local want = math.min(bz * 1.1, plateH - 2 * edge)
-		for _, t in ipairs({ { look.bezelWarm, "warm bloom" }, { look.bezelHot, "white-hot flash" } }) do
+		local glowFile = ART .. "BezelGlow"
+		local rimFile = ART .. (case[7] and "BezelHotRd" or "BezelHot")
+		if look.bezelWarm._file ~= glowFile then
+			fail(scenario, label .. ": the warm bloom draws " .. tostring(look.bezelWarm._file) .. ", not the bloom's file")
+		end
+		local hot = look.bezelHot
+		if hot._file ~= (onRim and rimFile or glowFile) then
+			fail(scenario, ("%s: the white-hot flash draws %s, not %s"):format(label, tostring(hot._file),
+				onRim and "the hot rim (the bloom's band would lie under the icon)" or "the bloom's file"))
+		end
+		if onRim then
+			local box = rectOf(hot)
+			if not box then
+				fail(scenario, label .. ": the white-hot flash has no place")
+			else
+				for i = 1, 4 do
+					if not near(box[i], bezel[i], 0.01) then
+						fail(scenario, ("%s: the white-hot flash on the rim is not on the bezel's rect (%.2f, %.2f, %.2f, %.2f against %.2f, %.2f, %.2f, %.2f)")
+							:format(label, box[1], box[2], box[3], box[4], bezel[1], bezel[2], bezel[3], bezel[4]))
+						break
+					end
+				end
+				if box[2] < panel[2] - 0.01 or box[4] > panel[4] + 0.01 then
+					fail(scenario, label .. ": the white-hot flash on the rim leaves the plate")
+				end
+			end
+		end
+		local blooms = { { look.bezelWarm, "warm bloom" } }
+		if not onRim then blooms[2] = { hot, "white-hot flash" } end
+		for _, t in ipairs(blooms) do
 			local box = rectOf(t[1])
 			if not box then
 				fail(scenario, label .. ": the " .. t[2] .. " has no place")
@@ -484,7 +523,8 @@ withTree("look-forge: iron stays under luma 0.55 and the reason art is grey", AN
 	end
 	local ok, mean = MC.underText(path("PlateM"))
 	if not ok then fail(scenario, ("the plate's mean luma is %.3f: too bright under the words"):format(mean or -1)) end
-	for _, name in ipairs({ "Slot", "SlotCore", "Bead", "Check", "Cross", "Heat", "Steam", "Ring", "RingSq", "Spark", "BezelGlow", "MaskRd" }) do
+	for _, name in ipairs({ "Slot", "SlotCore", "Bead", "Check", "Cross", "Heat", "Steam", "Ring", "RingSq", "Spark", "BezelGlow",
+		"BezelHot", "BezelHotRd", "MaskRd" }) do
 		if not MC.isGrey(path(name)) then fail(scenario, name .. " carries a colour: it is vertex-tinted art and must be grey") end
 	end
 end)
@@ -1227,6 +1267,46 @@ withArt("look-forge: the plate is calm under the words and hammered by the strap
 	end
 	if rails < 0.02 then
 		fail(scenario, ("Forge_PlateM (%s) has lost its hammer marks by the straps (%.4f)"):format(which, rails))
+	end
+end)
+
+-- The hot rim (the landing's flash where the capped bloom's band would lie
+-- under the icon) is the bezel's iron in white: not a texel of it off the
+-- bezel's own coverage, so the additive flash never lights the plate round
+-- the bezel or the hole under the icon, and white-hot across the rim (white,
+-- alpha 0.55 or more on the middle row from the outer lip in to the seam,
+-- 0.9 or more on the crest), so it reads as heat, not a fringe.
+withArt("look-forge: the hot rim lies on the iron", function(folder, which, scenario)
+	for _, pair in ipairs({ { "BezelHot", "Bezel" }, { "BezelHotRd", "BezelRd" } }) do
+		local hot, iron = MC.readTGA(folder .. "/Forge_" .. pair[1] .. ".tga"), MC.readTGA(folder .. "/Forge_" .. pair[2] .. ".tga")
+		if not (hot and iron) or hot.w ~= iron.w or hot.h ~= iron.h then
+			fail(scenario, ("Forge_%s (%s) is missing or not the size of Forge_%s"):format(pair[1], which, pair[2]))
+		else
+			local off, offAt = 0, nil
+			for y = 0, hot.h - 1 do
+				for x = 0, hot.w - 1 do
+					local _, ah = texel(hot, x, y)
+					local _, ai = texel(iron, x, y)
+					if ah > ai + 0.02 and ah - ai > off then off, offAt = ah - ai, { x, y } end
+				end
+			end
+			if offAt then
+				fail(scenario, ("Forge_%s (%s) lies %.2f off the iron at texel %d,%d"):format(pair[1], which, off, offAt[1], offAt[2]))
+			end
+			local mid, peak = math.floor(hot.h / 2), 0
+			for x = 3, 14 do
+				local l, a = texel(hot, x, mid)
+				peak = math.max(peak, a)
+				if a < 0.55 or (a > 0.5 and l < 0.95) then
+					fail(scenario, ("Forge_%s (%s) is not white-hot across the rim: texel %d,%d is luma %.2f at alpha %.2f")
+						:format(pair[1], which, x, mid, l, a))
+					break
+				end
+			end
+			if peak < 0.9 then
+				fail(scenario, ("Forge_%s (%s) is never white-hot: its crest reaches alpha %.2f, under 0.9"):format(pair[1], which, peak))
+			end
+		end
 	end
 end)
 

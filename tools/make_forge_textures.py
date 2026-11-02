@@ -22,7 +22,7 @@ the slot, its core, the beads, the glyphs, the lights -- is white or grey art
 coloured by SetVertexColor, so one file serves every reason, both palettes, a
 custom marker colour and the outcomes.
 
-THE FILES (21), with the UI units they are drawn at:
+THE FILES (23), with the UI units they are drawn at:
 
   Forge_PlateL      32x128  the plate's left end, a three-slice at a design
                             height of 128 texels shown at the prompt's height:
@@ -56,6 +56,12 @@ THE FILES (21), with the UI units they are drawn at:
                             plate's top and bottom): the second tone of the
                             owed breath in warm white (BLEND), and the white-hot
                             flash of a landing (ADD, under 0.5 s).
+  Forge_BezelHot   128x128  the bezel's own outline in white, hottest by the
+                            icon: the landing's flash on the iron itself (ADD,
+                            at the bezel's size) where the capped bloom's band
+                            would lie under the icon (icon 36 at the default
+                            height, the extreme size).
+  Forge_BezelHotRd 128x128  the same round.
   Forge_MaskRd       64x64  the icon's round shape; also the cooldown's swipe.
   Forge_Heat         32x64  three soft white wisps: the heat shimmer over the
                             slot as a favour arrives (ADD, 0.48 s).
@@ -323,19 +329,33 @@ def make_slot():
 
 # ------------------------------------------------------------------ the bezel
 
+BEZEL_ICON_R = 48.0    # the round bezel's hole, in texels from the middle
+
+
+def bezel_outline(x, y, round_):
+    """The bezel's two edges as signed distances in texels: from the icon's
+    edge outward (t, negative over the icon) and to the outer edge (negative
+    inside). Forge_Bezel and Forge_BezelHot share them, so the hot rim lies
+    exactly on the iron."""
+    c = 128 / 2.0
+    if round_:
+        t = np.hypot(x - c, y - c) - BEZEL_ICON_R
+        d_outer = np.hypot(x - c, y - c) - (BEZEL_ICON_R + 14.0)
+    else:
+        t = rrect(x, y, 16.0, 16.0, 112.0, 112.0, 4.0)
+        d_outer = rrect(x, y, 2.0, 2.0, 126.0, 126.0, 12.0)
+    return t, d_outer
+
+
 def make_bezel(name, round_):
     n = 128
     x, y = grid(n, n)
     c = n / 2.0
+    t, d_outer = bezel_outline(x, y, round_)
     if round_:
-        r_icon = 48.0
-        t = np.hypot(x - c, y - c) - r_icon
-        d_outer = np.hypot(x - c, y - c) - (r_icon + 14.0)
-        bolt_r = r_icon + 6.5
+        bolt_r = BEZEL_ICON_R + 6.5
         bolts = [(c + bolt_r * s * 0.70710678, c + bolt_r * u * 0.70710678) for s in (-1, 1) for u in (-1, 1)]
     else:
-        t = rrect(x, y, 16.0, 16.0, 112.0, 112.0, 4.0)
-        d_outer = rrect(x, y, 2.0, 2.0, 126.0, 126.0, 12.0)
         bolts = [(12.5, 12.5), (115.5, 12.5), (12.5, 115.5), (115.5, 115.5)]
     alpha = cover(d_outer) * cover(-t)
     # From the icon's edge outward: the seam (0..3), the rim (3..11: a rise of
@@ -372,6 +392,25 @@ def make_bezel_glow():
     sd = disc(x, y, c, c, outer)
     alpha = np.where(sd < 0, sstep(-13.0, -4.0, sd), np.exp(-(sd / 4.0) ** 2))
     emit("Forge_BezelGlow", white(alpha), alpha.astype(np.float32), 1.0)
+
+
+def make_bezel_hot(name, round_):
+    """The landing's white heat on the iron itself: the bezel's own outline in
+    white, drawn additive over the bezel at its size when the capped bloom's
+    band would lie under the icon. Hottest on the rim's crest, so the forged
+    bevel still reads through the heat, and a little cooler towards the outer
+    lip; the coverage is the bezel's, so not a texel of it lies off the
+    iron."""
+    n = 128
+    x, y = grid(n, n)
+    t, d_outer = bezel_outline(x, y, round_)
+    # The rim's rise, crest and fall as make_bezel shapes it, 0..1.
+    rim = np.clip(t - 3.0, 0, 8.0)
+    crest = np.clip(rim / 2.0, 0, 1) * (1 - np.clip((rim - 5.0) / 3.0, 0, 1)) * (t >= 3.0) * (t < 11.0)
+    heat = (0.7 + 0.3 * crest) * (1.0 - 0.15 * sstep(3.0, 14.0, t))
+    alpha = cover(d_outer) * cover(-t) * heat
+    feature(14.0 / BEZEL_TPU)
+    emit(name, white(alpha), alpha.astype(np.float32), 1.0)
 
 
 def make_mask():
@@ -544,6 +583,8 @@ def main():
     make_bezel("Forge_Bezel", False)
     make_bezel("Forge_BezelRd", True)
     make_bezel_glow()
+    make_bezel_hot("Forge_BezelHot", False)
+    make_bezel_hot("Forge_BezelHotRd", True)
     make_mask()
     make_heat()
     make_spark()

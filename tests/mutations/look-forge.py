@@ -179,6 +179,23 @@ _m(FORGE,
    "the bezel's bloom left uncapped",
    expect="look-forge: the bezel's bloom is held inside the plate")
 
+# The flash kept on the capped bloom at every size: at icon 36 in 44 and at
+# the extreme size its bright band lies under the icon, and the white-hot
+# landing fades to a fringe.
+_m(FORGE,
+   "\tlocal hotOnRim = 0.88 * bloom / 2 < iconSize / 2 + 2\n",
+   "\tlocal hotOnRim = false\n",
+   "the flash left on the bloom when its band sinks under the icon",
+   expect="look-forge: the bezel's bloom is held inside the plate")
+
+# The hot rim drawn as a solid tile three texels past the bezel's edge: the
+# additive flash lights the plate round the bezel and the hole under the icon.
+_m(GEN,
+   "    alpha = cover(d_outer) * cover(-t) * heat\n",
+   "    alpha = cover(d_outer - 3.0) * heat\n",
+   "the hot rim spills off the iron",
+   expect="look-forge: the hot rim lies on the iron")
+
 # --- leaving ---------------------------------------------------------------
 
 _m(FORGE,
