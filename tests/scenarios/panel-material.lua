@@ -24,10 +24,14 @@
 --     words) empty, and the top-left corner pools the light along the cut
 --     instead of showing a speck;
 --   * the pane reads as a thick slab of cut glass struck from the upper left:
---     the polished cut, a dark gap, a cool refraction line along the top and
---     left (falling away round the slab), a darker line in its place along
---     the bottom and right, and a faint glow under the top line that is gone
---     long before the words.
+--     the polished cut, a dark gap a unit wide, a refraction line a unit wide
+--     3 units in, cool white along the top and left (falling away round the
+--     slab), a darker line in its place along the bottom and right, a fill
+--     light on the cut there, and a faint glow under the top line that is
+--     gone 6 units in, long before the words;
+--   * the slab's light is drawn white at exactly 0.9 x the player's opacity,
+--     on any panel colour, laid on the pane's own corners, and the pane's top
+--     keeps the player's colour and opacity exactly.
 
 local dir, H = ...
 local fail, load = H.fail, H.load
@@ -667,7 +671,7 @@ end)
 -- to the edge's own light inside the corner cell (texels 0 to 31), so the
 -- stretched strips never carry it, and no spoke of light running in from the
 -- corner past the cut's crest (4.5 to 7.5 texels in: the cut is the outer 6,
--- and the refraction line starts at 9). The straight edges keep their own
+-- and the refraction line starts at 10). The straight edges keep their own
 -- light over the cut (texels 0 to 6): the top at most 0.30, the left at most
 -- 0.25, the top no dimmer than the left (it faces the light more squarely).
 withTree("panel-material: the light pools along the cut corner", ANNA, function(_, scenario)
@@ -685,7 +689,7 @@ withTree("panel-material: the light pools along the cut corner", ANNA, function(
 		return best
 	end
 	-- The straight edges' own light over the cut, clear of the refraction
-	-- line (9 texels in and more).
+	-- line (10 texels in and more).
 	local top, left = downTop(64, 0, 6), acrossLeft(64, 0, 6)
 	if top > 0.30 or left > 0.25 or top < left then
 		fail(scenario, ("the straight edges' light is %.2f along the top and %.2f down the left, not at most 0.30 and 0.25 with the top the brighter"):format(top, left))
@@ -738,16 +742,25 @@ end)
 -- ------------------------------------------------------------------ 14
 -- The pane reads as a thick slab of cut glass seen from the front, struck from
 -- the upper left, all of it at the edges (the file's 32-texel margins are
--- drawn 8 units square, four texels to the unit). Along the top, from the
--- edge in: the polished cut (texels 0 to 6), a dark gap (6 and 7), then the
--- refraction line a unit wide (9 to 12), light and cool -- green the
--- strongest channel, held near white so it sits by any reason colour -- and
--- brighter along the top than down the left, which faces the key light less
--- squarely, and brighter at the top's left end than its right, falling away
--- round the slab. Along the bottom and right the same line is dark (black
--- texels drawn BLEND, so the pane darkens there and the landing's additive
--- copy adds nothing). Under the top line, a faint glow (at most a quarter),
--- gone 6.5 units in (texel 26), long before the words.
+-- drawn 8 units square, four texels to the unit). From every edge in, at the
+-- middle of its strip: the polished cut (texels 0 to 5); a dark gap a unit
+-- wide (nothing in texels 6 to 8, the line's soft edge in 9), so the cut and
+-- the line stay two at scale 0.7; then the refraction line, a unit wide and
+-- 3 units in (texels 10 to 13 each at half its peak or more, 9 and 14 under
+-- half).
+-- Along the top and left the line is light: 0.60 to 0.72 at the top's middle
+-- (REFRACT_LIT 0.70 at the corner, never a glare), brighter along the top
+-- than down the left, which faces the key light less squarely, and brighter
+-- at the top's left end than its right, falling away round the slab; its
+-- colour the cool white of a glass edge: green the strongest channel, red
+-- 0.10 to 0.18 under it and blue 0.02 to 0.08 (greener reads as mint by the
+-- gold bezel, white as lacquer's highlight).
+-- Along the bottom and right the cut keeps a fill light of 0.22 to 0.26, so
+-- the pane stays outlined at small scales and in a landing, no brighter than
+-- the top's own cut; and the line is dark there (black texels drawn BLEND, so
+-- the pane darkens and the landing's additive copy adds nothing).
+-- Under the top line a faint glow, 0.10 to 0.20, gone by texel 24 (6 units
+-- in), long before the words.
 withTree("panel-material: the slab's edge reads as thick glass", ANNA, function(_, scenario)
 	local tga, out = freshLight(scenario, "slab")
 	if not tga then return end
@@ -761,32 +774,130 @@ withTree("panel-material: the slab's edge reads as thick glass", ANNA, function(
 		end
 		return best, br, bg, bb
 	end
-	local gap = most(64, 64, 6, 7)
-	local top, tr, tg, tb = most(64, 64, 9, 12)
-	local left = most(9, 12, 64, 64)
-	local topEnd = most(95, 95, 9, 12)
-	if gap > 0.02 or top < 0.50 then
-		fail(scenario, ("along the top the gap is %.2f and the refraction line %.2f, not at most 0.02 and at least 0.50"):format(gap, top))
+	-- The alpha n texels in from an edge, at the middle of its strip.
+	local INWARD = {
+		top = function(n) return 64, n end,
+		left = function(n) return n, 64 end,
+		bottom = function(n) return 64, 127 - n end,
+		right = function(n) return 127 - n, 64 end,
+	}
+	local function inward(side, n)
+		local x, row = INWARD[side](n)
+		return seenAlpha(tga, x, row)
+	end
+	for _, side in ipairs({ "top", "left", "bottom", "right" }) do
+		local gap = 0
+		for n = 6, 8 do gap = math.max(gap, inward(side, n)) end
+		if gap > 0.02 then
+			fail(scenario, ("along the %s the gap between the cut and the line is not dark 6 to 8 texels in: alpha %.2f"):format(side, gap))
+		end
+		local peak = 0
+		for n = 9, 14 do peak = math.max(peak, inward(side, n)) end
+		local whole = peak > 0
+		for n = 10, 13 do
+			if inward(side, n) < peak / 2 then whole = false end
+		end
+		if not whole or inward(side, 9) >= peak / 2 or inward(side, 14) >= peak / 2 then
+			fail(scenario, ("along the %s the line is not a unit wide 10 to 13 texels in: %.2f %.2f %.2f %.2f %.2f %.2f from texel 9")
+				:format(side, inward(side, 9), inward(side, 10), inward(side, 11), inward(side, 12), inward(side, 13), inward(side, 14)))
+		end
+	end
+	local top, tr, tg, tb = most(64, 64, 10, 13)
+	local left = most(10, 13, 64, 64)
+	local topEnd = most(95, 95, 10, 13)
+	if top < 0.60 or top > 0.72 then
+		fail(scenario, ("the refraction line is %.2f at the top's middle, not 0.60 to 0.72"):format(top))
 	end
 	if left < 0.25 or left >= top or topEnd >= top then
-		fail(scenario, ("the refraction line is %.2f at the top's left end, %.2f at its right end and %.2f down the left: not lit from the upper left"):format(top, topEnd, left))
+		fail(scenario, ("the refraction line is %.2f at the top's middle, %.2f at its right end and %.2f down the left: not lit from the upper left"):format(top, topEnd, left))
 	end
-	if not (tg >= tr + 0.10 and tg >= tb and math.min(tr, tg, tb) >= 0.70) then
-		fail(scenario, ("the refraction line's colour is (%.2f, %.2f, %.2f), not a cool tint near white"):format(tr, tg, tb))
+	if not (tg >= tr and tg >= tb and tg - tr >= 0.10 and tg - tr <= 0.18 and tg - tb >= 0.02 and tg - tb <= 0.08) then
+		fail(scenario, ("the refraction line's colour is (%.2f, %.2f, %.2f), not the cool white of a glass edge"):format(tr, tg, tb))
 	end
-	local bottom, dr, dg, db = most(64, 64, 115, 118)
-	local right, rr, rg, rb = most(115, 118, 64, 64)
+	local topCut = most(64, 64, 0, 5)
+	local bottomCut, rightCut = most(64, 64, 122, 127), most(122, 127, 64, 64)
+	if math.min(bottomCut, rightCut) < 0.22 or math.max(bottomCut, rightCut) > 0.26
+		or math.max(bottomCut, rightCut) > topCut then
+		fail(scenario, ("the cut along the bottom and right is %.2f and %.2f, not a fill light of 0.22 to 0.26 under the top's %.2f")
+			:format(bottomCut, rightCut, topCut))
+	end
+	local bottom, dr, dg, db = most(64, 64, 114, 117)
+	local right, rr, rg, rb = most(114, 117, 64, 64)
 	if bottom < 0.25 or right < 0.15 or math.max(dr, dg, db, rr, rg, rb) > 0.05 then
 		fail(scenario, ("along the bottom and right the line is (%.2f, %.2f, %.2f) at %.2f and (%.2f, %.2f, %.2f) at %.2f, not a darker line")
 			:format(dr, dg, db, bottom, rr, rg, rb, right))
 	end
-	local glow = most(64, 64, 14, 19)
-	local tail = most(32, 95, 26, 31)
-	if glow < 0.06 or glow > 0.25 then
-		fail(scenario, ("the glow under the top line is %.2f, not a faint 0.06 to 0.25"):format(glow))
+	local glow = most(64, 64, 15, 20)
+	local tail = most(32, 95, 24, 31)
+	if glow < 0.10 or glow > 0.20 then
+		fail(scenario, ("the glow under the top line is %.2f, not a faint 0.10 to 0.20"):format(glow))
 	end
 	if tail > 0 then
-		fail(scenario, ("the glow under the top line reaches 6.5 units in, toward the words: alpha %.3f"):format(tail))
+		fail(scenario, ("the glow under the top line reaches past 6 units (texel 24), toward the words: alpha %.3f"):format(tail))
 	end
 	removeAll(out)
+end)
+
+-- ------------------------------------------------------------------ 15
+-- The slab's light keeps the player's panel. On the default near-black, a
+-- light panel, the mid blue and panels made see-through, each of the nine
+-- pieces of light is drawn white (so the file's own cool line and black shade
+-- come through, never the panel's colour) at exactly 0.9 x the panel's
+-- opacity, laid on the pane's own corners, so the refraction line the file
+-- draws 12 texels in sits 3 units inside the panel's edge; and the pane's
+-- top row ends at exactly the player's colour and opacity.
+local PANELS = {
+	{ 0.04, 0.04, 0.06, 0.88 },
+	{ 0.86, 0.84, 0.78, 0.92 },
+	{ 0.30, 0.45, 0.80, 0.92 },
+	{ 0.04, 0.04, 0.06, 0.40 },
+	{ 0.04, 0.04, 0.06, 0 },
+}
+withTree("panel-material: the slab's light keeps the player's colour and opacity", ANNA, function(ns, scenario)
+	local tga, out = freshLight(scenario, "keeps")
+	if not tga then return end
+	-- Where the file's line lies down the top's middle: the rows at half its
+	-- peak or more, and their middle, in texels.
+	local peak, first, last = 0, nil, nil
+	for row = 6, 20 do peak = math.max(peak, seenAlpha(tga, 64, row)) end
+	for row = 6, 20 do
+		if peak > 0 and seenAlpha(tga, 64, row) >= peak / 2 then
+			first = first or row
+			last = row
+		end
+	end
+	removeAll(out)
+	local centre = first and (first + last + 1) / 2 or 0
+	for _, c in ipairs(PANELS) do
+		local r = upIn(ns, scenario, "glass", function(p) p.bgColor = { c[1], c[2], c[3], c[4] } end)
+		local tag = ("(%.2f, %.2f, %.2f, %.2f)"):format(c[1], c[2], c[3], c[4])
+		for i, t in ipairs(r.glassLight) do
+			local k = t._color
+			if not (shown(t) and type(k) == "table" and near(k[1], 1, 1e-6) and near(k[2], 1, 1e-6) and near(k[3], 1, 1e-6)) then
+				fail(scenario, ("on %s piece %d of the light is not drawn white: %s"):format(tag, i,
+					type(k) == "table" and ("(%.3f, %.3f, %.3f)"):format(k[1] or -1, k[2] or -1, k[3] or -1) or "hidden or unpainted"))
+				break
+			end
+			if not near(k[4], 0.9 * c[4], 1e-6) then
+				fail(scenario, ("on %s piece %d of the light is at %.3f, not 0.9 x the panel's opacity"):format(tag, i, k[4] or -1))
+				break
+			end
+		end
+		local corner, piece = r.pane[1]._width, r.glassLight[1]
+		if not (near(piece._width, corner, 1e-6) and near(piece._height, corner, 1e-6)) then
+			fail(scenario, ("on %s the light's corner is %s by %s, the pane's %s"):format(tag, tostring(piece._width),
+				tostring(piece._height), tostring(corner)))
+		end
+		local inset = centre * (piece._width or 0) / 32
+		if not near(inset, 3, 0.13) then
+			fail(scenario, ("on %s the refraction line lies %.2f units inside the panel's edge, not 3"):format(tag, inset))
+		end
+		local g = r.pane[2]._gradient
+		local hi = g and g[3]
+		if not (type(hi) == "table" and near(hi.r, c[1], 1e-6) and near(hi.g, c[2], 1e-6) and near(hi.b, c[3], 1e-6)
+			and near(hi.a, c[4], 1e-6)) then
+			fail(scenario, ("on %s the pane's top is not the player's colour and opacity: %s"):format(tag,
+				type(hi) == "table" and ("(%.3f, %.3f, %.3f, %.3f)"):format(hi.r or -1, hi.g or -1, hi.b or -1, hi.a or -1) or "no gradient"))
+		end
+	end
 end)

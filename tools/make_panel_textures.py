@@ -27,25 +27,28 @@ the art is a named constant here; the ones Prompt/ depends on say so.
                                the outer CHAMFER_W 6 texels (1.5 units), white:
                                EDGE_LIT 0.20 along the left edge, a little more along
                                the top (it faces the key light more squarely),
-                               EDGE_FILL 0.18 below and right (the fill light, so a
-                               landing still outlines the pane), and at the top-left
-                               corner the light pooled along the cut: BEAD_PEAK 0.65
-                               where the corner's arc faces the light, within
-                               BEAD_DEPTH 6 texels of the edge, tapering round the edge
-                               either way into the edge's own light by BEAD_REACH 20
-                               texels, inside the corner cell, so the stretched strips
-                               never carry it. (b) A dark gap, then the refraction
-                               line: REFRACT_W 4 texels (a unit) centred REFRACT_AT 11
-                               in (2.75 units), on its own rounded rectangle; light
-                               (REFRACT_LIT 0.70 at the top left, falling away round
-                               the slab) and tinted EDGE_TINT, the cool green-blue the
-                               edge of real glass carries, where the slab faces the
-                               key light; black (REFRACT_SHADE 0.45 at the bottom
-                               right) where it is turned from it, so drawn BLEND it
-                               darkens the pane, and in the landing's additive copy it
-                               adds nothing. (c) A faint glow just under the top line,
-                               GLOW_PEAK 0.16, gone GLOW_TO 24 texels in (6 units), in
-                               the top row of cells only and clear of the side lines.
+                               EDGE_FILL 0.24 below and right (the fill light, so the
+                               pane stays outlined at small scales and a landing
+                               still outlines it; under the top's own light), and at
+                               the top-left corner the light pooled along the cut:
+                               BEAD_PEAK 0.65 where the corner's arc faces the light,
+                               within BEAD_DEPTH 6 texels of the edge, tapering round
+                               the edge either way into the edge's own light by
+                               BEAD_REACH 20 texels, inside the corner cell, so the
+                               stretched strips never carry it. (b) A dark gap a unit
+                               wide, so it stays open at small scales, then the
+                               refraction line: REFRACT_W 4 texels (a unit) centred
+                               REFRACT_AT 12 in (3 units), on its own rounded
+                               rectangle; light (REFRACT_LIT 0.70 at the top left,
+                               falling away round the slab) and tinted EDGE_TINT, the
+                               cool white of a glass edge with a breath of green-blue
+                               in it, where the slab faces the key light; black
+                               (REFRACT_SHADE 0.45 at the bottom right) where it is
+                               turned from it, so drawn BLEND it darkens the pane, and
+                               in the landing's additive copy it adds nothing. (c) A
+                               faint glow just under the top line, GLOW_PEAK 0.16,
+                               gone GLOW_TO 24 texels in (6 units), in the top row of
+                               cells only and clear of the side lines.
                                The middle cell (texels 32 to 96 on both axes) carries
                                no light: nothing lights under the words, and a mark
                                drawn there is stretched about 7:1 into a smear.
@@ -108,12 +111,16 @@ BEAD_SIGMA = 15.0           # how squarely an edge must face the light to catch 
 BEAD_REACH = 20.0           # how far round the cut edge the pool runs either way, in texels
 BEAD_DEPTH = 6.0            # how far in from the edge it reaches, in texels
 EDGE_LIT = 0.20             # the lit edges' own light
-EDGE_FILL = 0.18            # the cut along the bottom and right, caught by the fill light
+EDGE_FILL = 0.24            # the cut along the bottom and right, caught by the fill light
+# (enough that the bottom and right stay a line at scale 0.7 and in a landing,
+# and still under the top's own light, which faces the key light).
 # The refraction line: the slab's thickness seen through its face, a unit wide
-# a little inside the cut, with a dark gap between. Light along the top and
-# left, where the key light enters the glass; in its place along the bottom
-# and right, where the thickness is in shade, a darker line.
-REFRACT_AT = 11.0           # its centre, in texels in from the edge (2.75 units)
+# a little inside the cut, with a dark gap a unit wide between (the cut is gone
+# 6 texels in, the line starts at 10), so the two stay apart at small scales.
+# Light along the top and left, where the key light enters the glass; in its
+# place along the bottom and right, where the thickness is in shade, a darker
+# line.
+REFRACT_AT = 12.0           # its centre, in texels in from the edge (3 units)
 REFRACT_W = 4.0             # its width, in texels (a unit)
 REFRACT_CORNER = 3.0        # its own corner, in texels
 REFRACT_LIT = 0.70          # its light at the top left, falling away round the slab
@@ -122,9 +129,11 @@ REFRACT_SHADE = 0.45        # the dark line at its darkest, at the bottom right
 # line, gone long before the words (and the middle cell, at texel 32).
 GLOW_PEAK = 0.16
 GLOW_TO = 24.0              # gone this many texels in (6 units)
-# The cool green-blue the edge of real glass carries, in the refraction line
-# only, held this near white so it sits beside any reason colour.
-EDGE_TINT = (0.80, 1.00, 0.94)
+# The cool white of a glass edge, a breath of green-blue in it, in the
+# refraction line only, held this near white so it sits beside any reason
+# colour: any greener reads as mint beside the gold bezel, and the landing's
+# copy lends it to the reason colour.
+EDGE_TINT = (0.86, 1.00, 0.96)
 LIGHT_SEED = 13
 
 # --- the icon's bezel -----------------------------------------------------------

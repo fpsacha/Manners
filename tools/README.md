@@ -865,8 +865,11 @@ glass struck from the upper left, all of it at the edges. The polished cut
 (the outer 1.5 units), white, with the light pooled along it at the top-left
 corner (about three units round the edge either way, tapered back to the
 edge's own light inside the corner cell so the stretched strips never carry
-it); a dark gap; a refraction line a unit wide 2.75 units in, light and
-tinted the cool green-blue of a glass edge along the top and left, falling
+it) and a fill light of 0.24 along the bottom and right, so the pane stays
+outlined at scale 0.7 and in a landing; a dark gap a unit wide, so the cut and
+the line stay apart at small scales; a refraction line a unit wide 3 units in,
+light and tinted the cool white of a glass edge (0.86, 1.00, 0.96: any
+greener reads as mint by the gold bezel) along the top and left, falling
 away round the slab, and black along the bottom and right, so it darkens the
 pane there and adds nothing in the landing's additive copy; and a faint glow
 just under the top line, gone 6 units in. The middle cell carries no light,

@@ -6,9 +6,12 @@
 # taller than its panel, a bezel under the hairline, a hover that lingers, the
 # framed look refusing its stripe, light drawn in the middle cell under the
 # words, the corner's pooled light shrunk back to a speck, the slab's
-# refraction line lost, lit from the wrong side or stripped of its tint, its
-# shade side or its glow undone, a generator that draws different bytes each
-# run -- and names the check that has to object.
+# refraction line lost, moved, widened, glaring, lit from the wrong side,
+# stripped of its tint or turned mint, its gap closed, its fill light dimmed
+# or outshining the lit side, its shade side or its glow undone, the light
+# tinted by the panel or off the player's opacity or corners, the pane's top
+# off the player's colour, a generator that draws different bytes each run --
+# and names the check that has to object.
 
 PANEL = "Prompt/Panel.lua"
 TEXT = "Prompt/Text.lua"
@@ -194,16 +197,71 @@ mutate(GEN,
 # The edge's cool tint taken out: a white line, which reads as lacquer's
 # highlight rather than the edge of glass.
 mutate(GEN,
-       "EDGE_TINT = (0.80, 1.00, 0.94)",
+       "EDGE_TINT = (0.86, 1.00, 0.96)",
        "EDGE_TINT = (1.00, 1.00, 1.00)",
        "panel-material: the refraction line loses the glass's tint",
        expect="panel-material: the slab's edge reads as thick glass", script=S)
 
-# The glow under the top line let run down toward the words.
+# The tint pushed back to the first slab's: at 6x it read mint beside the
+# gold bezel, not cool white glass.
+mutate(GEN,
+       "EDGE_TINT = (0.86, 1.00, 0.96)",
+       "EDGE_TINT = (0.80, 1.00, 0.94)",
+       "panel-material: the refraction line turns mint",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The glow under the top line let run two texels further down, toward the
+# words: past 6 units in.
 mutate(GEN,
        "GLOW_TO = 24.0 ",
-       "GLOW_TO = 31.0 ",
+       "GLOW_TO = 26.0 ",
        "panel-material: the glow under the top line reaches toward the words",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The glow made stronger to show more: it reads as a second band under the
+# line, and runs toward the name.
+mutate(GEN,
+       "GLOW_PEAK = 0.16\n",
+       "GLOW_PEAK = 0.24\n",
+       "panel-material: the glow under the top line brightens to a band",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The line moved back a quarter unit toward the cut: the gap closes to three
+# quarters of a unit, under a pixel at small scales, and the two merge.
+mutate(GEN,
+       "REFRACT_AT = 12.0 ",
+       "REFRACT_AT = 11.0 ",
+       "panel-material: the gap between the cut and the line closes",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The line drawn a unit and a half wide: a band, not the slab's edge.
+mutate(GEN,
+       "REFRACT_W = 4.0 ",
+       "REFRACT_W = 6.0 ",
+       "panel-material: the refraction line widens to a band",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The line drawn brighter: it glares next to the bezel.
+mutate(GEN,
+       "REFRACT_LIT = 0.70 ",
+       "REFRACT_LIT = 0.90 ",
+       "panel-material: the refraction line glares",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The fill light back at the first slab's: the bottom and right nearly vanish
+# at scale 0.7 and in a landing.
+mutate(GEN,
+       "EDGE_FILL = 0.24 ",
+       "EDGE_FILL = 0.18 ",
+       "panel-material: the fill light along the bottom and right dims",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The fill light pushed past the lit side's: the shade side outshines the
+# side that faces the key light.
+mutate(GEN,
+       "EDGE_FILL = 0.24 ",
+       "EDGE_FILL = 0.32 ",
+       "panel-material: the fill light outshines the lit side",
        expect="panel-material: the slab's edge reads as thick glass", script=S)
 
 # The cut widened back to the old four units: it runs over the gap and the
@@ -213,6 +271,39 @@ mutate(GEN,
        "CHAMFER_W = 16.0 ",
        "panel-material: the cut widens over the slab's gap",
        expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# --- the slab on the player's panel --------------------------------------------
+
+# The light's opacity eased toward full under a see-through panel: still
+# fainter as the panel fades, but not the player's opacity.
+mutate(PANEL,
+       "\t\t\tt:SetVertexColor(1, 1, 1, LIGHT_ALPHA * ba)\n",
+       "\t\t\tt:SetVertexColor(1, 1, 1, LIGHT_ALPHA * math.sqrt(ba))\n",
+       "panel-material: the slab's light eases off the player's opacity",
+       expect="panel-material: the slab's light keeps the player's colour and opacity", script=S)
+
+# The light tinted with the panel colour: gone on the near-black panel, a
+# coloured edge on the others, and the file's own tint and shade lost.
+mutate(PANEL,
+       "\t\t\tt:SetVertexColor(1, 1, 1, LIGHT_ALPHA * ba)\n",
+       "\t\t\tt:SetVertexColor(br, bg, bb, LIGHT_ALPHA * ba)\n",
+       "panel-material: the slab's light takes the panel's colour",
+       expect="panel-material: the slab's light keeps the player's colour and opacity", script=S)
+
+# The light laid on the rim's corners: its margins drawn 4 units, so the
+# line sits a unit and a half in, off the pane's edge.
+mutate(PANEL,
+       "\t\tPlaceSlice(R.glassLight, R.art, corner)\n",
+       "\t\tPlaceSlice(R.glassLight, R.art, rimCorner)\n",
+       "panel-material: the slab's light is laid on the rim's corners",
+       expect="panel-material: the slab's light keeps the player's colour and opacity", script=S)
+
+# The pane's top lifted past the player's colour, to make the glass glow.
+mutate(PANEL,
+       "\t\t\tlocal k0, k1 = 0.62 + 0.38 * f0, 0.62 + 0.38 * f1\n",
+       "\t\t\tlocal k0, k1 = 0.62 + 0.38 * f0, 0.62 + 0.48 * f1\n",
+       "panel-material: the pane's top lifts past the player's colour",
+       expect="panel-material: the slab's light keeps the player's colour and opacity", script=S)
 
 # The pane's noise seeded from nowhere: a different file every run.
 mutate(GEN,

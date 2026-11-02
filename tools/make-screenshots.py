@@ -1825,7 +1825,7 @@ LANDED_WORDS = ["buffed Elowen Thistledown", "the game confirmed it"]
 MOMENT_TIMES = (0.05, 0.15, 0.30, 0.60)
 MOMENTS = [
     ("shot-moment-arrival", "They buffed you",
-     "The favour arrives and the glow wakes.",
+     "Light runs along the edges, the icon's glow wakes.",
      ["Elowen Thistledown", "buffed you"], ["buffed Elowen", "could not buff"]),
     ("shot-landed", "Your buff lands",
      "Rings off the icon, a wave across the panel.",
