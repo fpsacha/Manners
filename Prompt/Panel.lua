@@ -181,10 +181,15 @@ function Prompt:Create()
 	R.pane = Slice(R.art, "BACKGROUND", -6, GLASS_PANE)
 	for _, t in ipairs(R.pane) do t:Hide() end
 
-	-- The light on the glass, over the pane and the stripe: the cut edge's
-	-- specular, pooled on the corner that faces the key light, and a hairline
-	-- lit from the upper left; the middle piece is empty. White, drawn BLEND
-	-- at the panel's own opacity, never additive at rest.
+	-- The light on the glass, over the pane and the stripe: the pane as a
+	-- thick slab of cut glass struck from the upper left, all of it at the
+	-- edges. The polished cut, pooled on the corner that faces the key light;
+	-- a refraction line a unit wide inside it, cool-tinted along the top and
+	-- left, a darker line in its place along the bottom and right (black
+	-- texels, which darken the pane drawn BLEND and add nothing in the
+	-- landing's additive copy); a faint glow just under the top line, in the
+	-- top row of pieces only. The middle piece is empty. Drawn BLEND at the
+	-- panel's own opacity, never additive at rest.
 	R.glassLight = Slice(R.art, "BORDER", 2, GLASS_LIGHT)
 	for _, t in ipairs(R.glassLight) do
 		t:SetBlendMode("BLEND")
@@ -315,8 +320,8 @@ function Prompt:Create()
 
 	-- The panel's edge answering an outcome: the material itself lit, so the
 	-- frame flashes in the reason's colour as a buff lands and in red as one
-	-- is refused. A copy of the glass's light (the pane's cut edge: its
-	-- hairline and the chamfer's specular) and one of the framed look's rim,
+	-- is refused. A copy of the glass's light (the pane's cut edge and its
+	-- refraction line; the dark line adds nothing) and one of the framed look's rim,
 	-- nine pieces each, drawn ADD on a frame of their own: a level over the
 	-- pane's light, the rim and the bezel, under the text. Parked at nothing;
 	-- ApplyStyle lays them as the material is laid, shows the look's own with

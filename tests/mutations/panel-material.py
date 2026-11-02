@@ -5,8 +5,10 @@
 # panel could plausibly make -- the ink judged on the bare panel colour, a bezel
 # taller than its panel, a bezel under the hairline, a hover that lingers, the
 # framed look refusing its stripe, light drawn in the middle cell under the
-# words, the corner's pooled light shrunk back to a speck, a generator that
-# draws different bytes each run -- and names the check that has to object.
+# words, the corner's pooled light shrunk back to a speck, the slab's
+# refraction line lost, lit from the wrong side or stripped of its tint, its
+# shade side or its glow undone, a generator that draws different bytes each
+# run -- and names the check that has to object.
 
 PANEL = "Prompt/Panel.lua"
 TEXT = "Prompt/Text.lua"
@@ -119,8 +121,8 @@ mutate(PANEL,
 # The caustic drawn back into the middle cell, a soft band across the name's
 # line that the 9-slice stretches into a smear beside the words.
 mutate(GEN,
-       "    alpha = np.maximum(hair, cut) * shape\n",
-       "    alpha = np.maximum(np.maximum(hair, cut), 0.10 * np.exp(-0.5 * ((y - 51.2) / 6.4) ** 2)) * shape\n",
+       "    alpha = np.maximum(light, dark) * shape\n",
+       "    alpha = np.maximum(np.maximum(light, dark), 0.10 * np.exp(-0.5 * ((y - 51.2) / 6.4) ** 2)) * shape\n",
        "panel-material: a caustic band drawn in the middle cell",
        expect="panel-material: the middle cell carries no light", script=S)
 
@@ -147,11 +149,12 @@ mutate(GEN,
        "panel-material: the corner's light flares white",
        expect="panel-material: the light pools along the cut corner", script=S)
 
-# The specular left to run the whole depth of the corner's face: the cone
-# draws its spoke of light in from the corner again, the old tick.
+# The cut's light left to run the whole depth of its face, past its crest:
+# the corner's catch draws its spoke of light in from the corner again, the
+# old tick, and fills the gap before the refraction line.
 mutate(GEN,
-       "    cut = np.maximum(edge, spec * BEAD_PEAK * near) * across\n",
-       "    cut = np.maximum(edge, spec * BEAD_PEAK) * across\n",
+       "    across = sstep(0, 1.5, inward) * (1 - sstep(CHAMFER_W - 3, CHAMFER_W, inward))\n",
+       "    across = sstep(0, 1.5, inward)\n",
        "panel-material: a spoke of light runs in from the corner",
        expect="panel-material: the light pools along the cut corner", script=S)
 
@@ -162,6 +165,54 @@ mutate(GEN,
        "BEAD_SIGMA = 40.0 ",
        "panel-material: the corner's catch widened lifts the whole edge",
        expect="panel-material: the light pools along the cut corner", script=S)
+
+# --- the slab ------------------------------------------------------------------
+
+# The refraction line drawn at nothing: the dark lacquer again, a cut edge and
+# no thickness behind it.
+mutate(GEN,
+       "REFRACT_LIT = 0.70 ",
+       "REFRACT_LIT = 0.0 ",
+       "panel-material: the slab loses its refraction line",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The line lit from the lower right: light along the bottom and right, shade
+# along the top and left, against the one key light.
+mutate(GEN,
+       "    line = REFRACT_LIT * sstep(0, 1, facing_key) * band\n",
+       "    line = REFRACT_LIT * sstep(0, 1, -facing_key) * band\n",
+       "panel-material: the refraction line is lit from the lower right",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# No darker line along the bottom and right: the slab has no side in shade.
+mutate(GEN,
+       "REFRACT_SHADE = 0.45 ",
+       "REFRACT_SHADE = 0.0 ",
+       "panel-material: the slab has no darker line in shade",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The edge's cool tint taken out: a white line, which reads as lacquer's
+# highlight rather than the edge of glass.
+mutate(GEN,
+       "EDGE_TINT = (0.80, 1.00, 0.94)",
+       "EDGE_TINT = (1.00, 1.00, 1.00)",
+       "panel-material: the refraction line loses the glass's tint",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The glow under the top line let run down toward the words.
+mutate(GEN,
+       "GLOW_TO = 24.0 ",
+       "GLOW_TO = 31.0 ",
+       "panel-material: the glow under the top line reaches toward the words",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
+
+# The cut widened back to the old four units: it runs over the gap and the
+# line, one grey band again.
+mutate(GEN,
+       "CHAMFER_W = 6.0 ",
+       "CHAMFER_W = 16.0 ",
+       "panel-material: the cut widens over the slab's gap",
+       expect="panel-material: the slab's edge reads as thick glass", script=S)
 
 # The pane's noise seeded from nowhere: a different file every run.
 mutate(GEN,

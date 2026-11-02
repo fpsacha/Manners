@@ -859,13 +859,18 @@ mean=0.74 minfeature=-`).
 quarter of the file, 32 texels, drawn 8 units square) whose alpha is a rounded
 rectangle with a cut edge and whose colour is a grey -- 0.78 in the middle,
 0.60 at the edge -- that `Prompt/Panel.lua` tints with the panel colour, one
-gradient per piece. `GlassLight.tga` is the light on it, white, the same
-nine-slice, drawn BLEND at 0.9 of the panel's opacity: a hairline a unit wide
-lit from the upper left, and the cut edge's specular, the light pooled along
-the cut at the top-left corner (about three units round the edge either way,
-tapered back to the edge's own light inside the corner cell so the stretched
-strips never carry it); the middle cell carries no light, since the words lie
-there and the stretch would smear anything drawn in it. `IconBezel.tga` and `IconBezelRound.tga` are the
+gradient per piece. `GlassLight.tga` is the light on it, the same nine-slice,
+drawn BLEND at 0.9 of the panel's opacity: the pane as a thick slab of cut
+glass struck from the upper left, all of it at the edges. The polished cut
+(the outer 1.5 units), white, with the light pooled along it at the top-left
+corner (about three units round the edge either way, tapered back to the
+edge's own light inside the corner cell so the stretched strips never carry
+it); a dark gap; a refraction line a unit wide 2.75 units in, light and
+tinted the cool green-blue of a glass edge along the top and left, falling
+away round the slab, and black along the bottom and right, so it darkens the
+pane there and adds nothing in the landing's additive copy; and a faint glow
+just under the top line, gone 6 units in. The middle cell carries no light,
+since the words lie there and the stretch would smear anything drawn in it. `IconBezel.tga` and `IconBezelRound.tga` are the
 chamfered metal bezel round the spell icon, grey, tinted by vertex colour with
 the reason colour or a neutral metal: the icon fills the middle 96 of 128
 texels, so the file is drawn at `iconSize / BEZEL_FRAME` (`ICON_FRAME` here,
