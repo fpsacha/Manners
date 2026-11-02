@@ -145,7 +145,7 @@ mutate("Options/Look.lua",
        expect="theme-picker: the search finds the picker", script=S)
 
 mutate("Options/Look.lua", "\t\t\t\tvalues = (ns.Looks.Choices()),\n",
-       "\t\t\t\tvalues = { glass = L[\"Glass -- dark panel, soft shadow\"] },\n",
+       "\t\t\t\tvalues = { glass = L[\"Glass -- dark cut glass, a metal bezel\"] },\n",
        "theme-picker: the dropdown offers only Glass",
        expect="theme-picker: the dropdown is still the model's control", script=S)
 

@@ -1846,8 +1846,8 @@ LOOKS = [
     ("letter", "Letter", "parchment and a red wax seal"),
     ("leather", "Leather", "a stitched leather tag with a brass ring"),
     ("forge", "Forge", "forged iron, a riveted band"),
-    ("glass", "Glass", "dark panel, soft shadow"),
-    ("framed", "Framed", "flat panel, thin border"),
+    ("glass", "Glass", "dark cut glass, a metal bezel"),
+    ("framed", "Framed", "dark panel, a tooltip's rim"),
     ("minimal", "Minimal", "text only, no panel"),
 ]
 

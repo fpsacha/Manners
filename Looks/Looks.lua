@@ -16,8 +16,8 @@
 --   title           the card's name in the options window's picker, L["Glass"].
 --                   Optional: without it the card takes what the label says
 --                   before its dash.
---   description     the card's one line under the name, L["dark panel, soft
---                   shadow"]. Optional: without it the card takes what the
+--   description     the card's one line under the name, L["smoked glass, a rim
+--                   lit by the reason"]. Optional: without it the card takes what the
 --                   label says after the dash. Give both when a translation
 --                   writes the label with a dash the picker cannot split.
 --   order           where it sits in the dropdown (glass 10, framed 11,
@@ -184,10 +184,10 @@ ns.Looks = Looks
 -- The three Prompt/Panel.lua draws, named here so the dropdown is one list.
 -- They are never handed back by Get.
 local NATIVE = {
-	glass = { name = L["Glass -- dark panel, soft shadow"], order = 10, native = true,
-		title = L["Glass"], description = L["dark panel, soft shadow"] },
-	framed = { name = L["Framed -- flat panel, thin border"], order = 11, native = true,
-		title = L["Framed"], description = L["flat panel, thin border"] },
+	glass = { name = L["Glass -- dark cut glass, a metal bezel"], order = 10, native = true,
+		title = L["Glass"], description = L["dark cut glass, a metal bezel"] },
+	framed = { name = L["Framed -- dark panel, a tooltip's rim"], order = 11, native = true,
+		title = L["Framed"], description = L["dark panel, a tooltip's rim"] },
 	minimal = { name = L["Minimal -- text only, no panel"], order = 12, native = true,
 		title = L["Minimal"], description = L["text only, no panel"] },
 }
