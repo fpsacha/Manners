@@ -425,6 +425,58 @@ Launch("launch.macro.pickup", "PickupMacro", function(add, ctx)
 	end
 end)
 
+-- The bar macro carries the cast under its first line (Clicks.lua, click
+-- macro): a body of two lines written and read back, on the temporary macro
+-- only. The player's own Manners macro is never rewritten here (Manners writes
+-- it as the prompt changes): for it, its first line and whose Manners counts
+-- it.
+Launch("launch.macro.body", "EditMacro", function(add, ctx)
+	local macro = MacroTarget(ctx)
+	if not macro then
+		add(CHECK, "skipped: " .. tostring(ctx.macroWhy))
+		return
+	end
+	local readBody = _G.GetMacroBody
+	if not macro.temp then
+		local okB, text = Ask(readBody, macro.index)
+		text = okB == true and Plain(text) or nil
+		local first = type(text) == "string" and text:match("^%s*([^\n]*)") or nil
+		local state = ns.BarMacroState and ns.BarMacroState() or "?"
+		local line = ("your %s macro (slot %d) starts %s, and Manners counts it %s; not rewritten here"):format(
+			macro.name, macro.index, Show(first), state)
+		if first == ns.BAR_LINE and state ~= "foreign" then
+			add(PASS, line)
+		else
+			add(CHECK, line .. " -- Put Manners on an action bar hands it back to Manners")
+		end
+		return
+	end
+	if type(_G.EditMacro) ~= "function" or type(readBody) ~= "function" then
+		add(CHECK, "EditMacro or GetMacroBody is missing -- the bar macro cannot carry the cast")
+		return
+	end
+	if InCombatLockdown() then
+		add(CHECK, "in combat -- not tried")
+		return
+	end
+	local want = tostring(ns.BAR_LINE) .. "\n/cleartarget"
+	-- Called as Clicks.lua calls it, with the macro's own name: a client that
+	-- refuses a nil name would otherwise read as a fault Manners never meets.
+	local okE, errE = pcall(_G.EditMacro, macro.index, macro.name, nil, want)
+	local okB, back = Ask(readBody, macro.index)
+	back = okB == true and Plain(back) or nil
+	local got = type(back) == "string" and back:match("^%s*(.-)%s*$") or nil
+	local where = MacroWhere(macro)
+	if not okE then
+		add(FAIL, ("EditMacro(%d) threw: %s (%s)"):format(macro.index, tostring(errE), where))
+	elseif got == want then
+		add(PASS, ("EditMacro wrote two lines and GetMacroBody read them back the same, on %s"):format(where))
+	else
+		add(CHECK, ("EditMacro wrote %s and GetMacroBody answered %s, on %s -- the bar macro would not carry the cast as written"):format(
+			Show(want), Show(back), where))
+	end
+end)
+
 Launch("launch.macro.cleanup", "temporary macro", function(add, ctx)
 	local macro = ctx.macro
 	if not macro then

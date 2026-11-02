@@ -19,7 +19,7 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local COMMAND = "CLICK MannersPrompt:LeftButton"
-local BODY = "/click MannersPrompt LeftButton 1"
+local BODY = "/click MannersBar"
 
 -- The globals a scenario replaces, put back whatever happens.
 local TOUCHED = { "GetCVar", "GetBindingText", "PickupMacro", "GetCursorInfo" }

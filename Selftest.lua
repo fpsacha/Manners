@@ -847,7 +847,7 @@ Check("button.exists", "button", L["secure button"], function(add)
 		_G.MannersPrompt == b and "MannersPrompt" or "not MannersPrompt",
 		okProt == true and Show(protected) or "n/a")
 	if _G.MannersPrompt ~= b then
-		add(FAIL, line .. " -- the key binding and the /click macro name MannersPrompt")
+		add(FAIL, line .. " -- the key binding names MannersPrompt")
 	elseif okProt == true and Plain(protected) == false then
 		add(FAIL, line .. " -- not a secure button")
 	else
@@ -907,8 +907,10 @@ Check("button.binding", "button", L["binding"], function(add)
 	end
 	local okM, index = Ask(_G.GetMacroIndexByName, ns.CLICK_MACRO_NAME or "Manners")
 	local macro = okM == true and type(Plain(index)) == "number" and index > 0
-	local line = ("key %s, /click macro %s"):format(#keys > 0 and table.concat(keys, ", ") or "none",
-		macro and "made" or "none")
+	-- And whose body the macro is (Clicks.lua, click macro): ours, foreign,
+	-- none or unlooked.
+	local line = ("key %s, /click macro %s (%s)"):format(#keys > 0 and table.concat(keys, ", ") or "none",
+		macro and "made" or "none", ns.BarMacroState and ns.BarMacroState() or "?")
 	if #keys == 0 and not macro then
 		add(WARN, line .. " -- the prompt can only be clicked")
 	else

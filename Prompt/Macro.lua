@@ -338,6 +338,8 @@ local function Arm(R, S, entry, silent)
 		-- Same reasoning for the spoken line: there is no macro, so there is no
 		-- line, and the tooltip must not still be quoting the last one.
 		S.phraseKey, S.phraseText, S.phraseArmed, S.phraseSource = nil, nil, nil, nil
+		-- Nor anything for the bar macro to carry (Clicks.lua, click macro).
+		S.barText = nil
 		-- The macro's slot on an action bar shows nothing for nobody
 		-- (Clicks.lua, SyncMacroSlot): a comparison of one string once it does.
 		if not S.isRow then ns.SyncMacroSlot(nil) end
@@ -417,6 +419,8 @@ local function Arm(R, S, entry, silent)
 			if not S.isRow then ns.SyncMacroSlot(nil) end
 			S.appliedKey = key
 			S.armed = nil
+			-- The bar macro never carries a try macro.
+			S.barText = nil
 			return
 		end
 		R.button:SetAttribute("type1", "macro")
@@ -430,10 +434,13 @@ local function Arm(R, S, entry, silent)
 		-- None of this text is a /target this addon wrote, so it is evidence
 		-- about nobody's name and there is no record for the settle path.
 		S.armed = nil
+		S.barText = nil
 		return
 	end
 
 	local lines, restore, record = CastLines(entry)
+	-- How many of them are the cast's, for the bar macro's copy below.
+	local castCount = #lines
 
 	-- Rolled once per candidate (who, buff, why), so the tooltip quotes the
 	-- line the press will cast; InvalidateMacro clears it, PreClick does not. A
@@ -462,6 +469,22 @@ local function Arm(R, S, entry, silent)
 	if restore then lines[#lines + 1] = HandBack() end
 
 	local macro = table.concat(lines, "\n")
+
+	-- What the bar macro carries under its first line (Clicks.lua, click
+	-- macro): the cast and the hand-back, never the spoken line. A bar press
+	-- runs lines written before it, with no PreClick to judge the line at the
+	-- last moment as the prompt's press does (Press.lua, HoldLine: a druid in
+	-- a form that cannot cast, somebody dead or gone since the scan), and a
+	-- line said over a cast that fails cannot be taken back. In a real macro's
+	-- 255 characters, beside the bar line.
+	if not S.isRow then
+		local quiet = {}
+		for i = 1, castCount do quiet[i] = lines[i] end
+		if restore then quiet[#quiet + 1] = lines[#lines] end
+		local barText = table.concat(quiet, "\n")
+		if #ns.BAR_LINE + 1 + #barText > ns.MACRO_LIMIT then barText = nil end
+		S.barText = barText
+	end
 
 	R.button:SetAttribute("type1", "macro")
 	R.button:SetAttribute("macrotext1", macro)
@@ -501,7 +524,9 @@ function Prompt:ApplyTarget(entry, silent)
 
 	-- Out of combat the button is armed or disarmed for real.
 	S.frozenEntry = nil
-	return Arm(R, S, entry, silent)
+	Arm(R, S, entry, silent)
+	-- The bar macro follows the button (Clicks.lua, click macro).
+	ns.SyncMacroBody(true)
 end
 
 -- A list row's: the same macro on its own button, out of combat only (the

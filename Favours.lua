@@ -1061,6 +1061,9 @@ function addon:PLAYER_ENTERING_WORLD(_, isInitialLogin, isReloadingUi)
 	ns.Guard("ApplyStyle on login", function()
 		if ns.Prompt then ns.Prompt:ApplyStyle() end
 	end)
+	-- The bar macro, parked at the last loading screen, follows the prompt
+	-- again (Clicks.lua, click macro).
+	if ns.UnparkMacroBody then ns.Guard("bar macro", ns.UnparkMacroBody) end
 end
 
 function addon:NAME_PLATE_UNIT_ADDED(_, unit)

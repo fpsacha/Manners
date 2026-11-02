@@ -28,8 +28,8 @@ mutate("Prompt/Macro.lua",
 # ------------------------------------------------ filed as a press on the prompt is
 # The press filed against the prompt's state rather than the row's.
 mutate(P,
-       "\tlocal S = self.mannersRow or S\n",
-       "\tlocal S = S\n",
+       "\tlocal S = self.mannersRow or self.mannersBar or S\n",
+       "\tlocal S = self.mannersBar or S\n",
        "hunt25-rows: a press on a name filed for the prompt's person",
        expect="hunt25-rows: a click on a name files the press as a press on the prompt does",
        script=S)

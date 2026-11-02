@@ -133,6 +133,9 @@ for _, e in ipairs({
   -- The screen changing size and the UI scale changing: both in the event list of
   -- all five clients (Ketho's BlizzardInterfaceResources, every branch).
   "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED",
+  -- A loading screen or a logout beginning: in the event list of all five
+  -- clients (Ketho's BlizzardInterfaceResources, every branch).
+  "PLAYER_LEAVING_WORLD",
   -- Registered on this client by EnhanceQoL's class-buff reminder.
   "ADDON_RESTRICTION_STATE_CHANGED",
 }) do KNOWN_EVENTS[e] = true end

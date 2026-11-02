@@ -24,7 +24,10 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local COMMAND = "CLICK MannersPrompt:LeftButton"
-local BODY = "/click MannersPrompt LeftButton 1"
+-- The bar macro's first line (Clicks.lua, click macro): what Manners writes
+-- under it follows the prompt, and is tests/scenarios/barclick.lua's.
+local BODY = "/click MannersBar"
+local function firstLine(body) return type(body) == "string" and body:match("^[^\n]*") or body end
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
 local FLAVOURS = { "camelot", "vanilla", "tbc", "mists", "mainline" }
 
@@ -108,7 +111,7 @@ with("actionbar: the options button makes the macro and puts it on the cursor", 
 	local index = macroIndex()
 	if index == 0 then fail(scenario, "the button made no macro") return end
 	local name, icon, body = GetMacroInfo(index)
-	if body ~= BODY then fail(scenario, "the macro's body is " .. tostring(body)) end
+	if firstLine(body) ~= BODY then fail(scenario, "the macro's body is " .. tostring(body)) end
 	if icon ~= "INV_MISC_NOTE_03" then fail(scenario, "the macro's own icon is " .. tostring(icon)) end
 	local kind, id = GetCursorInfo()
 	if kind ~= "macro" or id ~= index then
@@ -135,7 +138,7 @@ with("actionbar: the options button makes the macro and puts it on the cursor", 
 	make.func({ "makeMacro" })
 	local account, character = GetNumMacros()
 	if account + character ~= 1 then fail(scenario, "a second press made a second macro") end
-	if select(3, GetMacroInfo(index)) ~= BODY then fail(scenario, "a second press left the body as it was changed") end
+	if firstLine(select(3, GetMacroInfo(index))) ~= BODY then fail(scenario, "a second press left the body as it was changed") end
 	if GetCursorInfo() ~= "macro" then fail(scenario, "a second press did not put the macro on the cursor") end
 	-- The slash command does the same.
 	ClearCursor()
@@ -195,11 +198,14 @@ with("actionbar: the macro's slot follows what the prompt's top entry casts", fu
 	if slotOf(index).spell ~= spell then
 		fail(scenario, ("the slot's spell is %s, the prompt casts %s"):format(tostring(slotOf(index).spell), spell))
 	end
-	if slotOf(index).body ~= nil and slotOf(index).body ~= BODY then fail(scenario, "the body changed") end
-	-- The same spell at somebody else: no call at all.
+	if slotOf(index).body ~= nil and firstLine(slotOf(index).body) ~= BODY then fail(scenario, "the body lost its first line") end
+	-- The same spell at somebody else: the slot is not set again for it, beyond
+	-- handing it over once more with the body written for them (Clicks.lua,
+	-- ReassertMacroSlot).
 	local calls = (Mock.macroSpellCalls or 0) + (Mock.macroItemCalls or 0)
+	local edits = Mock.editCalls or 0
 	ns.Prompt:ApplyTarget(spellEntry(spell, "Bert Beside"))
-	if (Mock.macroSpellCalls or 0) + (Mock.macroItemCalls or 0) ~= calls then
+	if (Mock.macroSpellCalls or 0) + (Mock.macroItemCalls or 0) - calls > (Mock.editCalls or 0) - edits then
 		fail(scenario, "the slot was set again for the same spell at somebody else")
 	end
 	-- Another spell.
@@ -390,12 +396,18 @@ with("actionbar: a scan asks the client nothing about the macro", function(ns, s
 	GetMacroIndexByName = function(...) counts.index = counts.index + 1 return realIndex(...) end
 	SetMacroSpell = function(...) counts.spell = counts.spell + 1 return realSpell(...) end
 	SetMacroItem = function(...) counts.item = counts.item + 1 return realItem(...) end
+	-- Each time the bar macro's lines are written (somebody else on the
+	-- prompt: on the classic clients the owed "Anna Aim" gives way to the
+	-- passer-by "Anna" as it empties), what the slot shows is handed over once
+	-- more with them (Clicks.lua, ReassertMacroSlot).
+	local edits = Mock.editCalls or 0
 	for _ = 1, 30 do
 		Mock.advance(0.5)
 		ns.addon:Tick()
 	end
 	-- And with nobody to buff, after the one clearing.
 	if not empty(ns) then fail(scenario, "SKIPPED -- the prompt never emptied") return end
+	local written = (Mock.editCalls or 0) - edits
 	local settled = { counts.index, counts.spell, counts.item }
 	for _ = 1, 30 do
 		Mock.advance(0.5)
@@ -406,8 +418,8 @@ with("actionbar: a scan asks the client nothing about the macro", function(ns, s
 		fail(scenario, ("scans asked the client for the macro's place %d, its spell %d, its item %d times with nobody to buff"):format(
 			counts.index - settled[1], counts.spell - settled[2], counts.item - settled[3]))
 	end
-	if settled[1] ~= 0 and settled[2] > 1 then
-		fail(scenario, ("30 scans on one entry set the slot %d times"):format(settled[2]))
+	if settled[1] ~= 0 and settled[2] - written > 1 then
+		fail(scenario, ("30 scans on one entry set the slot %d times"):format(settled[2] - written))
 	end
 end)
 
@@ -611,7 +623,7 @@ with("actionbar: with the macro lists full, an existing macro is still picked up
 		Mock.macroList[4] = { name = "Manners", icon = "INV_MISC_NOTE_03", body = "/old" }
 		Mock.printed = {}
 		if not ns.CreateClickMacro() then fail(scenario, "an existing macro in full lists was not picked up") end
-		if select(3, GetMacroInfo(4)) ~= BODY then fail(scenario, "the existing macro's body was not put right") end
+		if firstLine(select(3, GetMacroInfo(4))) ~= BODY then fail(scenario, "the existing macro's body was not put right") end
 		local kind, id = GetCursorInfo()
 		if kind ~= "macro" or id ~= 4 then fail(scenario, "the existing macro is not on the cursor") end
 		-- Only the account list full: made among the character's, and carried.

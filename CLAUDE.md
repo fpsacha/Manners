@@ -39,7 +39,7 @@ same list (`tests/validate.py` fails until they match).
 | `GroupBuffs.lua` | group casts (Arcane Brilliance, Prayers, Gift, Greater Blessings) and reagents |
 | `Requests.lua` | people who ask for a buff in chat |
 | `Favours.lua` | noticing a buff on you: aura scan everywhere, combat log on the classic family |
-| `Clicks.lua` | what became of a press: pending click, settle/rewind, GCD, the /click macro |
+| `Clicks.lua` | what became of a press: pending click, settle/rewind, GCD, the bar macro (its body written from the prompt's button) |
 | `Commands.lua` | first run, test console, snooze, sharing, slash commands (`ns.COMMANDS`, `ns.DEV_COMMANDS`) |
 | `Phrases.lua` | the In character set (`RP` = `ns.InCharacter`) |
 | `Ledger.lua` | the favour ledger window (`/manners ledger`) |
@@ -427,7 +427,22 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   (type2..type5 and the wildcards `*type2`..`*type31`) is set to `none` in
   `Prompt/Macro.lua` `SilenceOtherButtons`, because the client looks an
   attribute up modifier-prefixed first and shift-right-click would otherwise
-  run the macro.
+  run the macro. No macro ever /clicks the prompt: the client refuses a macro
+  that clicks a button which runs a macro (Blizzard, WoWUIBugs #552; Classic
+  Era 1.15.9 cast nothing from `/click MannersPrompt LeftButton 1`). The bar
+  macro carries the cast under `/click MannersBar` (Clicks.lua, click macro):
+  the prompt's macro without its spoken line, written out of combat only,
+  never during a bar press or with the macro window open, only into the macro
+  named Manners while its body is Manners' own (the bar line first, then a
+  shape Manners writes: at most one `/target <name>`, one `/cast <spell>` or
+  `/use item:<id>` with at most one `/use 16|17`, and after a `/target` at most
+  one hand-back, in that order; `#` lines kept on top; Clicks.lua `Shaped`).
+  The press is filed by Press.lua's OnBarClick against `Prompt.bar`, and only
+  when the macro running (`GetRunningMacro`) is the Manners one; a body a
+  session before left, found in a fight, is read (`Look` runs in combat,
+  writing nothing) and its presses said and never filed (`StaleBarPress`).
+  `tests/validate.py` fails a `"/click MannersPrompt` literal anywhere but
+  Clicks.lua's `LEGACY_BODIES`.
 - **Auras.** `C_UnitAuras` on every client; never `UnitBuff`/`UnitAura`.
 - **Public text** (README's player sections, CHANGELOG, listings, toc Notes):
   no "untested" / "mock client" / "not tried in game" disclaimers.

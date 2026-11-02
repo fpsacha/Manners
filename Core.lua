@@ -3797,6 +3797,11 @@ function addon:OnEnable()
 		-- The Manners macro made, deleted or moved in the macro window: its
 		-- slot on an action bar is set again (Clicks.lua).
 		"UPDATE_MACROS",
+		-- A loading screen or a logout: the bar macro goes back to its first
+		-- line (Clicks.lua). And the macro window loading, which the bar macro
+		-- writes nothing under while it is open.
+		"PLAYER_LEAVING_WORLD",
+		"ADDON_LOADED",
 		-- The screen's size or the UI's scale changed (a new resolution, the UI
 		-- scale slider, a window moved to another monitor): the prompt is styled
 		-- again, since the side the list hangs on and what else the style reads of
@@ -4070,6 +4075,24 @@ function addon:PLAYER_TARGET_CHANGED()
 	local at = ns.pressAt
 	if at and GetTime() - at < 0.5 then return end
 	ns.LiftBackoff(ns.UnitFullName("target"))
+	-- Whether the macro hands your target back or clears it depends on whether
+	-- you have one (Prompt/Macro.lua, HandBack): armed again now rather than at
+	-- the next scan, for the bar macro that carries it (Clicks.lua).
+	local P = ns.Prompt
+	if P and P.state.current and not InCombatLockdown() then
+		ns.Guard("hand-back", P.ApplyTarget, P, P.state.current, P.state.phraseArmed ~= true)
+	end
+end
+
+-- A loading screen or a logout (Clicks.lua, click macro); the next
+-- PLAYER_ENTERING_WORLD (Favours.lua) lets it go.
+function addon:PLAYER_LEAVING_WORLD()
+	if ns.ParkMacroBody then ns.Guard("bar macro", ns.ParkMacroBody) end
+end
+
+-- Blizzard_MacroUI loads when the macro window is first opened.
+function addon:ADDON_LOADED(_, name)
+	if name == "Blizzard_MacroUI" and ns.WatchMacroWindow then ns.Guard("macro window", ns.WatchMacroWindow) end
 end
 
 -- Not per scan: the client fires these when the display changes, and once for
@@ -4154,6 +4177,9 @@ function addon:PLAYER_REGEN_ENABLED()
 	end
 
 	ns.RepaintOptions()
+	-- The bar macro's hold for a cooldown still running as the fight ends
+	-- (Clicks.lua).
+	if ns.NoteBarCooldown then ns.Guard("bar macro cooldown", ns.NoteBarCooldown) end
 
 	-- A first greeting stood down by a fight gets another go; on every other
 	-- fight the flag is read first and this returns at once.

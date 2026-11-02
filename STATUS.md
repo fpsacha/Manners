@@ -36,7 +36,8 @@ the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 file, masks, clipping, `REPEAT` tiling, animations, each of the ten looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
-empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`), the
+empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and
+`EditMacro` writing the bar macro's two lines and reading them back), the
 controller glyphs (`GetBindingText` for `PAD1` and `SHIFT-PAD1`, the three
 `GamePadEmulate*` CVars), the tooltip's anchors, `/cleartarget` and the display
 restyle. Do it twice if you can: once with nothing targeted and once with a
@@ -52,11 +53,44 @@ from the wrong end or not at all); Glass over a snowfield for the edge light
 understates; Toast's hammered gold and rope ring; Forge's slot, sparks along
 the band and the steam puff, which the renderer shows faintly;
 the bar slot drawing the spell's icon, cooldown and range, and the note icon
-back with nobody to buff; the picker's cards with the live icon on each; a
+back with nobody to buff; the Manners macro on a bar: put it on a bar (Start
+here > Put Manners on an action bar), `/manners clicks` on, and press the slot
+with the mouse, then with its key with the game's cast-on-key-down setting on
+and off (Esc > Options > Combat): each press casts once at the person the
+prompt shows, and the log reads `CLICK build=... via=bar macro=...` then
+`CAST SENT <spell> -> <name>`; open the macro window while the prompt changes
+and the macro holds `/click MannersBar` alone until it shuts, then the lines
+under it follow the prompt again; press it in the last moments of a global
+cooldown: no cast, `ready in`; the picker's cards with the live icon on each; a
 controller button's glyph on the chip; pressing with nothing targeted leaving
 you with no target; and the prompt re-laying itself out after a change of UI
 scale (Esc, Options, Video). Any CHECK or FAIL line is the lead: paste it with
 `/manners errors` and `/manners debug`.
+
+**The bar macro on Classic Era (1.10.5).** A Night Elf druid on Classic Era
+1.15.9 (1.10.3, alone, Thorns on herself) found the Manners macro on a bar
+casting nothing while a click on the prompt cast: the client will not run a
+macro from inside one (Blizzard, WoWUIBugs #552), and the macro was
+`/click MannersPrompt LeftButton 1`. It now carries the cast under
+`/click MannersBar` (Clicks.lua, click macro), which rests on one thing no test
+here can show: that a macro whose first line /clicks a plain button running
+addon Lua still runs its `/target` and `/cast` lines on that client. First, a
+macro made by hand with two lines, `/click MannersBar` and `/cast Thorns`
+(any spell), pressed from a bar with 1.10.5 loaded, says whether it does. Give
+it a name of its own, not Manners: a macro named Manners whose lines are a
+shape Manners writes (that one is) is Manners', and is rewritten before the
+press. Then
+ask the reporter to update, press the bar macro once with the mouse and once
+by key with `/manners clicks` on, and paste the lines (`BAR wrote=...`,
+`CLICK build=... via=bar macro=...`, `CAST SENT ...`). A press is filed only
+when `GetRunningMacro()` names the Manners macro (a client that names none
+leaves it to the body): `CLICK via=bar body=other` on a press of the Manners
+macro itself would say the client names something else there, and every bar
+press would go unfiled. The scenarios in `tests/scenarios/barclick.lua` and
+`barpress.lua` hold Manners' wiring to a model of the client
+(`tests/mockmacros.lua`, "running macros"), not the client. Whether an
+`EditMacro` lets go of what `SetMacroSpell` put on the slot is not known either:
+every write hands it over again (`ReassertMacroSlot`).
 
 **The action bar slot in the game (1.10.1).** SetMacroSpell/SetMacroItem on
 the "Manners" macro, cleared with an empty string, and PickupMacro from the
@@ -196,6 +230,12 @@ than code; do not undo them.
   screenshots as blobs. All of it was public long before, a rewrite would
   change every hash and tag and still leave copies in clones and GitHub's
   caches.
+
+- **The bar macro carries the cast** (decided 2026-11-02): the client refuses a
+  macro that /clicks a button which runs a macro (Blizzard, WoWUIBugs #552;
+  retail 11.0.2, the Classic clients since), so no macro may /click
+  MannersPrompt. Do not go back to a /click body. The bar's copy says no line:
+  only a press of the prompt judges the line at the last moment (HoldLine).
 
 - **The first-name fallback was removed deliberately.** The macro sends one
   `/target`, carrying the full name. Both `CHANGELOG.md` 1.3.0 and

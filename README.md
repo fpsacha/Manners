@@ -73,10 +73,23 @@ first two of which set it up:
    Or press *Put Manners on an action bar* (or type `/manners macro`): the
    Manners macro is made (or put right, if it is there) and put on your
    cursor, and the line under the button says *Drop it on any action bar
-   slot.* Drop it on any slot of any bar. The macro is
-   `/click MannersPrompt LeftButton 1`; the trailing `1` matters, because the
-   secure button only casts on the way down. In a fight the button does
-   nothing but say so: the game does not let an addon touch macros then.
+   slot.* Drop it on any slot of any bar. A press of the slot, by mouse or by
+   key, casts what a press of the prompt would, at whoever the prompt shows,
+   and hands your target back the same way; it says no line (a line goes out
+   only with a press of the prompt, which looks one last time at whether the
+   cast can land). The game does not let one macro press a button that runs
+   another, so the macro carries the cast itself: its first line is
+   `/click MannersBar`, which tells Manners about the press, and under it
+   Manners writes what the prompt would cast, out of combat, each time that
+   changes. With nobody to buff, in the last moments of a global cooldown, or
+   while the macro window is open, only the first line is there, and a press
+   says why. In a fight the macro keeps what it held when the fight began, as
+   the prompt does, and the button does nothing but say so: the game does not
+   let an addon touch macros then. The macro is Manners' to write. A
+   `#showtooltip` line you put on top stays; any other change by hand makes
+   it yours, left as you wrote it and no longer followed (Manners says so
+   once, and pressing the button again hands it back), and a macro of your
+   own that clicks the prompt casts nothing.
 
    **The slot shows what a press would cast.** Manners tells the game which
    spell the macro stands for (or which scroll or enhancement, for the ones
@@ -1008,7 +1021,8 @@ puts everything back: the prompt's look (every look is put on it in turn,
 inside one frame, and your own comes back), the *Manners* macro's slot (it is
 set, read back, cleared and given back what it showed; with no such macro, a
 temporary one called MannersSelfTest is made for the test and deleted at the
-end, and the report says so), the cursor, and the tooltip, which is a scratch
+end, and the report says so), the macro's body written back (on that
+temporary macro; yours is only read), the cursor, and the tooltip, which is a scratch
 one. Each line reads PASS, CHECK or FAIL with the game's own answer: the font
 file it took, whether a mask was made and attached, whether a frame can clip,
 whether a strip can repeat, what the macro slot answers when it is set and
