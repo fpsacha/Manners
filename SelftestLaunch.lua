@@ -637,15 +637,18 @@ Launch("launch.anim", "animations", function(add)
 		elseif ok ~= true then threw[#threw + 1] = method .. ": " .. tostring(err) end
 		return ok == true
 	end
-	local function make(kind, setup)
-		local ok, anim = true, s.anims[kind]
+	-- `key` names the animation in the scratch's keep when one kind is tried
+	-- twice (the second Scale below); it reads as the kind otherwise.
+	local function make(kind, setup, key)
+		key = key or kind
+		local ok, anim = true, s.anims[key]
 		if anim == nil then ok, anim = Call(group, "CreateAnimation", kind) end
-		if ok == true and anim ~= nil then s.anims[kind] = anim end
+		if ok == true and anim ~= nil then s.anims[key] = anim end
 		if ok ~= true or anim == nil then
 			threw[#threw + 1] = "CreateAnimation(" .. kind .. ") " .. (ok == true and "answered nothing" or tostring(anim))
 			return
 		end
-		made[#made + 1] = kind
+		made[#made + 1] = key
 		try(anim, "SetDuration", 0.1)
 		try(anim, "SetOrder", 1)
 		try(anim, "SetSmoothing", "OUT")
@@ -653,6 +656,11 @@ Launch("launch.anim", "animations", function(add)
 	end
 	make("Alpha", function(a) try(a, "SetFromAlpha", 0) try(a, "SetToAlpha", 1) end)
 	make("Scale", function(a) try(a, "SetScaleFrom", 1, 1) try(a, "SetScaleTo", 1.1, 1.1) try(a, "SetOrigin", "CENTER", 0, 0) end)
+	-- The entrance's rules grow along one axis only, about their left end
+	-- (Prompt/Effects.lua): the pair of unequal scales and the LEFT origin,
+	-- which the mock accepts and launch day has to confirm.
+	make("Scale", function(a) try(a, "SetScaleFrom", 0.04, 1) try(a, "SetScaleTo", 1, 1) try(a, "SetOrigin", "LEFT", 0, 0) end,
+		"Scale(x, y) about LEFT")
 	make("Translation", function(a) try(a, "SetOffset", 2, 0) end)
 	make("Rotation", function(a) try(a, "SetDegrees", 5) end)
 	try(group, "SetLooping", "BOUNCE")
@@ -667,7 +675,7 @@ Launch("launch.anim", "animations", function(add)
 		okI2 == true and Show(after) or "unreadable")
 	if #threw > 0 then
 		add(FAIL, line .. " -- " .. table.concat(threw, "; "))
-	elseif #missing > 0 or #made < 4 then
+	elseif #missing > 0 or #made < 5 then
 		add(CHECK, line .. " -- missing: " .. table.concat(missing, ", "))
 	elseif okI == true and playing ~= true then
 		add(CHECK, line .. " -- the group did not report playing")

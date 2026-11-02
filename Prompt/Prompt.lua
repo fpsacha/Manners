@@ -364,6 +364,10 @@ local RING_SQ = "Interface\\AddOns\\Manners\\Textures\\RingSq"
 local SWEEP = "Interface\\AddOns\\Manners\\Textures\\Sweep"
 local GLOSS = "Interface\\AddOns\\Manners\\Textures\\Gloss"
 local BEVEL = "Interface\\AddOns\\Manners\\Textures\\Bevel"
+-- The two rules of light along the panel's edges, drawn out from the icon as
+-- it comes up, and the glint that runs them when a favour arrives.
+local RULE = "Interface\\AddOns\\Manners\\Textures\\Rule"
+local GLINT = "Interface\\AddOns\\Manners\\Textures\\Glint"
 -- Where the ring's middle sits, as a fraction of the file's half-width:
 -- ring_thin_at in tools/make-glow.py, which must agree.
 local RING_AT = 0.78
@@ -387,6 +391,7 @@ lib.REASON_KEY, lib.ReasonColor, lib.RemainingText = REASON_KEY, ReasonColor, Re
 lib.Gradient, lib.Solid, lib.Try, lib.unpackColor = Gradient, Solid, Try, unpackColor
 lib.Halo, lib.PlaceHalo, lib.PaintHalo = Halo, PlaceHalo, PaintHalo
 lib.RING, lib.RING_SQ, lib.RING_AT, lib.SWEEP, lib.GLOSS, lib.BEVEL = RING, RING_SQ, RING_AT, SWEEP, GLOSS, BEVEL
+lib.RULE, lib.GLINT = RULE, GLINT
 lib.Tint, lib.WARM_WHITE = Tint, WARM_WHITE
 lib.GLOW_RING_AT = GLOW_RING_AT
 -- How many frame levels above art the text sits: over every frame of light

@@ -155,9 +155,11 @@ withTree("the panel catches the light when somebody already on it buffs you",
 	ns.Prompt:ApplyStyle()
 	ns.addon:Tick()
 	local r = ns.Prompt:Regions()
-	local shine, flash = r.shine and r.shine.anim, r.glow and r.glow.anim
-	if not (shine and flash) then
-		fail(scenario, "SKIPPED -- the shine or the flash is not reachable")
+	-- The light a favour arriving catches is the glint that runs the two rules
+	-- along the panel's edges (Prompt/Effects.lua, StartAttention).
+	local glint, flash = r.glints and r.glints[1] and r.glints[1].run, r.glow and r.glow.anim
+	if not (glint and flash) then
+		fail(scenario, "SKIPPED -- the glint or the flash is not reachable")
 		return
 	end
 	local top = ns.Prompt:GetButton():IsShown() and ns.BuildQueue()[1]
@@ -165,20 +167,20 @@ withTree("the panel catches the light when somebody already on it buffs you",
 		fail(scenario, "SKIPPED -- Anna was not on the panel as a passer-by")
 		return
 	end
-	local shineBefore, flashBefore = plays(shine), plays(flash)
+	local glintBefore, flashBefore = plays(glint), plays(flash)
 	owe(ns, "Anna Aim")
 	ns.addon:Tick()
-	if plays(shine) == shineBefore then
+	if plays(glint) == glintBefore then
 		fail(scenario, "a passer-by on the panel buffed you and the panel did not catch the light")
 	end
 	if plays(flash) == flashBefore then
 		fail(scenario, "a passer-by on the panel buffed you and Flash once did not flash")
 	end
 	-- And once: the next scan is the same person, owed the same favour.
-	local shineAfter = plays(shine)
+	local glintAfter = plays(glint)
 	Mock.advance(0.4)
 	ns.addon:Tick()
-	if plays(shine) ~= shineAfter then
+	if plays(glint) ~= glintAfter then
 		fail(scenario, "the light played again on a scan that changed nothing")
 	end
 end)
@@ -228,10 +230,13 @@ withTree("Calm plays none of the new motion",
 	local scenario = "Calm plays none of the new motion"
 	freshPrompt(ns, scenario)
 	ns.db.profile.prompt.effects = "calm"
+	-- With the stripe up, so its sweep -- a slide along the stripe -- has
+	-- somewhere to play, and Calm has to hold it back too.
+	ns.db.profile.prompt.accentMode = "stripe"
 	ns.Prompt:ApplyStyle()
 	local r = ns.Prompt:Regions()
 	local groups = { burst = r.burst and r.burst.anim, shine = r.shine and r.shine.anim,
-		shake = r.shake, outro = r.outro }
+		shake = r.shake, outro = r.outro, sweep = r.sweep and r.sweep.anim }
 	for name, g in pairs(groups) do
 		if not g then
 			fail(scenario, "SKIPPED -- no " .. name .. " to watch")
@@ -786,8 +791,9 @@ withTree("somebody waiting all along reaching the top does not catch the light",
 	owe(ns, "Anna Aim")
 	ns.addon:Tick()
 	local r = ns.Prompt:Regions()
-	local shine = r.shine and r.shine.anim
-	if not shine or plays(shine) == 0 then
+	-- The favour's light is the glint that runs the rules along the panel's edges.
+	local glint = r.glints and r.glints[1] and r.glints[1].run
+	if not glint or plays(glint) == 0 then
 		fail(scenario, "SKIPPED -- Anna's favour did not light the panel to begin with")
 		return
 	end
@@ -807,11 +813,11 @@ withTree("somebody waiting all along reaching the top does not catch the light",
 	ns.nameplateUnits.nameplate2 = true
 	ns.BlockPerson("Anna Aim")
 	ns.owed["Anna Aim"] = nil
-	local before = plays(shine)
+	local before = plays(glint)
 	ns.addon:Tick()
 	if ns.Prompt:PanelName() ~= "Bert Beside" then
 		fail(scenario, "SKIPPED -- Bert did not reach the panel: " .. tostring(ns.Prompt:PanelName()))
-	elseif plays(shine) ~= before then
+	elseif plays(glint) ~= before then
 		fail(scenario, "Bert had been waiting since before he reached the panel and it caught the light"
 			.. " for him as if he had just buffed you")
 	end

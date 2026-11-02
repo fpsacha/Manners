@@ -13,6 +13,7 @@ local ink, fit, GREYS, EDGE_ROOM, TEXT_CONTRAST = lib.ink, lib.fit, lib.GREYS, l
 local Legible, TextWidth, SetLine, FitLine = lib.Legible, lib.TextWidth, lib.SetLine, lib.FitLine
 local StyleText, FullEffects, BUTTON_SCRIPTS = lib.StyleText, lib.FullEffects, lib.BUTTON_SCRIPTS
 local RING, RING_SQ, SWEEP, GLOSS, BEVEL = lib.RING, lib.RING_SQ, lib.SWEEP, lib.GLOSS, lib.BEVEL
+local RULE, GLINT = lib.RULE, lib.GLINT
 local Tint, WARM_WHITE = lib.Tint, lib.WARM_WHITE
 -- The client's own round mask: the shape of a round icon, its sweep and the
 -- icon's echo.
@@ -25,6 +26,10 @@ local BEVEL_MARGIN, BEVEL_SIZE, BEVEL_CORNER = 6, 32, 3
 local GLOSS_ALPHA = 0.13
 -- Where the icon sits and how far the text starts from it, in units.
 local ICON_X, ICON_GAP = 10, 10
+-- The two rules of light along the top and bottom edges: how far inside each
+-- edge they lie, how short of the right edge they stop, where they start with
+-- no icon to start from, and how long the glint that runs them is, in units.
+local RULE_INSET, RULE_END, RULE_X0, GLINT_LENGTH = 1.5, 2, 6, 14
 
 -- Nine textures cut from one file, as the looks' own slices are.
 local function BevelSlice(parent, layer, sublevel)
@@ -269,6 +274,36 @@ function Prompt:Create()
 	R.shineBand:SetBlendMode("ADD")
 	R.shineBand:SetAllPoints(R.shineFrame)
 
+	-- Two rules of light along the panel's top and bottom edges, drawn out from
+	-- the icon as the panel comes up (the level-up banner's two lines), on
+	-- frames of their own, parked at nothing between. A level above art, like
+	-- every frame of light, and so under the text.
+	for _, which in ipairs({ "ruleTop", "ruleBottom" }) do
+		local rule = CreateFrame("Frame", nil, R.art)
+		rule:SetAlpha(0)
+		rule.band = rule:CreateTexture(nil, "OVERLAY", nil, 1)
+		rule.band:SetTexture(RULE)
+		rule.band:SetBlendMode("ADD")
+		rule.band:SetAllPoints(rule)
+		R[which] = rule
+	end
+	-- And the glint that runs each rule when a favour arrives: a child of the
+	-- art rather than of its rule, so its alpha is its own and it is seen while
+	-- the rule it runs rests at nothing; a level over the rules; hung from its
+	-- rule's left end (a plain frame on a plain frame).
+	for _, which in ipairs({ "glintTop", "glintBottom" }) do
+		local glint = CreateFrame("Frame", nil, R.art)
+		glint:SetFrameLevel(R.art:GetFrameLevel() + 2)
+		glint:SetAlpha(0)
+		glint.band = glint:CreateTexture(nil, "OVERLAY", nil, 1)
+		glint.band:SetTexture(GLINT)
+		glint.band:SetBlendMode("ADD")
+		glint.band:SetAllPoints(glint)
+		R[which] = glint
+	end
+	R.glintTop:SetPoint("LEFT", R.ruleTop, "LEFT", 0, 0)
+	R.glintBottom:SetPoint("LEFT", R.ruleBottom, "LEFT", 0, 0)
+
 	-- Text sits on its own frame so a target change can cross-fade all of it
 	-- at once rather than swapping strings mid-read.
 	R.textLayer = CreateFrame("Frame", nil, R.art)
@@ -346,7 +381,7 @@ function Prompt:Create()
 	-- Looks/ hides (ApplyLook) and ApplyStyle puts back.
 	local parts = { R.panel, R.sheen, R.hairTop, R.hairBottom, R.accentTop, R.accentBottom, R.sweepFrame,
 		R.glowFrame, R.rimFrame, R.iconBack, R.iconEdge, R.iconShade, R.burstFrame, R.shineFrame, R.countChip,
-		R.resultFill, R.queueBack, R.queueHair }
+		R.resultFill, R.queueBack, R.queueHair, R.ruleTop, R.ruleBottom, R.glintTop, R.glintBottom }
 	for _, list in ipairs({ R.shadows, R.edges, R.queueBars, R.queueIcons, R.bevel, R.fx.frames }) do
 		for _, part in ipairs(list) do parts[#parts + 1] = part end
 	end
@@ -401,6 +436,10 @@ function Prompt:ApplyStyle()
 	R.rimFrame:Show()
 	R.burstFrame:Show()
 	R.shineFrame:Show()
+	R.ruleTop:Show()
+	R.ruleBottom:Show()
+	R.glintTop:Show()
+	R.glintBottom:Show()
 	R.fx:SetShown(true)
 	local hl = R.button:GetHighlightTexture()
 	if hl then hl:SetVertexColor(1, 1, 1, 0.045) end
@@ -604,6 +643,29 @@ function Prompt:ApplyStyle()
 	R.shineFrame:SetSize(shineWidth, p.height)
 	if R.shineFrame.anim then R.shineFrame.anim.move:SetOffset(p.width - shineWidth, 0) end
 
+	-- The two rules of light: as thick as the height allows (a unit at 20, two
+	-- at the default 44, three from 66), a unit and a half inside the top and
+	-- the bottom, from the icon's middle to two units short of the right edge;
+	-- and the glint that runs each, as tall as its rule, with the distance it
+	-- has to run written into its slide. Minimal has no panel for them to lie
+	-- on, so it draws them at a little over half strength.
+	local ruleHeight = math.max(1, math.min(3, math.floor(p.height / 22)))
+	local ruleX = p.showIcon and (ICON_X + p.iconSize / 2) or RULE_X0
+	R.ruleTop:ClearAllPoints()
+	R.ruleTop:SetPoint("TOPLEFT", R.art, "TOPLEFT", ruleX, -RULE_INSET)
+	R.ruleTop:SetPoint("TOPRIGHT", R.art, "TOPRIGHT", -RULE_END, -RULE_INSET)
+	R.ruleTop:SetHeight(ruleHeight)
+	R.ruleBottom:ClearAllPoints()
+	R.ruleBottom:SetPoint("BOTTOMLEFT", R.art, "BOTTOMLEFT", ruleX, RULE_INSET)
+	R.ruleBottom:SetPoint("BOTTOMRIGHT", R.art, "BOTTOMRIGHT", -RULE_END, RULE_INSET)
+	R.ruleBottom:SetHeight(ruleHeight)
+	local glintRun = (p.width - RULE_END - ruleX) - GLINT_LENGTH
+	for _, glint in ipairs({ R.glintTop, R.glintBottom }) do
+		glint:SetSize(GLINT_LENGTH, ruleHeight)
+		if glint.run then glint.run.move:SetOffset(glintRun, 0) end
+	end
+	S.ruleStrength = style == "minimal" and 0.6 or 1.0
+
 	-- count chip: sized from the font, so large fonts do not spill out of it;
 	-- at the default 13 it is the old 20 by 14, with 28 reserved.
 	local countSize = math.max(8, p.fontSize - 3)
@@ -726,6 +788,16 @@ function Prompt:ApplyLook(p, look)
 		if f.reject then f.reject:Stop() end
 	end
 	R.fx:Stop()
+	-- The entrance's rules and the glint that runs them, and the words'
+	-- reveal, which is textLayer's: stopped, and the words put at full. Safe
+	-- here, out of combat and only as a look from Looks/ takes the panel; its
+	-- own fight dim owns textLayer's alpha from this point on.
+	for _, g in ipairs({ R.ruleTop.draw, R.ruleBottom.draw, R.glintTop.run, R.glintBottom.run,
+		R.textLayer.reveal }) do
+		if g and g:IsPlaying() then g:Stop() end
+	end
+	R.textLayer:SetAlpha(1)
+	S.glintPlaying = nil
 	for _, part in ipairs(self.builtinParts) do part:Hide() end
 	if R.iconMask then R.iconMask:Hide() end
 	local hl = R.button:GetHighlightTexture()
@@ -848,6 +920,13 @@ function Prompt:Regions()
 		fx = R.fx,
 		settle = R.art and R.art.settle,
 		introCalm = R.art and R.art.introCalm,
+		-- The two rules of light the entrance draws along the panel's edges
+		-- (each frame's `draw` group and its `band` texture), the glints that
+		-- run them when a favour arrives (`run`, `band`), and the words'
+		-- reveal, held back a beat behind the rules.
+		rules = { R.ruleTop, R.ruleBottom },
+		glints = { R.glintTop, R.glintBottom },
+		reveal = R.textLayer and R.textLayer.reveal,
 		bevel = R.bevel,
 		shake = R.textLayer and R.textLayer.shake,
 		intro = R.art and R.art.intro,

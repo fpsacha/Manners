@@ -163,13 +163,12 @@ mutate("Prompt/Refresh.lua",
        expect="as if he had just buffed you",
        script="runscenarios.py")
 
-# The light on arrival allowed over a success.
+# The light on arrival (the glint along the rules) allowed over a success.
 mutate("Prompt/Effects.lua",
-       "\tif arrived and FullEffects() and not self:OutcomeLive()\n"
-       "\t\tand not (R.shineFrame.anim and R.shineFrame.anim:IsPlaying()) then\n",
-       "\tif arrived and FullEffects() then\n",
+       "\tif arrived and FullEffects() and not self:OutcomeLive() and not S.glintPlaying and R.glintTop.run then\n",
+       "\tif arrived and FullEffects() and not S.glintPlaying and R.glintTop.run then\n",
        "arrival light replaces the success",
-       expect="for one buff landing",
+       expect="entrance-light: a favour's glint runs the rules",
        script="runscenarios.py")
 
 # The sweep ignoring Stay quiet in combat.

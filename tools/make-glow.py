@@ -307,6 +307,43 @@ def sweep(out):
     save(out, "Sweep", 1.0, a)
 
 
+def rule_profile(yy, centre, sigma):
+    """The rule's cross-section: a Gaussian about `centre`, in texel rows."""
+    return np.exp(-((yy - centre) / sigma) ** 2)
+
+
+def rule(out):
+    w, h = 128, 8
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
+    # Brightest between rows 3 and 4, nothing left at rows 0 and 7.
+    a = rule_profile(yy, (h - 1) / 2, PARAMS["rule_core"])
+    # Soft ends, so a rule stretched along a panel's edge never stops dead.
+    fade = PARAMS["rule_end_fade"]
+    cx = xx + 0.5
+    a *= smooth(cx / fade) * smooth((w - cx) / fade)
+    save(out, "Rule", 1.0, a)
+
+
+def glint(out):
+    w, h = 64, 16
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
+    u = (xx + 0.5) / w
+    at, ew = PARAMS["glint_edge_at"], PARAMS["glint_edge_w"]
+    # The leading edge: thin and full.
+    edge = np.exp(-((u - at) / ew) ** 2)
+    # The tail: from nothing at glint_tail_end up to glint_tail at the edge,
+    # and let go softly just past it, so nothing runs ahead of the edge.
+    start = PARAMS["glint_tail_end"]
+    rising = PARAMS["glint_tail"] * np.clip((u - start) / (at - start), 0.0, 1.0)
+    behind = PARAMS["glint_tail"] * (1.0 - smooth((u - at) / (1.0 - at)))
+    tail = np.where(u <= at, rising, behind)
+    a = np.clip(np.maximum(edge, tail), 0.0, 1.0)
+    # The Rule's profile, scaled to the sixteen rows.
+    a *= rule_profile(yy, (h - 1) / 2, PARAMS["rule_core"] * h / 8)
+    a *= smooth((w - xx - 0.5) / 2.0)
+    save(out, "Glint", 1.0, a)
+
+
 def gloss(out):
     w, h = 128, 64
     xx, yy = grid(w, h)

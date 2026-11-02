@@ -152,6 +152,15 @@ local outcomeGen = 0
 function Prompt:ShowOutcome(kind, name, detail)
 	if not R.button then return end
 	S.outcomeKind, S.outcomeAt, S.outcomeName, S.outcomeDetail = kind, GetTime(), name, detail
+	-- An outcome in the first beat of the entrance, while the words are still
+	-- arriving: the reveal is let go and the words put at full, so the dip
+	-- below starts from full and never leaves them half-lit. On the three
+	-- looks drawn here only: under a look from Looks/ the words' alpha is the
+	-- look's own.
+	if not S.activeLook and R.textLayer.reveal and R.textLayer.reveal:IsPlaying() then
+		R.textLayer.reveal:Stop()
+		R.textLayer:SetAlpha(1)
+	end
 	-- The same cross-fade a target swap uses: the text is about to change.
 	if R.textLayer.swap then
 		R.textLayer.swap:Stop()
