@@ -299,8 +299,8 @@ mutate("Prompt/Prompt.lua",
 
 # A generator that is not deterministic.
 mutate("tools/make-glow.py",
-       "    save(out, \"Glow\", 1.0, falloff(np.hypot(dx, dy)))\n",
-       "    save(out, \"Glow\", 1.0, falloff(np.hypot(dx, dy)) * (1 - 0.01 * np.random.rand(N, N)))\n",
+       "    save(out, \"Glow\", 1.0, relight(falloff(np.hypot(dx, dy)), N, N))\n",
+       "    save(out, \"Glow\", 1.0, relight(falloff(np.hypot(dx, dy)) * (1 - 0.01 * np.random.rand(N, N)), N, N))\n",
        "hunt35: Glow.tga differs between runs",
        expect="Glow.tga differs between two runs", script=S)
 
