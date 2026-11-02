@@ -373,8 +373,8 @@ local CRACK = "Interface\\AddOns\\Manners\\Textures\\Crack"
 local RING_AT = 0.78
 
 -- The built-in looks' material, by tools/make_panel_textures.py: the glass
--- pane (a grey the panel colour tints) and the light on it (white, drawn
--- BLEND), the metal bezel round the icon (grey, vertex-tinted; square, and a
+-- pane (a grey the panel colour tints) and the light on its edges (white
+-- with a cool line, and a dark line in shade; drawn BLEND), the metal bezel round the icon (grey, vertex-tinted; square, and a
 -- round twin) and the framed look's rim (grey, a nine-slice).
 local GLASS_PANE = "Interface\\AddOns\\Manners\\Textures\\GlassPane"
 local GLASS_LIGHT = "Interface\\AddOns\\Manners\\Textures\\GlassLight"

@@ -20,25 +20,35 @@ the art is a named constant here; the ones Prompt/ depends on say so.
                                is baked into it: that is GlassLight's. Prompt/Text.lua
                                judges the ink against PANE_MID x the panel colour, the
                                pane under the words (must agree).
-  GlassLight.tga      128x128  White, the same 9-slice: the light on the glass, drawn
-                               BLEND at 0.9 x the panel's opacity. A hairline HAIR_W 4
-                               texels wide HAIR_AT 14 in from the edge, lit from the
-                               upper left (alpha HAIR_LIT 0.55 at the top left down to
-                               HAIR_SHADE 0.12 at the bottom right); and the cut edge's
-                               specular over the outer CHAMFER_W 16 texels: EDGE_LIT
-                               0.20 along the left edge, a little more along the top
-                               (it faces the key light more squarely), nothing below
-                               and right, and at the top-left corner the light pooled
-                               along the cut: BEAD_PEAK 0.65 where the corner's arc
-                               faces the light, within BEAD_DEPTH 6 texels of the edge,
-                               tapering round the edge either way into the edge's own
-                               light by BEAD_REACH 20 texels (5 units; above it by a
-                               tenth for about 3.5 units along the top and 3 down the
-                               left), inside the corner cell, so the stretched strips
-                               never carry it. The middle cell (texels 32 to 96 on
-                               both axes) carries no light: nothing lights under the
-                               words, and a mark drawn there is stretched about 7:1
-                               into a smear.
+  GlassLight.tga      128x128  The same 9-slice: the light on the glass, drawn BLEND at
+                               0.9 x the panel's opacity. The pane as a thick slab of
+                               cut glass seen from the front, struck from the upper
+                               left, all of it at the edges. (a) The polished cut over
+                               the outer CHAMFER_W 6 texels (1.5 units), white:
+                               EDGE_LIT 0.20 along the left edge, a little more along
+                               the top (it faces the key light more squarely),
+                               EDGE_FILL 0.18 below and right (the fill light, so a
+                               landing still outlines the pane), and at the top-left
+                               corner the light pooled along the cut: BEAD_PEAK 0.65
+                               where the corner's arc faces the light, within
+                               BEAD_DEPTH 6 texels of the edge, tapering round the edge
+                               either way into the edge's own light by BEAD_REACH 20
+                               texels, inside the corner cell, so the stretched strips
+                               never carry it. (b) A dark gap, then the refraction
+                               line: REFRACT_W 4 texels (a unit) centred REFRACT_AT 11
+                               in (2.75 units), on its own rounded rectangle; light
+                               (REFRACT_LIT 0.70 at the top left, falling away round
+                               the slab) and tinted EDGE_TINT, the cool green-blue the
+                               edge of real glass carries, where the slab faces the
+                               key light; black (REFRACT_SHADE 0.45 at the bottom
+                               right) where it is turned from it, so drawn BLEND it
+                               darkens the pane, and in the landing's additive copy it
+                               adds nothing. (c) A faint glow just under the top line,
+                               GLOW_PEAK 0.16, gone GLOW_TO 24 texels in (6 units), in
+                               the top row of cells only and clear of the side lines.
+                               The middle cell (texels 32 to 96 on both axes) carries
+                               no light: nothing lights under the words, and a mark
+                               drawn there is stretched about 7:1 into a smear.
   IconBezel.tga       128x128  Grey, vertex-tinted (the reason colour, or a neutral
                                metal). ICON_FRAME 0.75: the icon fills the middle 96
                                texels, so the file is drawn at icon / 0.75 units
@@ -88,15 +98,33 @@ PANE_CAP = 0.80
 PANE_SEED = 11
 
 # --- the light on the glass ---------------------------------------------------
-HAIR_AT, HAIR_W = 14.0, 4.0
-HAIR_LIT, HAIR_SHADE = 0.55, 0.12
-CHAMFER_W = 16.0            # the cut edge, in texels (4 units)
-CHAMFER_RISE = 8.0          # its height, in texels: the face leans into the key light
+# The pane is a thick slab of cut glass seen from the front, struck by the key
+# light from the upper left: all it shows is at its edges, the field where the
+# words stand is clean.
+CHAMFER_W = 6.0             # the polished cut edge, in texels (1.5 units)
+CHAMFER_RISE = 3.0          # its height, in texels: the face leans into the key light
 BEAD_PEAK = 0.65            # the light pooled on the top-left corner, at its brightest
 BEAD_SIGMA = 15.0           # how squarely an edge must face the light to catch it, in degrees
 BEAD_REACH = 20.0           # how far round the cut edge the pool runs either way, in texels
 BEAD_DEPTH = 6.0            # how far in from the edge it reaches, in texels
 EDGE_LIT = 0.20             # the lit edges' own light
+EDGE_FILL = 0.18            # the cut along the bottom and right, caught by the fill light
+# The refraction line: the slab's thickness seen through its face, a unit wide
+# a little inside the cut, with a dark gap between. Light along the top and
+# left, where the key light enters the glass; in its place along the bottom
+# and right, where the thickness is in shade, a darker line.
+REFRACT_AT = 11.0           # its centre, in texels in from the edge (2.75 units)
+REFRACT_W = 4.0             # its width, in texels (a unit)
+REFRACT_CORNER = 3.0        # its own corner, in texels
+REFRACT_LIT = 0.70          # its light at the top left, falling away round the slab
+REFRACT_SHADE = 0.45        # the dark line at its darkest, at the bottom right
+# The key light carried into the slab: a very faint glow just under the top
+# line, gone long before the words (and the middle cell, at texel 32).
+GLOW_PEAK = 0.16
+GLOW_TO = 24.0              # gone this many texels in (6 units)
+# The cool green-blue the edge of real glass carries, in the refraction line
+# only, held this near white so it sits beside any reason colour.
+EDGE_TINT = (0.80, 1.00, 0.94)
 LIGHT_SEED = 13
 
 # --- the icon's bezel -----------------------------------------------------------
@@ -163,14 +191,13 @@ def make_light(out):
     d = rrect(x, y, 0, 0, w, h, PANE_RADIUS)
     shape = cover(d, PANE_AA)
     inward = np.clip(-d, 0, None)
-    lit = lit_from_upper_left(x, y, w, h)
+    # +1 where the slab faces the key light, -1 where it is turned from it,
+    # by a texel's direction from the centre: smooth all the way round.
+    facing_key = 2 * lit_from_upper_left(x, y, w, h) - 1
 
-    # (a) The hairline, a unit wide, lit from the upper left.
-    hair = cover(np.abs(inward - HAIR_AT) - HAIR_W / 2.0) * (HAIR_SHADE + (HAIR_LIT - HAIR_SHADE) * lit)
-
-    # (b) The cut edge: a chamfer leaning into the key light, its specular from
+    # (a) The cut edge: a chamfer leaning into the key light, its specular from
     # the glass material, the light pooled on the corner that faces the key
-    # light, and the lit edges' own light falling to nothing below and right.
+    # light, and the lit edges' own light falling to the fill's below and right.
     height = chamfer(inward, CHAMFER_W, CHAMFER_RISE)
     _, spec = shade("glass", height, shape, LIGHT_SEED, TPU)
     face = 1 - sstep(CHAMFER_W - 1, CHAMFER_W + 1, inward)
@@ -182,6 +209,7 @@ def make_light(out):
     norm = np.maximum(np.hypot(gx, gy), 1e-6)
     facing = (gx * L2[0] + gy * L2[1]) / norm
     toward = np.clip(facing / 0.5, 0, 1)
+    away = np.clip(-facing / 0.5, 0, 1)
     angle = np.degrees(np.arccos(np.clip(facing, -1, 1)))
     # How squarely the face meets the light, 1 where its normal is the
     # light's direction: the top edge catches more than the left.
@@ -206,17 +234,41 @@ def make_light(out):
     # so the cone the corner's face makes draws no spoke of light inward.
     near = 1 - sstep(BEAD_DEPTH / 2, BEAD_DEPTH, inward)
     bead = (np.maximum(caught, pool) * near + np.minimum(caught, caught_top) * (1 - near)) * toward
-    edge = (EDGE_LIT * toward + (BEAD_PEAK - EDGE_LIT) * bead) * face
-    # Across the face: strong over its outer three quarters, softening into
-    # the hairline at its foot.
-    across = sstep(0, 2.5, inward) * (1 - sstep(CHAMFER_W - 5, CHAMFER_W, inward))
+    edge = (EDGE_LIT * toward + EDGE_FILL * away + (BEAD_PEAK - EDGE_LIT) * bead) * face
+    # Across the face: strong over its outer half, gone at its foot, so a dark
+    # gap lies between the cut and the refraction line.
+    across = sstep(0, 1.5, inward) * (1 - sstep(CHAMFER_W - 3, CHAMFER_W, inward))
     cut = np.maximum(edge, spec * BEAD_PEAK * near) * across
+
+    # (b) The refraction line, on a rounded rectangle of its own, light where
+    # the slab faces the key light and dark where it is turned from it, each
+    # falling to nothing where the slab turns side-on (the bottom left and
+    # the top right).
+    band = cover(np.abs(rrect(x, y, REFRACT_AT, REFRACT_AT, w - REFRACT_AT, h - REFRACT_AT,
+                              REFRACT_CORNER)) - REFRACT_W / 2.0)
+    line = REFRACT_LIT * sstep(0, 1, facing_key) * band
+    dark = REFRACT_SHADE * sstep(0, 1, -facing_key) * band
+
+    # (c) The glow under the top line, in the top row of cells only (never
+    # stretched down the sides), fading in clear of the side lines.
+    foot = REFRACT_AT + REFRACT_W / 2.0
+    below = y - foot
+    glow = GLOW_PEAK * sstep(0, 2, below) * (1 - sstep(2, GLOW_TO - foot, below))
+    glow = glow * sstep(foot, foot + 12, np.minimum(x, w - x)) * (0.5 + 0.5 * sstep(0, 1, facing_key))
+
+    # The light is white but for the line's cool tint; the dark line is
+    # black, so drawn BLEND it darkens the pane under it, and in the landing's
+    # additive copy of this file it adds nothing.
+    light = np.maximum(np.maximum(cut, line), glow)
+    weight = cut + line + glow + 1e-6
+    tint = (cut + glow)[..., None] + line[..., None] * np.asarray(EDGE_TINT, np.float32)
+    rgb = tint / weight[..., None] * (light / (light + dark + 1e-6))[..., None]
 
     # Nothing in the middle cell: the words lie there, and the 9-slice
     # stretches it about 7:1, so any mark in it reads as a smear.
-    alpha = np.maximum(hair, cut) * shape
+    alpha = np.maximum(light, dark) * shape
     path = os.path.join(out, "GlassLight.tga")
-    save(path, 1.0, np.clip(alpha, 0, 1))
+    save(path, rgb, np.clip(alpha, 0, 1))
     return path, describe(path, 1.0, light=True)
 
 

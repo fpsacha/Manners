@@ -22,7 +22,12 @@
 --     twice and the bytes that ship, the pane and the rim stay under their
 --     caps, the bezels are grey, the light leaves the middle cell (under the
 --     words) empty, and the top-left corner pools the light along the cut
---     instead of showing a speck.
+--     instead of showing a speck;
+--   * the pane reads as a thick slab of cut glass struck from the upper left:
+--     the polished cut, a dark gap, a cool refraction line along the top and
+--     left (falling away round the slab), a darker line in its place along
+--     the bottom and right, and a faint glow under the top line that is gone
+--     long before the words.
 
 local dir, H = ...
 local fail, load = H.fail, H.load
@@ -622,11 +627,14 @@ local function freshLight(scenario, tag)
 	return tga, out
 end
 
--- The alpha at (x, row) of the picture as it is seen, row 0 at the top: a TGA
+-- The texel (x, row) of the picture as it is seen, row 0 at the top: a TGA
 -- keeps its rows bottom-up unless its descriptor says otherwise.
-local function seenAlpha(tga, x, row)
+local function seenTexel(tga, x, row)
 	local topDown = math.floor(tga.data:byte(18) / 32) % 2 == 1
-	local _, _, _, a = texel(tga, x, topDown and row or (tga.h - 1 - row))
+	return texel(tga, x, topDown and row or (tga.h - 1 - row))
+end
+local function seenAlpha(tga, x, row)
+	local _, _, _, a = seenTexel(tga, x, row)
 	return a
 end
 
@@ -658,9 +666,10 @@ end)
 -- three units along the top and two and a half down the left, tapered back
 -- to the edge's own light inside the corner cell (texels 0 to 31), so the
 -- stretched strips never carry it, and no spoke of light running in from the
--- corner past the cut (inward six texels and more). The straight edges keep
--- their own light: the top at most 0.30, the left at most 0.25, the top no
--- dimmer than the left (it faces the light more squarely).
+-- corner past the cut's crest (4.5 to 7.5 texels in: the cut is the outer 6,
+-- and the refraction line starts at 9). The straight edges keep their own
+-- light over the cut (texels 0 to 6): the top at most 0.30, the left at most
+-- 0.25, the top no dimmer than the left (it faces the light more squarely).
 withTree("panel-material: the light pools along the cut corner", ANNA, function(_, scenario)
 	local tga, out = freshLight(scenario, "pool")
 	if not tga then return end
@@ -675,8 +684,9 @@ withTree("panel-material: the light pools along the cut corner", ANNA, function(
 		for x = lo, hi do best = math.max(best, seenAlpha(tga, x, row)) end
 		return best
 	end
-	-- The straight edges' own light, clear of the hairline (12 texels in).
-	local top, left = downTop(64, 0, 9), acrossLeft(64, 0, 9)
+	-- The straight edges' own light over the cut, clear of the refraction
+	-- line (9 texels in and more).
+	local top, left = downTop(64, 0, 6), acrossLeft(64, 0, 6)
 	if top > 0.30 or left > 0.25 or top < left then
 		fail(scenario, ("the straight edges' light is %.2f along the top and %.2f down the left, not at most 0.30 and 0.25 with the top the brighter"):format(top, left))
 	end
@@ -702,24 +712,81 @@ withTree("panel-material: the light pools along the cut corner", ANNA, function(
 		end
 	end
 	for at = 26, 31 do
-		local t, l = downTop(at, 0, 9), acrossLeft(at, 0, 9)
+		local t, l = downTop(at, 0, 6), acrossLeft(at, 0, 6)
 		if math.abs(t - top) > 0.01 or math.abs(l - left) > 0.01 then
 			fail(scenario, ("the corner's light runs out of the corner cell: %.2f along the top and %.2f down the left at texel %d"):format(t, l, at))
 			break
 		end
 	end
-	-- Deeper than the cut, nothing brighter than the top edge's own light.
+	-- Past the cut's crest, before the refraction line, nothing brighter than
+	-- the top edge's own light.
 	for row = 0, 15 do
 		for x = 0, 15 do
 			local qx, qy = math.abs(x + 0.5 - 64) - 56, math.abs(row + 0.5 - 64) - 56
 			local inward = 8 - math.sqrt(math.max(qx, 0) ^ 2 + math.max(qy, 0) ^ 2) - math.min(math.max(qx, qy), 0)
 			local a = seenAlpha(tga, x, row)
-			if inward >= 6 and inward <= 11 and a > top + 0.03 then
+			if inward >= 4.5 and inward <= 7.5 and a > top + 0.03 then
 				fail(scenario, ("a spoke of light runs in from the corner: %.2f at (%d, %d), %.1f texels in"):format(a, x, row, inward))
 				removeAll(out)
 				return
 			end
 		end
+	end
+	removeAll(out)
+end)
+
+-- ------------------------------------------------------------------ 14
+-- The pane reads as a thick slab of cut glass seen from the front, struck from
+-- the upper left, all of it at the edges (the file's 32-texel margins are
+-- drawn 8 units square, four texels to the unit). Along the top, from the
+-- edge in: the polished cut (texels 0 to 6), a dark gap (6 and 7), then the
+-- refraction line a unit wide (9 to 12), light and cool -- green the
+-- strongest channel, held near white so it sits by any reason colour -- and
+-- brighter along the top than down the left, which faces the key light less
+-- squarely, and brighter at the top's left end than its right, falling away
+-- round the slab. Along the bottom and right the same line is dark (black
+-- texels drawn BLEND, so the pane darkens there and the landing's additive
+-- copy adds nothing). Under the top line, a faint glow (at most a quarter),
+-- gone 6.5 units in (texel 26), long before the words.
+withTree("panel-material: the slab's edge reads as thick glass", ANNA, function(_, scenario)
+	local tga, out = freshLight(scenario, "slab")
+	if not tga then return end
+	local function most(x0, x1, r0, r1)
+		local best, br, bg, bb = 0, 0, 0, 0
+		for row = r0, r1 do
+			for x = x0, x1 do
+				local r, g, b, a = seenTexel(tga, x, row)
+				if a > best then best, br, bg, bb = a, r, g, b end
+			end
+		end
+		return best, br, bg, bb
+	end
+	local gap = most(64, 64, 6, 7)
+	local top, tr, tg, tb = most(64, 64, 9, 12)
+	local left = most(9, 12, 64, 64)
+	local topEnd = most(95, 95, 9, 12)
+	if gap > 0.02 or top < 0.50 then
+		fail(scenario, ("along the top the gap is %.2f and the refraction line %.2f, not at most 0.02 and at least 0.50"):format(gap, top))
+	end
+	if left < 0.25 or left >= top or topEnd >= top then
+		fail(scenario, ("the refraction line is %.2f at the top's left end, %.2f at its right end and %.2f down the left: not lit from the upper left"):format(top, topEnd, left))
+	end
+	if not (tg >= tr + 0.10 and tg >= tb and math.min(tr, tg, tb) >= 0.70) then
+		fail(scenario, ("the refraction line's colour is (%.2f, %.2f, %.2f), not a cool tint near white"):format(tr, tg, tb))
+	end
+	local bottom, dr, dg, db = most(64, 64, 115, 118)
+	local right, rr, rg, rb = most(115, 118, 64, 64)
+	if bottom < 0.25 or right < 0.15 or math.max(dr, dg, db, rr, rg, rb) > 0.05 then
+		fail(scenario, ("along the bottom and right the line is (%.2f, %.2f, %.2f) at %.2f and (%.2f, %.2f, %.2f) at %.2f, not a darker line")
+			:format(dr, dg, db, bottom, rr, rg, rb, right))
+	end
+	local glow = most(64, 64, 14, 19)
+	local tail = most(32, 95, 26, 31)
+	if glow < 0.06 or glow > 0.25 then
+		fail(scenario, ("the glow under the top line is %.2f, not a faint 0.06 to 0.25"):format(glow))
+	end
+	if tail > 0 then
+		fail(scenario, ("the glow under the top line reaches 6.5 units in, toward the words: alpha %.3f"):format(tail))
 	end
 	removeAll(out)
 end)
