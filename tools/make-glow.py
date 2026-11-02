@@ -6,9 +6,10 @@
     python tools/make-glow.py --reach          # measure the four lit files in --out
     python tools/make-glow.py --light-bias 0   # draw with the light's bias overridden
 
-Writes Textures/Glow.tga, GlowRound.tga, Ring.tga, RingSq.tga, Gloss.tga,
-Bevel.tga, Rule.tga, Glint.tga, Shock.tga and Crack.tga, which ship in the
-zip. Deterministic: numpy and Pillow, no clock and one seeded
+Writes Textures/Glow.tga, GlowRound.tga, Ring.tga, RingSq.tga, Rule.tga,
+Glint.tga, Shock.tga and Crack.tga, which ship in the zip (the glass's own
+material -- its pane, its light, the icon's bezel and the framed look's rim
+-- is tools/make_panel_textures.py's). Deterministic: numpy and Pillow, no clock and one seeded
 generator (the crack's), so run it twice with the same PARAMS and the files
 are byte for byte the same. Every number that shapes the art is in PARAMS,
 and nowhere else.
@@ -42,12 +43,6 @@ are attained on the lit half). The shapes below the rings are not relit.
                         spreads from the icon when a buff lands. Its middle is
                         RING_AT_THIN of the half-width.
   RingSq       128x128  The same for a square icon, a rounded square.
-  Gloss        128x64   The glass's reflection: brightest at the top left, a
-                        curved lower edge, falling away to the right.
-  Bevel         32x32   9-slice, margin 6, drawn with corners 3 units square (two
-                        texels to the unit): the glass's inner bevel, a lit line a
-                        unit wide along the top and down the sides and shade along
-                        the bottom, each soft towards the inside.
   Rule         128x8    A rule of light: a Gaussian core across rows 3 and 4
                         (sigma rule_core texels, nothing at rows 0 and 7) and
                         ends that fade over rule_end_fade texels, so a rule
@@ -94,12 +89,6 @@ PARAMS = {
     # by (the lit half is untouched), and where the light comes from, in
     # texture axes (y grows downward, so this is the upper left).
     "light_bias": 0.25, "light_dir": (-0.42, -0.70),
-    # The glass's reflection: where its lower edge falls at the left, how far
-    # it curves, its strength at the top left and at the far right.
-    "gloss_edge": 0.60, "gloss_curve": 0.26, "gloss_top": 1.0, "gloss_right": 0.20,
-    # The bevel: the lit line's and the shade's strength, and how far in each
-    # softens, in texels of the 32-texel file.
-    "bevel_lit": 0.27, "bevel_side": 0.12, "bevel_shade": 0.42, "bevel_soft": 4.0,
     # The rule: its core's sigma and the end fade, both in texels.
     "rule_core": 1.1, "rule_end_fade": 6,
     # The glint: the leading edge's place and width (fractions of the file's
@@ -283,76 +272,6 @@ def ring_sq(out):
     save(out, "RingSq", 1.0, relight(a, N, N))
 
 
-# ------------------------------------------------------------------- the light
-
-def rule_profile(yy, centre, sigma):
-    """The rule's cross-section: a Gaussian about `centre`, in texel rows."""
-    return np.exp(-((yy - centre) / sigma) ** 2)
-
-
-def rule(out):
-    w, h = 128, 8
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
-    # Brightest between rows 3 and 4, nothing left at rows 0 and 7.
-    a = rule_profile(yy, (h - 1) / 2, PARAMS["rule_core"])
-    # Soft ends, so a rule stretched along a panel's edge never stops dead.
-    fade = PARAMS["rule_end_fade"]
-    cx = xx + 0.5
-    a *= smooth(cx / fade) * smooth((w - cx) / fade)
-    save(out, "Rule", 1.0, a)
-
-
-def glint(out):
-    w, h = 64, 16
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
-    u = (xx + 0.5) / w
-    at, ew = PARAMS["glint_edge_at"], PARAMS["glint_edge_w"]
-    # The leading edge: thin and full.
-    edge = np.exp(-((u - at) / ew) ** 2)
-    # The tail: from nothing at glint_tail_end up to glint_tail at the edge,
-    # and let go softly just past it, so nothing runs ahead of the edge.
-    start = PARAMS["glint_tail_end"]
-    rising = PARAMS["glint_tail"] * np.clip((u - start) / (at - start), 0.0, 1.0)
-    behind = PARAMS["glint_tail"] * (1.0 - smooth((u - at) / (1.0 - at)))
-    tail = np.where(u <= at, rising, behind)
-    a = np.clip(np.maximum(edge, tail), 0.0, 1.0)
-    # The Rule's profile, scaled to the sixteen rows.
-    a *= rule_profile(yy, (h - 1) / 2, PARAMS["rule_core"] * h / 8)
-    a *= smooth((w - xx - 0.5) / 2.0)
-    save(out, "Glint", 1.0, a)
-
-
-def gloss(out):
-    w, h = 128, 64
-    xx, yy = grid(w, h)
-    u, v = xx / w, yy / h
-    # The lower edge: a shallow arc, lower at the left than at the right.
-    edge = PARAMS["gloss_edge"] - PARAMS["gloss_curve"] * u ** 1.6
-    inside = 1.0 - smooth((v - edge) / 0.05 + 0.5)
-    fall = (1.0 - smooth(v / np.maximum(edge, 0.05))) * 0.55 + 0.45
-    across = PARAMS["gloss_right"] + (PARAMS["gloss_top"] - PARAMS["gloss_right"]) * (1 - smooth(u * 1.1)) ** 1.2
-    a = inside * fall * across
-    a *= smooth(xx / 4.0) * smooth((w - xx) / 4.0)
-    save(out, "Gloss", 1.0, a)
-
-
-def bevel(out):
-    n = 32
-    xx, yy = grid(n, n)
-    soft = PARAMS["bevel_soft"]
-    # Distance in from each edge, in texels.
-    dl, dr, dt, db = xx, n - xx, yy, n - yy
-    lit_top = PARAMS["bevel_lit"] * (cover(dt - 2.0) + 0.35 * np.exp(-np.maximum(dt - 2.0, 0) / soft))
-    lit_side = PARAMS["bevel_side"] * (cover(np.minimum(dl, dr) - 2.0)
-                                       + 0.30 * np.exp(-np.maximum(np.minimum(dl, dr) - 2.0, 0) / soft))
-    shade = PARAMS["bevel_shade"] * (cover(db - 2.0) + 0.45 * np.exp(-np.maximum(db - 2.0, 0) / soft))
-    lit = np.clip(lit_top + lit_side, 0, 1)
-    # Lit where the light falls, dark below: the larger wins each texel.
-    rgb = np.where(shade > lit, 0.0, 1.0)
-    a = np.maximum(lit, shade)
-    save(out, "Bevel", rgb, a)
-
-
 # ------------------------------------------------------------------ the shapes
 
 def rule_profile(yy, centre, sigma):
@@ -428,7 +347,7 @@ def crack(out):
     save(out, "Crack", 1.0, a)
 
 
-MAKERS = (glow, glow_round, ring, ring_sq, gloss, bevel, rule, glint, shock, crack)
+MAKERS = (glow, glow_round, ring, ring_sq, rule, glint, shock, crack)
 
 
 def make(out):

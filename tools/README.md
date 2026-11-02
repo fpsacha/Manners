@@ -801,10 +801,10 @@ so.
 
 ## make-glow.py
 
-`Textures/Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`, `Gloss.tga`,
-`Bevel.tga`, `Rule.tga`, `Glint.tga`, `Shock.tga` and `Crack.tga`, the light
-the prompt's own looks (glass, framed, minimal) are drawn with. Like
-`Manners64.tga` they ship in the zip. Needs
+`Textures/Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`, `Rule.tga`,
+`Glint.tga`, `Shock.tga` and `Crack.tga`, the light the prompt's own looks
+(glass, framed, minimal) are drawn with. Like `Manners64.tga` they ship in the
+zip. Needs
 numpy and Pillow; deterministic, with every number that shapes the art in
 `PARAMS` at the top of the script. `--out DIR` writes the same files to DIR
 (what `tests/scenarios/hunt35-effects.lua` compares with what ships) and
@@ -818,13 +818,43 @@ sides of it. `GlowRound.tga` is a ring for the rounded icon; `ring_at` in the
 script and `GLOW_RING_AT` in `Prompt/Prompt.lua` say where its rim is and have
 to agree. `Ring.tga` and `RingSq.tga` are the thin rings that spread from the
 icon when a buff lands (`ring_thin_at` and `RING_AT` agree likewise),
-`Gloss.tga` the glass's reflection and `Bevel.tga` its inner bevel (a 9-slice),
 `Rule.tga` the rule of light the entrance draws along each edge, `Glint.tga`
 what runs along it when a favour arrives, `Shock.tga` the wave that bursts from
 the icon's edge across the panel when a buff lands, and `Crack.tga` the ground
 breaking under the words when one is refused.
-All are white, or black and white, with the shape in the alpha, and the prompt
-colours them.
+All are white, with the shape in the alpha, and the prompt colours them. The
+glass's own material -- its pane, its light, the bezel round the icon and the
+framed look's rim -- is `make_panel_textures.py`'s.
+
+## make_panel_textures.py
+
+`Textures/GlassPane.tga`, `GlassLight.tga`, `IconBezel.tga`,
+`IconBezelRound.tga` and `TooltipRim.tga`: what the prompt's own looks are made
+of, drawn through `materials.py` at four texels to the unit. `--out DIR` writes
+the same files to DIR (what `tests/scenarios/panel-material.lua` compares with
+what ships, twice, byte for byte) and `--sheet FILE` draws a contact sheet. One
+line per file, `materials.describe`'s (`GlassPane.tga 128x128 cap=0.80 max=0.79
+mean=0.74 minfeature=-`).
+
+`GlassPane.tga` is the glass pane itself: a nine-slice (corners the outer
+quarter of the file, 32 texels, drawn 8 units square) whose alpha is a rounded
+rectangle with a cut edge and whose colour is a grey -- 0.78 in the middle,
+0.60 at the edge -- that `Prompt/Panel.lua` tints with the panel colour, one
+gradient per piece. `GlassLight.tga` is the light on it, white, the same
+nine-slice, drawn BLEND at 0.9 of the panel's opacity: a hairline a unit wide
+lit from the upper left, the cut edge's specular with a bead at the top-left
+corner, and two caustic bands kept inside the middle cell so the stretched edge
+strips never carry them. `IconBezel.tga` and `IconBezelRound.tga` are the
+chamfered metal bezel round the spell icon, grey, tinted by vertex colour with
+the reason colour or a neutral metal: the icon fills the middle 96 of 128
+texels, so the file is drawn at `iconSize / BEZEL_FRAME` (`ICON_FRAME` here,
+`BEZEL_FRAME` in `Prompt/Prompt.lua`, which must agree). `TooltipRim.tga` is
+the framed look's rail, grey, a nine-slice of 64 with 16-texel corners drawn 4
+units square: a half-round lit from the upper left, a seam along its inner
+side, nothing inside. The pane's grey over its middle cell is repeated in
+`Prompt/Text.lua` (`PANE_MID`), which judges the text's ink against the pane
+as drawn under the words; `tests/scenarios/panel-material.lua` holds every
+figure to its twin.
 
 ## materials.py
 

@@ -36,7 +36,7 @@ local RECORDED = {
 }
 local TEXEL = 1 / 64 + 0.0005
 local LIT = { "Glow", "GlowRound", "Ring", "RingSq" }
-local ALL = { "Glow", "GlowRound", "Ring", "RingSq", "Gloss", "Bevel", "Rule", "Glint", "Shock", "Crack" }
+local ALL = { "Glow", "GlowRound", "Ring", "RingSq", "Rule", "Glint", "Shock", "Crack" }
 
 local function slurp(path)
 	local f = io.open(path, "rb")

@@ -26,9 +26,9 @@ local function RepaintSoon()
 end
 
 -- Which of the two things that can carry the reason colour is actually on
--- screen (ring, stripe). ApplyStyle refuses the stripe on the framed look, and
--- the ring is a texture *behind* the icon, so hiding the icon or rounding it
--- off (which swaps that texture for a mask) takes the ring away.
+-- screen (the bezel round the icon, the stripe). The bezel is drawn round the
+-- icon, square or round, so hiding the icon takes it away; the stripe is on
+-- every look drawn by Prompt/Panel.lua (the framed look's rim leaves it room).
 local function AccentCarriers()
 	local p = P()
 	-- A look from Looks/ says where it carries the colour; nothing said is
@@ -40,8 +40,8 @@ local function AccentCarriers()
 		return ring == true, stripe == true
 	end
 	local mode = p.accentMode or "icon"
-	local ring = (mode == "icon" or mode == "both") and p.showIcon and not p.roundIcon
-	local stripe = (mode == "stripe" or mode == "both") and p.style ~= "framed"
+	local ring = (mode == "icon" or mode == "both") and p.showIcon
+	local stripe = (mode == "stripe" or mode == "both")
 	return ring == true, stripe == true
 end
 

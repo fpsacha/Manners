@@ -50,9 +50,14 @@ local function ratio(a, b)
 end
 
 -- An opaque panel's two ends: the gradient runs from 0.62 of the colour (0.72
--- in blue) at the bottom to the colour itself at the top.
+-- in blue) at the bottom to the colour itself at the top. On the glass, the
+-- default look, the colour is drawn through a pane of grey glass, 0.78 over
+-- the middle cell the words sit on (tools/make_panel_textures.py PANE_MID;
+-- tests/scenarios/panel-material.lua holds the shipped file to it).
+local PANE = 0.78
 local function ends(c)
-	return lum(c[1] * 0.62, c[2] * 0.62, c[3] * 0.72), lum(c[1], c[2], c[3])
+	return lum(c[1] * 0.62 * PANE, c[2] * 0.62 * PANE, c[3] * 0.72 * PANE),
+		lum(c[1] * PANE, c[2] * PANE, c[3] * PANE)
 end
 local function worst(c, lo, hi)
 	local l = lum(c[1], c[2], c[3])

@@ -7171,11 +7171,11 @@ if ns then
 			db.prompt.style = "framed"
 			ns.Prompt:ApplyStyle()
 			local drawn = 0
-			for _, edge in ipairs(regions.edges or {}) do
-				if edge:IsShown() then drawn = drawn + 1 end
+			for _, piece in ipairs(regions.tooltipRim or {}) do
+				if piece:IsShown() then drawn = drawn + 1 end
 			end
-			if drawn < 4 then
-				fail(scenario, ("the look offered as %q draws %d of its four edges")
+			if drawn < 9 then
+				fail(scenario, ("the look offered as %q draws %d of its nine rim pieces")
 					:format(tostring(look.values.framed), drawn))
 			end
 
@@ -7183,9 +7183,9 @@ if ns then
 			-- not be on the other one.
 			db.prompt.style = "glass"
 			ns.Prompt:ApplyStyle()
-			for _, edge in ipairs(regions.edges or {}) do
-				if edge:IsShown() then
-					fail(scenario, "the border is drawn on the glass look as well, so the two"
+			for _, piece in ipairs(regions.tooltipRim or {}) do
+				if piece:IsShown() then
+					fail(scenario, "the rim is drawn on the glass look as well, so the two"
 						.. " entries in the dropdown are the same panel")
 					break
 				end
@@ -7769,8 +7769,8 @@ if ns then
 	-- And the note that has to appear when the colour has nowhere left to go.
 	local note = findOption(ns.optionsTable, "accentDead")
 	local regions = ns.Prompt:Regions()
-	if not (note and note.hidden and regions.iconBack) then
-		fail(scenario, "SKIPPED -- no dead-accent note, or no ring to watch")
+	if not (note and note.hidden and regions.bezel) then
+		fail(scenario, "SKIPPED -- no dead-accent note, or no bezel to watch")
 	else
 		local function state(mode, style, showIcon, round)
 			p.accentMode, p.style, p.showIcon, p.roundIcon = mode, style, showIcon, round
@@ -7778,53 +7778,51 @@ if ns then
 			return not note.hidden()
 		end
 
-		-- The ordinary default: a square icon with a ring round it.
+		-- The ordinary default: a square icon with a bezel round it.
 		if state("icon", "glass", true, false) then
-			fail(scenario, "a warning about a reason colour that has a ring to sit on")
+			fail(scenario, "a warning about a reason colour that has a bezel to sit on")
 		end
-		if not regions.iconBack:IsShown() then
-			fail(scenario, "SKIPPED -- the ring is not drawn even in the plain case, so the"
+		if not regions.bezel:IsShown() then
+			fail(scenario, "SKIPPED -- the bezel is not drawn even in the plain case, so the"
 				.. " checks below cannot tell it being taken away from it never being there")
 		end
 
-		-- Rounding the icon puts a mask where the ring was. This is the one
-		-- that had no symptom at all.
+		-- Rounding the icon keeps the bezel (it has a round twin), so the page
+		-- has nothing to warn about; a warning here is the page believing in
+		-- the ring the bezel replaced.
 		if state("icon", "glass", true, true) then
-			if regions.iconBack:IsShown() then
-				fail(scenario, "the page says the ring is gone while the ring is still drawn")
-			end
-		else
+			fail(scenario, "the page says the ring is gone while the bezel is still drawn round"
+				.. " the rounded icon")
+		elseif not regions.bezel:IsShown() then
 			fail(scenario, "a rounded icon leaves the reason colour with nowhere to go and"
 				.. " the page says nothing about it")
 		end
-		local said = note.name and note.name() or ""
-		if not tostring(said):lower():find("round", 1, true) then
-			fail(scenario, "the note does not name the setting that took the ring away: " .. said)
-		end
 
-		-- No icon at all, which takes the same ring by a different door.
+		-- No icon at all takes the bezel away, and the note says which setting
+		-- did it.
 		if not state("icon", "glass", false, false) then
-			fail(scenario, "the ring cannot be drawn with the icon switched off, and the page"
+			fail(scenario, "the bezel cannot be drawn with the icon switched off, and the page"
 				.. " does not say so")
 		end
+		local said = note.name and note.name() or ""
+		if not tostring(said):lower():find("icon", 1, true) then
+			fail(scenario, "the note does not name the setting that took the bezel away: " .. said)
+		end
 
-		-- The stripe, refused by the framed look inside ApplyStyle.
+		-- The stripe is drawn on every look Prompt/Panel.lua draws, the framed
+		-- look included (an inlay inside its rim).
 		if state("stripe", "glass", true, false) then
 			fail(scenario, "a warning about a stripe that is being drawn")
 		end
-		if not state("stripe", "framed", true, false) then
-			fail(scenario, "the framed look draws no stripe and the page does not say so")
+		if state("stripe", "framed", true, false) then
+			fail(scenario, "a warning about the stripe the framed look draws inside its rim")
 		end
 
-		-- Both carriers dead at once has to name both, or it sends somebody to
-		-- undo the wrong setting.
+		-- Both carriers up at once on the framed look with a rounded icon: the
+		-- bezel and the stripe are both drawn, so there is nothing to say.
 		if state("both", "framed", true, true) then
-			local why = tostring(note.name and note.name() or ""):lower()
-			if not (why:find("round", 1, true) and why:find("framed", 1, true)) then
-				fail(scenario, "two carriers were taken away and the note names one: " .. why)
-			end
-		else
-			fail(scenario, "both carriers are gone and the page says nothing")
+			fail(scenario, "both carriers are drawn on the framed look and the page warns: "
+				.. tostring(note.name and note.name() or ""))
 		end
 
 		-- And asking for no accent is not a fault to be warned about.
@@ -11690,13 +11688,14 @@ if ns then
 	local p = ns.db.profile.prompt
 	p.style = "framed"
 
-	-- How far the border sits from the panel it is drawn on, in the channel that
-	-- carries most of the apparent brightness. Zero is a frame nobody can see.
+	-- How far the rim's metal sits from the panel it is drawn on, in the channel
+	-- that carries most of the apparent brightness. Zero is a frame nobody can
+	-- see.
 	local function edgeGap(r, g, b)
 		p.bgColor = { r, g, b, 1 }
 		ns.Prompt:ApplyStyle()
-		local edges = ns.Prompt:Regions().edges
-		local c = edges and edges[1] and edges[1]._color
+		local rim = ns.Prompt:Regions().tooltipRim
+		local c = rim and rim[1] and rim[1]._color
 		if not c then return nil end
 		return math.abs(c[2] - g)
 	end
@@ -11705,7 +11704,7 @@ if ns then
 	local pale = edgeGap(0.95, 0.96, 0.98)
 	local white = edgeGap(1, 1, 1)
 	if not (dark and pale and white) then
-		fail(scenario, "SKIPPED -- the framed look painted no edge to measure")
+		fail(scenario, "SKIPPED -- the framed look painted no rim to measure")
 	else
 		if white < 0.20 then
 			fail(scenario, ("a white panel got a border %0.3f away from it: the framed look"

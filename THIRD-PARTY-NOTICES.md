@@ -52,8 +52,9 @@ by `tools/make-icon.py` and shipped under the addon's MIT licence. It is the
 icon in the addon list and on the minimap button. The rest of `Textures\` is
 this project's own too, drawn by its own scripts and shipped under the same
 licence: the prompt's light (`Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`,
-`Gloss.tga`, `Bevel.tga`, `Rule.tga`, `Glint.tga`, `Shock.tga`, `Crack.tga`,
-`tools/make-glow.py`)
+`Rule.tga`, `Glint.tga`, `Shock.tga`, `Crack.tga`, `tools/make-glow.py`), the
+built-in looks' material (`GlassPane.tga`, `GlassLight.tga`, `IconBezel.tga`,
+`IconBezelRound.tga`, `TooltipRim.tga`, `tools/make_panel_textures.py`)
 and the art of the Arcane, Luxe and Toast looks (`Textures\Arcane`, `Luxe` and
 `Toast`, `tools/make_arcane_textures.py`, `make_luxe_textures.py` and
 `make_toast_textures.py`).

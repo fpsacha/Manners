@@ -296,11 +296,12 @@ function Prompt:PaintOutcome()
 		R.resultFill:SetVertexColor(r, g, b, wash)
 		R.resultFill:Show()
 	end
-	-- The ring says it too, where the ring carries a colour at all. Put back by
-	-- the next PaintAccent, which every repaint of a person runs.
+	-- The bezel says it too, where it carries a colour at all: its metal goes
+	-- red. Put back by the next PaintAccent, which every repaint of a person
+	-- runs.
 	local mode = ns.db.profile.prompt.accentMode or "icon"
 	if S.outcomeKind == "failed" and (mode == "icon" or mode == "both") then
-		Gradient(R.iconBack, "VERTICAL", 0.62, 0.16, 0.14, 0.95, 1.0, 0.36, 0.30, 0.95)
+		R.bezel:SetVertexColor(0.80, 0.26, 0.22, 1)
 		S.accentPainted = nil
 	end
 	-- And the icon greys for the outcome: a state, not a motion, so Calm has it

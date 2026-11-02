@@ -429,11 +429,14 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 			for _, f in ipairs({ now.glow, now.burst, now.shine }) do
 				if f._shown == false then fail(scenario, "a glass frame of light stayed hidden after Luxe") break end
 			end
-			if style == "glass" and now.panel._shown == false then
-				fail(scenario, "the glass panel did not come back after Luxe")
+			if style == "glass" and (now.pane[5]._shown == false or now.glassLight[5]._shown == false) then
+				fail(scenario, "the glass pane did not come back after Luxe")
+			end
+			if style == "framed" and (now.panel._shown == false or now.tooltipRim[5]._shown == false) then
+				fail(scenario, "the framed panel did not come back after Luxe")
 			end
 			local hl = ns.Prompt:GetButton():GetHighlightTexture()
-			if hl and hl._color and not near(hl._color[4], 0.045) then
+			if hl and hl._color and not near(hl._color[4], 0.03) then
 				fail(scenario, "the button's highlight stayed off after Luxe")
 			end
 		else

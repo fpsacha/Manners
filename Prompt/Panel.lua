@@ -12,18 +12,29 @@ local Halo, PlaceHalo, PaintHalo, ReasonColor = lib.Halo, lib.PlaceHalo, lib.Pai
 local ink, fit, GREYS, EDGE_ROOM, TEXT_CONTRAST = lib.ink, lib.fit, lib.GREYS, lib.EDGE_ROOM, lib.TEXT_CONTRAST
 local Legible, TextWidth, SetLine, FitLine = lib.Legible, lib.TextWidth, lib.SetLine, lib.FitLine
 local StyleText, FullEffects, BUTTON_SCRIPTS = lib.StyleText, lib.FullEffects, lib.BUTTON_SCRIPTS
-local RING, RING_SQ, SHOCK, GLOSS, BEVEL = lib.RING, lib.RING_SQ, lib.SHOCK, lib.GLOSS, lib.BEVEL
+local RING, RING_SQ, SHOCK = lib.RING, lib.RING_SQ, lib.SHOCK
 local RULE, GLINT, CRACK = lib.RULE, lib.GLINT, lib.CRACK
+local GLASS_PANE, GLASS_LIGHT, BEZEL, BEZEL_ROUND = lib.GLASS_PANE, lib.GLASS_LIGHT, lib.BEZEL, lib.BEZEL_ROUND
+local TOOLTIP_RIM, BEZEL_FRAME = lib.TOOLTIP_RIM, lib.BEZEL_FRAME
 local Tint, WARM_WHITE = lib.Tint, lib.WARM_WHITE
 -- The client's own round mask: the shape of a round icon, its sweep and the
 -- icon's echo.
 local PORTRAIT_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
--- The glass's inner bevel is a nine-slice of Textures/Bevel.tga: 6 of its 32
--- texels at each corner, drawn 3 units square.
-local BEVEL_MARGIN, BEVEL_SIZE, BEVEL_CORNER = 6, 32, 3
--- The glass's reflection, at the panel's own opacity: Textures/Gloss.tga is
--- brightest at its top left, and this is that brightness.
-local GLOSS_ALPHA = 0.13
+-- The glass pane, its light and the framed look's rim are nine-slices whose
+-- corners are the outer quarter of the file (32 of GlassPane's and
+-- GlassLight's 128 texels, 16 of TooltipRim's 64: tools/make_panel_textures.py,
+-- which must agree), drawn at most this many units square: 8 for the pane's
+-- files, 4 for the rim's, four texels to the unit.
+local SLICE_CUT, PANE_CORNER, RIM_CORNER = 0.25, 8, 4
+-- The light on the glass, at this much of the panel's own opacity.
+local LIGHT_ALPHA = 0.9
+-- The bezel's metal when the reason colour is not on it, and the gold it
+-- lifts to under the cursor (mixed half and half with its own colour).
+local NEUTRAL_METAL = { 0.42, 0.42, 0.46 }
+local HOVER_GOLD = { 1.0, 0.82, 0.0 }
+-- The framed look's rim: pale metal on a dark panel, dark on a pale one, each
+-- mixed a fifth toward the panel colour so the rim belongs to its panel.
+local RIM_PALE, RIM_DARK, RIM_MIX = { 0.92, 0.92, 0.98 }, { 0.38, 0.38, 0.44 }, 0.20
 -- Where the icon sits and how far the text starts from it, in units.
 local ICON_X, ICON_GAP = 10, 10
 -- The two rules of light along the top and bottom edges: how far inside each
@@ -48,15 +59,15 @@ local EDGE_LINES = {
 	{ "TOPRIGHT", "BOTTOMRIGHT", width = 1 },
 }
 
--- Nine textures cut from one file, as the looks' own slices are.
-local function BevelSlice(parent, layer, sublevel)
+-- Nine textures cut from one file, as the looks' own slices are: the corners
+-- are the outer quarter of the file, the edges the middle strips.
+local function Slice(parent, layer, sublevel, file)
 	local s = {}
-	local u = BEVEL_MARGIN / BEVEL_SIZE
-	local cuts = { 0, u, 1 - u, 1 }
+	local cuts = { 0, SLICE_CUT, 1 - SLICE_CUT, 1 }
 	for row = 1, 3 do
 		for col = 1, 3 do
 			local t = parent:CreateTexture(nil, layer, nil, sublevel)
-			t:SetTexture(BEVEL)
+			t:SetTexture(file)
 			t:SetTexCoord(cuts[col], cuts[col + 1], cuts[row], cuts[row + 1])
 			s[#s + 1] = t
 		end
@@ -64,8 +75,9 @@ local function BevelSlice(parent, layer, sublevel)
 	return s
 end
 
-local function PlaceBevel(s, box)
-	local c = BEVEL_CORNER
+-- The nine pieces laid over `box` with corners `c` units square: the top row
+-- is pieces 1-3, the middle 4-6, the bottom 7-9.
+local function PlaceSlice(s, box, c)
 	for _, t in ipairs(s) do t:ClearAllPoints() end
 	s[1]:SetPoint("TOPLEFT", box, "TOPLEFT", 0, 0)
 	s[1]:SetSize(c, c)
@@ -158,41 +170,34 @@ function Prompt:Create()
 		R.shadows[i] = t
 	end
 
+	-- The framed look's flat panel. The glass has a pane of its own instead.
 	R.panel = Solid(R.art, "BACKGROUND", -6)
 	R.panel:SetAllPoints()
 
-	-- Light falling on the top half of the glass. The panel's own gradient
-	-- darkens towards the bottom; this is the other half of the same idea.
-	R.sheen = Solid(R.art, "BORDER", 0)
-	R.sheen:SetTexture(GLOSS)
-	R.sheen:SetPoint("TOPLEFT")
-	R.sheen:SetPoint("TOPRIGHT")
+	-- The glass: a pane of thick enchanted glass, nine pieces of GlassPane.tga
+	-- (a grey, brighter in the middle, with a cut edge) that the panel colour
+	-- tints, in the panel's own place.
+	R.pane = Slice(R.art, "BACKGROUND", -6, GLASS_PANE)
+	for _, t in ipairs(R.pane) do t:Hide() end
 
-	-- A hairline of light along the top and shade along the bottom: the
-	-- cheapest bevel.
-	R.hairTop = Solid(R.art, "BORDER", 1)
-	R.hairTop:SetHeight(1)
-	R.hairTop:SetPoint("TOPLEFT")
-	R.hairTop:SetPoint("TOPRIGHT")
+	-- The light on the glass, over the pane and the stripe: the cut edge's
+	-- specular, a hairline lit from the upper left, a caustic across the
+	-- middle. White, drawn BLEND at the panel's own opacity, never additive
+	-- at rest.
+	R.glassLight = Slice(R.art, "BORDER", 2, GLASS_LIGHT)
+	for _, t in ipairs(R.glassLight) do
+		t:SetBlendMode("BLEND")
+		t:Hide()
+	end
 
-	R.hairBottom = Solid(R.art, "BORDER", 1)
-	R.hairBottom:SetHeight(1)
-	R.hairBottom:SetPoint("BOTTOMLEFT")
-	R.hairBottom:SetPoint("BOTTOMRIGHT")
-	R.hairBottom:SetVertexColor(0, 0, 0, 0.55)
+	-- The framed look's rim: the classic tooltip's rail, a half-round of lit
+	-- metal all the way round, nine pieces of TooltipRim.tga. Above the stripe,
+	-- which runs inside it.
+	R.tooltipRim = Slice(R.art, "BORDER", 3, TOOLTIP_RIM)
+	for _, t in ipairs(R.tooltipRim) do t:Hide() end
 
-	-- The glass's inner bevel: a lit line along the top and down the sides, a
-	-- shade along the bottom, each softening inward. Over the hairlines and
-	-- under the framed look's border, which it never shares a look with.
-	R.bevel = BevelSlice(R.art, "BORDER", 2)
-	PlaceBevel(R.bevel, R.art)
-	for _, t in ipairs(R.bevel) do t:Hide() end
-
-	-- A line all the way round, for the framed look. Above the bevel and the
-	-- stripe, which it replaces. Anchored corner to corner, so it follows a
-	-- resize without ApplyStyle measuring it. Four rectangles of the white
-	-- texture, because a backdrop needs BackdropTemplate and a border needs art
-	-- or an atlas, either of which this client may lack.
+	-- The four lines the framed look wore before its rim. Kept hidden for one
+	-- release (ApplyStyle never shows them), then removed.
 	R.edges = {}
 	for _, at in ipairs(EDGE_LINES) do
 		local edge = Solid(R.art, "BORDER", 3)
@@ -250,14 +255,19 @@ function Prompt:Create()
 	R.rimFrame:SetAlpha(0)
 	R.rimHalo = Halo(R.rimFrame, "BACKGROUND", -2)
 
-	-- Doubles as the icon's border and the reason signal: a ring round the icon
-	-- reads better than a stripe at the panel's edge.
-	R.iconBack = Solid(R.art, "BACKGROUND", -2)
-	R.iconBack:SetVertexColor(0, 0, 0, 0.85)
-	-- A dark line between the icon and its ring, and a shade over the icon's
-	-- lower half, so the ring reads as a frame rather than a flat square.
-	R.iconEdge =Solid(R.art, "BACKGROUND", -1)
-	R.iconEdge:SetVertexColor(0, 0, 0, 0.9)
+	-- Doubles as the icon's frame and the reason signal: a chamfered metal
+	-- bezel round the icon (IconBezel.tga, grey, the reason colour or a
+	-- neutral metal on it), with a round twin for a rounded icon. Above the
+	-- pane's hairline and the framed look's rim, so neither draws across it,
+	-- and under the icon, which fills its hole.
+	R.bezel = R.art:CreateTexture(nil, "BORDER", nil, 4)
+	R.bezel:SetTexture(BEZEL)
+	-- The same bezel in gold, faded up under the cursor and let go: a texture
+	-- of its own so the bezel keeps its colour while the gold comes and goes.
+	R.bezelHover = R.art:CreateTexture(nil, "BORDER", nil, 5)
+	R.bezelHover:SetTexture(BEZEL)
+	R.bezelHover:SetBlendMode("BLEND")
+	R.bezelHover:SetAlpha(0)
 
 	R.icon = R.art:CreateTexture(nil, "ARTWORK")
 	R.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -386,9 +396,10 @@ function Prompt:Create()
 
 	-- The highlight layer only reacts to the mouse on a Button, so it belongs
 	-- to the button itself rather than to the art frame.
+	-- Faint: the bezel's gold says the cursor is there.
 	R.button:SetHighlightTexture(WHITE, "ADD")
 	local hl = R.button:GetHighlightTexture()
-	if hl then hl:SetVertexColor(1, 1, 1, 0.045) end
+	if hl then hl:SetVertexColor(1, 1, 1, 0.03) end
 
 	-- The list of who is next hangs outside the panel, so it gets a background
 	-- of its own -- the panel's at a lower alpha, divided by a hairline -- or
@@ -426,11 +437,12 @@ function Prompt:Create()
 
 	-- Everything only the three looks drawn here use, which a look from
 	-- Looks/ hides (ApplyLook) and ApplyStyle puts back.
-	local parts = { R.panel, R.sheen, R.hairTop, R.hairBottom, R.accentTop, R.accentBottom, R.sweepFrame,
-		R.glowFrame, R.rimFrame, R.iconBack, R.iconEdge, R.iconShade, R.burstFrame, R.shineFrame, R.countChip,
+	local parts = { R.panel, R.accentTop, R.accentBottom, R.sweepFrame,
+		R.glowFrame, R.rimFrame, R.bezel, R.bezelHover, R.iconShade, R.burstFrame, R.shineFrame, R.countChip,
 		R.resultFill, R.queueBack, R.queueHair, R.ruleTop, R.ruleBottom, R.glintTop, R.glintBottom,
 		R.edgeLightFrame, R.crackFrame, R.washFrame }
-	for _, list in ipairs({ R.shadows, R.edges, R.queueBars, R.queueIcons, R.bevel, R.fx.frames }) do
+	for _, list in ipairs({ R.shadows, R.edges, R.queueBars, R.queueIcons, R.pane, R.glassLight, R.tooltipRim,
+		R.fx.frames }) do
 		for _, part in ipairs(list) do parts[#parts + 1] = part end
 	end
 	self.builtinParts = parts
@@ -494,21 +506,22 @@ function Prompt:ApplyStyle()
 	R.edgeLightFrame:SetShown(style ~= "minimal")
 	R.fx:SetShown(true)
 	local hl = R.button:GetHighlightTexture()
-	if hl then hl:SetVertexColor(1, 1, 1, 0.045) end
+	if hl then hl:SetVertexColor(1, 1, 1, 0.03) end
 
 	local br, bg, bb, ba = unpackColor(p.bgColor, { 0.04, 0.04, 0.06, 0.88 })
+	local framed = style == "framed"
+	-- The nine-slices' corners: as drawn, or what half the height leaves.
+	local corner = math.min(PANE_CORNER, math.floor(p.height / 2) - 1)
+	local rimCorner = math.min(RIM_CORNER, math.floor(p.height / 2) - 1)
 
 	-- panel
 	if style == "minimal" then
 		R.panel:Hide()
 		for _, t in ipairs(R.shadows) do t:Hide() end
-		R.sheen:Hide()
-		R.hairTop:Hide()
-		R.hairBottom:Hide()
-		for _, t in ipairs(R.bevel) do t:Hide() end
+		for _, t in ipairs(R.pane) do t:Hide() end
+		for _, t in ipairs(R.glassLight) do t:Hide() end
 	else
-		R.panel:Show()
-		-- The framed look keeps its flat panel and its border, and gets only
+		-- The framed look keeps its flat panel and its rim, and gets only
 		-- the dark rim of the shadow under it: the rest is the glass's depth.
 		-- The steps are whole rectangles, so they darken the panel's own
 		-- footprint as well as the margin: drawn for the default opacity, they
@@ -519,48 +532,57 @@ function Prompt:ApplyStyle()
 			t:SetVertexColor(0, 0, 0, SHADOW_STEPS[i][2] * shadowK)
 		end
 		-- Vertical gradients run bottom-to-top, so the darker stop goes first.
+		R.panel:SetShown(framed)
 		Gradient(R.panel, "VERTICAL", br * 0.62, bg * 0.62, bb * 0.72, ba, br, bg, bb, ba)
-		-- Scaled by the panel's own opacity, so a panel the player has made
-		-- mostly see-through does not keep a bright band floating on its own.
-		R.sheen:SetShown(glass)
-		R.sheen:SetHeight(math.max(4, math.floor(p.height * 0.5)))
-		R.sheen:SetVertexColor(1, 1, 1, GLOSS_ALPHA * ba)
-		R.hairTop:SetShown(glass)
-		R.hairTop:SetVertexColor(1, 1, 1, 0.12)
-		R.hairBottom:SetShown(glass)
-		R.hairBottom:SetVertexColor(0, 0, 0, 0.55 * shadowK)
-		-- The bevel's light and shade are in the file; the panel's own opacity
-		-- scales them, as it does the sheen.
-		for _, t in ipairs(R.bevel) do
+		-- The glass: the same gradient written on the pane's nine pieces, each
+		-- given the two colours at the ends of its own rows (the top row is
+		-- the top `corner` units, the middle the rest, the bottom row the
+		-- bottom `corner`), so the nine read as one pane. Nine Gradient calls,
+		-- here at ApplyStyle only.
+		local function paneRows(f0, f1)
+			local k0, k1 = 0.62 + 0.38 * f0, 0.62 + 0.38 * f1
+			local kb0, kb1 = 0.72 + 0.28 * f0, 0.72 + 0.28 * f1
+			return br * k0, bg * k0, bb * kb0, ba, br * k1, bg * k1, bb * kb1, ba
+		end
+		local split = corner / p.height
+		PlaceSlice(R.pane, R.art, corner)
+		for i, t in ipairs(R.pane) do
 			t:SetShown(glass)
-			t:SetVertexColor(1, 1, 1, ba)
+			if i <= 3 then
+				Gradient(t, "VERTICAL", paneRows(1 - split, 1))
+			elseif i <= 6 then
+				Gradient(t, "VERTICAL", paneRows(split, 1 - split))
+			else
+				Gradient(t, "VERTICAL", paneRows(0, split))
+			end
+		end
+		-- The light on the glass, at the panel's own opacity, so a panel the
+		-- player has made mostly see-through does not keep a bright edge
+		-- floating on its own.
+		PlaceSlice(R.glassLight, R.art, corner)
+		for _, t in ipairs(R.glassLight) do
+			t:SetShown(glass)
+			t:SetVertexColor(1, 1, 1, LIGHT_ALPHA * ba)
 		end
 	end
 
-	-- The border, on the framed look only: pushed away from the panel colour --
-	-- lighter for a dark panel, darker for a light one -- so it shows on any.
-	local framed = style == "framed"
-	-- Rec. 601 weights: green carries most apparent brightness, so a flat
-	-- average calls a saturated blue panel mid-grey.
-	local lighten = (0.299 * br + 0.587 * bg + 0.114 * bb) <= 0.5
-	local function edgeOf(c, amount)
-		if lighten then return c + (1 - c) * amount end
-		return c * (1 - amount)
-	end
-	-- Blue goes a little further towards light and less towards dark, so the
-	-- edge lands slightly cooler than the panel either way: a dead-neutral
-	-- border on a tinted panel reads as grey dirt.
-	local er, eg, eb = edgeOf(br, 0.50), edgeOf(bg, 0.50),
-		edgeOf(bb, lighten and 0.55 or 0.45)
-	for _, edge in ipairs(R.edges) do
-		edge:SetShown(framed)
-		edge:SetVertexColor(er, eg, eb, math.min(1, ba + 0.10))
-	end
+	-- The rim, on the framed look only; its colour is set once the ink has
+	-- read the panel, below. The four lines it replaced stay hidden.
+	PlaceSlice(R.tooltipRim, R.art, rimCorner)
+	for _, t in ipairs(R.tooltipRim) do t:SetShown(framed) end
+	for _, edge in ipairs(R.edges) do edge:Hide() end
 
 	local mode = p.accentMode or "icon"
-	-- Not on the framed look: the stripe would run a pixel inside the left edge
-	-- and read as a drawing mistake. The ring still carries the colour.
-	local showAccent = not framed and (mode == "stripe" or mode == "both")
+	-- On every built-in look: on the framed look it is an inlay inside the
+	-- rim, three units in (the two-unit rail and a unit of panel).
+	local showAccent = (mode == "stripe" or mode == "both")
+	local inlay = framed and 3 or 0
+	R.accentTop:ClearAllPoints()
+	R.accentTop:SetPoint("TOPLEFT", inlay, 0)
+	R.accentBottom:ClearAllPoints()
+	R.accentBottom:SetPoint("BOTTOMLEFT", inlay, 0)
+	R.sweepFrame:ClearAllPoints()
+	R.sweepFrame:SetPoint("TOPLEFT", inlay, 0)
 	R.accentTop:SetShown(showAccent)
 	R.accentBottom:SetShown(showAccent)
 	R.accentTop:SetHeight(p.height / 2)
@@ -572,7 +594,8 @@ function Prompt:ApplyStyle()
 	-- icon
 	local textX = 10
 	R.icon:ClearAllPoints()
-	R.iconBack:ClearAllPoints()
+	R.bezel:ClearAllPoints()
+	R.bezelHover:ClearAllPoints()
 	R.glowFrame:ClearAllPoints()
 	R.rimFrame:ClearAllPoints()
 	if p.showIcon then
@@ -580,16 +603,21 @@ function Prompt:ApplyStyle()
 		R.icon:SetPoint("LEFT", ICON_X, 0)
 		R.icon:Show()
 
-		-- The coloured ring, and a pixel of dark between it and the art.
+		-- Where the halos start: the ring the bezel replaced was two units
+		-- with the reason colour on it, one without, and a unit of dark, so
+		-- the light keeps the room it had and breathes on the bezel's edge.
 		local ring = (p.accentMode == "icon" or p.accentMode == "both") and 2 or 1
 		local outer = ring + 1
-		R.iconBack:SetPoint("TOPLEFT", R.icon, "TOPLEFT", -outer, outer)
-		R.iconBack:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT", outer, -outer)
-		R.iconBack:Show()
-		R.iconEdge:ClearAllPoints()
-		R.iconEdge:SetPoint("TOPLEFT", R.icon, "TOPLEFT", -1, 1)
-		R.iconEdge:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT", 1, -1)
-		R.iconEdge:Show()
+		-- The bezel, centred on the icon, which fills its hole: iconSize /
+		-- BEZEL_FRAME across, a sixth of the icon beyond it each side (5 units
+		-- at 30). Never taller than the panel: when that cap bites, the hole
+		-- shrinks under the icon, which draws over it.
+		local bezelSize = math.min(p.iconSize / BEZEL_FRAME, p.height - 1)
+		for _, t in ipairs({ R.bezel, R.bezelHover }) do
+			t:SetPoint("CENTER", R.icon, "CENTER", 0, 0)
+			t:SetSize(bezelSize, bezelSize)
+			t:Show()
+		end
 		-- Darkest at the bottom edge and gone by the middle: the icon reads as
 		-- set into the panel rather than printed on it.
 		R.iconShade:ClearAllPoints()
@@ -621,10 +649,8 @@ function Prompt:ApplyStyle()
 				R.iconMask:ClearAllPoints()
 				R.iconMask:SetAllPoints(R.icon)
 				R.iconMask:Show()
-				R.iconBack:Hide()
-				-- Square pieces under and over a round icon would poke out
-				-- at its corners.
-				R.iconEdge:Hide()
+				-- A square shade over a round icon would poke out at its
+				-- corners.
 				R.iconShade:Hide()
 				-- The mask art doubles as the swipe texture, as the client's
 				-- own round buttons do.
@@ -637,6 +663,9 @@ function Prompt:ApplyStyle()
 			if R.iconMask then R.iconMask:Hide() end
 			if R.cooldown then Try(R.cooldown, "SetSwipeTexture", WHITE) end
 		end
+		-- The bezel in the icon's shape: the round twin round a round icon.
+		R.bezel:SetTexture(round and BEZEL_ROUND or BEZEL)
+		R.bezelHover:SetTexture(round and BEZEL_ROUND or BEZEL)
 
 		-- The halo starts where the ring stops and ends at the panel's edge
 		-- (past it, light read as bars stuck to the prompt), reaching further
@@ -678,8 +707,8 @@ function Prompt:ApplyStyle()
 		textX = ICON_X + p.iconSize + ICON_GAP
 	else
 		R.icon:Hide()
-		R.iconBack:Hide()
-		R.iconEdge:Hide()
+		R.bezel:Hide()
+		R.bezelHover:Hide()
 		R.iconShade:Hide()
 		if R.iconMask then R.iconMask:Hide() end
 	end
@@ -762,9 +791,20 @@ function Prompt:ApplyStyle()
 	-- Fonts, colours, shadows and the lines' anchors, from the panel colour.
 	-- The count's font is the size the chip was just sized from.
 	StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize)
-	-- The grey just written over the reason line's tint, and the ring and the
+	-- The grey just written over the reason line's tint, and the bezel and the
 	-- stripe may have changed shape: the next PaintAccent paints in full.
 	S.accentPainted = nil
+
+	-- The framed look's rim, now the ink has read the panel: pale metal on a
+	-- dark panel, dark metal on a pale one (StyleText's ink.light says which),
+	-- mixed a fifth toward the panel colour and a little more opaque than it,
+	-- so a white panel keeps a frame.
+	local metal = RIM_DARK
+	if ink.light then metal = RIM_PALE end
+	for _, t in ipairs(R.tooltipRim) do
+		t:SetVertexColor(metal[1] + (br - metal[1]) * RIM_MIX, metal[2] + (bg - metal[2]) * RIM_MIX,
+			metal[3] + (bb - metal[3]) * RIM_MIX, math.min(1, ba + 0.10))
+	end
 
 	-- Rows get one anchor and an explicit width: TOPLEFT and RIGHT together
 	-- fight over the vertical centre. Which way the list hangs is settled here.
@@ -850,11 +890,13 @@ function Prompt:ApplyLook(p, look)
 	if not look.kit then look:Build(self:LookKit()) end
 	-- The built-in looks' animations stopped, not only hidden: a pulse left
 	-- looping on a hidden frame still loops, Calm or not.
-	for _, f in ipairs({ R.glowFrame, R.rimFrame, R.sweepFrame, R.shineFrame, R.burstFrame }) do
+	for _, f in ipairs({ R.glowFrame, R.rimFrame, R.sweepFrame, R.shineFrame, R.burstFrame, R.bezelHover }) do
 		if f.pulse then f.pulse:Stop() end
 		if f.anim then f.anim:Stop() end
 		if f.arrive then f.arrive:Stop() end
 		if f.reject then f.reject:Stop() end
+		if f.enter then f.enter:Stop() end
+		if f.leave then f.leave:Stop() end
 	end
 	R.fx:Stop()
 	-- The entrance's rules and the glint that runs them, and the words'
@@ -871,6 +913,9 @@ function Prompt:ApplyLook(p, look)
 	-- And the icon in colour: a refusal's grey is the three looks' own, and a
 	-- look from Looks/ greys the icon itself when it wants to.
 	self:UngreyIcon()
+	-- The gold under the cursor let go at once: a texture of the looks drawn
+	-- here, parked at nothing while a look of its own is up.
+	R.bezelHover:SetAlpha(0)
 	for _, part in ipairs(self.builtinParts) do part:Hide() end
 	if R.iconMask then R.iconMask:Hide() end
 	local hl = R.button:GetHighlightTexture()
@@ -933,14 +978,13 @@ function Prompt:PaintAccent(reason)
 	R.sweep:SetVertexColor(r, g, b, 1)
 	PaintHalo(R.glowHalo, r, g, b, 1)
 
-	if mode == "icon" or mode == "both" then
-		-- A little brighter at the top of the ring, lit from above, so it reads
-		-- as a rim.
-		Gradient(R.iconBack, "VERTICAL", r * 0.78, g * 0.78, b * 0.78, 0.95,
-			math.min(1, r * 1.12), math.min(1, g * 1.12), math.min(1, b * 1.12), 0.95)
-	else
-		R.iconBack:SetVertexColor(0, 0, 0, 0.85)
-	end
+	-- The bezel: the reason colour on its metal where the marker asks for it,
+	-- a neutral metal otherwise (the light and the shade are in the file), and
+	-- the gold it lifts to under the cursor, mixed half and half with that.
+	local mr, mg, mb = NEUTRAL_METAL[1], NEUTRAL_METAL[2], NEUTRAL_METAL[3]
+	if mode == "icon" or mode == "both" then mr, mg, mb = r, g, b end
+	R.bezel:SetVertexColor(mr, mg, mb, 1)
+	R.bezelHover:SetVertexColor((mr + HOVER_GOLD[1]) / 2, (mg + HOVER_GOLD[2]) / 2, (mb + HOVER_GOLD[3]) / 2, 1)
 
 	-- The reason line, warmed a little towards the same colour so the two agree
 	-- at a glance -- but not with accents off, nor on a light panel where the
@@ -964,12 +1008,19 @@ function Prompt:Regions()
 		-- smaller than its digits throws nothing.
 		chip = R.countChip,
 		fill = R.resultFill,
-		-- The framed look's four edges.
+		-- The four lines the framed look wore before its rim: kept, never
+		-- shown, gone next release.
 		edges = R.edges,
-		-- The two carriers of the reason colour, each switched off from
-		-- elsewhere (the stripe by the framed look, the ring by hiding or
-		-- rounding the icon).
-		iconBack = R.iconBack,
+		-- The glass's pane and the light on it, the framed look's rim: nine
+		-- pieces each.
+		pane = R.pane,
+		glassLight = R.glassLight,
+		tooltipRim = R.tooltipRim,
+		-- The two carriers of the reason colour: the bezel round the icon
+		-- (switched off by hiding the icon), the stripe. And the bezel's gold
+		-- twin, faded up under the cursor.
+		bezel = R.bezel,
+		bezelHover = R.bezelHover,
 		accentTop = R.accentTop,
 		-- What "When someone buffs you" animates: whether one played is the
 		-- only evidence the setting does anything.
@@ -987,7 +1038,7 @@ function Prompt:Regions()
 		-- The band's own texture, whose vertex colour carries its strength.
 		shineBand = R.shineBand,
 		-- The warm white rim that breathes with the glow, the rings and the
-		-- icon's echo, the settle, Calm's entrance and the glass's bevel.
+		-- icon's echo, the settle and Calm's entrance.
 		rim = R.rimFrame,
 		rimStrips = R.rimHalo and R.rimHalo.strips,
 		fx = R.fx,
@@ -1006,14 +1057,11 @@ function Prompt:Regions()
 		edgeLight = R.edgeLightFrame,
 		crack = R.crackFrame,
 		wash = R.washFrame,
-		bevel = R.bevel,
 		shake = R.textLayer and R.textLayer.shake,
 		intro = R.art and R.art.intro,
 		outro = R.art and R.art.outro,
 		comeback = R.art and R.art.comeback,
 		shadows = R.shadows,
-		sheen = R.sheen,
-		iconEdge = R.iconEdge,
 		iconShade = R.iconShade,
 		icon = R.icon,
 		queueBack = R.queueBack,
@@ -1028,8 +1076,6 @@ function Prompt:Regions()
 		-- The rest of what only the three looks here draw, and the look from
 		-- Looks/ in use (nil for those three), whose own regions are its `own`.
 		panel = R.panel,
-		hairTop = R.hairTop,
-		hairBottom = R.hairBottom,
 		accentBottom = R.accentBottom,
 		builtin = Prompt.builtinParts,
 		look = S.activeLook,

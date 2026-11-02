@@ -19,7 +19,7 @@ _m("Prompt/Panel.lua",
    expect="hunt39-looks: glass has no dark box under a see-through panel")
 
 _m("Prompt/Panel.lua",
-   "\t\tR.hairBottom:SetVertexColor(0, 0, 0, 0.55 * shadowK)\n",
-   "\t\tR.hairBottom:SetVertexColor(0, 0, 0, 0.55)\n",
-   "the bevel's dark line keeps its strength under a see-through panel",
+   "\t\t\treturn br * k0, bg * k0, bb * kb0, ba, br * k1, bg * k1, bb * kb1, ba\n",
+   "\t\t\treturn br * k0, bg * k0, bb * kb0, 1, br * k1, bg * k1, bb * kb1, 1\n",
+   "the pane keeps its opacity under a see-through panel",
    expect="hunt39-looks: glass has no dark box under a see-through panel")
