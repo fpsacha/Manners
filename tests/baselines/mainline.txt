@@ -6,6 +6,7 @@
 Arcane on Calm leaves nothing looping: the owed breath kept going with nobody owed on top
 Arcane shows the key on a keycap, and the name wins: no key bound and the lines still keep its room: -35
 Arcane's drain follows the time left to return a favour: halfway through the favour the clock is 166.0 of 166.0
+Battle Shout: lasts 1h -- topped up at 5m left, 10m in a raid or dungeon, T s outside your group.
 Luxe on Calm leaves nothing looping: the owed pulse kept going with nobody owed on top
 SCENARIO HARNESS ERROR: scenarios.lua:N: attempt to index a nil value
 Toast draws the spell icon clean: SKIPPED -- the favour clock was not burning
@@ -15,6 +16,7 @@ Toast's favour clock burns down with the debt: half the time gone and the clock 
 Toast's favour clock burns down with the debt: the favour clock went in a fight
 Toast's favour clock burns down with the debt: the favour clock went on Calm
 Toast's pulse breathes three times and holds: the owed glow stayed with nobody owed
+When a top-up is due (top-ups are off)
 a buff given to somebody who asked is filed as asked: SKIPPED -- Anna is not on the prompt as somebody who asked
 a buff that lands serves the request: SKIPPED -- Anna was not offered after asking
 a class only hears requests for its own buffs: "buff pls" did not offer Fortitude: nothing
@@ -184,7 +186,7 @@ core: a late refusal keeps the newer favour's debt: SKIPPED -- Petra is not owed
 core: a long Cyrillic name and surname is a person: a 49-byte name and surname was not a name: \208\144\208\187\208\181\208\186\209\129\208\176\208\189\208\180\209\128\208\184\208\189\208\176
 core: a long Cyrillic name and surname is a person: a 98-byte name was let through
 core: a long Cyrillic name and surname is a person: a name that could break out of the macro was let through
-core: one name put on a long list costs one compare per favour: one name put on the list took 2606 compares
+core: one name put on a long list costs one compare per favour: one name put on the list took 2303 compares
 core: the favour line does not promise a prompt that is kept away (mounted): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt once you get off your mount
 core: the favour line does not promise a prompt that is kept away (neither): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
 core: the favour line does not promise a prompt that is kept away (snoozed): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- the prompt is snoozed until 12:00:00, so returning it is offered only if the snooze ends before the favour runs out
@@ -213,6 +215,10 @@ data-audit: the group buff settings say what one cast counts (Forever): the grou
 data-audit: ub asks a warlock for Unending Breath: "can i get ub" in CHAT_MSG_WHISPER did not put Anna on the prompt for Unending Breath
 data-audit: ub asks a warlock for Unending Breath: "ub pls" in CHAT_MSG_PARTY did not put Anna on the prompt for Unending Breath
 data-audit: ub asks a warlock for Unending Breath: "ub?" in CHAT_MSG_SAY did not put Anna on the prompt for Unending Breath
+entrance-light: Calm drops the light sweep: on Full the stripe's sweep did not slide for a favour
+entrance-light: a favour's glint runs the rules: glint 1 kept running after the favour left the panel
+entrance-light: a favour's glint runs the rules: glint 2 kept running after the favour left the panel
+entrance-light: a favour's glint runs the rules: the glints' flag stayed up after the favour left
 every outcome over an empty queue gets its own fade: SKIPPED -- the first fade did not run to nothing
 every path in the options window's layout is in the model: who, section 1 (who.cast) places who.offer_bronze, which no class's model has
 every path in the options window's layout is in the model: who, section 1 (who.cast) places who.offer_sourceofmagic, which no class's model has
@@ -315,6 +321,10 @@ hunt3 ledger: putting a giver on the never-offer list lets their favour go: SKIP
 hunt3-options: no favour to let go for somebody who owes nothing: SKIPPED -- Anna is not on the prompt as a passer-by: Anna
 hunt3-options: who's next does not deny favours it cannot offer: with Anna skipped, who's next does not say her favour is waiting: Anna -- Arcane Intellect (nearby)
 hunt3-options: who's next does not deny favours it cannot offer: with both skipped, who's next does not count the favours waiting: Anna -- Arcane Intellect (nearby)
+hunt33-order: a buff order you set travels in an exported settings string: SKIPPED -- could not move nil up
+hunt33-settings: the buff order travels in a settings string: SKIPPED -- the order could not be set: false
+hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target false) was left out: /target Anna Aim / /cast Arcane Intellect / /cleartarget
+hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target true) was left out: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
 ids-online: Reagent Economy offers the group spell with no reagent (druid): a druid with Reagent Economy and no Wild Thornroot was not offered Gift of the Wild, which the game lets them cast without it
 ids-online: Reagent Economy offers the group spell with no reagent (mage): a mage with Reagent Economy and no Arcane Powder was not offered Arcane Brilliance, which the game lets them cast without it
 ids-online: Reagent Economy offers the group spell with no reagent (paladin): a paladin with Reagent Economy and no Symbol of Kings was not offered Greater Blessing of Might, which the game lets them cast without it
@@ -374,6 +384,15 @@ linger: under the cursor the prompt still goes for your own state (with nothing 
 linger: under the cursor the prompt still moves on for a right-click skip with Bert waiting: SKIPPED -- Anna was not on the prompt once the cursor left her
 linger: under the cursor the prompt still moves on for a right-click skip with nobody else: SKIPPED -- Anna was not on the prompt once the cursor left her
 linger: under the cursor the prompt still moves on for somebody who buffed you: SKIPPED -- Anna was not on the prompt once the cursor left her
+look-forge: heat rises once for a new favour: a favour arriving again did not raise the heat
+look-forge: heat rises once for a new favour: the heat rose on Calm
+look-forge: three breaths then still: the owed glow stayed with nobody owed
+look-leather: owed glows three times and rests, and stops with the favour: a new favour did not glow
+look-letter: Elowen Thistledown with a count and a key is not cut at the default size, enUS: the count does not say +2: +3
+look-letter: Friedrich Eichwald with a count and a key is not cut at the default size, deDE: the count does not say +2: +3
+look-letter: owed breathes three times and settles, and stops with the favour: a new favour did not breathe
+look-ribbon: Elowen Thistledown with a count and a key is not cut at the default size, enUS: the count does not say +2: +3
+look-ribbon: Friedrich Eichwald with a count and a key is not cut at the default size, deDE: the count does not say +2: +3
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: SKIPPED -- Spellbreak and Lesser Flame at level 50: offered nil
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: Spellbreak and Frost at level 50: offered nil
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: Spellbreak, Flame and Accuracy at level 50: offered nil; /manners debug says
@@ -464,6 +483,7 @@ own: Frost Armor is cast by name at low level and Ice Armor once known: a warloc
 own: Inner Fire down to a quarter of its charges is topped up: Inner Fire with 5 of its 20 charges left, top-ups on: offered nil
 own: Righteous Fury only as a tank under Automatic: a tank without Righteous Fury was offered nil
 own: Righteous Fury only as a tank under Automatic: threw: ownbuffs.lua:N: attempt to index local 'fury' (a nil value)
+own: Top up my own buffs this long before they end moves your armor's moment: ten minutes asked for, Demon Skin with T s left: offered nil
 own: a buff that runs out and is recast between two fight ticks is a favour (beside your other buffs): the buff that ran out and was recast under its own number before the tick was not taken for a favour:
 own: a buff that runs out and is recast between two fight ticks is a favour (your last buff): the buff that ran out and was recast under its own number before the tick was not taken for a favour:
 own: a charge shield on its last charges is topped up: Lightning Shield with 1 of its 3 charges and ten minutes left, top-ups on: offered nil
@@ -489,10 +509,10 @@ own: a warlock missing both is offered Demon Skin, never Unending Breath: Unendi
 own: a warlock missing both is offered Demon Skin, never Unending Breath: missing both, a warlock was offered nil rather than Demon Skin
 own: a wrong or unknown id never offers anything: SKIPPED -- the armor is not offered with its ids working
 own: another hunter's Trueshot Aura on you is not offered again: SKIPPED -- with no Trueshot Aura on you, offered nil
-own: debug and Diagnostics say what Myself is doing: /manners debug does not say the armor is up: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet /   intellect      Arcane Intellect       known=true readable=true /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 0
-own: debug and Diagnostics say what Myself is doing: /manners debug does not say which armor is due: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet /   intellect      Arcane Intellect       known=true readable=true /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 0
+own: debug and Diagnostics say what Myself is doing: /manners debug does not say the armor is up: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 1h -- topped up at 5m left, 10m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 0
+own: debug and Diagnostics say what Myself is doing: /manners debug does not say which armor is due: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 1h -- topped up at 5m left, 10m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 0
 own: debug and Diagnostics say what Myself is doing: Diagnostics does not say which armor is due:
-own: debug says your group buff comes first: /manners debug does not say your Intellect comes before the armor: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet /   intellect      Arcane Intellect       known=true readable=true /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 1
+own: debug says your group buff comes first: /manners debug does not say your Intellect comes before the armor: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 1h -- topped up at 5m left, 10m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 1
 own: debug says your group buff comes first: Diagnostics does not say your Intellect comes first:
 own: four aura events in a fight and a tick walk your buffs once: the favour from the fight was not filed and said 0 times:
 own: having any armor up offers nothing: SKIPPED -- not offered an armor to begin with
@@ -519,6 +539,7 @@ own: the one you had up last is remembered and offered next time: with the Mage 
 own: the options show only your class's families: Myself is missing its heading, the armor or Also in cities and inns
 own: the options show only your class's families: Who to buff is hidden from a hunter with his aspects learned
 own: the options show only your class's families: a priest's Inner Fire is not a checkbox on Who to buff
+own: your own armor running low is topped up before it drops, on Skip: Demon Skin with T s left, on Skip: offered nil
 passers-by only while resting: out in the world with the setting on, expected only the target: Tess
 presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are always offered one back. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
 prompt5: a press after your target changed hands it back (fused): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
@@ -530,7 +551,7 @@ prompt5: a pull inside the hold arms whoever the queue holds: SKIPPED -- the pan
 prompt5: a shout pressed after she walked out of earshot keeps the debt (fused): SKIPPED -- Anna was not on the prompt measured inside the shout's reach: Anna, ranged true
 prompt5: a shout pressed after she walked out of earshot keeps the debt (held): SKIPPED -- Anna was not on the prompt measured inside the shout's reach: Bert, ranged true
 proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet
-pvp: /manners debug and Diagnostics say who is held back: /manners debug does not say who is held back for PvP: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- answered for 6 of 6 last scan /   intellect      Arcane Intellect       known=true readable=true /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 6 /   |cffffffffFlagA|r: flagged for PvP -- buffing them would flag you
+pvp: /manners debug and Diagnostics say who is held back: /manners debug does not say who is held back for PvP: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- answered for 6 of 6 last scan /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 1h -- topped up at 5m left, 10m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 6 /   |cffffffffFlagA|r: flagged for PvP -- buffing them would flag you
 pvp: /manners debug and Diagnostics say who is held back: Diagnostics does not say who is held back for PvP
 pvp: /manners debug names only people a source would offer (Passers-by off): SKIPPED -- the flagged passer-by was not named with every source on
 pvp: /manners debug names only people a source would offer (out in the world with passers-by left for cities): SKIPPED -- the flagged passer-by was not named with every source on
@@ -610,6 +631,8 @@ sameclass: a lower-level mage still gets your better rank: a level 10 mage, too 
 sameclass: a mage who can cast it is skipped: SKIPPED -- the mage stranger is not offered even with the option off
 sameclass: a paladin who can give himself the rest is offered Kings: SKIPPED -- the level 60 paladin is offered nothing with the option off
 sameclass: another paladin's Wisdom on him is no reason to wait: a level 60 paladin wearing another paladin's Wisdom was offered false, not Kings
+self: Top up my own buffs this long before they end moves your Thorns, up to half its length: four minutes asked for, Thorns with T s left was not topped up
+self: Top up my own buffs this long before they end moves your Thorns, up to half its length: ten minutes asked for, Thorns with T s left was not topped up
 self: a /manners try press on yourself files nothing: SKIPPED -- the try macro did not go out on you: /target Mort / /cast Arcane Intellect
 self: a Greater Blessing never replaces your own other blessing: threw: self.lua:N: attempt to index a nil value
 self: a failed press on yourself says so: a cast that went out after an error left you only its two seconds of cooldown
@@ -622,6 +645,7 @@ self: you count towards your party's group cast: two of the party and you missin
 self: you count towards your party's group cast: you are offered apart from the group cast that covers you
 self: you count towards your raid group's and your class's group cast: threw: self.lua:N: attempt to index a nil value
 self: you count towards your raid group's and your class's group cast: two of your raid group and you missing it made no group cast: Mort, Raider2, Raider3
+self: your Thorns running low is topped up before it drops, on Skip: Thorns with a minute left, on Skip, was not topped up
 self: your own name on the never-offer list is honoured: offered your own buff with your name on the never-offer list
 selftest: the button, names, the line rule, repairs and errors: a Camelot surname reads PASS UnitName (surname): "Mort", second nil, read as a realm, full name "Mort"
 selftest: the main hand and the familiar are compared: Manners reading an imbue over an empty list reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: nil / PASS main hand enchants: GetWeaponEnchantInfo: false, false, nil, 0 / PASS main hand enchants: MAGE has no imbue reminder
@@ -782,6 +806,8 @@ the never-offer list asked between scans reads the list: SKIPPED -- the stranger
 the never-offer list edited behind the queue is honoured at once: SKIPPED -- the two strangers were not both offered to begin with
 the options page's never box takes the person off the prompt before a fight can freeze it: SKIPPED -- the panel named Anna to start with
 the panel catches the light when somebody already on it buffs you: SKIPPED -- Anna was not on the panel as a passer-by
+theme-picker: a class with no buff for others wears its own learned buff, else the question mark (an aspect): SKIPPED -- the gallery is not on the Look page
+theme-picker: the icon is the player's own buff, cropped as the prompt crops it: SKIPPED -- the priest has 1 castable buffs
 tracking: Find Herbs off is offered, on is not: with Find Herbs on the minimap list, tracking is not one of your own buffs
 two people with one name are told apart by GUID: SKIPPED -- the Anna beside you was not offered when she asked
 unknown friend answers are not friends: a friend on the friends list was not found by name when IsFriend is missing: nil

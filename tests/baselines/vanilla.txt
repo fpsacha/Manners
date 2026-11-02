@@ -4,6 +4,7 @@
 /manners never takes the person off the prompt before a fight can freeze it: SKIPPED -- the panel named Anna to start with
 1 changes to your auras this session, read in 1 walks
 2 changes to your auras this session, read in 2 walks
+Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group.
 Arcane on Calm leaves nothing looping: the owed breath kept going with nobody owed on top
 Arcane shows the key on a keycap, and the name wins: no key bound and the lines still keep its room: -35
 Arcane's drain follows the time left to return a favour: halfway through the favour the clock is 166.0 of 166.0
@@ -22,6 +23,7 @@ Toast's favour clock burns down with the debt: half the time gone and the clock 
 Toast's favour clock burns down with the debt: the favour clock went in a fight
 Toast's favour clock burns down with the debt: the favour clock went on Calm
 Toast's pulse breathes three times and holds: the owed glow stayed with nobody owed
+When a top-up is due (top-ups are off)
 a buff given to somebody who asked is filed as asked: SKIPPED -- Anna is not on the prompt as somebody who asked
 a buff that lands serves the request: SKIPPED -- Anna was not offered after asking
 a class only hears requests for its own buffs: "buff pls" did not offer Fortitude: nothing
@@ -240,7 +242,7 @@ core: a late refusal keeps the newer favour's debt: SKIPPED -- Petra is not owed
 core: a long Cyrillic name and surname is a person: a 49-byte name and surname was not a name: \208\144\208\187\208\181\208\186\209\129\208\176\208\189\208\180\209\128\208\184\208\189\208\176
 core: a long Cyrillic name and surname is a person: a 98-byte name was let through
 core: a long Cyrillic name and surname is a person: a name that could break out of the macro was let through
-core: one name put on a long list costs one compare per favour: one name put on the list took 2606 compares
+core: one name put on a long list costs one compare per favour: one name put on the list took 2303 compares
 core: the favour line does not promise a prompt that is kept away (mounted): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt once you get off your mount
 core: the favour line does not promise a prompt that is kept away (neither): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
 core: the favour line does not promise a prompt that is kept away (snoozed): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- the prompt is snoozed until 12:00:00, so returning it is offered only if the snooze ends before the favour runs out
@@ -272,6 +274,10 @@ debug names the client for a class with nothing to cast: never named the flavour
 debug names the client for a class with nothing to cast: never named the interface number: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
 debug says when favours are not being watched (both on): SKIPPED -- the control favour is not listed: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
 doubt does not outlive the scan that had it: a recast after a refused scan was taken for the buff already held
+entrance-light: Calm drops the light sweep: on Full the stripe's sweep did not slide for a favour
+entrance-light: a favour's glint runs the rules: glint 1 kept running after the favour left the panel
+entrance-light: a favour's glint runs the rules: glint 2 kept running after the favour left the panel
+entrance-light: a favour's glint runs the rules: the glints' flag stayed up after the favour left
 every outcome over an empty queue gets its own fade: SKIPPED -- the first fade did not run to nothing
 every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_familiar, which no class's model has
 every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_imbue, which no class's model has
@@ -325,6 +331,9 @@ hunt3 ledger: putting a giver on the never-offer list lets their favour go: SKIP
 hunt3-options: no favour to let go for somebody who owes nothing: SKIPPED -- Anna is not on the prompt as a passer-by: Anna
 hunt3-options: who's next does not deny favours it cannot offer: with Anna skipped, who's next does not say her favour is waiting: Anna -- Arcane Intellect (nearby)
 hunt3-options: who's next does not deny favours it cannot offer: with both skipped, who's next does not count the favours waiting: Anna -- Arcane Intellect (nearby)
+hunt34-order: the order of every class travels in a settings string: the export does not carry the orders as CLASS=key:key: MNR1:buff.order=PALADIN=kings:might:wisdom:salvation:light:sanctuary,PRIEST=spirit:fortitude:shadow:de8b28
+hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target false) was left out: /target Anna Aim / /cast Arcane Intellect / /cleartarget
+hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target true) was left out: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
 ids-online: Reagent Economy offers the group spell with no reagent (druid): a druid with Reagent Economy and no Wild Thornroot was not offered Gift of the Wild, which the game lets them cast without it
 ids-online: Reagent Economy offers the group spell with no reagent (mage): a mage with Reagent Economy and no Arcane Powder was not offered Arcane Brilliance, which the game lets them cast without it
 ids-online: Reagent Economy offers the group spell with no reagent (paladin): a paladin with Reagent Economy and no Symbol of Kings was not offered Greater Blessing of Might, which the game lets them cast without it
@@ -385,6 +394,15 @@ linger: under the cursor the prompt still goes for your own state (with nothing 
 linger: under the cursor the prompt still moves on for a right-click skip with Bert waiting: SKIPPED -- Anna was not on the prompt once the cursor left her
 linger: under the cursor the prompt still moves on for a right-click skip with nobody else: SKIPPED -- Anna was not on the prompt once the cursor left her
 linger: under the cursor the prompt still moves on for somebody who buffed you: SKIPPED -- Anna was not on the prompt once the cursor left her
+look-forge: heat rises once for a new favour: a favour arriving again did not raise the heat
+look-forge: heat rises once for a new favour: the heat rose on Calm
+look-forge: three breaths then still: the owed glow stayed with nobody owed
+look-leather: owed glows three times and rests, and stops with the favour: a new favour did not glow
+look-letter: Elowen Thistledown with a count and a key is not cut at the default size, enUS: the count does not say +2: +3
+look-letter: Friedrich Eichwald with a count and a key is not cut at the default size, deDE: the count does not say +2: +3
+look-letter: owed breathes three times and settles, and stops with the favour: a new favour did not breathe
+look-ribbon: Elowen Thistledown with a count and a key is not cut at the default size, enUS: the count does not say +2: +3
+look-ribbon: Friedrich Eichwald with a count and a key is not cut at the default size, deDE: the count does not say +2: +3
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: SKIPPED -- Spellbreak and Lesser Flame at level 50: offered nil
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: Spellbreak and Frost at level 50: offered nil
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: Spellbreak, Flame and Accuracy at level 50: offered nil; /manners debug says
@@ -481,7 +499,7 @@ prompt5: a pull inside the hold arms whoever the queue holds: SKIPPED -- the pan
 prompt5: a shout pressed after she walked out of earshot keeps the debt (fused): SKIPPED -- Anna was not on the prompt measured inside the shout's reach: Anna, ranged true
 prompt5: a shout pressed after she walked out of earshot keeps the debt (held): SKIPPED -- Anna was not on the prompt measured inside the shout's reach: Bert, ranged true
 proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet
-pvp: /manners debug and Diagnostics say who is held back: /manners debug does not say who is held back for PvP: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm /   combat log favours: armed=true, 0 seen, 0 filed /   buff data: |cffffffffvanilla|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- answered for 6 of 6 last scan /   intellect      Arcane Intellect       known=true readable=true /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 6 /   |cffffffffFlagA|r: flagged for PvP -- buffing them would flag you
+pvp: /manners debug and Diagnostics say who is held back: /manners debug does not say who is held back for PvP: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm /   combat log favours: armed=true, 0 seen, 0 filed /   buff data: |cffffffffvanilla|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- answered for 6 of 6 last scan /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 6 /   |cffffffffFlagA|r: flagged for PvP -- buffing them would flag you
 pvp: /manners debug and Diagnostics say who is held back: Diagnostics does not say who is held back for PvP
 pvp: /manners debug names only people a source would offer (Passers-by off): SKIPPED -- the flagged passer-by was not named with every source on
 pvp: /manners debug names only people a source would offer (out in the world with passers-by left for cities): SKIPPED -- the flagged passer-by was not named with every source on
