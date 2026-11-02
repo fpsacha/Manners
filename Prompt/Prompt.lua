@@ -282,16 +282,43 @@ local HALO_CUTS = {
 	{ 0.5, 1, 0.5, 1 },     -- bottom-right
 }
 
--- A halo round a box: the eight pieces of the square one, and the ring a
--- rounded icon wears instead. Additive, so it is light added to what is there.
+-- The four squares that carry the halo round the inside of a rounded corner
+-- (PlaceHalo's `fill`): each one texel of Glow.tga at its middle, taken from
+-- the side of the middle its corner piece starts from, so it is exactly as
+-- bright as that piece's inner corner and the two sides' inner ends it meets.
+local FILL_CUTS = {
+	{ 0.5 - 1 / 128, 0.5, 0.5 - 1 / 128, 0.5 }, -- top-left
+	{ 0.5, 0.5 + 1 / 128, 0.5 - 1 / 128, 0.5 }, -- top-right
+	{ 0.5 - 1 / 128, 0.5, 0.5, 0.5 + 1 / 128 }, -- bottom-left
+	{ 0.5, 0.5 + 1 / 128, 0.5, 0.5 + 1 / 128 }, -- bottom-right
+}
+-- Where each sits: its outer corner on the corner piece's inner one.
+local FILL_AT = {
+	{ "BOTTOMRIGHT", "TOPLEFT", -1, 1 },
+	{ "BOTTOMLEFT", "TOPRIGHT", 1, 1 },
+	{ "TOPRIGHT", "BOTTOMLEFT", -1, -1 },
+	{ "TOPLEFT", "BOTTOMRIGHT", 1, -1 },
+}
+
+-- A halo round a box: the eight pieces of the square one, the four squares
+-- that carry it round a rounded corner, and the ring a rounded icon wears
+-- instead. Additive, so it is light added to what is there.
 local function Halo(parent, layer, sublevel)
-	local halo = { strips = {} }
+	local halo = { strips = {}, fills = {} }
 	for i, cut in ipairs(HALO_CUTS) do
 		local t = parent:CreateTexture(nil, layer, nil, sublevel)
 		t:SetTexture(GLOW)
 		t:SetTexCoord(cut[1], cut[2], cut[3], cut[4])
 		t:SetBlendMode("ADD")
 		halo.strips[i] = t
+	end
+	for i, cut in ipairs(FILL_CUTS) do
+		local t = parent:CreateTexture(nil, layer, nil, sublevel)
+		t:SetTexture(GLOW)
+		t:SetTexCoord(cut[1], cut[2], cut[3], cut[4])
+		t:SetBlendMode("ADD")
+		t:Hide()
+		halo.fills[i] = t
 	end
 	halo.round = parent:CreateTexture(nil, layer, nil, sublevel)
 	halo.round:SetTexture(GLOW_ROUND)
@@ -303,12 +330,26 @@ end
 -- Placed round `box`, outside an inset of `gap`: `sx` out to the sides and `sy`
 -- above and below. With `round` (a round icon's size, passed because the box
 -- may not be laid out yet) the ring instead, its rim on the icon's edge.
-local function PlaceHalo(halo, box, sx, sy, gap, round)
+-- `fill` (units, at most `gap`): the halo's inner edge carried that far in at
+-- each corner, a square of its brightest light in the corner of the gap, for
+-- something round-cornered the light has to follow there (the bezel's lip).
+local function PlaceHalo(halo, box, sx, sy, gap, round, fill)
 	local strips = halo.strips
 	local top, bottom, left, right = strips[1], strips[2], strips[3], strips[4]
 	for _, t in ipairs(strips) do
 		t:ClearAllPoints()
 		t:SetShown(not round)
+	end
+	fill = (not round and fill and fill > 0 and sx > 0 and sy > 0) and math.min(fill, gap) or nil
+	local inset = fill and gap - fill
+	for i, t in ipairs(halo.fills) do
+		t:ClearAllPoints()
+		t:SetShown(fill and true or false)
+		if fill then
+			local at = FILL_AT[i]
+			t:SetPoint(at[1], box, at[2], at[3] * inset, at[4] * inset)
+			t:SetSize(fill, fill)
+		end
 	end
 	halo.round:ClearAllPoints()
 	halo.round:SetShown(round and true or false)
@@ -347,6 +388,7 @@ end
 -- per piece is all it takes.
 local function PaintHalo(halo, r, g, b, alpha)
 	for _, t in ipairs(halo.strips) do t:SetVertexColor(r, g, b, alpha) end
+	for _, t in ipairs(halo.fills) do t:SetVertexColor(r, g, b, alpha) end
 	halo.round:SetVertexColor(r, g, b, alpha)
 end
 
@@ -385,6 +427,15 @@ local TOOLTIP_RIM = "Interface\\AddOns\\Manners\\Textures\\TooltipRim"
 -- the bezel is drawn at iconSize / BEZEL_FRAME: ICON_FRAME in
 -- tools/make_panel_textures.py, which must agree.
 local BEZEL_FRAME = 0.75
+-- The bezel's dark lip, as fractions of the file's width from its middle:
+-- where its inner edge turns the corner, on the diagonal, and the middle of
+-- its band along a side. tools/make_panel_textures.py draws the hole 48
+-- texels from the middle of 128 with a one-texel corner, the seam and the rim
+-- (SEAM 3, RIM 8) outside it, then the lip (LIP 3): the lip's inner edge runs
+-- 12 texels round the hole's corner, and its band from 59 to 62 texels out
+-- along a side (which must agree; tests/scenarios/bezel-corner.lua reads them
+-- there). Panel.lua carries the halos round that corner.
+local BEZEL_LIP_CORNER, BEZEL_LIP_SIDE = (47 + 12 / math.sqrt(2)) / 128, 60.5 / 128
 
 -- A colour taken towards white (t 0..1), or towards black (negative t): the
 -- lighter and darker tints the light is drawn in, worked out from the reason
@@ -408,6 +459,7 @@ lib.RING, lib.RING_SQ, lib.RING_AT, lib.SHOCK = RING, RING_SQ, RING_AT, SHOCK
 lib.RULE, lib.GLINT, lib.CRACK = RULE, GLINT, CRACK
 lib.GLASS_PANE, lib.GLASS_LIGHT, lib.BEZEL, lib.BEZEL_ROUND = GLASS_PANE, GLASS_LIGHT, BEZEL, BEZEL_ROUND
 lib.TOOLTIP_RIM, lib.BEZEL_FRAME = TOOLTIP_RIM, BEZEL_FRAME
+lib.BEZEL_LIP_CORNER, lib.BEZEL_LIP_SIDE = BEZEL_LIP_CORNER, BEZEL_LIP_SIDE
 lib.Tint, lib.WARM_WHITE = Tint, WARM_WHITE
 lib.GLOW_RING_AT = GLOW_RING_AT
 -- How many frame levels above art the text sits: over every frame of light

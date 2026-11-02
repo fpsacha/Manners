@@ -513,10 +513,11 @@ function Forge:BuildAnimations(anim)
 	-- The bezel white-hot as a buff lands: 0.45 s.
 	self.hotAnim = anim(Flash(self.bezelHot, 0.7, 0.07, 0.38))
 	-- The sparks: each flies its own way (Apply sets how far) for a little
-	-- longer than the last, a beat apart; the last is out by 0.48 s. Each
-	-- head is 1.7 units and the six start 2 units apart, so they set off
-	-- almost touching: lit at 0.75, not 0.9, so the bunch they leave in is a
-	-- burst of sparks rather than one white bar.
+	-- longer than the last, 0.035 s apart; the last is out by 0.555 s, under
+	-- the landing's 0.7. Each head is 1.7 units and the six start 3 units
+	-- apart (Apply), so no two are born together or on top of each other:
+	-- six sparks leave the bezel one after another rather than one white blob
+	-- for the first tenth of a second. Lit at 0.75, not 0.9.
 	self.sparkAnims = {}
 	for i, t in ipairs(self.sparks) do
 		local g = t:CreateAnimationGroup()
@@ -525,10 +526,10 @@ function Forge:BuildAnimations(anim)
 		local move = g:CreateAnimation("Translation")
 		move:SetDuration(seconds)
 		move:SetOrder(1)
-		if move.SetStartDelay then move:SetStartDelay(0.02 * k) end
+		if move.SetStartDelay then move:SetStartDelay(0.035 * k) end
 		if move.SetSmoothing then move:SetSmoothing("OUT") end
 		g.move = move
-		Alpha(g, 0.75, 0, seconds, 1, 0.02 * k, "IN")
+		Alpha(g, 0.75, 0, seconds, 1, 0.035 * k, "IN")
 		Park(g, t, 0)
 		self.sparkAnims[i] = anim(g)
 	end
@@ -651,8 +652,13 @@ function Forge:Apply(p, above)
 	-- outline), additive, at the bezel's size, so the rim goes white-hot
 	-- inside the plate. The bezel's dark iron in ADD would barely show.
 	local hotOnRim = 0.88 * bloom / 2 < iconSize / 2 + 2
+	-- The bloom in the bezel's shape: a rounded square round the square
+	-- bezel, whose band takes in the corner bolts (a disc cut across them),
+	-- and a disc round the round one.
+	local glowFile = round and "BezelGlowRd" or "BezelGlow"
+	self.bezelWarm:SetTexture(ART .. glowFile)
 	At(self.bezelWarm, art, iconX + iconSize / 2, cy, bloom)
-	local hotFile = hotOnRim and (round and "BezelHotRd" or "BezelHot") or "BezelGlow"
+	local hotFile = hotOnRim and (round and "BezelHotRd" or "BezelHot") or glowFile
 	self.bezelHot:SetTexture(ART .. hotFile)
 	At(self.bezelHot, art, iconX + iconSize / 2, cy, hotOnRim and bz or bloom)
 	self.bezelWarm:SetVertexColor(kit.WARM_WHITE[1], kit.WARM_WHITE[2], kit.WARM_WHITE[3], 1)
@@ -693,9 +699,13 @@ function Forge:Apply(p, above)
 		end
 	end
 
-	-- The sparks: from the bezel's right edge along the bottom strap, each a
-	-- little further, none past the plate's end; and whether there is room
-	-- for them at all under the lowest line (computed, never a fixed height).
+	-- The sparks: from the bezel's right edge along the bottom strap, three
+	-- units apart, none past the plate's end; and whether there is room for
+	-- them at all under the lowest line (computed, never a fixed height). The
+	-- first thrown flies furthest and each after it a little shorter, so a
+	-- spark that leaves later never runs into one already in flight (when
+	-- each flew further than the last, the late ones caught the early ones up
+	-- and the six met in one bright knot 0.15 to 0.25 s in).
 	local block = fs + 2 + sub
 	self.block = block
 	local twoLine = p.showSub and H >= Forge.TwoLineHeight(fs)
@@ -704,9 +714,9 @@ function Forge:Apply(p, above)
 	local dys = { -1, 0, 1, 0, 1, -1 }
 	for i, f in ipairs(self.sparkFrames) do
 		local k = i - 1
-		local x = (showIcon and bezelRight or TEXT_X_BARE) - 2 + 2 * k
+		local x = (showIcon and bezelRight or TEXT_X_BARE) - 2 + 3 * k
 		At(f, art, x, H - (strapTop + 0.5), 3, 3)
-		local run = math.min(22 + 3 * k, W - 2 - x - 1.5)
+		local run = math.min(38 - 3 * k, W - 2 - x - 1.5)
 		if run < 4 then sparksOK = false end
 		self.sparkAnims[i].move:SetOffset(math.max(0, run), dys[i])
 		self.sparks[i]:SetVertexColor(1.00, 0.80, 0.45, 1)

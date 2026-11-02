@@ -7,8 +7,8 @@
 # The halo drawn in over the icon it frames -- the wash-out it replaced -- by
 # a gap with its sign turned round.
 mutate("Prompt/Panel.lua",
-       "\t\tPlaceHalo(R.glowHalo, R.glowFrame, sx, sy, outer, roundSize)\n",
-       "\t\tPlaceHalo(R.glowHalo, R.glowFrame, sx, sy, -sy, roundSize)\n",
+       "\t\tPlaceHalo(R.glowHalo, R.glowFrame, sx, sy, outer, roundSize, fill)\n",
+       "\t\tPlaceHalo(R.glowHalo, R.glowFrame, sx, sy, -sy, roundSize, fill)\n",
        "glow strip laid over the icon",
        expect="lies over the spell icon",
        script="runscenarios.py")

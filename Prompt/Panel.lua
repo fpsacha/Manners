@@ -700,19 +700,29 @@ function Prompt:ApplyStyle()
 		local sy = math.max(0, math.min(8, math.floor((p.height - p.iconSize) / 2) - outer))
 		local sx = math.max(2, math.min(8, 10 - outer))
 		local roundSize = round and p.iconSize or nil
+		-- The bezel's lip is round at its corners and the halos' inner edge
+		-- is square, so a lip the light lies on along the sides turns its
+		-- corner inside the gap, out of the light: a dark notch at each corner
+		-- of an owed bezel. Where the lip along the sides is in the light, the
+		-- light is carried in at each corner as far as the lip comes, and the
+		-- bezel reads as one lit frame (none where the lip is out of the
+		-- light all round, or round a round icon).
+		local lipCorner = bezelSize * lib.BEZEL_LIP_CORNER
+		local fill = half + outer < bezelSize * lib.BEZEL_LIP_SIDE
+			and math.max(0, half + outer - lipCorner) or 0
 		R.glowFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
 		R.glowFrame:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
-		PlaceHalo(R.glowHalo, R.glowFrame, sx, sy, outer, roundSize)
+		PlaceHalo(R.glowHalo, R.glowFrame, sx, sy, outer, roundSize, fill)
 		R.burstFrame:ClearAllPoints()
 		R.burstFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
 		R.burstFrame:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
 		local deep = self:FitBurst(limit, half, outer, round and p.iconSize / lib.GLOW_RING_AT / 2 or nil)
-		PlaceHalo(R.burstHalo, R.burstFrame, deep, deep, outer, roundSize)
+		PlaceHalo(R.burstHalo, R.burstFrame, deep, deep, outer, roundSize, fill)
 		-- The rim of warm white hugs the ring, a few units deep.
 		R.rimFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
 		R.rimFrame:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
 		local rim = math.max(0, math.min(3, limit - half - outer))
-		PlaceHalo(R.rimHalo, R.rimFrame, rim, rim, outer, roundSize)
+		PlaceHalo(R.rimHalo, R.rimFrame, rim, rim, outer, roundSize, fill)
 		PaintHalo(R.rimHalo, WARM_WHITE[1], WARM_WHITE[2], WARM_WHITE[3], 1)
 		-- The rings spread from just outside the ring, in the shape of the
 		-- icon, and the icon's echo wears the same shape.

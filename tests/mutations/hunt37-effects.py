@@ -59,8 +59,8 @@ mutate(EFFECTS,
 
 # The halo drawn four units deep, however little room there is.
 mutate(PANEL,
-       "\t\tPlaceHalo(R.burstHalo, R.burstFrame, deep, deep, outer, roundSize)\n",
-       "\t\tPlaceHalo(R.burstHalo, R.burstFrame, 4, 4, outer, roundSize)\n",
+       "\t\tPlaceHalo(R.burstHalo, R.burstFrame, deep, deep, outer, roundSize, fill)\n",
+       "\t\tPlaceHalo(R.burstHalo, R.burstFrame, 4, 4, outer, roundSize, fill)\n",
        "hunt37: the halo is drawn deeper than the room",
        expect=ROOM + "glass", script=S)
 

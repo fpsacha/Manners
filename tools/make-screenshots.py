@@ -749,6 +749,7 @@ def prompt_states(addon_dir, locale="", spell_name=""):
     """render_prompt.lua, loaded as render_prompt.load_states loads it, with the
     listing states added. Loaded here rather than through load_states because
     the states are compiled in the same Lua runtime, which that hides."""
+    rp.draw_from(addon_dir)  # its art from the tree drawn
     lua = rl.lupa.LuaRuntime(unpack_returned_tuples=True)
     lua.globals().print = lambda *a: None
     run = lua.eval("function(path, dir, addon, locale) "
@@ -768,6 +769,7 @@ def prompt_states(addon_dir, locale="", spell_name=""):
 
 
 def ledger_states(addon_dir):
+    rp.draw_from(addon_dir)  # its art from the tree drawn
     lua = rl.lupa.LuaRuntime(unpack_returned_tuples=True)
     lua.globals().print = lambda *a: None
     run = lua.eval("function(path, dir, addon, measure) "
@@ -783,6 +785,7 @@ def options_states(addon_dir, cls):
     class `cls`, with the listing's states added. Loaded here rather than
     through render_options.load because the states are compiled in the same
     Lua runtime, which that hides."""
+    rp.draw_from(addon_dir)  # its art from the tree drawn
     lua = ro.lua51.LuaRuntime(unpack_returned_tuples=True)
     lua.globals().print = lambda *a: None
     run = lua.eval("function(path, dir, addon, locale, class, measure, wrap) "

@@ -22,7 +22,7 @@ the slot, its core, the beads, the glyphs, the lights -- is white or grey art
 coloured by SetVertexColor, so one file serves every reason, both palettes, a
 custom marker colour and the outcomes.
 
-THE FILES (23), with the UI units they are drawn at:
+THE FILES (24), with the UI units they are drawn at:
 
   Forge_PlateL      32x128  the plate's left end, a three-slice at a design
                             height of 128 texels shown at the prompt's height:
@@ -51,11 +51,15 @@ THE FILES (23), with the UI units they are drawn at:
                             chamfered rim of 8 with a 2-unit bolt dome at each
                             corner, a dark lip of 3, and 2 of anti-aliasing.
   Forge_BezelRd    128x128  the same round.
-  Forge_BezelGlow  128x128  a white hollow bloom round the bezel (drawn at
-                            GLOW_SCALE of the bezel, held a unit inside the
-                            plate's top and bottom): the second tone of the
-                            owed breath in warm white (BLEND), and the white-hot
-                            flash of a landing (ADD, under 0.5 s).
+  Forge_BezelGlow  128x128  a white hollow bloom round the square bezel (drawn
+                            at GLOW_SCALE of the bezel, held a unit inside the
+                            plate's top and bottom), a rounded square on the
+                            bezel's sides with corners GLOW_CORNER 20 texels
+                            round, so its band takes in the corner bolts: the
+                            second tone of the owed breath in warm white
+                            (BLEND), and the white-hot flash of a landing (ADD,
+                            under 0.5 s).
+  Forge_BezelGlowRd 128x128 the same round, a disc, for the round bezel.
   Forge_BezelHot   128x128  the bezel's own outline in white, hottest by the
                             icon: the landing's flash on the iron itself (ADD,
                             at the bezel's size) where the capped bloom's band
@@ -330,6 +334,7 @@ def make_slot():
 # ------------------------------------------------------------------ the bezel
 
 BEZEL_ICON_R = 48.0    # the round bezel's hole, in texels from the middle
+GLOW_CORNER = 20.0     # the square bloom's corner radius, in the bloom file's texels
 
 
 def bezel_outline(x, y, round_):
@@ -380,18 +385,23 @@ def make_bezel(name, round_):
     emit(name, rgb, alpha, IRON_CAP)
 
 
-def make_bezel_glow():
+def make_bezel_glow(name, round_):
+    """The bloom round the bezel, in the bezel's shape: full over the rim's
+    outer half, gone by the icon's edge inside, a short fall outside, within
+    the file. Round, a disc on the round bezel's edge. Square, a rounded square
+    on the square bezel's sides with corners GLOW_CORNER round, so its band
+    runs over the corner bolts instead of cutting across them as a disc did,
+    and the fall still dies before the file's corner."""
     n = 128
     x, y = grid(n, n)
     c = n / 2.0
-    # Both bezels' outer edges lie within three texels of one circle (the
-    # square's corner is cut deep), so one round bloom hugs either: full over
-    # the rim's outer half, gone by the icon's edge inside, a short fall
-    # outside, within the file.
     outer = 62.0 / GLOW_SCALE
-    sd = disc(x, y, c, c, outer)
+    if round_:
+        sd = disc(x, y, c, c, outer)
+    else:
+        sd = rrect(x, y, c - outer, c - outer, c + outer, c + outer, GLOW_CORNER)
     alpha = np.where(sd < 0, sstep(-13.0, -4.0, sd), np.exp(-(sd / 4.0) ** 2))
-    emit("Forge_BezelGlow", white(alpha), alpha.astype(np.float32), 1.0)
+    emit(name, white(alpha), alpha.astype(np.float32), 1.0)
 
 
 def make_bezel_hot(name, round_):
@@ -582,7 +592,8 @@ def main():
     make_slot()
     make_bezel("Forge_Bezel", False)
     make_bezel("Forge_BezelRd", True)
-    make_bezel_glow()
+    make_bezel_glow("Forge_BezelGlow", False)
+    make_bezel_glow("Forge_BezelGlowRd", True)
     make_bezel_hot("Forge_BezelHot", False)
     make_bezel_hot("Forge_BezelHotRd", True)
     make_mask()

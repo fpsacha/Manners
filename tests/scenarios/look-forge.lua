@@ -15,6 +15,9 @@ local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 local MC = dofile(dir .. "/tests/materials_check.lua")
+-- The effects at a moment, as the renderer works them out (the sparks in
+-- flight).
+local FXG = dofile(dir .. "/tests/fxgeometry.lua")
 
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
 local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" },
@@ -36,8 +39,8 @@ local FLOURISH = 0.6
 -- Every file the generator writes (its docstring lists them), as the Lua
 -- names them without the Forge_ prefix.
 local FILES = { "PlateL", "PlateM", "PlateR", "StrapM", "StrapEnd", "Slot", "SlotCore", "Bezel", "BezelRd",
-	"BezelGlow", "BezelHot", "BezelHotRd", "MaskRd", "Heat", "Spark", "Steam", "Ring", "RingSq", "Tag", "Bead",
-	"Shadow", "Check", "Cross" }
+	"BezelGlow", "BezelGlowRd", "BezelHot", "BezelHotRd", "MaskRd", "Heat", "Spark", "Steam", "Ring", "RingSq", "Tag",
+	"Bead", "Shadow", "Check", "Cross" }
 
 -- The sizes hunt37-effects asks of every look: width, height, font, icon.
 local SIZES = {
@@ -311,13 +314,15 @@ end)
 -- under the icon, which draws over it, the flash is carried on the iron
 -- itself instead: the bezel's outline in white (Forge_BezelHot, or
 -- Forge_BezelHotRd round), additive, on the bezel's own rect, so the rim goes
--- white-hot inside the plate rather than fading to a fringe.
+-- white-hot inside the plate rather than fading to a fringe. The bloom is in
+-- the bezel's shape: Forge_BezelGlow (a rounded square) round the square
+-- bezel, Forge_BezelGlowRd (a disc) round the round one.
 withTree("look-forge: the bezel's bloom is held inside the plate", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if skipped(scenario, look) then return end
 	local edge = ns.Prompt:LookKit().EDGE_MARGIN
 	if type(edge) ~= "number" then fail(scenario, "the kit carries no EDGE_MARGIN") return end
-	-- The sixth field says where the flash rides: "glow" (Forge_BezelGlow,
+	-- The sixth field says where the flash rides: "glow" (the bloom's file,
 	-- the bloom's size) or "rim" (the hot rim file, on the bezel's rect).
 	local cases = {
 		{ "icon 30 at the defaults", 220, 44, 13, 30, "glow" },
@@ -340,10 +345,11 @@ withTree("look-forge: the bezel's bloom is held inside the plate", ANNA, functio
 		local plateH = panel[4] - panel[2]
 		local bz = bezel[3] - bezel[1]
 		local want = math.min(bz * 1.1, plateH - 2 * edge)
-		local glowFile = ART .. "BezelGlow"
+		local glowFile = ART .. (case[7] and "BezelGlowRd" or "BezelGlow")
 		local rimFile = ART .. (case[7] and "BezelHotRd" or "BezelHot")
 		if look.bezelWarm._file ~= glowFile then
-			fail(scenario, label .. ": the warm bloom draws " .. tostring(look.bezelWarm._file) .. ", not the bloom's file")
+			fail(scenario, ("%s: the warm bloom draws %s, not the %s bezel's bloom"):format(label,
+				tostring(look.bezelWarm._file), case[7] and "round" or "square"))
 		end
 		local hot = look.bezelHot
 		if hot._file ~= (onRim and rimFile or glowFile) then
@@ -524,7 +530,7 @@ withTree("look-forge: iron stays under luma 0.55 and the reason art is grey", AN
 	local ok, mean = MC.underText(path("PlateM"))
 	if not ok then fail(scenario, ("the plate's mean luma is %.3f: too bright under the words"):format(mean or -1)) end
 	for _, name in ipairs({ "Slot", "SlotCore", "Bead", "Check", "Cross", "Heat", "Steam", "Ring", "RingSq", "Spark", "BezelGlow",
-		"BezelHot", "BezelHotRd", "MaskRd" }) do
+		"BezelGlowRd", "BezelHot", "BezelHotRd", "MaskRd" }) do
 		if not MC.isGrey(path(name)) then fail(scenario, name .. " carries a colour: it is vertex-tinted art and must be grey") end
 	end
 end)
@@ -743,9 +749,12 @@ withTree("look-forge: a landing flashes the bezel and spreads the rings", ANNA, 
 	if not (c and sameColour(c, ns.Prompt:AccentColor("owed"))) then fail(scenario, "the rings are not in the reason's colour") end
 	if plays(look.sparkAnims) ~= 6 then fail(scenario, "at the defaults, two lines in 44, the sparks did not fly: " .. plays(look.sparkAnims)) end
 	for i, g in ipairs(look.sparkAnims) do
-		if FT.groupLength(g) > 0.48 + 1e-6 then fail(scenario, ("spark %d lasts %.3f s"):format(i, FT.groupLength(g))) end
-		-- A head of 1.7 units, six of them setting off 2 units apart: lit at
-		-- 0.75 at the most, so the bunch is a burst and not one white bar.
+		-- Out by the landing's 0.7 s, the last one included (0.035 s apart).
+		if FT.groupLength(g) > 0.7 - 1e-6 then
+			fail(scenario, ("spark %d lasts %.3f s, past the landing's 0.7"):format(i, FT.groupLength(g)))
+		end
+		-- A head of 1.7 units, six of them: lit at 0.75 at the most, so the
+		-- burst is sparks and not one white bar.
 		local peak = 0
 		for _, a in ipairs(g._anims or {}) do
 			if a._kind == "Alpha" or a._fromAlpha then peak = math.max(peak, a._fromAlpha or 0, a._toAlpha or 0) end
@@ -753,6 +762,101 @@ withTree("look-forge: a landing flashes the bezel and spreads the rings", ANNA, 
 		if peak <= 0 then fail(scenario, ("spark %d is never lit"):format(i))
 		elseif peak > 0.75 + 1e-6 then fail(scenario, ("spark %d is lit to %.2f, over 0.75: six heads of 1.7 units glare as one bar"):format(i, peak)) end
 	end
+end)
+
+-- The six sparks set off one after another: six heads of 1.7 units born
+-- together two units apart were one white blob for the first 0.12 s of every
+-- landing. Each spark is lit as it leaves (its light and its flight start
+-- together), no two leave within 0.03 s of each other or from within 2.5 units
+-- of each other, the last is out by the landing's 0.7 s, and none runs into
+-- another in flight.
+withTree("look-forge: the sparks set off one after another", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if skipped(scenario, look) then return end
+	local judged = 0
+	for _, size in ipairs({ SIZES[1], SIZES[2], SIZES[3] }) do
+		p.width, p.height, p.fontSize, p.iconSize = size.p[1], size.p[2], size.p[3], size.p[4]
+		p.roundIcon, p.accentMode, p.showSub = false, "icon", true
+		ns.Prompt:ApplyStyle()
+		tick(ns)
+		local born = {}
+		for i, g in ipairs(look.sparkAnims) do
+			local box = rectOf(look.sparkFrames[i])
+			local move = g.move
+			local light
+			for _, a in ipairs(g._anims or {}) do
+				if a._kind == "Alpha" then light = a end
+			end
+			if not (box and move and light) then
+				fail(scenario, ("%s: spark %d has no place, flight or light"):format(size.name, i))
+				return
+			end
+			local leaves = move._startDelay or 0
+			if math.abs((light._startDelay or 0) - leaves) > 1e-6 then
+				fail(scenario, ("%s: spark %d is lit from %.3f s and leaves at %.3f s: it sits lit where it was born"):format(
+					size.name, i, light._startDelay or 0, leaves))
+			end
+			if FT.groupLength(g) > 0.7 - 1e-6 then
+				fail(scenario, ("%s: spark %d is out at %.3f s, past the landing's 0.7"):format(size.name, i, FT.groupLength(g)))
+			end
+			born[i] = { at = leaves, x = (box[1] + box[3]) / 2, y = (box[2] + box[4]) / 2 }
+		end
+		for i = 1, #born do
+			for j = i + 1, #born do
+				local a, b = born[i], born[j]
+				judged = judged + 1
+				if math.abs(a.at - b.at) < 0.03 - 1e-6 then
+					fail(scenario, ("%s: sparks %d and %d set off %.3f s apart, under 0.03: born as one"):format(size.name, i, j, math.abs(a.at - b.at)))
+				end
+				local d = math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2)
+				if d < 2.5 - 1e-6 then
+					fail(scenario, ("%s: sparks %d and %d set off %.2f units apart, under 2.5: their 1.7-unit heads touch"):format(size.name, i, j, d))
+				end
+			end
+		end
+	end
+	if judged < 45 then fail(scenario, "only " .. judged .. " pairs of sparks were judged") end
+	-- And in flight: through the landing, as the renderer moves and fades
+	-- them, no two sparks that have both left and are still lit (over a
+	-- quarter) come within a head (1.7 units) of each other. Each flying
+	-- further than the last, the late ones caught the early ones up and the
+	-- six met in one bright knot 0.15 to 0.25 s in.
+	for _, size in ipairs({ SIZES[1], SIZES[2] }) do
+		p.width, p.height, p.fontSize, p.iconSize = size.p[1], size.p[2], size.p[3], size.p[4]
+		ns.Prompt:ApplyStyle()
+		tick(ns)
+		ns.Prompt:ShowOutcome("cast", "Anna Aim", "x")
+		local samples, knot = 0, nil
+		local step = 0.0075
+		for _ = 1, 80 do
+			Mock.advance(step)
+			local now = GetTime()
+			local flying = {}
+			for i, g in ipairs(look.sparkAnims) do
+				local t = look.sparks[i]
+				local leaves = (g.move and g.move._startDelay) or 0
+				if g._playing and now - (g._startedAt or now) >= leaves - 1e-9 and FXG.alphaAt(t, now) > 0.25 then
+					local L, B, R, T = FXG.rectAt(t, r.art, now)
+					if L then flying[#flying + 1] = { i = i, x = (L + R) / 2, y = (B + T) / 2 } end
+				end
+			end
+			for a = 1, #flying do
+				for b = a + 1, #flying do
+					samples = samples + 1
+					local d = math.sqrt((flying[a].x - flying[b].x) ^ 2 + (flying[a].y - flying[b].y) ^ 2)
+					if d < 1.7 and not knot then
+						knot = ("%s, %.3f s: sparks %d and %d fly %.2f units apart, under a head's 1.7: the burst knots up"):format(
+							size.name, now - (look.sparkAnims[1]._startedAt or now), flying[a].i, flying[b].i, d)
+					end
+				end
+			end
+		end
+		if knot then fail(scenario, knot) end
+		if samples < 50 then fail(scenario, ("%s: only %d moments of sparks in flight were judged"):format(size.name, samples)) end
+		Mock.advance(3)
+		tick(ns)
+	end
+	local _ = r
 end)
 
 withTree("look-forge: sparks stay on the strap", ANNA, function(ns, scenario)
@@ -1307,6 +1411,79 @@ withArt("look-forge: the hot rim lies on the iron", function(folder, which, scen
 				fail(scenario, ("Forge_%s (%s) is never white-hot: its crest reaches alpha %.2f, under 0.9"):format(pair[1], which, peak))
 			end
 		end
+	end
+end)
+
+-- The bloom is in the bezel's shape. A disc behind the square bezel cut
+-- across its corner bolts at the landing (0.10-0.20 s), which stayed dark
+-- outside it: Forge_BezelGlow is a rounded square whose band takes in the
+-- four bolts (alpha 0.6 or more where each sits, the bezel drawn GLOW_SCALE
+-- smaller), with the round bloom's own rise and fall along its sides, its
+-- fall dead before the file's corners; Forge_BezelGlowRd is the disc, the
+-- same at every angle, for the round bezel. Both hollow over the icon.
+withArt("look-forge: the bloom follows the bezel's shape", function(folder, which, scenario)
+	local sq = MC.readTGA(folder .. "/Forge_BezelGlow.tga")
+	local rd = MC.readTGA(folder .. "/Forge_BezelGlowRd.tga")
+	if not (sq and rd and sq.w == 128 and sq.h == 128 and rd.w == 128 and rd.h == 128) then
+		fail(scenario, "Forge_BezelGlow or Forge_BezelGlowRd (" .. which .. ") is missing or not 128x128")
+		return
+	end
+	local function alpha(tga, x, y) local _, a = texel(tga, x, y) return a end
+	-- The square bezel's bolts sit 12.5 texels in from its file's corners;
+	-- the bloom is drawn 1.1 times the bezel, about the same middle.
+	local at = 64 + (12.5 - 64) / 1.1
+	for _, xy in ipairs({ { at, at }, { 127 - at, at }, { at, 127 - at }, { 127 - at, 127 - at } }) do
+		local x, y = math.floor(xy[1] + 0.5), math.floor(xy[2] + 0.5)
+		local a = alpha(sq, x, y)
+		if a < 0.6 then
+			fail(scenario, ("Forge_BezelGlow (%s) is %.2f at the corner bolt by texel %d,%d: the bloom's edge cuts across the bolts"):format(
+				which, a, x, y))
+		end
+	end
+	for x = 0, 63 do
+		local a, b = alpha(sq, x, 64), alpha(rd, x, 64)
+		if math.abs(a - b) > 0.02 then
+			fail(scenario, ("Forge_BezelGlow (%s) is %.2f at texel %d along its side where the round bloom is %.2f: not the bloom's rise and fall"):format(
+				which, a, x, b))
+			break
+		end
+	end
+	local corner = 0
+	for y = 0, 3 do
+		for x = 0, 3 do
+			corner = math.max(corner, alpha(sq, x, y), alpha(sq, 127 - x, y), alpha(sq, x, 127 - y), alpha(sq, 127 - x, 127 - y))
+		end
+	end
+	if corner > 0.05 then fail(scenario, ("Forge_BezelGlow (%s) still glows %.2f in the file's corners"):format(which, corner)) end
+	-- The round bloom's profile along its axis (each texel's middle, its
+	-- distance from the file's middle), and every texel on its diagonal held
+	-- to that profile at its own distance.
+	local profile = {}
+	for x = 63, 0, -1 do
+		profile[#profile + 1] = { math.sqrt((64 - x - 0.5) ^ 2 + 0.25), alpha(rd, x, 64) }
+	end
+	local function along(dist)
+		for i = 2, #profile do
+			local p0, p1 = profile[i - 1], profile[i]
+			if dist <= p1[1] then
+				local t = (dist - p0[1]) / (p1[1] - p0[1])
+				return p0[2] + (p1[2] - p0[2]) * math.max(0, math.min(1, t))
+			end
+		end
+		return profile[#profile][2]
+	end
+	for d = 20, 60 do
+		local dist = math.sqrt(2) * (64 - d - 0.5)
+		local diag, axis = alpha(rd, d, d), along(dist)
+		if math.abs(axis - diag) > 0.05 then
+			fail(scenario, ("Forge_BezelGlowRd (%s) is %.2f on its diagonal and %.2f along its axis at radius %.1f: not a disc"):format(
+				which, diag, axis, dist))
+			break
+		end
+	end
+	for _, tga in ipairs({ { sq, "Forge_BezelGlow" }, { rd, "Forge_BezelGlowRd" } }) do
+		local a = alpha(tga[1], 64, 64)
+		if a > 0.01 then fail(scenario, ("%s (%s) is not hollow over the icon: %.2f at its middle"):format(tga[2], which, a)) end
 	end
 end)
 
