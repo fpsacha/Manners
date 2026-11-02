@@ -12858,7 +12858,7 @@ EditMacro = function(i, name, _, body)
 	end
 	return i
 end
--- Since 1.10.5 the fixed body is the bar macro's first line (Clicks.lua, click
+-- Since 1.11.0 the fixed body is the bar macro's first line (Clicks.lua, click
 -- macro), and 1.0's down click is rewritten too: the client will not run a
 -- macro from inside one.
 for _, case in ipairs({

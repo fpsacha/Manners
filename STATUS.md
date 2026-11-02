@@ -5,7 +5,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.10.4 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.11.0 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
@@ -67,7 +67,7 @@ you with no target; and the prompt re-laying itself out after a change of UI
 scale (Esc, Options, Video). Any CHECK or FAIL line is the lead: paste it with
 `/manners errors` and `/manners debug`.
 
-**The bar macro on Classic Era (1.10.5).** A Night Elf druid on Classic Era
+**The bar macro on Classic Era (1.11.0).** A Night Elf druid on Classic Era
 1.15.9 (1.10.3, alone, Thorns on herself) found the Manners macro on a bar
 casting nothing while a click on the prompt cast: the client will not run a
 macro from inside one (Blizzard, WoWUIBugs #552), and the macro was
@@ -76,7 +76,7 @@ macro from inside one (Blizzard, WoWUIBugs #552), and the macro was
 here can show: that a macro whose first line /clicks a plain button running
 addon Lua still runs its `/target` and `/cast` lines on that client. First, a
 macro made by hand with two lines, `/click MannersBar` and `/cast Thorns`
-(any spell), pressed from a bar with 1.10.5 loaded, says whether it does. Give
+(any spell), pressed from a bar with 1.11.0 loaded, says whether it does. Give
 it a name of its own, not Manners: a macro named Manners whose lines are a
 shape Manners writes (that one is) is Manners', and is rewritten before the
 press. Then
