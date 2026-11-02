@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.0
 
 - **The Manners macro on an action bar casts.** Clicking its slot, or pressing
   its key, did nothing on Classic Era: the game does not let a macro press a
