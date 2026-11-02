@@ -822,6 +822,81 @@ icon when a buff lands (`ring_thin_at` and `RING_AT` agree likewise),
 All are white, or black and white, with the shape in the alpha, and the prompt
 colours them.
 
+## materials.py
+
+The lit-material pipeline the texture generators share: a module, not a
+generator (`from materials import *` in a `tools/make_*.py`; the script's own
+directory is on `sys.path`). It turns a height field -- texture pixels of
+relief on the supersampled grid, `SS = 4` -- into painted Warcraft material
+with the light baked the same way for every look: a key light from the upper
+left (`LIGHT`), a weaker fill from the lower right (`LIGHT2` at `FILL`), a
+little sky on faces that look up (`SKY`), ambient occlusion in the hollows (up
+to 35 %), grime in the concave (tone down, saturation x 0.70), wear on the
+convex where a seeded noise says the metal is handled, micro-noise, and a
+Rec.601 luma cap per material. `MATERIALS` holds `gold` (cap 0.60), `iron`
+(0.55), `stone` (0.50), `glass` (0.80), `hide` (0.48) and `grey` (1.0, for
+art `SetVertexColor` tints), each with its ramp stops, specular weight,
+sharpness and tint. Needs numpy and Pillow; deterministic (only
+`np.random.default_rng(seed)`, no clock).
+
+The API, every array on the supersampled grid:
+
+- `grid(w, h)`, `sstep`, `cover(d, px)`, `fold(x, y, w, h)` for 9-slices.
+- Signed distances, texture pixels, negative inside: `rrect`, `disc`, `ring`,
+  `superellipse`; `seg` and `polyline` are unsigned (subtract half a stroke).
+- Profiles over a distance: `bevel(d, width, rise)` (rounded shoulders),
+  `chamfer(d, width, rise)` (a 45-degree wall), `torus(d, r)`, `dome(d, r)`.
+- Stamps: `planish(height, w, h, seed, cell_units, depth, tpu)` (seeded Voronoi
+  hammer marks), `rivet(height, cx, cy, r_units, tpu)` (a dome and the shadow
+  it casts, which goes to `shade(..., shadow=)`), `engrave(height, sdf,
+  width_units, depth, tpu)` (a V-groove: a line, which may be 1 unit wide),
+  `rope(height, x, y, cx, cy, radius, strands, helix_deg, band_fraction)`
+  (half-round strands round a disc's outer band). Every stamp takes `tpu`,
+  texels per unit, and raises `ValueError` under `MIN_FEATURE_UNITS` (2.0):
+  nothing drawn is smaller than two units on screen. `feature(units)` declares
+  a feature a stamp did not measure (an engraved mark's height, say).
+- `shade(material, height, alpha, seed, tpu, wear=0.6, grime=1.0, micro=0.025,
+  shadow=None)` returns the colour (capped) and the `light`: the specular and
+  half the wear's highlight, as a separate array, never in the colour, so a
+  grey file tinted by the Lua still carries the reason colour.
+  `shade_grey(...)` is the grey ramp. `normals(height, relief)`, `noise`,
+  `blur`, `ramp`, `luma`, `capped`, `bleed`, `finish` and `save(path, rgb,
+  alpha)` (32-bit uncompressed TGA, power-of-two sides up to 256 or
+  `ValueError`; appends to `materials.written`) are what the Toast generator
+  had, with the same semantics. `report(path, cap)` reads a file back (max
+  and mean luma of the opaque texels, the smallest feature declared while it
+  was drawn) and `describe(path, cap)` is the line every generator prints:
+  `Swatch_Gold.tga 128x128 cap=0.60 max=0.50 mean=0.32 minfeature=3.0`.
+  `sheet(paths, out_png)` draws a contact sheet.
+
+Texel budgets: rails, bevels, bezels and rims 4 texels per unit (a 32-texel
+9-slice corner is 8 units); REPEAT body fills and soft glows 2 texels per
+unit; never over 256 a side. The ADD rule: a `light` file is drawn BLEND in
+`WARM_WHITE` (1.00, 0.94, 0.80) or a cool white at 0.3-0.5 alpha, never ADD at
+rest; ADD only in flourishes under 0.6 s.
+
+```
+python tools/materials.py --selftest --out DIR              # six swatches and their light
+python tools/materials.py --selftest --out DIR --sheet OUT.png
+```
+
+The self-test draws `Swatch_Gold` (planished, 3-unit cells), `Swatch_Iron` (a
+2.2-unit rivet on hammered iron), `Swatch_Glass` (a pane with a 4-unit cut
+edge), `Swatch_Stone` (an engraved mark 6 units tall), `Swatch_Hide` (a grain
+re-lit) and `Swatch_Grey` (the ramp over a dome), 128 x 128 at 4 texels per
+unit, with a `_Light` file each. `tests/scenarios/materials.lua` runs it
+twice and holds it to the same bytes, every cap, the two-unit floor and the
+file format.
+
+`tests/materials_check.lua` is the reader for the shipped files, dofile'd by
+each look's own scenario file (`local MC = dofile(dir ..
+"/tests/materials_check.lua")`): `MC.readTGA(path)` (32-bit type 2 only),
+`MC.capOK(path, cap)` -> ok, max luma over the opaque texels (alpha over
+`MC.OPAQUE`, a half), `MC.underText(path)` -> ok, mean luma (at most
+`MC.UNDER_TEXT`, 0.32), `MC.isGrey(path)` (r == g == b on every texel),
+`MC.pow2(path)`. Each look's scenario file names its own files; nothing is
+appended to `materials.lua` for another look.
+
 ## make_look_previews.py
 
 The pictures on the look cards of the options window (`Options/Window/WidgetsTheme.lua`):
