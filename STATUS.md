@@ -168,6 +168,10 @@ the build and interface so the next bump does not.
 write-only `ns.X`, but nothing finds a local function nobody calls; extending
 that check is the one step of the 1.0.0-beta.9 cleanup plan never built.
 
+**The `visuals` branch's merge 2f6f5e2 ("Merge forge-look into visuals") has no
+Co-Authored-By trailer.** Every other commit there carries it; the merge is
+merged history and is left as it is (no amend, no rebase).
+
 ## Decisions
 
 Code comments point here (`STATUS.md`) for these. They are decisions rather
