@@ -41,8 +41,8 @@ mutate(TOAST,
 
 # The gold ring drawn over the icon, as 1.5.0's medallion was.
 mutate(TOAST,
-       "\tself.ring = tex(art, \"ARTWORK\", -3, \"Gold\")\n",
-       "\tself.ring = tex(art, \"OVERLAY\", -3, \"Gold\")\n",
+       "\tself.ring = tex(art, \"ARTWORK\", -3, \"Rope\")\n",
+       "\tself.ring = tex(art, \"OVERLAY\", -3, \"Rope\")\n",
        "the toast's ring over the icon",
        expect="lies over the spell icon's box",
        script="runscenarios.py")
