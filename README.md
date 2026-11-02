@@ -8,7 +8,7 @@ straight back.**
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-<img src=".github/media/manners-prompt.png" alt="The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a light sweep crossing the panel" width="640">
+<img src=".github/media/manners-prompt.png" alt="The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel" width="640">
 
 <img src=".github/media/manners-moment.png" alt="Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it" width="640">
 
@@ -355,13 +355,34 @@ and the only thing it ever says in chat is a new title.
 
 ## The prompt's look
 
-Nine looks -- Glass (the default), Framed, Minimal, Luxe, Toast, Arcane,
-Ribbon, Letter and Leather, each a card under Look > *Panel style* that you
-click to switch -- your own colours and fonts, and
-LibSharedMedia support. When a buff lands, a ring pops out of the icon and
-light crosses the panel; a refused one gives the text a small shake. Somebody
-who buffs you makes the panel catch the light, and the prompt fades out after
-your last buff. The icon shows the global cooldown sweep, like an action bar.
+Ten looks, each a card under Look > *Panel style* that you click to switch:
+
+- **Glass** (the default): a dark pane of cut glass, the spell icon set in a
+  metal bezel that brightens under the pointer.
+- **Framed**: a flat dark panel in a thin rim, like the game's tooltips.
+- **Minimal**: the words alone, no panel.
+- **Luxe**: a slim dark card with a spine in the reason colour.
+- **Toast**: a warm banner and a gilded medallion, the gold hammered and worn,
+  the icon's ring a twist of rope.
+- **Arcane**: smoked glass with a rim lit by the reason.
+- **Ribbon**: a crimson ribbon and a gold medallion.
+- **Letter**: parchment and a red wax seal.
+- **Leather**: a stitched leather tag with a brass ring.
+- **Forge**: forged iron and a riveted band, the reason glowing in a slot beside
+  the icon like a bar of heated steel.
+
+Pick your own colours and fonts too; LibSharedMedia is supported.
+
+On Glass, Framed and Minimal the prompt has a way of arriving and of answering.
+As it comes up, two thin rules of light draw out from the icon along its top and
+bottom edges and the words follow a beat behind; a favour arriving runs a glint
+along them. When a buff lands, a ring pops out of the icon, a wave of light
+crosses the panel and the panel's edge lights in the reason's colour (Minimal,
+which has no edge, lights its two rules instead). When the game refuses it, the
+edge flashes red, a crack runs under the words, the icon turns grey and the text
+shakes. The other looks answer in ways of their own. The prompt fades out after
+your last buff, and the icon shows the global cooldown sweep, like an action
+bar.
 
 **Text follows the panel.** Leave the text colour at white and it turns dark
 by itself on a light panel colour, and class-coloured names that would vanish
@@ -689,9 +710,9 @@ exact position, the text, the prompt's wording, and the icon and waiting list.
   *Where the game shows tooltips*.
 
 - *Animations*: on *Full*, the ring pops out of the spell icon only if the
-  icon is shown, and the panel catches the light unless *Flash when someone
-  buffs me* is *None*. With the icon hidden, no stripe and no light
-  (Animations on *Calm*, or the minimal look), *Flash when someone buffs me*
+  icon is shown, and a favour arriving runs a glint along the panel's rules
+  unless *Flash when someone buffs me* is *None*. With the icon hidden, no
+  stripe and no glint (Animations on *Calm*), *Flash when someone buffs me*
   has nothing to do and is greyed out. The cooldown sweep has its own switch
   under *Icon and waiting list*.
 - *List the next few below*, under *Icon and waiting list* and off by

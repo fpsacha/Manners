@@ -409,6 +409,35 @@ do
 	end
 end
 
+-- Flash when someone buffs me is live wherever something answers it: on
+-- Minimal with the icon off too, because a favour arriving runs a glint along
+-- Minimal's rules on Full; greyed out only where Calm, no icon and no stripe
+-- leave it nothing.
+do
+	local scenario = "look: Flash is live on Minimal under Full animations"
+	local ns, tab, args = session(scenario)
+	if ns then
+		local option = args.flashStyle
+		if not (option and type(option.disabled) == "function") then
+			fail(scenario, "Flash when someone buffs me has no greyed-out rule")
+		else
+			local p = ns.db.profile.prompt
+			local was = { p.style, p.effects, p.showIcon, p.accentMode }
+			p.style, p.showIcon, p.accentMode = "minimal", false, "icon"
+			p.effects = "full"
+			if option.disabled() then
+				fail(scenario, "greyed out on Minimal with the icon off and Full animations, where a glint answers it")
+			end
+			p.effects = "calm"
+			if not option.disabled() then
+				fail(scenario, "open on Minimal with the icon off and Calm, where nothing answers it")
+			end
+			p.style, p.effects, p.showIcon, p.accentMode = was[1], was[2], was[3], was[4]
+		end
+		noErrors(scenario, ns)
+	end
+end
+
 -- Dim the prompt in combat reaches only the built-in looks: the ones from
 -- Looks/ draw a fight their own way, so on them it is greyed out rather than a
 -- switch that does nothing.

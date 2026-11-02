@@ -33,7 +33,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the nine looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the ten looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`), the
@@ -45,6 +45,12 @@ nothing, and the checks that touch things put them back (the report says what
 it made). What it cannot say, because only eyes can, and what to look at after
 it: Ribbon, Letter and Leather on the prompt (`/manners test` for a preview)
 and the Leather's strips really tiled; the Letter's unroll cut to the paper;
+the `launch.anim` line's `Scale(x, y) about LEFT` probe, which the two rules of
+light on Glass, Framed and Minimal lean on (CHECK or FAIL there means they draw
+from the wrong end or not at all); Glass over a snowfield for the edge light
+(never over 0.40) and the wave from the icon's right edge, which the renderer
+understates; Toast's hammered gold and rope ring; Forge's slot, sparks along
+the band and the steam puff, which the renderer shows faintly;
 the bar slot drawing the spell's icon, cooldown and range, and the note icon
 back with nobody to buff; the picker's cards with the live icon on each; a
 controller button's glyph on the chip; pressing with nothing targeted leaving
@@ -58,10 +64,14 @@ options button are untested in a real client: check the slot shows the spell's
 icon, cooldown and range, goes back to the note icon with nobody to buff, and
 that a controller button bound to the prompt shows its glyph on the chip.
 
-**The new looks in the game.** Ribbon, Letter and Leather (1.10.0) and the
+**The new looks in the game.** Ribbon, Letter and Leather (1.10.0), Forge, the
+glass and tooltip-rim rebuild of Glass and Framed, Toast's re-gilding and the
 picker's cards (the player's own buff icon laid over each picture) have only
 been seen in the renderer: the real Morpheus face, masks, the scroll's unroll
-clip and the tiled leather want a look in the client.
+clip, the tiled leather and the tiled iron want a look in the client. So do the
+built-in looks' new motion (the entrance rules, the favour's glint, the landing's
+edge light and wave, the refusal's crack and grey icon) and the bezel's hover
+lift.
 
 **Forever's group casts and the cast event.** The mage's, priest's and druid's
 group casts have no unit target in the client's spell data, so

@@ -22,10 +22,10 @@ chip holds the client's inline atlas for it (the renderer has no atlas art).
 
 What it writes, all 1280 pixels wide:
 
-    manners-prompt.png     the moment your buff lands, rings and sweep
+    manners-prompt.png     the moment your buff lands, rings and wave
     manners-moment.png     film strips: they buffed you, it lands, it is refused
     manners-reasons.png    the five reasons somebody is offered, each in its colour
-    manners-looks.png      the same favour in each of the six looks, named
+    manners-looks.png      the same favour in each of the ten looks, named
     manners-ledger.png     the favour ledger with a day of ordinary play in it
     manners-languages.png  the prompt in German, French and Chinese
     manners-palette.png    the standard and the colour-blind reason colours
@@ -2412,7 +2412,7 @@ def picture_looks(snaps):
     row = max(l.size[1] for l in layers) + label_h + 18
     top = 140
     board = Board(top + row * rows + 10, seed=17, sun=(0.50, 0.53))
-    heading(board, "Nine looks to choose from",
+    heading(board, "Ten looks to choose from",
             "The same favour in each. Pick one from the cards under Look; Glass is the default.")
     for i, ((_, name, words), layer) in enumerate(zip(LOOKS, layers)):
         cx = cell_w * (i % cols) + cell_w / 2

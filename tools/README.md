@@ -504,10 +504,10 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 
 | File | Shows |
 |---|---|
-| `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the sweep crossing the panel |
+| `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the six looks, named |
+| `manners-looks.png` | the same favour in each of the ten looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
@@ -618,6 +618,18 @@ draw Arcane as a player who picks it sees it, with a key bound and the
 favour's clock part-run. Each picture is taken `at` seconds after its state
 settles, with the one-shot animations that have run out by then finished the
 way the client finishes them, so a fight's dim is drawn as dim as it is.
+
+The built-in looks' motion is drawn from the same frames: `entrance` and
+`entrance-stranger` take the prompt down and bring it back, so the two rules of
+light drawing out from the icon (`Rule`) are the last thing done, and
+`--states success,refused --strip 0.05,0.12,0.25,0.40` is the film of a landing
+(the edge light, the wave from the icon's right edge, `Shock`) and of a refusal
+(the crack along the bottom band, `Crack`, the top rule sputtering, the icon
+grey); a favour's glint (`Glint`) runs the same two rules. Every one of them
+is a region of the prompt's art that `Prompt:Regions()` hands to the tests.
+The renderer understates additive light by design, so a flourish drawn ADD
+looks fainter here than it will in the game: its strength is read from the numbers
+the scenarios hold (an edge light never over 0.40), not judged by eye.
 
 `--locale` loads the addon as a client in that language (the mock's
 `Mock.locale`), which is how a German or French line that runs off the panel
@@ -855,6 +867,22 @@ side, nothing inside. The pane's grey over its middle cell is repeated in
 `Prompt/Text.lua` (`PANE_MID`), which judges the text's ink against the pane
 as drawn under the words; `tests/scenarios/panel-material.lua` holds every
 figure to its twin.
+
+## make_forge_textures.py
+
+The twenty-one files of `Textures/Forge/` (the plate in three pieces, the strap,
+the bezel and its round twin and mask, the slot and its core, the tag, the
+bead, the glyphs, the heat, the spark, the steam, the rings), drawn through
+`materials.py`: hammered iron under luma 0.55, the plate's mean under 0.32 so
+the words read on it, planish cells of 5 units, rivets of 2.2 and bolts of 2
+units. The plate's three pieces are lit as one strip so the middle tile wraps
+onto itself without a seam. `--out DIR` writes the same files to DIR (what
+`tests/scenarios/look-forge.lua` compares with what ships, twice, byte for
+byte), `--sheet FILE` draws a contact sheet and `--reach` prints the ring
+files' peak and reach. The figures `Looks/Forge.lua` must agree with
+(`ICON_FRAME`, `DESIGN_H`, `STRAP_TILE`, `STRAP_H`, `RIVET`, `SLOT_W`,
+`SLOT_H_MAX`, `RING_AT`, `TAG_CAPS`, `SPARK_CEIL`, `GLOW_SCALE`, `MASK_FILL`) sit at the top
+of the script and `look-forge.lua` holds each to its twin.
 
 ## materials.py
 

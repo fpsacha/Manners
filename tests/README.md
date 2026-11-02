@@ -249,6 +249,13 @@ sub-second subset for the middle of an edit.
 - `addonfiles.lua`: the addon's files in load order, read from `Manners.toc`,
   for every loader. `harness.lua`: what `runharness.py` drives.
 - `frametree.lua`, `mockwidgets.lua`, `mockwindow.lua`: the mock's frames.
+- `fxgeometry.lua`: where an effect's region sits at a moment (what a playing
+  group does to the frame that owns it, a Scale about the origin it names),
+  dofile'd after `frametree.lua` by `scenarios/hunt37-effects.lua` and
+  `scenarios/entrance-light.lua`.
+- `materials_check.lua`: the reader for the shipped textures (`readTGA`,
+  `capOK`, `underText`, `isGrey`, `pow2`), dofile'd by each look's own scenario
+  file; see `tools/README.md` under `materials.py`.
 
 ## `bughunt.py` — patterns
 

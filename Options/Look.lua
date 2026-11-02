@@ -313,12 +313,12 @@ function Page.BuildLookTab()
 				order = 31,
 				hidden = function() return not HasClassBuffs() end,
 				-- The glow lives on the icon, the sweep on the stripe and
-				-- the light on arrival on the panel; with none of them this
-				-- does nothing, and a live control would read as broken.
+				-- the glint on arrival runs the panel's rules (Minimal's
+				-- too); with none of them this does nothing, and a live
+				-- control would read as broken.
 				disabled = function()
 					local _, stripe = AccentCarriers()
-					local noLight = P().effects == "calm" or P().style == "minimal"
-					return not P().showIcon and not stripe and noLight
+					return not P().showIcon and not stripe and P().effects == "calm"
 				end,
 				values = {
 					pulse = L["Pulse until I buff them back"],

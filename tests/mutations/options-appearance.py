@@ -191,3 +191,10 @@ mutate("Options/Look.lua",
        "\t\t\t\t\treturn L[\"Needs a prompt at least %d pixels tall.\"]:format(39)\n",
        "look: second line height constant",
        expect="the second line's height does not follow the font", script=S)
+
+# Minimal back among the looks with no light to answer the flash.
+mutate("Options/Look.lua",
+       "\t\t\t\t\treturn not P().showIcon and not stripe and P().effects == \"calm\"\n",
+       "\t\t\t\t\treturn not P().showIcon and not stripe and (P().effects == \"calm\" or P().style == \"minimal\")\n",
+       "look: Flash greyed out on Minimal",
+       expect="look: Flash is live on Minimal under Full animations", script=S)

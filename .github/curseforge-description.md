@@ -1,6 +1,6 @@
 **Somebody buffed you. One click buffs them back, and your target is handed straight back.**
 
-![The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a light sweep crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
+![The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
 ![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
 
@@ -22,7 +22,7 @@ Turn on *List the next few below* (Look) and every name under the prompt is a bu
 
 ![The options window on Who to buff, with a paladin's buff order and the Move the prompt button in the header](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options.png)
 
-![Nine looks for the prompt: Luxe, Toast, Arcane, Ribbon, Letter, Leather, Glass, Framed and Minimal, the same favour drawn in each](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
+![Ten looks for the prompt: Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Glass, Framed and Minimal, the same favour drawn in each](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
 ![The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
 
@@ -84,7 +84,7 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 
 ### Looks
 
-- **Nine looks**, picked from cards in the options window: Glass (the default), Framed, Minimal, Luxe, Toast, Arcane, Ribbon (a crimson ribbon and a gold medallion), Letter (a parchment scroll with a red wax seal) and Leather (a stitched leather tag with a brass ring). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Ten looks**, picked from cards in the options window: Glass (the default: a pane of cut glass, the icon in a metal bezel), Framed (a thin rim, like the game's tooltips), Minimal (the words alone), Luxe (a slim dark card with a spine in the reason colour), Toast (a warm banner, gilded medallion), Arcane (smoked glass, a rim lit by the reason), Ribbon (a crimson ribbon and a gold medallion), Letter (a parchment scroll with a red wax seal), Leather (a stitched leather tag with a brass ring) and Forge (forged iron and a riveted band, the reason glowing like heated steel). On Glass, Framed and Minimal, rules of light draw out as the prompt comes up and the panel's edge lights when your buff lands. Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go.
 - **Minimap button** and addon compartment: click for options, shift-click for the ledger, right-click for a menu.
