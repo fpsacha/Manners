@@ -801,9 +801,10 @@ so.
 
 ## make-glow.py
 
-`Textures/Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`, `Sweep.tga`,
-`Gloss.tga` and `Bevel.tga`, the light the prompt's own looks (glass, framed,
-minimal) are drawn with. Like `Manners64.tga` they ship in the zip. Needs
+`Textures/Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`, `Gloss.tga`,
+`Bevel.tga`, `Rule.tga`, `Glint.tga`, `Shock.tga` and `Crack.tga`, the light
+the prompt's own looks (glass, framed, minimal) are drawn with. Like
+`Manners64.tga` they ship in the zip. Needs
 numpy and Pillow; deterministic, with every number that shapes the art in
 `PARAMS` at the top of the script. `--out DIR` writes the same files to DIR
 (what `tests/scenarios/hunt35-effects.lua` compares with what ships) and
@@ -817,8 +818,11 @@ sides of it. `GlowRound.tga` is a ring for the rounded icon; `ring_at` in the
 script and `GLOW_RING_AT` in `Prompt/Prompt.lua` say where its rim is and have
 to agree. `Ring.tga` and `RingSq.tga` are the thin rings that spread from the
 icon when a buff lands (`ring_thin_at` and `RING_AT` agree likewise),
-`Sweep.tga` the band that crosses the panel with a bright leading edge,
-`Gloss.tga` the glass's reflection and `Bevel.tga` its inner bevel (a 9-slice).
+`Gloss.tga` the glass's reflection and `Bevel.tga` its inner bevel (a 9-slice),
+`Rule.tga` the rule of light the entrance draws along each edge, `Glint.tga`
+what runs along it when a favour arrives, `Shock.tga` the wave that bursts from
+the icon's edge across the panel when a buff lands, and `Crack.tga` the ground
+breaking under the words when one is refused.
 All are white, or black and white, with the shape in the alpha, and the prompt
 colours them.
 

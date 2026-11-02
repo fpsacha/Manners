@@ -6,9 +6,9 @@
     python tools/make-glow.py --reach          # measure the four lit files in --out
     python tools/make-glow.py --light-bias 0   # draw with the light's bias overridden
 
-Writes Textures/Glow.tga, GlowRound.tga, Ring.tga, RingSq.tga, Sweep.tga,
-Gloss.tga, Bevel.tga, Rule.tga, Glint.tga, Shock.tga and Crack.tga, which
-ship in the zip. Deterministic: numpy and Pillow, no clock and one seeded
+Writes Textures/Glow.tga, GlowRound.tga, Ring.tga, RingSq.tga, Gloss.tga,
+Bevel.tga, Rule.tga, Glint.tga, Shock.tga and Crack.tga, which ship in the
+zip. Deterministic: numpy and Pillow, no clock and one seeded
 generator (the crack's), so run it twice with the same PARAMS and the files
 are byte for byte the same. Every number that shapes the art is in PARAMS,
 and nowhere else.
@@ -23,7 +23,7 @@ was drawn (factor 1.0 on the whole upper-left half, the top and left axis
 texels included) and lets the lower-right half fall to 1 - light_bias, so the
 light reads as light falling on a thing and not as a web glow, while the
 file's measured reach and the place of its brightest line cannot move (both
-are attained on the lit half). The Sweep is not relit.
+are attained on the lit half). The shapes below the rings are not relit.
 
   Glow         128x128  Light falling off in every direction from the centre
                         (the halo round a square icon). Prompt/Prompt.lua cuts
@@ -42,9 +42,6 @@ are attained on the lit half). The Sweep is not relit.
                         spreads from the icon when a buff lands. Its middle is
                         RING_AT_THIN of the half-width.
   RingSq       128x128  The same for a square icon, a rounded square.
-  Sweep        128x32   The band of light that crosses the panel: a tail that
-                        gathers and a thin bright leading edge on its right,
-                        slanted a little, gone at the top and bottom.
   Gloss        128x64   The glass's reflection: brightest at the top left, a
                         curved lower edge, falling away to the right.
   Bevel         32x32   9-slice, margin 6, drawn with corners 3 units square (two
@@ -97,10 +94,6 @@ PARAMS = {
     # by (the lit half is untouched), and where the light comes from, in
     # texture axes (y grows downward, so this is the upper left).
     "light_bias": 0.25, "light_dir": (-0.42, -0.70),
-    # The sweep's leading edge: where it sits across the file, how thin, how
-    # strong; the tail's strength; the slant (top shifted by this much).
-    "sweep_edge_at": 0.86, "sweep_edge_w": 0.024, "sweep_edge_a": 0.95,
-    "sweep_tail_a": 0.62, "sweep_slant": 0.10, "sweep_end_fade": 0.16,
     # The glass's reflection: where its lower edge falls at the left, how far
     # it curves, its strength at the top left and at the far right.
     "gloss_edge": 0.60, "gloss_curve": 0.26, "gloss_top": 1.0, "gloss_right": 0.20,
@@ -292,21 +285,6 @@ def ring_sq(out):
 
 # ------------------------------------------------------------------- the light
 
-def sweep(out):
-    w, h = 128, 32
-    xx, yy = grid(w, h)
-    u, v = xx / w, yy / h
-    u = u - PARAMS["sweep_slant"] * (v - 0.5)
-    at, ew = PARAMS["sweep_edge_at"], PARAMS["sweep_edge_w"]
-    body = np.where(u <= at, smooth(u / at) ** 2.2, 1.0 - smooth((u - at) / 0.10))
-    a = PARAMS["sweep_tail_a"] * body
-    a = a + PARAMS["sweep_edge_a"] * np.exp(-((u - at) / ew) ** 2)
-    fade = PARAMS["sweep_end_fade"]
-    a *= smooth(v / fade) * smooth((1 - v) / fade)
-    a *= smooth(xx / 3.0) * smooth((w - xx) / 3.0)
-    save(out, "Sweep", 1.0, a)
-
-
 def rule_profile(yy, centre, sigma):
     """The rule's cross-section: a Gaussian about `centre`, in texel rows."""
     return np.exp(-((yy - centre) / sigma) ** 2)
@@ -450,7 +428,7 @@ def crack(out):
     save(out, "Crack", 1.0, a)
 
 
-MAKERS = (glow, glow_round, ring, ring_sq, sweep, gloss, bevel, rule, glint, shock, crack)
+MAKERS = (glow, glow_round, ring, ring_sq, gloss, bevel, rule, glint, shock, crack)
 
 
 def make(out):

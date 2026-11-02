@@ -236,6 +236,7 @@ function Prompt:RefreshPanel()
 			ShowChip(false)
 			R.countText:SetText("")
 			R.resultFill:Hide()
+			self:UngreyIcon()
 			if S.activeLook then S.activeLook:ClearOutcome() end
 			self:PaintAccent("owed")
 		else
@@ -493,6 +494,7 @@ function Prompt:RefreshPanel()
 		self:PaintOutcome()
 	else
 		R.resultFill:Hide()
+		self:UngreyIcon()
 		if S.activeLook then S.activeLook:ClearOutcome() end
 	end
 end

@@ -1742,7 +1742,10 @@ withTree("look-leather: leaving it gives the lines, the icon and the sweep back"
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	if r.icon._mask ~= nil and r.icon._mask == look.mask then fail(scenario, "the icon is still cut by Leather's mask") end
-	if r.icon._desaturated then fail(scenario, "the icon is still grey on glass") end
+	-- The refusal is still up, and glass greys the icon for a refusal of its
+	-- own (Prompt/Paint.lua, flagged as its own); a grey that is not glass's is
+	-- Leather's, left behind.
+	if r.icon._desaturated and not ns.Prompt.state.iconGreyed then fail(scenario, "the icon is still grey on glass") end
 	if r.icon._color and (r.icon._color[1] < 0.999 or r.icon._color[2] < 0.999) then fail(scenario, "the icon is still dimmed on glass") end
 	if r.cooldown and (r.cooldown._circular or tostring(r.cooldown._swipeTexture or ""):find("Leather", 1, true) and false) then
 		fail(scenario, "the sweep keeps a round edge on glass")
@@ -1754,6 +1757,7 @@ withTree("look-leather: leaving it gives the lines, the icon and the sweep back"
 	Mock.advance(3)
 	owe(ns, "Anna Aim")
 	tick(ns)
+	if r.icon._desaturated then fail(scenario, "the icon is still grey on glass once the refusal is over") end
 	if not r.count:IsShown() or tostring(r.count._text or "") == "" then fail(scenario, "the count stays hidden on glass") end
 	if (r.textLayer._level or 0) ~= (r.art._level or 0) + ns.Prompt.lib.TEXT_LEVEL then fail(scenario, "the text's frame level was not put back") end
 	if (r.name._shadowOffset or { 1 })[1] ~= 1 or (r.sub._shadowOffset or { 1 })[1] ~= 1 then fail(scenario, "the shadows were not given back") end
