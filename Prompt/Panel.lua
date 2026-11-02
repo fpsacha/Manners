@@ -182,9 +182,9 @@ function Prompt:Create()
 	for _, t in ipairs(R.pane) do t:Hide() end
 
 	-- The light on the glass, over the pane and the stripe: the cut edge's
-	-- specular, a hairline lit from the upper left, a caustic across the
-	-- middle. White, drawn BLEND at the panel's own opacity, never additive
-	-- at rest.
+	-- specular, pooled on the corner that faces the key light, and a hairline
+	-- lit from the upper left; the middle piece is empty. White, drawn BLEND
+	-- at the panel's own opacity, never additive at rest.
 	R.glassLight = Slice(R.art, "BORDER", 2, GLASS_LIGHT)
 	for _, t in ipairs(R.glassLight) do
 		t:SetBlendMode("BLEND")
@@ -581,7 +581,7 @@ function Prompt:ApplyStyle()
 
 	-- The edge's light: the look's own material laid as the material is, so
 	-- the flash lands on the cut edge or the rail exactly. The middle piece
-	-- carries no edge (the glass's caustic, the rim's empty inside) and stays
+	-- carries no edge (the glass's is empty, as is the rim's inside) and stays
 	-- dark, so nothing lights under the words.
 	local lit = R.edgeLightFrame
 	PlaceSlice(lit.glass, lit, corner)

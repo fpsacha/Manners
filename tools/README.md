@@ -854,9 +854,11 @@ rectangle with a cut edge and whose colour is a grey -- 0.78 in the middle,
 0.60 at the edge -- that `Prompt/Panel.lua` tints with the panel colour, one
 gradient per piece. `GlassLight.tga` is the light on it, white, the same
 nine-slice, drawn BLEND at 0.9 of the panel's opacity: a hairline a unit wide
-lit from the upper left, the cut edge's specular with a bead at the top-left
-corner, and two caustic bands kept inside the middle cell so the stretched edge
-strips never carry them. `IconBezel.tga` and `IconBezelRound.tga` are the
+lit from the upper left, and the cut edge's specular, the light pooled along
+the cut at the top-left corner (about three units round the edge either way,
+tapered back to the edge's own light inside the corner cell so the stretched
+strips never carry it); the middle cell carries no light, since the words lie
+there and the stretch would smear anything drawn in it. `IconBezel.tga` and `IconBezelRound.tga` are the
 chamfered metal bezel round the spell icon, grey, tinted by vertex colour with
 the reason colour or a neutral metal: the icon fills the middle 96 of 128
 texels, so the file is drawn at `iconSize / BEZEL_FRAME` (`ICON_FRAME` here,

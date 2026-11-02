@@ -160,7 +160,7 @@ mutate(PANEL,
        "landing-light: the edge's light drawn opaque",
        expect="landing-light: the edge light stays under 0.40", script=S)
 
-# The middle piece lit too: the glass's caustic flashing under the words.
+# The middle piece lit too: the glass's middle piece flashing under the words.
 mutate(PANEL,
        "\tfor i, t in ipairs(lit.glass) do t:SetShown(glass and i ~= 5) end\n",
        "\tfor i, t in ipairs(lit.glass) do t:SetShown(glass) end\n",

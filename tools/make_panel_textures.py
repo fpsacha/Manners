@@ -24,14 +24,21 @@ the art is a named constant here; the ones Prompt/ depends on say so.
                                BLEND at 0.9 x the panel's opacity. A hairline HAIR_W 4
                                texels wide HAIR_AT 14 in from the edge, lit from the
                                upper left (alpha HAIR_LIT 0.55 at the top left down to
-                               HAIR_SHADE 0.12 at the bottom right); the cut edge's
-                               specular over the outer CHAMFER_W 16 texels (a bead of
-                               BEAD_PEAK 0.90 at the top-left corner, EDGE_LIT 0.20
-                               along the top and left edges, nothing below and right);
-                               and two caustic bands inside the middle cell only
-                               (texels CELL0 32 to CELL1 96 on both axes, nothing
-                               within CAUSTIC_FADE 4 texels of the cell's edges, so
-                               the stretched edge strips never carry them).
+                               HAIR_SHADE 0.12 at the bottom right); and the cut edge's
+                               specular over the outer CHAMFER_W 16 texels: EDGE_LIT
+                               0.20 along the left edge, a little more along the top
+                               (it faces the key light more squarely), nothing below
+                               and right, and at the top-left corner the light pooled
+                               along the cut: BEAD_PEAK 0.65 where the corner's arc
+                               faces the light, within BEAD_DEPTH 6 texels of the edge,
+                               tapering round the edge either way into the edge's own
+                               light by BEAD_REACH 20 texels (5 units; above it by a
+                               tenth for about 3.5 units along the top and 3 down the
+                               left), inside the corner cell, so the stretched strips
+                               never carry it. The middle cell (texels 32 to 96 on
+                               both axes) carries no light: nothing lights under the
+                               words, and a mark drawn there is stretched about 7:1
+                               into a smear.
   IconBezel.tga       128x128  Grey, vertex-tinted (the reason colour, or a neutral
                                metal). ICON_FRAME 0.75: the icon fills the middle 96
                                texels, so the file is drawn at icon / 0.75 units
@@ -85,15 +92,11 @@ HAIR_AT, HAIR_W = 14.0, 4.0
 HAIR_LIT, HAIR_SHADE = 0.55, 0.12
 CHAMFER_W = 16.0            # the cut edge, in texels (4 units)
 CHAMFER_RISE = 8.0          # its height, in texels: the face leans into the key light
-BEAD_PEAK = 0.90            # the bead at the top-left corner
-BEAD_SIGMA = 15.0           # how far round the corner it reaches, in degrees
+BEAD_PEAK = 0.65            # the light pooled on the top-left corner, at its brightest
+BEAD_SIGMA = 15.0           # how squarely an edge must face the light to catch it, in degrees
+BEAD_REACH = 20.0           # how far round the cut edge the pool runs either way, in texels
+BEAD_DEPTH = 6.0            # how far in from the edge it reaches, in texels
 EDGE_LIT = 0.20             # the lit edges' own light
-CELL0, CELL1 = 32, 96       # the middle cell of the 9-slice
-# (centre, as a fraction of the cell's height; sigma, the same; alpha)
-CAUSTIC_BANDS = ((0.30, 0.10, 0.10), (0.55, 0.06, 0.06))
-CAUSTIC_SLANT = 8.0         # degrees
-CAUSTIC_FADE = 4            # texels of the cell's edge that carry none of it
-CAUSTIC_SOFT = 8            # over how many texels past that it comes in
 LIGHT_SEED = 13
 
 # --- the icon's bezel -----------------------------------------------------------
@@ -166,8 +169,8 @@ def make_light(out):
     hair = cover(np.abs(inward - HAIR_AT) - HAIR_W / 2.0) * (HAIR_SHADE + (HAIR_LIT - HAIR_SHADE) * lit)
 
     # (b) The cut edge: a chamfer leaning into the key light, its specular from
-    # the glass material (the bead where the corner's normal meets the half
-    # vector), and the lit edges' own light falling to nothing below and right.
+    # the glass material, the light pooled on the corner that faces the key
+    # light, and the lit edges' own light falling to nothing below and right.
     height = chamfer(inward, CHAMFER_W, CHAMFER_RISE)
     _, spec = shade("glass", height, shape, LIGHT_SEED, TPU)
     face = 1 - sstep(CHAMFER_W - 1, CHAMFER_W + 1, inward)
@@ -180,28 +183,38 @@ def make_light(out):
     facing = (gx * L2[0] + gy * L2[1]) / norm
     toward = np.clip(facing / 0.5, 0, 1)
     angle = np.degrees(np.arccos(np.clip(facing, -1, 1)))
-    bead = np.exp(-0.5 * (angle / BEAD_SIGMA) ** 2)
+    # How squarely the face meets the light, 1 where its normal is the
+    # light's direction: the top edge catches more than the left.
+    caught = np.exp(-0.5 * (angle / BEAD_SIGMA) ** 2)
+    caught_top = float(np.exp(-0.5 * (np.degrees(np.arccos(-L2[1])) / BEAD_SIGMA) ** 2))
+    # The pool: brightest at the point of the corner's arc whose normal is
+    # the light's direction, and running round the cut edge from there --
+    # `along` is how far, in texels, measured on the edge itself (round the
+    # arc, then down the straight) -- for BEAD_REACH either way, tapering
+    # into the edge's own light well inside the corner cell. The light comes
+    # more from above than from the left, so it runs further along the top.
+    r = float(PANE_RADIUS)
+    catch = float(np.arctan2(L2[1], L2[0]))
+    round_arc = r * np.abs(np.arctan2(y - r, x - r) - catch)
+    down_top = r * abs(-np.pi / 2 - catch) + (x - r)
+    down_left = r * abs(-np.pi - catch) + (y - r)
+    along = np.where((x < r) & (y < r), round_arc, np.where(y <= x, down_top, down_left))
+    pool = 1 - sstep(0, BEAD_REACH, along)
+    # The corner's light (the pool, and the catch and the specular where the
+    # face turns round the corner) lies along the cut, within BEAD_DEPTH of
+    # the edge. Deeper in, the face keeps no more than the top edge's catch,
+    # so the cone the corner's face makes draws no spoke of light inward.
+    near = 1 - sstep(BEAD_DEPTH / 2, BEAD_DEPTH, inward)
+    bead = (np.maximum(caught, pool) * near + np.minimum(caught, caught_top) * (1 - near)) * toward
     edge = (EDGE_LIT * toward + (BEAD_PEAK - EDGE_LIT) * bead) * face
     # Across the face: strong over its outer three quarters, softening into
     # the hairline at its foot.
     across = sstep(0, 2.5, inward) * (1 - sstep(CHAMFER_W - 5, CHAMFER_W, inward))
-    cut = np.maximum(edge, spec * BEAD_PEAK) * across
+    cut = np.maximum(edge, spec * BEAD_PEAK * near) * across
 
-    # (c) The caustic, inside the middle cell only, dying out before its edges.
-    cell = float(CELL1 - CELL0)
-    cx = (CELL0 + CELL1) / 2.0
-    slant = np.tan(np.radians(CAUSTIC_SLANT))
-    fade = (sstep(CAUSTIC_FADE, CAUSTIC_FADE + CAUSTIC_SOFT, x - CELL0)
-            * sstep(CAUSTIC_FADE, CAUSTIC_FADE + CAUSTIC_SOFT, CELL1 - x)
-            * sstep(CAUSTIC_FADE, CAUSTIC_FADE + CAUSTIC_SOFT, y - CELL0)
-            * sstep(CAUSTIC_FADE, CAUSTIC_FADE + CAUSTIC_SOFT, CELL1 - y))
-    caustic = np.zeros_like(x)
-    for at, sigma, a in CAUSTIC_BANDS:
-        yc = CELL0 + at * cell + (x - cx) * slant
-        caustic = np.maximum(caustic, a * np.exp(-0.5 * ((y - yc) / (sigma * cell)) ** 2))
-    caustic = caustic * fade
-
-    alpha = np.maximum(np.maximum(hair, cut), caustic) * shape
+    # Nothing in the middle cell: the words lie there, and the 9-slice
+    # stretches it about 7:1, so any mark in it reads as a smear.
+    alpha = np.maximum(hair, cut) * shape
     path = os.path.join(out, "GlassLight.tga")
     save(path, 1.0, np.clip(alpha, 0, 1))
     return path, describe(path, 1.0, light=True)
