@@ -408,7 +408,7 @@ do
 		-- First, whatever the tooltip does: the cursor is on the panel, and
 		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
 		-- this again only while the tooltip is ours, so still hovering. On a
-		-- look drawn by Prompt/Panel.lua the bezel lifts to gold.
+		-- look drawn by Prompt/Panel.lua the bezel lifts.
 		if not S.activeLook then Prompt:HoverBezel(true) end
 		S.hovering = true
 		if S.activeLook then S.activeLook:Hover(true) end

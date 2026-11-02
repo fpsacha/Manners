@@ -28,10 +28,11 @@ local PORTRAIT_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local SLICE_CUT, PANE_CORNER, RIM_CORNER = 0.25, 8, 4
 -- The light on the glass, at this much of the panel's own opacity.
 local LIGHT_ALPHA = 0.9
--- The bezel's metal when the reason colour is not on it, and the gold it
--- lifts to under the cursor (mixed half and half with its own colour).
+-- The bezel's metal when the reason colour is not on it, and how far its own
+-- colour lifts toward white under the cursor (a mix with gold read the same
+-- as the amber of somebody owed, whose luma it shares).
 local NEUTRAL_METAL = { 0.42, 0.42, 0.46 }
-local HOVER_GOLD = { 1.0, 0.82, 0.0 }
+local HOVER_LIFT = 0.45
 -- The framed look's rim: pale metal on a dark panel, dark on a pale one, each
 -- mixed a fifth toward the panel colour so the rim belongs to its panel.
 local RIM_PALE, RIM_DARK, RIM_MIX = { 0.92, 0.92, 0.98 }, { 0.38, 0.38, 0.44 }, 0.20
@@ -262,8 +263,9 @@ function Prompt:Create()
 	-- and under the icon, which fills its hole.
 	R.bezel = R.art:CreateTexture(nil, "BORDER", nil, 4)
 	R.bezel:SetTexture(BEZEL)
-	-- The same bezel in gold, faded up under the cursor and let go: a texture
-	-- of its own so the bezel keeps its colour while the gold comes and goes.
+	-- The same bezel lifted lighter, faded up under the cursor and let go: a
+	-- texture of its own so the bezel keeps its colour while the lift comes
+	-- and goes.
 	R.bezelHover = R.art:CreateTexture(nil, "BORDER", nil, 5)
 	R.bezelHover:SetTexture(BEZEL)
 	R.bezelHover:SetBlendMode("BLEND")
@@ -401,7 +403,7 @@ function Prompt:Create()
 
 	-- The highlight layer only reacts to the mouse on a Button, so it belongs
 	-- to the button itself rather than to the art frame.
-	-- Faint: the bezel's gold says the cursor is there.
+	-- Faint: the bezel's lift says the cursor is there.
 	R.button:SetHighlightTexture(WHITE, "ADD")
 	local hl = R.button:GetHighlightTexture()
 	if hl then hl:SetVertexColor(1, 1, 1, 0.03) end
@@ -929,9 +931,11 @@ function Prompt:ApplyLook(p, look)
 	-- And the icon in colour: a refusal's grey is the three looks' own, and a
 	-- look from Looks/ greys the icon itself when it wants to.
 	self:UngreyIcon()
-	-- The gold under the cursor let go at once: a texture of the looks drawn
-	-- here, parked at nothing while a look of its own is up.
+	-- The lift under the cursor let go at once: a texture of the looks drawn
+	-- here, parked at nothing while a look of its own is up, and forgetting
+	-- where the cursor had it so the next arrival lifts it again.
 	R.bezelHover:SetAlpha(0)
+	R.bezelHover.level, R.bezelHover.goal, R.bezelHover.start = 0, nil, nil
 	for _, part in ipairs(self.builtinParts) do part:Hide() end
 	if R.iconMask then R.iconMask:Hide() end
 	local hl = R.button:GetHighlightTexture()
@@ -996,11 +1000,12 @@ function Prompt:PaintAccent(reason)
 
 	-- The bezel: the reason colour on its metal where the marker asks for it,
 	-- a neutral metal otherwise (the light and the shade are in the file), and
-	-- the gold it lifts to under the cursor, mixed half and half with that.
+	-- the same metal lifted toward white under the cursor.
 	local mr, mg, mb = NEUTRAL_METAL[1], NEUTRAL_METAL[2], NEUTRAL_METAL[3]
 	if mode == "icon" or mode == "both" then mr, mg, mb = r, g, b end
 	R.bezel:SetVertexColor(mr, mg, mb, 1)
-	R.bezelHover:SetVertexColor((mr + HOVER_GOLD[1]) / 2, (mg + HOVER_GOLD[2]) / 2, (mb + HOVER_GOLD[3]) / 2, 1)
+	local hr, hg, hb = Tint(mr, mg, mb, HOVER_LIFT)
+	R.bezelHover:SetVertexColor(hr, hg, hb, 1)
 
 	-- The reason line, warmed a little towards the same colour so the two agree
 	-- at a glance -- but not with accents off, nor on a light panel where the
@@ -1033,7 +1038,7 @@ function Prompt:Regions()
 		glassLight = R.glassLight,
 		tooltipRim = R.tooltipRim,
 		-- The two carriers of the reason colour: the bezel round the icon
-		-- (switched off by hiding the icon), the stripe. And the bezel's gold
+		-- (switched off by hiding the icon), the stripe. And the bezel's lighter
 		-- twin, faded up under the cursor.
 		bezel = R.bezel,
 		bezelHover = R.bezelHover,

@@ -1,6 +1,6 @@
 -- The built-in looks' material: the glass as a pane of enchanted glass with
 -- the light on it, the framed look as the classic tooltip's rim, the icon in
--- a chamfered metal bezel that carries the reason colour and lifts to gold
+-- a chamfered metal bezel that carries the reason colour and lifts lighter
 -- under the cursor (Prompt/Panel.lua, tools/make_panel_textures.py).
 --
 -- What these hold the prompt to:
@@ -11,8 +11,10 @@
 --   * the bezel follows the icon's shape, wears the reason colour (or a neutral
 --     metal), is drawn at iconSize / BEZEL_FRAME and never taller than the
 --     panel, and sorts above the pane's light and the rim on the same frame;
---   * the cursor fades its gold twin up in 0.12 s and lets go in 0.18 s to
---     nothing, and never on a look from Looks/;
+--   * the cursor fades its lighter twin up in 0.12 s, holds it there for as
+--     long as the cursor stays (the owed amber, the colour hovered most, must
+--     visibly change), and lets go in 0.18 s to nothing, from wherever the
+--     fade had got to, and never on a look from Looks/;
 --   * a refusal paints the bezel red and the next paint of a person restores
 --     the reason colour;
 --   * the text's ink is judged against the pane as drawn;
@@ -36,7 +38,6 @@ local BUILTIN = { "glass", "framed", "minimal" }
 local BEZEL_FRAME = 0.75
 local PANE_EDGE, PANE_MID = 0.60, 0.78
 local NEUTRAL = { 0.42, 0.42, 0.46 }
-local HOVER_GOLD = { 1.0, 0.82, 0.0 }
 local REFUSAL_RED = { 0.80, 0.26, 0.22 }
 local WORLD_GREY = 0.15
 local FILES = { "GlassPane", "GlassLight", "IconBezel", "IconBezelRound", "TooltipRim" }
@@ -59,6 +60,8 @@ end
 local function near(a, b, eps)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) < (eps or 0.005)
 end
+
+local function luma601(r, g, b) return 0.299 * r + 0.587 * g + 0.114 * b end
 
 local function sameColour(c, r, g, b)
 	return type(c) == "table" and near(c[1], r) and near(c[2], g) and near(c[3], b)
@@ -225,9 +228,22 @@ withTree("panel-material: the bezel wears the reason colour and the icon's shape
 					fail(scenario, ("%s/%s/%s: the bezel is not %s"):format(palette, mode, reason,
 						(mode == "icon" or mode == "both") and "the reason colour" or "the neutral metal"))
 				end
-				if not sameColour(r.bezelHover._color, (wr + HOVER_GOLD[1]) / 2, (wg + HOVER_GOLD[2]) / 2,
-					(wb + HOVER_GOLD[3]) / 2) then
-					fail(scenario, ("%s/%s/%s: the bezel's gold is not its colour mixed with gold"):format(palette, mode, reason))
+				-- The twin is the bezel's own colour lifted toward white, and the
+				-- lift shows in luma: the owed amber (the case hovered most) by
+				-- at least 0.09, any other by a good part of what room there is
+				-- (a near-white one has little).
+				local hc = r.bezelHover._color
+				if type(hc) ~= "table" then
+					fail(scenario, ("%s/%s/%s: the bezel's lift has no colour"):format(palette, mode, reason))
+				else
+					local lift = luma601(hc[1], hc[2], hc[3]) - luma601(wr, wg, wb)
+					local room = 1 - luma601(wr, wg, wb)
+					local owedLit = reason == "owed" and (mode == "icon" or mode == "both")
+					local need = owedLit and 0.09 or math.min(0.03, 0.3 * room)
+					if lift < need or hc[1] < wr - 0.005 or hc[2] < wg - 0.005 or hc[3] < wb - 0.005 then
+						fail(scenario, ("%s/%s/%s: the bezel's lift is not lighter than its colour (%.3f in luma)"):format(
+							palette, mode, reason, lift))
+					end
 				end
 			end
 		end
@@ -306,9 +322,12 @@ withTree("panel-material: hover leaves in 0.18 s", ANNA, function(ns, scenario)
 		fail(scenario, "the bezel's gold has no enter and leave")
 		return
 	end
+	-- The drive to this point may have moved the cursor over the prompt
+	-- already: let it go, so what counts is what the moves below add.
+	b.scripts.OnLeave(b)
+	Mock.advance(0.2)
+	FT.settle()
 	if (hover._alpha or 0) ~= 0 then fail(scenario, "the gold is lit before the cursor arrives") end
-	-- The drive to this point has moved the cursor over the prompt once
-	-- already, so what counts is what these two moves add.
 	local e0, l0 = hover.enter._plays, hover.leave._plays
 	b.scripts.OnEnter(b)
 	if hover.enter._plays ~= e0 + 1 or hover.leave._plays ~= l0 then
@@ -322,6 +341,21 @@ withTree("panel-material: hover leaves in 0.18 s", ANNA, function(ns, scenario)
 	if not near(FT.groupLength(hover.enter), 0.12, 0.001) then fail(scenario, "the enter is not 0.12 s long") end
 	Mock.advance(0.2)
 	FT.settle()
+	-- The enter holds at full: the client keeps no animation's last alpha, so
+	-- the group's end has to leave the texture at 1 for as long as the cursor
+	-- stays.
+	if hover._alpha ~= 1 then
+		fail(scenario, "the gold does not stay at full once it has faded up: " .. tostring(hover._alpha))
+	end
+	-- And the tooltip or Shift asking again with the cursor still there
+	-- neither restarts the fade nor blinks it.
+	local ep = hover.enter._plays
+	b.scripts.OnEnter(b)
+	Mock.advance(0.05)
+	FT.settle()
+	if hover.enter._plays ~= ep or hover._alpha ~= 1 then
+		fail(scenario, "a repeated arrival restarted the fade of the gold")
+	end
 	b.scripts.OnLeave(b)
 	if hover.leave._plays ~= l0 + 1 then fail(scenario, "the cursor leaving did not play the leave") end
 	local down = hover.leave._anims[1]
@@ -346,6 +380,55 @@ withTree("panel-material: hover leaves in 0.18 s", ANNA, function(ns, scenario)
 	b.scripts.OnLeave(b)
 	if hover.enter._plays ~= before then fail(scenario, "the bezel's gold played under a look from Looks/") end
 	if (hover._alpha or 0) ~= 0 then fail(scenario, "the bezel's gold is lit under a look from Looks/") end
+end)
+
+-- A cursor that leaves part way up lets go from where the gold had got to,
+-- and one that comes back lifts it from there.
+withTree("panel-material: hover leaves mid-enter from where it got", ANNA, function(ns, scenario)
+	local r = upIn(ns, scenario, "glass")
+	local hover = r.bezelHover
+	local b = ns.Prompt:GetButton()
+	b.scripts.OnLeave(b)
+	Mock.advance(0.2)
+	FT.settle()
+	b.scripts.OnEnter(b)
+	Mock.advance(0.06)
+	b.scripts.OnLeave(b)
+	local from = hover.leave.fade._fromAlpha
+	if not (from and from > 0.3 and from < 0.7) then
+		fail(scenario, "the cursor leaving half way up let go from " .. tostring(from) .. ", not from about 0.5")
+	end
+	if not near(hover._alpha, from, 0.001) then
+		fail(scenario, "the gold is not left where the cursor found it when it left part way")
+	end
+	Mock.advance(0.05)
+	b.scripts.OnEnter(b)
+	local back = hover.enter.fade._fromAlpha
+	if not (back and back < from and back > 0) then
+		fail(scenario, "the cursor coming back part way lifted the gold from " .. tostring(back) .. ", not from where it had got")
+	end
+end)
+
+-- A look from Looks/ takes the lift away, and the next arrival on the built-in
+-- look lifts it again.
+withTree("panel-material: hover lifts again after a look from Looks/", ANNA, function(ns, scenario)
+	local r = upIn(ns, scenario, "glass")
+	local hover = r.bezelHover
+	local b = ns.Prompt:GetButton()
+	b.scripts.OnEnter(b)
+	Mock.advance(0.2)
+	FT.settle()
+	local p = ns.db.profile.prompt
+	p.style = "luxe"
+	ns.Prompt:ApplyStyle()
+	p.style = "glass"
+	ns.Prompt:ApplyStyle()
+	-- The cursor never left: the next scan's tooltip asks again.
+	local before = hover.enter._plays
+	b.scripts.OnEnter(b)
+	if hover.enter._plays ~= before + 1 then
+		fail(scenario, "the cursor still on the panel after a look from Looks/ came and went did not lift the gold again")
+	end
 end)
 
 -- ------------------------------------------------------------------ 7

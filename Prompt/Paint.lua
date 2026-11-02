@@ -149,25 +149,30 @@ end
 -- outcome is ignored.
 local outcomeGen = 0
 
+-- The cross-fade the text takes when it is about to change: a new person on
+-- the panel (Refresh) or an outcome over it (ShowOutcome). In the first beat
+-- of the entrance, while the words are still arriving, the reveal is let go
+-- and the words put at full, so the dip starts from full and never leaves
+-- them half-lit, nor has two groups drive their alpha at once. On the three
+-- looks drawn here only: under a look from Looks/ the words' alpha is the
+-- look's own.
+function Prompt:SwapText()
+	if not S.activeLook and R.textLayer.reveal and R.textLayer.reveal:IsPlaying() then
+		R.textLayer.reveal:Stop()
+		R.textLayer:SetAlpha(1)
+	end
+	if R.textLayer.swap then
+		R.textLayer.swap:Stop()
+		R.textLayer.swap:Play()
+	end
+end
+
 function Prompt:ShowOutcome(kind, name, detail)
 	if not R.button then return end
 	S.outcomeKind, S.outcomeAt, S.outcomeName, S.outcomeDetail = kind, GetTime(), name, detail
 	-- A new outcome gets its own wash, even one in the same instant as the last.
 	S.washStamp = nil
-	-- An outcome in the first beat of the entrance, while the words are still
-	-- arriving: the reveal is let go and the words put at full, so the dip
-	-- below starts from full and never leaves them half-lit. On the three
-	-- looks drawn here only: under a look from Looks/ the words' alpha is the
-	-- look's own.
-	if not S.activeLook and R.textLayer.reveal and R.textLayer.reveal:IsPlaying() then
-		R.textLayer.reveal:Stop()
-		R.textLayer:SetAlpha(1)
-	end
-	-- The same cross-fade a target swap uses: the text is about to change.
-	if R.textLayer.swap then
-		R.textLayer.swap:Stop()
-		R.textLayer.swap:Play()
-	end
+	self:SwapText()
 	-- Taken off on time rather than at the next scan.
 	self:PlayOutcomeFlourish(kind)
 	outcomeGen = outcomeGen + 1
@@ -284,7 +289,7 @@ function Prompt:PaintOutcome()
 	-- once per outcome: a repaint of the same outcome touches neither its
 	-- alpha nor its colour. On Calm it is set and left, a fade's worth lighter.
 	if FullEffects() then
-		if S.washStamp ~= S.outcomeAt then
+		if S.washStamp ~= S.outcomeAt or not R.resultFill:IsShown() then
 			S.washStamp = S.outcomeAt
 			R.resultFill:SetVertexColor(r, g, b, 1)
 			R.resultFill:Show()

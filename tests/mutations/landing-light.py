@@ -40,7 +40,7 @@ mutate(PANEL,
 
 # The wash restarted by every repaint of the same outcome.
 mutate(PAINT,
-       "\t\tif S.washStamp ~= S.outcomeAt then\n",
+       "\t\tif S.washStamp ~= S.outcomeAt or not R.resultFill:IsShown() then\n",
        "\t\tif true then\n",
        "landing-light: the wash played on every repaint",
        expect="landing-light: the wash fades once", script=S)
@@ -79,8 +79,8 @@ mutate(EFFECTS,
 
 # Calm fades the wash.
 mutate(PAINT,
-       "\tif FullEffects() then\n\t\tif S.washStamp ~= S.outcomeAt then\n",
-       "\tif true then\n\t\tif S.washStamp ~= S.outcomeAt then\n",
+       "\tif FullEffects() then\n\t\tif S.washStamp ~= S.outcomeAt or not R.resultFill:IsShown() then\n",
+       "\tif true then\n\t\tif S.washStamp ~= S.outcomeAt or not R.resultFill:IsShown() then\n",
        "landing-light: Calm fades the wash",
        expect="landing-light: Calm keeps the static wash", script=S)
 
@@ -173,3 +173,43 @@ mutate(PANEL,
        "\tlit.pieces = lit.glass\n",
        "landing-light: framed lights the glass's edge",
        expect="landing-light: the edge light is the material", script=S)
+
+# --- the grey icon given back at every clear ---------------------------------
+
+# The unlocked panel's hint over a live refusal leaves the icon grey.
+mutate("Prompt/Refresh.lua",
+       "\t\t\tself:UngreyIcon()\n\t\t\tif S.activeLook then S.activeLook:ClearOutcome() end\n\t\t\tself:PaintAccent(\"owed\")\n",
+       "\t\t\tif S.activeLook then S.activeLook:ClearOutcome() end\n\t\t\tself:PaintAccent(\"owed\")\n",
+       "landing-light: the unlock hint leaves the icon grey",
+       expect="landing-light: an unlock hint gives the grey back", script=S)
+
+# A panel held inert in a fight leaves the icon grey.
+mutate(PAINT,
+       "\tself:UngreyIcon()\n\tif S.activeLook then S.activeLook:ClearOutcome() end\n\tself:PaintAccent(\"nearby\")\n",
+       "\tif S.activeLook then S.activeLook:ClearOutcome() end\n\tself:PaintAccent(\"nearby\")\n",
+       "landing-light: a held panel leaves the icon grey",
+       expect="landing-light: a held panel gives the grey back", script=S)
+
+# A press that moves on leaves the refusal's grey for the next person.
+mutate(PAINT,
+       "\tself:UngreyIcon()\n\tif S.activeLook then S.activeLook:ClearOutcome() end\n\tns.Guard(\"prompt moved on\", Prompt.Refresh, self)\n",
+       "\tif S.activeLook then S.activeLook:ClearOutcome() end\n\tns.Guard(\"prompt moved on\", Prompt.Refresh, self)\n",
+       "landing-light: moving on leaves the icon grey",
+       expect="landing-light: a press that moves on gives the grey back", script=S)
+
+# A person painted afresh in a grey icon.
+mutate(PAINT,
+       "\t-- PaintOutcome (which follows while one is live) greys it again.\n\tself:UngreyIcon()\n",
+       "\t-- PaintOutcome (which follows while one is live) greys it again.\n",
+       "landing-light: a fresh paint leaves the icon grey",
+       expect="landing-light: a fresh paint gives the grey back", script=S)
+
+# --- the wash and the hidden fill ---------------------------------------------
+
+# A fill hidden mid-outcome (a restyle, an unlock hint) is not shown again,
+# since the stamp says the wash was already played.
+mutate(PAINT,
+       "\t\tif S.washStamp ~= S.outcomeAt or not R.resultFill:IsShown() then\n",
+       "\t\tif S.washStamp ~= S.outcomeAt then\n",
+       "landing-light: a hidden fill stays hidden for the rest of the outcome",
+       expect="landing-light: a fill hidden mid-outcome comes back", script=S)

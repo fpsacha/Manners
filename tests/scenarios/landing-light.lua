@@ -783,3 +783,117 @@ withTree(T .. "the edge light is the material", ANNA, function(ns, scenario)
 		FT.settle()
 	end
 end)
+
+-- ------------------------------------------------------------------ 13
+-- A refusal's grey is given back at every place an outcome is cleared, each
+-- the way the player really gets there, not only where it runs out: the
+-- panel unlocked for a drag (its hint is not about anybody), a fight held on
+-- a panel that is off, a press that moves on, a person painted afresh. The
+-- greyed icon is the outcome's, and none of these is the next person's.
+local function refused(ns, scenario, name)
+	local r = upIn(ns, scenario, "glass")
+	ns.Prompt:ShowOutcome("failed", name or "Anna Aim", "Out of range.")
+	if not r.icon._desaturated then return nil end
+	return r
+end
+
+withTree(T .. "an unlock hint gives the grey back", ANNA, function(ns, scenario)
+	local r = refused(ns, scenario)
+	if not r then fail(scenario, "SKIPPED -- the refusal did not grey the icon") return end
+	ns.db.profile.prompt.locked = false
+	ns.addon:Tick()
+	if not ns.Prompt:OutcomeLive() then fail(scenario, "SKIPPED -- the refusal ran out before the unlock") return end
+	if r.icon._desaturated or ns.Prompt.state.iconGreyed then
+		fail(scenario, "the icon stayed grey under the unlock hint while the refusal was still live")
+	end
+	ns.db.profile.prompt.locked = true
+end)
+
+withTree(T .. "a held panel gives the grey back", ANNA, function(ns, scenario)
+	local r = refused(ns, scenario)
+	if not r then fail(scenario, "SKIPPED -- the refusal did not grey the icon") return end
+	-- Switched off with a fight on: the panel cannot go, so it is held and
+	-- says why, over an outcome that has not run out.
+	ns.db.profile.enabled = false
+	Mock.inCombat = true
+	ns.addon:Tick()
+	Mock.inCombat = false
+	ns.db.profile.enabled = true
+	if not ns.Prompt:OutcomeLive() then fail(scenario, "SKIPPED -- the refusal ran out before the fight") return end
+	if r.icon._desaturated or ns.Prompt.state.iconGreyed then
+		fail(scenario, "the icon stayed grey on a panel held inert while the refusal was still live")
+	end
+end)
+
+withTree(T .. "a press that moves on gives the grey back", ANNA, function(ns, scenario)
+	local r = refused(ns, scenario)
+	if not r then fail(scenario, "SKIPPED -- the refusal did not grey the icon") return end
+	-- The repaint MovedOn asks for would give it back as it paints a person;
+	-- without it, MovedOn must have done so itself.
+	local Prompt = ns.Prompt
+	local refresh = Prompt.Refresh
+	Prompt.Refresh = function() end
+	local top = Prompt.state.heldEntry
+	if top then Prompt:MovedOn(top) end
+	Prompt.Refresh = refresh
+	if not top then fail(scenario, "SKIPPED -- nobody is on the panel to move on from") return end
+	if r.icon._desaturated or Prompt.state.iconGreyed then
+		fail(scenario, "the icon stayed grey after a press moved on from the refusal")
+	end
+end)
+
+withTree(T .. "a fresh paint gives the grey back", ANNA, function(ns, scenario)
+	local r = refused(ns, scenario)
+	if not r then fail(scenario, "SKIPPED -- the refusal did not grey the icon") return end
+	local top = ns.Prompt.state.heldEntry
+	if not top then fail(scenario, "SKIPPED -- nobody is on the panel to paint") return end
+	ns.Prompt:Paint(top, 0)
+	if r.icon._desaturated or ns.Prompt.state.iconGreyed then
+		fail(scenario, "the icon stayed grey after a person was painted afresh")
+	end
+end)
+
+-- ------------------------------------------------------------------ 14
+-- The wash is played once per outcome, but a fill something hid while the
+-- outcome was live (a look from Looks/ taking the panel and giving it back,
+-- the unlock hint and the lock again) is shown again with the next repaint
+-- and washes the rest of the outcome: the stamp says the wash was played,
+-- not that its fill is on screen.
+withTree(T .. "a fill hidden mid-outcome comes back", ANNA, function(ns, scenario)
+	local r = upIn(ns, scenario, "glass")
+	local p = ns.db.profile.prompt
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	if not FT.visible(r.fill) then fail(scenario, "SKIPPED -- the refusal did not show the wash") return end
+	local plays0 = plays(r.wash.fade)
+	Mock.advance(0.15)
+	p.style = "luxe"
+	ns.Prompt:ApplyStyle()
+	Mock.advance(0.1)
+	p.style = "glass"
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	if not ns.Prompt:OutcomeLive() then fail(scenario, "SKIPPED -- the refusal ran out during the restyle") return end
+	if not FT.visible(r.fill) then
+		fail(scenario, "the wash's fill stayed hidden for the rest of the outcome after a look from Looks/ came and went")
+	end
+	if plays(r.wash.fade) ~= plays0 + 1 then
+		fail(scenario, ("the wash played %d more times after the restyle, not once"):format(plays(r.wash.fade) - plays0))
+	end
+	-- And an unlock hint and the lock again, on a fresh outcome.
+	Mock.advance(1)
+	FT.settle()
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	Mock.advance(0.1)
+	p.locked = false
+	ns.addon:Tick()
+	p.locked = true
+	ns.addon:Tick()
+	if ns.Prompt:OutcomeLive() and not FT.visible(r.fill) then
+		fail(scenario, "the wash's fill stayed hidden after the unlock hint went")
+	end
+	-- Shown, it is not played again by every scan.
+	local n = plays(r.wash.fade)
+	ns.addon:Tick()
+	ns.addon:Tick()
+	if plays(r.wash.fade) ~= n then fail(scenario, "a shown wash was played again by a repaint") end
+end)

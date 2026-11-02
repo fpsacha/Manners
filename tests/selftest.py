@@ -2068,6 +2068,15 @@ mutate("Options/Look.lua",
        expect="the page says the ring is gone while the bezel is still drawn",
        script="runscenarios.py")
 
+# 81b. and the stripe the framed look draws: an inlay inside its rim, so a
+#      page that warns about it is warning about a thing that is on screen.
+mutate("Options/Look.lua",
+       'local stripe = (mode == "stripe" or mode == "both")\n',
+       'local stripe = (mode == "stripe" or mode == "both") and p.style ~= "framed"\n',
+       "a stripe the page gives up on for the framed look",
+       expect="a warning about the stripe the framed look draws inside its rim",
+       script="runscenarios.py")
+
 # 82. the targeting switch offered to a class whose macro never takes a target.
 mutate("Options/Advanced.lua",
        "\t\t\t\thidden = function() return NeverTargets() or NoOthers() end,\n\t\t\t\tget = fGetMacro,",

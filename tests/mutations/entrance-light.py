@@ -145,3 +145,19 @@ mutate(GEOMETRY,
        "\t\t\t\t\tlocal point = \"CENTER\"\n",
        "entrance-light: rectAt forgets the scale's origin",
        expect="entrance-light: hunt37 rectAt honours the origin", script=S)
+
+# With no icon the glow's stop is the whole stop: the glints, started just
+# above, are cut short in the scan that started them.
+mutate(EFFECTS,
+       "\tif not p.showIcon then\n\t\tStopGlow()\n\t\treturn\n\tend\n",
+       "\tif not p.showIcon then\n\t\tself:StopAttention()\n\t\treturn\n\tend\n",
+       "entrance-light: no icon, no glint",
+       expect="entrance-light: a glint runs with the icon off", script=S)
+
+# A new person swapping the words while they are still arriving: the swap's
+# dip on top of the reveal.
+mutate("Prompt/Refresh.lua",
+       "\telseif isNew then\n\t\tself:SwapText()\n\tend\n",
+       "\telseif isNew and R.textLayer.swap then\n\t\tR.textLayer.swap:Stop()\n\t\tR.textLayer.swap:Play()\n\tend\n",
+       "entrance-light: a person swap dips words still arriving",
+       expect="entrance-light: a person swap during the reveal", script=S)

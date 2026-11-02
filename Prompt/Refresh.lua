@@ -461,9 +461,8 @@ function Prompt:RefreshPanel()
 		-- A panel coming up part-way through a global cooldown shows what is
 		-- left of it; the cast that started it was sent while it was down.
 		self:SyncCooldown()
-	elseif isNew and R.textLayer.swap then
-		R.textLayer.swap:Stop()
-		R.textLayer.swap:Play()
+	elseif isNew then
+		self:SwapText()
 	end
 
 	-- A floor under the sound as well as the name: a swapped name can be
@@ -493,8 +492,9 @@ function Prompt:RefreshPanel()
 	if self:OutcomeLive() then
 		self:PaintOutcome()
 	else
+		-- Nothing live, so nothing grey: the outcome ends only in OutcomeLive
+		-- and MovedOn, and each gives the icon its colour back as it does.
 		R.resultFill:Hide()
-		self:UngreyIcon()
 		if S.activeLook then S.activeLook:ClearOutcome() end
 	end
 end

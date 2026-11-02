@@ -592,15 +592,29 @@ function Prompt:BuildAnimations()
 	fade:SetScript("OnStop", restWash)
 	R.washFrame.fade = fade
 
-	-- The cursor on the bezel: its gold twin fades up in 0.12 s and lets go in
-	-- 0.18 s, each from wherever the other left it (HoverBezel sets the start
-	-- for each play); only the leaving parks it at nothing.
+	-- The cursor on the bezel: its lifted twin fades up in 0.12 s and lets go
+	-- in 0.18 s, each from wherever the other left it (HoverBezel sets the
+	-- start for each play). The enter holds at full for as long as the cursor
+	-- stays (the client does not keep an animation's last alpha, so its end is
+	-- put on the texture, as every other hover does); only the leaving parks
+	-- it at nothing. `level` is where the twin rests or started its fade,
+	-- `goal` where it is going, `start` and `span` when and for how long.
 	local bezelEnter = R.bezelHover:CreateAnimationGroup()
 	bezelEnter.fade = Alpha(bezelEnter, 0, 1, 0.12, 1, 0, "OUT")
+	if bezelEnter.SetToFinalAlpha then bezelEnter:SetToFinalAlpha(true) end
+	bezelEnter:SetScript("OnFinished", function()
+		R.bezelHover:SetAlpha(1)
+		R.bezelHover.level, R.bezelHover.start = 1, nil
+	end)
 	R.bezelHover.enter = bezelEnter
 	local bezelLeave = R.bezelHover:CreateAnimationGroup()
 	bezelLeave.fade = Alpha(bezelLeave, 1, 0, 0.18, 1, 0, "IN")
 	Park(bezelLeave, R.bezelHover)
+	local parked = bezelLeave:GetScript("OnFinished")
+	bezelLeave:SetScript("OnFinished", function()
+		parked()
+		R.bezelHover.level, R.bezelHover.start = 0, nil
+	end)
 	R.bezelHover.leave = bezelLeave
 
 	-- A refusal: the text shakes its head, struck -- seven steps, the first
@@ -819,18 +833,34 @@ function Prompt:UngreyIcon()
 	end
 end
 
--- The cursor on a look drawn here: the bezel's gold twin faded up, and let go
--- when the cursor leaves, each from wherever the other fade had got to, so a
--- cursor that comes and goes never snaps. A look from Looks/ gets Hover.
+-- How far the bezel's lifted twin has got, worked out from when its fade
+-- started: what GetAlpha answers mid-animation has not been seen to settle on
+-- this client. Linear, which the fade's easing is near enough to.
+local function BezelLevel(t)
+	local level = t.level or 0
+	if not t.start then return level end
+	local k = (GetTime() - t.start) / t.span
+	if k >= 1 then return t.goal end
+	return level + (t.goal - level) * math.max(k, 0)
+end
+
+-- The cursor on a look drawn here: the bezel's lifted twin faded up, and let
+-- go when the cursor leaves, each from wherever the other fade had got to, so
+-- a cursor that comes and goes never snaps. A cursor already lifting it, or
+-- holding it lifted, is left to it: the tooltip and Shift ask again while the
+-- cursor stays. A look from Looks/ gets Hover.
 function Prompt:HoverBezel(on)
 	local t = R.bezelHover
 	if not (t and t.enter and t.leave) then return end
-	local from = t:GetAlpha() or 0
+	local goal = on and 1 or 0
+	if t.goal == goal or (goal == 0 and not t.goal) then return end
+	local from = BezelLevel(t)
 	t.enter:Stop()
 	t.leave:Stop()
 	t:SetAlpha(from)
 	local g = on and t.enter or t.leave
 	g.fade:SetFromAlpha(from)
+	t.level, t.goal, t.start, t.span = from, goal, GetTime(), on and 0.12 or 0.18
 	g:Play()
 end
 
@@ -859,15 +889,22 @@ function Prompt:SyncCooldown()
 	end
 end
 
--- Run by nearly every scan (nobody owed is the usual case), so it builds
--- nothing: no table, no closure.
-function Prompt:StopAttention()
+-- The glow round the icon and the rim's breath stopped. Alone, it is what a
+-- panel with no icon asks for: they are drawn round the icon, but the glints
+-- run the rules, which are there with or without one.
+local function StopGlow()
 	local glow, rim = R.glowFrame, R.rimFrame
 	if glow.pulse and glow.pulse:IsPlaying() then glow.pulse:Stop() end
 	glow:SetAlpha(0)
 	-- The rim parks itself when its breath stops (OnStop), so only a breath
 	-- that is running needs the call.
 	if rim.pulse and rim.pulse:IsPlaying() then rim.pulse:Stop() end
+end
+
+-- Run by nearly every scan (nobody owed is the usual case), so it builds
+-- nothing: no table, no closure.
+function Prompt:StopAttention()
+	StopGlow()
 	-- The glints running the rules, by their one flag rather than two IsPlaying
 	-- calls: the favour they ran for has left the panel.
 	if S.glintPlaying then
@@ -922,9 +959,11 @@ function Prompt:StartAttention(isNew, arrived)
 		end
 	end
 
-	-- The glow is drawn around the icon, so it goes with it.
+	-- The glow is drawn around the icon, so it goes with it. Not the glints
+	-- just started above, which run the rules and are there without an icon
+	-- (StopAttention would cut them short, here and on every scan after).
 	if not p.showIcon then
-		self:StopAttention()
+		StopGlow()
 		return
 	end
 

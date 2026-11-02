@@ -599,3 +599,65 @@ withTree(T .. "minimal draws the rules at half strength", ANNA, function(ns, sce
 		end
 	end
 end)
+
+-- ------------------------------------------------------------------ 13
+-- With the spell icon off the glints still run the rules for a favour that
+-- has just arrived, and keep running them: the icon's own glow and rim are
+-- the only things the missing icon takes away, so the scans that follow stop
+-- those and leave a glint 0.38 s long to finish.
+withTree(T .. "a glint runs with the icon off", ANNA, function(ns, scenario)
+	local r = upIn(ns, scenario, "glass", function(p) p.showIcon = false end)
+	local S = ns.Prompt.state
+	local runs = { r.glints and r.glints[1] and r.glints[1].run, r.glints and r.glints[2] and r.glints[2].run }
+	if not (runs[1] and runs[2]) then fail(scenario, "SKIPPED -- the glints are not reachable") return end
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	if plays(runs[1]) ~= 1 or plays(runs[2]) ~= 1 then
+		fail(scenario, ("the favour ran the glints %d and %d times with the icon off"):format(plays(runs[1]), plays(runs[2])))
+		return
+	end
+	if not (runs[1]._playing and runs[2]._playing and S.glintPlaying) then
+		fail(scenario, "the glints were stopped in the same scan that started them, with the icon off")
+	end
+	-- And the next scans, which ask for no arrival, leave the run alone.
+	Mock.advance(0.1)
+	ns.addon:Tick()
+	if not (runs[1]._playing and runs[2]._playing and S.glintPlaying) then
+		fail(scenario, "a later scan cut a glint short with the icon off")
+	end
+	if plays(runs[1]) ~= 1 then fail(scenario, "a later scan ran the glint again with the icon off") end
+	Mock.advance(0.4)
+	FT.settle()
+	if S.glintPlaying then fail(scenario, "the glints' flag stayed up after the run with the icon off") end
+end)
+
+-- ------------------------------------------------------------------ 14
+-- Somebody else becoming the top person while the words are still arriving:
+-- the reveal is let go and the words put at full before the swap's dip
+-- starts, so two groups never drive the words' alpha at once.
+withTree(T .. "a person swap during the reveal", ANNA_BERT, function(ns, scenario)
+	local r = upIn(ns, scenario, "glass")
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	Mock.advance(1)
+	FT.settle()
+	if not comeUp(ns) then fail(scenario, "SKIPPED -- the panel did not come up") return end
+	Mock.advance(0.1)
+	if not r.reveal._playing then fail(scenario, "SKIPPED -- the words were not still arriving 0.1 s in") return end
+	local mark = #FT.log
+	owe(ns, "Bert Beside")
+	ns.BlockPerson("Anna Aim")
+	ns.owed["Anna Aim"] = nil
+	ns.addon:Tick()
+	local swapAt, stopAt
+	for i = mark + 1, #FT.log do
+		local e = FT.log[i]
+		if e.group == r.textLayer.swap and e.what == "play" and not swapAt then swapAt = i end
+		if e.group == r.reveal and e.what == "stop" and not stopAt then stopAt = i end
+	end
+	if not swapAt then fail(scenario, "SKIPPED -- the new person did not swap the words") return end
+	if r.reveal._playing then fail(scenario, "the swap left the words' reveal running") end
+	if not stopAt or stopAt > swapAt then
+		fail(scenario, "the reveal was not let go before the swap began, so two groups drive the words at once")
+	end
+end)

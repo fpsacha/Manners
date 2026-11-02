@@ -48,6 +48,63 @@ mutate(EFFECTS,
        "panel-material: the gold lingers under a cursor that left",
        expect="panel-material: hover leaves in 0.18 s", script=S)
 
+# The enter's end not put on the texture: the gold fades up for 0.12 s and
+# falls back to its base of nothing while the cursor stays.
+mutate(EFFECTS,
+       "\t\tR.bezelHover:SetAlpha(1)\n",
+       "",
+       "panel-material: the gold falls back at the end of its fade up",
+       expect="panel-material: hover leaves in 0.18 s", script=S)
+
+# The tooltip or Shift asking again with the cursor still there restarts the
+# fade, from wherever the client left the texture.
+mutate(EFFECTS,
+       "\tif t.goal == goal or (goal == 0 and not t.goal) then return end\n",
+       "",
+       "panel-material: a repeated arrival restarts the gold",
+       expect="panel-material: hover leaves in 0.18 s", script=S)
+
+# A cursor that leaves part way up lets go from nothing, not from where it was.
+mutate(EFFECTS,
+       "\tlocal from = BezelLevel(t)\n",
+       "\tlocal from = 0\n",
+       "panel-material: the gold lets go from nothing",
+       expect="panel-material: hover leaves mid-enter from where it got", script=S)
+
+# A look from Looks/ taking the panel leaves the cursor's state behind, so the
+# first arrival after it is taken for a cursor already there.
+mutate(PANEL,
+       "\tR.bezelHover.level, R.bezelHover.goal, R.bezelHover.start = 0, nil, nil\n",
+       "",
+       "panel-material: the gold remembers the cursor through a look",
+       expect="panel-material: hover lifts again after a look from Looks/", script=S)
+
+# The lift as no lift: the bezel's own colour again under the cursor.
+mutate(PANEL,
+       "\tlocal hr, hg, hb = Tint(mr, mg, mb, HOVER_LIFT)\n",
+       "\tlocal hr, hg, hb = Tint(mr, mg, mb, 0)\n",
+       "panel-material: the bezel's lift shows nothing",
+       expect="panel-material: the bezel wears the reason colour and the icon's shape", script=S)
+
+# The cursor's hooks on the prompt: arriving and leaving ask the built-in
+# looks' bezel for its lift, and a look from Looks/ is never asked.
+BUTTON = "Prompt/Button.lua"
+mutate(BUTTON,
+       "\t\tif not S.activeLook then Prompt:HoverBezel(true) end\n",
+       "\t\tif not S.activeLook then end\n",
+       "panel-material: the cursor arriving does not lift the bezel",
+       expect="panel-material: hover leaves in 0.18 s", script=S)
+mutate(BUTTON,
+       "\t\tif not S.activeLook then Prompt:HoverBezel(false) end\n",
+       "\t\tif not S.activeLook then end\n",
+       "panel-material: the cursor leaving does not let the bezel go",
+       expect="panel-material: hover leaves in 0.18 s", script=S)
+mutate(BUTTON,
+       "\t\tif not S.activeLook then Prompt:HoverBezel(true) end\n",
+       "\t\tPrompt:HoverBezel(true)\n",
+       "panel-material: a look from Looks/ lifts the bezel under it",
+       expect="the bezel's gold played under a look from Looks/", script=S)
+
 # --- the stripe --------------------------------------------------------------
 
 # The framed look refusing its stripe again.
