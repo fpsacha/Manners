@@ -621,11 +621,17 @@ withTree("panel-material: the caustic stays in the middle cell", ANNA, function(
 		return
 	end
 	local worst, where = 0, ""
+	-- All four sides: the left and right strips over the cell's height, the top
+	-- and bottom strips over its width.
+	local function probe(x, y)
+		local _, _, _, a = texel(tga, x, y)
+		if a > worst then worst, where = a, ("(%d, %d)"):format(x, y) end
+	end
 	for y = 32, 95 do
-		for _, x in ipairs({ 32, 33, 34, 35, 92, 93, 94, 95, 96 }) do
-			local _, _, _, a = texel(tga, x, y)
-			if a > worst then worst, where = a, ("(%d, %d)"):format(x, y) end
-		end
+		for _, x in ipairs({ 32, 33, 34, 35, 92, 93, 94, 95, 96 }) do probe(x, y) end
+	end
+	for x = 32, 96 do
+		for _, y in ipairs({ 32, 33, 34, 35, 92, 93, 94, 95 }) do probe(x, y) end
 	end
 	if worst > 0 then
 		fail(scenario, ("the caustic reaches the middle cell's edge: alpha %.3f at %s"):format(worst, where))

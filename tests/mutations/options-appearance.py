@@ -89,9 +89,9 @@ mutate("Options/Look.lua",
 
 # Colour marker back above the colours, where it sat before.
 mutate("Options/Look.lua",
-       "\t\t\t\tdesc = L[\"Framed panels have no stripe.\"],\n"
+       "\t\t\t\tdesc = L[\"Where the reason's colour is drawn.\"],\n"
        "\t\t\t\torder = 26,\n",
-       "\t\t\t\tdesc = L[\"Framed panels have no stripe.\"],\n"
+       "\t\t\t\tdesc = L[\"Where the reason's colour is drawn.\"],\n"
        "\t\t\t\torder = 22.5,\n",
        "look: Colour marker out of order",
        expect="is out of order", script=S)
@@ -103,6 +103,13 @@ mutate("Options/Look.lua",
        " .. \"\\n\\n|cff888888Whoever I have targeted comes first.|r\"\n",
        "look: grey target sentence kept",
        expect="still carries the grey target sentence", script=S)
+
+# The dead-marker note back to describing a ring the look no longer draws.
+mutate("Options/Look.lua",
+       "L[\"There is nothing left to colour: the marker sits on the icon, which is switched off.\"]",
+       "L[\"There is nothing left to colour: the ring is drawn behind the icon, which is switched off.\"]",
+       "look: dead-marker note describes the old ring",
+       expect="the note describes a ring or a framed look", script="runscenarios.py")
 
 # --- dropdown order ---
 

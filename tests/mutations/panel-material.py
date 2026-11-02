@@ -116,13 +116,21 @@ mutate(PANEL,
 
 # --- the art -----------------------------------------------------------------
 
-# The caustic's first band drawn with its centre at texel 20, in the top edge
-# strip: the fade keeps it out of the middle cell, where nothing is left.
+# The fade that keeps the caustic off the stretched edge strips taken away: it
+# reaches the middle cell's edge and the stretch smears it across the panel.
+mutate(GEN,
+       "CAUSTIC_FADE = 4 ",
+       "CAUSTIC_FADE = 0 ",
+       "panel-material: the caustic leaves the middle cell",
+       expect="panel-material: the caustic stays in the middle cell", script=S)
+
+# The caustic's first band moved off where the shipped file has it: the file
+# that ships no longer matches what the generator draws.
 mutate(GEN,
        "CAUSTIC_BANDS = ((0.30, 0.10, 0.10), (0.55, 0.06, 0.06))\n",
        "CAUSTIC_BANDS = ((-0.1875, 0.10, 0.10), (0.55, 0.06, 0.06))\n",
-       "panel-material: the caustic leaves the middle cell",
-       expect="panel-material: the caustic stays in the middle cell", script=S)
+       "panel-material: the caustic band moves off the shipped file",
+       expect="panel-material: the generator draws the same bytes twice and what ships", script=S)
 
 # The pane's noise seeded from nowhere: a different file every run.
 mutate(GEN,

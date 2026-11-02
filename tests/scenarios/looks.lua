@@ -375,6 +375,11 @@ end)
 -- Switching looks leaves nothing of the old one on screen, and gives back
 -- what it borrowed, whichever way and however often.
 withTree("switching looks leaves no region of the old one showing", ANNA, function(ns, scenario)
+	-- What the glass look's button highlight is before Luxe has been up.
+	upIn(ns, scenario, "glass")
+	local glassHl = ns.Prompt:GetButton():GetHighlightTexture()
+	local glassLift = glassHl and glassHl._color and glassHl._color[4]
+	if not (glassLift and glassLift > 0) then fail(scenario, "the glass look's highlight has no lift to compare with") end
 	local r, p = upIn(ns, scenario, "luxe", function(pp) pp.roundIcon = true end)
 	local luxe = r.look
 	if not (luxe and luxe.own) then
@@ -436,7 +441,7 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 				fail(scenario, "the framed panel did not come back after Luxe")
 			end
 			local hl = ns.Prompt:GetButton():GetHighlightTexture()
-			if hl and hl._color and not near(hl._color[4], 0.03) then
+			if glassLift and hl and hl._color and not near(hl._color[4], glassLift) then
 				fail(scenario, "the button's highlight stayed off after Luxe")
 			end
 		else

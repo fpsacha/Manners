@@ -320,7 +320,7 @@ do
 			end
 		end
 		local descs = {
-			accentMode = "Framed panels have no stripe.",
+			accentMode = "Where the reason's colour is drawn.",
 			flashStyle = "Needs the icon, the stripe or Full animations.",
 			effects = "Calm drops the light sweep, the shake and the fade-out.",
 			soundEnabled = "When a new person appears on the prompt.",

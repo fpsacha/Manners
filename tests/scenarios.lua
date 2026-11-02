@@ -7805,8 +7805,11 @@ if ns then
 				.. " does not say so")
 		end
 		local said = note.name and note.name() or ""
-		if not tostring(said):lower():find("icon", 1, true) then
+		if not (tostring(said):lower():find("icon", 1, true) and tostring(said):find("switched off", 1, true)) then
 			fail(scenario, "the note does not name the setting that took the bezel away: " .. said)
+		end
+		if tostring(said):lower():find("ring", 1, true) or tostring(said):lower():find("framed", 1, true) then
+			fail(scenario, "the note describes a ring or a framed look without a stripe, which are not what happens: " .. said)
 		end
 
 		-- The stripe is drawn on every look Prompt/Panel.lua draws, the framed

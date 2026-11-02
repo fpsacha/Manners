@@ -44,6 +44,13 @@ _m(FORGE,
    "ICON_FRAME changed in the Lua only",
    expect="ICON_FRAME is 0.70 in the Lua")
 
+# A round icon whose sweep keeps the square texture.
+_m(FORGE,
+   "cooldown:SetSwipeTexture(round and maskFile or WHITE)",
+   "cooldown:SetSwipeTexture(WHITE)",
+   "the round icon's sweep keeps a square swipe",
+   expect="the round icon's sweep is")
+
 # --- motion ----------------------------------------------------------------
 
 # The sparks let fly whatever the lines leave them: the gate replaced by true.

@@ -816,10 +816,16 @@ withTree("look-forge: the cooldown swipe follows the round switch", ANNA, functi
 	ns.Prompt:SyncCooldown()
 	if r.cooldown._circular ~= true then fail(scenario, "the sweep's edge is not round with a round icon") end
 	if not look.masked then fail(scenario, "a round icon wears no mask") end
+	if tostring(r.cooldown._swipeTexture) ~= ART .. "MaskRd" then
+		fail(scenario, "the round icon's sweep is " .. tostring(r.cooldown._swipeTexture) .. ", not the round mask")
+	end
 	p.roundIcon = false
 	ns.Prompt:ApplyStyle()
 	if r.cooldown._circular ~= false then fail(scenario, "the sweep's edge stayed round after the icon was squared") end
 	if look.masked then fail(scenario, "a square icon still wears the round mask") end
+	if tostring(r.cooldown._swipeTexture) ~= "Interface\\Buttons\\WHITE8X8" then
+		fail(scenario, "the squared icon's sweep is " .. tostring(r.cooldown._swipeTexture) .. ", not the plain square")
+	end
 end)
 
 withTree("look-forge: the hover fades in 0.12 s and out in 0.18 s and parks", ANNA, function(ns, scenario)

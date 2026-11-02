@@ -270,7 +270,7 @@ function Page.BuildLookTab()
 			accentMode = {
 				type = "select",
 				name = L["Colour marker"],
-				desc = L["Framed panels have no stripe."],
+				desc = L["Where the reason's colour is drawn."],
 				order = 26,
 				values = {
 					icon = L["Ring around the icon"],
@@ -287,39 +287,19 @@ function Page.BuildLookTab()
 				type = "description",
 				order = 26.5,
 				hidden = function() return not AccentDead() end,
-				-- Every carrier the mode asked for and did not get, not just
-				-- the first. Each combination is a sentence of its own,
-				-- because a list joined with ", and" is English grammar a
-				-- translation cannot rearrange.
+				-- Only one thing can leave the colour with nowhere to go now:
+				-- the icon switched off while the marker is on the icon. Every
+				-- look draws its stripe, and the bezel stays round a rounded
+				-- icon.
 				name = function()
 					local p = P()
 					local mode = p.accentMode or "icon"
-					local ring
-					if mode == "icon" or mode == "both" then
-						if not p.showIcon then
-							ring = "hidden"
-						elseif p.roundIcon then
-							ring = "round"
-						end
+					if (mode == "icon" or mode == "both") and not p.showIcon then
+						return "|cffffd100" .. L["There is nothing left to colour: the marker sits on the icon, which is switched off."] .. "|r"
 					end
-					local stripe = (mode == "stripe" or mode == "both") and p.style == "framed"
-					local text
-					if ring == "hidden" and stripe then
-						text = L["There is nothing left to colour: the ring is drawn behind the icon, which is switched off, and the framed look has no stripe."]
-					elseif ring == "round" and stripe then
-						text = L["There is nothing left to colour: rounding the icon off replaces the ring with a mask, and the framed look has no stripe."]
-					elseif ring == "hidden" then
-						text = L["There is nothing left to colour: the ring is drawn behind the icon, which is switched off."]
-					elseif ring == "round" then
-						text = L["There is nothing left to colour: rounding the icon off replaces the ring with a mask."]
-					elseif stripe then
-						text = L["There is nothing left to colour: the framed look has no stripe."]
-					else
-						-- Nothing was lost, so the notice is hidden and
-						-- has nothing to say.
-						return ""
-					end
-					return "|cffffd100" .. text .. "|r"
+					-- Nothing was lost, so the notice is hidden and has
+					-- nothing to say.
+					return ""
 				end,
 			},
 
@@ -605,8 +585,8 @@ function Page.BuildLookTab()
 					return "|cffffd100" .. text .. "|r"
 				end,
 			},
-			-- The mask that rounds the icon replaces the ring behind it;
-			-- accentDead says so when that leaves the marker nowhere.
+			-- The round mask keeps the bezel (it has a round twin), so rounding
+			-- the icon never leaves the marker nowhere.
 			roundIcon = {
 				type = "toggle",
 				name = L["Round the icon off"],
