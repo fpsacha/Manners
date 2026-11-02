@@ -272,6 +272,7 @@ local CASES = {
 	{ style = "arcane", width = 80, height = 36, font = 24 },
 	{ style = "toast", width = 140, height = 120, font = 13 },
 	{ style = "letter", width = 80, height = 36, font = 24 },
+	{ style = "forge", width = 80, height = 36, font = 24 },
 }
 for _, case in ipairs(CASES) do
 	local scenario = ("hunt33-layout: the name has room at %dx%d, %d pt, in %s"):format(case.width, case.height, case.font, case.style)

@@ -115,12 +115,17 @@ local function groupsOf(r)
 		g.arrive = { look.lockAnim, look.runeFlareAnim }
 		g.land[#g.land + 1] = look.runeFlareAnim
 		g.land[#g.land + 1] = look.checkAnim
+	elseif look.key == "forge" then
+		g.arrive = { look.heatAnim }
+		g.land[#g.land + 1] = look.hotAnim
+		g.reject[#g.reject + 1] = look.steamAnim
 	end
 	return g
 end
 
 -- Leather joins the looks asked every question here.
 ALL[#ALL + 1] = "leather"
+ALL[#ALL + 1] = "forge"
 
 local function snapshot(g)
 	return { arrive = total(g.arrive), land = total(g.land), reject = total(g.reject),
