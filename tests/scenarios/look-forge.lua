@@ -824,8 +824,8 @@ end)
 -- together two units apart were one white blob for the first 0.12 s of every
 -- landing. Each spark is lit as it leaves (its light and its flight start
 -- together), no two leave within 0.03 s of each other or from within 2.5 units
--- of each other, the last is out by the landing's 0.7 s, and none runs into
--- another in flight.
+-- of each other, the last is out by the landing's 0.7 s, none runs into
+-- another in flight, and no two land within 1.5 units of each other.
 withTree("look-forge: the sparks set off one after another", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if skipped(scenario, look) then return end
@@ -855,12 +855,20 @@ withTree("look-forge: the sparks set off one after another", ANNA, function(ns, 
 			if FT.groupLength(g) > 0.7 - 1e-6 then
 				fail(scenario, ("%s: spark %d is out at %.3f s, past the landing's 0.7"):format(size.name, i, FT.groupLength(g)))
 			end
+			local ox, oy = move:GetOffset()
 			born[i] = { at = leaves, x = (box[1] + box[3]) / 2, y = (box[2] + box[4]) / 2 }
+			born[i].landX, born[i].landY = born[i].x + ox, born[i].y + oy
 		end
 		for i = 1, #born do
 			for j = i + 1, #born do
 				local a, b = born[i], born[j]
 				judged = judged + 1
+				-- Where they come down: real sparks scatter as they cool.
+				local landed = math.sqrt((a.landX - b.landX) ^ 2 + (a.landY - b.landY) ^ 2)
+				if landed < 1.5 - 1e-6 then
+					fail(scenario, ("%s: sparks %d and %d land %.2f units apart, under 1.5: the spray dies in a knot, they land on one place"):format(
+						size.name, i, j, landed))
+				end
 				if math.abs(a.at - b.at) < 0.03 - 1e-6 then
 					fail(scenario, ("%s: sparks %d and %d set off %.3f s apart, under 0.03: born as one"):format(size.name, i, j, math.abs(a.at - b.at)))
 				end

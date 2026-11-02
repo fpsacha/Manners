@@ -708,7 +708,9 @@ function Forge:Apply(p, above)
 	-- first thrown flies furthest and each after it a little shorter, so a
 	-- spark that leaves later never runs into one already in flight (when
 	-- each flew further than the last, the late ones caught the early ones up
-	-- and the six met in one bright knot 0.15 to 0.25 s in).
+	-- and the six met in one bright knot 0.15 to 0.25 s in). Each also lands
+	-- two units short of the one before, so the spray scatters as it cools
+	-- instead of closing on one point.
 	local block = fs + 2 + sub
 	self.block = block
 	local twoLine = p.showSub and H >= Forge.TwoLineHeight(fs)
@@ -719,7 +721,7 @@ function Forge:Apply(p, above)
 		local k = i - 1
 		local x = (showIcon and bezelRight or TEXT_X_BARE) - 2 + 3 * k
 		At(f, art, x, H - (strapTop + 0.5), 3, 3)
-		local run = math.min(38 - 3 * k, W - 2 - x - 1.5)
+		local run = math.min(46 - 5 * k, W - 2 - x - 1.5)
 		if run < 4 then sparksOK = false end
 		self.sparkAnims[i].move:SetOffset(math.max(0, run), dys[i])
 		self.sparks[i]:SetVertexColor(1.00, 0.80, 0.45, 1)

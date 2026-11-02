@@ -284,10 +284,19 @@ _m(FORGE,
 # Each spark thrown further than the last again: the late ones catch the
 # early ones up and the six meet in one bright knot 0.15 to 0.25 s in.
 _m(FORGE,
-   "\t\tlocal run = math.min(38 - 3 * k, W - 2 - x - 1.5)\n",
+   "\t\tlocal run = math.min(46 - 5 * k, W - 2 - x - 1.5)\n",
    "\t\tlocal run = math.min(22 + 3 * k, W - 2 - x - 1.5)\n",
    "each spark thrown further than the last",
    expect="the burst knots up")
+
+# Every spark landing on the same point: born three units apart, each flying
+# three units shorter than the last, the six close on one place and the spray
+# dies in a dim knot.
+_m(FORGE,
+   "\t\tlocal run = math.min(46 - 5 * k, W - 2 - x - 1.5)\n",
+   "\t\tlocal run = math.min(38 - 3 * k, W - 2 - x - 1.5)\n",
+   "the sparks all land on one point",
+   expect="land on one place")
 
 # The sparks' flights stretched so the last is still out past the landing's
 # 0.7 s.
