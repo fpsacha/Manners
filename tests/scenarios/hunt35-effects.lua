@@ -83,12 +83,18 @@ local function groupsOf(r)
 	local rings = { fx.rings[1].land, fx.rings[2].land }
 	g.reject = { fx.rings[1].reject }
 	g.land = { rings[1], rings[2], r.settle }
+	-- The stripe's sweep slides, so Calm must do without it; it is the three
+	-- looks drawn here that own it, and under a look of its own it never plays.
+	g.sweep = { r.sweep and r.sweep.anim }
 	if not look then
-		g.arrive = { r.fx.echo.drop, r.burst.arrive }
+		-- A favour arriving runs a glint along each rule of light as well.
+		g.arrive = { r.fx.echo.drop, r.burst.arrive, r.glints[1].run, r.glints[2].run }
 		g.land[#g.land + 1] = r.burst.anim
 		g.land[#g.land + 1] = r.shine.anim
 		g.reject[#g.reject + 1] = r.burst.reject
-		g.intro, g.introCalm = { r.intro }, { r.introCalm }
+		-- The entrance draws the two rules out from the icon and holds the
+		-- words back a beat: all of it is the rise's, and Calm has none of it.
+		g.intro, g.introCalm = { r.intro, r.rules[1].draw, r.rules[2].draw, r.reveal }, { r.introCalm }
 		return g
 	end
 	g.intro, g.introCalm = { r.intro }, { r.introCalm }
@@ -125,7 +131,7 @@ ALL[#ALL + 1] = "leather"
 local function snapshot(g)
 	return { arrive = total(g.arrive), land = total(g.land), reject = total(g.reject),
 		shake = total(g.shake), ring = plays(g.land[1]), ring2 = plays(g.land[2]), refuseRing = plays(g.reject[1]),
-		settle = plays(g.land[3]), intro = total(g.intro), introCalm = total(g.introCalm) }
+		settle = plays(g.land[3]), intro = total(g.intro), introCalm = total(g.introCalm), sweep = total(g.sweep) }
 end
 
 -- ------------------------------------------------------------------ 1
@@ -255,7 +261,7 @@ for _, style in ipairs(ALL) do
 		Mock.advance(1)
 		ns.Prompt:ShowOutcome("sent", "Anna Aim")
 		local s1 = snapshot(g)
-		for _, key in ipairs({ "arrive", "land", "reject", "shake", "settle", "intro" }) do
+		for _, key in ipairs({ "arrive", "land", "reject", "shake", "settle", "intro", "sweep" }) do
 			if s1[key] ~= s0[key] then
 				fail(scenario, "with Effects on Calm the " .. key .. " still played")
 			end
@@ -463,7 +469,8 @@ withTree("hunt35-effects: the effects stay inside their times", ANNA, function(n
 		within({ g.reject[1] }, 0.35, "a refusal's ring")
 		within(g.reject, 0.5, "a refusal's effect")
 		if style == "glass" or style == "framed" or style == "minimal" then
-			within({ r.fx.echo.drop, r.burst.arrive, r.intro }, 0.5, "the arrival")
+			within({ r.fx.echo.drop, r.burst.arrive, r.intro, r.rules[1].draw, r.rules[2].draw, r.reveal }, 0.5,
+				"the arrival")
 			within(g.land, 0.7, "a landing")
 		end
 		-- The breath, round.

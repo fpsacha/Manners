@@ -548,6 +548,29 @@ R.states = {
 	{ key = "large", title = "Scale 1.6", at = 0.85, setup = withPrompt(function(p)
 		p.scale = 1.6
 	end) },
+	-- The prompt coming up for a favour: the two rules of light drawing out
+	-- from the icon along the panel's edges while it rises, the words a beat
+	-- behind (Prompt/Effects.lua, PlayIntro). The panel is taken down and
+	-- brought back by the next scan so the entrance is the last thing done;
+	-- --strip 0.05,0.15,0.30,0.60 is the film of it.
+	{ key = "entrance", title = "The prompt coming up", at = 0.12, setup = function(ns)
+		boot(ns, OWED)
+		owe(ns, ANNA)
+		tick(ns)
+		Mock.advance(2)
+		FrameTree.settle()
+		ns.Prompt:GetButton():Hide()
+		ns.addon:Tick()
+	end },
+	-- The same for a stranger, in the grey of a passer-by's reason.
+	{ key = "entrance-stranger", title = "The prompt coming up for a stranger", at = 0.12, setup = function(ns)
+		boot(ns, STRANGER)
+		tick(ns)
+		Mock.advance(2)
+		FrameTree.settle()
+		ns.Prompt:GetButton():Hide()
+		ns.addon:Tick()
+	end },
 }
 
 -- Any extra states a newer addon adds, by key, so an old and a new tree can be

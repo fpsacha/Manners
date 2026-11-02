@@ -164,7 +164,7 @@ mutate(F,
        expect="selftest-launch: tiling: a span that is not kept reads CHECK", script=S)
 
 mutate(F,
-       "\telseif #missing > 0 or #made < 4 then\n",
+       "\telseif #missing > 0 or #made < 5 then\n",
        "\telseif false then\n",
        "selftest-launch: an animation setting that is missing passes",
        expect="selftest-launch: animations: a setting the client lacks reads CHECK", script=S)

@@ -5,7 +5,7 @@
     python tools/make-glow.py --sheet OUT.png  # and a contact sheet
 
 Writes Textures/Glow.tga, GlowRound.tga, Ring.tga, RingSq.tga, Sweep.tga,
-Gloss.tga and Bevel.tga, which ship in the zip. Deterministic: numpy and
+Gloss.tga, Bevel.tga, Rule.tga and Glint.tga, which ship in the zip. Deterministic: numpy and
 Pillow, no noise and no clock, so run it twice with the same PARAMS and the
 files are byte for byte the same. Every number that shapes the art is in
 PARAMS, and nowhere else.
@@ -40,6 +40,16 @@ one set serves all six reasons, both palettes and a custom marker colour.
                         texels to the unit): the glass's inner bevel, a lit line a
                         unit wide along the top and down the sides and shade along
                         the bottom, each soft towards the inside.
+  Rule          128x8   A rule of light: a soft line through the middle of the
+                        file (a Gaussian core, brightest between rows 3 and 4,
+                        nothing at the top and bottom rows), its two ends fading
+                        over the first and last texels so a rule stretched along
+                        a panel's edge never ends hard. The prompt draws two of
+                        them out from the icon when it comes up.
+  Glint         64x16   The spark that runs a rule when a favour arrives: a thin
+                        bright leading edge at 0.90 of the width, a tail behind
+                        it rising from nothing to half strength, nothing ahead
+                        of it; the Rule's profile top to bottom.
 
 Needs numpy and Pillow.
 """
@@ -76,6 +86,13 @@ PARAMS = {
     # The bevel: the lit line's and the shade's strength, and how far in each
     # softens, in texels of the 32-texel file.
     "bevel_lit": 0.27, "bevel_side": 0.12, "bevel_shade": 0.42, "bevel_soft": 4.0,
+    # The rule of light: its core's sigma, in texels of the 8-texel file, and
+    # how many texels each end fades over.
+    "rule_core": 1.1, "rule_end_fade": 6,
+    # The glint that runs it: where its leading edge sits across the file, how
+    # wide the edge is, the tail's strength at the edge, and where the tail
+    # starts from nothing.
+    "glint_edge_at": 0.90, "glint_edge_w": 0.03, "glint_tail": 0.55, "glint_tail_end": 0.10,
 }
 
 written = []
@@ -217,6 +234,43 @@ def sweep(out):
     save(out, "Sweep", 1.0, a)
 
 
+def rule_profile(yy, centre, sigma):
+    """The rule's cross-section: a Gaussian about `centre`, in texel rows."""
+    return np.exp(-((yy - centre) / sigma) ** 2)
+
+
+def rule(out):
+    w, h = 128, 8
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
+    # Brightest between rows 3 and 4, nothing left at rows 0 and 7.
+    a = rule_profile(yy, (h - 1) / 2, PARAMS["rule_core"])
+    # Soft ends, so a rule stretched along a panel's edge never stops dead.
+    fade = PARAMS["rule_end_fade"]
+    cx = xx + 0.5
+    a *= smooth(cx / fade) * smooth((w - cx) / fade)
+    save(out, "Rule", 1.0, a)
+
+
+def glint(out):
+    w, h = 64, 16
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
+    u = (xx + 0.5) / w
+    at, ew = PARAMS["glint_edge_at"], PARAMS["glint_edge_w"]
+    # The leading edge: thin and full.
+    edge = np.exp(-((u - at) / ew) ** 2)
+    # The tail: from nothing at glint_tail_end up to glint_tail at the edge,
+    # and let go softly just past it, so nothing runs ahead of the edge.
+    start = PARAMS["glint_tail_end"]
+    rising = PARAMS["glint_tail"] * np.clip((u - start) / (at - start), 0.0, 1.0)
+    behind = PARAMS["glint_tail"] * (1.0 - smooth((u - at) / (1.0 - at)))
+    tail = np.where(u <= at, rising, behind)
+    a = np.clip(np.maximum(edge, tail), 0.0, 1.0)
+    # The Rule's profile, scaled to the sixteen rows.
+    a *= rule_profile(yy, (h - 1) / 2, PARAMS["rule_core"] * h / 8)
+    a *= smooth((w - xx - 0.5) / 2.0)
+    save(out, "Glint", 1.0, a)
+
+
 def gloss(out):
     w, h = 128, 64
     xx, yy = grid(w, h)
@@ -251,7 +305,7 @@ def bevel(out):
 def make(out):
     os.makedirs(out, exist_ok=True)
     del written[:]
-    for make_one in (glow, glow_round, ring, ring_sq, sweep, gloss, bevel):
+    for make_one in (glow, glow_round, ring, ring_sq, sweep, gloss, bevel, rule, glint):
         make_one(out)
     return list(written)
 

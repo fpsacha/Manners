@@ -3,8 +3,12 @@
 -- out after the last buff, the cooldown sweep and the dim for a fight.
 --
 -- Every gesture means one thing and moves one way:
+--   * the panel COMING UP unfurls (the three looks drawn here): it rises as
+--     two rules of light draw out from the icon along its top and bottom
+--     edges, and the words arrive a beat behind them (under 0.5 s);
 --   * a favour ARRIVING converges: the icon's echo drops onto it and a bloom
---     of the reason's light gathers round its ring (under 0.5 s);
+--     of the reason's light gathers round its ring, and a glint runs the two
+--     rules from the icon to the panel's end (under 0.5 s);
 --   * a buff LANDING radiates: rings spread from the icon, a band of the
 --     reason's light crosses the panel, the glow flares, the panel settles
 --     (under 0.7 s);
@@ -47,11 +51,15 @@ local function Alpha(group, from, to, duration, order, delay, smoothing)
 	return a
 end
 
-local function Grow(group, from, to, duration, order, delay, smoothing)
+-- Both axes alike, about the middle, unless the trailing arguments say
+-- otherwise: `fromY` and `toY` give the vertical scale its own ends (a rule
+-- drawn out along one axis keeps its thickness: 1, 1), and `origin` the point
+-- it grows about ("LEFT": out from its left end).
+local function Grow(group, from, to, duration, order, delay, smoothing, fromY, toY, origin)
 	local a = group:CreateAnimation("Scale")
-	if a.SetScaleFrom then a:SetScaleFrom(from, from) end
-	if a.SetScaleTo then a:SetScaleTo(to, to) end
-	if a.SetOrigin then a:SetOrigin("CENTER", 0, 0) end
+	if a.SetScaleFrom then a:SetScaleFrom(from, fromY or from) end
+	if a.SetScaleTo then a:SetScaleTo(to, toY or to) end
+	if a.SetOrigin then a:SetOrigin(origin or "CENTER", 0, 0) end
 	a:SetDuration(duration)
 	a:SetOrder(order or 1)
 	if delay and delay > 0 and a.SetStartDelay then a:SetStartDelay(delay) end
@@ -465,6 +473,46 @@ function Prompt:BuildAnimations()
 	Park(shine, R.shineFrame)
 	R.shineFrame.anim = shine
 
+	-- The entrance's two rules of light, each drawing itself out from the icon
+	-- to the panel's right edge while the panel rises (the level-up banner): a
+	-- quick lift, then the rule grows along its length only, about its left
+	-- end, and dies as the words arrive. 0.46 s in all, parked at nothing.
+	for _, rule in ipairs({ R.ruleTop, R.ruleBottom }) do
+		local draw = rule:CreateAnimationGroup()
+		Alpha(draw, 0, 0.95, 0.04, 1)
+		Grow(draw, 0.04, 1, 0.26, 2, 0, "OUT", 1, 1, "LEFT")
+		Alpha(draw, 0.95, 0.95, 0.26, 2)
+		Alpha(draw, 0.95, 0, 0.16, 3, 0, "IN")
+		Park(draw, rule)
+		rule.draw = draw
+	end
+
+	-- The words, held back a beat while the rules draw and then brought in:
+	-- full at 0.24 s, a shade after the panel has landed. Ends at full, so
+	-- nothing parks it; the stops that cut it short put the words at full.
+	local reveal = R.textLayer:CreateAnimationGroup()
+	Alpha(reveal, 0, 0, 0.08, 1)
+	Alpha(reveal, 0, 1, 0.16, 2, 0, "OUT")
+	R.textLayer.reveal = reveal
+
+	-- A favour arriving: a glint runs each rule from the icon to the panel's
+	-- end, fading over the second half of its run. 0.38 s. The two share one
+	-- flag, S.glintPlaying, read by the scan: raised as either starts, dropped
+	-- when neither is left running.
+	local function glintDone()
+		if not (Playing(R.glintTop.run) or Playing(R.glintBottom.run)) then S.glintPlaying = nil end
+	end
+	for _, glint in ipairs({ R.glintTop, R.glintBottom }) do
+		local run = glint:CreateAnimationGroup()
+		Alpha(run, 0, 1, 0.04, 1)
+		run.move = Slide(run, 0, 0, 0.34, 2, 0, "OUT")
+		Alpha(run, 1, 0, 0.20, 2, 0.14, "IN")
+		run:SetScript("OnPlay", function() S.glintPlaying = true end)
+		run:SetScript("OnFinished", function() glint:SetAlpha(0) glintDone() end)
+		run:SetScript("OnStop", function() glint:SetAlpha(0) glintDone() end)
+		glint.run = run
+	end
+
 	-- A refusal: the text shakes its head, the shakes dying away (they sum to
 	-- nothing, and the group's end puts it home).
 	local shake = R.textLayer:CreateAnimationGroup()
@@ -544,12 +592,39 @@ function Prompt:ReapplyCombatDim()
 	if combatHeld then RestArtAlpha() end
 end
 
+-- The colour the entrance's rules are drawn in: the reason's, taken a third
+-- of the way to white, or plain light with accents off.
+local function RuleColour(self, p)
+	if (p.accentMode or "icon") == "off" then return 1, 1, 1 end
+	local r, g, b = self:AccentColor(S.current and S.current.reason or "owed")
+	return Tint(r, g, b, 0.35)
+end
+
 -- The entrance: the full one lands, Calm's fades. Played where the panel
--- comes up.
+-- comes up. On the three looks drawn here the full one also holds the words
+-- back a beat and draws the two rules of light out from the icon in the
+-- reason's colour; a look from Looks/ gets the rise alone, as before.
 function Prompt:PlayIntro()
 	if not R.art.intro then return end
 	if FullEffects() then
 		R.art.introCalm:Stop()
+		if not S.activeLook and R.ruleTop and R.ruleTop.draw then
+			-- A panel coming back part-way through a settle or a fade: those
+			-- are let go first, so the rise starts from rest.
+			if R.art.settle:IsPlaying() then R.art.settle:Stop() end
+			if R.art.outro:IsPlaying() then R.art.outro:Stop() end
+			R.art.intro:Play()
+			R.textLayer.reveal:Stop()
+			R.textLayer.reveal:Play()
+			local r, g, b = RuleColour(self, ns.db.profile.prompt)
+			local k = S.ruleStrength or 1
+			for _, rule in ipairs({ R.ruleTop, R.ruleBottom }) do
+				rule.band:SetVertexColor(r, g, b, k)
+				rule.draw:Stop()
+				rule.draw:Play()
+			end
+			return
+		end
 		R.art.intro:Play()
 	else
 		R.art.intro:Stop()
@@ -603,8 +678,15 @@ end
 -- flash that belonged to the last thing on the panel.
 function Prompt:StopFlourishes()
 	for _, g in ipairs({ R.burstFrame.anim, R.burstFrame.arrive, R.burstFrame.reject, R.shineFrame.anim,
-		R.textLayer.shake, R.art.settle }) do
+		R.textLayer.shake, R.art.settle, R.ruleTop.draw, R.ruleBottom.draw }) do
 		if g and g:IsPlaying() then g:Stop() end
+	end
+	-- The words' reveal as well, and the words at full: on the three looks
+	-- drawn here only. Under a look from Looks/ textLayer's alpha is the look's
+	-- own (its fight dim), and a flourish must leave it where the look put it.
+	if not S.activeLook then
+		if R.textLayer.reveal and R.textLayer.reveal:IsPlaying() then R.textLayer.reveal:Stop() end
+		R.textLayer:SetAlpha(1)
 	end
 	if R.fx then R.fx:Stop() end
 	if S.activeLook then S.activeLook:StopFlourishes() end
@@ -655,6 +737,13 @@ function Prompt:StopAttention()
 	-- The rim parks itself when its breath stops (OnStop), so only a breath
 	-- that is running needs the call.
 	if rim.pulse and rim.pulse:IsPlaying() then rim.pulse:Stop() end
+	-- The glints running the rules, by their one flag rather than two IsPlaying
+	-- calls: the favour they ran for has left the panel.
+	if S.glintPlaying then
+		R.glintTop.run:Stop()
+		R.glintBottom.run:Stop()
+		S.glintPlaying = nil
+	end
 	if S.activeLook then S.activeLook:StopAttention() end
 end
 
@@ -681,21 +770,25 @@ function Prompt:StartAttention(isNew, arrived)
 	end
 
 	-- The stripe's sweep first, whatever the icon is doing: it has nothing to
-	-- do with the icon.
-	if isNew and R.sweepFrame.anim and R.sweepFrame:IsShown() then
+	-- do with the icon. It slides, so Calm does without it.
+	if isNew and FullEffects() and R.sweepFrame.anim and R.sweepFrame:IsShown() then
 		R.sweepFrame.anim:Stop()
 		R.sweepFrame.anim.move:SetOffset(0, -(p.height - 14))
 		R.sweepFrame.anim:Play()
 	end
 
-	-- And the panel catches the light once as the favour is done, in the reason
-	-- colour (plain light with accents off). Never over an outcome or over
-	-- light already crossing, so a press's own confirmation is not cut off.
-	if arrived and FullEffects() and not self:OutcomeLive()
-		and not (R.shineFrame.anim and R.shineFrame.anim:IsPlaying()) then
+	-- And a glint runs the two rules of light from the icon to the panel's
+	-- end as the favour is done, in the reason colour (plain light with
+	-- accents off). Never over an outcome, so a press's own confirmation is
+	-- not cut off, and never over a run still going.
+	if arrived and FullEffects() and not self:OutcomeLive() and not S.glintPlaying and R.glintTop.run then
 		local r, g, b = ArrivalColour(self, p)
 		r, g, b = Tint(r, g, b, 0.45)
-		self:PlayShine(r, g, b, 0.20)
+		local k = 0.9 * (S.ruleStrength or 1)
+		for _, glint in ipairs({ R.glintTop, R.glintBottom }) do
+			glint.band:SetVertexColor(r, g, b, k)
+			glint.run:Play()
+		end
 	end
 
 	-- The glow is drawn around the icon, so it goes with it.
