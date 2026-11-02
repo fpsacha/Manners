@@ -46,7 +46,7 @@ end
 -- ------------------------------------------------------------------ 1
 -- The text a look writes does not depend on the panel colour when the look
 -- does not draw the panel colour as its ground.
-for _, style in ipairs({ "ribbon", "leather" }) do
+for _, style in ipairs({ "ribbon", "leather", "forge" }) do
 	local scenario = "hunt38-shared: " .. style .. " writes the same ink on a pale panel colour as on a dark one"
 	withTree(scenario, { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" } }, function(ns)
 		local saved = RAID_CLASS_COLORS

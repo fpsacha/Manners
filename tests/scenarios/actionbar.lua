@@ -512,7 +512,7 @@ end)
 -- ------------------------------------------------------------------ 10
 -- The chip fits, on every look that has one.
 do
-	local STYLES = { "arcane", "toast", "ribbon", "letter", "leather" }
+	local STYLES = { "arcane", "toast", "ribbon", "letter", "leather", "forge" }
 	local KEYS = { "PAD1", "PADRTRIGGER", "PADDUP", "SHIFT-PAD1", "CTRL-SHIFT-PAD4", "ALT-PADLSHOULDER", "SHIFT-CTRL-F" }
 
 	local function rectOf(r)

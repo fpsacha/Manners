@@ -64,6 +64,7 @@ local SIZES = {
 }
 -- Leather joins the looks asked of each size.
 ALL[#ALL + 1] = "leather"
+ALL[#ALL + 1] = "forge"
 
 local function upIn(ns, scenario, style, size)
 	freshPrompt(ns, scenario)
@@ -380,12 +381,14 @@ local RING_FILES = {
 	{ "Textures/Arcane/Arcane_RuneRingSq", "Interface\\AddOns\\Manners\\Textures\\Arcane\\Arcane_RuneRingSq" },
 	{ "Textures/Toast/Toast_RingGlow", "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_RingGlow" },
 	{ "Textures/Ribbon/Ribbon_Ring", "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Ring" },
+	{ "Textures/Forge/Forge_Ring", "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_Ring" },
+	{ "Textures/Forge/Forge_RingSq", "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_RingSq" },
 }
 
 withTree("hunt37-effects: each ring's declared reach is the reach of its art", ANNA, function(ns, scenario)
 	local lib = ns.Prompt.lib
 	-- A look registers its files when it is built.
-	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather" }) do
+	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge" }) do
 		freshPrompt(ns, scenario)
 		ns.db.profile.prompt.style = style
 		ns.Prompt:ApplyStyle()
