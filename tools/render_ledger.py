@@ -126,6 +126,7 @@ def measure(text, size):
 
 
 def load_states(addon_dir):
+    rp.draw_from(addon_dir)  # its art from the tree drawn
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
     printed = []
     lua.globals().print = lambda *a: printed.append(" ".join(str(x) for x in a))

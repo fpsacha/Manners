@@ -44,6 +44,34 @@ import lupa
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# The addon tree being drawn: where every texture and font the addon ships is
+# read from. ROOT is the tree this script and the mock come from, which is not
+# the one drawn under --addon (an older build drawn with today's renderer);
+# its Lua named its own art, and the picture is of that art. load_states sets
+# it; draw_from sets it for a tool that loads the states itself.
+ADDON = ROOT
+
+
+def draw_from(addon_dir):
+    """Read the addon's art from `addon_dir` from here on."""
+    global ADDON
+    ADDON = os.path.abspath(addon_dir or ROOT)
+
+
+def addon_file(path, extensions=("",)):
+    """The file in the tree being drawn that an addon path names
+    (Interface\\AddOns\\Manners\\Textures\\Glow, with or without an extension),
+    or None when the path is not the addon's or the tree has no such file."""
+    if not isinstance(path, str) or not re.search(r"(?i)addons[\\/]+manners[\\/]+", path):
+        return None
+    rel = re.split(r"(?i)addons[\/]+manners[\/]+", path.replace("\\", "/"))[-1]
+    base = os.path.join(ADDON, *rel.split("/"))
+    for ext in extensions:
+        if os.path.isfile(base + ext):
+            return base + ext
+    return None
+
+
 # Render resolution: pixels per UI unit, and the supersampling factor on top of
 # it. One UI unit is roughly one screen pixel at the scale most people play
 # at; two makes a hairline visible in a picture meant to be studied.
@@ -90,6 +118,7 @@ def to_py(v):
 
 
 def load_states(addon_dir, locale=None, style=None, key=None, size=None):
+    draw_from(addon_dir)
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
     printed = []
     lua.globals().print = lambda *a: printed.append(" ".join(str(x) for x in a))
@@ -346,7 +375,19 @@ SERIF_CANDIDATES = [r"C:\Windows\Fonts\georgiab.ttf", r"C:\Windows\Fonts\timesbd
                     "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", "DejaVuSerif-Bold.ttf"]
 
 
+# A face named by its path in the addon, with or without its extension.
+FONT_EXTENSIONS = ("", ".ttf", ".TTF", ".otf")
+
+
 def font_path(bold=False, face=None):
+    # A face the addon ships is read from the tree being drawn, as its art is.
+    shipped = addon_file(face, FONT_EXTENSIONS)
+    if shipped:
+        try:
+            ImageFont.truetype(shipped, 10)
+            return shipped
+        except OSError:
+            pass
     if face and "MORPHEUS" in str(face).upper():
         candidates = SERIF_CANDIDATES
     elif face and "ARIALN" in str(face).upper():
@@ -366,7 +407,9 @@ def font_path(bold=False, face=None):
 
 def get_font(size, bold=False, face=None):
     narrow = bool(face) and ("ARIALN" in str(face).upper() or "MORPHEUS" in str(face).upper())
-    key = (round(size * 4) / 4, bold, narrow, str(face).upper() if narrow else "")
+    # A face the drawn tree ships is a face of its own, not the stand-in's.
+    shipped = addon_file(face, FONT_EXTENSIONS) if face else None
+    key = (round(size * 4) / 4, bold, narrow, str(face).upper() if narrow else "", shipped or "")
     if key not in _font_cache:
         path = font_path(bold, face)
         _font_cache[key] = (ImageFont.truetype(path, max(1, int(round(size))))
@@ -431,20 +474,17 @@ _art_cache = {}
 
 def load_image_file(file):
     """An art file shipped with the addon, if the path points at one: the
-    part after AddOns/Manners/ is where it sits in the tree, subfolders
-    (Textures/Luxe/...) included."""
-    if not isinstance(file, str):
+    part after AddOns/Manners/ is where it sits in the tree being drawn
+    (ADDON), subfolders (Textures/Luxe/...) included."""
+    if not isinstance(file, str) or "Textures" not in file:
         return None
-    if "Manners" in file and "Textures" in file:
-        rel = re.split(r"(?i)addons[\/]+manners[\/]+", file.replace("\\", "/"))[-1]
-        path = os.path.join(ROOT, *rel.split("/"))
-        for candidate in (path, path + ".tga"):
-            if os.path.exists(candidate):
-                if candidate not in _art_cache:
-                    _art_cache[candidate] = np.asarray(
-                        Image.open(candidate).convert("RGBA")).astype(np.float32) / 255
-                return _art_cache[candidate]
-    return None
+    candidate = addon_file(file, ("", ".tga"))
+    if candidate is None:
+        return None
+    if candidate not in _art_cache:
+        _art_cache[candidate] = np.asarray(
+            Image.open(candidate).convert("RGBA")).astype(np.float32) / 255
+    return _art_cache[candidate]
 
 
 def art_alpha(file, w, h):

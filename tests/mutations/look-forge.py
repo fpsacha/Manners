@@ -228,12 +228,75 @@ _m(GEN,
    expect="look-forge: the plate is calm under the words")
 
 # The sparks lit as bright as when they were sub-unit dots: six heads of 1.7
-# units setting off 2 units apart add up to one white bar.
+# units in one burst add up to one white bar.
 _m(FORGE,
-   "\t\tAlpha(g, 0.75, 0, seconds, 1, 0.02 * k, \"IN\")\n",
-   "\t\tAlpha(g, 0.9, 0, seconds, 1, 0.02 * k, \"IN\")\n",
+   "\t\tAlpha(g, 0.75, 0, seconds, 1, 0.035 * k, \"IN\")\n",
+   "\t\tAlpha(g, 0.9, 0, seconds, 1, 0.035 * k, \"IN\")\n",
    "the sparks lit to 0.9 with their bigger heads",
    expect="glare as one bar")
+
+# The sparks born two units apart again: six 1.7-unit heads touching, one
+# white blob as the landing starts.
+_m(FORGE,
+   "\t\tlocal x = (showIcon and bezelRight or TEXT_X_BARE) - 2 + 3 * k\n",
+   "\t\tlocal x = (showIcon and bezelRight or TEXT_X_BARE) - 2 + 2 * k\n",
+   "the sparks born two units apart",
+   expect="look-forge: the sparks set off one after another")
+
+# The sparks leaving 0.02 s apart again: all six off in the first tenth of a
+# second, born as one.
+_m(FORGE,
+   "\t\tif move.SetStartDelay then move:SetStartDelay(0.035 * k) end\n",
+   "\t\tif move.SetStartDelay then move:SetStartDelay(0.02 * k) end\n",
+   "the sparks leaving 0.02 s apart",
+   expect="look-forge: the sparks set off one after another")
+
+# Each spark lit from the landing's first frame while it waits its turn: six
+# lit heads sit where they were born.
+_m(FORGE,
+   "\t\tAlpha(g, 0.75, 0, seconds, 1, 0.035 * k, \"IN\")\n",
+   "\t\tAlpha(g, 0.75, 0, seconds, 1, 0, \"IN\")\n",
+   "the sparks lit before they leave",
+   expect="look-forge: the sparks set off one after another")
+
+# Each spark thrown further than the last again: the late ones catch the
+# early ones up and the six meet in one bright knot 0.15 to 0.25 s in.
+_m(FORGE,
+   "\t\tlocal run = math.min(38 - 3 * k, W - 2 - x - 1.5)\n",
+   "\t\tlocal run = math.min(22 + 3 * k, W - 2 - x - 1.5)\n",
+   "each spark thrown further than the last",
+   expect="the burst knots up")
+
+# The sparks' flights stretched so the last is still out past the landing's
+# 0.7 s.
+_m(FORGE,
+   "\t\tlocal seconds = 0.30 + 0.016 * k\n",
+   "\t\tlocal seconds = 0.30 + 0.09 * k\n",
+   "the last spark out past the landing",
+   expect="past the landing's 0.7")
+
+# The square bezel's bloom back to a disc: its edge cuts across the corner
+# bolts as the landing flashes, and they stay dark outside it.
+_m(GEN,
+   "        sd = rrect(x, y, c - outer, c - outer, c + outer, c + outer, GLOW_CORNER)\n",
+   "        sd = disc(x, y, c, c, outer)\n",
+   "the square bezel's bloom drawn as a disc",
+   expect="look-forge: the bloom follows the bezel's shape")
+
+# The round bezel given the square bezel's bloom: corners of light off a
+# round bezel.
+_m(FORGE,
+   "\tlocal glowFile = round and \"BezelGlowRd\" or \"BezelGlow\"\n",
+   "\tlocal glowFile = \"BezelGlow\"\n",
+   "the round bezel wears the square bloom",
+   expect="look-forge: the bezel's bloom is held inside the plate")
+
+# The warm breath left on the file Build gave it, whatever the bezel's shape.
+_m(FORGE,
+   "\tself.bezelWarm:SetTexture(ART .. glowFile)\n",
+   "",
+   "the warm bloom never follows the bezel's shape",
+   expect="look-forge: the bezel's bloom is held inside the plate")
 
 # The spark back to a sub-unit dot with a hairline tail: under a pixel at the
 # game's scale, and the landing's sparks go unseen.

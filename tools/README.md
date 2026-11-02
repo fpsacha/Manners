@@ -643,8 +643,15 @@ is moved there and every one-shot animation that has finished by then is
 finished, so a fade that ended shows what it left, not its last frame.
 
 `--addon` draws another checkout of the addon with today's renderer, which is
-the fair way to put a before and an after side by side. Needs lupa, Pillow and
-numpy.
+the fair way to put a before and an after side by side. Every texture and
+every font the addon ships is read from the tree being drawn (`ADDON`, set by
+`load_states`; `draw_from(tree)` for a tool that loads the states itself, as
+`render_ledger.py`, `render_options.py` and `make-screenshots.py` do), never
+from this script's own checkout: drawn from here, `--addon OTHER` gives the
+same bytes as `OTHER`'s own `render_prompt.py` wherever the two scripts and
+their mocks agree. (Before 2026-11, the art came from this checkout, so an
+older build's Lua was drawn with today's textures: master's Glass came out a
+white pane, its Bevel and Gloss files gone.) Needs lupa, Pillow and numpy.
 
 It is not pixel-true. The font is Candara standing in for Friz Quadrata, spell
 icons are drawn tiles with the spell's initials, and Blizzard art files are
@@ -872,9 +879,11 @@ figure to its twin.
 
 ## make_forge_textures.py
 
-The twenty-one files of `Textures/Forge/` (the plate in three pieces, the strap,
-the bezel and its round twin and mask, the slot and its core, the tag, the
-bead, the glyphs, the heat, the spark, the steam, the rings), drawn through
+The twenty-four files of `Textures/Forge/` (the plate in three pieces, the strap,
+the bezel and its round twin and mask, the bezel's bloom in its shape -- a
+rounded square whose band takes in the corner bolts, and a disc for the round
+bezel -- and its hot rim, the slot and its core, the tag, the bead, the
+glyphs, the heat, the spark, the steam, the rings), drawn through
 `materials.py`: hammered iron under luma 0.55, the plate's mean under 0.32 so
 the words read on it, planish cells of 5 units, rivets of 2.2 and bolts of 2
 units. The plate's three pieces are lit as one strip so the middle tile wraps
