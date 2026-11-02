@@ -30,7 +30,10 @@ THE FILES (21), with the UI units they are drawn at:
                             a chamfer of 6 texels along every edge, planished.
   Forge_PlateM     128x128  the plate's middle, REPEAT-tiled along its width
                             (seamless: the planish wraps, the strip is lit as
-                            one surface). The list reuses it, darker.
+                            one surface). The hammer marks are strongest along
+                            the long edges, by the straps, and calmed in the
+                            middle rows where the words stand (PLATE_CALM).
+                            The list reuses it, darker.
   Forge_PlateR      32x128  the right end, the left's mirror.
   Forge_StrapM       64x16  one tile of the riveted strap: a raised band 4 units
                             tall with one domed rivet of 2.2 units per 16-unit
@@ -49,14 +52,17 @@ THE FILES (21), with the UI units they are drawn at:
                             corner, a dark lip of 3, and 2 of anti-aliasing.
   Forge_BezelRd    128x128  the same round.
   Forge_BezelGlow  128x128  a white hollow bloom round the bezel (drawn at
-                            GLOW_SCALE of the bezel): the second tone of the
+                            GLOW_SCALE of the bezel, held a unit inside the
+                            plate's top and bottom): the second tone of the
                             owed breath in warm white (BLEND), and the white-hot
                             flash of a landing (ADD, under 0.5 s).
   Forge_MaskRd       64x64  the icon's round shape; also the cooldown's swipe.
   Forge_Heat         32x64  three soft white wisps: the heat shimmer over the
                             slot as a favour arrives (ADD, 0.48 s).
-  Forge_Spark        16x16  a white dot with a tail: a spark thrown along the
-                            strap band when a buff lands (ADD).
+  Forge_Spark        16x16  a white head with a tail: a spark thrown along the
+                            strap band when a buff lands (ADD). Drawn on a
+                            3-unit frame, so the head is 9 texels (1.7 units)
+                            and the tail trails 2 units behind it.
   Forge_Steam        32x32  a soft grey blob: the puff as a refusal quenches the
                             slot (BLEND).
   Forge_Ring       128x128  the ring of light that spreads from the bezel when a
@@ -119,10 +125,19 @@ CUT = 12
 EDGE_W, EDGE_RISE = 6.0, 5.0
 # Planish: cell size in units, dish depth in texels.
 PLATE_CELL, PLATE_DEPTH = 5.0, 1.3
+# The words' ground: the dishes are struck full along the plate's long edges
+# (by the straps, over the chamfer) and damped by PLATE_CALM in its middle
+# rows, rising from CALM_FROM to CALM_TO design texels in from the top and the
+# bottom edge (at the default height the words run from texel 28 to 100), so
+# the lines stand on a quiet ground between two hammered rails.
+PLATE_CALM, CALM_FROM, CALM_TO = 0.7, 14.0, 38.0
 # The plate's iron is taken a little darker than the ramp: the words stand on
 # it (tests/materials_check.lua's underText holds its mean luma under 0.32).
 PLATE_TONE = 0.88
 STRAP_CELL, STRAP_DEPTH = 3.0, 0.35
+# The spark (16 texels on a 3-unit frame): its head's diameter and centre
+# along the file, and its tail's height (a Gaussian's sigma), in texels.
+SPARK_HEAD, SPARK_HEAD_X, SPARK_TAIL = 9.0, 10.5, 2.4
 TAG_CELL, TAG_DEPTH = 3.0, 0.5
 # Seeds (one per surface).
 SEED_PLATE, SEED_STRAP, SEED_BEZEL, SEED_RING, SEED_TAG, SEED_BEAD, SEED_GLYPH = 17, 19, 21, 23, 25, 27, 29
@@ -165,55 +180,6 @@ def tile_noise(w, h, seed, scale, octaves, depth):
     return (out * depth).astype(np.float32)
 
 
-def planish_seamless(height, w, h, seed, cell_units, depth, tpu):
-    """materials.planish, with the dish's tilt measured from the cell's WRAPPED
-    centre. The shared stamp wraps its Voronoi round the tile but reads the
-    tilt from the cell's unwrapped centre, so a texel whose nearest cell lies
-    across the wrap gets a tilt of the tile's whole width: a cliff at the
-    tile's edge, which a REPEAT-tiled plate shows at every seam. The maths
-    and the random draws are the shared stamp's, in the same order, so the
-    dishes are the same where the wrap does not matter."""
-    feature(cell_units)
-    rng = np.random.default_rng(seed)
-    spacing = cell_units * tpu * SS
-    H, W = h * SS, w * SS
-    nx, ny = max(1, int(round(W / spacing))), max(1, int(round(H / spacing)))
-    sx, sy = W / float(nx), H / float(ny)
-    jitter = rng.uniform(-0.38, 0.38, (ny, nx, 2)).astype(np.float32)
-    dep = rng.uniform(0.6, 1.0, (ny, nx)).astype(np.float32) * depth
-    tilt_a = rng.uniform(0, 2 * np.pi, (ny, nx)).astype(np.float32)
-    tilt_k = rng.uniform(-0.3, 0.3, (ny, nx)).astype(np.float32) * depth
-    cx = (np.arange(nx, dtype=np.float32)[None, :] + 0.5 + jitter[..., 0]) * sx
-    cy = (np.arange(ny, dtype=np.float32)[:, None] + 0.5 + jitter[..., 1]) * sy
-    ys, xs = np.mgrid[0:H, 0:W].astype(np.float32)
-    xs += 0.5
-    ys += 0.5
-    ix = np.floor(xs / sx).astype(np.int64)
-    iy = np.floor(ys / sy).astype(np.int64)
-    best = np.full((H, W), np.inf, np.float32)
-    bi = np.zeros((H, W), np.int64)
-    bj = np.zeros((H, W), np.int64)
-    bcx = np.zeros((H, W), np.float32)
-    bcy = np.zeros((H, W), np.float32)
-    for oy in (-1, 0, 1):
-        for ox in (-1, 0, 1):
-            jx, jy = (ix + ox) % nx, (iy + oy) % ny
-            ccx = cx[jy, jx] + np.where(ix + ox < 0, -W, np.where(ix + ox >= nx, W, 0))
-            ccy = cy[jy, jx] + np.where(iy + oy < 0, -H, np.where(iy + oy >= ny, H, 0))
-            d = np.hypot(xs - ccx, ys - ccy)
-            closer = d < best
-            best = np.where(closer, d, best)
-            bi = np.where(closer, jx, bi)
-            bj = np.where(closer, jy, bj)
-            bcx = np.where(closer, ccx, bcx)
-            bcy = np.where(closer, ccy, bcy)
-    radius = 0.62 * min(sx, sy)
-    dish = np.clip(1 - (best / radius) ** 2, 0, 1)
-    cdep, ca, ck = dep[bj, bi], tilt_a[bj, bi], tilt_k[bj, bi]
-    along = ((xs - bcx) * np.cos(ca) + (ys - bcy) * np.sin(ca)) / radius
-    return (height - cdep * dish + ck * along * dish).astype(np.float32)
-
-
 def crest_wear(rgb, d_in, seed, w_px, amount=0.08):
     """Wear on a chamfer's crest: a patchy lightening of the ridge where the
     slope meets the flat, so the edge reads as handled iron."""
@@ -250,7 +216,13 @@ def make_plate():
     height = chamfer(d_in, EDGE_W, EDGE_RISE)
     # The planish, on one tile that wraps, laid along the strip so the caps
     # continue it: the left cap wears the tile's last columns, the right its first.
-    tile = planish_seamless(np.zeros((DH * SS, tile_w * SS), np.float32), tile_w, DH, SEED_PLATE, PLATE_CELL, PLATE_DEPTH, PLATE_TPU)
+    tile = planish(np.zeros((DH * SS, tile_w * SS), np.float32), tile_w, DH, SEED_PLATE, PLATE_CELL, PLATE_DEPTH, PLATE_TPU)
+    # Struck full by the edges, calmed where the words stand. The light's
+    # occlusion and grime are normalised to the deepest hollow, which the
+    # rails keep, so the middle rows lose their dark seams with their depth.
+    ty = (np.arange(DH * SS, dtype=np.float32) + 0.5) / SS
+    calm = 1 - PLATE_CALM * sstep(CALM_FROM, CALM_TO, ty) * sstep(CALM_FROM, CALM_TO, DH - ty)
+    tile = tile * calm[:, None]
     tile = tile + tile_noise(tile_w, DH, SEED_PLATE + 3, (1.5, 1.5), 2, 0.25)
     cs = cap_w * SS
     strip = np.concatenate([tile[:, -cs:], tile, tile, tile, tile[:, :cs]], axis=1)
@@ -287,7 +259,7 @@ def make_strap():
     dy = np.minimum(y, th - y)
     alpha = np.ones_like(x)
     height = band_height(dy)
-    tile = planish_seamless(np.zeros((th * SS, tw * SS), np.float32), tw, th, SEED_STRAP, STRAP_CELL, STRAP_DEPTH, STRAP_TPU)
+    tile = planish(np.zeros((th * SS, tw * SS), np.float32), tw, th, SEED_STRAP, STRAP_CELL, STRAP_DEPTH, STRAP_TPU)
     height = height + np.concatenate([tile, tile, tile], axis=1) * sstep(1.5, 3.0, dy)
     shadow = np.zeros_like(height)
     for k in range(3):
@@ -424,11 +396,17 @@ def make_heat():
 
 
 def make_spark():
+    """The spark fills its 3-unit frame: a head SPARK_HEAD texels across (1.7
+    units) a texel inside the file's leading edge, so it is round and never
+    cut flat, and a tail from the trailing edge into the head, SPARK_TAIL
+    texels tall at its root. A dot of a unit or less is under a pixel at the
+    game's scale and the landing's sparks went unseen."""
     n = 16
     x, y = grid(n, n)
-    dot = cover(disc(x, y, 11.0, 8.0, 2.0))
-    tail = np.clip((x - 3.0) / 8.0, 0, 1) ** 1.5 * np.exp(-((y - 8.0) / 1.2) ** 2) * (x < 11.0)
-    alpha = np.maximum(dot, tail)
+    hx, hy, r = SPARK_HEAD_X, n / 2.0, SPARK_HEAD / 2.0
+    head = cover(disc(x, y, hx, hy, r))
+    tail = np.clip((x - 1.0) / (hx - 1.0), 0, 1) ** 1.5 * np.exp(-((y - hy) / SPARK_TAIL) ** 2) * (x < hx)
+    alpha = np.maximum(head, tail)
     emit("Forge_Spark", white(alpha), alpha.astype(np.float32), 1.0)
 
 

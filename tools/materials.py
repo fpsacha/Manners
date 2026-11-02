@@ -4,6 +4,7 @@
                                        # directory is on sys.path)
     python tools/materials.py --selftest --out DIR        # six swatches and their light
     python tools/materials.py --selftest --out DIR --sheet OUT.png
+    python tools/materials.py --seams                     # the planish across its wrap
 
 Azeroth's interface is painted material -- riveted iron, gilt, cut glass,
 carved stone -- that light lands on. Every generator here used to light its
@@ -251,7 +252,15 @@ def planish(height, w, h, seed, cell_units, depth, tpu):
     """Hammer marks: a seeded Voronoi of cells `cell_units` across on average,
     each a shallow spherical dish 0.6..1.0 x `depth` texels deep with a tilt of
     up to 0.3 x depth, the crests between them left standing. Returns the
-    height with the dishes taken out of it."""
+    height with the dishes taken out of it.
+
+    The cells wrap round the tile both ways, and so does each dish's tilt:
+    it is measured from the centre the search found, wrapped across the
+    tile's edge where that is the nearer copy. Measured from the cell's own
+    (unwrapped) centre, a texel whose nearest cell lies across the wrap
+    would take a tilt of the tile's whole width: a cliff along the edge,
+    which a REPEAT-tiled plate shows at every seam and a frame's rail along
+    its file edge."""
     feature(cell_units)
     rng = np.random.default_rng(seed)
     spacing = cell_units * tpu * SS                       # supersampled texels
@@ -272,23 +281,27 @@ def planish(height, w, h, seed, cell_units, depth, tpu):
     best = np.full((H, W), np.inf, np.float32)
     bi = np.zeros((H, W), np.int64)
     bj = np.zeros((H, W), np.int64)
+    # The nearest cell's centre as the search saw it: wrapped across the
+    # tile's edge when the copy over there is the nearer one.
+    bcx = np.zeros((H, W), np.float32)
+    bcy = np.zeros((H, W), np.float32)
     for oy in (-1, 0, 1):
         for ox in (-1, 0, 1):
             jx, jy = (ix + ox) % nx, (iy + oy) % ny
-            ccx = cx[jy, jx] + ox * 0 + (np.where(ix + ox < 0, -W, np.where(ix + ox >= nx, W, 0)))
-            ccy = cy[jy, jx] + (np.where(iy + oy < 0, -H, np.where(iy + oy >= ny, H, 0)))
+            ccx = cx[jy, jx] + np.where(ix + ox < 0, -W, np.where(ix + ox >= nx, W, 0))
+            ccy = cy[jy, jx] + np.where(iy + oy < 0, -H, np.where(iy + oy >= ny, H, 0))
             d = np.hypot(xs - ccx, ys - ccy)
             closer = d < best
             best = np.where(closer, d, best)
             bi = np.where(closer, jx, bi)
             bj = np.where(closer, jy, bj)
+            bcx = np.where(closer, ccx, bcx)
+            bcy = np.where(closer, ccy, bcy)
     radius = 0.62 * min(sx, sy)
     dish = np.clip(1 - (best / radius) ** 2, 0, 1)
     cdep, ca, ck = dep[bj, bi], tilt_a[bj, bi], tilt_k[bj, bi]
-    # The dish's own centre, for the tilt across it.
-    ccx = cx[bj, bi]
-    ccy = cy[bj, bi]
-    along = ((xs - ccx) * np.cos(ca) + (ys - ccy) * np.sin(ca)) / radius
+    # The tilt across the dish, from its wrapped centre.
+    along = ((xs - bcx) * np.cos(ca) + (ys - bcy) * np.sin(ca)) / radius
     return (height - cdep * dish + ck * along * dish).astype(np.float32)
 
 
@@ -663,12 +676,39 @@ def selftest(out, tpu=4.0):
     return paths, lines
 
 
+# The tiles --seams hammers: (w, h, seed, cell units, depth, tpu) -- a strap's
+# tile, the Forge plate's, a gold rail's cells on a square.
+SEAM_PROBES = ((64, 32, 19, 3.0, 1.0, 4.0), (128, 128, 17, 5.0, 1.3, 128 / 44.0), (128, 128, 11, 3.0, 1.6, 3.2))
+
+
+def seams():
+    """How planish() meets itself across the tile's edge, one line per probe
+    tile: the mean height step from the last column to the first (wrapx) and
+    the largest mean step between two neighbouring columns inside (innerx),
+    and the same down the rows (wrapy, innery). A seamless stamp's wrap is
+    one more step of the inside ones; tests/scenarios/materials.lua holds it
+    to that."""
+    lines = []
+    for w, h, seed, cell, depth, tpu in SEAM_PROBES:
+        t = planish(np.zeros((h * SS, w * SS), np.float32), w, h, seed, cell, depth, tpu)
+        across = np.abs(np.roll(t, -1, axis=1) - t).mean(axis=0)
+        down = np.abs(np.roll(t, -1, axis=0) - t).mean(axis=1)
+        lines.append("seam %dx%d cell=%.1f wrapx=%.4f innerx=%.4f wrapy=%.4f innery=%.4f" % (
+            w, h, cell, across[-1], across[:-1].max(), down[-1], down[:-1].max()))
+    return lines
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split(chr(10))[0])
     ap.add_argument("--selftest", action="store_true", help="draw the six swatches and their light")
+    ap.add_argument("--seams", action="store_true", help="print how the planish meets itself across the tile's edge")
     ap.add_argument("--out", default=os.path.join(ROOT, "build", "materials"), help="where to write them")
     ap.add_argument("--sheet", default="", help="also write a contact sheet here")
     args = ap.parse_args()
+    if args.seams:
+        for line in seams():
+            print("  " + line)
+        return
     if not args.selftest:
         ap.print_help()
         return
