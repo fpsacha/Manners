@@ -4,9 +4,9 @@
 # Run by tests/selftest.py with mutate() in scope. Each puts back a mistake the
 # panel could plausibly make -- the ink judged on the bare panel colour, a bezel
 # taller than its panel, a bezel under the hairline, a hover that lingers, the
-# framed look refusing its stripe, a caustic that reaches the stretched edge
-# strips, a generator that draws different bytes each run -- and names the
-# check that has to object.
+# framed look refusing its stripe, light drawn in the middle cell under the
+# words, the corner's pooled light shrunk back to a speck, a generator that
+# draws different bytes each run -- and names the check that has to object.
 
 PANEL = "Prompt/Panel.lua"
 TEXT = "Prompt/Text.lua"
@@ -116,21 +116,52 @@ mutate(PANEL,
 
 # --- the art -----------------------------------------------------------------
 
-# The fade that keeps the caustic off the stretched edge strips taken away: it
-# reaches the middle cell's edge and the stretch smears it across the panel.
+# The caustic drawn back into the middle cell, a soft band across the name's
+# line that the 9-slice stretches into a smear beside the words.
 mutate(GEN,
-       "CAUSTIC_FADE = 4 ",
-       "CAUSTIC_FADE = 0 ",
-       "panel-material: the caustic leaves the middle cell",
-       expect="panel-material: the caustic stays in the middle cell", script=S)
+       "    alpha = np.maximum(hair, cut) * shape\n",
+       "    alpha = np.maximum(np.maximum(hair, cut), 0.10 * np.exp(-0.5 * ((y - 51.2) / 6.4) ** 2)) * shape\n",
+       "panel-material: a caustic band drawn in the middle cell",
+       expect="panel-material: the middle cell carries no light", script=S)
 
-# The caustic's first band moved off where the shipped file has it: the file
-# that ships no longer matches what the generator draws.
+# The corner's light brightened in the generator and the file not redrawn:
+# the file that ships no longer matches what the generator draws.
 mutate(GEN,
-       "CAUSTIC_BANDS = ((0.30, 0.10, 0.10), (0.55, 0.06, 0.06))\n",
-       "CAUSTIC_BANDS = ((-0.1875, 0.10, 0.10), (0.55, 0.06, 0.06))\n",
-       "panel-material: the caustic band moves off the shipped file",
+       "BEAD_PEAK = 0.65 ",
+       "BEAD_PEAK = 0.70 ",
+       "panel-material: the corner's light changes and the file is not redrawn",
        expect="panel-material: the generator draws the same bytes twice and what ships", script=S)
+
+# The pool's reach cut to a texel or so: the corner's light shrinks back to
+# the speck that read as a stuck pixel.
+mutate(GEN,
+       "BEAD_REACH = 20.0 ",
+       "BEAD_REACH = 4.0 ",
+       "panel-material: the corner's light shrinks to a speck",
+       expect="panel-material: the light pools along the cut corner", script=S)
+
+# The corner as bright as the old bead: a white point, not light on the cut.
+mutate(GEN,
+       "BEAD_PEAK = 0.65 ",
+       "BEAD_PEAK = 0.90 ",
+       "panel-material: the corner's light flares white",
+       expect="panel-material: the light pools along the cut corner", script=S)
+
+# The specular left to run the whole depth of the corner's face: the cone
+# draws its spoke of light in from the corner again, the old tick.
+mutate(GEN,
+       "    cut = np.maximum(edge, spec * BEAD_PEAK * near) * across\n",
+       "    cut = np.maximum(edge, spec * BEAD_PEAK) * across\n",
+       "panel-material: a spoke of light runs in from the corner",
+       expect="panel-material: the light pools along the cut corner", script=S)
+
+# The catch widened to reach further round the corner: along a straight edge
+# the angle to the light never changes, so it lifts the whole edge instead.
+mutate(GEN,
+       "BEAD_SIGMA = 15.0 ",
+       "BEAD_SIGMA = 40.0 ",
+       "panel-material: the corner's catch widened lifts the whole edge",
+       expect="panel-material: the light pools along the cut corner", script=S)
 
 # The pane's noise seeded from nowhere: a different file every run.
 mutate(GEN,

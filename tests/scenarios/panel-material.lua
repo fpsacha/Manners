@@ -20,8 +20,9 @@
 --   * the text's ink is judged against the pane as drawn;
 --   * every file the panel names ships, the generator draws the same bytes
 --     twice and the bytes that ship, the pane and the rim stay under their
---     caps, the bezels are grey, and the caustic never reaches the stretched
---     edge strips.
+--     caps, the bezels are grey, the light leaves the middle cell (under the
+--     words) empty, and the top-left corner pools the light along the cut
+--     instead of showing a speck.
 
 local dir, H = ...
 local fail, load = H.fail, H.load
@@ -604,13 +605,11 @@ withTree("panel-material: the pane and rim stay under their caps", ANNA, functio
 	end
 end)
 
--- ------------------------------------------------------------------ 12
--- The caustic lies inside the middle cell: nothing within four texels of the
--- cell's edges on either side, so the stretched edge strips never carry it,
--- and the bands are there in the middle. Read from a fresh drawing when the
--- generator can run, else from the shipped file.
-withTree("panel-material: the caustic stays in the middle cell", ANNA, function(_, scenario)
-	local out = tempDir("caustic")
+-- GlassLight.tga as the generator draws it now when it can run, else the
+-- file that ships; nil (and a SKIPPED line) when neither reads as a 32-bit
+-- TGA. Returns the file and the folder to clear.
+local function freshLight(scenario, tag)
+	local out = tempDir(tag)
 	local printed = generate(out)
 	local path = out .. "/GlassLight.tga"
 	if not (printed and slurp(path)) then path = dir .. "/Textures/GlassLight.tga" end
@@ -618,33 +617,109 @@ withTree("panel-material: the caustic stays in the middle cell", ANNA, function(
 	if not tga then
 		fail(scenario, "SKIPPED -- GlassLight.tga is not a 32-bit TGA")
 		removeAll(out)
-		return
+		return nil, out
 	end
+	return tga, out
+end
+
+-- The alpha at (x, row) of the picture as it is seen, row 0 at the top: a TGA
+-- keeps its rows bottom-up unless its descriptor says otherwise.
+local function seenAlpha(tga, x, row)
+	local topDown = math.floor(tga.data:byte(18) / 32) % 2 == 1
+	local _, _, _, a = texel(tga, x, topDown and row or (tga.h - 1 - row))
+	return a
+end
+
+-- ------------------------------------------------------------------ 12
+-- The middle cell of the glass's light (texels 32 to 95 on both axes) is
+-- empty: the words lie on it, and the 9-slice stretches it about 7:1 across
+-- the panel, so any light drawn there (the caustic it once carried) reads as
+-- a smear beside the name.
+withTree("panel-material: the middle cell carries no light", ANNA, function(_, scenario)
+	local tga, out = freshLight(scenario, "middle")
+	if not tga then return end
 	local worst, where = 0, ""
-	-- All four sides: the left and right strips over the cell's height, the top
-	-- and bottom strips over its width.
-	local function probe(x, y)
-		local _, _, _, a = texel(tga, x, y)
-		if a > worst then worst, where = a, ("(%d, %d)"):format(x, y) end
-	end
 	for y = 32, 95 do
-		for _, x in ipairs({ 32, 33, 34, 35, 92, 93, 94, 95, 96 }) do probe(x, y) end
-	end
-	for x = 32, 96 do
-		for _, y in ipairs({ 32, 33, 34, 35, 92, 93, 94, 95 }) do probe(x, y) end
-	end
-	if worst > 0 then
-		fail(scenario, ("the caustic reaches the middle cell's edge: alpha %.3f at %s"):format(worst, where))
-	end
-	local peak = 0
-	for y = 40, 87 do
-		for x = 44, 84 do
+		for x = 32, 95 do
 			local _, _, _, a = texel(tga, x, y)
-			if a > peak then peak = a end
+			if a > worst then worst, where = a, ("(%d, %d)"):format(x, y) end
 		end
 	end
-	if peak < 0.05 then
-		fail(scenario, ("there is no caustic in the middle cell: its peak alpha is %.3f"):format(peak))
+	if worst > 0 then
+		fail(scenario, ("the glass's light draws in the middle cell, under the words: alpha %.3f at %s"):format(worst, where))
+	end
+	removeAll(out)
+end)
+
+-- ------------------------------------------------------------------ 13
+-- The top-left corner, where the cut edge faces the key light, pools the
+-- light along the cut and does not show a speck: no brighter than 0.75 (the
+-- 0.90 bead read as a stuck pixel), a tenth over the edge's own light for
+-- three units along the top and two and a half down the left, tapered back
+-- to the edge's own light inside the corner cell (texels 0 to 31), so the
+-- stretched strips never carry it, and no spoke of light running in from the
+-- corner past the cut (inward six texels and more). The straight edges keep
+-- their own light: the top at most 0.30, the left at most 0.25, the top no
+-- dimmer than the left (it faces the light more squarely).
+withTree("panel-material: the light pools along the cut corner", ANNA, function(_, scenario)
+	local tga, out = freshLight(scenario, "pool")
+	if not tga then return end
+	-- The brightest of rows (or columns) lo..hi at column (or row) at.
+	local function downTop(x, lo, hi)
+		local best = 0
+		for row = lo, hi do best = math.max(best, seenAlpha(tga, x, row)) end
+		return best
+	end
+	local function acrossLeft(row, lo, hi)
+		local best = 0
+		for x = lo, hi do best = math.max(best, seenAlpha(tga, x, row)) end
+		return best
+	end
+	-- The straight edges' own light, clear of the hairline (12 texels in).
+	local top, left = downTop(64, 0, 9), acrossLeft(64, 0, 9)
+	if top > 0.30 or left > 0.25 or top < left then
+		fail(scenario, ("the straight edges' light is %.2f along the top and %.2f down the left, not at most 0.30 and 0.25 with the top the brighter"):format(top, left))
+	end
+	local peak = 0
+	for row = 0, 7 do
+		for x = 0, 7 do peak = math.max(peak, seenAlpha(tga, x, row)) end
+	end
+	if peak > 0.75 or peak < 0.55 then
+		fail(scenario, ("the corner's light peaks at %.2f, not 0.55 to 0.75"):format(peak))
+	end
+	for x = 4, 12 do
+		local a = downTop(x, 0, 5)
+		if a < top + 0.10 then
+			fail(scenario, ("the corner's light is gone %d texels along the top: %.2f over the edge's %.2f"):format(x, a, top))
+			break
+		end
+	end
+	for row = 4, 10 do
+		local a = acrossLeft(row, 0, 5)
+		if a < left + 0.10 then
+			fail(scenario, ("the corner's light is gone %d texels down the left: %.2f over the edge's %.2f"):format(row, a, left))
+			break
+		end
+	end
+	for at = 26, 31 do
+		local t, l = downTop(at, 0, 9), acrossLeft(at, 0, 9)
+		if math.abs(t - top) > 0.01 or math.abs(l - left) > 0.01 then
+			fail(scenario, ("the corner's light runs out of the corner cell: %.2f along the top and %.2f down the left at texel %d"):format(t, l, at))
+			break
+		end
+	end
+	-- Deeper than the cut, nothing brighter than the top edge's own light.
+	for row = 0, 15 do
+		for x = 0, 15 do
+			local qx, qy = math.abs(x + 0.5 - 64) - 56, math.abs(row + 0.5 - 64) - 56
+			local inward = 8 - math.sqrt(math.max(qx, 0) ^ 2 + math.max(qy, 0) ^ 2) - math.min(math.max(qx, qy), 0)
+			local a = seenAlpha(tga, x, row)
+			if inward >= 6 and inward <= 11 and a > top + 0.03 then
+				fail(scenario, ("a spoke of light runs in from the corner: %.2f at (%d, %d), %.1f texels in"):format(a, x, row, inward))
+				removeAll(out)
+				return
+			end
+		end
 	end
 	removeAll(out)
 end)
