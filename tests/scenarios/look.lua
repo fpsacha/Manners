@@ -612,7 +612,7 @@ end)
 
 -- The band of light's strength as it was last painted: 0.30 for a buff that
 -- landed, 0.20 for a favour just done. Read off the band's one texture
--- (Textures/Sweep.tga), whose vertex colour carries it: the band used to be
+-- (Textures/Shock.tga), whose vertex colour carries it: the band used to be
 -- two gradients, and the strength was their inner stop.
 local function shineStrength(r)
 	local band = r.shineBand

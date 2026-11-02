@@ -50,8 +50,8 @@ local SHINE_GAP, SHINE_MIN, SHINE_MAX, SHINE_SHARE = 2, 20, 64, 0.22
 -- is held (a seventh of the height between), in units. Never over 7, so its
 -- top stays under the reason line, which sits 8 units up (Text.lua).
 local CRACK_INSET, CRACK_END, CRACK_MIN, CRACK_MAX = 1.0, 0.3, 2, 7
--- The four edges of the panel, hung corner to corner: the framed look's border,
--- and the lines of light the edge answers an outcome with.
+-- The four edges of the panel, hung corner to corner: the lines the framed
+-- look wore before its rim, kept hidden for one release.
 local EDGE_LINES = {
 	{ "TOPLEFT", "TOPRIGHT", height = 1 },
 	{ "BOTTOMLEFT", "BOTTOMRIGHT", height = 1 },
@@ -311,23 +311,28 @@ function Prompt:Create()
 	R.shineBand:SetBlendMode("ADD")
 	R.shineBand:SetAllPoints(R.shineFrame)
 
-	-- The panel's edge answering an outcome: four lines of light on the rim,
-	-- hung corner to corner where the framed look's border lies and the glass's
-	-- bevel is lit, so the frame itself flashes in the reason's colour as a
-	-- buff lands and in red as one is refused. Parked at nothing; Minimal has
-	-- no edge to light and hides it.
+	-- The panel's edge answering an outcome: the material itself lit, so the
+	-- frame flashes in the reason's colour as a buff lands and in red as one
+	-- is refused. A copy of the glass's light (the pane's cut edge: its
+	-- hairline and the chamfer's specular) and one of the framed look's rim,
+	-- nine pieces each, drawn ADD on a frame of their own: a level over the
+	-- pane's light, the rim and the bezel, under the text. Parked at nothing;
+	-- ApplyStyle lays them as the material is laid, shows the look's own with
+	-- the middle piece left dark (nothing lights under the words), and hides
+	-- the frame on Minimal, which has no edge to light.
 	R.edgeLightFrame = CreateFrame("Frame", nil, R.art)
 	R.edgeLightFrame:SetAllPoints()
 	R.edgeLightFrame:SetAlpha(0)
-	R.edgeLightFrame.lines = {}
-	for _, at in ipairs(EDGE_LINES) do
-		local line = Solid(R.edgeLightFrame, "OVERLAY", 1)
-		line:SetBlendMode("ADD")
-		if at.height then line:SetHeight(at.height) else line:SetWidth(at.width) end
-		line:SetPoint(at[1])
-		line:SetPoint(at[2])
-		R.edgeLightFrame.lines[#R.edgeLightFrame.lines + 1] = line
+	R.edgeLightFrame.glass = Slice(R.edgeLightFrame, "OVERLAY", 1, GLASS_LIGHT)
+	R.edgeLightFrame.rim = Slice(R.edgeLightFrame, "OVERLAY", 1, TOOLTIP_RIM)
+	for _, pieces in ipairs({ R.edgeLightFrame.glass, R.edgeLightFrame.rim }) do
+		for _, t in ipairs(pieces) do
+			t:SetBlendMode("ADD")
+			t:Hide()
+		end
 	end
+	-- The pieces the look in use lights with (ApplyStyle picks).
+	R.edgeLightFrame.pieces = R.edgeLightFrame.glass
 
 	-- The ground breaking under the words when a buff is refused: a crack of
 	-- light along the bottom band, from the icon's edge toward the right, from
@@ -571,6 +576,17 @@ function Prompt:ApplyStyle()
 	PlaceSlice(R.tooltipRim, R.art, rimCorner)
 	for _, t in ipairs(R.tooltipRim) do t:SetShown(framed) end
 	for _, edge in ipairs(R.edges) do edge:Hide() end
+
+	-- The edge's light: the look's own material laid as the material is, so
+	-- the flash lands on the cut edge or the rail exactly. The middle piece
+	-- carries no edge (the glass's caustic, the rim's empty inside) and stays
+	-- dark, so nothing lights under the words.
+	local lit = R.edgeLightFrame
+	PlaceSlice(lit.glass, lit, corner)
+	PlaceSlice(lit.rim, lit, rimCorner)
+	for i, t in ipairs(lit.glass) do t:SetShown(glass and i ~= 5) end
+	for i, t in ipairs(lit.rim) do t:SetShown(framed and i ~= 5) end
+	lit.pieces = framed and lit.rim or lit.glass
 
 	local mode = p.accentMode or "icon"
 	-- On every built-in look: on the framed look it is an inlay inside the
@@ -1051,9 +1067,10 @@ function Prompt:Regions()
 		rules = { R.ruleTop, R.ruleBottom },
 		glints = { R.glintTop, R.glintBottom },
 		reveal = R.textLayer and R.textLayer.reveal,
-		-- The panel's edge lit for an outcome (its `lines`, `land` and
-		-- `reject`), the crack under the words (`band`, `split`) and the
-		-- outcome's wash (the frame `fill` is drawn on, and its `fade`).
+		-- The panel's edge lit for an outcome (its `pieces`, the look's own
+		-- of its `glass` and `rim` slices, `land` and `reject`), the crack
+		-- under the words (`band`, `split`) and the outcome's wash (the frame
+		-- `fill` is drawn on, and its `fade`).
 		edgeLight = R.edgeLightFrame,
 		crack = R.crackFrame,
 		wash = R.washFrame,

@@ -1,8 +1,10 @@
 -- landing-light: what a buff landing and a refusal do to the three looks drawn
 -- here (glass, framed, minimal) beyond the rings: the material answering.
 --
--- A landing lights the panel's edge in the reason's colour (the two rules on
--- Minimal, which has no edge), sends a wave of the same light from the icon's
+-- A landing lights the panel's edge in the reason's colour -- the material
+-- itself, a copy of the glass's cut-edge light or of the framed look's rim
+-- drawn as light (the two rules on Minimal, which has no edge) -- sends a
+-- wave of the same light from the icon's
 -- right edge across the panel at the old shine's strength, swells the panel a
 -- little, and washes it in colour that fades rather than cuts. A refusal
 -- breaks the ward: the edge flashes red, the ground cracks along the bottom
@@ -93,7 +95,7 @@ end
 withTree(T .. "the edge light stays under 0.40", ANNA, function(ns, scenario)
 	local r = upIn(ns, scenario, "glass")
 	local edge = r.edgeLight
-	if not (edge and edge.land and edge.lines and #edge.lines == 4) then
+	if not (edge and edge.land and edge.pieces and #edge.pieces == 9) then
 		fail(scenario, "SKIPPED -- the edge's light is not reachable")
 		return
 	end
@@ -114,16 +116,16 @@ withTree(T .. "the edge light stays under 0.40", ANNA, function(ns, scenario)
 	for _, a in ipairs(edge.land._anims) do
 		if a._kind ~= "Alpha" then fail(scenario, "the edge's light moves: " .. tostring(a._kind)) end
 	end
-	-- The colour: the reason's, taken 0.55 of the way to white, on all four
-	-- lines, and the lines are light (additive).
+	-- The colour: the reason's, taken 0.55 of the way to white, on every
+	-- piece of the edge, and the pieces are light (additive).
 	local cr, cg, cb = ns.Prompt:AccentColor("owed")
 	local er, eg, eb = ns.Prompt.lib.Tint(cr, cg, cb, 0.55)
-	for i, line in ipairs(edge.lines) do
-		local c = line._color
+	for i, piece in ipairs(edge.pieces) do
+		local c = piece._color
 		if not (c and near(c[1], er, 0.001) and near(c[2], eg, 0.001) and near(c[3], eb, 0.001)) then
-			fail(scenario, ("edge line %d is not the reason's colour taken over half-way to white"):format(i))
+			fail(scenario, ("edge piece %d is not the reason's colour taken over half-way to white"):format(i))
 		end
-		if line._blend ~= "ADD" then fail(scenario, ("edge line %d is not drawn as light"):format(i)) end
+		if piece._blend ~= "ADD" then fail(scenario, ("edge piece %d is not drawn as light"):format(i)) end
 	end
 	-- Under the text, and parked once the half-second is over.
 	if (edge._level or 0) >= (r.textLayer._level or 0) then fail(scenario, "the edge's light is over the text") end
@@ -434,8 +436,7 @@ withTree(T .. "a refusal breaks the ward", ANNA, function(ns, scenario)
 		if after[name] ~= before[name] then fail(scenario, "a refusal played the landing's " .. name) end
 	end
 	-- The edge in the break's red, 0.30 s, peak 0.35.
-	local lines = r.edgeLight.lines
-	local c = lines[1]._color
+	local c = r.edgeLight.pieces[1]._color
 	if not (c and near(c[1], 1.00, 0.001) and near(c[2], 0.42, 0.001) and near(c[3], 0.20, 0.001)) then
 		fail(scenario, "the edge does not flash in the refusal's red-amber")
 	end
@@ -716,5 +717,69 @@ withTree(T .. "the old sweep is retired", {}, function(_, scenario)
 	for _, name in ipairs({ "Shock", "Crack" }) do
 		local t = io.open(dir .. "/Textures/" .. name .. ".tga", "rb")
 		if t then t:close() else fail(scenario, "Textures/" .. name .. ".tga is not in the package") end
+	end
+end)
+
+-- ------------------------------------------------------------------ 13
+-- The edge's light is the material itself, lit: on glass a copy of the pane's
+-- light laid piece for piece over it, on framed a copy of the rim laid over
+-- the rail, each drawn as light with its middle piece dark, so the flash lands
+-- on the cut edge or the rail and nothing lights under the words; the other
+-- look's copy stays hidden, and the landing's colour goes on the look's own.
+withTree(T .. "the edge light is the material", ANNA, function(ns, scenario)
+	local function same(a, b) return a ~= nil and b ~= nil and math.abs(a - b) < 0.01 end
+	for _, case in ipairs({ { "glass", "glass", "GlassLight", "glassLight", "rim" },
+		{ "framed", "rim", "TooltipRim", "tooltipRim", "glass" } }) do
+		local style, own, file, material, other = case[1], case[2], case[3], case[4], case[5]
+		local r = upIn(ns, scenario, style)
+		local edge = r.edgeLight
+		if edge.pieces ~= edge[own] then fail(scenario, style .. ": the edge lights with the other look's material") end
+		if type(edge.pieces) ~= "table" or #edge.pieces ~= 9 then
+			fail(scenario, style .. ": the edge's light is not a nine-slice")
+		else
+			for i, piece in ipairs(edge.pieces) do
+				if not tostring(piece._file):find(file, 1, true) then
+					fail(scenario, ("%s: edge piece %d is drawn from %s, not %s"):format(style, i, tostring(piece._file), file))
+				end
+				if piece._blend ~= "ADD" then fail(scenario, ("%s: edge piece %d is not drawn as light"):format(style, i)) end
+				if piece._parent ~= edge then fail(scenario, ("%s: edge piece %d is not on the edge's frame"):format(style, i)) end
+				if i == 5 then
+					if FT.visible(piece) then fail(scenario, style .. ": the edge's middle piece is lit, under the words") end
+				else
+					if not FT.visible(piece) then fail(scenario, ("%s: edge piece %d is hidden"):format(style, i)) end
+					-- Laid exactly where the material's own piece lies.
+					local twin = r[material][i]
+					for _, axis in ipairs({ "x", "y" }) do
+						local lo, hi = FT.span(piece, axis)
+						local tlo, thi = FT.span(twin, axis)
+						if not (same(lo, tlo) and same(hi, thi)) then
+							fail(scenario, ("%s: edge piece %d spans %s..%s on %s, the material's %s..%s"):format(style, i,
+								tostring(lo), tostring(hi), axis, tostring(tlo), tostring(thi)))
+							break
+						end
+					end
+				end
+			end
+		end
+		for i, piece in ipairs(edge[other] or {}) do
+			if FT.visible(piece) then
+				fail(scenario, ("%s: piece %d of the other look's edge is shown"):format(style, i))
+				break
+			end
+		end
+		-- The landing's colour lands on the look's own pieces.
+		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		local cr, cg, cb = ns.Prompt:AccentColor("owed")
+		local er, eg, eb = ns.Prompt.lib.Tint(cr, cg, cb, 0.55)
+		local c = edge.pieces and edge.pieces[1] and edge.pieces[1]._color
+		if not (c and near(c[1], er, 0.001) and near(c[2], eg, 0.001) and near(c[3], eb, 0.001)) then
+			fail(scenario, style .. ": the landing's colour did not reach the edge's own pieces")
+		end
+		-- Over the material and the bezel (a frame of its own, above the art's
+		-- textures) and under the text.
+		if (edge._level or 0) <= (r.art._level or 0) then fail(scenario, style .. ": the edge's light is not over the material") end
+		if (edge._level or 0) >= (r.textLayer._level or 0) then fail(scenario, style .. ": the edge's light is over the text") end
+		Mock.advance(1)
+		FT.settle()
 	end
 end)

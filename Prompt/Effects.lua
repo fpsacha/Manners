@@ -382,9 +382,9 @@ local WASH_REST = { cast = 0.10, sent = 0.08, failed = 0.12 }
 -- the crack and the sputtering rule as well.
 local BREAK = { 1.00, 0.42, 0.20 }
 
--- The four lines of the edge's light in one colour.
+-- The edge's light in one colour: the pieces of the look in use.
 local function PaintEdge(r, g, b)
-	for _, line in ipairs(R.edgeLightFrame.lines) do line:SetVertexColor(r, g, b, 1) end
+	for _, t in ipairs(R.edgeLightFrame.pieces) do t:SetVertexColor(r, g, b, 1) end
 end
 
 function Prompt:BuildAnimations()
