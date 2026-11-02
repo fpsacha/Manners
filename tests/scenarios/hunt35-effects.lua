@@ -546,28 +546,38 @@ for _, style in ipairs(ALL) do
 end
 
 -- ------------------------------------------------------------------ 10
--- The glass has its bevel and its reflection, and the other two built-in
--- looks do not.
-withTree("hunt35-effects: the glass has a bevel and a reflection, the others do not", ANNA, function(ns, scenario)
+-- The glass has its pane and the light on it, the framed look its rim, and
+-- neither wears the other's; minimal has none of them.
+withTree("hunt35-effects: the glass has a pane and its light, the framed look a rim, minimal neither", ANNA, function(ns, scenario)
 	for _, style in ipairs(BUILTIN) do
 		local r = upIn(ns, scenario, style)
-		local shown = FT.visible(r.bevel[1]) and FT.visible(r.bevel[5])
-		if (style == "glass") ~= shown then
-			fail(scenario, style .. ": the bevel is " .. (shown and "shown" or "hidden") .. " when it should not be")
+		local pane = FT.visible(r.pane[1]) and FT.visible(r.pane[5])
+		if (style == "glass") ~= pane then
+			fail(scenario, style .. ": the pane is " .. (pane and "shown" or "hidden") .. " when it should not be")
 		end
-		if not tostring(r.sheen._file):find("Gloss", 1, true) then
-			fail(scenario, style .. ": the glass's sheen is not the reflection art")
+		local light = FT.visible(r.glassLight[1]) and FT.visible(r.glassLight[9])
+		if (style == "glass") ~= light then
+			fail(scenario, style .. ": the glass's light is " .. (light and "shown" or "hidden") .. " when it should not be")
+		end
+		local rim = FT.visible(r.tooltipRim[1]) and FT.visible(r.tooltipRim[9])
+		if (style == "framed") ~= rim then
+			fail(scenario, style .. ": the rim is " .. (rim and "shown" or "hidden") .. " when it should not be")
+		end
+		if not tostring(r.pane[5]._file):find("GlassPane", 1, true) then
+			fail(scenario, style .. ": the glass's pane is not the glass art")
 		end
 	end
 	local r = upIn(ns, scenario, "glass")
-	if #r.bevel ~= 9 then fail(scenario, "the bevel is not nine slices") end
-	-- Scaled by the panel's own opacity, so a nearly clear panel keeps no bevel.
-	local before = r.bevel[2]._color and r.bevel[2]._color[4]
+	if #r.pane ~= 9 or #r.glassLight ~= 9 or #r.tooltipRim ~= 9 then
+		fail(scenario, "a slice of the panel's material is not nine pieces")
+	end
+	-- Scaled by the panel's own opacity, so a nearly clear panel keeps no light.
+	local before = r.glassLight[2]._color and r.glassLight[2]._color[4]
 	ns.db.profile.prompt.bgColor = { 0.04, 0.04, 0.06, 0.2 }
 	ns.Prompt:ApplyStyle()
-	local after = r.bevel[2]._color and r.bevel[2]._color[4]
+	local after = r.glassLight[2]._color and r.glassLight[2]._color[4]
 	if not (before and after and after < before) then
-		fail(scenario, "the bevel does not follow the panel's opacity")
+		fail(scenario, "the glass's light does not follow the panel's opacity")
 	end
 end)
 
@@ -643,8 +653,10 @@ end
 withTree("hunt35-effects: the new art ships at the right size", ANNA, function(ns, scenario)
 	local files = {
 		"Textures/Glow", "Textures/GlowRound", "Textures/Ring", "Textures/RingSq", "Textures/Sweep",
-		"Textures/Gloss", "Textures/Bevel", "Textures/Luxe/Luxe_Spine", "Textures/Toast/Toast_MedShade",
+		"Textures/Luxe/Luxe_Spine", "Textures/Toast/Toast_MedShade",
 		"Textures/Rule", "Textures/Glint", "Textures/Shock", "Textures/Crack",
+		"Textures/GlassPane", "Textures/GlassLight", "Textures/IconBezel", "Textures/IconBezelRound",
+		"Textures/TooltipRim",
 	}
 	for _, name in ipairs(files) do
 		local h = header(dir .. "/" .. name .. ".tga")
@@ -662,7 +674,8 @@ withTree("hunt35-effects: the new art ships at the right size", ANNA, function(n
 	-- Every file the prompt draws its own light from is named in the code that
 	-- draws it, so none is left shipping unused.
 	local source = assert(io.open(dir .. "/Prompt/Prompt.lua", "r")):read("*a")
-	for _, name in ipairs({ "Ring", "RingSq", "Sweep", "Gloss", "Bevel", "Glow", "GlowRound" }) do
+	for _, name in ipairs({ "Ring", "RingSq", "Sweep", "Glow", "GlowRound", "GlassPane", "GlassLight", "IconBezel",
+		"IconBezelRound", "TooltipRim" }) do
 		if not source:find("Textures\\\\" .. name .. '"', 1, true) then
 			fail(scenario, "Textures/" .. name .. ".tga is not drawn by Prompt/Prompt.lua")
 		end
@@ -692,6 +705,7 @@ end
 
 local GENERATORS = {
 	{ "tools/make-glow.py", "Textures" },
+	{ "tools/make_panel_textures.py", "Textures" },
 	{ "tools/make_luxe_textures.py", "Textures/Luxe" },
 	{ "tools/make_toast_textures.py", "Textures/Toast" },
 	{ "tools/make_arcane_textures.py", "Textures/Arcane" },

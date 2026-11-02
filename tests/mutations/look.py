@@ -214,9 +214,9 @@ mutate("Prompt/Panel.lua",
 
 # The red ring not forgotten by the cache, so it is never put back.
 mutate("Prompt/Paint.lua",
-       "\t\tGradient(R.iconBack, \"VERTICAL\", 0.62, 0.16, 0.14, 0.95, 1.0, 0.36, 0.30, 0.95)\n"
+       "\t\tR.bezel:SetVertexColor(0.80, 0.26, 0.22, 1)\n"
        "\t\tS.accentPainted = nil\n",
-       "\t\tGradient(R.iconBack, \"VERTICAL\", 0.62, 0.16, 0.14, 0.95, 1.0, 0.36, 0.30, 0.95)\n",
+       "\t\tR.bezel:SetVertexColor(0.80, 0.26, 0.22, 1)\n",
        "red ring outlives the colour cache",
        expect="the ring stayed red after the refusal was over",
        script="runscenarios.py")

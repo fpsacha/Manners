@@ -53,11 +53,18 @@ for _, style in ipairs({ "glass", "framed" }) do
 				if t._shown ~= false and t._color then through = through * (1 - (t._color[4] or 1)) end
 			end
 			local dark = 1 - through
-			-- And the bevel's shade along the bottom edge, which is no stronger
-			-- than the panel it is the edge of.
-			local line = r.hairBottom._shown ~= false and r.hairBottom._color and r.hairBottom._color[4] or 0
+			-- And the light along the glass's bottom edge, which is no stronger
+			-- than the panel it is the edge of, nor the pane itself.
+			local piece = r.glassLight and r.glassLight[8]
+			local line = piece and piece._shown ~= false and piece._color and piece._color[4] or 0
 			if line > alpha + 0.001 then
-				fail(scenario, ("with the panel at %.2f opacity the dark line along its bottom is %.2f"):format(alpha, line))
+				fail(scenario, ("with the panel at %.2f opacity the light along its bottom is %.2f"):format(alpha, line))
+			end
+			local pane = r.pane and r.pane[5]
+			local g = pane and pane._shown ~= false and pane._gradient
+			local paneAlpha = g and type(g[2]) == "table" and g[2].a or 0
+			if paneAlpha > alpha + 0.001 then
+				fail(scenario, ("with the panel at %.2f opacity the pane is drawn at %.2f"):format(alpha, paneAlpha))
 			end
 			if dark > alpha + 0.001 then
 				fail(scenario, ("with the panel at %.2f opacity the shadow steps darken its footprint by %.2f"):format(alpha, dark))

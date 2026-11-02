@@ -6,7 +6,7 @@
 
 # White text on every panel again, whatever the panel colour.
 mutate("Prompt/Text.lua",
-       "\t\tif ink.light then r, g, b = 1, 1, 1 else r, g, b = 0.08, 0.08, 0.10 end\n",
+       "\t\tif ink.light then r, g, b = 1, 1, 1 else r, g, b = Legible(0.08, 0.08, 0.10, TEXT_CONTRAST) end\n",
        "\t\tr, g, b = 1, 1, 1\n",
        "the name white on a light panel",
        expect="reads on a cream panel: the name is drawn in",

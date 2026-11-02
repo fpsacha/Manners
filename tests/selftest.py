@@ -1866,12 +1866,12 @@ mutate("Looks/Looks.lua",
        expect="the dropdown still offers a name the addon draws nothing for",
        script="runscenarios.py")
 
-# 63. and the border itself, which is what makes that entry true.
+# 63. and the rim itself, which is what makes that entry true.
 mutate("Prompt/Panel.lua",
-       "\t\tedge:SetShown(framed)",
-       "\t\tedge:SetShown(false)",
+       "\tfor _, t in ipairs(R.tooltipRim) do t:SetShown(framed) end\n",
+       "\tfor _, t in ipairs(R.tooltipRim) do t:SetShown(false) end\n",
        "a border the look promises and never draws",
-       expect="of its four edges",
+       expect="of its nine rim pieces",
        script="runscenarios.py")
 
 # 64. the profile carried across. Without it the repair below reads the stored
@@ -2058,14 +2058,14 @@ mutate("Options/Look.lua",
        expect="reason colours and the description names",
        script="runscenarios.py")
 
-# 81. and the setting that silently takes the ring away. Rounding the icon puts
-#     a mask where the ring was, so "Ring around the icon" -- the default --
-#     ends up over a prompt with no reason colour anywhere on it.
+# 81. and the setting the page once believed took the ring away. The bezel
+#     has a round twin, so rounding the icon keeps the reason colour on it; a
+#     page that still warns sends somebody to undo a setting that cost nothing.
 mutate("Options/Look.lua",
-       'local ring = (mode == "icon" or mode == "both") and p.showIcon and not p.roundIcon',
-       'local ring = (mode == "icon" or mode == "both") and p.showIcon',
-       "a ring the page believes in after it is gone",
-       expect="rounded icon leaves the reason colour with nowhere to go",
+       'local ring = (mode == "icon" or mode == "both") and p.showIcon\n',
+       'local ring = (mode == "icon" or mode == "both") and p.showIcon and not p.roundIcon\n',
+       "a ring the page gives up on when the icon is rounded",
+       expect="the page says the ring is gone while the bezel is still drawn",
        script="runscenarios.py")
 
 # 82. the targeting switch offered to a class whose macro never takes a target.
@@ -3044,11 +3044,11 @@ mutate("Commands.lua",
        expect="armed and echoed to chat",
        script="runscenarios.py")
 
-# The framed border brightened towards white again. It converges on the panel
-# exactly as the panel goes pale -- the failure the comment above it names.
+# The framed look's rim in pale metal on every panel. It converges on the
+# panel exactly as the panel goes pale -- the failure the comment above it names.
 mutate("Prompt/Panel.lua",
-       "\tlocal lighten = (0.299 * br + 0.587 * bg + 0.114 * bb) <= 0.5",
-       "\tlocal lighten = true",
+       "\tif ink.light then metal = RIM_PALE end\n",
+       "\tmetal = RIM_PALE\n",
        "a border that vanishes into a pale panel",
        expect="has no frame",
        script="runscenarios.py")

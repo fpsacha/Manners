@@ -299,6 +299,11 @@ function ns.TwoLineHeight(fontSize, style)
 	return 16 + fontSize + math.max(7, fontSize - 3)
 end
 
+-- The glass pane's grey over its middle cell, which the panel colour is drawn
+-- through under the words: PANE_MID in tools/make_panel_textures.py, which
+-- must agree.
+local PANE_MID = 0.78
+
 -- The greys under the name, for a panel and for none (brighter, carried by the
 -- outline). `reason` is the list's dimmer grey, a colour code the row's text
 -- colour cannot reach.
@@ -319,10 +324,16 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 		local w = Luminance(WORLD_GREY, WORLD_GREY, WORLD_GREY)
 		ink.lo, ink.hi = w, w
 	else
-		-- The same two stops the panel's gradient is drawn with.
+		-- The same two stops the panel's gradient is drawn with. On the glass
+		-- the colour is drawn through a pane (GlassPane.tga, a grey of PANE_MID
+		-- over the middle cell the words sit on; its edge falls darker, but
+		-- within four units of the panel's edge, where no line is), so the
+		-- ink is judged against the pane as drawn under the words.
+		local pane = 1
+		if style == "glass" then pane = PANE_MID end
 		local function over(c, k) return c * k * ba + WORLD_GREY * (1 - ba) end
-		ink.lo = Luminance(over(br, 0.62), over(bg, 0.62), over(bb, 0.72))
-		ink.hi = Luminance(over(br, 1), over(bg, 1), over(bb, 1))
+		ink.lo = Luminance(over(br, 0.62 * pane), over(bg, 0.62 * pane), over(bb, 0.72 * pane))
+		ink.hi = Luminance(over(br, pane), over(bg, pane), over(bb, pane))
 	end
 	local onWhite = math.min(Ratio(1, ink.lo), Ratio(1, ink.hi))
 	local onBlack = math.min(Ratio(0, ink.lo), Ratio(0, ink.hi))
@@ -345,13 +356,15 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	fit.size[R.nameText], fit.size[R.subText] = p.fontSize, subSize
 
 	-- The name in the colour the player picked, as it is. Left at the default,
-	-- white or near-black, whichever this ground wants.
+	-- white or near-black, whichever this ground wants; the near-black held to
+	-- the ground as the greys are, because the glass pane darkens a pale panel
+	-- under it and the ink goes as dark as that needs.
 	local r, g, b, a
 	if ChosenTextColor(p.fontColor) then
 		r, g, b, a = unpackColor(p.fontColor, { 1, 1, 1, 1 })
 	else
 		local _, _, _, alpha = unpackColor(p.fontColor, { 1, 1, 1, 1 })
-		if ink.light then r, g, b = 1, 1, 1 else r, g, b = 0.08, 0.08, 0.10 end
+		if ink.light then r, g, b = 1, 1, 1 else r, g, b = Legible(0.08, 0.08, 0.10, TEXT_CONTRAST) end
 		a = alpha
 	end
 	R.nameText:SetTextColor(r, g, b, a)

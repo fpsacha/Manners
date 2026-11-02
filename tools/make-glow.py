@@ -7,8 +7,9 @@
     python tools/make-glow.py --light-bias 0   # draw with the light's bias overridden
 
 Writes Textures/Glow.tga, GlowRound.tga, Ring.tga, RingSq.tga, Sweep.tga,
-Gloss.tga, Bevel.tga, Rule.tga, Glint.tga, Shock.tga and Crack.tga, which
-ship in the zip. Deterministic: numpy and Pillow, no clock and one seeded
+Rule.tga, Glint.tga, Shock.tga and Crack.tga, which ship in the zip (the
+glass's own material -- its pane, its light, the icon's bezel and the framed
+look's rim -- is tools/make_panel_textures.py's). Deterministic: numpy and Pillow, no clock and one seeded
 generator (the crack's), so run it twice with the same PARAMS and the files
 are byte for byte the same. Every number that shapes the art is in PARAMS,
 and nowhere else.
@@ -45,12 +46,6 @@ are attained on the lit half). The Sweep is not relit.
   Sweep        128x32   The band of light that crosses the panel: a tail that
                         gathers and a thin bright leading edge on its right,
                         slanted a little, gone at the top and bottom.
-  Gloss        128x64   The glass's reflection: brightest at the top left, a
-                        curved lower edge, falling away to the right.
-  Bevel         32x32   9-slice, margin 6, drawn with corners 3 units square (two
-                        texels to the unit): the glass's inner bevel, a lit line a
-                        unit wide along the top and down the sides and shade along
-                        the bottom, each soft towards the inside.
   Rule         128x8    A rule of light: a Gaussian core across rows 3 and 4
                         (sigma rule_core texels, nothing at rows 0 and 7) and
                         ends that fade over rule_end_fade texels, so a rule
@@ -101,12 +96,6 @@ PARAMS = {
     # strong; the tail's strength; the slant (top shifted by this much).
     "sweep_edge_at": 0.86, "sweep_edge_w": 0.024, "sweep_edge_a": 0.95,
     "sweep_tail_a": 0.62, "sweep_slant": 0.10, "sweep_end_fade": 0.16,
-    # The glass's reflection: where its lower edge falls at the left, how far
-    # it curves, its strength at the top left and at the far right.
-    "gloss_edge": 0.60, "gloss_curve": 0.26, "gloss_top": 1.0, "gloss_right": 0.20,
-    # The bevel: the lit line's and the shade's strength, and how far in each
-    # softens, in texels of the 32-texel file.
-    "bevel_lit": 0.27, "bevel_side": 0.12, "bevel_shade": 0.42, "bevel_soft": 4.0,
     # The rule: its core's sigma and the end fade, both in texels.
     "rule_core": 1.1, "rule_end_fade": 6,
     # The glint: the leading edge's place and width (fractions of the file's
@@ -307,37 +296,6 @@ def sweep(out):
     save(out, "Sweep", 1.0, a)
 
 
-def gloss(out):
-    w, h = 128, 64
-    xx, yy = grid(w, h)
-    u, v = xx / w, yy / h
-    # The lower edge: a shallow arc, lower at the left than at the right.
-    edge = PARAMS["gloss_edge"] - PARAMS["gloss_curve"] * u ** 1.6
-    inside = 1.0 - smooth((v - edge) / 0.05 + 0.5)
-    fall = (1.0 - smooth(v / np.maximum(edge, 0.05))) * 0.55 + 0.45
-    across = PARAMS["gloss_right"] + (PARAMS["gloss_top"] - PARAMS["gloss_right"]) * (1 - smooth(u * 1.1)) ** 1.2
-    a = inside * fall * across
-    a *= smooth(xx / 4.0) * smooth((w - xx) / 4.0)
-    save(out, "Gloss", 1.0, a)
-
-
-def bevel(out):
-    n = 32
-    xx, yy = grid(n, n)
-    soft = PARAMS["bevel_soft"]
-    # Distance in from each edge, in texels.
-    dl, dr, dt, db = xx, n - xx, yy, n - yy
-    lit_top = PARAMS["bevel_lit"] * (cover(dt - 2.0) + 0.35 * np.exp(-np.maximum(dt - 2.0, 0) / soft))
-    lit_side = PARAMS["bevel_side"] * (cover(np.minimum(dl, dr) - 2.0)
-                                       + 0.30 * np.exp(-np.maximum(np.minimum(dl, dr) - 2.0, 0) / soft))
-    shade = PARAMS["bevel_shade"] * (cover(db - 2.0) + 0.45 * np.exp(-np.maximum(db - 2.0, 0) / soft))
-    lit = np.clip(lit_top + lit_side, 0, 1)
-    # Lit where the light falls, dark below: the larger wins each texel.
-    rgb = np.where(shade > lit, 0.0, 1.0)
-    a = np.maximum(lit, shade)
-    save(out, "Bevel", rgb, a)
-
-
 # ------------------------------------------------------------------ the shapes
 
 def rule_profile(yy, centre, sigma):
@@ -413,7 +371,7 @@ def crack(out):
     save(out, "Crack", 1.0, a)
 
 
-MAKERS = (glow, glow_round, ring, ring_sq, sweep, gloss, bevel, rule, glint, shock, crack)
+MAKERS = (glow, glow_round, ring, ring_sq, sweep, rule, glint, shock, crack)
 
 
 def make(out):

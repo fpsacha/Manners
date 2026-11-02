@@ -465,6 +465,17 @@ function Prompt:BuildAnimations()
 	Park(shine, R.shineFrame)
 	R.shineFrame.anim = shine
 
+	-- The cursor on the bezel: its gold twin fades up in 0.12 s and lets go in
+	-- 0.18 s, each from wherever the other left it (HoverBezel sets the start
+	-- for each play); only the leaving parks it at nothing.
+	local bezelEnter = R.bezelHover:CreateAnimationGroup()
+	bezelEnter.fade = Alpha(bezelEnter, 0, 1, 0.12, 1, 0, "OUT")
+	R.bezelHover.enter = bezelEnter
+	local bezelLeave = R.bezelHover:CreateAnimationGroup()
+	bezelLeave.fade = Alpha(bezelLeave, 1, 0, 0.18, 1, 0, "IN")
+	Park(bezelLeave, R.bezelHover)
+	R.bezelHover.leave = bezelLeave
+
 	-- A refusal: the text shakes its head, the shakes dying away (they sum to
 	-- nothing, and the group's end puts it home).
 	local shake = R.textLayer:CreateAnimationGroup()
@@ -619,6 +630,21 @@ function Prompt:PlayShine(r, g, b, strength)
 	R.shineBand:SetVertexColor(r, g, b, strength)
 	R.shineFrame.anim:Stop()
 	R.shineFrame.anim:Play()
+end
+
+-- The cursor on a look drawn here: the bezel's gold twin faded up, and let go
+-- when the cursor leaves, each from wherever the other fade had got to, so a
+-- cursor that comes and goes never snaps. A look from Looks/ gets Hover.
+function Prompt:HoverBezel(on)
+	local t = R.bezelHover
+	if not (t and t.enter and t.leave) then return end
+	local from = t:GetAlpha() or 0
+	t.enter:Stop()
+	t.leave:Stop()
+	t:SetAlpha(from)
+	local g = on and t.enter or t.leave
+	g.fade:SetFromAlpha(from)
+	g:Play()
 end
 
 -- The cooldown sweep, brought up to date when a cast goes out and when the

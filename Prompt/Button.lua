@@ -407,7 +407,9 @@ do
 	local function OnEnter(self)
 		-- First, whatever the tooltip does: the cursor is on the panel, and
 		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
-		-- this again only while the tooltip is ours, so still hovering.
+		-- this again only while the tooltip is ours, so still hovering. On a
+		-- look drawn by Prompt/Panel.lua the bezel lifts to gold.
+		if not S.activeLook then Prompt:HoverBezel(true) end
 		S.hovering = true
 		if S.activeLook then S.activeLook:Hover(true) end
 		WatchShift(self)
@@ -434,6 +436,7 @@ do
 		UnwatchShift(self)
 		GameTooltip:Hide()
 		if S.activeLook then S.activeLook:Hover(false) end
+		if not S.activeLook then Prompt:HoverBezel(false) end
 		-- The hold and the fuse kept their clocks while the cursor was on the
 		-- panel, so whatever ran out meanwhile is put right now rather than at
 		-- the next scan. Next frame rather than here: the client sends this

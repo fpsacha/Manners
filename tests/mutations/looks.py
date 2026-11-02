@@ -26,7 +26,7 @@ mutate("Prompt/Panel.lua",
 mutate("Prompt/Panel.lua",
        "\tR.fx:SetShown(true)\n"
        "\tlocal hl = R.button:GetHighlightTexture()\n"
-       "\tif hl then hl:SetVertexColor(1, 1, 1, 0.045) end\n",
+       "\tif hl then hl:SetVertexColor(1, 1, 1, 0.03) end\n",
        "\tR.fx:SetShown(true)\n",
        "the highlight left off after Luxe",
        expect="the button's highlight stayed off after Luxe",

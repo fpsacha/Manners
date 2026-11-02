@@ -519,11 +519,11 @@ withTree("a refusal's red ring is put back, in a fight as well",
 	freshPrompt(ns, scenario)
 	owe(ns, "Anna Aim")
 	ns.addon:Tick()
-	local ring = ns.Prompt:Regions().iconBack
+	-- The bezel round the icon carries the red now (its metal, not a gradient).
+	local bezel = ns.Prompt:Regions().bezel
 	local function red()
-		local g = ring._gradient
-		local top = g and g[3]
-		return type(top) == "table" and top.r == 1.0 and top.g < 0.5
+		local c = bezel._color
+		return type(c) == "table" and math.abs(c[1] - 0.80) < 0.005 and c[2] < 0.5
 	end
 	for _, fight in ipairs({ false, true }) do
 		Mock.inCombat = fight

@@ -264,22 +264,22 @@ mutate(PANEL,
 # --- the glass ---------------------------------------------------------------
 
 mutate(PANEL,
-       "\tR.sheen:SetTexture(GLOSS)\n",
-       "",
-       "hunt35: the glass has no reflection",
-       expect="the glass's sheen is not the reflection art", script=S)
+       "\tR.pane = Slice(R.art, \"BACKGROUND\", -6, GLASS_PANE)\n",
+       "\tR.pane = Slice(R.art, \"BACKGROUND\", -6, WHITE)\n",
+       "hunt35: the glass has no pane art",
+       expect="the glass's pane is not the glass art", script=S)
 
 mutate(PANEL,
-       "\t\t\tt:SetShown(glass)\n\t\t\tt:SetVertexColor(1, 1, 1, ba)\n",
-       "\t\t\tt:SetShown(true)\n\t\t\tt:SetVertexColor(1, 1, 1, ba)\n",
-       "hunt35: the bevel on every built-in look",
-       expect=": the bevel is shown when it should not be", script=S)
+       "\t\tfor _, t in ipairs(R.glassLight) do\n\t\t\tt:SetShown(glass)\n",
+       "\t\tfor _, t in ipairs(R.glassLight) do\n\t\t\tt:SetShown(true)\n",
+       "hunt35: the glass's light on every built-in look",
+       expect=": the glass's light is shown when it should not be", script=S)
 
 mutate(PANEL,
-       "\t\t\tt:SetShown(glass)\n\t\t\tt:SetVertexColor(1, 1, 1, ba)\n",
-       "\t\t\tt:SetShown(glass)\n\t\t\tt:SetVertexColor(1, 1, 1, 1)\n",
-       "hunt35: the bevel ignores the panel's opacity",
-       expect="the bevel does not follow the panel's opacity", script=S)
+       "\t\t\tt:SetVertexColor(1, 1, 1, LIGHT_ALPHA * ba)\n",
+       "\t\t\tt:SetVertexColor(1, 1, 1, LIGHT_ALPHA)\n",
+       "hunt35: the glass's light ignores the panel's opacity",
+       expect="the glass's light does not follow the panel's opacity", script=S)
 
 # --- the colours -------------------------------------------------------------
 
