@@ -26,6 +26,19 @@ which the client draws far brighter than tools/render_prompt.py. So:
     its rings are a set number of UI units wide at every height and nothing
     lies over the icon at all.
 
+1.11 re-gilded it through tools/materials.py, the lit-material pipeline every
+generator shares: the rails are planished gold (hammer cells no smaller than
+2.5 UI units, dished on the crest), with the channel occluded, grime in the
+hollows and bright wear on the crests; each corner stud is a rosette of four
+domes; the gem's setting grows four claws; and the gold ring hugging the icon
+takes a file of its own, Toast_Rope, a twist of rope round the outer band of
+a gold disc. Toast_Gold is drawn twice at different radii (the ring and the
+medallion's rim), so a rope baked into it would show sliced on the rim; the
+rim keeps the plain gold. The enamel keeps its base and its light and gains
+only a darker girdle at its edge and a sharper dome specular. The gold's
+specular is folded into its colour (gold is decoration, and its light is
+baked), under GOLD_CAP as before.
+
 Two kinds of art:
   * baked gold (the border, the drawer's rail, the medallion's gold, the chip,
     the gem's setting): drawn in its own colours. In a fight the Lua turns it
@@ -35,10 +48,10 @@ Two kinds of art:
     SetGradient, so one file serves all six reasons, the colour-blind set, a
     custom marker colour and the outcomes.
 
-  Toast_Border         256x256  8 pieces, cut 0.25: a thin old-gold rail, gold
-                                across its width, a dark channel, a darker
-                                inner line, and a small flat gold diamond in
-                                each corner. From height 40 up.
+  Toast_Border         256x256  8 pieces, cut 0.25: a thin planished old-gold
+                                rail, gold across its width, a dark channel,
+                                a darker inner line, and a small gold rosette
+                                in each corner. From height 40 up.
   Toast_BorderSlim     256x256  The same, finer, below height 40.
   Toast_BorderGlow     256x256  The gilding blurred into light, for the flare
   Toast_BorderSlimGlow 256x256  when a buff lands (ADD, half a second).
@@ -51,10 +64,16 @@ Two kinds of art:
                                 glow on the enamel and the cursor's light on
                                 the gold, each coloured by the Lua.
   Toast_Gold           128x128  A round disc of old gold, a hint lighter at the
-                                upper left: under the icon, it shows as the
-                                ring, and under the enamel as the rim.
-  Toast_Enamel         128x128  A round disc, grey, faintly lit: the enamel,
-                                in the reason colour darkened.
+                                upper left: under the enamel, the medallion's
+                                rim.
+  Toast_Rope           128x128  The same disc with a twist of rope round its
+                                outer band (ROPE_BAND of the radius): under
+                                the icon, the ring that hugs it shows only
+                                the rope at every height.
+  Toast_Enamel         128x128  A round disc, grey, faintly lit, a darker
+                                girdle at its edge and a soft specular at the
+                                upper left: the enamel, in the reason colour
+                                darkened.
   Toast_MedShade       128x128  The shade the medallion throws: a dark disc,
                                 blurred, black, drawn a little down and right.
   Toast_IconMask        64x64   The icon's shape, round; also the cooldown's
@@ -63,20 +82,25 @@ Two kinds of art:
                                 the arrival and the landed buff only).
   Toast_Glint           64x16   A spark that runs along a rail (ADD).
   Toast_Chip            64x32   3 pieces: the count and key chips, gold-rimmed.
-  Toast_Gem             32x32   A smooth stone, grey for its reason colour (a
-                                list row's, and the jewel with the icon off),
-  Toast_GemSet          32x32   and its gold setting.
+  Toast_Gem             32x32   A smooth cabochon, grey for its reason colour
+                                (a list row's, and the jewel with the icon
+                                off), a darker girdle at its edge,
+  Toast_GemSet          32x32   and its gold setting, four claws at the
+                                diagonals.
   Toast_Ember           64x16   The favour clock's line: a crisp core.
   Toast_Check           32x32   A tick, for a buff that landed.
   Toast_Cross           32x32   A cross, for one that did not.
 
-Needs numpy and Pillow.
+Twenty-one files. Needs numpy and Pillow; imports tools/materials.py from its
+own directory.
 """
 import argparse
 import os
 
 import numpy as np
 from PIL import Image, ImageFilter
+
+import materials as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "Textures", "Toast")
@@ -115,6 +139,55 @@ DISC_FILL = 0.98
 GOLD_LIT, ENAMEL_LIT = 0.17, 0.15
 MED_SHADE_FILL, MED_SHADE_BLUR = 0.70, 0.17
 
+# The gold as a lit material (materials.shade): the seed its wear and
+# micro-noise are drawn from, and how much of its specular is folded into the
+# colour. Gold is decoration and its light is baked (1.5.2's rule), so the
+# specular lives in the colour, under GOLD_CAP.
+GOLD_SEED, GOLD_SPEC = 33, 0.5
+GOLD_TINT = np.array(M.MATERIALS["gold"]["spec_tint"], np.float32)
+# The relief the frame's gold is lit at: its rails stand under two texels
+# high, and lit as drawn their slopes barely part from the flat; told they
+# stand this much taller, the light lands on the crest's upper-left facets
+# and leaves the lower-right ones in shade, which is what gilding does. The
+# inner line is lit at its own relief per frame, so it stays the darker line
+# inside the rail and still reads as gold (readable-toast.lua holds it
+# between 0.28 and 0.8 of the rail's brightest; the slim frame's line is the
+# lower bevel and takes a little more light to reach the floor).
+GOLD_RELIEF = 1.8
+LINE_RELIEF = {"double": 0.9, "slim": 1.2}
+# Toast's gold has always sat a stop above materials' flat gold (its ring
+# is drawn at 0.80 of the ramp, luma 0.46; a flat face in materials.shade
+# lands at 0.33), so the frame's colour is gained by this to match the ring
+# it frames -- the shading's ratios kept, the cap still the ceiling.
+GOLD_GAIN = 1.25
+
+# The rope-twist ring hugging the icon (Toast_Rope): the outer band of the
+# disc, as a fraction of its radius, carries the rope. Looks/Toast.lua's
+# ROPE_BAND must agree: the ring exposes less of the disc than this at every
+# height the medallion is drawn (clamp(0.045 H, 1.5, 2.5) of a radius that
+# grows with H: 0.116 at 44, 0.085 at 72), so what shows is rope, never plain
+# gold. Then its strands (24: at the default ring's 107-unit circumference
+# each is 4.5 units, and the band reads as a twist; at 12 it read as a
+# segmented tube), their lean from the radial in degrees, how high they
+# stand as a fraction of the band's width, and the texels per unit the file
+# is drawn at (the default medallion's ring: 128 texels over 35 units).
+ROPE_BAND = 0.125
+ROPE_STRANDS, ROPE_HELIX, ROPE_RISE, ROPE_TPU = 24, 45.0, 0.6, 3.6
+
+# The enamel's girdle and specular, on top of its base and its light, which
+# do not move (readable-toast.lua judges the reason colour on them): the
+# girdle darkens the disc's edge from this fraction of its radius by this
+# much (the ring exposes the outer 15 % of the disc, and the girdle is the
+# outer 15 % of that); the specular is a Gaussian round the light's angle,
+# this wide in degrees, from this fraction of the radius outward.
+ENAMEL_GIRDLE, ENAMEL_GIRDLE_DARK = 0.975, 0.08
+ENAMEL_SPEC, ENAMEL_SPEC_DEG, ENAMEL_SPEC_FROM = 0.06, 50.0, 0.925
+
+# The gem is drawn about 16 units across (sub + 8 at the default size), so
+# its 32 texels are two to the unit: the stone's girdle is one unit, darker
+# by this much, and the setting's claws are two units across.
+GEM_TPU, GEM_GIRDLE_DARK, CLAW_UNITS = 2.0, 0.12, 2.0
+
 written = []
 
 
@@ -148,7 +221,10 @@ def luma(rgb):
 
 
 def capped(rgb, cap=GOLD_CAP):
-    """Gold held under the cap: a texel brighter than it is scaled down."""
+    """Gold held under the cap: a texel brighter than it is scaled down, to
+    a step of 8 bits under the cap, so the rounding to bytes never lands a
+    texel over it (tests/materials_check.lua reads the bytes)."""
+    cap = cap - 1.0 / 255
     l = luma(rgb)
     k = np.where(l > cap, cap / np.maximum(l, 1e-6), 1.0)
     return rgb * k[..., None]
@@ -275,6 +351,19 @@ FRAMES = {
 }
 DARK = np.array([0.030, 0.019, 0.011], np.float32)
 
+# The hammer marks on the rails (materials.planish): the cells across in UI
+# units per frame (never under materials.MIN_FEATURE_UNITS: planish raises),
+# how deep they are dished as a fraction of the rail's rise, and where on the
+# rail they are struck: the crest, above this fraction of the rise, so the
+# shoulders keep their bevel.
+PLANISH_CELL = {"double": 3.0, "slim": 2.5}
+PLANISH_DEPTH, PLANISH_CREST = 0.30, 0.6
+# Each corner stud is a rosette: four dome lobes round the stud's centre at
+# 90-degree steps, each this radius in UI units and set this far from the
+# centre (the rosette 2.4 units across), this high as a fraction of the
+# rail's rise.
+ROSETTE_LOBE, ROSETTE_AT, ROSETTE_RISE = 0.60, 0.60, 0.5
+
 
 def border_parts(kind):
     """The gold, the dark and where the panel starts, on the supersampled grid."""
@@ -286,25 +375,48 @@ def border_parts(kind):
     depth = -roundrect_sdf(u, v, 0.0, f["radius"])            # in from the outer edge
     r0, r1 = f["rail"]
     i0, i1 = f["inner"]
-    at, sr = f["stud"]
+    at = f["stud"][0]
 
     # The inner line: a square inset with a concave notch round the stud.
     rect = roundrect_sdf(u, v, i0, 0.0)
     notch = np.sqrt((u - at) ** 2 + (v - at) ** 2) - f["notch"]
     inner = np.maximum(rect, -notch)                          # negative past i0
     iw = i1 - i0
-    stud = np.abs(u - at) + np.abs(v - at) - sr               # a diamond
 
-    h = np.where((depth >= r0) & (depth <= r1), bevel((depth - r0) * k, (r1 - r0) * k, 0.22 * (r1 - r0) * k), 0)
-    grain = noise(size, size, 31, scale=(3.0, 3.0), octaves=2)
-    rail_rgb = shade_metal(h + grain * 0.10, lift=0.18)
-    hi = bevel(-inner * k, iw * k, 0.5 * iw * k)
-    line_rgb = shade_metal(hi * 0.4 + grain * 0.06, lift=0.05, dark=DARK_GOLD)
-    stud_rgb = shade_metal(np.maximum(-stud, 0) * k * 0.25, lift=0.15)
+    # The rail's relief: a bevel, hammered on its crest. The planish is struck
+    # on the whole grid (so no two corners are alike) and blended in over the
+    # crest only, where the bevel is above PLANISH_CREST of its rise.
+    rise = 0.22 * (r1 - r0) * k
+    rail_h = np.where((depth >= r0) & (depth <= r1), bevel((depth - r0) * k, (r1 - r0) * k, rise), 0).astype(np.float32)
+    hammered = M.planish(rail_h, size, size, 31, PLANISH_CELL[kind], PLANISH_DEPTH * rise, k)
+    crest = sstep((PLANISH_CREST - 0.1) * rise, (PLANISH_CREST + 0.1) * rise, rail_h)
+    rail_h = rail_h + (hammered - rail_h) * crest
+    # The inner line: a low bevel.
+    line_h = bevel(-inner * k, iw * k, 0.5 * iw * k) * 0.4
+    # The stud: a rosette of four domes, the highest of them where they meet.
+    M.feature(2 * (ROSETTE_AT + ROSETTE_LOBE))
+    stud_d, stud_h = None, None
+    for ox, oy in ((ROSETTE_AT, 0), (-ROSETTE_AT, 0), (0, ROSETTE_AT), (0, -ROSETTE_AT)):
+        d = (np.hypot(u - at - ox, v - at - oy) - ROSETTE_LOBE) * k
+        lobe = M.dome(d, ROSETTE_LOBE * k)
+        stud_d = d if stud_d is None else np.minimum(stud_d, d)
+        stud_h = lobe if stud_h is None else np.maximum(stud_h, lobe)
+    stud_h = stud_h / (ROSETTE_LOBE * k) * ROSETTE_RISE * rise
 
     rail_a = cover((r0 - depth) * k) * cover((depth - r1) * k)
     line_a = cover(-inner * k - iw * k) * cover(inner * k)
-    stud_a = cover(stud * k)
+    stud_a = cover(stud_d)
+
+    # One lit material over the whole gilding: the key light from the upper
+    # left over the relief, the channel between rail and line occluded, grime
+    # in the hollows, wear on the crests, and the specular folded into the
+    # colour; the inner line without the specular and a shade darker, so the
+    # rail reads over it.
+    rgb, light = M.shade("gold", (rail_h + stud_h) * GOLD_RELIEF + line_h * LINE_RELIEF[kind],
+                         np.maximum.reduce([rail_a, line_a, stud_a]), GOLD_SEED, k, wear=0.6, grime=1.0)
+    rail_rgb = capped((rgb + (GOLD_SPEC * light)[..., None] * GOLD_TINT) * GOLD_GAIN)
+    line_rgb = capped(rgb * GOLD_GAIN * DARK_GOLD)
+    stud_rgb = rail_rgb
     # The dark: the lip outside the rail and the channel inside it, solid;
     # then a short shade the frame throws onto the panel.
     lip = cover(-depth * k) * cover((depth - r0) * k)
@@ -413,10 +525,35 @@ def make_discs():
     gold = capped(ramp(t, GOLD_STOPS))
     save("Toast_Gold", finish(gold, a, size, size))
 
+    # The ring hugging the icon: the same gold, with a twist of rope round the
+    # outer band (ROPE_BAND of the radius, which is all the ring ever shows).
+    # The rope is a relief lit by materials.shade -- strands as half-round
+    # tubes leaning ROPE_HELIX degrees from the radial, the band rounded as a
+    # whole so it stands off the disc -- its specular folded into the colour,
+    # and the angle's light laid over it as over the plain gold, so ring and
+    # rim are lit as one piece; held under the cap like every gold.
+    x, y = grid(size, size)
+    c = size / 2
+    radius = DISC_FILL * c
+    band = ROPE_BAND * radius
+    M.feature(2 * np.pi * (radius - band / 2) / max(ROPE_STRANDS, 1) / ROPE_TPU)
+    h = M.rope(np.zeros_like(rho), x, y, c, c, radius, ROPE_STRANDS, ROPE_HELIX, ROPE_BAND, rise=ROPE_RISE * band)
+    rgb, light = M.shade("gold", h, a, GOLD_SEED + 1, ROPE_TPU, wear=0.6, grime=1.0)
+    rgb = (rgb + (GOLD_SPEC * light)[..., None] * GOLD_TINT) * (1 + GOLD_LIT * lit)[..., None]
+    inband = sstep(radius - band - 1.0, radius - band + 1.0, rho * c)
+    rope = capped(gold + (rgb - gold) * inband[..., None])
+    save("Toast_Rope", finish(rope, a, size, size))
+
     # The enamel: flat, as fired glass is, a shade lighter towards the light
-    # and darker on the far side.
+    # and darker on the far side; a darker girdle where it meets the rim, and
+    # a soft specular on the dome's lit side, in the band's outer half.
     val = 0.84 + ENAMEL_LIT * lit + 0.02 * brush
-    save("Toast_Enamel", finish(np.repeat(np.clip(val, 0, 1)[..., None], 3, -1), a, size, size))
+    rn = rho / DISC_FILL
+    girdle = sstep(ENAMEL_GIRDLE - 0.01, ENAMEL_GIRDLE + 0.01, rn)
+    dang = np.angle(np.exp(1j * (ang - LIGHT_ANG))).astype(np.float32)
+    spec = np.exp(-(dang / np.radians(ENAMEL_SPEC_DEG / 2)) ** 2) * sstep(ENAMEL_SPEC_FROM - 0.02, ENAMEL_SPEC_FROM + 0.02, rn)
+    val = np.clip(val - ENAMEL_GIRDLE_DARK * girdle + ENAMEL_SPEC * spec, 0, 1)
+    save("Toast_Enamel", finish(np.repeat(val[..., None], 3, -1), a, size, size))
 
 
 def make_med_shade():
@@ -509,17 +646,31 @@ def make_gem():
     dx, dy = (x - c) / c, (y - c) / c
     r = np.sqrt(dx * dx + dy * dy)
     stone_r = 0.62
-    val = 0.62 + 0.30 * np.clip(1 - r / stone_r, 0, 1) ** 0.7
-    spec = np.exp(-(((dx + 0.22) / 0.10) ** 2 + ((dy + 0.24) / 0.10) ** 2))
+    # A cabochon: a dome, lit over its height, a girdle one unit wide darker
+    # at its edge, and the highlight at the upper left.
+    val = 0.62 + 0.30 * np.sqrt(np.clip(1 - (r / stone_r) ** 2, 0, 1))
+    girdle_w = GEM_TPU / c
+    val = val - GEM_GIRDLE_DARK * sstep(stone_r - girdle_w - 0.03, stone_r - girdle_w + 0.03, r)
+    spec = np.exp(-(((dx + 0.22) / 0.12) ** 2 + ((dy + 0.24) / 0.12) ** 2))
     val = np.clip(val + spec * 0.4, 0, 1.0)
     a = cover((r - stone_r) * c)
     save("Toast_Gem", finish(np.repeat(val[..., None], 3, -1).astype(np.float32), a, s, s))
 
+    # The setting: a gold bezel with four claw domes at the diagonals, each
+    # CLAW_UNITS across, over the stone's girdle.
     r0, r1 = stone_r - 0.04, 0.88
     ring = (r >= r0) & (r <= r1)
     hgt = np.where(ring, bevel((r - r0) * c, (r1 - r0) * c, 1.8), 0)
-    gold = shade_metal(hgt)
     gold_a = cover((r0 - r) * c) * cover((r - r1) * c)
+    M.feature(CLAW_UNITS)
+    claw_r = CLAW_UNITS * GEM_TPU / 2
+    rm = (r0 + r1) / 2 * c / np.sqrt(2)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            d = np.hypot(dx * c - sx * rm, dy * c - sy * rm) - claw_r
+            hgt = np.maximum(hgt, M.dome(d, claw_r) / claw_r * 2.4)
+            gold_a = np.maximum(gold_a, cover(d))
+    gold = shade_metal(hgt)
     lip = cover((r1 - r) * c) * cover((r - 0.98) * c) * 0.9
     rgb, alpha = compose([(DARK, lip), (gold, gold_a)])
     save("Toast_GemSet", finish(rgb, alpha, s, s))
@@ -554,6 +705,11 @@ def make_glyphs():
     save("Toast_Cross", finish(white(a), a, n, n))
 
 
+# The baked gold, every texel of which is held under GOLD_CAP (the printed
+# line says how near each file comes; tests/scenarios/look-toast-gold.lua
+# reads them back through tests/materials_check.lua).
+GOLD_FILES = ["Toast_Border", "Toast_BorderSlim", "Toast_Drawer", "Toast_Gold", "Toast_Rope", "Toast_Chip", "Toast_GemSet"]
+
 # Files of earlier versions that this one no longer draws.
 RETIRED = ["Toast_Ring", "Toast_Seal", "Toast_RingBand", "Toast_SealBand", "Toast_Bloom",
            "Toast_Wash", "Toast_Streak", "Toast_Spark", "Toast_SealMask"]
@@ -584,7 +740,11 @@ def main():
         if os.path.exists(path):
             os.remove(path)
     for name, w, h in written:
-        print("  Textures/Toast/%-22s %4dx%-4d" % (name + ".tga", w, h))
+        line = "  Textures/Toast/%-22s %4dx%-4d" % (name + ".tga", w, h)
+        if name in GOLD_FILES:
+            r = M.report(os.path.join(OUT, name + ".tga"), GOLD_CAP)
+            line += " cap=%.2f max=%.2f mean=%.2f" % (GOLD_CAP, r["max"], r["mean_opaque"])
+        print(line)
 
 
 if __name__ == "__main__":

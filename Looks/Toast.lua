@@ -3,9 +3,11 @@
 --
 -- A deep warm brown banner, framed by a thin rail of old gold with a darker
 -- line inside it and a small stud in each corner. A round medallion pins its
--- left end: the spell icon, a thin gold ring hugging it, a band of enamel in
--- the reason colour (darkened, as fired enamel is), and a fine gold rim, so
--- the enamel lies between two lines of gold, as cloisonne does. The name
+-- left end: the spell icon, a thin ring of gold rope hugging it, a band of
+-- enamel in the reason colour (darkened, as fired enamel is), and a fine gold
+-- rim, so the enamel lies between two lines of gold, as cloisonne does. The
+-- gold is planished (hammered, worn on its crests, grimed in its channels)
+-- through tools/materials.py, the one lit-material pipeline. The name
 -- is the title, the reason the subtitle. It is still at rest; it moves when
 -- something happens, and briefly.
 --
@@ -80,6 +82,13 @@ local Toast = ns.Looks.Register("toast", {
 -- The discs are drawn to this fraction of their file's half-size
 -- (DISC_FILL in the generator), and the icon's mask to this.
 local DISC_FILL, MASK_FILL = 0.98, 0.985
+-- The gold ring hugging the icon is Toast_Rope: a gold disc whose outer band,
+-- this fraction of its radius, is a twist of rope (ROPE_BAND in the
+-- generator, which must agree). The ring exposes less of its disc than this
+-- at every height (clamp(0.045 H, 1.5, 2.5) units of a radius that grows
+-- with H), so what shows is always rope and never plain gold; the medallion's
+-- rim, the same gold without the rope, keeps Toast_Gold.
+local ROPE_BAND = 0.125
 -- The medallion's shade: where its edge sits in its file (MED_SHADE_FILL in
 -- the generator, which must agree) and how dark it is.
 local SHADE_FILL, SHADE_ALPHA = 0.70, 0.55
@@ -408,7 +417,7 @@ function Toast:Build(kit)
 	self.band = tex(art, "ARTWORK", -6, "Enamel")
 	self.glow = tex(art, "ARTWORK", -5, "Disc")
 	self.seam = tex(art, "ARTWORK", -4, "Disc")
-	self.ring = tex(art, "ARTWORK", -3, "Gold")
+	self.ring = tex(art, "ARTWORK", -3, "Rope")
 	self.ringHover = tex(art, "ARTWORK", -2, "Disc")
 	-- The second tone of the owed breath: the gold ring warmed towards pale
 	-- gold, in BLEND like the enamel's own light.
