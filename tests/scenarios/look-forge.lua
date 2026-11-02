@@ -302,6 +302,59 @@ withTree("look-forge: the bezel fits and clears the slot", ANNA, function(ns, sc
 	check("round, at the defaults", 30 / ICON_FRAME, nil)
 end)
 
+-- The bezel's bloom (its warm breath, BLEND, and its white-hot flash, ADD) is
+-- drawn GLOW_SCALE larger than the bezel, and held with the light's margin
+-- inside the plate's top and bottom (THE ROOM): the capped bezel times the
+-- scale leaves the plate at every icon over 30 and is flush with it at 30.
+withTree("look-forge: the bezel's bloom is held inside the plate", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if skipped(scenario, look) then return end
+	local edge = ns.Prompt:LookKit().EDGE_MARGIN
+	if type(edge) ~= "number" then fail(scenario, "the kit carries no EDGE_MARGIN") return end
+	local cases = {
+		{ "icon 30 at the defaults", 220, 44, 13, 30 },
+		{ "icon 30 round", 220, 44, 13, 30, true },
+		{ "icon 36, the biggest at the default height", 220, 44, 13, 36 },
+		{ "icon 40 in 44", 220, 44, 13, 40 },
+		{ "icon 40 in 48 (extreme)", 220, 48, 17, 40 },
+		{ "icon 40 in 58 (large)", 320, 58, 17, 40 },
+		{ "icon 64 in 72", 320, 72, 17, 64 },
+	}
+	for _, case in ipairs(cases) do
+		local label = case[1]
+		p.width, p.height, p.fontSize, p.iconSize, p.roundIcon = case[2], case[3], case[4], case[5], case[6] and true or false
+		ns.Prompt:ApplyStyle()
+		tick(ns)
+		local panel, bezel = rectOf(r.art), rectOf(look.bezel)
+		if not (panel and bezel) then fail(scenario, label .. ": the plate or the bezel has no place") return end
+		local plateH = panel[4] - panel[2]
+		local bz = bezel[3] - bezel[1]
+		local want = math.min(bz * 1.1, plateH - 2 * edge)
+		for _, t in ipairs({ { look.bezelWarm, "warm bloom" }, { look.bezelHot, "white-hot flash" } }) do
+			local box = rectOf(t[1])
+			if not box then
+				fail(scenario, label .. ": the " .. t[2] .. " has no place")
+			else
+				if box[2] < panel[2] + edge - 0.01 or box[4] > panel[4] - edge + 0.01 then
+					fail(scenario, ("%s: the %s runs from %.2f to %.2f, past the plate's %.2f..%.2f less its %d-unit margin")
+						:format(label, t[2], box[2] - panel[2], box[4] - panel[2], 0, plateH, edge))
+				end
+				if box[1] < panel[1] - 0.01 or box[3] > panel[3] + 0.01 then
+					fail(scenario, label .. ": the " .. t[2] .. " leaves the plate's side")
+				end
+				-- Still the bezel's own bloom: on it, and as large as the room allows.
+				if not near(box[3] - box[1], want, 0.01) or not near(box[4] - box[2], want, 0.01) then
+					fail(scenario, ("%s: the %s is %.2f across, not %.2f (the bezel's %.2f x 1.1, held to the plate's room)")
+						:format(label, t[2], box[3] - box[1], want, bz))
+				end
+				if not near((box[1] + box[3]) / 2, (bezel[1] + bezel[3]) / 2, 0.01) or not near((box[2] + box[4]) / 2, (bezel[2] + bezel[4]) / 2, 0.01) then
+					fail(scenario, label .. ": the " .. t[2] .. " is not centred on the bezel")
+				end
+			end
+		end
+	end
+end)
+
 -- ------------------------------------------------------------------ 4
 -- No additive light at rest, in every state the panel can rest in; every
 -- additive flourish is a one-shot under 0.6 s.
@@ -651,6 +704,14 @@ withTree("look-forge: a landing flashes the bezel and spreads the rings", ANNA, 
 	if plays(look.sparkAnims) ~= 6 then fail(scenario, "at the defaults, two lines in 44, the sparks did not fly: " .. plays(look.sparkAnims)) end
 	for i, g in ipairs(look.sparkAnims) do
 		if FT.groupLength(g) > 0.48 + 1e-6 then fail(scenario, ("spark %d lasts %.3f s"):format(i, FT.groupLength(g))) end
+		-- A head of 1.7 units, six of them setting off 2 units apart: lit at
+		-- 0.75 at the most, so the bunch is a burst and not one white bar.
+		local peak = 0
+		for _, a in ipairs(g._anims or {}) do
+			if a._kind == "Alpha" or a._fromAlpha then peak = math.max(peak, a._fromAlpha or 0, a._toAlpha or 0) end
+		end
+		if peak <= 0 then fail(scenario, ("spark %d is never lit"):format(i))
+		elseif peak > 0.75 + 1e-6 then fail(scenario, ("spark %d is lit to %.2f, over 0.75: six heads of 1.7 units glare as one bar"):format(i, peak)) end
 	end
 end)
 
@@ -1092,6 +1153,130 @@ withTree("look-forge: the generator draws the same bytes", ANNA, function(_, sce
 	if not outA:find("Forge_PlateM.tga 128x128 cap=0.55", 1, true) then fail(scenario, "the generator does not print the plate's cap line") end
 end)
 
+-- The art as drawn afresh (so a change to the generator is judged, not only
+-- the files it once wrote) and as shipped. One run of the generator for the
+-- file, into a folder of its own; nil until asked, false when python will not
+-- run, "skipped" without numpy or Pillow, else the folder.
+local fresh
+local function freshArt()
+	if fresh ~= nil then return fresh end
+	local python = os.getenv("MANNERS_PYTHON") or "python"
+	local out = tempDir() .. "-forge-art"
+	local log = out .. ".log"
+	os.execute(python .. ' "' .. dir .. '/tools/make_forge_textures.py" --out "' .. out .. '" > "' .. log .. '" 2>&1')
+	local text = slurp(log)
+	os.remove(log)
+	if not text then fresh = false
+	elseif text:find("No module named", 1, true) then fresh = "skipped"
+	else fresh = out end
+	return fresh
+end
+
+local function withArt(scenario, body)
+	withTree(scenario, ANNA, function(_, sc)
+		local out = freshArt()
+		if out == false then fail(sc, "SKIPPED -- cannot run python") return end
+		local wheres = { { dir .. "/Textures/Forge", "shipped" } }
+		if out ~= "skipped" then table.insert(wheres, 1, { out, "drawn" }) end
+		for _, where in ipairs(wheres) do body(where[1], where[2], sc) end
+	end)
+end
+
+-- The texel (x, y) of a 32-bit TGA: luma 0..1 and alpha 0..1. The readings
+-- below are symmetric top to bottom, so the row order does not matter.
+local function texel(tga, x, y)
+	local at = tga.offset + (y * tga.w + x) * 4
+	local b, g, r, a = tga.data:byte(at + 1, at + 4)
+	return MC.luma(r, g, b), a / 255
+end
+
+-- How much the plate's luma moves from one texel to the next across rows
+-- y0..y1-1 (each texel to its right and its lower neighbour): the busyness
+-- the words have to read through.
+local function busy(tga, y0, y1)
+	local sum, n = 0, 0
+	for y = y0, y1 - 1 do
+		for x = 0, tga.w - 2 do
+			local l = texel(tga, x, y)
+			local lr = texel(tga, x + 1, y)
+			local ld = texel(tga, x, y + 1)
+			sum = sum + math.abs(lr - l) + math.abs(ld - l)
+			n = n + 1
+		end
+	end
+	return n > 0 and sum / n or 0
+end
+
+-- The plate is hammered iron, struck full along its long edges (by the
+-- straps) and calmed in the middle rows where the words stand: at the default
+-- height the lines run from design texel 28 to 100, the middle rows 44..84
+-- lie under them, and 12..22 and 106..116 are the hammered rails just inside
+-- the straps. Calm, not flat: the middle keeps a share of the hammer marks.
+withArt("look-forge: the plate is calm under the words and hammered by the straps", function(folder, which, scenario)
+	local tga = MC.readTGA(folder .. "/Forge_PlateM.tga")
+	if not tga or tga.h ~= 128 then fail(scenario, "Forge_PlateM (" .. which .. ") is not a 128-tall TGA") return end
+	local words = busy(tga, 44, 84)
+	local rails = (busy(tga, 12, 22) + busy(tga, 106, 116)) / 2
+	if words > 0.75 * rails then
+		fail(scenario, ("Forge_PlateM (%s) is as busy under the words (%.4f) as on its rails (%.4f): the hammer marks fight the lines")
+			:format(which, words, rails))
+	end
+	if words < 0.35 * rails then
+		fail(scenario, ("Forge_PlateM (%s) is flat under the words (%.4f against the rails' %.4f): it no longer reads as hammered iron")
+			:format(which, words, rails))
+	end
+	if rails < 0.02 then
+		fail(scenario, ("Forge_PlateM (%s) has lost its hammer marks by the straps (%.4f)"):format(which, rails))
+	end
+end)
+
+-- A spark fills its 3-unit frame: a round head of at least 1.5 units (8 of
+-- its 16 texels) both ways, a tail behind it, and nothing cut flat at the
+-- file's edge. A dot of under a unit is less than a pixel at the game's scale
+-- and the landing's sparks went unseen.
+withArt("look-forge: a spark fills its frame", function(folder, which, scenario)
+	local tga = MC.readTGA(folder .. "/Forge_Spark.tga")
+	if not tga or tga.w ~= 16 or tga.h ~= 16 then fail(scenario, "Forge_Spark (" .. which .. ") is not a 16x16 TGA") return end
+	local function alpha(x, y) local _, a = texel(tga, x, y) return a end
+	-- The brightest row, and its longest run at half alpha or more.
+	local row, most = 0, -1
+	for y = 0, 15 do
+		local s = 0
+		for x = 0, 15 do s = s + alpha(x, y) end
+		if s > most then row, most = y, s end
+	end
+	local function longest(get)
+		local best, run, bestEnd = 0, 0, 0
+		for i = 0, 15 do
+			if get(i) >= 0.5 then run = run + 1 else run = 0 end
+			if run > best then best, bestEnd = run, i end
+		end
+		return best, bestEnd - best + 1
+	end
+	local across, from = longest(function(x) return alpha(x, row) end)
+	local mid = from + math.floor(across / 2)
+	local down = longest(function(y) return alpha(mid, y) end)
+	if across < 8 or down < 8 then
+		fail(scenario, ("Forge_Spark (%s): the head is %d x %d texels at half alpha, under 8 (1.5 of the frame's 3 units)")
+			:format(which, across, down))
+	end
+	local lit0, lit1
+	for x = 0, 15 do
+		if alpha(x, row) > 0.05 then lit0 = lit0 or x lit1 = x end
+	end
+	if not lit0 or (lit1 - lit0 + 1) < 12 then
+		fail(scenario, ("Forge_Spark (%s): head and tail span %s texels, under 12"):format(which, lit0 and tostring(lit1 - lit0 + 1) or "no"))
+	end
+	for i = 0, 15 do
+		for _, xy in ipairs({ { 0, i }, { 15, i }, { i, 0 }, { i, 15 } }) do
+			if alpha(xy[1], xy[2]) > 0.2 then
+				fail(scenario, ("Forge_Spark (%s) is cut at the file's edge (texel %d,%d at alpha %.2f)"):format(which, xy[1], xy[2], alpha(xy[1], xy[2])))
+				return
+			end
+		end
+	end
+end)
+
 -- ------------------------------------------------------------------ 19
 -- Two lines fit the default height, and a city scan in Forge costs no more
 -- pcalls than one in glass.
@@ -1121,3 +1306,10 @@ withTree("look-forge: two lines fit in 44 and a city scan costs no more than gla
 	_G.pcall = realPcall
 	if not ok then error(err) end
 end)
+
+-- The art drawn afresh is only evidence: remove it once every scenario has
+-- read it (a narrowed run that drew nothing has nothing to remove).
+if type(fresh) == "string" then
+	for _, short in ipairs(FILES) do os.remove(fresh .. "/Forge_" .. short .. ".tga") end
+	os.remove(fresh)
+end

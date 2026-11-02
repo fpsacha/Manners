@@ -225,6 +225,48 @@ withRuns("materials: the check helper reads a cap", function(r, scenario)
 	if MC.pow2(r.a .. "/Nothing.tga") then fail(scenario, "pow2 passed a file that is not there") end
 end)
 
+-- ------------------------------------------------------------------ 6
+-- The hammer marks wrap round the tile both ways, their tilt with them: the
+-- height steps no more from the tile's last column to its first (or last row
+-- to first) than between two neighbours inside. A tilt read from the cell's
+-- unwrapped centre puts a cliff there, which a REPEAT-tiled plate shows at
+-- every seam and a frame's rail along its file edge.
+do
+	local scenario = "materials: the hammer marks wrap round the tile"
+	Mock.reset()
+	local ns = load(scenario)
+	if ns then
+		local log = tempDir() .. "-seams.log"
+		os.execute(python .. ' "' .. dir .. '/tools/materials.py" --seams > "' .. log .. '" 2>&1')
+		local text = slurp(log)
+		os.remove(log)
+		if not text then
+			fail(scenario, "SKIPPED -- cannot run " .. python)
+		elseif not text:find("No module named", 1, true) then
+			local probes = 0
+			for line in text:gmatch("[^\r\n]+") do
+				local size, rest = line:match("seam (%d+x%d+) (.*)$")
+				if size then
+					probes = probes + 1
+					local f = {}
+					for key, value in rest:gmatch("(%w+)=([%d%.%-]+)") do f[key] = tonumber(value) end
+					for _, axis in ipairs({ "x", "y" }) do
+						local wrap, inner = f["wrap" .. axis], f["inner" .. axis]
+						if type(wrap) ~= "number" or type(inner) ~= "number" then
+							fail(scenario, size .. ": no figures for " .. axis .. ": " .. line)
+						elseif wrap > 1.25 * inner then
+							fail(scenario, ("%s, cell %s: the height steps %.4f across the tile's edge (%s), at most %.4f inside: a cliff at the seam")
+								:format(size, tostring(f.cell), wrap, axis == "x" and "last column to first" or "last row to first", inner))
+						end
+					end
+				end
+			end
+			if probes < 3 then fail(scenario, "the generator measured " .. probes .. " probe tiles, not 3: " .. text:sub(1, 200)) end
+		end
+	end
+	Mock.reset()
+end
+
 -- The swatches are only evidence: remove them once every scenario has read
 -- them (a narrowed run that generated nothing has nothing to remove).
 if type(runs) == "table" then

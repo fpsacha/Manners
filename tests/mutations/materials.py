@@ -32,6 +32,16 @@ mutate(MATERIALS,
        expect="the same bytes twice",
        script="runscenarios.py")
 
+# The dish's tilt read from the cell's unwrapped centre again: a texel whose
+# nearest cell lies across the tile's edge takes a tilt of the tile's whole
+# width, a cliff at every seam of a tiled plate and along a frame's file edge.
+mutate(MATERIALS,
+       "    along = ((xs - bcx) * np.cos(ca) + (ys - bcy) * np.sin(ca)) / radius\n",
+       "    along = ((xs - cx[bj, bi]) * np.cos(ca) + (ys - cy[bj, bi]) * np.sin(ca)) / radius\n",
+       "the planish's tilt read from the cell's unwrapped centre",
+       expect="the hammer marks wrap round the tile",
+       script="runscenarios.py")
+
 # The feature floor lowered and the gold hammered at one unit: the detail the
 # judges struck as a smudge at the game's scale.
 mutate(MATERIALS,

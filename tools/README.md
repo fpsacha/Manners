@@ -878,7 +878,10 @@ bead, the glyphs, the heat, the spark, the steam, the rings), drawn through
 `materials.py`: hammered iron under luma 0.55, the plate's mean under 0.32 so
 the words read on it, planish cells of 5 units, rivets of 2.2 and bolts of 2
 units. The plate's three pieces are lit as one strip so the middle tile wraps
-onto itself without a seam. `--out DIR` writes the same files to DIR (what
+onto itself without a seam; its hammer marks are struck full along the long
+edges, by the straps, and calmed by `PLATE_CALM` in the middle rows where the
+words stand. The spark's head is 9 of its 16 texels (1.7 units on its 3-unit
+frame) with a tail behind it, so it reads at the default size. `--out DIR` writes the same files to DIR (what
 `tests/scenarios/look-forge.lua` compares with what ships, twice, byte for
 byte), `--sheet FILE` draws a contact sheet and `--reach` prints the ring
 files' peak and reach. The figures `Looks/Forge.lua` must agree with
@@ -911,7 +914,9 @@ The API, every array on the supersampled grid:
 - Profiles over a distance: `bevel(d, width, rise)` (rounded shoulders),
   `chamfer(d, width, rise)` (a 45-degree wall), `torus(d, r)`, `dome(d, r)`.
 - Stamps: `planish(height, w, h, seed, cell_units, depth, tpu)` (seeded Voronoi
-  hammer marks), `rivet(height, cx, cy, r_units, tpu)` (a dome and the shadow
+  hammer marks that wrap round the tile both ways, each dish's tilt read from
+  its wrapped centre, so a REPEAT tile and a frame's file edge carry no
+  cliff), `rivet(height, cx, cy, r_units, tpu)` (a dome and the shadow
   it casts, which goes to `shade(..., shadow=)`), `engrave(height, sdf,
   width_units, depth, tpu)` (a V-groove: a line, which may be 1 unit wide),
   `rope(height, x, y, cx, cy, radius, strands, helix_deg, band_fraction)`
@@ -942,6 +947,7 @@ rest; ADD only in flourishes under 0.6 s.
 ```
 python tools/materials.py --selftest --out DIR              # six swatches and their light
 python tools/materials.py --selftest --out DIR --sheet OUT.png
+python tools/materials.py --seams                           # the planish across its wrap
 ```
 
 The self-test draws `Swatch_Gold` (planished, 3-unit cells), `Swatch_Iron` (a
@@ -950,7 +956,9 @@ edge), `Swatch_Stone` (an engraved mark 6 units tall), `Swatch_Hide` (a grain
 re-lit) and `Swatch_Grey` (the ramp over a dome), 128 x 128 at 4 texels per
 unit, with a `_Light` file each. `tests/scenarios/materials.lua` runs it
 twice and holds it to the same bytes, every cap, the two-unit floor and the
-file format.
+file format. `--seams` hammers three probe tiles and prints, per tile, the
+height step across the wrap and the largest step inside; the same scenario
+file holds the wrap to the inside ones.
 
 `tests/materials_check.lua` is the reader for the shipped files, dofile'd by
 each look's own scenario file (`local MC = dofile(dir ..

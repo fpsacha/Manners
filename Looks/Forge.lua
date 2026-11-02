@@ -39,7 +39,8 @@
 --   * a fight turns the iron to dull iron, dims the words and greys the icon;
 --     the slot keeps its colour: the reason is the one coloured thing left;
 --   * the icon is the slider's size and reads "Round the icon off"; the bezel
---     is held inside the plate and never over the slot.
+--     and its bloom are held inside the plate, and the bezel never lies over
+--     the slot.
 
 local _, ns = ...
 local L = ns.L
@@ -512,7 +513,10 @@ function Forge:BuildAnimations(anim)
 	-- The bezel white-hot as a buff lands: 0.45 s.
 	self.hotAnim = anim(Flash(self.bezelHot, 0.7, 0.07, 0.38))
 	-- The sparks: each flies its own way (Apply sets how far) for a little
-	-- longer than the last, a beat apart; the last is out by 0.48 s.
+	-- longer than the last, a beat apart; the last is out by 0.48 s. Each
+	-- head is 1.7 units and the six start 2 units apart, so they set off
+	-- almost touching: lit at 0.75, not 0.9, so the bunch they leave in is a
+	-- burst of sparks rather than one white bar.
 	self.sparkAnims = {}
 	for i, t in ipairs(self.sparks) do
 		local g = t:CreateAnimationGroup()
@@ -524,7 +528,7 @@ function Forge:BuildAnimations(anim)
 		if move.SetStartDelay then move:SetStartDelay(0.02 * k) end
 		if move.SetSmoothing then move:SetSmoothing("OUT") end
 		g.move = move
-		Alpha(g, 0.9, 0, seconds, 1, 0.02 * k, "IN")
+		Alpha(g, 0.75, 0, seconds, 1, 0.02 * k, "IN")
 		Park(g, t, 0)
 		self.sparkAnims[i] = anim(g)
 	end
@@ -625,6 +629,10 @@ function Forge:Apply(p, above)
 	-- The bezel: the icon's file frame, held inside the plate. When the cap
 	-- bites, the hole shrinks under the icon, which draws over it.
 	local bz = math.min(iconSize / ICON_FRAME, H - 1)
+	-- Its bloom, GLOW_SCALE larger, held inside the plate with the light's
+	-- own margin top and bottom (THE ROOM): the capped bezel times the scale
+	-- would leave the plate at any icon over 30.
+	local bloom = math.min(bz * GLOW_SCALE, H - 2 * kit.EDGE_MARGIN)
 	local bezelRight = iconX + iconSize + outset
 	local textX = showIcon and (bezelRight + TEXT_GAP) or TEXT_X_BARE
 	self.iconSize, self.iconX, self.bz, self.bezelRight, self.textX = iconSize, iconX, bz, bezelRight, textX
@@ -636,8 +644,8 @@ function Forge:Apply(p, above)
 	local bezelFile = ART .. (round and "BezelRd" or "Bezel")
 	self.bezel:SetTexture(bezelFile)
 	At(self.bezel, art, iconX + iconSize / 2, cy, bz)
-	At(self.bezelWarm, art, iconX + iconSize / 2, cy, bz * GLOW_SCALE)
-	At(self.bezelHot, art, iconX + iconSize / 2, cy, bz * GLOW_SCALE)
+	At(self.bezelWarm, art, iconX + iconSize / 2, cy, bloom)
+	At(self.bezelHot, art, iconX + iconSize / 2, cy, bloom)
 	self.bezelWarm:SetVertexColor(kit.WARM_WHITE[1], kit.WARM_WHITE[2], kit.WARM_WHITE[3], 1)
 	self.bezelHot:SetVertexColor(1.00, 0.85, 0.60, 1)
 	-- Round only when asked: the mask on the icon and the cooldown's swipe.

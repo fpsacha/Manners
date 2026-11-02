@@ -171,6 +171,14 @@ _m(FORGE,
    "the icon's x never pushed right of the slot",
    expect="over the slot")
 
+# The bloom sized from the capped bezel and left uncapped itself: flush with
+# the plate at icon 30, past its top and bottom at every icon over it.
+_m(FORGE,
+   "\tlocal bloom = math.min(bz * GLOW_SCALE, H - 2 * kit.EDGE_MARGIN)\n",
+   "\tlocal bloom = bz * GLOW_SCALE\n",
+   "the bezel's bloom left uncapped",
+   expect="look-forge: the bezel's bloom is held inside the plate")
+
 # --- leaving ---------------------------------------------------------------
 
 _m(FORGE,
@@ -193,6 +201,30 @@ _m(GEN,
    "    rng = np.random.default_rng()\n",
    "the ring's jitter unseeded",
    expect="differs between two runs")
+
+# The plate hammered as hard under the words as by the straps: the ground
+# fights the lines at the default size.
+_m(GEN,
+   "PLATE_CALM, CALM_FROM, CALM_TO = 0.7, 14.0, 38.0\n",
+   "PLATE_CALM, CALM_FROM, CALM_TO = 0.0, 14.0, 38.0\n",
+   "the plate left as busy under the words as on its rails",
+   expect="look-forge: the plate is calm under the words")
+
+# The sparks lit as bright as when they were sub-unit dots: six heads of 1.7
+# units setting off 2 units apart add up to one white bar.
+_m(FORGE,
+   "\t\tAlpha(g, 0.75, 0, seconds, 1, 0.02 * k, \"IN\")\n",
+   "\t\tAlpha(g, 0.9, 0, seconds, 1, 0.02 * k, \"IN\")\n",
+   "the sparks lit to 0.9 with their bigger heads",
+   expect="glare as one bar")
+
+# The spark back to a sub-unit dot with a hairline tail: under a pixel at the
+# game's scale, and the landing's sparks go unseen.
+_m(GEN,
+   "SPARK_HEAD, SPARK_HEAD_X, SPARK_TAIL = 9.0, 10.5, 2.4\n",
+   "SPARK_HEAD, SPARK_HEAD_X, SPARK_TAIL = 4.0, 11.0, 1.2\n",
+   "the spark drawn as a sub-unit dot",
+   expect="look-forge: a spark fills its frame")
 
 # A misnamed file: a solid box in the game, and nothing throws.
 _m(FORGE,
