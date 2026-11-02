@@ -118,10 +118,12 @@ local OUTCOME = {
 -- What a fight does: the text dims, the icon greys and dims, the plate dims.
 local TEXT_COMBAT, ICON_COMBAT, PLATE_COMBAT = 0.78, 0.70, 0.80
 -- The slot's alpha, its core at rest, lit, and held after its breaths; the
--- bezel's warm copy over the same breath and held.
+-- bezel's warm copy over the same breath and held. That copy is the rounded
+-- square, bolts and mitres and all, in the slot's heat colour: past 0.12 (0.07
+-- held on Calm) the iron's dark seams lift and it reads as grey under haze.
 local SLOT_ALPHA = 0.85
 local CORE_REST, CORE_PEAK, CORE_HELD = 0.25, 0.55, 0.40
-local WARM_REST, WARM_PEAK, WARM_HELD = 0.04, 0.18, 0.10
+local WARM_REST, WARM_PEAK, WARM_HELD = 0.04, 0.12, 0.07
 local BREATHS, BREATH = 3, 1.25
 -- The steam's frame, in units, and how far it rises.
 local STEAM, STEAM_RISE = 10, 4
@@ -661,7 +663,8 @@ function Forge:Apply(p, above)
 	local hotFile = hotOnRim and (round and "BezelHotRd" or "BezelHot") or glowFile
 	self.bezelHot:SetTexture(ART .. hotFile)
 	At(self.bezelHot, art, iconX + iconSize / 2, cy, hotOnRim and bz or bloom)
-	self.bezelWarm:SetVertexColor(kit.WARM_WHITE[1], kit.WARM_WHITE[2], kit.WARM_WHITE[3], 1)
+	-- The warm copy takes the slot's heat colour in Tint: the iron warms, it
+	-- is never whitened.
 	self.bezelHot:SetVertexColor(1.00, 0.85, 0.60, 1)
 	-- Round only when asked: the mask on the icon and the cooldown's swipe.
 	local maskFile = ART .. "MaskRd"
@@ -1050,6 +1053,8 @@ function Forge:Tint(r, g, b)
 	else
 		local hr, hg, hb = Heated(r, g, b)
 		self.slot:SetVertexColor(hr, hg, hb, SLOT_ALPHA)
+		-- The bezel breathes in the slot's own heat.
+		self.bezelWarm:SetVertexColor(hr, hg, hb, 1)
 	end
 	local cr, cg, cb = kit.Tint(r, g, b, 0.45)
 	self.core:SetVertexColor(cr, cg, cb, 1)

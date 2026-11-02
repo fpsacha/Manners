@@ -33,7 +33,10 @@ local ICON_FRAME, STRAP_H, SPARK_CEIL = 0.75, 4, 3
 local STEEL = { 0.42, 0.46, 0.52 }
 local NEUTRAL = { 0.46, 0.40, 0.35 }
 local IRON = { 0.62, 0.62, 0.64 }
-local CORE_REST, CORE_HELD, WARM_HELD = 0.25, 0.40, 0.10
+local CORE_REST, CORE_HELD, WARM_HELD = 0.25, 0.40, 0.07
+-- The bezel's breath at its brightest: the rounded square covers the bolts
+-- and the dark seam, and past this the iron greys under the haze.
+local WARM_PEAK = 0.12
 local FLOURISH = 0.6
 
 -- Every file the generator writes (its docstring lists them), as the Lua
@@ -712,6 +715,59 @@ withTree("look-forge: three breaths then still", ANNA, function(ns, scenario)
 	tick(ns)
 	if look.pulse[1]._playing or not near(look.core._alpha, CORE_REST) or (look.bezelWarm._alpha or 0) > 0 then
 		fail(scenario, "the owed glow stayed with nobody owed")
+	end
+end)
+
+-- The breath warms the iron and never whitens it: the bezel's warm copy is
+-- the rounded square, bolts and dark seam included, so in a pale tone every
+-- pulse lays a film over all of it (and Calm holds it). It takes the slot's
+-- own heated colour, and stays dim enough that the seam keeps its dark.
+withTree("look-forge: the bezel breathes in the slot's heat", ANNA, function(ns, scenario)
+	local _, p, look = upIn(ns, scenario)
+	if skipped(scenario, look) then return end
+	local white = look.kit and look.kit.WARM_WHITE
+	for _, mode in ipairs({ "icon", "both" }) do
+		p.accentMode = mode
+		for _, reason in ipairs({ "owed", "target", "asked", "group" }) do
+			ns.Prompt:ApplyStyle()
+			ns.Prompt:PaintAccent(reason)
+			local hr, hg, hb = heated(ns.Prompt:AccentColor(reason))
+			local c = look.bezelWarm._color
+			local label = mode .. ", " .. reason
+			if not sameColour(c, hr, hg, hb, 0.01) then
+				fail(scenario, ("%s: the bezel's breath is not in the slot's heated colour (%s)"):format(label,
+					c and ("%.2f %.2f %.2f"):format(c[1], c[2], c[3]) or "never coloured"))
+			end
+			if white and sameColour(c, white[1], white[2], white[3], 0.01) then
+				fail(scenario, label .. ": the bezel's breath is warm white, a film over the iron")
+			end
+			if not near(c and c[4], 1) then fail(scenario, label .. ": the bezel's breath carries its own alpha") end
+		end
+	end
+	p.accentMode = "icon"
+	ns.Prompt:ApplyStyle()
+	ns.Prompt:PaintAccent("owed")
+	-- Every alpha the warm copy is ever taken to: the breath, the single rise
+	-- of "Once" and Calm's fade.
+	local peak = 0
+	for _, g in ipairs(look.bezelWarm._groups or {}) do
+		for _, a in ipairs(g._anims) do
+			peak = math.max(peak, a._fromAlpha or 0, a._toAlpha or 0)
+		end
+	end
+	if peak > WARM_PEAK + 1e-6 then
+		fail(scenario, ("the bezel's breath peaks at %.2f, past %.2f: the iron greys"):format(peak, WARM_PEAK))
+	end
+	if peak <= 0 then fail(scenario, "SKIPPED -- the bezel's breath has no animation") end
+	-- Held after its breaths, and on Calm, below the peak.
+	wipe(ns.owed)
+	tick(ns)
+	owe(ns, "Anna Aim")
+	tick(ns)
+	Mock.runTimers(10)
+	local held = look.bezelWarm._alpha or 0
+	if held > WARM_HELD + 1e-6 then
+		fail(scenario, ("the bezel is held at %.2f after its breaths, past %.2f"):format(held, WARM_HELD))
 	end
 end)
 

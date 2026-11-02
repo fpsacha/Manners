@@ -210,6 +210,28 @@ _m(FORGE,
    "the forge's mask left on the icon",
    expect="Forge's mask still shapes the icon")
 
+# The bezel's breath back in warm white: on the rounded square it lays a pale
+# film over the bolts and the dark seam at every pulse, and Calm holds it.
+_m(FORGE,
+   "\t\tself.bezelWarm:SetVertexColor(hr, hg, hb, 1)\n",
+   "\t\tself.bezelWarm:SetVertexColor(kit.WARM_WHITE[1], kit.WARM_WHITE[2], kit.WARM_WHITE[3], 1)\n",
+   "the bezel's breath whitened",
+   expect="look-forge: the bezel breathes in the slot's heat")
+
+# The breath back to the disc's peak and held glow over the square's larger
+# cover of iron.
+_m(FORGE,
+   "local WARM_REST, WARM_PEAK, WARM_HELD = 0.04, 0.12, 0.07\n",
+   "local WARM_REST, WARM_PEAK, WARM_HELD = 0.04, 0.18, 0.07\n",
+   "the bezel's breath peaks at 0.18",
+   expect="look-forge: the bezel breathes in the slot's heat")
+
+_m(FORGE,
+   "local WARM_REST, WARM_PEAK, WARM_HELD = 0.04, 0.12, 0.07\n",
+   "local WARM_REST, WARM_PEAK, WARM_HELD = 0.04, 0.12, 0.10\n",
+   "the bezel held at 0.10 after its breaths",
+   expect="look-forge: the bezel breathes in the slot's heat")
+
 # --- the art ---------------------------------------------------------------
 
 # The generator's rng unseeded: two runs draw different bytes.
