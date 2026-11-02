@@ -847,7 +847,7 @@ Check("button.exists", "button", L["secure button"], function(add)
 		_G.MannersPrompt == b and "MannersPrompt" or "not MannersPrompt",
 		okProt == true and Show(protected) or "n/a")
 	if _G.MannersPrompt ~= b then
-		add(FAIL, line .. " -- the key binding and the /click macro name MannersPrompt")
+		add(FAIL, line .. " -- the key binding names MannersPrompt")
 	elseif okProt == true and Plain(protected) == false then
 		add(FAIL, line .. " -- not a secure button")
 	else

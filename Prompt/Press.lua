@@ -701,8 +701,32 @@ local function BarWaiting(now)
 		return
 	end
 	if ExplainEmpty(now) then return end
+	-- Every other reason the macro holds its first line alone (Clicks.lua,
+	-- click macro, Wanted), each said as the panel or the command says it.
+	if db and not db.prompt.locked then
+		ns.addon:Print(L["not buffing while unlocked"])
+		return
+	end
+	if S.testMode then
+		ns.addon:Print(L["a preview is on the prompt, so a press casts nothing -- %s ends it."]
+			:format("|cffffd100/manners test|r"))
+		return
+	end
+	if ns.MacroWindowOpen and ns.MacroWindowOpen() then
+		ns.addon:Print(L["the macro window is open, so the |cffffd100%s|r macro holds its first line alone until it shuts."]
+			:format(tostring(ns.CLICK_MACRO_NAME)))
+		return
+	end
+	if ns.tryMacro then
+		ns.addon:Print(L["%s runs on the prompt only -- press the prompt, or its key, to try it."]
+			:format("|cffffd100/manners try|r"))
+		return
+	end
 	if not PromptIsLive() then return end
-	local ready, left = ns.CastReady()
+	-- The spell's own cooldown as well as the global one: the macro holds back
+	-- for the end of either (Clicks.lua, HoldNow).
+	local entry = S.current
+	local ready, left = ns.CastReady(entry and entry.buff and PressSpell(entry) or nil)
 	if not ready then
 		Prompt:SayWaiting(left)
 		if db and db.debugClicks then ns.addon:Print("|cffffd100CLICK|r " .. L["held back -- the cooldown was still running"]) end
@@ -711,6 +735,13 @@ local function BarWaiting(now)
 	local named = Prompt:PanelName()
 	if S.current and named and named ~= S.current.name then
 		Prompt:MovedOn(S.current)
+		-- MovedOn disarms, as a press on the prompt wants (its next PreClick
+		-- arms again). The bar's next press runs whatever is written by then,
+		-- so the prompt is armed again at once, at the person the line names,
+		-- and their lines go in the frame after this one (HoldMacroWrites);
+		-- and that next press is not taken for this one's echo.
+		ns.Guard("bar macro", Prompt.Refresh, Prompt)
+		B.waitAt = nil
 		return
 	end
 	-- Written a moment late (a press was running, the macro window was open, a
@@ -726,8 +757,24 @@ local function OnBarClick(self)
 	ns.pressAt = now
 	local B = Prompt.bar
 	local debug = ns.db and ns.db.profile.debugClicks
-	-- Only a press of lines Manners wrote is filed: a macro changed by hand,
-	-- or a copy of the first line in a macro of somebody's own, is theirs.
+	-- Only a press of the macro named Manners is filed: a macro of somebody's
+	-- own with the same first line runs its own lines, not the ones Manners
+	-- wrote, and the body read below is the Manners macro's whichever ran. A
+	-- client that names no running macro leaves the body to decide.
+	local running = type(_G.GetRunningMacro) == "function" and ns.plain(_G.GetRunningMacro()) or nil
+	if type(running) == "number" and running ~= ns.BarMacroIndex() then
+		if debug then ns.addon:Print("|cffffd100CLICK|r via=bar body=other") end
+		return
+	end
+	-- A body a session before this one left, found and not yet put right (a
+	-- login or a /reload in a fight): its lines run, at whoever they name, and
+	-- none of it is the prompt's (Clicks.lua, ns.StaleBarPress says so).
+	if ns.StaleBarPress() then
+		if debug then ns.addon:Print("|cffffd100CLICK|r via=bar body=stale") end
+		return
+	end
+	-- Only a press of lines Manners wrote is filed: a macro changed by hand is
+	-- the player's.
 	if not B.body or ns.BarBodyNow() ~= B.body then
 		if debug then ns.addon:Print("|cffffd100CLICK|r via=bar body=edited") end
 		return
@@ -743,6 +790,9 @@ local function OnBarClick(self)
 	local ready, left = ns.CastReady()
 	if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then ready = true end
 	if not ready then
+		-- The game's refusal of the /cast that still goes out arrives in this
+		-- frame, and is about nothing filed (Clicks.lua, UI_ERROR_MESSAGE).
+		ns.barHeldAt = now
 		Prompt:SayWaiting(left)
 		if debug then ns.addon:Print("|cffffd100CLICK|r " .. L["held back -- the cooldown was still running"]) end
 		return

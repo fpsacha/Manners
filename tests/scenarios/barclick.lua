@@ -412,6 +412,16 @@ with("barclick: the spell's own cooldown holds the macro back at its end too", f
 	if bodyNow() ~= full then fail(scenario, "early in the spell's cooldown the macro let go of the cast") end
 	for _ = 1, 47 do Mock.runTimers(0.1) end
 	if bodyNow() ~= BAR_LINE then fail(scenario, "at the end of the spell's own cooldown the macro still carries " .. flat(bodyNow())) end
+	-- Pressed then: nothing cast or filed, and it says why, as a press in the
+	-- global cooldown's last moments does.
+	ns.db.profile.debugClicks = true
+	Mock.printed = {}
+	ns.pendingClick = nil
+	local casts = Mock.pressBar(2)
+	if #casts ~= 0 or ns.pendingClick then fail(scenario, "a press at the end of the spell's own cooldown cast or was filed") end
+	if not said():find("held back", 1, true) then fail(scenario, "a press at the end of the spell's own cooldown said: " .. said()) end
+	local sub = ns.Prompt.regions.subText:GetText() or ""
+	if not sub:find("ready in", 1, true) then fail(scenario, "at the end of the spell's own cooldown the panel does not say when it is ready: " .. sub) end
 	for _ = 1, 5 do Mock.runTimers(0.1) end
 	if bodyNow() ~= full then fail(scenario, "after the spell's cooldown the macro holds " .. flat(bodyNow())) end
 end)

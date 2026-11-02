@@ -460,7 +460,9 @@ Launch("launch.macro.body", "EditMacro", function(add, ctx)
 		return
 	end
 	local want = tostring(ns.BAR_LINE) .. "\n/cleartarget"
-	local okE, errE = pcall(_G.EditMacro, macro.index, nil, nil, want)
+	-- Called as Clicks.lua calls it, with the macro's own name: a client that
+	-- refuses a nil name would otherwise read as a fault Manners never meets.
+	local okE, errE = pcall(_G.EditMacro, macro.index, macro.name, nil, want)
 	local okB, back = Ask(readBody, macro.index)
 	back = okB == true and Plain(back) or nil
 	local got = type(back) == "string" and back:match("^%s*(.-)%s*$") or nil

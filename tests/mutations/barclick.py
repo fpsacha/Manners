@@ -71,22 +71,22 @@ mutate(C,
 
 # A macro changed by hand still targeting somebody, never said.
 mutate(C,
-       "\t\t\tif rest[1] == BAR_LINE then Warn(rest) end\n",
+       "\t\t\tif rest[1] == BAR_LINE then Warn(rest, text) end\n",
        "",
        "barclick: a macro changed by hand is not said",
        expect=EDITED, script=S)
 
 # ...said at every look.
 mutate(C,
-       "\t\tif not who or body.warned == who then return end\n",
-       "\t\tif not who then return end\n",
+       "\t\tif body.warned == key then return end\n",
+       "",
        "barclick: a macro changed by hand is said at every look",
        expect=EDITED, script=S)
 
 # An edit announced by UPDATE_MACROS not looked at.
 mutate(C,
-       "\t\tif ns.ForgetMacroBody then ns.ForgetMacroBody() end\n",
-       "",
+       "\t\tns.ForgetMacroBody()\n\t\tns.SyncMacroBody()\n\tend\n",
+       "\t\tns.SyncMacroBody()\n\tend\n",
        "barclick: UPDATE_MACROS does not look at the body again",
        expect=EDITED, script=S)
 
@@ -101,8 +101,8 @@ mutate(C,
 
 # Written in a fight (the client refuses, but it is asked).
 mutate(C,
-       "\t\tif InCombatLockdown() then return end\n\t\t-- Never into a macro that may be running",
-       "\t\t-- Never into a macro that may be running",
+       "\t\t\tif state == nil then Look() end\n\t\t\treturn\n\t\tend\n",
+       "\t\t\tif state == nil then Look() end\n\t\tend\n",
        "barclick: the macro written in a fight",
        expect=FIGHT, script=S)
 
@@ -248,8 +248,8 @@ mutate(P,
 
 # A press of the empty bar macro with nobody to buff says nothing.
 mutate(P,
-       "\tif ExplainEmpty(now) then return end\n\tif not PromptIsLive() then return end\n",
-       "\tif not PromptIsLive() then return end\n",
+       "\tif ExplainEmpty(now) then return end\n\t-- Every other reason",
+       "\t-- Every other reason",
        "barclick: an empty bar macro says nothing of why",
        expect=FOLLOWS, script=S)
 

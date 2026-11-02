@@ -284,6 +284,9 @@ local function resetRunning()
 	Mock.eventSink = nil
 	Mock.macroLog, Mock.castLog, Mock.saidLog = {}, {}, {}
 	Mock.macroDepth, Mock.pressFlags = 0, nil
+	-- The place of the macro a bar press is running (Mock.pressBar), for
+	-- GetRunningMacro; nil outside one.
+	Mock.runningMacro = nil
 	Mock.editCalls = 0
 	Mock.queuedEvents = {}
 	-- Whom the macros have targeted: { unit, name } or nil, and the one before.
@@ -524,10 +527,17 @@ function Mock.runMacroText(text)
 	return true
 end
 
+-- GetRunningMacro: the place of the macro running, as the client answers it
+-- while one runs (every branch's GlobalAPI has it), nil otherwise.
+function GetRunningMacro()
+	return Mock.runningMacro
+end
+
 -- The macro on an action bar slot pressed, by `how.via` "mouse" or "key": the
 -- bar's own button runs it (ActionButton.lua: a mouse press with isKeyPress
 -- false and isSecureAction true, a key with both true; `how.keyDown` says on
--- which phase, which changes nothing about what runs). The casts it logged.
+-- which phase, which changes nothing about what runs). GetRunningMacro names
+-- it while it runs. The casts it logged.
 function Mock.pressBar(slot, how)
 	how = how or { via = "mouse" }
 	local macro = macroAt(Mock.bar[slot])
@@ -535,7 +545,10 @@ function Mock.pressBar(slot, how)
 	local before = #Mock.castLog
 	Mock.pressFlags = how.via == "key" and { isKeyPress = true, isSecureAction = true }
 		or { isKeyPress = false, isSecureAction = true }
+	local was = Mock.runningMacro
+	Mock.runningMacro = Mock.bar[slot]
 	local ok, err = pcall(Mock.runMacroText, macro.body or "")
+	Mock.runningMacro = was
 	Mock.pressFlags = nil
 	if not ok then error(err, 0) end
 	local casts = {}

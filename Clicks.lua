@@ -991,7 +991,10 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 		local stopped = ScrollCastStopped(castGUID, nil, L["the game refused the cast"])
 		if stopped then ShowOutcome("failed", stopped, L["the game refused the cast"]) end
 	end
-	if self.db.profile.verbose and ns.lastClickTime and (GetTime() - ns.lastClickTime) <= 1 then
+	-- Not the refusal of a bar press the cooldown held back (UI_ERROR_MESSAGE,
+	-- below): nothing was filed for it, and the press before it may have landed.
+	if self.db.profile.verbose and ns.lastClickTime and (GetTime() - ns.lastClickTime) <= 1
+		and ns.barHeldAt ~= GetTime() then
 		self:Print(L["|cffff8080could not cast|r %s"]:format(SpellLabel(spellId)))
 	end
 end
@@ -1000,6 +1003,11 @@ end
 -- for: this event carries everything the game raises.
 function addon:UI_ERROR_MESSAGE(_, _, message)
 	message = plain(message)
+	-- A bar press the cooldown held back (Press.lua, OnBarClick) still sends
+	-- its /cast, which the game refuses in the same frame. That refusal is
+	-- about a press nothing was filed for: not a reason to doubt the press
+	-- before it, not the reason for the next refusal, and not "after our cast".
+	if ns.barHeldAt == GetTime() then return end
 	-- A reason to doubt a click still parked, and nothing more: it carries no
 	-- spell id, so it never undoes a settle (see UnsettleLateRefusal).
 	local failed = FailPendingClick(message)
@@ -1046,9 +1054,13 @@ end
 -- press says why.
 --
 -- CreateMacro and EditMacro are protected in combat, so in a fight the macro
--- keeps what it held at the pull, as the prompt's button keeps its attributes.
--- Only the macro named Manners is written, and only while its body is one
--- Manners writes; one changed by hand is the player's.
+-- keeps what it held at the pull, as the prompt's button keeps its attributes;
+-- after a login or a /reload in one it holds what the session before left,
+-- which is read (GetMacroBody is not protected) and said at a press, never
+-- filed. Only the macro named Manners is written, and only while its body is
+-- a shape Manners writes (Shaped, below); one changed by hand is the player's.
+-- Only a press of that macro is filed: another macro with the same first line
+-- runs its own lines (Press.lua, OnBarClick, GetRunningMacro).
 ---------------------------------------------------------------------------
 
 local MACRO_NAME = "Manners"
@@ -1202,6 +1214,12 @@ do
 		Settle()
 	end
 
+	-- What the macro holds looked at afresh (the next block).
+	local function LookAgain()
+		ns.ForgetMacroBody()
+		ns.SyncMacroBody()
+	end
+
 	-- A macro made, deleted or moved in the macro window: only when its
 	-- place changed does the slot's spell go on again, so setting it, which
 	-- the client may answer with this event, cannot start a loop.
@@ -1215,8 +1233,8 @@ do
 		-- edit in the macro window, a macro made or deleted by hand, or another
 		-- addon's write shows itself. A write of Manners' own that the client
 		-- answers with it reads back as what was written, and is left there.
-		if ns.ForgetMacroBody then ns.ForgetMacroBody() end
-		if ns.SyncMacroBody then ns.SyncMacroBody() end
+		-- Guarded: the look makes client calls, and this is an event.
+		if ns.SyncMacroBody then ns.Guard("bar macro", LookAgain) end
 	end
 end
 
@@ -1231,17 +1249,58 @@ do
 	-- top of every body written. writing: inside a write of Manners' own.
 	-- pressingAt: the moment of a bar press, in which nothing is written.
 	-- holding: the last moments of a cooldown, out of combat (NoteBarCooldown).
-	-- parked: a loading screen or a logout. warned: whose name the last warning
-	-- about a macro changed by hand carried.
+	-- parked: a loading screen or a logout. warned: whose name (or, for one
+	-- that targets nobody, which body) the last warning about a macro changed
+	-- by hand carried. mine: the body this session last wrote. stale: the
+	-- body found is Manners' shape with a cast in it that no write of this
+	-- session made (a session before this one left it, and in a fight it
+	-- cannot be put right); staleLines: its lines under the bar line, to say;
+	-- staleSaid: said once.
 	local body = { state = nil, written = nil, prefix = "", waitBody = BAR_LINE, cacheText = nil, cacheBody = nil,
 		writing = false, pressingAt = nil, holding = false, holdGen = 0, recheckAt = nil, parked = false,
-		warned = nil, legacy = false, watching = false }
-	-- The lines a body of Manners' may have under the bar line: the shapes the
-	-- prompt's macro is made of without its spoken line (Prompt/Macro.lua,
-	-- STRATEGIES and HandBack).
-	local SHAPED = { target = true, cast = true, use = true, targetlasttarget = true, cleartarget = true }
+		warned = nil, legacy = false, watching = false, mine = nil, stale = false, staleLines = nil, staleSaid = false }
 
 	local function Trimmed(text) return text:match("^%s*(.-)%s*$") end
+	-- A line's command, lower case, and what follows it.
+	local function Command(line)
+		local command, rest = (line or ""):match("^/(%S+)%s*(.-)$")
+		return command and command:lower(), rest
+	end
+
+	-- Whether the lines under the bar line (rest[2] on) are a shape Manners
+	-- writes: the prompt's macro without its spoken line (Prompt/Macro.lua,
+	-- STRATEGIES and HandBack). In this order: at most one /target <name>; then
+	-- one /cast <spell>, or (with no /target) one /use item:<id> with at most
+	-- one /use 16 or 17 after it; then, after a /target, at most one hand-back.
+	-- None at all is the bar line alone. Nothing Manners writes has a
+	-- conditional in it. A line of any other kind, or these in any other
+	-- order or number (a trinket's /use 13 added under the cast), is not.
+	local function Shaped(rest)
+		local i = 2
+		if rest[i] == nil then return true end
+		local command, arg = Command(rest[i])
+		local targeted = false
+		if command == "target" then
+			if arg == "" or arg:find("[", 1, true) then return false end
+			targeted, i = true, i + 1
+			command, arg = Command(rest[i])
+		end
+		if command == "cast" then
+			if arg == "" or arg:find("[", 1, true) then return false end
+			i = i + 1
+		elseif command == "use" and not targeted and arg:match("^item:%d+$") then
+			i = i + 1
+			command, arg = Command(rest[i])
+			if command == "use" and (arg == "16" or arg == "17") then i = i + 1 end
+		else
+			return false
+		end
+		if targeted then
+			command, arg = Command(rest[i])
+			if (command == "targetlasttarget" or command == "cleartarget") and arg == "" then i = i + 1 end
+		end
+		return rest[i] == nil
+	end
 	local function Debug(text)
 		if addon.db and addon.db.profile.debugClicks then addon:Print("|cffffd100BAR|r " .. text) end
 	end
@@ -1252,9 +1311,9 @@ do
 	end
 
 	-- Whose the text is: "legacy" (what an older version wrote, under any "#"
-	-- lines), "ours" (the bar line first, then only lines of the shapes above,
-	-- "#" lines anywhere) or "foreign"; the "#" lines, to keep on top; and for a
-	-- foreign one, its other lines.
+	-- lines), "ours" (the bar line first, then a shape Manners writes, "#"
+	-- lines anywhere) or "foreign"; the "#" lines, to keep on top; and its
+	-- other lines.
 	local function Classify(text)
 		local meta, rest = {}, {}
 		for line in (text .. "\n"):gmatch("([^\n]*)\n") do
@@ -1268,11 +1327,8 @@ do
 		local prefix = #meta > 0 and (table.concat(meta, "\n") .. "\n") or ""
 		if #rest == 1 and LEGACY_BODIES[rest[1]] then return "legacy", prefix end
 		if rest[1] ~= BAR_LINE then return "foreign", prefix, rest end
-		for i = 2, #rest do
-			local command = rest[i]:match("^/(%S+)")
-			if not (command and SHAPED[command:lower()]) then return "foreign", prefix, rest end
-		end
-		return "ours", prefix
+		if not Shaped(rest) then return "foreign", prefix, rest end
+		return "ours", prefix, rest
 	end
 
 	-- What a bar press is filed against (Prompt.bar, read by Press.lua): what
@@ -1293,24 +1349,36 @@ do
 
 	-- A macro changed by hand that still targets somebody runs that line at
 	-- every press, in every session after: said once for each name it carries.
-	local function Warn(rest)
+	-- One that targets nobody (a trinket's /use added under the cast) is said
+	-- once for each body: Manners writes no cast into it from now on, and its
+	-- presses are not followed.
+	local function Warn(rest, text)
 		local who
 		for i = 2, #rest do
 			who = who or rest[i]:match("^/[Tt][Aa][Rr][Gg][Ee][Tt]%s+(.+)$")
 		end
-		if not who or body.warned == who then return end
-		body.warned = who
-		addon:Print(L["your |cffffd100%s|r macro has lines Manners did not write, so it is left as you wrote it -- and it still targets |cffffffff%s|r on every press. %s hands it back to Manners."]
-			:format(MACRO_NAME, who, "|cffffd100/manners macro|r"))
+		local key = who or text
+		if body.warned == key then return end
+		body.warned = key
+		if who then
+			addon:Print(L["your |cffffd100%s|r macro has lines Manners did not write, so it is left as you wrote it -- and it still targets |cffffffff%s|r on every press. %s hands it back to Manners."]
+				:format(MACRO_NAME, who, "|cffffd100/manners macro|r"))
+		else
+			addon:Print(L["your |cffffd100%s|r macro has lines Manners did not write, so it is left as you wrote it, and Manners writes no cast into it. %s hands it back to Manners."]
+				:format(MACRO_NAME, "|cffffd100/manners macro|r"))
+		end
 	end
 
 	-- The macro named Manners read and judged. A body Manners wrote, in this
 	-- session or one before it (a reload, a crash), is Manners' to write again
 	-- at once; an older version's is too, and is said; anybody else's is left.
+	-- Only reads: it is asked in a fight too (SyncMacroBody), where a body a
+	-- session before this one left with a cast in it stays until the fight
+	-- ends, and a press of it is said for what it is (ns.StaleBarPress).
 	local function Look()
 		local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
 		if type(index) ~= "number" or index <= 0 then
-			body.state = "none"
+			body.state, body.stale = "none", false
 			if ns.Prompt then ns.Prompt.bar.body = nil end
 			return
 		end
@@ -1319,14 +1387,23 @@ do
 		text = Trimmed(text)
 		local kind, prefix, rest = Classify(text)
 		if kind == "foreign" then
-			body.state = "foreign"
+			body.state, body.stale = "foreign", false
 			if ns.Prompt then ns.Prompt.bar.body = nil end
-			if rest[1] == BAR_LINE then Warn(rest) end
+			if rest[1] == BAR_LINE then Warn(rest, text) end
 			Debug("body=edited")
 			return
 		end
 		body.state, body.written, body.legacy = "ours", text, kind == "legacy"
 		SetPrefix(prefix)
+		local stale = kind == "ours" and rest ~= nil and #rest > 1 and text ~= body.mine
+		if stale and not body.stale then
+			body.staleSaid = false
+			body.staleLines = table.concat(rest, "; ", 2)
+		end
+		body.stale = stale
+		-- The bar line alone: a press of it is a press with nothing to cast, which
+		-- says why (Press.lua, OnBarClick), in a fight as out of one.
+		if text == body.waitBody then Snapshot(text) end
 	end
 
 	local function WindowOpen()
@@ -1402,7 +1479,7 @@ do
 		local ok = type(_G.EditMacro) == "function" and pcall(_G.EditMacro, index, MACRO_NAME, nil, want)
 		body.writing = false
 		if not ok then return false end
-		body.state, body.written = "ours", want
+		body.state, body.written, body.mine, body.stale = "ours", want, want, false
 		Snapshot(want)
 		ns.ReassertMacroSlot()
 		if body.legacy then
@@ -1429,7 +1506,13 @@ do
 			end
 			return
 		end
-		if InCombatLockdown() then return end
+		if InCombatLockdown() then
+			-- Read, never written: GetMacroBody is not protected, and a login or
+			-- a /reload in a fight must know whose lines a press runs before the
+			-- fight ends (Look, ns.StaleBarPress).
+			if state == nil then Look() end
+			return
+		end
 		-- Never into a macro that may be running: the bar's own press asks
 		-- again next frame (HoldMacroWrites).
 		if body.pressingAt and body.pressingAt == GetTime() then
@@ -1464,6 +1547,11 @@ do
 			if body.holding then want = body.waitBody end
 		end
 		if want == body.written then
+			-- Found as what the prompt casts now: Manners' own, whoever wrote it
+			-- (the same lines typed by hand in the macro window, or left by a
+			-- session before for the person the prompt arms now), and a press of
+			-- it is filed, not taken for a session before's (ns.StaleBarPress).
+			body.mine, body.stale = want, false
 			Snapshot(want)
 			return
 		end
@@ -1508,10 +1596,37 @@ do
 		return type(text) == "string" and Trimmed(text) or nil
 	end
 
+	-- Where the macro named Manners is, 0 for nowhere: a press is filed only
+	-- when it is the macro running (Press.lua, OnBarClick).
+	function ns.BarMacroIndex()
+		local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
+		return type(index) == "number" and index or 0
+	end
+
+	-- A press of a body Manners did not write this session, still there as it
+	-- was found (Look): its lines run, at whoever they name, and nothing of it
+	-- is filed. In a fight it cannot be put right until the fight ends, which
+	-- is said once; out of one the next write puts it right. Answers whether
+	-- the press was of such a body.
+	function ns.StaleBarPress()
+		if not body.stale or body.state ~= "ours" or ns.BarBodyNow() ~= body.written then return false end
+		if InCombatLockdown() and not body.staleSaid then
+			body.staleSaid = true
+			addon:Print(L["your |cffffd100%s|r macro still holds the last session's lines (%s) until this fight ends: a press runs them, and nothing it does is recorded -- the game lets no addon change a macro in a fight."]
+				:format(MACRO_NAME, "|cffffffff" .. tostring(body.staleLines) .. "|r"))
+		end
+		return true
+	end
+
+	-- Whether the macro window is up, which holds the macro at its first line
+	-- (OnWindowShown, below): a press then says so.
+	function ns.MacroWindowOpen() return WindowOpen() end
+
 	-- Put Manners on an action bar (EnsureMacro) wrote the bar line: the macro
 	-- is Manners' again, whatever it held.
 	function ns.AdoptMacroBody()
 		body.state, body.written, body.parked, body.warned = "ours", BAR_LINE, false, nil
+		body.mine, body.stale = BAR_LINE, false
 		SetPrefix("")
 		Snapshot(BAR_LINE)
 	end

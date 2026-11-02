@@ -433,9 +433,14 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   macro carries the cast under `/click MannersBar` (Clicks.lua, click macro):
   the prompt's macro without its spoken line, written out of combat only,
   never during a bar press or with the macro window open, only into the macro
-  named Manners while its body is Manners' own (the bar line first, then only
-  `/target`, `/cast`, `/use` and the hand-back, `#` lines kept on top); the
-  press is filed by Press.lua's OnBarClick against `Prompt.bar`.
+  named Manners while its body is Manners' own (the bar line first, then a
+  shape Manners writes: at most one `/target <name>`, one `/cast <spell>` or
+  `/use item:<id>` with at most one `/use 16|17`, and after a `/target` at most
+  one hand-back, in that order; `#` lines kept on top; Clicks.lua `Shaped`).
+  The press is filed by Press.lua's OnBarClick against `Prompt.bar`, and only
+  when the macro running (`GetRunningMacro`) is the Manners one; a body a
+  session before left, found in a fight, is read (`Look` runs in combat,
+  writing nothing) and its presses said and never filed (`StaleBarPress`).
   `tests/validate.py` fails a `"/click MannersPrompt` literal anywhere but
   Clicks.lua's `LEGACY_BODIES`.
 - **Auras.** `C_UnitAuras` on every client; never `UnitBuff`/`UnitAura`.

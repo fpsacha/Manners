@@ -76,11 +76,18 @@ macro from inside one (Blizzard, WoWUIBugs #552), and the macro was
 here can show: that a macro whose first line /clicks a plain button running
 addon Lua still runs its `/target` and `/cast` lines on that client. First, a
 macro made by hand with two lines, `/click MannersBar` and `/cast Thorns`
-(any spell), pressed from a bar with 1.10.5 loaded, says whether it does. Then
+(any spell), pressed from a bar with 1.10.5 loaded, says whether it does. Give
+it a name of its own, not Manners: a macro named Manners whose lines are a
+shape Manners writes (that one is) is Manners', and is rewritten before the
+press. Then
 ask the reporter to update, press the bar macro once with the mouse and once
 by key with `/manners clicks` on, and paste the lines (`BAR wrote=...`,
-`CLICK build=... via=bar macro=...`, `CAST SENT ...`). The scenarios in
-`tests/scenarios/barclick.lua` hold Manners' wiring to a model of the client
+`CLICK build=... via=bar macro=...`, `CAST SENT ...`). A press is filed only
+when `GetRunningMacro()` names the Manners macro (a client that names none
+leaves it to the body): `CLICK via=bar body=other` on a press of the Manners
+macro itself would say the client names something else there, and every bar
+press would go unfiled. The scenarios in `tests/scenarios/barclick.lua` and
+`barpress.lua` hold Manners' wiring to a model of the client
 (`tests/mockmacros.lua`, "running macros"), not the client. Whether an
 `EditMacro` lets go of what `SetMacroSpell` put on the slot is not known either:
 every write hands it over again (`ReassertMacroSlot`).
