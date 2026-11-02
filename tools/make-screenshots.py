@@ -432,7 +432,7 @@ local added = {
 	-- queue is read before the outcome is painted, so ShotTop is still the
 	-- favour the button was about to return; what the prompt then shows is
 	-- the addon's own outcome for a buff that landed. The time is where the
-	-- landing reads best: the rings off the icon spread, the sweep crossing
+	-- landing reads best: the rings off the icon spread, the wave crossing
 	-- the panel, the words fully drawn.
 	{ key = "shot-landed", at = 0.20, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
@@ -1807,10 +1807,10 @@ REASONS = [
      "A stranger close enough to buff, missing yours."),
 ]
 # The hero: the favour returned, the cast confirmed, at the frame where the
-# landing reads best (the rings off the icon spread into two, the light sweep
+# landing reads best (the rings off the icon spread into two, the wave of light
 # started across the panel, the words fully drawn). Earlier the rings are
 # tight and the words still fading in; later the rings have thinned out and the
-# sweep is off the panel. It is the state's own time, so this is where
+# wave is off the panel. It is the state's own time, so this is where
 # the state is built.
 LANDED_AT = 0.20
 LANDED_WORDS = ["buffed Elowen Thistledown", "the game confirmed it"]
@@ -1825,7 +1825,7 @@ MOMENTS = [
      "The favour arrives and the glow wakes.",
      ["Elowen Thistledown", "buffed you"], ["buffed Elowen", "could not buff"]),
     ("shot-landed", "Your buff lands",
-     "Rings off the icon, a sweep across the panel.",
+     "Rings off the icon, a wave across the panel.",
      LANDED_WORDS, ["buffed you", "could not buff"]),
     ("shot-moment-refused", "The game refused it",
      "The panel says why, in a few words.",

@@ -82,4 +82,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.25806, t = 0.5329, r = 0.89516, b = 0.69419, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.768, 0.444, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "fba7fd4430870bc07ffffff01d5a953bb606c013de58d23b8f7b5a6c812e64b8"
+ns.Looks.previewHash = "68e4d2f3234d301937cb2ca9052390fefb73ee6720b7de0bbcf7da96a3a36de3"
