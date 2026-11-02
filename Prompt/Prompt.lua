@@ -357,17 +357,20 @@ end
 
 -- The rest of the light, drawn once by tools/make-glow.py as well: white, with
 -- the shape in the alpha. A thin ring that spreads from the icon (round, and a
--- rounded square for a square icon), the band that crosses the panel, the
--- glass's reflection and its inner bevel.
+-- rounded square for a square icon), the wave that bursts from the icon's edge
+-- and crosses the panel when a buff lands, the glass's reflection and its
+-- inner bevel.
 local RING = "Interface\\AddOns\\Manners\\Textures\\Ring"
 local RING_SQ = "Interface\\AddOns\\Manners\\Textures\\RingSq"
-local SWEEP = "Interface\\AddOns\\Manners\\Textures\\Sweep"
+local SHOCK = "Interface\\AddOns\\Manners\\Textures\\Shock"
 local GLOSS = "Interface\\AddOns\\Manners\\Textures\\Gloss"
 local BEVEL = "Interface\\AddOns\\Manners\\Textures\\Bevel"
 -- The two rules of light along the panel's edges, drawn out from the icon as
--- it comes up, and the glint that runs them when a favour arrives.
+-- it comes up, the glint that runs them when a favour arrives, and the crack
+-- that opens along the bottom band when a buff is refused.
 local RULE = "Interface\\AddOns\\Manners\\Textures\\Rule"
 local GLINT = "Interface\\AddOns\\Manners\\Textures\\Glint"
+local CRACK = "Interface\\AddOns\\Manners\\Textures\\Crack"
 -- Where the ring's middle sits, as a fraction of the file's half-width:
 -- ring_thin_at in tools/make-glow.py, which must agree.
 local RING_AT = 0.78
@@ -390,8 +393,8 @@ lib.WHITE, lib.OUTCOME_SECONDS = WHITE, OUTCOME_SECONDS
 lib.REASON_KEY, lib.ReasonColor, lib.RemainingText = REASON_KEY, ReasonColor, RemainingText
 lib.Gradient, lib.Solid, lib.Try, lib.unpackColor = Gradient, Solid, Try, unpackColor
 lib.Halo, lib.PlaceHalo, lib.PaintHalo = Halo, PlaceHalo, PaintHalo
-lib.RING, lib.RING_SQ, lib.RING_AT, lib.SWEEP, lib.GLOSS, lib.BEVEL = RING, RING_SQ, RING_AT, SWEEP, GLOSS, BEVEL
-lib.RULE, lib.GLINT = RULE, GLINT
+lib.RING, lib.RING_SQ, lib.RING_AT, lib.SHOCK, lib.GLOSS, lib.BEVEL = RING, RING_SQ, RING_AT, SHOCK, GLOSS, BEVEL
+lib.RULE, lib.GLINT, lib.CRACK = RULE, GLINT, CRACK
 lib.Tint, lib.WARM_WHITE = Tint, WARM_WHITE
 lib.GLOW_RING_AT = GLOW_RING_AT
 -- How many frame levels above art the text sits: over every frame of light

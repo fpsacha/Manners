@@ -9,11 +9,14 @@
 --   * a favour ARRIVING converges: the icon's echo drops onto it and a bloom
 --     of the reason's light gathers round its ring, and a glint runs the two
 --     rules from the icon to the panel's end (under 0.5 s);
---   * a buff LANDING radiates: rings spread from the icon, a band of the
---     reason's light crosses the panel, the glow flares, the panel settles
---     (under 0.7 s);
---   * a REFUSAL contracts and shakes: a red-amber ring snaps in on the icon
---     and the text shakes its head, the shakes dying away (0.3 s);
+--   * a buff LANDING strikes and radiates: rings spread from the icon, the
+--     panel's edge lights in the reason's colour, a wave of the same light
+--     bursts from the icon's edge across the panel, the glow flares, the panel
+--     settles and the outcome's wash fades rather than cuts (under 0.7 s);
+--   * a REFUSAL breaks the ward: a red-amber ring snaps in on the icon, the
+--     edge flashes red, the ground cracks along the bottom band under the
+--     words, the top rule sputters, the icon greys for the outcome and the
+--     text shakes its head, the shakes dying away (under 0.5 s);
 --   * somebody OWED breathes: the reason's light and a warm white rim, a slow
 --     2.4 s breath, never a flash.
 -- All of it plays on frames of the art, which is not protected: nothing here
@@ -367,6 +370,23 @@ lib.TEXT_MARGIN, lib.EDGE_MARGIN, lib.SHAKE_LEFT = TEXT_MARGIN, EDGE_MARGIN, SHA
 -- the three looks drawn here
 ---------------------------------------------------------------------------
 
+-- The panel's edge lit as a buff lands: its peak. Held to 0.40 of the light,
+-- because a lit edge any brighter reads as a border drawn on, not a flash.
+local EDGE_PEAK = 0.40
+-- The outcome's wash: the alpha it rises to and the rest it falls to and holds
+-- until the outcome runs out, per outcome (lightest for a cast nobody
+-- confirmed).
+local WASH_PEAK = { cast = 0.28, sent = 0.18, failed = 0.30 }
+local WASH_REST = { cast = 0.10, sent = 0.08, failed = 0.12 }
+-- The red-amber a refusal breaks in: the halo's and the ring's, on the edge,
+-- the crack and the sputtering rule as well.
+local BREAK = { 1.00, 0.42, 0.20 }
+
+-- The four lines of the edge's light in one colour.
+local function PaintEdge(r, g, b)
+	for _, line in ipairs(R.edgeLightFrame.lines) do line:SetVertexColor(r, g, b, 1) end
+end
+
 function Prompt:BuildAnimations()
 	-- Entrance: rise into place, fade in and settle. A translation (and a scale)
 	-- is undone when its group ends, so the drop comes first, instantly, and
@@ -391,8 +411,8 @@ function Prompt:BuildAnimations()
 	-- The panel settling as a buff lands: a small swell and back, after the
 	-- light has started across it.
 	local settle = R.art:CreateAnimationGroup()
-	Grow(settle, 1, 1.03, 0.10, 1, 0.06, "OUT")
-	Grow(settle, 1.03, 1, 0.20, 2, 0, "IN_OUT")
+	Grow(settle, 1, 1.035, 0.08, 1, 0.06, "OUT")
+	Grow(settle, 1.035, 1, 0.22, 2, 0, "IN_OUT")
 	R.art.settle = settle
 
 	-- Target change: dip the text rather than swapping it under the eye.
@@ -462,13 +482,14 @@ function Prompt:BuildAnimations()
 	rimPulse:SetScript("OnStop", function() R.rimFrame:SetAlpha(0) end)
 	R.rimFrame.pulse = rimPulse
 
-	-- Light crossing the panel once, left to right: in, across, out, with a
-	-- bright leading edge. The distance is the panel's width, which ApplyStyle
-	-- knows and sets.
+	-- The wave that bursts from the icon's edge and runs the panel once as a
+	-- buff lands: in at once, across fast and slowing, gone as it arrives. The
+	-- distance is the width past the icon, which ApplyStyle knows and sets.
+	-- 0.34 s in all.
 	local shine = R.shineFrame:CreateAnimationGroup()
-	Alpha(shine, 0, 1, 0.07, 1)
-	local shMove = Slide(shine, 0, 0, 0.46, 2, 0, "IN_OUT")
-	Alpha(shine, 1, 0, 0.46, 2, 0, "IN")
+	Alpha(shine, 0, 1, 0.04, 1)
+	local shMove = Slide(shine, 0, 0, 0.30, 2, 0, "OUT")
+	Alpha(shine, 1, 0, 0.30, 2, 0, "IN")
 	shine.move = shMove
 	Park(shine, R.shineFrame)
 	R.shineFrame.anim = shine
@@ -513,11 +534,70 @@ function Prompt:BuildAnimations()
 		glint.run = run
 	end
 
-	-- A refusal: the text shakes its head, the shakes dying away (they sum to
-	-- nothing, and the group's end puts it home).
+	-- The panel's edge answering an outcome: lit in the reason's colour as a
+	-- buff lands (0.50 s, never over EDGE_PEAK) and a short hot flash in red as
+	-- one is refused (0.30 s), both parked at nothing.
+	local edgeLand = R.edgeLightFrame:CreateAnimationGroup()
+	Alpha(edgeLand, 0, EDGE_PEAK, 0.08, 1, 0, "OUT")
+	Alpha(edgeLand, EDGE_PEAK, 0, 0.42, 2, 0, "IN")
+	Park(edgeLand, R.edgeLightFrame)
+	R.edgeLightFrame.land = edgeLand
+	local edgeReject = R.edgeLightFrame:CreateAnimationGroup()
+	Alpha(edgeReject, 0, 0.35, 0.05, 1, 0, "OUT")
+	Alpha(edgeReject, 0.35, 0, 0.25, 2, 0, "IN")
+	Park(edgeReject, R.edgeLightFrame)
+	R.edgeLightFrame.reject = edgeReject
+
+	-- Minimal has no edge to light, so a landing lights its two rules instead:
+	-- up at once, let go over the rest of the half-second (0.45 s).
+	for _, rule in ipairs({ R.ruleTop, R.ruleBottom }) do
+		local flare = rule:CreateAnimationGroup()
+		Alpha(flare, 0, 0.55, 0.05, 1, 0, "OUT")
+		Alpha(flare, 0.55, 0, 0.40, 1, 0.05, "OUT")
+		Park(flare, rule)
+		rule.flare = flare
+	end
+
+	-- A refusal: the top rule sputters -- lit, dimmed, lit, gone (0.30 s).
+	local flicker = R.ruleTop:CreateAnimationGroup()
+	Alpha(flicker, 0, 0.8, 0.03, 1)
+	Alpha(flicker, 0.8, 0.25, 0.06, 2)
+	Alpha(flicker, 0.25, 0.8, 0.05, 3)
+	Alpha(flicker, 0.8, 0, 0.16, 4)
+	Park(flicker, R.ruleTop)
+	R.ruleTop.flicker = flicker
+
+	-- And the ground cracks under the words: open at once, held, gone (0.40 s).
+	-- The crack's alpha alone moves, never its shape; its colour is the break's.
+	local split = R.crackFrame:CreateAnimationGroup()
+	Alpha(split, 0, 0.85, 0.04, 1, 0, "OUT")
+	Alpha(split, 0.85, 0.85, 0.10, 2)
+	Alpha(split, 0.85, 0, 0.26, 3, 0, "IN")
+	Park(split, R.crackFrame)
+	R.crackFrame.split = split
+	R.crackFrame.band:SetVertexColor(BREAK[1], BREAK[2], BREAK[3], 1)
+
+	-- The outcome's wash: a quick rise to its peak and a long fall to the rest
+	-- it holds until the outcome runs out (0.56 s), where it used to cut in.
+	-- The ends are the outcome's and set per play (PlayWash, which keeps the
+	-- rest on the group); it is not parked at nothing but left at its rest when
+	-- it ends, since the client does not keep an animation's last alpha for it,
+	-- and the outcome's expiry hides what it washes.
+	local fade = R.washFrame:CreateAnimationGroup()
+	fade.rise = Alpha(fade, 0, WASH_PEAK.cast, 0.04, 1, 0, "OUT")
+	fade.fall = Alpha(fade, WASH_PEAK.cast, WASH_REST.cast, 0.52, 2, 0, "OUT")
+	fade.rest = WASH_REST.cast
+	local function restWash() R.washFrame:SetAlpha(fade.rest) end
+	fade:SetScript("OnFinished", restWash)
+	fade:SetScript("OnStop", restWash)
+	R.washFrame.fade = fade
+
+	-- A refusal: the text shakes its head, struck -- seven steps, the first
+	-- toward the icon, dying away (they sum to nothing, and the group's end
+	-- puts it home; never further left than SHAKE_LEFT). 0.28 s.
 	local shake = R.textLayer:CreateAnimationGroup()
-	for i, dx in ipairs({ -3, 5, -5, 4, -2, 1 }) do
-		Slide(shake, dx, 0, 0.045, i)
+	for i, dx in ipairs({ -3, 5, -4, 3, -2, 1.5, -0.5 }) do
+		Slide(shake, dx, 0, 0.04, i)
 	end
 	R.textLayer.shake = shake
 
@@ -678,7 +758,8 @@ end
 -- flash that belonged to the last thing on the panel.
 function Prompt:StopFlourishes()
 	for _, g in ipairs({ R.burstFrame.anim, R.burstFrame.arrive, R.burstFrame.reject, R.shineFrame.anim,
-		R.textLayer.shake, R.art.settle, R.ruleTop.draw, R.ruleBottom.draw }) do
+		R.textLayer.shake, R.art.settle, R.ruleTop.draw, R.ruleBottom.draw, R.ruleTop.flare, R.ruleBottom.flare,
+		R.ruleTop.flicker, R.edgeLightFrame.land, R.edgeLightFrame.reject, R.crackFrame.split, R.washFrame.fade }) do
 		if g and g:IsPlaying() then g:Stop() end
 	end
 	-- The words' reveal as well, and the words at full: on the three looks
@@ -692,15 +773,39 @@ function Prompt:StopFlourishes()
 	if S.activeLook then S.activeLook:StopFlourishes() end
 end
 
--- The band of light across the panel, brighter for a landed buff than for an
--- arrival. Not on the Minimal look: additive light with no panel under it is a
--- white column sweeping over the world.
+-- The wave of light across the panel as a buff lands, at `strength` (0.30:
+-- never full under the words). Not on the Minimal look: additive light with
+-- no panel under it is a white column sweeping over the world.
 function Prompt:PlayShine(r, g, b, strength)
 	if not R.shineFrame.anim then return end
 	if ns.db and ns.db.profile.prompt.style == "minimal" then return end
 	R.shineBand:SetVertexColor(r, g, b, strength)
 	R.shineFrame.anim:Stop()
 	R.shineFrame.anim:Play()
+end
+
+-- The outcome's wash, risen and let fall to the rest for `kind`: once per
+-- outcome (PaintOutcome keeps the stamp), on the three looks drawn here.
+function Prompt:PlayWash(kind)
+	local fade = R.washFrame and R.washFrame.fade
+	if not fade then return end
+	local peak, rest = WASH_PEAK[kind] or WASH_PEAK.cast, WASH_REST[kind] or WASH_REST.cast
+	fade:Stop()
+	fade.rise:SetToAlpha(peak)
+	fade.fall:SetFromAlpha(peak)
+	fade.fall:SetToAlpha(rest)
+	fade.rest = rest
+	fade:Play()
+end
+
+-- The icon greyed for a refusal (PaintOutcome) given its colour back. Run at
+-- every place an outcome is cleared, which is nearly every scan, so it is one
+-- flag test, and a client call only when the icon is grey.
+function Prompt:UngreyIcon()
+	if S.iconGreyed then
+		S.iconGreyed = nil
+		R.icon:SetDesaturated(false)
+	end
 end
 
 -- The cooldown sweep, brought up to date when a cast goes out and when the
@@ -860,7 +965,19 @@ function Prompt:PlayOutcomeFlourish(kind)
 			R.burstFrame.anim:Play()
 			R.fx:Land(Tint(r, g, b, 0.20))
 		end
+		-- The material answers: the panel's edge lights in the colour (the two
+		-- rules instead on Minimal, which has no edge), and a wave of the same
+		-- light bursts from the icon's edge across the panel, under the words.
 		local sr, sg, sb = Tint(r, g, b, 0.55)
+		if p.style == "minimal" then
+			for _, rule in ipairs({ R.ruleTop, R.ruleBottom }) do
+				rule.band:SetVertexColor(sr, sg, sb, S.ruleStrength or 1)
+				rule.flare:Play()
+			end
+		else
+			PaintEdge(sr, sg, sb)
+			R.edgeLightFrame.land:Play()
+		end
 		self:PlayShine(sr, sg, sb, 0.30)
 		R.art.settle:Play()
 	elseif kind == "failed" then
@@ -869,6 +986,15 @@ function Prompt:PlayOutcomeFlourish(kind)
 			R.burstFrame.reject:Play()
 			R.fx:Refuse(1.00, 0.38, 0.22)
 		end
+		-- The ward breaks: the edge flashes red, the ground cracks under the
+		-- words, the top rule sputters, and the words shake their head.
+		if p.style ~= "minimal" then
+			PaintEdge(BREAK[1], BREAK[2], BREAK[3])
+			R.edgeLightFrame.reject:Play()
+		end
+		R.crackFrame.split:Play()
+		R.ruleTop.band:SetVertexColor(BREAK[1], BREAK[2], BREAK[3], S.ruleStrength or 1)
+		R.ruleTop.flicker:Play()
 		if R.textLayer.shake then R.textLayer.shake:Play() end
 	end
 end

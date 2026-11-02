@@ -12,8 +12,8 @@ local Halo, PlaceHalo, PaintHalo, ReasonColor = lib.Halo, lib.PlaceHalo, lib.Pai
 local ink, fit, GREYS, EDGE_ROOM, TEXT_CONTRAST = lib.ink, lib.fit, lib.GREYS, lib.EDGE_ROOM, lib.TEXT_CONTRAST
 local Legible, TextWidth, SetLine, FitLine = lib.Legible, lib.TextWidth, lib.SetLine, lib.FitLine
 local StyleText, FullEffects, BUTTON_SCRIPTS = lib.StyleText, lib.FullEffects, lib.BUTTON_SCRIPTS
-local RING, RING_SQ, SWEEP, GLOSS, BEVEL = lib.RING, lib.RING_SQ, lib.SWEEP, lib.GLOSS, lib.BEVEL
-local RULE, GLINT = lib.RULE, lib.GLINT
+local RING, RING_SQ, SHOCK, GLOSS, BEVEL = lib.RING, lib.RING_SQ, lib.SHOCK, lib.GLOSS, lib.BEVEL
+local RULE, GLINT, CRACK = lib.RULE, lib.GLINT, lib.CRACK
 local Tint, WARM_WHITE = lib.Tint, lib.WARM_WHITE
 -- The client's own round mask: the shape of a round icon, its sweep and the
 -- icon's echo.
@@ -30,6 +30,23 @@ local ICON_X, ICON_GAP = 10, 10
 -- edge they lie, how short of the right edge they stop, where they start with
 -- no icon to start from, and how long the glint that runs them is, in units.
 local RULE_INSET, RULE_END, RULE_X0, GLINT_LENGTH = 1.5, 2, 6, 14
+-- The wave that crosses the panel when a buff lands: how far right of the
+-- icon's edge it starts, and how wide it is held, in units (a share of the
+-- panel's width between).
+local SHINE_GAP, SHINE_MIN, SHINE_MAX, SHINE_SHARE = 2, 20, 64, 0.22
+-- The crack under the words when a buff is refused: how far above the bottom
+-- edge it lies, how much of the width it leaves at the right, and how tall it
+-- is held (a seventh of the height between), in units. Never over 7, so its
+-- top stays under the reason line, which sits 8 units up (Text.lua).
+local CRACK_INSET, CRACK_END, CRACK_MIN, CRACK_MAX = 1.0, 0.3, 2, 7
+-- The four edges of the panel, hung corner to corner: the framed look's border,
+-- and the lines of light the edge answers an outcome with.
+local EDGE_LINES = {
+	{ "TOPLEFT", "TOPRIGHT", height = 1 },
+	{ "BOTTOMLEFT", "BOTTOMRIGHT", height = 1 },
+	{ "TOPLEFT", "BOTTOMLEFT", width = 1 },
+	{ "TOPRIGHT", "BOTTOMRIGHT", width = 1 },
+}
 
 -- Nine textures cut from one file, as the looks' own slices are.
 local function BevelSlice(parent, layer, sublevel)
@@ -177,12 +194,7 @@ function Prompt:Create()
 	-- texture, because a backdrop needs BackdropTemplate and a border needs art
 	-- or an atlas, either of which this client may lack.
 	R.edges = {}
-	for _, at in ipairs({
-		{ "TOPLEFT", "TOPRIGHT", height = 1 },
-		{ "BOTTOMLEFT", "BOTTOMRIGHT", height = 1 },
-		{ "TOPLEFT", "BOTTOMLEFT", width = 1 },
-		{ "TOPRIGHT", "BOTTOMRIGHT", width = 1 },
-	}) do
+	for _, at in ipairs(EDGE_LINES) do
 		local edge = Solid(R.art, "BORDER", 3)
 		if at.height then edge:SetHeight(at.height) else edge:SetWidth(at.width) end
 		edge:SetPoint(at[1])
@@ -202,6 +214,20 @@ function Prompt:Create()
 
 	-- Only frames can own an animation group, so anything that moves or fades
 	-- on its own gets a frame of its own to be animated through.
+
+	-- The wash of colour over the whole panel for the half-second after a
+	-- click, on a frame of its own so it fades rather than cuts. Made FIRST
+	-- among the art's child frames: every frame of light sits at the same
+	-- level, one above the art, and equal levels draw in the order they were
+	-- made (in the client as in the test double and the renderer), so the wash
+	-- lies under the rings, the wave and the rules -- light on the panel, never
+	-- a film over the light -- and still under textLayer, a frame levels above.
+	R.washFrame = CreateFrame("Frame", nil, R.art)
+	R.washFrame:SetAllPoints()
+	R.resultFill = Solid(R.washFrame, "ARTWORK", 2)
+	R.resultFill:SetAllPoints(R.art)
+	R.resultFill:Hide()
+
 	R.sweepFrame = CreateFrame("Frame", nil, R.art)
 	R.sweepFrame:SetWidth(3)
 	R.sweepFrame:SetHeight(14)
@@ -265,14 +291,43 @@ function Prompt:Create()
 	-- (Prompt/Effects.lua; the looks make their own from the same builder).
 	R.fx = lib.NewFX(R.art)
 
-	-- A band of light that crosses the panel once: a tail that gathers and a
-	-- thin bright leading edge, from Textures/Sweep.tga.
+	-- The wave of light that bursts from the icon's right edge and runs the
+	-- panel once when a buff lands: a hot core over a wider skirt, the full
+	-- height of the panel, from Textures/Shock.tga.
 	R.shineFrame = CreateFrame("Frame", nil, R.art)
 	R.shineFrame:SetAlpha(0)
 	R.shineBand = R.shineFrame:CreateTexture(nil, "OVERLAY", nil, 1)
-	R.shineBand:SetTexture(SWEEP)
+	R.shineBand:SetTexture(SHOCK)
 	R.shineBand:SetBlendMode("ADD")
 	R.shineBand:SetAllPoints(R.shineFrame)
+
+	-- The panel's edge answering an outcome: four lines of light on the rim,
+	-- hung corner to corner where the framed look's border lies and the glass's
+	-- bevel is lit, so the frame itself flashes in the reason's colour as a
+	-- buff lands and in red as one is refused. Parked at nothing; Minimal has
+	-- no edge to light and hides it.
+	R.edgeLightFrame = CreateFrame("Frame", nil, R.art)
+	R.edgeLightFrame:SetAllPoints()
+	R.edgeLightFrame:SetAlpha(0)
+	R.edgeLightFrame.lines = {}
+	for _, at in ipairs(EDGE_LINES) do
+		local line = Solid(R.edgeLightFrame, "OVERLAY", 1)
+		line:SetBlendMode("ADD")
+		if at.height then line:SetHeight(at.height) else line:SetWidth(at.width) end
+		line:SetPoint(at[1])
+		line:SetPoint(at[2])
+		R.edgeLightFrame.lines[#R.edgeLightFrame.lines + 1] = line
+	end
+
+	-- The ground breaking under the words when a buff is refused: a crack of
+	-- light along the bottom band, from the icon's edge toward the right, from
+	-- Textures/Crack.tga. Its alpha alone is animated, never its shape.
+	R.crackFrame = CreateFrame("Frame", nil, R.art)
+	R.crackFrame:SetAlpha(0)
+	R.crackFrame.band = R.crackFrame:CreateTexture(nil, "OVERLAY", nil, 1)
+	R.crackFrame.band:SetTexture(CRACK)
+	R.crackFrame.band:SetBlendMode("ADD")
+	R.crackFrame.band:SetAllPoints(R.crackFrame)
 
 	-- Two rules of light along the panel's top and bottom edges, drawn out from
 	-- the icon as the panel comes up (the level-up banner's two lines), on
@@ -329,14 +384,6 @@ function Prompt:Create()
 	R.countText = R.textLayer:CreateFontString(nil, "OVERLAY")
 	R.countText:SetJustifyH("CENTER")
 
-	-- A flood of colour over the whole panel for the half-second after a click:
-	-- the panel is where the eye already is. Above every other art layer and
-	-- below textLayer (a frame, so drawn over all of them): the wash reads as
-	-- light on the panel, not a box over the name.
-	R.resultFill = Solid(R.art, "ARTWORK", 2)
-	R.resultFill:SetAllPoints()
-	R.resultFill:Hide()
-
 	-- The highlight layer only reacts to the mouse on a Button, so it belongs
 	-- to the button itself rather than to the art frame.
 	R.button:SetHighlightTexture(WHITE, "ADD")
@@ -381,7 +428,8 @@ function Prompt:Create()
 	-- Looks/ hides (ApplyLook) and ApplyStyle puts back.
 	local parts = { R.panel, R.sheen, R.hairTop, R.hairBottom, R.accentTop, R.accentBottom, R.sweepFrame,
 		R.glowFrame, R.rimFrame, R.iconBack, R.iconEdge, R.iconShade, R.burstFrame, R.shineFrame, R.countChip,
-		R.resultFill, R.queueBack, R.queueHair, R.ruleTop, R.ruleBottom, R.glintTop, R.glintBottom }
+		R.resultFill, R.queueBack, R.queueHair, R.ruleTop, R.ruleBottom, R.glintTop, R.glintBottom,
+		R.edgeLightFrame, R.crackFrame, R.washFrame }
 	for _, list in ipairs({ R.shadows, R.edges, R.queueBars, R.queueIcons, R.bevel, R.fx.frames }) do
 		for _, part in ipairs(list) do parts[#parts + 1] = part end
 	end
@@ -440,6 +488,10 @@ function Prompt:ApplyStyle()
 	R.ruleBottom:Show()
 	R.glintTop:Show()
 	R.glintBottom:Show()
+	R.crackFrame:Show()
+	R.washFrame:Show()
+	-- The edge's light needs an edge: Minimal has none.
+	R.edgeLightFrame:SetShown(style ~= "minimal")
 	R.fx:SetShown(true)
 	local hl = R.button:GetHighlightTexture()
 	if hl then hl:SetVertexColor(1, 1, 1, 0.045) end
@@ -635,13 +687,30 @@ function Prompt:ApplyStyle()
 	-- with, is SyncCooldown's to decide; the settings behind both just changed.
 	self:SyncCooldown()
 
-	-- The band of light is about a quarter of the panel wide and crosses all of
-	-- it, so the distance it travels is the width less its own.
-	local shineWidth = math.max(24, math.min(72, math.floor(p.width * 0.26)))
+	-- The wave bursts from just right of the icon (a plain frame may hang from
+	-- a texture) and runs to two units short of the panel's end: about a fifth
+	-- of the panel wide, as tall as the panel, so the distance it travels is
+	-- what is left of the width past the icon, less its own. With no icon it
+	-- starts where the rules do.
+	local shineX = p.showIcon and (ICON_X + p.iconSize + SHINE_GAP) or RULE_X0
+	local shineWidth = math.max(SHINE_MIN, math.min(SHINE_MAX, math.floor(p.width * SHINE_SHARE)))
 	R.shineFrame:ClearAllPoints()
-	R.shineFrame:SetPoint("LEFT", R.art, "LEFT", 0, 0)
+	if p.showIcon then
+		R.shineFrame:SetPoint("LEFT", R.icon, "RIGHT", SHINE_GAP, 0)
+	else
+		R.shineFrame:SetPoint("LEFT", R.art, "LEFT", RULE_X0, 0)
+	end
 	R.shineFrame:SetSize(shineWidth, p.height)
-	if R.shineFrame.anim then R.shineFrame.anim.move:SetOffset(p.width - shineWidth, 0) end
+	if R.shineFrame.anim then R.shineFrame.anim.move:SetOffset(p.width - shineX - shineWidth - RULE_END, 0) end
+
+	-- The crack lies along the bottom band under the words, from the wave's
+	-- start to a third short of the right edge, a unit up from the bottom and
+	-- a seventh of the height tall (two units at the smallest panel, six at the
+	-- default): under the reason line's bottom at every height.
+	R.crackFrame:ClearAllPoints()
+	R.crackFrame:SetPoint("BOTTOMLEFT", R.art, "BOTTOMLEFT", shineX, CRACK_INSET)
+	R.crackFrame:SetPoint("BOTTOMRIGHT", R.art, "BOTTOMRIGHT", -math.floor(p.width * CRACK_END), CRACK_INSET)
+	R.crackFrame:SetHeight(math.max(CRACK_MIN, math.min(CRACK_MAX, math.floor(p.height / 7))))
 
 	-- The two rules of light: as thick as the height allows (a unit at 20, two
 	-- at the default 44, three from 66), a unit and a half inside the top and
@@ -793,11 +862,15 @@ function Prompt:ApplyLook(p, look)
 	-- here, out of combat and only as a look from Looks/ takes the panel; its
 	-- own fight dim owns textLayer's alpha from this point on.
 	for _, g in ipairs({ R.ruleTop.draw, R.ruleBottom.draw, R.glintTop.run, R.glintBottom.run,
-		R.textLayer.reveal }) do
+		R.textLayer.reveal, R.ruleTop.flare, R.ruleBottom.flare, R.ruleTop.flicker, R.edgeLightFrame.land,
+		R.edgeLightFrame.reject, R.crackFrame.split, R.washFrame.fade }) do
 		if g and g:IsPlaying() then g:Stop() end
 	end
 	R.textLayer:SetAlpha(1)
 	S.glintPlaying = nil
+	-- And the icon in colour: a refusal's grey is the three looks' own, and a
+	-- look from Looks/ greys the icon itself when it wants to.
+	self:UngreyIcon()
 	for _, part in ipairs(self.builtinParts) do part:Hide() end
 	if R.iconMask then R.iconMask:Hide() end
 	local hl = R.button:GetHighlightTexture()
@@ -927,6 +1000,12 @@ function Prompt:Regions()
 		rules = { R.ruleTop, R.ruleBottom },
 		glints = { R.glintTop, R.glintBottom },
 		reveal = R.textLayer and R.textLayer.reveal,
+		-- The panel's edge lit for an outcome (its `lines`, `land` and
+		-- `reject`), the crack under the words (`band`, `split`) and the
+		-- outcome's wash (the frame `fill` is drawn on, and its `fade`).
+		edgeLight = R.edgeLightFrame,
+		crack = R.crackFrame,
+		wash = R.washFrame,
 		bevel = R.bevel,
 		shake = R.textLayer and R.textLayer.shake,
 		intro = R.art and R.art.intro,

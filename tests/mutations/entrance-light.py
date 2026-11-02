@@ -69,15 +69,15 @@ mutate(EFFECTS,
 
 # A repaint mid-entrance leaves the rules drawing.
 mutate(EFFECTS,
-       "\t\tR.textLayer.shake, R.art.settle, R.ruleTop.draw, R.ruleBottom.draw }) do\n",
-       "\t\tR.textLayer.shake, R.art.settle }) do\n",
+       "\t\tR.textLayer.shake, R.art.settle, R.ruleTop.draw, R.ruleBottom.draw, R.ruleTop.flare, R.ruleBottom.flare,\n",
+       "\t\tR.textLayer.shake, R.art.settle, R.ruleTop.flare, R.ruleBottom.flare,\n",
        "entrance-light: a repaint leaves the rules drawing",
        expect="entrance-light: a style change mid-entrance leaves the words lit", script=S)
 
 # A look applied mid-entrance leaves the reveal running.
 mutate(PANEL,
-       "\tfor _, g in ipairs({ R.ruleTop.draw, R.ruleBottom.draw, R.glintTop.run, R.glintBottom.run,\n\t\tR.textLayer.reveal }) do\n",
-       "\tfor _, g in ipairs({ R.ruleTop.draw, R.ruleBottom.draw, R.glintTop.run, R.glintBottom.run }) do\n",
+       "\tfor _, g in ipairs({ R.ruleTop.draw, R.ruleBottom.draw, R.glintTop.run, R.glintBottom.run,\n\t\tR.textLayer.reveal, R.ruleTop.flare,",
+       "\tfor _, g in ipairs({ R.ruleTop.draw, R.ruleBottom.draw, R.glintTop.run, R.glintBottom.run,\n\t\tR.ruleTop.flare,",
        "entrance-light: a look applied leaves the reveal running",
        expect="entrance-light: a style change mid-entrance leaves the words lit", script=S)
 

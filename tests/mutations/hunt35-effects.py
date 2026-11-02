@@ -94,15 +94,15 @@ mutate(EFFECTS,
 
 # The refusal's shake does not sum to nothing: the text ends displaced.
 mutate(EFFECTS,
-       "{ -3, 5, -5, 4, -2, 1 }",
-       "{ -3, 5, -5, 4, -2, 3 }",
+       "{ -3, 5, -4, 3, -2, 1.5, -0.5 }",
+       "{ -3, 5, -4, 3, -2, 1.5, 1.5 }",
        "hunt35: the shake ends displaced",
        expect="the shake's steps add up to", script=S)
 
 # A shake that does not die away.
 mutate(EFFECTS,
-       "{ -3, 5, -5, 4, -2, 1 }",
-       "{ 1, -2, 3, -4, 5, -3 }",
+       "{ -3, 5, -4, 3, -2, 1.5, -0.5 }",
+       "{ 0.5, -1.5, 2, -3, 4, -5, 3 }",
        "hunt35: the shake grows to the end",
        expect="the shake ends nearly as hard as it began", script=S)
 

@@ -91,7 +91,17 @@ local function groupsOf(r)
 		g.arrive = { r.fx.echo.drop, r.burst.arrive, r.glints[1].run, r.glints[2].run }
 		g.land[#g.land + 1] = r.burst.anim
 		g.land[#g.land + 1] = r.shine.anim
+		-- The landing's edge light (the rules' flare on Minimal); the refusal's
+		-- red edge, crack and sputter. (The outcome's wash fades for every
+		-- outcome, a cast nobody confirmed included, so it is not a landing's
+		-- effect: landing-light.lua holds it.)
+		g.land[#g.land + 1] = r.edgeLight.land
+		g.land[#g.land + 1] = r.rules[1].flare
+		g.land[#g.land + 1] = r.rules[2].flare
 		g.reject[#g.reject + 1] = r.burst.reject
+		g.reject[#g.reject + 1] = r.edgeLight.reject
+		g.reject[#g.reject + 1] = r.crack.split
+		g.reject[#g.reject + 1] = r.rules[1].flicker
 		-- The entrance draws the two rules out from the icon and holds the
 		-- words back a beat: all of it is the rise's, and Calm has none of it.
 		g.intro, g.introCalm = { r.intro, r.rules[1].draw, r.rules[2].draw, r.reveal }, { r.introCalm }
@@ -654,7 +664,7 @@ end
 
 withTree("hunt35-effects: the new art ships at the right size", ANNA, function(ns, scenario)
 	local files = {
-		"Textures/Glow", "Textures/GlowRound", "Textures/Ring", "Textures/RingSq", "Textures/Sweep",
+		"Textures/Glow", "Textures/GlowRound", "Textures/Ring", "Textures/RingSq",
 		"Textures/Gloss", "Textures/Bevel", "Textures/Luxe/Luxe_Spine", "Textures/Toast/Toast_MedShade",
 		"Textures/Rule", "Textures/Glint", "Textures/Shock", "Textures/Crack",
 	}
@@ -674,7 +684,7 @@ withTree("hunt35-effects: the new art ships at the right size", ANNA, function(n
 	-- Every file the prompt draws its own light from is named in the code that
 	-- draws it, so none is left shipping unused.
 	local source = assert(io.open(dir .. "/Prompt/Prompt.lua", "r")):read("*a")
-	for _, name in ipairs({ "Ring", "RingSq", "Sweep", "Gloss", "Bevel", "Glow", "GlowRound" }) do
+	for _, name in ipairs({ "Ring", "RingSq", "Shock", "Gloss", "Bevel", "Glow", "GlowRound", "Rule", "Glint", "Crack" }) do
 		if not source:find("Textures\\\\" .. name .. '"', 1, true) then
 			fail(scenario, "Textures/" .. name .. ".tga is not drawn by Prompt/Prompt.lua")
 		end

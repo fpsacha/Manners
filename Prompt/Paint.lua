@@ -7,7 +7,7 @@ local Prompt = ns.Prompt
 local S, R, lib = Prompt.state, Prompt.regions, Prompt.lib
 local GetTime = _G.GetTime
 local REASON_KEY, RemainingText, OUTCOME_SECONDS = lib.REASON_KEY, lib.RemainingText, lib.OUTCOME_SECONDS
-local Gradient, SetLine, ShowChip = lib.Gradient, lib.SetLine, lib.ShowChip
+local Gradient, SetLine, ShowChip, FullEffects = lib.Gradient, lib.SetLine, lib.ShowChip, lib.FullEffects
 
 -- The softened class codes ClassColored has worked out, for the look's
 -- classSoften in `by`.
@@ -152,6 +152,8 @@ local outcomeGen = 0
 function Prompt:ShowOutcome(kind, name, detail)
 	if not R.button then return end
 	S.outcomeKind, S.outcomeAt, S.outcomeName, S.outcomeDetail = kind, GetTime(), name, detail
+	-- A new outcome gets its own wash, even one in the same instant as the last.
+	S.washStamp = nil
 	-- An outcome in the first beat of the entrance, while the words are still
 	-- arriving: the reveal is let go and the words put at full, so the dip
 	-- below starts from full and never leaves them half-lit. On the three
@@ -186,6 +188,7 @@ function Prompt:OutcomeLive()
 	if GetTime() - S.outcomeAt <= OUTCOME_SECONDS then return true end
 	S.outcomeKind, S.outcomeAt, S.outcomeName, S.outcomeDetail = nil, nil, nil, nil
 	if R.resultFill then R.resultFill:Hide() end
+	self:UngreyIcon()
 	if S.activeLook then S.activeLook:ClearOutcome() end
 	return false
 end
@@ -204,6 +207,7 @@ function Prompt:MovedOn(top)
 	S.outcomeKind, S.outcomeAt, S.outcomeName, S.outcomeDetail = nil, nil, nil, nil
 	S.outcomePainted = nil
 	if R.resultFill then R.resultFill:Hide() end
+	self:UngreyIcon()
 	if S.activeLook then S.activeLook:ClearOutcome() end
 	ns.Guard("prompt moved on", Prompt.Refresh, self)
 	self:ApplyTarget(nil)
@@ -276,16 +280,35 @@ function Prompt:PaintOutcome()
 
 	-- A low-alpha wash over the whole panel, read without being looked at.
 	-- Lighter for a refusal, which the red words and ring already say, and
-	-- lightest for an unconfirmed cast.
-	local wash = (S.outcomeKind == "failed" and 0.15) or (S.outcomeKind == "sent" and 0.14) or 0.20
-	R.resultFill:SetVertexColor(r, g, b, wash)
-	R.resultFill:Show()
+	-- lightest for an unconfirmed cast. On Full it rises and fades (PlayWash)
+	-- once per outcome: a repaint of the same outcome touches neither its
+	-- alpha nor its colour. On Calm it is set and left, a fade's worth lighter.
+	if FullEffects() then
+		if S.washStamp ~= S.outcomeAt then
+			S.washStamp = S.outcomeAt
+			R.resultFill:SetVertexColor(r, g, b, 1)
+			R.resultFill:Show()
+			self:PlayWash(S.outcomeKind)
+		end
+	else
+		local wash = (S.outcomeKind == "failed" and 0.15) or (S.outcomeKind == "sent" and 0.14) or 0.20
+		R.washFrame:SetAlpha(1)
+		R.resultFill:SetVertexColor(r, g, b, wash)
+		R.resultFill:Show()
+	end
 	-- The ring says it too, where the ring carries a colour at all. Put back by
 	-- the next PaintAccent, which every repaint of a person runs.
 	local mode = ns.db.profile.prompt.accentMode or "icon"
 	if S.outcomeKind == "failed" and (mode == "icon" or mode == "both") then
 		Gradient(R.iconBack, "VERTICAL", 0.62, 0.16, 0.14, 0.95, 1.0, 0.36, 0.30, 0.95)
 		S.accentPainted = nil
+	end
+	-- And the icon greys for the outcome: a state, not a motion, so Calm has it
+	-- too. The flag is what UngreyIcon reads at every clear, so a scan with
+	-- nothing to undo costs no client call.
+	if S.outcomeKind == "failed" then
+		R.icon:SetDesaturated(true)
+		S.iconGreyed = true
 	end
 	SetLine(R.nameText, lead)
 	S.outcomePainted = S.outcomeName
@@ -312,6 +335,7 @@ function Prompt:PaintHeldInert(whyFrozen, whyInert)
 	ShowChip(false)
 	R.countText:SetText("")
 	R.resultFill:Hide()
+	self:UngreyIcon()
 	if S.activeLook then S.activeLook:ClearOutcome() end
 	self:PaintAccent("nearby")
 	-- The same statement the held panel makes, for the same reason: nothing
@@ -336,6 +360,9 @@ function Prompt:Paint(entry, extra)
 	if S.activeLook and S.activeLook.Painted then S.activeLook:Painted(entry) end
 
 	if p.showIcon then R.icon:SetTexture(EntryIcon(entry)) end
+	-- A person's icon is in colour: a refusal's grey is the outcome's, and
+	-- PaintOutcome (which follows while one is live) greys it again.
+	self:UngreyIcon()
 end
 
 lib.Substitute, lib.EntryIcon = Substitute, EntryIcon
