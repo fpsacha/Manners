@@ -12858,8 +12858,12 @@ EditMacro = function(i, name, _, body)
 	end
 	return i
 end
+-- Since 1.10.5 the fixed body is the bar macro's first line (Clicks.lua, click
+-- macro), and 1.0's down click is rewritten too: the client will not run a
+-- macro from inside one.
 for _, case in ipairs({
 	{ body = "/click MannersPrompt", fixed = true },
+	{ body = "/click MannersPrompt LeftButton 1", fixed = true },
 	{ body = "/click MannersPrompt\n/say hello", fixed = false },
 }) do
 	macros[1] = { name = "Manners", body = case.body }
@@ -12870,8 +12874,8 @@ for _, case in ipairs({
 		ns.addon:OnEnable()
 		Mock.runTimers(3)
 		local now = macros[1].body
-		if case.fixed and now == case.body then
-			fail(scenario, "a login left the old up-click macro on the bar: " .. now)
+		if case.fixed and now:match("^[^\n]*") ~= "/click MannersBar" then
+			fail(scenario, "a login left the old macro on the bar as: " .. (now:gsub("\n", " / ")))
 		elseif not case.fixed and now ~= case.body then
 			fail(scenario, "rewrote a macro somebody had edited: " .. (now:gsub("\n", " / ")))
 		end

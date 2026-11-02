@@ -153,6 +153,15 @@ function Prompt:Create()
 	R.button:SetClampedToScreen(true)
 	R.button:RegisterForDrag("LeftButton")
 
+	-- What the bar macro's first line clicks (Clicks.lua, click macro): a plain
+	-- button, no secure template and no macro, so a macro may click it. Never
+	-- drawn (no size, no texture). Registered for both phases, though /click
+	-- sends one click per press.
+	R.bar = CreateFrame("Button", "MannersBar", UIParent)
+	R.bar:RegisterForClicks("AnyUp", "AnyDown")
+	R.bar.mannersBar = Prompt.bar
+	R.bar:SetScript("OnClick", lib.OnBarClick)
+
 	R.art = CreateFrame("Frame", nil, R.button)
 	R.art:SetAllPoints()
 

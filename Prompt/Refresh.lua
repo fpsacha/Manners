@@ -109,6 +109,10 @@ function Prompt:Refresh()
 	local fadedTo = OutroAlpha()
 	self:RefreshPanel()
 	if not self.outroWanted then self:ComeBack(fadedTo) end
+	-- Last, over everything the repaint changed: the bar macro follows the
+	-- panel's words and whether it is up, not only the button (Clicks.lua,
+	-- click macro). Nothing is asked of the client while nothing changed.
+	ns.SyncMacroBody()
 end
 
 -- Listing somebody repaints the prompt at once, whatever the route, so the

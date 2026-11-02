@@ -907,8 +907,10 @@ Check("button.binding", "button", L["binding"], function(add)
 	end
 	local okM, index = Ask(_G.GetMacroIndexByName, ns.CLICK_MACRO_NAME or "Manners")
 	local macro = okM == true and type(Plain(index)) == "number" and index > 0
-	local line = ("key %s, /click macro %s"):format(#keys > 0 and table.concat(keys, ", ") or "none",
-		macro and "made" or "none")
+	-- And whose body the macro is (Clicks.lua, click macro): ours, foreign,
+	-- none or unlooked.
+	local line = ("key %s, /click macro %s (%s)"):format(#keys > 0 and table.concat(keys, ", ") or "none",
+		macro and "made" or "none", ns.BarMacroState and ns.BarMacroState() or "?")
 	if #keys == 0 and not macro then
 		add(WARN, line .. " -- the prompt can only be clicked")
 	else

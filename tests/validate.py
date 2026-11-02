@@ -203,15 +203,44 @@ for b in ET.parse(os.path.join(ROOT, "Bindings.xml")).getroot().iter("Binding"):
     if not bad:
         print("  ok  <Binding name=\"%s\">" % name)
 
-# The click macro is Clicks.lua's.
+# The click macro is Clicks.lua's. The client will not run a macro from inside
+# another one (Blizzard, WoWUIBugs #552), so no macro may /click the prompt,
+# which runs one: the bar macro's first line clicks MannersBar, a plain button
+# with no secure template, and the macro carries the cast under it.
 clicks_src = open(os.path.join(ROOT, "Clicks.lua"), encoding="utf-8").read()
-macro_body = re.search(r'MACRO_BODY\s*=\s*"([^"]*)"', clicks_src)
-if macro_body and re.match(r"/click\s+MannersPrompt\s+LeftButton\s+1\s*$", macro_body.group(1)):
-    print("  ok  MACRO_BODY %s" % macro_body.group(1))
+if re.search(r'^local BAR_LINE = "/click MannersBar"$', clicks_src, re.M):
+    print("  ok  BAR_LINE /click MannersBar")
 else:
-    print("  MACRO_BODY is %r -- wants /click MannersPrompt LeftButton 1"
-          % (macro_body.group(1) if macro_body else None))
+    print("  BAR_LINE in Clicks.lua is not \"/click MannersBar\"")
     fail += 1
+panel_src = open(os.path.join(ROOT, "Prompt", "Panel.lua"), encoding="utf-8").read()
+if re.search(r'CreateFrame\("Button", "MannersBar", UIParent\)', panel_src):
+    print("  ok  MannersBar is a plain button")
+else:
+    print("  MannersBar is not CreateFrame(\"Button\", \"MannersBar\", UIParent) in Prompt/Panel.lua"
+          " -- a template would make it a button a macro may not click")
+    fail += 1
+# Everything a macro could carry: a string literal naming a /click of the
+# prompt, outside Clicks.lua's list of the bodies older versions wrote.
+legacy = re.search(r"^local LEGACY_BODIES = \{.*?^\}", clicks_src, re.M | re.S)
+for f in OURS:
+    src = open(os.path.join(ROOT, f), encoding="utf-8").read()
+    if f == "Clicks.lua" and legacy:
+        src = src[:legacy.start()] + src[legacy.end():]
+    for m in re.finditer(r'"/click\s+MannersPrompt', src):
+        line = src.count("\n", 0, m.start()) + 1
+        print("  %s:%d: a macro must not /click the prompt: the client refuses a macro"
+              " that clicks a button which runs a macro" % (f, line))
+        fail += 1
+readme_src = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
+if "/click MannersPrompt LeftButton 1" in readme_src:
+    print("  README.md still gives the macro as /click MannersPrompt LeftButton 1")
+    fail += 1
+elif "/click MannersBar" not in readme_src:
+    print("  README.md does not say the macro's first line, /click MannersBar")
+    fail += 1
+else:
+    print("  ok  README.md gives the bar macro's first line")
 
 print("\n== the %d generated toc(s) are what the generator would write =="
       % len(maketocs.expected()))

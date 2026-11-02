@@ -97,7 +97,11 @@ mutate("Clicks.lua",
        "\t\t\tslot.index, slot.shown, slot.spell, slot.item = index, nil, true, true\n",
        "\t\t\tslot.index, slot.shown, slot.spell, slot.item = index, slot.shown, slot.spell, slot.item\n",
        "actionbar: a macro made again is thought to show its spell",
-       expect=BYHAND, script=S)
+       # A macro made again by hand with the bar line has its body written
+       # at once, and the slot handed over with it (Clicks.lua,
+       # ReassertMacroSlot); one moved in a fight, which nothing writes, is
+       # where only this line puts the spell back.
+       expect=MOVED, script=S)
 
 # Not asked again once a fight ends.
 mutate("Core.lua",

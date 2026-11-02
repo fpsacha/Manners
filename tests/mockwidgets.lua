@@ -305,12 +305,20 @@ local function addButton(f)
 	f.Enable = function(self) self:SetEnabled(true) end
 	f.Disable = function(self) self:SetEnabled(false) end
 	after(f, "RegisterForClicks", function(self, ...) self._clicks = { ... } end)
-	-- A disabled button ignores the click, as the client's does.
+	-- A disabled button ignores the click, as the client's does. With
+	-- Mock.secureActions on (tests/mockmacros.lua, "running macros"), a button
+	-- made from SecureActionButtonTemplate answers with the client's own
+	-- SecureActionButton_OnClick between PreClick and PostClick, as the game's
+	-- does; off, as every scenario before it was written, the OnClick script.
 	f.Click = function(self, which, down)
 		if self._enabled == false then return end
 		which = which or "LeftButton"
 		fire(self, "PreClick", which, down or false)
-		fire(self, "OnClick", which, down or false)
+		if Mock.secureActions and self._secureTemplate and Mock.secureOnClick then
+			Mock.secureOnClick(self, which, down or false)
+		else
+			fire(self, "OnClick", which, down or false)
+		end
 		fire(self, "PostClick", which, down or false)
 	end
 end
@@ -410,9 +418,44 @@ Mock.newFrame = function() return widen(base()) end
 function CreateFrame(frameType, name, parent, template)
 	local f = widen(base(), frameType or "Frame", parent)
 	f._name, f._template = name, template
+	-- What the client's secure handler and /click need: whether the frame is
+	-- a secure action button, and the frame a name finds (GetClickFrame).
+	if type(template) == "string" and template:find("SecureActionButtonTemplate", 1, true) then
+		f._secureTemplate = true
+	end
+	if type(name) == "string" and Mock.namedFrames then Mock.namedFrames[name] = f end
 	return f
 end
 widen(UIParent)
+
+-- A click of the mouse on a frame, as the client delivers it: a down click if
+-- the frame is registered for one, then an up click if it is registered for
+-- that. No isKeyPress and no isSecureAction reach an addon's button (Blizzard's
+-- SecureTemplates.xml), so nothing else rides along. A frame that was never
+-- registered answers the left button's up, the client's default.
+function Mock.mouseClickOn(frame, which)
+	which = which or "LeftButton"
+	local clicks = frame._clicks or { "LeftButtonUp" }
+	local function registered(phase)
+		for _, c in ipairs(clicks) do
+			if c == "Any" .. phase or c == which .. phase then return true end
+		end
+		return false
+	end
+	if registered("Down") then frame:Click(which, true) end
+	if registered("Up") then frame:Click(which, false) end
+end
+
+-- A key bound to "CLICK Name:Button" pressed: the down click, and with
+-- `opts.release` the up click the key's release sends.
+function Mock.pressBinding(command, opts)
+	local name, which = tostring(command):match("^CLICK ([^:]+):(.+)$")
+	local frame = name and Mock.namedFrames and Mock.namedFrames[name]
+	if not frame then return false end
+	frame:Click(which, true)
+	if opts and opts.release then frame:Click(which, false) end
+	return true
+end
 
 ---------------------------------------------------------------------------
 -- driving the frames as a player would
@@ -662,6 +705,7 @@ end
 ---------------------------------------------------------------------------
 
 local function install()
+	Mock.namedFrames = {}
 	Mock.modifiers = {}
 	Mock.buttonsDown = {}
 	Mock.menu, Mock.menus, Mock.focus = nil, 0, nil

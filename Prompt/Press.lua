@@ -129,60 +129,15 @@ local function HoldLine(entry, verdicts)
 end
 -- For /manners selftest (Selftest.lua), which asks it of your target.
 ns.HoldLine = HoldLine
+-- For the bar macro's hold at the end of a cooldown (Clicks.lua).
+ns.PressSpell = PressSpell
 
--- PreClick runs before the secure handler reads the attributes, so out of
--- combat the target is re-resolved at the last moment: a nameplate token may
--- since have been recycled to somebody else. Every mouse button
--- arrives ("AnyDown"); only the left one casts. A held key's release arrives
--- too (`down` false): it runs no macro and is no press, so it is ignored here
--- and in PostClick (nil counts as down: a click a script made has no phase).
-local function OnPreClick(self, mouseButton, down)
-	if down == false then return end
-	if mouseButton and mouseButton ~= "LeftButton" then return end
-	local now = GetTime()
-	-- The macro's own /target and hand-back are not the player choosing
-	-- anybody; Core's PLAYER_TARGET_CHANGED ignores changes this close to it.
-	ns.pressAt = now
-
-	-- Asked before the combat return: in combat the frozen macro still goes
-	-- out, and the bookkeeping can still be refused where the macro cannot.
-	local ready, left = ns.CastReady()
-	-- In combat a press late in the cooldown is queued by the client, so it
-	-- counts as ready. Out of combat the whole cooldown is held back: a queued
-	-- /cast would fire after /targetlasttarget.
-	if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then
-		ready = true
-	end
-	-- Then the combat return: in combat nothing below can change the macro,
-	-- since the attributes are frozen, so neither the target nor the spoken
-	-- line (range, a refusal) is looked at again until the fight ends.
-	cooldownPressAt = (not ready) and now or nil
-	if InCombatLockdown() then
-		pressStale = nil
-		return
-	end
-
-	-- Down and up both land here; one rebuild per press, but only while the
-	-- button still holds what that rebuild armed (an error or a cooldown in
-	-- between can change it).
-	if lastPreClickAt and (now - lastPreClickAt) < 0.25 then
-		if not ready then
-			guardedEntry = S.current
-			guardedPhraseKey, guardedPhraseText, guardedPhraseSource = S.phraseKey, S.phraseText, S.phraseSource
-			Prompt:ApplyTarget(nil)
-		elseif S.appliedKey ~= pressKey then
-			Prompt:ApplyTarget(nil)
-		end
-		return
-	end
-	lastPreClickAt = now
-	pressKey = nil
-	pressStale = nil
-
-	-- A keypress on an empty prompt says why it is empty, or it looks like a
-	-- broken binding. Commands and option names go in as arguments: they are
-	-- not translated.
-	if not self:IsShown() then
+-- A press on an empty prompt -- its key, or the bar macro (OnBarClick) -- says
+-- why it is empty, or it looks like a broken binding. Commands and option
+-- names go in as arguments: they are not translated. Answers whether the
+-- prompt was empty.
+local function ExplainEmpty(now)
+	if not R.button:IsShown() then
 		local db = ns.db and ns.db.profile
 		if db and not db.enabled then
 			ns.addon:Print(L["Manners is |cffff8080switched off|r -- %s to start again."]
@@ -222,6 +177,65 @@ local function OnPreClick(self, mouseButton, down)
 		else
 			ns.addon:Print(L["nobody to buff right now."])
 		end
+		return true
+	end
+	return false
+end
+
+-- PreClick runs before the secure handler reads the attributes, so out of
+-- combat the target is re-resolved at the last moment: a nameplate token may
+-- since have been recycled to somebody else. Every mouse button
+-- arrives ("AnyDown"); only the left one casts. A held key's release arrives
+-- too (`down` false): it runs no macro and is no press, so it is ignored here
+-- and in PostClick (nil counts as down: a click a script made has no phase).
+local function OnPreClick(self, mouseButton, down)
+	if down == false then return end
+	if mouseButton and mouseButton ~= "LeftButton" then return end
+	local now = GetTime()
+	-- The macro's own /target and hand-back are not the player choosing
+	-- anybody; Core's PLAYER_TARGET_CHANGED ignores changes this close to it.
+	ns.pressAt = now
+
+	-- Asked before the combat return: in combat the frozen macro still goes
+	-- out, and the bookkeeping can still be refused where the macro cannot.
+	local ready, left = ns.CastReady()
+	-- In combat a press late in the cooldown is queued by the client, so it
+	-- counts as ready. Out of combat the whole cooldown is held back: a queued
+	-- /cast would fire after /targetlasttarget.
+	if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then
+		ready = true
+	end
+	-- Then the combat return: in combat nothing below can change the macro,
+	-- since the attributes are frozen, so neither the target nor the spoken
+	-- line (range, a refusal) is looked at again until the fight ends.
+	cooldownPressAt = (not ready) and now or nil
+	if InCombatLockdown() then
+		pressStale = nil
+		return
+	end
+	-- What this press disarms and arms again on its way reaches the bar macro
+	-- once, next frame, rather than at every step (Clicks.lua, click macro).
+	ns.HoldMacroWrites()
+
+	-- Down and up both land here; one rebuild per press, but only while the
+	-- button still holds what that rebuild armed (an error or a cooldown in
+	-- between can change it).
+	if lastPreClickAt and (now - lastPreClickAt) < 0.25 then
+		if not ready then
+			guardedEntry = S.current
+			guardedPhraseKey, guardedPhraseText, guardedPhraseSource = S.phraseKey, S.phraseText, S.phraseSource
+			Prompt:ApplyTarget(nil)
+		elseif S.appliedKey ~= pressKey then
+			Prompt:ApplyTarget(nil)
+		end
+		return
+	end
+	lastPreClickAt = now
+	pressKey = nil
+	pressStale = nil
+
+	-- A keypress on an empty prompt says why it is empty (ExplainEmpty).
+	if ExplainEmpty(now) then
 		Prompt:ApplyTarget(nil)
 		return
 	end
@@ -300,10 +314,14 @@ end
 
 local function OnPostClick(self, mouseButton, down)
 	if down == false then return end
-	-- Whose press this is: the prompt's, or a name in the list (OnRowPostClick),
-	-- whose slot stands in for the prompt's state under the same name, so
-	-- every line below files a press on a name exactly as one on the prompt.
-	local S = self.mannersRow or S
+	-- Whose press this is: the prompt's, a name in the list (OnRowPostClick)
+	-- or the bar macro (OnBarClick), whose slot stands in for the prompt's
+	-- state under the same name, so every line below files a press on a name
+	-- or from a bar exactly as one on the prompt.
+	local S = self.mannersRow or self.mannersBar or S
+	-- What the press ran: the button's macro, or the lines the bar macro was
+	-- written with (MannersBar holds none of its own).
+	local armedText = S.isBar and S.macro or self:GetAttribute("macrotext1")
 	-- Bookkeeping only, and switched off, unlocked or previewing there is none:
 	-- a CLICK binding reaches a hidden frame. In combat the frozen macro may
 	-- still have cast; the debt stands and the line says so.
@@ -314,7 +332,7 @@ local function OnPostClick(self, mouseButton, down)
 		-- are "none", so the right button casts nothing. A keybinding arrives
 		-- with no button and counts as a left press, as in the cast path below.
 		local couldCast = mouseButton == nil or mouseButton == "LeftButton"
-		if couldCast and db and db.verbose and InCombatLockdown() and self:GetAttribute("macrotext1")
+		if couldCast and db and db.verbose and InCombatLockdown() and armedText
 			and not (lastStaleAt and (now - lastStaleAt) < 0.25) then
 			lastStaleAt = now
 			ns.addon:Print(L["|cffff8080that may still have cast|r -- the prompt cannot be disarmed in combat, and nothing was recorded for it."])
@@ -430,12 +448,18 @@ local function OnPostClick(self, mouseButton, down)
 	-- Only assembled when asked for: /manners clicks. The build stamp says
 	-- which build produced the log.
 	if ns.db and ns.db.profile.debugClicks then
-		-- The button and down say how the press arrived: a key or a bar macro's
-		-- /click ... 1 is a down click, the mouse on the prompt follows the
-		-- client's ActionButtonUseKeyDown.
-		ns.addon:Print(("|cffffd100CLICK|r build=%s button=%s down=%s macro=%s"):format(
-			tostring(ns.BUILD), tostring(mouseButton), tostring(down),
-			(tostring(self:GetAttribute("macrotext1") or "nil"):gsub("%s+", " "))))
+		if S.isBar then
+			-- A press of the bar macro, and the lines under its first.
+			ns.addon:Print(("|cffffd100CLICK|r build=%s via=bar macro=%s"):format(tostring(ns.BUILD),
+				(tostring(armedText or "nil"):gsub("%s+", " "))))
+		else
+			-- The button and down say how the press arrived: a key is a down
+			-- click, the mouse on the prompt follows the client's
+			-- ActionButtonUseKeyDown.
+			ns.addon:Print(("|cffffd100CLICK|r build=%s button=%s down=%s macro=%s"):format(
+				tostring(ns.BUILD), tostring(mouseButton), tostring(down),
+				(tostring(self:GetAttribute("macrotext1") or "nil"):gsub("%s+", " "))))
+		end
 	end
 	if not (S.current and S.current.name) then return end
 
@@ -652,5 +676,91 @@ local function OnRowPostClick(self, mouseButton, down)
 	if not InCombatLockdown() then Prompt:ArmRow(row, nil) end
 end
 
+-- A press of the bar macro (Clicks.lua, click macro). Its first line clicks
+-- MannersBar (Panel.lua), which lands here; the lines under it, written from
+-- the prompt's button when it last changed, run after this returns, whatever
+-- happens here. So nothing here aims or writes anything, and it is kept short:
+-- it files the press those lines make, as PostClick files one on the prompt,
+-- against the bar's slot (Prompt.bar), and with nothing under the first line
+-- says why, as PreClick does for a press on an empty or waiting prompt.
+
+-- When a press of the bar macro last said it can do nothing in a fight.
+local lastBarFightAt
+
+local function BarWaiting(now)
+	local B = Prompt.bar
+	if B.waitAt and now - B.waitAt < 0.25 then return end
+	B.waitAt = now
+	local db = ns.db and ns.db.profile
+	if InCombatLockdown() then
+		-- The macro keeps what the fight found in it, which was nothing to cast.
+		if db and (db.verbose or db.debugClicks) and not (lastBarFightAt and now - lastBarFightAt < 10) then
+			lastBarFightAt = now
+			ns.addon:Print("|cffff8080" .. L["cannot touch macros in combat."] .. "|r")
+		end
+		return
+	end
+	if ExplainEmpty(now) then return end
+	if not PromptIsLive() then return end
+	local ready, left = ns.CastReady()
+	if not ready then
+		Prompt:SayWaiting(left)
+		if db and db.debugClicks then ns.addon:Print("|cffffd100CLICK|r " .. L["held back -- the cooldown was still running"]) end
+		return
+	end
+	local named = Prompt:PanelName()
+	if S.current and named and named ~= S.current.name then
+		Prompt:MovedOn(S.current)
+		return
+	end
+	-- Written a moment late (a press was running, the macro window was open, a
+	-- write was refused): the repaint writes it, and the next press has it.
+	ns.Guard("bar macro", Prompt.Refresh, Prompt)
+end
+
+local function OnBarClick(self)
+	local now = GetTime()
+	ns.HoldMacroWrites()
+	-- The lines' own /target and hand-back are not the player choosing anybody
+	-- (Core.lua, PLAYER_TARGET_CHANGED).
+	ns.pressAt = now
+	local B = Prompt.bar
+	local debug = ns.db and ns.db.profile.debugClicks
+	-- Only a press of lines Manners wrote is filed: a macro changed by hand,
+	-- or a copy of the first line in a macro of somebody's own, is theirs.
+	if not B.body or ns.BarBodyNow() ~= B.body then
+		if debug then ns.addon:Print("|cffffd100CLICK|r via=bar body=edited") end
+		return
+	end
+	if not B.current then
+		if debug then ns.addon:Print("|cffffd100CLICK|r via=bar body=waiting") end
+		BarWaiting(now)
+		return
+	end
+	-- As PreClick: in combat a press late in the cooldown is queued by the
+	-- client and counts; otherwise nothing is filed (the lines still go out,
+	-- and the game refuses the cast).
+	local ready, left = ns.CastReady()
+	if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then ready = true end
+	if not ready then
+		Prompt:SayWaiting(left)
+		if debug then ns.addon:Print("|cffffd100CLICK|r " .. L["held back -- the cooldown was still running"]) end
+		return
+	end
+	-- Whether the person was in the queue of the scan that last armed them
+	-- (Prompt.bar's pickedFrom): the hold's copy, or the fuse's, carries a
+	-- reading nobody can vouch for, as PreClick judges it. In a fight the
+	-- pull's reading is the one there is.
+	pressStale = nil
+	if not InCombatLockdown() then
+		pressStale = true
+		for _, candidate in ipairs(B.pickedFrom or {}) do
+			if candidate.name == B.current.name then pressStale = nil break end
+		end
+	end
+	OnPostClick(self, "LeftButton", true)
+end
+
 lib.OnPreClick, lib.OnPostClick = OnPreClick, OnPostClick
 lib.OnRowPreClick, lib.OnRowPostClick = OnRowPreClick, OnRowPostClick
+lib.OnBarClick = OnBarClick

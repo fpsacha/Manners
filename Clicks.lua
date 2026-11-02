@@ -901,6 +901,9 @@ function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 		ns.Guard("cooldown sweep", ns.Prompt.SyncCooldown, ns.Prompt)
 	end
 	SettlePendingClick(plain(target), plain(spellId), plain(castGUID))
+	-- The bar macro holds back for the last moments of the cooldown this cast
+	-- began (the click macro section, below).
+	if ns.NoteBarCooldown then ns.Guard("bar macro cooldown", ns.NoteBarCooldown) end
 	if not self.db.profile.debugClicks then return end
 	self:Print(("|cff80ff80" .. L["CAST SENT %s -> %s"] .. "|r"):format(
 		tostring(plain(spellId)), tostring(plain(target))))
@@ -919,17 +922,20 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 	if ns.Prompt and ns.Prompt.SyncCooldown then
 		ns.Guard("cooldown sweep", ns.Prompt.SyncCooldown, ns.Prompt)
 	end
+	if ns.NoteBarCooldown then ns.Guard("bar macro cooldown", ns.NoteBarCooldown) end
 	if self.db.profile.debugClicks then
 		self:Print(L["|cff00ff00CAST OK|r %s"]:format(tostring(plain(spellId))))
 	end
 end
 
 -- The sweep read again, for the three moments the global cooldown or the
--- player's cast changes without a cast going out.
+-- player's cast changes without a cast going out; and the bar macro's hold
+-- with it (the click macro section, below).
 local function SyncSweep()
 	if ns.Prompt and ns.Prompt.SyncCooldown then
 		ns.Guard("cooldown sweep", ns.Prompt.SyncCooldown, ns.Prompt)
 	end
+	if ns.NoteBarCooldown then ns.Guard("bar macro cooldown", ns.NoteBarCooldown) end
 end
 
 -- A cast with a cast time: UnitCastingInfo may not say anything yet at SENT,
@@ -1014,18 +1020,50 @@ end
 ---------------------------------------------------------------------------
 -- click macro
 --
--- A macro containing /click is the route the options page leads with: the
--- macro system delivers the click as the native CLICK binding does, and it can
--- be dragged between bars. CreateMacro and EditMacro are protected in combat.
+-- The macro named Manners, which Put Manners on an action bar (and /manners
+-- macro) makes and puts on the cursor, so the prompt can sit on any bar and be
+-- pressed there by mouse or by key. It never presses the prompt. The game will
+-- not run a macro from inside another one: "All macros (both real and
+-- "macrotext" based ones) are being additionally restricted to remove the
+-- ability to chain macros. For example, this means that one macro cannot
+-- "/click" a button that itself would execute another macro." (Blizzard,
+-- WoWUIBugs #552, 26 June 2024). That reached retail with 11.0.2 and the
+-- Classic clients after it; Classic Era 1.15.9 runs the same C_Macro module.
+-- 1.10.3's macro, a /click of the prompt's down click, cast nothing there from
+-- a bar: a druid alone, Thorns on herself, saw PreClick run and the game answer
+-- with nothing at all, while a click on the prompt itself cast.
+--
+-- So the macro carries the cast. Its first line clicks MannersBar, a plain
+-- button with no secure template and no macro (Prompt/Panel.lua), which a
+-- macro may click: Prompt/Press.lua's OnBarClick files the press there, as
+-- PostClick files one on the prompt. Under it Manners writes the lines the
+-- prompt's button would cast (Prompt/Macro.lua, barText: its macro without the
+-- spoken line), out of combat, whenever they change. Nothing presses the
+-- prompt from a macro, so nothing can cast twice. With nothing to cast --
+-- nobody to buff, the prompt off, unlocked, previewing or running /manners
+-- try, the panel naming somebody else, the last moments of a cooldown, the
+-- macro window open, a loading screen -- it holds its first line alone, and a
+-- press says why.
+--
+-- CreateMacro and EditMacro are protected in combat, so in a fight the macro
+-- keeps what it held at the pull, as the prompt's button keeps its attributes.
+-- Only the macro named Manners is written, and only while its body is one
+-- Manners writes; one changed by hand is the player's.
 ---------------------------------------------------------------------------
 
 local MACRO_NAME = "Manners"
 -- The options page asks whether it has been made.
 ns.CLICK_MACRO_NAME = MACRO_NAME
--- Button name and down flag, both required: /click with neither delivers an up
--- click, and the secure button only acts on the way down. This is the form the
--- buttons that work on this client are driven with.
-local MACRO_BODY = "/click MannersPrompt LeftButton 1"
+-- The first line of every body Manners writes, and the whole of it with nothing
+-- to cast. /click with no button and no phase is an up click of the left
+-- button, which MannersBar is registered for.
+local BAR_LINE = "/click MannersBar"
+ns.BAR_LINE = BAR_LINE
+-- What earlier versions wrote, recognised only to be rewritten.
+local LEGACY_BODIES = {
+	["/click MannersPrompt"] = true,              -- 0.9.x: an up click
+	["/click MannersPrompt LeftButton 1"] = true, -- 1.0 to 1.10.4: a macro the client will not run from a macro
+}
 
 -- Whether both macro lists are at their caps. CreateMacro raises an error on a
 -- full list instead of answering with nothing (warcraft.wiki.gg API_CreateMacro),
@@ -1052,22 +1090,32 @@ local function EnsureMacro()
 		return nil
 	end
 
+	-- The explicit request: a Manners macro of any body, one changed by hand
+	-- included, goes back to the bar line and is Manners' again. The body
+	-- block below hears nothing of these two calls (MacroWriting), so the
+	-- UPDATE_MACROS they raise cannot write into the middle of them.
 	local existing = safecall(_G.GetMacroIndexByName, MACRO_NAME)
 	if existing and existing > 0 then
-		if _G.EditMacro then _G.EditMacro(existing, MACRO_NAME, nil, MACRO_BODY) end
+		ns.MacroWriting(true)
+		local edited = _G.EditMacro and pcall(_G.EditMacro, existing, MACRO_NAME, nil, BAR_LINE)
+		ns.MacroWriting(false)
+		if edited then ns.AdoptMacroBody() end
 		return existing, false
 	end
 
 	-- Slot limits differ between flavours, so rather than hardcode a number,
 	-- try the account-wide slots and fall back to per-character ones.
-	local ok = pcall(_G.CreateMacro, MACRO_NAME, "INV_MISC_NOTE_03", MACRO_BODY, false)
+	ns.MacroWriting(true)
+	local ok = pcall(_G.CreateMacro, MACRO_NAME, "INV_MISC_NOTE_03", BAR_LINE, false)
 	if not ok then
-		ok = pcall(_G.CreateMacro, MACRO_NAME, "INV_MISC_NOTE_03", MACRO_BODY, true)
+		ok = pcall(_G.CreateMacro, MACRO_NAME, "INV_MISC_NOTE_03", BAR_LINE, true)
 	end
+	ns.MacroWriting(false)
 	local index = ok and safecall(_G.GetMacroIndexByName, MACRO_NAME)
 	if ok and index == 0 then
 		addon:Print(L["|cffff8080no free macro slots.|r Delete one and try again."])
 	elseif ok then
+		if type(index) == "number" and index > 0 then ns.AdoptMacroBody() end
 		return index or 0, true
 	elseif MacroListsFull() then
 		-- Both calls raised because both lists are full, not for some other reason.
@@ -1081,8 +1129,8 @@ end
 -- The macro's slot on an action bar shows what a press would cast: its spell
 -- (SetMacroSpell) or, for a scroll or an enhancement from the bags, its item
 -- (SetMacroItem), so the bar draws that icon, cooldown, range and usability
--- itself. The body never changes (it stays the /click line), and nothing here
--- touches the secure button. Both calls are made out of combat only, and only
+-- itself. The body is the next block's, and nothing here touches the secure
+-- button. Both calls are made out of combat only, and only
 -- when what the prompt's top entry would cast has changed: Prompt/Macro.lua
 -- hands each arming of the prompt's own button to SyncMacroSlot, which
 -- compares one string and returns when it is the one already shown. With
@@ -1146,6 +1194,14 @@ do
 		Settle()
 	end
 
+	-- The body was written (the next block): what the slot shows is handed to
+	-- the client once more, in case an edit lets it go. What was cleared stays
+	-- cleared, so with nobody to buff this asks nothing.
+	function ns.ReassertMacroSlot()
+		slot.shown = nil
+		Settle()
+	end
+
 	-- A macro made, deleted or moved in the macro window: only when its
 	-- place changed does the slot's spell go on again, so setting it, which
 	-- the client may answer with this event, cannot start a loop.
@@ -1155,7 +1211,353 @@ do
 			slot.index, slot.shown, slot.spell, slot.item = index, nil, true, true
 			Settle()
 		end
+		-- And the body (the next block) looked at again: this event is how an
+		-- edit in the macro window, a macro made or deleted by hand, or another
+		-- addon's write shows itself. A write of Manners' own that the client
+		-- answers with it reads back as what was written, and is left there.
+		if ns.ForgetMacroBody then ns.ForgetMacroBody() end
+		if ns.SyncMacroBody then ns.SyncMacroBody() end
 	end
+end
+
+-- What the macro holds under its first line, written from the prompt's button
+-- (see the head of this section). Kept in a block of its own, out of the main
+-- chunk's locals.
+do
+	-- state: nil not looked at since the macro list last changed, "ours",
+	-- "foreign" (lines Manners did not write: the player's), "none" (no macro
+	-- named Manners). written: the body last written, or found when it is
+	-- Manners' own. prefix: the player's own "#" lines (#showtooltip), kept on
+	-- top of every body written. writing: inside a write of Manners' own.
+	-- pressingAt: the moment of a bar press, in which nothing is written.
+	-- holding: the last moments of a cooldown, out of combat (NoteBarCooldown).
+	-- parked: a loading screen or a logout. warned: whose name the last warning
+	-- about a macro changed by hand carried.
+	local body = { state = nil, written = nil, prefix = "", waitBody = BAR_LINE, cacheText = nil, cacheBody = nil,
+		writing = false, pressingAt = nil, holding = false, holdGen = 0, recheckAt = nil, parked = false,
+		warned = nil, legacy = false, watching = false }
+	-- The lines a body of Manners' may have under the bar line: the shapes the
+	-- prompt's macro is made of without its spoken line (Prompt/Macro.lua,
+	-- STRATEGIES and HandBack).
+	local SHAPED = { target = true, cast = true, use = true, targetlasttarget = true, cleartarget = true }
+
+	local function Trimmed(text) return text:match("^%s*(.-)%s*$") end
+	local function Debug(text)
+		if addon.db and addon.db.profile.debugClicks then addon:Print("|cffffd100BAR|r " .. text) end
+	end
+
+	local function SetPrefix(prefix)
+		if prefix == body.prefix then return end
+		body.prefix, body.waitBody, body.cacheText = prefix, prefix .. BAR_LINE, nil
+	end
+
+	-- Whose the text is: "legacy" (what an older version wrote, under any "#"
+	-- lines), "ours" (the bar line first, then only lines of the shapes above,
+	-- "#" lines anywhere) or "foreign"; the "#" lines, to keep on top; and for a
+	-- foreign one, its other lines.
+	local function Classify(text)
+		local meta, rest = {}, {}
+		for line in (text .. "\n"):gmatch("([^\n]*)\n") do
+			line = Trimmed(line)
+			if line:sub(1, 1) == "#" then
+				meta[#meta + 1] = line
+			elseif line ~= "" then
+				rest[#rest + 1] = line
+			end
+		end
+		local prefix = #meta > 0 and (table.concat(meta, "\n") .. "\n") or ""
+		if #rest == 1 and LEGACY_BODIES[rest[1]] then return "legacy", prefix end
+		if rest[1] ~= BAR_LINE then return "foreign", prefix, rest end
+		for i = 2, #rest do
+			local command = rest[i]:match("^/(%S+)")
+			if not (command and SHAPED[command:lower()]) then return "foreign", prefix, rest end
+		end
+		return "ours", prefix
+	end
+
+	-- What a bar press is filed against (Prompt.bar, read by Press.lua): what
+	-- the lines under the first were written from. Nothing for the bar line
+	-- alone. Never a spoken line: the bar's copy carries none.
+	local function Snapshot(want)
+		local P = ns.Prompt
+		if not P then return end
+		local B, S = P.bar, P.state
+		B.body = want
+		if want == body.waitBody then
+			B.current, B.armed, B.macro, B.pickedFrom = nil, nil, nil, nil
+		else
+			B.current, B.armed, B.macro, B.pickedFrom = S.current, S.armed, S.barText, S.pickedFrom
+		end
+		B.phraseArmed, B.phraseSource = false, nil
+	end
+
+	-- A macro changed by hand that still targets somebody runs that line at
+	-- every press, in every session after: said once for each name it carries.
+	local function Warn(rest)
+		local who
+		for i = 2, #rest do
+			who = who or rest[i]:match("^/[Tt][Aa][Rr][Gg][Ee][Tt]%s+(.+)$")
+		end
+		if not who or body.warned == who then return end
+		body.warned = who
+		addon:Print(L["your |cffffd100%s|r macro has lines Manners did not write, so it is left as you wrote it -- and it still targets |cffffffff%s|r on every press. %s hands it back to Manners."]
+			:format(MACRO_NAME, who, "|cffffd100/manners macro|r"))
+	end
+
+	-- The macro named Manners read and judged. A body Manners wrote, in this
+	-- session or one before it (a reload, a crash), is Manners' to write again
+	-- at once; an older version's is too, and is said; anybody else's is left.
+	local function Look()
+		local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
+		if type(index) ~= "number" or index <= 0 then
+			body.state = "none"
+			if ns.Prompt then ns.Prompt.bar.body = nil end
+			return
+		end
+		local text = safecall(_G.GetMacroBody, index)
+		if type(text) ~= "string" then return end
+		text = Trimmed(text)
+		local kind, prefix, rest = Classify(text)
+		if kind == "foreign" then
+			body.state = "foreign"
+			if ns.Prompt then ns.Prompt.bar.body = nil end
+			if rest[1] == BAR_LINE then Warn(rest) end
+			Debug("body=edited")
+			return
+		end
+		body.state, body.written, body.legacy = "ours", text, kind == "legacy"
+		SetPrefix(prefix)
+	end
+
+	local function WindowOpen()
+		local frame = _G.MacroFrame
+		return type(frame) == "table" and type(frame.IsShown) == "function" and frame:IsShown() == true
+	end
+
+	-- What the macro should hold now. No client call and no allocation while
+	-- nothing has changed: every repaint asks it.
+	local function Wanted()
+		local P = ns.Prompt
+		if body.parked or not P then return body.waitBody end
+		local S, R = P.state, P.regions
+		local text, entry = S.barText, S.current
+		if not (text and entry) or S.testMode then return body.waitBody end
+		-- As PreClick asks it: a hidden prompt casts nothing.
+		if not (R.button and R.button:IsShown()) then return body.waitBody end
+		local db = addon.db and addon.db.profile
+		if not (db and db.enabled and db.prompt.locked) then return body.waitBody end
+		-- The macro made at the pull serves the whole fight, as the button does:
+		-- a flash at that moment, or a cooldown, must not freeze it empty.
+		if P.armedForFight ~= true then
+			-- A press follows the words on the panel (Press.lua, PreClick).
+			local named = P:PanelName()
+			if named and named ~= entry.name then return body.waitBody end
+			if body.holding then return body.waitBody end
+		end
+		if text ~= body.cacheText then
+			body.cacheText = text
+			local full = body.prefix .. BAR_LINE .. "\n" .. text
+			-- A block of "#" lines that leaves the cast no room is left off this
+			-- body rather than the cast.
+			if #full > ns.MACRO_LIMIT then full = BAR_LINE .. "\n" .. text end
+			body.cacheBody = full
+		end
+		return body.cacheBody
+	end
+
+	-- The last moments of a cooldown, out of combat: a /cast pressed then is
+	-- queued by the client and goes out after the hand-back, at whoever is
+	-- targeted by then. So for the spell queue window before it ends the macro
+	-- holds its first line alone; a press earlier in the cooldown is refused by
+	-- the game and filed as nothing (OnBarClick). One timer asks again when
+	-- the hold starts or ends.
+	local function HoldNow()
+		local P = ns.Prompt
+		local entry = P and P.state.current
+		if not entry or InCombatLockdown() then return false end
+		local ready, left = ns.CastReady(ns.PressSpell and ns.PressSpell(entry) or nil)
+		if ready then
+			body.recheckAt = nil
+			return false
+		end
+		local window, now = ns.SpellQueueWindow(), GetTime()
+		local hold = left <= window
+		local at = hold and (now + left) or (now + left - window)
+		if not (body.recheckAt and math.abs(body.recheckAt - at) < 0.01) then
+			body.recheckAt = at
+			body.holdGen = body.holdGen + 1
+			local gen = body.holdGen
+			C_Timer.After(at - now, function()
+				if body.holdGen ~= gen then return end
+				body.recheckAt = nil
+				ns.Guard("bar macro cooldown", ns.NoteBarCooldown)
+			end)
+		end
+		if hold and not body.holding then Debug(("held=cooldown left=%.1f"):format(left)) end
+		return hold
+	end
+
+	local function Write(index, want)
+		body.writing = true
+		local ok = type(_G.EditMacro) == "function" and pcall(_G.EditMacro, index, MACRO_NAME, nil, want)
+		body.writing = false
+		if not ok then return false end
+		body.state, body.written = "ours", want
+		Snapshot(want)
+		ns.ReassertMacroSlot()
+		if body.legacy then
+			body.legacy = false
+			addon:Print(L["your |cffffd100%s|r macro was updated -- the one an older version made no longer pressed the prompt."]:format(MACRO_NAME))
+			Debug("rewrote=old")
+		end
+		Debug("wrote=" .. (want:gsub("\n", " / ")))
+		return true
+	end
+
+	-- `fresh`: asked by an arming of the prompt's button (Prompt:ApplyTarget),
+	-- always out of combat.
+	function ns.SyncMacroBody(fresh)
+		local state = body.state
+		if state == "foreign" or state == "none" or body.writing then return end
+		local want = Wanted()
+		if want == body.written and state == "ours" then
+			-- The same lines for the same person: what a press is filed against
+			-- follows the latest arming (its reading, its queue), for nothing.
+			if fresh and want ~= body.waitBody and not body.pressingAt and ns.Prompt then
+				local B, S = ns.Prompt.bar, ns.Prompt.state
+				B.current, B.armed, B.pickedFrom = S.current, S.armed, S.pickedFrom
+			end
+			return
+		end
+		if InCombatLockdown() then return end
+		-- Never into a macro that may be running: the bar's own press asks
+		-- again next frame (HoldMacroWrites).
+		if body.pressingAt and body.pressingAt == GetTime() then
+			Debug("deferred=press")
+			return
+		end
+		-- Every write has the open macro window put the saved text back in its
+		-- box, over whatever the player is typing: none until it shuts.
+		if WindowOpen() then return end
+		if state == nil then
+			Look()
+			if body.state ~= "ours" then return end
+			want = Wanted()
+		end
+		local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
+		if type(index) ~= "number" or index <= 0 then
+			body.state = "none"
+			ns.Prompt.bar.body = nil
+			return
+		end
+		local now = safecall(_G.GetMacroBody, index)
+		if type(now) ~= "string" then return end
+		if Trimmed(now) ~= body.written then
+			-- Changed since: Manners' own shape is still Manners' (a #showtooltip
+			-- added on top stays), anything else is the player's.
+			Look()
+			if body.state ~= "ours" then return end
+			want = Wanted()
+		end
+		if want ~= body.waitBody and ns.Prompt.armedForFight ~= true then
+			body.holding = HoldNow()
+			if body.holding then want = body.waitBody end
+		end
+		if want == body.written then
+			Snapshot(want)
+			return
+		end
+		Write(index, want)
+	end
+
+	function ns.NoteBarCooldown()
+		if body.state == "foreign" or body.state == "none" then return end
+		if InCombatLockdown() then
+			body.holding = false
+			return
+		end
+		local P = ns.Prompt
+		local S, R = P and P.state, P and P.regions
+		-- Nobody on a prompt on screen: nothing to hold back.
+		if not (S and S.current and S.barText and R.button and R.button:IsShown()) then
+			if body.holding then
+				body.holding = false
+				ns.SyncMacroBody()
+			end
+			return
+		end
+		body.holding = HoldNow()
+		ns.SyncMacroBody()
+	end
+
+	-- A bar press: nothing is written in the frame it runs in.
+	function ns.HoldMacroWrites()
+		body.pressingAt = GetTime()
+		C_Timer.After(0, function()
+			body.pressingAt = nil
+			ns.Guard("bar macro", ns.SyncMacroBody)
+		end)
+	end
+
+	-- What the macro holds now, as the client reads it back, for a press to be
+	-- filed only against lines Manners wrote.
+	function ns.BarBodyNow()
+		local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
+		if type(index) ~= "number" or index <= 0 then return nil end
+		local text = safecall(_G.GetMacroBody, index)
+		return type(text) == "string" and Trimmed(text) or nil
+	end
+
+	-- Put Manners on an action bar (EnsureMacro) wrote the bar line: the macro
+	-- is Manners' again, whatever it held.
+	function ns.AdoptMacroBody()
+		body.state, body.written, body.parked, body.warned = "ours", BAR_LINE, false, nil
+		SetPrefix("")
+		Snapshot(BAR_LINE)
+	end
+	function ns.MacroWriting(on) body.writing = on and true or false end
+	function ns.ForgetMacroBody() body.state = nil end
+
+	-- A loading screen or a logout: what the macro holds is the first thing the
+	-- next session can press, before Manners has looked at anything.
+	function ns.ParkMacroBody()
+		body.parked = true
+		ns.SyncMacroBody()
+	end
+	function ns.UnparkMacroBody()
+		body.parked = false
+		ns.SyncMacroBody()
+	end
+
+	-- The macro window (Blizzard_MacroUI, loaded when first opened): shown, the
+	-- macro goes to its first line before anybody types in it, and stays there
+	-- (SyncMacroBody writes nothing while it is open); shut, what the window
+	-- saved is looked at, and the macro follows the prompt again.
+	local function OnWindowShown()
+		if body.state == "foreign" or body.state == "none" or InCombatLockdown() then return end
+		if body.state == nil then
+			Look()
+			if body.state ~= "ours" then return end
+		end
+		if body.written == body.waitBody then return end
+		local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
+		if type(index) == "number" and index > 0 then Write(index, body.waitBody) end
+	end
+	local function OnWindowHidden()
+		body.state = nil
+		ns.SyncMacroBody()
+	end
+	function ns.WatchMacroWindow()
+		if body.watching then return end
+		local frame = _G.MacroFrame
+		if type(frame) ~= "table" or type(frame.HookScript) ~= "function" then return end
+		body.watching = true
+		frame:HookScript("OnShow", function() ns.Guard("macro window", OnWindowShown) end)
+		frame:HookScript("OnHide", function() ns.Guard("macro window", OnWindowHidden) end)
+	end
+
+	-- For /manners selftest.
+	function ns.BarMacroState() return body.state or "unlooked" end
 end
 
 -- The macro made or refreshed and put on the cursor, to drop on any action
@@ -1165,6 +1567,9 @@ end
 function ns.CreateClickMacro()
 	local index, created = EnsureMacro()
 	if not index then return false end
+	-- What the prompt would cast goes in under the bar line before it is
+	-- carried to a bar.
+	ns.SyncMacroBody()
 	ns.ResyncMacroSlot(true)
 	local pickup = _G.PickupMacro
 	if index > 0 and type(pickup) == "function" then
@@ -1184,25 +1589,19 @@ function ns.CreateClickMacro()
 	return false
 end
 
--- What 0.9.x's /manners macro wrote: an up click, which the button no longer
--- acts on, sitting on somebody's bar.
-local OLD_MACRO_BODY = "/click MannersPrompt"
-
--- Once a login, out of combat: EditMacro is protected in a fight. Only that
--- exact body is touched, so a macro somebody has edited is theirs. Returns true
--- once there is nothing left to do, false to be asked again after a fight.
+-- Once a login, out of combat: EditMacro is protected in a fight. The macro is
+-- looked at afresh (the body block above): an older version's body is rewritten
+-- with a line saying so, a body a session before this one left goes back to
+-- what the prompt casts now, and a macro somebody has edited is theirs. Only
+-- the macro named Manners, and no macro is ever made here. Returns true once
+-- it has had its look, false to be asked again after a fight.
 function ns.RepairOldMacro()
 	if InCombatLockdown() then return false end
-	local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
-	if type(index) ~= "number" or index <= 0 then return true end
-	local body = safecall(_G.GetMacroBody, index)
-	if type(body) ~= "string" or body:match("^%s*(.-)%s*$") ~= OLD_MACRO_BODY then return true end
-	if type(_G.EditMacro) ~= "function" then return true end
-	if pcall(_G.EditMacro, index, MACRO_NAME, nil, MACRO_BODY) then
-		ns.ResyncMacroSlot(true)
-		addon:Print(L["your |cffffd100%s|r macro was updated -- the one an older version made no longer pressed the prompt."]:format(MACRO_NAME))
-	end
-	return true
+	-- Blizzard_MacroUI loaded before Manners was (another addon opened it).
+	ns.WatchMacroWindow()
+	ns.ForgetMacroBody()
+	ns.SyncMacroBody()
+	return ns.BarMacroState() ~= "unlooked"
 end
 
 -- Asked at login and after every fight until it has had its one look. A

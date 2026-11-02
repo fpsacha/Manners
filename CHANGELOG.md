@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **The Manners macro on an action bar casts.** Clicking its slot, or pressing
+  its key, did nothing on Classic Era: the game does not let a macro press a
+  button that runs another macro, and that is what the old macro did. The
+  macro now carries the cast itself: Manners writes what the prompt would cast
+  into it, out of combat, whenever the prompt changes, so a press of the slot
+  buffs whoever the prompt shows and hands your target back, as a press of the
+  prompt does. It says no line: that goes out only with a press of the prompt,
+  which looks one last time at whether the cast can land. In the last moments
+  of a global cooldown, with nobody to buff, or while the macro window is open,
+  it holds only its first line and a press says why; in a fight it keeps what
+  it held when the fight began. An older Manners macro is updated for you. A
+  `#showtooltip` you put on top stays; a macro you have changed in any other
+  way is left as it is, and Manners says so once.
 - **The prompt is made of something.** Glass is now a pane of cut glass with a
   metal bezel round the spell icon, which brightens under the pointer. Framed
   wears a rim like the game's tooltips. Toast's gold is hammered and worn, and

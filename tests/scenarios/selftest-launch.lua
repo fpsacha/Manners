@@ -446,6 +446,9 @@ do
 			expect(scenario, results, "launch.macro.slot", "PASS", "deleted at its end")
 			expect(scenario, results, "launch.macro.cleanup", "PASS", "has been deleted")
 			expect(scenario, results, "launch.macro.pickup", "PASS")
+			-- The bar macro's body (Clicks.lua, click macro), written and read
+			-- back on the temporary macro.
+			expect(scenario, results, "launch.macro.body", "PASS", "read them back the same")
 		end)
 		if #made ~= 1 or made[1] ~= "MannersSelfTest" then
 			fail(scenario, "macros made: " .. table.concat(made, ", "))
@@ -461,13 +464,39 @@ do
 		local create = CreateMacro
 		withGlobals({ CreateMacro = function(...) made = made + 1 return create(...) end }, function()
 			local results = run(ns, { createMacro = false })
-			for _, id in ipairs({ "launch.macro.slot", "launch.macro.item", "launch.macro.pickup" }) do
+			for _, id in ipairs({ "launch.macro.slot", "launch.macro.item", "launch.macro.pickup", "launch.macro.body" }) do
 				expect(scenario, results, id, "CHECK", "skipped: no macro named Manners")
 			end
 			expect(scenario, results, "launch.macro.events", "CHECK", "no macro call was made")
 		end)
 		if made > 0 then fail(scenario, "a macro was made without being asked") end
 		if next(Mock.macroList) ~= nil then fail(scenario, "the macro list changed") end
+	end)
+
+	-- A client that keeps only the first line of a macro written to it would
+	-- leave the bar macro with nothing to cast; the player's own macro is only
+	-- read, its first line and whose Manners counts it.
+	scenario = "selftest-launch: a client that loses a line of the macro written is a CHECK"
+	session(scenario, {}, function(ns)
+		local edit = EditMacro
+		withGlobals({ EditMacro = function(index, name, icon, body)
+			return edit(index, name, icon, type(body) == "string" and body:match("^[^\n]*") or body)
+		end }, function()
+			local results = run(ns, { createMacro = true })
+			expect(scenario, results, "launch.macro.body", "CHECK", "would not carry the cast as written")
+		end)
+	end)
+
+	scenario = "selftest-launch: the player's own macro is read, not rewritten, for its body"
+	session(scenario, {}, function(ns)
+		local index = ownMacro(false)
+		local edits = Mock.editCalls
+		local results = run(ns, { createMacro = true })
+		expect(scenario, results, "launch.macro.body", "CHECK", "hands it back")
+		if Mock.editCalls ~= edits then fail(scenario, "the player's own macro was written") end
+		Mock.macroList[index].body = "/click MannersBar"
+		results = run(ns, { createMacro = true })
+		expect(scenario, results, "launch.macro.body", "PASS", "starts \"/click MannersBar\"")
 	end)
 
 	scenario = "selftest-launch: a full macro list is a CHECK, not a fault, and nothing is left"
