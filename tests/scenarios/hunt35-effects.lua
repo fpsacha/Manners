@@ -644,6 +644,7 @@ withTree("hunt35-effects: the new art ships at the right size", ANNA, function(n
 	local files = {
 		"Textures/Glow", "Textures/GlowRound", "Textures/Ring", "Textures/RingSq", "Textures/Sweep",
 		"Textures/Gloss", "Textures/Bevel", "Textures/Luxe/Luxe_Spine", "Textures/Toast/Toast_MedShade",
+		"Textures/Rule", "Textures/Glint", "Textures/Shock", "Textures/Crack",
 	}
 	for _, name in ipairs(files) do
 		local h = header(dir .. "/" .. name .. ".tga")
