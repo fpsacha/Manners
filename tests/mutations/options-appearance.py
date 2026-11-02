@@ -198,3 +198,24 @@ mutate("Options/Look.lua",
        "\t\t\t\t\treturn not P().showIcon and not stripe and (P().effects == \"calm\" or P().style == \"minimal\")\n",
        "look: Flash greyed out on Minimal",
        expect="look: Flash is live on Minimal under Full animations", script=S)
+
+# Calm's tooltip back on the sweep that is gone.
+mutate("Options/Look.lua",
+       "L[\"Calm keeps to fades: no rules of light, rings, wave, crack or shake.\"]",
+       "L[\"Calm drops the light sweep, the shake and the fade-out.\"]",
+       "look: Calm's tooltip names the old sweep",
+       expect="effects says", script=S)
+
+# The Glass card back on a panel with a soft shadow.
+mutate("Looks/Looks.lua",
+       "description = L[\"dark cut glass, a metal bezel\"]",
+       "description = L[\"dark panel, soft shadow\"]",
+       "look: the Glass card describes the old panel",
+       expect="the glass card reads", script=S)
+
+# The Framed card back on a flat panel with a thin border.
+mutate("Looks/Looks.lua",
+       "description = L[\"dark panel, a tooltip's rim\"]",
+       "description = L[\"flat panel, thin border\"]",
+       "look: the Framed card describes the old panel",
+       expect="the framed card reads", script=S)

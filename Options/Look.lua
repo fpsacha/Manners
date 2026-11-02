@@ -334,7 +334,7 @@ function Page.BuildLookTab()
 			effects = {
 				type = "select",
 				name = L["Animations"],
-				desc = L["Calm drops the light sweep, the shake and the fade-out."],
+				desc = L["Calm keeps to fades: no rules of light, rings, wave, crack or shake."],
 				order = 32,
 				values = {
 					full = L["Full"],

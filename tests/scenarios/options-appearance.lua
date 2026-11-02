@@ -322,7 +322,7 @@ do
 		local descs = {
 			accentMode = "Where the reason's colour is drawn.",
 			flashStyle = "Needs the icon, the stripe or Full animations.",
-			effects = "Calm drops the light sweep, the shake and the fade-out.",
+			effects = "Calm keeps to fades: no rules of light, rings, wave, crack or shake.",
 			soundEnabled = "When a new person appears on the prompt.",
 			soundOwedOnly = "Off, every new person makes a sound, passers-by included.",
 			-- The exact numbers are a fold on this page: no pointer.
@@ -335,6 +335,29 @@ do
 			end
 		end
 		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ Cards
+-- The Glass and Framed cards say what the two looks draw now (cut glass in a
+-- metal bezel, the tooltip's rim), and not what they drew before, nor the
+-- words of the Arcane card they sit next to.
+do
+	local scenario = "the Glass and Framed cards describe what they draw"
+	local ns = session(scenario)
+	if ns then
+		local want = {
+			glass = { "Glass", "dark cut glass, a metal bezel" },
+			framed = { "Framed", "dark panel, a tooltip's rim" },
+		}
+		local _, arcane = ns.Looks.Card("arcane")
+		for key, w in pairs(want) do
+			local title, line = ns.Looks.Card(key)
+			if title ~= w[1] or line ~= w[2] then
+				fail(scenario, ("the %s card reads %q / %q, not %q / %q"):format(key, tostring(title), tostring(line), w[1], w[2]))
+			end
+			if line == arcane then fail(scenario, "the " .. key .. " card reads as Arcane's does") end
+		end
 	end
 end
 
