@@ -116,6 +116,7 @@ core22: a flagged raider somebody whose visibility the client will not give hold
 core22: a passer-by wearing another paladin's Salvation is offered wisdom: a passer-by wearing another paladin's Salvation was offered nil, not Wisdom
 core22: a passer-by wearing another paladin's Salvation, owed, Salvation pinned is offered nothing: a passer-by wearing another paladin's Salvation, owed, Salvation pinned was offered might, and the press would replace it: holding any one of your blessings counts as covered
 core22: a passer-by wearing nothing, owed, Salvation pinned is offered nothing: a passer-by wearing nothing, owed, Salvation pinned was offered might, and the press would replace it: holding any one of your blessings counts as covered
+core22: a passer-by wearing your Salvation with half an hour left, and owed is offered nothing: a passer-by wearing your Salvation with half an hour left, and owed was offered might, and the press would replace it: holding any one of your blessings counts as covered
 core22: a passer-by wearing your Salvation, and owed is offered nothing: a passer-by wearing your Salvation, and owed was offered might, and the press would replace it: holding any one of your blessings counts as covered
 core22: a raid's group cast in the ledger names no party or class: SKIPPED -- no group cast for the raid
 core22: a request in enUS with its own please and punctuation is heard: "\\194\\161int pls!" was not heard as a request for Arcane Intellect
