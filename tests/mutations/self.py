@@ -310,7 +310,7 @@ mutate("Options/Who.lua",
        "\t\t\t\torder = 15.1,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = NothingForSelf,\n",
        "\t\t\t\torder = 15.1,\n\t\t\t\twidth = \"full\",\n",
        "self: switch shown to a warrior",
-       expect="the Myself switch is shown to a warrior", script=S)
+       expect="self is shown to a warrior on retail", script=S)
 
 # Re-anchored on Look's reset list, where the wording is put back now.
 mutate("Options/Advanced.lua",

@@ -241,8 +241,12 @@ do
 	with(scenario2, { flavour = "mainline" }, function(ns)
 		local a = ns.optionsTable.args.who.args
 		if a.own_food then fail(scenario2, "retail has a Well Fed switch") end
-		local hidden = a.myselfHeader and type(a.myselfHeader.hidden) == "function" and a.myselfHeader.hidden() == true
-		if not hidden then fail(scenario2, "Myself is shown to a warrior on retail, with nothing under it") end
+		-- Hidden, all three, from a class with nothing under them: the one place
+		-- left where that is so (the checks on Forever are about the opposite).
+		for _, k in ipairs({ "myselfHeader", "self", "ownCities" }) do
+			local hidden = a[k] and type(a[k].hidden) == "function" and a[k].hidden() == true
+			if not hidden then fail(scenario2, k .. " is shown to a warrior on retail, with nothing under it") end
+		end
 	end)
 end
 

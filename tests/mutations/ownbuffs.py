@@ -709,13 +709,13 @@ mutate("Options/Who.lua",
        "order = 15, hidden = NothingForSelf },",
        "order = 15 },",
        "own: Myself's heading shown to a warrior",
-       expect="myselfHeader is shown to a warrior", script=S)
+       expect="myselfHeader is shown to a warrior on retail", script=S)
 
 mutate("Options/Who.lua",
        "\t\t\t\torder = 15.9,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = NothingForSelf,\n",
        "\t\t\t\torder = 15.9,\n\t\t\t\twidth = \"full\",\n",
        "own: Also in cities and inns shown to a warrior",
-       expect="ownCities is shown to a warrior", script=S)
+       expect="ownCities is shown to a warrior on retail", script=S)
 
 mutate("Options/Who.lua",
        "\t\t\t\tdisabled = function() return not S().self end,\n"

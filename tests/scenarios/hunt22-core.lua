@@ -95,7 +95,10 @@ for _, case in ipairs({
 	{ "your Greater Blessing of Salvation", GREATER_SALVATION, "player" },
 	{ "a Salvation the client names nobody for", SALVATION, nil },
 	{ "another paladin's Salvation", SALVATION, "nameplate2", "wisdom" },
-	{ "your Salvation, and owed", SALVATION, "player", nil, { owed = true } },
+	-- Running out: a refresh would be worth something, if the game took it (a
+	-- Salvation with time to run is paid up since 1.11.2, whoever it was cast on).
+	{ "your Salvation, and owed", SALVATION, "player", nil, { owed = true, left = 20 } },
+	{ "your Salvation with half an hour left, and owed", SALVATION, "player", nil, { owed = true } },
 	{ "another paladin's Salvation, owed, Salvation pinned", SALVATION, "nameplate2", nil,
 		{ owed = true, pin = true } },
 	{ "nothing, owed, Salvation pinned", nil, nil, nil, { owed = true, pin = true } },
@@ -109,6 +112,7 @@ for _, case in ipairs({
 		if id then
 			Mock.held = { [id] = true }
 			Mock.heldSource = { [id] = source }
+			Mock.heldFor = how.left
 		else
 			Mock.held = {}
 		end
