@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **A reminder to eat: Well Fed.** Under *Myself* on *Who to buff*, *Well Fed*
+  is a new switch for every class on Classic Era, Burning Crusade, Mists and
+  WoW Forever, off until you turn it on. With it on, when you have a food in
+  your bags that gives the *Well Fed* buff and none is on you, "You" comes up
+  with that food's icon, and one press eats it: the best one you are high
+  enough level for first. It waits while you are eating, mounted or in a
+  fight, and for any Well Fed on you, whoever's food gave it. Every class
+  sees *Myself* on *Who to buff* now, since every class has this switch.
 - **No second offer to somebody who is already wearing your buff.** You buffed
   a passer-by, they buffed you back, and Manners asked you to buff them again.
   Now, when somebody who buffed you is wearing your own buff with more than the

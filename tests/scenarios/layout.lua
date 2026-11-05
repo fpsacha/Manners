@@ -32,7 +32,8 @@ local RETIRED = {
 -- Placed for another client's model, never this one's: Classic Era's
 -- Omen of Clarity, a passive on Forever (Buffs.lua, CAMELOT_OWN), and the
 -- rogue's poisons as spells on Mists and retail, which are items on the others.
-local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.own_nonlethal"] = true }
+local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.own_nonlethal"] = true,
+	["who.own_food"] = true }
 
 local ACEDB = {
 	["profiles.current"] = true, ["profiles.choosedesc"] = true, ["profiles.new"] = true,

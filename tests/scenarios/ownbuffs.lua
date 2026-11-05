@@ -1203,9 +1203,9 @@ do
 end
 
 -- ------------------------------------------------------------------ own 23
--- A warrior has nothing for "Myself": no heading, no switch, no Also in
--- cities and inns. And with Myself off, Also in cities and inns is greyed out
--- like the families under it.
+-- A warrior has no buff of his own, but since 1.11.2 he has Well Fed to switch
+-- on, so Myself, its switch and Also in cities and inns are his too. And with
+-- Myself off, Also in cities and inns is greyed out like the families under it.
 Mock.reset()
 do
 	local scenario = "own: Myself's heading and cities follow the switch"
@@ -1215,8 +1215,23 @@ do
 	end
 	with(scenario, { class = "WARRIOR", known = { 6673 } }, function(ns)
 		local a = ns.optionsTable.args.who.args
+		-- Where there is food to switch on (every client but retail); where there
+		-- is none, nothing, as before.
+		local food = false
+		for _, families in pairs(ns.OWN_BUFFS or {}) do
+			for _, family in ipairs(families) do
+				if family.food then food = true end
+			end
+		end
 		for _, k in ipairs({ "myselfHeader", "self", "ownCities" }) do
-			if not asks(a[k], "hidden") then fail(scenario, k .. " is shown to a warrior") end
+			if food and (a[k] == nil or asks(a[k], "hidden")) then
+				fail(scenario, k .. " is hidden from a warrior, who has Well Fed to switch on")
+			elseif not food and not asks(a[k], "hidden") then
+				fail(scenario, k .. " is shown to a warrior with nothing under it")
+			end
+		end
+		if food and (a.own_food == nil or asks(a.own_food, "hidden")) then
+			fail(scenario, "the Well Fed switch is hidden from a warrior")
 		end
 	end)
 	with(scenario, { known = MAGE }, function(ns)

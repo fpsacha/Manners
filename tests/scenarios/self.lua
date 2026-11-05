@@ -473,8 +473,19 @@ do
 		wear(ns, {})
 		if mine(ns) then fail(scenario, "a pinned shout was offered to the warrior himself") end
 		local toggle = findOption(ns.optionsTable, "self")
-		if not (toggle and type(toggle.hidden) == "function" and toggle.hidden()) then
-			fail(scenario, "the Myself switch is shown to a warrior")
+		-- Shown since 1.11.2 where there is food: Well Fed is his to switch on, and
+		-- it hangs on this. Hidden where there is none (retail), as before.
+		local food = false
+		for _, families in pairs(ns.OWN_BUFFS or {}) do
+			for _, family in ipairs(families) do
+				if family.food then food = true end
+			end
+		end
+		local hidden = toggle and type(toggle.hidden) == "function" and toggle.hidden() == true
+		if food and (not toggle or hidden) then
+			fail(scenario, "the Myself switch is hidden from a warrior, who has Well Fed to switch on")
+		elseif not food and not hidden then
+			fail(scenario, "the Myself switch is shown to a warrior with nothing under it")
 		end
 		if ns.QuickSetup.WhoSummary():find("myself", 1, true) then
 			fail(scenario, "the summary promises a warrior his own buff: " .. ns.QuickSetup.WhoSummary())

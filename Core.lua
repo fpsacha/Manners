@@ -455,6 +455,13 @@ ns.defaults = defaults
 for _, families in pairs(ns.OWN_BUFFS or {}) do
 	for _, family in ipairs(families) do defaults.profile.ownBuffs.pick[family.key] = "auto" end
 end
+-- Well Fed is off until a player turns it on: it reads every food in the bags, and
+-- a reminder to eat nobody asked for would be the first thing to switch off.
+for _, families in pairs(ns.OWN_BUFFS or {}) do
+	for _, family in ipairs(families) do
+		if family.food then defaults.profile.ownBuffs.pick[family.key] = "off" end
+	end
+end
 for _, families in pairs(ns.OWN_BUFFS or {}) do
 	for _, family in ipairs(families) do
 		if ns.OwnLeaveable(family) then
@@ -810,7 +817,7 @@ do
 		caps.anyOwnKnown = false
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
 			-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
-			for _, spell in ipairs(family.enhance and {} or family.spells) do
+			for _, spell in ipairs((family.enhance or family.food) and {} or family.spells) do
 				local info = spell.item and ProbeScroll(spell) or ProbeBuff(spell)
 				info.known = info.known == true and info.name ~= nil
 				caps.own[spell.key] = info
@@ -848,7 +855,7 @@ function ns.BuffInfo(buff)
 	if buff.own then
 		local info = caps.own and caps.own[buff.key]
 		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
-		if not info and caps.own and buff.item and buff.family and buff.family.enhance then
+		if not info and caps.own and buff.item and buff.family and (buff.family.enhance or buff.family.food) then
 			info = ns.ProbeOwnItem(buff)
 		end
 		return info
@@ -1693,7 +1700,8 @@ do
 			local count = C_Item and C_Item.GetItemCount
 			if type(count) == "function" then
 				for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
-					for _, scroll in ipairs(family.scroll and family.spells or {}) do
+					local listed = family.scroll or (family.food and ns.OwnPick(family) ~= "off")
+					for _, scroll in ipairs(listed and family.spells or {}) do
 						local n = scrollCounts[scroll.item] or plain(count(scroll.item))
 						scrollCounts[scroll.item] = type(n) == "number" and n or 0
 						if scrollCounts[scroll.item] > 0 then
@@ -1928,7 +1936,7 @@ do
 	local function AutoAnswer(family)
 		local last = Remembered(family)
 		if last then return last, "last" end
-		if family.scroll then
+		if family.scroll or family.food then
 			local held, heldWhy
 			for _, spell in ipairs(family.spells) do
 				local ready, why = ScrollReady(spell)
@@ -2301,6 +2309,50 @@ do
 		return false
 	end
 
+	-- Well Fed (Buffs.lua, FOOD) is an aura read by name: any of the many on a
+	-- client answers to the client's own word for it, from one spell id of it.
+	-- true with its time left, false for none, nil for the client will not say.
+	local wellFedName
+	local function ReadWellFed(family, now)
+		local api = C_UnitAuras
+		local byName = api and api.GetAuraDataBySpellName
+		if type(byName) ~= "function" then return nil end
+		wellFedName = wellFedName or SpellNameFor(family.fed)
+		if not wellFedName then return nil end
+		local ok, aura = pcall(byName, "player", wellFedName)
+		if not ok or Withheld(aura) then return nil end
+		if type(aura) == "table" then return true, nil, Left(aura, now) end
+		return false
+	end
+
+	-- Whether a meal is on: the aura of the spell a food's use casts ("Food",
+	-- "Nutritious Food", "Nutritious Drink"), by name, since two foods use two
+	-- spells. Asked only when Well Fed is due, so a prompt with it off pays
+	-- nothing. The names are the table's, worked out once the client has them.
+	local eatNames
+	local function Eating(family)
+		local api = C_UnitAuras
+		local byName = api and api.GetAuraDataBySpellName
+		if type(byName) ~= "function" then return false end
+		if not eatNames then
+			local names, seen = {}, {}
+			for _, spell in ipairs(family.spells) do
+				local name = SpellNameFor(spell.ranks[1])
+				if name and not seen[name] then
+					seen[name] = true
+					names[#names + 1] = name
+				end
+			end
+			if #names == 0 then return false end
+			eatNames = names
+		end
+		for _, name in ipairs(eatNames) do
+			local ok, aura = pcall(byName, "player", name)
+			if ok and type(aura) == "table" then return true end
+		end
+		return false
+	end
+
 	-- Whether any of the family is up on you, and yours: true with the spell,
 	-- its time left and the charges it has left (the aura's applications, for
 	-- a charge shield), false for definitely none, nil for the client would not say
@@ -2324,6 +2376,7 @@ do
 			end
 			return false
 		end
+		if family.food then return ReadWellFed(family, GetTime()) end
 		if family.imbue then return ReadImbue(family) end
 		-- A stone, a poison, an oil or a lure: its hand carries an enchant or not.
 		if family.enhance then return ReadImbue(family) end
@@ -2482,6 +2535,14 @@ do
 		if not spell then
 			if held and not up then return nil, up, nil, heldWhy, held end
 			return nil, up, nil, "none"
+		end
+		-- Well Fed: not while a meal is on, which a second press with another food
+		-- would cut short, nor mounted, where the use would only dismount you.
+		if family.food then
+			if Eating(family) then return nil, up, left, "tried", spell end
+			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
+				return nil, up, left, "unusable", spell
+			end
 		end
 		if ns.IsBlocked(ctx.name, spell.key, ctx.now) then return nil, up, left, "tried", spell end
 		-- The hand an enhancement was just put on is busy until the cast is over

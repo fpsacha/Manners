@@ -234,6 +234,13 @@ each class offers*).
   oil, stone or lure at the same time, so each is reminded of on its own; a
   stone and an oil still replace each other. Manners never answers the game's
   question about replacing an enchant: that is left to you.
+- **Well Fed.** Off until you switch it on (*Well Fed*, under *Myself* on
+  *Who to buff*, for every class): then, with a food in your bags that gives
+  the *Well Fed* buff and none on you, "You" comes up with that food's icon and
+  one press eats it. The best one you are high enough for is offered first.
+  Nothing is offered while you are eating, mounted or in a fight, or while any
+  Well Fed is on you, whoever's food it was. Classic Era, Burning Crusade,
+  Mists and WoW Forever; not retail.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath
@@ -554,11 +561,13 @@ explain themselves; this is what their tooltips have no room for.
   or not; one picked with none in your bags waits until you have one, and one
   picked above your level (a profile shared with a higher mage) gives way to
   *Automatic* until you reach it. A poison, stone, oil or lure for a weapon
-  has a switch of its own per kind (*Weapons, one hand at a time*, above).
+  has a switch of its own per kind (*Weapons, one hand at a time*, above). So
+  does *Well Fed*, which every class has and which starts off.
   Then *Also in cities and inns*, off by default, and last what each of your
-  own buffs is doing and why one is not being offered. A class with nothing of
-  its own to put on, and no weapon item in the bags, does not see this part; a
-  hunter, a shaman or a rogue sees only this part of the page.
+  own buffs is doing and why one is not being offered. On retail, a class with
+  nothing of its own to put on does not see this part; everywhere else every
+  class does, for *Well Fed*, and a hunter, a shaman or a rogue sees only this
+  part of the page.
 - *My group and raid*: *Use group buffs* and *When this many need it* (see
   *Group buffs* above), with how many reagents are in your bags, shown only
   to classes with a group buff; and *Raid groups I buff*.

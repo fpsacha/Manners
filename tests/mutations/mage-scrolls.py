@@ -405,7 +405,7 @@ mutate("Core.lua",
        expect="rather than a scroll that fits it", script=S)
 
 mutate("Core.lua",
-       "\t\tif family.scroll then\n\t\t\tlocal held, heldWhy\n",
+       "\t\tif family.scroll or family.food then\n\t\t\tlocal held, heldWhy\n",
        "\t\tif false then\n\t\t\tlocal held, heldWhy\n",
        "scrolls: Automatic takes one that cannot be used",
        expect="with a dagger in hand you were offered", script=S)

@@ -684,6 +684,41 @@ do
 	ENHANCEMENTS.mists = Families(MISTS_ROWS)
 end
 
+-- Well Fed (1.11.2): the food in your bags that gives the aura, a family of its
+-- own for every class on the four clients with a table of it (Foods.lua,
+-- written by tools/make_foods.py from each client's own data). One family, one
+-- switch, off until the player turns it on: it reminds you when no Well Fed is
+-- on you and a food that gives it is in your bags, and offers the best one
+-- (the highest level, then the lowest item id, which is the table's order). No
+-- timer to top up (toggle): eating again over a Well Fed only replaces it.
+-- `food` reads the aura by its localised name, `fed` a spell id of it; the
+-- family's spells are items, named by the item (Core.lua, ProbeScroll), and
+-- used with /use item:<id> (Prompt/Macro.lua) like a scroll.
+local FOOD = {}
+do
+	for client, data in pairs(ns.FOODS or {}) do
+		local spells = {}
+		for i, row in ipairs(data) do
+			spells[i] = { key = "food" .. row[1], item = row[1], level = row[2], ranks = { row[3] },
+				nameFromItem = L["Well Fed"] }
+		end
+		FOOD[client] = { key = "food", label = L["Well Fed"], food = true, toggle = true, fed = data.fed,
+			spells = spells }
+	end
+end
+
+-- The family for this client in a class's own list, ahead of tracking as the
+-- weapon enhancements are, or last.
+local function AddFood(list, client)
+	local family = FOOD[client]
+	if not family then return end
+	local at = #list + 1
+	for i, each in ipairs(list) do
+		if each.tracking then at = i break end
+	end
+	table.insert(list, at, family)
+end
+
 ---------------------------------------------------------------------------
 -- vanilla: what each class puts on itself alone
 ---------------------------------------------------------------------------
@@ -951,6 +986,7 @@ for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAM
 	table.insert(VANILLA_OWN[class], TRACKING)
 	-- A weapon's poison, stone, oil or lure, ahead of tracking.
 	AddEnhancements(VANILLA_OWN[class], class, ENHANCEMENTS.vanilla)
+	AddFood(VANILLA_OWN[class], "vanilla")
 end
 
 -- What each rank of the three buffs with `blockers` gives, and each scroll in
@@ -1330,6 +1366,7 @@ do
 		table.insert(TBC_OWN[class], tracking)
 		-- This client's stones, oils, poisons and lures (above), ahead of it.
 		AddEnhancements(TBC_OWN[class], class, ENHANCEMENTS.tbc)
+		AddFood(TBC_OWN[class], "tbc")
 	end
 end
 
@@ -1448,9 +1485,10 @@ do
 	for class, families in pairs(VANILLA_OWN) do
 		local list = {}
 		for _, family in ipairs(families) do
-			if family.key ~= "omen" and not family.enhance then list[#list + 1] = family end
+			if family.key ~= "omen" and not family.enhance and not family.food then list[#list + 1] = family end
 		end
 		AddEnhancements(list, class, ENHANCEMENTS.camelot)
+		AddFood(list, "camelot")
 		CAMELOT_OWN[class] = list
 	end
 	table.insert(CAMELOT_OWN.MAGE, 2, FAMILIAR)
@@ -1767,6 +1805,7 @@ do
 		"WARRIOR", "DEATHKNIGHT", "MONK" }) do
 		MISTS_OWN[class] = MISTS_OWN[class] or {}
 		AddEnhancements(MISTS_OWN[class], class, ENHANCEMENTS.mists)
+		AddFood(MISTS_OWN[class], "mists")
 	end
 end
 
@@ -2536,7 +2575,7 @@ end
 -- not a tank's stance, which is a role rather than a choice.
 function ns.OwnLeaveable(family)
 	return family ~= nil and #family.spells > 1 and not (family.scroll or family.enhance or family.imbue
-		or family.tank)
+		or family.tank or family.food)
 end
 
 -- Whether any class on this client has a buff by that key. A pin lives in the

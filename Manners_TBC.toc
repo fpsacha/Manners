@@ -29,6 +29,7 @@ embeds.xml
 Locales\Locales.xml
 
 Flavour.lua
+Foods.lua
 Buffs.lua
 Core.lua
 Range.lua

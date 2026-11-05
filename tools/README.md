@@ -1188,6 +1188,26 @@ The same file checks that a cast by anybody else costs no Lua at all: the six
 `UNIT_SPELLCAST_*` events are registered on a frame of the addon's own for the
 player alone (`RegisterUnitEvent`), not through AceEvent.
 
+## make_foods.py
+
+Writes `Foods.lua`, the food that gives *Well Fed*, per client: every item
+whose use spell is named "Well Fed" or triggers one, with the level it asks of
+the player and the spell its use casts, best first (the highest level, then
+the lowest item id, so every run gives the same file). Read from the tables
+`audit_ids.py` downloads (`--fetch-only` fills the cache); retail is not
+covered, its food being a different system.
+
+```
+python tools/make_foods.py            # write Foods.lua
+python tools/make_foods.py --check    # exit 1 when the shipped file is not what the tables give
+python tools/make_foods.py --cache DIR
+```
+
+Nothing here ships but the output. `tests/scenarios/wellfed.lua` holds the
+file to its shape (whole rows, no item twice, in order, a floor for each
+client's count) without the cache, and `tests/mutations/wellfed.py` undoes
+each rule.
+
 ## audit_ids.py
 
 Every id the addon holds, checked against each client's own data tables.

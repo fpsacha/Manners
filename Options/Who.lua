@@ -207,6 +207,10 @@ end
 -- the scan does (ns.SelfBuffs), and counts every family of the class's own
 -- buffs you know, switched off or not: their switches live under it.
 local function NothingForSelf()
+	-- Well Fed is a family of every class on a client that has it, bags or none.
+	for _, family in ipairs(ns.GetOwnFamilies() or {}) do
+		if family.food then return false end
+	end
 	return #ns.SelfBuffs() == 0 and #ns.KnownOwnFamilies() == 0
 end
 
@@ -259,6 +263,8 @@ local function AddOwnControls(args)
 			local pick = function() return (ns.OwnPick(family)) end
 			local write = function(_, value)
 				ns.db.profile.ownBuffs.pick[family.key] = value
+				-- Food is counted in the bags only while its switch is on.
+				if family.food and ns.ForgetScrolls then ns.ForgetScrolls() end
 				-- The prompt follows at once rather than at the next scan.
 				ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 			end
@@ -266,6 +272,8 @@ local function AddOwnControls(args)
 				order = order,
 				width = "full",
 				hidden = function()
+					-- Shown bags or none: food is not counted until it is switched on.
+					if family.food then return false end
 					for _, known in ipairs(ns.KnownOwnFamilies()) do
 						if known == family then return false end
 					end
@@ -273,7 +281,7 @@ local function AddOwnControls(args)
 				end,
 				disabled = function() return not S().self end,
 			}
-			if #family.spells > 1 or family.tank then
+			if (#family.spells > 1 or family.tank) and not family.food then
 				control.type = "select"
 				control.name = function() return ns.OwnFamilyLabel(family) end
 				control.desc = function()
@@ -328,7 +336,9 @@ local function AddOwnControls(args)
 			else
 				control.type = "toggle"
 				control.name = function() return ns.OwnFamilyLabel(family) end
-				control.desc = L["Reminds you when it is not up."]
+				control.desc = family.food
+					and L["Reminds you to eat when Well Fed is not on you and food that gives it is in your bags. Off until you turn it on."]
+					or L["Reminds you when it is not up."]
 				control.get = function() return pick() ~= "off" end
 				control.set = function(info, value) write(info, value and "auto" or "off") end
 			end

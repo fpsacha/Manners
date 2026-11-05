@@ -212,6 +212,21 @@ the build and interface so the next bump does not.
 write-only `ns.X`, but nothing finds a local function nobody calls; extending
 that check is the one step of the 1.0.0-beta.9 cleanup plan never built.
 
+**Well Fed was written against the data and the mock (1.11.2).** Three things
+only the live game can say, each from one press of food on a character with
+the switch on (*Who to buff* > *Myself* > *Well Fed*) and a Well Fed food in the
+bags: (1) that the aura is found by the client's own name for it
+(`C_UnitAuras.GetAuraDataBySpellName` with the name of `ns.FOODS[client].fed`):
+`/manners debug` says "Well Fed: ... is up" with one on you and offers a food
+with none; (2) that a meal in progress is seen, so a second food is not offered
+over it: the use spells are named "Food", "Nutritious Food" or "Nutritious
+Drink" (`Eating` in `Core.lua` reads the aura of that name); and (3) that a
+press eats the food the prompt names (`/use item:<id>`, the icon of the item).
+On Forever the foods and their use spells are from build 1.60.1.70532; if a
+build adds foods, `python tools/make_foods.py` rewrites `Foods.lua` from the
+cached tables (`--check` says whether it is current) and the next release
+carries it.
+
 **The `visuals` branch's merge 2f6f5e2 ("Merge forge-look into visuals") has no
 Co-Authored-By trailer.** Every other commit there carries it; the merge is
 merged history and is left as it is (no amend, no rebase).
