@@ -53,14 +53,14 @@ mutate("Options/Start.lua",
 
 # Another client's own buff counted as a later version's setting.
 mutate("Commands.lua",
-       "\t\t\t\telseif (ns.OWN_FAMILY_ANY_CLIENT or {})[name:match(\"^ownBuffs%.pick%.([%w_]+)$\") or \"\"] then\n",
+       "\t\t\t\telseif (ns.OWN_FAMILY_ANY_CLIENT or {})[name:match(\"^ownBuffs%.pick%.([%w_]+)$\") or \"\"]\n\t\t\t\t\tor (ns.OWN_SPELL_ANY_CLIENT or {})[name:match(\"^ownBuffs%.leave%.([%w_]+)$\") or \"\"] then\n",
        "\t\t\t\telseif false then\n",
        "settings-fix: another client's family called newer",
        expect="settings-fix: a camelot string read on tbc is not called newer", script=S)
 
 # ...or every own buff skipped without a word, a later version's included.
 mutate("Commands.lua",
-       "\t\t\t\telseif (ns.OWN_FAMILY_ANY_CLIENT or {})[name:match(\"^ownBuffs%.pick%.([%w_]+)$\") or \"\"] then\n",
+       "\t\t\t\telseif (ns.OWN_FAMILY_ANY_CLIENT or {})[name:match(\"^ownBuffs%.pick%.([%w_]+)$\") or \"\"]\n\t\t\t\t\tor (ns.OWN_SPELL_ANY_CLIENT or {})[name:match(\"^ownBuffs%.leave%.([%w_]+)$\") or \"\"] then\n",
        "\t\t\t\telseif name:match(\"^ownBuffs%.pick%.([%w_]+)$\") then\n",
        "settings-fix: every own buff skipped silently",
        expect="settings-fix: an own buff no client has is still called newer", script=S)

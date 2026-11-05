@@ -83,6 +83,8 @@ do
 			return L["%s: the game says %s cannot be cast right now."]:format(label, name or "?")
 		elseif why == "none" then
 			return L["%s: Automatic has nothing it would pick."]:format(label)
+		elseif why == "leftout" then
+			return L["%s: %s is ticked under Never remind me about."]:format(label, name or "?")
 		end
 		return L["%s: the game will not say whether it is up, so it is not offered."]:format(label)
 	end
@@ -1031,7 +1033,8 @@ do
 					-- dropped without a word: 1.4.0 wrote verbose=0 into its
 					-- strings, and calling that a newer version's setting is
 					-- a sentence the player can do nothing about.
-				elseif (ns.OWN_FAMILY_ANY_CLIENT or {})[name:match("^ownBuffs%.pick%.([%w_]+)$") or ""] then
+				elseif (ns.OWN_FAMILY_ANY_CLIENT or {})[name:match("^ownBuffs%.pick%.([%w_]+)$") or ""]
+					or (ns.OWN_SPELL_ANY_CLIENT or {})[name:match("^ownBuffs%.leave%.([%w_]+)$") or ""] then
 					-- Another game client's own buff (an Omen of Clarity pick
 					-- read on Forever): the same version made it, so nothing
 					-- newer exists to send the player looking for.

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Leave one self buff out of the reminders.** On *Who to buff*, under
+  *Myself*, *Never remind me about* has a box for each spell of a kind you
+  know: one tracking skill such as Sense Undead, one armor, one aspect. Tick a
+  spell and Manners stops reminding you of just that one: *Automatic* skips it
+  and offers the next of its kind instead, and it is not offered even when you
+  picked it by hand. The rest of the family still is, and *Don't remind me* is
+  still there for switching a whole family off. It travels in exported
+  settings, and *Reset this page* clears it.
+
 ## 1.11.0
 
 - **The Manners macro on an action bar casts.** Clicking its slot, or pressing

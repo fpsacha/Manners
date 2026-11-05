@@ -335,6 +335,36 @@ local function AddOwnControls(args)
 			args["own_" .. family.key] = control
 		end
 	end
+
+	-- The spells of a family of several that can be left out one by one, for
+	-- those you know: ticked, never offered. Under the families and above
+	-- Also in cities and inns (15.9). Hidden while there is nothing to tick.
+	local function LeaveChoices()
+		local values = {}
+		for _, family in ipairs(ns.KnownOwnFamilies()) do
+			if ns.OwnLeaveable(family) then
+				for _, spell in ipairs(family.spells) do
+					if ns.OwnSpellKnown(spell) then values[spell.key] = ns.BuffName(spell) end
+				end
+			end
+		end
+		return values
+	end
+	args.own_leave = {
+		type = "multiselect",
+		name = L["Never remind me about"],
+		desc = L["Ticked spells are left out of Automatic and never offered, even one you picked above. The others of their kind still are."],
+		order = 15.8,
+		hidden = function() return next(LeaveChoices()) == nil end,
+		disabled = function() return not S().self end,
+		values = LeaveChoices,
+		get = function(_, key) return ns.db.profile.ownBuffs.leave[key] == true end,
+		set = function(_, key, on)
+			ns.db.profile.ownBuffs.leave[key] = on and true or false
+			-- The prompt follows at once rather than at the next scan.
+			ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+		end,
+	}
 end
 
 -- Everything on Who to buff but "Myself", hidden from a class with nothing

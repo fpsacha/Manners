@@ -206,6 +206,12 @@ local DIFFERS = {
 	["general.quickVoice"] = function() return ns.QuickSetup.Match(ns.QuickSetup.VOICE) ~= "silent" end,
 	["who.choice"] = function() return Profile().buff.choice ~= "auto" end,
 	["who.skipRaidGroups"] = function() return next(Profile().filters.skipRaidGroups or {}) ~= nil end,
+	["who.own_leave"] = function()
+		for _, on in pairs(Profile().ownBuffs.leave or {}) do
+			if on == true then return true end
+		end
+		return false
+	end,
 	["appearance.reasonPalette"] = function() return Profile().prompt.reasonPalette == "colourblind" end,
 	["general.minimap"] = function() return Profile().minimap.hide == true end,
 	["click.preset"] = LinesChanged,

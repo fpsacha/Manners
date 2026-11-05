@@ -73,6 +73,15 @@ local function BugReport()
 	end
 	lines[#lines + 1] = ("own inCities=%s %s"):format(tostring(db.ownBuffs.inCities),
 		#picks > 0 and table.concat(picks, " ") or "none known")
+	-- The spells ticked under Never remind me about, when there are any.
+	local left = {}
+	for key, on in pairs(db.ownBuffs.leave or {}) do
+		if on == true then left[#left + 1] = key end
+	end
+	if #left > 0 then
+		table.sort(left)
+		lines[#lines + 1] = "own leftOut=" .. table.concat(left, ",")
+	end
 	-- A mage's scrolls in the bags, each with whether it can be used now
 	-- (Core.lua, ScrollReady): a scroll never offered is most often a level
 	-- or a weapon it does not fit.

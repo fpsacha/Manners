@@ -542,7 +542,11 @@ explain themselves; this is what their tooltips have no room for.
   one control for each of your class's own buffs you have learned: a
   drop-down where there is a choice (a mage's *Armor*, a paladin's *Aura*, a
   hunter's *Aspect*, a shaman's *Shield*) with *Automatic*, each spell you
-  know and *Don't remind me*, and a checkbox for a buff on its own. Automatic
+  know and *Don't remind me*, and a checkbox for a buff on its own. Under
+  them, *Never remind me about* has a box for each spell of those families you
+  know: a ticked spell (one tracking skill, say) is skipped by *Automatic*,
+  which offers the next of its kind instead, and is never offered at all, even
+  when you picked it. Automatic
   says what it would pick right now, such as *Automatic (Mage Armor, the one
   you had up last)*. Righteous Fury's is *Automatic (only while I'm the
   tank)*, *Always* or *Don't remind me*. A mage carrying scrolls also gets

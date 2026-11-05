@@ -1790,3 +1790,66 @@ do
 end
 
 Mock.reset()
+
+-- ------------------------------------------------------------------ own 36 (1.11.1)
+-- "Never remind me about" (tests/scenarios/ownleave.lua): a ticked spell is
+-- passed over by Automatic wherever Automatic chooses one -- a mage's armor
+-- for a dungeon and for the world, a paladin's shared aura -- and the next of
+-- its kind is offered.
+do
+	local scenario = "own: an armor ticked under Never remind me about is passed over, in a dungeon and out"
+	with(scenario, { known = MAGE }, function(ns)
+		local leave = ns.db.profile.ownBuffs.leave
+		if key(mine(ns)) ~= "frostarmor" then
+			fail(scenario, "SKIPPED -- Automatic offered " .. key(mine(ns)) .. " to begin with, not Ice Armor")
+			return
+		end
+		-- Out in the world Ice Armor is Automatic's; ticked, Mage Armor takes over.
+		leave.frostarmor = true
+		if key(mine(ns)) ~= "magearmor" then
+			fail(scenario, "Ice Armor ticked in the world: offered " .. key(mine(ns)) .. ", not Mage Armor")
+		end
+		-- In a dungeon Mage Armor is the first pick; ticked, Ice Armor is offered.
+		leave.frostarmor = false
+		IsInInstance = function() return true, "party" end
+		if key(mine(ns)) ~= "magearmor" then
+			fail(scenario, "SKIPPED -- in a dungeon Automatic offered " .. key(mine(ns)) .. ", not Mage Armor")
+			return
+		end
+		leave.magearmor = true
+		if key(mine(ns)) ~= "frostarmor" then
+			fail(scenario, "Mage Armor ticked in a dungeon: offered " .. key(mine(ns)) .. ", not Ice Armor")
+		end
+		-- Both ticked: nothing, and your armor is not what Myself reminds you of.
+		leave.frostarmor = true
+		if mine(ns) then
+			fail(scenario, "every armor ticked, and still offered " .. key(mine(ns)))
+		end
+	end)
+end
+Mock.reset()
+
+do
+	local scenario = "own: a shared aura ticked under Never remind me about is not offered in place of one covered"
+	with(scenario, { class = "PALADIN", known = { 19740, DEVOTION, RETRIBUTION, CONCENTRATION },
+		wearing = { { id = DEVOTION } } }, function(ns)
+		if mine(ns) or ns.db.char.ownLast.aura ~= "devotionaura" then
+			fail(scenario, "SKIPPED -- your own Devotion Aura was not read up and remembered")
+			return
+		end
+		-- Another paladin's Devotion Aura on you, yours gone: Retribution Aura is next.
+		wear(ns, { { id = DEVOTION, source = "party1" } })
+		if key(mine(ns)) ~= "retributionaura" then
+			fail(scenario, "SKIPPED -- offered " .. key(mine(ns)) .. ", not Retribution Aura, with Devotion covered")
+			return
+		end
+		-- Retribution ticked: the next you know, Concentration, is offered in its place.
+		ns.db.profile.ownBuffs.leave.retributionaura = true
+		wear(ns, { { id = DEVOTION, source = "party1" } })
+		if key(mine(ns)) ~= "concentrationaura" then
+			fail(scenario, "Retribution Aura ticked, Devotion covered by another paladin: offered " .. key(mine(ns))
+				.. ", not Concentration Aura")
+		end
+	end)
+end
+Mock.reset()

@@ -242,6 +242,11 @@ local defaults = {
 			-- Per family, by its key: "auto" (Automatic, or ticked for a family of one),
 			-- a spell's key (always that one), or "off" (Don't remind me). Filled below.
 			pick = {},
+			-- Per spell, by its key, of a family of several: true leaves it out
+			-- of what is reminded ("Never remind me about"), whatever the
+			-- pick. Filled below with a false for each, so it is shared,
+			-- repaired and reset like the picks.
+			leave = {},
 		},
 
 		-- The order of the queue, not who is on it.
@@ -449,6 +454,13 @@ ns.defaults = defaults
 -- reset or a settings string. Buffs.lua loads first.
 for _, families in pairs(ns.OWN_BUFFS or {}) do
 	for _, family in ipairs(families) do defaults.profile.ownBuffs.pick[family.key] = "auto" end
+end
+for _, families in pairs(ns.OWN_BUFFS or {}) do
+	for _, family in ipairs(families) do
+		if ns.OwnLeaveable(family) then
+			for _, spell in ipairs(family.spells) do defaults.profile.ownBuffs.leave[spell.key] = false end
+		end
+	end
 end
 
 -- Whether the prompt's first line says anything at all; shared by the repair at
@@ -1773,6 +1785,15 @@ do
 	end
 	ns.OwnSpellKnown = Known
 
+	-- Whether a spell is ticked under "Never remind me about": left out of
+	-- Automatic, and never offered whatever the pick says. Read on every scan
+	-- of your own families, so one table read and nothing else.
+	local function LeftOut(spell)
+		local db = addon.db and addon.db.profile
+		local leave = db and db.ownBuffs and db.ownBuffs.leave
+		return type(leave) == "table" and leave[spell.key] == true
+	end
+
 	-- The first spell of the family you know, in table order; `auto` passes
 	-- over the ones Automatic never picks.
 	local function FirstKnown(family, auto)
@@ -1783,7 +1804,7 @@ do
 			return heldFirst[family]
 		end
 		for _, spell in ipairs(family.spells) do
-			if Known(spell) and not (auto and spell.neverAuto) then return spell end
+			if Known(spell) and not (auto and (spell.neverAuto or LeftOut(spell))) then return spell end
 		end
 		return nil
 	end
@@ -1825,10 +1846,24 @@ do
 		return "auto"
 	end
 
+	-- Whether a family reminds you of anything at all: its pick is not off,
+	-- and not every spell of it you know is left out.
+	function ns.OwnReminds(family)
+		local pick, spell = ns.OwnPick(family)
+		if pick == "off" then return false end
+		if spell then return not LeftOut(spell) end
+		-- Automatic: something of the family you know that is not ticked.
+		if not ns.OwnLeaveable(family) then return true end
+		for _, each in ipairs(family.spells) do
+			if Known(each) and not LeftOut(each) then return true end
+		end
+		return false
+	end
+
 	function ns.OwnFamiliesOn()
 		local count = 0
 		for _, family in ipairs(ns.KnownOwnFamilies()) do
-			if ns.OwnPick(family) ~= "off" then count = count + 1 end
+			if ns.OwnReminds(family) then count = count + 1 end
 		end
 		return count
 	end
@@ -1840,7 +1875,7 @@ do
 		local char = addon.db and addon.db.char
 		local memory = type(char) == "table" and char.ownLast
 		local spell = type(memory) == "table" and ns.FindOwnSpell(memory[family.key]) or nil
-		if spell and spell.family == family and not spell.neverAuto and Known(spell)
+		if spell and spell.family == family and not spell.neverAuto and Known(spell) and not LeftOut(spell)
 			and not (spell.item and not ScrollReady(spell)) then return spell end
 		return nil
 	end
@@ -1904,10 +1939,13 @@ do
 			return nil, nil
 		end
 		local preferred = family.dungeon and ns.FindOwnSpell(family.dungeon)
+		if preferred and LeftOut(preferred) then preferred = nil end
 		if preferred and Known(preferred) then
 			if InDungeon() then return preferred, "dungeon" end
 			for _, spell in ipairs(family.spells) do
-				if spell ~= preferred and Known(spell) and not spell.neverAuto then return spell, "world" end
+				if spell ~= preferred and Known(spell) and not spell.neverAuto and not LeftOut(spell) then
+					return spell, "world"
+				end
 			end
 		end
 		local first = FirstKnown(family, true)
@@ -1925,7 +1963,8 @@ do
 		-- answer Automatic has, and of the rest only when that one is theirs.
 		if spell and family.shared and OthersOnYou(spell) then
 			for _, other in ipairs(family.spells) do
-				if other ~= spell and Known(other) and not other.neverAuto and not OthersOnYou(other) then
+				if other ~= spell and Known(other) and not other.neverAuto and not LeftOut(other)
+					and not OthersOnYou(other) then
 					return other, "covered"
 				end
 			end
@@ -2435,6 +2474,9 @@ do
 				end
 			end
 		end
+		-- Ticked under "Never remind me about": a pin, or the one you are
+		-- wearing for a top-up, is no reason to bring it up.
+		if spell and LeftOut(spell) then return nil, up, nil, "leftout", spell end
 		-- Only spells Automatic never picks are known (a hunter with nothing
 		-- but the Cheetah): nothing to remind you of.
 		if not spell then
@@ -3559,6 +3601,20 @@ function ns.ClampSettings()
 	end
 	for key in pairs(ns.defaults.profile.ownBuffs.pick) do
 		if own.pick[key] == nil then own.pick[key] = "auto" end
+	end
+	-- The spells left out: true or false, for a spell this client has. A
+	-- spell it has no data for, or a value that is neither, is dropped or put
+	-- right; one missing is not left out.
+	if type(own.leave) ~= "table" then own.leave = {} end
+	for key, value in pairs(own.leave) do
+		if not ns.FindOwnSpell(key) then
+			own.leave[key] = nil
+		elseif value ~= true and value ~= false then
+			own.leave[key] = false
+		end
+	end
+	for key in pairs(ns.defaults.profile.ownBuffs.leave) do
+		if own.leave[key] == nil then own.leave[key] = false end
 	end
 
 	-- The raid groups switched off, read on every scan in a raid. Anything but

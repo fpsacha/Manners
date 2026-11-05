@@ -2338,9 +2338,14 @@ end
 -- (ownBuffs.pick.<key>), and an import here tells another client's from a
 -- setting a later version added with this (Commands.lua).
 ns.OWN_FAMILY_ANY_CLIENT = {}
+-- The same for every spell, for the leave-out list (ownBuffs.leave.<key>).
+ns.OWN_SPELL_ANY_CLIENT = {}
 for _, set in pairs(SETS) do
 	for _, families in pairs(set.own or {}) do
-		for _, family in ipairs(families) do ns.OWN_FAMILY_ANY_CLIENT[family.key] = true end
+		for _, family in ipairs(families) do
+			ns.OWN_FAMILY_ANY_CLIENT[family.key] = true
+			for _, spell in ipairs(family.spells or {}) do ns.OWN_SPELL_ANY_CLIENT[spell.key] = true end
+		end
 	end
 end
 
@@ -2523,6 +2528,15 @@ end
 
 function ns.FindOwnFamily(key)
 	return key and ns.OWN_FAMILY_BY_KEY[key] or nil
+end
+
+-- A family whose spells can be left out one by one (ownBuffs.leave, "Never
+-- remind me about"): several spells of a kind, cast by you. Not a scroll or
+-- an enhancement from the bags, which are items and have their own pick, and
+-- not a tank's stance, which is a role rather than a choice.
+function ns.OwnLeaveable(family)
+	return family ~= nil and #family.spells > 1 and not (family.scroll or family.enhance or family.imbue
+		or family.tank)
 end
 
 -- Whether any class on this client has a buff by that key. A pin lives in the

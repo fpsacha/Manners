@@ -55,8 +55,8 @@ mutate("Buffs.lua",
        expect="another hunter's Trueshot Aura on you: offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\t\tif other ~= spell and Known(other) and not other.neverAuto and not OthersOnYou(other) then\n",
-       "\t\t\t\tif other ~= spell and Known(other) and not other.neverAuto then\n",
+       "\t\t\t\tif other ~= spell and Known(other) and not other.neverAuto and not LeftOut(other)\n\t\t\t\t\tand not OthersOnYou(other) then\n",
+       "\t\t\t\tif other ~= spell and Known(other) and not other.neverAuto and not LeftOut(other) then\n",
        "whatif: passed over onto another's aura",
        expect="both your auras on you from other paladins", script=S)
 

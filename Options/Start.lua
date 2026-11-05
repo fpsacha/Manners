@@ -499,7 +499,9 @@ function Quick.OwnOnlySummary()
 	end
 	local names = {}
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
-		if ns.OwnPick(family) ~= "off" then names[#names + 1] = ns.OwnFamilyLabel(family) end
+		if ns.OwnReminds(family) then
+			names[#names + 1] = ns.OwnFamilyLabel(family)
+		end
 	end
 	if #names == 0 then
 		return L["Your class has no buffs for other players, and your own are all switched off on %s, so the prompt never appears."]

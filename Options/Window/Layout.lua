@@ -213,6 +213,8 @@ ns.WindowLayout = {
 					{ "who.own_shield", indent = true },
 					{ "who.own_demonarmor", indent = true },
 					{ "who.own_tracking", indent = true },
+					-- The spells of those families you know, to leave out one by one.
+					{ "who.own_leave", indent = true },
 					{ "who.ownCities", indent = true },
 					-- Why a buff of your own is not being offered, under the switches.
 					"diagnostics.ownDiag",
