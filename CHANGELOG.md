@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.3
 
 - **A shaman's weapon imbues are offered.** Rockbiter, Flametongue, Frostbrand and
   Windfury Weapon were never reminded of (issue #4). They are now one family,
