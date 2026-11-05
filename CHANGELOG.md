@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.2
 
 - **A reminder to eat: Well Fed.** Under *Myself* on *Who to buff*, *Well Fed*
   is a new switch for every class on Classic Era, Burning Crusade, Mists and
