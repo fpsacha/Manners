@@ -504,10 +504,12 @@ own: a shaman wearing Water Shield is not told to cast Lightning Shield: the pro
 own: a shaman wearing Water Shield is not told to cast Lightning Shield: the shield dropdown reads nil / nil
 own: a shaman wearing Water Shield is not told to cast Lightning Shield: with the Water Shield gone, you were offered nil rather than the shield up last
 own: a shared aura another of your class has on you is passed over: threw: ownbuffs.lua:N: attempt to index field 'ownLast' (a nil value)
+own: a shared aura ticked under Never remind me about is not offered in place of one covered: threw: ownbuffs.lua:N: attempt to index field 'ownLast' (a nil value)
 own: a warlock missing both is offered Demon Skin, never Unending Breath: /manners debug does not say Demon Skin is the one: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffWARLOCK|r / this class has no buffs to cast on other players. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r
 own: a warlock missing both is offered Demon Skin, never Unending Breath: Unending Breath is no longer offered to anybody else
 own: a warlock missing both is offered Demon Skin, never Unending Breath: missing both, a warlock was offered nil rather than Demon Skin
 own: a wrong or unknown id never offers anything: SKIPPED -- the armor is not offered with its ids working
+own: an armor ticked under Never remind me about is passed over, in a dungeon and out: SKIPPED -- Automatic offered nil to begin with, not Ice Armor
 own: another hunter's Trueshot Aura on you is not offered again: SKIPPED -- with no Trueshot Aura on you, offered nil
 own: debug and Diagnostics say what Myself is doing: /manners debug does not say the armor is up: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 1h -- topped up at 5m left, 10m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 0
 own: debug and Diagnostics say what Myself is doing: /manners debug does not say which armor is due: client: |cffffffffmainline/modern interface=120105 build=12.1.5 project=1|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=false (probe nil) | secret restrictions=true | UnitName 2nd=realm /   buff data: |cffffffffmainline|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 1h -- topped up at 5m left, 10m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 0
@@ -540,6 +542,17 @@ own: the options show only your class's families: Myself is missing its heading,
 own: the options show only your class's families: Who to buff is hidden from a hunter with his aspects learned
 own: the options show only your class's families: a priest's Inner Fire is not a checkbox on Who to buff
 own: your own armor running low is topped up before it drops, on Skip: Demon Skin with T s left, on Skip: offered nil
+ownleave: Sense Undead alone, ticked, stops its reminder: SKIPPED -- tracking is not one of your own buffs here
+ownleave: Start here names only the families that still remind you: SKIPPED -- Track Beasts is not one of a hunter's own buffs here
+ownleave: a hand-edited file is put right: SKIPPED -- tracking is not one of your own buffs here
+ownleave: a spell pinned and ticked is never offered: SKIPPED -- tracking is not one of your own buffs here
+ownleave: a spell ticked is skipped and the rest of its kind still reminds: SKIPPED -- tracking is not one of your own buffs here
+ownleave: every spell of a family of several has a false by default: SKIPPED -- tracking is not one of your own buffs here
+ownleave: every spell of a kind ticked leaves nothing to offer: SKIPPED -- tracking is not one of your own buffs here
+ownleave: the Diagnostics report names what is ticked: SKIPPED -- tracking is not one of your own buffs here
+ownleave: the page lists the spells you know and writes the ticks: SKIPPED -- tracking is not one of your own buffs here
+ownleave: the page's reset un-ticks every spell, and a tick marks the fold: SKIPPED -- tracking is not one of your own buffs here
+ownleave: the ticks travel in a settings string: SKIPPED -- tracking is not one of your own buffs here
 passers-by only while resting: out in the world with the setting on, expected only the target: Tess
 presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are always offered one back. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
 prompt5: a press after your target changed hands it back (fused): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
@@ -815,7 +828,6 @@ unknown friend answers are not friends: the friend found by name was not put fir
 whatif: a group member's favour, your blessing on him: threw: whatif.lua:N: attempt to index local 'might' (a nil value)
 whatif: a group member's lapsing shout: SKIPPED -- the shouts were never noticed
 whatif: a group member's lapsing shout: a party warrior who buffed you, wearing your Fortitude with two minutes left, was not offered it
-whatif: a group member's lapsing shout: a stranger who buffed you, wearing your Fortitude, was not offered the favour back
 whatif: a group member's lapsing shout: four lapsed shouts from a party member in twelve minutes: 0 /thank emotes
 whatif: a group member's lapsing shout: two favours from a stranger seven minutes apart: 0 lines, 2 emotes
 whatif: a low rank is no cover: a level-20 wearing the level-12 rank was not offered the level-24 one

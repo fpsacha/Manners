@@ -121,16 +121,16 @@ mutate("Favours.lua",
 # --- a group member's lapsing shout (Queue.lua, Core.lua, Favours.lua) ---
 
 mutate("Queue.lua",
-       "\t\topts.paidUp = isOwed and inGroup and checked or nil\n",
+       "\t\topts.paidUp = isOwed and checked or nil\n",
        "\t\topts.paidUp = nil\n",
        "whatif: a fresh cast of yours repaid again",
        expect="wearing your Fortitude with forty minutes left, was offered", script=S)
 
 mutate("Queue.lua",
-       "\t\topts.paidUp = isOwed and inGroup and checked or nil\n",
        "\t\topts.paidUp = isOwed and checked or nil\n",
-       "whatif: a stranger's favour taken as paid",
-       expect="a stranger who buffed you, wearing your Fortitude, was not offered", script=S)
+       "\t\topts.paidUp = isOwed and inGroup and checked or nil\n",
+       "whatif: a stranger's favour taken as unpaid",
+       expect="a stranger who buffed you, wearing your Fortitude with forty minutes left, was offered", script=S)
 
 mutate("Core.lua",
        "\t\t\tand remaining > (ns.LeadFor(opts, Length(buff, seconds)))\n",

@@ -132,8 +132,8 @@ another paladin's blessing is not one of yours (a warrior with another paladin's
 another paladin's blessing is not one of yours (a warrior with another paladin's Kings): read: offered false, expected might
 another paladin's blessing is not one of yours (a warrior with another paladin's Might): cached: offered false, expected kings
 another paladin's blessing is not one of yours (a warrior with another paladin's Might): read: offered false, expected kings
-another paladin's blessing is not one of yours (an owed paladin with our own Kings): cached: offered wisdom, expected kings
-another paladin's blessing is not one of yours (an owed paladin with our own Kings): read: offered wisdom, expected kings
+another paladin's blessing is not one of yours (an owed paladin with our own Kings): cached: offered wisdom, expected false
+another paladin's blessing is not one of yours (an owed paladin with our own Kings): read: offered wisdom, expected false
 buff data: |cfffffffftbc|r
 buffing your own target leaves them targeted: SKIPPED -- Anna was not offered through the target token: /target Anna
 buffing your own target leaves them targeted: a stranger off a nameplate no longer gets your target handed back: /target Bert / /cast Arcane Intellect / /targetlasttarget
@@ -713,6 +713,7 @@ unknown friend answers are not friends: the friend found by name was not put fir
 whatif: a group member's favour, your blessing on him: a party warrior who buffed you, wearing your Might with forty minutes left, was offered might
 whatif: a group member's lapsing shout: SKIPPED -- the shouts were never noticed
 whatif: a group member's lapsing shout: a party warrior who buffed you, wearing your Fortitude with forty minutes left, was offered fortitude as owed
+whatif: a group member's lapsing shout: a stranger who buffed you, wearing your Fortitude with forty minutes left, was offered fortitude as owed when they already wear your buff
 whatif: a group member's lapsing shout: two favours from a stranger seven minutes apart: 0 lines, 2 emotes
 whatif: a low rank is no cover: a level-20 wearing the level-12 rank was not offered the level-24 one
 whatif: a low rank is no cover: a level-60 wearing Fortitude's second rank was not offered yours: nil

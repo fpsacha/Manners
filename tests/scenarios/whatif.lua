@@ -124,8 +124,9 @@ end
 -- priest's own Fortitude on him has forty minutes left: the debt asked for a
 -- full-mana refresh of it at owed priority, every time. A group member
 -- wearing your own cast with more than the top-up time left has nothing to
--- repay; with it running low, or from somebody else, it is offered as ever,
--- and a stranger's debt is unchanged. The line and the /thank about the same
+-- repay, and since 1.11.2 neither has a stranger (you buffed them, they buffed
+-- you back, and the prompt asked you again); with it running low, or from
+-- somebody else, it is offered as ever. The line and the /thank about the same
 -- group member come once in half an hour; a stranger's, every favour.
 run("whatif: a group member's lapsing shout", function()
 	local scenario = "whatif: a group member's lapsing shout"
@@ -161,8 +162,10 @@ run("whatif: a group member's lapsing shout", function()
 		fail(scenario, "a party warrior who buffed you, wearing your Fortitude with forty minutes left, was offered "
 			.. tostring(offered["Grom Axe"].buff.key) .. " as " .. tostring(offered["Grom Axe"].reason))
 	end
-	if not offered["Pass Ing"] then
-		fail(scenario, "a stranger who buffed you, wearing your Fortitude, was not offered the favour back")
+	if offered["Pass Ing"] then
+		fail(scenario, "a stranger who buffed you, wearing your Fortitude with forty minutes left, was offered "
+			.. tostring(offered["Pass Ing"].buff.key) .. " as " .. tostring(offered["Pass Ing"].reason)
+			.. " when they already wear your buff")
 	end
 	-- Running low: a refresh is worth something.
 	left.party1 = 120

@@ -14320,8 +14320,9 @@ for _, case in ipairs({
 		held = 20217, want = false },
 	{ label = "an owed paladin with a third paladin's Kings", owed = true,
 		held = 20217, source = "nameplate2", want = "wisdom" },
+	-- Nothing to repay: they wear your own cast with time to run (1.11.2).
 	{ label = "an owed paladin with our own Kings", owed = true,
-		held = 20217, source = "player", want = "kings" },
+		held = 20217, source = "player", want = false },
 }) do
 	Mock.reset()
 	Mock.class = "PALADIN"

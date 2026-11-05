@@ -2064,13 +2064,15 @@ function ns.BuildQueue(watch)
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full
 		-- Owing somebody means offering them even when covered: a decision about
-		-- who gets an offer, saying nothing about what their auras read. Not a
-		-- group member who wears your own cast with more than the top-up time
-		-- left (PickBuffFor reads it, paidUp): a warrior's shout lapses between
+		-- who gets an offer, saying nothing about what their auras read. Not
+		-- somebody who wears your own cast with more than the top-up time left
+		-- (PickBuffFor reads it, paidUp): a warrior's shout lapses between
 		-- pulls and lands again as a new favour, and every one asked for a
-		-- full-mana refresh of a Fortitude with forty minutes to run.
+		-- full-mana refresh of a Fortitude with forty minutes to run; and a
+		-- passer-by you buffed, who buffed you back, is not asked of you again
+		-- (1.11.2, a player's report).
 		opts.offerAnyway = isOwed
-		opts.paidUp = isOwed and inGroup and checked or nil
+		opts.paidUp = isOwed and checked or nil
 		opts.blocked = QueueBlocked
 		opts.now = now
 		-- Your own class, offered unasked: see SelfServed. Never somebody who

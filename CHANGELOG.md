@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **No second offer to somebody who is already wearing your buff.** You buffed
+  a passer-by, they buffed you back, and Manners asked you to buff them again.
+  Now, when somebody who buffed you is wearing your own buff with more than the
+  top-up time left, there is nothing to repay and the prompt leaves them be.
+  This held for people in your group already; it now holds for everybody. A
+  favour from somebody wearing nothing of yours, or with your buff about to
+  run out, is offered as before.
+
 ## 1.11.1
 
 - **Leave one self buff out of the reminders.** On *Who to buff*, under

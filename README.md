@@ -290,9 +290,9 @@ you have learned a group buff and carry its reagent or have the perk.
 - In a raid group, a battleground or an arena the "buffed you" chat line is
   not printed, and in a dungeon it waits out the fight. The favour is still
   noticed and offered. A group member whose buff lands again every few
-  minutes (a warrior's shout) gets the line once in half an hour, and while
-  they wear your own buff with more than the top-up time left, their favour
-  is not offered back: there is nothing to repay.
+  minutes (a warrior's shout) gets the line once in half an hour. Anybody who
+  buffed you, a passer-by included, is not offered back while they wear your
+  own buff with more than the top-up time left: there is nothing to repay.
 
 **Never offer.** People on the list are never offered anything, as passers-by
 or as group members. Somebody on it who buffs you is still offered the favour
