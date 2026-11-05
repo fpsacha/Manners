@@ -51,6 +51,12 @@ client's DB2 tables from wago.tools, for the build CLAUDE.md's "Data sources" ci
                      imbue, 54 a temporary enchant), the scrolls' imbue included, and on the other
                      clients that none has one; and, as NOTEs, items the client has that make a
                      weapon enchant and the addon does not hold
+  ItemSparse, ItemEffect, SpellEffect (food)   Forever's buff food: the item and its required
+                     level, the spell its use casts, that the use eats or drinks (MOD_REGEN or
+                     MOD_POWER_REGEN, on it or on the spell it triggers) and then lands the buff the addon names (a periodic trigger
+                     to a timed spell), every buff and eating aura in the family's lists, the rows
+                     best first; and, as NOTEs, foods the client has that the addon does not hold.
+                     Its length is the buff's, not the use spell's (the meal's)
   SpellEffect targets + SpellRadius   who a cast reaches against the flags that say so
                      (selfCast, partyOnly, groupOnly, alone, wideCasts, partyIsSubgroup,
                      SHOUT_YARDS)
@@ -995,7 +1001,8 @@ def check_stats(rep, c, d, flavour):
 def check_scrolls(rep, c, d):
     if d.get("flavour") != "camelot":
         return
-    families = [f for fams in as_map(d["own"]).values() for f in fams if f.get("scroll") and not f.get("enhance")]
+    families = [f for fams in as_map(d["own"]).values() for f in fams
+                if f.get("scroll") and not f.get("enhance") and not f.get("food")]
     items = {s["item"] for f in families for s in f["spells"]}
     names = c.item_names(items)
     p_ie, p_xie, p_se = (c.path("ItemEffect"), c.path("ItemXItemEffect"), c.path("SpellItemEnchantment"))
@@ -1051,6 +1058,103 @@ def check_scrolls(rep, c, d):
             lvl = s.get("level")
             if lvl is not None:
                 pass
+
+
+# A food's use: the eating aura is MOD_REGEN (84), or MOD_POWER_REGEN (85) for a drink that
+# makes you Well Fed (Forever's teas and smoothies), on the use spell itself or on the spell it
+# triggers (effect 64, TRIGGER_SPELL); the buff is what PERIODIC_TRIGGER_SPELL (23) or its
+# with-value twin (227) lands when the meal is done.
+EATING_AURAS, TRIGGER_SPELL = (84, 85), 64
+FOOD_TRIGGERS = (23, 227)
+
+
+def food_use(c, use):
+    """(eating auras, buff) of a use spell that eats and then lands a timed buff, else None. The
+    buff must last (a trinket's or a flask's trigger does not) and be another spell than the meal."""
+    eating, buff = set(), None
+    for e in c.effects.get(use, ()):
+        if e["effect"] in AURA_EFFECTS and e["aura"] in EATING_AURAS:
+            eating.add(use)
+        elif e["effect"] == TRIGGER_SPELL and e["trigger"]:
+            if any(t["effect"] in AURA_EFFECTS and t["aura"] in EATING_AURAS for t in c.effects.get(e["trigger"], ())):
+                eating.add(e["trigger"])
+        elif e["effect"] in AURA_EFFECTS and e["aura"] in FOOD_TRIGGERS and e["trigger"] and buff is None:
+            buff = e["trigger"]
+    if not eating or buff is None or buff in eating or not (c.duration_ms(buff) or 0) > 0:
+        return None
+    return eating, buff
+
+
+def check_food(rep, c, d, flavour):
+    """Forever's buff food (Buffs.lua, the family with `food`) against the client's item data:
+    each item exists and asks the level the addon says, its use eats and lands the buff the addon
+    names, every buff and eating aura is in the family's lists (what the reading matches), and the
+    rows are best first. Then the other way round: foods the client has that the addon does not
+    hold, as NOTEs."""
+    fam = None
+    for lst in as_map(d["own"]).values():
+        for f in lst:
+            if f.get("food"):
+                fam = f
+    if fam is None:
+        return
+    buffs, eating = set(fam.get("buffs") or []), set(fam.get("eating") or [])
+    items = {s["item"] for s in fam["spells"]}
+    info = c.item_rows(items)
+    effects = c.item_effects
+    last = None
+    for s in fam["spells"]:
+        item, use = s["item"], s["ranks"][0]
+        where = "food.%d" % item
+        row = info.get(item)
+        if row is None:
+            rep.finding(where, "item %d is not in ItemSparse" % item)
+            continue
+        if row["level"] != s["level"]:
+            rep.finding(where, "item %d (%s) asks level %d in ItemSparse; the addon says %d" % (
+                item, row["name"], row["level"], s["level"]))
+        uses = [sp for sp, _t in effects.get(item, ())]
+        if use not in uses:
+            rep.finding(where, "item %d (%s) uses spell(s) %s in ItemEffect; the addon uses %d (%s)" % (
+                item, row["name"], uses, use, c.names.get(use)))
+            continue
+        got = food_use(c, use)
+        if got is None:
+            rep.finding(where, "spell %d (%s) does not eat and then land a timed buff in this client" % (
+                use, c.names.get(use)))
+            continue
+        eats, buff = got
+        if buff != s["buff"]:
+            rep.finding(where, "spell %d (%s) lands %d (%s); the addon says %d (%s)" % (
+                use, c.names.get(use), buff, c.names.get(buff), s["buff"], c.names.get(s["buff"])))
+        if buff not in buffs:
+            rep.finding(where, "buff %d (%s) is not in the family's buffs, so it never reads as fed" % (
+                buff, c.names.get(buff)))
+        for e in sorted(eats - eating):
+            rep.finding(where, "eating aura %d (%s) is not in the family's eating list" % (e, c.names.get(e)))
+        if last is not None and s["level"] > last:
+            rep.finding(where, "item %d asks level %d, above the row before it (%d): the rows are best first" % (
+                item, s["level"], last))
+        last = s["level"]
+    # The client's foods the addon does not hold.
+    names = None
+    for item, uses in sorted(effects.items()):
+        if item in items:
+            continue
+        for sp, _t in uses:
+            if food_use(c, sp):
+                if names is None:
+                    names = {}
+                names[item] = sp
+                break
+    if names:
+        rows_ = c.item_rows(set(names))
+        for item, sp in sorted(names.items()):
+            # An effect row for an item the client does not have (no ItemSparse row) is no food.
+            if item not in rows_:
+                continue
+            rep.note("food.%d" % item, "the client's %r (use %d) is buff food the addon does not hold" % (
+                rows_[item]["name"], sp))
 
 
 # What each kind of weapon enhancement is called, by its item; a lure is known by its enchant
@@ -1300,6 +1404,11 @@ def check_durations(rep, c, d, flavour):
                 continue
             for sp in fam["spells"]:
                 where = "own.%s.%s.%s" % (cls, fam["key"], sp["key"])
+                # Food is read by the buff it lands (ns.OwnSeconds): its use spell lasts only as
+                # long as the meal.
+                if fam.get("food"):
+                    judge(where, sp["buff"], spell_seconds(c, sp["buff"]), "SpellDuration")
+                    continue
                 if fam.get("enhance") or fam.get("scroll") or fam.get("imbue"):
                     use = sp["ranks"][0]
                     exp, how = use_seconds(c, rep, where, use, sp.get("enchant"))
@@ -1476,6 +1585,7 @@ def audit_dump(rep, c, d, flavour):
     check_favours(rep, c, d)
     check_scrolls(rep, c, d)
     check_weapon_items(rep, c, d, flavour)
+    check_food(rep, c, d, flavour)
     check_durations(rep, c, d, flavour)
     check_races_classes(rep, c, d)
     check_reach(rep, c, d, flavour)

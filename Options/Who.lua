@@ -231,9 +231,9 @@ end
 -- mage's scrolls every one of them, so a pick stays on the list while you
 -- have none of it left. A weapon enhancement has dozens to a family, so its
 -- list is the ones your bags hold and the one picked, which stays while the
--- bags are empty of it.
+-- bags are empty of it. Food is the same, with a hundred to its family.
 local function OwnChoice(family, spell)
-	if family.enhance then
+	if family.enhance or family.food then
 		local picks = ns.db.profile.ownBuffs.pick
 		return ns.OwnSpellKnown(spell) or (type(picks) == "table" and picks[family.key] == spell.key)
 	end
@@ -283,6 +283,9 @@ local function AddOwnControls(args)
 					if family.enhance then
 						return L["Reminds you when nothing is on the weapon in your %s and one of these in your bags fits it. Automatic takes the one you used last, else the best you can use."]
 							:format(ns.HandName(family.slot))
+					end
+					if family.food then
+						return L["Reminds you when you are not Well Fed and food that makes you so is in your bags. Automatic takes the one you ate last, else the best your level allows."]
 					end
 					if family.imbue then
 						return L["Reminds you when nothing is on the weapon in your main hand and a scroll in your bags fits it. Automatic takes the one you used last, else the best you can use."]

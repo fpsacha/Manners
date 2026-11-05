@@ -212,6 +212,8 @@ ns.WindowLayout = {
 					{ "who.own_shadowguard", indent = true },
 					{ "who.own_shield", indent = true },
 					{ "who.own_demonarmor", indent = true },
+					-- Food on Forever, while there is some in the bags.
+					{ "who.own_food", indent = true },
 					{ "who.own_tracking", indent = true },
 					-- The spells of those families you know, to leave out one by one.
 					{ "who.own_leave", indent = true },

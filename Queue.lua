@@ -881,6 +881,10 @@ PRIORITY.sweep = 0.5
 -- you will not; ahead of your group and passers-by, since what you carry is
 -- what you fight with.
 PRIORITY.self = 1.75
+-- Food (Buffs.lua) after everything, passers-by included: eating takes a while
+-- and any cast stands you up and wastes the meal, so it is the last thing to
+-- press once nobody else is waiting.
+PRIORITY.food = 4
 
 -- The group's unit tokens, spelled out once rather than joined on every scan.
 local GROUP_TOKENS = { raid = {}, party = {} }
@@ -1611,8 +1615,19 @@ end
 local function OwnPick(db, full, now)
 	local ctx = { name = full, now = now, whenBuffed = ns.SelfWhenBuffed(db.filters),
 		refreshUnder = db.filters.refreshUnder }
+	-- Food last of your own as well: offered only once every other family is
+	-- seen to, so a reminder that comes up after it never interrupts a meal.
+	local food
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
-		local spell, has, remaining, _, _, charges, seconds, lead, kind = ns.OwnVerdict(family, ctx)
+		if family.food then
+			food = family
+		else
+			local spell, has, remaining, _, _, charges, seconds, lead, kind = ns.OwnVerdict(family, ctx)
+			if spell then return spell, has, remaining, charges, seconds, lead, kind end
+		end
+	end
+	if food then
+		local spell, has, remaining, _, _, charges, seconds, lead, kind = ns.OwnVerdict(food, ctx)
 		if spell then return spell, has, remaining, charges, seconds, lead, kind end
 	end
 	return nil
@@ -1766,7 +1781,7 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 		-- In a party or raid a group cast counts you and covers you
 		-- (GroupBuffs.lua), as it does anybody in it.
 		inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0,
-		priority = PRIORITY.self,
+		priority = buff.family and buff.family.food and PRIORITY.food or PRIORITY.self,
 		-- A spell on yourself is always within reach.
 		ranged = true,
 		known = has,

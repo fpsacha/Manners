@@ -643,9 +643,11 @@ do
 		if type(itemName) ~= "string" or itemName == "" then itemName = nil end
 		local enhance = spell.family and spell.family.enhance
 		if enhance then info.hand = " (" .. ns.HandName(spell.family.slot) .. ")" end
-		if enhance and not spell.nameFromItem then
+		-- Food (Buffs.lua) is named by its item alone: the spell its use casts
+		-- is "Food" or "Nutritious Food" to dozens of them.
+		if (enhance or spell.byItem) and not spell.nameFromItem then
 			local called = itemName or SpellNameFor(spell.ranks[1])
-			info.name = called and (called .. info.hand) or nil
+			info.name = called and (called .. (info.hand or "")) or nil
 			if not itemName then
 				info.itemPending = spell.item
 				local load = items and items.RequestLoadItemDataByID
@@ -809,8 +811,9 @@ do
 		caps.own = {}
 		caps.anyOwnKnown = false
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
-			-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
-			for _, spell in ipairs(family.enhance and {} or family.spells) do
+			-- A weapon enhancement or a food is probed when first asked for
+			-- (ProbeOwnItem): a class has dozens of them, a hundred of food.
+			for _, spell in ipairs((family.enhance or family.food) and {} or family.spells) do
 				local info = spell.item and ProbeScroll(spell) or ProbeBuff(spell)
 				info.known = info.known == true and info.name ~= nil
 				caps.own[spell.key] = info
@@ -847,8 +850,8 @@ function ns.BuffInfo(buff)
 	if not buff then return nil end
 	if buff.own then
 		local info = caps.own and caps.own[buff.key]
-		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
-		if not info and caps.own and buff.item and buff.family and buff.family.enhance then
+		-- A weapon enhancement or a food is probed when first asked for (ProbeOwnItem).
+		if not info and caps.own and buff.item and buff.family and (buff.family.enhance or buff.family.food) then
 			info = ns.ProbeOwnItem(buff)
 		end
 		return info
@@ -1799,7 +1802,7 @@ do
 	local function FirstKnown(family, auto)
 		-- A weapon enhancement family: the first of its items the bags hold, as
 		-- they were last read, which is all of this family that is ever asked.
-		if family.enhance then
+		if family.enhance or family.food then
 			ScrollCount(family.spells[1])
 			return heldFirst[family]
 		end
@@ -2301,6 +2304,43 @@ do
 		return false
 	end
 
+	-- Food (Buffs.lua) is up while any food's buff is on you, whoever's food it
+	-- was, or while you are still eating: the buff lands only once the meal is
+	-- done. Which food it was is the one pressed from the prompt when its buff
+	-- is the one up, else the one remembered when that is; else nobody can
+	-- tell, and the reading names none: nothing is remembered, and a top-up
+	-- is of the pick (OwnVerdict), since any food puts Well Fed back.
+	local function ReadFood(family, byId, now)
+		local refused = false
+		local function find(ids)
+			for _, id in ipairs(ids) do
+				local ok, aura = pcall(byId, "player", id)
+				if not ok or Withheld(aura) then
+					refused = true
+				elseif type(aura) == "table" then
+					return id, aura
+				elseif aura == nil and not refused and HiddenAura(id) then
+					refused = true
+				end
+			end
+		end
+		if find(family.eating) then return true end
+		local id, aura = find(family.buffs)
+		if id then
+			local pressed = pressedScroll[family.key]
+			if not (pressed and pressed.buff == id) then
+				local char = addon.db and addon.db.char
+				local last = type(char) == "table" and type(char.ownLast) == "table"
+					and ns.FindOwnSpell(char.ownLast[family.key]) or nil
+				pressed = last and last.family == family and last.buff == id and last or nil
+			end
+			if pressed then Remember(family, pressed) end
+			return true, pressed, Left(aura, now)
+		end
+		if refused then return nil end
+		return false
+	end
+
 	-- Whether any of the family is up on you, and yours: true with the spell,
 	-- its time left and the charges it has left (the aura's applications, for
 	-- a charge shield), false for definitely none, nil for the client would not say
@@ -2330,6 +2370,11 @@ do
 		local now = GetTime()
 		local api = C_UnitAuras
 		local byId = api and api.GetUnitAuraBySpellID
+		-- Food: any food's buff, or a meal under way. No form read.
+		if family.food then
+			if type(byId) ~= "function" then return nil end
+			return ReadFood(family, byId, now)
+		end
 		-- Every familiar, whether or not another of its scroll is in the bags:
 		-- the one summoned is up all the same. No form read: it is no form.
 		if family.scroll then
@@ -2457,9 +2502,13 @@ do
 			end
 			-- An oil, or an enchant no scroll makes, running low: nothing of
 			-- yours tops it up, and the weapon is seen to until it runs out.
-			if not upSpell then return nil, true, left, "up" end
-			-- The top-up is of the one you are wearing, whatever the pick.
-			spell = upSpell
+			-- Food is the exception: any food tops up Well Fed, whichever
+			-- food put it on, so the pick (or Automatic's) stands.
+			if not upSpell and not family.food then return nil, true, left, "up" end
+			-- The top-up is of the one you are wearing, whatever the pick; for
+			-- food, only while there is more of it, else the pick stands.
+			if upSpell and not (family.food and not ScrollReady(upSpell)) then spell = upSpell end
+			if not spell then return nil, true, left, "up" end
 			-- Of the enchant you are wearing, that is: a scroll that makes the
 			-- same one (Spellbreak and Lesser Flame, Buffs.lua) tops it up when
 			-- the one named has run out. The last Spellbreak used, and nothing

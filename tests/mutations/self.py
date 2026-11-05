@@ -256,8 +256,8 @@ mutate("Options/Launcher.lua",
 
 # You never counted into your party: the fold only takes group members.
 mutate("Queue.lua",
-       "\t\tinGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0,\n\t\tpriority = PRIORITY.self,\n",
-       "\t\tinGroup = false,\n\t\tpriority = PRIORITY.self,\n",
+       "\t\tinGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0,\n\t\tpriority = buff.family and buff.family.food and PRIORITY.food or PRIORITY.self,\n",
+       "\t\tinGroup = false,\n\t\tpriority = buff.family and buff.family.food and PRIORITY.food or PRIORITY.self,\n",
        "self: not counted into your party",
        expect="made no group cast", script=S)
 

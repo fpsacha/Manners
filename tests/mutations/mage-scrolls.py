@@ -348,10 +348,10 @@ mutate("Core.lua",
 # right after, the read throws. An oil is no imbue now (hunt31-oils.lua), so
 # the case is another's oil on a stone's hand, in hunt26-weapons.lua.
 mutate("Core.lua",
-       "\t\t\tif not upSpell then return nil, true, left, \"up\" end\n",
+       "\t\t\tif not upSpell and not family.food then return nil, true, left, \"up\" end\n",
        "",
        "scrolls: an oil running low said as nothing to pick",
-       expect="a bare hand is offered a stone, a hand with an enchant is not: threw", script=S)
+       expect="a bare hand is offered a stone, a hand with an enchant is not", script=S)
 
 # A scroll's cast cut short (Clicks.lua): the press kept, its block the
 # whole retry cooldown.

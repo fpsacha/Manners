@@ -131,7 +131,7 @@ mutate(C,
        expect="hunt26-weapons: a rogue's poisons are offered one hand at a time", script=S)
 
 mutate(C,
-       "\t\t\tinfo.name = called and (called .. info.hand) or nil\n",
+       "\t\t\tinfo.name = called and (called .. (info.hand or \"\")) or nil\n",
        "\t\t\tinfo.name = called\n",
        "hunt26-weapons: the hand left out of an item's name",
        expect="the main hand's poison is named", script=S)
@@ -274,7 +274,7 @@ mutate(C,
 # ------------------------------------------------ naming, probing
 # Every item of a class asked about at the probe.
 mutate(C,
-       "\t\t\tfor _, spell in ipairs(family.enhance and {} or family.spells) do\n",
+       "\t\t\tfor _, spell in ipairs((family.enhance or family.food) and {} or family.spells) do\n",
        "\t\t\tfor _, spell in ipairs(family.spells) do\n",
        "hunt26-weapons: every item probed at login",
        expect="the probe asked the client for the names of", script=S)
@@ -312,7 +312,7 @@ mutate("Options/Window/Layout.lua",
 # ------------------------------------------------ the in-game selftest
 # A stone taken for a scroll by the report.
 mutate("Selftest.lua",
-       "local function HasScrolls() return OwnFamily(function(f) return f.scroll and not f.enhance end) ~= nil end\n",
-       "local function HasScrolls() return OwnFamily(function(f) return f.scroll end) ~= nil end\n",
+       "local function HasScrolls() return OwnFamily(function(f) return f.scroll and not f.enhance and not f.food end) ~= nil end\n",
+       "local function HasScrolls() return OwnFamily(function(f) return f.scroll and not f.food end) ~= nil end\n",
        "hunt26-weapons: the selftest takes a stone for a scroll",
        expect="a warrior holding a stone is reported as", script=S)

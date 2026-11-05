@@ -55,6 +55,9 @@ do
 		elseif why == "up" and not name and family.enhance then
 			-- An enchant none of this family's items makes: the weapon is seen to.
 			return L["%s: the weapon already carries a temporary enchant."]:format(label)
+		elseif why == "up" and not name and family.food then
+			-- Somebody's food, or a meal under way: either way, fed.
+			return L["%s: you are Well Fed, or eating."]:format(label)
 		elseif why == "up" and not name and family.imbue then
 			-- An oil, or an enchant no scroll makes: the weapon is seen to.
 			return L["%s: your main hand already carries a temporary enchant."]:format(label)

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Food on WoW Forever.** Buff food in your bags is now a reminder like your
+  other self buffs: when you are not Well Fed, the prompt offers the best food
+  your level can eat, or the one you ate last, and a press eats it. It is
+  offered last of all, after everybody else and your other buffs, since any
+  cast stands you up and wastes the meal, and it stays quiet while you are
+  eating. With top-ups on, it comes back as Well Fed runs low. *Who to buff*,
+  under *Myself*, has a *Food* dropdown while there is some in your bags.
+
 ## 1.11.1
 
 - **Leave one self buff out of the reminders.** On *Who to buff*, under

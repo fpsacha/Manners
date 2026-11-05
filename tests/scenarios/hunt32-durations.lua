@@ -251,7 +251,8 @@ for _, flavour in ipairs(FLAVOURS) do
 		for class, families in pairs(ns.OWN_BUFFS) do
 			for _, family in ipairs(families) do
 				if not (family.toggle or family.tracking) then
-					for _, spell in ipairs(family.spells) do check(class .. "." .. spell.key, spell.ranks[1]) end
+					-- Food is read by the buff it lands (ns.OwnSeconds), not its use spell.
+					for _, spell in ipairs(family.spells) do check(class .. "." .. spell.key, spell.buff or spell.ranks[1]) end
 				end
 			end
 		end

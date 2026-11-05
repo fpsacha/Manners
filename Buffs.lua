@@ -1440,6 +1440,166 @@ do
 			{ key = "imbuechillknife", item = 275067, level = 5, ranks = { 1296225 }, enchant = 8698, weapon = DAGGER },
 		},
 	}
+	-- Buff food: what you eat for Well Fed, which every class carries. Items, as
+	-- the scrolls are: offered only with one in the bags and at the level it
+	-- asks for, and used with /use item:<id> (Prompt/Macro.lua). Every food buff
+	-- replaces the one before it, so the family is up while any of them is on
+	-- you (`buffs`, every food's buff), or while you are still eating (`eating`,
+	-- every food's eating aura: the buff lands only once the meal is done, and
+	-- a meal under way is nothing to be reminded of). Rows are { item, level,
+	-- the spell its use casts, the buff it lands }, best first: by level, then
+	-- by the value the client gives the buff. Read off Forever 1.60.1.70532
+	-- (Item class 0, ItemEffect, SpellEffect): an item whose use eats (aura 84)
+	-- and triggers a buff (aura 23 or 227, the trigger spell). Forever reworked
+	-- most foods into "Nutritious Food", whose buff is Well Fed scaled by the
+	-- item, so one buff id serves many items.
+	local FOOD_ROWS = {
+		{ 238637, 55, 1225769, 1225778 }, -- Prowler Steak
+		{ 238638, 55, 1225771, 1225779 }, -- Filet o' Flank
+		{ 238639, 55, 1225772, 1225780 }, -- Sunrise Omelette
+		{ 267341, 55, 1294006, 1294007 }, -- Sweetpaw Jam
+		{ 249870, 45, 1249925, 1249927 }, -- Sage's Tea
+		{ 13934, 45, 1249515, 1249519 }, -- Mightfish Steak
+		{ 13933, 45, 1249516, 1249520 }, -- Lobster Stew
+		{ 13935, 45, 1249516, 1249520 }, -- Baked Salmon
+		{ 20452, 45, 1248401, 1248422 }, -- Smoked Desert Dumplings
+		{ 249876, 45, 1249919, 1249926 }, -- Wicked Smoothie
+		{ 250066, 45, 1248400, 1248421 }, -- Soaring Pamplona
+		{ 250067, 45, 1248400, 1248421 }, -- Bat Hachee
+		{ 250068, 45, 1248398, 1248406 }, -- Savory Turtle Stew
+		{ 250069, 45, 1248399, 1248420 }, -- Flank au Poivre
+		{ 250070, 45, 1248401, 1248422 }, -- Bear Bruscitti
+		{ 250071, 45, 1248401, 1248422 }, -- Steaming Stag Steak
+		{ 250072, 45, 1248399, 1248420 }, -- Swiftstrike Steak
+		{ 250075, 45, 1248400, 1248421 }, -- Prehistoric Pulled Raptor
+		{ 8957, 45, 1249514, 1249521 }, -- Spinefin Halibut
+		{ 21023, 45, 25660, 25661 }, -- Dirge's Kickin' Chimaerok Chops
+		{ 232436, 45, 470362, 470361 }, -- Darkclaw Bisque
+		{ 16971, 40, 10256, 19710 }, -- Clamlette Surprise
+		{ 286152, 35, 1319311, 1319310 }, -- Plated Armorfish
+		{ 13932, 35, 1249515, 1249519 }, -- Poached Sunscale Salmon
+		{ 249869, 35, 1249924, 1249927 }, -- Sunny Tea
+		{ 13927, 35, 1249512, 1249519 }, -- Cooked Glossy Mightfish
+		{ 6887, 35, 1249513, 1249520 }, -- Spotted Yellowtail
+		{ 13931, 35, 1249513, 1249520 }, -- Nightfin Soup
+		{ 13930, 35, 1249514, 1249521 }, -- Filet of Redgill
+		{ 12212, 35, 1248395, 1248420 }, -- Jungle Stew
+		{ 12218, 35, 1248394, 1248406 }, -- Monster Omelet
+		{ 17222, 35, 1248394, 1248406 }, -- Spider Sausage
+		{ 18045, 35, 1248395, 1248420 }, -- Tender Wolf Steak
+		{ 18254, 35, 1248396, 1248421 }, -- Runn Tum Tuber Surprise
+		{ 249875, 35, 1249918, 1249926 }, -- Spicy Smoothie
+		{ 250065, 35, 1248397, 1248422 }, -- Savory Stag Sliders
+		{ 250076, 35, 1248396, 1248421 }, -- Raptor Rouladen
+		{ 13928, 35, 1249522, 1249523 }, -- Grilled Squid
+		{ 13929, 35, 1249522, 1249523 }, -- Hot Smoked Bass
+		{ 232438, 35, 470369, 470367 }, -- Smoked Redgill
+		{ 21217, 30, 1249507, 1249520 }, -- Sagefish Delight
+		{ 249868, 25, 1249923, 1249927 }, -- Triage Tea
+		{ 8364, 25, 1249509, 1249519 }, -- Mithril Head Trout
+		{ 274971, 25, 1249510, 1249520 }, -- Briny Seafood Stew
+		{ 4594, 25, 1249511, 1249521 }, -- Rockscale Cod
+		{ 3728, 25, 1248391, 1248420 }, -- Tasty Lion Steak
+		{ 4457, 25, 1248392, 1248421 }, -- Barbecued Buzzard Wing
+		{ 6038, 25, 1248390, 1248406 }, -- Giant Clam Scorcho
+		{ 12215, 25, 1248390, 1248406 }, -- Heavy Kodo Stew
+		{ 12216, 25, 1248392, 1248421 }, -- Spiced Chili Crab
+		{ 13851, 25, 1248391, 1248420 }, -- Hot Wolf Ribs
+		{ 20074, 25, 1248391, 1248420 }, -- Heavy Crocolisk Stew
+		{ 249874, 25, 1249917, 1249926 }, -- Calcified Smoothie
+		{ 250073, 25, 1248392, 1248421 }, -- Raging Raptor Ribs
+		{ 250074, 25, 1248393, 1248422 }, -- Bear Brisket
+		{ 250078, 25, 1248390, 1248406 }, -- Giant Scrambled Eggs
+		{ 274976, 25, 1248393, 1248422 }, -- Plain Ol' Paletusk
+		{ 10841, 25, 1249906, 1249907 }, -- Goldthorn Tea
+		{ 249867, 15, 1249922, 1249927 }, -- Root Tea
+		{ 4593, 15, 1249508, 1249521 }, -- Bristle Whisker Catfish
+		{ 1017, 15, 1248387, 1248420 }, -- Seasoned Wolf Kabob
+		{ 2685, 15, 1248389, 1248422 }, -- Succulent Pork Ribs
+		{ 3664, 15, 1248387, 1248420 }, -- Crocolisk Gumbo
+		{ 3665, 15, 1248386, 1248406 }, -- Curiously Tasty Omelet
+		{ 3666, 15, 1248386, 1248406 }, -- Gooey Spider Cake
+		{ 3727, 15, 1248387, 1248420 }, -- Hot Lion Chops
+		{ 3729, 15, 1248386, 1248406 }, -- Soothing Turtle Bisque
+		{ 5480, 15, 1248389, 1248422 }, -- Lean Venison
+		{ 12209, 15, 1248387, 1248420 }, -- Lean Wolf Steak
+		{ 12210, 15, 1248388, 1248421 }, -- Roast Raptor
+		{ 12214, 15, 1248386, 1248406 }, -- Mystery Stew
+		{ 249873, 15, 1249916, 1249926 }, -- Mrrggl Smrrthle
+		{ 5527, 15, 5006, 19708 }, -- Goblin Deviled Clams
+		{ 21072, 10, 1249504, 1249520 }, -- Smoked Sagefish
+		{ 4592, 5, 1249506, 1249519 }, -- Longjaw Mud Snapper
+		{ 249866, 5, 1249921, 1249927 }, -- Royal Tea
+		{ 5476, 5, 1249505, 1249521 }, -- Fillet of Frenzy
+		{ 724, 5, 1248384, 1248422 }, -- Goretusk Liver Pie
+		{ 1082, 5, 1248383, 1248421 }, -- Redridge Goulash
+		{ 2683, 5, 1248383, 1248421 }, -- Crab Cake
+		{ 2684, 5, 1248382, 1248420 }, -- Coyote Steak
+		{ 2687, 5, 1248384, 1248422 }, -- Dry Pork Ribs
+		{ 3220, 5, 1248384, 1248422 }, -- Blood Sausage
+		{ 3662, 5, 1248382, 1248420 }, -- Crocolisk Steak
+		{ 3726, 5, 1248384, 1248422 }, -- Big Bear Steak
+		{ 5479, 5, 1248381, 1248406 }, -- Crispy Lizard Tail
+		{ 6316, 5, 1249502, 1249521 }, -- Loch Frenzy Delight
+		{ 12213, 5, 1248381, 1248406 }, -- Carrion Surprise
+		{ 249872, 5, 1249915, 1249926 }, -- Slimy Smoothie
+		{ 250077, 5, 1248383, 1248421 }, -- Twice-Spiced Raptor Slice
+		{ 250080, 5, 1248381, 1248406 }, -- Breakfast Omelette
+		{ 268912, 5, 1248381, 1248406 }, -- Expiring Crab Cake
+		{ 268913, 5, 1248381, 1248406 }, -- Expiring Crocolisk Steak
+		{ 5095, 5, 1249501, 1249520 }, -- Rainbow Fin Albacore
+		{ 263509, 5, 1248377, 1248406 }, -- Skywall Souffle
+		{ 263512, 5, 1248379, 1248421 }, -- Pincer Bites
+		{ 733, 5, 1248687, 1248688 }, -- Westfall Stew
+		{ 287973, 1, 1248395, 1248420 }, -- Tender Wolf Steak
+		{ 787, 1, 1249503, 1249519 }, -- Slitherskin Mackerel
+		{ 6290, 1, 1249500, 1249519 }, -- Brilliant Smallfish
+		{ 249865, 1, 1249920, 1249927 }, -- Peace Tea
+		{ 2680, 1, 1248378, 1248420 }, -- Spiced Wolf Meat
+		{ 2681, 1, 1248380, 1248422 }, -- Roasted Boar Meat
+		{ 2682, 1, 1248379, 1248421 }, -- Cooked Crab Claw
+		{ 2888, 1, 1248380, 1248422 }, -- Beer Basted Boar Ribs
+		{ 3663, 1, 1248377, 1248406 }, -- Murloc Fin Soup
+		{ 5472, 1, 1248377, 1248406 }, -- Kaldorei Spider Kabob
+		{ 5474, 1, 1248377, 1248406 }, -- Roasted Kodo Meat
+		{ 5477, 1, 1248379, 1248421 }, -- Strider Stew
+		{ 6888, 1, 1248377, 1248406 }, -- Herb Baked Egg
+		{ 6890, 1, 1248380, 1248422 }, -- Smoked Bear Meat
+		{ 7806, 1, 5004, 19705 }, -- Lollipop
+		{ 7807, 1, 5004, 19705 }, -- Candy Bar
+		{ 7808, 1, 5004, 19705 }, -- Chocolate Square
+		{ 12224, 1, 1248379, 1248421 }, -- Crispy Bat Wing
+		{ 17197, 1, 5004, 19705 }, -- Gingerbread Cookie
+		{ 17198, 1, 21149, 19705 }, -- Egg Nog
+		{ 206177, 1, 5004, 19705 }, -- Pine Nut Butter
+		{ 249871, 1, 1249914, 1249926 }, -- Venomous Smoothie
+		{ 250079, 1, 1248379, 1248421 }, -- Tasty Raptor Bites
+		{ 287974, 1, 1249522, 1249523 }, -- Grilled Squid
+		{ 11584, 0, 5004, 19705 }, -- Cactus Apple Surprise
+	}
+	-- The auras eating puts on before the buff lands.
+	local EATING = {
+		430, 431, 432, 433, 434, 435, 1127, 1129, 1131, 1133, 1135, 1137, 5004, 5006, 10256,
+		21149, 25660, 470362, 470369, 1225769, 1225771, 1225772,
+	}
+	local FOOD = {
+		key = "food",
+		label = L["Food"],
+		scroll = true,
+		food = true,
+		buffs = {},
+		eating = EATING,
+		spells = {},
+	}
+	local seen = {}
+	for i, row in ipairs(FOOD_ROWS) do
+		FOOD.spells[i] = { key = "food" .. row[1], item = row[1], level = row[2], ranks = { row[3] },
+			buff = row[4], byItem = true }
+		if not seen[row[4]] then
+			seen[row[4]] = true
+			FOOD.buffs[#FOOD.buffs + 1] = row[4]
+		end
+	end
 	-- Vanilla's lists, with the mage's two after the armor. Forever made Omen
 	-- of Clarity a passive every druid has from 20 (16864: Attributes_0 0x40,
 	-- no duration): nothing to cast, so a druid there has tracking alone. Not
@@ -1451,6 +1611,8 @@ do
 			if family.key ~= "omen" and not family.enhance then list[#list + 1] = family end
 		end
 		AddEnhancements(list, class, ENHANCEMENTS.camelot)
+		-- Food last of all, ahead of tracking: everybody eats.
+		AddEnhancements(list, class, { FOOD })
 		CAMELOT_OWN[class] = list
 	end
 	table.insert(CAMELOT_OWN.MAGE, 2, FAMILIAR)
@@ -2180,6 +2342,12 @@ do
 		{ 600, 408510 }, -- Water Shield (10 min)
 		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
 		{ 1800, 403619 }, -- Fel Armor, the Season of Discovery rune's id (30 min, build 1.60.1.70532)
+		-- Food: keyed by the buff, not the use spell, whose length is the meal's
+		-- (10 to 30 s). SpellDuration of each buff, build 1.60.1.70532.
+		{ 900, 19705, 19708, 19710, 25661, 1225778, 1225779, 1225780, 1248406, 1248420, 1248421, 1248422,
+			1248688, 1249519, 1249520, 1249521, 1249523, 1249907, 1249926, 1249927, 1294007,
+			1319310 }, -- food: Well Fed, Increased Stamina (15 min)
+		{ 600, 470361, 470367 }, -- food: Increased Spell Damage, Increased Healing Power (10 min)
 	})
 
 	-- Mists of Pandaria Classic 5.5.4.70032.
@@ -2326,10 +2494,12 @@ end
 -- The length of one of your own spells (a family's `spells` entry): a toggle
 -- (an aura, an aspect, a stance) and a tracking skill have no timer, and so
 -- read 0 whatever the table says. A scroll or an enhancement is keyed by the
--- spell its use casts, which is its first rank.
+-- spell its use casts, which is its first rank; food by the buff it lands,
+-- since its use spell lasts only as long as the meal.
 function ns.OwnSeconds(spell)
 	local family = spell and spell.family
 	if family and (family.toggle or family.tracking) then return 0 end
+	if spell and spell.buff then return ns.SPELL_SECONDS[spell.buff] end
 	return spell and spell.ranks and ns.SPELL_SECONDS[spell.ranks[1]] or nil
 end
 
