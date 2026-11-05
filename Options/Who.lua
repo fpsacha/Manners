@@ -292,6 +292,10 @@ local function AddOwnControls(args)
 						return L["Reminds you when nothing is on the weapon in your %s and one of these in your bags fits it. Automatic takes the one you used last, else the best you can use."]
 							:format(ns.HandName(family.slot))
 					end
+					-- A shaman's imbues are spells, with no scroll to name (Buffs.lua, shamanimbue).
+					if family.imbue and not family.spells[1].item then
+						return L["Reminds you when no imbue is on the weapon in your main hand. Automatic takes the first of these you know, Windfury ahead of the rest."]
+					end
 					if family.imbue then
 						return L["Reminds you when nothing is on the weapon in your main hand and a scroll in your bags fits it. Automatic takes the one you used last, else the best you can use."]
 					elseif family.scroll then

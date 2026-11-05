@@ -211,6 +211,8 @@ ns.WindowLayout = {
 					{ "who.own_touchofweakness", indent = true },
 					{ "who.own_shadowguard", indent = true },
 					{ "who.own_shield", indent = true },
+					-- A shaman's weapon imbues, spells: one a hand at a time.
+					{ "who.own_shamanimbue", indent = true },
 					{ "who.own_demonarmor", indent = true },
 					-- Food that gives Well Fed, off until it is turned on; every class has it.
 					{ "who.own_food", indent = true },
@@ -309,6 +311,7 @@ ns.WindowLayout = {
 				} },
 				{ key = "click.speech", header = "click.speechHeader", items = {
 					"click.thankEmote",
+					{ "click.thankEmoteToken", indent = true },
 					"click.enabled",
 					{ "click.channel", indent = true },
 					{ "click.onlyWhenReturning", indent = true },

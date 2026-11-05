@@ -194,7 +194,8 @@ do
 		for class, families in pairs(ns.OWN_BUFFS or {}) do
 			for _, family in ipairs(families) do
 				-- Not the weapon enhancements, which are Burning Crusade's own items.
-				if family.imbue or (family.scroll and not family.enhance) then
+				-- Nor a shaman's imbues, spells every client has (shamanimbue).
+				if (family.imbue and family.spells[1].item) or (family.scroll and not family.enhance) then
 					fail(scenario, class .. " has Forever's " .. tostring(family.key) .. " on Burning Crusade")
 				end
 			end

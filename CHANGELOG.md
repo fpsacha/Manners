@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **A shaman's weapon imbues are offered.** Rockbiter, Flametongue, Frostbrand and
+  Windfury Weapon were never reminded of (issue #4). They are now one family,
+  *Weapon imbue*, under *Myself* on *Who to buff* on Classic Era, Burning
+  Crusade and WoW Forever. With no imbue on the weapon in your main hand, "You"
+  comes up with the first of them you know, Windfury ahead of the rest, and a
+  press casts it. Pick one to be reminded of that one only, or switch it off. An
+  imbue already on the weapon ends the reminder; a poison, stone or oil on it
+  does not. Mists' shaman imbues are different spells and are not offered yet,
+  and the off hand is not read.
+- **Choose the emote that answers a favour.** With */thank people who buff me*
+  on, *Emote to use* on *What I say* picks which emote it is: `/thank` as
+  before, or `/cheer`, `/bow`, `/clap`, `/salute`, `/wave`, `/nod` or `/smile`.
+  It is never an emote of your own words: that would be a line spoken to
+  strangers, which *Say a line when I buff someone* is for.
+
 ## 1.11.2
 
 - **A reminder to eat: Well Fed.** Under *Myself* on *Who to buff*, *Well Fed*

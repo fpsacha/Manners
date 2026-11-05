@@ -83,8 +83,9 @@ Page.RESET = {
 	-- THANKS_ONLY): the line said with a cast is one it never says, and on a
 	-- shared profile it is an alt's.
 	click = {
-		"prompt.thankEmote", "speech.enabled", "speech.channel", "speech.onlyWhenReturning",
-		keep = function(path) return path ~= "prompt.thankEmote" and not HasClassBuffs() end,
+		"prompt.thankEmote", "prompt.thankEmoteToken", "speech.enabled", "speech.channel",
+		"speech.onlyWhenReturning",
+		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs() end,
 		after = function() ns.Prompt:InvalidateMacro() end,
 	},
 	-- Where the prompt sits and its lock are kept.

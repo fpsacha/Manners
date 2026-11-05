@@ -64,6 +64,21 @@ function Page.BuildSpeechTab()
 				get = function() return P().thankEmote end,
 				set = function(_, v) P().thankEmote = v end,
 			},
+			-- Which emote the switch above makes. The slash commands are not translated.
+			thankEmoteToken = {
+				type = "select",
+				name = L["Emote to use"],
+				order = 11.5,
+				values = function()
+					local values = {}
+					for _, token in ipairs(ns.THANK_EMOTES) do values[token] = "/" .. token:lower() end
+					return values
+				end,
+				sorting = function() return ns.THANK_EMOTES end,
+				disabled = function() return not P().thankEmote end,
+				get = function() return P().thankEmoteToken end,
+				set = function(_, v) P().thankEmoteToken = v end,
+			},
 			enabled = {
 				type = "toggle",
 				name = L["Say a line when I buff someone"],

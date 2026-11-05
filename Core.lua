@@ -368,6 +368,9 @@ local defaults = {
 			-- /thank somebody who buffs you (Favours.lua). Off: an emote is
 			-- seen by everybody nearby, so the player chooses to make one.
 			thankEmote = false,
+			-- Which emote it is (1.11.3): one of ns.THANK_EMOTES, by token. /thank until
+			-- the player picks another; the emote is made at the person who buffed you.
+			thankEmoteToken = "THANK",
 			-- full | calm: calm is the prompt without the animations.
 			effects = "full",
 			-- The global cooldown swept over the spell icon.
@@ -449,6 +452,12 @@ local defaults = {
 	},
 }
 ns.defaults = defaults
+-- The emotes a favour can be answered with: tokens the client's emote call takes,
+-- each a friendly gesture to a stranger. Written as the slash command, which stays
+-- English (Options/Say.lua). A set beside the list, for the repair and the call.
+ns.THANK_EMOTES = { "THANK", "CHEER", "BOW", "CLAP", "SALUTE", "WAVE", "NOD", "SMILE" }
+ns.THANK_EMOTE_SET = {}
+for _, token in ipairs(ns.THANK_EMOTES) do ns.THANK_EMOTE_SET[token] = true end
 -- Every family of every class Automatic, so a profile shared by a mage and a
 -- priest holds both, and no family's default is missing for the repair, the
 -- reset or a settings string. Buffs.lua loads first.
@@ -3741,6 +3750,7 @@ function ns.ClampSettings()
 	oneOf(p, "effects", { full = true, calm = true }, "full")
 	oneOf(p, "tooltip", { full = true, short = true, shift = true, off = true }, "short")
 	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
+	oneOf(p, "thankEmoteToken", ns.THANK_EMOTE_SET, "THANK")
 
 	-- The two questions Start here asks a new profile (Options/Start.lua,
 	-- Quick.Asking). A profile this clamp has been through before carries the

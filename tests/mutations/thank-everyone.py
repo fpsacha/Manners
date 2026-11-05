@@ -146,18 +146,18 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ the options
 mutate("Options/Advanced.lua",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and not HasClassBuffs() end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs() end,\n",
        "",
        "thank-everyone: a hunter's reset reaches the speech",
        expect="a hunter's What I say reset put back speech he cannot see", script=S)
 mutate("Options/Advanced.lua",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and not HasClassBuffs() end,\n",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs() end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" end,\n",
        "thank-everyone: a mage's reset keeps the speech",
        expect="a mage's What I say reset did not put the speech back", script=S)
 mutate("Options/Advanced.lua",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and not HasClassBuffs() end,\n",
-       "\t\tkeep = function(path) return not HasClassBuffs() end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs() end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs() end,\n",
        "thank-everyone: a hunter's reset keeps the /thank",
        expect="a hunter's What I say reset did not put the /thank back", script=S)
 mutate("Options/Advanced.lua",

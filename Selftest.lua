@@ -121,7 +121,8 @@ end
 -- stone, an oil, a lure), which every client has as items of its own and which
 -- hold no more of this report's checks than a count of what the bags hold.
 local function HasScrolls() return OwnFamily(function(f) return f.scroll and not f.enhance end) ~= nil end
-local function ImbueFamily() return OwnFamily(function(f) return f.imbue end) end
+-- The mage's scroll imbue: a shaman's imbues are spells and have none to count.
+local function ImbueFamily() return OwnFamily(function(f) return f.imbue and f.spells[1].item end) end
 local function FamiliarFamily() return OwnFamily(function(f) return f.scroll and not f.imbue and not f.enhance end) end
 
 -- Why a call about the main hand's enchants does not matter to this character,

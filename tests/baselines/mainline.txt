@@ -764,6 +764,7 @@ thank: a secret answer is read safely: SKIPPED -- the favour from nameplate1 was
 thank: a shout's favour is thanked from anybody (a party member): SKIPPED -- the favour from party1 was not noticed:
 thank: a shout's favour is thanked from anybody (a stranger): SKIPPED -- the favour from nameplate1 was not noticed:
 thank: an emote the game says was restricted is not a thank: SKIPPED -- the favour from nameplate1 was not noticed:
+thank: an emote the list does not hold is the thanks: SKIPPED -- the favour from nameplate3 was not noticed:
 thank: not in a fight, and not afterwards either: SKIPPED -- the favour from nameplate1 was not noticed:
 thank: not in an instance (IsInInstance a secret): SKIPPED -- the favour from nameplate1 was not noticed:
 thank: not in an instance (IsInInstance throws): SKIPPED -- the favour from nameplate1 was not noticed:
@@ -793,6 +794,7 @@ thank: only at a token that still holds them (handed to somebody else): SKIPPED 
 thank: only at a token that still holds them (name a secret): SKIPPED -- the deferred favour was not filed:
 thank: only at a token that still holds them (somebody else by the same name): SKIPPED -- the deferred favour was not filed:
 thank: only at a token that still holds them (still theirs): SKIPPED -- the deferred favour was not filed:
+thank: the emote is the one the player chose: SKIPPED -- the favour from nameplate2 was not noticed:
 the common names for a buff are recognised: "AI?" was not heard as asking for a buff
 the common names for a buff are recognised: "INT PLEASE" was not heard as asking for a buff
 the common names for a buff are recognised: "Int?" was not heard as asking for a buff

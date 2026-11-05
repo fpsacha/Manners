@@ -412,7 +412,8 @@ local EXPECTED = {
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget",
 	},
-	click = { "prompt.thankEmote", "speech.enabled", "speech.channel", "speech.onlyWhenReturning" },
+	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "speech.enabled", "speech.channel",
+		"speech.onlyWhenReturning" },
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",

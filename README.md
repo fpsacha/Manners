@@ -176,7 +176,7 @@ casts it on you and hands your target back: nothing is said, and nothing goes
 in the ledger. With it come the buffs your class casts only on itself, once
 you have learned them: a mage's armor, a priest's Inner Fire, a warlock's
 Demon Skin or Armor, a paladin's aura and Righteous Fury, a hunter's aspect
-and Trueshot Aura, a shaman's shield (the full list is under *Which buffs
+and Trueshot Aura, a shaman's shield and weapon imbue (the full list is under *Which buffs
 each class offers*).
 
 - One at a time, your buff for others first: a mage missing both is offered
@@ -234,6 +234,14 @@ each class offers*).
   oil, stone or lure at the same time, so each is reminded of on its own; a
   stone and an oil still replace each other. Manners never answers the game's
   question about replacing an enchant: that is left to you.
+- **A shaman's weapon imbue.** Rockbiter, Flametongue, Frostbrand and Windfury
+  Weapon are one family, *Weapon imbue*, under *Myself* on *Who to buff* (Classic
+  Era, Burning Crusade and WoW Forever; Mists' are different and not yet
+  offered). With none of them on the weapon in your main hand, "You" comes up
+  with the first one you know, Windfury ahead of the rest, and a press casts it;
+  an imbue already on the weapon, whichever, ends the reminder, and a poison,
+  stone or oil does not count as one. Pick one in the drop-down to be reminded
+  of that alone, or *Don't remind me*. The off hand is not read.
 - **Well Fed.** Off until you switch it on (*Well Fed*, under *Myself* on
   *Who to buff*, for every class): then, with a food in your bags that gives
   the *Well Fed* buff and none on you, "You" comes up with that food's icon and
@@ -676,7 +684,9 @@ list. They used to be at the bottom of *Who to buff*.
   any instance, nor while you are stealthed or feigning death, at most once
   per person every five minutes (half an hour for a group member) and once
   every ten seconds in all, so a raid
-  buffing you on the pull is one thank. Only class buffs such as Fortitude are
+  buffing you on the pull is one thank. *Emote to use*, under it, picks which: `/thank`
+  (the default), `/cheer`, `/bow`, `/clap`, `/salute`, `/wave`, `/nod` or `/smile`.
+  Only class buffs such as Fortitude are
   thanked while *Ignore shields, heals and trinket procs* is on. A rogue or a
   hunter, with no buffs to give anybody, has this page with this switch alone
   on it. `/manners debug` shows the last thank, or why the last one was

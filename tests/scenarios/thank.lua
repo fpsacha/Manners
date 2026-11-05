@@ -620,3 +620,71 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ the emote is chosen (1.11.3)
+-- A player asked to answer a favour with /cheer rather than /thank: one of a short
+-- list of friendly emotes (ns.THANK_EMOTES), /thank until another is picked.
+do
+	local scenario = "thank: the emote is the one the player chose"
+	with(scenario, {}, function(ns)
+		ns.db.profile.prompt.thankEmoteToken = "CHEER"
+		local text = favour(ns, "nameplate2")
+		if not noticed(scenario, ns, "nameplate2", text) then return end
+		if #emotes ~= 1 or emotes[1][1] ~= "CHEER" then
+			fail(scenario, "the emote made was " .. tostring(emotes[1] and emotes[1][1]) .. ", not CHEER")
+		elseif emotes[1][2] ~= "nameplate2" then
+			fail(scenario, "the chosen emote went to " .. tostring(emotes[1][2]) .. ", not the token the buff came from")
+		end
+	end)
+end
+
+do
+	local scenario = "thank: an emote the list does not hold is the thanks"
+	with(scenario, {}, function(ns)
+		-- Not repaired yet, as a pasted string and the next scan can be: the call
+		-- still names a token the game takes, never the junk.
+		ns.db.profile.prompt.thankEmoteToken = "DANCE"
+		local text = favour(ns, "nameplate3")
+		if not noticed(scenario, ns, "nameplate3", text) then return end
+		if #emotes ~= 1 or emotes[1][1] ~= "THANK" then
+			fail(scenario, "with a token the list lacks the emote made was " .. tostring(emotes[1] and emotes[1][1]))
+		end
+		ns.ClampSettings()
+		if ns.db.profile.prompt.thankEmoteToken ~= "THANK" then
+			fail(scenario, "the repair left " .. tostring(ns.db.profile.prompt.thankEmoteToken))
+		end
+		ns.db.profile.prompt.thankEmoteToken = 5
+		ns.ClampSettings()
+		if ns.db.profile.prompt.thankEmoteToken ~= "THANK" then
+			fail(scenario, "a number was kept as the emote: " .. tostring(ns.db.profile.prompt.thankEmoteToken))
+		end
+	end)
+end
+
+do
+	local scenario = "thank: What I say offers the emotes and writes the choice"
+	with(scenario, {}, function(ns)
+		if ns.db.profile.prompt.thankEmoteToken ~= "THANK" then
+			fail(scenario, "a new profile's emote is " .. tostring(ns.db.profile.prompt.thankEmoteToken))
+		end
+		local control = H.findOption(ns.optionsTable, "thankEmoteToken")
+		if not control then
+			fail(scenario, "What I say has no emote choice")
+			return
+		end
+		local values = control.values()
+		if values.THANK ~= "/thank" or values.CHEER ~= "/cheer" then
+			fail(scenario, "the choices read /thank as " .. tostring(values.THANK) .. " and /cheer as " .. tostring(values.CHEER))
+		end
+		local order = control.sorting()
+		if order[1] ~= "THANK" then fail(scenario, "the list does not open on /thank: " .. tostring(order[1])) end
+		control.set({ "thankEmoteToken" }, "BOW")
+		if ns.db.profile.prompt.thankEmoteToken ~= "BOW" or control.get() ~= "BOW" then
+			fail(scenario, "picking /bow wrote " .. tostring(ns.db.profile.prompt.thankEmoteToken))
+		end
+		ns.db.profile.prompt.thankEmote = false
+		if not (type(control.disabled) == "function" and control.disabled()) then
+			fail(scenario, "the emote choice stays live with the /thank switch off")
+		end
+	end)
+end

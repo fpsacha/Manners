@@ -307,7 +307,7 @@ local VANILLA = {
 -- A wizard or mana oil's own data names inventory types (weapon, two-hand,
 -- main hand, off hand) where the rest name kinds of weapon, which would take
 -- a fishing pole as well; a pole has lures of its own, so an oil is held to
--- every melee weapon (MELEE). Left out: a shaman's imbues, a warlock's
+-- every melee weapon (MELEE). Left out: a warlock's
 -- firestones and spellstones, the items made for one use (Scourgebane,
 -- Bloodboil Poison, Season of Discovery's cleaning cloth and repellent), the
 -- coatings that go on a shield (Season of Discovery), the fishing hats, items
@@ -940,6 +940,24 @@ local VANILLA_OWN = {
 				{ key = "watershield", ranks = { 408510 }, talent = true, charges = 3 },
 			},
 		},
+		-- A shaman's weapon imbues (1.11.3): one on the main hand at a time, and up is
+		-- the main hand carrying an enchant of the Imbue kind, whichever (Core.lua,
+		-- ReadImbue), so the family is up when any of them is. The client data does
+		-- not say which enchant is which spell, so Automatic cannot remember the one
+		-- you had on: it takes the first you know, Windfury ahead of the rest, and a
+		-- pick holds one. The ranks are the ones every client has.
+		{
+			key = "shamanimbue",
+			label = L["Weapon imbue"],
+			imbue = true,
+			enchantKind = "imbue",
+			spells = {
+				{ key = "windfuryweapon", ranks = { 16362, 10486, 8235, 8232 } },
+				{ key = "flametongueweapon", ranks = { 16342, 16341, 16339, 8030, 8027, 8024 } },
+				{ key = "frostbrandweapon", ranks = { 16356, 16355, 10456, 8038, 8033 } },
+				{ key = "rockbiterweapon", ranks = { 16316, 16315, 16314, 10399, 8019, 8018, 8017 } },
+			},
+		},
 	},
 
 	DRUID = {
@@ -949,7 +967,7 @@ local VANILLA_OWN = {
 	-- WARRIOR and ROGUE: no spell of their own that is a buff. What they put on
 	-- a weapon (poisons, stones, oils) is an item from the bags, and comes below,
 	-- with every class's (weapon enhancements, above). A shaman's weapon imbues
-	-- are not offered.
+	-- are a family of spells of its own (shamanimbue).
 }
 
 -- Tracking, for every class: Find Herbs and Find Minerals come with a
@@ -1340,6 +1358,24 @@ local TBC_OWN = {
 				{ key = "earthshield", ranks = { 32594, 32593, 974 }, castOnOthers = true,
 					talent = true, neverAuto = true, charges = 6,
 					anyCaster = true },
+			},
+		},
+		-- A shaman's weapon imbues (1.11.3): one on the main hand at a time, and up is
+		-- the main hand carrying an enchant of the Imbue kind, whichever (Core.lua,
+		-- ReadImbue), so the family is up when any of them is. The client data does
+		-- not say which enchant is which spell, so Automatic cannot remember the one
+		-- you had on: it takes the first you know, Windfury ahead of the rest, and a
+		-- pick holds one. The ranks are the ones every client has.
+		{
+			key = "shamanimbue",
+			label = L["Weapon imbue"],
+			imbue = true,
+			enchantKind = "imbue",
+			spells = {
+				{ key = "windfuryweapon", ranks = { 25505, 16362, 10486, 8235, 8232 } },
+				{ key = "flametongueweapon", ranks = { 25489, 16342, 16341, 16339, 8030, 8027, 8024 } },
+				{ key = "frostbrandweapon", ranks = { 25500, 16356, 16355, 10456, 8038, 8033 } },
+				{ key = "rockbiterweapon", ranks = { 25485, 25479, 16316, 16315, 16314, 10399, 8019, 8018, 8017 } },
 			},
 		},
 	},
@@ -2070,6 +2106,11 @@ do
 	-- gives its length as a token the table does not resolve) nor for Forever's two
 	-- own Trueshot Aura ranks (1299346 and 1299348), which this client lacks: unknown.
 	SECONDS_FOR[VANILLA_SET] = Seconds({
+		-- A shaman's weapon imbues, an imbue of the main hand (shamanimbue).
+		{ 300, 16362, 10486, 8235, 8232 }, -- Windfury Weapon
+		{ 300, 16342, 16341, 16339, 8030, 8027, 8024 }, -- Flametongue Weapon
+		{ 300, 16356, 16355, 10456, 8038, 8033 }, -- Frostbrand Weapon
+		{ 300, 16316, 16315, 16314, 10399, 8019, 8018, 8017 }, -- Rockbiter Weapon
 		{ 1800, 9885, 9884, 8907, 5234, 6756, 5232, 1126 }, -- Mark of the Wild (30 min)
 		{ 3600, 21850, 21849 }, -- Gift of the Wild (1 h)
 		{ 600, 9910, 9756, 8914, 1075, 782, 467 }, -- Thorns (10 min)
@@ -2120,6 +2161,11 @@ do
 
 	-- Burning Crusade Classic Anniversary 2.5.6.69795.
 	SECONDS_FOR[TBC_SET] = Seconds({
+		-- A shaman's weapon imbues, an imbue of the main hand (shamanimbue).
+		{ 1800, 25505, 16362, 10486, 8235, 8232 }, -- Windfury Weapon
+		{ 1800, 25489, 16342, 16341, 16339, 8030, 8027, 8024 }, -- Flametongue Weapon
+		{ 1800, 25500, 16356, 16355, 10456, 8038, 8033 }, -- Frostbrand Weapon
+		{ 1800, 25485, 25479, 16316, 16315, 16314, 10399, 8019, 8018, 8017 }, -- Rockbiter Weapon
 		{ 1800, 26990, 9885, 9884, 8907, 5234, 6756, 5232, 1126 }, -- Mark of the Wild (30 min)
 		{ 3600, 26991, 21850, 21849 }, -- Gift of the Wild (1 h)
 		{ 600, 26992, 9910, 9756, 8914, 1075, 782, 467 }, -- Thorns (10 min)
@@ -2173,6 +2219,11 @@ do
 
 	-- WoW Forever 1.60.1.70178.
 	SECONDS_FOR[CAMELOT_SET] = Seconds({
+		-- A shaman's weapon imbues, an imbue of the main hand (shamanimbue).
+		{ 3600, 16362, 10486, 8235, 8232 }, -- Windfury Weapon
+		{ 3600, 16342, 16341, 16339, 8030, 8027, 8024 }, -- Flametongue Weapon
+		{ 3600, 16356, 16355, 10456, 8038, 8033 }, -- Frostbrand Weapon
+		{ 3600, 16316, 16315, 16314, 10399, 8019, 8018, 8017 }, -- Rockbiter Weapon
 		{ 3600, 9885, 9884, 8907, 5234, 6756, 5232, 1126 }, -- Mark of the Wild (1 h)
 		{ 3600, 21850, 21849 }, -- Gift of the Wild (1 h)
 		{ 600, 9910, 9756, 8914, 1075, 782, 467 }, -- Thorns (10 min)

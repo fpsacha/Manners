@@ -145,7 +145,10 @@ do
 		end
 
 		-- pcall covers both an emote call that throws and one that is not there.
-		local ok, answer = pcall(EmoteCall(), "THANK", unit)
+		-- The emote the player chose, or the thanks it always was.
+		local prompt = ns.db and ns.db.profile and ns.db.profile.prompt
+		local token = prompt and ns.THANK_EMOTE_SET[prompt.thankEmoteToken] and prompt.thankEmoteToken or "THANK"
+		local ok, answer = pcall(EmoteCall(), token, unit)
 		if not ok then
 			return Skip(name, now, L["the game would not do it"])
 		end

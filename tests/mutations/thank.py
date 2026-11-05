@@ -59,18 +59,18 @@ mutate("Favours.lua",
        "thank: the token is not the one the buff came from",
        expect="thank: a favour is thanked at the token it came from", script=S)
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", name)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), token, name)\n",
        "thank: the emote goes to a name",
        expect="the token the buff came from", script=S)
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
        "\t\tlocal ok, answer = pcall(EmoteCall(), \"CHEER\", unit)\n",
        "thank: the wrong emote",
        expect="the emote made was", script=S)
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
-       "\t\tlocal ok, answer = true, EmoteCall()(\"THANK\", unit)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\tlocal ok, answer = true, EmoteCall()(token, unit)\n",
        "thank: an emote call that throws is not caught",
        expect="thank: DoEmote throws is skipped silently", script=S)
 mutate("Favours.lua",
@@ -244,10 +244,10 @@ mutate("Favours.lua",
        "thank: the gap is a minute",
        expect="a favour eleven seconds after the last thank was not thanked", script=S)
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
        "\t\tlastAt = now\n"
        "\t\tthankedAt[name] = now\n"
-       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
        "thank: an emote that never went holds the next back",
        expect="an emote that never went held the next one back", script=S)
 
@@ -267,3 +267,40 @@ mutate("Commands.lua",
        "\t\t\tthanks.skipped.name, math.floor(now - thanks.skipped.at), \"?\"))\n",
        "thank: debug does not say why",
        expect="/manners debug does not name the last skip", script=S)
+
+# --- the emote the player chose (1.11.3) ---
+mutate("Favours.lua",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
+       "thank: the chosen emote never used",
+       expect="thank: the emote is the one the player chose", script=S)
+mutate("Favours.lua",
+       "\t\tlocal token = prompt and ns.THANK_EMOTE_SET[prompt.thankEmoteToken] and prompt.thankEmoteToken or \"THANK\"\n",
+       "\t\tlocal token = prompt and prompt.thankEmoteToken or \"THANK\"\n",
+       "thank: any token is made",
+       expect="thank: an emote the list does not hold is the thanks", script=S)
+mutate("Core.lua",
+       "\toneOf(p, \"thankEmoteToken\", ns.THANK_EMOTE_SET, \"THANK\")\n",
+       "",
+       "thank: the emote never repaired",
+       expect="thank: an emote the list does not hold is the thanks", script=S)
+mutate("Core.lua",
+       "\t\t\tthankEmoteToken = \"THANK\",\n",
+       "\t\t\tthankEmoteToken = \"CHEER\",\n",
+       "thank: another emote by default",
+       expect="thank: What I say offers the emotes and writes the choice", script=S)
+mutate("Options/Say.lua",
+       "\t\t\t\tset = function(_, v) P().thankEmoteToken = v end,\n",
+       "\t\t\t\tset = function(_, v) end,\n",
+       "thank: the emote choice writes nothing",
+       expect="thank: What I say offers the emotes and writes the choice", script=S)
+mutate("Options/Say.lua",
+       "\t\t\t\tdisabled = function() return not P().thankEmote end,\n\t\t\t\tget = function() return P().thankEmoteToken end,\n",
+       "\t\t\t\tget = function() return P().thankEmoteToken end,\n",
+       "thank: the emote choice live with the switch off",
+       expect="thank: What I say offers the emotes and writes the choice", script=S)
+mutate("Options/Window/Layout.lua",
+       "\t\t\t\t\t{ \"click.thankEmoteToken\", indent = true },\n",
+       "",
+       "thank: the emote choice not placed",
+       expect="thankEmoteToken", script=S)
