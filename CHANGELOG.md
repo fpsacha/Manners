@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.1
 
 - **Leave one self buff out of the reminders.** On *Who to buff*, under
   *Myself*, *Never remind me about* has a box for each spell of a kind you
