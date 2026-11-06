@@ -46,7 +46,7 @@ Page.RESET = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
 		"sources.owed", "sources.group", "sources.strangers", "sources.asked", "sources.self",
-		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities",
+		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
 		"groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()

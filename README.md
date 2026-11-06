@@ -571,7 +571,9 @@ explain themselves; this is what their tooltips have no room for.
   *Automatic* until you reach it. A poison, stone, oil or lure for a weapon
   has a switch of its own per kind (*Weapons, one hand at a time*, above). So
   does *Well Fed*, which every class has and which starts off.
-  Then *Also in cities and inns*, off by default, and last what each of your
+  Then *Also in cities and inns*, off by default, and *Oils, stones and food only
+  in dungeons and raids*, also off, which keeps those reminders out of the open
+  world (poisons and lures are not held back), and last what each of your
   own buffs is doing and why one is not being offered. On retail, a class with
   nothing of its own to put on does not see this part; everywhere else every
   class does, for *Well Fed*, and a hunter, a shaman or a rogue sees only this

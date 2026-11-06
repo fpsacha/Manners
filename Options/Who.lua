@@ -908,6 +908,21 @@ function Page.BuildWhoTab()
 				end,
 			},
 
+			ownDungeons = {
+				type = "toggle",
+				name = L["Oils, stones and food only in dungeons and raids"],
+				desc = L["On: the reminder for an oil or a stone for your weapon, and for food, comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."],
+				order = 15.95,
+				width = "full",
+				hidden = NothingForSelf,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.itemsInDungeons == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.itemsInDungeons = value
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
 			-------------------------------------------------- group and raid
 			-- Group buffs (GroupBuffs.lua) only ever replace offers to your
 			-- party, so they follow My party and raid. Shown to the classes that

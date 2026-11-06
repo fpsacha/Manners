@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Oils, stones and food only in dungeons and raids, if you like.** Under
+  *Myself* on *Who to buff*, a new switch, *Oils, stones and food only in
+  dungeons and raids*, keeps the reminders for an oil or a stone for your weapon
+  and for food out of the open world: they come up only inside a dungeon or a
+  raid. It is off, so nothing changes until you turn it on. A rogue's poisons
+  and fishing lures are not held back, and it leaves your spells alone.
+
 ## 1.11.5
 
 - **Thorns for the tanks only.** On *Who to buff*, a druid's Thorns has a new

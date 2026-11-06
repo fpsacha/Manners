@@ -242,6 +242,10 @@ local defaults = {
 			-- everything on yourself, your group buff included (SelfEntry):
 			-- two rules for one "You" on the prompt would be a puzzle.
 			inCities = false,
+			-- On: the reminders for what comes out of the bags -- an oil or a
+			-- stone for the weapon, food -- come up only in a dungeon or a
+			-- raid. A rogue's poisons and a fishing lure are not held to it.
+			itemsInDungeons = false,
 			-- Per family, by its key: "auto" (Automatic, or ticked for a family of one),
 			-- a spell's key (always that one), or "off" (Don't remind me). Filled below.
 			pick = {},
@@ -1840,6 +1844,15 @@ do
 		return type(leave) == "table" and leave[spell.key] == true
 	end
 
+	-- Whether Who to buff's "only in dungeons and raids" holds this family: an
+	-- oil or a stone for the weapon, and food. Not a poison, which a rogue
+	-- always wants on, nor a lure, nor a spell of your own.
+	function ns.OwnItemsHeldToDungeons(family)
+		if not family then return false end
+		if family.food then return true end
+		return family.enhance == true and family.kind ~= "poison" and family.kind ~= "lure"
+	end
+
 	-- The first spell of the family you know, in table order; `auto` passes
 	-- over the ones Automatic never picks.
 	local function FirstKnown(family, auto)
@@ -2502,6 +2515,7 @@ do
 	--   "noweapon"  an imbue: there is no weapon in your main hand
 	--   "level"     a scroll: your level is short of it
 	--   "weapon"    an imbue: not for the weapon in your main hand
+	--   "dungeon"   an oil, a stone or food, held to dungeons and raids, and you are not in one
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
@@ -2513,6 +2527,12 @@ do
 	function ns.OwnVerdict(family, ctx)
 		local pick, spell = ns.OwnPick(family)
 		if pick == "off" then return nil, nil, nil, "off" end
+		-- Held to dungeons and raids by the player (Who to buff): out in the
+		-- world there is nothing to say about it, up or not.
+		if ns.OwnItemsHeldToDungeons(family) and addon.db.profile.ownBuffs.itemsInDungeons == true
+			and not InDungeon() then
+			return nil, nil, nil, "dungeon"
+		end
 		-- A scroll picked above your level steps aside for Automatic while it
 		-- has a scroll of the family you can use (see ns.OwnPick).
 		if spell and spell.item then

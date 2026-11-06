@@ -83,6 +83,8 @@ do
 			return L["%s: the game says %s cannot be cast right now."]:format(label, name or "?")
 		elseif why == "none" then
 			return L["%s: Automatic has nothing it would pick."]:format(label)
+		elseif why == "dungeon" then
+			return L["%s: oils, stones and food are only offered in a dungeon or a raid."]:format(label)
 		elseif why == "leftout" then
 			return L["%s: %s is ticked under Never remind me about."]:format(label, name or "?")
 		end
