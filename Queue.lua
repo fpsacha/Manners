@@ -1912,6 +1912,10 @@ function ns.BuildQueue(watch)
 	-- of its cost.
 	local friendsFirst = db.priority.friends == true
 	if friendsFirst then SweepCloseness(now) end
+	-- The buffs held to the tanks of the group, or nil with none: the scan's own
+	-- answer to "does anybody need their role read".
+	local tanksHeld = db.buff.tanksOnly
+	if tanksHeld and next(tanksHeld) == nil then tanksHeld = nil end
 
 	-- A buff that cannot be paid for is a button that fails -- but only classes
 	-- with a mana bar can run out: a warrior's mana reads a permanent 0. Empty
@@ -2093,6 +2097,12 @@ function ns.BuildQueue(watch)
 		opts.inParty = SameParty(unit, inRaid)
 		opts.relevantOnly = f.relevantOnly and not asked
 		opts.asked = asked ~= nil
+		-- Buffs held to the tanks of your group (Core.lua, Castable): read for
+		-- somebody in the group, and only when one is held. Not for somebody who
+		-- asked for it by name, who has said what they want.
+		local tanksOnly = not asked and tanksHeld or nil
+		opts.tanksOnly = tanksOnly
+		opts.isTank = tanksOnly and inGroup and ns.IsTankUnit(unit) or nil
 		opts.whenBuffed = whenBuffed
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full

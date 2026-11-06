@@ -173,6 +173,7 @@ function Mock.reset()
 	Mock.groupSize = 0
 	Mock.held = nil
 	Mock.heldFor = nil
+	Mock.roles, Mock.raidRoles = nil, nil
 	-- The `duration` those auras carry (nil: none, as a client that says nothing).
 	Mock.heldDuration = nil
 	-- true: those auras (the player's included) have no timer, expirationTime 0.
@@ -1327,7 +1328,14 @@ function GetRaidRosterInfo(index)
 	local raid = Mock.raid
 	if not raid or type(index) ~= "number" or index < 1 or index > raid.size then return nil end
 	local named = Mock.unitNames and Mock.unitNames["raid" .. index]
-	return named and named[1] or ("Raider" .. index), 0, Mock.subgroupOf(index)
+	-- The tenth return is the raid role ("MAINTANK") a scenario gives by index in
+	-- Mock.raidRoles.
+	return named and named[1] or ("Raider" .. index), 0, Mock.subgroupOf(index), 60, "Druid", "DRUID",
+		"Orgrimmar", true, false, Mock.raidRoles and Mock.raidRoles[index] or nil
+end
+-- The role the group finder gave a unit, by token in Mock.roles.
+function UnitGroupRolesAssigned(unit)
+	return Mock.roles and Mock.roles[unit] or "NONE"
 end
 function UnitPowerType() return 0, "MANA" end
 function GetNumGroupMembers()

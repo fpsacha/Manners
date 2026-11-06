@@ -75,6 +75,8 @@ local function OfferItems()
 			if not seen[path] then
 				seen[path] = true
 				items[#items + 1] = { path, columns = 2 }
+				-- Thorns, held to the tanks (Buffs.lua, tankChoice), under its switch.
+				if buff.tankChoice then items[#items + 1] = { "who.tank_" .. tostring(buff.key), indent = true } end
 			end
 		end
 	end

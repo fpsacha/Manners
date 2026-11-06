@@ -198,6 +198,27 @@ local function AddBuffToggles(args)
 				restyleAndMacro()
 			end,
 		}
+		-- A buff the player may hold to the tanks of their group (Buffs.lua,
+		-- tankChoice: Thorns), under its own switch. Everybody is the absence of
+		-- a key, as the switches are.
+		if buff.tankChoice then
+			args["tank_" .. buff.key] = {
+				type = "select",
+				name = function() return L["Offer %s to"]:format(ns.BuffName(buff) or buff.key) end,
+				desc = L["In a group, Tanks only offers this buff only to players the game gives the tank role, or marks as main tank in a raid, so the rest of a dungeon or raid is left alone. A player with no role is not a tank. People outside your group, and anybody who asks you for it in chat, are offered it as usual."],
+				order = 4 + index / 10 + 0.05,
+				width = "full",
+				values = function() return { all = L["Everyone"], tanks = L["Tanks only"] } end,
+				sorting = { "all", "tanks" },
+				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
+				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
+				get = function() return B().tanksOnly[buff.key] and "tanks" or "all" end,
+				set = function(_, value)
+					B().tanksOnly[buff.key] = (value == "tanks") or nil
+					restyleAndMacro()
+				end,
+			}
+		end
 	end
 end
 

@@ -205,8 +205,8 @@ mutate("Options/Who.lua",
 
 # Left out of the page's reset.
 mutate("Options/Advanced.lua",
-       "\t\t\"buff.choice\", \"buff.skip\", \"buff.kingsFirst\", \"buff.order\", \"filters.relevantOnly\",\n",
-       "\t\t\"buff.choice\", \"buff.skip\", \"buff.order\", \"filters.relevantOnly\",\n",
+       "\t\t\"buff.choice\", \"buff.skip\", \"buff.tanksOnly\", \"buff.kingsFirst\", \"buff.order\", \"filters.relevantOnly\",\n",
+       "\t\t\"buff.choice\", \"buff.skip\", \"buff.tanksOnly\", \"buff.order\", \"filters.relevantOnly\",\n",
        "hunt27-kings: the page's reset leaves the switch",
        expect="hunt27-kings: vanilla: the switch is on Who to buff for a paladin",
        script=S)

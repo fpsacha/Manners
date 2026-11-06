@@ -875,7 +875,11 @@ your client runs in. Slash commands are English in all of them.
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever) |
 
 Individual buffs can be switched off on the *Who to buff* page, or one pinned so
-it is the only thing ever cast. Battle Shout reaches your own party (in a raid,
+it is the only thing ever cast. A druid's Thorns also has *Offer to*: **Tanks only**
+hands it, in your group, only to players the game gives the tank role or marks as
+main tank in a raid, so the rest of a dungeon or raid is left alone (a player
+with no role is not a tank; people outside your group, and anybody who asks you
+for it in chat, are offered it as usual). Battle Shout reaches your own party (in a raid,
 your own subgroup on Classic Era and the whole raid on WoW Forever) and nobody
 else, so a warrior outside a group is offered nobody. That is deliberate rather than a fault.
 

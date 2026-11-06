@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Thorns for the tanks only.** On *Who to buff*, a druid's Thorns has a new
+  choice, *Offer Thorns to*: **Everyone**, as before, or **Tanks only**. In a
+  group, Tanks only offers Thorns just to players the game gives the tank role,
+  or marks as main tank in a raid, so the rest of a dungeon or raid is left
+  alone. A player with no role set is not a tank, so set roles or mark your main
+  tank. People outside your group, and anybody who asks you for Thorns in chat,
+  are offered it as usual.
+
 ## 1.11.4
 
 - **WoW Forever: no more "missing spells" for a paladin.** Forever's latest
@@ -9,12 +19,13 @@
   gone. Classic Era and Burning Crusade keep both.
 - **A favour you already repaid is not asked of you again.** After you buffed
   somebody and they buffed you back, Manners could prompt you to buff them once
-  more, from the prompt as well as the button. On WoW Forever the game does not
-  say who cast a buff somebody else is wearing, so your own Might on them read
-  as nobody's. Manners now remembers the cast it saw land and counts a buff of
-  the same kind that runs no longer than that cast as yours: with plenty of it
-  left, the favour is repaid and nothing more is offered. A buff somebody else
-  cast, or cast again since, is still offered back as before.
+  more, from the prompt as well as the button. Manners now also remembers the
+  cast it saw land, so that where the game does not say whose a buff is, one of
+  the same kind that runs no longer than that cast counts as yours: with plenty
+  of it left, the favour is repaid and nothing more is offered. A buff somebody
+  else cast, or cast again since, is still offered back as before. (Where the
+  game does name you as the caster, this was already so from 1.11.2: update if
+  you still see it on an older version.)
 
 ## 1.11.3
 

@@ -241,6 +241,8 @@ function UI.Differs(path, item)
 	local p = Profile()
 	local skip = path:match("^who%.offer_(.+)$")
 	if skip then return (p.buff.skip or {})[skip] == true end
+	local tanks = path:match("^who%.tank_(.+)$")
+	if tanks then return (p.buff.tanksOnly or {})[tanks] == true end
 	local family = path:match("^who%.own_(.+)$")
 	if family then return (p.ownBuffs.pick or {})[family] ~= nil end
 	local fields = FIELDS[path]

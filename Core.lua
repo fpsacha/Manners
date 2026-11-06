@@ -203,6 +203,9 @@ local defaults = {
 			-- The class's spells switched off, as a sparse set (absent = on).
 			-- Keys are class-unique, so a shared profile cannot cross classes.
 			skip = {},
+			-- The buffs held to the tanks of your group (Buffs.lua, tankChoice), a
+			-- sparse set like skip: absent is everybody.
+			tanksOnly = {},
 			-- A paladin who knows Blessing of Kings offers it to everybody ahead of
 			-- the rest (Buffs.lua, `strongest`; CastableBuffs). On: the strongest
 			-- blessing first is what was asked for, and somebody already carrying
@@ -1396,12 +1399,33 @@ end
 
 -- In a block of its own for the main chunk's 200 locals.
 do
+	-- Whether somebody in your group is a tank: the role the game gave them in
+	-- the group finder, or the main tank mark in a raid. No role is no tank.
+	-- A group member's token, so one direct read of each, never a pcall.
+	function ns.IsTankUnit(unit)
+		local roles = _G.UnitGroupRolesAssigned
+		if type(roles) == "function" and plain(roles(unit)) == "TANK" then return true end
+		local roster = _G.GetRaidRosterInfo
+		local index = plain(_G.UnitInRaid and _G.UnitInRaid(unit))
+		if type(roster) == "function" and type(index) == "number" and index >= 1 then
+			local _, _, _, _, _, _, _, _, _, role, _, combatRole = roster(index)
+			return plain(role) == "MAINTANK" or plain(combatRole) == "TANK"
+		end
+		return false
+	end
+
 	-- Split in two because the exclusive branch needs the halves apart: "wrong
 	-- spell for this person" holds for the scan, "tried a moment ago" is a
 	-- cooldown. inParty, not inGroup: a shout reaches only the caster's
 	-- subgroup (see SameParty).
 	local function Castable(opts, buff)
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
+		-- Held to the tanks of your group (Who to buff, Offer to): somebody in
+		-- the group who is not one is left alone, and so is nobody else.
+		if opts.tanksOnly and buff.tankChoice and opts.tanksOnly[buff.key] and opts.inGroup
+			and not opts.isTank then
+			return false
+		end
 		if buff.partyOnly and not opts.inParty then return false end
 		-- Salvation: the game refuses it on anybody outside your party or raid.
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
@@ -3716,6 +3740,7 @@ function ns.ClampSettings()
 
 	-- The set of switched-off spells, indexed on every scan by CastableBuffs.
 	if type(profile.buff.skip) ~= "table" then profile.buff.skip = {} end
+	if type(profile.buff.tanksOnly) ~= "table" then profile.buff.tanksOnly = {} end
 	-- The buff order, read on every scan (ns.WalkBuffs), repaired for every class
 	-- in the profile whichever client wrote it: a key no client has for that
 	-- class, a key twice and an entry that is not a list of keys go; a key only

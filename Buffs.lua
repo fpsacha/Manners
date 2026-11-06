@@ -167,6 +167,7 @@ local VANILLA = {
 		{
 			key = "thorns",
 			ranks = { 9910, 9756, 8914, 1075, 782, 467 },
+			tankChoice = true,
 		},
 	},
 
@@ -752,6 +753,8 @@ end
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
+--   tankChoice  a buff for others that the player may hold to the tanks of
+--             their group (Who to buff, Offer to: Tanks only; Thorns).
 --   shared    a party aura somebody else of your class can put on you too
 --             (a paladin's auras, a hunter's aspects and Trueshot), where two
 --             of the same do not stack: Automatic passes over one that already
@@ -1157,6 +1160,7 @@ local TBC = {
 		{
 			key = "thorns",
 			ranks = { 26992, 9910, 9756, 8914, 1075, 782, 467 },
+			tankChoice = true,
 		},
 	},
 
