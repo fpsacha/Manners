@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.4
 
 - **WoW Forever: no more "missing spells" for a paladin.** Forever's latest
   build removed Blessing of Salvation and Blessing of Light, and Manners kept
