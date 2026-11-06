@@ -200,12 +200,37 @@ mutate("Prompt/Refresh.lua",
 
 # ------------------------------------------------------------ what it carries
 
-# The spoken line rides the bar macro, unjudged at the press.
+# The spoken line rides the bar macro (issue #7), judged by the arming.
+LINE = "barclick: a press of the slot is filed before its cast and settled by it (sync)"
 mutate("Prompt/Macro.lua",
-       "\t\tlocal barText = table.concat(quiet, \"\\n\")\n",
-       "\t\tlocal barText = macro\n",
-       "barclick: the bar macro says the line",
-       expect=SILENT, script=S)
+       "\t\tif phrase then\n\t\t\tlocal withLine = BarLines(true)\n",
+       "\t\tif false and phrase then\n\t\t\tlocal withLine = BarLines(true)\n",
+       "barclick: the bar macro never carries the line",
+       expect=LINE, script=S)
+
+mutate("Prompt/Macro.lua",
+       "\t\t\tif #ns.BAR_LINE + 1 + #withLine <= ns.MACRO_LIMIT then barText, spoke = withLine, true end\n",
+       "\t\t\tbarText, spoke = withLine, true\n",
+       "barclick: a line is written where it does not fit",
+       expect="barclick: a line too long for the bar macro leaves the bar the cast alone", script=S)
+
+mutate("Clicks.lua",
+       "\t\t\tB.phraseArmed, B.phraseSource = S.barSpoke == true, S.barSource\n",
+       "\t\t\tB.phraseArmed, B.phraseSource = false, nil\n",
+       "barclick: a press of the bar does not count its line as said",
+       expect=LINE, script=S)
+
+mutate("Clicks.lua",
+       "if command and SPOKEN[command] and arg ~= \"\" and not arg:find(\"[\", 1, true) then i = i + 1 end\n",
+       "if false then i = i + 1 end\n",
+       "barclick: a body with a spoken line is not Manners' own",
+       expect="barpress: only a shape Manners writes is Manners'", script=S)
+
+mutate("Prompt/Macro.lua",
+       "\t\tS.barText, S.barSpoke, S.barSource = barText, spoke, spoke and S.phraseSource or nil\n",
+       "\t\tS.barText, S.barSpoke, S.barSource = barText, true, S.phraseSource\n",
+       "barclick: every bar body is said to carry a line",
+       expect="barclick: with What I say off the bar macro carries no line", script=S)
 
 # ------------------------------------------------------------ the press
 

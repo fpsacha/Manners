@@ -108,7 +108,10 @@ Page.HasMinimapButton, Page.CompartmentShown, Page.DragPanelUp =
 -- this client open theirs the same way. Asked for at the moment of the click:
 -- a client without it keeps the old right-click, the switch on its own.
 local function HasLauncherMenu()
+	-- Not with a gamepad switched on: the client's menu taints its own gamepad
+	-- code (ns.GamepadActive), and the right click is the switch alone.
 	return type(MenuUtil) == "table" and type(MenuUtil.CreateContextMenu) == "function"
+		and not ns.GamepadActive()
 end
 
 -- The lengths the menu offers. Its own list rather than the options page's:

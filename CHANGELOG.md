@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **What I say now works from an action bar.** The *Manners* macro on your bar
+  used to cast and say nothing, even with *Say a line when I buff someone* on
+  (issue #7). It now carries the same line the prompt would say, written out of
+  combat like the rest of the macro and chosen again after each press. A line
+  too long to fit beside the macro's first line leaves that press as the cast
+  alone, and a line the prompt would hold back is not written.
+- **No more gamepad error from Manners' menus.** With a gamepad switched on,
+  Manners no longer opens the game's own menus (the minimap button's right
+  click, the drop-downs and Snooze in the options window), which could make the
+  game refuse one of its own gamepad calls when the menu closed (issue #6). The
+  right click on the minimap button is the on/off switch there, a drop-down
+  steps to the next choice, and Snooze starts or stops fifteen minutes.
 - **Oils, stones and food only in dungeons and raids, if you like.** Under
   *Myself* on *Who to buff*, a new switch, *Oils, stones and food only in
   dungeons and raids*, keeps the reminders for an oil or a stone for your weapon

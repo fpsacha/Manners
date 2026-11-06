@@ -54,7 +54,8 @@ local function firstLine(text) return type(text) == "string" and text:match("^[^
 local function lastLine(text) return type(text) == "string" and text:match("([^\n]*)$") or text end
 local function armedText(ns) return ns.Prompt:GetButton():GetAttribute("macrotext1") end
 
--- The prompt's macro without its spoken line: what the bar macro carries.
+-- The prompt's macro without its spoken line: what the bar macro carries when
+-- the line does not fit beside the bar line.
 local function quiet(ns)
 	local text = armedText(ns)
 	if not text then return nil end
@@ -65,7 +66,12 @@ local function quiet(ns)
 	end
 	return table.concat(out, "\n")
 end
+-- What the bar macro holds for the prompt as armed: the prompt's macro under the
+-- bar line, the spoken line in it, or without it where it does not fit.
 local function armedBody(ns)
+	local whole = armedText(ns)
+	if not whole then return BAR_LINE end
+	if #BAR_LINE + 1 + #whole <= 255 then return BAR_LINE .. "\n" .. whole end
 	local text = quiet(ns)
 	return text and (BAR_LINE .. "\n" .. text) or BAR_LINE
 end
@@ -232,7 +238,8 @@ end
 -- ------------------------------------------------------------------ 2
 -- The press is parked before its cast is sent, and the cast settles it: the
 -- record is the bar press's, and the line /manners clicks prints says so. The
--- bar macro never says the line the prompt's own macro says.
+-- bar macro carries the line the prompt's own macro says (issue #7), and the
+-- press counts it as said.
 for _, timing in ipairs({ "sync", "after" }) do
 	with("barclick: a press of the slot is filed before its cast and settled by it (" .. timing .. ")", function(ns, scenario)
 		ns.db.profile.speech.enabled = true
@@ -243,7 +250,12 @@ for _, timing in ipairs({ "sync", "after" }) do
 		if not (armedText(ns) or ""):find("\n/say ", 1, true) then
 			fail(scenario, "SKIPPED -- the prompt's macro says no line: " .. flat(armedText(ns)))
 		end
-		if (bodyNow() or ""):find("/say", 1, true) then fail(scenario, "the bar macro carries the line: " .. flat(bodyNow())) end
+		if not (bodyNow() or ""):find("\n/say ", 1, true) then
+			fail(scenario, "the bar macro leaves the line out: " .. flat(bodyNow()))
+		end
+		if lastLine(bodyNow()) ~= "/targetlasttarget" and lastLine(bodyNow()) ~= "/cleartarget" then
+			fail(scenario, "the line pushed the hand-back off the end: " .. flat(bodyNow()))
+		end
 		Mock.castEvents = timing
 		Mock.spellIdFor = spellIds(ns)
 		local parked = nil
@@ -253,7 +265,11 @@ for _, timing in ipairs({ "sync", "after" }) do
 			return sent(self, ...)
 		end
 		Mock.printed = {}
+		local noted = {}
+		local note = ns.NoteLineSaid
+		ns.NoteLineSaid = function(name, now) noted[#noted + 1] = name return note(name, now) end
 		local ok, casts = pcall(Mock.pressBar, 2, { via = "mouse" })
+		ns.NoteLineSaid = note
 		ns.addon.UNIT_SPELLCAST_SENT = sent
 		if not ok then error(casts, 0) end
 		if #casts ~= 1 then fail(scenario, ("%d casts from one press"):format(#casts)) return end
@@ -263,36 +279,49 @@ for _, timing in ipairs({ "sync", "after" }) do
 		local outcome = ns.Prompt.state.outcomeKind
 		if outcome ~= "cast" and outcome ~= "sent" then fail(scenario, "the panel says " .. tostring(outcome)) end
 		if not said():find("via=bar macro=/target", 1, true) then fail(scenario, "the click line does not say the bar: " .. said()) end
-		if #Mock.saidLog ~= 0 then fail(scenario, "the bar macro said: " .. tostring(Mock.saidLog[1].text)) end
-		if not ns.LineRested(entry, GetTime()) then fail(scenario, "a line was counted as said to them") end
+		if #Mock.saidLog ~= 1 then fail(scenario, ("the bar macro said %d lines, not its one"):format(#Mock.saidLog)) end
+		if #noted ~= 1 or noted[1] ~= entry.name then
+			fail(scenario, "the line the bar said was not counted as said to them: " .. tostring(noted[1]))
+		end
 	end)
 end
 
--- A druid in a form the spell cannot be cast from presses the slot: no line
--- goes out with the cast the game refuses.
-with("barclick: the bar macro never speaks, whatever the press meets", function(ns, scenario)
-	ns.db.profile.speech.enabled = true
+-- Nothing to say, nothing written: with What I say off the bar macro is the cast
+-- alone and a press says nothing.
+with("barclick: with What I say off the bar macro carries no line", function(ns, scenario)
+	ns.db.profile.speech.enabled = false
 	armed(ns)
 	if not onBar(ns, 2) then fail(scenario, "SKIPPED -- no macro on the bar") return end
-	if not (armedText(ns) or ""):find("\n/say ", 1, true) then
-		fail(scenario, "SKIPPED -- the prompt's macro says no line: " .. flat(armedText(ns)))
-	end
-	-- The spell unusable for a reason that is not mana, as in a form.
-	local spell = rawget(_G, "C_Spell") or C_Spell
-	local api = {}
-	for k, v in pairs(spell) do api[k] = v end
-	api.IsSpellUsable = function() return false, false end
-	rawset(_G, "C_Spell", api)
-	rawset(_G, "IsUsableSpell", function() return false, false end)
 	local casts = Mock.pressBar(2, { via = "key", keyDown = true })
 	if #casts ~= 1 then fail(scenario, ("%d casts from one press"):format(#casts)) end
 	if #Mock.saidLog ~= 0 then fail(scenario, "the bar macro said: " .. tostring(Mock.saidLog[1].text)) end
 	if ns.pendingClick and ns.pendingClick.spoke then fail(scenario, "the press was filed as one that spoke") end
 	local body = bodyNow() or ""
-	if #body > 255 then fail(scenario, ("the macro is %d characters"):format(#body)) end
+	if body:find("/say", 1, true) then fail(scenario, "the bar macro carries a line with the setting off: " .. flat(body)) end
 	if not (lastLine(body) == "/targetlasttarget" or lastLine(body) == "/cleartarget") then
 		fail(scenario, "the macro does not end with the hand-back: " .. flat(body))
 	end
+end)
+
+-- A line that fits the prompt's macro and not the bar's, beside the bar line, is
+-- left out of the bar's copy: the cast goes out, whole, under 255 characters.
+with("barclick: a line too long for the bar macro leaves the bar the cast alone", function(ns, scenario)
+	ns.db.profile.speech.enabled = true
+	ns.PickPhrase = function(entry, budget)
+		if budget < 40 then return nil end
+		return "/say " .. string.rep("x", budget - 5)
+	end
+	armed(ns)
+	if not onBar(ns, 2) then fail(scenario, "SKIPPED -- no macro on the bar") return end
+	local whole = armedText(ns) or ""
+	if not whole:find("\n/say xxx", 1, true) or #whole ~= 255 then
+		fail(scenario, ("SKIPPED -- the prompt's macro is not filled to 255: %d"):format(#whole))
+		return
+	end
+	local body = bodyNow() or ""
+	if body:find("/say", 1, true) then fail(scenario, "a line the bar has no room for was written: " .. flat(body)) end
+	if #body > 255 then fail(scenario, ("the macro is %d characters"):format(#body)) end
+	if not body:find("/cast ", 1, true) then fail(scenario, "the cast went with the line: " .. flat(body)) end
 end)
 
 -- ------------------------------------------------------------------ 3

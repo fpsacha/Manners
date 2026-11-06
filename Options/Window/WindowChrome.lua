@@ -89,6 +89,22 @@ local function FillSnooze(_, root)
 end
 
 local function SnoozeClicked(button)
+	-- With a gamepad switched on there is no menu (ns.GamepadActive): the button
+	-- stops a snooze that runs, and starts the fifteen minutes' otherwise.
+	if ns.GamepadActive() then
+		local B, start = ns.WindowBind, nil
+		for _, item in ipairs(header.snoozeItems) do
+			if not UI.Hidden(item) then
+				if item.key == "snoozeStop" then
+					ns.Guard("options snooze", B.Run, item)
+					return
+				end
+				if item.key == "snooze15" or start == nil then start = item end
+			end
+		end
+		if start then ns.Guard("options snooze", B.Run, start) end
+		return
+	end
 	if not (MenuUtil and MenuUtil.CreateContextMenu) then return end
 	MenuUtil.CreateContextMenu(button, function(owner, root)
 		ns.Guard("options snooze menu", FillSnooze, owner, root)

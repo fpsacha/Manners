@@ -167,6 +167,17 @@ local SHAPES = {
 	{ BAR_LINE .. "\n/use item:5760\n/use 13", said = NO_CAST },
 	{ BAR_LINE .. "\n/target Bob Bright\n/use item:5760", said = WARNED },
 	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/targetlasttarget\n/cleartarget", said = WARNED },
+	-- The spoken line (1.11.6, issue #7): one, after the cast and before the
+	-- hand-back, in a channel Manners speaks in, with no conditional.
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/say Thanks, Bob Bright.\n/targetlasttarget", ours = true },
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/party Thanks, Bob Bright.", ours = true },
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/w Bob Bright Thanks, Bob.\n/targetlasttarget", ours = true },
+	{ BAR_LINE .. "\n/cast Battle Shout\n/yell Thanks, all.", ours = true },
+	{ BAR_LINE .. "\n/target Bob Bright\n/say Thanks.\n/cast Arcane Intellect", said = WARNED },
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/say Thanks.\n/say Again.", said = WARNED },
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/say [mod:shift] Thanks.", said = WARNED },
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/targetlasttarget\n/say Thanks.", said = WARNED },
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/run print(1)", said = WARNED },
 }
 for i, case in ipairs(SHAPES) do
 	local scenario = ("barpress: only a shape Manners writes is Manners' (%d)"):format(i)

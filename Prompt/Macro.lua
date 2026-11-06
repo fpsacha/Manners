@@ -339,7 +339,7 @@ local function Arm(R, S, entry, silent)
 		-- line, and the tooltip must not still be quoting the last one.
 		S.phraseKey, S.phraseText, S.phraseArmed, S.phraseSource = nil, nil, nil, nil
 		-- Nor anything for the bar macro to carry (Clicks.lua, click macro).
-		S.barText = nil
+		S.barText, S.barSpoke, S.barSource = nil, nil, nil
 		-- The macro's slot on an action bar shows nothing for nobody
 		-- (Clicks.lua, SyncMacroSlot): a comparison of one string once it does.
 		if not S.isRow then ns.SyncMacroSlot(nil) end
@@ -471,19 +471,34 @@ local function Arm(R, S, entry, silent)
 	local macro = table.concat(lines, "\n")
 
 	-- What the bar macro carries under its first line (Clicks.lua, click
-	-- macro): the cast and the hand-back, never the spoken line. A bar press
-	-- runs lines written before it, with no PreClick to judge the line at the
-	-- last moment as the prompt's press does (Press.lua, HoldLine: a druid in
-	-- a form that cannot cast, somebody dead or gone since the scan), and a
-	-- line said over a cast that fails cannot be taken back. In a real macro's
-	-- 255 characters, beside the bar line.
+	-- macro): the cast, the spoken line when one is armed and fits, and the
+	-- hand-back. A bar press runs lines written before it, with no PreClick to
+	-- judge the line at the last moment as the prompt's press does (Press.lua,
+	-- HoldLine: a druid in a form that cannot cast, somebody dead or gone
+	-- since the scan), so the line is the arming's own judgement (`speak`:
+	-- in reach, not just thanked, a channel that reaches them), and one said
+	-- over a cast that fails cannot be taken back. It is written out of combat
+	-- and rolled again after each press. In a real macro's 255 characters,
+	-- beside the bar line: a line that fits the prompt's macro and not this one
+	-- (a long name, a whisper) leaves the bar's copy the cast alone.
 	if not S.isRow then
-		local quiet = {}
-		for i = 1, castCount do quiet[i] = lines[i] end
-		if restore then quiet[#quiet + 1] = lines[#lines] end
-		local barText = table.concat(quiet, "\n")
-		if #ns.BAR_LINE + 1 + #barText > ns.MACRO_LIMIT then barText = nil end
-		S.barText = barText
+		local function BarLines(withLine)
+			local out = {}
+			for i = 1, castCount do out[i] = lines[i] end
+			if withLine then out[#out + 1] = phrase end
+			if restore then out[#out + 1] = lines[#lines] end
+			return table.concat(out, "\n")
+		end
+		local barText, spoke = nil, false
+		if phrase then
+			local withLine = BarLines(true)
+			if #ns.BAR_LINE + 1 + #withLine <= ns.MACRO_LIMIT then barText, spoke = withLine, true end
+		end
+		if not barText then
+			barText = BarLines(false)
+			if #ns.BAR_LINE + 1 + #barText > ns.MACRO_LIMIT then barText = nil end
+		end
+		S.barText, S.barSpoke, S.barSource = barText, spoke, spoke and S.phraseSource or nil
 	end
 
 	R.button:SetAttribute("type1", "macro")

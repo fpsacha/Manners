@@ -60,7 +60,7 @@ local function SelectClicked(field)
 	local row = field.row
 	if W.Off(row) then return end
 	local values = Bind().Values(row.item)
-	if type(MenuUtil) ~= "table" or type(MenuUtil.CreateContextMenu) ~= "function" then
+	if type(MenuUtil) ~= "table" or type(MenuUtil.CreateContextMenu) ~= "function" or ns.GamepadActive() then
 		Cycle(row, values)
 		return
 	end

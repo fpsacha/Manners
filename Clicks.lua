@@ -1268,11 +1268,16 @@ do
 		return command and command:lower(), rest
 	end
 
+	-- The commands a spoken line starts with (Speech.lua, CHANNEL_COMMANDS).
+	local SPOKEN = {}
+	for _, command in pairs(ns.CHANNEL_COMMANDS or {}) do SPOKEN[command:lower()] = true end
+
 	-- Whether the lines under the bar line (rest[2] on) are a shape Manners
-	-- writes: the prompt's macro without its spoken line (Prompt/Macro.lua,
-	-- STRATEGIES and HandBack). In this order: at most one /target <name>; then
-	-- one /cast <spell>, or (with no /target) one /use item:<id> with at most
-	-- one /use 16 or 17 after it; then, after a /target, at most one hand-back.
+	-- writes: the prompt's macro (Prompt/Macro.lua, STRATEGIES and HandBack).
+	-- In this order: at most one /target <name>; then one /cast <spell> with at
+	-- most one spoken line after it, or (with no /target) one /use item:<id>
+	-- with at most one /use 16 or 17 after it; then, after a /target, at most
+	-- one hand-back.
 	-- None at all is the bar line alone. Nothing Manners writes has a
 	-- conditional in it. A line of any other kind, or these in any other
 	-- order or number (a trinket's /use 13 added under the cast), is not.
@@ -1289,6 +1294,11 @@ do
 		if command == "cast" then
 			if arg == "" or arg:find("[", 1, true) then return false end
 			i = i + 1
+			-- The spoken line, between the cast and the hand-back as the prompt's
+			-- macro has it: one, in a channel Manners speaks in, with no
+			-- conditional (the phrases hold no bracket).
+			command, arg = Command(rest[i])
+			if command and SPOKEN[command] and arg ~= "" and not arg:find("[", 1, true) then i = i + 1 end
 		elseif command == "use" and not targeted and arg:match("^item:%d+$") then
 			i = i + 1
 			command, arg = Command(rest[i])
@@ -1333,8 +1343,8 @@ do
 	end
 
 	-- What a bar press is filed against (Prompt.bar, read by Press.lua): what
-	-- the lines under the first were written from. Nothing for the bar line
-	-- alone. Never a spoken line: the bar's copy carries none.
+	-- the lines under the first were written from, the spoken line included
+	-- when the body carries one. Nothing for the bar line alone.
 	local function Snapshot(want)
 		local P = ns.Prompt
 		if not P then return end
@@ -1345,7 +1355,13 @@ do
 		else
 			B.current, B.armed, B.macro, B.pickedFrom = S.current, S.armed, S.barText, S.pickedFrom
 		end
-		B.phraseArmed, B.phraseSource = false, nil
+		-- Whether the lines written carry the spoken line (Prompt/Macro.lua,
+		-- barSpoke), so a press that runs them counts it as said.
+		if want == body.waitBody then
+			B.phraseArmed, B.phraseSource = false, nil
+		else
+			B.phraseArmed, B.phraseSource = S.barSpoke == true, S.barSource
+		end
 	end
 
 	-- A macro changed by hand that still targets somebody runs that line at

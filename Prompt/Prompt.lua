@@ -157,8 +157,8 @@ local S = {
 -- OnBarClick), standing in for the state above under the same names, as a list
 -- row's slot does: what the lines Clicks.lua last wrote under the macro's first
 -- line were written from (body, current, armed, macro, pickedFrom, and
--- phraseArmed false: the bar's copy carries no spoken line), and the press's
--- own stamps (clickAt, waitAt).
+-- phraseArmed: whether the lines carry the spoken line), and the press's own
+-- stamps (clickAt, waitAt).
 Prompt.bar = { isBar = true }
 
 -- The panel's frames and textures, made once by Prompt:Create (Panel.lua) and

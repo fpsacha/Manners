@@ -432,12 +432,17 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   that clicks a button which runs a macro (Blizzard, WoWUIBugs #552; Classic
   Era 1.15.9 cast nothing from `/click MannersPrompt LeftButton 1`). The bar
   macro carries the cast under `/click MannersBar` (Clicks.lua, click macro):
-  the prompt's macro without its spoken line, written out of combat only,
-  never during a bar press or with the macro window open, only into the macro
-  named Manners while its body is Manners' own (the bar line first, then a
-  shape Manners writes: at most one `/target <name>`, one `/cast <spell>` or
-  `/use item:<id>` with at most one `/use 16|17`, and after a `/target` at most
-  one hand-back, in that order; `#` lines kept on top; Clicks.lua `Shaped`).
+  the prompt's macro, spoken line included when one is armed and fits beside
+  the bar line (the arming's own judgement: a bar press has no PreClick to
+  hold it at the last moment, so one said over a cast that then fails cannot be
+  taken back; a line too long for the bar's copy leaves it the cast alone),
+  written out of combat only, never during a bar press or with the macro
+  window open, only into the macro named Manners while its body is Manners'
+  own (the bar line first, then a shape Manners writes: at most one `/target
+  <name>`, one `/cast <spell>` with at most one spoken line after it, in a
+  channel of `ns.CHANNEL_COMMANDS` and with no `[`, or `/use item:<id>` with at
+  most one `/use 16|17`, and after a `/target` at most one hand-back, in that
+  order; `#` lines kept on top; Clicks.lua `Shaped`).
   The press is filed by Press.lua's OnBarClick against `Prompt.bar`, and only
   when the macro running (`GetRunningMacro`) is the Manners one; a body a
   session before left, found in a fight, is read (`Look` runs in combat,

@@ -2710,6 +2710,18 @@ function ns.RotatesBuffs()
 	return not ns.EXCLUSIVE_BUFFS[playerClass]
 end
 
+-- Whether a gamepad is switched on, by the client's word. Manners opens none
+-- of the client's own menus while it is (Options/Launcher.lua and the options
+-- window's menus): the client's gamepad code takes the menu's frames, which an
+-- addon filled, as tainted, and its protected SetPreferredGamepadInteractTarget
+-- is refused when the menu closes (issue #6). Asked at a click, never on a scan.
+function ns.GamepadActive()
+	local pad = _G.C_GamePad
+	local enabled = pad and pad.IsEnabled
+	if type(enabled) ~= "function" then return false end
+	return ns.safecall(enabled) == true
+end
+
 ---------------------------------------------------------------------------
 -- shared state
 ---------------------------------------------------------------------------
