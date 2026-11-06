@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.5
 
 - **Thorns for the tanks only.** On *Who to buff*, a druid's Thorns has a new
   choice, *Offer Thorns to*: **Everyone**, as before, or **Tanks only**. In a
