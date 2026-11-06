@@ -103,14 +103,11 @@ core20: the death watch asks about feigning once, as somebody goes down: Anna Ai
 core20: the death watch asks about feigning once, as somebody goes down: Bert Beside stood up and was not offered as just revived
 core20: the death watch asks about feigning once, as somebody goes down: Dora Deep stood up and was not offered as just revived
 core20: the spellbook is read without the deprecated calls: with the deprecated spellbook calls gone, a stranger is not offered
-core22: a Salvation-only paladin's favour from another raid group is on the prompt: SKIPPED -- Raider8 Stone is not offered Salvation as owed: nil
-core22: a Salvation-only paladin's favour from your own raid group is on the prompt: SKIPPED -- Raider3 Stone is not offered Salvation as owed: nil
 core22: a flagged raider a hunter feigning death holds the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider dead does not hold the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider in sight and alive holds the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider out of sight does not hold the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider somebody whose visibility the client will not give holds the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
-core22: a passer-by wearing another paladin's Salvation is offered wisdom: a passer-by wearing another paladin's Salvation was offered nil, not Wisdom
 core22: a raid's group cast in the ledger names no party or class: SKIPPED -- no group cast for the raid
 core22: a request in enUS with its own please and punctuation is heard: "\\194\\161int pls!" was not heard as a request for Arcane Intellect
 core22: a request in enUS with its own please and punctuation is heard: "\\194\\171int\\194\\187 pls" was not heard as a request for Arcane Intellect
@@ -196,16 +193,11 @@ core: the never-offer list lets the favour go in the ledger (shift-right-click):
 core: the never-offer list lets the favour go in the ledger (slash): SKIPPED -- no favour from Petra was filed
 data-audit: Prayer of Fortitude's first rank takes a Holy Candle (first rank, Holy Candles): a priest who knows Prayer of Fortitude and carries the candle its rank takes was never offered it
 data-audit: Prayer of Fortitude's first rank takes a Holy Candle (second rank, Sacred Candles): a priest who knows Prayer of Fortitude and carries the candle its rank takes was never offered it
-data-audit: Salvation is offered only to your party or raid: SKIPPED -- Bert in your party is not offered Salvation: nil
-data-audit: Salvation is offered only to your party or raid: Who to buff does not say Salvation reaches your group only:
-data-audit: Salvation is offered only to your party or raid: with Salvation pinned, People who buff me does not say it reaches your group: Offer a buff back to anyone who buffs you, in your group or not.
-data-audit: Salvation reaches a raider in another raid group: Raider7, in your raid but another raid group, was offered nil, not the Salvation that reaches him
 data-audit: Skip my own class skips a paladin who trains Kings on Forever: SKIPPED -- a level 60 paladin is offered false with the option off
 data-audit: Skip my own class skips a priest who trains Divine Spirit on Forever: SKIPPED -- a level 60 priest is offered false with the option off
 data-audit: a Fear Ward or a Soulstone from somebody is a favour: Anna's Fear Ward was taken for a stray proc: no 'buffed you' line, no debt, no /thank
 data-audit: a Fear Ward or a Soulstone from somebody is a favour: Bert's Soulstone was taken for a stray proc: no 'buffed you' line, no debt, no /thank
 data-audit: a Fear Ward or a Soulstone from somebody is a favour: Fear Ward, Soulstone, Water Walking or Detect Invisibility is not a class buff
-data-audit: a passer-by wearing another paladin's Might and Kings is offered Light: a passer-by wearing another paladin's Might and Kings was offered nil, not Light: Salvation is refused outside your group, and he never gets the Light you could give
 data-audit: on Forever a raider flagged in any raid group holds the group cast back: SKIPPED -- no group cast for the raid with nobody flagged
 data-audit: on Forever one group spell covers everybody in the raid: two missing it in each of two raid groups were offered 0 group casts and 9 single ones, where one Arcane Brilliance covers all four on Forever
 data-audit: somebody breathing water from a shaman is not offered Unending Breath: SKIPPED -- Bert, breathing no water, is not offered Unending Breath

@@ -24,6 +24,11 @@ local function noErrors(scenario, ns)
 	end
 end
 
+-- A name as the queue files it: Forever's two-part names, Classic Era's first.
+local function filed(first, last)
+	return Mock.surnames and (first .. " " .. last) or first
+end
+
 local function flat(text) return (tostring(text):gsub("\n", " / ")) end
 
 -- One scenario: the mock reset, `before()` run on it, `units` named, the addon
@@ -116,9 +121,9 @@ for _, case in ipairs({
 		else
 			Mock.held = {}
 		end
-		if how.owed then H.owe(ns, "Anna Aim") end
+		if how.owed then H.owe(ns, filed("Anna", "Aim")) end
 		ns.ForgetUnitAuras(ns.plain(UnitGUID("nameplate1")))
-		local entry = H.inQueue(ns)["Anna Aim"]
+		local entry = H.inQueue(ns)[filed("Anna", "Aim")]
 		local got = entry and entry.buff and entry.buff.key or nil
 		if got ~= want then
 			if want then
@@ -129,6 +134,8 @@ for _, case in ipairs({
 			end
 		end
 	end, function()
+		-- Classic Era's paladin: Forever deleted Salvation in build 1.60.1.70790.
+		Mock.setFlavour("vanilla")
 		Mock.class = "PALADIN"
 		knowing({ SALVATION, GREATER_SALVATION, MIGHT, WISDOM })
 	end)
@@ -142,8 +149,8 @@ end
 for _, case in ipairs({ { "another raid group", "raid8" }, { "your own raid group", "raid3" } }) do
 	local where, token = case[1], case[2]
 	local scenario = "core22: a Salvation-only paladin's favour from " .. where .. " is on the prompt"
-	local name = "Raider" .. token:match("%d+") .. " Stone"
 	run(scenario, raidNames(), function(ns)
+		local name = filed("Raider" .. token:match("%d+"), "Stone")
 		H.freshPrompt(ns, scenario)
 		local p = ns.db.profile
 		p.buff.choice = "salvation"
@@ -185,6 +192,7 @@ for _, case in ipairs({ { "another raid group", "raid8" }, { "your own raid grou
 			fail(scenario, "the row does not say Salvation reaches your party or raid: " .. flat(tip))
 		end
 	end, function()
+		Mock.setFlavour("vanilla")
 		Mock.class = "PALADIN"
 		Mock.raid = { size = 10, player = 1 }
 		knowing({ SALVATION, MIGHT, WISDOM })

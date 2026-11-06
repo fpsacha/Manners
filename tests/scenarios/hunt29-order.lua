@@ -18,7 +18,7 @@ local fail, load = H.fail, H.load
 local SYMBOL_OF_KINGS = 21177
 
 -- Kings is third in the list on these, and Wisdom first.
-local CLIENTS = { "vanilla", "tbc", "camelot" }
+local CLIENTS = { "vanilla", "tbc" }
 
 -- The four others in a party of five.
 local PARTY = {
@@ -720,7 +720,7 @@ end
 -- ------------------------------------------------------------------ the repair
 do
 	local scenario = "hunt29-order: a damaged order is repaired"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		local profile = ns.db.profile
 		local function repaired(list, kingsFirst)
@@ -733,12 +733,12 @@ do
 		-- the buffs left out follow in Automatic's order, Kings first with the
 		-- switch on.
 		local got = repaired({ "light", "bogus", "light", 42, "might", false }, true)
-		if keys(got) ~= "light, might, kings, wisdom, salvation" then
+		if keys(got) ~= "light, might, kings, wisdom, salvation, sanctuary" then
 			fail(scenario, "{light, bogus, light, 42, might, false} was repaired to " .. keys(got)
 				.. ", not light, might, kings, wisdom, salvation")
 		end
 		got = repaired({ "light", "bogus", "light", 42, "might", false }, false)
-		if keys(got) ~= "light, might, wisdom, kings, salvation" then
+		if keys(got) ~= "light, might, wisdom, kings, salvation, sanctuary" then
 			fail(scenario, "with Kings first off the same order was repaired to " .. keys(got)
 				.. ", not light, might, wisdom, kings, salvation")
 		end
@@ -772,7 +772,7 @@ do
 		if keys(profile.buff.order.PRIEST) ~= "spirit, fortitude, shadow" then
 			fail(scenario, "the priest's order was repaired to " .. keys(profile.buff.order.PRIEST))
 		end
-		if keys(profile.buff.order.PALADIN) ~= "might, kings, wisdom, salvation, light" then
+		if keys(profile.buff.order.PALADIN) ~= "might, kings, wisdom, salvation, light, sanctuary" then
 			fail(scenario, "the paladin's order was repaired to " .. keys(profile.buff.order.PALADIN))
 		end
 		-- The order table itself, not a table.
@@ -784,7 +784,7 @@ do
 			end
 		end
 		-- One that is sound is left alone: the same table, not a copy.
-		local sound = { "might", "kings", "wisdom", "salvation", "light" }
+		local sound = { "might", "kings", "wisdom", "salvation", "light", "sanctuary" }
 		profile.buff.order = { PALADIN = sound }
 		ns.ClampSettings()
 		if profile.buff.order.PALADIN ~= sound then fail(scenario, "a sound order was rewritten") end
@@ -819,7 +819,7 @@ end
 do
 	local scenario = "hunt29-order: the controls are for a class with a choice and no spell pinned"
 	local five = { "orderHeader", "orderNote", "orderPick", "orderUp", "orderDown", "orderReset" }
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		for _, key in ipairs({ "orderHeader", "orderNote", "orderPick", "orderUp", "orderDown" }) do
 			local c = control(ns, key)
@@ -886,7 +886,7 @@ end
 
 do
 	local scenario = "hunt29-order: the controls are placed once, in the window's Who to buff"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		ns.OpenOptions("who")
 		local UI = ns.WindowUI
@@ -911,7 +911,7 @@ end
 
 do
 	local scenario = "hunt29-order: the page's reset takes the order away"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		ns.db.profile.buff.kingsFirst = false
 		ns.MoveBuff("light", -1)
@@ -927,7 +927,7 @@ end
 
 do
 	local scenario = "hunt29-order: a new profile has no order, and the default is a table for the classes"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		local default = ns.defaults.profile.buff.order
 		if type(default) ~= "table" or next(default) ~= nil then
@@ -957,7 +957,7 @@ end
 -- ------------------------------------------------ an order nobody has repaired
 do
 	local scenario = "hunt29-order: the walk reads an order nobody has repaired"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		-- A key twice, one no client has, a number, a key only Classic Era has
 		-- and three of this client's buffs left out: each of this client's buffs
@@ -965,7 +965,7 @@ do
 		-- order. Nothing throws, and nothing is rewritten.
 		local given = { "light", "bogus", "light", 42, "sanctuary", "might" }
 		setOrder(ns, given)
-		if keys(ns.WalkBuffs()) ~= "light, might, wisdom, kings, salvation" then
+		if keys(ns.WalkBuffs()) ~= "light, sanctuary, might, wisdom, kings, salvation" then
 			fail(scenario, "the walk is " .. keys(ns.WalkBuffs()) .. ", not light, might, wisdom, kings, salvation")
 		end
 		if castable(ns) ~= "light, might, wisdom, kings, salvation" then
@@ -983,7 +983,7 @@ end
 
 do
 	local scenario = "hunt29-order: a pinned spell wins over an order"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		setOrder(ns, { "wisdom", "kings", "might", "salvation", "light" })
 		ns.db.profile.buff.choice = "might"
@@ -1003,13 +1003,13 @@ end
 -- ----------------------------------------------------- read, not rebuilt, per scan
 do
 	local scenario = "hunt29-order: the ordered list is read on every scan and rebuilt only when the order changes"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		local base = ns.WalkBuffs()
 		if base ~= ns.GetClassBuffs("PALADIN") then fail(scenario, "with no order the walk is not the class's own list") end
 		ns.MoveBuff("light", -1)
 		local first = ns.WalkBuffs()
-		if keys(first) ~= "kings, wisdom, might, light, salvation" then
+		if keys(first) ~= "kings, wisdom, might, light, salvation, sanctuary" then
 			fail(scenario, "the ordered list is " .. keys(first))
 		end
 		-- Scan after scan: the same table, not one built each time.
@@ -1019,11 +1019,11 @@ do
 		-- wiping the table -- it is read again at the next scan.
 		local saved = ns.BuffOrder()
 		saved[1], saved[2] = saved[2], saved[1]
-		if keys(ns.WalkBuffs()) ~= "wisdom, kings, might, light, salvation" then
+		if keys(ns.WalkBuffs()) ~= "wisdom, kings, might, light, salvation, sanctuary" then
 			fail(scenario, "an order edited in place is still read as " .. keys(ns.WalkBuffs()))
 		end
 		saved[#saved] = nil
-		if keys(ns.WalkBuffs()) ~= "wisdom, kings, might, light, salvation" then
+		if keys(ns.WalkBuffs()) ~= "wisdom, kings, might, light, salvation, sanctuary" then
 			fail(scenario, "an order cut short is read as " .. keys(ns.WalkBuffs()) .. ", with its missing buff after it")
 		end
 		wipe(saved)
@@ -1051,7 +1051,7 @@ end
 -- ------------------------------------------------------------------ in a fight
 do
 	local scenario = "hunt29-order: a change made in a fight is taken, and the next scan walks the new order"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		ns.OpenOptions("who")
 		local UI = ns.WindowUI
@@ -1065,7 +1065,7 @@ do
 		local ok, err = pcall(function() row.lines[3].up:GetScript("OnClick")(row.lines[3].up, "LeftButton", false) end)
 		Mock.inCombat = false
 		if not ok then fail(scenario, "an arrow pressed in a fight threw: " .. tostring(err)) end
-		if keys(ns.BuffOrder()) ~= "kings, might, wisdom, salvation, light" then
+		if keys(ns.BuffOrder()) ~= "kings, might, wisdom, salvation, light, sanctuary" then
 			fail(scenario, "the order after a press in a fight is " .. keys(ns.BuffOrder()))
 		end
 		ns.addon:Tick()
@@ -1156,7 +1156,7 @@ end
 do
 	local scenario = "hunt29-order: window: the first line the walk can use is set apart, the others are not"
 	-- Light is not learned: the first line, Kings, is what a bare person is offered.
-	local env = { client = "camelot", classes = THREE, keys = { "wisdom", "might", "kings", "salvation" } }
+	local env = { client = "vanilla", classes = THREE, keys = { "wisdom", "might", "kings", "salvation" } }
 	session(scenario, env, function(ns)
 		local row = windowOrder(ns)
 		if not row then
@@ -1198,7 +1198,7 @@ end
 
 do
 	local scenario = "hunt29-order: window: no arrow up on the first line and none down on the last"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		local row = windowOrder(ns)
 		if not row then
@@ -1227,7 +1227,7 @@ end
 
 do
 	local scenario = "hunt29-order: window: Back to Automatic is there only while the order differs"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		local row, UI = windowOrder(ns)
 		if not row then
@@ -1263,7 +1263,7 @@ end
 
 do
 	local scenario = "hunt29-order: window: a press repaints the list and the page at once"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		local row, UI = windowOrder(ns)
 		if not row then
@@ -1324,7 +1324,7 @@ do
 		local UI = ns.WindowUI
 		if UI.RowShown("who.orderPick") then fail(scenario, "a mage is shown the buff order") end
 	end)
-	local env2 = { client = "camelot", classes = THREE }
+	local env2 = { client = "vanilla", classes = THREE }
 	session(scenario, env2, function(ns)
 		ns.db.profile.buff.choice = "might"
 		ns.OpenOptions("who")
@@ -1339,12 +1339,12 @@ end
 -- ----------------------------------------- the old dialog: a dropdown and buttons
 do
 	local scenario = "hunt29-order: the old dialog's dropdown and buttons move the picked buff"
-	local env = { client = "camelot", classes = THREE }
+	local env = { client = "vanilla", classes = THREE }
 	session(scenario, env, function(ns)
 		local pick, up, down = control(ns, "orderPick"), control(ns, "orderUp"), control(ns, "orderDown")
 		local values = pick.values()
 		local sorting = pick.sorting()
-		if keys(sorting) ~= AUTO_FIRST then fail(scenario, "the dropdown lists " .. keys(sorting) .. ", not Automatic's order") end
+		if keys(sorting) ~= AUTO_FIRST .. ", sanctuary" then fail(scenario, "the dropdown lists " .. keys(sorting) .. ", not Automatic's order") end
 		for _, key in ipairs(sorting) do
 			if not values[key] then fail(scenario, "the dropdown has no name for " .. key) end
 		end
@@ -1355,11 +1355,11 @@ do
 		up.func()
 		-- The one picked stays picked, so it goes on up.
 		if pick.get() ~= "light" then fail(scenario, "the pick moved off Light with it: " .. tostring(pick.get())) end
-		if keys(ns.BuffOrder()) ~= "kings, wisdom, light, might, salvation" then
+		if keys(ns.BuffOrder()) ~= "kings, wisdom, light, might, salvation, sanctuary" then
 			fail(scenario, "two steps up gave " .. keys(ns.BuffOrder()))
 		end
 		down.func()
-		if keys(ns.BuffOrder()) ~= "kings, wisdom, might, light, salvation" then
+		if keys(ns.BuffOrder()) ~= "kings, wisdom, might, light, salvation, sanctuary" then
 			fail(scenario, "one step down gave " .. keys(ns.BuffOrder()))
 		end
 		-- A pick that is not on the list reads as the first.

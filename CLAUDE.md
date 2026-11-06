@@ -472,13 +472,16 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   (`https://wago.tools/db2/<Table>/csv?build=<build>`): SpellName, Spell,
   SpellEffect, SpellLevels, SpellReagents, SpellMisc, SkillLineAbility,
   ItemSparse, ChrRaces, ... The builds cited in the code: Forever
-  1.60.1.70532 (read at 1.60.1.70178 until hunt 34, and checked again against
-  70450 and 70532), Classic Era 1.15.9.70003, TBC 2.5.6.69795, Mists
+  1.60.1.70790 (read at 1.60.1.70178 until hunt 34, and checked again against
+  70450, 70532 and 70790), Classic Era 1.15.9.70003, TBC 2.5.6.69795, Mists
   5.5.4.70032, retail 12.1.0.69933. Forever's 1.60.1.70450 added three weapon
   items (`since` in `Buffs.lua`'s `ENHANCEMENTS`), changed Battle Shout's target
   from the caster's party (20) to the caster's raid (56, the radius unchanged),
   so Forever's set has no `partyIsSubgroup`, and renamed Salvation to
-  "Salvation" and "Mass Salvation" (the audit takes either name). The audits
+  "Salvation" and "Mass Salvation" (the audit takes either name). Build 1.60.1.70790 then deleted Salvation
+  and Blessing of Light outright (ids 1038, 25895, 19977-19979, 25890), so
+  Forever's paladin has Wisdom, Might and Kings only (`GONE` in `Buffs.lua`);
+  Classic Era and Burning Crusade keep both, and the audit reads Forever at 70790. The audits
   read the build per client from this line.
 - **Wowhead** per client (Classic, TBC Classic, MoP Classic, retail, and a
   Forever database) for tooltips, levels and "Requires" lines.

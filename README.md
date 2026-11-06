@@ -870,7 +870,7 @@ your client runs in. Slash commands are English in all of them.
 | Mage | Arcane Intellect |
 | Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection |
 | Druid | Mark of the Wild, Thorns |
-| Paladin | Wisdom, Might, Kings, Salvation (your party or raid only), Light; Sanctuary on Classic Era |
+| Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade |
 | Warlock | Unending Breath |
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever) |
 
@@ -883,7 +883,7 @@ A paladin who has learned Blessing of Kings offers it to everybody first, ahead
 of Might and Wisdom (*Blessing of Kings first* on the *Who to buff* page, on by
 default; Mists already puts Kings first). Somebody who already wears Kings from
 another paladin is offered the blessing the list would have given them (Might,
-or Wisdom for those with mana, then Salvation and Light), and nobody is changed
+or Wisdom for those with mana, then Salvation and Light where the client has them), and nobody is changed
 from one of your blessings to another: anybody wearing one of yours is left
 alone, so Kings is never put over your Might and your Might never over Kings.
 

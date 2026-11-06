@@ -1534,13 +1534,16 @@ end
 -- Forever's own: the vanilla tables less what its client deleted or moved,
 -- copied entry by entry, since Classic Era still needs them as they are and
 -- BuildBuffLookups writes class, order and auraIds onto the chosen set's.
--- Blessing of Sanctuary (20911-20914, Greater 25899) has no SpellName there;
--- Kings and Divine Spirit are trained there (SpellLevels 20, and 30 to 60),
--- in neither talent tree. A real table rather than an __index, because the
+-- Blessing of Sanctuary (20911-20914, Greater 25899) has no SpellName there,
+-- and since build 1.60.1.70790 neither have Blessing of Salvation (1038,
+-- Greater 25895) or Blessing of Light (19977-19979, Greater 25890), which that
+-- build deleted: a paladin there was told Manners was wrong about spells the
+-- game no longer has. Kings and Divine Spirit are trained there (SpellLevels
+-- 20, and 30 to 60), in neither talent tree. A real table rather than an __index, because the
 -- lookups walk ns.BUFFS with pairs.
 local CAMELOT = {}
 do
-	local GONE = { sanctuary = true }
+	local GONE = { sanctuary = true, salvation = true, light = true }
 	local TRAINED = { kings = true, spirit = true }
 	for class, list in pairs(VANILLA) do
 		local copy = {}
@@ -2235,10 +2238,6 @@ do
 		{ 3600, 25916, 25782 }, -- Greater Blessing of Might (1 h)
 		{ 3600, 20217 }, -- Blessing of Kings (1 h)
 		{ 3600, 25898 }, -- Greater Blessing of Kings (1 h)
-		{ 3600, 1038 }, -- Blessing of Salvation (1 h)
-		{ 3600, 25895 }, -- Greater Blessing of Salvation (1 h)
-		{ 3600, 19979, 19978, 19977 }, -- Blessing of Light (1 h)
-		{ 3600, 25890 }, -- Greater Blessing of Light (1 h)
 		{ 3600, 10938, 10937, 2791, 1245, 1244, 1243 }, -- Power Word: Fortitude (1 h)
 		{ 3600, 21564, 21562 }, -- Prayer of Fortitude (1 h)
 		{ 3600, 27841, 14819, 14818, 14752 }, -- Divine Spirit (1 h)

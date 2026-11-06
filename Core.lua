@@ -1436,10 +1436,15 @@ do
 	end
 
 	-- Our own cast on them, read as ours, with more left than a top-up waits
-	-- for: a debt (opts.paidUp) is not repaid by refreshing it.
+	-- for: a debt (opts.paidUp) is not repaid by refreshing it. Read as ours
+	-- when the client names us as its caster, or, where it names nobody (WoW
+	-- Forever, on another player's aura), when it is the cast Manners saw land
+	-- on them and no newer than that (ns.GaveSince).
 	local function Fresh(opts, mine, remaining, buff, seconds)
-		return opts.paidUp ~= nil and mine == true and type(remaining) == "number"
-			and remaining > (ns.LeadFor(opts, Length(buff, seconds)))
+		if opts.paidUp == nil or mine == false or type(remaining) ~= "number" then return false end
+		local length = Length(buff, seconds)
+		if mine == nil and not ns.GaveSince(opts.name, buff.key, remaining, length) then return false end
+		return remaining > (ns.LeadFor(opts, length))
 	end
 
 	-- The candidate list a pin reduces the walk to, reused for every call.

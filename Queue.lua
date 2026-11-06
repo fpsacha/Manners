@@ -39,6 +39,39 @@ local refusals = {}
 
 ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 
+-- What landed on whom, and when: a cast the game confirmed, kept so that a buff
+-- somebody wears with nobody named as its caster (WoW Forever names no caster
+-- on another player's aura) can still be told for ours. Memory only, bounded.
+do
+	local gaveAt, gaveCount = {}, 0
+
+	function ns.NoteGave(name, buffKey)
+		if not name or not buffKey then return end
+		local entry = gaveAt[name]
+		if not entry then
+			if gaveCount >= 300 then
+				wipe(gaveAt)
+				gaveCount = 0
+			end
+			gaveCount = gaveCount + 1
+			entry = {}
+			gaveAt[name] = entry
+		end
+		entry.key, entry.at = buffKey, GetTime()
+	end
+
+	-- Whether what they wear of `buffKey`, with `remaining` seconds on a buff
+	-- that lasts `length`, can be the cast noted for them: that cast ran for as
+	-- long as `length` and no more, so a buff that runs longer was cast again
+	-- since, by somebody else (a few seconds are allowed for the clocks).
+	function ns.GaveSince(name, buffKey, remaining, length)
+		local entry = name and gaveAt[name]
+		if not entry or entry.key ~= buffKey then return false end
+		if type(remaining) ~= "number" or type(length) ~= "number" then return false end
+		return entry.at + length + 5 >= GetTime() + remaining
+	end
+end
+
 ns.owed, ns.tried, ns.refusals = owed, tried, refusals
 
 -- When a debt really runs out: the stamp it was filed with, or its age against

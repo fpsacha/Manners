@@ -107,7 +107,14 @@ local TABLE = {
 	{ "PALADIN", ALL, function(scenario, ns, UI)
 		ns.OpenOptions("who")
 		for _, key in ipairs({ "wisdom", "might", "kings", "salvation", "light" }) do
-			if not UI.RowShown("who.offer_" .. key) then fail(scenario, "a paladin has no switch for " .. key) end
+			-- Forever deleted Salvation and Light in build 1.60.1.70790: no switch
+			-- for a spell the game does not have.
+			local gone = ns.Flavour.flavour == "camelot" and (key == "salvation" or key == "light")
+			if gone then
+				if UI.Where("who.offer_" .. key) then fail(scenario, "a Forever paladin has a switch for " .. key) end
+			elseif not UI.RowShown("who.offer_" .. key) then
+				fail(scenario, "a paladin has no switch for " .. key)
+			end
 		end
 	end },
 	{ "WARRIOR", ALL, function(scenario, ns, UI)

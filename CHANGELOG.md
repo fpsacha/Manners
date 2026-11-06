@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **WoW Forever: no more "missing spells" for a paladin.** Forever's latest
+  build removed Blessing of Salvation and Blessing of Light, and Manners kept
+  naming their spell ids as ones the game did not know. A Forever paladin is now
+  offered Wisdom, Might and Kings only, with no switches for the two that are
+  gone. Classic Era and Burning Crusade keep both.
+- **A favour you already repaid is not asked of you again.** After you buffed
+  somebody and they buffed you back, Manners could prompt you to buff them once
+  more, from the prompt as well as the button. On WoW Forever the game does not
+  say who cast a buff somebody else is wearing, so your own Might on them read
+  as nobody's. Manners now remembers the cast it saw land and counts a buff of
+  the same kind that runs no longer than that cast as yours: with plenty of it
+  left, the favour is repaid and nothing more is offered. A buff somebody else
+  cast, or cast again since, is still offered back as before.
+
 ## 1.11.3
 
 - **A shaman's weapon imbues are offered.** Rockbiter, Flametongue, Frostbrand and

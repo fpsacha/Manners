@@ -133,8 +133,8 @@ mutate("Queue.lua",
        expect="a stranger who buffed you, wearing your Fortitude with forty minutes left, was offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\tand remaining > (ns.LeadFor(opts, Length(buff, seconds)))\n",
-       "\t\t\tand remaining > 0\n",
+       "\t\treturn remaining > (ns.LeadFor(opts, length))\n",
+       "\t\treturn remaining > 0\n",
        "whatif: a cast running out taken as paid",
        expect="wearing your Fortitude with two minutes left, was not offered it", script=S)
 

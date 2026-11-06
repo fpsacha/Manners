@@ -158,16 +158,11 @@ core20: the death watch asks about feigning once, as somebody goes down: Anna Ai
 core20: the death watch asks about feigning once, as somebody goes down: Bert Beside stood up and was not offered as just revived
 core20: the death watch asks about feigning once, as somebody goes down: Dora Deep stood up and was not offered as just revived
 core20: the spellbook is read without the deprecated calls: with the deprecated spellbook calls gone, a stranger is not offered
-core22: a Salvation-only paladin's favour from another raid group is on the prompt: SKIPPED -- Raider8 Stone is not offered Salvation as owed: nil
-core22: a Salvation-only paladin's favour from your own raid group is on the prompt: SKIPPED -- Raider3 Stone is not offered Salvation as owed: nil
 core22: a flagged raider a hunter feigning death holds the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider dead does not hold the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider in sight and alive holds the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider out of sight does not hold the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider somebody whose visibility the client will not give holds the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
-core22: a passer-by wearing another paladin's Salvation is offered wisdom: a passer-by wearing another paladin's Salvation was offered nil, not Wisdom
-core22: a passer-by wearing your Salvation with half an hour left, and owed is offered nothing: a passer-by wearing your Salvation with half an hour left, and owed was offered wisdom, and the press would replace it: holding any one of your blessings counts as covered
-core22: a passer-by wearing your Salvation, and owed is offered nothing: a passer-by wearing your Salvation, and owed was offered wisdom, and the press would replace it: holding any one of your blessings counts as covered
 core22: a raid's group cast in the ledger names no party or class: SKIPPED -- no group cast for the raid
 core22: a request in enUS with its own please and punctuation is heard: "\\194\\161int pls!" was not heard as a request for Arcane Intellect
 core22: a request in enUS with its own please and punctuation is heard: "\\194\\171int\\194\\187 pls" was not heard as a request for Arcane Intellect
@@ -252,25 +247,18 @@ core: the never-offer list lets the favour go in the ledger (call): SKIPPED -- n
 core: the never-offer list lets the favour go in the ledger (shift-right-click): SKIPPED -- no favour from Petra was filed
 core: the never-offer list lets the favour go in the ledger (slash): SKIPPED -- no favour from Petra was filed
 data-audit: Omen of Clarity is a druid's own buff only on Classic Era (Forever): a Forever druid was offered Omen of Clarity, a passive there with nothing to cast: the press casts nothing, on every quiet scan
-data-audit: Salvation is offered only to your party or raid: SKIPPED -- Bert in your party is not offered Salvation: nil
-data-audit: Salvation reaches a raider in another raid group: Raider7, in your raid but another raid group, was offered nil, not the Salvation that reaches him
-data-audit: Skip my own class skips a paladin who trains Kings on Forever: SKIPPED -- a level 60 paladin is offered false with the option off
-data-audit: Skip my own class skips a priest who trains Divine Spirit on Forever: SKIPPED -- a level 60 priest is offered false with the option off
+data-audit: Skip my own class skips a paladin who trains Kings on Forever: a level 60 paladin with Skip my own class on was offered kings for a level 60 paladin, who trains it at 20 on Forever
+data-audit: Skip my own class skips a priest who trains Divine Spirit on Forever: a level 60 priest with Skip my own class on was offered spirit for a level 60 priest, who trains it at 30 to 60 on Forever
 data-audit: a Fear Ward or a Soulstone from somebody is a favour: Anna's Fear Ward was taken for a stray proc: no 'buffed you' line, no debt, no /thank
 data-audit: a Fear Ward or a Soulstone from somebody is a favour: Bert's Soulstone was taken for a stray proc: no 'buffed you' line, no debt, no /thank
 data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown: a Forever paladin is shown Blessing of Sanctuary, which no paladin there can learn
 data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown: every Forever paladin is told in red that Manners has the wrong spell ids: sanctuary 20914, sanctuary 20913, sanctuary 20912, sanctuary 20911, sanctuary 25899
-data-audit: a passer-by wearing another paladin's Might and Kings is offered Light: a passer-by wearing another paladin's Might and Kings was offered nil, not Light: Salvation is refused outside your group, and he never gets the Light you could give
 data-audit: on Forever a raider flagged in any raid group holds the group cast back: /manners debug does not say why the raid gets no group cast: |cffffffffRaider4|r: flagged for PvP -- buffing them would flag you
 data-audit: on Forever a raider flagged in any raid group holds the group cast back: a press would cast the group spell over Raider4, flagged for PvP in another raid group, and flag you: on Forever it lands on them too
 data-audit: on Forever a raider flagged in any raid group holds the group cast back: a raider flagged for PvP in another raid group did not hold back the group cast, which lands on them on Forever and would flag you
 data-audit: on Forever one group spell covers everybody in the raid: two missing it in each of two raid groups were offered 0 group casts and 4 single ones, where one Arcane Brilliance covers all four on Forever
-data-audit: somebody breathing water from a shaman is not offered Unending Breath: SKIPPED -- Bert, breathing no water, is not offered Unending Breath
 data-audit: the group buff settings say what one cast counts (Forever): Forever's Arcane Brilliance is taken to reach only one raid group
 data-audit: the group buff settings say what one cast counts (Forever): the group buff settings do not say they count your party or raid: Cast one Arcane Brilliance when enough of one party need it and you carry the reagent. / How many in one party must be missing it first.
-data-audit: ub asks a warlock for Unending Breath: "can i get ub" in CHAT_MSG_WHISPER did not put Anna on the prompt for Unending Breath
-data-audit: ub asks a warlock for Unending Breath: "ub pls" in CHAT_MSG_PARTY did not put Anna on the prompt for Unending Breath
-data-audit: ub asks a warlock for Unending Breath: "ub?" in CHAT_MSG_SAY did not put Anna on the prompt for Unending Breath
 debug names the client for a class with nothing to cast: never named the flavour: client: |cfffffffftbc/classic interface=20506 build=2.5.6 project=5|r
 debug names the client for a class with nothing to cast: never named the interface number: client: |cfffffffftbc/classic interface=20506 build=2.5.6 project=5|r
 debug says when favours are not being watched (both on): SKIPPED -- the control favour is not listed: client: |cfffffffftbc/classic interface=20506 build=2.5.6 project=5|r

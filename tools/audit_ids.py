@@ -88,7 +88,7 @@ csv.field_size_limit(1 << 28)
 FLAVOURS = ("camelot", "vanilla", "tbc", "mists", "mainline")
 # The build per client comes from CLAUDE.md ("The builds cited in the code"), by
 # tools/clients_watch.py's reading of it; these stand in if that line moves.
-BUILDS = {"camelot": "1.60.1.70532", "vanilla": "1.15.9.70003", "tbc": "2.5.6.69795",
+BUILDS = {"camelot": "1.60.1.70790", "vanilla": "1.15.9.70003", "tbc": "2.5.6.69795",
           "mists": "5.5.4.70032", "mainline": "12.1.0.69933"}
 
 TABLES = ("SpellName", "Spell", "SpellMisc", "SpellEffect", "SpellLevels", "SkillLineAbility",

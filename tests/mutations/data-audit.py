@@ -81,7 +81,7 @@ mutate("Buffs.lua",
 
 # ------------------------------------------------ Blessing of Sanctuary is gone
 mutate("Buffs.lua",
-       "\tlocal GONE = { sanctuary = true }\n",
+       "\tlocal GONE = { sanctuary = true, salvation = true, light = true }\n",
        "\tlocal GONE = {}\n",
        "data-audit: Sanctuary listed on Forever",
        expect="data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown", script=S)

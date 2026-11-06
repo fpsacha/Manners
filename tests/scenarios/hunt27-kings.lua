@@ -219,7 +219,8 @@ for _, client in ipairs(CLIENTS) do
 	end
 
 	-- ------------------------------------------- Salvation and Light follow
-	for _, first in ipairs({ true, false }) do
+	-- (Not on Forever, which deleted both in build 1.60.1.70790.)
+	for _, first in ipairs(client == "camelot" and {} or { true, false }) do
 		local scenario = "hunt27-kings: " .. client .. ": Salvation and Light follow as they did"
 			.. (first and "" or " (switch off)")
 		local env = { client = client, classes = THREE }

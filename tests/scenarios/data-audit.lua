@@ -7,7 +7,8 @@
 -- - Prayer of Fortitude's first rank takes a Holy Candle.
 -- - Omen of Clarity is a passive on Forever: nothing to cast.
 -- - Kings and Divine Spirit are trained on Forever, not talents.
--- - Blessing of Sanctuary is gone from Forever's client.
+-- - Blessing of Sanctuary is gone from Forever's client, and since build
+--   1.60.1.70790 Blessing of Salvation and Blessing of Light are too.
 -- - Blessing of Salvation reaches only your party or raid (target 57).
 -- - A Fear Ward, a Soulstone and the like are favours.
 -- - A shaman's Water Breathing counts as Unending Breath.
@@ -158,6 +159,10 @@ local function with(scenario, opts, body)
 	for _, name in ipairs(TOUCHED) do rawset(_G, name, saved[name]) end
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+local function filed(first, last)
+	return Mock.surnames and (first .. " " .. last) or first
 end
 
 -- The queue as it stands: the group casts in it, and every entry by name.
@@ -376,7 +381,7 @@ local function sameClass(scenario, class, known, level, on)
 		end,
 	}, function(ns)
 		local _, byName = queue(ns)
-		result = key(byName["Anna Aim"]) or false
+		result = key(byName[filed("Anna", "Aim")]) or false
 	end)
 	return result
 end
@@ -430,13 +435,14 @@ do
 end
 
 -- ------------------------------------------------------------------ 8
--- Blessing of Salvation can be cast only on somebody in your party or raid
+-- Blessing of Salvation (Classic Era's: Forever deleted it and Light in build
+-- 1.60.1.70790) can be cast only on somebody in your party or raid
 -- (target 57). Pinned, it is offered to Bert in your party and never to Anna
 -- passing by, whom the game refuses it on.
 do
 	local scenario = "data-audit: Salvation is offered only to your party or raid"
 	with(scenario, {
-		class = "PALADIN", groupSize = 2, inParty = { party1 = true },
+		flavour = "vanilla", class = "PALADIN", groupSize = 2, inParty = { party1 = true },
 		people = { nameplate1 = { "Anna", "Aim" }, party1 = { "Bert", "Beside" } },
 		known = join(WISDOM, MIGHT, SALVATION),
 		-- The party is the subgroup where a shout is held to it (Classic Era's;
@@ -445,10 +451,10 @@ do
 		setup = function(ns) ns.db.profile.buff.choice = "salvation" ns.PARTY_IS_SUBGROUP = true end,
 	}, function(ns)
 		local _, byName = queue(ns)
-		if key(byName["Bert Beside"]) ~= "salvation" then
-			fail(scenario, "SKIPPED -- Bert in your party is not offered Salvation: " .. tostring(key(byName["Bert Beside"])))
+		if key(byName[filed("Bert", "Beside")]) ~= "salvation" then
+			fail(scenario, "SKIPPED -- Bert in your party is not offered Salvation: " .. tostring(key(byName[filed("Bert", "Beside")])))
 		end
-		if byName["Anna Aim"] then
+		if byName[filed("Anna", "Aim")] then
 			fail(scenario, "a passer-by outside your group was offered Blessing of Salvation, which the game refuses on "
 				.. "anybody outside your party or raid: a press that fails, and backs off from her")
 		end
@@ -474,15 +480,15 @@ end
 do
 	local scenario = "data-audit: Salvation reaches a raider in another raid group"
 	with(scenario, {
-		class = "PALADIN", raid = { size = 10, player = 1 }, people = raidNames(),
+		flavour = "vanilla", class = "PALADIN", raid = { size = 10, player = 1 }, people = raidNames(),
 		known = join(WISDOM, MIGHT, SALVATION),
 		-- Where a shout is held to the subgroup (Classic Era's), as above.
 		setup = function(ns) ns.db.profile.buff.choice = "salvation" ns.PARTY_IS_SUBGROUP = true end,
 	}, function(ns)
 		local _, byName = queue(ns)
-		if key(byName["Raider7 Stone"]) ~= "salvation" then
+		if key(byName[filed("Raider7", "Stone")]) ~= "salvation" then
 			fail(scenario, "Raider7, in your raid but another raid group, was offered "
-				.. tostring(key(byName["Raider7 Stone"])) .. ", not the Salvation that reaches him")
+				.. tostring(key(byName[filed("Raider7", "Stone")])) .. ", not the Salvation that reaches him")
 		end
 	end)
 end
@@ -495,13 +501,13 @@ do
 	local theirs = {}
 	for _, id in ipairs({ MIGHT[1], KINGS }) do theirs[id] = "nameplate2" end
 	with(scenario, {
-		class = "PALADIN",
+		flavour = "vanilla", class = "PALADIN",
 		people = { nameplate1 = { "Anna", "Aim" } }, classes = { nameplate1 = "WARRIOR" },
 		known = join(WISDOM, MIGHT, KINGS, SALVATION, LIGHT),
 		held = { nameplate1 = theirs },
 	}, function(ns)
 		local _, byName = queue(ns)
-		local got = key(byName["Anna Aim"])
+		local got = key(byName[filed("Anna", "Aim")])
 		if got ~= "light" then
 			fail(scenario, "a passer-by wearing another paladin's Might and Kings was offered " .. tostring(got)
 				.. ", not Light: Salvation is refused outside your group, and he never gets the Light you could give")
@@ -546,10 +552,10 @@ do
 		held = { nameplate1 = { [WATER_BREATHING] = "nameplate2" } },
 	}, function(ns)
 		local _, byName = queue(ns)
-		if key(byName["Bert Beside"]) ~= "breath" then
+		if key(byName[filed("Bert", "Beside")]) ~= "breath" then
 			fail(scenario, "SKIPPED -- Bert, breathing no water, is not offered Unending Breath")
 		end
-		if byName["Anna Aim"] then
+		if byName[filed("Anna", "Aim")] then
 			fail(scenario, "Anna, already breathing water from a shaman's Water Breathing, was offered Unending Breath: "
 				.. "a wasted cast that does nothing for her")
 		end
@@ -579,7 +585,7 @@ do
 			ns.addon[case.event](ns.addon, case.event, case.text, "Anna Aim", "Common", "", "", "", 0, 0, "", 0, 1,
 				"Player-1-nameplate1")
 			local _, byName = queue(ns)
-			local anna = byName["Anna Aim"]
+			local anna = byName[filed("Anna", "Aim")]
 			if not (anna and anna.reason == "asked" and key(anna) == "breath") then
 				fail(scenario, ("%q in %s did not put Anna on the prompt for Unending Breath"):format(case.text,
 					case.event))

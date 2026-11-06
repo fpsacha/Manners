@@ -594,6 +594,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	if pending.buffKey and ns.RotatesBuffs() then
 		ns.lastGave[pending.name] = pending.buffKey
 	end
+	if not unheard then ns.NoteGave(pending.name, pending.buffKey) end
 
 	if not unheard then ns.SettleFavour(pending.name) end
 	if not unheard then ns.ServeRequest(pending.name, pending.buffKey) end

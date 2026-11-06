@@ -568,7 +568,9 @@ local CLASS_BUFFS = {
 	MAGE = { "intellect" },
 	PRIEST = { "fortitude", "spirit", "shadow" },
 	DRUID = { "motw", "thorns" },
-	-- No Sanctuary: Forever deleted it (Buffs.lua, CAMELOT).
+	-- No Sanctuary on Forever, which deleted it, nor Salvation and Light since
+	-- build 1.60.1.70790 (Buffs.lua, CAMELOT): those two are driven as
+	-- Classic Era's paladin below.
 	PALADIN = { "wisdom", "might", "kings", "salvation", "light" },
 	WARLOCK = { "breath" },
 	WARRIOR = { "battleshout" },
@@ -579,6 +581,7 @@ for class, keys in pairs(CLASS_BUFFS) do
 		local label = "cast path " .. class .. "/" .. key
 
 		Mock.reset()
+		if key == "salvation" or key == "light" then Mock.setFlavour("vanilla") end
 		Mock.class = class
 		-- Battle Shout is partyOnly and Salvation groupOnly, so their paths
 		-- only exist in a group. Everything else is tested solo, which is the
