@@ -508,7 +508,7 @@ local added = {
 		partyIsParty()
 		classes({ target = "WARRIOR", nameplate1 = "DRUID", nameplate2 = "ROGUE",
 			party1 = "PALADIN", nameplate3 = "ROGUE" })
-		know(ns, "PALADIN", { "wisdom", "might", "kings", "salvation", "light" })
+		know(ns, "PALADIN", { "wisdom", "might", "kings" })
 		boot(ns, { target = BRAM, nameplate1 = ELOWEN, nameplate2 = MARIBEL, party1 = OSKAR,
 			nameplate3 = SABLE })
 		recordTooltip()
@@ -1879,7 +1879,7 @@ SELF_SHOTS = [
 
 # The buff order the options picture shows, which the window's own Buff order
 # list has to stand in: Wisdom moved up one place.
-ORDER_KEYS = ["wisdom", "kings", "might", "salvation", "light"]
+ORDER_KEYS = ["wisdom", "kings", "might"]
 
 # The tooltip picture: the two states, what each tooltip has to say and what
 # it must not, and the title and line under each. Short is the default and
