@@ -224,6 +224,9 @@ local defaults = {
 			-- The buffs held to the tanks of your group (Buffs.lua, tankChoice), a
 			-- sparse set like skip: absent is everybody.
 			tanksOnly = {},
+			-- The buffs offered to nobody but you (Buffs.lua, tankChoice: a
+			-- druid's Thorns on herself): the same sparse set.
+			meOnly = {},
 			-- A paladin who knows Blessing of Kings offers it to everybody ahead of
 			-- the rest (Buffs.lua, `strongest`; CastableBuffs). On: the strongest
 			-- blessing first is what was asked for, and somebody already carrying
@@ -1452,6 +1455,9 @@ do
 			and not opts.isTank then
 			return false
 		end
+		-- Held to yourself (Offer to: Only me): nobody else is offered it. Your own
+		-- is asked with no such field, so it is still reminded of.
+		if opts.meOnly and buff.tankChoice and opts.meOnly[buff.key] then return false end
 		if buff.partyOnly and not opts.inParty then return false end
 		-- Salvation: the game refuses it on anybody outside your party or raid.
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
@@ -3800,6 +3806,7 @@ function ns.ClampSettings()
 	-- The set of switched-off spells, indexed on every scan by CastableBuffs.
 	if type(profile.buff.skip) ~= "table" then profile.buff.skip = {} end
 	if type(profile.buff.tanksOnly) ~= "table" then profile.buff.tanksOnly = {} end
+	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
 	-- The buff order, read on every scan (ns.WalkBuffs), repaired for every class
 	-- in the profile whichever client wrote it: a key no client has for that
 	-- class, a key twice and an entry that is not a list of keys go; a key only

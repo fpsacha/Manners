@@ -733,7 +733,7 @@ do
 					if type(value) == "table" then
 						if type(value[1]) == "number" then
 							kind = "colour"
-						elseif name == "buff.skip" or name == "buff.tanksOnly" then
+						elseif name == "buff.skip" or name == "buff.tanksOnly" or name == "buff.meOnly" then
 							kind = "set"
 						elseif name == "buff.order" then
 							-- The buffs of each class in an order of the player's

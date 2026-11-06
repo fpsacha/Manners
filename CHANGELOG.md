@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Thorns for you alone.** *Offer Thorns to* on *Who to buff* has a third choice,
+  **Only me**: nobody else is offered Thorns, and with *Myself* on you are still
+  reminded when your own is down. Somebody who asks you for it in chat is
+  answered as before.
+- **A press on an empty prompt says nothing when the chat lines are off.** A key
+  held down, or a macro spammed, with nobody to buff printed "nobody to buff
+  right now." at every press even with *Tell me in chat what Manners is doing*
+  unticked. It is now said only with that switch on.
+
 ## 1.11.7
 
 - **Never in cities and inns, if you like.** On *Who to buff*, a new switch,

@@ -238,8 +238,8 @@ mutate("Core.lua",
 
 # Left out of the page's reset.
 mutate("Options/Advanced.lua",
-       "\t\t\"buff.choice\", \"buff.skip\", \"buff.tanksOnly\", \"buff.kingsFirst\", \"buff.order\", \"filters.relevantOnly\",\n",
-       "\t\t\"buff.choice\", \"buff.skip\", \"buff.tanksOnly\", \"buff.kingsFirst\", \"filters.relevantOnly\",\n",
+       "\t\t\"buff.choice\", \"buff.skip\", \"buff.tanksOnly\", \"buff.meOnly\", \"buff.kingsFirst\", \"buff.order\", \"filters.relevantOnly\",\n",
+       "\t\t\"buff.choice\", \"buff.skip\", \"buff.tanksOnly\", \"buff.meOnly\", \"buff.kingsFirst\", \"filters.relevantOnly\",\n",
        "hunt29-order: the page's reset leaves the order",
        expect="hunt29-order: the page's reset takes the order away",
        script=S)

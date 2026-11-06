@@ -1920,6 +1920,9 @@ function ns.BuildQueue(watch)
 	-- answer to "does anybody need their role read".
 	local tanksHeld = db.buff.tanksOnly
 	if tanksHeld and next(tanksHeld) == nil then tanksHeld = nil end
+	-- And the ones held to you alone: nobody else is offered them.
+	local meHeld = db.buff.meOnly
+	if meHeld and next(meHeld) == nil then meHeld = nil end
 
 	-- A buff that cannot be paid for is a button that fails -- but only classes
 	-- with a mana bar can run out: a warrior's mana reads a permanent 0. Empty
@@ -2115,6 +2118,9 @@ function ns.BuildQueue(watch)
 		local tanksOnly = not asked and tanksHeld or nil
 		opts.tanksOnly = tanksOnly
 		opts.isTank = tanksOnly and inGroup and ns.IsTankUnit(unit) or nil
+		-- Held to you alone, for everybody who is not you, and not for somebody
+		-- who asked for it by name.
+		opts.meOnly = not asked and meHeld or nil
 		opts.whenBuffed = whenBuffed
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full

@@ -398,7 +398,7 @@ end
 -- dropped from Page.RESET is noticed rather than simply no longer checked.
 local EXPECTED = {
 	who = {
-		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly", "sources.owed", "sources.group",
+		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly", "sources.owed", "sources.group",
 		"sources.strangers", "sources.asked", "sources.self", "filters.proximity",
 		"filters.restingOnly", "filters.quietInTowns", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",

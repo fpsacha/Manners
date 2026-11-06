@@ -182,6 +182,15 @@ local function ExplainEmpty(now)
 	return false
 end
 
+-- The same, said only with "Tell me in chat what Manners is doing" on: a key held
+-- or a macro spammed on an empty prompt was a line at every press all day. The
+-- press is still answered as empty, whatever is said about it.
+local function ExplainEmptyPress(now)
+	local db = ns.db and ns.db.profile
+	if db and db.verbose == false then return not R.button:IsShown() end
+	return ExplainEmpty(now)
+end
+
 -- PreClick runs before the secure handler reads the attributes, so out of
 -- combat the target is re-resolved at the last moment: a nameplate token may
 -- since have been recycled to somebody else. Every mouse button
@@ -235,7 +244,7 @@ local function OnPreClick(self, mouseButton, down)
 	pressStale = nil
 
 	-- A keypress on an empty prompt says why it is empty (ExplainEmpty).
-	if ExplainEmpty(now) then
+	if ExplainEmptyPress(now) then
 		Prompt:ApplyTarget(nil)
 		return
 	end
@@ -700,7 +709,7 @@ local function BarWaiting(now)
 		end
 		return
 	end
-	if ExplainEmpty(now) then return end
+	if ExplainEmptyPress(now) then return end
 	-- Every other reason the macro holds its first line alone (Clicks.lua,
 	-- click macro, Wanted), each said as the panel or the command says it.
 	if db and not db.prompt.locked then

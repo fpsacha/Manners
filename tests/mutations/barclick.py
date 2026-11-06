@@ -273,7 +273,7 @@ mutate(P,
 
 # A press of the empty bar macro with nobody to buff says nothing.
 mutate(P,
-       "\tif ExplainEmpty(now) then return end\n\t-- Every other reason",
+       "\tif ExplainEmptyPress(now) then return end\n\t-- Every other reason",
        "\t-- Every other reason",
        "barclick: an empty bar macro says nothing of why",
        expect=FOLLOWS, script=S)

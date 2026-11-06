@@ -65,13 +65,57 @@ mutate("Core.lua",
        expect="tankonly: the set is repaired and travels with a profile", script=S)
 
 mutate("Commands.lua",
-       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" then",
-       "elseif name == \"buff.skip\" then",
+       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" or name == \"buff.meOnly\" then",
+       "elseif name == \"buff.skip\" or name == \"buff.meOnly\" then",
        "tankonly: the choice does not travel with a profile",
        expect="tankonly: the set is repaired and travels with a profile", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"buff.choice\", \"buff.skip\", \"buff.tanksOnly\", \"buff.kingsFirst\", \"buff.order\", \"filters.relevantOnly\",\n",
+       "\t\t\"buff.choice\", \"buff.skip\", \"buff.tanksOnly\", \"buff.meOnly\", \"buff.kingsFirst\", \"buff.order\", \"filters.relevantOnly\",\n",
        "\t\t\"buff.choice\", \"buff.skip\", \"buff.kingsFirst\", \"buff.order\", \"filters.relevantOnly\",\n",
        "tankonly: the page's reset leaves the choice",
+       expect="model: the reset puts who back", script=S)
+
+
+# --- Offer to: Only me (1.11.7) ---
+mutate("Core.lua",
+       "\t\tif opts.meOnly and buff.tankChoice and opts.meOnly[buff.key] then return false end\n",
+       "",
+       "tankonly: Only me holds nothing back",
+       expect="tankonly: Only me offers nobody else the buff and still reminds you", script=S)
+
+mutate("Queue.lua",
+       "\t\topts.meOnly = not asked and meHeld or nil\n",
+       "\t\topts.meOnly = meHeld\n",
+       "tankonly: a request is held to you alone",
+       expect="tankonly: Only me still answers somebody who asks for the buff by name", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\t\tB().meOnly[buff.key] = (value == \"me\") or nil\n",
+       "",
+       "tankonly: Only me is never cleared",
+       expect="tankonly: the choice is one of three, and each leaves the others' key behind never", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\t\tif B().meOnly[buff.key] then return \"me\" end\n",
+       "",
+       "tankonly: Only me is never read back",
+       expect="tankonly: the choice is one of three, and each leaves the others' key behind never", script=S)
+
+mutate("Core.lua",
+       "\tif type(profile.buff.meOnly) ~= \"table\" then profile.buff.meOnly = {} end\n",
+       "",
+       "tankonly: a damaged Only me set is never repaired",
+       expect="tankonly: the Only me set is repaired and travels with a profile", script=S)
+
+mutate("Commands.lua",
+       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" or name == \"buff.meOnly\" then",
+       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" then",
+       "tankonly: Only me does not travel with a profile",
+       expect="tankonly: the Only me set is repaired and travels with a profile", script=S)
+
+mutate("Options/Advanced.lua",
+       "\"buff.skip\", \"buff.tanksOnly\", \"buff.meOnly\", \"buff.kingsFirst\"",
+       "\"buff.skip\", \"buff.tanksOnly\", \"buff.kingsFirst\"",
+       "tankonly: the page's reset leaves Only me",
        expect="model: the reset puts who back", script=S)

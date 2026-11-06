@@ -226,3 +226,92 @@ do
 		end
 	end)
 end
+
+-- ---------------------------------------------------- Offer to: Only me (1.11.7)
+-- A druid asked to be reminded when her own Thorns are down without offering it
+-- to everybody: Only me holds the buff from every other person (the group,
+-- passers-by), still reminds you under Myself, and still answers somebody who
+-- asks for it by name.
+local function setMeOnly(ns) ns.db.profile.buff.meOnly = { thorns = true } end
+
+local function selfEntry(ns)
+	Mock.advance(4)
+	for _, entry in ipairs(ns.BuildQueue()) do
+		if entry.reason == "self" then return entry end
+	end
+	return nil
+end
+
+do
+	local scenario = "tankonly: Only me offers nobody else the buff and still reminds you"
+	session(scenario, { setup = setMeOnly }, function(ns)
+		local out = offers(ns)
+		for token, pair in pairs(PARTY) do
+			if out[filed(pair)] then fail(scenario, token .. " was offered " .. tostring(out[filed(pair)]) .. " with Only me on") end
+		end
+		if out[filed(STRANGER)] then fail(scenario, "a passer-by was offered " .. tostring(out[filed(STRANGER)])) end
+		-- You, with Myself on and Mark of the Wild already on you.
+		ns.db.profile.sources.self = true
+		Mock.playerHeld = {}
+		for _, id in ipairs(ns.FindBuff("DRUID", "motw").ranks) do Mock.playerHeld[id] = true end
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		local mine = selfEntry(ns)
+		if not (mine and mine.buff and mine.buff.key == "thorns") then
+			fail(scenario, "with Only me on, your own Thorns was not offered to you: " .. tostring(mine and mine.buff and mine.buff.key))
+		end
+	end)
+end
+
+do
+	local scenario = "tankonly: Only me still answers somebody who asks for the buff by name"
+	session(scenario, { setup = setMeOnly }, function(ns)
+		local pair = PARTY.party1
+		ns.addon.CHAT_MSG_PARTY(ns.addon, "CHAT_MSG_PARTY", "thorns pls", filed(pair), "Common", "", "", "", 0, 0, "", 0, 1,
+			"Player-1-party1")
+		local out = offers(ns)
+		if out[filed(pair)] ~= "thorns" then
+			fail(scenario, "a party member who asked for Thorns was offered " .. tostring(out[filed(pair)]))
+		end
+	end)
+end
+
+do
+	local scenario = "tankonly: the choice is one of three, and each leaves the others' key behind never"
+	session(scenario, {}, function(ns)
+		local control = H.findOption(ns.optionsTable, "tank_thorns")
+		if not control then
+			fail(scenario, "Who to buff has no Offer to choice for Thorns")
+			return
+		end
+		local values = control.values()
+		if not (values.all and values.tanks and values.me) then fail(scenario, "the choices lack Everyone, Tanks only or Only me") end
+		local B = ns.db.profile.buff
+		local info = { "who", "tank_thorns" }
+		control.set(info, "me")
+		if control.get(info) ~= "me" or B.meOnly.thorns ~= true or B.tanksOnly.thorns ~= nil then
+			fail(scenario, "Only me was not kept alone: " .. tostring(control.get(info)))
+		end
+		control.set(info, "tanks")
+		if control.get(info) ~= "tanks" or B.tanksOnly.thorns ~= true or B.meOnly.thorns ~= nil then
+			fail(scenario, "Tanks only left Only me behind")
+		end
+		control.set(info, "all")
+		if next(B.tanksOnly) ~= nil or next(B.meOnly) ~= nil then fail(scenario, "Everyone left a key behind") end
+	end)
+end
+
+do
+	local scenario = "tankonly: the Only me set is repaired and travels with a profile"
+	session(scenario, {}, function(ns)
+		ns.db.profile.buff.meOnly = 12
+		ns.ClampSettings()
+		if type(ns.db.profile.buff.meOnly) ~= "table" then
+			fail(scenario, "a damaged set was left as " .. tostring(ns.db.profile.buff.meOnly))
+		end
+		ns.db.profile.buff.meOnly = { thorns = true }
+		local text = ns.ExportSettings and ns.ExportSettings() or nil
+		if text and not text:find("buff.meOnly=thorns", 1, true) then
+			fail(scenario, "the export does not carry the choice: " .. tostring(text))
+		end
+	end)
+end
