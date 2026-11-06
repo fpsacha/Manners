@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.8
 
 - **Thorns for you alone.** *Offer Thorns to* on *Who to buff* has a third choice,
   **Only me**: nobody else is offered Thorns, and with *Myself* on you are still
