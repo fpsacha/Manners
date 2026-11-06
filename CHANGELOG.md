@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.6
 
 - **What I say now works from an action bar.** The *Manners* macro on your bar
   used to cast and say nothing, even with *Say a line when I buff someone* on
