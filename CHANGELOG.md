@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.7
 
 - **Never in cities and inns, if you like.** On *Who to buff*, a new switch,
   *Never in cities and inns*, offers nothing to anybody while the game calls you
