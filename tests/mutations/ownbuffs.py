@@ -187,17 +187,17 @@ mutate("Core.lua",
        expect="the client will not read your armor", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\"\n",
-       "\t\t\tif ctx.whenBuffed ~= \"refresh\"\n",
+       "\t\t\tif family.toggle or not topUps\n",
+       "\t\t\tif not topUps\n",
        "own: an aura topped up",
        expect="a toggle was offered as a top-up", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif ctx.whenBuffed == \"refresh\" and left then\n"
+       "\t\t\tif topUps and left then\n"
        "\t\t\t\tseconds = ownSeconds or ns.OwnSeconds(upSpell)\n"
        "\t\t\t\tlead, kind = ns.OwnLead(ctx, seconds)\n"
        "\t\t\tend\n"
-       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\"\n",
+       "\t\t\tif family.toggle or not topUps\n",
        "\t\t\tif left then\n"
        "\t\t\t\tseconds = ownSeconds or ns.OwnSeconds(upSpell)\n"
        "\t\t\t\tlead, kind = ns.OwnLead(ctx, seconds)\n"
@@ -207,7 +207,7 @@ mutate("Core.lua",
        expect="a minute of Mage Armor was topped up with top-ups off", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\"\n\t\t\t\tor (not spent and",
+       "\t\t\tif family.toggle or not topUps\n\t\t\t\tor (not spent and",
        "\t\t\tif true\n\t\t\t\tor (not spent and",
        "own: never a top-up",
        expect="a minute of Mage Armor with top-ups on offered", script=S)

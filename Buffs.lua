@@ -231,6 +231,7 @@ local VANILLA = {
 			-- ten-minute buff on yourself would come back all evening, ahead
 			-- of your Demon Skin or Armor.
 			neverSelf = true,
+			switchable = true,
 		},
 	},
 
@@ -753,6 +754,8 @@ end
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
+--   switchable  a class's only buff for others, which has its switch on Who to
+--             buff all the same (Unending Breath: most warlocks want it off).
 --   tankChoice  a buff for others that the player may hold to the tanks of
 --             their group (Who to buff, Offer to: Tanks only; Thorns).
 --   shared    a party aura somebody else of your class can put on you too
@@ -1215,6 +1218,7 @@ local TBC = {
 			ranks = { 5697 },
 			group = { 131 }, -- a shaman's Water Breathing, as on vanilla
 			neverSelf = true,
+			switchable = true,
 		},
 	},
 
@@ -1683,7 +1687,7 @@ local MISTS = {
 		-- A shaman's Water Breathing (131), its group id on vanilla, is gone
 		-- from this client. Its effects have no radius (Wowhead MoP Classic):
 		-- the one buff here that lands on its target alone.
-		{ key = "breath", ranks = { 5697 }, neverAuto = true, neverSelf = true, alone = true },
+		{ key = "breath", ranks = { 5697 }, neverAuto = true, neverSelf = true, alone = true, switchable = true },
 	},
 
 	WARRIOR = {

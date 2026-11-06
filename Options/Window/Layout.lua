@@ -59,14 +59,17 @@ local function WhoIcon()
 end
 
 -- The per-spell switches under Buff to offer (Who.lua's AddBuffToggles): one
--- per buff, only for a class with two or more, so a mage has none. Each class's
+-- per buff, only for a class with two or more or a lone one flagged switchable (a
+-- warlock's Unending Breath), so a mage has none. Each class's
 -- in its walk order, which is the order the buff set lists them; the model only
 -- ever holds the player's own class's. On Forever that is the priest's three,
 -- the paladin's six and the druid's two.
 local function OfferItems()
 	local items, seen, classes = {}, {}, {}
 	for class, buffs in pairs(ns.BUFFS or {}) do
-		if type(buffs) == "table" and #buffs > 1 then classes[#classes + 1] = class end
+		if type(buffs) == "table" and (#buffs > 1 or (#buffs == 1 and buffs[1].switchable)) then
+			classes[#classes + 1] = class
+		end
 	end
 	table.sort(classes)
 	for _, class in ipairs(classes) do
@@ -155,6 +158,7 @@ ns.WindowLayout = {
 				{ key = "general.minimap", header = "general.minimapHeader", items = {
 					"general.minimap",
 					"general.verbose",
+					"general.silentChat",
 				} },
 			},
 		},
@@ -185,6 +189,7 @@ ns.WindowLayout = {
 					{ "who.proximity", indent = true },
 					{ "who.restingOnly", indent = true },
 					"who.asked",
+					"who.quietInTowns",
 				} },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",

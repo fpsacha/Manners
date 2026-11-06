@@ -1859,3 +1859,17 @@ function addon:HandleSlash(rawInput)
 	-- After the chain rather than inside each branch.
 	if REPAINT_AFTER[input] then ns.RepaintOptions() end
 end
+
+-- A command typed in chat is answered in chat, whatever "Say nothing at all in
+-- chat" says: that switch is for the lines Manners prints on its own (Core.lua,
+-- addon:Print). The flag is put back however the command ends.
+do
+	local run = addon.HandleSlash
+	function addon:HandleSlash(...)
+		local was = ns.answering
+		ns.answering = true
+		local ok, err = pcall(run, self, ...)
+		ns.answering = was
+		if not ok then error(err, 0) end
+	end
+end

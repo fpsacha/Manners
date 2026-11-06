@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **Never in cities and inns, if you like.** On *Who to buff*, a new switch,
+  *Never in cities and inns*, offers nothing to anybody while the game calls you
+  resting: not passers-by, not your group, not a favour you owe. Somebody you
+  target or focus is still offered. It is off, so nothing changes until you turn
+  it on. *Only in cities and inns* is still the other way round, for passers-by
+  alone, and your own buffs keep their own switch under *Myself*.
+- **Say nothing at all in chat.** On *Start here*, under *Tell me in chat what
+  Manners is doing*, *Say nothing at all in chat* silences even the few lines the
+  first switch leaves: a title earned, the game refusing somebody, a skip in a
+  fight, something Manners could not write. What you type after `/manners` is
+  still answered. Off by default.
+- **Weapon stones and oils are renewed only once gone, while you are alone.** With
+  top-ups on, a stone, oil or poison was offered again minutes before it ran
+  out, however little was waiting on it. Alone, it now comes back when it has
+  worn off; in a group it is still topped up ahead of the next pull.
+- **A switch for Unending Breath.** A warlock's only buff for others now has its
+  own switch on *Who to buff*, so it can be left out without switching off the
+  rest of what Manners offers.
+
 ## 1.11.6
 
 - **What I say now works from an action bar.** The *Manners* macro on your bar

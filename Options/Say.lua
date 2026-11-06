@@ -28,7 +28,7 @@ function Page.BuildSpeechTab()
 		SP().presetChoice = value
 		SP().phrases = ns.PhraseSetText(value) or SP().phrases
 		ns.Prompt:InvalidateMacro()
-		ns.addon:Print(L["loaded the %s lines."]:format(
+		ns.addon:Reply(L["loaded the %s lines."]:format(
 			ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label or value))
 	end
 	local function speechOff() return not SP().enabled end
@@ -276,7 +276,7 @@ function Page.BuildSpeechTab()
 					for _ = 1, 3 do
 						-- The same budget the cast path measures, for a
 						-- representative name.
-						ns.addon:Print(ns.PickPhrase(fake, ns.PhraseBudget(fake))
+						ns.addon:Reply(ns.PickPhrase(fake, ns.PhraseBudget(fake))
 							or "|cffff8080" .. L["(nothing -- speech off, or no usable lines)"] .. "|r")
 					end
 				end,

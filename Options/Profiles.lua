@@ -104,7 +104,7 @@ function Page.BuildProfilesTab()
 			end,
 			set = function(_, value)
 				local _, message = ns.ImportSettings(value)
-				ns.addon:Print(message)
+				ns.addon:Reply(message)
 			end,
 		},
 	}) do

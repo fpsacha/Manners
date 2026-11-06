@@ -165,8 +165,9 @@ end
 local function AddBuffToggles(args)
 	local buffs = ns.GetClassBuffs(ns.caps.class) or {}
 	-- One spell is not a choice. The walk has nothing to walk, and a lone
-	-- toggle under "Automatic" reads as a second way to switch the addon off.
-	if #buffs < 2 then return end
+	-- toggle under "Automatic" reads as a second way to switch the addon off --
+	-- unless it is one many do not want (Buffs.lua, switchable: Unending Breath).
+	if #buffs < 2 and not (buffs[1] and buffs[1].switchable) then return end
 
 	for index, buff in ipairs(buffs) do
 		args["offer_" .. buff.key] = {
@@ -851,6 +852,15 @@ function Page.BuildWhoTab()
 				width = "full",
 				hidden = OnlyReachesGroup,
 				disabled = function() return not S().strangers end,
+				get = fGet,
+				set = fSet,
+			},
+			quietInTowns = {
+				type = "toggle",
+				name = L["Never in cities and inns"],
+				desc = L["On: nothing is offered to anybody while the game calls you resting, in a city or an inn: not passers-by, not your group, not a favour you owe. Somebody you target or focus is still offered. Your own buffs have their own switch, under Myself."],
+				order = 13.35,
+				width = "full",
 				get = fGet,
 				set = fSet,
 			},

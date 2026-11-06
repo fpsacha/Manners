@@ -1908,6 +1908,10 @@ function ns.BuildQueue(watch)
 	-- Passers-by left alone out in the world, when asked: only a definite "not
 	-- resting" does it, and could-not-tell offers them.
 	local notResting = f.restingOnly == true and Resting() == false
+	-- Nothing for anybody while resting, when that is asked for (Who to buff,
+	-- Never in cities and inns): passers-by are turned down as a kind too.
+	local inTown = f.quietInTowns == true and Resting() == true
+	if inTown then notResting = true end
 	-- Nobody is asked about friends when Who comes first is off, which is most
 	-- of its cost.
 	local friendsFirst = db.priority.friends == true
@@ -2037,6 +2041,14 @@ function ns.BuildQueue(watch)
 		-- tokens outlast sight.
 		if inGroup and f.requireInRange
 			and plain(UnitIsVisible and UnitIsVisible(unit)) == false then
+			rejected[full] = true
+			return
+		end
+
+		-- Nobody at all in a city or an inn, when that is asked for: the group
+		-- and a favour owed too. Somebody you targeted or focused you picked on
+		-- purpose, and is exempt.
+		if inTown and not pointed then
 			rejected[full] = true
 			return
 		end
@@ -2287,6 +2299,9 @@ function ns.BuildQueue(watch)
 			rotate = false,
 		}
 		for full, entry in pairs(owed) do
+			-- Nobody in a city or an inn, when that is asked for: no token to
+			-- point at them, so no exemption either.
+			if inTown then break end
 			-- A token nobody pointed at found them a moment ago (`near`, written
 			-- by the walk): as good a sign they are about as a fresh favour, so
 			-- the cursor leaving them for the prompt does not take an older one

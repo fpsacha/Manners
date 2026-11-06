@@ -1127,6 +1127,16 @@ function Page.BuildStartTab()
 				get = function() return ns.db.profile.verbose end,
 				set = function(_, v) ns.db.profile.verbose = v end,
 			},
+			-- Stronger: the few lines the switch above leaves are said too.
+			silentChat = {
+				type = "toggle",
+				name = L["Say nothing at all in chat"],
+				desc = L["Not even the few lines Manners keeps when the switch above is off: a title earned, the game refusing somebody, a skip in a fight, something it could not write. What you type after /manners is still answered."],
+				order = 72,
+				width = "full",
+				get = function() return ns.db.profile.silentChat == true end,
+				set = function(_, v) ns.db.profile.silentChat = v end,
+			},
 		},
 	}
 end

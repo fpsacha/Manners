@@ -28,6 +28,22 @@ local L = ns.L
 local addon = LibStub("AceAddon-3.0"):NewAddon((...), "AceEvent-3.0", "AceConsole-3.0", "AceTimer-3.0")
 ns.addon = addon
 
+-- Every line Manners prints to your chat frame goes through addon:Print. With
+-- "Say nothing at all in chat" on (silentChat) none does -- not the few lines
+-- the chat switch above it leaves, about a title earned, the game refusing a
+-- person or a skip in a fight -- except the answer to a command you typed
+-- (ns.answering, Commands.lua) and what addon:Reply says: the result of
+-- pasting settings, the lines of a set you loaded or tried.
+do
+	local acePrint = addon.Print
+	function addon:Print(...)
+		local db = self.db and self.db.profile
+		if db and db.silentChat == true and not ns.answering then return end
+		return acePrint(self, ...)
+	end
+	function addon:Reply(...) return acePrint(self, ...) end
+end
+
 local MANA = (Enum and Enum.PowerType and Enum.PowerType.Mana) or 0
 ns.MANA = MANA
 
@@ -196,6 +212,8 @@ local defaults = {
 	profile = {
 		enabled = true,
 		verbose = true, -- "X buffed you", and why a cast failed
+		-- Stronger than verbose: not one line of its own in chat (addon:Print).
+		silentChat = false,
 		debugClicks = false, -- raw attribute dump on every click; on via /manners clicks
 
 		buff = {
@@ -292,6 +310,10 @@ local defaults = {
 			-- Passers-by only where the game calls you resting. Off, because
 			-- it takes away offers somebody gets today.
 			restingOnly = false,
+			-- Nothing offered to anybody, passers-by, your group and a favour
+			-- you owe alike, while the game calls you resting: a city or an
+			-- inn. Off, because it takes away offers somebody gets today.
+			quietInTowns = false,
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
@@ -2557,12 +2579,17 @@ do
 				and charges <= math.max(1, math.floor(upSpell.charges / 4))
 			if not spent then charges = nil end
 			-- How long it lasts and when a top-up is due: yours, so earlier than
-			-- somebody else's (ns.OwnLead).
-			if ctx.whenBuffed == "refresh" and left then
+			-- somebody else's (ns.OwnLead). Not for what you put on a weapon
+			-- out of your bags while you are on your own: a stone or an oil
+			-- renewed minutes before it ran out is a stone wasted, and nothing
+			-- is waiting on it (a group is: the next pull).
+			local topUps = ctx.whenBuffed == "refresh"
+				and not (family.enhance and (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0)
+			if topUps and left then
 				seconds = ownSeconds or ns.OwnSeconds(upSpell)
 				lead, kind = ns.OwnLead(ctx, seconds)
 			end
-			if family.toggle or ctx.whenBuffed ~= "refresh"
+			if family.toggle or not topUps
 				or (not spent and (not left or left > lead)) then
 				return nil, true, left, "up", upSpell
 			end

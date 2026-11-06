@@ -392,7 +392,7 @@ function X.checkComplete(W, queue, standing)
 	if W.readThrows and next(W.readThrows) then return end
 	if W.mana0 or W.me.mana <= 0.02 or W.me.dead or W.me.ghost then return end
 	if W.charmed or W.inVehicle or W.onTaxi or (W.mounted and f.hideMounted) then return end
-	if f.manaFloor ~= 0 or f.restingOnly or (W.raid and next(f.skipRaidGroups or {})) then return end
+	if f.manaFloor ~= 0 or f.restingOnly or (f.quietInTowns and W.resting) or (W.raid and next(f.skipRaidGroups or {})) then return end
 	if not ns.CanCastAnything() or ns.EXCLUSIVE_BUFFS[ns.PlayerClass()] then return end
 	if ns.SnoozeLeft and ns.SnoozeLeft(Mock.now) then return end
 	for _, e in ipairs(queue) do if e.groupCast then return end end
@@ -796,6 +796,9 @@ function X.checkQueue(W, queue)
 					return fail(W, "forbidden", ("%s is your own class (level %d, rank needs %d) and was offered %s"):format(
 						e.name, p.level, need, buff.key))
 				end
+			end
+			if f.quietInTowns == true and W.resting and not pointed then
+				return fail(W, "forbidden", e.name .. " offered in a city with Never in cities and inns on")
 			end
 			if f.restingOnly == true and reason == "nearby" and not pointed and not W.resting then
 				return fail(W, "forbidden", e.name .. " offered as a passer-by out of a city with Only in cities on")

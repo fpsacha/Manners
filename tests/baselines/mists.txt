@@ -212,8 +212,6 @@ entrance-light: a favour's glint runs the rules: glint 1 kept running after the 
 entrance-light: a favour's glint runs the rules: glint 2 kept running after the favour left the panel
 entrance-light: a favour's glint runs the rules: the glints' flag stayed up after the favour left
 every outcome over an empty queue gets its own fade: SKIPPED -- the first fade did not run to nothing
-every path in the options window's layout is in the model: who, section 1 (who.cast) places who.offer_breath, which no class's model has
-every path in the options window's layout is in the model: who, section 1 (who.cast) places who.offer_darkintent, which no class's model has
 every path in the options window's layout is in the model: who, section 1 (who.cast) places who.offer_emperor, which no class's model has
 every path in the options window's layout is in the model: who, section 1 (who.cast) places who.offer_whitetiger, which no class's model has
 every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_aura, which no class's model has

@@ -876,8 +876,8 @@ your client runs in. Slash commands are English in all of them.
 | Warlock | Unending Breath |
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever) |
 
-Individual buffs can be switched off on the *Who to buff* page, or one pinned so
-it is the only thing ever cast. A druid's Thorns also has *Offer to*: **Tanks only**
+Individual buffs can be switched off on the *Who to buff* page (a warlock's
+Unending Breath too), or one pinned so it is the only thing ever cast. A druid's Thorns also has *Offer to*: **Tanks only**
 hands it, in your group, only to players the game gives the tank role or marks as
 main tank in a raid, so the rest of a dungeon or raid is left alone (a player
 with no role is not a tank; people outside your group, and anybody who asks you

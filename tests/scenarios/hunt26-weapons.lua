@@ -330,8 +330,10 @@ do
 				fail(scenario, "with only Crusader on the sword, you were offered " .. key(mine(ns)))
 			end
 
-			-- Running low, with top-ups on: the stone that made it, not the oil.
+			-- Running low, with top-ups on, in a group (alone it waits until the
+			-- stone is gone, below): the stone that made it, not the oil.
 			ns.db.profile.filters.whenBuffed = "refresh"
+			Mock.groupSize = 3
 			world.enchants[16] = { entry(DENSE_STONE_ENCHANT, TEMPORARY, 120) }
 			me = mine(ns)
 			if key(me) ~= "w12404m" or me.remaining == nil or me.remaining > 121 then
@@ -342,6 +344,16 @@ do
 			if mine(ns) then fail(scenario, "half an hour of a stone with top-ups on offered " .. key(mine(ns))) end
 			world.enchants[16] = { entry(BRILLIANT_OIL_ENCHANT, TEMPORARY, 120) }
 			if mine(ns) then fail(scenario, "another's oil running low was topped up with a stone: " .. key(mine(ns))) end
+
+			-- Alone, a stone is not renewed before it is gone (1.11.7): top-ups
+			-- are for what the next pull waits on.
+			Mock.groupSize = 0
+			world.enchants[16] = { entry(DENSE_STONE_ENCHANT, TEMPORARY, 120) }
+			if mine(ns) then fail(scenario, "alone, two minutes of a stone with top-ups on offered " .. key(mine(ns))) end
+			world.enchants[16] = {}
+			if key(mine(ns)) ~= "w12404m" then
+				fail(scenario, "alone, a stone that ran out was not offered again: " .. key(mine(ns)))
+			end
 		end)
 end
 
@@ -530,6 +542,7 @@ do
 	with(scenario, { class = "WARRIOR", level = 40, bags = { [DENSE_STONE] = 2 }, hands = { [16] = SWORD },
 		enchants = { [16] = { entry(DENSE_STONE_ENCHANT, TEMPORARY, 120) } } }, function(ns)
 		ns.db.profile.filters.whenBuffed = "refresh"
+		Mock.groupSize = 3
 
 		-- The game asks whatever has asked to hear the event, as the client
 		-- does: nothing, unless Manners registered for it.
@@ -802,6 +815,7 @@ do
 			return
 		end
 		ns.db.profile.filters.whenBuffed = "refresh"
+		Mock.groupSize = 3
 		world.enchants[16] = { entry(40, TEMPORARY, 120) }
 		restock(ns, { [ROUGH_STONE] = 1 })
 		local me = mine(ns)
