@@ -2456,6 +2456,12 @@ do
 	-- after the bag was laid down. Either way a press would do nothing.
 	-- Asked only when Well-Rested is due.
 	local function BagBusy(family, spell)
+		-- Mid-cast: Unroll Bag takes up to fifteen seconds, and neither the aura
+		-- nor the cooldown shows until it ends.
+		local casting = _G.UnitCastingInfo
+		if type(casting) == "function" and plain((select(9, casting("player")))) == spell.ranks[1] then
+			return true
+		end
 		local api = C_UnitAuras
 		local byId = api and api.GetUnitAuraBySpellID
 		if type(byId) == "function" then
@@ -2496,6 +2502,15 @@ do
 		for _, name in ipairs(eatNames) do
 			local ok, aura = pcall(byName, "player", name)
 			if ok and type(aura) == "table" then return true end
+		end
+		return false
+	end
+
+	-- Whether a meal is on, whichever family asks (the sleeping bag's use would
+	-- stand you up from it).
+	local function EatingNow()
+		for _, each in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
+			if each.food then return Eating(each) end
 		end
 		return false
 	end
@@ -2713,6 +2728,8 @@ do
 			if type(level) == "number" and level >= ns.MaxPlayerLevel() then
 				return nil, up, left, "maxlevel", spell
 			end
+			-- Nor while you eat: the use stands you up and the meal with it.
+			if EatingNow() then return nil, up, left, "resting", spell end
 			if BagBusy(family, spell) then return nil, up, left, "resting", spell end
 			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
 				return nil, up, left, "unusable", spell
@@ -4279,6 +4296,8 @@ function addon:RefreshConfig(event)
 	-- take the scanner below with it.
 	ns.Guard("ApplyStyle on profile change", ns.Prompt.ApplyStyle, ns.Prompt)
 	ns.Prompt:InvalidateMacro()
+	-- The bags were counted under the old profile's switches.
+	ns.ForgetScrolls()
 	-- Guarded: nil if Options/Launcher.lua failed to load, and a throw here
 	-- would take StartScanner with it.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)

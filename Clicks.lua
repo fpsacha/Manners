@@ -271,6 +271,9 @@ end
 -- longest use is the lure's five.
 local SCROLL_SECONDS = 6
 local ENHANCE_SECONDS = 8
+-- The Cozy Sleeping Bag's Unroll Bag takes fifteen seconds on Forever, six on
+-- Classic Era: kept for twenty, which the longer one and its pushback fit in.
+local REST_SECONDS = 20
 local castingScroll
 
 -- The scroll being cast, if this event is about it: by the cast guid where
@@ -463,6 +466,7 @@ local function SettleSelf(pending, spellId, castGUID)
 		castingScroll = { record = record, spell = own, castGUID = castGUID, spellId = spellId,
 			before = ns.NoteScrollPress(own),
 			seconds = own.family.enhance and ENHANCE_SECONDS or SCROLL_SECONDS }
+		if own.family.rest then castingScroll.seconds = REST_SECONDS end
 	end
 end
 

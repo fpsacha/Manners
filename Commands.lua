@@ -43,7 +43,7 @@ do
 	local function FamilyLine(family, ctx)
 		local label = ns.OwnFamilyLabel(family)
 		local spell, has, _, why, about = ns.OwnVerdict(family, ctx)
-		local name = about and ns.BuffName(about)
+		local name = about and ns.BuffName(about) or (family.bagged and label or nil)
 		if spell and has then
 			return L["%s: %s is running low -- a top-up is due."]:format(label, ns.BuffName(spell))
 		elseif spell and spell.item then
