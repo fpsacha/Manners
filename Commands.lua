@@ -43,7 +43,7 @@ do
 	local function FamilyLine(family, ctx)
 		local label = ns.OwnFamilyLabel(family)
 		local spell, has, _, why, about = ns.OwnVerdict(family, ctx)
-		local name = about and ns.BuffName(about)
+		local name = about and ns.BuffName(about) or (family.bagged and label or nil)
 		if spell and has then
 			return L["%s: %s is running low -- a top-up is due."]:format(label, ns.BuffName(spell))
 		elseif spell and spell.item then
@@ -118,7 +118,7 @@ do
 				:format(ns.BuffName(first))
 		end
 		local ctx = { name = ns.UnitFullName("player"), now = now,
-			whenBuffed = db.filters.whenBuffed, refreshUnder = db.filters.refreshUnder }
+			whenBuffed = ns.SelfWhenBuffed(db.filters), refreshUnder = db.filters.refreshUnder }
 		for _, family in ipairs(families) do out[#out + 1] = FamilyLine(family, ctx) end
 		return out
 	end
@@ -155,9 +155,16 @@ function ns.LeadLines()
 		end
 	end
 	-- Your own: more than one spell of a family can be learned, and each is its own length.
+	-- The moment is the queue's own (ns.OwnLead): the lead, or the player's
+	-- earlier one (Top up my own buffs this long before they end).
+	local Earlier = ns.SelfEarlier
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
 		if family.toggle then
-			out[#out + 1] = L["%s: no timer -- never topped up."]:format(ns.OwnFamilyLabel(family))
+			-- Well Fed and Well-Rested are timed auras, but never topped up (they
+			-- are offered again when they end): no claim about a timer.
+			if not family.bagged then
+				out[#out + 1] = L["%s: no timer -- never topped up."]:format(ns.OwnFamilyLabel(family))
+			end
 		elseif not family.tracking then
 			for _, spell in ipairs(family.spells) do
 				if ns.OwnSpellKnown(spell) then
@@ -167,11 +174,12 @@ function ns.LeadLines()
 						out[#out + 1] = L["%s: no timer -- never topped up."]:format(name)
 					elseif not seconds then
 						out[#out + 1] = L["%s: length unknown -- topped up at %s left, %s in a raid or dungeon."]
-							:format(name, Text(Lead(nil, KIND.own, ceiling)), Text(Lead(nil, KIND.ownraid, ceiling)))
+							:format(name, Text(Earlier(Lead(nil, KIND.own, ceiling))),
+								Text(Earlier(Lead(nil, KIND.ownraid, ceiling))))
 					else
 						out[#out + 1] = L["%s: lasts %s -- topped up at %s left, %s in a raid or dungeon."]
-							:format(name, Text(seconds), Text(Lead(seconds, KIND.own, ceiling)),
-								Text(Lead(seconds, KIND.ownraid, ceiling)))
+							:format(name, Text(seconds), Text(Earlier(Lead(seconds, KIND.own, ceiling), seconds)),
+								Text(Earlier(Lead(seconds, KIND.ownraid, ceiling), seconds)))
 					end
 				end
 			end
@@ -185,6 +193,13 @@ end
 function ns.LeadHeading()
 	local db = addon.db and addon.db.profile
 	if db and db.filters.whenBuffed ~= "refresh" then
+		-- Your own buffs are topped up all the same (ns.SelfWhenBuffed), when
+		-- there is a timed one of them below.
+		if ns.SelfWhenBuffed(db.filters) == "refresh" then
+			for _, family in ipairs(ns.KnownOwnFamilies()) do
+				if not family.toggle and not family.tracking then return L["When a top-up is due"] end
+			end
+		end
 		return L["When a top-up is due (top-ups are off)"]
 	end
 	return L["When a top-up is due"]

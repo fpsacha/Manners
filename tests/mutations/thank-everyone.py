@@ -54,8 +54,8 @@ mutate("Options/Say.lua",
        "thank-everyone: What I say hidden with nothing to give",
        expect="What I say is missing from a hunter's sidebar", script=S)
 mutate("Options/Say.lua",
-       "local THANKS_ONLY = { speechHeader = true, thankEmote = true }\n",
-       "local THANKS_ONLY = { speechHeader = true }\n",
+       "local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true }\n",
+       "local THANKS_ONLY = { speechHeader = true, thankEmoteToken = true }\n",
        "thank-everyone: the /thank hidden with the lines",
        expect="What I say is missing from a rogue's sidebar", script=S)
 mutate("Options/Say.lua",

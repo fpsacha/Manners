@@ -1438,6 +1438,9 @@ do
 		return lead
 	end
 
+	-- For the diagnostics, which print the moment the queue works to.
+	ns.SelfEarlier = SelfEarlier
+
 	-- What "If they already have it" means for your own buffs and the ones you
 	-- put on yourself: with "Top up my own buffs before they run out" on, a
 	-- top-up whatever it says for other people.
@@ -2241,21 +2244,25 @@ do
 	-- over the one going on. Let go at the cast's end, or when it is cut short.
 	local pressedScroll, busyUntil = {}, {}
 	local HAND_BUSY = 8
+	local REST_BUSY = 17
 	function ns.NoteScrollPress(spell)
 		local before = pressedScroll[spell.family.key]
 		pressedScroll[spell.family.key] = spell
 		if spell.family.enhance then busyUntil[spell.family.slot] = GetTime() + HAND_BUSY end
+		if spell.family.rest then busyUntil[spell.family.key] = GetTime() + REST_BUSY end
 		return before
 	end
 	function ns.UndoScrollPress(spell, before)
 		if pressedScroll[spell.family.key] == spell then pressedScroll[spell.family.key] = before end
 		if spell.family.enhance then busyUntil[spell.family.slot] = nil end
+		if spell.family.rest then busyUntil[spell.family.key] = nil end
 	end
 	-- The cast went through: the enchant is on the weapon, so the hand is free
 	-- at once (the eight seconds are for a cast that never reports its end).
 	-- The press itself stays noted: ImbueScroll names the scroll by it.
 	function ns.EndScrollPress(spell)
 		if spell.family.enhance then busyUntil[spell.family.slot] = nil end
+		if spell.family.rest then busyUntil[spell.family.key] = nil end
 	end
 	-- Whether an enhancement was put on this hand a moment ago (OwnVerdict).
 	function ns.HandBusy(slot, now)
@@ -2457,6 +2464,7 @@ do
 		local ok, aura = pcall(byName, "player", wellFedName)
 		if not ok or Withheld(aura) then return nil end
 		if type(aura) == "table" then return true, nil, Left(aura, now) end
+		if HiddenAura(family.fed) then return nil end
 		return false
 	end
 
@@ -2469,6 +2477,7 @@ do
 		local ok, aura = pcall(byId, "player", family.fed)
 		if not ok or Withheld(aura) then return nil end
 		if type(aura) == "table" then return true, nil, Left(aura, now) end
+		if HiddenAura(family.fed) then return nil end
 		return false
 	end
 
@@ -2477,16 +2486,25 @@ do
 	-- after the bag was laid down. Either way a press would do nothing.
 	-- Asked only when Well-Rested is due.
 	local function BagBusy(family, spell)
+		-- Mid-cast: Unroll Bag takes up to fifteen seconds, and neither the aura
+		-- nor the cooldown shows until it ends.
+		local casting = _G.UnitCastingInfo
+		if type(casting) == "function" and plain((select(9, casting("player")))) == spell.ranks[1] then
+			return true
+		end
 		local api = C_UnitAuras
 		local byId = api and api.GetUnitAuraBySpellID
 		if type(byId) == "function" then
 			local ok, aura = pcall(byId, "player", family.resting)
 			if ok and type(aura) == "table" then return true end
+			if ok and aura == nil and HiddenAura(family.resting) then return true end
 		end
 		local cooldown = C_Container and C_Container.GetItemCooldown
 		if type(cooldown) ~= "function" then cooldown = _G.GetItemCooldown end
 		if type(cooldown) ~= "function" then return false end
 		local ok, start, duration = pcall(cooldown, spell.item)
+		-- A cooldown the client keeps secret is no answer: not offered over it.
+		if ok and (Withheld(start) or Withheld(duration)) then return true end
 		start, duration = ok and plain(start) or nil, ok and plain(duration) or nil
 		-- More than a global cooldown's length still to run.
 		return type(start) == "number" and type(duration) == "number" and start > 0 and duration > 2
@@ -2517,6 +2535,15 @@ do
 		for _, name in ipairs(eatNames) do
 			local ok, aura = pcall(byName, "player", name)
 			if ok and type(aura) == "table" then return true end
+		end
+		return false
+	end
+
+	-- Whether a meal is on, whichever family asks (the sleeping bag's use would
+	-- stand you up from it).
+	local function EatingNow()
+		for _, each in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
+			if each.food then return Eating(each) end
 		end
 		return false
 	end
@@ -2731,9 +2758,11 @@ do
 		-- while you lie in the bag or it cools down, nor mounted.
 		if family.rest then
 			local level = plain(UnitLevel("player"))
-			if type(level) == "number" and level >= ns.MaxPlayerLevel() then
+			if type(level) == "number" and (level >= ns.MaxPlayerLevel() or ns.NoExperience(level)) then
 				return nil, up, left, "maxlevel", spell
 			end
+			-- Nor while you eat: the use stands you up and the meal with it.
+			if EatingNow() then return nil, up, left, "resting", spell end
 			if BagBusy(family, spell) then return nil, up, left, "resting", spell end
 			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
 				return nil, up, left, "unusable", spell
@@ -2743,6 +2772,10 @@ do
 		-- The hand an enhancement was just put on is busy until the cast is over
 		-- (NoteScrollPress): nothing else is offered for it in the meantime.
 		if spell.family.enhance and ns.HandBusy(spell.family.slot, ctx.now) then
+			return nil, up, left, "tried", spell
+		end
+		-- The sleeping bag's own cast runs 15 seconds, past the retry block.
+		if spell.family.rest and ns.HandBusy(spell.family.key, ctx.now) then
 			return nil, up, left, "tried", spell
 		end
 		-- A scroll is used, not cast: the bags, your level and your weapon
@@ -3657,6 +3690,14 @@ end
 -- Midnight's 90, vanilla's 60 everywhere else -- so a client that cannot say
 -- does not cut a setting back. On ns, not a main-chunk local, for Lua 5.1's
 -- 200.
+function ns.NoExperience(level)
+	local off = _G.IsXPUserDisabled
+	if type(off) == "function" and plain(off()) == true then return true end
+	local ask = _G.GetMaxPlayerLevel
+	local cap = type(ask) == "function" and plain(ask()) or nil
+	return type(cap) == "number" and cap > 0 and level >= cap
+end
+
 function ns.MaxPlayerLevel()
 	local flavour = ns.Flavour and ns.Flavour.flavour
 	local cap = (flavour == "tbc" and 70) or ((flavour == "mists" or flavour == "mainline") and 90) or 60
@@ -4294,6 +4335,9 @@ end
 -- `event` is AceDB's, and nil when an import or its undo calls this itself.
 function addon:RefreshConfig(event)
 	ns.Guard("ClampSettings", ns.ClampSettings)
+	-- The bag count only holds what the Who-to-buff switches said when it was
+	-- taken; a profile's own switches may differ.
+	ns.ForgetScrolls()
 	-- A profile switched to may just have been carried over; chat exists now.
 	ns.SayAnchorCarried()
 	-- Guarded like the login's: a profile the clamp could not mend must not

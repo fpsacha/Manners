@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Fixes in the settings and the diagnostics.**
+  - A Well-Rested or Well Fed switch turned on by a profile change, a copy or a
+    pasted settings string now offers the item already in your bags at once,
+    not after the bags next change.
+  - *Emote to use* now shows beside */thank people who buff me* for a class
+    with nothing to cast on others, as it does for the rest.
+  - *Myself* in *Diagnostics* and `/manners debug` now agrees with the prompt
+    about a top-up of your own armor on the default settings, and *When a
+    top-up is due* shows the moment *Top up my own buffs this long before they
+    end* gives. Its heading no longer says top-ups are off above buffs of yours
+    that are topped up, and Well-Rested and Well Fed are no longer said to have
+    no timer or named "?".
+  - The full check-up no longer names a player held back for PvP, somebody who
+    asked from out of reach, or anybody else `/manners debug` mentions, and a
+    short player name no longer overwrites the report's own headings and words.
+
 - **Funnier Forsaken thanks.** *In character* has 21 new lines for a Forsaken
   thanking whoever buffed them, in place of 18 of the plainer ones: the will
   read years ago, the headstone, the smell that is "not personal, it's
