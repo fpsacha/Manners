@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.10
 
 - **Well-Rested, for the sleeping bag.** A new switch under *Myself* on *Who to
   buff*, shown while a Cozy Sleeping Bag is in your bags: with it on and no
