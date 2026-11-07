@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Funnier Forsaken thanks.** *In character* has 21 new lines for a Forsaken
+  thanking whoever buffed them, in place of 18 of the plainer ones: the will
+  read years ago, the headstone, the smell that is "not personal, it's
+  posthumous". In every language Manners speaks.
+
 ## 1.11.10
 
 - **Well-Rested, for the sleeping bag.** A new switch under *Myself* on *Who to
