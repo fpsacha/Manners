@@ -259,6 +259,11 @@ local defaults = {
 			-- blessing first is what was asked for, and somebody already carrying
 			-- one of yours, or Kings from another paladin, is handled as ever.
 			kingsFirst = true,
+			-- A paladin leaves alone anybody who carries a blessing from another
+			-- paladin (PickBuffFor's exclusive branch): in a group where the
+			-- blessings are shared out, theirs is the one they were given. Off,
+			-- because blessings from two paladins stack and today it is offered.
+			leaveBlessed = false,
 			-- The order a class's buffs are tried in, set by hand (Who to buff, Buff
 			-- order): order[CLASS] = { key, key, ... }, every buff of that class the
 			-- client that wrote it has. Absent is Automatic -- the list as the buff
@@ -344,6 +349,9 @@ local defaults = {
 			-- you owe alike, while the game calls you resting: a city or an
 			-- inn. Off, because it takes away offers somebody gets today.
 			quietInTowns = false,
+			-- The same inside a dungeon, a raid, a battleground or an arena
+			-- (Queue.lua, Inside): nothing for anybody but a target or focus.
+			quietInInstances = false,
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
@@ -536,6 +544,8 @@ for _, families in pairs(ns.OWN_BUFFS or {}) do
 	for _, family in ipairs(families) do
 		if family.food then defaults.profile.ownBuffs.pick[family.key] = "off" end
 		if family.rest then defaults.profile.ownBuffs.pick[family.key] = "off" end
+		-- And a spell few keep up, asked for by those who do (Buffs.lua, optIn).
+		if family.optIn then defaults.profile.ownBuffs.pick[family.key] = "off" end
 	end
 end
 for _, families in pairs(ns.OWN_BUFFS or {}) do
@@ -1584,6 +1594,17 @@ do
 		-- names nobody we can read counts as ours, or ours would be walked over.
 		-- Never rotated: see ns.RotatesBuffs.
 		if ns.EXCLUSIVE_BUFFS[playerClass] then
+			-- "Leave alone anybody another paladin has blessed": any blessing of
+			-- the class worn from somebody else covers them, pinned or not, read
+			-- over the whole class rather than the list a pin narrows. Not for
+			-- somebody who asked for a blessing by name.
+			if db.buff.leaveBlessed == true and not opts.asked then
+				local all = ns.GetClassBuffs(playerClass) or candidates
+				for i = 1, #all do
+					local held, _, mine = has(all[i], opts)
+					if held == true and mine == false then return nil, true end
+				end
+			end
 			local pick, allRead, onCooldown = nil, true, false
 			-- The first blessing they carry from another paladin, kept for a debt
 			-- with nothing else left to give: see the end of this branch.

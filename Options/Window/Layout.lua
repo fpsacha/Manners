@@ -92,6 +92,8 @@ local function CastItems()
 	for _, item in ipairs(OfferItems()) do items[#items + 1] = item end
 	-- A paladin's Blessing of Kings first, while the walk is Automatic.
 	items[#items + 1] = "who.kingsFirst"
+	-- A paladin's: nobody another paladin has blessed.
+	items[#items + 1] = "who.leaveBlessed"
 	items[#items + 1] = "who.relevantOnly"
 	items[#items + 1] = { "who.autoNote", standIn = true }
 	items[#items + 1] = "who.pinNote"
@@ -190,6 +192,7 @@ ns.WindowLayout = {
 					{ "who.restingOnly", indent = true },
 					"who.asked",
 					"who.quietInTowns",
+					"who.quietInInstances",
 				} },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",
@@ -221,6 +224,8 @@ ns.WindowLayout = {
 					-- A shaman's weapon imbues, spells: one a hand at a time.
 					{ "who.own_shamanimbue", indent = true },
 					{ "who.own_demonarmor", indent = true },
+					-- A warlock's Detect Invisibility, off until it is turned on.
+					{ "who.own_detectinvis", indent = true },
 					-- Food that gives Well Fed, off until it is turned on; every class has it.
 					{ "who.own_food", indent = true },
 					-- The sleeping bag's Well-Rested, off until it is turned on;

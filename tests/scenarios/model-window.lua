@@ -403,6 +403,7 @@ local EXPECTED = {
 		"filters.restingOnly", "filters.quietInTowns", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
+		"filters.quietInInstances", "buff.leaveBlessed",
 	},
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel" },
 	when = {

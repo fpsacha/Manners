@@ -775,6 +775,8 @@ end
 --             never offered as a top-up.
 --   bagged    an item from the bags with one switch, off until it is turned on:
 --             Well Fed (`food`) and Well-Rested (`rest`), above.
+--   optIn     off until it is turned on, like a bagged family, but a spell:
+--             a warlock's Detect Invisibility.
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
@@ -894,6 +896,14 @@ local VANILLA_OWN = {
 				{ key = "demonarmor", ranks = { 11735, 11734, 11733, 1086, 706, 696, 687 } },
 			},
 		},
+		-- Detect Invisibility on yourself, off until it is turned on (`optIn`):
+		-- asked for on CurseForge by a warlock who keeps it up, which most do
+		-- not. Lesser at 26, plain at 38, Greater at 50 (SpellLevels, Classic
+		-- Era 1.15.9.70003 and Forever 1.60.1.70790, SkillLineAbility 354 on
+		-- both). Another warlock's on you fills it (`anyCaster`): yours would
+		-- only replace it.
+		{ key = "detectinvis", optIn = true,
+			spells = { { key = "detectinvis", ranks = { 11743, 2970, 132 }, anyCaster = true } } },
 	},
 
 	PALADIN = {
@@ -1322,6 +1332,9 @@ local TBC_OWN = {
 			-- spell power for a dungeon, the armor out in the world.
 			dungeon = "felarmor",
 		},
+		-- Vanilla's, with the one rank this client kept (132, level 26).
+		{ key = "detectinvis", optIn = true,
+			spells = { { key = "detectinvis", ranks = { 132 }, anyCaster = true } } },
 	},
 
 	PALADIN = {
@@ -2192,6 +2205,7 @@ do
 		{ 600, 408510 }, -- Water Shield (10 min)
 		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
 		{ 1800, 403619 }, -- Fel Armor, Season of Discovery's rune (30 min)
+		{ 600, 11743, 2970, 132 }, -- Detect Invisibility, every rank (10 min)
 	})
 
 	-- Burning Crusade Classic Anniversary 2.5.6.69795.
@@ -2250,6 +2264,7 @@ do
 		{ 600, 32594, 32593, 974 }, -- Earth Shield (10 min)
 		{ 1800, 27260, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
 		{ 1800, 28189, 28176 }, -- Fel Armor (30 min)
+		{ 600, 132 }, -- Detect Invisibility (10 min)
 	})
 
 	-- WoW Forever 1.60.1.70178.
@@ -2301,6 +2316,7 @@ do
 		{ 600, 408510 }, -- Water Shield (10 min)
 		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
 		{ 1800, 403619 }, -- Fel Armor, the Season of Discovery rune's id (30 min, build 1.60.1.70532)
+		{ 600, 11743, 2970, 132 }, -- Detect Invisibility, every rank (10 min)
 	})
 
 	-- Mists of Pandaria Classic 5.5.4.70032.

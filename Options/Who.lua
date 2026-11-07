@@ -381,6 +381,8 @@ local function AddOwnControls(args)
 					and L["Reminds you to eat when Well Fed is not on you and food that gives it is in your bags. Off until you turn it on."]
 					or family.rest
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
+					or family.optIn
+					and L["Reminds you when it is not on you, whoever cast it. Off until you turn it on."]
 					or L["Reminds you when it is not up."]
 				control.get = function() return pick() ~= "off" end
 				control.set = function(info, value) write(info, value and "auto" or "off") end
@@ -679,6 +681,19 @@ function Page.BuildWhoTab()
 				get = function() return B().kingsFirst == true end,
 				set = bSet,
 			},
+			-- For a class whose buffs overwrite one another (a paladin's
+			-- blessings): leave alone whoever another paladin has blessed. Asked
+			-- for on CurseForge, by a player whose group shares out the blessings.
+			leaveBlessed = {
+				type = "toggle",
+				name = L["Skip players another paladin has blessed"],
+				desc = L["On: somebody who already carries any blessing from another paladin is not offered one of yours, even one they lack. Somebody who asks you for a blessing by name is still offered it."],
+				order = 4.85,
+				width = "full",
+				hidden = function() return not ns.EXCLUSIVE_BUFFS[ns.caps.class] end,
+				get = function() return B().leaveBlessed == true end,
+				set = bSet,
+			},
 			-- The per-spell switches (AddBuffToggles) sit at 4.1, 4.2, ... and
 			-- this one after them: all three decide what is cast. Only for a
 			-- class with a mana-only spell, which is all it holds back.
@@ -877,6 +892,17 @@ function Page.BuildWhoTab()
 				name = L["Never in cities and inns"],
 				desc = L["On: nothing is offered to anybody while the game calls you resting, in a city or an inn: not passers-by, not your group, not a favour you owe. Somebody you target or focus is still offered. Your own buffs have their own switch, under Myself."],
 				order = 13.35,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
+			-- The same rule inside an instance: a player asked on CurseForge for
+			-- no offers in a dungeon, where the group sorts out its own buffs.
+			quietInInstances = {
+				type = "toggle",
+				name = L["Never in dungeons, raids and battlegrounds"],
+				desc = L["On: inside a dungeon, a raid, a battleground or an arena, nothing is offered to anybody: not your group, not a favour you owe. Somebody you target or focus is still offered, and your own buffs are not held back."],
+				order = 13.36,
 				width = "full",
 				get = fGet,
 				set = fSet,

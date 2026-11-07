@@ -1251,6 +1251,15 @@ local function YouAreFlagged()
 	return true
 end
 
+-- Inside an instance of any kind (a dungeon, raid, battleground, arena or
+-- scenario), by the game's word; could-not-tell is outside, so nothing is held
+-- back on a guess.
+local function Inside()
+	local inside, kind = safecall(_G.IsInInstance)
+	inside, kind = plain(inside), plain(kind)
+	return (inside == true or inside == 1) and type(kind) == "string" and kind ~= "none"
+end
+
 local function PvPRuleStands(db)
 	return db.filters.skipPvP == true and not YouAreFlagged()
 end
@@ -1917,6 +1926,9 @@ function ns.BuildQueue(watch)
 	-- Nothing for anybody while resting, when that is asked for (Who to buff,
 	-- Never in cities and inns): passers-by are turned down as a kind too.
 	local inTown = f.quietInTowns == true and Resting() == true
+	-- And inside a dungeon, raid, battleground or arena, when that is asked
+	-- for: the same rule, the target and focus still exempt.
+	if f.quietInInstances == true and Inside() then inTown = true end
 	if inTown then notResting = true end
 	-- Nobody is asked about friends when Who comes first is off, which is most
 	-- of its cost.
