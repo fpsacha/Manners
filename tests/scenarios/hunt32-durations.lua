@@ -731,12 +731,15 @@ for _, flavour in ipairs(FLAVOURS) do
 		if not printed:find("When a top-up is due", 1, true) or not printed:find(WORDS[flavour], 1, true) then
 			fail(scenario, "/manners debug does not list when a top-up is due: " .. printed:sub(1, 300))
 		end
-		-- With top-ups off the heading says so.
+		-- With top-ups off the heading says so: for your own buffs too (they are topped
+		-- up whatever it says for others while Top up my own buffs is on).
 		ns.db.profile.filters.whenBuffed = "skip"
+		ns.db.profile.filters.selfTopUp = false
 		if ns.LeadHeading() ~= "When a top-up is due (top-ups are off)" then
 			fail(scenario, "the heading does not say top-ups are off: " .. ns.LeadHeading())
 		end
 		ns.db.profile.filters.whenBuffed = "refresh"
+		ns.db.profile.filters.selfTopUp = true
 		-- The Diagnostics page reads the same lines.
 		local node = H.findOption(ns.optionsTable, "leadDiag")
 		local text = node and (type(node.name) == "function" and node.name() or node.name) or ""

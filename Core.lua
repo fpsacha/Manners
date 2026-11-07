@@ -1428,6 +1428,9 @@ do
 		return lead
 	end
 
+	-- For the diagnostics, which print the moment the queue works to.
+	ns.SelfEarlier = SelfEarlier
+
 	-- What "If they already have it" means for your own buffs and the ones you
 	-- put on yourself: with "Top up my own buffs before they run out" on, a
 	-- top-up whatever it says for other people.
@@ -4273,6 +4276,9 @@ end
 -- `event` is AceDB's, and nil when an import or its undo calls this itself.
 function addon:RefreshConfig(event)
 	ns.Guard("ClampSettings", ns.ClampSettings)
+	-- The bag counts only hold the items whose switch is on: a switch a profile
+	-- change, a copy or an import has just turned on needs the bags read again.
+	ns.ForgetScrolls()
 	-- A profile switched to may just have been carried over; chat exists now.
 	ns.SayAnchorCarried()
 	-- Guarded like the login's: a profile the clamp could not mend must not

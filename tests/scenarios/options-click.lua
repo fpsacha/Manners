@@ -124,7 +124,8 @@ end
 
 -- ------------------------------------------------------------------ rogue
 -- Somebody buffing a rogue is thanked like anybody (Favours.lua), so the tab
--- is there for the /thank, and only for it: every line is said with a cast.
+-- is there for the /thank and the emote it uses, and only for them: every line
+-- is said with a cast.
 do
 	local scenario = "click tab: a class with nothing to cast keeps only the /thank"
 	local ns = session(scenario, "ROGUE")
@@ -136,7 +137,7 @@ do
 			fail(scenario, "What I say is hidden from a rogue, who can still /thank")
 		else
 			for key, control in pairs(click.args) do
-				local keep = key == "thankEmote" or key == "speechHeader"
+				local keep = key == "thankEmote" or key == "thankEmoteToken" or key == "speechHeader"
 				if keep and not shown(control) then
 					fail(scenario, key .. " is hidden from a rogue")
 				elseif not keep and shown(control) then

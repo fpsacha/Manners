@@ -156,9 +156,13 @@ function ns.FullReport()
 		L["Manners full check-up. Copy all of it (click in the box, Ctrl+A, Ctrl+C) and paste it into a comment on CurseForge or an issue at github.com/fpsacha/Manners/issues, with a few words on what went wrong."],
 	}
 	local addon = ns.addon
+	-- Lines the aliasing leaves alone: the opening paragraph, the headings and
+	-- the settings string, which are the report's own words.
+	local fixed = { [1] = true }
 	local function Section(title, fn)
 		lines[#lines + 1] = ""
 		lines[#lines + 1] = "== " .. title .. " =="
+		fixed[#lines] = true
 		local ok, err = pcall(fn)
 		if not ok then lines[#lines + 1] = "(this part failed: " .. Plain(err) .. ")" end
 	end
@@ -270,19 +274,56 @@ function ns.FullReport()
 		table.sort(names)
 		lines[#lines + 1] = #names > 0 and table.concat(names, ", ") or "(none)"
 	end)
-	Section("Settings", function() lines[#lines + 1] = Plain(ns.ExportSettings and ns.ExportSettings() or "(none)") end)
+	Section("Settings", function()
+		lines[#lines + 1] = Plain(ns.ExportSettings and ns.ExportSettings() or "(none)")
+		fixed[#lines] = true
+	end)
 
-	-- Last, over everything above: the names the queue and the trail know, each
-	-- replaced by its alias wherever it was written.
-	local text = table.concat(lines, "\n")
+	-- Last, over everything above: the names the queue and the trail know, and
+	-- the ones /manners debug prints from elsewhere (somebody who asked from out
+	-- of reach, one held back for PvP or backed off, one who owes you a return
+	-- or was last thanked), each replaced by its alias wherever it was written.
+	local function Heard(list)
+		for _, line in ipairs(list or {}) do
+			for name in tostring(line):gmatch("|cffffffff(.-)|r") do Alias(name) end
+		end
+	end
+	pcall(function() Heard(ns.RequestLines()) end)
+	pcall(function() Heard(ns.RefusalLines(GetTime())) end)
+	pcall(function() Heard(ns.PvPLines()) end)
+	for name in pairs(ns.owed or {}) do Alias(name) end
+	local thanks = ns.thankLog or {}
+	if thanks.thanked then Alias(thanks.thanked.name) end
+	if thanks.skipped then Alias(thanks.skipped.name) end
 	local names = {}
 	for name in pairs(alias) do names[#names + 1] = name end
 	-- The longest first, so "Anna Aim" goes before "Anna".
 	table.sort(names, function(a, b) return #a > #b end)
-	for _, name in ipairs(names) do
-		text = text:gsub(name:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0"), (alias[name]:gsub("%%", "%%%%")))
+	-- A name is a whole word: a letter, digit or underscore on either side
+	-- (accented letters included) means it is part of something longer.
+	local function Part(c) return c ~= "" and c:find("[%w_\128-\255]") ~= nil end
+	local function Swap(line, name, to)
+		local out, at = {}, 1
+		while true do
+			local s, e = line:find(name, at, true)
+			if not s then break end
+			if (s > 1 and Part(line:sub(s - 1, s - 1))) or Part(line:sub(e + 1, e + 1)) then
+				out[#out + 1] = line:sub(at, e)
+			else
+				out[#out + 1] = line:sub(at, s - 1) .. to
+			end
+			at = e + 1
+		end
+		out[#out + 1] = line:sub(at)
+		return table.concat(out)
 	end
-	return text
+	for i, line in ipairs(lines) do
+		if not fixed[i] then
+			for _, name in ipairs(names) do line = Swap(line, name, alias[name]) end
+			lines[i] = line
+		end
+	end
+	return table.concat(lines, "\n")
 end
 
 -- What this client allows, what has broken, and a bug report.
