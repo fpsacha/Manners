@@ -53,6 +53,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 - **A shaman's weapon imbues** (Rockbiter, Flametongue, Frostbrand, Windfury) on WoW Forever, Classic Era and Burning Crusade: with none on the weapon in your main hand, "You" comes up with the first you know.
 - **Well Fed**, if you switch it on: food in your bags that gives the buff, offered when none is on you, one press eats it. Every class, on WoW Forever, Classic Era, Burning Crusade and Mists.
 - **Well-Rested**, if you switch it on: with a Cozy Sleeping Bag in your bags and no Well-Rested on you, one press lays the bag down. Not at the level cap. Classic Era and WoW Forever.
+- **Detect Invisibility** for warlocks, if you switch it on: offered when none is on you, one press casts it on you. Classic Era, WoW Forever and Burning Crusade.
 - **Oils, stones and food only in dungeons and raids**, if you like. On your own, a stone or oil is renewed only once it has worn off; in a group it is topped up ahead of the next pull.
 - **Automatic, or your choice.** Where a class has several of one kind, pick one or leave it on *Automatic*, which follows the one you had up last. Only when none of a kind is up, never in a fight, and not in cities and inns unless you tick *Also in cities and inns*. *Don't remind me* turns any of it off.
 - Hunters, shamans and rogues, who give nothing to others, get a prompt for their own buffs.
@@ -69,6 +70,8 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 ### Quiet when you want it
 
 - **Never in cities and inns:** nothing offered to anybody while you are resting (passers-by, your group, a favour you owe); a target or focus still is.
+- **Never in dungeons, raids and battlegrounds:** the same inside any instance; a target or focus still is, and your own buffs too.
+- **Skip players another paladin has blessed:** for paladins whose group shares out the blessings.
 - **Thorns for the tanks only, or for you alone:** *Offer to* on Who to buff, by the game's tank role or a raid's main tank mark.
 - **Say nothing at all in chat:** not even the few lines the *Tell me in chat* switch leaves. What you type after `/manners` is still answered.
 - **A controller on:** Manners opens none of the game's own menus (the minimap right click is the switch, a drop-down steps to the next choice).

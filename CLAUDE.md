@@ -144,7 +144,9 @@ default everywhere in the tests and the only client anybody here plays.
     camelot, the Cozy Sleeping Bag): `bagged` families in `Buffs.lua` (`food`,
     `rest`), an item from the bags with one switch, off until it is turned on;
     `family.food` alone where only food is meant (the meal in progress,
-    *Oils, stones and food only in dungeons and raids*).
+    *Oils, stones and food only in dungeons and raids*). A spell family off
+    until it is turned on is `optIn` (a warlock's Detect Invisibility: vanilla,
+    camelot and tbc; Mists and retail have no such spell).
   - level cap for "Skip players below level": 60, tbc 70, mists and mainline 90
     (Core.lua).
 

@@ -258,8 +258,12 @@ each class offers*).
   *Well-Rested* on you, "You" comes up with the bag's icon and one press lays
   it down; rest in it a minute for the buff. Nothing is offered at the level
   cap, where there is no experience to gain, while you lie in the bag, during
-  the hour its use cools down, mounted or in a fight. Classic Era and WoW
-  Forever.
+  the hour its use cools down, while you eat, mounted or in a fight. Classic
+  Era and WoW Forever.
+- **Detect Invisibility.** For warlocks: a switch under *Myself*, off until you
+  switch it on. Then, with no Detect Invisibility on you (yours or another
+  warlock's), "You" comes up and one press casts it on you. Classic Era, WoW
+  Forever and Burning Crusade.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath
@@ -571,6 +575,13 @@ explain themselves; this is what their tooltips have no room for.
   anybody: not passers-by, not your group, not a favour you owe. Somebody you
   target or focus still is. Your own buffs have their own switch under
   *Myself*.
+- *Never in dungeons, raids and battlegrounds*: off by default. The same rule
+  inside a dungeon, a raid, a battleground or an arena: nothing for anybody but
+  somebody you target or focus. Your own buffs are not held back.
+- *Skip players another paladin has blessed* (paladins, under *Kings first*):
+  off by default. Anybody carrying any blessing from another paladin is left
+  alone, even one yours would stack with; somebody who asks you for a blessing
+  by name is still offered it.
 - *Myself* (see *Buffing yourself* above): *Myself, when I'm missing my own
   buff*, on by default, switches everything on yourself on or off. Under it,
   one control for each of your class's own buffs you have learned: a

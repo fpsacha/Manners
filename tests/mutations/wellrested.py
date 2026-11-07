@@ -95,6 +95,12 @@ mutate("Commands.lua",
        "wellrested: the debug line about the bag unsaid",
        expect="wellrested: not at the level cap", script=S)
 
+mutate("Commands.lua",
+       "\t\telseif why == \"mounted\" then\n",
+       "\t\telseif false then\n",
+       "wellrested: mounted said to be the game's refusal",
+       expect="wellrested: not at the level cap", script=S)
+
 # --- the page ---
 
 mutate("Options/Who.lua",

@@ -268,6 +268,10 @@ do
 		world.mounted = true
 		Mock.advance(1)
 		if mine(ns) then fail(scenario, "mounted, and offered the bag: " .. key(mine(ns))) end
+		-- Manners holds it back, not the game: the debug line says so (r35).
+		if not lines(ns):find("waits until you dismount", 1, true) then
+			fail(scenario, "mounted, /manners debug does not say the bag waits for you to dismount: " .. lines(ns))
+		end
 		world.mounted = false
 		Mock.advance(1)
 		if not mine(ns) then fail(scenario, "dismounted, and nothing offered") end

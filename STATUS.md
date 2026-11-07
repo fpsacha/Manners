@@ -5,7 +5,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.11.9 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.11.10 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
@@ -19,8 +19,11 @@ exceptions, a Well Fed reminder, a shaman's weapon imbues, the emote chosen for
 Thorns held to tanks or to you alone, oils, stones and food only in dungeons and
 raids, nothing offered in cities and inns, a switch to say nothing in chat,
 weapon items renewed only once gone while alone, a switch for Unending
-Breath, and the full check-up for bug reports (1.11.9). Unreleased: a
-Well-Rested reminder for the Cozy Sleeping Bag. Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
+Breath, the full check-up for bug reports (1.11.9) and a Well-Rested reminder
+for the Cozy Sleeping Bag (1.11.10). Unreleased: nothing offered inside an
+instance, paladins skipping players another paladin has blessed, a warlock's
+Detect Invisibility on himself, funnier Forsaken thanks, and bug hunt 35's
+fixes (Well-Rested above all). Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
 (1.11.4); the audit reads Forever at that build (`CLAUDE.md`, "Data sources").
 
 Working here is quicker and safer for an agent since round 33 (`CLAUDE.md`,
@@ -237,7 +240,20 @@ build adds foods, `python tools/make_foods.py` rewrites `Foods.lua` from the
 cached tables (`--check` says whether it is current) and the next release
 carries it.
 
-**Well-Rested was written against the data and the mock (Unreleased).** The
+**Bug hunt 35's ideas, not built (Unreleased).** The hunt's buff finder listed
+buffs players might expect, each checked on wago.tools: a reminder for
+Shadowform (every client) and Moonkin Form, shaman weapon imbues on Mists and
+retail, Beacon of Light (Mists, retail, Season of Discovery), Symbiosis and
+Grimoire of Sacrifice (Mists), Blistering Scales and the paladin's two weapon
+rites (retail), Season of Discovery's Aspects of the Viper and Falcon, Molten
+Armor, Heart of the Lion, Commanding Shout and Earth Shield, and flasks,
+elixirs and scrolls as switches like Well Fed. Waiting on the owner's pick. No
+finding was refuted this round, and none was left for the live game alone
+beyond what the Well-Rested note below says: a Well-Rested the client keeps
+secret is now read as "cannot tell", which only a battleground on Forever can
+show.
+
+**Well-Rested was written against the data and the mock (1.11.10).** The
 Cozy Sleeping Bag (item 211527) casts Unroll Bag (429961, an hour's cooldown);
 resting in the bag a minute gives Well-Rested (429959), and the bag's area
 puts a tracking aura (429960) on you (wago.tools, Classic Era 1.15.9.70003 and

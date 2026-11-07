@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- **Never in dungeons, raids and battlegrounds.** A new switch on *Who to buff*,
+  under *Never in cities and inns*: with it on, nothing is offered to anybody
+  inside a dungeon, a raid, a battleground or an arena, your group and a favour
+  you owe included. Somebody you target or focus is still offered, and your own
+  buffs are not held back. Off until you switch it on.
+
+- **Skip players another paladin has blessed.** For paladins, under *Kings
+  first*: anybody already carrying a blessing from another paladin is left
+  alone, even when yours would stack with it, and with a blessing pinned too.
+  Somebody who asks you for a blessing by name is still offered it. Off until
+  you switch it on.
+
+- **Detect Invisibility on yourself.** Warlocks get a switch under *Myself* on
+  *Who to buff*: with it on, "You" comes up whenever Detect Invisibility is not
+  on you, and one cast by another warlock counts. Off until you switch it on.
+  Classic Era, WoW Forever and Burning Crusade.
+
+- **Well-Rested fixes.**
+  - The Cozy Sleeping Bag is no longer offered again partway through laying it
+    down (fifteen seconds on WoW Forever), and moving during that cast is now
+    noticed and the bag offered again.
+  - While you eat for Well Fed, the bag is no longer offered next: lying down
+    would have cut the meal short.
+  - Not offered when you have turned experience off, as at the level cap.
+  - Well-Rested or Well Fed on you is no longer taken for missing where the game
+    keeps the aura from addons.
+  - Mounted, `/manners debug` now says the bag (or the food) waits until you
+    dismount, instead of saying the game refused it.
+
 - **Fixes in the settings and the diagnostics.**
   - A Well-Rested or Well Fed switch turned on by a profile change, a copy or a
     pasted settings string now offers the item already in your bags at once,
@@ -17,6 +46,13 @@
   - The full check-up no longer names a player held back for PvP, somebody who
     asked from out of reach, or anybody else `/manners debug` mentions, and a
     short player name no longer overwrites the report's own headings and words.
+
+- **Speech fixes.**
+  - In a battleground or a group from the dungeon finder, a line meant for your
+    party is said in */party* only to the people in your own premade group.
+  - A female Forsaken no longer says the new thanks lines that some languages
+    word in a man's voice, and a Forsaken no longer thanks a fellow Forsaken for
+    being "alive".
 
 - **Funnier Forsaken thanks.** *In character* has 21 new lines for a Forsaken
   thanking whoever buffed them, in place of 18 of the plainer ones: the will

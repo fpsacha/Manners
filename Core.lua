@@ -2656,6 +2656,7 @@ do
 	--   "up"        one of it is up (and is no top-up)
 	--   "tried"     pressed or skipped a moment ago
 	--   "unusable"  the game says it cannot be cast now
+	--   "mounted"   food or the sleeping bag, held back by Manners while mounted
 	--   "bags"      a scroll: none of it in your bags
 	--   "noweapon"  an imbue: there is no weapon in your main hand
 	--   "level"     a scroll: your level is short of it
@@ -2751,7 +2752,7 @@ do
 		if family.food then
 			if Eating(family) then return nil, up, left, "tried", spell end
 			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
-				return nil, up, left, "unusable", spell
+				return nil, up, left, "mounted", spell
 			end
 		end
 		-- Well-Rested: experience, so nothing to gain at the level cap; not
@@ -2765,7 +2766,7 @@ do
 			if EatingNow() then return nil, up, left, "resting", spell end
 			if BagBusy(family, spell) then return nil, up, left, "resting", spell end
 			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
-				return nil, up, left, "unusable", spell
+				return nil, up, left, "mounted", spell
 			end
 		end
 		if ns.IsBlocked(ctx.name, spell.key, ctx.now) then return nil, up, left, "tried", spell end

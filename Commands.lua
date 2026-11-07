@@ -81,6 +81,9 @@ do
 			return L["%s: %s was pressed or skipped a moment ago."]:format(label, name or "?")
 		elseif why == "unusable" then
 			return L["%s: the game says %s cannot be cast right now."]:format(label, name or "?")
+		elseif why == "mounted" then
+			-- Manners' own rule for food and the sleeping bag, not the game's.
+			return L["%s: %s waits until you dismount."]:format(label, name or "?")
 		elseif why == "none" then
 			return L["%s: Automatic has nothing it would pick."]:format(label)
 		elseif why == "dungeon" then
