@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.9
 
 - **One button for a bug report: Run a full check-up.** On *Diagnostics*, it
   runs every check Manners has and gathers everything into one box to copy:
