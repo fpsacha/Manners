@@ -531,9 +531,11 @@ for _, families in pairs(ns.OWN_BUFFS or {}) do
 end
 -- Well Fed is off until a player turns it on: it reads every food in the bags, and
 -- a reminder to eat nobody asked for would be the first thing to switch off.
+-- Well-Rested too, the sleeping bag's (Buffs.lua, bagged).
 for _, families in pairs(ns.OWN_BUFFS or {}) do
 	for _, family in ipairs(families) do
 		if family.food then defaults.profile.ownBuffs.pick[family.key] = "off" end
+		if family.rest then defaults.profile.ownBuffs.pick[family.key] = "off" end
 	end
 end
 for _, families in pairs(ns.OWN_BUFFS or {}) do
@@ -891,7 +893,7 @@ do
 		caps.anyOwnKnown = false
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
 			-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
-			for _, spell in ipairs((family.enhance or family.food) and {} or family.spells) do
+			for _, spell in ipairs((family.enhance or family.bagged) and {} or family.spells) do
 				local info = spell.item and ProbeScroll(spell) or ProbeBuff(spell)
 				info.known = info.known == true and info.name ~= nil
 				caps.own[spell.key] = info
@@ -929,7 +931,7 @@ function ns.BuffInfo(buff)
 	if buff.own then
 		local info = caps.own and caps.own[buff.key]
 		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
-		if not info and caps.own and buff.item and buff.family and (buff.family.enhance or buff.family.food) then
+		if not info and caps.own and buff.item and buff.family and (buff.family.enhance or buff.family.bagged) then
 			info = ns.ProbeOwnItem(buff)
 		end
 		return info
@@ -1803,7 +1805,7 @@ do
 			local count = C_Item and C_Item.GetItemCount
 			if type(count) == "function" then
 				for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
-					local listed = family.scroll or (family.food and ns.OwnPick(family) ~= "off")
+					local listed = family.scroll or (family.bagged and ns.OwnPick(family) ~= "off")
 					for _, scroll in ipairs(listed and family.spells or {}) do
 						local n = scrollCounts[scroll.item] or plain(count(scroll.item))
 						scrollCounts[scroll.item] = type(n) == "number" and n or 0
@@ -2048,7 +2050,7 @@ do
 	local function AutoAnswer(family)
 		local last = Remembered(family)
 		if last then return last, "last" end
-		if family.scroll or family.food then
+		if family.scroll or family.bagged then
 			local held, heldWhy
 			for _, spell in ipairs(family.spells) do
 				local ready, why = ScrollReady(spell)
@@ -2437,6 +2439,39 @@ do
 		return false
 	end
 
+	-- Well-Rested (Buffs.lua, REST) is one aura, read by its id: true with its
+	-- time left, false for none, nil for the client will not say.
+	local function ReadRested(family, now)
+		local api = C_UnitAuras
+		local byId = api and api.GetUnitAuraBySpellID
+		if type(byId) ~= "function" then return nil end
+		local ok, aura = pcall(byId, "player", family.fed)
+		if not ok or Withheld(aura) then return nil end
+		if type(aura) == "table" then return true, nil, Left(aura, now) end
+		return false
+	end
+
+	-- Whether the sleeping bag is busy: lying in it (its tracking aura on you,
+	-- the minute before Well-Rested comes), or its use cooling down, the hour
+	-- after the bag was laid down. Either way a press would do nothing.
+	-- Asked only when Well-Rested is due.
+	local function BagBusy(family, spell)
+		local api = C_UnitAuras
+		local byId = api and api.GetUnitAuraBySpellID
+		if type(byId) == "function" then
+			local ok, aura = pcall(byId, "player", family.resting)
+			if ok and type(aura) == "table" then return true end
+		end
+		local cooldown = C_Container and C_Container.GetItemCooldown
+		if type(cooldown) ~= "function" then cooldown = _G.GetItemCooldown end
+		if type(cooldown) ~= "function" then return false end
+		local ok, start, duration = pcall(cooldown, spell.item)
+		start, duration = ok and plain(start) or nil, ok and plain(duration) or nil
+		-- More than a global cooldown's length still to run.
+		return type(start) == "number" and type(duration) == "number" and start > 0 and duration > 2
+			and start + duration - GetTime() > 0
+	end
+
 	-- Whether a meal is on: the aura of the spell a food's use casts ("Food",
 	-- "Nutritious Food", "Nutritious Drink"), by name, since two foods use two
 	-- spells. Asked only when Well Fed is due, so a prompt with it off pays
@@ -2489,6 +2524,7 @@ do
 			return false
 		end
 		if family.food then return ReadWellFed(family, GetTime()) end
+		if family.rest then return ReadRested(family, GetTime()) end
 		if family.imbue then return ReadImbue(family) end
 		-- A stone, a poison, an oil or a lure: its hand carries an enchant or not.
 		if family.enhance then return ReadImbue(family) end
@@ -2577,6 +2613,8 @@ do
 	--   "level"     a scroll: your level is short of it
 	--   "weapon"    an imbue: not for the weapon in your main hand
 	--   "dungeon"   an oil, a stone or food, held to dungeons and raids, and you are not in one
+	--   "maxlevel"  Well-Rested: you are at the level cap, with no experience to gain
+	--   "resting"   Well-Rested: you lie in the sleeping bag, or it is cooling down
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
@@ -2664,6 +2702,18 @@ do
 		-- would cut short, nor mounted, where the use would only dismount you.
 		if family.food then
 			if Eating(family) then return nil, up, left, "tried", spell end
+			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
+				return nil, up, left, "unusable", spell
+			end
+		end
+		-- Well-Rested: experience, so nothing to gain at the level cap; not
+		-- while you lie in the bag or it cools down, nor mounted.
+		if family.rest then
+			local level = plain(UnitLevel("player"))
+			if type(level) == "number" and level >= ns.MaxPlayerLevel() then
+				return nil, up, left, "maxlevel", spell
+			end
+			if BagBusy(family, spell) then return nil, up, left, "resting", spell end
 			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
 				return nil, up, left, "unusable", spell
 			end

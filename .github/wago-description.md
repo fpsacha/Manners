@@ -11,7 +11,7 @@ A priest buffs you in passing, and by the time you have picked them out of a doz
 Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight).
 
 - **Who comes first:** your target, then your group at a ready check or just back from the dead, then people who buffed you, people who asked in chat, you, the rest of your group, and passers-by, each in its own colour (with a colour-blind set).
-- **Buff myself:** armors, auras, aspects and shields, a shaman's weapon imbues, food for Well Fed if you switch it on, and the poison, stone, oil or lure for each weapon, come up as "You"; one press puts it on. Never in a fight.
+- **Buff myself:** armors, auras, aspects and shields, a shaman's weapon imbues, food for Well Fed and the sleeping bag for Well-Rested if you switch them on, and the poison, stone, oil or lure for each weapon, come up as "You"; one press puts it on. Never in a fight.
 - **Click any name** in the list under the prompt to buff that person; right-click skips them, shift-right-click never offers them again.
 - **Kept out of the way:** a *Never offer* list, friends and guildmates first, nobody flagged for PvP while you are not, `/manners snooze`, the prompt hidden while you ride, *Never in cities and inns*, Thorns for tanks only or for you alone, oils, stones and food only in dungeons and raids, and *Say nothing at all in chat*.
 - **People who ask me in chat** (off by default): "int pls", "fort?" or "can I get motw" puts them on the prompt for a minute.

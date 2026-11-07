@@ -15,19 +15,19 @@ mutate("Core.lua",
        expect="wellfed: off by default", script=S)
 
 mutate("Core.lua",
-       "\t\t\t\t\tlocal listed = family.scroll or (family.food and ns.OwnPick(family) ~= \"off\")\n",
-       "\t\t\t\t\tlocal listed = family.scroll or family.food\n",
+       "\t\t\t\t\tlocal listed = family.scroll or (family.bagged and ns.OwnPick(family) ~= \"off\")\n",
+       "\t\t\t\t\tlocal listed = family.scroll or family.bagged\n",
        "wellfed: the bags read for food with the switch off",
        expect="wellfed: off by default", script=S)
 
 mutate("Core.lua",
-       "\t\t\t\t\tlocal listed = family.scroll or (family.food and ns.OwnPick(family) ~= \"off\")\n",
+       "\t\t\t\t\tlocal listed = family.scroll or (family.bagged and ns.OwnPick(family) ~= \"off\")\n",
        "\t\t\t\t\tlocal listed = family.scroll\n",
        "wellfed: food never counted in the bags",
        expect="wellfed: off by default", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\t\tif family.food and ns.ForgetScrolls then ns.ForgetScrolls() end\n",
+       "\t\t\t\tif family.bagged and ns.ForgetScrolls then ns.ForgetScrolls() end\n",
        "",
        "wellfed: the bags not read again when it is switched on",
        expect="wellfed: off by default", script=S)
@@ -35,7 +35,7 @@ mutate("Options/Who.lua",
 # --- what is offered ---
 
 mutate("Core.lua",
-       "\t\tif family.scroll or family.food then\n\t\t\tlocal held, heldWhy\n",
+       "\t\tif family.scroll or family.bagged then\n\t\t\tlocal held, heldWhy\n",
        "\t\tif family.scroll then\n\t\t\tlocal held, heldWhy\n",
        "wellfed: Automatic does not choose among foods",
        expect="wellfed: the best food you can use is the one offered", script=S)
@@ -83,7 +83,7 @@ mutate("Buffs.lua",
        expect="wellfed: food in the bags and no Well Fed is offered", script=S)
 
 mutate("Core.lua",
-       "buff.family and (buff.family.enhance or buff.family.food) then\n",
+       "buff.family and (buff.family.enhance or buff.family.bagged) then\n",
        "buff.family and buff.family.enhance then\n",
        "wellfed: a food never probed",
        expect="wellfed: food in the bags and no Well Fed is offered", script=S)
@@ -121,7 +121,7 @@ mutate("Buffs.lua",
        expect="wellfed: every class on a client with the table", script=S)
 
 mutate("Buffs.lua",
-       "\t\t\tif family.key ~= \"omen\" and not family.enhance and not family.food then list[#list + 1] = family end\n",
+       "\t\t\tif family.key ~= \"omen\" and not family.enhance and not family.bagged then list[#list + 1] = family end\n",
        "\t\t\tif family.key ~= \"omen\" and not family.enhance then list[#list + 1] = family end\n",
        "wellfed: Classic Era's food copied to Forever",
        expect="wellfed: every class on a client with the table", script=S)
@@ -129,13 +129,13 @@ mutate("Buffs.lua",
 # --- the page ---
 
 mutate("Options/Who.lua",
-       "\t\t\t\t\tif family.food then return false end\n\t\t\t\t\tfor _, known in ipairs(ns.KnownOwnFamilies()) do\n",
-       "\t\t\t\t\tfor _, known in ipairs(ns.KnownOwnFamilies()) do\n",
+       "\t\t\t\t\tif family.food then return false end\n\t\t\t\t\t-- The sleeping bag",
+       "\t\t\t\t\t-- The sleeping bag",
        "wellfed: the switch hidden until food is in the bags",
        expect="wellfed: off by default", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\tif (#family.spells > 1 or family.tank) and not family.food then\n",
+       "\t\t\tif (#family.spells > 1 or family.tank) and not family.bagged then\n",
        "\t\t\tif #family.spells > 1 or family.tank then\n",
        "wellfed: the switch a list of every food",
        expect="wellfed: off by default", script=S)

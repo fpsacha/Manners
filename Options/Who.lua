@@ -291,8 +291,9 @@ local function AddOwnControls(args)
 			local pick = function() return (ns.OwnPick(family)) end
 			local write = function(_, value)
 				ns.db.profile.ownBuffs.pick[family.key] = value
-				-- Food is counted in the bags only while its switch is on.
-				if family.food and ns.ForgetScrolls then ns.ForgetScrolls() end
+				-- Food (and the sleeping bag) is counted in the bags only while
+				-- its switch is on.
+				if family.bagged and ns.ForgetScrolls then ns.ForgetScrolls() end
 				-- The prompt follows at once rather than at the next scan.
 				ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 			end
@@ -302,6 +303,14 @@ local function AddOwnControls(args)
 				hidden = function()
 					-- Shown bags or none: food is not counted until it is switched on.
 					if family.food then return false end
+					-- The sleeping bag, which few have: shown while it is in the
+					-- bags or switched on. Asked of the client only here.
+					if family.rest then
+						if pick() ~= "off" then return false end
+						local count = C_Item and C_Item.GetItemCount
+						local n = type(count) == "function" and ns.plain(count(family.spells[1].item)) or nil
+						return not (type(n) == "number" and n > 0)
+					end
 					for _, known in ipairs(ns.KnownOwnFamilies()) do
 						if known == family then return false end
 					end
@@ -309,7 +318,7 @@ local function AddOwnControls(args)
 				end,
 				disabled = function() return not S().self end,
 			}
-			if (#family.spells > 1 or family.tank) and not family.food then
+			if (#family.spells > 1 or family.tank) and not family.bagged then
 				control.type = "select"
 				control.name = function() return ns.OwnFamilyLabel(family) end
 				control.desc = function()
@@ -370,6 +379,8 @@ local function AddOwnControls(args)
 				control.name = function() return ns.OwnFamilyLabel(family) end
 				control.desc = family.food
 					and L["Reminds you to eat when Well Fed is not on you and food that gives it is in your bags. Off until you turn it on."]
+					or family.rest
+					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
 					or L["Reminds you when it is not up."]
 				control.get = function() return pick() ~= "off" end
 				control.set = function(info, value) write(info, value and "auto" or "off") end

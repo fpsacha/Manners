@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Well-Rested, for the sleeping bag.** A new switch under *Myself* on *Who to
+  buff*, shown while a Cozy Sleeping Bag is in your bags: with it on and no
+  Well-Rested on you, "You" comes up with the bag's icon and one press lays the
+  bag down. Nothing is offered at the level cap (there is no experience left to
+  gain), while you lie in the bag, while it is cooling down, mounted or in a
+  fight. Off until you switch it on. Classic Era and WoW Forever.
+
 ## 1.11.9
 
 - **One button for a bug report: Run a full check-up.** On *Diagnostics*, it

@@ -98,7 +98,7 @@ mutate("Core.lua",
 
 mutate("Buffs.lua",
        "\treturn family ~= nil and #family.spells > 1 and not (family.scroll or family.enhance or family.imbue\n"
-       "\t\tor family.tank or family.food)\n",
+       "\t\tor family.tank or family.bagged)\n",
        "\treturn family ~= nil and #family.spells > 1\n",
        "ownleave: a family of items is leaveable",
        expect="ownleave: every spell of a family of several has a false", script=S)

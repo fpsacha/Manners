@@ -223,6 +223,9 @@ ns.WindowLayout = {
 					{ "who.own_demonarmor", indent = true },
 					-- Food that gives Well Fed, off until it is turned on; every class has it.
 					{ "who.own_food", indent = true },
+					-- The sleeping bag's Well-Rested, off until it is turned on;
+					-- shown while the bag is in the bags (Classic Era, Forever).
+					{ "who.own_rested", indent = true },
 					{ "who.own_tracking", indent = true },
 					-- The spells of those families you know, to leave out one by one.
 					{ "who.own_leave", indent = true },

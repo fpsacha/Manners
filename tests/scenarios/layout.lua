@@ -33,7 +33,7 @@ local RETIRED = {
 -- Omen of Clarity, a passive on Forever (Buffs.lua, CAMELOT_OWN), and the
 -- rogue's poisons as spells on Mists and retail, which are items on the others.
 local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.own_nonlethal"] = true,
-	["who.own_food"] = true, ["who.own_shamanimbue"] = true }
+	["who.own_food"] = true, ["who.own_rested"] = true, ["who.own_shamanimbue"] = true }
 
 local ACEDB = {
 	["profiles.current"] = true, ["profiles.choosedesc"] = true, ["profiles.new"] = true,

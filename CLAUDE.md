@@ -140,6 +140,11 @@ default everywhere in the tests and the only client anybody here plays.
     calls `C_Item.ReplaceEnchant` and never hides the popup (the test holds it
     to that). A class with nothing learned and one in the bags has a prompt
     (`ns.OwnItemsHeld`).
+  - Well Fed (vanilla, tbc, camelot, mists) and Well-Rested (vanilla and
+    camelot, the Cozy Sleeping Bag): `bagged` families in `Buffs.lua` (`food`,
+    `rest`), an item from the bags with one switch, off until it is turned on;
+    `family.food` alone where only food is meant (the meal in progress,
+    *Oils, stones and food only in dungeons and raids*).
   - level cap for "Skip players below level": 60, tbc 70, mists and mainline 90
     (Core.lua).
 

@@ -116,8 +116,9 @@ do
 					fail(scenario, class .. " has Forever's " .. tostring(family.key) .. " on Era")
 				end
 				for _, spell in ipairs(family.spells or {}) do
-					-- Not the food that gives Well Fed (1.11.2), which Era has from its own data.
-					if spell.item and not family.enhance and not family.food then
+					-- Not the food that gives Well Fed (1.11.2), which Era has from its own data,
+					-- nor the sleeping bag (1.11.10), Era's own item.
+					if spell.item and not family.enhance and not family.bagged then
 						fail(scenario, class .. " is reminded of scroll " .. tostring(spell.key) .. ", which Era has none of")
 					end
 				end

@@ -274,7 +274,7 @@ mutate(C,
 # ------------------------------------------------ naming, probing
 # Every item of a class asked about at the probe.
 mutate(C,
-       "\t\t\tfor _, spell in ipairs((family.enhance or family.food) and {} or family.spells) do\n",
+       "\t\t\tfor _, spell in ipairs((family.enhance or family.bagged) and {} or family.spells) do\n",
        "\t\t\tfor _, spell in ipairs(family.spells) do\n",
        "hunt26-weapons: every item probed at login",
        expect="the probe asked the client for the names of", script=S)

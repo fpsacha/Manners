@@ -704,21 +704,43 @@ do
 			spells[i] = { key = "food" .. row[1], item = row[1], level = row[2], ranks = { row[3] },
 				nameFromItem = L["Well Fed"] }
 		end
-		FOOD[client] = { key = "food", label = L["Well Fed"], food = true, toggle = true, fed = data.fed,
-			spells = spells }
+		FOOD[client] = { key = "food", label = L["Well Fed"], food = true, bagged = true, toggle = true,
+			fed = data.fed, spells = spells }
 	end
 end
 
--- The family for this client in a class's own list, ahead of tracking as the
--- weapon enhancements are, or last.
+-- Well-Rested (1.11.10): a player asked for a reminder to unroll the Cozy
+-- Sleeping Bag (item 211527), whose use (Unroll Bag, 429961, an hour's
+-- cooldown) lays a bag down; resting in it a minute gives Well-Rested
+-- (429959, two hours, more experience, up to three stacks), and the bag's
+-- area puts its tracking aura (429960) on you while you lie in it. Classic
+-- Era and Forever have all three (wago.tools, 1.15.9.70003 and 1.60.1.70790);
+-- Burning Crusade, Mists and retail have none. A family like Well Fed's
+-- (`bagged`: an item from the bags, one switch, off until it is turned on, a
+-- toggle), its aura read by id (Core.lua, ReadRested), never at the level cap,
+-- where there is no experience to gain, nor while the bag cools down or you
+-- lie in it.
+local REST = {}
+for _, client in ipairs({ "camelot", "vanilla" }) do
+	REST[client] = { key = "rested", label = L["Well-Rested"], bagged = true, rest = true, toggle = true,
+		fed = 429959, resting = 429960,
+		spells = { { key = "rested211527", item = 211527, level = 1, ranks = { 429961 },
+			nameFromItem = L["Cozy Sleeping Bag"] } } }
+end
+
+-- The families for this client in a class's own list, ahead of tracking as
+-- the weapon enhancements are, or last: Well Fed, then Well-Rested.
 local function AddFood(list, client)
-	local family = FOOD[client]
-	if not family then return end
 	local at = #list + 1
 	for i, each in ipairs(list) do
 		if each.tracking then at = i break end
 	end
-	table.insert(list, at, family)
+	for _, family in ipairs({ FOOD[client] or false, REST[client] or false }) do
+		if family then
+			table.insert(list, at, family)
+			at = at + 1
+		end
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -751,6 +773,8 @@ end
 --             talent on a spell: learned from a talent (data only).
 --   toggle    stays up until switched off, with no timer (auras, aspects), so
 --             never offered as a top-up.
+--   bagged    an item from the bags with one switch, off until it is turned on:
+--             Well Fed (`food`) and Well-Rested (`rest`), above.
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
@@ -1529,7 +1553,7 @@ do
 	for class, families in pairs(VANILLA_OWN) do
 		local list = {}
 		for _, family in ipairs(families) do
-			if family.key ~= "omen" and not family.enhance and not family.food then list[#list + 1] = family end
+			if family.key ~= "omen" and not family.enhance and not family.bagged then list[#list + 1] = family end
 		end
 		AddEnhancements(list, class, ENHANCEMENTS.camelot)
 		AddFood(list, "camelot")
@@ -2633,7 +2657,7 @@ end
 -- not a tank's stance, which is a role rather than a choice.
 function ns.OwnLeaveable(family)
 	return family ~= nil and #family.spells > 1 and not (family.scroll or family.enhance or family.imbue
-		or family.tank or family.food)
+		or family.tank or family.bagged)
 end
 
 -- Whether any class on this client has a buff by that key. A pin lives in the

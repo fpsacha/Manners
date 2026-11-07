@@ -253,6 +253,13 @@ each class offers*).
   Nothing is offered while you are eating, mounted or in a fight, or while any
   Well Fed is on you, whoever's food it was. Classic Era, Burning Crusade,
   Mists and WoW Forever; not retail.
+- **Well-Rested.** For the Cozy Sleeping Bag: a switch under *Myself*, shown
+  while the bag is in your bags, off until you switch it on. Then, with no
+  *Well-Rested* on you, "You" comes up with the bag's icon and one press lays
+  it down; rest in it a minute for the buff. Nothing is offered at the level
+  cap, where there is no experience to gain, while you lie in the bag, during
+  the hour its use cools down, mounted or in a fight. Classic Era and WoW
+  Forever.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath

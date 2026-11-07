@@ -367,14 +367,14 @@ mutate("Options/Who.lua",
        expect="Automatic reads", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\tif (#family.spells > 1 or family.tank) and not family.food then\n",
+       "\t\t\tif (#family.spells > 1 or family.tank) and not family.bagged then\n",
        "\t\t\tif true then\n",
        "own: a spell alone as a dropdown",
        expect="a priest's Inner Fire is not a checkbox", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\tif (#family.spells > 1 or family.tank) and not family.food then\n",
-       "\t\t\tif #family.spells > 1 and not family.food then\n",
+       "\t\t\tif (#family.spells > 1 or family.tank) and not family.bagged then\n",
+       "\t\t\tif #family.spells > 1 and not family.bagged then\n",
        "own: Righteous Fury as a checkbox",
        expect="Righteous Fury's choices read", script=S)
 

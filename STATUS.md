@@ -5,7 +5,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.11.8 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.11.9 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
@@ -13,13 +13,14 @@ mutations per client). Every buff on every client has In character lines of
 its own, and every people has lines (the Haranir since 1.7.2, speaking since
 1.7.3).
 
-What 1.11.1 to 1.11.8 added, in `CHANGELOG.md` for players: per-spell self-buff
+What 1.11.1 to 1.11.9 added, in `CHANGELOG.md` for players: per-spell self-buff
 exceptions, a Well Fed reminder, a shaman's weapon imbues, the emote chosen for
 `/thank`, the bar macro's spoken line, no Manners menus with a gamepad on,
 Thorns held to tanks or to you alone, oils, stones and food only in dungeons and
 raids, nothing offered in cities and inns, a switch to say nothing in chat,
-weapon items renewed only once gone while alone, and a switch for Unending
-Breath. Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
+weapon items renewed only once gone while alone, a switch for Unending
+Breath, and the full check-up for bug reports (1.11.9). Unreleased: a
+Well-Rested reminder for the Cozy Sleeping Bag. Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
 (1.11.4); the audit reads Forever at that build (`CLAUDE.md`, "Data sources").
 
 Working here is quicker and safer for an agent since round 33 (`CLAUDE.md`,
@@ -235,6 +236,17 @@ On Forever the foods and their use spells are from build 1.60.1.70532; if a
 build adds foods, `python tools/make_foods.py` rewrites `Foods.lua` from the
 cached tables (`--check` says whether it is current) and the next release
 carries it.
+
+**Well-Rested was written against the data and the mock (Unreleased).** The
+Cozy Sleeping Bag (item 211527) casts Unroll Bag (429961, an hour's cooldown);
+resting in the bag a minute gives Well-Rested (429959), and the bag's area
+puts a tracking aura (429960) on you (wago.tools, Classic Era 1.15.9.70003 and
+Forever 1.60.1.70790; Burning Crusade, Mists and retail have none of them).
+Only the live game can say: that 429960 is on you while you lie in the bag
+(`BagBusy` in `Core.lua` reads it, and the item's cooldown, to hold the
+reminder back), that the bag is obtainable on Forever at all (its data is
+there), and that `/use item:211527` lays it down. `/manners debug` says
+"Well-Rested: ..." with the reason in each case.
 
 **Waiting on players (1.11.9).** Two `/thank` reports need a log: one player
 sees a /thank with *Thank people who buff me* off, another never gets one. One

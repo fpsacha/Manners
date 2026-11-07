@@ -85,6 +85,10 @@ do
 			return L["%s: Automatic has nothing it would pick."]:format(label)
 		elseif why == "dungeon" then
 			return L["%s: oils, stones and food are only offered in a dungeon or a raid."]:format(label)
+		elseif why == "maxlevel" then
+			return L["%s: you are at the level cap, with no experience left to gain."]:format(label)
+		elseif why == "resting" then
+			return L["%s: you are resting in the bag, or it is cooling down."]:format(label)
 		elseif why == "leftout" then
 			return L["%s: %s is ticked under Never remind me about."]:format(label, name or "?")
 		end
