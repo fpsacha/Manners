@@ -271,8 +271,9 @@ end
 -- longest use is the lure's five.
 local SCROLL_SECONDS = 6
 local ENHANCE_SECONDS = 8
--- The Cozy Sleeping Bag's Unroll Bag is a 15-second cast on Forever.
-local REST_SECONDS = 17
+-- The Cozy Sleeping Bag's Unroll Bag takes fifteen seconds on Forever, six on
+-- Classic Era: kept for twenty, which the longer one and its pushback fit in.
+local REST_SECONDS = 20
 local castingScroll
 
 -- The scroll being cast, if this event is about it: by the cast guid where
