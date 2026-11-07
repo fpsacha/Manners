@@ -978,7 +978,6 @@ RP.RACE = {
 			L["Bless you, {name}. Not literally, please. The Light stings."],
 			L["If anything of mine drops off, {name}, keep it. A little souvenir."],
 			L["Nicest spell cast on me since Arthas, {name}. Low bar, but you cleared it."],
-			L["Warm, generous and alive, {name}. I can only match you on one. Here it is."],
 			L["I'll have the apothecaries name a plague after you, {name}. A small one."],
 			L["I'll rest easier now, {name}. Not in peace, mind. Just easier."],
 			L["Please don't tell the Dark Lady I was nice to somebody, {name}."],
@@ -1143,6 +1142,7 @@ RP.RACE = {
 			thanks = {
 				L["Most folk greet a Forsaken with holy water, {name}. You're a welcome change."],
 				L["Few stop for a Forsaken, {name}. You did, and I noticed. Thank you."],
+				L["Warm, generous and alive, {name}. I can only match you on one. Here it is."],
 			},
 			asked = {
 				L["Contrary to rumour, {name}, not everything a Forsaken hands out is a plague."],
@@ -5190,6 +5190,8 @@ RP.SPREAD = 3
 -- change with the speaker ("sono felice"), is not one.
 RP.MASCULINE = {
 	frFR = {
+		["A gift for the dead, {name}? Most people bring flowers. Then they run."] = true,
+		["Please don't tell the Dark Lady I was nice to somebody, {name}."] = true,
 		["Keep the torches clear of me, {name}. I'm old, dry and very flammable."] = true,
 		["Hold still, {name}. I've practised on kodo, and they're far less polite."] = true,
 		["Thank you, {name}. Somebody had to go first, and I'm glad it was you."] = true,
@@ -5202,6 +5204,7 @@ RP.MASCULINE = {
 		["If this goes badly, {name}, don't worry. I've died before; it passes."] = true,
 	},
 	itIT = {
+		["A gift for the dead, {name}? Most people bring flowers. Then they run."] = true,
 		["Thank ye, {name}. I'd offer me beard as surety, but I'm terrible fond of it."] = true,
 		["I was a physician in Lordaeron, {name}. Old habits die harder than I did."] = true,
 		["I've outlived everyone I knew, {name}. I'd rather not outlive you. Take this."] = true,
@@ -5216,9 +5219,11 @@ RP.MASCULINE = {
 		["I'm half thunderstorm now, {name}. Thank you, and sorry about the rain."] = true,
 	},
 	esES = {
+		["A gift for the dead, {name}? Most people bring flowers. Then they run."] = true,
 		["Nobody else understands the hair, {name}. It was blond once. I think."] = true,
 	},
 	ptBR = {
+		["A gift for the dead, {name}? Most people bring flowers. Then they run."] = true,
 		["Dawn, {name}. Rich goblins sleep in. I'm not rich yet."] = true,
 		["A spare life in my pocket, {name}. I'll try not to spend it. Thank you."] = true,
 		["Thank you, {name}. Death can knock now; I've a key to the back door."] = true,
