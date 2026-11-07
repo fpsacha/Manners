@@ -58,20 +58,20 @@ mutate("Core.lua",
 # --- when it is held back ---
 
 mutate("Core.lua",
-       "\t\t\tif type(level) == \"number\" and level >= ns.MaxPlayerLevel() then\n\t\t\t\treturn nil, up, left, \"maxlevel\", spell\n",
+       "\t\t\tif type(level) == \"number\" and (level >= ns.MaxPlayerLevel() or ns.NoExperience(level)) then\n\t\t\t\treturn nil, up, left, \"maxlevel\", spell\n",
        "\t\t\tif false then\n\t\t\t\treturn nil, up, left, \"maxlevel\", spell\n",
        "wellrested: offered at the level cap",
        expect="wellrested: not at the level cap", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif type(level) == \"number\" and level >= ns.MaxPlayerLevel() then\n\t\t\t\treturn nil, up, left, \"maxlevel\", spell\n",
-       "\t\t\tif type(level) == \"number\" and level >= ns.MaxPlayerLevel() - 1 then\n\t\t\t\treturn nil, up, left, \"maxlevel\", spell\n",
+       "\t\t\tif type(level) == \"number\" and (level >= ns.MaxPlayerLevel() or ns.NoExperience(level)) then\n\t\t\t\treturn nil, up, left, \"maxlevel\", spell\n",
+       "\t\t\tif type(level) == \"number\" and (level >= ns.MaxPlayerLevel() - 1 or ns.NoExperience(level)) then\n\t\t\t\treturn nil, up, left, \"maxlevel\", spell\n",
        "wellrested: held back a level early",
        expect="wellrested: not at the level cap", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif ok and type(aura) == \"table\" then return true end\n\t\tend\n\t\tlocal cooldown",
-       "\t\tend\n\t\tlocal cooldown",
+       "\t\t\tif ok and type(aura) == \"table\" then return true end\n\t\t\tif ok and aura == nil",
+       "\t\t\tif ok and aura == nil",
        "wellrested: offered while you lie in the bag",
        expect="wellrested: not at the level cap", script=S)
 
