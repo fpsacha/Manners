@@ -343,7 +343,10 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	-- the contrast the plain grey had on a light one.
 	S.tintSub = ink.light
 
-	local outline = bare and "OUTLINE" or ""
+	-- Flat text, when the player asked for it (Look, Shadow and outline on the
+	-- text): no outline on Minimal and no shadow anywhere.
+	local flat = p.textShadow == false
+	local outline = (bare and not flat) and "OUTLINE" or ""
 	local greys = bare and GREYS.bare or GREYS.panel
 	local subSize = math.max(7, p.fontSize - 3)
 
@@ -386,7 +389,16 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	-- Shadows: with no panel, full black under the outline, as the game's own
 	-- floating text does; on a panel, one that suits the text colour. The count
 	-- has no shadow on its chip.
-	if bare then
+	if flat then
+		for _, fs in ipairs({ R.nameText, R.subText, R.countText }) do
+			fs:SetShadowColor(0, 0, 0, 0)
+			fs:SetShadowOffset(0, 0)
+		end
+		for _, fs in ipairs(R.queueRows) do
+			fs:SetShadowColor(0, 0, 0, 0)
+			fs:SetShadowOffset(0, 0)
+		end
+	elseif bare then
 		for _, fs in ipairs({ R.nameText, R.subText, R.countText }) do
 			fs:SetShadowColor(0, 0, 0, 1)
 			fs:SetShadowOffset(1, -1)

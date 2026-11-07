@@ -236,6 +236,28 @@ build adds foods, `python tools/make_foods.py` rewrites `Foods.lua` from the
 cached tables (`--check` says whether it is current) and the next release
 carries it.
 
+**Waiting on players (1.11.9).** Two `/thank` reports need a log: one player
+sees a /thank with *Thank people who buff me* off, another never gets one. One
+code path makes the emote (`Favours.lua`, `ThankFavour`) and it obeys the switch;
+the full check-up shows the switch and the last thank made or skipped and why.
+Offering buffs to group pets (a hunter's, a warlock's) was asked for and is its
+own piece of work: pets have no unique name, are not players and are not in
+`UnitInParty`, so the walk, the macro (`/target` by token, not by name) and the
+settle all need it.
+
+**The fuzzer's request model (1.11.9).** Two 500-seed findings ("asked for motw
+and is offered as group/target") were the fuzzer's, not the addon's: a second
+line ("thorns pls") replaces a person's request (Requests.lua, NoteRequest, one
+per person), and `sayAsk` in `tests/fuzz_steps.lua` did not drop the old one. It
+does now, keyed on the addon's own `askScan.noted`. The 1.11.x settings in the
+fuzzer are read off a number made from the seed, not drawn, so every older seed
+and canary plays as before; 2,500 runs of 150 steps were clean after it.
+
+**Since 1.11.9, untried in game:** a sound is stopped by the handle
+`PlaySoundFile` returns (`StopSound`, kept in `db.char.soundHandle` so the next
+session stops one a `/reload` left playing); whether a handle outlives a
+`/reload` is not known.
+
 **1.11.3 to 1.11.8 were released on the quick gate alone.** The full selftest was
 not run for them (about an hour: `python tests/selftest.py`); `check.py --lint
 --flavours --anchors`, every client's baseline, the fuzzer and the perf budget

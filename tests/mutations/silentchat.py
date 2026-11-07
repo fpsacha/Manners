@@ -45,3 +45,15 @@ mutate("Options/Window/Layout.lua",
        "",
        "silentchat: the switch is not placed on the page",
        expect="silentChat", script=S)
+
+mutate("Commands.lua",
+       "\t\tdb.silentChat = not db.silentChat\n",
+       "",
+       "silentchat: /manners quiet changes nothing",
+       expect="silentchat: /manners quiet turns the silence on and off from chat", script=S)
+
+mutate("Options/Launcher.lua",
+       "\tCheck(root, L[\"Say nothing at all in chat\"], function() return ns.db.profile.silentChat == true end,\n\t\tAct(function() ns.addon:HandleSlash(\"quiet\") end))\n",
+       "",
+       "silentchat: the minimap menu has no silence switch",
+       expect="minimap: the menu has every entry and each one works", script=S)

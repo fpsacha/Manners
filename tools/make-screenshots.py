@@ -263,6 +263,9 @@ end
 -- As render_prompt.lua boots: up with nobody about, well past the login and
 -- every cooldown, and the nameplates the state names known to the scan.
 local function boot(ns, names)
+	-- The player is somebody else in the pictures: Mort Defrette is the one who
+	-- buffs you there, and nobody is offered a buff back to themselves.
+	Mock.playerName = { "Tamsin", "Alder" }
 	spells()
 	people(names)
 	ns.addon:OnInitialize()
@@ -281,7 +284,7 @@ local function boot(ns, names)
 end
 
 -- The panel a little wider than the default, for the moments that name
--- Elowen Thistledown in full: "could not buff Elowen Thistledown" is cut at
+-- Mort Defrette in full: "could not buff Mort Defrette" is cut at
 -- 220 with the fonts CI draws with, and the strip's rows keep one size.
 local function roomy(ns)
 	ns.db.profile.prompt.width = 260
@@ -316,7 +319,7 @@ local function list(ns, rows)
 	ns.db.profile.prompt.queueRows = rows
 end
 
-local ELOWEN = { "Elowen", "Thistledown" }
+local ELOWEN = { "Mort", "Defrette" }
 local BRAM = { "Bram", "Cinderfell" }
 local MARIBEL = { "Maribel", "Quickwater" }
 local OSKAR = { "Oskar", "Fenwick" }
@@ -325,7 +328,7 @@ local SABLE = { "Sable", "Harrow" }
 -- and German and French need most of it for the reason, so a long name there
 -- only shows the reason being cut.
 local MIRA = { "Mira", "Holt" }
-local IVO = { "Ivo", "Lark" }
+local IVO = { "Rowan", "Lark" }
 local TAM = { "Tam", "Rook" }
 
 -- The mouse on a name in the list, as the client does it: the row's own
@@ -367,7 +370,7 @@ local function tipped(ns, shift)
 	boot(ns, { nameplate1 = ELOWEN })
 	recordTooltip()
 	rawset(_G, "IsShiftKeyDown", function() return shift end)
-	owe(ns, "Elowen Thistledown")
+	owe(ns, "Mort Defrette")
 	settle(ns)
 	tipChoices(ns)
 	hoverPrompt(ns)
@@ -382,7 +385,7 @@ local function keyed(ns, key)
 	rawset(_G, "GetBindingText", Mock.bindingText)
 	boot(ns, { nameplate1 = ELOWEN })
 	ns.db.profile.prompt.style = "arcane"
-	owe(ns, "Elowen Thistledown")
+	owe(ns, "Mort Defrette")
 	settle(ns)
 	ns.ClampSettings()
 	ShotStyle = ns.db.profile.prompt.style
@@ -425,7 +428,7 @@ local added = {
 	-- The hero: a favour to return, the pulse near its brightest.
 	{ key = "shot-owed", at = 0.85, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
-		owe(ns, "Elowen Thistledown")
+		owe(ns, "Mort Defrette")
 		settle(ns)
 	end },
 	-- The hero's moment: that same favour returned, the cast confirmed. The
@@ -437,9 +440,9 @@ local added = {
 	{ key = "shot-landed", at = 0.20, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
 		roomy(ns)
-		owe(ns, "Elowen Thistledown")
+		owe(ns, "Mort Defrette")
 		settle(ns)
-		ns.Prompt:ShowOutcome("cast", "Elowen Thistledown")
+		ns.Prompt:ShowOutcome("cast", "Mort Defrette")
 		FrameTree.settle()
 	end },
 	-- The three moments of the film strip, each from the one favour: it
@@ -448,15 +451,15 @@ local added = {
 	{ key = "shot-moment-arrival", at = 0.05, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
 		roomy(ns)
-		owe(ns, "Elowen Thistledown")
+		owe(ns, "Mort Defrette")
 		settle(ns)
 	end },
 	{ key = "shot-moment-refused", at = 0.15, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
 		roomy(ns)
-		owe(ns, "Elowen Thistledown")
+		owe(ns, "Mort Defrette")
 		settle(ns)
-		ns.Prompt:ShowOutcome("failed", "Elowen Thistledown", "Out of range.")
+		ns.Prompt:ShowOutcome("failed", "Mort Defrette", "Out of range.")
 		FrameTree.settle()
 	end },
 	{ key = "shot-target", at = 0.85, setup = function(ns)
@@ -486,14 +489,17 @@ local added = {
 	-- fit a row at the default width -- the addon cuts it with an ellipsis,
 	-- which is true and not what a picture of the translation is for.
 	{ key = "shot-list", at = 0.85, setup = function(ns)
+		-- The translated pictures boot through render_prompt.lua's own boot, so
+		-- the player's other name is given here as well.
+		Mock.playerName = { "Tamsin", "Alder" }
 		Mock.groupSize = 2
 		partyIsParty()
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = MIRA, party1 = TAM, nameplate3 = IVO })
 		ns.db.profile.sources.asked = true
 		list(ns, 3)
-		owe(ns, "Elowen Thistledown")
+		owe(ns, "Rowan Lark", "DRUID")
 		Mock.advance(20)
-		owe(ns, "Ivo Lark", "DRUID")
+		owe(ns, "Mort Defrette")
 		ask(ns, "Mira Holt", "nameplate2")
 		settle(ns)
 	end },
@@ -515,7 +521,7 @@ local added = {
 		ns.db.profile.sources.asked = true
 		list(ns, 4)
 		ns.MoveBuff("wisdom", -1)
-		owe(ns, "Elowen Thistledown", "DRUID")
+		owe(ns, "Mort Defrette", "DRUID")
 		ask(ns, "Maribel Quickwater", "nameplate2", "kings pls?")
 		-- The whole tooltip, which the picture's captions rest on: Short, the
 		-- default, says what the clicks do only with Shift held.
@@ -562,7 +568,7 @@ local added = {
 		partyIsParty()
 		boot(ns, { target = BRAM, nameplate1 = ELOWEN, party1 = OSKAR, nameplate2 = SABLE })
 		list(ns, 3)
-		owe(ns, "Elowen Thistledown")
+		owe(ns, "Mort Defrette")
 		settle(ns)
 	end },
 	{ key = "shot-palette-colourblind", at = 0.85, setup = function(ns)
@@ -571,7 +577,7 @@ local added = {
 		boot(ns, { target = BRAM, nameplate1 = ELOWEN, party1 = OSKAR, nameplate2 = SABLE })
 		list(ns, 3)
 		ns.db.profile.prompt.reasonPalette = "colourblind"
-		owe(ns, "Elowen Thistledown")
+		owe(ns, "Mort Defrette")
 		settle(ns)
 	end },
 }
@@ -585,7 +591,7 @@ for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane"
 		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
 		ns.db.profile.prompt.style = style
-		owe(ns, "Elowen Thistledown")
+		owe(ns, "Mort Defrette")
 		settle(ns)
 		ns.ClampSettings()
 		ShotStyle = ns.db.profile.prompt.style
@@ -725,7 +731,7 @@ local function day(ns)
 	Mock.advance(600)
 	gave(ns, "Sable Harrow", "SHAMAN", false)
 	Mock.advance(400)
-	received(ns, "Elowen Thistledown", "DRUID", 1126)
+	received(ns, "Mort Defrette", "DRUID", 1126)
 	Mock.advance(30)
 end
 
@@ -1800,7 +1806,7 @@ def heading(board, title, sub):
 REASONS = [
     ("shot-target", "Bram Cinderfell", "target", "Your target",
      "Whoever you have selected, if they are missing your buff."),
-    ("shot-owed", "Elowen Thistledown", "owed", "Buffed you",
+    ("shot-owed", "Mort Defrette", "owed", "Buffed you",
      "Somebody who buffed you first: a favour to return."),
     ("shot-asked", "Maribel Quickwater", "asked", "Asked for it",
      "Somebody who asked for your buff in chat, if you turn it on."),
@@ -1816,7 +1822,7 @@ REASONS = [
 # wave is off the panel. It is the state's own time, so this is where
 # the state is built.
 LANDED_AT = 0.20
-LANDED_WORDS = ["buffed Elowen Thistledown", "the game confirmed it"]
+LANDED_WORDS = ["buffed Mort Defrette", "the game confirmed it"]
 
 # The film strip: one favour, three moments, four frames of each. A row is the
 # state, the title and caption it carries, and the two lines the prompt has to
@@ -1826,18 +1832,18 @@ MOMENT_TIMES = (0.05, 0.15, 0.30, 0.60)
 MOMENTS = [
     ("shot-moment-arrival", "They buffed you",
      "Light runs along the edges, the icon's glow wakes.",
-     ["Elowen Thistledown", "buffed you"], ["buffed Elowen", "could not buff"]),
+     ["Mort Defrette", "buffed you"], ["buffed Mort", "could not buff"]),
     ("shot-landed", "Your buff lands",
      "Rings off the icon, a wave across the panel.",
      LANDED_WORDS, ["buffed you", "could not buff"]),
     ("shot-moment-refused", "The game refused it",
      "The panel says why, in a few words.",
-     ["could not buff Elowen Thistledown", "Out of range."], ["buffed Elowen", "confirmed"]),
+     ["could not buff Mort Defrette", "Out of range."], ["buffed Mort", "confirmed"]),
 ]
 
 # Who the translated pictures' list rows name, as PROMPT_STATES' shot-list puts
 # them there.
-LIST_ROWS = ["Mira Holt", "Tam Rook", "Ivo Lark"]
+LIST_ROWS = ["Mira Holt", "Tam Rook", "Rowan Lark"]
 
 # The looks the Look tab offers, in the order its gallery shows them, each
 # with the name and the few words its card gives it.
@@ -1861,7 +1867,7 @@ LOOKS = [
 # icons beside the names are not all one. The cursor is on the second name.
 CLICK_LIST = [
     ("Bram Cinderfell", "target", "kings"),
-    ("Elowen Thistledown", "owed", "wisdom"),
+    ("Mort Defrette", "owed", "wisdom"),
     ("Maribel Quickwater", "asked", "kings"),
     ("Oskar Fenwick", "group", "wisdom"),
     ("Sable Harrow", "nearby", "kings"),
@@ -1888,11 +1894,11 @@ ORDER_KEYS = ["wisdom", "kings", "might"]
 TIPS = [
     ("shot-tip-short", "Short, the default",
      "The name and the spell, why they are offered, and a hint.",
-     ["Elowen Thistledown", "Buffed you -- return the favour.", "Hold Shift for more"],
+     ["Mort Defrette", "Buffed you -- return the favour.", "Hold Shift for more"],
      ["Click to cast", "Right-click"]),
     ("shot-tip-full", "Hold Shift for the full one",
      "What the press will do, and what each click does.",
-     ["Manners", "Elowen Thistledown", "Buffed you -- return the favour.", "Click to cast",
+     ["Manners", "Mort Defrette", "Buffed you -- return the favour.", "Click to cast",
       "Right-click to skip", "Shift-right-click"],
      ["Hold Shift for more"]),
 ]
@@ -2013,9 +2019,9 @@ def build_tips(addon_dir, snaps):
         snap, top = snap_of(R, lua, key)
         if not snap:
             continue
-        expect_top(key, top, "Elowen Thistledown", "owed")
+        expect_top(key, top, "Mort Defrette", "owed")
         texts = shown_texts(snap, PromptTree)
-        expect_names(key, texts, ["Elowen Thistledown"])
+        expect_names(key, texts, ["Mort Defrette"])
         check_glyphs(key, texts)
         got = shot_extras(lua)
         hover, tip = got["hover"], got["tip"]
@@ -2074,11 +2080,11 @@ def build_keys(addon_dir, snaps):
         snap, top = snap_of(R, lua, key)
         if not snap:
             continue
-        expect_top(key, top, "Elowen Thistledown", "owed")
+        expect_top(key, top, "Mort Defrette", "owed")
         if lua.globals().ShotStyle != "arcane":
             problem("%s: the prompt is drawn in %s, not arcane" % (key, lua.globals().ShotStyle))
         texts = shown_texts(snap, PromptTree)
-        expect_names(key, texts, ["Elowen Thistledown"])
+        expect_names(key, texts, ["Mort Defrette"])
         check_glyphs(key, [ATLAS.sub("", t) for t in texts])
         glyphs = atlas_lines(snap)
         if chip is not None:
@@ -2170,7 +2176,7 @@ def build(addon_dir):
     # shows the arrival under "Your buff lands" is caught rather than drawn.
     snap, top = snap_of(R, lua, "shot-landed")
     if snap:
-        expect_top("shot-landed", top, "Elowen Thistledown", "owed")
+        expect_top("shot-landed", top, "Mort Defrette", "owed")
         texts = shown_texts(snap, PromptTree)
         expect_names("shot-landed", texts, LANDED_WORDS)
         check_glyphs("shot-landed", texts)
@@ -2181,7 +2187,7 @@ def build(addon_dir):
             snap, top = snap_of(R, lua, key, t)
             if not snap:
                 continue
-            expect_top(frame, top, "Elowen Thistledown", "owed")
+            expect_top(frame, top, "Mort Defrette", "owed")
             texts = shown_texts(snap, PromptTree)
             expect_names(frame, texts, words)
             joined = "\n".join(texts)
@@ -2195,7 +2201,7 @@ def build(addon_dir):
         if snap:
             expect_top(key, top, "Bram Cinderfell", "target")
             texts = shown_texts(snap, PromptTree)
-            expect_names(key, texts, ["Bram Cinderfell", "Elowen Thistledown", "Oskar Fenwick",
+            expect_names(key, texts, ["Bram Cinderfell", "Mort Defrette", "Oskar Fenwick",
                                       "Sable Harrow"])
             check_glyphs(key, texts)
             snaps[key] = snap
@@ -2204,19 +2210,19 @@ def build(addon_dir):
         lua.globals().ShotStyle = None
         snap, top = snap_of(R, lua, key)
         if snap:
-            expect_top(key, top, "Elowen Thistledown", "owed")
+            expect_top(key, top, "Mort Defrette", "owed")
             got = lua.globals().ShotStyle
             if got != style:
                 problem("%s: the prompt is drawn in %s, not %s" % (key, got, style))
             texts = shown_texts(snap, PromptTree)
-            expect_names(key, texts, ["Elowen Thistledown"])
+            expect_names(key, texts, ["Mort Defrette"])
             check_glyphs(key, texts)
             snaps[key] = snap
     # The list in English, drawn nowhere: what each translated one is held
     # against, line by line.
     snap, top = snap_of(R, lua, "shot-list")
     english = set(shown_texts(snap, PromptTree)) if snap else set()
-    list_names = ["Elowen Thistledown"] + LIST_ROWS
+    list_names = ["Mort Defrette"] + LIST_ROWS
 
     for loc, _, spell in LANGUAGES:
         use_faces(loc)
@@ -2225,7 +2231,7 @@ def build(addon_dir):
         snap, top = snap_of(R, lua, "shot-list")
         if not snap:
             continue
-        expect_top(key, top, "Elowen Thistledown", "owed")
+        expect_top(key, top, "Mort Defrette", "owed")
         texts = shown_texts(snap, PromptTree)
         expect_names(key, texts, list_names)
         check_glyphs(key, texts)
@@ -2256,7 +2262,7 @@ def build(addon_dir):
         problem("shot-ledger: " + doubt)
     if snap:
         texts = shown_texts(snap, LedgerTree)
-        expect_names("shot-ledger", texts, ["Elowen Thistledown", "Rowan Ashvale", "Oskar Fenwick"])
+        expect_names("shot-ledger", texts, ["Mort Defrette", "Rowan Ashvale", "Oskar Fenwick"])
         check_glyphs("shot-ledger", texts)
         snaps["shot-ledger"] = snap
     return snaps

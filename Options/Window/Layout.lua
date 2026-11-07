@@ -399,6 +399,7 @@ ns.WindowLayout = {
 					"appearance.fontSize",
 					{ "appearance.fontColor", pair = true },
 					"appearance.classColor",
+					"appearance.textShadow",
 					"appearance.showSub",
 				} },
 				-- The reason boxes two to a row, in queue order: one run of
@@ -420,6 +421,7 @@ ns.WindowLayout = {
 					{ "appearance.iconSize", indent = true },
 					"appearance.iconSizeCapped",
 					{ "appearance.roundIcon", indent = true },
+					{ "appearance.iconFrame", indent = true },
 					{ "appearance.showCooldown", indent = true },
 					"appearance.showCount",
 					"appearance.showQueue",
@@ -475,6 +477,8 @@ ns.WindowLayout = {
 				} },
 				{ key = "diagnostics.report", header = "diagnostics.reportHeader", items = {
 					"diagnostics.debugClicks",
+					-- The one press a player asked for a report needs.
+					{ "diagnostics.fullReport", big = true },
 					"diagnostics.copyReport",
 					"diagnostics.report",
 					"diagnostics.selftest",

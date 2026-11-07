@@ -66,8 +66,8 @@ local ORDER = {
 	"attentionHeader", "flashStyle", "effects", "hideInCombat", "dimInCombat", "soundEnabled", "soundFile",
 	"soundOwedOnly", "noSound",
 	"tooltipHeader", "tooltip", "tooltipPosition",
-	"textHeader", "font", "fontSize", "fontColor", "classColor", "showSub",
-	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "roundIcon", "showCooldown",
+	"textHeader", "font", "fontSize", "fontColor", "classColor", "textShadow", "showSub",
+	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "roundIcon", "iconFrame", "showCooldown",
 	"showCount", "showQueue", "queueRows", "clickRows",
 }
 

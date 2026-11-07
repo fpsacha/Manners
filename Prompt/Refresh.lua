@@ -89,7 +89,7 @@ function Prompt:ToggleTest()
 	if not S.testMode then return end
 	-- The options page's button now has to read "Stop preview"; see ExitTest.
 	if ns.RepaintOptions then ns.RepaintOptions() end
-	ns.addon:Print(L["preview on -- it stays while the options window is open, then %ds longer, or |cffffd100/manners test|r to stop."]
+	ns.addon:Print(L["preview on -- it stays while the options window is open, then %ds longer. Click it, or type |cffffd100/manners test|r, to put it away."]
 		:format(TEST_SECONDS))
 end
 
@@ -428,6 +428,10 @@ function Prompt:RefreshPanel()
 
 	local wasHidden = not R.button:IsShown()
 	local isNew = top.name ~= lastTop
+	if isNew then
+		ns.Trail("prompt", ("on the prompt: %s, %s"):format(tostring(top.buff and top.buff.key),
+			tostring(top.reason)), top.name)
+	end
 	-- The moment somebody becomes owed, which includes a passer-by already on
 	-- the panel who then buffs you.
 	local becameOwed = top.reason == "owed" and (isNew or lastTopReason ~= "owed")

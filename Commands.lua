@@ -1248,6 +1248,7 @@ ns.COMMANDS = {
 		help = L["take somebody off the never-offer list"] },
 	{ word = "restore", group = "setup", help = L["switch handing your target back after buffing on or off"] },
 	{ word = "verbose", group = "setup", help = L["switch the chat lines about who buffed you on or off"] },
+	{ word = "quiet", group = "setup", help = L["say nothing at all in chat, or talk again"] },
 	{ word = "export", group = "share", help = L["copy these settings as one line of text"] },
 	{ word = "import", group = "share", args = " <text|undo>",
 		help = L["use settings somebody exported, or undo the last import"] },
@@ -1547,6 +1548,14 @@ function addon:HandleSlash(rawInput)
 		self:Print(db.verbose
 			and L["verbose: |cff00ff00on|r -- a line in your own chat when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed"]
 			or L["verbose: |cffff0000off|r"])
+	elseif input == "quiet" then
+		-- Say nothing at all in chat (Start here), from chat: the answer to this
+		-- command is the last line said, and typing it again brings them back.
+		db.silentChat = not db.silentChat
+		self:Print(db.silentChat
+			and L["quiet: |cff00ff00on|r -- Manners says nothing in chat now, but answers what you type after /manners. |cffffd100/manners quiet|r again to hear it."]
+			or L["quiet: |cffff0000off|r -- Manners talks in chat again."])
+		ns.RepaintOptions()
 	elseif input == "on" then
 		db.enabled = true
 		self:Print(L["enabled."])

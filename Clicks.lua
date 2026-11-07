@@ -65,6 +65,7 @@ end
 -- out with the client not saying who got it, and "failed" is reason to believe
 -- nothing reached them. Guarded: cosmetic, and must not take the settle with it.
 local function ShowOutcome(kind, name, detail)
+	ns.Trail("outcome", tostring(kind) .. (detail and (": " .. tostring(detail)) or ""), name)
 	if not (ns.Prompt and ns.Prompt.ShowOutcome and name) then return end
 	ns.Guard("prompt outcome", ns.Prompt.ShowOutcome, ns.Prompt, kind, name, detail)
 end
@@ -1505,6 +1506,7 @@ do
 			Debug("rewrote=old")
 		end
 		Debug("wrote=" .. (want:gsub("\n", " / ")))
+		ns.Trail("macro", "bar macro written: " .. (want:gsub("\n", " / ")))
 		return true
 	end
 

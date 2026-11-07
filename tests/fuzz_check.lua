@@ -402,6 +402,15 @@ function X.checkComplete(W, queue, standing)
 		if not ns.IsBuffKnown(pinned) then return end
 		candidates = { pinned }
 	end
+	-- A buff held to tanks or to you alone (Offer to) is not what everybody who
+	-- lacks it is plainly owed: left out of the candidates, the rest judged as ever.
+	local held, kept = db.buff, {}
+	for _, buff in ipairs(candidates) do
+		if not (buff.tankChoice and ((held.tanksOnly or {})[buff.key] or (held.meOnly or {})[buff.key])) then
+			kept[#kept + 1] = buff
+		end
+	end
+	candidates = kept
 	if #candidates == 0 then return end
 	-- Where the auras of others are withheld, or one of the spells is a shout,
 	-- a group-only or party-only cast or a scroll, who is plainly worth a buff
@@ -692,6 +701,23 @@ function X.checkQueue(W, queue)
 			if pick == "off" then
 				return fail(W, "forbidden", ("%s offered %s, whose family is off"):format(e.name, buff.key))
 			end
+		end
+		-- Held to you alone (Offer to: Only me): nobody else but somebody who
+		-- asked for it by name.
+		if not buff.own and buff.tankChoice and db.buff.meOnly and db.buff.meOnly[buff.key]
+			and reason ~= "self" and reason ~= "asked" then
+			return fail(W, "forbidden", ("%s offered %s, which is held to you alone"):format(e.name, buff.key))
+		end
+		-- Held to the tanks of the group: the fuzz world gives nobody a tank role,
+		-- so no group member but one who asked.
+		if not buff.own and buff.tankChoice and db.buff.tanksOnly and db.buff.tanksOnly[buff.key]
+			and e.inGroup and reason ~= "asked" and reason ~= "self" then
+			return fail(W, "forbidden", ("%s, in the group and no tank, offered %s, which is held to tanks"):format(e.name, buff.key))
+		end
+		-- An oil, a stone or food held to dungeons and raids, offered outside one.
+		if buff.own and db.ownBuffs.itemsInDungeons == true and ns.OwnItemsHeldToDungeons(buff.family)
+			and not (W.inInstance == "party" or W.inInstance == "raid") then
+			return fail(W, "forbidden", ("%s offered out of a dungeon with Oils, stones and food only in dungeons on"):format(buff.key))
 		end
 		if reason ~= "owed" and reason ~= "self" then
 			if db.never and db.never[e.name] then

@@ -710,6 +710,7 @@ thank: a favour nothing you cast is any use for is thanked all the same: SKIPPED
 thank: a secret answer is read safely: SKIPPED -- the favour from nameplate1 was not noticed:
 thank: a shout's favour is thanked from anybody (a party member): SKIPPED -- the favour from party1 was not noticed:
 thank: a shout's favour is thanked from anybody (a stranger): SKIPPED -- the favour from nameplate1 was not noticed:
+thank: a warrior's Battle Shout is never thanked: SKIPPED -- the favour from nameplate1 was not noticed:
 thank: an emote the game says was restricted is not a thank: SKIPPED -- the favour from nameplate1 was not noticed:
 thank: an emote the list does not hold is the thanks: SKIPPED -- the favour from nameplate3 was not noticed:
 thank: not in a fight, and not afterwards either: SKIPPED -- the favour from nameplate1 was not noticed:
@@ -776,7 +777,7 @@ unknown friend answers are not friends: the friend found by name was not put fir
 whatif: a group member's favour, your blessing on him: a party warrior who buffed you, wearing your Might with forty minutes left, was offered might
 whatif: a group member's lapsing shout: SKIPPED -- the shouts were never noticed
 whatif: a group member's lapsing shout: a party warrior who buffed you, wearing your Fortitude with two minutes left, was not offered it
-whatif: a group member's lapsing shout: four lapsed shouts from a party member in twelve minutes: 0 /thank emotes
+whatif: a group member's lapsing shout: four lapsed Fortitudes from a party member in twelve minutes: 0 /thank emotes
 whatif: a group member's lapsing shout: two favours from a stranger seven minutes apart: 0 lines, 2 emotes
 whatif: a low rank is no cover: a level-20 wearing the level-12 rank was not offered the level-24 one
 whatif: a low rank is no cover: a level-60 priest wearing Fortitude's second rank was not reminded of her own

@@ -328,6 +328,13 @@ local function OnPostClick(self, mouseButton, down)
 	-- state under the same name, so every line below files a press on a name
 	-- or from a bar exactly as one on the prompt.
 	local S = self.mannersRow or self.mannersBar or S
+	-- A click on the preview, either button, puts it away: it casts nothing,
+	-- and a player looking for how to close it reaches for the thing itself.
+	if S == Prompt.state and S.testMode and not InCombatLockdown() then
+		Prompt:ExitTest()
+		Prompt:Refresh()
+		return
+	end
 	-- What the press ran: the button's macro, or the lines the bar macro was
 	-- written with (MannersBar holds none of its own).
 	local armedText = S.isBar and S.macro or self:GetAttribute("macrotext1")
@@ -493,6 +500,9 @@ local function OnPostClick(self, mouseButton, down)
 	-- nothing being able to tell.
 	local stale = pressStale
 	pressStale = nil
+	ns.Trail("press", ("pressed: %s, %s, from %s%s"):format(tostring(S.current.buff and S.current.buff.key),
+		tostring(S.current.reason), S.isBar and "the action bar" or (S.isRow and "the list" or "the prompt"),
+		S.phraseArmed and ", with a line" or ""), S.current.name)
 	ns.pendingClick = { name = S.current.name, at = GetTime(),
 		buffKey = S.current.buff and S.current.buff.key,
 		selfCast = S.armed ~= nil and S.armed.selfCast == true,

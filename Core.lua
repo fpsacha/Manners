@@ -138,6 +138,31 @@ end
 -- here so the failure is named instead.
 ---------------------------------------------------------------------------
 
+-- The trail: the last TRAIL_MAX things Manners saw or did -- a favour noticed,
+-- somebody new on the prompt, a press, what became of it, a refusal, a fight
+-- starting and ending, the bar macro written, an error -- for the full check-up
+-- (Options/Diagnostics.lua, ns.FullReport), so a report shows what led up to a
+-- bug and not only how things stand. Kept in the character's saved variables,
+-- so it survives the /reload a player makes before reporting. One short line per
+-- event, never per scan; `who` is the person's name, which the report replaces
+-- with an alias.
+do
+local TRAIL_MAX = 200
+function ns.Trail(kind, text, who)
+	local db = ns.addon and ns.addon.db
+	local char = db and db.char
+	if type(char) ~= "table" then return end
+	local trail = char.trail
+	if type(trail) ~= "table" then
+		trail = {}
+		char.trail = trail
+	end
+	trail[#trail + 1] = { at = time(), kind = tostring(kind), text = tostring(text or ""),
+		who = type(who) == "string" and who or nil }
+	while #trail > TRAIL_MAX do table.remove(trail, 1) end
+end
+end
+
 -- The last thirty failures (Guard wraps the tick, so one can repeat 2.5 times a
 -- second), the count of all of them ever, and which labels have been announced.
 ns.errors = {}
@@ -147,6 +172,8 @@ ns.shouted = {}
 function ns.Guard(label, fn, ...)
 	local ok, err = pcall(fn, ...)
 	if ok then return true end
+	-- On the trail too, once a label: one that repeats each tick says so once.
+	if not ns.shouted[label] then pcall(ns.Trail, "error", tostring(label) .. ": " .. tostring(err)) end
 
 	-- This function is the thing that stops a failure being silent, so it must
 	-- never be the thing that throws.
@@ -411,6 +438,12 @@ local defaults = {
 			showIcon = true,
 			iconSize = 30,
 			roundIcon = false,
+			-- The built-in looks' bezel round the icon, and the shadow (and on
+			-- Minimal the outline) under the words: on, as the looks were drawn;
+			-- off for a flat prompt, the icon and the words with nothing round
+			-- them (Prompt/Panel.lua, Prompt/Text.lua).
+			iconFrame = true,
+			textShadow = true,
 			showCount = true,
 			showQueue = false,
 			queueRows = 3,
@@ -3975,6 +4008,9 @@ function addon:OnInitialize()
 end
 
 function addon:OnEnable()
+	-- A sound the session before left playing (a /reload in the middle of a
+	-- long one): stopped by the handle it was given (Prompt.lua).
+	ns.Guard("leftover sound", ns.StopLeftoverSound)
 	-- Registering an event the client does not have throws; each is guarded
 	-- so one cannot abort the rest, the scanner with it.
 	for _, event in ipairs({
@@ -4338,6 +4374,7 @@ function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 -- now re-aims the macro while it still can, and a second one next frame,
 -- under lockdown, paints the hold.
 function addon:PLAYER_REGEN_DISABLED()
+	ns.Trail("fight", "a fight started")
 	-- First, while the button can still be touched: a drag held into the pull
 	-- is let go of and its position kept, rather than released in the fight.
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
@@ -4363,6 +4400,7 @@ function addon:PLAYER_REGEN_DISABLED()
 end
 
 function addon:PLAYER_REGEN_ENABLED()
+	ns.Trail("fight", "the fight ended")
 	-- First, so everything below reads the buffs as the probe now has them.
 	ns.Guard("restriction ended", self.ADDON_RESTRICTION_STATE_CHANGED, self)
 	-- What the fight withheld is asked again on the next scan rather than three

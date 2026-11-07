@@ -760,6 +760,9 @@ local function FillLauncherMenu(root)
 	FillPromptMenu(root:CreateButton(L["Prompt"]), fight)
 	Check(root, L["Tell me in chat what Manners is doing"], function() return ns.db.profile.verbose end,
 		Act(function() ns.addon:HandleSlash("verbose") end))
+	-- Its stronger twin (Start here), one click from the minimap as well.
+	Check(root, L["Say nothing at all in chat"], function() return ns.db.profile.silentChat == true end,
+		Act(function() ns.addon:HandleSlash("quiet") end))
 	AddProfiles(root, fight)
 
 	Divider(root)

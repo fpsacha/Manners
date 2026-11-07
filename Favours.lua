@@ -519,6 +519,9 @@ do
 	local function NoteFavour(seen, owe)
 		local db = addon.db and addon.db.profile
 		if not db then return end
+		ns.Trail("favour", ("buffed you (spell %s, %s, %s)"):format(tostring(seen.key),
+			seen.unit and "read off the auras" or "read off the combat log",
+			seen.inGroup and "in your group" or "not in your group"), seen.name)
 
 		-- With the addon off nothing is noticed at all; the scan checks too, but
 		-- the setting can change between the sighting and here.
@@ -533,6 +536,11 @@ do
 		-- return is thanked, and a rogue or a hunter with nothing to give back
 		-- thanks too. Its rules are ThankFavour's. Guarded and last, so nothing
 		-- in it can cost the debt.
+		-- Never for a shout (Battle Shout, Commanding Shout, Horn of Winter): it
+		-- lands on the whole party again at every pull, and a /thank at the
+		-- warrior each time is not manners. Still a favour, as before.
+		local buff = type(seen.key) == "number" and ns.BUFF_BY_ID[seen.key] or nil
+		if buff and buff.selfCast and buff.partyOnly then return end
 		if db.prompt.thankEmote then ns.Guard("thank emote", ThankFavour, seen) end
 	end
 

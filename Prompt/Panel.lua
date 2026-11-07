@@ -645,10 +645,12 @@ function Prompt:ApplyStyle()
 		-- at 30). Never taller than the panel: when that cap bites, the hole
 		-- shrinks under the icon, which draws over it.
 		local bezelSize = math.min(p.iconSize / BEZEL_FRAME, p.height - 1)
+		-- Shown unless the player asked for a bare icon (Look, Frame round the icon).
+		local framed = p.iconFrame ~= false
 		for _, t in ipairs({ R.bezel, R.bezelHover }) do
 			t:SetPoint("CENTER", R.icon, "CENTER", 0, 0)
 			t:SetSize(bezelSize, bezelSize)
-			t:Show()
+			t:SetShown(framed)
 		end
 		-- Darkest at the bottom edge and gone by the middle: the icon reads as
 		-- set into the panel rather than printed on it.
@@ -657,7 +659,7 @@ function Prompt:ApplyStyle()
 		R.iconShade:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
 		R.iconShade:SetHeight(math.max(2, math.floor(p.iconSize * 0.55)))
 		Gradient(R.iconShade, "VERTICAL", 0, 0, 0, 0.38, 0, 0, 0, 0)
-		R.iconShade:Show()
+		R.iconShade:SetShown(framed)
 
 		if R.cooldown then
 			R.cooldown:ClearAllPoints()

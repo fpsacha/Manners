@@ -248,11 +248,12 @@ do
 				local next = child(menu, "^Who's next$")
 				local prompt = child(menu, "^Prompt$")
 				local chat = child(menu, "^Tell me in chat what Manners is doing$")
+				local quiet = child(menu, "^Say nothing at all in chat$")
 				local profiles = child(menu, "^Profiles$")
 				local options = child(menu, "^Options$")
 				local missing = {}
 				for name, entry in pairs({ enable = enable, snooze = snooze, preview = preview,
-					ledger = ledger, ["who's next"] = next, prompt = prompt, chat = chat,
+					ledger = ledger, ["who's next"] = next, prompt = prompt, chat = chat, quiet = quiet,
 					profiles = profiles, options = options }) do
 					if not entry then missing[#missing + 1] = name end
 				end
@@ -269,7 +270,7 @@ do
 				end
 				shape = table.concat(shape, " / ")
 				local want = "Manners / Enable / Snooze / | / Who's next / Open the ledger / | / "
-					.. "Preview the prompt / Prompt / Tell me in chat what Manners is doing / Profiles / | / Options"
+					.. "Preview the prompt / Prompt / Tell me in chat what Manners is doing / Say nothing at all in chat / Profiles / | / Options"
 				if shape ~= want then
 					fail(scenario, "the menu is not grouped as it should be: " .. shape)
 				end

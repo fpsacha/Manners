@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+- **One button for a bug report: Run a full check-up.** On *Diagnostics*, it
+  runs every check Manners has and gathers everything into one box to copy:
+  the self-test, what your game allows, your settings, who is on the prompt
+  and why, and a trail of the last few minutes -- favours seen, presses, what
+  the game said back, fights starting and ending -- kept even through a
+  `/reload`. Other players are named "Person 1", "Person 2" and so on, so it is
+  safe to paste in public. If you report a bug, please paste this with it.
+- **The sound no longer gets stuck.** Trying sounds could leave several playing
+  at once, a long one (music, from another addon's list) playing to its end
+  through a `/reload` and with the addon switched off. Now a new sound stops the
+  one before it, every sound stops after a few seconds, switching *Play a
+  sound* off stops it, and one left playing is stopped the next time you log in.
+- **A click puts the preview away.** The mock-up from *Show me the prompt*
+  closes when you click it, either button.
+- **No /thank for a Battle Shout.** A warrior's shout lands on your whole party
+  at every pull, and *Thank people who buff me* answered each one. A shout is
+  still remembered as a favour; it is just not thanked.
+- **A flat prompt, if you like.** On *Look*, for Glass, Framed and Minimal: *Frame
+  round the icon* and *Shadow and outline on the text*, both on as before, and
+  each can be switched off.
+- **Say nothing at all in chat**, now also on the minimap button's menu.
+- **Thorns for you alone held everywhere.** With *Offer Thorns to: Only me*, a
+  passer-by remembered for a few seconds after their nameplate went, or somebody
+  owed a favour who was out of sight, could still be offered Thorns. Neither is
+  now.
+
 ## 1.11.8
 
 - **Thorns for you alone.** *Offer Thorns to* on *Who to buff* has a third choice,

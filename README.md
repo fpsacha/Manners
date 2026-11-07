@@ -8,7 +8,7 @@ straight back.**
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-<img src=".github/media/manners-prompt.png" alt="The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel" width="640">
+<img src=".github/media/manners-prompt.png" alt="The prompt as your buff lands: a dark panel reading buffed Mort Defrette and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel" width="640">
 
 <img src=".github/media/manners-moment.png" alt="Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it" width="640">
 
@@ -755,6 +755,11 @@ list. They used to be at the bottom of *Who to buff*.
 **Look.** Where it sits and its lock, size, style and colours, getting
 your attention (flash, animations, sound), and the tooltip. Folded below: the
 exact position, the text, the prompt's wording, and the icon and waiting list.
+On Glass, Framed and Minimal, *Shadow and outline on the text* (with the text)
+and *Frame round the icon* (with the icon) can be switched off for a flat
+prompt. A sound plays for a few seconds at most, a new one stops the one before
+it, and switching *Play a sound* off stops it. The preview from *Show me the
+prompt* goes away when you click it.
 
 - *Tooltip on the prompt*: *Short* (the default: the name and spell, one line
   of why, and "Hold Shift for more"; Shift opens the full tooltip while it is
@@ -796,7 +801,8 @@ profiles too.
 
 **Diagnostics.** What your class has and whether the game lets addons read
 each buff, what has broken this session, and, under *Reporting a bug*, *Log
-every click (noisy)* and *Copy for a bug report*. "This client doesn't know
+every click (noisy)*, **Run a full check-up** (see *Reporting a bug* below) and
+*Copy for a bug report*. "This client doesn't know
 spell N" means Manners cannot see that version on anyone, which only affects
 telling whether somebody already carries it.
 
@@ -1023,13 +1029,24 @@ Nothing can be done about that from an addon here.
 
 ## Reporting a bug
 
-Open an issue from
-[the templates](https://github.com/fpsacha/Manners/issues/new/choose):
-*Something misbehaved* for a bug, *A class cast, or did not* for how a class
-other than Mage went. The Diagnostics page's *Copy for a bug report* button
-gives you the build, what this client allows, the settings that matter and
-anything that has broken, ready to paste. `/manners debug` and `/manners
-errors` say much of the same in chat.
+Please send a log with it: it turns a guess into a fix. Open the options
+(`/manners`), go to **Diagnostics**, press **Run a full check-up**, click in the
+box, press Ctrl+A then Ctrl+C, and paste it into a comment on CurseForge or an
+issue from [the templates](https://github.com/fpsacha/Manners/issues/new/choose)
+(*Something misbehaved* for a bug, *A class cast, or did not* for how a class
+went), with a few words on what went wrong. Run it right after the bug if you
+can.
+
+The check-up holds the bug report (build, what this client allows, the settings
+that matter), the self-test below, what `/manners debug` and `/manners errors`
+say, your own buffs' reasons, the queue with each person's reason, where you
+are (a fight, a city, an instance, a group), the bar macro, the other addons
+loaded, your settings, and a trail of the last 200 things Manners saw and did
+(favours, people on the prompt, presses and what became of them, refusals,
+fights, the bar macro written, errors), kept in the character's saved
+variables so it survives a `/reload`. Other players are named "Person 1",
+"Person 2" and so on throughout. Nothing is said to anybody and nothing is
+changed. *Copy for a bug report* is the short version.
 
 ### Checking Manners against your game
 

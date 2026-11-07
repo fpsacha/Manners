@@ -1,6 +1,8 @@
 **Somebody buffed you. One click buffs them back, and your target is handed straight back.**
 
-![The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
+> **I read every comment here and on GitHub, and I fix bugs as fast as I can.** Found one? Please send a log with it: it takes ten seconds and turns a guess into a fix. See **Report a bug** below.
+
+![The prompt as your buff lands: a dark panel reading buffed Mort Defrette and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
 ![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
 
@@ -23,5 +25,7 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.
 
 Blizzard does not let an addon cast on its own, so nothing happens until you press the key: Manners decides who deserves the buff, and the game casts when you click. Passers-by are seen through friendly nameplates, which the options can turn on.
+
+**Report a bug, with a log:** open the options (`/manners`), go to **Diagnostics**, press **Run a full check-up**, then click in the box, **Ctrl+A**, **Ctrl+C**, and paste it into your comment or [a GitHub issue](https://github.com/fpsacha/Manners/issues/new/choose). Other players are named "Person 1", "Person 2", so it is safe to paste.
 
 `/manners help` lists every command. Free, MIT licensed. Full documentation and bug reports on [GitHub](https://github.com/fpsacha/Manners). If you would like to say thanks, you can [buy me a coffee on Ko-fi](https://ko-fi.com/fpsacha).

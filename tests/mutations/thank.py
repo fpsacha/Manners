@@ -304,3 +304,15 @@ mutate("Options/Window/Layout.lua",
        "",
        "thank: the emote choice not placed",
        expect="thankEmoteToken", script=S)
+
+# --- a shout is never thanked (1.11.9) ---
+mutate("Favours.lua",
+       "\t\tif buff and buff.selfCast and buff.partyOnly then return end\n",
+       "",
+       "thank: a Battle Shout is thanked",
+       expect="thank: a warrior's Battle Shout is never thanked", script=S)
+mutate("Favours.lua",
+       "\t\tif buff and buff.selfCast and buff.partyOnly then return end\n",
+       "\t\tif buff then return end\n",
+       "thank: no class buff is ever thanked",
+       expect="thank: a warrior's Battle Shout is never thanked", script=S)

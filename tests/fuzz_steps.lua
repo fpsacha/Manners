@@ -1079,7 +1079,17 @@ local function sayAsk(W, p, channel, text, s, clean)
 	local line = (s.d % 13 == 0) and 0 or 1
 	if W.secretOK and W.secret.all and s.d % 3 == 0 and not clean then text = Mock.SECRET end
 	if W.secretOK and W.secret.all and s.d % 3 == 1 and not clean then sender = Mock.SECRET end
+	local askScan = W.ns.askScan
+	local noted = askScan and askScan.noted
 	fire(W, "CHAT_MSG_" .. channel, text, sender, "", "", sender, "", 0, 0, "", 0, 1, guid)
+	-- Whatever the addon took for a request replaces the one standing, for
+	-- whatever the new line asks (Requests.lua, NoteRequest: one per person).
+	-- Without a guid it goes by the name, so anybody sharing it loses theirs.
+	if noted and askScan.noted > noted and W.reqs then
+		for name, req in pairs(W.reqs) do
+			if req.person == p or (guid == "" and req.person.first == p.first) then W.reqs[name] = nil end
+		end
+	end
 	-- A request nobody could misread: the buff's nickname and a please, from
 	-- somebody the addon can tell by their guid, out of a fight.
 	local plain_ask = KNOWN_ASK[W.me.class]
@@ -2015,6 +2025,18 @@ local function personality(W, rng)
 	for _, key in ipairs(keys) do
 		if chance(0.12) and not plain then db.buff.skip[key] = true end
 	end
+	-- The settings 1.11.x added, each on in some seeds and never in a plain one:
+	-- the checks hold them to what their options say (fuzz_check.lua). Read off
+	-- a number of their own made from the seed, not drawn from rng: a draw here
+	-- would move every draw after it, and every seed found before these settings
+	-- (the canaries in tests/scenarios/fuzz-fixes.lua) would play another game.
+	local mix = (W.seed * 2654435761) % 1000
+	f.quietInTowns = not plain and mix % 7 == 3
+	db.buff.tanksOnly = (not plain and mix % 5 == 1) and { thorns = true } or {}
+	db.buff.meOnly = (not plain and mix % 5 == 2) and { thorns = true } or {}
+	db.ownBuffs.itemsInDungeons = not plain and mix % 4 == 1
+	db.silentChat = not plain and mix % 10 == 7
+	db.prompt.iconFrame, db.prompt.textShadow = mix % 6 ~= 5, mix % 9 ~= 4
 	ns.Guard("clamp", ns.ClampSettings)
 	ns.Prompt:InvalidateMacro()
 	ns.Guard("style", ns.Prompt.ApplyStyle, ns.Prompt)

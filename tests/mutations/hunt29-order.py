@@ -11,7 +11,7 @@ mutate("Core.lua",
        "\tfor _, buff in ipairs(walk) do\n\t\tif ns.IsBuffKnown(buff)\n",
        "\tfor _, buff in ipairs(custom and ns.GetClassBuffs(playerClass) or walk) do\n\t\tif ns.IsBuffKnown(buff)\n",
        "hunt29-order: the walk ignores the order",
-       expect="hunt29-order: camelot: a custom order is what a bare warrior, mage and rogue are offered",
+       expect="hunt29-order: vanilla: a custom order is what a bare warrior, mage and rogue are offered",
        script=S)
 
 # Kings first goes on over an order: the switch is not what the order is.
@@ -19,7 +19,7 @@ mutate("Core.lua",
        "\tif custom then strongestFirst = false end\n",
        "",
        "hunt29-order: an order does not switch Kings first off",
-       expect="hunt29-order: camelot: an order wins over Kings first, on or off",
+       expect="hunt29-order: vanilla: an order wins over Kings first, on or off",
        script=S)
 
 # The last blessing a bare person can use is offered, not the first.
@@ -27,7 +27,7 @@ mutate("Core.lua",
        "\t\t\t\t\t\telseif not pick then\n\t\t\t\t\t\t\tpick = buff\n",
        "\t\t\t\t\t\telse\n\t\t\t\t\t\t\tpick = buff\n",
        "hunt29-order: the last of the order offered instead of the first",
-       expect="hunt29-order: camelot: Greater Blessings follow the order",
+       expect="hunt29-order: vanilla: Greater Blessings follow the order",
        script=S)
 
 # A pin gives way to an order.
@@ -78,7 +78,7 @@ mutate("Core.lua",
        "\tlocal walk, custom = ns.WalkBuffs()\n\tif custom then\n\t\tlocal skip = db.buff.skip\n",
        "\tlocal walk, custom = ns.WalkBuffs()\n\tif false then\n\t\tlocal skip = db.buff.skip\n",
        "hunt29-order: the spell named ignores the order",
-       expect="hunt29-order: camelot: the spell named for the prompt is the first of the order",
+       expect="hunt29-order: vanilla: the spell named for the prompt is the first of the order",
        script=S)
 
 # A spell only a mana user wants named for somebody without mana.
@@ -86,7 +86,7 @@ mutate("Core.lua",
        "\t\t\t\tand not (buff.manaOnly and not hasMana) then\n\t\t\t\treturn buff\n",
        "\t\t\t\tthen\n\t\t\t\treturn buff\n",
        "hunt29-order: a mana-only spell named for somebody without mana",
-       expect="hunt29-order: camelot: the spell named for the prompt is the first of the order",
+       expect="hunt29-order: vanilla: the spell named for the prompt is the first of the order",
        script=S)
 
 # A switched-off spell named.
@@ -94,7 +94,7 @@ mutate("Core.lua",
        "\t\t\tif ns.IsBuffKnown(buff) and not buff.neverAuto and not (skip and skip[buff.key])\n\t\t\t\tand not (buff.manaOnly",
        "\t\t\tif ns.IsBuffKnown(buff) and not buff.neverAuto\n\t\t\t\tand not (buff.manaOnly",
        "hunt29-order: a switched-off spell named from the order",
-       expect="hunt29-order: camelot: the spell named for the prompt is the first of the order",
+       expect="hunt29-order: vanilla: the spell named for the prompt is the first of the order",
        script=S)
 
 # ------------------------------------------------ the repair
@@ -176,7 +176,7 @@ mutate("Core.lua",
        "\t\tlocal to = rank and here[rank + step]\n",
        "\t\tlocal to = rank and here[(rank + step - 1) % #here + 1]\n",
        "hunt29-order: the top moves up to the bottom",
-       expect="hunt29-order: camelot: up at the top and down at the bottom do nothing",
+       expect="hunt29-order: vanilla: up at the top and down at the bottom do nothing",
        script=S)
 
 # An order that is Automatic's is kept.
@@ -184,7 +184,7 @@ mutate("Core.lua",
        "\t\tdb.buff.order[playerClass] = (not same) and keys or nil\n",
        "\t\tdb.buff.order[playerClass] = keys\n",
        "hunt29-order: an order that is Automatic's kept",
-       expect="hunt29-order: camelot: a move swaps two places and an order that is Automatic's is not kept",
+       expect="hunt29-order: vanilla: a move swaps two places and an order that is Automatic's is not kept",
        script=S)
 
 # A move starts from Automatic with Kings first, whatever the switch.
@@ -192,7 +192,7 @@ mutate("Core.lua",
        "\t\tfor i, buff in ipairs(Automatic(playerClass, kingsFirst)) do auto[i] = buff.key end\n",
        "\t\tfor i, buff in ipairs(Automatic(playerClass, true)) do auto[i] = buff.key end\n",
        "hunt29-order: a move starts from Kings first whatever the switch",
-       expect="hunt29-order: camelot: a move swaps two places and an order that is Automatic's is not kept (Kings first off)",
+       expect="hunt29-order: vanilla: a move swaps two places and an order that is Automatic's is not kept (Kings first off)",
        script=S)
 
 # A move among every key, the ones this client lacks too.
@@ -208,7 +208,7 @@ mutate("Core.lua",
        "\t\tdb.buff.order[playerClass] = nil\n\t\treturn true\n",
        "\t\treturn true\n",
        "hunt29-order: Back to Automatic leaves the order",
-       expect="hunt29-order: camelot: Back to Automatic restores the walk exactly",
+       expect="hunt29-order: vanilla: Back to Automatic restores the walk exactly",
        script=S)
 
 # No order is ever read as one.
@@ -216,7 +216,7 @@ mutate("Core.lua",
        "\t\treturn ns.BuffOrder() ~= nil\n",
        "\t\treturn false\n",
        "hunt29-order: an order never read as one",
-       expect="hunt29-order: camelot: the Kings switch is hidden while an order stands and comes back",
+       expect="hunt29-order: vanilla: the Kings switch is hidden while an order stands and comes back",
        script=S)
 
 # The page lists Automatic without Kings first.
@@ -274,7 +274,7 @@ mutate("Options/Who.lua",
        "\t\t\t\thidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil or ns.HasBuffOrder() end,\n",
        "\t\t\t\thidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil end,\n",
        "hunt29-order: the Kings switch shown over an order",
-       expect="hunt29-order: camelot: the Kings switch is hidden while an order stands and comes back",
+       expect="hunt29-order: vanilla: the Kings switch is hidden while an order stands and comes back",
        script=S)
 
 # Move up live on the first buff.
@@ -282,7 +282,7 @@ mutate("Options/Who.lua",
        "\t\t\t\tdisabled = function() return OrderRank(OrderPick()) <= 1 end,\n",
        "\t\t\t\tdisabled = function() return false end,\n",
        "hunt29-order: Move up live on the first buff",
-       expect="hunt29-order: camelot: up at the top and down at the bottom do nothing",
+       expect="hunt29-order: vanilla: up at the top and down at the bottom do nothing",
        script=S)
 
 # Move down live on the last buff.
@@ -290,7 +290,7 @@ mutate("Options/Who.lua",
        "\t\t\t\t\treturn rank == 0 or rank >= #OrderKeys()\n",
        "\t\t\t\t\treturn rank == 0\n",
        "hunt29-order: Move down live on the last buff",
-       expect="hunt29-order: camelot: up at the top and down at the bottom do nothing",
+       expect="hunt29-order: vanilla: up at the top and down at the bottom do nothing",
        script=S)
 
 # The one moved does not stay picked.
@@ -322,7 +322,7 @@ mutate("Options/Who.lua",
        "\t\t\t\tvalues = OrderChoices,\n\t\t\t\tsorting = OrderKeys,\n",
        "\t\t\t\tvalues = OrderChoices,\n",
        "hunt29-order: the list sorted by name",
-       expect="hunt29-order: camelot: the window draws a line for each buff, in order",
+       expect="hunt29-order: vanilla: the window draws a line for each buff, in order",
        script=S)
 
 # Not placed in the window: a setting nobody can reach there.
@@ -382,7 +382,7 @@ mutate("Options/Window/WidgetsOrder.lua",
        "\tline.num:SetText(tostring(rank))\n",
        "\tline.num:SetText(tostring(rank - 1))\n",
        "hunt29-order: window: the lines numbered from nought",
-       expect="hunt29-order: camelot: the window draws a line for each buff, in order",
+       expect="hunt29-order: vanilla: the window draws a line for each buff, in order",
        script=S)
 
 # The same icon on every line.
@@ -390,7 +390,7 @@ mutate("Options/Window/WidgetsOrder.lua",
        "\tline.icon:SetTexture(IconOf(key))\n",
        "\tline.icon:SetTexture(UNKNOWN_ICON)\n",
        "hunt29-order: window: the same icon on every line",
-       expect="hunt29-order: camelot: the window draws a line for each buff, in order",
+       expect="hunt29-order: vanilla: the window draws a line for each buff, in order",
        script=S)
 
 # The way back shown always.

@@ -54,7 +54,7 @@ mutate("Prompt/Text.lua",
 
 # The Minimal look without its outline.
 mutate("Prompt/Text.lua",
-       '\tlocal outline = bare and "OUTLINE" or ""\n',
+       '\tlocal outline = (bare and not flat) and "OUTLINE" or ""\n',
        '\tlocal outline = ""\n',
        "minimal text with no outline",
        expect="has no outline over the world",

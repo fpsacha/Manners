@@ -97,6 +97,7 @@ Page.RESET = {
 		"prompt.format", "prompt.reasonTarget", "prompt.reasonOwed", "prompt.reasonAsked",
 		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
 		"prompt.reasonUnknown", "prompt.showIcon", "prompt.iconSize", "prompt.roundIcon",
+		"prompt.iconFrame", "prompt.textShadow",
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",

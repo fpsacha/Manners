@@ -382,7 +382,11 @@ function Page.BuildLookTab()
 				desc = L["When a new person appears on the prompt."],
 				order = 33,
 				get = function() return SND().enabled end,
-				set = function(_, v) SND().enabled = v end,
+				set = function(_, v)
+					SND().enabled = v
+					-- Off stops whatever is still playing (Prompt.lua).
+					if not v then ns.Guard("sound stop", ns.StopPromptSound) end
+				end,
 			},
 			soundFile = {
 				type = "select",
@@ -513,6 +517,16 @@ function Page.BuildLookTab()
 				set = pSetColor,
 			},
 			classColor = { type = "toggle", name = L["Colour names by class"], order = 44, width = "full", get = pGet, set = pSet },
+			textShadow = {
+				type = "toggle",
+				name = L["Shadow and outline on the text"],
+				desc = L["The shadow under the words, and the outline Minimal draws with no panel behind it, on Glass, Framed and Minimal. Off, the text is drawn flat."],
+				order = 44.5,
+				width = "full",
+				disabled = function() return ns.Looks.Get(P().style) ~= nil end,
+				get = pGet,
+				set = pSet,
+			},
 			showSub = {
 				type = "toggle",
 				name = L["Show a second line"],
@@ -596,6 +610,17 @@ function Page.BuildLookTab()
 				-- Toast's, Ribbon's and Letter's icons sit in a medallion or a wax
 				-- seal: always round, so the switch reads nothing there.
 				disabled = function() return not P().showIcon or ns.Looks.RoundAlways(P().style) end,
+				get = pGet,
+				set = pSet,
+			},
+			-- The built-in looks only: the others draw their own frame and ink.
+			iconFrame = {
+				type = "toggle",
+				name = L["Frame round the icon"],
+				desc = L["The metal bezel round the spell icon, on Glass, Framed and Minimal. Off, the icon stands on its own."],
+				order = 53.5,
+				width = "full",
+				disabled = function() return not P().showIcon or ns.Looks.Get(P().style) ~= nil end,
 				get = pGet,
 				set = pSet,
 			},

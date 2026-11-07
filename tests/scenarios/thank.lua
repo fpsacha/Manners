@@ -415,7 +415,9 @@ do
 			return original.UnitPowerMax(unit, ...)
 		end },
 	}, function(ns)
-		local text = favour(ns, "nameplate1", 25289)
+		-- A Fortitude from a warrior with no mana: a shout would do, but a shout
+		-- is never thanked (below).
+		local text = favour(ns, "nameplate1", 10938)
 		if not text:find("nothing you cast is any use", 1, true) then
 			fail(scenario, "SKIPPED -- the favour was not the useless kind: " .. text)
 		elseif thanked("nameplate1") ~= 1 then
@@ -685,6 +687,27 @@ do
 		ns.db.profile.prompt.thankEmote = false
 		if not (type(control.disabled) == "function" and control.disabled()) then
 			fail(scenario, "the emote choice stays live with the /thank switch off")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ a shout (1.11.9)
+-- A warrior's Battle Shout lands on the whole party at every pull: a player saw
+-- a /thank at the warrior each time. A shout is still a favour, and never a thank.
+do
+	local scenario = "thank: a warrior's Battle Shout is never thanked"
+	with(scenario, {}, function(ns)
+		local shout = ns.FindBuff("WARRIOR", "battleshout")
+		if not shout then
+			fail(scenario, "SKIPPED -- no Battle Shout on this client")
+			return
+		end
+		local text = favour(ns, "nameplate2", shout.ranks[1])
+		if not noticed(scenario, ns, "nameplate2", text) then return end
+		if thanked() ~= 0 then fail(scenario, "a Battle Shout was answered with " .. thanked() .. " emote(s)") end
+		Mock.advance(30)
+		if noticed(scenario, ns, "nameplate1", favour(ns, "nameplate1")) and thanked() ~= 1 then
+			fail(scenario, "a Fortitude after it was not thanked: " .. thanked() .. " emote(s)")
 		end
 	end)
 end

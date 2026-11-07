@@ -42,6 +42,32 @@ ns.Guard("register sound", function()
 	LSM:Register("sound", ns.SOUND_KEY, ns.SOUND_FILE)
 end)
 
+-- One sound at a time, and never for long. The list is every sound any addon
+-- gave LibSharedMedia, music among them: a player trying three of them heard
+-- three jazz tracks at once, through a /reload and with the addon switched off,
+-- until they quit the game. So a new sound stops the one before it, each is
+-- cut off after SOUND_SECONDS, switching the sound off stops it, and the handle
+-- of the last one is kept in the saved variables so a /reload can stop it too.
+local SOUND_SECONDS = 4
+local playing, playGen = nil, 0
+
+function ns.StopPromptSound()
+	local handle = playing
+	playing = nil
+	if ns.db and ns.db.char then ns.db.char.soundHandle = nil end
+	if handle == nil then return end
+	local stop = _G.StopSound
+	if type(stop) == "function" then pcall(stop, handle, 300) end
+end
+
+-- At login: a sound the session before left playing, stopped.
+function ns.StopLeftoverSound()
+	local handle = ns.db and ns.db.char and ns.db.char.soundHandle
+	if handle == nil then return end
+	playing = handle
+	ns.StopPromptSound()
+end
+
 function ns.PlayPromptSound(file)
 	if not file or file == "None" then return end
 	-- noDefault: an uninstalled pack's entry would resolve to "None" and play
@@ -49,7 +75,21 @@ function ns.PlayPromptSound(file)
 	-- setting: a pack loading after this addon has not registered yet.
 	local data = LSM:Fetch("sound", file, true) or LSM:Fetch("sound", ns.SOUND_KEY, true)
 	if not data then return end
-	local willPlay = ns.plain(PlaySoundFile(data, "Master"))
+	ns.StopPromptSound()
+	local played, handle = PlaySoundFile(data, "Master")
+	local willPlay = ns.plain(played)
+	handle = ns.plain(handle)
+	if handle ~= nil then
+		playing = handle
+		if ns.db and ns.db.char then ns.db.char.soundHandle = handle end
+		playGen = playGen + 1
+		local gen = playGen
+		if C_Timer and C_Timer.After then
+			C_Timer.After(SOUND_SECONDS, function()
+				if playGen == gen and playing == handle then ns.StopPromptSound() end
+			end)
+		end
+	end
 	-- The client can refuse a file outright. A toggle that is on and silent is
 	-- the whole complaint, so say which sound it was rather than nothing.
 	if willPlay == false and ns.db and ns.db.profile.verbose then

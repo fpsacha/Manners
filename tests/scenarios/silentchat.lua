@@ -103,3 +103,17 @@ do
 		if ns.db.profile.silentChat ~= true or not control.get(info) then fail(scenario, "the switch was not kept") end
 	end)
 end
+
+do
+	local scenario = "silentchat: /manners quiet turns the silence on and off from chat"
+	with(scenario, function(ns)
+		ns.addon:HandleSlash("quiet")
+		if ns.db.profile.silentChat ~= true then fail(scenario, "/manners quiet did not turn the silence on") end
+		if not said():find("quiet:", 1, true) then fail(scenario, "/manners quiet said nothing: " .. said()) end
+		Mock.printed = {}
+		ns.addon:Print("an automatic line")
+		if said() ~= "" then fail(scenario, "after /manners quiet a line still printed: " .. said()) end
+		ns.addon:HandleSlash("quiet")
+		if ns.db.profile.silentChat ~= false then fail(scenario, "a second /manners quiet did not turn it off") end
+	end)
+end

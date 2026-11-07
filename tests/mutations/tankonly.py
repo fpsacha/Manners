@@ -119,3 +119,16 @@ mutate("Options/Advanced.lua",
        "\"buff.skip\", \"buff.tanksOnly\", \"buff.kingsFirst\"",
        "tankonly: the page's reset leaves Only me",
        expect="model: the reset puts who back", script=S)
+
+# --- the two paths the fuzzer found (1.11.9) ---
+mutate("Queue.lua",
+       "\tif memo.buff.tankChoice and meOnly and meOnly[key] and memo.reason ~= \"asked\" then return false end\n",
+       "",
+       "tankonly: a remembered passer-by keeps a buff held to you",
+       expect="tankonly: Only me holds a passer-by remembered before it was set", script=S)
+
+mutate("Queue.lua",
+       "\t\t\tmeOnly = meHeld,\n",
+       "",
+       "tankonly: a favour out of sight is offered a buff held to you",
+       expect="tankonly: Only me holds a favour owed to somebody out of sight", script=S)

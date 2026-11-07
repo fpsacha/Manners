@@ -1,6 +1,8 @@
 **Somebody buffed you. One click buffs them back, and your target is handed straight back.**
 
-![The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
+> **I read every comment here and on GitHub, and I fix bugs as fast as I can.** Found one? Please send a log with it: it takes ten seconds and turns a guess into a fix. See **Report a bug** below.
+
+![The prompt as your buff lands: a dark panel reading buffed Mort Defrette and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
 ![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
 
@@ -88,7 +90,7 @@ Optional, and off until you turn it on: a line when you buff somebody, from four
 
 Or pick **In character (fits your race and class)**: over two thousand lines, chosen when you click to fit your people, your class and the moment. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*), it does not repeat itself, and it speaks all nine languages.
 
-> *"Most kind, Elowen. You've lifted me from 'deceased' to 'mildly deceased'."* -- a Forsaken, returning a favour
+> *"Most kind, Mort. You've lifted me from 'deceased' to 'mildly deceased'."* -- a Forsaken, returning a favour
 
 Or just `/thank` them with an emote (off by default, never in a fight or an instance).
 
@@ -96,6 +98,7 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 
 - **Ten looks**, picked from cards in the options window: Glass (the default: a pane of cut glass, the icon in a metal bezel), Framed (a thin rim, like the game's tooltips), Minimal (the words alone), Luxe (a slim dark card with a spine in the reason colour), Toast (a warm banner, gilded medallion), Arcane (smoked glass, a rim lit by the reason), Ribbon (a crimson ribbon and a gold medallion), Letter (a parchment scroll with a red wax seal), Leather (a stitched leather tag with a brass ring) and Forge (forged iron and a riveted band, the reason glowing like heated steel). On Glass, Framed and Minimal, rules of light draw out as the prompt comes up and the panel's edge lights when your buff lands. Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
+- **A flat prompt, if you like:** on Glass, Framed and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go.
 - **Minimap button** and addon compartment: click for options, shift-click for the ledger, right-click for a menu.
 
@@ -147,9 +150,16 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 - In a fight the prompt keeps what the fight found, and names in the list cannot be clicked until it ends.
 - Passers-by are seen through the game's friendly nameplates. With them off Manners sees almost nobody outside your group; the *Who to buff* tab says so and has a button to turn them on.
 
-### Bugs and reports
+### Report a bug (please include a log)
 
-Use [the issue templates on GitHub](https://github.com/fpsacha/Manners/issues/new/choose). `/manners selftest` gives you a report to paste, and the Diagnostics tab has a *Copy for a bug report* button.
+A description alone usually is not enough to find a bug: the log says what Manners saw and decided. Getting one takes ten seconds:
+
+1. Type `/manners`, or click the minimap button, to open the options.
+2. Go to the **Diagnostics** page and press **Run a full check-up**.
+3. Click in the box that appears, press **Ctrl+A** then **Ctrl+C**.
+4. Paste it into your comment here, or into [a GitHub issue](https://github.com/fpsacha/Manners/issues/new/choose), with a few words on what went wrong and what you expected.
+
+The log holds everything: the self-test, what the client allows, your settings, who was on the prompt and why, and what happened over the last few minutes (favours seen, presses, what the game said back), kept even through a `/reload`. Other players are named "Person 1", "Person 2" and so on, so it is safe to paste in public. If you can, run it right after the bug happens.
 
 Also on [Wago](https://addons.wago.io/addons/rNkgzlNa), which is the one WowUp reads. Free, MIT licensed, [source on GitHub](https://github.com/fpsacha/Manners).
 

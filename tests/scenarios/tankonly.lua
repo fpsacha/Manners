@@ -315,3 +315,41 @@ do
 		end
 	end)
 end
+
+-- Two paths the walk does not take, found by the fuzzer (1.11.9): a passer-by
+-- remembered after their token went (Queue.lua, OfferPassersBy), and a favour
+-- owed to somebody no token reaches (the tokenless fallback). Only me holds both.
+do
+	local scenario = "tankonly: Only me holds a passer-by remembered before it was set"
+	session(scenario, {}, function(ns)
+		local name = filed(STRANGER)
+		if offers(ns)[name] ~= "thorns" then
+			fail(scenario, "SKIPPED -- the passer-by is not offered Thorns to begin with")
+			return
+		end
+		-- Their nameplate goes, and they are remembered for a few seconds.
+		Mock.unitNames.nameplate1 = nil
+		ns.nameplateUnits.nameplate1 = nil
+		setMeOnly(ns)
+		local out = {}
+		for _, entry in ipairs(ns.BuildQueue()) do out[entry.name] = entry.buff and entry.buff.key end
+		if out[name] then fail(scenario, "a remembered passer-by was offered " .. tostring(out[name]) .. " with Only me on") end
+	end)
+end
+
+do
+	local scenario = "tankonly: Only me holds a favour owed to somebody out of sight"
+	session(scenario, {}, function(ns)
+		-- Thorns pinned, so the fallback has Thorns to offer them.
+		ns.db.profile.buff.choice = "thorns"
+		H.owe(ns, "Zed Gone")
+		local before = offers(ns)
+		local zed = Mock.surnames and "Zed Gone" or "Zed Gone"
+		if before[zed] ~= "thorns" then
+			fail(scenario, "SKIPPED -- a favour owed out of sight is not offered Thorns: " .. tostring(before[zed]))
+			return
+		end
+		setMeOnly(ns)
+		if offers(ns)[zed] then fail(scenario, "a favour owed out of sight was offered Thorns with Only me on") end
+	end)
+end

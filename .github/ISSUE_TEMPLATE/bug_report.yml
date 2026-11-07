@@ -5,10 +5,11 @@ body:
   - type: markdown
     attributes:
       value: |
-        Only Mage has been used in game. Priest, Druid, Paladin, Warlock and
-        Warrior are implemented and tested against a mock client, but nobody has
-        cast with them — so if you are one of those, a report is genuinely
-        useful even if you are not sure anything is wrong.
+        Thank you for reporting it. The log below is what makes a bug fixable:
+        open the options (`/manners`), go to **Diagnostics**, press
+        **Run a full check-up**, click in the box, Ctrl+A, Ctrl+C, and paste it
+        into the first box. If you can, run it right after the bug happens: it
+        keeps what happened over the last few minutes, even through a /reload.
 
   - type: textarea
     id: what
@@ -32,22 +33,13 @@ body:
   - type: textarea
     id: debug
     attributes:
-      label: Output of /manners debug
+      label: The full check-up
       description: >
-        Paste the whole thing. It reports what this client will and will not let
-        the addon read, which is where most of this addon's problems come from —
-        and it differs between characters, not just between installs.
-      render: text
-    validations:
-      required: true
-
-  - type: textarea
-    id: errors
-    attributes:
-      label: Output of /manners errors
-      description: >
-        Anything the addon caught and carried on from. Empty is a useful answer
-        and means something different from "I did not check".
+        Options (/manners) > Diagnostics > Run a full check-up, then click in
+        the box, Ctrl+A, Ctrl+C, and paste the whole thing here. It holds the
+        self-test, what this client allows, your settings, what /manners debug
+        and /manners errors say, and the last few minutes of what Manners saw
+        and did. Other players are named Person 1, Person 2, and so on.
       render: text
     validations:
       required: true

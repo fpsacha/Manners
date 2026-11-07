@@ -177,7 +177,8 @@ run("whatif: a group member's lapsing shout", function()
 	end
 	wipe(ns.owed)
 
-	-- Four shouts, each after the last ran out: one line, one /thank.
+	-- Four shouts, each after the last ran out: one line, and no /thank (a shout
+	-- is never thanked, 1.11.9).
 	primeAuras(ns)
 	emotes = {}
 	local lines = 0
@@ -196,8 +197,23 @@ run("whatif: a group member's lapsing shout", function()
 	elseif lines ~= 1 then
 		fail(scenario, ("four lapsed shouts from a party member in twelve minutes: %d \"buffed you\" lines"):format(lines))
 	end
-	if #emotes ~= 1 then
+	if #emotes ~= 0 then
 		fail(scenario, ("four lapsed shouts from a party member in twelve minutes: %d /thank emotes"):format(#emotes))
+	end
+	-- The same with a buff that is thanked (a Fortitude cast again at each
+	-- lapse): one /thank in half an hour for a group member.
+	emotes = {}
+	for pull = 1, 4 do
+		favourFrom(ns, "party1", 10938, 7200 + pull)
+		Mock.advance(200)
+		Mock.extraAura = false
+		ns.addon:UNIT_AURA(nil, "player")
+		Mock.advance(1)
+		ns.addon:UNIT_AURA(nil, "player")
+		Mock.advance(1)
+	end
+	if #emotes ~= 1 then
+		fail(scenario, ("four lapsed Fortitudes from a party member in twelve minutes: %d /thank emotes"):format(#emotes))
 	end
 	-- A stranger's favours are each news.
 	emotes = {}

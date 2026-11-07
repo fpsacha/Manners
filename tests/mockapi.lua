@@ -364,6 +364,7 @@ function Mock.reset()
 	-- it none of that was reachable from a test.
 	Mock.broker = nil
 	Mock.sounds = {}
+	Mock.stoppedSounds = {}
 	Mock.printed = {}
 	-- Every line the tooltip put up since it was last owned. The tooltip is the
 	-- most detailed thing the prompt says and none of it was testable.
@@ -406,6 +407,7 @@ function Mock.reset()
 	-- in on the same account, which is the only way to tell a thing stored per
 	-- character from a thing stored in the one shared profile.
 	Mock.character = "Mort Defrette"
+	Mock.playerName = nil
 	Mock.dbCallbacks = {}
 	-- Everything parked on C_Timer.After and not yet run. Cleared here so one
 	-- scenario's timers cannot fire inside the next one.
@@ -1203,7 +1205,13 @@ local function secondName(second)
 end
 
 function UnitName(u)
-	if u == "player" then return "Mort", secondName("Defrette") end
+	if u == "player" then
+		-- Mort Defrette unless a caller names the player otherwise (the listing
+		-- pictures, where Mort is the one who buffed you).
+		local me = Mock.playerName
+		if me then return me[1], secondName(me[2]) end
+		return "Mort", secondName("Defrette")
+	end
 	local named = Mock.unitNames and Mock.unitNames[u]
 	if named then return maybeSecret(named[1]), maybeSecret(secondName(named[2])) end
 	return maybeSecret(Mock.unitName[1]), maybeSecret(secondName(Mock.unitName[2]))
@@ -1528,7 +1536,16 @@ end
 function GetCurrentBindingSet() return 2 end
 -- Recorded rather than dropped: "the toggle is on and nothing is audible" is
 -- only testable if the test can see what was handed to the client.
-function PlaySoundFile(file) Mock.sounds[#Mock.sounds + 1] = file end
+-- A handle per sound, as the client gives one, and StopSound noting which.
+function PlaySoundFile(file)
+	Mock.sounds[#Mock.sounds + 1] = file
+	Mock.soundHandles = (Mock.soundHandles or 0) + 1
+	return true, Mock.soundHandles
+end
+function StopSound(handle)
+	Mock.stoppedSounds = Mock.stoppedSounds or {}
+	Mock.stoppedSounds[#Mock.stoppedSounds + 1] = handle
+end
 -- One combat log line, in the order every flavour that has a log reports it.
 --
 -- The default is the case the whole source exists for: somebody else putting a

@@ -141,6 +141,150 @@ local function BugReport()
 	return table.concat(lines, "\n")
 end
 
+-- The full check-up (Diagnostics, Run a full check-up): everything a bug report
+-- is asked for, in one block. The bug report above, the self-test (Selftest.lua),
+-- what /manners debug and /manners errors say, your own buffs' reasons and the
+-- settings as /manners export writes them, each under a heading. The command
+-- answers are caught as they print (addon:Print), not sent to chat. No colour
+-- codes: it is written to be pasted into a comment or an issue.
+local function Plain(text)
+	return (tostring(text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("||", "|"))
+end
+
+function ns.FullReport()
+	local lines = {
+		L["Manners full check-up. Copy all of it (click in the box, Ctrl+A, Ctrl+C) and paste it into a comment on CurseForge or an issue at github.com/fpsacha/Manners/issues, with a few words on what went wrong."],
+	}
+	local addon = ns.addon
+	local function Section(title, fn)
+		lines[#lines + 1] = ""
+		lines[#lines + 1] = "== " .. title .. " =="
+		local ok, err = pcall(fn)
+		if not ok then lines[#lines + 1] = "(this part failed: " .. Plain(err) .. ")" end
+	end
+	-- What a command prints, caught line by line while it runs.
+	local function Caught(fn)
+		local real = addon.Print
+		addon.Print = function(_, ...)
+			local parts = {}
+			for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+			lines[#lines + 1] = Plain(table.concat(parts, " "))
+		end
+		local ok, err = pcall(fn)
+		addon.Print = real
+		if not ok then error(err, 0) end
+	end
+
+	Section("Bug report", function()
+		for line in (BugReport() .. "\n"):gmatch("([^\n]*)\n") do lines[#lines + 1] = Plain(line) end
+	end)
+	Section("Self-test", function()
+		if InCombatLockdown() then
+			lines[#lines + 1] = "(not run: in a fight)"
+			return
+		end
+		local text = ns.Selftest.Report(ns.Selftest.Run())
+		for line in (text .. "\n"):gmatch("([^\n]*)\n") do lines[#lines + 1] = Plain(line) end
+	end)
+	Section("/manners debug", function() Caught(function() addon:HandleSlash("debug") end) end)
+	Section("/manners errors", function() Caught(function() addon:HandleSlash("errors") end) end)
+	Section("Your own buffs", function()
+		for _, line in ipairs(ns.MyselfLines(GetTime()) or {}) do lines[#lines + 1] = Plain(line) end
+	end)
+
+	-- Other people are named by an alias (Person 1, Person 2...): the report is
+	-- pasted in public, and what matters is which lines are about the same one.
+	local alias, aliases = {}, 0
+	local function Alias(name)
+		if type(name) ~= "string" or name == "" then return nil end
+		if not alias[name] then
+			aliases = aliases + 1
+			alias[name] = "Person " .. aliases
+		end
+		return alias[name]
+	end
+
+	Section("The queue now", function()
+		local queue = ns.BuildQueue()
+		lines[#lines + 1] = ("%d waiting"):format(#queue)
+		for i, e in ipairs(queue) do
+			lines[#lines + 1] = ("%d. %s -- %s, %s, priority %s%s%s"):format(i, tostring(Alias(e.name)),
+				tostring(e.buff and e.buff.key), tostring(e.reason), tostring(e.priority),
+				e.remaining and (", " .. math.floor(e.remaining) .. "s left") or "",
+				e.groupCast and ", a group cast" or "")
+		end
+	end)
+	Section("Where you are", function()
+		local function Ask(fn, ...)
+			if type(fn) ~= "function" then return "n/a" end
+			local ok, a, b = pcall(fn, ...)
+			if not ok then return "n/a" end
+			a, b = ns.plain(a), ns.plain(b)
+			if b ~= nil then return tostring(a) .. " " .. tostring(b) end
+			return tostring(a)
+		end
+		lines[#lines + 1] = ("in a fight: %s, resting: %s, instance: %s, group members: %s, in a raid: %s"):format(
+			Ask(_G.InCombatLockdown), Ask(_G.IsResting), Ask(_G.IsInInstance), Ask(_G.GetNumGroupMembers),
+			Ask(_G.IsInRaid))
+		lines[#lines + 1] = ("mounted: %s, flying: %s, level: %s, dead: %s"):format(Ask(_G.IsMounted),
+			Ask(_G.IsFlying), Ask(_G.UnitLevel, "player"), Ask(_G.UnitIsDeadOrGhost, "player"))
+		local db = ns.db and ns.db.profile
+		if db then
+			lines[#lines + 1] = ("on: %s, locked: %s, snoozed: %s, preview: %s, options open: %s"):format(
+				tostring(db.enabled), tostring(db.prompt.locked), tostring(ns.SnoozeLeft and ns.SnoozeLeft() ~= nil),
+				tostring(ns.Prompt and ns.Prompt:InTest()), tostring(ns.OptionsOpen and ns.OptionsOpen()))
+		end
+	end)
+	Section("The bar macro", function()
+		local state = ns.BarMacroState and ns.BarMacroState() or nil
+		lines[#lines + 1] = "state: " .. tostring(state)
+		local body = ns.BarBodyNow and ns.BarBodyNow() or nil
+		lines[#lines + 1] = "body: " .. (body and Plain(body):gsub("\n", " / ") or "(none)")
+	end)
+	Section("What happened lately", function()
+		local trail = ns.db and ns.db.char and ns.db.char.trail or {}
+		if #trail == 0 then
+			lines[#lines + 1] = "(nothing yet this session)"
+			return
+		end
+		for _, t in ipairs(trail) do
+			local when = (type(t.at) == "number" and date("%H:%M:%S", t.at)) or "?"
+			local who = t.who and (" [" .. tostring(Alias(t.who)) .. "]") or ""
+			lines[#lines + 1] = ("%s %s%s %s"):format(when, tostring(t.kind), who, Plain(t.text))
+		end
+	end)
+	Section("Other addons loaded", function()
+		local addons = _G.C_AddOns
+		local count = (addons and addons.GetNumAddOns) or _G.GetNumAddOns
+		local info = (addons and addons.GetAddOnInfo) or _G.GetAddOnInfo
+		local loaded = (addons and addons.IsAddOnLoaded) or _G.IsAddOnLoaded
+		if type(count) ~= "function" or type(info) ~= "function" or type(loaded) ~= "function" then
+			lines[#lines + 1] = "(the client will not say)"
+			return
+		end
+		local names = {}
+		for i = 1, count() do
+			local name = info(i)
+			if type(name) == "string" and name ~= "Manners" and loaded(name) then names[#names + 1] = name end
+		end
+		table.sort(names)
+		lines[#lines + 1] = #names > 0 and table.concat(names, ", ") or "(none)"
+	end)
+	Section("Settings", function() lines[#lines + 1] = Plain(ns.ExportSettings and ns.ExportSettings() or "(none)") end)
+
+	-- Last, over everything above: the names the queue and the trail know, each
+	-- replaced by its alias wherever it was written.
+	local text = table.concat(lines, "\n")
+	local names = {}
+	for name in pairs(alias) do names[#names + 1] = name end
+	-- The longest first, so "Anna Aim" goes before "Anna".
+	table.sort(names, function(a, b) return #a > #b end)
+	for _, name in ipairs(names) do
+		text = text:gsub(name:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0"), (alias[name]:gsub("%%", "%%%%")))
+	end
+	return text
+end
+
 -- What this client allows, what has broken, and a bug report.
 function Page.BuildDiagnosticsTab()
 	return {
@@ -343,6 +487,21 @@ function Page.BuildDiagnosticsTab()
 				func = function()
 					Page.reportOpen = not Page.reportOpen
 					ns.RefreshOptionsDisplay()
+				end,
+			},
+			-- Everything at once, for a player asked for a report: one press,
+			-- one box to copy (ns.FullReport), in the box the self-test uses.
+			fullReport = {
+				type = "execute",
+				name = L["Run a full check-up"],
+				desc = L["Runs every check Manners has and gathers the results, what this client allows, your settings and anything that broke into one box, ready to copy and send with a bug report. Nothing is said to anybody, and nothing is changed."],
+				order = 32.5,
+				func = function()
+					local text = ns.FullReport()
+					if not (ns.ShowSelftestBox and ns.ShowSelftestBox(text)) then
+						ns.addon:Reply(L["the options window would not open, so the check-up follows here."])
+						for line in text:gmatch("[^\n]+") do ns.addon:Reply(line) end
+					end
 				end,
 			},
 			report = {

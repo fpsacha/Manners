@@ -372,6 +372,7 @@ do
 		if not name then return end
 		local now = GetTime()
 		if why == nil and lastError and now - lastErrorAt <= ERROR_SECONDS then why = lastError end
+		ns.Trail("refused", "the game refused: " .. tostring(why or "no reason given"), name)
 		local r = Record(name, now)
 		local hold = spoke ~= false or (not quietOnly and not OneOf(why, RECHECKED))
 		-- Never shortened: a quiet note must not cut the longer hold a back-off
@@ -1471,6 +1472,11 @@ local function StillCastable(memo, candidates, f, askOnly)
 	local key = memo.buff.key
 	local pinned = ns.PinnedBuff()
 	if pinned and pinned.key ~= key then return false end
+	-- Held to you alone since they were remembered (Offer to: Only me): theirs
+	-- no longer, unless they asked for it by name.
+	local db = addon.db and addon.db.profile
+	local meOnly = db and db.buff.meOnly
+	if memo.buff.tankChoice and meOnly and meOnly[key] and memo.reason ~= "asked" then return false end
 	for _, buff in ipairs(candidates) do
 		if buff.key == key then
 			return not (f.relevantOnly and memo.reason ~= "asked"
@@ -2303,6 +2309,8 @@ function ns.BuildQueue(watch)
 			-- already be carrying.
 			whenBuffed = "skip",
 			rotate = false,
+			-- A buff held to you alone is nobody else's, a favour's included.
+			meOnly = meHeld,
 		}
 		for full, entry in pairs(owed) do
 			-- Nobody in a city or an inn, when that is asked for: no token to

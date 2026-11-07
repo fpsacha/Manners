@@ -159,8 +159,8 @@ mutate("Favours.lua",
 mutate("Favours.lua",
        "\t\tif last and now - last < (seen.inGroup and PER_MEMBER or PER_PERSON) then\n",
        "\t\tif last and now - last < PER_PERSON then\n",
-       "whatif: a /thank at every lapsed shout",
-       expect="/thank emotes", script=S)
+       "whatif: a /thank at every lapsed favour from a group member",
+       expect="four lapsed Fortitudes from a party member", script=S)
 
 # --- a low rank (Core.lua, UnitHasBuff) ---
 
