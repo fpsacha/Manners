@@ -14,7 +14,7 @@ mutate("Core.lua",
        "if type(casting) == \"function\" and plain((select(9, casting(\"player\")))) == spell.ranks[1] then",
        "if false and plain((select(9, casting(\"player\")))) == spell.ranks[1] then",
        "prompt-fix: the bag offered again mid-cast",
-       expect="prompt-fix: the bag is not offered again partway through its own 15 s cast",
+       expect="prompt-fix: the bag laid by hand is not offered while its cast runs",
        script="runscenarios.py")
 
 # A meal in progress no longer holds the bag back.

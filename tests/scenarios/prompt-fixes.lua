@@ -156,6 +156,20 @@ do
 	end)
 end
 
+-- The bag laid down from the bags by hand, not through the prompt: no press of
+-- Manners' holds it back, only the cast the client says is running (BagBusy).
+do
+	local scenario = "prompt-fix: the bag laid by hand is not offered while its cast runs"
+	with(scenario, { on = { rested = true }, bags = { [BAG] = 1 } }, function(ns)
+		if not mine(ns) then fail(scenario, "SKIPPED -- the bag is not offered to begin with") return end
+		world.casting = { starts = GetTime(), ends = GetTime() + 15, guid = "Cast-bag-hand" }
+		Mock.advance(2)
+		if mine(ns) then fail(scenario, "2 s into a bag cast started by hand it is offered: " .. key(mine(ns))) end
+		Mock.advance(14)
+		if not mine(ns) then fail(scenario, "the cast over with no Well-Rested, and nothing offered") end
+	end)
+end
+
 do
 	local scenario = "prompt-fix: Classic Era with a 3 s retry block, the bag is not offered mid-cast"
 	with(scenario, { flavour = "vanilla", on = { rested = true }, bags = { [BAG] = 1 } }, function(ns)
