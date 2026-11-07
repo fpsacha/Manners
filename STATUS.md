@@ -5,13 +5,22 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.11.0 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.11.8 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
 mutations per client). Every buff on every client has In character lines of
 its own, and every people has lines (the Haranir since 1.7.2, speaking since
 1.7.3).
+
+What 1.11.1 to 1.11.8 added, in `CHANGELOG.md` for players: per-spell self-buff
+exceptions, a Well Fed reminder, a shaman's weapon imbues, the emote chosen for
+`/thank`, the bar macro's spoken line, no Manners menus with a gamepad on,
+Thorns held to tanks or to you alone, oils, stones and food only in dungeons and
+raids, nothing offered in cities and inns, a switch to say nothing in chat,
+weapon items renewed only once gone while alone, and a switch for Unending
+Breath. Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
+(1.11.4); the audit reads Forever at that build (`CLAUDE.md`, "Data sources").
 
 Working here is quicker and safer for an agent since round 33 (`CLAUDE.md`,
 "Dev tools"). `tools/lint.py` says in under a second whether every Lua and
@@ -226,6 +235,32 @@ On Forever the foods and their use spells are from build 1.60.1.70532; if a
 build adds foods, `python tools/make_foods.py` rewrites `Foods.lua` from the
 cached tables (`--check` says whether it is current) and the next release
 carries it.
+
+**1.11.3 to 1.11.8 were released on the quick gate alone.** The full selftest was
+not run for them (about an hour: `python tests/selftest.py`); `check.py --lint
+--flavours --anchors`, every client's baseline, the fuzzer and the perf budget
+were, and each change's mutations were proved red by hand. Run the full suite
+before the next release.
+
+**Written against the mock, not the game (1.11.3 to 1.11.8).** Only a live
+character can say: (1) a shaman's imbue is read from the main hand's enchant of
+the Imbue kind and the first spell known is offered (Windfury first); the off
+hand is not read, and Mists' imbues are other spells and are not offered; (2) the
+bar macro carries the armed spoken line, so a press says it even over a cast
+that then fails, and whether the game takes the longer body is untried; (3) with
+a gamepad on, no `MenuUtil` menu is opened (issue #6's trace is Blizzard's, with
+Manners the only addon, so the cause is a guess from the trace); (4) a role for
+Thorns' Tanks only is `UnitGroupRolesAssigned` or the raid's main tank mark:
+`UnitGroupRolesAssigned("player")` answered `NONE` alone on Forever, and what a
+group gives is not known; (5) on Forever the game names you as the caster of your
+own buff on another player (`sourceUnit` is `player`) and nobody for a third
+party's, which is what `ns.NoteGave` backstops.
+
+**The audit lists 18 findings for Forever.** `python tools/audit_ids.py --client
+camelot --offline` reports length rows for the lower ranks of a shaman's imbues
+as "held nowhere" (the family holds the top rank of each; the rows are for the
+ranks the client may name). They are the same findings it had at 1.11.3 and
+nothing reads them.
 
 **The `visuals` branch's merge 2f6f5e2 ("Merge forge-look into visuals") has no
 Co-Authored-By trailer.** Every other commit there carries it; the merge is

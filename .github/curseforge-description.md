@@ -42,12 +42,15 @@ Turn on *List the next few below* (Look) and every name under the prompt is a bu
 
 It skips the dead, the out of range, anyone you just tried, anyone the buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged yourself, anyone flagged for PvP, since buffing them would flag you too. Friends and guildmates go ahead of other passers-by. A *Never offer* list keeps people off the prompt, unless they buff you, because returning a favour is the point. How near is near: passers-by can be limited to about ten yards (the default), right beside you, or cities and inns.
 
-Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow Protection; druid Mark of the Wild, Thorns; paladin Wisdom, Might, Kings, Salvation, Light; warlock Unending Breath; warrior Battle Shout.
+Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow Protection; druid Mark of the Wild, Thorns; paladin Wisdom, Might, Kings (and Salvation, Light and Sanctuary where the game still has them); warlock Unending Breath; warrior Battle Shout. Any one can be switched off, Thorns held to tanks or to you alone, and Unending Breath left out.
 
 ### Buff myself
 
 - **Your own buff**, the one you give everybody else, and **your class's own**: armors (mage, warlock), auras (paladin), aspects and Trueshot Aura (hunter), shields (shaman), Inner Fire and Shadowguard (priest), Righteous Fury (only while your role is tank, unless you say *Always*).
 - **Weapons, one hand at a time.** When a weapon has nothing on it and a poison, sharpening stone, weightstone, oil or fishing lure that fits is in your bags, "You" comes up with its icon and one press puts it on: rogues' poisons, and stones, oils and lures for every class on WoW Forever, Classic Era, Burning Crusade and Mists. A rogue's poisons are reminded on retail too. On WoW Forever an oil and an imbue are each reminded on their own, and a mage carrying familiar or weapon imbue scrolls is reminded of those.
+- **A shaman's weapon imbues** (Rockbiter, Flametongue, Frostbrand, Windfury) on WoW Forever, Classic Era and Burning Crusade: with none on the weapon in your main hand, "You" comes up with the first you know.
+- **Well Fed**, if you switch it on: food in your bags that gives the buff, offered when none is on you, one press eats it. Every class, on WoW Forever, Classic Era, Burning Crusade and Mists.
+- **Oils, stones and food only in dungeons and raids**, if you like. On your own, a stone or oil is renewed only once it has worn off; in a group it is topped up ahead of the next pull.
 - **Automatic, or your choice.** Where a class has several of one kind, pick one or leave it on *Automatic*, which follows the one you had up last. Only when none of a kind is up, never in a fight, and not in cities and inns unless you tick *Also in cities and inns*. *Don't remind me* turns any of it off.
 - Hunters, shamans and rogues, who give nothing to others, get a prompt for their own buffs.
 
@@ -59,6 +62,13 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 - **Save mana.** Below the level you set, only your own buffs and people who buffed you or asked are offered.
 - **Quieter raids.** No "buffed you" chat line inside a raid; the favour is still remembered.
 - **Battle Shout reach.** A warrior's shout is offered only to the people it reaches: your own party, or your whole raid on WoW Forever.
+
+### Quiet when you want it
+
+- **Never in cities and inns:** nothing offered to anybody while you are resting (passers-by, your group, a favour you owe); a target or focus still is.
+- **Thorns for the tanks only, or for you alone:** *Offer to* on Who to buff, by the game's tank role or a raid's main tank mark.
+- **Say nothing at all in chat:** not even the few lines the *Tell me in chat* switch leaves. What you type after `/manners` is still answered.
+- **A controller on:** Manners opens none of the game's own menus (the minimap right click is the switch, a drop-down steps to the next choice).
 
 ### Timing
 
@@ -92,7 +102,7 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 ### Keys, action bars and controllers
 
 - **A key of your own.** Bind *Buff the prompted player* (Options > Keybindings > Manners): one press buffs whoever is on the prompt and hands your target back.
-- **On an action bar.** *Put Manners on an action bar* on Start here (or `/manners macro`) puts the Manners macro on your cursor: drop it on any slot of any bar. The slot shows the spell a press would cast, with its cooldown and range.
+- **On an action bar.** *Put Manners on an action bar* on Start here (or `/manners macro`) puts the Manners macro on your cursor: drop it on any slot of any bar. The slot shows the spell a press would cast, with its cooldown and range, and the macro says your line from *What I say* too.
 - **Controllers.** Works with the game's own controller support: bind a controller button to *Buff the prompted player*, or put the macro on a bar your controller reaches. The prompt shows the button's picture instead of a key name.
 
 ![The prompt with a key on its chip, a row of action bar slots with the Manners macro on one showing the spell a press would cast with its cooldown sweep, and the prompt with a controller button's picture on its chip](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-actionbar.png)

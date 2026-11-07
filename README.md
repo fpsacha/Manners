@@ -106,7 +106,11 @@ first two of which set it up:
    game draws it, and a button held with a trigger or shoulder, which the
    game reads as Shift or Ctrl, shows the buttons you press (the left
    trigger and the face button, say). The macro on an action bar works with
-   the controller's own action bar navigation like any other macro.
+   the controller's own action bar navigation like any other macro. With a
+   gamepad switched on Manners opens none of the game's own menus, which the
+   game's gamepad code refuses to close cleanly after an addon filled them: the
+   minimap button's right click is the on/off switch, an options drop-down steps
+   to the next choice, and Snooze starts or stops fifteen minutes.
 
 Then press *Show me the prompt* at the top of the window (or type
 `/manners test`) to see it where it sits. To move it, press *Move the
@@ -516,7 +520,10 @@ explain themselves; this is what their tooltips have no room for.
   doing*. That is a line in your own chat when somebody buffs you, when a
   favour is repaid, and when a click fails. Use it to tell "the buff was never
   noticed" from "it was noticed but they could not be reached"; nothing from
-  it is ever said to anybody else.
+  it is ever said to anybody else. Off, a press on an empty prompt says nothing
+  either. *Say nothing at all in chat*, under it, silences even the few lines
+  that switch leaves (a title earned, the game refusing somebody, a skip in a
+  fight); what you type after `/manners` is still answered.
 
 **Who to buff.**
 
@@ -552,6 +559,11 @@ explain themselves; this is what their tooltips have no room for.
   nothing can measure, everybody in casting range is offered.
 - *Only in cities and inns*: off by default. Out in the world passers-by are
   left alone; everybody else is still offered.
+- *Never in cities and inns*: off by default, and the other way round. While
+  the game calls you resting, in a city or an inn, nothing is offered to
+  anybody: not passers-by, not your group, not a favour you owe. Somebody you
+  target or focus still is. Your own buffs have their own switch under
+  *Myself*.
 - *Myself* (see *Buffing yourself* above): *Myself, when I'm missing my own
   buff*, on by default, switches everything on yourself on or off. Under it,
   one control for each of your class's own buffs you have learned: a
@@ -570,7 +582,9 @@ explain themselves; this is what their tooltips have no room for.
   picked above your level (a profile shared with a higher mage) gives way to
   *Automatic* until you reach it. A poison, stone, oil or lure for a weapon
   has a switch of its own per kind (*Weapons, one hand at a time*, above). So
-  does *Well Fed*, which every class has and which starts off.
+  does *Well Fed*, which every class has and which starts off. Alone, a stone,
+  oil or poison is offered again only once it has worn off; in a group, with
+  top-ups on, it is renewed ahead of the next pull.
   Then *Also in cities and inns*, off by default, and *Oils, stones and food only
   in dungeons and raids*, also off, which keeps those reminders out of the open
   world (poisons and lures are not held back), and last what each of your
@@ -705,7 +719,11 @@ list. They used to be at the bottom of *Who to buff*.
   people. It does not repeat itself, and a context the game will not reveal
   is left out. The line rides in the macro the button runs, because the game
   refuses addon-sent `/say` and `/yell` outside instances, which is exactly
-  where somebody buffs you in passing. A macro says its line even when the
+  where somebody buffs you in passing. The Manners macro on an action bar
+  carries the same line, written out of combat and rolled again after each
+  press; one too long to fit beside the macro's first line leaves that press the
+  cast alone, and the bar cannot hold the line back at the last moment as the
+  prompt does. A macro says its line even when the
   cast fails, so the line goes in only with a buff that can land: somebody
   your target, focus, cursor, group or a nameplate still shows you, alive and
   in range, with the spell ready and the mana for it. When Manners cannot tell
@@ -877,11 +895,14 @@ your client runs in. Slash commands are English in all of them.
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever) |
 
 Individual buffs can be switched off on the *Who to buff* page (a warlock's
-Unending Breath too), or one pinned so it is the only thing ever cast. A druid's Thorns also has *Offer to*: **Tanks only**
-hands it, in your group, only to players the game gives the tank role or marks as
-main tank in a raid, so the rest of a dungeon or raid is left alone (a player
-with no role is not a tank; people outside your group, and anybody who asks you
-for it in chat, are offered it as usual). Battle Shout reaches your own party (in a raid,
+Unending Breath too), or one pinned so it is the only thing ever cast. A druid's
+Thorns also has *Offer to*: *Everyone*; **Tanks only**, which in your group offers
+it only to players the game gives the tank role or marks as main tank in a raid,
+so the rest of a dungeon or raid is left alone (a player with no role is not a
+tank); or **Only me**, which offers it to nobody else and, with *Myself* on, still
+reminds you when your own is down. Under Tanks only, people outside your group and
+anybody who asks you for it in chat are offered it as usual; under Only me, anybody
+who asks is. Battle Shout reaches your own party (in a raid,
 your own subgroup on Classic Era and the whole raid on WoW Forever) and nobody
 else, so a warrior outside a group is offered nobody. That is deliberate rather than a fault.
 

@@ -13,9 +13,17 @@ In this order. The tag goes last and on its own, because the moment it reaches
 origin the release workflow starts, and a tag whose build fails is still there
 afterwards — pushing it again only says it already exists.
 
-1. **Write the notes.** Put them under `## Unreleased` at the top of
-   `CHANGELOG.md`, written for the people who play the game: this section is
-   exactly what CurseForge, Wago and the GitHub release show.
+1. **Update the documentation, and write the notes.** Put the notes under
+   `## Unreleased` at the top of `CHANGELOG.md`, written for the people who play
+   the game: this section is exactly what CurseForge, Wago and the GitHub release
+   show. In the same change, and before the release: `README.md`'s player
+   sections for every new or changed setting or behaviour; `STATUS.md` (the
+   state's version, what is open and what only the live game can say);
+   `.github/curseforge-description.md`, `wago-description.md` and
+   `curseforge-summary.txt` where a feature a player would look for is new (the
+   user pastes them); `CLAUDE.md`, `tools/README.md` and `tests/README.md` where a
+   file, a tool or a rule changed. A release with the changelog written and the
+   README, status and listings left behind is not ready.
 2. **Run the full mutation suite** by hand: `python tests/selftest.py` (about
    20 to 40 minutes; its docstring says what it does). Nothing after this step
    runs it: CI and the release workflow run only `--anchors`.

@@ -298,7 +298,12 @@ Quick helpers for working in a worktree (`tools/README.md` has the details):
 
 ## Release
 
-1. Notes under `## Unreleased` at the top of `CHANGELOG.md`, for players.
+1. Documentation first, in the same change as the code: notes under
+   `## Unreleased` at the top of `CHANGELOG.md`, for players; the README's
+   player sections for every new or changed setting; `STATUS.md` (version,
+   open items, what only the live game can say); the three listing files in
+   `.github/` where a feature is new; this file, `tools/README.md` and
+   `tests/README.md` where a file, tool or rule changed.
 2. `python tests/selftest.py` in full, by hand (the release tool never runs it).
 3. `python tools/release.py X.Y.Z` (`--dry-run` prints the steps). It checks
    master, a clean tree, the notes and `tools/check.py`; runs

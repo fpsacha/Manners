@@ -9,7 +9,11 @@ at the first red:
 1. On `master`, clean tree (`git status`), every worktree branch merged.
    `python tools/clients_watch.py`: a drifted interface number is changed first
    (`tools/maketocs.py` FLAVOURS and `Manners.toc`, then `python tools/maketocs.py`).
-2. Top of `CHANGELOG.md` is `## Unreleased` with notes written for players (they
+2. The documentation is current before anything else: `README.md`'s player
+   sections for every new or changed setting, `STATUS.md` (version, open items),
+   the listing files in `.github/` where a feature is new, `CLAUDE.md`,
+   `tools/README.md` and `tests/README.md` where a file, tool or rule changed.
+   Top of `CHANGELOG.md` is `## Unreleased` with notes written for players (they
    are the CurseForge, Wago and GitHub text): no "untested", "mock client" or
    "not tried in game". `release.py` refuses an empty section.
 3. The full selftest, by hand; the release tool never runs it:
