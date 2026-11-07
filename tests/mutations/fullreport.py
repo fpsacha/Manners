@@ -35,7 +35,7 @@ mutate("Options/Window/Layout.lua",
        expect="fullReport", script=S)
 
 mutate("Options/Diagnostics.lua",
-       "\t\ttext = text:gsub(name:gsub(\"[%^%$%(%)%%%.%[%]%*%+%-%?]\", \"%%%0\"), (alias[name]:gsub(\"%%\", \"%%%%\")))\n",
+       "\t\t\tfor _, name in ipairs(names) do line = Swap(line, name, alias[name]) end\n",
        "",
        "fullreport: names left in the check-up",
        expect="fullreport: the trail says what happened", script=S)

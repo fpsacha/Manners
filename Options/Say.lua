@@ -7,9 +7,10 @@ local P, SP, spGet = Page.P, Page.SP, Page.spGet
 local spSet, HasClassBuffs, TAB = Page.spSet, Page.HasClassBuffs, Page.TAB
 
 -- The controls a class with nothing to give keeps: the /thank answers being
--- buffed, which happens to a rogue too, and the header it sits under. Every
+-- buffed, which happens to a rogue too, the emote it uses, and the header they
+-- sit under. Every
 -- other control on the tab is about the line said with a cast.
-local THANKS_ONLY = { speechHeader = true, thankEmote = true }
+local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true }
 
 -- What I say: the social replies to a buff, the /thank and the line that goes
 -- out with a cast. The options window leads the page with Start here's voice

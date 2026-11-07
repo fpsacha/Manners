@@ -1428,6 +1428,9 @@ do
 		return lead
 	end
 
+	-- For the diagnostics, which print the moment the queue works to.
+	ns.SelfEarlier = SelfEarlier
+
 	-- What "If they already have it" means for your own buffs and the ones you
 	-- put on yourself: with "Top up my own buffs before they run out" on, a
 	-- top-up whatever it says for other people.
