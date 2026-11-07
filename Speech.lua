@@ -277,6 +277,25 @@ function ns.ChannelOpen(entry)
 	if InHome(member) == false then return false end
 	if type(entry) ~= "table" then return true end
 	if entry.inGroup ~= true then return false end
+	-- UnitInParty is true for the whole instance group too: a battleground
+	-- teammate outside your premade is not in the party /party reaches. The home
+	-- party's own list says who is (names, realm dropped); a client without it,
+	-- or with an empty answer, keeps the line.
+	if channel == "PARTY" and InHome(IsInRaid) ~= true and type(entry.name) == "string"
+		and type(_G.GetHomePartyInfo) == "function" and _G.LE_PARTY_CATEGORY_HOME ~= nil then
+		local home = _G.GetHomePartyInfo()
+		if type(home) == "table" and #home > 0 then
+			local want = entry.name:match("^[^-]+") or entry.name
+			local found = false
+			for _, name in ipairs(home) do
+				if type(name) == "string" and (name:match("^[^-]+") or name) == want then
+					found = true
+					break
+				end
+			end
+			if not found then return false end
+		end
+	end
 	-- In a raid, /party is your own subgroup.
 	if channel == "PARTY" and InHome(IsInRaid) == true and type(entry.unit) == "string" then
 		if type(_G.UnitInSubgroup) == "function" then
