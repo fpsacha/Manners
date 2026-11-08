@@ -2458,25 +2458,31 @@ do
 	-- A flask, an elixir or a scroll (Buffs.lua, CONSUME): any aura that says
 	-- the family is up (ns.ConsumableAuras), by its id, whoever's it is. As for
 	-- Well Fed: true with its time left, false for none, nil for the client
-	-- will not say. Called directly, since a spell id never throws: the read
-	-- runs on every scan while the switch is on.
-	local function ReadConsumable(family, now)
-		local api = C_UnitAuras
-		local byId = api and api.GetUnitAuraBySpellID
-		if type(byId) ~= "function" then return nil end
+	-- will not say. A family holds dozens of ids, so the walk is guarded once,
+	-- not per id: a read that throws is the client refusing, as a pcall per id
+	-- would have it.
+	local function ScanConsumable(byId, ids, now)
 		local refused = false
-		for _, id in ipairs(ns.ConsumableAuras(family)) do
+		for _, id in ipairs(ids) do
 			local aura = byId("player", id)
 			if Withheld(aura) then
 				refused = true
 			elseif type(aura) == "table" then
-				return true, nil, Left(aura, now)
+				return true, Left(aura, now)
 			elseif not refused and HiddenAura(id) then
 				refused = true
 			end
 		end
 		if refused then return nil end
 		return false
+	end
+	local function ReadConsumable(family, now)
+		local api = C_UnitAuras
+		local byId = api and api.GetUnitAuraBySpellID
+		if type(byId) ~= "function" then return nil end
+		local ok, up, left = pcall(ScanConsumable, byId, ns.ConsumableAuras(family), now)
+		if not ok then return nil end
+		return up, nil, left
 	end
 
 	-- Well Fed (Buffs.lua, FOOD) is an aura read by name: any of the many on a

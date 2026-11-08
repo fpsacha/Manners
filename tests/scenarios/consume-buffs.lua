@@ -73,6 +73,7 @@ local function install()
 		GetUnitAuraBySpellID = function(unit, id)
 			if unit ~= "player" then return nil end
 			if world.refuse then return Mock.SECRET end
+			if world.throws == id then error("aura read refused for " .. id) end
 			local expires = world.auras[id]
 			if expires == nil then return nil end
 			-- Whoever's: a scroll somebody else used on you counts the same.
@@ -370,6 +371,13 @@ do
 		Mock.advance(1)
 		if mine(ns) then fail(scenario, "an aura the client keeps secret read as missing: offered " .. key(mine(ns))) end
 		Mock.secretAuraIds = nil
+		-- A read the client throws on: no answer, and nothing breaks.
+		world.throws = other[3]
+		Mock.advance(1)
+		if mine(ns) then fail(scenario, "an aura read that throws taken for none: offered " .. key(mine(ns))) end
+		local up = select(2, verdict(ns, ns.FindOwnFamily("flask")))
+		if up ~= nil then fail(scenario, "an aura read that throws read as " .. tostring(up)) end
+		world.throws = nil
 	end)
 end
 

@@ -107,15 +107,21 @@ mutate("Core.lua",
        expect="consume-buffs: a flask up, or a refused read, is not offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\telseif not refused and HiddenAura(id) then\n\t\t\t\trefused = true\n\t\t\tend\n\t\tend\n\t\tif refused then return nil end\n\t\treturn false\n\tend\n\n\t-- Well Fed (Buffs.lua, FOOD)",
-       "\t\t\tend\n\t\tend\n\t\tif refused then return nil end\n\t\treturn false\n\tend\n\n\t-- Well Fed (Buffs.lua, FOOD)",
+       "\t\t\telseif not refused and HiddenAura(id) then\n\t\t\t\trefused = true\n\t\t\tend\n\t\tend\n\t\tif refused then return nil end\n\t\treturn false\n\tend\n\tlocal function ReadConsumable",
+       "\t\t\tend\n\t\tend\n\t\tif refused then return nil end\n\t\treturn false\n\tend\n\tlocal function ReadConsumable",
        "consume-buffs: an aura the client keeps secret read as missing",
        expect="consume-buffs: a flask up, or a refused read, is not offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\telseif type(aura) == \"table\" then\n\t\t\t\treturn true, nil, Left(aura, now)\n",
-       "\t\t\telseif type(aura) == \"table\" and false then\n\t\t\t\treturn true, nil, Left(aura, now)\n",
+       "\t\t\telseif type(aura) == \"table\" then\n\t\t\t\treturn true, Left(aura, now)\n",
+       "\t\t\telseif type(aura) == \"table\" and false then\n\t\t\t\treturn true, Left(aura, now)\n",
        "consume-buffs: a flask on you not seen",
+       expect="consume-buffs: a flask up, or a refused read, is not offered", script=S)
+
+mutate("Core.lua",
+       "\t\tlocal ok, up, left = pcall(ScanConsumable, byId, ns.ConsumableAuras(family), now)\n",
+       "\t\tlocal ok, up, left = true, ScanConsumable(byId, ns.ConsumableAuras(family), now)\n",
+       "consume-buffs: a read that throws taken past",
        expect="consume-buffs: a flask up, or a refused read, is not offered", script=S)
 
 # --- held back ---
