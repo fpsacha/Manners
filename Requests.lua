@@ -273,15 +273,19 @@ do
 
 	-- How strongly a message names this buff: "strict" for its own name or a
 	-- plain name of more than one word, "short" for a one-word nickname, "loose"
-	-- for one of the ~ words, nil for not at all. The strongest wins.
+	-- for one of the ~ words, nil for not at all. The strongest wins. Every
+	-- place a strict name stands goes into `strict` as well, and a looser
+	-- word's places come back second, for Asks to tell a loose word inside
+	-- another buff's whole name ("beacon of faith") from one said on its own.
 	local STRENGTH = { loose = 1, short = 2, strict = 3 }
-	local function Names(words, lowered, buff, covered)
-		local strength
+	local function Names(words, lowered, buff, covered, strict)
+		local strength, looseAt
 		local own = ns.BuffInfo(buff)
 		own = own and own.name
 		if type(own) == "string" and own ~= "" then
 			local ownWords = Words(own)
 			if Mark(words, ownWords, covered) then
+				Mark(words, ownWords, strict)
 				strength = "strict"
 			elseif #ownWords == 1 and not ownWords[1]:find("[A-Za-z0-9]")
 				and ownWords[1]:find("[\228-\233]") and #ownWords[1] >= 6
@@ -301,10 +305,15 @@ do
 			local name = Words(loose and entry:sub(2) or entry)
 			if Mark(words, name, covered) then
 				local this = loose and "loose" or (#name == 1 and "short" or "strict")
+				if this == "strict" then Mark(words, name, strict) end
+				if loose then
+					looseAt = looseAt or {}
+					Mark(words, name, looseAt)
+				end
 				if not strength or STRENGTH[this] > STRENGTH[strength] then strength = this end
 			end
 		end
-		return strength
+		return strength, looseAt
 	end
 
 	-- The buffs a message asks for, as a set of keys (ASK.ANY for "buff pls"),
@@ -365,10 +374,26 @@ do
 		for _, phrase in ipairs(ASK.pleasePhrases) do
 			if Mark(words, phrase, covered) then pleased = true end
 		end
+		local strict, loose = {}, nil
 		for _, buff in ipairs(ns.GetClassBuffs(ns.PlayerClass()) or {}) do
 			if ns.IsBuffKnown(buff) then
-				found[buff.key] = Names(words, lowered, buff, covered)
+				local strength, at = Names(words, lowered, buff, covered, strict)
+				found[buff.key] = strength
+				if strength == "loose" then
+					loose = loose or {}
+					loose[buff.key] = at
+				end
 			end
+		end
+		-- A looser word standing only inside another buff's whole name names
+		-- that one, not its own: "beacon of faith pls" is no ask for Beacon of
+		-- Light.
+		for key, at in pairs(loose or {}) do
+			local alone = false
+			for i in pairs(at) do
+				if not strict[i] then alone = true break end
+			end
+			if not alone then found[key] = nil end
 		end
 		for i, word in ipairs(words) do
 			if ASK.generic[word] then generic, covered[i] = true, true end

@@ -88,14 +88,14 @@ mutate("Core.lua",
 # ------------------------------------------------ who wears yours (Queue.lua)
 
 mutate("Queue.lua",
-       "\t\t\tfor i = 0, count do\n\t\t\t\tlocal unit = i == 0 and \"player\" or tokens[i] or (prefix .. i)\n",
-       "\t\t\tfor i = 1, count do\n\t\t\t\tlocal unit = i == 0 and \"player\" or tokens[i] or (prefix .. i)\n",
+       "\t\tfor i = 0, count do\n\t\t\tlocal unit = i == 0 and \"player\" or tokens[i] or (prefix .. i)\n",
+       "\t\tfor i = 1, count do\n\t\t\tlocal unit = i == 0 and \"player\" or tokens[i] or (prefix .. i)\n",
        "others-buffs: yours on you not read",
        expect=P + "mists: earthshieldtank on you is not moved to the tank", script=S)
 
 mutate("Queue.lua",
-       "\t\t\t\t\t\tif mine == true or ns.GaveSince(full, buff.key, remaining, (ns.BuffSeconds(buff))) then\n",
-       "\t\t\t\t\t\tif true then\n",
+       "\t\t\t\t\tif mine == true or ns.GaveSince(full, buff.key, remaining, (ns.BuffSeconds(buff))) then\n",
+       "\t\t\t\t\tif true then\n",
        "others-buffs: somebody else's read as yours",
        expect=P + "mainline: earthshieldtank from another caster holds nothing back", script=S)
 

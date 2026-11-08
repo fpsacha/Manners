@@ -172,8 +172,9 @@ function ns.LeadLines()
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
 		if family.toggle then
 			-- Well Fed and Well-Rested are timed auras, but never topped up (they
-			-- are offered again when they end): no claim about a timer.
-			if not family.bagged then
+			-- are offered again when they end): no claim about a timer. Nor for
+			-- a toggle whose aura has one (Buffs.lua, timed: Demonic Sacrifice).
+			if not family.bagged and not family.timed then
 				out[#out + 1] = L["%s: no timer -- never topped up."]:format(ns.OwnFamilyLabel(family))
 			end
 		elseif not family.tracking then

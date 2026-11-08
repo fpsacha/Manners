@@ -882,14 +882,19 @@ do
 		-- So no flask or elixir held back a scroll, and a use knocked the
 		-- other family's aura off, to be offered again, round and round.
 		-- Wrong only by saying nothing, as the elixir family is: a scroll reads
-		-- as up under a flask, whatever is on you for its own slot; every
-		-- scroll makes the elixir family read as up.
+		-- as up under a flask or any elixir, whatever is on you for its own
+		-- slot (the elixir family is one, with no slot of its own to say
+		-- which); every scroll makes the elixir family read as up.
 		if data.scrollSlots then
 			for _, scroll in ipairs(SCROLLS) do
 				local family = scrolls[scroll[1]]
 				if family then
 					local covers = {}
 					for i, id in ipairs(both) do covers[i] = id end
+					for _, spell in ipairs(elixir and elixir.spells or {}) do
+						covers[#covers + 1] = spell.ranks[1]
+						for _, id in ipairs(spell.auras or {}) do covers[#covers + 1] = id end
+					end
 					for _, other in ipairs(SCROLLS) do
 						local twin = scrolls[other[1]]
 						if twin and other[1] ~= scroll[1] and data.scrollSlots[other[1]] == data.scrollSlots[scroll[1]] then
@@ -1008,6 +1013,9 @@ end
 --             talent on a spell: learned from a talent (data only).
 --   toggle    stays up until switched off, with no timer (auras, aspects), so
 --             never offered as a top-up.
+--   timed     with toggle: its aura has a timer all the same, and is offered
+--             again once gone (Demonic Sacrifice), so it is never said to have
+--             none (Commands.lua, LeadLines).
 --   bagged    an item from the bags with one switch, off until it is turned on:
 --             Well Fed (`food`) and Well-Rested (`rest`), above.
 --   optIn     off until it is turned on, like a bagged family, but a spell:
@@ -1021,6 +1029,8 @@ end
 --   form      a shapeshift form (Moonkin Form): nothing of it is offered while
 --             the shapeshift bar says you are in another form (Core.lua,
 --             OwnVerdict), which you took on purpose.
+--   shiftedOut  with form: a form a `shiftsOut` buff drops you out of, which
+--             waits while one is up for somebody (Queue.lua, FormWaits).
 --   needs     on a spell: the key of another of your own that must be known as
 --   notWith   well, or must not be, for this one to count as known. Retail's
 --             Flametongue Weapon goes on the off hand once Windfury Weapon is
@@ -1049,6 +1059,9 @@ end
 --             shaman's Earth Shield, Burning Crusade). Somebody else's reads
 --             as the family up, so nothing of yours is offered over it, and
 --             is never topped up with yours.
+--   byPet     on a spell: its aura on you is put there by your demon, and the
+--             client names your pet as its caster: yours all the same (Burning
+--             Crusade's Soul Link).
 --   castOnOthers on a spell: also cast on somebody else, at a target rather
 --             than as an area aura (Earth Shield, on the tank above all). One
 --             on you from another player is a favour like any shield, where
@@ -1784,6 +1797,37 @@ do
 		} })
 	TBC_OWN.DRUID[#TBC_OWN.DRUID + 1] = { key = "treeoflife", toggle = true, form = true,
 		spells = { { key = "treeoflife", ranks = { 33891 }, talent = true } } }
+end
+
+-- The forms Mark of the Wild (`shiftsOut`) drops you out of on the press, which
+-- wait while one is queued for somebody (`shiftedOut`, Queue.lua FormWaits):
+-- Moonkin Form on Classic Era and Burning Crusade, and Burning Crusade's Tree of
+-- Life, whose own text (33891, build 2.5.6.69795) lists what it casts: "you can
+-- only cast Swiftmend, Innervate, Nature's Swiftness, Rebirth, Barkskin, poison
+-- removing and healing over time spells". Season of Discovery's tree (439733) refuses
+-- only harmful spells, and Forever's Mark has no `shiftsOut`.
+-- Demonic Sacrifice's auras last half an hour (two hours on Forever) and are
+-- offered again once gone, never topped up: a toggle with a timer (`timed`).
+-- Soul Link's 25228 is an area aura the demon puts on you (SpellEffect 143 on
+-- Burning Crusade), so the client names your pet as its caster (`byPet`).
+do
+	for _, list in ipairs({ VANILLA_OWN.DRUID, TBC_OWN.DRUID }) do
+		for _, family in ipairs(list) do
+			if family.key == "moonkinform" or (list == TBC_OWN.DRUID and family.key == "treeoflife") then
+				family.shiftedOut = true
+			end
+		end
+	end
+	for _, list in ipairs({ VANILLA_OWN.WARLOCK, TBC_OWN.WARLOCK }) do
+		for _, family in ipairs(list) do
+			if family.key == "demonicsacrifice" then
+				family.timed = true
+				for _, spell in ipairs(family.spells) do
+					if spell.key == "soullink" and list == TBC_OWN.WARLOCK then spell.byPet = true end
+				end
+			end
+		end
+	end
 end
 
 -- Tracking as on vanilla, every id there in this client too, and Find Fish
@@ -2627,6 +2671,12 @@ do
 	end
 	MAINLINE.DRUID[#MAINLINE.DRUID + 1] = { key = "symbioticrelationship", ranks = { 474750 },
 		group = { 474754 }, oneTarget = true, neverSelf = true, talent = true, alone = true }
+	-- 474754 is the druid's own side of the bond as well (its third effect, a
+	-- periodic dummy on target 1, the caster; AuraDescription "Your self-healing
+	-- also heals them"), and "Form a bond with an ally" is never cast on
+	-- yourself: never read on you (notSelf, Queue.lua OneTargetHolders), or the
+	-- druid was taken for the one wearing it and the partner never topped up.
+	MAINLINE.DRUID[#MAINLINE.DRUID].notSelf = true
 end
 
 -- A rogue's poisons (and, below, four other classes' own): each is a spell

@@ -360,15 +360,22 @@ do
 	-- is set as the queue sets it for a debt, so the two cannot disagree. A buff
 	-- for one target at a time asks whether they tank and which class they are
 	-- (Core.lua, Castable): without, every member is turned down, the tank too.
-	function ns.CouldOffer(hasMana, inParty, inGroup, isTank, class)
+	-- With `name`, also who wears one of yours of those right now, read as the
+	-- queue reads it (Queue.lua, OneTargetHolders): while yours is on somebody
+	-- else, nobody but them is offered it. Without, as if nobody wore one.
+	local FAVOUR_HELD = {}
+	function ns.CouldOffer(hasMana, inParty, inGroup, isTank, class, name)
 		local db = addon.db and addon.db.profile
 		if not db then return nil end
-		return ns.PickBuffFor(ns.CastableBuffs(), {
+		local candidates = ns.CastableBuffs()
+		return ns.PickBuffFor(candidates, {
 			hasMana = hasMana,
 			inGroup = inGroup or inParty,
 			inParty = inParty,
 			isTank = isTank,
 			class = class,
+			name = name,
+			oneHeld = name and ns.OneTargetHolders(candidates, FAVOUR_HELD) or nil,
 			relevantOnly = db.filters.relevantOnly,
 			whenBuffed = "always",
 			offerAnyway = true,
@@ -435,6 +442,11 @@ do
 			inGroup = InGroup(seen.name)
 			seen.inGroup = inGroup
 		end
+		-- And whether the game calls them a tank, which Sight asks of the token:
+		-- the log's record asks by name, which the role and the raid roster both
+		-- answer for a member. Without it a tank's favour to a class whose only
+		-- buff is for one target at a time was let go.
+		if seen.tank == nil then seen.tank = inGroup and ns.IsTankUnit(seen.name) or false end
 		-- Whether a "buffed you" line is said here at all, asked once for both
 		-- kinds of favour: a raid's shouts at every pull are no more news than
 		-- its Fortitude.
@@ -479,6 +491,16 @@ do
 		-- limit. Salvation reaches the whole raid: a raider in another
 		-- subgroup is on the prompt as the queue offers them.
 		local reachable = ns.CouldOffer(hasMana, inParty, inGroup, seen.tank, seen.class) ~= nil
+		-- And what the queue offers them now: a buff for one target at a time
+		-- that is yours on somebody else goes to nobody but them, so the line does
+		-- not promise the prompt. The buff it would be, for the line.
+		local heldElsewhere
+		if reachable and speak then
+			if not ns.CouldOffer(hasMana, inParty, inGroup, seen.tank, seen.class, seen.name) then
+				heldElsewhere = ns.CouldOffer(hasMana, inParty, inGroup, seen.tank, seen.class)
+				reachable = false
+			end
+		end
 		if speak then
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
 			-- an unlocked prompt or Not while mounted.
@@ -506,6 +528,9 @@ do
 				-- fight ends; only a prompt already on them casts at them now.
 				addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is offered once this fight ends"]
 					:format(seen.name))
+			elseif heldElsewhere then
+				addon:Print(L["|cff80ff80%s buffed you|r -- your %s is on somebody else, and it goes on one target at a time, so returning it is offered only if it comes free before the favour runs out"]
+					:format(seen.name, ns.BuffName(heldElsewhere)))
 			else
 				addon:Print((reachable
 					and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]

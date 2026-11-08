@@ -45,8 +45,8 @@ mutate("Buffs.lua",
 
 # The druid's own aura read as the partner's.
 mutate("Queue.lua",
-       "\t\t\t\tif guid and not (buff.notSelf and (i == 0 or guid == myGuid)) then\n",
-       "\t\t\t\tif guid then\n",
+       "\t\t\tif guid and not (buff.notSelf and (i == 0 or guid == myGuid)) then\n",
+       "\t\t\tif guid then\n",
        "engine-fix: Symbiosis read on the druid",
        expect=P + "Symbiosis read where the game puts it", script=S)
 
