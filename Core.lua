@@ -1654,7 +1654,7 @@ do
 						if held == true and not over and opts.whenBuffed == "refresh" and remaining then
 							seconds = Length(buff, seconds)
 							local lead, kind = ns.LeadFor(opts, seconds)
-							if remaining <= lead then return buff, true, remaining, seconds, lead, kind end
+							if lead >= remaining then return buff, true, remaining, seconds, lead, kind end
 						end
 					end
 				end
