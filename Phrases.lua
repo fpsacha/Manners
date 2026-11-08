@@ -3084,6 +3084,24 @@ RP.SPELL = {
 		L["These scales burst when struck, {name}. Do let them strike."],
 		L["A dragon's hide for an hour, {name}. Stand in front and enjoy it."],
 	},
+	spiritofthealpha = {
+		L["Run at the front of the pack, {name}. The wolf spirit makes them all chase you."],
+		L["Lead the hunt, {name}. Every beast in here will want your throat, not ours."],
+		L["The alpha's spirit is yours now, {name}. Howl, and they'll all turn your way."],
+		L["First through the door, {name}. The pack follows, and so does everything else."],
+	},
+	beaconoffaith = {
+		L["My second Beacon, {name}. Whatever I give the others, you share in it too."],
+		L["Two lights to steer by tonight, {name}, and you're one of them."],
+		L["The Light has room for two, {name}. Keep shining over there."],
+		L["Faith marks you as well, {name}. My heals will find both of you."],
+	},
+	symbioticrelationship = {
+		L["We're bonded for the hour, {name}. When I mend myself, you mend too."],
+		L["Roots in the same soil, {name}. What heals one of us helps the other."],
+		L["A bond of the grove, {name}. Look after yourself and you look after me."],
+		L["Nature pairs us up for a while, {name}. Try not to make me regret it."],
+	},
 }
 
 -- Thanks only, and only when the spell they gave you is known: {gift} is
@@ -3366,6 +3384,18 @@ RP.GIFT = {
 	blisteringscales = {
 		L["Your own scales, {name}? I'll wear them proudly. Thank you."],
 		L["{gift}! Let them swing at me now, {name}. They'll regret it."],
+	},
+	spiritofthealpha = {
+		L["Thank you, {name}. I'll lead the pack and keep their eyes on me."],
+		L["{gift}! Let them all come for me now, {name}. I am the alpha."],
+	},
+	beaconoffaith = {
+		L["Thank you, {name}. I'll try to be a light worth following."],
+		L["{gift}! Two lights on me now, {name}. I will keep mine lit."],
+	},
+	symbioticrelationship = {
+		L["Thank you, {name}. Whatever I mend in myself, I'll send your way."],
+		L["{gift}! Bonded, then, {name}. I'll take good care of us both."],
 	},
 }
 

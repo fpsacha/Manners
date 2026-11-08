@@ -203,9 +203,16 @@ do
 		local OWN = { PRIEST = "shadowform", WARLOCK = "grimoireofsacrifice",
 			SHAMAN = "shamanimbue, shamanimbueoff", PALADIN = "rite" }
 		for _, class in ipairs(ALL_CLASSES) do
-			local own = ns.GetOwnFamilies(class)
+			-- Every class's flasks (1.11.11) aside: tests/scenarios/missing-buffs.lua.
+			local own = {}
 			local keys = {}
-			for _, family in ipairs(own or {}) do keys[#keys + 1] = family.key end
+			for _, family in ipairs(ns.GetOwnFamilies(class) or {}) do
+				if not family.consumable then
+					own[#own + 1] = family
+					keys[#keys + 1] = family.key
+				end
+			end
+			if #own == 0 then own = nil end
 			if class == "ROGUE" then
 				if not own or #own ~= 2 or own[1].key ~= "lethal" or own[2].key ~= "nonlethal" then
 					fail(scenario, "a rogue's own buffs on retail are not the lethal and non-lethal poisons")

@@ -188,7 +188,11 @@ do
 				end
 			end
 		end
-		if ns.CONSUMABLES.mainline then fail(scenario, "retail has a table of flasks, which it has no family for") end
+		-- Retail's flasks alone since the missing-buffs round (missing-buffs.lua).
+		local retail = ns.CONSUMABLES.mainline
+		if not (retail and retail.flask and retail.flask[1]) or retail.elixir or retail.scroll then
+			fail(scenario, "retail's table is not its flasks alone")
+		end
 		local data = ns.CONSUMABLES
 		-- Forever's four of its own and the four classic flasks; Season of
 		-- Discovery's on Classic Era; Forever's own elixirs from level 1.
@@ -314,9 +318,11 @@ do
 end
 
 do
+	-- Retail's flasks have theirs since the missing-buffs round (missing-buffs.lua):
+	-- no elixir or scroll.
 	local scenario = "consume-buffs: no switch on retail"
 	with(scenario, { flavour = "mainline" }, function(ns)
-		for _, k in ipairs({ "own_flask", "own_elixir", "own_scrollagility" }) do
+		for _, k in ipairs({ "own_elixir", "own_scrollagility" }) do
 			if ns.optionsTable.args.who.args[k] then fail(scenario, "retail has " .. k) end
 		end
 	end)

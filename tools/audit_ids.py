@@ -105,7 +105,7 @@ EXTRA = {"camelot": ("ItemEffect", "ItemXItemEffect", "SpellItemEnchantment", "S
          "vanilla": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
          "tbc": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
          "mists": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
-         "mainline": ("TraitDefinition",)}
+         "mainline": ("TraitDefinition", "ItemEffect", "ItemXItemEffect")}
 
 CLASS_BIT = {"WARRIOR": 1, "PALADIN": 2, "HUNTER": 4, "ROGUE": 8, "PRIEST": 16, "DEATHKNIGHT": 32,
              "SHAMAN": 64, "MAGE": 128, "WARLOCK": 256, "MONK": 512, "DRUID": 1024,
@@ -552,6 +552,9 @@ BUFF_NAMES = {
     "oathoflight": r"Oath of Light",
     "symbiosis": r"Symbiosis",
     "blisteringscales": r"Blistering Scales",
+    # The missing-buffs round of 1.11.11.
+    "spiritofthealpha": r"Spirit of the Alpha", "beaconoffaith": r"Beacon of Faith",
+    "symbioticrelationship": r"Symbiotic Relationship",
 }
 OWN_NAMES = {
     "frostarmor": r"Frost Armor|Ice Armor", "magearmor": r"Mage Armor", "moltenarmor": r"Molten Armor",
@@ -592,13 +595,20 @@ OWN_NAMES.update({
     "thunderstrikeward": r"Thunderstrike Ward", "ritesanctification": r"Rite of Sanctification",
     "riteadjuration": r"Rite of Adjuration",
 })
+# The missing-buffs round: a warlock's sacrifice (its auras by demon, Forever's names among them),
+# Soul Link, Tree of Life, and Spirit of the Alpha on a shaman who tanks, with Loyal Beta.
+OWN_NAMES.update({
+    "demonicsacrifice": r"Demonic Sacrifice|Burning Wish|Burning Shadow|Fel Stamina|Touch of Shadow|Touch of Fire"
+                        r"|Fel Energy",
+    "soullink": r"Soul Link", "treeoflife": r"Tree of Life", "spiritofthealpha": r"Spirit of the Alpha|Loyal Beta",
+})
 # What a favour-only / not-favour id is, by id: any client that has the id must call it this.
 FAVOUR_NAMES = {
     6346: r"Fear Ward", 546: r"Water Walking", 11743: r"Detect (Lesser |Greater )?Invisibility", 2970: r"Detect (Lesser |Greater )?Invisibility",
     132: r"Detect (Lesser |Greater )?Invisibility", 20707: r"Soulstone( Resurrection)?", 20762: r"Soulstone Resurrection",
     20763: r"Soulstone Resurrection", 20764: r"Soulstone Resurrection", 20765: r"Soulstone Resurrection",
     27239: r"Soulstone Resurrection", 5697: r"Unending Breath",
-    24932: r"Leader of the Pack", 24907: r"Moonkin Aura", 34123: r"Tree of Life", 6562: r"Heroic Presence",
+    24932: r"Leader of the Pack", 24907: r"Moonkin Aura", 34123: r"Tree of Life", 439745: r"Tree of Life", 6562: r"Heroic Presence",
     28878: r"Inspiring Presence", 19506: r"Trueshot Aura", 55610: r"Unholy Aura|Improved Icy Talons",
     116956: r"Grace of Air", 30809: r"Unleashed Rage", 51470: r"Elemental Oath", 77747: r"Burning Wrath",
     113742: r"Swiftblade'?s Cunning", 465: r"Devotion Aura", 317920: r"Concentration Aura",
@@ -1247,7 +1257,9 @@ def check_consumables(rep, c, d, flavour):
     says, its use (ItemEffect, trigger 0) is the spell the addon reads, that spell puts an aura on
     the user (a scroll: on a friendly target) for half an hour or more, a flask's stays on through
     death and an elixir's does not, a scroll's raises its family's stat, and what `covers` an
-    elixir is a flask of this client."""
+    elixir is a flask of this client. A use that is no aura (Mists' Alchemist's Flask) names the
+    `auras` it becomes, and those are held to it in its place; a flask marked `lapses` (Mists'
+    Crystal of Insanity) is one lost on death."""
     # Every class lists the same families: each copy that differs is checked, once.
     fams, seen = [], set()
     for _, fs in sorted(as_map(d["own"]).items()):
@@ -1261,6 +1273,7 @@ def check_consumables(rep, c, d, flavour):
     items = {s["item"] for _, f in fams for s in f["spells"]}
     info = c.item_rows(items)
     flasks = {s["ranks"][0] for key, f in fams if key == "flask" for s in f["spells"]}
+    flasks |= {i for key, f in fams if key == "flask" for s in f["spells"] for i in (s.get("auras") or [])}
     for key, f in fams:
         if not (f.get("toggle") and f.get("bagged")):
             rep.finding("consumable.%s" % key, "the family is not a bagged toggle")
@@ -1288,19 +1301,26 @@ def check_consumables(rep, c, d, flavour):
             if use not in c.names:
                 rep.finding(where, "spell %d has no SpellName in this client" % use)
             target = 21 if scroll else CONSUMABLE_TARGET[key]
-            fx = [e for e in c.effects.get(use, []) if e["effect"] == 6 and e["t0"] == target]
-            if not fx:
-                rep.finding(where, "spell %d (%s) puts no aura on target %d (SpellEffect)" % (use, c.names.get(use), target))
             if bool(s.get("onAlly")) != scroll or bool(s.get("castOnOthers")) != scroll:
                 rep.finding(where, "onAlly and castOnOthers are for the scrolls, cast at a friendly target, alone")
-            ms = c.duration_ms(use)
-            if ms is None or ms < 1800000:
-                rep.finding(where, "spell %d (%s) lasts %s ms, under half an hour" % (use, c.names.get(use), ms))
-            persists = (c.misc.get(use, {}).get("a3", 0) & DEATH_PERSISTENT) != 0
-            if key == "flask" and not persists:
-                rep.finding(where, "spell %d (%s) does not stay on through death, as a flask does" % (use, c.names.get(use)))
-            if key == "elixir" and persists:
-                rep.finding(where, "spell %d (%s) stays on through death, as a flask does" % (use, c.names.get(use)))
+            fx = []
+            for aura in s.get("auras") or [use]:
+                if aura not in c.names:
+                    rep.finding(where, "aura %d has no SpellName in this client" % aura)
+                got = [e for e in c.effects.get(aura, []) if e["effect"] == 6 and e["t0"] == target]
+                fx += got
+                if not got:
+                    rep.finding(where, "spell %d (%s) puts no aura on target %d (SpellEffect)" % (aura, c.names.get(aura), target))
+                ms = c.duration_ms(aura)
+                if ms is None or ms < 1800000:
+                    rep.finding(where, "spell %d (%s) lasts %s ms, under half an hour" % (aura, c.names.get(aura), ms))
+                persists = (c.misc.get(aura, {}).get("a3", 0) & DEATH_PERSISTENT) != 0
+                if key == "flask" and not persists and not s.get("lapses"):
+                    rep.finding(where, "spell %d (%s) does not stay on through death, as a flask does" % (aura, c.names.get(aura)))
+                if key == "flask" and persists and s.get("lapses"):
+                    rep.finding(where, "spell %d (%s) stays on through death, and the addon says it lapses" % (aura, c.names.get(aura)))
+                if key == "elixir" and persists:
+                    rep.finding(where, "spell %d (%s) stays on through death, as a flask does" % (aura, c.names.get(aura)))
             if scroll:
                 stat = SCROLL_STAT[key]
                 ok = any((e["aura"] == 29 and e["misc0"] == stat) if stat is not None

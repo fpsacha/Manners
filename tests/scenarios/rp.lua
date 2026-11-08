@@ -1899,7 +1899,10 @@ do
 			"hornofwinter", "emperor", "whitetiger", "darkintent", "skyfury", "bronze", "sourceofmagic",
 			"soulstone", "fearward", "waterwalking", "detectinvis",
 			-- 1.11.11's buffs for one target at a time, each on some clients only.
-			"earthshieldtank", "beacon", "oathoflight", "symbiosis", "blisteringscales" })
+			"earthshieldtank", "beacon", "oathoflight", "symbiosis", "blisteringscales",
+			-- The missing-buffs round: Classic Era's Spirit of the Alpha, retail's
+			-- Beacon of Faith and Symbiotic Relationship.
+			"spiritofthealpha", "beaconoffaith", "symbioticrelationship" })
 		local filed = {}
 		for key in pairs(keys) do filed[key] = true end
 		for key in pairs(elsewhere) do filed[key] = true end
