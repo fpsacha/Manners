@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.12
 
 - **Favours.**
   - A tank's buff first seen in the combat log (Classic Era, Burning Crusade,
