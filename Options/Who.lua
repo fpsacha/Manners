@@ -259,11 +259,11 @@ end
 -- the scan does (ns.SelfBuffs), and counts every family of the class's own
 -- buffs you know, switched off or not: their switches live under it.
 local function NothingForSelf()
-	-- Well Fed is a family of every class on a client that has it, bags or none.
-	for _, family in ipairs(ns.GetOwnFamilies() or {}) do
-		if family.food then return false end
-	end
-	return #ns.SelfBuffs() == 0 and #ns.KnownOwnFamilies() == 0
+	-- Well Fed is a family of every class on a client that has it, bags or
+	-- none; a flask in the bags, switched off, is no known family yet: their
+	-- switches are under Myself all the same (Page.BaggedShown; a retail
+	-- warrior's flask, whose shout is no buff of his own).
+	return #ns.SelfBuffs() == 0 and #ns.KnownOwnFamilies() == 0 and not Page.BaggedSwitchShown()
 end
 
 -- The family dropdown's Automatic, saying what it would pick right now, in
@@ -700,8 +700,10 @@ function Page.BuildWhoTab()
 		type = "group",
 		name = TAB.who,
 		order = 2,
-		-- A hunter has "Myself" here and nothing else (ForOthersOnly).
-		hidden = function() return not HasPrompt() end,
+		-- A hunter has "Myself" here and nothing else (ForOthersOnly); so
+		-- does a class whose only prompt waits on a switch here (a retail
+		-- death knight's flask), or that switch could never be reached.
+		hidden = function() return not HasPrompt() and not Page.OwnSwitchWaiting() end,
 		args = {
 			-- Who the prompt is on right now, over this page and Who to skip.
 			rightNow = Page.RightNowNote(0.5),
@@ -986,7 +988,9 @@ function Page.BuildWhoTab()
 			quietInTowns = {
 				type = "toggle",
 				name = L["Offer nothing in cities and inns"],
-				desc = L["On: nothing is offered to anybody while the game calls you resting, in a city or an inn: not passers-by, not your group, not a favour you owe. Somebody you target or focus is still offered. Your own buffs have their own switch, under Myself."],
+				-- Drawn on When to offer, so the other switch's page is named.
+				desc = L["On: nothing is offered to anybody while the game calls you resting, in a city or an inn: not passers-by, not your group, not a favour you owe. Somebody you target or focus is still offered. Your own buffs have their own switch, under %s on %s."]
+					:format(L["Myself"], TAB.who),
 				order = 13.35,
 				width = "full",
 				get = fGet,

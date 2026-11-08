@@ -106,7 +106,7 @@ mutate("Options/Look.lua",
 
 # The dead-marker note back to describing a ring the look no longer draws.
 mutate("Options/Look.lua",
-       "L[\"There is nothing left to colour: the marker sits on the icon, which is switched off.\"]",
+       "L[\"There is nothing left to colour: %s puts it on the icon, which is switched off.\"]",
        "L[\"There is nothing left to colour: the ring is drawn behind the icon, which is switched off.\"]",
        "look: dead-marker note describes the old ring",
        expect="the note describes a ring or a framed look", script="runscenarios.py")

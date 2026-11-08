@@ -192,8 +192,8 @@ mutate("Options/Who.lua", "hidden = function() return (tonumber(F().minLevel) or
        "ux-redesign: the level slider's 1 never explained",
        expect="ux-redesign: Skip players below level says what 1 means", script=S)
 
-mutate("Options/Diagnostics.lua", "\t\t\t\tname = \"|cff888888\"\n\t\t\t\t\t.. L[\"Nothing to report: this character has no buffs it can put on another player.\"]",
-       "\t\t\t\tname = \"|cffff8080\"\n\t\t\t\t\t.. L[\"Nothing to report: this character has no buffs it can put on another player.\"]",
+mutate("Options/Diagnostics.lua", "\t\t\t\t\treturn \"|cff888888\"\n\t\t\t\t\t\t.. L[\"Nothing to report: this character has no buffs it can put on another player.\"]",
+       "\t\t\t\t\treturn \"|cffff8080\"\n\t\t\t\t\t\t.. L[\"Nothing to report: this character has no buffs it can put on another player.\"]",
        "ux-redesign: a rogue told in red that he has no buffs",
        expect="ux-redesign: a rogue's Diagnostics has no error colour", script=S)
 

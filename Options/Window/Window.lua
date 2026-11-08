@@ -520,6 +520,8 @@ local function Hidden()
 	UI.EndPeek()
 	if UI.CloseResults then UI.CloseResults() end
 	GameTooltip:Hide()
+	-- Nothing on screen for the prompt's repaint to keep up to date.
+	UI.rightNowPainted = nil
 end
 
 function UI.Build()
@@ -627,6 +629,9 @@ function UI.ShowPage(id)
 	if id == "appearance" and was ~= id and UI.Shown() then UI.LookOpened() end
 end
 
+-- The pages led by the Right now line (Page.RightNowNote).
+local RIGHT_NOW_PAGES = { who = true, skip = true, when = true }
+
 -- Everything on screen from the values as they stand. Re-entered from a
 -- repaint a model function asks for while this one runs: that one is
 -- dropped, since this one is reading the same values.
@@ -650,6 +655,8 @@ local function PaintAll()
 	PlaceBody(UI.HEADER + UI.PaintStrip())
 	UI.PaintPage()
 	UI.PaintFooter()
+	-- What the page's Right now line was painted from (see below).
+	UI.rightNowPainted = RIGHT_NOW_PAGES[UI.page] and ns.OptionsPage.RightNow() or nil
 end
 
 function UI.Refresh()
@@ -680,6 +687,28 @@ do
 			local caps = probe(...)
 			if UI.Shown() then ns.Guard("options repaint", UI.Refresh) end
 			return caps
+		end
+	end
+end
+
+-- The Right now line of Who to buff, Who to skip and When to offer follows
+-- the prompt: every scan ends in the prompt's repaint, and after it the open
+-- page is painted again when its line would now read otherwise (somebody
+-- else picked, the count behind them, a snooze, the lock). Nothing is asked
+-- while no such page is up: the paint leaves rightNowPainted nil there, and
+-- hiding the window clears it. The line reads what the scan left, never a
+-- queue of its own (Page.RightNow).
+do
+	local prompt = ns.Prompt
+	local refresh = prompt and prompt.Refresh
+	if type(refresh) == "function" then
+		prompt.Refresh = function(self, ...)
+			refresh(self, ...)
+			local painted = UI.rightNowPainted
+			if painted ~= nil and RIGHT_NOW_PAGES[UI.page] and ns.OptionsPage.RightNow() ~= painted
+				and UI.Shown() then
+				ns.Guard("options repaint", UI.Refresh)
+			end
 		end
 	end
 end

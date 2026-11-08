@@ -140,9 +140,9 @@ mutate("Options/Who.lua",
        "wellfed: the switch a list of every food",
        expect="wellfed: off by default", script=S)
 
-mutate("Options/Who.lua",
-       "\t\tif family.food then return false end\n\tend\n\treturn #ns.SelfBuffs() == 0",
-       "\t\tif false then return false end\n\tend\n\treturn #ns.SelfBuffs() == 0",
+mutate("Options/Shared.lua",
+       "\tif family.food then return true end\n\treturn ns.OwnPick(family) ~= \"off\"",
+       "\tif false then return true end\n\treturn ns.OwnPick(family) ~= \"off\"",
        "wellfed: a warrior has no Myself",
        expect="wellfed: Myself is a warrior's too", script=S)
 

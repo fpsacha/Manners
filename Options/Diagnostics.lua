@@ -474,14 +474,37 @@ function Page.BuildDiagnosticsTab()
 				end,
 			},
 			-- Grey, not red: a class with nothing for others is not a fault.
+			-- Start here and the launcher send a character with nothing to
+			-- cast here to learn why, so the other two reasons are said, in
+			-- red: the game never named the class, or Manners has no buffs
+			-- for it (no buff data for this client at all, or a class it does
+			-- not list).
 			noDiag = {
 				type = "description",
 				order = 11.5,
 				fontSize = "medium",
 				hidden = HasClassBuffs,
-				name = "|cff888888"
-					.. L["Nothing to report: this character has no buffs it can put on another player."]
-					.. "|r",
+				name = function()
+					local class = ns.caps.class
+					if ns.BUFFS_MISSING then
+						return "|cffff8080"
+							.. L["%s -- nobody will be offered a buff. Please report this, with the output of /manners debug."]
+								:format(ns.BUFFS_MISSING)
+							.. "|r"
+					elseif type(class) ~= "string" or class == "" then
+						return "|cffff8080"
+							.. L["The game did not say which class this character is, so Manners cannot tell which buffs it has. A /reload usually mends it; if it does not, please report it."]
+							.. "|r"
+					elseif not (ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class]) then
+						return "|cffff8080"
+							.. L["Manners has no buffs listed for the class %s on this client. That is a mistake in Manners -- please report it."]
+								:format(class)
+							.. "|r"
+					end
+					return "|cff888888"
+						.. L["Nothing to report: this character has no buffs it can put on another player."]
+						.. "|r"
+				end,
 			},
 
 			-- What ns.Guard caught, on the page where somebody is looking
@@ -503,29 +526,31 @@ function Page.BuildDiagnosticsTab()
 					if #ns.errors > 5 then
 						-- Two whole sentences, and the command an argument:
 						-- it is what the player types, in any language.
+						-- "all": /manners errors alone lists these same five.
 						local total = ns.errorCount or #ns.errors
 						local text
 						if total > #ns.errors then
 							text = L["(%d in all this session, %d kept -- |cffffd100%s|r)"]
-								:format(total, #ns.errors, "/manners errors")
+								:format(total, #ns.errors, "/manners errors all")
 						else
 							text = L["(%d in all this session -- |cffffd100%s|r)"]
-								:format(total, "/manners errors")
+								:format(total, "/manners errors all")
 						end
 						lines[#lines + 1] = "|cff888888" .. text .. "|r"
 					end
 					return table.concat(lines, "\n")
 				end,
 			},
-			-- /manners errors as a button, once there are more than the five
-			-- listed above.
+			-- /manners errors all as a button, once there are more than the
+			-- five listed above: every one kept, where /manners errors alone
+			-- lists those five again.
 			allErrors = {
 				type = "execute",
 				name = L["Show every error"],
 				desc = L["Lists every error this session in your chat window, the oldest first."],
 				order = 21.2,
 				hidden = function() return #ns.errors <= 5 end,
-				func = function() ns.addon:HandleSlash("errors") end,
+				func = function() ns.addon:HandleSlash("errors all") end,
 			},
 			noErrors = {
 				type = "description",
