@@ -30,6 +30,7 @@ Locales\Locales.xml
 
 Flavour.lua
 Foods.lua
+Consumables.lua
 Buffs.lua
 Core.lua
 Range.lua

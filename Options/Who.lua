@@ -272,6 +272,35 @@ local function OwnChoice(family, spell)
 	return family.scroll or ns.OwnSpellKnown(spell)
 end
 
+-- A flask, an elixir or a scroll (Buffs.lua, consumable): whether any of the
+-- family is in the bags, asked of the client only for the page, and what its
+-- switch says it does.
+local Consumable = {}
+function Consumable.Held(family)
+	local count = C_Item and C_Item.GetItemCount
+	if type(count) ~= "function" then return false end
+	for _, spell in ipairs(family.spells) do
+		local n = ns.plain(count(spell.item))
+		if type(n) == "number" and n > 0 then return true end
+	end
+	return false
+end
+function Consumable.Desc(family)
+	if family.key == "flask" then
+		return L["Reminds you to drink a flask when none is on you and one is in your bags, the best you can use first. Off until you turn it on."]
+	elseif family.key == "elixir" and family.covers then
+		return L["Reminds you to drink an elixir when no elixir or flask is on you and an elixir is in your bags, the best you can use first. A flask fills both elixir slots. Off until you turn it on."]
+	elseif family.key == "elixir" then
+		return L["Reminds you to drink an elixir when none is on you and one is in your bags, the best you can use first. Off until you turn it on."]
+	end
+	local text = L["Reminds you to use one on yourself when none of it is on you and one is in your bags, the best you can use first. Off until you turn it on."]
+	-- Intellect, Stamina and Spirit where a class buff gives the same stat.
+	if #ns.ConsumableAuras(family) > #family.spells then
+		text = text .. " " .. L["Not while a class buff of the same stat is on you."]
+	end
+	return text
+end
+
 -- One control per family of your class's own buffs, under "Myself" on Who to
 -- buff: a dropdown where there is a choice (Automatic, each spell you know,
 -- Don't remind me), a checkbox for a spell alone. Made for every family of
@@ -311,6 +340,8 @@ local function AddOwnControls(args)
 						local n = type(count) == "function" and ns.plain(count(family.spells[1].item)) or nil
 						return not (type(n) == "number" and n > 0)
 					end
+					-- A flask, an elixir or a scroll: the same, for any of its items.
+					if family.consumable then return pick() == "off" and not Consumable.Held(family) end
 					for _, known in ipairs(ns.KnownOwnFamilies()) do
 						if known == family then return false end
 					end
@@ -377,7 +408,8 @@ local function AddOwnControls(args)
 			else
 				control.type = "toggle"
 				control.name = function() return ns.OwnFamilyLabel(family) end
-				control.desc = family.food
+				control.desc = family.consumable and function() return Consumable.Desc(family) end
+					or family.food
 					and L["Reminds you to eat when Well Fed is not on you and food that gives it is in your bags. Off until you turn it on."]
 					or family.rest
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
@@ -963,8 +995,8 @@ function Page.BuildWhoTab()
 
 			ownDungeons = {
 				type = "toggle",
-				name = L["Oils, stones and food only in dungeons and raids"],
-				desc = L["On: the reminder for an oil or a stone for your weapon, and for food, comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."],
+				name = L["Consumables only in dungeons and raids"],
+				desc = L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."],
 				order = 15.95,
 				width = "full",
 				hidden = NothingForSelf,

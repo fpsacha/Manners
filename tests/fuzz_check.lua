@@ -270,6 +270,14 @@ function X.checkMacro(W)
 		local aim = entry.targetName or entry.name
 		local first = lines(macro)[1]
 		if entry.buff.item then
+			-- A scroll cast at a friendly target targets you by name first
+			-- (Prompt/Macro.lua, allyscroll).
+			if entry.buff.onAlly then
+				if first ~= "/target " .. aim then
+					return fail(W, "macro", ("the macro targets %q and the entry is %q"):format(tostring(first), aim))
+				end
+				first = lines(macro)[2]
+			end
 			if not (first and first:find("/use item:", 1, true)) then
 				return fail(W, "macro", "a scroll is armed without /use item: " .. macro:gsub("\n", " / "), nil,
 					"a scroll is armed without /use item:")

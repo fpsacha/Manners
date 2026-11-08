@@ -82,12 +82,13 @@ do
 		elseif why == "unusable" then
 			return L["%s: the game says %s cannot be cast right now."]:format(label, name or "?")
 		elseif why == "mounted" then
-			-- Manners' own rule for food and the sleeping bag, not the game's.
+			-- Manners' own rule for food, the sleeping bag, flasks, elixirs and
+			-- scrolls, not the game's.
 			return L["%s: %s waits until you dismount."]:format(label, name or "?")
 		elseif why == "none" then
 			return L["%s: Automatic has nothing it would pick."]:format(label)
 		elseif why == "dungeon" then
-			return L["%s: oils, stones and food are only offered in a dungeon or a raid."]:format(label)
+			return L["%s: oils, stones, food, flasks, elixirs and scrolls are only offered in a dungeon or a raid."]:format(label)
 		elseif why == "maxlevel" then
 			return L["%s: you are at the level cap, with no experience left to gain."]:format(label)
 		elseif why == "resting" then

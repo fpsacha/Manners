@@ -231,6 +231,16 @@ ns.WindowLayout = {
 					-- The sleeping bag's Well-Rested, off until it is turned on;
 					-- shown while the bag is in the bags (Classic Era, Forever).
 					{ "who.own_rested", indent = true },
+					-- Flasks, elixirs and a scroll of each stat, off until turned on;
+					-- shown while one is in the bags (Buffs.lua, CONSUME).
+					{ "who.own_flask", indent = true },
+					{ "who.own_elixir", indent = true },
+					{ "who.own_scrollagility", indent = true },
+					{ "who.own_scrollstrength", indent = true },
+					{ "who.own_scrollprotection", indent = true },
+					{ "who.own_scrollintellect", indent = true },
+					{ "who.own_scrollstamina", indent = true },
+					{ "who.own_scrollspirit", indent = true },
 					{ "who.own_tracking", indent = true },
 					-- The spells of those families you know, to leave out one by one.
 					{ "who.own_leave", indent = true },

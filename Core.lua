@@ -544,6 +544,8 @@ for _, families in pairs(ns.OWN_BUFFS or {}) do
 	for _, family in ipairs(families) do
 		if family.food then defaults.profile.ownBuffs.pick[family.key] = "off" end
 		if family.rest then defaults.profile.ownBuffs.pick[family.key] = "off" end
+		-- Flasks, elixirs and scrolls the same (Buffs.lua, consumable).
+		if family.consumable then defaults.profile.ownBuffs.pick[family.key] = "off" end
 		-- And a spell few keep up, asked for by those who do (Buffs.lua, optIn).
 		if family.optIn then defaults.profile.ownBuffs.pick[family.key] = "off" end
 	end
@@ -1932,11 +1934,13 @@ do
 	end
 
 	-- Whether Who to buff's "only in dungeons and raids" holds this family: an
-	-- oil or a stone for the weapon, and food. Not a poison, which a rogue
-	-- always wants on, nor a lure, nor a spell of your own.
+	-- oil or a stone for the weapon, food, a flask, an elixir and a scroll.
+	-- Not a poison, which a rogue always wants on, nor a lure, nor the sleeping
+	-- bag, nor a spell of your own.
 	function ns.OwnItemsHeldToDungeons(family)
 		if not family then return false end
 		if family.food then return true end
+		if family.consumable then return true end
 		return family.enhance == true and family.kind ~= "poison" and family.kind ~= "lure"
 	end
 
@@ -2451,6 +2455,30 @@ do
 		return false
 	end
 
+	-- A flask, an elixir or a scroll (Buffs.lua, CONSUME): any aura that says
+	-- the family is up (ns.ConsumableAuras), by its id, whoever's it is. As for
+	-- Well Fed: true with its time left, false for none, nil for the client
+	-- will not say. Called directly, since a spell id never throws: the read
+	-- runs on every scan while the switch is on.
+	local function ReadConsumable(family, now)
+		local api = C_UnitAuras
+		local byId = api and api.GetUnitAuraBySpellID
+		if type(byId) ~= "function" then return nil end
+		local refused = false
+		for _, id in ipairs(ns.ConsumableAuras(family)) do
+			local aura = byId("player", id)
+			if Withheld(aura) then
+				refused = true
+			elseif type(aura) == "table" then
+				return true, nil, Left(aura, now)
+			elseif not refused and HiddenAura(id) then
+				refused = true
+			end
+		end
+		if refused then return nil end
+		return false
+	end
+
 	-- Well Fed (Buffs.lua, FOOD) is an aura read by name: any of the many on a
 	-- client answers to the client's own word for it, from one spell id of it.
 	-- true with its time left, false for none, nil for the client will not say.
@@ -2573,6 +2601,7 @@ do
 		end
 		if family.food then return ReadWellFed(family, GetTime()) end
 		if family.rest then return ReadRested(family, GetTime()) end
+		if family.consumable then return ReadConsumable(family, GetTime()) end
 		if family.imbue then return ReadImbue(family) end
 		-- A stone, a poison, an oil or a lure: its hand carries an enchant or not.
 		if family.enhance then return ReadImbue(family) end
@@ -2754,6 +2783,12 @@ do
 			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
 				return nil, up, left, "mounted", spell
 			end
+		end
+		-- A flask, an elixir or a scroll: not mounted either, where the use would
+		-- dismount you. The meal in progress is food's own rule: a second food
+		-- would cut the first short, and none of these is food.
+		if family.consumable and type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
+			return nil, up, left, "mounted", spell
 		end
 		-- Well-Rested: experience, so nothing to gain at the level cap; not
 		-- while you lie in the bag or it cools down, nor mounted.

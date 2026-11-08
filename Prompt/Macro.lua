@@ -67,6 +67,7 @@ end
 -- nowhere. Targeting reaches ungrouped strangers everywhere.
 local function StrategyFor(entry)
 	if entry.reason == "self" then
+		if entry.buff and entry.buff.onAlly then return "allyscroll" end
 		if entry.buff and entry.buff.item then return "scroll" end
 		return "self"
 	end
@@ -148,6 +149,18 @@ STRATEGIES.scroll = function(entry)
 		{ targeted = false, selfCast = false, onSelf = true, aimedAt = nil }
 end
 
+-- A scroll cast at a friendly target (Buffs.lua, onAlly: a Scroll of Agility,
+-- SpellEffect target 21), for yourself: with somebody else targeted the use
+-- would land on them, so you are targeted by name first and your target handed
+-- back, as for your own spells (STRATEGIES.self). No weapon line.
+STRATEGIES.allyscroll = function(entry)
+	local lines = { TargetCommand() .. " " .. (entry.targetName or entry.name or ""),
+		"/use item:" .. tostring(entry.buff.item) }
+	local restore = not StillTargeted(entry) or Prompt.armedForFight == true
+	return lines, restore,
+		{ targeted = true, selfCast = false, onSelf = true, aimedAt = entry.targetName or entry.name }
+end
+
 -- Target them, cast, and optionally hand the player's own target back. One
 -- targeting line with one spelling: with two, /targetlasttarget hands back
 -- what the first found, not the player's target. The account is in Clicks.lua.
@@ -219,7 +232,8 @@ function Prompt:ClickSummary(entry, slot)
 	end
 
 	if entry.reason == "self" and entry.buff.item then
-		-- A scroll: used from the bags, nobody targeted (STRATEGIES.scroll).
+		-- A scroll: used from the bags (STRATEGIES.scroll; one cast at a friendly
+		-- target is aimed at you, STRATEGIES.allyscroll).
 		out[#out + 1] = L["Uses |cffffffff%s|r from your bags."]:format(spell)
 	elseif entry.reason == "self" then
 		-- Nothing about targets: the macro hands your target back (see
