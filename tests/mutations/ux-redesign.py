@@ -67,3 +67,47 @@ mutate(LAYOUT, "title = L[\"Position\"]",
        "title = L[\"Where it sits\"]",
        "ux-redesign: Where it sits twice in a row",
        expect="ux-redesign: Look's place section is titled Position", script=S)
+
+# --- greyed, and why: 3, 4, 6, 12 ----------------------------------------------
+
+WIDGETS = "Options/Window/Widgets.lua"
+
+mutate(WIDGETS, "\th = PlaceOffNote(row, width, h)\n",
+       "",
+       "ux-redesign: a greyed control never says why",
+       expect="ux-redesign: a greyed control says which switch greys it", script=S)
+
+mutate(WIDGETS, "\tif off then GameTooltip:AddLine(off, T.hint[1], T.hint[2], T.hint[3], true) end\n",
+       "",
+       "ux-redesign: the tooltip of a greyed control does not say why",
+       expect="ux-redesign: a greyed control says which switch greys it", script=S)
+
+mutate(WIDGETS, "\tif not (row.off and item and item.def and item.path) then return nil end\n",
+       "\tif not (item and item.def and item.path) then return nil end\n",
+       "ux-redesign: the reason shows on a control that is not greyed",
+       expect="ux-redesign: a greyed control says which switch greys it", script=S)
+
+mutate(LAYOUT, "\t\t[\"who.groupBuffsUse\"] = function() return L[\"Needs %s ticked.\"]:format(NameOf(\"who.group\")) end,\n",
+       "",
+       "ux-redesign: Use group buffs greyed with no word of why",
+       expect="ux-redesign: a greyed control says which switch greys it", script=S)
+
+mutate("Options/Start.lua", "\t\t\t\tdisabled = function() return ns.db.profile.silentChat == true end,\n",
+       "",
+       "ux-redesign: both chat switches can be on",
+       expect="ux-redesign: the chat switch greys while all Manners lines are hidden", script=S)
+
+mutate("Options/Who.lua", "disabled = function() return not S().strangers or F().quietInTowns == true end,",
+       "disabled = function() return not S().strangers end,",
+       "ux-redesign: Only in cities and inns live under Offer nothing in cities and inns",
+       expect="ux-redesign: Only in cities and inns greys under Offer nothing", script=S)
+
+mutate(LAYOUT, "\t\t\tif db and db.filters.quietInTowns == true then\n",
+       "\t\t\tif false then\n",
+       "ux-redesign: Only in cities and inns greyed says the wrong switch",
+       expect="ux-redesign: Only in cities and inns greys under Offer nothing", script=S)
+
+mutate("Options/Advanced.lua", "name = L[\"Reset this page\"],",
+       "name = L[\"Put these back to default\"],",
+       "ux-redesign: the footer's reset reads as before",
+       expect="ux-redesign: the footer's reset reads Reset this page", script=S)

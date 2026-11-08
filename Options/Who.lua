@@ -940,7 +940,9 @@ function Page.BuildWhoTab()
 				order = 13.3,
 				width = "full",
 				hidden = OnlyReachesGroup,
-				disabled = function() return not S().strangers end,
+				-- And while nothing at all is offered in cities and inns (When
+				-- to offer), which leaves this switch nothing to narrow.
+				disabled = function() return not S().strangers or F().quietInTowns == true end,
 				get = fGet,
 				set = fSet,
 			},

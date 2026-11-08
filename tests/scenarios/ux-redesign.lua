@@ -276,3 +276,103 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ greyed, and why
+-- The reason a greyed row gives, drawn under it, or nil.
+local function offNote(UI, path)
+	local row = UI.RowFor(path)
+	if not (row and row.offNote and row.offNote:IsShown()) then return nil end
+	return row.offNote:GetText()
+end
+
+-- 6: a control greyed by a switch somewhere else says which, under itself and
+-- in its tooltip, and only while it is greyed.
+do
+	local scenario = "ux-redesign: a greyed control says which switch greys it"
+	session(scenario, { page = "who" }, function(ns, UI)
+		local s = ns.db.profile.sources
+		if not UI.RowShown("who.groupBuffsUse") then
+			fail(scenario, "SKIPPED -- no group buffs row for this character")
+			return
+		end
+		local open = offNote(UI, "who.groupBuffsUse")
+		if open then fail(scenario, "with My party and raid on, Use group buffs still says: " .. open) end
+		local row = UI.RowFor("who.groupBuffsUse")
+		local tall = row.height
+		s.group = false
+		ns.RefreshOptionsDisplay()
+		local label = ns.L["My party and raid"]
+		for _, path in ipairs({ "who.groupBuffsUse", "who.skipRaidGroups" }) do
+			local note = offNote(UI, path)
+			if not (note and note:find(label, 1, true)) then
+				fail(scenario, path .. " greyed by My party and raid says " .. tostring(note))
+			end
+		end
+		if not (row.height > tall) then fail(scenario, "the note is drawn over the next row, not under its own") end
+		-- The tooltip says it too.
+		local lines = {}
+		local tip = GameTooltip
+		local add, show, owner = tip.AddLine, tip.Show, tip.SetOwner
+		tip.AddLine = function(_, text) lines[#lines + 1] = tostring(text) end
+		tip.Show, tip.SetOwner = function() end, function() end
+		local enter = row.hit and row.hit:GetScript("OnEnter")
+		if enter then enter(row.hit) end
+		tip.AddLine, tip.Show, tip.SetOwner = add, show, owner
+		if not table.concat(lines, "\n"):find(label, 1, true) then
+			fail(scenario, "the greyed switch's tooltip does not say why")
+		end
+		s.group = true
+		ns.RefreshOptionsDisplay()
+		if offNote(UI, "who.groupBuffsUse") then fail(scenario, "the note stayed once the switch was back on") end
+	end)
+end
+
+-- 3: the chat switches no longer contradict each other: while every Manners
+-- line is hidden, the one that shows more of them is greyed, and says why.
+do
+	local scenario = "ux-redesign: the chat switch greys while all Manners lines are hidden"
+	session(scenario, { page = "general" }, function(ns, UI)
+		local p = ns.db.profile
+		local item = ns.WindowBind.Item("general.verbose")
+		p.silentChat = false
+		if ns.WindowBind.Disabled(item) then fail(scenario, "the chat switch is greyed with nothing hiding the lines") end
+		p.silentChat = true
+		ns.RefreshOptionsDisplay()
+		if not ns.WindowBind.Disabled(item) then fail(scenario, "both chat switches can be on at once") end
+		local silent = ns.WindowBind.Text(ns.WindowBind.Item("general.silentChat"), "name")
+		local note = offNote(UI, "general.verbose")
+		if not (note and note:find(silent, 1, true)) then
+			fail(scenario, "the greyed chat switch does not name the one greying it: " .. tostring(note))
+		end
+	end)
+end
+
+-- 4: Only in cities and inns (passers-by) greys while nothing at all is
+-- offered in cities and inns, and says so.
+do
+	local scenario = "ux-redesign: Only in cities and inns greys under Offer nothing in cities and inns"
+	session(scenario, { page = "who" }, function(ns, UI)
+		local f = ns.db.profile.filters
+		local item = ns.WindowBind.Item("who.restingOnly")
+		f.quietInTowns = false
+		if ns.WindowBind.Disabled(item) then fail(scenario, "greyed with passers-by on and nothing held back") end
+		f.quietInTowns = true
+		ns.RefreshOptionsDisplay()
+		if not ns.WindowBind.Disabled(item) then fail(scenario, "the two contradicting switches can both be on") end
+		local quiet = ns.WindowBind.Text(ns.WindowBind.Item("who.quietInTowns"), "name")
+		local note = offNote(UI, "who.restingOnly")
+		if not (note and note:find(quiet, 1, true) and note:find(ns.L["When to offer"], 1, true)) then
+			fail(scenario, "the greyed switch does not say which switch, on which page: " .. tostring(note))
+		end
+	end)
+end
+
+-- 12: the footer's button says what it does.
+do
+	local scenario = "ux-redesign: the footer's reset reads Reset this page"
+	session(scenario, { page = "who" }, function(ns, UI)
+		local item = ns.WindowBind.Item("advanced.resetAdvanced")
+		local name = item and ns.WindowBind.Text(item, "name")
+		if name ~= ns.L["Reset this page"] then fail(scenario, "the reset reads " .. tostring(name)) end
+	end)
+end

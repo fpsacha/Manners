@@ -462,16 +462,33 @@ end
 -- tooltips
 ---------------------------------------------------------------------------
 
--- The control's name in gold and its desc under it, where it has one.
+-- Why a greyed-out control is greyed out, from the layout's `offNotes` (a
+-- string, or a function asked now), or nil: only while the row is greyed. In
+-- the layout rather than the definition, which AceConfig holds to its own
+-- members. Asked when the row is laid out and when its tooltip opens.
+function W.OffNote(row)
+	local item = row.item
+	if not (row.off and item and item.def and item.path) then return nil end
+	local notes = ns.WindowLayout and ns.WindowLayout.offNotes
+	local note = notes and notes[item.path]
+	if type(note) == "function" then note = note() end
+	if type(note) ~= "string" or note == "" then return nil end
+	return note
+end
+
+-- The control's name in gold and its desc under it, where it has one, and
+-- why it is greyed out while it is.
 local function TipShow(owner)
 	local row = owner.row
 	if not (row and row.item and row.item.def) then return end
 	local desc = Bind().Text(row.item, "desc")
-	if not desc or desc == "" then return end
+	local off = W.OffNote(row)
+	if (not desc or desc == "") and not off then return end
 	GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
 	local name = W.Trim(Bind().Text(row.item, "name"))
 	if name ~= "" then GameTooltip:AddLine(name, T.gold[1], T.gold[2], T.gold[3]) end
-	GameTooltip:AddLine(desc, 1, 1, 1, true)
+	if desc and desc ~= "" then GameTooltip:AddLine(desc, 1, 1, 1, true) end
+	if off then GameTooltip:AddLine(off, T.hint[1], T.hint[2], T.hint[3], true) end
 	GameTooltip:Show()
 end
 
@@ -500,9 +517,32 @@ end
 local Row = {}
 Row.__index = Row
 
+-- The greyed-out row's reason (W.OffNote) under it, in hint grey, lined up
+-- with a switch's label; answers the row's height with it.
+local function PlaceOffNote(row, width, h)
+	local note = W.OffNote(row)
+	if not note then
+		if row.offNote then row.offNote:Hide() end
+		return h
+	end
+	local fs = row.offNote
+	if not fs then
+		fs = W.Wrapping(W.Text(row.frame, T.fonts.small, T.hint))
+		row.offNote = fs
+	end
+	local x = row.kind == "toggle" and 25 or 0
+	fs:ClearAllPoints()
+	fs:SetPoint("TOPLEFT", row.frame, "TOPLEFT", x, -(h + 2))
+	fs:SetWidth(math.max(1, width - x))
+	fs:SetText(note)
+	fs:Show()
+	return h + 2 + math.ceil(W.TextHeight(fs))
+end
+
 function Row.Layout(row, width)
 	width = math.max(1, math.floor(width or row.width or 1))
 	local h = math.ceil(KIND[row.kind].Layout(row, width) or 0)
+	h = PlaceOffNote(row, width, h)
 	row.width, row.height = width, h
 	row.frame:SetSize(width, math.max(h, 1))
 	return h

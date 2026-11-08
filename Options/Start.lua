@@ -1126,6 +1126,9 @@ function Page.BuildStartTab()
 				width = "full",
 				get = function() return ns.db.profile.verbose end,
 				set = function(_, v) ns.db.profile.verbose = v end,
+				-- The switch under it hides these lines too, so this one has no
+				-- say while that one is on.
+				disabled = function() return ns.db.profile.silentChat == true end,
 			},
 			-- Stronger: the few lines the switch above leaves are said too.
 			silentChat = {

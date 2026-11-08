@@ -86,6 +86,15 @@ local function OfferItems()
 	return items
 end
 
+-- Another control's label as it reads now, in gold, for a sentence that
+-- points at it (offNotes). Asked at paint time, when the model is built.
+local function NameOf(path)
+	local B = ns.WindowBind
+	local item = B and B.Item(path)
+	local name = item and B.Text(item, "name") or ""
+	return "|cffffd100" .. name .. "|r"
+end
+
 -- What to cast: the buff dropdown, its switches, then the rest.
 local function CastItems()
 	local items = { "who.choice" }
@@ -550,6 +559,25 @@ ns.WindowLayout = {
 		["profiles.copydesc"] = { hint = true },
 		["profiles.deldesc"] = { hint = true },
 		["profiles.descreset"] = { hint = true },
+	},
+
+	-- Why a control is greyed out, drawn under it in grey while it is, and in
+	-- its tooltip (Widgets.lua, W.OffNote): for a control greyed by a switch
+	-- that is not the one right above it. A function is asked at paint time,
+	-- and names the other switch as its own label reads now.
+	offNotes = {
+		["general.verbose"] = function() return L["Off while %s is on."]:format(NameOf("general.silentChat")) end,
+		["who.groupBuffsUse"] = function() return L["Needs %s ticked."]:format(NameOf("who.group")) end,
+		["who.skipRaidGroups"] = function() return L["Needs %s ticked."]:format(NameOf("who.group")) end,
+		["who.proximity"] = function() return L["Needs %s ticked."]:format(NameOf("who.strangers")) end,
+		["who.restingOnly"] = function()
+			local db = ns.db and ns.db.profile
+			if db and db.filters.quietInTowns == true then
+				return L["Off while %s is on (%s)."]:format(NameOf("who.quietInTowns"), L["When to offer"])
+			end
+			return L["Needs %s ticked."]:format(NameOf("who.strangers"))
+		end,
+		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
 	},
 
 	-- In the model and drawn nowhere.

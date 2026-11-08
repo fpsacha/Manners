@@ -39,7 +39,7 @@ end
 local MODEL = {
 	{ "advIntro", 0.5, "The defaults suit most players; change these only if something bothers you." },
 	{ "advCombatNotice", 0.6, "In combat: targeting changes apply once the fight ends." },
-	{ "resetAdvanced", 0.7, "Put these back to default" },
+	{ "resetAdvanced", 0.7, "Reset this page" },
 	{ "favoursHeader", 10, "Favours" },
 	{ "owedClassBuffsOnly", 11, "Ignore shields, heals and trinket procs" },
 	{ "reciprocateWindow", 12, "Offer a buff back for (seconds)" },

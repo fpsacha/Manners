@@ -25,7 +25,7 @@ end
 ---------------------------------------------------------------------------
 -- the per-page reset
 --
--- "Put these back to default" in the options window's footer puts back the
+-- "Reset this page" in the options window's footer puts back the
 -- page in view: every field on that page's list, including rows this class
 -- does not show unless the list's `keep` says otherwise, then the hooks those
 -- fields' own setters run. Never the master switch, the key, where the prompt
@@ -210,7 +210,7 @@ function Page.BuildAdvancedTab()
 			-- page with nothing to put back.
 			resetAdvanced = {
 				type = "execute",
-				name = L["Put these back to default"],
+				name = L["Reset this page"],
 				order = 0.7,
 				hidden = function() return Page.RESET[ns.OptionsTab()] == nil end,
 				-- Asked as it is pressed, which is when the page is noted.
