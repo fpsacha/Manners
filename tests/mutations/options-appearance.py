@@ -118,7 +118,7 @@ mutate("Options/Look.lua",
        "\t\t\t\tsorting = { \"icon\", \"stripe\", \"both\", \"off\" },\n",
        "",
        "look: Colour marker unsorted",
-       expect="Colour marker lists", script=S)
+       expect="Where the colour shows lists", script=S)
 
 # The flash sorted alphabetically: Flash once, None, Pulse.
 mutate("Options/Look.lua",
