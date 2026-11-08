@@ -1199,7 +1199,7 @@ covered, its food being a different system.
 
 ```
 python tools/make_foods.py            # write Foods.lua
-python tools/make_foods.py --check    # exit 1 when the shipped file is not what the tables give
+python tools/make_foods.py --check    # exit 1 when the shipped file is not what the tables give at the builds its header names
 python tools/make_foods.py --cache DIR
 ```
 

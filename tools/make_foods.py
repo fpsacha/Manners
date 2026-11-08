@@ -2,6 +2,7 @@
 
     python tools/make_foods.py            write Foods.lua from the cached tables
     python tools/make_foods.py --check    say whether the shipped Foods.lua is current
+                                          for the builds it was made from (its header)
     python tools/make_foods.py --cache DIR  where the wago.tools CSVs live
 
 The tables are the ones tools/audit_ids.py downloads (default
@@ -21,6 +22,7 @@ import collections
 import csv
 import glob
 import os
+import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,8 +40,19 @@ VIA_LINK_TABLE = {"camelot"}
 PREFERRED_WELL_FED = 19705
 
 
+# The build each client's tables are read at, when not the newest cached: --check
+# pins them to the ones the shipped Foods.lua names in its header.
+PINNED = {}
+
+
+def header_builds(text):
+    """{client: build} from the "Builds:" lines of a Foods.lua header."""
+    return dict(re.findall(r"^--\s+(\w+)\s+([0-9][0-9.]*), \d+ foods$", text, re.M))
+
+
 def newest(cache, client, table):
-    files = sorted(glob.glob(os.path.join(cache, "%s@*_%s.csv" % (client, table))))
+    build = PINNED.get(client)
+    files = sorted(glob.glob(os.path.join(cache, "%s@%s_%s.csv" % (client, build or "*", table))))
     if not files:
         raise SystemExit("no cached %s for %s in %s -- python tools/audit_ids.py --fetch-only" % (table, client, cache))
     return files[-1]
@@ -118,9 +131,13 @@ def main():
     parser.add_argument("--check", action="store_true", help="exit 1 when Foods.lua is not what the tables give")
     parser.add_argument("--cache", default=os.path.join(os.environ.get("TEMP", "."), "manners-audit-cache"))
     args = parser.parse_args()
-    text = render(args.cache)
+    current = None
     if args.check:
         current = open(OUT, encoding="utf-8", newline="").read() if os.path.exists(OUT) else None
+        if current:
+            PINNED.update(header_builds(current))
+    text = render(args.cache)
+    if args.check:
         if current == text:
             print("Foods.lua is current")
             return 0
