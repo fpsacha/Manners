@@ -59,10 +59,16 @@ mutate(B,
        expect="missing-buffs: tbc: Tree of Life in caster form, never in another form", script=S)
 
 mutate(B,
-       "ranks = { 439733 }, talent = true, notWith = \"moonkinform\" } } })",
-       "ranks = { 439733 }, talent = true } } })",
-       "missing-buffs: Tree of Life asked for beside Moonkin Form",
-       expect="missing-buffs: vanilla: a druid with Moonkin Form is asked for that one", script=S)
+       "\t\t\ttable.insert(druid, i + 1, { key = \"treeoflife\", toggle = true, form = true,",
+       "\t\t\ttable.insert(druid, i, { key = \"treeoflife\", toggle = true, form = true,",
+       "missing-buffs: Tree of Life asked for ahead of Moonkin Form",
+       expect="missing-buffs: vanilla: a druid with both forms is asked for Moonkin Form", script=S)
+
+mutate(B,
+       "\t\t\t\tspells = { { key = \"treeoflife\", ranks = { 439733 }, talent = true } } })",
+       "\t\t\t\tspells = { { key = \"treeoflife\", ranks = { 439733 }, talent = true, notWith = \"moonkinform\" } } })",
+       "missing-buffs: Tree of Life never asked for beside Moonkin Form",
+       expect="missing-buffs: vanilla: a druid with both forms is asked for Moonkin Form", script=S)
 
 mutate(B,
        "\tVANILLA_SET.notFavour[439745] = true\n",

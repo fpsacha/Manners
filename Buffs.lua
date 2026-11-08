@@ -1911,9 +1911,9 @@ end
 --   Tree of Life (439733), the druid's cloak rune (Engrave Cloak, 439767): a form
 --     (SpellEffect aura 36, form 2) with no timer (SpellDuration -1), lost on death
 --     (Attributes_3 0x0), its party aura 439745. A toggle like Moonkin Form, after
---     it, never asked for in another form (`form`); not for a druid who has Moonkin
---     Form too (`notWith`), who is asked for that one, so that he is never asked for
---     two forms at once.
+--     it, never asked for in another form (`form`). A druid who knows both is asked
+--     for Moonkin Form first, one reminder at a time, and in either form the other
+--     waits; with Moonkin Form's switch off he is asked for the tree.
 --   Spirit of the Alpha (408696) on a shaman who tanks: his own, held to the tank's
 --     role (`tank`), thirty minutes. Loyal Beta (443320), which a cast on somebody
 --     else gives him, is the family up too: his went to another, and "a target
@@ -1924,7 +1924,7 @@ do
 	for i, family in ipairs(druid) do
 		if family.key == "moonkinform" then
 			table.insert(druid, i + 1, { key = "treeoflife", toggle = true, form = true,
-				spells = { { key = "treeoflife", ranks = { 439733 }, talent = true, notWith = "moonkinform" } } })
+				spells = { { key = "treeoflife", ranks = { 439733 }, talent = true } } })
 			break
 		end
 	end

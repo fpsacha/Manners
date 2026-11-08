@@ -118,8 +118,9 @@ mutate("Queue.lua",
 # own does not tip it over the compiler's limit. The per-function limits
 # section objects to the same change in its own words, so the expect is this
 # section's wording alone.
-# The main chunk keeps 57 locals of its own now, so 138 more leave it five free.
-_fill = ["m%d" % i for i in range(1, 139)]
+# The main chunk keeps 64 locals of its own now (validate: 136 free), so 131 more
+# leave it five free.
+_fill = ["m%d" % i for i in range(1, 132)]
 mutate("Core.lua",
        "local L = ns.L\n",
        "local L = ns.L\n"

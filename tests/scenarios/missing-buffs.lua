@@ -261,12 +261,18 @@ for _, case in ipairs({ { "vanilla", TREE }, { "tbc", TBC_TREE } }) do
 end
 
 do
-	local scenario = "missing-buffs: vanilla: a druid with Moonkin Form is asked for that one, not two forms"
+	local scenario = "missing-buffs: vanilla: a druid with both forms is asked for Moonkin Form, then the tree"
 	with(scenario, { flavour = "vanilla", class = "DRUID", known = { MOONKIN, TREE } }, function(ns)
 		if key(mine(ns)) ~= "moonkinform" then fail(scenario, "offered " .. key(mine(ns)) .. ", not Moonkin Form") end
-		if mine(ns, "treeoflife") then fail(scenario, "Tree of Life offered beside Moonkin Form") end
 		shift(ns, MOONKIN)
 		if mine(ns) then fail(scenario, "in Moonkin Form, offered " .. key(mine(ns))) end
+		shift(ns, TREE)
+		if mine(ns) then fail(scenario, "in the Tree of Life, offered " .. key(mine(ns))) end
+		shift(ns, nil)
+		ns.db.profile.ownBuffs.pick.moonkinform = "off"
+		if key(mine(ns)) ~= "treeoflife" then
+			fail(scenario, "Moonkin Form switched off, offered " .. key(mine(ns)) .. ", not Tree of Life")
+		end
 	end)
 end
 
