@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+- **Favours.**
+  - A tank's buff first seen in the combat log (Classic Era, Burning Crusade,
+    Mists) is now owed by a shaman or paladin whose only buff for others is
+    Earth Shield or a Beacon.
+  - The "buffed you" line no longer promises the prompt while your Earth
+    Shield, Beacon or the like is on another member: it says the return comes
+    only if that frees up before the favour runs out.
+- **Asking in chat.** "beacon of faith pls" asks for Beacon of Faith alone, not
+  Beacon of Light too; the same holds for any short word inside another buff's
+  full name ("commanding shout pls" no longer asks for Battle Shout).
+- **Your own buffs.**
+  - Burning Crusade: Tree of Life waits while the group still needs Mark of
+    the Wild, as Moonkin Form does.
+  - Burning Crusade: Soul Link is read as up, and no longer offered again and
+    again.
+  - Mists: no stat scroll is offered over an elixir you have on.
+  - Diagnostics no longer says Demonic Sacrifice has "no timer".
+- **One target at a time (retail).**
+  - Beacon of Faith stays off your Beacon of Light's wearer even with Beacon of
+    Light switched off.
+  - Symbiotic Relationship's partner is topped up again.
+- **WoW Forever.** The spoken /party line is no longer dropped when the game's
+  list of your home party gives a member's first name only.
+
 ## 1.11.11
 
 - **The options window, reworked.**
