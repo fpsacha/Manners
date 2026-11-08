@@ -1323,11 +1323,11 @@ mutate("Prompt/Refresh.lua",
 mutate("Prompt/Refresh.lua",
        """	if (isNew or (becameOwed and db.sound.owedOnly)) and db.sound.enabled
 		and (not db.sound.owedOnly or top.reason == "owed"
-			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))
+			or not (ns.caps and ns.caps.hasClassBuffs == true and (ns.caps.anyKnown == true or not ns.OnlyTalentBuffs()) and db.sources.owed ~= false))
 		and not (lastSoundAt and (now - lastSoundAt) < SOUND_FLOOR_SECONDS) then""",
        """	if (isNew or (becameOwed and db.sound.owedOnly)) and db.sound.enabled
 		and (not db.sound.owedOnly or top.reason == "owed"
-			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false)) then""",
+			or not (ns.caps and ns.caps.hasClassBuffs == true and (ns.caps.anyKnown == true or not ns.OnlyTalentBuffs()) and db.sources.owed ~= false)) then""",
        "the alert sound following the churn",
        expect="the alert sound has a floor under it",
        script="runscenarios.py")
@@ -1476,7 +1476,7 @@ mutate("Options/Advanced.lua",
 #     disagree about who is worth interrupting for.
 mutate("Prompt/Refresh.lua",
        '		and (not db.sound.owedOnly or top.reason == "owed"\n'
-       '			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))\n',
+       '			or not (ns.caps and ns.caps.hasClassBuffs == true and (ns.caps.anyKnown == true or not ns.OnlyTalentBuffs()) and db.sources.owed ~= false))\n',
        "",
        "the sound alerting for passers-by",
        expect="the sound is as choosy as the flash",

@@ -1283,12 +1283,30 @@ do
 		return ns.TargetName(ns.UnitFullName("player"))
 	end
 
+	-- Whether a /target name is one of this account's characters: the macro is
+	-- account-wide, so a scroll body an alt left behind names the alt, not you.
+	-- The saved file's record of who has played (AceDB's profileKeys, "Name -
+	-- Realm"); a surname (Forever) or a realm may follow the name.
+	local function OneOfMine(name)
+		if name == OwnTarget() then return true end
+		local sv = addon.db and addon.db.sv
+		for key in pairs(type(sv) == "table" and type(sv.profileKeys) == "table" and sv.profileKeys or {}) do
+			local char = key:match("^(.-) %- ")
+			if char and char ~= "" and name:sub(1, #char) == char then
+				local after = name:sub(#char + 1, #char + 1)
+				if after == "" or after == " " or after == "-" then return true end
+			end
+		end
+		return false
+	end
+
 	-- Whether the lines under the bar line (rest[2] on) are a shape Manners
 	-- writes: the prompt's macro (Prompt/Macro.lua, STRATEGIES and HandBack).
 	-- In this order: at most one /target <name>; then one /cast <spell> with at
 	-- most one spoken line after it, or (with no /target) one /use item:<id>
 	-- with at most one /use 16 or 17 after it, or (after a /target of your own
-	-- name: a scroll used on you, Prompt/Macro.lua allyscroll) one /use
+	-- name, or another of your account's characters': a scroll used on you,
+	-- Prompt/Macro.lua allyscroll, in the account-wide macro) one /use
 	-- item:<id> alone; then, after a /target, at most one hand-back.
 	-- None at all is the bar line alone. Nothing Manners writes has a
 	-- conditional in it. A line of any other kind, or these in any other
@@ -1315,7 +1333,7 @@ do
 			i = i + 1
 			command, arg = Command(rest[i])
 			if command == "use" and (arg == "16" or arg == "17") then i = i + 1 end
-		elseif command == "use" and arg:match("^item:%d+$") and select(2, Command(rest[2])) == OwnTarget() then
+		elseif command == "use" and arg:match("^item:%d+$") and OneOfMine(select(2, Command(rest[2]))) then
 			i = i + 1
 		else
 			return false

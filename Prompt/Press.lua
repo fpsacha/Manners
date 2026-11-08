@@ -150,7 +150,7 @@ local function ExplainEmpty(now)
 				:format("|cffffd100" .. L["Hide the prompt while I'm mounted"] .. "|r", L["When to offer"]))
 		elseif not ns.CanCastAnything() then
 			local class = ns.caps.class
-			if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
+			if (class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class]) or ns.OnlyTalentBuffs() then
 				ns.addon:Print(ns.NO_CLASS_BUFFS)
 			else
 				ns.addon:Print(L["nothing learned to cast yet."])
@@ -166,6 +166,7 @@ local function ExplainEmpty(now)
 				or L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
 			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
 		elseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true
+			and #ns.CastableBuffs() > 0
 			and not ns.OnlyReachesGroup() and not (db.filters.restingOnly == true and ns.Resting() == false)
 			and ns.FriendlyPlatesOff() then
 			-- Nobody found, and passers-by are seen through the friendly

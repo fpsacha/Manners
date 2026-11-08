@@ -185,6 +185,8 @@ local VANILLA = {
 	DRUID = {
 		{
 			key = "motw",
+			-- Not castable in Moonkin Form (SpellShapeshift ShapeshiftExclude): Queue.lua holds the form back.
+			shiftsOut = true,
 			ranks = { 9885, 9884, 8907, 5234, 6756, 5232, 1126 },
 			group = { 21850, 21849 },
 			-- Gift of the Wild: each rank its own reagent.
@@ -935,6 +937,9 @@ end
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
+--   shiftsOut a buff the client refuses in Moonkin Form, and drops you out of it
+--             on the press (Classic Era and TBC's Mark of the Wild): Moonkin Form is
+--             not offered while one of these is waiting (Queue.lua, BuildQueue).
 --   form      a shapeshift form (Moonkin Form): nothing of it is offered while
 --             the shapeshift bar says you are in another form (Core.lua,
 --             OwnVerdict), which you took on purpose.
@@ -1389,6 +1394,7 @@ local TBC = {
 	DRUID = {
 		{
 			key = "motw",
+			shiftsOut = true,
 			ranks = { 26990, 9885, 9884, 8907, 5234, 6756, 5232, 1126 },
 			group = { 26991, 21850, 21849 },
 			-- Gift of the Wild: each rank its own reagent.
@@ -1854,6 +1860,8 @@ do
 				local entry = {}
 				for field, value in pairs(buff) do entry[field] = value end
 				if TRAINED[entry.key] then entry.talent = nil end
+				-- Forever casts it in Moonkin Form.
+				entry.shiftsOut = nil
 				copy[#copy + 1] = entry
 			end
 		end

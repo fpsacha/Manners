@@ -153,7 +153,7 @@ mutate("Prompt/Macro.lua",
        expect="consume-buffs: a scroll is used on you by name", script=S)
 
 mutate("Clicks.lua",
-       "\t\telseif command == \"use\" and arg:match(\"^item:%d+$\") and select(2, Command(rest[2])) == OwnTarget() then\n\t\t\ti = i + 1\n",
+       "\t\telseif command == \"use\" and arg:match(\"^item:%d+$\") and OneOfMine(select(2, Command(rest[2]))) then\n\t\t\ti = i + 1\n",
        "",
        "consume-buffs: the bar's scroll used on you taken for the player's",
        expect="consume-buffs: the bar macro keeps a scroll used on you as its own", script=S)

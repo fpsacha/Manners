@@ -1823,6 +1823,19 @@ function ns.SelfBuffFirst(db, now)
 	return buff
 end
 
+-- Moonkin Form waits while a buff the client refuses in it is up for somebody
+-- (Mark of the Wild on Classic Era and TBC, Buffs.lua `shiftsOut`): that press
+-- drops the form, and the form back in ahead of the next member would be
+-- shifted out again by the next one.
+local function FormWaits(mine, queue)
+	if not (mine.buff and mine.buff.key == "moonkinform") then return false end
+	for i = 1, #queue do
+		local other = queue[i].buff
+		if other and other.shiftsOut then return true end
+	end
+	return false
+end
+
 -- Your own buff, missing or (with top-ups on) running low: the one entry
 -- BuildQueue makes for you, after the walk, since IsBuffableUnit turns
 -- "player" away everywhere else. Returns the entry, or nil.
@@ -2463,6 +2476,7 @@ function ns.BuildQueue(watch)
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.
 	local mine = SelfEntry(db, candidates, now, neverVerdict)
+	if mine and FormWaits(mine, queue) then mine = nil end
 	if mine then
 		queue[#queue + 1] = mine
 	elseif watch then
