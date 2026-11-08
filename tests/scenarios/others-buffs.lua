@@ -182,6 +182,14 @@ for _, case in ipairs(TANKED) do
 			fail(scenario, "another's on party1 kept yours off the tank: " .. said(out))
 		end
 	end)
+	-- ...and one naming nobody, which no press of yours put there.
+	session(scenario, { client = case.client, class = case.class, known = { case.id },
+		wears = { party1 = { [case.id] = {} } } }, function(ns)
+		local out = offers(ns)
+		if out.party2 ~= case.key then
+			fail(scenario, "one naming nobody on party1 kept yours off the tank: " .. said(out))
+		end
+	end)
 
 	-- Asked for by name, by a member who is no tank: offered. "Buff pls" is
 	-- not asking for it.
@@ -251,6 +259,20 @@ do
 			end
 			if out.nameplate1 then fail(scenario, "a passer-by was offered " .. tostring(out.nameplate1)) end
 		end)
+	-- A member whose class the client will not give may be a druid: not offered.
+	session(scenario, { client = "mists", class = "DRUID", known = { 110309 }, roles = {},
+		classes = { party1 = "WARRIOR", party2 = false, party3 = "MAGE", nameplate1 = "PRIEST" },
+		setup = function()
+			local real = UnitClass
+			rawset(_G, "UnitClass", function(unit)
+				if unit == "party2" then return nil end
+				return real(unit)
+			end)
+		end }, function(ns)
+		local out = offers(ns)
+		if out.party2 then fail(scenario, "party2, of no class the client gives, was offered " .. tostring(out.party2)) end
+		if out.party1 ~= "symbiosis" then fail(scenario, "SKIPPED -- party1 was not offered Symbiosis: " .. said(out)) end
+	end)
 	scenario = "others-buffs: mists: Symbiosis on one member is offered to no other"
 	session(scenario, { client = "mists", class = "DRUID", known = { 110309 }, classes = CLASSES, roles = {},
 		wears = { party3 = { [110309] = { source = "player" } } } }, function(ns)
