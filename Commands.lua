@@ -312,6 +312,15 @@ function ns.Welcome(force, offSaid)
 		-- Your spells for others all switched off, and yours still offered.
 		addon:Print(L["|cffffd100Manners|r puts your own buffs on a small prompt when none of them is up; nothing is offered to anybody else: %s. Clicking the prompt casts it on you."]
 			:format(ns.NothingToCast()))
+	elseif ns.OnlyOneTarget() then
+		-- One person can have it, so it is not offered to anybody in the group
+		-- who is missing it: the line the options page gives for each.
+		for _, buff in ipairs(ns.CastableBuffs()) do
+			local line = buff.notOwnClass
+				and L["Only one person can have %s at a time, so it goes to one member of your group who is not of your class, and only while none of yours is on anybody in it."]
+				or L["Only one person can have %s at a time, so it goes to a tank of your group (the tank role, or main tank in a raid), and only while none of yours is on anybody in it."]
+			addon:Print(line:format("|cffffd100" .. ns.BuffName(buff) .. "|r"))
+		end
 	elseif ns.OnlyReachesGroup() then
 		local buff = ns.ResolveBuff(true)
 		if buff then

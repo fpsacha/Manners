@@ -3297,7 +3297,7 @@ mutate("Clicks.lua",
 
 # A favour recorded and promised when nothing we cast is any use to them.
 mutate("Favours.lua",
-       "\tif not ns.CouldOffer(hasMana, true) then\n",
+       "\tif not ns.CouldOffer(hasMana, true, nil, isTank, seen.class) then\n",
        "\tif false then\n",
        "a useless favour recorded",
        expect="a favour nothing can repay was recorded",

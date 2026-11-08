@@ -41,7 +41,9 @@ ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 
 -- What landed on whom, and when: a cast the game confirmed, kept so that a buff
 -- somebody wears with nobody named as its caster (WoW Forever names no caster
--- on another player's aura) can still be told for ours. Memory only, bounded.
+-- on another player's aura) can still be told for ours. One time per person
+-- and buff, so a blessing pressed on whoever wears your Oath of Light does not
+-- wipe the Oath's. Memory only, bounded by the people kept.
 do
 	local gaveAt, gaveCount = {}, 0
 
@@ -57,7 +59,7 @@ do
 			entry = {}
 			gaveAt[name] = entry
 		end
-		entry.key, entry.at = buffKey, GetTime()
+		entry[buffKey] = GetTime()
 	end
 
 	-- Whether what they wear of `buffKey`, with `remaining` seconds on a buff
@@ -66,9 +68,10 @@ do
 	-- since, by somebody else (a few seconds are allowed for the clocks).
 	function ns.GaveSince(name, buffKey, remaining, length)
 		local entry = name and gaveAt[name]
-		if not entry or entry.key ~= buffKey then return false end
+		local at = entry and entry[buffKey]
+		if not at then return false end
 		if type(remaining) ~= "number" or type(length) ~= "number" then return false end
-		return entry.at + length + 5 >= GetTime() + remaining
+		return at + length + 5 >= GetTime() + remaining
 	end
 end
 
@@ -1638,10 +1641,14 @@ local function OneTargetHolders(candidates)
 	local count = inRaid and n or (n - 1)
 	for _, buff in ipairs(candidates) do
 		if buff.oneTarget then
+			-- A buff the game will not let you cast on yourself (notSelf) is not
+			-- read on you: the aura on you is the druid's own, which Symbiosis
+			-- puts on its caster, and the partner wears another.
+			local myGuid = buff.notSelf and plain(UnitGUID("player")) or nil
 			for i = 0, count do
 				local unit = i == 0 and "player" or tokens[i] or (prefix .. i)
 				local guid = plain(UnitGUID(unit))
-				if guid then
+				if guid and not (buff.notSelf and (i == 0 or guid == myGuid)) then
 					local has, remaining, mine = UnitHasBuff(unit, buff, guid)
 					if has == nil then
 						ONE_HELD[buff.key] = true

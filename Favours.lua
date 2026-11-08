@@ -353,15 +353,19 @@ do
 
 	-- What the queue would offer somebody (nil for nothing) knowing only whether
 	-- they have mana, whether a shout reaches them, and whether they are in
-	-- your party or raid at all (Salvation's reach; nil: as inParty). The rest
-	-- is set as the queue sets it for a debt, so the two cannot disagree.
-	function ns.CouldOffer(hasMana, inParty, inGroup)
+	-- your party or raid at all (Salvation's reach; nil: as inParty), and, for a
+	-- buff for one target at a time (Core.lua, Castable), whether they tank and
+	-- which class they are. The rest is set as the queue sets it for a debt, so
+	-- the two cannot disagree.
+	function ns.CouldOffer(hasMana, inParty, inGroup, isTank, class)
 		local db = addon.db and addon.db.profile
 		if not db then return nil end
 		return ns.PickBuffFor(ns.CastableBuffs(), {
 			hasMana = hasMana,
 			inGroup = inGroup or inParty,
 			inParty = inParty,
+			isTank = isTank,
+			class = class,
 			relevantOnly = db.filters.relevantOnly,
 			whenBuffed = "always",
 			offerAnyway = true,
@@ -428,6 +432,10 @@ do
 			inGroup = InGroup(seen.name)
 			seen.inGroup = inGroup
 		end
+		-- Whether they tank, for a class whose only buff for others goes to one
+		-- target at a time: that goes to the tank of a group and to no passer-by,
+		-- so a favour from anybody else it could not return.
+		local isTank = inGroup and ns.IsTankUnit(seen.unit or seen.name) or nil
 		-- Whether a "buffed you" line is said here at all, asked once for both
 		-- kinds of favour: a raid's shouts at every pull are no more news than
 		-- its Fortitude.
@@ -446,7 +454,7 @@ do
 		end
 
 		-- Nothing we cast is any use to them, so no debt the queue could never fill.
-		if not ns.CouldOffer(hasMana, true) then
+		if not ns.CouldOffer(hasMana, true, nil, isTank, seen.class) then
 			-- A favour all the same, and let go in the moment it arrived.
 			TellLedger("Received", seen, true)
 			if speak then
@@ -471,7 +479,7 @@ do
 		-- prompt, and the line says so, naming the subgroup where that is the
 		-- limit. Salvation reaches the whole raid: a raider in another
 		-- subgroup is on the prompt as the queue offers them.
-		local reachable = ns.CouldOffer(hasMana, inParty, inGroup) ~= nil
+		local reachable = ns.CouldOffer(hasMana, inParty, inGroup, isTank, seen.class) ~= nil
 		if speak then
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
 			-- an unlocked prompt or Not while mounted.

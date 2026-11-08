@@ -275,7 +275,7 @@ do
 	end)
 	scenario = "others-buffs: mists: Symbiosis on one member is offered to no other"
 	session(scenario, { client = "mists", class = "DRUID", known = { 110309 }, classes = CLASSES, roles = {},
-		wears = { party3 = { [110309] = { source = "player" } } } }, function(ns)
+		wears = { party3 = { [110490] = { source = "player" } } } }, function(ns)
 		local out = offers(ns)
 		if out.party2 then fail(scenario, "party2 was offered " .. tostring(out.party2) .. " with yours on party3") end
 	end)

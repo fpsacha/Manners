@@ -2052,9 +2052,14 @@ do
 	-- member of your party or raid. "Cannot be cast on other Druids", and so on
 	-- no druid of yours, you included (notSelf); one link at a time, so it goes
 	-- to one member who is not a druid (notOwnClass) while none of yours is on
-	-- anybody.
+	-- anybody. 110309 is the aura on the druid himself (SpellEffect: apply aura
+	-- 332 on the caster, a dummy on the target); the partner wears the aura of
+	-- the class he is, one a class (apply aura 332 and 226 on the target, an
+	-- hour: `group`, so another druid's on you is a favour and yours on a
+	-- member is read as worn).
 	MISTS.DRUID[#MISTS.DRUID + 1] = { key = "symbiosis", ranks = { 110309 }, oneTarget = true, notOwnClass = true,
-		notSelf = true, alone = true }
+		notSelf = true, alone = true,
+		group = { 110478, 110479, 110482, 110483, 110484, 110485, 110486, 110488, 110490, 110491 } }
 end
 
 -- The level each buff above is learned at on this client (SpellLevels), for
@@ -2823,7 +2828,8 @@ do
 		{ 3600, 52127 }, -- Water Shield (1 h)
 		{ 600, 974 }, -- Earth Shield (10 min)
 		{ 0, 53563 }, -- Beacon of Light (no timer)
-		{ 3600, 110309 }, -- Symbiosis (1 h)
+		{ 3600, 110309, 110478, 110479, 110482, 110483, 110484, 110485, 110486, 110488, 110490,
+			110491 }, -- Symbiosis, the druid's aura and the partner's one a class (1 h)
 	})
 
 	-- retail 12.1.0.69933.
