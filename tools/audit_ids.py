@@ -51,6 +51,10 @@ client's DB2 tables from wago.tools, for the build CLAUDE.md's "Data sources" ci
                      imbue, 54 a temporary enchant), the scrolls' imbue included, and on the other
                      clients that none has one; and, as NOTEs, items the client has that make a
                      weapon enchant and the addon does not hold
+  ItemSparse, ItemEffect, SpellEffect, SpellMisc   every flask, elixir and stat scroll (Consumables.lua,
+                     tools/make_consumables.py): the item and its level, the spell its use casts, an
+                     aura on the user (a scroll's on a friendly target) of half an hour or more, a
+                     flask's kept through death and an elixir's not, a scroll's of its family's stat
   SpellEffect targets + SpellRadius   who a cast reaches against the flags that say so
                      (selfCast, partyOnly, groupOnly, alone, wideCasts, partyIsSubgroup,
                      SHOUT_YARDS)
@@ -1222,6 +1226,85 @@ def check_weapon_items(rep, c, d, flavour):
                                                              c.names.get(spell), enchant, ench.get(enchant, ("?",))[0]))
 
 
+# A consumable family's kind, by its key (Buffs.lua, CONSUME): the target its items' use puts the
+# aura on (1 the user, 21 a friendly target), and whether that aura stays on through death.
+CONSUMABLE_TARGET = {"flask": 1, "elixir": 1}
+DEATH_PERSISTENT = 0x100000
+# What a scroll family's aura raises: MOD_STAT (29) on that stat, or armour (22, Forever's 674) on
+# school 1 for Protection.
+SCROLL_STAT = {"scrollagility": 1, "scrollstrength": 0, "scrollintellect": 3, "scrollstamina": 2,
+               "scrollspirit": 4, "scrollprotection": None}
+
+
+def check_consumables(rep, c, d, flavour):
+    """Every flask, elixir and stat scroll (Buffs.lua, families with `consumable`, from
+    Consumables.lua) against the client's own data: the item exists and asks the level the addon
+    says, its use (ItemEffect, trigger 0) is the spell the addon reads, that spell puts an aura on
+    the user (a scroll: on a friendly target) for half an hour or more, a flask's stays on through
+    death and an elixir's does not, a scroll's raises its family's stat, and what `covers` an
+    elixir is a flask of this client."""
+    # Every class lists the same families: each copy that differs is checked, once.
+    fams, seen = [], set()
+    for _, fs in sorted(as_map(d["own"]).items()):
+        for f in fs:
+            copy_ = json.dumps(f, sort_keys=True)
+            if f.get("consumable") and copy_ not in seen:
+                seen.add(copy_)
+                fams.append((f["key"], f))
+    if not fams:
+        return
+    items = {s["item"] for _, f in fams for s in f["spells"]}
+    info = c.item_rows(items)
+    flasks = {s["ranks"][0] for key, f in fams if key == "flask" for s in f["spells"]}
+    for key, f in fams:
+        if not (f.get("toggle") and f.get("bagged")):
+            rep.finding("consumable.%s" % key, "the family is not a bagged toggle")
+        scroll = key in SCROLL_STAT
+        if not scroll and key not in CONSUMABLE_TARGET:
+            rep.finding("consumable.%s" % key, "no kind of consumable is called %r" % key)
+            continue
+        for i in f.get("covers") or []:
+            if key != "elixir" or i not in flasks:
+                rep.finding("consumable.%s" % key, "covers %d (%s), which is no flask the addon holds" % (i, c.names.get(i)))
+        for s in f["spells"]:
+            item, use = s["item"], s["ranks"][0]
+            where = "consumable.%s.%d" % (key, item)
+            row = info.get(item)
+            if row is None:
+                rep.finding(where, "item %d is not in ItemSparse" % item)
+                continue
+            if row["level"] != s["level"]:
+                rep.finding(where, "item %d (%s) asks level %d (ItemSparse); the addon says %d" % (
+                    item, row["name"], row["level"], s["level"]))
+            uses = [spell for spell, trigger in c.item_effects.get(item, []) if trigger == 0]
+            if use not in uses:
+                rep.finding(where, "item %d (%s) uses spell(s) %s in ItemEffect; the addon reads %d (%s)" % (
+                    item, row["name"], uses, use, c.names.get(use)))
+            if use not in c.names:
+                rep.finding(where, "spell %d has no SpellName in this client" % use)
+            target = 21 if scroll else CONSUMABLE_TARGET[key]
+            fx = [e for e in c.effects.get(use, []) if e["effect"] == 6 and e["t0"] == target]
+            if not fx:
+                rep.finding(where, "spell %d (%s) puts no aura on target %d (SpellEffect)" % (use, c.names.get(use), target))
+            if bool(s.get("onAlly")) != scroll or bool(s.get("castOnOthers")) != scroll:
+                rep.finding(where, "onAlly and castOnOthers are for the scrolls, cast at a friendly target, alone")
+            ms = c.duration_ms(use)
+            if ms is None or ms < 1800000:
+                rep.finding(where, "spell %d (%s) lasts %s ms, under half an hour" % (use, c.names.get(use), ms))
+            persists = (c.misc.get(use, {}).get("a3", 0) & DEATH_PERSISTENT) != 0
+            if key == "flask" and not persists:
+                rep.finding(where, "spell %d (%s) does not stay on through death, as a flask does" % (use, c.names.get(use)))
+            if key == "elixir" and persists:
+                rep.finding(where, "spell %d (%s) stays on through death, as a flask does" % (use, c.names.get(use)))
+            if scroll:
+                stat = SCROLL_STAT[key]
+                ok = any((e["aura"] == 29 and e["misc0"] == stat) if stat is not None
+                         else (e["aura"] in (22, 674) and e["misc0"] == 1) for e in fx)
+                if not ok:
+                    rep.finding(where, "spell %d (%s) raises %s, not the stat of %s" % (
+                        use, c.names.get(use), [(e["aura"], e["misc0"]) for e in fx], key))
+
+
 # Spells whose aura is not what the addon should match, with the reason (the audit's NOTE
 # for an aura a cast also puts on that no key names would otherwise repeat on every run).
 BENIGN_LANDED = re.compile(r".* Highlight|\[DND\].*|Shout Rage Bonus", re.I)
@@ -1500,6 +1583,7 @@ def audit_dump(rep, c, d, flavour):
     check_favours(rep, c, d)
     check_scrolls(rep, c, d)
     check_weapon_items(rep, c, d, flavour)
+    check_consumables(rep, c, d, flavour)
     check_durations(rep, c, d, flavour)
     check_races_classes(rep, c, d)
     check_reach(rep, c, d, flavour)
@@ -1533,7 +1617,7 @@ def audit(flavour, cache, offline, notes):
 
 
 def selftest(cache, offline):
-    """The audit goes red when a datum is wrong: Classic Era's dump is changed in sixteen ways, one
+    """The audit goes red when a datum is wrong: Classic Era's dump is changed in nineteen ways, one
     after another, and each must produce the FINDING it exists for."""
     import copy
     fl = "vanilla"
@@ -1605,6 +1689,21 @@ def selftest(cache, offline):
     def no_rank_row(d):
         d["statValue"].pop("1460")
 
+    def consumable(d, key):
+        for fams in d["own"].values():
+            for fam in fams:
+                if fam.get("key") == key:
+                    return fam
+
+    def flask_level(d):
+        consumable(d, "flask")["spells"][0]["level"] = 1
+
+    def elixir_as_flask(d):
+        consumable(d, "flask")["spells"][0]["ranks"] = list(consumable(d, "elixir")["spells"][0]["ranks"])
+
+    def scroll_of_another_stat(d):
+        consumable(d, "scrollagility")["spells"][0]["ranks"] = list(consumable(d, "scrollstrength")["spells"][0]["ranks"])
+
     cases = [
         ("a rank learned at another level than RANK_LEVEL says", change_level, "ns.RANK_LEVEL says 99"),
         ("a rank the client has that the addon dropped", drop_rank, "does not hold"),
@@ -1622,6 +1721,9 @@ def selftest(cache, offline):
         ("a scroll of the client's that the addon does not list", drop_blocker, "does not list it"),
         ("a blocker of another stat", other_stat, "the stat of intellect"),
         ("a rank with no worth in the table", no_rank_row, "has no row in statValue"),
+        ("a flask asking another level than the addon says", flask_level, "the addon says 1"),
+        ("an elixir's spell read as a flask's", elixir_as_flask, "does not stay on through death"),
+        ("a scroll of another stat in a scroll's family", scroll_of_another_stat, "not the stat of scrollagility"),
     ]
     clean = Report(fl)
     FINDINGS.clear()
@@ -1652,7 +1754,7 @@ def main(argv=None):
     ap.add_argument("--notes", action="store_true", help="also print NOTE lines")
     ap.add_argument("--dump", choices=FLAVOURS, help="print the addon's side as JSON and stop")
     ap.add_argument("--selftest", action="store_true",
-                    help="change Classic Era's dump in sixteen ways and check each one is caught")
+                    help="change Classic Era's dump in nineteen ways and check each one is caught")
     ap.add_argument("--build", action="append", default=[], metavar="CLIENT=BUILD",
                     help="audit against another build of that client (e.g. camelot=1.60.1.70338), "
                          "for data that moved since the build CLAUDE.md cites")

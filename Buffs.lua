@@ -728,8 +728,103 @@ for _, client in ipairs({ "camelot", "vanilla" }) do
 			nameFromItem = L["Cozy Sleeping Bag"] } } }
 end
 
+-- Flasks, elixirs and stat scrolls (1.11.11): asked for as switches like Well
+-- Fed's. Consumables.lua, written by tools/make_consumables.py from each
+-- client's own data (Classic Era with Season of Discovery's, Forever with its
+-- own, Burning Crusade, Mists), lists them; retail has none. Each kind is a
+-- `bagged` family of every class (`consumable`), off until it is turned on, a
+-- toggle like Well Fed (offered again once it is gone, never topped up), read
+-- by the ids of the auras the items' uses put on, whoever put them there
+-- (Core.lua, ReadConsumable), and offering the best one in the bags: the
+-- table's order. Items, named by the item (Core.lua, ProbeScroll) and used
+-- with /use item:<id> (Prompt/Macro.lua). A flask stays on through death
+-- (SpellMisc Attributes_3 0x100000), which the reading needs nothing for.
+--
+-- Elixirs are one family, up while any elixir is on you, and on Burning
+-- Crusade and Mists also while a flask is (`covers`): those clients have a
+-- battle and a guardian slot, and a flask fills both. One family can only be
+-- wrong by saying nothing (a battle elixir on, the guardian slot empty), never
+-- by asking for an elixir a flask or another elixir would turn away; two
+-- families would need each elixir's slot, a rule of the game's servers with no
+-- column in the client's tables.
+--
+-- Scrolls are a family per stat: two of one stat do not stack (the greater
+-- stays), two of different stats do. Each is cast at a friendly target
+-- (SpellEffect target 21), so the macro targets you first (`onAlly`), and one
+-- somebody else used on you counts, and stays their favour as before
+-- (`castOnOthers`, ns.IsOwnAura). A scroll of a stat a class buff gives too
+-- (the `blockers` of Arcane Intellect, Fortitude and Divine Spirit) is up while
+-- that buff is on you, of any rank: a scroll over a stronger one is refused
+-- (ns.ConsumableAuras). The scrolls stay those buffs' `blockers` as they were.
+local CONSUME = {}
+do
+	local SCROLLS = {
+		{ "agility", L["Scroll of Agility"] }, { "strength", L["Scroll of Strength"] },
+		{ "protection", L["Scroll of Protection"] }, { "intellect", L["Scroll of Intellect"] },
+		{ "stamina", L["Scroll of Stamina"] }, { "spirit", L["Scroll of Spirit"] },
+	}
+	local function Family(key, label, rows, prefix, ally)
+		local spells = {}
+		for i, row in ipairs(rows or {}) do
+			spells[i] = { key = prefix .. row[1], item = row[1], level = row[2], ranks = { row[3] },
+				nameFromItem = label, onAlly = ally, castOnOthers = ally }
+		end
+		if #spells == 0 then return nil end
+		return { key = key, label = label, bagged = true, consumable = true, toggle = true, spells = spells }
+	end
+	for client, data in pairs(ns.CONSUMABLES or {}) do
+		local list = {}
+		local flask = Family("flask", L["Flask"], data.flask, "flask")
+		local elixir = Family("elixir", L["Elixir"], data.elixir, "elixir")
+		list[#list + 1] = flask
+		if elixir and flask and data.flaskFills then
+			elixir.covers = {}
+			for i, spell in ipairs(flask.spells) do elixir.covers[i] = spell.ranks[1] end
+		end
+		list[#list + 1] = elixir
+		for _, scroll in ipairs(SCROLLS) do
+			list[#list + 1] = Family("scroll" .. scroll[1], scroll[2], data.scroll and data.scroll[scroll[1]],
+				"scroll", true)
+		end
+		CONSUME[client] = list
+	end
+end
+
+-- Every aura id that says a consumable family is up, once each: its items'
+-- own, what fills its place (`covers`), and for a scroll the ranks and group
+-- versions of a class buff that lists the scroll among its `blockers`. Worked
+-- out the first time it is asked, when the set for this client is chosen.
+function ns.ConsumableAuras(family)
+	if family.auraList then return family.auraList end
+	local list, seen, own = {}, {}, {}
+	local function add(id)
+		if not seen[id] then
+			seen[id] = true
+			list[#list + 1] = id
+		end
+	end
+	for _, spell in ipairs(family.spells) do
+		own[spell.ranks[1]] = true
+		add(spell.ranks[1])
+	end
+	for _, id in ipairs(family.covers or {}) do add(id) end
+	for _, buffs in pairs(ns.BUFFS or {}) do
+		for _, buff in ipairs(buffs) do
+			local blocked = false
+			for _, id in ipairs(buff.blockers or {}) do blocked = blocked or own[id] == true end
+			if blocked then
+				for _, id in ipairs(buff.ranks) do add(id) end
+				for _, id in ipairs(buff.group or {}) do add(id) end
+			end
+		end
+	end
+	family.auraList = list
+	return list
+end
+
 -- The families for this client in a class's own list, ahead of tracking as
--- the weapon enhancements are, or last: Well Fed, then Well-Rested.
+-- the weapon enhancements are, or last: Well Fed, then Well-Rested, then the
+-- flasks, elixirs and scrolls.
 local function AddFood(list, client)
 	local at = #list + 1
 	for i, each in ipairs(list) do
@@ -740,6 +835,10 @@ local function AddFood(list, client)
 			table.insert(list, at, family)
 			at = at + 1
 		end
+	end
+	for _, family in ipairs(CONSUME[client] or {}) do
+		table.insert(list, at, family)
+		at = at + 1
 	end
 end
 

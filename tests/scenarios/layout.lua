@@ -32,12 +32,16 @@ local RETIRED = {
 -- Placed for another client's model, never this one's: Classic Era's
 -- Omen of Clarity, a passive on Forever (Buffs.lua, CAMELOT_OWN), and the
 -- rogue's poisons as spells on Mists and retail, which are items on the others.
+-- The flasks, elixirs and scrolls (Buffs.lua, CONSUME), which retail has none of.
 local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.own_nonlethal"] = true,
 	["who.own_food"] = true, ["who.own_rested"] = true, ["who.own_shamanimbue"] = true,
 	-- 1.11.11: Season of Discovery's Heart of the Lion (Classic Era), Grimoire of
 	-- Sacrifice (Mists, retail), and retail's off-hand imbue and a paladin's rites.
 	["who.own_heartofthelion"] = true, ["who.own_grimoireofsacrifice"] = true,
-	["who.own_shamanimbueoff"] = true, ["who.own_rite"] = true }
+	["who.own_shamanimbueoff"] = true, ["who.own_rite"] = true,
+	["who.own_flask"] = true, ["who.own_elixir"] = true, ["who.own_scrollagility"] = true,
+	["who.own_scrollstrength"] = true, ["who.own_scrollprotection"] = true, ["who.own_scrollintellect"] = true,
+	["who.own_scrollstamina"] = true, ["who.own_scrollspirit"] = true }
 
 local ACEDB = {
 	["profiles.current"] = true, ["profiles.choosedesc"] = true, ["profiles.new"] = true,

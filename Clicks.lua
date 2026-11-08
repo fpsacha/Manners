@@ -1277,12 +1277,19 @@ do
 	local SPOKEN = {}
 	for _, command in pairs(ns.CHANNEL_COMMANDS or {}) do SPOKEN[command:lower()] = true end
 
+	-- You, as the prompt's macro spells you on its /target line (Queue.lua,
+	-- the entry for yourself).
+	local function OwnTarget()
+		return ns.TargetName(ns.UnitFullName("player"))
+	end
+
 	-- Whether the lines under the bar line (rest[2] on) are a shape Manners
 	-- writes: the prompt's macro (Prompt/Macro.lua, STRATEGIES and HandBack).
 	-- In this order: at most one /target <name>; then one /cast <spell> with at
 	-- most one spoken line after it, or (with no /target) one /use item:<id>
-	-- with at most one /use 16 or 17 after it; then, after a /target, at most
-	-- one hand-back.
+	-- with at most one /use 16 or 17 after it, or (after a /target of your own
+	-- name: a scroll used on you, Prompt/Macro.lua allyscroll) one /use
+	-- item:<id> alone; then, after a /target, at most one hand-back.
 	-- None at all is the bar line alone. Nothing Manners writes has a
 	-- conditional in it. A line of any other kind, or these in any other
 	-- order or number (a trinket's /use 13 added under the cast), is not.
@@ -1308,6 +1315,8 @@ do
 			i = i + 1
 			command, arg = Command(rest[i])
 			if command == "use" and (arg == "16" or arg == "17") then i = i + 1 end
+		elseif command == "use" and arg:match("^item:%d+$") and select(2, Command(rest[2])) == OwnTarget() then
+			i = i + 1
 		else
 			return false
 		end
