@@ -130,6 +130,7 @@ local START_PAGE = {
 	"general.firstWho", "general.firstVoice", "general.firstDone", "general.firstSkip", "general.quickWho", "general.quickWhoSummary",
 	"general.bindKey", "general.makeMacro", "general.openBindings", "general.bindStatus",
 	"general.ledgerSummary", "general.ledgerOpen", "general.minimap", "general.verbose", "general.silentChat",
+	"general.welcomeAgain",
 }
 do
 	local scenario = "start here: the page as the window draws it"

@@ -702,6 +702,10 @@ function Page.BuildWhoTab()
 		-- A hunter has "Myself" here and nothing else (ForOthersOnly).
 		hidden = function() return not HasPrompt() end,
 		args = {
+			-- Who the prompt is on right now, over this page and Who to skip.
+			rightNow = Page.RightNowNote(0.5),
+			rightNowSkip = Page.RightNowNote(39.5, true),
+
 			-------------------------------------------------- what to cast
 			buffsHeader = { type = "header", name = L["What to cast"], order = 1 },
 			choice = {

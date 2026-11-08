@@ -12710,7 +12710,8 @@ if ns then
 		for _ = 1, 3 do inQueue(ns) end
 		control.set({ "proximity" }, "near")
 		local said = tostring(note.name())
-		if said:find("no signal", 1, true) or not said:find("CheckInteractDistance", 1, true) then
+		-- The duel prompt's check, in the page's plain words (round 37).
+		if said:find("no signal", 1, true) or not said:find(ns.L["the duel range"], 1, true) then
 			fail(scenario, "picking Nearby, the page described a step that is not"
 				.. " selected: " .. said)
 		end
@@ -16643,7 +16644,7 @@ if ns then
 		fail(scenario, "SKIPPED -- no bug-report box on the page")
 	else
 		local function check(route)
-			if not report.hidden() or button.name() ~= "Copy for a bug report" then
+			if not report.hidden() or button.name() ~= "Show a short summary" then
 				fail(scenario, ("%s the report box is %s and the button reads %q")
 					:format(route, report.hidden() and "shut" or "still open", button.name()))
 			end

@@ -211,3 +211,88 @@ mutate("Options/Who.lua", " or key == \"ownDungeons\"\n",
        "\n",
        "ux-redesign: a hunter cannot hold his consumables to dungeons",
        expect="ux-redesign: a class with nothing for others has Consumables only", script=S)
+
+# --- search, buttons, right now: 7, 8, 19 ------------------------------------------
+
+SEARCH = "Options/Window/Search.lua"
+WSEARCH = "Options/Window/WindowSearch.lua"
+
+mutate(SEARCH, "\tif AtWordStart(entry.desc, query) then return 2 end\n",
+       "\tif Has(entry.desc, query) then return 2 end\n",
+       "ux-redesign: a tooltip matched inside a word",
+       expect="ux-redesign: search reads tooltips by whole words", script=S)
+
+mutate(SEARCH, "\tif find(query, \"[\\224-\\255]\") then return find(text, query, 1, true) ~= nil end\n",
+       "",
+       "ux-redesign: Chinese in a tooltip held to word starts",
+       expect="ux-redesign: search reads tooltips by whole words", script=S)
+
+mutate(SEARCH, "\tif entry.keywords and AtWordStart(entry.keywords, query) then return 1 end\n",
+       "",
+       "ux-redesign: a control's other words not searched",
+       expect="ux-redesign: search reads tooltips by whole words", script=S)
+
+mutate(LAYOUT, "\t\t[\"general.silentChat\"] = L[\"quiet mute spam\"],\n",
+       "",
+       "ux-redesign: quiet finds nothing",
+       expect="ux-redesign: the search box finds quiet", script=S)
+
+mutate(WSEARCH, "\tlocal found = ns.WindowSearch.Find(text, Entries(), MAX_RESULTS + 1) or {}\n",
+       "\tlocal found = ns.WindowSearch.Find(text, Entries(), MAX_RESULTS) or {}\n",
+       "ux-redesign: the list ends as if it were all",
+       expect="ux-redesign: the search box finds quiet, says when there is more", script=S)
+
+mutate(WSEARCH, "\t\tor L[\"Nothing matches.\"]\n",
+       "\t\tor \"\"\n",
+       "ux-redesign: an empty search says nothing on the classic clients",
+       expect="ux-redesign: the search box finds quiet, says when there is more and when there is nothing", script=S)
+
+mutate(WSEARCH, "\t\tlocal parent = Parent(item)\n\t\tif not parent then return end\n",
+       "\t\tdo return end\n\t\tlocal parent\n",
+       "ux-redesign: Line set unfindable while Say a line is off",
+       expect="ux-redesign: search finds Line set while Say a line is off", script=S)
+
+mutate("Options/Diagnostics.lua", "\t\t\t\tfunc = function() ns.addon:HandleSlash(\"selftest launch\") end,\n",
+       "\t\t\t\tfunc = function() ns.addon:HandleSlash(\"selftest\") end,\n",
+       "ux-redesign: the launch check button runs the short self-test",
+       expect="ux-redesign: the slash-only commands have buttons", script=S)
+
+mutate("Options/Diagnostics.lua", "\t\t\t\thidden = function() return #ns.errors <= 5 end,\n",
+       "\t\t\t\thidden = function() return true end,\n",
+       "ux-redesign: every error only by command",
+       expect="ux-redesign: the slash-only commands have buttons", script=S)
+
+mutate(LAYOUT, "\t\t\t\t\t\"general.welcomeAgain\",\n",
+       "",
+       "ux-redesign: the welcome only by command",
+       expect="every control has one place in the options window", script=S)
+
+mutate("Options/Profiles.lua", "\t\t\thidden = function() return not (ns.ImportUndoHeld and ns.ImportUndoHeld()) end,\n",
+       "\t\t\thidden = true,\n",
+       "ux-redesign: the import undo only by command",
+       expect="ux-redesign: Put my settings back shows while an import can be undone", script=S)
+
+mutate("Commands.lua", "\tfunction ns.ImportUndoHeld() return lastImportUndo ~= nil and addon.db ~= nil and addon.db.profile == undoProfile end\n",
+       "\tfunction ns.ImportUndoHeld() return addon.db ~= nil end\n",
+       "ux-redesign: Put my settings back with nothing to undo",
+       expect="ux-redesign: Put my settings back shows while an import can be undone", script=S)
+
+mutate("Options/Shared.lua", "\tlocal queue = prompt.state and prompt.state.pickedFrom\n",
+       "\tlocal queue = ns.BuildQueue()\n",
+       "ux-redesign: the right-now line builds a queue every paint",
+       expect="ux-redesign: the pages say who is on the prompt right now", script=S)
+
+mutate("Options/Shared.lua", "\t\tif entry.name ~= showing.name then others = others + 1 end\n",
+       "\t\tothers = others + 1\n",
+       "ux-redesign: the one on the prompt counted as waiting",
+       expect="ux-redesign: the pages say who is on the prompt right now", script=S)
+
+mutate(LAYOUT, "\t\t\t\t{ key = \"when.now\", items = { \"when.rightNow\" } },\n",
+       "",
+       "ux-redesign: When to offer does not say who is on the prompt",
+       expect="ux-redesign: the pages say who is on the prompt right now", script=S)
+
+mutate(LAYOUT, "\t\t\t\t\t{ \"diagnostics.noErrors\", standIn = true },\n",
+       "\t\t\t\t\t\"diagnostics.noErrors\",\n",
+       "ux-redesign: Errors this session gone with nothing broken",
+       expect="ux-redesign: the slash-only commands have buttons", script=S)

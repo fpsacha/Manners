@@ -654,3 +654,196 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ search
+-- 7: a tooltip matches at the start of a word, and Chinese anywhere; other
+-- words for a control rank with its choices.
+do
+	local scenario = "ux-redesign: search reads tooltips by whole words and knows other words"
+	session(scenario, {}, function(ns)
+		local Search = ns.WindowSearch
+		local entries = {
+			{ label = "Up", desc = "It stays on screen." },
+			{ label = "Speech", desc = "Says a line when you buff someone." },
+			{ label = "Silence", keywords = "quiet mute spam" },
+			{ label = "Chinese", desc = "\232\175\180\232\175\157" },
+		}
+		local function labels(query)
+			local out = {}
+			for _, hit in ipairs(Search.Find(query, entries)) do out[#out + 1] = hit.label end
+			return table.concat(out, ", ")
+		end
+		if labels("tays") ~= "" then fail(scenario, "a word's middle matched a tooltip: " .. labels("tays")) end
+		if labels("says") ~= "Speech" then fail(scenario, "a tooltip's word was not found: " .. labels("says")) end
+		if labels("mute") ~= "Silence" then fail(scenario, "the other words for a control were not searched") end
+		if labels("\232\175\157") ~= "Chinese" then fail(scenario, "Chinese in a tooltip is not found inside a word") end
+	end)
+end
+
+-- 7: in the window, "quiet" finds the chat switches; a search that finds more
+-- than the list holds says so; one that finds nothing says so in words.
+do
+	local scenario = "ux-redesign: the search box finds quiet, says when there is more and when there is nothing"
+	session(scenario, { page = "general" }, function(ns, UI)
+		local search = UI.search
+		local box = search and search.box
+		if not box then
+			fail(scenario, "SKIPPED -- no search box")
+			return
+		end
+		local function run(text)
+			box:SetText(text)
+			UI.RunSearch()
+			return search.found
+		end
+		local found = run("quiet")
+		local hit = false
+		for _, f in ipairs(found) do
+			if f.ref.path == "general.silentChat" then hit = true end
+		end
+		if not hit then fail(scenario, "quiet does not find Hide all Manners messages") end
+		found = run("buff")
+		if #found > 8 and not search.moreLine:IsShown() then
+			fail(scenario, ("%d things match buff and the list does not say there are more"):format(#found))
+		elseif #found <= 8 then
+			fail(scenario, "SKIPPED -- buff matches only " .. #found)
+		end
+		run("zzqqxx")
+		if not (search.noneLine:IsShown() and (search.noneLine:GetText() or "") ~= "") then
+			fail(scenario, "a search that finds nothing says nothing")
+		end
+		if search.moreLine:IsShown() then fail(scenario, "an empty search says there are more") end
+	end)
+end
+
+-- 7: a control hidden until a switch is on is found, and leads to the switch.
+do
+	local scenario = "ux-redesign: search finds Line set while Say a line is off"
+	session(scenario, { page = "general" }, function(ns, UI)
+		ns.db.profile.speech.enabled = false
+		ns.RefreshOptionsDisplay()
+		local box = UI.search and UI.search.box
+		if not box then
+			fail(scenario, "SKIPPED -- no search box")
+			return
+		end
+		box:SetText(ns.L["Line set"])
+		UI.RunSearch()
+		local hit
+		for _, f in ipairs(UI.search.found) do
+			if f.ref.via == "click.preset" then hit = f end
+		end
+		if not hit then
+			fail(scenario, "Line set is not found while Say a line is off")
+			return
+		end
+		if hit.ref.path ~= "click.enabled" or not hit.first then
+			fail(scenario, "the result does not lead to Say a line, or does not say to turn it on")
+		end
+		local e = UI.Choose(hit.ref)
+		if not (e and UI.page == "click" and UI.RowShown("click.enabled")) then
+			fail(scenario, "choosing it did not open Say a line")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ buttons
+-- 8: what only a slash command reached, as buttons.
+do
+	local scenario = "ux-redesign: the slash-only commands have buttons"
+	session(scenario, { page = "diagnostics" }, function(ns, UI)
+		local said = {}
+		local real = ns.addon.HandleSlash
+		ns.addon.HandleSlash = function(_, text) said[#said + 1] = text end
+		local function press(path)
+			local item = ns.WindowBind.Item(path)
+			if not item then
+				fail(scenario, path .. " is not in the model")
+				return
+			end
+			ns.WindowBind.Run(item)
+		end
+		press("diagnostics.launchCheck")
+		press("general.welcomeAgain")
+		ns.addon.HandleSlash = real
+		local text = table.concat(said, " / ")
+		if text ~= "selftest launch / welcome" then fail(scenario, "the buttons ran " .. text) end
+		if not UI.RowShown("diagnostics.launchCheck") then fail(scenario, "Check how Manners draws is not drawn") end
+		before(UI, scenario, "diagnostics.fullReport", "diagnostics.launchCheck")
+		-- Show every error, once there are more than the five listed.
+		if UI.RowShown("diagnostics.allErrors") then fail(scenario, "Show every error with no errors") end
+		-- The section stays, with its notes, while the button is away.
+		if not UI.RowShown("diagnostics.noErrors") then fail(scenario, "Errors this session went with the button") end
+		for i = 1, 6 do ns.Guard("ux test", error, "error " .. i, 0) end
+		ns.RefreshOptionsDisplay()
+		if not UI.RowShown("diagnostics.allErrors") then fail(scenario, "six errors and no Show every error") end
+		if not UI.RowShown("diagnostics.errorList") then fail(scenario, "six errors and no list of them") end
+		wipe(ns.errors)
+	end)
+end
+
+do
+	local scenario = "ux-redesign: Put my settings back shows while an import can be undone"
+	session(scenario, { page = "profiles" }, function(ns, UI)
+		local item = ns.WindowBind.Item("profiles.shareUndo")
+		if not item then
+			fail(scenario, "there is no Put my settings back")
+			return
+		end
+		if not ns.WindowBind.Hidden(item) then fail(scenario, "Put my settings back with nothing to undo") end
+		local text = ns.ExportSettings()
+		ns.ImportSettings(text)
+		if ns.WindowBind.Hidden(item) then fail(scenario, "after an import there is no Put my settings back") end
+		ns.WindowBind.Run(item)
+		if not ns.WindowBind.Hidden(item) then fail(scenario, "the undo was not taken, or the button stayed") end
+	end)
+end
+
+-- ------------------------------------------------------------------ right now
+-- 19: who the settings come to right now, read off the last scan.
+do
+	local scenario = "ux-redesign: the pages say who is on the prompt right now"
+	session(scenario, {}, function(ns)
+		H.freshPrompt(ns, scenario)
+		H.owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		local built = 0
+		local real = ns.BuildQueue
+		ns.BuildQueue = function(...)
+			built = built + 1
+			return real(...)
+		end
+		local ok, line = pcall(ns.OptionsPage.RightNow)
+		ns.BuildQueue = real
+		if not ok then
+			fail(scenario, "the line threw: " .. tostring(line))
+			return
+		end
+		if built > 0 then fail(scenario, "the line built a queue of its own") end
+		-- Whoever the prompt is on (the session's target first), and Anna,
+		-- who buffed you, waiting behind them.
+		local showing = ns.Prompt:Showing()
+		local who = showing and tostring(showing.display or showing.short or showing.name)
+		if not (who and line and line:find(who, 1, true)) then
+			fail(scenario, "the line does not name who the prompt is on: " .. tostring(line))
+		elseif not line:find(ns.L["1 more is waiting."], 1, true) then
+			fail(scenario, "the line does not count the one waiting behind: " .. tostring(line))
+		end
+		ns.OpenOptions("who", true)
+		ns.Prompt:ExitTest()
+		ns.RefreshOptionsDisplay()
+		local UI = ns.WindowUI
+		for _, pair in ipairs({ { "who", "who.rightNow" }, { "skip", "who.rightNowSkip" }, { "when", "when.rightNow" } }) do
+			UI.ShowPage(pair[1])
+			if not UI.RowShown(pair[2]) then fail(scenario, pair[2] .. " is not drawn on " .. pair[1]) end
+		end
+		ns.Prompt:ApplyTarget(nil)
+	end)
+	session(scenario, {}, function(ns)
+		ns.Prompt:ExitTest()
+		local line = ns.OptionsPage.RightNow()
+		if not (line and line:find(ns.L["Right now: nobody to offer."], 1, true)) then
+			fail(scenario, "with nobody about, the line says " .. tostring(line))
+		end
+	end)
+end

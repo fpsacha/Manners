@@ -408,7 +408,7 @@ do
 		end
 		desc = text(args.showCooldown.desc)
 		-- On this tab now, so named without a tab.
-		if not desc:find("|cffffd100Keep the prompt still in combat|r", 1, true)
+		if not desc:find("|cffffd100No flashes in combat|r", 1, true)
 			or desc:find("(When to offer)", 1, true) then
 			fail(scenario, "Show the global cooldown does not point at Keep the prompt still: " .. desc)
 		end

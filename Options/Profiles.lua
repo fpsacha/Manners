@@ -131,6 +131,20 @@ function Page.BuildProfilesTab()
 				ns.addon:Reply(message)
 			end,
 		},
+		-- /manners import undo as a button, while there is an import on this
+		-- profile to take back (Commands.lua, ns.ImportUndoHeld).
+		shareUndo = {
+			type = "execute",
+			name = L["Put my settings back"],
+			desc = L["Takes back the settings you pasted, and puts back the ones this profile had before. Once, this session."],
+			order = 105,
+			hidden = function() return not (ns.ImportUndoHeld and ns.ImportUndoHeld()) end,
+			-- The command's own way, so chat says the same either way in.
+			func = function()
+				ns.addon:HandleSlash("import undo")
+				ns.RefreshOptionsDisplay()
+			end,
+		},
 	}) do
 		t.args[key] = option
 	end

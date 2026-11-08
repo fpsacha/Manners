@@ -44,7 +44,7 @@ do
 		-- among the switches that stop offers it read as one of them.
 		-- Your own buffs under a heading of their own, after other people's
 		-- (round 37).
-		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "refreshRaid",
+		local ORDER = { "rightNow", "buffedHeader", "whenBuffed", "refreshUnder", "refreshRaid",
 			"alwaysNote", "verifiedOnly", "selfHeader", "selfTopUp", "selfLead", "selfLeadNote",
 			"wayHeader", "hideMounted", "manaFloor", "manaNote" }
 		local last

@@ -174,6 +174,10 @@ ns.WindowLayout = {
 					"general.verbose",
 					"general.silentChat",
 				} },
+				-- What /manners welcome says, again, for somebody who skipped it.
+				{ key = "general.welcome", items = {
+					"general.welcomeAgain",
+				} },
 			},
 		},
 
@@ -181,6 +185,8 @@ ns.WindowLayout = {
 			title = L["Who to buff"],
 			icon = WhoIcon,
 			sections = {
+				-- Who the prompt is on right now, so a switch can be seen to work.
+				{ key = "who.now", items = { "who.rightNow" } },
 				{ key = "who.cast", header = "who.buffsHeader", items = CastItems() },
 				-- The class's buffs as a list in the order they are tried, each with an
 				-- arrow up and one down (the "order" composite, Widgets: five
@@ -295,6 +301,7 @@ ns.WindowLayout = {
 			title = L["Who to skip"],
 			icon = ICONS.skip,
 			sections = {
+				{ key = "skip.now", items = { "who.rightNowSkip" } },
 				{ key = "skip.lead", items = {
 					"who.skipPvP",
 					-- Who that switch holds back right now, under it.
@@ -318,6 +325,7 @@ ns.WindowLayout = {
 			title = L["When to offer"],
 			icon = ICONS.when,
 			sections = {
+				{ key = "when.now", items = { "when.rightNow" } },
 				-- Other people first, then your own buffs under a heading of their
 				-- own: their top-up has a switch and a lead of its own.
 				{ key = "when.buffed", header = "when.buffedHeader", items = {
@@ -516,6 +524,7 @@ ns.WindowLayout = {
 					"profiles.shareCopy",
 					"profiles.shareText",
 					"profiles.sharePaste",
+					"profiles.shareUndo",
 				} },
 			},
 		},
@@ -531,15 +540,20 @@ ns.WindowLayout = {
 					"diagnostics.proximityDiag",
 				} },
 				{ key = "diagnostics.errors", header = "diagnostics.errorsHeader", items = {
-					"diagnostics.errorList",
-					"diagnostics.noErrors",
+					-- Notes that keep the section while Show every error is
+					-- hidden (five errors or fewer).
+					{ "diagnostics.errorList", standIn = true },
+					"diagnostics.allErrors",
+					{ "diagnostics.noErrors", standIn = true },
 				} },
 				{ key = "diagnostics.report", header = "diagnostics.reportHeader", items = {
 					-- Which of the two buttons a player asked for a report wants.
 					"diagnostics.reportHint",
 					-- The one press a player asked for a report needs.
 					{ "diagnostics.fullReport", big = true },
-					"diagnostics.copyReport",
+					{ "diagnostics.copyReport", buttons = true },
+					-- /manners selftest launch, beside the short summary.
+					{ "diagnostics.launchCheck", buttons = true },
 					"diagnostics.report",
 					"diagnostics.selftest",
 					-- For working out a failed cast: under the buttons.
@@ -585,6 +599,22 @@ ns.WindowLayout = {
 			return L["Needs %s ticked."]:format(NameOf("who.strangers"))
 		end,
 		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
+	},
+
+	-- Other words people search for a control by (WindowSearch.lua): ranked
+	-- with its choices, matched at the start of a word. One string a control,
+	-- translated as a whole.
+	keywords = {
+		["general.silentChat"] = L["quiet mute spam"],
+		["general.verbose"] = L["quiet mute spam"],
+	},
+
+	-- A control hidden until a switch is on, and that switch: search finds the
+	-- control and opens the switch, saying to turn it on first.
+	parents = {
+		["click.preset"] = "click.enabled",
+		["click.phrases"] = "click.enabled",
+		["click.roll"] = "click.enabled",
 	},
 
 	-- In the model and drawn nowhere.

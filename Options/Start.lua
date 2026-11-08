@@ -1144,6 +1144,14 @@ function Page.BuildStartTab()
 				get = function() return ns.db.profile.silentChat == true end,
 				set = function(_, v) ns.db.profile.silentChat = v end,
 			},
+			-- /manners welcome as a button, last on the page people land on.
+			welcomeAgain = {
+				type = "execute",
+				name = L["Show the welcome again"],
+				desc = L["Says again in your chat window what Manners does and the one thing it needs from you."],
+				order = 80,
+				func = function() ns.addon:HandleSlash("welcome") end,
+			},
 		},
 	}
 end

@@ -631,7 +631,7 @@ function Page.BuildLookTab()
 				name = L["Show the global cooldown on the icon"],
 				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
 					.. "\n\n|cff888888" .. L["Not in a fight while this is on:"] .. "|r "
-					.. "|cffffd100" .. L["Keep the prompt still in combat"] .. "|r",
+					.. "|cffffd100" .. L["No flashes in combat"] .. "|r",
 				order = 54,
 				width = "full",
 				disabled = function() return not P().showIcon end,

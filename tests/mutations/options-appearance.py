@@ -161,8 +161,8 @@ mutate("Options/Look.lua",
 
 # The cooldown sweep silent about the combat setting that stills it.
 mutate("Options/Look.lua",
-       "\t\t\t\t\t.. \"|cffffd100\" .. L[\"Keep the prompt still in combat\"] .. \"|r\",\n",
-       "\t\t\t\t\t.. L[\"Keep the prompt still in combat\"],\n",
+       "\t\t\t\t\t.. \"|cffffd100\" .. L[\"No flashes in combat\"] .. \"|r\",\n",
+       "\t\t\t\t\t.. L[\"No flashes in combat\"],\n",
        "look: cooldown points nowhere",
        expect="Show the global cooldown does not point at Keep the prompt still", script=S)
 

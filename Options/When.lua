@@ -29,6 +29,8 @@ function Page.BuildWhenTab()
 		-- here), and a shaman's Lightning Shield is topped up from here.
 		hidden = function() return not HasPrompt() end,
 		args = {
+			-- Who the prompt is on right now (Shared.lua).
+			rightNow = Page.RightNowNote(0.5),
 			-- About other people, which a class with nothing for them (a
 			-- hunter) has none of: its choice there is about its own buffs.
 			buffedHeader = {

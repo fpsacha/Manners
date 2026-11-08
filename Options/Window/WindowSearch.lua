@@ -6,6 +6,7 @@
 local _, ns = ...
 local UI = ns.WindowUI
 local C = UI.C
+local L = ns.L
 
 local MAX_RESULTS, DELAY = 8, 0.15
 -- Hung under the box, as in the game's own Settings window, and narrow enough
@@ -24,9 +25,33 @@ local function Ask(fn, ...)
 	return nil
 end
 
+-- The layout's other words for a control (`keywords`): a string, or a
+-- function asked now.
+local function Keywords(path)
+	local words = (UI.Layout().keywords or {})[path]
+	if type(words) == "function" then words = Ask(words) end
+	return type(words) == "string" and words or nil
+end
+
+-- A control hidden until a switch is on (the layout's `parents`: Line set
+-- under Say a line) is found too, while that switch is shown: choosing it
+-- opens the switch, and the result says to turn it on first.
+local function Parent(item)
+	local path = (UI.Layout().parents or {})[item.path]
+	local parent = path and UI.Item(path)
+	if not parent or UI.Hidden(parent) then return nil end
+	return parent
+end
+
 local function Add(out, item, sec, id, title)
 	local B = ns.WindowBind
-	if UI.Hidden(item) then return end
+	local ref, first = { path = item.path, page = id }, nil
+	if UI.Hidden(item) then
+		local parent = Parent(item)
+		if not parent then return end
+		first = Ask(B.Text, parent, "name")
+		ref = { path = parent.path, page = id, via = item.path }
+	end
 	local choices = {}
 	local t = item.def.type
 	if t == "select" or t == "multiselect" then
@@ -36,7 +61,8 @@ local function Add(out, item, sec, id, title)
 	end
 	out[#out + 1] = {
 		label = Ask(B.Text, item, "name") or "", desc = Ask(B.Text, item, "desc"), choices = choices,
-		section = UI.SectionText(sec), page = title, ref = { path = item.path, page = id },
+		keywords = Keywords(item.path), first = first,
+		section = UI.SectionText(sec), page = title, ref = ref,
 	}
 end
 
@@ -101,6 +127,8 @@ function UI.Choose(ref)
 	return e
 end
 
+-- `found` holds one more than is shown when there are more: the last line
+-- then says to keep typing, rather than the list ending as if it were all.
 local function ShowResults(found)
 	local panel = search.results
 	local count = 0
@@ -111,29 +139,31 @@ local function ShowResults(found)
 			b.ref = hit.ref
 			b.label:SetText(UI.Plain(hit.label))
 			local section = hit.section ~= "" and hit.section or nil
-			b.where:SetText(UI.Plain(hit.page or "") .. (section and (" > " .. UI.Plain(section)) or ""))
+			local where = UI.Plain(hit.page or "") .. (section and (" > " .. UI.Plain(section)) or "")
+			-- Hidden behind a switch: the result opens that switch.
+			if hit.first then where = where .. " -- " .. L["Turn on %s first"]:format(UI.Plain(hit.first)) end
+			b.where:SetText(where)
 			b:Show()
 		else
 			b:Hide()
 		end
 	end
 	if count == 0 then
-		-- The client's own sentence for an empty search where it has one;
-		-- otherwise the list stays shut and the box turns red.
-		if search.none then
-			search.noneLine:SetText(search.none)
-			search.noneLine:Show()
-			panel:SetHeight(RESULT_H)
-			panel:Show()
-		else
-			panel:Hide()
-			Bad(true)
-		end
+		-- The client's own sentence for an empty search where it has one,
+		-- ours where it has not; the box goes red as well.
+		search.moreLine:Hide()
+		search.noneLine:SetText(search.none)
+		search.noneLine:Show()
+		panel:SetHeight(RESULT_H)
+		panel:Show()
+		Bad(true)
 		return
 	end
 	search.noneLine:Hide()
 	Bad(false)
-	panel:SetHeight(count * RESULT_H + 8)
+	local more = found[MAX_RESULTS + 1] ~= nil
+	search.moreLine:SetShown(more)
+	panel:SetHeight(count * RESULT_H + 8 + (more and 20 or 0))
 	panel:Show()
 end
 
@@ -146,7 +176,8 @@ function UI.RunSearch()
 		Bad(false)
 		return
 	end
-	local found = ns.WindowSearch.Find(text, Entries(), MAX_RESULTS) or {}
+	-- One more than the list shows, to know whether there are more.
+	local found = ns.WindowSearch.Find(text, Entries(), MAX_RESULTS + 1) or {}
 	search.found = found
 	ShowResults(found)
 end
@@ -236,6 +267,11 @@ local function BuildResults()
 	search.noneLine = UI.Text(panel, GameFontDisable, C.hint)
 	search.noneLine:SetPoint("LEFT", panel, "LEFT", 12, 0)
 	search.noneLine:Hide()
+	-- Under the last result, when the search found more than the list holds.
+	search.moreLine = UI.Text(panel, GameFontDisableSmall, C.hint)
+	search.moreLine:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -(4 + MAX_RESULTS * RESULT_H + 4))
+	search.moreLine:SetText(L["More matches: keep typing"])
+	search.moreLine:Hide()
 	-- Under the box, so it moves with the sidebar when the strip shows, and
 	-- level with the page list's left edge, over the open page's gold bar.
 	panel:SetPoint("TOPLEFT", search.box, "BOTTOMLEFT", -4, -4)
@@ -273,7 +309,9 @@ function UI.BuildSearch(parent)
 	search.placeholder = UI.Text(box, GameFontDisable, C.hint)
 	search.placeholder:SetPoint("LEFT", box, "LEFT", 24, 0)
 	search.placeholder:SetText(SEARCH or "")
-	search.none = type(SETTINGS_SEARCH_NOTHING_FOUND) == "string" and SETTINGS_SEARCH_NOTHING_FOUND or nil
+	-- The client's own words where it has them; the classic clients do not.
+	search.none = type(SETTINGS_SEARCH_NOTHING_FOUND) == "string" and SETTINGS_SEARCH_NOTHING_FOUND
+		or L["Nothing matches."]
 	box:SetScript("OnTextChanged", UI.Guarded(Typed))
 	box:SetScript("OnEnterPressed", UI.Guarded(Entered))
 	box:SetScript("OnEscapePressed", UI.Guarded(UI.ClearSearch))

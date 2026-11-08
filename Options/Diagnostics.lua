@@ -517,6 +517,16 @@ function Page.BuildDiagnosticsTab()
 					return table.concat(lines, "\n")
 				end,
 			},
+			-- /manners errors as a button, once there are more than the five
+			-- listed above.
+			allErrors = {
+				type = "execute",
+				name = L["Show every error"],
+				desc = L["Lists every error this session in your chat window, the oldest first."],
+				order = 21.2,
+				hidden = function() return #ns.errors <= 5 end,
+				func = function() ns.addon:HandleSlash("errors") end,
+			},
 			noErrors = {
 				type = "description",
 				order = 21.5,
@@ -569,6 +579,17 @@ function Page.BuildDiagnosticsTab()
 						for line in text:gmatch("[^\n]+") do ns.addon:Reply(line) end
 					end
 				end,
+			},
+			-- /manners selftest launch as a button: the checks of how the
+			-- looks, the bar slot and the tooltip draw on this client, into the
+			-- same box. Out of combat: it puts looks on the real prompt.
+			launchCheck = {
+				type = "execute",
+				name = L["Check how Manners draws in this game"],
+				desc = L["Puts every look on the real prompt, tries the action bar slot and the tooltip, and puts everything back: the report opens in the box below. Nothing is cast or said."],
+				order = 32.7,
+				disabled = function() return InCombatLockdown() end,
+				func = function() ns.addon:HandleSlash("selftest launch") end,
 			},
 			report = {
 				type = "input",
