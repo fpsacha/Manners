@@ -469,9 +469,11 @@ do
 		end
 		enchant(ns, true, false)
 		if mine(ns) then fail(scenario, "the rite on the weapon, offered " .. key(mine(ns))) end
-		-- Still nothing for anybody else, and a prompt for its own.
-		if ns.CLASSES_WITHOUT_BUFFS.PALADIN ~= true or not ns.OwnBuffsOnly() then
-			fail(scenario, "a retail paladin with a rite is not read as having its own buffs alone")
+		-- Beacon of Light (Buffs.lua, MAINLINE.PALADIN) gives a retail paladin a
+		-- buff for others, learned or not, as Earth Shield does a shaman: the
+		-- class has its settings for others, and the rite is its own.
+		if ns.CLASSES_WITHOUT_BUFFS.PALADIN or ns.caps.hasClassBuffs ~= true or not ns.OnlyTalentBuffs() then
+			fail(scenario, "a retail paladin is read as having nothing for others beside the rite")
 		end
 	end)
 end
