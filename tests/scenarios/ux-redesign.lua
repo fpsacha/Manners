@@ -21,11 +21,12 @@ end
 local function near(a, b, tol) return type(a) == "number" and type(b) == "number" and math.abs(a - b) < (tol or 1e-3) end
 
 -- One session on the recording client, the window open on `spec.page` (none:
--- not opened). `spec.class`, `spec.locale`, `spec.buffs` (the class's buffs it
+-- not opened). `spec.flavour` (the client), `spec.class`, `spec.locale`, `spec.buffs` (the class's buffs it
 -- knows, by key), `spec.known` (spell ids), `spec.before(ns)` (after the load,
 -- before the window opens). `body(ns, UI)`. Everything put back.
 local function session(scenario, spec, body)
 	Mock.reset()
+	if spec.flavour then Mock.setFlavour(spec.flavour) end
 	if spec.class then Mock.class = spec.class end
 	if spec.locale then Mock.locale = spec.locale end
 	local saved = {}
@@ -374,5 +375,282 @@ do
 		local item = ns.WindowBind.Item("advanced.resetAdvanced")
 		local name = item and ns.WindowBind.Text(item, "name")
 		if name ~= ns.L["Reset this page"] then fail(scenario, "the reset reads " .. tostring(name)) end
+	end)
+end
+
+-- ------------------------------------------------------------------ words
+local function name(ns, path)
+	local item = ns.WindowBind.Item(path)
+	return item and ns.WindowBind.Text(item, "name") or nil
+end
+
+local function expectName(ns, scenario, path, want)
+	local got = name(ns, path)
+	if got ~= want then fail(scenario, ("%s reads %q, not %q"):format(path, tostring(got), want)) end
+end
+
+-- 2: a new profile is asked once: the paragraph first, the two questions,
+-- the two buttons side by side; step 1 away while they ask the same thing.
+do
+	local scenario = "ux-redesign: Quick setup asks once, its buttons side by side"
+	session(scenario, { page = "general" }, function(ns, UI)
+		if not ns.QuickSetup.Asking() then
+			fail(scenario, "SKIPPED -- a new profile is not asked the two questions")
+			return
+		end
+		local sections = ns.WindowLayout.pages.general.sections
+		if not (sections[1].key == "general.lead" and sections[2].key == "general.firstRun") then
+			fail(scenario, "the paragraph about the prompt does not come before the questions")
+		end
+		for _, path in ipairs({ "general.quickWho", "general.quickWhoSummary" }) do
+			if UI.RowShown(path) then fail(scenario, path .. " asks again under Quick setup") end
+		end
+		expectName(ns, scenario, "general.firstDone", ns.L["Use these"])
+		expectName(ns, scenario, "general.firstSkip", ns.L["Not now"])
+		for _, pair in ipairs({ { "general.firstDone", "general.firstSkip" }, { "general.makeMacro", "general.openBindings" } }) do
+			local a, b = UI.Where(pair[1]), UI.Where(pair[2])
+			-- Open key bindings only where the client has the page to open.
+			if not (UI.RowShown(pair[1]) and UI.RowShown(pair[2])) then
+				if pair[1] == "general.firstDone" then fail(scenario, pair[1] .. " or " .. pair[2] .. " is not drawn") end
+			elseif not (a.e.y == b.e.y and b.e.x > a.e.x
+				and b.e.x - (a.e.x + (a.e.row.button or a.e.row.frame):GetWidth()) <= 20) then
+				fail(scenario, ("%s is not right beside %s (%s,%s / %s,%s)"):format(pair[2], pair[1], tostring(a.e.x),
+					tostring(a.e.y), tostring(b.e.x), tostring(b.e.y)))
+			end
+		end
+		-- The two dropdowns at one width.
+		local who, voice = UI.RowFor("general.firstWho"), UI.RowFor("general.firstVoice")
+		if who and voice and who.field:GetWidth() ~= voice.field:GetWidth() then
+			fail(scenario, ("the two questions' dropdowns are %d and %d wide"):format(who.field:GetWidth(), voice.field:GetWidth()))
+		end
+		ns.QuickSetup.FinishFirstRun(false)
+		if not UI.RowShown("general.quickWho") then fail(scenario, "Offer my buff to is not back once Quick setup is done") end
+	end)
+end
+
+-- 20e: in German the two choices are of different lengths, and the two
+-- dropdowns were drawn at different widths.
+do
+	local scenario = "ux-redesign: the two Quick setup dropdowns are one width in German"
+	session(scenario, { page = "general", locale = "deDE" }, function(ns, UI)
+		local who, voice = UI.RowFor("general.firstWho"), UI.RowFor("general.firstVoice")
+		if not (who and voice and UI.RowShown("general.firstWho")) then
+			fail(scenario, "SKIPPED -- Quick setup is not asked")
+		elseif who.field:GetWidth() ~= voice.field:GetWidth() then
+			fail(scenario, ("the two questions' dropdowns are %d and %d wide"):format(who.field:GetWidth(), voice.field:GetWidth()))
+		end
+	end)
+end
+
+-- 3, 13, 14, 16's neighbours: what the switches are called now.
+do
+	local scenario = "ux-redesign: the switches say what they do"
+	session(scenario, { page = "general" }, function(ns, UI)
+		local L = ns.L
+		expectName(ns, scenario, "general.silentChat", L["Hide all Manners messages in my chat window"])
+		expectName(ns, scenario, "general.verbose", L["Show what Manners is doing in my chat window"])
+		expectName(ns, scenario, "general.minimapHeader", L["Minimap and chat window"])
+		expectName(ns, scenario, "when.verifiedOnly", L["Don't offer when the game hides their buffs (fights)"])
+		expectName(ns, scenario, "appearance.hideInCombat", L["No flashes in combat"])
+		expectName(ns, scenario, "advanced.owedClassBuffsOnly", L["Count only class buffs as favours"])
+		expectName(ns, scenario, "general.bindKey", L["Key that casts what the prompt shows"])
+		expectName(ns, scenario, "advanced.reasonUnknown", L["Reason text: buffs hidden"])
+		expectName(ns, scenario, "appearance.accentByReason", L["Colour by why they are offered"])
+		expectName(ns, scenario, "appearance.accentMode", L["Where the colour shows"])
+		expectName(ns, scenario, "appearance.accentColor", L["Colour when not by reason"])
+		expectName(ns, scenario, "appearance.reasonPalette", L["Colour set"])
+		expectName(ns, scenario, "advanced.favoursHeader", L["Buffing back"])
+		expectName(ns, scenario, "who.quietInTowns", L["Offer nothing in cities and inns"])
+		expectName(ns, scenario, "who.quietInInstances", L["Offer nothing in dungeons, raids and battlegrounds"])
+		expectName(ns, scenario, "when.refreshUnder", L["Top up at most this many minutes early"])
+		expectName(ns, scenario, "when.selfLead", L["Remind me this many minutes early"])
+		expectName(ns, scenario, "diagnostics.copyReport", L["Show a short summary"])
+		-- The mana switch names what it holds back.
+		local mana = name(ns, "who.relevantOnly") or ""
+		local ai = ns.FindBuff("MAGE", "arcaneint") or (ns.GetClassBuffs("MAGE") or {})[1]
+		local spell = ai and ns.BuffName(ai) or "?"
+		if not mana:find(spell, 1, true) then fail(scenario, "the mana switch does not name " .. spell .. ": " .. mana) end
+	end)
+end
+
+-- 13: the distance line in plain words, never the client call's name.
+do
+	local scenario = "ux-redesign: the passer-by distance line names no client call"
+	session(scenario, { page = "diagnostics" }, function(ns, UI)
+		local row = UI.RowFor("diagnostics.proximityDiag")
+		local text = row and row.text and row.text:GetText() or ""
+		if text == "" then
+			fail(scenario, "SKIPPED -- no distance line")
+		elseif text:find("CheckInteractDistance", 1, true) or text:find("LibRangeCheck", 1, true) then
+			fail(scenario, "the distance line names the API: " .. text)
+		end
+	end)
+end
+
+-- 14: one word for the people near you that are not in your group.
+do
+	local scenario = "ux-redesign: the launcher calls a passer-by a passer-by"
+	session(scenario, {}, function(ns)
+		local restore = H.strangers({ nameplate1 = { "Anna", "Aim" } })
+		H.freshPrompt(ns, scenario)
+		ns.addon:Tick()
+		local broker = Mock.broker
+		local lines = {}
+		if broker and broker.OnTooltipShow then
+			broker.OnTooltipShow({ AddLine = function(_, text) lines[#lines + 1] = tostring(text) end })
+		end
+		restore()
+		local text = table.concat(lines, "\n")
+		if not text:find("Anna", 1, true) then
+			fail(scenario, "SKIPPED -- the tooltip does not show the passer-by: " .. text)
+		elseif text:find("nearby", 1, true) or not text:find("a passer-by", 1, true) then
+			fail(scenario, "the tooltip does not call her a passer-by: " .. text)
+		end
+	end)
+end
+
+-- 15: no key is not a fault.
+do
+	local scenario = "ux-redesign: no key is said in gold, with no red dot"
+	session(scenario, { page = "general" }, function(ns, UI)
+		local row = UI.RowFor("general.bindStatus")
+		local text = row and row.text and row.text:GetText() or ""
+		if text:find("|cffff8080", 1, true) or not text:find("|cffffd100", 1, true) then
+			fail(scenario, "the line under step 2 is not gold: " .. text)
+		end
+		if ns.OptionsPage.Warn.general ~= nil then fail(scenario, "Start here still has a red dot for the key") end
+	end)
+end
+
+-- 16: the profile controls in the player's words, over the library's.
+do
+	local scenario = "ux-redesign: Profiles speaks the player's words"
+	session(scenario, {}, function(ns)
+		local lib = LibStub("AceDBOptions-3.0")
+		local real = lib.GetOptionsTable
+		local developer = {}
+		for _, key in ipairs({ "current", "choosedesc", "new", "choose", "copydesc", "copyfrom", "deldesc", "delete", "descreset", "reset" }) do
+			local note = key:find("desc") or key == "current"
+			developer[key] = { type = note and "description" or "execute", name = "library " .. key, desc = not note and "library tip" or nil }
+		end
+		local shared = { type = "group", name = "Profiles", args = developer }
+		lib.GetOptionsTable = function() return shared end
+		local ok, tab = pcall(ns.OptionsPage.BuildProfilesTab)
+		lib.GetOptionsTable = real
+		if not ok then
+			fail(scenario, "building the tab threw: " .. tostring(tab))
+			return
+		end
+		local L = ns.L
+		local want = { new = L["New profile"], choose = L["Use profile"], copyfrom = L["Copy from"], delete = L["Delete"],
+			reset = L["Reset this profile"],
+			choosedesc = L["Type a name to start a new profile, or pick one you already have."] }
+		for key, words in pairs(want) do
+			if tab.args[key].name ~= words then fail(scenario, key .. " reads " .. tostring(tab.args[key].name)) end
+		end
+		for key, option in pairs(tab.args) do
+			local text = type(option.name) == "function" and option.name({ handler = { GetCurrentProfile = function() return "Default" end } })
+				or option.name
+			if tostring(text):find("library", 1, true) or tostring(option.desc or ""):find("library", 1, true) then
+				fail(scenario, key .. " still reads the library's words")
+			end
+		end
+		if developer.new.name ~= "library new" then fail(scenario, "the library's own table was written to") end
+	end)
+end
+
+-- 20: the polish.
+do
+	local scenario = "ux-redesign: Stay silent is not followed by Silent."
+	session(scenario, { page = "click" }, function(ns, UI)
+		local quick = ns.QuickSetup
+		quick.Apply(quick.VOICE, "silent")
+		ns.RefreshOptionsDisplay()
+		if UI.RowShown("general.quickVoiceSummary") then fail(scenario, "Stay silent is followed by its summary") end
+		quick.Apply(quick.VOICE, "thank")
+		ns.RefreshOptionsDisplay()
+		if not UI.RowShown("general.quickVoiceSummary") then fail(scenario, "Just /thank them has no summary") end
+	end)
+end
+
+do
+	local scenario = "ux-redesign: Skip players below level says what 1 means"
+	session(scenario, { page = "skip" }, function(ns, UI)
+		ns.db.profile.filters.minLevel = 1
+		ns.RefreshOptionsDisplay()
+		if not UI.RowShown("who.minLevelNote") then fail(scenario, "at 1 the slider's 1 is not explained") end
+		ns.db.profile.filters.minLevel = 20
+		ns.RefreshOptionsDisplay()
+		if UI.RowShown("who.minLevelNote") then fail(scenario, "at 20 the note about 1 is still shown") end
+	end)
+end
+
+do
+	local scenario = "ux-redesign: a rogue's Diagnostics has no error colour and no distance"
+	session(scenario, { class = "ROGUE", page = "diagnostics" }, function(ns, UI)
+		if UI.RowShown("diagnostics.proximityDiag") then fail(scenario, "a rogue is shown how passers-by are measured") end
+		local row = UI.RowFor("diagnostics.noDiag")
+		local text = row and row.text and row.text:GetText() or ""
+		if not UI.RowShown("diagnostics.noDiag") then
+			fail(scenario, "SKIPPED -- the rogue's line is not drawn")
+		elseif text:find("|cffff8080", 1, true) then
+			fail(scenario, "a class with nothing for others is told so in red")
+		end
+	end)
+end
+
+do
+	local scenario = "ux-redesign: Start here's paragraph is body text, not a heading"
+	session(scenario, { page = "general" }, function(ns, UI)
+		local w = UI.Where("general.howItWorks")
+		if not w then
+			fail(scenario, "SKIPPED -- no paragraph")
+		elseif w.e.layout.lead then
+			fail(scenario, "the paragraph is drawn a size up, as a heading")
+		end
+	end)
+end
+
+-- The new rows of 1.11.11, read on the clients that have them.
+do
+	local scenario = "ux-redesign: Earth Shield's shaman is not told it is cast on herself"
+	session(scenario, { flavour = "mists", class = "SHAMAN", known = { 974, 324 }, page = "who" }, function(ns, UI)
+		local item = ns.WindowBind.Item("who.strangersNote")
+		if not (item and UI.RowShown("who.strangersNote")) then
+			fail(scenario, "SKIPPED -- no passers-by note for a mists shaman")
+			return
+		end
+		local text = ns.WindowBind.Text(item, "name") or ""
+		if text:find(ns.L["Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by."], 1, true) then
+			fail(scenario, "a shaman whose Earth Shield goes on a tank is told it is cast on herself")
+		end
+	end)
+end
+
+do
+	local scenario = "ux-redesign: Beacon of Light is not one of the blessings that replace one another"
+	session(scenario, { flavour = "mists", class = "PALADIN", buffs = { "kings", "might", "beacon" }, page = "who" }, function(ns, UI)
+		local item = ns.WindowBind.Item("who.autoNote")
+		local text = item and ns.WindowBind.Text(item, "name") or ""
+		local beacon = ns.FindBuff("PALADIN", "beacon")
+		if not (beacon and ns.IsBuffKnown(beacon) and text ~= "") then
+			fail(scenario, "SKIPPED -- no Beacon of Light learned")
+			return
+		end
+		local first = text:match("^[^\n]*")
+		if first:find(ns.BuffName(beacon), 1, true) then
+			fail(scenario, "Beacon of Light is listed among the blessings that replace one another: " .. first)
+		end
+	end)
+end
+
+do
+	local scenario = "ux-redesign: a class with nothing for others has Consumables only in dungeons and raids"
+	session(scenario, { class = "HUNTER", known = { 13165, 13163 }, page = "who" }, function(ns, UI)
+		if not UI.RowShown("who.self") then
+			fail(scenario, "SKIPPED -- the hunter has no Myself")
+		elseif not UI.RowShown("who.ownDungeons") then
+			fail(scenario, "a hunter cannot hold his food and flasks to dungeons")
+		end
 	end)
 end

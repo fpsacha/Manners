@@ -111,3 +111,103 @@ mutate("Options/Advanced.lua", "name = L[\"Reset this page\"],",
        "name = L[\"Put these back to default\"],",
        "ux-redesign: the footer's reset reads as before",
        expect="ux-redesign: the footer's reset reads Reset this page", script=S)
+
+# --- the words: 2, 3, 13, 14, 15, 16, 20, and the new rows -----------------------
+
+START = "Options/Start.lua"
+WORDS = "ux-redesign: the switches say what they do"
+
+mutate(START, "\t\t\t\thidden = function() return noClassBuffs() or Quick.Asking() end,\n\t\t\t\tvalues = function() return Quick.Values(Quick.WHO) end,\n",
+       "\t\t\t\thidden = noClassBuffs,\n\t\t\t\tvalues = function() return Quick.Values(Quick.WHO) end,\n",
+       "ux-redesign: Offer my buff to asks again under Quick setup",
+       expect="ux-redesign: Quick setup asks once", script=S)
+
+mutate(LAYOUT, "\t\t\t\t\t{ \"general.firstDone\", buttons = true },\n",
+       "\t\t\t\t\t{ \"general.firstDone\", pair = true },\n",
+       "ux-redesign: Done and Skip half a page apart",
+       expect="ux-redesign: Quick setup asks once", script=S)
+
+mutate("Options/Window/WindowPage.lua", "\t\tif e.layout.buttons then\n\t\t\ty, i = PlaceButtons(list, i, y)\n\t\telseif e.layout.pair then",
+       "\t\tif e.layout.pair then",
+       "ux-redesign: a run of buttons stacked one under the other",
+       expect="ux-redesign: Quick setup asks once", script=S)
+
+mutate("Options/Window/WidgetsChoice.lua", "math.ceil(Widest(row)) + 40, row.matchField or 0))",
+       "math.ceil(Widest(row)) + 40))",
+       "ux-redesign: the two questions' dropdowns at their own widths",
+       expect="ux-redesign: the two Quick setup dropdowns are one width in German", script=S)
+
+mutate(LAYOUT, "\t\t\t\t{ key = \"general.lead\", items = {\n\t\t\t\t\t{ \"general.noBuffs\", standIn = true },\n\t\t\t\t\t\"general.howItWorks\",\n",
+       "\t\t\t\t{ key = \"general.lead\", items = {\n\t\t\t\t\t{ \"general.noBuffs\", standIn = true },\n\t\t\t\t\t{ \"general.howItWorks\", lead = true },\n",
+       "ux-redesign: Start here's paragraph a size up, as a heading",
+       expect="ux-redesign: Start here's paragraph is body text", script=S)
+
+mutate(START, "name = L[\"Hide all Manners messages in my chat window\"],",
+       "name = L[\"Say nothing at all in chat\"],",
+       "ux-redesign: the silence switch reads as the character's speech",
+       expect=WORDS, script=S)
+
+mutate("Options/When.lua", "name = L[\"Don't offer when the game hides their buffs (fights)\"],",
+       "name = L[\"Only offer people whose buffs can be read\"],",
+       "ux-redesign: the hidden-buffs switch in jargon",
+       expect=WORDS, script=S)
+
+mutate("Options/Who.lua", "\t\t\t\tname = RelevantLabel,\n",
+       "\t\t\t\tname = L[\"Skip players it does nothing for\"],\n",
+       "ux-redesign: the mana switch names nothing it holds back",
+       expect=WORDS, script=S)
+
+mutate("Options/Look.lua", "name = L[\"Colour by why they are offered\"],",
+       "name = L[\"Colour marker by reason\"],",
+       "ux-redesign: the colour by reason switch in jargon",
+       expect=WORDS, script=S)
+
+mutate("Options/Diagnostics.lua", "PlainSources(L[\"Passer-by distance: %s\"]:format(tostring(ns.ProximitySummary())))",
+       "(L[\"Passer-by distance: %s\"]:format(tostring(ns.ProximitySummary())))",
+       "ux-redesign: the distance line names the client call",
+       expect="ux-redesign: the passer-by distance line names no client call", script=S)
+
+mutate("Options/Launcher.lua", "L[\"On the prompt: |cffffffff%s|r -- %s, a passer-by\"],",
+       "L[\"On the prompt: |cffffffff%s|r -- %s, nearby\"],",
+       "ux-redesign: the launcher calls a passer-by nearby",
+       expect="ux-redesign: the launcher calls a passer-by a passer-by", script=S)
+
+mutate(START, "\t\t\t\t\treturn \"|cffffd100\" .. L[\"Optional: pick a key or put Manners on a bar, or just click the prompt.\"] .. \"|r\"\n",
+       "\t\t\t\t\treturn \"|cffff8080\" .. L[\"Optional: pick a key or put Manners on a bar, or just click the prompt.\"] .. \"|r\"\n",
+       "ux-redesign: no key said in red",
+       expect="ux-redesign: no key is said in gold", script=S)
+
+mutate("Options/Profiles.lua", "\t\tif type(option) == \"table\" then\n\t\t\tfor field, value in pairs(words) do option[field] = value end\n",
+       "\t\tif false then\n",
+       "ux-redesign: Profiles in the library's developer English",
+       expect="ux-redesign: Profiles speaks the player's words", script=S)
+
+mutate(START, "hidden = function() return noClassBuffs() or Quick.Match(Quick.VOICE) == \"silent\" end,",
+       "hidden = noClassBuffs,",
+       "ux-redesign: Stay silent then Silent.",
+       expect="ux-redesign: Stay silent is not followed by Silent.", script=S)
+
+mutate("Options/Who.lua", "hidden = function() return (tonumber(F().minLevel) or 1) > 1 end,",
+       "hidden = function() return true end,",
+       "ux-redesign: the level slider's 1 never explained",
+       expect="ux-redesign: Skip players below level says what 1 means", script=S)
+
+mutate("Options/Diagnostics.lua", "\t\t\t\tname = \"|cff888888\"\n\t\t\t\t\t.. L[\"Nothing to report: this character has no buffs it can put on another player.\"]",
+       "\t\t\t\tname = \"|cffff8080\"\n\t\t\t\t\t.. L[\"Nothing to report: this character has no buffs it can put on another player.\"]",
+       "ux-redesign: a rogue told in red that he has no buffs",
+       expect="ux-redesign: a rogue's Diagnostics has no error colour", script=S)
+
+mutate("Options/Who.lua", "\t\t\t\t\t\tif not buff.selfCast then\n",
+       "\t\t\t\t\t\tif false then\n",
+       "ux-redesign: Earth Shield said to be cast on yourself",
+       expect="ux-redesign: Earth Shield's shaman is not told it is cast on herself", script=S)
+
+mutate("Options/Who.lua", "\t\tif #blessings > 0 then list = table.concat(blessings, \", \") end\n",
+       "",
+       "ux-redesign: Beacon of Light listed among the blessings",
+       expect="ux-redesign: Beacon of Light is not one of the blessings", script=S)
+
+mutate("Options/Who.lua", " or key == \"ownDungeons\"\n",
+       "\n",
+       "ux-redesign: a hunter cannot hold his consumables to dungeons",
+       expect="ux-redesign: a class with nothing for others has Consumables only", script=S)

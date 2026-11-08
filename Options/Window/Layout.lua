@@ -17,8 +17,10 @@
 -- that follow one another are one run, whose shown items go two to a row),
 -- standIn (a note that keeps its section while the controls it stands in for
 -- are hidden), lead, columns, widget, big (a button that leads its page: taller,
--- in the large font) }. tests/scenarios/layout.lua holds every control to being
--- placed exactly once.
+-- in the large font), buttons (buttons that follow one another are one run, laid
+-- left to right at their own widths), match (dropdowns sharing the same match
+-- draw their fields at one width) }. tests/scenarios/layout.lua holds every
+-- control to being placed exactly once.
 
 local _, ns = ...
 local L = ns.L
@@ -135,17 +137,20 @@ ns.WindowLayout = {
 			title = L["Start here"],
 			icon = ICONS.general,
 			sections = {
-				-- A new profile's two questions (Start.lua, Quick.Asking); the
-				-- section goes with them once answered or skipped.
-				{ key = "general.firstRun", header = "general.firstHeader", items = {
-					"general.firstWho",
-					"general.firstVoice",
-					{ "general.firstDone", pair = true },
-					"general.firstSkip",
-				} },
+				-- What the prompt is, first: the questions under it are about it.
+				-- In the body's own size, so it does not read as a heading.
 				{ key = "general.lead", items = {
 					{ "general.noBuffs", standIn = true },
-					{ "general.howItWorks", lead = true },
+					"general.howItWorks",
+				} },
+				-- A new profile's two questions (Start.lua, Quick.Asking); the
+				-- section goes with them once answered or skipped. The two
+				-- dropdowns one width, the two buttons side by side.
+				{ key = "general.firstRun", header = "general.firstHeader", items = {
+					{ "general.firstWho", match = "first" },
+					{ "general.firstVoice", match = "first" },
+					{ "general.firstDone", buttons = true },
+					{ "general.firstSkip", buttons = true },
 				} },
 				{ key = "general.who", header = "general.whoHeader", items = {
 					"general.quickWho",
@@ -154,8 +159,8 @@ ns.WindowLayout = {
 				} },
 				{ key = "general.key", header = "general.keyHeader", items = {
 					"general.bindKey",
-					{ "general.makeMacro", pair = true },
-					"general.openBindings",
+					{ "general.makeMacro", buttons = true },
+					{ "general.openBindings", buttons = true },
 					"general.bindStatus",
 				} },
 				{ key = "general.ledger", header = "general.ledgerHeader", items = {
@@ -297,6 +302,7 @@ ns.WindowLayout = {
 					"who.skipSameClass",
 					"who.requireInRange",
 					"who.minLevel",
+					"who.minLevelNote",
 				} },
 				{ key = "skip.never", header = "who.neverHeader", items = {
 					-- One list with a remove button per name, built from five
@@ -554,6 +560,7 @@ ns.WindowLayout = {
 		["diagnostics.leadDiag"] = { hint = true, block = true },
 		["diagnostics.reportHint"] = { hint = true },
 		["when.selfLeadNote"] = { hint = true },
+		["who.minLevelNote"] = { hint = true },
 		-- AceDBOptions' descriptions, beside the controls they explain.
 		["profiles.choosedesc"] = { hint = true },
 		["profiles.copydesc"] = { hint = true },

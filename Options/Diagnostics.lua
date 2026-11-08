@@ -327,6 +327,19 @@ function ns.FullReport()
 end
 
 -- What this client allows, what has broken, and a bug report.
+-- The distance line in plain words: what is measuring, not the client call
+-- or the library's name, which /manners debug keeps for a bug report.
+local SOURCE_WORDS = {
+	{ "CheckInteractDistance", function() return L["the duel range"] end },
+	{ "LibRangeCheck%-3%.0", function() return L["spell and item ranges"] end },
+}
+local function PlainSources(text)
+	for _, pair in ipairs(SOURCE_WORDS) do
+		text = text:gsub(pair[1], pair[2])
+	end
+	return text
+end
+
 function Page.BuildDiagnosticsTab()
 	return {
 		type = "group",
@@ -452,19 +465,21 @@ function Page.BuildDiagnosticsTab()
 				type = "description",
 				order = 12,
 				fontSize = "medium",
-				hidden = OnlyReachesGroup,
+				-- And for a class with nobody to measure (a rogue).
+				hidden = function() return OnlyReachesGroup() or not HasClassBuffs() end,
 				name = function()
 					return "|cff888888"
-						.. L["Passer-by distance: %s"]:format(tostring(ns.ProximitySummary()))
+						.. PlainSources(L["Passer-by distance: %s"]:format(tostring(ns.ProximitySummary())))
 						.. "|r"
 				end,
 			},
+			-- Grey, not red: a class with nothing for others is not a fault.
 			noDiag = {
 				type = "description",
 				order = 11.5,
 				fontSize = "medium",
 				hidden = HasClassBuffs,
-				name = "|cffff8080"
+				name = "|cff888888"
 					.. L["Nothing to report: this character has no buffs it can put on another player."]
 					.. "|r",
 			},
@@ -532,7 +547,7 @@ function Page.BuildDiagnosticsTab()
 			},
 			copyReport = {
 				type = "execute",
-				name = function() return Page.reportOpen and L["Hide the report"] or L["Copy for a bug report"] end,
+				name = function() return Page.reportOpen and L["Hide the report"] or L["Show a short summary"] end,
 				desc = L["Opens a box with the build, what this client allows, the settings that matter and anything that has broken, ready to copy."],
 				order = 32,
 				func = function()

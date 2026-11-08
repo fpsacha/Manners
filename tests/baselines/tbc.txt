@@ -39,7 +39,7 @@ a favour repaid is marked returned: SKIPPED -- no favour was filed, so there is 
 a favour that runs out is let go: SKIPPED -- no favour was filed, so there is nothing to record
 a favour the prompt cannot return is not promised (a priest): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- returning the favour is on the prompt
 a favour the prompt cannot return is not promised (a warrior, offering everybody): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- returning the favour is on the prompt
-a favour the prompt cannot return is not promised (a warrior, skipping the useless): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- nothing you cast is any use to them ("Skip players it does nothing for" is on)
+a favour the prompt cannot return is not promised (a warrior, skipping the useless): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- nothing you cast is any use to them ("Only give mana buffs to players with mana" is on)
 a favour the prompt cannot return is not promised (nothing in the way): SKIPPED -- the control favour was not recorded: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
 a fight during the fade out brings the panel back gently: SKIPPED -- the panel did not start fading out
 a friend added is ranked as one once the answer runs out: SKIPPED -- the stranger was not offered, or was already a friend

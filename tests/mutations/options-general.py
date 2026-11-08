@@ -131,7 +131,7 @@ mutate("Options/Start.lua",
 # --- minimap and chat ---
 
 mutate("Options/Start.lua",
-       "\t\t\tminimapHeader = { type = \"header\", name = L[\"Minimap and chat\"], order = 69 },\n",
+       "\t\t\tminimapHeader = { type = \"header\", name = L[\"Minimap and chat window\"], order = 69 },\n",
        "",
        "start here: minimap switch under the ledger header",
        expect="there is no Minimap and chat header", script=S)

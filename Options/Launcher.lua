@@ -243,8 +243,10 @@ local function LauncherState()
 			return false, L["Unlocked, and snoozed until %s -- the prompt stays up to be dragged, casting nothing, until you lock it."]
 				:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true, nil, "unlocked"
 		end
-		return false, L["Unlocked -- the prompt is up to be dragged and casts nothing until you lock it (%s)."]
-			:format("|cffffd100/manners lock|r"), 1, 0.82, 0, true, nil, "unlocked"
+		-- The button that locks it is named: the strip's and the header's
+		-- Lock it, the minimap menu's Locked.
+		return false, L["Unlocked -- the prompt is up to be dragged and casts nothing until you press %s."]
+			:format("|cffffd100" .. L["Lock it"] .. "|r"), 1, 0.82, 0, true, nil, "unlocked"
 	elseif snoozeLeft and held then
 		-- A snooze started in the fight: the panel stays as the fight found it,
 		-- armed, and follows the snooze once it ends. Said as that, and with the
@@ -277,7 +279,7 @@ local function LauncherState()
 	elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 		return false, L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0, nil, nil, "noclass"
 	elseif not HasClassBuffs() then
-		return false, L["Nothing to cast on this character -- /manners debug says why."], 1, 0.82, 0,
+		return false, L["Nothing to cast on this character -- %s on %s says why."]:format(L["What Manners can see"], L["Diagnostics"]), 1, 0.82, 0,
 			nil, nil, "nothing"
 	elseif not ns.ResolveBuff(true) then
 		if ns.caps.anyKnown then
@@ -337,7 +339,7 @@ local function FillLauncherTooltip(tooltip)
 					L["On the prompt: |cffffffff%s|r -- %s, buffed you"],
 					L["On the prompt: |cffffffff%s|r -- %s, in your group"],
 					L["On the prompt: |cffffffff%s|r -- %s, your target"],
-					L["On the prompt: |cffffffff%s|r -- %s, nearby"],
+					L["On the prompt: |cffffffff%s|r -- %s, a passer-by"],
 					L["On the prompt: |cffffffff%s|r -- %s, asked for it"],
 					L["On the prompt: |cffffffff%s|r -- %s, your own buff"]
 				):format(WhoIs(entry), WhatBuff(entry)), 1, 0.82, 0, true)
@@ -346,7 +348,7 @@ local function FillLauncherTooltip(tooltip)
 					L["Next: |cffffffff%s|r -- %s, buffed you"],
 					L["Next: |cffffffff%s|r -- %s, in your group"],
 					L["Next: |cffffffff%s|r -- %s, your target"],
-					L["Next: |cffffffff%s|r -- %s, nearby"],
+					L["Next: |cffffffff%s|r -- %s, a passer-by"],
 					L["Next: |cffffffff%s|r -- %s, asked for it"],
 					L["Next: |cffffffff%s|r -- %s, your own buff"]
 				):format(WhoIs(entry), WhatBuff(entry)), 0.8, 0.8, 0.8, true)
@@ -581,7 +583,7 @@ local function FillWhoIsNext(parent)
 				L["%s -- %s (buffed you), on the prompt"],
 				L["%s -- %s (in your group), on the prompt"],
 				L["%s -- %s (your target), on the prompt"],
-				L["%s -- %s (nearby), on the prompt"],
+				L["%s -- %s (a passer-by), on the prompt"],
 				L["%s -- %s (asked for it), on the prompt"],
 				L["%s -- %s (your own buff), on the prompt"])
 		else
@@ -589,7 +591,7 @@ local function FillWhoIsNext(parent)
 				L["%s -- %s (buffed you)"],
 				L["%s -- %s (in your group)"],
 				L["%s -- %s (your target)"],
-				L["%s -- %s (nearby)"],
+				L["%s -- %s (a passer-by)"],
 				L["%s -- %s (asked for it)"],
 				L["%s -- %s (your own buff)"])
 		end
@@ -642,7 +644,7 @@ local function FillPromptMenu(parent, fight)
 	-- These three are drawing and sound, never where the button is or what it
 	-- casts: the style is put back after the fight by ApplyStyle itself, so
 	-- they stay open in one.
-	Check(parent, L["Keep the prompt still in combat"], function() return ns.db.profile.prompt.hideInCombat end,
+	Check(parent, L["No flashes in combat"], function() return ns.db.profile.prompt.hideInCombat end,
 		Act(function()
 			local now = ns.db.profile.prompt
 			now.hideInCombat = not now.hideInCombat
@@ -758,10 +760,10 @@ local function FillLauncherMenu(root)
 	end
 	if fight and not inTest then HeldForFight(preview) end
 	FillPromptMenu(root:CreateButton(L["Prompt"]), fight)
-	Check(root, L["Tell me in chat what Manners is doing"], function() return ns.db.profile.verbose end,
+	Check(root, L["Show what Manners is doing in my chat window"], function() return ns.db.profile.verbose end,
 		Act(function() ns.addon:HandleSlash("verbose") end))
 	-- Its stronger twin (Start here), one click from the minimap as well.
-	Check(root, L["Say nothing at all in chat"], function() return ns.db.profile.silentChat == true end,
+	Check(root, L["Hide all Manners messages in my chat window"], function() return ns.db.profile.silentChat == true end,
 		Act(function() ns.addon:HandleSlash("quiet") end))
 	AddProfiles(root, fight)
 

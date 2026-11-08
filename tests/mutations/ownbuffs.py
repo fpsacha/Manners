@@ -740,8 +740,8 @@ mutate("Options/When.lua",
 # Re-anchored: When to offer's own favours header is gone; the window draws
 # the Advanced group's Favours section on that page.
 mutate("Options/Advanced.lua",
-       "\t\t\tfavoursHeader = { type = \"header\", name = L[\"Favours\"], order = 10, hidden = NoOthers },\n",
-       "\t\t\tfavoursHeader = { type = \"header\", name = L[\"Favours\"], order = 10 },\n",
+       "\t\t\tfavoursHeader = { type = \"header\", name = L[\"Buffing back\"], order = 10, hidden = NoOthers },\n",
+       "\t\t\tfavoursHeader = { type = \"header\", name = L[\"Buffing back\"], order = 10 },\n",
        "own: a hunter shown the favours",
        expect="favoursHeader is shown to a hunter", script=S)
 

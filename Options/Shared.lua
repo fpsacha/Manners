@@ -221,11 +221,9 @@ local function NothingCastable()
 	return ns.PinnedBuff() == nil and #ns.CastableBuffs() == 0
 end
 
+-- Start here has none: a key is optional (clicking the prompt works), so no
+-- key is said in gold under step 2, never as a fault.
 Page.Warn = {
-	-- No key and no macro: general.bindStatus in red.
-	general = function()
-		return HasPrompt() and not ns.Setup.Key() and not ns.Setup.MacroMade()
-	end,
 	who = function()
 		return HasClassBuffs() and (NoSources() or PinUnlearned() or NothingCastable())
 	end,

@@ -63,7 +63,7 @@ function Page.BuildWhenTab()
 			},
 			refreshUnder = {
 				type = "range",
-				name = L["Top up at most this long before it ends (minutes)"],
+				name = L["Top up at most this many minutes early"],
 				-- How the moment is worked out, then the favour exception:
 				-- a timer that cannot be read holds back a top-up, never a
 				-- buff owed.
@@ -104,7 +104,7 @@ function Page.BuildWhenTab()
 			},
 			selfLead = {
 				type = "range",
-				name = L["Top up my own buffs this long before they end (minutes)"],
+				name = L["Remind me this many minutes early"],
 				desc = L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Raise it to be reminded earlier, before you pull. Never more than half the buff's length."],
 				order = 6.2,
 				min = 0,
@@ -144,7 +144,7 @@ function Page.BuildWhenTab()
 			-- own buffs, which are always read.
 			verifiedOnly = {
 				type = "toggle",
-				name = L["Only offer people whose buffs can be read"],
+				name = L["Don't offer when the game hides their buffs (fights)"],
 				desc = L["In a fight, and sometimes just after, the game hides other players' buffs: Manners cannot tell then whether they already have yours, and offers it marked \"unverified\". Tick this to never offer it then. Someone who buffed you or asked for a buff is still offered."],
 				order = 5,
 				width = "full",

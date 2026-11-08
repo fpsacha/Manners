@@ -113,6 +113,14 @@ local function AutoExplanation()
 	-- Whole sentences rather than one with a clause bolted on, so that a
 	-- translation can put the exception wherever its own grammar wants it.
 	if ns.EXCLUSIVE_BUFFS[ns.caps.class] then
+		-- A buff for one target at a time (a paladin's Beacon of Light) is
+		-- not one of the blessings that replace one another: the line after
+		-- this says who gets it.
+		local blessings = {}
+		for _, buff in ipairs(castable) do
+			if not buff.oneTarget then blessings[#blessings + 1] = "|cffffffff" .. BuffLabel(buff) .. "|r" end
+		end
+		if #blessings > 0 then list = table.concat(blessings, ", ") end
 		local hidden = false
 		for _, buff in ipairs(castable) do
 			local info = ns.BuffInfo(buff)
@@ -483,7 +491,10 @@ end
 -- Each control keeps its own rule on top.
 local function ForOthersOnly(args)
 	for key, arg in pairs(args) do
-		if not (key == "myselfHeader" or key == "self" or key == "ownCities" or key:find("^own_")) then
+		-- Consumables only in dungeons and raids is about your own buffs too:
+		-- a hunter's or a shaman's food and flasks.
+		if not (key == "myselfHeader" or key == "self" or key == "ownCities" or key == "ownDungeons"
+			or key:find("^own_")) then
 			local was = arg.hidden
 			arg.hidden = function(...)
 				if not HasClassBuffs() then return true end
@@ -637,6 +648,16 @@ function Page.BuildWhoTab()
 		return names
 	end
 
+	-- The mana switch's label names the spells it holds back, so it reads as
+	-- what it does here ("Only give Arcane Intellect to players with mana").
+	-- On ns for the chat line that names the switch (Favours.lua).
+	local function RelevantLabel()
+		local names = ManaOnlyNames()
+		if #names == 0 then return L["Only give mana buffs to players with mana"] end
+		return L["Only give %s to players with mana"]:format(table.concat(names, ", "))
+	end
+	ns.RelevantOnlyLabel = RelevantLabel
+
 	local function NoGroupBuffs()
 		return not (ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs())
 	end
@@ -756,7 +777,7 @@ function Page.BuildWhoTab()
 			-- class with a mana-only spell, which is all it holds back.
 			relevantOnly = {
 				type = "toggle",
-				name = L["Skip players it does nothing for"],
+				name = RelevantLabel,
 				desc = function()
 					local names = ManaOnlyNames()
 					if #names == 1 then
@@ -913,9 +934,20 @@ function Page.BuildWhoTab()
 				type = "description",
 				order = 13.1,
 				hidden = function() return not OnlyReachesGroup() end,
-				name = "|cff888888"
-					.. L["Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by."]
-					.. "|r",
+				-- A shout is cast on yourself; Earth Shield, Beacon of Light or
+				-- Symbiosis goes to a member of your group, never on yourself.
+				name = function()
+					for _, buff in ipairs(ns.CastableBuffs()) do
+						if not buff.selfCast then
+							return "|cff888888"
+								.. L["What you can offer goes only to members of your group, so there is nothing for passers-by."]
+								.. "|r"
+						end
+					end
+					return "|cff888888"
+						.. L["Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by."]
+						.. "|r"
+				end,
 			},
 			-- The two passer-by settings, right under the switch they narrow
 			-- and greyed while it is off. Which signal is measuring, and how
@@ -948,7 +980,7 @@ function Page.BuildWhoTab()
 			},
 			quietInTowns = {
 				type = "toggle",
-				name = L["Never in cities and inns"],
+				name = L["Offer nothing in cities and inns"],
 				desc = L["On: nothing is offered to anybody while the game calls you resting, in a city or an inn: not passers-by, not your group, not a favour you owe. Somebody you target or focus is still offered. Your own buffs have their own switch, under Myself."],
 				order = 13.35,
 				width = "full",
@@ -959,7 +991,7 @@ function Page.BuildWhoTab()
 			-- no offers in a dungeon, where the group sorts out its own buffs.
 			quietInInstances = {
 				type = "toggle",
-				name = L["Never in dungeons, raids and battlegrounds"],
+				name = L["Offer nothing in dungeons, raids and battlegrounds"],
 				desc = L["On: inside a dungeon, a raid, a battleground or an arena, nothing is offered to anybody: not your group, not a favour you owe. Somebody you target or focus is still offered, and your own buffs are not held back."],
 				order = 13.36,
 				width = "full",
@@ -1166,6 +1198,13 @@ function Page.BuildWhoTab()
 				step = 1,
 				get = fGet,
 				set = fSet,
+			},
+			-- What the slider's 1 means, under it while it is there.
+			minLevelNote = {
+				type = "description",
+				order = 41.5,
+				hidden = function() return (tonumber(F().minLevel) or 1) > 1 end,
+				name = "|cff888888" .. L["1: nobody is skipped for their level."] .. "|r",
 			},
 			requireInRange = {
 				-- The label is the promise: only a known out-of-range is hidden.

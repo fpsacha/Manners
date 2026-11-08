@@ -14,10 +14,10 @@ S = "runscenarios.py"
 
 # Start here's dot blind to the macro.
 mutate("Options/Shared.lua",
-       "\t\treturn HasPrompt() and not ns.Setup.Key() and not ns.Setup.MacroMade()\n",
-       "\t\treturn HasPrompt() and not ns.Setup.Key()\n",
-       "model: Start here's dot ignores the macro",
-       expect="the macro is made and Start here still has its red dot", script=S)
+       "Page.Warn = {\n",
+       "Page.Warn = {\n\tgeneral = function() return HasPrompt() and not ns.Setup.Key() end,\n",
+       "model: Start here's dot back for the optional key",
+       expect="Start here has a red dot for a key", script=S)
 
 # Who to buff's dot blind to a pin nobody learned.
 mutate("Options/Shared.lua",
@@ -70,8 +70,8 @@ mutate("Options/Launcher.lua",
        expect="switched off reads as", script=S)
 
 mutate("Options/Launcher.lua",
-       ":format(\"|cffffd100/manners lock|r\"), 1, 0.82, 0, true, nil, \"unlocked\"\n",
-       ":format(\"|cffffd100/manners lock|r\"), 1, 0.82, 0, true, nil, \"snoozed\"\n",
+       ":format(\"|cffffd100\" .. L[\"Lock it\"] .. \"|r\"), 1, 0.82, 0, true, nil, \"unlocked\"\n",
+       ":format(\"|cffffd100\" .. L[\"Lock it\"] .. \"|r\"), 1, 0.82, 0, true, nil, \"snoozed\"\n",
        "model: unlocked read as snoozed",
        expect="unlocked reads as", script=S)
 

@@ -468,7 +468,7 @@ do
 		end
 		local row = UI.RowFor("general.bindStatus")
 		local function painted() return tostring(row and row.text and row.text:GetText()) end
-		if not (row and UI.RowShown("general.bindStatus") and painted():find("No key yet", 1, true)) then
+		if not (row and UI.RowShown("general.bindStatus") and painted():find("Optional: pick a key", 1, true)) then
 			fail(scenario, "SKIPPED -- Start here does not start without a key: " .. painted())
 			return
 		end

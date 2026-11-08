@@ -36,6 +36,30 @@ function Page.BuildProfilesTab()
 	-- The library's own opening paragraph says what profilesIntro says, so the
 	-- tab would open with the same thing twice.
 	if type(t.args.desc) == "table" then t.args.desc.hidden = true end
+	-- The library's words are a developer's ("database", "SavedVariables"):
+	-- ours, in the player's, over the copies (never the library's own table).
+	-- Its translations no longer apply to these, so they are ours to translate.
+	for key, words in pairs({
+		current = { name = function(info)
+			local name = info and info.handler and info.handler.GetCurrentProfile and info.handler:GetCurrentProfile(info)
+			return L["This character uses the profile %s."]:format("|cffffd100" .. tostring(name or "") .. "|r")
+		end },
+		choosedesc = { name = L["Type a name to start a new profile, or pick one you already have."] },
+		new = { name = L["New profile"], desc = L["Type a name and press Enter: a new profile with every setting at its default."] },
+		choose = { name = L["Use profile"], desc = L["The profile this character uses."] },
+		copydesc = { name = L["Copy every setting of another profile into this one."] },
+		copyfrom = { name = L["Copy from"], desc = L["Replaces this profile's settings with the ones of the profile you pick."] },
+		deldesc = { name = L["Delete a profile no character uses any more."] },
+		delete = { name = L["Delete"], desc = L["Deletes the profile you pick. It asks first."],
+			confirmText = L["Delete this profile? This cannot be undone."] },
+		descreset = { name = L["Put every setting of this profile back to its default."] },
+		reset = { name = L["Reset this profile"], desc = L["Puts every setting of this profile back to its default."] },
+	}) do
+		local option = t.args[key]
+		if type(option) == "table" then
+			for field, value in pairs(words) do option[field] = value end
+		end
+	end
 	for key, option in pairs({
 		-- What a profile is for, in the player's words, in place of the
 		-- library's own paragraph: most players never need a second one.

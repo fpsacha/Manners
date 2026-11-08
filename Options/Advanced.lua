@@ -227,10 +227,10 @@ function Page.BuildAdvancedTab()
 				end,
 			},
 
-			favoursHeader = { type = "header", name = L["Favours"], order = 10, hidden = NoOthers },
+			favoursHeader = { type = "header", name = L["Buffing back"], order = 10, hidden = NoOthers },
 			owedClassBuffsOnly = {
 				type = "toggle",
-				name = L["Ignore shields, heals and trinket procs"],
+				name = L["Count only class buffs as favours"],
 				desc = L["Only class buffs such as Fortitude count as a favour to return."]
 					.. " " .. L["The same goes for /thank people who buff me."],
 				order = 11,
@@ -427,7 +427,7 @@ function Page.BuildAdvancedTab()
 			},
 			reasonUnknown = {
 				type = "input",
-				name = L["Reason text: can't tell"],
+				name = L["Reason text: buffs hidden"],
 				desc = L["Shown when the game hides whether they already have it."],
 				order = 59,
 				-- Your own buffs are never offered on a reading the game

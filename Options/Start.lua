@@ -723,7 +723,7 @@ function Page.BuildStartTab()
 			},
 			firstDone = {
 				type = "execute",
-				name = L["Done"],
+				name = L["Use these"],
 				order = 0.4,
 				hidden = notAsking,
 				confirm = function() return Quick.FirstConfirm() end,
@@ -731,7 +731,7 @@ function Page.BuildStartTab()
 			},
 			firstSkip = {
 				type = "execute",
-				name = L["Skip"],
+				name = L["Not now"],
 				desc = L["Leaves every setting as it is. The same choices are below and on the other tabs."],
 				order = 0.5,
 				hidden = notAsking,
@@ -776,7 +776,7 @@ function Page.BuildStartTab()
 					return "\n|cffff8080" .. L["Manners could not work out what you can cast."]
 						.. "|r\n\n"
 						.. L["Either your class has nothing for other players, or the spell probe came back empty -- %s says which."]
-							:format("|cffffd100/manners debug|r")
+							:format(Ref(L["What Manners can see"], TAB.diagnostics))
 						.. "\n"
 				end,
 			},
@@ -846,9 +846,10 @@ function Page.BuildStartTab()
 
 			-- Step 1. A preset, with the sentence that says what it came to;
 			-- the switches themselves are on Who to buff.
+			-- Away while Quick setup asks the same question above it.
 			whoHeader = {
 				type = "header", name = L["1. Who to buff"], order = 10,
-				hidden = noPrompt,
+				hidden = function() return noPrompt() or Quick.Asking() end,
 			},
 			quickWho = {
 				type = "select",
@@ -856,7 +857,7 @@ function Page.BuildStartTab()
 				desc = L["A starting point; fine-tune it on Who to buff."],
 				order = 11,
 				width = "full",
-				hidden = noClassBuffs,
+				hidden = function() return noClassBuffs() or Quick.Asking() end,
 				values = function() return Quick.Values(Quick.WHO) end,
 				sorting = function() return Quick.Order(Quick.WHO) end,
 				get = function() return Quick.Match(Quick.WHO) end,
@@ -868,7 +869,7 @@ function Page.BuildStartTab()
 			quickWhoSummary = {
 				type = "description",
 				order = 12,
-				hidden = noPrompt,
+				hidden = function() return noPrompt() or Quick.Asking() end,
 				name = function()
 					if not HasClassBuffs() then return grey(Quick.OwnOnlySummary()) end
 					return grey(Quick.WhoSummary())
@@ -883,7 +884,7 @@ function Page.BuildStartTab()
 			},
 			bindKey = {
 				type = "keybinding",
-				name = L["Key that buffs the prompted player"],
+				name = L["Key that casts what the prompt shows"],
 				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 21,
 				hidden = function() return not HasPrompt() or not Setup.CanBind() end,
@@ -932,7 +933,9 @@ function Page.BuildStartTab()
 					elseif Setup.MacroMade() then
 						return "|cffffd100" .. L["Your Manners macro is made: open the macro window (/macro) and drag it onto an action bar."] .. "|r"
 					end
-					return "|cffff8080" .. L["No key yet: pick one above, make the macro, or just click the prompt."] .. "|r"
+					-- Gold, not red: a key is a convenience, and clicking the
+					-- prompt works without one.
+					return "|cffffd100" .. L["Optional: pick a key or put Manners on a bar, or just click the prompt."] .. "|r"
 				end,
 			},
 
@@ -981,10 +984,11 @@ function Page.BuildStartTab()
 				set = function(_, v) Quick.Apply(Quick.VOICE, v) end,
 				confirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,
 			},
+			-- Not under Stay silent, whose summary ("Silent.") says it again.
 			quickVoiceSummary = {
 				type = "description",
 				order = 42,
-				hidden = noClassBuffs,
+				hidden = function() return noClassBuffs() or Quick.Match(Quick.VOICE) == "silent" end,
 				name = function() return grey(Quick.VoiceSummary()) end,
 			},
 
@@ -1081,7 +1085,7 @@ function Page.BuildStartTab()
 
 			-- Last, under a header of its own: where the way back in lives,
 			-- and the chat lines people reach for when they want quiet.
-			minimapHeader = { type = "header", name = L["Minimap and chat"], order = 69 },
+			minimapHeader = { type = "header", name = L["Minimap and chat window"], order = 69 },
 			minimap = {
 				type = "toggle",
 				name = L["Show minimap button"],
@@ -1115,7 +1119,7 @@ function Page.BuildStartTab()
 				-- A cast that worked prints nothing unless it repaid a
 				-- favour, so the label promises what it is doing, not a
 				-- line per click.
-				name = L["Tell me in chat what Manners is doing"],
+				name = L["Show what Manners is doing in my chat window"],
 				-- What it prints first: a cast that worked prints only
 				-- "repaid", and somebody who switched it on to watch
 				-- their casts took the silence for a broken switch.
@@ -1133,7 +1137,7 @@ function Page.BuildStartTab()
 			-- Stronger: the few lines the switch above leaves are said too.
 			silentChat = {
 				type = "toggle",
-				name = L["Say nothing at all in chat"],
+				name = L["Hide all Manners messages in my chat window"],
 				desc = L["Not even the few lines Manners keeps when the switch above is off: a title earned, the game refusing somebody, a skip in a fight, something it could not write. What you type after /manners is still answered."],
 				order = 72,
 				width = "full",

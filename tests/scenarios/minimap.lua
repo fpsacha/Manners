@@ -247,8 +247,8 @@ do
 				local ledger = child(menu, "^Open the ledger$")
 				local next = child(menu, "^Who's next$")
 				local prompt = child(menu, "^Prompt$")
-				local chat = child(menu, "^Tell me in chat what Manners is doing$")
-				local quiet = child(menu, "^Say nothing at all in chat$")
+				local chat = child(menu, "^Show what Manners is doing in my chat window$")
+				local quiet = child(menu, "^Hide all Manners messages in my chat window$")
 				local profiles = child(menu, "^Profiles$")
 				local options = child(menu, "^Options$")
 				local missing = {}
@@ -270,7 +270,7 @@ do
 				end
 				shape = table.concat(shape, " / ")
 				local want = "Manners / Enable / Snooze / | / Who's next / Open the ledger / | / "
-					.. "Preview the prompt / Prompt / Tell me in chat what Manners is doing / Say nothing at all in chat / Profiles / | / Options"
+					.. "Preview the prompt / Prompt / Show what Manners is doing in my chat window / Hide all Manners messages in my chat window / Profiles / | / Options"
 				if shape ~= want then
 					fail(scenario, "the menu is not grouped as it should be: " .. shape)
 				end
@@ -354,7 +354,7 @@ do
 				-- The prompt's own settings.
 				local locked = child(prompt, "^Locked$")
 				local reset = child(prompt, "^Reset position$")
-				local quiet = child(prompt, "^Keep the prompt still in combat$")
+				local quiet = child(prompt, "^No flashes in combat$")
 				local sound = child(prompt, "^Play a sound$")
 				local effects = child(prompt, "^Effects$")
 				local full = effects and child(effects, "^Full$")
@@ -529,7 +529,7 @@ do
 						fail(scenario, pattern .. " is greyed out in a fight, where it is safe")
 					end
 				end
-				local quiet = prompt and child(prompt, "^Keep the prompt still in combat$")
+				local quiet = prompt and child(prompt, "^No flashes in combat$")
 				if not quiet or quiet.enabled == false then
 					fail(scenario, "Stay quiet in combat is held back in a fight, where it is only drawing")
 				end

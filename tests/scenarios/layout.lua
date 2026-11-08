@@ -59,7 +59,8 @@ local STAND_IN = {
 }
 
 local GROUPS = { { "general" }, { "who", "skip", "when", "click", "appearance" }, { "profiles", "diagnostics" } }
-local FLAGS = { indent = true, pair = true, standIn = true, lead = true, columns = true, widget = true, big = true }
+local FLAGS = { indent = true, pair = true, standIn = true, lead = true, columns = true, widget = true, big = true,
+	buttons = true, match = true }
 
 -- What each of the frame's own slots has to be in the model.
 local SLOT_TYPES = {

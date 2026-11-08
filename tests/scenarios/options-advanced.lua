@@ -40,8 +40,8 @@ local MODEL = {
 	{ "advIntro", 0.5, "The defaults suit most players; change these only if something bothers you." },
 	{ "advCombatNotice", 0.6, "In combat: targeting changes apply once the fight ends." },
 	{ "resetAdvanced", 0.7, "Reset this page" },
-	{ "favoursHeader", 10, "Favours" },
-	{ "owedClassBuffsOnly", 11, "Ignore shields, heals and trinket procs" },
+	{ "favoursHeader", 10, "Buffing back" },
+	{ "owedClassBuffsOnly", 11, "Count only class buffs as favours" },
 	{ "reciprocateWindow", 12, "Offer a buff back for (seconds)" },
 	{ "reachableOnly", 13, "Stop sooner if they are probably gone" },
 	{ "graceSeconds", 14, "Let them go after (seconds)" },
@@ -64,7 +64,7 @@ local MODEL = {
 	{ "reasonGroup", 56, "Reason text: my group" },
 	{ "reasonNearby", 57, "Reason text: passer-by" },
 	{ "reasonRefresh", 58, "Reason text: top-up" },
-	{ "reasonUnknown", 59, "Reason text: can't tell" },
+	{ "reasonUnknown", 59, "Reason text: buffs hidden" },
 }
 
 -- Where the window draws them, top to bottom: When to offer's Favours, then

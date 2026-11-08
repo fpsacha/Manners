@@ -117,6 +117,9 @@ KIND.select = {
 		row.label:SetText(W.Trim(W.Name(row)))
 		TextColour(row.label, row.off and T.dim or T.ink)
 		row.values = Bind().Values(row.item)
+		-- What its longest choice needs, for a layout that lines up two
+		-- dropdowns (WindowPage.lua, MatchFields).
+		row.fieldNeed = math.ceil(Widest(row)) + 40
 		row.value:SetText(ChoiceLabel(row))
 		TextColour(row.value, row.off and T.dim or T.ink)
 		-- The tint is what colours the arrow, so greying it out takes the tint.
@@ -131,7 +134,7 @@ KIND.select = {
 		local lh = W.PlaceLabel(row.label, row.frame, width)
 		local fw = width
 		if width > 320 then fw = math.max(200, math.min(300, math.floor(width * 0.6))) end
-		fw = math.min(width, math.max(fw, math.ceil(Widest(row)) + 40))
+		fw = math.min(width, math.max(fw, math.ceil(Widest(row)) + 40, row.matchField or 0))
 		row.field:ClearAllPoints()
 		row.field:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -lh)
 		row.field:SetWidth(fw)
