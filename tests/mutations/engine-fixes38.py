@@ -52,8 +52,8 @@ mutate("Buffs.lua",
 
 # ...and Season of Discovery's tree, which casts Mark of the Wild, waits too.
 mutate("Buffs.lua",
-       "\t\t\tif family.key == \"moonkinform\" or (list == TBC_OWN.DRUID and family.key == \"treeoflife\") then\n",
-       "\t\t\tif family.key == \"moonkinform\" or family.key == \"treeoflife\" then\n",
+       "\t\t\ttable.insert(druid, i + 1, { key = \"treeoflife\", toggle = true, form = true,\n",
+       "\t\t\ttable.insert(druid, i + 1, { key = \"treeoflife\", toggle = true, form = true, shiftedOut = true,\n",
        "engine-fix38: Season of Discovery's Tree of Life waits",
        expect=P + "vanilla: Tree of Life is still offered ahead of the group's Mark of the Wild", script=S)
 
