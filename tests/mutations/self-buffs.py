@@ -112,20 +112,20 @@ mutate(B,
        expect="self-buffs: camelot: the Falcon is Automatic's first", script=S)
 
 mutate(B,
-       "\t\t\ttable.insert(hunter, i + 1, { key = \"heartofthelion\", toggle = true, shared = true,\n",
        "\t\t\ttable.insert(hunter, i + 1, { key = \"heartofthelion\", toggle = true,\n",
-       "self-buffs: Heart of the Lion not shared",
-       expect="self-buffs: vanilla: Heart of the Lion, and another hunter's covers you", script=S)
+       "\t\t\ttable.insert(hunter, i + 1, { key = \"heartofthelion\", toggle = true, shared = true,\n",
+       "self-buffs: Heart of the Lion shared",
+       expect="self-buffs: vanilla: Heart of the Lion, and another hunter's does not cover you", script=S)
 
 mutate(B,
        "spells = { { key = \"heartofthelion\", ranks = { 409583, 409580 } } } })",
-       "spells = { { key = \"heartofthelion\", ranks = { 409580 } } } })",
-       "self-buffs: the party's Heart of the Lion not read",
-       expect="self-buffs: vanilla: Heart of the Lion, and another hunter's covers you", script=S)
+       "spells = { { key = \"heartofthelion\", ranks = { 409583 } } } })",
+       "self-buffs: the hunter's own rune not read",
+       expect="self-buffs: vanilla: Heart of the Lion, and another hunter's does not cover you", script=S)
 
 mutate(B,
-       "\t\t\ttable.insert(hunter, i + 1, { key = \"heartofthelion\", toggle = true, shared = true,\n",
-       "\t\t\ttable.insert(hunter, i + 1, { key = \"heartofthelion\", shared = true,\n",
+       "\t\t\ttable.insert(hunter, i + 1, { key = \"heartofthelion\", toggle = true,\n",
+       "\t\t\ttable.insert(hunter, i + 1, { key = \"heartofthelion\",\n",
        "self-buffs: Heart of the Lion not a toggle",
        expect="hunt32-durations: vanilla: every id the set holds has a length", script=S)
 
@@ -170,8 +170,8 @@ mutate(B,
        expect="self-buffs: mainline: Windfury on the main hand, Flametongue on the off hand", script=S)
 
 mutate(B,
-       "ranks = { 318038 }, talent = true, needs = \"windfuryweapon\" },",
-       "ranks = { 318038 }, talent = true },",
+       "talent = true, needs = \"windfuryweapon\",",
+       "talent = true,",
        "self-buffs: retail's Flametongue the off hand's without Windfury",
        expect="self-buffs: mainline: an Elemental shaman's Flametongue is the main hand's", script=S)
 

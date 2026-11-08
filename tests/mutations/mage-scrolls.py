@@ -399,8 +399,8 @@ mutate("Core.lua",
        expect="a pick with none in the bags reads", script=S)
 
 mutate("Core.lua",
-       "\t\t\tand not (spell.item and not ScrollReady(spell)) then return spell end\n",
-       "\t\t\tthen return spell end\n",
+       "\t\t\tand not (spell.item and not ScrollReady(spell))\n",
+       "",
        "scrolls: the one used last that no longer fits",
        expect="rather than a scroll that fits it", script=S)
 

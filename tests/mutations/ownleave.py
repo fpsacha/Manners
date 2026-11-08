@@ -11,8 +11,8 @@ S = "runscenarios.py"
 # --- Automatic skips what is ticked ---
 
 mutate("Core.lua",
-       "\t\t\tif Known(spell) and not (auto and (spell.neverAuto or LeftOut(spell))) then return spell end\n",
-       "\t\t\tif Known(spell) and not (auto and spell.neverAuto) then return spell end\n",
+       "\t\t\tif Known(spell) and not (auto and (spell.neverAuto or LeftOut(spell))) then\n",
+       "\t\t\tif Known(spell) and not (auto and spell.neverAuto) then\n",
        "ownleave: Automatic's first pick ignores the tick",
        expect="ownleave: a spell ticked is skipped", script=S)
 

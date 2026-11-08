@@ -812,8 +812,8 @@ end
 -- somebody else used on you counts, and stays their favour as before
 -- (`castOnOthers`, ns.IsOwnAura). A scroll of a stat a class buff gives too
 -- (the `blockers` of Arcane Intellect, Fortitude and Divine Spirit) is up while
--- that buff is on you, of any rank: a scroll over a stronger one is refused
--- (ns.ConsumableAuras). The scrolls stay those buffs' `blockers` as they were.
+-- that buff is on you at a rank worth as much as the weakest scroll: a scroll
+-- over a stronger one is refused, one over a weaker is not (ns.ConsumableAuras). The scrolls stay those buffs' `blockers` as they were.
 local CONSUME = {}
 do
 	local SCROLLS = {
@@ -835,14 +835,55 @@ do
 		local flask = Family("flask", L["Flask"], data.flask, "flask")
 		local elixir = Family("elixir", L["Elixir"], data.elixir, "elixir")
 		list[#list + 1] = flask
-		if elixir and flask and data.flaskFills then
-			elixir.covers = {}
-			for i, spell in ipairs(flask.spells) do elixir.covers[i] = spell.ranks[1] end
+		-- What fills both elixir slots: a flask (`flaskFills`) and the two
+		-- things that are no flask row (`fillsBoth`: Mists' Alchemist's Flask
+		-- and Crystal of Insanity). A flask or elixir you are about to take
+		-- would replace any of them, so each reads as up for both families.
+		local both = {}
+		if flask and data.flaskFills then
+			for i, spell in ipairs(flask.spells) do both[i] = spell.ranks[1] end
 		end
+		for _, id in ipairs(data.fillsBoth or {}) do both[#both + 1] = id end
+		if flask and data.fillsBoth then
+			flask.covers = {}
+			for i, id in ipairs(data.fillsBoth) do flask.covers[i] = id end
+		end
+		if elixir and #both > 0 then elixir.covers = both end
 		list[#list + 1] = elixir
+		local scrolls = {}
 		for _, scroll in ipairs(SCROLLS) do
-			list[#list + 1] = Family("scroll" .. scroll[1], scroll[2], data.scroll and data.scroll[scroll[1]],
+			local family = Family("scroll" .. scroll[1], scroll[2], data.scroll and data.scroll[scroll[1]],
 				"scroll", true)
+			list[#list + 1] = family
+			scrolls[scroll[1]] = family
+		end
+		-- On Mists a scroll counts as a Battle or a Guardian elixir
+		-- (`scrollSlots`, from the scroll's own text): it takes that slot from
+		-- an elixir and from a flask, and from another scroll of the same slot.
+		-- So no flask or elixir held back a scroll, and a use knocked the
+		-- other family's aura off, to be offered again, round and round.
+		-- Wrong only by saying nothing, as the elixir family is: a scroll reads
+		-- as up under a flask, whatever is on you for its own slot; every
+		-- scroll makes the elixir family read as up.
+		if data.scrollSlots then
+			for _, scroll in ipairs(SCROLLS) do
+				local family = scrolls[scroll[1]]
+				if family then
+					local covers = {}
+					for i, id in ipairs(both) do covers[i] = id end
+					for _, other in ipairs(SCROLLS) do
+						local twin = scrolls[other[1]]
+						if twin and other[1] ~= scroll[1] and data.scrollSlots[other[1]] == data.scrollSlots[scroll[1]] then
+							for _, spell in ipairs(twin.spells) do covers[#covers + 1] = spell.ranks[1] end
+						end
+					end
+					family.covers = covers
+					if elixir then
+						elixir.covers = elixir.covers or {}
+						for _, spell in ipairs(family.spells) do elixir.covers[#elixir.covers + 1] = spell.ranks[1] end
+					end
+				end
+			end
 		end
 		CONSUME[client] = list
 	end
@@ -866,12 +907,29 @@ function ns.ConsumableAuras(family)
 		add(spell.ranks[1])
 	end
 	for _, id in ipairs(family.covers or {}) do add(id) end
+	-- The game refuses a scroll only under an aura of the stat worth as much or
+	-- more, so a rank worth less than the family's weakest scroll (ns.STAT_VALUE,
+	-- what UnitHasBuff weighs) would be overwritten, and holds nothing back. A
+	-- scroll or a rank the table has no number for is weighed by nothing.
+	local weakest
+	for _, spell in ipairs(family.spells) do
+		local value = ns.STAT_VALUE[spell.ranks[1]]
+		if not value then
+			weakest = false
+			break
+		end
+		if not weakest or value < weakest then weakest = value end
+	end
 	for _, buffs in pairs(ns.BUFFS or {}) do
 		for _, buff in ipairs(buffs) do
 			local blocked = false
 			for _, id in ipairs(buff.blockers or {}) do blocked = blocked or own[id] == true end
 			if blocked then
-				for _, id in ipairs(buff.ranks) do add(id) end
+				family.classBuff = true
+				for _, id in ipairs(buff.ranks) do
+					local value = ns.STAT_VALUE[id]
+					if not (weakest and value and value < weakest) then add(id) end
+				end
 				for _, id in ipairs(buff.group or {}) do add(id) end
 			end
 		end
@@ -948,6 +1006,10 @@ end
 --             Flametongue Weapon goes on the off hand once Windfury Weapon is
 --             known and on the main hand before, so it is in each hand's family
 --             under a key of its own, known in one of them at a time.
+--   needsWeapon  on a spell: it goes on a weapon in the family's hand, so it
+--             waits for one there and Automatic passes over it for the next
+--             spell known (retail's off-hand Flametongue Weapon; the game's
+--             own requirement is any weapon, met by the main hand's).
 --   shield    on a spell: it goes on a shield, so it waits for one in the off
 --             hand (Thunderstrike Ward).
 --   switchable  a class's only buff for others, which has its switch on Who to
@@ -1826,13 +1888,14 @@ do
 	-- Heart of the Lion, the hunter's rune (409580, level 1): a party aura with no
 	-- timer (SpellDuration -1), stats for everybody near and more for the hunter.
 	-- What it puts on everybody near, the hunter too, is 409583 (SpellEffect aura
-	-- 226 on the caster, 409583's aura 137 on the party, 15 seconds a pulse): one
-	-- of another hunter's on you is theirs, and yours would add nothing (`shared`,
-	-- as Trueshot Aura). A toggle, after Trueshot.
+	-- 226 on the caster, 409583's aura 137 on the party, 15 seconds a pulse). Not
+	-- `shared`: 409580 on the caster alone carries the hunter's extra total stats
+	-- (aura 137, target 1), which another hunter's 409583 never gives. A toggle,
+	-- after Trueshot.
 	local hunter = VANILLA_OWN.HUNTER
 	for i, family in ipairs(hunter) do
 		if family.key == "trueshot" then
-			table.insert(hunter, i + 1, { key = "heartofthelion", toggle = true, shared = true,
+			table.insert(hunter, i + 1, { key = "heartofthelion", toggle = true,
 				spells = { { key = "heartofthelion", ranks = { 409583, 409580 } } } })
 			break
 		end
@@ -2060,9 +2123,15 @@ do
 	-- member of your party or raid. "Cannot be cast on other Druids", and so on
 	-- no druid of yours, you included (notSelf); one link at a time, so it goes
 	-- to one member who is not a druid (notOwnClass) while none of yours is on
-	-- anybody.
+	-- anybody. The cast's own aura (110309, aura 332 on target 1) lands on the
+	-- druid; the member wears the link's other side, one aura per class
+	-- (110478 to 110491, each aura 332 on target 21, named "Symbiosis" too), so
+	-- those are the `group` ids that are read on a member, and the druid's own
+	-- 110309 is the rank. Without them no member ever read as linked, and one
+	-- another druid had linked was offered it.
 	MISTS.DRUID[#MISTS.DRUID + 1] = { key = "symbiosis", ranks = { 110309 }, oneTarget = true, notOwnClass = true,
-		notSelf = true, alone = true }
+		notSelf = true, alone = true,
+		group = { 110478, 110479, 110482, 110483, 110484, 110485, 110486, 110488, 110490, 110491 } }
 end
 
 -- The level each buff above is learned at on this client (SpellLevels), for
@@ -2507,7 +2576,8 @@ do
 			imbue = true,
 			slot = 17,
 			spells = {
-				{ key = "flametongueoffhand", ranks = { 318038 }, talent = true, needs = "windfuryweapon" },
+				{ key = "flametongueoffhand", ranks = { 318038 }, talent = true, needs = "windfuryweapon",
+					needsWeapon = true },
 				{ key = "thunderstrikeward", ranks = { 462757 }, talent = true, shield = true },
 			},
 		},
@@ -2832,6 +2902,8 @@ do
 		{ 600, 974 }, -- Earth Shield (10 min)
 		{ 0, 53563 }, -- Beacon of Light (no timer)
 		{ 3600, 110309 }, -- Symbiosis (1 h)
+		{ 3600, 110478 }, { 3600, 110479 }, { 3600, 110482 }, { 3600, 110483 }, { 3600, 110484 },
+		{ 3600, 110485 }, { 3600, 110486 }, { 3600, 110488 }, { 3600, 110490 }, { 3600, 110491 },
 	})
 
 	-- retail 12.1.0.69933.

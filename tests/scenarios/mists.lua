@@ -57,6 +57,10 @@ local NAMES = {
 	-- The buffs for one target at a time (1.11.11), SpellName 5.5.4.70032.
 	[53563] = "Beacon of Light",
 	[110309] = "Symbiosis",
+	-- The target's side of the link, one per class (SpellName, same build).
+	[110478] = "Symbiosis", [110479] = "Symbiosis", [110482] = "Symbiosis", [110483] = "Symbiosis",
+	[110484] = "Symbiosis", [110485] = "Symbiosis", [110486] = "Symbiosis", [110488] = "Symbiosis",
+	[110490] = "Symbiosis", [110491] = "Symbiosis",
 	[6346] = "Fear Ward",
 	[546] = "Water Walking",
 	[20707] = "Soulstone",

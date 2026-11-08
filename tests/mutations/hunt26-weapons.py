@@ -244,7 +244,7 @@ mutate("Options/Who.lua",
        expect="the off hand's row says", script=S)
 
 mutate("Commands.lua",
-       "\t\telseif why == \"noweapon\" and family.enhance then\n",
+       "\t\telseif why == \"noweapon\" and (family.enhance or family.slot == 17) then\n",
        "\t\telseif false then\n",
        "hunt26-weapons: no weapon in an off hand said of the main hand",
        expect="/manners debug says, of a shield", script=S)

@@ -342,6 +342,9 @@ do
 		-- (Salvation's), as BuildQueue's walk asks it.
 		seen.sameParty = SameParty(source)
 		seen.inGroup = InGroup(source)
+		-- And whether the game calls them a tank, which a buff for one target at
+		-- a time is offered to (Core.lua, Castable).
+		seen.tank = seen.inGroup and ns.IsTankUnit(source) or false
 		seen.hasMana = UnitHasMana(source)
 		-- And their PvP flag, which goes on the debt: the owed fallback, with
 		-- no token to ask, judges them on it (Queue.lua, "flagged for PvP").
@@ -354,14 +357,18 @@ do
 	-- What the queue would offer somebody (nil for nothing) knowing only whether
 	-- they have mana, whether a shout reaches them, and whether they are in
 	-- your party or raid at all (Salvation's reach; nil: as inParty). The rest
-	-- is set as the queue sets it for a debt, so the two cannot disagree.
-	function ns.CouldOffer(hasMana, inParty, inGroup)
+	-- is set as the queue sets it for a debt, so the two cannot disagree. A buff
+	-- for one target at a time asks whether they tank and which class they are
+	-- (Core.lua, Castable): without, every member is turned down, the tank too.
+	function ns.CouldOffer(hasMana, inParty, inGroup, isTank, class)
 		local db = addon.db and addon.db.profile
 		if not db then return nil end
 		return ns.PickBuffFor(ns.CastableBuffs(), {
 			hasMana = hasMana,
 			inGroup = inGroup or inParty,
 			inParty = inParty,
+			isTank = isTank,
+			class = class,
 			relevantOnly = db.filters.relevantOnly,
 			whenBuffed = "always",
 			offerAnyway = true,
@@ -446,7 +453,7 @@ do
 		end
 
 		-- Nothing we cast is any use to them, so no debt the queue could never fill.
-		if not ns.CouldOffer(hasMana, true) then
+		if not ns.CouldOffer(hasMana, true, nil, seen.tank, seen.class) then
 			-- A favour all the same, and let go in the moment it arrived.
 			TellLedger("Received", seen, true)
 			if speak then
@@ -465,13 +472,13 @@ do
 		-- Whether only a buff that reaches your own party could return it: asked
 		-- as if they were outside it, about classes rather than where they stand,
 		-- so the ledger's row stays true after they join or leave.
-		TellLedger("Received", seen, nil, ns.CouldOffer(hasMana, false) == nil)
+		TellLedger("Received", seen, nil, ns.CouldOffer(hasMana, false, nil, seen.tank, seen.class) == nil)
 		-- A warrior's shout reaches the party (in a raid, the subgroup) and
 		-- nobody else, so a stranger who buffed one is kept but not on the
 		-- prompt, and the line says so, naming the subgroup where that is the
 		-- limit. Salvation reaches the whole raid: a raider in another
 		-- subgroup is on the prompt as the queue offers them.
-		local reachable = ns.CouldOffer(hasMana, inParty, inGroup) ~= nil
+		local reachable = ns.CouldOffer(hasMana, inParty, inGroup, seen.tank, seen.class) ~= nil
 		if speak then
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
 			-- an unlocked prompt or Not while mounted.

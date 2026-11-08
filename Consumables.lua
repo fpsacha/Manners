@@ -4,11 +4,14 @@
 -- data (wago.tools): never edited by hand. Every row is { item, the level it
 -- asks of the player, the spell its use casts }, best first; that spell is the
 -- aura it puts on, read by its id. `flaskFills`: a flask fills both elixir slots,
--- battle and guardian. The tool's docstring says what counts. Builds:
+-- battle and guardian; `fillsBoth`: the auras of two more things that do (the
+-- Alchemist's Flask, the Crystal of Insanity); `scrollSlots`: the elixir slot
+-- each stat's scrolls take, where the client says so (Mists). The tool's
+-- docstring says what counts. Builds:
 --   camelot  1.60.1.70790, 8 flasks, 59 elixirs, 24 scrolls
 --   vanilla  1.15.9.70003, 10 flasks, 31 elixirs, 24 scrolls
 --   tbc      2.5.6.69795, 26 flasks, 43 elixirs, 30 scrolls
---   mists    5.5.4.70032, 44 flasks, 81 elixirs, 54 scrolls
+--   mists    5.5.4.70032, 43 flasks, 81 elixirs, 54 scrolls
 
 local _, ns = ...
 
@@ -212,12 +215,6 @@ ns.CONSUMABLES = {
 	tbc = {
 		flaskFills = true,
 		flask = {
-			{ 32898, 70, 41609 },
-			{ 32899, 70, 41610 },
-			{ 32900, 70, 41611 },
-			{ 32901, 70, 41608 },
-			{ 35716, 70, 46837 },
-			{ 35717, 70, 46839 },
 			{ 22851, 65, 28518 },
 			{ 22853, 65, 28519 },
 			{ 22854, 65, 28520 },
@@ -238,6 +235,12 @@ ns.CONSUMABLES = {
 			{ 13512, 50, 17628 },
 			{ 13513, 50, 17629 },
 			{ 32767, 50, 17628 },
+			{ 32898, 70, 41609 },
+			{ 32899, 70, 41610 },
+			{ 32900, 70, 41611 },
+			{ 32901, 70, 41608 },
+			{ 35716, 70, 46837 },
+			{ 35717, 70, 46839 },
 		},
 		elixir = {
 			{ 22835, 60, 28503 },
@@ -331,6 +334,8 @@ ns.CONSUMABLES = {
 	},
 	mists = {
 		flaskFills = true,
+		fillsBoth = { 79638, 79639, 79640, 127230 },
+		scrollSlots = { agility = "battle", strength = "battle", protection = "guardian", intellect = "battle", stamina = "guardian", spirit = "battle" },
 		flask = {
 			{ 76084, 85, 105689 },
 			{ 76085, 85, 105691 },
@@ -350,12 +355,6 @@ ns.CONSUMABLES = {
 			{ 46377, 75, 53760 },
 			{ 46378, 75, 54212 },
 			{ 46379, 75, 53758 },
-			{ 32898, 70, 41609 },
-			{ 32899, 70, 41610 },
-			{ 32900, 70, 41611 },
-			{ 32901, 70, 41608 },
-			{ 35716, 70, 46837 },
-			{ 35717, 70, 46839 },
 			{ 40079, 70, 53752 },
 			{ 22851, 65, 28518 },
 			{ 22853, 65, 28519 },
@@ -375,7 +374,12 @@ ns.CONSUMABLES = {
 			{ 13511, 50, 17627 },
 			{ 13512, 50, 17628 },
 			{ 32767, 50, 17628 },
-			{ 103557, 1, 146939 },
+			{ 32898, 70, 41609 },
+			{ 32899, 70, 41610 },
+			{ 32900, 70, 41611 },
+			{ 32901, 70, 41608 },
+			{ 35716, 70, 46837 },
+			{ 35717, 70, 46839 },
 		},
 		elixir = {
 			{ 76075, 85, 105681 },
