@@ -21,15 +21,15 @@ mutate("Options/Shared.lua",
 
 # Who to buff's dot blind to a pin nobody learned.
 mutate("Options/Shared.lua",
-       "(NoSources() or PinUnlearned() or NothingCastable())",
-       "(NoSources() or NothingCastable())",
+       "return NoSources() or PinUnlearned() or NothingCastable()\n",
+       "return NoSources() or NothingCastable()\n",
        "model: Who to buff's dot ignores the pin",
        expect="a pinned spell not learned offers nobody, and Who to buff has no red dot", script=S)
 
 # ...and to Automatic with nothing it can cast.
 mutate("Options/Shared.lua",
-       "(NoSources() or PinUnlearned() or NothingCastable())",
-       "(NoSources() or PinUnlearned())",
+       "return NoSources() or PinUnlearned() or NothingCastable()\n",
+       "return NoSources() or PinUnlearned()\n",
        "model: Who to buff's dot ignores nothing castable",
        expect="nothing can be cast and Who to buff has no red dot", script=S)
 

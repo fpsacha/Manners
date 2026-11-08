@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Friendly nameplates.** With passers-by on and the game's friendly
+  nameplates off, Manners sees almost nobody outside your group. *Who to buff*
+  now says so in red with a red dot beside the page, and *Start here* shows the
+  same note and the *Show friendly nameplates* button under step 1.
+
 ## 1.11.12
 
 - **Favours.**

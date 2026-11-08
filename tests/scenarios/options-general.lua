@@ -128,6 +128,8 @@ end
 local START_PAGE = {
 	"general.noBuffs", "general.howItWorks",
 	"general.firstWho", "general.firstVoice", "general.firstDone", "general.firstSkip", "general.quickWho", "general.quickWhoSummary",
+	-- Passers-by on and the friendly nameplates off (tests/scenarios/plates-cta.lua).
+	"general.startPlatesNote", "general.startShowPlates",
 	"general.bindKey", "general.makeMacro", "general.openBindings", "general.bindStatus",
 	"general.ledgerSummary", "general.ledgerOpen", "general.minimap", "general.verbose", "general.silentChat",
 	"general.welcomeAgain",

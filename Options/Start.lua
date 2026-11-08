@@ -889,6 +889,34 @@ function Page.BuildStartTab()
 					return grey(Quick.WhoSummary())
 				end,
 			},
+			-- Passers-by on and the friendly nameplates off: Manners finds
+			-- almost none of them. Called out here as on Who to buff, with the
+			-- same button (Who.lua, Page.PlatesWanted), so a player who never
+			-- opens that page is still asked.
+			startPlatesNote = {
+				type = "description",
+				order = 12.5,
+				hidden = function()
+					return noPrompt() or Quick.Asking() or not (Page.PlatesWanted and Page.PlatesWanted())
+				end,
+				name = "|cffff8080"
+					.. L["Turn on friendly nameplates so Manners can see passers-by: without them it sees almost nobody outside your group."]
+					.. "|r",
+			},
+			startShowPlates = {
+				type = "execute",
+				name = L["Show friendly nameplates"],
+				desc = L["The game's own setting, under Nameplates in its options, where you can turn it off again."],
+				order = 12.6,
+				hidden = function()
+					return noPrompt() or Quick.Asking() or not (Page.PlatesWanted and Page.PlatesWanted())
+				end,
+				-- The client refuses the setting in a fight.
+				disabled = function() return InCombatLockdown() end,
+				func = function()
+					if ns.ShowFriendlyPlates() then ns.RefreshOptionsDisplay() end
+				end,
+			},
 
 			-- Step 2. The binding is the game's, not the profile's: Setup
 			-- saves it with the binding set, so it follows every profile.

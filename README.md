@@ -146,9 +146,10 @@ Everybody who could use your buff is queued, in this order:
 6. **Your party or raid**, anyone missing your buff.
 7. **Passers-by** missing your buff, seen through nameplates, your target,
    your focus and your mouseover. With the game's friendly nameplates off
-   Manners sees almost nobody outside your group: *Who to buff* says so under
-   *Passers-by*, with a button that turns them on, and a press of your key on
-   an empty prompt says why it is empty.
+   Manners sees almost nobody outside your group: *Who to buff* says so in
+   red under *Passers-by*, with a red dot beside the page and a button that
+   turns them on, *Start here* says the same under step 1, and a press of your
+   key on an empty prompt says why it is empty.
 
 It skips the dead, the out-of-range, anyone you just tried, anyone the buff
 does nothing for (Arcane Intellect is wasted on a rogue), and, while you are not
@@ -509,8 +510,9 @@ explain themselves; this is what their tooltips have no room for.
   with *Myself* and the switch alone, while a flask is in its bags or that
   switch is on, and *Start here* says where to find it. A red dot
   beside a page means something there wants looking at: nothing that can be
-  offered, *Always offer* picked, a sound set to *None*, a colour with nothing
-  left to colour, or something broken this session. A key binding is optional,
+  offered, passers-by on with the game's friendly nameplates off, *Always
+  offer* picked, a sound set to *None*, a colour with nothing left to colour,
+  or something broken this session. A key binding is optional,
   so no red dot asks for one.
 - The search box above the pages finds a setting by its name, its tooltip,
   one of its choices ("whisper" finds *Where to say it*) or the section it is

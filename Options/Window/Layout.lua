@@ -156,6 +156,10 @@ ns.WindowLayout = {
 					"general.quickWho",
 					-- A hunter's step 1: the own-buff sentence, with no dropdown.
 					{ "general.quickWhoSummary", standIn = true },
+					-- Passers-by on and the friendly nameplates off (Who to buff
+					-- has the same pair, and the page's red dot).
+					"general.startPlatesNote",
+					"general.startShowPlates",
 				} },
 				{ key = "general.key", header = "general.keyHeader", items = {
 					"general.bindKey",

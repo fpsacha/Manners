@@ -338,8 +338,12 @@ end
 -- Start here has none: a key is optional (clicking the prompt works), so no
 -- key is said in gold under step 2, never as a fault.
 Page.Warn = {
+	-- emptyWarning, pinNote, autoNote; strangersPlatesNote (Who.lua,
+	-- Page.PlatesWanted: passers-by on and the friendly nameplates off).
 	who = function()
-		return HasClassBuffs() and (NoSources() or PinUnlearned() or NothingCastable())
+		if not HasClassBuffs() then return false end
+		return NoSources() or PinUnlearned() or NothingCastable()
+			or (Page.PlatesWanted ~= nil and Page.PlatesWanted())
 	end,
 	-- when.alwaysNote.
 	when = function()

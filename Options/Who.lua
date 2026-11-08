@@ -536,6 +536,12 @@ local function PlatesHidden()
 	return not S().strangers or OnlyReachesGroup() or not ns.FriendlyPlatesOff()
 end
 
+-- The same answer for the pages that call the player to it: Who to buff's red
+-- dot (Shared.lua, Page.Warn) and Start here's note and button under step 1.
+function Page.PlatesWanted()
+	return not PlatesHidden()
+end
+
 -- The buff order (Core.lua, ns.WalkBuffs): a list of the class's buffs in the
 -- order they are tried, each one moved up or down a place, and the way back to
 -- Automatic. For a class with a choice to make -- two buffs or more on this
@@ -921,7 +927,9 @@ function Page.BuildWhoTab()
 				type = "description",
 				order = 13.05,
 				hidden = PlatesHidden,
-				name = "|cff888888"
+				-- Red, under the page's red dot: passers-by are switched on and
+				-- Manners can hardly find any.
+				name = "|cffff8080"
 					.. L["Turn on friendly nameplates so Manners can see passers-by: without them it sees almost nobody outside your group."]
 					.. "|r",
 			},

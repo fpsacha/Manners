@@ -1,6 +1,7 @@
 -- Passers-by are seen mostly through nameplate tokens, so with the game's
 -- friendly nameplates off Manners sees almost nobody outside your group.
--- Who to buff says so beside the passers-by switch -- a grey note and a
+-- Who to buff says so beside the passers-by switch -- a note (red since
+-- 1.11.13, with the page's red dot: tests/scenarios/plates-cta.lua) and a
 -- "Show friendly nameplates" button, only while that source is on and the
 -- client plainly says the nameplates are off, the button greyed in a fight --
 -- and so does a keypress on an empty prompt, when nobody found is the reason it
