@@ -23,9 +23,11 @@ local function Bind() return ns.WindowBind end
 local PARTS = { orderNote = "note", orderPick = "pick", orderUp = "up", orderDown = "down",
 	orderReset = "reset" }
 local PART_ORDER = { "note", "pick", "up", "down", "reset" }
--- The list is as wide as its longest name wants and no wider than this: a row
--- with an arrow at the far end of a page's width is a long way to go.
-local LIST_WIDTH, LINE, GAP, PAD = 400, 28, 2, 3
+-- The list is as wide as the page and no wider than this: a row with an arrow
+-- at the far end of a page's width is a long way to go. 440 leaves a name 304
+-- pixels, room for "Oath of Light (your group only) (not learned)" in any
+-- font the renderer is handed.
+local LIST_WIDTH, LINE, GAP, PAD = 440, 28, 2, 3
 local ARROW_WIDTH, ARROW_HEIGHT = 24, 20
 -- The window's gold at a strength the grey notes on it stay readable over: the
 -- renderer's contrast check holds every word to 4.5:1 on what is behind it.
