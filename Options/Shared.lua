@@ -121,6 +121,50 @@ end
 Page.HasClassBuffs, Page.OnlyReachesGroup = HasClassBuffs, OnlyReachesGroup
 Page.HasPrompt, Page.OffersSelf, Page.NoSources = HasPrompt, OffersSelf, NoSources
 
+-- A family from the bags (Buffs.lua, `bagged`: food, the sleeping bag, a
+-- flask, an elixir, a scroll): whether one of its items is in the bags, asked
+-- of the client only for the page, and whether its switch under Myself is
+-- shown -- food always, the rest while switched on or one is in the bags.
+function Page.BaggedHeld(family)
+	local count = C_Item and C_Item.GetItemCount
+	if type(count) ~= "function" then return false end
+	for _, spell in ipairs(family.spells) do
+		local n = ns.plain(count(spell.item))
+		if type(n) == "number" and n > 0 then return true end
+	end
+	return false
+end
+
+function Page.BaggedShown(family)
+	if family.food then return true end
+	return ns.OwnPick(family) ~= "off" or Page.BaggedHeld(family)
+end
+
+-- Whether any such switch of this class is shown under Myself.
+function Page.BaggedSwitchShown()
+	for _, family in ipairs(ns.GetOwnFamilies() or {}) do
+		if family.bagged and Page.BaggedShown(family) then return true end
+	end
+	return false
+end
+
+-- Whether a character with no prompt has a switch under Myself that would
+-- give it one: a retail death knight with a flask in the bags, which is off
+-- until it is turned on and so counts for nothing until then (Core's
+-- OwnItemsHeld reads the families switched on). Who to buff is shown for it,
+-- Myself and that switch alone, as a hunter's is; Start here's steps still
+-- follow HasPrompt, since there is no prompt until the switch is on.
+--
+-- Food counts here only while it is on or in the bags, as the rest do: a
+-- rogue with nothing in his bags still has no page about a prompt.
+function Page.OwnSwitchWaiting()
+	if HasPrompt() then return false end
+	for _, family in ipairs(ns.GetOwnFamilies() or {}) do
+		if family.bagged and (ns.OwnPick(family) ~= "off" or Page.BaggedHeld(family)) then return true end
+	end
+	return false
+end
+
 -- Move the prompt: the one switch for where the prompt sits, which people did
 -- not find as a small checkbox on Look. A button that reads Move the prompt
 -- while the prompt is locked and Lock it while it is not, going the way
@@ -223,7 +267,21 @@ function Page.RightNow()
 	local prompt = ns.Prompt
 	if not prompt or (prompt.InTest and prompt:InTest()) then return nil end
 	local showing = prompt.Showing and prompt:Showing()
-	if not showing then return "|cff888888" .. L["Right now: nobody to offer."] .. "|r" end
+	if not showing then
+		-- Nobody because the prompt holds everybody back -- switched off,
+		-- unlocked, snoozed, mounted -- said as the launcher and the status
+		-- strip say it, not as an empty crowd. In a fight nobody new can come
+		-- on until it ends. Options/Launcher.lua loads after this file.
+		local watching, line = false, nil
+		if ns.LauncherState then watching, line = ns.LauncherState() end
+		if watching == false and type(line) == "string" and line ~= "" then
+			return "|cff888888" .. L["Right now: %s"]:format(line) .. "|r"
+		end
+		if InCombatLockdown() then
+			return "|cff888888" .. L["Right now: nobody, and nobody new comes on the prompt until this fight ends."] .. "|r"
+		end
+		return "|cff888888" .. L["Right now: nobody to offer."] .. "|r"
+	end
 	local others = 0
 	local queue = prompt.state and prompt.state.pickedFrom
 	for _, entry in ipairs(type(queue) == "table" and queue or {}) do

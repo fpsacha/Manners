@@ -483,6 +483,9 @@ local function TipShow(owner)
 	if not (row and row.item and row.item.def) then return end
 	local desc = Bind().Text(row.item, "desc")
 	local off = W.OffNote(row)
+	-- A control whose desc is already why it greys (Flash when someone buffs
+	-- me) says it once.
+	if off and desc and W.Trim(off) == W.Trim(desc) then off = nil end
 	if (not desc or desc == "") and not off then return end
 	GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
 	local name = W.Trim(Bind().Text(row.item, "name"))

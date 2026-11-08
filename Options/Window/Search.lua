@@ -81,6 +81,23 @@ end
 -- middle of one.
 local BOUNDARY = "[ !\"#$%%&'()*+,%-./:;<=>?@%[\\%]^_`{|}~]"
 
+-- The marks a word starts after that are not ASCII, by their UTF-8 bytes: the
+-- quotes the translations open with (German „ ‚ and “ ‘ ’, French « ‹ and
+-- » › the other way round), Spanish ¿ ¡, the dashes, the ellipsis and a
+-- no-break space. A lead byte is never a letter's continuation byte, so the
+-- two or three bytes before the match are the whole mark.
+local MARKS = {
+	["\194\160"] = true, ["\194\161"] = true, ["\194\171"] = true, ["\194\187"] = true, ["\194\191"] = true,
+	["\226\128\147"] = true, ["\226\128\148"] = true, ["\226\128\152"] = true, ["\226\128\153"] = true,
+	["\226\128\154"] = true, ["\226\128\156"] = true, ["\226\128\157"] = true, ["\226\128\158"] = true,
+	["\226\128\166"] = true, ["\226\128\185"] = true, ["\226\128\186"] = true,
+}
+
+local function AfterBoundary(text, at)
+	if at == 1 or find(text:sub(at - 1, at - 1), BOUNDARY) then return true end
+	return MARKS[text:sub(at - 2, at - 1)] == true or MARKS[text:sub(at - 3, at - 1)] == true
+end
+
 -- Whether the query starts a word of the text: a tooltip's sentence says
 -- "says" and "stays", which a search for "say" is not after. A query holding
 -- a byte from 0xE0 up (Chinese, Korean, written without spaces) matches
@@ -92,7 +109,7 @@ local function AtWordStart(text, query)
 	while true do
 		local at = find(text, query, from, true)
 		if not at then return false end
-		if at == 1 or find(text:sub(at - 1, at - 1), BOUNDARY) then return true end
+		if AfterBoundary(text, at) then return true end
 		from = at + 1
 	end
 end

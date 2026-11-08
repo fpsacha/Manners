@@ -1294,12 +1294,13 @@ ns.COMMANDS = {
 		help = L["take somebody off the never-offer list"] },
 	{ word = "restore", group = "setup", help = L["switch handing your target back after buffing on or off"] },
 	{ word = "verbose", group = "setup", help = L["switch the chat lines about who buffed you on or off"] },
-	{ word = "quiet", group = "setup", help = L["say nothing at all in chat, or talk again"] },
+	{ word = "quiet", group = "setup", help = L["hide all Manners messages in your chat window, or show them again"] },
 	{ word = "export", group = "share", help = L["copy these settings as one line of text"] },
 	{ word = "import", group = "share", args = " <text|undo>",
 		help = L["use settings somebody exported, or undo the last import"] },
 	{ word = "debug", group = "trouble", help = L["what your class and this build allow"] },
-	{ word = "errors", group = "trouble", help = L["the last few things that broke"] },
+	-- "all" is Diagnostics' Show every error: every one the session still holds.
+	{ word = "errors", group = "trouble", args = " [all]", help = L["the last few things that broke"] },
 	{ word = "selftest", group = "trouble", args = " [launch]",
 		help = L["check Manners against your game, and get a report to paste"] },
 	{ word = "dev", group = "trouble",
@@ -1595,7 +1596,7 @@ function addon:HandleSlash(rawInput)
 			and L["verbose: |cff00ff00on|r -- a line in your own chat when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed"]
 			or L["verbose: |cffff0000off|r"])
 	elseif input == "quiet" then
-		-- Say nothing at all in chat (Start here), from chat: the answer to this
+		-- Hide all Manners messages (Start here), from chat: the answer to this
 		-- command is the last line said, and typing it again brings them back.
 		db.silentChat = not db.silentChat
 		self:Print(db.silentChat
@@ -1710,7 +1711,8 @@ function addon:HandleSlash(rawInput)
 		-- a handler throwing on every frame.
 		local kept = #ns.errors
 		local total = ns.errorCount or kept
-		local from = math.max(1, kept - 4)
+		-- The last five, or with "all" every one kept, the oldest first.
+		local from = rest:lower() == "all" and 1 or math.max(1, kept - 4)
 		-- The ring's size only once it has started dropping things.
 		if total > kept then
 			self:Print(L["|cffffd100the last %d of %d|r |cff808080(%d kept)|r:"]:format(kept - from + 1, total, kept))

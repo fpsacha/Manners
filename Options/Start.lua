@@ -694,9 +694,11 @@ function Page.BuildStartTab()
 		args = {
 			-- The first run's two questions, above everything while the
 			-- profile has never been set up (Quick.Asking). The window draws
-			-- them as the first section of the page.
+			-- them as the first section of the page. Numbered: they stand in
+			-- for step 1, which is away while they ask, and 2. Put it on a key
+			-- follows them.
 			firstHeader = {
-				type = "header", name = L["Quick setup"], order = 0.1,
+				type = "header", name = L["1. Quick setup"], order = 0.1,
 				hidden = notAsking,
 			},
 			firstWho = {
@@ -732,7 +734,10 @@ function Page.BuildStartTab()
 			firstSkip = {
 				type = "execute",
 				name = L["Not now"],
-				desc = L["Leaves every setting as it is. The same choices are below and on the other tabs."],
+				-- Not "below": step 1 is away while these ask, and the voice
+				-- choice leads What I say in the window.
+				desc = L["Leaves every setting as it is. You can make the same choices later on %s and %s."]
+					:format(TAB.who, TAB.click),
 				order = 0.5,
 				hidden = notAsking,
 				func = function() Quick.FinishFirstRun(false) end,
@@ -763,11 +768,20 @@ function Page.BuildStartTab()
 				-- is named: it is the one thing such a class has here.
 				name = function()
 					if ns.caps.class and ns.CLASSES_WITHOUT_BUFFS[ns.caps.class] then
+						-- And where the switch is that would give it a prompt
+						-- of its own (a retail death knight's flask): Who to
+						-- buff is shown for it (Page.OwnSwitchWaiting).
+						local bags = ""
+						if Page.OwnSwitchWaiting() then
+							bags = "\n\n" .. L["It can also remind you to use what is in your bags on yourself: %s."]
+								:format(Ref(L["Myself"], TAB.who))
+						end
 						return "\n|cffff8080"
 							.. L["Your class has no buffs it can cast on another player."]
 							.. "|r\n\n"
 							.. L["Manners can still answer a buff with a /thank: %s. And it is worth keeping installed on an alt that has buffs."]
 								:format(Ref(L["/thank people who buff me"], TAB.click))
+							.. bags
 							.. "\n"
 					end
 					-- The command is handed in rather than written into the

@@ -288,14 +288,15 @@ function Page.BuildLookTab()
 				order = 26.5,
 				hidden = function() return not AccentDead() end,
 				-- Only one thing can leave the colour with nowhere to go now:
-				-- the icon switched off while the marker is on the icon. Every
+				-- the icon switched off while the colour goes on the icon. Every
 				-- look draws its stripe, and the bezel stays round a rounded
-				-- icon.
+				-- icon. The setting is named as its label reads.
 				name = function()
 					local p = P()
 					local mode = p.accentMode or "icon"
 					if (mode == "icon" or mode == "both") and not p.showIcon then
-						return "|cffffd100" .. L["There is nothing left to colour: the marker sits on the icon, which is switched off."] .. "|r"
+						return "|cffffd100" .. L["There is nothing left to colour: %s puts it on the icon, which is switched off."]
+							:format(L["Where the colour shows"]) .. "|r"
 					end
 					-- Nothing was lost, so the notice is hidden and has
 					-- nothing to say.
