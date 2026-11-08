@@ -143,8 +143,9 @@ do
 end
 
 do
-	local scenario = "shamanimbue: only a shaman, and not on Mists"
-	for _, client in ipairs({ "camelot", "vanilla", "tbc", "mists" }) do
+	-- Mists' and retail's since 1.11.11, their own spells (tests/scenarios/self-buffs.lua).
+	local scenario = "shamanimbue: only a shaman, on every client"
+	for _, client in ipairs({ "camelot", "vanilla", "tbc", "mists", "mainline" }) do
 		Mock.reset()
 		Mock.setFlavour(client)
 		local ns = load(scenario)
@@ -161,9 +162,7 @@ do
 					end
 				end
 			end
-			if client == "mists" then
-				if has then fail(scenario, "Mists, whose imbues are others, has the family") end
-			elseif not has then
+			if not has then
 				fail(scenario, client .. "'s shaman has no weapon imbue family")
 			end
 		end

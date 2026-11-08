@@ -331,6 +331,12 @@ local function AddOwnControls(args)
 					end
 					-- A shaman's imbues are spells, with no scroll to name (Buffs.lua, shamanimbue).
 					if family.imbue and not family.spells[1].item then
+						-- Retail's off hand, and a paladin's rites (Buffs.lua, MAINLINE_OWN).
+						if family.slot == 17 then
+							return L["Reminds you when no imbue is on the weapon or shield in your off hand. Automatic takes the first of these you know."]
+						elseif family.key ~= "shamanimbue" then
+							return L["Reminds you when no imbue is on the weapon in your main hand. Automatic takes the first of these you know."]
+						end
 						return L["Reminds you when no imbue is on the weapon in your main hand. Automatic takes the first of these you know, Windfury ahead of the rest."]
 					end
 					if family.imbue then
@@ -383,6 +389,8 @@ local function AddOwnControls(args)
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
 					or family.optIn
 					and L["Reminds you when it is not on you, whoever cast it. Off until you turn it on."]
+					or family.form
+					and L["Reminds you when you are not in it, and never while you are in another form."]
 					or L["Reminds you when it is not up."]
 				control.get = function() return pick() ~= "off" end
 				control.set = function(info, value) write(info, value and "auto" or "off") end

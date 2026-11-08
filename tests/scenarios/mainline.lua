@@ -192,12 +192,22 @@ do
 		end
 		-- Nothing of a class's own: no scroll, no familiar, no tracking, no stone or
 		-- oil (retail has no items for a weapon here). A rogue's poisons are
-		-- spells, the lethal ones and the non-lethal ones.
+		-- spells, the lethal ones and the non-lethal ones; since 1.11.11 a shadow
+		-- priest's form, a warlock's sacrifice, a shaman's imbues a hand and a
+		-- paladin's rites (tests/scenarios/self-buffs.lua).
+		local OWN = { PRIEST = "shadowform", WARLOCK = "grimoireofsacrifice",
+			SHAMAN = "shamanimbue, shamanimbueoff", PALADIN = "rite" }
 		for _, class in ipairs(ALL_CLASSES) do
 			local own = ns.GetOwnFamilies(class)
+			local keys = {}
+			for _, family in ipairs(own or {}) do keys[#keys + 1] = family.key end
 			if class == "ROGUE" then
 				if not own or #own ~= 2 or own[1].key ~= "lethal" or own[2].key ~= "nonlethal" then
 					fail(scenario, "a rogue's own buffs on retail are not the lethal and non-lethal poisons")
+				end
+			elseif OWN[class] then
+				if table.concat(keys, ", ") ~= OWN[class] then
+					fail(scenario, class .. "'s own on retail are [" .. table.concat(keys, ", ") .. "], not [" .. OWN[class] .. "]")
 				end
 			elseif own then
 				fail(scenario, class .. " has buffs of its own on retail: " .. tostring(own[1].key))

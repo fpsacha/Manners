@@ -574,6 +574,15 @@ OWN_NAMES = {
     "trackgiants": r"Track Giants", "trackdragonkin": r"Track Dragonkin",
     "senseundead": r"Sense Undead", "sensedemons": r"Sense Demons",
 }
+# 1.11.11's own buffs: the forms, Season of Discovery's runes, Grimoire of Sacrifice, and the
+# imbues of Mists and retail that no other client has under these keys.
+OWN_NAMES.update({
+    "shadowform": r"Shadowform", "moonkinform": r"Moonkin Form", "aspectfalcon": r"Aspect of the Falcon",
+    "heartofthelion": r"Heart of the Lion", "grimoireofsacrifice": r"Grimoire of Sacrifice",
+    "earthlivingweapon": r"Earthliving Weapon", "flametongueoffhand": r"Flametongue Weapon",
+    "thunderstrikeward": r"Thunderstrike Ward", "ritesanctification": r"Rite of Sanctification",
+    "riteadjuration": r"Rite of Adjuration",
+})
 # What a favour-only / not-favour id is, by id: any client that has the id must call it this.
 FAVOUR_NAMES = {
     6346: r"Fear Ward", 546: r"Water Walking", 11743: r"Detect (Lesser |Greater )?Invisibility", 2970: r"Detect (Lesser |Greater )?Invisibility",
@@ -1228,6 +1237,18 @@ def tooltip_seconds(text):
     return int(n) * (3600 if unit == "hour" else 60)
 
 
+def tooltip_token_seconds(c, text):
+    """Where a tooltip names no number, the length of the spell its first `$<id>d` token names
+    (retail's Windfury Weapon: "for $319773d", the aura its script puts on; a later token is
+    another effect's, as Earthliving's heal "over $382024d"); None for none, or for a spell
+    with no length of its own."""
+    found = re.findall(r"\$(\d+)d(?![a-z])", text or "")
+    if not found:
+        return None
+    ms = c.duration_ms(int(found[0]))
+    return ms // 1000 if ms and ms > 0 else None
+
+
 def spell_seconds(c, spell):
     """How long the aura a cast puts on lasts, in seconds: the spell's own SpellDuration, else what
     its triggers land (a Blessing of the Bronze, Legacy of the Emperor), else 0 for no timer. None
@@ -1250,6 +1271,9 @@ def use_seconds(c, rep, where, spell, enchant):
     ench = c.enchants.get(enchant)
     from_enchant = ench[1] if ench and ench[1] else None
     from_text = tooltip_seconds(c.descriptions.get(spell))
+    # Only where nothing else says: a poison's tooltip names its own effect's length.
+    if from_text is None and not own and not from_enchant:
+        from_text = tooltip_token_seconds(c, c.descriptions.get(spell))
     said = {k: v for k, v in (("SpellDuration", own or None), ("SpellItemEnchantment", from_enchant),
                               ("tooltip", from_text)) if v}
     if len(set(said.values())) > 1:

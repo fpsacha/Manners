@@ -55,6 +55,9 @@ do
 		elseif why == "up" and not name and family.enhance then
 			-- An enchant none of this family's items makes: the weapon is seen to.
 			return L["%s: the weapon already carries a temporary enchant."]:format(label)
+		elseif why == "up" and not name and family.imbue and family.slot == 17 then
+			-- Retail's off-hand imbue: the weapon or shield there is seen to.
+			return L["%s: your off hand already carries a temporary enchant."]:format(label)
 		elseif why == "up" and not name and family.imbue then
 			-- An oil, or an enchant no scroll makes: the weapon is seen to.
 			return L["%s: your main hand already carries a temporary enchant."]:format(label)
@@ -94,6 +97,10 @@ do
 			return L["%s: you are resting in the bag, or it is cooling down."]:format(label)
 		elseif why == "leftout" then
 			return L["%s: %s is ticked under Never remind me about."]:format(label, name or "?")
+		elseif why == "form" then
+			return L["%s: you are in another form, so it is not offered."]:format(label)
+		elseif why == "noshield" then
+			return L["%s: %s goes on a shield, and there is none in your off hand."]:format(label, name or "?")
 		end
 		return L["%s: the game will not say whether it is up, so it is not offered."]:format(label)
 	end

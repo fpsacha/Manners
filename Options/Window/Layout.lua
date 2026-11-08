@@ -198,8 +198,12 @@ ns.WindowLayout = {
 					"who.self",
 					-- Only the families this character knows are shown (their own rule).
 					{ "who.own_omen", indent = true },
+					-- A druid's Moonkin Form, never asked for in another form.
+					{ "who.own_moonkinform", indent = true },
 					{ "who.own_aspect", indent = true },
 					{ "who.own_trueshot", indent = true },
+					-- Season of Discovery's Heart of the Lion (Classic Era).
+					{ "who.own_heartofthelion", indent = true },
 					{ "who.own_armor", indent = true },
 					-- A mage's scrolls on Forever, while there is one in the bags.
 					{ "who.own_familiar", indent = true },
@@ -217,13 +221,20 @@ ns.WindowLayout = {
 					{ "who.own_lure", indent = true },
 					{ "who.own_aura", indent = true },
 					{ "who.own_righteousfury", indent = true },
+					-- A Lightsmith paladin's rites on the weapon (retail).
+					{ "who.own_rite", indent = true },
 					{ "who.own_innerfire", indent = true },
 					{ "who.own_touchofweakness", indent = true },
 					{ "who.own_shadowguard", indent = true },
+					{ "who.own_shadowform", indent = true },
 					{ "who.own_shield", indent = true },
 					-- A shaman's weapon imbues, spells: one a hand at a time.
 					{ "who.own_shamanimbue", indent = true },
+					-- Retail's off hand: Flametongue beside Windfury, or a shield's ward.
+					{ "who.own_shamanimbueoff", indent = true },
 					{ "who.own_demonarmor", indent = true },
+					-- A warlock's Grimoire of Sacrifice (Mists, retail).
+					{ "who.own_grimoireofsacrifice", indent = true },
 					-- A warlock's Detect Invisibility, off until it is turned on.
 					{ "who.own_detectinvis", indent = true },
 					-- Food that gives Well Fed, off until it is turned on; every class has it.
