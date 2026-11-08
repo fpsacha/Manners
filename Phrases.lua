@@ -5274,6 +5274,8 @@ RP.MASCULINE = {
 		["This late, {name}, only trolls and trouble are up. I'm the nice one."] = true,
 		["I heard your horn and swung harder, {name}. Nobody had to tell me twice."] = true,
 		["I'm half thunderstorm now, {name}. Thank you, and sorry about the rain."] = true,
+		-- RP.GIFT's Oath of Light: "degno".
+		["An oath, sworn to me? Thank you, {name}. I'll try to be worth keeping."] = true,
 	},
 	esES = {
 		["A gift for the dead, {name}? Most people bring flowers. Then they run."] = true,
@@ -5297,6 +5299,15 @@ RP.MASCULINE = {
 		["Thank you, {name}. Every lurker around just lost their only trick."] = true,
 		["Thank you, {name}. Now I can see what your imp gets up to."] = true,
 		["My eyes see more than my wits can handle, {name}. Thank you."] = true,
+		-- The thanks for a buff for one target at a time (RP.GIFT): "Obrigado".
+		["Thank you, {name}. With the earth at my back, I'll stand anything."] = true,
+		["Thank you, {name}. I'll try to deserve every pebble."] = true,
+		["A Beacon, for me? I'll shine where the hits land, {name}. Thank you."] = true,
+		["Thank you, {name}. Every heal of yours has my address on it now."] = true,
+		["An oath, sworn to me? Thank you, {name}. I'll try to be worth keeping."] = true,
+		["Thank you, {name}. I'll stand in front; you keep your word."] = true,
+		["Thank you, {name}. I'll take good care of your trick, and you of mine."] = true,
+		["Your own scales, {name}? I'll wear them proudly. Thank you."] = true,
 	},
 }
 
@@ -5357,9 +5368,16 @@ do
 	-- The English a line was read under, for the tests.
 	function RP.EnglishOf(text) return ENGLISH[text] end
 
+	-- RP.GIFT's pools, for LeaveOut's floor.
+	local GIFT_POOL = {}
+	for _, pool in pairs(RP.GIFT) do GIFT_POOL[pool] = true end
+
 	-- Which lines of this pool are left out (text -> true), or nil: none are
 	-- flagged, or leaving them out would take the pool below RP.SPREAD lines.
-	local function LeaveOut(pool, leaving)
+	-- `floor` is how many lines the pool must keep, RP.SPREAD unless said:
+	-- the thanks for a gift (RP.GIFT) keep none, since a woman who would hear
+	-- only a man's voice in a pool of two is better heard in another pool.
+	local function LeaveOut(pool, leaving, floor)
 		local out, total, n = nil, 0, 0
 		for _, text in ipairs(pool) do
 			total = total + 1
@@ -5369,7 +5387,7 @@ do
 				n = n + 1
 			end
 		end
-		if out and total - n < RP.SPREAD then return nil end
+		if out and total - n < (floor or RP.SPREAD) then return nil end
 		return out
 	end
 
@@ -5672,7 +5690,7 @@ do
 		local function add(pool, share, tag)
 			if type(pool) == "string" then pool = { pool } end
 			if type(pool) ~= "table" or type(share) ~= "number" then return end
-			local left = leaving and LeaveOut(pool, leaving)
+			local left = leaving and LeaveOut(pool, leaving, GIFT_POOL[pool] and 0 or nil)
 			local first = #lines + 1
 			for _, text in ipairs(pool) do
 				-- A line that would say an empty name or spell is left out,

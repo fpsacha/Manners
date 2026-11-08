@@ -101,10 +101,5 @@ mutate("Queue.lua",
        "newbuffs-fixes: a blessing's cast forgets the Oath's",
        expect="newbuffs-fix: a blessing after your Oath does not hand the Oath to a second tank", script=S)
 
-# --- the greeting ---
-
-mutate("Commands.lua",
-       "\t\tif buff and buff.oneTarget then\n",
-       "\t\tif false then\n",
-       "newbuffs-fixes: the greeting promises Earth Shield to the group",
-       expect="newbuffs-fix: the greeting does not promise Earth Shield to anybody in the group", script=S)
+# The greeting's one-target line is held by engine-fixes.py
+# ("engine-fix: the greeting promises it to the group").

@@ -572,9 +572,15 @@ do
 				-- and then only this list stops the same one being offered
 				-- again. ASK.ANY itself is shared by every such request, so it
 				-- is replaced, never written.
+				-- Not a buff for one target at a time (Buffs.lua, oneTarget):
+				-- "buff pls" never asked for it (AskedFor), and named here it
+				-- would be a request by name, which takes yours off the tank
+				-- or off whoever wears it.
 				if buffKey and request.keys == ASK.ANY then
 					request.keys = {}
-					for _, buff in ipairs(ns.CastableBuffs()) do request.keys[buff.key] = true end
+					for _, buff in ipairs(ns.CastableBuffs()) do
+						if not buff.oneTarget then request.keys[buff.key] = true end
+					end
 				end
 				if buffKey then request.keys[buffKey] = nil end
 				if not buffKey or next(request.keys) == nil then table.remove(requests, i) end

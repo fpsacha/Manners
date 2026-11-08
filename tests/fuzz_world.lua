@@ -546,8 +546,15 @@ function X.install(W)
 			end
 			return false
 		end,
+		-- The game takes a unit token or a name (as the addon asks of a debt
+		-- whose person has no token); a name is read as filed.
 		IsIgnored = function(unit)
 			local p = resolve(unit)
+			if not p and type(unit) == "string" then
+				for _, q in ipairs(W.people) do
+					if X.filedName(W, q) == unit then p = q break end
+				end
+			end
 			return p ~= nil and p ~= me and p.ignored == true
 		end,
 		IsIgnoredByGuid = function(guid)

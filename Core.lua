@@ -1259,6 +1259,18 @@ function ns.OnlyReachesGroup(castable)
 	return true
 end
 
+-- Whether everything this character could offer goes to one person at a time
+-- (Buffs.lua, oneTarget: Earth Shield, Beacon of Light), so the greeting says
+-- who that is and not that anybody in the group missing it is offered it.
+function ns.OnlyOneTarget(castable)
+	castable = castable or ns.CastableBuffs()
+	if #castable == 0 then return false end
+	for _, buff in ipairs(castable) do
+		if not buff.oneTarget then return false end
+	end
+	return true
+end
+
 -- Whether "your group", in a sentence about what reaches only your group,
 -- is your own subgroup in a raid: a vanilla shout's is (ns.PARTY_IS_SUBGROUP),
 -- but Salvation (groupOnly) reaches anybody in the raid.

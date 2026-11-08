@@ -141,7 +141,7 @@ mutate("Phrases.lua",
        expect="hunt34-speech: a woman is spared a listed masculine line", script=S)
 
 mutate("Phrases.lua",
-       "\t\tif out and total - n < RP.SPREAD then return nil end\n",
+       "\t\tif out and total - n < (floor or RP.SPREAD) then return nil end\n",
        "",
        "hunt34-speech: a pool thinned below RP.SPREAD",
        expect="hunt34-speech: a woman is spared a listed masculine line", script=S)

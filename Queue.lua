@@ -1641,10 +1641,14 @@ local function OneTargetHolders(candidates)
 	local count = inRaid and n or (n - 1)
 	for _, buff in ipairs(candidates) do
 		if buff.oneTarget then
+			-- A buff the game will not let you cast on yourself (notSelf) is not
+			-- read on you: the aura on you is the druid's own, which Symbiosis
+			-- puts on its caster, and the partner wears another.
+			local myGuid = buff.notSelf and plain(UnitGUID("player")) or nil
 			for i = 0, count do
 				local unit = i == 0 and "player" or tokens[i] or (prefix .. i)
 				local guid = plain(UnitGUID(unit))
-				if guid then
+				if guid and not (buff.notSelf and (i == 0 or guid == myGuid)) then
 					local has, remaining, mine = UnitHasBuff(unit, buff, guid)
 					if has == nil then
 						ONE_HELD[buff.key] = true
