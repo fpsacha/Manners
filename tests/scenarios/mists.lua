@@ -54,6 +54,9 @@ local NAMES = {
 	[324] = "Lightning Shield",
 	[52127] = "Water Shield",
 	[974] = "Earth Shield",
+	-- The buffs for one target at a time (1.11.11), SpellName 5.5.4.70032.
+	[53563] = "Beacon of Light",
+	[110309] = "Symbiosis",
 	[6346] = "Fear Ward",
 	[546] = "Water Walking",
 	[20707] = "Soulstone",
@@ -754,8 +757,10 @@ for _, case in ipairs(OWN) do
 	mists(scenario, { class = case.class, known = case.known }, function(ns)
 		Mock.playerHeld = {}
 		for _, id in ipairs(case.known) do
+			-- A buff for others that is also one of your own (Earth Shield, the
+			-- shield family's and the tank's) is your own on you.
 			local buff = ns.BUFF_BY_ID[id]
-			if buff then Mock.playerHeld[id] = true end
+			if buff and not ns.OWN_BY_ID[id] then Mock.playerHeld[id] = true end
 		end
 		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
 		local entry = mine(ns, case.offered)

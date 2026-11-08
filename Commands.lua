@@ -274,6 +274,11 @@ function ns.Welcome(force, offSaid)
 	-- a character with nothing learned yet, who will learn a spell soon; nor
 	-- for one whose own buffs still put a prompt up, who gets the tour for it.
 	local othersOff = caps.anyKnown and not ns.ResolveBuff(true)
+	-- ...but for a class whose every buff for others is a talent, a rune or a
+	-- specialization's (ns.OnlyTalentBuffs: a shaman's Earth Shield), which one
+	-- who has learned none may never learn: nothing is offered to anybody else,
+	-- and the greeting says so rather than promise passers-by.
+	if not othersOff and not caps.anyKnown and ns.OnlyTalentBuffs() then othersOff = true end
 	local ownLive = ns.OwnBuffsLive()
 	if othersOff and not ownLive then
 		addon:Print(L["|cffffd100Manners|r is installed, but nothing will be offered to anybody: %s."]

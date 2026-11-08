@@ -2417,8 +2417,8 @@ mutate("Buffs.lua",
 # Which of the two the user is shown depends on which screen they open, and the
 # shaman is exactly the class that moved -- totems on vanilla, Skyfury on retail.
 mutate("Buffs.lua",
-       "\t\tPALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3",
-       "\t\tSHAMAN = true,\n\t\tPALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3",
+       "\t\tDEATHKNIGHT = true,  -- Horn of Winter removed in 11.2.0",
+       "\t\tSHAMAN = true,\n\t\tDEATHKNIGHT = true,  -- Horn of Winter removed in 11.2.0",
        "a class both given spells and listed as having none",
        expect="mainline gets the mainline spells",
        script="runscenarios.py")
@@ -2427,10 +2427,10 @@ mutate("Buffs.lua",
 # that lets the options page say so. The page then falls back to "could not work
 # out what you can cast", which sends somebody looking for a broken spell probe.
 mutate("Buffs.lua",
-       "\t\tPALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3",
-       "",
+       "\t\tMONK = true,\n\t\tDEMONHUNTER = true,\n",
+       "\t\tDEMONHUNTER = true,\n",
        "a class with nothing left to say it has nothing",
-       expect="a retail paladin is told so plainly",
+       expect="a retail monk is told so plainly",
        script="runscenarios.py")
 
 # An unrecognised client left with no spells at all. Flavour.lua refuses to

@@ -49,14 +49,19 @@ local RETAIL = {
 	MAGE = { intellect = 1459 },
 	PRIEST = { fortitude = 21562 },
 	DRUID = { motw = 1126 },
-	SHAMAN = { skyfury = 462854 },
-	EVOKER = { bronze = 364342, sourceofmagic = 369459 },
+	SHAMAN = { skyfury = 462854, earthshieldtank = 974 },
+	EVOKER = { bronze = 364342, sourceofmagic = 369459, blisteringscales = 360827 },
 	WARRIOR = { battleshout = 6673 },
+	-- Beacon of Light for the tank, since 1.11.11.
+	PALADIN = { beacon = 53563 },
 }
+-- The ones that go to one target at a time (Buffs.lua, oneTarget), to the tank
+-- of your group and never to a passer-by: tests/scenarios/others-buffs.lua.
+local ONE_TARGET = { earthshieldtank = true, beacon = true, blisteringscales = true }
 -- The thirteen per-class auras Blessing of the Bronze's cast applies.
 local BRONZE = { 381732, 381741, 381746, 381748, 381749, 381750, 381751,
 	381752, 381753, 381754, 381756, 381757, 381758 }
-local WITHOUT = { "PALADIN", "DEATHKNIGHT", "MONK", "DEMONHUNTER", "HUNTER", "ROGUE", "WARLOCK" }
+local WITHOUT = { "DEATHKNIGHT", "MONK", "DEMONHUNTER", "HUNTER", "ROGUE", "WARLOCK" }
 local ALL_CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT", "SHAMAN",
 	"MAGE", "WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "EVOKER" }
 
@@ -331,7 +336,7 @@ do
 			local buff = { class = class, key = key, ids = { buffs[key] } }
 			if key == "bronze" then for _, id in ipairs(BRONZE) do buff.ids[#buff.ids + 1] = id end end
 			-- Source of Magic is never Automatic's (it goes to one ally).
-			if key ~= "sourceofmagic" then cases[#cases + 1] = buff end
+			if key ~= "sourceofmagic" and not ONE_TARGET[key] then cases[#cases + 1] = buff end
 		end
 	end
 	table.sort(cases, function(a, b) return a.key < b.key end)

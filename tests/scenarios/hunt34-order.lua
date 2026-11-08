@@ -45,7 +45,10 @@ do
 		ns.ClampSettings()
 		local mine = orders(ns)
 		local text = ns.ExportSettings()
-		if not text:find("buff.order=PALADIN=kings:might:wisdom:salvation:light,PRIEST=spirit:fortitude:shadow", 1, true) then
+		-- A buff of this client's that the order did not name is kept after it
+		-- (Forever's Oath of Light, 1.11.11).
+		if not (text:find("buff.order=PALADIN=kings:might:wisdom:salvation:light", 1, true)
+			and text:find(",PRIEST=spirit:fortitude:shadow", 1, true)) then
 			fail(scenario, "the export does not carry the orders as CLASS=key:key: " .. text)
 		end
 		ns.db.profile.buff.order = {}

@@ -49,7 +49,7 @@ local function BuffLabel(buff)
 	if buff.manaOnly and F().relevantOnly then
 		label = L["%s |cff808080(mana users only)|r"]:format(label)
 	end
-	if buff.partyOnly or buff.groupOnly then label = L["%s |cff808080(your group only)|r"]:format(label) end
+	if buff.partyOnly or buff.groupOnly or buff.oneTarget then label = L["%s |cff808080(your group only)|r"]:format(label) end
 	return label
 end
 
@@ -137,6 +137,22 @@ local function AutoExplanation()
 			.. "|r"
 	end
 	return text
+end
+
+-- Who a buff for one target at a time goes to (Buffs.lua, oneTarget), one
+-- line for each the walk holds, after what Automatic does: those sentences
+-- speak of everybody, and this one goes to one person. Empty for none.
+local function OneTargetNote(castable)
+	local out = ""
+	for _, buff in ipairs(castable) do
+		if buff.oneTarget then
+			local line = buff.notOwnClass
+				and L["Only one person can have %s at a time, so it goes to one member of your group who is not of your class, and only while none of yours is on anybody in it."]
+				or L["Only one person can have %s at a time, so it goes to a tank of your group (the tank role, or main tank in a raid), and only while none of yours is on anybody in it."]
+			out = out .. "\n|cff888888" .. line:format("|cffffffff" .. ns.BuffName(buff) .. "|r") .. "|r"
+		end
+	end
+	return out
 end
 
 -- What pinning one spell means, and the one case where pinning is a silent
@@ -654,8 +670,9 @@ function Page.BuildWhoTab()
 					local castable = ns.CastableBuffs()
 					if OneBuff() and #castable == 1 then
 						return "|cff888888" .. L["You offer %s."]:format("|cffffffff" .. BuffLabel(castable[1]) .. "|r") .. "|r"
+							.. OneTargetNote(castable)
 					end
-					return AutoExplanation()
+					return AutoExplanation() .. OneTargetNote(castable)
 				end,
 			},
 			-- After the per-spell switches (4.1, 4.2, ...) and ahead of the mana

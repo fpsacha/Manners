@@ -1897,7 +1897,9 @@ do
 		local elsewhere = set({ "intellect", "fortitude", "spirit", "shadow", "motw", "thorns", "kings", "might",
 			"wisdom", "salvation", "light", "sanctuary", "battleshout", "breath", "commandingshout",
 			"hornofwinter", "emperor", "whitetiger", "darkintent", "skyfury", "bronze", "sourceofmagic",
-			"soulstone", "fearward", "waterwalking", "detectinvis" })
+			"soulstone", "fearward", "waterwalking", "detectinvis",
+			-- 1.11.11's buffs for one target at a time, each on some clients only.
+			"earthshieldtank", "beacon", "oathoflight", "symbiosis", "blisteringscales" })
 		local filed = {}
 		for key in pairs(keys) do filed[key] = true end
 		for key in pairs(elsewhere) do filed[key] = true end

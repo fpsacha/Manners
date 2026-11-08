@@ -933,6 +933,19 @@ function ns.OwnBuffsOnly()
 	return not caps.hasClassBuffs and (caps.anyOwnKnown == true or ns.OwnItemsHeld())
 end
 
+-- Whether every buff this class has for others is learned from a talent, a
+-- rune or a specialization (Buffs.lua, `talent`): a shaman's Earth Shield, a
+-- retail paladin's Beacon of Light. One who has learned none may never learn
+-- one, where a warlock before Unending Breath will (Commands.lua, Welcome).
+function ns.OnlyTalentBuffs()
+	local buffs = ns.GetClassBuffs(playerClass)
+	if not buffs or #buffs == 0 then return false end
+	for _, buff in ipairs(buffs) do
+		if not buff.talent then return false end
+	end
+	return true
+end
+
 -- Your own buffs' answers sit apart (caps.own); every key is unique across
 -- both tables (Buffs.lua), so one lookup serves the name, icon and macro of
 -- either kind.
@@ -1237,7 +1250,9 @@ function ns.OnlyReachesGroup(castable)
 	castable = castable or ns.CastableBuffs()
 	if #castable == 0 then return false end
 	for _, buff in ipairs(castable) do
-		if not (buff.partyOnly or buff.groupOnly) then return false end
+		-- A buff for one target at a time goes to your group alone (Buffs.lua,
+		-- oneTarget), as Salvation does.
+		if not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then return false end
 	end
 	return true
 end
@@ -1249,6 +1264,7 @@ function ns.GroupMeansSubgroup(castable)
 	if not ns.PARTY_IS_SUBGROUP then return false end
 	for _, buff in ipairs(castable or ns.CastableBuffs()) do
 		if buff.groupOnly and not buff.partyOnly then return false end
+		if buff.oneTarget then return false end
 	end
 	return true
 end
@@ -1509,6 +1525,28 @@ do
 		if buff.partyOnly and not opts.inParty then return false end
 		-- Salvation: the game refuses it on anybody outside your party or raid.
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
+		-- One target at a time (Buffs.lua, oneTarget): a cast on somebody takes
+		-- yours off the last. Your group alone, never a passer-by. There, while
+		-- one of yours is on somebody (opts.oneHeld, the scan's own reading of
+		-- every member: Queue.lua, OneTargetHolders) nobody but them, for its
+		-- top-up; while none is, a tank (opts.isTank), or for Symbiosis anybody
+		-- not of your class (opts.class). Somebody who asked for it by name has
+		-- said where they want it, so neither rule holds them back; the game's
+		-- own does (a druid's Symbiosis on another druid).
+		if buff.oneTarget then
+			if not (opts.inGroup or opts.inParty) then return false end
+			if buff.notOwnClass and opts.class ~= nil and opts.class == playerClass then return false end
+			if not opts.asked then
+				local holder = opts.oneHeld and opts.oneHeld[buff.key]
+				if holder ~= nil then
+					if holder ~= opts.name then return false end
+				elseif buff.notOwnClass then
+					if opts.class == nil then return false end
+				elseif not opts.isTank then
+					return false
+				end
+			end
+		end
 		return true
 	end
 
@@ -1553,6 +1591,9 @@ do
 
 	-- The candidate list a pin reduces the walk to, reused for every call.
 	local PINNED_ONLY = {}
+	-- A paladin's blessings with his buffs for one target at a time taken out
+	-- (Buffs.lua, oneTarget), reused the same way.
+	local BLESSINGS_ONLY = {}
 
 	-- Which of their buffs this person should be offered, or nil for none. Every
 	-- castable buff is walked, so holding the first one never hides somebody.
@@ -1597,6 +1638,34 @@ do
 		-- names nobody we can read counts as ours, or ours would be walked over.
 		-- Never rotated: see ns.RotatesBuffs.
 		if ns.EXCLUSIVE_BUFFS[playerClass] then
+			-- A buff for one target at a time (Buffs.lua, oneTarget: Beacon of
+			-- Light, Oath of Light) is no blessing: it replaces none of them and
+			-- none of them replaces it. So it is read on its own, ahead of them,
+			-- for the one person it may go to (Castable): missing, or with top-ups
+			-- on, running low; and then left out of everything below, where one
+			-- worn would read as a blessing of yours and cover them.
+			local apart = false
+			for _, buff in ipairs(candidates) do
+				if buff.oneTarget then
+					apart = true
+					if Eligible(opts, buff) then
+						local held, remaining, _, over, seconds = has(buff, opts)
+						if held == false then return buff, false end
+						if held == true and not over and opts.whenBuffed == "refresh" and remaining then
+							seconds = Length(buff, seconds)
+							local lead, kind = ns.LeadFor(opts, seconds)
+							if remaining <= lead then return buff, true, remaining, seconds, lead, kind end
+						end
+					end
+				end
+			end
+			if apart then
+				wipe(BLESSINGS_ONLY)
+				for _, buff in ipairs(candidates) do
+					if not buff.oneTarget then BLESSINGS_ONLY[#BLESSINGS_ONLY + 1] = buff end
+				end
+				candidates = BLESSINGS_ONLY
+			end
 			-- "Leave alone anybody another paladin has blessed": any blessing of
 			-- the class worn from somebody else covers them, pinned or not, read
 			-- over the whole class rather than the list a pin narrows. Not for
@@ -1605,7 +1674,7 @@ do
 				local all = ns.GetClassBuffs(playerClass) or candidates
 				for i = 1, #all do
 					local held, _, mine = has(all[i], opts)
-					if held == true and mine == false then return nil, true end
+					if held == true and mine == false and not all[i].oneTarget then return nil, true end
 				end
 			end
 			local pick, allRead, onCooldown = nil, true, false
@@ -1687,7 +1756,7 @@ do
 			local skip = db.buff and db.buff.skip
 			if not pinned and not opts.asked and skip and next(skip) ~= nil then
 				for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
-					if skip[buff.key] and ns.IsBuffKnown(buff) then
+					if skip[buff.key] and ns.IsBuffKnown(buff) and not buff.oneTarget then
 						local held, _, mine = has(buff, opts)
 						if held == true and mine ~= false then return nil, true end
 					end

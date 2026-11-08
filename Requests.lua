@@ -82,6 +82,13 @@ do
 		skyfury = { "skyfury" },
 		bronze = { "blessing of the bronze", "bronze" },
 		sourceofmagic = { "source of magic" },
+		-- The buffs for one target at a time (Buffs.lua, oneTarget), asked for
+		-- by name only: "buff pls" names none of them (AskedFor).
+		earthshieldtank = { "earth shield" },
+		beacon = { "beacon of light", "~beacon" },
+		oathoflight = { "oath of light" },
+		symbiosis = { "symbiosis" },
+		blisteringscales = { "blistering scales" },
 	}
 
 	local function Set(list)
@@ -496,7 +503,12 @@ do
 				local pool = {}
 				for _, buff in ipairs(candidates) do
 					if (request.keys == ASK.ANY or request.keys[buff.key])
-						and (not pinned or pinned.key == buff.key) then
+						and (not pinned or pinned.key == buff.key)
+						-- "Buff pls" is no ask for a buff that goes to one target at
+						-- a time (Buffs.lua, oneTarget): the walk's rule holds it to
+						-- the tank, and a request by name is what lets somebody else
+						-- have it.
+						and not (buff.oneTarget and request.keys == ASK.ANY) then
 						pool[#pool + 1] = buff
 					end
 				end

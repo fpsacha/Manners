@@ -8773,16 +8773,18 @@ Mock.reset()
 local BUFF_SETS = {
 	{
 		interface = 11509, flavour = "vanilla", set = "vanilla", classic = true,
-		has = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns", WARLOCK = "breath" },
+		-- The shaman since 1.11.11: Season of Discovery's Earth Shield.
+		has = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns", WARLOCK = "breath",
+			SHAMAN = "earthshieldtank" },
 		absent = { "MONK", "EVOKER", "DEATHKNIGHT" },
-		without = { "HUNTER", "ROGUE", "SHAMAN" },
+		without = { "HUNTER", "ROGUE" },
 		exclusive = { PALADIN = true },
 	},
 	{
 		interface = 20506, flavour = "tbc", set = "tbc", classic = true,
-		has = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns" },
+		has = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns", SHAMAN = "earthshieldtank" },
 		absent = { "MONK", "EVOKER", "DEATHKNIGHT" },
-		without = { "HUNTER", "ROGUE", "SHAMAN" },
+		without = { "HUNTER", "ROGUE" },
 		exclusive = { PALADIN = true },
 	},
 	{
@@ -8800,17 +8802,18 @@ local BUFF_SETS = {
 		-- addon offered on the flavour above.
 		gone = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns" },
 		absent = { "EVOKER" },
-		without = { "HUNTER", "ROGUE", "SHAMAN" },
+		without = { "HUNTER", "ROGUE" },
 		exclusive = { PALADIN = true },
 	},
 	{
 		interface = 120100, flavour = "mainline", set = "mainline",
 		has = { SHAMAN = "skyfury", EVOKER = "bronze", MAGE = "intellect",
-			PRIEST = "fortitude" },
-		absent = { "PALADIN", "DEATHKNIGHT", "MONK", "WARLOCK" },
-		-- Three classes that used to be the backbone of this addon, and the
+			PRIEST = "fortitude", PALADIN = "beacon" },
+		absent = { "DEATHKNIGHT", "MONK", "WARLOCK" },
+		-- Two classes that used to be the backbone of this addon, and the
 		-- shaman moving the other way: totems on vanilla, Skyfury on retail.
-		without = { "PALADIN", "DEATHKNIGHT", "HUNTER", "ROGUE", "WARLOCK", "MONK" },
+		-- The paladin keeps Beacon of Light (1.11.11).
+		without = { "DEATHKNIGHT", "HUNTER", "ROGUE", "WARLOCK", "MONK" },
 		exclusive = {},
 	},
 }
@@ -8879,19 +8882,20 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ 132
--- A retail paladin, which is the class this round deletes.
+-- A retail monk, a class this round deletes.
 --
--- Kings, Might and Wisdom went in 7.0.3 and Blessing of the Seasons in 12.0.0,
--- so a paladin on Midnight has nothing to put on a passer-by. "Nothing" has to
--- arrive as the honest sentence a rogue already gets, not as an empty prompt, a
--- silent addon, or an error -- the class is listed in the tables above it on
--- every other client, so every path here is one that used to find spells.
+-- The Legacies are gone from Midnight, so a monk there has nothing to put on a
+-- passer-by. "Nothing" has to arrive as the honest sentence a rogue already
+-- gets, not as an empty prompt, a silent addon, or an error -- the class is
+-- listed in the tables above it on Mists, so every path here is one that used
+-- to find spells. (The paladin this was written for keeps Beacon of Light
+-- since 1.11.11.)
 Mock.reset()
 Mock.interface = 120100
-Mock.class = "PALADIN"
-ns = load("a retail paladin is told so plainly")
+Mock.class = "MONK"
+ns = load("a retail monk is told so plainly")
 if ns then
-	local scenario = "a retail paladin is told so plainly"
+	local scenario = "a retail monk is told so plainly"
 	drive(scenario, ns)
 	Mock.advance(60)
 	ns.Guard("probe", ns.ProbeCapabilities)
@@ -10328,7 +10332,7 @@ Mock.reset()
 -- the flavour below, so the emptiness is a fact about retail and not about the
 -- addon having stopped looking.
 for _, want in ipairs({
-	{ class = "PALADIN", elsewhere = { flavour = "mists", key = "kings" } },
+	{ class = "WARLOCK", elsewhere = { flavour = "mists", key = "darkintent" } },
 	{ class = "DEATHKNIGHT", elsewhere = { flavour = "mists", key = "hornofwinter" } },
 }) do
 	-- Deliberately not the name scenario 132 uses. selftest matches a mutation
