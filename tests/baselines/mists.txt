@@ -216,6 +216,7 @@ every path in the options window's layout is in the model: who, section 1 (who.c
 every path in the options window's layout is in the model: who, section 1 (who.cast) places who.offer_whitetiger, which no class's model has
 every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_aura, which no class's model has
 every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_demonarmor, which no class's model has
+every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_detectinvis, which no class's model has
 every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_familiar, which no class's model has
 every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_imbue, which no class's model has
 every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_poisonmain, which no class's model has

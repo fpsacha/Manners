@@ -383,6 +383,26 @@ local function walkTokens(W)
 	return out
 end
 
+-- Nothing for anybody while resting with Never in cities and inns on, or
+-- inside a dungeon, raid, battleground or arena with Never inside an instance
+-- on (Queue.lua, inTown): the target and focus still exempt.
+local function quietNow(W, f)
+	return (f.quietInTowns == true and W.resting == true) or (f.quietInInstances == true and W.inInstance ~= nil)
+end
+
+-- Whether the member named wears one of yours of a buff for one target at a
+-- time: the world's own record of who cast the aura on them, which a cast from
+-- the bar on the current target leaves without any ask (the top-up is theirs).
+local function wearsYours(W, name, buff)
+	local who = personNamed(W, name)
+	if not who or who == W.me then return false end
+	for _, id in ipairs(buff.auraIds) do
+		local a = who.buffs[id]
+		if a and a.caster == W.me then return true end
+	end
+	return false
+end
+
 local MANA = { PRIEST = true, MAGE = true, DRUID = true, PALADIN = true, HUNTER = true, WARLOCK = true,
 	SHAMAN = true, MONK = true, EVOKER = true }
 
@@ -400,7 +420,7 @@ function X.checkComplete(W, queue, standing)
 	if W.readThrows and next(W.readThrows) then return end
 	if W.mana0 or W.me.mana <= 0.02 or W.me.dead or W.me.ghost then return end
 	if W.charmed or W.inVehicle or W.onTaxi or (W.mounted and f.hideMounted) then return end
-	if f.manaFloor ~= 0 or f.restingOnly or (f.quietInTowns and W.resting) or (W.raid and next(f.skipRaidGroups or {})) then return end
+	if f.manaFloor ~= 0 or f.restingOnly or quietNow(W, f) or (W.raid and next(f.skipRaidGroups or {})) then return end
 	if not ns.CanCastAnything() or ns.EXCLUSIVE_BUFFS[ns.PlayerClass()] then return end
 	if ns.SnoozeLeft and ns.SnoozeLeft(Mock.now) then return end
 	for _, e in ipairs(queue) do if e.groupCast then return end end
@@ -727,12 +747,13 @@ function X.checkQueue(W, queue)
 		end
 		-- One for one target at a time (Buffs.lua, oneTarget) goes to your group
 		-- alone, asked or not; and to a tank, which the fuzz world gives nobody,
-		-- unless asked for or Symbiosis (notOwnClass).
+		-- unless asked for, Symbiosis (notOwnClass) or the member already wearing
+		-- yours, whose top-up it is (Core.lua Castable, oneHeld).
 		if not buff.own and buff.oneTarget and reason ~= "self" then
 			if not e.inGroup then
 				return fail(W, "forbidden", ("%s, outside the group, offered %s, which goes to one member of it"):format(e.name, buff.key))
 			end
-			if not buff.notOwnClass and reason ~= "asked" then
+			if not buff.notOwnClass and reason ~= "asked" and not wearsYours(W, e.name, buff) then
 				return fail(W, "forbidden", ("%s, in the group and no tank, offered %s, which goes to the tank"):format(e.name, buff.key))
 			end
 		end
@@ -847,6 +868,9 @@ function X.checkQueue(W, queue)
 			end
 			if f.quietInTowns == true and W.resting and not pointed then
 				return fail(W, "forbidden", e.name .. " offered in a city with Never in cities and inns on")
+			end
+			if f.quietInInstances == true and W.inInstance ~= nil and not pointed then
+				return fail(W, "forbidden", e.name .. " offered inside an instance with Never inside an instance on")
 			end
 			if f.restingOnly == true and reason == "nearby" and not pointed and not W.resting then
 				return fail(W, "forbidden", e.name .. " offered as a passer-by out of a city with Only in cities on")

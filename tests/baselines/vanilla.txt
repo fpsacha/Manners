@@ -320,7 +320,6 @@ hunt3 ledger: putting a giver on the never-offer list lets their favour go: SKIP
 hunt3-options: no favour to let go for somebody who owes nothing: SKIPPED -- Anna is not on the prompt as a passer-by: Anna
 hunt3-options: who's next does not deny favours it cannot offer: with Anna skipped, who's next does not say her favour is waiting: Anna -- Arcane Intellect (nearby)
 hunt3-options: who's next does not deny favours it cannot offer: with both skipped, who's next does not count the favours waiting: Anna -- Arcane Intellect (nearby)
-hunt34-order: the order of every class travels in a settings string: the export does not carry the orders as CLASS=key:key: MNR1:buff.order=PALADIN=kings:might:wisdom:salvation:light:sanctuary,PRIEST=spirit:fortitude:shadow:de8b28
 hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target false) was left out: /target Anna Aim / /cast Arcane Intellect / /cleartarget
 hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target true) was left out: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
 ids-online: Reagent Economy offers the group spell with no reagent (druid): a druid with Reagent Economy and no Wild Thornroot was not offered Gift of the Wild, which the game lets them cast without it
@@ -718,6 +717,7 @@ who the proximity setting does not apply to: dropped the player you have set as 
 who the proximity setting does not apply to: dropped the player you have targeted, which is the plainest statement of intent there is
 widgets: a colour shows live, and Cancel puts it back: the picker did not open on the panel colour with its opacity
 window: each move of the colour picker is committed once: the colour came out 0.2 0.3 0.4 0.4
+window: the class table (WARRIOR): a warrior with one buff is offered a choice
 your own buff: offered to you when you are missing it.
 your own messages are not requests: expected three of your own and none noted, got 2 and 1
 your target wins: SKIPPED -- nobody was offered under the cursor

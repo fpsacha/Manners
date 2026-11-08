@@ -14,7 +14,7 @@
 local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
 
-local CLASSES = { "MAGE", "PRIEST", "PALADIN", "WARRIOR", "HUNTER", "ROGUE", "DRUID", "WARLOCK" }
+local CLASSES = { "MAGE", "PRIEST", "PALADIN", "WARRIOR", "HUNTER", "ROGUE", "DRUID", "WARLOCK", "SHAMAN", "EVOKER" }
 
 -- Retired with the window (the information architecture, section 3): each
 -- was a duplicate of a kept control or a pointer the layout says better. No
