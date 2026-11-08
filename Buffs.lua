@@ -780,6 +780,16 @@ end
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
+--   form      a shapeshift form (Moonkin Form): nothing of it is offered while
+--             the shapeshift bar says you are in another form (Core.lua,
+--             OwnVerdict), which you took on purpose.
+--   needs     on a spell: the key of another of your own that must be known as
+--   notWith   well, or must not be, for this one to count as known. Retail's
+--             Flametongue Weapon goes on the off hand once Windfury Weapon is
+--             known and on the main hand before, so it is in each hand's family
+--             under a key of its own, known in one of them at a time.
+--   shield    on a spell: it goes on a shield, so it waits for one in the off
+--             hand (Thunderstrike Ward).
 --   switchable  a class's only buff for others, which has its switch on Who to
 --             buff all the same (Unending Breath: most warlocks want it off).
 --   tankChoice  a buff for others that the player may hold to the tanks of
@@ -882,6 +892,17 @@ local VANILLA_OWN = {
 			spells = { { key = "touchofweakness", ranks = { 19266, 19265, 19264, 19262, 19261, 2652 } } } },
 		{ key = "shadowguard",
 			spells = { { key = "shadowguard", ranks = { 19312, 19311, 19310, 19309, 19308, 18137 }, charges = 3 } } },
+		-- Shadowform (1.11.11): the talent (Talent 521 on Classic Era 1.15.9.70003, a
+		-- trait on Forever, TraitDefinition 135347 at 1.60.1.70790), a shapeshift
+		-- form (SpellEffect aura 36, form 28) with no timer (SpellDuration -1), lost
+		-- on death: a toggle, never a top-up, put back after every wipe. After the
+		-- rest of the priest's own, so Inner Fire goes up before the form when both
+		-- are down. Every priest buff here is castable in the form (SpellShapeshift
+		-- ShapeshiftMask 0x8000000, form 28, on both clients), and a spell the form
+		-- refuses is one the client calls unusable (Core.lua, Usable): nothing Holy
+		-- is offered over it.
+		{ key = "shadowform", toggle = true,
+			spells = { { key = "shadowform", ranks = { 15473 }, talent = true } } },
 	},
 
 	WARLOCK = {
@@ -938,6 +959,13 @@ local VANILLA_OWN = {
 			key = "aspect",
 			label = L["Aspect"],
 			spells = {
+				-- Season of Discovery's Aspect of the Falcon (469145, level 60): the
+				-- Hawk's attack power on melee as well, and "Only one Aspect can be
+				-- active at a time" (wago.tools, Classic Era 1.15.9.70003 and Forever
+				-- 1.60.1.70790, where Forever's own buff-reminder data, EnhanceQoL's,
+				-- lists it with the aspects). First, so Automatic takes it over the
+				-- Hawk once it is known.
+				{ key = "aspectfalcon", ranks = { 469145 } },
 				{ key = "aspecthawk", ranks = { 25296, 14322, 14321, 14320, 14319, 14318, 13165 } },
 				{ key = "aspectmonkey", ranks = { 13163 } },
 				{ key = "aspectwild", ranks = { 20190, 20043 } },
@@ -948,6 +976,11 @@ local VANILLA_OWN = {
 				-- never picks or remembers them.
 				{ key = "aspectcheetah", ranks = { 5118 }, neverAuto = true },
 				{ key = "aspectpack", ranks = { 13159 }, neverAuto = true },
+				-- Season of Discovery's Aspect of the Viper (415423, level 1, the
+				-- same two clients): mana back for less damage, which a hunter
+				-- turns on while she is low and off again. Up, it is her choice and
+				-- nothing is put over it; Automatic never reaches for it.
+				{ key = "aspectviper", ranks = { 415423 }, neverAuto = true },
 			},
 			toggle = true,
 			-- The Wild and the Pack reach the party.
@@ -1002,6 +1035,14 @@ local VANILLA_OWN = {
 
 	DRUID = {
 		{ key = "omen", spells = { { key = "omen", ranks = { 16864 }, talent = true } } },
+		-- Moonkin Form (1.11.11): the talent at 40 (Talent 793 on Classic Era
+		-- 1.15.9.70003, TraitDefinition 134257 on Forever 1.60.1.70790), a form
+		-- (SpellEffect aura 36, form 31) with no timer, lost on death or a shift out:
+		-- a toggle. Never asked for while you are in another form (`form`): a druid
+		-- in Cat, Bear, Travel or Aquatic Form has shifted on purpose, and the
+		-- client's shapeshift bar does not say why.
+		{ key = "moonkinform", toggle = true, form = true,
+			spells = { { key = "moonkinform", ranks = { 24858 }, talent = true } } },
 	},
 
 	-- WARRIOR and ROGUE: no spell of their own that is a buff. What they put on
@@ -1316,6 +1357,10 @@ local TBC_OWN = {
 			spells = { { key = "touchofweakness", ranks = { 25461, 19266, 19265, 19264, 19262, 19261, 2652 } } } },
 		{ key = "shadowguard",
 			spells = { { key = "shadowguard", ranks = { 25477, 19312, 19311, 19310, 19309, 19308, 18137 }, charges = 3 } } },
+		-- Vanilla's Shadowform, the same talent (Talent 521) and the same form with
+		-- no timer here; every priest buff castable in it (SpellShapeshift, form 28).
+		{ key = "shadowform", toggle = true,
+			spells = { { key = "shadowform", ranks = { 15473 }, talent = true } } },
 	},
 
 	WARLOCK = {
@@ -1430,6 +1475,10 @@ local TBC_OWN = {
 			key = "omen",
 			spells = { { key = "omen", ranks = { 16864 }, talent = true } },
 		},
+		-- Vanilla's Moonkin Form (Talent 793, level 40, no timer); Tree of Life is
+		-- another form, and in it nothing of this is asked for (`form`).
+		{ key = "moonkinform", toggle = true, form = true,
+			spells = { { key = "moonkinform", ranks = { 24858 }, talent = true } } },
 	},
 }
 
@@ -1574,6 +1623,44 @@ do
 	end
 	table.insert(CAMELOT_OWN.MAGE, 2, FAMILIAR)
 	table.insert(CAMELOT_OWN.MAGE, 3, IMBUE)
+end
+
+-- Two Season of Discovery runes for Classic Era alone, added to its lists after
+-- Forever's were copied from them (above): Forever's data has both spells, and
+-- nothing there teaches either. Molten Armor (428741) has no SkillLineAbility
+-- row and no trait on Forever 1.60.1.70790, and Heart of the Lion is in no trait
+-- and not in Forever's own buff-reminder data (EnhanceQoL's), where the Viper
+-- and the Falcon are.
+do
+	-- Molten Armor, the mage's rune (wago.tools, Classic Era 1.15.9.70003): 30
+	-- minutes, level 1, "Only one type of Armor spell can be active on the Mage
+	-- at any time". A family of its own for this client, since Forever's armor
+	-- is the same table: first, so Automatic takes it over Frost Armor out in
+	-- the world once it is known; Mage Armor stays the dungeon pick.
+	local list = VANILLA_OWN.MAGE
+	for i, family in ipairs(list) do
+		if family.key == "armor" then
+			local copy = {}
+			for field, value in pairs(family) do copy[field] = value end
+			copy.spells = { { key = "moltenarmor", ranks = { 428741 } } }
+			for _, spell in ipairs(family.spells) do copy.spells[#copy.spells + 1] = spell end
+			list[i] = copy
+		end
+	end
+	-- Heart of the Lion, the hunter's rune (409580, level 1): a party aura with no
+	-- timer (SpellDuration -1), stats for everybody near and more for the hunter.
+	-- What it puts on everybody near, the hunter too, is 409583 (SpellEffect aura
+	-- 226 on the caster, 409583's aura 137 on the party, 15 seconds a pulse): one
+	-- of another hunter's on you is theirs, and yours would add nothing (`shared`,
+	-- as Trueshot Aura). A toggle, after Trueshot.
+	local hunter = VANILLA_OWN.HUNTER
+	for i, family in ipairs(hunter) do
+		if family.key == "trueshot" then
+			table.insert(hunter, i + 1, { key = "heartofthelion", toggle = true, shared = true,
+				spells = { { key = "heartofthelion", ranks = { 409583, 409580 } } } })
+			break
+		end
+	end
 end
 
 -- Forever's own: the vanilla tables less what its client deleted or moved,
@@ -1854,8 +1941,9 @@ local MISTS_OWN = {
 		},
 	},
 
-	-- WARLOCK, DRUID, WARRIOR, DEATHKNIGHT and MONK: nothing of their own that is
-	-- a buff here, as above. A rogue's poisons are two families, below.
+	-- WARRIOR, DEATHKNIGHT and MONK: nothing of their own that is a buff here, as
+	-- above. A rogue's poisons are two families, below; Shadowform, Moonkin Form,
+	-- Grimoire of Sacrifice and a shaman's weapon imbues come after them.
 }
 
 -- A rogue's poisons here are spells, not items: each puts an aura of its own id
@@ -1891,6 +1979,50 @@ do
 		AddEnhancements(MISTS_OWN[class], class, ENHANCEMENTS.mists)
 		AddFood(MISTS_OWN[class], "mists")
 	end
+end
+
+-- Mists' own of four more classes (1.11.11), ahead of the items from the bags
+-- (wago.tools, build 5.5.4.70032):
+--   Shadowform (15473): Shadow's alone (SpecializationSpells, spec 258), level 24,
+--     no timer and lost on death: a toggle, after Inner Fire, both castable in it
+--     (SpellShapeshift ShapeshiftMask 0x8000000, form 28).
+--   Moonkin Form (24858): Balance's alone, level 16, no timer: a toggle, and never
+--     asked for in another form (`form`).
+--   Grimoire of Sacrifice (108503): the level-75 talent (Talent 19295), an hour
+--     (SpellDuration), its own id the aura on you; "Summoning another demon
+--     cancels the effect". With no demon to sacrifice the client calls it
+--     unusable, and nothing is offered.
+--   A shaman's weapon imbues: each an enchant of the weapon for an hour ("Lasts
+--     60 minutes", SpellEffect 54) read off the main hand as on the other Classic
+--     clients (Core.lua, ReadImbue), any enchant counting there. Windfury Weapon
+--     (8232) is Enhancement's and Earthliving Weapon (51730) Restoration's
+--     (SpecializationSpells 263 and 264, both level 30); Flametongue (10),
+--     Frostbrand (46) and Rockbiter (75) every shaman's (SkillLineAbility 924).
+--     Windfury, then Earthliving, ahead of Flametongue, so Automatic takes the
+--     spec's own. What goes on an Enhancement shaman's off hand is not asked for.
+do
+	local function At(class, index, family)
+		MISTS_OWN[class] = MISTS_OWN[class] or {}
+		table.insert(MISTS_OWN[class], index, family)
+	end
+	At("PRIEST", 2, { key = "shadowform", toggle = true,
+		spells = { { key = "shadowform", ranks = { 15473 }, talent = true } } })
+	At("DRUID", 1, { key = "moonkinform", toggle = true, form = true,
+		spells = { { key = "moonkinform", ranks = { 24858 }, talent = true } } })
+	At("WARLOCK", 1, { key = "grimoireofsacrifice",
+		spells = { { key = "grimoireofsacrifice", ranks = { 108503 }, talent = true } } })
+	At("SHAMAN", 2, {
+		key = "shamanimbue",
+		label = L["Weapon imbue"],
+		imbue = true,
+		spells = {
+			{ key = "windfuryweapon", ranks = { 8232 }, talent = true },
+			{ key = "earthlivingweapon", ranks = { 51730 }, talent = true },
+			{ key = "flametongueweapon", ranks = { 8024 } },
+			{ key = "frostbrandweapon", ranks = { 8033 } },
+			{ key = "rockbiterweapon", ranks = { 8017 } },
+		},
+	})
 end
 
 local MISTS_SET = {
@@ -2025,8 +2157,8 @@ local MAINLINE = {
 	},
 }
 
--- A rogue's poisons, the one thing a retail class casts on itself alone that
--- fits a family: each is a spell that puts an aura of its own id on you for an
+-- A rogue's poisons (and, below, four other classes' own): each is a spell
+-- that puts an aura of its own id on you for an
 -- hour (retail SpellEffect: an aura on the caster, SpellMisc's 3,600,000 ms),
 -- the lethal ones and the non-lethal ones each a family of their own. A
 -- talent lets a rogue wear two of each (Dragon-Tempered Blades), and one lethal
@@ -2059,15 +2191,88 @@ local MAINLINE_OWN = {
 	},
 }
 
+-- Four more classes' own on retail (1.11.11), each known only to the spec or
+-- talent that teaches it (wago.tools, build 12.1.0.69933, every id still in
+-- SpellName at 12.1.5.70575):
+--   Shadowform (232698): Shadow's (SpecializationSpells, spec 258), level 10, no
+--     timer and lost on death (SpellDuration -1, no Attributes_3 0x100000): a
+--     toggle.
+--   Grimoire of Sacrifice (108503, a talent and a trait): the cast sacrifices your
+--     demon and puts 196099 on you (SpellEffect 64), with no timer here, "or until
+--     you summon a demon pet": a toggle, read by the aura's id. With no demon out
+--     the client calls the cast unusable, and nothing is offered.
+--   A shaman's weapon imbues, an hour each, read off a hand as the client's own
+--     buff frame reads it (C_PaperDollInfo.GetTemporaryEnchantmentInfo for the
+--     main hand and the off hand, Blizzard_BuffFrame, live branch; Core.lua,
+--     ReadImbue). Windfury Weapon (33757) and Earthliving Weapon (382021) go on
+--     the main hand; Flametongue Weapon (318038) goes on "your $?s33757[off-hand
+--     ][]weapon", the off hand once Windfury Weapon is known, the main hand
+--     before (`needs`, `notWith`); Thunderstrike Ward (462757) on a shield
+--     (`shield`). So two families, one a hand (`slot` 17 the off hand's), and
+--     each spell a talent (TraitDefinition). The hour is the aura each puts on
+--     (319773, 319778, 382022, 462757 itself: SpellDuration 3,600,000 ms), which
+--     the tooltip names.
+--   A Lightsmith paladin's two rites (hero talents, TraitDefinition 122893 and
+--     122892): Rite of Sanctification (433568) and Rite of Adjuration (433583),
+--     each a temporary enchant of the weapon (SpellEffect 54) for the hour of its
+--     aura (433550, 433584). One family, of the main hand.
+do
+	MAINLINE_OWN.PRIEST = {
+		{ key = "shadowform", toggle = true,
+			spells = { { key = "shadowform", ranks = { 232698 }, talent = true } } },
+	}
+	MAINLINE_OWN.WARLOCK = {
+		{ key = "grimoireofsacrifice", toggle = true,
+			spells = { { key = "grimoireofsacrifice", ranks = { 108503, 196099 }, talent = true } } },
+	}
+	MAINLINE_OWN.SHAMAN = {
+		{
+			key = "shamanimbue",
+			label = L["Weapon imbue"],
+			imbue = true,
+			spells = {
+				{ key = "windfuryweapon", ranks = { 33757 }, talent = true },
+				{ key = "earthlivingweapon", ranks = { 382021 }, talent = true },
+				{ key = "flametongueweapon", ranks = { 318038 }, talent = true, notWith = "windfuryweapon" },
+			},
+		},
+		{
+			key = "shamanimbueoff",
+			label = L["Weapon imbue"],
+			imbue = true,
+			slot = 17,
+			spells = {
+				{ key = "flametongueoffhand", ranks = { 318038 }, talent = true, needs = "windfuryweapon" },
+				{ key = "thunderstrikeward", ranks = { 462757 }, talent = true, shield = true },
+			},
+		},
+	}
+	MAINLINE_OWN.PALADIN = {
+		{
+			key = "rite",
+			label = L["Weapon imbue"],
+			imbue = true,
+			spells = {
+				{ key = "ritesanctification", ranks = { 433568 }, talent = true },
+				{ key = "riteadjuration", ranks = { 433583 }, talent = true },
+			},
+		},
+	}
+end
+
 local MAINLINE_SET = {
 	name = "mainline",
 	buffs = MAINLINE,
-	-- A rogue's poisons alone (above). What else a retail class casts on itself
-	-- is either a toggle with no end (the paladin's auras: duration -1 in
-	-- SpellMisc), or a shield whose one-at-a-time rule a talent lifts (Elemental
-	-- Orbit, 383010, lets a shaman wear two of Lightning, Water and Earth
-	-- Shield), which a family of "only one of these up" would get wrong.
-	-- "Myself" offers your own group buff.
+	-- A rogue's poisons, a shadow priest's form, a warlock's sacrifice, a
+	-- shaman's weapon imbues and a Lightsmith's rites (above). Left out: the
+	-- paladin's auras, which outlast death (Attributes_3 0x100000) and so need
+	-- no reminder, and a shaman's shields, whose one-at-a-time rule a talent
+	-- lifts (Elemental Orbit, 383010, lets a shaman wear two of Lightning, Water
+	-- and Earth Shield), which a family of "only one of these up" would get
+	-- wrong. "Myself" offers your own group buff first. A paladin and a warlock
+	-- still have nothing to give anybody else (`without`): one with a rite or
+	-- the sacrifice learned has a prompt for it, as a hunter or a rogue does
+	-- elsewhere.
 	own = MAINLINE_OWN,
 	-- Battle Shout's reach, and the casts that land on your whole party and
 	-- raid (target 118), as on Mists.
@@ -2373,6 +2578,31 @@ do
 		{ 3600, 3408 }, -- Crippling Poison (1 h)
 		{ 3600, 5761 }, -- Numbing Poison (1 h)
 		{ 3600, 381637 }, -- Atrophic Poison (1 h)
+	})
+end
+
+-- The 1.11.11 own buffs with a timer (the forms, the aspects, Heart of the Lion
+-- and retail's Grimoire of Sacrifice have none: toggles). A weapon imbue is its
+-- use spell's: Mists' "Lasts 60 minutes" in the tooltip, retail's the aura the
+-- tooltip names ($319773d and so on).
+do
+	local function Add(set, rows)
+		for id, seconds in pairs(Seconds(rows)) do SECONDS_FOR[set][id] = seconds end
+	end
+	-- Classic Era 1.15.9.70003.
+	Add(VANILLA_SET, {
+		{ 1800, 428741 }, -- Molten Armor, Season of Discovery's rune (30 min)
+	})
+	-- Mists of Pandaria Classic 5.5.4.70032.
+	Add(MISTS_SET, {
+		{ 3600, 108503 }, -- Grimoire of Sacrifice (1 h)
+		{ 3600, 8232, 51730, 8024, 8033, 8017 }, -- Windfury, Earthliving, Flametongue, Frostbrand, Rockbiter Weapon (1 h)
+	})
+	-- retail 12.1.0.69933.
+	Add(MAINLINE_SET, {
+		{ 3600, 33757, 382021, 318038 }, -- Windfury, Earthliving, Flametongue Weapon (1 h)
+		{ 3600, 462757 }, -- Thunderstrike Ward (1 h)
+		{ 3600, 433568, 433583 }, -- Rite of Sanctification, Rite of Adjuration (1 h)
 	})
 end
 

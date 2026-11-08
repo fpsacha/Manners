@@ -65,6 +65,15 @@ local NAMES = {
 	[5761] = "Mind-numbing Poison",
 	[108211] = "Leeching Poison",
 	[108215] = "Paralytic Poison",
+	-- 1.11.11's own buffs (SpellName, build 5.5.4.70032).
+	[15473] = "Shadowform",
+	[24858] = "Moonkin Form",
+	[108503] = "Grimoire of Sacrifice",
+	[8232] = "Windfury Weapon",
+	[51730] = "Earthliving Weapon",
+	[8024] = "Flametongue Weapon",
+	[8033] = "Frostbrand Weapon",
+	[8017] = "Rockbiter Weapon",
 	-- Another class's of the same kind (Buffs.lua, alike), named as Wowhead
 	-- MoP Classic names them.
 	[469] = "Commanding Shout",
@@ -231,8 +240,10 @@ do
 		for class, families in pairs(ns.OWN_BUFFS or {}) do
 			for _, family in ipairs(families) do
 				-- The weapon enhancements are Mists' own (its item data), a rogue's poisons
-				-- two families of spells; the scrolls and tracking are not.
-				if family.imbue or (family.scroll and not family.enhance) or family.tracking then
+				-- two families of spells, and so are a shaman's imbues (1.11.11); the
+				-- scrolls (a mage's imbue is one) and tracking are not.
+				if (family.imbue and family.spells[1].item) or (family.scroll and not family.enhance)
+					or family.tracking then
 					fail(scenario, class .. " has " .. tostring(family.key) .. ", which Mists has none of")
 				end
 			end

@@ -1873,6 +1873,25 @@ do
 		return held
 	end
 
+	-- Whether the off hand holds a shield (item class 4, armor, subclass 6), for
+	-- what goes on one (Buffs.lua, `shield`: Thunderstrike Ward). Kept with the
+	-- weapons, under a key of its own, until the equipment changes.
+	local function HandShield(slot)
+		hands = hands or {}
+		local held = hands[-slot]
+		if held == nil then
+			held = false
+			local id = type(_G.GetInventoryItemID) == "function" and plain(_G.GetInventoryItemID("player", slot)) or nil
+			local instant = C_Item and C_Item.GetItemInfoInstant
+			if type(id) == "number" and type(instant) == "function" then
+				local _, _, _, _, _, class, subclass = instant(id)
+				held = plain(class) == 4 and plain(subclass) == 6
+			end
+			hands[-slot] = held
+		end
+		return held
+	end
+
 	-- Whether a weapon of that subclass is one a mask of subclasses names
 	-- (Buffs.lua, `fits`: bit n for subclass n). Plain arithmetic: the mask
 	-- reaches bit 20.
@@ -1907,6 +1926,13 @@ do
 		if spell.item then return ScrollCount(spell) > 0 end
 		local info = caps.own and caps.own[spell.key]
 		if not (info ~= nil and info.known == true) then return false end
+		-- One whose hand another spell decides (Buffs.lua, `needs`, `notWith`):
+		-- retail's Flametongue Weapon is the off hand's once Windfury is known.
+		if spell.needs or spell.notWith then
+			local other = ns.FindOwnSpell(spell.needs or spell.notWith)
+			local with = other ~= nil and Known(other)
+			if with ~= (spell.needs ~= nil) then return false end
+		end
 		-- A tracking spell counts only when the minimap lists it: the list is
 		-- what says whether it is on, so one it does not list could never read
 		-- as on and would be offered for ever.
@@ -1969,6 +1995,8 @@ do
 	function ns.OwnFamilyLabel(family)
 		-- An enhancement for a hand says which: "Poison (Main Hand)".
 		if family.enhance then return family.label .. " (" .. ns.HandName(family.slot) .. ")" end
+		-- So does an imbue of the off hand (retail's): "Weapon imbue (Off Hand)".
+		if family.imbue and family.slot == 17 then return family.label .. " (" .. ns.HandName(17) .. ")" end
 		if family.label then return family.label end
 		return ns.BuffName(FirstKnown(family) or family.spells[1])
 	end
@@ -2664,6 +2692,8 @@ do
 	--   "dungeon"   an oil, a stone or food, held to dungeons and raids, and you are not in one
 	--   "maxlevel"  Well-Rested: you are at the level cap, with no experience to gain
 	--   "resting"   Well-Rested: you lie in the sleeping bag, or it is cooling down
+	--   "form"      a form (Moonkin Form), and you are in another
+	--   "noshield"  it goes on a shield, and there is none in your off hand
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
@@ -2689,6 +2719,9 @@ do
 		end
 		local up, upSpell, left, charges = ns.ReadOwnFamily(family)
 		if up == nil then return nil, nil, nil, "unread" end
+		-- A form not up while the shapeshift bar names another (Buffs.lua, `form`):
+		-- a druid in Cat or Travel Form took it on purpose.
+		if family.form and not up and ActiveForm() ~= nil then return nil, up, nil, "form" end
 		local seconds, lead, kind
 		-- Scrolls Automatic found in the bags and none usable: why not, and which.
 		local held, heldWhy
@@ -2784,6 +2817,9 @@ do
 		if spell.item then
 			local ready, why = ScrollReady(spell)
 			if not ready then return nil, up, left, why, spell end
+		elseif spell.shield and not HandShield(family.slot or 17) then
+			-- What goes on a shield (Buffs.lua, `shield`), with none in that hand.
+			return nil, up, left, "noshield", spell
 		elseif not Usable(spell) then
 			return nil, up, left, "unusable", spell
 		end
