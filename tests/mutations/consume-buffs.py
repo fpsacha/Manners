@@ -25,14 +25,14 @@ mutate("Buffs.lua",
        expect="consume-buffs: every class has the families, retail none", script=S)
 
 mutate("Buffs.lua",
-       "\t\tif elixir and flask and data.flaskFills then\n",
-       "\t\tif elixir and flask and data.flaskFills and false then\n",
+       "\t\tif flask and data.flaskFills then\n",
+       "\t\tif flask and data.flaskFills and false then\n",
        "consume-buffs: a flask fills no elixir slot",
        expect="consume-buffs: a flask fills both elixir slots on Burning Crusade and Mists", script=S)
 
 mutate("Buffs.lua",
-       "\t\tif elixir and flask and data.flaskFills then\n",
-       "\t\tif elixir and flask then\n",
+       "\t\tif flask and data.flaskFills then\n",
+       "\t\tif flask then\n",
        "consume-buffs: a flask fills the elixir slot everywhere",
        expect="consume-buffs: a flask beside an elixir on Classic Era and Forever", script=S)
 

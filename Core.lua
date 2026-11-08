@@ -2048,10 +2048,20 @@ do
 			ScrollCount(family.spells[1])
 			return heldFirst[family]
 		end
+		-- One that goes on a weapon (Buffs.lua, `needsWeapon`) waits for one in
+		-- its hand: Automatic takes the next known (the shield's Ward), and keeps
+		-- that one only to say why nothing is offered.
+		local waiting
 		for _, spell in ipairs(family.spells) do
-			if Known(spell) and not (auto and (spell.neverAuto or LeftOut(spell))) then return spell end
+			if Known(spell) and not (auto and (spell.neverAuto or LeftOut(spell))) then
+				if auto and spell.needsWeapon and HandWeapon(family.slot or 16) == false then
+					waiting = waiting or spell
+				else
+					return spell
+				end
+			end
 		end
-		return nil
+		return waiting
 	end
 
 	-- Nothing outside these is read, offered or shown on the options page.
@@ -2123,7 +2133,8 @@ do
 		local memory = type(char) == "table" and char.ownLast
 		local spell = type(memory) == "table" and ns.FindOwnSpell(memory[family.key]) or nil
 		if spell and spell.family == family and not spell.neverAuto and Known(spell) and not LeftOut(spell)
-			and not (spell.item and not ScrollReady(spell)) then return spell end
+			and not (spell.item and not ScrollReady(spell))
+			and not (spell.needsWeapon and HandWeapon(family.slot or 16) == false) then return spell end
 		return nil
 	end
 
@@ -2927,6 +2938,9 @@ do
 		if spell.item then
 			local ready, why = ScrollReady(spell)
 			if not ready then return nil, up, left, why, spell end
+		elseif spell.needsWeapon and HandWeapon(family.slot or 16) == false then
+			-- What goes on a weapon (Buffs.lua, `needsWeapon`), with none in that hand.
+			return nil, up, left, "noweapon", spell
 		elseif spell.shield and not HandShield(family.slot or 17) then
 			-- What goes on a shield (Buffs.lua, `shield`), with none in that hand.
 			return nil, up, left, "noshield", spell

@@ -1246,8 +1246,9 @@ def check_consumables(rep, c, d, flavour):
     Consumables.lua) against the client's own data: the item exists and asks the level the addon
     says, its use (ItemEffect, trigger 0) is the spell the addon reads, that spell puts an aura on
     the user (a scroll: on a friendly target) for half an hour or more, a flask's stays on through
-    death and an elixir's does not, a scroll's raises its family's stat, and what `covers` an
-    elixir is a flask of this client."""
+    death and an elixir's does not, a scroll's raises its family's stat, and what `covers` a
+    family is a flask of this client, an aura that fills both elixir slots (the flask family's
+    own `covers`: SpellName and an hour or more), or on Mists a scroll."""
     # Every class lists the same families: each copy that differs is checked, once.
     fams, seen = [], set()
     for _, fs in sorted(as_map(d["own"]).items()):
@@ -1261,6 +1262,8 @@ def check_consumables(rep, c, d, flavour):
     items = {s["item"] for _, f in fams for s in f["spells"]}
     info = c.item_rows(items)
     flasks = {s["ranks"][0] for key, f in fams if key == "flask" for s in f["spells"]}
+    both = {i for key, f in fams if key == "flask" for i in f.get("covers") or []}
+    scrolls = {s["ranks"][0] for key, f in fams if key in SCROLL_STAT for s in f["spells"]}
     for key, f in fams:
         if not (f.get("toggle") and f.get("bagged")):
             rep.finding("consumable.%s" % key, "the family is not a bagged toggle")
@@ -1269,8 +1272,10 @@ def check_consumables(rep, c, d, flavour):
             rep.finding("consumable.%s" % key, "no kind of consumable is called %r" % key)
             continue
         for i in f.get("covers") or []:
-            if key != "elixir" or i not in flasks:
-                rep.finding("consumable.%s" % key, "covers %d (%s), which is no flask the addon holds" % (i, c.names.get(i)))
+            if not (i in both or (key != "flask" and (i in flasks or i in scrolls))):
+                rep.finding("consumable.%s" % key, "covers %d (%s), which is no flask, scroll or both-slot aura the addon holds" % (i, c.names.get(i)))
+            elif i in both and (i not in c.names or (c.duration_ms(i) or 0) < 1800000):
+                rep.finding("consumable.%s" % key, "covers %d, which has no SpellName or lasts under half an hour" % i)
         for s in f["spells"]:
             item, use = s["item"], s["ranks"][0]
             where = "consumable.%s.%d" % (key, item)

@@ -151,12 +151,16 @@ do
 			tbc = { flask = 20, elixir = 40, scroll = 5 },
 			mists = { flask = 40, elixir = 75, scroll = 9 },
 		}
+		-- Shattrath's flasks (Tempest Keep to the Sunwell only) and Season of
+		-- Discovery's nightmare flasks work in their areas only: after the rest.
+		local AREA = { [32898] = true, [32899] = true, [32900] = true, [32901] = true, [35716] = true,
+			[35717] = true, [221024] = true, [222952] = true }
 		local function inOrder(where, rows, minimum)
 			if type(rows) ~= "table" or #rows < minimum then
 				fail(scenario, ("%s has %s rows, fewer than the %d its data gives"):format(where, tostring(rows and #rows), minimum))
 				return
 			end
-			local seen, last = {}, nil
+			local seen, last, area = {}, nil, false
 			for i, row in ipairs(rows) do
 				local item, level, use = row[1], row[2], row[3]
 				if type(item) ~= "number" or type(level) ~= "number" or type(use) ~= "number" then
@@ -165,11 +169,17 @@ do
 				end
 				if seen[item] then fail(scenario, ("%s lists item %d twice"):format(where, item)) end
 				seen[item] = true
-				if last and level > last[2] then
+				if AREA[item] then
+					area = true
+				elseif area then
+					fail(scenario, ("%s row %d (%d) is a flask for every place, after one for an area"):format(where, i, item))
+					return
+				end
+				if not AREA[item] and last and level > last[2] then
 					fail(scenario, ("%s row %d (%d, level %d) is above %d, level %d"):format(where, i, item, level, last[1], last[2]))
 					return
 				end
-				last = row
+				if not AREA[item] then last = row end
 			end
 		end
 		for client, minimum in pairs(floor) do
@@ -477,11 +487,13 @@ for _, client in ipairs({ "vanilla", "camelot", "tbc" }) do
 			fail(scenario, client .. ": a Scroll of Intellect in the bags, nothing on, and nothing offered")
 			return
 		end
-		-- The mage's buff of the same stat, any rank: the game would turn a
-		-- lesser scroll away, so none is asked for.
+		-- The mage's buff of the same stat at its best rank, worth more than a
+		-- scroll: the game would turn the scroll away, so none is asked for. (A
+		-- rank worth less than the weakest scroll holds none back:
+		-- newbuffs-fixes.lua.)
 		local ai = ns.FindBuff("MAGE", "intellect")
 		world.from = "party1"
-		wear(ns, ai.ranks[#ai.ranks])
+		wear(ns, ai.ranks[1])
 		local spell, up = verdict(ns, family)
 		if spell or up ~= true then
 			fail(scenario, client .. ": Arcane Intellect on you, and a Scroll of Intellect offered: " .. tostring(spell and spell.key))

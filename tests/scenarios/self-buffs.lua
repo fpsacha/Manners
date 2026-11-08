@@ -350,7 +350,7 @@ for _, client in ipairs({ "vanilla", "camelot" }) do
 end
 
 do
-	local scenario = "self-buffs: vanilla: Heart of the Lion, and another hunter's covers you"
+	local scenario = "self-buffs: vanilla: Heart of the Lion, and another hunter's does not cover you"
 	with(scenario, { flavour = "vanilla", class = "HUNTER", known = { LION } }, function(ns)
 		if key(mine(ns)) ~= "heartofthelion" then
 			fail(scenario, "with none up, offered " .. key(mine(ns)) .. ", not Heart of the Lion")
@@ -358,8 +358,13 @@ do
 		end
 		wear(ns, { [LION] = "player" })
 		if mine(ns) then fail(scenario, "with yours up, offered " .. key(mine(ns))) end
+		wear(ns, { [LION_PARTY] = "player" })
+		if mine(ns) then fail(scenario, "with your own pulse (409583) on you, offered " .. key(mine(ns))) end
 		wear(ns, { [LION_PARTY] = "party1" })
-		if mine(ns) then fail(scenario, "with another hunter's on you, offered " .. key(mine(ns))) end
+		-- Another hunter's 409583 lacks the extra stats only your own 409580 gives.
+		if key(mine(ns)) ~= "heartofthelion" then
+			fail(scenario, "with another hunter's on you and yours down, offered " .. key(mine(ns)))
+		end
 	end)
 end
 

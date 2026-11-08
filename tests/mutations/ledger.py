@@ -7,7 +7,7 @@ S = "runscenarios.py"
 
 # The four moments Core tells the ledger about, and the login that reconciles it.
 mutate("Favours.lua",
-       "\tTellLedger(\"Received\", seen, nil, ns.CouldOffer(hasMana, false) == nil)\n",
+       "\tTellLedger(\"Received\", seen, nil, ns.CouldOffer(hasMana, false, nil, seen.tank, seen.class) == nil)\n",
        "",
        "ledger: a favour is never written down",
        expect="a favour appears in the ledger", script=S)
@@ -142,7 +142,7 @@ mutate("Ledger.lua",
 
 # A favour only a party buff can return waits on them being in the party.
 mutate("Favours.lua",
-       "\tTellLedger(\"Received\", seen, nil, ns.CouldOffer(hasMana, false) == nil)\n",
+       "\tTellLedger(\"Received\", seen, nil, ns.CouldOffer(hasMana, false, nil, seen.tank, seen.class) == nil)\n",
        "\tTellLedger(\"Received\", seen)\n",
        "ledger: party-only favours not marked",
        expect="a favour only your party can be repaid says so", script=S)

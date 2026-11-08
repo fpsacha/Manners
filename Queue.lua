@@ -41,7 +41,9 @@ ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 
 -- What landed on whom, and when: a cast the game confirmed, kept so that a buff
 -- somebody wears with nobody named as its caster (WoW Forever names no caster
--- on another player's aura) can still be told for ours. Memory only, bounded.
+-- on another player's aura) can still be told for ours. One time per buff key
+-- per name: a blessing cast after your Oath must not make the Oath look like
+-- somebody else's. Memory only, bounded.
 do
 	local gaveAt, gaveCount = {}, 0
 
@@ -57,7 +59,7 @@ do
 			entry = {}
 			gaveAt[name] = entry
 		end
-		entry.key, entry.at = buffKey, GetTime()
+		entry[buffKey] = GetTime()
 	end
 
 	-- Whether what they wear of `buffKey`, with `remaining` seconds on a buff
@@ -66,9 +68,10 @@ do
 	-- since, by somebody else (a few seconds are allowed for the clocks).
 	function ns.GaveSince(name, buffKey, remaining, length)
 		local entry = name and gaveAt[name]
-		if not entry or entry.key ~= buffKey then return false end
+		local at = entry and entry[buffKey]
+		if not at then return false end
 		if type(remaining) ~= "number" or type(length) ~= "number" then return false end
-		return entry.at + length + 5 >= GetTime() + remaining
+		return at + length + 5 >= GetTime() + remaining
 	end
 end
 

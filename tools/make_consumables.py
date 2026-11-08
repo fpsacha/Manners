@@ -25,7 +25,19 @@ SpellDuration and SpellEffect:
           by its stat, armour (22 or Forever's 674 on school 1) for Protection.
 
 Each list is { item, the level it asks, the spell its use casts }, best first: the
-highest level, then the lowest item id, so the order is the same on every run.
+highest level, then the lowest item id, so the order is the same on every run. A
+flask or elixir whose spell says it works only in some places ("Only active in
+Tempest Keep ...", Shattrath's flasks; "only apply in areas under the influence of
+the nightmare", Season of Discovery's) goes after every other one: Automatic takes
+the first it can use, and these do nothing outside their areas. One whose spell
+raises experience ("Experience gained ...": Mists' Enduring Elixir of Wisdom, which
+sits in the Flask subclass) is no flask or elixir and is left out.
+On Mists a scroll counts as a Battle or a Guardian elixir, which the scroll's own
+spell says ("Counts as a Battle Elixir."): `scrollSlots` gives each stat's slot,
+read from those texts and written only where every row of a stat agrees. Two things
+fill both slots and are no flask row: the Alchemist's Flask (75525, which casts a
+dummy that triggers 79638 to 79640) and the Crystal of Insanity (86569, 127230);
+`fillsBoth` lists their auras, each checked against its own text ("Counts as both").
 The spell its use casts is the aura it puts on, which is how the addon reads it.
 On Burning Crusade and Mists a flask fills both elixir slots, battle and guardian
 (the game's rule since 2.0.1, not a table's), and the file says so (`flaskFills`).
@@ -72,6 +84,13 @@ SCROLL_NAME = re.compile(r"Scroll of (Agility|Strength|Protection|Intellect|Stam
 # switches are listed in.
 STATS = (("agility", 1), ("strength", 0), ("protection", None), ("intellect", 3), ("stamina", 2), ("spirit", 4))
 MOD_STAT, ARMOR_AURAS = 29, {22, 674}
+# What a spell's own text says about where it works, what it raises and which slot it takes.
+AREA_ONLY = re.compile(r"Only active in|only apply in")
+EXPERIENCE = re.compile(r"Experience gained")
+SLOT_TEXT = re.compile(r"[Cc]ounts as an? (Battle|Guardian) [Ee]lixir")
+BOTH_TEXT = re.compile(r"[Cc]ounts as both a Battle and Guardian [Ee]lixir")
+# Auras that fill both elixir slots without being a flask row (see the docstring).
+FILLS_BOTH = {"mists": (79638, 79639, 79640, 127230)}
 
 
 def num(v, default=0):
@@ -105,6 +124,7 @@ def consumables(cache, client):
             uses[num(r["ParentItemID"])].append((num(r["SpellID"]), num(r["TriggerType"])))
     misc = {num(r["SpellID"]): r for r in table(client, "SpellMisc", cache) if num(r.get("DifficultyID")) == 0}
     lengths = {num(r["ID"]): num(r["Duration"]) for r in table(client, "SpellDuration", cache)}
+    text = {num(r["ID"]): r.get("Description_lang") or "" for r in table(client, "Spell", cache)}
     effects = collections.defaultdict(list)
     for r in table(client, "SpellEffect", cache):
         if num(r.get("DifficultyID")) == 0:
@@ -151,11 +171,11 @@ def consumables(cache, client):
             continue
         entry = (item, num(row["RequiredLevel"]), use)
         if kind == "flask":
-            if persists(use) and auras(use, 1):
+            if persists(use) and auras(use, 1) and not EXPERIENCE.search(text.get(use, "")):
                 out["flask"].append(entry)
         elif kind == "elixir":
             on = auras(use, 1)
-            if on and not persists(use) and not any(aura in UTILITY_AURAS for aura, _ in on):
+            if on and not persists(use) and not any(aura in UTILITY_AURAS for aura, _ in on)                     and not EXPERIENCE.search(text.get(use, "")):
                 out["elixir"].append(entry)
         elif SCROLL_NAME.fullmatch(name):
             on = auras(use, 21)
@@ -167,11 +187,30 @@ def consumables(cache, client):
             # The name and the aura agree, or the scroll is left out.
             if stat and SCROLL_NAME.fullmatch(name).group(1).lower() == stat:
                 out["scroll"][stat].append(entry)
-    order = lambda rows: sorted(rows, key=lambda r: (-r[1], r[0]))  # noqa: E731
+    # Where it works first (no area named), then the highest level, then the lowest item id.
+    order = lambda rows: sorted(rows, key=lambda r: (bool(AREA_ONLY.search(text.get(r[2], ""))), -r[1], r[0]))  # noqa: E731
     out["flask"], out["elixir"] = order(out["flask"]), order(out["elixir"])
     # Two scrolls of one level (Mists' VIII and IX, both 80): the one worth more first.
     for key in out["scroll"]:
         out["scroll"][key] = sorted(out["scroll"][key], key=lambda r: (-r[1], -worth(r[2]), r[0]))
+    # The slot each stat's scrolls take, where the client's own text names one.
+    slots = {}
+    for key, rows in out["scroll"].items():
+        named = {m.group(1).lower() if m else None for m in (SLOT_TEXT.search(text.get(r[2], "")) for r in rows)}
+        if named - {None} and len(named) != 1:
+            raise SystemExit("make_consumables: %s %s scrolls disagree about their slot: %s" % (client, key, named))
+        if named - {None}:
+            slots[key] = named.pop()
+    if slots:
+        if len(slots) != len(out["scroll"]):
+            raise SystemExit("make_consumables: %s: only %s name a slot" % (client, sorted(slots)))
+        out["scrollSlots"] = slots
+    both = FILLS_BOTH.get(client)
+    if both:
+        for spell in both:
+            if not BOTH_TEXT.search(text.get(spell, "")):
+                raise SystemExit("make_consumables: %s spell %d does not say it counts as both" % (client, spell))
+        out["fillsBoth"] = both
     return out
 
 
@@ -183,7 +222,10 @@ def render(cache):
         "-- data (wago.tools): never edited by hand. Every row is { item, the level it",
         "-- asks of the player, the spell its use casts }, best first; that spell is the",
         "-- aura it puts on, read by its id. `flaskFills`: a flask fills both elixir slots,",
-        "-- battle and guardian. The tool's docstring says what counts. Builds:",
+        "-- battle and guardian; `fillsBoth`: the auras of two more things that do (the",
+        "-- Alchemist's Flask, the Crystal of Insanity); `scrollSlots`: the elixir slot",
+        "-- each stat's scrolls take, where the client says so (Mists). The tool's",
+        "-- docstring says what counts. Builds:",
     ]
     data = {}
     for client in CLIENTS:
@@ -203,6 +245,11 @@ def render(cache):
         lines.append("\t%s = {" % client)
         if client in FLASK_FILLS:
             lines.append("\t\tflaskFills = true,")
+        if d.get("fillsBoth"):
+            lines.append("\t\tfillsBoth = { %s }," % ", ".join(str(s) for s in d["fillsBoth"]))
+        if d.get("scrollSlots"):
+            lines.append("\t\tscrollSlots = { %s }," % ", ".join(
+                '%s = "%s"' % (key, d["scrollSlots"][key]) for key, _ in STATS))
         for kind in ("flask", "elixir"):
             lines.append("\t\t%s = {" % kind)
             rows("\t\t\t", d[kind])

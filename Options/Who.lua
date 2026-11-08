@@ -311,7 +311,8 @@ function Consumable.Desc(family)
 	end
 	local text = L["Reminds you to use one on yourself when none of it is on you and one is in your bags, the best you can use first. Off until you turn it on."]
 	-- Intellect, Stamina and Spirit where a class buff gives the same stat.
-	if #ns.ConsumableAuras(family) > #family.spells then
+	ns.ConsumableAuras(family)
+	if family.classBuff then
 		text = text .. " " .. L["Not while a class buff of the same stat is on you."]
 	end
 	return text

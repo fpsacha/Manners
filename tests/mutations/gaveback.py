@@ -27,15 +27,15 @@ mutate("Core.lua",
 
 # a buff that outlasts the noted cast is still taken for it.
 mutate("Queue.lua",
-       "\t\treturn entry.at + length + 5 >= GetTime() + remaining\n",
+       "\t\treturn at + length + 5 >= GetTime() + remaining\n",
        "\t\treturn true\n",
        "gaveback: a newer buff taken for the noted cast",
        expect="gaveback: a Might that outlasts the cast Manners saw is not taken for it", script=S)
 
 # the buff of the cast is not asked for.
 mutate("Queue.lua",
-       "\t\tif not entry or entry.key ~= buffKey then return false end\n",
-       "\t\tif not entry then return false end\n",
+       "\t\tlocal at = entry and entry[buffKey]\n",
+       "\t\tlocal at = entry and (entry[buffKey] or select(2, next(entry)))\n",
        "gaveback: another blessing's cast taken for this one",
        expect="gaveback: a cast noted for another blessing says nothing of this one", script=S)
 
