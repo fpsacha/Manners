@@ -22,8 +22,10 @@ weapon items renewed only once gone while alone, a switch for Unending
 Breath, the full check-up for bug reports (1.11.9) and a Well-Rested reminder
 for the Cozy Sleeping Bag (1.11.10). Unreleased: nothing offered inside an
 instance, paladins skipping players another paladin has blessed, a warlock's
-Detect Invisibility on himself, funnier Forsaken thanks, and bug hunt 35's
-fixes (Well-Rested above all). Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
+Detect Invisibility on himself, funnier Forsaken thanks, bug hunt 35's
+fixes (Well-Rested above all), and the buffs its finder listed (round 36: more
+own buffs, flasks, elixirs and scrolls, and Earth Shield, Beacon of Light and the
+other one-target buffs for the tank). Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
 (1.11.4); the audit reads Forever at that build (`CLAUDE.md`, "Data sources").
 
 Working here is quicker and safer for an agent since round 33 (`CLAUDE.md`,
@@ -240,18 +242,38 @@ build adds foods, `python tools/make_foods.py` rewrites `Foods.lua` from the
 cached tables (`--check` says whether it is current) and the next release
 carries it.
 
-**Bug hunt 35's ideas, not built (Unreleased).** The hunt's buff finder listed
-buffs players might expect, each checked on wago.tools: a reminder for
-Shadowform (every client) and Moonkin Form, shaman weapon imbues on Mists and
-retail, Beacon of Light (Mists, retail, Season of Discovery), Symbiosis and
-Grimoire of Sacrifice (Mists), Blistering Scales and the paladin's two weapon
-rites (retail), Season of Discovery's Aspects of the Viper and Falcon, Molten
-Armor, Heart of the Lion, Commanding Shout and Earth Shield, and flasks,
-elixirs and scrolls as switches like Well Fed. Waiting on the owner's pick. No
-finding was refuted this round, and none was left for the live game alone
-beyond what the Well-Rested note below says: a Well-Rested the client keeps
-secret is now read as "cannot tell", which only a battleground on Forever can
-show.
+**Bug hunt 35's buff ideas, built in round 36 (Unreleased).** The owner asked
+for all of them. Three builders added them, each id checked on that client's
+wago.tools tables:
+- Own buffs: Shadowform, Moonkin Form (`form`), the Season of Discovery runes
+  (Molten Armor, Aspects of the Falcon and Viper, Heart of the Lion), Grimoire
+  of Sacrifice, the shaman's imbues on Mists and retail (retail per hand,
+  `shield` for Thunderstrike Ward) and the Lightsmith rites.
+- Flasks, elixirs and scrolls (`Consumables.lua`, from `tools/make_consumables.py`).
+- Buffs for one target at a time (`oneTarget`): Earth Shield, Beacon of Light,
+  Oath of Light on Forever, Symbiosis (`notOwnClass`) and Blistering Scales, and
+  Season of Discovery's Commanding Shout.
+
+Earth Shield and Commanding Shout are not on Forever: their ids are leftover
+Season of Discovery runes there with no TraitDefinition row, so neither can be
+learned. Beacon of Light 407613 has no SpellName row on Forever.
+
+What only the live game can say about them:
+1. Whether `UnitGroupRolesAssigned` gives a tank a role in a Classic Era or
+   Burning Crusade group made without the group finder. If it answers `NONE`,
+   the tank buffs are offered unasked only in a raid with a main tank mark, as
+   for Thorns' *Tanks only*.
+2. Whether a Beacon, Oath or Earth Shield you put on somebody names you as its
+   caster on retail and Forever. If it names nobody, an untimed Beacon on a
+   non-tank is not read as yours, and the tank is offered one.
+3. Whether retail's `GetTemporaryEnchantmentInfo` reports the dummy imbues,
+   Thunderstrike Ward and the rites.
+4. Whether `GetShapeshiftFormInfo` answers for Moonkin Form as Manners reads it.
+5. Whether Forever's Aspects of the Falcon and Viper can be learned.
+6. Whether a `/target <you>` and `/use item:<id>` press uses a scroll on Forever,
+   and whether using one while mounted dismounts you.
+7. Whether Season of Discovery's Commanding Shout shares a rule with Battle
+   Shout: the data shows none, so the two are offered side by side.
 
 **Well-Rested was written against the data and the mock (1.11.10).** The
 Cozy Sleeping Bag (item 211527) casts Unroll Bag (429961, an hour's cooldown);
@@ -295,7 +317,8 @@ before the next release.
 **Written against the mock, not the game (1.11.3 to 1.11.8).** Only a live
 character can say: (1) a shaman's imbue is read from the main hand's enchant of
 the Imbue kind and the first spell known is offered (Windfury first); the off
-hand is not read, and Mists' imbues are other spells and are not offered; (2) the
+hand is read on retail only (1.11.11), and Mists' own imbues are offered since
+1.11.11; (2) the
 bar macro carries the armed spoken line, so a press says it even over a cast
 that then fails, and whether the game takes the longer body is untried; (3) with
 a gamepad on, no `MenuUtil` menu is opened (issue #6's trace is Blizzard's, with

@@ -46,17 +46,20 @@ It skips the dead, the out of range, anyone you just tried, anyone the buff does
 
 Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow Protection; druid Mark of the Wild, Thorns; paladin Wisdom, Might, Kings (and Salvation, Light and Sanctuary where the game still has them); warlock Unending Breath; warrior Battle Shout. Any one can be switched off, Thorns held to tanks or to you alone, and Unending Breath left out.
 
+**For your tank:** Earth Shield, Beacon of Light (Oath of Light on WoW Forever) and Blistering Scales, the buffs only one person can wear, go to the player your group gives the tank role, and only while none of yours is on anybody. Put yours on somebody else and it stays there. Season of Discovery, Burning Crusade, Mists and retail, wherever the game has them. Mists druids also get Symbiosis for one member of the group, and Season of Discovery warriors Commanding Shout beside Battle Shout.
+
 ### Buff myself
 
-- **Your own buff**, the one you give everybody else, and **your class's own**: armors (mage, warlock), auras (paladin), aspects and Trueshot Aura (hunter), shields (shaman), Inner Fire and Shadowguard (priest), Righteous Fury (only while your role is tank, unless you say *Always*).
+- **Your own buff**, the one you give everybody else, and **your class's own**: armors (mage, warlock), auras (paladin), aspects and Trueshot Aura (hunter), shields (shaman), Inner Fire, Shadowguard and Shadowform (priest), Moonkin Form (druid, never while you are in another form), Grimoire of Sacrifice (Mists and retail), the Season of Discovery runes Molten Armor, Aspect of the Falcon, Aspect of the Viper and Heart of the Lion, Righteous Fury (only while your role is tank, unless you say *Always*).
 - **Weapons, one hand at a time.** When a weapon has nothing on it and a poison, sharpening stone, weightstone, oil or fishing lure that fits is in your bags, "You" comes up with its icon and one press puts it on: rogues' poisons, and stones, oils and lures for every class on WoW Forever, Classic Era, Burning Crusade and Mists. A rogue's poisons are reminded on retail too. On WoW Forever an oil and an imbue are each reminded on their own, and a mage carrying familiar or weapon imbue scrolls is reminded of those.
-- **A shaman's weapon imbues** (Rockbiter, Flametongue, Frostbrand, Windfury) on WoW Forever, Classic Era and Burning Crusade: with none on the weapon in your main hand, "You" comes up with the first you know.
+- **A shaman's weapon imbues** (Rockbiter, Flametongue, Frostbrand, Windfury) on WoW Forever, Classic Era, Burning Crusade and Mists: with none on the weapon in your main hand, "You" comes up with the first you know. On retail, the main hand and the off hand each have their own switch, and Thunderstrike Ward waits for a shield. A Lightsmith paladin's rites on retail too.
 - **Well Fed**, if you switch it on: food in your bags that gives the buff, offered when none is on you, one press eats it. Every class, on WoW Forever, Classic Era, Burning Crusade and Mists.
 - **Well-Rested**, if you switch it on: with a Cozy Sleeping Bag in your bags and no Well-Rested on you, one press lays the bag down. Not at the level cap. Classic Era and WoW Forever.
 - **Detect Invisibility** for warlocks, if you switch it on: offered when none is on you, one press casts it on you. Classic Era, WoW Forever and Burning Crusade.
-- **Oils, stones and food only in dungeons and raids**, if you like. On your own, a stone or oil is renewed only once it has worn off; in a group it is topped up ahead of the next pull.
+- **Flasks, elixirs and scrolls**, if you switch them on: one switch for Flask, one for Elixir and one per scroll, each shown once you carry one. The best one you can use is offered when none of its kind is on you, one press uses it. A flask counts as your elixirs on Burning Crusade and Mists, and a scroll waits while the class buff of the same stat is on you. WoW Forever, Classic Era, Burning Crusade and Mists.
+- **Consumables only in dungeons and raids**, if you like: oils, stones, food, flasks, elixirs and scrolls. On your own, a stone or oil is renewed only once it has worn off; in a group it is topped up ahead of the next pull.
 - **Automatic, or your choice.** Where a class has several of one kind, pick one or leave it on *Automatic*, which follows the one you had up last. Only when none of a kind is up, never in a fight, and not in cities and inns unless you tick *Also in cities and inns*. *Don't remind me* turns any of it off.
-- Hunters, shamans and rogues, who give nothing to others, get a prompt for their own buffs.
+- Hunters and rogues, who give nothing to others, get a prompt for their own buffs, and so does a shaman who has not learned Earth Shield.
 
 ### Dungeons and raids
 

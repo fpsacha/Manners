@@ -240,12 +240,14 @@ each class offers*).
   question about replacing an enchant: that is left to you.
 - **A shaman's weapon imbue.** Rockbiter, Flametongue, Frostbrand and Windfury
   Weapon are one family, *Weapon imbue*, under *Myself* on *Who to buff* (Classic
-  Era, Burning Crusade and WoW Forever; Mists' are different and not yet
-  offered). With none of them on the weapon in your main hand, "You" comes up
+  Era, Burning Crusade, WoW Forever and Mists, with each client's own imbues).
+  With none of them on the weapon in your main hand, "You" comes up
   with the first one you know, Windfury ahead of the rest, and a press casts it;
   an imbue already on the weapon, whichever, ends the reminder, and a poison,
   stone or oil does not count as one. Pick one in the drop-down to be reminded
-  of that alone, or *Don't remind me*. The off hand is not read.
+  of that alone, or *Don't remind me*. On retail the main hand (Windfury,
+  Flametongue, Earthliving) and the off hand (Flametongue, or Thunderstrike Ward
+  once a shield is in your off hand) each have a switch of their own.
 - **Well Fed.** Off until you switch it on (*Well Fed*, under *Myself* on
   *Who to buff*, for every class): then, with a food in your bags that gives
   the *Well Fed* buff and none on you, "You" comes up with that food's icon and
@@ -264,6 +266,18 @@ each class offers*).
   switch it on. Then, with no Detect Invisibility on you (yours or another
   warlock's), "You" comes up and one press casts it on you. Classic Era, WoW
   Forever and Burning Crusade.
+- **Flasks, elixirs and scrolls.** *Flask*, *Elixir* and one switch per scroll
+  (Agility, Strength, Protection, Intellect, Stamina, Spirit) under *Myself*,
+  each shown once you carry one and off until you switch it on. Then, with
+  none of that kind on you, "You" comes up with the best one you can use, and
+  one press uses it on you. On Burning Crusade and Mists a flask fills both
+  elixir slots, so it counts for *Elixir* too. A Scroll of Intellect, Stamina
+  or Spirit waits while the class buff of the same stat is on you. Nothing is
+  offered mounted or in a fight. Classic Era (Season of Discovery's too), WoW
+  Forever, Burning Crusade and Mists.
+- **Forms.** Shadowform and Moonkin Form are reminded of like any other buff of
+  yours, and Moonkin Form never while you are in another form (cat, bear,
+  travel).
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath
@@ -603,9 +617,11 @@ explain themselves; this is what their tooltips have no room for.
   does *Well Fed*, which every class has and which starts off. Alone, a stone,
   oil or poison is offered again only once it has worn off; in a group, with
   top-ups on, it is renewed ahead of the next pull.
-  Then *Also in cities and inns*, off by default, and *Oils, stones and food only
-  in dungeons and raids*, also off, which keeps those reminders out of the open
-  world (poisons and lures are not held back), and last what each of your
+  So do *Flask*, *Elixir* and each scroll, which start off too.
+  Then *Also in cities and inns*, off by default, and *Consumables only in
+  dungeons and raids*, also off, which keeps the oils, stones, food, flasks,
+  elixirs and scrolls out of the open world (poisons and lures are not held
+  back), and last what each of your
   own buffs is doing and why one is not being offered. On retail, a class with
   nothing of its own to put on does not see this part; everywhere else every
   class does, for *Well Fed*, and a hunter, a shaman or a rogue sees only this
@@ -914,9 +930,17 @@ your client runs in. Slash commands are English in all of them.
 | Mage | Arcane Intellect |
 | Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection |
 | Druid | Mark of the Wild, Thorns |
-| Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade |
+| Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade; Beacon of Light (Season of Discovery) or Oath of Light (WoW Forever), for your tank |
+| Shaman | Earth Shield (Season of Discovery), for your tank |
 | Warlock | Unending Breath |
-| Warrior | Battle Shout (your own party; your whole raid on WoW Forever) |
+| Warrior | Battle Shout (your own party; your whole raid on WoW Forever); Commanding Shout too in Season of Discovery |
+
+**One person at a time.** Earth Shield, Beacon of Light, Oath of Light and
+Blistering Scales can be on one player only. Each goes to the player your group
+gives the tank role (or the main tank mark in a raid), and only while none of
+yours is on anybody: put yours on somebody else and it stays there, and they
+are offered the top-up. They are never offered to passers-by, and anybody in
+your group who asks for one by name is offered it.
 
 Individual buffs can be switched off on the *Who to buff* page (a warlock's
 Unending Breath too), or one pinned so it is the only thing ever cast. A druid's
@@ -952,12 +976,12 @@ you have learned them:
 | Class | Your own buffs |
 |---|---|
 | Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; and on WoW Forever, from the scrolls in your bags, *Familiar* (Rat, Frog or Cat) and *Weapon imbue* (Lesser Flame, Chillknife and the rest, each for the weapon it fits) |
-| Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them |
-| Warlock | Demon Skin (Demon Armor from level 20) |
+| Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them; Shadowform |
+| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
-| Hunter | *Aspect*: Hawk, Monkey, Wild or Beast (Cheetah and Pack count as up, but are never suggested); and Trueshot Aura |
-| Shaman | *Shield*: Lightning Shield or Water Shield |
-| Druid | Omen of Clarity on Classic Era only (a passive on WoW Forever) |
+| Hunter | *Aspect*: Hawk, Monkey, Wild or Beast, and in Season of Discovery Falcon and Viper (Viper never picked by *Automatic*; Cheetah and Pack count as up, but are never suggested); Trueshot Aura; Heart of the Lion in Season of Discovery |
+| Shaman | *Shield*: Lightning Shield or Water Shield; *Weapon imbue* |
+| Druid | Moonkin Form; Omen of Clarity on Classic Era only (a passive on WoW Forever) |
 
 A warrior has no buff of his own to be reminded of, and a rogue's own buffs are
 his poisons; every class is reminded of a stone, an oil or a lure in the bags
@@ -971,17 +995,24 @@ class offers what that client gives it:
 - **Burning Crusade Classic:** the same buffs at every Burning Crusade rank,
   and Commanding Shout for warriors (your own party only). On yourself, Molten
   Armor, Fel Armor, Aspect of the Viper, Sanctity and Crusader Aura join their
-  families, and Earth Shield counts as a shaman's shield.
+  families, and Earth Shield counts as a shaman's shield. A shaman with the
+  talent also offers Earth Shield for the tank.
 - **Mists of Pandaria Classic:** Arcane Brilliance, Power Word: Fortitude,
   Mark of the Wild, Blessing of Kings or Might, Legacy of the Emperor (and of
   the White Tiger), Dark Intent, and Battle Shout, Commanding Shout or Horn of Winter for your own
-  party. On yourself: Molten, Frost or Mage Armor; Inner Fire or Inner Will;
-  Righteous Fury; an aspect; and Lightning, Water or Earth Shield.
+  party; Earth Shield and Beacon of Light for the tank, and Symbiosis for one
+  member of your group who is not a druid. On yourself: Molten, Frost or Mage
+  Armor; Inner Fire or Inner Will; Shadowform; Moonkin Form; Righteous Fury; an
+  aspect; Lightning, Water or Earth Shield; a weapon imbue; and Grimoire of
+  Sacrifice.
 - **Retail:** Arcane Intellect (to those who use mana), Power Word: Fortitude,
   Mark of the Wild, Skyfury, Blessing of the Bronze, and Battle Shout for your
-  own group. Source of Magic is offered when you pin it or somebody asks for it.
-  Paladins, death knights, monks, demon hunters, hunters, rogues and warlocks
-  have no buff for anybody else there, and Manners says so.
+  own group; Earth Shield, Beacon of Light and Blistering Scales for the tank.
+  Source of Magic is offered when you pin it or somebody asks for it. On
+  yourself: a rogue's poisons, Shadowform, Grimoire of Sacrifice, a shaman's
+  imbues for each hand and a Lightsmith paladin's rites. Death knights, monks,
+  demon hunters, hunters, rogues and warlocks have no buff for anybody else
+  there, and Manners says so.
 
 ## Why a button and not automatic
 

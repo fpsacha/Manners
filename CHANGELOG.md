@@ -2,6 +2,58 @@
 
 ## Unreleased
 
+- **Earth Shield, Beacon of Light and other one-target buffs.** Manners now
+  offers the buffs only one person can wear at a time, for your tank:
+  - Earth Shield: Season of Discovery (Classic Era), Burning Crusade, Mists and
+    retail.
+  - Beacon of Light: Season of Discovery, Mists and retail. On WoW Forever,
+    Oath of Light.
+  - Blistering Scales, for a retail Augmentation evoker.
+
+  Each goes to the player your group gives the tank role (or the main tank
+  mark in a raid), and only while none of yours is on anybody. If you put
+  yours on somebody else, it stays there, and that player is offered the
+  top-up. Never offered to passers-by. Anyone in your group can still ask for
+  one by name.
+
+  Two more for others:
+  - Symbiosis, for a Mists druid: offered to one member of your group who is
+    not a druid.
+  - Commanding Shout, for a Season of Discovery warrior, beside Battle Shout.
+    The two stack.
+
+  Each has its own switch on *Who to buff*, on for whoever knows the spell.
+
+- **More of your own buffs under *Myself*.**
+  - Shadowform, on every client.
+  - Moonkin Form (Classic Era, WoW Forever, Burning Crusade, Mists), never
+    while you are in another form.
+  - The Season of Discovery runes Molten Armor, Aspect of the Falcon, Aspect
+    of the Viper (never picked by *Automatic*) and Heart of the Lion.
+  - Grimoire of Sacrifice (Mists and retail).
+  - A shaman's weapon imbues on Mists and retail: retail has one switch for
+    the main hand and one for the off hand. Thunderstrike Ward waits until a
+    shield is in your off hand.
+  - A retail Lightsmith paladin's rites.
+
+  All are on, for whoever knows the spell.
+
+- **Flasks, elixirs and scrolls.** New switches under *Myself*: one for Flask,
+  one for Elixir, and one for each Scroll (Agility, Strength, Protection,
+  Intellect, Stamina, Spirit). Each shows once you carry one, and each is off
+  until you switch it on. Manners picks the best one you can use.
+  - Classic Era (with Season of Discovery's), WoW Forever, Burning Crusade
+    and Mists.
+  - On Burning Crusade and Mists, a flask counts for the Elixir switch too.
+  - A Scroll of Intellect, Stamina or Spirit waits while the matching class
+    buff is on you.
+
+  *Oils, stones and food only in dungeons and raids* is now *Consumables only
+  in dungeons and raids*, and it covers flasks, elixirs and scrolls too.
+
+- **A shaman or retail paladin who has not learned the spell yet** is told
+  "no buff learned", not that the class has no buffs.
+
 - **Never in dungeons, raids and battlegrounds.** A new switch on *Who to buff*,
   under *Never in cities and inns*: with it on, nothing is offered to anybody
   inside a dungeon, a raid, a battleground or an arena, your group and a favour
