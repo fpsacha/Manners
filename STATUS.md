@@ -301,8 +301,9 @@ Left for later:
   blames *Skip players it does nothing for* even when that is off. A new string.
 - ptBR and itIT word nine RP.GIFT thanks in a man's voice; they sit in
   `RP.MASCULINE` until retranslated in a form that fits both.
-- On Mists a scroll family reads as up under any flask, even one holding only
-  the other elixir slot (a fourth Consumables.lua column would tell them apart).
+- On Mists a scroll family reads as up under any flask or any elixir, even one
+  holding only the other elixir slot (a fourth Consumables.lua column would tell
+  them apart). It is wrong only by saying nothing.
 - `Options/Who.lua` PlatesHidden and `Options/Launcher.lua` still give a
   talent-only class with nothing learned the nameplate note.
 - An alt's scroll body in the bar macro is recognised through AceDB's
@@ -321,7 +322,10 @@ What only the live game can say about them:
 5. Whether another shaman's Spirit of the Alpha on a tanking shaman fills his.
 6. Which of 79638 to 79640 the Alchemist's Flask puts on you; the Crystal of
    Insanity is offered during its cooldown after a death.
-7. Which of 474750 and 474754 the ally wears for Symbiotic Relationship.
+7. Which of 474750 and 474754 the ally wears for Symbiotic Relationship (both
+   are read on members, never on the druid).
+8. Whether Burning Crusade names your pet (`pet`) as the source of Soul Link
+   (25228), as its data says; Manners reads it as yours on that.
 
 **Well-Rested was written against the data and the mock (1.11.10).** The
 Cozy Sleeping Bag (item 211527) casts Unroll Bag (429961, an hour's cooldown);

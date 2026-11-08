@@ -142,9 +142,14 @@ default everywhere in the tests and the only client anybody here plays.
     a class whose every buff for others is a talent (the Welcome's "no buff
     learned"; `ns.OnlyOneTarget` gives the greeting its one-target line).
     `apartFrom` keeps a buff off the member who wears that other one of yours
-    (Beacon of Faith and of Light). A favour from a tank is owed to such a
+    (Beacon of Faith and of Light), read even while that other buff is
+    switched off. A favour from a tank is owed to such a
     class (`ns.CouldOffer` takes the giver's tank role and class, from Sight's
-    `seen.tank` and `seen.class`). `ns.NoteGave` and `GaveSince` keep one time
+    `seen.tank` and `seen.class`, the combat log's record asking
+    `ns.IsTankUnit` instead; given the giver's `name`, it also reads who wears
+    yours through `ns.OneTargetHolders`, with its own table, and the favour
+    line says when the return waits for it to come free). Retail's Symbiotic
+    Relationship is `notSelf`: the druid is never read as its holder. `ns.NoteGave` and `GaveSince` keep one time
     per buff key per name, so on Forever a blessing on your Oath's wearer does
     not hide the Oath. A buff's `group` may hold one partner aura a class
     (Symbiosis), as retail's Blessing of the Bronze does.
@@ -154,7 +159,12 @@ default everywhere in the tests and the only client anybody here plays.
     Flametongue) and `shiftsOut` (Mark of the Wild on vanilla and tbc: Moonkin
     Form waits while one is queued, `Queue.lua` `FormWaits`). Round 37's own
     families: `demonicsacrifice` (vanilla, camelot, tbc), `treeoflife` (tbc,
-    vanilla), `spiritofthealpha` (vanilla, `tank`).
+    vanilla), `spiritofthealpha` (vanilla, `tank`). Round 38's family flags:
+    `shiftedOut` (the form that waits for a queued `shiftsOut` buff: Moonkin
+    Form on Classic Era and TBC, TBC's Tree of Life; Season of Discovery's
+    tree has none) and `timed` (a toggle with a timer: Demonic Sacrifice, so
+    Diagnostics makes no "no timer" claim); the spell flag `byPet` (an own
+    buff whose caster is your pet: TBC's Soul Link).
     `shoutYards` is read only by `tools/audit_ids.py`.
   - weapon enhancements (poisons, sharpening stones and weightstones, wizard
     and mana oils, fishing lures), vanilla, tbc, camelot and mists: items from
