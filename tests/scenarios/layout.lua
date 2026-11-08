@@ -41,7 +41,11 @@ local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.ow
 	["who.own_shamanimbueoff"] = true, ["who.own_rite"] = true,
 	["who.own_flask"] = true, ["who.own_elixir"] = true, ["who.own_scrollagility"] = true,
 	["who.own_scrollstrength"] = true, ["who.own_scrollprotection"] = true, ["who.own_scrollintellect"] = true,
-	["who.own_scrollstamina"] = true, ["who.own_scrollspirit"] = true }
+	["who.own_scrollstamina"] = true, ["who.own_scrollspirit"] = true,
+	-- The missing-buffs round: Tree of Life (Burning Crusade, Classic Era), Spirit
+	-- of the Alpha (Classic Era), Demonic Sacrifice (Classic Era, Forever, TBC).
+	["who.own_treeoflife"] = true, ["who.own_spiritofthealpha"] = true,
+	["who.own_demonicsacrifice"] = true }
 
 local ACEDB = {
 	["profiles.current"] = true, ["profiles.choosedesc"] = true, ["profiles.new"] = true,

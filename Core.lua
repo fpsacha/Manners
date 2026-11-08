@@ -1559,6 +1559,11 @@ do
 				elseif not opts.isTank then
 					return false
 				end
+				-- Beacon of Faith and Beacon of Light (Buffs.lua, apartFrom): never
+				-- on the member wearing your other one, nor while nobody can say
+				-- who that is.
+				local other = buff.apartFrom and opts.oneHeld and opts.oneHeld[buff.apartFrom]
+				if other ~= nil and (other == true or other == opts.name) then return false end
 			end
 		end
 		return true

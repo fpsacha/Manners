@@ -13,11 +13,17 @@ SpellDuration and SpellEffect:
   flask   an item of consumable subclass 3 (Flask), or named "Flask..." on Classic
           Era, whose client puts every consumable in subclass 0; its use spell
           puts an aura on the user (SpellEffect 6, target 1) for half an hour or
-          more and stays on through death (SpellMisc Attributes_3 0x100000).
+          more and stays on through death (SpellMisc Attributes_3 0x100000). On
+          retail only a "Flask of ..." or "Fleeting Flask of ..." of level 71 or
+          more (The War Within's and Midnight's): its subclass also holds the
+          profession phials, the PvP flasks and every older expansion's.
   elixir  an item of subclass 2 (Elixir), or named "... Elixir ..." on Classic
           Era; its use spell puts an aura on the user for half an hour or more,
           does not stay on through death, and is no utility (water breathing or
-          walking, tracking, detection, a change of size).
+          walking, tracking, detection, a change of size). On Classic Era also
+          an item Forever files as an elixir with the same use spell: Mageblood
+          Potion, the Troll's Blood Potions and Gift of Arthas, which Forever
+          renamed "... Elixir" and moved to subclass 2. Retail asks for none.
   scroll  an item named "Scroll of Agility|Strength|Protection|Intellect|Stamina|
           Spirit" with or without a numeral (subclass 4 where the client has
           them); its use spell puts an aura on a friendly target (target 21) for
@@ -41,7 +47,12 @@ dummy that triggers 79638 to 79640) and the Crystal of Insanity (86569, 127230);
 The spell its use casts is the aura it puts on, which is how the addon reads it.
 On Burning Crusade and Mists a flask fills both elixir slots, battle and guardian
 (the game's rule since 2.0.1, not a table's), and the file says so (`flaskFills`).
-Retail has neither these items nor a family for them.
+Retail's flasks come in quality tiers of one level, the better (higher item level)
+first. Two of Mists' are added by hand (HAND), since neither passes the rules: the
+Alchemist's Flask (75525), never consumed, whose use (105617) is a dummy the server
+turns into one of three auras (`auras`), and the Crystal of Insanity (86569), a
+potion by subclass that is reused every fifteen minutes and lost on death
+(`lapses`). Each counts as both a battle and a guardian elixir.
 
 Nothing here ships: the output does, and Consumables.lua is held to its own shape
 by tests/scenarios/consume-buffs.lua, which never needs the cache.
@@ -63,14 +74,24 @@ import audit_ids  # noqa: E402  (the builds, the cache, the download)
 
 csv.field_size_limit(1 << 28)
 
-CLIENTS = ("camelot", "vanilla", "tbc", "mists")
+CLIENTS = ("camelot", "vanilla", "tbc", "mists", "mainline")
 # Classic Era files every consumable under subclass 0; the others split them.
-SUBCLASSES = {"camelot", "tbc", "mists"}
+SUBCLASSES = {"camelot", "tbc", "mists", "mainline"}
 FLASK, ELIXIR, SCROLL = 3, 2, 4
 # A flask in both elixir slots: the clients with battle and guardian elixirs.
 FLASK_FILLS = {"tbc", "mists"}
 # Forever and retail link an item to its effects through ItemXItemEffect.
-VIA_LINK_TABLE = {"camelot"}
+VIA_LINK_TABLE = {"camelot", "mainline"}
+# What each client is asked for: retail has its flasks alone.
+KINDS = {"mainline": ("flask",)}
+RETAIL_FLASK = re.compile(r"(Fleeting )?Flask of ")
+RETAIL_FLASK_LEVEL = 71
+# Mists' two that the rules above leave out (see the docstring): { item, level, use spell }
+# and what else the row says.
+HAND = {"mists": {"flask": [
+    (75525, 0, 105617, {"auras": (79638, 79639, 79640)}),  # Alchemist's Flask
+    (86569, 85, 127230, {"lapses": True}),  # Crystal of Insanity
+]}}
 DEATH_PERSISTENT = 0x100000
 HALF_HOUR_MS = 1800000
 # Auras an elixir may carry that make it a tool rather than a reminder: water
@@ -108,7 +129,9 @@ def table(client, name, cache):
         return list(csv.DictReader(f))
 
 
-def consumables(cache, client):
+def consumables(cache, client, also_elixirs=None):
+    """The client's lists. `also_elixirs` is {item: use spell} of items to take as elixirs
+    besides the client's own rule (Classic Era: Forever's elixirs of the same use)."""
     sparse = {num(r["ID"]): r for r in table(client, "ItemSparse", cache)}
     subclass = {num(r["ID"]): (num(r["ClassID"]), num(r["SubclassID"])) for r in table(client, "Item", cache)}
     effect_rows = table(client, "ItemEffect", cache)
@@ -154,7 +177,7 @@ def consumables(cache, client):
             return {FLASK: "flask", ELIXIR: "elixir", SCROLL: "scroll"}.get(sub)
         if name.startswith("Flask"):
             return "flask"
-        if re.search(r"\bElixir\b", name):
+        if re.search(r"\bElixir\b", name) or item in (also_elixirs or {}):
             return "elixir"
         if name.startswith("Scroll of"):
             return "scroll"
@@ -168,6 +191,15 @@ def consumables(cache, client):
             continue
         use = next((spell for spell, trigger in uses.get(item, ()) if trigger == 0), None)
         if use is None or not lasting(use):
+            continue
+        # One taken for Forever's word alone: only with Forever's use spell.
+        if kind == "elixir" and client not in SUBCLASSES and not re.search(r"\bElixir\b", name) \
+                and (also_elixirs or {}).get(item) != use:
+            continue
+        if client == "mainline" and kind == "flask" and not (
+                RETAIL_FLASK.match(name) and num(row["RequiredLevel"]) >= RETAIL_FLASK_LEVEL):
+            continue
+        if kind not in KINDS.get(client, ("flask", "elixir", "scroll")):
             continue
         entry = (item, num(row["RequiredLevel"]), use)
         if kind == "flask":
@@ -187,8 +219,15 @@ def consumables(cache, client):
             # The name and the aura agree, or the scroll is left out.
             if stat and SCROLL_NAME.fullmatch(name).group(1).lower() == stat:
                 out["scroll"][stat].append(entry)
-    # Where it works first (no area named), then the highest level, then the lowest item id.
-    order = lambda rows: sorted(rows, key=lambda r: (bool(AREA_ONLY.search(text.get(r[2], ""))), -r[1], r[0]))  # noqa: E731
+    for kind, hand in HAND.get(client, {}).items():
+        out[kind] += [r[:3] for r in hand]
+    # Where it works first (no area named), then the highest level, then (retail,
+    # where a quality tier is one level) the higher item level, then the lowest item id.
+    area = lambda r: bool(AREA_ONLY.search(text.get(r[2], "")))  # noqa: E731
+    if client == "mainline":
+        order = lambda rows: sorted(rows, key=lambda r: (area(r), -r[1], -num(sparse[r[0]]["ItemLevel"]), r[0]))  # noqa: E731
+    else:
+        order = lambda rows: sorted(rows, key=lambda r: (area(r), -r[1], r[0]))  # noqa: E731
     out["flask"], out["elixir"] = order(out["flask"]), order(out["elixir"])
     # Two scrolls of one level (Mists' VIII and IX, both 80): the one worth more first.
     for key in out["scroll"]:
@@ -221,7 +260,8 @@ def render(cache):
         "-- Generated by tools/make_consumables.py from each client's own item and spell",
         "-- data (wago.tools): never edited by hand. Every row is { item, the level it",
         "-- asks of the player, the spell its use casts }, best first; that spell is the",
-        "-- aura it puts on, read by its id. `flaskFills`: a flask fills both elixir slots,",
+        "-- aura it puts on, read by its id, unless the row names the `auras` it becomes;",
+        "-- `lapses`: a flask lost on death. `flaskFills`: a flask fills both elixir slots,",
         "-- battle and guardian; `fillsBoth`: the auras of two more things that do (the",
         "-- Alchemist's Flask, the Crystal of Insanity); `scrollSlots`: the elixir slot",
         "-- each stat's scrolls take, where the client says so (Mists). The tool's",
@@ -229,16 +269,25 @@ def render(cache):
     ]
     data = {}
     for client in CLIENTS:
-        data[client] = consumables(cache, client)
+        also = None
+        if client == "vanilla":
+            also = {item: use for item, _, use in data["camelot"]["elixir"]}
+        data[client] = consumables(cache, client, also)
         d = data[client]
         lines.append("--   %-8s %s, %d flasks, %d elixirs, %d scrolls" % (
             client, audit_ids.build_for(client), len(d["flask"]), len(d["elixir"]),
             sum(len(v) for v in d["scroll"].values())))
     lines += ["", "local _, ns = ...", "", "ns.CONSUMABLES = {"]
 
-    def rows(indent, entries):
+    def rows(indent, entries, extra=None):
         for item, level, use in entries:
-            lines.append("%s{ %d, %d, %d }," % (indent, item, level, use))
+            more = ""
+            for key, value in sorted((extra or {}).get(item, {}).items()):
+                if value is True:
+                    more += ", %s = true" % key
+                else:
+                    more += ", %s = { %s }" % (key, ", ".join(str(v) for v in value))
+            lines.append("%s{ %d, %d, %d%s }," % (indent, item, level, use, more))
 
     for client in CLIENTS:
         d = data[client]
@@ -250,10 +299,16 @@ def render(cache):
         if d.get("scrollSlots"):
             lines.append("\t\tscrollSlots = { %s }," % ", ".join(
                 '%s = "%s"' % (key, d["scrollSlots"][key]) for key, _ in STATS))
+        kinds = KINDS.get(client, ("flask", "elixir", "scroll"))
         for kind in ("flask", "elixir"):
+            if kind not in kinds:
+                continue
             lines.append("\t\t%s = {" % kind)
-            rows("\t\t\t", d[kind])
+            rows("\t\t\t", d[kind], {r[0]: r[3] for r in HAND.get(client, {}).get(kind, [])})
             lines.append("\t\t},")
+        if "scroll" not in kinds:
+            lines.append("\t},")
+            continue
         lines.append("\t\tscroll = {")
         for key, _ in STATS:
             lines.append("\t\t\t%s = {" % key)

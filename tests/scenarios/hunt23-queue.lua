@@ -445,10 +445,11 @@ do
 			fail(scenario, "SKIPPED -- SelfBuffFirst found no group buff for you before the listing")
 			return
 		end
-		-- Retail's mage has no family of her own (Buffs.lua, `own = {}`), so its
-		-- debug page has no such line to be wrong; there only the prompt's side,
-		-- SelfBuffFirst, is held to the list.
-		local says = next(ns.OWN_BUFFS.MAGE or {}) ~= nil
+		-- Retail's mage has no family of her own she knows (her flasks, since
+		-- 1.11.11, count only with one in the bags), so its debug page has no such
+		-- line to be wrong; there only the prompt's side, SelfBuffFirst, is held to
+		-- the list.
+		local says = next(ns.KnownOwnFamilies()) ~= nil
 		if says and not comesFirst(ns) then
 			fail(scenario, "SKIPPED -- /manners debug did not say your own buff comes first before the listing")
 			return

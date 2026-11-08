@@ -200,6 +200,8 @@ ns.WindowLayout = {
 					{ "who.own_omen", indent = true },
 					-- A druid's Moonkin Form, never asked for in another form.
 					{ "who.own_moonkinform", indent = true },
+					-- A druid's Tree of Life (Burning Crusade, Season of Discovery).
+					{ "who.own_treeoflife", indent = true },
 					{ "who.own_aspect", indent = true },
 					{ "who.own_trueshot", indent = true },
 					-- Season of Discovery's Heart of the Lion (Classic Era).
@@ -232,9 +234,14 @@ ns.WindowLayout = {
 					{ "who.own_shamanimbue", indent = true },
 					-- Retail's off hand: Flametongue beside Windfury, or a shield's ward.
 					{ "who.own_shamanimbueoff", indent = true },
+					-- Season of Discovery's Spirit of the Alpha on a shaman who tanks.
+					{ "who.own_spiritofthealpha", indent = true },
 					{ "who.own_demonarmor", indent = true },
 					-- A warlock's Grimoire of Sacrifice (Mists, retail).
 					{ "who.own_grimoireofsacrifice", indent = true },
+					-- A warlock's Demonic Sacrifice and Soul Link (Classic Era, Forever,
+					-- Burning Crusade).
+					{ "who.own_demonicsacrifice", indent = true },
 					-- A warlock's Detect Invisibility, off until it is turned on.
 					{ "who.own_detectinvis", indent = true },
 					-- Food that gives Well Fed, off until it is turned on; every class has it.

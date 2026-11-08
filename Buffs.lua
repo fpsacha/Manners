@@ -87,6 +87,9 @@
 --   notOwnClass  with oneTarget: in place of the tank rule, any member of the
 --             group who is not of your class (Symbiosis: "Cannot be cast on
 --             other Druids").
+--   apartFrom with oneTarget: the key of another of yours for one target at a
+--             time that the member wearing it is never offered this one beside
+--             (retail's Beacon of Faith and Beacon of Light: Core.lua, Castable).
 --   shoutYards  a shout's own reach where it is not the set's (Season of
 --             Discovery's Commanding Shout, 30 yards against Battle Shout's 20):
 --             data for tools/audit_ids.py. ShoutReach (Core.lua) already says
@@ -303,6 +306,20 @@ do
 	-- skips it (a shout is never skipped anyway).
 	VANILLA.WARRIOR[#VANILLA.WARRIOR + 1] = { key = "commandingshout", ranks = { 403215 }, selfCast = true,
 		partyOnly = true, talent = true, shoutYards = 30 }
+end
+
+-- Spirit of the Alpha (1.11.11), the shaman's boots rune (Engrave Boots, 410103):
+-- thirty minutes of +45% threat (SpellMisc DurationIndex 30, SpellEffect aura 10
+-- misc 127) on target 21, any ally; SkillLineAbility 373, class mask 64,
+-- AcquireMethod 3 (wago.tools, Classic Era 1.15.9.70003). "Limit 1 target", so it
+-- goes to the tank by the rule Earth Shield's does (oneTarget), after Earth
+-- Shield. Cast on somebody else it gives the shaman Loyal Beta (443320); a shaman
+-- who tanks puts it on himself, which is his own (SHAMAN's spiritofthealpha,
+-- below), never this. Forever 1.60.1.70790 has the spell and no trait for it, as
+-- for Earth Shield, so it is taken out of Forever's set with the other runes.
+do
+	VANILLA.SHAMAN[#VANILLA.SHAMAN + 1] = { key = "spiritofthealpha", ranks = { 408696 }, oneTarget = true,
+		neverSelf = true, talent = true }
 end
 
 ---------------------------------------------------------------------------
@@ -789,7 +806,7 @@ end
 -- Flasks, elixirs and stat scrolls (1.11.11): asked for as switches like Well
 -- Fed's. Consumables.lua, written by tools/make_consumables.py from each
 -- client's own data (Classic Era with Season of Discovery's, Forever with its
--- own, Burning Crusade, Mists), lists them; retail has none. Each kind is a
+-- own, Burning Crusade, Mists, and retail's flasks alone), lists them. Each kind is a
 -- `bagged` family of every class (`consumable`), off until it is turned on, a
 -- toggle like Well Fed (offered again once it is gone, never topped up), read
 -- by the ids of the auras the items' uses put on, whoever put them there
@@ -826,6 +843,11 @@ do
 		for i, row in ipairs(rows or {}) do
 			spells[i] = { key = prefix .. row[1], item = row[1], level = row[2], ranks = { row[3] },
 				nameFromItem = label, onAlly = ally, castOnOthers = ally }
+			-- Mists' Alchemist's Flask: a use that is no aura, the auras it becomes
+			-- (Consumables.lua, `auras`); its Crystal of Insanity, a flask lost on
+			-- death (`lapses`, for tools/audit_ids.py).
+			if row.auras then spells[i].auras = row.auras end
+			if row.lapses then spells[i].lapses = true end
 		end
 		if #spells == 0 then return nil end
 		return { key = key, label = label, bagged = true, consumable = true, toggle = true, spells = spells }
@@ -835,13 +857,16 @@ do
 		local flask = Family("flask", L["Flask"], data.flask, "flask")
 		local elixir = Family("elixir", L["Elixir"], data.elixir, "elixir")
 		list[#list + 1] = flask
-		-- What fills both elixir slots: a flask (`flaskFills`) and the two
-		-- things that are no flask row (`fillsBoth`: Mists' Alchemist's Flask
-		-- and Crystal of Insanity). A flask or elixir you are about to take
-		-- would replace any of them, so each reads as up for both families.
+		-- What fills both elixir slots: a flask (`flaskFills`, with the `auras`
+		-- a flask row becomes) and the auras of Mists' Alchemist's Flask and
+		-- Crystal of Insanity (`fillsBoth`). A flask or elixir you are about to
+		-- take would replace any of them, so each reads as up for both families.
 		local both = {}
 		if flask and data.flaskFills then
 			for i, spell in ipairs(flask.spells) do both[i] = spell.ranks[1] end
+			for _, spell in ipairs(flask.spells) do
+				for _, id in ipairs(spell.auras or {}) do both[#both + 1] = id end
+			end
 		end
 		for _, id in ipairs(data.fillsBoth or {}) do both[#both + 1] = id end
 		if flask and data.fillsBoth then
@@ -905,6 +930,7 @@ function ns.ConsumableAuras(family)
 	for _, spell in ipairs(family.spells) do
 		own[spell.ranks[1]] = true
 		add(spell.ranks[1])
+		for _, id in ipairs(spell.auras or {}) do add(id) end
 	end
 	for _, id in ipairs(family.covers or {}) do add(id) end
 	-- The game refuses a scroll only under an aura of the stat worth as much or
@@ -1272,6 +1298,31 @@ local VANILLA_OWN = {
 	-- with every class's (weapon enhancements, above). A shaman's weapon imbues
 	-- are a family of spells of its own (shamanimbue).
 }
+
+-- A warlock's Demonic Sacrifice and Soul Link (1.11.11), one family. Demonic
+-- Sacrifice (18788, Talent 1281, Demonology) kills the demon (SpellEffect 1 on
+-- target 5) for an aura on you by which demon it was: Burning Wish (18789), Fel
+-- Stamina (18790), Touch of Shadow (18791) or Fel Energy (18792), each on target 1
+-- for 30 minutes on Classic Era 1.15.9.70003 and two hours on Forever
+-- 1.60.1.70790 (TraitDefinition 135431, 142143, 142629), where 18789 is Burning
+-- Shadow and 18791 Touch of Fire. Lost on death (Attributes_3 0x0), and "the
+-- effect is canceled if any Demon is summoned". The cast's own id is no aura, so
+-- the four are its ranks, read by id: a read of the cast's name finds nothing.
+-- Soul Link (19028, Talent 1282, whose PrereqTalent is 1281: every Soul Link
+-- warlock of Classic Era knows Demonic Sacrifice too) puts 25228 on you for as long
+-- as the demon lives (SpellDuration -1); Forever has it as a trait (135423). One
+-- family, Soul Link first, so a warlock who keeps his demon for Soul Link is never
+-- told to sacrifice it, and either aura up is the family up. A toggle: a top-up
+-- would have to summon a demon, which ends the sacrifice. With no demon out the
+-- client calls both unusable (Core.lua, Usable), and nothing is offered. No word of
+-- its own: named by the first known, as the priest's Inner Fire on Mists.
+do
+	table.insert(VANILLA_OWN.WARLOCK, 2, { key = "demonicsacrifice", toggle = true,
+		spells = {
+			{ key = "soullink", ranks = { 19028, 25228 }, talent = true },
+			{ key = "demonicsacrifice", ranks = { 18788, 18789, 18790, 18791, 18792 }, talent = true },
+		} })
+end
 
 -- Tracking, for every class: Find Herbs and Find Minerals come with a
 -- profession, not a class, and drop when you die like a buff ("when I die I
@@ -1720,6 +1771,27 @@ local TBC_OWN = {
 	},
 }
 
+-- Burning Crusade's own of 1.11.11 (wago.tools, build 2.5.6.69795):
+--   Demonic Sacrifice and Soul Link, vanilla's family, with the Felguard's Touch
+--     of Shadow (35701, 30 minutes, lost on death) among the sacrifice's auras.
+--     Soul Link (19028, Talent 1282) still has Demonic Sacrifice (Talent 1281) for
+--     its PrereqTalent, and its aura 25228 has no timer.
+--   Tree of Life (33891): Restoration's 41-point talent (Talent 1791, level 50), a
+--     form (SpellEffect aura 36, form 2) with no timer, lost on death (Attributes_3
+--     0x0): a toggle, never asked for in another form (`form`), after Moonkin Form,
+--     which no druid has beside it (both are 41-point talents). In it a druid
+--     casts only heals over time and a few more; what it refuses the client calls
+--     unusable, and nothing of it is offered there.
+do
+	table.insert(TBC_OWN.WARLOCK, 2, { key = "demonicsacrifice", toggle = true,
+		spells = {
+			{ key = "soullink", ranks = { 19028, 25228 }, talent = true },
+			{ key = "demonicsacrifice", ranks = { 18788, 18789, 18790, 18791, 18792, 35701 }, talent = true },
+		} })
+	TBC_OWN.DRUID[#TBC_OWN.DRUID + 1] = { key = "treeoflife", toggle = true, form = true,
+		spells = { { key = "treeoflife", ranks = { 33891 }, talent = true } } }
+end
+
 -- Tracking as on vanilla, every id there in this client too, and Find Fish
 -- (43308, the Weather-Beaten Journal's): only one tracking is on at a time,
 -- so with it missing here, Find Fish on would read as none and have another
@@ -1902,6 +1974,43 @@ do
 	end
 end
 
+-- Two more Season of Discovery runes for Classic Era alone (1.11.11; wago.tools,
+-- 1.15.9.70003), which Forever's data has and nothing there teaches (no
+-- SkillLineAbility row for Tree of Life, no TraitDefinition for either):
+--   Tree of Life (439733), the druid's cloak rune (Engrave Cloak, 439767): a form
+--     (SpellEffect aura 36, form 2) with no timer (SpellDuration -1), lost on death
+--     (Attributes_3 0x0), its party aura 439745. A toggle like Moonkin Form, after
+--     it, never asked for in another form (`form`). A druid who knows both is asked
+--     for Moonkin Form first, one reminder at a time, and in either form the other
+--     waits; with Moonkin Form's switch off he is asked for the tree.
+--   Spirit of the Alpha (408696) on a shaman who tanks: his own, held to the tank's
+--     role (`tank`), thirty minutes. Loyal Beta (443320), which a cast on somebody
+--     else gives him, is the family up too: his went to another, and "a target
+--     cannot have both". Another shaman's on him fills it (`anyCaster`), and is
+--     that shaman's favour (castOnOthers).
+do
+	local druid = VANILLA_OWN.DRUID
+	for i, family in ipairs(druid) do
+		if family.key == "moonkinform" then
+			table.insert(druid, i + 1, { key = "treeoflife", toggle = true, form = true,
+				spells = { { key = "treeoflife", ranks = { 439733 }, talent = true } } })
+			break
+		end
+	end
+	local shaman = VANILLA_OWN.SHAMAN
+	for i, family in ipairs(shaman) do
+		if family.key == "shamanimbue" then
+			table.insert(shaman, i + 1, { key = "spiritofthealpha", tank = true,
+				spells = { { key = "spiritofthealpha", ranks = { 408696, 443320 }, talent = true, castOnOthers = true,
+					anyCaster = true } } })
+			break
+		end
+	end
+	-- The tree's party aura lands again each time you walk back into its reach, as
+	-- Moonkin Aura's does: nobody's favour.
+	VANILLA_SET.notFavour[439745] = true
+end
+
 -- Forever's own: the vanilla tables less what its client deleted or moved,
 -- copied entry by entry, since Classic Era still needs them as they are and
 -- BuildBuffLookups writes class, order and auraIds onto the chosen set's.
@@ -1952,6 +2061,16 @@ do
 	end
 	CAMELOT.PALADIN[#CAMELOT.PALADIN + 1] = { key = "oathoflight", ranks = { 1328548 }, oneTarget = true,
 		neverSelf = true, talent = true }
+end
+
+-- Spirit of the Alpha (408696, above) is a rune like them: in Forever's SpellName
+-- and SkillLineAbility (AcquireMethod 3) at 1.60.1.70790, in no TraitDefinition.
+do
+	local list = CAMELOT.SHAMAN or {}
+	for i = #list, 1, -1 do
+		if list[i].key == "spiritofthealpha" then table.remove(list, i) end
+	end
+	if #list == 0 then CAMELOT.SHAMAN = nil end
 end
 
 -- Forever: those buffs, and its own with the mage's scrolls. The name stays
@@ -2491,6 +2610,31 @@ do
 		neverSelf = true, talent = true, alone = true }
 end
 
+-- Two more for one target at a time (1.11.11; build 12.1.0.69933, both still in
+-- SpellName at 12.1.5.70575):
+--   Beacon of Faith (156910): a Holy talent (TraitDefinition 107538), "Mark a
+--     second target as a Beacon, mimicking the effects of Beacon of Light", on
+--     target 21, with no timer (SpellDuration -1) and lost on death (Attributes_3
+--     0x0). So after a wipe a Holy paladin puts both back, one on each tank: never
+--     on the member wearing your Beacon of Light, nor Beacon of Light on the one
+--     wearing your Beacon of Faith (`apartFrom`, Core.lua, Castable). After Beacon
+--     of Light, so that goes on first.
+--   Symbiotic Relationship (474750): a druid talent (TraitDefinition 128630),
+--     "Form a bond with an ally", an hour (DurationIndex 42), through death
+--     (Attributes_3 0x100080), on target 21; the bond on the ally is 474754 as
+--     well (an hour, target 21). One bond at a time, so it is held to the tank
+--     (oneTarget), and one of yours on a co-healer is left there. After Mark of
+--     the Wild.
+do
+	MAINLINE.PALADIN[#MAINLINE.PALADIN + 1] = { key = "beaconoffaith", ranks = { 156910 }, oneTarget = true,
+		neverSelf = true, talent = true, alone = true, apartFrom = "beacon" }
+	for _, buff in ipairs(MAINLINE.PALADIN) do
+		if buff.key == "beacon" then buff.apartFrom = "beaconoffaith" end
+	end
+	MAINLINE.DRUID[#MAINLINE.DRUID + 1] = { key = "symbioticrelationship", ranks = { 474750 },
+		group = { 474754 }, oneTarget = true, neverSelf = true, talent = true, alone = true }
+end
+
 -- A rogue's poisons (and, below, four other classes' own): each is a spell
 -- that puts an aura of its own id on you for an
 -- hour (retail SpellEffect: an aura on the caster, SpellMisc's 3,600,000 ms),
@@ -2593,6 +2737,18 @@ do
 			},
 		},
 	}
+end
+
+-- Retail's flasks (1.11.11), every class's: Midnight's four (Thalassian
+-- Resistance, the Magisters, the Blood Knights, the Shattered Sun, level 81, two
+-- quality tiers each, and the Fleeting ones a cauldron gives) and The War Within's
+-- (level 71), an hour each and through death (SpellMisc Attributes_3 0x100000),
+-- from Consumables.lua (build 12.1.0.69933). Retail has no elixirs or stat
+-- scrolls left to ask for, so the flask is its one consumable family.
+for _, class in ipairs({ "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT", "SHAMAN", "MAGE",
+	"WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "EVOKER" }) do
+	MAINLINE_OWN[class] = MAINLINE_OWN[class] or {}
+	AddFood(MAINLINE_OWN[class], "mainline")
 end
 
 local MAINLINE_SET = {
@@ -2952,6 +3108,25 @@ do
 		{ 3600, 33757, 382021, 318038 }, -- Windfury, Earthliving, Flametongue Weapon (1 h)
 		{ 3600, 462757 }, -- Thunderstrike Ward (1 h)
 		{ 3600, 433568, 433583 }, -- Rite of Sanctification, Rite of Adjuration (1 h)
+	})
+end
+
+-- The buffs for others the missing-buffs round added (1.11.11). The new own
+-- families (Demonic Sacrifice and Soul Link, Tree of Life) are toggles, with
+-- none; a tanking shaman's own Spirit of the Alpha is the rune's thirty minutes.
+do
+	local function Add(set, rows)
+		for id, seconds in pairs(Seconds(rows)) do SECONDS_FOR[set][id] = seconds end
+	end
+	-- Classic Era 1.15.9.70003.
+	Add(VANILLA_SET, {
+		{ 1800, 408696 }, -- Spirit of the Alpha, Season of Discovery's rune (30 min)
+		{ 1800, 443320 }, -- Loyal Beta, what it gives the shaman cast on another (30 min)
+	})
+	-- retail 12.1.0.69933.
+	Add(MAINLINE_SET, {
+		{ 0, 156910 }, -- Beacon of Faith (no timer)
+		{ 3600, 474750, 474754 }, -- Symbiotic Relationship (1 h)
 	})
 end
 
