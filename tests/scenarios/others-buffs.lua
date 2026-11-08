@@ -387,12 +387,16 @@ end
 
 -- Who to buff says who it goes to: the note under Buff to offer, the switch's
 -- "your group only", and the sentences that name your group mean the raid.
+-- A Burning Crusade shaman has Earth Shield alone, so his note is the one-buff
+-- line ("You offer Earth Shield."); Classic Era's has Spirit of the Alpha too.
 for _, case in ipairs({
 	{ class = "SHAMAN", known = { 408514 }, key = "earthshieldtank", name = "Earth Shield" },
 	{ class = "PALADIN", known = { 25290, 407613 }, key = "beacon", name = "Beacon of Light" },
+	{ client = "tbc", class = "SHAMAN", known = { 32594 }, key = "earthshieldtank", name = "Earth Shield alone" },
 }) do
-	local scenario = "others-buffs: vanilla: Who to buff says who " .. case.name .. " goes to"
-	session(scenario, { client = "vanilla", class = case.class, known = case.known }, function(ns)
+	local client = case.client or "vanilla"
+	local scenario = "others-buffs: " .. client .. ": Who to buff says who " .. case.name .. " goes to"
+	session(scenario, { client = client, class = case.class, known = case.known }, function(ns)
 		local note = H.findOption(ns.optionsTable, "autoNote")
 		local text = note and type(note.name) == "function" and note.name() or ""
 		if not text:find("goes to a tank of your group", 1, true) then
@@ -403,7 +407,7 @@ for _, case in ipairs({
 		if not label:find("your group only", 1, true) then
 			fail(scenario, "its switch does not say it reaches your group only: " .. label)
 		end
-		if case.class == "SHAMAN" then
+		if case.class == "SHAMAN" and client == "vanilla" then
 			if ns.OnlyReachesGroup() ~= true then fail(scenario, "Earth Shield alone reads as reaching passers-by") end
 			if ns.GroupMeansSubgroup() ~= false then fail(scenario, "your group is read as your subgroup alone") end
 		end

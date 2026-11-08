@@ -199,7 +199,7 @@ mutate("Options/Who.lua",
        "\t\t\t\t\t\t\t.. OneTargetNote(castable)\n",
        "",
        "others-buffs: one spell's note silent on who it goes to",
-       expect=P + "vanilla: Who to buff says who Earth Shield goes to", script=S)
+       expect=P + "tbc: Who to buff says who Earth Shield alone goes to", script=S)
 
 mutate("Core.lua",
        "\t\tif buff.oneTarget then return false end\n\tend\n\treturn true\nend\n",

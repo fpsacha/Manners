@@ -164,9 +164,11 @@ mutate(B,
        "missing-buffs: the family not up on the Alchemist's Flask's auras",
        expect="missing-buffs: mists: the Alchemist's Flask and the Crystal of Insanity", script=S)
 
-# The elixir family's covers take a flask row's `auras` and also Consumables.lua's
-# `fillsBoth` (the same three auras on Mists), so dropping either alone shows
-# nothing: newbuffs-fixes.py holds the fillsBoth side.
+mutate(B,
+       "\t\t\t\tfor _, id in ipairs(spell.auras or {}) do both[#both + 1] = id end\n",
+       "",
+       "missing-buffs: an elixir asked for over the Alchemist's Flask",
+       expect="missing-buffs: mists: the Alchemist's Flask and the Crystal of Insanity", script=S)
 
 mutate(K,
        "\t\t\t{ 241320, 81, 1235057 },\n",

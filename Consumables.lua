@@ -5,10 +5,9 @@
 -- asks of the player, the spell its use casts }, best first; that spell is the
 -- aura it puts on, read by its id, unless the row names the `auras` it becomes;
 -- `lapses`: a flask lost on death. `flaskFills`: a flask fills both elixir slots,
--- battle and guardian; `fillsBoth`: the auras of two more things that do (the
--- Alchemist's Flask, the Crystal of Insanity); `scrollSlots`: the elixir slot
--- each stat's scrolls take, where the client says so (Mists). The tool's
--- docstring says what counts. Builds:
+-- battle and guardian; `scrollSlots`: the elixir slot each stat's scrolls
+-- take, where the client says so (Mists). The tool's docstring says what
+-- counts. Builds:
 --   camelot  1.60.1.70790, 8 flasks, 59 elixirs, 24 scrolls
 --   vanilla  1.15.9.70003, 10 flasks, 37 elixirs, 24 scrolls
 --   tbc      2.5.6.69795, 26 flasks, 43 elixirs, 30 scrolls
@@ -342,7 +341,6 @@ ns.CONSUMABLES = {
 	},
 	mists = {
 		flaskFills = true,
-		fillsBoth = { 79638, 79639, 79640, 127230 },
 		scrollSlots = { agility = "battle", strength = "battle", protection = "guardian", intellect = "battle", stamina = "guardian", spirit = "battle" },
 		flask = {
 			{ 76084, 85, 105689 },

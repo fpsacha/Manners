@@ -40,10 +40,7 @@ raises experience ("Experience gained ...": Mists' Enduring Elixir of Wisdom, wh
 sits in the Flask subclass) is no flask or elixir and is left out.
 On Mists a scroll counts as a Battle or a Guardian elixir, which the scroll's own
 spell says ("Counts as a Battle Elixir."): `scrollSlots` gives each stat's slot,
-read from those texts and written only where every row of a stat agrees. Two things
-fill both slots and are no flask row: the Alchemist's Flask (75525, which casts a
-dummy that triggers 79638 to 79640) and the Crystal of Insanity (86569, 127230);
-`fillsBoth` lists their auras, each checked against its own text ("Counts as both").
+read from those texts and written only where every row of a stat agrees.
 The spell its use casts is the aura it puts on, which is how the addon reads it.
 On Burning Crusade and Mists a flask fills both elixir slots, battle and guardian
 (the game's rule since 2.0.1, not a table's), and the file says so (`flaskFills`).
@@ -52,7 +49,8 @@ first. Two of Mists' are added by hand (HAND), since neither passes the rules: t
 Alchemist's Flask (75525), never consumed, whose use (105617) is a dummy the server
 turns into one of three auras (`auras`), and the Crystal of Insanity (86569), a
 potion by subclass that is reused every fifteen minutes and lost on death
-(`lapses`). Each counts as both a battle and a guardian elixir.
+(`lapses`). Each counts as both a battle and a guardian elixir, which each aura's
+own text must say ("Counts as both"), or the tool stops.
 
 Nothing here ships: the output does, and Consumables.lua is held to its own shape
 by tests/scenarios/consume-buffs.lua, which never needs the cache.
@@ -110,8 +108,6 @@ AREA_ONLY = re.compile(r"Only active in|only apply in")
 EXPERIENCE = re.compile(r"Experience gained")
 SLOT_TEXT = re.compile(r"[Cc]ounts as an? (Battle|Guardian) [Ee]lixir")
 BOTH_TEXT = re.compile(r"[Cc]ounts as both a Battle and Guardian [Ee]lixir")
-# Auras that fill both elixir slots without being a flask row (see the docstring).
-FILLS_BOTH = {"mists": (79638, 79639, 79640, 127230)}
 
 
 def num(v, default=0):
@@ -244,12 +240,11 @@ def consumables(cache, client, also_elixirs=None):
         if len(slots) != len(out["scroll"]):
             raise SystemExit("make_consumables: %s: only %s name a slot" % (client, sorted(slots)))
         out["scrollSlots"] = slots
-    both = FILLS_BOTH.get(client)
-    if both:
-        for spell in both:
+    # A flask added by hand fills both slots: each aura it puts on says so.
+    for item, _, use, more in HAND.get(client, {}).get("flask", ()):
+        for spell in more.get("auras") or (use,):
             if not BOTH_TEXT.search(text.get(spell, "")):
                 raise SystemExit("make_consumables: %s spell %d does not say it counts as both" % (client, spell))
-        out["fillsBoth"] = both
     return out
 
 
@@ -262,10 +257,9 @@ def render(cache):
         "-- asks of the player, the spell its use casts }, best first; that spell is the",
         "-- aura it puts on, read by its id, unless the row names the `auras` it becomes;",
         "-- `lapses`: a flask lost on death. `flaskFills`: a flask fills both elixir slots,",
-        "-- battle and guardian; `fillsBoth`: the auras of two more things that do (the",
-        "-- Alchemist's Flask, the Crystal of Insanity); `scrollSlots`: the elixir slot",
-        "-- each stat's scrolls take, where the client says so (Mists). The tool's",
-        "-- docstring says what counts. Builds:",
+        "-- battle and guardian; `scrollSlots`: the elixir slot each stat's scrolls",
+        "-- take, where the client says so (Mists). The tool's docstring says what",
+        "-- counts. Builds:",
     ]
     data = {}
     for client in CLIENTS:
@@ -294,8 +288,6 @@ def render(cache):
         lines.append("\t%s = {" % client)
         if client in FLASK_FILLS:
             lines.append("\t\tflaskFills = true,")
-        if d.get("fillsBoth"):
-            lines.append("\t\tfillsBoth = { %s }," % ", ".join(str(s) for s in d["fillsBoth"]))
         if d.get("scrollSlots"):
             lines.append("\t\tscrollSlots = { %s }," % ", ".join(
                 '%s = "%s"' % (key, d["scrollSlots"][key]) for key, _ in STATS))

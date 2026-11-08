@@ -51,17 +51,10 @@ mutate("Consumables.lua",
 
 # --- what fills both elixir slots ---
 
-mutate("Consumables.lua",
-       "\t\tfillsBoth = { 79638, 79639, 79640, 127230 },\n",
-       "",
-       "newbuffs-fixes: the Alchemist's Flask and the Crystal not read",
-       expect="newbuffs-fix: the Alchemist's Flask and the Crystal of Insanity fill both elixir slots", script=S)
-
-mutate("Buffs.lua",
-       "\t\tif flask and data.fillsBoth then\n",
-       "\t\tif false then\n",
-       "newbuffs-fixes: the Flask switch does not read the Crystal",
-       expect="newbuffs-fix: the Alchemist's Flask and the Crystal of Insanity fill both elixir slots", script=S)
+# The Alchemist's Flask and the Crystal of Insanity are flask rows (Consumables.lua,
+# make_consumables.py's HAND), read through a row's `auras`: missing-buffs.py holds
+# them, and the scenario "the Alchemist's Flask and the Crystal of Insanity fill
+# both elixir slots" still says what they do.
 
 # --- a weaker class buff holds no scroll back ---
 

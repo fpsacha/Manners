@@ -1257,8 +1257,7 @@ def check_consumables(rep, c, d, flavour):
     says, its use (ItemEffect, trigger 0) is the spell the addon reads, that spell puts an aura on
     the user (a scroll: on a friendly target) for half an hour or more, a flask's stays on through
     death and an elixir's does not, a scroll's raises its family's stat, and what `covers` a
-    family is a flask of this client, an aura that fills both elixir slots (the flask family's
-    own `covers`: SpellName and an hour or more), or on Mists a scroll. A use that is no aura
+    family is a flask of this client, an aura a flask row becomes, or on Mists a scroll. A use that is no aura
     (Mists' Alchemist's Flask) names the `auras` it becomes, and those are held to it in its
     place; a flask marked `lapses` (Mists' Crystal of Insanity) is one lost on death."""
     # Every class lists the same families: each copy that differs is checked, once.

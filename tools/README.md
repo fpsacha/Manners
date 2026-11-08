@@ -1230,10 +1230,10 @@ Since round 37 it also:
 - takes, on Classic Era, any item Forever files as an elixir with the same use
   spell (Mageblood Potion, the Troll's Blood potions, Gift of Arthas);
 - adds a `HAND` list (Mists' Alchemist's Flask with the `auras` its dummy use
-  becomes, and the Crystal of Insanity, `lapses`: lost on death);
-- writes `fillsBoth` (Mists: what fills both elixir slots and is no flask row)
-  and `scrollSlots` (Mists: the elixir slot each stat's scrolls take, read from
-  the scroll's own text);
+  becomes, and the Crystal of Insanity, `lapses`: lost on death), each aura's
+  text checked to say it counts as both elixirs;
+- writes `scrollSlots` (Mists: the elixir slot each stat's scrolls take, read
+  from the scroll's own text);
 - sorts a flask that works only in some areas ("Only active in", "only apply
   in") after the rest, and leaves out experience elixirs.
 

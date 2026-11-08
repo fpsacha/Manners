@@ -176,10 +176,9 @@ default everywhere in the tests and the only client anybody here plays.
     flagged `consumable`: `covers` names the class buffs of the same stat that
     hold a scroll back (a rank worth less than the weakest scroll is skipped,
     by `ns.STAT_VALUE`), `flaskFills` (TBC, Mists) lets a flask count for the
-    elixir family, `fillsBoth` (Mists' Alchemist's Flask and Crystal of
-    Insanity) counts for both, `scrollSlots` (Mists) makes each scroll take an
-    elixir slot, a row's `auras` names what a dummy use becomes and `lapses`
-    a flask lost on death. Retail has the flask family alone, for every class.
+    elixir family, `scrollSlots` (Mists) makes each scroll take an elixir
+    slot, a row's `auras` names what a dummy use becomes (Mists' Alchemist's
+    Flask) and `lapses` a flask lost on death (the Crystal of Insanity). Retail has the flask family alone, for every class.
     `Core.lua` reads each with `ReadConsumable` (one pcall per family). *Consumables only in dungeons and raids*
     (`ownBuffs.itemsInDungeons`, the key kept from its old name) holds back
     oils, stones, food and these. A spell family off

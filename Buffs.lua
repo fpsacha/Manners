@@ -857,21 +857,15 @@ do
 		local flask = Family("flask", L["Flask"], data.flask, "flask")
 		local elixir = Family("elixir", L["Elixir"], data.elixir, "elixir")
 		list[#list + 1] = flask
-		-- What fills both elixir slots: a flask (`flaskFills`, with the `auras`
-		-- a flask row becomes) and the auras of Mists' Alchemist's Flask and
-		-- Crystal of Insanity (`fillsBoth`). A flask or elixir you are about to
-		-- take would replace any of them, so each reads as up for both families.
+		-- What fills both elixir slots: a flask (`flaskFills`), with the `auras`
+		-- a flask row becomes (Mists' Alchemist's Flask). An elixir you are
+		-- about to take would replace any of them, so each reads as up for it.
 		local both = {}
 		if flask and data.flaskFills then
 			for i, spell in ipairs(flask.spells) do both[i] = spell.ranks[1] end
 			for _, spell in ipairs(flask.spells) do
 				for _, id in ipairs(spell.auras or {}) do both[#both + 1] = id end
 			end
-		end
-		for _, id in ipairs(data.fillsBoth or {}) do both[#both + 1] = id end
-		if flask and data.fillsBoth then
-			flask.covers = {}
-			for i, id in ipairs(data.fillsBoth) do flask.covers[i] = id end
 		end
 		if elixir and #both > 0 then elixir.covers = both end
 		list[#list + 1] = elixir
