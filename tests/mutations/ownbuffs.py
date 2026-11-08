@@ -140,13 +140,11 @@ mutate("Core.lua",
        "\t\t\tif Known(spell) then\n\t\t\t\tfor _, id in ipairs(spell.auraIds) do\n"
        "\t\t\t\t\tlocal ok, aura = pcall(byId, \"player\", id)\n\t\t\t\t\tif not ok or Withheld(aura) then\n"
        "\t\t\t\t\t\trefused = true\n"
-       "\t\t\t\t\telseif type(aura) == \"table\" and FromYou(aura) ~= false then\n"
-       "\t\t\t\t\t\tRemember(family, spell)\n",
+       "\t\t\t\t\telseif type(aura) == \"table\" and (FromYou(aura) ~= false\n",
        "\t\t\tif Known(spell) then\n\t\t\t\tfor _, id in ipairs(spell.auraIds) do\n"
        "\t\t\t\t\tlocal ok, aura = pcall(byId, \"player\", id)\n\t\t\t\t\tif not ok or Withheld(aura) then\n"
        "\t\t\t\t\t\trefused = true\n"
-       "\t\t\t\t\telseif false then\n"
-       "\t\t\t\t\t\tRemember(family, spell)\n",
+       "\t\t\t\t\telseif false and (FromYou(aura) ~= false\n",
        "own: armor up not read",
        expect="wearing Frost Armor under another name, you were offered", script=S)
 

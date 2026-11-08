@@ -2759,7 +2759,9 @@ do
 					local ok, aura = pcall(byId, "player", id)
 					if not ok or Withheld(aura) then
 						refused = true
-					elseif type(aura) == "table" and FromYou(aura) ~= false then
+					elseif type(aura) == "table" and (FromYou(aura) ~= false
+						-- Put on you by your own demon (Buffs.lua, byPet: Soul Link).
+						or (spell.byPet and plain(aura.sourceUnit) == "pet")) then
 						Remember(family, spell)
 						return true, spell, Left(aura, now), plain(aura.applications)
 					elseif aura == nil and not refused and HiddenAura(id) then

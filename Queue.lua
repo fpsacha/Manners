@@ -1624,49 +1624,74 @@ ns.NoReading = NoReading
 -- names nobody; nothing for a key nobody wears. Yours is the client naming you
 -- as its caster, or, where it names nobody (WoW Forever on another player's
 -- aura), the cast Manners saw land on them (ns.GaveSince). Castable (Core.lua)
--- reads the answer. nil when no such buff is in hand, and one table reused.
-local ONE_HELD = {}
-local function OneTargetHolders(candidates)
-	local any = false
-	for _, buff in ipairs(candidates) do
-		if buff.oneTarget then any = true break end
-	end
-	if not any then return nil end
-	wipe(ONE_HELD)
-	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
-	if n == 0 then return ONE_HELD end
-	local inRaid = plain(IsInRaid and IsInRaid()) == true
-	local prefix = inRaid and "raid" or "party"
-	local tokens = GROUP_TOKENS[prefix]
-	local count = inRaid and n or (n - 1)
-	for _, buff in ipairs(candidates) do
-		if buff.oneTarget then
-			-- A buff the game will not let you cast on yourself (notSelf) is not
-			-- read on you: the aura on you is the druid's own, which Symbiosis
-			-- puts on its caster, and the partner wears another.
-			local myGuid = buff.notSelf and plain(UnitGUID("player")) or nil
-			for i = 0, count do
-				local unit = i == 0 and "player" or tokens[i] or (prefix .. i)
-				local guid = plain(UnitGUID(unit))
-				if guid and not (buff.notSelf and (i == 0 or guid == myGuid)) then
-					local has, remaining, mine = UnitHasBuff(unit, buff, guid)
-					if has == nil then
-						ONE_HELD[buff.key] = true
-						break
-					end
-					if has == true and mine ~= false then
-						local full = ns.UnitFullName(unit)
-						if mine == true or ns.GaveSince(full, buff.key, remaining, (ns.BuffSeconds(buff))) then
-							ONE_HELD[buff.key] = full or true
-							break
-						end
+-- reads the answer. nil when no such buff is in hand, and one table reused, or
+-- `into` (Favours.lua's question, which must not wipe the scan's).
+local OneTargetHolders
+do
+	local ONE_HELD = {}
+
+	local function ReadHolder(buff, into, count, tokens, prefix)
+		-- A buff the game will not let you cast on yourself (notSelf) is not
+		-- read on you: the aura on you is the druid's own, which Symbiosis
+		-- puts on its caster, and the partner wears another.
+		local myGuid = buff.notSelf and plain(UnitGUID("player")) or nil
+		for i = 0, count do
+			local unit = i == 0 and "player" or tokens[i] or (prefix .. i)
+			local guid = plain(UnitGUID(unit))
+			if guid and not (buff.notSelf and (i == 0 or guid == myGuid)) then
+				local has, remaining, mine = UnitHasBuff(unit, buff, guid)
+				if has == nil then
+					into[buff.key] = true
+					return
+				end
+				if has == true and mine ~= false then
+					local full = ns.UnitFullName(unit)
+					if mine == true or ns.GaveSince(full, buff.key, remaining, (ns.BuffSeconds(buff))) then
+						into[buff.key] = full or true
+						return
 					end
 				end
 			end
 		end
 	end
-	return ONE_HELD
+
+	-- Whether `buff` is one of `candidates`.
+	local function Listed(candidates, buff)
+		for _, each in ipairs(candidates) do
+			if each == buff then return true end
+		end
+		return false
+	end
+
+	OneTargetHolders = function(candidates, into)
+		local any = false
+		for _, buff in ipairs(candidates) do
+			if buff.oneTarget then any = true break end
+		end
+		if not any then return nil end
+		into = into or ONE_HELD
+		wipe(into)
+		local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
+		if n == 0 then return into end
+		local inRaid = plain(IsInRaid and IsInRaid()) == true
+		local prefix = inRaid and "raid" or "party"
+		local tokens = GROUP_TOKENS[prefix]
+		local count = inRaid and n or (n - 1)
+		for _, buff in ipairs(candidates) do
+			if buff.oneTarget then ReadHolder(buff, into, count, tokens, prefix) end
+		end
+		-- The other one of yours a buff is kept apart from (Buffs.lua, apartFrom:
+		-- Beacon of Faith and of Light), read even while it is switched off and
+		-- so no candidate: the one wearing yours still wears it.
+		for _, buff in ipairs(candidates) do
+			local other = buff.oneTarget and buff.apartFrom
+			local partner = other and ns.FindBuff(buff.class, other)
+			if partner and not Listed(candidates, partner) then ReadHolder(partner, into, count, tokens, prefix) end
+		end
+		return into
+	end
 end
+ns.OneTargetHolders = OneTargetHolders
 
 -- Why nothing at all is offered to you right now, whatever you are missing,
 -- or nil and your name. One answer for both kinds of your own buff -- your
@@ -1830,12 +1855,14 @@ function ns.SelfBuffFirst(db, now)
 	return buff
 end
 
--- Moonkin Form waits while a buff the client refuses in it is up for somebody
--- (Mark of the Wild on Classic Era and TBC, Buffs.lua `shiftsOut`): that press
--- drops the form, and the form back in ahead of the next member would be
--- shifted out again by the next one.
+-- A form waits while a buff the client refuses in it is up for somebody (Mark
+-- of the Wild on Classic Era and TBC, Buffs.lua `shiftsOut`): that press drops
+-- the form, and the form back in ahead of the next member would be shifted
+-- out again by the next one. Which forms: Buffs.lua `shiftedOut` (Moonkin
+-- Form there, and TBC's Tree of Life).
 local function FormWaits(mine, queue)
-	if not (mine.buff and mine.buff.key == "moonkinform") then return false end
+	local family = mine.buff and mine.buff.family
+	if not (family and family.shiftedOut) then return false end
 	for i = 1, #queue do
 		local other = queue[i].buff
 		if other and other.shiftsOut then return true end

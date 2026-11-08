@@ -26,8 +26,8 @@ mutate("Options/Say.lua",
 
 # The two-hour aura is said to have no timer.
 mutate("Commands.lua",
-       "\t\t\tif not family.bagged then\n",
-       "\t\t\tif true then\n",
+       "\t\t\tif not family.bagged and not family.timed then\n",
+       "\t\t\tif not family.timed then\n",
        "options-fixes: Well-Rested said to have no timer",
        expect="options-fix: Well-Rested is not said to have no timer",
        script=S)

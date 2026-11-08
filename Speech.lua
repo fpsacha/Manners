@@ -280,15 +280,19 @@ function ns.ChannelOpen(entry)
 	-- UnitInParty is true for the whole instance group too: a battleground
 	-- teammate outside your premade is not in the party /party reaches. The home
 	-- party's own list says who is (names, realm dropped); a client without it,
-	-- or with an empty answer, keeps the line.
+	-- or with an empty answer, keeps the line. By the whole name or its first
+	-- word, as a chat sender is matched (Requests.lua, Made): on Forever the
+	-- list may hold "Petra" where the prompt files "Petra Stonewell".
 	if channel == "PARTY" and InHome(IsInRaid) ~= true and type(entry.name) == "string"
 		and type(_G.GetHomePartyInfo) == "function" and _G.LE_PARTY_CATEGORY_HOME ~= nil then
 		local home = _G.GetHomePartyInfo()
 		if type(home) == "table" and #home > 0 then
 			local want = entry.name:match("^[^-]+") or entry.name
+			local first = ns.FirstName(want)
 			local found = false
 			for _, name in ipairs(home) do
-				if type(name) == "string" and (name:match("^[^-]+") or name) == want then
+				local theirs = type(name) == "string" and (name:match("^[^-]+") or name)
+				if theirs and (theirs == want or theirs == first) then
 					found = true
 					break
 				end
