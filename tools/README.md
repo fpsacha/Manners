@@ -1222,8 +1222,23 @@ python tools/make_consumables.py --check    # exit 1 when the shipped file is no
 python tools/make_consumables.py --cache DIR
 ```
 
+Since round 37 it also:
+- reads retail through `ItemXItemEffect`, keeping only *Flask of* and *Fleeting
+  Flask of* items of level 71 or more (Midnight and The War Within), the higher
+  quality tier (item level) first: retail has flasks only;
+- takes, on Classic Era, any item Forever files as an elixir with the same use
+  spell (Mageblood Potion, the Troll's Blood potions, Gift of Arthas);
+- adds a `HAND` list (Mists' Alchemist's Flask with the `auras` its dummy use
+  becomes, and the Crystal of Insanity, `lapses`: lost on death);
+- writes `fillsBoth` (Mists: what fills both elixir slots and is no flask row)
+  and `scrollSlots` (Mists: the elixir slot each stat's scrolls take, read from
+  the scroll's own text);
+- sorts a flask that works only in some areas ("Only active in", "only apply
+  in") after the rest, and leaves out experience elixirs.
+
 `tests/scenarios/consume-buffs.lua` holds the families built from it, and
-`audit_ids.py` (`check_consumables`) holds each row to the item data.
+`audit_ids.py` (`check_consumables`) holds each row to the item data, with
+`auras`, `lapses`, both-slot auras and Mists' scrolls as covers.
 
 ## audit_ids.py
 

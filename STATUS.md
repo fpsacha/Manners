@@ -25,7 +25,9 @@ instance, paladins skipping players another paladin has blessed, a warlock's
 Detect Invisibility on himself, funnier Forsaken thanks, bug hunt 35's
 fixes (Well-Rested above all), and the buffs its finder listed (round 36: more
 own buffs, flasks, elixirs and scrolls, and Earth Shield, Beacon of Light and the
-other one-target buffs for the tank). Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
+other one-target buffs for the tank), and bug hunt 37's 47 fixes with the
+buffs still missing (Demonic Sacrifice, Tree of Life, Spirit of the Alpha,
+Beacon of Faith, Symbiotic Relationship, retail flasks). Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
 (1.11.4); the audit reads Forever at that build (`CLAUDE.md`, "Data sources").
 
 Working here is quicker and safer for an agent since round 33 (`CLAUDE.md`,
@@ -274,6 +276,51 @@ What only the live game can say about them:
    and whether using one while mounted dismounts you.
 7. Whether Season of Discovery's Commanding Shout shares a rule with Battle
    Shout: the data shows none, so the two are offered side by side.
+
+**Bug hunt 37 (Unreleased): 47 findings, all fixed, and the buffs still
+missing.** Five areas, each in its own worktree: the new buffs (12), the engine
+(7), the prompt (5), the test model (7) and a builder for buffs still missing
+(16 ideas, 11 built). Built: Demonic Sacrifice and Soul Link (`demonicsacrifice`,
+Classic Era, Forever, TBC), Tree of Life (TBC, Season of Discovery), Spirit of
+the Alpha (Season of Discovery, `oneTarget` for others and `tank` on yourself),
+retail's Beacon of Faith (`apartFrom` keeps it off your Beacon of Light's
+wearer) and Symbiotic Relationship, more Classic Era elixirs, Mists'
+Alchemist's Flask and Crystal of Insanity, and retail flasks. Not built, each
+with its reason in the round's notes: Valor of Azeroth (raid-wide reach on a
+set whose shouts are subgroup-only), Horn of Lordaeron (exclusive with Might),
+Juju Power and Guile (a server-side exclusion no table holds), retail weapon
+oils and stones (no retail SpellItemEnchantment in the audit), retail Moonkin
+Form (a class-tree trait: no spec gate), Mists Enhancement's off-hand imbue
+(which hand `/cast` lands on).
+
+Left for later:
+- The Oath of Light cast record (`ns.NoteGave`) is memory only, so a `/reload`
+  on Forever forgets which Oath was yours. Keeping it in `db.char` would fix it.
+- A one-target-only class lets a favour from a non-tank go, and the chat line
+  blames *Skip players it does nothing for* even when that is off. A new string.
+- ptBR and itIT word nine RP.GIFT thanks in a man's voice; they sit in
+  `RP.MASCULINE` until retranslated in a form that fits both.
+- On Mists a scroll family reads as up under any flask, even one holding only
+  the other elixir slot (a fourth Consumables.lua column would tell them apart).
+- `Options/Who.lua` PlatesHidden and `Options/Launcher.lua` still give a
+  talent-only class with nothing learned the nameplate note.
+- An alt's scroll body in the bar macro is recognised through AceDB's
+  `profileKeys`, so a character that never logged in with Manners is not.
+- vanilla's `window-classes.lua` "a warrior with one buff" fixture is stale
+  since Commanding Shout (baselined), and mainline's `who.own_moonkinform`
+  layout red is baselined, not explained.
+
+What only the live game can say about them:
+1. Whether a Mists scroll really knocks a Battle or Guardian elixir off.
+2. Whether Symbiosis puts the class aura (110478 to 110491) on the member with
+   the druid as its source, and what aura 136519 is.
+3. Whether retail's off-hand Flametongue refuses an empty off hand.
+4. Which aura Season of Discovery's Felguard gives for Demonic Sacrifice, and
+   whether Demonic Sacrifice and Soul Link read as unusable with no demon out.
+5. Whether another shaman's Spirit of the Alpha on a tanking shaman fills his.
+6. Which of 79638 to 79640 the Alchemist's Flask puts on you; the Crystal of
+   Insanity is offered during its cooldown after a death.
+7. Which of 474750 and 474754 the ally wears for Symbiotic Relationship.
 
 **Well-Rested was written against the data and the mock (1.11.10).** The
 Cozy Sleeping Bag (item 211527) casts Unroll Bag (429961, an hour's cooldown);
