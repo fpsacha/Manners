@@ -304,6 +304,8 @@ Left for later:
 - On Mists a scroll family reads as up under any flask or any elixir, even one
   holding only the other elixir slot (a fourth Consumables.lua column would tell
   them apart). It is wrong only by saying nothing.
+- The *Right now* line keeps up with the prompt in Manners' own window only;
+  the fallback AceConfig dialog repaints it on its usual triggers.
 - `Options/Who.lua` PlatesHidden and `Options/Launcher.lua` still give a
   talent-only class with nothing learned the nameplate note.
 - An alt's scroll body in the bar macro is recognised through AceDB's

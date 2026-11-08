@@ -56,14 +56,15 @@ All three carry the same build from the same tag.
 
 Open the options with `/manners`, or click the minimap button. The first
 time, on a new profile, the window opens on **Start here** with two
-questions at the top under *Quick setup*: *Who do you want to buff?* (people
+questions at the top under *1. Quick setup*: *Who do you want to buff?* (people
 who buff you, your group too, everyone near you, or your group kept topped
 up for dungeons and raids) and *Should your character talk?* (stay silent,
 just `/thank` them, a polite line, or in character). *Use these* sets them as
 the choices on Start here and What I say would; *Not now* leaves everything as
-it is. Either way they are not asked again on that profile, and a profile you
-already had is never asked. Below them, Start here has two numbered steps,
-which set it up:
+it is, and the same choices wait on *Who to buff* and *What I say*. Either way
+they are not asked again on that profile, and a profile you already had is
+never asked. While they ask, they stand in for step 1, and *2. Put it on a key*
+follows them. After that, Start here has two numbered steps, which set it up:
 
 1. **Who to buff.** One quick choice, *Offer my buff to*, already answered:
    a new profile starts on *Everyone near me*, and the line under it says
@@ -503,7 +504,10 @@ explain themselves; this is what their tooltips have no room for.
   to offer*, *What I say*, *Look*; *Profiles*, with the profile in use under
   its name, and *Diagnostics*. A page with nothing for your character is left
   out, so a rogue with no poison in the bags has *Start here*, *What I say*
-  (with only the `/thank` on it), *Profiles* and *Diagnostics*. A red dot
+  (with only the `/thank` on it), *Profiles* and *Diagnostics*. A class with
+  nothing to cast for others (a retail death knight, say) keeps *Who to buff*,
+  with *Myself* and the switch alone, while a flask is in its bags or that
+  switch is on, and *Start here* says where to find it. A red dot
   beside a page means something there wants looking at: nothing that can be
   offered, *Always offer* picked, a sound set to *None*, a colour with nothing
   left to colour, or something broken this session. A key binding is optional,
@@ -514,7 +518,10 @@ explain themselves; this is what their tooltips have no room for.
   result (Enter takes the first) and the window goes there, opens the
   section it is in and flashes it.
 - *Who to buff*, *Who to skip* and *When to offer* open on a grey line saying
-  who the prompt is on right now and why, and how many more are waiting.
+  who the prompt is on right now and why, and how many more are waiting. It
+  keeps up with the prompt while the window is open, and when nobody is on it
+  says why: Manners is off, the prompt is unlocked, snoozed or kept away while
+  you are mounted, or a fight is on and nobody new comes on until it ends.
 - A greyed-out setting says under itself, and in its tooltip, which switch
   greys it ("Off while ... is on.", "Needs ... ticked.").
 - The search box finds whole words, not pieces of them, says when there are
@@ -540,9 +547,10 @@ explain themselves; this is what their tooltips have no room for.
 **Start here.** The two steps, the favour ledger, *Minimap and chat window*,
 and *Show the welcome again* at the bottom.
 
-- *Quick setup*, at the top, only on a profile that has never been set up
-  (see *First steps*): the quick choices below and on *What I say*, put as two
-  questions, with *Use these* and *Not now*. A class with nothing to give is not asked.
+- *1. Quick setup*, at the top, only on a profile that has never been set up
+  (see *First steps*): the quick choices of step 1 and of *What I say*, put as
+  two questions, with *Use these* and *Not now*, in place of step 1 while they
+  ask. A class with nothing to give is not asked.
 
 - *1. Who to buff*: *Offer my buff to* is a quick choice. *Only people who buff
   me*; *People who buff me, and my group*; *Everyone near me* (a new profile's
@@ -868,7 +876,7 @@ every click (noisy)*, **Run a full check-up** (see *Reporting a bug* below),
 *Show a short summary* and *Check how Manners draws in this game* (puts every
 look on the real prompt, tries the action bar slot and the tooltip, and puts
 everything back; nothing is cast or said). Past five errors, *Show every error*
-lists them all in your chat window. "This client doesn't know
+lists every one kept this session in your chat window (`/manners errors all`). "This client doesn't know
 spell N" means Manners cannot see that version on anyone, which only affects
 telling whether somebody already carries it.
 
@@ -927,7 +935,7 @@ Sharing settings
 
 When something is wrong
 /manners debug              what your class and this build allow
-/manners errors             the last few things that broke, if any did
+/manners errors [all]       the last few things that broke, if any did (all: every one kept)
 /manners selftest [launch]  check Manners against your game, with a report to paste (also /manners check)
 /manners dev                tools for testing the addon on this client: the click log, try, look and forms
 /manners help               this list, grouped the same way

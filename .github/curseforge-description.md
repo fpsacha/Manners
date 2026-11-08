@@ -139,7 +139,7 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 /manners export     your settings as one line of text, to keep or share
 /manners import     use a line somebody exported (import undo puts yours back)
 /manners debug      what your class and this build allow
-/manners errors     the last few things that broke
+/manners errors     the last few things that broke (all: every one kept)
 /manners selftest   checks Manners against your game, as a report to paste
 /manners help       every command, grouped
 ```

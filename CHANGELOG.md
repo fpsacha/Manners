@@ -25,6 +25,28 @@
   - Symbiotic Relationship's partner is topped up again.
 - **WoW Forever.** The spoken /party line is no longer dropped when the game's
   list of your home party gives a member's first name only.
+- **The options window.**
+  - Retail death knights, demon hunters, monks, hunters, and warlocks without
+    Grimoire of Sacrifice could not reach the *Flask* switch. With a flask in
+    the bags they now get *Who to buff*, with *Myself* and that switch, and
+    *Start here* says where it is. A retail paladin without Beacon gets the
+    *Myself* heading and switch above his flask switch.
+  - The *Right now* line on *Who to buff*, *Who to skip* and *When to offer*
+    keeps up with the prompt while the window is open. Instead of "nobody to
+    offer" it says when the prompt is off, unlocked, snoozed, kept away while
+    you are mounted, or held in a fight.
+  - *Show every error* (Diagnostics) lists every error kept this session, not
+    only the last five; `/manners errors all` does the same.
+  - *Quick setup* reads as step 1 on *Start here*, and *Not now* says the same
+    choices wait on *Who to buff* and *What I say*.
+  - *What Manners can see* says why a character has nothing to cast: no buff
+    data for this client, its class not read, or a class Manners does not know.
+  - Search finds a word right after „ « ¿ ¡ or a curly quote.
+  - *Flash when someone buffs me*, greyed out, says why once in its tooltip,
+    not twice.
+  - The `/manners quiet` help line and the tooltips of *Offer nothing in
+    cities and inns* and a colour with nothing left to colour say what they
+    mean.
 
 ## 1.11.11
 
