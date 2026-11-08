@@ -699,6 +699,7 @@ window strays off it. The pages come in sidebar order from
 ```
 python tools/render_options.py --out renders                     # every page, a mage, English
 python tools/render_options.py --class PRIEST --locale deDE --pages who,when
+python tools/render_options.py --class DRUID --flavour mists       # another client's buffs (KNOWS covers SHAMAN too)
 python tools/render_options.py --state combat --state search whisper --pages who
 python tools/render_options.py --check                           # exit 1 on any fault
 python tools/render_options.py --demo                            # prove the drawing and the checks

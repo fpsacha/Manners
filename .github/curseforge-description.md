@@ -72,11 +72,11 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 
 ### Quiet when you want it
 
-- **Never in cities and inns:** nothing offered to anybody while you are resting (passers-by, your group, a favour you owe); a target or focus still is.
-- **Never in dungeons, raids and battlegrounds:** the same inside any instance; a target or focus still is, and your own buffs too.
+- **Offer nothing in cities and inns:** nothing offered to anybody while you are resting (passers-by, your group, a favour you owe); a target or focus still is.
+- **Offer nothing in dungeons, raids and battlegrounds:** the same inside any instance; a target or focus still is, and your own buffs too.
 - **Skip players another paladin has blessed:** for paladins whose group shares out the blessings.
 - **Thorns for the tanks only, or for you alone:** *Offer to* on Who to buff, by the game's tank role or a raid's main tank mark.
-- **Say nothing at all in chat:** not even the few lines the *Tell me in chat* switch leaves. What you type after `/manners` is still answered.
+- **Hide all Manners messages in my chat window:** not even the few lines the *Show what Manners is doing* switch leaves. What you type after `/manners` is still answered.
 - **A controller on:** Manners opens none of the game's own menus (the minimap right click is the switch, a drop-down steps to the next choice).
 
 ### Timing

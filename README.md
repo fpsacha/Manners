@@ -455,7 +455,7 @@ by itself on a light panel colour, and class-coloured names that would vanish
 on it are darkened too. Any other text colour is used exactly as picked. The
 minimal look outlines its text so it reads over snow as well as in the dark.
 
-**A colour-blind palette.** *Reason colours*, under Look > Style, swaps the
+**A colour-blind palette.** *Colour set*, under Look > Style, swaps the
 four reason colours for pale yellow, orange, sky blue and violet, which stay
 apart under protanopia and deuteranopia.
 
@@ -512,12 +512,20 @@ explain themselves; this is what their tooltips have no room for.
   in, capitals or not, in every language Manners is translated into. Pick a
   result (Enter takes the first) and the window goes there, opens the
   section it is in and flashes it.
+- *Who to buff*, *Who to skip* and *When to offer* open on a grey line saying
+  who the prompt is on right now and why, and how many more are waiting.
+- A greyed-out setting says under itself, and in its tooltip, which switch
+  greys it ("Off while ... is on.", "Needs ... ticked.").
+- The search box finds whole words, not pieces of them, says when there are
+  more results than it shows, and finds a setting hidden behind a switch (it
+  says which to turn on first). "quiet", "mute" or "spam" finds the chat
+  switches.
 - Each page starts with what most people change. Under a thin line, "The
   defaults suit most players; change these only if something bothers you.",
   come folded sections for fine-tuning: click one to open it, and it is still
   open next time. A gold dot on a folded section means something in it is not
   at its default.
-- *Put these back to default*, bottom left, resets the page you are on, after
+- *Reset this page*, bottom left, resets the page you are on, after
   asking. It keeps where the prompt sits and its lock, the lines you wrote,
   the never-offer list, your key and *Manners is on*. *Start here*,
   *Profiles* and *Diagnostics* have no reset. The version number sits at the
@@ -528,11 +536,12 @@ explain themselves; this is what their tooltips have no room for.
   the prompt is showing does the same. Opening *Look* out of a fight shows
   the prompt.
 
-**Start here.** The two steps, the favour ledger, and *Minimap and chat*.
+**Start here.** The two steps, the favour ledger, *Minimap and chat window*,
+and *Show the welcome again* at the bottom.
 
 - *Quick setup*, at the top, only on a profile that has never been set up
   (see *First steps*): the quick choices below and on *What I say*, put as two
-  questions, with *Done* and *Skip*. A class with nothing to give is not asked.
+  questions, with *Use these* and *Not now*. A class with nothing to give is not asked.
 
 - *1. Who to buff*: *Offer my buff to* is a quick choice. *Only people who buff
   me*; *People who buff me, and my group*; *Everyone near me* (a new profile's
@@ -550,12 +559,13 @@ explain themselves; this is what their tooltips have no room for.
   your cursor to drop on a bar (where the game would not carry it, it opens the
   macro window, so the macro is there to drag). The line under them says
   whether you are ready.
-- *Minimap and chat*: the minimap button, and *Tell me in chat what Manners is
-  doing*. That is a line in your own chat when somebody buffs you, when a
+- *Minimap and chat window*: the minimap button, and *Show what Manners is doing in my
+  chat window*. That is a line in your own chat when somebody buffs you, when a
   favour is repaid, and when a click fails. Use it to tell "the buff was never
   noticed" from "it was noticed but they could not be reached"; nothing from
   it is ever said to anybody else. Off, a press on an empty prompt says nothing
-  either. *Say nothing at all in chat*, under it, silences even the few lines
+  either. *Hide all Manners messages in my chat window*, under it (it greys the
+  first), silences even the few lines
   that switch leaves (a title earned, the game refusing somebody, a skip in a
   fight); what you type after `/manners` is still answered.
 
@@ -592,15 +602,8 @@ explain themselves; this is what their tooltips have no room for.
   can measure (LibRangeCheck, or the client's interact distance); where
   nothing can measure, everybody in casting range is offered.
 - *Only in cities and inns*: off by default. Out in the world passers-by are
-  left alone; everybody else is still offered.
-- *Never in cities and inns*: off by default, and the other way round. While
-  the game calls you resting, in a city or an inn, nothing is offered to
-  anybody: not passers-by, not your group, not a favour you owe. Somebody you
-  target or focus still is. Your own buffs have their own switch under
-  *Myself*.
-- *Never in dungeons, raids and battlegrounds*: off by default. The same rule
-  inside a dungeon, a raid, a battleground or an arena: nothing for anybody but
-  somebody you target or focus. Your own buffs are not held back.
+  left alone; everybody else is still offered. Greyed while *Offer nothing in
+  cities and inns* (on *When to offer*) is on.
 - *Skip players another paladin has blessed* (paladins, under *Kings first*):
   off by default. Anybody carrying any blessing from another paladin is left
   alone, even one yours would stack with; somebody who asks you for a blessing
@@ -674,23 +677,34 @@ list. They used to be at the bottom of *Who to buff*.
 
 **When to offer.**
 
-- *If they already have it*: *Skip them*, *Offer a top-up when it runs low*
-  (then *Top up at most this long before it ends (minutes)*, the longest it
+- *Hold back*, at the top:
+  - *Offer nothing in cities and inns*: off by default. While the game calls
+    you resting, in a city or an inn, nothing is offered to anybody: not
+    passers-by, not your group, not a favour you owe. Somebody you target or
+    focus still is. Your own buffs have their own switch under *Myself*.
+  - *Offer nothing in dungeons, raids and battlegrounds*: off by default. The
+    same rule inside a dungeon, a raid, a battleground or an arena: nothing
+    for anybody but somebody you target or focus. Your own buffs are not held
+    back.
+- *Other people already buffed* (*Already buffed* for a class with nothing for
+  others):
+  *If they already have it*: *Skip them*, *Offer a top-up when it runs low*
+  (then *Top up at most this many minutes early*, the longest it
   will ever wait, and *In a raid or dungeon, top up this many times earlier*),
   or *Always offer*. *Diagnostics* and `/manners debug` list when a top-up is
   due for each of your buffs.
-- *Top up my own buffs before they run out* (on): your own buffs, and the
-  ones you put on yourself, are offered again shortly before they end,
-  whichever of the three above you pick for other people. *Top up my own
-  buffs this long before they end (minutes)* asks for an earlier moment
-  (0 works it out from the buff's length), so a ten-minute Thorns can come
+- *My own buffs*: *Top up my own buffs before they run out* (on): your own
+  buffs, and the ones you put on yourself, are offered again shortly before
+  they end, whichever of the three above you pick for other people. *Remind
+  me this many minutes early* asks for an earlier moment (0 works it out from
+  the buff's length, and the line under the slider says so), so a ten-minute Thorns can come
   back before you pull, never more than half the buff's length ahead.
   Somebody who buffed you is offered the favour back whichever you pick. Your
   own buffs are always read, so you are never offered one you are wearing;
   a top-up reaches them too, but never an aura or an aspect. A rank below
   the one your cast would land (a level-60 wearing Fortitude's second rank)
   counts as not having it, for you and for them.
-- *Only offer people whose buffs can be read* (off): in a fight, and
+- *Don't offer when the game hides their buffs (fights)* (off): in a fight, and
   sometimes just after, the game hides other players' buffs, and Manners
   offers your buff marked *unverified*. With this on, nobody is offered
   unverified; somebody who buffed you or asked for a buff still is. Off,
@@ -702,11 +716,11 @@ list. They used to be at the bottom of *Who to buff*.
 - *Save mana: stop below (% mana)*: 0 is off (see *Dungeons and raids*
   above). Classes without mana do not see it, and nor do hunters and shamans,
   whose prompt is for their own buffs alone.
-- *Favours*: how long somebody who buffed you is offered one back.
+- *Buffing back*: how long somebody who buffed you is offered one back.
   - *Offer a buff back for (seconds)* (120): somebody the game can still see
     stays on the prompt this long; somebody it cannot see is let go sooner,
     when *Let them go after* is shorter.
-  - *Ignore shields, heals and trinket procs*: only class buffs such as
+  - *Count only class buffs as favours*: only class buffs such as
     Fortitude, a Fear Ward or a Soulstone count as a favour to return, or to
     `/thank`. A paladin's aura, a hunter's aspect or Trueshot Aura reaching
     you never counts, ticked or not.
@@ -746,7 +760,7 @@ list. They used to be at the bottom of *Who to buff*.
   buffing you on the pull is one thank. *Emote to use*, under it, picks which: `/thank`
   (the default), `/cheer`, `/bow`, `/clap`, `/salute`, `/wave`, `/nod` or `/smile`.
   Only class buffs such as Fortitude are
-  thanked while *Ignore shields, heals and trinket procs* is on. A rogue or a
+  thanked while *Count only class buffs as favours* is on. A rogue or a
   hunter, with no buffs to give anybody, has this page with this switch alone
   on it. `/manners debug` shows the last thank, or why the last one was
   skipped.
@@ -818,18 +832,18 @@ prompt* goes away when you click it.
   unless *Flash when someone buffs me* is *None*. With the icon hidden, no
   stripe and no glint (Animations on *Calm*), *Flash when someone buffs me*
   has nothing to do and is greyed out. The cooldown sweep has its own switch
-  under *Icon and waiting list*.
-- *List the next few below*, under *Icon and waiting list* and off by
-  default: the next few people the prompt would offer, one line each.
+  under *Icon*.
+- *Waiting list*, a section of its own: the count, and *List the next few
+  below*, off by default: the next few people the prompt would offer, one line each.
   *Click a name in the list to buff them* (on) makes each line a button, as
   under *Click any name* above; how many are listed is *How many to list*.
-- *Keep the prompt still in combat*: the prompt stays on screen, because your
+- *No flashes in combat*: the prompt stays on screen, because your
   key would still cast, but the flashes stop, and the icon shows no cooldown
   sweep for the fight.
 - *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at
   about half strength in a fight, so the prompt reads as held. The other looks
   have their own way of showing a fight, and the setting is greyed out on them.
-- *Reason colours*: the target colour appears only while *My target first* is
+- *Colour set*: the target colour appears only while *My target first* is
   on and *If they already have it* is not *Always offer*.
 - *Exact position*: the prompt's place in numbers. The arrows move it a pixel
   a click, ten with Shift.
@@ -839,26 +853,31 @@ prompt* goes away when you click it.
 **Profiles.** Which settings this character uses. When another character
 uses the same profile, a grey line says so, and *Give this character its own
 settings* copies the settings into a profile named after this one. Then the
-usual Ace profiles, and *Share as text*; the minimap menu switches between
-profiles too.
+profiles in plain words (*New profile*, *Use profile*, *Copy from*, *Delete*,
+*Reset this profile*), and *Share as text*. After you paste settings, *Put my
+settings back* takes them back, once a session. The minimap menu switches
+between profiles too.
 
 **Diagnostics.** What your class has and whether the game lets addons read
 each buff, what has broken this session, and, under *Reporting a bug*, *Log
-every click (noisy)*, **Run a full check-up** (see *Reporting a bug* below) and
-*Copy for a bug report*. "This client doesn't know
+every click (noisy)*, **Run a full check-up** (see *Reporting a bug* below),
+*Show a short summary* and *Check how Manners draws in this game* (puts every
+look on the real prompt, tries the action bar slot and the tooltip, and puts
+everything back; nothing is cast or said). Past five errors, *Show every error*
+lists them all in your chat window. "This client doesn't know
 spell N" means Manners cannot see that version on anyone, which only affects
 telling whether somebody already carries it.
 
 **Where the Advanced tab went.** Each of its settings now sits with the ones
 it belongs to:
 
-- the favour settings: *When to offer*, under *Favours*;
+- the favour settings: *When to offer*, under *Buffing back*;
 - *Don't repeat a spell on someone for* and *Check for people every*: *When
   to offer*, under *Timing*;
 - *Hand my target back afterwards*: *When to offer*, under *Targeting*;
 - *Exact position* and *Prompt wording*: *Look*, under those names.
 
-Each of those pages has its own *Put these back to default*, so every
+Each of those pages has its own *Reset this page*, so every
 setting the old Advanced button reset is still reset, from the page it is on.
 
 ## Sharing settings
@@ -1109,7 +1128,7 @@ loaded, your settings, and a trail of the last 200 things Manners saw and did
 fights, the bar macro written, errors), kept in the character's saved
 variables so it survives a `/reload`. Other players are named "Person 1",
 "Person 2" and so on throughout. Nothing is said to anybody and nothing is
-changed. *Copy for a bug report* is the short version.
+changed. *Show a short summary* is the short version.
 
 ### Checking Manners against your game
 

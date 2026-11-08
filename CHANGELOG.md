@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+- **The options window, reworked.**
+  - *Who to buff*, *Who to skip* and *When to offer* open on a line saying who
+    the prompt is on right now, and why, and how many more are waiting.
+  - A greyed-out setting says under itself, and in its tooltip, which switch
+    greys it.
+  - *Offer nothing in cities and inns* and *Offer nothing in dungeons, raids
+    and battlegrounds* (until now *Never in...*) moved to the top of *When to
+    offer*, under *Hold back*. *When to offer* now has *Other people already
+    buffed* and *My own buffs* apart, and the slider for your own says what 0
+    means.
+  - The chat switches are now *Show what Manners is doing in my chat window*
+    and *Hide all Manners messages in my chat window*; the second greys the
+    first. Searching "quiet", "mute" or "spam" finds them.
+  - Search finds words, not pieces of words, says when there are more
+    results, and finds *Line set* and the rest of *Say a line* while it is off.
+  - New buttons for what needed a command: *Put my settings back* after a
+    paste, *Check how Manners draws in this game*, *Show every error* and
+    *Show the welcome again*.
+  - Clearer names: *No flashes in combat*, *Count only class buffs as
+    favours*, *Don't offer when the game hides their buffs (fights)*, *Only
+    give Arcane Intellect to players with mana* (your own spells named), *Key
+    that casts what the prompt shows*, *Buffing back*, *Reset this page*, four
+    colour settings that say what they colour, and *Profiles* in plain words.
+  - *Look* has a *Waiting list* section of its own, out of the folded icon
+    settings. *Start here* says what the prompt is before *Quick setup*, and a
+    missing key binding is no longer shown in red: it is optional.
+  - Hunters and WoW Forever shamans now see *Consumables only in dungeons and
+    raids*. Beacon of Light is no longer listed among the blessings that
+    replace one another, and a Mists shaman is no longer told Earth Shield is
+    cast on herself.
+
 - **Earth Shield, Beacon of Light and other one-target buffs.** Manners now
   offers the buffs only one person can wear at a time, for your tank:
   - Earth Shield: Season of Discovery (Classic Era), Burning Crusade, Mists and
@@ -83,8 +114,8 @@
 - **A scroll in the account-wide bar macro** left by one of your other
   characters is now tidied at login, and Manners keeps writing the macro.
 
-- **Never in dungeons, raids and battlegrounds.** A new switch on *Who to buff*,
-  under *Never in cities and inns*: with it on, nothing is offered to anybody
+- **Offer nothing in dungeons, raids and battlegrounds.** A new switch on
+  *When to offer*, under *Offer nothing in cities and inns*: with it on, nothing is offered to anybody
   inside a dungeon, a raid, a battleground or an arena, your group and a favour
   you owe included. Somebody you target or focus is still offered, and your own
   buffs are not held back. Off until you switch it on.
@@ -120,8 +151,8 @@
     with nothing to cast on others, as it does for the rest.
   - *Myself* in *Diagnostics* and `/manners debug` now agrees with the prompt
     about a top-up of your own armor on the default settings, and *When a
-    top-up is due* shows the moment *Top up my own buffs this long before they
-    end* gives. Its heading no longer says top-ups are off above buffs of yours
+    top-up is due* shows the moment *Remind me this many minutes early*
+    gives. Its heading no longer says top-ups are off above buffs of yours
     that are topped up, and Well-Rested and Well Fed are no longer said to have
     no timer or named "?".
   - The full check-up no longer names a player held back for PvP, somebody who

@@ -45,7 +45,8 @@ permissions list, a hook that lints each edited file, and the commands
 **Launch day (WoW Forever, 2026-11-05): run one command.** Log in on the
 character that has the Manners macro (or any character: the test makes a
 temporary macro and deletes it), out of combat, with something targeted if you
-like, and type `/manners selftest launch`. About half a second later the report
+like, and type `/manners selftest launch` (or, from 1.11.11, press *Check how
+Manners draws in this game* on *Diagnostics*). About half a second later the report
 opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:

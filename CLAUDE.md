@@ -383,6 +383,19 @@ asks for, so no new or changed string lands without all eight translations
    `tools/check_translation.py`, rebuilds with `tools/build_locale.py`.
 4. `python tests/validate.py`.
 
+The addon's own words, the same in every string: "passer-by" (never "nearby")
+for somebody near you who is not in your group; "buff back" and *Buffing back*
+for returning a favour; *Favour ledger* stays the ledger's name. A retired
+string is removed from every locale by hand before `locale_add.py`, which
+refuses to drop a line.
+
+The options window's layout (`Options/Window/Layout.lua`, documented in its
+header) has, since round 37: `buttons` (a run of buttons left to right),
+`match` (two fields of one width), `offNotes` (path -> why a greyed row is
+greyed, drawn by `W.OffNote`), `keywords` (search words) and `parents` (a
+hidden control found by search, with the switch to turn on first). They live
+in the layout, not the AceConfig definition, which rejects unknown keys.
+
 `python tools/locale_keys.py --missing <code>` lists the gaps of one locale.
 
 ## In character phrases
