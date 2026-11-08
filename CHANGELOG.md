@@ -9,16 +9,25 @@
   - Beacon of Light: Season of Discovery, Mists and retail. On WoW Forever,
     Oath of Light.
   - Blistering Scales, for a retail Augmentation evoker.
+  - Spirit of the Alpha, for a Season of Discovery shaman.
+  - Beacon of Faith, for a retail Holy paladin: it goes to a second tank, never
+    to the one wearing your Beacon of Light, so after a wipe both beacons go
+    back on the two tanks.
+  - Symbiotic Relationship, for a retail druid. A bond you put on a co-healer
+    is left there.
 
   Each goes to the player your group gives the tank role (or the main tank
   mark in a raid), and only while none of yours is on anybody. If you put
   yours on somebody else, it stays there, and that player is offered the
   top-up. Never offered to passers-by. Anyone in your group can still ask for
-  one by name.
+  one by name, but "buffs pls" never takes yours off the player who has it.
+  When the tank buffs you, the favour is remembered and returned. On WoW
+  Forever, a blessing on the tank wearing your Oath no longer makes the Oath
+  look like somebody else's. The greeting says who the buff goes to.
 
   Two more for others:
   - Symbiosis, for a Mists druid: offered to one member of your group who is
-    not a druid.
+    not a druid, and never to one who already has another druid's.
   - Commanding Shout, for a Season of Discovery warrior, beside Battle Shout.
     The two stack.
 
@@ -27,13 +36,21 @@
 - **More of your own buffs under *Myself*.**
   - Shadowform, on every client.
   - Moonkin Form (Classic Era, WoW Forever, Burning Crusade, Mists), never
-    while you are in another form.
+    while you are in another form. On Classic Era and Burning Crusade it waits
+    while you still have Mark of the Wild to give your group.
+  - Tree of Life (Burning Crusade, and Season of Discovery's rune), after
+    Moonkin Form for a druid who has both.
   - The Season of Discovery runes Molten Armor, Aspect of the Falcon, Aspect
-    of the Viper (never picked by *Automatic*) and Heart of the Lion.
+    of the Viper (never picked by *Automatic*) and Heart of the Lion. Another
+    hunter's Heart of the Lion does not stand in for yours.
+  - Spirit of the Alpha on yourself, for a Season of Discovery shaman whose
+    group role is tank. Loyal Beta counts as having it out.
+  - Demonic Sacrifice, or Soul Link if you have it (Classic Era, WoW Forever,
+    Burning Crusade): only while your demon is out.
   - Grimoire of Sacrifice (Mists and retail).
   - A shaman's weapon imbues on Mists and retail: retail has one switch for
-    the main hand and one for the off hand. Thunderstrike Ward waits until a
-    shield is in your off hand.
+    the main hand and one for the off hand. Flametongue Weapon waits for a
+    weapon in your off hand, and Thunderstrike Ward for a shield.
   - A retail Lightsmith paladin's rites.
 
   All are on, for whoever knows the spell.
@@ -41,18 +58,30 @@
 - **Flasks, elixirs and scrolls.** New switches under *Myself*: one for Flask,
   one for Elixir, and one for each Scroll (Agility, Strength, Protection,
   Intellect, Stamina, Spirit). Each shows once you carry one, and each is off
-  until you switch it on. Manners picks the best one you can use.
+  until you switch it on. Manners picks the best one you can use, and a flask
+  that works only in some places (Shattrath's, the nightmare ones) comes last.
   - Classic Era (with Season of Discovery's), WoW Forever, Burning Crusade
-    and Mists.
-  - On Burning Crusade and Mists, a flask counts for the Elixir switch too.
+    and Mists. On Classic Era the Elixir switch counts Mageblood Potion, the
+    Troll's Blood potions and Gift of Arthas.
+  - Retail: a Flask switch for every class, for Midnight's and The War
+    Within's flasks, the better quality first.
+  - On Burning Crusade and Mists, a flask counts for the Elixir switch too. On
+    Mists, so do the Alchemist's Flask and the Crystal of Insanity, and a
+    scroll takes a Battle or Guardian elixir slot, as the game says.
   - A Scroll of Intellect, Stamina or Spirit waits while the matching class
-    buff is on you.
+    buff is on you, unless that buff is a weaker rank than the scroll.
 
   *Oils, stones and food only in dungeons and raids* is now *Consumables only
   in dungeons and raids*, and it covers flasks, elixirs and scrolls too.
 
 - **A shaman or retail paladin who has not learned the spell yet** is told
-  "no buff learned", not that the class has no buffs.
+  "no buff learned", not that the class has no buffs. Pressing the prompt's
+  key with nothing to cast no longer blames friendly nameplates, and with
+  *Only for people who buff me* on, the prompt's sound still plays for your
+  own buffs.
+
+- **A scroll in the account-wide bar macro** left by one of your other
+  characters is now tidied at login, and Manners keeps writing the macro.
 
 - **Never in dungeons, raids and battlegrounds.** A new switch on *Who to buff*,
   under *Never in cities and inns*: with it on, nothing is offered to anybody
@@ -104,7 +133,8 @@
     party is said in */party* only to the people in your own premade group.
   - A female Forsaken no longer says the new thanks lines that some languages
     word in a man's voice, and a Forsaken no longer thanks a fellow Forsaken for
-    being "alive".
+    being "alive". In Portuguese and Italian, the same goes for the thanks for
+    Earth Shield, Beacon of Light, the Oath and the other one-target buffs.
 
 - **Funnier Forsaken thanks.** *In character* has 21 new lines for a Forsaken
   thanking whoever buffed them, in place of 18 of the plainer ones: the will
