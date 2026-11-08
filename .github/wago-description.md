@@ -6,7 +6,7 @@
 
 ![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
 
-A priest buffs you in passing, and by the time you have picked them out of a dozen nameplates they are gone. Manners saw who it was and put them on one button: click it, they get their buff, and your own target comes straight back. The same button offers your group, people who ask in chat, and passers-by missing your buff, and it looks after you too, down to the poison or oil for each weapon. `/manners` opens **Start here**: four numbered steps and one key.
+A priest buffs you in passing, and by the time you have picked them out of a dozen nameplates they are gone. Manners saw who it was and put them on one button: click it, they get their buff, and your own target comes straight back. The same button offers your group, people who ask in chat, and passers-by missing your buff, and it looks after you too, down to the poison or oil for each weapon. `/manners` opens **Start here**: two numbered steps, who to buff and one key.
 
 Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight).
 

@@ -120,8 +120,8 @@
   you owe included. Somebody you target or focus is still offered, and your own
   buffs are not held back. Off until you switch it on.
 
-- **Skip players another paladin has blessed.** For paladins, under *Kings
-  first*: anybody already carrying a blessing from another paladin is left
+- **Skip players another paladin has blessed.** For paladins, on *Who to
+  buff*: anybody already carrying a blessing from another paladin is left
   alone, even when yours would stack with it, and with a blessing pinned too.
   Somebody who asks you for a blessing by name is still offered it. Off until
   you switch it on.

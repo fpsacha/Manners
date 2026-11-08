@@ -27,9 +27,9 @@ a whole party when you carry the reagent, puts your group first at a ready check
 and when somebody is brought back, offers only the raid groups you were given,
 and offers a top-up at the moment that suits each buff's length.
 
-Setting it up takes one page. `/manners` opens **Start here**: four numbered
-steps (who to buff, one key, see it, say thanks). The first time, two questions
-set the defaults for you, or *Skip* keeps them.
+Setting it up takes one page. `/manners` opens **Start here**: two numbered
+steps (who to buff, one key). The first time, two questions set the defaults
+for you, or *Not now* keeps them.
 
 Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9,
 **Burning Crusade Classic** (Anniversary) 2.5.6, **Mists of Pandaria Classic**
@@ -59,11 +59,11 @@ time, on a new profile, the window opens on **Start here** with two
 questions at the top under *Quick setup*: *Who do you want to buff?* (people
 who buff you, your group too, everyone near you, or your group kept topped
 up for dungeons and raids) and *Should your character talk?* (stay silent,
-just `/thank` them, a polite line, or in character). *Done* sets them as the
-choices on Start here and What I say would; *Skip* leaves everything as it
-is. Either way they are not asked again on that profile, and a profile you
-already had is never asked. Below them, Start here has four numbered steps, the
-first two of which set it up:
+just `/thank` them, a polite line, or in character). *Use these* sets them as
+the choices on Start here and What I say would; *Not now* leaves everything as
+it is. Either way they are not asked again on that profile, and a profile you
+already had is never asked. Below them, Start here has two numbered steps,
+which set it up:
 
 1. **Who to buff.** One quick choice, *Offer my buff to*, already answered:
    a new profile starts on *Everyone near me*, and the line under it says
@@ -461,8 +461,8 @@ apart under protanopia and deuteranopia.
 
 <img src=".github/media/manners-palette.png" alt="The same prompt and list in the standard reason colours and in the colour-blind friendly set" width="640">
 
-Set *Animations* to *Calm* for none of that movement. *Keep the prompt still
-in combat* does what it says for a fight, and *Dim the prompt in combat* draws
+Set *Animations* to *Calm* for none of that movement. *No flashes in combat*
+keeps the prompt on screen in a fight with no flashes, and *Dim the prompt in combat* draws
 Glass, Framed and Minimal at about half strength while one lasts.
 
 ## The minimap button
@@ -504,9 +504,10 @@ explain themselves; this is what their tooltips have no room for.
   its name, and *Diagnostics*. A page with nothing for your character is left
   out, so a rogue with no poison in the bags has *Start here*, *What I say*
   (with only the `/thank` on it), *Profiles* and *Diagnostics*. A red dot
-  beside a page means something there wants looking at: no key yet, nothing
-  that can be offered, *Always offer* picked, a sound set to *None*, a marker
-  colour with nothing left to colour, or something broken this session.
+  beside a page means something there wants looking at: nothing that can be
+  offered, *Always offer* picked, a sound set to *None*, a colour with nothing
+  left to colour, or something broken this session. A key binding is optional,
+  so no red dot asks for one.
 - The search box above the pages finds a setting by its name, its tooltip,
   one of its choices ("whisper" finds *Where to say it*) or the section it is
   in, capitals or not, in every language Manners is translated into. Pick a
@@ -604,7 +605,8 @@ and *Show the welcome again* at the bottom.
 - *Only in cities and inns*: off by default. Out in the world passers-by are
   left alone; everybody else is still offered. Greyed while *Offer nothing in
   cities and inns* (on *When to offer*) is on.
-- *Skip players another paladin has blessed* (paladins, under *Kings first*):
+- *Skip players another paladin has blessed* (paladins, with the switches for
+  each blessing; *Blessing of Kings first* now heads *Buff order*):
   off by default. Anybody carrying any blessing from another paladin is left
   alone, even one yours would stack with; somebody who asks you for a blessing
   by name is still offered it.
@@ -681,7 +683,8 @@ list. They used to be at the bottom of *Who to buff*.
   - *Offer nothing in cities and inns*: off by default. While the game calls
     you resting, in a city or an inn, nothing is offered to anybody: not
     passers-by, not your group, not a favour you owe. Somebody you target or
-    focus still is. Your own buffs have their own switch under *Myself*.
+    focus still is. Your own buffs have their own switch under *Myself* on
+    *Who to buff*.
   - *Offer nothing in dungeons, raids and battlegrounds*: off by default. The
     same rule inside a dungeon, a raid, a battleground or an arena: nothing
     for anybody but somebody you target or focus. Your own buffs are not held
@@ -810,8 +813,9 @@ list. They used to be at the bottom of *Who to buff*.
   so not after a `/reload`.
 
 **Look.** Where it sits and its lock, size, style and colours, getting
-your attention (flash, animations, sound), and the tooltip. Folded below: the
-exact position, the text, the prompt's wording, and the icon and waiting list.
+your attention (flash, animations, sound), the tooltip, and the waiting list.
+Folded below: the exact position, the text, the prompt's wording, and the
+icon.
 On Glass, Framed and Minimal, *Shadow and outline on the text* (with the text)
 and *Frame round the icon* (with the icon) can be switched off for a flat
 prompt. A sound plays for a few seconds at most, a new one stops the one before
