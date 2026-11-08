@@ -977,7 +977,11 @@ local function getLibrary(name, silent)
 			Mock.sv.chars[Mock.character] = Mock.sv.chars[Mock.character] or {}
 			Mock.sv.char = Mock.sv.chars[Mock.character]
 
-			local db = { profile = Mock.sv.profile, char = Mock.sv.char }
+			-- Who has played on the account, as AceDB keeps it ("Name - Realm"
+			-- -> profile), for the bar macro's reading of an alt's body.
+			Mock.sv.profileKeys = Mock.sv.profileKeys or {}
+			Mock.sv.profileKeys[Mock.character .. " - Mockrealm"] = "Default"
+			local db = { profile = Mock.sv.profile, char = Mock.sv.char, sv = { profileKeys = Mock.sv.profileKeys } }
 			-- Recorded rather than dropped: OnDatabaseShutdown is the only hook
 			-- the logout flush hangs on, and a scenario has to be able to fire
 			-- it the way the real library does.

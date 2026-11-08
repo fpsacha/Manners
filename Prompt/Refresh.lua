@@ -476,13 +476,13 @@ function Prompt:RefreshPanel()
 	-- A floor under the sound as well as the name: a swapped name can be
 	-- ignored, a sound cannot. And the flash's filter: both exist to make you
 	-- look, so they agree about who is worth it -- where anybody can be owed:
-	-- a class with no buffs to give (a hunter's aspects) files no favour, and
+	-- a class with no buffs to give (a hunter's aspects, a shaman before Earth Shield) files no favour, and
 	-- "Only for people who buff me", on out of the box, silenced it for good.
 	-- With that filter on, the flash's own moment sounds too: a passer-by
 	-- already on the panel who then buffs you is not a new name.
 	if (isNew or (becameOwed and db.sound.owedOnly)) and db.sound.enabled
 		and (not db.sound.owedOnly or top.reason == "owed"
-			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))
+			or not (ns.caps and ns.caps.hasClassBuffs == true and (ns.caps.anyKnown == true or not ns.OnlyTalentBuffs()) and db.sources.owed ~= false))
 		and not (lastSoundAt and (now - lastSoundAt) < SOUND_FLOOR_SECONDS) then
 		lastSoundAt = now
 		ns.Guard("prompt sound", ns.PlayPromptSound, db.sound.file)

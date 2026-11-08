@@ -271,3 +271,257 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ hunt 37
+-- Bug hunt 37, area prompt: Moonkin Form against the group's Mark of the Wild,
+-- an alt's scroll body in the account-wide bar macro, and a class whose only
+-- buff for others is a talent it has not learned (the empty press's lines, the
+-- prompt's sound).
+do
+	local MOONKIN, MOTW, LS = 24858, 1126, 324
+	local NAMES = { [MOONKIN] = "Moonkin Form", [MOTW] = "Mark of the Wild", [LS] = "Lightning Shield" }
+	local PARTY = { party1 = { "Gwen", "Hale" }, party2 = { "Bram", "Oake" } }
+	local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "UnitInParty", "C_UnitAuras", "C_Spell", "IsResting",
+		"GetNumShapeshiftForms", "GetShapeshiftFormInfo", "GetCVar", "SetCVar" }
+
+	-- env: client, class, known (ids), party (bool), form (spell id), wears
+	-- (unit -> { [id] = source }), plates ("0"/"1"). body(ns, env).
+	local function run(scenario, env, body)
+		Mock.reset()
+		Mock.setFlavour(env.client)
+		Mock.class = env.class
+		if env.party then Mock.groupSize = 3 end
+		env.wears = env.wears or {}
+		local restoreUnits = H.strangers(env.party and PARTY or {})
+		local saved = {}
+		for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
+		local ok, err = pcall(function()
+			local known = {}
+			for _, id in ipairs(env.known or {}) do known[id] = true end
+			local function isKnown(id) return known[id] == true end
+			rawset(_G, "IsSpellKnown", isKnown)
+			rawset(_G, "IsPlayerSpell", isKnown)
+			rawset(_G, "IsResting", function() return false end)
+			rawset(_G, "UnitInParty", function(unit) return type(unit) == "string" and unit:find("^party%d") ~= nil end)
+			rawset(_G, "GetNumShapeshiftForms", function() return env.form and 1 or 0 end)
+			rawset(_G, "GetShapeshiftFormInfo", function(i)
+				if i == 1 and env.form then return 136116, true, true, env.form end
+				return nil
+			end)
+			local cvar = env.plates or "1"
+			rawset(_G, "GetCVar", function(name)
+				if name == "nameplateShowFriends" or name == "nameplateShowFriendlyPlayers" then return cvar end
+				return nil
+			end)
+			rawset(_G, "SetCVar", function() end)
+			local spells = C_Spell
+			rawset(_G, "C_Spell", setmetatable({
+				GetSpellName = function(id) return NAMES[id] or spells.GetSpellName(id) end,
+			}, { __index = spells }))
+			local base = C_UnitAuras
+			rawset(_G, "C_UnitAuras", setmetatable({
+				GetUnitAuraBySpellID = function(unit, id)
+					local source = env.wears[unit] and env.wears[unit][id]
+					if source == nil then return nil end
+					return { spellId = id, name = NAMES[id], expirationTime = 0, duration = 0, sourceUnit = source }
+				end,
+				GetAuraDataBySpellName = function(unit, name)
+					for id, source in pairs(env.wears[unit] or {}) do
+						if NAMES[id] == name then
+							return { spellId = id, name = name, expirationTime = 0, duration = 0, sourceUnit = source }
+						end
+					end
+					return nil
+				end,
+			}, { __index = base }))
+			local ns = load(scenario)
+			if not ns then return end
+			if ns.Flavour.flavour ~= env.client then
+				fail(scenario, "SKIPPED -- the mock is " .. tostring(ns.Flavour.flavour) .. ", not " .. env.client)
+				return
+			end
+			freshPrompt(ns, scenario)
+			ns.db.profile.sources.self = true
+			ns.db.profile.sources.strangers = true
+			ns.db.profile.sources.group = true
+			ns.Guard("probe", ns.ProbeCapabilities)
+			ns.addon:Tick()
+			body(ns, env)
+			for _, e in ipairs(ns.errors or {}) do
+				fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
+			end
+		end)
+		for _, name in ipairs(TOUCHED) do rawset(_G, name, saved[name]) end
+		restoreUnits()
+		Mock.reset()
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+
+	local function forget(ns)
+		for _, unit in ipairs({ "player", "party1", "party2" }) do
+			local guid = UnitGUID(unit)
+			if guid then ns.ForgetUnitAuras(ns.plain(guid)) end
+		end
+	end
+
+	local function top(ns)
+		Mock.advance(4)
+		local q = ns.BuildQueue()
+		return q[1]
+	end
+	local function describe(entry)
+		if not entry then return "nothing" end
+		return tostring(entry.name) .. "/" .. tostring(entry.reason) .. "/" .. key(entry)
+	end
+
+	-- #0: the press of Mark of the Wild drops the druid out of Moonkin Form
+	-- (it is not castable in it on these two clients); the next member still
+	-- lacks it, and Moonkin Form must not come in ahead of them.
+	for _, client in ipairs({ "vanilla", "tbc" }) do
+		local scenario = "prompt-fix: " .. client .. ": Moonkin Form is not offered ahead of the group's Mark of the Wild"
+		run(scenario, { client = client, class = "DRUID", known = { MOONKIN, MOTW }, party = true, form = MOONKIN,
+			wears = { player = { [MOTW] = "player" } } }, function(ns, env)
+			local first = top(ns)
+			if not (first and first.reason ~= "self" and key(first) == "motw") then
+				fail(scenario, "SKIPPED -- in Moonkin Form the prompt did not offer a member MotW: " .. describe(first))
+				return
+			end
+			-- The press: out of the form, and that member's MotW landed.
+			env.form = nil
+			if first.name == "Gwen" then env.wears.party1 = { [MOTW] = "player" } else env.wears.party2 = { [MOTW] = "player" } end
+			forget(ns)
+			local after = top(ns)
+			if key(after) == "moonkinform" then
+				fail(scenario, "with a member still lacking Mark of the Wild, the prompt offers " .. describe(after)
+					.. " -- the next press shifts back into the form the next MotW knocks you out of")
+			elseif not (after and key(after) == "motw") then
+				fail(scenario, "SKIPPED -- the second member was not offered MotW: " .. describe(after))
+			end
+		end)
+	end
+
+	-- Forever casts Mark of the Wild in Moonkin Form: the form stays offered.
+	do
+		local scenario = "prompt-fix: camelot: Moonkin Form is still offered ahead of the group's Mark of the Wild"
+		run(scenario, { client = "camelot", class = "DRUID", known = { MOONKIN, MOTW }, party = true, form = MOONKIN,
+			wears = { player = { [MOTW] = "player" } } }, function(ns, env)
+			local first = top(ns)
+			if not (first and first.reason ~= "self" and key(first) == "motw") then
+				fail(scenario, "SKIPPED -- in Moonkin Form the prompt did not offer a member MotW: " .. describe(first))
+				return
+			end
+			env.form = nil
+			if first.name == "Gwen" then env.wears.party1 = { [MOTW] = "player" } else env.wears.party2 = { [MOTW] = "player" } end
+			forget(ns)
+			local after = top(ns)
+			if key(after) ~= "moonkinform" then
+				fail(scenario, "Mark of the Wild can be cast in the form here, yet the prompt offers " .. describe(after))
+			end
+		end)
+	end
+
+	-- #2: an empty prompt's press with nothing castable on anybody else does
+	-- not blame the friendly nameplates.
+	for _, client in ipairs({ "vanilla", "tbc", "mists" }) do
+		local scenario = "prompt-fix: " .. client .. ": a shaman with no Earth Shield is not told the nameplates hide passers-by"
+		run(scenario, { client = client, class = "SHAMAN", known = { LS }, plates = "0",
+			wears = { player = { [LS] = "player" } } }, function(ns)
+			if ns.Prompt:GetButton():IsShown() then
+				fail(scenario, "SKIPPED -- the prompt is up with Lightning Shield on: " .. describe(top(ns)))
+				return
+			end
+			if #ns.CastableBuffs() ~= 0 then fail(scenario, "SKIPPED -- something is castable on others") return end
+			Mock.printed = {}
+			H.pressButton(ns)
+			local text = said()
+			if text:find("nameplate", 1, true) then
+				fail(scenario, "nothing is castable on a passer-by, yet the press says: " .. flat(text))
+			elseif not text:find("nobody to buff right now.", 1, true) then
+				fail(scenario, "SKIPPED -- the press said: " .. flat(text))
+			end
+		end)
+	end
+
+	-- #3: "Only for people who buff me" (on by default) lets the sound through
+	-- for a class nobody can owe: Lightning Shield dropping sounds.
+	for _, client in ipairs({ "vanilla", "tbc", "mists" }) do
+		local scenario = "prompt-fix: " .. client .. ": a shaman with no Earth Shield hears his own reminder"
+		run(scenario, { client = client, class = "SHAMAN", known = { LS },
+			wears = { player = { [LS] = "player" } } }, function(ns, env)
+			ns.db.profile.sound.enabled = true
+			if ns.db.profile.sound.owedOnly ~= true then
+				fail(scenario, "SKIPPED -- Only for people who buff me is not on by default")
+			end
+			Mock.advance(10)
+			ns.addon:Tick()
+			if ns.Prompt:GetButton():IsShown() then
+				fail(scenario, "SKIPPED -- the prompt is up with Lightning Shield on")
+				return
+			end
+			Mock.sounds = {}
+			env.wears.player = {}
+			forget(ns)
+			Mock.advance(10)
+			ns.addon:Tick()
+			local first = ns.BuildQueue()[1]
+			if not (ns.Prompt:GetButton():IsShown() and first and first.reason == "self") then
+				fail(scenario, "SKIPPED -- Lightning Shield dropping put nothing of yours up: " .. describe(first))
+			elseif #Mock.sounds ~= 1 then
+				fail(scenario, "his own reminder came up and the sound played " .. #Mock.sounds .. " times")
+			end
+		end)
+	end
+
+	-- #4: a retail paladin with no Beacon and no rite presses the empty
+	-- prompt: not promised something to learn.
+	do
+		local scenario = "prompt-fix: mainline: a paladin with no Beacon is not told nothing is learned yet"
+		run(scenario, { client = "mainline", class = "PALADIN", known = {} }, function(ns)
+			if ns.Prompt:GetButton():IsShown() then fail(scenario, "SKIPPED -- the prompt is up") return end
+			if ns.CanCastAnything() then fail(scenario, "SKIPPED -- something is castable") return end
+			Mock.printed = {}
+			H.pressButton(ns)
+			local text = said()
+			if text:find("nothing learned to cast yet", 1, true) then
+				fail(scenario, "a paladin who may never learn Beacon is told: " .. flat(text))
+			end
+		end)
+	end
+end
+
+-- #1: an alt's scroll body (/target <other>, /use item, hand-back) left in the
+-- account-wide macro is Manners' own, rewritten at login like a /cast one.
+do
+	local BAR_LINE = "/click MannersBar"
+	for _, case in ipairs({
+		{ "a scroll used on another character", BAR_LINE .. "\n/target Alice Aster\n/use item:3012\n/targetlasttarget" },
+		{ "a cast at another character (control)", BAR_LINE .. "\n/target Alice Aster\n/cast Arcane Intellect\n/targetlasttarget" },
+	}) do
+		local scenario = "prompt-fix: an alt's bar macro body is rewritten at login (" .. case[1] .. ")"
+		Mock.reset()
+		Mock.setFlavour("camelot")
+		local restore = strangers({})
+		Mock.macroList[1] = { name = "Manners", icon = "INV_MISC_NOTE_03", body = case[2] }
+		local ns = load(scenario)
+		if ns then
+			local ok, err = pcall(function()
+				Mock.printed = {}
+				ns.addon:OnInitialize()
+				-- Alice has played on this account (AceDB's record of who has).
+				ns.addon.db.sv.profileKeys["Alice - Mockrealm"] = "Default"
+				ns.addon:OnEnable()
+				Mock.runTimers(3)
+				local now = Mock.macroList[1] and Mock.macroList[1].body
+				if now ~= BAR_LINE then
+					fail(scenario, "the body left by another character stayed: " .. flat(now))
+				end
+				if said():find("still targets", 1, true) then
+					fail(scenario, "said the macro is not Manners': " .. flat(said()))
+				end
+			end)
+			if not ok then fail(scenario, "threw: " .. tostring(err)) end
+		end
+		restore()
+		Mock.reset()
+	end
+end

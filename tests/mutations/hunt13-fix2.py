@@ -103,14 +103,14 @@ mutate("Prompt/Macro.lua",
 
 # "Only for people who buff me" applied to a class nobody can owe.
 mutate("Prompt/Refresh.lua",
-       "or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))",
+       "or not (ns.caps and ns.caps.hasClassBuffs == true and (ns.caps.anyKnown == true or not ns.OnlyTalentBuffs()) and db.sources.owed ~= false))",
        "or not (ns.caps and true))",
        "fix2: owed-only sound silences a hunter",
        expect="the hunter's own prompt came up and the sound played", script=S)
 
 # ...and ignored for a class that can be owed.
 mutate("Prompt/Refresh.lua",
-       "or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))",
+       "or not (ns.caps and ns.caps.hasClassBuffs == true and (ns.caps.anyKnown == true or not ns.OnlyTalentBuffs()) and db.sources.owed ~= false))",
        "or not (ns.caps and false))",
        "fix2: owed-only sound ignored for a mage",
        expect="a group member made a sound with Only for people who buff me on", script=S)
