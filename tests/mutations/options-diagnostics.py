@@ -53,14 +53,8 @@ mutate("Options/Diagnostics.lua",
 
 # The distance line shown to a warrior, whose shout never reaches a passer-by.
 mutate("Options/Diagnostics.lua",
-       "\t\t\t\thidden = OnlyReachesGroup,\n"
-       "\t\t\t\tname = function()\n"
-       "\t\t\t\t\treturn \"|cff888888\"\n"
-       "\t\t\t\t\t\t.. L[\"Passer-by distance: %s\"]",
-       "\t\t\t\thidden = false,\n"
-       "\t\t\t\tname = function()\n"
-       "\t\t\t\t\treturn \"|cff888888\"\n"
-       "\t\t\t\t\t\t.. L[\"Passer-by distance: %s\"]",
+       "\t\t\t\thidden = function() return OnlyReachesGroup() or not HasClassBuffs() end,\n",
+       "\t\t\t\thidden = function() return not HasClassBuffs() end,\n",
        "diagnostics: warrior shown distance",
        expect="a warrior is not shown passer-by distance", script=S)
 

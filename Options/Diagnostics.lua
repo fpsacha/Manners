@@ -327,6 +327,19 @@ function ns.FullReport()
 end
 
 -- What this client allows, what has broken, and a bug report.
+-- The distance line in plain words: what is measuring, not the client call
+-- or the library's name, which /manners debug keeps for a bug report.
+local SOURCE_WORDS = {
+	{ "CheckInteractDistance", function() return L["the duel range"] end },
+	{ "LibRangeCheck%-3%.0", function() return L["spell and item ranges"] end },
+}
+local function PlainSources(text)
+	for _, pair in ipairs(SOURCE_WORDS) do
+		text = text:gsub(pair[1], pair[2])
+	end
+	return text
+end
+
 function Page.BuildDiagnosticsTab()
 	return {
 		type = "group",
@@ -452,19 +465,21 @@ function Page.BuildDiagnosticsTab()
 				type = "description",
 				order = 12,
 				fontSize = "medium",
-				hidden = OnlyReachesGroup,
+				-- And for a class with nobody to measure (a rogue).
+				hidden = function() return OnlyReachesGroup() or not HasClassBuffs() end,
 				name = function()
 					return "|cff888888"
-						.. L["Passer-by distance: %s"]:format(tostring(ns.ProximitySummary()))
+						.. PlainSources(L["Passer-by distance: %s"]:format(tostring(ns.ProximitySummary())))
 						.. "|r"
 				end,
 			},
+			-- Grey, not red: a class with nothing for others is not a fault.
 			noDiag = {
 				type = "description",
 				order = 11.5,
 				fontSize = "medium",
 				hidden = HasClassBuffs,
-				name = "|cffff8080"
+				name = "|cff888888"
 					.. L["Nothing to report: this character has no buffs it can put on another player."]
 					.. "|r",
 			},
@@ -502,6 +517,16 @@ function Page.BuildDiagnosticsTab()
 					return table.concat(lines, "\n")
 				end,
 			},
+			-- /manners errors as a button, once there are more than the five
+			-- listed above.
+			allErrors = {
+				type = "execute",
+				name = L["Show every error"],
+				desc = L["Lists every error this session in your chat window, the oldest first."],
+				order = 21.2,
+				hidden = function() return #ns.errors <= 5 end,
+				func = function() ns.addon:HandleSlash("errors") end,
+			},
 			noErrors = {
 				type = "description",
 				order = 21.5,
@@ -520,9 +545,19 @@ function Page.BuildDiagnosticsTab()
 					return ("Manners |cffffffff%s|r"):format(tostring(ns.BUILD))
 				end,
 			},
+			-- Which of the two buttons below somebody asked for a report wants.
+			reportHint = {
+				type = "description",
+				order = 31.5,
+				fontSize = "medium",
+				name = function()
+					return L["Asked for a report? Press %s and paste everything in the box."]
+						:format("|cffffd100" .. L["Run a full check-up"] .. "|r")
+				end,
+			},
 			copyReport = {
 				type = "execute",
-				name = function() return Page.reportOpen and L["Hide the report"] or L["Copy for a bug report"] end,
+				name = function() return Page.reportOpen and L["Hide the report"] or L["Show a short summary"] end,
 				desc = L["Opens a box with the build, what this client allows, the settings that matter and anything that has broken, ready to copy."],
 				order = 32,
 				func = function()
@@ -544,6 +579,17 @@ function Page.BuildDiagnosticsTab()
 						for line in text:gmatch("[^\n]+") do ns.addon:Reply(line) end
 					end
 				end,
+			},
+			-- /manners selftest launch as a button: the checks of how the
+			-- looks, the bar slot and the tooltip draw on this client, into the
+			-- same box. Out of combat: it puts looks on the real prompt.
+			launchCheck = {
+				type = "execute",
+				name = L["Check how Manners draws in this game"],
+				desc = L["Puts every look on the real prompt, tries the action bar slot and the tooltip, and puts everything back: the report opens in the box below. Nothing is cast or said."],
+				order = 32.7,
+				disabled = function() return InCombatLockdown() end,
+				func = function() ns.addon:HandleSlash("selftest launch") end,
 			},
 			report = {
 				type = "input",

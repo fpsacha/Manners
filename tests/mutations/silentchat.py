@@ -53,7 +53,7 @@ mutate("Commands.lua",
        expect="silentchat: /manners quiet turns the silence on and off from chat", script=S)
 
 mutate("Options/Launcher.lua",
-       "\tCheck(root, L[\"Say nothing at all in chat\"], function() return ns.db.profile.silentChat == true end,\n\t\tAct(function() ns.addon:HandleSlash(\"quiet\") end))\n",
+       "\tCheck(root, L[\"Hide all Manners messages in my chat window\"], function() return ns.db.profile.silentChat == true end,\n\t\tAct(function() ns.addon:HandleSlash(\"quiet\") end))\n",
        "",
        "silentchat: the minimap menu has no silence switch",
        expect="minimap: the menu has every entry and each one works", script=S)

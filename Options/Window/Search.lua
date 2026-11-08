@@ -76,8 +76,32 @@ local function Has(text, query)
 	return find(Search.Normalise(text), query, 1, true) ~= nil
 end
 
--- How well an entry matches, 0 best: its label, a choice's label, its
--- tooltip, then the section or page it is on. nil when nothing does.
+-- A byte a word cannot go on through: an ASCII space or punctuation. A UTF-8
+-- letter's bytes are all 0x80 and up, so "é" never starts a word in the
+-- middle of one.
+local BOUNDARY = "[ !\"#$%%&'()*+,%-./:;<=>?@%[\\%]^_`{|}~]"
+
+-- Whether the query starts a word of the text: a tooltip's sentence says
+-- "says" and "stays", which a search for "say" is not after. A query holding
+-- a byte from 0xE0 up (Chinese, Korean, written without spaces) matches
+-- anywhere, as a label does.
+local function AtWordStart(text, query)
+	text = Search.Normalise(text)
+	if find(query, "[\224-\255]") then return find(text, query, 1, true) ~= nil end
+	local from = 1
+	while true do
+		local at = find(text, query, from, true)
+		if not at then return false end
+		if at == 1 or find(text:sub(at - 1, at - 1), BOUNDARY) then return true end
+		from = at + 1
+	end
+end
+Search.AtWordStart = AtWordStart
+
+-- How well an entry matches, 0 best: its label, a choice's label or one of
+-- its keywords (other words people use for it, the layout's `keywords`), its
+-- tooltip at the start of a word, then the section or page it is on. nil when
+-- nothing does.
 local function Rank(entry, query)
 	if type(entry) ~= "table" then return nil end
 	if Has(entry.label, query) then return 0 end
@@ -86,7 +110,8 @@ local function Rank(entry, query)
 			if Has(choice, query) then return 1 end
 		end
 	end
-	if Has(entry.desc, query) then return 2 end
+	if entry.keywords and AtWordStart(entry.keywords, query) then return 1 end
+	if AtWordStart(entry.desc, query) then return 2 end
 	if Has(entry.section, query) or Has(entry.page, query) then return 3 end
 	return nil
 end

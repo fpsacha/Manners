@@ -201,6 +201,62 @@ end
 Page.TAB, Page.Ref = TAB, Ref
 
 ---------------------------------------------------------------------------
+-- who the settings come to right now
+--
+-- A grey line at the top of Who to buff, Who to skip and When to offer: who
+-- the prompt is on and how many wait behind them, so a change to a switch
+-- can be seen to do something. Read off what the last scan left (the
+-- prompt's own entry and the queue it was picked from): never a queue built
+-- for a paint. Nil while a preview stands in for the real prompt.
+---------------------------------------------------------------------------
+
+local RIGHT_NOW = {
+	owed = L["Right now: |cffffffff%s|r -- %s, buffed you."],
+	group = L["Right now: |cffffffff%s|r -- %s, in your group."],
+	target = L["Right now: |cffffffff%s|r -- %s, your target."],
+	nearby = L["Right now: |cffffffff%s|r -- %s, a passer-by."],
+	asked = L["Right now: |cffffffff%s|r -- %s, asked for it."],
+	self = L["Right now: |cffffffff%s|r -- %s, your own buff."],
+}
+
+function Page.RightNow()
+	local prompt = ns.Prompt
+	if not prompt or (prompt.InTest and prompt:InTest()) then return nil end
+	local showing = prompt.Showing and prompt:Showing()
+	if not showing then return "|cff888888" .. L["Right now: nobody to offer."] .. "|r" end
+	local others = 0
+	local queue = prompt.state and prompt.state.pickedFrom
+	for _, entry in ipairs(type(queue) == "table" and queue or {}) do
+		if entry.name ~= showing.name then others = others + 1 end
+	end
+	local who = tostring(showing.display or showing.short or showing.name)
+	local spell = (ns.EntrySpellName and ns.EntrySpellName(showing)) or (showing.buff and ns.BuffName(showing.buff)) or "?"
+	local text = (RIGHT_NOW[showing.reason] or RIGHT_NOW.nearby):format(who, tostring(spell))
+	if others == 1 then
+		text = text .. " " .. L["1 more is waiting."]
+	elseif others > 1 then
+		text = text .. " " .. L["%d more are waiting."]:format(others)
+	end
+	return "|cff888888" .. text .. "|r"
+end
+
+-- The line as a description, one for each page it leads (a placed control is
+-- placed once). `windowOnly`: drawn only by the options window, so the old
+-- dialog, which puts Who to buff and Who to skip on one tab, says it once.
+function Page.RightNowNote(order, windowOnly)
+	return {
+		type = "description",
+		order = order,
+		fontSize = "medium",
+		hidden = function()
+			if not HasPrompt() or Page.RightNow() == nil then return true end
+			return windowOnly and not (ns.OptionsWindow and ns.OptionsWindow:IsShown()) or false
+		end,
+		name = function() return Page.RightNow() or "" end,
+	}
+end
+
+---------------------------------------------------------------------------
 -- the sidebar's red dots
 --
 -- One predicate per page that can hold a warning, true while that page's
@@ -221,11 +277,9 @@ local function NothingCastable()
 	return ns.PinnedBuff() == nil and #ns.CastableBuffs() == 0
 end
 
+-- Start here has none: a key is optional (clicking the prompt works), so no
+-- key is said in gold under step 2, never as a fault.
 Page.Warn = {
-	-- No key and no macro: general.bindStatus in red.
-	general = function()
-		return HasPrompt() and not ns.Setup.Key() and not ns.Setup.MacroMade()
-	end,
 	who = function()
 		return HasClassBuffs() and (NoSources() or PinUnlearned() or NothingCastable())
 	end,

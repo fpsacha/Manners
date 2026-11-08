@@ -100,7 +100,9 @@ mutate("Options/Who.lua",
        "\t\t\t\torder = 13.3,\n"
        "\t\t\t\twidth = \"full\",\n"
        "\t\t\t\thidden = OnlyReachesGroup,\n"
-       "\t\t\t\tdisabled = function() return not S().strangers end,\n",
+       "\t\t\t\t-- And while nothing at all is offered in cities and inns (When\n"
+       "\t\t\t\t-- to offer), which leaves this switch nothing to narrow.\n"
+       "\t\t\t\tdisabled = function() return not S().strangers or F().quietInTowns == true end,\n",
        "\t\t\t\torder = 13.3,\n"
        "\t\t\t\twidth = \"full\",\n"
        "\t\t\t\thidden = OnlyReachesGroup,\n",

@@ -254,6 +254,8 @@ do
 		if not ok then fail(scenario, "opening the options threw: " .. tostring(err)) end
 		if calls == 0 then fail(scenario, "SKIPPED -- nothing asked whether debugClicks is hidden") end
 		if opened ~= 0 or not shown(ns.OptionsWindow) then fail(scenario, "the old dialog opened") end
+		-- The next paint asks again; the throw may have been the open page's own.
+		UI.Refresh()
 		if UI.page ~= "diagnostics" or not UI.RowShown("diagnostics.debugClicks") then
 			fail(scenario, "once the rule answered again, its control did not come back")
 		end

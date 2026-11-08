@@ -201,7 +201,10 @@ do
 				fail(scenario, "the distance line is not under What Manners can see")
 			end
 			local said = optionText(line.name)
-			local summary = tostring(ns.ProximitySummary())
+			-- In plain words: the client call and the library are named in
+			-- /manners debug, not on the page (round 37).
+			local summary = tostring(ns.ProximitySummary()):gsub("CheckInteractDistance", ns.L["the duel range"])
+				:gsub("LibRangeCheck%-3%.0", ns.L["spell and item ranges"])
 			if not said:find("Passer-by distance: " .. summary, 1, true) then
 				fail(scenario, "the line does not give the measurement: " .. said
 					.. " (expected " .. summary .. ")")

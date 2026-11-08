@@ -29,7 +29,15 @@ function Page.BuildWhenTab()
 		-- here), and a shaman's Lightning Shield is topped up from here.
 		hidden = function() return not HasPrompt() end,
 		args = {
-			buffedHeader = { type = "header", name = L["Already buffed"], order = 1 },
+			-- Who the prompt is on right now (Shared.lua).
+			rightNow = Page.RightNowNote(0.5),
+			-- About other people, which a class with nothing for them (a
+			-- hunter) has none of: its choice there is about its own buffs.
+			buffedHeader = {
+				type = "header",
+				name = function() return HasClassBuffs() and L["Other people already buffed"] or L["Already buffed"] end,
+				order = 1,
+			},
 			whenBuffed = {
 				type = "select",
 				name = L["If they already have it"],
@@ -57,7 +65,7 @@ function Page.BuildWhenTab()
 			},
 			refreshUnder = {
 				type = "range",
-				name = L["Top up at most this long before it ends (minutes)"],
+				name = L["Top up at most this many minutes early"],
 				-- How the moment is worked out, then the favour exception:
 				-- a timer that cannot be read holds back a top-up, never a
 				-- buff owed.
@@ -84,27 +92,36 @@ function Page.BuildWhenTab()
 				set = fSet,
 			},
 			-- Yours are topped up whatever the choice above says for other
-			-- people (ns.SelfWhenBuffed), so these two are never hidden by it.
+			-- people (ns.SelfWhenBuffed), so these two are never hidden by it,
+			-- and sit under a heading of their own.
+			selfHeader = { type = "header", name = L["My own buffs"], order = 6 },
 			selfTopUp = {
 				type = "toggle",
 				name = L["Top up my own buffs before they run out"],
 				desc = L["Your own buffs, and the ones you put on yourself, are offered again shortly before they end, whatever If they already have it says for other people."],
-				order = 3.6,
+				order = 6.1,
 				width = "full",
 				get = fGet,
 				set = fSet,
 			},
 			selfLead = {
 				type = "range",
-				name = L["Top up my own buffs this long before they end (minutes)"],
+				name = L["Remind me this many minutes early"],
 				desc = L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Raise it to be reminded earlier, before you pull. Never more than half the buff's length."],
-				order = 3.7,
+				order = 6.2,
 				min = 0,
 				max = 10,
 				step = 1,
 				disabled = function() return not F().selfTopUp and F().whenBuffed ~= "refresh" end,
 				get = fGet,
 				set = fSet,
+			},
+			-- What the slider's 0 means, under it while it is there.
+			selfLeadNote = {
+				type = "description",
+				order = 6.3,
+				hidden = function() return (tonumber(F().selfLead) or 0) ~= 0 end,
+				name = "|cff888888" .. L["0: worked out from how long each buff lasts."] .. "|r",
 			},
 			alwaysNote = {
 				type = "description",
@@ -129,7 +146,7 @@ function Page.BuildWhenTab()
 			-- own buffs, which are always read.
 			verifiedOnly = {
 				type = "toggle",
-				name = L["Only offer people whose buffs can be read"],
+				name = L["Don't offer when the game hides their buffs (fights)"],
 				desc = L["In a fight, and sometimes just after, the game hides other players' buffs: Manners cannot tell then whether they already have yours, and offers it marked \"unverified\". Tick this to never offer it then. Someone who buffed you or asked for a buff is still offered."],
 				order = 5,
 				width = "full",

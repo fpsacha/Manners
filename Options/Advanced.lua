@@ -25,7 +25,7 @@ end
 ---------------------------------------------------------------------------
 -- the per-page reset
 --
--- "Put these back to default" in the options window's footer puts back the
+-- "Reset this page" in the options window's footer puts back the
 -- page in view: every field on that page's list, including rows this class
 -- does not show unless the list's `keep` says otherwise, then the hooks those
 -- fields' own setters run. Never the master switch, the key, where the prompt
@@ -46,9 +46,9 @@ Page.RESET = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
 		"sources.owed", "sources.group", "sources.strangers", "sources.asked", "sources.self",
-		"filters.proximity", "filters.restingOnly", "filters.quietInTowns", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
+		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
 		"groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
-		"filters.quietInInstances", "buff.leaveBlessed",
+		"buff.leaveBlessed",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()
@@ -65,6 +65,8 @@ Page.RESET = {
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
+		-- Who to buff's two place rules, which this page draws under Hold back.
+		"filters.quietInTowns", "filters.quietInInstances",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget",
@@ -208,7 +210,7 @@ function Page.BuildAdvancedTab()
 			-- page with nothing to put back.
 			resetAdvanced = {
 				type = "execute",
-				name = L["Put these back to default"],
+				name = L["Reset this page"],
 				order = 0.7,
 				hidden = function() return Page.RESET[ns.OptionsTab()] == nil end,
 				-- Asked as it is pressed, which is when the page is noted.
@@ -225,10 +227,10 @@ function Page.BuildAdvancedTab()
 				end,
 			},
 
-			favoursHeader = { type = "header", name = L["Favours"], order = 10, hidden = NoOthers },
+			favoursHeader = { type = "header", name = L["Buffing back"], order = 10, hidden = NoOthers },
 			owedClassBuffsOnly = {
 				type = "toggle",
-				name = L["Ignore shields, heals and trinket procs"],
+				name = L["Count only class buffs as favours"],
 				desc = L["Only class buffs such as Fortitude count as a favour to return."]
 					.. " " .. L["The same goes for /thank people who buff me."],
 				order = 11,
@@ -425,7 +427,7 @@ function Page.BuildAdvancedTab()
 			},
 			reasonUnknown = {
 				type = "input",
-				name = L["Reason text: can't tell"],
+				name = L["Reason text: buffs hidden"],
 				desc = L["Shown when the game hides whether they already have it."],
 				order = 59,
 				-- Your own buffs are never offered on a reading the game

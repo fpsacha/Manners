@@ -213,7 +213,7 @@ mutate("Options/Advanced.lua",
 
 # Not placed in the window: a setting nobody can reach there.
 mutate("Options/Window/Layout.lua",
-       "\titems[#items + 1] = \"who.kingsFirst\"\n",
+       "\t\t\t\t\t\"who.kingsFirst\",\n",
        "",
        "hunt27-kings: the switch not placed in the window",
        expect="every control has one place in the options window",

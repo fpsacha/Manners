@@ -38,6 +38,7 @@ and nothing on the clean one.
     python tools/render_options.py                           # every page, a mage, English
     python tools/render_options.py --class PRIEST --locale deDE --pages who,when
     python tools/render_options.py --state combat --state search whisper
+    python tools/render_options.py --class DRUID --flavour mists --pages who
     python tools/render_options.py --check                   # exit 1 on any fault
     python tools/render_options.py --demo                    # prove the drawing and the checks
 
@@ -237,9 +238,13 @@ def runs_from(text, stack):
 
 # ---------------------------------------------------------------- lua side
 
-def load(addon_dir, locale=None, cls=None):
+def load(addon_dir, locale=None, cls=None, flavour=None):
     rp.draw_from(addon_dir)  # its art from the tree drawn
     lua = lua51.LuaRuntime(unpack_returned_tuples=True)
+    # The client the mock stands in for (tests/mockapi.lua reads it at every
+    # Mock.reset); Forever when not given.
+    if flavour:
+        lua.globals().MOCK_DEFAULT_FLAVOUR = flavour
     printed = []
     lua.globals().print = lambda *a: printed.append(" ".join(str(x) for x in a))
     run = lua.eval("function(path, dir, addon, locale, class, measure, wrap) "
@@ -1334,7 +1339,7 @@ def draw_one(R, snap, path, do_check):
 
 def render(args):
     use_faces(args.locale)
-    R = load(os.path.abspath(args.addon), args.locale or None, args.cls)
+    R = load(os.path.abspath(args.addon), args.locale or None, args.cls, args.flavour or None)
     spec, label = state_spec(args.state or [])
     pages = [p for p in args.pages.split(",") if p] or list(rp.to_py(R["pages"]()))
     out = os.path.abspath(args.out)
@@ -1418,6 +1423,7 @@ def main():
     ap.add_argument("--addon", default=ROOT, help="the addon tree to draw (default: this one)")
     ap.add_argument("--class", dest="cls", default="MAGE", help="the player's class, e.g. PRIEST")
     ap.add_argument("--locale", default="", help="client language to load the addon as, e.g. deDE")
+    ap.add_argument("--flavour", default="", help="the client, e.g. mists (default: Forever, camelot)")
     ap.add_argument("--pages", default="", help="comma-separated page ids (default: every page)")
     ap.add_argument("--state", action="append", nargs="+", metavar="STATE",
                     help="combat, unlocked, snoozed, order, press, folds-open, scrolled, modal, returning, topups, carrying, "

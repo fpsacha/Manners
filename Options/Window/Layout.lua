@@ -17,8 +17,10 @@
 -- that follow one another are one run, whose shown items go two to a row),
 -- standIn (a note that keeps its section while the controls it stands in for
 -- are hidden), lead, columns, widget, big (a button that leads its page: taller,
--- in the large font) }. tests/scenarios/layout.lua holds every control to being
--- placed exactly once.
+-- in the large font), buttons (buttons that follow one another are one run, laid
+-- left to right at their own widths), match (dropdowns sharing the same match
+-- draw their fields at one width) }. tests/scenarios/layout.lua holds every
+-- control to being placed exactly once.
 
 local _, ns = ...
 local L = ns.L
@@ -86,12 +88,19 @@ local function OfferItems()
 	return items
 end
 
+-- Another control's label as it reads now, in gold, for a sentence that
+-- points at it (offNotes). Asked at paint time, when the model is built.
+local function NameOf(path)
+	local B = ns.WindowBind
+	local item = B and B.Item(path)
+	local name = item and B.Text(item, "name") or ""
+	return "|cffffd100" .. name .. "|r"
+end
+
 -- What to cast: the buff dropdown, its switches, then the rest.
 local function CastItems()
 	local items = { "who.choice" }
 	for _, item in ipairs(OfferItems()) do items[#items + 1] = item end
-	-- A paladin's Blessing of Kings first, while the walk is Automatic.
-	items[#items + 1] = "who.kingsFirst"
 	-- A paladin's: nobody another paladin has blessed.
 	items[#items + 1] = "who.leaveBlessed"
 	items[#items + 1] = "who.relevantOnly"
@@ -128,17 +137,20 @@ ns.WindowLayout = {
 			title = L["Start here"],
 			icon = ICONS.general,
 			sections = {
-				-- A new profile's two questions (Start.lua, Quick.Asking); the
-				-- section goes with them once answered or skipped.
-				{ key = "general.firstRun", header = "general.firstHeader", items = {
-					"general.firstWho",
-					"general.firstVoice",
-					{ "general.firstDone", pair = true },
-					"general.firstSkip",
-				} },
+				-- What the prompt is, first: the questions under it are about it.
+				-- In the body's own size, so it does not read as a heading.
 				{ key = "general.lead", items = {
 					{ "general.noBuffs", standIn = true },
-					{ "general.howItWorks", lead = true },
+					"general.howItWorks",
+				} },
+				-- A new profile's two questions (Start.lua, Quick.Asking); the
+				-- section goes with them once answered or skipped. The two
+				-- dropdowns one width, the two buttons side by side.
+				{ key = "general.firstRun", header = "general.firstHeader", items = {
+					{ "general.firstWho", match = "first" },
+					{ "general.firstVoice", match = "first" },
+					{ "general.firstDone", buttons = true },
+					{ "general.firstSkip", buttons = true },
 				} },
 				{ key = "general.who", header = "general.whoHeader", items = {
 					"general.quickWho",
@@ -147,8 +159,8 @@ ns.WindowLayout = {
 				} },
 				{ key = "general.key", header = "general.keyHeader", items = {
 					"general.bindKey",
-					{ "general.makeMacro", pair = true },
-					"general.openBindings",
+					{ "general.makeMacro", buttons = true },
+					{ "general.openBindings", buttons = true },
 					"general.bindStatus",
 				} },
 				{ key = "general.ledger", header = "general.ledgerHeader", items = {
@@ -162,6 +174,10 @@ ns.WindowLayout = {
 					"general.verbose",
 					"general.silentChat",
 				} },
+				-- What /manners welcome says, again, for somebody who skipped it.
+				{ key = "general.welcome", items = {
+					"general.welcomeAgain",
+				} },
 			},
 		},
 
@@ -169,12 +185,16 @@ ns.WindowLayout = {
 			title = L["Who to buff"],
 			icon = WhoIcon,
 			sections = {
+				-- Who the prompt is on right now, so a switch can be seen to work.
+				{ key = "who.now", items = { "who.rightNow" } },
 				{ key = "who.cast", header = "who.buffsHeader", items = CastItems() },
 				-- The class's buffs as a list in the order they are tried, each with an
 				-- arrow up and one down (the "order" composite, Widgets: five
 				-- definitions drawn as one piece); for a class with two buffs or more
-				-- and no spell pinned.
+				-- and no spell pinned. A paladin's Blessing of Kings first sits on
+				-- top of the list it reorders, so the two read together.
 				{ key = "who.order", header = "who.orderHeader", items = {
+					"who.kingsFirst",
 					{ composite = "order", ids = {
 						"who.orderNote", "who.orderPick", "who.orderUp", "who.orderDown", "who.orderReset",
 					} },
@@ -191,8 +211,6 @@ ns.WindowLayout = {
 					{ "who.proximity", indent = true },
 					{ "who.restingOnly", indent = true },
 					"who.asked",
-					"who.quietInTowns",
-					"who.quietInInstances",
 				} },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",
@@ -260,10 +278,12 @@ ns.WindowLayout = {
 					{ "who.own_scrollstamina", indent = true },
 					{ "who.own_scrollspirit", indent = true },
 					{ "who.own_tracking", indent = true },
-					-- The spells of those families you know, to leave out one by one.
-					{ "who.own_leave", indent = true },
+					-- Where the reminders come up, right under the families, so
+					-- they never read as items of the list below them.
 					{ "who.ownCities", indent = true },
 					{ "who.ownDungeons", indent = true },
+					-- The spells of those families you know, to leave out one by one.
+					{ "who.own_leave", indent = true },
 					-- Why a buff of your own is not being offered, under the switches.
 					"diagnostics.ownDiag",
 				} },
@@ -288,6 +308,7 @@ ns.WindowLayout = {
 			title = L["Who to skip"],
 			icon = ICONS.skip,
 			sections = {
+				{ key = "skip.now", items = { "who.rightNowSkip" } },
 				{ key = "skip.lead", items = {
 					"who.skipPvP",
 					-- Who that switch holds back right now, under it.
@@ -295,6 +316,7 @@ ns.WindowLayout = {
 					"who.skipSameClass",
 					"who.requireInRange",
 					"who.minLevel",
+					"who.minLevelNote",
 				} },
 				{ key = "skip.never", header = "who.neverHeader", items = {
 					-- One list with a remove button per name, built from five
@@ -310,16 +332,26 @@ ns.WindowLayout = {
 			title = L["When to offer"],
 			icon = ICONS.when,
 			sections = {
+				{ key = "when.now", items = { "when.rightNow" } },
+				-- Other people first, then your own buffs under a heading of their
+				-- own: their top-up has a switch and a lead of its own.
 				{ key = "when.buffed", header = "when.buffedHeader", items = {
 					"when.whenBuffed",
 					{ "when.refreshUnder", indent = true },
 					{ "when.refreshRaid", indent = true },
-					"when.selfTopUp",
-					{ "when.selfLead", indent = true },
 					"when.alwaysNote",
 					"when.verifiedOnly",
 				} },
+				{ key = "when.self", header = "when.selfHeader", items = {
+					"when.selfTopUp",
+					{ "when.selfLead", indent = true },
+					{ "when.selfLeadNote", indent = true },
+				} },
+				-- The place rules lead Hold back: they hold back everybody, so
+				-- they are not items of the list of people on Who to buff.
 				{ key = "when.holdBack", header = "when.wayHeader", items = {
+					"who.quietInTowns",
+					"who.quietInInstances",
 					"when.hideMounted",
 					"when.manaFloor",
 					"when.manaNote",
@@ -391,7 +423,7 @@ ns.WindowLayout = {
 				-- Moving the prompt leads the page: the button, big, with the
 				-- ready-made places beside it. Lock position is not drawn (see
 				-- unplaced): the button reads and sets the same lock.
-				{ key = "appearance.where", title = L["Where it sits"], items = {
+				{ key = "appearance.where", title = L["Position"], items = {
 					{ "appearance.move", pair = true, big = true },
 					"appearance.posPreset",
 				} },
@@ -426,6 +458,14 @@ ns.WindowLayout = {
 					"appearance.tooltip",
 					"appearance.tooltipPosition",
 				} },
+				-- The names waiting after the first, out of the icon's fold: the
+				-- clickable list is a feature people look for, not a fine-tune.
+				{ key = "appearance.queue", title = L["Waiting list"], items = {
+					"appearance.showCount",
+					"appearance.showQueue",
+					{ "appearance.queueRows", indent = true },
+					{ "appearance.clickRows", indent = true },
+				} },
 				{ key = "appearance.exactPos", header = "advanced.exactPosHeader", fold = true, items = {
 					{ "advanced.x", widget = "number", pair = true },
 					{ "advanced.y", widget = "number" },
@@ -452,17 +492,15 @@ ns.WindowLayout = {
 					{ "advanced.reasonRefresh", pair = true },
 					"advanced.reasonUnknown",
 				} },
-				{ key = "appearance.icon", header = "appearance.iconHeader", fold = true, items = {
+				-- The model's header reads "Icon and waiting list", for the old
+				-- dialog; the waiting list has its own section above.
+				{ key = "appearance.icon", title = L["Icon"], fold = true, items = {
 					"appearance.showIcon",
 					{ "appearance.iconSize", indent = true },
 					"appearance.iconSizeCapped",
 					{ "appearance.roundIcon", indent = true },
 					{ "appearance.iconFrame", indent = true },
 					{ "appearance.showCooldown", indent = true },
-					"appearance.showCount",
-					"appearance.showQueue",
-					{ "appearance.queueRows", indent = true },
-					{ "appearance.clickRows", indent = true },
 				} },
 			},
 		},
@@ -493,6 +531,7 @@ ns.WindowLayout = {
 					"profiles.shareCopy",
 					"profiles.shareText",
 					"profiles.sharePaste",
+					"profiles.shareUndo",
 				} },
 			},
 		},
@@ -508,16 +547,24 @@ ns.WindowLayout = {
 					"diagnostics.proximityDiag",
 				} },
 				{ key = "diagnostics.errors", header = "diagnostics.errorsHeader", items = {
-					"diagnostics.errorList",
-					"diagnostics.noErrors",
+					-- Notes that keep the section while Show every error is
+					-- hidden (five errors or fewer).
+					{ "diagnostics.errorList", standIn = true },
+					"diagnostics.allErrors",
+					{ "diagnostics.noErrors", standIn = true },
 				} },
 				{ key = "diagnostics.report", header = "diagnostics.reportHeader", items = {
-					"diagnostics.debugClicks",
+					-- Which of the two buttons a player asked for a report wants.
+					"diagnostics.reportHint",
 					-- The one press a player asked for a report needs.
 					{ "diagnostics.fullReport", big = true },
-					"diagnostics.copyReport",
+					{ "diagnostics.copyReport", buttons = true },
+					-- /manners selftest launch, beside the short summary.
+					{ "diagnostics.launchCheck", buttons = true },
 					"diagnostics.report",
 					"diagnostics.selftest",
+					-- For working out a failed cast: under the buttons.
+					"diagnostics.debugClicks",
 				} },
 			},
 		},
@@ -532,11 +579,49 @@ ns.WindowLayout = {
 		["diagnostics.ownDiag"] = { hint = true, block = true },
 		["diagnostics.pvpDiag"] = { hint = true, block = true },
 		["diagnostics.leadDiag"] = { hint = true, block = true },
+		["diagnostics.reportHint"] = { hint = true },
+		["when.selfLeadNote"] = { hint = true },
+		["who.minLevelNote"] = { hint = true },
 		-- AceDBOptions' descriptions, beside the controls they explain.
 		["profiles.choosedesc"] = { hint = true },
 		["profiles.copydesc"] = { hint = true },
 		["profiles.deldesc"] = { hint = true },
 		["profiles.descreset"] = { hint = true },
+	},
+
+	-- Why a control is greyed out, drawn under it in grey while it is, and in
+	-- its tooltip (Widgets.lua, W.OffNote): for a control greyed by a switch
+	-- that is not the one right above it. A function is asked at paint time,
+	-- and names the other switch as its own label reads now.
+	offNotes = {
+		["general.verbose"] = function() return L["Off while %s is on."]:format(NameOf("general.silentChat")) end,
+		["who.groupBuffsUse"] = function() return L["Needs %s ticked."]:format(NameOf("who.group")) end,
+		["who.skipRaidGroups"] = function() return L["Needs %s ticked."]:format(NameOf("who.group")) end,
+		["who.proximity"] = function() return L["Needs %s ticked."]:format(NameOf("who.strangers")) end,
+		["who.restingOnly"] = function()
+			local db = ns.db and ns.db.profile
+			if db and db.filters.quietInTowns == true then
+				return L["Off while %s is on (%s)."]:format(NameOf("who.quietInTowns"), L["When to offer"])
+			end
+			return L["Needs %s ticked."]:format(NameOf("who.strangers"))
+		end,
+		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
+	},
+
+	-- Other words people search for a control by (WindowSearch.lua): ranked
+	-- with its choices, matched at the start of a word. One string a control,
+	-- translated as a whole.
+	keywords = {
+		["general.silentChat"] = L["quiet mute spam"],
+		["general.verbose"] = L["quiet mute spam"],
+	},
+
+	-- A control hidden until a switch is on, and that switch: search finds the
+	-- control and opens the switch, saying to turn it on first.
+	parents = {
+		["click.preset"] = "click.enabled",
+		["click.phrases"] = "click.enabled",
+		["click.roll"] = "click.enabled",
 	},
 
 	-- In the model and drawn nowhere.
@@ -555,6 +640,9 @@ ns.WindowLayout = {
 		["appearance.locked"] = true,
 		-- Its string is the Who to skip page's title.
 		["who.skipHeader"] = true,
+		-- "Icon and waiting list": the window gives the icon's fold and the
+		-- waiting list titles of their own.
+		["appearance.iconHeader"] = true,
 		-- "Messages in chat": Log every click joined Reporting a bug.
 		["diagnostics.chatHeader"] = true,
 	},

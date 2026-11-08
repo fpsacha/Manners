@@ -496,12 +496,12 @@ do
 		if view.scrollY ~= want then fail(scenario, ("scrolled to %s, not %s"):format(tostring(view.scrollY), tostring(want))) end
 		if shown(UI.search.results) then fail(scenario, "the results stayed over the page") end
 
-		-- Escape clears; nothing found turns the box red where the client
-		-- has no sentence for it.
+		-- Escape clears; nothing found turns the box red and says so, in the
+		-- client's sentence or Manners' own (round 37).
 		box:SetText("zzqqxx")
 		box:GetScript("OnTextChanged")(box, true)
 		Mock.runTimers(0.2)
-		if #UI.search.found ~= 0 or shown(UI.search.results) or not UI.search.bad then
+		if #UI.search.found ~= 0 or not shown(UI.search.noneLine) or not UI.search.bad then
 			fail(scenario, "a search that finds nothing did not leave the list shut and the box red")
 		end
 		box:GetScript("OnEscapePressed")(box)

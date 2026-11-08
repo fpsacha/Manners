@@ -115,10 +115,10 @@ do
 		end
 		local names = {
 			locked = "Lock position", posPreset = "Where it sits", alpha = "Opacity",
-			style = "Panel style", bgColor = "Panel colour", accentByReason = "Colour marker by reason",
-			reasonPalette = "Reason colours", accentColor = "Marker colour", accentMode = "Colour marker",
+			style = "Panel style", bgColor = "Panel colour", accentByReason = "Colour by why they are offered",
+			reasonPalette = "Colour set", accentColor = "Colour when not by reason", accentMode = "Where the colour shows",
 			flashStyle = "Flash when someone buffs me", effects = "Animations",
-			hideInCombat = "Keep the prompt still in combat",
+			hideInCombat = "No flashes in combat",
 			soundEnabled = "Play a sound", soundFile = "Sound", soundOwedOnly = "Only for people who buff me",
 			fontColor = "Text colour", classColor = "Colour names by class", showSub = "Show a second line",
 			showCount = "Show how many are waiting", showQueue = "List the next few below",
@@ -279,7 +279,7 @@ do
 		if picker.hidden and picker.hidden() then
 			fail(scenario, "Marker colour is hidden while it is the colour in use")
 		end
-		if text(picker.desc) ~= "Used when Colour marker by reason is off." then
+		if text(picker.desc) ~= "Used when Colour by why they are offered is off." then
 			fail(scenario, "Marker colour says: " .. text(picker.desc))
 		end
 		local desc = text(args.accentByReason.desc)
@@ -299,7 +299,7 @@ do
 	local ns, _, args = session(scenario)
 	if ns then
 		local cases = {
-			{ "accentMode", "Colour marker", { "icon", "stripe", "both", "off" },
+			{ "accentMode", "Where the colour shows", { "icon", "stripe", "both", "off" },
 				{ icon = "Ring around the icon", stripe = "Stripe on the left edge", both = "Both", off = "None" } },
 			{ "flashStyle", "Flash when someone buffs me", { "pulse", "once", "off" },
 				{ pulse = "Pulse until I buff them back", once = "Flash once", off = "None" } },
@@ -408,7 +408,7 @@ do
 		end
 		desc = text(args.showCooldown.desc)
 		-- On this tab now, so named without a tab.
-		if not desc:find("|cffffd100Keep the prompt still in combat|r", 1, true)
+		if not desc:find("|cffffd100No flashes in combat|r", 1, true)
 			or desc:find("(When to offer)", 1, true) then
 			fail(scenario, "Show the global cooldown does not point at Keep the prompt still: " .. desc)
 		end

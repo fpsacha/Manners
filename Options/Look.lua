@@ -215,7 +215,7 @@ function Page.BuildLookTab()
 			},
 			accentByReason = {
 				type = "toggle",
-				name = L["Colour marker by reason"],
+				name = L["Colour by why they are offered"],
 				-- All five reasons, in the order the queue ranks them, in
 				-- the chosen palette's colours.
 				desc = function()
@@ -235,7 +235,7 @@ function Page.BuildLookTab()
 			-- take the palette whatever the marker says.
 			reasonPalette = {
 				type = "select",
-				name = L["Reason colours"],
+				name = L["Colour set"],
 				-- Names no hues and counts none: Colour marker by reason
 				-- names them. Every reason has a colour of its own in both
 				-- sets, and hunt5-options.lua holds this sentence to that.
@@ -259,8 +259,8 @@ function Page.BuildLookTab()
 			-- this picker has no say at all.
 			accentColor = {
 				type = "color",
-				name = L["Marker colour"],
-				desc = L["Used when Colour marker by reason is off."],
+				name = L["Colour when not by reason"],
+				desc = L["Used when Colour by why they are offered is off."],
 				order = 25,
 				hasAlpha = true,
 				hidden = function() return P().accentByReason end,
@@ -269,7 +269,7 @@ function Page.BuildLookTab()
 			},
 			accentMode = {
 				type = "select",
-				name = L["Colour marker"],
+				name = L["Where the colour shows"],
 				desc = L["Where the reason's colour is drawn."],
 				order = 26,
 				values = {
@@ -357,7 +357,7 @@ function Page.BuildLookTab()
 			-- writes the prompt's own table, so pGet/pSet (restyle).
 			hideInCombat = {
 				type = "toggle",
-				name = L["Keep the prompt still in combat"],
+				name = L["No flashes in combat"],
 				desc = L["It stays on screen in combat because your key binding would still cast; this only stops the flashes that say what a click did, red if it failed."],
 				order = 32.5,
 				width = "full",
@@ -631,7 +631,7 @@ function Page.BuildLookTab()
 				name = L["Show the global cooldown on the icon"],
 				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
 					.. "\n\n|cff888888" .. L["Not in a fight while this is on:"] .. "|r "
-					.. "|cffffd100" .. L["Keep the prompt still in combat"] .. "|r",
+					.. "|cffffd100" .. L["No flashes in combat"] .. "|r",
 				order = 54,
 				width = "full",
 				disabled = function() return not P().showIcon end,

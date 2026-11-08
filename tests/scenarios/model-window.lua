@@ -76,30 +76,22 @@ local function press(button)
 end
 
 -- ------------------------------------------------------------------ red dots
--- Start here: no key and no macro, the line under step 2 in red.
+-- Start here: no key is not a fault (round 37): clicking the prompt works, so
+-- the line under step 2 is gold and the page has no red dot.
 do
 	local scenario = "model: Start here's red dot is the missing key"
 	with(scenario, nil, nil, function(ns)
 		local status = findOption(ns.optionsTable, "bindStatus")
-		if warn(ns, "general") ~= true then
-			fail(scenario, "no key and no macro, and Start here has no red dot")
-		elseif not red(status) then
-			fail(scenario, "SKIPPED -- the key line is not red with no key")
+		if warn(ns, "general") ~= "missing" then
+			fail(scenario, "no key and no macro, and Start here has a red dot for a key")
 		end
-		ns.Setup.SetKey("F7")
-		if warn(ns, "general") ~= false then
-			fail(scenario, "a key is bound and Start here still has its red dot")
+		if red(status) then
+			fail(scenario, "the optional key's line is red")
 		end
-		ns.Setup.SetKey("")
-		Mock.macros = { Manners = 1 }
-		if warn(ns, "general") ~= false then
-			fail(scenario, "the macro is made and Start here still has its red dot")
-		end
-		Mock.macros = nil
 		noErrors(scenario, ns)
 	end)
 	with(scenario, "ROGUE", nil, function(ns)
-		if warn(ns, "general") ~= false then
+		if warn(ns, "general") ~= "missing" then
 			fail(scenario, "a rogue, who has no prompt to put on a key, gets a red dot for the key")
 		end
 	end)
@@ -246,7 +238,8 @@ end
 do
 	local scenario = "model: only five pages can show a red dot"
 	with(scenario, nil, nil, function(ns)
-		for _, pageId in ipairs({ "skip", "click", "profiles" }) do
+		-- Four since round 37: Start here's key is optional.
+		for _, pageId in ipairs({ "general", "skip", "click", "profiles" }) do
 			if ns.OptionsPage.Warn[pageId] ~= nil then
 				fail(scenario, pageId .. " has a red-dot predicate and no warning to stand for")
 			end
@@ -400,15 +393,16 @@ local EXPECTED = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly", "sources.owed", "sources.group",
 		"sources.strangers", "sources.asked", "sources.self", "filters.proximity",
-		"filters.restingOnly", "filters.quietInTowns", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "groupBuffs.use",
+		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
-		"filters.quietInInstances", "buff.leaveBlessed",
+		"buff.leaveBlessed",
 	},
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel" },
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
+		"filters.quietInTowns", "filters.quietInInstances",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget",

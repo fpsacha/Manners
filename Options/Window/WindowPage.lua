@@ -514,12 +514,60 @@ local function PlaceColumns(list, i, y)
 	return y, last + 1
 end
 
+-- A run of buttons (the layout's `buttons`): the shown ones left to right at
+-- their own widths, a gap between, onto the next line where the width runs
+-- out; Done beside Skip rather than half a page apart.
+local BUTTON_GAP = 10
+
+local function PlaceButtons(list, i, y)
+	local last = i
+	while list[last + 1] and list[last + 1].layout.buttons do last = last + 1 end
+	local x0 = PAD_LEFT + Indent(list[i])
+	local right = PAD_LEFT + CONTENT_W
+	local x, tallest = x0, 0
+	for k = i, last do
+		local e = list[k]
+		if Usable(e) then
+			local w = math.min(NaturalWidth(e), right - x0)
+			if x > x0 and x + w > right then
+				y, x, tallest = y + tallest + ROW_GAP, x0, 0
+			end
+			tallest = math.max(tallest, Place(e, x, y, w))
+			x = x + w + BUTTON_GAP
+		elseif e.row then
+			e.row.frame:Hide()
+		end
+	end
+	if tallest > 0 then y = y + tallest + ROW_GAP end
+	return y, last + 1
+end
+
+-- Dropdowns of one `match` draw their fields at the widest one's width
+-- (WidgetsChoice.lua reads row.matchField), so two questions asked one under
+-- the other line up in any language.
+local function MatchFields(sec)
+	local widest = {}
+	for _, e in ipairs(sec.entries) do
+		local tag = e.layout.match
+		if tag and e.row and Usable(e) then
+			widest[tag] = math.max(widest[tag] or 0, e.row.fieldNeed or 0)
+		end
+	end
+	for _, e in ipairs(sec.entries) do
+		local tag = e.layout.match
+		if tag and e.row then e.row.matchField = widest[tag] end
+	end
+end
+
 local function LayoutRows(sec, y)
 	local list, i = sec.entries, 1
+	MatchFields(sec)
 	while i <= #list do
 		local e = list[i]
 		local cols = e.layout.columns
-		if e.layout.pair then
+		if e.layout.buttons then
+			y, i = PlaceButtons(list, i, y)
+		elseif e.layout.pair then
 			y, i = PlacePairs(list, i, y)
 		elseif not Usable(e) then
 			if e.row then e.row.frame:Hide() end

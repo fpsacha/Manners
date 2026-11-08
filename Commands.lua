@@ -1114,6 +1114,7 @@ do
 	function ns.ForgetImportUndo()
 		lastImportUndo, undoProfile, undoProfileName = nil, nil, nil
 	end
+	function ns.ImportUndoHeld() return lastImportUndo ~= nil and addon.db ~= nil and addon.db.profile == undoProfile end
 
 	-- What a change of profile does to the undo. A switch leaves it with the
 	-- profile it was made on, waiting for the player to come back. A copy or reset

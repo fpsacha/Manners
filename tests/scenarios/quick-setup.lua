@@ -130,11 +130,16 @@ do
 		for _, path in ipairs(FIRST) do
 			if not UI.RowShown(path) then fail(scenario, path .. " is not shown on a new profile") end
 		end
-		-- The first section of the page.
+		-- The first section of the page after the paragraph that says what
+		-- the prompt is (round 37), and step 1 away while they ask it.
 		local w = UI.Where("general.firstWho")
-		local first = ns.WindowLayout.pages.general.sections[1]
-		if not (w and w.sec and w.sec.def == first and first.header == "general.firstHeader") then
+		local first = ns.WindowLayout.pages.general.sections[2]
+		if not (w and w.sec and w.sec.def == first and first.header == "general.firstHeader"
+			and ns.WindowLayout.pages.general.sections[1].key == "general.lead") then
 			fail(scenario, "the questions are not the first section of Start here, under Quick setup")
+		end
+		if UI.RowShown("general.quickWho") then
+			fail(scenario, "Offer my buff to asks the same question again under Quick setup")
 		end
 		local who = table.concat(offered(ns, "general.firstWho"), " ")
 		if who ~= "favours group nearby raid" then

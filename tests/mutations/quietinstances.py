@@ -54,7 +54,7 @@ mutate("Options/Window/Layout.lua",
        expect="every control has one place in the options window", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"filters.quietInInstances\", \"buff.leaveBlessed\",\n",
-       "\t\t\"buff.leaveBlessed\",\n",
+       "\t\t\"filters.quietInTowns\", \"filters.quietInInstances\",\n",
+       "\t\t\"filters.quietInTowns\",\n",
        "quietinstances: the page's reset leaves the switch",
-       expect="model: the reset puts who back", script=S)
+       expect="model: the reset puts when back", script=S)

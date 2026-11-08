@@ -56,6 +56,8 @@ do
 	local scenario = "start here: two numbered steps, in order"
 	local ns, a, general = session(scenario)
 	if ns then
+		-- Set up already: while Quick setup asks, step 1 gives way to it.
+		ns.db.profile.firstRun = "answered"
 		if text(general.name) ~= "Start here" or general.order ~= 1 then
 			fail(scenario, "the tab is " .. text(general.name) .. " at order " .. tostring(general.order))
 		end
@@ -121,12 +123,14 @@ end
 -- The page as the window draws it: the lead,
 -- the two steps, the ledger, then minimap and chat, nothing folded; the switch,
 -- the preview and the snooze in the header, Lock it at the strip's end. Above
--- them all, a new profile's two questions (tests/scenarios/quick-setup.lua).
+-- them all but the lead, a new profile's two questions
+-- (tests/scenarios/quick-setup.lua).
 local START_PAGE = {
-	"general.firstWho", "general.firstVoice", "general.firstDone", "general.firstSkip",
-	"general.noBuffs", "general.howItWorks", "general.quickWho", "general.quickWhoSummary",
+	"general.noBuffs", "general.howItWorks",
+	"general.firstWho", "general.firstVoice", "general.firstDone", "general.firstSkip", "general.quickWho", "general.quickWhoSummary",
 	"general.bindKey", "general.makeMacro", "general.openBindings", "general.bindStatus",
 	"general.ledgerSummary", "general.ledgerOpen", "general.minimap", "general.verbose", "general.silentChat",
+	"general.welcomeAgain",
 }
 do
 	local scenario = "start here: the page as the window draws it"
@@ -171,14 +175,14 @@ do
 	local ns, a = session(scenario)
 	if ns then
 		local header, minimap, verbose = a.minimapHeader, a.minimap, a.verbose
-		if not (header and header.type == "header" and text(header.name) == "Minimap and chat") then
+		if not (header and header.type == "header" and text(header.name) == "Minimap and chat window") then
 			fail(scenario, "there is no Minimap and chat header")
 		elseif not (minimap and verbose and header.order > a.ledgerOpen.order
 			and minimap.order > header.order and verbose.order > minimap.order) then
 			fail(scenario, "the minimap and chat switches are not under their header, after the ledger")
 		end
 		if verbose then
-			if text(verbose.name) ~= "Tell me in chat what Manners is doing" then
+			if text(verbose.name) ~= "Show what Manners is doing in my chat window" then
 				fail(scenario, "the verbose switch reads " .. text(verbose.name))
 			end
 			if not text(verbose.desc):find("Only you see these", 1, true) then
@@ -356,7 +360,7 @@ do
 		if key.type ~= "keybinding" then fail(scenario, "bindKey is a " .. tostring(key.type)) end
 		if not shown(key) then fail(scenario, "the key control is hidden on a client that can bind") end
 		local status = text(a.bindStatus.name)
-		if not status:find("No key yet", 1, true) then
+		if not status:find("Optional: pick a key", 1, true) then
 			fail(scenario, "with no key and no macro, the status reads " .. status)
 		end
 		key.set({ "bindKey" }, "F7")

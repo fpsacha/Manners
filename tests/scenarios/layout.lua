@@ -60,10 +60,13 @@ local ACEDB = {
 local STAND_IN = {
 	["general.noBuffs"] = true, ["general.quickWhoSummary"] = true, ["who.autoNote"] = true,
 	["who.strangersNote"] = true, ["advanced.noTargetNote"] = true, ["click.linesOff"] = true,
+	-- Errors this session, while Show every error waits for a sixth (round 37).
+	["diagnostics.errorList"] = true, ["diagnostics.noErrors"] = true,
 }
 
 local GROUPS = { { "general" }, { "who", "skip", "when", "click", "appearance" }, { "profiles", "diagnostics" } }
-local FLAGS = { indent = true, pair = true, standIn = true, lead = true, columns = true, widget = true, big = true }
+local FLAGS = { indent = true, pair = true, standIn = true, lead = true, columns = true, widget = true, big = true,
+	buttons = true, match = true }
 
 -- What each of the frame's own slots has to be in the model.
 local SLOT_TYPES = {
