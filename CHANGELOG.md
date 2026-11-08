@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.11
 
 - **The options window, reworked.**
   - *Who to buff*, *Who to skip* and *When to offer* open on a line saying who
