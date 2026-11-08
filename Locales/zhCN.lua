@@ -212,6 +212,7 @@ L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it 
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you lock it"] = "|cff80ff80%s给你加了增益|r——锁定提示框后，就会在上面推荐你还人情"
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"] = "|cff80ff80%s给你加了增益|r——下坐骑后，就会在提示框上推荐你还人情"
 L["|cff80ff80%s buffed you|r -- returning the favour is offered once this fight ends"] = "|cff80ff80%s给你加了增益|r——本场战斗结束后会推荐你还人情"
+L["|cff80ff80%s buffed you|r -- your %s is on somebody else, and it goes on one target at a time, so returning it is offered only if it comes free before the favour runs out"] = "|cff80ff80%s给你加了增益|r——你的%s正在别人身上，而且一次只能作用于一个目标，所以只有它在时限过去之前空出来，才会推荐你还人情"
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"] = "|cff80ff80%s给你加了增益|r——已放上提示框，可以还人情了"
 L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"] = "|cff80ff80%s给你加了增益|r——你施放的法术只作用于你的小队（团队中则是你所在的小队），因此对方加入后才会被推荐"
 L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"] = "|cff80ff80%s给你加了增益|r——你施放的法术只作用于你的队伍，因此对方加入后才会被推荐"

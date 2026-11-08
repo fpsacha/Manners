@@ -212,6 +212,7 @@ L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it 
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you lock it"] = "|cff80ff80%s님이 나에게 버프를 줌|r -- 알림창을 잠그면 보답이 뜹니다"
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"] = "|cff80ff80%s님이 나에게 버프를 줌|r -- 탈것에서 내리면 보답이 뜹니다"
 L["|cff80ff80%s buffed you|r -- returning the favour is offered once this fight ends"] = "|cff80ff80%s님이 나에게 버프를 줌|r -- 이번 전투가 끝나면 보답이 뜹니다"
+L["|cff80ff80%s buffed you|r -- your %s is on somebody else, and it goes on one target at a time, so returning it is offered only if it comes free before the favour runs out"] = "|cff80ff80%s님이 나에게 버프를 줌|r -- 내 %s 효과가 다른 사람에게 걸려 있고 한 번에 한 대상에게만 걸 수 있으므로, 보답할 시간이 지나기 전에 풀려야만 보답이 뜹니다"
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"] = "|cff80ff80%s님이 나에게 버프를 줌|r -- 보답할 수 있도록 알림창에 띄웠습니다"
 L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"] = "|cff80ff80%s님이 나에게 버프를 줌|r -- 내 주문은 내 파티(공격대에서는 공격대 안의 내 파티)에만 닿으므로, 그 파티에 들어오면 알림창에 뜹니다"
 L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"] = "|cff80ff80%s님이 나에게 버프를 줌|r -- 내 주문은 파티에만 닿으므로, 파티에 들어오면 알림창에 뜹니다"

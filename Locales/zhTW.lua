@@ -212,6 +212,7 @@ L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it 
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you lock it"] = "|cff80ff80%s為你加了增益|r——提示框鎖定後，就能在上面還人情"
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"] = "|cff80ff80%s為你加了增益|r——下坐騎後，就能在提示框上還人情"
 L["|cff80ff80%s buffed you|r -- returning the favour is offered once this fight ends"] = "|cff80ff80%s為你加了增益|r——這場戰鬥結束後，就能在提示框上還人情"
+L["|cff80ff80%s buffed you|r -- your %s is on somebody else, and it goes on one target at a time, so returning it is offered only if it comes free before the favour runs out"] = "|cff80ff80%s為你加了增益|r——你的%s正在別人身上，而且一次只能作用於一個目標，所以只有它在還人情的時限內空出來，才會提示你還人情"
 L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"] = "|cff80ff80%s為你加了增益|r——已放上提示框，可以還人情"
 L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"] = "|cff80ff80%s為你加了增益|r——你的法術只對你自己的隊伍（在團隊中則是你所在的小隊）有效，對方加入後就會出現在提示框上"
 L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"] = "|cff80ff80%s為你加了增益|r——你的法術只對隊友有效，對方加入隊伍後就會出現在提示框上"
