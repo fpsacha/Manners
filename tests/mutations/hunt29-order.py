@@ -327,11 +327,9 @@ mutate("Options/Who.lua",
 
 # Not placed in the window: a setting nobody can reach there.
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t{ key = \"who.order\", header = \"who.orderHeader\", items = {\n"
        "\t\t\t\t\t{ composite = \"order\", ids = {\n"
        "\t\t\t\t\t\t\"who.orderNote\", \"who.orderPick\", \"who.orderUp\", \"who.orderDown\", \"who.orderReset\",\n"
-       "\t\t\t\t\t} },\n"
-       "\t\t\t\t} },\n",
+       "\t\t\t\t\t} },\n",
        "",
        "hunt29-order: the controls not placed in the window",
        expect="every control has one place in the options window",

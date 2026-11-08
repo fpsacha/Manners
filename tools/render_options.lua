@@ -170,11 +170,16 @@ end
 -- the spellbook): Track Beasts for the hunter.
 local KNOWS = {
 	MAGE = { known = { 1459, 168 } },
-	PRIEST = { buffs = { "fortitude", "spirit", "shadow" }, known = { 588 } },
-	PALADIN = { buffs = { "wisdom", "might", "kings" }, known = { 465, 25780 } },
+	-- Shadowform (15473) too, which only a priest with the talent has.
+	PRIEST = { buffs = { "fortitude", "spirit", "shadow" }, known = { 588, 15473 } },
+	PALADIN = { buffs = { "wisdom", "might", "kings", "beacon" }, known = { 465, 25780 } },
 	WARRIOR = { buffs = { "battleshout" } },
-	DRUID = { buffs = { "motw", "thorns" } },
+	-- Symbiosis on Mists; Moonkin Form (24858) everywhere it is a form.
+	DRUID = { buffs = { "motw", "thorns", "symbiosis" }, known = { 24858 } },
 	HUNTER = { known = { 13165, 13163, 19506 }, tracking = { 1494 } },
+	-- Lightning and Water Shield, Earth Shield, and the weapon imbues
+	-- (Windfury, Earthliving, Flametongue, Frostbrand, Rockbiter).
+	SHAMAN = { buffs = { "earthshieldtank" }, known = { 324, 52127, 974, 8232, 51730, 8024, 8033, 8017 } },
 }
 local mockKnown, mockPlayerSpell = IsSpellKnown, IsPlayerSpell
 

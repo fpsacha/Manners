@@ -520,6 +520,16 @@ function Page.BuildDiagnosticsTab()
 					return ("Manners |cffffffff%s|r"):format(tostring(ns.BUILD))
 				end,
 			},
+			-- Which of the two buttons below somebody asked for a report wants.
+			reportHint = {
+				type = "description",
+				order = 31.5,
+				fontSize = "medium",
+				name = function()
+					return L["Asked for a report? Press %s and paste everything in the box."]
+						:format("|cffffd100" .. L["Run a full check-up"] .. "|r")
+				end,
+			},
 			copyReport = {
 				type = "execute",
 				name = function() return Page.reportOpen and L["Hide the report"] or L["Copy for a bug report"] end,

@@ -42,8 +42,10 @@ do
 	elseif tab then
 		-- The combat switch went to Look: it only stops the flashes, and
 		-- among the switches that stop offers it read as one of them.
-		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "refreshRaid", "selfTopUp", "selfLead",
-			"alwaysNote", "verifiedOnly",
+		-- Your own buffs under a heading of their own, after other people's
+		-- (round 37).
+		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "refreshRaid",
+			"alwaysNote", "verifiedOnly", "selfHeader", "selfTopUp", "selfLead", "selfLeadNote",
 			"wayHeader", "hideMounted", "manaFloor", "manaNote" }
 		local last
 		for _, key in ipairs(ORDER) do

@@ -46,9 +46,9 @@ Page.RESET = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
 		"sources.owed", "sources.group", "sources.strangers", "sources.asked", "sources.self",
-		"filters.proximity", "filters.restingOnly", "filters.quietInTowns", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
+		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
 		"groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
-		"filters.quietInInstances", "buff.leaveBlessed",
+		"buff.leaveBlessed",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()
@@ -65,6 +65,8 @@ Page.RESET = {
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
+		-- Who to buff's two place rules, which this page draws under Hold back.
+		"filters.quietInTowns", "filters.quietInInstances",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget",

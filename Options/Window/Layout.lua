@@ -90,8 +90,6 @@ end
 local function CastItems()
 	local items = { "who.choice" }
 	for _, item in ipairs(OfferItems()) do items[#items + 1] = item end
-	-- A paladin's Blessing of Kings first, while the walk is Automatic.
-	items[#items + 1] = "who.kingsFirst"
 	-- A paladin's: nobody another paladin has blessed.
 	items[#items + 1] = "who.leaveBlessed"
 	items[#items + 1] = "who.relevantOnly"
@@ -173,8 +171,10 @@ ns.WindowLayout = {
 				-- The class's buffs as a list in the order they are tried, each with an
 				-- arrow up and one down (the "order" composite, Widgets: five
 				-- definitions drawn as one piece); for a class with two buffs or more
-				-- and no spell pinned.
+				-- and no spell pinned. A paladin's Blessing of Kings first sits on
+				-- top of the list it reorders, so the two read together.
 				{ key = "who.order", header = "who.orderHeader", items = {
+					"who.kingsFirst",
 					{ composite = "order", ids = {
 						"who.orderNote", "who.orderPick", "who.orderUp", "who.orderDown", "who.orderReset",
 					} },
@@ -191,8 +191,6 @@ ns.WindowLayout = {
 					{ "who.proximity", indent = true },
 					{ "who.restingOnly", indent = true },
 					"who.asked",
-					"who.quietInTowns",
-					"who.quietInInstances",
 				} },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",
@@ -253,10 +251,12 @@ ns.WindowLayout = {
 					{ "who.own_scrollstamina", indent = true },
 					{ "who.own_scrollspirit", indent = true },
 					{ "who.own_tracking", indent = true },
-					-- The spells of those families you know, to leave out one by one.
-					{ "who.own_leave", indent = true },
+					-- Where the reminders come up, right under the families, so
+					-- they never read as items of the list below them.
 					{ "who.ownCities", indent = true },
 					{ "who.ownDungeons", indent = true },
+					-- The spells of those families you know, to leave out one by one.
+					{ "who.own_leave", indent = true },
 					-- Why a buff of your own is not being offered, under the switches.
 					"diagnostics.ownDiag",
 				} },
@@ -303,16 +303,25 @@ ns.WindowLayout = {
 			title = L["When to offer"],
 			icon = ICONS.when,
 			sections = {
+				-- Other people first, then your own buffs under a heading of their
+				-- own: their top-up has a switch and a lead of its own.
 				{ key = "when.buffed", header = "when.buffedHeader", items = {
 					"when.whenBuffed",
 					{ "when.refreshUnder", indent = true },
 					{ "when.refreshRaid", indent = true },
-					"when.selfTopUp",
-					{ "when.selfLead", indent = true },
 					"when.alwaysNote",
 					"when.verifiedOnly",
 				} },
+				{ key = "when.self", header = "when.selfHeader", items = {
+					"when.selfTopUp",
+					{ "when.selfLead", indent = true },
+					{ "when.selfLeadNote", indent = true },
+				} },
+				-- The place rules lead Hold back: they hold back everybody, so
+				-- they are not items of the list of people on Who to buff.
 				{ key = "when.holdBack", header = "when.wayHeader", items = {
+					"who.quietInTowns",
+					"who.quietInInstances",
 					"when.hideMounted",
 					"when.manaFloor",
 					"when.manaNote",
@@ -384,7 +393,7 @@ ns.WindowLayout = {
 				-- Moving the prompt leads the page: the button, big, with the
 				-- ready-made places beside it. Lock position is not drawn (see
 				-- unplaced): the button reads and sets the same lock.
-				{ key = "appearance.where", title = L["Where it sits"], items = {
+				{ key = "appearance.where", title = L["Position"], items = {
 					{ "appearance.move", pair = true, big = true },
 					"appearance.posPreset",
 				} },
@@ -419,6 +428,14 @@ ns.WindowLayout = {
 					"appearance.tooltip",
 					"appearance.tooltipPosition",
 				} },
+				-- The names waiting after the first, out of the icon's fold: the
+				-- clickable list is a feature people look for, not a fine-tune.
+				{ key = "appearance.queue", title = L["Waiting list"], items = {
+					"appearance.showCount",
+					"appearance.showQueue",
+					{ "appearance.queueRows", indent = true },
+					{ "appearance.clickRows", indent = true },
+				} },
 				{ key = "appearance.exactPos", header = "advanced.exactPosHeader", fold = true, items = {
 					{ "advanced.x", widget = "number", pair = true },
 					{ "advanced.y", widget = "number" },
@@ -445,17 +462,15 @@ ns.WindowLayout = {
 					{ "advanced.reasonRefresh", pair = true },
 					"advanced.reasonUnknown",
 				} },
-				{ key = "appearance.icon", header = "appearance.iconHeader", fold = true, items = {
+				-- The model's header reads "Icon and waiting list", for the old
+				-- dialog; the waiting list has its own section above.
+				{ key = "appearance.icon", title = L["Icon"], fold = true, items = {
 					"appearance.showIcon",
 					{ "appearance.iconSize", indent = true },
 					"appearance.iconSizeCapped",
 					{ "appearance.roundIcon", indent = true },
 					{ "appearance.iconFrame", indent = true },
 					{ "appearance.showCooldown", indent = true },
-					"appearance.showCount",
-					"appearance.showQueue",
-					{ "appearance.queueRows", indent = true },
-					{ "appearance.clickRows", indent = true },
 				} },
 			},
 		},
@@ -505,12 +520,15 @@ ns.WindowLayout = {
 					"diagnostics.noErrors",
 				} },
 				{ key = "diagnostics.report", header = "diagnostics.reportHeader", items = {
-					"diagnostics.debugClicks",
+					-- Which of the two buttons a player asked for a report wants.
+					"diagnostics.reportHint",
 					-- The one press a player asked for a report needs.
 					{ "diagnostics.fullReport", big = true },
 					"diagnostics.copyReport",
 					"diagnostics.report",
 					"diagnostics.selftest",
+					-- For working out a failed cast: under the buttons.
+					"diagnostics.debugClicks",
 				} },
 			},
 		},
@@ -525,6 +543,8 @@ ns.WindowLayout = {
 		["diagnostics.ownDiag"] = { hint = true, block = true },
 		["diagnostics.pvpDiag"] = { hint = true, block = true },
 		["diagnostics.leadDiag"] = { hint = true, block = true },
+		["diagnostics.reportHint"] = { hint = true },
+		["when.selfLeadNote"] = { hint = true },
 		-- AceDBOptions' descriptions, beside the controls they explain.
 		["profiles.choosedesc"] = { hint = true },
 		["profiles.copydesc"] = { hint = true },
@@ -548,6 +568,9 @@ ns.WindowLayout = {
 		["appearance.locked"] = true,
 		-- Its string is the Who to skip page's title.
 		["who.skipHeader"] = true,
+		-- "Icon and waiting list": the window gives the icon's fold and the
+		-- waiting list titles of their own.
+		["appearance.iconHeader"] = true,
 		-- "Messages in chat": Log every click joined Reporting a bug.
 		["diagnostics.chatHeader"] = true,
 	},

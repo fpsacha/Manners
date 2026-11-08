@@ -29,7 +29,13 @@ function Page.BuildWhenTab()
 		-- here), and a shaman's Lightning Shield is topped up from here.
 		hidden = function() return not HasPrompt() end,
 		args = {
-			buffedHeader = { type = "header", name = L["Already buffed"], order = 1 },
+			-- About other people, which a class with nothing for them (a
+			-- hunter) has none of: its choice there is about its own buffs.
+			buffedHeader = {
+				type = "header",
+				name = function() return HasClassBuffs() and L["Other people already buffed"] or L["Already buffed"] end,
+				order = 1,
+			},
 			whenBuffed = {
 				type = "select",
 				name = L["If they already have it"],
@@ -84,12 +90,14 @@ function Page.BuildWhenTab()
 				set = fSet,
 			},
 			-- Yours are topped up whatever the choice above says for other
-			-- people (ns.SelfWhenBuffed), so these two are never hidden by it.
+			-- people (ns.SelfWhenBuffed), so these two are never hidden by it,
+			-- and sit under a heading of their own.
+			selfHeader = { type = "header", name = L["My own buffs"], order = 6 },
 			selfTopUp = {
 				type = "toggle",
 				name = L["Top up my own buffs before they run out"],
 				desc = L["Your own buffs, and the ones you put on yourself, are offered again shortly before they end, whatever If they already have it says for other people."],
-				order = 3.6,
+				order = 6.1,
 				width = "full",
 				get = fGet,
 				set = fSet,
@@ -98,13 +106,20 @@ function Page.BuildWhenTab()
 				type = "range",
 				name = L["Top up my own buffs this long before they end (minutes)"],
 				desc = L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Raise it to be reminded earlier, before you pull. Never more than half the buff's length."],
-				order = 3.7,
+				order = 6.2,
 				min = 0,
 				max = 10,
 				step = 1,
 				disabled = function() return not F().selfTopUp and F().whenBuffed ~= "refresh" end,
 				get = fGet,
 				set = fSet,
+			},
+			-- What the slider's 0 means, under it while it is there.
+			selfLeadNote = {
+				type = "description",
+				order = 6.3,
+				hidden = function() return (tonumber(F().selfLead) or 0) ~= 0 end,
+				name = "|cff888888" .. L["0: worked out from how long each buff lasts."] .. "|r",
 			},
 			alwaysNote = {
 				type = "description",

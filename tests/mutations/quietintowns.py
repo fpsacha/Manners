@@ -53,7 +53,7 @@ mutate("Options/Window/Layout.lua",
        expect="quietInTowns", script=S)
 
 mutate("Options/Advanced.lua",
-       "\"filters.restingOnly\", \"filters.quietInTowns\",",
-       "\"filters.restingOnly\",",
+       "\t\t\"filters.quietInTowns\", \"filters.quietInInstances\",\n",
+       "\t\t\"filters.quietInInstances\",\n",
        "quietintowns: the page's reset leaves the switch",
-       expect="model: the reset puts who back", script=S)
+       expect="model: the reset puts when back", script=S)
