@@ -384,6 +384,9 @@ local function PlacePill(card, spec, fs, room)
 		for _, t in ipairs(s) do t:Show() end
 	end
 	HidePill(card, #pill.layers + 1)
+	-- Slices made here, at layout, after the card was last painted: tinted now,
+	-- or they stay the file's own white until the pointer passes over the card.
+	TintLines(card, card.row and card.row.off)
 end
 
 -- One line at its rectangle in the picture, in the look's face, at the look's
