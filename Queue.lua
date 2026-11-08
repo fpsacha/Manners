@@ -1613,6 +1613,54 @@ local function NoReading()
 end
 ns.NoReading = NoReading
 
+-- Who in your group wears one of yours of a buff for one target at a time
+-- (Buffs.lua, oneTarget), read once a scan before anybody is walked: a cast on
+-- the tank would take it off whoever has it, so every member is read, you
+-- included, and not only the tank. [key] = the name of the one wearing yours,
+-- or true where a reading was refused (the client may be hiding yours) or
+-- names nobody; nothing for a key nobody wears. Yours is the client naming you
+-- as its caster, or, where it names nobody (WoW Forever on another player's
+-- aura), the cast Manners saw land on them (ns.GaveSince). Castable (Core.lua)
+-- reads the answer. nil when no such buff is in hand, and one table reused.
+local ONE_HELD = {}
+local function OneTargetHolders(candidates)
+	local any = false
+	for _, buff in ipairs(candidates) do
+		if buff.oneTarget then any = true break end
+	end
+	if not any then return nil end
+	wipe(ONE_HELD)
+	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
+	if n == 0 then return ONE_HELD end
+	local inRaid = plain(IsInRaid and IsInRaid()) == true
+	local prefix = inRaid and "raid" or "party"
+	local tokens = GROUP_TOKENS[prefix]
+	local count = inRaid and n or (n - 1)
+	for _, buff in ipairs(candidates) do
+		if buff.oneTarget then
+			for i = 0, count do
+				local unit = i == 0 and "player" or tokens[i] or (prefix .. i)
+				local guid = plain(UnitGUID(unit))
+				if guid then
+					local has, remaining, mine = UnitHasBuff(unit, buff, guid)
+					if has == nil then
+						ONE_HELD[buff.key] = true
+						break
+					end
+					if has == true and mine ~= false then
+						local full = ns.UnitFullName(unit)
+						if mine == true or ns.GaveSince(full, buff.key, remaining, (ns.BuffSeconds(buff))) then
+							ONE_HELD[buff.key] = full or true
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+	return ONE_HELD
+end
+
 -- Why nothing at all is offered to you right now, whatever you are missing,
 -- or nil and your name. One answer for both kinds of your own buff -- your
 -- group buff and your class's own -- so there is one rule for "You" on the
@@ -1742,6 +1790,9 @@ local function Affordable(candidates, unpaid)
 			-- A pin is "only ever this one": PickBuffFor swaps whatever list
 			-- it is handed for the pin, so one that is left would offer it.
 			return {}
+		elseif buff.oneTarget then
+			-- Not kept for a paladin's walk: a Beacon of Light is no blessing
+			-- (Core.lua, PickBuffFor), and his on somebody covers nothing.
 		elseif unpaid then
 			unpaid[#unpaid + 1] = buff
 		end
@@ -1888,6 +1939,9 @@ function ns.BuildQueue(watch)
 	-- walks to (Source of Magic) that somebody asked for. nil for none.
 	local askOnly = ns.AskOnlyBuffs()
 	if askOnly then askOnly = Affordable(askOnly) end
+	-- Who in the group wears one of yours of a buff for one target at a time,
+	-- before anybody is walked (OneTargetHolders). nil for none in hand.
+	local oneHeld = OneTargetHolders(candidates)
 	-- A warrior's shout reaches the group and nobody else, so passers-by are
 	-- dropped before the distance check rather than measured for nothing
 	-- (which would fill the proximity counts with people never offered).
@@ -2136,6 +2190,15 @@ function ns.BuildQueue(watch)
 		local tanksOnly = not asked and tanksHeld or nil
 		opts.tanksOnly = tanksOnly
 		opts.isTank = tanksOnly and inGroup and ns.IsTankUnit(unit) or nil
+		-- And for a buff for one target at a time (Core.lua, Castable): who
+		-- wears yours, whether they tank, and their class (Symbiosis).
+		opts.oneHeld = oneHeld
+		if oneHeld and inGroup then
+			if opts.isTank == nil then opts.isTank = ns.IsTankUnit(unit) end
+			opts.class = plain(select(2, UnitClass(unit)))
+		else
+			opts.class = nil
+		end
 		-- Held to you alone, for everybody who is not you, and not for somebody
 		-- who asked for it by name.
 		opts.meOnly = not asked and meHeld or nil

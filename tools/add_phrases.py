@@ -325,6 +325,22 @@ def offered_keys():
         for km in re.finditer(r'\bkey = "(\w+)"', src[span[0]:span[1]]):
             if masked[span[0] + km.start()] == "k":
                 keys.add(km.group(1))
+        # And what is added to that table after it, a class at a time:
+        # `NAME.CLASS = { ... }` or `NAME.CLASS[...] = { ... }` (Buffs.lua's
+        # buffs for one target at a time, 1.11.11).
+        for am in re.finditer(r"\b%s\.[A-Z]+(?:\[[^\]\n]*\])?[ \t]*=[ \t]*\{" % re.escape(name), masked):
+            depth, i = 0, am.end() - 1
+            while i < len(masked):
+                if masked[i] == "{":
+                    depth += 1
+                elif masked[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+            for km in re.finditer(r'\bkey = "(\w+)"', src[am.end() - 1:i]):
+                if masked[am.end() - 1 + km.start()] == "k":
+                    keys.add(km.group(1))
     return keys
 
 

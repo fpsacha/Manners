@@ -1872,6 +1872,18 @@ for name, ids in pairs({
 }) do
 	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
 end
+-- The buffs for one target at a time and Season of Discovery's Commanding Shout
+-- (Buffs.lua, 1.11.11), as each client names them (SpellName).
+for name, ids in pairs({
+	["Earth Shield"] = { 408514 },
+	["Beacon of Light"] = { 407613, 53563 },
+	["Oath of Light"] = { 1328548 },
+	["Symbiosis"] = { 110309 },
+	["Blistering Scales"] = { 360827 },
+	["Commanding Shout"] = { 403215 },
+}) do
+	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
+end
 local RETAIL_NAMES = { [5761] = "Numbing Poison" }
 
 -- Mock.inRange, unless Mock.rangeByUnit names this unit.

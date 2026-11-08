@@ -3049,6 +3049,41 @@ RP.SPELL = {
 		L["Cast freely, {name}. Your mana is partly my concern now."],
 		L["If you run dry, {name}, it means I've been idle. Do say so."],
 	},
+	earthshieldtank = {
+		L["The earth stands between you and harm now, {name}. Every blow mends you."],
+		L["Stone has your back, {name}. Each hit they land patches you up a little."],
+		L["The spirits of earth owed me a favour, {name}. I've spent it on you."],
+		L["Hold the line, {name}. The ground itself is holding you."],
+		L["You take the hits, {name}, and the stone takes them personally."],
+		L["Charge in, {name}. What they break, the earth puts back."],
+	},
+	beacon = {
+		L["You're my Beacon, {name}. Every heal I give the others shines on you too."],
+		L["The Light will find you wherever you stand, {name}. I've made sure of it."],
+		L["Stand tall, {name}. When I mend the others, you get the echo."],
+		L["A lighthouse for the whole group, {name}. Try not to stand in the dark."],
+		L["Wherever I heal, {name}, a little of it reaches you."],
+	},
+	oathoflight = {
+		L["I swear it, {name}: while this oath holds, my Light finds you first."],
+		L["An oath sworn to you alone, {name}. Don't make me regret it."],
+		L["My word is yours for a while, {name}. Paladins keep their word."],
+		L["I've sworn to keep you standing, {name}. I take oaths seriously."],
+	},
+	symbiosis = {
+		L["A little of you, a little of me, {name}. Nature loves a fair trade."],
+		L["We're bound for the hour, {name}. Borrow my gifts; I'll borrow yours."],
+		L["Every living thing leans on another, {name}. Today we lean on each other."],
+		L["Lend me a trick, {name}, and I'll lend you one of mine."],
+		L["The Dream calls this a partnership, {name}. I call it common sense."],
+	},
+	blisteringscales = {
+		L["Scales off my own back, {name}. Let them hit you and see what happens."],
+		L["Wear these, {name}. Anything that bites you will regret its teeth."],
+		L["Dragonscale armour, freshly shed, {name}. It bites back."],
+		L["These scales burst when struck, {name}. Do let them strike."],
+		L["A dragon's hide for an hour, {name}. Stand in front and enjoy it."],
+	},
 }
 
 -- Thanks only, and only when the spell they gave you is known: {gift} is
@@ -3309,6 +3344,28 @@ RP.GIFT = {
 		L["I could cast till sundown now, {name}. Please keep breathing fire."],
 		L["Thank you, {name}. Everyone I help today owes you a little too."],
 		L["Your leftovers beat my best, {name}. Most humbling. Thank you."],
+	},
+	earthshieldtank = {
+		L["Thank you, {name}. With the earth at my back, I'll stand anything."],
+		L["{gift}! Let them hit me now, {name}. I'll only get better."],
+		L["Thank you, {name}. I'll try to deserve every pebble."],
+	},
+	beacon = {
+		L["A Beacon, for me? I'll shine where the hits land, {name}. Thank you."],
+		L["Thank you, {name}. Every heal of yours has my address on it now."],
+		L["{gift}! I'll lead, {name}, and your Light can follow."],
+	},
+	oathoflight = {
+		L["An oath, sworn to me? Thank you, {name}. I'll try to be worth keeping."],
+		L["Thank you, {name}. I'll stand in front; you keep your word."],
+	},
+	symbiosis = {
+		L["Thank you, {name}. I'll take good care of your trick, and you of mine."],
+		L["{gift}! We're a matched pair now, {name}. Let's not waste it."],
+	},
+	blisteringscales = {
+		L["Your own scales, {name}? I'll wear them proudly. Thank you."],
+		L["{gift}! Let them swing at me now, {name}. They'll regret it."],
 	},
 }
 

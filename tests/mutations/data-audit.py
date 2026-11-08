@@ -108,8 +108,8 @@ mutate("Core.lua",
        "data-audit: groupOnly read as your subgroup",
        expect="data-audit: Salvation reaches a raider in another raid group", script=S)
 mutate("Core.lua",
-       "\t\tif not (buff.partyOnly or buff.groupOnly) then return false end\n",
-       "\t\tif not buff.partyOnly then return false end\n",
+       "\t\tif not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then return false end\n",
+       "\t\tif not (buff.partyOnly or buff.oneTarget) then return false end\n",
        "data-audit: Salvation alone reads as reaching passers-by",
        expect="with Salvation pinned, People who buff me does not say it reaches your group", script=S)
 mutate("Core.lua",
@@ -118,8 +118,8 @@ mutate("Core.lua",
        "data-audit: Salvation said to reach only your subgroup",
        expect="with Salvation pinned, People who buff me does not say it reaches your group", script=S)
 mutate("Options/Who.lua",
-       "\tif buff.partyOnly or buff.groupOnly then label = L[",
-       "\tif buff.partyOnly then label = L[",
+       "\tif buff.partyOnly or buff.groupOnly or buff.oneTarget then label = L[",
+       "\tif buff.partyOnly or buff.oneTarget then label = L[",
        "data-audit: Salvation's switch not marked group only",
        expect="Who to buff does not say Salvation reaches your group only", script=S)
 

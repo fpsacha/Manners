@@ -40,8 +40,10 @@ for _, case in ipairs({
 			end
 			local keys = {}
 			for _, buff in ipairs(ns.GetClassBuffs("PALADIN")) do keys[#keys + 1] = buff.key end
-			if table.concat(keys, ", ") ~= "wisdom, might, kings" then
-				fail(scenario, "Forever's paladin has " .. table.concat(keys, ", ") .. ", not wisdom, might, kings")
+			-- And Forever's own Oath of Light, for the tank (1.11.11).
+			if table.concat(keys, ", ") ~= "wisdom, might, kings, oathoflight" then
+				fail(scenario, "Forever's paladin has " .. table.concat(keys, ", ")
+					.. ", not wisdom, might, kings, oathoflight")
 			end
 		end
 	end

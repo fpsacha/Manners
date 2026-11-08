@@ -547,6 +547,11 @@ BUFF_NAMES = {
     "skyfury": r"Skyfury",
     "bronze": r"Blessing of the Bronze",
     "sourceofmagic": r"Source of Magic",
+    "earthshieldtank": r"Earth Shield",
+    "beacon": r"Beacon of Light",
+    "oathoflight": r"Oath of Light",
+    "symbiosis": r"Symbiosis",
+    "blisteringscales": r"Blistering Scales",
 }
 OWN_NAMES = {
     "frostarmor": r"Frost Armor|Ice Armor", "magearmor": r"Mage Armor", "moltenarmor": r"Molten Armor",
@@ -1446,9 +1451,10 @@ def check_reach(rep, c, d, flavour):
                 if first["t0"] not in (1, 20, 56):
                     rep.finding(where, "selfCast, but %d (%s) targets %d, not the caster's party or raid" % (
                         top, c.names.get(top), first["t0"]))
-                elif b.get("partyOnly") and yards and abs(yards - yards_default) > 0.5:
+                elif b.get("partyOnly") and yards and abs(yards - (b.get("shoutYards") or yards_default)) > 0.5:
+                    # A shout's own shoutYards (Buffs.lua) where it is not the set's.
                     rep.finding(where, "partyOnly shout reaches %g yards (SpellRadius %d); the addon's SHOUT_YARDS says %g" % (
-                        yards, first["radius"], yards_default))
+                        yards, first["radius"], b.get("shoutYards") or yards_default))
                 if first["t0"] == 56 and flags.get("partyIsSubgroup"):
                     rep.finding(where, "target 56 is the caster's whole raid, but partyIsSubgroup says one subgroup")
                 if first["t0"] == 20 and not flags.get("partyIsSubgroup") and flavour in ("vanilla", "camelot", "tbc"):

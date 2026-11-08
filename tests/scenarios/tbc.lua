@@ -216,8 +216,10 @@ do
 			"earthshield", "omen", "findfish" }) do
 			if not ns.FindOwnSpell(key) then fail(scenario, "nobody has " .. key .. " of their own") end
 		end
-		if not (ns.CLASSES_WITHOUT_BUFFS or {}).SHAMAN or ns.BUFFS.SHAMAN then
-			fail(scenario, "a shaman is given something to cast on others")
+		-- Earth Shield for the tank, since 1.11.11: the shaman is no class with
+		-- nothing to give.
+		if (ns.CLASSES_WITHOUT_BUFFS or {}).SHAMAN or not ns.FindBuff("SHAMAN", "earthshieldtank") then
+			fail(scenario, "a shaman has no Earth Shield to cast on others, or is told he has nothing")
 		end
 	end)
 end

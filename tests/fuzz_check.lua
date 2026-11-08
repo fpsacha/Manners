@@ -414,7 +414,10 @@ function X.checkComplete(W, queue, standing)
 	-- lacks it is plainly owed: left out of the candidates, the rest judged as ever.
 	local held, kept = db.buff, {}
 	for _, buff in ipairs(candidates) do
-		if not (buff.tankChoice and ((held.tanksOnly or {})[buff.key] or (held.meOnly or {})[buff.key])) then
+		-- Nor one for one target at a time (Buffs.lua, oneTarget: Earth Shield on
+		-- the tank, Symbiosis), which goes to one member of the group.
+		if not (buff.tankChoice and ((held.tanksOnly or {})[buff.key] or (held.meOnly or {})[buff.key]))
+			and not buff.oneTarget then
 			kept[#kept + 1] = buff
 		end
 	end
@@ -721,6 +724,17 @@ function X.checkQueue(W, queue)
 		if not buff.own and buff.tankChoice and db.buff.tanksOnly and db.buff.tanksOnly[buff.key]
 			and e.inGroup and reason ~= "asked" and reason ~= "self" then
 			return fail(W, "forbidden", ("%s, in the group and no tank, offered %s, which is held to tanks"):format(e.name, buff.key))
+		end
+		-- One for one target at a time (Buffs.lua, oneTarget) goes to your group
+		-- alone, asked or not; and to a tank, which the fuzz world gives nobody,
+		-- unless asked for or Symbiosis (notOwnClass).
+		if not buff.own and buff.oneTarget and reason ~= "self" then
+			if not e.inGroup then
+				return fail(W, "forbidden", ("%s, outside the group, offered %s, which goes to one member of it"):format(e.name, buff.key))
+			end
+			if not buff.notOwnClass and reason ~= "asked" then
+				return fail(W, "forbidden", ("%s, in the group and no tank, offered %s, which goes to the tank"):format(e.name, buff.key))
+			end
 		end
 		-- An oil, a stone or food held to dungeons and raids, offered outside one.
 		if buff.own and db.ownBuffs.itemsInDungeons == true and ns.OwnItemsHeldToDungeons(buff.family)

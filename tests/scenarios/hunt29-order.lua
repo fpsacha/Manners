@@ -184,8 +184,11 @@ local function castable(ns) return keys(ns.CastableBuffs()) end
 -- Classic Era and Burning Crusade have a sixth blessing, Sanctuary, which a
 -- paladin here never learns: it has its place in a saved order and on the page,
 -- and is not in the walk.
+-- Classic Era's paladin also has Season of Discovery's Beacon of Light (1.11.11),
+-- last and never learned here either.
 local function listed(client, text)
 	if client == "camelot" then return text end
+	if client == "vanilla" then return text .. ", sanctuary, beacon" end
 	return text .. ", sanctuary"
 end
 
@@ -194,7 +197,7 @@ local function learned(list)
 	local out = {}
 	for _, item in ipairs(list or {}) do
 		local key = type(item) == "table" and item.key or item
-		if key ~= "sanctuary" then out[#out + 1] = key end
+		if key ~= "sanctuary" and key ~= "beacon" then out[#out + 1] = key end
 	end
 	return table.concat(out, ", ")
 end
@@ -645,7 +648,7 @@ do
 		end
 		-- The list the page draws: two lines, and no Kings switch (its list begins with Kings).
 		local order = ns.BuffWalkOrder()
-		if keys(order) ~= "might, kings" then fail(scenario, "the page lists " .. keys(order)) end
+		if keys(order) ~= "might, kings, beacon" then fail(scenario, "the page lists " .. keys(order)) end
 		if control(ns, "orderPick").hidden() ~= false then fail(scenario, "Mists' two blessings are not shown the order") end
 		if control(ns, "kingsFirst").hidden() ~= true then fail(scenario, "Mists shows a Kings switch") end
 	end)
@@ -733,19 +736,19 @@ do
 		-- the buffs left out follow in Automatic's order, Kings first with the
 		-- switch on.
 		local got = repaired({ "light", "bogus", "light", 42, "might", false }, true)
-		if keys(got) ~= "light, might, kings, wisdom, salvation, sanctuary" then
+		if keys(got) ~= "light, might, kings, wisdom, salvation, sanctuary, beacon" then
 			fail(scenario, "{light, bogus, light, 42, might, false} was repaired to " .. keys(got)
 				.. ", not light, might, kings, wisdom, salvation")
 		end
 		got = repaired({ "light", "bogus", "light", 42, "might", false }, false)
-		if keys(got) ~= "light, might, wisdom, kings, salvation, sanctuary" then
+		if keys(got) ~= "light, might, wisdom, kings, salvation, sanctuary, beacon" then
 			fail(scenario, "with Kings first off the same order was repaired to " .. keys(got)
 				.. ", not light, might, wisdom, kings, salvation")
 		end
 		-- Sanctuary is a vanilla buff and this is Forever: kept for the client
 		-- that has it, and skipped by the walk.
 		got = repaired({ "sanctuary", "kings", "might", "wisdom", "salvation", "light" }, true)
-		if keys(got) ~= "sanctuary, kings, might, wisdom, salvation, light" then
+		if keys(got) ~= "sanctuary, kings, might, wisdom, salvation, light, beacon" then
 			fail(scenario, "another client's Sanctuary was repaired to " .. keys(got) .. ", not kept first")
 		end
 		if castable(ns) ~= "kings, might, wisdom, salvation, light" then
@@ -772,7 +775,7 @@ do
 		if keys(profile.buff.order.PRIEST) ~= "spirit, fortitude, shadow" then
 			fail(scenario, "the priest's order was repaired to " .. keys(profile.buff.order.PRIEST))
 		end
-		if keys(profile.buff.order.PALADIN) ~= "might, kings, wisdom, salvation, light, sanctuary" then
+		if keys(profile.buff.order.PALADIN) ~= "might, kings, wisdom, salvation, light, sanctuary, beacon" then
 			fail(scenario, "the paladin's order was repaired to " .. keys(profile.buff.order.PALADIN))
 		end
 		-- The order table itself, not a table.
@@ -784,7 +787,7 @@ do
 			end
 		end
 		-- One that is sound is left alone: the same table, not a copy.
-		local sound = { "might", "kings", "wisdom", "salvation", "light", "sanctuary" }
+		local sound = { "might", "kings", "wisdom", "salvation", "light", "sanctuary", "beacon" }
 		profile.buff.order = { PALADIN = sound }
 		ns.ClampSettings()
 		if profile.buff.order.PALADIN ~= sound then fail(scenario, "a sound order was rewritten") end
@@ -797,19 +800,19 @@ do
 	session(scenario, env, function(ns)
 		local profile = ns.db.profile
 		-- Saved on Classic Era: six blessings, Might first.
-		profile.buff.order = { PALADIN = { "might", "wisdom", "kings", "salvation", "light", "sanctuary" } }
+		profile.buff.order = { PALADIN = { "might", "wisdom", "kings", "salvation", "light", "sanctuary", "beacon" } }
 		ns.ClampSettings()
-		if keys(profile.buff.order.PALADIN) ~= "might, wisdom, kings, salvation, light, sanctuary" then
+		if keys(profile.buff.order.PALADIN) ~= "might, wisdom, kings, salvation, light, sanctuary, beacon" then
 			fail(scenario, "Mists dropped the other client's keys: " .. keys(profile.buff.order.PALADIN))
 		end
 		if castable(ns) ~= "might, kings" then fail(scenario, "the Mists walk is " .. castable(ns) .. ", not might, kings") end
 		-- The page lists what this client has, in the saved order.
-		if keys(ns.BuffWalkOrder()) ~= "might, kings" then fail(scenario, "the page lists " .. keys(ns.BuffWalkOrder())) end
+		if keys(ns.BuffWalkOrder()) ~= "might, kings, beacon" then fail(scenario, "the page lists " .. keys(ns.BuffWalkOrder())) end
 		-- A move here goes among the two it has, and leaves the others where they are.
 		if not ns.MoveBuff("kings", -1) then fail(scenario, "Kings would not move up on Mists") end
-		if keys(profile.buff.order.PALADIN) ~= "kings, wisdom, might, salvation, light, sanctuary" then
+		if keys(profile.buff.order.PALADIN) ~= "kings, wisdom, might, salvation, light, sanctuary, beacon" then
 			fail(scenario, "moving Kings up changed the saved order to " .. keys(profile.buff.order.PALADIN)
-				.. ", not kings, wisdom, might, salvation, light, sanctuary")
+				.. ", not kings, wisdom, might, salvation, light, sanctuary, beacon")
 		end
 		if castable(ns) ~= "kings, might" then fail(scenario, "after the move the walk is " .. castable(ns)) end
 	end)
@@ -965,7 +968,7 @@ do
 		-- order. Nothing throws, and nothing is rewritten.
 		local given = { "light", "bogus", "light", 42, "sanctuary", "might" }
 		setOrder(ns, given)
-		if keys(ns.WalkBuffs()) ~= "light, sanctuary, might, wisdom, kings, salvation" then
+		if keys(ns.WalkBuffs()) ~= "light, sanctuary, might, wisdom, kings, salvation, beacon" then
 			fail(scenario, "the walk is " .. keys(ns.WalkBuffs()) .. ", not light, might, wisdom, kings, salvation")
 		end
 		if castable(ns) ~= "light, might, wisdom, kings, salvation" then
@@ -1009,7 +1012,7 @@ do
 		if base ~= ns.GetClassBuffs("PALADIN") then fail(scenario, "with no order the walk is not the class's own list") end
 		ns.MoveBuff("light", -1)
 		local first = ns.WalkBuffs()
-		if keys(first) ~= "kings, wisdom, might, light, salvation, sanctuary" then
+		if keys(first) ~= "kings, wisdom, might, light, salvation, sanctuary, beacon" then
 			fail(scenario, "the ordered list is " .. keys(first))
 		end
 		-- Scan after scan: the same table, not one built each time.
@@ -1019,11 +1022,11 @@ do
 		-- wiping the table -- it is read again at the next scan.
 		local saved = ns.BuffOrder()
 		saved[1], saved[2] = saved[2], saved[1]
-		if keys(ns.WalkBuffs()) ~= "wisdom, kings, might, light, salvation, sanctuary" then
+		if keys(ns.WalkBuffs()) ~= "wisdom, kings, might, light, salvation, sanctuary, beacon" then
 			fail(scenario, "an order edited in place is still read as " .. keys(ns.WalkBuffs()))
 		end
 		saved[#saved] = nil
-		if keys(ns.WalkBuffs()) ~= "wisdom, kings, might, light, salvation, sanctuary" then
+		if keys(ns.WalkBuffs()) ~= "wisdom, kings, might, light, salvation, sanctuary, beacon" then
 			fail(scenario, "an order cut short is read as " .. keys(ns.WalkBuffs()) .. ", with its missing buff after it")
 		end
 		wipe(saved)
@@ -1065,7 +1068,7 @@ do
 		local ok, err = pcall(function() row.lines[3].up:GetScript("OnClick")(row.lines[3].up, "LeftButton", false) end)
 		Mock.inCombat = false
 		if not ok then fail(scenario, "an arrow pressed in a fight threw: " .. tostring(err)) end
-		if keys(ns.BuffOrder()) ~= "kings, might, wisdom, salvation, light, sanctuary" then
+		if keys(ns.BuffOrder()) ~= "kings, might, wisdom, salvation, light, sanctuary, beacon" then
 			fail(scenario, "the order after a press in a fight is " .. keys(ns.BuffOrder()))
 		end
 		ns.addon:Tick()
@@ -1344,7 +1347,7 @@ do
 		local pick, up, down = control(ns, "orderPick"), control(ns, "orderUp"), control(ns, "orderDown")
 		local values = pick.values()
 		local sorting = pick.sorting()
-		if keys(sorting) ~= AUTO_FIRST .. ", sanctuary" then fail(scenario, "the dropdown lists " .. keys(sorting) .. ", not Automatic's order") end
+		if keys(sorting) ~= AUTO_FIRST .. ", sanctuary, beacon" then fail(scenario, "the dropdown lists " .. keys(sorting) .. ", not Automatic's order") end
 		for _, key in ipairs(sorting) do
 			if not values[key] then fail(scenario, "the dropdown has no name for " .. key) end
 		end
@@ -1355,11 +1358,11 @@ do
 		up.func()
 		-- The one picked stays picked, so it goes on up.
 		if pick.get() ~= "light" then fail(scenario, "the pick moved off Light with it: " .. tostring(pick.get())) end
-		if keys(ns.BuffOrder()) ~= "kings, wisdom, light, might, salvation, sanctuary" then
+		if keys(ns.BuffOrder()) ~= "kings, wisdom, light, might, salvation, sanctuary, beacon" then
 			fail(scenario, "two steps up gave " .. keys(ns.BuffOrder()))
 		end
 		down.func()
-		if keys(ns.BuffOrder()) ~= "kings, wisdom, might, light, salvation, sanctuary" then
+		if keys(ns.BuffOrder()) ~= "kings, wisdom, might, light, salvation, sanctuary, beacon" then
 			fail(scenario, "one step down gave " .. keys(ns.BuffOrder()))
 		end
 		-- A pick that is not on the list reads as the first.

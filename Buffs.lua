@@ -65,6 +65,32 @@
 --             first. Only the rank the player knows best is ever used, because
 --             the macro casts by name and the game picks that rank. Offered in
 --             place of single casts by GroupBuffs.lua.
+--   oneTarget "only one target at a time", in the client's own text (Earth
+--             Shield, Beacon of Light, Oath of Light, Blistering Scales,
+--             Symbiosis): a cast on somebody takes yours off the last, so
+--             walking everybody would move it from one person to the next.
+--             Offered only to a member of your party or raid the game calls a
+--             tank (Core.lua, ns.IsTankUnit, as Thorns' Tanks only reads it),
+--             and only while none of yours is on anybody in it, you included
+--             (Queue.lua, OneTargetHolders): one of yours on a member who is no
+--             tank was put there by you and is left there, and the one wearing
+--             it is offered its top-up. Never anybody outside your group, as a
+--             groupOnly buff (Core.lua, Castable, OnlyReachesGroup; groupOnly
+--             itself only where the game says so, target 57), never you
+--             (neverSelf), and still
+--             anybody in your group who asks for it by name, though not "buff
+--             pls" (Requests.lua, AskedFor). On for whoever knows it: each is a
+--             talent, rune or specialization spell, and the rule is what keeps
+--             it on the tank. A paladin's (Beacon, Oath) is read apart from his
+--             blessings, which it neither replaces nor is replaced by (Core.lua,
+--             PickBuffFor).
+--   notOwnClass  with oneTarget: in place of the tank rule, any member of the
+--             group who is not of your class (Symbiosis: "Cannot be cast on
+--             other Druids").
+--   shoutYards  a shout's own reach where it is not the set's (Season of
+--             Discovery's Commanding Shout, 30 yards against Battle Shout's 20):
+--             data for tools/audit_ids.py. ShoutReach (Core.lua) already says
+--             yes out to 28 or 30 yards for every shout.
 --
 -- How long each lasts is no field of a buff: it is a table of ids per client, below
 -- ("how long each lasts"), which a top-up's lead is worked out from (Core.lua).
@@ -246,6 +272,36 @@ local VANILLA = {
 		},
 	},
 }
+
+-- Season of Discovery's runes for somebody else (1.11.11), each the Classic Era
+-- client's own id for every realm (wago.tools, build 1.15.9.70003), as Fel Armor
+-- is below. Every one is held to the one rule its spell text asks for.
+do
+	-- Earth Shield (408514): ten minutes, nine charges (SpellMisc DurationIndex,
+	-- SpellAuraOptions ProcCharges 9), on target 21, any ally; SkillLineAbility
+	-- 374, class mask 64, AcquireMethod 3, as the rune Water Shield (408510).
+	-- "Earth Shield can only be placed on one target at a time." A shaman's one
+	-- buff for others, so it has its switch on Who to buff (switchable).
+	VANILLA.SHAMAN = {
+		{ key = "earthshieldtank", ranks = { 408514 }, oneTarget = true, neverSelf = true,
+			talent = true, switchable = true },
+	}
+	-- Beacon of Light (407613): an hour, on target 57, a member of your party or
+	-- raid; SkillLineAbility 594, class mask 2, AcquireMethod 3. "Only one target
+	-- can be the Beacon of Light at a time." Last, after the blessings.
+	VANILLA.PALADIN[#VANILLA.PALADIN + 1] = { key = "beacon", ranks = { 407613 }, oneTarget = true,
+		groupOnly = true, neverSelf = true, talent = true }
+	-- Commanding Shout (403215): five minutes, MOD_STAT (aura 29) on Stamina
+	-- (EffectMiscValue 2) for the caster's party (target 20) within 30 yards
+	-- (SpellRadius 10, so shoutYards); SkillLineAbility 257, class mask 1. Battle Shout is
+	-- attack power (aura 99) on the same target: two stats, and nothing in the
+	-- data makes the two exclusive, so a party wears both, as on Burning
+	-- Crusade, whose commandingshout this is the shape of. After Battle Shout,
+	-- so Automatic gives that first. A rune, so `talent`: Skip my own class never
+	-- skips it (a shout is never skipped anyway).
+	VANILLA.WARRIOR[#VANILLA.WARRIOR + 1] = { key = "commandingshout", ranks = { 403215 }, selfCast = true,
+		partyOnly = true, talent = true, shoutYards = 30 }
+end
 
 ---------------------------------------------------------------------------
 -- weapon enhancements: poisons, stones, oils and lures
@@ -1224,10 +1280,14 @@ local VANILLA_SET = {
 	-- Which buff "auto" reaches for, where it depends on who is standing there.
 	auto = { PALADIN = { mana = "wisdom", other = "might" } },
 	-- Classes with nothing to give, so the options screen can say so plainly.
+	-- Not the shaman since 1.11.11: Season of Discovery's Earth Shield (above)
+	-- is in the client for every realm, and a shaman who has not engraved it is
+	-- one who has learned nothing yet ("no buff learned"), as a warlock before
+	-- Unending Breath. Totems are placed, not cast on a person. Forever, whose
+	-- shaman cannot learn it, keeps him here (CAMELOT_SET).
 	without = {
 		HUNTER = true,
 		ROGUE = true,
-		SHAMAN = true, -- totems are placed, not cast on a person
 	},
 	-- A partyOnly buff reaches the caster's own subgroup of a raid and nobody
 	-- else in it. Classic Era's (and Burning Crusade's) Battle Shout is
@@ -1412,6 +1472,17 @@ local TBC = {
 			partyOnly = true,
 		},
 	},
+}
+
+-- Earth Shield for the tank (1.11.11): the three ranks TBC_OWN's shield family
+-- holds (974 at 50, 32593 at 60, 32594 at 70, SpellLevels; a Restoration talent,
+-- Talent 1698), ten minutes and six charges, on target 21, any ally. "Earth
+-- Shield can only be placed on one target at a time." The family keeps it as
+-- your own shield on you; this is the cast on somebody else, held to the tank
+-- (oneTarget), with its switch on Who to buff as a shaman's one buff for others.
+TBC.SHAMAN = {
+	{ key = "earthshieldtank", ranks = { 32594, 32593, 974 }, oneTarget = true, neverSelf = true,
+		talent = true, switchable = true },
 }
 
 -- The levels of the ranks above that vanilla's RANK_LEVEL does not have
@@ -1790,6 +1861,28 @@ do
 	end
 end
 
+-- Season of Discovery's runes above are Classic Era's to learn, not Forever's:
+-- Forever 1.60.1.70790 still carries Earth Shield (408514) and Commanding Shout
+-- (403215) in SpellName and SkillLineAbility (AcquireMethod 3, as every rune left
+-- in its data), but no TraitDefinition row hands either out, where Forever's own
+-- Water Shield, Riptide and Lava Burst each have one (134193, 134185, 134169);
+-- and Beacon of Light (407613) has no SpellName there at all. So none of the
+-- three is here, and a Forever shaman has nothing for others again (CAMELOT_SET's
+-- `without`). Forever's Holy paladin has Oath of Light instead: a trait
+-- (TraitDefinition 134825), five minutes, on target 21, any ally. "Only one Oath
+-- of Light may be sworn by the Paladin at any one time."
+do
+	local RUNES = { earthshieldtank = true, beacon = true, commandingshout = true }
+	for class, list in pairs(CAMELOT) do
+		for i = #list, 1, -1 do
+			if RUNES[list[i].key] then table.remove(list, i) end
+		end
+		if #list == 0 then CAMELOT[class] = nil end
+	end
+	CAMELOT.PALADIN[#CAMELOT.PALADIN + 1] = { key = "oathoflight", ranks = { 1328548 }, oneTarget = true,
+		neverSelf = true, talent = true }
+end
+
 -- Forever: those buffs, and its own with the mage's scrolls. The name stays
 -- "vanilla", which is the set everything else comes from. Its group versions
 -- of a priest's, mage's and druid's buff reach the caster's whole party and
@@ -1812,6 +1905,9 @@ end
 local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true,
 	partyIsSubgroup = false }, { __index = VANILLA_SET })
 CAMELOT_SET.statValue = CAMELOT_STAT
+-- Classic Era's, with the shaman: Forever gives him no Earth Shield to learn
+-- (above), so he has nothing to put on anybody else.
+CAMELOT_SET.without = { HUNTER = true, ROGUE = true, SHAMAN = true }
 
 ---------------------------------------------------------------------------
 -- Mists of Pandaria Classic
@@ -1932,6 +2028,35 @@ local MISTS = {
 	},
 }
 
+-- The buffs here for one target at a time (1.11.11, oneTarget), each its
+-- target's alone (`alone`): none lands on the whole party and raid as the
+-- buffs above do. Build 5.5.4.70032.
+do
+	-- Earth Shield (974): Restoration's (SpecializationSpells, spec 264), level
+	-- 26, ten minutes, nine charges (SpellAuraOptions ProcCharges 9), on target
+	-- 21, any ally. "Earth Shield can only be placed on one target at a time."
+	-- MISTS_OWN's shield family keeps it as your own shield on you; this is the
+	-- cast on the tank, a shaman's one buff for others (switchable).
+	MISTS.SHAMAN = {
+		{ key = "earthshieldtank", ranks = { 974 }, oneTarget = true, neverSelf = true,
+			talent = true, alone = true, switchable = true },
+	}
+	-- Beacon of Light (53563): Holy's (SpecializationSpells, spec 65), level 39,
+	-- on target 57, a member of your party or raid, with no timer (SpellDuration
+	-- -1) and lost on death (SpellMisc Attributes_3 0x0). "Only one target can be
+	-- the Beacon of Light at a time." After the blessings.
+	MISTS.PALADIN[#MISTS.PALADIN + 1] = { key = "beacon", ranks = { 53563 }, oneTarget = true, groupOnly = true,
+		neverSelf = true, talent = true, alone = true }
+	-- Symbiosis (110309): every druid's at 87 (SkillLineAbility 798, SpellLevels
+	-- 87), an hour, through death (Attributes_3 0x100000), on target 57, a
+	-- member of your party or raid. "Cannot be cast on other Druids", and so on
+	-- no druid of yours, you included (notSelf); one link at a time, so it goes
+	-- to one member who is not a druid (notOwnClass) while none of yours is on
+	-- anybody.
+	MISTS.DRUID[#MISTS.DRUID + 1] = { key = "symbiosis", ranks = { 110309 }, oneTarget = true, notOwnClass = true,
+		notSelf = true, alone = true }
+end
+
 -- The level each buff above is learned at on this client (SpellLevels), for
 -- "skip my own class when they can cast it too". Vanilla's table has the
 -- same ids at a rank's level -- 1459 and 1126 at 1, Blessing of Might at 4 --
@@ -1942,6 +2067,9 @@ local MISTS_RANK_LEVEL = {
 	[1459] = 58, [21562] = 22, [1126] = 62, [20217] = 30, [19740] = 81,
 	[115921] = 22, [109773] = 82, [5697] = 24,
 }
+-- Symbiosis, every druid's at 87 (1.11.11). The talent and specialization
+-- spells above (Earth Shield, Beacon of Light) are never read.
+MISTS_RANK_LEVEL[110309] = 87
 
 ---------------------------------------------------------------------------
 -- Mists: what each class puts on itself alone
@@ -2144,10 +2272,12 @@ local MISTS_SET = {
 	-- Nothing depends on who is standing there (Wisdom is gone, Kings suits
 	-- everybody). An empty table, so ns.CLASS_AUTO is a table on every client.
 	auto = {},
+	-- Not the shaman since 1.11.11: a Restoration shaman puts Earth Shield on the
+	-- tank (above); the rest of the 5.x shaman buffs are auras, not casts on a
+	-- person, and a shaman of another specialization has learned nothing to give.
 	without = {
 		HUNTER = true,
 		ROGUE = true,
-		SHAMAN = true, -- the 5.x shaman buffs are auras, not casts on a person
 	},
 	-- As vanilla's: class buffs Manners never offers, counted as favours only.
 	-- Fear Ward (Priest, 54), Water Walking (Shaman, 24) and Soulstone
@@ -2172,8 +2302,9 @@ local MISTS_SET = {
 ---------------------------------------------------------------------------
 
 -- Five class buffs are left, one per class, each an hour long and castable on
--- somebody outside your group. Paladins and death knights have nothing left,
--- and are named in `without` so the options page can say so.
+-- somebody outside your group. Death knights have nothing left, and are named
+-- in `without` so the options page can say so; a paladin has Beacon of Light
+-- alone, for the tank (below the table).
 --
 -- Every id below was checked against retail's own spell data, build
 -- 12.1.0.69933 (wago.tools: SpellName, Spell, SpellEffect, SpellMisc,
@@ -2255,6 +2386,33 @@ local MAINLINE = {
 		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true },
 	},
 }
+
+-- The buffs here for one target at a time (1.11.11, oneTarget), each its
+-- target's alone (`alone`). Build 12.1.0.69933.
+do
+	-- Earth Shield (974): a talent (TraitDefinition 106968 and three more),
+	-- level 10, an hour, through death (SpellMisc Attributes_3 0x4100080, the
+	-- 0x100000 bit), on target 21, any ally. "Earth Shield can only be placed on
+	-- the Shaman and one other target at a time" (with Elemental Orbit, 383010,
+	-- whose shield on you is 383648, another id): one other target. After
+	-- Skyfury, so Automatic gives that first.
+	MAINLINE.SHAMAN[#MAINLINE.SHAMAN + 1] = { key = "earthshieldtank", ranks = { 974 }, oneTarget = true,
+		neverSelf = true, talent = true, alone = true }
+	-- Beacon of Light (53563): Holy's (SpecializationSpells, spec 65), level 16,
+	-- on target 21, with no timer (SpellDuration -1) and lost on death
+	-- (Attributes_3 0x4000000, no 0x100000). "Wrap a single ally." A paladin's
+	-- one buff for others here, so it has its switch on Who to buff.
+	MAINLINE.PALADIN = {
+		{ key = "beacon", ranks = { 53563 }, oneTarget = true, neverSelf = true, talent = true, alone = true,
+			switchable = true },
+	}
+	-- Blistering Scales (360827): Augmentation's (TraitDefinition 120520), an
+	-- hour, fifteen charges (SpellAuraOptions ProcCharges 15), on target 21.
+	-- "Blistering Scales can only be placed on one target at a time." After
+	-- Source of Magic.
+	MAINLINE.EVOKER[#MAINLINE.EVOKER + 1] = { key = "blisteringscales", ranks = { 360827 }, oneTarget = true,
+		neverSelf = true, talent = true, alone = true }
+end
 
 -- A rogue's poisons (and, below, four other classes' own): each is a spell
 -- that puts an aura of its own id on you for an
@@ -2380,8 +2538,11 @@ local MAINLINE_SET = {
 	-- Nothing overwrites anything, and nothing depends on who is there.
 	exclusive = {},
 	auto = {},
+	-- Not the paladin since 1.11.11: Kings, Might and Wisdom died in 7.0.3 and
+	-- Blessing of the Seasons in 12.0.0, but a Holy paladin puts Beacon of Light
+	-- on the tank (above), and one of another specialization has learned nothing
+	-- to give.
 	without = {
-		PALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3, Blessing of the Seasons in 12.0.0
 		DEATHKNIGHT = true,  -- Horn of Winter removed in 11.2.0
 		MONK = true,
 		DEMONHUNTER = true,
@@ -2510,6 +2671,9 @@ do
 		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
 		{ 1800, 403619 }, -- Fel Armor, Season of Discovery's rune (30 min)
 		{ 600, 11743, 2970, 132 }, -- Detect Invisibility, every rank (10 min)
+		{ 600, 408514 }, -- Earth Shield, Season of Discovery's rune (10 min)
+		{ 3600, 407613 }, -- Beacon of Light, Season of Discovery's rune (1 h)
+		{ 300, 403215 }, -- Commanding Shout, Season of Discovery's rune (5 min)
 	})
 
 	-- Burning Crusade Classic Anniversary 2.5.6.69795.
@@ -2621,6 +2785,7 @@ do
 		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
 		{ 1800, 403619 }, -- Fel Armor, the Season of Discovery rune's id (30 min, build 1.60.1.70532)
 		{ 600, 11743, 2970, 132 }, -- Detect Invisibility, every rank (10 min)
+		{ 300, 1328548 }, -- Oath of Light (5 min, build 1.60.1.70790)
 	})
 
 	-- Mists of Pandaria Classic 5.5.4.70032.
@@ -2657,6 +2822,8 @@ do
 		{ 3600, 324 }, -- Lightning Shield (1 h)
 		{ 3600, 52127 }, -- Water Shield (1 h)
 		{ 600, 974 }, -- Earth Shield (10 min)
+		{ 0, 53563 }, -- Beacon of Light (no timer)
+		{ 3600, 110309 }, -- Symbiosis (1 h)
 	})
 
 	-- retail 12.1.0.69933.
@@ -2677,6 +2844,9 @@ do
 		{ 3600, 3408 }, -- Crippling Poison (1 h)
 		{ 3600, 5761 }, -- Numbing Poison (1 h)
 		{ 3600, 381637 }, -- Atrophic Poison (1 h)
+		{ 3600, 974 }, -- Earth Shield (1 h)
+		{ 0, 53563 }, -- Beacon of Light (no timer)
+		{ 3600, 360827 }, -- Blistering Scales (1 h)
 	})
 end
 
