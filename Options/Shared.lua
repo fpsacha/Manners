@@ -136,6 +136,9 @@ function Page.BaggedHeld(family)
 end
 
 function Page.BaggedShown(family)
+	-- A scroll's own switch is gone while Scrolls is off (Options/Who.lua), and
+	-- counts here all the same: Scrolls stands under Myself in its place, to
+	-- be turned on again.
 	if family.food then return true end
 	return ns.OwnPick(family) ~= "off" or Page.BaggedHeld(family)
 end

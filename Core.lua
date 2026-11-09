@@ -299,6 +299,11 @@ local defaults = {
 			-- stone for the weapon, food -- come up only in a dungeon or a
 			-- raid. A rogue's poisons and a fishing lure are not held to it.
 			itemsInDungeons = false,
+			-- Off: no scroll of any kind is offered (Buffs.lua, isScroll: the stat
+			-- scrolls, a mage's familiar and imbue on Forever) and their switches
+			-- leave the page; each keeps its pick below for when this is on again.
+			-- On by default, which is how they were before the switch.
+			scrolls = true,
 			-- Per family, by its key: "auto" (Automatic, or ticked for a family of one),
 			-- a spell's key (always that one), or "off" (Don't remind me). Filled below.
 			pick = {},
@@ -2010,7 +2015,9 @@ do
 
 	local function Known(spell)
 		-- A scroll counts while there is one in the bags: its family is shown
-		-- and read; whether it can be used is ScrollReady's.
+		-- and read; whether it can be used is ScrollReady's. Never while
+		-- Scrolls is off (ns.ScrollsOff): the family is neither.
+		if spell.item and ns.ScrollsOff(spell.family) then return false end
 		if spell.item then return ScrollCount(spell) > 0 end
 		local info = caps.own and caps.own[spell.key]
 		if not (info ~= nil and info.known == true) then return false end
@@ -2081,6 +2088,25 @@ do
 		return waiting
 	end
 
+	-- Whether a family is a scroll (Buffs.lua, isScroll) and Who to buff's
+	-- Scrolls switch is off: then it is never known, offered or shown, and its
+	-- own pick waits in the profile untouched.
+	function ns.ScrollsOff(family)
+		if not (type(family) == "table" and family.isScroll) then return false end
+		local db = addon.db and addon.db.profile
+		local own = type(db) == "table" and db.ownBuffs
+		return type(own) == "table" and own.scrolls == false
+	end
+
+	-- Whether your class has any scroll on this client: the Scrolls switch is
+	-- for those that do (retail has none).
+	function ns.HasScrollFamilies()
+		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
+			if family.isScroll then return true end
+		end
+		return false
+	end
+
 	-- Nothing outside these is read, offered or shown on the options page.
 	function ns.KnownOwnFamilies()
 		local out = {}
@@ -2114,6 +2140,9 @@ do
 		local db = addon.db and addon.db.profile
 		local picks = db and db.ownBuffs and db.ownBuffs.pick
 		local pick = type(picks) == "table" and picks[family.key] or nil
+		-- Scrolls off reads as Don't remind me for every scroll, its own pick
+		-- kept as it was.
+		if ns.ScrollsOff(family) then return "off" end
 		if pick == "off" then return "off" end
 		local spell = ns.FindOwnSpell(pick)
 		if spell and spell.family == family and (spell.item or Known(spell)) then return spell.key, spell end
@@ -4112,7 +4141,9 @@ function ns.ClampSettings()
 	-- A family's pick is "auto", "off" or a spell of that family; anything else
 	-- -- a hand-edited file, a spell moved to another family -- is Automatic, and
 	-- a family this client has no data for goes. Written, not cleared: AceDB puts
-	-- a default back only at the next load.
+	-- a default back only at the next load. The Scrolls switch (ownBuffs.scrolls)
+	-- is a yes or no, put right by type above with the rest; the picks it hides
+	-- are repaired here as any other.
 	local own = profile.ownBuffs
 	if type(own.pick) ~= "table" then own.pick = {} end
 	ns.SplitFindTreasure(own, addon.db.char)

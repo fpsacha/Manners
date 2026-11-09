@@ -284,6 +284,12 @@ each class offers*).
   Blood potions and Gift of Arthas count as elixirs), WoW Forever, Burning
   Crusade and Mists. On retail, *Flask* alone, for every class: Midnight's and
   The War Within's flasks, the better quality first.
+- **Scrolls, all at once.** *Scrolls*, under *Myself* on *Who to buff* and on
+  by default, covers every scroll: the six stat scrolls and, on WoW Forever, a
+  mage's *Familiar* and *Weapon imbue*. Switch it off and no scroll is offered
+  and their switches leave the page; switch it back on and each is as you left
+  it. It shows while you carry a scroll or have one switched on, and while it
+  is off. Not on retail, which has no scrolls.
 - **Forms.** Shadowform, Moonkin Form and Tree of Life are reminded of like
   any other buff of yours, and a druid's form never while you are in another
   one (cat, bear, travel). Moonkin Form comes before Tree of Life, and on
@@ -649,7 +655,9 @@ and *Show the welcome again* at the bottom.
   does *Well Fed*, which every class has and which starts off. Alone, a stone,
   oil or poison is offered again only once it has worn off; in a group, with
   top-ups on, it is renewed ahead of the next pull.
-  So do *Flask*, *Elixir* and each scroll, which start off too.
+  So do *Flask*, *Elixir* and each scroll, which start off too. *Scrolls*, on
+  by default, switches every scroll off at once and takes their switches off
+  the page until it is on again (*Scrolls, all at once*, above).
   Then *Also in cities and inns*, off by default, and *Consumables only in
   dungeons and raids*, also off, which keeps the oils, stones, food, flasks,
   elixirs and scrolls out of the open world (poisons and lures are not held

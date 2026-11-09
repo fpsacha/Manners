@@ -198,7 +198,10 @@ default everywhere in the tests and the only client anybody here plays.
     (`ownBuffs.itemsInDungeons`, the key kept from its old name) holds back
     oils, stones, food and these. A spell family off
     until it is turned on is `optIn` (a warlock's Detect Invisibility: vanilla,
-    camelot and tbc; Mists and retail have no such spell).
+    camelot and tbc; Mists and retail have no such spell). `isScroll` marks
+    every scroll (the stat scrolls, Forever's Familiar and Weapon imbue): the
+    *Scrolls* switch under Myself (`ownBuffs.scrolls`, `ns.ScrollsOff`) turns
+    them all off and hides their rows, each pick kept.
   - level cap for "Skip players below level": 60, tbc 70, mists and mainline 90
     (Core.lua).
 

@@ -15,6 +15,10 @@
   buff*, and Find Treasure on no longer hides a gathering tracking that is
   off. It is reminded of once you have had it on yourself, so nobody is asked
   to put it up who never does.
+- **Your own buffs.** A *Scrolls* switch under *Myself* on *Who to buff* turns
+  every scroll off at once: the stat scrolls and, on WoW Forever, a mage's
+  *Familiar* and *Weapon imbue*. While it is off no scroll is offered and their
+  switches leave the page; turned back on, each is as you left it.
 
 ## 1.11.12
 
