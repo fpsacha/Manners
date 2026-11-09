@@ -957,6 +957,11 @@ end
 -- close X is the only template it uses: 24 square, and a click hides the
 -- frame it sits on.
 function FT.template(f, template)
+	-- A header that runs snippets, as the mock's own CreateFrame makes one
+	-- (tests/mockwidgets.lua, "secure handlers").
+	if type(template) == "string" and template:find("SecureHandlerStateTemplate", 1, true) and Mock.makeSecureHeader then
+		Mock.makeSecureHeader(f)
+	end
 	if type(template) ~= "string" or not template:find("UIPanelCloseButton", 1, true) then return end
 	f._width, f._height = f._width or 24, f._height or 24
 	if not f.scripts.OnClick then

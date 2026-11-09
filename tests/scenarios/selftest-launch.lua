@@ -910,6 +910,45 @@ variation("no handler for a display change reads CHECK",
 	end,
 	function(results, _, scenario) expect(scenario, results, "launch.display", "CHECK", "DISPLAY_SIZE_CHANGED has no handler") end)
 
+-- Hide the prompt in combat (Prompt/Fight.lua): the secure parts it rests on.
+variation("hide in combat: the header, the driver and the snippet are asked",
+	function() end,
+	function(results, _, scenario) expect(scenario, results, "launch.fighthide", "PASS", "left type1 nil, macrotext1 nil, shown false") end)
+
+variation("hide in combat: a snippet that cannot run reads FAIL",
+	function(ns)
+		local header = ns.Prompt:FightHeader()
+		local execute = header.Execute
+		header.Execute = function() error("injected", 0) end
+		return function() header.Execute = execute end
+	end,
+	function(results, _, scenario) expect(scenario, results, "launch.fighthide", "FAIL", "cannot run here") end)
+
+variation("hide in combat: a snippet that leaves the macro reads FAIL",
+	function(ns)
+		local header = ns.Prompt:FightHeader()
+		local execute = header.Execute
+		header.Execute = function() end
+		return function() header.Execute = execute end
+	end,
+	function(results, _, scenario) expect(scenario, results, "launch.fighthide", "FAIL", "could not take a secure button's macro off") end)
+
+variation("hide in combat: a driver that does not read peace reads FAIL",
+	function(ns)
+		local header = ns.Prompt:FightHeader()
+		header.attributes["state-mannersfight"] = "fight"
+		return function() header.attributes["state-mannersfight"] = "peace" end
+	end,
+	function(results, _, scenario) expect(scenario, results, "launch.fighthide", "FAIL", "does not answer peace") end)
+
+variation("hide in combat: no header reads CHECK with the switch off",
+	function(ns)
+		local get = ns.Prompt.FightHeader
+		ns.Prompt.FightHeader = function() return nil end
+		return function() ns.Prompt.FightHeader = get end
+	end,
+	function(results, _, scenario) expect(scenario, results, "launch.fighthide", "CHECK", "no secure header") end)
+
 -- The looks
 do
 	local scenario = "selftest-launch: a look that throws is its own FAIL and the style still goes back"

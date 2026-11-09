@@ -24,6 +24,12 @@
   own switch under *Myself* on *Who to buff*, on by
   default and apart from the switch for casting it on others. Another
   warlock's Unending Breath or a shaman's Water Breathing on you counts.
+- **Hide the prompt in combat**, a new switch under Look > Getting my attention:
+  the prompt and its list leave the screen for the whole fight and come back
+  when it ends, armed for whoever it names by then. While it is away nothing
+  casts from it: not its key, not a name in its list, not the Manners macro on
+  your bar. Off by default. *No flashes in combat* keeps its meaning and now
+  points to it.
 
 ## 1.11.12
 

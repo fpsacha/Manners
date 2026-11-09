@@ -155,7 +155,7 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 
 ![The prompt twice with its tooltip above it: the Short one with the name, the spell, why they are offered and Hold Shift for more; the Full one with Shift held, saying what the press and each click do](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-tooltip.png)
 
-- In a fight the prompt keeps what the fight found, and names in the list cannot be clicked until it ends.
+- In a fight the prompt keeps what the fight found, and names in the list cannot be clicked until it ends. Or switch on *Hide the prompt in combat* (Look): it leaves the screen for the fight, its key and your bar macro casting nothing, and comes back when the fight ends.
 - Passers-by are seen through the game's friendly nameplates. With them off Manners sees almost nobody outside your group; the *Who to buff* tab says so and has a button to turn them on.
 
 ### Report a bug (please include a log)

@@ -1319,6 +1319,77 @@ Launch("launch.display", "display change", function(add)
 end)
 
 ---------------------------------------------------------------------------
+-- the prompt hidden for a fight
+---------------------------------------------------------------------------
+
+-- Hide the prompt in combat (Prompt/Fight.lua) rests on the client's secure
+-- handlers: a state driver reading [combat], and a snippet that takes a
+-- protected button's macro off and hides it. Out of a fight none of it can be
+-- seen at work, so its parts are asked one by one: the header made and driven,
+-- the condition's answer now, and the snippet's two actions tried on a scratch
+-- secure button of the test's own, never on the prompt.
+local FIGHT_PROBE = [[
+	local b = self:GetFrameRef("selftest")
+	if b then
+		b:SetAttribute("type1", nil)
+		b:SetAttribute("macrotext1", nil)
+		b:Hide(true)
+	end
+]]
+
+Launch("launch.fighthide", "hide in combat", function(add)
+	local Prompt = ns.Prompt
+	local header = Prompt and Prompt.FightHeader and Prompt:FightHeader()
+	local status, notes, parts = PASS, {}, {}
+	local function worse(s, note)
+		if RANK[s] > RANK[status] then status = s end
+		notes[#notes + 1] = note
+	end
+	local on = ns.db and ns.db.profile.prompt.hideInFight == true
+	parts[#parts + 1] = "Hide the prompt in combat is " .. (on and "on" or "off")
+	if not header then
+		add(on and FAIL or CHECK, table.concat(parts, "; ") .. " -- no secure header was made, so the prompt stays up in a fight")
+		return
+	end
+	local okP, value = Ask(_G.SecureCmdOptionParse, "[combat] fight; peace")
+	parts[#parts + 1] = "SecureCmdOptionParse(\"[combat] fight; peace\") answers " .. (okP == true and Show(value) or "an error")
+	if okP ~= true or value ~= "peace" then worse(FAIL, "the driver's condition does not read peace out of a fight") end
+	local okS, state = Call(header, "GetAttribute", "state-mannersfight")
+	parts[#parts + 1] = "the driver reads " .. (okS == true and Show(state) or "nothing readable")
+	if okS ~= true or state ~= "peace" then worse(FAIL, "the state driver does not answer peace out of a fight") end
+	local okH, hide = Call(header, "GetAttribute", "manners-hide")
+	if okH == true and hide == true then worse(FAIL, "out of a fight the header still says to hide") end
+	local s = Scratch()
+	if not s.fightButton then
+		local okB, b = pcall(CreateFrame, "Button", nil, s.frame, "SecureActionButtonTemplate")
+		s.fightButton = okB and b or false
+	end
+	local b = s.fightButton
+	if not b then
+		add(CHECK, table.concat(parts, "; ") .. " -- no scratch secure button could be made, so the snippet was not tried")
+		return
+	end
+	Call(b, "SetAttribute", "type1", "macro")
+	Call(b, "SetAttribute", "macrotext1", "#selftest")
+	Call(b, "Show")
+	local okR, errR = Call(header, "SetFrameRef", "selftest", b)
+	local okE, errE = Call(header, "Execute", FIGHT_PROBE)
+	local _, type1 = Call(b, "GetAttribute", "type1")
+	local _, text1 = Call(b, "GetAttribute", "macrotext1")
+	local _, shown = Call(b, "IsShown")
+	parts[#parts + 1] = ("a snippet on a scratch secure button %s; it left type1 %s, macrotext1 %s, shown %s"):format(
+		(okR == true and okE == true) and "ran" or ("did not run (" .. tostring(okR == true and errE or errR) .. ")"),
+		Show(type1), Show(text1), Show(shown))
+	if okR ~= true or okE ~= true then
+		worse(FAIL, "the restricted snippet cannot run here, so a fight would never hide or disarm the prompt")
+	else
+		if type1 ~= nil or text1 ~= nil then worse(FAIL, "the snippet could not take a secure button's macro off") end
+		if shown == true then worse(FAIL, "the snippet could not hide a secure button") end
+	end
+	add(status, table.concat(parts, "; ") .. (#notes > 0 and (" -- " .. table.concat(notes, "; ")) or ""))
+end)
+
+---------------------------------------------------------------------------
 -- running them
 ---------------------------------------------------------------------------
 

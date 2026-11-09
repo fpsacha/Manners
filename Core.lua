@@ -421,6 +421,9 @@ local defaults = {
 			-- protected frame is refused in combat. The key keeps its old name
 			-- because renaming it would silently reset everyone's setting.
 			hideInCombat = false,
+			-- The whole prompt off the screen for a fight, its key, its list and
+			-- the bar macro casting nothing meanwhile (Prompt/Fight.lua).
+			hideInFight = false,
 			-- The built-in looks (Glass, Framed, Minimal) draw the prompt at about
 			-- half strength in a fight when this is on, so it reads as held. Off by
 			-- default: a dim that stacks with a low Opacity made it vanish.
@@ -4784,6 +4787,9 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- the target now. See STRATEGIES.target.
 	if ns.Prompt then ns.Prompt.armedForFight = true end
 	if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
+	-- After that repaint wrote the bar macro, and still before the lockdown:
+	-- whether the fight takes the prompt off the screen (Prompt/Fight.lua).
+	if ns.Prompt then ns.Guard("hide for the fight", ns.Prompt.ArmFightHide, ns.Prompt) end
 	C_Timer.After(0, function()
 		if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
 	end)
@@ -4824,6 +4830,9 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- Requests held through the fight get their minute from now, before the
 	-- Refresh below so it can offer them.
 	ns.Guard("requests after the fight", ns.RequestsAfterFight)
+	-- A prompt the fight took off the screen is armed afresh and shown by the
+	-- repaint below, as any repaint arms and shows it (Prompt/Fight.lua).
+	if ns.Prompt then ns.Guard("fight hide release", ns.Prompt.ReleaseFightHide, ns.Prompt) end
 	if ns.Prompt and ns.Prompt.pendingStyle then
 		ns.Prompt:ApplyStyle()
 	elseif ns.Prompt then

@@ -1472,6 +1472,9 @@ do
 		if not (R.button and R.button:IsShown()) then return body.waitBody end
 		local db = addon.db and addon.db.profile
 		if not (db and db.enabled and db.prompt.locked) then return body.waitBody end
+		-- A fight the prompt sits out off the screen (Prompt/Fight.lua): the pull
+		-- writes the bar line alone, so nothing casts from the bar unseen either.
+		if P.armedForFight == true and P:HidesForFight() then return body.waitBody end
 		-- The macro made at the pull serves the whole fight, as the button does:
 		-- a flash at that moment, or a cooldown, must not freeze it empty.
 		if P.armedForFight ~= true then
@@ -1644,6 +1647,23 @@ do
 		if type(index) ~= "number" or index <= 0 then return nil end
 		local text = safecall(_G.GetMacroBody, index)
 		return type(text) == "string" and Trimmed(text) or nil
+	end
+
+	-- Whether a press of the bar macro, as the client holds it now, casts
+	-- nothing: no macro named Manners, or the bar line alone under any "#"
+	-- lines. Anything else is a no: a cast under the bar line (a session
+	-- before's included), an older version's body, and a macro changed by hand,
+	-- whose lines run at every press whatever the prompt is doing. Read from
+	-- the client, not from what was last written: the prompt is hidden for a
+	-- fight only on this answer (Prompt/Fight.lua).
+	function ns.BarMacroDisarmed()
+		local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
+		if type(index) ~= "number" then return false end
+		if index <= 0 then return true end
+		local text = safecall(_G.GetMacroBody, index)
+		if type(text) ~= "string" then return false end
+		local _, _, rest = Classify(Trimmed(text))
+		return rest ~= nil and #rest == 1 and rest[1] == BAR_LINE
 	end
 
 	-- Where the macro named Manners is, 0 for nowhere: a press is filed only

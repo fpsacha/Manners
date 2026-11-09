@@ -249,6 +249,15 @@ sub-second subset for the middle of an edit.
 - `addonfiles.lua`: the addon's files in load order, read from `Manners.toc`,
   for every loader. `harness.lua`: what `runharness.py` drives.
 - `frametree.lua`, `mockwidgets.lua`, `mockwindow.lua`: the mock's frames.
+  `mockwidgets.lua` also models Blizzard's secure handlers ("secure handlers
+  and state drivers"): `RegisterStateDriver` and `RegisterAttributeDriver`
+  (refused in a fight; answered at once, then on `Mock.runTimers` every 0.2 s
+  and the frame after `Mock.frameEvent` of a `PLAYER_REGEN_*`), a
+  `SecureHandlerStateTemplate` header running `_onstate-<id>` in an
+  environment of its own with frame handles, and `SecureCmdOptionParse`
+  (mockapi.lua) reading `[combat]` from `Mock.affectingCombat`, else
+  `Mock.inCombat`. Secure code's calls in a fight are not the addon's
+  (`Mock.secureCode`).
 - `fxgeometry.lua`: where an effect's region sits at a moment (what a playing
   group does to the frame that owns it, a Scale about the origin it names),
   dofile'd after `frametree.lua` by `scenarios/hunt37-effects.lua` and

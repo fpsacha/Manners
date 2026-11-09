@@ -374,6 +374,23 @@ own piece of work: pets have no unique name, are not players and are not in
 `UnitInParty`, so the walk, the macro (`/target` by token, not by name) and the
 settle all need it.
 
+**Hide the prompt in combat (Unreleased), asked for on CurseForge.** Look's new
+switch (`prompt.hideInFight`, off) takes the prompt and its list off the screen
+for a fight through a `SecureHandlerStateTemplate` header with a `[combat]
+fight; peace` state driver (`Prompt/Fight.lua`): its snippet clears type1,
+macrotext1, type and macrotext on the prompt and every row, then hides the
+prompt; the pull first writes the bar macro to its first line alone, and the
+prompt is hidden only when the macro reads back that way. Built on
+Blizzard's SecureStateDriver.lua, SecureHandlers.lua and RestrictedFrames.lua
+(the same on all five branches) and the mock's model of them. Only the live
+game can say: that the snippet runs in a fight on each client and the key
+binding, `/click MannersPrompt` and the bar macro then cast nothing (`/manners
+selftest launch` has a `launch.fighthide` line: the header, the driver
+reading peace, and the snippet tried on a scratch secure button out of combat);
+that `PLAYER_REGEN_DISABLED` still lets the bar macro be written on every
+client, as the pull already relies on; and that the prompt comes back with its
+entrance after the fight.
+
 **The fuzzer's request model (1.11.9).** Two 500-seed findings ("asked for motw
 and is offered as group/target") were the fuzzer's, not the addon's: a second
 line ("thorns pls") replaces a person's request (Requests.lua, NoteRequest, one
