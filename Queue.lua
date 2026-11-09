@@ -287,6 +287,12 @@ do
 		"SPELL_FAILED_NOT_READY", "ERR_SPELL_COOLDOWN", "ERR_ABILITY_COOLDOWN",
 		"SPELL_FAILED_SPELL_IN_PROGRESS", "SPELL_FAILED_TARGETS_DEAD" }
 
+	-- The game itself said they are out of range, which the scan cannot always
+	-- learn on this client: long enough for the prompt not to put them straight
+	-- back up. A floor under the back-off's first steps, not a step of its own.
+	local OUT_OF_RANGE = { "ERR_OUT_OF_RANGE", "SPELL_FAILED_OUT_OF_RANGE" }
+	local OUT_OF_RANGE_SECONDS = 10
+
 	-- Whether the game's words are one of these global strings.
 	local function OneOf(message, keys)
 		if type(message) ~= "string" then return false end
@@ -402,6 +408,7 @@ do
 		local debt = owed[name]
 		local steps = (debt and LiveExpiry(debt) > now) and OWED_STEPS or STEPS
 		local seconds = steps[math.min(r.count, #steps)]
+		if seconds < OUT_OF_RANGE_SECONDS and OneOf(why, OUT_OF_RANGE) then seconds = OUT_OF_RANGE_SECONDS end
 		if now + seconds > r.blockUntil then r.blockUntil = now + seconds end
 		-- The line stays held past the back-off: somebody the game keeps refusing
 		-- comes back when it runs out, and the first press then would thank them
@@ -2316,6 +2323,7 @@ function ns.BuildQueue(watch)
 		-- far off they are is asked instead, and the answer rides on the entry
 		-- to the press: a shout nothing measured repays nobody.
 		if ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end
+		if ranged == nil then ranged = ns.PastFollowReach(unit) end
 		if f.requireInRange and ranged == false then rejected[full] = true return end
 
 		-- A deliberate target outranks a debt, but only once their auras were read

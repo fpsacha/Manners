@@ -3783,6 +3783,19 @@ function ns.ShoutSure(unit)
 	return false
 end
 
+-- False when the follow prompt (about 28 yards) says this unit is past it, nil
+-- otherwise: the second opinion for a spell whose own range check had nothing
+-- to say, which is often on Forever, and left somebody far off on the prompt
+-- with every press answered "Out of range". Only its no counts: a yes or a
+-- silence is still "could not tell", which is offered. Never in a fight, for
+-- the reason in ShoutReach.
+function ns.PastFollowReach(unit)
+	if InCombatLockdown() or type(_G.CheckInteractDistance) ~= "function" then return nil end
+	local follow = plain(_G.CheckInteractDistance(unit, 4))
+	if follow ~= nil and follow ~= true and follow ~= 1 then return false end
+	return nil
+end
+
 -- Whether the buff reaches this unit right now, asked the way the scan asks it
 -- for entry.ranged. The prompt's press asks again just before its macro runs:
 -- the scan can be a tick old, and somebody who walked off since would still be
@@ -3791,6 +3804,7 @@ function ns.ReachNow(unit, buff)
 	if not (unit and buff) then return nil end
 	local ranged = InRange(unit, buff)
 	if ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end
+	if ranged == nil then ranged = ns.PastFollowReach(unit) end
 	return ranged
 end
 

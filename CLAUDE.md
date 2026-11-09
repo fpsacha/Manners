@@ -120,7 +120,10 @@ default everywhere in the tests and the only client anybody here plays.
     in `/w` (Speech.lua asks the client, assumes them on Forever when it will
     not say, and walks the name as Forever's `ExtractTellTarget` does:
     accents and apostrophes are fine); no Blessing of Sanctuary, Omen of Clarity
-    passive, Kings and Divine Spirit trained.
+    passive, Kings and Divine Spirit trained; a private line once a session
+    for whoever buffs the author's character through the prompt
+    (`ns.NoteBuffedAuthor`, Clicks.lua; deliberately not in the listings or
+    the changelog).
   - classic family (vanilla, tbc, mists): the combat log is read in addition
     to the aura scan (`ns.combatLogArmed`); never registered on modern clients
     (registration is refused there).

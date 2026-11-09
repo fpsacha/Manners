@@ -470,6 +470,24 @@ local function SettleSelf(pending, spellId, castGUID)
 	end
 end
 
+-- A private line, once a session, for somebody on WoW Forever who buffs the
+-- author's character through the prompt. Never for the author. In a block for
+-- the main chunk's 200 locals (Lua 5.1).
+do
+	local AUTHOR = "Mort Defrette"
+	local told = false
+	function ns.NoteBuffedAuthor(name)
+		if told or name ~= AUTHOR or ns.Flavour.flavour ~= "camelot" or ns.IsPlayerName(name) then return end
+		told = true
+		local lines = {
+			L["You just buffed the author of Manners. Mort Defrette has filed this under working as intended."],
+			L["Mort Defrette wrote this addon, so any thanks you get back are, strictly speaking, automated."],
+			L["You have buffed the author of Manners. Your feedback has been received and will be cherished."],
+		}
+		addon:Print(lines[math.random(#lines)])
+	end
+end
+
 local function SettlePendingClick(landedOn, spellId, castGUID)
 	local pending = ns.pendingClick
 	if not pending then return end
@@ -604,6 +622,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	if not unheard then ns.SettleFavour(pending.name) end
 	if not unheard then ns.ServeRequest(pending.name, pending.buffKey) end
 	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
+	if not unheard then ns.NoteBuffedAuthor(pending.name) end
 	-- A group cast settles everybody else it covered with the same evidence.
 	-- A shout is never one, so `unheard` cannot be true here.
 	local members, givenAs

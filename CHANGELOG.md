@@ -6,6 +6,9 @@
   nameplates off, Manners sees almost nobody outside your group. *Who to buff*
   now says so in red with a red dot beside the page, and *Start here* shows the
   same note and the *Show friendly nameplates* button under step 1.
+- **Out of range.** Somebody too far away for your spell no longer stays on the
+  prompt when the game's own range check has nothing to say about them. After
+  the game answers *Out of range*, they stay off the prompt for ten seconds.
 - **Paladins: another paladin's Kings.** Somebody wearing Kings from another
   paladin is now offered your Might or Wisdom even where the game does not say
   who cast it. It used to be taken for your own and they were skipped.

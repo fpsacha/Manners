@@ -704,9 +704,12 @@ list. They used to be at the bottom of *Who to buff*.
   too low a level for the rank you cast. Somebody who buffed you, asked, or
   you targeted is always offered. Every priest and paladin trains Divine
   Spirit and Kings on WoW Forever, so those are skipped the same way.
-- *Skip players out of range*: where the game cannot tell, they are still
-  offered. A group member the game cannot see at all (still in town, or far
-  off in the instance) is left out.
+- *Skip players out of range*: where the spell's own range check has nothing
+  to say, the game's follow distance (about 28 yards) is asked instead. Where
+  nothing can tell, they are still offered. A group member the game cannot see
+  at all (still in town, or far off in the instance) is left out. Whoever the
+  game has just answered *Out of range* for stays off the prompt for ten
+  seconds.
 - *Skip players below level*: read off the unit, so somebody known only by
   name (the usual case for a passer-by who buffed you) cannot be checked and
   is offered anyway.
