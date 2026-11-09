@@ -3788,8 +3788,10 @@ end
 -- to say, which is often on Forever, and left somebody far off on the prompt
 -- with every press answered "Out of range". Only its no counts: a yes or a
 -- silence is still "could not tell", which is offered. Never in a fight, for
--- the reason in ShoutReach.
+-- the reason in ShoutReach. Forever only: its buffs reach 30 yards, while a
+-- Mists or retail buff or shout reaches well past the prompt's 28.
 function ns.PastFollowReach(unit)
+	if ns.Flavour.flavour ~= "camelot" then return nil end
 	if InCombatLockdown() or type(_G.CheckInteractDistance) ~= "function" then return nil end
 	local follow = plain(_G.CheckInteractDistance(unit, 4))
 	if follow ~= nil and follow ~= true and follow ~= 1 then return false end

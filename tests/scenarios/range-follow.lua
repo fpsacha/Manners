@@ -90,6 +90,15 @@ do
 end
 
 do
+	local scenario = "range-follow: only WoW Forever asks the follow prompt"
+	party(scenario, function() Mock.setFlavour("mists") end, function(ns)
+		if ns.PastFollowReach("party1") ~= nil then
+			fail(scenario, "Mists read Anna past the follow prompt, inside a spell's 40 yards")
+		end
+	end)
+end
+
+do
 	local scenario = "range-follow: nothing is asked of the follow prompt in a fight"
 	party(scenario, nil, function(ns)
 		Mock.inCombat = true

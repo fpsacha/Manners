@@ -24,6 +24,12 @@ mutate("Core.lua",
        expect="range-follow: nothing is asked of the follow prompt in a fight", script=S)
 
 mutate("Core.lua",
+       "\tif ns.Flavour.flavour ~= \"camelot\" then return nil end\n\tif InCombatLockdown()",
+       "\tif InCombatLockdown()",
+       "range-follow: every client asks the follow prompt",
+       expect="range-follow: only WoW Forever asks the follow prompt", script=S)
+
+mutate("Core.lua",
        "\tif follow ~= nil and follow ~= true and follow ~= 1 then return false end\n\treturn nil\n",
        "\tif follow ~= true and follow ~= 1 then return false end\n\treturn nil\n",
        "range-follow: the follow prompt's silence read as far",

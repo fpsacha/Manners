@@ -990,8 +990,12 @@ for _, withMenu in ipairs({ true, false }) do
 			if withMenu then
 				if not Mock.menu then fail(scenario, "the Animations dropdown opened no menu") end
 				if P.effects ~= was then fail(scenario, "opening the menu changed Animations") end
-			elseif P.effects == was then
-				fail(scenario, "with no MenuUtil the Animations dropdown does nothing: still " .. tostring(was))
+			else
+				local list = ns.WindowWidgets.choiceList
+				if not (list and list.screen:IsShown()) then
+					fail(scenario, "with no MenuUtil the Animations dropdown does nothing")
+				end
+				if P.effects ~= was then fail(scenario, "opening the list changed Animations") end
 			end
 		end
 		ns.CloseOptions()

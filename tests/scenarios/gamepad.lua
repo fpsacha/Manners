@@ -148,7 +148,20 @@ do
 		local row, field = dropDown(scenario, ns)
 		if not row then return end
 		local before = row.value:GetText()
-		press(field)
+		-- The list is built by the first press: its strata is caught on the way.
+		local create, strata = rawget(_G, "CreateFrame"), nil
+		rawset(_G, "CreateFrame", function(...)
+			local frame = create(...)
+			local set = frame.SetFrameStrata
+			frame.SetFrameStrata = function(self, value, ...)
+				strata = value
+				if set then return set(self, value, ...) end
+			end
+			return frame
+		end)
+		local pressed, why = pcall(press, field)
+		rawset(_G, "CreateFrame", create)
+		if not pressed then error(why) end
 		if count() ~= 0 then fail(scenario, "a drop-down opened the client's menu with a gamepad on") end
 		if row.value:GetText() ~= before then fail(scenario, "opening the list changed the choice") end
 		local list = ns.WindowWidgets.choiceList
@@ -156,8 +169,8 @@ do
 			fail(scenario, "the drop-down opened no list")
 			return
 		end
-		if list.screen._strata ~= "FULLSCREEN_DIALOG" then
-			fail(scenario, "the list draws at " .. tostring(list.screen._strata) .. ", under the window")
+		if strata ~= "FULLSCREEN_DIALOG" then
+			fail(scenario, "the list draws at " .. tostring(strata) .. ", under the window")
 		end
 		local other
 		for i, v in ipairs(row.values) do

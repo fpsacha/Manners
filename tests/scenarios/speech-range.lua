@@ -980,9 +980,9 @@ for _, case in ipairs({
 				fail(scenario, "SKIPPED -- the first press did not go out silent at Weirbeard: " .. flat(ran))
 			else
 				ns.addon:UI_ERROR_MESSAGE(nil, 0, words)
-				-- Back in reach, the back-off over.
+				-- Back in reach, the back-off over (ten seconds after "Out of range").
 				Mock.rangeByUnit = nil
-				Mock.advance(5)
+				Mock.advance(11)
 				ns.addon:Tick()
 				local again, castAgain, saidAgain = pressAt(ns)
 				if not castAgain then
