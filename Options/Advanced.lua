@@ -47,11 +47,13 @@ Page.RESET = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
 		"sources.owed", "sources.group", "sources.strangers", "sources.asked", "sources.self",
 		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
-		"groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
+		"ownBuffs.scrolls", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"buff.leaveBlessed",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()
+			-- The bags counted again for what is switched on now (Scrolls, the picks).
+			if ns.ForgetScrolls then ns.ForgetScrolls() end
 			-- An own buff's pick shows at once, as its own control does it.
 			ns.Prompt:Refresh()
 			-- The favour count follows People who buff me.

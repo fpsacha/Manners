@@ -850,7 +850,8 @@ do
 			if row.lapses then spells[i].lapses = true end
 		end
 		if #spells == 0 then return nil end
-		return { key = key, label = label, bagged = true, consumable = true, toggle = true, spells = spells }
+		return { key = key, label = label, bagged = true, consumable = true, toggle = true, spells = spells,
+			isScroll = prefix == "scroll" or nil }
 	end
 	for client, data in pairs(ns.CONSUMABLES or {}) do
 		local list = {}
@@ -1020,6 +1021,11 @@ end
 --             Well Fed (`food`) and Well-Rested (`rest`), above.
 --   optIn     off until it is turned on, like a bagged family, but a spell:
 --             a warlock's Detect Invisibility.
+--   isScroll  a scroll: the stat scrolls (CONSUME, above) and a mage's familiar
+--             and weapon imbue on Forever (CAMELOT_OWN, below). Who to buff's
+--             Scrolls switch (ownBuffs.scrolls) turns them all off at once and
+--             takes their switches off the page, each keeping its own pick
+--             (Core.lua, ns.ScrollsOff).
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
@@ -1912,6 +1918,7 @@ do
 		key = "familiar",
 		label = L["Familiar"],
 		scroll = true,
+		isScroll = true,
 		spells = {
 			{ key = "catfamiliar", item = 277493, level = 25, ranks = { 1302303 } },
 			{ key = "frogfamiliar", item = 277483, level = 16, ranks = { 1302285 } },
@@ -1926,6 +1933,7 @@ do
 		scroll = true,
 		imbue = true,
 		enchantKind = "imbue",
+		isScroll = true,
 		spells = {
 			{ key = "imbuegreaterflame", item = 277500, level = 46, ranks = { 1302311 }, enchant = 8716, weapon = STAFF },
 			{ key = "imbuegreaterfrost", item = 277501, level = 46, ranks = { 1302312 }, enchant = 8717, weapon = STAFF },

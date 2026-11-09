@@ -73,6 +73,8 @@ local function BugReport()
 	end
 	lines[#lines + 1] = ("own inCities=%s %s"):format(tostring(db.ownBuffs.inCities),
 		#picks > 0 and table.concat(picks, " ") or "none known")
+	-- Every scroll switched off at once (Who to buff, Scrolls), when it is.
+	if db.ownBuffs.scrolls == false then lines[#lines + 1] = "own scrolls=off" end
 	-- The spells ticked under Never remind me about, when there are any.
 	local left = {}
 	for key, on in pairs(db.ownBuffs.leave or {}) do

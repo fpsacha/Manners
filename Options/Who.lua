@@ -326,6 +326,24 @@ function Consumable.Desc(family)
 	return text
 end
 
+-- Whether the Scrolls switch is shown: on a client where your class has a
+-- scroll (Buffs.lua, isScroll; never retail), while it is off, so it can be
+-- turned on again, or while the switch of any scroll is shown: a stat scroll
+-- switched on or in the bags, a mage's familiar or imbue in the bags.
+local function ScrollSwitchShown()
+	if not ns.HasScrollFamilies() then return false end
+	if ns.db.profile.ownBuffs.scrolls == false then return true end
+	for _, family in ipairs(ns.GetOwnFamilies() or {}) do
+		if family.isScroll and family.consumable and (ns.OwnPick(family) ~= "off" or Consumable.Held(family)) then
+			return true
+		end
+	end
+	for _, family in ipairs(ns.KnownOwnFamilies()) do
+		if family.isScroll then return true end
+	end
+	return false
+end
+
 -- One control per family of your class's own buffs, under "Myself" on Who to
 -- buff: a dropdown where there is a choice (Automatic, each spell you know,
 -- Don't remind me), a checkbox for a spell alone. Made for every family of
@@ -355,6 +373,8 @@ local function AddOwnControls(args)
 				order = order,
 				width = "full",
 				hidden = function()
+					-- Every scroll's switch goes while Scrolls is off, its pick kept.
+					if ns.ScrollsOff(family) then return true end
 					-- Shown bags or none: food is not counted until it is switched on.
 					if family.food then return false end
 					-- The sleeping bag, which few have: shown while it is in the
@@ -495,7 +515,7 @@ local function ForOthersOnly(args)
 		-- Consumables only in dungeons and raids is about your own buffs too:
 		-- a hunter's or a shaman's food and flasks.
 		if not (key == "myselfHeader" or key == "self" or key == "ownCities" or key == "ownDungeons"
-			or key:find("^own_")) then
+			or key == "ownScrolls" or key:find("^own_")) then
 			local was = arg.hidden
 			arg.hidden = function(...)
 				if not HasClassBuffs() then return true end
@@ -1072,6 +1092,27 @@ function Page.BuildWhoTab()
 				get = function() return ns.db.profile.ownBuffs.itemsInDungeons == true end,
 				set = function(_, value)
 					ns.db.profile.ownBuffs.itemsInDungeons = value
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
+			-- Every scroll at once (Buffs.lua, isScroll), asked for by a player
+			-- who wanted them off this list: off, none is offered and their
+			-- switches go (ns.ScrollsOff); each keeps its own pick for when it
+			-- is on again. Shown as ScrollSwitchShown says.
+			ownScrolls = {
+				type = "toggle",
+				name = L["Scrolls"],
+				desc = L["Off: no scroll is ever offered to you, and the switches for scrolls leave this list. Turned back on, each scroll is as you left it."],
+				order = 15.97,
+				width = "full",
+				hidden = function() return NothingForSelf() or not ScrollSwitchShown() end,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.scrolls ~= false end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.scrolls = value == true
+					-- The bags are counted again for the scrolls switched on.
+					if ns.ForgetScrolls then ns.ForgetScrolls() end
 					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 				end,
 			},

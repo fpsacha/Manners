@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Your own buffs.** A *Scrolls* switch under *Myself* on *Who to buff* turns
+  every scroll off at once: the stat scrolls and, on WoW Forever, a mage's
+  *Familiar* and *Weapon imbue*. While it is off no scroll is offered and their
+  switches leave the page; turned back on, each is as you left it.
+
 ## 1.11.12
 
 - **Favours.**

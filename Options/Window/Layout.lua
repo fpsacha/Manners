@@ -278,6 +278,9 @@ ns.WindowLayout = {
 					{ "who.own_scrollstamina", indent = true },
 					{ "who.own_scrollspirit", indent = true },
 					{ "who.own_tracking", indent = true },
+					-- Every scroll at once, under the families: off, the scrolls'
+					-- switches above are gone (Options/Who.lua, ownScrolls).
+					{ "who.ownScrolls", indent = true },
 					-- Where the reminders come up, right under the families, so
 					-- they never read as items of the list below them.
 					{ "who.ownCities", indent = true },
@@ -614,6 +617,7 @@ ns.WindowLayout = {
 	keywords = {
 		["general.silentChat"] = L["quiet mute spam"],
 		["general.verbose"] = L["quiet mute spam"],
+		["who.ownScrolls"] = L["hide familiar imbue"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the

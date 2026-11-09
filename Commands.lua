@@ -111,7 +111,9 @@ do
 		local out = {}
 		if not db or db.sources.self ~= true then return out end
 		local families = ns.KnownOwnFamilies()
-		if #families == 0 and #ns.SelfBuffs() == 0 then return out end
+		-- Every scroll switched off at once (Who to buff, Scrolls), said last.
+		local scrollsOff = db.ownBuffs.scrolls == false and ns.HasScrollFamilies()
+		if #families == 0 and #ns.SelfBuffs() == 0 and not scrollsOff then return out end
 		local held = ns.MyselfHeldBack(db, now)
 		if held == "resting" then
 			out[#out + 1] = L["your own buffs: held back -- you are in a city or an inn, and %s is off."]
@@ -131,6 +133,10 @@ do
 		local ctx = { name = ns.UnitFullName("player"), now = now,
 			whenBuffed = ns.SelfWhenBuffed(db.filters), refreshUnder = db.filters.refreshUnder }
 		for _, family in ipairs(families) do out[#out + 1] = FamilyLine(family, ctx) end
+		-- None of the scrolls has a line above, so this says why.
+		if scrollsOff then
+			out[#out + 1] = L["%s: switched off -- no scroll is offered."]:format(L["Scrolls"])
+		end
 		return out
 	end
 end
