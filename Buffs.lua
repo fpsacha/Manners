@@ -1809,7 +1809,10 @@ end
 -- Demonic Sacrifice's auras last half an hour (two hours on Forever) and are
 -- offered again once gone, never topped up: a toggle with a timer (`timed`).
 -- Soul Link's 25228 is an area aura the demon puts on you (SpellEffect 143 on
--- Burning Crusade), so the client names your pet as its caster (`byPet`).
+-- Burning Crusade; 119, the pet's area aura that reaches its owner, on Classic
+-- Era 1.15.9.70003 and Forever 1.60.1.70790), so the client names your pet as
+-- its caster (`byPet`) on all three. Until 1.11.13 only Burning Crusade's was
+-- read so, and Forever offered Soul Link again over one already up.
 do
 	for _, list in ipairs({ VANILLA_OWN.DRUID, TBC_OWN.DRUID }) do
 		for _, family in ipairs(list) do
@@ -1823,7 +1826,7 @@ do
 			if family.key == "demonicsacrifice" then
 				family.timed = true
 				for _, spell in ipairs(family.spells) do
-					if spell.key == "soullink" and list == TBC_OWN.WARLOCK then spell.byPet = true end
+					if spell.key == "soullink" then spell.byPet = true end
 				end
 			end
 		end

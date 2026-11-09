@@ -6,6 +6,9 @@
   nameplates off, Manners sees almost nobody outside your group. *Who to buff*
   now says so in red with a red dot beside the page, and *Start here* shows the
   same note and the *Show friendly nameplates* button under step 1.
+- **Soul Link.** On WoW Forever and Classic Era, Soul Link is read as up while
+  your demon keeps it on you, and no longer offered again and again (Burning
+  Crusade's was fixed in 1.11.12).
 
 ## 1.11.12
 

@@ -64,6 +64,13 @@ mutate("Core.lua",
        "engine-fix38: Soul Link from your pet not yours",
        expect=P + "tbc: Soul Link your demon put on you is up", script=S)
 
+# ...and only on Burning Crusade, as 1.11.12 had it: Forever's offered again.
+mutate("Buffs.lua",
+       "\t\t\t\t\tif spell.key == \"soullink\" then spell.byPet = true end\n",
+       "\t\t\t\t\tif spell.key == \"soullink\" and list == TBC_OWN.WARLOCK then spell.byPet = true end\n",
+       "engine-fix38: Soul Link from your pet read on TBC only",
+       expect=P + "camelot: Soul Link your demon put on you is up", script=S)
+
 # B4: the other Beacon read only while it is switched on.
 mutate("Queue.lua",
        "\t\t\tif partner and not Listed(candidates, partner) then ReadHolder(partner, into, count, tokens, prefix) end\n",

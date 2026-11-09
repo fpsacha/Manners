@@ -405,11 +405,13 @@ for _, case in ipairs({ { "tbc", TBC_TREE, true }, { "vanilla", SOD_TREE, false 
 	end)
 end
 
--- #B3: Burning Crusade's Soul Link: the demon puts 25228 on you, and the
--- client names your pet as its caster.
-do
-	local scenario = P .. "tbc: Soul Link your demon put on you is up"
-	with(scenario, { flavour = "tbc", class = "WARLOCK", known = { SACRIFICE, SOUL_LINK } }, function(ns)
+-- #B3: Soul Link: the demon puts 25228 on you, and the client names your pet
+-- as its caster. Burning Crusade's since 1.11.12; Classic Era's and Forever's
+-- (a player on Forever, 1.11.12: "always asking to refresh soul link") since
+-- 1.11.13.
+for _, client in ipairs({ "tbc", "vanilla", "camelot" }) do
+	local scenario = P .. client .. ": Soul Link your demon put on you is up"
+	with(scenario, { flavour = client, class = "WARLOCK", known = { SACRIFICE, SOUL_LINK } }, function(ns)
 		if key(mine(ns)) ~= "soullink" then
 			fail(scenario, "SKIPPED -- knowing Soul Link, nothing up: offered " .. key(mine(ns)))
 			return
