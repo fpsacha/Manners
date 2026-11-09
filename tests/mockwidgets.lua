@@ -973,6 +973,11 @@ local function install()
 	-- No driver outlives its scenario.
 	for f in pairs(drivers) do drivers[f] = nil end
 	for i = #driverOrder, 1, -1 do driverOrder[i] = nil end
+	-- Each maps one half of a pair to the other, and Lua 5.1 holds a weak-keyed
+	-- table's values strongly, so together they would keep every frame ever
+	-- handed a handle, and through it every addon the run loaded.
+	for h in pairs(handleFrames) do handleFrames[h] = nil end
+	for f in pairs(handlesOf) do handlesOf[f] = nil end
 	driverTimer = 0
 	Mock.secureCode, Mock.snippetRuns, Mock.affectingCombat = nil, 0, nil
 	Mock.screenWidth = 1365
