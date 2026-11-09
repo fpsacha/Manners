@@ -332,6 +332,16 @@ What only the live game can say about them:
 8. Whether Burning Crusade names your pet (`pet`) as the source of Soul Link
    (25228), as its data says; Manners reads it as yours on that.
 
+**A blessing naming no caster (Unreleased), reported on CurseForge.** A paladin
+was never offered Might or Wisdom beside a third party's Kings where the aura
+names nobody as its caster, as Forever is noted to do (see "Written against the
+mock" below), since nobody named counted as yours. Once the client has named you
+on somebody else (`ns.namesYourCasts`, Core.lua's aura read, per session), an
+aura naming nobody, and not hidden, is another paladin's. Read on Forever
+1.60.1.70862: your own cast on another player says `caster=player` (`/manners
+look target`). What a third party's says with nobody near them to name has not
+been read; if it names them, this changes nothing.
+
 **The Scrolls switch (Unreleased), asked for on CurseForge.** `ownBuffs.scrolls`
 (on by default, so nothing changes until it is flipped) turns off every family
 flagged `isScroll` (the stat scrolls, Forever's Familiar and Weapon imbue) and

@@ -3394,6 +3394,17 @@ local function UnitHasBuff(unit, buff, guid)
 					-- Direct: a client-written token, which UnitIsUnit never throws on.
 					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
+					-- Named as the caster on somebody else: this client says so
+					-- for your casts, as WoW Forever does.
+					if same == true and plain(UnitIsUnit(unit, "player")) == false then ns.namesYourCasts = true end
+				elseif ns.namesYourCasts and ns.EXCLUSIVE_BUFFS[playerClass]
+					and not (issecretvalue and issecretvalue(aura.sourceUnit)) then
+					-- A client that names you on your casts and names nobody on
+					-- this one: another paladin's Kings, out of reach of a unit
+					-- token. Theirs, so Might or Wisdom can go on beside it.
+					-- Until the client has named you once it still counts as
+					-- yours, so your own blessing is never walked over.
+					mine = false
 				end
 				-- Another class's of the same kind (Buffs.lua, alike) is never
 				-- our cast, whoever the client names or does not: a paladin

@@ -290,18 +290,21 @@ for _, client in ipairs(CLIENTS) do
 	end
 
 	-- ------------------------------------------------- the one worn is never switched
-	do
+	-- Both ways the client can read them, never mixed: a client that names you
+	-- on one blessing and nobody on another has told you whose the second is.
+	for _, whose in ipairs({ OURS, NOBODY }) do
 		local scenario = "hunt29-order: " .. client .. ": a blessing of yours already worn is never switched, whatever the order"
+			.. (whose == NOBODY and " (naming nobody)" or "")
 		local env = { client = client, classes = THREE }
 		session(scenario, env, function(ns)
 			setOrder(ns, { "wisdom", "kings", "might", "salvation", "light" })
 			local might, wisdom, kings = ids(ns, "PALADIN", "might")[1], ids(ns, "PALADIN", "wisdom")[1],
 				ids(ns, "PALADIN", "kings")[1]
 			-- Might, though the order puts Wisdom and Kings ahead of it; Wisdom;
-			-- and a Kings that nobody will name.
-			env.wears.party1 = { [might] = OURS }
-			env.wears.party2 = { [wisdom] = OURS }
-			env.wears.party3 = { [kings] = NOBODY }
+			-- and Kings.
+			env.wears.party1 = { [might] = whose }
+			env.wears.party2 = { [wisdom] = whose }
+			env.wears.party3 = { [kings] = whose }
 			for scan = 1, 5 do
 				local out = offers(ns, env)
 				if not matches(out, { party1 = false, party2 = false, party3 = false }) then

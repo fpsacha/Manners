@@ -218,3 +218,34 @@ mutate("Options/Window/Layout.lua",
        "hunt27-kings: the switch not placed in the window",
        expect="every control has one place in the options window",
        script=S)
+
+# ------------------------------------------- Kings with nobody named as caster
+LEARN = ("\t\t\t\t\tif same == true and plain(UnitIsUnit(unit, \"player\")) == false"
+         " then ns.namesYourCasts = true end\n")
+UNNAMED = ("\t\t\t\telseif ns.namesYourCasts and ns.EXCLUSIVE_BUFFS[playerClass]\n"
+           "\t\t\t\t\tand not (issecretvalue and issecretvalue(aura.sourceUnit)) then\n")
+
+# Nobody named stays "could be yours" for good, so their Kings hides your Might.
+mutate("Core.lua", LEARN, "",
+       "kings-unnamed: the client naming you never noted",
+       expect="Kings naming nobody is another paladin's once you have been named",
+       script=S)
+# Named on yourself counted: says nothing about a cast on somebody else.
+mutate("Core.lua", LEARN,
+       "\t\t\t\t\tif same == true then ns.namesYourCasts = true end\n",
+       "kings-unnamed: named on yourself taken as proof",
+       expect="being named on yourself proves nothing",
+       script=S)
+# Theirs from the first read, so your own blessing can be walked over.
+mutate("Core.lua",
+       "\t\t\t\telseif ns.namesYourCasts and ns.EXCLUSIVE_BUFFS[playerClass]\n",
+       "\t\t\t\telseif ns.EXCLUSIVE_BUFFS[playerClass]\n",
+       "kings-unnamed: nobody named is theirs before the client has named you",
+       expect="Kings naming nobody stays yours until you have been named",
+       script=S)
+# A caster the client hides read as nobody.
+mutate("Core.lua", UNNAMED,
+       "\t\t\t\telseif ns.namesYourCasts and ns.EXCLUSIVE_BUFFS[playerClass] then\n",
+       "kings-unnamed: a hidden caster read as nobody",
+       expect="a caster the client hides is not read as nobody",
+       script=S)

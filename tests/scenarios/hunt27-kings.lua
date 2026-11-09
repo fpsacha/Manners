@@ -97,7 +97,7 @@ local function session(scenario, env, body)
 			if not source then return nil end
 			local left = env.left[unit] or 3600
 			return { spellId = spellId, expirationTime = Mock.now + left, duration = 3600,
-				sourceUnit = type(source) == "string" and source or nil }
+				sourceUnit = source ~= NOBODY and source or nil }
 		end,
 	}, { __index = base }))
 
@@ -242,14 +242,17 @@ for _, client in ipairs(CLIENTS) do
 	end
 
 	-- ------------------------------------------------- already one of yours
-	do
+	-- Both ways the client can read them, never mixed: a client that names you
+	-- on one blessing and nobody on another has told you whose the second is.
+	for _, whose in ipairs({ OURS, NOBODY }) do
 		local scenario = "hunt27-kings: " .. client .. ": a blessing of yours already worn is not flipped to Kings"
+			.. (whose == NOBODY and " (naming nobody)" or "")
 		local env = { client = client, classes = THREE }
 		session(scenario, env, function(ns)
 			local might, wisdom = ids(ns, "might")[1], ids(ns, "wisdom")[1]
-			env.wears.party1 = { [might] = OURS }
-			env.wears.party2 = { [wisdom] = OURS }
-			env.wears.party3 = { [might] = NOBODY }
+			env.wears.party1 = { [might] = whose }
+			env.wears.party2 = { [wisdom] = whose }
+			env.wears.party3 = { [might] = whose }
 			-- Scan after scan: never Kings over what they wear.
 			for scan = 1, 5 do
 				local out = offers(ns, env)
@@ -583,3 +586,81 @@ do
 	end
 	Mock.reset()
 end
+
+-- Another paladin's Kings with nobody named as its caster: on WoW Forever the
+-- game names you on your own casts and nobody on a third party's, so an aura
+-- naming nobody is theirs once the client has named you on somebody else. It
+-- stays yours until then, so your own blessing is never walked over.
+for _, client in ipairs(CLIENTS) do
+	local CLASSES = { party1 = "WARRIOR", party2 = "WARRIOR" }
+
+	do
+		local scenario = "hunt27-kings: " .. client .. ": Kings naming nobody is another paladin's once you have been named"
+		local env = { client = client, classes = CLASSES }
+		session(scenario, env, function(ns)
+			local might, kings = ids(ns, "might")[1], ids(ns, "kings")[1]
+			env.wears.party1 = { [might] = OURS }
+			env.wears.party2 = { [kings] = NOBODY }
+			local out = offers(ns, env)
+			if out.party1 ~= false or out.party2 ~= "might" then
+				fail(scenario, "expected nothing for your Might and might beside their Kings, got " .. said(out))
+			end
+		end)
+	end
+
+	do
+		local scenario = "hunt27-kings: " .. client .. ": Kings naming nobody stays yours until you have been named"
+		local env = { client = client, classes = CLASSES }
+		session(scenario, env, function(ns)
+			env.wears.party2 = { [ids(ns, "kings")[1]] = NOBODY }
+			local out = offers(ns, env)
+			if out.party2 ~= false then
+				fail(scenario, "a blessing naming nobody was walked over: " .. said(out))
+			end
+		end)
+	end
+
+	do
+		local scenario = "hunt27-kings: " .. client .. ": being named on yourself proves nothing"
+		local env = { client = client, classes = CLASSES, myself = true }
+		session(scenario, env, function(ns)
+			local might, kings = ids(ns, "might")[1], ids(ns, "kings")[1]
+			env.wears.player = { [might] = OURS }
+			env.wears.party2 = { [kings] = NOBODY }
+			local out = offers(ns, env)
+			if out.party2 ~= false then
+				fail(scenario, "your own Might on you was taken as proof: " .. said(out))
+			end
+		end)
+	end
+
+	do
+		local scenario = "hunt27-kings: " .. client .. ": a caster the client hides is not read as nobody"
+		local env = { client = client, classes = CLASSES }
+		session(scenario, env, function(ns)
+			local might, kings = ids(ns, "might")[1], ids(ns, "kings")[1]
+			env.wears.party1 = { [might] = OURS }
+			env.wears.party2 = { [kings] = Mock.SECRET }
+			local out = offers(ns, env)
+			if out.party2 ~= false then
+				fail(scenario, "a hidden caster was read as somebody else: " .. said(out))
+			end
+		end)
+	end
+
+	do
+		local scenario = "hunt27-kings: " .. client .. ": Skip players another paladin has blessed reads Kings naming nobody"
+		local env = { client = client, classes = CLASSES,
+			setup = function(ns) ns.db.profile.buff.leaveBlessed = true end }
+		session(scenario, env, function(ns)
+			local might, kings = ids(ns, "might")[1], ids(ns, "kings")[1]
+			env.wears.party1 = { [might] = OURS }
+			env.wears.party2 = { [kings] = NOBODY }
+			local out = offers(ns, env)
+			if out.party2 ~= false then
+				fail(scenario, "they carry another paladin's Kings and were offered " .. said(out))
+			end
+		end)
+	end
+end
+Mock.reset()

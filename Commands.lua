@@ -461,13 +461,13 @@ function ns.InspectUnit(unit)
 			show("inRangeByName", raw(C_Spell and C_Spell.IsSpellInRange, ns.BuffName(buff), unit)))
 		if C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID then
 			-- Refusals kept apart from absence, the way UnitHasBuff keeps them.
-			local found
+			local found, foundAura
 			local withheld = {}
 			local unreadable = info and info.readable == false
 			for _, auraId in ipairs(buff.auraIds) do
 				local ok, aura = raw(C_UnitAuras.GetUnitAuraBySpellID, unit, auraId)
 				if ok and aura ~= nil and not (issecretvalue and issecretvalue(aura)) then
-					found = auraId
+					found, foundAura = auraId, aura
 					break
 				elseif not ok or (issecretvalue and issecretvalue(aura))
 					or (info and info.secrecy and info.secrecy[auraId] == true) then
@@ -479,6 +479,8 @@ function ns.InspectUnit(unit)
 					#withheld > 0 and table.concat(withheld, ", ") or L["this buff is not readable here"]))
 			else
 				say("  %s", show("hasBuff", true, found or false))
+				-- Who the client names as its caster: "player" for you, nil for nobody.
+				if foundAura then say("  %s", show("caster", true, foundAura.sourceUnit)) end
 			end
 		end
 	end
