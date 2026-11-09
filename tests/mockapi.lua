@@ -1784,6 +1784,8 @@ for name, ids in pairs({
 	-- Tracking, which the minimap's list says is known (Buffs.lua, TRACKING).
 	["Find Herbs"] = { 2383, 8387 },
 	["Find Minerals"] = { 2580, 8388 },
+	-- The dwarf's, a family of its own on Forever (Buffs.lua, FIND_TREASURE).
+	["Find Treasure"] = { 2481 },
 	["Track Beasts"] = { 1494 },
 	-- A mage's scrolls on Forever (Buffs.lua): the spells their use casts.
 	-- Spellbreak's is Lesser Flame's in the client's own data.

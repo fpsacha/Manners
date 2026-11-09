@@ -2192,7 +2192,8 @@ do
 	--   "covered"  a shared family (Buffs.lua): the one it would pick reaches
 	--              you already from somebody else of your class, so the next
 	--              you know that does not; nil, and the one covered, for none
-	-- nil and nil for a family you know nothing of. Scrolls in the bags none
+	-- nil and nil for a family you know nothing of, and for an `onceUp` one
+	-- before you have had it up. Scrolls in the bags none
 	-- of which you can use now answer nil, why not ("noweapon", "level" or
 	-- "weapon"), and the best of them, so the line about it can say which.
 	--
@@ -2203,6 +2204,9 @@ do
 	local function AutoAnswer(family)
 		local last = Remembered(family)
 		if last then return last, "last" end
+		-- One you have never put up yourself is not asked for (Buffs.lua,
+		-- onceUp: Forever's Find Treasure beside a gathering tracking).
+		if family.onceUp then return nil, nil end
 		if family.scroll or family.bagged then
 			local held, heldWhy
 			for _, spell in ipairs(family.spells) do
@@ -3948,6 +3952,38 @@ function ns.SettingLeaves()
 	return leaves
 end
 
+-- Forever's Find Treasure is a family of its own, out of Tracking (Buffs.lua,
+-- FIND_TREASURE): what the player said of it on Tracking moves across, once,
+-- each source cleared as it goes. A pick of it on Tracking becomes its own
+-- pick, and Tracking goes back to Automatic; a tick under Never remind me
+-- about, which a family of one has no list for, becomes its switch off. The
+-- memory of it up last on Tracking (db.char) becomes its own memory, which is
+-- what reminds you of it (onceUp), or its switch off while Tracking is
+-- switched off, so nobody who wanted no tracking reminders gets one. Nothing
+-- on a client where it is still one of Tracking.
+function ns.SplitFindTreasure(own, char)
+	local family, spell = ns.FindOwnFamily("findtreasure"), ns.FindOwnSpell("findtreasure")
+	if not (family and spell and spell.family == family) then return end
+	local pick = own.pick
+	if pick.tracking == "findtreasure" then
+		pick.tracking = "auto"
+		pick.findtreasure = "findtreasure"
+	end
+	if type(own.leave) == "table" and own.leave.findtreasure == true then
+		own.leave.findtreasure = nil
+		pick.findtreasure = "off"
+	end
+	local memory = type(char) == "table" and char.ownLast
+	if type(memory) == "table" and memory.tracking == "findtreasure" then
+		memory.tracking = nil
+		if pick.tracking == "off" then
+			pick.findtreasure = "off"
+		elseif memory.findtreasure == nil then
+			memory.findtreasure = "findtreasure"
+		end
+	end
+end
+
 function ns.ClampSettings()
 	local profile = addon.db and addon.db.profile
 	if not profile then return end
@@ -4079,6 +4115,7 @@ function ns.ClampSettings()
 	-- a default back only at the next load.
 	local own = profile.ownBuffs
 	if type(own.pick) ~= "table" then own.pick = {} end
+	ns.SplitFindTreasure(own, addon.db.char)
 	for key, value in pairs(own.pick) do
 		local family = ns.FindOwnFamily(key)
 		local spell = ns.FindOwnSpell(value)

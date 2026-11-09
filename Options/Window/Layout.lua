@@ -282,6 +282,8 @@ ns.WindowLayout = {
 					{ "who.own_scrollstamina", indent = true },
 					{ "who.own_scrollspirit", indent = true },
 					{ "who.own_tracking", indent = true },
+					-- Forever's Find Treasure, kept on beside a gathering tracking.
+					{ "who.own_findtreasure", indent = true },
 					-- Where the reminders come up, right under the families, so
 					-- they never read as items of the list below them.
 					{ "who.ownCities", indent = true },
