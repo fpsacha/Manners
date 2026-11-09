@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.13
 
 - **Friendly nameplates.** With passers-by on and the game's friendly
   nameplates off, Manners sees almost nobody outside your group. *Who to buff*
