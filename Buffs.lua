@@ -1020,6 +1020,11 @@ end
 --             Well Fed (`food`) and Well-Rested (`rest`), above.
 --   optIn     off until it is turned on, like a bagged family, but a spell:
 --             a warlock's Detect Invisibility.
+--   swimming  reminded only while you swim, never on dry land: a warlock's
+--             Unending Breath on himself (selfbreath), which the buff for others
+--             of the same spell never offers him (neverSelf). The client's own
+--             word (IsSwimming), held a moment past the last stroke so a jump
+--             out at the surface is still swimming (Core.lua, Swimming).
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
@@ -1059,6 +1064,10 @@ end
 --             shaman's Earth Shield, Burning Crusade). Somebody else's reads
 --             as the family up, so nothing of yours is offered over it, and
 --             is never topped up with yours.
+--   group     on a spell: other ids that count as it up, as a buff's own
+--             `group` above, never cast and never what makes it known (a
+--             shaman's Water Breathing for Unending Breath). Matched through
+--             auraIds alone; with anyCaster, from whoever put it on you.
 --   byPet     on a spell: its aura on you is put there by your demon, and the
 --             client names your pet as its caster: yours all the same (Burning
 --             Crusade's Soul Link).
@@ -1330,6 +1339,25 @@ do
 			{ key = "demonicsacrifice", ranks = { 18788, 18789, 18790, 18791, 18792 }, talent = true },
 		} })
 end
+
+-- Unending Breath on yourself (1.11.13), asked for on CurseForge by a warlock on
+-- Forever: the buff for others never offers it to you (neverSelf), since ten
+-- minutes of water breathing would come back all evening on dry land, ahead of
+-- your armor. A family of its own instead, reminded only while you swim
+-- (`swimming`), with its own switch under Myself, on by default: on land it is
+-- never offered. Independent of the switch on Who to buff for others. First of
+-- the warlock's own, so in the water it comes before the armor. Another warlock's
+-- on you fills it (anyCaster) and stays his favour (castOnOthers), as does a
+-- shaman's Water Breathing (131, `group`), the buff for others' own group id
+-- where the client has it. 5697 is the one rank on every client (SpellName;
+-- SkillLineAbility class mask 256), ten minutes everywhere (SpellDuration).
+-- Each set calls this once: Classic Era (and so Forever, whose lists are
+-- copied from these), Burning Crusade, Mists and retail.
+local function SelfBreath(group)
+	return { key = "selfbreath", swimming = true,
+		spells = { { key = "selfbreath", ranks = { 5697 }, group = group, anyCaster = true, castOnOthers = true } } }
+end
+table.insert(VANILLA_OWN.WARLOCK, 1, SelfBreath({ 131 }))
 
 -- Tracking, for every class: Find Herbs and Find Minerals come with a
 -- profession, not a class, and drop when you die like a buff ("when I die I
@@ -1797,6 +1825,9 @@ do
 		} })
 	TBC_OWN.DRUID[#TBC_OWN.DRUID + 1] = { key = "treeoflife", toggle = true, form = true,
 		spells = { { key = "treeoflife", ranks = { 33891 }, talent = true } } }
+	-- Unending Breath on yourself while you swim, as on Classic Era (SelfBreath):
+	-- 5697 and Water Breathing 131 both here (build 2.5.6.69795).
+	table.insert(TBC_OWN.WARLOCK, 1, SelfBreath({ 131 }))
 end
 
 -- The forms Mark of the Wild (`shiftsOut`) drops you out of on the press, which
@@ -2484,6 +2515,9 @@ do
 			{ key = "rockbiterweapon", ranks = { 8017 } },
 		},
 	})
+	-- Unending Breath on yourself while you swim (SelfBreath), ahead of Grimoire of
+	-- Sacrifice; no Water Breathing on this client (build 5.5.4.70032).
+	At("WARLOCK", 1, SelfBreath(nil))
 end
 
 local MISTS_SET = {
@@ -2744,6 +2778,10 @@ do
 			spells = { { key = "shadowform", ranks = { 232698 }, talent = true } } },
 	}
 	MAINLINE_OWN.WARLOCK = {
+		-- Unending Breath on yourself while you swim (SelfBreath): a warlock's
+		-- here too, though not offered to others (`without`, favourOnly). No Water
+		-- Breathing on this client.
+		SelfBreath(nil),
 		{ key = "grimoireofsacrifice", toggle = true,
 			spells = { { key = "grimoireofsacrifice", ranks = { 108503, 196099 }, talent = true } } },
 	}
@@ -2807,7 +2845,7 @@ local MAINLINE_SET = {
 	-- wrong. "Myself" offers your own group buff first. A paladin and a warlock
 	-- still have nothing to give anybody else (`without`): one with a rite or
 	-- the sacrifice learned has a prompt for it, as a hunter or a rogue does
-	-- elsewhere.
+	-- elsewhere, and a warlock has Unending Breath on himself while he swims.
 	own = MAINLINE_OWN,
 	-- Battle Shout's reach, and the casts that land on your whole party and
 	-- raid (target 118), as on Mists.
@@ -3127,6 +3165,7 @@ do
 		{ 3600, 974 }, -- Earth Shield (1 h)
 		{ 0, 53563 }, -- Beacon of Light (no timer)
 		{ 3600, 360827 }, -- Blistering Scales (1 h)
+		{ 600, 5697 }, -- Unending Breath, on yourself while you swim (10 min)
 	})
 end
 
@@ -3332,6 +3371,9 @@ local function BuildOwnLookups()
 					spell.auraIds[#spell.auraIds + 1] = id
 					ns.OWN_BY_ID[id] = spell
 				end
+				-- Another's spell that counts as this one up (`group`): matched, and
+				-- nothing else, so it is no own aura of anybody's (ns.IsOwnAura).
+				for _, id in ipairs(spell.group or {}) do spell.auraIds[#spell.auraIds + 1] = id end
 				ns.OWN_SPELL_BY_KEY[spell.key] = spell
 			end
 		end

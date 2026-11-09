@@ -446,6 +446,9 @@ local function AddOwnControls(args)
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
 					or family.optIn
 					and L["Reminds you when it is not on you, whoever cast it. Off until you turn it on."]
+					-- Unending Breath on yourself (Buffs.lua, swimming).
+					or family.swimming
+					and L["Reminds you while you are swimming and it is not on you, whoever cast it. Never on dry land."]
 					or family.form
 					and L["Reminds you when you are not in it, and never while you are in another form."]
 					or L["Reminds you when it is not up."]

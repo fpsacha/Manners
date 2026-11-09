@@ -193,7 +193,14 @@ default everywhere in the tests and the only client anybody here plays.
     (`ownBuffs.itemsInDungeons`, the key kept from its old name) holds back
     oils, stones, food and these. A spell family off
     until it is turned on is `optIn` (a warlock's Detect Invisibility: vanilla,
-    camelot and tbc; Mists and retail have no such spell).
+    camelot and tbc; Mists and retail have no such spell). A family reminded
+    only while you swim is `swimming` (a warlock's Unending Breath on himself,
+    `selfbreath`, on all five clients, first of his own, on by default): Core.lua
+    `Swimming` reads `IsSwimming()` and holds it two seconds past the last
+    stroke (`SWIM_HOLD`), and OwnVerdict answers `"dry"` before any aura read.
+    An own spell's `group` (a shaman's Water Breathing 131 for it, where the
+    client has it) is matched through `auraIds` only, never cast, never in
+    `OWN_BY_ID`; `tools/audit_ids.py` holds it to `OWN_GROUP_NAMES`.
   - level cap for "Skip players below level": 60, tbc 70, mists and mainline 90
     (Core.lua).
 

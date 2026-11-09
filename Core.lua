@@ -2098,6 +2098,10 @@ do
 		-- So does an imbue of the off hand (retail's): "Weapon imbue (Off Hand)".
 		if family.imbue and family.slot == 17 then return family.label .. " (" .. ns.HandName(17) .. ")" end
 		if family.label then return family.label end
+		-- One for the water says so, apart from the buff of that name for others.
+		if family.swimming then
+			return L["%s while swimming"]:format(ns.BuffName(FirstKnown(family) or family.spells[1]))
+		end
 		return ns.BuffName(FirstKnown(family) or family.spells[1])
 	end
 
@@ -2170,6 +2174,28 @@ do
 	local function Tanking()
 		if (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return false end
 		return safecall(_G.UnitGroupRolesAssigned, "player") == "TANK"
+	end
+
+	-- Whether you are swimming (Buffs.lua, `swimming`), by the client's own word,
+	-- or were a moment ago: a jump out of the water at the surface, or a step
+	-- along a shore at the depth the game starts swimming, reads as not swimming
+	-- for a breath, and Blizzard's own character sheet works around the same jump
+	-- (PaperDollFrame, IsFalling). SWIM_HOLD seconds past the last stroke still
+	-- count, longer than the prompt's empty fuse (Prompt/Hold.lua), so a surfacing
+	-- does not take the row down and put it back. Diving and surfacing are both
+	-- swimming. Asked only of a family flagged for it, while it could be offered;
+	-- called directly, as the client's own UI calls it.
+	local SWIM_HOLD = 2
+	local swamAt
+	local function Swimming(now)
+		local swimming = _G.IsSwimming
+		if type(swimming) ~= "function" then return false end
+		local answer = plain(swimming())
+		if answer == true or answer == 1 then
+			swamAt = now
+			return true
+		end
+		return swamAt ~= nil and now >= swamAt and now - swamAt < SWIM_HOLD
 	end
 
 	-- In a dungeon or a raid, by the game's word. A battleground is not one.
@@ -2828,6 +2854,7 @@ do
 	--   "resting"   Well-Rested: you lie in the sleeping bag, or it is cooling down
 	--   "form"      a form (Moonkin Form), and you are in another
 	--   "noshield"  it goes on a shield, and there is none in your off hand
+	--   "dry"       one for the water alone (Unending Breath), and you are not swimming
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
@@ -2839,6 +2866,9 @@ do
 	function ns.OwnVerdict(family, ctx)
 		local pick, spell = ns.OwnPick(family)
 		if pick == "off" then return nil, nil, nil, "off" end
+		-- For the water alone (Buffs.lua, `swimming`: Unending Breath on yourself):
+		-- on dry land nothing is said about it, up or not, and nothing is read.
+		if family.swimming and not Swimming(ctx.now or GetTime()) then return nil, nil, nil, "dry" end
 		-- Held to dungeons and raids by the player (Who to buff): out in the
 		-- world there is nothing to say about it, up or not.
 		if ns.OwnItemsHeldToDungeons(family) and addon.db.profile.ownBuffs.itemsInDungeons == true

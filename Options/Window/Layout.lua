@@ -262,6 +262,8 @@ ns.WindowLayout = {
 					{ "who.own_demonicsacrifice", indent = true },
 					-- A warlock's Detect Invisibility, off until it is turned on.
 					{ "who.own_detectinvis", indent = true },
+					-- A warlock's Unending Breath on himself, only while he swims.
+					{ "who.own_selfbreath", indent = true },
 					-- Food that gives Well Fed, off until it is turned on; every class has it.
 					{ "who.own_food", indent = true },
 					-- The sleeping bag's Well-Rested, off until it is turned on;

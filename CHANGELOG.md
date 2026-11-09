@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Unending Breath on yourself, while you swim.** A warlock is now reminded of
+  Unending Breath on himself while he is swimming without it, and never on
+  dry land. It has its own switch under *Myself* on *Who to buff*, on by
+  default and apart from the switch for casting it on others. Another
+  warlock's Unending Breath or a shaman's Water Breathing on you counts.
+
 ## 1.11.12
 
 - **Favours.**

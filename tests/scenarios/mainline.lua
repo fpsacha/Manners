@@ -199,8 +199,9 @@ do
 		-- oil (retail has no items for a weapon here). A rogue's poisons are
 		-- spells, the lethal ones and the non-lethal ones; since 1.11.11 a shadow
 		-- priest's form, a warlock's sacrifice, a shaman's imbues a hand and a
-		-- paladin's rites (tests/scenarios/self-buffs.lua).
-		local OWN = { PRIEST = "shadowform", WARLOCK = "grimoireofsacrifice",
+		-- paladin's rites (tests/scenarios/self-buffs.lua); since 1.11.13 a
+		-- warlock's Unending Breath while he swims (tests/scenarios/self-breath.lua).
+		local OWN = { PRIEST = "shadowform", WARLOCK = "selfbreath, grimoireofsacrifice",
 			SHAMAN = "shamanimbue, shamanimbueoff", PALADIN = "rite" }
 		for _, class in ipairs(ALL_CLASSES) do
 			-- Every class's flasks (1.11.11) aside: tests/scenarios/missing-buffs.lua.

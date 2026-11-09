@@ -340,6 +340,14 @@ reminder back), that the bag is obtainable on Forever at all (its data is
 there), and that `/use item:211527` lays it down. `/manners debug` says
 "Well-Rested: ..." with the reason in each case.
 
+**Unending Breath while swimming (Unreleased).** A warlock's own family
+(`selfbreath`, every client), reminded only while `IsSwimming()` says yes, held
+two seconds past the last stroke. Only the live game can say: that
+`IsSwimming()` stays true at the surface and under it alike, and how long a jump
+out at the surface or wading at the swimming depth reads false (two seconds is
+a guess, longer than the prompt's empty fuse); and that a shaman's Water
+Breathing (131) is the aura it says on the warlock wearing it.
+
 **Waiting on players (1.11.9).** Two `/thank` reports need a log: one player
 sees a /thank with *Thank people who buff me* off, another never gets one. One
 code path makes the emote (`Favours.lua`, `ThankFavour`) and it obeys the switch;

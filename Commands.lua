@@ -102,6 +102,9 @@ do
 			return L["%s: you are in another form, so it is not offered."]:format(label)
 		elseif why == "noshield" then
 			return L["%s: %s goes on a shield, and there is none in your off hand."]:format(label, name or "?")
+		elseif why == "dry" then
+			-- Unending Breath on yourself, for the water alone (Buffs.lua, swimming).
+			return L["%s: you are not swimming, so it is not offered."]:format(label)
 		end
 		return L["%s: the game will not say whether it is up, so it is not offered."]:format(label)
 	end

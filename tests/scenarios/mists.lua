@@ -929,7 +929,9 @@ end
 do
 	local scenario = "mists: the classes with buffs of their own"
 	local want = { MAGE = "armor", PRIEST = "innerfire", PALADIN = "righteousfury", HUNTER = "aspect",
-		SHAMAN = "shield", ROGUE = "lethal, nonlethal" }
+		SHAMAN = "shield", ROGUE = "lethal, nonlethal",
+		-- Unending Breath on himself while he swims (tests/scenarios/self-breath.lua).
+		WARLOCK = "selfbreath" }
 	for _, class in ipairs(ALL_CLASSES) do
 		mists(scenario, { class = class, known = SESSION[class] }, function(ns)
 			Mock.playerHeld = {}
