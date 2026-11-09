@@ -5,7 +5,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.11.10 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.11.13 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
@@ -20,9 +20,12 @@ Thorns held to tanks or to you alone, oils, stones and food only in dungeons and
 raids, nothing offered in cities and inns, a switch to say nothing in chat,
 weapon items renewed only once gone while alone, a switch for Unending
 Breath, the full check-up for bug reports (1.11.9) and a Well-Rested reminder
-for the Cozy Sleeping Bag (1.11.10). Unreleased: nothing offered inside an
+for the Cozy Sleeping Bag (1.11.10). 1.11.13 adds the friendly nameplates
+note, Soul Link read right on Forever and Classic Era, Find Treasure beside a
+gathering tracking on Forever, the Scrolls switch, Unending Breath while you
+swim and Hide the prompt in combat. 1.11.11 and 1.11.12: nothing offered inside an
 instance, paladins skipping players another paladin has blessed, a warlock's
-Detect Invisibility on himself, funnier Forsaken thanks, bug hunt 35's
+own Detect Invisibility, funnier Forsaken thanks, bug hunt 35's
 fixes (Well-Rested above all), and the buffs its finder listed (round 36: more
 own buffs, flasks, elixirs and scrolls, and Earth Shield, Beacon of Light and the
 other one-target buffs for the tank), and bug hunt 37's 47 fixes with the
