@@ -469,6 +469,9 @@ local function AddOwnControls(args)
 					-- Forever's Find Treasure (Buffs.lua, onceUp): nothing until it has been up.
 					or family.onceUp
 					and L["Reminds you when it is not up, once you have had it up yourself."]
+					-- Unending Breath on yourself (Buffs.lua, swimming).
+					or family.swimming
+					and L["Reminds you while you are swimming and it is not on you, whoever cast it. Never on dry land."]
 					or family.form
 					and L["Reminds you when you are not in it, and never while you are in another form."]
 					or L["Reminds you when it is not up."]

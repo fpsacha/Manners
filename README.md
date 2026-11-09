@@ -269,6 +269,12 @@ each class offers*).
   switch it on. Then, with no Detect Invisibility on you (yours or another
   warlock's), "You" comes up and one press casts it on you. Classic Era, WoW
   Forever and Burning Crusade.
+- **Unending Breath while swimming.** For warlocks: a switch under *Myself*,
+  on by default. While you swim with no Unending Breath on you (yours or
+  another warlock's, or a shaman's Water Breathing), "You" comes up and one
+  press casts it on you. On dry land it is never offered, and a fight in the
+  water holds it until the fight ends. Its switch is apart from the one for
+  casting Unending Breath on others. Every client.
 - **Flasks, elixirs and scrolls.** *Flask*, *Elixir* and one switch per scroll
   (Agility, Strength, Protection, Intellect, Stamina, Spirit) under *Myself*,
   each shown once you carry one and off until you switch it on. Then, with
@@ -1031,14 +1037,14 @@ rank) and the Greater Blessings (Symbol of Kings). Thorns has none.
 
 **On yourself.** With *Myself* on, you are offered the buff you give others
 too, except Battle Shout (it already covers you) and Unending Breath (nobody
-needs it on dry land). And these, which your class casts only on itself, once
+needs it on dry land: it has a row of its own, only while you swim). And these, which your class casts only on itself, once
 you have learned them:
 
 | Class | Your own buffs |
 |---|---|
 | Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; and on WoW Forever, from the scrolls in your bags, *Familiar* (Rat, Frog or Cat) and *Weapon imbue* (Lesser Flame, Chillknife and the rest, each for the weapon it fits) |
 | Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them; Shadowform |
-| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out |
+| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out; Unending Breath while you swim |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
 | Hunter | *Aspect*: Hawk, Monkey, Wild or Beast, and in Season of Discovery Falcon and Viper (Viper never picked by *Automatic*; Cheetah and Pack count as up, but are never suggested); Trueshot Aura; Heart of the Lion in Season of Discovery (another hunter's does not count for yours) |
 | Shaman | *Shield*: Lightning Shield or Water Shield; *Weapon imbue*; Spirit of the Alpha in Season of Discovery while your group role is tank (Loyal Beta counts) |
@@ -1065,15 +1071,16 @@ class offers what that client gives it:
   party; Earth Shield and Beacon of Light for the tank, and Symbiosis for one
   member of your group who is not a druid and has no other druid's. On yourself: Molten, Frost or Mage
   Armor; Inner Fire or Inner Will; Shadowform; Moonkin Form; Righteous Fury; an
-  aspect; Lightning, Water or Earth Shield; a weapon imbue; and Grimoire of
-  Sacrifice.
+  aspect; Lightning, Water or Earth Shield; a weapon imbue; Grimoire of
+  Sacrifice; and Unending Breath while you swim.
 - **Retail:** Arcane Intellect (to those who use mana), Power Word: Fortitude,
   Mark of the Wild, Skyfury, Blessing of the Bronze, and Battle Shout for your
   own group; Earth Shield, Beacon of Light, Beacon of Faith, Symbiotic
   Relationship and Blistering Scales for the tank.
   Source of Magic is offered when you pin it or somebody asks for it. On
-  yourself: a rogue's poisons, Shadowform, Grimoire of Sacrifice, a shaman's
-  imbues for each hand and a Lightsmith paladin's rites. Death knights, monks,
+  yourself: a rogue's poisons, Shadowform, Grimoire of Sacrifice, Unending
+  Breath while you swim, a shaman's imbues for each hand and a Lightsmith
+  paladin's rites. Death knights, monks,
   demon hunters, hunters, rogues and warlocks have no buff for anybody else
   there, and Manners says so.
 

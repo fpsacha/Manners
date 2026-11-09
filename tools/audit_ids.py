@@ -602,6 +602,10 @@ OWN_NAMES.update({
                         r"|Fel Energy",
     "soullink": r"Soul Link", "treeoflife": r"Tree of Life", "spiritofthealpha": r"Spirit of the Alpha|Loyal Beta",
 })
+# A warlock's Unending Breath on himself while he swims (1.11.13).
+OWN_NAMES.update({"selfbreath": r"Unending Breath"})
+# An own spell's `group` ids (Buffs.lua): another class's spell that counts as it up, by key.
+OWN_GROUP_NAMES = {"selfbreath": r"Water Breathing"}
 # What a favour-only / not-favour id is, by id: any client that has the id must call it this.
 FAVOUR_NAMES = {
     6346: r"Fear Ward", 546: r"Water Walking", 11743: r"Detect (Lesser |Greater )?Invisibility", 2970: r"Detect (Lesser |Greater )?Invisibility",
@@ -888,6 +892,10 @@ def check_own(rep, c, d, flavour):
                     rep.note(where, "ids %s are not in this client's SpellName (the rest exist)" % absent)
                 elif absent:
                     rep.finding(where, "ids %s are not in this client's SpellName" % absent)
+                # `group`: another class's spell that counts as this one up, held to its own name.
+                group = spell.get("group") or []
+                if group:
+                    check_spell_ids(rep, c, where + ".group", group, OWN_GROUP_NAMES.get(key), None, "group id")
                 for i in present:
                     if pattern and not name_ok(c.names[i], pattern):
                         rep.finding(where, "id %d is named %r, expected /%s/" % (i, c.names[i], pattern))
@@ -1443,6 +1451,9 @@ def check_durations(rep, c, d, flavour):
                     continue
                 for i in sp["ranks"]:
                     judge(where, i, spell_seconds(c, i), "SpellDuration", group=(where, "ranks"))
+                # Another class's spell counted as this one up (`group`): its own length.
+                for i in sp.get("group") or []:
+                    judge(where + ".group", i, spell_seconds(c, i), "SpellDuration")
     for (what, kind), ids in groups.items():
         lengths = {v for v in ids.values() if v is not None}
         if len(lengths) > 1:

@@ -19,6 +19,11 @@
   every scroll off at once: the stat scrolls and, on WoW Forever, a mage's
   *Familiar* and *Weapon imbue*. While it is off no scroll is offered and their
   switches leave the page; turned back on, each is as you left it.
+- **Unending Breath on yourself, while you swim.** Warlocks are now reminded of
+  Unending Breath while swimming without it, and never on dry land. It has its
+  own switch under *Myself* on *Who to buff*, on by
+  default and apart from the switch for casting it on others. Another
+  warlock's Unending Breath or a shaman's Water Breathing on you counts.
 
 ## 1.11.12
 
