@@ -415,6 +415,8 @@ Mock.widen = widen
 -- the recording frames carry all of the above as well.
 Mock.newFrame = function() return widen(base()) end
 
+local makeHeader
+
 function CreateFrame(frameType, name, parent, template)
 	local f = widen(base(), frameType or "Frame", parent)
 	f._name, f._template = name, template
@@ -423,10 +425,265 @@ function CreateFrame(frameType, name, parent, template)
 	if type(template) == "string" and template:find("SecureActionButtonTemplate", 1, true) then
 		f._secureTemplate = true
 	end
+	-- A header that runs snippets (secure handlers, below).
+	if type(template) == "string" and template:find("SecureHandlerStateTemplate", 1, true) then
+		makeHeader(f)
+	end
 	if type(name) == "string" and Mock.namedFrames then Mock.namedFrames[name] = f end
 	return f
 end
 widen(UIParent)
+
+---------------------------------------------------------------------------
+-- secure handlers and state drivers
+---------------------------------------------------------------------------
+--
+-- Blizzard's own code (Gethe/wow-ui-source, Interface/AddOns/
+-- Blizzard_RestrictedAddOnEnvironment; SecureStateDriver.lua and
+-- SecureHandlers.lua read the same on forever, live, classic,
+-- classic_anniversary and classic_era, RestrictedFrames.lua differing only in
+-- how a forbidden frame is told), as far as a header of
+-- SecureHandlerStateTemplate with a state driver needs it:
+--
+--   RegisterStateDriver(frame, state, values) is RegisterAttributeDriver(frame,
+--   "state-" .. state, values). The manager answers at once (resolveDriver on
+--   "setstate"), then again every 0.2 s (STATE_DRIVER_UPDATE_THROTTLE) and at
+--   once on the next frame after the events it listens for, PLAYER_REGEN_*
+--   among them (its OnEvent puts the timer to 0). Here a frame is a call of
+--   Mock.runTimers, and the events reach the manager through Mock.frameEvent.
+--   It writes the attribute only when the answer changed (resolveDriver: "if
+--   newValue ~= oldValue"); "state-visibility" shows or hides the frame
+--   instead. Registering is a SetAttribute on the manager, a protected frame,
+--   so an addon's call in a fight is refused (written down in
+--   Mock.blockedCalls, as the macro calls are).
+--
+--   The template's OnAttributeChanged runs "_onstate-<id>" with self, stateid
+--   and newstate whenever a "state-<id>" attribute is written, from the
+--   driver or from the addon's own SetAttribute (SecureHandlers.lua,
+--   SecureHandler_StateOnAttributeChanged). A snippet runs in an environment
+--   of its own per header, with none of the addon's globals, and frames
+--   reach it as handles: GetAttribute, SetAttribute (no name starting "_",
+--   only strings, numbers, booleans, nil or a handle), Show and Hide (which
+--   write "statehidden" unless told not to), IsShown, IsVisible, GetName and
+--   GetFrameRef. A handle acts on a protected frame in a fight, and on an
+--   unprotected one only out of one ("Invalid frame handle" otherwise:
+--   RestrictedFrames.lua, GetPossiblyForbiddenHandleFrame). What secure code
+--   does in a fight is allowed (Mock.secureCode), so it is not one of the
+--   addon's protected calls. SetFrameRef is refused in a fight, as the
+--   registration is.
+
+local drivers, driverOrder, driverTimer = {}, {}, 0
+local DRIVER_THROTTLE = 0.2
+local DRIVER_EVENTS = {
+	MODIFIER_STATE_CHANGED = true, ACTIONBAR_PAGE_CHANGED = true, UPDATE_BONUS_ACTIONBAR = true,
+	PLAYER_ENTERING_WORLD = true, UPDATE_SHAPESHIFT_FORM = true, UPDATE_STEALTH = true,
+	PLAYER_TARGET_CHANGED = true, PLAYER_FOCUS_CHANGED = true, PLAYER_REGEN_DISABLED = true,
+	PLAYER_REGEN_ENABLED = true, UNIT_PET = true, GROUP_ROSTER_UPDATE = true,
+}
+
+-- The mock's own, taken at load: a scenario that counts the addon's pcalls
+-- (perf-budget.lua) counts none of these.
+local rawpcall = pcall
+
+local function secure(fn, ...)
+	local was = Mock.secureCode
+	Mock.secureCode = true
+	local out = { rawpcall(fn, ...) }
+	Mock.secureCode = was
+	if not out[1] then error(out[2], 0) end
+	return unpack(out, 2)
+end
+
+local function isProtectedFrame(f)
+	return f._secureTemplate == true or f._secureHeader == true or f._protected == true
+end
+
+local handleFrames = setmetatable({}, { __mode = "k" })
+local handlesOf = setmetatable({}, { __mode = "k" })
+
+local function handleFrame(handle, any)
+	local f = handleFrames[handle]
+	if not f then error("Invalid frame handle", 3) end
+	if not any and Mock.inCombat and not isProtectedFrame(f) then error("Invalid frame handle", 3) end
+	return f
+end
+
+local HANDLE = {}
+HANDLE.__index = HANDLE
+local function handleOf(f)
+	local h = handlesOf[f]
+	if h then return h end
+	h = setmetatable({}, HANDLE)
+	handleFrames[h], handlesOf[f] = f, h
+	return h
+end
+Mock.handleOf = handleOf
+
+function HANDLE:GetName() return handleFrame(self, true)._name end
+function HANDLE:IsShown() return handleFrame(self, true):IsShown() end
+function HANDLE:IsVisible() return handleFrame(self, true):IsVisible() end
+function HANDLE:GetAttribute(name)
+	local value = handleFrame(self):GetAttribute(name)
+	if type(value) == "table" and not handleFrames[value] then return nil end
+	return value
+end
+function HANDLE:GetFrameRef(label)
+	if type(label) ~= "string" then return nil end
+	local value = handleFrame(self):GetAttribute("frameref-" .. label)
+	if type(value) == "table" and handleFrames[value] then return value end
+	return nil
+end
+function HANDLE:SetAttribute(name, value)
+	if type(name) ~= "string" or name:match("^_") then error("Invalid attribute name", 2) end
+	local tv = type(value)
+	if tv ~= "string" and tv ~= "nil" and tv ~= "number" and tv ~= "boolean"
+		and not (tv == "table" and handleFrames[value]) then
+		error("Invalid attribute value", 2)
+	end
+	local f = handleFrame(self)
+	secure(f.SetAttribute, f, name, value)
+end
+function HANDLE:Show(skipAttr)
+	local f = handleFrame(self)
+	secure(f.Show, f)
+	if not skipAttr then secure(f.SetAttribute, f, "statehidden", nil) end
+end
+function HANDLE:Hide(skipAttr)
+	local f = handleFrame(self)
+	secure(f.Hide, f)
+	if not skipAttr then secure(f.SetAttribute, f, "statehidden", true) end
+end
+
+-- What a snippet may call: none of the addon's globals, nor print, nor the
+-- frames by name.
+local RESTRICTED = {
+	type = type, tostring = tostring, tonumber = tonumber, select = select,
+	string = string, math = math, table = table,
+	format = string.format, strmatch = string.match, strfind = string.find,
+	newtable = function(...) return { ... } end,
+	SecureCmdOptionParse = function(...) return SecureCmdOptionParse(...) end,
+}
+
+local function runSnippet(header, body, names, ...)
+	local fn, err = loadstring("local " .. names .. " = ...\n" .. body, "=snippet")
+	if not fn then error("snippet does not compile: " .. tostring(err), 0) end
+	header._snippetEnv = header._snippetEnv or setmetatable({}, { __index = RESTRICTED })
+	setfenv(fn, header._snippetEnv)
+	Mock.snippetRuns = (Mock.snippetRuns or 0) + 1
+	return secure(fn, handleOf(header), ...)
+end
+Mock.runSnippet = runSnippet
+
+makeHeader = function(f)
+	f._secureHeader = true
+	f._protected = true
+	f.IsProtected = function() return true, true end
+	local set = f.SetAttribute
+	f.SetAttribute = function(self, name, value)
+		set(self, name, value)
+		local stateid = type(name) == "string" and name:match("^state%-(.+)")
+		if stateid then
+			local body = self:GetAttribute("_onstate-" .. stateid)
+			if type(body) == "string" then runSnippet(self, body, "self, stateid, newstate", stateid, value) end
+		end
+		return self
+	end
+	f.SetFrameRef = function(self, label, ref)
+		if Mock.inCombat then
+			Mock.blockedCalls[#Mock.blockedCalls + 1] = "SetFrameRef"
+			return
+		end
+		self.attributes["frameref-" .. tostring(label)] = handleOf(ref)
+	end
+	f.Execute = function(self, body)
+		if Mock.inCombat then
+			Mock.blockedCalls[#Mock.blockedCalls + 1] = "Execute"
+			return
+		end
+		return runSnippet(self, body, "self")
+	end
+end
+Mock.makeSecureHeader = makeHeader
+
+local function resolveDriver(frame, attribute, values)
+	local newValue = SecureCmdOptionParse(values)
+	if attribute == "state-visibility" then
+		if newValue == "show" then
+			secure(frame.Show, frame)
+			secure(frame.SetAttribute, frame, "statehidden", nil)
+		elseif newValue == "hide" then
+			secure(frame.Hide, frame)
+			secure(frame.SetAttribute, frame, "statehidden", true)
+		end
+	elseif newValue then
+		if newValue == "nil" then newValue = nil else newValue = tonumber(newValue) or newValue end
+		if newValue ~= frame:GetAttribute(attribute) then secure(frame.SetAttribute, frame, attribute, newValue) end
+	end
+end
+
+function RegisterAttributeDriver(frame, attribute, values)
+	if not (attribute and values and attribute:sub(1, 1) ~= "_") then return end
+	if Mock.inCombat then
+		Mock.blockedCalls[#Mock.blockedCalls + 1] = "RegisterAttributeDriver"
+		return
+	end
+	if not drivers[frame] then
+		drivers[frame] = {}
+		driverOrder[#driverOrder + 1] = frame
+	end
+	if values == "" then
+		drivers[frame][attribute] = nil
+	else
+		drivers[frame][attribute] = values
+		resolveDriver(frame, attribute, values)
+	end
+end
+function UnregisterAttributeDriver(frame, attribute)
+	if Mock.inCombat then
+		Mock.blockedCalls[#Mock.blockedCalls + 1] = "UnregisterAttributeDriver"
+		return
+	end
+	if attribute then
+		if drivers[frame] then drivers[frame][attribute] = nil end
+	else
+		drivers[frame] = nil
+	end
+end
+function RegisterStateDriver(frame, state, values) RegisterAttributeDriver(frame, "state-" .. state, values) end
+function UnregisterStateDriver(frame, state) UnregisterAttributeDriver(frame, "state-" .. state) end
+
+-- What the driver of a frame's attribute reads, for a scenario to ask.
+function Mock.driverFor(frame, attribute)
+	return drivers[frame] and drivers[frame][attribute] or nil
+end
+
+-- One frame of the manager's OnUpdate, `elapsed` seconds after the last.
+function Mock.stateDriverFrame(elapsed)
+	driverTimer = driverTimer - (elapsed or 0)
+	if driverTimer > 0 then return false end
+	driverTimer = DRIVER_THROTTLE
+	for _, frame in ipairs(driverOrder) do
+		local list = drivers[frame]
+		if list then
+			local attributes = {}
+			for attribute in pairs(list) do attributes[#attributes + 1] = attribute end
+			table.sort(attributes)
+			for _, attribute in ipairs(attributes) do
+				if list[attribute] then resolveDriver(frame, attribute, list[attribute]) end
+			end
+		end
+	end
+	return true
+end
+
+do
+	local runTimers = Mock.runTimers
+	function Mock.runTimers(seconds)
+		local done = runTimers(seconds)
+		Mock.stateDriverFrame(seconds or 0)
+		return done
+	end
+end
 
 -- A click of the mouse on a frame, as the client delivers it: a down click if
 -- the frame is registered for one, then an up click if it is registered for
@@ -475,6 +732,8 @@ end
 -- RegisterEvent (Core's own come through AceEvent, and scenarios call those
 -- handlers directly). Answers how many frames heard it.
 function Mock.frameEvent(event, ...)
+	-- The state driver manager listens too: its next frame answers at once.
+	if DRIVER_EVENTS[event] then driverTimer = 0 end
 	local heard = 0
 	for f in pairs(eventFrames) do
 		local fn = f._events and f._events[event] and f.scripts and f.scripts.OnEvent
@@ -711,6 +970,11 @@ local function install()
 	Mock.menu, Mock.menus, Mock.focus = nil, 0, nil
 	Mock.menuOpen, Mock.menuResponse = false, nil
 	for f in pairs(eventFrames) do eventFrames[f] = nil end
+	-- No driver outlives its scenario.
+	for f in pairs(drivers) do drivers[f] = nil end
+	for i = #driverOrder, 1, -1 do driverOrder[i] = nil end
+	driverTimer = 0
+	Mock.secureCode, Mock.snippetRuns, Mock.affectingCombat = nil, 0, nil
 	Mock.screenWidth = 1365
 	if installedMenu and rawget(_G, "MenuUtil") == installedMenu then MenuUtil = nil end
 	installedMenu = nil

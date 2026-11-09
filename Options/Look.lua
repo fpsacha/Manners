@@ -345,21 +345,38 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- The prompt off the screen for a fight, the player's ask. Not a
+			-- visibility driver alone: a hidden secure button still fires from
+			-- its key binding and /click, and the bar macro casts by its own
+			-- lines. Prompt/Fight.lua hides it from a secure snippet that first
+			-- takes the macro off the prompt and its list, and only once the
+			-- pull has left the bar macro holding no cast. Its own key: the
+			-- old "hideInCombat" below means the flashes, and keeps meaning
+			-- them for everybody who set it.
+			hideInFight = {
+				type = "toggle",
+				name = L["Hide the prompt in combat"],
+				desc = L["Off the screen for the whole fight, and nothing casts from it meanwhile: not its key, not a name in its list, not the Manners macro on your bar. It comes back when the fight ends. A change made in a fight counts from the next one."],
+				order = 32.4,
+				width = "full",
+				get = pGet,
+				set = pSet,
+			},
 			-- Next to Animations, because that is what it is: the flashes of
 			-- a click in a fight, not whether anybody is offered.
 			--
 			-- The key keeps its old name, "hide in combat", but it hides
-			-- nothing: Hide() on the protected button is refused in combat,
-			-- and a secure visibility driver ([combat] resolves here) would
-			-- leave a hidden button that still fires from its key binding
-			-- and /click, casting the frozen macro out of sight. So the
-			-- panel stays up on purpose, and this decides whether the
-			-- confirmation flash of a click in a fight still shows. It
-			-- writes the prompt's own table, so pGet/pSet (restyle).
+			-- nothing: with the switch above off the panel stays up in a
+			-- fight, and this decides whether the confirmation flash of a
+			-- click in one still shows. It writes the prompt's own table, so
+			-- pGet/pSet (restyle).
 			hideInCombat = {
 				type = "toggle",
 				name = L["No flashes in combat"],
-				desc = L["It stays on screen in combat because your key binding would still cast; this only stops the flashes that say what a click did, red if it failed."],
+				desc = function()
+					return L["The prompt stays up in a fight, its key binding still casting, unless %s is on; this stops only the flashes that say what a click did, red if it failed."]
+						:format(L["Hide the prompt in combat"])
+				end,
 				order = 32.5,
 				width = "full",
 				get = pGet,

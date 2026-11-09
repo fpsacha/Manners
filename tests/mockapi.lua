@@ -764,11 +764,13 @@ local function newFrame()
 	f.UnregisterEvent = function() end
 
 	-- Last, so it wraps whatever the two loops above left behind rather than
-	-- being overwritten by them.
+	-- being overwritten by them. A call made by secure code (a state driver, a
+	-- restricted snippet: tests/mockwidgets.lua, "secure handlers") is allowed
+	-- in a fight, as the client allows it, and is not one of the addon's.
 	for _, name in ipairs(PROTECTED_METHODS) do
 		local inner = f[name]
 		f[name] = function(self, ...)
-			if Mock.inCombat and self._protected then
+			if Mock.inCombat and self._protected and not Mock.secureCode then
 				Mock.protectedCalls[#Mock.protectedCalls + 1] = name
 			end
 			return inner(self, ...)
@@ -1495,17 +1497,52 @@ end
 -- A clause that resolves to nothing is handed back as nothing, which is exactly
 -- the silent failure that keeps the conditional route out of the macro: it
 -- casts nothing and says nothing.
+--
+-- Clauses are tried in order, split at ";" as the client splits them, and the
+-- first whose conditions hold answers (a state driver's "[combat] fight;
+-- peace", tests/mockwidgets.lua). Of the conditions, [combat] and [nocombat]
+-- are read, from the player's combat flag (UnitAffectingCombat("player") in
+-- the client): Mock.affectingCombat when a scenario sets it apart from the
+-- lockdown, which the client's flag and its lockdown are, else the fight the
+-- mock is in (Mock.inCombat). Every other word holds, as it always has here.
+local function inFight()
+	if Mock.affectingCombat ~= nil then return Mock.affectingCombat == true end
+	return Mock.inCombat == true
+end
+
+local function bracketHolds(conditional)
+	local who = conditional:match("@([^,%]]+)")
+	for word in (conditional .. ","):gmatch("%s*([^,]-)%s*,") do
+		if word == "combat" and not inFight() then return false end
+		if word == "nocombat" and inFight() then return false end
+	end
+	-- No unit named, so this is an ordinary conditional and not our question.
+	if not who then return true end
+	if Mock.conditionalTargeting == false then return false end
+	return Mock.groupNames ~= nil and Mock.groupNames[who] ~= nil
+end
+
+local function clauseAnswer(clause)
+	local rest = clause:match("^%s*(.-)$")
+	if rest:sub(1, 1) ~= "[" then return true, rest end
+	local any = false
+	while true do
+		local conditional, after = rest:match("^%[([^%]]*)%]%s*(.*)$")
+		if not conditional then break end
+		any = any or bracketHolds(conditional)
+		rest = after
+	end
+	return any, rest
+end
+
 function SecureCmdOptionParse(msg)
 	local text = tostring(msg)
-	local conditional, rest = text:match("^%s*%[([^%]]*)%]%s*(.*)$")
-	if not conditional then return text end
-
-	local who = conditional:match("@([^,%]]+)")
-	-- No unit named, so this is an ordinary conditional and not our question.
-	if not who then return rest end
-
-	if Mock.conditionalTargeting == false then return nil end
-	if Mock.groupNames and Mock.groupNames[who] then return rest end
+	-- One clause with no conditional: handed back as it was given.
+	if not text:find("[;%[]") then return text end
+	for clause in (text .. ";"):gmatch("([^;]*);") do
+		local holds, value = clauseAnswer(clause)
+		if holds then return (value:gsub("%s+$", "")) end
+	end
 	return nil
 end
 SecureCmdList = {

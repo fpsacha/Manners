@@ -473,6 +473,8 @@ function Prompt:Create()
 	end
 
 	R.button:Hide()
+	-- What takes the prompt and its rows off the screen for a fight (Fight.lua).
+	self:CreateFightHide()
 end
 
 function Prompt:AccentColor(reason)

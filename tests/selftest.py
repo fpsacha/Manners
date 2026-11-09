@@ -2812,8 +2812,8 @@ mutate("tests/mockapi.lua",
 # that got this wrong would make the strategy this addon does not ship look
 # perfectly safe.
 mutate("tests/mockapi.lua",
-       "\tif Mock.groupNames and Mock.groupNames[who] then return rest end\n\treturn nil",
-       "\treturn rest",
+       "\treturn Mock.groupNames ~= nil and Mock.groupNames[who] ~= nil\n",
+       "\treturn true\n",
        "the mock resolving a stranger's conditional",
        expect="a conditional aimed at a stranger on",
        script="runscenarios.py")
@@ -4159,8 +4159,8 @@ mutate("Options/Launcher.lua",
 
 # "Stay quiet in combat" claiming the prompt cannot be hidden.
 mutate("Options/Look.lua",
-       "L[\"It stays on screen in combat because your key binding would still cast;",
-       "L[\"It cannot be hidden in combat because Blizzard freezes secure frames;",
+       "L[\"The prompt stays up in a fight, its key binding still casting,",
+       "L[\"It cannot be hidden in combat because Blizzard freezes secure frames, its key binding still casting,",
        "quiet-in-combat says it cannot be hidden",
        expect="the switch still says the prompt cannot be hidden",
        script="runscenarios.py")

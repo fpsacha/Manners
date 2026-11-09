@@ -12,9 +12,9 @@ S = "runscenarios.py"
 # The combat switch, now on Look next to Animations, drifted out of Getting my
 # attention (re-anchored from its old place on this tab).
 mutate("Options/Look.lua",
-       "red if it failed.\"],\n"
+       ":format(L[\"Hide the prompt in combat\"])\n\t\t\t\tend,\n"
        "\t\t\t\torder = 32.5,\n",
-       "red if it failed.\"],\n"
+       ":format(L[\"Hide the prompt in combat\"])\n\t\t\t\tend,\n"
        "\t\t\t\torder = 38,\n",
        "when tab: combat switch out of its section",
        expect="is out of order: it comes before hideInCombat", script=S)
@@ -106,12 +106,12 @@ mutate("Options/Advanced.lua",
 
 # Moved here and bound to the filters table, so the saved setting is lost.
 mutate("Options/Look.lua",
-       "red if it failed.\"],\n"
+       ":format(L[\"Hide the prompt in combat\"])\n\t\t\t\tend,\n"
        "\t\t\t\torder = 32.5,\n"
        "\t\t\t\twidth = \"full\",\n"
        "\t\t\t\tget = pGet,\n"
        "\t\t\t\tset = pSet,\n",
-       "red if it failed.\"],\n"
+       ":format(L[\"Hide the prompt in combat\"])\n\t\t\t\tend,\n"
        "\t\t\t\torder = 32.5,\n"
        "\t\t\t\twidth = \"full\",\n"
        "\t\t\t\tget = Page.fGet,\n"

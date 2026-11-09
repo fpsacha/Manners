@@ -336,6 +336,13 @@ local function OnPostClick(self, mouseButton, down)
 		Prompt:Refresh()
 		return
 	end
+	-- Its key pressed while the fight has the prompt off the screen: the snippet
+	-- took the macro off with it (Fight.lua), so nothing went out and nothing
+	-- is filed. Said, with Tell me in chat on, once in a while.
+	if S == Prompt.state and Prompt:HiddenForFight() then
+		lib.SayHiddenForFight(GetTime())
+		return
+	end
 	-- What the press ran: the button's macro, or the lines the bar macro was
 	-- written with (MannersBar holds none of its own).
 	local armedText = S.isBar and S.macro or self:GetAttribute("macrotext1")
@@ -707,11 +714,27 @@ end
 -- When a press of the bar macro last said it can do nothing in a fight.
 local lastBarFightAt
 
+-- When a press last said the prompt is off the screen for the fight: its key,
+-- a /click of it, or the bar macro, which the pull left holding its first line
+-- alone (Fight.lua). Once in ten seconds, with Tell me in chat on.
+local lastHiddenAt
+function lib.SayHiddenForFight(now)
+	local db = ns.db and ns.db.profile
+	if not (db and (db.verbose or db.debugClicks)) then return end
+	if lastHiddenAt and now - lastHiddenAt < 10 then return end
+	lastHiddenAt = now
+	ns.addon:Print(L["the prompt is hidden for this fight, so a press casts nothing -- it comes back when the fight ends."])
+end
+
 local function BarWaiting(now)
 	local B = Prompt.bar
 	if B.waitAt and now - B.waitAt < 0.25 then return end
 	B.waitAt = now
 	local db = ns.db and ns.db.profile
+	if InCombatLockdown() and Prompt:HiddenForFight() then
+		lib.SayHiddenForFight(now)
+		return
+	end
 	if InCombatLockdown() then
 		-- The macro keeps what the fight found in it, which was nothing to cast.
 		if db and (db.verbose or db.debugClicks) and not (lastBarFightAt and now - lastBarFightAt < 10) then

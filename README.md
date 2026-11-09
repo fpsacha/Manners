@@ -462,9 +462,13 @@ apart under protanopia and deuteranopia.
 
 <img src=".github/media/manners-palette.png" alt="The same prompt and list in the standard reason colours and in the colour-blind friendly set" width="640">
 
-Set *Animations* to *Calm* for none of that movement. *No flashes in combat*
-keeps the prompt on screen in a fight with no flashes, and *Dim the prompt in combat* draws
-Glass, Framed and Minimal at about half strength while one lasts.
+Set *Animations* to *Calm* for none of that movement. *Hide the prompt in
+combat* takes the prompt and its list off the screen for the whole fight, and
+nothing casts from them meanwhile: not its key, not a name in the list, not
+the Manners macro on your bar. It comes back when the fight ends. With it off,
+*No flashes in combat* keeps the prompt on screen in a fight with no flashes,
+and *Dim the prompt in combat* draws Glass, Framed and Minimal at about half
+strength while one lasts.
 
 ## The minimap button
 
@@ -849,8 +853,15 @@ prompt* goes away when you click it.
   below*, off by default: the next few people the prompt would offer, one line each.
   *Click a name in the list to buff them* (on) makes each line a button, as
   under *Click any name* above; how many are listed is *How many to list*.
-- *No flashes in combat*: the prompt stays on screen, because your
-  key would still cast, but the flashes stop, and the icon shows no cooldown
+- *Hide the prompt in combat* (off): the prompt and its list are off the
+  screen for the whole fight, and its key, a name in the list and the Manners
+  macro on your bar cast nothing until it ends; then it is back, armed for
+  whoever it names by then. If the Manners macro still held a cast as the
+  fight began (you pressed it at that very moment, or changed it by hand), the
+  prompt stays up for that fight and a line in chat says so. A change made in a
+  fight counts from the next one.
+- *No flashes in combat*: with *Hide the prompt in combat* off the prompt
+  stays on screen, its key still casting, but the flashes stop, and the icon shows no cooldown
   sweep for the fight.
 - *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at
   about half strength in a fight, so the prompt reads as held. The other looks

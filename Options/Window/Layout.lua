@@ -447,6 +447,7 @@ ns.WindowLayout = {
 				{ key = "appearance.attention", header = "appearance.attentionHeader", items = {
 					{ "appearance.flashStyle", pair = true },
 					"appearance.effects",
+					"appearance.hideInFight",
 					"appearance.hideInCombat",
 					"appearance.dimInCombat",
 					"appearance.soundEnabled",
@@ -614,6 +615,8 @@ ns.WindowLayout = {
 	keywords = {
 		["general.silentChat"] = L["quiet mute spam"],
 		["general.verbose"] = L["quiet mute spam"],
+		-- Asked for as hiding "the window" in a fight.
+		["appearance.hideInFight"] = L["window frame invisible fight"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the

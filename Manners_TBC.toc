@@ -62,6 +62,7 @@ Prompt\Button.lua
 Prompt\Panel.lua
 Prompt\List.lua
 Prompt\Rows.lua
+Prompt\Fight.lua
 Prompt\Paint.lua
 Prompt\Refresh.lua
 Options\Shared.lua
