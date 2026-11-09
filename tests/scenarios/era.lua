@@ -327,7 +327,7 @@ end
 -- ------------------------------------------------------------------ the options window
 -- Era has the client's own menus (Blizzard_Menu loads there, with MenuUtil)
 -- and the Settings window. Every page builds either way, a dropdown opens the
--- menu where there is one and steps to the next choice where there is not,
+-- client's menu where there is one and Manners' own list where there is not,
 -- and the Settings entry is registered.
 for _, withMenu in ipairs({ true, false }) do
 	local scenario = "era: the options window builds " .. (withMenu and "with" or "without") .. " MenuUtil"
@@ -366,9 +366,11 @@ for _, withMenu in ipairs({ true, false }) do
 				if not Mock.menu then fail(scenario, "the Animations dropdown opened no menu") end
 				if P.effects ~= was then fail(scenario, "opening the menu changed Animations") end
 			else
-				if P.effects == was then
-					fail(scenario, "with no MenuUtil the Animations dropdown does nothing: still " .. tostring(was))
+				local list = ns.WindowWidgets.choiceList
+				if not (list and list.screen:IsShown()) then
+					fail(scenario, "with no MenuUtil the Animations dropdown does nothing")
 				end
+				if P.effects ~= was then fail(scenario, "opening the list changed Animations") end
 			end
 		end
 		ns.CloseOptions()

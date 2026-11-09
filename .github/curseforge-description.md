@@ -78,7 +78,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 - **Skip players another paladin has blessed:** for paladins whose group shares out the blessings.
 - **Thorns for the tanks only, or for you alone:** *Offer to* on Who to buff, by the game's tank role or a raid's main tank mark.
 - **Hide all Manners messages in my chat window:** not even the few lines the *Show what Manners is doing* switch leaves. What you type after `/manners` is still answered.
-- **A controller on:** Manners opens none of the game's own menus (the minimap right click is the switch, a drop-down steps to the next choice).
+- **A controller on:** Manners opens none of the game's own menus (the minimap right click is the switch, a drop-down opens a list Manners draws itself).
 
 ### Timing
 

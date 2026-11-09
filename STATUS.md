@@ -23,7 +23,8 @@ Breath, the full check-up for bug reports (1.11.9) and a Well-Rested reminder
 for the Cozy Sleeping Bag (1.11.10). 1.11.13 adds the friendly nameplates
 note, Soul Link read right on Forever and Classic Era, Find Treasure beside a
 gathering tracking on Forever, the Scrolls switch, Unending Breath while you
-swim, Hide the prompt in combat, the follow prompt as a second opinion on range
+swim, Hide the prompt in combat, the options window's own drop-down list with a
+gamepad on or no client menu, the follow prompt as a second opinion on range
 where the spell's check is silent, and ten seconds off the prompt after the
 game answers Out of range. Whether the follow prompt answers for a stranger on
 Forever is open (nil there leaves them offered). 1.11.11 and 1.11.12: nothing offered inside an

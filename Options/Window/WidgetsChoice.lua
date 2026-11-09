@@ -42,18 +42,151 @@ local function FillMenu(row, root, values)
 	end
 end
 
--- A client without the menu gets the next choice along, so the control still
--- works.
-local function Cycle(row, values)
-	if #values == 0 then return end
-	local now, key = Bind().Value(row.item), values[1][1]
-	for i, v in ipairs(values) do
-		if v[1] == now then
-			key = values[i % #values + 1][1]
-			break
+-- The list Manners draws itself, where the client's menu cannot be used: a
+-- client without one, or a gamepad switched on (ns.GamepadActive). Plain
+-- buttons of our own, so the client's gamepad code has none of its menu frames
+-- to refuse. One list, built on first use: `screen` covers the screen under it,
+-- so a click anywhere else closes it and the page behind cannot scroll away.
+local LIST_ROW_HEIGHT = 20
+local LIST_ROWS = MENU_HEIGHT / LIST_ROW_HEIGHT
+local LIST_ARROW_HEIGHT = 14
+local LIST_WHEEL_STEP = 3
+
+local list
+
+local function CloseList()
+	if list then list.screen:Hide() end
+end
+
+local function PaintList()
+	local values, row = list.values, list.row
+	local hidden = math.max(0, #values - LIST_ROWS)
+	list.offset = math.max(0, math.min(list.offset, hidden))
+	for i, button in ipairs(list.buttons) do
+		local v = values[i + list.offset]
+		if v then
+			button.key = v[1]
+			button.text:SetText(v[2])
+			local chosen = IsChosen(row, v[1])
+			TextColour(button.text, chosen and T.gold or T.ink)
+			button.mark:SetShown(chosen)
+			button:Show()
+		else
+			button.key = nil
+			button:Hide()
 		end
 	end
-	Pick(row, key)
+	list.up:SetShown(hidden > 0)
+	list.down:SetShown(hidden > 0)
+	list.up:SetEnabled(list.offset > 0)
+	list.down:SetEnabled(list.offset < hidden)
+	list.up.arrow:SetDesaturated(list.offset <= 0)
+	list.down.arrow:SetDesaturated(list.offset >= hidden)
+end
+
+local function ScrollList(by)
+	list.offset = list.offset + by
+	PaintList()
+end
+
+local function ListPicked(button)
+	local row, key = list.row, button.key
+	CloseList()
+	if key ~= nil then Pick(row, key) end
+end
+
+local function ListArrow(direction)
+	local b = CreateFrame("Button", nil, list.panel)
+	b:RegisterForClicks("LeftButtonUp")
+	b:SetHeight(LIST_ARROW_HEIGHT)
+	W.Solid(b, "HIGHLIGHT", nil, T.hover):SetAllPoints(b)
+	b.arrow = b:CreateTexture(nil, "ARTWORK")
+	b.arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+	b.arrow:SetSize(10, 10)
+	b.arrow:SetPoint("CENTER", b, "CENTER", 0, 0)
+	if direction < 0 then b.arrow:SetTexCoord(0, 1, 1, 0) end
+	W.Colour(b.arrow, T.gold)
+	b:SetScript("OnClick", function()
+		ns.Guard("options list", ScrollList, direction * (LIST_ROWS - 1))
+	end)
+	return b
+end
+
+local function ListButton(i)
+	local b = CreateFrame("Button", nil, list.panel)
+	b:RegisterForClicks("LeftButtonUp")
+	b:SetHeight(LIST_ROW_HEIGHT)
+	W.Solid(b, "HIGHLIGHT", nil, T.hover):SetAllPoints(b)
+	b.mark = W.Solid(b, "ARTWORK", nil, T.gold)
+	b.mark:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -4)
+	b.mark:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 3, 4)
+	b.mark:SetWidth(2)
+	b.text = W.Text(b, T.fonts.small, T.ink)
+	b.text:SetPoint("LEFT", b, "LEFT", 9, 0)
+	b.text:SetPoint("RIGHT", b, "RIGHT", -8, 0)
+	b.text:SetWordWrap(false)
+	b:SetScript("OnClick", function(self) ns.Guard("options list", ListPicked, self) end)
+	list.buttons[i] = b
+end
+
+local function BuildList()
+	local screen = CreateFrame("Button", nil, UIParent)
+	screen:SetAllPoints(UIParent)
+	-- Over the window, which draws at HIGH.
+	screen:SetFrameStrata("FULLSCREEN_DIALOG")
+	screen:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	screen:EnableMouseWheel(true)
+	screen:SetScript("OnClick", function() ns.Guard("options list", CloseList) end)
+	screen:SetScript("OnMouseWheel", function(_, delta)
+		ns.Guard("options list", ScrollList, delta > 0 and -LIST_WHEEL_STEP or LIST_WHEEL_STEP)
+	end)
+	-- The window can shut under it (Escape), taking the field with it.
+	screen:SetScript("OnUpdate", function()
+		if not (list.field and list.field:IsVisible()) then ns.Guard("options list", CloseList) end
+	end)
+	screen:SetScript("OnHide", function() list.field, list.row, list.values = nil, nil, nil end)
+	local panel = CreateFrame("Frame", nil, screen)
+	panel:SetClampedToScreen(true)
+	panel:EnableMouse(true)
+	W.Solid(panel, "BACKGROUND", -2, T.modal):SetAllPoints(panel)
+	W.Border(panel, T.edgeHi)
+	list = { screen = screen, panel = panel, buttons = {}, offset = 0 }
+	W.choiceList = list
+	list.up, list.down = ListArrow(-1), ListArrow(1)
+	list.up:SetPoint("TOPLEFT", panel, "TOPLEFT", 1, -1)
+	list.up:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -1, -1)
+	list.down:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 1, 1)
+	list.down:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -1, 1)
+	for i = 1, LIST_ROWS do ListButton(i) end
+	screen:Hide()
+end
+
+local function OpenList(field, row, values)
+	if #values == 0 then return end
+	if not list then BuildList() end
+	list.field, list.row, list.values = field, row, values
+
+	-- Opens with the current choice in view.
+	list.offset = 0
+	for i, v in ipairs(values) do
+		if IsChosen(row, v[1]) and i > LIST_ROWS then list.offset = i - 1 end
+	end
+
+	local shown = math.min(#values, LIST_ROWS)
+	local arrows = #values > LIST_ROWS and LIST_ARROW_HEIGHT or 0
+	for i, button in ipairs(list.buttons) do
+		button:ClearAllPoints()
+		button:SetPoint("TOPLEFT", list.panel, "TOPLEFT", 1, -(1 + arrows + (i - 1) * LIST_ROW_HEIGHT))
+		button:SetPoint("TOPRIGHT", list.panel, "TOPRIGHT", -1, -(1 + arrows + (i - 1) * LIST_ROW_HEIGHT))
+	end
+
+	-- At the field's own width and scale: the window has a scale of its own.
+	list.panel:SetScale(field:GetEffectiveScale() / UIParent:GetEffectiveScale())
+	list.panel:SetSize(field:GetWidth(), shown * LIST_ROW_HEIGHT + 2 * arrows + 2)
+	list.panel:ClearAllPoints()
+	list.panel:SetPoint("TOPLEFT", field, "BOTTOMLEFT", 0, -2)
+	PaintList()
+	list.screen:Show()
 end
 
 local function SelectClicked(field)
@@ -61,7 +194,7 @@ local function SelectClicked(field)
 	if W.Off(row) then return end
 	local values = Bind().Values(row.item)
 	if type(MenuUtil) ~= "table" or type(MenuUtil.CreateContextMenu) ~= "function" or ns.GamepadActive() then
-		Cycle(row, values)
+		OpenList(field, row, values)
 		return
 	end
 	MenuUtil.CreateContextMenu(field, function(_, root)

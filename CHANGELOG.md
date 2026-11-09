@@ -6,6 +6,8 @@
   nameplates off, Manners sees almost nobody outside your group. *Who to buff*
   now says so in red with a red dot beside the page, and *Start here* shows the
   same note and the *Show friendly nameplates* button under step 1.
+- **Drop-downs with a controller on.** The options window's drop-downs now open
+  a list to choose from, instead of stepping to the next choice on each click.
 - **Out of range.** Somebody too far away for your spell no longer stays on the
   prompt when the game's own range check has nothing to say about them. After
   the game answers *Out of range*, they stay off the prompt for ten seconds.

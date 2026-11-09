@@ -110,8 +110,8 @@ follows them. After that, Start here has two numbered steps, which set it up:
    the controller's own action bar navigation like any other macro. With a
    gamepad switched on Manners opens none of the game's own menus, which the
    game's gamepad code refuses to close cleanly after an addon filled them: the
-   minimap button's right click is the on/off switch, an options drop-down steps
-   to the next choice, and Snooze starts or stops fifteen minutes.
+   minimap button's right click is the on/off switch, an options drop-down opens
+   a list Manners draws itself, and Snooze starts or stops fifteen minutes.
 
 Then press *Show me the prompt* at the top of the window (or type
 `/manners test`) to see it where it sits. To move it, press *Move the

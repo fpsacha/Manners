@@ -64,7 +64,7 @@ mutate("Core.lua",
 # ------------------------------------------------ the options window
 # A dropdown with no client menu to open does nothing at all.
 mutate("Options/Window/WidgetsChoice.lua",
-       "\t\tCycle(row, values)\n\t\treturn\n",
+       "\t\tOpenList(field, row, values)\n\t\treturn\n",
        "\t\treturn\n",
        "era: a dropdown without MenuUtil does nothing",
        expect="era: the options window builds without MenuUtil",
