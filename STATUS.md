@@ -329,6 +329,12 @@ What only the live game can say about them:
 8. Whether Burning Crusade names your pet (`pet`) as the source of Soul Link
    (25228), as its data says; Manners reads it as yours on that.
 
+**The Scrolls switch (Unreleased), asked for on CurseForge.** `ownBuffs.scrolls`
+(on by default, so nothing changes until it is flipped) turns off every family
+flagged `isScroll` (the stat scrolls, Forever's Familiar and Weapon imbue) and
+hides their rows, through `ns.ScrollsOff`; each scroll's own switch and pick are
+kept. Nothing here depends on the live game beyond what the scrolls already did.
+
 **Find Treasure beside a gathering tracking on Forever (Unreleased).** A dwarf
 on CurseForge keeps Find Treasure (2481) on with Find Herbs or Find Minerals;
 on Forever 1.60.1.70790 all three are SpellEffect aura 45, so it is the server

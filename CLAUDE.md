@@ -201,10 +201,9 @@ default everywhere in the tests and the only client anybody here plays.
     camelot and tbc; Mists and retail have no such spell). `isScroll` marks
     every scroll (the stat scrolls, Forever's Familiar and Weapon imbue): the
     *Scrolls* switch under Myself (`ownBuffs.scrolls`, `ns.ScrollsOff`) turns
-    them all off and hides their rows, each pick kept.
-    camelot and tbc; Mists and retail have no such spell). A family reminded
-    only while you swim is `swimming` (a warlock's Unending Breath on himself,
-    `selfbreath`, on all five clients, first of his own, on by default): Core.lua
+    them all off and hides their rows, each pick kept. A family reminded
+    only while you swim is `swimming` (a warlock's Unending Breath on yourself,
+    `selfbreath`, on all five clients, first of a warlock's own, on by default): Core.lua
     `Swimming` reads `IsSwimming()` and holds it two seconds past the last
     stroke (`SWIM_HOLD`), and OwnVerdict answers `"dry"` before any aura read.
     An own spell's `group` (a shaman's Water Breathing 131 for it, where the
