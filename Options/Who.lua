@@ -446,6 +446,9 @@ local function AddOwnControls(args)
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
 					or family.optIn
 					and L["Reminds you when it is not on you, whoever cast it. Off until you turn it on."]
+					-- Forever's Find Treasure (Buffs.lua, onceUp): nothing until it has been up.
+					or family.onceUp
+					and L["Reminds you when it is not up, once you have had it up yourself."]
 					or family.form
 					and L["Reminds you when you are not in it, and never while you are in another form."]
 					or L["Reminds you when it is not up."]

@@ -1023,6 +1023,10 @@ end
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
+--   onceUp    Automatic reminds you only of the one you had up last: nothing
+--             before Manners has seen you put one up yourself (Forever's Find
+--             Treasure, a family of its own beside Tracking there). A pick
+--             reminds you all the same.
 --   shiftsOut a buff the client refuses in Moonkin Form, and drops you out of it
 --             on the press (Classic Era and TBC's Mark of the Wild): Moonkin Form is
 --             not offered while one of these is waiting (Queue.lua, BuildQueue).
@@ -1339,6 +1343,7 @@ end
 -- known, so a wrong id here can only cost the reminder. The gathering ids are
 -- EnhanceQoL's, each with the second id Forever also uses. One table shared by
 -- every class's list, so the memory of the one you had on is one memory.
+-- Forever's copy leaves Find Treasure out, as a family of its own (CAMELOT_OWN).
 local TRACKING = {
 	key = "tracking",
 	label = L["Tracking"],
@@ -1955,6 +1960,25 @@ do
 			{ key = "imbuechillknife", item = 275067, level = 5, ranks = { 1296225 }, enchant = 8698, weapon = DAGGER },
 		},
 	}
+	-- Find Treasure, the dwarf's own tracking, stays on beside Find Herbs or
+	-- Find Minerals here (a dwarf on Forever, on CurseForge: "I can have both
+	-- find treasure and a profession tracking up"; all three are SpellEffect
+	-- aura 45 at 1.60.1.70790, so it is the server that lets them share), where
+	-- Classic Era and Burning Crusade keep one tracking on at a time. So on this
+	-- client it is a family of its own, after Tracking, which keeps the rest:
+	-- with Find Treasure on, a gathering tracking off is still reminded, and the
+	-- other way about. No word of its own: named by the spell. `onceUp`, so a
+	-- dwarf who has never had it on is never asked to put it up (Core.lua,
+	-- AutoAnswer); a memory or a pick of it on Tracking moves across
+	-- (ns.ClampSettings). Both tables shared by every class's list, as above.
+	local CAMELOT_TRACKING = { key = TRACKING.key, label = TRACKING.label, tracking = true, toggle = true, spells = {} }
+	for _, spell in ipairs(TRACKING.spells) do
+		if spell.key ~= "findtreasure" then
+			CAMELOT_TRACKING.spells[#CAMELOT_TRACKING.spells + 1] = { key = spell.key, ranks = spell.ranks }
+		end
+	end
+	local FIND_TREASURE = { key = "findtreasure", tracking = true, toggle = true, onceUp = true,
+		spells = { { key = "findtreasure", ranks = { 2481 } } } }
 	-- Vanilla's lists, with the mage's two after the armor. Forever made Omen
 	-- of Clarity a passive every druid has from 20 (16864: Attributes_0 0x40,
 	-- no duration): nothing to cast, so a druid there has tracking alone. Not
@@ -1964,6 +1988,13 @@ do
 		local list = {}
 		for _, family in ipairs(families) do
 			if family.key ~= "omen" and not family.enhance and not family.bagged then list[#list + 1] = family end
+		end
+		for i, family in ipairs(list) do
+			if family == TRACKING then
+				list[i] = CAMELOT_TRACKING
+				table.insert(list, i + 1, FIND_TREASURE)
+				break
+			end
 		end
 		AddEnhancements(list, class, ENHANCEMENTS.camelot)
 		AddFood(list, "camelot")

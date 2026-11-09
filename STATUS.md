@@ -329,6 +329,23 @@ What only the live game can say about them:
 8. Whether Burning Crusade names your pet (`pet`) as the source of Soul Link
    (25228), as its data says; Manners reads it as yours on that.
 
+**Find Treasure beside a gathering tracking on Forever (Unreleased).** A dwarf
+on CurseForge keeps Find Treasure (2481) on with Find Herbs or Find Minerals;
+on Forever 1.60.1.70790 all three are SpellEffect aura 45, so it is the server
+that lets them share. On Forever alone Find Treasure is now a family of its own
+(`findtreasure`, `onceUp`: reminded only once Manners has seen it on), and
+`ns.SplitFindTreasure` moves a pick, a tick or the memory of it off Tracking
+once (`tests/scenarios/forever-tracking.lua`). What only the live game can say:
+(1) that the minimap's list (`C_Minimap.GetTrackingInfo`) shows Find Treasure
+and Find Herbs `active` together; (2) that `/cast Find Treasure` with Find Herbs
+on leaves Find Herbs on, and the other way about (if one press turns the other
+off, the two families would take turns). Open: whether Forever lets Find Herbs
+and Find Minerals be on together too. Nothing says so yet; if a player reports
+it, they would split the same way (and Tracking's Automatic would need a rule
+for which of several to ask for). A dwarf with a gathering profession who had
+Find Treasure as Tracking's memory is now asked for the gathering one too (the
+first known) when it is off.
+
 **Well-Rested was written against the data and the mock (1.11.10).** The
 Cozy Sleeping Bag (item 211527) casts Unroll Bag (429961, an hour's cooldown);
 resting in the bag a minute gives Well-Rested (429959), and the bag's area

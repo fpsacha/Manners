@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **WoW Forever: Find Treasure beside a gathering tracking.** A dwarf can keep
+  Find Treasure on with Find Herbs or Find Minerals, and Manners now reminds
+  you of both: Find Treasure has its own switch under *Myself* on *Who to
+  buff*, and Find Treasure on no longer hides a gathering tracking that is
+  off. It is reminded of once you have had it on yourself, so nobody is asked
+  to put it up who never does.
+
 ## 1.11.12
 
 - **Favours.**

@@ -288,6 +288,14 @@ each class offers*).
   one (cat, bear, travel). Moonkin Form comes before Tree of Life, and on
   Classic Era and Burning Crusade it waits while your group still needs your
   Mark of the Wild.
+- **Tracking.** Find Herbs, Find Minerals, Find Treasure, a hunter's Track
+  Beasts and the other tracking skills are one kind, *Tracking*, reminded of
+  when none is on (after you die, say); *Automatic* takes the one you had on
+  last. On WoW Forever a dwarf can keep Find Treasure on beside Find Herbs or
+  Find Minerals, so there it has a switch of its own, *Find Treasure*: once
+  you have had it on, it is reminded of whenever it is off, and a gathering
+  tracking is still reminded of while Find Treasure is on. A dwarf who never
+  turns it on is never asked to.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath

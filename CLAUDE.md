@@ -164,7 +164,12 @@ default everywhere in the tests and the only client anybody here plays.
     Form on Classic Era and TBC, TBC's Tree of Life; Season of Discovery's
     tree has none) and `timed` (a toggle with a timer: Demonic Sacrifice, so
     Diagnostics makes no "no timer" claim); the spell flag `byPet` (an own
-    buff whose caster is your pet: TBC's Soul Link).
+    buff whose caster is your pet: TBC's Soul Link). The family flag
+    `onceUp` (Automatic reminds only of the one remembered up, nothing before;
+    a pick still reminds): Forever's `findtreasure`, a family of its own beside
+    `tracking` there because Forever keeps Find Treasure on with a gathering
+    tracking (Classic Era and TBC keep it in `tracking`); `ns.SplitFindTreasure`
+    in `Core.lua` moves a pick, tick or memory of it off `tracking` once.
     `shoutYards` is read only by `tools/audit_ids.py`.
   - weapon enhancements (poisons, sharpening stones and weightstones, wizard
     and mana oils, fishing lures), vanilla, tbc, camelot and mists: items from
