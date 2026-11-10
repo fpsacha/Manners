@@ -70,6 +70,33 @@ do
 end
 
 do
+	local scenario = "author-egg: it also shows across the screen, in gold in chat"
+	local saved = rawget(_G, "UIErrorsFrame")
+	local savedEmote = rawget(_G, "DoEmote")
+	local bowed = {}
+	rawset(_G, "DoEmote", function(token) bowed[#bowed + 1] = tostring(token) end)
+	local shown = {}
+	rawset(_G, "UIErrorsFrame", { AddMessage = function(_, text) shown[#shown + 1] = tostring(text) end })
+	loaded(scenario, nil, { "Anna", "Aim" }, function(ns)
+		local said = {}
+		ns.addon.Print = function(_, text) said[#said + 1] = tostring(text) end
+		ns.NoteBuffedAuthor(AUTHOR)
+		if #shown ~= 1 or not shown[1]:find("Mort Defrette", 1, true) then
+			fail(scenario, "nothing was put across the screen: " .. table.concat(shown, " | "))
+		end
+		if not (said[1] or ""):find("|cffffd100", 1, true) then
+			fail(scenario, "the chat line is not gold: " .. tostring(said[1]))
+		end
+		if #bowed ~= 1 or bowed[1] ~= "BOW" then fail(scenario, "the buffer did not bow: " .. table.concat(bowed, ",")) end
+		ns.NoteBuffedAuthor(AUTHOR)
+		if #shown ~= 1 then fail(scenario, "a second buff put it across the screen again") end
+		if #bowed ~= 1 then fail(scenario, "a second buff bowed again") end
+	end)
+	rawset(_G, "UIErrorsFrame", saved)
+	rawset(_G, "DoEmote", savedEmote)
+end
+
+do
 	local scenario = "author-egg: never for the author"
 	loaded(scenario, nil, nil, function(ns)
 		local jokes = listen(ns)

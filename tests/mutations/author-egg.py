@@ -33,3 +33,21 @@ mutate("Clicks.lua",
        " or ns.Flavour.flavour ~= \"camelot\" then return end",
        "author-egg: told to the author",
        expect="author-egg: never for the author", script=S)
+
+mutate("Clicks.lua",
+       "\t\t\tscreen:AddMessage(line, 1, 0.82, 0)\n",
+       "",
+       "author-egg: nothing across the screen",
+       expect="author-egg: it also shows across the screen, in gold in chat", script=S)
+
+mutate("Clicks.lua",
+       "\t\taddon:Print(\"|cffffd100\" .. line .. \"|r\")\n",
+       "\t\taddon:Print(line)\n",
+       "author-egg: the chat line is plain",
+       expect="author-egg: it also shows across the screen, in gold in chat", script=S)
+
+mutate("Clicks.lua",
+       "\t\t\tpcall(_G.DoEmote, \"BOW\")\n",
+       "",
+       "author-egg: no bow",
+       expect="author-egg: it also shows across the screen, in gold in chat", script=S)

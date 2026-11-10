@@ -485,7 +485,19 @@ do
 			L["Mort Defrette wrote this addon, so any thanks you get back are, strictly speaking, automated."],
 			L["You have buffed the author of Manners. Your feedback has been received and will be cherished."],
 		}
-		addon:Print(lines[math.random(#lines)])
+		local line = lines[math.random(#lines)]
+		-- Gold in the chat window, where it was lost among everybody else's lines,
+		-- and across the top of the screen for a few seconds, which is not.
+		addon:Print("|cffffd100" .. line .. "|r")
+		local screen = _G.UIErrorsFrame
+		if type(screen) == "table" and type(screen.AddMessage) == "function" then
+			screen:AddMessage(line, 1, 0.82, 0)
+		end
+		-- And a bow, which the author sees in the world and the buffer sees in
+		-- their own chat ("You bow."): once a session, never in a fight.
+		if type(_G.DoEmote) == "function" and not InCombatLockdown() then
+			pcall(_G.DoEmote, "BOW")
+		end
 	end
 end
 
