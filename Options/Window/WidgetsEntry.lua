@@ -567,7 +567,7 @@ end
 
 local function AcceptClicked(b)
 	local row = b.row
-	if W.Off(row) then return end
+	if W.Off(row) or W.Waiting(row) then return end
 	local ok, msg = W.Commit(row, row.box:GetText() or "")
 	if ok == false then
 		ShowError(row, msg)
@@ -605,6 +605,21 @@ local function MultiFocus(box, on)
 	W.FieldLook(row.scroll.look, row.off and "off" or (on and "focus" or nil))
 	if ReadOnly(row) then
 		if on then box:HighlightText() else box:HighlightText(0, 0) end
+	end
+end
+
+-- Leaving the box keeps what was typed, as leaving a one-line box does, so
+-- closing the window (which takes the focus) no longer throws your own lines
+-- away: a player typed them, closed the window and found them gone. Accept
+-- still commits at once. A box for typing into (an empty one, the paste box)
+-- and a refused text wait for Accept, and a confirm asks first as ever.
+local function MultiLeft(box)
+	local row = box.row
+	MultiFocus(box, false)
+	if row.leaving or row.busy or row.error or ReadOnly(row) or W.Waiting(row) or TypingOnly(row) then return end
+	if Submit(row) then
+		AcceptState(row)
+		W.Settle(row)
 	end
 end
 
@@ -667,7 +682,7 @@ local function MultiScripts(row)
 		ns.Guard("options box", FollowCursor, self, x, y, w, h)
 	end)
 	box:SetScript("OnEditFocusGained", function(self) ns.Guard("options box", MultiFocus, self, true) end)
-	box:SetScript("OnEditFocusLost", function(self) ns.Guard("options box", MultiFocus, self, false) end)
+	box:SetScript("OnEditFocusLost", function(self) ns.Guard("options box", MultiLeft, self) end)
 	scroll:SetScript("OnMouseDown", function(self) ns.Guard("options box", ScrollClicked, self) end)
 	scroll:SetScript("OnMouseWheel", function(self, delta) ns.Guard("options box", Wheel, self, delta) end)
 	-- The client's word that the text grew or shrank under the box.

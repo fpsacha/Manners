@@ -11,7 +11,11 @@ target (`ns.CastName`, GitHub issue 9; the rank text is the client's own
 off a person for ten minutes after "A more powerful spell is already active" or
 "Target is too low level" (`NoteRefusal`'s `buffKey`), *Hold back my target and
 focus too* (`filters.quietTargets`, issue 8), *A right-click skips for*
-(`timing.skipSeconds`) and a mage's scrolls held to dungeons and raids. Whether
+(`timing.skipSeconds`), a mage's scrolls held to dungeons and raids, lines typed
+into the phrase box kept when the box is left (`MultiLeft`), and *Remind me of my
+shout when I'm alone* (`ownBuffs.shoutAlone`, `CastsOnSelf`; a warrior alone is
+offered his own Battle Shout through the self entry, whose macro targets himself
+and casts it, which has never run in the live game). Whether
 Forever's client takes `/cast Name(Rank N)` and answers `GetSpellSubtext` is
 open until somebody casts one there.
 

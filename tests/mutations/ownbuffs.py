@@ -475,8 +475,8 @@ mutate("Buffs.lua",
        expect="rather than Demon Skin", script=S)
 
 mutate("Core.lua",
-       " and not buff.notSelf and not buff.neverSelf\n",
-       " and not buff.notSelf\n",
+       "\tif buff == nil or buff.notSelf or buff.neverSelf then return false end\n",
+       "\tif buff == nil or buff.notSelf then return false end\n",
        "own: neverSelf ignored",
        expect="rather than Demon Skin", script=S)
 

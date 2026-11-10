@@ -293,6 +293,8 @@ ns.WindowLayout = {
 					-- they never read as items of the list below them.
 					{ "who.ownCities", indent = true },
 					{ "who.ownDungeons", indent = true },
+					-- A warrior's shout for himself, alone (shown to a warrior only).
+					{ "who.ownShout", indent = true },
 					-- The spells of those families you know, to leave out one by one.
 					{ "who.own_leave", indent = true },
 					-- Why a buff of your own is not being offered, under the switches.

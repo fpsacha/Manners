@@ -521,7 +521,7 @@ local function ForOthersOnly(args)
 		-- Consumables only in dungeons and raids is about your own buffs too:
 		-- a hunter's or a shaman's food and flasks.
 		if not (key == "myselfHeader" or key == "self" or key == "ownCities" or key == "ownDungeons"
-			or key == "ownScrolls" or key:find("^own_")) then
+			or key == "ownScrolls" or key == "ownShout" or key:find("^own_")) then
 			local was = arg.hidden
 			arg.hidden = function(...)
 				if not HasClassBuffs() then return true end
@@ -1118,6 +1118,24 @@ function Page.BuildWhoTab()
 				get = function() return ns.db.profile.ownBuffs.itemsInDungeons == true end,
 				set = function(_, value)
 					ns.db.profile.ownBuffs.itemsInDungeons = value
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
+			-- A warrior's shout for himself when he is in no group, asked for on
+			-- GitHub: it is never offered to you otherwise, so a warrior on his
+			-- own was never reminded (Core.lua, CastsOnSelf).
+			ownShout = {
+				type = "toggle",
+				name = L["Remind me of my shout when I'm alone"],
+				desc = L["Off: a shout is only offered to your group. On: with nobody in your group, Battle Shout is offered to you too when it is missing or running low. In a group the group's own offer covers you."],
+				order = 15.96,
+				width = "full",
+				hidden = function() return not ns.HasShout() end,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.shoutAlone == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.shoutAlone = value == true
 					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 				end,
 			},

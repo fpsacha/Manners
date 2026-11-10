@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Battle Shout for a warrior on his own.** A shout is only ever offered to
+  your group, so a warrior alone was never reminded of it. *Remind me of my
+  shout when I'm alone*, under *Myself* on *Who to buff* (warriors only, off by
+  default), offers it to you while you are in no group, when it is missing or
+  running low. In a group nothing changes.
 - **A lower rank for a low-level target.** On Classic Era, Burning Crusade and
   WoW Forever the game does not lower a spell's rank for somebody too low a
   level when it is cast from a macro, as it does from an action bar: with
@@ -24,6 +29,10 @@
   own buffs, and no longer shares a number with the retry cooldown.
 - **A mage's scrolls on Forever as consumables.** The weapon imbue scrolls and
   the familiars now follow *Consumables only in dungeons and raids*.
+- **Your own lines are kept.** Lines typed into *What I say* > *Your lines*
+  were thrown away if you closed the window without pressing Accept. Leaving
+  the box now keeps them, as leaving any other box does. Accept still works,
+  and the paste box for settings still waits for it.
 
 ## 1.11.13
 

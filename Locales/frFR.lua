@@ -4171,6 +4171,8 @@ L["Offer your own buff to you too, when you are missing it or, with top-ups on, 
 L["Off: nothing is offered to you while the game calls you resting, in a city or an inn."] = "Désactivé : rien ne vous est proposé tant que le jeu vous indique au repos, en ville ou dans une auberge."
 L["Consumables only in dungeons and raids"] = "Consommables uniquement en donjon et en raid"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "Activé : le rappel d'une huile ou d'une pierre pour votre arme, de nourriture, et d'un flacon, d'un elixir ou d'un parchemin n'apparaît qu'en donjon ou en raid, pas en extérieur. Les poisons et les leurres de pêche ne sont pas retenus."
+L["Remind me of my shout when I'm alone"] = "Me rappeler mon cri quand je suis seul"
+L["Off: a shout is only offered to your group. On: with nobody in your group, Battle Shout is offered to you too when it is missing or running low. In a group the group's own offer covers you."] = "Désactivé : un cri n'est proposé qu'à votre groupe. Activé : quand personne n'est dans votre groupe, le Cri de guerre vous est aussi proposé s'il manque ou va bientôt expirer. En groupe, la proposition du groupe vous couvre."
 L["Off: no scroll is ever offered to you, and the switches for scrolls leave this list. Turned back on, each scroll is as you left it."] = "Désactivé : aucun parchemin ne vous est jamais proposé, et les interrupteurs des parchemins quittent cette liste. Réactivé, chaque parchemin est tel que vous l'avez laissé."
 L["My group and raid"] = "Mon groupe et mon raid"
 L["Use group buffs"] = "Utiliser les améliorations de groupe"

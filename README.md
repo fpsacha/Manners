@@ -311,7 +311,8 @@ each class offers*).
   turns it on is never asked to.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
-- A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath
+- A warrior's Battle Shout already covers the warrior (unless *Remind me of my
+  shout when I'm alone* is on and you are in no group) and nobody needs Unending Breath
   on dry land, so neither is offered to you. A paladin wearing one of their
   own blessings is not offered another.
 - Right-click "You" to skip it for now. Shift-right-click switches *Myself*
@@ -671,7 +672,10 @@ and *Show the welcome again* at the bottom.
   Then *Also in cities and inns*, off by default, and *Consumables only in
   dungeons and raids*, also off, which keeps the oils, stones, food, flasks,
   elixirs and scrolls out of the open world (poisons and lures are not held
-  back), and last what each of your
+  back), then, for a warrior only, *Remind me of my shout when I'm alone*,
+  off by default: with nobody in your group, Battle Shout is offered to you
+  too when it is missing or running low (in a group it covers you already),
+  and last what each of your
   own buffs is doing and why one is not being offered. On retail, a class with
   nothing of its own to put on does not see this part; everywhere else every
   class does, for *Well Fed*, and a hunter, a shaman or a rogue sees only this
@@ -1055,7 +1059,8 @@ Fortitude's first rank), Gift of the Wild (Wild Berries or Wild Thornroot, by
 rank) and the Greater Blessings (Symbol of Kings). Thorns has none.
 
 **On yourself.** With *Myself* on, you are offered the buff you give others
-too, except Battle Shout (it already covers you) and Unending Breath (nobody
+too, except Battle Shout (it already covers you, unless you turn on *Remind me
+of my shout when I'm alone*) and Unending Breath (nobody
 needs it on dry land: it has a row of its own, only while you swim). And these, which your class casts only on itself, once
 you have learned them:
 

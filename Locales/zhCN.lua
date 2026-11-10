@@ -4171,6 +4171,8 @@ L["Offer your own buff to you too, when you are missing it or, with top-ups on, 
 L["Off: nothing is offered to you while the game calls you resting, in a city or an inn."] = "关闭：游戏显示你处于休息状态（在城市或旅店中）时，不会向你推荐任何增益。"
 L["Consumables only in dungeons and raids"] = "仅在地下城和团队副本中提示消耗品"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "开启：武器用的油或磨刀石、食物，以及合剂、药剂或卷轴的提醒只会在地下城或团队副本中出现，野外不会。毒药和鱼饵不受影响。"
+L["Remind me of my shout when I'm alone"] = "独自一人时提醒我战斗怒吼"
+L["Off: a shout is only offered to your group. On: with nobody in your group, Battle Shout is offered to you too when it is missing or running low. In a group the group's own offer covers you."] = "关闭：怒吼只会提供给你的队伍。开启：队伍中没有其他人时，战斗怒吼缺失或即将结束也会提供给你。在队伍中时，队伍的提示已经覆盖你。"
 L["Off: no scroll is ever offered to you, and the switches for scrolls leave this list. Turned back on, each scroll is as you left it."] = "关闭：永远不会向你推荐任何卷轴，卷轴的开关也会从这个列表中消失。重新开启后，每个卷轴都保持你之前的设置。"
 L["My group and raid"] = "我的队伍和团队"
 L["Use group buffs"] = "使用群体增益"

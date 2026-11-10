@@ -4171,6 +4171,8 @@ L["Offer your own buff to you too, when you are missing it or, with top-ups on, 
 L["Off: nothing is offered to you while the game calls you resting, in a city or an inn."] = "꺼짐: 게임에서 휴식 중으로 표시되는 동안, 즉 도시나 여관에서는 나에게 아무것도 띄우지 않습니다."
 L["Consumables only in dungeons and raids"] = "소모품은 던전과 공격대에서만"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "켜짐: 무기용 오일이나 숫돌, 음식, 영약, 비약, 두루마리 알림은 던전이나 공격대에서만 나타나고 필드에서는 나타나지 않습니다. 독과 낚시 미끼는 그대로 알립니다."
+L["Remind me of my shout when I'm alone"] = "혼자일 때 내 외침 알려 주기"
+L["Off: a shout is only offered to your group. On: with nobody in your group, Battle Shout is offered to you too when it is missing or running low. In a group the group's own offer covers you."] = "끔: 외침은 파티원에게만 제안됩니다. 켬: 파티에 아무도 없으면 전투의 외침이 없거나 곧 끝날 때 나에게도 제안됩니다. 파티 중에는 파티 제안이 나도 포함합니다."
 L["Off: no scroll is ever offered to you, and the switches for scrolls leave this list. Turned back on, each scroll is as you left it."] = "끄면: 두루마리를 전혀 띄우지 않고, 두루마리 스위치가 이 목록에서 사라집니다. 다시 켜면 두루마리마다 설정이 그대로 돌아옵니다."
 L["My group and raid"] = "내 파티와 공격대"
 L["Use group buffs"] = "단체 버프 사용"

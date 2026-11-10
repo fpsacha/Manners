@@ -46,8 +46,8 @@ mutate("Queue.lua",
 
 # A shout offered to the warrior alone.
 mutate("Core.lua",
-       "\treturn buff ~= nil and not buff.selfCast and not buff.notSelf and not buff.neverSelf\n",
-       "\treturn buff ~= nil and not buff.notSelf and not buff.neverSelf\n",
+       "\tif not buff.selfCast then return true end\n",
+       "\tif true then return true end\n",
        "self: shout offered to yourself",
        expect="a solo warrior was offered his own shout", script=S)
 
@@ -55,8 +55,8 @@ mutate("Core.lua",
 # Magic is neverAuto on retail (Buffs.lua: one ally carries it), so Automatic
 # never reaches it and the pinned half of the scenario is the one that sees it.
 mutate("Core.lua",
-       "\treturn buff ~= nil and not buff.selfCast and not buff.notSelf and not buff.neverSelf\n",
-       "\treturn buff ~= nil and not buff.selfCast and not buff.neverSelf\n",
+       "\tif buff == nil or buff.notSelf or buff.neverSelf then return false end\n",
+       "\tif buff == nil or buff.neverSelf then return false end\n",
        "self: notSelf ignored",
        expect="a pinned Source of Magic was offered to the evoker casting it", script=S)
 

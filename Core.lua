@@ -299,6 +299,10 @@ local defaults = {
 			-- stone for the weapon, food -- come up only in a dungeon or a
 			-- raid. A rogue's poisons and a fishing lure are not held to it.
 			itemsInDungeons = false,
+			-- Off: a warrior's Battle Shout is never offered to you (it covers you
+			-- when it goes on your party). On: with nobody in your group, a missing
+			-- or running-out shout is offered to you too (CastsOnSelf).
+			shoutAlone = false,
 			-- Off: no scroll of any kind is offered (Buffs.lua, isScroll: the stat
 			-- scrolls, a mage's familiar and imbue on Forever) and their switches
 			-- leave the page; each keeps its pick below for when this is on again.
@@ -1302,7 +1306,23 @@ end
 -- notSelf is a spell the game will not put on you, neverSelf one nobody wants
 -- on dry land (Buffs.lua: Unending Breath).
 function ns.CastsOnSelf(buff)
-	return buff ~= nil and not buff.selfCast and not buff.notSelf and not buff.neverSelf
+	if buff == nil or buff.notSelf or buff.neverSelf then return false end
+	if not buff.selfCast then return true end
+	-- A shout is the one exception, and only when asked for (ownBuffs.shoutAlone,
+	-- "Remind me of my shout when I'm alone") and only while you are in no
+	-- group: in a party the group's own offer covers you, as it always did.
+	local db = addon.db and addon.db.profile
+	if not (db and db.ownBuffs and db.ownBuffs.shoutAlone == true) then return false end
+	return (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) == 0
+end
+
+-- Whether your class has a shout at all, learned or not: the options page shows
+-- the switch above to a warrior and hides it from everybody else.
+function ns.HasShout()
+	for _, buff in ipairs((ns.BUFFS or {})[playerClass] or {}) do
+		if buff.selfCast then return true end
+	end
+	return false
 end
 
 -- The buffs "Myself" can offer, out of CastableBuffs' answer (asked here when

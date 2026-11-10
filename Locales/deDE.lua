@@ -4171,6 +4171,8 @@ L["Offer your own buff to you too, when you are missing it or, with top-ups on, 
 L["Off: nothing is offered to you while the game calls you resting, in a city or an inn."] = "Aus: Ihr bekommt nichts angeboten, solange Ihr laut Spiel in einer Stadt oder einem Gasthaus seid."
 L["Consumables only in dungeons and raids"] = "Verbrauchsgüter nur in Dungeons und Schlachtzügen"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "An: Die Erinnerung an ein Öl oder einen Wetzstein für deine Waffe, an Essen und an ein Fläschchen, ein Elixier oder eine Rolle erscheint nur in einem Dungeon oder Schlachtzug, nicht draußen in der Welt. Gifte und Angelköder werden nicht zurückgehalten."
+L["Remind me of my shout when I'm alone"] = "Mich an meinen Ruf erinnern, wenn ich allein bin"
+L["Off: a shout is only offered to your group. On: with nobody in your group, Battle Shout is offered to you too when it is missing or running low. In a group the group's own offer covers you."] = "Aus: Ein Ruf wird nur deiner Gruppe angeboten. An: Ist niemand in deiner Gruppe, wird dir der Schlachtruf auch angeboten, wenn er fehlt oder bald ausläuft. In einer Gruppe deckt dich das Angebot der Gruppe ab."
 L["Off: no scroll is ever offered to you, and the switches for scrolls leave this list. Turned back on, each scroll is as you left it."] = "Aus: Dir wird nie eine Rolle angeboten, und die Schalter für Rollen verschwinden aus dieser Liste. Wieder eingeschaltet, ist jede Rolle so, wie du sie gelassen hast."
 L["My group and raid"] = "Meine Gruppe und mein Schlachtzug"
 L["Use group buffs"] = "Gruppenzauber verwenden"

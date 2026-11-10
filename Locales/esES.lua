@@ -4171,6 +4171,8 @@ L["Offer your own buff to you too, when you are missing it or, with top-ups on, 
 L["Off: nothing is offered to you while the game calls you resting, in a city or an inn."] = "Desactivado: no se te ofrece nada mientras el juego te muestra descansando, en una ciudad o una posada."
 L["Consumables only in dungeons and raids"] = "Consumibles solo en mazmorras y bandas"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "Activado: el aviso de aceite o piedra para tu arma, de comida, y de frasco, elixir o pergamino solo aparece en una mazmorra o una banda, no en el mundo. Los venenos y los señuelos de pesca no se retienen."
+L["Remind me of my shout when I'm alone"] = "Recordarme mi grito cuando voy solo"
+L["Off: a shout is only offered to your group. On: with nobody in your group, Battle Shout is offered to you too when it is missing or running low. In a group the group's own offer covers you."] = "Desactivado: un grito solo se ofrece a tu grupo. Activado: si no hay nadie en tu grupo, el Grito de batalla también se te ofrece a ti cuando falta o está a punto de acabarse. En grupo, la oferta del grupo ya te cubre."
 L["Off: no scroll is ever offered to you, and the switches for scrolls leave this list. Turned back on, each scroll is as you left it."] = "Desactivado: nunca se te ofrece ningún pergamino, y los interruptores de los pergaminos desaparecen de esta lista. Al volver a activarlo, cada pergamino queda como lo dejaste."
 L["My group and raid"] = "Grupo y banda"
 L["Use group buffs"] = "Usar beneficios de grupo"
