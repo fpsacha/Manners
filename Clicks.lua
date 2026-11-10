@@ -471,12 +471,83 @@ local function SettleSelf(pending, spellId, castGUID)
 	end
 end
 
--- A private line, once a session, for somebody on WoW Forever who buffs the
--- author's character through the prompt. Never for the author. In a block for
--- the main chunk's 200 locals (Lua 5.1).
+-- A line, once a session, for somebody on WoW Forever who buffs the author's
+-- character through the prompt: in gold in chat, across the screen, under a
+-- seal drawn for it, with a fanfare and a bow. Never for the author. Their
+-- Manners also tells the author's (an addon message, read only by the
+-- author's character). In a block for the main chunk's 200 locals (Lua 5.1).
 do
 	local AUTHOR = "Mort Defrette"
+	-- The addon message's prefix and its one word.
+	local PREFIX, WORD = "Manners", "author"
+	local SEAL = "Interface\\AddOns\\Manners\\Textures\\AuthorSeal"
+	-- Seconds: fading in, held, fading out.
+	local SEAL_IN, SEAL_HOLD, SEAL_OUT = 0.4, 4.5, 1.2
 	local told = false
+	local seal
+
+	local function SealUpdate(self, elapsed)
+		self.age = self.age + (tonumber(elapsed) or 0)
+		local age = self.age
+		if age < SEAL_IN then
+			self:SetAlpha(age / SEAL_IN)
+		elseif age < SEAL_IN + SEAL_HOLD then
+			self:SetAlpha(1)
+		elseif age < SEAL_IN + SEAL_HOLD + SEAL_OUT then
+			self:SetAlpha(1 - (age - SEAL_IN - SEAL_HOLD) / SEAL_OUT)
+		else
+			self:Hide()
+		end
+	end
+
+	-- The seal (Textures/AuthorSeal.tga, tools/make_author_seal.py) with the
+	-- line under it, high in the middle of the screen; it takes no clicks.
+	local function ShowSeal(line)
+		if not seal then
+			seal = CreateFrame("Frame", "MannersAuthorSeal", UIParent)
+			seal:SetSize(440, 240)
+			seal:SetPoint("CENTER", UIParent, "CENTER", 0, 170)
+			seal:SetFrameStrata("HIGH")
+			seal:EnableMouse(false)
+			seal.art = seal:CreateTexture(nil, "ARTWORK")
+			seal.art:SetTexture(SEAL)
+			seal.art:SetSize(176, 176)
+			seal.art:SetPoint("TOP", seal, "TOP", 0, 0)
+			seal.text = seal:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+			seal.text:SetPoint("TOP", seal.art, "BOTTOM", 0, -4)
+			seal.text:SetWidth(440)
+			seal.text:SetTextColor(1, 0.82, 0)
+			seal:SetScript("OnUpdate", SealUpdate)
+		end
+		seal.text:SetText(line)
+		seal.age = 0
+		seal:SetAlpha(0)
+		seal:Show()
+	end
+
+	-- The author's side: whoever's Manners says it buffed them, in gold.
+	-- Only on the author's character, only on Forever, only this word.
+	function ns.HeardAddonMessage(prefix, text, _, sender)
+		if ns.plain(prefix) ~= PREFIX or ns.plain(text) ~= WORD then return end
+		if (ns.Flavour and ns.Flavour.flavour) ~= "camelot" or not ns.IsPlayerName(AUTHOR) then return end
+		local who = ns.plain(sender)
+		if type(who) ~= "string" or who == "" then return end
+		addon:Print("|cffffd100" .. L["%s buffed you with Manners."]:format(who) .. "|r")
+	end
+
+	-- Every addon's messages come through here: the prefix first, before a Guard.
+	function addon:CHAT_MSG_ADDON(_, prefix, ...)
+		if ns.plain(prefix) ~= PREFIX then return end
+		ns.Guard("addon message", ns.HeardAddonMessage, prefix, ...)
+	end
+
+	-- Asked for at load, so the author's client hands the message on.
+	local chat = _G.C_ChatInfo
+	if (ns.Flavour and ns.Flavour.flavour) == "camelot" and type(chat) == "table"
+		and type(chat.RegisterAddonMessagePrefix) == "function" then
+		pcall(chat.RegisterAddonMessagePrefix, PREFIX)
+	end
+
 	function ns.NoteBuffedAuthor(name)
 		if told or name ~= AUTHOR or ns.Flavour.flavour ~= "camelot" or ns.IsPlayerName(name) then return end
 		told = true
@@ -493,10 +564,22 @@ do
 		if type(screen) == "table" and type(screen.AddMessage) == "function" then
 			screen:AddMessage(line, 1, 0.82, 0)
 		end
+		-- Big, in the raid warning's lettering, where the client has it, and a
+		-- short fanfare (the level-up sound, which every client has under 888).
+		if type(_G.RaidNotice_AddMessage) == "function" and type(_G.RaidWarningFrame) == "table" then
+			pcall(_G.RaidNotice_AddMessage, _G.RaidWarningFrame, line, { r = 1, g = 0.82, b = 0 })
+		end
+		if type(_G.PlaySound) == "function" then pcall(_G.PlaySound, 888) end
+		ShowSeal(line)
 		-- And a bow, which the author sees in the world and the buffer sees in
 		-- their own chat ("You bow."): once a session, never in a fight.
 		if type(_G.DoEmote) == "function" and not InCombatLockdown() then
 			pcall(_G.DoEmote, "BOW")
+		end
+		-- The author's Manners is told who it was.
+		local send = _G.C_ChatInfo
+		if type(send) == "table" and type(send.SendAddonMessage) == "function" then
+			pcall(send.SendAddonMessage, PREFIX, WORD, "WHISPER", AUTHOR)
 		end
 	end
 end

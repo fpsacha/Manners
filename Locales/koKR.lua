@@ -235,6 +235,7 @@ L["|cffffd100%s|r returned the favour to %s as well."] = "|cffffd100%s|r 시전�
 L["the spell"] = "주문"
 L["|cffffffff%s|r went out instead"] = "대신 |cffffffff%s|r 시전됨"
 L["|cffffd100you were buffed after all|r -- the error before it was about something else."] = "|cffffd100결국 나에게 버프를 줌|r -- 앞의 오류는 다른 일에 관한 것이었습니다."
+L["%s buffed you with Manners."] = "%s 님이 Manners로 버프를 걸어 주었습니다."
 L["You just buffed the author of Manners. Mort Defrette has filed this under working as intended."] = "방금 Manners 제작자에게 버프를 주었습니다. Mort Defrette는 이 일을 '의도된 동작'으로 분류했습니다."
 L["Mort Defrette wrote this addon, so any thanks you get back are, strictly speaking, automated."] = "Mort Defrette가 이 애드온을 만들었으니, 돌아오는 감사 인사는 엄밀히 말해 자동화된 것입니다."
 L["You have buffed the author of Manners. Your feedback has been received and will be cherished."] = "Manners 제작자에게 버프를 주었습니다. 소중한 의견이 접수되었으며 고이 간직하겠습니다."

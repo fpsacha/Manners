@@ -531,6 +531,8 @@ for _, e in ipairs({
 	"CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
 	"CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER",
 	"CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
+	-- Every client's: another addon's message (Clicks.lua, the author's line).
+	"CHAT_MSG_ADDON",
 	-- Registered on this client by EnhanceQoL's group frames and class-buff
 	-- reminder.
 	"READY_CHECK", "READY_CHECK_FINISHED",

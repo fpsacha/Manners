@@ -115,7 +115,7 @@ for _, e in ipairs({
   "PLAYER_TARGET_CHANGED",
   -- Registered on this client by EnhanceQoL's chat and ignore modules.
   "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
-  "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER",
+  "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER", "CHAT_MSG_ADDON",
   "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
   -- Registered on this client by EnhanceQoL's group frames and class-buff
   -- reminder.

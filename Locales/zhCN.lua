@@ -235,6 +235,7 @@ L["|cffffd100%s|r returned the favour to %s as well."] = "|cffffd100%s|r同时�
 L["the spell"] = "该法术"
 L["|cffffffff%s|r went out instead"] = "结果施放的是|cffffffff%s|r"
 L["|cffffd100you were buffed after all|r -- the error before it was about something else."] = "|cffffd100最终还是给你加上了增益|r——之前的错误与此无关。"
+L["%s buffed you with Manners."] = "%s 用 Manners 为你施加了增益。"
 L["You just buffed the author of Manners. Mort Defrette has filed this under working as intended."] = "你刚刚给 Manners 的作者加了增益。Mort Defrette 已将此事归档为“符合设计预期”。"
 L["Mort Defrette wrote this addon, so any thanks you get back are, strictly speaking, automated."] = "Mort Defrette 写了这个插件，所以你收到的任何感谢，严格来说都是自动发送的。"
 L["You have buffed the author of Manners. Your feedback has been received and will be cherished."] = "你给 Manners 的作者加了增益。你的反馈已收到，我们会好好珍藏。"

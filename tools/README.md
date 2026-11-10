@@ -1022,6 +1022,14 @@ runs it, so a look, a texture or a default that changes turns that scenario red 
 the tool is run again; a look added to the registry has a card at once, with the addon's
 icon in place of its picture, and gets its picture the same way.
 
+## make_author_seal.py
+
+`Textures/AuthorSeal.tga`, the wax seal shown, with its line under it, to somebody on WoW
+Forever who buffs the author's character through the prompt (`Clicks.lua`,
+`ns.NoteBuffedAuthor`): a crimson seal with a scalloped rim, a gold ring, the icon's two
+arrows in gold, a laurel branch either side and two ribbon tails. No words, so nothing
+to translate. Needs Pillow; deterministic. `--check` says whether the file is current.
+
 ## make-icon.py
 
 `icon-512.png` (the CurseForge avatar), `icon-64.png`, and `icon-check.png`,

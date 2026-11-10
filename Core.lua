@@ -4536,6 +4536,9 @@ function addon:OnEnable()
 		-- the screen were worked out for the old one.
 		"UI_SCALE_CHANGED",
 		"DISPLAY_SIZE_CHANGED",
+		-- Another Manners telling the author's that it buffed them (Clicks.lua,
+		-- ns.HeardAddonMessage): asked of the prefix first, so it costs nothing.
+		"CHAT_MSG_ADDON",
 	}) do
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end

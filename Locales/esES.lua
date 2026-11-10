@@ -235,6 +235,7 @@ L["|cffffd100%s|r returned the favour to %s as well."] = "|cffffd100%s|r tambié
 L["the spell"] = "el hechizo"
 L["|cffffffff%s|r went out instead"] = "se lanzó |cffffffff%s|r en su lugar"
 L["|cffffd100you were buffed after all|r -- the error before it was about something else."] = "|cffffd100sí recibiste el beneficio al final|r -- el error anterior era por otra cosa."
+L["%s buffed you with Manners."] = "%s te ha dado un beneficio con Manners."
 L["You just buffed the author of Manners. Mort Defrette has filed this under working as intended."] = "Acabas de darle un beneficio al autor de Manners. Mort Defrette lo ha archivado como «funciona según lo previsto»."
 L["Mort Defrette wrote this addon, so any thanks you get back are, strictly speaking, automated."] = "Mort Defrette escribió este addon, así que cualquier agradecimiento que recibas está, estrictamente hablando, automatizado."
 L["You have buffed the author of Manners. Your feedback has been received and will be cherished."] = "Le has dado un beneficio al autor de Manners. Tu opinión ha sido recibida y será atesorada."

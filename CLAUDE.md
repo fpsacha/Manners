@@ -120,10 +120,13 @@ default everywhere in the tests and the only client anybody here plays.
     in `/w` (Speech.lua asks the client, assumes them on Forever when it will
     not say, and walks the name as Forever's `ExtractTellTarget` does:
     accents and apostrophes are fine); no Blessing of Sanctuary, Omen of Clarity
-    passive, Kings and Divine Spirit trained; a private line once a session
-    for whoever buffs the author's character through the prompt
-    (`ns.NoteBuffedAuthor`, Clicks.lua; deliberately not in the listings or
-    the changelog).
+    passive, Kings and Divine Spirit trained; once a session, for whoever buffs the
+    author's character through the prompt, a line in gold, across the screen
+    and in the raid warning's lettering under a seal (`Textures/AuthorSeal.tga`,
+    `tools/make_author_seal.py`), the level-up sound and a bow, and an addon
+    message (prefix `Manners`) that the author's own Manners prints as "X
+    buffed you with Manners" (`ns.NoteBuffedAuthor`, `ns.HeardAddonMessage`,
+    Clicks.lua; deliberately not in the listings or the changelog).
   - classic family (vanilla, tbc, mists): the combat log is read in addition
     to the aura scan (`ns.combatLogArmed`); never registered on modern clients
     (registration is refused there).
