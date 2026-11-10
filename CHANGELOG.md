@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.14
 
 - **Might left off casters.** A new switch for paladins, *Don't offer Might to
   mages, warlocks and priests*, under *Who to buff* (off by default), asked for
