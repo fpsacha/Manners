@@ -10,6 +10,13 @@ local strangers, freshPrompt = H.strangers, H.freshPrompt
 
 local AUTHOR = "Mort Defrette"
 
+-- Whether a line is one of the joke's lines. The line is picked at random, and
+-- not every one has the author's name in it.
+local function isJoke(line)
+	line = tostring(line)
+	return line:find("author of Manners", 1, true) ~= nil or line:find("wrote this addon", 1, true) ~= nil
+end
+
 -- Records what the addon prints, and counts the lines that are the joke.
 local function listen(ns)
 	local said = {}
@@ -17,9 +24,7 @@ local function listen(ns)
 	return function()
 		local jokes = 0
 		for _, line in ipairs(said) do
-			if line:find("author of Manners", 1, true) or line:find("wrote this addon", 1, true) then
-				jokes = jokes + 1
-			end
+			if isJoke(line) then jokes = jokes + 1 end
 		end
 		return jokes
 	end
@@ -87,13 +92,13 @@ do
 		local said = {}
 		ns.addon.Print = function(_, text) said[#said + 1] = tostring(text) end
 		ns.NoteBuffedAuthor(AUTHOR)
-		if #shown ~= 1 or not shown[1]:find("Mort Defrette", 1, true) then
+		if #shown ~= 1 or not isJoke(shown[1]) then
 			fail(scenario, "nothing was put across the screen: " .. table.concat(shown, " | "))
 		end
 		if not (said[1] or ""):find("|cffffd100", 1, true) then
 			fail(scenario, "the chat line is not gold: " .. tostring(said[1]))
 		end
-		if #banners ~= 1 or not banners[1]:find("Mort Defrette", 1, true) then
+		if #banners ~= 1 or not isJoke(banners[1]) then
 			fail(scenario, "no banner in the raid warning's lettering: " .. table.concat(banners, " | "))
 		end
 		if #sounds ~= 1 or sounds[1] ~= 888 then fail(scenario, "no fanfare: " .. table.concat(sounds, ",")) end
@@ -119,7 +124,7 @@ do
 		if not seal then fail(scenario, "no seal was made") return end
 		if not seal:IsShown() then fail(scenario, "the seal is not shown") end
 		if not seal.art then fail(scenario, "the seal has no art") end
-		if not tostring(seal.text:GetText()):find("Mort Defrette", 1, true) then
+		if not isJoke(seal.text:GetText()) then
 			fail(scenario, "the line under the seal reads " .. tostring(seal.text:GetText()))
 		end
 		local update = seal.scripts and seal.scripts.OnUpdate
