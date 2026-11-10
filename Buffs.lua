@@ -37,6 +37,10 @@
 --             such an aura: the sets whose stat buffs are percentages (Mists,
 --             retail) have none, and no table.
 --   manaOnly  only worth giving somebody with a mana bar.
+--   meleeOnly attack power, of no use to a mage, a warlock or a priest: Blessing
+--             of Might. Held back from those three only while "Don't offer
+--             Might to mages, warlocks and priests" is on (buff.skipCasters;
+--             Core.lua, Castable); anybody who asks for it by name still gets it.
 --   partyOnly reaches your party and nobody else.
 --   groupOnly reaches anybody in your party or raid (a raid member in another
 --             subgroup too), and nobody outside it: Blessing of Salvation.
@@ -212,6 +216,7 @@ local VANILLA = {
 		},
 		{
 			key = "might",
+			meleeOnly = true,
 			ranks = { 25291, 19838, 19837, 19836, 19835, 19834, 19740 },
 			group = { 25916, 25782 },
 			groupCast = Greater(25916, 25782),
@@ -1576,6 +1581,7 @@ local TBC = {
 		},
 		{
 			key = "might",
+			meleeOnly = true,
 			ranks = { 27140, 25291, 19838, 19837, 19836, 19835, 19834, 19740 },
 			group = { 27141, 25916, 25782 },
 			groupCast = Greater(27141, 25916, 25782),
@@ -3552,10 +3558,12 @@ end
 -- A family whose spells can be left out one by one (ownBuffs.leave, "Never
 -- remind me about"): several spells of a kind, cast by you. Not a scroll or
 -- an enhancement from the bags, which are items and have their own pick, and
--- not a tank's stance, which is a role rather than a choice.
+-- not a tank's stance, which is a role rather than a choice. Food is the one
+-- family from the bags that can be: a player keeps a fishing food for fishing,
+-- and Automatic must pass it over.
 function ns.OwnLeaveable(family)
 	return family ~= nil and #family.spells > 1 and not (family.scroll or family.enhance or family.imbue
-		or family.tank or family.bagged)
+		or family.tank or (family.bagged and not family.food))
 end
 
 -- Whether any class on this client has a buff by that key. A pin lives in the

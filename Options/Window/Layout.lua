@@ -103,6 +103,7 @@ local function CastItems()
 	for _, item in ipairs(OfferItems()) do items[#items + 1] = item end
 	-- A paladin's: nobody another paladin has blessed.
 	items[#items + 1] = "who.leaveBlessed"
+	items[#items + 1] = "who.skipCasters"
 	items[#items + 1] = "who.relevantOnly"
 	items[#items + 1] = { "who.autoNote", standIn = true }
 	items[#items + 1] = "who.pinNote"

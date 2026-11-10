@@ -461,7 +461,8 @@ local function AddOwnControls(args)
 				control.name = function() return ns.OwnFamilyLabel(family) end
 				control.desc = family.consumable and function() return Consumable.Desc(family) end
 					or family.food
-					and L["Reminds you to eat when Well Fed is not on you and food that gives it is in your bags. Off until you turn it on."]
+					and L["Reminds you to eat when Well Fed is not on you and food that gives it is in your bags. Off until you turn it on. A food you keep for something else, a fishing food say, can be ticked under %s."]
+						:format(L["Never remind me about"])
 					or family.rest
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
 					or family.optIn
@@ -809,6 +810,30 @@ function Page.BuildWhoTab()
 				width = "full",
 				hidden = function() return not ns.EXCLUSIVE_BUFFS[ns.caps.class] end,
 				get = function() return B().leaveBlessed == true end,
+				set = bSet,
+			},
+			-- A melee blessing (Buffs.lua, meleeOnly) is no use to the three
+			-- classes that never fight in melee. Asked for on CurseForge.
+			skipCasters = {
+				type = "toggle",
+				name = function()
+					for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+						if buff.meleeOnly then
+							return L["Don't offer %s to mages, warlocks and priests"]:format(ns.BuffName(buff))
+						end
+					end
+					return ""
+				end,
+				desc = L["On: they are never offered it, however the blessing would be chosen, since it does nothing for them. Their other blessings are still offered and refreshed. Somebody who asks you for it by name is still given it."],
+				order = 4.86,
+				width = "full",
+				hidden = function()
+					for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+						if buff.meleeOnly then return false end
+					end
+					return true
+				end,
+				get = function() return B().skipCasters == true end,
 				set = bSet,
 			},
 			-- The per-spell switches (AddBuffToggles) sit at 4.1, 4.2, ... and

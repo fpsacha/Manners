@@ -1581,6 +1581,11 @@ local function StillCastable(memo, candidates, f, askOnly)
 	local db = addon.db and addon.db.profile
 	local meOnly = db and db.buff.meOnly
 	if memo.buff.tankChoice and meOnly and meOnly[key] and memo.reason ~= "asked" then return false end
+	-- Might, once "Don't offer Might to mages, warlocks and priests" is on.
+	if memo.buff.meleeOnly and memo.reason ~= "asked" and db and db.buff.skipCasters == true
+		and ns.CASTER_CLASSES[memo.class] then
+		return false
+	end
 	for _, buff in ipairs(candidates) do
 		if buff.key == key then
 			return not (f.relevantOnly and memo.reason ~= "asked"
@@ -2133,6 +2138,8 @@ function ns.BuildQueue(watch)
 	-- a guild with both off.
 	local skipGuilds = SkippedGuilds(db)
 	local showGuild = db.prompt.showGuild == true
+	-- Might held back from mages, warlocks and priests (Core.lua, Castable).
+	local skipCasters = db.buff.skipCasters == true
 	-- The buffs held to the tanks of the group, or nil with none: the scan's own
 	-- answer to "does anybody need their role read".
 	local tanksHeld = db.buff.tanksOnly
@@ -2339,6 +2346,7 @@ function ns.BuildQueue(watch)
 		-- SameParty. inGroup stays the reason on the card.
 		opts.inParty = SameParty(unit, inRaid)
 		opts.relevantOnly = f.relevantOnly and not asked
+		opts.casterOnly = skipCasters and ns.CASTER_CLASSES[plain(select(2, UnitClass(unit)))] or nil
 		opts.asked = asked ~= nil
 		-- Buffs held to the tanks of your group (Core.lua, Castable): read for
 		-- somebody in the group, and only when one is held. Not for somebody who
@@ -2584,6 +2592,7 @@ function ns.BuildQueue(watch)
 					if entry.class then hasMana = MANA_CLASSES[entry.class] == true end
 
 					tokenless.hasMana = hasMana
+					tokenless.casterOnly = skipCasters and ns.CASTER_CLASSES[entry.class] or nil
 					tokenless.name = full
 					local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
 

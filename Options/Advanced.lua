@@ -49,6 +49,7 @@ Page.RESET = {
 		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
 		"ownBuffs.shoutAlone", "ownBuffs.scrolls", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"buff.leaveBlessed",
+		"buff.skipCasters",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()

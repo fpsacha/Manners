@@ -256,8 +256,10 @@ each class offers*).
   the *Well Fed* buff and none on you, "You" comes up with that food's icon and
   one press eats it. The best one you are high enough for is offered first.
   Nothing is offered while you are eating, mounted or in a fight, or while any
-  Well Fed is on you, whoever's food it was. Classic Era, Burning Crusade,
-  Mists and WoW Forever; not retail.
+  Well Fed is on you, whoever's food it was. A food you keep for something
+  else (a fishing food, say) can be ticked under *Never remind me about*, which
+  lists the foods in your bags: Automatic passes it over and offers the next.
+  Classic Era, Burning Crusade, Mists and WoW Forever; not retail.
 - **Well-Rested.** For the Cozy Sleeping Bag: a switch under *Myself*, shown
   while the bag is in your bags, off until you switch it on. Then, with no
   *Well-Rested* on you, "You" comes up with the bag's icon and one press lays
@@ -655,6 +657,12 @@ and *Show the welcome again* at the bottom.
   off by default. Anybody carrying any blessing from another paladin is left
   alone, even one yours would stack with; somebody who asks you for a blessing
   by name is still offered it.
+- *Don't offer Might to mages, warlocks and priests* (paladins): off by
+  default. Blessing of Might does nothing for those three, so with the switch on
+  it is left out of the walk for them: a mage whose Wisdom is another paladin's
+  or running low is offered Kings or left alone, not Might. Everybody else,
+  druids, shamans and hunters included, is offered it as before, and somebody
+  who asks you for it by name still gets it.
 - *Myself* (see *Buffing yourself* above): *Myself, when I'm missing my own
   buff*, on by default, switches everything on yourself on or off. Under it,
   one control for each of your class's own buffs you have learned: a

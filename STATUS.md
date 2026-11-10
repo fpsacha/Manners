@@ -12,7 +12,10 @@ off a person for ten minutes after "A more powerful spell is already active" or
 "Target is too low level" (`NoteRefusal`'s `buffKey`), *Hold back my target and
 focus too* (`filters.quietTargets`, issue 8), *A right-click skips for*
 (`timing.skipSeconds`), a mage's scrolls held to dungeons and raids, lines typed
-into the phrase box kept when the box is left (`MultiLeft`), guilds left out
+into the phrase box kept when the box is left (`MultiLeft`), Might left off a mage, warlock
+or priest (`buff.skipCasters`, `meleeOnly`, `ns.CASTER_CLASSES`; CurseForge), a
+food that can be ticked under *Never remind me about* (`OwnLeaveable`, GitHub
+issue 11), guilds left out
 (`filters.skipGuilds`, `SkippedGuilds` and `GuildOf` in Queue.lua; asked for on
 CurseForge) with a guild line under the name (`prompt.showGuild`, `entry.guild`,
 `ReasonText`), and *Remind me of my

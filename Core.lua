@@ -264,6 +264,10 @@ local defaults = {
 			-- blessings are shared out, theirs is the one they were given. Off,
 			-- because blessings from two paladins stack and today it is offered.
 			leaveBlessed = false,
+			-- A paladin's Might is not offered to a mage, a warlock or a priest,
+			-- for whom it does nothing (Core.lua, Castable): asked for on
+			-- CurseForge. Off, because it takes away an offer somebody gets today.
+			skipCasters = false,
 			-- The order a class's buffs are tried in, set by hand (Who to buff, Buff
 			-- order): order[CLASS] = { key, key, ... }, every buff of that class the
 			-- client that wrote it has. Absent is Automatic -- the list as the buff
@@ -1566,6 +1570,9 @@ do
 	-- subgroup (see SameParty).
 	local function Castable(opts, buff)
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
+		-- "Don't offer Might to mages, warlocks and priests" (the scan works out
+		-- opts.casterOnly: Queue.lua), but not for somebody who asked by name.
+		if opts.casterOnly and buff.meleeOnly and not opts.asked then return false end
 		-- Held to the tanks of your group (Who to buff, Offer to): somebody in
 		-- the group who is not one is left alone, and so is nobody else.
 		if opts.tanksOnly and buff.tankChoice and opts.tanksOnly[buff.key] and opts.inGroup
@@ -2302,9 +2309,13 @@ do
 		if family.scroll or family.bagged then
 			local held, heldWhy
 			for _, spell in ipairs(family.spells) do
-				local ready, why = ScrollReady(spell)
-				if ready then return spell, "best" end
-				if why ~= "bags" and not held then held, heldWhy = spell, why end
+				-- A food ticked under "Never remind me about" is passed over (the
+				-- only bagged family that can be: Buffs.lua, OwnLeaveable).
+				if not LeftOut(spell) then
+					local ready, why = ScrollReady(spell)
+					if ready then return spell, "best" end
+					if why ~= "bags" and not held then held, heldWhy = spell, why end
+				end
 			end
 			if held then return nil, heldWhy, held end
 			return nil, nil
@@ -3627,6 +3638,8 @@ local MANA_CLASSES = {
 -- mana (ChrSpecialization 270), and the class cannot say which spec passes by.
 if (ns.Flavour and ns.Flavour.flavour) == "mainline" then MANA_CLASSES.HUNTER = nil end
 ns.MANA_CLASSES = MANA_CLASSES
+-- The classes a melee blessing does nothing for (Buffs.lua, meleeOnly).
+ns.CASTER_CLASSES = { MAGE = true, WARLOCK = true, PRIEST = true }
 
 -- Returns true, false, or nil for "cannot tell". UnitPowerMax is a secret value
 -- for players outside your group here; class is not, so it answers instead.

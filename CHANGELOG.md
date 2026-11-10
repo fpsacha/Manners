@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Might left off casters.** A new switch for paladins, *Don't offer Might to
+  mages, warlocks and priests*, under *Who to buff* (off by default), asked for
+  on CurseForge. Blessing of Might does nothing for those three, so with it on
+  they are offered Kings, Wisdom or nothing, never Might. Somebody who asks
+  you for it by name is still given it.
+- **A food to pass over.** Foods in your bags can now be ticked under *Never
+  remind me about* (it lists the ones you carry). Automatic then skips a
+  fishing food, say, and offers the next one you can eat. Asked for on GitHub.
 - **Leave guilds out, or see them.** Two new switches, asked for on
   CurseForge. *Leave out these guilds*, a box on *Who to skip* (one guild a
   line, with or without the < >, capital letters do not matter), holds back
