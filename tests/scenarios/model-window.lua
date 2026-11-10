@@ -398,7 +398,7 @@ local EXPECTED = {
 		"priority.readyCheck", "priority.revived",
 		"buff.leaveBlessed",
 	},
-	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel" },
+	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.requireInRange", "filters.minLevel" },
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
@@ -414,6 +414,7 @@ local EXPECTED = {
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",
 		"prompt.accentMode", "prompt.flashStyle", "prompt.effects", "prompt.hideInCombat", "prompt.dimInCombat",
 		"prompt.hideInFight", "prompt.font", "prompt.fontSize", "prompt.fontColor", "prompt.classColor", "prompt.showSub",
+		"prompt.showGuild",
 		"prompt.format", "prompt.reasonTarget", "prompt.reasonOwed", "prompt.reasonAsked",
 		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
 		"prompt.reasonUnknown", "prompt.showIcon", "prompt.iconSize", "prompt.roundIcon",

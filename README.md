@@ -385,6 +385,16 @@ guildmate goes ahead of the other passers-by, or of the rest of your group. It
 only changes the order: people who buffed you still come first, and somebody
 known to be out of range never leads over somebody in range.
 
+**Guilds.** *Leave out these guilds*, on the *Who to skip* page, is a box for
+guild names, one a line, typed as the game shows a guild under a player (the
+< > are optional, capitals do not matter; your own guild's name works too).
+Nobody in those guilds is offered anything, in your group or as a passer-by.
+People who buffed you or asked, and your target and focus, are still offered.
+*Show their guild under the name*, on the *Look* page, writes the guild
+as <Name> after the reason on the second line and in the tooltip, which is a
+quick way to see which name to type. A guild the game has not told Manners yet
+is read as none, so nobody is left out on a guess.
+
 **People who ask me for it.** Off by default, because reading chat is
 guesswork. Somebody who asks for your buff in `/say`, `/yell`, group chat or a
 whisper ("int pls", "fort?", "can I get motw", or the spell's name in your

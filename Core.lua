@@ -364,6 +364,9 @@ local defaults = {
 			-- On: the two rules above hold back the target and focus too, which
 			-- they leave alone otherwise (asked for on GitHub, issue 8).
 			quietTargets = false,
+			-- Guilds nobody is offered anything from, one name a line (Queue.lua,
+			-- SkippedGuilds): asked for on CurseForge.
+			skipGuilds = "",
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
@@ -506,6 +509,8 @@ local defaults = {
 
 			format = "{name}",
 			showSub = true,
+			-- Their guild, <Name>, after the reason on the second line.
+			showGuild = false,
 			-- Short to fit the 220px default width. They start in the player's
 			-- language; AceDB stores a line only once somebody types their own.
 			-- Each reason has its own words, so colour is never the only cue.

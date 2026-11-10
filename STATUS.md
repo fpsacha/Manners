@@ -12,7 +12,10 @@ off a person for ten minutes after "A more powerful spell is already active" or
 "Target is too low level" (`NoteRefusal`'s `buffKey`), *Hold back my target and
 focus too* (`filters.quietTargets`, issue 8), *A right-click skips for*
 (`timing.skipSeconds`), a mage's scrolls held to dungeons and raids, lines typed
-into the phrase box kept when the box is left (`MultiLeft`), and *Remind me of my
+into the phrase box kept when the box is left (`MultiLeft`), guilds left out
+(`filters.skipGuilds`, `SkippedGuilds` and `GuildOf` in Queue.lua; asked for on
+CurseForge) with a guild line under the name (`prompt.showGuild`, `entry.guild`,
+`ReasonText`), and *Remind me of my
 shout when I'm alone* (`ownBuffs.shoutAlone`, `CastsOnSelf`; a warrior alone is
 offered his own Battle Shout through the self entry, whose macro targets himself
 and casts it, which has never run in the live game). Whether

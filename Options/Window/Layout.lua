@@ -327,6 +327,7 @@ ns.WindowLayout = {
 					-- Who that switch holds back right now, under it.
 					{ "diagnostics.pvpDiag", indent = true },
 					"who.skipSameClass",
+					"who.skipGuilds",
 					"who.requireInRange",
 					"who.minLevel",
 					"who.minLevelNote",
@@ -493,6 +494,7 @@ ns.WindowLayout = {
 					"appearance.classColor",
 					"appearance.textShadow",
 					"appearance.showSub",
+					{ "appearance.showGuild", indent = true },
 				} },
 				-- The reason boxes two to a row, in queue order: one run of
 				-- pairs, so a hunter's two still share a row.

@@ -119,7 +119,13 @@ function Prompt:ReasonText(entry)
 		and entry.reason ~= "asked" then
 		template = p.reasonUnknown or template
 	end
-	return Substitute(template, entry, 0)
+	local out = Substitute(template, entry, 0)
+	-- Their guild, as the game writes it under a name, after the reason; only
+	-- where the switch is on and the client said one.
+	if p.showGuild == true and type(entry.guild) == "string" then
+		out = out == "" and ("<" .. entry.guild .. ">") or (out .. "  <" .. entry.guild .. ">")
+	end
+	return out
 end
 
 function Prompt:RenderPrimary(entry, extra)

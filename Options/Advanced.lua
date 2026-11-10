@@ -63,6 +63,7 @@ Page.RESET = {
 	-- The never-offer list is kept: every name on it was put there by hand.
 	skip = {
 		"filters.skipPvP", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel",
+		"filters.skipGuilds",
 	},
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
@@ -99,6 +100,7 @@ Page.RESET = {
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",
 		"prompt.accentMode", "prompt.flashStyle", "prompt.effects", "prompt.hideInCombat", "prompt.dimInCombat",
 		"prompt.hideInFight", "prompt.font", "prompt.fontSize", "prompt.fontColor", "prompt.classColor", "prompt.showSub",
+		"prompt.showGuild",
 		"prompt.format", "prompt.reasonTarget", "prompt.reasonOwed", "prompt.reasonAsked",
 		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
 		"prompt.reasonUnknown", "prompt.showIcon", "prompt.iconSize", "prompt.roundIcon",

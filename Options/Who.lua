@@ -1334,6 +1334,19 @@ function Page.BuildWhoTab()
 				set = fSet,
 			},
 
+			-- Asked for on CurseForge: leave a guild out of the list. A box, one
+			-- name a line; your own guild's name works too.
+			skipGuilds = {
+				type = "input",
+				name = L["Leave out these guilds (one per line)"],
+				desc = L["People in these guilds are not offered anything, in your group or as passers-by. Type a guild's name as it shows under a player, with or without the < >. Somebody who buffed you or asked, and your target and focus, are still offered. |cffffd100Show their guild under the name|r (%s) shows whose guild it is."]:format(TAB.appearance),
+				order = 43.6,
+				multiline = 4,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
+
 			-------------------------------------------------- never offer
 			neverHeader = { type = "header", name = L["Never offer"], order = 50 },
 			neverNote = {

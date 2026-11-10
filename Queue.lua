@@ -924,6 +924,63 @@ do
 	end
 end
 
+---------------------------------------------------------------------------
+-- guilds
+--
+-- For "Leave out these guilds" (filters.skipGuilds) and the guild line under a
+-- name (prompt.showGuild). Both are off until asked for, and nothing here is
+-- read otherwise. A guild the client will not say (not loaded yet, a secret)
+-- reads as none: nobody is left out on a guess.
+---------------------------------------------------------------------------
+
+local GuildOf, SkippedGuilds
+do
+	-- A name is kept longer than a miss, which the client may answer a moment
+	-- on, once the person's details have loaded.
+	local FOUND_SECONDS, MISS_SECONDS, FLUSH_SECONDS = 10, 2, 60
+	local guildCache, flushedAt = {}, 0
+
+	-- The guild somebody is in, or nil.
+	function GuildOf(unit, full, now)
+		if now - flushedAt >= FLUSH_SECONDS then
+			wipe(guildCache)
+			flushedAt = now
+		end
+		local cached = guildCache[full]
+		if cached and now - cached.at < (cached.name and FOUND_SECONDS or MISS_SECONDS) then
+			return cached.name or nil
+		end
+		local name
+		if type(_G.GetGuildInfo) == "function" then
+			local ok, answer = pcall(_G.GetGuildInfo, unit)
+			if ok then name = plain(answer) end
+		end
+		if type(name) ~= "string" or name == "" then name = nil end
+		guildCache[full] = { at = now, name = name or false }
+		return name
+	end
+
+	-- The typed list as a set of lower-case names, parsed again only when the
+	-- text changes; nil for an empty list, so the walk asks nobody anything.
+	local parsedText, parsed = nil, {}
+	function SkippedGuilds(db)
+		local text = db.filters.skipGuilds
+		if type(text) ~= "string" or text == "" then return nil end
+		if text ~= parsedText then
+			parsedText = text
+			wipe(parsed)
+			for line in text:gmatch("[^\r\n]+") do
+				local name = line:match("^%s*(.-)%s*$")
+				-- <Name> as the game writes a guild under a player
+				name = name:match("^<(.*)>$") or name
+				name = name:match("^%s*(.-)%s*$")
+				if name ~= "" then parsed[name:lower()] = true end
+			end
+		end
+		return next(parsed) and parsed or nil
+	end
+end
+
 -- Tell the favour ledger (Ledger.lua) what happened to a favour: one way only,
 -- so it never changes who is offered what, and guarded. Assigns the local
 -- declared above the never-offer list.
@@ -1491,6 +1548,7 @@ local function RememberPasserBy(entry, now, within, hasMana, guid)
 	-- leaves them.
 	memo.known, memo.checked, memo.close = entry.known, entry.checked, entry.close
 	memo.withheld = entry.withheld
+	memo.guild = entry.guild
 	memo.expires = entry.remaining and (now + entry.remaining) or nil
 	memo.seconds, memo.lead, memo.leadKind = entry.duration, entry.lead, entry.leadKind
 end
@@ -1607,6 +1665,8 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 				lead = memo.lead,
 				leadKind = memo.leadKind,
 			}
+			-- Written after the table is built, as in the scan's own entry.
+			if memo.guild then queue[#queue].guild = memo.guild end
 		end
 	end
 end
@@ -2069,6 +2129,10 @@ function ns.BuildQueue(watch)
 	-- of its cost.
 	local friendsFirst = db.priority.friends == true
 	if friendsFirst then SweepCloseness(now) end
+	-- Guilds left out, and the guild line under a name: nobody is asked about
+	-- a guild with both off.
+	local skipGuilds = SkippedGuilds(db)
+	local showGuild = db.prompt.showGuild == true
 	-- The buffs held to the tanks of the group, or nil with none: the scan's own
 	-- answer to "does anybody need their role read".
 	local tanksHeld = db.buff.tanksOnly
@@ -2168,6 +2232,17 @@ function ns.BuildQueue(watch)
 		end
 		if reason == "nearby" and not db.sources.strangers then return end
 		if reason == "nearby" and groupOnly then return end
+		-- A guild left out ("Leave out these guilds"), for the group and for
+		-- passers-by. A favour owed, a request and a target or focus are not
+		-- held back by it, as the never-offer list is not for a favour. A
+		-- verdict, so a passer-by remembered is not offered from memory.
+		if skipGuilds and (reason == "group" or reason == "nearby") and not pointed then
+			local guild = GuildOf(unit, full, now)
+			if guild and skipGuilds[guild:lower()] then
+				rejected[full] = true
+				return
+			end
+		end
 
 		-- Nobody asked for these, so they wait while you keep your mana. A
 		-- favour owed or a request never reaches here as group or nearby.
@@ -2420,6 +2495,8 @@ function ns.BuildQueue(watch)
 		-- true: one more field in the constructor doubles the hash part of
 		-- every entry of every scan.
 		if has == nil and src == "withheld" then queue[#queue].withheld = true end
+		-- Their guild, for the line under the name: only when asked for.
+		if showGuild then queue[#queue].guild = GuildOf(unit, full, now) end
 		-- A top-up: how long the buff lasts, the lead that made it due and its
 		-- kind, for the tooltip. Written after the table is built, as above.
 		if remaining then

@@ -558,6 +558,18 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- Asked for on CurseForge: whose guild it is, to tell two people of
+			-- one name apart or to see who to leave out.
+			showGuild = {
+				type = "toggle",
+				name = L["Show their guild under the name"],
+				desc = L["Adds <Guild> after the reason on the second line, and in the tooltip, for somebody who is in a guild. Needs the second line."],
+				order = 45.5,
+				width = "full",
+				disabled = function() return P().showSub == false end,
+				get = pGet,
+				set = pSet,
+			},
 
 			iconHeader = { type = "header", name = L["Icon and waiting list"], order = 50 },
 			showIcon = { type = "toggle", name = L["Show spell icon"], order = 51, get = pGet, set = pSet },

@@ -76,6 +76,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 
 - **Offer nothing in cities and inns:** nothing offered to anybody while you are resting (passers-by, your group, a favour you owe); a target or focus still is, unless you tick *Hold back my target and focus too*.
 - **Offer nothing in dungeons, raids and battlegrounds:** the same inside any instance; a target or focus still is, and your own buffs too.
+- **Leave out these guilds:** a box on Who to skip, one guild a line; nobody in them is offered anything, unless they buff you or ask. *Show their guild under the name* on Look writes the guild on the prompt's second line.
 - **Skip players another paladin has blessed:** for paladins whose group shares out the blessings.
 - **Thorns for the tanks only, or for you alone:** *Offer to* on Who to buff, by the game's tank role or a raid's main tank mark.
 - **Hide all Manners messages in my chat window:** not even the few lines the *Show what Manners is doing* switch leaves. What you type after `/manners` is still answered.

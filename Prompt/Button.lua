@@ -80,6 +80,10 @@ local function PersonTooltipLines(entry, brief)
 	elseif entry.close == "guild" then
 		GameTooltip:AddLine(L["In your guild."], 0.7, 0.7, 0.7, true)
 	end
+	-- Whose guild, where the switch is on and the client said (Queue.lua).
+	if entry.guild and ns.db.profile.prompt.showGuild == true then
+		GameTooltip:AddLine("<" .. entry.guild .. ">", 0.7, 0.7, 0.7, true)
+	end
 	-- Why they are ahead of everybody but your target.
 	if entry.sweep == "readycheck" then
 		GameTooltip:AddLine(L["A ready check was called, so your party or raid comes first until the pull."], 0.7, 0.7, 0.7, true)

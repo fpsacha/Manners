@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Leave guilds out, or see them.** Two new switches, asked for on
+  CurseForge. *Leave out these guilds*, a box on *Who to skip* (one guild a
+  line, with or without the < >, capital letters do not matter), holds back
+  everybody in those guilds, in your group or as passers-by. Somebody who
+  buffed you or asked, and your target and focus, are still offered. *Show their
+  guild under the name*, on *Look*, adds their guild to the second line and the
+  tooltip, so you can see whose guild it is. Both are off by default.
 - **Battle Shout for a warrior on his own.** A shout is only ever offered to
   your group, so a warrior alone was never reminded of it. *Remind me of my
   shout when I'm alone*, under *Myself* on *Who to buff* (warriors only, off by
