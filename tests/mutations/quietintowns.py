@@ -23,7 +23,7 @@ mutate("Queue.lua",
        expect="quietintowns: when resting cannot be told, nothing is held back", script=S)
 
 mutate("Queue.lua",
-       "\t\tif inTown and not pointed then\n",
+       "\t\tif inTown and (not pointed or f.quietTargets == true) then\n",
        "\t\tif inTown then\n",
        "quietintowns: a target is held back too",
        expect="quietintowns: on, a target or focus is still offered in a city", script=S)
@@ -53,7 +53,7 @@ mutate("Options/Window/Layout.lua",
        expect="quietInTowns", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"filters.quietInTowns\", \"filters.quietInInstances\",\n",
-       "\t\t\"filters.quietInInstances\",\n",
+       "\t\t\"filters.quietInTowns\", \"filters.quietInInstances\", \"filters.quietTargets\",\n",
+       "\t\t\"filters.quietInInstances\", \"filters.quietTargets\",\n",
        "quietintowns: the page's reset leaves the switch",
        expect="model: the reset puts when back", script=S)

@@ -363,6 +363,7 @@ ns.WindowLayout = {
 				{ key = "when.holdBack", header = "when.wayHeader", items = {
 					"who.quietInTowns",
 					"who.quietInInstances",
+					"who.quietTargets",
 					"when.hideMounted",
 					"when.manaFloor",
 					"when.manaNote",
@@ -377,6 +378,7 @@ ns.WindowLayout = {
 				} },
 				{ key = "when.timing", header = "advanced.timingHeader", fold = true, items = {
 					"advanced.retryCooldown",
+					"advanced.skipSeconds",
 					"advanced.scanInterval",
 				} },
 				{ key = "when.targeting", header = "advanced.targetingHeader", fold = true, items = {

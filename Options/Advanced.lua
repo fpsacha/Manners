@@ -68,9 +68,9 @@ Page.RESET = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
 		-- Who to buff's two place rules, which this page draws under Hold back.
-		"filters.quietInTowns", "filters.quietInInstances",
+		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget",
 		after = function()
 			-- keepDebts can only go from off to on here, which deletes
@@ -122,7 +122,7 @@ Page.RESET = {
 -- restyle covers the wording.
 Page.RESET.advanced = {
 	"sources.owedClassBuffsOnly", "timing.reciprocateWindow", "filters.reachableOnly",
-	"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
+	"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 	"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
 	"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
 	"prompt.reasonRefresh", "prompt.reasonUnknown",
@@ -316,6 +316,18 @@ function Page.BuildAdvancedTab()
 				width = "double",
 				min = 3,
 				max = 60,
+				step = 1,
+				get = tGet,
+				set = tSet,
+			},
+			skipSeconds = {
+				type = "range",
+				name = L["A right-click skips for (seconds)"],
+				desc = L["How long right-clicking the prompt, or Not now in its menu, leaves that person, or your own buff, alone before it is offered again."],
+				order = 21.5,
+				width = "double",
+				min = 3,
+				max = 1800,
 				step = 1,
 				get = tGet,
 				set = tSet,

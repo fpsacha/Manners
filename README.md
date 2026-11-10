@@ -728,6 +728,9 @@ list. They used to be at the bottom of *Who to buff*.
     same rule inside a dungeon, a raid, a battleground or an arena: nothing
     for anybody but somebody you target or focus. Your own buffs are not held
     back.
+  - *Hold back my target and focus too*: off by default. With either rule
+    above on, it leaves the person you target or focus alone in a city, an inn
+    or an instance as well.
 - *Other people already buffed* (*Already buffed* for a class with nothing for
   others):
   *If they already have it*: *Skip them*, *Offer a top-up when it runs low*
@@ -773,8 +776,10 @@ list. They used to be at the bottom of *Who to buff*.
   - *Keep favours through a /reload*: for a favour noticed a minute before a
     disconnect. The clock keeps running while you are away.
 - *Timing* (folded): *Don't repeat a spell on someone for (seconds)* is per
-  spell, so after Fortitude the next scan can still offer Divine Spirit. A
-  right-click skip blocks the whole person for the same time. *Check for
+  spell, so after Fortitude the next scan can still offer Divine Spirit.
+  *A right-click skips for (seconds)* (12 by default, up to half an hour) is
+  how long a right-click on the prompt, or *Not now* in its menu, blocks the
+  whole person, or your own buff. *Check for
   people every (seconds)* is how often Manners looks around.
 - *Targeting* (folded): *Hand my target back afterwards*. The prompt targets
   everybody it buffs, group members too, because a named conditional
@@ -922,8 +927,8 @@ telling whether somebody already carries it.
 it belongs to:
 
 - the favour settings: *When to offer*, under *Buffing back*;
-- *Don't repeat a spell on someone for* and *Check for people every*: *When
-  to offer*, under *Timing*;
+- *Don't repeat a spell on someone for*, *A right-click skips for* and *Check
+  for people every*: *When to offer*, under *Timing*;
 - *Hand my target back afterwards*: *When to offer*, under *Targeting*;
 - *Exact position* and *Prompt wording*: *Look*, under those names.
 

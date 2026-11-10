@@ -480,7 +480,7 @@ end
 -- list changes nothing on screen -- and for the one on the prompt in a fight,
 -- that a press still casts at them.
 local function SkipFromMenu(entry)
-	ns.BlockPerson(entry.name)
+	ns.BlockPerson(entry.name, ns.SkipSeconds())
 	-- A group cast is skipped whole, as a right-press on it is.
 	if ns.SkipGroupCast then ns.SkipGroupCast(entry) end
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()

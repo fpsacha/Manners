@@ -490,7 +490,7 @@ mutate("Commands.lua",
 # The macro's key without the name it casts by: learning Ice Armor at the
 # trainer leaves "/cast Frost Armor" armed under the same entry.
 mutate("Prompt/Macro.lua",
-       "\t\tns.EntrySpellName(entry),\n",
+       "\t\tns.CastName(entry),\n",
        "",
        "own: the macro keeps the old rank's name",
        expect="a mage who has learned Ice Armor arms", script=S)

@@ -5,6 +5,16 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
+Unreleased, after 1.11.13: a lower rank named in the macro for a low-level
+target (`ns.CastName`, GitHub issue 9; the rank text is the client's own
+`GetSpellSubtext`, so a client without it keeps the plain name), a buff left
+off a person for ten minutes after "A more powerful spell is already active" or
+"Target is too low level" (`NoteRefusal`'s `buffKey`), *Hold back my target and
+focus too* (`filters.quietTargets`, issue 8), *A right-click skips for*
+(`timing.skipSeconds`) and a mage's scrolls held to dungeons and raids. Whether
+Forever's client takes `/cast Name(Rank N)` and answers `GetSpellSubtext` is
+open until somebody casts one there.
+
 1.11.13 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each

@@ -120,7 +120,7 @@ mutate("Prompt/Paint.lua",
        "groupbuffs: the second line is a person's",
        expect="the panel does not name the party and the count", script=S)
 mutate("Prompt/Macro.lua",
-       "\treturn STRATEGIES[StrategyFor(entry)](entry, ns.EntrySpellName(entry))\n",
+       "\treturn STRATEGIES[StrategyFor(entry)](entry, ns.CastName(entry))\n",
        "\treturn STRATEGIES[StrategyFor(entry)](entry, ns.BuffName(entry.buff))\n",
        "groupbuffs: the macro casts the single spell",
        expect="the macro does not target one of them and cast Arcane Brilliance", script=S)
@@ -128,7 +128,7 @@ mutate("Prompt/Macro.lua",
 # name the macro casts by (which "own: the macro keeps the old rank's name"
 # takes away on its own).
 mutate("Prompt/Macro.lua",
-       "\t\tns.EntrySpellName(entry),\n\t\ttostring(entry.groupCast and entry.groupCast.spell),\n",
+       "\t\tns.CastName(entry),\n\t\ttostring(entry.groupCast and entry.groupCast.spell),\n",
        "",
        "groupbuffs: the macro is not rebuilt for the group cast",
        expect="the macro still casts the single buff at a party", script=S)
@@ -297,7 +297,7 @@ mutate("Prompt/Press.lua",
        "groupbuffs: not now skips only the anchor",
        expect="offers of Arcane Intellect came straight back after skipping the party", script=S)
 mutate("GroupBuffs.lua",
-       "\t\tns.MarkAttempted(name, entry.buff.key, nil, true)\n",
+       "\t\tns.MarkAttempted(name, entry.buff.key, ns.SkipSeconds(), true)\n",
        "",
        "groupbuffs: skipping a group cast blocks nobody",
        expect="offers of Arcane Intellect came straight back after skipping the party", script=S)

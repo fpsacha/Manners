@@ -357,6 +357,9 @@ local defaults = {
 			-- The same inside a dungeon, a raid, a battleground or an arena
 			-- (Queue.lua, Inside): nothing for anybody but a target or focus.
 			quietInInstances = false,
+			-- On: the two rules above hold back the target and focus too, which
+			-- they leave alone otherwise (asked for on GitHub, issue 8).
+			quietTargets = false,
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
@@ -399,6 +402,9 @@ local defaults = {
 		timing = {
 			reciprocateWindow = 120,
 			retryCooldown = 12,
+			-- How long a right-click on the prompt (or Not now) leaves somebody, or
+			-- your own buff, alone. Was the retry cooldown's number until 1.11.14.
+			skipSeconds = 12,
 			scanInterval = 0.4,
 			graceSeconds = 45,
 			keepDebts = true,
@@ -2063,6 +2069,9 @@ do
 		if not family then return false end
 		if family.food then return true end
 		if family.consumable then return true end
+		-- A mage's scrolls on Forever too (the weapon imbue, the familiar), asked
+		-- for on CurseForge: they are used up like the rest.
+		if family.isScroll then return true end
 		return family.enhance == true and family.kind ~= "poison" and family.kind ~= "lure"
 	end
 
@@ -3312,6 +3321,7 @@ local function LandingRank(buff, info, level)
 	end
 	return landed
 end
+ns.LandingRank = LandingRank
 
 -- Returns has, secondsRemaining, mine, over, seconds. `has` is nil when the client
 -- refuses any one of the buff's ids (the hidden one may be the one they wear);
@@ -3986,6 +3996,7 @@ local LIMITS = {
 	{ "timing", "scanInterval", 0.1, 2 },
 	{ "timing", "reciprocateWindow", 15, 600 },
 	{ "timing", "retryCooldown", 3, 60 },
+	{ "timing", "skipSeconds", 3, 1800 },
 	{ "timing", "graceSeconds", 10, 180 },
 	{ "filters", "minLevel", 1, ns.MaxPlayerLevel },
 	{ "filters", "refreshUnder", 1, 60 },

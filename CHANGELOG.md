@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+- **A lower rank for a low-level target.** On Classic Era, Burning Crusade and
+  WoW Forever the game does not lower a spell's rank for somebody too low a
+  level when it is cast from a macro, as it does from an action bar: with
+  Arcane Intellect rank 3 and somebody of level 17, the cast was refused every
+  time. When the game tells Manners their level, the cast now names the rank
+  that lands on them (`Arcane Intellect(Rank 2)`). Higher-level targets keep
+  the plain name.
+- **A stronger buff already on them.** When the game says "A more powerful
+  spell is already active" (a campfire's buff over yours, say) or "Target is
+  too low level", that buff is left alone for that person for ten minutes,
+  instead of coming back every few seconds. Their other buffs, and everybody
+  else, are offered as before.
+- **Hold my target and focus back too.** A new switch under *Hold back* on
+  *When to offer*. With *Offer nothing in cities and inns* or *Offer nothing in
+  dungeons, raids and battlegrounds* on, it leaves the person you target or
+  focus alone as well. Off by default.
+- **How long a right-click skips.** *A right-click skips for (seconds)*, under
+  *Timing* on *When to offer*, from 3 seconds to half an hour (12 by default).
+  It covers a right-click on the prompt, *Not now* in its menu, people and your
+  own buffs, and no longer shares a number with the retry cooldown.
+- **A mage's scrolls on Forever as consumables.** The weapon imbue scrolls and
+  the familiars now follow *Consumables only in dungeons and raids*.
+
 ## 1.11.13
 
 - **Friendly nameplates.** With passers-by on and the game's friendly

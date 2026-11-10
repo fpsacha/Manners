@@ -54,7 +54,7 @@ mutate("Options/Window/Layout.lua",
        expect="every control has one place in the options window", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"filters.quietInTowns\", \"filters.quietInInstances\",\n",
-       "\t\t\"filters.quietInTowns\",\n",
+       "\t\t\"filters.quietInTowns\", \"filters.quietInInstances\", \"filters.quietTargets\",\n",
+       "\t\t\"filters.quietInTowns\", \"filters.quietTargets\",\n",
        "quietinstances: the page's reset leaves the switch",
        expect="model: the reset puts when back", script=S)

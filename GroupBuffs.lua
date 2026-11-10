@@ -557,7 +557,7 @@ function ns.SkipGroupCast(entry)
 	local group = entry and entry.groupCast
 	if not (group and entry.buff) then return end
 	for _, name in ipairs(group.members) do
-		ns.MarkAttempted(name, entry.buff.key, nil, true)
+		ns.MarkAttempted(name, entry.buff.key, ns.SkipSeconds(), true)
 	end
 end
 

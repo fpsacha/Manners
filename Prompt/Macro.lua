@@ -183,11 +183,53 @@ STRATEGIES.target = function(entry, spell)
 		{ targeted = true, selfCast = false, aimedAt = who }
 end
 
+-- What the /cast line names. Mostly the spell's name, and the game picks the
+-- best rank you know. A macro does not lower the rank for a low-level target as
+-- an action bar button does (GitHub issue 9): with Arcane Intellect rank 3 and
+-- somebody of level 17, "/cast Arcane Intellect" is refused as too low a level.
+-- A target must be within ten levels of the rank's own (Buffs.lua, RANK_LEVEL:
+-- rank 3's 28 reaches level 18), so for somebody below that the highest rank
+-- that reaches them (Core.lua, LandingRank) is named, as the client writes it
+-- ("Arcane Intellect(Rank 2)"). Only a single cast at somebody whose level the
+-- client says now; a stranger's level it will not say, a skull, a tokenless
+-- favour and a spell of one rank all keep the plain name.
+do
+	local function RankText(id)
+		local get = _G.C_Spell and _G.C_Spell.GetSpellSubtext or _G.GetSpellSubtext
+		if type(get) ~= "function" then return nil end
+		local text = ns.plain(get(id))
+		if type(text) == "string" and text ~= "" then return text end
+		return nil
+	end
+
+	function ns.CastName(entry)
+		local name = ns.EntrySpellName(entry)
+		local buff = entry and entry.buff
+		local ranks = buff and buff.ranks
+		if not ranks or #ranks < 2 or buff.item or entry.groupCast then return name end
+		if StrategyFor(entry) ~= "target" then return name end
+		local unit = entry.unit
+		local levels = ns.RANK_LEVEL
+		if not unit or not levels or ns.UnitFullName(unit) ~= entry.name then return name end
+		local info = ns.BuffInfo(buff)
+		local top = info and info.topRank
+		if not top then return name end
+		local level = ns.plain(_G.UnitLevel(unit))
+		if type(level) ~= "number" or level < 1 then return name end
+		-- The rank the game would land on them (Core.lua): the top one, or a
+		-- lower one for somebody under it.
+		local id = ns.LandingRank(buff, info, level)
+		if not id or id == top then return name end
+		local text = RankText(id)
+		return text and (name .. "(" .. text .. ")") or name
+	end
+end
+
 -- The cast half of the macro, as a list, so the room left for a spoken line can
 -- be measured.
 local function CastLines(entry)
 	-- A group cast is the same /target and /cast, with the group spell.
-	return STRATEGIES[StrategyFor(entry)](entry, ns.EntrySpellName(entry))
+	return STRATEGIES[StrategyFor(entry)](entry, ns.CastName(entry))
 end
 
 -- How many characters a spoken line has left for this person. Asked by the
@@ -410,7 +452,7 @@ local function Arm(R, S, entry, silent)
 	-- under an entry that has not moved, and a key without it kept "/cast
 	-- Frost Armor" armed for as long as that entry stayed up.
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
-		ns.EntrySpellName(entry),
+		ns.CastName(entry),
 		tostring(entry.groupCast and entry.groupCast.spell),
 		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight), tostring(NoTarget()),
 		tostring(StillTargeted(entry)), tostring(speak) }, "\1")

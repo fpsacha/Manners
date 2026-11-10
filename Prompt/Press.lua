@@ -385,7 +385,7 @@ local function OnPostClick(self, mouseButton, down)
 		local db = ns.db and ns.db.profile
 		-- The retry cooldown, not the two seconds a failed cast writes:
 		-- that would put them straight back on the prompt.
-		ns.BlockPerson(victim)
+		ns.BlockPerson(victim, ns.SkipSeconds())
 		-- A group cast on the panel: the skip is of the whole party, or the
 		-- cast re-forms around the next of them on the next scan.
 		local group = S.current and S.current.name == victim and S.current.groupCast and S.current or nil

@@ -1041,6 +1041,18 @@ function Page.BuildWhoTab()
 				get = fGet,
 				set = fSet,
 			},
+			-- Both place rules leave the target and focus alone; this takes
+			-- them in (a player asked on GitHub for no offers at all in a
+			-- city).
+			quietTargets = {
+				type = "toggle",
+				name = L["Hold back my target and focus too"],
+				desc = L["On: the two switches above leave nobody out, not even somebody you target or focus. Off: they are still offered there."],
+				order = 13.37,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
 			-- The source that reads chat. The full rule for what counts as
 			-- asking lives in Requests.lua, which is the rule in code.
 			asked = {

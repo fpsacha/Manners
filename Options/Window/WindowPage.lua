@@ -173,6 +173,7 @@ local FIELDS = {
 	["who.readyCheck"] = { { "priority", "readyCheck" } },
 	["who.revived"] = { { "priority", "revived" } },
 	["advanced.retryCooldown"] = { { "timing", "retryCooldown" } },
+	["advanced.skipSeconds"] = { { "timing", "skipSeconds" } },
 	["advanced.scanInterval"] = { { "timing", "scanInterval" } },
 	["advanced.restoreTarget"] = { { "filters", "restoreTarget" } },
 	["advanced.x"] = { { "prompt", "x" }, { "prompt", "point" }, { "prompt", "relPoint" } },

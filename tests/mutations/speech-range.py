@@ -66,7 +66,7 @@ mutate("Prompt/Macro.lua",
 
 # The error inside the press's window not noted as a refusal.
 mutate("Clicks.lua",
-       "\tRewindClick(pending)\n\tns.NoteRefusal(pending.name, message, nil, pending.spoke)\n",
+       "\tRewindClick(pending)\n\tns.NoteRefusal(pending.name, message, nil, pending.spoke, pending.buffKey,\n\t\tpending.group and pending.group.members)\n",
        "\tRewindClick(pending)\n",
        "error refusal not noted",
        expect="speech-range: a refusal holds the line until neither",
@@ -264,7 +264,7 @@ mutate("Queue.lua",
 
 # The error inside the press's window not saying whether the press spoke.
 mutate("Clicks.lua",
-       "\tns.NoteRefusal(pending.name, message, nil, pending.spoke)\n",
+       "\tns.NoteRefusal(pending.name, message, nil, pending.spoke, pending.buffKey,\n\t\tpending.group and pending.group.members)\n",
        "\tns.NoteRefusal(pending.name, message)\n",
        "refusal blind to a silent press",
        expect="speech-range: a silent press refused out of range leaves the next press its line",

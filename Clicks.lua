@@ -189,7 +189,8 @@ local function FailPendingClick(message)
 	SayStillOwed(pending.name, type(message) == "string"
 		and L["the game said: %s"]:format((message:gsub("%.$", ""))) or L["the game refused it"])
 	RewindClick(pending)
-	ns.NoteRefusal(pending.name, message, nil, pending.spoke)
+	ns.NoteRefusal(pending.name, message, nil, pending.spoke, pending.buffKey,
+		pending.group and pending.group.members)
 	return pending.name
 end
 
@@ -699,7 +700,8 @@ local function UnsettleLateRefusal(castGUID)
 	RewindClick(settled)
 	-- This is the refusal that repeats for somebody the game will never let
 	-- you buff (beta.8): every press settles on SENT and comes back here.
-	ns.NoteRefusal(settled.name, nil, nil, settled.spoke)
+	ns.NoteRefusal(settled.name, nil, nil, settled.spoke, settled.buffKey,
+		settled.group and settled.group.members)
 	SayStillOwed(settled.name, L["the game refused the cast after sending it"])
 	return settled.name
 end

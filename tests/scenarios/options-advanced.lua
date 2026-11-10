@@ -48,6 +48,7 @@ local MODEL = {
 	{ "keepDebts", 15, "Keep favours through a /reload" },
 	{ "timingHeader", 20, "Timing" },
 	{ "retryCooldown", 21, "Don't repeat a spell on someone for (seconds)" },
+	{ "skipSeconds", 21.5, "A right-click skips for (seconds)" },
 	{ "scanInterval", 22, "Check for people every (seconds)" },
 	{ "targetingHeader", 30, "Targeting" },
 	{ "restoreTarget", 31, "Hand my target back afterwards" },
@@ -74,7 +75,8 @@ local PLACED = {
 	when = {
 		{ "advanced.reciprocateWindow" }, { "advanced.owedClassBuffsOnly" },
 		{ "advanced.reachableOnly" }, { "advanced.graceSeconds" }, { "advanced.keepDebts" },
-		{ "advanced.retryCooldown", folded = true }, { "advanced.scanInterval", folded = true },
+		{ "advanced.retryCooldown", folded = true }, { "advanced.skipSeconds", folded = true },
+		{ "advanced.scanInterval", folded = true },
 		{ "advanced.restoreTarget", folded = true }, { "advanced.noTargetNote", folded = true },
 	},
 	appearance = {
@@ -95,6 +97,7 @@ local FIELDS = {
 	{ "graceSeconds", "timing", "graceSeconds" },
 	{ "keepDebts", "timing", "keepDebts" },
 	{ "retryCooldown", "timing", "retryCooldown" },
+	{ "skipSeconds", "timing", "skipSeconds" },
 	{ "scanInterval", "timing", "scanInterval" },
 	{ "restoreTarget", "filters", "restoreTarget" },
 	{ "x", "prompt", "x" },
@@ -117,7 +120,7 @@ local WHEN_RESET = {
 	{ "filters", "hideMounted" }, { "filters", "manaFloor" },
 	{ "timing", "reciprocateWindow" }, { "sources", "owedClassBuffsOnly" },
 	{ "filters", "reachableOnly" }, { "timing", "graceSeconds" }, { "timing", "keepDebts" },
-	{ "timing", "retryCooldown" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },
+	{ "timing", "retryCooldown" }, { "timing", "skipSeconds" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },
 }
 
 -- Look's reset: everything about the prompt itself, the old Advanced reset's

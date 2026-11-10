@@ -28,7 +28,7 @@ mutate("Queue.lua",
 
 # The refusal that repeats (after the cast was sent) not counted.
 mutate("Clicks.lua",
-       "\tns.NoteRefusal(settled.name, nil, nil, settled.spoke)\n",
+       "\tns.NoteRefusal(settled.name, nil, nil, settled.spoke, settled.buffKey,\n\t\tsettled.group and settled.group.members)\n",
        "",
        "late refusal not counted",
        expect="refusal-backoff: refusals in a row back off further each time",

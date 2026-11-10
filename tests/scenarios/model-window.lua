@@ -402,9 +402,9 @@ local EXPECTED = {
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
-		"filters.quietInTowns", "filters.quietInInstances",
+		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget",
 	},
 	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "speech.enabled", "speech.channel",
@@ -427,7 +427,7 @@ local EXPECTED = {
 	-- wording, and never the exact position drawn on the same tab.
 	advanced = {
 		"sources.owedClassBuffsOnly", "timing.reciprocateWindow", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
 		"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
 		"prompt.reasonRefresh", "prompt.reasonUnknown",

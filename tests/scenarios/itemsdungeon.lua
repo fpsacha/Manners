@@ -123,7 +123,7 @@ do
 			for _, fam in ipairs(ns.GetOwnFamilies(class) or {}) do
 				local held = ns.OwnItemsHeldToDungeons(fam)
 				-- Flasks, elixirs and scrolls too, since 1.11.11 (consume-buffs.lua).
-				local want = fam.food == true or fam.consumable == true
+				local want = fam.food == true or fam.consumable == true or fam.isScroll == true
 					or (fam.enhance == true and fam.kind ~= "poison" and fam.kind ~= "lure")
 				if held ~= want then
 					fail(scenario, class .. "'s " .. tostring(fam.key) .. " is " .. (held and "" or "not ")

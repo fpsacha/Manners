@@ -1208,7 +1208,8 @@ mutate("Prompt/Press.lua",
 #     later has nothing left to settle and the favour stays owed.
 mutate("Clicks.lua",
        """	RewindClick(pending)
-	ns.NoteRefusal(pending.name, message, nil, pending.spoke)
+	ns.NoteRefusal(pending.name, message, nil, pending.spoke, pending.buffKey,
+		pending.group and pending.group.members)
 	return pending.name
 end""",
        """	RewindClick(pending)
@@ -3281,7 +3282,7 @@ mutate("Core.lua",
 # A shout's reach left to IsSpellInRange, which has nothing to say about a spell
 # with no target: a party member sixty yards off is offered it.
 mutate("Queue.lua",
-       "\t\tif ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end\n",
+       "\t\tif ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end\n\t\tif ranged == nil then ranged = ns.PastFollowReach(unit) end\n",
        "",
        "a shout offered at any distance",
        expect="a party member sixty yards away was offered Battle Shout",

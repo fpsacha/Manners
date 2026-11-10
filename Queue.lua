@@ -193,6 +193,14 @@ do
 		Block(name .. "\0*", seconds, keepLonger)
 	end
 
+	-- How long a right-click on the prompt, or Not now in its menu, leaves
+	-- somebody (or your own buff) alone: its own setting, apart from the retry
+	-- cooldown, which is for a cast that failed.
+	function ns.SkipSeconds()
+		local db = addon.db and addon.db.profile
+		return (db and db.timing.skipSeconds) or (db and db.timing.retryCooldown) or 12
+	end
+
 	-- The keys one person's blocks are filed under, built once per person and
 	-- kept, since IsBlocked is asked for everybody on every scan. The
 	-- whole-person key sits under a table key no buff can have.
@@ -293,6 +301,15 @@ do
 	local OUT_OF_RANGE = { "ERR_OUT_OF_RANGE", "SPELL_FAILED_OUT_OF_RANGE" }
 	local OUT_OF_RANGE_SECONDS = 10
 
+	-- The game said this buff cannot land on them, and nothing about them: a
+	-- stronger one of the same kind is on them already (a campfire's or a
+	-- scroll's, which no aura read of ours knows to hold it off), or they are
+	-- too low a level for the rank. Retrying in two seconds, or in half a
+	-- minute, never helps: the buff is held off that person for ten minutes and
+	-- everything else about them stays as it was.
+	local THIS_BUFF = { "SPELL_FAILED_AURA_BOUNCED", "SPELL_FAILED_LOWLEVEL" }
+	local THIS_BUFF_SECONDS = 600
+
 	-- Whether the game's words are one of these global strings.
 	local function OneOf(message, keys)
 		if type(message) ~= "string" then return false end
@@ -377,7 +394,7 @@ do
 	-- (RECHECKED), or not refused at all (quietOnly), that holds no line, or
 	-- the press that lands once they are back in reach would go out silent
 	-- too. The back-off stands either way.
-	function ns.NoteRefusal(name, why, quietOnly, spoke)
+	function ns.NoteRefusal(name, why, quietOnly, spoke, buffKey, members)
 		if not name then return end
 		local now = GetTime()
 		if why == nil and lastError and now - lastErrorAt <= ERROR_SECONDS then why = lastError end
@@ -390,6 +407,16 @@ do
 		newest = name
 		if quietOnly or AboutTheCaster(why) then
 			r.last = now
+			return
+		end
+		-- This buff on this person, not the person: held off for a good while,
+		-- and no count towards backing them off from everything.
+		if buffKey and OneOf(why, THIS_BUFF) then
+			r.last = now
+			ns.MarkAttempted(name, buffKey, THIS_BUFF_SECONDS, true)
+			for _, member in ipairs(members or {}) do
+				ns.MarkAttempted(member, buffKey, THIS_BUFF_SECONDS, true)
+			end
 			return
 		end
 		-- A run long over was swept (SweepRefusals), so this starts again at one.
@@ -2177,7 +2204,7 @@ function ns.BuildQueue(watch)
 		-- Nobody at all in a city or an inn, when that is asked for: the group
 		-- and a favour owed too. Somebody you targeted or focused you picked on
 		-- purpose, and is exempt.
-		if inTown and not pointed then
+		if inTown and (not pointed or f.quietTargets == true) then
 			rejected[full] = true
 			return
 		end
