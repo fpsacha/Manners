@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **A top-up is a favour too.** Somebody who cast a buff on you again while
+  yours was still running went unnoticed: no "buffed you", nothing to return,
+  and no /thank. Only a buff that had worn off first counted, so the /thank
+  seemed to come now and then. A top-up now counts like any other buff on
+  you. Reported on CurseForge.
 - **Leave classes out of the passers-by.** *Classes I buff as passers-by*, a
   grid on *Who to skip* with every class ticked. Untick one and passers-by of
   that class are not offered your buff. Your group, people who buff you or

@@ -175,8 +175,12 @@ Mock.reset()
 -- rewrites the previous reading. The buff recast under the number it had was
 -- then taken for the one already filed, and the favour was lost. The same aura
 -- handed back with the same end is still not a favour.
+-- An end only a moment later is a rebuff too: what the doubted reading
+-- missed ran out, whatever the gap (no top-up's RECAST_GAIN applies, since
+-- nothing was read running).
 for _, case in ipairs({
 	{ label = "a later end", ends = 3000, favour = true },
+	{ label = "a moment later", ends = 2001, favour = true },
 	{ label = "the same end", ends = 2000, favour = false },
 }) do
 	Mock.reset()
@@ -213,11 +217,12 @@ for _, case in ipairs({
 						fail(scenario, "nothing was said about the rebuff")
 					end
 					-- That reading was believed, so the next trusts it again: the
-					-- same aura refreshed with a later end, having never run out
-					-- in between, is not a favour.
+					-- same aura with its end restated a moment later (under
+					-- RECAST_GAIN, so no top-up: refreshfavour.lua), having never
+					-- run out in between, is not a favour.
 					wipe(ns.owed)
 					Mock.advance(5)
-					Mock.extraAuraUntil = 4000
+					Mock.extraAuraUntil = case.ends + 1
 					ns.addon:UNIT_AURA(nil, "player")
 					if ns.owed[ANNA] then
 						fail(scenario, "a refresh after the rebuff was taken for another favour")

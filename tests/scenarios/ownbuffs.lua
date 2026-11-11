@@ -1489,8 +1489,9 @@ Mock.reset()
 -- end, and the reading before held the same, which is what a refresh looks
 -- like. The end that reading saw having gone by is what tells them apart: a
 -- cast that ran out was cast again, not refreshed, and that is a favour
--- whether or not it was your last buff. A refresh read before that end is not
--- one, nor when read again after the end it replaced has gone by, nor is the
+-- whether or not it was your last buff. A refresh read before that end is a
+-- top-up, a favour too since 1.11.15 (refreshfavour.lua), but not a second time
+-- when read again after the end it replaced has gone by, nor is the
 -- same aura still read with the end it had, nor a buff with no end at all
 -- (a toggle, which never runs out) read later with one.
 for _, case in ipairs({
@@ -1542,10 +1543,12 @@ for _, case in ipairs({
 			Mock.extraAuraUntil = Mock.now + 1800
 			ns.addon:UNIT_AURA(nil, "player")
 			ns.addon:Tick()
-			if ns.owed[anna] then
-				fail(scenario, "a refresh read before the end it replaced was taken for a favour: " .. flat(said()))
+			-- A top-up: a favour since 1.11.15 (refreshfavour.lua).
+			if not ns.owed[anna] then
+				fail(scenario, "a top-up read before the end it replaced was let go")
 				return
 			end
+			wipe(ns.owed)
 			-- And read again once that end has gone by: the reading before saw
 			-- the new end, so nothing has run out.
 			Mock.advance(ends - Mock.now + 1)

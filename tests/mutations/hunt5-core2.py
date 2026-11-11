@@ -26,7 +26,7 @@ mutate("Favours.lua",
        "\t\tif not sinceEmpty and lastPresent[instanceId] == key then return false end\n",
        "\t\tif lastPresent[instanceId] == key then return false end\n",
        "rebuff after an empty reading swallowed",
-       expect="core2: a rebuff after the last buff ran out is a favour (a later end)",
+       expect="core2: a rebuff after the last buff ran out is a favour (a moment later)",
        script="runscenarios.py")
 
 # The previous reading never trusted again once a reading of nothing was

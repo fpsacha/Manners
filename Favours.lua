@@ -688,19 +688,21 @@ do
 	-- the ending decides: a cast that ran out and was replaced under its own
 	-- number ends later, while a refusal handed back returns the same ending. An
 	-- ending missing or unreadable at either end claims nothing and leaves the
-	-- aura filed. One the previous reading showed is a refresh, unless the end
-	-- that reading saw has gone by and this one ends later: what it saw ran out,
-	-- so this was cast after. That covers a fight, whose aura events only mark a
-	-- walk due (UNIT_AURA, below), so a buff recast between two ticks looks like
-	-- a refresh. A refresh in the last moments before the old end, read after it,
-	-- is taken for a recast: either way somebody put your buff back. An end of 0
-	-- is a buff with none, which never runs out.
+	-- aura filed. One the previous reading showed is new when its end moved
+	-- RECAST_GAIN or more past the end that reading saw: somebody cast it on
+	-- you again, either on top of it while it still ran (a top-up, a favour like
+	-- a buff that was not there; asked on CurseForge, 1.11.15, where the /thank
+	-- seemed to come only now and then) or after it ran out, between two ticks
+	-- of a fight, whose aura events only mark a walk due (UNIT_AURA, below). A
+	-- smaller move is the client restating the end, not a cast. An end of 0 is
+	-- a buff with none, which never runs out.
+	local RECAST_GAIN = 3
 	local function IsNew(instanceId, key, expires)
 		local known = knownAuras[instanceId]
 		if known == nil or known ~= key then return true end
 		-- The end compared first: on nearly every slot it is the one last read.
 		local before = lastUntil[instanceId]
-		if before and expires and expires > before and before > 0 and before <= GetTime()
+		if before and expires and before > 0 and expires >= before + RECAST_GAIN
 			and lastPresent[instanceId] == key then
 			return true
 		end

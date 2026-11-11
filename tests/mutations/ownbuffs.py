@@ -655,7 +655,7 @@ mutate("Favours.lua",
 # it reaches IsNew looking like a refresh, and the end the last reading saw
 # having gone by is what tells the two apart.
 mutate("Favours.lua",
-       "\t\tif before and expires and expires > before and before > 0 and before <= GetTime()\n"
+       "\t\tif before and expires and before > 0 and expires >= before + RECAST_GAIN\n"
        "\t\t\tand lastPresent[instanceId] == key then\n"
        "\t\t\treturn true\n"
        "\t\tend\n",
@@ -671,28 +671,29 @@ mutate("Favours.lua",
 
 # And each half of the test: any later end, the end the baseline filed
 # rather than the one last read (which a refresh moves), the same end, and an
-# end of 0, which is none.
+# end of 0, which is none. Since 1.11.15 one test, RECAST_GAIN past the end
+# last read, covers a top-up and a recast after the end alike.
 mutate("Favours.lua",
-       "expires > before and before > 0 and before <= GetTime()\n",
-       "expires > before and before > 0\n",
+       "expires >= before + RECAST_GAIN\n",
+       "expires > before\n",
        "own: every later end taken for a recast",
-       expect="a refresh read before the end it replaced was taken for a favour", script=S)
+       expect="refreshfavour: an end restated a moment later is no favour", script=S)
 
 mutate("Favours.lua",
        "\t\tlocal before = lastUntil[instanceId]\n",
        "\t\tlocal before = knownUntil[instanceId]\n",
        "own: a recast measured against the filed end",
-       expect="a refresh read again after the end it replaced had gone by", script=S)
+       expect="refreshfavour: an end restated a moment later is no favour", script=S)
 
 mutate("Favours.lua",
-       "\t\tif before and expires and expires > before and",
-       "\t\tif before and expires and expires >= before and",
+       "expires >= before + RECAST_GAIN\n",
+       "expires >= before\n",
        "own: the same end taken for a recast",
        expect="the same aura read after its end with the end it had", script=S)
 
 mutate("Favours.lua",
-       "expires > before and before > 0 and before <= GetTime()\n",
-       "expires > before and before <= GetTime()\n",
+       "before > 0 and expires >= before + RECAST_GAIN\n",
+       "expires >= before + RECAST_GAIN\n",
        "own: no end taken for one that ran out",
        expect="a buff with no end, read later with one, was taken for a recast", script=S)
 
