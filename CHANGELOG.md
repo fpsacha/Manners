@@ -33,6 +33,17 @@
   Bowl's Boosted Stats*, under *Who to buff* (off by default). They are offered
   your Might or Wisdom first, and Kings only when nothing else of yours is
   missing for them. Asked for on GitHub.
+- **Consumables on a button of their own.** *Put consumables on a button of
+  their own*, under *Myself* on *Who to buff* (off by default): food, flasks,
+  elixirs, scrolls and your weapon's oils, stones and poisons leave the prompt
+  and come up on a small button of their own, so the prompt can stay in plain
+  sight and they somewhere out of the way. Unlock the prompt to drag it where
+  you want it; it has its own key under Key Bindings, its size is on *Look*,
+  a left-click uses the item and a right-click skips it for now. It is never
+  shown in a fight. Asked for on CurseForge.
+- **A lure you cannot use yet.** Fishing lures ask for Fishing skill (Bright
+  Baubles 100, Nightcrawlers 50), not a level, and one above yours was offered
+  anyway. Now it is passed over for the next lure you can use, or none.
 - **More emotes to thank with.** *Emote to use* now has 24 friendly emotes,
   from `/applaud` and `/highfive` to `/hug` and `/salute`. Asked for on
   CurseForge.

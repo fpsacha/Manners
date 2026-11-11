@@ -69,6 +69,8 @@ do
 			return L["%s: you have no %s in your bags."]:format(label, name or "?")
 		elseif why == "level" then
 			return L["%s: %s needs level %d."]:format(label, name or "?", about.level)
+		elseif why == "fishing" then
+			return L["%s: %s needs Fishing %d."]:format(label, name or "?", about.fishing or 0)
 		elseif why == "noweapon" and (family.enhance or family.slot == 17) then
 			-- The label names the hand.
 			return L["%s: there is no weapon in that hand."]:format(label)
@@ -747,6 +749,11 @@ do
 		["prompt.relPoint"] = true,
 		["prompt.x"] = true,
 		["prompt.y"] = true,
+		-- The consumables button's place, for the same reason.
+		["supplies.point"] = true,
+		["supplies.relPoint"] = true,
+		["supplies.x"] = true,
+		["supplies.y"] = true,
 	}
 
 	-- Imported only when the player already has it on: a pasted string must never

@@ -295,6 +295,8 @@ ns.WindowLayout = {
 					-- they never read as items of the list below them.
 					{ "who.ownCities", indent = true },
 					{ "who.ownDungeons", indent = true },
+					-- The consumables on a button of their own (Prompt/Supplies.lua).
+					{ "who.ownApart", indent = true },
 					-- A warrior's shout for himself, alone (shown to a warrior only).
 					{ "who.ownShout", indent = true },
 					-- The spells of those families you know, to leave out one by one.
@@ -520,6 +522,7 @@ ns.WindowLayout = {
 					"appearance.showIcon",
 					{ "appearance.iconSize", indent = true },
 					"appearance.iconSizeCapped",
+					"appearance.suppliesSize",
 					{ "appearance.roundIcon", indent = true },
 					{ "appearance.iconFrame", indent = true },
 					{ "appearance.showCooldown", indent = true },

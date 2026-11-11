@@ -706,6 +706,12 @@ and *Show the welcome again* at the bottom.
   off by default: with nobody in your group, Battle Shout is offered to you
   too when it is missing or running low (in a group it covers you already),
   in a fight as well, where nothing else of your own is offered,
+  then *Put consumables on a button of their own*, off by default: food,
+  flasks, elixirs, scrolls and your weapon's oils, stones and poisons leave
+  the prompt for a small button of their own, which you drag where you want
+  it while the prompt is unlocked; it has its own key under Key Bindings and
+  its size on *Look*, a left-click uses the item, a right-click skips it for
+  your skip time, and it never shows in a fight,
   and last what each of your
   own buffs is doing and why one is not being offered. On retail, a class with
   nothing of its own to put on does not see this part; everywhere else every

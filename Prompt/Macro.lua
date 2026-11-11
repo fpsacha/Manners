@@ -576,6 +576,16 @@ end
 -- A list row silences itself the same way when it is made (Rows.lua).
 lib.SilenceOtherButtons = SilenceOtherButtons
 
+-- The macro for one of your own items on the consumables button
+-- (Prompt/Supplies.lua): the prompt's own shape for it (STRATEGIES.scroll, or
+-- allyscroll for a scroll cast at a friendly target), hand-back included, so
+-- the two buttons never use an item two ways.
+function ns.ItemMacro(entry)
+	local lines, restore = STRATEGIES[StrategyFor(entry)](entry)
+	if restore then lines[#lines + 1] = HandBack() end
+	return table.concat(lines, "\n")
+end
+
 -- The prompt's: armed or disarmed for the person it is on.
 function Prompt:ApplyTarget(entry, silent)
 	if InCombatLockdown() then

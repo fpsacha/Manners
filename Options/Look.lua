@@ -573,6 +573,23 @@ function Page.BuildLookTab()
 
 			iconHeader = { type = "header", name = L["Icon and waiting list"], order = 50 },
 			showIcon = { type = "toggle", name = L["Show spell icon"], order = 51, get = pGet, set = pSet },
+			-- The consumables button's own size (Prompt/Supplies.lua), shown
+			-- while it is switched on (Who to buff, Myself).
+			suppliesSize = {
+				type = "range",
+				name = L["Size of the consumables button"],
+				desc = L["The button your consumables come up on, with Put consumables on a button of their own on. Unlock the prompt to drag it."],
+				order = 52.6,
+				min = 24,
+				max = 80,
+				step = 2,
+				hidden = function() return not (ns.db.profile.ownBuffs and ns.db.profile.ownBuffs.apart == true) end,
+				get = function() return ns.db.profile.supplies.size end,
+				set = function(_, value)
+					ns.db.profile.supplies.size = value
+					if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
+				end,
+			},
 			iconSize = {
 				type = "range",
 				name = L["Icon size"],

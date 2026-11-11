@@ -367,6 +367,9 @@ end
 --
 --   item      the item id
 --   level     the level it asks to be used at (ItemSparse RequiredLevel)
+--   fishing   a lure's: the Fishing skill it asks for (ItemSparse
+--             RequiredSkill 356, RequiredSkillRank), where it asks for any;
+--             a lure above yours is not offered (Core.lua, ScrollReady)
 --   enchant   the enchant it makes (SpellItemEnchantment), which says which
 --             of them is on the weapon, and so what a top-up would be
 --   ranks     { the spell its use casts }, which settles the press
@@ -448,7 +451,7 @@ do
 					for i, row in ipairs(list) do
 						-- The key is unique across every client's tables (the pick
 						-- and the memory of the one last used are filed by it).
-						spells[i] = { key = "w" .. row[1] .. hand.suffix, item = row[1], level = row[2],
+						spells[i] = { key = "w" .. row[1] .. hand.suffix, item = row[1], level = row[2], fishing = row.fishing,
 							enchant = row[3], ranks = { row[4] }, fits = row[5], since = row[6],
 							enchantKind = kinds and (row.enchantKind or kinds[kind.kind]) or nil }
 					end
@@ -539,11 +542,11 @@ do
 			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
 		},
 		lure = {
-			{ 6532, 0, 265, 8090, POLE }, -- Bright Baubles
-			{ 6533, 0, 266, 8089, POLE }, -- Aquadynamic Fish Attractor
-			{ 7307, 0, 265, 9092, POLE }, -- Flesh Eating Worm
-			{ 6530, 0, 264, 8088, POLE }, -- Nightcrawlers
-			{ 6811, 0, 264, 8532, POLE }, -- Aquadynamic Fish Lens
+			{ 6532, 0, 265, 8090, POLE, fishing = 100 }, -- Bright Baubles
+			{ 6533, 0, 266, 8089, POLE, fishing = 100 }, -- Aquadynamic Fish Attractor
+			{ 7307, 0, 265, 9092, POLE, fishing = 100 }, -- Flesh Eating Worm
+			{ 6530, 0, 264, 8088, POLE, fishing = 50 }, -- Nightcrawlers
+			{ 6811, 0, 264, 8532, POLE, fishing = 50 }, -- Aquadynamic Fish Lens
 			{ 6529, 0, 263, 8087, POLE }, -- Shiny Bauble
 		},
 	}
@@ -616,12 +619,12 @@ do
 			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
 		},
 		lure = {
-			{ 6532, 0, 265, 8090, POLE }, -- Bright Baubles
-			{ 6533, 0, 266, 8089, POLE }, -- Aquadynamic Fish Attractor
-			{ 7307, 0, 265, 9092, POLE }, -- Flesh Eating Worm
-			{ 34861, 0, 266, 45731, POLE }, -- Sharpened Fish Hook
-			{ 6530, 0, 264, 8088, POLE }, -- Nightcrawlers
-			{ 6811, 0, 264, 8532, POLE }, -- Aquadynamic Fish Lens
+			{ 6532, 0, 265, 8090, POLE, fishing = 100 }, -- Bright Baubles
+			{ 6533, 0, 266, 8089, POLE, fishing = 100 }, -- Aquadynamic Fish Attractor
+			{ 7307, 0, 265, 9092, POLE, fishing = 100 }, -- Flesh Eating Worm
+			{ 34861, 0, 266, 45731, POLE, fishing = 100 }, -- Sharpened Fish Hook
+			{ 6530, 0, 264, 8088, POLE, fishing = 50 }, -- Nightcrawlers
+			{ 6811, 0, 264, 8532, POLE, fishing = 50 }, -- Aquadynamic Fish Lens
 			{ 6529, 0, 263, 8087, POLE }, -- Shiny Bauble
 		},
 	}
@@ -694,11 +697,11 @@ do
 			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
 		},
 		lure = {
-			{ 6532, 0, 265, 8090, POLE }, -- Bright Baubles
-			{ 6533, 0, 266, 8089, POLE }, -- Aquadynamic Fish Attractor
-			{ 7307, 0, 265, 9092, POLE }, -- Flesh Eating Worm
-			{ 6530, 0, 264, 8088, POLE }, -- Nightcrawlers
-			{ 6811, 0, 264, 8532, POLE }, -- Aquadynamic Fish Lens
+			{ 6532, 0, 265, 8090, POLE, fishing = 100 }, -- Bright Baubles
+			{ 6533, 0, 266, 8089, POLE, fishing = 100 }, -- Aquadynamic Fish Attractor
+			{ 7307, 0, 265, 9092, POLE, fishing = 100 }, -- Flesh Eating Worm
+			{ 6530, 0, 264, 8088, POLE, fishing = 50 }, -- Nightcrawlers
+			{ 6811, 0, 264, 8532, POLE, fishing = 50 }, -- Aquadynamic Fish Lens
 			{ 6529, 0, 263, 8087, POLE }, -- Shiny Bauble
 			{ 268880, 0, 263, 8087, POLE }, -- "Secret" Bait
 		},
@@ -745,15 +748,15 @@ do
 			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
 		},
 		lure = {
-			{ 68049, 0, 4225, 95244, POLE }, -- Heat-Treated Spinning Lure
-			{ 62673, 0, 266, 87646, POLE }, -- Feathered Lure
-			{ 6532, 0, 265, 8090, POLE }, -- Bright Baubles
-			{ 6533, 0, 266, 8089, POLE }, -- Aquadynamic Fish Attractor
-			{ 7307, 0, 265, 9092, POLE }, -- Flesh Eating Worm
-			{ 34861, 0, 266, 45731, POLE }, -- Sharpened Fish Hook
-			{ 46006, 0, 3868, 64401, POLE }, -- Glow Worm
-			{ 6530, 0, 264, 8088, POLE }, -- Nightcrawlers
-			{ 6811, 0, 264, 8532, POLE }, -- Aquadynamic Fish Lens
+			{ 68049, 0, 4225, 95244, POLE, fishing = 250 }, -- Heat-Treated Spinning Lure
+			{ 62673, 0, 266, 87646, POLE, fishing = 100 }, -- Feathered Lure
+			{ 6532, 0, 265, 8090, POLE, fishing = 100 }, -- Bright Baubles
+			{ 6533, 0, 266, 8089, POLE, fishing = 100 }, -- Aquadynamic Fish Attractor
+			{ 7307, 0, 265, 9092, POLE, fishing = 100 }, -- Flesh Eating Worm
+			{ 34861, 0, 266, 45731, POLE, fishing = 100 }, -- Sharpened Fish Hook
+			{ 46006, 0, 3868, 64401, POLE, fishing = 100 }, -- Glow Worm
+			{ 6530, 0, 264, 8088, POLE, fishing = 50 }, -- Nightcrawlers
+			{ 6811, 0, 264, 8532, POLE, fishing = 50 }, -- Aquadynamic Fish Lens
 			{ 6529, 0, 263, 8087, POLE }, -- Shiny Bauble
 			{ 69907, 1, 263, 99315, POLE }, -- Corpse Worm
 			{ 67404, 0, 4264, 98849, POLE }, -- Glass Fishing Bobber

@@ -23,7 +23,13 @@ emptied on the pull), Kings kept last over Forever's Fish Bowl
 (`buff.spareFishBowl`, `SparesFishBowl` in Core.lua reading Boosted Stats,
 spell 1230098, which Spell 1307245 calls mutually exclusive with Kings; GitHub
 issue 12), and 24 thank emotes (`ns.THANK_EMOTES`, each checked against every
-client's ChatEmoteConstants.lua; CurseForge).
+client's ChatEmoteConstants.lua; CurseForge). And the consumables button
+(`ownBuffs.apart`, `db.supplies`, Prompt/Supplies.lua: a second secure button,
+MannersSupplies, with its own binding; `ns.SupplyEntry` and `ns.ItemFamily` in
+Queue.lua keep the item families off the prompt; `ns.ItemMacro` in Macro.lua
+arms it with the prompt's own macro for the item; a state driver's snippet
+disarms and hides it at every pull; CurseForge). Not tried in the live game
+yet: the button's drag and its key binding on each client.
 
 1.11.14 added: a lower rank named in the macro for a low-level
 target (`ns.CastName`, GitHub issue 9; the rank text is the client's own

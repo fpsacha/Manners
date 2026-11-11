@@ -51,6 +51,7 @@ ns.MANA = MANA
 -- game menu has no Key Bindings entry). A CLICK binding's name is not a Lua
 -- identifier, so the label is set through _G.
 _G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = L["Buff the prompted player"]
+_G["BINDING_NAME_CLICK MannersSupplies:LeftButton"] = L["Use the item on the consumables button"]
 
 ---------------------------------------------------------------------------
 -- secret-safe access
@@ -313,6 +314,11 @@ local defaults = {
 			-- when it goes on your party). On: with nobody in your group, a missing
 			-- or running-out shout is offered to you too (CastsOnSelf).
 			shoutAlone = false,
+			-- Off: food, flasks, elixirs, scrolls and a weapon's oils, stones and
+			-- poisons come up on the prompt as "You". On: on a button of their
+			-- own (Prompt/Supplies.lua, ns.SupplyEntry), asked for on CurseForge,
+			-- so the prompt can stay in plain sight and they out of the way.
+			apart = false,
 			-- Off: no scroll of any kind is offered (Buffs.lua, isScroll: the stat
 			-- scrolls, a mage's familiar and imbue on Forever) and their switches
 			-- leave the page; each keeps its pick below for when this is on again.
@@ -562,6 +568,11 @@ local defaults = {
 		-- degrees, where the button sat on Questie's, and a player saw Questie's "!"
 		-- and got Manners' tooltip (1.5.1). A dragged button keeps its place.
 		minimap = { hide = false, minimapPos = 195 },
+
+		-- The consumables button (Prompt/Supplies.lua), shown with
+		-- ownBuffs.apart on: where it sits (left of the prompt's default
+		-- spot, above the action bars) and its size in pixels.
+		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 40 },
 	},
 }
 ns.defaults = defaults
@@ -2077,6 +2088,50 @@ do
 		return type(subclass) == "number" and math.floor(mask / 2 ^ subclass) % 2 == 1
 	end
 
+	-- Your Fishing skill, for a lure's (Buffs.lua, `fishing`), or nil when the
+	-- client will not say. GetProfessions' fourth return is Fishing's index,
+	-- nil when you never learned it (a skill of 0); GetProfessionInfo's third
+	-- is the rank. Every client has both (Ketho/BlizzardInterfaceResources,
+	-- GlobalAPI.lua on forever, live, classic, classic_anniversary and
+	-- classic_era). Asked only for a lure in the bags, which is rare.
+	-- The Classic clients' own list of skills, by the name of the Fishing
+	-- spell (7620), which the skill line shares: its rank, 0 for a list that
+	-- holds no Fishing, nil when there is no list to read.
+	local function SkillLineFishing()
+		local count, line = _G.GetNumSkillLines, _G.GetSkillLineInfo
+		if type(count) ~= "function" or type(line) ~= "function" then return nil end
+		local want = SpellNameFor(7620)
+		local ok, n = pcall(count)
+		n = ok and plain(n) or nil
+		if not want or type(n) ~= "number" or n < 1 then return nil end
+		for i = 1, n do
+			local okLine, name, header, _, rank = pcall(line, i)
+			if okLine and not plain(header) and plain(name) == want then
+				rank = plain(rank)
+				return type(rank) == "number" and rank or nil
+			end
+		end
+		return 0
+	end
+
+	function ns.FishingSkill()
+		local professions, info = _G.GetProfessions, _G.GetProfessionInfo
+		if type(professions) ~= "function" or type(info) ~= "function" then return SkillLineFishing() end
+		local ok, first, _, _, fishing = pcall(professions)
+		if not ok then return SkillLineFishing() end
+		fishing = plain(fishing)
+		if fishing == nil then
+			-- Nothing at all on a Classic client: its own list says better.
+			if plain(first) == nil and ns.Flavour and ns.Flavour.family == "classic" then
+				return SkillLineFishing()
+			end
+			return 0
+		end
+		local okInfo, _, _, rank = pcall(info, fishing)
+		rank = okInfo and plain(rank) or nil
+		return type(rank) == "number" and rank or nil
+	end
+
 	-- Whether a scroll or an enhancement can be used now, or why not: "bags"
 	-- (none in them), "noweapon" (one for a weapon, and no weapon in that hand:
 	-- the main hand for an imbue, the hand of its family for an enhancement),
@@ -2090,6 +2145,12 @@ do
 		if hand == false then return false, "noweapon" end
 		local level = plain(UnitLevel("player"))
 		if type(level) ~= "number" or level < spell.level then return false, "level" end
+		-- A lure that asks for more Fishing than you have: the game refuses it
+		-- whatever your level. A skill the client will not give holds nothing.
+		if spell.fishing then
+			local skill = ns.FishingSkill()
+			if skill and skill < spell.fishing then return false, "fishing" end
+		end
 		if spell.weapon and hand ~= spell.weapon then return false, "weapon" end
 		if spell.fits and not Fits(spell.fits, hand) then return false, "weapon" end
 		return true
@@ -4106,6 +4167,7 @@ local LIMITS = {
 	{ "prompt", "iconSize", 12, 64 },
 	{ "prompt", "queueRows", 1, 5 },
 	{ "filters", "selfLead", 0, 10 },
+	{ "supplies", "size", 24, 80 },
 	-- Two is the least a group cast can beat, five a whole party.
 	{ "groupBuffs", "atLeast", 2, 5 },
 }
@@ -4753,6 +4815,10 @@ function addon:TickBody()
 	-- Before the repaint, which then puts the prompt back.
 	ns.EndSnoozeIfDue(now)
 	ns.Prompt:Refresh()
+	-- The consumables button, when it is switched on (Prompt/Supplies.lua):
+	-- with it off and never made, a scan pays nothing for it, not even a pcall.
+	local supplies = ns.Supplies
+	if supplies and supplies:Wanted() then ns.Guard("consumables button", supplies.Refresh, supplies, now) end
 end
 
 function addon:ProfileDeleted(event, _, name)
@@ -4936,6 +5002,9 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- After that repaint wrote the bar macro, and still before the lockdown:
 	-- whether the fight takes the prompt off the screen (Prompt/Fight.lua).
 	if ns.Prompt then ns.Guard("hide for the fight", ns.Prompt.ArmFightHide, ns.Prompt) end
+	-- Nothing of yours is used in a fight: the consumables button goes now,
+	-- before the lockdown, and its snippet makes sure of it at the lockdown.
+	if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
 	C_Timer.After(0, function()
 		if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
 	end)

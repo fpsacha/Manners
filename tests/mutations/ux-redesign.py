@@ -26,12 +26,15 @@ mutate(LAYOUT, "\t\t\t\t\t\"who.quietInTowns\",\n\t\t\t\t\t\"who.quietInInstance
        expect="ux-redesign: the place rules lead Hold back on When to offer", script=S)
 
 mutate(LAYOUT, "\t\t\t\t\t{ \"who.ownCities\", indent = true },\n\t\t\t\t\t{ \"who.ownDungeons\", indent = true },\n"
+       "\t\t\t\t\t-- The consumables on a button of their own (Prompt/Supplies.lua).\n"
+       "\t\t\t\t\t{ \"who.ownApart\", indent = true },\n"
        "\t\t\t\t\t-- A warrior's shout for himself, alone (shown to a warrior only).\n"
        "\t\t\t\t\t{ \"who.ownShout\", indent = true },\n"
        "\t\t\t\t\t-- The spells of those families you know, to leave out one by one.\n"
        "\t\t\t\t\t{ \"who.own_leave\", indent = true },\n",
        "\t\t\t\t\t{ \"who.own_leave\", indent = true },\n"
        "\t\t\t\t\t{ \"who.ownCities\", indent = true },\n\t\t\t\t\t{ \"who.ownDungeons\", indent = true },\n"
+       "\t\t\t\t\t{ \"who.ownApart\", indent = true },\n"
        "\t\t\t\t\t{ \"who.ownShout\", indent = true },\n",
        "ux-redesign: the place switches read as items of Never remind me about",
        expect="ux-redesign: the Myself place switches come before Never remind me about", script=S)

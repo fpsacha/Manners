@@ -78,6 +78,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 - **Offer nothing in dungeons, raids and battlegrounds:** the same inside any instance; a target or focus still is, and your own buffs too.
 - **Might off the casters:** for paladins, a switch on Who to buff; mages, warlocks and priests are never offered Blessing of Might.
 - **Leave out these guilds:** a box on Who to skip, one guild a line; nobody in them is offered anything, unless they buff you or ask. *Show their guild under the name* on Look writes the guild on the prompt's second line.
+- **Consumables on a button of their own:** food, flasks, elixirs, scrolls and weapon oils on a small button you put where you like, so the prompt stays for buffs.
 - **Classes I buff as passers-by:** untick a class on Who to skip and its passers-by are left alone; your group and anybody who buffs you are still offered.
 - **Skip players another paladin has blessed:** for paladins whose group shares out the blessings.
 - **Thorns for the tanks only, or for you alone:** *Offer to* on Who to buff, by the game's tank role or a raid's main tank mark.

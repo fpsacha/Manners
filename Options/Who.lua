@@ -1182,6 +1182,25 @@ function Page.BuildWhoTab()
 				end,
 			},
 
+			-- Asked for on CurseForge: the consumables on a button of their own
+			-- (Prompt/Supplies.lua), so the prompt can stay in plain sight and
+			-- they out of the way.
+			ownApart = {
+				type = "toggle",
+				name = L["Put consumables on a button of their own"],
+				desc = L["Food, flasks, elixirs, scrolls and your weapon's oils, stones and poisons come up on a small button of their own instead of on the prompt. Unlock the prompt to drag it where you want it; it has its own key under Key Bindings, and a right-click skips that item for now. It is never shown in a fight."],
+				order = 15.955,
+				width = "full",
+				hidden = NothingForSelf,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.apart == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.apart = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+					if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
+				end,
+			},
+
 			-- A warrior's shout for himself when he is in no group, asked for on
 			-- GitHub: it is never offered to you otherwise, so a warrior on his
 			-- own was never reminded (Core.lua, CastsOnSelf).

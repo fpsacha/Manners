@@ -71,6 +71,7 @@ Prompt\Rows.lua
 Prompt\Fight.lua
 Prompt\Paint.lua
 Prompt\Refresh.lua
+Prompt\Supplies.lua
 Options\Shared.lua
 Options\Launcher.lua
 Options\Start.lua

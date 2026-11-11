@@ -67,7 +67,7 @@ local ORDER = {
 	"soundOwedOnly", "noSound",
 	"tooltipHeader", "tooltip", "tooltipPosition",
 	"textHeader", "font", "fontSize", "fontColor", "classColor", "textShadow", "showSub", "showGuild",
-	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "roundIcon", "iconFrame", "showCooldown",
+	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "suppliesSize", "roundIcon", "iconFrame", "showCooldown",
 	"showCount", "showQueue", "queueRows", "clickRows",
 }
 

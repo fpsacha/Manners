@@ -51,6 +51,7 @@ Page.RESET = {
 		"buff.leaveBlessed",
 		"buff.skipCasters",
 		"buff.spareFishBowl",
+		"ownBuffs.apart",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()
@@ -113,6 +114,7 @@ Page.RESET = {
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
+		"supplies.size",
 		after = function()
 			-- The icon back inside the prompt's size, as the size sliders do.
 			ns.ClampSettings()

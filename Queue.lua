@@ -1863,9 +1863,52 @@ end
 local function OwnPick(db, full, now)
 	local ctx = { name = full, now = now, whenBuffed = ns.SelfWhenBuffed(db.filters),
 		refreshUnder = db.filters.refreshUnder }
+	-- "Put consumables on a button of their own": the families used from the
+	-- bags are the consumables button's (ns.SupplyEntry), never the prompt's.
+	local apart = ns.ItemsApart(db)
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
-		local spell, has, remaining, _, _, charges, seconds, lead, kind = ns.OwnVerdict(family, ctx)
-		if spell then return spell, has, remaining, charges, seconds, lead, kind end
+		if not (apart and ns.ItemFamily(family)) then
+			local spell, has, remaining, _, _, charges, seconds, lead, kind = ns.OwnVerdict(family, ctx)
+			if spell then return spell, has, remaining, charges, seconds, lead, kind end
+		end
+	end
+	return nil
+end
+
+-- Whether a family of your own is used from the bags (Buffs.lua: food, the
+-- sleeping bag, flasks, elixirs, scrolls, a weapon's oils, stones and
+-- poisons where those are items): any of its spells names an item.
+function ns.ItemFamily(family)
+	for _, spell in ipairs(family.spells or {}) do
+		if spell.item then return true end
+	end
+	return false
+end
+
+-- "Put consumables on a button of their own" (ownBuffs.apart), asked for on
+-- CurseForge: the button is Prompt/Supplies.lua.
+function ns.ItemsApart(db)
+	return db ~= nil and db.ownBuffs ~= nil and db.ownBuffs.apart == true
+end
+
+-- The consumables button's entry: the first of your item families that is
+-- due, by the same rules as "Myself" (the switch, a fight, a city, a skip,
+-- the never-offer list), or nil. Asked only with the button switched on
+-- (Prompt/Supplies.lua, Refresh).
+function ns.SupplyEntry(db, now)
+	local held, full = ns.MyselfHeldBack(db, now)
+	if held then return nil end
+	local ctx = { name = full, now = now, whenBuffed = ns.SelfWhenBuffed(db.filters),
+		refreshUnder = db.filters.refreshUnder }
+	for _, family in ipairs(ns.KnownOwnFamilies()) do
+		if ns.ItemFamily(family) then
+			local spell, has, remaining = ns.OwnVerdict(family, ctx)
+			if spell and spell.item then
+				return { name = full, short = ShortName(full), display = L["You"],
+					targetName = ns.TargetName(full), unit = "player", class = caps.class,
+					buff = spell, reason = "self", known = has, remaining = remaining, checked = true }
+			end
+		end
 	end
 	return nil
 end
