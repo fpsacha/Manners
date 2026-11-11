@@ -207,6 +207,7 @@ local DIFFERS = {
 	["general.quickVoice"] = function() return ns.QuickSetup.Match(ns.QuickSetup.VOICE) ~= "silent" end,
 	["who.choice"] = function() return Profile().buff.choice ~= "auto" end,
 	["who.skipRaidGroups"] = function() return next(Profile().filters.skipRaidGroups or {}) ~= nil end,
+	["who.skipNearbyClasses"] = function() return next(Profile().filters.skipNearbyClasses or {}) ~= nil end,
 	["who.own_leave"] = function()
 		for _, on in pairs(Profile().ownBuffs.leave or {}) do
 			if on == true then return true end

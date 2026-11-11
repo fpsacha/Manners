@@ -398,7 +398,7 @@ local EXPECTED = {
 		"priority.readyCheck", "priority.revived",
 		"buff.leaveBlessed", "buff.skipCasters",
 	},
-	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.requireInRange", "filters.minLevel" },
+	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
@@ -408,7 +408,7 @@ local EXPECTED = {
 		"filters.restoreTarget",
 	},
 	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "speech.enabled", "speech.channel",
-		"speech.onlyWhenReturning" },
+		"speech.onlyWhenReturning", "prompt.thankWhisper" },
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",

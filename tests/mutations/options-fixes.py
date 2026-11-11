@@ -15,8 +15,8 @@ mutate("Core.lua",
 # Emote to use hidden with the lines said with a cast, for a class with nothing
 # to give.
 mutate("Options/Say.lua",
-       "local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true }\n",
-       "local THANKS_ONLY = { speechHeader = true, thankEmote = true }\n",
+       "local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true, thankWhisper = true }\n",
+       "local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankWhisper = true }\n",
        "options-fixes: Emote to use hidden with nothing to give",
        expect="options-fix: Emote to use is shown beside the /thank switch",
        script=S)

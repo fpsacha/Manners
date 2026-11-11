@@ -5,7 +5,20 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-Unreleased, after 1.11.13: a lower rank named in the macro for a low-level
+Unreleased, after 1.11.14, all asked for on CurseForge: classes left out as
+passers-by (`filters.skipNearbyClasses`, a sparse set of class tokens;
+`SkippedClasses` in Queue.lua, a verdict in the walk and a let-go in
+`OfferPassersBy`), *Remind me this many minutes early* made exact
+(`SelfEarlier` returns the asked moment, later as well as earlier, the same in a
+dungeon, in half minutes), food offered again at once after a meal cut short
+(`mealOn` in `OwnVerdict` lets the press's block go), and a whispered thank-you
+to whoever you will not buff back (`prompt.thankWhisper`, `ns.ThankWhisper` in
+Speech.lua: an In character thanks line sent with `SendChatMessage`, under the
+/thank's rules; a whisper needs no key press, which /say does outside an
+instance). Whether Forever and the Classic clients accept that whisper from
+addon code with no key press is open until somebody turns it on there.
+
+1.11.14 added: a lower rank named in the macro for a low-level
 target (`ns.CastName`, GitHub issue 9; the rank text is the client's own
 `GetSpellSubtext`, so a client without it keeps the plain name), a buff left
 off a person for ten minutes after "A more powerful spell is already active" or
@@ -25,7 +38,7 @@ and casts it, which has never run in the live game). Whether
 Forever's client takes `/cast Name(Rank N)` and answers `GetSpellSubtext` is
 open until somebody casts one there.
 
-1.11.13 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.11.14 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and

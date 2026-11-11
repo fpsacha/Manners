@@ -933,7 +933,7 @@ end
 -- reads as none: nobody is left out on a guess.
 ---------------------------------------------------------------------------
 
-local GuildOf, SkippedGuilds
+local GuildOf, SkippedGuilds, SkippedClasses
 do
 	-- A name is kept longer than a miss, which the client may answer a moment
 	-- on, once the person's details have loaded.
@@ -978,6 +978,15 @@ do
 			end
 		end
 		return next(parsed) and parsed or nil
+	end
+
+	-- "Classes I buff as passers-by" (filters.skipNearbyClasses): the classes
+	-- unticked, as a set of class tokens; nil when none is, so the walk asks
+	-- nobody's class for it.
+	function SkippedClasses(filters)
+		local set = filters.skipNearbyClasses
+		if type(set) ~= "table" or next(set) == nil then return nil end
+		return set
 	end
 end
 
@@ -1617,6 +1626,7 @@ end
 -- no memory offers either: a member of the group stays offered, and so is
 -- remembered, and the group may be gone by the time the memory is read.
 local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop, ignoring)
+	local skipClasses = SkippedClasses(db.filters)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
 		local nearby = memo.reason == "nearby"
@@ -1632,6 +1642,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 		-- wrote, and the back-off after refusals. A request answered, lapsed
 		-- or switched off is no reason left to offer them.
 		if (nearby and (drop or memo.within ~= db.filters.proximity))
+			or (nearby and skipClasses and memo.class and skipClasses[memo.class])
 			or (not nearby and not ns.StillAsked(name, memo.buff.key, now))
 			or (ns.zonedAt and memo.seen < ns.zonedAt)
 			or rejected[name] == true
@@ -2137,6 +2148,7 @@ function ns.BuildQueue(watch)
 	-- Guilds left out, and the guild line under a name: nobody is asked about
 	-- a guild with both off.
 	local skipGuilds = SkippedGuilds(db)
+	local skipClasses = SkippedClasses(f)
 	local showGuild = db.prompt.showGuild == true
 	-- Might held back from mages, warlocks and priests (Core.lua, Castable).
 	local skipCasters = db.buff.skipCasters == true
@@ -2249,6 +2261,14 @@ function ns.BuildQueue(watch)
 				rejected[full] = true
 				return
 			end
+		end
+		-- A class left out as passers-by ("Classes I buff as passers-by"): your
+		-- group, a favour, a request and your target or focus are not. A
+		-- verdict, so a passer-by remembered is not offered from memory either.
+		if skipClasses and reason == "nearby" and not pointed
+			and skipClasses[plain(select(2, UnitClass(unit))) or ""] then
+			rejected[full] = true
+			return
 		end
 
 		-- Nobody asked for these, so they wait while you keep your mana. A

@@ -13,13 +13,13 @@ mutate("Favours.lua",
        "thank-everyone: a debt filed with the source off",
        expect="a debt was recorded with People who buff me off", script=S)
 mutate("Favours.lua",
-       "\t\tif db.prompt.thankEmote then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
-       "\t\tif db.prompt.thankEmote and db.sources.owed then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
+       "\t\tif db.prompt.thankEmote or whisper then\n",
+       "\t\tif (db.prompt.thankEmote or whisper) and db.sources.owed then\n",
        "thank-everyone: the thank waits on People who buff me",
        expect="with People who buff me off, the favour was not thanked", script=S)
 mutate("Favours.lua",
-       "\t\tif db.prompt.thankEmote then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
-       "\t\tif db.prompt.thankEmote and #ns.CastableBuffs() > 0 then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
+       "\t\tif db.prompt.thankEmote or whisper then\n",
+       "\t\tif (db.prompt.thankEmote or whisper) and #ns.CastableBuffs() > 0 then\n",
        "thank-everyone: nothing to give, nothing thanked",
        expect="a rogue's favour was not thanked", script=S)
 mutate("Favours.lua",
@@ -30,13 +30,13 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ who cast it, and when it is read
 mutate("Favours.lua",
-       "\t\t\tand (db.sources.owed or (db.prompt.thankEmote\n"
+       "\t\t\tand (db.sources.owed or ((db.prompt.thankEmote or db.prompt.thankWhisper)\n"
        "\t\t\t\tand not InCombatLockdown() and not walkAfterFight)) and true or false\n",
        "\t\t\tand db.sources.owed and true or false\n",
        "thank-everyone: casters read for the debt alone",
        expect="with People who buff me off, the favour was not thanked", script=S)
 mutate("Favours.lua",
-       "\t\t\tand (db.sources.owed or (db.prompt.thankEmote\n"
+       "\t\t\tand (db.sources.owed or ((db.prompt.thankEmote or db.prompt.thankWhisper)\n"
        "\t\t\t\tand not InCombatLockdown() and not walkAfterFight)) and true or false\n",
        "\t\t\tand true or false\n",
        "thank-everyone: casters read with both off",
@@ -54,8 +54,8 @@ mutate("Options/Say.lua",
        "thank-everyone: What I say hidden with nothing to give",
        expect="What I say is missing from a hunter's sidebar", script=S)
 mutate("Options/Say.lua",
-       "local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true }\n",
-       "local THANKS_ONLY = { speechHeader = true, thankEmoteToken = true }\n",
+       "local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true, thankWhisper = true }\n",
+       "local THANKS_ONLY = { speechHeader = true, thankEmoteToken = true, thankWhisper = true }\n",
        "thank-everyone: the /thank hidden with the lines",
        expect="thank-everyone: What I say holds only the /thank for a rogue", script=S)
 mutate("Options/Say.lua",
@@ -146,18 +146,18 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ the options
 mutate("Options/Advanced.lua",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs() end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs()\n\t\t\tand path ~= \"prompt.thankWhisper\" end,\n",
        "",
        "thank-everyone: a hunter's reset reaches the speech",
        expect="a hunter's What I say reset put back speech he cannot see", script=S)
 mutate("Options/Advanced.lua",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs() end,\n",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs()\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\"\n",
        "thank-everyone: a mage's reset keeps the speech",
        expect="a mage's What I say reset did not put the speech back", script=S)
 mutate("Options/Advanced.lua",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs() end,\n",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs() end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs()\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs()\n",
        "thank-everyone: a hunter's reset keeps the /thank",
        expect="a hunter's What I say reset did not put the /thank back", script=S)
 mutate("Options/Advanced.lua",

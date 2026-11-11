@@ -625,7 +625,8 @@ for _, case in ipairs({
 		end
 		for _, path in ipairs(paths) do
 			local shown = UI.RowShown(path)
-			if path == "click.thankEmote" or path == "click.thankEmoteToken" then
+			-- The whispered thank-you (1.11.15) is the /thank's too.
+			if path == "click.thankEmote" or path == "click.thankEmoteToken" or path == "click.thankWhisper" then
 				if not shown then fail(scenario, "the /thank is not on " .. case.label .. "'s What I say") end
 			elseif shown then
 				fail(scenario, "a control other than the /thank shows on What I say: " .. path)

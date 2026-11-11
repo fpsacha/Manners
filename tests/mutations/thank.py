@@ -8,8 +8,8 @@ S = "runscenarios.py"
 # ------------------------------------------------ the setting
 # Re-anchored: NoteFavour asks the switch now, ThankFavour no longer does.
 mutate("Favours.lua",
-       "\t\tif db.prompt.thankEmote then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
-       "\t\tns.Guard(\"thank emote\", ThankFavour, seen)\n",
+       "\t\tif db.prompt.thankEmote or whisper then\n\t\t\tns.Guard(\"thank emote\", ThankFavour, seen, db.prompt.thankEmote == true, whisper)\n",
+       "\t\tif true then\n\t\t\tns.Guard(\"thank emote\", ThankFavour, seen, true, whisper)\n",
        "thank: the setting is not read",
        expect="an emote was made with the setting off", script=S)
 mutate("Core.lua",
@@ -40,15 +40,13 @@ mutate("Options/Say.lua",
 # The /thank answers being buffed, not the debt: each rule the debt has, put
 # on the thank as it used to be, is caught.
 mutate("Favours.lua",
-       "\t\tif db.prompt.thankEmote then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
-       "\t\tif db.prompt.thankEmote and ns.CouldOffer(seen.hasMana, seen.sameParty) then\n"
-       "\t\t\tns.Guard(\"thank emote\", ThankFavour, seen)\n\t\tend\n",
+       "\t\tif db.prompt.thankEmote or whisper then\n",
+       "\t\tif (db.prompt.thankEmote or whisper) and ns.CouldOffer(seen.hasMana, seen.sameParty) then\n",
        "thank: only a favour the prompt can return is thanked",
        expect="a favour the shout cannot return was not thanked at their nameplate", script=S)
 mutate("Favours.lua",
-       "\t\tif db.prompt.thankEmote then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
-       "\t\tif db.prompt.thankEmote and ns.CouldOffer(seen.hasMana, true) then\n"
-       "\t\t\tns.Guard(\"thank emote\", ThankFavour, seen)\n\t\tend\n",
+       "\t\tif db.prompt.thankEmote or whisper then\n",
+       "\t\tif (db.prompt.thankEmote or whisper) and ns.CouldOffer(seen.hasMana, true) then\n",
        "thank: a useless favour is not thanked",
        expect="a favour nothing you cast could return was not thanked", script=S)
 
@@ -59,18 +57,18 @@ mutate("Favours.lua",
        "thank: the token is not the one the buff came from",
        expect="thank: a favour is thanked at the token it came from", script=S)
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), token, name)\n",
+       "\t\t\tok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\t\tok, answer = pcall(EmoteCall(), token, name)\n",
        "thank: the emote goes to a name",
        expect="the token the buff came from", script=S)
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), \"CHEER\", unit)\n",
+       "\t\t\tok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\t\tok, answer = pcall(EmoteCall(), \"CHEER\", unit)\n",
        "thank: the wrong emote",
        expect="the emote made was", script=S)
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
-       "\t\tlocal ok, answer = true, EmoteCall()(token, unit)\n",
+       "\t\t\tok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\t\tok, answer = true, EmoteCall()(token, unit)\n",
        "thank: an emote call that throws is not caught",
        expect="thank: DoEmote throws is skipped silently", script=S)
 mutate("Favours.lua",
@@ -106,8 +104,8 @@ mutate("Favours.lua",
        "thank: a secret answer is read unguarded",
        expect="thank: a secret answer is read safely", script=S)
 mutate("Favours.lua",
-       "\t\tif not ok then\n",
-       "\t\tif not ok or plain(answer) == true then\n"
+       "\t\tif not ok and not whispered then\n",
+       "\t\tif (not ok and not whispered) or plain(answer) == true then\n"
        "\t\t\tif ok then return Skip(name, now, L[\"the game said it was restricted\"]) end\n",
        "thank: a restricted answer does not hold the limits",
        expect="a restricted answer did not hold the gap", script=S)
@@ -244,10 +242,10 @@ mutate("Favours.lua",
        "thank: the gap is a minute",
        expect="a favour eleven seconds after the last thank was not thanked", script=S)
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
-       "\t\tlastAt = now\n"
-       "\t\tthankedAt[name] = now\n"
-       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\t\tok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\t\tlastAt = now\n"
+       "\t\t\tthankedAt[name] = now\n"
+       "\t\t\tok, answer = pcall(EmoteCall(), token, unit)\n",
        "thank: an emote that never went holds the next back",
        expect="an emote that never went held the next one back", script=S)
 
@@ -270,8 +268,8 @@ mutate("Commands.lua",
 
 # --- the emote the player chose (1.11.3) ---
 mutate("Favours.lua",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), token, unit)\n",
-       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
+       "\t\t\tok, answer = pcall(EmoteCall(), token, unit)\n",
+       "\t\t\tok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
        "thank: the chosen emote never used",
        expect="thank: the emote is the one the player chose", script=S)
 mutate("Favours.lua",

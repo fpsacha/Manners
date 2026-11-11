@@ -329,6 +329,7 @@ ns.WindowLayout = {
 					{ "diagnostics.pvpDiag", indent = true },
 					"who.skipSameClass",
 					"who.skipGuilds",
+					{ "who.skipNearbyClasses", columns = 3 },
 					"who.requireInRange",
 					"who.minLevel",
 					"who.minLevelNote",
@@ -405,6 +406,7 @@ ns.WindowLayout = {
 				{ key = "click.speech", header = "click.speechHeader", items = {
 					"click.thankEmote",
 					{ "click.thankEmoteToken", indent = true },
+					"click.thankWhisper",
 					"click.enabled",
 					{ "click.channel", indent = true },
 					{ "click.onlyWhenReturning", indent = true },

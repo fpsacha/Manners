@@ -259,6 +259,8 @@ each class offers*).
   Well Fed is on you, whoever's food it was. A food you keep for something
   else (a fishing food, say) can be ticked under *Never remind me about*, which
   lists the foods in your bags: Automatic passes it over and offers the next.
+  A meal cut short (you moved, stood up or were pulled) with no Well Fed to
+  show for it brings the reminder back at once.
   Classic Era, Burning Crusade, Mists and WoW Forever; not retail.
 - **Well-Rested.** For the Cozy Sleeping Bag: a switch under *Myself*, shown
   while the bag is in your bags, off until you switch it on. Then, with no
@@ -396,6 +398,11 @@ People who buffed you or asked, and your target and focus, are still offered.
 as <Name> after the reason on the second line and in the tooltip, which is a
 quick way to see which name to type. A guild the game has not told Manners yet
 is read as none, so nobody is left out on a guess.
+
+**Classes.** *Classes I buff as passers-by*, also on *Who to skip*, is a grid
+of the classes, all ticked. Untick one and its passers-by are not offered your
+buff, nor remembered for it. Your group, people who buffed you or asked, and
+your target and focus are offered whatever their class.
 
 **People who ask me for it.** Off by default, because reading chat is
 guesswork. Somebody who asks for your buff in `/say`, `/yell`, group chat or a
@@ -763,9 +770,11 @@ list. They used to be at the bottom of *Who to buff*.
 - *My own buffs*: *Top up my own buffs before they run out* (on): your own
   buffs, and the ones you put on yourself, are offered again shortly before
   they end, whichever of the three above you pick for other people. *Remind
-  me this many minutes early* asks for an earlier moment (0 works it out from
-  the buff's length, and the line under the slider says so), so a ten-minute Thorns can come
-  back before you pull, never more than half the buff's length ahead.
+  me this many minutes early* sets the moment itself (0 works it out from
+  the buff's length, and the line under the slider says so): earlier, so a
+  ten-minute Thorns can come back before you pull, or later, 1 for a minute's
+  notice of a Fortitude or 0.5 for thirty seconds of an oil. It holds in a
+  dungeon or raid too, and is never more than half the buff's length ahead.
   Somebody who buffed you is offered the favour back whichever you pick. Your
   own buffs are always read, so you are never offered one you are wearing;
   a top-up reaches them too, but never an aura or an aspect. A rank below
@@ -833,6 +842,14 @@ list. They used to be at the bottom of *Who to buff*.
   hunter, with no buffs to give anybody, has this page with this switch alone
   on it. `/manners debug` shows the last thank, or why the last one was
   skipped.
+- *Whisper a thank-you to people I can't buff back*: off by default. When
+  somebody buffs you and nothing of yours goes back to them (a warrior, a
+  rogue, a buff you have nothing to answer, or *People who buff me* off), you
+  whisper them a thank-you: a line from the In character set, fitting your
+  race and class and naming what they gave you. A whisper, because the game
+  lets an addon /say only on a key press outside an instance. Under the
+  /thank's rules: never in a fight or an instance, at most once per person
+  every five minutes. With both switches on, both go.
 - *Say a line when I buff someone*: off by default, and then only when you
   buff someone back unless you untick *Only when I buff someone back*. Four
   line sets (Azeroth (general), Polite, Cheeky, Just their name), editable,

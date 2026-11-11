@@ -498,6 +498,35 @@ do
 		end
 		return line, source
 	end
+
+	-- A thank-you whispered to somebody who buffed you and whom you will not buff
+	-- back ("Whisper a thank-you to whoever I can't buff back", Favours.lua,
+	-- ThankFavour; asked for on CurseForge by a warrior). An In character thanks
+	-- line, by your people and class, and naming what they gave you where a line
+	-- does. Sent outright: a whisper needs no key press, where /say does outside
+	-- an instance. `unit` is the token Sight holds them under. True when it went.
+	function ns.ThankWhisper(seen, unit)
+		local rp = ns.InCharacter
+		if not (rp and rp.Pick) then return false end
+		local to = WhisperName({ name = seen.name, unit = unit })
+		if not to then return false end
+		local spell = type(seen.key) == "number" and seen.key or nil
+		local buff = spell and ns.BUFF_BY_ID and ns.BUFF_BY_ID[spell] or nil
+		local entry = { name = seen.name, short = ns.ShortName(seen.name), reason = "owed", unit = unit,
+			inGroup = seen.inGroup == true, gift = spell and ns.SpellNameFor(spell) or nil,
+			giftKey = buff and buff.key or nil }
+		local command = ns.CHANNEL_COMMANDS.WHISPER .. " " .. to
+		local line, written = rp.Pick(entry, command, ns.MACRO_LIMIT)
+		if type(line) ~= "string" then return false end
+		local text = line:sub(#command + 3)
+		if text == "" then return false end
+		local chat = _G.C_ChatInfo
+		local send = chat and type(chat.SendChatMessage) == "function" and chat.SendChatMessage or _G.SendChatMessage
+		if type(send) ~= "function" then return false end
+		if not pcall(send, text, "WHISPER", nil, to) then return false end
+		if rp.Remember then rp.Remember(written) end
+		return true
+	end
 end
 
 ---------------------------------------------------------------------------

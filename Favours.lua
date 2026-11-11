@@ -128,8 +128,10 @@ do
 		ns.thankLog.skipped = { name = name, at = now, why = why }
 	end
 
-	-- Asked only with the switch on (NoteFavour).
-	ThankFavour = function(seen)
+	-- Asked only with a switch on (NoteFavour): `emote` for the /thank, `whisper`
+	-- for a thank-you whispered to somebody you will not buff back. One set of
+	-- rules and limits for both, armed by whichever went.
+	ThankFavour = function(seen, emote, whisper)
 		local now, name = GetTime(), seen.name
 
 		local why = Held()
@@ -144,12 +146,19 @@ do
 			return Skip(name, now, L["thanked somebody a moment ago"])
 		end
 
-		-- pcall covers both an emote call that throws and one that is not there.
-		-- The emote the player chose, or the thanks it always was.
-		local prompt = ns.db and ns.db.profile and ns.db.profile.prompt
-		local token = prompt and ns.THANK_EMOTE_SET[prompt.thankEmoteToken] and prompt.thankEmoteToken or "THANK"
-		local ok, answer = pcall(EmoteCall(), token, unit)
-		if not ok then
+		-- The whisper first (Speech.lua, ns.ThankWhisper): a line to them alone,
+		-- which needs no key press where /say would.
+		local whispered = whisper and ns.ThankWhisper and ns.ThankWhisper(seen, unit) == true
+		if whispered then ns.thankLog.whispered = { name = name, at = now } end
+		local ok, answer = false, nil
+		if emote then
+			-- pcall covers both an emote call that throws and one that is not there.
+			-- The emote the player chose, or the thanks it always was.
+			local prompt = ns.db and ns.db.profile and ns.db.profile.prompt
+			local token = prompt and ns.THANK_EMOTE_SET[prompt.thankEmoteToken] and prompt.thankEmoteToken or "THANK"
+			ok, answer = pcall(EmoteCall(), token, unit)
+		end
+		if not ok and not whispered then
 			return Skip(name, now, L["the game would not do it"])
 		end
 		-- The call reached the game, so both limits are armed whatever it
@@ -161,6 +170,7 @@ do
 			if now - at >= PER_MEMBER then thankedAt[who] = nil end
 		end
 		thankedAt[name] = now
+		if not ok then return end
 		-- Read the way Blizzard's chat box reads it: true means the emote was
 		-- restricted and did not go. The API docs name the same value
 		-- "success", so the raw answer goes to /manners debug to settle it.
@@ -573,7 +583,13 @@ do
 		-- warrior each time is not manners. Still a favour, as before.
 		local buff = type(seen.key) == "number" and ns.BUFF_BY_ID[seen.key] or nil
 		if buff and buff.selfCast and buff.partyOnly then return end
-		if db.prompt.thankEmote then ns.Guard("thank emote", ThankFavour, seen) end
+		-- A whispered thank-you, for somebody you will not buff back: nothing
+		-- of yours is owed them (a warrior, a class with nothing for them, or
+		-- People who buff me off). A favour you return is thanked by that.
+		local whisper = db.prompt.thankWhisper == true and owed[seen.name] == nil
+		if db.prompt.thankEmote or whisper then
+			ns.Guard("thank emote", ThankFavour, seen, db.prompt.thankEmote == true, whisper)
+		end
 	end
 
 	-- One buff landing, seen by two sources that cannot see each other (a log line
@@ -734,7 +750,7 @@ do
 		-- The /thank alone reads nobody in a fight or on the walk made as it
 		-- ends: it refuses both (Held), and a favour it skipped is never thanked.
 		local watching = primed and db and db.enabled
-			and (db.sources.owed or (db.prompt.thankEmote
+			and (db.sources.owed or ((db.prompt.thankEmote or db.prompt.thankWhisper)
 				and not InCombatLockdown() and not walkAfterFight)) and true or false
 
 		local read = 0

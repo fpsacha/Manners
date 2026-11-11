@@ -137,7 +137,9 @@ do
 			fail(scenario, "What I say is hidden from a rogue, who can still /thank")
 		else
 			for key, control in pairs(click.args) do
+				-- The whispered thank-you (1.11.15) is the /thank's too.
 				local keep = key == "thankEmote" or key == "thankEmoteToken" or key == "speechHeader"
+					or key == "thankWhisper"
 				if keep and not shown(control) then
 					fail(scenario, key .. " is hidden from a rogue")
 				elseif not keep and shown(control) then

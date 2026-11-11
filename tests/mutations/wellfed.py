@@ -59,7 +59,7 @@ mutate("Core.lua",
        expect="wellfed: Well Fed up", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif Eating(family) then return nil, up, left, \"tried\", spell end\n",
+       "\t\t\tif Eating(family) then\n\t\t\t\tmealOn = true\n\t\t\t\treturn nil, up, left, \"tried\", spell\n\t\t\tend\n",
        "",
        "wellfed: another food offered mid-meal",
        expect="wellfed: not while a meal is on", script=S)

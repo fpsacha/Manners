@@ -65,8 +65,8 @@ mutate("Core.lua",
        expect="tankonly: the set is repaired and travels with a profile", script=S)
 
 mutate("Commands.lua",
-       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" or name == \"buff.meOnly\" then",
-       "elseif name == \"buff.skip\" or name == \"buff.meOnly\" then",
+       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" or name == \"buff.meOnly\"\n",
+       "elseif name == \"buff.skip\" or name == \"buff.meOnly\"\n",
        "tankonly: the choice does not travel with a profile",
        expect="tankonly: the set is repaired and travels with a profile", script=S)
 
@@ -109,8 +109,8 @@ mutate("Core.lua",
        expect="tankonly: the Only me set is repaired and travels with a profile", script=S)
 
 mutate("Commands.lua",
-       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" or name == \"buff.meOnly\" then",
-       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" then",
+       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\" or name == \"buff.meOnly\"\n",
+       "elseif name == \"buff.skip\" or name == \"buff.tanksOnly\"\n",
        "tankonly: Only me does not travel with a profile",
        expect="tankonly: the Only me set is repaired and travels with a profile", script=S)
 

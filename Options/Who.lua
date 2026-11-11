@@ -553,6 +553,22 @@ local function RaidGroupChoices()
 	return values
 end
 
+-- The classes this client has, for "Classes I buff as passers-by": the nine of
+-- the old world, Death Knights and Monks from Mists, Demon Hunters and Evokers
+-- on retail. By class token, in the player's own words.
+local CLASSES_BY_FLAVOUR = {
+	classic = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" },
+	mists = { "DEATHKNIGHT", "MONK" },
+	mainline = { "DEATHKNIGHT", "MONK", "DEMONHUNTER", "EVOKER" },
+}
+local function ClassChoices()
+	local values = {}
+	local flavour = ns.Flavour and ns.Flavour.flavour
+	for _, class in ipairs(CLASSES_BY_FLAVOUR.classic) do values[class] = ns.ClassName(class) end
+	for _, class in ipairs(CLASSES_BY_FLAVOUR[flavour] or {}) do values[class] = ns.ClassName(class) end
+	return values
+end
+
 -- A passer-by is seen mostly through a nameplate token, and with the game's
 -- friendly nameplates off almost nobody outside your group has one, so the
 -- note and the button under the passers-by switch say so (they hold only
@@ -1370,6 +1386,21 @@ function Page.BuildWhoTab()
 				width = "full",
 				get = fGet,
 				set = fSet,
+			},
+			-- Asked for on CurseForge: some classes left out as passers-by.
+			-- Stored as the classes switched off, so a new profile offers all
+			-- of them and the boxes show them ticked.
+			skipNearbyClasses = {
+				type = "multiselect",
+				name = L["Classes I buff as passers-by"],
+				desc = L["Passers-by of a class you untick are not offered your buff. Your group, people who buff you or ask, and your target and focus are offered anyway."],
+				order = 43.7,
+				values = ClassChoices,
+				disabled = function() return not S().strangers end,
+				get = function(_, class) return F().skipNearbyClasses[class] ~= true end,
+				set = function(_, class, on)
+					F().skipNearbyClasses[class] = (not on) or nil
+				end,
 			},
 
 			-------------------------------------------------- never offer

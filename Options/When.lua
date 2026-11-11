@@ -107,11 +107,11 @@ function Page.BuildWhenTab()
 			selfLead = {
 				type = "range",
 				name = L["Remind me this many minutes early"],
-				desc = L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Raise it to be reminded earlier, before you pull. Never more than half the buff's length."],
+				desc = L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Set a time to be reminded exactly that long before your own buffs end, in a dungeon or raid too: 0.5 is half a minute. Never more than half the buff's length."],
 				order = 6.2,
 				min = 0,
 				max = 10,
-				step = 1,
+				step = 0.5,
 				disabled = function() return not F().selfTopUp and F().whenBuffed ~= "refresh" end,
 				get = fGet,
 				set = fSet,

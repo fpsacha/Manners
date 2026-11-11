@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+- **Leave classes out of the passers-by.** *Classes I buff as passers-by*, a
+  grid on *Who to skip* with every class ticked. Untick one and passers-by of
+  that class are not offered your buff. Your group, people who buff you or
+  ask, and your target and focus are offered whatever their class. Asked for
+  on CurseForge.
+- **Your own reminders when you want them.** *Remind me this many minutes
+  early*, under *My own buffs* on *When to offer*, now sets the moment itself:
+  later as well as earlier than the one worked out from the buff's length,
+  and the same in a dungeon or raid. Set it to 1 for a minute's notice of your
+  Fortitude, or 0.5 for thirty seconds of a weapon oil. 0 is the worked-out
+  moment, as before. Asked for on CurseForge.
+- **A meal cut short.** Pressed to eat and stood up before Well Fed came? The
+  reminder is back at once, instead of after the wait for a retry. Asked for
+  on CurseForge.
+- **A whispered thank-you.** *Whisper a thank-you to people I can't buff
+  back*, on *What I say* (off by default): somebody who buffs you when nothing
+  of yours goes back to them, a warrior's buffers say, gets a whispered line
+  from the In character set, fitting your race and class. It sits beside
+  */thank people who buff me* and keeps its rules: never in a fight or an
+  instance, at most once per person every five minutes. Asked for on
+  CurseForge.
+
 ## 1.11.14
 
 - **Might left off casters.** A new switch for paladins, *Don't offer Might to

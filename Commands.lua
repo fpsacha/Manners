@@ -176,7 +176,7 @@ function ns.LeadLines()
 	end
 	-- Your own: more than one spell of a family can be learned, and each is its own length.
 	-- The moment is the queue's own (ns.OwnLead): the lead, or the player's
-	-- earlier one (Top up my own buffs this long before they end).
+	-- own one (Remind me this many minutes early).
 	local Earlier = ns.SelfEarlier
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
 		if family.toggle then
@@ -789,7 +789,8 @@ do
 					if type(value) == "table" then
 						if type(value[1]) == "number" then
 							kind = "colour"
-						elseif name == "buff.skip" or name == "buff.tanksOnly" or name == "buff.meOnly" then
+						elseif name == "buff.skip" or name == "buff.tanksOnly" or name == "buff.meOnly"
+							or name == "filters.skipNearbyClasses" then
 							kind = "set"
 						elseif name == "buff.order" then
 							-- The buffs of each class in an order of the player's

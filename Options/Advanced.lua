@@ -65,6 +65,7 @@ Page.RESET = {
 	skip = {
 		"filters.skipPvP", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel",
 		"filters.skipGuilds",
+		"filters.skipNearbyClasses",
 	},
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
@@ -92,7 +93,9 @@ Page.RESET = {
 	click = {
 		"prompt.thankEmote", "prompt.thankEmoteToken", "speech.enabled", "speech.channel",
 		"speech.onlyWhenReturning",
-		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs() end,
+		"prompt.thankWhisper",
+		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
+			and path ~= "prompt.thankWhisper" end,
 		after = function() ns.Prompt:InvalidateMacro() end,
 	},
 	-- Where the prompt sits and its lock are kept.

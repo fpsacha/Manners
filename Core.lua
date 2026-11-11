@@ -371,6 +371,10 @@ local defaults = {
 			-- Guilds nobody is offered anything from, one name a line (Queue.lua,
 			-- SkippedGuilds): asked for on CurseForge.
 			skipGuilds = "",
+			-- Classes left out as passers-by, as a sparse set of class tokens
+			-- (absent = offered): asked for on CurseForge. Your group, a favour,
+			-- a request and your target or focus are not held to it.
+			skipNearbyClasses = {},
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
@@ -463,6 +467,9 @@ local defaults = {
 			-- Which emote it is (1.11.3): one of ns.THANK_EMOTES, by token. /thank until
 			-- the player picks another; the emote is made at the person who buffed you.
 			thankEmoteToken = "THANK",
+			-- A thank-you whispered to somebody who buffs you and is owed nothing
+			-- back (Speech.lua, ns.ThankWhisper). Off: it goes to a stranger.
+			thankWhisper = false,
 			-- full | calm: calm is the prompt without the animations.
 			effects = "full",
 			-- The global cooldown swept over the spell icon.
@@ -1497,18 +1504,20 @@ do
 		return yes
 	end
 
-	-- "Top up my own buffs this long before they end" (filters.selfLead,
-	-- minutes; 0 is the moment worked out above): an earlier moment for yours
-	-- alone, never a later one, and never more than half the buff's length, or
-	-- a top-up would be due the moment it was cast.
+	-- "Remind me this many minutes early" (filters.selfLead, minutes in halves;
+	-- 0 is the moment worked out above): that moment exactly, for yours alone,
+	-- earlier or later than the worked-out one and the same in a dungeon or a
+	-- raid. Until 1.11.15 it could only move the moment earlier, and a player
+	-- who wanted a minute's notice of a Fortitude was told fifteen before. Never
+	-- more than half the buff's length, or a top-up would be due the moment it
+	-- was cast.
 	local function SelfEarlier(lead, seconds)
 		local db = addon.db and addon.db.profile
 		local minutes = db and db.filters and db.filters.selfLead
-		if type(minutes) ~= "number" or not (minutes >= 1) then return lead end
+		if type(minutes) ~= "number" or not (minutes > 0) then return lead end
 		local want = minutes * 60
 		if seconds and seconds >= 1 and want > seconds / 2 then want = seconds / 2 end
-		if want > lead then return want end
-		return lead
+		return want
 	end
 
 	-- For the diagnostics, which print the moment the queue works to.
@@ -2782,6 +2791,9 @@ do
 	-- spells. Asked only when Well Fed is due, so a prompt with it off pays
 	-- nothing. The names are the table's, worked out once the client has them.
 	local eatNames
+	-- Whether the last verdict on food found a meal on (OwnVerdict): its end,
+	-- without Well Fed, lets the press's block go.
+	local mealOn = false
 	local function Eating(family)
 		local api = C_UnitAuras
 		local byName = api and api.GetAuraDataBySpellName
@@ -3028,7 +3040,18 @@ do
 		-- Well Fed: not while a meal is on, which a second press with another food
 		-- would cut short, nor mounted, where the use would only dismount you.
 		if family.food then
-			if Eating(family) then return nil, up, left, "tried", spell end
+			if Eating(family) then
+				mealOn = true
+				return nil, up, left, "tried", spell
+			end
+			-- The meal is over and no Well Fed came of it (you moved, stood up or
+			-- were pulled into a fight): the press's retry block is let go, for
+			-- every food of the family, so the reminder is back at once rather
+			-- than after the cooldown (asked for on CurseForge).
+			if mealOn then
+				mealOn = false
+				for _, each in ipairs(family.spells) do ns.MarkAttempted(ctx.name, each.key, 0) end
+			end
 			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
 				return nil, up, left, "mounted", spell
 			end
@@ -4244,8 +4267,8 @@ function ns.ClampSettings()
 	-- Rows, so whole ones too: a 2.5 listed two in the preview, three on the
 	-- prompt, and hung a list above it half a row off.
 	profile.prompt.queueRows = math.floor(profile.prompt.queueRows)
-	-- Whole minutes, as the slider gives them.
-	profile.filters.selfLead = math.floor(profile.filters.selfLead)
+	-- Half minutes, as the slider gives them.
+	profile.filters.selfLead = math.floor(profile.filters.selfLead * 2) / 2
 
 	-- A family's pick is "auto", "off" or a spell of that family; anything else
 	-- -- a hand-edited file, a spell moved to another family -- is Automatic, and
@@ -4294,6 +4317,15 @@ function ns.ClampSettings()
 		if type(group) ~= "number" or group < 1 or group > 8 or group % 1 ~= 0 or flag ~= true then
 			skipGroups[group] = nil
 		end
+	end
+	-- The classes left out as passers-by: a class token set to true, nothing else.
+	local skipClasses = profile.filters.skipNearbyClasses
+	if type(skipClasses) ~= "table" then
+		skipClasses = {}
+		profile.filters.skipNearbyClasses = skipClasses
+	end
+	for class, flag in pairs(skipClasses) do
+		if type(class) ~= "string" or not class:find("^%u+$") or flag ~= true then skipClasses[class] = nil end
 	end
 
 	-- An entry that is not a name set to true (typed) or "filed" (a name the game

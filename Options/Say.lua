@@ -10,7 +10,7 @@ local spSet, HasClassBuffs, TAB = Page.spSet, Page.HasClassBuffs, Page.TAB
 -- buffed, which happens to a rogue too, the emote it uses, and the header they
 -- sit under. Every
 -- other control on the tab is about the line said with a cast.
-local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true }
+local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true, thankWhisper = true }
 
 -- What I say: the social replies to a buff, the /thank and the line that goes
 -- out with a cast. The options window leads the page with Start here's voice
@@ -79,6 +79,18 @@ function Page.BuildSpeechTab()
 				disabled = function() return not P().thankEmote end,
 				get = function() return P().thankEmoteToken end,
 				set = function(_, v) P().thankEmoteToken = v end,
+			},
+			-- Asked for on CurseForge by a warrior: a word of thanks to whoever
+			-- buffs him, with nothing to give back. A whisper, since /say needs
+			-- a key press outside an instance. Its own get and set, as above.
+			thankWhisper = {
+				type = "toggle",
+				name = L["Whisper a thank-you to people I can't buff back"],
+				desc = L["A line from the In character set, fitting your race and class, whispered to somebody who buffs you when nothing of yours goes back to them. Never in combat or instances, and at most once per person every five minutes."],
+				order = 11.7,
+				width = "full",
+				get = function() return P().thankWhisper end,
+				set = function(_, v) P().thankWhisper = v end,
 			},
 			enabled = {
 				type = "toggle",

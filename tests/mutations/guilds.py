@@ -84,7 +84,7 @@ mutate("Core.lua",
        expect="guilds: off by default, everybody is offered and no guild is read", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\t\tmultiline = 4,\n\t\t\t\twidth = \"full\",\n\t\t\t\tget = fGet,\n\t\t\t\tset = fSet,\n\t\t\t},\n\n\t\t\t-------------------------------------------------- never offer",
-       "\t\t\t\twidth = \"full\",\n\t\t\t\tget = fGet,\n\t\t\t\tset = fSet,\n\t\t\t},\n\n\t\t\t-------------------------------------------------- never offer",
+       "\t\t\t\torder = 43.6,\n\t\t\t\tmultiline = 4,\n",
+       "\t\t\t\torder = 43.6,\n",
        "guilds: the list is a one-line box",
        expect="guilds: Who to skip has the box and Look has the switch, both kept", script=S)
