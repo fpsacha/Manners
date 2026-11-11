@@ -670,6 +670,11 @@ and *Show the welcome again* at the bottom.
   or running low is offered Kings or left alone, not Might. Everybody else,
   druids, shamans and hunters included, is offered it as before, and somebody
   who asks you for it by name still gets it.
+- *Don't put Kings over a Fish Bowl's Boosted Stats* (paladins, WoW Forever):
+  off by default. Sitting by a camp's Fish Bowl gives Boosted Stats, 8% to all
+  stats, and Blessing of Kings replaces it. With the switch on, somebody
+  wearing it is offered your Might or Wisdom first, and Kings only when
+  nothing else of yours is missing for them.
 - *Myself* (see *Buffing yourself* above): *Myself, when I'm missing my own
   buff*, on by default, switches everything on yourself on or off. Under it,
   one control for each of your class's own buffs you have learned: a
@@ -700,6 +705,7 @@ and *Show the welcome again* at the bottom.
   back), then, for a warrior only, *Remind me of my shout when I'm alone*,
   off by default: with nobody in your group, Battle Shout is offered to you
   too when it is missing or running low (in a group it covers you already),
+  in a fight as well, where nothing else of your own is offered,
   and last what each of your
   own buffs is doing and why one is not being offered. On retail, a class with
   nothing of its own to put on does not see this part; everywhere else every
@@ -836,7 +842,9 @@ list. They used to be at the bottom of *Who to buff*.
   per person every five minutes (half an hour for a group member) and once
   every ten seconds in all, so a raid
   buffing you on the pull is one thank. *Emote to use*, under it, picks which: `/thank`
-  (the default), `/cheer`, `/bow`, `/clap`, `/salute`, `/wave`, `/nod` or `/smile`.
+  (the default), `/cheer`, `/bow`, `/clap`, `/salute`, `/wave`, `/nod`, `/smile`,
+  `/applaud`, `/blush`, `/curtsey`, `/flex`, `/greet`, `/grin`, `/hail`, `/happy`,
+  `/highfive`, `/hug`, `/kiss`, `/kneel`, `/love`, `/praise`, `/proud` or `/welcome`.
   Only class buffs such as Fortitude are
   thanked while *Count only class buffs as favours* is on. A rogue or a
   hunter, with no buffs to give anybody, has this page with this switch alone

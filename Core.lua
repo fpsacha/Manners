@@ -268,6 +268,12 @@ local defaults = {
 			-- for whom it does nothing (Core.lua, Castable): asked for on
 			-- CurseForge. Off, because it takes away an offer somebody gets today.
 			skipCasters = false,
+			-- WoW Forever: somebody wearing a Fish Bowl's Boosted Stats (8% to all
+			-- stats, which Kings replaces) is offered the paladin's other blessings
+			-- first, and Kings only when nothing else of his is missing for them
+			-- (Core.lua, SparesFishBowl). Asked for on GitHub (issue 12). Off,
+			-- because it takes away an offer somebody gets today.
+			spareFishBowl = false,
 			-- The order a class's buffs are tried in, set by hand (Who to buff, Buff
 			-- order): order[CLASS] = { key, key, ... }, every buff of that class the
 			-- client that wrote it has. Absent is Automatic -- the list as the buff
@@ -562,7 +568,13 @@ ns.defaults = defaults
 -- The emotes a favour can be answered with: tokens the client's emote call takes,
 -- each a friendly gesture to a stranger. Written as the slash command, which stays
 -- English (Options/Say.lua). A set beside the list, for the repair and the call.
-ns.THANK_EMOTES = { "THANK", "CHEER", "BOW", "CLAP", "SALUTE", "WAVE", "NOD", "SMILE" }
+-- The first eight since 1.11.3; the rest since 1.11.15, asked for on CurseForge.
+-- Every one a token of each client's own emote list (Blizzard_ChatFrameBase,
+-- ChatEmoteConstants.lua on the live, forever, classic, classic_anniversary and
+-- classic_era branches), and every one friendly.
+ns.THANK_EMOTES = { "THANK", "CHEER", "BOW", "CLAP", "SALUTE", "WAVE", "NOD", "SMILE",
+	"APPLAUD", "BLUSH", "CURTSEY", "FLEX", "GREET", "GRIN", "HAIL", "HAPPY", "HIGHFIVE", "HUG",
+	"KISS", "KNEEL", "LOVE", "PRAISE", "PROUD", "WELCOME" }
 ns.THANK_EMOTE_SET = {}
 for _, token in ipairs(ns.THANK_EMOTES) do ns.THANK_EMOTE_SET[token] = true end
 -- Every family of every class Automatic, so a profile shared by a mage and a
@@ -1577,6 +1589,22 @@ do
 	-- spell for this person" holds for the scan, "tried a moment ago" is a
 	-- cooldown. inParty, not inGroup: a shout reaches only the caster's
 	-- subgroup (see SameParty).
+	-- "Don't put Kings over a Fish Bowl's Boosted Stats" (buff.spareFishBowl;
+	-- GitHub issue 12): whether this person wears it. WoW Forever's camping
+	-- Fish Bowl gives everybody sitting near it Boosted Stats, 8% to all stats,
+	-- "mutually exclusive with Blessing of Kings" (Spell 1307245's own text), so
+	-- Kings replaces it. Read only with the switch on, and only when Kings would
+	-- be the pick: one guarded read of an aura on somebody else.
+	local FISH_BOWL = 1230098
+	local function SparesFishBowl(opts)
+		local db = addon.db and addon.db.profile
+		if not (db and db.buff.spareFishBowl == true) or type(opts.unit) ~= "string" then return false end
+		local read = C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID
+		if type(read) ~= "function" then return false end
+		local ok, aura = pcall(read, opts.unit, FISH_BOWL)
+		return ok and not (issecretvalue and issecretvalue(aura)) and type(aura) == "table"
+	end
+
 	local function Castable(opts, buff)
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
 		-- "Don't offer Might to mages, warlocks and priests" (the scan works out
@@ -1755,6 +1783,8 @@ do
 			-- The first blessing they carry from another paladin, kept for a debt
 			-- with nothing else left to give: see the end of this branch.
 			local theirs
+			-- Kings held back for a Fish Bowl's Boosted Stats (SparesFishBowl).
+			local kingsLater
 			for _, buff in ipairs(candidates) do
 				-- Castable rather than Eligible: the blessing we tried moments ago
 				-- is the one they most likely carry, so it must still be read.
@@ -1813,12 +1843,17 @@ do
 						if held ~= false then allRead = false end
 						if Blocked(opts, buff) then
 							onCooldown = true
+						elseif not pick and buff.strongest and SparesFishBowl(opts) then
+							-- Kings over a Fish Bowl's Boosted Stats: kept for
+							-- when nothing else of yours is missing for them.
+							kingsLater = kingsLater or buff
 						elseif not pick then
 							pick = buff
 						end
 					end
 				end
 			end
+			if not pick then pick = kingsLater end
 			-- A blessing of yours that is switched off on Who to buff is not in the
 			-- list, and is still yours on them: a paladin who gives Salvation by hand
 			-- and has it off would otherwise be offered the blessing that a press puts

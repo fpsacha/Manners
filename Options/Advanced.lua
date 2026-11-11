@@ -50,6 +50,7 @@ Page.RESET = {
 		"ownBuffs.shoutAlone", "ownBuffs.scrolls", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"buff.leaveBlessed",
 		"buff.skipCasters",
+		"buff.spareFishBowl",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()

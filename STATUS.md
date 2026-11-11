@@ -16,7 +16,14 @@ to whoever you will not buff back (`prompt.thankWhisper`, `ns.ThankWhisper` in
 Speech.lua: an In character thanks line sent with `SendChatMessage`, under the
 /thank's rules; a whisper needs no key press, which /say does outside an
 instance). Whether Forever and the Classic clients accept that whisper from
-addon code with no key press is open until somebody turns it on there.
+addon code with no key press is open until somebody turns it on there. Also:
+a lone warrior's shout kept in a fight (`FightShouts`, `SelfEntry`'s `fight`;
+GitHub issue 13: "Myself" held everything back in a fight, so the prompt
+emptied on the pull), Kings kept last over Forever's Fish Bowl
+(`buff.spareFishBowl`, `SparesFishBowl` in Core.lua reading Boosted Stats,
+spell 1230098, which Spell 1307245 calls mutually exclusive with Kings; GitHub
+issue 12), and 24 thank emotes (`ns.THANK_EMOTES`, each checked against every
+client's ChatEmoteConstants.lua; CurseForge).
 
 1.11.14 added: a lower rank named in the macro for a low-level
 target (`ns.CastName`, GitHub issue 9; the rank text is the client's own

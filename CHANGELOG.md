@@ -23,6 +23,19 @@
   */thank people who buff me* and keeps its rules: never in a fight or an
   instance, at most once per person every five minutes. Asked for on
   CurseForge.
+- **Your shout in a fight.** With *Remind me of my shout when I'm alone* on, a
+  warrior on his own kept Battle Shout on the prompt only out of a fight: the
+  moment one started, the prompt emptied. The shout now stays, and is offered
+  in a fight when it runs out; nothing else of your own is offered in one, as
+  before. Reported on GitHub.
+- **Kings and a Fish Bowl.** On WoW Forever, a paladin can now keep Blessing of
+  Kings off somebody sitting by a Fish Bowl: *Don't put Kings over a Fish
+  Bowl's Boosted Stats*, under *Who to buff* (off by default). They are offered
+  your Might or Wisdom first, and Kings only when nothing else of yours is
+  missing for them. Asked for on GitHub.
+- **More emotes to thank with.** *Emote to use* now has 24 friendly emotes,
+  from `/applaud` and `/highfive` to `/hug` and `/salute`. Asked for on
+  CurseForge.
 
 ## 1.11.14
 

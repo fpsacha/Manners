@@ -96,8 +96,8 @@ mutate("Buffs.lua",
        expect="self-breath: mainline: never on dry land, offered while swimming", script=S)
 
 mutate("Queue.lua",
-       "\tif InCombatLockdown() or safecall(_G.UnitAffectingCombat, \"player\") == true then return \"fight\" end\n",
-       "\tif InCombatLockdown() then return \"fight\" end\n",
+       "\tif not pastFight and (InCombatLockdown() or safecall(_G.UnitAffectingCombat, \"player\") == true) then return \"fight\" end\n",
+       "\tif not pastFight and InCombatLockdown() then return \"fight\" end\n",
        "self-breath: armed on yourself for the fight",
        expect="self-breath: not in a fight, and offered once it ends while still swimming", script=S)
 

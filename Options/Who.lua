@@ -852,6 +852,25 @@ function Page.BuildWhoTab()
 				get = function() return B().skipCasters == true end,
 				set = bSet,
 			},
+			-- Asked for on GitHub (issue 12): WoW Forever's Fish Bowl, which Kings
+			-- replaces. Only where the camp's Fish Bowl exists, and for a class
+			-- whose strongest blessing is the one at stake.
+			spareFishBowl = {
+				type = "toggle",
+				name = L["Don't put Kings over a Fish Bowl's Boosted Stats"],
+				desc = L["Sitting by a Fish Bowl gives Boosted Stats, 8% to all stats, and Blessing of Kings replaces it. On: somebody wearing it is offered your other blessings first, and Kings only when nothing else of yours is missing for them."],
+				order = 4.87,
+				width = "full",
+				hidden = function()
+					if not (ns.Flavour and ns.Flavour.flavour == "camelot") then return true end
+					for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+						if buff.strongest then return false end
+					end
+					return true
+				end,
+				get = function() return B().spareFishBowl == true end,
+				set = bSet,
+			},
 			-- The per-spell switches (AddBuffToggles) sit at 4.1, 4.2, ... and
 			-- this one after them: all three decide what is cast. Only for a
 			-- class with a mana-only spell, which is all it holds back.

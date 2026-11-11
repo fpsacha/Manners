@@ -104,6 +104,7 @@ local function CastItems()
 	-- A paladin's: nobody another paladin has blessed.
 	items[#items + 1] = "who.leaveBlessed"
 	items[#items + 1] = "who.skipCasters"
+	items[#items + 1] = "who.spareFishBowl"
 	items[#items + 1] = "who.relevantOnly"
 	items[#items + 1] = { "who.autoNote", standIn = true }
 	items[#items + 1] = "who.pinNote"

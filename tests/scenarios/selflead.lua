@@ -54,7 +54,8 @@ local function with(scenario, body)
 		body(ns, ns.db.profile.filters, at)
 	end)
 	undo()
-	for name, value in pairs(saved) do rawset(_G, name, value) end
+	-- By name: pairs would skip one that was nil to begin with, and leave ours.
+	for _, name in ipairs({ "IsSpellKnown", "IsPlayerSpell", "IsInInstance" }) do rawset(_G, name, saved[name]) end
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end

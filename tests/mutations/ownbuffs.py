@@ -19,9 +19,11 @@ mutate("Queue.lua",
 # Your own group buff after the class's own rather than before.
 mutate("Queue.lua",
        "\tif #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end\n"
+       "\tif not buff and fight then return nil end\n"
        "\tif not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end\n",
        "\tbuff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now)\n"
-       "\tif not buff and #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end\n",
+       "\tif not buff and #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end\n"
+       "\tif not buff and fight then return nil end\n",
        "own: your group buff not first",
        expect="before your Intellect", script=S)
 
@@ -33,15 +35,15 @@ mutate("Queue.lua",
        expect="rather than Aspect of the Hawk", script=S)
 
 mutate("Queue.lua",
-       "\tif InCombatLockdown() or safecall(_G.UnitAffectingCombat, \"player\") == true then return \"fight\" end\n",
+       "\tif not pastFight and (InCombatLockdown() or safecall(_G.UnitAffectingCombat, \"player\") == true) then return \"fight\" end\n",
        "",
        "own: offered in a fight",
        expect="in a fight you were offered", script=S)
 
 # The pull's own repaint, before the lockdown, not asked about.
 mutate("Queue.lua",
-       "\tif InCombatLockdown() or safecall(_G.UnitAffectingCombat, \"player\") == true then return \"fight\" end\n",
-       "\tif InCombatLockdown() then return \"fight\" end\n",
+       "\tif not pastFight and (InCombatLockdown() or safecall(_G.UnitAffectingCombat, \"player\") == true) then return \"fight\" end\n",
+       "\tif not pastFight and InCombatLockdown() then return \"fight\" end\n",
        "own: offered on the pull",
        expect="on the pull you were offered", script=S)
 

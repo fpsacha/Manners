@@ -1825,14 +1825,28 @@ ns.OneTargetHolders = OneTargetHolders
 -- for the walk. The second is for what only explains (SelfBuffFirst and
 -- MyselfLines, for /manners debug and the options page), and asks the list
 -- the way a repaint does, off its cached answers.
-local function HeldBackExceptList(db, now)
+local function HeldBackExceptList(db, now, pastFight)
 	if db.sources.self ~= true then return "switch" end
-	if InCombatLockdown() or safecall(_G.UnitAffectingCombat, "player") == true then return "fight" end
+	-- `pastFight`: asked again for the shout a fight lets through (SelfEntry).
+	if not pastFight and (InCombatLockdown() or safecall(_G.UnitAffectingCombat, "player") == true) then return "fight" end
 	if not (db.ownBuffs and db.ownBuffs.inCities == true) and Resting() == true then return "resting" end
 	local full = ns.UnitFullName("player")
 	if not full then return "noname" end
 	if ns.IsBlocked(full, nil, now or GetTime()) then return "skipped" end
 	return nil, full
+end
+
+-- What "Myself" may offer in a fight: a shout CastsOnSelf allows (a warrior
+-- in no group, with the switch on), and nothing else. nil for none.
+local function FightShouts(candidates)
+	local out
+	for _, buff in ipairs(ns.SelfBuffs(candidates)) do
+		if buff.selfCast then
+			out = out or {}
+			out[#out + 1] = buff
+		end
+	end
+	return out
 end
 
 function ns.MyselfHeldBack(db, now)
@@ -1995,11 +2009,19 @@ end
 -- (BuildQueue): your class's own land on you alone.
 local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	local held, full = HeldBackExceptList(db, now)
+	-- In a fight nothing of your own is offered but a warrior's shout, alone
+	-- with "Remind me of my shout when I'm alone" on (CastsOnSelf): it lasts
+	-- minutes and runs out mid-fight, which is when it is wanted, and on the
+	-- pull the prompt kept it rather than emptying (GitHub issue 13). The
+	-- other rules are asked again past the fight.
+	local fight = held == "fight" and not ownOnly and FightShouts(candidates)
+	if fight then held, full = HeldBackExceptList(db, now, true) end
 	if held then return nil end
 	-- A shout already covers you, and a few spells refuse the caster.
-	local mine = ownOnly and {} or ns.SelfBuffs(candidates)
+	local mine = fight or (ownOnly and {} or ns.SelfBuffs(candidates))
 	local buff, has, remaining, charges, seconds, lead, kind
 	if #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end
+	if not buff and fight then return nil end
 	if not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end
 	if not buff then return nil end
 	-- Last, so the list is walked only for an offer about to be made, and
