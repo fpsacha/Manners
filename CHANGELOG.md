@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.15
 
 - **A top-up is a favour too.** Somebody who cast a buff on you again while
   yours was still running went unnoticed: no "buffed you", nothing to return,
