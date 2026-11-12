@@ -9,6 +9,30 @@
   (Still owed, Returned, Let go, Gave), as they were meant to be; the colour only
   flashes across a row for a moment when something new arrives at the top. A
   favour you let go is dimmed a little less, so its name still reads.
+- **Save mana can hold back more.** *Save mana: stop below* on *When to
+  offer* has a choice under it, *Below it, still offer*: *People who buffed
+  me or asked* (as before: favours, requests and your own buff), *Only my own
+  buff*, or *Nothing*. On WoW Forever most of what you are offered is favours,
+  so with the floor at 70% Manners still had you casting until you ran dry;
+  now those can wait too. A favour held back is not forgotten: it is offered
+  again once your mana is back, while there is still time to return it.
+  Asked for on CurseForge.
+- **A buff back is not a favour you owe.** Buff somebody, and when they
+  buffed you back a minute later Manners took it as a new favour: it chimed,
+  put them on the prompt and listed them as *Still owed* in the Favour
+  ledger, though you were the one who started it. Somebody who buffs you
+  while your buff on them still has more than its top-up time left (on WoW
+  Forever, which never says who cast a buff on somebody else: while the buff
+  Manners saw you give them would still be running) is now buffing you back:
+  nothing is owed, nothing chimes, and the ledger says *Buffed back*. Your
+  /thank still goes. Somebody whose buff from you is about to run out is
+  owed as before, and so is somebody you buffed to return their own favour.
+  Reported on CurseForge.
+- **Right-click skips one of your own buffs.** With the prompt on one of your
+  own buffs, a right-click skips just that buff, so the next one comes up;
+  *Ctrl-right-click* skips all of them, as a right-click used to.
+  *Shift-right-click* still stops offering you your own buff, and *Skip for
+  now* in the minimap menu skips the one buff too. Asked for on CurseForge.
 
 ## 1.11.16
 

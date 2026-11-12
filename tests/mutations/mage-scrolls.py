@@ -356,20 +356,20 @@ mutate("Core.lua",
 # A scroll's cast cut short (Clicks.lua): the press kept, its block the
 # whole retry cooldown.
 mutate("Clicks.lua",
-       "\tlocal stopped = ScrollCastStopped(plain(castGUID), plain(spellId), L[\"the cast was interrupted\"])\n",
-       "\tlocal stopped = nil\n",
+       "\tlocal stopped, stoppedKey = ScrollCastStopped(plain(castGUID), plain(spellId), L[\"the cast was interrupted\"])\n",
+       "\tlocal stopped, stoppedKey = nil\n",
        "scrolls: an interrupted scroll kept as used",
        expect="2 s after the Rat Familiar's cast was interrupted, you were offered", script=S)
 
 mutate("Clicks.lua",
-       "\t\tlocal stopped = ScrollCastStopped(castGUID, nil, L[\"the game refused the cast\"])\n",
-       "\t\tlocal stopped = nil\n",
+       "\t\tlocal stopped, stoppedKey = ScrollCastStopped(castGUID, nil, L[\"the game refused the cast\"])\n",
+       "\t\tlocal stopped, stoppedKey = nil\n",
        "scrolls: a scroll failing late kept as used",
        expect="2 s after the Rat Familiar's cast failed, you were offered", script=S)
 
 mutate("Clicks.lua",
-       "\t\tlocal stopped = ScrollCastStopped(castGUID, nil, L[\"the game refused the cast\"])\n",
-       "\t\tlocal stopped = ScrollCastStopped(castGUID, spellId, L[\"the game refused the cast\"])\n",
+       "\t\tlocal stopped, stoppedKey = ScrollCastStopped(castGUID, nil, L[\"the game refused the cast\"])\n",
+       "\t\tlocal stopped, stoppedKey = ScrollCastStopped(castGUID, spellId, L[\"the game refused the cast\"])\n",
        "scrolls: a failure naming no cast taken for the scroll's",
        expect="a failure naming no cast took back the Rat Familiar being cast", script=S)
 

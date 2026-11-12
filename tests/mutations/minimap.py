@@ -64,8 +64,8 @@ mutate("Options/Launcher.lua",
 # ------------------------------------------------------------------ who's next
 
 mutate("Options/Launcher.lua",
-       "local function SkipFromMenu(entry)\n\tns.BlockPerson(entry.name, ns.SkipSeconds())\n",
-       "local function SkipFromMenu(entry)\n",
+       "\telse\n\t\tns.BlockPerson(entry.name, ns.SkipSeconds())\n\tend\n",
+       "\telse\n\tend\n",
        "minimap: Skip for now that skips nobody",
        expect="Skip for now did not skip", script=S)
 

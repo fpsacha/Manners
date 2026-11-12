@@ -173,9 +173,13 @@ function Prompt:SwapText()
 	end
 end
 
-function Prompt:ShowOutcome(kind, name, detail)
+-- `buffKey`: the buff the press was for, where the caller knows it, which a
+-- right-click under these words skips on your own buff (Press.lua,
+-- ShownBuffKey) rather than the next one armed underneath.
+function Prompt:ShowOutcome(kind, name, detail, buffKey)
 	if not R.button then return end
 	S.outcomeKind, S.outcomeAt, S.outcomeName, S.outcomeDetail = kind, GetTime(), name, detail
+	S.outcomeBuff = buffKey
 	-- A new outcome gets its own wash, even one in the same instant as the last.
 	S.washStamp = nil
 	self:SwapText()

@@ -141,7 +141,11 @@ Everybody who could use your buff is queued, in this order:
 3. **Somebody who buffed you.** Spotted by watching your own buffs appear and
    reading who cast them, which works on strangers too, as long as the game
    can still name them for you. The favour survives a reload or a
-   disconnect.
+   disconnect. Somebody you buffed first who buffs you back is not owed
+   anything: their buff came while yours on them still had more than its
+   top-up time left (on WoW Forever, which never says who cast a buff on
+   somebody else, while the buff Manners saw you give them would still be
+   running). The ledger lists it as *Buffed back*, and nothing chimes.
 4. **Somebody who asked for it in chat**, if you switch that on (see below).
 5. **You**, when you are missing your own buff or one of your class's own
    (see *Buffing yourself* below).
@@ -158,8 +162,9 @@ does nothing for (Arcane Intellect is wasted on a rogue), and, while you are not
 flagged yourself, anyone flagged for PvP, since buffing them would flag you.
 
 **On the prompt:** left-click (or your key) casts. **Right-click** skips that
-person for now without marking their favour repaid. **Shift-right-click** puts
-them on the never-offer list.
+person for now without marking their favour repaid; on one of your own buffs
+it skips just that buff, so your next one comes up, and **Ctrl-right-click**
+skips all of yours. **Shift-right-click** puts them on the never-offer list.
 
 **The tooltip.** Hover the prompt, or a name in its list, and it says who and
 what, and why they are offered, in one short line; hold Shift for everything
@@ -330,15 +335,18 @@ each class offers*).
   you have had it on, it is reminded of whenever it is off, and a gathering
   tracking is still reminded of while Find Treasure is on. A dwarf who never
   turns it on is never asked to.
-- *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
-  party you count towards a group buff, and the group cast covers you.
+- *Save mana* holds you back only when *Below it, still offer* is *Nothing*,
+  and *Raid groups I buff* never does. In a party you count towards a group
+  buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior (unless *Remind me of my
   shout when I'm alone* is on and you are in no group) and nobody needs Unending Breath
   on dry land, so neither is offered to you. A paladin wearing one of their
   own blessings is not offered another.
-- Right-click "You" to skip it for now. Shift-right-click switches *Myself*
-  off, since the never-offer list is for other people, and chat says where to
-  switch it back on.
+- Right-click "You" to skip that buff for now: your next own buff comes up in
+  its place. Ctrl-right-click skips all of your own buffs for now, and *Skip
+  for now* in the minimap menu skips the one buff. Shift-right-click switches
+  *Myself* off, since the never-offer list is for other people, and chat says
+  where to switch it back on.
 - `/manners debug`, and the lines under *Myself* on the *Who to buff* page,
   say which of your own buffs is up, which is due, and why one is not being
   offered.
@@ -379,11 +387,15 @@ you have learned a group buff and carry its reagent or have the perk.
   their members are offered only if they buffed you, asked, or you target or
   focus them. `/manners debug` lists the groups still ticked, even outside a
   raid, so you can check before the pull.
-- *Save mana: stop below (% mana)*, off by default: below it, only your own
-  buffs and people who buffed you or asked are offered, and your group, your
-  target and passers-by wait until your mana is 5 points above it, so the
-  prompt does not flicker between casts. The tooltip, a press on the empty
-  prompt and `/manners debug` say when they come back.
+- *Save mana: stop below (% mana)*, off by default: below it, your group,
+  your target and passers-by wait until your mana is 5 points above it, so
+  the prompt does not flicker between casts. *Below it, still offer*, under
+  the slider, says what still comes up meanwhile: *People who buffed me or
+  asked* (the default: favours, requests and your own buffs), *Only my own
+  buff*, or *Nothing*. A favour held back stays owed and is offered once your
+  mana is back, if there is time left to return it. The tooltip, a press on
+  the empty prompt and `/manners debug` say what is held back and when it
+  comes back.
 - In a raid group, a battleground or an arena the "buffed you" chat line is
   not printed, and in a dungeon it waits out the fight. The favour is still
   noticed and offered. A group member whose buff lands again every few
@@ -460,8 +472,10 @@ buffed without being asked, newest first. Today's count ("Returned 12 of 14
 favours today") and the all-time totals sit at the top, then tabs for
 everything, favours, and buffs you gave. A favour you did not return says why:
 the time ran out, nothing you cast helps them, or you put them on the
-never-offer list. Hover a favour still owed and it says whether the prompt will
-offer it, and when. A group buff counts as one buff given and says how many
+never-offer list. A buff from somebody returning one of yours says *Buffed
+back*: nothing is owed for it, and it is not counted among the favours to
+return. Hover a favour still owed and it says whether the prompt will offer
+it, and when. A group buff counts as one buff given and says how many
 who needed it got it; the favours it returned are marked returned.
 
 **Titles.** Favours you return earn you a title: *Well Brought Up* at 10, then
@@ -827,6 +841,8 @@ list. They used to be at the bottom of *Who to buff*.
 - *Save mana: stop below (% mana)*: 0 is off (see *Dungeons and raids*
   above). Classes without mana do not see it, and nor do hunters and shamans,
   whose prompt is for their own buffs alone.
+  - *Below it, still offer*: *People who buffed me or asked* (default),
+    *Only my own buff* or *Nothing*. Greyed while the floor is 0.
 - *Buffing back*: how long somebody who buffed you is offered one back.
   - *Offer a buff back for (seconds)* (120): somebody the game can still see
     stays on the prompt this long; somebody it cannot see is let go sooner,
@@ -845,7 +861,7 @@ list. They used to be at the bottom of *Who to buff*.
   spell, so after Fortitude the next scan can still offer Divine Spirit.
   *A right-click skips for (seconds)* (12 by default, up to half an hour) is
   how long a right-click on the prompt, or *Not now* in its menu, blocks the
-  whole person, or your own buff. *Check for
+  whole person, or that one buff of yours. *Check for
   people every (seconds)* is how often Manners looks around.
 - *Targeting* (folded): *Hand my target back afterwards*. The prompt targets
   everybody it buffs, group members too, because a named conditional

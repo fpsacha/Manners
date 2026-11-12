@@ -183,8 +183,8 @@ mutate("Clicks.lua",
 
 # The retry cooldown not written back after the settle.
 mutate("Clicks.lua",
-       "\tShowOutcome(\"cast\", pending.name)\n\tns.MarkAttempted(pending.name, pending.buffKey)\n",
-       "\tShowOutcome(\"cast\", pending.name)\n",
+       "\tShowOutcome(\"cast\", pending.name, nil, pending.buffKey)\n\tns.MarkAttempted(pending.name, pending.buffKey)\n",
+       "\tShowOutcome(\"cast\", pending.name, nil, pending.buffKey)\n",
        "self: no cooldown after a press",
        expect="left you only its two seconds of cooldown", script=S)
 
@@ -241,8 +241,8 @@ mutate("Options/Launcher.lua",
        expect="the launcher's tooltip reads", script=S)
 
 mutate("Options/Launcher.lua",
-       "\tif entry.reason == \"self\" then\n\t\tns.addon:Print(L[\"skipping your own buff for now.\"])\n",
-       "\tif false then\n\t\tns.addon:Print(L[\"skipping your own buff for now.\"])\n",
+       "\tif entry.reason == \"self\" then\n\t\tns.addon:Print(entry.buff and L[",
+       "\tif false then\n\t\tns.addon:Print(entry.buff and L[",
        "self: menu skip names you like a stranger",
        expect="Skip for now on you reads", script=S)
 
@@ -334,31 +334,31 @@ mutate("Commands.lua",
 # --- saving mana keeps your own buff, and says so ---
 
 mutate("Prompt/Button.lua",
-       "\t\tGameTooltip:AddLine((ns.OffersSelf()\n",
+       "\t\tGameTooltip:AddLine((keptNow == \"askedself\"\n",
        "\t\tGameTooltip:AddLine((false\n",
        "self: saving-mana tooltip leaves you out",
        expect="the tooltip under your own buff says", script=S)
 
 mutate("Commands.lua",
-       "\t\t\tself:Print((ns.OffersSelf()\n",
+       "\t\t\tself:Print((kept == \"askedself\"\n",
        "\t\t\tself:Print((false\n",
        "self: saving-mana debug leaves you out",
        expect="/manners debug while saving mana leaves your own buff out", script=S)
 
 mutate("Prompt/Press.lua",
-       "\t\t\tlocal line = ns.OffersSelf()\n",
+       "\t\t\tlocal line = kept == \"askedself\"\n",
        "\t\t\tlocal line = false\n",
        "self: saving-mana empty press leaves you out",
        expect="an empty press while saving mana leaves your own buff out", script=S)
 
 mutate("Options/When.lua",
-       "\t\t\t\t\treturn OffersSelf() and L[\"Below this, only your own buff",
-       "\t\t\t\t\treturn false and L[\"Below this, only your own buff",
+       "\t\t\t\t\tif kept == \"askedself\" then\n\t\t\t\t\t\treturn L[\"Below this, only your own buff",
+       "\t\t\t\t\tif false then\n\t\t\t\t\t\treturn L[\"Below this, only your own buff",
        "self: mana floor description leaves you out",
        expect="the mana floor's description leaves your own buff out", script=S)
 
 mutate("Options/When.lua",
-       "\t\t\t\t\telseif OffersSelf() then\n",
+       "\t\t\t\t\telseif kept == \"askedself\" then\n",
        "\t\t\t\t\telseif false then\n",
        "self: mana note leaves you out",
        expect="the mana note leaves your own buff out", script=S)

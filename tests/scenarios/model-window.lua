@@ -401,7 +401,7 @@ local EXPECTED = {
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
-		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
+		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor", "filters.manaFloorKeeps",
 		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets", "filters.quietInTownsWhere",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",

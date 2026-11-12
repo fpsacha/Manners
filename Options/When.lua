@@ -171,13 +171,20 @@ function Page.BuildWhenTab()
 			manaFloor = {
 				type = "range",
 				name = L["Save mana: stop below (% mana)"],
-				-- The two kinds that are never held back are named, since the
-				-- rule is about who asked rather than about who they are; and
-				-- your own buff, which is kept too (Queue.lua, SelfEntry),
-				-- wherever "Myself" is on.
+				-- What is still offered under it, by the choice below it
+				-- (ns.ManaFloorKept): the two kinds that asked, and your own
+				-- buff (Queue.lua, SelfEntry) wherever "Myself" is on; your own
+				-- buff alone; or nothing.
 				desc = function()
-					return OffersSelf() and L["Below this, only your own buff and people who buffed you or asked are offered."]
-						or L["Below this, only people who buffed you or asked are offered."]
+					local kept = ns.ManaFloorKept()
+					if kept == "askedself" then
+						return L["Below this, only your own buff and people who buffed you or asked are offered."]
+					elseif kept == "asked" then
+						return L["Below this, only people who buffed you or asked are offered."]
+					elseif kept == "self" then
+						return L["Below this, only your own buff is offered."]
+					end
+					return L["Below this, nothing is offered."]
 				end,
 				order = 13,
 				min = 0,
@@ -187,8 +194,30 @@ function Page.BuildWhenTab()
 				get = fGet,
 				set = fSet,
 			},
+			-- What the floor still lets through (asked for on CurseForge: on
+			-- WoW Forever most offers are favours, so a floor that kept them
+			-- cast the mana away all the same). Read by BuildQueue
+			-- (ns.ManaFloorKeeps); a favour held back stays owed and waits.
+			-- Greyed while the floor is off, as Where is under its switch.
+			manaFloorKeeps = {
+				type = "select",
+				name = L["Below it, still offer"],
+				desc = L["Who is still offered while you are under the floor. Someone who buffed you and is held back stays owed, and is offered once your mana is back."],
+				order = 13.2,
+				values = {
+					asked = L["People who buffed me or asked"],
+					self = L["Only my own buff"],
+					none = L["Nothing"],
+				},
+				sorting = { "asked", "self", "none" },
+				hidden = noManaBar,
+				disabled = function() return not ((tonumber(F().manaFloor) or 0) > 0) end,
+				get = fGet,
+				set = fSet,
+			},
 			-- What the floor does at its current value, said under it: off
-			-- at 0, otherwise where it stops and where the rest resume
+			-- at 0, otherwise where it stops, what it still offers (the
+			-- choice above, ns.ManaFloorKept) and where the rest resume
 			-- (SavingMana lets go 5 points above the floor).
 			manaNote = {
 				type = "description",
@@ -196,15 +225,22 @@ function Page.BuildWhenTab()
 				hidden = noManaBar,
 				name = function()
 					local floor = tonumber(F().manaFloor) or 0
+					local kept = ns.ManaFloorKept()
 					local text
 					if floor <= 0 then
 						text = L["Off: buffs are offered at any mana."]
-					elseif OffersSelf() then
+					elseif kept == "askedself" then
 						-- Your own buff is kept as well (see the slider's desc).
 						text = L["Below %d%% only favours, requests and your own buff are offered; the rest come back at %d%%."]
 							:format(floor, floor + 5)
-					else
+					elseif kept == "asked" then
 						text = L["Below %d%% only favours and requests are offered; the rest come back at %d%%."]
+							:format(floor, floor + 5)
+					elseif kept == "self" then
+						text = L["Below %d%% only your own buff is offered; the rest come back at %d%%."]
+							:format(floor, floor + 5)
+					else
+						text = L["Below %d%% nothing is offered; it all comes back at %d%%."]
 							:format(floor, floor + 5)
 					end
 					return "|cff888888" .. text .. "|r"

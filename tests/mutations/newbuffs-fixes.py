@@ -89,8 +89,8 @@ mutate("Favours.lua",
 # --- the Oath and a blessing are noted apart ---
 
 mutate("Queue.lua",
-       "\t\tentry[buffKey] = GetTime()\n",
-       "\t\tfor other in pairs(entry) do entry[other] = nil end\n\t\tentry[buffKey] = GetTime()\n",
+       "\t\tentry[buffKey] = now\n",
+       "\t\tfor other in pairs(entry) do entry[other] = nil end\n\t\tentry[buffKey] = now\n",
        "newbuffs-fixes: a blessing's cast forgets the Oath's",
        expect="newbuffs-fix: a blessing after your Oath does not hand the Oath to a second tank", script=S)
 

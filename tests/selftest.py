@@ -1291,12 +1291,12 @@ mutate("Clicks.lua",
        """	RewindClick(pending)
 	ns.NoteRefusal(pending.name, message, nil, pending.spoke, pending.buffKey,
 		pending.group and pending.group.members)
-	return pending.name
+	return pending.name, pending.buffKey
 end""",
        """	RewindClick(pending)
 	ns.NoteRefusal(pending.name, message, nil, pending.spoke)
 	ns.pendingClick = nil
-	return pending.name
+	return pending.name, pending.buffKey
 end""",
        "a parked record dropped by an error",
        expect="an unrelated error does not throw the record away",
@@ -1420,8 +1420,8 @@ mutate("Prompt/Refresh.lua",
 #     which is worse than the silence it replaced, because it is believed.
 mutate("Clicks.lua",
        '\tlocal how = inferred and SETTLE_INFERENCE[inferred]\n'
-       '\tShowOutcome(how and "sent" or "cast", pending.name, how and how.sub)\n',
-       '\tShowOutcome("cast", pending.name)\n',
+       '\tShowOutcome(how and "sent" or "cast", pending.name, how and how.sub, pending.buffKey)\n',
+       '\tShowOutcome("cast", pending.name, nil, pending.buffKey)\n',
        "a tick over an unconfirmed cast",
        expect="the panel claimed the buff landed on somebody the client never named",
        script="runscenarios.py")
@@ -1430,7 +1430,7 @@ mutate("Clicks.lua",
 #     localised, it is frequently the only thing that says *why* -- out of
 #     range, line of sight -- and it went nowhere unless click debugging was on.
 mutate("Clicks.lua",
-       '\t\tShowOutcome("failed", failed, type(message) == "string" and message or nil)\n',
+       '\t\tShowOutcome("failed", failed, type(message) == "string" and message or nil, failedKey)\n',
        "",
        "the game's reason kept off the panel",
        expect="an error inside the click window left the panel looking like a successful cast",
@@ -1838,8 +1838,8 @@ mutate("Clicks.lua",
 #     a cast that was thrown away.
 mutate("Clicks.lua",
        """	if not ns.pendingClick then
-		local late = UnsettleLateRefusal(castGUID)
-		if late then ShowOutcome("failed", late, L["the game refused the cast"]) end
+		local late, lateKey = UnsettleLateRefusal(castGUID)
+		if late then ShowOutcome("failed", late, L["the game refused the cast"], lateKey) end
 	end
 """,
        "",

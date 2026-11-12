@@ -45,21 +45,36 @@ ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 -- per name: a blessing cast after your Oath must not make the Oath look like
 -- somebody else's. Memory only, bounded.
 do
-	local gaveAt, gaveCount = {}, 0
+	-- giftAt: the same, for the casts that were gifts (`gift`: the ledger's
+	-- "Gave", returning no favour of theirs), which a buff from them in their
+	-- time answers (ns.GaveLately). A return written later takes its place.
+	local gaveAt, giftAt, gaveCount = {}, {}, 0
 
-	function ns.NoteGave(name, buffKey)
+	function ns.NoteGave(name, buffKey, gift)
 		if not name or not buffKey then return end
 		local entry = gaveAt[name]
 		if not entry then
 			if gaveCount >= 300 then
 				wipe(gaveAt)
+				wipe(giftAt)
 				gaveCount = 0
 			end
 			gaveCount = gaveCount + 1
 			entry = {}
 			gaveAt[name] = entry
 		end
-		entry[buffKey] = GetTime()
+		local now = GetTime()
+		entry[buffKey] = now
+		local gifts = giftAt[name]
+		if gift then
+			if not gifts then
+				gifts = {}
+				giftAt[name] = gifts
+			end
+			gifts[buffKey] = now
+		elseif gifts then
+			gifts[buffKey] = nil
+		end
 	end
 
 	-- Whether what they wear of `buffKey`, with `remaining` seconds on a buff
@@ -72,6 +87,27 @@ do
 		if not at then return false end
 		if type(remaining) ~= "number" or type(length) ~= "number" then return false end
 		return at + length + 5 >= GetTime() + remaining
+	end
+
+	-- A buff Manners saw land on `name` as a gift that still has more than its
+	-- top-up lead to run, by the cast's own time (no aura read): its key, or
+	-- nil. `leadOf(length)` is the lead for a buff that long. The longer of a
+	-- buff's two lengths (a group version can last longer), so a cast is never
+	-- taken to have run out early. For a buff back from somebody you buffed
+	-- first (Favours.lua), which the aura alone cannot say on WoW Forever. A
+	-- cast that returned their favour is no gift: a buff from them after it is
+	-- a new favour.
+	function ns.GaveLately(name, now, leadOf)
+		local entry = name and giftAt[name]
+		if not entry then return nil end
+		local class = ns.caps and ns.caps.class
+		for key, at in pairs(entry) do
+			local buff = ns.FindBuff(class, key)
+			local single, group = ns.BuffSeconds(buff)
+			local length = math.max(single or 0, group or 0)
+			if length > 0 and at + length - leadOf(length) > now then return key end
+		end
+		return nil
 	end
 end
 
@@ -1097,7 +1133,8 @@ end
 -- check, which is when a buffer sweeps the group before a pull, and coming
 -- back from the dead, which costs every buff. And two limits on offers nobody
 -- asked for: the mana you keep for yourself, and the raid groups you were
--- given. A favour owed and a request from chat are never held back by either.
+-- given. A favour owed and a request from chat are held back by neither, but
+-- for the floor's "Below it, still offer" set to your own buff or nothing.
 ---------------------------------------------------------------------------
 
 -- How long a ready check counts as running when the client names no time, or
@@ -1268,6 +1305,33 @@ function ns.SavingMana()
 	sweep.saving = mana * 100 < limit * most or nil
 	if sweep.saving then return floor, resume end
 	return nil
+end
+
+-- What the floor still offers while it holds back ("Below it, still offer",
+-- filters.manaFloorKeeps; asked for on CurseForge, where on WoW Forever most
+-- offers are favours and a floor that let them all through kept no mana):
+--   "asked"  people who buffed you or asked, and your own buff (as it always did)
+--   "self"   your own buff alone
+--   "none"   nothing at all
+-- A favour held back is not let go: the debt stays and waits for the mana.
+do
+	local KEEPS = { asked = true, self = true, none = true }
+	function ns.ManaFloorKeeps(db)
+		db = db or (addon.db and addon.db.profile)
+		local keeps = db and db.filters and db.filters.manaFloorKeeps
+		return KEEPS[keeps] and keeps or "asked"
+	end
+end
+
+-- The same as every line about the floor says it, with "Myself" asked: one of
+-- "askedself", "asked", "self" or "none". Your own buff is kept only where
+-- Myself offers one, so "self" without it is nothing.
+function ns.ManaFloorKept()
+	local keeps = ns.ManaFloorKeeps()
+	local own = ns.OffersSelf()
+	if keeps == "asked" then return own and "askedself" or "asked" end
+	if keeps == "self" and own then return "self" end
+	return "none"
 end
 
 -- Whether "Not while mounted" is keeping the prompt away right now: one answer
@@ -1625,7 +1689,7 @@ end
 -- StillCastable's; `ignoring` that the /ignore list has anybody on it, whom
 -- no memory offers either: a member of the group stays offered, and so is
 -- remembered, and the group may be gone by the time the memory is read.
-local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop, ignoring)
+local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop, ignoring, dropAsked)
 	local skipClasses = SkippedClasses(db.filters)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
@@ -1644,6 +1708,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 		if (nearby and (drop or memo.within ~= db.filters.proximity))
 			or (nearby and skipClasses and memo.class and skipClasses[memo.class])
 			or (not nearby and not ns.StillAsked(name, memo.buff.key, now))
+			or (not nearby and dropAsked)
 			or (ns.zonedAt and memo.seen < ns.zonedAt)
 			or rejected[name] == true
 			or flagged
@@ -2045,12 +2110,15 @@ end
 -- sees you missing, and the class's own follow in Buffs.lua's order.
 --
 -- Not held back while saving mana, unlike the group: a buff on yourself is
--- what the floor keeps mana for. Nor by the raid groups, which are about whom
+-- what the floor keeps mana for -- unless "Below it, still offer" is Nothing
+-- (ns.ManaFloorKeeps), read off the scan's own answer to SavingMana, which
+-- BuildQueue asks before it asks this. Nor by the raid groups, which are about whom
 -- you buff. Your own name on the never-offer list is honoured, though "never"
 -- on the prompt switches this source off instead (StopOfferingSelf).
 -- `ownOnly` leaves your group buff out, for when it is held back for PvP
 -- (BuildQueue): your class's own land on you alone.
 local function SelfEntry(db, candidates, now, verdict, ownOnly)
+	if sweep.saving and ns.ManaFloorKeeps(db) == "none" then return nil end
 	local held, full = HeldBackExceptList(db, now)
 	-- In a fight nothing of your own is offered but a warrior's shout, alone
 	-- with "Remind me of my shout when I'm alone" on (CastsOnSelf): it lasts
@@ -2175,6 +2243,9 @@ function ns.BuildQueue(watch)
 	-- raid, for the groups you were not given; and whether a ready check has
 	-- the group first. See "dungeons and raids". Once per scan.
 	local savingMana = ns.SavingMana() ~= nil
+	-- And whether it holds back the favours and requests as well ("Below it,
+	-- still offer": your own buff only, or nothing). The debts stay.
+	local manaHoldsAsked = savingMana and ns.ManaFloorKeeps(db) ~= "asked"
 	local skipGroups
 	if inRaid and type(f.skipRaidGroups) == "table" and next(f.skipRaidGroups) ~= nil then
 		skipGroups = f.skipRaidGroups
@@ -2348,9 +2419,11 @@ function ns.BuildQueue(watch)
 		end
 
 		-- Nobody asked for these, so they wait while you keep your mana. A
-		-- favour owed or a request never reaches here as group or nearby.
-		-- Written down as a verdict: your own mana, not a token lost.
-		if savingMana and (reason == "group" or reason == "nearby") then
+		-- favour owed or a request never reaches here as group or nearby, and
+		-- waits too only when "Below it, still offer" says so (manaHoldsAsked):
+		-- the debt and the request stay. Written down as a verdict: your own
+		-- mana, not a token lost.
+		if savingMana and (reason == "group" or reason == "nearby" or manaHoldsAsked) then
 			rejected[full] = true
 			return
 		end
@@ -2654,6 +2727,8 @@ function ns.BuildQueue(watch)
 			-- Nobody in a city or an inn, when that is asked for: no token to
 			-- point at them, so no exemption either.
 			if inTown then break end
+			-- Nor while the mana floor holds favours back too: the debt waits.
+			if manaHoldsAsked then break end
 			-- A token nobody pointed at found them a moment ago (`near`, written
 			-- by the walk): as good a sign they are about as a fresh favour, so
 			-- the cursor leaving them for the prompt does not take an older one
@@ -2720,9 +2795,10 @@ function ns.BuildQueue(watch)
 	-- Passers-by and askers no token reached this scan, for a few seconds
 	-- after one last did. Everything that turns passers-by down as a kind
 	-- turns the remembered ones down for good: the switch off, a shout, saving
-	-- mana, a city-only rule out in the world.
+	-- mana, a city-only rule out in the world. And the askers while the floor
+	-- holds requests back too.
 	OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, neverVerdict,
-		not db.sources.strangers or groupOnly or savingMana or notResting, ignoring)
+		not db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)
 
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.

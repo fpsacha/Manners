@@ -123,10 +123,16 @@ local function PersonTooltipLines(entry, brief)
 	local kept, resume = ns.SavingMana()
 	if kept then
 		-- Your own buff among what is kept, where "Myself" is on: this line
-		-- may be under your own entry.
-		GameTooltip:AddLine((ns.OffersSelf()
+		-- may be under your own entry. What is kept is "Below it, still
+		-- offer"'s (ns.ManaFloorKept).
+		local keptNow = ns.ManaFloorKept()
+		GameTooltip:AddLine((keptNow == "askedself"
 			and L["Saving mana: until you are back to %d%% mana, only your own buff and people who buffed you or asked are offered."]
-			or L["Saving mana: until you are back to %d%% mana, only people who buffed you or asked are offered."])
+			or keptNow == "asked"
+			and L["Saving mana: until you are back to %d%% mana, only people who buffed you or asked are offered."]
+			or keptNow == "self"
+			and L["Saving mana: until you are back to %d%% mana, only your own buff is offered."]
+			or L["Saving mana: until you are back to %d%% mana, nothing is offered."])
 			:format(resume), 1, 0.82, 0, true)
 	end
 	if entry.checked and entry.known == nil then
@@ -372,7 +378,11 @@ do
 		-- is aimed at (OnPostClick), which the lines say rather than leave to
 		-- a guess.
 		local group = S.current.groupCast
+		-- Your own buff: a right-click skips that buff alone, ctrl-right-click
+		-- all of yours (OnPostClick).
+		local ownBuff = not group and S.current.reason == "self"
 		GameTooltip:AddLine(group and L["Right-click to skip this group buff for now."]
+			or ownBuff and L["Right-click to skip this buff for now; ctrl-right-click skips all your own buffs."]
 			or L["Right-click to skip this one."], 0.5, 0.5, 0.5)
 		-- Somebody already on the list is only here because they are owed, and
 		-- for them the same press lets that favour go. You never are: your

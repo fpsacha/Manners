@@ -6,7 +6,7 @@ S = "runscenarios.py"
 
 # the settle never notes the cast it saw land.
 mutate("Clicks.lua",
-       "\tif not unheard then ns.NoteGave(pending.name, pending.buffKey) end\n",
+       "\tif not unheard then ns.NoteGave(pending.name, pending.buffKey, not wasOwed) end\n",
        "",
        "gaveback: the settle notes nothing",
        expect="gaveback: a favour is not repaid with the Might they wear from you", script=S)

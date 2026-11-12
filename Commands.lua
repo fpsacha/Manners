@@ -1903,10 +1903,16 @@ function addon:HandleSlash(rawInput)
 		local _, resume = ns.SavingMana()
 		if resume then
 			-- Your own buff is kept too (Queue.lua, SelfEntry), where "Myself"
-			-- is on, and a line leaving it out would contradict the queue.
-			self:Print((ns.OffersSelf()
+			-- is on, and a line leaving it out would contradict the queue; and
+			-- what is kept is "Below it, still offer"'s (ns.ManaFloorKept).
+			local kept = ns.ManaFloorKept()
+			self:Print((kept == "askedself"
 				and L["|cffffd100saving mana|r -- until you are back to %d%% mana, only your own buff and people who buffed you or asked are offered"]
-				or L["|cffffd100saving mana|r -- until you are back to %d%% mana, only people who buffed you or asked are offered"])
+				or kept == "asked"
+				and L["|cffffd100saving mana|r -- until you are back to %d%% mana, only people who buffed you or asked are offered"]
+				or kept == "self"
+				and L["|cffffd100saving mana|r -- until you are back to %d%% mana, only your own buff is offered"]
+				or L["|cffffd100saving mana|r -- until you are back to %d%% mana, nothing is offered"])
 				:format(resume))
 		end
 		if ns.ReadyCheckRunning() then

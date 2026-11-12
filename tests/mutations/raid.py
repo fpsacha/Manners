@@ -299,7 +299,7 @@ mutate("Favours.lua",
 
 # Never read by the queue.
 mutate("Queue.lua",
-       "\t\tif savingMana and (reason == \"group\" or reason == \"nearby\") then\n"
+       "\t\tif savingMana and (reason == \"group\" or reason == \"nearby\" or manaHoldsAsked) then\n"
        "\t\t\trejected[full] = true\n\t\t\treturn\n\t\tend\n",
        "",
        "mana floor ignored",
@@ -308,7 +308,7 @@ mutate("Queue.lua",
 
 # Holding back favours and requests as well.
 mutate("Queue.lua",
-       "\t\tif savingMana and (reason == \"group\" or reason == \"nearby\") then\n",
+       "\t\tif savingMana and (reason == \"group\" or reason == \"nearby\" or manaHoldsAsked) then\n",
        "\t\tif savingMana then\n",
        "mana floor holds back favours",
        expect="a favour owed was held back while saving mana",

@@ -5,7 +5,42 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.11.15 is released. Unreleased after it, asked for on CurseForge: the prompt
+1.11.16 is released. Unreleased after it, all three asked for on CurseForge:
+
+- *Below it, still offer* under *Save mana* (`filters.manaFloorKeeps`:
+  `asked`, the default and the old behaviour, `self` or `none`; Queue.lua
+  `ns.ManaFloorKeeps` and `ns.ManaFloorKept`, which every line about the
+  floor asks). BuildQueue's `manaHoldsAsked` turns favours and requests away
+  as a verdict in the walk, skips the tokenless owed fallback and lets go of
+  remembered askers (OfferPassersBy's `dropAsked`); SelfEntry offers nothing
+  with `none`, read off the scan's `sweep.saving`. Debts are never cleared by
+  it. The consumables button is not held back (items cost no mana).
+  `tests/scenarios/manakeeps.lua`.
+- A buff back is not a favour owed (Favours.lua `BuffedBack`, in
+  `OweFavour` before the debt is written): the giver wears a buff the client
+  names you as the caster of with more than the top-up lead left, or Manners
+  noted a gift to them (`ns.NoteGave`'s third argument, `not wasOwed`, kept in
+  `giftAt`; `ns.GaveLately`) whose time less the lead has not run out. A cast
+  that returned their favour is no gift, so their next buff is a new favour
+  (hunt3-ledger's refusal fixture relies on it). The ledger files it as state
+  `back`, *Buffed back*, counted in neither the received nor the owed totals;
+  the /thank and a whisper still go (nothing is owed, so the whisper's rule
+  lets it). `tests/scenarios/buffback.lua`.
+- A right-click on your own buff skips that buff (`ns.MarkAttempted` with the
+  skip time), ctrl-right-click all of yours (`ns.BlockPerson`), shift is still
+  StopOfferingSelf (Prompt/Press.lua `ShownBuffKey`: a row's own buff, under
+  an outcome the buff the outcome is about, `S.outcomeBuff` written by
+  `Prompt:ShowOutcome` from Clicks.lua's records, else the painted entry's).
+  The launcher's *Skip for now* on your own buff skips that one too.
+  `tests/scenarios/ownskip.lua`.
+
+Only the live game can say: that ctrl-right-click reaches the prompt's
+PostClick with `IsControlKeyDown()` true and casts nothing (the `*type2`
+wildcard covers it, as it does shift); and on WoW Forever a buff you cast by
+hand, outside the prompt, still cannot be told for yours on somebody else (no
+caster named, no note), so its giver is owed as before.
+
+In 1.11.16, asked for on CurseForge: the prompt
 moved in the game's Edit Mode (`prompt.moveInEditMode`, on; Prompt/Button.lua,
 "Edit Mode": `EventRegistry`'s "EditMode.Enter" unlocks a locked prompt and
 "EditMode.Exit" locks one it unlocked, a drag meanwhile saves the place and
@@ -16,7 +51,7 @@ the live game can say: that the callbacks reach an addon on each client, that
 the unlocked prompt can be dragged over Edit Mode's own overlay, and that a
 callback registered by an addon leaves Edit Mode's saving untainted.
 
-Also unreleased, asked for by the author: a companion pet kept out (`pet`
+Also in 1.11.16, asked for by the author: a companion pet kept out (`pet`
 family, off by default; `Pets.lua` from `tools/make_pets.py`, `Companion.lua`,
 `tests/scenarios/pets.lua`). Forever's pet journal is summoned with no press
 from the scan (`C_PetJournal.SummonPetByGUID` or `SummonRandomPet`, by *Which
@@ -31,7 +66,7 @@ mounting is not); and whether a bag pet's item used while one is out puts it
 away (assumed, as a toggle). Mists and retail are left out until the first of
 these is known there.
 
-Also unreleased, both asked for on CurseForge: *Wait a moment before thanking*
+Also in 1.11.16, both asked for on CurseForge: *Wait a moment before thanking*
 (`prompt.thankDelay`, off; Favours.lua `ThankFavour`: the /thank and the
 whisper go out after a random one to three seconds on `C_Timer.After`, every
 rule asked again then by `Blocked`, one thank waiting at a time, a skip
