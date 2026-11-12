@@ -215,7 +215,7 @@ end
 -- medallion, a seal): the switch reads nothing there, so the options page greys
 -- it out for them (tests/scenarios/hunt38-picker.lua holds this list to what the
 -- looks draw). A look that reads the setting is not here.
-Looks.roundAlways = { toast = true, ribbon = true, letter = true }
+Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true }
 
 -- Whether the style's look is round whatever the switch says.
 function Looks.RoundAlways(key)

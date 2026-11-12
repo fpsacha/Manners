@@ -46,7 +46,7 @@ end
 -- ------------------------------------------------------------------ 1
 -- The text a look writes does not depend on the panel colour when the look
 -- does not draw the panel colour as its ground.
-for _, style in ipairs({ "ribbon", "leather", "forge" }) do
+for _, style in ipairs({ "ribbon", "leather", "forge", "archmage" }) do
 	local scenario = "hunt38-shared: " .. style .. " writes the same ink on a pale panel colour as on a dark one"
 	withTree(scenario, { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" } }, function(ns)
 		local saved = RAID_CLASS_COLORS
@@ -118,7 +118,8 @@ do
 		local round = H.findOption(ns.optionsTable, "roundIcon")
 		if not round then fail(scenario, "SKIPPED -- no round icon option") return end
 		p.showIcon = true
-		local always = { letter = true, ribbon = true, toast = true }
+		-- The Archmage's icon is a hexagon whatever the toggle says.
+		local always = { letter = true, ribbon = true, toast = true, archmage = true }
 		local keys = {}
 		for key in pairs(ns.Looks.Allowed()) do keys[#keys + 1] = key end
 		table.sort(keys)

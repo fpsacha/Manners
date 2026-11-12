@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **A new look: Archmage.** A mage's focus: a violet crystal cut to a point at
+  each end and bound in a pale gold wire, with your spell set in a hexagon of
+  six arcane charges. The charges and a vein inside the crystal carry the
+  reason's colour. When somebody buffs you the six charges light one after
+  another and a light runs down the vein to a star at the far point; while you
+  owe them, a wave of light travels round the hexagon; when your buff lands
+  all six flash, lightning crackles round the setting and a light runs along
+  each edge; a refusal unwinds the charges and leaves them grey. At rest the
+  crystal is alive: light drifts along its ridges, glints twinkle on its
+  bevels, and somebody new on the prompt is greeted with a sheen and three
+  stars. *Animations* on *Calm* keeps all of that to gentle fades, and a
+  fight stills it. The icon is always a hexagon here, so *Round the icon off*
+  is greyed out. That makes eleven looks, each a card under *Look*.
 - **The favour ledger is readable again.** Every row was washed in a bright
   pastel (mint for Returned, sky blue for your group, lavender for a stranger),
   and the names and the line under them could hardly be read on it. Rows are

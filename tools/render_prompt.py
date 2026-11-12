@@ -40,7 +40,7 @@ try:
 except ImportError:  # drawing needs them; reading a tree's geometry (Tree) does not
     np = Image = ImageDraw = ImageFilter = ImageFont = None
 
-import lupa
+from lupa import lua51 as lupa  # the game is Lua 5.1: the default runtime (5.5) refuses what 5.1 allows
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
