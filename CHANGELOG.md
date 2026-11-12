@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **The favour ledger is readable again.** Every row was washed in a bright
+  pastel (mint for Returned, sky blue for your group, lavender for a stranger),
+  and the names and the line under them could hardly be read on it. Rows are
+  dark now, with their state on the thin coloured edge and the tinted word
+  (Still owed, Returned, Let go, Gave), as they were meant to be; the colour only
+  flashes across a row for a moment when something new arrives at the top. A
+  favour you let go is dimmed a little less, so its name still reads.
+
 ## 1.11.16
 
 - **Move the prompt in Edit Mode.** Open the game's Edit Mode and the prompt

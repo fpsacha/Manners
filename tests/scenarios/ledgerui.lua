@@ -652,3 +652,95 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ ledgerui 7
+-- Rows sit on a dark fill, their state told by the thin stripe at the edge and
+-- the tinted tag, never by a wash of the state's colour over the whole row. In
+-- the game every row was a bright pastel (mint for Returned, sky blue for your
+-- group, lavender for a stranger) and the class-coloured names and the grey
+-- detail could hardly be read on it: the new-entry flash rested at SetAlpha(0)
+-- under a colour set at full alpha, and the client drew the colour's alpha. So
+-- a fill is judged here by the alpha of its colour, whatever SetAlpha said,
+-- and the flash by whether it is shown at all. A let-go row is dimmed no
+-- further than its grey detail still reads.
+local WHITE = "Interface\\Buttons\\WHITE8X8"
+do
+	local scenario = "ledgerui: rows sit dark, their state on the edge and the tag"
+	withWindow(scenario, "enUS", function(ns)
+		busy(ns)
+		local window = open(ns, "all")
+		if not (window and window:IsShown()) then
+			fail(scenario, "SKIPPED -- /manners ledger did not open the window")
+			return
+		end
+		local seen = {}
+		for _, tab in ipairs(window.tabs) do
+			tab.scripts.OnClick(tab)
+			local rect = newLayout()
+			for i, row in ipairs(window.rows) do
+				local e = row.entry
+				if shown(row) and e then
+					local state = e.kind == "given" and ("gift to " .. tostring(e.to)) or tostring(e.state)
+					seen[state] = true
+					local where = ("row %d of %s (%s)"):format(i, tab.key, state)
+					if shown(row.flash) then fail(scenario, where .. " rests under its new-entry flash") end
+					local box = rect(row)
+					for _, r in ipairs(regionsOf(row)) do
+						if r._kind == "Texture" and r._file == WHITE and r._layer ~= "HIGHLIGHT" and shown(r) then
+							local own = rect(r)
+							local alpha = r._color and r._color[4] or 1
+							if box and own and own[3] - own[1] > (box[3] - box[1]) / 2 and alpha > 0.25 then
+								fail(scenario, ("%s is filled with a colour at alpha %.2f"):format(where, alpha))
+							end
+						end
+					end
+					local ink, dim = row.detail._textColor, row:GetAlpha()
+					if ink and math.min(ink[1], ink[2], ink[3]) * dim < 0.5 then
+						fail(scenario, ("%s: its detail is too dark to read (%.2f)"):format(where,
+							math.min(ink[1], ink[2], ink[3]) * dim))
+					end
+				end
+			end
+		end
+		for _, state in ipairs({ "owed", "returned", "letgo", "gift to group", "gift to stranger" }) do
+			if not seen[state] then fail(scenario, "SKIPPED -- no " .. state .. " row was shown") end
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ ledgerui 8
+-- The flash is for the entry that just arrived: shown while it plays, hidden
+-- once it has, and not brought back by a repaint.
+do
+	local scenario = "ledgerui: a new entry flashes once, then its row rests dark"
+	withWindow(scenario, "enUS", function(ns)
+		busy(ns)
+		local window = open(ns, "all")
+		if not (window and window:IsShown()) then
+			fail(scenario, "SKIPPED -- /manners ledger did not open the window")
+			return
+		end
+		local row = window.rows[1]
+		if shown(row.flash) then fail(scenario, "the top row is under its flash before anything new arrived") end
+		ns.Ledger.Received({ name = "Corwin Ash", class = "MAGE", key = 1459 })
+		if not (row.entry and row.entry.name == "Corwin Ash") then
+			fail(scenario, "SKIPPED -- the new favour is not on the top row")
+			return
+		end
+		if not (shown(row.flash) and row.flashAnim:IsPlaying()) then
+			fail(scenario, "a new entry at the top does not flash")
+		end
+		Mock.advance(2)
+		FT.settle()
+		if row.flashAnim:IsPlaying() then
+			fail(scenario, "SKIPPED -- the flash is still playing two seconds on")
+		elseif shown(row.flash) then
+			fail(scenario, "the flash stays on its row once it has played")
+		end
+		ns.Ledger.Scroll(1)
+		ns.Ledger.Scroll(-1)
+		for i, r in ipairs(window.rows) do
+			if shown(r.flash) then fail(scenario, ("row %d is under its flash after a scroll"):format(i)) end
+		end
+	end)
+end

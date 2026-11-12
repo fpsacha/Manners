@@ -1202,6 +1202,8 @@ local INK_SOFT = { 0.70, 0.70, 0.73 }
 local INK_FAINT = { 0.55, 0.55, 0.58 }
 -- Clear, armed: the one colour on the window that means "careful".
 local DANGER = { 1.00, 0.45, 0.35 }
+-- How far a let-go row is dimmed.
+local LETGO_ALPHA = 0.75
 
 local window, rows, offset, filter, lastTop, tickAt, clearArmedUntil
 
@@ -1495,17 +1497,27 @@ local function BuildRow(i)
 	row.detail:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -8, 4)
 
 	-- A wash of the row's colour when something new arrives at the top, so the
-	-- entry that just happened is the one the eye lands on.
-	row.flash = Solid(row, "ARTWORK", 1)
-	row.flash:SetAllPoints()
-	row.flash:SetBlendMode("ADD")
-	row.flash:SetAlpha(0)
-	row.flashAnim = row.flash:CreateAnimationGroup()
+	-- entry that just happened is the one the eye lands on. Hidden whenever it
+	-- is not playing, and never kept out of sight by its alpha alone: it used to
+	-- rest at SetAlpha(0), and in the game every row sat under a bright wash of
+	-- its state's colour (mint, sky blue, lavender), the class-coloured name and
+	-- the grey detail all but lost on it. Paint gives the wash its colour at full
+	-- alpha, and on the game's client that alpha evidently took the place of the
+	-- zero. A hidden texture draws nothing whatever its alpha.
+	local flash = Solid(row, "ARTWORK", 1)
+	row.flash = flash
+	flash:SetAllPoints()
+	flash:SetBlendMode("ADD")
+	flash:Hide()
+	row.flashAnim = flash:CreateAnimationGroup()
 	local fade = row.flashAnim:CreateAnimation("Alpha")
-	fade:SetFromAlpha(0.35)
+	fade:SetFromAlpha(0.3)
 	fade:SetToAlpha(0)
 	fade:SetDuration(1.2)
 	fade:SetSmoothing("OUT")
+	local function Rest() flash:Hide() end
+	row.flashAnim:SetScript("OnFinished", Rest)
+	row.flashAnim:SetScript("OnStop", Rest)
 
 	row:SetHighlightTexture(WHITE, "ADD")
 	local hl = row:GetHighlightTexture()
@@ -1541,8 +1553,9 @@ local function Paint(row, e, now)
 	row.stripe:SetVertexColor(colour[1], colour[2], colour[3], 0.9)
 	row.flash:SetVertexColor(colour[1], colour[2], colour[3], 1)
 	-- Let go is over and done with: dimmed, so what still needs doing and what
-	-- went well stand out from it.
-	row:SetAlpha(e.kind == "received" and e.state == "letgo" and 0.62 or 1)
+	-- went well stand out from it, but no further than a dark class colour
+	-- (a death knight's red, a warlock's violet) and the grey detail still read.
+	row:SetAlpha(e.kind == "received" and e.state == "letgo" and LETGO_ALPHA or 1)
 	row:Show()
 end
 
@@ -1674,6 +1687,7 @@ function Render()
 	local top = list[1]
 	if top and lastTop ~= nil and top ~= lastTop and offset == 0 then
 		rows[1].flashAnim:Stop()
+		rows[1].flash:Show()
 		rows[1].flashAnim:Play()
 	end
 	lastTop = top or false

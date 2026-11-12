@@ -97,3 +97,34 @@ mutate("Ledger.lua",
        "\t\treturn true\n",
        "ledgerui: Clear offered over favours it would keep",
        expect="ledgerui: Clear shows only when there is something to clear", script=S)
+
+# Rows sit dark, their state on the stripe and the tag. The new-entry flash
+# kept out of sight by SetAlpha(0) alone, as it was: the colour Paint gives it
+# at full alpha is what the game drew, a bright wash over every row.
+ROWS_DARK = "ledgerui: rows sit dark, their state on the edge and the tag"
+FLASH_ONCE = "ledgerui: a new entry flashes once, then its row rests dark"
+mutate("Ledger.lua",
+       "\tflash:Hide()\n\trow.flashAnim = flash:CreateAnimationGroup()\n",
+       "\tflash:SetAlpha(0)\n\trow.flashAnim = flash:CreateAnimationGroup()\n",
+       "ledgerui: the new-entry flash rests on its alpha alone",
+       expect=ROWS_DARK, script=S)
+mutate("Ledger.lua",
+       "\trow.detail:SetText(detail)\n",
+       "\trow.detail:SetText(detail)\n\trow.back:SetVertexColor(colour[1], colour[2], colour[3], 0.85)\n",
+       "ledgerui: rows washed in their state's colour",
+       expect=ROWS_DARK, script=S)
+mutate("Ledger.lua",
+       "local LETGO_ALPHA = 0.75\n",
+       "local LETGO_ALPHA = 0.62\n",
+       "ledgerui: a let-go row dimmed past reading",
+       expect=ROWS_DARK, script=S)
+mutate("Ledger.lua",
+       "\trow.flashAnim:SetScript(\"OnFinished\", Rest)\n",
+       "",
+       "ledgerui: the flash stays once it has played",
+       expect=FLASH_ONCE, script=S)
+mutate("Ledger.lua",
+       "\t\trows[1].flash:Show()\n",
+       "",
+       "ledgerui: a new entry never flashes",
+       expect=FLASH_ONCE, script=S)
