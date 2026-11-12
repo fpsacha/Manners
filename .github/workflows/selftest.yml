@@ -34,8 +34,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install the Lua runtime the tests need
-        run: pip install lupa
+      - name: Install the Lua runtime and the art tools the tests need
+        run: pip install Pillow numpy lupa
 
       # The scenario trace and the catches (which piece of the suite caught
       # each mutation last time) are kept between runs, per part: they only
