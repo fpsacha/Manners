@@ -17,8 +17,8 @@ mutate("tests/fuzz_world.lua",
 # One record per person again: a blessing pressed on whoever wears your Oath of
 # Light wipes the Oath's.
 mutate("Queue.lua",
-       "\t\tentry[buffKey] = GetTime()\n",
-       "\t\twipe(entry)\n\t\tentry[buffKey] = GetTime()\n",
+       "\t\tentry[buffKey] = now\n",
+       "\t\twipe(entry)\n\t\tentry[buffKey] = now\n",
        "engine-fix: one noted cast per person",
        expect=P + "a blessing on whoever wears your Oath of Light does not move the Oath", script=S)
 

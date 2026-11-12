@@ -486,6 +486,37 @@ do
 	local LINE_AGAIN = 1800
 	local lineAt, lineCount = {}, 0
 
+	-- Whether this favour is a buff back: somebody you buffed first returning
+	-- it (asked for on CurseForge: "If I buff someone, because they are nearby,
+	-- then they buff me back a minute later, it will start chiming at me to buff
+	-- them"). Either Manners saw a buff of yours land on them as a gift (the
+	-- ledger's "Gave", not a favour returned) whose time, less its top-up lead,
+	-- has not run out (ns.GaveLately) -- WoW Forever names nobody as the caster
+	-- of a buff on another player, so this is how it is told there, and it
+	-- holds when no token reaches them or the aura cannot be read -- or they
+	-- wear a buff the client names you as the caster of, with more than that
+	-- lead left. A buff of yours about to run out is no return: they are owed as
+	-- ever, and the top-up repays them. Read only for a favour about to be
+	-- filed, so a token is asked by name (ns.UnitFor: the one Sight read, if it
+	-- still holds them), never trusted from a scan ago.
+	local function BuffedBack(db, seen)
+		local now = GetTime()
+		local opts = { inGroup = seen.inGroup, now = now, refreshUnder = db.filters.refreshUnder }
+		local function leadOf(length) return (ns.LeadFor(opts, length)) end
+		if ns.GaveLately(seen.name, now, leadOf) then return true end
+		local unit = ns.UnitFor(seen.name, seen.unit)
+		if not unit then return false end
+		local guid = plain(UnitGUID(unit))
+		for _, buff in ipairs(ns.CastableBuffs()) do
+			local has, remaining, mine, _, seconds = ns.UnitHasBuff(unit, buff, guid)
+			if has == true and mine == true and type(remaining) == "number"
+				and remaining > leadOf(seconds or (ns.BuffSeconds(buff))) then
+				return true
+			end
+		end
+		return false
+	end
+
 	-- The debt a favour leaves, and the chat line about it, while People who buff
 	-- me is on (NoteFavour asks). `seen` comes from Sight and nothing is
 	-- re-derived from the aura here: by now the token may mean somebody else.
@@ -542,6 +573,17 @@ do
 				-- Translators: the option's name comes in through its own key, so a
 				-- translated line quotes the checkbox the player can find.
 				addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, ns.RelevantOnlyLabel and ns.RelevantOnlyLabel() or ""))
+			end
+			return
+		end
+
+		-- A buff back from somebody you buffed first (BuffedBack): no debt, so
+		-- nothing on the prompt and no chime; the ledger says so, and so does
+		-- the line. A debt already standing for them stays as it was.
+		if not owed[seen.name] and BuffedBack(db, seen) then
+			TellLedger("Received", seen, true, nil, true)
+			if speak then
+				addon:Print(L["|cff80ff80%s buffed you back|r -- you buffed them first, so nothing is owed"]:format(seen.name))
 			end
 			return
 		end

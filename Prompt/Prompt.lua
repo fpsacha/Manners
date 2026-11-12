@@ -173,6 +173,9 @@ local S = {
 	outcomeAt = nil,
 	outcomeName = nil,
 	outcomeDetail = nil,
+	-- The buff the press was for, where it is known: a right-click under the
+	-- words on your own buff skips that one (Press.lua, ShownBuffKey).
+	outcomeBuff = nil,
 	-- Who the name line is about while an outcome is over it: the outcome expires
 	-- on the clock but its words stay until a repaint, and a press follows the
 	-- words.

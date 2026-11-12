@@ -16,7 +16,7 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 - **Click any name** in the list under the prompt to buff that person; right-click skips them, shift-right-click never offers them again.
 - **Kept out of the way:** a *Never offer* list, friends and guildmates first, nobody flagged for PvP while you are not, `/manners snooze`, the prompt hidden while you ride or in a fight, *Offer nothing in cities and inns* (or cities only, or inns only) or *in dungeons, raids and battlegrounds*, paladins skipping players another paladin has blessed, Thorns for tanks only or for you alone, consumables only in dungeons and raids, and *Hide all Manners messages in my chat window*.
 - **People who ask me in chat** (off by default): "int pls", "fort?" or "can I get motw" puts them on the prompt for a minute.
-- **Dungeons and raids:** one group cast for a whole party when you carry the reagent, ready checks and the fallen first, only the raid groups you buff, save mana below a level you set.
+- **Dungeons and raids:** one group cast for a whole party when you carry the reagent, ready checks and the fallen first, only the raid groups you buff, save mana below a level you set, holding back as much as you choose.
 - **Top-ups timed to each buff:** with top-ups on, about a tenth of its length before it ends, earlier in a raid or dungeon.
 - **Paladins:** Blessing of Kings first, and a buff order of your own for any class with several buffs.
 - **The favour ledger** and titles for your manners, from *Well Brought Up* to *The Very Soul of Courtesy*. `/manners ledger`.

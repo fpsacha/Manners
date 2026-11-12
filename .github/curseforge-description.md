@@ -69,7 +69,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 - **One cast for the group.** Know Arcane Brilliance, a Prayer, Gift of the Wild or a Greater Blessing and carry its reagent, and when 3 or more need your buff you are offered one group cast, not one each (a Greater Blessing goes by class). The prompt says who it is for ("Your party", "Every Warrior"), and the tooltip counts your reagents. Short of mana or reagents, you get the single buff.
 - **Ready checks and the fallen.** From a ready check until the pull, your group goes to the front. For two minutes after somebody is brought back, so do they. Feign Death does not count.
 - **Raid groups I buff.** Untick the groups you were not assigned; people who buffed you or asked are still offered.
-- **Save mana.** Below the level you set, only your own buffs and people who buffed you or asked are offered.
+- **Save mana.** Below the level you set, only your own buffs and people who buffed you or asked are offered, or only your own buffs, or nothing at all: your choice.
 - **Quieter raids.** No "buffed you" chat line inside a raid; the favour is still remembered.
 - **Battle Shout reach.** A warrior's shout is offered only to the people it reaches: your own party, or your whole raid on WoW Forever.
 

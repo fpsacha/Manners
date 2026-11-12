@@ -71,7 +71,7 @@ Page.RESET = {
 	},
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
-		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
+		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor", "filters.manaFloorKeeps",
 		-- Who to buff's two place rules, which this page draws under Hold back.
 		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets",
 		"filters.quietInTownsWhere",

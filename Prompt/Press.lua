@@ -159,11 +159,17 @@ local function ExplainEmpty(now)
 			-- The option goes in by its own key, so a translation names the
 			-- label the window shows.
 			local _, resume = ns.SavingMana()
-			-- Your own buff is kept while saving (Queue.lua, SelfEntry), so the
-			-- sentence names it wherever "Myself" is on.
-			local line = ns.OffersSelf()
+			-- What is still offered while saving, as "Below it, still offer"
+			-- and "Myself" have it (ns.ManaFloorKept): your own buff is named
+			-- wherever it is kept (Queue.lua, SelfEntry).
+			local kept = ns.ManaFloorKept()
+			local line = kept == "askedself"
 				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff and people who buffed you or asked are offered. The floor is %s on the %s tab."]
-				or L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
+				or kept == "asked"
+				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
+				or kept == "self"
+				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff is offered. The floor is %s on the %s tab."]
+				or L["nobody to buff right now -- saving mana until you are back to %d%%, so nothing is offered. The floor is %s on the %s tab."]
 			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
 		elseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true
 			and #ns.CastableBuffs() > 0
@@ -322,6 +328,22 @@ local function OnPreClick(self, mouseButton, down)
 	pressKey = S.appliedKey
 end
 
+-- The buff a right-click on `victim` is about: what the panel shows for them.
+-- A name in the list has its own (Rows.lua, buffKey). Under an outcome's words
+-- the press follows the words (PanelName): the buff that outcome is about
+-- (Paint.lua, outcomeBuff), never the next one armed underneath, which after a
+-- press on yourself is already your next own buff. Otherwise the entry last
+-- painted, when it is theirs. nil when nothing says.
+local function ShownBuffKey(state, victim)
+	if state.isRow then return state.buffKey end
+	if S.outcomePainted then
+		return S.outcomePainted == victim and S.outcomeBuff or nil
+	end
+	local shown = S.heldEntry
+	if shown and shown.name == victim and shown.buff then return shown.buff.key end
+	return nil
+end
+
 local function OnPostClick(self, mouseButton, down)
 	if down == false then return end
 	-- Whose press this is: the prompt's, a name in the list (OnRowPostClick)
@@ -383,16 +405,28 @@ local function OnPostClick(self, mouseButton, down)
 			return
 		end
 		local db = ns.db and ns.db.profile
-		-- The retry cooldown, not the two seconds a failed cast writes:
-		-- that would put them straight back on the prompt.
-		ns.BlockPerson(victim, ns.SkipSeconds())
+		-- Your own buff, by the name rather than the entry: under the flash
+		-- of a press on yourself the entry armed may already be the next one.
+		local own = ns.IsPlayerName(victim)
+		-- On yourself a right-click skips just the buff the panel shows, so
+		-- the next of yours comes up (asked for on CurseForge: one skip took
+		-- every own buff off); ctrl-right-click skips them all, as every
+		-- right-click once did. Your own buffs honour a block on one buff
+		-- (Core.lua, OwnVerdict; Queue.lua, SelfBuff). When the panel names
+		-- no buff of yours, it is them all.
+		local ctrl = IsControlKeyDown and ns.plain(IsControlKeyDown())
+		local ownKey = own and not ctrl and ShownBuffKey(S, victim) or nil
+		if ownKey then
+			ns.MarkAttempted(victim, ownKey, ns.SkipSeconds())
+		else
+			-- The retry cooldown, not the two seconds a failed cast writes:
+			-- that would put them straight back on the prompt.
+			ns.BlockPerson(victim, ns.SkipSeconds())
+		end
 		-- A group cast on the panel: the skip is of the whole party, or the
 		-- cast re-forms around the next of them on the next scan.
 		local group = S.current and S.current.name == victim and S.current.groupCast and S.current or nil
 		if group and ns.SkipGroupCast then ns.SkipGroupCast(group) end
-		-- Your own buff, by the name rather than the entry: under the flash
-		-- of a press on yourself the entry armed may already be the next one.
-		local own = ns.IsPlayerName(victim)
 		-- The prompt's pulse is about the prompt's person, not a row's.
 		if not S.isRow then Prompt:StopAttention() end
 		-- "Never" for yourself is the switch (StopOfferingSelf): the list is
@@ -425,7 +459,10 @@ local function OnPostClick(self, mouseButton, down)
 		-- your own buff: a held press there only casts it on you.
 		local frozenOnThem = not own and InCombatLockdown() and S.current and S.current.name == victim
 		if db and db.verbose and own then
-			ns.addon:Print(L["skipping your own buff for now."])
+			-- The one buff by its name, or all of yours.
+			local buff = ownKey and (ns.FindBuff(ns.caps.class, ownKey) or ns.FindOwnSpell(ownKey))
+			ns.addon:Print(buff and L["skipping your |cffffffff%s|r for now."]:format(ns.BuffName(buff))
+				or L["skipping all your own buffs for now."])
 		elseif frozenOnThem or (db and db.verbose) then
 			local shown = (group and group.groupCast.label)
 				or (S.current and S.current.name == victim and S.current.short)

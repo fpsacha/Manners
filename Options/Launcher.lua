@@ -480,7 +480,13 @@ end
 -- list changes nothing on screen -- and for the one on the prompt in a fight,
 -- that a press still casts at them.
 local function SkipFromMenu(entry)
-	ns.BlockPerson(entry.name, ns.SkipSeconds())
+	-- Your own buff: just that one, so the next of yours comes up, as a
+	-- right-click on it does (Press.lua). Your own buffs honour a block on one.
+	if entry.reason == "self" and entry.buff then
+		ns.MarkAttempted(entry.name, entry.buff.key, ns.SkipSeconds())
+	else
+		ns.BlockPerson(entry.name, ns.SkipSeconds())
+	end
 	-- A group cast is skipped whole, as a right-press on it is.
 	if ns.SkipGroupCast then ns.SkipGroupCast(entry) end
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
@@ -491,7 +497,8 @@ local function SkipFromMenu(entry)
 	-- "You" is the panel's word, not a name to slot into a sentence. No word
 	-- about a fight: a press held there casts your own buff on you, harmless.
 	if entry.reason == "self" then
-		ns.addon:Print(L["skipping your own buff for now."])
+		ns.addon:Print(entry.buff and L["skipping your |cffffffff%s|r for now."]:format(ns.EntrySpellName(entry))
+			or L["skipping all your own buffs for now."])
 		ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 		return
 	end

@@ -64,10 +64,12 @@ end
 -- "cast" is the game naming the person we aimed at, "sent" is our spell going
 -- out with the client not saying who got it, and "failed" is reason to believe
 -- nothing reached them. Guarded: cosmetic, and must not take the settle with it.
-local function ShowOutcome(kind, name, detail)
+-- `buffKey` is the buff the press was for, where the caller has it: a right-click
+-- under the words skips that one of your own (Press.lua, ShownBuffKey).
+local function ShowOutcome(kind, name, detail, buffKey)
 	ns.Trail("outcome", tostring(kind) .. (detail and (": " .. tostring(detail)) or ""), name)
 	if not (ns.Prompt and ns.Prompt.ShowOutcome and name) then return end
-	ns.Guard("prompt outcome", ns.Prompt.ShowOutcome, ns.Prompt, kind, name, detail)
+	ns.Guard("prompt outcome", ns.Prompt.ShowOutcome, ns.Prompt, kind, name, detail, buffKey)
 end
 
 -- Did the id the game reported belong to the buff we armed? Every rank and the
@@ -191,7 +193,7 @@ local function FailPendingClick(message)
 	RewindClick(pending)
 	ns.NoteRefusal(pending.name, message, nil, pending.spoke, pending.buffKey,
 		pending.group and pending.group.members)
-	return pending.name
+	return pending.name, pending.buffKey
 end
 
 -- The clock running out on a parked click: a record that sat the whole window
@@ -208,7 +210,7 @@ local function SweepPendingClick(now)
 	-- The panel only from here: this is the one path that notices the window
 	-- running out as it happens. The other callers find the record long dead,
 	-- with the panel moved on (or mid-arming, inside PostClick).
-	ShowOutcome("failed", pending.name, L["nothing was cast"])
+	ShowOutcome("failed", pending.name, L["nothing was cast"], pending.buffKey)
 end
 ns.SweepPendingClick = SweepPendingClick
 
@@ -313,7 +315,7 @@ local function ScrollCastStopped(castGUID, spellId, why)
 	RewindClick(cast.record)
 	ns.UndoScrollPress(cast.spell, cast.before)
 	SayStillOwed(cast.record.name, why)
-	return cast.record.name
+	return cast.record.name, cast.record.buffKey
 end
 
 -- Which record a refusal answers, or nil for "nothing here says". A record
@@ -439,10 +441,10 @@ local function SettleSelf(pending, spellId, castGUID)
 		local why = L["|cffffffff%s|r went out instead"]:format(SpellLabel(spellId))
 		SayStillOwed(pending.name, why)
 		RewindClick(pending)
-		ShowOutcome("failed", pending.name, (why:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")))
+		ShowOutcome("failed", pending.name, (why:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")), pending.buffKey)
 		return
 	end
-	ShowOutcome("cast", pending.name)
+	ShowOutcome("cast", pending.name, nil, pending.buffKey)
 	ns.MarkAttempted(pending.name, pending.buffKey)
 	-- Behind the same gate as everybody's: a paladin's walk never reads it.
 	if ns.RotatesBuffs() and pending.buffKey then ns.lastGave[pending.name] = pending.buffKey end
@@ -672,7 +674,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		ns.pendingClick = nil
 		-- The chat line's sentence, without colour codes: the sub-line is
 		-- already tinted, and a nested one renders as literal text.
-		ShowOutcome("failed", pending.name, (why:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")))
+		ShowOutcome("failed", pending.name, (why:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")), pending.buffKey)
 		return
 	end
 
@@ -705,7 +707,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 
 	-- "cast" only where the client named the person; "sent" for an inference.
 	local how = inferred and SETTLE_INFERENCE[inferred]
-	ShowOutcome(how and "sent" or "cast", pending.name, how and how.sub)
+	ShowOutcome(how and "sent" or "cast", pending.name, how and how.sub, pending.buffKey)
 
 	-- Put back what PostClick wrote, which an error inside the window may have
 	-- rewound; written unconditionally, as what a landed cast leaves behind.
@@ -713,7 +715,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	if pending.buffKey and ns.RotatesBuffs() then
 		ns.lastGave[pending.name] = pending.buffKey
 	end
-	if not unheard then ns.NoteGave(pending.name, pending.buffKey) end
+	-- A gift, not a favour returned, is the ledger's "Gave": a buff from them
+	-- in its time is their buff back (Favours.lua, BuffedBack).
+	if not unheard then ns.NoteGave(pending.name, pending.buffKey, not wasOwed) end
 
 	if not unheard then ns.SettleFavour(pending.name) end
 	if not unheard then ns.ServeRequest(pending.name, pending.buffKey) end
@@ -779,7 +783,7 @@ local function UnsettleLateRefusal(castGUID)
 		TellLedger("Refused", settled.name, settled.at)
 		TellLedger("LetGo", settled.name, "never")
 		RewindClick(settled)
-		return settled.name
+		return settled.name, settled.buffKey
 	end
 
 	-- Written to disk, as SettleFavour's clearing was. A newer favour filed
@@ -798,7 +802,7 @@ local function UnsettleLateRefusal(castGUID)
 	ns.NoteRefusal(settled.name, nil, nil, settled.spoke, settled.buffKey,
 		settled.group and settled.group.members)
 	SayStillOwed(settled.name, L["the game refused the cast after sending it"])
-	return settled.name
+	return settled.name, settled.buffKey
 end
 
 -- The global cooldown, read where the client will say and tracked where not.
@@ -1073,8 +1077,8 @@ function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
 	SyncSweep()
 	if not castingScroll then return end
-	local stopped = ScrollCastStopped(plain(castGUID), plain(spellId), L["the cast was interrupted"])
-	if stopped then ShowOutcome("failed", stopped, L["the cast was interrupted"]) end
+	local stopped, stoppedKey = ScrollCastStopped(plain(castGUID), plain(spellId), L["the cast was interrupted"])
+	if stopped then ShowOutcome("failed", stopped, L["the cast was interrupted"], stoppedKey) end
 end
 
 -- Pushback: being hit while casting moves the cast's end later, and only this
@@ -1103,15 +1107,15 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	-- with no record parked: a parked one is UI_ERROR_MESSAGE's to answer. This
 	-- event names the cast, which is why only it may undo a settle.
 	if not ns.pendingClick then
-		local late = UnsettleLateRefusal(castGUID)
-		if late then ShowOutcome("failed", late, L["the game refused the cast"]) end
+		local late, lateKey = UnsettleLateRefusal(castGUID)
+		if late then ShowOutcome("failed", late, L["the game refused the cast"], lateKey) end
 	end
 	-- A scroll's cast failing after the settle's window: nothing was used up
 	-- either. By the guid alone, as a refusal is: the same scroll pressed
 	-- again from a bar mid-cast fails with its spell id too.
 	if castingScroll then
-		local stopped = ScrollCastStopped(castGUID, nil, L["the game refused the cast"])
-		if stopped then ShowOutcome("failed", stopped, L["the game refused the cast"]) end
+		local stopped, stoppedKey = ScrollCastStopped(castGUID, nil, L["the game refused the cast"])
+		if stopped then ShowOutcome("failed", stopped, L["the game refused the cast"], stoppedKey) end
 	end
 	-- Not the refusal of a bar press the cooldown held back (UI_ERROR_MESSAGE,
 	-- below): nothing was filed for it, and the press before it may have landed.
@@ -1132,14 +1136,14 @@ function addon:UI_ERROR_MESSAGE(_, _, message)
 	if ns.barHeldAt == GetTime() then return end
 	-- A reason to doubt a click still parked, and nothing more: it carries no
 	-- spell id, so it never undoes a settle (see UnsettleLateRefusal).
-	local failed = FailPendingClick(message)
+	local failed, failedKey = FailPendingClick(message)
 	-- After the line above, which hands its refusal the words itself; this is
 	-- for a refusal that arrived first, with none (UNIT_SPELLCAST_FAILED).
 	ns.NoteGameError(message)
 	-- The game's own words go on the panel's sub-line: localised, and often
 	-- the only thing that says why.
 	if failed then
-		ShowOutcome("failed", failed, type(message) == "string" and message or nil)
+		ShowOutcome("failed", failed, type(message) == "string" and message or nil, failedKey)
 	end
 	if not self.db.profile.debugClicks then return end
 	if not ns.lastClickTime or (GetTime() - ns.lastClickTime) > 1 then return end

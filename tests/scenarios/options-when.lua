@@ -46,7 +46,7 @@ do
 		-- (round 37).
 		local ORDER = { "rightNow", "buffedHeader", "whenBuffed", "refreshUnder", "refreshRaid",
 			"alwaysNote", "verifiedOnly", "selfHeader", "selfTopUp", "selfLead", "selfLeadNote",
-			"wayHeader", "hideMounted", "manaFloor", "manaNote" }
+			"wayHeader", "hideMounted", "manaFloor", "manaFloorKeeps", "manaNote" }
 		local last
 		for _, key in ipairs(ORDER) do
 			local control = tab.args[key]

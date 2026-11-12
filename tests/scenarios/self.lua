@@ -888,7 +888,7 @@ do
 		end
 		Mock.printed = {}
 		H.pressButton(ns, "RightButton")
-		if not said():find("skipping your own buff for now.", 1, true) then
+		if not said():find("skipping your |cffffffffArcane Intellect|r for now.", 1, true) then
 			fail(scenario, "the skip reads " .. flat(said()))
 		end
 		if mine(ns) then fail(scenario, "still offered right after a skip") end
@@ -1007,7 +1007,7 @@ do
 		Mock.printed = {}
 		local skip = find(row, "Skip for now")
 		if skip and skip.fn then skip.fn() end
-		if not said():find("skipping your own buff for now.", 1, true) then
+		if not said():find("skipping your |cffffffffArcane Intellect|r for now.", 1, true) then
 			fail(scenario, "Skip for now on you reads " .. flat(said()))
 		end
 		local never = find(row, "Never offer")

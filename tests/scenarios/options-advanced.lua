@@ -117,7 +117,7 @@ local FIELDS = {
 local WHEN_RESET = {
 	{ "filters", "whenBuffed" }, { "filters", "refreshUnder" }, { "filters", "refreshRaid" },
 	{ "filters", "verifiedOnly" },
-	{ "filters", "hideMounted" }, { "filters", "manaFloor" },
+	{ "filters", "hideMounted" }, { "filters", "manaFloor" }, { "filters", "manaFloorKeeps" },
 	{ "timing", "reciprocateWindow" }, { "sources", "owedClassBuffsOnly" },
 	{ "filters", "reachableOnly" }, { "timing", "graceSeconds" }, { "timing", "keepDebts" },
 	{ "timing", "retryCooldown" }, { "timing", "skipSeconds" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },

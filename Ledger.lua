@@ -98,6 +98,9 @@ local TEXT = {
 	STATE_RETURNED = L["Returned"],
 	STATE_LETGO = L["Let go"],
 	STATE_GAVE = L["Gave"],
+	-- A favour that was itself a buff back: you buffed them first, and they
+	-- returned it, so nothing is owed.
+	STATE_BACK = L["Buffed back"],
 	-- After "Returned": %s is the spell you returned the favour with.
 	RETURNED_WITH = L["with %s"],
 	-- After "Let go": why it was let go.
@@ -158,6 +161,8 @@ local TEXT = {
 	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
 	TIP_OWED_SNOOZED_GROUP = L["Still owed. What you cast reaches only your own party or raid, so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
 	TIP_OWED_MOUNTED_GROUP = L["Still owed. What you cast reaches only your own party or raid, so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
+	-- Under TIP_BUFFED on a "Buffed back" row.
+	TIP_BACK = L["You had buffed them first, and this was their buff back, so nothing is owed."],
 	TIP_GAVE = L["You buffed them with %s, %s."],
 	TIP_GAVE_GROUP = L["They were in your group and had not buffed you."],
 	TIP_GAVE_STRANGER = L["They were not in your group and had not buffed you."],
@@ -242,7 +247,8 @@ local UNDO_SECONDS = 30
 local PROMOTE_SECONDS = 3
 Ledger.PROMOTE_SECONDS = PROMOTE_SECONDS
 
-local STATES = { owed = true, returned = true, letgo = true }
+-- `back`: a buff back from somebody you buffed first, never owed (Received).
+local STATES = { owed = true, returned = true, letgo = true, back = true }
 -- Why a favour was let go: its time ran out, nothing you cast is any use to
 -- them, it was forgotten at a reload, or you put them on the never-offer list.
 local WHY = { expired = true, useless = true, notkept = true, never = true }
@@ -414,7 +420,7 @@ end
 --
 --   ledger.entries  oldest first; each one either
 --     { kind = "received", name, class, spells = { id, ... }, at, times,
---       state = owed | returned | letgo, why, doneAt, gave, partyOnly }
+--       state = owed | returned | letgo | back, why, doneAt, gave, partyOnly }
 --     { kind = "given", name, class, spell, at, to = group | stranger, asked }
 --   ledger.totals   lifetime counts, never trimmed and kept by Clear
 --   ledger.title    the highest of TITLES announced in chat, so none is twice
@@ -534,7 +540,10 @@ local function Repair(char)
 	-- a list of forty favours.
 	local seen = { received = 0, returned = 0, letGo = 0, group = 0, strangers = 0 }
 	for _, e in ipairs(kept) do
-		if e.kind == "received" then
+		-- A buff back is not a favour received (Received).
+		if e.kind == "received" and e.state == "back" then
+			-- counted nowhere
+		elseif e.kind == "received" then
 			seen.received = seen.received + 1
 			if e.state == "returned" then seen.returned = seen.returned + 1 end
 			if e.state == "letgo" then seen.letGo = seen.letGo + 1 end
@@ -757,12 +766,33 @@ end
 -- the spell id under `key`. `useless` is a favour nothing this character casts
 -- could return: recorded, and let go the moment it arrives. `partyOnly` is a
 -- favour only a party-wide buff could return, which the row's tooltip says.
-function Ledger.Received(seen, useless, partyOnly)
+-- `back` is a buff back from somebody you buffed first (Favours.lua,
+-- BuffedBack): no debt, so the row is "Buffed back", never "Still owed", and
+-- it is counted apart from the favours received, as a useless one is, since
+-- there is nothing to return.
+function Ledger.Received(seen, useless, partyOnly, back)
 	local s, now = Store(), Wall()
 	if not s or not now or type(seen) ~= "table" then return end
 	local name = CleanName(seen.name)
 	if not name then return end
 	local spell = CleanSpell(seen.key)
+
+	if back then
+		-- A priest's three buffs back in one landing are one row.
+		local last = s.entries[#s.entries]
+		if last and last.kind == "received" and last.name == name and last.state == "back"
+			and now - last.at <= FOLD_SECONDS then
+			last.times = last.times + 1
+			AddSpell(last, spell)
+		else
+			local e = { kind = "received", name = name, class = CleanClass(seen.class),
+				spells = {}, at = now, times = 1, state = "back", doneAt = now }
+			AddSpell(e, spell)
+			Append(s, e)
+		end
+		Changed()
+		return
+	end
 
 	-- One favour per person while it is open, however many buffs it arrives
 	-- as. A useless one folds only into another useless one from the same
@@ -1040,6 +1070,8 @@ function Ledger.Summary()
 		if e.at >= today then
 			if e.kind == "received" and e.why == "useless" then
 				out.useless = out.useless + 1
+			elseif e.kind == "received" and e.state == "back" then
+				-- A buff back: nothing to return, so not scored (Received).
 			elseif e.kind == "received" then
 				out.received = out.received + 1
 				if e.state == "returned" then out.returned = out.returned + 1 end
@@ -1192,6 +1224,8 @@ local COLOUR = {
 	owed = { 1.00, 0.78, 0.30 },
 	returned = { 0.40, 0.86, 0.50 },
 	letgo = { 0.56, 0.56, 0.58 },
+	-- A buff back: settled, as a returned favour is, a cooler green.
+	back = { 0.44, 0.80, 0.76 },
 	group = { 0.34, 0.60, 0.96 },
 	stranger = { 0.64, 0.68, 0.82 },
 }
@@ -1353,6 +1387,8 @@ local function Detail(e)
 	local spells = #theirs > 0 and table.concat(theirs, ", ") or TEXT.UNKNOWN_SPELL
 	if e.state == "owed" then
 		return TEXT.STATE_OWED, spells, COLOUR.owed
+	elseif e.state == "back" then
+		return TEXT.STATE_BACK, spells, COLOUR.back
 	elseif e.state == "returned" then
 		local gave = SpellName(e.gave)
 		return TEXT.STATE_RETURNED, gave and TEXT.RETURNED_WITH:format(gave) or "", COLOUR.returned
@@ -1434,6 +1470,8 @@ local function RowTooltip(row)
 				or not e.partyOnly and TEXT.TIP_OWED
 				or TEXT["TIP_OWED_" .. OnlyGroup()]
 			GameTooltip:AddLine(line, c[1], c[2], c[3], true)
+		elseif e.state == "back" then
+			GameTooltip:AddLine(TEXT.TIP_BACK, c[1], c[2], c[3], true)
 		elseif e.state == "returned" then
 			local took = Duration((e.doneAt or e.at) - e.at)
 			local gave = SpellName(e.gave)

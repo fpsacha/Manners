@@ -380,6 +380,9 @@ ns.WindowLayout = {
 					"who.quietTargets",
 					"when.hideMounted",
 					"when.manaFloor",
+					-- What it still offers below it: favours and requests, your
+					-- own buff only, or nothing.
+					{ "when.manaFloorKeeps", indent = true },
 					"when.manaNote",
 				} },
 				-- Where the old note pointing at Advanced was.

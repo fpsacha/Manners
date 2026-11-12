@@ -327,8 +327,8 @@ mutate("Options/Launcher.lua",
        "groupbuffs: the launcher names the single spell",
        expect="the launcher's tooltip does not name the group cast", script=S)
 mutate("Prompt/Button.lua",
-       "\t\tGameTooltip:AddLine(group and L[\"Right-click to skip this group buff for now.\"]\n\t\t\tor L[",
-       "\t\tGameTooltip:AddLine(L[",
+       "\t\tGameTooltip:AddLine(group and L[\"Right-click to skip this group buff for now.\"]\n\t\t\tor ownBuff and L[",
+       "\t\tGameTooltip:AddLine(ownBuff and L[",
        "groupbuffs: the tooltip's skip line is a person's",
        expect="the tooltip does not say what a right-click does to a group cast", script=S)
 

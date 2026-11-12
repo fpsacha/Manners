@@ -429,6 +429,10 @@ local defaults = {
 			-- The share of your mana (0-90) kept for yourself: below it, only
 			-- a favour owed or a request from chat is offered. 0 is off.
 			manaFloor = 0,
+			-- What it still offers below it (Queue.lua, ns.ManaFloorKeeps):
+			-- "asked" (favours, requests and your own buff, as it always did),
+			-- "self" (your own buff alone) or "none".
+			manaFloorKeeps = "asked",
 			-- The raid groups (1-8) switched off, as a sparse set (absent = on): in a
 			-- raid, those groups are offered nothing unasked.
 			skipRaidGroups = {},
@@ -4396,6 +4400,7 @@ function ns.ClampSettings()
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
 	oneOf(profile.filters, "quietInTownsWhere", { both = true, cities = true, inns = true }, "both")
+	oneOf(profile.filters, "manaFloorKeeps", { asked = true, self = true, none = true }, "asked")
 	oneOf(profile.ownBuffs, "petChoice", { last = true, favourite = true, random = true }, "last")
 	-- Built from the tier list, so a new distance is never rejected here.
 	local proximities = {}

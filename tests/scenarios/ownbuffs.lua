@@ -632,8 +632,9 @@ do
 end
 
 -- ------------------------------------------------------------------ own 10
--- A right-press skips you for now, as it does for your group buff, and
--- shift-right-press switches Myself off.
+-- A right-press skips the one buff of yours on the prompt for now (1.11.17:
+-- it skipped them all), ctrl-right-press all of yours, as it does for your
+-- group buff, and shift-right-press switches Myself off.
 Mock.reset()
 do
 	local scenario = "own: right-click skips your own buff"
@@ -645,10 +646,32 @@ do
 		end
 		Mock.printed = {}
 		H.pressButton(ns, "RightButton")
-		if not said():find("skipping your own buff for now.", 1, true) then
+		if not said():find("skipping your |cffffffffIce Armor|r for now.", 1, true) then
 			fail(scenario, "the skip reads " .. flat(said()))
 		end
-		if mine(ns) then fail(scenario, "still offered " .. key(mine(ns)) .. " right after a skip") end
+		if key(mine(ns)) == "frostarmor" then fail(scenario, "still offered the armor right after a skip") end
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not said():find("Ice Armor was pressed or skipped a moment ago.", 1, true) then
+			fail(scenario, "/manners debug does not say the armor is skipped: " .. flat(said()))
+		end
+		Mock.advance(60)
+		wipe(ns.tried)
+		ns.Prompt:Refresh()
+		if not mine(ns) then
+			fail(scenario, "SKIPPED -- not offered again after the skip ran out")
+			return
+		end
+		-- Ctrl: every buff of yours, the whole-person skip.
+		Mock.modifiers.ctrl = true
+		Mock.printed = {}
+		Mock.advance(1)
+		H.pressButton(ns, "RightButton")
+		Mock.modifiers.ctrl = nil
+		if not said():find("skipping all your own buffs for now.", 1, true) then
+			fail(scenario, "the ctrl skip reads " .. flat(said()))
+		end
+		if mine(ns) then fail(scenario, "still offered " .. key(mine(ns)) .. " right after a ctrl skip") end
 		Mock.printed = {}
 		ns.addon:HandleSlash("debug")
 		if not said():find("your own buffs: held back -- skipped for now.", 1, true) then
@@ -1282,7 +1305,7 @@ do
 			end
 		end
 		ns.db.profile.filters.whenBuffed = "always"
-		for _, k in ipairs({ "manaFloor", "manaNote", "alwaysNote", "verifiedOnly" }) do
+		for _, k in ipairs({ "manaFloor", "manaFloorKeeps", "manaNote", "alwaysNote", "verifiedOnly" }) do
 			if shown(a[k]) then fail(scenario, k .. " is shown to a hunter") end
 		end
 		-- The favours the window draws on this page, from the Advanced group.
