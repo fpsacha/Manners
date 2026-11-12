@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.16
 
 - **Move the prompt in Edit Mode.** Open the game's Edit Mode and the prompt
   unlocks with everything else: drag it where you want it, as often as you
