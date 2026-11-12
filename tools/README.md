@@ -218,10 +218,13 @@ python tools/release.py 1.7.4
 python tools/release.py 1.8.0-beta.1 --coauthor "Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-Before it: write the notes under `## Unreleased` at the top of `CHANGELOG.md`,
-and run the full `python tests/selftest.py` by hand. This never runs the full
-mutation selftest -- it is long, and its verdict is read by a person -- and
-says so when it starts.
+Before it: write the notes under `## Unreleased` at the top of `CHANGELOG.md`.
+The full mutation selftest runs on GitHub (`selftest.yml`, eight parts, nightly
+and on every push to master); the preflight reads its last green run of master
+and runs here only `tests/selftest.py --changed <that commit> --jobs 4`, or
+nothing when that run was of this very commit. It stops when no green run
+exists (`gh workflow run selftest.yml` starts one). `--skip-selftest` is for a
+full run made by hand instead.
 
 Preflight, read-only; nothing changes unless every check passes:
 

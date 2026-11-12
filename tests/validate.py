@@ -589,7 +589,7 @@ _st_words = sorted(set(re.findall(r'print\("([A-Z][A-Z ]+): "',
                                   open(os.path.join(ROOT, "tests", "selftest.py"),
                                        encoding="utf-8").read())) - {"RESULT"})
 _gate_bad = 0
-for _wf in ("ci.yml", "release.yml"):
+for _wf in ("ci.yml", "release.yml", "selftest.yml"):
     _text = open(os.path.join(ROOT, ".github", "workflows", _wf),
                  encoding="utf-8").read()
     _steps = [s for s in re.split(r"^\s*- (?=name:|uses:|run:)", _text, flags=re.M)

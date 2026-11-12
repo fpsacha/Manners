@@ -4,9 +4,12 @@
     python tools/release.py 1.7.4
     python tools/release.py 1.8.0-beta.1 --coauthor "Claude Opus 5.5 <noreply@anthropic.com>"
 
-It does not run the full mutation selftest (python tests/selftest.py). That is
-the step before this one, done by hand, because it is long and its verdict is
-read by a person; this says so when it starts.
+The full mutation selftest runs on GitHub, not here: selftest.yml judges it in
+eight parts every night and on every push to master. The preflight reads its
+last green run of master; on that very commit nothing more is needed, on a
+later one only the mutations of the files changed since are run here
+(tests/selftest.py --changed <that commit>, --jobs 4). --skip-selftest is for a
+full run made by hand instead.
 
 Preflight, all read-only, and nothing changes unless every one passes:
 
@@ -18,6 +21,8 @@ Preflight, all read-only, and nothing changes unless every one passes:
 - the tag vX.Y.Z is neither here nor on origin;
 - CHANGELOG.md's top section is "## Unreleased" and has notes under it;
 - python tools/check.py --anchors passes (on all but two cores, its default).
+- selftest.yml passed on master: on this commit, or on an earlier one and the
+  mutations of the files changed since pass here.
 
 Then:
 
@@ -58,6 +63,7 @@ VERSION = re.compile(r"^\d+\.\d+\.\d+(-(alpha|beta)\.\d+)?$")
 FIND_RUN_SECONDS = 300     # how long a pushed commit's run may take to show up
 WATCH_SECONDS = 60 * 60    # the longest a run is waited for
 HEARTBEAT = 60
+SELFTEST_JOBS = 4          # the mutations changed since selftest.yml's last green run
 
 
 def say(text=""):
@@ -106,7 +112,7 @@ def top_section():
 
 # ---------------------------------------------------------------- preflight
 
-def preflight(version, dry_run):
+def preflight(version, dry_run, skip_selftest=False):
     """Every read-only check, in order. Returns (ok, resuming). A real run
     stops at the first failure; a dry run makes them all."""
     tag = "v" + version
@@ -167,9 +173,37 @@ def preflight(version, dry_run):
         say("  ..    python tools/check.py --anchors")
         code = stream([sys.executable, "tools/check.py", "--anchors"], indent="        ")
         result(code == 0, "tools/check.py --anchors passes")
+
+        if skip_selftest:
+            result(True, "the full selftest: run by hand (--skip-selftest)")
+        else:
+            green = last_green_selftest()
+            if green is None:
+                result(False, "a green run of selftest.yml on master -- none found;"
+                              " gh workflow run selftest.yml, wait for it, then run this again")
+            elif run(["git", "cat-file", "-e", green + "^{commit}"]).returncode != 0:
+                result(False, "selftest.yml's last green commit %s is not here -- git fetch first"
+                       % green[:10])
+            elif green == git("rev-parse", "HEAD"):
+                result(True, "selftest.yml passed on this very commit (%s)" % green[:10])
+            else:
+                say("  ..    python tests/selftest.py --changed %s --jobs %d"
+                    " (selftest.yml passed on %s)" % (green[:10], SELFTEST_JOBS, green[:10]))
+                code = stream([sys.executable, "tests/selftest.py", "--changed", green,
+                               "--jobs", str(SELFTEST_JOBS)], indent="        ")
+                result(code == 0, "the mutations of the files changed since %s are all caught"
+                       % green[:10])
     except Stop:
         pass
     return ok, resuming
+
+
+def last_green_selftest():
+    """The commit of the newest selftest.yml run of master that passed, or None."""
+    r = run(["gh", "run", "list", "--workflow", "selftest.yml", "--branch", "master",
+             "--status", "success", "--limit", "1", "--json", "headSha", "--jq", ".[0].headSha"])
+    sha = r.stdout.strip() if r.returncode == 0 else ""
+    return sha if re.fullmatch(r"[0-9a-f]{40}", sha) else None
 
 
 class Stop(Exception):
@@ -333,6 +367,9 @@ def main(argv=None):
     parser.add_argument("--coauthor", default=os.environ.get("MANNERS_COAUTHOR"),
                         help="a Co-Authored-By line (or its name and address) for the commit;"
                              " default: $MANNERS_COAUTHOR")
+    parser.add_argument("--skip-selftest", action="store_true",
+                        help="the full selftest was run by hand on this commit: do not read"
+                             " selftest.yml or run the changed mutations")
     args = parser.parse_args(argv)
     version, dry = args.version, args.dry_run
     tag = "v" + version
@@ -342,11 +379,11 @@ def main(argv=None):
         coauthor = "Co-Authored-By: " + coauthor
 
     say("Releasing %s%s." % (version, " (dry run: nothing will change)" if dry else ""))
-    say("Not run here: the full mutation selftest, python tests/selftest.py. It is the step"
-        " before this one, by hand (RELEASING.md); only its --anchors check runs below.")
+    say("The full mutation selftest runs on GitHub (selftest.yml, in eight parts); below,"
+        " its last green run of master is read and only the mutations changed since are run.")
     say()
     say("Preflight")
-    ok, resuming = preflight(version, dry)
+    ok, resuming = preflight(version, dry, args.skip_selftest)
     if not ok:
         say()
         say("Stopped: a check above failed%s." % ("" if dry else "; nothing was changed"))

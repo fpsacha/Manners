@@ -65,6 +65,13 @@ no piece catches has the whole suite's verdict.
                  is still what a release is checked against
   --only TEXT    only the mutations whose label or file holds TEXT (any case;
                  repeatable), judged exactly as in the full run
+  --part I/N     only every Nth mutation from the Ith: one machine's share of
+                 the full run (.github/workflows/selftest.yml runs N of them)
+
+A mutation the pieces of the suite judged is remembered by the piece that
+caught it (catches.json beside the kept trace), and that piece is tried first,
+alone, the next time; the pieces after it go a worker's worth at a time, so
+one caught early never runs the rest.
 
 The summary ends with how each mutation was judged and what the runs cost, by
 kind; a mutation listed there as missed by its own scenarios is one whose
@@ -136,6 +143,34 @@ TRACE_TIMEOUT = 3600
 # again -- skips it too.
 TRACE_CACHE = os.path.join(tempfile.gettempdir(), "manners-selftest-trace")
 FRESH_TRACE = "--fresh-trace" in sys.argv[1:]
+
+# Which piece of the whole suite caught each mutation the last time, by label,
+# kept beside the trace. A mutation whose text the trace cannot place (an
+# options-window control id, say, which the layout scenario builds rather than
+# spells) used to run every piece of the suite, every run: hundreds of them, a
+# hundred-odd pieces each, were most of a run's hours. The piece remembered is
+# tried first, alone; the rest only if it misses. Like the trace, it only
+# orders the runs: a remembered piece that no longer catches is a miss like any
+# other, judged on the rest of the suite, never a different verdict.
+CATCHES_FILE = os.path.join(TRACE_CACHE, "catches.json")
+try:
+    CATCHES = json.load(open(CATCHES_FILE, encoding="utf-8"))
+    if not isinstance(CATCHES, dict):
+        CATCHES = {}
+except (OSError, ValueError):
+    CATCHES = {}
+_caught_now = {}
+
+# --part I/N: only every Nth mutation, from the Ith (1-based), for N machines
+# that each judge a share of the full run (.github/workflows/selftest.yml).
+# Each part runs its own baseline, so its verdict is that of the full run for
+# the mutations it holds; the full run is every part green.
+PART = None
+if "--part" in sys.argv[1:]:
+    _p = sys.argv[sys.argv.index("--part") + 1].split("/")
+    PART = (int(_p[0]), int(_p[1]))
+    if not 1 <= PART[0] <= PART[1]:
+        sys.exit("--part I/N needs 1 <= I <= N")
 
 
 def tree_key(shards, tests_only):
@@ -784,6 +819,42 @@ def likely_pieces(m, pieces):
     return [[p for p in pieces if tuple(p) in first], [p for p in pieces if tuple(p) in then]]
 
 
+def piece_id(p):
+    """A name for a piece that outlives this run: its file, or for a shard of
+    scenarios.lua the shard and how many there were."""
+    if "--shard" in p:
+        return "scenarios.lua#" + p[p.index("--shard") + 1]
+    return sorted(_selected[p[1]][1])[0]
+
+
+def remembered_pieces(m, pieces):
+    """The piece that caught this mutation last time (CATCHES), if it is still
+    one of `pieces`. A shard cut for another number of workers holds other
+    scenarios now, so that memory names every shard."""
+    want = CATCHES.get(m.label)
+    if not isinstance(want, str):
+        return []
+    if want.startswith("scenarios.lua#") and want.split("#")[1].split("/")[-1] != str(len(_shard_pieces)):
+        return [p for p in pieces if "--shard" in p]
+    return [p for p in pieces if piece_id(p) == want]
+
+
+def save_catches():
+    """CATCHES with this run's catches laid over it, written whole."""
+    if not _caught_now:
+        return
+    merged = dict(CATCHES)
+    merged.update(_caught_now)
+    try:
+        os.makedirs(TRACE_CACHE, exist_ok=True)
+        tmp = CATCHES_FILE + ".%d.tmp" % os.getpid()
+        with open(tmp, "w", encoding="utf-8", newline="") as f:
+            json.dump(merged, f, sort_keys=True, indent=0)
+        os.replace(tmp, CATCHES_FILE)
+    except OSError as e:
+        print("(the catches could not be kept: %s)" % e)
+
+
 # ---------------------------------------------------------------- judging
 # Each mutation is judged by a generator that says what it needs run next --
 # a selection checked on the clean tree, or runs with the mutation in place --
@@ -825,9 +896,18 @@ def judging(m):
         return finish(m, (yield ("try", [whole_suite_args(m)], "whole"))[0])
     # 2. and 3. The whole suite in pieces, the likely ones first, stopping at
     # the first piece that catches it.
+    remembered = remembered_pieces(m, pieces)
     first, then = likely_pieces(m, pieces)
-    rest = [p for p in pieces if p not in first and p not in then]
-    for stage, batch in (("likely", first), ("likely", then), ("whole", rest)):
+    first = [p for p in first if p not in remembered]
+    then = [p for p in then if p not in remembered]
+    rest = [p for p in pieces if p not in remembered and p not in first and p not in then]
+    # The rest in rounds of a worker's worth, heaviest first, rather than all at
+    # once: the first round that catches it ends its judging, and the rounds it
+    # never needs are never run. With other mutations waiting, the workers stay
+    # busy all the same.
+    rounds = [("remembered", remembered), ("likely", first), ("likely", then)]
+    rounds += [("whole", rest[i:i + max(1, JOBS)]) for i in range(0, len(rest), max(1, JOBS))]
+    for stage, batch in rounds:
         todo = [p for p in batch if tuple(p) not in done]
         if not todo:
             continue
@@ -835,10 +915,11 @@ def judging(m):
         for p, r in zip(todo, results):
             if r is not None:
                 done[tuple(p)] = r
-        hit = next((r for r in results if r is not None and r.hits), None)
+        hit = next(((p, r) for p, r in zip(todo, results) if r is not None and r.hits), None)
         if hit is not None:
             m.judged = stage
-            return finish(m, hit)
+            _caught_now[m.label] = piece_id(hit[0])
+            return finish(m, hit[1])
     # Every piece ran and none caught it: the whole suite's verdict.
     m.judged = "whole"
     ran = [done[tuple(p)] for p in pieces]
@@ -4483,7 +4564,19 @@ if _only:
     print("--only: %d of %d mutations kept" % (
         sum(isinstance(m, Mutation) for m in _kept), sum(isinstance(m, Mutation) for m in plan)))
     plan[:] = _kept
-if _only or "--changed" in sys.argv[1:]:
+if PART is not None:
+    _n = -1
+    _kept = []
+    for m in plan:
+        if isinstance(m, Mutation):
+            _n += 1
+            if _n % PART[1] != PART[0] - 1:
+                continue
+        _kept.append(m)
+    print("--part %d/%d: %d of %d mutations kept" % (
+        PART[0], PART[1], sum(isinstance(m, Mutation) for m in _kept), _n + 1))
+    plan[:] = _kept
+if _only or PART is not None or "--changed" in sys.argv[1:]:
     # The heading of a mutations file none of whose mutations are left.
     _heading = lambda x: isinstance(x, str) and x.startswith("-- ") and x.endswith(".py")
     _kept = []
@@ -4712,6 +4805,7 @@ def _progress(done):
 _judging_started = time.time()
 _judge = Judge(JOBS, _progress)
 _judge.run(sorted(mutations, key=lambda m: m.script == "runscenarios.py" and m.select is not None))
+save_catches()
 
 for item in plan:
     if isinstance(item, Mutation):
@@ -4721,13 +4815,15 @@ for item in plan:
         print(item)
 
 print()
-_by = {k: [m for m in mutations if m.judged == k] for k in ("narrowed", "likely", "whole", "suite")}
+_by = {k: [m for m in mutations if m.judged == k]
+       for k in ("narrowed", "remembered", "likely", "whole", "suite")}
 print("%d mutations in %d s on %d workers (%d s of it the baseline%s): %d caught by the scenarios"
-      " their check is in, %d by the pieces of the suite their text points at, %d on the"
+      " their check is in, %d by the piece that caught them last time, %d by the pieces"
+      " of the suite their text points at, %d on the"
       " whole suite, %d by validate.py or runharness.py"
       % (len(mutations), time.time() - _started, JOBS, _baseline_seconds,
          "" if WHOLE or _trace_cached else " and the trace",
-         len(_by["narrowed"]), len(_by["likely"]), len(_by["whole"]), len(_by["suite"])))
+         len(_by["narrowed"]), len(_by["remembered"]), len(_by["likely"]), len(_by["whole"]), len(_by["suite"])))
 for _kind in RUN_KINDS:
     if _kind in _judge.stats:
         print("  %5d %s, %d s" % (_judge.stats[_kind][0], RUN_KINDS[_kind], _judge.stats[_kind][1]))

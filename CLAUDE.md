@@ -236,11 +236,11 @@ default everywhere in the tests and the only client anybody here plays.
 | `python tools/check.py --flavours` | also each client's own scenario file as that client (era.lua as vanilla, tbc.lua, mists.lua, mainline.lua), every `tests/scenarios/*-fixes.lua` as each client, and `unverified.lua`, `hunt23-queue.lua` and `hunt23-favours.lua` as mainline (retail hides auras in a fight as Forever does) | longer |
 | `python tools/check.py --anchors` | also `tests/selftest.py --anchors` | seconds more |
 | `python tests/selftest.py --changed [REF]` | the mutations of every file that differs from REF, committed or not (default master): code, tests, docs and workflows alike | minutes (about 15 for a handful judged by runscenarios) |
-| `python tests/selftest.py` | every mutation (about 2,400), each judged by the check it names | about 20-40 minutes; see the docstring |
+| `python tests/selftest.py` | every mutation (about 4,000), each judged by the check it names; `--part I/N` one share of them | hours locally on 4 jobs; on GitHub `selftest.yml` runs it in 8 parts |
 
 `--jobs N` on check.py, runscenarios.py and selftest.py defaults to cores - 2.
-Run the cheap checks while working, `--changed` before handing work back, and
-the full selftest once, before a release.
+Run the cheap checks while working, `--changed` before handing work back; the
+full selftest runs on GitHub (`selftest.yml`) and the release tool reads it.
 
 `tests/runscenarios.py` flags: `--scenario NAME` and `--file FILE`
 (`scenarios.lua` or a file in `tests/scenarios/`; both repeatable),
@@ -267,7 +267,10 @@ diff it before and after a change made for another client), `tests/bughunt.py`
 
 CI (`ci.yml`, every push): validate, runharness, runscenarios,
 `selftest.py --anchors`, and the listing images drawn with `--strict`. The full
-selftest does not fit a runner and is run locally.
+selftest is `selftest.yml`: eight runners, one `--part I/8` each, nightly, on
+every push to master and on `gh workflow run selftest.yml`. A mutation the
+pieces of the suite judged is remembered by the piece that caught it
+(`catches.json` beside the kept trace) and tried there first next time.
 
 Nothing here talks to a running client. For the game itself, ask the user to
 run `/manners selftest launch` (a report to paste) or the `/manners dev` tools
@@ -387,7 +390,9 @@ Quick helpers for working in a worktree (`tools/README.md` has the details):
    open items, what only the live game can say); the three listing files in
    `.github/` where a feature is new; this file, `tools/README.md` and
    `tests/README.md` where a file, tool or rule changed.
-2. `python tests/selftest.py` in full, by hand (the release tool never runs it).
+2. The full selftest is `selftest.yml` on GitHub; `release.py` reads its last
+   green run of master and runs only the mutations changed since. Nothing by
+   hand unless GitHub cannot run it (then the full run and `--skip-selftest`).
 3. `python tools/release.py X.Y.Z` (`--dry-run` prints the steps). It checks
    master, a clean tree, the notes and `tools/check.py`; runs
    `tests/setversion.py`; commits "Manners X.Y.Z" with the Co-Authored-By line

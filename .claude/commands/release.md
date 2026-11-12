@@ -16,7 +16,11 @@ at the first red:
    Top of `CHANGELOG.md` is `## Unreleased` with notes written for players (they
    are the CurseForge, Wago and GitHub text): no "untested", "mock client" or
    "not tried in game". `release.py` refuses an empty section.
-3. The full selftest, by hand; the release tool never runs it:
+3. The full selftest runs on GitHub (`selftest.yml`, eight parts, nightly and on
+   every push to master); `release.py` reads its last green run of master and runs
+   only the mutations changed since (`--changed <that commit>`). Check it is green
+   or running: `gh run list --workflow selftest.yml --limit 3`. Only when GitHub
+   cannot run it, the old way, by hand, with `--skip-selftest` on the release:
    `python tests/selftest.py --jobs N` (20 to 40 minutes, leave 2 cores free;
    run it in the background). It must end `RESULT: every mutation was caught`.
    Any MISSED, WRONG CHECK, ANCHOR GONE or NOT RESTORED stops the release.

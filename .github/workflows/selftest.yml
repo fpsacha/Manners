@@ -1,0 +1,61 @@
+name: Selftest
+
+# The full mutation selftest, the step a release used to wait hours for on the
+# author's machine. Here it runs in parts, each on a runner of its own, every
+# night, on every push to master and on demand (gh workflow run selftest.yml).
+# tools/release.py reads the last green run of master: a release of that
+# commit needs nothing more, and one of a later commit runs only the mutations
+# of the files changed since (selftest.py --changed <that commit>).
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# A newer push makes an older run of master moot.
+concurrency:
+  group: selftest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  part:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4, 5, 6, 7, 8]
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install the Lua runtime the tests need
+        run: pip install lupa
+
+      # The scenario trace and the catches (which piece of the suite caught
+      # each mutation last time) are kept between runs, per part: they only
+      # order the runs, so an old one costs time, never a verdict.
+      - name: The trace and catches of the last run
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ runner.temp }}/manners-selftest-trace
+          key: selftest-${{ matrix.part }}-${{ github.run_id }}
+          restore-keys: selftest-${{ matrix.part }}-
+
+      # `shell: bash` for -eo pipefail: without it the pipe's status is tee's.
+      - name: Part ${{ matrix.part }} of 8
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          python tests/selftest.py --part ${{ matrix.part }}/8 --jobs 4 | tee selftest.out
+          if grep -q "^\(MISSED\|ANCHOR GONE\|WRONG CHECK\|NOT RESTORED\): " selftest.out; then
+            echo "::error::a check no longer detects the fault it exists for"
+            exit 1
+          fi
+          tail -n 25 selftest.out >> "$GITHUB_STEP_SUMMARY"

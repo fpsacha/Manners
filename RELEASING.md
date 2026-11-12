@@ -24,9 +24,14 @@ afterwards — pushing it again only says it already exists.
    user pastes them); `CLAUDE.md`, `tools/README.md` and `tests/README.md` where a
    file, a tool or a rule changed. A release with the changelog written and the
    README, status and listings left behind is not ready.
-2. **Run the full mutation suite** by hand: `python tests/selftest.py` (about
-   20 to 40 minutes; its docstring says what it does). Nothing after this step
-   runs it: CI and the release workflow run only `--anchors`.
+2. **The full mutation suite runs on GitHub**: `.github/workflows/selftest.yml`
+   judges it in eight parts (`selftest.py --part I/8`), every night, on every
+   push to master and on demand (`gh workflow run selftest.yml`). The release
+   tool reads its last green run of master: on that commit nothing more runs,
+   on a later one only the mutations of the files changed since
+   (`selftest.py --changed <that commit>`, minutes). With no green run it
+   stops. A full run by hand (`python tests/selftest.py`) and
+   `--skip-selftest` remain for when GitHub cannot run it.
 3. **Release with `python tools/release.py X.Y.Z`.** Try it with `--dry-run`
    first, which prints every step and changes nothing. It:
    - checks it is on `master` with a clean tree, that `## Unreleased` has

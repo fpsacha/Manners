@@ -55,6 +55,7 @@ python tests/selftest.py --fresh-trace  # trace the scenarios again, kept trace 
 python tests/selftest.py --changed  # only the mutations of files that differ from master
 python tests/selftest.py --changed v1.5.4  # ... or from any commit or tag
 python tests/selftest.py --only "window:"  # only mutations whose label or file holds the text
+python tests/selftest.py --part 3/8  # every 8th mutation from the 3rd: one CI runner's share (selftest.yml)
 ```
 
 `python tools/anchors_for.py FILE:LINE` lists the mutations anchored on a line
