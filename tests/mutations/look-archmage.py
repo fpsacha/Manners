@@ -205,3 +205,9 @@ mutate("Looks/Archmage.lua",
        "",
        "archmage: nobody is greeted",
        expect="the first face on the panel was not greeted", script=S)
+
+mutate("Looks/Archmage.lua",
+       "\tlocal cx = half + math.max(3, math.min(H / (2 * S3) - half, SETTING_IN))\n",
+       "\tlocal cx = math.max(H / (2 * S3), half + 3)\n",
+       "archmage: a small setting out in the middle of a tall crystal",
+       expect="units in from the point", script=S)

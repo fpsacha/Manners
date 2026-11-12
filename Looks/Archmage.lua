@@ -107,6 +107,9 @@ local STRETCH = 0.20
 -- The gap between the setting and the text; with the icon off, between the
 -- cut and the text.
 local TEXT_GAP, BARE_GAP = 5, 5
+-- The most crystal the setting keeps at its left: on a crystal much taller
+-- than its icon the setting stays by the point and the words keep their room.
+local SETTING_IN = 8
 -- The crystal's own luminance under the words, its darkest and its brightest
 -- (as greys), for Legible.
 local TABLE_LO, TABLE_HI = 0.05, 0.26
@@ -884,8 +887,10 @@ function Archmage:Apply(p, above)
 	local half = bz * HEX_OUT / 2
 	-- The setting sits where the crystal's own cut would put a hexagon of the
 	-- crystal's height: the three are one inside another. A setting too wide
-	-- for that keeps three units of crystal at its left.
-	local cx = math.max(H / (2 * S3), half + 3)
+	-- for that keeps three units of crystal at its left; one much smaller than
+	-- the crystal is tall keeps SETTING_IN, by the point (cut alike, it fits
+	-- there at any size), where the middle would take the words' room.
+	local cx = half + math.max(3, math.min(H / (2 * S3) - half, SETTING_IN))
 	local cy = H / 2
 	local settingRight = cx + half
 	local bare = math.ceil(cut) + BARE_GAP
@@ -948,11 +953,14 @@ function Archmage:Apply(p, above)
 
 	-- The charges' light inside the crystal: on the table, from under the
 	-- setting's right corner towards the words, never past the far cut.
-	local spillX0 = settingRight - 6
+	-- No taller than the setting, so on a tall crystal it is a plume beside
+	-- the charges and not a band down the table.
+	local spillX0 = settingRight - 9
 	local spillX1 = math.min(spillX0 + SPILL_REACH, W - cut)
+	local spillUp = math.min(H / 2 - ridge, bz * 0.5)
 	self.spillOK = showIcon and spillX1 - spillX0 >= 16
-	Box(self.spill, art, spillX0, ridge, spillX1, H - ridge)
-	Box(self.spillHot, art, spillX0, ridge, spillX1, H - ridge)
+	Box(self.spill, art, spillX0, cy - spillUp, spillX1, cy + spillUp)
+	Box(self.spillHot, art, spillX0, cy - spillUp, spillX1, cy + spillUp)
 
 	-- The vein: on the lower ridge, from the setting to where the ridge turns
 	-- up into the far point.
@@ -1006,7 +1014,7 @@ function Archmage:Apply(p, above)
 	for i, s in ipairs(GLINTS) do
 		At(self.glints[i], art, textX + s[1] * span, s[2] == 1 and lane or (H - lane), math.min(s[3], H / 4))
 	end
-	Box(self.ember, art, spillX0, ridge, spillX1, H - ridge)
+	Box(self.ember, art, spillX0, cy - spillUp, spillX1, cy + spillUp)
 	self.idleOK = driftRun >= 30
 
 	-- The cursor's light over the top bevel, between the cuts.

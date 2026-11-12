@@ -429,7 +429,7 @@ def make_vein():
 def make_spill():
     w, h = 64, 32
     x, y = grid(w, h)
-    along = np.clip(1.0 - x / w, 0, 1) ** 1.7 * sstep(0.0, 3.0, x)
+    along = np.clip(1.0 - x / w, 0, 1) ** 1.7 * sstep(0.0, 12.0, x)
     across = np.exp(-((y - h / 2.0) / 10.5) ** 2) * sstep(0.0, 4.0, y) * sstep(0.0, 4.0, h - y)
     alpha = np.clip(along * across, 0, 1)
     emit("Archmage_Spill", white(alpha), alpha.astype(np.float32), 1.0)

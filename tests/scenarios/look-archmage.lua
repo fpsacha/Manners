@@ -450,7 +450,7 @@ end)
 -- The setting, the vein and every light stay inside the crystal at every size.
 withTree("look-archmage: the setting and the lights stay inside the crystal", ANNA, function(ns, scenario)
 	local sizes = { { 220, 44, 13, 30 }, { 320, 58, 17, 40 }, { 220, 48, 17, 40 }, { 220, 44, 13, 36 },
-		{ 220, 44, 13, 16 }, { 320, 72, 17, 64 }, { 160, 32, 11, 24 } }
+		{ 220, 44, 13, 16 }, { 320, 72, 17, 64 }, { 160, 32, 11, 24 }, { 140, 110, 13, 30 } }
 	for _, s in ipairs(sizes) do
 		local _, p, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize, pp.iconSize = s[1], s[2], s[3], s[4] end)
 		if skipped(scenario, look) then return end
@@ -460,6 +460,9 @@ withTree("look-archmage: the setting and the lights stay inside the crystal", AN
 		if tall > p.height - 0.5 then fail(scenario, ("%s: the setting is %.1f tall on a crystal of %d"):format(label, tall, p.height)) end
 		if look.cx - look.bz * (62 / 64) / 2 < 0 then fail(scenario, label .. ": the setting passes the crystal's left point") end
 		if look.settingRight + 4 > look.textX then fail(scenario, label .. ": the text starts under the setting") end
+		-- By the point, never out in the middle where the words would lose their room.
+		local left = look.cx - look.bz * (62 / 64) / 2
+		if left > 8.01 then fail(scenario, ("%s: the setting stands %.1f units in from the point, past 8"):format(label, left)) end
 		-- Measured from the crystal's own left edge.
 		local x0 = FT.span(look.kit.art, "x") or 0
 		for _, f in ipairs({ look.runFrames[1], look.runFrames[2], look.starFrame, look.hoverFrame }) do
