@@ -265,9 +265,11 @@ diff it before and after a change made for another client), `tests/bughunt.py`
 (pcall counts, cost per scan), `tools/render_prompt.py`, `render_ledger.py`,
 `render_options.py` (draw the UI from the mock; not pixel-true about light).
 
-CI (`ci.yml`, every push): validate, runharness, runscenarios,
-`selftest.py --anchors`, and the listing images drawn with `--strict`. The full
-selftest is `selftest.yml`: eight runners, one `--part I/8` each, nightly, on
+CI (`ci.yml`, every push): validate, runharness, runscenarios (`--jobs 4`),
+`selftest.py --anchors`, and the listing images drawn with `--strict`.
+`release.yml` runs only validate, runharness and `--anchors` before packaging:
+`tools/release.py` tags only content CI passed. The full
+selftest is `selftest.yml`: sixteen runners, one `--part I/16` each, nightly, on
 every push to master and on `gh workflow run selftest.yml`. A mutation the
 pieces of the suite judged is remembered by the piece that caught it
 (`catches.json` beside the kept trace) and tried there first next time.

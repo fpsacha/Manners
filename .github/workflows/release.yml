@@ -37,11 +37,12 @@ jobs:
       - name: Load the addon against a mock client
         run: python tests/runharness.py
 
-      - name: Adversarial scenarios
-        run: python tests/runscenarios.py
-
-      # A suite that cannot go red proves nothing. This reintroduces each fault
-      # class it is supposed to catch and fails the build if any goes unnoticed.
+      # No scenarios here: tools/release.py tags only a commit whose content CI
+      # passed (the commit itself, or the one before it when the version bump
+      # is all that changed), so running the suite again only held every
+      # release back nine minutes. What is left is what a version bump or a
+      # last-minute edit can break: the structure, the addon loading, and every
+      # mutation still finding its text.
       #
       # `shell: bash` is not decoration. A step with no shell runs under
       # `bash -e` without pipefail, so the pipe's exit status is tee's, which is
@@ -52,13 +53,8 @@ jobs:
       # start of its summary lines, because a mutation's label or a caught
       # check's message may use the same words on a run that passed.
       #
-      # --anchors here, not the full run. The full run reintroduces every
-      # fault one at a time and took over two hours on GitHub's runner, which
-      # held a broken build live for hours when a fix needed shipping (beta.6).
-      # ci.yml runs --anchors on every push as well, and the full run is made
-      # by hand before a tag (RELEASING.md). The release checks that every
-      # mutation still has its text to reintroduce, which is what a last-minute
-      # edit breaks.
+      # --anchors, not the full run: the full run is selftest.yml's, on every
+      # push to master, and the release tool reads it.
       - name: Confirm the suites can still fail
         shell: bash
         run: |

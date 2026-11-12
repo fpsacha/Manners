@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [1, 2, 3, 4, 5, 6, 7, 8]
+        part: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -48,12 +48,12 @@ jobs:
           restore-keys: selftest-${{ matrix.part }}-
 
       # `shell: bash` for -eo pipefail: without it the pipe's status is tee's.
-      - name: Part ${{ matrix.part }} of 8
+      - name: Part ${{ matrix.part }} of 16
         shell: bash
         env:
           TMPDIR: ${{ runner.temp }}
         run: |
-          python tests/selftest.py --part ${{ matrix.part }}/8 --jobs 4 | tee selftest.out
+          python tests/selftest.py --part ${{ matrix.part }}/16 --jobs 4 | tee selftest.out
           if grep -q "^\(MISSED\|ANCHOR GONE\|WRONG CHECK\|NOT RESTORED\): " selftest.out; then
             echo "::error::a check no longer detects the fault it exists for"
             exit 1

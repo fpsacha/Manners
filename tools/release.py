@@ -5,7 +5,7 @@
     python tools/release.py 1.8.0-beta.1 --coauthor "Claude Opus 5.5 <noreply@anthropic.com>"
 
 The full mutation selftest runs on GitHub, not here: selftest.yml judges it in
-eight parts every night and on every push to master. The preflight reads its
+sixteen parts every night and on every push to master. The preflight reads its
 last green run of master; on that very commit nothing more is needed, on a
 later one only the mutations of the files changed since are run here
 (tests/selftest.py --changed <that commit>, --jobs 4). --skip-selftest is for a
@@ -20,7 +20,9 @@ Preflight, all read-only, and nothing changes unless every one passes:
 - origin's master is already in this branch (no pull is needed);
 - the tag vX.Y.Z is neither here nor on origin;
 - CHANGELOG.md's top section is "## Unreleased" and has notes under it;
-- python tools/check.py --anchors passes (on all but two cores, its default).
+- CI (ci.yml) passed on this commit, waited for if it is still running; only a
+  commit CI has not passed (not pushed yet, or red) is checked here instead,
+  with python tools/check.py --anchors (on all but two cores, its default).
 - selftest.yml passed on master: on this commit, or on an earlier one and the
   mutations of the files changed since pass here.
 
@@ -30,7 +32,9 @@ Then:
 2. git commit -a -m "Manners X.Y.Z", with a Co-Authored-By line when one is
    given by --coauthor or the MANNERS_COAUTHOR environment variable (the name
    and address, or the whole line);
-3. git push origin master, and wait for that commit's CI run (gh run watch);
+3. git push origin master, and wait for that commit's CI run (gh run watch) --
+   unless the commit changes nothing but the version since one CI passed, when
+   the tag goes at once and CI runs on unwaited for;
 4. git tag -a vX.Y.Z -m "Manners X.Y.Z", git push origin vX.Y.Z, and wait for
    release.yml's run of the tag;
 5. print the packager's "Game version:" line and what each upload said, read
@@ -43,7 +47,7 @@ again with the same version after fixing a red CI run: a top section already
 named X.Y.Z counts as the notes, setversion then changes nothing, and the
 steps already done are skipped (nothing to commit, nothing to push).
 
---dry-run makes the same read-only checks (tools/check.py included) and prints
+--dry-run makes the same read-only checks (CI read, or tools/check.py) and prints
 every command it would run, and changes nothing: no file, no commit, no push,
 no tag. It exits 1 if a real run would stop at a check.
 """
@@ -170,9 +174,22 @@ def preflight(version, dry_run, skip_selftest=False):
         result(not taken, "the tag %s is not taken%s" % (
             tag, " (it exists %s)" % " and ".join(taken) if taken else ""))
 
-        say("  ..    python tools/check.py --anchors")
-        code = stream([sys.executable, "tools/check.py", "--anchors"], indent="        ")
-        result(code == 0, "tools/check.py --anchors passes")
+        # CI's run of this very commit is the same check on GitHub's machine:
+        # read it (or wait for it) rather than make it again here. Only a
+        # commit CI never saw -- not pushed yet -- or a red run is checked here.
+        head_sha = git("rev-parse", "HEAD")
+        state, ci_id = ci_state(head_sha)
+        if state == "running":
+            say("  ..    CI is still running on this commit (%s); waiting for it" % head_sha[:10])
+            state = "success" if watch(ci_id, "CI") else "failure"
+        if state == "success":
+            result(True, "CI passed on this commit (%s): no local check needed" % head_sha[:10])
+        else:
+            say("  ..    python tools/check.py --anchors (CI %s on %s; push first and let"
+                " it pass to skip this)" % ({"failure": "is red"}.get(state, "has not run"),
+                                            head_sha[:10]))
+            code = stream([sys.executable, "tools/check.py", "--anchors"], indent="        ")
+            result(code == 0, "tools/check.py --anchors passes")
 
         if skip_selftest:
             result(True, "the full selftest: run by hand (--skip-selftest)")
@@ -204,6 +221,53 @@ def last_green_selftest():
              "--status", "success", "--limit", "1", "--json", "headSha", "--jq", ".[0].headSha"])
     sha = r.stdout.strip() if r.returncode == 0 else ""
     return sha if re.fullmatch(r"[0-9a-f]{40}", sha) else None
+
+
+def ci_state(sha):
+    """(state, run id) of ci.yml's newest push run of commit sha on master:
+    "success", "failure", "running", or None when there is no such run."""
+    import json
+    r = run(["gh", "run", "list", "--workflow", "ci.yml", "--commit", sha, "--event", "push",
+             "--json", "databaseId,headBranch,status,conclusion,createdAt", "--limit", "20"])
+    if r.returncode != 0:
+        return None, None
+    runs = [x for x in json.loads(r.stdout or "[]") if x.get("headBranch") == "master"]
+    if not runs:
+        return None, None
+    runs.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
+    newest = runs[0]
+    if newest.get("status") != "completed":
+        return "running", newest["databaseId"]
+    return ("success" if newest.get("conclusion") == "success" else "failure"), newest["databaseId"]
+
+
+def version_only(base, sha, old, new):
+    """Whether commit sha changes nothing but the version since base: every
+    line it adds names the new version, and every line it takes out names the
+    old one or is CHANGELOG.md's '## Unreleased' (what setversion.py writes)."""
+    if not old or not new or old == new:
+        return False
+    r = run(["git", "diff", "--unified=0", "--no-color", "--no-ext-diff", base, sha])
+    if r.returncode != 0:
+        return False
+    changed = False
+    for line in r.stdout.splitlines():
+        if line.startswith(("+++", "---", "diff ", "index ", "@@")):
+            continue
+        if line.startswith("+"):
+            if new not in line:
+                return False
+            changed = True
+        elif line.startswith("-"):
+            if old not in line and line[1:].strip() != "## Unreleased":
+                return False
+            changed = True
+        elif line.strip() and not line.startswith(("new file", "deleted file", "old mode",
+                                                  "new mode", "similarity", "rename", "Binary")):
+            return False
+        elif line.startswith(("new file", "deleted file", "rename", "Binary")):
+            return False
+    return changed
 
 
 class Stop(Exception):
@@ -379,7 +443,7 @@ def main(argv=None):
         coauthor = "Co-Authored-By: " + coauthor
 
     say("Releasing %s%s." % (version, " (dry run: nothing will change)" if dry else ""))
-    say("The full mutation selftest runs on GitHub (selftest.yml, in eight parts); below,"
+    say("The full mutation selftest runs on GitHub (selftest.yml, in sixteen parts); below,"
         " its last green run of master is read and only the mutations changed since are run.")
     say()
     say("Preflight")
@@ -396,7 +460,8 @@ def main(argv=None):
                              [sys.executable, "tests/validate.py"]]),
         ("Commit", [commit]),
         ("Push master", [["git", "push", "origin", "master"]]),
-        ("Wait for CI on that commit", [["gh", "run", "watch", "<ci.yml run of the commit>", "--exit-status"]]),
+        ("Wait for CI on that commit (skipped when only the version changed since a green CI run)",
+         [["gh", "run", "watch", "<ci.yml run of the commit>", "--exit-status"]]),
         ("Tag", [["git", "tag", "-a", tag, "-m", title]]),
         ("Push the tag", [["git", "push", "origin", tag]]),
         ("Wait for the release build", [["gh", "run", "watch", "<release.yml run of %s>" % tag, "--exit-status"]]),
@@ -423,6 +488,7 @@ def main(argv=None):
 
     # 1. version
     head(1)
+    old_version = toc_version()
     if stream([sys.executable, "tests/setversion.py", version], indent="    ") != 0:
         say("Stopped: setversion.py failed. The tree may be part-changed: git status, then"
             " git checkout -- . to start again.")
@@ -459,6 +525,15 @@ def main(argv=None):
         say("Stopped: the push failed. The commit is here and not on origin.")
         return 1
     head(4)
+    # The version commit changes a version number and nothing else: when CI
+    # passed on the commit under it, it has nothing new to say about this one
+    # (validate.py ran on it above, and release.yml checks it once more), so
+    # the tag goes now. CI still runs on it, unwaited for.
+    base = git("rev-parse", "HEAD~1")
+    if old_version != version and version_only(base, sha, old_version, version) \
+            and ci_state(base)[0] == "success":
+        say("    skipped: only the version changed since %s, which CI passed" % base[:10])
+        return tag_and_release(version, tag, title, sha, total, head)
     run_id, url = find_run("ci.yml", sha, "master")
     if run_id is None:
         say("    gh: " + url)
@@ -472,7 +547,11 @@ def main(argv=None):
             " python tools/release.py %s again." % (sha[:10], version))
         return 1
     say("    CI passed")
+    return tag_and_release(version, tag, title, sha, total, head)
 
+
+def tag_and_release(version, tag, title, sha, total, head):
+    """Steps 5 to 8: tag, push the tag, wait for release.yml, report."""
     # 4. tag
     head(5)
     r = run(["git", "tag", "-a", tag, "-m", title])

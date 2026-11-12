@@ -35,8 +35,10 @@ jobs:
       - name: Load the addon against a mock client
         run: python tests/runharness.py
 
+      # On all four of the runner's cores: the suite on one took eight minutes,
+      # which every release waited for.
       - name: Adversarial scenarios
-        run: python tests/runscenarios.py
+        run: python tests/runscenarios.py --jobs 4
 
       # A suite that cannot go red proves nothing. This reintroduces each fault
       # class it is supposed to catch and fails the build if any goes unnoticed.

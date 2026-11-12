@@ -25,7 +25,7 @@ afterwards — pushing it again only says it already exists.
    file, a tool or a rule changed. A release with the changelog written and the
    README, status and listings left behind is not ready.
 2. **The full mutation suite runs on GitHub**: `.github/workflows/selftest.yml`
-   judges it in eight parts (`selftest.py --part I/8`), every night, on every
+   judges it in sixteen parts (`selftest.py --part I/16`), every night, on every
    push to master and on demand (`gh workflow run selftest.yml`). The release
    tool reads its last green run of master: on that commit nothing more runs,
    on a later one only the mutations of the files changed since
@@ -35,15 +35,26 @@ afterwards — pushing it again only says it already exists.
 3. **Release with `python tools/release.py X.Y.Z`.** Try it with `--dry-run`
    first, which prints every step and changes nothing. It:
    - checks it is on `master` with a clean tree, that `## Unreleased` has
-     notes, and that `python tools/check.py` passes;
+     notes, and that CI passed on this commit (it waits for a run still going;
+     only a commit CI has not passed, unpushed or red, gets
+     `python tools/check.py --anchors` here instead);
    - sets the version with `tests/setversion.py`, which renames
      `## Unreleased` to the version;
    - commits "Manners X.Y.Z", with the Co-Authored-By line given by
      `--coauthor` or the `MANNERS_COAUTHOR` environment variable;
-   - pushes master and waits for CI on that commit (`gh run watch`);
+   - pushes master and waits for CI on that commit (`gh run watch`), unless
+     the commit changes nothing but the version since a commit CI passed:
+     then it tags at once, and CI runs on unwaited for;
    - tags `vX.Y.Z`, annotated "Manners X.Y.Z", and pushes the tag;
-   - waits for `release.yml` and prints the packager's "Game version:" line
-     and the upload results.
+   - waits for `release.yml` (structure, the addon loading and the anchors,
+     about a minute: the scenarios are CI's) and prints the packager's
+     "Game version:" line and the upload results.
+
+   **The fast way**: push the work to master as it is finished, so CI and
+   `selftest.yml` have passed on it by the time a release is asked for. The
+   release then reads both, bumps the version and tags at once: a minute or
+   two to the uploads, where a release of unpushed work waits for CI and runs
+   the changed mutations here.
 
 The same steps by hand, if the tool cannot be used. `validate` fails with "no
 notes under" if step 1 was skipped, which is the same check the release makes.

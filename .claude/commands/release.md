@@ -16,7 +16,7 @@ at the first red:
    Top of `CHANGELOG.md` is `## Unreleased` with notes written for players (they
    are the CurseForge, Wago and GitHub text): no "untested", "mock client" or
    "not tried in game". `release.py` refuses an empty section.
-3. The full selftest runs on GitHub (`selftest.yml`, eight parts, nightly and on
+3. The full selftest runs on GitHub (`selftest.yml`, sixteen parts, nightly and on
    every push to master); `release.py` reads its last green run of master and runs
    only the mutations changed since (`--changed <that commit>`). Check it is green
    or running: `gh run list --workflow selftest.yml --limit 3`. Only when GitHub
@@ -24,14 +24,17 @@ at the first red:
    `python tests/selftest.py --jobs N` (20 to 40 minutes, leave 2 cores free;
    run it in the background). It must end `RESULT: every mutation was caught`.
    Any MISSED, WRONG CHECK, ANCHOR GONE or NOT RESTORED stops the release.
-4. `python tools/check.py --lint --flavours --anchors`.
+4. `python tools/check.py --lint --flavours --anchors`. For the fastest release,
+   push master first and let CI and `selftest.yml` pass on it: the release then
+   reads them, skips its own check and the CI wait, and tags in a minute or two.
 5. Dry run, and show the user its output: `python tools/release.py $ARGUMENTS --dry-run`
 6. Ask the user to confirm the version. Only on a clear yes, run it with the
    Co-Authored-By line (`--coauthor` reads the same in bash and in PowerShell;
    an environment prefix does not):
    `python tools/release.py $ARGUMENTS --coauthor "Claude Sonnet 5.5 <noreply@anthropic.com>"`
    It sets the version (`tests/setversion.py`), commits "Manners X.Y.Z", pushes
-   master, waits for CI, tags `vX.Y.Z`, pushes the tag, waits for `release.yml`
+   master, waits for CI (not when only the version changed since a green CI run),
+   tags `vX.Y.Z`, pushes the tag, waits for `release.yml`
    and prints the packager's `Game version:` line (all five clients) and the
    uploads. Never edit a version by hand.
 7. If it stops, read what it says about where that leaves the release. A red CI

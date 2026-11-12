@@ -219,7 +219,7 @@ python tools/release.py 1.8.0-beta.1 --coauthor "Claude Opus 5.5 <noreply@anthro
 ```
 
 Before it: write the notes under `## Unreleased` at the top of `CHANGELOG.md`.
-The full mutation selftest runs on GitHub (`selftest.yml`, eight parts, nightly
+The full mutation selftest runs on GitHub (`selftest.yml`, sixteen parts, nightly
 and on every push to master); the preflight reads its last green run of master
 and runs here only `tests/selftest.py --changed <that commit> --jobs 4`, or
 nothing when that run was of this very commit. It stops when no green run
@@ -235,8 +235,13 @@ Preflight, read-only; nothing changes unless every check passes:
 - on master, with a clean tree: nothing modified and nothing untracked;
 - origin's master is already in this branch (`git ls-remote`, no fetch);
 - the tag `vX.Y.Z` exists neither here nor on origin;
-- `python tools/check.py --anchors` passes (its lines are shown as it runs; it
-  takes all but two cores, its default).
+- CI (`ci.yml`) passed on this commit, waited for while it runs; only a commit
+  CI has not passed (unpushed or red) runs `python tools/check.py --anchors`
+  here instead (its lines shown as it runs, on all but two cores).
+
+After the version commit it waits for CI on it, except when that commit changes
+nothing but the version since a commit CI passed: then it tags at once. Pushing
+the work before asking for a release is what makes both skips apply.
 
 Then, stopping at the first thing that fails:
 
