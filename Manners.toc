@@ -60,6 +60,7 @@ Looks\Ribbon.lua
 Looks\Letter.lua
 Looks\Leather.lua
 Looks\Forge.lua
+Looks\Archmage.lua
 Prompt\Prompt.lua
 Prompt\Text.lua
 Prompt\Effects.lua

@@ -515,7 +515,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the ten looks, named |
+| `manners-looks.png` | the same favour in each of the eleven looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
@@ -914,6 +914,24 @@ files' peak and reach. The figures `Looks/Forge.lua` must agree with
 (`ICON_FRAME`, `DESIGN_H`, `STRAP_TILE`, `STRAP_H`, `RIVET`, `SLOT_W`,
 `SLOT_H_MAX`, `RING_AT`, `TAG_CAPS`, `SPARK_CEIL`, `GLOW_SCALE`, `MASK_FILL`) sit at the top
 of the script and `look-forge.lua` holds each to its twin.
+
+## make_archmage_textures.py
+
+The nineteen files of `Textures/Archmage/` (the crystal in three pieces, the
+hexagonal setting, the two charge facets that SetTexCoord flips into six, the
+halo, the lightning's four frames in one sheet, the hexagon mask, the ring,
+the vein, the spill, the mote, the star, the tag, the bead, the shadow, the
+glyphs). The crystal is shaded here (an amethyst ramp under luma 0.55, each
+face of the cut in its own tone from the shared light's direction); the wire
+and the prongs are electrum, a pale gold lit through `materials.py` under luma
+0.66, so a favour's own gold is never one more piece of the metal. Everything
+is cut at sixty degrees. `--out DIR` writes the same files to DIR (what
+`tests/scenarios/look-archmage.lua` compares with what ships, twice, byte for
+byte), `--sheet FILE` draws a contact sheet and `--reach` prints the ring
+file's peak and reach. The figures `Looks/Archmage.lua` must agree with
+(`ICON_FRAME`, `DESIGN_H`, `CAP_W`, `HEX_OUT`, `GLOW_SCALE`, `TAG_CAPS`,
+`MASK_FILL`, `RING_AT`, `BEVEL_END`, `VEIN_H`) sit at the top of the script
+and `look-archmage.lua` holds each to its twin.
 
 ## materials.py
 

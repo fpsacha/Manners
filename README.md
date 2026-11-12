@@ -494,7 +494,7 @@ and the only thing it ever says in chat is a new title.
 
 ## The prompt's look
 
-Ten looks, each a card under Look > *Panel style* that you click to switch:
+Eleven looks, each a card under Look > *Panel style* that you click to switch:
 
 - **Glass** (the default): a dark pane of cut glass, the spell icon set in a
   metal bezel that brightens under the pointer.
@@ -509,6 +509,11 @@ Ten looks, each a card under Look > *Panel style* that you click to switch:
 - **Leather**: a stitched leather tag with a brass ring.
 - **Forge**: forged iron and a riveted band, the reason glowing in a slot beside
   the icon like a bar of heated steel.
+- **Archmage**: a violet crystal cut to a point at each end, your spell set in
+  a hexagon of six arcane charges that light one by one when somebody buffs
+  you, travel round while you owe them and discharge in lightning when your
+  buff lands. The crystal sparkles at rest; *Animations* on *Calm* stills it.
+  The icon is always a hexagon on this look.
 
 Pick your own colours and fonts too; LibSharedMedia is supported.
 

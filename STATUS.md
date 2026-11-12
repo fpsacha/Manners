@@ -180,7 +180,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the ten looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the eleven looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and
@@ -244,6 +244,20 @@ the "Manners" macro, cleared with an empty string, and PickupMacro from the
 options button are untested in a real client: check the slot shows the spell's
 icon, cooldown and range, goes back to the note icon with nobody to buff, and
 that a controller button bound to the prompt shows its glyph on the chip.
+
+**Archmage (Unreleased), asked for by the author.** `Looks/Archmage.lua`,
+`Textures/Archmage/` (`tools/make_archmage_textures.py`), key `archmage`,
+order 8, in `Looks.roundAlways` (the icon is a hexagon whatever the switch
+says). Its lightning is four drawn frames, each a region of its own lit in
+turn by Alpha animations that hold: frame-by-frame with no OnUpdate and no
+FlipBook. It is the one look that loops with nobody owed (`look.idle`: an
+ember, two lights drifting along the ridges, two glints; the author asked for
+it), and `hunt35-effects` lets those groups through by name. Only the live
+game can say: that a hexagonal mask cuts the icon and the cooldown's sweep on
+all five clients, that a Rotation of a quarter turn leaves the four-pointed
+star as it found it, that a Translation's offset starts again at each turn of
+a REPEAT group (the drifting lights), and how bright the additive flashes are
+(the renderer understates them).
 
 **The new looks in the game.** Ribbon, Letter and Leather (1.10.0), Forge, the
 glass and tooltip-rim rebuild of Glass and Framed, Toast's re-gilding and the

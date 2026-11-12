@@ -25,7 +25,7 @@ What it writes, all 1280 pixels wide:
     manners-prompt.png     the moment your buff lands, rings and wave
     manners-moment.png     film strips: they buffed you, it lands, it is refused
     manners-reasons.png    the five reasons somebody is offered, each in its colour
-    manners-looks.png      the same favour in each of the ten looks, named
+    manners-looks.png      the same favour in each of the eleven looks, named
     manners-ledger.png     the favour ledger with a day of ordinary play in it
     manners-languages.png  the prompt in German, French and Chinese
     manners-palette.png    the standard and the colour-blind reason colours
@@ -586,7 +586,7 @@ local added = {
 -- most players who use it have -- the looks that show the key only show it
 -- with one bound. ShotStyle is the look the profile ends up on, so a look the
 -- addon refused or put back is caught rather than drawn under another's name.
-for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge" }) do
+for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage" }) do
 	added[#added + 1] = { key = "shot-look-" .. style, at = 0.85, setup = function(ns)
 		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
@@ -1855,6 +1855,7 @@ LOOKS = [
     ("letter", "Letter", "parchment and a red wax seal"),
     ("leather", "Leather", "a stitched leather tag with a brass ring"),
     ("forge", "Forge", "forged iron, a riveted band"),
+    ("archmage", "Archmage", "a violet crystal, six arcane charges"),
     ("glass", "Glass", "dark cut glass, a metal bezel"),
     ("framed", "Framed", "dark panel, a tooltip's rim"),
     ("minimal", "Minimal", "text only, no panel"),

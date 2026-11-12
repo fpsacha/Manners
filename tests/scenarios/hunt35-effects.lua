@@ -108,7 +108,7 @@ local function groupsOf(r)
 		return g
 	end
 	g.intro, g.introCalm = { r.intro }, { r.introCalm }
-	if look.key == "leather" then
+	if look.key == "leather" or look.key == "archmage" then
 		g.arrive = {}
 		for _, a in ipairs(look.arrive) do g.arrive[#g.arrive + 1] = a end
 		for _, a in ipairs(look.landing) do g.land[#g.land + 1] = a end
@@ -142,6 +142,7 @@ end
 -- Leather joins the looks asked every question here.
 ALL[#ALL + 1] = "leather"
 ALL[#ALL + 1] = "forge"
+ALL[#ALL + 1] = "archmage"
 
 local function snapshot(g)
 	return { arrive = total(g.arrive), land = total(g.land), reject = total(g.reject),
@@ -431,7 +432,14 @@ withTree("hunt35-effects: the breath stops with the favour and with the panel", 
 		ns.addon:Tick()
 		FT.settle()
 		_, loops = FT.playing()
-		if #loops > 0 then fail(scenario, style .. ": " .. #loops .. " loop(s) kept going with nobody owed") end
+		-- A look's own lights at rest (Archmage's `idle`, which its author
+		-- asked for) are not the breath: every other loop is.
+		local idle, kept = {}, 0
+		for _, g in ipairs(r.look and r.look.idle or {}) do idle[g] = true end
+		for _, g in ipairs(loops) do
+			if not idle[g] then kept = kept + 1 end
+		end
+		if kept > 0 then fail(scenario, style .. ": " .. kept .. " loop(s) kept going with nobody owed") end
 		if r.rim and (r.rim._alpha or 0) > 0.001 then fail(scenario, style .. ": the rim was left lit") end
 	end
 end)
@@ -559,8 +567,10 @@ for _, style in ipairs(ALL) do
 		if cd._circular ~= true then fail(scenario, "the sweep's edge is not round with a round icon") end
 		p.roundIcon = false
 		ns.Prompt:ApplyStyle()
-		-- Toast's medallion is round whatever the setting says.
-		local want = style == "toast"
+		-- Toast's medallion is round whatever the setting says, and the
+		-- Archmage's hexagon is a hexagon: its sweep's edge turns about the
+		-- middle either way.
+		local want = style == "toast" or style == "archmage"
 		if cd._circular ~= want then
 			fail(scenario, "the sweep's edge stayed round after the icon was squared: " .. tostring(cd._circular))
 		end
