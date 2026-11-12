@@ -293,8 +293,8 @@ mutate("Buffs.lua",
 
 # ------------------------------------------------ favours
 mutate("Buffs.lua",
-       "\tfavourOnly = { 6346, 546, 132, 27239, 20765,",
-       "\tfavourOnly = { 6346, 546, 132, 20765,",
+       "\tfavourOnly = { 6346, 546, 27239, 20765,",
+       "\tfavourOnly = { 6346, 546, 20765,",
        "tbc: the sixth Soulstone no favour",
        expect="tbc: a buff from a stranger is read off the combat log (the sixth Soulstone)",
        script=S)

@@ -514,7 +514,7 @@ do
 		local buff = spell and ns.BUFF_BY_ID and ns.BUFF_BY_ID[spell] or nil
 		local entry = { name = seen.name, short = ns.ShortName(seen.name), reason = "owed", unit = unit,
 			inGroup = seen.inGroup == true, gift = spell and ns.SpellNameFor(spell) or nil,
-			giftKey = buff and buff.key or nil }
+			giftKey = buff and (buff.gift or buff.key) or nil }
 		local command = ns.CHANNEL_COMMANDS.WHISPER .. " " .. to
 		local line, written = rp.Pick(entry, command, ns.MACRO_LIMIT)
 		if type(line) ~= "string" then return false end

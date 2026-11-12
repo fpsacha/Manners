@@ -1570,6 +1570,7 @@ mutate("Prompt/Refresh.lua",
 mutate("Core.lua",
        """		if ns.IsBuffKnown(buff)
 			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
+			and (pinned == buff.key or not ns.OptedOut(buff, db and db.buff))
 			and (not buff.neverAuto or pinned == buff.key) then""",
        """		if ns.IsBuffKnown(buff)
 			and (not buff.neverAuto or pinned == buff.key) then""",
@@ -2550,7 +2551,7 @@ mutate("Core.lua",
 # has nothing left.
 mutate("Core.lua",
        """\t\tif ns.IsBuffKnown(buff) and not buff.neverAuto
-\t\t\tand not (skip and skip[buff.key]) then""",
+\t\t\tand not (skip and skip[buff.key]) and not ns.OptedOut(buff, db and db.buff) then""",
        "\t\tif ns.IsBuffKnown(buff) then",
        "the never-automatic rule missing from the fallback pick",
        expect="Automatic never hands over Unending Breath",
@@ -4153,7 +4154,7 @@ mutate("Options/Who.lua",
 
 # "Every spell below is switched off" over unlearned spells still ticked.
 mutate("Options/Who.lua",
-       "\t\t\tif not buff.neverAuto and not ns.IsBuffKnown(buff) and not B().skip[buff.key] then\n",
+       "\t\t\tif not buff.neverAuto and not ns.IsBuffKnown(buff) and not B().skip[buff.key] and not ns.OptedOut(buff, B()) then\n",
        "\t\t\tif false then\n",
        "every spell off over ticked unlearned ones",
        expect="with Divine Spirit and Shadow Protection still ticked below, the note says every",

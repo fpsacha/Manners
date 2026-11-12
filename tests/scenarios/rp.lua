@@ -1877,9 +1877,15 @@ do
 			"MAGE", "WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "EVOKER" })
 		local givers, keys = { MAGE = true, PRIEST = true, DRUID = true, PALADIN = true, WARLOCK = true,
 			WARRIOR = true }, {}
+		-- The pool each buff's favour is thanked with: its own key's, or the one
+		-- it names (Buffs.lua, gift: Detect Invisibility for your group).
+		local giftOf = {}
 		for class, buffs in pairs(ns.BUFFS or {}) do
 			if #buffs > 0 then givers[class] = true end
-			for _, buff in ipairs(buffs) do keys[buff.key] = true end
+			for _, buff in ipairs(buffs) do
+				keys[buff.key] = true
+				giftOf[buff.key] = buff.gift or buff.key
+			end
 		end
 		for class in pairs(givers) do
 			for _, kind in ipairs({ "thanks", "asked", "offer", "group" }) do
@@ -1911,8 +1917,9 @@ do
 		-- favour Manners never offers (Buffs.lua, favourOnly), found by its id.
 		local gifts = {}
 		for key in pairs(keys) do
-			has(RP.GIFT[key], "gift " .. key, 2)
-			gifts[key] = true
+			local gift = giftOf[key] or key
+			has(RP.GIFT[gift], "gift " .. gift, 2)
+			gifts[gift] = true
 		end
 		local owed = ns.owed
 		if not (ns.FAVOUR_ONLY_IDS and ns.FAVOUR_ONLY_IDS[1]) then

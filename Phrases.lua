@@ -3102,6 +3102,11 @@ RP.SPELL = {
 		L["A bond of the grove, {name}. Look after yourself and you look after me."],
 		L["Nature pairs us up for a while, {name}. Try not to make me regret it."],
 	},
+	detectgroup = {
+		L["Now you'll see what creeps up on us, {name}. Try not to scream."],
+		L["A warlock's sight, {name}, lent for a while. Some shadows stare back."],
+		L["Eyes open, {name}. Whatever hides near us is about to be found."],
+	},
 }
 
 -- Thanks only, and only when the spell they gave you is known: {gift} is
@@ -5513,9 +5518,10 @@ do
 	end
 
 	-- The favours no buff of Buffs.lua holds (its favourOnly ids), by every
-	-- rank's id: a Soulstone, Fear Ward, Water Walking, Detect Invisibility,
-	-- and on retail Unending Breath, which elsewhere is a warlock's buff and
-	-- found under BUFF_BY_ID first. 27239 is Burning Crusade's sixth Soulstone.
+	-- rank's id: a Soulstone, Fear Ward, Water Walking, and on retail Unending
+	-- Breath, which elsewhere is a warlock's buff and found under BUFF_BY_ID
+	-- first, as Detect Invisibility now is everywhere it exists (its buff names
+	-- these lines as its `gift`). 27239 is Burning Crusade's sixth Soulstone.
 	local FAVOUR_KEY = {
 		[20707] = "soulstone", [20762] = "soulstone", [20763] = "soulstone",
 		[20764] = "soulstone", [20765] = "soulstone", [27239] = "soulstone",
@@ -5536,6 +5542,9 @@ do
 			local byId = ns.BUFF_BY_ID
 			local buff = id and type(byId) == "table" and byId[id]
 			key = type(buff) == "table" and buff.key or (id and FAVOUR_KEY[id]) or nil
+			-- A buff thanked with another pool's lines (Buffs.lua, gift): Detect
+			-- Invisibility for your group, by the lines written for it as a favour.
+			if type(buff) == "table" and type(buff.gift) == "string" then key = buff.gift end
 		end
 		if type(key) ~= "string" then return nil end
 		return key
@@ -5713,6 +5722,8 @@ do
 		-- been the group version (a Prayer of Fortitude, filed under the same
 		-- key in Buffs.lua), which is named otherwise.
 		if gift ~= nil and (gift == single or (key and RP.GiftKey(entry) == key)) then gift = nil end
+		-- The same for a buff thanked with another pool's lines (Buffs.lua, gift).
+		if gift ~= nil and key and entry.buff.gift and RP.GiftKey(entry) == entry.buff.gift then gift = nil end
 		local weight, spread, about = RP.WEIGHT, RP.SPREAD, RP.ABOUT
 		local leaving = Leaving()
 

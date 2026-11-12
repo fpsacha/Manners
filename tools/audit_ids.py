@@ -43,10 +43,11 @@ client's DB2 tables from wago.tools, for the build CLAUDE.md's "Data sources" ci
   SpellAuraOptions   a shield's `charges`
   Talent             a `talent` buff is a talent (or not)
   ItemSparse, ItemEffect, SpellItemEnchantment, SpellEquippedItems   Forever's scrolls, and every
-                     weapon enhancement item (poisons, stones, oils, lures) on the four clients that
+                     weapon enhancement item (poisons, stones, oils, lures, and Forever's firestones and
+                     spellstones) on the four clients that
                      have them: the item and its required level and class, the spell its use casts,
                      the enchant it makes, the weapons it fits (the subclass mask, or the inventory
-                     types an oil asks for), and a cast time the timed self-use settle covers; on
+                     types an oil or a warlock's stone asks for), and a cast time the timed self-use settle covers; on
                      Forever also each one's `enchantKind` against its use spell's effect (360 an
                      imbue, 54 a temporary enchant), the scrolls' imbue included, and on the other
                      clients that none has one; and, as NOTEs, items the client has that make a
@@ -540,6 +541,9 @@ BUFF_NAMES = {
     "light": r"(Greater )?Blessing of Light",
     "sanctuary": r"(Greater )?Blessing of Sanctuary",
     "breath": r"Unending Breath|Water Breathing",
+    # Classic Era names its first and last ranks for what they see; Forever and Burning Crusade
+    # call every rank Detect Invisibility.
+    "detectgroup": r"Detect (Lesser |Greater )?Invisibility",
     "battleshout": r"Battle Shout",
     "commandingshout": r"Commanding Shout",
     "emperor": r"Legacy of the Emperor",
@@ -606,6 +610,8 @@ OWN_NAMES.update({
 })
 # A warlock's Unending Breath on himself while he swims (1.11.13).
 OWN_NAMES.update({"selfbreath": r"Unending Breath"})
+# A warlock's Detect Invisibility on himself (1.11.11), every rank's name as the buff for his group's.
+OWN_NAMES.update({"detectinvis": r"Detect (Lesser |Greater )?Invisibility"})
 # An own spell's `group` ids (Buffs.lua): another class's spell that counts as it up, by key.
 OWN_GROUP_NAMES = {"selfbreath": r"Water Breathing"}
 # What a favour-only / not-favour id is, by id: any client that has the id must call it this.
@@ -1097,6 +1103,9 @@ ENHANCE_ITEM_NAMES = {
     "poison": r".*(Poison|Toxin).*",
     "stone": r".*(Sharpening Stone|Weightstone).*",
     "oil": r".*(Oil|Weapon Coating).*",
+    # A warlock's (Forever's alone: on Classic Era and Burning Crusade they are held in the off
+    # hand and make no enchant of their own use).
+    "warlockstone": r".*(Firestone|Spellstone).*",
 }
 # SpellEquippedItems.EquippedItemSubclass for every melee weapon (axes, maces, polearms, swords,
 # staves, fist weapons, daggers, spears): what an oil, whose own data names inventory types
@@ -1109,8 +1118,8 @@ ENCHANT_EFFECTS = (53, 54, 92, 360)
 LONGEST_USE_MS = 5000
 # How Forever's client lists the enchant a use spell makes, by the spell's effect (Buffs.lua,
 # `enchantKind`): 360 an Imbue, 54 a Temporary enchant (Enum.ItemEnchantType). A shaman's
-# Rockbiter Weapon and a warlock's firestone are 360 too, which is why a wizard oil stays beside
-# them on a hand.
+# Rockbiter Weapon and a warlock's firestone and spellstone (Buffs.lua, warlockstone) are 360 too,
+# which is why a wizard oil stays beside them on a hand.
 ENCHANT_KIND_BY_EFFECT = {360: "imbue", 54: "temporary"}
 
 
@@ -1503,6 +1512,13 @@ def check_reach(rep, c, d, flavour):
                 rep.finding(where, "groupOnly but %d targets %d, not 57 (your party or raid)" % (top, first["t0"]))
             if not b.get("groupOnly") and first["t0"] == 57:
                 rep.finding(where, "%d targets 57 (your party or raid only) but the buff is not groupOnly" % top)
+            # Held to your group by Manners' choice (Buffs.lua, membersOnly) only where the game
+            # would take anybody: one the game holds to your group itself is groupOnly.
+            if b.get("membersOnly") and (b.get("groupOnly") or first["t0"] == 57):
+                rep.finding(where, "membersOnly, but %d targets %d and the buff is %s: groupOnly says what the game "
+                            "refuses" % (top, first["t0"], "groupOnly" if b.get("groupOnly") else "not"))
+            if b.get("membersOnly") and first["t0"] != 21:
+                rep.note(where, "membersOnly, and %d targets %d, not 21 (any friendly target)" % (top, first["t0"]))
             if wide and not b.get("alone") and first["t0"] not in (118,):
                 rep.note(where, "wideCasts client, but %d (%s) targets %d, not 118 (the target, or the whole group when it is in it)" % (
                     top, c.names.get(top), first["t0"]))

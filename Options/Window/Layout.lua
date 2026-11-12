@@ -244,6 +244,8 @@ ns.WindowLayout = {
 					{ "who.own_stoneoff", indent = true },
 					{ "who.own_oilmain", indent = true },
 					{ "who.own_oiloff", indent = true },
+					-- A warlock's Firestone or Spellstone on the main hand (Forever).
+					{ "who.own_warlockstone", indent = true },
 					{ "who.own_lure", indent = true },
 					{ "who.own_aura", indent = true },
 					{ "who.own_righteousfury", indent = true },

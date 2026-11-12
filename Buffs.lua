@@ -44,6 +44,22 @@
 --   partyOnly reaches your party and nobody else.
 --   groupOnly reaches anybody in your party or raid (a raid member in another
 --             subgroup too), and nobody outside it: Blessing of Salvation.
+--   membersOnly  offered to the members of your party or raid alone, though
+--             the game takes any friendly target (target 21): Manners' choice,
+--             not the game's (Detect Invisibility, which nobody walking past
+--             wants). Castable (Core.lua) holds it to your group as it holds a
+--             groupOnly buff, and it reads as "your group only" wherever that
+--             is said; groupOnly stays for what the game itself refuses
+--             outside your group (tools/audit_ids.py holds groupOnly to target
+--             57, and membersOnly to any other).
+--   optIn     off until it is switched on, on Who to buff: its key in
+--             db.buff.optIn (a sparse set, present is on), where every other
+--             buff is on until its key is in db.buff.skip (Core.lua,
+--             ns.BuffOff). Detect Invisibility for your group, which few
+--             warlocks want handed out.
+--   gift      the RP.GIFT pool a favour of it is thanked with where that is not
+--             its own key's (Phrases.lua, RP.GiftKey): Detect Invisibility's
+--             thanks were written when it was a favour Manners never offered.
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
 --   strongest the buff of an exclusive class's list (a paladin's Kings) that
@@ -269,6 +285,24 @@ local VANILLA = {
 			neverSelf = true,
 			switchable = true,
 		},
+		-- Detect Invisibility for your group (asked for on CurseForge by a player
+		-- on Forever): Lesser at 26, plain at 38, Greater at 50 (SpellLevels and
+		-- SkillLineAbility 354, Classic Era 1.15.9.70003 and Forever
+		-- 1.60.1.70790), ten minutes. The spell takes any friendly target
+		-- (SpellEffect target 21), so it is not groupOnly; Manners offers it to
+		-- the members of your party or raid alone (membersOnly), never to a
+		-- passer-by, and only once it is switched on (optIn). Never offered to you
+		-- through this (neverSelf): your own family below (detectinvis) reminds
+		-- you of it on yourself. Its favour is thanked with the lines written for
+		-- it before it was offered (gift).
+		{
+			key = "detectgroup",
+			ranks = { 11743, 2970, 132 },
+			membersOnly = true,
+			optIn = true,
+			neverSelf = true,
+			gift = "detectinvis",
+		},
 	},
 
 	-- Battle Shout is cast on yourself and reaches the party, so it has no
@@ -392,8 +426,10 @@ end
 -- A wizard or mana oil's own data names inventory types (weapon, two-hand,
 -- main hand, off hand) where the rest name kinds of weapon, which would take
 -- a fishing pole as well; a pole has lures of its own, so an oil is held to
--- every melee weapon (MELEE). Left out: a warlock's
--- firestones and spellstones, the items made for one use (Scourgebane,
+-- every melee weapon (MELEE). A warlock's firestones and spellstones are
+-- Forever's alone (warlockstone, below): held in the off hand on Classic Era and
+-- Burning Crusade (InventoryType 23 and 28), which puts nothing on a weapon.
+-- Left out: the items made for one use (Scourgebane,
 -- Bloodboil Poison, Season of Discovery's cleaning cloth and repellent), the
 -- coatings that go on a shield (Season of Discovery), the fishing hats, items
 -- for the ranged slot, and the placeholders and tests the data still carries
@@ -430,6 +466,11 @@ do
 	-- which is a main-hand weapon alone.
 	local KINDS = {
 		{ kind = "poison", label = L["Poison"], only = "ROGUE" },
+		-- A warlock's Firestone or Spellstone (Forever), one family for both: each
+		-- is an Imbue, and a hand holds one imbue at a time. The main hand alone:
+		-- their use spells name one-hand, two-hand and main-hand weapons
+		-- (SpellEquippedItems inventory types 13, 17 and 21), never an off-hand one.
+		{ kind = "warlockstone", label = L["Firestone or Spellstone"], only = "WARLOCK", mainHand = true },
 		{ kind = "stone", label = L["Sharpening stone or weightstone"] },
 		{ kind = "oil", label = L["Oil"] },
 		{ kind = "lure", label = L["Fishing lure"], mainHand = true },
@@ -637,7 +678,28 @@ do
 	-- Season of Discovery's five poisons, which are 54 like the stones and oils:
 	-- Core.lua, ReadImbue).
 	local CAMELOT_KINDS = { poison = IMBUE, stone = TEMPORARY, oil = TEMPORARY, lure = TEMPORARY }
+	-- A warlock's firestones and spellstones are an Imbue, as a poison is (below).
+	CAMELOT_KINDS.warlockstone = IMBUE
 	local CAMELOT_ROWS = {
+		-- A warlock's firestones and spellstones (1.60.1.70790): on-use items here
+		-- (InventoryType 0, ItemEffect TriggerType 0) whose use is SpellEffect 360,
+		-- an Imbue like a poison's, two hours (SpellItemEnchantment Duration 7200),
+		-- on a weapon of inventory type one-hand, two-hand or main hand
+		-- (SpellEquippedItems class 2, subclass mask 0), so held to every melee
+		-- weapon as an oil is. ItemSparse asks no level of any of them (the
+		-- spells are SpellLevels 28, 36, 46 and 56 for the firestones and 28 for
+		-- the spellstones, and only a warlock makes them). Best first, rank by
+		-- rank, a firestone ahead of a spellstone of its rank; one in the bags is
+		-- all Automatic asks, and a warlock carries the one he made.
+		warlockstone = {
+			{ 13701, 0, 1825, 17949, MELEE }, -- Major Firestone
+			{ 13603, 0, 8061, 1237159, MELEE }, -- Major Spellstone
+			{ 13700, 0, 1824, 17947, MELEE }, -- Greater Firestone
+			{ 13602, 0, 8060, 1237156, MELEE }, -- Greater Spellstone
+			{ 13699, 0, 1823, 17945, MELEE }, -- Firestone
+			{ 5522, 0, 8059, 1237152, MELEE }, -- Spellstone
+			{ 1254, 0, 1803, 758, MELEE }, -- Lesser Firestone
+		},
 		poison = {
 			{ 8928, 60, 625, 11340, MELEE }, -- Instant Poison VI
 			{ 8927, 52, 624, 11339, MELEE }, -- Instant Poison V
@@ -1162,6 +1224,9 @@ ns.RANK_LEVEL = {
 	-- SpellLevels, Classic Era 1.15.9.70003): another paladin's weak rank worn
 	-- by somebody your best rank lands on is read as the weaker it is.
 	[20911] = 30, [20912] = 40, [20913] = 50, [20914] = 60,
+	-- Detect Invisibility for your group (SpellLevels, Classic Era 1.15.9.70003,
+	-- Forever 1.60.1.70790 and, for 132, Burning Crusade 2.5.6.69795).
+	[132] = 26, [2970] = 38, [11743] = 50,
 }
 function ns.RankLevel(id)
 	return id and ns.RANK_LEVEL[id] or nil
@@ -1227,9 +1292,10 @@ local VANILLA_OWN = {
 		-- not. Lesser at 26, plain at 38, Greater at 50 (SpellLevels, Classic
 		-- Era 1.15.9.70003 and Forever 1.60.1.70790, SkillLineAbility 354 on
 		-- both). Another warlock's on you fills it (`anyCaster`): yours would
-		-- only replace it.
+		-- only replace it. It is his favour too (castOnOthers), since a warlock
+		-- casts it on his group as well (detectgroup, above).
 		{ key = "detectinvis", optIn = true,
-			spells = { { key = "detectinvis", ranks = { 11743, 2970, 132 }, anyCaster = true } } },
+			spells = { { key = "detectinvis", ranks = { 11743, 2970, 132 }, anyCaster = true, castOnOthers = true } } },
 	},
 
 	PALADIN = {
@@ -1494,12 +1560,12 @@ local VANILLA_SET = {
 	groupByClass = { PALADIN = true },
 	-- Class buffs others put on you that Manners never offers (an emergency
 	-- spell, or one that moves you), counted as favours only: in ALL_BUFF_IDS,
-	-- never in BUFF_BY_ID. Fear Ward; Water Walking; Detect Invisibility;
-	-- Soulstone Resurrection, every rank. A shaman's Water Breathing comes in
-	-- as Unending Breath's group id instead. Amplify and Dampen Magic are left
-	-- out: each also works against its target, a raid tactic rather than a
-	-- courtesy.
-	favourOnly = { 6346, 546, 11743, 2970, 132, 20765, 20764, 20763, 20762, 20707 },
+	-- never in BUFF_BY_ID. Fear Ward; Water Walking; Soulstone Resurrection,
+	-- every rank. A shaman's Water Breathing comes in as Unending Breath's group
+	-- id instead, and Detect Invisibility is a warlock's buff for his group
+	-- (detectgroup). Amplify and Dampen Magic are left out: each also works
+	-- against its target, a raid tactic rather than a courtesy.
+	favourOnly = { 6346, 546, 20765, 20764, 20763, 20762, 20707 },
 	-- A druid's party auras, which no family holds (they are a form's, never
 	-- cast): Leader of the Pack (24932, a feral's in Cat or Bear Form) and
 	-- Moonkin Aura (24907), each an "Apply Area Aura" on the party (Wowhead
@@ -1651,6 +1717,16 @@ local TBC = {
 			neverSelf = true,
 			switchable = true,
 		},
+		-- Vanilla's Detect Invisibility for your group, with the one rank this
+		-- client kept (132, level 26; SpellEffect target 21, any friendly target).
+		{
+			key = "detectgroup",
+			ranks = { 132 },
+			membersOnly = true,
+			optIn = true,
+			neverSelf = true,
+			gift = "detectinvis",
+		},
 	},
 
 	WARRIOR = {
@@ -1746,7 +1822,7 @@ local TBC_OWN = {
 		},
 		-- Vanilla's, with the one rank this client kept (132, level 26).
 		{ key = "detectinvis", optIn = true,
-			spells = { { key = "detectinvis", ranks = { 132 }, anyCaster = true } } },
+			spells = { { key = "detectinvis", ranks = { 132 }, anyCaster = true, castOnOthers = true } } },
 	},
 
 	PALADIN = {
@@ -1940,9 +2016,8 @@ local TBC_SET = setmetatable({
 	buffs = TBC,
 	own = TBC_OWN,
 	statValue = TBC_STAT,
-	-- Vanilla's, less the two Detect Invisibility ranks this client deleted,
-	-- with the sixth Soulstone (27239).
-	favourOnly = { 6346, 546, 132, 27239, 20765, 20764, 20763, 20762, 20707 },
+	-- Vanilla's, with the sixth Soulstone (27239).
+	favourOnly = { 6346, 546, 27239, 20765, 20764, 20763, 20762, 20707 },
 	-- Vanilla's druid auras, and the party auras Burning Crusade added (Wowhead
 	-- TBC Classic, "Apply Area Aura" each): Tree of Life's (34123), and a
 	-- draenei's Heroic Presence (6562) and Inspiring Presence (28878).
@@ -3176,6 +3251,7 @@ do
 		{ 1800, 403619 }, -- Fel Armor, the Season of Discovery rune's id (30 min, build 1.60.1.70532)
 		{ 600, 11743, 2970, 132 }, -- Detect Invisibility, every rank (10 min)
 		{ 300, 1328548 }, -- Oath of Light (5 min, build 1.60.1.70790)
+		{ 7200, 17949, 1237159, 17947, 1237156, 17945, 1237152, 758 }, -- firestones and spellstones (2 h, build 1.60.1.70790)
 	})
 
 	-- Mists of Pandaria Classic 5.5.4.70032.
