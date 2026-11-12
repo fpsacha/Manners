@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **Move the prompt in Edit Mode.** Open the game's Edit Mode and the prompt
+  unlocks with everything else: drag it where you want it, as often as you
+  like, and it locks again when Edit Mode closes. It casts nothing while Edit
+  Mode is open. *Move it in Edit Mode* on *Look*, under *Position*, switches
+  this off; *Move the prompt* works as before. Asked for on CurseForge.
+- **Keep a companion pet out.** *Companion pet*, a switch under *Myself* on
+  *Who to buff*, off until you turn it on. On WoW Forever, Manners brings a
+  pet out of your pet journal itself, with no press: the one you had out last,
+  a random favourite or any pet, as *Which pet* says. A pet you use from your
+  bags each time (every pet on Classic Era and Burning Crusade; the turtle
+  eggs, the Moro'gai gems, the orphan whistles and a few more on Forever)
+  comes up on the prompt, and one press brings it out. Never in a fight, a
+  dungeon, a raid, a battleground or an arena, nor while you are mounted,
+  stealthed or flying, and a pet you put away stays away until you bring one
+  out yourself.
+
 ## 1.11.15
 
 - **A top-up is a favour too.** Somebody who cast a buff on you again while

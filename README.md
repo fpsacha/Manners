@@ -118,7 +118,9 @@ Then press *Show me the prompt* at the top of the window (or type
 prompt* beside it (or type `/manners move`): the window steps aside, you
 drag the prompt where you want it, and it locks itself when you let go. The
 *Look* page starts with the same button and, beside it, *Where it sits*,
-which has three ready-made places. To `/thank` people or say a line when you
+which has three ready-made places. The game's Edit Mode moves it too: while
+Edit Mode is open the prompt is unlocked to be dragged, and it locks again
+when Edit Mode closes (*Move it in Edit Mode* on *Look* switches that off). To `/thank` people or say a line when you
 buff them, see *What I say*.
 
 The first login on each character says what the addon does and what it needs
@@ -269,6 +271,21 @@ each class offers*).
   cap, where there is no experience to gain, while you lie in the bag, during
   the hour its use cools down, while you eat, mounted or in a fight. Classic
   Era and WoW Forever.
+- **Companion pet.** A switch under *Myself*, shown while you have a pet,
+  off until you switch it on. On WoW Forever, with no pet out, Manners brings
+  one out of your pet journal itself, with no press: *Which pet* picks the
+  one you had out last, a random favourite or any pet. (A pet item you have
+  not used yet teaches you the pet: use it once and it is in the journal.) A
+  pet you use from your bags each time (every pet on Classic Era and Burning
+  Crusade, a handful on Forever) comes up on the prompt as "You", and one
+  press brings it out; Manners keeps count of it itself, since the game does
+  not say whether one is out: death, a loading screen or a flight takes it, a
+  `/reload` does not. Never in a fight, a dungeon, a raid, a battleground or
+  an arena, nor while you are mounted, stealthed, dead, flying or casting. A
+  pet you put away (its item used again, *Dismiss*, or the journal's button)
+  stays away until you bring one out yourself. Should the game not let
+  Manners use the journal, it stops trying for the session and says so in
+  `/manners debug`. WoW Forever, Classic Era and Burning Crusade.
 - **Detect Invisibility.** For warlocks: a switch under *Myself*, off until you
   switch it on. Then, with no Detect Invisibility on you (yours or another
   warlock's), "You" comes up and one press casts it on you. Classic Era, WoW
@@ -938,6 +955,11 @@ prompt* goes away when you click it.
   below*, off by default: the next few people the prompt would offer, one line each.
   *Click a name in the list to buff them* (on) makes each line a button, as
   under *Click any name* above; how many are listed is *How many to list*.
+- *Move it in Edit Mode* (on), under *Position*: while the game's Edit Mode
+  is open the prompt is unlocked, so you drag it there with the game's own
+  frames, as often as you like. It casts nothing meanwhile and locks again
+  when Edit Mode closes. A prompt you unlocked yourself is left as it is, and
+  Edit Mode opened in a fight leaves the prompt locked.
 - *Hide the prompt in combat* (off): the prompt and its list are off the
   screen for the whole fight, and its key, a name in the list and the Manners
   macro on your bar cast nothing until it ends; then it is back, armed for

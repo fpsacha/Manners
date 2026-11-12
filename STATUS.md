@@ -5,7 +5,33 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-Unreleased, after 1.11.14, all asked for on CurseForge: classes left out as
+1.11.15 is released. Unreleased after it, asked for on CurseForge: the prompt
+moved in the game's Edit Mode (`prompt.moveInEditMode`, on; Prompt/Button.lua,
+"Edit Mode": `EventRegistry`'s "EditMode.Enter" unlocks a locked prompt and
+"EditMode.Exit" locks one it unlocked, a drag meanwhile saves the place and
+leaves it unlocked, and `db.char.editUnlocked` locks it at the next login after
+a `/reload` inside Edit Mode; `tests/scenarios/editmode.lua`). The two callback
+names are read from Blizzard's EditModeManager.lua on all five branches. Only
+the live game can say: that the callbacks reach an addon on each client, that
+the unlocked prompt can be dragged over Edit Mode's own overlay, and that a
+callback registered by an addon leaves Edit Mode's saving untainted.
+
+Also unreleased, asked for by the author: a companion pet kept out (`pet`
+family, off by default; `Pets.lua` from `tools/make_pets.py`, `Companion.lua`,
+`tests/scenarios/pets.lua`). Forever's pet journal is summoned with no press
+from the scan (`C_PetJournal.SummonPetByGUID` or `SummonRandomPet`, by *Which
+pet*, `ownBuffs.petChoice`); a pet used from the bags (every pet on Classic Era
+and TBC, 17 on Forever) is a press on the prompt, out or not by Manners' own
+count. Only the live game can say: that `SummonPetByGUID` from addon code with
+no key press works on Forever (a Forever addon does it from a timer; if not,
+three empty summons or ADDON_ACTION_FORBIDDEN leave it to the player for the
+session, but the game may show its "blocked" popup once); what takes a bag pet
+away on Classic Era and TBC (death, a loading screen and a flight are assumed,
+mounting is not); and whether a bag pet's item used while one is out puts it
+away (assumed, as a toggle). Mists and retail are left out until the first of
+these is known there.
+
+In 1.11.15, all asked for on CurseForge: classes left out as
 passers-by (`filters.skipNearbyClasses`, a sparse set of class tokens;
 `SkippedClasses` in Queue.lua, a verdict in the walk and a let-go in
 `OfferPassersBy`), *Remind me this many minutes early* made exact

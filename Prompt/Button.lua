@@ -15,6 +15,10 @@ local OnRowPreClick, OnRowPostClick = lib.OnRowPreClick, lib.OnRowPostClick
 -- drag gesture, including the ones OnDragStart refused (locked, in combat).
 local dragging
 
+-- The game's Edit Mode is open and the prompt was unlocked for it (below,
+-- "Edit Mode"): a drag then leaves it unlocked, to be nudged again.
+local editUnlocked
+
 -- Ends a move under way: the frame let go, where it landed saved, and the
 -- prompt locked. Shared by the release and by a fight arriving mid-drag, which
 -- must leave the prompt in the same place.
@@ -31,6 +35,15 @@ local function FinishDrag()
 	if not okScale or type(s) ~= "number" or s <= 0 then s = p.scale end
 	p.point, p.relPoint = point, relPoint
 	p.x, p.y = math.floor(x * s + 0.5), math.floor(y * s + 0.5)
+
+	-- In Edit Mode it stays up to be dragged again, as the game's own frames
+	-- do; Edit Mode closing locks it.
+	if editUnlocked then
+		Prompt:ApplyStyle()
+		ns.RepaintOptions()
+		ns.addon:Print(L["moved. It locks when Edit Mode closes."])
+		return
+	end
 
 	-- Lock straight after a drag: an unlocked prompt cannot cast, and looks
 	-- just like a working one with nobody to offer.
@@ -532,6 +545,66 @@ end
 function Prompt:FinishDragForFight()
 	if not dragging or not R.button or InCombatLockdown() then return end
 	FinishDrag()
+end
+
+-- Edit Mode (asked for on CurseForge): while the game's Edit Mode is open the
+-- prompt is unlocked, so it is dragged there with everything else, and locked
+-- again when Edit Mode closes. Blizzard's EditModeManager.lua says both moments
+-- through EventRegistry ("EditMode.Enter", "EditMode.Exit", the same on every
+-- client's branch); nothing of Blizzard's is hooked or written. Only a prompt
+-- this unlocked is locked by it: one the player unlocked stays theirs. Not in a
+-- fight, where the secure prompt cannot be moved. The mark is kept in db.char
+-- as well, so a /reload inside Edit Mode does not leave the prompt unlocked,
+-- casting nothing, with no Edit Mode left to close.
+do
+	local function HasEditMode()
+		return type(_G.C_EditMode) == "table" and type(_G.EventRegistry) == "table"
+			and type(_G.EventRegistry.RegisterCallback) == "function"
+	end
+	ns.HasEditMode = HasEditMode
+
+	local function Entered()
+		local db = ns.db and ns.db.profile
+		if not db or not db.enabled or not db.prompt.moveInEditMode then return end
+		if not db.prompt.locked or InCombatLockdown() then return end
+		if not (ns.caps.hasClassBuffs == true or ns.OwnBuffsOnly()) then return end
+		if Prompt:InTest() then Prompt:ExitTest(nil, true) end
+		editUnlocked = true
+		ns.db.char.editUnlocked = true
+		db.prompt.locked = false
+		Prompt:ApplyStyle()
+		ns.RepaintOptions()
+		ns.addon:Print(L["unlocked for Edit Mode -- drag the prompt where you want it. It locks again when Edit Mode closes."])
+	end
+
+	local function Left()
+		if not editUnlocked then return end
+		editUnlocked = nil
+		ns.db.char.editUnlocked = nil
+		local p = ns.db.profile.prompt
+		if p.locked then return end
+		p.locked = true
+		Prompt:ApplyStyle()
+		ns.RepaintOptions()
+		ns.addon:Print(L["locked."])
+	end
+
+	local watching
+	function ns.WatchEditMode()
+		local char = ns.db and ns.db.char
+		if char and char.editUnlocked then
+			char.editUnlocked = nil
+			ns.db.profile.prompt.locked = true
+		end
+		if watching or not HasEditMode() then return end
+		watching = true
+		_G.EventRegistry:RegisterCallback("EditMode.Enter", function()
+			ns.Guard("Edit Mode opened", Entered)
+		end, Prompt)
+		_G.EventRegistry:RegisterCallback("EditMode.Exit", function()
+			ns.Guard("Edit Mode closed", Left)
+		end, Prompt)
+	end
 end
 
 lib.BUTTON_SCRIPTS = BUTTON_SCRIPTS

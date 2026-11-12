@@ -1217,6 +1217,28 @@ file to its shape (whole rows, no item twice, in order, a floor for each
 client's count) without the cache, and `tests/mutations/wellfed.py` undoes
 each rule.
 
+## make_pets.py
+
+Writes `Pets.lua`, the companion pets used from the bags each time, per client
+(Forever, Classic Era, Burning Crusade): every item whose use (ItemEffect
+TriggerType 0) casts a SUMMON (SpellEffect 28) into the companion's
+SummonProperties row (Slot 5, Title 5), leaving out an item that teaches the pet
+(Forever's journal pets, used up once), one worn to be used (the Bloodsail
+Admiral's Hat) and one for some classes only (the mage's familiar scrolls, a
+family of their own). Rows of item, level, summon spell, by item id. Read from
+the tables `audit_ids.py` downloads, which fetches SummonProperties for these
+three clients; Mists and retail have only the pet journal and no rows.
+
+```
+python tools/make_pets.py            # write Pets.lua
+python tools/make_pets.py --check    # exit 1 when the shipped file is not what the tables give at the builds its header names
+python tools/make_pets.py --cache DIR
+```
+
+Nothing here ships but the output. `tests/scenarios/pets.lua` holds the file
+to its rules (the turtle egg in, the familiars, the hat and Forever's Cat
+Carrier out) without the cache.
+
 ## make_consumables.py
 
 Writes `Consumables.lua`, the flasks, elixirs and stat scrolls per client

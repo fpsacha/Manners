@@ -101,9 +101,11 @@ TABLES = ("SpellName", "Spell", "SpellMisc", "SpellEffect", "SpellLevels", "Skil
 # SpellCastTimes: a weapon enhancement's use takes up to five seconds, which the settle must cover.
 # The Classic clients link an item to its use spell in ItemEffect itself (ParentItemID); Forever and
 # retail do it through ItemXItemEffect.
-EXTRA = {"camelot": ("ItemEffect", "ItemXItemEffect", "SpellItemEnchantment", "SpellCastTimes", "TraitDefinition"),
-         "vanilla": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
-         "tbc": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
+# SummonProperties: which summons are companion pets (tools/make_pets.py).
+EXTRA = {"camelot": ("ItemEffect", "ItemXItemEffect", "SpellItemEnchantment", "SpellCastTimes", "TraitDefinition",
+                     "SummonProperties"),
+         "vanilla": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes", "SummonProperties"),
+         "tbc": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes", "SummonProperties"),
          "mists": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
          "mainline": ("TraitDefinition", "ItemEffect", "ItemXItemEffect")}
 

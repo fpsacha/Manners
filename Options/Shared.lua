@@ -126,6 +126,8 @@ Page.HasPrompt, Page.OffersSelf, Page.NoSources = HasPrompt, OffersSelf, NoSourc
 -- of the client only for the page, and whether its switch under Myself is
 -- shown -- food always, the rest while switched on or one is in the bags.
 function Page.BaggedHeld(family)
+	-- A companion pet in the journal counts as one in the bags (Companion.lua).
+	if family.journal and ns.PetJournalOwned() then return true end
 	local count = C_Item and C_Item.GetItemCount
 	if type(count) ~= "function" then return false end
 	for _, spell in ipairs(family.spells) do

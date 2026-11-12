@@ -324,6 +324,10 @@ local defaults = {
 			-- leave the page; each keeps its pick below for when this is on again.
 			-- On by default, which is how they were before the switch.
 			scrolls = true,
+			-- Which pet the journal brings out with the companion pet switch on
+			-- (Companion.lua, Forever): "last" (the one out last, else a
+			-- favourite, else any), "favourite" or "random" (any pet).
+			petChoice = "last",
 			-- Per family, by its key: "auto" (Automatic, or ticked for a family of one),
 			-- a spell's key (always that one), or "off" (Don't remind me). Filled below.
 			pick = {},
@@ -439,6 +443,9 @@ local defaults = {
 
 		prompt = {
 			locked = true,
+			-- Unlocked while the game's Edit Mode is open, locked again when it
+			-- closes (Prompt/Button.lua, "Edit Mode").
+			moveInEditMode = true,
 			-- Just above the action bars rather than over the play area, where
 			-- it would swallow clicks. The bottom edge keeps that distance at
 			-- any resolution, which a CENTER offset does not.
@@ -601,6 +608,8 @@ for _, families in pairs(ns.OWN_BUFFS or {}) do
 	for _, family in ipairs(families) do
 		if family.food then defaults.profile.ownBuffs.pick[family.key] = "off" end
 		if family.rest then defaults.profile.ownBuffs.pick[family.key] = "off" end
+		-- And the companion pet (Buffs.lua, pet), which nobody is owed.
+		if family.pet then defaults.profile.ownBuffs.pick[family.key] = "off" end
 		-- Flasks, elixirs and scrolls the same (Buffs.lua, consumable).
 		if family.consumable then defaults.profile.ownBuffs.pick[family.key] = "off" end
 		-- And a spell few keep up, asked for by those who do (Buffs.lua, optIn).
@@ -2260,7 +2269,13 @@ do
 	function ns.KnownOwnFamilies()
 		local out = {}
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
-			if FirstKnown(family) then out[#out + 1] = family end
+			if FirstKnown(family) then
+				out[#out + 1] = family
+			elseif family.journal and ns.OwnPick(family) ~= "off" and ns.PetJournalOwned() then
+				-- A companion pet switched on with none in the bags and some in the
+				-- journal, which Manners brings out itself (Companion.lua).
+				out[#out + 1] = family
+			end
 		end
 		return out
 	end
@@ -2947,6 +2962,8 @@ do
 		end
 		if family.food then return ReadWellFed(family, GetTime()) end
 		if family.rest then return ReadRested(family, GetTime()) end
+		-- A companion pet: no aura, the journal's word or Manners' count (Companion.lua).
+		if family.pet then return ns.ReadPet(family) end
 		if family.consumable then return ReadConsumable(family, GetTime()) end
 		if family.imbue then return ReadImbue(family) end
 		-- A stone, a poison, an oil or a lure: its hand carries an enchant or not.
@@ -3041,6 +3058,11 @@ do
 	--   "dungeon"   an oil, a stone or food, held to dungeons and raids, and you are not in one
 	--   "maxlevel"  Well-Rested: you are at the level cap, with no experience to gain
 	--   "resting"   Well-Rested: you lie in the sleeping bag, or it is cooling down
+	--   "journal"   a companion pet: Manners brings one out of the journal itself
+	--   "dismissed" a companion pet: you put it away, until you bring one out again
+	--   "instance"  a companion pet: you are in a dungeon, raid, battleground or arena
+	--   "petbusy"   a companion pet: dead, flying, in a vehicle, stealthed, casting, or just loaded in
+	--   "refused"   a companion pet: the game would not let Manners use the journal
 	--   "form"      a form (Moonkin Form), and you are in another
 	--   "noshield"  it goes on a shield, and there is none in your off hand
 	--   "dry"       one for the water alone (Unending Breath), and you are not swimming
@@ -3123,6 +3145,17 @@ do
 					end
 				end
 			end
+		end
+		-- A companion pet (Companion.lua), none out: what holds it back, then
+		-- the journal, which Manners brings a pet out of itself with no press
+		-- ("journal": nothing for the prompt), ahead of the bags. "refused": the
+		-- game turned that away this session and the bags have none.
+		if family.pet then
+			local hold = ns.PetHold(ctx.now)
+			if hold then return nil, up, nil, hold, spell end
+			local journal, refused = ns.PetFromJournal(family)
+			if journal then return nil, up, nil, "journal" end
+			if refused and not spell then return nil, up, nil, refused end
 		end
 		-- Ticked under "Never remind me about": a pin, or the one you are
 		-- wearing for a top-up, is no reason to bring it up.
@@ -4354,6 +4387,7 @@ function ns.ClampSettings()
 	repair(true)
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
+	oneOf(profile.ownBuffs, "petChoice", { last = true, favourite = true, random = true }, "last")
 	-- Built from the tier list, so a new distance is never rejected here.
 	local proximities = {}
 	for _, tier in ipairs(ns.PROXIMITY) do proximities[tier.key] = true end
@@ -4672,6 +4706,10 @@ function addon:OnEnable()
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
 
+	-- The game's Edit Mode opening and closing, where the client has one: the
+	-- prompt is unlocked for it (Prompt/Button.lua, "Edit Mode").
+	ns.Guard("Edit Mode", function() ns.WatchEditMode() end)
+
 	-- A restriction beginning or ending (a fight, an encounter, a key, a match),
 	-- on the clients that have restrictions: the probe's notes of which auras
 	-- are hidden depend on it (addon:ADDON_RESTRICTION_STATE_CHANGED). The
@@ -4819,6 +4857,10 @@ function addon:TickBody()
 	-- with it off and never made, a scan pays nothing for it, not even a pcall.
 	local supplies = ns.Supplies
 	if supplies and supplies:Wanted() then ns.Guard("consumables button", supplies.Refresh, supplies, now) end
+	-- A companion pet out of the journal (Companion.lua), with its switch on:
+	-- off, a scan pays nothing for it.
+	local pet = ns.Pet
+	if pet and pet:Wanted() then ns.Guard("companion pet", pet.Tick, pet, now) end
 end
 
 function addon:ProfileDeleted(event, _, name)

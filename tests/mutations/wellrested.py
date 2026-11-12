@@ -16,8 +16,8 @@ mutate("Buffs.lua",
        expect="wellrested: Forever and Classic Era give every class the family", script=S)
 
 mutate("Buffs.lua",
-       "\tfor _, family in ipairs({ FOOD[client] or false, REST[client] or false }) do\n",
-       "\tfor _, family in ipairs({ FOOD[client] or false }) do\n",
+       "\tfor _, family in ipairs({ FOOD[client] or false, REST[client] or false, PET[client] or false }) do\n",
+       "\tfor _, family in ipairs({ FOOD[client] or false, PET[client] or false }) do\n",
        "wellrested: the family in no class's list",
        expect="wellrested: Forever and Classic Era give every class the family", script=S)
 

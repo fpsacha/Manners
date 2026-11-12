@@ -377,6 +377,9 @@ local function AddOwnControls(args)
 					if ns.ScrollsOff(family) then return true end
 					-- Shown bags or none: food is not counted until it is switched on.
 					if family.food then return false end
+					-- A companion pet: shown while one is in the bags or the journal,
+					-- or switched on (Options/Shared.lua, BaggedHeld).
+					if family.pet then return pick() == "off" and not Page.BaggedHeld(family) end
 					-- The sleeping bag, which few have: shown while it is in the
 					-- bags or switched on. Asked of the client only here.
 					if family.rest then
@@ -463,6 +466,10 @@ local function AddOwnControls(args)
 					or family.food
 					and L["Reminds you to eat when Well Fed is not on you and food that gives it is in your bags. Off until you turn it on. A food you keep for something else, a fishing food say, can be ticked under %s."]
 						:format(L["Never remind me about"])
+					or family.pet and family.journal
+					and L["Keeps a companion pet out. Manners brings one out of your pet journal itself, with no press; a pet you use from your bags each time comes up on the prompt. Never in a fight, a dungeon, a raid, a battleground or an arena, nor while you are mounted, stealthed or flying, and a pet you put away stays away until you bring one out. Off until you turn it on."]
+					or family.pet
+					and L["Reminds you to bring out your companion pet when none is out and one is in your bags. Never in a fight, a dungeon, a raid, a battleground or an arena, nor while you are mounted, stealthed or flying, and a pet you put away stays away until you bring one out. Off until you turn it on."]
 					or family.rest
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
 					or family.optIn
@@ -1180,6 +1187,27 @@ function Page.BuildWhoTab()
 					ns.db.profile.ownBuffs.itemsInDungeons = value
 					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 				end,
+			},
+
+			-- Which pet the journal brings out (Companion.lua): Forever, with the
+			-- companion pet switched on.
+			ownPetChoice = {
+				type = "select",
+				name = L["Which pet"],
+				desc = L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, or any pet. With none out last, a favourite; with no favourites, any pet."],
+				order = 15.951,
+				width = "full",
+				values = function()
+					return { last = L["The one I had out last"], favourite = L["A random favourite"], random = L["Any pet"] }
+				end,
+				sorting = function() return { "last", "favourite", "random" } end,
+				hidden = function()
+					local family = ns.Pet and ns.Pet.Family()
+					return not (family and family.journal and ns.OwnPick(family) ~= "off")
+				end,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.petChoice end,
+				set = function(_, value) ns.db.profile.ownBuffs.petChoice = value end,
 			},
 
 			-- Asked for on CurseForge: the consumables on a button of their own

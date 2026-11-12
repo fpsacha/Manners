@@ -275,6 +275,10 @@ ns.WindowLayout = {
 					-- The sleeping bag's Well-Rested, off until it is turned on;
 					-- shown while the bag is in the bags (Classic Era, Forever).
 					{ "who.own_rested", indent = true },
+					-- A companion pet, off until it is turned on; shown while one is in
+					-- the bags or (Forever) the pet journal. Which pet, under it.
+					{ "who.own_pet", indent = true },
+					{ "who.ownPetChoice", indent = true },
 					-- Flasks, elixirs and a scroll of each stat, off until turned on;
 					-- shown while one is in the bags (Buffs.lua, CONSUME).
 					{ "who.own_flask", indent = true },
@@ -448,6 +452,7 @@ ns.WindowLayout = {
 				{ key = "appearance.where", title = L["Position"], items = {
 					{ "appearance.move", pair = true, big = true },
 					"appearance.posPreset",
+					"appearance.moveInEditMode",
 				} },
 				{ key = "appearance.size", header = "appearance.posHeader", items = {
 					{ "appearance.scale", pair = true },
@@ -642,6 +647,8 @@ ns.WindowLayout = {
 		["who.ownScrolls"] = L["hide familiar imbue"],
 		-- Asked for as hiding "the window" in a fight.
 		["appearance.hideInFight"] = L["window frame invisible fight"],
+		-- Asked for as moving "the bar".
+		["appearance.moveInEditMode"] = L["bar position drag place"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the

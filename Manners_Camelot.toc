@@ -31,6 +31,7 @@ Locales\Locales.xml
 Flavour.lua
 Foods.lua
 Consumables.lua
+Pets.lua
 Buffs.lua
 Core.lua
 Range.lua
@@ -40,6 +41,7 @@ GroupBuffs.lua
 Requests.lua
 Favours.lua
 Clicks.lua
+Companion.lua
 Commands.lua
 Phrases.lua
 Ledger.lua

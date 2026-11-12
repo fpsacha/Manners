@@ -107,6 +107,19 @@ function Page.BuildLookTab()
 					end
 				end,
 			},
+			-- Edit Mode is where the game's own frames are moved, and where
+			-- people look for the prompt's place (Prompt/Button.lua, "Edit
+			-- Mode"). Not shown on a client without one.
+			moveInEditMode = {
+				type = "toggle",
+				name = L["Move it in Edit Mode"],
+				desc = L["While the game's Edit Mode is open the prompt is unlocked, so you can drag it there with everything else. It casts nothing meanwhile and locks again when Edit Mode closes."],
+				order = 3.5,
+				width = "full",
+				hidden = function() return not ns.HasEditMode() end,
+				get = pGet,
+				set = pSet,
+			},
 			-- Moving the prompt otherwise means unlock, find it, drag it,
 			-- lock it -- four steps and a mode you can forget you are in,
 			-- because an unlocked prompt is also one that will not cast.

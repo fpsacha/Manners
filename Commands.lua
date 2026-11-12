@@ -61,6 +61,8 @@ do
 		elseif why == "up" and not name and family.imbue then
 			-- An oil, or an enchant no scroll makes: the weapon is seen to.
 			return L["%s: your main hand already carries a temporary enchant."]:format(label)
+		elseif why == "up" and family.pet then
+			return L["%s: a pet is out."]:format(label)
 		elseif why == "up" or why == "covered" then
 			-- "covered": somebody else's copy of it reaches you (a shared
 			-- family, Core.lua OwnAutoPick), and a second would not stack.
@@ -107,6 +109,17 @@ do
 		elseif why == "dry" then
 			-- Unending Breath on yourself, for the water alone (Buffs.lua, swimming).
 			return L["%s: you are not swimming, so it is not offered."]:format(label)
+		-- A companion pet (Companion.lua).
+		elseif why == "journal" then
+			return L["%s: none out -- Manners brings one out of your pet journal itself."]:format(label)
+		elseif why == "dismissed" then
+			return L["%s: you put your pet away, so none comes out until you bring one out yourself."]:format(label)
+		elseif why == "instance" then
+			return L["%s: not in a dungeon, a raid, a battleground or an arena."]:format(label)
+		elseif why == "petbusy" then
+			return L["%s: waits until you are not dead, flying, stealthed or casting."]:format(label)
+		elseif why == "refused" then
+			return L["%s: the game would not let Manners bring a pet out of your journal, so that is left to you."]:format(label)
 		end
 		return L["%s: the game will not say whether it is up, so it is not offered."]:format(label)
 	end

@@ -811,6 +811,29 @@ for _, client in ipairs({ "camelot", "vanilla" }) do
 			nameFromItem = L["Cozy Sleeping Bag"] } } }
 end
 
+-- A companion pet (1.11.16), asked for by the author: keep one out. Pets.lua,
+-- written by tools/make_pets.py from each client's own data, lists the pets
+-- used from the bags each time: every one on Classic Era and Burning Crusade,
+-- a handful on Forever (the turtle eggs, the Moro'gai gems, the orphan
+-- whistles...). Forever's other pets are taught once and live in the pet
+-- journal, which Manners summons itself, with no press (Companion.lua,
+-- `journal`); Mists and retail have only the journal, and no family. A family
+-- like Well Fed's (`bagged`, off until it is turned on, a toggle), with no
+-- aura to read: whether a pet is out is the journal's word on Forever, and
+-- for one used from the bags Manners' own count (Companion.lua, ns.PetOut).
+local PET = {}
+do
+	for client, data in pairs(ns.PETS or {}) do
+		local spells = {}
+		for i, row in ipairs(data) do
+			spells[i] = { key = "pet" .. row[1], item = row[1], level = row[2], ranks = { row[3] },
+				nameFromItem = L["Companion pet"] }
+		end
+		PET[client] = { key = "pet", label = L["Companion pet"], bagged = true, pet = true, toggle = true,
+			journal = client == "camelot" or nil, spells = spells }
+	end
+end
+
 -- Flasks, elixirs and stat scrolls (1.11.11): asked for as switches like Well
 -- Fed's. Consumables.lua, written by tools/make_consumables.py from each
 -- client's own data (Classic Era with Season of Discovery's, Forever with its
@@ -974,13 +997,13 @@ end
 
 -- The families for this client in a class's own list, ahead of tracking as
 -- the weapon enhancements are, or last: Well Fed, then Well-Rested, then the
--- flasks, elixirs and scrolls.
+-- companion pet, then the flasks, elixirs and scrolls.
 local function AddFood(list, client)
 	local at = #list + 1
 	for i, each in ipairs(list) do
 		if each.tracking then at = i break end
 	end
-	for _, family in ipairs({ FOOD[client] or false, REST[client] or false }) do
+	for _, family in ipairs({ FOOD[client] or false, REST[client] or false, PET[client] or false }) do
 		if family then
 			table.insert(list, at, family)
 			at = at + 1

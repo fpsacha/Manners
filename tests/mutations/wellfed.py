@@ -129,8 +129,8 @@ mutate("Buffs.lua",
 # --- the page ---
 
 mutate("Options/Who.lua",
-       "\t\t\t\t\tif family.food then return false end\n\t\t\t\t\t-- The sleeping bag",
-       "\t\t\t\t\t-- The sleeping bag",
+       "\t\t\t\t\tif family.food then return false end\n\t\t\t\t\t-- A companion pet",
+       "\t\t\t\t\t-- A companion pet",
        "wellfed: the switch hidden until food is in the bags",
        expect="wellfed: off by default", script=S)
 
