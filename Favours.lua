@@ -128,24 +128,27 @@ do
 		ns.thankLog.skipped = { name = name, at = now, why = why }
 	end
 
-	-- Asked only with a switch on (NoteFavour): `emote` for the /thank, `whisper`
-	-- for a thank-you whispered to somebody you will not buff back. One set of
-	-- rules and limits for both, armed by whichever went.
-	ThankFavour = function(seen, emote, whisper)
-		local now, name = GetTime(), seen.name
-
+	-- Every rule a thank is held to, asked at the moment it would go: why it
+	-- may not (the reason Skip writes down), or nil and the token to thank at.
+	local function Blocked(seen, now)
+		local name = seen.name
 		local why = Held()
-		if why then return Skip(name, now, why) end
+		if why then return why end
 		local unit = Holding(seen)
-		if not unit then return Skip(name, now, L["no unit for them"]) end
+		if not unit then return L["no unit for them"] end
 		local last = thankedAt[name]
 		if last and now - last < (seen.inGroup and PER_MEMBER or PER_PERSON) then
-			return Skip(name, now, L["thanked them a moment ago"])
+			return L["thanked them a moment ago"]
 		end
 		if lastAt and now - lastAt < GAP then
-			return Skip(name, now, L["thanked somebody a moment ago"])
+			return L["thanked somebody a moment ago"]
 		end
+		return nil, unit
+	end
 
+	-- The thank itself, once Blocked has let it through.
+	local function Send(seen, emote, whisper, unit, now)
+		local name = seen.name
 		-- The whisper first (Speech.lua, ns.ThankWhisper): a line to them alone,
 		-- which needs no key press where /say would.
 		local whispered = whisper and ns.ThankWhisper and ns.ThankWhisper(seen, unit) == true
@@ -179,6 +182,63 @@ do
 			return Skip(name, now, L["the game said it was restricted"])
 		end
 		ns.thankLog.thanked = { name = name, at = now, answer = tostring(answer) }
+	end
+
+	-- Wait a moment before thanking (prompt.thankDelay, off; asked for on
+	-- CurseForge: a thank the instant a buff lands reads as an addon's). A pause
+	-- of one to three seconds, at random, and then every rule asked again
+	-- (Blocked): the giver may have ridden on, a fight begun or the nameplate
+	-- gone to somebody else, and then nothing goes and the skip says why. One
+	-- thank waits at a time; meanwhile every other favour is passed over as the
+	-- gap passes it, so a burst of buffs during the pause is one thank, not a
+	-- queue of them, and a second favour from the same person adds nothing.
+	local PAUSE_MIN, PAUSE_MAX = 1, 3
+	-- The thank waiting out its pause, { name, at }, or nil. One whose timer
+	-- never came back (a guard only: C_Timer always calls) holds nothing once it
+	-- is well past the longest pause.
+	local waiting
+
+	-- The end of the pause: the switches read again, since either may have been
+	-- turned off meanwhile, then every rule, then the thank.
+	local function Paused(seen, emote, whisper)
+		local db = ns.db and ns.db.profile
+		if not (db and db.enabled) then return end
+		emote = emote and db.prompt.thankEmote == true
+		whisper = whisper and db.prompt.thankWhisper == true
+		if not (emote or whisper) then return end
+		local now = GetTime()
+		local why, unit = Blocked(seen, now)
+		if why then return Skip(seen.name, now, why) end
+		Send(seen, emote, whisper, unit, now)
+	end
+
+	-- Asked only with a switch on (NoteFavour): `emote` for the /thank, `whisper`
+	-- for a thank-you whispered to somebody you will not buff back. One set of
+	-- rules and limits for both, armed by whichever went.
+	ThankFavour = function(seen, emote, whisper)
+		local now, name = GetTime(), seen.name
+		if waiting and now - waiting.at < PAUSE_MAX + 2 then
+			return Skip(name, now, waiting.name == name and L["thanked them a moment ago"]
+				or L["thanked somebody a moment ago"])
+		end
+		waiting = nil
+		local why, unit = Blocked(seen, now)
+		if why then return Skip(name, now, why) end
+		local prompt = ns.db and ns.db.profile and ns.db.profile.prompt
+		local timer = _G.C_Timer
+		if not (prompt and prompt.thankDelay == true and type(timer) == "table" and type(timer.After) == "function") then
+			return Send(seen, emote, whisper, unit, now)
+		end
+		local mine = { name = name, at = now }
+		waiting = mine
+		ns.thankLog.waiting = mine
+		timer.After(PAUSE_MIN + math.random() * (PAUSE_MAX - PAUSE_MIN), function()
+			-- Let go before anything can throw, or a throw would hold every
+			-- thank back until the guard above lapses.
+			if waiting == mine then waiting = nil end
+			if ns.thankLog.waiting == mine then ns.thankLog.waiting = nil end
+			ns.Guard("thank after a pause", Paused, seen, emote, whisper)
+		end)
 	end
 end
 

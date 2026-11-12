@@ -74,6 +74,7 @@ Page.RESET = {
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
 		-- Who to buff's two place rules, which this page draws under Hold back.
 		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets",
+		"filters.quietInTownsWhere",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget",
@@ -96,8 +97,9 @@ Page.RESET = {
 		"prompt.thankEmote", "prompt.thankEmoteToken", "speech.enabled", "speech.channel",
 		"speech.onlyWhenReturning",
 		"prompt.thankWhisper",
+		"prompt.thankDelay",
 		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
-			and path ~= "prompt.thankWhisper" end,
+			and path ~= "prompt.thankWhisper" and path ~= "prompt.thankDelay" end,
 		after = function() ns.Prompt:InvalidateMacro() end,
 	},
 	-- Where the prompt sits and its lock are kept.

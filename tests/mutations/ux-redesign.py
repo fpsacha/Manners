@@ -20,7 +20,10 @@ mutate(THEME, "\tHidePill(card, #pill.layers + 1)\n\t-- Slices made here, at lay
 
 LAYOUT = "Options/Window/Layout.lua"
 
-mutate(LAYOUT, "\t\t\t\t\t\"who.quietInTowns\",\n\t\t\t\t\t\"who.quietInInstances\",\n\t\t\t\t\t\"who.quietTargets\",\n\t\t\t\t\t\"when.hideMounted\",\n",
+mutate(LAYOUT, "\t\t\t\t\t\"who.quietInTowns\",\n"
+       "\t\t\t\t\t-- Cities and inns, cities only or inns only.\n"
+       "\t\t\t\t\t{ \"who.quietInTownsWhere\", indent = true },\n"
+       "\t\t\t\t\t\"who.quietInInstances\",\n\t\t\t\t\t\"who.quietTargets\",\n\t\t\t\t\t\"when.hideMounted\",\n",
        "\t\t\t\t\t\"when.hideMounted\",\n",
        "ux-redesign: the place rules are not under Hold back",
        expect="ux-redesign: the place rules lead Hold back on When to offer", script=S)

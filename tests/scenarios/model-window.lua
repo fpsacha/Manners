@@ -402,13 +402,13 @@ local EXPECTED = {
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
-		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets",
+		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets", "filters.quietInTownsWhere",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget",
 	},
 	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "speech.enabled", "speech.channel",
-		"speech.onlyWhenReturning", "prompt.thankWhisper" },
+		"speech.onlyWhenReturning", "prompt.thankWhisper", "prompt.thankDelay" },
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",

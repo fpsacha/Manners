@@ -31,6 +31,21 @@ mounting is not); and whether a bag pet's item used while one is out puts it
 away (assumed, as a toggle). Mists and retail are left out until the first of
 these is known there.
 
+Also unreleased, both asked for on CurseForge: *Wait a moment before thanking*
+(`prompt.thankDelay`, off; Favours.lua `ThankFavour`: the /thank and the
+whisper go out after a random one to three seconds on `C_Timer.After`, every
+rule asked again then by `Blocked`, one thank waiting at a time, a skip
+written to `ns.thankLog.skipped`; `tests/scenarios/thankdelay.lua`), and
+*Where* under *Offer nothing in cities and inns* (`filters.quietInTownsWhere`:
+both, cities, inns; Queue.lua `inTown`, Range.lua `ns.InCity`: the player's map
+and its parents against each client's capital uiMap ids, read from wago.tools'
+UiMap at the builds in `CLAUDE.md`; `tests/scenarios/townhold.lua`). Only the
+live game can say: that `C_Map.GetBestMapForUnit("player")` answers in a city
+on every client (Forever's UiMap has only 60 rows; nil there holds back both,
+as before), that resting at an inn inside a capital reads as the city, and
+that the emote and whisper from a timer, with no key press, go out as the
+immediate ones do.
+
 In 1.11.15, all asked for on CurseForge: classes left out as
 passers-by (`filters.skipNearbyClasses`, a sparse set of class tokens;
 `SkippedClasses` in Queue.lua, a verdict in the walk and a let-go in

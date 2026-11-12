@@ -782,6 +782,12 @@ list. They used to be at the bottom of *Who to buff*.
     passers-by, not your group, not a favour you owe. Somebody you target or
     focus still is. Your own buffs have their own switch under *Myself* on
     *Who to buff*.
+    - *Where*, under it: *Cities and inns* (the default), *Cities only* or
+      *Inns only*. A city is one of the capitals (Stormwind, Orgrimmar,
+      Shattrath, Dalaran, the Shrines, Valdrakken, Dornogal and the rest, as
+      each game has them), read from the map you are on; an inn is anywhere
+      else the game calls you resting. When the game will not say which map
+      you are on, both count.
   - *Offer nothing in dungeons, raids and battlegrounds*: off by default. The
     same rule inside a dungeon, a raid, a battleground or an arena: nothing
     for anybody but somebody you target or focus. Your own buffs are not held
@@ -868,6 +874,12 @@ list. They used to be at the bottom of *Who to buff*.
   (the default), `/cheer`, `/bow`, `/clap`, `/salute`, `/wave`, `/nod`, `/smile`,
   `/applaud`, `/blush`, `/curtsey`, `/flex`, `/greet`, `/grin`, `/hail`, `/happy`,
   `/highfive`, `/hug`, `/kiss`, `/kneel`, `/love`, `/praise`, `/proud` or `/welcome`.
+  *Wait a moment before thanking*, under it too, off by default: the `/thank`
+  and the whispered thank-you go out one to three seconds after the buff
+  lands, so they seem less automatic. Everything is checked again then: if
+  they have gone out of sight, a fight has started or you are in an instance,
+  nothing is sent. One thank waits at a time, so a burst of buffs during the
+  wait is one thank.
   Only class buffs such as Fortitude are
   thanked while *Count only class buffs as favours* is on. A rogue or a
   hunter, with no buffs to give anybody, has this page with this switch alone

@@ -63,6 +63,93 @@ local function Resting()
 end
 ns.Resting = Resting
 
+-- Whether the map the player stands on is one of the capital cities: true,
+-- false, or nil when the client will not say. For Offer nothing in cities and
+-- inns' choice of where (filters.quietInTownsWhere, read by BuildQueue only while
+-- the game calls you resting, so a resting player on no capital is at an inn).
+-- The ids are each client's own UiMap rows (wago.tools: Forever 1.60.1.70790,
+-- Classic Era 1.15.9.70003, Burning Crusade 2.5.6.69795, Mists 5.5.4.70032,
+-- retail 12.1.0.69933), the map and its parents walked, so Orgrimmar's Cleft of
+-- Shadow is Orgrimmar. Left out on purpose: Draenor's Shattrath (a ruin in
+-- Talador) and the maps named Dalaran that are not the city (a dungeon in the
+-- Alterac crater, Karazhan's).
+do
+	local OLD = {
+		[1453] = true, -- Stormwind City
+		[1454] = true, -- Orgrimmar
+		[1455] = true, -- Ironforge
+		[1456] = true, -- Thunder Bluff
+		[1457] = true, -- Darnassus
+		[1458] = true, -- Undercity
+	}
+	local TBC = {
+		[1947] = true, -- The Exodar
+		[1954] = true, -- Silvermoon City
+		[1955] = true, -- Shattrath City
+	}
+	for id in pairs(OLD) do TBC[id] = true end
+	-- Mists: the old capitals under their newer numbers (Undercity is 998
+	-- there, with no 90), Dalaran in Northrend and the two Shrines.
+	local MISTS = {
+		[84] = true, [85] = true, [86] = true, [87] = true, [88] = true, [89] = true, [998] = true,
+		[103] = true, [110] = true, [111] = true,
+		[125] = true, [126] = true, -- Dalaran and its Underbelly
+		[391] = true, [392] = true, -- Shrine of Two Moons
+		[393] = true, [394] = true, -- Shrine of Seven Stars
+	}
+	-- Retail: Mists' and Undercity's 90, the Broken Isles' Dalaran, Ashran's
+	-- Stormshield and Warspear, Boralus, Dazar'alor, Oribos, Valdrakken,
+	-- Dornogal, Midnight's Silvermoon City, and the copies of a capital the
+	-- client keeps under other parents (1208 and 1209's, the orphans).
+	local RETAIL = {
+		[90] = true,
+		[626] = true, [627] = true, [628] = true, [629] = true, -- Dalaran (Broken Isles)
+		[2305] = true, [2306] = true, [2307] = true, -- Dalaran (Azeroth)
+		[622] = true, [624] = true, -- Stormshield, Warspear
+		[1161] = true, -- Boralus
+		[1163] = true, [1164] = true, [1165] = true, -- Dazar'alor
+		[1670] = true, [1671] = true, [1672] = true, [1673] = true, -- Oribos
+		[2112] = true, [2134] = true, [2135] = true, -- Valdrakken
+		[2339] = true, -- Dornogal
+		[2393] = true, [2443] = true, -- Silvermoon City (Midnight)
+		[775] = true, [1012] = true, [1534] = true,
+		[1264] = true, [1265] = true, [1266] = true, [1269] = true,
+		[1323] = true, [1324] = true, [1326] = true, [1331] = true,
+	}
+	for id in pairs(MISTS) do RETAIL[id] = true end
+	local CAPITALS = { camelot = OLD, vanilla = OLD, tbc = TBC, mists = MISTS, mainline = RETAIL }
+
+	-- The last map asked about, the list it was asked of and the answer: the
+	-- walk is made once a map.
+	local lastMap, lastSet, lastCity
+
+	function ns.InCity()
+		local flavour = ns.Flavour or {}
+		local capitals = CAPITALS[flavour.flavour]
+			or (flavour.family == "classic" and OLD or RETAIL)
+		local maps = _G.C_Map
+		if type(maps) ~= "table" or type(maps.GetBestMapForUnit) ~= "function" then return nil end
+		local ok, id = pcall(maps.GetBestMapForUnit, "player")
+		id = ok and plain(id) or nil
+		if type(id) ~= "number" then return nil end
+		if id == lastMap and capitals == lastSet then return lastCity end
+		local city, at = false, id
+		for _ = 1, 8 do
+			if capitals[at] then
+				city = true
+				break
+			end
+			if type(maps.GetMapInfo) ~= "function" then break end
+			local found, info = pcall(maps.GetMapInfo, at)
+			local parent = found and type(info) == "table" and plain(info.parentMapID) or nil
+			if type(parent) ~= "number" or parent == 0 or parent == at then break end
+			at = parent
+		end
+		lastMap, lastSet, lastCity = id, capitals, city
+		return city
+	end
+end
+
 -- The ladder's private state and helpers, in a block of their own for the main
 -- chunk's 200 locals (Lua 5.1).
 do

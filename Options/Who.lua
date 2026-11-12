@@ -1097,6 +1097,25 @@ function Page.BuildWhoTab()
 				get = fGet,
 				set = fSet,
 			},
+			-- Where that switch holds (asked for on CurseForge: no offers in a
+			-- city, but the people resting at an inn buffed). A city is a
+			-- capital by the map the client says you are on (Range.lua,
+			-- ns.InCity); a map it will not name counts as both.
+			quietInTownsWhere = {
+				type = "select",
+				name = L["Where"],
+				desc = L["A city is a capital, such as Stormwind or Orgrimmar; an inn is anywhere else the game calls you resting. When the game will not say which map you are on, both count."],
+				order = 13.355,
+				values = {
+					both = L["Cities and inns"],
+					cities = L["Cities only"],
+					inns = L["Inns only"],
+				},
+				sorting = { "both", "cities", "inns" },
+				disabled = function() return F().quietInTowns ~= true end,
+				get = fGet,
+				set = fSet,
+			},
 			-- The same rule inside an instance: a player asked on CurseForge for
 			-- no offers in a dungeon, where the group sorts out its own buffs.
 			quietInInstances = {

@@ -374,6 +374,8 @@ ns.WindowLayout = {
 				-- they are not items of the list of people on Who to buff.
 				{ key = "when.holdBack", header = "when.wayHeader", items = {
 					"who.quietInTowns",
+					-- Cities and inns, cities only or inns only.
+					{ "who.quietInTownsWhere", indent = true },
 					"who.quietInInstances",
 					"who.quietTargets",
 					"when.hideMounted",
@@ -413,6 +415,8 @@ ns.WindowLayout = {
 				{ key = "click.speech", header = "click.speechHeader", items = {
 					"click.thankEmote",
 					{ "click.thankEmoteToken", indent = true },
+					-- The pause before the /thank and the whisper alike.
+					{ "click.thankDelay", indent = true },
 					"click.thankWhisper",
 					"click.enabled",
 					{ "click.channel", indent = true },

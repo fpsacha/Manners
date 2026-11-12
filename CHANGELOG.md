@@ -17,6 +17,20 @@
   dungeon, a raid, a battleground or an arena, nor while you are mounted,
   stealthed or flying, and a pet you put away stays away until you bring one
   out yourself.
+- **Wait a moment before thanking.** A new switch under */thank people who
+  buff me* on *What I say*: the /thank, and the whispered thank-you, go out a
+  second or three after the buff lands instead of the instant it does, so
+  they seem less automatic. If the person has gone out of sight by then, or a
+  fight has started, nothing is sent, and a burst of buffs while you wait is
+  still one thank. Off by default, since somebody buffing you in passing on a
+  mount may be gone. Asked for on CurseForge.
+- **Hold back in cities, in inns, or both.** *Offer nothing in cities and
+  inns* on *When to offer* has a *Where* under it: *Cities and inns* (as
+  before), *Cities only* or *Inns only*. A city is one of the capitals
+  (Stormwind, Orgrimmar, Shattrath, Dalaran, Valdrakken and the rest, as your
+  game has them), read from the map you are on; an inn is anywhere else the
+  game calls you resting. So you can stay quiet in town and still buff the
+  people taking a break at an inn. Asked for on CurseForge.
 
 ## 1.11.15
 

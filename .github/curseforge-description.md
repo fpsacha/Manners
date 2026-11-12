@@ -75,7 +75,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 
 ### Quiet when you want it
 
-- **Offer nothing in cities and inns:** nothing offered to anybody while you are resting (passers-by, your group, a favour you owe); a target or focus still is, unless you tick *Hold back my target and focus too*.
+- **Offer nothing in cities and inns:** nothing offered to anybody while you are resting (passers-by, your group, a favour you owe); a target or focus still is, unless you tick *Hold back my target and focus too*. Or only in cities, or only in inns.
 - **Offer nothing in dungeons, raids and battlegrounds:** the same inside any instance; a target or focus still is, and your own buffs too.
 - **Might off the casters:** for paladins, a switch on Who to buff; mages, warlocks and priests are never offered Blessing of Might.
 - **Leave out these guilds:** a box on Who to skip, one guild a line; nobody in them is offered anything, unless they buff you or ask. *Show their guild under the name* on Look writes the guild on the prompt's second line.
@@ -106,7 +106,7 @@ Or pick **In character (fits your race and class)**: over two thousand lines, ch
 
 > *"Most kind, Mort. You've lifted me from 'deceased' to 'mildly deceased'."* -- a Forsaken, returning a favour
 
-Or just `/thank` them with an emote (off by default, never in a fight or an instance), and with nothing to give back, a warrior say, whisper them a thank-you in character.
+Or just `/thank` them with an emote (off by default, never in a fight or an instance, after a moment's wait if you like), and with nothing to give back, a warrior say, whisper them a thank-you in character.
 
 ### Looks
 

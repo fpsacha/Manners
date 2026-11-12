@@ -1473,6 +1473,13 @@ local function PrintFavourWatch(self, db, now)
 	self:Print("  " .. (db.prompt.thankEmote and L["thank with an emote: |cff00ff00on|r"]
 		or L["thank with an emote: |cffff0000off|r"]))
 	local thanks = ns.thankLog or {}
+	-- Wait a moment before thanking, and the thank waiting out its pause.
+	if db.prompt.thankDelay == true then
+		self:Print("    " .. L["wait a moment before thanking: |cff00ff00on|r"])
+	end
+	if thanks.waiting then
+		self:Print(("    " .. L["waiting to thank: |cffffffff%s|r"]):format(thanks.waiting.name))
+	end
 	if thanks.thanked then
 		self:Print(("    " .. L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"]):format(
 			thanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))

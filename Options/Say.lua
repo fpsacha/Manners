@@ -11,6 +11,8 @@ local spSet, HasClassBuffs, TAB = Page.spSet, Page.HasClassBuffs, Page.TAB
 -- sit under. Every
 -- other control on the tab is about the line said with a cast.
 local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true, thankWhisper = true }
+-- And the pause before either.
+THANKS_ONLY.thankDelay = true
 
 -- What I say: the social replies to a buff, the /thank and the line that goes
 -- out with a cast. The options window leads the page with Start here's voice
@@ -79,6 +81,20 @@ function Page.BuildSpeechTab()
 				disabled = function() return not P().thankEmote end,
 				get = function() return P().thankEmoteToken end,
 				set = function(_, v) P().thankEmoteToken = v end,
+			},
+			-- Asked for on CurseForge: a thank at the very moment a buff lands
+			-- reads as an addon's. Off, since somebody buffing in passing on a
+			-- mount may be gone by the end of the pause (Favours.lua). The
+			-- whisper waits too, so it is live while either switch is on.
+			thankDelay = {
+				type = "toggle",
+				name = L["Wait a moment before thanking"],
+				desc = L["The /thank and the whispered thank-you go out a second or three after the buff lands, so they seem less automatic. If they have gone out of sight by then, or a fight has started, nothing is sent."],
+				order = 11.6,
+				width = "full",
+				disabled = function() return not (P().thankEmote or P().thankWhisper) end,
+				get = function() return P().thankDelay end,
+				set = function(_, v) P().thankDelay = v end,
 			},
 			-- Asked for on CurseForge by a warrior: a word of thanks to whoever
 			-- buffs him, with nothing to give back. A whisper, since /say needs

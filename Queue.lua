@@ -2202,6 +2202,17 @@ function ns.BuildQueue(watch)
 	-- Nothing for anybody while resting, when that is asked for (Who to buff,
 	-- Never in cities and inns): passers-by are turned down as a kind too.
 	local inTown = f.quietInTowns == true and Resting() == true
+	-- Cities only, or inns only (filters.quietInTownsWhere; asked for on
+	-- CurseForge): which of the two this is, by the map (Range.lua, ns.InCity).
+	-- A map the client will not name holds back both, as it always did.
+	if inTown and f.quietInTownsWhere ~= "both" then
+		local city = ns.InCity()
+		if city == true then
+			inTown = f.quietInTownsWhere ~= "inns"
+		elseif city == false then
+			inTown = f.quietInTownsWhere ~= "cities"
+		end
+	end
 	-- And inside a dungeon, raid, battleground or arena, when that is asked
 	-- for: the same rule, the target and focus still exempt.
 	if f.quietInInstances == true and Inside() then inTown = true end

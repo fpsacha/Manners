@@ -378,6 +378,10 @@ local defaults = {
 			-- you owe alike, while the game calls you resting: a city or an
 			-- inn. Off, because it takes away offers somebody gets today.
 			quietInTowns = false,
+			-- Where that holds: both | cities | inns. A city is one of the capitals
+			-- by the client's own map ids (Range.lua, ns.InCity), an inn anywhere
+			-- else the game calls you resting. Both, as it always was.
+			quietInTownsWhere = "both",
 			-- The same inside a dungeon, a raid, a battleground or an arena
 			-- (Queue.lua, Inside): nothing for anybody but a target or focus.
 			quietInInstances = false,
@@ -489,6 +493,10 @@ local defaults = {
 			-- A thank-you whispered to somebody who buffs you and is owed nothing
 			-- back (Speech.lua, ns.ThankWhisper). Off: it goes to a stranger.
 			thankWhisper = false,
+			-- Both of those after a pause of a second or three rather than the
+			-- moment the buff lands (Favours.lua, ThankFavour). Off: somebody who
+			-- buffs in passing on a mount may be gone by then.
+			thankDelay = false,
 			-- full | calm: calm is the prompt without the animations.
 			effects = "full",
 			-- The global cooldown swept over the spell icon.
@@ -4387,6 +4395,7 @@ function ns.ClampSettings()
 	repair(true)
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
+	oneOf(profile.filters, "quietInTownsWhere", { both = true, cities = true, inns = true }, "both")
 	oneOf(profile.ownBuffs, "petChoice", { last = true, favourite = true, random = true }, "last")
 	-- Built from the tier list, so a new distance is never rejected here.
 	local proximities = {}

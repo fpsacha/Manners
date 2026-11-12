@@ -102,6 +102,12 @@ local function BugReport()
 	lines[#lines + 1] = ("friendsFirst=%s restingOnly=%s skipPvP=%s neverOffered=%d"):format(
 		tostring(db.priority.friends), tostring(db.filters.restingOnly),
 		tostring(db.filters.skipPvP), #ns.NeverList())
+	-- The place rules, Offer nothing in cities and inns with where it holds,
+	-- and the thank's pause and whisper.
+	lines[#lines + 1] = ("quietInTowns=%s where=%s quietInInstances=%s quietTargets=%s thankWhisper=%s thankDelay=%s")
+		:format(tostring(db.filters.quietInTowns), tostring(db.filters.quietInTownsWhere),
+			tostring(db.filters.quietInInstances), tostring(db.filters.quietTargets),
+			tostring(db.prompt.thankWhisper), tostring(db.prompt.thankDelay))
 	lines[#lines + 1] = ("groupBuffs=%s atLeast=%s"):format(
 		tostring(db.groupBuffs.use), tostring(db.groupBuffs.atLeast))
 	-- The dungeon and raid settings, each of which leaves people out or moves
@@ -234,6 +240,12 @@ function ns.FullReport()
 			Ask(_G.IsInRaid))
 		lines[#lines + 1] = ("mounted: %s, flying: %s, level: %s, dead: %s"):format(Ask(_G.IsMounted),
 			Ask(_G.IsFlying), Ask(_G.UnitLevel, "player"), Ask(_G.UnitIsDeadOrGhost, "player"))
+		-- The map, and whether Manners reads it as a capital (Range.lua,
+		-- ns.InCity): what Offer nothing in cities and inns' Where goes by.
+		local maps = _G.C_Map
+		lines[#lines + 1] = ("map: %s, a capital: %s"):format(
+			type(maps) == "table" and Ask(maps.GetBestMapForUnit, "player") or "n/a",
+			tostring(ns.InCity and ns.InCity()))
 		local db = ns.db and ns.db.profile
 		if db then
 			lines[#lines + 1] = ("on: %s, locked: %s, snoozed: %s, preview: %s, options open: %s"):format(
