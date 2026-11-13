@@ -16,7 +16,42 @@
   ripples and glints, the leaves stir, one drifts down now and then,
   fireflies wander and a wisp goes round the moon; *Animations* on *Calm*
   stills all of it, and so does a fight. The icon is always round on this
-  look.
+  look. That makes ten looks, each a card under Look > *Panel style*.
+
+## 1.11.19
+
+- **In a fight, each press moves on to the next person.** A fight locks the
+  prompt, and until now it stayed on whoever it showed as the fight began:
+  every press cast at that one person again, and nobody else in your group
+  was reached until the fight was over. Now Manners hands the prompt everybody
+  who still needed a buff as the fight began, and each press of the prompt or
+  its key casts at the next of them in turn, round and round; the second line
+  says which of how many. *In a fight, each press moves on to the next
+  person*, on *Look* under *Hide the prompt in combat*, switches it off. The
+  Manners macro on an action bar keeps to the one person: the game leaves a
+  macro no other way.
+- **Everybody's first buff before anybody's second.** A priest or a druid in
+  a party was kept on the first person for every buff in turn (Fortitude,
+  then Divine Spirit, then Shadow Protection) while the others stood there
+  with nothing. Now the prompt gives everybody the first buff they are
+  missing, then goes round again for the next. Among people offered for the
+  same reason, somebody read as missing a buff also comes before somebody
+  whose buffs the game would not show, and both before a top-up of a buff
+  that is still running. A top-up of your own buff no longer comes ahead of a
+  party member who has none; your own buff when it is missing keeps its
+  place. A fight's presses step through the same order.
+- **A favour is not returned with a buff they already have.** Somebody who
+  buffs you and already wears everything you could give them, with time to
+  spare, is no longer put on the prompt to have it refreshed: that was mana
+  spent on nothing, and a thank-you is enough. It no longer matters who cast
+  the buff they wear (until now only one known to be your own was spared).
+  The favour is let go at once: the ledger says *Let go: they already have
+  your buff* and does not count it among the favours to return, and the chat
+  line says there is nothing to return. A buff they are missing, or one about
+  to run out, is still offered back as before, and so is somebody whose buffs
+  the game hides. If you liked the refresh, *Refresh a buff they already
+  have, to return a favour* on *When to offer*, under *Buffing back*, brings
+  it back.
 - **A new look: Fel.** A warlock's, and the Burning Legion's: a slab of black
   felsteel, cracked, with fel fire showing through the cracks and burning
   along its foot; your spell in a summoning circle, eight demonic runes cut
@@ -37,19 +72,9 @@
   remains: Framed and Luxe become **Glass**, Arcane becomes **Archmage**, and
   Toast becomes **Ribbon**. A line in chat tells you so once, a few seconds
   after you log in, and nothing else about your settings changes. Eight of
-  the old looks remain, and Fel and Wild make ten, each a card under Look >
-  *Panel style*: Glass, Minimal, Ribbon, Letter, Leather, Forge, Archmage,
-  Lightbringer, Fel and Wild.
-- **Everybody's first buff before anybody's second.** A priest or a druid in
-  a party was kept on the first person for every buff in turn (Fortitude,
-  then Divine Spirit, then Shadow Protection) while the others stood there
-  with nothing. Now the prompt gives everybody the first buff they are
-  missing, then goes round again for the next. Among people offered for the
-  same reason, somebody read as missing a buff also comes before somebody
-  whose buffs the game would not show, and both before a top-up of a buff
-  that is still running. A top-up of your own buff no longer comes ahead of a
-  party member who has none; your own buff when it is missing keeps its
-  place. A fight's presses step through the same order.
+  the old looks remain, and Fel makes nine, each a card under Look > *Panel
+  style*: Glass, Minimal, Ribbon, Letter, Leather, Forge, Archmage,
+  Lightbringer and Fel.
 - **Shadow Protection is off until you tick it** (Classic Era, WoW Forever,
   Burning Crusade). It was offered to you, your whole party and every
   passer-by, and again every ten minutes. It now has to be switched on, on
@@ -105,18 +130,6 @@
 - **"Buff pls" gets the buffs that suit them.** A plain request that names no
   buff no longer brings a warrior Divine Spirit or a mage Blessing of Might;
   naming the buff still does.
-- **A favour is not returned with a buff they already have.** Somebody who
-  buffs you and already wears everything you could give them, with time to
-  spare, is no longer put on the prompt to have it refreshed: that was mana
-  spent on nothing, and a thank-you is enough. It no longer matters who cast
-  the buff they wear (until now only one known to be your own was spared).
-  The favour is let go at once: the ledger says *Let go: they already have
-  your buff* and does not count it among the favours to return, and the chat
-  line says there is nothing to return. A buff they are missing, or one about
-  to run out, is still offered back as before, and so is somebody whose buffs
-  the game hides. If you liked the refresh, *Refresh a buff they already
-  have, to return a favour* on *When to offer*, under *Buffing back*, brings
-  it back.
 - **Thorns: Tanks only means tanks only.** With *Offer Thorns to: Tanks only*,
   passers-by were still offered Thorns, because the choice only narrowed your
   own group. Now it offers Thorns to the tanks of your group and to nobody
@@ -125,16 +138,6 @@
   by name in chat is still offered it. The old behaviour is a choice of its
   own, **Tanks, and anyone outside my group**. If you had picked Tanks only,
   you now have the strict one.
-- **In a fight, each press moves on to the next person.** A fight locks the
-  prompt, and until now it stayed on whoever it showed as the fight began:
-  every press cast at that one person again, and nobody else in your group
-  was reached until the fight was over. Now Manners hands the prompt everybody
-  who still needed a buff as the fight began, and each press of the prompt or
-  its key casts at the next of them in turn, round and round; the second line
-  says which of how many. *In a fight, each press moves on to the next
-  person*, on *Look* under *Hide the prompt in combat*, switches it off. The
-  Manners macro on an action bar keeps to the one person: the game leaves a
-  macro no other way.
 - **Which pet: your pets by name.** *Which pet*, under *Companion pet* on
   *Who to buff*, now lists every pet in your pet journal under its three
   choices, so Manners brings out the one you pick. A pet you gave a name of

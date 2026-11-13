@@ -381,9 +381,13 @@ def fingerprint(keys, snaps, entries, written):
     """What the pictures are drawn from, as one hash: the frame trees, where the
     icons sit in them, the shipped textures and the two tools."""
     h = hashlib.sha256()
+    # The tree's numbers are rounded as the recorded ones are: a look that lays
+    # art out round a circle (Fel's runes, by math.cos and math.sin) gets its
+    # last bit from the machine's own maths library, and the hash then differed
+    # between a Windows PC and GitHub's runner (1.11.19's first push).
     for key in keys:
         h.update(key.encode("utf-8") + b"\0")
-        h.update(json.dumps(snaps[key], sort_keys=True, default=str).encode("utf-8") + b"\0")
+        h.update(json.dumps(canonical(snaps[key]), sort_keys=True, default=str).encode("utf-8") + b"\0")
         h.update(json.dumps(entries.get(key), sort_keys=True).encode("utf-8") + b"\0")
         h.update(json.dumps(canonical(written.get(key)), sort_keys=True).encode("utf-8") + b"\0")
     art = os.path.join(ROOT, "Textures")

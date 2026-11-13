@@ -14,7 +14,6 @@ ns.Looks.previews = {
 	lightbringer = true,
 	minimal = true,
 	ribbon = true,
-	wild = true,
 }
 -- Where each look draws the spell icon in its picture: the rectangle as fractions of
 -- the 256 x 64 picture (l and t from its top left), the texcoord crop, and whether it
@@ -29,7 +28,6 @@ ns.Looks.previewIcon = {
 	lightbringer = { l = 0.11694, t = 0.25806, r = 0.2379, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	minimal = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	ribbon = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
-	wild = { l = 0.1129, t = 0.25806, r = 0.23387, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Wild\\Wild_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 }
 -- Where each look writes its two lines in its picture, and how: the rectangle as
 -- fractions of the picture, the justification, the size and the shadow's offsets as
@@ -73,9 +71,5 @@ ns.Looks.previewText = {
 		name = { l = 0.25, t = 0.2879, r = 0.86694, b = 0.51371, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 		reason = { l = 0.25, t = 0.53468, r = 0.86694, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
 	},
-	wild = {
-		name = { l = 0.30242, t = 0.29032, r = 0.77823, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.03, 0.02, 0, 0.95 } } },
-		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
-	},
 }
-ns.Looks.previewHash = "a39a508f6e7bf35ebb19b270e279a19ea83e04f936816b09fac54562b1c03cd4"
+ns.Looks.previewHash = "ac9a421b8da568a9d3d77f96e49681f3777edbaac12d490334c3d529d532e7aa"
