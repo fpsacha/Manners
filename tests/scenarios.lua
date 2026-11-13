@@ -4964,6 +4964,10 @@ if ns then
 		-- The dim is one of the things that says held, and it is off by
 		-- default since 1.10.4: turned on here, so it is held to it.
 		db.prompt.dimInCombat = true
+		-- Held on the one person, as a fight held it before the rota: with
+		-- "In a fight, each press moves on to the next person" on, the line
+		-- says where the rota stands instead (tests/scenarios/fight-rota.lua).
+		db.prompt.fightRota = false
 
 		wipe(ns.tried)
 		ns.Prompt:ApplyStyle()

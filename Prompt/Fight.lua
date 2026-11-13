@@ -206,15 +206,37 @@ function Prompt:ArmFightRota()
 	local armed = R.button:GetAttribute("macrotext1")
 	if not (top and top.buff and type(armed) == "string" and armed ~= "" and type(queue) == "table") then return end
 	-- The one on the button first, as armed, then the rest of the queue in its
-	-- own order.
+	-- own order, less whoever a cast already in the rota reaches: the members
+	-- of a group cast (Arcane Brilliance for the party is one press, not one
+	-- and then an Intellect each), and, where one cast lands on the whole
+	-- group (a shout; Mists and retail), the rest of the group for that buff.
+	local reached, wide = {}, {}
+	local function Reaches(entry)
+		local key = entry.buff.key
+		if entry.groupCast then
+			reached[key] = reached[key] or {}
+			for _, name in ipairs(entry.groupCast.members or {}) do reached[key][name] = true end
+		elseif entry.buff.selfCast or (ns.WIDE_CASTS == true and entry.inGroup == true
+			and not entry.buff.alone and not entry.buff.own) then
+			wide[key] = true
+		end
+	end
+	local function Reached(entry)
+		local key = entry.buff.key
+		if reached[key] and reached[key][entry.name] then return true end
+		return wide[key] == true and entry.inGroup == true and not entry.groupCast
+	end
 	local entries, records, texts = { top }, { S.armed or false }, { armed }
+	Reaches(top)
 	for _, entry in ipairs(queue) do
 		if #entries >= ROTA_MAX then break end
-		if entry ~= top and entry.buff and not (entry.name == top.name and entry.buff.key == top.buff.key) then
+		if entry ~= top and entry.buff and not (entry.name == top.name and entry.buff.key == top.buff.key)
+			and not Reached(entry) then
 			local text, record = lib.FightMacro(entry)
 			if text then
 				local at = #entries + 1
 				entries[at], records[at], texts[at] = entry, record or false, text
+				Reaches(entry)
 			end
 		end
 	end
