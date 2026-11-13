@@ -208,7 +208,7 @@ mutate("Options/Look.lua",
 
 # The Glass card back on a panel with a soft shadow.
 mutate("Looks/Looks.lua",
-       "description = L[\"dark cut glass, a metal bezel\"]",
+       "description = L[\"dark glass in gilt rails, the game's own action bar\"]",
        "description = L[\"dark panel, soft shadow\"]",
        "look: the Glass card describes the old panel",
        expect="the glass card reads", script=S)

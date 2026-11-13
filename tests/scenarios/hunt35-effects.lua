@@ -437,6 +437,8 @@ withTree("hunt35-effects: the breath stops with the favour and with the panel", 
 		-- asked for) are not the breath: every other loop is.
 		local idle, kept = {}, 0
 		for _, g in ipairs(r.look and r.look.idle or {}) do idle[g] = true end
+		-- And those of what the glass wears (Looks/Glass.lua's `idle`).
+		for _, g in ipairs(r.dress and r.dress.idle or {}) do idle[g] = true end
 		for _, g in ipairs(loops) do
 			if not idle[g] then kept = kept + 1 end
 		end

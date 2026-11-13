@@ -42,6 +42,16 @@
   and a glint crosses the top strap now and then. When your buff lands a
   fountain of sparks is thrown up off the bezel, and somebody new on the
   plate is greeted by a glint. On *Calm* and in a fight the forge is cold.
+- **Glass, the default look, redrawn after the game's own action bar.** A
+  beaded gilt rail runs along the pane's top and bottom, and light drifts
+  inside the glass, slowly, under the words. While you owe somebody, the
+  border of light the game runs round a spell that is ready runs round your
+  icon, in their colour. When your buff lands a star winks on the icon's
+  corner. *Gryphons at the ends*, on *Look* (off until you switch it on), sits
+  a gilt gryphon at each end of the pane, taller than it, its eye an ember in
+  the reason's colour: the eyes burn while you owe somebody, and the gilt
+  catches the light when a favour comes in and flashes when your buff lands.
+  On *Calm* nothing moves, and in a fight the lights go out.
 
 ## 1.11.18
 

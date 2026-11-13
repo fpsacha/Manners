@@ -503,6 +503,11 @@ function Prompt:ApplyStyle()
 	local look = ns.Looks.Get(style)
 	if S.activeLook and S.activeLook ~= look then S.activeLook:Hide() end
 	S.activeLook = look
+	-- What one of the three looks drawn here wears over it (Looks/Glass.lua),
+	-- taken down when another look takes the panel.
+	local dress = not look and ns.Looks.Dress(style) or nil
+	if S.dress and S.dress ~= dress then S.dress:Hide() end
+	S.dress = dress
 
 	R.button:SetSize(p.width, p.height)
 	R.button:SetScale(p.scale)
@@ -926,6 +931,11 @@ function Prompt:ApplyStyle()
 		math.min(1, ba * 0.9))
 	R.queueHair:SetVertexColor(1, 1, 1, 0.07)
 
+	if dress then
+		if not dress.kit then dress:Build(self:LookKit()) end
+		dress:Apply(p, S.queueAbove)
+		S.accentPainted = nil
+	end
 	self:Refresh()
 end
 
@@ -1019,6 +1029,7 @@ function Prompt:PaintAccent(reason)
 	if key == S.accentPainted then return end
 	S.accentPainted = key
 	if S.activeLook then return S.activeLook:PaintReason(r, g, b, reason, mode) end
+	if S.dress then S.dress:PaintReason(r, g, b, reason, mode) end
 
 	-- Brightest at the middle, fading towards both ends.
 	Gradient(R.accentTop, "VERTICAL", r, g, b, 1, r, g, b, 0.15)
@@ -1128,7 +1139,7 @@ function Prompt:Regions()
 		panel = R.panel,
 		accentBottom = R.accentBottom,
 		builtin = Prompt.builtinParts,
-		look = S.activeLook,
+		look = S.activeLook, dress = S.dress,
 		textLayer = R.textLayer,
 	}
 end

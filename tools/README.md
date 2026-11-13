@@ -952,7 +952,47 @@ to its twin.
 
 `render_prompt.py` draws a texture mirrored when its SetTexCoord runs left
 past right or top past bottom (a wing, a facet, a strap end serving both
-sides); it used to draw such a piece unmirrored.
+sides); it used to draw such a piece unmirrored. It reads the eight-number
+SetTexCoord where it is a quarter turn of a piece (`Looks/Flow.lua` lays one
+strip along a box's four sides with it), and writes every Flow as it stands
+at the picture's moment (`Flow.TickAll`), since the mock runs no OnUpdate.
+
+## make_glass_textures.py
+
+The ten files of `Textures/Glass/`, what the default look wears
+(`Looks/Glass.lua`): the gryphon of each end and its light alone
+(`Glass_GryphonL/R`, `Glass_GryphonLitL/R`: seated, an eagle's head and
+foreleg, a ruff of feathers, a lion's haunch and tail, the wing raised in a
+fan; each end drawn and lit for itself rather than mirrored; needs scipy), the eye's ember, one tile of the beaded gilt rail, the
+caustics (periodic both ways, for scrolling), one tile of the ready border
+and its bloom, and the star. The gilt is an antique gold of its own (`GILT`,
+luma cap 0.74). `--out DIR` and `--sheet FILE` as the other generators. `EYE`
+(the eye's place in the file) and the tile sizes must agree with the Lua.
+
+## figures.py
+
+Figures for the looks: a module, as `materials.py` is. A hero piece (a
+gryphon, a wolf's head, a skull) is too much for analytic distance fields, so
+a part is an OUTLINE: `curve(points)` runs a smooth closed curve through a
+handful of points, `blade(a, b, width, bend)` is a feather, a claw or a leaf,
+and `Figure.part(poly, rise, soft, level)` fills it on the supersampled grid
+and raises it into relief by blurring it (a pillow: the middle of a wide part
+stands higher than a narrow one's, as chased metal does), each part on its
+own `level` so a feather over a feather keeps its step.
+`Figure.facet(poly, rise, width, level)` lays a part cut rather than rolled:
+its surface climbs from its edge at a steady slope for `width` texels, so a
+feather or a claw comes to a ridge along its middle and a wide part is a
+bevelled plate (the true distance, from scipy, which only this call needs).
+`cut` and `line` engrave. `figure.height` and `figure.alpha` then go through
+`materials.shade()` like any other height field.
+
+## look_gif.py
+
+A look's animation as a GIF: `python tools/look_gif.py STYLE STATE OUT.gif
+[--start --end --step --hold --box --size]`, or `--all STYLE DIR` for the five
+moments (a favour arriving, owed, a buff landing, a refusal, at rest). One run
+of `render_prompt.py --at T` a frame, four at a time, joined at the frames'
+own times. The renderer understates additive light.
 
 ## make_window_textures.py
 

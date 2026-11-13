@@ -684,6 +684,17 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- Glass only: the gryphon at each end (Looks/Glass.lua).
+			gryphons = {
+				type = "toggle",
+				name = L["Gryphons at the ends"],
+				desc = L["A gilt gryphon at each end of the Glass look, as on the game's old action bar. Off, the bar ends at its rails."],
+				order = 53.6,
+				width = "full",
+				disabled = function() return P().style ~= "glass" end,
+				get = pGet,
+				set = pSet,
+			},
 			-- Greyed out with the icon hidden, since the sweep is drawn on
 			-- it and there is then nothing for this to do.
 			showCooldown = {

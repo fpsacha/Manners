@@ -529,6 +529,9 @@ local defaults = {
 			-- off for a flat prompt, the icon and the words with nothing round
 			-- them (Prompt/Panel.lua, Prompt/Text.lua).
 			iconFrame = true,
+			-- Glass's gryphons, one at each end (Looks/Glass.lua): off until
+			-- they are switched on, since not everybody wants the bar that wide.
+			gryphons = false,
 			textShadow = true,
 			showCount = true,
 			showQueue = false,

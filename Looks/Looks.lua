@@ -168,7 +168,10 @@
 --   OUTCOME_SECONDS how long an outcome stays
 --
 -- Rules every look keeps: no pcall on a per-frame or per-scan path (PaintReason,
--- Fitted, PaintQueue and Chip run on every repaint); no OnUpdate; nothing done
+-- Fitted, PaintQueue and Chip run on every repaint); no OnUpdate but the one
+-- Looks/Flow.lua runs for a look's moving art (textures that scroll, drawn
+-- animations played frame by frame), and that only while something moves;
+-- nothing done
 -- to the secure button; art only from Textures/<Look>/, white or grey so the
 -- vertex colour carries every reason; and everything the built-in looks honour
 -- still works -- size, font, colours, both palettes, the second line and the
@@ -181,11 +184,14 @@ local L = ns.L
 local Looks = { list = {} }
 ns.Looks = Looks
 
+-- Loaded next: Looks/Flow.lua (ns.Looks.Flow), the clock for art that moves by
+-- its texture coordinates.
+
 -- The three Prompt/Panel.lua draws, named here so the dropdown is one list.
 -- They are never handed back by Get.
 local NATIVE = {
-	glass = { name = L["Glass -- dark cut glass, a metal bezel"], order = 10, native = true,
-		title = L["Glass"], description = L["dark cut glass, a metal bezel"] },
+	glass = { name = L["Glass -- dark glass in gilt rails, the game's own action bar"], order = 10, native = true,
+		title = L["Glass"], description = L["dark glass in gilt rails, the game's own action bar"] },
 	framed = { name = L["Framed -- dark panel, a tooltip's rim"], order = 11, native = true,
 		title = L["Framed"], description = L["dark panel, a tooltip's rim"] },
 	minimal = { name = L["Minimal -- text only, no panel"], order = 12, native = true,
@@ -216,6 +222,23 @@ end
 -- it out for them (tests/scenarios/hunt38-picker.lua holds this list to what the
 -- looks draw). A look that reads the setting is not here.
 Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true }
+
+-- A DRESSING: more art over one of the three looks Prompt/Panel.lua draws
+-- (Looks/Glass.lua, over the glass). Panel.lua lays its own look out as ever
+-- and then calls the dressing where it would call a look: Build(kit) once,
+-- Apply(p, above), Hide(), PaintReason, Attention, StopAttention, Flourish,
+-- StopFlourishes, Combat and Painted, each as the interface above describes
+-- it. It owns nothing of the panel's own: it adds, and takes away what it added.
+Looks.dress = {}
+function Looks.RegisterDress(key, dress)
+	dress.key = key
+	Looks.dress[key] = dress
+	return dress
+end
+
+function Looks.Dress(key)
+	return key and Looks.dress[key] or nil
+end
 
 -- Whether the style's look is round whatever the switch says.
 function Looks.RoundAlways(key)

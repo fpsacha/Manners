@@ -67,7 +67,7 @@ local ORDER = {
 	"soundOwedOnly", "noSound",
 	"tooltipHeader", "tooltip", "tooltipPosition",
 	"textHeader", "font", "fontSize", "fontColor", "classColor", "textShadow", "showSub", "showGuild",
-	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "suppliesSize", "roundIcon", "iconFrame", "showCooldown",
+	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "suppliesSize", "roundIcon", "iconFrame", "gryphons", "showCooldown",
 	"showCount", "showQueue", "queueRows", "clickRows",
 }
 
@@ -347,7 +347,7 @@ do
 	local ns = session(scenario)
 	if ns then
 		local want = {
-			glass = { "Glass", "dark cut glass, a metal bezel" },
+			glass = { "Glass", "dark glass in gilt rails, the game's own action bar" },
 			framed = { "Framed", "dark panel, a tooltip's rim" },
 		}
 		local _, arcane = ns.Looks.Card("arcane")

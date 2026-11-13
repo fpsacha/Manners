@@ -504,8 +504,12 @@ and the only thing it ever says in chat is a new title.
 
 Twelve looks, each a card under Look > *Panel style* that you click to switch:
 
-- **Glass** (the default): a dark pane of cut glass, the spell icon set in a
-  metal bezel that brightens under the pointer.
+- **Glass** (the default): the game's own action bar. A dark pane of glass
+  in beaded gilt rails, the spell icon set in a metal bezel that brightens
+  under the pointer. Light drifts inside the glass; while you owe somebody
+  the border of a spell that is ready runs round the icon. *Gryphons at the
+  ends* (off, under *Look*) sits a gilt gryphon at each end, its eyes burning
+  in the reason's colour while you owe somebody.
 - **Framed**: a flat dark panel in a thin rim, like the game's tooltips.
 - **Minimal**: the words alone, no panel.
 - **Luxe**: a slim dark card with a spine in the reason colour.

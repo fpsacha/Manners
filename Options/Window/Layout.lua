@@ -542,6 +542,7 @@ ns.WindowLayout = {
 					"appearance.suppliesSize",
 					{ "appearance.roundIcon", indent = true },
 					{ "appearance.iconFrame", indent = true },
+					{ "appearance.gryphons", indent = true },
 					{ "appearance.showCooldown", indent = true },
 				} },
 			},
