@@ -22,6 +22,16 @@
   by name in chat is still offered it. The old behaviour is a choice of its
   own, **Tanks, and anyone outside my group**. If you had picked Tanks only,
   you now have the strict one.
+- **In a fight, each press moves on to the next person.** A fight locks the
+  prompt, and until now it stayed on whoever it showed as the fight began:
+  every press cast at that one person again, and nobody else in your group
+  was reached until the fight was over. Now Manners hands the prompt everybody
+  who still needed a buff as the fight began, and each press of the prompt or
+  its key casts at the next of them in turn, round and round; the second line
+  says which of how many. *In a fight, each press moves on to the next
+  person*, on *Look* under *Hide the prompt in combat*, switches it off. The
+  Manners macro on an action bar keeps to the one person: the game leaves a
+  macro no other way.
 - **Which pet: your pets by name.** *Which pet*, under *Companion pet* on
   *Who to buff*, now lists every pet in your pet journal under its three
   choices, so Manners brings out the one you pick. A pet you gave a name of
@@ -32,6 +42,26 @@
   at the size of the second line.
 - The line at the foot of the options window names the character who makes
   Manners, and nothing else.
+- **The options window, dressed.** A gilt moulding with a boss on each corner
+  runs round it, a beaded gilt rail sits under the header and over the footer,
+  its buttons are set in a rim of gold, a gilt stud stands before each
+  section's title, and the page that is open has a band of light and a stud
+  of its own in the sidebar.
+- **Forge, alive at rest.** A seam of molten metal flickers along the bottom
+  strap and lights the iron above it, embers rise off it across the plate,
+  and a glint crosses the top strap now and then. When your buff lands a
+  fountain of sparks is thrown up off the bezel, and somebody new on the
+  plate is greeted by a glint. On *Calm* and in a fight the forge is cold.
+- **Glass, the default look, redrawn after the game's own action bar.** A
+  beaded gilt rail runs along the pane's top and bottom, and light drifts
+  inside the glass, slowly, under the words. While you owe somebody, the
+  border of light the game runs round a spell that is ready runs round your
+  icon, in their colour. When your buff lands a star winks on the icon's
+  corner. *Gryphons at the ends*, on *Look* (off until you switch it on), sits
+  a gilt gryphon at each end of the pane, taller than it, its eye an ember in
+  the reason's colour: the eyes burn while you owe somebody, and the gilt
+  catches the light when a favour comes in and flashes when your buff lands.
+  On *Calm* nothing moves, and in a fight the lights go out.
 
 ## 1.11.18
 

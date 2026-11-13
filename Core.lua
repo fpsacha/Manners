@@ -487,6 +487,11 @@ local defaults = {
 			-- The whole prompt off the screen for a fight, its key, its list and
 			-- the bar macro casting nothing meanwhile (Prompt/Fight.lua).
 			hideInFight = false,
+			-- In a fight, with the prompt left up, each press moves the button
+			-- on to the next person the queue held as the fight began
+			-- (Prompt/Fight.lua, the fight's rota). Off, a fight holds the
+			-- prompt on the one person, as it did before 1.11.19.
+			fightRota = true,
 			-- The built-in looks (Glass, Framed, Minimal) draw the prompt at about
 			-- half strength in a fight when this is on, so it reads as held. Off by
 			-- default: a dim that stacks with a low Opacity made it vanish.
@@ -529,6 +534,9 @@ local defaults = {
 			-- off for a flat prompt, the icon and the words with nothing round
 			-- them (Prompt/Panel.lua, Prompt/Text.lua).
 			iconFrame = true,
+			-- Glass's gryphons, one at each end (Looks/Glass.lua): off until
+			-- they are switched on, since not everybody wants the bar that wide.
+			gryphons = false,
 			textShadow = true,
 			showCount = true,
 			showQueue = false,
@@ -5172,6 +5180,9 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- After that repaint wrote the bar macro, and still before the lockdown:
 	-- whether the fight takes the prompt off the screen (Prompt/Fight.lua).
 	if ns.Prompt then ns.Guard("hide for the fight", ns.Prompt.ArmFightHide, ns.Prompt) end
+	-- And, with the prompt left up, the rota its presses step through in the
+	-- fight (Prompt/Fight.lua): the queue as that repaint built it.
+	if ns.Prompt then ns.Guard("rota for the fight", ns.Prompt.ArmFightRota, ns.Prompt) end
 	-- Nothing of yours is used in a fight: the consumables button goes now,
 	-- before the lockdown, and its snippet makes sure of it at the lockdown.
 	if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
@@ -5218,6 +5229,7 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- A prompt the fight took off the screen is armed afresh and shown by the
 	-- repaint below, as any repaint arms and shows it (Prompt/Fight.lua).
 	if ns.Prompt then ns.Guard("fight hide release", ns.Prompt.ReleaseFightHide, ns.Prompt) end
+	if ns.Prompt then ns.Guard("fight rota release", ns.Prompt.ReleaseFightRota, ns.Prompt) end
 	if ns.Prompt and ns.Prompt.pendingStyle then
 		ns.Prompt:ApplyStyle()
 	elseif ns.Prompt then

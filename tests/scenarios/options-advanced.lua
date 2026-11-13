@@ -133,7 +133,7 @@ local LOOK_RESET = {
 	{ "prompt", "scale" }, { "prompt", "alpha" }, { "prompt", "width" }, { "prompt", "height" },
 	{ "prompt", "style" }, { "prompt", "bgColor" }, { "prompt", "accentByReason" },
 	{ "prompt", "reasonPalette" }, { "prompt", "accentColor" }, { "prompt", "accentMode" },
-	{ "prompt", "flashStyle" }, { "prompt", "effects" }, { "prompt", "hideInCombat" }, { "prompt", "hideInFight" },
+	{ "prompt", "flashStyle" }, { "prompt", "effects" }, { "prompt", "hideInCombat" }, { "prompt", "hideInFight" }, { "prompt", "fightRota" },
 	{ "prompt", "font" }, { "prompt", "fontSize" }, { "prompt", "fontColor" },
 	{ "prompt", "classColor" }, { "prompt", "showSub" },
 	{ "prompt", "format" }, { "prompt", "reasonTarget" }, { "prompt", "reasonOwed" },

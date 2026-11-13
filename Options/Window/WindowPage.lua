@@ -325,6 +325,7 @@ local function SectionTitle(sec, child)
 	sec.rule:SetHeight(1)
 	UI.Gradient(sec.rule, "HORIZONTAL", C.goldRule, { 1, 0.82, 0, 0 })
 	sec.rule:Hide()
+	UI.Dress.Section(sec, child)
 end
 
 -- The hairline above the folds, captioned in grey with advIntro's sentence.
@@ -371,6 +372,7 @@ local function HideSection(sec)
 	if sec.title then
 		sec.title:Hide()
 		sec.rule:Hide()
+		if sec.stud then sec.stud:Hide() end
 	end
 	if sec.button then sec.button:Hide() end
 	for _, e in ipairs(sec.entries) do
@@ -628,6 +630,7 @@ local function PlaceTitle(sec, y)
 	sec.rule:SetPoint("LEFT", child, "TOPLEFT", PAD_LEFT + from, middle)
 	sec.rule:SetPoint("RIGHT", child, "TOPLEFT", PAD_LEFT + CONTENT_W, middle)
 	sec.rule:Show()
+	UI.Dress.PlaceSection(sec)
 	sec.y = y
 	return y + h + 6
 end

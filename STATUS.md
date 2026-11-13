@@ -295,6 +295,20 @@ options button are untested in a real client: check the slot shows the spell's
 icon, cooldown and range, goes back to the note icon with nobody to buff, and
 that a controller button bound to the prompt shows its glyph on the chip.
 
+**The fight's rota (Unreleased), after a player wrote that Manners "retargets
+the same person when they are buffed and does not notice party members that
+are unbuffed".** `Prompt/Fight.lua`: at the pull the header is handed the
+macro of everybody in the queue (`manners-rota-1..n`, twelve at most), and a
+`SecureHandlerWrapScript` round the prompt's OnClick steps `macrotext1` to the
+next on every left press; `SyncFightRota` (from the prompt's PostClick) points
+`S.current` there. `prompt.fightRota`, on. Read against Blizzard's own
+`SecureHandlers.lua` on the forever branch (Wrapped_Click, line 272) and held
+by `tests/scenarios/fight-rota.lua` to the mock's model of it on all five
+clients. Only the live game can say: that the wrap takes on the prompt on
+Forever, that the post-body's write lands in a fight, that PostClick runs
+after it (the panel would otherwise name the person just buffed), and how it
+feels with the cooldown (a press it turns away still steps).
+
 **The credit line.** `diagnostics.aboutNote` names the author's
 character (`ns.AUTHOR`, Clicks.lua), in the options window's footer under the
 build since 1.11.18 (`Layout.lua`'s `footer.about`). It asks for nothing and must stay that
@@ -315,6 +329,24 @@ all five clients, that a Rotation of a quarter turn leaves the four-pointed
 star as it found it, that a Translation's offset starts again at each turn of
 a REPEAT group (the drifting lights), and how bright the additive flashes are
 (the renderer understates them).
+
+**Glass redrawn (Unreleased): the game's own action bar.** `Looks/Glass.lua`
+is a DRESSING over the glass `Prompt/Panel.lua` still draws (`Looks.RegisterDress`,
+`S.dress`; Panel, Effects and Paint call it where they would call a look), so
+every test of the built-in glass still holds: gryphons at the ends
+(`tools/figures.py`, outlines raised or cut into relief; the generator needs
+scipy for the cut, which no test runs), gilt rails, two sheets of
+caustics scrolled under the words and the ready border run round the icon by
+`Looks/Flow.lua`, the one OnUpdate a look may run (thirty writes a second,
+only while something moves; `tests/scenarios/flow.lua`). Its eyes glint at rest
+(`dress.idle`, let through by name in `look.lua` and `hunt35-effects.lua`) and
+its gryphons stand outside the panel (`dress.outside`). *Gryphons at the ends*
+(`prompt.gryphons`, off by default: the author's call, some players do not want
+them) brings them. Only the live game can say: how the scrolled
+textures look at the game's filtering, whether SetTexCoord's eight-number form
+turns the border's strips as the mock does, and how bright the additive flash
+of the gilt is. The picker's card for Glass shows only the gryphons' wings at
+its edges: the card's view is the panel's own width.
 
 **Lightbringer (Unreleased), asked for by the author as a paladin's look to
 test.** `Looks/Lightbringer.lua`, `Textures/Lightbringer/`

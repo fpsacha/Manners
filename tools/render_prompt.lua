@@ -606,6 +606,9 @@ function R.run(key, atOverride)
 	if type(atOverride) ~= "number" or atOverride < 0 then atOverride = nil end
 	Mock.advance(atOverride or state.at or 0)
 	FrameTree.settle()
+	-- Art that moves by its texture coordinates (Looks/Flow.lua) is written as
+	-- it stands at that moment: the mock runs no OnUpdate.
+	if ns.Looks and ns.Looks.Flow then ns.Looks.Flow.TickAll(GetTime()) end
 	local button = ns.Prompt:GetButton()
 	-- The texture the prompt's spell icon is drawn into, which every look
 	-- places and shapes for itself (tools/make_look_previews.py records it).

@@ -59,3 +59,14 @@ jobs:
             exit 1
           fi
           tail -n 25 selftest.out >> "$GITHUB_STEP_SUMMARY"
+
+      # A tree that fails before any mutation is judged says only how many
+      # scenarios failed: this names them, so the run can be read without
+      # another one. Only on failure, and only for that case.
+      - name: What the tree fails on
+        if: failure()
+        shell: bash
+        run: |
+          if grep -q "the tree is already failing" selftest.out 2>/dev/null; then
+            python tests/runscenarios.py --jobs 4 | grep -v "^===" | tail -n 60 || true
+          fi

@@ -891,6 +891,15 @@ local function OnBarClick(self)
 	OnPostClick(self, "LeftButton", true)
 end
 
-lib.OnPreClick, lib.OnPostClick = OnPreClick, OnPostClick
+-- The prompt's own PostClick: the press filed on whoever it was armed at, as
+-- above, and then where the fight's rota has stepped the button to
+-- (Fight.lua), so the panel names who the next press is for. A list row and
+-- the bar macro step nothing.
+local function OnPromptPostClick(self, mouseButton, down)
+	OnPostClick(self, mouseButton, down)
+	if down ~= false and InCombatLockdown() then Prompt:SyncFightRota() end
+end
+
+lib.OnPreClick, lib.OnPostClick = OnPreClick, OnPromptPostClick
 lib.OnRowPreClick, lib.OnRowPostClick = OnRowPreClick, OnRowPostClick
 lib.OnBarClick = OnBarClick

@@ -374,6 +374,7 @@ function Prompt:Paint(entry, extra)
 	self:PaintAccent(entry.reason)
 	-- On every paint of a person, the scan's own tick: a look's clock.
 	if S.activeLook and S.activeLook.Painted then S.activeLook:Painted(entry) end
+	if S.dress and S.dress.Painted then S.dress:Painted(entry) end
 
 	if p.showIcon then R.icon:SetTexture(EntryIcon(entry)) end
 	-- A person's icon is in colour: a refusal's grey is the outcome's, and

@@ -586,6 +586,19 @@ function ns.ItemMacro(entry)
 	return table.concat(lines, "\n")
 end
 
+-- The macro one of the fight's rota runs (Fight.lua): the cast alone, as a
+-- macro armed for a fight is (it carries no spoken line), and the hand-back.
+-- The text and the record a settle is judged against, or nil for somebody
+-- with nothing to cast, under a try macro, or whose macro would not fit.
+function lib.FightMacro(entry)
+	if not (entry and entry.buff) or ns.tryMacro then return nil end
+	local lines, restore, record = CastLines(entry)
+	if restore then lines[#lines + 1] = HandBack() end
+	local text = table.concat(lines, "\n")
+	if #text > ns.MACRO_LIMIT then return nil end
+	return text, record
+end
+
 -- The prompt's: armed or disarmed for the person it is on.
 function Prompt:ApplyTarget(entry, silent)
 	if InCombatLockdown() then

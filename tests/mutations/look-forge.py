@@ -351,3 +351,41 @@ _m(FORGE,
    "\tself.core = tex(art, \"BORDER\", 4, \"SlotCor\")\n",
    "a Forge texture the package does not ship",
    expect="which the package does not ship")
+
+# --- the forge alive at rest, and the fountain ---
+
+mutate("Looks/Forge.lua",
+       "\tlocal on = self.active and not self.combat and self.kit.FullEffects()\n\tself.seamGlow:SetAlpha(on and SEAM_GLOW or 0)\n",
+       "\tlocal on = self.active and not self.combat\n\tself.seamGlow:SetAlpha(on and SEAM_GLOW or 0)\n",
+       "look-forge: the forge burns on Calm",
+       expect="on Calm, light", script=S)
+
+mutate("Looks/Forge.lua",
+       "\tlocal on = self.active and not self.combat and self.kit.FullEffects()\n\tself.seamGlow:SetAlpha(on and SEAM_GLOW or 0)\n",
+       "\tlocal on = self.active and self.kit.FullEffects()\n\tself.seamGlow:SetAlpha(on and SEAM_GLOW or 0)\n",
+       "look-forge: the forge burns in a fight",
+       expect="in a fight, light", script=S)
+
+mutate("Looks/Forge.lua",
+       "\t\tlocal t = tex(self.idleFrame, \"OVERLAY\", 2, \"Ember\")\n",
+       "\t\tlocal t = tex(self.idleFrame, \"OVERLAY\", 2, \"Ember\", \"ADD\")\n",
+       "look-forge: the embers additive at rest",
+       expect="a light of the forge at rest is additive", script=S)
+
+mutate("Looks/Forge.lua",
+       "\t\t-- And the fountain, up off the bezel.\n\t\tPlayAll(self.fountAnims)\n",
+       "\t\t-- And the fountain, up off the bezel.\n",
+       "look-forge: a landing without its fountain",
+       expect="a landing threw no fountain of sparks", script=S)
+
+mutate("Looks/Forge.lua",
+       "\tlocal fountRise = above and math.max(2, cy - bz / 2 - 1) or FOUNT_RISE\n",
+       "\tlocal fountRise = FOUNT_RISE\n",
+       "look-forge: the fountain over the list hung above",
+       expect="with the list above, spark", script=S)
+
+mutate("Looks/Forge.lua",
+       "\tif name == self.greeted then return end\n\tself.greeted = name\n\tif name and not (entry.reason == \"owed\") then self:Greet() end\nend\n\n-- The shadow under the plate, and under the list's plate when it is out.",
+       "\tself.greeted = name\n\tif name and not (entry.reason == \"owed\") then self:Greet() end\nend\n\n-- The shadow under the plate, and under the list's plate when it is out.",
+       "look-forge: the same face greeted at every scan",
+       expect="a repaint of the same face greeted again", script=S)

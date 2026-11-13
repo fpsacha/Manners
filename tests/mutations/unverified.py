@@ -262,6 +262,7 @@ _REPAINT = ("\t-- A buff that landed after the fight's last tick, walked now so 
             "\t-- A prompt the fight took off the screen is armed afresh and shown by the\n"
             "\t-- repaint below, as any repaint arms and shows it (Prompt/Fight.lua).\n"
             "\tif ns.Prompt then ns.Guard(\"fight hide release\", ns.Prompt.ReleaseFightHide, ns.Prompt) end\n"
+            "\tif ns.Prompt then ns.Guard(\"fight rota release\", ns.Prompt.ReleaseFightRota, ns.Prompt) end\n"
             "\tif ns.Prompt and ns.Prompt.pendingStyle then\n"
             "\t\tns.Prompt:ApplyStyle()\n"
             "\telseif ns.Prompt then\n"

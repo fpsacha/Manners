@@ -792,6 +792,27 @@ def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None):
             # the halo's corners and sides come out of one glow. At least a
             # texel either way, so a line through the middle is still a line.
             tc = r.get("texCoord")
+            # The eight-number SetTexCoord -- the four corners, upper left,
+            # lower left, upper right, lower right -- read where it is a
+            # quarter turn of a piece (Looks/Flow.lua lays a strip along a
+            # box's four sides with it): the piece is cut as the four-number
+            # form cuts it and turned afterwards. `quarter` is how many
+            # quarter turns clockwise; any other eight numbers draw the file
+            # whole.
+            quarter = 0
+            if tc and len(tc) == 8 and all(isinstance(v, (int, float)) for v in tc):
+                ulx, uly, llx, lly, urx, ury, lrx, lry = tc
+                if abs(ulx - llx) < 1e-9 and abs(uly - ury) < 1e-9:
+                    tc = [ulx, urx, uly, lly]
+                elif abs(uly - lly) < 1e-9 and abs(ulx - urx) < 1e-9:
+                    if llx > ulx:
+                        # The file's length runs down the screen.
+                        quarter, tc = 1, [ulx, llx, ury, uly]
+                    else:
+                        quarter, tc = 3, [llx, ulx, uly, ury]
+                    w, h = h, w
+                else:
+                    tc = None
             if tc and len(tc) == 4 and all(isinstance(v, (int, float)) for v in tc):
                 iw, ih = img.size
                 cl, cr = sorted((tc[0] * iw, tc[1] * iw))
@@ -816,6 +837,9 @@ def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None):
                     img = img.transpose(Image.FLIP_LEFT_RIGHT)
                 if tc[2] > tc[3]:
                     img = img.transpose(Image.FLIP_TOP_BOTTOM)
+                if quarter:
+                    img = img.transpose(Image.ROTATE_270 if quarter == 1 else Image.ROTATE_90)
+                    w, h = h, w
             else:
                 img = img.resize((w, h), Image.LANCZOS)
             a = np.asarray(img).astype(np.float32) / 255

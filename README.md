@@ -417,9 +417,9 @@ back, because returning a favour is the point; shift-right-click them again to
 let that favour go. Your `/ignore` list goes further: nobody on it is
 thanked, offered a favour back or offered as a passer-by, though a group
 member on it still is. The list is on the *Who to skip* page, and `/manners never`
-and `/manners allow <name>` work from chat. In a fight the prompt cannot move
-off the person it is showing, so a press still casts at them until the fight
-ends, and chat says so.
+and `/manners allow <name>` work from chat. In a fight a skip cannot take
+somebody off the prompt, so a press still casts at them when their turn comes
+until the fight ends, and chat says so.
 
 **Friends and guildmates first.** A friend (Battle.net friends included) or
 guildmate goes ahead of the other passers-by, or of the rest of your group. It
@@ -504,8 +504,12 @@ and the only thing it ever says in chat is a new title.
 
 Twelve looks, each a card under Look > *Panel style* that you click to switch:
 
-- **Glass** (the default): a dark pane of cut glass, the spell icon set in a
-  metal bezel that brightens under the pointer.
+- **Glass** (the default): the game's own action bar. A dark pane of glass
+  in beaded gilt rails, the spell icon set in a metal bezel that brightens
+  under the pointer. Light drifts inside the glass; while you owe somebody
+  the border of a spell that is ready runs round the icon. *Gryphons at the
+  ends* (off, under *Look*) sits a gilt gryphon at each end, its eyes burning
+  in the reason's colour while you owe somebody.
 - **Framed**: a flat dark panel in a thin rim, like the game's tooltips.
 - **Minimal**: the words alone, no panel.
 - **Luxe**: a slim dark card with a spine in the reason colour.
@@ -516,7 +520,8 @@ Twelve looks, each a card under Look > *Panel style* that you click to switch:
 - **Letter**: parchment and a red wax seal.
 - **Leather**: a stitched leather tag with a brass ring.
 - **Forge**: forged iron and a riveted band, the reason glowing in a slot beside
-  the icon like a bar of heated steel.
+  the icon like a bar of heated steel. At rest a molten seam flickers along
+  its foot and embers rise off it.
 - **Archmage**: a violet crystal cut to a point at each end, your spell set in
   a hexagon of six arcane charges that light one by one when somebody buffs
   you, travel round while you owe them and discharge in lightning when your
@@ -559,6 +564,18 @@ the Manners macro on your bar. It comes back when the fight ends. With it off,
 *No flashes in combat* keeps the prompt on screen in a fight with no flashes,
 and *Dim the prompt in combat* draws Glass, Framed and Minimal at about half
 strength while one lasts.
+
+**In a fight.** The game locks the prompt for as long as a fight lasts: an
+addon may not change what a button casts then. So as a fight begins Manners
+hands the prompt everybody who still needed a buff at that moment, and each
+press of the prompt or its key casts at the next of them in turn, round and
+round. The second line says which of how many ("in a fight -- 2 of 4, a press
+moves on"). Nobody is added to that list or taken off it before the fight
+ends, and a press the cooldown turned away still moves on; the one passed
+over comes round again. *In a fight, each press moves on to the next person*
+(on, under *Look*) switches this off, and every press in a fight then casts
+at the one person the prompt was on. The Manners macro on an action bar keeps
+to that one person either way.
 
 ## The minimap button
 

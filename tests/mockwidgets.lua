@@ -314,11 +314,15 @@ local function addButton(f)
 		if self._enabled == false then return end
 		which = which or "LeftButton"
 		fire(self, "PreClick", which, down or false)
-		if Mock.secureActions and self._secureTemplate and Mock.secureOnClick then
-			Mock.secureOnClick(self, which, down or false)
-		else
-			fire(self, "OnClick", which, down or false)
-		end
+		-- Between the two halves of a wrap round it, when it has one
+		-- (Mock.wrapClick, "secure handlers" below).
+		Mock.wrapClick(self, which, down or false, function(button)
+			if Mock.secureActions and self._secureTemplate and Mock.secureOnClick then
+				Mock.secureOnClick(self, button, down or false)
+			else
+				fire(self, "OnClick", button, down or false)
+			end
+		end)
 		fire(self, "PostClick", which, down or false)
 	end
 end
@@ -604,6 +608,54 @@ makeHeader = function(f)
 	end
 end
 Mock.makeSecureHeader = makeHeader
+
+-- SecureHandlerWrapScript(frame, script, header, preBody, postBody), as far as
+-- a wrap round a button's OnClick needs it (SecureHandlers.lua, the same on
+-- every client: SecureHandlerWrapScript at line 602 on forever, Wrapped_Click
+-- at 272). The header must be explicitly protected and the pre-body a string;
+-- an addon's call in a fight is refused, as every call on the API frame is.
+-- A click then runs the pre-body in the header's environment with `self` the
+-- wrapped frame's handle and `control` the header's, which answers a button
+-- (false stops the click, another name replaces it) and a message; then the
+-- click itself; then, when there was a message, the post-body.
+function SecureHandlerWrapScript(frame, script, header, preBody, postBody)
+	if Mock.inCombat then
+		Mock.blockedCalls[#Mock.blockedCalls + 1] = "SecureHandlerWrapScript"
+		return
+	end
+	if type(frame) ~= "table" or type(frame.SetAttribute) ~= "function" then error("Invalid frame", 2) end
+	if type(script) ~= "string" then error("Invalid script id", 2) end
+	if not (type(header) == "table" and header._secureHeader) then error("Header frame must be explicitly protected", 2) end
+	if type(preBody) ~= "string" then error("Invalid pre-handler body", 2) end
+	if postBody ~= nil and type(postBody) ~= "string" then error("Invalid post-handler body", 2) end
+	frame._wraps = frame._wraps or {}
+	frame._wraps[script] = { header = header, pre = preBody, post = postBody }
+end
+
+local function runWrap(header, frame, body, names, ...)
+	local fn, err = loadstring("local control, " .. names .. " = ...\n" .. body, "=snippet")
+	if not fn then error("snippet does not compile: " .. tostring(err), 0) end
+	header._snippetEnv = header._snippetEnv or setmetatable({}, { __index = RESTRICTED })
+	setfenv(fn, header._snippetEnv)
+	Mock.snippetRuns = (Mock.snippetRuns or 0) + 1
+	return secure(fn, handleOf(header), handleOf(frame), ...)
+end
+
+-- One click of `frame` as Wrapped_Click runs it: `action(button)` is the
+-- click itself. With no wrap, the action alone.
+function Mock.wrapClick(frame, which, down, action)
+	local wrap = frame._wraps and frame._wraps.OnClick
+	local newbutton, message
+	if wrap then
+		newbutton, message = runWrap(wrap.header, frame, wrap.pre, "self, button, down", which, down)
+		if newbutton == false then return end
+		if newbutton then which = tostring(newbutton) end
+	end
+	if action then action(which) end
+	if wrap and wrap.post and message ~= nil then
+		runWrap(wrap.header, frame, wrap.post, "self, message, button, down", message, which, down)
+	end
+end
 
 local function resolveDriver(frame, attribute, values)
 	local newValue = SecureCmdOptionParse(values)
