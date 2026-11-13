@@ -467,6 +467,7 @@ ns.WindowLayout = {
 				-- place of the model's dropdown, which the fallback dialog keeps.
 				{ key = "appearance.themes", title = L["Panel style"], items = {
 					{ "appearance.style", widget = "themes" },
+					"appearance.peekOnChange",
 				} },
 				-- No header of its own in the model: the control's label is the title.
 				-- Moving the prompt leads the page: the button, big, with the

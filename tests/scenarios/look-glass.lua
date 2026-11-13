@@ -423,3 +423,35 @@ withTree("look-glass: a favour catches the gilt, a landing flashes it and winks 
 	for _, g in ipairs(dress.catch) do m = m + (g._plays or 0) end
 	if m ~= n then fail(scenario, "in a fight a landing still flashes the gilt") end
 end)
+
+-- ------------------------------------------------------------------ 1.11.20
+-- The game keeps one alpha for a texture: SetVertexColor's fourth number
+-- writes over what SetAlpha set. 1.11.19 coloured the light in the glass after
+-- dimming it, and in the game it covered the pane at full strength, a grey
+-- marble under the words (GitHub issue 15). Each texture is made to behave as
+-- the game's does here, and a new reason must leave every alpha as it was.
+withTree("look-glass: a reason's colour leaves the light in the glass as faint as it was", ANNA, function(ns, scenario)
+	local r, p, dress = up(ns, scenario)
+	if skipped(scenario, dress) then return end
+	local list = { dress.bloom, dress.star, dress.eye[1], dress.eye[2] }
+	for _, t in ipairs(dress.caustic) do list[#list + 1] = t end
+	for i = 1, 4 do list[#list + 1] = dress.ants[i] end
+	local before = {}
+	for i, t in ipairs(list) do
+		local set = t.SetVertexColor
+		t.SetVertexColor = function(self, cr, cg, cb, ca, ...)
+			if ca ~= nil then self:SetAlpha(ca) end
+			return set(self, cr, cg, cb, ca, ...)
+		end
+		before[i] = t:GetAlpha()
+	end
+	dress:PaintReason(0.2, 0.8, 0.3, "owed", "on")
+	for i, t in ipairs(list) do
+		if not near(t:GetAlpha(), before[i], 0.001) then
+			fail(scenario, ("texture %d went from alpha %s to %s on a reason's colour"):format(i, tostring(before[i]), tostring(t:GetAlpha())))
+		end
+	end
+	for i, t in ipairs(dress.caustic) do
+		if (t:GetAlpha() or 0) > CAUSTIC_ALPHA + 0.001 then fail(scenario, "sheet " .. i .. " of the light covers the pane at " .. tostring(t:GetAlpha())) end
+	end
+end)

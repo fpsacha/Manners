@@ -258,7 +258,11 @@ end
 function UI.PeekTarget()
 	if InCombatLockdown() then return 1 end
 	if peek.held and not HoldStands() then peek.held = false end
-	local onLook = UI.page == "appearance"
+	-- A change, a drag or the colour picker fades the window only with *Fade
+	-- this window while I change the look* on (prompt.peekOnChange, off by
+	-- default); the pointer resting on the preview button always does.
+	local prompt = ns.db and ns.db.profile and ns.db.profile.prompt
+	local onLook = UI.page == "appearance" and prompt ~= nil and prompt.peekOnChange == true
 	local held = (peek.held or ns.WindowWidgets.PickerUp()) and onLook
 	local hover = peek.hover and ns.Prompt ~= nil and ns.Prompt:InTest()
 	if held or hover or (onLook and GetTime() < peek.untilAt) then return PEEK_ALPHA end

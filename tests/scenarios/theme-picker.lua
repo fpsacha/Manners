@@ -263,6 +263,8 @@ do
 	local scenario = "theme-picker: a click sets the style and restyles the prompt at once"
 	with(scenario, function(ns, UI, row)
 		local P = ns.db.profile.prompt
+		-- The fade is a switch since 1.11.20, off by default: on for this one.
+		ns.db.profile.prompt.peekOnChange = true
 		P.style = "glass"
 		ns.RefreshOptionsDisplay()
 		for _, key in ipairs({ "luxe", "framed", "arcane", "minimal", "toast", "glass" }) do

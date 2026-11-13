@@ -622,6 +622,8 @@ end
 do
 	local scenario = "window: the window fades to a quarter while Look's changes show on the prompt"
 	with(scenario, {}, function(ns, UI)
+		-- The fade is a switch since 1.11.20, off by default: on for this one.
+		ns.db.profile.prompt.peekOnChange = true
 		ns.OpenOptions("appearance")
 		local f = ns.OptionsWindow
 		local update = f:GetScript("OnUpdate")

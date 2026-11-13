@@ -57,6 +57,8 @@ end
 do
 	local scenario = "window: Look's own slider and colour picker fade the window while held"
 	with(scenario, "appearance", function(ns, UI)
+		-- The fade is a switch since 1.11.20, off by default: on for this one.
+		ns.db.profile.prompt.peekOnChange = true
 		local slider = UI.RowFor("appearance.scale")
 		if not (slider and slider.slider and UI.RowShown("appearance.scale")) then
 			fail(scenario, "SKIPPED -- no Scale slider on Look")

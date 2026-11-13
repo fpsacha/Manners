@@ -187,6 +187,8 @@ end
 do
 	local scenario = "window: the peek lets go when the page changes or the preview stops"
 	with(scenario, {}, function(ns, UI)
+		-- The fade is a switch since 1.11.20, off by default: on for this one.
+		ns.db.profile.prompt.peekOnChange = true
 		ns.OpenOptions("appearance")
 		local row = UI.RowFor("appearance.bgColor")
 		if not (row and row.hit) then
@@ -401,5 +403,31 @@ do
 		if not wheel(row.bar, 1) or UI.view.scrollY >= at then
 			fail(scenario, "the wheel over the box's bar left the page at " .. tostring(UI.view.scrollY))
 		end
+	end)
+end
+
+-- 1.11.20: players found the window fading out under their hands. Off by
+-- default, *Fade this window while I change the look* lets a change, a held
+-- slider and the colour picker leave the window as it is.
+do
+	local scenario = "window: by default nothing done on Look fades the window"
+	with(scenario, {}, function(ns, UI)
+		ns.OpenOptions("appearance")
+		if ns.db.profile.prompt.peekOnChange ~= false then
+			fail(scenario, "a new profile's fade switch is " .. tostring(ns.db.profile.prompt.peekOnChange))
+		end
+		UI.peek.untilAt = GetTime() + 5
+		UI.peek.held = true
+		local down = rawget(_G, "IsMouseButtonDown")
+		rawset(_G, "IsMouseButtonDown", function() return true end)
+		local target = UI.PeekTarget()
+		rawset(_G, "IsMouseButtonDown", down)
+		if target ~= 1 then fail(scenario, "a change and a held slider faded the window to " .. tostring(target)) end
+		ns.db.profile.prompt.peekOnChange = true
+		rawset(_G, "IsMouseButtonDown", function() return true end)
+		target = UI.PeekTarget()
+		rawset(_G, "IsMouseButtonDown", down)
+		if target >= 1 then fail(scenario, "with the switch on, a change did not fade the window") end
+		UI.EndPeek()
 	end)
 end

@@ -668,10 +668,11 @@ explain themselves; this is what their tooltips have no room for.
   the never-offer list, your key and *Manners is on*. *Start here*,
   *Profiles* and *Diagnostics* have no reset. The version number sits at the
   bottom too, for bug reports.
-- A change on *Look* shows on the prompt itself: while you drag a slider
-  there, and for a moment after any other change, the window fades so you can
-  see the prompt behind it. Resting the pointer on *Show me the prompt* while
-  the prompt is showing does the same. Opening *Look* out of a fight shows
+- A change on *Look* shows on the prompt itself. With *Fade this window while
+  I change the look* on (off by default), the window fades while you drag a
+  slider there and for a moment after any other change, so you can see the
+  prompt behind it. Resting the pointer on *Show me the prompt* while the
+  prompt is showing always does. Opening *Look* out of a fight shows
   the prompt.
 
 **Start here.** The two steps, the favour ledger, *Minimap and chat window*,

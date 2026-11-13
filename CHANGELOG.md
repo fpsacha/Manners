@@ -5,6 +5,8 @@
 ### Looks
 - **Framed, Luxe, Toast and Arcane are back.** Pick them again under *Look*:
   1.11.19 had moved them to Glass, Archmage and Ribbon. Thirteen looks now.
+- **Glass fixed.** Its light drifting in the glass was drawn at full strength
+  in the game, a grey marble under the words. It is faint again.
 - **Archmage reads better.** The second line ("buffed you") is brighter
   and has a dark shadow under it, so it stands out on the violet crystal.
 
@@ -22,6 +24,8 @@
 - **Each choice sits under its switch on *Who to buff*.** The scrolls now come
   under *Scrolls*, the foods to leave out under *Well Fed*, and *Which pet*
   under *Companion pet*, each one step further in.
+- **The window no longer fades while you change settings.** *Fade this window
+  while I change the look* (Look) brings it back if you liked it.
 - **A bigger options window.** Drag the grip in its bottom-right corner to
   see more of a page at once; it keeps the size you leave it at. Right-click
   the grip for the usual size.

@@ -408,7 +408,32 @@ end
 -- the reason
 ---------------------------------------------------------------------------
 
+-- The game keeps one alpha for a texture: SetVertexColor's fourth number
+-- writes over what SetAlpha set. 1.11.19 coloured the light in the glass
+-- after Rest had dimmed it, and drew it at full strength over the pane, a
+-- grey marble under the words. So each texture coloured here keeps the alpha
+-- it had (the list and the table made once).
+local held = {}
+
+local function Recoloured(self)
+	local list = self.recoloured
+	if not list then
+		list = { self.eye[1], self.eye[2], self.bloom, self.star }
+		for i = 1, 4 do list[#list + 1] = self.ants[i] end
+		for _, t in ipairs(self.caustic) do list[#list + 1] = t end
+		self.recoloured = list
+	end
+	return list
+end
+
 function Glass:PaintReason(r, g, b, reason, mode)
+	local list = Recoloured(self)
+	for i, t in ipairs(list) do held[i] = t:GetAlpha() end
+	self:Recolour(r, g, b, mode)
+	for i, t in ipairs(list) do t:SetAlpha(held[i] or 1) end
+end
+
+function Glass:Recolour(r, g, b, mode)
 	local kit = self.kit
 	local er, eg, eb = WARM[1], WARM[2], WARM[3]
 	if mode ~= "off" then er, eg, eb = kit.Tint(r, g, b, 0.25) end

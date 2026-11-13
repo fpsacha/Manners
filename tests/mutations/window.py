@@ -53,3 +53,15 @@ mutate("Options/Window/Bind.lua",
        "\tlocal text = nil\n",
        "window: the reset does not ask first",
        expect="the reset did not ask first", script=S)
+
+mutate("Options/Window/Window.lua",
+       "\tlocal onLook = UI.page == \"appearance\" and prompt ~= nil and prompt.peekOnChange == true\n",
+       "\tlocal onLook = UI.page == \"appearance\"\n",
+       "window: the window fades on a change with the switch off",
+       expect="window: by default nothing done on Look fades the window", script="runscenarios.py")
+
+mutate("Core.lua",
+       "\t\t\tpeekOnChange = false,\n",
+       "\t\t\tpeekOnChange = true,\n",
+       "window: the fade on by default",
+       expect="a new profile's fade switch is", script="runscenarios.py")

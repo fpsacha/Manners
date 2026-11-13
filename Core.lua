@@ -504,6 +504,10 @@ local defaults = {
 			-- half strength in a fight when this is on, so it reads as held. Off by
 			-- default: a dim that stacks with a low Opacity made it vanish.
 			dimInCombat = false,
+			-- The options window fading after a change on Look, so the prompt
+			-- shows behind it (Options/Window/Window.lua, PeekTarget). Off since
+			-- 1.11.20: players found it in the way.
+			peekOnChange = false,
 
 			-- Glass again from 1.5.1: 1.5.0 made Luxe the default, and in the game its
 			-- reason tag read white on white for a passer-by -- the preview renderer draws

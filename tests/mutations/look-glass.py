@@ -223,3 +223,9 @@ mutate(GLASS,
        "\tfor order, part in ipairs({ { STAR_UP + STAR_DOWN, -20 }, { STAR_DOWN, -70 } }) do\n",
        "look-glass: the star turns on after its light has gone",
        expect="the star lasts", script=S)
+
+mutate(GLASS,
+       "\tfor i, t in ipairs(list) do t:SetAlpha(held[i] or 1) end\n",
+       "",
+       "look-glass: a reason's colour brings the light in the glass up to full",
+       expect="look-glass: a reason's colour leaves the light in the glass as faint", script=S)
