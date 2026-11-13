@@ -8,7 +8,7 @@ local dir, H = ...
 local fail, load = H.fail, H.load
 local findOption = H.findOption
 
-local KEY = "Manners is made by fpsacha, who plays %s on the RP-PvP server of WoW Forever."
+local KEY = "Manners is made by %s, who plays on the RP-PvP server of WoW Forever."
 -- Words a request for a tip would need, in the nine languages.
 local ASKS = { "gold", "tip", "donat", "send", "mail", "pay", "gift", "trade", "spend", "spende", "schick", "oro", "propina",
 	"envia", "envoy", "pourboire", "mancia", "invia", "ouro", "gorjeta", "\234\184\136", "\237\140\129", "\233\135\145",
@@ -102,6 +102,8 @@ do
 					end
 				end
 				if not line:find("%s", 1, true) then fail(scenario, code .. ": the line has no place for the character's name") end
+				-- The character alone: the author asked for the account's name out of it.
+				if lower:find("fpsacha", 1, true) then fail(scenario, code .. ": the line names the account as well as the character") end
 			end
 		end)
 		if not ok then fail(scenario, "threw: " .. tostring(err)) end

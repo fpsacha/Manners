@@ -10,6 +10,8 @@
   tags are now in the game's standard lettering, pale on the cloth; the name
   keeps the banner's serif. The serif's small letters were too fine to read
   at the size of the second line.
+- The line at the foot of the options window names the character who makes
+  Manners, and nothing else.
 
 ## 1.11.18
 
