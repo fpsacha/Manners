@@ -223,6 +223,9 @@ for _, case in ipairs({
 		Mock.runTimers(0)
 		ns.Prompt:ExitTest()
 		ns.db.profile.sources.strangers = false
+		-- Re-aimed by the right-buff audit: Shadow Protection is off until it is
+		-- ticked, and it is the spell this priest can still pay for.
+		ns.db.profile.buff.optIn.shadow = true
 		owe(ns, ANNA)
 		if key(entryFor(ns, ANNA)) ~= "fortitude" then
 			fail(scenario, "SKIPPED -- Anna was not offered Fortitude to begin with: " .. key(entryFor(ns, ANNA)))

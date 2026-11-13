@@ -40,6 +40,11 @@ local function with(scenario, flavour, body)
 	Mock.nameplates = { "nameplate1" }
 	Mock.held = {}
 	rawset(_G, "IsInInstance", function() return false, "none" end)
+	-- Everybody level 12, as the mock had them until the right-buff audit made
+	-- its other units 60: this mage knows the first rank alone, and on a level
+	-- 60 the fifth rank Anna wears would be a rank above his ("over"), which is
+	-- no refresh to offer. On a level 12 no cast makes it, and it tests nothing.
+	rawset(_G, "UnitLevel", function() return 12 end)
 	local names = { nameplate1 = { "Anna", "Aim" } }
 	local undo = strangers(names)
 	local ok, err = pcall(function()
@@ -530,6 +535,10 @@ local function classic(scenario, class, key, spells, body)
 	Mock.reset()
 	Mock.setFlavour("vanilla")
 	Mock.class = class
+	-- Re-aimed by the right-buff audit: a paladin's Might is no longer offered
+	-- to the mock's priest ("Don't offer Might to mages, warlocks and priests"
+	-- is on by default), so Petra and Bram are warriors for him.
+	if class == "PALADIN" then Mock.unitClass = "WARRIOR" end
 	local known = {}
 	for _, id in ipairs(spells) do known[id] = true end
 	local knows = function(id) return known[id] == true end

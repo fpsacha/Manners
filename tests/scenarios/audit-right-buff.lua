@@ -1,10 +1,13 @@
--- The "right buff" audit: every scenario here is a finding, written to be RED
--- on the tree it was found on (branch merge-fixes, 4ff8188). Each one sets up a
--- situation a player meets, reads what Manners offers, and fails with what was
--- offered and what should have been. Nothing in the addon was changed for them;
--- a fix turns its scenario green and should then get its mutation.
+-- The "right buff" audit. A player called the addon "a buggy mess": "very
+-- frequently it retargets the same person when they are buffed and does not
+-- notice party members that are unbuffed". Every scenario here is one finding
+-- of the audit that followed, written red on the tree it was found on (branch
+-- merge-fixes, 4ff8188) and green since its fix: each sets up a situation a
+-- player meets, reads what Manners offers, and fails with what was offered and
+-- what should have been. The mutations that undo each fix are in
+-- tests/mutations/audit-right-buff.py.
 --
--- The situations, in the order a player would hit them:
+-- The situations, as they were found:
 --   1  a party member with nothing waits behind the first member's second and
 --      third buffs (the queue is ordered by name inside a tier)
 --   2  Shadow Protection is walked for everybody, you included, on a fresh profile

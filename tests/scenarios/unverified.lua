@@ -71,6 +71,12 @@ local function session(scenario, body, manyIds)
 	-- the retail and Classic clients' queues as often as not, and the spelling
 	-- where the filed name and the /target name differ (ns.TargetName).
 	Mock.crossRealm = not Mock.surnames
+	-- Everybody level 12, as the mock had them until the right-buff audit made
+	-- its other units 60: the mage here knows the first rank alone, and on a
+	-- level 60 the top rank Anna wears would be a rank above his ("over"),
+	-- which is neither a top-up nor a refresh to offer.
+	local levelOf = rawget(_G, "UnitLevel")
+	rawset(_G, "UnitLevel", function() return 12 end)
 	local names = { nameplate1 = ANNA_NAME }
 	ANNA = filedAs(ANNA_NAME)
 	Mock.yards = { nameplate1 = 4 }
@@ -95,6 +101,7 @@ local function session(scenario, body, manyIds)
 		noErrors(scenario, ns)
 	end)
 	restoreUnits()
+	rawset(_G, "UnitLevel", levelOf)
 	rawset(_G, "IsSpellKnown", knows)
 	rawset(_G, "IsPlayerSpell", knowsPlayer)
 	Mock.crossRealm = false

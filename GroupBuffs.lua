@@ -585,13 +585,14 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 	return out
 end
 
--- Which of `candidates` have a group version ready to cast now (learned, the
--- reagent carried or waived, usable), as { [buff key] = true }, or nil for none
--- or with group buffs switched off: the fold's own test, asked by the walk
--- (Queue.lua, visit) before the fold, with none of its notes about the
--- reagent. Where a group version reaches the whole party and raid
--- (ns.GROUP_IS_RAID), the walk keeps a member out of the single buff's range
--- for the fold alone on it.
+-- Which of `candidates` have a group version learned, as { [buff key] = true },
+-- or nil for none or with group buffs switched off: asked by the walk
+-- (Queue.lua, visit) before the fold. Where a group version reaches the whole
+-- party and raid (ns.GROUP_IS_RAID), the walk keeps a member out of the single
+-- buff's range for the fold alone on it. Learned, not ready: the reagent and
+-- whether the spell can be cast are the fold's to ask, once a scan, with its
+-- notes (GroupCasts), and a second asking here cost the scan two protected
+-- calls; with no reagent the fold makes nothing and those members go again.
 function ns.GroupReady(db, candidates)
 	local settings = db.groupBuffs
 	if not (settings and settings.use == true and db.sources.group) then return nil end
@@ -599,11 +600,8 @@ function ns.GroupReady(db, candidates)
 	for _, buff in ipairs(candidates) do
 		local info = ns.BuffInfo(buff)
 		if info and info.groupRank and info.groupReagent then
-			local have = ReagentCount(info.groupReagent)
-			if ReagentWaived(info, have) or (have and have > 0 and Usable(info.groupRank)) then
-				ready = ready or {}
-				ready[buff.key] = true
-			end
+			ready = ready or {}
+			ready[buff.key] = true
 		end
 	end
 	return ready

@@ -61,6 +61,10 @@ do
 		end
 		local info = { "who", "offer_breath" }
 		if control.type ~= "toggle" or not control.get(info) then fail(scenario, "the switch is not an on toggle") end
+		-- Re-aimed by the right-buff audit: Unending Breath is offered to return
+		-- a favour and to whoever asks for it by name, never unasked, so Anna
+		-- has buffed the warlock here. The switch is what is held.
+		H.owe(ns, "Anna Aim")
 		if not offered(ns) then
 			-- Mists' warlock never offers it to a passer-by on its own.
 			if Mock.flavour == "camelot" then

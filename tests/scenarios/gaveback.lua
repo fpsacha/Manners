@@ -35,6 +35,11 @@ local function with(scenario, body)
 		rawset(_G, "IsPlayerSpell", function(id) return known[id] == true end)
 		H.freshPrompt(ns, scenario)
 		ns.db.profile.sources.strangers = true
+		-- Re-aimed by the right-buff audit: these scenarios were written with
+		-- Might offered to mages, warlocks and priests, which is a switch that
+		-- is on by default now ("Don't offer Might to..."): off here, where the
+		-- walk's order, the pin and whose blessing it is are what is held.
+		ns.db.profile.buff.skipCasters = false
 		-- Whose cast a worn Might is only matters while a favour is repaid by
 		-- refreshing one from somebody else: "Refresh a buff they already have,
 		-- to return a favour", off by default (tests/scenarios/covered.lua).

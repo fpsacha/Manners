@@ -40,6 +40,103 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
   Still owed until its time runs out, as a favour from a member who is no
   tank always did.
 
+**The right-buff audit (Unreleased).** A player called the addon "a buggy
+mess": "very frequently it retargets the same person when they are buffed and
+does not notice party members that are unbuffed". Fifteen findings, each a
+scenario in `tests/scenarios/audit-right-buff.lua` and a mutation in
+`tests/mutations/audit-right-buff.py`:
+
+- *The order inside a tier* (Queue.lua `OfferRank`, the sort at the end of
+  `BuildQueue`; Prompt/Hold.lua `PickTop`): after the tier and the range,
+  somebody read as missing the buff, then somebody unread, then a top-up or
+  refresh; then the buff's place in the walk (`walkPlace`, written per scan
+  from the castable list; none for a class whose buffs replace one another),
+  then group cast, friends and name as before. PickTop keeps the current
+  person on a tie of the tier only while they are no worse by that order. A
+  top-up of your own buff has the group's priority (`SelfEntry`); missing, it
+  keeps `PRIORITY.self`. The fight's rota takes the queue as built, so it
+  steps in this order too.
+- *Shadow Protection* is `optIn` on Classic Era, Forever and Burning Crusade,
+  as Detect Invisibility is. A profile that never touched it now has it off;
+  the changelog says to tick it.
+- *Unending Breath* is `returnOnly` (new flag, Buffs.lua) on the same three:
+  `Castable` offers it only for `opts.owed` (the walk, the tokenless fallback,
+  Favours.lua's two questions) or a request by name. **Open:** the summaries
+  on Who to buff and the Welcome still speak of passers-by for a warlock whose
+  only buff it is (they ask `ns.OnlyReachesGroup`, which is about reach); the
+  switch's own description says the rule.
+- *Might and casters*: `buff.skipCasters` is on by default.
+- *"Buff pls"*: `ns.AskedFor` hands back whether the request named a buff, and
+  `opts.asked` is now "asked for by name": a plain "buff pls" keeps *Only
+  buffs they can use*, *Don't offer Might to...*, *Tanks only* and *Only me*.
+- *Too low a level* (`levelGated` on the vanilla set, read by Forever's and
+  Burning Crusade's; `buff.lowLevel` from the lookups; `opts.targetLevel`):
+  `Castable` turns down a buff none of whose ranks lands within ten levels.
+  The walk reads `UnitLevel` only while a castable buff has a `lowLevel`, or
+  for somebody owed.
+- *A favour by name keeps its rank*: the giver's level goes on the debt
+  (Favours.lua `seen.level`, the walk, saved with the debts) and on the
+  tokenless entry (`entry.level`), and `ns.CastName` names the rank by it. A
+  remembered passer-by (the ten-second memory) still casts the plain name.
+- *The ten-minute hold* ("A more powerful spell is already active", "Target
+  is too low level") is told to the walk through `ns.heldOff` (Core.lua,
+  read by `Castable`) beside the block in `ns.tried`, so a paladin's walk
+  moves on to the next blessing. For a refused group cast the hold is on the
+  group version for the one it was aimed at (`ns.GROUP_HOLD`;
+  GroupBuffs.lua `Aimable`), and nobody's single buff: this reverses 1.11.14's
+  "a group cast holds the buff off everyone it covered".
+- *Forever's camping buffs*: Boosted Stamina 1230124, Boosted Intellect
+  1229513 and Boosted Spirit 1229718 are `blockers` of Fortitude, Intellect
+  and Divine Spirit (`CAMP_BLOCKER`), weighed by `ns.CampWorth`: the aura's
+  `points[1]` where the client gives it, else the tier for the wearer's level
+  (`ns.STAT_TIERS`, from each feature's own text), else nothing.
+  `tools/audit_ids.py` holds the top to SpellEffect and the tiers to the text.
+- *Group casts*: the group ranks' levels are in `ns.RANK_LEVEL` (held to
+  SpellLevels by the audit). A member more than ten levels under the group
+  rank is not counted and never the target (GroupBuffs.lua `TooLow`; never
+  you). On Forever (`ns.GROUP_IS_RAID`) a member out of the single buff's
+  range, read as missing it or running low, is kept for the fold alone
+  (`foldOnly`, Queue.lua `visit`; `ns.GroupReady`), counted and covered, never
+  the target, and taken out again if no group cast forms. A group version
+  worn is weighed as the rank it is (Core.lua `UnitHasBuff`), for a buff with
+  more than one rank, and never below the group version you cast yourself.
+- *A warrior's shout*: `ns.shoutUnreached`, written by `BuildQueue` around
+  its `SelfEntry`, makes `CastsOnSelf` allow the shout in a group whose walk
+  queued it for nobody.
+- The mock's other units are level 60 now (`tests/mockapi.lua`, `UnitLevel`);
+  the player stays 12.
+
+Left for the author to decide: **Thorns' default is still Everyone**, so a
+druid is offered it for cloth casters and for herself every ten minutes; the
+audit left it, since Thorns does something for anybody who gets hit, and
+*Offer Thorns to* already narrows it. And three refusals in a row for line of
+sight or range still take a party member off the prompt for five minutes
+(Queue.lua `STEPS`), though nothing about them is wrong once they are back.
+
+Only the live game can say, about the audit:
+
+1. Whether Forever refuses a Fortitude, Intellect or Divine Spirit worth no
+   more than the camping buff somebody wears, as it does over a scroll (the
+   data says the same aura; "mutually exclusive" is the feature's own text),
+   and whether equal counts as refused. What the aura's `points` read on a
+   wearer below 60 (`/manners look target`): if the client gives them, the
+   tiers are never used.
+2. The four camping buffs not weighed: the Enchanted Lute's Boosted Stats
+   against Mark of the Wild, the Lodestone's Boosted Attack Power against
+   Blessing of Might, the Mana Well's Boosted Mana Regeneration against
+   Blessing of Wisdom, and the Fish Bowl against Kings. Whether the weaker of
+   the two is refused or replaces is not in the data; today yours is offered
+   and, if refused, held off for ten minutes.
+3. What Forever's untargeted group casts (Arcane Brilliance, the Prayers, Gift
+   of the Wild) give a member more than ten levels under the rank. Manners no
+   longer counts such a member and offers them the single buff; if the game
+   does give them the group version, that single offer goes when it lands.
+4. Whether such a cast goes out with a friendly target more than forty yards
+   off: the fold still wants somebody within the single buff's reach to aim
+   at, though the spell needs no target.
+5. Whether `C_Spell.GetSpellSubtext` answers at once for a rank below your
+   top one; an empty first answer casts the plain name until the next scan.
+
 Only the live game can say: that the buffs of somebody who has just buffed you
 read at that moment on WoW Forever (the token is the one the aura named as its
 caster; a reading the client withholds leaves them owed, as before), and how

@@ -2041,6 +2041,20 @@ do
 					end
 				end
 			end
+			-- The same for a melee blessing held from a caster ("Don't offer Might
+			-- to mages, warlocks and priests", on by default): the loop above
+			-- does not read what it may not cast, and your Might on a priest
+			-- (asked for by name, or cast by hand) is still yours on them. They
+			-- are covered, or the walk would press Kings or Wisdom over what
+			-- they asked for. Not for somebody asking by name now, as above.
+			if opts.casterOnly and not opts.asked then
+				for _, buff in ipairs(candidates) do
+					if buff.meleeOnly then
+						local held, _, mine = has(buff, opts)
+						if held == true and mine ~= false then return nil, true end
+					end
+				end
+			end
 			-- The same for one the game says you cannot pay for at this moment
 			-- (Queue.lua, Affordable, which leaves it out of the list): a
 			-- paladin short of mana for Kings, with his Kings on somebody, would

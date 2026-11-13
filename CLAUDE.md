@@ -93,14 +93,24 @@ default everywhere in the tests and the only client anybody here plays.
   `ns.BUFFS`, `ns.OWN_BUFFS`, `ns.EXCLUSIVE_BUFFS`, `ns.CLASS_AUTO`,
   `ns.CLASSES_WITHOUT_BUFFS`, `ns.PARTY_IS_SUBGROUP`, `ns.GROUP_IS_RAID`,
   `ns.SHOUT_YARDS`, `ns.WIDE_CASTS`, `ns.GROUP_BY_CLASS`, `ns.FAVOUR_ONLY_IDS`,
-  `ns.NOT_FAVOUR_IDS`, `ns.RANK_LEVEL`, `ns.STAT_VALUE`. Branch on those fields
+  `ns.NOT_FAVOUR_IDS`, `ns.RANK_LEVEL`, `ns.STAT_VALUE`, `ns.STAT_TIERS`,
+  `ns.LEVEL_GATED`. Branch on those fields
   and the per-buff flags (`partyOnly`, `groupOnly`, `selfCast`, `alone`, `alike`,
-  `blockers`, `neverAuto`, ... documented at the top of the file) rather than on
+  `blockers`, `neverAuto`, `optIn`, `returnOnly`, ... documented at the top of
+  the file) rather than on
   flavour names. `blockers` and `ns.STAT_VALUE` are the flat-stat scrolls that
   hold a weaker rank of Arcane Intellect, Fortitude or Divine Spirit off
   (Classic Era, TBC, Forever; Mists and retail give percentages and have none),
   weighed numerically in `UnitHasBuff`; `tools/audit_ids.py` holds them to
-  SpellEffect. The
+  SpellEffect. On Forever the blockers also hold the camping buffs Boosted
+  Stamina, Intellect and Spirit, whose worth goes by the wearer's level
+  (`ns.STAT_TIERS`, `ns.CampWorth`: the aura's own points, else the tier the
+  feature's text gives; the audit holds both). `ns.LEVEL_GATED` (the vanilla
+  set's `levelGated`, read by Forever's and Burning Crusade's) says a cast
+  lands only within ten levels of its rank: a buff's `lowLevel`, worked out in
+  the lookups, keeps it off anybody too low for every rank (`Castable`), and
+  `ns.RANK_LEVEL` holds the group versions' levels too, for the fold
+  (GroupBuffs.lua, `TooLow`) and for a group version worn (`UnitHasBuff`). The
   camelot set is vanilla's (`__index`) with its own buffs, and is still called
   "vanilla" in `ns.BUFFS_SOURCE`; tbc builds on vanilla the same way.
 - **How long each buff lasts** is a table of ids per client in `Buffs.lua`
@@ -111,6 +121,19 @@ default everywhere in the tests and the only client anybody here plays.
   the slider `refreshUnder` its ceiling, `refreshRaid` times in a raid or
   dungeon, your own buffs half as much again, passers-by the last half
   minute); the aura's own `duration` beats the table.
+- **Who is offered first** (Queue.lua, `PRIORITY` and `OfferRank`): by tier
+  (target, a ready check or a death, owed, asked, yourself, group, passers-by),
+  then range, then inside a tier what is missing before what nobody could read
+  before a top-up, then the buff's place in the walk (everybody's first
+  missing buff before anybody's second; no place for a class whose buffs
+  replace one another), then group cast, friends, name. `Prompt:PickTop` keeps
+  the current person on a tie only while no worse by that order, and the
+  fight's rota steps through the queue as built.
+- **Unasked, by default**: `optIn` buffs are off until ticked (Detect
+  Invisibility for the group; Shadow Protection on Classic Era, Forever and
+  TBC); a `returnOnly` buff (Unending Breath there) goes only to a favour's
+  giver (`opts.owed`) and to a request by name (`opts.asked`, which a plain
+  "buff pls" is not); `buff.skipCasters` is on.
 - **Client-specific behaviour** (grep `ns.Flavour.flavour` / `.family`):
   - Forever only: surnames joined with a space (`caps.unitNameIsSurname`);
     the mage's scrolls (Familiar, Weapon imbue: `CAMELOT_OWN`, used with

@@ -551,6 +551,11 @@ do
 		known = { UNENDING_BREATH },
 		held = { nameplate1 = { [WATER_BREATHING] = "nameplate2" } },
 	}, function(ns)
+		-- Re-aimed by the right-buff audit: Unending Breath is offered to return
+		-- a favour and to whoever asks for it by name, never unasked, so both
+		-- have buffed the warlock here.
+		H.owe(ns, filed("Anna", "Aim"))
+		H.owe(ns, filed("Bert", "Beside"))
 		local _, byName = queue(ns)
 		if key(byName[filed("Bert", "Beside")]) ~= "breath" then
 			fail(scenario, "SKIPPED -- Bert, breathing no water, is not offered Unending Breath")

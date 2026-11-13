@@ -298,7 +298,11 @@ for _, class in ipairs(GIVE_ORDER) do
 						fail(scenario, ("%s worn at rank %d reads as %s"):format(want.key, id, tostring(has)))
 					end
 				end
-				relearn(ns, want.ranks)
+				-- Re-aimed by the right-buff audit: a group version is weighed as
+				-- the rank it is now, so one below the rank your cast would land
+				-- reads as missing on purpose, as a lower rank does. Each is worn
+				-- here against the lowest rank alone, which none of them is under.
+				relearn(ns, { want.ranks[#want.ranks] })
 				for _, id in ipairs(want.group or {}) do
 					Mock.held = { [id] = true }
 					local has = ns.UnitHasBuff("nameplate1", buff, nil)

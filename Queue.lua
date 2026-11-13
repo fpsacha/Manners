@@ -1106,6 +1106,10 @@ PRIORITY.self = 1.75
 -- "missing" while anybody it counts is. A buff the walk has no place for (one
 -- of your class's own, one only a request names) comes after the ones it has.
 local walkPlace = {}
+-- The entries kept for the fold alone (visit, `foldOnly`), one table apiece
+-- reused from scan to scan: they leave the queue before it is handed on, so
+-- nothing holds one, and a raid spread over a room made forty a scan.
+local fold = { pool = {}, used = 0 }
 local function OfferRank(entry)
 	local reading = 2
 	local group = entry.groupCast
@@ -2354,6 +2358,7 @@ function ns.BuildQueue(watch)
 	-- there has a second buff to wait for, and which blessing somebody gets
 	-- says nothing about whose turn it is.
 	wipe(walkPlace)
+	fold.used = 0
 	if not ns.EXCLUSIVE_BUFFS[caps.class] then
 		for place, buff in ipairs(candidates) do walkPlace[buff.key] = place end
 	end
@@ -2812,12 +2817,16 @@ function ns.BuildQueue(watch)
 			and (has == false or remaining ~= nil) then
 			if opts.foldReady == nil then opts.foldReady = ns.GroupReady and ns.GroupReady(db, candidates) or false end
 			if opts.foldReady and opts.foldReady[buff.key] then
-				queue[#queue + 1] = {
-					name = full, short = ShortName(full), targetName = ns.TargetName(full), unit = unit,
-					class = plain(select(2, UnitClass(unit))), buff = buff, reason = reason, inGroup = true,
-					priority = PRIORITY[reason], ranged = false, known = has, remaining = remaining,
-					checked = checked, foldOnly = true,
-				}
+				fold.used = fold.used + 1
+				local kept = fold.pool[fold.used]
+				if not kept then
+					kept = { inGroup = true, ranged = false, foldOnly = true }
+					fold.pool[fold.used] = kept
+				end
+				kept.name, kept.short, kept.targetName, kept.unit = full, ShortName(full), ns.TargetName(full), unit
+				kept.class, kept.buff, kept.reason = plain(select(2, UnitClass(unit))), buff, reason
+				kept.priority, kept.known, kept.remaining, kept.checked = PRIORITY[reason], has, remaining, checked
+				queue[#queue + 1] = kept
 				opts.folding = true
 			end
 		end

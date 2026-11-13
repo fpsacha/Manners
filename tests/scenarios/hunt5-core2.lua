@@ -489,6 +489,9 @@ do
 		local ns = load(scenario)
 		if not ns then return end
 		ready(ns, scenario)
+		-- Re-aimed by the right-buff audit: Shadow Protection is off until it is
+		-- ticked, and a request cannot name a spell that is off.
+		ns.db.profile.buff.optIn.shadow = true
 		owe(ns, ANNA)
 		hear(ns, "CHAT_MSG_SAY", "shadow protection please", ANNA, "Player-1-nameplate1")
 		local entry = entryFor(ns, ANNA)
