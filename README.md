@@ -549,8 +549,8 @@ Ten looks, each a card under Look > *Panel style* that you click to switch:
   bough when somebody buffs you and stands in blossom while you owe them,
   and the Mark of the Wild's paw lights in a burst of leaves when your buff
   lands. The water ripples, the leaves stir, fireflies wander and a wisp
-  goes round the moon at rest;
-  *Animations* on *Calm* stills it. The icon is always round on this look.
+  goes round the moon at rest; *Animations* on *Calm* stills it. The icon
+  is always round on this look.
 
 Pick your own colours and fonts too; LibSharedMedia is supported.
 

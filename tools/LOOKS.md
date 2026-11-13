@@ -39,7 +39,11 @@ The renderer understates additive light: the game draws ADD far brighter. Keep
 ADD for flashes under 0.6 s; draw what rests BLEND. It draws Alpha,
 Translation, Scale and Rotation animations (a turn about the animation's
 origin, offset and all) and every Flow handle as it stands at the picture's
-moment; the picker's cards are drawn with turns off.
+moment; the picker's cards are drawn with turns off. A desaturated texture
+is greyed and then takes its vertex colour, as in the game (Wild browns its
+leaves so). Art that hangs under the panel (Wild's sprigs) is cut by
+`look_gif.py`'s default box: give `--box` a taller one
+(`--box 0.08,0,0.83,0.58`).
 
 ## Named exemptions
 
