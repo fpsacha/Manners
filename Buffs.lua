@@ -1172,6 +1172,10 @@ end
 --             own requirement is any weapon, met by the main hand's).
 --   shield    on a spell: it goes on a shield, so it waits for one in the off
 --             hand (Thunderstrike Ward).
+--   solo      on a spell: the key under ownBuffs of its own switch, on which
+--             it is offered only while you are in no group (Core.lua,
+--             OwnVerdict, "grouped"): Dampen Magic (`dampenAlone`, which cuts
+--             the healing you get too) and Amplify Magic (`amplifyAlone`).
 --   switchable  a class's only buff for others, which has its switch on Who to
 --             buff all the same (Unending Breath: most warlocks want it off).
 --   tankChoice  a buff for others that the player may hold to the tanks of
@@ -1290,8 +1294,8 @@ local VANILLA_OWN = {
 		-- it stays out of favourOnly for others, as before. 10 minutes.
 		{ key = "magicmod", optIn = true,
 			spells = {
-				{ key = "dampenmagic", ranks = { 10174, 10173, 8451, 8450, 604 } },
-				{ key = "amplifymagic", ranks = { 10170, 10169, 8455, 1008 } },
+				{ key = "dampenmagic", ranks = { 10174, 10173, 8451, 8450, 604 }, solo = "dampenAlone" },
+				{ key = "amplifymagic", ranks = { 10170, 10169, 8455, 1008 }, solo = "amplifyAlone" },
 			} },
 	},
 
@@ -1854,8 +1858,8 @@ local TBC_OWN = {
 		-- ranks Burning Crusade added.
 		{ key = "magicmod", optIn = true,
 			spells = {
-				{ key = "dampenmagic", ranks = { 33944, 10174, 10173, 8451, 8450, 604 } },
-				{ key = "amplifymagic", ranks = { 33946, 27130, 10170, 10169, 8455, 1008 } },
+				{ key = "dampenmagic", ranks = { 33944, 10174, 10173, 8451, 8450, 604 }, solo = "dampenAlone" },
+				{ key = "amplifymagic", ranks = { 33946, 27130, 10170, 10169, 8455, 1008 }, solo = "amplifyAlone" },
 			} },
 	},
 

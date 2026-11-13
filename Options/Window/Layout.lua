@@ -234,6 +234,8 @@ ns.WindowLayout = {
 					{ "who.own_armor", indent = true },
 					-- A mage's Dampen Magic or Amplify Magic, off until picked.
 					{ "who.own_magicmod", indent = true },
+					{ "who.ownDampenAlone", indent = 2 },
+					{ "who.ownAmplifyAlone", indent = 2 },
 					-- A mage's scrolls on Forever, while there is one in the bags.
 					{ "who.own_familiar", indent = true },
 					{ "who.own_imbue", indent = true },

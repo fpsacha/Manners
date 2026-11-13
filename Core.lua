@@ -325,6 +325,12 @@ local defaults = {
 			-- when it goes on your party). On: with nobody in your group, a missing
 			-- or running-out shout is offered to you too (CastsOnSelf).
 			shoutAlone = false,
+			-- On: Dampen Magic (Buffs.lua, `solo`) is offered only while you are
+			-- in no group: in one it cuts the healing you get (asked for on
+			-- GitHub). Off: offered in a group too.
+			dampenAlone = true,
+			-- The same for Amplify Magic (Buffs.lua, `solo`), a switch of its own.
+			amplifyAlone = true,
 			-- Off: food, flasks, elixirs, scrolls and a weapon's oils, stones and
 			-- poisons come up on the prompt as "You". On: on a button of their
 			-- own (Prompt/Supplies.lua, ns.SupplyEntry), asked for on CurseForge,
@@ -3239,6 +3245,7 @@ do
 	--   "form"      a form (Moonkin Form), and you are in another
 	--   "noshield"  it goes on a shield, and there is none in your off hand
 	--   "dry"       one for the water alone (Unending Breath), and you are not swimming
+	--   "grouped"   Dampen or Amplify Magic with its alone switch on, held back in a party or raid
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
@@ -3379,6 +3386,12 @@ do
 			end
 		end
 		if ns.IsBlocked(ctx.name, spell.key, ctx.now) then return nil, up, left, "tried", spell end
+		-- Held to when you are alone by its own switch (Buffs.lua, `solo`: the
+		-- key of it under ownBuffs), on, and you are in a group.
+		if spell.solo and addon.db.profile.ownBuffs[spell.solo] ~= false
+			and (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0 then
+			return nil, up, left, "grouped", spell
+		end
 		-- The hand an enhancement was just put on is busy until the cast is over
 		-- (NoteScrollPress): nothing else is offered for it in the meantime.
 		if spell.family.enhance and ns.HandBusy(spell.family.slot, ctx.now) then

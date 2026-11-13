@@ -212,3 +212,73 @@ do
 		if others == 0 then fail(scenario, "SKIPPED -- nobody else on the queue to be offered anything") end
 	end)
 end
+
+-- ------------------------------------------------------------------ alone only
+-- Dampen Magic cuts the healing you get, so in a party or raid it is worth
+-- nothing with a healer beside you (asked for on GitHub): *Dampen Magic only
+-- when I'm alone* (ownBuffs.dampenAlone, on by default) holds it back there.
+-- Amplify Magic is not held back.
+
+do
+	local scenario = "dampenmagic: in a group Dampen Magic waits, alone it is offered, and the switch off offers it"
+	with(scenario, { pick = "dampenmagic" }, function(ns)
+		if ns.db.profile.ownBuffs.dampenAlone ~= true then
+			fail(scenario, "a new profile's switch is " .. tostring(ns.db.profile.ownBuffs.dampenAlone))
+		end
+		if not mine(ns, "dampenmagic") then fail(scenario, "alone, none up: not offered") return end
+		Mock.groupSize = 2
+		if mine(ns, "dampenmagic") then fail(scenario, "offered in a group with the switch on") end
+		local said = table.concat(ns.MyselfLines(GetTime()), " / ")
+		if not said:find("is only offered when you are alone, and you are in a group.", 1, true) then
+			fail(scenario, "/manners debug says: " .. said)
+		end
+		ns.db.profile.ownBuffs.dampenAlone = false
+		if not mine(ns, "dampenmagic") then fail(scenario, "the switch off, not offered in a group") end
+		ns.db.profile.ownBuffs.dampenAlone = true
+		Mock.groupSize = 0
+		if not mine(ns, "dampenmagic") then fail(scenario, "back on your own, not offered again") end
+	end)
+end
+
+do
+	local scenario = "dampenmagic: Amplify Magic waits in a group by a switch of its own"
+	with(scenario, { pick = "amplifymagic" }, function(ns)
+		if ns.db.profile.ownBuffs.amplifyAlone ~= true then
+			fail(scenario, "a new profile's Amplify switch is " .. tostring(ns.db.profile.ownBuffs.amplifyAlone))
+		end
+		if not mine(ns, "amplifymagic") then fail(scenario, "alone, none up: not offered") return end
+		Mock.groupSize = 2
+		if mine(ns, "amplifymagic") then fail(scenario, "Amplify Magic offered in a group with its switch on") end
+		-- Dampen's switch off does not let Amplify through.
+		ns.db.profile.ownBuffs.dampenAlone = false
+		if mine(ns, "amplifymagic") then fail(scenario, "Dampen's switch off let Amplify Magic through") end
+		ns.db.profile.ownBuffs.amplifyAlone = false
+		if not mine(ns, "amplifymagic") then fail(scenario, "its switch off, not offered in a group") end
+		local control = findOption(ns.optionsTable, "ownAmplifyAlone")
+		if not control then fail(scenario, "Who to buff has no Amplify switch") return end
+		if control.hidden() then fail(scenario, "hidden from a mage who knows Amplify Magic") end
+		control.set(nil, true)
+		control.set(nil, false)
+		if ns.db.profile.ownBuffs.amplifyAlone ~= false then fail(scenario, "Amplify's switch off wrote nothing") end
+	end)
+end
+
+do
+	local scenario = "dampenmagic: the alone switch sits under it, for a mage who knows Dampen Magic"
+	with(scenario, { pick = "dampenmagic" }, function(ns)
+		local control = findOption(ns.optionsTable, "ownDampenAlone")
+		if not control then fail(scenario, "Who to buff has no alone switch") return end
+		if control.hidden() then fail(scenario, "hidden from a mage who knows Dampen Magic") end
+		if control.disabled() then fail(scenario, "greyed with Dampen Magic picked") end
+		if control.get() ~= true then fail(scenario, "reads off on a new profile") end
+		control.set(nil, false)
+		if ns.db.profile.ownBuffs.dampenAlone ~= false then fail(scenario, "turning it off wrote nothing") end
+		ns.db.profile.ownBuffs.pick.magicmod = "off"
+		if not control.disabled() then fail(scenario, "live with Dampen Magic switched off") end
+	end)
+	local unknown = "dampenmagic: the alone switch is hidden from a mage who never learned it"
+	with(unknown, { known = { 10170 } }, function(ns)
+		local control = findOption(ns.optionsTable, "ownDampenAlone")
+		if control and not control.hidden() then fail(unknown, "shown to a mage without Dampen Magic") end
+	end)
+end

@@ -7,6 +7,10 @@
   to buff*, under *Myself*, and Manners reminds you when it is down. Off until
   you pick it. Classic Era, WoW Forever and Burning Crusade. Asked for on
   GitHub.
+- **Dampen and Amplify Magic only when you are alone.** In a party or raid
+  Dampen Magic cuts the healing you get, so it is not offered there. Each has
+  its own switch under it, *Dampen Magic only when I'm alone* and *Amplify
+  Magic only when I'm alone*, both on; untick one to have it in a group too.
 
 ### Looks
 - **Archmage reads better.** The second line ("buffed you") is brighter
