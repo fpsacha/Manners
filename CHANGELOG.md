@@ -12,6 +12,11 @@
   at the size of the second line.
 - The line at the foot of the options window names the character who makes
   Manners, and nothing else.
+- **Forge, alive at rest.** A seam of molten metal flickers along the bottom
+  strap and lights the iron above it, embers rise off it across the plate,
+  and a glint crosses the top strap now and then. When your buff lands a
+  fountain of sparks is thrown up off the bezel, and somebody new on the
+  plate is greeted by a glint. On *Calm* and in a fight the forge is cold.
 
 ## 1.11.18
 

@@ -516,7 +516,8 @@ Twelve looks, each a card under Look > *Panel style* that you click to switch:
 - **Letter**: parchment and a red wax seal.
 - **Leather**: a stitched leather tag with a brass ring.
 - **Forge**: forged iron and a riveted band, the reason glowing in a slot beside
-  the icon like a bar of heated steel.
+  the icon like a bar of heated steel. At rest a molten seam flickers along
+  its foot and embers rise off it.
 - **Archmage**: a violet crystal cut to a point at each end, your spell set in
   a hexagon of six arcane charges that light one by one when somebody buffs
   you, travel round while you owe them and discharge in lightning when your
