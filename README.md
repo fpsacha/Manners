@@ -869,6 +869,14 @@ list. They used to be at the bottom of *Who to buff*.
       each game has them), read from the map you are on; an inn is anywhere
       else the game calls you resting. When the game will not say which map
       you are on, both count.
+  - *Hold back short buffs in cities and inns*: off by default. While the
+    game calls you resting, in a city or an inn, the buffs that last only a
+    few minutes (Thorns, say, which runs out before you reach anywhere it
+    matters) are not offered, and longer ones such as Mark of the Wild still
+    are. *Short means this many minutes or less*, under it, sets the length
+    (15 by default). Somebody who asks for a buff by name, and somebody you
+    target or focus, is still offered it. Greyed out while *Offer nothing in
+    cities and inns* is on, which holds everything.
   - *Offer nothing in dungeons, raids and battlegrounds*: off by default. The
     same rule inside a dungeon, a raid, a battleground or an arena: nothing
     for anybody but somebody you target or focus. Your own buffs are not held

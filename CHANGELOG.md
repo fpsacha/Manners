@@ -3,11 +3,16 @@
 ## Unreleased
 
 ### Who gets what
-- **Unending Breath to everybody, if you want it.** 1.11.19 kept it for
-  favours and requests by name, which left a warlock with nothing to offer
-  anybody else. Under *Unending Breath* on *Who to buff*, tick *Offer
-  Unending Breath to everybody near me* to offer it to your group and
-  passers-by as before.
+- **Short buffs held back in cities and inns, if you want.** Tick *Hold back
+  short buffs in cities and inns* (When to offer, under *Hold back*) and
+  Thorns, say, is not offered while you rest there, where it would run out
+  before it mattered; Mark of the Wild still is. *Short means this many
+  minutes or less* sets the length (15). Asked for on CurseForge.
+- **Unending Breath to everybody again.** 1.11.19 kept it for favours and
+  requests by name, which left a warlock with nothing to offer anybody else.
+  Your group and passers-by are offered it as in 1.11.18. To keep it for
+  favours and requests, untick *Offer Unending Breath to everybody near me*,
+  under *Unending Breath* on *Who to buff*.
 
 ## 1.11.20
 

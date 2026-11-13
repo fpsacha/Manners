@@ -141,8 +141,8 @@ mutate("Options/Window/Layout.lua",
        expect="townhold: When to offer has the choice under the switch, greyed while it is off", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"filters.quietInTownsWhere\",\n",
-       "",
+       "\t\t\"filters.quietInTownsWhere\", \"filters.quietShortInTowns\", \"filters.quietShortMinutes\",\n",
+       "\t\t\"filters.quietShortInTowns\", \"filters.quietShortMinutes\",\n",
        "townhold: When to offer's reset leaves the choice",
        expect="model: the reset puts when back", script=S)
 

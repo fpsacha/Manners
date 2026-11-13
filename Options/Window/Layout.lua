@@ -390,6 +390,9 @@ ns.WindowLayout = {
 					"who.quietInTowns",
 					-- Cities and inns, cities only or inns only.
 					{ "who.quietInTownsWhere", indent = true },
+					-- Only the short buffs, where the rule above holds everything.
+					"who.quietShortInTowns",
+					{ "who.quietShortMinutes", indent = true },
 					"who.quietInInstances",
 					"who.quietTargets",
 					"when.hideMounted",

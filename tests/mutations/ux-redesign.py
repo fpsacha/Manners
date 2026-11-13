@@ -23,6 +23,9 @@ LAYOUT = "Options/Window/Layout.lua"
 mutate(LAYOUT, "\t\t\t\t\t\"who.quietInTowns\",\n"
        "\t\t\t\t\t-- Cities and inns, cities only or inns only.\n"
        "\t\t\t\t\t{ \"who.quietInTownsWhere\", indent = true },\n"
+       "\t\t\t\t\t-- Only the short buffs, where the rule above holds everything.\n"
+       "\t\t\t\t\t\"who.quietShortInTowns\",\n"
+       "\t\t\t\t\t{ \"who.quietShortMinutes\", indent = true },\n"
        "\t\t\t\t\t\"who.quietInInstances\",\n\t\t\t\t\t\"who.quietTargets\",\n\t\t\t\t\t\"when.hideMounted\",\n",
        "\t\t\t\t\t\"when.hideMounted\",\n",
        "ux-redesign: the place rules are not under Hold back",

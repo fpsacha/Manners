@@ -2435,6 +2435,13 @@ function ns.BuildQueue(watch)
 	-- for: the same rule, the target and focus still exempt.
 	if f.quietInInstances == true and Inside() then inTown = true end
 	if inTown then notResting = true end
+	-- The short buffs alone, while resting (Who to buff: Hold back short buffs in
+	-- cities and inns): their length in seconds, nil when nothing is held. The
+	-- whole-person rule above already holds everything, so it is not asked then.
+	local townShort = nil
+	if f.quietShortInTowns == true and not inTown and Resting() == true then
+		townShort = (tonumber(f.quietShortMinutes) or 15) * 60
+	end
 	-- Nobody is asked about friends when Who comes first is off, which is most
 	-- of its cost.
 	local friendsFirst = db.priority.friends == true
@@ -2681,6 +2688,9 @@ function ns.BuildQueue(watch)
 		-- Somebody who asked gets only what they asked for, relevant to them or
 		-- not (a warrior may want Intellect), but never when already covered.
 		opts.hasMana = hasMana
+		-- Short buffs held back in a city or an inn, but not for somebody you
+		-- pointed at on purpose.
+		opts.shortHeld = (not pointed) and townShort or nil
 		opts.inGroup = inGroup
 		-- Who a shout reaches, which in a raid is not the group: see
 		-- SameParty. inGroup stays the reason on the card.

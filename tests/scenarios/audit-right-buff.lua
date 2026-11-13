@@ -376,6 +376,59 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------------------ 3c
+-- Short buffs held back in a city or an inn (a CurseForge comment: share Mark
+-- of the Wild everywhere, an hour long, but not Thorns, ten minutes, in a city
+-- where it runs out before anybody gets anywhere). *Hold back short buffs in
+-- cities and inns* (filters.quietShortInTowns, off by default) with *Short
+-- means this many minutes or less* (filters.quietShortMinutes, 15).
+do
+	local scenario = "audit-right-buff: short buffs are held back in a city or an inn, long ones still go"
+	local motw = 9885
+	local env = { class = "DRUID", knows = { "motw", "thorns" }, units = {
+		-- Pat wears Mark of the Wild, so Thorns is what is left to offer; Quinn wears nothing.
+		nameplate1 = { name = { "Pat", "Passer" }, class = "PRIEST", wears = { [motw] = { left = 3000 } } },
+		nameplate2 = { name = { "Quinn", "Passer" }, class = "MAGE" },
+	} }
+	session(scenario, env, function(ns)
+		local resting = false
+		local was = rawget(_G, "IsResting")
+		rawset(_G, "IsResting", function() return resting end)
+		local function keyFor(name)
+			local _, byName = queued(ns)
+			local entry = byName[name]
+			return entry and entry.buff and entry.buff.key or "nothing"
+		end
+		local f = ns.db.profile.filters
+		ns.db.profile.sources.strangers = true
+		if f.quietShortInTowns ~= false or f.quietShortMinutes ~= 15 then
+			fail(scenario, ("the defaults are %s and %s, not off and 15"):format(tostring(f.quietShortInTowns), tostring(f.quietShortMinutes)))
+		end
+		-- Out in the world, or with the switch off, both are offered.
+		if keyFor("Pat Passer") ~= "thorns" then fail(scenario, "outside a city Pat is offered " .. keyFor("Pat Passer")) end
+		resting = true
+		if keyFor("Pat Passer") ~= "thorns" then fail(scenario, "in a city with the switch off Pat is offered " .. keyFor("Pat Passer")) end
+		-- On: Thorns (ten minutes) waits, Mark of the Wild (an hour) still goes.
+		f.quietShortInTowns = true
+		if keyFor("Pat Passer") ~= "nothing" then fail(scenario, "in a city Thorns is still offered: " .. keyFor("Pat Passer")) end
+		if keyFor("Quinn Passer") ~= "motw" then fail(scenario, "in a city Mark of the Wild is offered as " .. keyFor("Quinn Passer")) end
+		-- Out in the world again: held back nowhere.
+		resting = false
+		if keyFor("Pat Passer") ~= "thorns" then fail(scenario, "outside a city Thorns waits all the same: " .. keyFor("Pat Passer")) end
+		-- The length is the player's: five minutes lets Thorns through, an hour holds Mark of the Wild too.
+		resting = true
+		f.quietShortMinutes = 5
+		if keyFor("Pat Passer") ~= "thorns" then fail(scenario, "short meaning five minutes, Thorns is held back: " .. keyFor("Pat Passer")) end
+		f.quietShortMinutes = 60
+		if keyFor("Quinn Passer") ~= "nothing" then fail(scenario, "short meaning an hour, Mark of the Wild is offered: " .. keyFor("Quinn Passer")) end
+		-- A repair keeps the length a number between five and an hour.
+		f.quietShortMinutes = 9999
+		ns.ClampSettings()
+		if f.quietShortMinutes ~= 60 then fail(scenario, "the length was left at " .. tostring(f.quietShortMinutes)) end
+		rawset(_G, "IsResting", was)
+	end)
+end
+
 -- ------------------------------------------------------------------------ 4
 -- A paladin with Blessing of Might and nothing else yet (levels 4 to 13), or
 -- any paladin once another's Wisdom and Kings are on them: a mage, a priest or

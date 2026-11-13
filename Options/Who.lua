@@ -1201,6 +1201,30 @@ function Page.BuildWhoTab()
 				get = fGet,
 				set = fSet,
 			},
+			-- Short buffs alone held back while resting (asked for on CurseForge: a
+			-- druid wants Mark of the Wild shared everywhere and Thorns not).
+			quietShortInTowns = {
+				type = "toggle",
+				name = L["Hold back short buffs in cities and inns"],
+				desc = L["On: while the game calls you resting, in a city or an inn, buffs that last only a few minutes (Thorns, say) are not offered, since they run out before you reach anywhere they matter; longer ones, such as Mark of the Wild, still are. Somebody who asks for a buff by name, and somebody you target or focus, is still offered it."],
+				order = 13.356,
+				width = "full",
+				disabled = function() return F().quietInTowns == true end,
+				get = fGet,
+				set = fSet,
+			},
+			quietShortMinutes = {
+				type = "range",
+				name = L["Short means this many minutes or less"],
+				desc = L["Buffs that last up to this long are held back in a city or an inn."],
+				order = 13.357,
+				min = 5,
+				max = 60,
+				step = 5,
+				disabled = function() return F().quietShortInTowns ~= true or F().quietInTowns == true end,
+				get = fGet,
+				set = fSet,
+			},
 			-- Both place rules leave the target and focus alone; this takes
 			-- them in (a player asked on GitHub for no offers at all in a
 			-- city).

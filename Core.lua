@@ -403,6 +403,11 @@ local defaults = {
 			-- by the client's own map ids (Range.lua, ns.InCity), an inn anywhere
 			-- else the game calls you resting. Both, as it always was.
 			quietInTownsWhere = "both",
+			-- On: while resting in a city or an inn, the buffs that last this many
+			-- minutes or less are not offered (Core.lua, Castable): Thorns held
+			-- back where Mark of the Wild still goes (a CurseForge comment).
+			quietShortInTowns = false,
+			quietShortMinutes = 15,
 			-- The same inside a dungeon, a raid, a battleground or an arena
 			-- (Queue.lua, Inside): nothing for anybody but a target or focus.
 			quietInInstances = false,
@@ -1728,6 +1733,14 @@ do
 		-- Kept for a favour returned and a request by name (Buffs.lua,
 		-- returnOnly: Unending Breath): never offered unasked.
 		-- Unless the player asked for it to go to everybody (buff.unasked).
+		-- A short buff, while resting in a city or an inn with that held back
+		-- (filters.quietShortInTowns; the scan writes opts.shortHeld, in seconds):
+		-- one that lasts no longer than that. Somebody who asks by name still
+		-- gets it; a buff with no known length is not short.
+		if opts.shortHeld and not opts.asked then
+			local single = ns.BuffSeconds(buff)
+			if single and single > 0 and single <= opts.shortHeld then return false end
+		end
 		if buff.returnOnly and not (opts.owed or opts.asked) then
 			local db = addon.db and addon.db.profile
 			local everybody = db and db.buff.unasked
@@ -4463,6 +4476,7 @@ local LIMITS = {
 	{ "filters", "refreshUnder", 1, 60 },
 	{ "filters", "refreshRaid", 1, 4 },
 	{ "filters", "manaFloor", 0, 90 },
+	{ "filters", "quietShortMinutes", 5, 60 },
 	{ "prompt", "width", 80, 500 },
 	{ "prompt", "height", 20, 120 },
 	{ "prompt", "scale", 0.5, 3 },
