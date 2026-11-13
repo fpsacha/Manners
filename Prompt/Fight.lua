@@ -126,7 +126,8 @@ local SNIPPET = [=[
 
 -- The rota's two halves, run round each click of the prompt in the restricted
 -- environment: `self` is the prompt's handle, `control` the header's. The
--- first lets the second run for a left press with a rota of two or more; the
+-- first lets the second run for a left press with a rota of two or more (the
+-- one place that is asked: the second runs only on the first's word); the
 -- second steps the button to the rota's next macro.
 local ROTA_PRE = [=[
 	if button ~= "LeftButton" or down == false then return end
@@ -135,7 +136,6 @@ local ROTA_PRE = [=[
 ]=]
 local ROTA_POST = [=[
 	local n = control:GetAttribute("manners-rota-n") or 0
-	if n < 2 then return end
 	local i = (control:GetAttribute("manners-rota-i") or 1) % n + 1
 	control:SetAttribute("manners-rota-i", i)
 	local text = control:GetAttribute("manners-rota-" .. i)

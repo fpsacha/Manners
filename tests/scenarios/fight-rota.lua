@@ -308,6 +308,17 @@ with("fight-rota: nobody a cast in the rota already reaches is given a press of 
 	for _, entry in ipairs(queue) do
 		if entry.name ~= top.name then others[#others + 1] = entry end
 	end
+	-- Somebody whose macro would not fit the client's 255 characters is left
+	-- out rather than put on the button cut short.
+	local long = {}
+	for field, value in pairs(others[#others]) do long[field] = value end
+	long.name, long.unit = ("Zz"):rep(140), nil
+	S.fightQueue = { queue[1], queue[2], queue[3], long }
+	ns.Prompt:ArmFightRota()
+	for i = 1, header:GetAttribute("manners-rota-n") or 0 do
+		local text = header:GetAttribute("manners-rota-" .. i) or ""
+		if #text > ns.MACRO_LIMIT then fail(scenario, "a macro too long for the client is in the rota: " .. #text .. " characters") end
+	end
 	-- The one on the prompt as a group cast that takes in the first of the others.
 	top.groupCast = { spell = top.buff.ranks and top.buff.ranks[1], spellName = ns.BuffName(top.buff), members = { others[1].name } }
 	S.fightQueue = queue

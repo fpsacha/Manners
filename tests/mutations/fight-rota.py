@@ -48,10 +48,10 @@ mutate(FIGHT,
        expect="fight-rota:", script=S)
 
 mutate(FIGHT,
-       "\tlocal n = control:GetAttribute(\"manners-rota-n\") or 0\n\tif n < 2 then return end\n\tlocal i = (control",
-       "\tlocal n = control:GetAttribute(\"manners-rota-n\") or 0\n\tlocal i = (control",
-       "fight-rota: the second half steps with no rota",
-       expect="fight-rota:", script=S)
+       "\tcontrol:SetAttribute(\"manners-rota-i\", i)\n\tlocal text = control",
+       "\tlocal text = control",
+       "fight-rota: the second half forgets where it stands",
+       expect=EACH, script=S)
 
 mutate(FIGHT,
        "\tif not (db and db.prompt.fightRota ~= false and header.rotaWrapped) then return end\n",
@@ -105,7 +105,7 @@ mutate("Prompt/Macro.lua",
        "\tif #text > ns.MACRO_LIMIT then return nil end\n\treturn text, record\n",
        "\treturn text, record\n",
        "fight-rota: a macro too long for the client put in the rota",
-       expect="fight-rota:", script=S)
+       expect="a macro too long for the client is in the rota", script=S)
 
 mutate("Options/Look.lua",
        "\t\t\t\tdisabled = function() return P().hideInFight == true end,\n",
