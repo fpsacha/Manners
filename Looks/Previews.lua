@@ -87,11 +87,11 @@ ns.Looks.previewText = {
 	},
 	ribbon = {
 		name = { l = 0.25, t = 0.2879, r = 0.86694, b = 0.51371, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
-		reason = { l = 0.25, t = 0.53468, r = 0.86694, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		reason = { l = 0.25, t = 0.53468, r = 0.86694, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
 	},
 	toast = {
 		name = { l = 0.25806, t = 0.28968, r = 0.89516, b = 0.49935, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
 		reason = { l = 0.25806, t = 0.5329, r = 0.89516, b = 0.69419, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.768, 0.444, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "c38288e397947ee3fb7b0229ad1af9bdc0bd5ea6b52d778e799c52327950c8a1"
+ns.Looks.previewHash = "c1d425ca777ce1cb6cedb25778d85c868208a96b2c23be21c5d9c8c047fd90d1"

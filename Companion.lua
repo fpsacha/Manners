@@ -6,7 +6,8 @@
 --   the pet journal (Forever)  most of Forever's pets are taught once by their
 --       item and live in the journal after. Manners brings one out itself, with
 --       no press: C_PetJournal.SummonPetByGUID, or SummonRandomPet for a
---       favourite or any pet (Which pet). Whether one is out is the journal's
+--       favourite or any pet (Which pet, which also lists every pet of the
+--       journal by name: Pet.Choices). Whether one is out is the journal's
 --       own word (GetSummonedPetGUID). Should the game refuse it (a try that
 --       brings nothing out, three times running, or ADDON_ACTION_FORBIDDEN or
 --       _BLOCKED naming Manners), the journal is left to the player for the
@@ -173,13 +174,77 @@ local function Summonable(guid)
 	return ok and plain(can) == true
 end
 
+-- Which pet's value for one pet of the journal: "pet:" and its GUID.
+local PICKED = "^pet:(.+)$"
+Pet.PICKED = PICKED
+
+-- The pets the journal holds that can be brought out, by name: a list of
+-- { guid =, name = }, a second of the same name numbered. The journal's own
+-- list of what is owned (GetOwnedPetIDs: every pet, whatever the journal's
+-- search box and filters say), each named as the journal's own window names
+-- it (the name the player gave it, else the pet's). Read when the options
+-- page is drawn, never in the scan.
+function Pet.Listed()
+	local journal = Journal()
+	local out = {}
+	if not (journal and type(journal.GetOwnedPetIDs) == "function" and type(journal.GetPetInfoByPetID) == "function") then
+		return out
+	end
+	local ok, ids = pcall(journal.GetOwnedPetIDs)
+	ids = ok and plain(ids) or nil
+	if type(ids) ~= "table" then return out end
+	for _, id in ipairs(ids) do
+		local guid = plain(id)
+		if type(guid) == "string" and guid ~= "" and Summonable(guid) then
+			local got, _, custom, _, _, _, _, _, name = pcall(journal.GetPetInfoByPetID, guid)
+			custom, name = got and plain(custom) or nil, got and plain(name) or nil
+			local shown = type(custom) == "string" and custom ~= "" and custom or name
+			if type(shown) == "string" and shown ~= "" then out[#out + 1] = { guid = guid, name = shown } end
+		end
+	end
+	table.sort(out, function(a, b)
+		if a.name ~= b.name then return a.name < b.name end
+		return a.guid < b.guid
+	end)
+	local seen = {}
+	for _, pet in ipairs(out) do
+		local n = (seen[pet.name] or 0) + 1
+		seen[pet.name] = n
+		if n > 1 then pet.label = ("%s (%d)"):format(pet.name, n) end
+	end
+	return out
+end
+
+-- Which pet's choices for the options page: the values and their order, the
+-- three ways to choose first, then every pet by name.
+function Pet.Choices(lead, order)
+	local values, sorting = {}, {}
+	for _, key in ipairs(order) do
+		values[key] = lead[key]
+		sorting[#sorting + 1] = key
+	end
+	for _, pet in ipairs(Pet.Listed()) do
+		local key = "pet:" .. pet.guid
+		values[key] = pet.label or pet.name
+		sorting[#sorting + 1] = key
+	end
+	return values, sorting
+end
+
 -- What Which pet asks for, as the journal can do it: a GUID, "favourite" or
--- "random", or nil for nothing to bring out.
+-- "random", or nil for nothing to bring out; and "picked" when the GUID is a
+-- pet chosen by name. A pet chosen by name that the journal no longer has is
+-- read as "the one I had out last".
 local function JournalPick()
 	if Owned() < 1 then return nil end
 	local db = addon.db and addon.db.profile
 	local choice = db and db.ownBuffs and db.ownBuffs.petChoice or "last"
 	local mine = Char()
+	local picked = type(choice) == "string" and choice:match(PICKED)
+	if picked then
+		if Summonable(picked) then return picked, "picked" end
+		choice = "last"
+	end
 	if choice == "last" and mine and Summonable(mine.guid) then return mine.guid end
 	if choice == "random" then return "random" end
 	local journal = Journal()
@@ -262,11 +327,12 @@ function Pet:Tick(now)
 		refreshUnder = db.filters.refreshUnder }
 	local _, _, _, why = ns.OwnVerdict(family, ctx)
 	if why ~= "journal" then return end
-	local journal, pick = Journal(), JournalPick()
+	local journal = Journal()
+	local pick, how = JournalPick()
 	if not (journal and pick) then return end
 	session.lastTry, session.judging = now, now
 	ns.Trail("pet", "brought a pet out of the journal (" .. (pick == "favourite" and "a favourite"
-		or pick == "random" and "any pet" or "the last one out") .. ")")
+		or pick == "random" and "any pet" or how == "picked" and "the one picked by name" or "the last one out") .. ")")
 	Summon(journal, pick)
 end
 

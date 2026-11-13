@@ -283,7 +283,8 @@ each class offers*).
 - **Companion pet.** A switch under *Myself*, shown while you have a pet,
   off until you switch it on. On WoW Forever, with no pet out, Manners brings
   one out of your pet journal itself, with no press: *Which pet* picks the
-  one you had out last, a random favourite or any pet. (A pet item you have
+  one you had out last, a random favourite, any pet, or one of your pets by
+  name. (A pet item you have
   not used yet teaches you the pet: use it once and it is in the journal.) A
   pet you use from your bags each time (every pet on Classic Era and Burning
   Crusade, a handful on Forever) comes up on the prompt as "You", and one

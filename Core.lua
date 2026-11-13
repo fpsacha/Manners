@@ -4434,7 +4434,14 @@ function ns.ClampSettings()
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
 	oneOf(profile.filters, "quietInTownsWhere", { both = true, cities = true, inns = true }, "both")
 	oneOf(profile.filters, "manaFloorKeeps", { asked = true, self = true, none = true }, "asked")
-	oneOf(profile.ownBuffs, "petChoice", { last = true, favourite = true, random = true }, "last")
+	-- Which pet: one of the three ways to choose, or a pet of the journal by
+	-- name ("pet:" and its GUID, Companion.lua).
+	do
+		local choice = profile.ownBuffs.petChoice
+		if not (type(choice) == "string" and choice:match("^pet:.+$")) then
+			oneOf(profile.ownBuffs, "petChoice", { last = true, favourite = true, random = true }, "last")
+		end
+	end
 	-- Built from the tier list, so a new distance is never rejected here.
 	local proximities = {}
 	for _, tier in ipairs(ns.PROXIMITY) do proximities[tier.key] = true end
