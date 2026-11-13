@@ -2,6 +2,71 @@
 
 ## Unreleased
 
+- **Everybody's first buff before anybody's second.** A priest or a druid in
+  a party was kept on the first person for every buff in turn (Fortitude,
+  then Divine Spirit, then Shadow Protection) while the others stood there
+  with nothing. Now the prompt gives everybody the first buff they are
+  missing, then goes round again for the next. Among people offered for the
+  same reason, somebody read as missing a buff also comes before somebody
+  whose buffs the game would not show, and both before a top-up of a buff
+  that is still running. A top-up of your own buff no longer comes ahead of a
+  party member who has none; your own buff when it is missing keeps its
+  place. A fight's presses step through the same order.
+- **Shadow Protection is off until you tick it** (Classic Era, WoW Forever,
+  Burning Crusade). It was offered to you, your whole party and every
+  passer-by, and again every ten minutes. It now has to be switched on, on
+  *Who to buff*, as a warlock's Detect Invisibility is. **If you want it
+  offered, tick it there.**
+- **Unending Breath only where it is wanted** (Classic Era, WoW Forever,
+  Burning Crusade). A warlock was offered it for every party member and
+  passer-by on dry land. It is now offered only to return a favour and to
+  somebody who asks for it by name in chat; on yourself, as before, only
+  while you swim.
+- **Blessing of Might is no longer offered to mages, warlocks and priests**
+  unless you switch that back: *Don't offer Blessing of Might to mages,
+  warlocks and priests*, on *Who to buff*, is now on by default. Somebody who
+  asks for it by name is still given it.
+- **Nobody is offered a buff they are too low a level for.** The game refuses
+  a buff on somebody more than ten levels under its lowest rank ("Target is
+  too low level"): Blessing of Kings under level 10, Divine Spirit and Shadow
+  Protection under 20. Such a buff is no longer offered, and the next one that
+  does reach them is: a paladin now gives a low-level warrior Might instead
+  of pressing Kings at them in vain.
+- **A favour from a low-level player is returned at a rank that lands.** With
+  no nameplate or target on them, the prompt cast your highest rank at
+  somebody who buffed you, which the game refuses on a low level. Their level
+  is now remembered from the moment they buffed you.
+- **WoW Forever: camping buffs are read.** Boosted Stamina, Boosted Intellect
+  and Boosted Spirit, which a First Aid Kit, an Incense Candle and a Faction
+  Banner give for an hour, cannot be worn together with Power Word: Fortitude,
+  Arcane Intellect and Divine Spirit, and the game refuses the weaker of the
+  two. Somebody wearing one worth at least what your rank would give is no
+  longer offered your buff ("A more powerful spell is already active", again
+  every ten minutes); one worth less is cast over, as before.
+- **WoW Forever: a group buff counts everybody it reaches.** Arcane
+  Brilliance, the Prayers and Gift of the Wild reach your whole party and raid
+  within a hundred yards there. People standing further off than a single
+  buff reaches now count towards *When this many need it*, so one cast covers
+  them instead of a single buff for each as they walk up. It is still aimed at
+  somebody within reach of the single buff.
+- **A group buff is never aimed at somebody too low for it**, and members too
+  low for it do not count towards it; they are offered the single buff at a
+  rank that lands. When the game refuses a group buff all the same, the
+  single buff is no longer held off the whole party for ten minutes.
+- **A weaker group buff no longer counts as covered.** A level 60 wearing the
+  first rank of Gift of the Wild or Prayer of Fortitude from a lower-level
+  caster is offered your stronger rank, as somebody wearing a weaker single
+  rank already was.
+- **A paladin whose blessing the game refused offers the next one.** After "A
+  more powerful spell is already active" or "Target is too low level" for one
+  blessing, that person was offered no blessing at all for ten minutes. Only
+  the refused one is held back now.
+- **A warrior's shout when nobody of the group is near.** With *Remind me of
+  my shout when I'm alone* on, you are also reminded of Battle Shout in a
+  group when nobody in it is close enough to be offered it.
+- **"Buff pls" gets the buffs that suit them.** A plain request that names no
+  buff no longer brings a warrior Divine Spirit or a mage Blessing of Might;
+  naming the buff still does.
 - **A favour is not returned with a buff they already have.** Somebody who
   buffs you and already wears everything you could give them, with time to
   spare, is no longer put on the prompt to have it refreshed: that was mana

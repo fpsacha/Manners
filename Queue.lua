@@ -1055,6 +1055,33 @@ PRIORITY.sweep = 0.5
 -- what you fight with.
 PRIORITY.self = 1.75
 
+-- The order inside one of those tiers, after the range (the sort at the end of
+-- BuildQueue, and the prompt's pick: Prompt/Hold.lua, PickTop). First by what
+-- the reading says: somebody read as missing the buff, then somebody nobody
+-- could read (a guess must not come before a certain gap), then a top-up or a
+-- refresh of what they still wear. Then by the buff's place in the walk
+-- (CastableBuffs' order, written by BuildQueue for the scan in hand), so
+-- everybody's Fortitude comes before anybody's Divine Spirit: a priest who put
+-- Fortitude on the first of the party was kept on that one for Spirit and
+-- Shadow Protection while the rest stood there with nothing. A group cast is
+-- "missing" while anybody it counts is. A buff the walk has no place for (one
+-- of your class's own, one only a request names) comes after the ones it has.
+local walkPlace = {}
+local function OfferRank(entry)
+	local reading = 2
+	local group = entry.groupCast
+	if group then
+		if (group.missing or 0) > 0 then reading = 0 end
+	elseif entry.known == false then
+		reading = 0
+	elseif entry.known == nil then
+		reading = 1
+	end
+	local buff = entry.buff
+	return reading, buff and walkPlace[buff.key] or 99
+end
+ns.OfferRank = OfferRank
+
 -- The group's unit tokens, spelled out once rather than joined on every scan.
 local GROUP_TOKENS = { raid = {}, party = {} }
 for i = 1, 40 do
@@ -2220,6 +2247,11 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	}
 	-- A top-up says how long the buff lasts and when it was due (the tooltip).
 	if remaining then entry.duration, entry.lead, entry.leadKind = seconds, lead, kind end
+	-- A top-up of what you still wear ranks with your group, where the order
+	-- inside a tier puts it behind everybody missing something (OfferRank):
+	-- your Fortitude with minutes to run came ahead of a party member with
+	-- none. Missing, your own buff keeps its place ahead of the group.
+	if has == true then entry.priority = PRIORITY.group end
 	return entry
 end
 
@@ -2278,6 +2310,14 @@ function ns.BuildQueue(watch)
 	-- Nothing you cannot pay for is offered to anybody (see Affordable); an
 	-- empty list is the "nothing to give anybody else" below.
 	local candidates = Affordable(ns.CastableBuffs(), UNPAID)
+	-- Each one's place in the walk, for the order inside a tier (OfferRank).
+	-- None for a class whose buffs replace one another (a paladin): nobody
+	-- there has a second buff to wait for, and which blessing somebody gets
+	-- says nothing about whose turn it is.
+	wipe(walkPlace)
+	if not ns.EXCLUSIVE_BUFFS[caps.class] then
+		for place, buff in ipairs(candidates) do walkPlace[buff.key] = place end
+	end
 	-- What a request in chat may name beside them: a spell Automatic never
 	-- walks to (Source of Magic) that somebody asked for. nil for none.
 	local askOnly = ns.AskOnlyBuffs()
@@ -2922,6 +2962,12 @@ function ns.BuildQueue(watch)
 		local ar = a.ranged == true and 0 or (a.ranged == nil and 1 or 2)
 		local br = b.ranged == true and 0 or (b.ranged == nil and 1 or 2)
 		if ar ~= br then return ar < br end
+		-- What is missing before what nobody could read before a top-up, then
+		-- the buff's place in the walk (OfferRank).
+		local aReading, aPlace = OfferRank(a)
+		local bReading, bPlace = OfferRank(b)
+		if aReading ~= bReading then return aReading < bReading end
+		if aPlace ~= bPlace then return aPlace < bPlace end
 		-- A group cast ahead of single casts of its kind: one press covers a
 		-- party, so it clears the queue fastest.
 		if (a.groupCast ~= nil) ~= (b.groupCast ~= nil) then return a.groupCast ~= nil end
