@@ -128,7 +128,7 @@ mutate("Prompt/Paint.lua",
        "\tif S.dress and S.dress.Painted then S.dress:Painted(entry) end\n",
        "",
        "look-glass: the light never comes back once the prompt has been down",
-       expect="look-glass:", script=S)
+       expect="the light does not come back", script=S)
 
 # --- the ready border ---
 

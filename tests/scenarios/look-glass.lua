@@ -291,6 +291,20 @@ withTree("look-glass: light drifts in the glass at rest on Full; not on Calm, in
 	elseif resting() ~= 0 or dress.flow.driver:IsShown() then
 		fail(scenario, "with the prompt down " .. resting() .. " of the lights still run")
 	end
+	-- Somebody new walks up: the prompt comes back, and the light with it.
+	strangers({ nameplate1 = { "Bert", "Beside" } })
+	owe(ns, "Bert Beside")
+	for _ = 1, 12 do
+		Mock.advance(1)
+		tick(ns)
+		if ns.Prompt:GetButton():IsShown() then break end
+	end
+	tick(ns)
+	if not ns.Prompt:GetButton():IsShown() then
+		fail(scenario, "SKIPPED -- the panel did not come back for somebody new")
+	elseif resting() == 0 then
+		fail(scenario, "somebody is on the prompt again, and the light does not come back")
+	end
 end)
 
 -- ------------------------------------------------------------------ 5
