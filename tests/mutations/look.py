@@ -13,7 +13,7 @@ mutate("Prompt/Panel.lua",
        expect="lies over the spell icon",
        script="runscenarios.py")
 
-# The halo let out past the panel's edge, where it lit the framed border.
+# The halo let out past the panel's edge, where it lit the border a look then wore.
 mutate("Prompt/Panel.lua",
        "\t\tlocal sy = math.max(0, math.min(8, math.floor((p.height - p.iconSize) / 2) - outer))\n",
        "\t\tlocal sy = math.max(0, math.min(8, math.floor((p.height - p.iconSize) / 2) - outer + 2))\n",

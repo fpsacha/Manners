@@ -193,4 +193,4 @@ mutate("Prompt/Text.lua",
        "\tfit.drawn[fs] = w\n",
        "",
        "hunt41-leftovers: FitLine keeps no measured width on the first fit",
-       expect="hunt38-picker: switching glass -> framed -> glass", script=S)
+       expect="hunt38-picker: switching glass -> minimal -> glass", script=S)

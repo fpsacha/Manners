@@ -7,7 +7,7 @@
 # at full strength under the words, a wash restarted by every repaint or made
 # after the light it should lie under, a crack grown into the reason line, an
 # icon left grey or asked about on every scan, a shake that ends displaced, a
-# crack left playing by a repaint, an edge lit with the other look's material
+# crack left playing by a repaint, an edge lit with a file that is not its material
 # or under the words -- and names the check that has to object.
 
 EFFECTS = "Prompt/Effects.lua"
