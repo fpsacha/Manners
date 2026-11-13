@@ -1172,6 +1172,10 @@ end
 --             own requirement is any weapon, met by the main hand's).
 --   shield    on a spell: it goes on a shield, so it waits for one in the off
 --             hand (Thunderstrike Ward).
+--   solo      on a spell: the key under ownBuffs of its own switch, on which
+--             it is offered only while you are in no group (Core.lua,
+--             OwnVerdict, "grouped"): Dampen Magic (`dampenAlone`, which cuts
+--             the healing you get too) and Amplify Magic (`amplifyAlone`).
 --   switchable  a class's only buff for others, which has its switch on Who to
 --             buff all the same (Unending Breath: most warlocks want it off).
 --   tankChoice  a buff for others that the player may hold to the tanks of
@@ -1281,6 +1285,18 @@ local VANILLA_OWN = {
 			-- battleground, the armor.
 			dungeon = "magearmor",
 		},
+		-- Dampen Magic on yourself, or Amplify Magic in its place (a player
+		-- keeps one up at all times and forgot it between two Frost Armors:
+		-- GitHub issue #14). One family: the game keeps one of the two on a
+		-- target, the second replacing the first. Off until it is picked
+		-- (optIn): each also works against its wearer (less healing taken, or
+		-- more damage), which is a choice, not a courtesy. On yourself only:
+		-- it stays out of favourOnly for others, as before. 10 minutes.
+		{ key = "magicmod", optIn = true,
+			spells = {
+				{ key = "dampenmagic", ranks = { 10174, 10173, 8451, 8450, 604 }, solo = "dampenAlone" },
+				{ key = "amplifymagic", ranks = { 10170, 10169, 8455, 1008 }, solo = "amplifyAlone" },
+			} },
 	},
 
 	PRIEST = {
@@ -1838,6 +1854,13 @@ local TBC_OWN = {
 			},
 			dungeon = "magearmor", -- the mana back in a long fight
 		},
+		-- Dampen or Amplify Magic, as on Classic Era (VANILLA_OWN), with the
+		-- ranks Burning Crusade added.
+		{ key = "magicmod", optIn = true,
+			spells = {
+				{ key = "dampenmagic", ranks = { 33944, 10174, 10173, 8451, 8450, 604 }, solo = "dampenAlone" },
+				{ key = "amplifymagic", ranks = { 33946, 27130, 10170, 10169, 8455, 1008 }, solo = "amplifyAlone" },
+			} },
 	},
 
 	PRIEST = {
@@ -3223,6 +3246,8 @@ do
 		{ 1800, 20906, 20905, 19506 }, -- Trueshot Aura (30 min)
 		{ 1800, 10220, 10219, 7320, 7302, 7301, 7300, 168 }, -- Ice Armor / Frost Armor (30 min)
 		{ 1800, 22783, 22782, 6117 }, -- Mage Armor (30 min)
+		{ 600, 10174, 10173, 8451, 8450, 604 }, -- Dampen Magic (10 min)
+		{ 600, 10170, 10169, 8455, 1008 }, -- Amplify Magic (10 min)
 		{ 1800, 25780 }, -- Righteous Fury (30 min)
 		{ 600, 10952, 10951, 1006, 602, 7128, 588 }, -- Inner Fire (10 min)
 		{ 600, 19266, 19265, 19264, 19262, 19261, 2652 }, -- Touch of Weakness (10 min)
@@ -3281,6 +3306,8 @@ do
 		{ 600, 8090, 8089, 9092, 45731, 8088, 8532, 8087 }, -- fishing lures (10 min)
 		{ 0, 27066, 20906, 20905, 19506 }, -- Trueshot Aura (no timer)
 		{ 1800, 27124, 10220, 10219, 7320, 7302, 7301, 7300, 168 }, -- Ice Armor / Frost Armor (30 min)
+		{ 600, 33944, 10174, 10173, 8451, 8450, 604 }, -- Dampen Magic (10 min)
+		{ 600, 33946, 27130, 10170, 10169, 8455, 1008 }, -- Amplify Magic (10 min)
 		{ 1800, 27125, 22783, 22782, 6117 }, -- Mage Armor (30 min)
 		{ 1800, 30482 }, -- Molten Armor (30 min)
 		{ 1800, 25780 }, -- Righteous Fury (30 min)
@@ -3334,6 +3361,8 @@ do
 		{ 1800, 20906, 20905, 19506, 1299348, 1299346 }, -- Trueshot Aura (30 min)
 		{ 1800, 10220, 10219, 7320, 7302, 7301, 7300, 168 }, -- Ice Armor / Frost Armor (30 min)
 		{ 1800, 22783, 22782, 6117 }, -- Mage Armor (30 min)
+		{ 600, 10174, 10173, 8451, 8450, 604 }, -- Dampen Magic (10 min)
+		{ 600, 10170, 10169, 8455, 1008 }, -- Amplify Magic (10 min)
 		{ 3600, 1302303, 1302285, 1296202 }, -- familiar scrolls: Cat Familiar, Frog Familiar, Rat Familiar (1 h)
 		{ 3600, 1302311, 1302312, 1302310, 1302306, 1302307, 1302305, 1302304, 1302308, 1302283, 1302217,
 			1302219, 1302284, 1302227, 1295720, 1296225 }, -- weapon imbue scrolls (1 h)

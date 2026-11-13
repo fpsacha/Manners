@@ -1317,6 +1317,52 @@ function Page.BuildWhoTab()
 				end,
 			},
 
+			-- Dampen Magic in a group cuts the healing you get: held to when you
+			-- are alone unless this is off (Buffs.lua, `solo`; Core.lua,
+			-- OwnVerdict). Asked for on GitHub. Shown to a mage who knows it.
+			ownDampenAlone = {
+				type = "toggle",
+				name = L["Dampen Magic only when I'm alone"],
+				desc = L["On: Dampen Magic is not offered while you are in a party or raid, where it would cut the healing you get."],
+				order = 15.965,
+				width = "full",
+				hidden = function()
+					local spell = ns.FindOwnSpell("dampenmagic")
+					return not (spell and ns.OwnSpellKnown(spell))
+				end,
+				disabled = function()
+					local family = ns.FindOwnFamily("magicmod")
+					return not family or ns.OwnPick(family) == "off"
+				end,
+				get = function() return ns.db.profile.ownBuffs.dampenAlone ~= false end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.dampenAlone = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
+			-- Amplify Magic's own switch, the same as Dampen Magic's.
+			ownAmplifyAlone = {
+				type = "toggle",
+				name = L["Amplify Magic only when I'm alone"],
+				desc = L["On: Amplify Magic is not offered while you are in a party or raid."],
+				order = 15.966,
+				width = "full",
+				hidden = function()
+					local spell = ns.FindOwnSpell("amplifymagic")
+					return not (spell and ns.OwnSpellKnown(spell))
+				end,
+				disabled = function()
+					local family = ns.FindOwnFamily("magicmod")
+					return not family or ns.OwnPick(family) == "off"
+				end,
+				get = function() return ns.db.profile.ownBuffs.amplifyAlone ~= false end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.amplifyAlone = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
 			-- Every scroll at once (Buffs.lua, isScroll), asked for by a player
 			-- who wanted them off this list: off, none is offered and their
 			-- switches go (ns.ScrollsOff); each keeps its own pick for when it

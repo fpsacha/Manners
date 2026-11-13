@@ -106,6 +106,9 @@ do
 			return L["%s: you are in another form, so it is not offered."]:format(label)
 		elseif why == "noshield" then
 			return L["%s: %s goes on a shield, and there is none in your off hand."]:format(label, name or "?")
+		elseif why == "grouped" then
+			-- Dampen Magic in a group (Buffs.lua, solo).
+			return L["%s: %s is only offered when you are alone, and you are in a group."]:format(label, name or "?")
 		elseif why == "dry" then
 			-- Unending Breath on yourself, for the water alone (Buffs.lua, swimming).
 			return L["%s: you are not swimming, so it is not offered."]:format(label)
