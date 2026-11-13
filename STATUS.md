@@ -7,41 +7,6 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 1.11.17 is released. Unreleased after it, both asked for on CurseForge:
 
-- Four looks retired, at the author's word ("they all should be unique. remove
-  the one that are too similar"): Framed and Luxe (heir Glass), Arcane (heir
-  Archmage), Toast (heir Ribbon). Eight remain: Glass, Minimal, Ribbon, Letter,
-  Leather, Forge, Archmage, Lightbringer. Gone for real: `Looks/Luxe.lua`,
-  `Toast.lua`, `Arcane.lua`, `Textures/Luxe`, `Toast`, `Arcane`, their three
-  generators, their own scenario and mutation files, their four card pictures,
-  Arcane's key-chip strings, and the tag the picker drew round Luxe's reason
-  line (`WidgetsTheme.lua`, `make_look_previews.py`: no look sets its reason in
-  a tag now). **Framed is removed whole, nothing left behind in
-  `Prompt/Panel.lua`:** its flat panel (`R.panel`), its rim (`R.tooltipRim`,
-  `Textures/TooltipRim.tga`, the rim in `make_panel_textures.py`), the rim's
-  copy in the edge light, the stripe's three-unit inlay and the four edge
-  lines kept hidden since the rim replaced them (`R.edges`). Panel.lua draws
-  two looks, Glass and Minimal. What is left of the four is in
-  `Looks/Looks.lua`: `Looks.retired` (key -> heir), their four names
-  (`RETIRED_TITLE`, the strings `Framed`, `Luxe`, `Arcane`, `Toast` kept in
-  every locale for the line below), `Looks.Heir`, and `Allowed`/`Choices`
-  skipping a retired key whatever registers under it. `ns.ClampSettings`
-  moves a saved style to its heir (the older `"blizzard"` first to `framed`,
-  then on) and says one line six seconds later, once; an imported string
-  naming one takes the same road. `tests/scenarios/looks-retired.lua`;
-  `tools/migration_check.py` saves its second profile on Framed with every
-  release tag and reports `look retired: framed -> glass` (any other end is a
-  finding). Two
-  option descriptions that named Framed were reworded (new keys, the eight
-  translations edited the same way). The dropdown and the picker now begin
-  with Ribbon (order 4): Glass stays the default and seventh in the list, as
-  its order (10) always put it after the looks from `Looks/`. **Only the
-  game can say:** how the one line reads among a login's other lines. **For
-  the author:** `manners-looks.png` and `manners-actionbar.png` in
-  `.github/media/` still show the twelve looks and Arcane's key chip;
-  `tools/make-screenshots.py` now draws eight and Archmage, and the listing
-  text says eight, so the two pictures want retaking before the listings are
-  pasted.
-
 - A favour is not returned with a buff its giver already wears
   (`filters.repayCovered`, off: *Refresh a buff they already have, to return a
   favour*, When to offer, Buffing back). Queue.lua writes `opts.spareCovered`
@@ -74,6 +39,41 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
   switched on is Thorns, under Tanks only, keeps a passer-by's favour as
   Still owed until its time runs out, as a favour from a member who is no
   tank always did.
+
+**Four looks retired (Unreleased)**, at the author's word ("they all should be unique. remove
+the one that are too similar"): Framed and Luxe (heir Glass), Arcane (heir
+Archmage), Toast (heir Ribbon). Eight remain: Glass, Minimal, Ribbon, Letter,
+Leather, Forge, Archmage, Lightbringer. Gone for real: `Looks/Luxe.lua`,
+`Toast.lua`, `Arcane.lua`, `Textures/Luxe`, `Toast`, `Arcane`, their three
+generators, their own scenario and mutation files, their four card pictures,
+Arcane's key-chip strings, and the tag the picker drew round Luxe's reason
+line (`WidgetsTheme.lua`, `make_look_previews.py`: no look sets its reason in
+a tag now). **Framed is removed whole, nothing left behind in
+`Prompt/Panel.lua`:** its flat panel (`R.panel`), its rim (`R.tooltipRim`,
+`Textures/TooltipRim.tga`, the rim in `make_panel_textures.py`), the rim's
+copy in the edge light, the stripe's three-unit inlay and the four edge
+lines kept hidden since the rim replaced them (`R.edges`). Panel.lua draws
+two looks, Glass and Minimal. What is left of the four is in
+`Looks/Looks.lua`: `Looks.retired` (key -> heir), their four names
+(`RETIRED_TITLE`, the strings `Framed`, `Luxe`, `Arcane`, `Toast` kept in
+every locale for the line below), `Looks.Heir`, and `Allowed`/`Choices`
+skipping a retired key whatever registers under it. `ns.ClampSettings`
+moves a saved style to its heir (the older `"blizzard"` first to `framed`,
+then on) and says one line six seconds later, once; an imported string
+naming one takes the same road. `tests/scenarios/looks-retired.lua`;
+`tools/migration_check.py` saves its second profile on Framed with every
+release tag and reports `look retired: framed -> glass` (any other end is a
+finding). Two
+option descriptions that named Framed were reworded (new keys, the eight
+translations edited the same way). The dropdown and the picker now begin
+with Ribbon (order 4): Glass stays the default and seventh in the list, as
+its order (10) always put it after the looks from `Looks/`. **Only the
+game can say:** how the one line reads among a login's other lines. **For
+the author:** `manners-looks.png` and `manners-actionbar.png` in
+`.github/media/` still show the twelve looks and Arcane's key chip;
+`tools/make-screenshots.py` now draws eight and Archmage, and the listing
+text says eight, so the two pictures want retaking before the listings are
+pasted.
 
 **The right-buff audit (Unreleased).** A player called the addon "a buggy
 mess": "very frequently it retargets the same person when they are buffed and
