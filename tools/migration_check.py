@@ -37,11 +37,13 @@ left alone) in two stages, each in a fresh Lua state on the current mock:
      stranger; the profile's export must import to itself and the import must
      undo.
 
-     Two things are told apart from a loss and printed as notes: a value that
+     Three things are told apart from a loss and printed as notes: a value that
      was its old release's DEFAULT was never in the file (AceDB strips it), so
-     a default that has moved takes it along ("default moved"); and a slider
+     a default that has moved takes it along ("default moved"); a slider
      end an old release offered that the repair now limits ("slider end
-     moved").
+     moved"); and a saved look since retired that came out on the look that
+     took its place ("look retired": the second profile is saved on Framed,
+     and ending anywhere but on Looks.Heir's answer is a finding).
 
 The AceDB in the mock keeps no profileKeys and never strips a default, so this
 tool loads the real libraries (CallbackHandler-1.0, AceDB-3.0,
@@ -338,6 +340,8 @@ def show(record, verbose):
         print("    repaired: " + line)
     for line in (new.get("moved") or []):
         print("    default moved: " + line)
+    for line in (new.get("retired") or []):
+        print("    look retired: " + line)
     for line in (new.get("extremeMoves") or []):
         print("    slider end moved: " + line)
     for f in findings:

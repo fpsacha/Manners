@@ -247,8 +247,13 @@ local EDITS = {
 	{ "sound.enabled", true }, { "sound.owedOnly", false },
 	{ "verbose", false }, { "minimap.hide", true }, { "minimap.minimapPos", 100 },
 }
--- A second profile, different from the first where it matters.
+-- A second profile, different from the first where it matters. Its look is
+-- Framed, which every release from 1.0.0 to 1.11.18 offered and 1.11.19
+-- retired: the current addon has to bring it out on Framed's heir (Looks.Heir),
+-- which is reported as a look retired, not as a setting lost; any other end is
+-- a finding.
 local ALT_EDITS = {
+	{ "prompt.style", "framed" },
 	{ "speech.channel", "EMOTE" }, { "prompt.scale", 0.8 }, { "prompt.x", 15 },
 	{ "prompt.y", 40 }, { "filters.minLevel", 12 }, { "sources.asked", true },
 	{ "prompt.format", "{name}" }, { "speech.phrases", "Hi there\nWell met" },
@@ -601,12 +606,20 @@ function M.new()
 		return holder and holder[key]
 	end
 	report.moved = {}
+	-- A saved look since retired, come out on the look that took its place.
+	report.retired = {}
+	local function heirOf(d)
+		local heir = d.path == "prompt.style" and ns.Looks and ns.Looks.Heir and ns.Looks.Heir(d.want)
+		return heir and heir == d.got and heir or nil
+	end
 	for _, d in ipairs(fixtureDiffs(ns.db.profile, MIG.fixture or {}, log)) do
 		local wasDefault = atPath(oldDefaults, d.path)
 		if wasDefault ~= nil and type(wasDefault) ~= "table" and wasDefault == d.want
 			and atPath(newDefaults, d.path) ~= wasDefault then
 			report.moved[#report.moved + 1] = d.path .. ": " .. show(d.want) .. " -> " .. show(d.got)
 				.. " (the default moved from " .. show(wasDefault) .. " to " .. show(atPath(newDefaults, d.path)) .. ")"
+		elseif heirOf(d) then
+			report.retired[#report.retired + 1] = d.path .. ": " .. show(d.want) .. " -> " .. show(d.got)
 		elseif d.path == "buff.choice" and not ns.AnyClassHasBuff(d.want) then
 			-- The old releases run their own (Forever) buff keys: on another
 			-- client the spell may not exist, and a pin nobody's class has goes.
@@ -639,6 +652,8 @@ function M.new()
 					and atPath(newDefaults, d.path) ~= wasDefault then
 					report.moved[#report.moved + 1] = "Alt " .. d.path .. ": " .. show(d.want) .. " -> "
 						.. show(d.got) .. " (the default moved)"
+				elseif heirOf(d) then
+					report.retired[#report.retired + 1] = "Alt " .. d.path .. ": " .. show(d.want) .. " -> " .. show(d.got)
 				else
 					finding("changed in Alt", d.path .. ": " .. show(d.want) .. " -> " .. show(d.got))
 				end

@@ -7202,8 +7202,8 @@ if ns then
 		Mock.runTimers(7)
 		local told = table.concat(Mock.printed, "\n")
 		if db.prompt.style ~= "glass" or not told:find("Framed", 1, true) then
-			fail(scenario, ("a profile written under the old name came back as %s, told %q,"
-				.. " instead of the look it asked for carried to its heir"):format(tostring(db.prompt.style), told))
+			fail(scenario, ("a profile written under the old name came back as %s instead of the look it asked for"
+				.. " carried to its heir, and was told: %s"):format(tostring(db.prompt.style), (told:gsub("%s+", " "))))
 		end
 	end
 

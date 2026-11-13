@@ -27,7 +27,10 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
   skipping a retired key whatever registers under it. `ns.ClampSettings`
   moves a saved style to its heir (the older `"blizzard"` first to `framed`,
   then on) and says one line six seconds later, once; an imported string
-  naming one takes the same road. `tests/scenarios/looks-retired.lua`. Two
+  naming one takes the same road. `tests/scenarios/looks-retired.lua`;
+  `tools/migration_check.py` saves its second profile on Framed with every
+  release tag and reports `look retired: framed -> glass` (any other end is a
+  finding). Two
   option descriptions that named Framed were reworded (new keys, the eight
   translations edited the same way). The dropdown and the picker now begin
   with Ribbon (order 4): Glass stays the default and seventh in the list, as
