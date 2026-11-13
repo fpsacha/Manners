@@ -584,6 +584,19 @@ function Page.BuildDiagnosticsTab()
 					return ("Manners |cffffffff%s|r"):format(tostring(ns.BUILD))
 				end,
 			},
+			-- Who makes Manners, and the character they play: a credit and nothing
+			-- more. Blizzard's add-on policy forbids an add-on to ask for
+			-- donations in the game, gold included, so this line asks for nothing
+			-- and never will (tests/scenarios/about.lua holds every language to it).
+			aboutNote = {
+				type = "description",
+				order = 32,
+				fontSize = "medium",
+				name = function()
+					return L["Manners is made by fpsacha, who plays %s on the RP-PvP server of WoW Forever."]
+						:format("|cffffffff" .. tostring(ns.AUTHOR) .. "|r")
+				end,
+			},
 			-- Which of the two buttons below somebody asked for a report wants.
 			reportHint = {
 				type = "description",

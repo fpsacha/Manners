@@ -254,6 +254,12 @@ options button are untested in a real client: check the slot shows the spell's
 icon, cooldown and range, goes back to the note icon with nobody to buff, and
 that a controller button bound to the prompt shows its glyph on the chip.
 
+**The credit line (Unreleased).** `diagnostics.aboutNote` names the author's
+character (`ns.AUTHOR`, Clicks.lua). It asks for nothing and must stay that
+way: Blizzard's add-on policy forbids an add-on to ask for donations in the
+game, gold included. `tests/scenarios/about.lua` reads the line in all nine
+languages for the words a request would need.
+
 **Archmage (Unreleased), asked for by the author.** `Looks/Archmage.lua`,
 `Textures/Archmage/` (`tools/make_archmage_textures.py`), key `archmage`,
 order 8, in `Looks.roundAlways` (the icon is a hexagon whatever the switch

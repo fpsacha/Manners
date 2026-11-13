@@ -38,6 +38,8 @@
   your party or raid, never to passers-by. It is off until you tick it on *Who
   to buff*. Your own Detect Invisibility under *Myself* works as before.
   Classic Era, WoW Forever and Burning Crusade. Asked for on CurseForge.
+- **Who makes Manners.** The *Diagnostics* page ends with a line saying who
+  makes the addon and which character they play.
 - **The favour ledger is readable again.** Every row was washed in a bright
   pastel (mint for Returned, sky blue for your group, lavender for a stranger),
   and the names and the line under them could hardly be read on it. Rows are

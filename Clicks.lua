@@ -480,6 +480,8 @@ end
 -- author's character). In a block for the main chunk's 200 locals (Lua 5.1).
 do
 	local AUTHOR = "Mort Defrette"
+	-- For the line that says who makes Manners (Options/Diagnostics.lua, aboutNote).
+	ns.AUTHOR = AUTHOR
 	-- The addon message's prefix and its one word.
 	local PREFIX, WORD = "Manners", "author"
 	local SEAL = "Interface\\AddOns\\Manners\\Textures\\AuthorSeal"
