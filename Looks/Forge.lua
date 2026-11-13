@@ -155,7 +155,7 @@ local FLICKER = { { 0.62, 0.31 }, { 0.86, 0.23 }, { 0.70, 0.37 }, { 0.92, 0.29 }
 local SEAM_H = 7
 -- The seam's glow on the iron above it: how far up it reaches, in units, and
 -- its alpha.
-local SEAM_GLOW_H, SEAM_GLOW = 18, 0.34
+local SEAM_GLOW_H, SEAM_GLOW = 10, 0.30
 local STRAP_GLINT_CROSS, STRAP_GLINT_WAIT, STRAP_GLINT_PEAK = 1.3, 7.3, 0.40
 -- The fountain a landing throws up off the bezel: how many sparks, and how
 -- high the highest flies, in units.
