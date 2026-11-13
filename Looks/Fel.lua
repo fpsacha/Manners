@@ -171,19 +171,22 @@ local BREATHS, BREATH = 3, 1.25
 -- The circle's turn while somebody is owed: a whole turn, against the sun,
 -- in this many seconds.
 local TURN_SECONDS = 44
--- The fire along the foot: its height as a part of the button's, between
--- these; how far its foot hangs under the slab's, as a part of its height;
+-- The fire along the foot, kept under the second line (a flame behind a
+-- letter takes the letter, and the options window's check holds every card's
+-- words to their contrast over the worst texel behind them; the fire behind
+-- the cracks is dimmed for the same reason): its height as a part of the
+-- button's, between these; how far its foot hangs under the slab's, as a part of its height;
 -- its frames a second; its alpha lit, and after a refusal.
-local FIRE_H, FIRE_MIN, FIRE_MAX, FIRE_DROP = 0.40, 9, 28, 0.30
+local FIRE_H, FIRE_MIN, FIRE_MAX, FIRE_DROP = 0.27, 8, 20, 0.34
 local FIRE_FPS, FIRE_ALPHA, FIRE_GUTTERED = 13, 0.96, 0.20
 local FIRE_TILES = 8
 -- The glow the fire stands in, along the slab's foot: its alpha.
-local BED_ALPHA = 0.28
+local BED_ALPHA = 0.20
 -- The fire behind the cracks: a tile of it in units, its drift in tiles a
 -- second at rest, how much faster while somebody is owed, and its light at
 -- rest, owed, after a refusal and in a fight.
 local FLOW_TILE, FLOW_DU, FLOW_DV, FLOW_OWED = 44, 0.013, 0.026, 2.6
-local FLOW_REST, FLOW_LIT, FLOW_SPENT, FLOW_COMBAT = 0.80, 1.00, 0.34, 0.20
+local FLOW_REST, FLOW_LIT, FLOW_SPENT, FLOW_COMBAT = 0.30, 0.50, 0.20, 0.13
 -- The embers: how many, how far they rise as a part of the button's height,
 -- their peak. No two share a measure.
 local EMBERS, EMBER_RISE, EMBER_PEAK = 5, 0.95, 0.95
