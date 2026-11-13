@@ -151,3 +151,41 @@ mutate("Options/Window/Layout.lua",
        "",
        "wellfed: the switch not placed on the page",
        expect="own_food", script=S)
+
+# --- the page's order: each sub-option under its switch ---
+
+mutate("Options/Window/Layout.lua",
+       "\t\t\t\t\t{ \"who.own_leave_food\", indent = 2 },\n",
+       "\t\t\t\t\t{ \"who.own_leave_food\", indent = true },\n",
+       "wellfed: the foods to leave out no further in than Well Fed",
+       expect="the foods to leave out are not right under Well Fed", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\tif ns.OwnLeaveable(family) and (family.food and true or false) == (food == true) then\n",
+       "\t\t\tif ns.OwnLeaveable(family) then\n",
+       "wellfed: the foods in both lists",
+       expect="a food is in the general list too", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\treturn not family or ns.OwnPick(family) == \"off\" or next(LeaveChoices(true)) == nil\n",
+       "\t\t\treturn not family or next(LeaveChoices(true)) == nil\n",
+       "wellfed: the foods to leave out shown with Well Fed off",
+       expect="with Well Fed off the list of foods is still shown", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "\t\t\t\t\t{ \"who.own_scrollspirit\", indent = 2 },\n",
+       "\t\t\t\t\t{ \"who.own_scrollspirit\", indent = true },\n",
+       "wellfed: a scroll no further in than the Scrolls switch",
+       expect="is not one step further in than the Scrolls switch", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "\t\t\t\t\t{ \"who.ownPetChoice\", indent = 2 },\n",
+       "\t\t\t\t\t{ \"who.ownPetChoice\", indent = true },\n",
+       "wellfed: Which pet no further in than Companion pet",
+       expect="Which pet is not one step further in", script=S)
+
+mutate("Options/Window/WindowPage.lua",
+       "\treturn (n == true and 1 or tonumber(n) or 1) * INDENT\n",
+       "\treturn INDENT\n",
+       "wellfed: two steps in drawn as one",
+       expect="a row two steps in starts at", script=S)

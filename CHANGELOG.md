@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Options
+- **Each choice sits under its switch on *Who to buff*.** The scrolls now come
+  under *Scrolls*, the foods to leave out under *Well Fed*, and *Which pet*
+  under *Companion pet*, each one step further in.
+
 ## 1.11.19
 
 ### In a fight

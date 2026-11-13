@@ -144,8 +144,8 @@ mutate("Commands.lua",
 # --- the page ---
 
 mutate("Options/Who.lua",
-       "\t\t\tns.db.profile.ownBuffs.leave[key] = on and true or false\n",
-       "\t\t\tns.db.profile.ownBuffs.leave[key] = false\n",
+       "\t\tns.db.profile.ownBuffs.leave[key] = on and true or false\n",
+       "\t\tns.db.profile.ownBuffs.leave[key] = false\n",
        "ownleave: a box ticked writes nothing",
        expect="ownleave: the page lists the spells you know", script=S)
 
