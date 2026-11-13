@@ -449,6 +449,8 @@ do
 			relevantOnly = db.filters.relevantOnly,
 			whenBuffed = "always",
 			offerAnyway = true,
+			-- A favour: a buff kept for one (Buffs.lua, returnOnly) returns it.
+			owed = true,
 			rotate = false,
 		}, NoReading)
 	end
@@ -559,6 +561,7 @@ do
 			whenBuffed = whenBuffed,
 			refreshUnder = f.refreshUnder,
 			offerAnyway = true,
+			owed = true,
 			paidUp = true,
 			spareCovered = true,
 			blocked = BlockedFor,

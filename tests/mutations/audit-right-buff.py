@@ -37,3 +37,49 @@ mutate("Queue.lua",
        "\tif false then entry.priority = PRIORITY.group end\n",
        "audit-right-buff: your own top-up outranks the group",
        expect=TOPUP, script=S)
+
+SHADOW = P + "Shadow Protection is walked for everybody, you included, on a fresh profile"
+BREATH = P + "Unending Breath is offered on dry land to the group and to passers-by"
+BUFFPLS = P + "'buff pls' from a warrior is answered with Divine Spirit"
+
+# ------------------------------------------- what is walked without asking
+# Shadow Protection walked for everybody on a fresh profile again.
+mutate("Buffs.lua",
+       "\t\t\t-- every ten minutes. Forever's copy and Burning Crusade's are the same.\n\t\t\toptIn = true,\n",
+       "\t\t\t-- every ten minutes. Forever's copy and Burning Crusade's are the same.\n",
+       "audit-right-buff: Shadow Protection is on until it is switched off",
+       expect=SHADOW, script=S)
+
+# Unending Breath walked for the group and passers-by again.
+mutate("Buffs.lua",
+       "\t\t\t-- walked for every party member and passer-by, every ten minutes.\n\t\t\treturnOnly = true,\n",
+       "\t\t\t-- walked for every party member and passer-by, every ten minutes.\n",
+       "audit-right-buff: Unending Breath is not kept for favours and requests",
+       expect=BREATH, script=S)
+
+mutate("Core.lua",
+       "\t\tif buff.returnOnly and not (opts.owed or opts.asked) then return false end\n",
+       "",
+       "audit-right-buff: a buff kept for favours is offered unasked",
+       expect=BREATH, script=S)
+
+# ...and one that takes the favour's return with it.
+mutate("Core.lua",
+       "\t\tif buff.returnOnly and not (opts.owed or opts.asked) then return false end\n",
+       "\t\tif buff.returnOnly and not opts.asked then return false end\n",
+       "audit-right-buff: a buff kept for favours does not return one",
+       expect=BREATH, script=S)
+
+# The favour's own way onto the prompt, with no token, forgets it is a favour.
+mutate("Queue.lua",
+       "\t\t\t-- returnOnly).\n\t\t\towed = true,\n",
+       "\t\t\t-- returnOnly).\n",
+       "audit-right-buff: a favour with no token is not told to the walk",
+       expect=BREATH, script=S)
+
+# "Buff pls" lifts "Only buffs they can use" again.
+mutate("Queue.lua",
+       "\t\t\topts.relevantOnly = f.relevantOnly\n\t\t\topts.tanksOnly = tanksHeld\n",
+       "\t\t\topts.tanksOnly = tanksHeld\n",
+       "audit-right-buff: buff pls is answered with a buff of no use to them",
+       expect=BUFFPLS, script=S)

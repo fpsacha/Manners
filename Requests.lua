@@ -518,6 +518,9 @@ do
 	-- a class that cannot be read is not taken for yours. `askOnly` is the
 	-- scan's neverAuto spells (ns.AskOnlyBuffs), offered to whoever names one:
 	-- "buff pls" names every buff you have, not one Automatic leaves alone.
+	-- The second return says whether they named a buff: a plain "buff pls"
+	-- names none, and is answered with what suits them, as anybody is who did
+	-- not ask (Queue.lua, visit).
 	function ns.AskedFor(unit, full, now, candidates, askOnly)
 		if #requests == 0 then return nil end
 		local db = addon.db and addon.db.profile
@@ -548,7 +551,7 @@ do
 				end
 				if #pool == 0 then return nil end
 				request.full = full
-				return pool
+				return pool, request.keys ~= ASK.ANY
 			end
 		end
 		return nil

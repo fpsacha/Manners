@@ -276,8 +276,10 @@ local defaults = {
 			leaveBlessed = false,
 			-- A paladin's Might is not offered to a mage, a warlock or a priest,
 			-- for whom it does nothing (Core.lua, Castable): asked for on
-			-- CurseForge. Off, because it takes away an offer somebody gets today.
-			skipCasters = false,
+			-- CurseForge. On since the right-buff audit (it was off, "because it
+			-- takes away an offer somebody gets today"): melee attack power on a
+			-- mage is the wrong buff, and whoever asks for it by name still gets it.
+			skipCasters = true,
 			-- WoW Forever: somebody wearing a Fish Bowl's Boosted Stats (8% to all
 			-- stats, which Kings replaces) is offered the paladin's other blessings
 			-- first, and Kings only when nothing else of his is missing for them
@@ -1683,6 +1685,9 @@ do
 	end
 
 	local function Castable(opts, buff)
+		-- Kept for a favour returned and a request by name (Buffs.lua,
+		-- returnOnly: Unending Breath): never offered unasked.
+		if buff.returnOnly and not (opts.owed or opts.asked) then return false end
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
 		-- "Don't offer Might to mages, warlocks and priests" (the scan works out
 		-- opts.casterOnly: Queue.lua), but not for somebody who asked by name.

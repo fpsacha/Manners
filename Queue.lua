@@ -2479,6 +2479,13 @@ function ns.BuildQueue(watch)
 		-- Below the never-offer list on purpose: asking is not the exception
 		-- buffing you is.
 		local asked = not isOwed and not unasked and ns.AskedFor(unit, full, now, candidates, askOnly) or nil
+		-- Whether they named the buff ("int pls") or none ("buff pls"): the
+		-- second return of the same call, asked again only for an asker.
+		local named = false
+		if asked then
+			local _, byName = ns.AskedFor(unit, full, now, candidates, askOnly)
+			named = byName == true
+		end
 
 		-- Decide whether we would offer this person at all before reading any
 		-- auras, which is the expensive part. A request is a source of its own:
@@ -2614,7 +2621,13 @@ function ns.BuildQueue(watch)
 		opts.inParty = SameParty(unit, inRaid)
 		opts.relevantOnly = f.relevantOnly and not asked
 		opts.casterOnly = skipCasters and ns.CASTER_CLASSES[plain(select(2, UnitClass(unit)))] or nil
-		opts.asked = asked ~= nil
+		-- "Asked", to the walk, is asked for by name: what lifts its rules for
+		-- one buff (Core.lua, Castable and PickBuffFor). A plain "buff pls"
+		-- lifts none of them.
+		opts.asked = named
+		-- A favour owed, for a buff kept for that and for a request by name
+		-- (Buffs.lua, returnOnly).
+		opts.owed = isOwed and true or nil
 		-- Buffs held to the tanks of your group (Core.lua, Castable): read for
 		-- somebody in the group, and only when one is held. Not for somebody who
 		-- asked for it by name, who has said what they want.
@@ -2633,6 +2646,16 @@ function ns.BuildQueue(watch)
 		-- Held to you alone, for everybody who is not you, and not for somebody
 		-- who asked for it by name.
 		opts.meOnly = not asked and meHeld or nil
+		-- Somebody who asked and named no buff ("buff pls") has said nothing
+		-- about any one of them: what suits them, and what is held to your
+		-- tanks or to you, is judged as for anybody who did not ask. A warrior
+		-- was handed Divine Spirit for it, and a mage Might.
+		if asked and not named then
+			opts.relevantOnly = f.relevantOnly
+			opts.tanksOnly = tanksHeld
+			if opts.isTank == nil then opts.isTank = tanksHeld and inGroup and ns.IsTankUnit(unit) or nil end
+			opts.meOnly = meHeld
+		end
 		opts.whenBuffed = whenBuffed
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full
@@ -2823,6 +2846,9 @@ function ns.BuildQueue(watch)
 		-- One table for every favour below; only what differs between two
 		-- people is written inside the loop.
 		local tokenless = {
+			-- A favour, which is what a buff kept for one is for (Buffs.lua,
+			-- returnOnly).
+			owed = true,
 			-- No token, so no telling whether they are in the group; a
 			-- party-only buff would be a button that fails.
 			inGroup = false,

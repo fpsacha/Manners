@@ -4129,6 +4129,7 @@ L["You picked %s in Buff to offer, but have not learned it, so nothing is offere
 L["Learn it or set Buff to offer back to Automatic."] = "주문을 배우거나 띄울 버프를 다시 자동으로 설정하세요."
 L["Untick to never offer this buff."] = "선택 해제하면 이 버프를 띄우지 않습니다."
 L["Off until you tick it. Tick to offer this buff."] = "체크하기 전까지는 꺼져 있습니다. 체크하면 이 버프를 띄웁니다."
+L["Offered only to return a favour, or to somebody who asks you for it by name in chat. Untick to never offer it."] = "호의에 보답할 때와 대화창에서 이름을 불러 요청한 사람에게만 띄웁니다. 선택 해제하면 띄우지 않습니다."
 L["Offer %s to"] = "%s 제공 대상"
 L["Tanks only offers this buff only to players in your group whom the game gives the tank role, or marks as main tank in a raid. The rest of a dungeon or raid is left alone, and so is everybody outside your group, passers-by and people who buffed you included. A player with no role is not a tank."] = "'방어 전담만'은 내 그룹에서 게임이 방어 전담 역할을 부여했거나 공격대에서 주 방어 전담으로 지정된 플레이어에게만 이 강화 효과를 제안합니다. 던전이나 공격대의 나머지 인원은 건드리지 않으며, 행인과 나에게 버프를 준 사람을 포함해 그룹 밖의 모든 사람도 마찬가지입니다. 역할이 없는 플레이어는 방어 전담이 아닙니다."
 L["Tanks, and anyone outside my group holds only your group to its tanks: passers-by and people who buffed you are offered it as usual."] = "'방어 전담, 그리고 그룹 밖의 모두'는 내 그룹만 방어 전담으로 제한합니다. 행인과 나에게 버프를 준 사람에게는 평소처럼 제안합니다."

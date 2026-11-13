@@ -263,6 +263,16 @@ do
 				.. " them (%s); a ten-minute resistance buff should be offered to nobody until the priest switches it on")
 				:format(#offered, table.concat(offered, "; ")))
 		end
+		-- Switched on, on Who to buff, it is walked as it always was.
+		ns.db.profile.buff.optIn.shadow = true
+		queue = queued(ns)
+		local on = 0
+		for _, entry in ipairs(queue) do
+			if entry.buff.key == "shadow" then on = on + 1 end
+		end
+		if on ~= 3 then
+			fail(scenario, ("ticked on Who to buff, Shadow Protection is offered to %d of the three: %s"):format(on, listed(queue)))
+		end
 	end)
 end
 
@@ -290,6 +300,24 @@ do
 		if #offered > 0 then
 			fail(scenario, ("on dry land, unasked, a fresh profile offers Unending Breath to %s; it should be kept for a"
 				.. " favour returned and for whoever asks for it, as Mists' set already does"):format(table.concat(offered, "; ")))
+		end
+		-- A favour is still returned with it: it is all a warlock has to give,
+		-- with a token on them and without one.
+		H.owe(ns, "Pat Passer")
+		local _, byName = queued(ns)
+		local pat = byName["Pat Passer"]
+		if not (pat and pat.reason == "owed" and pat.buff.key == "breath") then
+			fail(scenario, "Pat buffed the warlock and is offered " .. words(pat) .. "; a favour should still be returned"
+				.. " with Unending Breath")
+		end
+		env.names.nameplate1 = nil
+		Mock.nameplates = {}
+		ns.nameplateUnits.nameplate1 = nil
+		_, byName = queued(ns)
+		pat = byName["Pat Passer"]
+		if not (pat and pat.reason == "owed" and pat.buff.key == "breath") then
+			fail(scenario, "with no token on Pat the favour is offered " .. words(pat) .. "; it should still be returned"
+				.. " with Unending Breath")
 		end
 	end)
 end

@@ -238,6 +238,11 @@ local function AddBuffToggles(args)
 		if buff.optIn then
 			args["offer_" .. buff.key].desc = L["Off until you tick it. Tick to offer this buff."]
 		end
+		-- One kept for a favour returned and a request by name says so
+		-- (Buffs.lua, returnOnly: Unending Breath).
+		if buff.returnOnly then
+			args["offer_" .. buff.key].desc = L["Offered only to return a favour, or to somebody who asks you for it by name in chat. Untick to never offer it."]
+		end
 		-- A buff the player may hold to the tanks of their group (Buffs.lua,
 		-- tankChoice: Thorns), under its own switch. Everybody is the absence of
 		-- a key, as the switches are.

@@ -56,10 +56,17 @@
 --             db.buff.optIn (a sparse set, present is on), where every other
 --             buff is on until its key is in db.buff.skip (Core.lua,
 --             ns.BuffOff). Detect Invisibility for your group, which few
---             warlocks want handed out.
+--             warlocks want handed out; and Shadow Protection, ten minutes
+--             of one resistance, on Classic Era, Forever and Burning Crusade.
 --   gift      the RP.GIFT pool a favour of it is thanked with where that is not
 --             its own key's (Phrases.lua, RP.GiftKey): Detect Invisibility's
 --             thanks were written when it was a favour Manners never offered.
+--   returnOnly  offered to return a favour, and to whoever asks for it by name
+--             in chat; never unasked, to your group or to a passer-by (Core.lua,
+--             Castable: opts.owed, opts.asked). Unending Breath on Classic Era,
+--             Forever and Burning Crusade, where it is a warlock's one buff for
+--             others and so cannot be neverAuto as on Mists: nobody on dry land
+--             wants water breathing, and a favour is still worth returning.
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
 --   strongest the buff of an exclusive class's list (a paladin's Kings) that
@@ -202,6 +209,12 @@ local VANILLA = {
 			group = { 27683 },
 			-- Prayer of Shadow Protection.
 			groupCast = { { id = 27683, reagent = SACRED_CANDLE } },
+			-- Off until it is switched on (optIn), since the right-buff audit: ten
+			-- minutes of resistance to one school, which a priest wants up for the
+			-- fights that deal it and nowhere else. On, as it was, it was walked for
+			-- the priest, every party member and every passer-by, and came back
+			-- every ten minutes. Forever's copy and Burning Crusade's are the same.
+			optIn = true,
 		},
 	},
 
@@ -284,6 +297,11 @@ local VANILLA = {
 			-- of your Demon Skin or Armor.
 			neverSelf = true,
 			switchable = true,
+			-- And nothing anybody on dry land wants handed to them: kept for a
+			-- favour returned (it is all a warlock has to return one with) and
+			-- for whoever asks for it by name. Until the right-buff audit it was
+			-- walked for every party member and passer-by, every ten minutes.
+			returnOnly = true,
 		},
 		-- Detect Invisibility for your group (asked for on CurseForge by a player
 		-- on Forever): Lesser at 26, plain at 38, Greater at 50 (SpellLevels and
@@ -1644,6 +1662,8 @@ local TBC = {
 			group = { 39374, 27683 },
 			-- Prayer of Shadow Protection.
 			groupCast = { Rank(39374, SACRED_CANDLE), Rank(27683, SACRED_CANDLE) },
+			-- Off until it is switched on, as on vanilla.
+			optIn = true,
 		},
 	},
 
@@ -1716,6 +1736,8 @@ local TBC = {
 			group = { 131 }, -- a shaman's Water Breathing, as on vanilla
 			neverSelf = true,
 			switchable = true,
+			-- For a favour returned and a request by name alone, as on vanilla.
+			returnOnly = true,
 		},
 		-- Vanilla's Detect Invisibility for your group, with the one rank this
 		-- client kept (132, level 26; SpellEffect target 21, any friendly target).
