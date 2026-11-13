@@ -896,7 +896,7 @@ figure to its twin.
 
 ## make_forge_textures.py
 
-The twenty-four files of `Textures/Forge/` (the plate in three pieces, the strap,
+The twenty-six files of `Textures/Forge/` (the ember and the molten seam of the forge at rest, the plate in three pieces, the strap,
 the bezel and its round twin and mask, the bezel's bloom in its shape -- a
 rounded square whose band takes in the corner bolts, and a disc for the round
 bezel -- and its hot rim, the slot and its core, the tag, the bead, the

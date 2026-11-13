@@ -37,6 +37,11 @@
   its buttons are set in a rim of gold, a gilt stud stands before each
   section's title, and the page that is open has a band of light and a stud
   of its own in the sidebar.
+- **Forge, alive at rest.** A seam of molten metal flickers along the bottom
+  strap and lights the iron above it, embers rise off it across the plate,
+  and a glint crosses the top strap now and then. When your buff lands a
+  fountain of sparks is thrown up off the bezel, and somebody new on the
+  plate is greeted by a glint. On *Calm* and in a fight the forge is cold.
 
 ## 1.11.18
 

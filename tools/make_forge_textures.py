@@ -22,7 +22,7 @@ the slot, its core, the beads, the glyphs, the lights -- is white or grey art
 coloured by SetVertexColor, so one file serves every reason, both palettes, a
 custom marker colour and the outcomes.
 
-THE FILES (24), with the UI units they are drawn at:
+THE FILES (26), with the UI units they are drawn at:
 
   Forge_PlateL      32x128  the plate's left end, a three-slice at a design
                             height of 128 texels shown at the prompt's height:
@@ -73,6 +73,14 @@ THE FILES (24), with the UI units they are drawn at:
                             strap band when a buff lands (ADD). Drawn on a
                             3-unit frame, so the head is 9 texels (1.7 units)
                             and the tail trails 2 units behind it.
+  Forge_Ember        16x16  a round white head with a soft glow: the embers
+                            that rise from the slot at rest (BLEND), the sparks
+                            a landing throws up off the bezel (ADD) and,
+                            stretched flat, the glint on the top strap.
+  Forge_Seam         64x16  a seam of molten metal: a white line with a soft
+                            glow, fading at each end; stretched along the bottom
+                            strap's upper edge in the slot's heat colour, where
+                            it flickers (BLEND).
   Forge_Steam        32x32  a soft grey blob: the puff as a refusal quenches the
                             slot (BLEND).
   Forge_Ring       128x128  the ring of light that spreads from the bezel when a
@@ -459,6 +467,27 @@ def make_spark():
     emit("Forge_Spark", white(alpha), alpha.astype(np.float32), 1.0)
 
 
+def make_ember():
+    """An ember: a round white head with a soft glow, the whole of its 3-unit
+    frame, so it reads at the game's scale; stretched flat it is the glint on
+    the top strap."""
+    n = 16
+    x, y = grid(n, n)
+    d = np.hypot(x - n / 2.0, y - n / 2.0)
+    alpha = np.clip(np.exp(-(d / 2.6) ** 2) + 0.45 * np.exp(-(d / 5.2) ** 2), 0, 1)
+    alpha = alpha * sstep(7.9, 6.0, d)
+    emit("Forge_Ember", white(alpha), alpha.astype(np.float32), 1.0)
+
+
+def make_seam():
+    w, h = 64, 16
+    x, y = grid(w, h)
+    taper = sstep(0.0, 8.0, x) * sstep(0.0, 8.0, w - x)
+    line = 0.95 * np.exp(-((y - h / 2.0) / 1.7) ** 2) + 0.42 * np.exp(-((y - h / 2.0) / 4.6) ** 2)
+    alpha = np.clip(taper * line, 0, 1)
+    emit("Forge_Seam", white(alpha), alpha.astype(np.float32), 1.0)
+
+
 def make_steam():
     n = 32
     x, y = grid(n, n)
@@ -599,6 +628,8 @@ def main():
     make_mask()
     make_heat()
     make_spark()
+    make_ember()
+    make_seam()
     make_steam()
     make_rings()
     make_tag()
