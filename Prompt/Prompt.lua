@@ -19,7 +19,7 @@
 --   Macro.lua    what the button casts, and at whom
 --   Press.lua    PreClick and PostClick
 --   Button.lua   the button's other scripts: the drag, the cursor, the tooltip
---   Panel.lua    the panel built and styled; the two looks drawn here
+--   Panel.lua    the panel built and styled; the three looks drawn here
 --   List.lua     the list of who is next
 --   Rows.lua     each name in that list as a button to press
 --   Paint.lua    the words on the panel, and a click's outcome over them
@@ -181,10 +181,10 @@ local S = {
 	-- words.
 	outcomePainted = nil,
 
-	-- The look drawn from a file of its own (Looks/), or nil for the two
+	-- The look drawn from a file of its own (Looks/), or nil for the three
 	-- Panel.lua draws. Looks/Looks.lua says what it is asked and when.
 	activeLook = nil,
-	-- What one of the looks drawn in Panel.lua wears over it, or nil.
+	-- What one of the three looks drawn in Panel.lua wears over it, or nil.
 	dress = nil,
 	-- Which side of the panel the queue list hangs off, and where its text
 	-- starts. Decided in ApplyStyle, because the only things that move the
@@ -469,12 +469,13 @@ local RING_AT = 0.78
 
 -- The built-in looks' material, by tools/make_panel_textures.py: the glass
 -- pane (a grey the panel colour tints) and the light on its edges (white
--- with a cool line, and a dark line in shade; drawn BLEND) and the metal bezel round the icon (grey, vertex-tinted; square, and a
--- round twin).
+-- with a cool line, and a dark line in shade; drawn BLEND), the metal bezel round the icon (grey, vertex-tinted; square, and a
+-- round twin) and the framed look's rim (grey, a nine-slice).
 local GLASS_PANE = "Interface\\AddOns\\Manners\\Textures\\GlassPane"
 local GLASS_LIGHT = "Interface\\AddOns\\Manners\\Textures\\GlassLight"
 local BEZEL = "Interface\\AddOns\\Manners\\Textures\\IconBezel"
 local BEZEL_ROUND = "Interface\\AddOns\\Manners\\Textures\\IconBezelRound"
+local TOOLTIP_RIM = "Interface\\AddOns\\Manners\\Textures\\TooltipRim"
 -- How much of the bezel file the icon fills (the middle 96 of 128 texels), so
 -- the bezel is drawn at iconSize / BEZEL_FRAME: ICON_FRAME in
 -- tools/make_panel_textures.py, which must agree.
@@ -510,7 +511,7 @@ lib.Halo, lib.PlaceHalo, lib.PaintHalo = Halo, PlaceHalo, PaintHalo
 lib.RING, lib.RING_SQ, lib.RING_AT, lib.SHOCK = RING, RING_SQ, RING_AT, SHOCK
 lib.RULE, lib.GLINT, lib.CRACK = RULE, GLINT, CRACK
 lib.GLASS_PANE, lib.GLASS_LIGHT, lib.BEZEL, lib.BEZEL_ROUND = GLASS_PANE, GLASS_LIGHT, BEZEL, BEZEL_ROUND
-lib.BEZEL_FRAME = BEZEL_FRAME
+lib.TOOLTIP_RIM, lib.BEZEL_FRAME = TOOLTIP_RIM, BEZEL_FRAME
 lib.BEZEL_LIP_CORNER, lib.BEZEL_LIP_SIDE = BEZEL_LIP_CORNER, BEZEL_LIP_SIDE
 lib.Tint, lib.WARM_WHITE = Tint, WARM_WHITE
 lib.GLOW_RING_AT = GLOW_RING_AT

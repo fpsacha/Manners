@@ -237,7 +237,7 @@ local EDITS = {
 	{ "prompt.point", "TOPLEFT" }, { "prompt.relPoint", "TOPLEFT" },
 	{ "prompt.x", 120 }, { "prompt.y", -80 }, { "prompt.scale", 1.25 },
 	{ "prompt.width", 260 }, { "prompt.height", 52 }, { "prompt.alpha", 0.8 },
-	{ "prompt.style", "minimal" }, { "prompt.fontSize", 15 }, { "prompt.iconSize", 36 },
+	{ "prompt.style", "framed" }, { "prompt.fontSize", 15 }, { "prompt.iconSize", 36 },
 	{ "prompt.hideInCombat", true }, { "prompt.showQueue", true }, { "prompt.queueRows", 4 },
 	{ "prompt.classColor", false }, { "prompt.showSub", false }, { "prompt.format", "{name} !" },
 	{ "prompt.reasonOwed", "owes you" }, { "prompt.thankEmote", true },

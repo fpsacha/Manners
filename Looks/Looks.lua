@@ -1,6 +1,6 @@
 -- Manners -- the looks the prompt can wear, each in a file of its own.
 --
--- The prompt draws two looks itself (glass, minimal), in
+-- The prompt draws three looks itself (glass, framed, minimal), in
 -- Prompt/Panel.lua. Every other look lives in Looks/<Name>.lua, listed in the
 -- toc after this file and before Prompt/, and registers itself here. Prompt
 -- keeps everything the looks share -- the secure button, the text, the queue,
@@ -20,8 +20,8 @@
 --                   lit by the reason"]. Optional: without it the card takes what the
 --                   label says after the dash. Give both when a translation
 --                   writes the label with a dash the picker cannot split.
---   order           where it sits in the dropdown (glass 10, minimal 12;
---                   lower comes first).
+--   order           where it sits in the dropdown (glass 10, framed 11,
+--                   minimal 12; lower comes first).
 --   fallback        a key to draw as instead, until this look is written. A
 --                   look with a fallback needs nothing else.
 --   combatArtAlpha  the alpha Prompt gives `art` while the fight holds the
@@ -37,7 +37,7 @@
 --                   colour code in the text to the same figure (the shared
 --                   rule is 3:1, taken to 4.5:1 only for a code that must move).
 --   subOnDark       true when the reason line sits on a dark ground of the
---                   look's own (Ribbon's cloth): its colour codes, picked for a
+--                   look's own (Luxe's tag): its colour codes, picked for a
 --                   dark ground, are not taken darker for a light panel.
 --   inkOnDark       true when every line sits on a dark ground of the look's own,
 --                   whatever the panel colour says (Leather's hide): subOnDark
@@ -108,7 +108,7 @@
 --                   the reason readable.
 --   Painted(entry)  Optional. After every paint of a person (Prompt:Paint),
 --                   which is the scan's tick: the queue entry on top, for
---                   anything that follows the clock (Archmage's key). Not
+--                   anything that follows the clock (Arcane's key). Not
 --                   called while the fight holds the panel. No pcall here.
 --   Hover(on)       The cursor came onto the panel or left it.
 --   PaintQueue(rows, shown, above)  The list's text is written (kit.rows);
@@ -121,7 +121,7 @@
 --                   rows' centres (set in Apply; the area is that tall, so
 --                   neighbours meet), and `rowReach`, how far left of a row's
 --                   text its marker starts (default 18), which the area
---                   includes. The row's icon is the built-in looks' only.
+--                   includes. The row's icon is the three built-in looks' only.
 --
 -- THE KIT (Prompt:LookKit(), handed to Build)
 --   button art textLayer icon cooldown name sub count rows
@@ -187,11 +187,13 @@ ns.Looks = Looks
 -- Loaded next: Looks/Flow.lua (ns.Looks.Flow), the clock for art that moves by
 -- its texture coordinates.
 
--- The two Prompt/Panel.lua draws, named here so the dropdown is one list.
+-- The three Prompt/Panel.lua draws, named here so the dropdown is one list.
 -- They are never handed back by Get.
 local NATIVE = {
 	glass = { name = L["Glass -- dark glass in gilt rails, the game's own action bar"], order = 10, native = true,
 		title = L["Glass"], description = L["dark glass in gilt rails, the game's own action bar"] },
+	framed = { name = L["Framed -- dark panel, a tooltip's rim"], order = 11, native = true,
+		title = L["Framed"], description = L["dark panel, a tooltip's rim"] },
 	minimal = { name = L["Minimal -- text only, no panel"], order = 12, native = true,
 		title = L["Minimal"], description = L["text only, no panel"] },
 }
@@ -219,9 +221,9 @@ end
 -- medallion, a seal): the switch reads nothing there, so the options page greys
 -- it out for them (tests/scenarios/hunt38-picker.lua holds this list to what the
 -- looks draw). A look that reads the setting is not here.
-Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true }
+Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true }
 
--- A DRESSING: more art over one of the looks Prompt/Panel.lua draws
+-- A DRESSING: more art over one of the three looks Prompt/Panel.lua draws
 -- (Looks/Glass.lua, over the glass). Panel.lua lays its own look out as ever
 -- and then calls the dressing where it would call a look: Build(kit) once,
 -- Apply(p, above), Hide(), PaintReason, Attention, StopAttention, Flourish,
@@ -313,15 +315,12 @@ end
 -- RETIRED LOOKS (1.11.19). The author asked for every look to be its own and
 -- for the ones too like a neighbour to go: Framed and Luxe were Glass again
 -- (a dark card, a rim), Arcane was Archmage's plainer forebear, Toast a
--- Ribbon in brown. Their files, their art and Framed's drawing in
--- Prompt/Panel.lua are gone; what is left of each is its key, which a profile
--- may still hold, and its name, for the one line that says where it went.
--- Each key names the look that takes its place: a profile that saved one is
--- moved to its heir (Core.lua, ClampSettings, through Looks.Heir). A retired
--- key is in no picker (Choices) and is no style to save (Allowed), whatever
--- registers under it.
+-- Ribbon in brown. Each names the look that takes its place. A retired look
+-- is in no picker (Choices) and is no style to save (Allowed); a profile that
+-- saved one is moved to its heir (Core.lua, ClampSettings, through
+-- Looks.Heir). Their code and art stay for now, drawn only when something
+-- sets the style by hand: taken out once nothing reads them.
 Looks.retired = { framed = "glass", luxe = "glass", arcane = "archmage", toast = "ribbon" }
-local RETIRED_TITLE = { framed = L["Framed"], luxe = L["Luxe"], arcane = L["Arcane"], toast = L["Toast"] }
 
 -- The look a retired one's players are moved to, or nil for a look in use.
 function Looks.Heir(key)
@@ -371,8 +370,6 @@ end
 -- line, from the look's own fields or else from its label.
 function Looks.Card(key)
 	local look = Looks.list[key]
-	-- A retired look has a name still, and nothing else.
-	if not look and RETIRED_TITLE[key] then return RETIRED_TITLE[key], "" end
 	if not look then return tostring(key), "" end
 	local title, line = SplitLabel(look.name)
 	return look.title or title, look.description or line
@@ -393,8 +390,12 @@ Looks.previewIcon = {}
 -- fractions of the picture like the icon's, `h` and `v` its justification,
 -- `size` and the shadow's `x` and `y` fractions of the picture's height, `color`,
 -- `flags`, and the look's own `font` (`latin`: only on a client whose alphabet it
--- has). The pictures carry none of this text: the picker writes the words there
--- live, in the player's language.
+-- has). A reason line the look sets in a tag of its own (Luxe) carries the tag
+-- as `pill`: its edges `t` and `b`, how far it reaches past the words (`lead`,
+-- `tail`), its caps' width of its height (`cap`), and its `layers`, each the
+-- look's own `file` as a three-slice in the look's `color`. The pictures carry
+-- none of this text, nor the tag: the picker writes the words there live, in the
+-- player's language, and draws the tag round them as wide as they are.
 Looks.previewText = {}
 
 function Looks.PreviewFile(key)

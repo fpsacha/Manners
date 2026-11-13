@@ -574,7 +574,7 @@ Launch("launch.mask", "icon masks", function(add)
 	local okC, made = true, s.mask
 	if made == nil then okC, made = Call(s.frame, "CreateMaskTexture") end
 	if okC == MISSING then
-		add(FAIL, "CreateMaskTexture is missing -- Ribbon, Letter, Leather and the picker cannot cut an icon round")
+		add(FAIL, "CreateMaskTexture is missing -- Ribbon, Letter, Leather, Toast and the picker cannot cut an icon round")
 		return
 	elseif okC ~= true then
 		add(FAIL, "CreateMaskTexture threw: " .. tostring(made))

@@ -1,5 +1,5 @@
 """The built-in looks' material: a pane of enchanted glass and the light on it,
-and the metal bezel round the spell icon.
+the metal bezel round the spell icon, and the framed look's rim.
 
     python tools/make_panel_textures.py                   # Textures/*.tga
     python tools/make_panel_textures.py --out DIR         # the same files, to DIR
@@ -64,16 +64,23 @@ the art is a named constant here; the ones Prompt/ depends on say so.
                                its specular folded into the grey (the file carries a
                                vertex colour, so the light has to be in the tone).
   IconBezelRound.tga  128x128  The same radii as a circle, for the rounded icon.
+  TooltipRim.tga       64x64   Grey, 9-slice margin RIM_MARGIN 16 texels (4 units): the
+                               framed look's rail, RAIL_W 8 texels wide with its centre
+                               RAIL_AT 5 in from the edge, outer corner RIM_CORNER 16,
+                               half-round, lit from the upper left (RIM_LIT 0.80 on the
+                               lit side, about 0.55 on the face, RIM_SHADE 0.30 in
+                               shade), a one-texel RIM_SEAM 0.10 line along its inner
+                               side; nothing inside.
 
-Caps (Rec.601 luma of the opaque texels): GlassPane 0.80, held by
-construction; the bezels are grey on every texel.
+Caps (Rec.601 luma of the opaque texels): GlassPane and TooltipRim 0.80, held by
+construction; the bezels and the rim are grey on every texel.
 """
 import argparse
 import os
 
 import numpy as np
 
-from materials import (SS, LIGHT, HALF, grid, sstep, cover, rrect, disc, chamfer, noise,
+from materials import (SS, LIGHT, HALF, grid, sstep, cover, rrect, disc, chamfer, torus, noise,
                        normals, shade, shade_grey, save, describe, sheet, written)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -139,6 +146,15 @@ LIP_HEIGHT = 0.5            # the lip is a recess, a half-texel under the rim's 
 BEZEL_CORNER = 12.0
 BEZEL_SEED = 7
 BEZEL_TPU = (BEZEL_SIZE * (1 - ICON_FRAME) / 2) / 5.0   # 16 texels are 5 units at icon 30
+
+# --- the framed look's rim --------------------------------------------------------
+RIM_SIZE = 64
+RIM_MARGIN = 16
+RAIL_W, RAIL_AT = 8.0, 5.0
+RIM_CORNER = 16.0
+RIM_LIT, RIM_SHADE = 0.80, 0.30
+RIM_SEAM = 0.10
+RIM_SEED = 5
 
 # A grey never rounds up past the cap: 0.795 is 203 of 255.
 SAFE_CAP = 0.795
@@ -307,7 +323,30 @@ def make_bezel(out, round_):
     return path, describe(path, 1.0)
 
 
-MAKERS = (make_pane, make_light, lambda out: make_bezel(out, False), lambda out: make_bezel(out, True))
+# ------------------------------------------------------------------ the rim
+
+def make_rim(out):
+    w = h = RIM_SIZE
+    x, y = grid(w, h)
+    d = rrect(x, y, 0, 0, w, h, RIM_CORNER)
+    inward = -d
+    half = RAIL_W / 2.0
+    outer_edge = RAIL_AT - half                      # texel 1
+    inner_edge = RAIL_AT + half + 1                  # texel 10, the seam included
+    alpha = cover(outer_edge - inward) * cover(inward - inner_edge)
+    height = torus(inward - RAIL_AT, half).astype(np.float32)
+    rgb, light = shade_grey(height, alpha, RIM_SEED, TPU, wear=0.4, micro=0.015)
+    g = rgb[..., 0]
+    g = RIM_SHADE + (g - 0.30) / 0.70 * (RIM_LIT - RIM_SHADE)
+    g = np.clip(g + 0.3 * light, 0, SAFE_CAP)
+    seam = inward >= RAIL_AT + half
+    g = np.where(seam, RIM_SEAM, g)
+    path = os.path.join(out, "TooltipRim.tga")
+    save(path, grey(g), alpha)
+    return path, describe(path, 0.80)
+
+
+MAKERS = (make_pane, make_light, lambda out: make_bezel(out, False), lambda out: make_bezel(out, True), make_rim)
 
 
 def make(out):

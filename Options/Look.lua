@@ -28,7 +28,7 @@ end
 -- Which of the two things that can carry the reason colour is actually on
 -- screen (the bezel round the icon, the stripe). The bezel is drawn round the
 -- icon, square or round, so hiding the icon takes it away; the stripe is on
--- every look drawn by Prompt/Panel.lua.
+-- every look drawn by Prompt/Panel.lua (the framed look's rim leaves it room).
 local function AccentCarriers()
 	local p = P()
 	-- A look from Looks/ says where it carries the colour; nothing said is
@@ -55,7 +55,7 @@ local function AccentDead()
 end
 Page.AccentDead = AccentDead
 
--- The icon's size on a look that sizes it itself (Ribbon, from the height), or
+-- The icon's size on a look that sizes it itself (Toast, from the height), or
 -- nil where the slider sets it.
 local function LookIconSize()
 	local p = P()
@@ -209,9 +209,9 @@ function Page.BuildLookTab()
 				-- draws, and where this is read, so it speaks of a list.
 				desc = L["Pick a theme for the prompt from the list. It switches at once."],
 				order = 21,
-				-- Every look, the two Prompt/Panel.lua draws and the ones in
-				-- Looks/, from the registry, in its order; a profile holding a
-				-- look since retired is carried to its heir in ClampSettings.
+				-- Every look, the three Prompt/Panel.lua draws and the ones in
+				-- Looks/, from the registry, in its order; profiles holding
+				-- framed's old name are carried across in ClampSettings.
 				values = (ns.Looks.Choices()),
 				sorting = select(2, ns.Looks.Choices()),
 				get = pGet,
@@ -415,7 +415,7 @@ function Page.BuildLookTab()
 				order = 32.6,
 				width = "full",
 				-- The looks from Looks/ draw a fight their own way (combatArtAlpha,
-				-- Combat), so the setting only reaches Glass and Minimal.
+				-- Combat), so the setting only reaches Glass, Framed and Minimal.
 				disabled = function() return ns.Looks.Get(P().style) ~= nil end,
 				get = pGet,
 				set = pSet,
@@ -564,7 +564,7 @@ function Page.BuildLookTab()
 			textShadow = {
 				type = "toggle",
 				name = L["Shadow and outline on the text"],
-				desc = L["The shadow under the words, and the outline Minimal draws with no panel behind it, on Glass and Minimal. Off, the text is drawn flat."],
+				desc = L["The shadow under the words, and the outline Minimal draws with no panel behind it, on Glass, Framed and Minimal. Off, the text is drawn flat."],
 				order = 44.5,
 				width = "full",
 				disabled = function() return ns.Looks.Get(P().style) ~= nil end,
@@ -680,7 +680,7 @@ function Page.BuildLookTab()
 				desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."],
 				order = 53,
 				width = "full",
-				-- Ribbon's and Letter's icons sit in a medallion or a wax
+				-- Toast's, Ribbon's and Letter's icons sit in a medallion or a wax
 				-- seal: always round, so the switch reads nothing there.
 				disabled = function() return not P().showIcon or ns.Looks.RoundAlways(P().style) end,
 				get = pGet,
@@ -690,7 +690,7 @@ function Page.BuildLookTab()
 			iconFrame = {
 				type = "toggle",
 				name = L["Frame round the icon"],
-				desc = L["The metal bezel round the spell icon, on Glass and Minimal. Off, the icon stands on its own."],
+				desc = L["The metal bezel round the spell icon, on Glass, Framed and Minimal. Off, the icon stands on its own."],
 				order = 53.5,
 				width = "full",
 				disabled = function() return not P().showIcon or ns.Looks.Get(P().style) ~= nil end,
