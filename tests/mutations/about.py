@@ -5,13 +5,37 @@
 S = "runscenarios.py"
 
 mutate("Options/Diagnostics.lua",
-       "\t\t\t\t\treturn L[\"Manners is made by fpsacha, who plays %s on the RP-PvP server of WoW Forever.\"]\n\t\t\t\t\t\t:format(\"|cffffffff\" .. tostring(ns.AUTHOR) .. \"|r\")\n",
-       "\t\t\t\t\treturn L[\"Manners is made by fpsacha, who plays %s on the RP-PvP server of WoW Forever.\"]\n\t\t\t\t\t\t:format(\"|cffffffff\" .. \"somebody\" .. \"|r\")\n",
+       "\t\t\t\t\treturn L[\"Manners is made by %s, who plays on the RP-PvP server of WoW Forever.\"]\n\t\t\t\t\t\t:format(\"|cffffffff\" .. tostring(ns.AUTHOR) .. \"|r\")\n",
+       "\t\t\t\t\treturn L[\"Manners is made by %s, who plays on the RP-PvP server of WoW Forever.\"]\n\t\t\t\t\t\t:format(\"|cffffffff\" .. \"somebody\" .. \"|r\")\n",
        "about: the line names nobody",
        expect="the line does not name the author's character", script=S)
 
-mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t\"diagnostics.aboutNote\",\n",
-       "",
-       "about: the line on no page",
-       expect="the line is not placed on the Diagnostics page", script=S)
+mutate("Options/Window/WindowChrome.lua",
+       "\tfs:SetShown(about ~= \"\")\n",
+       "\tfs:SetShown(false)\n",
+       "about: the line in no footer",
+       expect="the footer does not say who makes Manners", script=S)
+
+mutate("Options/Window/WindowChrome.lua",
+       "\t\tif path and wide > room then\n",
+       "\t\tif false then\n",
+       "about: a long line left to run under the footer's buttons",
+       expect="a long line is", script=S)
+
+mutate("Options/Window/WindowChrome.lua",
+       "\t\tfooter.build:SetPoint(\"CENTER\", footer.mid, \"CENTER\", 0, FOOT_LINE / 2)\n",
+       "\t\tfooter.build:SetPoint(\"CENTER\", footer.mid, \"CENTER\", 0, 0)\n",
+       "about: the line drawn over the build",
+       expect="the line is not under the build", script=S)
+
+mutate("Options/Window/WindowChrome.lua",
+       "\t\tif path then fs:SetFont(path, size, flags) end\n\t\tfs:SetText(about)\n",
+       "\t\tfs:SetText(about)\n",
+       "about: a line once shrunk stays small",
+       expect="the line stayed small once it fitted again", script=S)
+
+mutate("Locales/deDE.lua",
+       "L[\"Manners is made by %s, who plays on the RP-PvP server of WoW Forever.\"] = \"Manners stammt von %s,",
+       "L[\"Manners is made by %s, who plays on the RP-PvP server of WoW Forever.\"] = \"Manners stammt von fpsacha, als %s,",
+       "about: a language names the account again",
+       expect="the line names the account as well as the character", script=S)

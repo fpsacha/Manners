@@ -128,7 +128,8 @@ ns.WindowLayout = {
 		combat = { click = "click.combatNotice", appearance = "appearance.combatNotice", when = "advanced.advCombatNotice" },
 	},
 	foldCaption = "advanced.advIntro",
-	footer = { reset = "advanced.resetAdvanced", build = "diagnostics.buildNote" },
+	-- `about`: who makes Manners, under the build on every page.
+	footer = { reset = "advanced.resetAdvanced", build = "diagnostics.buildNote", about = "diagnostics.aboutNote" },
 
 	-- The sidebar, top to bottom; a hairline between groups. Page ids are the
 	-- old tab keys (bug reports and ns.OptionsTab() name them), plus skip.
@@ -604,8 +605,6 @@ ns.WindowLayout = {
 					"diagnostics.selftest",
 					-- For working out a failed cast: under the buttons.
 					"diagnostics.debugClicks",
-					-- Who makes Manners: the page's last line.
-					"diagnostics.aboutNote",
 				} },
 			},
 		},
@@ -621,7 +620,6 @@ ns.WindowLayout = {
 		["diagnostics.pvpDiag"] = { hint = true, block = true },
 		["diagnostics.leadDiag"] = { hint = true, block = true },
 		["diagnostics.reportHint"] = { hint = true },
-		["diagnostics.aboutNote"] = { hint = true },
 		["when.selfLeadNote"] = { hint = true },
 		["who.minLevelNote"] = { hint = true },
 		-- AceDBOptions' descriptions, beside the controls they explain.

@@ -208,3 +208,55 @@ mutate("Commands.lua",
        "\t\telseif false then\n",
        "pets: the refusal unsaid",
        expect="pets: a journal that brings nothing out three times", script=S)
+
+# --- Which pet, by name ---
+
+BYNAME = "pets: Which pet lists the journal's pets by name"
+
+mutate("Core.lua",
+       "\t\tif not (type(choice) == \"string\" and choice:match(\"^pet:.+$\")) then\n",
+       "\t\tif true then\n",
+       "pets: a pet picked by name thrown out as a damaged setting",
+       expect=BYNAME, script=S)
+
+mutate("Companion.lua",
+       "\t\tif Summonable(picked) then return picked, \"picked\" end\n",
+       "",
+       "pets: the pet picked by name never the one brought out",
+       expect=BYNAME, script=S)
+
+mutate("Companion.lua",
+       "\t\tif Summonable(picked) then return picked, \"picked\" end\n\t\tchoice = \"last\"\n",
+       "\t\tif Summonable(picked) then return picked, \"picked\" end\n",
+       "pets: a pet picked and gone not read as the one out last",
+       expect="with the pet picked gone", script=S)
+
+mutate("Companion.lua",
+       "\t\tif type(guid) == \"string\" and guid ~= \"\" and Summonable(guid) then\n",
+       "\t\tif type(guid) == \"string\" and guid ~= \"\" then\n",
+       "pets: a pet that cannot be brought out listed",
+       expect="a pet that cannot be brought out is listed", script=S)
+
+mutate("Companion.lua",
+       "\t\t\tlocal shown = type(custom) == \"string\" and custom ~= \"\" and custom or name\n",
+       "\t\t\tlocal shown = name\n",
+       "pets: a pet the player named listed under its kind's name",
+       expect="a pet the player named reads", script=S)
+
+mutate("Companion.lua",
+       "\t\tif n > 1 then pet.label = (\"%s (%d)\"):format(pet.name, n) end\n",
+       "",
+       "pets: two pets of a name not told apart",
+       expect="two of a name read", script=S)
+
+mutate("Companion.lua",
+       "\tif type(ids) ~= \"table\" then return out end\n",
+       "",
+       "pets: an answer that is no list of pets walked as one",
+       expect=BYNAME, script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\t\t\treturn \"last\"\n\t\t\t\t\tend\n\t\t\t\t\treturn choice\n",
+       "\t\t\t\t\t\treturn choice\n\t\t\t\t\tend\n\t\t\t\t\treturn choice\n",
+       "pets: a pet no longer in the journal left as the page's blank choice",
+       expect="a pet no longer in the journal reads", script=S)
