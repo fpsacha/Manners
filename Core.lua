@@ -522,6 +522,10 @@ local defaults = {
 			-- Which emote it is (1.11.3): one of ns.THANK_EMOTES, by token. /thank until
 			-- the player picks another; the emote is made at the person who buffed you.
 			thankEmoteToken = "THANK",
+			-- Others to pick from at random (1.11.20, asked for on CurseForge): a
+			-- sparse set of tokens of ns.THANK_EMOTES, ticked true. Empty, the
+			-- emote above is the only one.
+			thankEmoteMore = {},
 			-- A thank-you whispered to somebody who buffs you and is owed nothing
 			-- back (Speech.lua, ns.ThankWhisper). Off: it goes to a stranger.
 			thankWhisper = false,
@@ -4777,6 +4781,18 @@ function ns.ClampSettings()
 	oneOf(p, "tooltip", { full = true, short = true, shift = true, off = true }, "short")
 	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
 	oneOf(p, "thankEmoteToken", ns.THANK_EMOTE_SET, "THANK")
+	-- The others to pick from: a table of known tokens, each true; anything
+	-- else in it is dropped.
+	if type(p.thankEmoteMore) ~= "table" then
+		fixed("thankEmoteMore", p.thankEmoteMore)
+		p.thankEmoteMore = {}
+	end
+	for token, on in pairs(p.thankEmoteMore) do
+		if not (ns.THANK_EMOTE_SET[token] and on == true) then
+			fixed("thankEmoteMore." .. tostring(token), on)
+			p.thankEmoteMore[token] = nil
+		end
+	end
 
 	-- The two questions Start here asks a new profile (Options/Start.lua,
 	-- Quick.Asking). A profile this clamp has been through before carries the

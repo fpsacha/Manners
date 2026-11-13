@@ -382,3 +382,93 @@ for _, client in ipairs({ "vanilla", "tbc", "mists" }) do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ the page's order
+-- A player found the foods to leave out at the foot of Myself, far from Well
+-- Fed, and each scroll's switch above the Scrolls switch they hang from. Each
+-- sub-option now sits right under its switch, one step further in.
+
+do
+	local scenario = "wellfed: the foods to leave out sit under Well Fed, one step further in, and only foods"
+	local layout
+	with(scenario, { on = true }, function(ns, data)
+		layout = ns.WindowLayout
+		-- Two foods this warrior can eat, in the bags.
+		local bags, n = {}, 0
+		for _, row in ipairs(data) do
+			if row[2] <= 60 and n < 2 then
+				bags[row[1]] = 3
+				n = n + 1
+			end
+		end
+		stock(ns, bags)
+		local food = findOption(ns.optionsTable, "own_leave_food")
+		local rest = findOption(ns.optionsTable, "own_leave")
+		if not food then fail(scenario, "Who to buff has no list of foods to leave out") return end
+		if food.hidden() then fail(scenario, "with Well Fed on and food in the bags, the list of foods is hidden") end
+		local values = food.values()
+		local count = 0
+		for _ in pairs(values) do count = count + 1 end
+		if count < 1 then fail(scenario, "the list of foods to leave out is empty with food in the bags") end
+		local others = rest and rest.values() or {}
+		for k in pairs(values) do
+			if others[k] then fail(scenario, "a food is in the general list too: " .. tostring(k)) end
+		end
+		-- One tick in it is the same tick the rest of Manners reads.
+		local k = next(values)
+		food.set(nil, k, true)
+		if ns.db.profile.ownBuffs.leave[k] ~= true or not food.get(nil, k) then fail(scenario, "a food ticked was not kept") end
+		food.set(nil, k, false)
+		-- Well Fed off: the list goes with it.
+		ns.db.profile.ownBuffs.pick.food = "off"
+		if not food.hidden() then fail(scenario, "with Well Fed off the list of foods is still shown") end
+	end)
+	if not layout then return end
+	local items
+	for _, page in pairs(layout.pages or {}) do
+		for _, section in ipairs(page.sections or {}) do
+			for i, item in ipairs(section.items or {}) do
+				if type(item) == "table" and item[1] == "who.own_food" then items = { section.items, i } end
+			end
+		end
+	end
+	if not items then fail(scenario, "Well Fed is not on the page") return end
+	local after = items[1][items[2] + 1]
+	if not (type(after) == "table" and after[1] == "who.own_leave_food" and after.indent == 2) then
+		fail(scenario, "the foods to leave out are not right under Well Fed, one step further in")
+	end
+end
+
+do
+	local scenario = "wellfed: the Scrolls switch comes before the scrolls, each scroll one step further in"
+	with(scenario, {}, function(ns)
+		local layout = ns.WindowLayout
+		local list
+		for _, page in pairs(layout.pages or {}) do
+			for _, section in ipairs(page.sections or {}) do
+				for _, item in ipairs(section.items or {}) do
+					if type(item) == "table" and item[1] == "who.ownScrolls" then list = section.items end
+				end
+			end
+		end
+		if not list then fail(scenario, "the Scrolls switch is not on the page") return end
+		local at = {}
+		for i, item in ipairs(list) do
+			local path = type(item) == "table" and item[1] or item
+			at[path] = { i, type(item) == "table" and item.indent or nil }
+		end
+		local switch = at["who.ownScrolls"]
+		for _, stat in ipairs({ "agility", "strength", "protection", "intellect", "stamina", "spirit" }) do
+			local s = at["who.own_scroll" .. stat]
+			if not s then
+				fail(scenario, "the scroll of " .. stat .. " is not on the page")
+			elseif s[1] < switch[1] then
+				fail(scenario, "the scroll of " .. stat .. " is above the Scrolls switch it hangs from")
+			elseif s[2] ~= 2 then
+				fail(scenario, "the scroll of " .. stat .. " is not one step further in than the Scrolls switch")
+			end
+		end
+		local pet = at["who.ownPetChoice"]
+		if not (pet and pet[2] == 2) then fail(scenario, "Which pet is not one step further in than Companion pet") end
+	end)
+end

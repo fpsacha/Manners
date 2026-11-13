@@ -146,6 +146,22 @@ do
 		return nil, unit
 	end
 
+	-- The emote a thank-you makes: the one picked, or, with others ticked to
+	-- pick from, one of them all at random.
+	local pool = {}
+	function ns.ThankEmoteToken(prompt)
+		local first = prompt and ns.THANK_EMOTE_SET[prompt.thankEmoteToken] and prompt.thankEmoteToken or "THANK"
+		local more = prompt and prompt.thankEmoteMore
+		if type(more) ~= "table" or next(more) == nil then return first end
+		for i = #pool, 1, -1 do pool[i] = nil end
+		pool[1] = first
+		-- In the list's own order, so the draw is the same for the same ticks.
+		for _, token in ipairs(ns.THANK_EMOTES) do
+			if more[token] == true and token ~= first then pool[#pool + 1] = token end
+		end
+		return pool[math.random(#pool)]
+	end
+
 	-- The thank itself, once Blocked has let it through.
 	local function Send(seen, emote, whisper, unit, now)
 		local name = seen.name
@@ -158,7 +174,7 @@ do
 			-- pcall covers both an emote call that throws and one that is not there.
 			-- The emote the player chose, or the thanks it always was.
 			local prompt = ns.db and ns.db.profile and ns.db.profile.prompt
-			local token = prompt and ns.THANK_EMOTE_SET[prompt.thankEmoteToken] and prompt.thankEmoteToken or "THANK"
+			local token = ns.ThankEmoteToken(prompt)
 			ok, answer = pcall(EmoteCall(), token, unit)
 		end
 		if not ok and not whispered then

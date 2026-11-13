@@ -527,10 +527,12 @@ local function AddOwnControls(args)
 	-- The spells of a family of several that can be left out one by one, for
 	-- those you know: ticked, never offered. Under the families and above
 	-- Also in cities and inns (15.9). Hidden while there is nothing to tick.
-	local function LeaveChoices()
+	-- Food has a list of its own, right under Well Fed (own_leave_food): the
+	-- same ticks (ownBuffs.leave), shown where they belong.
+	local function LeaveChoices(food)
 		local values = {}
 		for _, family in ipairs(ns.KnownOwnFamilies()) do
-			if ns.OwnLeaveable(family) then
+			if ns.OwnLeaveable(family) and (family.food and true or false) == (food == true) then
 				for _, spell in ipairs(family.spells) do
 					if ns.OwnSpellKnown(spell) then values[spell.key] = ns.BuffName(spell) end
 				end
@@ -538,6 +540,12 @@ local function AddOwnControls(args)
 		end
 		return values
 	end
+	local function LeaveSet(_, key, on)
+		ns.db.profile.ownBuffs.leave[key] = on and true or false
+		-- The prompt follows at once rather than at the next scan.
+		ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+	end
+	local function LeaveGet(_, key) return ns.db.profile.ownBuffs.leave[key] == true end
 	args.own_leave = {
 		type = "multiselect",
 		name = L["Never remind me about"],
@@ -545,13 +553,27 @@ local function AddOwnControls(args)
 		order = 15.8,
 		hidden = function() return next(LeaveChoices()) == nil end,
 		disabled = function() return not S().self end,
-		values = LeaveChoices,
-		get = function(_, key) return ns.db.profile.ownBuffs.leave[key] == true end,
-		set = function(_, key, on)
-			ns.db.profile.ownBuffs.leave[key] = on and true or false
-			-- The prompt follows at once rather than at the next scan.
-			ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+		values = function() return LeaveChoices() end,
+		get = LeaveGet,
+		set = LeaveSet,
+	}
+	-- The foods to leave out, under Well Fed, while it is on.
+	args.own_leave_food = {
+		type = "multiselect",
+		name = L["Never remind me about"],
+		desc = L["Ticked spells are left out of Automatic and never offered, even one you picked above. The others of their kind still are."],
+		order = 15.79,
+		hidden = function()
+			local family
+			for _, f in ipairs(ns.KnownOwnFamilies()) do
+				if f.food then family = f end
+			end
+			return not family or ns.OwnPick(family) == "off" or next(LeaveChoices(true)) == nil
 		end,
+		disabled = function() return not S().self end,
+		values = function() return LeaveChoices(true) end,
+		get = LeaveGet,
+		set = LeaveSet,
 	}
 end
 

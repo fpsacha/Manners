@@ -146,7 +146,7 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ the options
 mutate("Options/Advanced.lua",
-       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs()\n\t\t\tand path ~= \"prompt.thankWhisper\" and path ~= \"prompt.thankDelay\" end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and path ~= \"prompt.thankEmoteToken\" and not HasClassBuffs()\n\t\t\tand path ~= \"prompt.thankWhisper\" and path ~= \"prompt.thankDelay\" and path ~= \"prompt.thankEmoteMore\" end,\n",
        "",
        "thank-everyone: a hunter's reset reaches the speech",
        expect="a hunter's What I say reset put back speech he cannot see", script=S)

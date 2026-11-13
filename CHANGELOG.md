@@ -18,6 +18,16 @@
   its own switch under it, *Dampen Magic only when I'm alone* and *Amplify
   Magic only when I'm alone*, both on; untick one to have it in a group too.
 
+### Options
+- **Each choice sits under its switch on *Who to buff*.** The scrolls now come
+  under *Scrolls*, the foods to leave out under *Well Fed*, and *Which pet*
+  under *Companion pet*, each one step further in.
+
+### Thanks
+- **Several emotes, one at random.** Under *Emote to use* (What I say), tick
+  *Or one of these, at random* for others: each thank-you is then one of them,
+  so it is not the same every time. Asked for on CurseForge.
+
 ## 1.11.19
 
 ### In a fight

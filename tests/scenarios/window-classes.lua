@@ -218,13 +218,13 @@ do
 			ctl = toggle("Gone", true), note = { type = "description", name = "Attached to Gone." },
 			ctl2 = toggle("Also gone", true), stand = { type = "description", name = "Standing in." },
 			alone = { type = "description", name = "A note in a section of notes." },
-			live = toggle("Live"), live2 = toggle("Live too"), deep = toggle("Deep"),
+			live = toggle("Live"), live2 = toggle("Live too"), deep = toggle("Deep"), deeper = toggle("Deeper"),
 		} }
 		ns.WindowLayout.pages.zz = { title = "Zz", sections = {
 			{ key = "zz.one", title = "One", items = { "zz.ctl", "zz.note" } },
 			{ key = "zz.two", title = "Two", items = { "zz.ctl2", { "zz.stand", standIn = true } } },
 			{ key = "zz.three", title = "Three", items = { "zz.alone" } },
-			{ key = "zz.four", title = "Four", items = { { "zz.live", pair = true }, "zz.live2", { "zz.deep", indent = true } } },
+			{ key = "zz.four", title = "Four", items = { { "zz.live", pair = true }, "zz.live2", { "zz.deep", indent = true }, { "zz.deeper", indent = 2 } } },
 		} }
 		local groups = ns.WindowLayout.groups
 		groups[#groups][#groups[#groups] + 1] = "zz"
@@ -239,6 +239,9 @@ do
 		local live, live2, deep = UI.Where("zz.live").e, UI.Where("zz.live2").e, UI.Where("zz.deep").e
 		if live.y ~= live2.y or not (live2.x > live.x) then fail(scenario, "two short toggles marked pair do not share a row") end
 		if deep.x ~= live.x + 16 then fail(scenario, ("an indented row starts at %s, not %s"):format(tostring(deep.x), tostring(live.x + 16))) end
+		-- Two steps in: a choice under a switch that is itself in.
+		local deeper = UI.Where("zz.deeper").e
+		if deeper.x ~= live.x + 32 then fail(scenario, ("a row two steps in starts at %s, not %s"):format(tostring(deeper.x), tostring(live.x + 32))) end
 		ns.CloseOptions()
 		table.remove(groups[#groups])
 		ns.WindowLayout.pages.zz, ns.optionsTable.args.zz = nil, nil

@@ -13,7 +13,8 @@
 -- A section is { header = "tab.key" (the model header's name is its title) or
 -- title = L[...], fold = true below the hairline, key = "<page>.<name>" (stable:
 -- an open fold is remembered by it), items = { ... } }. An item is "tab.key"
--- or { "tab.key", indent, pair (may share a row with the item after it; pairs
+-- or { "tab.key", indent (true one step in, 2 two: a choice under a switch
+-- that is itself in), pair (may share a row with the item after it; pairs
 -- that follow one another are one run, whose shown items go two to a row),
 -- standIn (a note that keeps its section while the controls it stands in for
 -- are hidden), lead, columns, widget, big (a button that leads its page: taller,
@@ -278,30 +279,34 @@ ns.WindowLayout = {
 					-- A warlock's Unending Breath on himself, only while he swims.
 					{ "who.own_selfbreath", indent = true },
 					-- Food that gives Well Fed, off until it is turned on; every class has it.
+					-- The foods to leave out right under it (a player found them at the
+					-- foot of the section, apart from the switch they belong to).
 					{ "who.own_food", indent = true },
+					{ "who.own_leave_food", indent = 2 },
 					-- The sleeping bag's Well-Rested, off until it is turned on;
 					-- shown while the bag is in the bags (Classic Era, Forever).
 					{ "who.own_rested", indent = true },
 					-- A companion pet, off until it is turned on; shown while one is in
 					-- the bags or (Forever) the pet journal. Which pet, under it.
 					{ "who.own_pet", indent = true },
-					{ "who.ownPetChoice", indent = true },
+					{ "who.ownPetChoice", indent = 2 },
 					-- Flasks, elixirs and a scroll of each stat, off until turned on;
 					-- shown while one is in the bags (Buffs.lua, CONSUME).
 					{ "who.own_flask", indent = true },
 					{ "who.own_elixir", indent = true },
-					{ "who.own_scrollagility", indent = true },
-					{ "who.own_scrollstrength", indent = true },
-					{ "who.own_scrollprotection", indent = true },
-					{ "who.own_scrollintellect", indent = true },
-					{ "who.own_scrollstamina", indent = true },
-					{ "who.own_scrollspirit", indent = true },
+					-- Every scroll at once, then each scroll's own switch under it, one
+					-- step further in: off, those switches are gone (Options/Who.lua,
+					-- ownScrolls). A player found them above the switch they hang from.
+					{ "who.ownScrolls", indent = true },
+					{ "who.own_scrollagility", indent = 2 },
+					{ "who.own_scrollstrength", indent = 2 },
+					{ "who.own_scrollprotection", indent = 2 },
+					{ "who.own_scrollintellect", indent = 2 },
+					{ "who.own_scrollstamina", indent = 2 },
+					{ "who.own_scrollspirit", indent = 2 },
 					{ "who.own_tracking", indent = true },
 					-- Forever's Find Treasure, kept on beside a gathering tracking.
 					{ "who.own_findtreasure", indent = true },
-					-- Every scroll at once, under the families: off, the scrolls'
-					-- switches above are gone (Options/Who.lua, ownScrolls).
-					{ "who.ownScrolls", indent = true },
 					-- Where the reminders come up, right under the families, so
 					-- they never read as items of the list below them.
 					{ "who.ownCities", indent = true },
@@ -427,6 +432,8 @@ ns.WindowLayout = {
 				{ key = "click.speech", header = "click.speechHeader", items = {
 					"click.thankEmote",
 					{ "click.thankEmoteToken", indent = true },
+					-- Others to pick from, under the one picked.
+					{ "click.thankEmoteMore", indent = 2, columns = 4 },
 					-- The pause before the /thank and the whisper alike.
 					{ "click.thankDelay", indent = true },
 					"click.thankWhisper",

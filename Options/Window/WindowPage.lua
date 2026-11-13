@@ -414,7 +414,13 @@ end
 
 local function Usable(e) return e.visible and e.row ~= nil end
 
-local function Indent(e) return e.layout.indent and INDENT or 0 end
+-- How far in a row starts: `indent = true` one step, `indent = 2` two (a
+-- choice that belongs to a switch which is itself indented).
+local function Indent(e)
+	local n = e.layout.indent
+	if not n then return 0 end
+	return (n == true and 1 or tonumber(n) or 1) * INDENT
+end
 
 -- How far down a row the middle of its control is: under the label for a
 -- dropdown, a slider or a box, at the top for a switch or a swatch. Nil for a
