@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **The options window, dressed.** A gilt moulding with a boss on each corner
+  runs round it, a beaded gilt rail sits under the header and over the footer,
+  its buttons are set in a rim of gold, a gilt stud stands before each
+  section's title, and the page that is open has a band of light and a stud
+  of its own in the sidebar.
+
 ## 1.11.18
 
 - **Who makes Manners** is now at the foot of the options window, under the

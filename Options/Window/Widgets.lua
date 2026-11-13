@@ -440,8 +440,8 @@ function W.Button(parent, label, onClick)
 	b.face:SetAllPoints(b)
 	b.edges = W.Border(b, T.btnEdge)
 	local shine = W.Solid(b, "BORDER", 2, T.shine)
-	shine:SetPoint("TOPLEFT", b, "TOPLEFT", 1, -1)
-	shine:SetPoint("TOPRIGHT", b, "TOPRIGHT", -1, -1)
+	shine:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -2)
+	shine:SetPoint("TOPRIGHT", b, "TOPRIGHT", -2, -2)
 	shine:SetHeight(1)
 	-- The HIGHLIGHT layer shows only under the mouse.
 	W.Solid(b, "HIGHLIGHT", nil, { 1, 1, 1, 0.1 }):SetAllPoints(b)
@@ -455,6 +455,9 @@ function W.Button(parent, label, onClick)
 	b:SetScript("OnDisable", function(self) ns.Guard("options button", ButtonLook, self) end)
 	W.ButtonLabel(b, label)
 	ButtonLook(b)
+	-- Its gilt rim (WindowDress.lua, loaded after this file).
+	local dress = ns.WindowUI and ns.WindowUI.Dress
+	if dress then dress.Button(b) end
 	return b
 end
 

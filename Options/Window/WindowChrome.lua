@@ -149,6 +149,7 @@ function UI.BuildHeader(f)
 	local title = UI.Text(h, 16, C.gold)
 	title:SetPoint("LEFT", icon, "RIGHT", 8, 0)
 	title:SetText("Manners")
+	UI.Dress.Header(h, title)
 
 	-- The X hides this window, not the header it sits on.
 	local close = CreateFrame("Button", nil, h, "UIPanelCloseButton")
@@ -419,6 +420,7 @@ local function PageButton(id)
 	b.bar:SetPoint("TOPLEFT", b, "TOPLEFT", 0, -4)
 	b.bar:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 4)
 	b.bar:SetWidth(3)
+	UI.Dress.PageButton(b)
 	b.icon = b:CreateTexture(nil, "ARTWORK")
 	b.icon:SetSize(20, 20)
 	b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 8, -5)
@@ -480,6 +482,7 @@ local function PaintPageButton(b, page, y)
 	local selected = b.id == UI.page
 	b.selected:SetShown(selected)
 	b.bar:SetShown(selected)
+	UI.Dress.PageSelected(b, selected)
 	b.name:SetTextColor(selected and 1 or C.nav[1], selected and 1 or C.nav[2], selected and 1 or C.nav[3], 1)
 	b.dot:SetShown(Warned(b.id))
 	local height = math.max(20, UI.TextHeight(b.name)) + 10
@@ -550,6 +553,7 @@ function UI.BuildFooter(f)
 	rule:SetPoint("TOPLEFT")
 	rule:SetPoint("TOPRIGHT")
 	rule:SetHeight(1)
+	UI.Dress.Footer(foot)
 	footer.frame = foot
 	footer.resetItem = UI.Item(layout.reset)
 	local label = footer.resetItem and ns.WindowBind.Text(footer.resetItem, "name") or ""
