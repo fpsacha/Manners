@@ -86,8 +86,8 @@ mutate("Buffs.lua",
        expect=P + "vanilla: a weak worn Sanctuary rank is not the one your cast would land", script=S)
 
 mutate("Buffs.lua",
-       "\t[27168] = 70,\n}) do\n",
-       "}) do\n",
+       "\t[27168] = 70,\n\t-- And Burning Crusade's ranks of the group versions (see vanilla's).\n",
+       "\t-- And Burning Crusade's ranks of the group versions (see vanilla's).\n",
        "hunt41-leftovers: Burning Crusade's Sanctuary has no level",
        expect=P + "tbc: a weak worn Sanctuary rank is not the one your cast would land", script=S)
 

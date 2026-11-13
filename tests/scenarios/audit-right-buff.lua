@@ -132,7 +132,10 @@ local function session(scenario, env, body)
 				if (ns.RankLevel(id) or 1) <= myLevel then known[id] = true end
 			end
 			if env.groupKnown and buff then
-				for _, rank in ipairs(buff.groupCast or {}) do known[rank.id] = true end
+				-- env.groupRanks: only these ranks of the group version, as a set.
+				for _, rank in ipairs(buff.groupCast or {}) do
+					if not env.groupRanks or env.groupRanks[rank.id] then known[rank.id] = true end
+				end
 			end
 		end
 		H.freshPrompt(ns, scenario)
@@ -446,6 +449,25 @@ do
 			fail(scenario, ("four of the party miss Intellect, one beside you and three forty yards off, and the queue is %s;"
 				.. " Arcane Brilliance reaches the whole party and raid within 100 yards on Forever, so it should be one group"
 				.. " cast aimed at Anna"):format(listed(queue)))
+			return
+		end
+		-- Aimed at the one within reach of a cast, covering the other three.
+		if group.name ~= "Anna Aim" or #group.groupCast.members ~= 3 then
+			fail(scenario, ("the group cast is aimed at %s and covers %d others; it should be aimed at Anna, beside you,"
+				.. " and cover the three across the room"):format(tostring(group.name), #group.groupCast.members))
+		end
+		if #queue ~= 1 then
+			fail(scenario, "the queue holds more than the one group cast: " .. listed(queue))
+		end
+		-- Two of the three buffed since: two missing is under the threshold of
+		-- three, so Anna keeps her single cast and Bert, out of a single cast's
+		-- reach, is offered nothing, as before.
+		lands(ns, env, "party3", 10157)
+		lands(ns, env, "party4", 10157)
+		queue = queued(ns)
+		if not (#queue == 1 and queue[1].name == "Anna Aim" and not queue[1].groupCast) then
+			fail(scenario, "with two missing it, one of them out of a single cast's reach, the queue is " .. listed(queue)
+				.. "; it should be Anna's single Intellect and nothing for Bert")
 		end
 	end)
 end
@@ -483,20 +505,76 @@ do
 				.. " level, so the cast should be aimed at one of the three of level 60 (or Anna left out of it)")
 				:format(BRILLIANCE_LEVEL, tostring(on.name), level))
 		end
-		-- The press, and the game's answer to it.
-		H.pressButton(ns)
-		ns.addon:UI_ERROR_MESSAGE(nil, nil, LOWLEVEL)
-		Mock.advance(20)
-		local queue, byName = queued(ns)
-		local left = 0
-		for token in pairs(env.units) do
-			local name = ns.UnitFullName(token)
-			if name ~= anna and byName[name] then left = left + 1 end
+		-- Anna is left out of it, and keeps a single Intellect of her own.
+		local _, first = queued(ns)
+		for _, name in ipairs(on.groupCast.members) do
+			if name == anna then fail(scenario, "Anna, level 20, is counted into Arcane Brilliance, which cannot land on her") end
 		end
-		if left < 3 then
-			fail(scenario, ("twenty seconds after the game refused that group cast for Anna's level, the queue is %s; Bert,"
-				.. " Cora and Dain are level 60 and still miss Intellect, and should be offered Arcane Intellect")
-				:format(listed(queue)))
+		if not (first[anna] and not first[anna].groupCast) then
+			fail(scenario, "Anna, left out of the group cast, is not offered a single Arcane Intellect: " .. words(first[anna]))
+		end
+		-- The press, and the game refusing it for the one it was aimed at
+		-- (something stronger on them, say): the group version is held off
+		-- that one as its target, and nobody's single buff with it. Everybody
+		-- of level 60 is still reached by an offer, the next group cast aimed
+		-- at somebody else.
+		local refused = on.name
+		H.pressButton(ns)
+		ns.addon:UI_ERROR_MESSAGE(nil, nil, BOUNCED)
+		Mock.advance(20)
+		local queue = queued(ns)
+		local reached, again = {}, nil
+		for _, entry in ipairs(queue) do
+			reached[entry.name] = true
+			if entry.groupCast then
+				again = entry
+				for _, name in ipairs(entry.groupCast.members) do reached[name] = true end
+			end
+		end
+		for token, unit in pairs(env.units) do
+			local name = ns.UnitFullName(token)
+			if unit.level == 60 and not reached[name] then
+				fail(scenario, ("twenty seconds after the game refused that group cast on %s, %s, level 60 and still missing"
+					.. " Intellect, is reached by no offer; the queue is %s"):format(tostring(refused), tostring(name), listed(queue)))
+			end
+		end
+		if again and again.name == refused then
+			fail(scenario, "the next group cast is aimed at " .. tostring(refused) .. " again, whom the game refused it on")
+		end
+	end)
+end
+
+-- A paladin's Greater Blessing is aimed at one of the class, on every client:
+-- WoW Forever's too. Three warriors miss Might, the first by name of level 40:
+-- Greater Blessing of Might, learned at 60 by a paladin who knows its second
+-- rank, lands on nobody under 50, so he is left out of it and the other two
+-- are under the threshold: single blessings for all three, his at a rank that
+-- lands.
+do
+	local scenario = "audit-right-buff: a Greater Blessing leaves out a member too low for it"
+	local env = { class = "PALADIN", knows = { "might" }, groupKnown = true, bags = { [21177] = 20 }, units = {
+		party1 = { name = { "Anna", "Aim" }, class = "WARRIOR", level = 40 },
+		party2 = { name = { "Bert", "Beside" }, class = "WARRIOR", level = 60 },
+		party3 = { name = { "Cora", "Vell" }, class = "WARRIOR", level = 60 },
+	} }
+	session(scenario, env, function(ns)
+		local queue, byName = queued(ns)
+		for _, entry in ipairs(queue) do
+			if entry.groupCast then
+				fail(scenario, "a Greater Blessing is offered with a warrior of 40 counted into it: " .. listed(queue))
+				return
+			end
+		end
+		for _, name in ipairs({ "Anna Aim", "Bert Beside", "Cora Vell" }) do
+			if not (byName[name] and byName[name].buff.key == "might") then
+				fail(scenario, name .. " is not offered a single Blessing of Might: " .. listed(queue))
+			end
+		end
+		-- All three of level 60, it is one Greater Blessing.
+		env.units.party1.level = 60
+		queue = queued(ns)
+		if not (queue[1] and queue[1].groupCast) then
+			fail(scenario, "SKIPPED -- three warriors of 60 missing Might get no Greater Blessing: " .. listed(queue))
 		end
 	end)
 end
@@ -522,11 +600,31 @@ do
 			fail(scenario, "SKIPPED -- with Anna beside him the shout is not offered at all")
 			return
 		end
+		-- Beside him she is the one offered it, and he is not: her offer covers him.
+		if queue[1].reason == "self" or #queue ~= 1 then
+			fail(scenario, "with Anna beside him and missing the shout, the queue is " .. listed(queue)
+				.. "; it should be her offer alone, which covers him")
+		end
 		Mock.yards = { party1 = 60 }
 		queue = queued(ns)
-		if #queue == 0 then
-			fail(scenario, "with the switch on, his shout down and his one party member sixty yards off, the queue is empty;"
-				.. " nothing of the group's covers him there, so he should be offered Battle Shout for himself")
+		if not (#queue == 1 and queue[1].reason == "self" and queue[1].buff.key == "battleshout") then
+			fail(scenario, "with the switch on, his shout down and his one party member sixty yards off, the queue is "
+				.. listed(queue) .. "; nothing of the group's covers him there, so he should be offered Battle Shout for himself")
+		end
+		-- Beside him again, wearing another warrior's shout: nobody to offer it
+		-- to, and his own still down.
+		Mock.yards = nil
+		lands(ns, env, "party1", top(ns, "WARRIOR", "battleshout"), 100)
+		queue = queued(ns)
+		if not (#queue == 1 and queue[1].reason == "self") then
+			fail(scenario, "with Anna beside him wearing another warrior's shout and his own down, the queue is "
+				.. listed(queue) .. "; he should be offered Battle Shout for himself")
+		end
+		-- With the switch off he is never reminded, as before.
+		ns.db.profile.ownBuffs.shoutAlone = false
+		queue = queued(ns)
+		if #queue ~= 0 then
+			fail(scenario, "with the switch off he is offered " .. listed(queue))
 		end
 	end)
 end
@@ -584,6 +682,19 @@ do
 			fail(scenario, "Anna, level 60, wears Gift of the Wild rank 1 (learned at 50, the numbers of Mark of the Wild rank 6)"
 				.. " and is offered nothing, while Bert wearing rank 6 itself is offered rank 7; she should be offered Mark of the"
 				.. " Wild rank 7 as he is")
+		end
+	end)
+	-- Not below the group version you cast yourself: a druid of 60 who never
+	-- trained Gift of the Wild past its first rank puts that on the party, and
+	-- it must cover them, or the group cast would come straight back for it.
+	env = { class = "DRUID", knows = { "motw" }, groupKnown = true, groupRanks = { [GIFT_RANK_1] = true }, units = {
+		party1 = { name = { "Anna", "Aim" }, class = "MAGE", wears = { [GIFT_RANK_1] = { left = 3000, source = "player" } } },
+	} }
+	session(scenario, env, function(ns)
+		local queue, byName = queued(ns)
+		if byName["Anna Aim"] then
+			fail(scenario, "a druid whose own Gift of the Wild is the first rank is offered " .. words(byName["Anna Aim"])
+				.. " for somebody wearing it; her own group cast should cover them")
 		end
 	end)
 end

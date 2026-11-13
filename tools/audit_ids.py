@@ -815,6 +815,21 @@ def check_buffs(rep, c, d, flavour):
                     lv, have = c.level_of(i), rank_level.get(i)
                     if have is not None and lv is not None and have != lv:
                         rep.note(where, "rank %d has RANK_LEVEL %d, the client says %d (the buff is talent/selfCast, so never read)" % (i, have, lv))
+            # The group versions' levels: a group cast is aimed at nobody more than ten levels under
+            # its rank, and a group version worn is weighed as the rank it is (the ranked clients).
+            # Only what the player casts (`groupCast`): a `group` id may be another class's spell (a
+            # shaman's Water Breathing under Unending Breath), which is no rank of this buff.
+            if flavour in ("vanilla", "tbc", "camelot"):
+                for i in [g["id"] for g in (b.get("groupCast") or [])]:
+                    lv, have = c.level_of(i), rank_level.get(i)
+                    if lv is None:
+                        continue
+                    if have is None:
+                        rep.finding(where + ".group", "group id %d (%s) is learned at level %d; ns.RANK_LEVEL has no entry" % (
+                            i, c.names.get(i), lv))
+                    elif have != lv:
+                        rep.finding(where + ".group", "group id %d (%s): ns.RANK_LEVEL says %d, the client's SpellLevels says %d" % (
+                            i, c.names.get(i), have, lv))
             # talent vs trained
             if ranks:
                 top = ranks[-1]

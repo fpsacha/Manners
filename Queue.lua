@@ -2796,6 +2796,31 @@ function ns.BuildQueue(watch)
 		-- to the press: a shout nothing measured repays nobody.
 		if ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end
 		if ranged == nil then ranged = ns.PastFollowReach(unit) end
+		-- Out of the single buff's reach, and still inside its group version's:
+		-- where that reaches the whole party and raid within a hundred yards
+		-- (ns.GROUP_IS_RAID: WoW Forever's Arcane Brilliance, Prayers and Gift
+		-- of the Wild) and one is ready to cast (GroupBuffs.lua, ns.GroupReady),
+		-- a member read as missing the buff, or running out of it, is kept for
+		-- the fold alone (`foldOnly`): counted towards "When this many need
+		-- it", covered by the cast, never the one it is aimed at (they are
+		-- measured out of reach), and taken out again after the fold if no
+		-- group cast came of it. Four across a room were one single cast and
+		-- three people never offered until they walked up. Their verdict
+		-- stands either way: out of range, as far as a single cast goes. Out
+		-- of sight they never get here (the test above).
+		if f.requireInRange and ranged == false and inGroup and checked and ns.GROUP_IS_RAID
+			and (has == false or remaining ~= nil) then
+			if opts.foldReady == nil then opts.foldReady = ns.GroupReady and ns.GroupReady(db, candidates) or false end
+			if opts.foldReady and opts.foldReady[buff.key] then
+				queue[#queue + 1] = {
+					name = full, short = ShortName(full), targetName = ns.TargetName(full), unit = unit,
+					class = plain(select(2, UnitClass(unit))), buff = buff, reason = reason, inGroup = true,
+					priority = PRIORITY[reason], ranged = false, known = has, remaining = remaining,
+					checked = checked, foldOnly = true,
+				}
+				opts.folding = true
+			end
+		end
 		if f.requireInRange and ranged == false then rejected[full] = true return end
 
 		-- A deliberate target outranks a debt, but only once their auras were read
@@ -3011,7 +3036,18 @@ function ns.BuildQueue(watch)
 
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.
+	-- A shout the walk queued for nobody covers you through nobody: said to
+	-- CastsOnSelf (Core.lua) for this one question, so "Remind me of my shout
+	-- when I'm alone" holds in a group whose members are all out of reach.
+	ns.shoutUnreached = true
+	for i = 1, #queue do
+		if queue[i].buff and queue[i].buff.selfCast then
+			ns.shoutUnreached = nil
+			break
+		end
+	end
 	local mine = SelfEntry(db, candidates, now, neverVerdict)
+	ns.shoutUnreached = nil
 	if mine and FormWaits(mine, queue) then mine = nil end
 	if mine then
 		queue[#queue + 1] = mine
@@ -3048,6 +3084,15 @@ function ns.BuildQueue(watch)
 		ns.Guard("group buffs", function()
 			queue = ns.GroupCasts(queue, db, candidates, inRaid)
 		end)
+	end
+	-- Whoever was kept for the fold alone (visit, `foldOnly`) and went into no
+	-- group cast is out of a single cast's reach, and is offered nothing.
+	if opts.folding then
+		local kept = {}
+		for _, entry in ipairs(queue) do
+			if not entry.foldOnly then kept[#kept + 1] = entry end
+		end
+		queue = kept
 	end
 
 	table.sort(queue, function(a, b)

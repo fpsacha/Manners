@@ -139,7 +139,7 @@ end
 -- two hundred roster reads a scan. Nothing changes inside one call, so the
 -- first bucket's answers serve the rest, by token. Wiped at the start of every
 -- call; the prompt's hold and its press hand in none and read afresh.
-local groupMemo = { subgroup = {}, class = {}, flag = {} }
+local groupMemo = { subgroup = {}, class = {}, flag = {}, level = {} }
 
 -- nil kept as an answer of its own, so "cannot tell" is not asked again.
 local NOTHING = {}
@@ -169,6 +169,49 @@ local function ClassFile(unit)
 end
 local function Flag(unit)
 	return ns.PvPFlag(unit)
+end
+
+-- A unit's level, nil where the client will not say (or shows a skull), for
+-- Asked.
+local function Level(unit)
+	local level = plain(UnitLevel(unit))
+	if type(level) == "number" and level >= 1 then return level end
+	return nil
+end
+
+-- Whether somebody is too low a level for the group version `info` names: a
+-- cast lands only within ten levels of its rank (Buffs.lua, levelGated; the
+-- group ranks' levels are in ns.RANK_LEVEL), and Arcane Brilliance, learned at
+-- 56, is refused on anybody under 46. Such a member does not count towards a
+-- group cast and is never the one it is aimed at: they keep their single
+-- buff, whose macro names a rank that lands (Prompt/Macro.lua, ns.CastName).
+-- A level nobody could read is not too low, and you never are: you learned it.
+local function TooLow(entry, info, memo)
+	local at = ns.LEVEL_GATED and info.groupRank and ns.RankLevel(info.groupRank)
+	if not at or entry.reason == "self" then return false end
+	local level = Asked(memo, "level", entry.unit, Level)
+	return level ~= nil and level + 10 < at
+end
+
+-- The entries of a bucket a group cast may be aimed at: all of them, less
+-- anybody the game refused that group version on as its target ("A more
+-- powerful spell is already active": Queue.lua, NoteRefusal, ns.GROUP_HOLD),
+-- who still counts and is still covered. The bucket's own list when nobody is
+-- held, so the ordinary scan makes nothing.
+local function Aimable(bucket)
+	local key = bucket.buff.key .. ns.GROUP_HOLD
+	local kept
+	for index, entry in ipairs(bucket.entries) do
+		if ns.IsBlocked(entry.name, key) then
+			if not kept then
+				kept = {}
+				for before = 1, index - 1 do kept[before] = bucket.entries[before] end
+			end
+		elseif kept then
+			kept[#kept + 1] = entry
+		end
+	end
+	return kept or bucket.entries
 end
 
 -- Whether `unit` carries a blessing of ours other than `key`, or cannot be
@@ -350,7 +393,7 @@ end
 -- the group, shared by every bucket.
 local function Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 	local anchor
-	for _, entry in ipairs(bucket.entries) do
+	for _, entry in ipairs(Aimable(bucket)) do
 		-- Somebody measured out of reach cannot be the target; the cast still
 		-- covers them if the game says it does.
 		if entry.ranged ~= false and (not anchor or Better(entry, anchor)) then anchor = entry end
@@ -452,6 +495,7 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 	if next(memo.subgroup) then wipe(memo.subgroup) end
 	if next(memo.class) then wipe(memo.class) end
 	if next(memo.flag) then wipe(memo.flag) end
+	if next(memo.level) then wipe(memo.level) end
 
 	local settings = db.groupBuffs
 	if not (settings and settings.use == true and db.sources.group) then return queue end
@@ -494,6 +538,8 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 			else
 				where = "party"
 			end
+			-- Nobody too low for the group version counts towards it (TooLow).
+			if where and TooLow(entry, r.info, memo) then where = nil end
 			if where then
 				local key = buff.key .. "\0" .. tostring(where)
 				local bucket = buckets[key]
@@ -537,6 +583,30 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 	end
 	for _, group in ipairs(made) do out[#out + 1] = group end
 	return out
+end
+
+-- Which of `candidates` have a group version ready to cast now (learned, the
+-- reagent carried or waived, usable), as { [buff key] = true }, or nil for none
+-- or with group buffs switched off: the fold's own test, asked by the walk
+-- (Queue.lua, visit) before the fold, with none of its notes about the
+-- reagent. Where a group version reaches the whole party and raid
+-- (ns.GROUP_IS_RAID), the walk keeps a member out of the single buff's range
+-- for the fold alone on it.
+function ns.GroupReady(db, candidates)
+	local settings = db.groupBuffs
+	if not (settings and settings.use == true and db.sources.group) then return nil end
+	local ready
+	for _, buff in ipairs(candidates) do
+		local info = ns.BuffInfo(buff)
+		if info and info.groupRank and info.groupReagent then
+			local have = ReagentCount(info.groupReagent)
+			if ReagentWaived(info, have) or (have and have > 0 and Usable(info.groupRank)) then
+				ready = ready or {}
+				ready[buff.key] = true
+			end
+		end
+	end
+	return ready
 end
 
 -- The spell an entry's macro casts: the group version's own name for a group

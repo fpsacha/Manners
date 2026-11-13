@@ -1420,6 +1420,12 @@ function ns.CastsOnSelf(buff)
 	-- group: in a party the group's own offer covers you, as it always did.
 	local db = addon.db and addon.db.profile
 	if not (db and db.ownBuffs and db.ownBuffs.shoutAlone == true) then return false end
+	-- In a group too while the group's own offer covers nobody: the walk in
+	-- hand queued the shout for no member (Queue.lua, BuildQueue writes
+	-- ns.shoutUnreached for its own SelfEntry and takes it back). Nobody of
+	-- the party within reach, or the one beside you wearing another warrior's,
+	-- left yours down with nothing to say so.
+	if ns.shoutUnreached == true then return true end
 	return (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) == 0
 end
 
@@ -3782,8 +3788,8 @@ local function UnitHasBuff(unit, buff, guid)
 				-- A rank below the one your cast would land on them covers
 				-- nothing: a level-60 wearing a low player's +10 Stamina for an
 				-- hour, never offered the +70. The game lands the best rank you
-				-- know up to ten levels above theirs. Ranks only, never a group
-				-- version; a level that cannot be read tests nothing. A rank
+				-- know up to ten levels above theirs. Ranks here (a group version
+				-- further down); a level that cannot be read tests nothing. A rank
 				-- above it covers them and is more: yours on top is refused ("A
 				-- more powerful spell is already active"), so it is no refresh
 				-- for a debt or a top-up to offer. Only one their level allows:
@@ -3802,6 +3808,30 @@ local function UnitHasBuff(unit, buff, guid)
 					end
 					if isRank and landing and worn < landing then has, expires, mine = false, nil, nil end
 					if isRank and landing and worn > landing and worn <= level + 10 then over = true end
+					-- A group version worn (Buffs.lua, `group`, its level in
+					-- RANK_LEVEL) is read as the rank it is: the first Gift of
+					-- the Wild is Mark of the Wild's sixth rank, and covered a
+					-- level 60 for an hour whom the seventh would land on. Only
+					-- for a buff with ranks to weigh it by: Kings and Salvation
+					-- have one, and their Greater Blessing is no stronger for
+					-- being learned at 60. And never below the group version
+					-- you cast yourself, whatever your single rank is: what you
+					-- have just put on a party must cover it, or the group cast
+					-- comes straight back. Above both it is "over", as a rank is.
+					local isGroup = false
+					if not isRank and landing and #buff.ranks > 1 then
+						for _, version in ipairs(buff.group or {}) do
+							if version == id then isGroup = true end
+						end
+					end
+					if isGroup then
+						local own = info.groupRank and ns.RankLevel(info.groupRank) or nil
+						if worn < landing and (not own or worn < own) then
+							has, expires, mine = false, nil, nil
+						elseif worn > landing and worn > (own or 0) and worn <= level + 10 then
+							over = true
+						end
+					end
 				end
 				break
 			end

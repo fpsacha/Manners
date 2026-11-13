@@ -153,3 +153,81 @@ mutate("Core.lua",
        "",
        "audit-right-buff: a camping buff's own points are not read",
        expect=CAMP, script=S)
+
+RANGE = P + "Forever: a raid-wide group cast counts only the members inside a single cast's range"
+LOWGROUP = P + "a group cast is aimed at a member too low for it, and its refusal holds the single buff off the party"
+GREATER = P + "a Greater Blessing leaves out a member too low for it"
+WEAKGROUP = P + "a weaker group version from a lower-level caster covers a level 60"
+SHOUT = P + "a warrior in a group with nobody in reach is never reminded of his own shout"
+
+# ------------------------------------------------------------ group casts
+# Nobody out of a single cast's range is kept for the fold.
+mutate("Queue.lua",
+       "\t\t\tif opts.foldReady and opts.foldReady[buff.key] then\n",
+       "\t\t\tif false then\n",
+       "audit-right-buff: Forever's group cast counts nobody out of a single cast's range",
+       expect=RANGE, script=S)
+
+# ...and whoever was kept for it stays in the queue when no group cast came.
+mutate("Queue.lua",
+       "\t\t\tif not entry.foldOnly then kept[#kept + 1] = entry end\n",
+       "\t\t\tkept[#kept + 1] = entry\n",
+       "audit-right-buff: somebody kept for the fold alone is offered a single cast",
+       expect=RANGE, script=S)
+
+# A member too low for the group version counts towards it, and may be its target.
+mutate("GroupBuffs.lua",
+       "\t\t\tif where and TooLow(entry, r.info, memo) then where = nil end\n",
+       "",
+       "audit-right-buff: a group cast counts somebody too low for it",
+       expect=LOWGROUP, script=S)
+
+mutate("GroupBuffs.lua",
+       "\tif not at or entry.reason == \"self\" then return false end\n",
+       "\tif true then return false end\n",
+       "audit-right-buff: a Greater Blessing counts somebody too low for it",
+       expect=GREATER, script=S)
+
+# The one the game refused the group version on is its target again.
+mutate("GroupBuffs.lua",
+       "\t\tif ns.IsBlocked(entry.name, key) then\n",
+       "\t\tif false then\n",
+       "audit-right-buff: a refused group cast is aimed at the same one again",
+       expect=LOWGROUP, script=S)
+
+# A group version worn is never weighed against the rank your cast lands.
+mutate("Core.lua",
+       "\t\t\t\t\tif isGroup then\n",
+       "\t\t\t\t\tif false then\n",
+       "audit-right-buff: a group version covers whatever its rank",
+       expect=WEAKGROUP, script=S)
+
+# The first Gift of the Wild has no level, so nothing to weigh it by.
+mutate("Buffs.lua",
+       "[27683] = 56, [21849] = 50, [21850] = 60,\n",
+       "[27683] = 56, [21850] = 60,\n",
+       "audit-right-buff: the first Gift of the Wild has no level",
+       expect=WEAKGROUP, script=S)
+
+# Weighed against your single rank alone: your own first-rank group cast does
+# not cover the party it was just put on.
+mutate("Core.lua",
+       "\t\t\t\t\t\tif worn < landing and (not own or worn < own) then\n",
+       "\t\t\t\t\t\tif worn < landing then\n",
+       "audit-right-buff: your own group version does not cover them",
+       expect=WEAKGROUP, script=S)
+
+# --------------------------------------------------------- a warrior's shout
+# In a group, never his own, whoever the group's offer reaches.
+mutate("Core.lua",
+       "\tif ns.shoutUnreached == true then return true end\n",
+       "",
+       "audit-right-buff: a warrior in a group is never reminded of his own shout",
+       expect=SHOUT, script=S)
+
+# Always his own in a group, with somebody beside him being offered it.
+mutate("Queue.lua",
+       "\t\t\tns.shoutUnreached = nil\n\t\t\tbreak\n",
+       "\t\t\tbreak\n",
+       "audit-right-buff: a warrior is reminded of his shout while the group is offered it",
+       expect=SHOUT, script=S)

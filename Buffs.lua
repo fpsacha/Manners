@@ -1249,6 +1249,19 @@ ns.RANK_LEVEL = {
 	-- Detect Invisibility for your group (SpellLevels, Classic Era 1.15.9.70003,
 	-- Forever 1.60.1.70790 and, for 132, Burning Crusade 2.5.6.69795).
 	[132] = 26, [2970] = 38, [11743] = 50,
+	-- The group versions (a buff's `group`), since the right-buff audit, each
+	-- its own SpellLevels (Classic Era 1.15.9.70003; Forever 1.60.1.70790 has
+	-- the same for the ones it kept): Arcane Brilliance; Prayer of Fortitude 1
+	-- and 2, of Spirit, of Shadow Protection; Gift of the Wild 1 and 2; the
+	-- Greater Blessings of Wisdom 1 and 2, Might 1 and 2, Kings, Salvation,
+	-- Light and Sanctuary. A group cast is aimed at nobody more than ten levels
+	-- under its rank and counts nobody that low (GroupBuffs.lua), and a group
+	-- version worn is read as the rank it is (Core.lua, UnitHasBuff): the first
+	-- Gift of the Wild is Mark of the Wild's sixth rank, and covers nobody your
+	-- seventh would land on.
+	[23028] = 56, [21562] = 48, [21564] = 60, [27681] = 60, [27683] = 56, [21849] = 50, [21850] = 60,
+	[25894] = 54, [25918] = 60, [25782] = 52, [25916] = 60, [25898] = 60, [25895] = 60, [25890] = 60,
+	[25899] = 60,
 }
 function ns.RankLevel(id)
 	return id and ns.RANK_LEVEL[id] or nil
@@ -1800,6 +1813,9 @@ for id, level in pairs({
 	[27126] = 70, [25389] = 70, [25433] = 68, [26990] = 70, [26992] = 64,
 	[27142] = 65, [27140] = 70, [27144] = 69, [25312] = 70,
 	[27168] = 70,
+	-- And Burning Crusade's ranks of the group versions (see vanilla's).
+	[27127] = 70, [25392] = 70, [32999] = 70, [39374] = 70, [26991] = 70,
+	[27143] = 65, [27141] = 70, [27145] = 69, [27169] = 70,
 }) do
 	ns.RANK_LEVEL[id] = level
 end
