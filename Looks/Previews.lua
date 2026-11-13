@@ -94,8 +94,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.25806, t = 0.5329, r = 0.89516, b = 0.69419, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.768, 0.444, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-<<<<<<< HEAD
 ns.Looks.previewHash = "ad7d6ae0befe0afcd88627758fb95bb71876786f37b8400101c6f4fd14c1c705"
-=======
-ns.Looks.previewHash = "3dc1b70f6809e70b0bbdb149d4a18e8933ee6d5c785f3352e2e240fea1186bcd"
->>>>>>> menu-look
