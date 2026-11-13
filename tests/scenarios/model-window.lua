@@ -419,7 +419,7 @@ local EXPECTED = {
 		"prompt.format", "prompt.reasonTarget", "prompt.reasonOwed", "prompt.reasonAsked",
 		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
 		"prompt.reasonUnknown", "prompt.showIcon", "prompt.iconSize", "prompt.roundIcon",
-		"prompt.iconFrame", "prompt.textShadow",
+		"prompt.iconFrame", "prompt.gryphons", "prompt.textShadow",
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.clickRows", "prompt.tooltip", "prompt.tooltipPosition", "sound.enabled", "sound.file", "sound.owedOnly", "supplies.size",
 	},
