@@ -497,6 +497,11 @@ do
 			fail(scenario, "a paladin pinned to Might was put on the prompt for Kings")
 		end
 		Mock.advance(61)
+		-- Re-aimed by the right-buff audit: Anna is the mock's priest, and a
+		-- plain "buff pls" no longer brings a priest Might (it names no buff,
+		-- and "Don't offer Might to mages, warlocks and priests" is on by
+		-- default). What is held here is the pin, so she asks as a warrior.
+		Mock.unitClass = "WARRIOR"
 		hear(ns, "CHAT_MSG_SAY", "buff pls", "Anna Aim", "Player-1-nameplate1")
 		local anna = entryFor(ns, "Anna Aim")
 		if not (anna and anna.buff.key == "might") then

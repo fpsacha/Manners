@@ -276,8 +276,10 @@ local defaults = {
 			leaveBlessed = false,
 			-- A paladin's Might is not offered to a mage, a warlock or a priest,
 			-- for whom it does nothing (Core.lua, Castable): asked for on
-			-- CurseForge. Off, because it takes away an offer somebody gets today.
-			skipCasters = false,
+			-- CurseForge. On since the right-buff audit (it was off, "because it
+			-- takes away an offer somebody gets today"): melee attack power on a
+			-- mage is the wrong buff, and whoever asks for it by name still gets it.
+			skipCasters = true,
 			-- WoW Forever: somebody wearing a Fish Bowl's Boosted Stats (8% to all
 			-- stats, which Kings replaces) is offered the paladin's other blessings
 			-- first, and Kings only when nothing else of his is missing for them
@@ -1418,6 +1420,12 @@ function ns.CastsOnSelf(buff)
 	-- group: in a party the group's own offer covers you, as it always did.
 	local db = addon.db and addon.db.profile
 	if not (db and db.ownBuffs and db.ownBuffs.shoutAlone == true) then return false end
+	-- In a group too while the group's own offer covers nobody: the walk in
+	-- hand queued the shout for no member (Queue.lua, BuildQueue writes
+	-- ns.shoutUnreached for its own SelfEntry and takes it back). Nobody of
+	-- the party within reach, or the one beside you wearing another warrior's,
+	-- left yours down with nothing to say so.
+	if ns.shoutUnreached == true then return true end
 	return (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) == 0
 end
 
@@ -1682,7 +1690,33 @@ do
 		return ok and not (issecretvalue and issecretvalue(aura)) and type(aura) == "table"
 	end
 
+	-- [name] = { [buff key] = when it lifts }: a buff the game said cannot land
+	-- on that person ("A more powerful spell is already active", "Target is too
+	-- low level"), written by Queue.lua's NoteRefusal for ten minutes. Apart
+	-- from the retry cooldown a press writes (ns.tried, asked through
+	-- opts.blocked): that one means "offered a moment ago, wait", and a
+	-- paladin's walk leaves the person alone for it; this one means the buff is
+	-- the wrong one for them, and the walk goes on to the next. Read here, so
+	-- it is "wrong spell for this person" for every class alike.
+	local heldOff = {}
+	ns.heldOff = heldOff
+
 	local function Castable(opts, buff)
+		local held = opts.name and heldOff[opts.name]
+		if held then
+			local lifts = held[buff.key]
+			if lifts and lifts > (opts.now or GetTime()) then return false end
+		end
+		-- Kept for a favour returned and a request by name (Buffs.lua,
+		-- returnOnly: Unending Breath): never offered unasked.
+		if buff.returnOnly and not (opts.owed or opts.asked) then return false end
+		-- Nobody too low for every rank of it (Buffs.lua, lowLevel): the game
+		-- refuses a cast on somebody more than ten levels under the rank, so
+		-- Kings (20) on a warrior of 8 was a press that failed, held Kings off
+		-- them for ten minutes and, for a paladin, every other blessing with
+		-- it, where Might would have landed. Asked for by name or not: it
+		-- cannot land. A level nobody read holds nothing back.
+		if buff.lowLevel and opts.targetLevel and opts.targetLevel + 10 < buff.lowLevel then return false end
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
 		-- "Don't offer Might to mages, warlocks and priests" (the scan works out
 		-- opts.casterOnly: Queue.lua), but not for somebody who asked by name.
@@ -2002,6 +2036,20 @@ do
 			if not pinned and not opts.asked and skip and next(skip) ~= nil then
 				for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
 					if skip[buff.key] and ns.IsBuffKnown(buff) and not buff.oneTarget then
+						local held, _, mine = has(buff, opts)
+						if held == true and mine ~= false then return nil, true end
+					end
+				end
+			end
+			-- The same for a melee blessing held from a caster ("Don't offer Might
+			-- to mages, warlocks and priests", on by default): the loop above
+			-- does not read what it may not cast, and your Might on a priest
+			-- (asked for by name, or cast by hand) is still yours on them. They
+			-- are covered, or the walk would press Kings or Wisdom over what
+			-- they asked for. Not for somebody asking by name now, as above.
+			if opts.casterOnly and not opts.asked then
+				for _, buff in ipairs(candidates) do
+					if buff.meleeOnly then
 						local held, _, mine = has(buff, opts)
 						if held == true and mine ~= false then return nil, true end
 					end
@@ -3636,6 +3684,24 @@ local function LandingRank(buff, info, level)
 end
 ns.LandingRank = LandingRank
 
+-- What a camping buff is worth on somebody of `level` (Buffs.lua, statTiers:
+-- `tiers` is { { below this level, worth }, ... }, `top` what it gives from the
+-- last tier up). The aura's own first point where the client hands it over;
+-- else the tier its text documents for their level; nil with no level to go by,
+-- and then it holds nothing off. On ns: the main chunk has no local to spare.
+function ns.CampWorth(tiers, top, aura, level)
+	if type(aura) == "table" and not (issecretvalue and issecretvalue(aura)) then
+		local points = plain(aura.points)
+		local own = type(points) == "table" and plain(points[1]) or nil
+		if type(own) == "number" and own > 0 then return own end
+	end
+	if type(level) ~= "number" then return nil end
+	for _, tier in ipairs(tiers) do
+		if level < tier[1] then return tier[2] end
+	end
+	return top
+end
+
 -- Returns has, secondsRemaining, mine, over, seconds. `has` is nil when the client
 -- refuses any one of the buff's ids (the hidden one may be the one they wear);
 -- `secondsRemaining` is nil when the timer is unreadable, not "about to expire";
@@ -3736,8 +3802,8 @@ local function UnitHasBuff(unit, buff, guid)
 				-- A rank below the one your cast would land on them covers
 				-- nothing: a level-60 wearing a low player's +10 Stamina for an
 				-- hour, never offered the +70. The game lands the best rank you
-				-- know up to ten levels above theirs. Ranks only, never a group
-				-- version; a level that cannot be read tests nothing. A rank
+				-- know up to ten levels above theirs. Ranks here (a group version
+				-- further down); a level that cannot be read tests nothing. A rank
 				-- above it covers them and is more: yours on top is refused ("A
 				-- more powerful spell is already active"), so it is no refresh
 				-- for a debt or a top-up to offer. Only one their level allows:
@@ -3756,6 +3822,30 @@ local function UnitHasBuff(unit, buff, guid)
 					end
 					if isRank and landing and worn < landing then has, expires, mine = false, nil, nil end
 					if isRank and landing and worn > landing and worn <= level + 10 then over = true end
+					-- A group version worn (Buffs.lua, `group`, its level in
+					-- RANK_LEVEL) is read as the rank it is: the first Gift of
+					-- the Wild is Mark of the Wild's sixth rank, and covered a
+					-- level 60 for an hour whom the seventh would land on. Only
+					-- for a buff with ranks to weigh it by: Kings and Salvation
+					-- have one, and their Greater Blessing is no stronger for
+					-- being learned at 60. And never below the group version
+					-- you cast yourself, whatever your single rank is: what you
+					-- have just put on a party must cover it, or the group cast
+					-- comes straight back. Above both it is "over", as a rank is.
+					local isGroup = false
+					if not isRank and landing and #buff.ranks > 1 then
+						for _, version in ipairs(buff.group or {}) do
+							if version == id then isGroup = true end
+						end
+					end
+					if isGroup then
+						local own = info.groupRank and ns.RankLevel(info.groupRank) or nil
+						if worn < landing and (not own or worn < own) then
+							has, expires, mine = false, nil, nil
+						elseif worn > landing and worn > (own or 0) and worn <= level + 10 then
+							over = true
+						end
+					end
 				end
 				break
 			end
@@ -3791,6 +3881,32 @@ local function UnitHasBuff(unit, buff, guid)
 			else
 				aura = auraReads[at]
 				seen = (issecretvalue and issecretvalue(aura)) or (type(aura) == "table")
+			end
+			-- A camping buff (Buffs.lua, statTiers: WoW Forever's Boosted
+			-- Stamina, Intellect and Spirit) is weighed here, by what it is
+			-- worth on somebody of their level (ns.CampWorth), and then set
+			-- aside: worth less than what lands, it is cast over, and a scroll
+			-- listed after it is still weighed, where a scroll worth less ends
+			-- the weighing (the scrolls are listed strongest first; this is
+			-- first of all by what it gives a level 60).
+			local tiers = seen and ns.STAT_TIERS[id]
+			if tiers then
+				local level = plain(UnitLevel(unit))
+				if type(level) ~= "number" or level < 1 then level = nil end
+				if landing == false then
+					local landed = level and LandingRank(buff, info, level)
+					landing = landed and ns.STAT_VALUE[landed] or nil
+				end
+				local worth = ns.CampWorth(tiers, ns.STAT_VALUE[id], aura, level)
+				if landing and worth and worth >= landing then
+					if not (issecretvalue and issecretvalue(aura)) and type(aura) == "table" then
+						has, over, mine = true, true, false
+						break
+					end
+					refused = true
+					if info.secrecy[id] ~= true then withheld = true end
+				end
+				seen = false
 			end
 			if seen then
 				if landing == false then

@@ -2,8 +2,10 @@
 -- CurseForge had a mage whose Wisdom (another paladin's, or running low) left
 -- the walk to offer Might, which does nothing for a mage, and asked for a
 -- switch to refresh Wisdom or Kings only. "Don't offer Might to mages, warlocks
--- and priests" (buff.skipCasters, off by default) takes Might out of the walk
--- for those three; a warrior still gets it, and so does anybody who asks.
+-- and priests" (buff.skipCasters) takes Might out of the walk for those three;
+-- a warrior still gets it, and so does anybody who asks. Off by default until
+-- the right-buff audit, on since (tests/scenarios/audit-right-buff.lua holds
+-- the default): the scenario that held "off by default" now switches it off.
 --
 -- Every scenario name starts with "castersmight:" so the mutations in
 -- tests/mutations/castersmight.py can name the one that has to catch them.
@@ -132,11 +134,13 @@ end
 
 for _, client in ipairs(CLIENTS) do
 	do
-		local scenario = "castersmight: " .. client .. ": off by default, casters are offered Might as ever"
+		-- Re-aimed by the right-buff audit: the switch is on by default now, so
+		-- this one turns it off to hold what off does.
+		local scenario = "castersmight: " .. client .. ": switched off, casters are offered Might as ever"
 		local env = { client = client, classes = FOUR,
-			setup = function(ns) ns.db.profile.buff.kingsFirst = false end }
+			setup = function(ns) ns.db.profile.buff.kingsFirst = false ns.db.profile.buff.skipCasters = false end }
 		session(scenario, env, function(ns)
-			if ns.db.profile.buff.skipCasters ~= false then fail(scenario, "the switch is not off by default") end
+			if ns.defaults.profile.buff.skipCasters ~= true then fail(scenario, "the switch is not on by default") end
 			wearing(ns, env)
 			local out = offers(ns, env)
 			for token, class in pairs(FOUR) do

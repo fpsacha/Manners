@@ -113,6 +113,11 @@ end
 
 ns.owed, ns.tried, ns.refusals = owed, tried, refusals
 
+-- The key a group version is blocked under for the one it was aimed at, beside
+-- the buff's own: name .. "\0" .. buff key .. this (NoteRefusal writes it,
+-- GroupBuffs.lua's Build asks it).
+ns.GROUP_HOLD = "\1group"
+
 -- When a debt really runs out: the stamp it was filed with, or its age against
 -- the window as it stands now, whichever comes first -- so lowering "Remember a
 -- buff for" applies to debts already owed. Every reader asks this.
@@ -150,6 +155,8 @@ local function SaveDebts()
 				at = wall - (now - entry.at),
 				class = entry.class,
 				pvp = entry.pvp == true or nil,
+				-- And their level, for the rank the fallback's macro names.
+				level = type(entry.level) == "number" and entry.level or nil,
 			}
 		end
 	end
@@ -189,6 +196,7 @@ local function RestoreDebts()
 					at = now - (wall - at),
 					class = type(entry.class) == "string" and entry.class or nil,
 					pvp = entry.pvp == true or nil,
+					level = type(entry.level) == "number" and entry.level >= 1 and entry.level or nil,
 				}
 			end
 		end
@@ -345,6 +353,8 @@ do
 	-- everything else about them stays as it was.
 	local THIS_BUFF = { "SPELL_FAILED_AURA_BOUNCED", "SPELL_FAILED_LOWLEVEL" }
 	local THIS_BUFF_SECONDS = 600
+	-- Core.lua's table of the buffs so held, which its Castable reads.
+	local heldOff = ns.heldOff
 
 	-- Whether the game's words are one of these global strings.
 	local function OneOf(message, keys)
@@ -389,6 +399,27 @@ do
 				refusals[name] = nil
 			end
 		end
+		-- And the buffs held off one person that have run their ten minutes.
+		for name, held in pairs(heldOff) do
+			for key, lifts in pairs(held) do
+				if lifts <= now then held[key] = nil end
+			end
+			if next(held) == nil then heldOff[name] = nil end
+		end
+	end
+
+	-- One buff held off one person as the wrong one for them (Core.lua,
+	-- heldOff, which Castable reads). Bounded as the refusals are.
+	local function HoldOff(name, buffKey, lifts)
+		local held = heldOff[name]
+		if not held then
+			local count = 0
+			for _ in pairs(heldOff) do count = count + 1 end
+			if count >= CAP then wipe(heldOff) end
+			held = {}
+			heldOff[name] = held
+		end
+		held[buffKey] = lifts
 	end
 
 	-- One person's record, room made for it first. Counted here, not tallied: a
@@ -449,10 +480,18 @@ do
 		-- and no count towards backing them off from everything.
 		if buffKey and OneOf(why, THIS_BUFF) then
 			r.last = now
-			ns.MarkAttempted(name, buffKey, THIS_BUFF_SECONDS, true)
-			for _, member in ipairs(members or {}) do
-				ns.MarkAttempted(member, buffKey, THIS_BUFF_SECONDS, true)
-			end
+			-- A group cast (`members`): what cannot land is the group version
+			-- aimed at this one, so that is what is held, off them as the one a
+			-- group cast is aimed at (GroupBuffs.lua, Build). The single buff
+			-- is held off nobody: until the right-buff audit it was held off
+			-- everybody the cast covered, and one member too low for Arcane
+			-- Brilliance cost the whole party its Intellect for ten minutes.
+			local held = members and (buffKey .. ns.GROUP_HOLD) or buffKey
+			ns.MarkAttempted(name, held, THIS_BUFF_SECONDS, true)
+			-- And told to the walk as the wrong buff for them, not as a press to
+			-- wait out (Core.lua, Castable): a paladin's walk goes on to the
+			-- next blessing.
+			if not members then HoldOff(name, buffKey, now + THIS_BUFF_SECONDS) end
 			return
 		end
 		-- A run long over was swept (SweepRefusals), so this starts again at one.
@@ -1054,6 +1093,37 @@ PRIORITY.sweep = 0.5
 -- you will not; ahead of your group and passers-by, since what you carry is
 -- what you fight with.
 PRIORITY.self = 1.75
+
+-- The order inside one of those tiers, after the range (the sort at the end of
+-- BuildQueue, and the prompt's pick: Prompt/Hold.lua, PickTop). First by what
+-- the reading says: somebody read as missing the buff, then somebody nobody
+-- could read (a guess must not come before a certain gap), then a top-up or a
+-- refresh of what they still wear. Then by the buff's place in the walk
+-- (CastableBuffs' order, written by BuildQueue for the scan in hand), so
+-- everybody's Fortitude comes before anybody's Divine Spirit: a priest who put
+-- Fortitude on the first of the party was kept on that one for Spirit and
+-- Shadow Protection while the rest stood there with nothing. A group cast is
+-- "missing" while anybody it counts is. A buff the walk has no place for (one
+-- of your class's own, one only a request names) comes after the ones it has.
+local walkPlace = {}
+-- The entries kept for the fold alone (visit, `foldOnly`), one table apiece
+-- reused from scan to scan: they leave the queue before it is handed on, so
+-- nothing holds one, and a raid spread over a room made forty a scan.
+local fold = { pool = {}, used = 0 }
+local function OfferRank(entry)
+	local reading = 2
+	local group = entry.groupCast
+	if group then
+		if (group.missing or 0) > 0 then reading = 0 end
+	elseif entry.known == false then
+		reading = 0
+	elseif entry.known == nil then
+		reading = 1
+	end
+	local buff = entry.buff
+	return reading, buff and walkPlace[buff.key] or 99
+end
+ns.OfferRank = OfferRank
 
 -- The group's unit tokens, spelled out once rather than joined on every scan.
 local GROUP_TOKENS = { raid = {}, party = {} }
@@ -2220,6 +2290,11 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	}
 	-- A top-up says how long the buff lasts and when it was due (the tooltip).
 	if remaining then entry.duration, entry.lead, entry.leadKind = seconds, lead, kind end
+	-- A top-up of what you still wear ranks with your group, where the order
+	-- inside a tier puts it behind everybody missing something (OfferRank):
+	-- your Fortitude with minutes to run came ahead of a party member with
+	-- none. Missing, your own buff keeps its place ahead of the group.
+	if has == true then entry.priority = PRIORITY.group end
 	return entry
 end
 
@@ -2278,10 +2353,29 @@ function ns.BuildQueue(watch)
 	-- Nothing you cannot pay for is offered to anybody (see Affordable); an
 	-- empty list is the "nothing to give anybody else" below.
 	local candidates = Affordable(ns.CastableBuffs(), UNPAID)
+	-- Each one's place in the walk, for the order inside a tier (OfferRank).
+	-- None for a class whose buffs replace one another (a paladin): nobody
+	-- there has a second buff to wait for, and which blessing somebody gets
+	-- says nothing about whose turn it is.
+	wipe(walkPlace)
+	fold.used = 0
+	if not ns.EXCLUSIVE_BUFFS[caps.class] then
+		for place, buff in ipairs(candidates) do walkPlace[buff.key] = place end
+	end
 	-- What a request in chat may name beside them: a spell Automatic never
 	-- walks to (Source of Magic) that somebody asked for. nil for none.
 	local askOnly = ns.AskOnlyBuffs()
 	if askOnly then askOnly = Affordable(askOnly) end
+	-- Whether anybody's level decides what they are offered this scan: only
+	-- with a buff in hand whose lowest rank is out of a low level's reach
+	-- (Buffs.lua, lowLevel). A mage's Intellect has none, and asks nobody.
+	local levelDecides = false
+	for _, buff in ipairs(candidates) do
+		if buff.lowLevel then levelDecides = true break end
+	end
+	for _, buff in ipairs(not levelDecides and askOnly or {}) do
+		if buff.lowLevel then levelDecides = true break end
+	end
 	-- Who in the group wears one of yours of a buff for one target at a time,
 	-- before anybody is walked (OneTargetHolders). nil for none in hand.
 	local oneHeld = OneTargetHolders(candidates)
@@ -2439,6 +2533,13 @@ function ns.BuildQueue(watch)
 		-- Below the never-offer list on purpose: asking is not the exception
 		-- buffing you is.
 		local asked = not isOwed and not unasked and ns.AskedFor(unit, full, now, candidates, askOnly) or nil
+		-- Whether they named the buff ("int pls") or none ("buff pls"): the
+		-- second return of the same call, asked again only for an asker.
+		local named = false
+		if asked then
+			local _, byName = ns.AskedFor(unit, full, now, candidates, askOnly)
+			named = byName == true
+		end
 
 		-- Decide whether we would offer this person at all before reading any
 		-- auras, which is the expensive part. A request is a source of its own:
@@ -2562,6 +2663,18 @@ function ns.BuildQueue(watch)
 		local guid = plain(UnitGUID(unit))
 		local whenBuffed = f.whenBuffed or "skip"
 		local checked = whenBuffed ~= "always"
+		-- Their level, where it decides anything (Core.lua, Castable), and for
+		-- somebody owed on a client whose casts are held to it: kept on the
+		-- debt, since the favour's own way onto the prompt has no token to ask
+		-- and its macro must name a rank that lands on them (Prompt/Macro.lua,
+		-- ns.CastName). A level the client will not say, or a skull, is none.
+		local level
+		if levelDecides or (isOwed and ns.LEVEL_GATED) then
+			level = plain(UnitLevel(unit))
+			if type(level) ~= "number" or level < 1 then level = nil end
+			if level and isOwed then owed[full].level = level end
+		end
+		opts.targetLevel = level
 
 		-- Every field written for every person; PickBuffFor keeps nothing.
 		opts.unit, opts.guid, opts.checked = unit, guid, checked
@@ -2574,7 +2687,13 @@ function ns.BuildQueue(watch)
 		opts.inParty = SameParty(unit, inRaid)
 		opts.relevantOnly = f.relevantOnly and not asked
 		opts.casterOnly = skipCasters and ns.CASTER_CLASSES[plain(select(2, UnitClass(unit)))] or nil
-		opts.asked = asked ~= nil
+		-- "Asked", to the walk, is asked for by name: what lifts its rules for
+		-- one buff (Core.lua, Castable and PickBuffFor). A plain "buff pls"
+		-- lifts none of them.
+		opts.asked = named
+		-- A favour owed, for a buff kept for that and for a request by name
+		-- (Buffs.lua, returnOnly).
+		opts.owed = isOwed and true or nil
 		-- Buffs held to the tanks of your group (Core.lua, Castable): read for
 		-- somebody in the group, and only when one is held. Not for somebody who
 		-- asked for it by name, who has said what they want.
@@ -2593,6 +2712,16 @@ function ns.BuildQueue(watch)
 		-- Held to you alone, for everybody who is not you, and not for somebody
 		-- who asked for it by name.
 		opts.meOnly = not asked and meHeld or nil
+		-- Somebody who asked and named no buff ("buff pls") has said nothing
+		-- about any one of them: what suits them, and what is held to your
+		-- tanks or to you, is judged as for anybody who did not ask. A warrior
+		-- was handed Divine Spirit for it, and a mage Might.
+		if asked and not named then
+			opts.relevantOnly = f.relevantOnly
+			opts.tanksOnly = tanksHeld
+			if opts.isTank == nil then opts.isTank = tanksHeld and inGroup and ns.IsTankUnit(unit) or nil end
+			opts.meOnly = meHeld
+		end
 		opts.whenBuffed = whenBuffed
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full
@@ -2672,6 +2801,35 @@ function ns.BuildQueue(watch)
 		-- to the press: a shout nothing measured repays nobody.
 		if ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end
 		if ranged == nil then ranged = ns.PastFollowReach(unit) end
+		-- Out of the single buff's reach, and still inside its group version's:
+		-- where that reaches the whole party and raid within a hundred yards
+		-- (ns.GROUP_IS_RAID: WoW Forever's Arcane Brilliance, Prayers and Gift
+		-- of the Wild) and one is ready to cast (GroupBuffs.lua, ns.GroupReady),
+		-- a member read as missing the buff, or running out of it, is kept for
+		-- the fold alone (`foldOnly`): counted towards "When this many need
+		-- it", covered by the cast, never the one it is aimed at (they are
+		-- measured out of reach), and taken out again after the fold if no
+		-- group cast came of it. Four across a room were one single cast and
+		-- three people never offered until they walked up. Their verdict
+		-- stands either way: out of range, as far as a single cast goes. Out
+		-- of sight they never get here (the test above).
+		if f.requireInRange and ranged == false and inGroup and checked and ns.GROUP_IS_RAID
+			and (has == false or remaining ~= nil) then
+			if opts.foldReady == nil then opts.foldReady = ns.GroupReady and ns.GroupReady(db, candidates) or false end
+			if opts.foldReady and opts.foldReady[buff.key] then
+				fold.used = fold.used + 1
+				local kept = fold.pool[fold.used]
+				if not kept then
+					kept = { inGroup = true, ranged = false, foldOnly = true }
+					fold.pool[fold.used] = kept
+				end
+				kept.name, kept.short, kept.targetName, kept.unit = full, ShortName(full), ns.TargetName(full), unit
+				kept.class, kept.buff, kept.reason = plain(select(2, UnitClass(unit))), buff, reason
+				kept.priority, kept.known, kept.remaining, kept.checked = PRIORITY[reason], has, remaining, checked
+				queue[#queue + 1] = kept
+				opts.folding = true
+			end
+		end
 		if f.requireInRange and ranged == false then rejected[full] = true return end
 
 		-- A deliberate target outranks a debt, but only once their auras were read
@@ -2783,6 +2941,9 @@ function ns.BuildQueue(watch)
 		-- One table for every favour below; only what differs between two
 		-- people is written inside the loop.
 		local tokenless = {
+			-- A favour, which is what a buff kept for one is for (Buffs.lua,
+			-- returnOnly).
+			owed = true,
 			-- No token, so no telling whether they are in the group; a
 			-- party-only buff would be a button that fails.
 			inGroup = false,
@@ -2839,6 +3000,9 @@ function ns.BuildQueue(watch)
 					if entry.class then hasMana = MANA_CLASSES[entry.class] == true end
 
 					tokenless.hasMana = hasMana
+					-- Their level as a token last read it (visit, and
+					-- Favours.lua as the favour was noticed), nil for none.
+					tokenless.targetLevel = entry.level
 					tokenless.casterOnly = skipCasters and ns.CASTER_CLASSES[entry.class] or nil
 					tokenless.name = full
 					local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
@@ -2862,6 +3026,9 @@ function ns.BuildQueue(watch)
 							-- follows the setting.
 							checked = (f.whenBuffed or "skip") ~= "always",
 						}
+						-- Their level, for the rank the macro names: written
+						-- after the table is built, only when there is one.
+						if entry.level then queue[#queue].level = entry.level end
 					end
 				end
 			end
@@ -2878,7 +3045,18 @@ function ns.BuildQueue(watch)
 
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.
+	-- A shout the walk queued for nobody covers you through nobody: said to
+	-- CastsOnSelf (Core.lua) for this one question, so "Remind me of my shout
+	-- when I'm alone" holds in a group whose members are all out of reach.
+	ns.shoutUnreached = true
+	for i = 1, #queue do
+		if queue[i].buff and queue[i].buff.selfCast then
+			ns.shoutUnreached = nil
+			break
+		end
+	end
 	local mine = SelfEntry(db, candidates, now, neverVerdict)
+	ns.shoutUnreached = nil
 	if mine and FormWaits(mine, queue) then mine = nil end
 	if mine then
 		queue[#queue + 1] = mine
@@ -2916,12 +3094,27 @@ function ns.BuildQueue(watch)
 			queue = ns.GroupCasts(queue, db, candidates, inRaid)
 		end)
 	end
+	-- Whoever was kept for the fold alone (visit, `foldOnly`) and went into no
+	-- group cast is out of a single cast's reach, and is offered nothing.
+	if opts.folding then
+		local kept = {}
+		for _, entry in ipairs(queue) do
+			if not entry.foldOnly then kept[#kept + 1] = entry end
+		end
+		queue = kept
+	end
 
 	table.sort(queue, function(a, b)
 		if a.priority ~= b.priority then return a.priority < b.priority end
 		local ar = a.ranged == true and 0 or (a.ranged == nil and 1 or 2)
 		local br = b.ranged == true and 0 or (b.ranged == nil and 1 or 2)
 		if ar ~= br then return ar < br end
+		-- What is missing before what nobody could read before a top-up, then
+		-- the buff's place in the walk (OfferRank).
+		local aReading, aPlace = OfferRank(a)
+		local bReading, bPlace = OfferRank(b)
+		if aReading ~= bReading then return aReading < bReading end
+		if aPlace ~= bPlace then return aPlace < bPlace end
 		-- A group cast ahead of single casts of its kind: one press covers a
 		-- party, so it clears the queue fastest.
 		if (a.groupCast ~= nil) ~= (b.groupCast ~= nil) then return a.groupCast ~= nil end

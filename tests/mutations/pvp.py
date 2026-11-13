@@ -180,8 +180,8 @@ mutate("Queue.lua",
 
 # The flag read with the favour not kept, so the fallback offers straight away.
 mutate("Favours.lua",
-       "\t\t\tguid = seen.guid, class = seen.class, pvp = seen.pvp,\n",
-       "\t\t\tguid = seen.guid, class = seen.class,\n",
+       "\t\t\tguid = seen.guid, class = seen.class, pvp = seen.pvp, level = seen.level,\n",
+       "\t\t\tguid = seen.guid, class = seen.class, level = seen.level,\n",
        "pvp: the favour's flag not filed",
        expect="the owed fallback offered the favour back to somebody last read as flagged", script=S)
 

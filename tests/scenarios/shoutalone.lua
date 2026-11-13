@@ -86,6 +86,12 @@ end
 do
 	local scenario = "shoutalone: on, in a group the shout is not offered to him"
 	warrior(scenario, true, true, function(ns)
+		-- Re-aimed by the right-buff audit: the group's own offer covers him
+		-- only while there is one, so "My party and raid" is on here (the
+		-- helper turns it off) and Anna, beside him, is offered the shout. With
+		-- nobody of the group offered it he is reminded of his own
+		-- (tests/scenarios/audit-right-buff.lua).
+		ns.db.profile.sources.group = true
 		if offersShout(ns) then fail(scenario, "the shout was offered to a warrior in a group through Myself") end
 	end)
 end

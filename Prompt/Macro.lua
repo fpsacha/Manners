@@ -210,6 +210,17 @@ do
 		if StrategyFor(entry) ~= "target" then return name end
 		local unit = entry.unit
 		local levels = ns.RANK_LEVEL
+		-- A favour returned by name alone has no token to ask, and carries the
+		-- level one last read of them (Queue.lua, the owed fallback's
+		-- entry.level): the same rank by it, or the plain name landed the top
+		-- rank on somebody too low for it, which the game refuses.
+		if not unit and levels and type(entry.level) == "number" and entry.level >= 1 then
+			local known = ns.BuffInfo(buff)
+			local best = known and known.topRank
+			local landed = best and ns.LandingRank(buff, known, entry.level)
+			local words = landed and landed ~= best and RankText(landed)
+			return words and (name .. "(" .. words .. ")") or name
+		end
 		if not unit or not levels or ns.UnitFullName(unit) ~= entry.name then return name end
 		local info = ns.BuffInfo(buff)
 		local top = info and info.topRank

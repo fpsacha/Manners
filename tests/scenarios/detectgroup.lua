@@ -193,11 +193,18 @@ do
 	local known = { UNENDING_BREATH }
 	for _, id in ipairs(RANKS) do known[#known + 1] = id end
 	session(scenario, { on = true, known = known }, function(ns)
+		-- Re-aimed by the right-buff audit: unasked, a party member was offered
+		-- Unending Breath, first in the walk, and the request moved them on to
+		-- Detect Invisibility. Unending Breath is no longer offered unasked, so
+		-- a favour is what puts it first here: she buffed the warlock, and her
+		-- request by name is answered once the favour is settled.
+		H.owe(ns, filed(PARTY.party1))
 		local out = offers(ns)
 		if out[filed(PARTY.party1)] ~= "breath" then
-			fail(scenario, "SKIPPED -- unasked, a party member is offered " .. tostring(out[filed(PARTY.party1)]) .. ", not Unending Breath")
+			fail(scenario, "SKIPPED -- owed, a party member is offered " .. tostring(out[filed(PARTY.party1)]) .. ", not Unending Breath")
 			return
 		end
+		ns.SettleFavour(filed(PARTY.party1))
 		ns.addon.CHAT_MSG_PARTY(ns.addon, "CHAT_MSG_PARTY", "detect invis pls", filed(PARTY.party1), "Common", "", "", "",
 			0, 0, "", 0, 1, "Player-1-party1")
 		out = offers(ns)

@@ -278,7 +278,14 @@ do
 		ns.db.profile.filters.repayCovered = true
 		Mock.held = intellectIds(ns)
 		owe(ns, "Anna Aim")
+		-- Everybody level 12 here, as the mock had them until the right-buff
+		-- audit made its other units 60: this mage knows the first rank alone,
+		-- and on a level 60 the top rank they wear is a rank above his, which
+		-- is no refresh to offer anybody, owed or not.
+		local levelOf = rawget(_G, "UnitLevel")
+		rawset(_G, "UnitLevel", function() return 12 end)
 		local q = inQueue(ns)
+		rawset(_G, "UnitLevel", levelOf)
 		if not q["Anna Aim"] then
 			fail(scenario, "SKIPPED -- the owed target was not offered")
 		elseif q["Bert Beside"] then
@@ -456,6 +463,9 @@ do
 		IsSpellKnown = function(id) return known[id] == true end
 		IsPlayerSpell = IsSpellKnown
 		freshPrompt(ns, scenario)
+		-- Re-aimed by the right-buff audit: Shadow Protection, the spell learned
+		-- here, is off until it is ticked on Who to buff.
+		ns.db.profile.buff.optIn.shadow = true
 		local held = {}
 		for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").auraIds) do held[id] = true end
 		Mock.held = held

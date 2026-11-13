@@ -436,8 +436,10 @@ function X.checkComplete(W, queue, standing)
 	for _, buff in ipairs(candidates) do
 		-- Nor one for one target at a time (Buffs.lua, oneTarget: Earth Shield on
 		-- the tank, Symbiosis), which goes to one member of the group.
+		-- Nor one kept for a favour returned and a request by name (returnOnly:
+		-- Unending Breath), which nobody is plainly worth unasked.
 		if not (buff.tankChoice and ((held.tanksOnly or {})[buff.key] or (held.meOnly or {})[buff.key]))
-			and not buff.oneTarget then
+			and not buff.oneTarget and not buff.returnOnly then
 			kept[#kept + 1] = buff
 		end
 	end
@@ -489,6 +491,13 @@ function X.checkComplete(W, queue, standing)
 							fine = false
 						end
 						if fine and f.relevantOnly and buff.manaOnly and not MANA[p.class] then fine = false end
+						-- Nobody is worth a buff none of whose ranks lands on their level
+						-- (Buffs.lua, lowLevel), nor a caster a melee blessing while
+						-- "Don't offer Might to mages, warlocks and priests" is on.
+						if fine and buff.lowLevel and p.level + 10 < buff.lowLevel then fine = false end
+						if fine and buff.meleeOnly and db.buff.skipCasters == true and ns.CASTER_CLASSES[p.class] then
+							fine = false
+						end
 						if fine and f.skipSameClass and not pointed and p.class == W.me.class
 							and not buff.talent then
 							local info = ns.BuffInfo(buff)
@@ -561,6 +570,10 @@ function X.checkComplete(W, queue, standing)
 				or (f.requireInRange and not (p.visible and p.yards <= 30))
 				or (now - (p.auraAt or -100)) < 3.6
 				or db.buff.skip[buff.key] or (pinned and pinned.key ~= buff.key)
+				-- Asked for or not, a buff none of whose ranks lands on their level
+				-- is not offered, nor one that is off until it is switched on.
+				or (buff.lowLevel and p.level + 10 < buff.lowLevel)
+				or ns.OptedOut(buff, db.buff)
 				-- A buff no longer learned (a respec, a spellbook change) cannot be cast.
 				or not ns.IsBuffKnown(buff)
 			if not skip then
@@ -680,6 +693,23 @@ function X.checkQueue(W, queue)
 			return fail(W, "queue", ("%s (priority %s) is queued after %s (priority %s)"):format(
 				e.name, tostring(e.priority), queue[i - 1].name, tostring(queue[i - 1].priority)))
 		end
+		-- Inside a tier and a range: what is read as missing before what nobody
+		-- could read before a top-up, and then by the buff's place in the walk
+		-- (Queue.lua, OfferRank), so nobody's second buff comes before
+		-- somebody else's first. Nobody kept for the fold alone is handed on.
+		if i > 1 and e.priority == queue[i - 1].priority and ns.OfferRank then
+			local before = queue[i - 1]
+			local function range(x) return x.ranged == true and 0 or (x.ranged == nil and 1 or 2) end
+			if range(e) == range(before) then
+				local reading, place = ns.OfferRank(e)
+				local readingBefore, placeBefore = ns.OfferRank(before)
+				if reading < readingBefore or (reading == readingBefore and place < placeBefore) then
+					return fail(W, "queue", ("%s (%s, reading %d, place %d) is queued after %s (%s, reading %d, place %d) in the same tier"):format(
+						e.name, e.buff.key, reading, place, before.name, before.buff.key, readingBefore, placeBefore))
+				end
+			end
+		end
+		if e.foldOnly then return fail(W, "queue", e.name .. " was kept for the fold alone and is on the queue") end
 		if names[e.name] then return fail(W, "queue", e.name .. " is queued twice") end
 		names[e.name] = true
 		if type(e.priority) ~= "number" or e.priority ~= e.priority then

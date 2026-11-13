@@ -27,7 +27,7 @@ mutate("Queue.lua",
        "\t\topts.casterOnly = skipCasters and ns.CASTER_CLASSES[plain(select(2, UnitClass(unit)))] or nil\n",
        "\t\topts.casterOnly = ns.CASTER_CLASSES[plain(select(2, UnitClass(unit)))] or nil\n",
        "castersmight: held back with the switch off",
-       expect="castersmight: vanilla: off by default, casters are offered Might as ever", script=S)
+       expect="castersmight: vanilla: switched off, casters are offered Might as ever", script=S)
 
 mutate("Core.lua",
        "ns.CASTER_CLASSES = { MAGE = true, WARLOCK = true, PRIEST = true }\n",
@@ -53,11 +53,13 @@ mutate("Buffs.lua",
        "castersmight: Might is not flagged on Burning Crusade",
        expect="castersmight: tbc: on, a mage, a warlock and a priest are offered Kings, a warrior still Might", script=S)
 
+# Re-aimed by the right-buff audit: the default is on now, and the fault is the
+# old default.
 mutate("Core.lua",
-       "\t\t\tskipCasters = false,\n",
        "\t\t\tskipCasters = true,\n",
-       "castersmight: on by default",
-       expect="castersmight: vanilla: off by default, casters are offered Might as ever", script=S)
+       "\t\t\tskipCasters = false,\n",
+       "castersmight: off by default",
+       expect="audit-right-buff: Blessing of Might is offered to a mage on a fresh profile", script=S)
 
 mutate("Options/Who.lua",
        "\t\t\t\t\tfor _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do\n\t\t\t\t\t\tif buff.meleeOnly then return false end\n\t\t\t\t\tend\n\t\t\t\t\treturn true\n",

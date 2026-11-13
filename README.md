@@ -320,6 +320,10 @@ each class offers*).
   Battle or Guardian elixir slot. A Scroll of Intellect, Stamina or Spirit
   waits while the class buff of the same stat is on you, unless that is a
   weaker rank than the scroll. Nothing is offered mounted or in a fight.
+  The other way round, somebody wearing such a scroll, or on WoW Forever a
+  camp's Boosted Stamina, Boosted Intellect or Boosted Spirit, worth at least
+  what your rank would give them, is not offered your Fortitude, Intellect or
+  Divine Spirit: the game refuses the weaker of the two.
   Classic Era (Season of Discovery's too, and Mageblood Potion, the Troll's
   Blood potions and Gift of Arthas count as elixirs), WoW Forever, Burning
   Crusade and Mists. On retail, *Flask* alone, for every class: Midnight's and
@@ -347,7 +351,8 @@ each class offers*).
   and *Raid groups I buff* never does. In a party you count towards a group
   buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior (unless *Remind me of my
-  shout when I'm alone* is on and you are in no group) and nobody needs Unending Breath
+  shout when I'm alone* is on and you are in no group, or nobody of your group
+  is near enough to be offered it) and nobody needs Unending Breath
   on dry land, so neither is offered to you. A paladin wearing one of their
   own blessings is not offered another.
 - Right-click "You" to skip that buff for now: your next own buff comes up in
@@ -365,7 +370,11 @@ Protection, Gift of the Wild) and carry its reagent, a party with enough
 people missing it gets one cast instead of one each. Three is the default,
 and *When this many need it* sets 2 to 5. In a raid the whole raid is
 counted together, because on WoW Forever the spell reaches everybody in
-your party and raid within 100 yards. A paladin's Greater Blessings go by
+your party and raid within 100 yards: people further off than a single buff
+reaches count too, and the cast is aimed at somebody near you. Somebody more
+than ten levels under the group spell (under 46 for Arcane Brilliance) is not
+counted and keeps the single buff, at a rank that lands on them. A paladin's
+Greater Blessings go by
 class across the group instead, and are held back while anybody of that
 class carries another of your blessings, which the Greater one would
 replace. The prompt names who it is for ("Your party", "Your raid",
@@ -696,9 +705,15 @@ and *Show the welcome again* at the bottom.
   considered, so if you have not learned it there is nothing to fall back to.
   Where a class has several buffs, automatic offers whichever one they are
   missing, in list order: a priest walks Fortitude, then Divine Spirit, then
-  Shadow Protection. Under it, one switch per buff; untick one to never offer
-  it. A class with a single buff reads "You offer Arcane Intellect." instead
-  of a dropdown.
+  Shadow Protection. Everybody is offered the first buff they are missing
+  before anybody is offered a second, so a party gets its Fortitude all round
+  before the first Divine Spirit. Under it, one switch per buff; untick one to
+  never offer it. Shadow Protection (Classic Era, WoW Forever, Burning Crusade)
+  starts unticked, like a warlock's Detect Invisibility: tick it to have it
+  offered. A buff the game would refuse for somebody's level (more than ten
+  levels under its lowest rank: Blessing of Kings under 10, Divine Spirit
+  under 20) is passed over for the next one that reaches them. A class with a
+  single buff reads "You offer Arcane Intellect." instead of a dropdown.
 - *Automatic for paladins*: blessings overwrite one another, so anybody
   already carrying one of yours is left alone rather than handed a different
   one. The pick is Wisdom for anyone with a mana bar and Might for everyone
@@ -730,7 +745,7 @@ and *Show the welcome again* at the bottom.
   off by default. Anybody carrying any blessing from another paladin is left
   alone, even one yours would stack with; somebody who asks you for a blessing
   by name is still offered it.
-- *Don't offer Might to mages, warlocks and priests* (paladins): off by
+- *Don't offer Might to mages, warlocks and priests* (paladins): on by
   default. Blessing of Might does nothing for those three, so with the switch on
   it is left out of the walk for them: a mage whose Wisdom is another paladin's
   or running low is offered Kings or left alone, not Might. Everybody else,
@@ -770,8 +785,10 @@ and *Show the welcome again* at the bottom.
   elixirs and scrolls out of the open world (poisons and lures are not held
   back), then, for a warrior only, *Remind me of my shout when I'm alone*,
   off by default: with nobody in your group, Battle Shout is offered to you
-  too when it is missing or running low (in a group it covers you already),
-  in a fight as well, where nothing else of your own is offered,
+  too when it is missing or running low (in a group it covers you already,
+  and you are reminded there only while nobody of the group is near enough to
+  be offered it), in a fight as well, where nothing else of your own is
+  offered,
   then *Put consumables on a button of their own*, off by default: food,
   flasks, elixirs, scrolls and your weapon's oils, stones and poisons leave
   the prompt for a small button of their own, which you drag where you want
@@ -791,7 +808,12 @@ and *Show the welcome again* at the bottom.
   first*. With *My target first* off, or under *Always offer* (nothing is read
   then), your target is ranked by why they are on the list like anybody else.
   A targeted stranger whose buffs cannot be read counts as a passer-by, so a
-  friend goes ahead of them.
+  friend goes ahead of them. Among people offered for the same reason,
+  somebody read as missing a buff comes before somebody whose buffs the game
+  would not show, and both before a top-up of a buff still running; then the
+  first buff of your list before the second; then friends, then by name. A
+  top-up of your own buff waits with your group's, behind anybody missing
+  something.
 
 **Who to skip.** The switches that leave people out, and the never-offer
 list. They used to be at the bottom of *Who to buff*.
@@ -1159,11 +1181,11 @@ your client runs in. Slash commands are English in all of them.
 | Class | Buffs offered |
 |---|---|
 | Mage | Arcane Intellect |
-| Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection |
+| Priest | Power Word: Fortitude, Divine Spirit; Shadow Protection, off until you tick it (Classic Era, WoW Forever, Burning Crusade) |
 | Druid | Mark of the Wild, Thorns |
 | Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade; Beacon of Light (Season of Discovery) or Oath of Light (WoW Forever), for your tank |
 | Shaman | Earth Shield and Spirit of the Alpha (Season of Discovery), for your tank |
-| Warlock | Unending Breath; Detect Invisibility for your party or raid, off until you tick it (Classic Era, WoW Forever, Burning Crusade) |
+| Warlock | Unending Breath, to return a favour and to whoever asks for it by name, never unasked (Classic Era, WoW Forever, Burning Crusade); Detect Invisibility for your party or raid, off until you tick it (the same three) |
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever); Commanding Shout too in Season of Discovery |
 
 **One person at a time.** Earth Shield, Spirit of the Alpha, Beacon of Light,
@@ -1177,8 +1199,9 @@ group who asks for one by name is offered it; a plain "buffs pls" never names
 them. A tank who buffs you is owed one back.
 
 Individual buffs can be switched off on the *Who to buff* page (a warlock's
-Unending Breath too; his Detect Invisibility for the group is the one that
-starts off and is switched on there), or one pinned so it is the only thing ever cast. A druid's
+Unending Breath too; his Detect Invisibility for the group and a priest's
+Shadow Protection are the ones that
+start off and are switched on there), or one pinned so it is the only thing ever cast. A druid's
 Thorns also has *Offer to*: *Everyone*; **Tanks only**, which offers it only to
 the players in your group the game gives the tank role or marks as main tank in
 a raid, so the rest of a dungeon or raid is left alone (a player with no role is

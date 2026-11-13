@@ -121,6 +121,18 @@ local function HoldStillStands(now)
 	return not ns.IsBlocked(S.heldEntry.name, S.heldEntry.buff and S.heldEntry.buff.key, now)
 end
 
+-- Whether `a` comes after `b` by the order inside a tier: what is missing
+-- before what nobody could read before a top-up, then the buff's place in the
+-- walk (Queue.lua, OfferRank, read at call time: Queue.lua loads first).
+local function WorseOffer(a, b)
+	local rank = ns.OfferRank
+	if not rank then return false end
+	local aReading, aPlace = rank(a)
+	local bReading, bPlace = rank(b)
+	if aReading ~= bReading then return aReading > bReading end
+	return aPlace > bPlace
+end
+
 -- Whoever is offered stays offered: the current pick wins ties, and the last
 -- painted one is held briefly after leaving the queue against anything no
 -- better.
@@ -129,7 +141,12 @@ function Prompt:PickTop(queue, fallback)
 	if S.current and top then
 		for _, candidate in ipairs(queue) do
 			if candidate.name == S.current.name then
-				if candidate.priority <= top.priority then return candidate end
+				if candidate.priority < top.priority then return candidate end
+				-- On a tie of the tier, only while they are no worse by the
+				-- order inside it (Queue.lua, OfferRank): with their Fortitude
+				-- on, their Divine Spirit does not keep the prompt from
+				-- somebody else's Fortitude.
+				if candidate.priority == top.priority and not WorseOffer(candidate, top) then return candidate end
 				break
 			end
 		end

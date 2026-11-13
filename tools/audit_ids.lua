@@ -127,6 +127,7 @@ local data = {
 	-- What every rank of Arcane Intellect, Power Word: Fortitude and Divine Spirit
 	-- and every scroll of their stat gives (Buffs.lua, statValue).
 	statValue = {},
+	statTiers = {},
 	-- How long each id lasts, seconds (Buffs.lua, "how long each lasts").
 	seconds = ns.SPELL_SECONDS or {},
 	classesWithout = keysOf(ns.CLASSES_WITHOUT_BUFFS),
@@ -151,5 +152,9 @@ local data = {
 }
 for id, level in pairs(ns.RANK_LEVEL or {}) do data.rankLevel[tostring(id)] = level end
 for id, value in pairs(ns.STAT_VALUE or {}) do data.statValue[tostring(id)] = value end
+-- The blockers whose worth goes by the wearer's level (Buffs.lua, statTiers:
+-- WoW Forever's camping buffs), as { "id": [ [below level, worth], ... ] }.
+data.statTiers = {}
+for id, tiers in pairs(ns.STAT_TIERS or {}) do data.statTiers[tostring(id)] = tiers end
 
 return encode(data)

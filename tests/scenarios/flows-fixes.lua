@@ -197,6 +197,11 @@ for _, source in ipairs({ { "another paladin's", "nameplate2" }, { "nobody's", n
 		end
 		ns.db.profile.buff.choice = "might"
 		ns.db.profile.sources.strangers = false
+		-- Re-aimed by the right-buff audit: these scenarios were written with
+		-- Might offered to mages, warlocks and priests, which is a switch that
+		-- is on by default now ("Don't offer Might to..."): off here, where the
+		-- walk's order, the pin and whose blessing it is are what is held.
+		ns.db.profile.buff.skipCasters = false
 		-- The refresh of a buff they already wear is a switch since "Refresh a buff
 		-- they already have, to return a favour" (tests/scenarios/covered.lua has
 		-- the default): on here, where the refresh is what is asked about.

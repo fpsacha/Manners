@@ -56,10 +56,21 @@
 --             db.buff.optIn (a sparse set, present is on), where every other
 --             buff is on until its key is in db.buff.skip (Core.lua,
 --             ns.BuffOff). Detect Invisibility for your group, which few
---             warlocks want handed out.
+--             warlocks want handed out; and Shadow Protection, ten minutes
+--             of one resistance, on Classic Era, Forever and Burning Crusade.
 --   gift      the RP.GIFT pool a favour of it is thanked with where that is not
 --             its own key's (Phrases.lua, RP.GiftKey): Detect Invisibility's
 --             thanks were written when it was a favour Manners never offered.
+--   returnOnly  offered to return a favour, and to whoever asks for it by name
+--             in chat; never unasked, to your group or to a passer-by (Core.lua,
+--             Castable: opts.owed, opts.asked). Unending Breath on Classic Era,
+--             Forever and Burning Crusade, where it is a warlock's one buff for
+--             others and so cannot be neverAuto as on Mists: nobody on dry land
+--             wants water breathing, and a favour is still worth returning.
+--   lowLevel  not written in a set: worked out when the lookups are built, the
+--             level the buff's lowest rank is learned at where that is above 11
+--             (so somebody of level 1 is out of its reach), on the sets where a
+--             cast lands only within ten levels of its rank (`levelGated`).
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
 --   strongest the buff of an exclusive class's list (a paladin's Kings) that
@@ -202,6 +213,12 @@ local VANILLA = {
 			group = { 27683 },
 			-- Prayer of Shadow Protection.
 			groupCast = { { id = 27683, reagent = SACRED_CANDLE } },
+			-- Off until it is switched on (optIn), since the right-buff audit: ten
+			-- minutes of resistance to one school, which a priest wants up for the
+			-- fights that deal it and nowhere else. On, as it was, it was walked for
+			-- the priest, every party member and every passer-by, and came back
+			-- every ten minutes. Forever's copy and Burning Crusade's are the same.
+			optIn = true,
 		},
 	},
 
@@ -284,6 +301,11 @@ local VANILLA = {
 			-- of your Demon Skin or Armor.
 			neverSelf = true,
 			switchable = true,
+			-- And nothing anybody on dry land wants handed to them: kept for a
+			-- favour returned (it is all a warlock has to return one with) and
+			-- for whoever asks for it by name. Until the right-buff audit it was
+			-- walked for every party member and passer-by, every ten minutes.
+			returnOnly = true,
 		},
 		-- Detect Invisibility for your group (asked for on CurseForge by a player
 		-- on Forever): Lesser at 26, plain at 38, Greater at 50 (SpellLevels and
@@ -1227,6 +1249,19 @@ ns.RANK_LEVEL = {
 	-- Detect Invisibility for your group (SpellLevels, Classic Era 1.15.9.70003,
 	-- Forever 1.60.1.70790 and, for 132, Burning Crusade 2.5.6.69795).
 	[132] = 26, [2970] = 38, [11743] = 50,
+	-- The group versions (a buff's `group`), since the right-buff audit, each
+	-- its own SpellLevels (Classic Era 1.15.9.70003; Forever 1.60.1.70790 has
+	-- the same for the ones it kept): Arcane Brilliance; Prayer of Fortitude 1
+	-- and 2, of Spirit, of Shadow Protection; Gift of the Wild 1 and 2; the
+	-- Greater Blessings of Wisdom 1 and 2, Might 1 and 2, Kings, Salvation,
+	-- Light and Sanctuary. A group cast is aimed at nobody more than ten levels
+	-- under its rank and counts nobody that low (GroupBuffs.lua), and a group
+	-- version worn is read as the rank it is (Core.lua, UnitHasBuff): the first
+	-- Gift of the Wild is Mark of the Wild's sixth rank, and covers nobody your
+	-- seventh would land on.
+	[23028] = 56, [21562] = 48, [21564] = 60, [27681] = 60, [27683] = 56, [21849] = 50, [21850] = 60,
+	[25894] = 54, [25918] = 60, [25782] = 52, [25916] = 60, [25898] = 60, [25895] = 60, [25890] = 60,
+	[25899] = 60,
 }
 function ns.RankLevel(id)
 	return id and ns.RANK_LEVEL[id] or nil
@@ -1535,6 +1570,14 @@ local VANILLA_SET = {
 	buffs = VANILLA,
 	own = VANILLA_OWN,
 	statValue = VANILLA_STAT,
+	-- A cast lands only on somebody within ten levels of a rank's own level:
+	-- the game refuses it on anybody lower ("Target is too low level"), and
+	-- from a macro it does not lower the rank by itself (GitHub issue 9).
+	-- True of the ranked sets (this one, and Forever's and Burning Crusade's,
+	-- which read it through __index); Mists and retail scale one spell to its
+	-- target and have no such refusal. ns.LEVEL_GATED; the lookups below work
+	-- out each buff's `lowLevel` from it, and Castable (Core.lua) reads that.
+	levelGated = true,
 	-- Classes whose buffs overwrite one another, so a target carries only one
 	-- of yours and walking the list would replace a blessing they have.
 	exclusive = { PALADIN = true },
@@ -1644,6 +1687,8 @@ local TBC = {
 			group = { 39374, 27683 },
 			-- Prayer of Shadow Protection.
 			groupCast = { Rank(39374, SACRED_CANDLE), Rank(27683, SACRED_CANDLE) },
+			-- Off until it is switched on, as on vanilla.
+			optIn = true,
 		},
 	},
 
@@ -1716,6 +1761,8 @@ local TBC = {
 			group = { 131 }, -- a shaman's Water Breathing, as on vanilla
 			neverSelf = true,
 			switchable = true,
+			-- For a favour returned and a request by name alone, as on vanilla.
+			returnOnly = true,
 		},
 		-- Vanilla's Detect Invisibility for your group, with the one rank this
 		-- client kept (132, level 26; SpellEffect target 21, any friendly target).
@@ -1766,6 +1813,9 @@ for id, level in pairs({
 	[27126] = 70, [25389] = 70, [25433] = 68, [26990] = 70, [26992] = 64,
 	[27142] = 65, [27140] = 70, [27144] = 69, [25312] = 70,
 	[27168] = 70,
+	-- And Burning Crusade's ranks of the group versions (see vanilla's).
+	[27127] = 70, [25392] = 70, [32999] = 70, [39374] = 70, [26991] = 70,
+	[27143] = 65, [27141] = 70, [27145] = 69, [27169] = 70,
 }) do
 	ns.RANK_LEVEL[id] = level
 end
@@ -2239,6 +2289,29 @@ end
 -- game no longer has. Kings and Divine Spirit are trained there (SpellLevels
 -- 20, and 30 to 60), in neither talent tree. A real table rather than an __index, because the
 -- lookups walk ns.BUFFS with pairs.
+--
+-- WoW Forever's camping features put an aura on everybody who sits by them, an
+-- hour long, each "mutually exclusive with" one class buff in the feature's own
+-- text (Spell.Description, build 1.60.1.70790) and, for three of them, the very
+-- aura that buff is (SpellEffect: MOD_STAT, aura 29, on the same stat), as a
+-- scroll's is:
+--
+--   First Aid Kit (1307244)   Boosted Stamina 1230124     Power Word: Fortitude
+--   Incense Candle (1307251)  Boosted Intellect 1229513   Arcane Intellect
+--   Faction Banner (1307239,  Boosted Spirit 1229718      Divine Spirit
+--     1307240 for the Horde)
+--
+-- So each is a blocker of that buff (the `blockers` field, above), weighed as
+-- the scrolls are: one worth at least what your rank would land holds your
+-- buff off, a lesser one is cast over. What it is worth goes by the wearer's
+-- level (CAMELOT_TIERS, below). The four others are not weighed, since nothing
+-- in the data says the game refuses the weaker of the two: the Enchanted Lute's
+-- Boosted Stats (1230653: armor, stats and resistances, against Mark of the
+-- Wild), the Lodestone's Boosted Attack Power (1230164, against Blessing of
+-- Might), the Mana Well's Boosted Mana Regeneration (1230587, against Blessing
+-- of Wisdom), and the Fish Bowl's Boosted Stats (1230098, against Kings: Core.lua,
+-- SparesFishBowl, behind its own switch). STATUS.md has the question.
+local CAMP_BLOCKER = { fortitude = 1230124, intellect = 1229513, spirit = 1229718 }
 local CAMELOT = {}
 do
 	local GONE = { sanctuary = true, salvation = true, light = true }
@@ -2252,6 +2325,14 @@ do
 				if TRAINED[entry.key] then entry.talent = nil end
 				-- Forever casts it in Moonkin Form.
 				entry.shiftsOut = nil
+				-- And the camping buff that holds it off, with the scrolls
+				-- (CAMP_BLOCKER, below): a list of its own, since the one
+				-- copied is Classic Era's.
+				if CAMP_BLOCKER[entry.key] and entry.blockers then
+					local blockers = { CAMP_BLOCKER[entry.key] }
+					for _, id in ipairs(entry.blockers) do blockers[#blockers + 1] = id end
+					entry.blockers = blockers
+				end
 				copy[#copy + 1] = entry
 			end
 		end
@@ -2310,9 +2391,26 @@ for id, value in pairs({ [1243] = 4, [1244] = 10, [1245] = 26, [2791] = 42, [109
 	CAMELOT_STAT[id] = value
 end
 
+-- The camping buffs (CAMP_BLOCKER, above): what each gives a level 60, which is
+-- the aura's own SpellEffect (EffectBasePointsF, build 1.60.1.70790) and its
+-- row here, and what it gives below, which is in the feature's text alone
+-- ("$?$PL<12[3]?$PL<24[8]..."): CAMELOT_TIERS, as { below this level, worth },
+-- lowest first. About four fifths of the rank a caster of that level has, so
+-- somebody of the wearer's own level casts over it, and a caster a tier behind
+-- is refused. tools/audit_ids.py holds every number to the client.
+for id, value in pairs({ [1230124] = 56, [1229513] = 25, [1229718] = 32 }) do
+	CAMELOT_STAT[id] = value
+end
+local CAMELOT_TIERS = {
+	[1230124] = { { 12, 3 }, { 24, 8 }, { 36, 21 }, { 48, 34 }, { 60, 45 } },
+	[1229513] = { { 14, 2 }, { 28, 6 }, { 42, 12 }, { 56, 18 } },
+	[1229718] = { { 40, 14 }, { 50, 19 }, { 60, 27 } },
+}
+
 local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true,
 	partyIsSubgroup = false }, { __index = VANILLA_SET })
 CAMELOT_SET.statValue = CAMELOT_STAT
+CAMELOT_SET.statTiers = CAMELOT_TIERS
 -- Classic Era's, with the shaman: Forever gives him no Earth Shield to learn
 -- (above), so he has nothing to put on anybody else.
 CAMELOT_SET.without = { HUNTER = true, ROGUE = true, SHAMAN = true }
@@ -3414,6 +3512,7 @@ if chosen then
 	ns.CLASSES_WITHOUT_BUFFS = chosen.without
 	ns.PARTY_IS_SUBGROUP = chosen.partyIsSubgroup == true
 	ns.GROUP_IS_RAID = chosen.groupIsRaid == true
+	ns.LEVEL_GATED = chosen.levelGated == true
 	ns.SHOUT_YARDS = chosen.shoutYards
 	ns.WIDE_CASTS = chosen.wideCasts == true
 	ns.GROUP_BY_CLASS = chosen.groupByClass
@@ -3431,6 +3530,10 @@ end
 -- VANILLA_STAT). The sets whose stat buffs are percentages (Mists, retail) have
 -- none, and so no buff of theirs lists a blocker.
 ns.STAT_VALUE = chosen and chosen.statValue or {}
+-- And the blockers whose worth goes by their wearer's level (WoW Forever's
+-- camping buffs, CAMELOT_TIERS): [id] = { { below this level, worth }, ... },
+-- with ns.STAT_VALUE's row for the top. None on any other set.
+ns.STAT_TIERS = chosen and chosen.statTiers or {}
 
 -- How long each id lasts on this client (see "how long each lasts"): seconds,
 -- 0 for no timer, nothing for unknown. A client with no set has none.
@@ -3586,6 +3689,22 @@ function ns.BuildBuffLookups()
 			for _, id in ipairs(buff.auraIds) do
 				ns.ALL_BUFF_IDS[id] = true
 				ns.BUFF_BY_ID[id] = buff
+			end
+
+			-- The level its lowest rank is learned at, where that keeps it off
+			-- anybody (ns.LEVEL_GATED: a cast lands within ten levels of a
+			-- rank's own): Blessing of Kings 20, Divine Spirit and Shadow
+			-- Protection 30. nil where the lowest rank reaches a level 1, and on
+			-- the sets with no such rule. Castable (Core.lua) offers nobody a
+			-- buff none of whose ranks can land on them.
+			buff.lowLevel = nil
+			if ns.LEVEL_GATED then
+				local low
+				for _, id in ipairs(buff.ranks) do
+					local at = ns.RankLevel(id) or 1
+					if not low or at < low then low = at end
+				end
+				if low and low > 11 then buff.lowLevel = low end
 			end
 
 			-- Another class's of the same kind: read as this one held, by

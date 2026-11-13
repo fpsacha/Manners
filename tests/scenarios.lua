@@ -587,6 +587,10 @@ for class, keys in pairs(CLASS_BUFFS) do
 		-- only exist in a group. Everything else is tested solo, which is the
 		-- common case.
 		Mock.groupSize = (class == "WARRIOR" or key == "salvation") and 3 or 0
+		-- Re-aimed by the right-buff audit: Might is no longer offered to the
+		-- mock's priest ("Don't offer Might to mages, warlocks and priests" is
+		-- on by default), so its path is driven at a warrior.
+		if key == "might" then Mock.unitClass = "WARRIOR" end
 		local cns = load(label)
 		if cns then
 			-- Every rank of this buff is known, so the path is reachable.
@@ -606,6 +610,12 @@ for class, keys in pairs(CLASS_BUFFS) do
 				cns.db.profile.buff.choice = key
 				cns.ClampSettings()
 				cns.Guard("probe", cns.ProbeCapabilities)
+				-- Re-aimed by the right-buff audit: Unending Breath is offered to
+				-- return a favour and to whoever asks for it by name, never
+				-- unasked, so its path is driven for somebody who buffed you.
+				if key == "breath" then
+					cns.owed["Petra Stonewell"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
+				end
 
 				local queue = cns.BuildQueue()
 				if #queue == 0 then
@@ -941,7 +951,9 @@ if ns then
 		fail("priest walks its buff list", "expected spirit, got " .. tostring(second))
 	end
 
-	-- holding two: the third
+	-- holding two: the third. Re-aimed by the right-buff audit: Shadow
+	-- Protection is off until it is ticked on Who to buff, so it is ticked here.
+	ns.db.profile.buff.optIn.shadow = true
 	for _, id in ipairs(ns.FindBuff("PRIEST", "spirit").ranks) do Mock.held[id] = true end
 	Mock.advance(10)
 	if offered() ~= "shadow" then
@@ -1263,10 +1275,12 @@ if ns then
 		end
 	end
 
-	-- Petra Stonewell is level 12 in the mock and holds a unit token, so the
-	-- main path can check her age where the fallback never could.
+	-- Petra Stonewell holds a unit token, so the main path can check her age
+	-- where the fallback never could. Re-aimed by the right-buff audit: the
+	-- mock's other units are level 60 now (they were 12), so the filter is set
+	-- above that (the cap is 60: Core.lua, ns.ClampSettings is not run here).
 	ns.owed["Petra Stonewell"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
-	ns.db.profile.filters.minLevel = 20
+	ns.db.profile.filters.minLevel = 61
 	if offered("Petra Stonewell") then
 		fail("the fallback does not undo a rejection",
 			"offered somebody the level filter had already refused")
@@ -5686,6 +5700,10 @@ if ns then
 	Mock.advance(60)
 	ns.Guard("probe", ns.ProbeCapabilities)
 
+	-- Re-aimed by the right-buff audit: Shadow Protection is off until it is
+	-- ticked, and this scenario walks all three, so it is ticked here.
+	ns.db.profile.buff.optIn.shadow = true
+
 	local who = ns.optionsTable and ns.optionsTable.args.who
 	local toggle = who and findOption(ns.optionsTable, "offer_spirit")
 	local note = who and findOption(ns.optionsTable, "autoNote")
@@ -7226,6 +7244,10 @@ end
 -- this branch could make replaces it with a different one.
 Mock.reset()
 Mock.class = "PALADIN"
+-- Re-aimed by the right-buff audit: the mock's priest is no longer offered
+-- Might ("Don't offer Might to mages, warlocks and priests" is on by default),
+-- so the one carrying it here is a warrior.
+Mock.unitClass = "WARRIOR"
 ns = load("a paladin is offered the blessing that is running out")
 if ns then
 	local scenario = "a paladin is offered the blessing that is running out"

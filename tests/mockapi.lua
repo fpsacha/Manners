@@ -1268,7 +1268,18 @@ function UnitIsPVPFreeForAll(unit) return pvpFlag(Mock.pvpFFA, unit) end
 function UnitIsCharmed() return false end
 function UnitInVehicle() return false end
 function UnitOnTaxi() return false end
-function UnitLevel() return maybeSecret(12) end
+-- Everybody but the player is level 60 unless a scenario says otherwise. It was
+-- 12 for every unit until the right-buff audit, when the level began to decide
+-- what somebody is offered: a buff none of whose ranks lands on them is not
+-- offered, and a group cast neither counts nor is aimed at somebody more than
+-- ten levels under its rank. A world of level 12s was then a world nobody
+-- could be given Arcane Brilliance or Divine Spirit in, which no scenario
+-- written before it meant. The player stays 12, as the scenarios about scrolls
+-- and the sleeping bag (their levels, the level cap) were written against it.
+function UnitLevel(unit)
+	if unit == "player" then return maybeSecret(12) end
+	return maybeSecret(60)
+end
 -- Classes without a mana bar really do report zero, and the mock claiming
 -- otherwise is what let a bug through that offered warriors nobody at all.
 --
