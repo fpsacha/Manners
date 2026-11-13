@@ -4222,7 +4222,7 @@ L["Off: nothing is offered to you while the game calls you resting, in a city or
 L["Consumables only in dungeons and raids"] = "소모품은 던전과 공격대에서만"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "켜짐: 무기용 오일이나 숫돌, 음식, 영약, 비약, 두루마리 알림은 던전이나 공격대에서만 나타나고 필드에서는 나타나지 않습니다. 독과 낚시 미끼는 그대로 알립니다."
 L["Which pet"] = "소환할 애완동물"
-L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, or any pet. With none out last, a favourite; with no favourites, any pet."] = "Manners가 애완동물 도감에서 소환할 애완동물: 마지막으로 꺼냈던 것, 무작위 즐겨찾기, 또는 아무 애완동물. 마지막으로 꺼낸 것이 없으면 즐겨찾기, 즐겨찾기가 없으면 아무 애완동물."
+L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, any pet, or one of your pets by name. With none out last, a favourite; with no favourites, any pet."] = "Manners가 애완동물 도감에서 소환할 애완동물: 마지막으로 꺼냈던 것, 무작위 즐겨찾기, 아무 애완동물, 또는 이름으로 고른 내 애완동물. 마지막으로 꺼낸 것이 없으면 즐겨찾기, 즐겨찾기가 없으면 아무 애완동물."
 L["The one I had out last"] = "마지막으로 꺼냈던 것"
 L["A random favourite"] = "무작위 즐겨찾기"
 L["Any pet"] = "아무 애완동물"

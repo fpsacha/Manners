@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **Which pet: your pets by name.** *Which pet*, under *Companion pet* on
+  *Who to buff*, now lists every pet in your pet journal under its three
+  choices, so Manners brings out the one you pick. A pet you gave a name of
+  your own is listed by that name. WoW Forever.
+- **The Ribbon look reads at its size.** Its reason line, its list and its
+  tags are now in the game's standard lettering, pale on the cloth; the name
+  keeps the banner's serif. The serif's small letters were too fine to read
+  at the size of the second line.
+- **Who makes Manners** is now at the foot of the options window, under the
+  version, on every page.
+
 ## 1.11.17
 
 - **A new look: Lightbringer.** A paladin's, in the Silver Hand's colours: a

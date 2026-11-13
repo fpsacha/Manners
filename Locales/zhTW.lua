@@ -4222,7 +4222,7 @@ L["Off: nothing is offered to you while the game calls you resting, in a city or
 L["Consumables only in dungeons and raids"] = "消耗品僅限地城與團隊副本"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "開啟：武器用的油或磨刀石、食物，以及精煉藥劑、藥劑或卷軸的提醒只在地城或團隊副本中出現，野外不會。毒藥和釣魚魚餌不受影響。"
 L["Which pet"] = "召喚哪隻寵物"
-L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, or any pet. With none out last, a favourite; with no favourites, any pet."] = "Manners 從你的寵物日誌中召喚的寵物：你上次召喚的那隻、隨機一隻最愛寵物，或任意寵物。沒有上次召喚的，則為最愛寵物；沒有最愛寵物，則為任意寵物。"
+L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, any pet, or one of your pets by name. With none out last, a favourite; with no favourites, any pet."] = "Manners 從你的寵物日誌中召喚的寵物：你上次召喚的那隻、隨機一隻最愛寵物、任意寵物，或依名字選定的一隻寵物。沒有上次召喚的，則為最愛寵物；沒有最愛寵物，則為任意寵物。"
 L["The one I had out last"] = "我上次召喚的那隻"
 L["A random favourite"] = "隨機最愛寵物"
 L["Any pet"] = "任意寵物"

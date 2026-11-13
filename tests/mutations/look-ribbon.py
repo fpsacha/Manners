@@ -351,10 +351,22 @@ _m(RIBBON,
    expect="look-ribbon: the face on")
 
 _m(RIBBON,
-   "\t\tif tried then path = face else kit.name:SetFont(path, nameSz, fit.flags) end\n",
-   "\t\tpath = face\n",
+   "\t\tif tried then nameFace = face else kit.name:SetFont(path, nameSz, fit.flags) end\n",
+   "\t\tnameFace = face\n",
    "a refused face left as the line's font",
    expect="look-ribbon: a face the client refuses")
+
+_m(RIBBON,
+   "\tfit.paths[kit.name] = nameFace\n",
+   "\tfit.paths[kit.name] = nameFace\n\tif nameFace then path = nameFace end\n",
+   "the reason line back in the display serif's hair-thin capitals",
+   expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "\tfit.paths[kit.name] = nameFace\n",
+   "\tfit.paths[kit.name] = nil\n",
+   "a refitted name leaves its face",
+   expect="look-ribbon: the face on")
 
 _m(RIBBON,
    "local function NameSize(fontSize) return math.floor(fontSize * 1.1 + 0.5) end",

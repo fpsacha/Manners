@@ -4222,7 +4222,7 @@ L["Off: nothing is offered to you while the game calls you resting, in a city or
 L["Consumables only in dungeons and raids"] = "Verbrauchsgüter nur in Dungeons und Schlachtzügen"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "An: Die Erinnerung an ein Öl oder einen Wetzstein für deine Waffe, an Essen und an ein Fläschchen, ein Elixier oder eine Rolle erscheint nur in einem Dungeon oder Schlachtzug, nicht draußen in der Welt. Gifte und Angelköder werden nicht zurückgehalten."
 L["Which pet"] = "Welches Haustier"
-L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, or any pet. With none out last, a favourite; with no favourites, any pet."] = "Das Haustier, das Manners aus deinem Haustierführer ruft: das zuletzt gerufene, ein zufälliger Favorit oder irgendeines. Ohne zuletzt gerufenes ein Favorit; ohne Favoriten irgendeines."
+L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, any pet, or one of your pets by name. With none out last, a favourite; with no favourites, any pet."] = "Das Haustier, das Manners aus deinem Haustierführer ruft: das zuletzt gerufene, ein zufälliger Favorit, irgendeines oder eines deiner Haustiere mit Namen. Ohne zuletzt gerufenes ein Favorit; ohne Favoriten irgendeines."
 L["The one I had out last"] = "Das zuletzt gerufene"
 L["A random favourite"] = "Ein zufälliger Favorit"
 L["Any pet"] = "Irgendein Haustier"

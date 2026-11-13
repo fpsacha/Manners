@@ -4222,7 +4222,7 @@ L["Off: nothing is offered to you while the game calls you resting, in a city or
 L["Consumables only in dungeons and raids"] = "Consumabili solo in dungeon e raid"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "Attivo: il promemoria per un olio o una pietra per la tua arma, per il cibo e per un tonico, un elisir o una pergamena compare solo in un dungeon o in un raid, non in giro per il mondo. I veleni e le esche da pesca non vengono trattenuti."
 L["Which pet"] = "Quale mascotte"
-L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, or any pet. With none out last, a favourite; with no favourites, any pet."] = "La mascotte che Manners evoca dal tuo diario delle mascotte: l'ultima che avevi fuori, una preferita a caso o una qualsiasi. Senza un'ultima, una preferita; senza preferite, una qualsiasi."
+L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, any pet, or one of your pets by name. With none out last, a favourite; with no favourites, any pet."] = "La mascotte che Manners evoca dal tuo diario delle mascotte: l'ultima che avevi fuori, una preferita a caso, una qualsiasi o una delle tue mascotte per nome. Senza un'ultima, una preferita; senza preferite, una qualsiasi."
 L["The one I had out last"] = "L'ultima che avevo fuori"
 L["A random favourite"] = "Una preferita a caso"
 L["Any pet"] = "Una mascotte qualsiasi"
