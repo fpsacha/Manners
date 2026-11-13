@@ -295,8 +295,12 @@ function Prompt:RefreshPanel()
 				-- The ring as well: a refusal turned it red, and the name
 				-- line is not the only thing the flash wrote over.
 				self:PaintAccent(S.current.reason)
+				-- Held on the one person, or on its way round the fight's rota
+				-- (Fight.lua): which of how many the next press is for.
 				if R.subText:IsShown() then
-					SetLine(R.subText, "|cffb0b0b0" .. L["held -- in combat"] .. "|r")
+					local at, of = self:FightRotaAt()
+					SetLine(R.subText, "|cffb0b0b0" .. (at and L["in a fight -- %d of %d, a press moves on"]:format(at, of)
+						or L["held -- in combat"]) .. "|r")
 				end
 				-- No count: it is a claim about the queue this branch just
 				-- blanked.
@@ -425,6 +429,9 @@ function Prompt:RefreshPanel()
 	-- overruled, so it is armed without the spoken line, and the tooltip
 	-- quotes none; the press judges the line again (Press.lua, HoldLine).
 	self:ApplyTarget(top, not inQueue)
+	-- The pull's own repaint (Core.lua, PLAYER_REGEN_DISABLED): the queue it
+	-- built is what the fight's rota is made from (Fight.lua, ArmFightRota).
+	if Prompt.armedForFight == true and not InCombatLockdown() then S.fightQueue = queue end
 
 	local wasHidden = not R.button:IsShown()
 	local isNew = top.name ~= lastTop

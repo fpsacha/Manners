@@ -11921,6 +11921,9 @@ local function pressButton(ns, mouseButton)
 	mouseButton = mouseButton or "LeftButton"
 	if button.scripts.PreClick then button.scripts.PreClick(button, mouseButton, true) end
 	local ran = button:GetAttribute("macrotext1")
+	-- The click itself, which runs `ran`, stands between the two halves of a
+	-- wrap round it: the fight's rota steps the button here (Prompt/Fight.lua).
+	if Mock.wrapClick then Mock.wrapClick(button, mouseButton, true) end
 	if button.scripts.PostClick then button.scripts.PostClick(button, mouseButton, true) end
 	return ran
 end

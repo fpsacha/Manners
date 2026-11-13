@@ -487,6 +487,7 @@ ns.WindowLayout = {
 					{ "appearance.flashStyle", pair = true },
 					"appearance.effects",
 					"appearance.hideInFight",
+					"appearance.fightRota",
 					"appearance.hideInCombat",
 					"appearance.dimInCombat",
 					"appearance.soundEnabled",
