@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **A new look: Lightbringer.** A paladin's, in the Silver Hand's colours: a
+  plate of silver and royal-blue enamel, your spell in a golden sun whose rays
+  stand taller than the plate. A ring round the icon, a gem at the far end
+  and a fine inlay carry the reason's colour. When somebody buffs you a pillar
+  of light comes down on the sun; while you owe them the sun breathes; when
+  your buff lands the rays burst, two wings of light spread and motes rise
+  from the plate; a refusal gutters the rays and leaves them grey. At rest
+  the sun turns slowly, a glint crosses the gold and the gem twinkles.
+  *Animations* on *Calm* keeps all of that to gentle fades, and a fight stills
+  it. The icon is always round here, so *Round the icon off* is greyed out.
+  With the Archmage that makes twelve looks.
 - **A new look: Archmage.** A mage's focus: a violet crystal cut to a point at
   each end and bound in a pale gold wire, with your spell set in a hexagon of
   six arcane charges. The charges and a vein inside the crystal carry the

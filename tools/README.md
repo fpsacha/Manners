@@ -515,7 +515,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the eleven looks, named |
+| `manners-looks.png` | the same favour in each of the twelve looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
@@ -932,6 +932,27 @@ file's peak and reach. The figures `Looks/Archmage.lua` must agree with
 (`ICON_FRAME`, `DESIGN_H`, `CAP_W`, `HEX_OUT`, `GLOW_SCALE`, `TAG_CAPS`,
 `MASK_FILL`, `RING_AT`, `BEVEL_END`, `VEIN_H`) sit at the top of the script
 and `look-archmage.lua` holds each to its twin.
+
+## make_lightbringer_textures.py
+
+The twenty-two files of `Textures/Lightbringer/` (the plate in three pieces,
+the sun's bezel, its sixteen rays in gold and again in white, the nimbus, the
+halo, the round mask, the ring, the gem, the inlay, the pillar, the wing, the
+glint, the star, the tag, the bead, the shadow, the glyphs, the rim's light).
+Silver under luma 0.72 and gold under 0.60, lit through `materials.py`; the
+enamel is a royal-blue ramp shaded here. The rays are lit evenly, with no
+side, because they turn, and are the same picture every 45 degrees. `--out
+DIR` writes the same files to DIR (what `tests/scenarios/look-lightbringer.lua`
+compares with what ships, twice, byte for byte), `--sheet FILE` draws a
+contact sheet and `--reach` prints the ring file's peak and reach. The figures
+`Looks/Lightbringer.lua` must agree with (`ICON_FRAME`, `DESIGN_H`, `CAP_W`,
+`RAY_SCALE`, `RAY_TIP`, `GLOW_SCALE`, `TAG_CAPS`, `MASK_FILL`, `RING_AT`,
+`GEM_AT`) sit at the top of the script and `look-lightbringer.lua` holds each
+to its twin.
+
+`render_prompt.py` draws a texture mirrored when its SetTexCoord runs left
+past right or top past bottom (a wing, a facet, a strap end serving both
+sides); it used to draw such a piece unmirrored.
 
 ## materials.py
 

@@ -67,6 +67,7 @@ local SIZES = {
 ALL[#ALL + 1] = "leather"
 ALL[#ALL + 1] = "forge"
 ALL[#ALL + 1] = "archmage"
+ALL[#ALL + 1] = "lightbringer"
 
 local function upIn(ns, scenario, style, size)
 	freshPrompt(ns, scenario)
@@ -143,6 +144,11 @@ local TIMES = { 0.01, 0.02, 0.045, 0.05, 0.08, 0.12, 0.16, 0.20, 0.25, 0.30, 0.3
 local function sampleEvent(ns, scenario, r, label, start, seen)
 	local art = r.art
 	local pb, pt = FT.span(art, "y")
+	-- A look's lights that are meant to leave the room (Lightbringer's pillar
+	-- and wings: the Light comes from above, and its author asked for it) are
+	-- named by the look in `skyward`; every other light is held to the room.
+	local sky = {}
+	for _, tex in ipairs(r.look and r.look.skyward or {}) do sky[tex] = true end
 	start()
 	local last = 0
 	for _, t in ipairs(TIMES) do
@@ -157,7 +163,7 @@ local function sampleEvent(ns, scenario, r, label, start, seen)
 			end
 		end
 		for _, tex in ipairs(scaledTextures(r, art, r.textLayer, now)) do
-			if seenAt(tex, art, now) then
+			if seenAt(tex, art, now) and not sky[tex] then
 				local L, B, R, T = rectAt(tex, art, now)
 				if L then
 					local edge = edgeOf(ns, tex)
@@ -260,12 +266,13 @@ local RING_FILES = {
 	{ "Textures/Forge/Forge_Ring", "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_Ring" },
 	{ "Textures/Forge/Forge_RingSq", "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_RingSq" },
 	{ "Textures/Archmage/Archmage_Ring", "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_Ring" },
+	{ "Textures/Lightbringer/Lightbringer_Ring", "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_Ring" },
 }
 
 withTree("hunt37-effects: each ring's declared reach is the reach of its art", ANNA, function(ns, scenario)
 	local lib = ns.Prompt.lib
 	-- A look registers its files when it is built.
-	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage" }) do
+	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer" }) do
 		freshPrompt(ns, scenario)
 		ns.db.profile.prompt.style = style
 		ns.Prompt:ApplyStyle()

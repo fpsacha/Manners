@@ -180,7 +180,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the eleven looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the twelve looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and
@@ -258,6 +258,20 @@ all five clients, that a Rotation of a quarter turn leaves the four-pointed
 star as it found it, that a Translation's offset starts again at each turn of
 a REPEAT group (the drifting lights), and how bright the additive flashes are
 (the renderer understates them).
+
+**Lightbringer (Unreleased), asked for by the author as a paladin's look to
+test.** `Looks/Lightbringer.lua`, `Textures/Lightbringer/`
+(`tools/make_lightbringer_textures.py`), key `lightbringer`, order 9, in
+`Looks.roundAlways`. Two of its lights leave the panel on purpose (the pillar
+and the wings come from above; `look.skyward`, which `hunt37-effects` lets
+through by name), and its rays are taller than the panel as drawn. Its sun
+turns at rest (`look.idle`, let through by `hunt35-effects` as Archmage's is).
+Only the live game can say: that three Rotation groups started in one frame
+stay in step for minutes (the rays, their warm tone and their flash), that a
+turn of 45 degrees on a REPEAT group restarts without a visible step, that a
+Scale about TOP or a corner grows a texture from that side, how the wings and
+the pillar look over the world behind the panel, and whether art drawn past
+the button's bounds is clipped by anything the player has it parented near.
 
 **The new looks in the game.** Ribbon, Letter and Leather (1.10.0), Forge, the
 glass and tooltip-rim rebuild of Glass and Framed, Toast's re-gilding and the

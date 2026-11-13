@@ -810,6 +810,12 @@ def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None):
                     img = Image.fromarray(tiled, "RGBA")
                     cl, cr, ct, cb = cl - kx0 * iw, cr - kx0 * iw, ct - ky0 * ih, cb - ky0 * ih
                 img = img.resize((w, h), Image.LANCZOS, box=(cl, ct, cr, cb))
+                # Left past right, or top past bottom, is the piece mirrored:
+                # how one wing, one facet or one strap end serves both sides.
+                if tc[0] > tc[1]:
+                    img = img.transpose(Image.FLIP_LEFT_RIGHT)
+                if tc[2] > tc[3]:
+                    img = img.transpose(Image.FLIP_TOP_BOTTOM)
             else:
                 img = img.resize((w, h), Image.LANCZOS)
             a = np.asarray(img).astype(np.float32) / 255

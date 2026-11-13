@@ -13,15 +13,15 @@ S = "runscenarios.py"
 # and live on the Toast's and the Ribbon's medallions, which are round whatever
 # it says.
 mutate("Looks/Looks.lua",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true }\n",
-       "Looks.roundAlways = { letter = true, archmage = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true }\n",
+       "Looks.roundAlways = { letter = true, archmage = true, lightbringer = true }\n",
        "hunt38-picker: Round the icon off live on the medallions",
        expect="hunt38-picker: Round the icon off is greyed out", script=S)
 
 # A look that reads the switch greyed out with the others.
 mutate("Looks/Looks.lua",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true }\n",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, leather = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, leather = true }\n",
        "hunt38-picker: Round the icon off greyed out on a look that reads it",
        expect="hunt38-picker: Round the icon off is greyed out", script=S)
 

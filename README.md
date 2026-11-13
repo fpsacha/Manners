@@ -494,7 +494,7 @@ and the only thing it ever says in chat is a new title.
 
 ## The prompt's look
 
-Eleven looks, each a card under Look > *Panel style* that you click to switch:
+Twelve looks, each a card under Look > *Panel style* that you click to switch:
 
 - **Glass** (the default): a dark pane of cut glass, the spell icon set in a
   metal bezel that brightens under the pointer.
@@ -514,6 +514,11 @@ Eleven looks, each a card under Look > *Panel style* that you click to switch:
   you, travel round while you owe them and discharge in lightning when your
   buff lands. The crystal sparkles at rest; *Animations* on *Calm* stills it.
   The icon is always a hexagon on this look.
+- **Lightbringer**: a paladin's plate of silver and royal-blue enamel, your
+  spell in a golden sun. A pillar of light comes down when somebody buffs
+  you, the sun breathes while you owe them, and wings of light spread when
+  your buff lands. The sun turns slowly at rest; *Animations* on *Calm* stills
+  it. The icon is always round on this look.
 
 Pick your own colours and fonts too; LibSharedMedia is supported.
 
