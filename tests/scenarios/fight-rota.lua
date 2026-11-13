@@ -313,6 +313,10 @@ with("fight-rota: nobody a cast in the rota already reaches is given a press of 
 	local long = {}
 	for field, value in pairs(others[#others]) do long[field] = value end
 	long.name, long.unit = ("Zz"):rep(140), nil
+	long.targetName = long.name
+	if not (ns.Prompt.lib.FightMacro(long) == nil) then
+		fail(scenario, "a macro of " .. #ns.Prompt.lib.FightMacro(long) .. " characters is handed out for the rota")
+	end
 	S.fightQueue = { queue[1], queue[2], queue[3], long }
 	ns.Prompt:ArmFightRota()
 	for i = 1, header:GetAttribute("manners-rota-n") or 0 do
