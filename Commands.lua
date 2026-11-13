@@ -810,6 +810,7 @@ do
 						if type(value[1]) == "number" then
 							kind = "colour"
 						elseif name == "buff.skip" or name == "buff.tanksOnly" or name == "buff.meOnly"
+							or name == "buff.tanksOutside"
 							or name == "buff.optIn"
 							or name == "filters.skipNearbyClasses" then
 							kind = "set"

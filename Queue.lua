@@ -1654,6 +1654,13 @@ local function StillCastable(memo, candidates, f, askOnly)
 	local db = addon.db and addon.db.profile
 	local meOnly = db and db.buff.meOnly
 	if memo.buff.tankChoice and meOnly and meOnly[key] and memo.reason ~= "asked" then return false end
+	-- Held to the tanks of your group since (Offer to: Tanks only), which holds
+	-- it from everybody outside the group, as anybody remembered here is.
+	local tanksOnly = db and db.buff.tanksOnly
+	if memo.buff.tankChoice and tanksOnly and tanksOnly[key] and memo.reason ~= "asked"
+		and not (db.buff.tanksOutside and db.buff.tanksOutside[key]) then
+		return false
+	end
 	-- Might, once "Don't offer Might to mages, warlocks and priests" is on.
 	if memo.buff.meleeOnly and memo.reason ~= "asked" and db and db.buff.skipCasters == true
 		and ns.CASTER_CLASSES[memo.class] then
@@ -1750,6 +1757,52 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 			if memo.guild then queue[#queue].guild = memo.guild end
 		end
 	end
+end
+
+-- Favours whose giver the walk has just read as covered (BuildQueue marks the
+-- debt, `covered`: their GUID, or true where the client gave none): they wear
+-- everything you could give them with more than the top-up lead left, whoever
+-- cast it, and "Refresh a buff they already have, to return a favour" is off.
+-- Nothing is left to return, so the favour is let go at once rather than
+-- sitting as Still owed with nothing on the prompt: the ledger files it with
+-- its own reason, and the line follows only a "buffed you" line that promised
+-- the prompt (`said` on the debt). Run after the walk, never from inside it,
+-- and the names gathered before any debt is cleared. Not on a reading kept
+-- from before a fight (Core.lua, ReadingSource): the next reading the client
+-- gives decides.
+local function LetGoCovered(db, candidates)
+	local names
+	for name, entry in pairs(owed) do
+		local guid = entry.covered
+		if guid then
+			entry.covered = nil
+			local kept = false
+			if guid ~= true then
+				for i = 1, #candidates do
+					if ns.ReadingSource(guid, candidates[i].key) == "kept" then
+						kept = true
+						break
+					end
+				end
+			end
+			if not kept then
+				names = names or {}
+				names[#names + 1] = name
+			end
+		end
+	end
+	if not names then return end
+	for i = 1, #names do
+		local name = names[i]
+		local said = owed[name].said
+		owed[name] = nil
+		TellLedger("LetGo", name, "covered")
+		ns.Trail("favour", "let go: they already wear everything you could give them", name)
+		if said and db.verbose then
+			addon:Print(L["|cff80ff80%s already has your buff|r -- nothing to return, so the favour is let go"]:format(name))
+		end
+	end
+	SaveDebts()
 end
 
 -- PickBuffFor's callbacks for the queue, at file level so that no person
@@ -2306,6 +2359,10 @@ function ns.BuildQueue(watch)
 	-- And the ones held to you alone: nobody else is offered them.
 	local meHeld = db.buff.meOnly
 	if meHeld and next(meHeld) == nil then meHeld = nil end
+	-- Of the buffs held to tanks, the ones everybody outside the group is still
+	-- offered (Offer to: Tanks, and anyone outside my group). Without it, Tanks
+	-- only holds a buff from everybody outside the group (Core.lua, Castable).
+	local tanksOutside = tanksHeld and db.buff.tanksOutside or nil
 
 	-- A buff that cannot be paid for is a button that fails -- but only classes
 	-- with a mana bar can run out: a warrior's mana reads a permanent 0. Empty
@@ -2331,7 +2388,8 @@ function ns.BuildQueue(watch)
 
 	-- What PickBuffFor is told about the person in hand, one table reused for
 	-- everybody the walk reaches.
-	local opts = { unpaid = UNPAID }
+	-- tanksOutside is the scan's, the same for everybody, so written once here.
+	local opts = { unpaid = UNPAID, tanksOutside = tanksOutside }
 
 	-- `unasked` walks somebody as if they had made no request (see below).
 	local function visit(unit, pointed, unasked)
@@ -2548,6 +2606,13 @@ function ns.BuildQueue(watch)
 		-- (1.11.2, a player's report).
 		opts.offerAnyway = isOwed
 		opts.paidUp = isOwed and checked or nil
+		-- Nor, by default, somebody who wears it from anybody else with that
+		-- much left ("Refresh a buff they already have, to return a favour",
+		-- filters.repayCovered, off): a priest was asked for a Fortitude on top
+		-- of the Fortitude they wore, and a thank-you is enough. Only what is
+		-- missing or due a top-up returns the favour; covered, it is let go
+		-- (below). Never without a reading (`checked`).
+		opts.spareCovered = isOwed and checked and f.repayCovered ~= true or nil
 		opts.blocked = QueueBlocked
 		opts.now = now
 		-- Your own class, offered unasked: see SelfServed. Never somebody who
@@ -2560,6 +2625,10 @@ function ns.BuildQueue(watch)
 		local buff, has, remaining, seconds, lead, leadKind = ns.PickBuffFor(asked or candidates, opts, ReadAura)
 
 		if not buff then
+			-- A favour's giver read as covered (PickBuffFor's third value, which
+			-- is `remaining` when there is a buff): marked on the debt, and let
+			-- go once the walk is over (LetGoCovered).
+			if remaining == true and isOwed then owed[full].covered = guid or true end
 			-- Covered for what they asked -- somebody else answered first -- is
 			-- no reason to offer them nothing. They are walked again as if they
 			-- had not asked, through every rule the request let them past: they
@@ -2701,6 +2770,9 @@ function ns.BuildQueue(watch)
 	neverSeen.scan = nil
 	if not walked then error(walkError, 0) end
 
+	-- The favours the walk read as covered, let go now that it is over.
+	if f.repayCovered ~= true and next(owed) ~= nil then LetGoCovered(db, candidates) end
+
 	-- Somebody who buffed you and holds no token we can see is the ordinary
 	-- case: a passing stranger rarely shows a nameplate. The macro's /target
 	-- line still reaches them ([@Name] would not: it resolves only for group
@@ -2722,6 +2794,10 @@ function ns.BuildQueue(watch)
 			rotate = false,
 			-- A buff held to you alone is nobody else's, a favour's included.
 			meOnly = meHeld,
+			-- Nor is one held to the tanks of your group anybody's outside it
+			-- (Tanks only), which is where somebody with no token is taken to be.
+			tanksOnly = tanksHeld,
+			tanksOutside = tanksOutside,
 		}
 		for full, entry in pairs(owed) do
 			-- Nobody in a city or an inn, when that is asked for: no token to

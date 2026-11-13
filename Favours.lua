@@ -517,6 +517,59 @@ do
 		return false
 	end
 
+	-- Whether this favour's giver already wears everything you could give them,
+	-- with more than the top-up lead left, whoever cast it (a priest's report on
+	-- CurseForge: "it prompts me to buff them back, even if they already have my
+	-- priest Fortitude buff and it's just a waste of mana. A thank you is
+	-- enough"). Asked as the queue asks it of somebody owed (Queue.lua, visit:
+	-- PickBuffFor with spareCovered, whose third value says so), of the token
+	-- that names them now, so the favour is let go as it arrives and the line
+	-- never promises a prompt that will not come. Not with "Refresh a buff they
+	-- already have, to return a favour" on, nor where nobody's buffs are read
+	-- (Always offer), nor on a reading kept from before a fight. No
+	-- token, or a reading withheld, is not covered: they are owed as ever, and
+	-- the queue lets the favour go when a token does read them covered.
+	local function ReadOnUnit(buff, opts)
+		return ns.UnitHasBuff(opts.unit, buff, opts.guid)
+	end
+	local function BlockedFor(buff, opts)
+		return ns.IsBlocked(opts.name, buff.key, opts.now)
+	end
+	local function CoveredAlready(db, seen, hasMana, inParty, inGroup)
+		local f = db.filters
+		local whenBuffed = f.whenBuffed or "skip"
+		if f.repayCovered == true or whenBuffed == "always" then return false end
+		local unit = ns.UnitFor(seen.name, seen.unit)
+		if not unit then return false end
+		local candidates = ns.CastableBuffs()
+		local guid = plain(UnitGUID(unit))
+		local buff, _, covered = ns.PickBuffFor(candidates, {
+			unit = unit, guid = guid, name = seen.name, now = GetTime(),
+			hasMana = hasMana,
+			inGroup = inGroup,
+			inParty = inParty,
+			isTank = seen.tank,
+			class = seen.class,
+			oneHeld = ns.OneTargetHolders(candidates, FAVOUR_HELD),
+			relevantOnly = f.relevantOnly,
+			casterOnly = db.buff.skipCasters == true and ns.CASTER_CLASSES[seen.class] or nil,
+			tanksOnly = db.buff.tanksOnly,
+			tanksOutside = db.buff.tanksOutside,
+			meOnly = db.buff.meOnly,
+			whenBuffed = whenBuffed,
+			refreshUnder = f.refreshUnder,
+			offerAnyway = true,
+			paidUp = true,
+			spareCovered = true,
+			blocked = BlockedFor,
+		}, ReadOnUnit)
+		if buff or covered ~= true then return false end
+		for i = 1, #candidates do
+			if ns.ReadingSource(guid, candidates[i].key) == "kept" then return false end
+		end
+		return true
+	end
+
 	-- The debt a favour leaves, and the chat line about it, while People who buff
 	-- me is on (NoteFavour asks). `seen` comes from Sight and nothing is
 	-- re-derived from the aura here: by now the token may mean somebody else.
@@ -588,11 +641,29 @@ do
 			return
 		end
 
+		-- Nothing to return either when they already wear everything you could
+		-- give them, with time to spare, whoever cast it (CoveredAlready): the
+		-- favour is written down and let go in the moment it arrived, with its
+		-- own reason, and nothing reaches the prompt. A debt already standing
+		-- for them stays as it was: the queue judges it.
+		if not owed[seen.name] and CoveredAlready(db, seen, hasMana, inParty, inGroup) then
+			TellLedger("Received", seen)
+			TellLedger("LetGo", seen.name, "covered")
+			if speak then
+				addon:Print(L["|cff80ff80%s buffed you|r -- they already have your buff, so there is nothing to return"]:format(seen.name))
+			end
+			return
+		end
+
 		-- The spell rides along for "In character" (Phrases.lua), which thanks
 		-- them by it; the newest favour's, like the class. In memory only.
 		owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
 			guid = seen.guid, class = seen.class, pvp = seen.pvp,
 			spell = type(seen.key) == "number" and seen.key or nil }
+		-- Whether a line was said about it, in memory only: the queue's own
+		-- line, should it find them covered and let the favour go, follows one
+		-- that promised the prompt and nothing else (Queue.lua, LetGoCovered).
+		if speak then owed[seen.name].said = true end
 		-- Whether only a buff that reaches your own party could return it: asked
 		-- as if they were outside it, about classes rather than where they stand,
 		-- so the ledger's row stays true after they join or leave.

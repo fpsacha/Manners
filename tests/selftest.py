@@ -4124,10 +4124,14 @@ mutate("Options/When.lua",
 mutate("Options/Window/Layout.lua",
        "\t\t\t\t\t\"advanced.reciprocateWindow\",\n"
        "\t\t\t\t\t\"advanced.owedClassBuffsOnly\",\n"
+       "\t\t\t\t\t-- A favour from somebody who already has your buff.\n"
+       "\t\t\t\t\t\"advanced.repayCovered\",\n"
        "\t\t\t\t\t\"advanced.reachableOnly\",\n",
        "\t\t\t\t\t\"advanced.reachableOnly\",\n"
        "\t\t\t\t\t\"advanced.reciprocateWindow\",\n"
-       "\t\t\t\t\t\"advanced.owedClassBuffsOnly\",\n",
+       "\t\t\t\t\t\"advanced.owedClassBuffsOnly\",\n"
+       "\t\t\t\t\t-- A favour from somebody who already has your buff.\n"
+       "\t\t\t\t\t\"advanced.repayCovered\",\n",
        "remember window silent about the grace",
        expect="the slider says people stay on the prompt this long",
        script="runscenarios.py")
@@ -4161,9 +4165,12 @@ mutate("Options/Who.lua",
        script="runscenarios.py")
 
 # "If they already have the buff" silent about the favour exception...
+# (The sentence the page says by default, since "Refresh a buff they already
+# have, to return a favour" came and is off: tests/mutations/covered.py holds
+# the one it says with that on.)
 mutate("Options/When.lua",
-       "L[\"Someone who buffed you is always offered a buff back; Diagnostics shows"
-       " which buffs Manners can see on others.\"]\n",
+       "L[\"Someone who buffed you is offered a buff back unless they already have it with time to spare;"
+       " Diagnostics shows which buffs Manners can see on others.\"]\n",
        "L[\"Diagnostics shows which buffs Manners can see on others.\"]\n",
        "already-buffed dropdown hides the favour exception",
        expect="the dropdown's description never says somebody who buffed you",

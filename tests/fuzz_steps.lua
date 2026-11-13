@@ -2033,6 +2033,9 @@ local function personality(W, rng)
 	local mix = (W.seed * 2654435761) % 1000
 	f.quietInTowns = not plain and mix % 7 == 3
 	db.buff.tanksOnly = (not plain and mix % 5 == 1) and { thorns = true } or {}
+	-- Half of those the looser choice (Tanks, and anyone outside my group), which
+	-- is what Tanks only was until it was made to hold everybody outside the group.
+	db.buff.tanksOutside = (not plain and mix % 10 == 1) and { thorns = true } or {}
 	db.buff.meOnly = (not plain and mix % 5 == 2) and { thorns = true } or {}
 	db.ownBuffs.itemsInDungeons = not plain and mix % 4 == 1
 	db.silentChat = not plain and mix % 10 == 7

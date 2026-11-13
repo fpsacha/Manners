@@ -745,6 +745,13 @@ function X.checkQueue(W, queue)
 			and e.inGroup and reason ~= "asked" and reason ~= "self" then
 			return fail(W, "forbidden", ("%s, in the group and no tank, offered %s, which is held to tanks"):format(e.name, buff.key))
 		end
+		-- And nobody outside the group either, a favour's giver included, unless
+		-- the choice is the looser one (Tanks, and anyone outside my group).
+		if not buff.own and buff.tankChoice and db.buff.tanksOnly and db.buff.tanksOnly[buff.key]
+			and not (db.buff.tanksOutside and db.buff.tanksOutside[buff.key])
+			and not e.inGroup and reason ~= "asked" and reason ~= "self" then
+			return fail(W, "forbidden", ("%s, outside the group, offered %s, which is held to the group's tanks"):format(e.name, buff.key))
+		end
 		-- One for one target at a time (Buffs.lua, oneTarget) goes to your group
 		-- alone, asked or not; and to a tank, which the fuzz world gives nobody,
 		-- unless asked for, Symbiosis (notOwnClass) or the member already wearing

@@ -110,6 +110,9 @@ local TEXT = {
 	-- A favour the player let go on purpose, by putting its giver on the
 	-- never-offer list.
 	LETGO_NEVER = L["you put them on your never-offer list"],
+	-- A favour whose giver already wore everything you could give them, with
+	-- time to spare (Queue.lua, LetGoCovered): nothing to return.
+	LETGO_COVERED = L["they already have your buff"],
 	-- After "Gave": %s is the spell you gave the row's player.
 	GAVE_GROUP = L["%s, in your group"],
 	GAVE_STRANGER = L["%s, to a stranger"],
@@ -140,6 +143,9 @@ local TEXT = {
 	TIP_LETGO_NOTKEPT = L["Let go: \"%s\" (%s tab, under %s) is off, so it was forgotten when you logged out or reloaded."]
 		:format(L["Keep favours through a /reload"], L["When to offer"], L["Favours"]),
 	TIP_LETGO_NEVER = L["Let go: you put them on your never-offer list."],
+	-- The setting's own name, through the options page's key, as above.
+	TIP_LETGO_COVERED = L["Let go: they already had everything you could give them, with time to spare, so there was nothing to return. \"%s\" (%s tab, under %s) refreshes it anyway."]
+		:format(L["Refresh a buff they already have, to return a favour"], L["When to offer"], L["Buffing back"]),
 	-- In place of TIP_OWED while the prompt cannot offer them, the rule Quiet()
 	-- below keeps for the empty list: the window never promises what cannot
 	-- come. The toggle is quoted by the name it has on the Who to buff tab, and
@@ -252,6 +258,9 @@ local STATES = { owed = true, returned = true, letgo = true, back = true }
 -- Why a favour was let go: its time ran out, nothing you cast is any use to
 -- them, it was forgotten at a reload, or you put them on the never-offer list.
 local WHY = { expired = true, useless = true, notkept = true, never = true }
+-- And: they already wore everything you could give them, so nothing was left
+-- to return (Queue.lua, LetGoCovered; Favours.lua, CoveredAlready).
+WHY.covered = true
 local FILTERS = { all = true, favours = true, given = true }
 local TOTALS = { "received", "returned", "letGo", "group", "strangers" }
 -- Today's counts of favours, kept beside today's count of gifts.
@@ -984,6 +993,13 @@ function Ledger.LetGo(name, why)
 	why = WHY[why] and why or "expired"
 	e.state, e.why, e.doneAt = "letgo", why, now
 	Bump(s, "letGo")
+	-- Covered: there was nothing to return, so today's count scores it as it
+	-- does a favour nothing you cast could return, apart from the favours
+	-- received (Summary does the same from the list).
+	if why == "covered" and s.today and s.today.day == StartOfToday(e.at) then
+		Untoday(s, "received", e.at)
+		s.today.useless = (s.today.useless or 0) + 1
+	end
 	Changed()
 end
 
@@ -1069,6 +1085,9 @@ function Ledger.Summary()
 		if e.kind == "received" and e.state == "owed" then out.owed = out.owed + 1 end
 		if e.at >= today then
 			if e.kind == "received" and e.why == "useless" then
+				out.useless = out.useless + 1
+			elseif e.kind == "received" and e.why == "covered" then
+				-- Nothing was left to return (LetGo): not scored either.
 				out.useless = out.useless + 1
 			elseif e.kind == "received" and e.state == "back" then
 				-- A buff back: nothing to return, so not scored (Received).
@@ -1397,7 +1416,8 @@ local function Detail(e)
 	end
 	local why = e.why == "useless" and TEXT.LETGO_USELESS
 		or e.why == "notkept" and TEXT.LETGO_NOTKEPT
-		or e.why == "never" and TEXT.LETGO_NEVER or TEXT.LETGO_EXPIRED
+		or e.why == "never" and TEXT.LETGO_NEVER
+		or e.why == "covered" and TEXT.LETGO_COVERED or TEXT.LETGO_EXPIRED
 	return TEXT.STATE_LETGO, why, COLOUR.letgo
 end
 
@@ -1482,7 +1502,8 @@ local function RowTooltip(row)
 		else
 			GameTooltip:AddLine(e.why == "useless" and TEXT.TIP_LETGO_USELESS
 				or e.why == "notkept" and TEXT.TIP_LETGO_NOTKEPT
-				or e.why == "never" and TEXT.TIP_LETGO_NEVER or TEXT.TIP_LETGO_EXPIRED,
+				or e.why == "never" and TEXT.TIP_LETGO_NEVER
+				or e.why == "covered" and TEXT.TIP_LETGO_COVERED or TEXT.TIP_LETGO_EXPIRED,
 				c[1], c[2], c[3], true)
 		end
 	end

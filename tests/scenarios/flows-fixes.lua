@@ -118,6 +118,10 @@ for _, case in ipairs(RANKED) do
 		end
 		ns.db.profile.sources.strangers = false
 		ns.db.profile.speech.enabled = true
+		-- The refresh of a buff they already wear is a switch since "Refresh a buff
+		-- they already have, to return a favour" (tests/scenarios/covered.lua has
+		-- the default): on here, where the refresh is what is asked about.
+		ns.db.profile.filters.repayCovered = true
 		owe(ns, "Petra")
 
 		wearing(case.known[1], "nameplate2")
@@ -193,6 +197,10 @@ for _, source in ipairs({ { "another paladin's", "nameplate2" }, { "nobody's", n
 		end
 		ns.db.profile.buff.choice = "might"
 		ns.db.profile.sources.strangers = false
+		-- The refresh of a buff they already wear is a switch since "Refresh a buff
+		-- they already have, to return a favour" (tests/scenarios/covered.lua has
+		-- the default): on here, where the refresh is what is asked about.
+		ns.db.profile.filters.repayCovered = true
 		owe(ns, "Petra")
 
 		wearing(MIGHT[1], source[2])

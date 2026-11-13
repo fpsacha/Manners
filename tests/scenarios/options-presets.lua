@@ -396,9 +396,16 @@ do
 		end
 		quick.Apply(quick.WHO, "group")
 		who = quick.WhoSummary()
+		if not who:find("Already buffed: skipped. People who buff me are offered one back unless they already have it.", 1, true) then
+			fail(scenario, "with the group on, the summary does not say favours are returned unless covered: " .. who)
+		end
+		-- Always, with "Refresh a buff they already have, to return a favour" on.
+		db.filters.repayCovered = true
+		who = quick.WhoSummary()
 		if not who:find("Already buffed: skipped. People who buff me are always offered one back.", 1, true) then
 			fail(scenario, "with the group on, the summary does not say favours are always returned: " .. who)
 		end
+		db.filters.repayCovered = false
 		db.priority.readyCheck, db.priority.revived = true, true
 		if not quick.WhoSummary():find("Ready checks and the just-revived go first.", 1, true) then
 			fail(scenario, "the summary leaves out who goes first: " .. quick.WhoSummary())

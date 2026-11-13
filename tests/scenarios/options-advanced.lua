@@ -42,6 +42,7 @@ local MODEL = {
 	{ "resetAdvanced", 0.7, "Reset this page" },
 	{ "favoursHeader", 10, "Buffing back" },
 	{ "owedClassBuffsOnly", 11, "Count only class buffs as favours" },
+	{ "repayCovered", 11.5, "Refresh a buff they already have, to return a favour" },
 	{ "reciprocateWindow", 12, "Offer a buff back for (seconds)" },
 	{ "reachableOnly", 13, "Stop sooner if they are probably gone" },
 	{ "graceSeconds", 14, "Let them go after (seconds)" },
@@ -74,6 +75,7 @@ local MODEL = {
 local PLACED = {
 	when = {
 		{ "advanced.reciprocateWindow" }, { "advanced.owedClassBuffsOnly" },
+		{ "advanced.repayCovered" },
 		{ "advanced.reachableOnly" }, { "advanced.graceSeconds" }, { "advanced.keepDebts" },
 		{ "advanced.retryCooldown", folded = true }, { "advanced.skipSeconds", folded = true },
 		{ "advanced.scanInterval", folded = true },
@@ -92,6 +94,7 @@ local PLACED = {
 -- Each control that writes a setting, and the profile field it writes.
 local FIELDS = {
 	{ "owedClassBuffsOnly", "sources", "owedClassBuffsOnly" },
+	{ "repayCovered", "filters", "repayCovered" },
 	{ "reciprocateWindow", "timing", "reciprocateWindow" },
 	{ "reachableOnly", "filters", "reachableOnly" },
 	{ "graceSeconds", "timing", "graceSeconds" },
@@ -121,6 +124,7 @@ local WHEN_RESET = {
 	{ "timing", "reciprocateWindow" }, { "sources", "owedClassBuffsOnly" },
 	{ "filters", "reachableOnly" }, { "timing", "graceSeconds" }, { "timing", "keepDebts" },
 	{ "timing", "retryCooldown" }, { "timing", "skipSeconds" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },
+	{ "filters", "repayCovered" },
 }
 
 -- Look's reset: everything about the prompt itself, the old Advanced reset's

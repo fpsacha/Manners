@@ -236,6 +236,10 @@ end
 do
 	local scenario = "buffback: Forever: a buff after you returned their favour is a new favour"
 	with(scenario, "camelot", function(ns, anna, buff)
+		-- She wears your buff when the new favour comes, so by default it is let
+		-- go as covered (tests/scenarios/covered.lua); with the refresh on, what
+		-- is asked here shows: owed, not a buff back.
+		ns.db.profile.filters.repayCovered = true
 		-- A gift first, then a favour of hers you return: the return, not the
 		-- gift, is the last thing you did for her.
 		if not buffAnna(ns, anna, buff) then fail(scenario, "SKIPPED -- the press on Anna went nowhere") return end
@@ -279,6 +283,9 @@ end
 do
 	local scenario = "buffback: retail: somebody wearing another mage's Intellect is owed"
 	with(scenario, "mainline", function(ns, anna, buff)
+		-- Another mage's is no buff back; by default it is let go as covered
+		-- all the same (tests/scenarios/covered.lua), so the refresh is on.
+		ns.db.profile.filters.repayCovered = true
 		wears(ns, buff, length(ns, buff) - 60, "nameplate1")
 		annaBuffsYou(ns, buff)
 		if not ns.owed[anna] then fail(scenario, "a favour from somebody wearing another's Intellect was not filed") end

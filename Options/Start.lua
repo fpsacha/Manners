@@ -478,7 +478,10 @@ function Quick.WhoSummary()
 		text = L["Offering to: %s."]:format(list)
 	else
 		text = L["Offering to: %s. Already buffed: %s."]:format(list, buffed)
-		if s.owed then text = text .. " " .. L["People who buff me are always offered one back."] end
+		-- Always only with "Refresh a buff they already have, to return a
+		-- favour" on: by default somebody who already has it is let be.
+		if s.owed and f.repayCovered ~= true then text = text .. " " .. L["People who buff me are offered one back unless they already have it."] end
+		if s.owed and f.repayCovered == true then text = text .. " " .. L["People who buff me are always offered one back."] end
 	end
 	if s.asked then text = text .. " " .. L["People who ask in chat: on."] end
 	if s.group then

@@ -4195,6 +4195,10 @@ if ns then
 	IsPlayerSpell = function(id) return known[id] == true end
 
 	drive(scenario, ns)
+	-- The refresh of a buff they already wear is a switch since "Refresh a buff
+	-- they already have, to return a favour" (tests/scenarios/covered.lua has
+	-- the default): on here, where the refresh is what is asked about.
+	ns.db.profile.filters.repayCovered = true
 	wipe(ns.owed)
 	Mock.advance(60)
 	ns.Guard("probe", ns.ProbeCapabilities)
@@ -17858,6 +17862,10 @@ if ns then
 	IsSpellKnown = function(id) return known[id] == true end
 	IsPlayerSpell = IsSpellKnown
 	drive(scenario, ns)
+	-- The refresh of a buff they already wear is a switch since "Refresh a buff
+	-- they already have, to return a favour" (tests/scenarios/covered.lua has
+	-- the default): on here, where the refresh is what is asked about.
+	ns.db.profile.filters.repayCovered = true
 	Mock.advance(60)
 	wipe(ns.owed)
 	wipe(ns.tried)

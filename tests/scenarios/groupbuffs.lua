@@ -1683,6 +1683,10 @@ do
 			.. case.label .. ")"
 		local ns, restore = session(scenario, mage({ held = case.held, setup = function(ns)
 			speechOn(ns)
+			-- The refresh of a buff they already wear is a switch since "Refresh a buff
+			-- they already have, to return a favour" (tests/scenarios/covered.lua has
+			-- the default): on here, where the refresh is what is asked about.
+			ns.db.profile.filters.repayCovered = true
 			H.owe(ns, "Gwen Hale")
 			ns.addon:READY_CHECK(nil, nil, 30)
 		end }))
@@ -1732,6 +1736,10 @@ do
 				sp.onlyWhenReturning = false
 				sp.channel = "PARTY"
 				sp.phrases = "Thanks, {name}."
+				-- The refresh of a buff they already wear is a switch since "Refresh a buff
+				-- they already have, to return a favour" (tests/scenarios/covered.lua has
+				-- the default): on here, where the refresh is what is asked about.
+				ns.db.profile.filters.repayCovered = true
 				H.owe(ns, owedName)
 				ns.addon:READY_CHECK(nil, nil, 30)
 			end }))

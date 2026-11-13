@@ -3,8 +3,15 @@
 -- whole raid. A buff the player holds to tanks (Buffs.lua, tankChoice; Who to
 -- buff, Offer to) is offered, in the group, only to somebody the game gave the
 -- tank role or marked main tank in a raid (ns.IsTankUnit); somebody with no
--- role is no tank, and people outside the group and anybody who asks by name
--- are offered it as ever. Everybody is the default.
+-- role is no tank, and anybody who asks by name is offered it as ever.
+-- Everybody is the default.
+--
+-- Until 1.11.17 Tanks only narrowed the group alone, and passers-by were
+-- offered Thorns as ever, which a player took for a bug, fairly. Tanks only now
+-- means it: nobody outside the group either, a favour's giver included (a
+-- passer-by cannot be known for a tank). What it did before is a choice of its
+-- own, "Tanks, and anyone outside my group" (buff.tanksOutside beside
+-- buff.tanksOnly), and the scenarios that held the old meaning hold it there.
 --
 -- Every scenario name starts with "tankonly:" so the mutations in
 -- tests/mutations/tankonly.py can name the one that has to catch them.
@@ -91,6 +98,11 @@ local function offers(ns)
 end
 
 local function setTanksOnly(ns) ns.db.profile.buff.tanksOnly = { thorns = true } end
+-- The looser choice: the group held to its tanks, everybody outside it as ever.
+local function setTanksOutside(ns)
+	ns.db.profile.buff.tanksOnly = { thorns = true }
+	ns.db.profile.buff.tanksOutside = { thorns = true }
+end
 
 do
 	local scenario = "tankonly: with nothing chosen, everybody is offered Thorns"
@@ -133,14 +145,127 @@ do
 end
 
 do
+	-- Under "Tanks, and anyone outside my group", which is what Tanks only did
+	-- when this was written.
 	local scenario = "tankonly: held to tanks, a passer-by outside the group is offered Thorns as ever"
-	session(scenario, { setup = setTanksOnly }, function(ns)
+	session(scenario, { setup = setTanksOutside }, function(ns)
 		local out = offers(ns)
 		if out[filed(STRANGER)] ~= "thorns" then
 			fail(scenario, "a passer-by outside the group was offered " .. tostring(out[filed(STRANGER)])
-				.. ", not Thorns: the choice is about the group")
+				.. ", not Thorns: this choice is about the group")
+		end
+		-- And the group is still held to its tanks, of which it has none.
+		for token, pair in pairs(PARTY) do
+			if out[filed(pair)] then
+				fail(scenario, token .. ", with no role, was offered " .. tostring(out[filed(pair)]))
+			end
 		end
 	end)
+end
+
+-- Tanks only as it reads: the tanks of your group, and nobody outside it.
+do
+	local scenario = "tankonly: Tanks only offers nobody outside the group Thorns"
+	session(scenario, { setup = setTanksOnly }, function(ns)
+		Mock.roles = { party2 = "TANK" }
+		local out = offers(ns)
+		if out[filed(STRANGER)] then
+			fail(scenario, "a passer-by outside the group was offered " .. tostring(out[filed(STRANGER)])
+				.. " with Thorns held to tanks")
+		end
+		if out[filed(PARTY.party2)] ~= "thorns" then
+			fail(scenario, "the tank of the party was offered " .. tostring(out[filed(PARTY.party2)]) .. ", not Thorns")
+		end
+		-- Still Mark of the Wild, for a passer-by who lacks it.
+		Mock.held = {}
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("nameplate1")))
+		out = offers(ns)
+		if out[filed(STRANGER)] ~= "motw" then
+			fail(scenario, "a passer-by missing Mark of the Wild was offered " .. tostring(out[filed(STRANGER)]))
+		end
+	end)
+end
+
+do
+	local scenario = "tankonly: Tanks only still answers a passer-by who asks for Thorns by name"
+	session(scenario, { setup = setTanksOnly }, function(ns)
+		local name = filed(STRANGER)
+		ns.addon.CHAT_MSG_SAY(ns.addon, "CHAT_MSG_SAY", "thorns pls", name, "Common", "", "", "", 0, 0, "", 0, 1,
+			"Player-1-nameplate1")
+		local out = offers(ns)
+		if out[name] ~= "thorns" then
+			fail(scenario, "a passer-by who asked for Thorns was offered " .. tostring(out[name]))
+		end
+	end)
+end
+
+-- A favour from outside the group is returned with Thorns under the looser
+-- choice and not under Tanks only, as a favour from a member who is no tank
+-- never was: by a token, and with no token (the owed fallback).
+do
+	local scenario = "tankonly: Tanks only returns no passer-by's favour with Thorns, the looser choice does"
+	session(scenario, {}, function(ns)
+		local name = filed(STRANGER)
+		setTanksOutside(ns)
+		H.owe(ns, name)
+		local out = offers(ns)
+		if out[name] ~= "thorns" then
+			fail(scenario, "SKIPPED -- under the looser choice a passer-by who buffed you was offered " .. tostring(out[name]))
+			return
+		end
+		setTanksOnly(ns)
+		ns.db.profile.buff.tanksOutside = {}
+		H.owe(ns, name)
+		out = offers(ns)
+		if out[name] then
+			fail(scenario, "a passer-by who buffed you was offered " .. tostring(out[name]) .. " with Thorns held to tanks")
+		end
+	end)
+end
+
+do
+	local scenario = "tankonly: Tanks only holds a favour owed to somebody out of sight"
+	session(scenario, {}, function(ns)
+		-- Thorns pinned, so the fallback has Thorns to offer them.
+		ns.db.profile.buff.choice = "thorns"
+		H.owe(ns, "Zed Gone")
+		if offers(ns)["Zed Gone"] ~= "thorns" then
+			fail(scenario, "SKIPPED -- a favour owed out of sight is not offered Thorns")
+			return
+		end
+		setTanksOnly(ns)
+		if offers(ns)["Zed Gone"] then
+			fail(scenario, "a favour owed out of sight was offered Thorns with Thorns held to tanks")
+		end
+		setTanksOutside(ns)
+		if offers(ns)["Zed Gone"] ~= "thorns" then
+			fail(scenario, "under the looser choice a favour owed out of sight is not offered Thorns")
+		end
+	end)
+end
+
+do
+	local scenario = "tankonly: Tanks only holds a passer-by remembered before it was set"
+	for _, case in ipairs({ { setTanksOutside, true }, { setTanksOnly, false } }) do
+		session(scenario, {}, function(ns)
+			local name = filed(STRANGER)
+			if offers(ns)[name] ~= "thorns" then
+				fail(scenario, "SKIPPED -- the passer-by is not offered Thorns to begin with")
+				return
+			end
+			-- Their nameplate goes, and they are remembered for a few seconds.
+			Mock.unitNames.nameplate1 = nil
+			ns.nameplateUnits.nameplate1 = nil
+			case[1](ns)
+			local out = {}
+			for _, entry in ipairs(ns.BuildQueue()) do out[entry.name] = entry.buff and entry.buff.key end
+			if case[2] and out[name] ~= "thorns" then
+				fail(scenario, "under the looser choice a remembered passer-by was offered " .. tostring(out[name]))
+			elseif not case[2] and out[name] then
+				fail(scenario, "a remembered passer-by was offered " .. tostring(out[name]) .. " with Thorns held to tanks")
+			end
+		end)
+	end
 end
 
 do
@@ -183,6 +308,11 @@ do
 		if out[filed(PARTY.party1)] ~= "motw" then
 			fail(scenario, "Mark of the Wild, which has no choice, was held back from a party member: "
 				.. tostring(out[filed(PARTY.party1)]))
+		end
+		-- Nor from a passer-by, whom Tanks only holds a buff with the choice from.
+		if out[filed(STRANGER)] ~= "motw" then
+			fail(scenario, "Mark of the Wild, which has no choice, was held back from a passer-by: "
+				.. tostring(out[filed(STRANGER)]))
 		end
 	end)
 end
@@ -297,6 +427,74 @@ do
 		end
 		control.set(info, "all")
 		if next(B.tanksOnly) ~= nil or next(B.meOnly) ~= nil then fail(scenario, "Everyone left a key behind") end
+	end)
+end
+
+-- The fourth, "Tanks, and anyone outside my group": kept in both sets, read
+-- back as itself, and cleared by each of the others.
+do
+	local scenario = "tankonly: the looser tank choice is kept in both sets, and the others clear it"
+	session(scenario, {}, function(ns)
+		local control = H.findOption(ns.optionsTable, "tank_thorns")
+		if not control then
+			fail(scenario, "Who to buff has no Offer to choice for Thorns")
+			return
+		end
+		local values = control.values()
+		if values.outside ~= "Tanks, and anyone outside my group" then
+			fail(scenario, "the looser choice reads " .. tostring(values.outside))
+		end
+		local order = table.concat(control.sorting or {}, " ")
+		if order ~= "all tanks outside me" then fail(scenario, "the choices are listed " .. order) end
+		local desc = H.optionText(control.desc)
+		if not desc:find("so is everybody outside your group", 1, true) then
+			fail(scenario, "the description does not say Tanks only leaves out everybody outside the group: " .. desc)
+		end
+		if not desc:find("asks you for it in chat is still offered it", 1, true) then
+			fail(scenario, "the description does not say a request is still answered: " .. desc)
+		end
+		local B = ns.db.profile.buff
+		local info = { "who", "tank_thorns" }
+		-- A choice saved before there were four: Tanks only, the strict one.
+		B.tanksOnly.thorns = true
+		if control.get(info) ~= "tanks" then
+			fail(scenario, "a saved Tanks only reads " .. tostring(control.get(info)))
+		end
+		control.set(info, "outside")
+		if control.get(info) ~= "outside" or B.tanksOnly.thorns ~= true or B.tanksOutside.thorns ~= true
+			or B.meOnly.thorns ~= nil then
+			fail(scenario, "the looser choice was not kept in both sets: " .. tostring(control.get(info)))
+		end
+		control.set(info, "tanks")
+		if control.get(info) ~= "tanks" or B.tanksOnly.thorns ~= true or B.tanksOutside.thorns ~= nil then
+			fail(scenario, "Tanks only left the looser choice behind")
+		end
+		control.set(info, "outside")
+		control.set(info, "me")
+		if control.get(info) ~= "me" or B.tanksOnly.thorns ~= nil or B.tanksOutside.thorns ~= nil then
+			fail(scenario, "Only me left a tank choice behind")
+		end
+		control.set(info, "outside")
+		control.set(info, "all")
+		if next(B.tanksOnly) ~= nil or next(B.tanksOutside) ~= nil or next(B.meOnly) ~= nil then
+			fail(scenario, "Everyone left a key behind")
+		end
+	end)
+end
+
+do
+	local scenario = "tankonly: the looser set is repaired and travels with a profile"
+	session(scenario, {}, function(ns)
+		ns.db.profile.buff.tanksOutside = "yes"
+		ns.ClampSettings()
+		if type(ns.db.profile.buff.tanksOutside) ~= "table" then
+			fail(scenario, "a damaged set was left as " .. tostring(ns.db.profile.buff.tanksOutside))
+		end
+		setTanksOutside(ns)
+		local text = ns.ExportSettings and ns.ExportSettings() or nil
+		if text and not text:find("buff.tanksOutside=thorns", 1, true) then
+			fail(scenario, "the export does not carry the choice: " .. tostring(text))
+		end
 	end)
 end
 

@@ -245,21 +245,35 @@ local function AddBuffToggles(args)
 			args["tank_" .. buff.key] = {
 				type = "select",
 				name = function() return L["Offer %s to"]:format(ns.BuffName(buff) or buff.key) end,
-				desc = L["In a group, Tanks only offers this buff only to players the game gives the tank role, or marks as main tank in a raid, so the rest of a dungeon or raid is left alone. A player with no role is not a tank. People outside your group, and anybody who asks you for it in chat, are offered it as usual."]
+				desc = L["Tanks only offers this buff only to players in your group whom the game gives the tank role, or marks as main tank in a raid. The rest of a dungeon or raid is left alone, and so is everybody outside your group, passers-by and people who buffed you included. A player with no role is not a tank."]
+					.. "\n\n" .. L["Tanks, and anyone outside my group holds only your group to its tanks: passers-by and people who buffed you are offered it as usual."]
+					.. "\n\n" .. L["Under either, anybody who asks you for it in chat is still offered it."]
 					.. "\n\n" .. L["Only me offers it to nobody else, and still reminds you when yours is down (Myself must be on)."],
 				order = 4 + index / 10 + 0.05,
 				width = "full",
-				values = function() return { all = L["Everyone"], tanks = L["Tanks only"], me = L["Only me"] } end,
-				sorting = { "all", "tanks", "me" },
+				-- "tanks" is Tanks only as it reads: nobody outside the group
+				-- either (a player's report). "outside" is what it did before it
+				-- was made to mean it, kept as a choice of its own: both keep the
+				-- buff's key in buff.tanksOnly, "outside" in buff.tanksOutside too.
+				values = function()
+					return { all = L["Everyone"], tanks = L["Tanks only"],
+						outside = L["Tanks, and anyone outside my group"], me = L["Only me"] }
+				end,
+				sorting = { "all", "tanks", "outside", "me" },
 				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
 				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
 				get = function()
 					if B().meOnly[buff.key] then return "me" end
+					if B().tanksOnly[buff.key] and B().tanksOutside[buff.key] then return "outside" end
 					return B().tanksOnly[buff.key] and "tanks" or "all"
 				end,
 				set = function(_, value)
-					-- One of the three: nil rather than false, as the switches are.
+					-- One of the four: nil rather than false, as the switches are.
 					B().tanksOnly[buff.key] = (value == "tanks") or nil
+					-- "outside" holds the group to its tanks too, and says so in
+					-- both sets.
+					if value == "outside" then B().tanksOnly[buff.key] = true end
+					B().tanksOutside[buff.key] = (value == "outside") or nil
 					B().meOnly[buff.key] = (value == "me") or nil
 					restyleAndMacro()
 				end,

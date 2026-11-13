@@ -167,10 +167,17 @@ mutate("Options/Start.lua",
        expect="favours only reads", script=S)
 
 mutate("Options/Start.lua",
-       "\t\tif s.owed then text = text .. \" \" .. L[\"People who buff me are always offered one back.\"] end\n",
+       "\t\tif s.owed and f.repayCovered == true then text = text .. \" \" .. L[\"People who buff me are always offered one back.\"] end\n",
        "",
        "presets: favours not said to be always returned",
        expect="does not say favours are always returned", script=S)
+
+# ...and by default, unless they already have it (filters.repayCovered off).
+mutate("Options/Start.lua",
+       "\t\tif s.owed and f.repayCovered ~= true then text = text .. \" \" .. L[\"People who buff me are offered one back unless they already have it.\"] end\n",
+       "",
+       "presets: favours not said to be returned unless covered",
+       expect="does not say favours are returned unless covered", script=S)
 
 # The group's extras said with the group off, or left out.
 mutate("Options/Start.lua",

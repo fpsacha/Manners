@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **A favour is not returned with a buff they already have.** Somebody who
+  buffs you and already wears everything you could give them, with time to
+  spare, is no longer put on the prompt to have it refreshed: that was mana
+  spent on nothing, and a thank-you is enough. It no longer matters who cast
+  the buff they wear (until now only one known to be your own was spared).
+  The favour is let go at once: the ledger says *Let go: they already have
+  your buff* and does not count it among the favours to return, and the chat
+  line says there is nothing to return. A buff they are missing, or one about
+  to run out, is still offered back as before, and so is somebody whose buffs
+  the game hides. If you liked the refresh, *Refresh a buff they already
+  have, to return a favour* on *When to offer*, under *Buffing back*, brings
+  it back.
+- **Thorns: Tanks only means tanks only.** With *Offer Thorns to: Tanks only*,
+  passers-by were still offered Thorns, because the choice only narrowed your
+  own group. Now it offers Thorns to the tanks of your group and to nobody
+  outside it, passers-by and people who buffed you included (they are still
+  offered Mark of the Wild when they lack it). Somebody who asks for Thorns
+  by name in chat is still offered it. The old behaviour is a choice of its
+  own, **Tanks, and anyone outside my group**. If you had picked Tanks only,
+  you now have the strict one.
 - **Which pet: your pets by name.** *Which pet*, under *Companion pet* on
   *Who to buff*, now lists every pet in your pet journal under its three
   choices, so Manners brings out the one you pick. A pet you gave a name of

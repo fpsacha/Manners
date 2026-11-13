@@ -35,6 +35,10 @@ local function with(scenario, body)
 		rawset(_G, "IsPlayerSpell", function(id) return known[id] == true end)
 		H.freshPrompt(ns, scenario)
 		ns.db.profile.sources.strangers = true
+		-- Whose cast a worn Might is only matters while a favour is repaid by
+		-- refreshing one from somebody else: "Refresh a buff they already have,
+		-- to return a favour", off by default (tests/scenarios/covered.lua).
+		ns.db.profile.filters.repayCovered = true
 		ns.Guard("probe", ns.ProbeCapabilities)
 		body(ns, might)
 		for _, e in ipairs(ns.errors or {}) do

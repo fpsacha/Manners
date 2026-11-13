@@ -108,6 +108,9 @@ local function BugReport()
 		:format(tostring(db.filters.quietInTowns), tostring(db.filters.quietInTownsWhere),
 			tostring(db.filters.quietInInstances), tostring(db.filters.quietTargets),
 			tostring(db.prompt.thankWhisper), tostring(db.prompt.thankDelay))
+	-- A favour returned by refreshing what its giver already wears, when that
+	-- is switched on (off, the default, lets such a favour go).
+	if db.filters.repayCovered == true then lines[#lines + 1] = "repayCovered=on" end
 	lines[#lines + 1] = ("groupBuffs=%s atLeast=%s"):format(
 		tostring(db.groupBuffs.use), tostring(db.groupBuffs.atLeast))
 	-- The dungeon and raid settings, each of which leaves people out or moves

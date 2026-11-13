@@ -5,7 +5,48 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.11.16 is released. Unreleased after it, all three asked for on CurseForge:
+1.11.17 is released. Unreleased after it, both asked for on CurseForge:
+
+- A favour is not returned with a buff its giver already wears
+  (`filters.repayCovered`, off: *Refresh a buff they already have, to return a
+  favour*, When to offer, Buffing back). Queue.lua writes `opts.spareCovered`
+  for somebody owed and read, Core.lua's `Fresh` then spares what they wear
+  with more than the top-up lead left whoever cast it (a rank above yours
+  included), and `PickBuffFor` hands back a third value, true, when that is
+  all there is (`Covered`: every castable buff read on them, none on its
+  cooldown). The walk marks the debt (`covered`) and `LetGoCovered` lets it go
+  once the walk is over: ledger `why = "covered"` (*Let go: they already have
+  your buff*, counted with the favours nothing could return, not against
+  you), the debts saved, and a line only after a "buffed you" line that
+  promised the prompt (`said` on the debt). Favours.lua `CoveredAlready` asks
+  the same as the favour arrives, of the token that names them, so the common
+  case is one line and no debt. Not on a reading withheld or "kept" from a
+  fight, not under Always offer, and a buff about to run out still returns the
+  favour. With the switch on everything is as it was (`paidUp`, own casts
+  only). `tests/scenarios/covered.lua`. Left as they were: a favour whose
+  giver is covered only by *Leave alone anybody another paladin has blessed*,
+  by a blessing of yours that is switched off or unpaid for, or by a scroll
+  that blocks your buff (no timer read) still waits out its time as Still
+  owed; and the whispered thank-you (`prompt.thankWhisper`) goes when the
+  favour is let go as it arrives, not when a later scan lets it go.
+- Thorns' *Tanks only* holds everybody outside the group too (Core.lua
+  `Castable`: `opts.tanksOnly` with no `opts.tanksOutside`), a favour's giver
+  included, by a token, by the tokenless fallback and from the passer-by
+  memory (`StillCastable`); a request by name is still answered. What it did
+  before is the fourth choice, *Tanks, and anyone outside my group*
+  (`buff.tanksOutside` beside `buff.tanksOnly`, so a saved Tanks only is the
+  strict one). `tests/scenarios/tankonly.lua`. A druid whose only buff
+  switched on is Thorns, under Tanks only, keeps a passer-by's favour as
+  Still owed until its time runs out, as a favour from a member who is no
+  tank always did.
+
+Only the live game can say: that the buffs of somebody who has just buffed you
+read at that moment on WoW Forever (the token is the one the aura named as its
+caster; a reading the client withholds leaves them owed, as before), and how
+often a passer-by who buffs you holds a token at all on the next scans (with
+none, the favour is offered unverified for *Let them go after*, as before).
+
+In 1.11.17, all three asked for on CurseForge:
 
 - *Below it, still offer* under *Save mana* (`filters.manaFloorKeeps`:
   `asked`, the default and the old behaviour, `self` or `none`; Queue.lua

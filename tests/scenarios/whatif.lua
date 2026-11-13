@@ -154,6 +154,11 @@ run("whatif: a group member's lapsing shout", function()
 	if not ns then undo() return end
 	freshPrompt(ns, scenario)
 	ns.db.profile.prompt.thankEmote = true
+	-- Your own cast with time to spare has nothing to repay, and the favour
+	-- waits for it to run low: that is the refresh's rule ("Refresh a buff they
+	-- already have, to return a favour" on). Off, the default, it is let go at
+	-- once as covered, whoever cast it (tests/scenarios/covered.lua).
+	ns.db.profile.filters.repayCovered = true
 
 	owe(ns, "Grom Axe")
 	owe(ns, "Pass Ing")
@@ -257,6 +262,8 @@ run("whatif: a group member's favour, your blessing on him", function()
 	local left = { party1 = 2400 }
 	auras({ party1 = held }, left)
 	freshPrompt(ns, scenario)
+	-- As above: the favour waits for your blessing to run low with the refresh on.
+	ns.db.profile.filters.repayCovered = true
 	owe(ns, "Grom Axe")
 	local offered = H.inQueue(ns)
 	if offered["Grom Axe"] then

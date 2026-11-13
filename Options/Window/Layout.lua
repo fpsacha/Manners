@@ -392,6 +392,8 @@ ns.WindowLayout = {
 				{ key = "when.favours", header = "advanced.favoursHeader", items = {
 					"advanced.reciprocateWindow",
 					"advanced.owedClassBuffsOnly",
+					-- A favour from somebody who already has your buff.
+					"advanced.repayCovered",
 					"advanced.reachableOnly",
 					{ "advanced.graceSeconds", indent = true },
 					"advanced.keepDebts",
