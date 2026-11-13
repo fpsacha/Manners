@@ -2,154 +2,51 @@
 
 ## 1.11.19
 
-- **In a fight, each press moves on to the next person.** A fight locks the
-  prompt, and until now it stayed on whoever it showed as the fight began:
-  every press cast at that one person again, and nobody else in your group
-  was reached until the fight was over. Now Manners hands the prompt everybody
-  who still needed a buff as the fight began, and each press of the prompt or
-  its key casts at the next of them in turn, round and round; the second line
-  says which of how many. *In a fight, each press moves on to the next
-  person*, on *Look* under *Hide the prompt in combat*, switches it off. The
-  Manners macro on an action bar keeps to the one person: the game leaves a
-  macro no other way.
-- **Everybody's first buff before anybody's second.** A priest or a druid in
-  a party was kept on the first person for every buff in turn (Fortitude,
-  then Divine Spirit, then Shadow Protection) while the others stood there
-  with nothing. Now the prompt gives everybody the first buff they are
-  missing, then goes round again for the next. Among people offered for the
-  same reason, somebody read as missing a buff also comes before somebody
-  whose buffs the game would not show, and both before a top-up of a buff
-  that is still running. A top-up of your own buff no longer comes ahead of a
-  party member who has none; your own buff when it is missing keeps its
-  place. A fight's presses step through the same order.
-- **A favour is not returned with a buff they already have.** Somebody who
-  buffs you and already wears everything you could give them, with time to
-  spare, is no longer put on the prompt to have it refreshed: that was mana
-  spent on nothing, and a thank-you is enough. It no longer matters who cast
-  the buff they wear (until now only one known to be your own was spared).
-  The favour is let go at once: the ledger says *Let go: they already have
-  your buff* and does not count it among the favours to return, and the chat
-  line says there is nothing to return. A buff they are missing, or one about
-  to run out, is still offered back as before, and so is somebody whose buffs
-  the game hides. If you liked the refresh, *Refresh a buff they already
-  have, to return a favour* on *When to offer*, under *Buffing back*, brings
-  it back.
-- **A new look: Fel.** A warlock's, and the Burning Legion's: a slab of black
-  felsteel, cracked, with fel fire showing through the cracks and burning
-  along its foot; your spell in a summoning circle, eight demonic runes cut
-  round it and a demon's horns over it; and at the far end a soul shard held
-  in a claw of two more horns. The band round the icon carries the reason's
-  colour; with the marker on *Stripe* or *Both* the shard and a vein along
-  the upper rim carry it too, and otherwise the shard keeps a soul shard's
-  own violet. When somebody buffs you the runes light one after another;
-  while you owe them the circle turns; when your buff lands a gout of fel
-  flame leaps from the circle and a shadow bolt flies the length of the slab
-  and strikes the shard; a refusal gutters the fire to a glow, puts the
-  runes out and leaves smoke. At rest the fire burns, the fire behind the
-  cracks flows and embers rise; *Animations* on *Calm* stills all of it, and
-  a fight puts the fire out. The icon is always round on this look.
-- **Four looks are retired: Framed, Luxe, Arcane and Toast.** Each was too
-  like one of its neighbours, and every look on the Look page should be its
-  own. If your prompt wore one of them, it now wears the nearest look that
-  remains: Framed and Luxe become **Glass**, Arcane becomes **Archmage**, and
-  Toast becomes **Ribbon**. A line in chat tells you so once, a few seconds
-  after you log in, and nothing else about your settings changes. Eight of
-  the old looks remain, and Fel makes nine, each a card under Look > *Panel
-  style*: Glass, Minimal, Ribbon, Letter, Leather, Forge, Archmage,
-  Lightbringer and Fel.
-- **Shadow Protection is off until you tick it** (Classic Era, WoW Forever,
-  Burning Crusade). It was offered to you, your whole party and every
-  passer-by, and again every ten minutes. It now has to be switched on, on
-  *Who to buff*, as a warlock's Detect Invisibility is. **If you want it
-  offered, tick it there.**
-- **Unending Breath only where it is wanted** (Classic Era, WoW Forever,
-  Burning Crusade). A warlock was offered it for every party member and
-  passer-by on dry land. It is now offered only to return a favour and to
-  somebody who asks for it by name in chat; on yourself, as before, only
-  while you swim.
-- **Blessing of Might is no longer offered to mages, warlocks and priests**
-  unless you switch that back: *Don't offer Blessing of Might to mages,
-  warlocks and priests*, on *Who to buff*, is now on by default. Somebody who
-  asks for it by name is still given it.
-- **Nobody is offered a buff they are too low a level for.** The game refuses
-  a buff on somebody more than ten levels under its lowest rank ("Target is
-  too low level"): Blessing of Kings under level 10, Divine Spirit and Shadow
-  Protection under 20. Such a buff is no longer offered, and the next one that
-  does reach them is: a paladin now gives a low-level warrior Might instead
-  of pressing Kings at them in vain.
-- **A favour from a low-level player is returned at a rank that lands.** With
-  no nameplate or target on them, the prompt cast your highest rank at
-  somebody who buffed you, which the game refuses on a low level. Their level
-  is now remembered from the moment they buffed you.
-- **WoW Forever: camping buffs are read.** Boosted Stamina, Boosted Intellect
-  and Boosted Spirit, which a First Aid Kit, an Incense Candle and a Faction
-  Banner give for an hour, cannot be worn together with Power Word: Fortitude,
-  Arcane Intellect and Divine Spirit, and the game refuses the weaker of the
-  two. Somebody wearing one worth at least what your rank would give is no
-  longer offered your buff ("A more powerful spell is already active", again
-  every ten minutes); one worth less is cast over, as before.
-- **WoW Forever: a group buff counts everybody it reaches.** Arcane
-  Brilliance, the Prayers and Gift of the Wild reach your whole party and raid
-  within a hundred yards there. People standing further off than a single
-  buff reaches now count towards *When this many need it*, so one cast covers
-  them instead of a single buff for each as they walk up. It is still aimed at
-  somebody within reach of the single buff.
-- **A group buff is never aimed at somebody too low for it**, and members too
-  low for it do not count towards it; they are offered the single buff at a
-  rank that lands. When the game refuses a group buff all the same, the
-  single buff is no longer held off the whole party for ten minutes.
-- **A weaker group buff no longer counts as covered.** A level 60 wearing the
-  first rank of Gift of the Wild or Prayer of Fortitude from a lower-level
-  caster is offered your stronger rank, as somebody wearing a weaker single
-  rank already was.
-- **A paladin whose blessing the game refused offers the next one.** After "A
-  more powerful spell is already active" or "Target is too low level" for one
-  blessing, that person was offered no blessing at all for ten minutes. Only
-  the refused one is held back now.
-- **A warrior's shout when nobody of the group is near.** With *Remind me of
-  my shout when I'm alone* on, you are also reminded of Battle Shout in a
-  group when nobody in it is close enough to be offered it.
-- **"Buff pls" gets the buffs that suit them.** A plain request that names no
-  buff no longer brings a warrior Divine Spirit or a mage Blessing of Might;
-  naming the buff still does.
-- **Thorns: Tanks only means tanks only.** With *Offer Thorns to: Tanks only*,
-  passers-by were still offered Thorns, because the choice only narrowed your
-  own group. Now it offers Thorns to the tanks of your group and to nobody
-  outside it, passers-by and people who buffed you included (they are still
-  offered Mark of the Wild when they lack it). Somebody who asks for Thorns
-  by name in chat is still offered it. The old behaviour is a choice of its
-  own, **Tanks, and anyone outside my group**. If you had picked Tanks only,
-  you now have the strict one.
-- **Which pet: your pets by name.** *Which pet*, under *Companion pet* on
-  *Who to buff*, now lists every pet in your pet journal under its three
-  choices, so Manners brings out the one you pick. A pet you gave a name of
-  your own is listed by that name. WoW Forever.
-- **The Ribbon look reads at its size.** Its reason line, its list and its
-  tags are now in the game's standard lettering, pale on the cloth; the name
-  keeps the banner's serif. The serif's small letters were too fine to read
-  at the size of the second line.
-- The line at the foot of the options window names the character who makes
-  Manners, and nothing else.
-- **The options window, dressed.** A gilt moulding with a boss on each corner
-  runs round it, a beaded gilt rail sits under the header and over the footer,
-  its buttons are set in a rim of gold, a gilt stud stands before each
-  section's title, and the page that is open has a band of light and a stud
-  of its own in the sidebar.
-- **Forge, alive at rest.** A seam of molten metal flickers along the bottom
-  strap and lights the iron above it, embers rise off it across the plate,
-  and a glint crosses the top strap now and then. When your buff lands a
-  fountain of sparks is thrown up off the bezel, and somebody new on the
-  plate is greeted by a glint. On *Calm* and in a fight the forge is cold.
-- **Glass, the default look, redrawn after the game's own action bar.** A
-  beaded gilt rail runs along the pane's top and bottom, and light drifts
-  inside the glass, slowly, under the words. While you owe somebody, the
-  border of light the game runs round a spell that is ready runs round your
-  icon, in their colour. When your buff lands a star winks on the icon's
-  corner. *Gryphons at the ends*, on *Look* (off until you switch it on), sits
-  a gilt gryphon at each end of the pane, taller than it, its eye an ember in
-  the reason's colour: the eyes burn while you owe somebody, and the gilt
-  catches the light when a favour comes in and flashes when your buff lands.
-  On *Calm* nothing moves, and in a fight the lights go out.
+### In a fight
+- **Each press moves on to the next person.** The prompt used to stay on one
+  person for the whole fight. It now steps through everybody who needed a buff
+  as the fight began; the second line says which of how many. Switch:
+  *In a fight, each press moves on to the next person* (Look).
+
+### Who gets what
+- **Everybody's first buff before anybody's second.** No more Fortitude, then
+  Spirit, then Shadow Protection on one person while the rest wait.
+- **No refresh for somebody who already has your buff.** Their favour is let
+  go with a thank-you. Switch: *Refresh a buff they already have, to return a
+  favour* (When to offer).
+- **No buff they are too low a level for.** The next one that lands is offered
+  instead (a low-level warrior gets Might, not Kings). A favour from a
+  low-level player is returned at a rank that lands.
+- **A refused blessing no longer holds the others off.**
+- **Group buffs:** never aimed at somebody too low for them, and a refused one
+  no longer blocks the single buff for the party. A weaker group rank no
+  longer counts as covered.
+- **"Buff pls"** no longer brings a warrior Divine Spirit.
+- **Warriors:** reminded of Battle Shout in a group when nobody is near
+  (with *Remind me of my shout when I'm alone* on).
+- **Thorns "Tanks only" means it:** nobody outside the group. The old
+  behaviour is now *Tanks, and anyone outside my group*.
+
+### New defaults
+- **Shadow Protection** is off until you tick it on *Who to buff*.
+- **Unending Breath** only to return a favour or when asked for by name.
+- **Blessing of Might** is no longer offered to mages, warlocks and priests.
+
+### WoW Forever
+- **Camping buffs** (First Aid Kit, Incense Candle, Faction Banner) hold your
+  Fortitude, Intellect or Spirit off when they are worth as much.
+- **Group buffs** count everybody they reach, not only those in single range.
+- **Which pet** lists your journal's pets by name.
+
+### Looks
+- **New: Fel**, a warlock's: felsteel, fel fire, a summoning circle.
+- **Glass** redrawn after the game's action bar. Gilt gryphons at the ends
+  are a switch on *Look*, off by default.
+- **Forge** comes alive at rest: a molten seam and rising embers.
+- **Retired:** Framed and Luxe become Glass, Arcane becomes Archmage, Toast
+  becomes Ribbon. Chat tells you once.
+- **Ribbon**'s second line is readable now.
+- **The options window** is dressed in gilt.
 
 ## 1.11.18
 
