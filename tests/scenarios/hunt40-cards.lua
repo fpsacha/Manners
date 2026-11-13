@@ -217,17 +217,17 @@ do
 		end
 		-- A card handed another rectangle (its look re-recorded under it) is
 		-- placed anew at once, with no layout in between.
-		local at = ns.Looks.previewText.leather
+		local at = ns.Looks.previewText.luxe
 		local moved = { l = at.name.l + 0.05, t = at.name.t, r = at.name.r, b = at.name.b, h = at.name.h, v = at.name.v,
 			size = at.name.size, color = at.name.color, shadow = at.name.shadow }
-		ns.Looks.previewText.leather = { name = moved, reason = at.reason }
+		ns.Looks.previewText.luxe = { name = moved, reason = at.reason }
 		row:Refresh()
-		local card = cardFor(row, "leather")
+		local card = cardFor(row, "luxe")
 		local b = card and box(card.lines.name, card)
 		if not (b and near(b[1], moved.l * card.ground._width)) then
 			fail(scenario, "a card given another rectangle did not move its name")
 		end
-		ns.Looks.previewText.leather = at
+		ns.Looks.previewText.luxe = at
 		row:Refresh()
 	end)
 end
@@ -503,16 +503,16 @@ do
 		ns.Looks.list.fake, ns.Looks.previewText.fake = nil, nil
 		row:Refresh()
 		-- A card whose look loses its picture drops the text, and has it back.
-		local picture = ns.Looks.previews.leather
-		ns.Looks.previews.leather = nil
+		local picture = ns.Looks.previews.luxe
+		ns.Looks.previews.luxe = nil
 		row:Refresh()
-		local leather = cardFor(row, "leather")
-		if leather and (leather.lines.name:IsShown() or leather.lines.reason:IsShown()) then
+		local luxe = cardFor(row, "luxe")
+		if luxe and (luxe.lines.name:IsShown() or luxe.lines.reason:IsShown()) then
 			fail(scenario, "a card whose look lost its picture kept the text over the placeholder")
 		end
-		ns.Looks.previews.leather = picture
+		ns.Looks.previews.luxe = picture
 		row:Refresh()
-		if leather and not (leather.lines.name:IsShown() and leather.lines.reason:IsShown()) then
+		if luxe and not (luxe.lines.name:IsShown() and luxe.lines.reason:IsShown()) then
 			fail(scenario, "the text did not come back with the picture")
 		end
 		if ns.Looks.PreviewText("no-such-look") ~= nil then fail(scenario, "an unknown look has text") end

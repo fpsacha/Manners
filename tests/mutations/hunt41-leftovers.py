@@ -172,7 +172,7 @@ mutate("Options/Window/Window.lua",
 
 # ------------------------------------------------ 7: a restyle with the count up
 
-# The restyle of the built-in looks hides the chip and the count and
+# The restyle of the three built-in looks hides the chip and the count and
 # leaves the repaint that brings them back to the next scan.
 mutate("Prompt/Panel.lua",
        "\t\tS.accentPainted = nil\n\tend\n\tself:Refresh()\nend\n",
@@ -185,7 +185,7 @@ mutate("Prompt/Panel.lua",
        "\tself:SyncCooldown()\n\tself:Refresh()\nend\n",
        "\tself:SyncCooldown()\nend\n",
        "hunt41-leftovers: a restyle of a look from Looks/ repaints nobody",
-       expect=P + "leather: a restyle with the count chip up brings the count back", script=S)
+       expect=P + "luxe: a restyle with the count chip up brings the count back", script=S)
 
 # The width FitLine measured is not kept when it first measures a line: the
 # looks measure it again themselves, for every restyle.
@@ -193,4 +193,4 @@ mutate("Prompt/Text.lua",
        "\tfit.drawn[fs] = w\n",
        "",
        "hunt41-leftovers: FitLine keeps no measured width on the first fit",
-       expect="hunt38-picker: switching glass -> minimal -> glass", script=S)
+       expect="hunt38-picker: switching glass -> framed -> glass", script=S)

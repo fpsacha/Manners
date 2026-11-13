@@ -2,7 +2,7 @@
 -- ask of it, so each look's own scenario file can hold its own files to them:
 --
 --   local MC = dofile(dir .. "/tests/materials_check.lua")
---   local ok, maxLuma = MC.capOK(dir .. "/Textures/GlassPane.tga", 0.80)
+--   local ok, maxLuma = MC.capOK(dir .. "/Textures/Toast/Toast_Gold.tga", 0.60)
 --
 -- Nothing here is shared state: every look's scenario file dofiles this and
 -- declares its own files, so no table is edited by two worktrees at once.

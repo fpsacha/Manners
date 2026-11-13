@@ -203,7 +203,7 @@ withTree("look-leather: it is registered, listed and loaded after the other look
 	if not mine then
 		fail(scenario, "Manners.toc does not load Looks\\Leather.lua")
 	else
-		for _, other in ipairs({ "Looks\\Looks.lua", "Looks\\Flow.lua", "Looks\\Previews.lua" }) do
+		for _, other in ipairs({ "Looks\\Looks.lua", "Looks\\Luxe.lua", "Looks\\Toast.lua", "Looks\\Arcane.lua" }) do
 			local i = index(other)
 			if i and i > mine then fail(scenario, "Leather loads before " .. other) end
 		end

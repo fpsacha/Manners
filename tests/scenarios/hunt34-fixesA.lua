@@ -154,7 +154,7 @@ local function widthOf(ns)
 	return FT.boundWidth(ns.Prompt:Regions().name)
 end
 
-for _, style in ipairs({ "glass", "minimal" }) do
+for _, style in ipairs({ "glass", "framed", "minimal" }) do
 	local scenario = "hunt34-layout: a big icon on a narrow panel leaves the name room in " .. style
 	Mock.reset()
 	FT.install()
@@ -184,7 +184,7 @@ for _, style in ipairs({ "glass", "minimal" }) do
 	Mock.reset()
 end
 
-for _, style in ipairs({ "ribbon", "letter", "leather", "forge" }) do
+for _, style in ipairs({ "arcane", "toast", "luxe", "ribbon", "letter", "leather", "forge" }) do
 	local scenario = "hunt34-layout: " .. style .. " keeps the name 20 units whatever room is asked for at the right"
 	Mock.reset()
 	FT.install()

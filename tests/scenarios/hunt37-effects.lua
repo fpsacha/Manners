@@ -36,7 +36,7 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
-local ALL = { "glass", "minimal", "ribbon", "letter" }
+local ALL = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter" }
 
 local function withTree(scenario, names, body)
 	Mock.reset()
@@ -256,6 +256,13 @@ local RING_FILES = {
 	{ "Textures/Leather/Leather_FxRingSq", "Interface\\AddOns\\Manners\\Textures\\Leather\\Leather_FxRingSq" },
 	{ "Textures/Ring", "Interface\\AddOns\\Manners\\Textures\\Ring" },
 	{ "Textures/RingSq", "Interface\\AddOns\\Manners\\Textures\\RingSq" },
+	{ "Textures/Luxe/Luxe_IconRing", "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_IconRing" },
+	{ "Textures/Luxe/Luxe_IconRingRound", "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_IconRingRound" },
+	{ "Textures/Arcane/Arcane_IconRing", "Interface\\AddOns\\Manners\\Textures\\Arcane\\Arcane_IconRing" },
+	{ "Textures/Arcane/Arcane_IconRingSq", "Interface\\AddOns\\Manners\\Textures\\Arcane\\Arcane_IconRingSq" },
+	{ "Textures/Arcane/Arcane_RuneRing", "Interface\\AddOns\\Manners\\Textures\\Arcane\\Arcane_RuneRing" },
+	{ "Textures/Arcane/Arcane_RuneRingSq", "Interface\\AddOns\\Manners\\Textures\\Arcane\\Arcane_RuneRingSq" },
+	{ "Textures/Toast/Toast_RingGlow", "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_RingGlow" },
 	{ "Textures/Ribbon/Ribbon_Ring", "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Ring" },
 	{ "Textures/Forge/Forge_Ring", "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_Ring" },
 	{ "Textures/Forge/Forge_RingSq", "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_RingSq" },
@@ -267,7 +274,7 @@ local RING_FILES = {
 withTree("hunt37-effects: each ring's declared reach is the reach of its art", ANNA, function(ns, scenario)
 	local lib = ns.Prompt.lib
 	-- A look registers its files when it is built.
-	for _, style in ipairs({ "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel" }) do
+	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel" }) do
 		freshPrompt(ns, scenario)
 		ns.db.profile.prompt.style = style
 		ns.Prompt:ApplyStyle()
@@ -329,6 +336,11 @@ for _, style in ipairs(ALL) do
 			lit[#lit + 1] = { "the band across the panel", r.shine }
 			lit[#lit + 1] = { "the glow", r.glow }
 			lit[#lit + 1] = { "the rim", r.rim }
+		elseif look.key == "luxe" then
+			lit[#lit + 1] = { "the band across the panel", look.sheenFrame }
+		elseif look.key == "arcane" then
+			lit[#lit + 1] = { "the band across the panel", look.shineFrame }
+			lit[#lit + 1] = { "the lift", look.liftFrame }
 		end
 		for _, item in ipairs(lit) do
 			local f = item[2]

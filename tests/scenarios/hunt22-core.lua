@@ -2,14 +2,15 @@
 -- still read on somebody it can no longer be cast on, a favour from another
 -- raid group to a paladin offering only Salvation, the PvP hold counting
 -- raiders a group spell cannot reach, the multi-word pleases and the
--- punctuation of other languages in chat, the preview's
+-- punctuation of other languages in chat, Toast's keycap, the preview's
 -- count, the ledger's group cast line, a silent press that never landed
 -- holding the line, and a shout's thank-you said beyond its 20 yards.
 --
 -- Every scenario name starts with "core22:" so the mutations in
 -- tests/mutations/hunt22-core.py can name the one that has to catch them.
 -- Globals a scenario replaces are put back after it, whether it finished or
--- threw.
+-- threw. (Luxe on a light panel is in tests/scenarios/readable-luxe.lua, with
+-- the rest of what it reads.)
 
 local dir, H = ...
 local fail, load = H.fail, H.load
@@ -385,6 +386,97 @@ for _, case in ipairs(ASK_CASES) do
 			end,
 		}, { __index = real }))
 	end)
+end
+
+-- ------------------------------------------------------------------ core22-5
+-- Toast's keycap only where a press casts, as Arcane's: not over a held panel
+-- with nothing armed (a fight started under an outcome that emptied the
+-- queue), and still there while a fight's frozen macro casts on an unlocked
+-- prompt.
+dofile(dir .. "/tests/frametree.lua")
+local FT = FrameTree
+local COMMAND = "CLICK MannersPrompt:LeftButton"
+
+local function keyShown(look)
+	if not (look.keyChip and look.keyText) then return nil end
+	return look.keyChip[2]._shown ~= false and look.keyText._shown ~= false
+end
+
+do
+	local scenario = "core22: Toast shows its keycap only where a press casts"
+	Mock.reset()
+	FT.install()
+	local restore = H.strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		local function tick()
+			ns.addon:Tick()
+			FT.settle()
+		end
+		local function fight(on)
+			Mock.inCombat = on
+			if on then ns.addon:PLAYER_REGEN_DISABLED()
+			elseif ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+			tick()
+		end
+		Mock.bindings = { F = COMMAND }
+		H.freshPrompt(ns, scenario)
+		local p = ns.db.profile.prompt
+		p.style = "toast"
+		ns.Prompt:ApplyStyle()
+		H.owe(ns, "Anna Aim")
+		tick()
+		local look = ns.Prompt:Regions().look
+		local button = ns.Prompt:GetButton()
+		if not (look and look.keyChip and keyShown(look) == true) then
+			fail(scenario, "SKIPPED -- Toast shows no keycap armed at Anna with a key bound")
+			return
+		end
+		-- A press lands and empties the queue; a fight starts under the outcome,
+		-- which then runs out: the panel is held with nothing armed.
+		local db = ns.db.profile
+		for k in pairs(db.sources) do db.sources[k] = false end
+		wipe(ns.owed)
+		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		tick()
+		fight(true)
+		Mock.advance(6)
+		tick()
+		if button:GetAttribute("type1") then
+			fail(scenario, "SKIPPED -- the held panel is still armed")
+		elseif keyShown(look) then
+			fail(scenario, "the keycap is drawn over a held panel with nothing armed: pressing it casts nothing")
+		end
+		fight(false)
+		-- Armed at Anna, a fight, then the prompt unlocked: the frozen macro
+		-- still casts.
+		for k in pairs(db.sources) do db.sources[k] = ns.defaults.profile.sources[k] end
+		H.owe(ns, "Anna Aim")
+		Mock.advance(6)
+		tick()
+		fight(true)
+		p.locked = false
+		ns.Prompt:ApplyStyle()
+		tick()
+		if not button:GetAttribute("type1") then
+			fail(scenario, "SKIPPED -- the fight's macro did not stay armed through the unlock")
+		elseif not keyShown(look) then
+			fail(scenario, "the keycap is gone while the fight's frozen macro still casts on a press")
+		end
+		fight(false)
+		tick()
+		if button:GetAttribute("type1") then
+			fail(scenario, "SKIPPED -- an unlocked prompt out of a fight is still armed")
+		elseif keyShown(look) then
+			fail(scenario, "the keycap is drawn on an unlocked prompt out of a fight, where a press casts nothing")
+		end
+		noErrors(scenario, ns)
+	end)
+	restore()
+	FT.uninstall()
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
 
 -- ------------------------------------------------------------------ core22-6

@@ -98,7 +98,7 @@ end
 -- was washed over with the reason colour until it was a pale smudge. The halo
 -- is pieces of a soft glow outside the ring now; if one of them strays onto the
 -- icon, the smudge is back. And it stops at the panel's edge: two pixels past
--- it read as bars stuck to the prompt, and lit the border a look then wore.
+-- it read as bars stuck to the prompt, and lit the framed look's border.
 withTree("the glow frames the icon and never lies over it",
 	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
 	local scenario = "the glow frames the icon and never lies over it"

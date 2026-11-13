@@ -1943,15 +1943,23 @@ mutate("Queue.lua",
 #     the old bug: the entry existed, the addon drew no border of any kind, and
 #     nothing anywhere could tell the difference.
 mutate("Looks/Looks.lua",
-       "\tminimal = { name = L[\"Minimal -- text only, no panel\"], order = 12, native = true,",
-       '\tblizzard = { name = L["Blizzard -- default UI border"], order = 12, native = true,',
+       "\tframed = { name = L[\"Framed -- dark panel, a tooltip's rim\"], order = 11, native = true,",
+       '\tblizzard = { name = L["Blizzard -- default UI border"], order = 11, native = true,',
        "a look the addon draws nothing for",
        expect="the dropdown still offers a name the addon draws nothing for",
        script="runscenarios.py")
 
+# 63. and the rim itself, which is what makes that entry true.
+mutate("Prompt/Panel.lua",
+       "\tfor _, t in ipairs(R.tooltipRim) do t:SetShown(framed) end\n",
+       "\tfor _, t in ipairs(R.tooltipRim) do t:SetShown(false) end\n",
+       "a border the look promises and never draws",
+       expect="of its nine rim pieces",
+       script="runscenarios.py")
+
 # 64. the profile carried across. Without it the repair below reads the stored
-#     name as nonsense and hands back the default look without a word: the
-#     name it became (Framed) is retired, and its players are told so.
+#     name as nonsense and hands back the default look, which is a silent
+#     change to something the user chose.
 mutate("Core.lua",
        '\tif p.style == "blizzard" then p.style = "framed" end\n',
        "",
@@ -2143,13 +2151,13 @@ mutate("Options/Look.lua",
        expect="the page says the ring is gone while the bezel is still drawn",
        script="runscenarios.py")
 
-# 81b. and the stripe Minimal draws, at its left edge with no panel behind it:
-#      a page that warns about it is warning about a thing that is on screen.
+# 81b. and the stripe the framed look draws: an inlay inside its rim, so a
+#      page that warns about it is warning about a thing that is on screen.
 mutate("Options/Look.lua",
        'local stripe = (mode == "stripe" or mode == "both")\n',
-       'local stripe = (mode == "stripe" or mode == "both") and p.style ~= "minimal"\n',
-       "a stripe the page gives up on for Minimal",
-       expect="a warning about the stripe Minimal draws at its left edge",
+       'local stripe = (mode == "stripe" or mode == "both") and p.style ~= "framed"\n',
+       "a stripe the page gives up on for the framed look",
+       expect="a warning about the stripe the framed look draws inside its rim",
        script="runscenarios.py")
 
 # 82. the targeting switch offered to a class whose macro never takes a target.
@@ -3126,6 +3134,15 @@ mutate("Commands.lua",
        "",
        "arbitrary macro text armed unmeasured",
        expect="armed and echoed to chat",
+       script="runscenarios.py")
+
+# The framed look's rim in pale metal on every panel. It converges on the
+# panel exactly as the panel goes pale -- the failure the comment above it names.
+mutate("Prompt/Panel.lua",
+       "\tif ink.light then metal = RIM_PALE end\n",
+       "\tmetal = RIM_PALE\n",
+       "a border that vanishes into a pale panel",
+       expect="has no frame",
        script="runscenarios.py")
 
 # The count chip back to a fixed width around a number drawn from the font

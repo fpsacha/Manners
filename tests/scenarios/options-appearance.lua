@@ -339,25 +339,24 @@ do
 end
 
 -- ------------------------------------------------------------------ Cards
--- The Glass card says what the look draws now (dark glass in gilt rails), and
--- not what it drew before, nor the words of another look's card.
+-- The Glass and Framed cards say what the two looks draw now (cut glass in a
+-- metal bezel, the tooltip's rim), and not what they drew before, nor the
+-- words of the Arcane card they sit next to.
 do
-	local scenario = "the Glass card describes what it draws"
+	local scenario = "the Glass and Framed cards describe what they draw"
 	local ns = session(scenario)
 	if ns then
 		local want = {
 			glass = { "Glass", "dark glass in gilt rails, the game's own action bar" },
+			framed = { "Framed", "dark panel, a tooltip's rim" },
 		}
+		local _, arcane = ns.Looks.Card("arcane")
 		for key, w in pairs(want) do
 			local title, line = ns.Looks.Card(key)
 			if title ~= w[1] or line ~= w[2] then
 				fail(scenario, ("the %s card reads %q / %q, not %q / %q"):format(key, tostring(title), tostring(line), w[1], w[2]))
 			end
-			for other in pairs(ns.Looks.list) do
-				if other ~= key and line == select(2, ns.Looks.Card(other)) then
-					fail(scenario, "the " .. key .. " card reads as " .. other .. "'s does")
-				end
-			end
+			if line == arcane then fail(scenario, "the " .. key .. " card reads as Arcane's does") end
 		end
 	end
 end
@@ -475,11 +474,11 @@ do
 		else
 			local p = ns.db.profile.prompt
 			local was = p.style
-			for _, style in ipairs({ "glass", "minimal" }) do
+			for _, style in ipairs({ "glass", "framed", "minimal" }) do
 				p.style = style
 				if option.disabled() then fail(scenario, "greyed out on " .. style .. ", which it dims") end
 			end
-			for _, style in ipairs({ "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel" }) do
+			for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel" }) do
 				p.style = style
 				if ns.Looks.Get(style) and not option.disabled() then
 					fail(scenario, "open on " .. style .. ", which draws a fight its own way")

@@ -74,8 +74,6 @@ prompt is down. Flow handles are not animation groups: stop them yourself.
    `hunt35-effects.lua`, `hunt37-effects.lua`, `hunt38-picker.lua`,
    `hunt38-shared.lua`, `hunt40-layout.lua`, `perf-budget.lua`,
    `options-appearance.lua`, `selftest-launch.lua` (its count of cards),
-   `looks-retired.lua` (its list of the looks that remain, in the picker's
-   order),
    `tools/make-screenshots.py`; `Looks.roundAlways` in `Looks/Looks.lua` when
    the look cuts its icon round whatever the switch says.
 7. `python tools/make_look_previews.py`.
@@ -89,15 +87,6 @@ prompt is down. Flow handles are not animation groups: stop them yourself.
 10. GIFs of the five moments for the author: `python tools/look_gif.py --all
     <key> DIR`.
 
-Removing a look (as Framed, Luxe, Arcane and Toast were in 1.11.19, each too
-like a neighbour): put its key in `Looks.retired` in `Looks/Looks.lua` with the
-key of the look that takes its place, and its name in `RETIRED_TITLE` beside
-it. `ns.ClampSettings` then moves a profile that saved it to that heir and
-says one line in chat; `Looks.Allowed()` and `Looks.Choices()` refuse the key.
-Then take out its file, its toc line (`python tools/maketocs.py`), its
-`Textures/<Key>/`, its generator, its own scenario and mutation files, its
-label and description from the eight locale files by hand (the title stays:
-the line names it), and its name from every list in step 6; a shared scenario
-or mutation that used it as its example is re-aimed at a look that remains.
-`python tools/make_look_previews.py`, and `tests/scenarios/looks-retired.lua`
-holds the rest (add the key to its lists).
+Removing a look: give it `fallback = "<another key>"` in the registry rather
+than deleting its key (a saved `style` must still draw something), take its
+file and textures out, and its card goes with it.

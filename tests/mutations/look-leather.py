@@ -84,8 +84,8 @@ _m("Locales/zhTW.lua",
    expect=S_TRANS)
 
 _m("Looks/Looks.lua",
-   "\t\tif not Looks.retired[key] then out[key] = true end\n",
-   "\t\tsetmetatable(out, { __index = function() return true end })\n",
+   "\tfor key in pairs(Looks.list) do out[key] = true end\n",
+   "\tsetmetatable(out, { __index = function() return true end })\n",
    "any saved style allowed, a look that was removed included",
    expect=S_GONE)
 

@@ -609,7 +609,7 @@ do
 		nameplate3 = { "Cara", "Close" } }
 	Mock.reset()
 	local probe = load("hunt41-leftovers: a restyle with the count chip up (the looks)")
-	local styles = { "glass", "minimal" }
+	local styles = { "glass", "framed", "minimal" }
 	if probe then
 		for key in pairs(probe.Looks.list) do styles[#styles + 1] = key end
 		table.sort(styles)

@@ -875,7 +875,7 @@ end
 -- ------------------------------------------------------------------ 16
 -- Every visible name has a click area covering its text, in every look, with
 -- the list below the prompt and above it; a name that is not there has none.
-for _, style in ipairs({ "glass", "minimal", "ribbon", "letter", "leather", "forge" }) do
+for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge" }) do
 	for _, above in ipairs({ false, true }) do
 		local scenario = ("hunt25-rows: every visible name has a click area (%s, list %s)")
 			:format(style, above and "above" or "below")
@@ -1064,7 +1064,7 @@ do
 		ns.addon:Tick()
 
 		-- A look of its own lays the list out itself, without them.
-		p.style = "leather"
+		p.style = "luxe"
 		ns.Prompt:ApplyStyle()
 		ns.addon:Tick()
 		for i = 1, 3 do

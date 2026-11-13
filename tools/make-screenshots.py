@@ -377,14 +377,14 @@ local function tipped(ns, shift)
 end
 
 -- A key or a controller button bound to the prompt, in a look that shows the
--- key (Archmage), with the client's own words for it: tests/mockmacros.lua
+-- key (Arcane), with the client's own words for it: tests/mockmacros.lua
 -- answers GetBindingText as the client does, a pad button as the inline atlas
 -- of its glyph, which the picture paints where the chip holds it.
 local function keyed(ns, key)
 	Mock.bindings = { [key] = "CLICK MannersPrompt:LeftButton" }
 	rawset(_G, "GetBindingText", Mock.bindingText)
 	boot(ns, { nameplate1 = ELOWEN })
-	ns.db.profile.prompt.style = "archmage"
+	ns.db.profile.prompt.style = "arcane"
 	owe(ns, "Mort Defrette")
 	settle(ns)
 	ns.ClampSettings()
@@ -1848,6 +1848,9 @@ LIST_ROWS = ["Mira Holt", "Tam Rook", "Rowan Lark"]
 # The looks the Look tab offers, in the order its gallery shows them, each
 # with the name and the few words its card gives it.
 LOOKS = [
+    ("luxe", "Luxe", "slim dark card, a spine in the reason colour"),
+    ("toast", "Toast", "warm banner, gilded medallion"),
+    ("arcane", "Arcane", "smoked glass, a rim lit by the reason"),
     ("ribbon", "Ribbon", "a crimson ribbon and a gold medallion"),
     ("letter", "Letter", "parchment and a red wax seal"),
     ("leather", "Leather", "a stitched leather tag with a brass ring"),
@@ -1856,6 +1859,7 @@ LOOKS = [
     ("lightbringer", "Lightbringer", "silver and blue enamel, a sun of the Light"),
     ("fel", "Fel", "black felsteel and fel fire, a summoning circle"),
     ("glass", "Glass", "dark cut glass, a metal bezel"),
+    ("framed", "Framed", "dark panel, a tooltip's rim"),
     ("minimal", "Minimal", "text only, no panel"),
 ]
 
@@ -2069,7 +2073,7 @@ def atlas_lines(snap):
 
 
 def build_keys(addon_dir, snaps):
-    """The prompt in Archmage with a key bound, and with a controller button
+    """The prompt in Arcane with a key bound, and with a controller button
     bound: the chip reads the key, or holds the client's glyph for the
     button, which the picture paints there."""
     use_faces("enUS")
@@ -2080,8 +2084,8 @@ def build_keys(addon_dir, snaps):
         if not snap:
             continue
         expect_top(key, top, "Mort Defrette", "owed")
-        if lua.globals().ShotStyle != "archmage":
-            problem("%s: the prompt is drawn in %s, not archmage" % (key, lua.globals().ShotStyle))
+        if lua.globals().ShotStyle != "arcane":
+            problem("%s: the prompt is drawn in %s, not arcane" % (key, lua.globals().ShotStyle))
         texts = shown_texts(snap, PromptTree)
         expect_names(key, texts, ["Mort Defrette"])
         check_glyphs(key, [ATLAS.sub("", t) for t in texts])

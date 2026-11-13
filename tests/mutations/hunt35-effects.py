@@ -69,7 +69,7 @@ mutate(EFFECTS,
        "\t\tif kind == \"cast\" then R.art.settle:Play() end\n",
        "",
        "hunt35: a landed buff does not settle a look's panel",
-       expect="in leather: a landed buff did not settle the panel", script=S)
+       expect="in luxe: a landed buff did not settle the panel", script=S)
 
 # A refusal with no contracting ring.
 mutate(EFFECTS,
@@ -166,6 +166,13 @@ mutate(PANEL,
        "hunt35: the rings outlive the look",
        expect="in glass: an effect of the old look was still playing after the look changed", script=S)
 
+# Luxe's rings left going when it is left.
+mutate("Looks/Luxe.lua",
+       "\tself.fx:Stop()\n\t-- Stop parks nothing on a fade that has already finished, and the cursor\n",
+       "\t-- Stop parks nothing on a fade that has already finished, and the cursor\n",
+       "hunt35: Luxe's rings outlive Luxe",
+       expect="in luxe: an effect of the old look was still playing after the look changed", script=S)
+
 # --- the owed breath ---------------------------------------------------------
 
 # A breath too fast to be a breath.
@@ -183,6 +190,55 @@ mutate(EFFECTS,
        expect="the glow and the rim are not both breathing", script=S)
 
 # --- each look in its own idiom ----------------------------------------------
+
+mutate("Looks/Luxe.lua",
+       "\t\tself.fx:Land(o[1], o[2], o[3])\n",
+       "",
+       "hunt35: Luxe's rings never spread",
+       expect="in luxe: a buff the game confirmed did not spread both rings", script=S)
+
+mutate("Looks/Toast.lua",
+       "\t\tself.fx:Land(o[1], o[2], o[3], 0.70)\n",
+       "",
+       "hunt35: Toast's rings never spread",
+       expect="in toast: a buff the game confirmed did not spread both rings", script=S)
+
+mutate("Looks/Arcane.lua",
+       "\t\tself.fx:Land(o[1], o[2], o[3], 0.85)\n",
+       "",
+       "hunt35: Arcane's rings never spread",
+       expect="in arcane: a buff the game confirmed did not spread both rings", script=S)
+
+mutate("Looks/Luxe.lua",
+       "\t\tif self.kit.icon:IsShown() then self.fx:Refuse(o[1], 0.45, 0.28) end\n",
+       "",
+       "hunt35: Luxe's refusal contracts no ring",
+       expect="in luxe: a refusal did not contract a ring onto the icon", script=S)
+
+mutate("Looks/Toast.lua",
+       "\t\tif self.kit.icon:IsShown() then self.fx:Refuse(1.00, 0.40, 0.22, 0.85) end\n",
+       "",
+       "hunt35: Toast's refusal contracts no ring",
+       expect="in toast: a refusal did not contract a ring onto the icon", script=S)
+
+mutate("Looks/Arcane.lua",
+       "\t\t\tself.fx:Refuse(o[1], 0.45, 0.28)\n",
+       "",
+       "hunt35: Arcane's refusal contracts no ring",
+       expect="in arcane: a refusal did not contract a ring onto the icon", script=S)
+
+# The lens's ring locking on, on Calm.
+mutate("Looks/Luxe.lua",
+       "\t\tif full then\n\t\t\tself.popAnim:Stop()\n",
+       "\t\tif true then\n\t\t\tself.popAnim:Stop()\n",
+       "hunt35: Luxe's ring locks on on Calm",
+       expect="in luxe: with Effects on Calm the arrive still played", script=S)
+
+mutate("Looks/Arcane.lua",
+       "\t\tif full and self.showIcon then\n\t\t\tself.runeFlareAnim:Stop()\n",
+       "\t\tif self.showIcon then\n\t\t\tself.runeFlareAnim:Stop()\n",
+       "hunt35: Arcane's lens locks on on Calm",
+       expect="in arcane: with Effects on Calm the arrive still played", script=S)
 
 # A ring that outstays the landing.
 mutate(EFFECTS,
@@ -247,6 +303,25 @@ mutate("tools/make-glow.py",
        "    save(out, \"Glow\", 1.0, relight(falloff(np.hypot(dx, dy)) * (1 - 0.01 * np.random.rand(N, N)), N, N))\n",
        "hunt35: Glow.tga differs between runs",
        expect="Glow.tga differs between two runs", script=S)
+
+# A parameter changed and the art not redrawn.
+mutate("tools/make_luxe_textures.py",
+       "SPINE_SHADE, SPINE_LOWER = 0.76, 0.10\n",
+       "SPINE_SHADE, SPINE_LOWER = 0.77, 0.10\n",
+       "hunt35: the spine's parameters moved and the art did not",
+       expect="Luxe_Spine.tga does not match the file that ships", script=S)
+
+mutate("tools/make_toast_textures.py",
+       "GOLD_LIT, ENAMEL_LIT = 0.17, 0.15\n",
+       "GOLD_LIT, ENAMEL_LIT = 0.18, 0.15\n",
+       "hunt35: the gold's parameters moved and the art did not",
+       expect="Toast_Gold.tga does not match the file that ships", script=S)
+
+mutate("tools/make_arcane_textures.py",
+       "RUNE_LIT_MIN = 0.58\n",
+       "RUNE_LIT_MIN = 0.59\n",
+       "hunt35: the runes' parameters moved and the art did not",
+       expect="Arcane_RuneRing.tga does not match the file that ships", script=S)
 
 # A texture drawn past the size the clients are given.
 mutate("tools/make-glow.py",

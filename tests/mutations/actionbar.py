@@ -256,6 +256,19 @@ mutate("Looks/Looks.lua",
        "actionbar: a pad combination is never worked out",
        expect=GLYPH, script=S)
 
+# Each look's chip is as wide as its words.
+mutate("Looks/Arcane.lua",
+       "\t\tlocal w = math.max(self.keyH, math.floor(width + 9 + 0.5))\n",
+       "\t\tlocal w = math.max(self.keyH, 9)\n",
+       "actionbar: Arcane's chip is too narrow for its glyphs",
+       expect=FITS + ": arcane", script=S)
+
+mutate("Looks/Toast.lua",
+       "\t\t\tlocal w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)\n",
+       "\t\t\tlocal w = math.max(self.chipH * 1.75, 0)\n",
+       "actionbar: Toast's chip is too narrow for its glyphs",
+       expect=FITS + ": toast", script=S)
+
 mutate("Looks/Ribbon.lua",
        "\t\t\tlocal w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)\n",
        "\t\t\tlocal w = math.max(self.chipH * 1.75, 0)\n",

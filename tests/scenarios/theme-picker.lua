@@ -238,7 +238,7 @@ do
 	with(scenario, function(ns, UI, row)
 		ns.db.profile.prompt.style = "glass"
 		ns.RefreshOptionsDisplay()
-		local other = cardFor(row, "leather")
+		local other = cardFor(row, "luxe")
 		local rest = other.edges[1]._color
 		enter(other)
 		if not other.wash:IsShown() then fail(scenario, "a card under the pointer has no wash") end
@@ -265,7 +265,7 @@ do
 		local P = ns.db.profile.prompt
 		P.style = "glass"
 		ns.RefreshOptionsDisplay()
-		for _, key in ipairs({ "leather", "minimal", "archmage", "ribbon", "glass" }) do
+		for _, key in ipairs({ "luxe", "framed", "arcane", "minimal", "toast", "glass" }) do
 			local card = cardFor(row, key)
 			if not card then
 				fail(scenario, "no card for " .. key)
@@ -317,17 +317,17 @@ do
 		Mock.inCombat = true
 		Mock.protectedCalls = {}
 		local before = ns.Prompt:Regions().look
-		press(cardFor(row, "leather"))
-		if P.style ~= "leather" then fail(scenario, "the click in a fight did not set the style: " .. tostring(P.style)) end
+		press(cardFor(row, "luxe"))
+		if P.style ~= "luxe" then fail(scenario, "the click in a fight did not set the style: " .. tostring(P.style)) end
 		if ns.Prompt:Regions().look ~= before then fail(scenario, "the prompt was restyled in a fight") end
 		if not ns.Prompt.pendingStyle then fail(scenario, "the restyle was not kept for the end of the fight") end
 		if #Mock.protectedCalls > 0 then
 			fail(scenario, "the secure button was touched in a fight: " .. table.concat(Mock.protectedCalls, ", "))
 		end
-		if not cardFor(row, "leather").selected then fail(scenario, "the card does not show the pick in a fight") end
+		if not cardFor(row, "luxe").selected then fail(scenario, "the card does not show the pick in a fight") end
 		Mock.inCombat = false
 		ns.addon:PLAYER_REGEN_ENABLED()
-		if ns.Prompt:Regions().look ~= ns.Looks.Get("leather") then
+		if ns.Prompt:Regions().look ~= ns.Looks.Get("luxe") then
 			fail(scenario, "the pick was not drawn when the fight ended")
 		end
 	end)
@@ -374,8 +374,8 @@ do
 		local was = def.disabled
 		def.disabled = function() return true end
 		ns.RefreshOptionsDisplay()
-		press(cardFor(row, "leather"))
-		local card = cardFor(row, "leather")
+		press(cardFor(row, "luxe"))
+		local card = cardFor(row, "luxe")
 		local dimmed = card.shot:IsDesaturated() and not card:IsEnabled()
 		def.disabled = was
 		if P.style ~= "glass" then fail(scenario, "a card was clicked while the control was greyed out") end
@@ -414,10 +414,10 @@ do
 			end
 		end
 		check("open")
-		enter(cardFor(row, "leather"))
+		enter(cardFor(row, "luxe"))
 		check("under the pointer")
-		leave(cardFor(row, "leather"))
-		press(cardFor(row, "ribbon"))
+		leave(cardFor(row, "luxe"))
+		press(cardFor(row, "toast"))
 		check("after a click")
 		-- The row's own frame has none either, unless the search is flashing it.
 		if row.frame.scripts.OnUpdate then fail(scenario, "the gallery's frame runs an OnUpdate") end
@@ -453,8 +453,8 @@ do
 			fail(scenario, "the dropdown's tooltip does not say what it is: " .. tostring(def.desc))
 		end
 		-- And a pick through it, as AceConfigDialog makes one.
-		ns.WindowBind.Commit(item, "minimal")
-		if ns.db.profile.prompt.style ~= "minimal" then fail(scenario, "picking from the dropdown did not set the style") end
+		ns.WindowBind.Commit(item, "framed")
+		if ns.db.profile.prompt.style ~= "framed" then fail(scenario, "picking from the dropdown did not set the style") end
 	end)
 end
 
@@ -889,16 +889,16 @@ do
 		end
 		-- A card handed another rectangle (its look re-recorded under it) is
 		-- placed anew at once, with no layout in between.
-		local leather = Looks.previewIcon.leather
-		Looks.previewIcon.leather = { l = leather.l + 0.05, t = leather.t, r = leather.r + 0.05, b = leather.b,
-			round = false, crop = leather.crop }
+		local luxe = Looks.previewIcon.luxe
+		Looks.previewIcon.luxe = { l = luxe.l + 0.05, t = luxe.t, r = luxe.r + 0.05, b = luxe.b,
+			round = false, crop = luxe.crop }
 		row:Refresh()
-		local moved = cardFor(row, "leather")
+		local moved = cardFor(row, "luxe")
 		local box = moved and overlayBox(moved)
-		if not (box and near(box[1], (leather.l + 0.05) * moved.ground._width)) then
+		if not (box and near(box[1], (luxe.l + 0.05) * moved.ground._width)) then
 			fail(scenario, "a card given another rectangle did not move its icon")
 		end
-		Looks.previewIcon.leather = leather
+		Looks.previewIcon.luxe = luxe
 		row:Refresh()
 		-- The page's own width as well.
 		ns.OpenOptions("appearance", true)
@@ -1113,13 +1113,13 @@ do
 		end
 		if rounds == 0 then fail(scenario, "no look is round") end
 		-- A card handed another look takes its mask off, and puts it back.
-		local card = cardFor(row, "ribbon")
+		local card = cardFor(row, "toast")
 		if card then
-			local at = Looks.previewIcon.ribbon
-			Looks.previewIcon.ribbon = { l = at.l, t = at.t, r = at.r, b = at.b, round = false, crop = at.crop }
+			local at = Looks.previewIcon.toast
+			Looks.previewIcon.toast = { l = at.l, t = at.t, r = at.r, b = at.b, round = false, crop = at.crop }
 			ns.RefreshOptionsDisplay()
 			if card.icon._mask then fail(scenario, "a card that stopped being round kept its mask") end
-			Looks.previewIcon.ribbon = at
+			Looks.previewIcon.toast = at
 			ns.RefreshOptionsDisplay()
 			if not card.icon._mask then fail(scenario, "a card that became round again has no mask") end
 		end
@@ -1156,18 +1156,18 @@ do
 		-- And the cards of the looks that have one still do.
 		ns.Looks.list.fake = nil
 		row:Refresh()
-		local leather = cardFor(row, "leather")
-		if not (leather and leather.icon:IsShown()) then fail(scenario, "the leather card lost its icon") end
+		local luxe = cardFor(row, "luxe")
+		if not (luxe and luxe.icon:IsShown()) then fail(scenario, "the luxe card lost its icon") end
 		-- A card that had an icon and is handed a look with no picture drops it.
-		local picture = ns.Looks.previews.leather
-		ns.Looks.previews.leather = nil
+		local picture = ns.Looks.previews.luxe
+		ns.Looks.previews.luxe = nil
 		row:Refresh()
-		if leather.icon:IsShown() or leather.iconFile ~= nil then
+		if luxe.icon:IsShown() or luxe.iconFile ~= nil then
 			fail(scenario, "a card whose look lost its picture kept the icon over the placeholder")
 		end
-		ns.Looks.previews.leather = picture
+		ns.Looks.previews.luxe = picture
 		row:Refresh()
-		if not leather.icon:IsShown() then fail(scenario, "the icon did not come back with the picture") end
+		if not luxe.icon:IsShown() then fail(scenario, "the icon did not come back with the picture") end
 	end)
 end
 

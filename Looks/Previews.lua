@@ -33,7 +33,11 @@ ns.Looks.previewIcon = {
 -- fractions of the picture, the justification, the size and the shadow's offsets as
 -- fractions of its height, the colour, an outline, and the look's own face (`latin`:
 -- drawn only on a client whose alphabet has it). The pictures carry no text: the
--- window writes the name and the reason there live, in the player's language.
+-- window writes the name and the reason there live, in the player's language. A
+-- reason line the look sets in a tag of its own (`pill`) has the tag's edges, how far
+-- it reaches past the words on either side, its caps' width of its height, and its
+-- layers, each the look's own file as a three-slice in the look's colour: the window
+-- draws it round the live words, as wide as they are.
 ns.Looks.previewText = {
 	archmage = {
 		name = { l = 0.26521, t = 0.29032, r = 0.89516, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.04, 0, 0.1, 0.9 } } },

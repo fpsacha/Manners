@@ -519,7 +519,12 @@ Nine looks, each a card under Look > *Panel style* that you click to switch:
   the border of a spell that is ready runs round the icon. *Gryphons at the
   ends* (off, under *Look*) sits a gilt gryphon at each end, its eyes burning
   in the reason's colour while you owe somebody.
+- **Framed**: a flat dark panel in a thin rim, like the game's tooltips.
 - **Minimal**: the words alone, no panel.
+- **Luxe**: a slim dark card with a spine in the reason colour.
+- **Toast**: a warm banner and a gilded medallion, the gold hammered and worn,
+  the icon's ring a twist of rope.
+- **Arcane**: smoked glass with a rim lit by the reason.
 - **Ribbon**: a crimson ribbon and a gold medallion.
 - **Letter**: parchment and a red wax seal.
 - **Leather**: a stitched leather tag with a brass ring.
@@ -546,7 +551,7 @@ Nine looks, each a card under Look > *Panel style* that you click to switch:
 
 Pick your own colours and fonts too; LibSharedMedia is supported.
 
-On Glass and Minimal the prompt has a way of arriving and of answering.
+On Glass, Framed and Minimal the prompt has a way of arriving and of answering.
 As it comes up, two thin rules of light draw out from the icon along its top and
 bottom edges and the words follow a beat behind; a favour arriving runs a glint
 along them. When a buff lands, a ring pops out of the icon, a wave of light
@@ -573,7 +578,7 @@ combat* takes the prompt and its list off the screen for the whole fight, and
 nothing casts from them meanwhile: not its key, not a name in the list, not
 the Manners macro on your bar. It comes back when the fight ends. With it off,
 *No flashes in combat* keeps the prompt on screen in a fight with no flashes,
-and *Dim the prompt in combat* draws Glass and Minimal at about half
+and *Dim the prompt in combat* draws Glass, Framed and Minimal at about half
 strength while one lasts.
 
 **In a fight.** The game locks the prompt for as long as a fight lasts: an
@@ -1027,7 +1032,7 @@ list. They used to be at the bottom of *Who to buff*.
 your attention (flash, animations, sound), the tooltip, and the waiting list.
 Folded below: the exact position, the text, the prompt's wording, and the
 icon.
-On Glass and Minimal, *Shadow and outline on the text* (with the text)
+On Glass, Framed and Minimal, *Shadow and outline on the text* (with the text)
 and *Frame round the icon* (with the icon) can be switched off for a flat
 prompt. A sound plays for a few seconds at most, a new one stops the one before
 it, and switching *Play a sound* off stops it. The preview from *Show me the
@@ -1067,7 +1072,7 @@ prompt* goes away when you click it.
 - *No flashes in combat*: with *Hide the prompt in combat* off the prompt
   stays on screen, its key still casting, but the flashes stop, and the icon shows no cooldown
   sweep for the fight.
-- *Dim the prompt in combat* (off): Glass and Minimal are drawn at
+- *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at
   about half strength in a fight, so the prompt reads as held. The other looks
   have their own way of showing a fight, and the setting is greyed out on them.
 - *Colour set*: the target colour appears only while *My target first* is

@@ -206,8 +206,8 @@ withTree("look-ribbon: Ribbon is registered, in the toc and translated; Whisper 
 		if type(look[method]) ~= "function" then fail(scenario, "Ribbon has no " .. method) end
 	end
 	local toc = slurp(dir .. "/Manners.toc") or ""
-	local registry, ribbon = toc:find("Looks\\Looks.lua", 1, true), toc:find("Looks\\Ribbon.lua", 1, true)
-	if not (registry and ribbon and ribbon > registry) then fail(scenario, "Looks\\Ribbon.lua is not in Manners.toc after the registry") end
+	local arcane, ribbon = toc:find("Looks\\Arcane.lua", 1, true), toc:find("Looks\\Ribbon.lua", 1, true)
+	if not (arcane and ribbon and ribbon > arcane) then fail(scenario, "Looks\\Ribbon.lua is not in Manners.toc after the looks") end
 	for _, flavour in ipairs({ "Camelot", "Vanilla", "TBC", "Mists", "Mainline" }) do
 		local generated = slurp(dir .. "/Manners_" .. flavour .. ".toc") or ""
 		if not generated:find("Looks\\Ribbon.lua", 1, true) then fail(scenario, flavour .. "'s toc does not load Ribbon") end
@@ -1672,9 +1672,9 @@ withTree("look-ribbon: leaving the look takes down every part and gives back wha
 	local art, c = span(r.art), span(look.cloth[1])
 	if not near(c[1] - art[1], look.g.cx, 0.05) then fail(scenario, "the ribbon is not home after coming back") end
 	-- Every region of the built-in looks it hid is shown again by them, not by it.
-	p.style = "glass"
+	p.style = "framed"
 	ns.Prompt:ApplyStyle()
-	if not FT.visible(r.pane[5]) then fail(scenario, "the glass's pane is not back") end
+	if not FT.visible(r.panel) then fail(scenario, "the framed look's panel is not back") end
 end)
 
 -- ------------------------------------------------------------------ 13

@@ -16,6 +16,13 @@ mutate("Looks/Looks.lua",
        "hunt39-actionbar: a pad combination kept for the key whatever the client's words become",
        expect=CHIP, script=S)
 
+# Arcane's chip read once per key: a controller told apart later never shows.
+mutate("Looks/Arcane.lua",
+       "\t\tif type(GetBindingText) ~= \"function\" or KeyLabel(key) == self.keyLabel then return end\n",
+       "\t\treturn\n",
+       "hunt39-actionbar: Arcane's chip read once for a key",
+       expect=CHIP, script=S)
+
 # Any macro on the cursor is the one Start here says to drop.
 mutate("Options/Start.lua",
        "\t\tif kind == \"macro\" and (type(index) ~= \"number\" or index == MacroIndex()) then return true end\n",

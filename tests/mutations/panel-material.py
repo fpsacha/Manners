@@ -1,10 +1,10 @@
 # Mutations for the built-in looks' material: the glass pane and its light,
-# and the icon's bezel (tests/scenarios/panel-material.lua).
+# the icon's bezel and the framed look's rim (tests/scenarios/panel-material.lua).
 #
 # Run by tests/selftest.py with mutate() in scope. Each puts back a mistake the
 # panel could plausibly make -- the ink judged on the bare panel colour, a bezel
 # taller than its panel, a bezel under the hairline, a hover that lingers, the
-# glass refusing its stripe, light drawn in the middle cell under the
+# framed look refusing its stripe, light drawn in the middle cell under the
 # words, the corner's pooled light shrunk back to a speck, the slab's
 # refraction line lost, moved, widened, glaring, lit from the wrong side,
 # stripped of its tint or turned mint, its gap closed, its fill light dimmed
@@ -37,12 +37,12 @@ mutate(PANEL,
        "panel-material: the bezel outgrows the panel",
        expect="panel-material: the bezel fits the panel", script=S)
 
-# The bezel under the pane's hairline.
+# The bezel under the pane's hairline and the framed look's rim.
 mutate(PANEL,
        "\tR.bezel = R.art:CreateTexture(nil, \"BORDER\", nil, 4)\n",
        "\tR.bezel = R.art:CreateTexture(nil, \"BORDER\", nil, -2)\n",
        "panel-material: the bezel sinks under the hairline",
-       expect="panel-material: the bezel sits over the hairline", script=S)
+       expect="panel-material: the bezel sits over the hairline and the rim", script=S)
 
 # --- the cursor --------------------------------------------------------------
 
@@ -112,12 +112,12 @@ mutate(BUTTON,
 
 # --- the stripe --------------------------------------------------------------
 
-# The glass refusing the stripe, as the look since retired once did.
+# The framed look refusing its stripe again.
 mutate(PANEL,
        "\tlocal showAccent = (mode == \"stripe\" or mode == \"both\")\n",
-       "\tlocal showAccent = not glass and (mode == \"stripe\" or mode == \"both\")\n",
-       "panel-material: the glass refuses the stripe",
-       expect="panel-material: the built-in looks carry the stripe", script=S)
+       "\tlocal showAccent = not framed and (mode == \"stripe\" or mode == \"both\")\n",
+       "panel-material: the framed look refuses the stripe",
+       expect="panel-material: framed carries the stripe", script=S)
 
 # --- the art -----------------------------------------------------------------
 

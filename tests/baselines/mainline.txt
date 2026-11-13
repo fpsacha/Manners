@@ -3,8 +3,19 @@
 # Read by:    python tests/runscenarios.py --flavour mainline --baseline
 /manners never takes the person off the prompt before a fight can freeze it: SKIPPED -- the panel named Anna to start with
 2 changes to your auras this session, read in 2 walks
+Arcane on Calm leaves nothing looping: the owed breath kept going with nobody owed on top
+Arcane shows the key on a keycap, and the name wins: no key bound and the lines still keep its room: -35
+Arcane's drain follows the time left to return a favour: halfway through the favour the clock is 166.0 of 166.0
 Battle Shout: lasts 1h -- topped up at 5m left, 10m in a raid or dungeon, T s outside your group.
+Luxe on Calm leaves nothing looping: the owed pulse kept going with nobody owed on top
 SCENARIO HARNESS ERROR: scenarios.lua:N: attempt to index a nil value
+Toast draws the spell icon clean: SKIPPED -- the favour clock was not burning
+Toast's clock burns over its ash: no ash under the clock's spent time
+Toast's clock burns over its ash: the clock did not burn down
+Toast's favour clock burns down with the debt: half the time gone and the clock is at 172.16109114615 of 172.16109114615
+Toast's favour clock burns down with the debt: the favour clock went in a fight
+Toast's favour clock burns down with the debt: the favour clock went on Calm
+Toast's pulse breathes three times and holds: the owed glow stayed with nobody owed
 When a top-up is due (top-ups are off)
 a buff given to somebody who asked is filed as asked: SKIPPED -- Anna is not on the prompt as somebody who asked
 a buff that lands serves the request: SKIPPED -- Anna was not offered after asking

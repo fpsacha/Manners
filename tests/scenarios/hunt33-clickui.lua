@@ -262,15 +262,15 @@ end)
 -- The name is hung between the icon and the count chip by two points. The sliders
 -- let the width go down to 80 and the font up to 32, and the room between the
 -- points is then negative (the left point is to the right of the right one), so the
--- client has nothing to draw the name in. Ribbon's medallion is as tall as the panel,
--- so a tall, narrow Ribbon leaves the name little. (Whether the client draws a
+-- client has nothing to draw the name in. Toast's medallion is as tall as the panel,
+-- so a tall, narrow Toast leaves the name two units. (Whether the client draws a
 -- string with crossed points at all is not known; no look should rely on it.)
 local CASES = {
 	{ style = "glass", width = 80, height = 36, font = 24 },
-	{ style = "glass", width = 80, height = 58, font = 32 },
+	{ style = "framed", width = 80, height = 58, font = 32 },
 	{ style = "minimal", width = 80, height = 36, font = 24 },
-	{ style = "archmage", width = 80, height = 36, font = 24 },
-	{ style = "ribbon", width = 140, height = 120, font = 13 },
+	{ style = "arcane", width = 80, height = 36, font = 24 },
+	{ style = "toast", width = 140, height = 120, font = 13 },
 	{ style = "letter", width = 80, height = 36, font = 24 },
 	{ style = "forge", width = 80, height = 36, font = 24 },
 }

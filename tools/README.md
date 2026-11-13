@@ -522,7 +522,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-list.png` | the prompt with the next four under it, the cursor on the second name: its wash lit and its tooltip up, and what each click does |
 | `manners-options.png` | the options window on Who to buff for a paladin whose buff order is Wisdom, Kings, Might ..., with a ring on the arrows and on Move the prompt |
 | `manners-yourself.png` | three prompts for "You": a mage's armor, a rogue's poison for the main hand, a mage's own Arcane Intellect |
-| `manners-actionbar.png` | the prompt (Archmage) with a key on its chip, a row of the game's action bar slots with the Manners macro on one -- the spell the prompt would cast, part way through a cooldown -- and the prompt with a controller button's glyph on its chip |
+| `manners-actionbar.png` | the prompt (Arcane) with a key on its chip, a row of the game's action bar slots with the Manners macro on one -- the spell the prompt would cast, part way through a cooldown -- and the prompt with a controller button's glyph on its chip |
 | `manners-tooltip.png` | the prompt twice with its tooltip above it: Short, the default, and the Full one with Shift held; the setting's choices and places named from the options model |
 
 These are **renders of the addon, not captures from the game**, and nothing
@@ -596,7 +596,7 @@ python tools/render_prompt.py --out renders          # every state, plus sheet.p
 python tools/render_prompt.py --states owed,refused  # just those
 python tools/render_prompt.py --addon ../old --out before   # an older build
 python tools/render_prompt.py --locale deDE --out de         # as a German client
-python tools/render_prompt.py --style archmage --key F --out archmage   # every state in a look
+python tools/render_prompt.py --style arcane --key F --out arcane   # every state in a look
 python tools/render_prompt.py --name "Elowen Thistledown" --states counted --key F   # a name the length players have, with the count and a key up
 python tools/render_prompt.py --compare before after compare.png
 python tools/render_prompt.py --states success --at 0.2         # 0.2 s into the animation
@@ -620,8 +620,10 @@ bold serif, which is nothing like its letters; a texture whose coordinates run p
 (a repeated tile, loaded with the wrap mode `REPEAT`) is drawn tiled.
 
 `--style` draws every state in that look (a state that names its own look,
-such as `minimal`, keeps it), and `--key` binds that key to the prompt first,
-which the looks that show the key on the panel need. Each picture is taken `at` seconds after its state
+such as `framed`, keeps it), and `--key` binds that key to the prompt first,
+which the looks that show the key on the panel need. The `arcane-*` states
+draw Arcane as a player who picks it sees it, with a key bound and the
+favour's clock part-run. Each picture is taken `at` seconds after its state
 settles, with the one-shot animations that have run out by then finished the
 way the client finishes them, so a fight's dim is drawn as dim as it is.
 
@@ -829,7 +831,7 @@ so.
 
 `Textures/Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`, `Rule.tga`,
 `Glint.tga`, `Shock.tga` and `Crack.tga`, the light the prompt's own looks
-(glass, minimal) are drawn with. Like `Manners64.tga` they ship in the
+(glass, framed, minimal) are drawn with. Like `Manners64.tga` they ship in the
 zip. Needs
 numpy and Pillow; deterministic, with every number that shapes the art in
 `PARAMS` at the top of the script. `--out DIR` writes the same files to DIR
@@ -849,13 +851,13 @@ what runs along it when a favour arrives, `Shock.tga` the wave that bursts from
 the icon's edge across the panel when a buff lands, and `Crack.tga` the ground
 breaking under the words when one is refused.
 All are white, with the shape in the alpha, and the prompt colours them. The
-glass's own material -- its pane, its light and the bezel round the icon -- is
-`make_panel_textures.py`'s.
+glass's own material -- its pane, its light, the bezel round the icon and the
+framed look's rim -- is `make_panel_textures.py`'s.
 
 ## make_panel_textures.py
 
-`Textures/GlassPane.tga`, `GlassLight.tga`, `IconBezel.tga` and
-`IconBezelRound.tga`: what the prompt's own looks are made
+`Textures/GlassPane.tga`, `GlassLight.tga`, `IconBezel.tga`,
+`IconBezelRound.tga` and `TooltipRim.tga`: what the prompt's own looks are made
 of, drawn through `materials.py` at four texels to the unit. `--out DIR` writes
 the same files to DIR (what `tests/scenarios/panel-material.lua` compares with
 what ships, twice, byte for byte) and `--sheet FILE` draws a contact sheet. One
@@ -884,7 +886,10 @@ since the words lie there and the stretch would smear anything drawn in it. `Ico
 chamfered metal bezel round the spell icon, grey, tinted by vertex colour with
 the reason colour or a neutral metal: the icon fills the middle 96 of 128
 texels, so the file is drawn at `iconSize / BEZEL_FRAME` (`ICON_FRAME` here,
-`BEZEL_FRAME` in `Prompt/Prompt.lua`, which must agree). The pane's grey over its middle cell is repeated in
+`BEZEL_FRAME` in `Prompt/Prompt.lua`, which must agree). `TooltipRim.tga` is
+the framed look's rail, grey, a nine-slice of 64 with 16-texel corners drawn 4
+units square: a half-round lit from the upper left, a seam along its inner
+side, nothing inside. The pane's grey over its middle cell is repeated in
 `Prompt/Text.lua` (`PANE_MID`), which judges the text's ink against the pane
 as drawn under the words; `tests/scenarios/panel-material.lua` holds every
 figure to its twin.
@@ -1072,8 +1077,8 @@ The API, every array on the supersampled grid:
   `shade_grey(...)` is the grey ramp. `normals(height, relief)`, `noise`,
   `blur`, `ramp`, `luma`, `capped`, `bleed`, `finish` and `save(path, rgb,
   alpha)` (32-bit uncompressed TGA, power-of-two sides up to 256 or
-  `ValueError`; appends to `materials.written`) are what the first look
-  generators had, with the same semantics. `report(path, cap)` reads a file back (max
+  `ValueError`; appends to `materials.written`) are what the Toast generator
+  had, with the same semantics. `report(path, cap)` reads a file back (max
   and mean luma of the opaque texels, the smallest feature declared while it
   was drawn) and `describe(path, cap)` is the line every generator prints:
   `Swatch_Gold.tga 128x128 cap=0.60 max=0.50 mean=0.32 minfeature=3.0`.
@@ -1133,7 +1138,7 @@ in any shipped file. So `Looks/Previews.lua` also says where that is, in
 fractions of the 256 x 64 picture from its top left, read from the frame tree: the
 prompt's `R.icon`, which every look places and masks for itself), the texcoord `crop` the
 look uses, and `round`, with the `mask` file the look cuts its icon with, when that mask
-lets under 85 % of its square through (a disc: Ribbon, Letter; a squircle or a
+lets under 85 % of its square through (a disc: Toast, Ribbon, Letter; a squircle or a
 rounded square is square). `render_prompt.py`'s `draw_state.placed` lets the tool hold
 that rectangle to where the tile was actually drawn.
 

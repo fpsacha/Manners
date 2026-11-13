@@ -1,8 +1,8 @@
--- landing-light: what a buff landing and a refusal do to the two looks drawn
--- here (glass, minimal) beyond the rings: the material answering.
+-- landing-light: what a buff landing and a refusal do to the three looks drawn
+-- here (glass, framed, minimal) beyond the rings: the material answering.
 --
 -- A landing lights the panel's edge in the reason's colour -- the material
--- itself, a copy of the glass's cut-edge light
+-- itself, a copy of the glass's cut-edge light or of the framed look's rim
 -- drawn as light (the two rules on Minimal, which has no edge) -- sends a
 -- wave of the same light from the icon's
 -- right edge across the panel at the old shine's strength, swells the panel a
@@ -310,13 +310,13 @@ withTree(T .. "the wash lies under the light", ANNA, function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 5
--- The edge's carrier follows the look: shown on glass, hidden on
+-- The edge's carrier follows the look: shown on glass and framed, hidden on
 -- Minimal, where a landing lights the two rules instead at their half strength
 -- and no wave crosses (there is no panel for it).
 withTree(T .. "the edge carrier follows the look", ANNA, function(ns, scenario)
 	-- The frames (and their counts) live on through every restyle, so each
 	-- look is judged by what one landing adds.
-	for _, style in ipairs({ "glass" }) do
+	for _, style in ipairs({ "glass", "framed" }) do
 		local r = upIn(ns, scenario, style)
 		if not FT.visible(r.edgeLight) then fail(scenario, style .. ": the edge's light is hidden") end
 		local before = { plays(r.rules[1].flare), plays(r.rules[2].flare), edge = plays(r.edgeLight.land) }
@@ -540,7 +540,7 @@ withTree(T .. "a refusal greys the icon and gives it back", ANNA, function(ns, s
 		fail(scenario, "the icon stayed grey after a refusal over an empty queue ran out")
 	end
 	-- Under a look from Looks/ the icon is the look's: Prompt never greys it.
-	local rl = upIn(ns, scenario, "leather")
+	local rl = upIn(ns, scenario, "luxe")
 	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
 	if S.iconGreyed then fail(scenario, "Prompt greyed the icon under a look from Looks/") end
 	Mock.advance(1)
@@ -627,7 +627,7 @@ withTree(T .. "a restyle leaves nothing lit", ANNA, function(ns, scenario)
 	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
 	Mock.advance(0.05)
 	if not g.split._playing then fail(scenario, "SKIPPED -- the second refusal is not under way") return end
-	ns.db.profile.prompt.style = "leather"
+	ns.db.profile.prompt.style = "luxe"
 	ns.Prompt:ApplyStyle()
 	nothingLit("a look applied mid-refusal")
 	-- The grey handed back before the look took the icon (the look may grey
@@ -722,16 +722,18 @@ end)
 
 -- ------------------------------------------------------------------ 13
 -- The edge's light is the material itself, lit: on glass a copy of the pane's
--- light laid piece for piece over it, drawn as light with its middle piece
--- dark, so the flash lands on the cut edge and nothing lights under the words,
--- and the landing's colour goes on those pieces.
+-- light laid piece for piece over it, on framed a copy of the rim laid over
+-- the rail, each drawn as light with its middle piece dark, so the flash lands
+-- on the cut edge or the rail and nothing lights under the words; the other
+-- look's copy stays hidden, and the landing's colour goes on the look's own.
 withTree(T .. "the edge light is the material", ANNA, function(ns, scenario)
 	local function same(a, b) return a ~= nil and b ~= nil and math.abs(a - b) < 0.01 end
-	for _, case in ipairs({ { "glass", "glass", "GlassLight", "glassLight" } }) do
-		local style, own, file, material = case[1], case[2], case[3], case[4]
+	for _, case in ipairs({ { "glass", "glass", "GlassLight", "glassLight", "rim" },
+		{ "framed", "rim", "TooltipRim", "tooltipRim", "glass" } }) do
+		local style, own, file, material, other = case[1], case[2], case[3], case[4], case[5]
 		local r = upIn(ns, scenario, style)
 		local edge = r.edgeLight
-		if edge.pieces ~= edge[own] then fail(scenario, style .. ": the edge lights with pieces that are not the glass's") end
+		if edge.pieces ~= edge[own] then fail(scenario, style .. ": the edge lights with the other look's material") end
 		if type(edge.pieces) ~= "table" or #edge.pieces ~= 9 then
 			fail(scenario, style .. ": the edge's light is not a nine-slice")
 		else
@@ -757,6 +759,12 @@ withTree(T .. "the edge light is the material", ANNA, function(ns, scenario)
 						end
 					end
 				end
+			end
+		end
+		for i, piece in ipairs(edge[other] or {}) do
+			if FT.visible(piece) then
+				fail(scenario, ("%s: piece %d of the other look's edge is shown"):format(style, i))
+				break
 			end
 		end
 		-- The landing's colour lands on the look's own pieces.
@@ -858,7 +866,7 @@ withTree(T .. "a fill hidden mid-outcome comes back", ANNA, function(ns, scenari
 	if not FT.visible(r.fill) then fail(scenario, "SKIPPED -- the refusal did not show the wash") return end
 	local plays0 = plays(r.wash.fade)
 	Mock.advance(0.15)
-	p.style = "leather"
+	p.style = "luxe"
 	ns.Prompt:ApplyStyle()
 	Mock.advance(0.1)
 	p.style = "glass"

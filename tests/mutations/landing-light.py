@@ -7,7 +7,7 @@
 # at full strength under the words, a wash restarted by every repaint or made
 # after the light it should lie under, a crack grown into the reason line, an
 # icon left grey or asked about on every scan, a shake that ends displaced, a
-# crack left playing by a repaint, an edge lit with a file that is not its material
+# crack left playing by a repaint, an edge lit with the other look's material
 # or under the words -- and names the check that has to object.
 
 EFFECTS = "Prompt/Effects.lua"
@@ -146,17 +146,17 @@ mutate("Prompt/Prompt.lua",
 
 # --- the material lit -----------------------------------------------------------
 
-# The glass's edge drawn from the pane's file: the whole pane flashing, not its cut edge.
+# The glass's edge drawn from the rim's file: a rail flashing on a pane.
 mutate(PANEL,
        "\tR.edgeLightFrame.glass = Slice(R.edgeLightFrame, \"OVERLAY\", 1, GLASS_LIGHT)\n",
-       "\tR.edgeLightFrame.glass = Slice(R.edgeLightFrame, \"OVERLAY\", 1, GLASS_PANE)\n",
-       "landing-light: the glass's edge lit with the pane",
+       "\tR.edgeLightFrame.glass = Slice(R.edgeLightFrame, \"OVERLAY\", 1, TOOLTIP_RIM)\n",
+       "landing-light: the glass's edge lit with the rim",
        expect="landing-light: the edge light is the material", script=S)
 
 # The edge's pieces drawn opaque, not as light.
 mutate(PANEL,
-       "\tfor _, t in ipairs(R.edgeLightFrame.glass) do\n\t\tt:SetBlendMode(\"ADD\")\n\t\tt:Hide()\n\tend\n",
-       "\tfor _, t in ipairs(R.edgeLightFrame.glass) do\n\t\tt:Hide()\n\tend\n",
+       "\t\tfor _, t in ipairs(pieces) do\n\t\t\tt:SetBlendMode(\"ADD\")\n\t\t\tt:Hide()\n\t\tend\n",
+       "\t\tfor _, t in ipairs(pieces) do\n\t\t\tt:Hide()\n\t\tend\n",
        "landing-light: the edge's light drawn opaque",
        expect="landing-light: the edge light stays under 0.40", script=S)
 
@@ -165,6 +165,13 @@ mutate(PANEL,
        "\tfor i, t in ipairs(lit.glass) do t:SetShown(glass and i ~= 5) end\n",
        "\tfor i, t in ipairs(lit.glass) do t:SetShown(glass) end\n",
        "landing-light: the edge lit under the words",
+       expect="landing-light: the edge light is the material", script=S)
+
+# The framed look's edge lit with the glass's pieces, which it hides.
+mutate(PANEL,
+       "\tlit.pieces = framed and lit.rim or lit.glass\n",
+       "\tlit.pieces = lit.glass\n",
+       "landing-light: framed lights the glass's edge",
        expect="landing-light: the edge light is the material", script=S)
 
 # --- the grey icon given back at every clear ---------------------------------

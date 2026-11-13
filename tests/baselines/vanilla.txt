@@ -5,6 +5,9 @@
 1 changes to your auras this session, read in 1 walks
 2 changes to your auras this session, read in 2 walks
 Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group.
+Arcane on Calm leaves nothing looping: the owed breath kept going with nobody owed on top
+Arcane shows the key on a keycap, and the name wins: no key bound and the lines still keep its room: -35
+Arcane's drain follows the time left to return a favour: halfway through the favour the clock is 166.0 of 166.0
 Battle Shout in a raid reaches the warrior's own subgroup (UnitInSubgroup): SKIPPED -- 0 of the warrior's own four subgroup mates were offered the shout
 Battle Shout in a raid reaches the warrior's own subgroup (UnitInSubgroup): SKIPPED -- the favour from raid30 was not noticed:
 Battle Shout in a raid reaches the warrior's own subgroup (the raid roster): SKIPPED -- 0 of the warrior's own four subgroup mates were offered the shout
@@ -12,6 +15,14 @@ Battle Shout in a raid reaches the warrior's own subgroup (the raid roster): SKI
 Battle Shout reaches only who can hear it (nothing measures): SKIPPED -- the party member was not offered the shout at all
 Battle Shout reaches only who can hear it (ten yards): SKIPPED -- the party member was not offered the shout at all
 Battle Shout reaches only who can hear it (ten yards): a shout that reached them did not clear the debt
+Luxe on Calm leaves nothing looping: the owed pulse kept going with nobody owed on top
+Toast draws the spell icon clean: SKIPPED -- the favour clock was not burning
+Toast's clock burns over its ash: no ash under the clock's spent time
+Toast's clock burns over its ash: the clock did not burn down
+Toast's favour clock burns down with the debt: half the time gone and the clock is at 172.16109114615 of 172.16109114615
+Toast's favour clock burns down with the debt: the favour clock went in a fight
+Toast's favour clock burns down with the debt: the favour clock went on Calm
+Toast's pulse breathes three times and holds: the owed glow stayed with nobody owed
 When a top-up is due (top-ups are off)
 a buff given to somebody who asked is filed as asked: SKIPPED -- Anna is not on the prompt as somebody who asked
 a buff that lands serves the request: SKIPPED -- Anna was not offered after asking

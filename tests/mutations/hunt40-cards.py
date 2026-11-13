@@ -157,15 +157,15 @@ mutate(T, "\tcard.lines, card.lineSize, card.lineFace = {}, {}, {}\n",
 
 # --- the data and the tool that writes it ----------------------------------
 
-mutate("Looks/Previews.lua", "\tleather = {\n\t\tname = {", "\tleather_ = {\n\t\tname = {",
+mutate("Looks/Previews.lua", "\tluxe = {\n\t\tname = {", "\tluxe_ = {\n\t\tname = {",
        "hunt40-cards: a look has no text recorded",
        expect=DATA, script=S)
 
-mutate("Looks/Previews.lua", "\t\treason = { l = 0.2282,", "\t\treason_ = { l = 0.2282,",
+mutate("Looks/Previews.lua", "\t\treason = { l = 0.31653,", "\t\treason_ = { l = 0.31653,",
        "hunt40-cards: a look records no reason line",
        expect=DATA, script=S)
 
-mutate("Looks/Previews.lua", "\t\tname = { l = 0.2282,", "\t\tname = { l = 0.3282,",
+mutate("Looks/Previews.lua", "\t\tname = { l = 0.28629,", "\t\tname = { l = 0.38629,",
        "hunt40-cards: a recorded rectangle is edited by hand",
        expect=HASH, script=S)
 
