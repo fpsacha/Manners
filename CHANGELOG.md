@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.19
 
 - **In a fight, each press moves on to the next person.** A fight locks the
   prompt, and until now it stayed on whoever it showed as the fight began:
