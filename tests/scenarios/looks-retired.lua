@@ -40,7 +40,7 @@ local MOVES = {
 }
 local RETIRED = { "framed", "luxe", "arcane", "toast" }
 -- The looks that remain, in the order the picker and the dropdown show them.
-local REMAIN = { "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "glass", "minimal" }
+local REMAIN = { "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost", "glass", "minimal" }
 
 local function noErrors(scenario, ns)
 	for _, e in ipairs(ns.errors or {}) do

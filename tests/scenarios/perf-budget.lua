@@ -459,7 +459,7 @@ end
 do
 	local scenario = "perf-budget: a city scan in any look makes at most 9 pcalls"
 	local KEY, COMMAND = "F", "CLICK MannersPrompt:LeftButton"
-	for _, style in ipairs({ "glass", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild" }) do
+	for _, style in ipairs({ "glass", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost" }) do
 		for _, keyed in ipairs({ false, true }) do
 			local label = style .. (keyed and ", a key bound" or "")
 			local applied = true

@@ -21,8 +21,8 @@ _m("Looks/Ribbon.lua",
 # --- a toggle that does nothing is greyed ------------------------------------
 
 _m("Looks/Looks.lua",
-   "Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, wild = true }",
-   "Looks.roundAlways = { letter = true, archmage = true, lightbringer = true, fel = true, wild = true }",
+   "Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, wild = true, frost = true }",
+   "Looks.roundAlways = { letter = true, archmage = true, lightbringer = true, fel = true, wild = true, frost = true }",
    "the round icon toggle live on the Ribbon's medallion",
    expect="hunt38-shared: the round icon toggle is off where the icon is always round")
 

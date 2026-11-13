@@ -8,6 +8,7 @@ ns.Looks.previews = {
 	archmage = true,
 	fel = true,
 	forge = true,
+	frost = true,
 	glass = true,
 	leather = true,
 	letter = true,
@@ -23,6 +24,7 @@ ns.Looks.previewIcon = {
 	archmage = { l = 0.0984, t = 0.25806, r = 0.21937, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	fel = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	forge = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	frost = { l = 0.11694, t = 0.25806, r = 0.2379, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	glass = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	leather = { l = 0.08304, t = 0.25806, r = 0.20401, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	letter = { l = 0.15581, t = 0.31452, r = 0.24855, b = 0.68548, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Letter\\Letter_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
@@ -48,6 +50,10 @@ ns.Looks.previewText = {
 	forge = {
 		name = { l = 0.27016, t = 0.29032, r = 0.90323, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
 		reason = { l = 0.27016, t = 0.53226, r = 0.90323, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.768, 0.444, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
+	},
+	frost = {
+		name = { l = 0.30081, t = 0.29032, r = 0.81452, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 0.95 } } },
+		reason = { l = 0.30081, t = 0.53226, r = 0.81452, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.836, 0.58, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 1 } } },
 	},
 	glass = {
 		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
@@ -78,4 +84,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "4005f06d71f75afd1bc98c885df102102e6dea2f34145df9196926521bfeda0f"
+ns.Looks.previewHash = "2702c82eecbb65014096a5199d0458fa4a364f62d1093242c10896129670921e"

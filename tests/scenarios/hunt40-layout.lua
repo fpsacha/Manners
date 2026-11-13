@@ -38,7 +38,7 @@ end
 -- ------------------------------------------------------------------ 1
 -- The sweep.
 
-local STYLES = { "glass", "minimal", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild" }
+local STYLES = { "glass", "minimal", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost" }
 local COUNTS = { 1, 9, 10, 99, 100, 999 }
 local WIDTHS = { 160, 220, 300, 400 }
 local HEIGHTS = { 20, 32, 44, 72 }
@@ -58,7 +58,7 @@ end
 
 local JUMPS = { 999, 1, 100, 9, 99, 10, 999, 10 }
 -- The looks whose count steps aside for a name it would cut.
-local YIELDS = { ribbon = true, letter = true, leather = true, forge = true, archmage = true, lightbringer = true, fel = true, wild = true }
+local YIELDS = { ribbon = true, letter = true, leather = true, forge = true, archmage = true, lightbringer = true, fel = true, wild = true, frost = true }
 
 -- Whether the client would cut the name: its text wider than the room its two
 -- anchors leave it (FitLine takes half a unit over as fitting).

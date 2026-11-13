@@ -1058,7 +1058,7 @@ do
 		ns.OpenOptions("appearance", true)
 		ns.Prompt:ExitTest()
 		results = run(ns)
-		expect(scenario, results, "launch.picker", "PASS", "the window's own cards: 10 shown, 10 with the live icon")
+		expect(scenario, results, "launch.picker", "PASS", "the window's own cards: 11 shown, 11 with the live icon")
 		local row = ns.WindowUI.RowFor("appearance.style")
 		local hidden
 		for _, card in ipairs(row.cards) do
