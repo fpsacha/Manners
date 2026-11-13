@@ -451,6 +451,11 @@ do
 			name = name,
 			oneHeld = name and ns.OneTargetHolders(candidates, FAVOUR_HELD) or nil,
 			relevantOnly = db.filters.relevantOnly,
+			-- Might held from a mage, a warlock or a priest, as the queue holds
+			-- it (on by default since the right-buff audit): a paladin with
+			-- nothing else to give owes a priest nothing, rather than a favour
+			-- that sits as Still owed with nothing on the prompt.
+			casterOnly = db.buff.skipCasters == true and ns.CASTER_CLASSES[class] or nil,
 			whenBuffed = "always",
 			offerAnyway = true,
 			-- A favour: a buff kept for one (Buffs.lua, returnOnly) returns it.
