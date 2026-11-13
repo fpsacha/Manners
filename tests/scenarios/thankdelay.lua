@@ -283,7 +283,9 @@ do
 			for i, item in ipairs(section.items) do
 				local path = type(item) == "table" and item[1] or item
 				if path == "click.thankDelay" then
+					-- The others to pick from (1.11.20) may sit between them.
 					local before = section.items[i - 1]
+					if type(before) == "table" and before[1] == "click.thankEmoteMore" then before = section.items[i - 2] end
 					found = type(item) == "table" and item.indent == true and type(before) == "table"
 						and before[1] == "click.thankEmoteToken"
 				end

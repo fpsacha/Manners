@@ -428,6 +428,8 @@ ns.WindowLayout = {
 				{ key = "click.speech", header = "click.speechHeader", items = {
 					"click.thankEmote",
 					{ "click.thankEmoteToken", indent = true },
+					-- Others to pick from, under the one picked.
+					{ "click.thankEmoteMore", indent = 2, columns = 4 },
 					-- The pause before the /thank and the whisper alike.
 					{ "click.thankDelay", indent = true },
 					"click.thankWhisper",

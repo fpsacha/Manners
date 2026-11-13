@@ -273,8 +273,8 @@ mutate("Favours.lua",
        "thank: the chosen emote never used",
        expect="thank: the emote is the one the player chose", script=S)
 mutate("Favours.lua",
-       "\t\tlocal token = prompt and ns.THANK_EMOTE_SET[prompt.thankEmoteToken] and prompt.thankEmoteToken or \"THANK\"\n",
-       "\t\tlocal token = prompt and prompt.thankEmoteToken or \"THANK\"\n",
+       "\t\tlocal first = prompt and ns.THANK_EMOTE_SET[prompt.thankEmoteToken] and prompt.thankEmoteToken or \"THANK\"\n",
+       "\t\tlocal first = prompt and prompt.thankEmoteToken or \"THANK\"\n",
        "thank: any token is made",
        expect="thank: an emote the list does not hold is the thanks", script=S)
 mutate("Core.lua",

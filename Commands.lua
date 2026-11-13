@@ -812,7 +812,8 @@ do
 						elseif name == "buff.skip" or name == "buff.tanksOnly" or name == "buff.meOnly"
 							or name == "buff.tanksOutside"
 							or name == "buff.optIn"
-							or name == "filters.skipNearbyClasses" then
+							or name == "filters.skipNearbyClasses"
+							or name == "prompt.thankEmoteMore" then
 							kind = "set"
 						elseif name == "buff.order" then
 							-- The buffs of each class in an order of the player's

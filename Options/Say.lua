@@ -11,6 +11,7 @@ local spSet, HasClassBuffs, TAB = Page.spSet, Page.HasClassBuffs, Page.TAB
 -- sit under. Every
 -- other control on the tab is about the line said with a cast.
 local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = true, thankWhisper = true }
+THANKS_ONLY.thankEmoteMore = true
 -- And the pause before either.
 THANKS_ONLY.thankDelay = true
 
@@ -81,6 +82,24 @@ function Page.BuildSpeechTab()
 				disabled = function() return not P().thankEmote end,
 				get = function() return P().thankEmoteToken end,
 				set = function(_, v) P().thankEmoteToken = v end,
+			},
+			-- Others to pick from at random, the one above always among them
+			-- (Favours.lua, ns.ThankEmoteToken).
+			thankEmoteMore = {
+				type = "multiselect",
+				name = L["Or one of these, at random"],
+				desc = L["Each thank-you uses the emote above or one of the ones ticked here, picked at random, so it is not the same every time."],
+				order = 11.55,
+				values = function()
+					local values = {}
+					for _, token in ipairs(ns.THANK_EMOTES) do
+						if token ~= P().thankEmoteToken then values[token] = "/" .. token:lower() end
+					end
+					return values
+				end,
+				disabled = function() return not P().thankEmote end,
+				get = function(_, token) return P().thankEmoteMore[token] == true end,
+				set = function(_, token, on) P().thankEmoteMore[token] = on and true or nil end,
 			},
 			-- Asked for on CurseForge: a thank at the very moment a buff lands
 			-- reads as an addon's. Off, since somebody buffing in passing on a

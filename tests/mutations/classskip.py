@@ -58,8 +58,8 @@ mutate("Core.lua",
        expect="classskip: a damaged set is repaired and the set travels with a profile", script=S)
 
 mutate("Commands.lua",
-       "\t\t\t\t\t\t\tor name == \"filters.skipNearbyClasses\" then\n",
-       "\t\t\t\t\t\t\tor false then\n",
+       "\t\t\t\t\t\t\tor name == \"filters.skipNearbyClasses\"\n",
+       "\t\t\t\t\t\t\tor false\n",
        "classskip: the set does not travel with a profile",
        expect="classskip: a damaged set is repaired and the set travels with a profile", script=S)
 

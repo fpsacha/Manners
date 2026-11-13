@@ -959,6 +959,8 @@ list. They used to be at the bottom of *Who to buff*.
   (the default), `/cheer`, `/bow`, `/clap`, `/salute`, `/wave`, `/nod`, `/smile`,
   `/applaud`, `/blush`, `/curtsey`, `/flex`, `/greet`, `/grin`, `/hail`, `/happy`,
   `/highfive`, `/hug`, `/kiss`, `/kneel`, `/love`, `/praise`, `/proud` or `/welcome`.
+  *Or one of these, at random*, under it, ticks others: each thank-you is then
+  the emote picked or one of the ticked ones, drawn at random.
   *Wait a moment before thanking*, under it too, off by default: the `/thank`
   and the whispered thank-you go out one to three seconds after the buff
   lands, so they seem less automatic. Everything is checked again then: if

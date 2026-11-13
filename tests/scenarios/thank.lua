@@ -640,6 +640,24 @@ do
 	end)
 end
 
+-- Others ticked to pick from (1.11.20): the thank-you made is the one drawn.
+do
+	local scenario = "thank: a thank-you makes the emote drawn from the ones ticked"
+	with(scenario, {}, function(ns)
+		ns.db.profile.prompt.thankEmoteToken = "CHEER"
+		ns.db.profile.prompt.thankEmoteMore = { BOW = true }
+		local real = math.random
+		math.random = function(n) return n end
+		local ok, text = pcall(favour, ns, "nameplate2")
+		math.random = real
+		if not ok then fail(scenario, text) return end
+		if not noticed(scenario, ns, "nameplate2", text) then return end
+		if #emotes ~= 1 or emotes[1][1] ~= "BOW" then
+			fail(scenario, "the emote made was " .. tostring(emotes[1] and emotes[1][1]) .. ", not the BOW drawn")
+		end
+	end)
+end
+
 do
 	local scenario = "thank: an emote the list does not hold is the thanks"
 	with(scenario, {}, function(ns)
