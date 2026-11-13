@@ -65,7 +65,6 @@ L["every spell you know is switched off under Who to buff"] = "todos os feitiço
 L["Above the action bars"] = "Acima das barras de ações"
 L["Under the minimap"] = "Abaixo do minimapa"
 L["Middle of the screen"] = "No meio da tela"
-L["The look %s has been retired, so your prompt now wears %s. The other looks are on the Look page."] = "O visual %s foi aposentado, então seu lembrete agora usa %s. Os outros visuais estão na página Visual."
 L["the prompt was moved onto its new anchor, the middle of the screen. If you had put it at the bottom edge on purpose, drag it back or pick a place under |cffffd100Where it sits|r on the options page."] = "o lembrete foi movido para sua nova âncora, o meio da tela. Se você o tinha colocado na borda de baixo de propósito, arraste-o de volta ou escolha um lugar em |cffffd100Onde fica|r na página de opções."
 L["build |cffffd100%s|r -- this class has no buffs to cast on other players."] = "versão |cffffd100%s|r -- esta classe não tem bônus para lançar em outros jogadores."
 L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."] = "versão |cffffd100%s|r -- |cffff8080desativado neste perfil|r; |cffffd100/manners on|r para começar."

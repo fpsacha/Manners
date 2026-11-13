@@ -65,7 +65,6 @@ L["every spell you know is switched off under Who to buff"] = "tous vos sorts co
 L["Above the action bars"] = "Au-dessus des barres d'action"
 L["Under the minimap"] = "Sous la minicarte"
 L["Middle of the screen"] = "Milieu de l'écran"
-L["The look %s has been retired, so your prompt now wears %s. The other looks are on the Look page."] = "L'apparence %s a été retirée : votre panneau porte désormais %s. Les autres apparences sont sur la page Apparence."
 L["the prompt was moved onto its new anchor, the middle of the screen. If you had put it at the bottom edge on purpose, drag it back or pick a place under |cffffd100Where it sits|r on the options page."] = "le panneau a été déplacé vers son nouveau point d'ancrage, le milieu de l'écran. Si vous l'aviez placé exprès en bas de l'écran, faites-le glisser à nouveau ou choisissez un endroit sous |cffffd100Emplacement|r dans la page d'options."
 L["build |cffffd100%s|r -- this class has no buffs to cast on other players."] = "version |cffffd100%s|r -- cette classe n'a aucune amélioration à lancer sur les autres joueurs."
 L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."] = "version |cffffd100%s|r -- |cffff8080désactivé sur ce profil|r ; |cffffd100/manners on|r pour le lancer."

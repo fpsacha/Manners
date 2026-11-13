@@ -312,37 +312,18 @@ do
 	end
 end
 
--- RETIRED LOOKS (1.11.19). The author asked for every look to be its own and
--- for the ones too like a neighbour to go: Framed and Luxe were Glass again
--- (a dark card, a rim), Arcane was Archmage's plainer forebear, Toast a
--- Ribbon in brown. Each names the look that takes its place. A retired look
--- is in no picker (Choices) and is no style to save (Allowed); a profile that
--- saved one is moved to its heir (Core.lua, ClampSettings, through
--- Looks.Heir). Their code and art stay for now, drawn only when something
--- sets the style by hand: taken out once nothing reads them.
-Looks.retired = { framed = "glass", luxe = "glass", arcane = "archmage", toast = "ribbon" }
-
--- The look a retired one's players are moved to, or nil for a look in use.
-function Looks.Heir(key)
-	return key and Looks.retired[key] or nil
-end
-
 -- Every style key that may be saved, for ClampSettings.
 function Looks.Allowed()
 	local out = {}
-	for key in pairs(Looks.list) do
-		if not Looks.retired[key] then out[key] = true end
-	end
+	for key in pairs(Looks.list) do out[key] = true end
 	return out
 end
 
 function Looks.Choices()
 	local values, sorting = {}, {}
 	for key, look in pairs(Looks.list) do
-		if not Looks.retired[key] then
-			values[key] = look.name
-			sorting[#sorting + 1] = key
-		end
+		values[key] = look.name
+		sorting[#sorting + 1] = key
 	end
 	table.sort(sorting, function(a, b)
 		local oa, ob = Looks.list[a].order or 50, Looks.list[b].order or 50
