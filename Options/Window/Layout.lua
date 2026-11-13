@@ -287,6 +287,8 @@ ns.WindowLayout = {
 					-- Food that gives Well Fed, off until it is turned on; every class has it.
 					-- The foods to leave out right under it.
 					"who.own_food",
+					-- Which food, asked for on CurseForge: the best, the weakest, or one by name.
+					{ "who.ownFoodChoice", indent = true },
 					{ "who.own_leave_food", indent = true },
 					-- The sleeping bag's Well-Rested, off until it is turned on;
 					-- shown while the bag is in the bags (Classic Era, Forever).

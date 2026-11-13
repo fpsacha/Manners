@@ -328,6 +328,92 @@ do
 	end)
 end
 
+-- Which food (a CurseForge request, 1.11.23): the best one you can eat, as it
+-- always was, the weakest first, or one in the bags by name; a food ticked under
+-- Never remind me about is never picked, and one not in the bags falls back.
+do
+	local scenario = "wellfed: Which food picks the best, the weakest first, or one by name"
+	with(scenario, { on = true, level = 60 }, function(ns, data)
+		local best, worst = data[1], data[#data]
+		if best[2] <= worst[2] then
+			fail(scenario, "SKIPPED -- the table's best and worst are the same level")
+			return
+		end
+		local own = ns.db.profile.ownBuffs
+		if own.foodOrder ~= "best" then fail(scenario, "by default the order is " .. tostring(own.foodOrder)) end
+		stock(ns, { [best[1]] = 1, [worst[1]] = 1 })
+		if key(mine(ns)) ~= "food" .. best[1] then fail(scenario, "by default offered " .. key(mine(ns))) end
+		own.foodOrder = "weakest"
+		Mock.advance(1)
+		if key(mine(ns)) ~= "food" .. worst[1] then
+			fail(scenario, "the weakest first offered " .. key(mine(ns)) .. ", not food" .. worst[1])
+		end
+		-- The weakest left out: the next weakest.
+		own.leave["food" .. worst[1]] = true
+		Mock.advance(1)
+		if key(mine(ns)) ~= "food" .. best[1] then
+			fail(scenario, "the weakest ticked under Never remind me about, offered " .. key(mine(ns)))
+		end
+		own.leave["food" .. worst[1]] = false
+		-- A food by name, over the best.
+		own.foodOrder = "food" .. worst[1]
+		Mock.advance(1)
+		if key(mine(ns)) ~= "food" .. worst[1] then
+			fail(scenario, "naming food" .. worst[1] .. " offered " .. key(mine(ns)))
+		end
+		-- ... but not if it is ticked to be left out ...
+		own.leave["food" .. worst[1]] = true
+		Mock.advance(1)
+		if key(mine(ns)) ~= "food" .. best[1] then
+			fail(scenario, "the food named is ticked to leave out, and offered " .. key(mine(ns)))
+		end
+		own.leave["food" .. worst[1]] = false
+		-- ... and not if it is out of the bags: the best answers.
+		stock(ns, { [best[1]] = 1 })
+		Mock.advance(1)
+		if key(mine(ns)) ~= "food" .. best[1] then
+			fail(scenario, "the food named is not in the bags, and offered " .. key(mine(ns)))
+		end
+	end)
+end
+
+do
+	local scenario = "wellfed: the Which food choice lists the foods, reads and writes, and is repaired"
+	with(scenario, { on = true, level = 60 }, function(ns, data)
+		local best, worst = data[1], data[#data]
+		local control = findOption(ns.optionsTable, "ownFoodChoice")
+		if not control then fail(scenario, "Who to buff has no Which food") return end
+		stock(ns, { [best[1]] = 1, [worst[1]] = 1 })
+		local values, order = control.values(), control.sorting()
+		if not (values.best and values.weakest and values["food" .. best[1]] and values["food" .. worst[1]]) then
+			fail(scenario, "Which food does not list the two ways and the foods in the bags")
+		end
+		if order[1] ~= "best" or order[2] ~= "weakest" then fail(scenario, "Which food does not open on the two ways") end
+		if control.get() ~= "best" then fail(scenario, "a new profile reads " .. tostring(control.get())) end
+		control.set(nil, "food" .. worst[1])
+		if ns.db.profile.ownBuffs.foodOrder ~= "food" .. worst[1] or control.get() ~= "food" .. worst[1] then
+			fail(scenario, "picking a food wrote " .. tostring(ns.db.profile.ownBuffs.foodOrder))
+		end
+		-- Out of the bags it reads as the best, which is what Manners does then.
+		stock(ns, { [best[1]] = 1 })
+		if control.get() ~= "best" then fail(scenario, "a food not in the bags reads " .. tostring(control.get())) end
+		if control.hidden() then fail(scenario, "hidden with Well Fed on") end
+		ns.db.profile.ownBuffs.pick.food = "off"
+		if not control.hidden() then fail(scenario, "shown with Well Fed off") end
+		-- A damaged value is repaired; a food's key is kept; it travels with a profile.
+		ns.db.profile.ownBuffs.foodOrder = "nonsense"
+		ns.ClampSettings()
+		if ns.db.profile.ownBuffs.foodOrder ~= "best" then fail(scenario, "a damaged order was left as " .. tostring(ns.db.profile.ownBuffs.foodOrder)) end
+		ns.db.profile.ownBuffs.foodOrder = "food" .. worst[1]
+		ns.ClampSettings()
+		if ns.db.profile.ownBuffs.foodOrder ~= "food" .. worst[1] then fail(scenario, "a food's key was not kept") end
+		local text = ns.ExportSettings and ns.ExportSettings() or ""
+		if not text:find("ownBuffs.foodOrder=food" .. worst[1], 1, true) then
+			fail(scenario, "the export does not carry the order: " .. tostring(text))
+		end
+	end)
+end
+
 do
 	local scenario = "wellfed: not while a meal is on, nor mounted"
 	with(scenario, { on = true }, function(ns, data)
@@ -433,7 +519,12 @@ do
 		end
 	end
 	if not items then fail(scenario, "Well Fed is not on the page") return end
-	local after = items[1][items[2] + 1]
+	-- Which food (1.11.23), then the foods to leave out, each one step further in.
+	local choice = items[1][items[2] + 1]
+	if not (type(choice) == "table" and choice[1] == "who.ownFoodChoice" and choice.indent == true) then
+		fail(scenario, "Which food is not right under Well Fed, one step further in")
+	end
+	local after = items[1][items[2] + 2]
 	if not (type(after) == "table" and after[1] == "who.own_leave_food" and after.indent == true) then
 		fail(scenario, "the foods to leave out are not right under Well Fed, one step further in")
 	end

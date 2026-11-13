@@ -1340,6 +1340,68 @@ function Page.BuildWhoTab()
 				set = function(_, value) ns.db.profile.ownBuffs.petChoice = value end,
 			},
 
+			-- Which food Well Fed reminds you to eat (Core.lua, FoodByChoice), asked
+			-- for on CurseForge: the best, the weakest first, or one in the bags by
+			-- name. Under Well Fed, while it is on.
+			ownFoodChoice = {
+				type = "select",
+				name = L["Which food"],
+				desc = L["Which food Manners reminds you to eat when you have several in your bags. The best one you can eat is what it did before. The weakest first uses up your cheaper food. Or pick one of the foods in your bags by name. A food you tick under Never remind me about is never picked."],
+				order = 15.795,
+				width = "full",
+				values = function()
+					local values = { best = L["The best one I can eat"], weakest = L["The weakest first"] }
+					for _, family in ipairs(ns.KnownOwnFamilies()) do
+						if family.food then
+							for _, spell in ipairs(family.spells) do
+								if ns.OwnSpellKnown(spell) then values[spell.key] = ns.BuffName(spell) end
+							end
+						end
+					end
+					return values
+				end,
+				sorting = function()
+					local foods = {}
+					for _, family in ipairs(ns.KnownOwnFamilies()) do
+						if family.food then
+							for _, spell in ipairs(family.spells) do
+								if ns.OwnSpellKnown(spell) then foods[#foods + 1] = { spell.key, ns.BuffName(spell) or "" } end
+							end
+						end
+					end
+					table.sort(foods, function(a, b) return a[2] < b[2] end)
+					local out = { "best", "weakest" }
+					for _, food in ipairs(foods) do out[#out + 1] = food[1] end
+					return out
+				end,
+				hidden = function()
+					local family
+					for _, f in ipairs(ns.KnownOwnFamilies()) do
+						if f.food then family = f end
+					end
+					return not family or ns.OwnPick(family) == "off"
+				end,
+				disabled = function() return not S().self end,
+				-- A food that is not in the bags now reads as the best: what Manners
+				-- then does, until it is back.
+				get = function()
+					local order = ns.db.profile.ownBuffs.foodOrder
+					if order == "best" or order == "weakest" then return order end
+					for _, family in ipairs(ns.KnownOwnFamilies()) do
+						if family.food then
+							for _, spell in ipairs(family.spells) do
+								if spell.key == order and ns.OwnSpellKnown(spell) then return order end
+							end
+						end
+					end
+					return "best"
+				end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.foodOrder = value
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
 			-- Asked for on CurseForge: the consumables on a button of their own
 			-- (Prompt/Supplies.lua), so the prompt can stay in plain sight and
 			-- they out of the way.

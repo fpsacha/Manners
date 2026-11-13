@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Who gets what
+- **Which food.** Under *Well Fed* on *Who to buff*: the best one you can eat
+  (as before), the weakest first, or a food in your bags by name. Asked for on
+  CurseForge.
+
 ## 1.11.22
 
 ### Looks

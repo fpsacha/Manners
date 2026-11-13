@@ -349,6 +349,11 @@ local defaults = {
 			-- (Companion.lua, Forever): "last" (the one out last, else a
 			-- favourite, else any), "favourite" or "random" (any pet).
 			petChoice = "last",
+			-- Which food Well Fed reminds you to eat with several in the bags
+			-- (Core.lua, FoodByChoice): "best" (the first you can eat in the
+			-- table's order, as it always was), "weakest" (the lowest level first)
+			-- or a food's own key ("food" and its item id).
+			foodOrder = "best",
 			-- Per family, by its key: "auto" (Automatic, or ticked for a family of one),
 			-- a spell's key (always that one), or "off" (Don't remind me). Filled below.
 			pick = {},
@@ -2630,7 +2635,33 @@ do
 	-- mage below 34 gets the same armor inside and out, and is told so as
 	-- "first" in both places, never as a choice between two that is not one.
 	local OthersOnYou
+
+	-- Which food (Who to buff, ownBuffs.foodOrder), when it is not the best:
+	-- the weakest food you can eat, or the one named, whatever was up last.
+	-- nil for the default, or for a named food you cannot eat now, which leaves
+	-- the best (Automatic) to answer.
+	local function FoodByChoice(family)
+		local own = addon.db and addon.db.profile and addon.db.profile.ownBuffs
+		local order = own and own.foodOrder
+		if order == nil or order == "best" then return nil end
+		if order == "weakest" then
+			local spells = family.spells
+			for n = #spells, 1, -1 do
+				local spell = spells[n]
+				if not LeftOut(spell) and ScrollReady(spell) then return spell end
+			end
+			return nil
+		end
+		local named = ns.FindOwnSpell(order)
+		if named and named.family == family and not LeftOut(named) and ScrollReady(named) then return named end
+		return nil
+	end
+
 	local function AutoAnswer(family)
+		if family.food then
+			local chosen = FoodByChoice(family)
+			if chosen then return chosen, "best" end
+		end
 		local last = Remembered(family)
 		if last then return last, "last" end
 		-- One you have never put up yourself is not asked for (Buffs.lua,
@@ -4681,6 +4712,13 @@ function ns.ClampSettings()
 		local choice = profile.ownBuffs.petChoice
 		if not (type(choice) == "string" and choice:match("^pet:.+$")) then
 			oneOf(profile.ownBuffs, "petChoice", { last = true, favourite = true, random = true }, "last")
+		end
+	end
+	-- Which food: the best, the weakest first, or a food by key.
+	do
+		local order = profile.ownBuffs.foodOrder
+		if not (type(order) == "string" and order:match("^food%d+$")) then
+			oneOf(profile.ownBuffs, "foodOrder", { best = true, weakest = true }, "best")
 		end
 	end
 	-- Built from the tier list, so a new distance is never rejected here.

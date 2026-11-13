@@ -270,7 +270,10 @@ each class offers*).
   Well Fed is on you, whoever's food it was. A food you keep for something
   else (a fishing food, say) can be ticked under *Never remind me about*, which
   lists the foods in your bags: Automatic passes it over and offers the next.
-  A meal cut short (you moved, stood up or were pulled) with no Well Fed to
+  *Which food*, under it, chooses the order: *The best one I can eat* (the
+  default), *The weakest first* (to use up the cheap food), or one of the foods
+  in your bags by name; a food named that is not in the bags falls back to the
+  best. A meal cut short (you moved, stood up or were pulled) with no Well Fed to
   show for it brings the reminder back at once.
   Classic Era, Burning Crusade, Mists and WoW Forever; not retail.
 - **Well-Rested.** For the Cozy Sleeping Bag: a switch under *Myself*, shown
