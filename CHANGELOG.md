@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Your own buffs
+- **Dampen Magic for mages.** Pick *Dampen Magic* (or Amplify Magic) on *Who
+  to buff*, under *Myself*, and Manners reminds you when it is down. Off until
+  you pick it. Classic Era, WoW Forever and Burning Crusade. Asked for on
+  GitHub.
+
 ## 1.11.19
 
 ### In a fight
