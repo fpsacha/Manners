@@ -180,14 +180,12 @@ mutate("Prompt/Panel.lua",
        "hunt41-leftovers: a restyle of a built-in look repaints nobody",
        expect=P + "glass: a restyle with the count chip up brings the count back", script=S)
 
-# The same for a look from Looks/. Luxe, since retired, was the look that lost
-# its count to it; of the looks that remain, the repaint is what puts back the
-# regions a restyle switched off, which the launch checks' own restyle shows.
+# The same for a look from Looks/.
 mutate("Prompt/Panel.lua",
        "\tself:SyncCooldown()\n\tself:Refresh()\nend\n",
        "\tself:SyncCooldown()\nend\n",
        "hunt41-leftovers: a restyle of a look from Looks/ repaints nobody",
-       expect="selftest-launch: nothing is left changed (the prompt in ribbon)", script=S)
+       expect=P + "leather: a restyle with the count chip up brings the count back", script=S)
 
 # The width FitLine measured is not kept when it first measures a line: the
 # looks measure it again themselves, for every restyle.
