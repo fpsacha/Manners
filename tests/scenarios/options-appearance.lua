@@ -61,10 +61,10 @@ end
 local ORDER = {
 	"combatNotice", "move", "locked", "posPreset", "moveInEditMode",
 	"posHeader", "scale", "alpha", "width", "height",
-	"styleHeader", "style", "peekOnChange", "bgColor", "accentByReason", "reasonPalette", "accentColor",
+	"styleHeader", "style", "bgColor", "accentByReason", "reasonPalette", "accentColor",
 	"accentMode", "accentDead",
 	"attentionHeader", "flashStyle", "effects", "hideInFight", "fightRota", "hideInCombat", "dimInCombat", "soundEnabled", "soundFile",
-	"soundOwedOnly", "noSound",
+	"soundOwedOnly", "noSound", "peekOnChange",
 	"tooltipHeader", "tooltip", "tooltipPosition",
 	"textHeader", "font", "fontSize", "fontColor", "classColor", "textShadow", "showSub", "showGuild",
 	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "suppliesSize", "roundIcon", "iconFrame", "gryphons", "showCooldown",

@@ -200,7 +200,8 @@ do
 	local scenario = "foodleave: Never remind me about lists the foods in the bags, by name"
 	with(scenario, { on = true, level = 60 }, function(ns, data)
 		local first, second = pair(data, 60)
-		local box = ns.optionsTable.args.who.args.own_leave
+		-- The foods have a list of their own under Well Fed (1.11.20).
+		local box = ns.optionsTable.args.who.args.own_leave_food
 		if not box then fail(scenario, "Who to buff has no Never remind me about") return end
 		if next(box.values()) ~= nil then fail(scenario, "foods nobody holds are listed") end
 		stock(ns, { [first[1]] = 1 })

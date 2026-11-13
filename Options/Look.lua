@@ -413,7 +413,7 @@ function Page.BuildLookTab()
 				type = "toggle",
 				name = L["Fade this window while I change the look"],
 				desc = L["On: after a change on Look, and while you drag a slider or pick a colour, this window fades for a moment so you can see the prompt behind it. Off: it stays as it is."],
-				order = 21.5,
+				order = 35.7,
 				width = "full",
 				get = pGet,
 				set = pSet,
