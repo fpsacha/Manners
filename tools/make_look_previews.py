@@ -674,6 +674,9 @@ def renderer():
     import render_prompt as rp
     # Lua 5.1, which is what the game runs, as render_options does.
     rp.lupa = lua51
+    # A card is a still: a sun, a circle of runes is drawn as it stands, not
+    # as far round as the moment of the picture has turned it.
+    rp.TURNS = False
     return rp
 
 

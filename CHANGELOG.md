@@ -2,14 +2,29 @@
 
 ## Unreleased
 
+- **A new look: Fel.** A warlock's, and the Burning Legion's: a slab of black
+  felsteel, cracked, with fel fire showing through the cracks and burning
+  along its foot; your spell in a summoning circle, eight demonic runes cut
+  round it and a demon's horns over it; and at the far end a soul shard held
+  in a claw of two more horns. The band round the icon carries the reason's
+  colour; with the marker on *Stripe* or *Both* the shard and a vein along
+  the upper rim carry it too, and otherwise the shard keeps a soul shard's
+  own violet. When somebody buffs you the runes light one after another;
+  while you owe them the circle turns; when your buff lands a gout of fel
+  flame leaps from the circle and a shadow bolt flies the length of the slab
+  and strikes the shard; a refusal gutters the fire to a glow, puts the
+  runes out and leaves smoke. At rest the fire burns, the fire behind the
+  cracks flows and embers rise; *Animations* on *Calm* stills all of it, and
+  a fight puts the fire out. The icon is always round on this look.
 - **Four looks are retired: Framed, Luxe, Arcane and Toast.** Each was too
   like one of its neighbours, and every look on the Look page should be its
   own. If your prompt wore one of them, it now wears the nearest look that
   remains: Framed and Luxe become **Glass**, Arcane becomes **Archmage**, and
   Toast becomes **Ribbon**. A line in chat tells you so once, a few seconds
-  after you log in, and nothing else about your settings changes. Eight looks
-  remain, each a card under Look > *Panel style*: Glass, Minimal, Ribbon,
-  Letter, Leather, Forge, Archmage and Lightbringer.
+  after you log in, and nothing else about your settings changes. Eight of
+  the old looks remain, and Fel makes nine, each a card under Look > *Panel
+  style*: Glass, Minimal, Ribbon, Letter, Leather, Forge, Archmage,
+  Lightbringer and Fel.
 - **Everybody's first buff before anybody's second.** A priest or a druid in
   a party was kept on the first person for every buff in turn (Fortitude,
   then Divine Spirit, then Shadow Protection) while the others stood there

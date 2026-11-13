@@ -290,6 +290,11 @@ def smooth(t, how):
     return t
 
 
+# Whether a Rotation animation's turn is drawn. tools/make_look_previews.py
+# switches it off: a card is a still, and nothing on it is caught mid-turn.
+TURNS = True
+
+
 def group_effect(g, now):
     """What a playing group is doing to its frame at `now`: an alpha that
     replaces the frame's own, a translation, a scale and a turn (degrees,
@@ -740,7 +745,7 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False, skip=()):
             # frame above it is not drawn), about the animation's origin.
             turn = None
             own = effects.get(r["id"])
-            if own and abs(own.get("rot") or 0.0) > 1e-6:
+            if TURNS and own and abs(own.get("rot") or 0.0) > 1e-6:
                 point, ox, oy = (list(own.get("pivot") or []) + ["CENTER", 0, 0])[:3]
                 ofx, ofy = fraction(point or "CENTER")
                 s = tree.eff_scale(r)

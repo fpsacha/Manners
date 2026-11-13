@@ -43,7 +43,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 **Four looks retired (Unreleased)**, at the author's word ("they all should be unique. remove
 the one that are too similar"): Framed and Luxe (heir Glass), Arcane (heir
 Archmage), Toast (heir Ribbon). Eight remain: Glass, Minimal, Ribbon, Letter,
-Leather, Forge, Archmage, Lightbringer. Gone for real: `Looks/Luxe.lua`,
+Leather, Forge, Archmage, Lightbringer (nine with Fel, below). Gone for real: `Looks/Luxe.lua`,
 `Toast.lua`, `Arcane.lua`, `Textures/Luxe`, `Toast`, `Arcane`, their three
 generators, their own scenario and mutation files, their four card pictures,
 Arcane's key-chip strings, and the tag the picker drew round Luxe's reason
@@ -362,7 +362,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the eight looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the nine looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and
@@ -493,6 +493,33 @@ turn of 45 degrees on a REPEAT group restarts without a visible step, that a
 Scale about TOP or a corner grows a texture from that side, how the wings and
 the pillar look over the world behind the panel, and whether art drawn past
 the button's bounds is clipped by anything the player has it parented near.
+
+**Fel (Unreleased), asked for by the author as a warlock's look.**
+`Looks/Fel.lua`, `Textures/Fel/` (`tools/make_fel_textures.py`, twenty-eight
+files, its horns through `tools/figures.py`), key `fel`, order 9.5 (after
+Lightbringer, before Glass), in `Looks.roundAlways`. Three things move by
+their texture coordinates (`Looks/Flow.lua`): the fire along the foot and its
+leap (one sheet of sixteen drawn frames, a tile of it laid several times
+along the slab, every tile started in one call), the fire behind the cracks
+(a scrolled REPEAT texture under a slab whose cracks are holes in its alpha)
+and the gout (a sheet played once). The circle's eight runes are eight crops
+of one file, each with a Rotation whose origin is the circle's middle. Its
+gout leaves the panel on purpose (`look.skyward`); its embers and the
+shard's glint loop at rest (`look.idle`); its horns and the circle stand
+past the button's bounds as drawn. `tools/render_prompt.py` now draws
+Rotation (the picker's cards are drawn with it off). Only the live game can
+say: that a Rotation with an origin offset from the region's middle carries
+a texture round that point as the renderer draws it, and that eight of them
+started in one frame stay in step; that eight sheet handles started in one
+call show the same frame (the tiles' seams) at thirty writes a second; how
+a sheet's neighbouring frames bleed at a frame's edge under the game's
+filtering (each frame fades to nothing at its top and its foot, and tiles
+along its length); how bright the gout, the leap and the bolt are in ADD
+(the renderer understates them); whether a 256 x 256 sheet at one texel a
+unit is too soft for the gout at a large UI scale; how the alpha holes of
+the slab's cracks look over the scrolled fire at the game's filtering; and
+whether the picker's card, which cuts the horns' points off at its upper
+edge, wants a taller view.
 
 **The new looks in the game.** Ribbon, Letter and Leather (1.10.0), Forge, the
 glass rebuild of Glass and the

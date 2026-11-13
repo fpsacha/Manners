@@ -99,6 +99,7 @@ DESIGN_H = 128         # the slab's design height, in texels, shown at the slab'
 CAP_W = 64             # the left end's width, in design texels
 FORK_W = 128           # the right end's width, in design texels
 FORK_OVER = 64         # how far the right end's file reaches above and below the slab, in design texels
+FORK_ROOT = 42         # where the right end's collar and horns begin, in design texels from its file's left
 TILE_W = 256           # the middle tile's width, in design texels
 SHARD_AT = 34.0        # the shard's middle, in design texels from the slab's right edge
 SHARD_H = 86.0         # the shard's height, in design texels
@@ -315,8 +316,8 @@ def make_fork():
     x, y = grid(w, h)
     top = float(FORK_OVER)
     c = h / 2.0
-    # The slab, to a rounded end 56 texels in.
-    body_h, body_a, d_in, face = slab_height(x, y - top, -60.0, 56.0, w, SEED + 20)
+    # The slab, to a rounded end 60 texels in.
+    body_h, body_a, d_in, face = slab_height(x, y - top, -60.0, 60.0, w, SEED + 20)
     rows = (y > top) & (y < top + DESIGN_H)
     body_a = body_a * rows
     body_h = body_h * rows
@@ -340,24 +341,24 @@ def make_fork():
     # middle and back to a point past the shard.
     fig = Figure(w, h)
     for sign in (-1.0, 1.0):
-        a = (34.0, c + sign * 50.0)
+        a = (46.0, c + sign * 50.0)
         b = (123.0, c + sign * 21.0)
-        poly = blade(a, b, 30.0, bend=sign * 31.0, taper=0.62, belly=0.34)
+        poly = blade(a, b, 30.0, bend=sign * 30.0, taper=0.62, belly=0.34)
         fig.facet(poly, rise=7.0, width=10.0, level=1.5, power=0.8, soft=0.9)
         # The rings of a horn's growth, cut across it.
         for t in (0.20, 0.34, 0.47, 0.59, 0.70):
             mx = a[0] + (b[0] - a[0]) * t
-            my = a[1] + (b[1] - a[1]) * t - sign * 31.0 * np.sin(np.pi * t)
+            my = a[1] + (b[1] - a[1]) * t - sign * 30.0 * np.sin(np.pi * t)
             fig.line([(mx - 3.0, my - sign * 17.0), (mx + 4.0, my + sign * 17.0)], 1.6, 1.3, soft=1.1)
     horn_a = fig.alpha
     horn_h = fig.height * horn_a
     horn_rgb, _ = shade(HORN, horn_h, horn_a, SEED + 21, SLAB_TPU, wear=0.6, grime=0.9, micro=0.03)
     horn_rgb = underlit(horn_rgb, horn_h, horn_a, 0.34)
     # A collar where the horns leave the slab.
-    collar = rrect(x, y, 30.0, top - 1.0, 60.0, top + DESIGN_H + 1.0, 8.0)
+    collar = rrect(x, y, FORK_ROOT, top - 1.0, FORK_ROOT + 22.0, top + DESIGN_H + 1.0, 7.0)
     col_a = cover(collar)
     cd = np.clip(-collar, 0, None)
-    col_h = M.bevel(cd, 15.0, 5.0)
+    col_h = M.bevel(cd, 11.0, 4.5)
     col_rgb, _ = shade(FELSTEEL, col_h.astype(np.float32), col_a, SEED + 22, SLAB_TPU, wear=0.7, grime=0.6, micro=0.02)
     col_rgb = underlit(col_rgb * 1.25, col_h.astype(np.float32), col_a, 0.30)
     # The socket the shard stands in: dark, between the horns.
@@ -473,8 +474,8 @@ CN = 256
 CH = CN / 2.0
 ICON_R = ICON_FRAME / CIRCLE_SCALE * CH       # 68.6: the icon's circle
 LIP_1 = 4.0                                   # the lip round the icon
-BED_0, BED_1 = 4.6, 14.4                      # the bed the band lies in
-INNER_0, INNER_1 = 15.0, 21.0                 # the ring inside the runes
+BED_0, BED_1 = 4.6, 16.4                      # the bed the band lies in
+INNER_0, INNER_1 = 17.0, 22.4                 # the ring inside the runes
 STONE_1 = 50.0                                # the runes' stone, out to here
 RIM_1 = 57.4                                  # the outer rim, out to here (126 texels)
 GLYPH_H, GLYPH_W = 12.6, 9.6                  # a rune's half-height (along the radius) and half-width

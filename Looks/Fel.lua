@@ -112,7 +112,7 @@ local RING_AT = 0.78
 local RING_PEAK, RING_EDGE = 0.773, 0.914
 -- Where the right end's horns begin, in design texels from its file's left:
 -- the tags and the words keep left of it.
-local FORK_ROOT = 30
+local FORK_ROOT = 42
 -- The slab is this much of the button's height in from its top and its
 -- bottom, so the circle and the horns stand proud of it.
 local PLATE_IN = 0.09
@@ -120,10 +120,10 @@ local PLATE_IN = 0.09
 local STRETCH = 0.20
 -- The gap between the circle and the text; with the icon off, between the
 -- slab's edge and the text.
-local TEXT_GAP, BARE_GAP = 4, 12
+local TEXT_GAP, BARE_GAP = 3, 12
 -- The felsteel's own luminance under the words, its darkest and its
 -- brightest (as greys), for Legible.
-local TABLE_LO, TABLE_HI = 0.04, 0.16
+local TABLE_LO, TABLE_HI = 0.08, 0.22
 -- A chosen panel colour is mixed this far into the slab.
 local BODY_MIX = 0.25
 -- The list's slab is this much darker than the first.
@@ -163,7 +163,7 @@ local RUNE_UP, RUNE_STEP = 0.14, 0.06
 -- The band at rest, lit and held after its breaths; the bloom over the
 -- runes, the shard's light and the vein's soft core over the same breath.
 local BAND_REST, BAND_PEAK, BAND_HELD = 0.74, 1.00, 0.92
-local BLOOM_REST, BLOOM_PEAK, BLOOM_HELD = 0, 0.55, 0.24
+local BLOOM_REST, BLOOM_PEAK, BLOOM_HELD = 0, 0.40, 0.18
 local GLOW_REST, GLOW_PEAK, GLOW_HELD = 0.30, 0.80, 0.52
 local VEIN_ALPHA = 0.90
 local CORE_REST, CORE_PEAK, CORE_HELD = 0.15, 0.60, 0.35
@@ -178,7 +178,7 @@ local FIRE_H, FIRE_MIN, FIRE_MAX, FIRE_DROP = 0.40, 9, 28, 0.30
 local FIRE_FPS, FIRE_ALPHA, FIRE_GUTTERED = 13, 0.96, 0.20
 local FIRE_TILES = 8
 -- The glow the fire stands in, along the slab's foot: its alpha.
-local BED_ALPHA = 0.42
+local BED_ALPHA = 0.28
 -- The fire behind the cracks: a tile of it in units, its drift in tiles a
 -- second at rest, how much faster while somebody is owed, and its light at
 -- rest, owed, after a refusal and in a fight.
@@ -796,9 +796,14 @@ function Fel:BuildAnimations(anim)
 	-- A refusal: the fire gutters, 0.44 s, and smoke rises from the foot for
 	-- a second after (not a light: `aftermath`).
 	self.gutterAnim = anim(Gutter(self.fireFrame, FIRE_ALPHA, FIRE_GUTTERED))
+	-- However it ends, the fire is left as the moment has it: a glow while
+	-- the refusal stands, lit again if somebody else is on the panel by then.
+	local function settle() Fel.fireFrame:SetAlpha(Fel:FireAlpha()) end
+	self.gutterAnim:SetScript("OnFinished", settle)
+	self.gutterAnim:SetScript("OnStop", settle)
 	self.refusal = { self.gutterAnim }
 	self.aftermath = {}
-	for i, t in ipairs(self.puffs) do self.aftermath[i] = anim(Puff(t, 0.10 + 0.14 * (i - 1), 1.05, 0.55)) end
+	for i, t in ipairs(self.puffs) do self.aftermath[i] = anim(Puff(t, 0.10 + 0.14 * (i - 1), 1.05, 0.85)) end
 	-- The first of the two rings, which the scenarios watch for a landed buff.
 	self.burstAnim = self.fx.rings[1].land
 
@@ -1007,7 +1012,7 @@ function Fel:Apply(p, above)
 	end
 	-- The smoke: from the foot, spread along the slab.
 	for i, t in ipairs(self.puffs) do
-		At(t, art, fireX0 + span * (i - 0.5) / PUFFS, H - plateIn - 2, math.max(12, H * 0.5))
+		At(t, art, fireX0 + span * (i - 0.5) / PUFFS, H - plateIn - 2, math.max(14, H * 0.62))
 		self.aftermath[i].move:SetOffset((i - 2) * 3, above and PUFF_RISE * 0.4 or PUFF_RISE)
 	end
 	self.emberOK = span >= 40
@@ -1095,6 +1100,8 @@ function Fel:Apply(p, above)
 	self:Rest()
 	self:Dull(false)
 	if held then self:Combat(true) end
+	-- Asked afresh: the fire's tiles may be other tiles now.
+	self.idleState = nil
 	self:Idle()
 
 	-- The count's room: a two-digit tag, the horns and their inset. Chip
@@ -1443,15 +1450,22 @@ end
 function Fel:Spend()
 	self.band:SetVertexColor(SPENT[1], SPENT[2], SPENT[3], 1)
 	self:Runes(RUNE_DARK, RUNE_DARK)
-	if not self.gutterAnim:IsPlaying() then self.fireFrame:SetAlpha(self.combat and 0 or FIRE_GUTTERED) end
+	self:TurnCircle(false)
+	if not self.gutterAnim:IsPlaying() then self.fireFrame:SetAlpha(self:FireAlpha()) end
 	self.flowTex:SetVertexColor(FLOW_SPENT, FLOW_SPENT, FLOW_SPENT, 1)
 	self:Idle()
 end
 
--- The fire as it burns for the moment: out in a fight, a glow after a
--- refusal, lit otherwise; and the fire behind the cracks with it.
+-- The fire's light for the moment: out in a fight, a glow after a refusal,
+-- lit otherwise.
+function Fel:FireAlpha()
+	return self.combat and 0 or (self.refused and FIRE_GUTTERED or FIRE_ALPHA)
+end
+
+-- The fire as it burns for the moment, and the fire behind the cracks with
+-- it. A fire that is guttering is left to: it settles where the moment has
+-- it (BuildAnimations).
 function Fel:Kindle()
-	if self.gutterAnim:IsPlaying() then self.gutterAnim:Stop() end
 	local flow = FLOW_REST
 	if self.combat then
 		flow = FLOW_COMBAT
@@ -1460,7 +1474,7 @@ function Fel:Kindle()
 	elseif self.owed then
 		flow = FLOW_LIT
 	end
-	self.fireFrame:SetAlpha(self.combat and 0 or (self.refused and FIRE_GUTTERED or FIRE_ALPHA))
+	if not self.gutterAnim:IsPlaying() then self.fireFrame:SetAlpha(self:FireAlpha()) end
 	self.flowTex:SetVertexColor(flow, flow, flow, 1)
 	self.flowTex:SetDesaturated(self.combat and true or false)
 	if self.listFlow then
@@ -1630,6 +1644,13 @@ function Fel:Attention(isNew, arrived, flashStyle)
 	if not was then
 		self:Kindle()
 		self:Idle()
+	end
+	-- A refusal put the circle out: it neither turns nor breathes until the
+	-- next PaintReason lights it again.
+	if self.refused then
+		self:TurnCircle(false)
+		self:HoldPulse()
+		return
 	end
 	if isNew then
 		self.pulseSpent, self.calmLit = nil, nil

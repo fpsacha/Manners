@@ -68,6 +68,7 @@ ALL[#ALL + 1] = "leather"
 ALL[#ALL + 1] = "forge"
 ALL[#ALL + 1] = "archmage"
 ALL[#ALL + 1] = "lightbringer"
+ALL[#ALL + 1] = "fel"
 
 local function upIn(ns, scenario, style, size)
 	freshPrompt(ns, scenario)
@@ -260,12 +261,13 @@ local RING_FILES = {
 	{ "Textures/Forge/Forge_RingSq", "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_RingSq" },
 	{ "Textures/Archmage/Archmage_Ring", "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_Ring" },
 	{ "Textures/Lightbringer/Lightbringer_Ring", "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_Ring" },
+	{ "Textures/Fel/Fel_FxRing", "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_FxRing" },
 }
 
 withTree("hunt37-effects: each ring's declared reach is the reach of its art", ANNA, function(ns, scenario)
 	local lib = ns.Prompt.lib
 	-- A look registers its files when it is built.
-	for _, style in ipairs({ "ribbon", "letter", "leather", "forge", "archmage", "lightbringer" }) do
+	for _, style in ipairs({ "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel" }) do
 		freshPrompt(ns, scenario)
 		ns.db.profile.prompt.style = style
 		ns.Prompt:ApplyStyle()

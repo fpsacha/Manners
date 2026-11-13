@@ -36,7 +36,10 @@ the kit it is handed. This file is the recipe and the rules of taste.
 | `tools/make_look_previews.py` | the picker's cards; run it after any change to a look or to a shipped texture |
 
 The renderer understates additive light: the game draws ADD far brighter. Keep
-ADD for flashes under 0.6 s; draw what rests BLEND.
+ADD for flashes under 0.6 s; draw what rests BLEND. It draws Alpha,
+Translation, Scale and Rotation animations (a turn about the animation's
+origin, offset and all) and every Flow handle as it stands at the picture's
+moment; the picker's cards are drawn with turns off.
 
 ## Named exemptions
 

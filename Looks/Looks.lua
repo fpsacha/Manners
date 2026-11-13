@@ -219,7 +219,7 @@ end
 -- medallion, a seal): the switch reads nothing there, so the options page greys
 -- it out for them (tests/scenarios/hunt38-picker.lua holds this list to what the
 -- looks draw). A look that reads the setting is not here.
-Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true }
+Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true }
 
 -- A DRESSING: more art over one of the looks Prompt/Panel.lua draws
 -- (Looks/Glass.lua, over the glass). Panel.lua lays its own look out as ever

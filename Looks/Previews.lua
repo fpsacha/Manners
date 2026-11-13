@@ -6,6 +6,7 @@
 local _, ns = ...
 ns.Looks.previews = {
 	archmage = true,
+	fel = true,
 	forge = true,
 	glass = true,
 	leather = true,
@@ -19,6 +20,7 @@ ns.Looks.previews = {
 -- is round, with the mask the look cuts it with. The window lays the live icon there.
 ns.Looks.previewIcon = {
 	archmage = { l = 0.0984, t = 0.25806, r = 0.21937, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	fel = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	forge = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	glass = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	leather = { l = 0.08304, t = 0.25806, r = 0.20401, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
@@ -36,6 +38,10 @@ ns.Looks.previewText = {
 	archmage = {
 		name = { l = 0.26521, t = 0.29032, r = 0.89516, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.04, 0, 0.1, 0.9 } } },
 		reason = { l = 0.26521, t = 0.53226, r = 0.89516, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.912, 0.764, 0.532, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
+	},
+	fel = {
+		name = { l = 0.29435, t = 0.29032, r = 0.83468, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.03, 0, 0.95 } } },
+		reason = { l = 0.29435, t = 0.53226, r = 0.83468, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.812, 0.476, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 	forge = {
 		name = { l = 0.27016, t = 0.29032, r = 0.90323, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
@@ -66,4 +72,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.25, t = 0.53468, r = 0.86694, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
 	},
 }
-ns.Looks.previewHash = "8932d20ac29108e1f64de137eeb269406725ec41224e77d8f18c319346e53588"
+ns.Looks.previewHash = "00de29e6cf304a2d103f7eed40cb41702b8ace2fe07d2cc1141cc905f874226c"
