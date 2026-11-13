@@ -901,8 +901,12 @@ def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None, turn=
     elif r.get("atlas"):
         note("atlas %r drawn as a flat tile" % r["atlas"])
     if r.get("desaturated"):
-        grey = rgba[..., :3] @ np.array([0.299, 0.587, 0.114], np.float32)
-        rgba[..., :3] = grey[..., None]
+        # The game greys the art and then tints it: a desaturated texture
+        # still takes its vertex colour (Wild's leaves, greyed and tinted
+        # brown by a refusal). So the grey is the art's, not the product's.
+        tint = np.maximum(texture_colour(r, rgba.shape[1], rgba.shape[0])[..., :3], 1e-6)
+        grey = (rgba[..., :3] / tint) @ np.array([0.299, 0.587, 0.114], np.float32)
+        rgba[..., :3] = grey[..., None] * tint
     mask_id = r.get("mask")
     if mask_id is not None:
         m = tree.regions.get(mask_id)

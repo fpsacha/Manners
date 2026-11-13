@@ -10,6 +10,7 @@ ns.Looks.previews = {
 	fel = true,
 	forge = true,
 	framed = true,
+	frost = true,
 	glass = true,
 	leather = true,
 	letter = true,
@@ -18,6 +19,7 @@ ns.Looks.previews = {
 	minimal = true,
 	ribbon = true,
 	toast = true,
+	wild = true,
 }
 -- Where each look draws the spell icon in its picture: the rectangle as fractions of
 -- the 256 x 64 picture (l and t from its top left), the texcoord crop, and whether it
@@ -28,6 +30,7 @@ ns.Looks.previewIcon = {
 	fel = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	forge = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	framed = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	frost = { l = 0.11694, t = 0.25806, r = 0.2379, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	glass = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	leather = { l = 0.08304, t = 0.25806, r = 0.20401, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	letter = { l = 0.15581, t = 0.31452, r = 0.24855, b = 0.68548, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Letter\\Letter_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
@@ -36,6 +39,7 @@ ns.Looks.previewIcon = {
 	minimal = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	ribbon = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	toast = { l = 0.08554, t = 0.26152, r = 0.20478, b = 0.73848, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_IconMask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	wild = { l = 0.1129, t = 0.25806, r = 0.23387, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Wild\\Wild_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 }
 -- Where each look writes its two lines in its picture, and how: the rectangle as
 -- fractions of the picture, the justification, the size and the shadow's offsets as
@@ -66,6 +70,10 @@ ns.Looks.previewText = {
 	framed = {
 		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
 		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.74, 0.6695, 0.547, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
+	},
+	frost = {
+		name = { l = 0.30081, t = 0.29032, r = 0.79032, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 0.95 } } },
+		reason = { l = 0.30081, t = 0.53226, r = 0.79032, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.836, 0.58, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 1 } } },
 	},
 	glass = {
 		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
@@ -99,5 +107,9 @@ ns.Looks.previewText = {
 		name = { l = 0.25806, t = 0.28968, r = 0.89516, b = 0.49935, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
 		reason = { l = 0.25806, t = 0.5329, r = 0.89516, b = 0.69419, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.768, 0.444, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
+	wild = {
+		name = { l = 0.30242, t = 0.29032, r = 0.77823, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.03, 0.02, 0, 0.95 } } },
+		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
+	},
 }
-ns.Looks.previewHash = "91904b21b3fbc2a2acb90c74971ba54da853c1e1f4e9a38dd8f2a93d11744bd6"
+ns.Looks.previewHash = "9896edf71414e96af15b6bbf91cd6681269fca7fec4bbae999f7b47ad4f26817"

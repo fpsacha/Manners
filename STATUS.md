@@ -362,7 +362,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the thirteen looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the fifteen looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and
@@ -520,6 +520,82 @@ unit is too soft for the gout at a large UI scale; how the alpha holes of
 the slab's cracks look over the scrolled fire at the game's filtering; and
 whether the picker's card, which cuts the horns' points off at its upper
 edge, wants a taller view.
+
+**Wild (Unreleased), asked for by the author as a druid's look.**
+`Looks/Wild.lua`, `Textures/Wild/` (`tools/make_wild_textures.py`, thirty-four
+files; the antlers, the crozier and every leaf through `tools/figures.py`),
+key `wild`, order 9.7 (after Fel, before Glass), in `Looks.roundAlways`. Four
+things move by their texture coordinates (`Looks/Flow.lua`): the moonwell
+water round the icon (two layers of one REPEAT texture scrolled against one
+another, both cut to the bed's ring by one mask texture), the vine (two
+sheets of sixteen frames, its first half and then its second, the second
+started from the first's `done` and timed from the moment the first ended,
+played once when a favour arrives) and its three blossoms (a sheet of
+sixteen, each at its own speed). Everything else that moves is an animation
+group: five sprigs that sway (a Rotation that bounces, about the sprig's
+root), three leaves that drift, three fireflies and a wisp, two glints on
+the water, a landing's ten leaves and six petals (two Translations and a
+Rotation each), a refusal's husks. Its sprigs, drifting leaves, fireflies,
+wisp and glints loop at rest (`look.idle`); nothing of it is scaled, so it names nothing in
+`look.skyward`; its antlers stand some 27 units over a default panel and its
+sprigs and vine past the button's bounds as drawn. A refusal browns the
+wreath, the sprigs and the bough by `SetDesaturated(true)` with a brown
+vertex colour, and `tools/render_prompt.py` now tints a greyed texture as
+the game does (it used to grey the tinted product, which lost the colour).
+With a key bound and the default width the words have 82 units between the
+wreath and the crozier, so a long reason line is drawn smaller sooner than
+on the other looks. Its colours keep each texture's alpha as Frost's do
+(`Colour`, since the merge with 1.11.21: before it a reason's colour with an
+alpha of 1 would, in the game, have lit the halo, the flash, the star, the
+moon's light and the inlay's core that `SetAlpha` had parked dark or faint;
+`look-wild: a colour leaves every light as faint as it was`). Only the live game can say: that a mask texture on a
+REPEAT texture whose coordinates run past 1 cuts it as the renderer draws
+it (the launch check's masks are the icons'); that a desaturated texture
+takes its vertex colour (if not, a refusal's leaves are grey, not brown);
+that a Rotation on BOUNCE swings a sprig back the way it came; that two
+Translations in one group add up to the arc drawn here; how the two water
+layers read at the game's filtering and at thirty writes a second; how
+bright the paw and the bloom are in ADD over the icon (the renderer
+understates them); whether the vine's two halves meet without a seam and
+its second half takes up from the first without a held frame; whether the
+vine's sheets, two texels to a unit at the default width and stretched on a
+wide panel, are too soft at a large UI scale; and whether the picker's card, which cuts the antlers off at its
+upper edge, wants a taller view.
+
+**Frost (Unreleased), asked for by the author as a frost mage's look.**
+`Looks/Frost.lua`, `Textures/Frost/` (`tools/make_frost_textures.py`,
+thirty-six files), key `frost`, order 9.8 (after Wild, before Glass), in
+`Looks.roundAlways`. By `Looks/Flow.lua`: the mist in the ring round the icon
+(two layers of one REPEAT texture scrolled against one another, cut to the
+ring by a mask), the rime (two sheets of sixteen frames creeping from both
+ends at once, played once when a favour arrives) and three snowflakes (a
+sheet of sixteen each, at its own pace). The rest are animation groups: the
+Ice Block shut over the icon and shattered, its fractures and Frost Nova's
+ring (ADD, under 0.6 s), eight shards flung, the snowflakes' splinters, a
+refusal's cracks (they stay), melting rime and falling icicles; at rest
+(`look.idle`) four glints, five flakes of snow and a drop from an icicle.
+Two things were done for the two complaints players made of other looks.
+The words: the name and the reason line stand on the deep ice over a full
+dark shadow, the reason line and the verdict held to a contrast of 7
+(`SUB_CONTRAST`), and where the button is too low for its two lines the
+slab stands up to 1.12 of the button's height (`SLAB_OVER`) so the name
+keeps clear of the frosted rim. The alpha: every colour given to a texture
+whose alpha means something goes through `Colour`, which hands
+`SetVertexColor` the alpha the texture already has, because the game keeps
+one alpha for a texture and a colour with an alpha of 1 would light what
+`SetAlpha` dimmed (`look-frost: a colour leaves every light as faint as it
+was` makes the mock's textures behave so). Only the live game can say: that
+`GetAlpha` on a texture an Alpha animation is playing on answers the
+texture's own alpha and not the animated one (if it answers the animated
+one, a colour given mid-flash would hold the flash's light until the next
+`Rest`); how the mist's two layers read at the game's filtering under the
+mask; how bright the fractures and the nova are in ADD over the icon (the
+renderer understates them); whether the rime's two halves meet in the
+middle without a seam on a wide panel; that a desaturated texture takes its
+vertex colour, as the fight's dulling and a refusal's greying assume; how
+the reason line reads at 10 pt in the game's own face on the ice (the
+renderer's stand-in is bolder); and whether the picker's card, which cuts
+the rime's spikes and the icicles' points at its edges, wants a taller view.
 
 **The new looks in the game.** Ribbon, Letter and Leather (1.10.0), Forge, the
 glass rebuild of Glass and the
