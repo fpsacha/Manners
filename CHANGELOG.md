@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Options
+- **A bigger options window.** Drag the grip in its bottom-right corner to
+  see more of a page at once; it keeps the size you leave it at. Right-click
+  the grip for the usual size.
+
 ## 1.11.19
 
 ### In a fight

@@ -7,14 +7,18 @@
 -- shuts in a fight like any other.
 
 local _, ns = ...
+local L = ns.L
 
 local UI = {}
 ns.WindowUI = UI
 
 -- At UI scale 1 a 1280x720 screen is 1365 x 768 units, which leaves room
 -- above and below; inside, the header, footer and sidebar are fixed and the
--- content scrolls.
+-- content scrolls. The window can be made bigger by the grip in its corner
+-- (more of a page at once): UI.WIDTH and UI.HEIGHT are then its size as it
+-- stands, never less than the usual one (UI.MIN_W, UI.MIN_H).
 UI.WIDTH, UI.HEIGHT = 820, 600
+UI.MIN_W, UI.MIN_H = UI.WIDTH, UI.HEIGHT
 UI.HEADER, UI.FOOTER, UI.SIDEBAR = 44, 34, 160
 UI.ICON = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 
@@ -489,6 +493,116 @@ function UI.Dropped()
 	end
 end
 
+---------------------------------------------------------------------------
+-- the size: a grip in the corner, kept in the window's own state
+---------------------------------------------------------------------------
+
+-- The biggest the screen leaves room for, and never less than the usual size.
+local function MaxSize()
+	local w = UIParent and UIParent.GetWidth and UIParent:GetWidth() or 0
+	local h = UIParent and UIParent.GetHeight and UIParent:GetHeight() or 0
+	w, h = tonumber(w) or 0, tonumber(h) or 0
+	return math.max(UI.MIN_W, math.floor(w - 40)), math.max(UI.MIN_H, math.floor(h - 40))
+end
+
+-- A size held between the usual one and the screen's.
+local function Clamp(v, low, high)
+	if type(v) ~= "number" or v ~= v then return low end
+	return math.max(low, math.min(high, math.floor(v + 0.5)))
+end
+
+-- The size it was left at; a saved size no screen has is forgotten.
+function UI.SavedSize()
+	local s = UI.State()
+	local maxW, maxH = MaxSize()
+	if (s.w ~= nil and not Offset(s.w)) or (s.h ~= nil and not Offset(s.h)) then s.w, s.h = nil, nil end
+	return Clamp(s.w, UI.MIN_W, maxW), Clamp(s.h, UI.MIN_H, maxH)
+end
+
+-- The window's size as it now stands: the panes tiled to it, the rows laid
+-- out across its width and the page scrolled within its height. While the
+-- grip is held the page is painted at most ten times a second; let go, it is
+-- painted in full.
+local sizedAt = 0
+function UI.Resized(final)
+	local f = UI.frame
+	if not f or not UI.view then return end
+	local w, h = tonumber(f:GetWidth()) or 0, tonumber(f:GetHeight()) or 0
+	if w < 1 or h < 1 then return end
+	UI.WIDTH, UI.HEIGHT = math.floor(w + 0.5), math.floor(h + 0.5)
+	UI.view.child:SetWidth(UI.WIDTH - UI.SIDEBAR - 13)
+	UI.Dress.Retile()
+	local now = GetTime()
+	if final or now - sizedAt >= 0.1 then
+		sizedAt = now
+		if UI.Shown() then UI.Refresh() end
+	end
+end
+
+-- Puts the window at a size and keeps it: the grip let go, and its right
+-- click back to the usual size.
+function UI.SetWindowSize(w, h)
+	local f = UI.frame
+	if not f then return end
+	local maxW, maxH = MaxSize()
+	w, h = Clamp(w, UI.MIN_W, maxW), Clamp(h, UI.MIN_H, maxH)
+	f:SetSize(w, h)
+	local s = UI.State()
+	if w == UI.MIN_W and h == UI.MIN_H then s.w, s.h = nil, nil else s.w, s.h = w, h end
+	UI.Resized(true)
+end
+
+local function BuildGrip(f)
+	if f.SetResizable then f:SetResizable(true) end
+	local maxW, maxH = MaxSize()
+	if f.SetResizeBounds then
+		f:SetResizeBounds(UI.MIN_W, UI.MIN_H, maxW, maxH)
+	else
+		if f.SetMinResize then f:SetMinResize(UI.MIN_W, UI.MIN_H) end
+		if f.SetMaxResize then f:SetMaxResize(maxW, maxH) end
+	end
+	-- Over the moulding (WindowDress.lua puts it 30 levels up), in the corner
+	-- below the footer's Close.
+	local grip = CreateFrame("Button", nil, f)
+	UI.grip = grip
+	grip:SetSize(16, 16)
+	grip:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2)
+	grip:SetFrameLevel(f:GetFrameLevel() + 40)
+	-- The chat frame's own grabber: up, held (while dragging) and lit on hover.
+	local GRAB = "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-"
+	local face = grip:CreateTexture(nil, "ARTWORK")
+	face:SetAllPoints()
+	face:SetTexture(GRAB .. "Up")
+	grip.face = face
+	local lit = grip:CreateTexture(nil, "HIGHLIGHT")
+	lit:SetAllPoints()
+	lit:SetTexture(GRAB .. "Highlight")
+	grip:RegisterForClicks("RightButtonUp")
+	grip:SetScript("OnMouseDown", UI.Guarded(function(_, button)
+		if button ~= "LeftButton" then return end
+		UI.sizing = true
+		face:SetTexture(GRAB .. "Down")
+		f:StartSizing("BOTTOMRIGHT")
+	end))
+	grip:SetScript("OnMouseUp", UI.Guarded(function(_, button)
+		face:SetTexture(GRAB .. "Up")
+		if button ~= "LeftButton" or not UI.sizing then return end
+		UI.sizing = false
+		-- As a move is: where it now sits kept in the window's own state.
+		UI.Dropped()
+		UI.SetWindowSize(f:GetWidth(), f:GetHeight())
+	end))
+	grip:SetScript("OnClick", UI.Guarded(function() UI.SetWindowSize(UI.MIN_W, UI.MIN_H) end))
+	grip:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+		GameTooltip:SetText(L["Drag to resize the window."], 1, 1, 1)
+		GameTooltip:AddLine(L["Right-click: back to its usual size."], nil, nil, nil, true)
+		GameTooltip:Show()
+	end)
+	grip:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	f:SetScript("OnSizeChanged", UI.Guarded(function() UI.Resized(not UI.sizing) end))
+end
+
 -- A fight starting. The client says so just before lockdown begins, so the
 -- repaint Core asks for then still reads every control as live; one more on
 -- the next frame, under lockdown, greys out what the game refuses and puts
@@ -530,6 +644,8 @@ function UI.Build()
 	local f = CreateFrame("Frame", "MannersOptions", UIParent)
 	UI.frame = f
 	f:Hide()
+	-- The size it was left at (UI.SavedSize), the usual one at first.
+	UI.WIDTH, UI.HEIGHT = UI.SavedSize()
 	f:SetSize(UI.WIDTH, UI.HEIGHT)
 	f:SetFrameStrata("HIGH")
 	-- Comes to the front of its strata when clicked; the ledger does the
@@ -561,6 +677,7 @@ function UI.Build()
 	UI.BuildFooter(f)
 	-- What the window wears over all of it (WindowDress.lua).
 	UI.Dress.Window(f)
+	BuildGrip(f)
 	f:SetScript("OnHide", UI.Guarded(Hidden))
 	f:SetScript("OnUpdate", function(_, elapsed) Fade(elapsed or 0) end)
 	f:RegisterEvent("PLAYER_REGEN_DISABLED")

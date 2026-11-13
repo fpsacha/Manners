@@ -11,7 +11,11 @@ local _, ns = ...
 local UI = ns.WindowUI
 
 local PAD_LEFT, PAD_TOP, PAD_BOTTOM = 18, 14, 26
-local CONTENT_W = UI.WIDTH - UI.SIDEBAR - 13 - PAD_LEFT - 17
+-- The rows' width: the window's, less the sidebar, the bar and the padding.
+-- Worked out again at every layout, since the window can be resized
+-- (Window.lua, UI.Resized).
+local function ContentWidth() return UI.WIDTH - UI.SIDEBAR - 13 - PAD_LEFT - 17 end
+local CONTENT_W = ContentWidth()
 local GAP, ROW_GAP, SECTION_GAP, INDENT = 18, 6, 10, 16
 local C = UI.C
 
@@ -696,6 +700,7 @@ end
 -- layoutOnly: a row changed height by itself, so the rows are placed again
 -- without being read again.
 function UI.PaintPage(layoutOnly)
+	CONTENT_W = ContentWidth()
 	local m = UI.Model(UI.page)
 	BuildFrames(m)
 	local y = PAD_TOP

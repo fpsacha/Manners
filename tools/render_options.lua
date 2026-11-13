@@ -388,6 +388,13 @@ function AFTER.press(ns, _, _, notes)
 	notes[#notes + 1] = "press: the third buff moved up a place"
 end
 
+-- The window made bigger by its grip, as a drag leaves it: 1100 x 800.
+function AFTER.big(ns)
+	local UI = ns.WindowUI
+	assert(UI and UI.SetWindowSize, "this tree has no ns.WindowUI.SetWindowSize")
+	UI.SetWindowSize(1100, 800)
+end
+
 -- The page scrolled to its end, as the mouse wheel would take it, for what a
 -- long page holds below the first screen.
 function AFTER.scrolled(ns)
