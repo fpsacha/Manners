@@ -1228,19 +1228,36 @@ function Page.BuildWhoTab()
 			ownPetChoice = {
 				type = "select",
 				name = L["Which pet"],
-				desc = L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, or any pet. With none out last, a favourite; with no favourites, any pet."],
+				desc = L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, any pet, or one of your pets by name. With none out last, a favourite; with no favourites, any pet."],
 				order = 15.951,
 				width = "full",
+				-- The three ways to choose, then every pet of the journal by name
+				-- (Companion.lua, Pet.Choices), read as the page is drawn.
 				values = function()
-					return { last = L["The one I had out last"], favourite = L["A random favourite"], random = L["Any pet"] }
+					return (ns.Pet.Choices({ last = L["The one I had out last"], favourite = L["A random favourite"],
+						random = L["Any pet"] }, { "last", "favourite", "random" }))
 				end,
-				sorting = function() return { "last", "favourite", "random" } end,
+				sorting = function()
+					return select(2, ns.Pet.Choices({}, { "last", "favourite", "random" }))
+				end,
 				hidden = function()
 					local family = ns.Pet and ns.Pet.Family()
 					return not (family and family.journal and ns.OwnPick(family) ~= "off")
 				end,
 				disabled = function() return not S().self end,
-				get = function() return ns.db.profile.ownBuffs.petChoice end,
+				-- A pet chosen by name that the journal no longer lists reads as
+				-- what Manners then does: the one out last.
+				get = function()
+					local choice = ns.db.profile.ownBuffs.petChoice
+					if type(choice) == "string" and choice:match(ns.Pet.PICKED) then
+						local listed = select(2, ns.Pet.Choices({}, {}))
+						for _, key in ipairs(listed) do
+							if key == choice then return choice end
+						end
+						return "last"
+					end
+					return choice
+				end,
 				set = function(_, value) ns.db.profile.ownBuffs.petChoice = value end,
 			},
 

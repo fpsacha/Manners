@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Which pet: your pets by name.** *Which pet*, under *Companion pet* on
+  *Who to buff*, now lists every pet in your pet journal under its three
+  choices, so Manners brings out the one you pick. A pet you gave a name of
+  your own is listed by that name. WoW Forever.
+- **The Ribbon look reads at its size.** Its reason line, its list and its
+  tags are now in the game's standard lettering, pale on the cloth; the name
+  keeps the banner's serif. The serif's small letters were too fine to read
+  at the size of the second line.
+- The line at the foot of the options window names the character who makes
+  Manners, and nothing else.
 - **Glass, the default look, redrawn after the game's own action bar.** A
   beaded gilt rail runs along the pane's top and bottom, and light drifts
   inside the glass, slowly, under the words. While you owe somebody, the
@@ -12,6 +22,11 @@
   the reason's colour: the eyes burn while you owe somebody, and the gilt
   catches the light when a favour comes in and flashes when your buff lands.
   On *Calm* nothing moves, and in a fight the lights go out.
+
+## 1.11.18
+
+- **Who makes Manners** is now at the foot of the options window, under the
+  version, on every page.
 
 ## 1.11.17
 

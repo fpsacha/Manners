@@ -74,6 +74,7 @@ local SLOT_TYPES = {
 	["header.snooze"] = "execute",
 	["header.snoozeTip"] = "description", ["strip.lock"] = "execute", ["strip.combat"] = "description",
 	foldCaption = "description", ["footer.reset"] = "execute", ["footer.build"] = "description",
+	["footer.about"] = "description",
 }
 
 -- Every path the layout names, with where and as what. `uses[path]` is a list
@@ -104,6 +105,7 @@ local function Collect(layout, problem)
 	local footer = layout.footer or {}
 	use(footer.reset, "the footer", "footer.reset")
 	use(footer.build, "the footer", "footer.build")
+	use(footer.about, "the footer", "footer.about")
 	for pageId, page in pairs(layout.pages or {}) do
 		for s, section in ipairs(page.sections or {}) do
 			local where = ("%s, section %d (%s)"):format(pageId, s, tostring(section.key))
