@@ -814,6 +814,7 @@ do
 							kind = "colour"
 						elseif name == "buff.skip" or name == "buff.tanksOnly" or name == "buff.meOnly"
 							or name == "buff.tanksOutside"
+							or name == "buff.unasked"
 							or name == "buff.optIn"
 							or name == "filters.skipNearbyClasses"
 							or name == "prompt.thankEmoteMore" then

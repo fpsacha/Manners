@@ -243,6 +243,24 @@ local function AddBuffToggles(args)
 		if buff.returnOnly then
 			args["offer_" .. buff.key].desc = L["Offered only to return a favour, or to somebody who asks you for it by name in chat. Untick to never offer it."]
 		end
+		-- And a switch under it to send it to everybody all the same, as it went
+		-- before 1.11.19 (a warlock's only buff for others, asked for on GitHub).
+		if buff.returnOnly then
+			args["unasked_" .. buff.key] = {
+				type = "toggle",
+				name = function() return L["Offer %s to everybody near me"]:format(ns.BuffName(buff) or buff.key) end,
+				desc = L["Off: it is offered only to return a favour, or to somebody who asks you for it by name in chat. On: it is offered to your group and to passers-by too, as it was before 1.11.19."],
+				order = 4 + index / 10 + 0.05,
+				width = "full",
+				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
+				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
+				get = function() return B().unasked[buff.key] == true end,
+				set = function(_, value)
+					B().unasked[buff.key] = value and true or nil
+					restyleAndMacro()
+				end,
+			}
+		end
 		-- A buff the player may hold to the tanks of their group (Buffs.lua,
 		-- tankChoice: Thorns), under its own switch. Everybody is the absence of
 		-- a key, as the switches are.

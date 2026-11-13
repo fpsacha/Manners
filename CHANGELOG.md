@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Who gets what
+- **Unending Breath to everybody, if you want it.** 1.11.19 kept it for
+  favours and requests by name, which left a warlock with nothing to offer
+  anybody else. Under *Unending Breath* on *Who to buff*, tick *Offer
+  Unending Breath to everybody near me* to offer it to your group and
+  passers-by as before.
+
 ## 1.11.20
 
 ### Looks

@@ -1197,7 +1197,7 @@ your client runs in. Slash commands are English in all of them.
 | Druid | Mark of the Wild, Thorns |
 | Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade; Beacon of Light (Season of Discovery) or Oath of Light (WoW Forever), for your tank |
 | Shaman | Earth Shield and Spirit of the Alpha (Season of Discovery), for your tank |
-| Warlock | Unending Breath, to return a favour and to whoever asks for it by name, never unasked (Classic Era, WoW Forever, Burning Crusade); Detect Invisibility for your party or raid, off until you tick it (the same three) |
+| Warlock | Unending Breath, to return a favour and to whoever asks for it by name, and to everybody near you if you tick *Offer Unending Breath to everybody near me* (Classic Era, WoW Forever, Burning Crusade); Detect Invisibility for your party or raid, off until you tick it (the same three) |
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever); Commanding Shout too in Season of Discovery |
 
 **One person at a time.** Earth Shield, Spirit of the Alpha, Beacon of Light,

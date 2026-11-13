@@ -260,6 +260,10 @@ local defaults = {
 			-- The buffs offered to nobody but you (Buffs.lua, tankChoice: a
 			-- druid's Thorns on herself): the same sparse set.
 			meOnly = {},
+			-- The buffs kept for a favour and a request by name (Buffs.lua,
+			-- returnOnly: Unending Breath) that are offered to everybody all the
+			-- same, as before 1.11.19: a sparse set, absent is kept.
+			unasked = {},
 			-- The buffs that are off until they are switched on (Buffs.lua, optIn:
 			-- Detect Invisibility for your group), switched on: a sparse set, absent
 			-- is off (ns.OptedOut).
@@ -1723,7 +1727,12 @@ do
 		end
 		-- Kept for a favour returned and a request by name (Buffs.lua,
 		-- returnOnly: Unending Breath): never offered unasked.
-		if buff.returnOnly and not (opts.owed or opts.asked) then return false end
+		-- Unless the player asked for it to go to everybody (buff.unasked).
+		if buff.returnOnly and not (opts.owed or opts.asked) then
+			local db = addon.db and addon.db.profile
+			local everybody = db and db.buff.unasked
+			if not (everybody and everybody[buff.key]) then return false end
+		end
 		-- Nobody too low for every rank of it (Buffs.lua, lowLevel): the game
 		-- refuses a cast on somebody more than ten levels under the rank, so
 		-- Kings (20) on a warrior of 8 was a press that failed, held Kings off
@@ -4744,6 +4753,7 @@ function ns.ClampSettings()
 	if type(profile.buff.tanksOnly) ~= "table" then profile.buff.tanksOnly = {} end
 	if type(profile.buff.tanksOutside) ~= "table" then profile.buff.tanksOutside = {} end
 	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
+	if type(profile.buff.unasked) ~= "table" then profile.buff.unasked = {} end
 	if type(profile.buff.optIn) ~= "table" then profile.buff.optIn = {} end
 	-- The buff order, read on every scan (ns.WalkBuffs), repaired for every class
 	-- in the profile whichever client wrote it: a key no client has for that

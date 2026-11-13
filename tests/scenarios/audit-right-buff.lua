@@ -330,6 +330,52 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------------------ 3b
+-- The choice that puts it back (a report on 1.11.20: a warlock's only buff for
+-- others stopped going to anybody but a favour's giver, and "1.11.18 was working
+-- fine"): *Offer Unending Breath to everybody near me* (buff.unasked), off by
+-- default, offers it to the group and to passers-by as before 1.11.19.
+do
+	local scenario = "audit-right-buff: Offer Unending Breath to everybody near me puts it back on the walk"
+	local env = { class = "WARLOCK", knows = { "breath" }, units = {
+		party1 = { name = { "Anna", "Aim" }, class = "MAGE" },
+		nameplate1 = { name = { "Pat", "Passer" }, class = "PRIEST" },
+	} }
+	session(scenario, env, function(ns)
+		if type(ns.db.profile.buff.unasked) ~= "table" or next(ns.db.profile.buff.unasked) ~= nil then
+			fail(scenario, "a new profile's buff.unasked is not an empty set")
+		end
+		local function count()
+			local n = 0
+			for _, entry in ipairs((queued(ns))) do
+				if entry.buff.key == "breath" and (entry.reason == "group" or entry.reason == "nearby") then n = n + 1 end
+			end
+			return n
+		end
+		if count() ~= 0 then fail(scenario, "offered to somebody with the choice off") end
+		ns.db.profile.buff.unasked.breath = true
+		if count() ~= 2 then fail(scenario, "with the choice on it is offered to " .. count() .. " of the two, not both") end
+		ns.db.profile.buff.unasked.breath = nil
+		if count() ~= 0 then fail(scenario, "with the choice put off again it is still offered") end
+		-- The switch under Unending Breath on Who to buff.
+		local control = H.findOption(ns.optionsTable, "unasked_breath")
+		if not control then fail(scenario, "Who to buff has no choice under Unending Breath") return end
+		control.set(nil, true)
+		if ns.db.profile.buff.unasked.breath ~= true or control.get() ~= true then
+			fail(scenario, "ticking it wrote " .. tostring(ns.db.profile.buff.unasked.breath))
+		end
+		control.set(nil, false)
+		if ns.db.profile.buff.unasked.breath ~= nil then fail(scenario, "unticking it left " .. tostring(ns.db.profile.buff.unasked.breath)) end
+		-- A damaged value is repaired, and the choice travels with a profile.
+		ns.db.profile.buff.unasked = "yes"
+		ns.ClampSettings()
+		if type(ns.db.profile.buff.unasked) ~= "table" then fail(scenario, "a damaged choice was left as " .. tostring(ns.db.profile.buff.unasked)) end
+		ns.db.profile.buff.unasked = { breath = true }
+		local text = ns.ExportSettings and ns.ExportSettings() or ""
+		if not text:find("buff.unasked=breath", 1, true) then fail(scenario, "the export does not carry the choice: " .. tostring(text)) end
+	end)
+end
+
 -- ------------------------------------------------------------------------ 4
 -- A paladin with Blessing of Might and nothing else yet (levels 4 to 13), or
 -- any paladin once another's Wisdom and Kings are on them: a mage, a priest or
