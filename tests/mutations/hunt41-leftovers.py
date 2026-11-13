@@ -175,8 +175,8 @@ mutate("Options/Window/Window.lua",
 # The restyle of the three built-in looks hides the chip and the count and
 # leaves the repaint that brings them back to the next scan.
 mutate("Prompt/Panel.lua",
-       "\tR.queueHair:SetVertexColor(1, 1, 1, 0.07)\n\n\tself:Refresh()\nend\n",
-       "\tR.queueHair:SetVertexColor(1, 1, 1, 0.07)\nend\n",
+       "\t\tS.accentPainted = nil\n\tend\n\tself:Refresh()\nend\n",
+       "\t\tS.accentPainted = nil\n\tend\nend\n",
        "hunt41-leftovers: a restyle of a built-in look repaints nobody",
        expect=P + "glass: a restyle with the count chip up brings the count back", script=S)
 

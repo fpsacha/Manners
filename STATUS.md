@@ -274,6 +274,24 @@ star as it found it, that a Translation's offset starts again at each turn of
 a REPEAT group (the drifting lights), and how bright the additive flashes are
 (the renderer understates them).
 
+**Glass redrawn (Unreleased): the game's own action bar.** `Looks/Glass.lua`
+is a DRESSING over the glass `Prompt/Panel.lua` still draws (`Looks.RegisterDress`,
+`S.dress`; Panel, Effects and Paint call it where they would call a look), so
+every test of the built-in glass still holds: gryphons at the ends
+(`tools/figures.py`, outlines raised or cut into relief; the generator needs
+scipy for the cut, which no test runs), gilt rails, two sheets of
+caustics scrolled under the words and the ready border run round the icon by
+`Looks/Flow.lua`, the one OnUpdate a look may run (thirty writes a second,
+only while something moves; `tests/scenarios/flow.lua`). Its eyes glint at rest
+(`dress.idle`, let through by name in `look.lua` and `hunt35-effects.lua`) and
+its gryphons stand outside the panel (`dress.outside`). *Gryphons at the ends*
+(`prompt.gryphons`, off by default: the author's call, some players do not want
+them) brings them. Only the live game can say: how the scrolled
+textures look at the game's filtering, whether SetTexCoord's eight-number form
+turns the border's strips as the mock does, and how bright the additive flash
+of the gilt is. The picker's card for Glass shows only the gryphons' wings at
+its edges: the card's view is the panel's own width.
+
 **Lightbringer (Unreleased), asked for by the author as a paladin's look to
 test.** `Looks/Lightbringer.lua`, `Textures/Lightbringer/`
 (`tools/make_lightbringer_textures.py`), key `lightbringer`, order 9, in

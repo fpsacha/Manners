@@ -184,6 +184,8 @@ local S = {
 	-- The look drawn from a file of its own (Looks/), or nil for the three
 	-- Panel.lua draws. Looks/Looks.lua says what it is asked and when.
 	activeLook = nil,
+	-- What one of the three looks drawn in Panel.lua wears over it, or nil.
+	dress = nil,
 	-- Which side of the panel the queue list hangs off, and where its text
 	-- starts. Decided in ApplyStyle, because the only things that move the
 	-- prompt come back through it.

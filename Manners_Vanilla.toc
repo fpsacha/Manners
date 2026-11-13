@@ -46,6 +46,7 @@ Commands.lua
 Phrases.lua
 Ledger.lua
 Looks\Looks.lua
+Looks\Flow.lua
 Looks\Previews.lua
 Looks\Luxe.lua
 Looks\Toast.lua
@@ -56,6 +57,7 @@ Looks\Leather.lua
 Looks\Forge.lua
 Looks\Archmage.lua
 Looks\Lightbringer.lua
+Looks\Glass.lua
 Prompt\Prompt.lua
 Prompt\Text.lua
 Prompt\Effects.lua

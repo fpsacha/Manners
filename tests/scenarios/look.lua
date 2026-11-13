@@ -422,7 +422,8 @@ withTree("nothing new runs while the prompt is idle",
 		return false
 	end
 	for _, f in ipairs(FT.all) do
-		if onPrompt(f) and f.scripts and f.scripts.OnUpdate then
+		-- But for Looks/Flow.lua's clock, hidden unless art is moving (flow.lua).
+		if onPrompt(f) and f.scripts and f.scripts.OnUpdate and not f.mannersFlow then
 			fail(scenario, "a " .. tostring(f._kind) .. " on the prompt has an OnUpdate script,"
 				.. " which runs on every frame it is shown")
 		end
@@ -434,8 +435,16 @@ withTree("nothing new runs while the prompt is idle",
 	ns.addon:Tick()
 	FT.settle()
 	local _, looping = FT.playing()
-	if #looping > 0 then
-		fail(scenario, #looping .. " looping animation(s) running over a passer-by")
+	-- But for what the glass wears at rest, by name (Looks/Glass.lua's `idle`:
+	-- the author asked for a prompt that is alive with nobody owed).
+	local idle, kept = {}, 0
+	local dress = ns.Prompt:Regions().dress
+	for _, g in ipairs(dress and dress.idle or {}) do idle[g] = true end
+	for _, g in ipairs(looping) do
+		if not idle[g] then kept = kept + 1 end
+	end
+	if kept > 0 then
+		fail(scenario, kept .. " looping animation(s) running over a passer-by")
 	end
 	-- Owed, pressed, landed: everything once, then still.
 	owe(ns, "Anna Aim")

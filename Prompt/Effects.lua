@@ -796,6 +796,7 @@ function Prompt:StopFlourishes()
 	end
 	if R.fx then R.fx:Stop() end
 	if S.activeLook then S.activeLook:StopFlourishes() end
+	if S.dress then S.dress:StopFlourishes() end
 end
 
 -- The wave of light across the panel as a buff lands, at `strength` (0.30:
@@ -913,6 +914,7 @@ function Prompt:StopAttention()
 		S.glintPlaying = nil
 	end
 	if S.activeLook then S.activeLook:StopAttention() end
+	if S.dress then S.dress:StopAttention() end
 end
 
 -- The reason's light and the warm white rim, in the arrival's colour.
@@ -932,6 +934,7 @@ function Prompt:StartAttention(isNew, arrived)
 	if S.activeLook then
 		return S.activeLook:Attention(isNew, arrived and not self:OutcomeLive(), mode)
 	end
+	if S.dress then S.dress:Attention(isNew, arrived and not self:OutcomeLive(), mode) end
 	if mode == "off" then
 		self:StopAttention()
 		return
@@ -1018,6 +1021,7 @@ function Prompt:PlayOutcomeFlourish(kind)
 		if kind == "cast" then R.art.settle:Play() end
 		return
 	end
+	if S.dress then S.dress:Flourish(kind) end
 	if kind == "cast" then
 		-- Coloured here rather than by PaintAccent: the repaint that follows
 		-- is usually about the next person, and the rings belong to this one.
@@ -1073,6 +1077,7 @@ function Prompt:SetCombatHold(on)
 	-- so that combat -- which is when this runs -- cannot refuse it.
 	RestArtAlpha()
 	if S.activeLook then S.activeLook:Combat(on) end
+	if S.dress then S.dress:Combat(on) end
 	-- The sweep answers to the fight as well: see SyncCooldown.
 	self:SyncCooldown()
 end

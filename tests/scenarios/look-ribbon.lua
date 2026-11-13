@@ -1709,7 +1709,9 @@ withTree("look-ribbon: every frame of Ribbon's is under the text, and nothing th
 			if up == button then onPrompt = true end
 			up = up._parent
 		end
-		if onPrompt and node ~= button and node.scripts and node.scripts.OnUpdate then fail(scenario, "a frame on the prompt has an OnUpdate") end
+		if onPrompt and node ~= button and node.scripts and node.scripts.OnUpdate and not node.mannersFlow then
+			fail(scenario, "a frame on the prompt has an OnUpdate")
+		end
 	end
 end)
 
