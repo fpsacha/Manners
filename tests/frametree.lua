@@ -1016,6 +1016,7 @@ function FT.snapshot(root)
 					delay = anim._startDelay, fromAlpha = anim._fromAlpha, toAlpha = anim._toAlpha,
 					offset = anim._offset, smoothing = anim._smoothing,
 					scaleFrom = anim._scaleFrom, scaleTo = anim._scaleTo, origin = anim._origin,
+					degrees = anim._degrees,
 					target = ref(anim._target) }
 			end
 			list[#list + 1] = { playing = g._playing, startedAt = g._startedAt,

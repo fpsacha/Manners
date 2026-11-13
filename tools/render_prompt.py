@@ -292,7 +292,8 @@ def smooth(t, how):
 
 def group_effect(g, now):
     """What a playing group is doing to its frame at `now`: an alpha that
-    replaces the frame's own, a translation and a scale."""
+    replaces the frame's own, a translation, a scale and a turn (degrees,
+    against the clock, about `pivot`: a point of the region and an offset)."""
     if not g.get("playing"):
         return None
     anims = g.get("anims") or []
@@ -313,6 +314,7 @@ def group_effect(g, now):
     else:
         t = min(t, total)
     alpha, dx, dy, sc, origin = None, 0.0, 0.0, None, None
+    rot, pivot = 0.0, None
     start = 0.0
     for o in orders:
         for a in anims:
@@ -343,8 +345,11 @@ def group_effect(g, now):
                 # Where the scale is about: the frame's middle unless the
                 # animation says another point (a bar growing from its edge).
                 origin = a.get("origin")
+            elif kind == "Rotation":
+                rot += (a.get("degrees") or 0) * p
+                pivot = a.get("origin")
         start += lengths[o]
-    return {"alpha": alpha, "dx": dx, "dy": dy, "scale": sc, "origin": origin}
+    return {"alpha": alpha, "dx": dx, "dy": dy, "scale": sc, "origin": origin, "rot": rot, "pivot": pivot}
 
 
 # ---------------------------------------------------------------- drawing
@@ -623,6 +628,9 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False, skip=()):
                     if e["scale"] is not None:
                         prev["scale"] = e["scale"]
                         prev["origin"] = e.get("origin")
+                    if e.get("rot"):
+                        prev["rot"] = (prev.get("rot") or 0.0) + e["rot"]
+                        prev["pivot"] = e.get("pivot")
                 else:
                     effects[r["id"]] = e
 
@@ -728,7 +736,17 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False, skip=()):
         elif r["kind"] == "Cooldown":
             draw_cooldown(canvas, r, (x0, y0, x1, y1), a, now)
         else:
-            draw_texture(canvas, tree, r, (x0, y0, x1, y1), a, px, to_px, place, clip_box(r))
+            # A texture a Rotation animation is turning (its own: a turn of a
+            # frame above it is not drawn), about the animation's origin.
+            turn = None
+            own = effects.get(r["id"])
+            if own and abs(own.get("rot") or 0.0) > 1e-6:
+                point, ox, oy = (list(own.get("pivot") or []) + ["CENTER", 0, 0])[:3]
+                ofx, ofy = fraction(point or "CENTER")
+                s = tree.eff_scale(r)
+                pvx, pvy = to_px(L + (R - L) * ofx + (ox or 0) * s, B + (T - B) * ofy + (oy or 0) * s)
+                turn = (own["rot"], pvx, pvy)
+            draw_texture(canvas, tree, r, (x0, y0, x1, y1), a, px, to_px, place, clip_box(r), turn)
 
     img = canvas.image()
     if SUPER > 1:
@@ -764,7 +782,35 @@ def texture_colour(r, w, h):
     return np.broadcast_to(np.array(rgba, np.float32), (h, w, 4)).copy()
 
 
-def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None):
+def turned(ix0, iy0, rgb, a, turn):
+    """A drawn texture (its colour and its alpha, top left at ix0, iy0) turned
+    `turn[0]` degrees against the clock about the pixel turn[1], turn[2]: the
+    new top left, colour and alpha."""
+    deg, pvx, pvy = turn
+    h, w = a.shape
+    th = math.radians(deg)
+    c, s = math.cos(th), math.sin(th)
+    xs, ys = [], []
+    for cx, cy in ((ix0, iy0), (ix0 + w, iy0), (ix0, iy0 + h), (ix0 + w, iy0 + h)):
+        dx, dy = cx - pvx, cy - pvy
+        xs.append(pvx + dx * c + dy * s)
+        ys.append(pvy - dx * s + dy * c)
+    ox0, oy0 = int(math.floor(min(xs))) - 1, int(math.floor(min(ys))) - 1
+    ow, oh = int(math.ceil(max(xs))) + 1 - ox0, int(math.ceil(max(ys))) + 1 - oy0
+    # Where each pixel of the turned picture comes from in the one drawn.
+    coeffs = (c, -s, (ox0 + 0.5 - pvx) * c - (oy0 + 0.5 - pvy) * s + pvx - ix0 - 0.5,
+              s, c, (ox0 + 0.5 - pvx) * s + (oy0 + 0.5 - pvy) * c + pvy - iy0 - 0.5)
+    planes = []
+    for plane in (rgb[..., 0] * a, rgb[..., 1] * a, rgb[..., 2] * a, a):
+        img = Image.fromarray(plane.astype(np.float32), "F")
+        planes.append(np.asarray(img.transform((ow, oh), Image.AFFINE, coeffs, Image.BILINEAR)))
+    na = planes[3]
+    safe = np.maximum(na, 1e-6)[..., None]
+    nrgb = np.stack(planes[:3], -1) / safe
+    return ox0, oy0, nrgb.astype(np.float32), na.astype(np.float32)
+
+
+def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None, turn=None):
     x0f, y0f, x1f, y1f = box
     ix0, iy0, cov = coverage(x0f, y0f, x1f, y1f)
     if cov is None:
@@ -882,6 +928,10 @@ def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None):
                 else:
                     d = np.sqrt(((xx - ccx) / rx) ** 2 + ((yy - ccy) / ry) ** 2)
                     rgba[..., 3] *= np.clip((1 - d) * rx, 0, 1)
+    if turn:
+        ix0, iy0, rgb, a = turned(ix0, iy0, rgba[..., :3], rgba[..., 3] * cov * alpha, turn)
+        canvas.composite(ix0, iy0, rgb, a, r.get("blend"))
+        return
     canvas.composite(ix0, iy0, rgba[..., :3], rgba[..., 3] * cov * alpha, r.get("blend"))
 
 
