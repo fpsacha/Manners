@@ -693,6 +693,23 @@ function X.checkQueue(W, queue)
 			return fail(W, "queue", ("%s (priority %s) is queued after %s (priority %s)"):format(
 				e.name, tostring(e.priority), queue[i - 1].name, tostring(queue[i - 1].priority)))
 		end
+		-- Inside a tier and a range: what is read as missing before what nobody
+		-- could read before a top-up, and then by the buff's place in the walk
+		-- (Queue.lua, OfferRank), so nobody's second buff comes before
+		-- somebody else's first. Nobody kept for the fold alone is handed on.
+		if i > 1 and e.priority == queue[i - 1].priority and ns.OfferRank then
+			local before = queue[i - 1]
+			local function range(x) return x.ranged == true and 0 or (x.ranged == nil and 1 or 2) end
+			if range(e) == range(before) then
+				local reading, place = ns.OfferRank(e)
+				local readingBefore, placeBefore = ns.OfferRank(before)
+				if reading < readingBefore or (reading == readingBefore and place < placeBefore) then
+					return fail(W, "queue", ("%s (%s, reading %d, place %d) is queued after %s (%s, reading %d, place %d) in the same tier"):format(
+						e.name, e.buff.key, reading, place, before.name, before.buff.key, readingBefore, placeBefore))
+				end
+			end
+		end
+		if e.foldOnly then return fail(W, "queue", e.name .. " was kept for the fold alone and is on the queue") end
 		if names[e.name] then return fail(W, "queue", e.name .. " is queued twice") end
 		names[e.name] = true
 		if type(e.priority) ~= "number" or e.priority ~= e.priority then
