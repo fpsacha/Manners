@@ -83,8 +83,8 @@ mutate("Core.lua",
 
 # A spell only a mana user wants named for somebody without mana.
 mutate("Core.lua",
-       "\t\t\t\tand not (buff.manaOnly and not hasMana) then\n\t\t\t\treturn buff\n",
-       "\t\t\t\tthen\n\t\t\t\treturn buff\n",
+       "\t\t\t\tand not (buff.manaOnly and not hasMana) and not ns.OptedOut(buff, db.buff) then\n\t\t\t\treturn buff\n",
+       "\t\t\t\tand not ns.OptedOut(buff, db.buff) then\n\t\t\t\treturn buff\n",
        "hunt29-order: a mana-only spell named for somebody without mana",
        expect="hunt29-order: vanilla: the spell named for the prompt is the first of the order",
        script=S)

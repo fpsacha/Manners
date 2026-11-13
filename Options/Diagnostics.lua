@@ -34,7 +34,7 @@ local function BugReport()
 			buff.key,
 			tostring(info and info.known),
 			tostring(info and info.readable),
-			tostring(B().skip[buff.key] == true))
+			tostring(ns.BuffOff(buff, B())))
 		if info and info.unresolved and #info.unresolved > 0 then
 			lines[#lines + 1] = ("    no such spell on this client: %s"):format(
 				table.concat(info.unresolved, ", "))

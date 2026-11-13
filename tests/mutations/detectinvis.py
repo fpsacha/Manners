@@ -11,19 +11,19 @@ mutate("Core.lua",
        expect="detectinvis: off by default, a switch for a warlock who knows it, and it turns off again", script=S)
 
 mutate("Buffs.lua",
-       "\t\t\tspells = { { key = \"detectinvis\", ranks = { 11743, 2970, 132 }, anyCaster = true } } },\n",
-       "\t\t\tspells = { { key = \"detectinvis\", ranks = { 11743, 2970, 132 } } } },\n",
+       "\t\t\tspells = { { key = \"detectinvis\", ranks = { 11743, 2970, 132 }, anyCaster = true, castOnOthers = true } } },\n",
+       "\t\t\tspells = { { key = \"detectinvis\", ranks = { 11743, 2970, 132 }, castOnOthers = true } } },\n",
        "detectinvis: another warlock's does not count",
        expect="detectinvis: yours or another warlock's on you, nothing offered", script=S)
 
 mutate("Buffs.lua",
-       "\t\t\tspells = { { key = \"detectinvis\", ranks = { 11743, 2970, 132 }, anyCaster = true } } },\n",
-       "\t\t\tspells = { { key = \"detectinvis\", ranks = { 2970, 132 }, anyCaster = true } } },\n",
+       "\t\t\tspells = { { key = \"detectinvis\", ranks = { 11743, 2970, 132 }, anyCaster = true, castOnOthers = true } } },\n",
+       "\t\t\tspells = { { key = \"detectinvis\", ranks = { 2970, 132 }, anyCaster = true, castOnOthers = true } } },\n",
        "detectinvis: Greater left out",
        expect="detectinvis: a warlock's family on Forever, Classic Era and Burning Crusade, none on Mists or retail", script=S)
 
 mutate("Buffs.lua",
-       "\t\t{ key = \"detectinvis\", optIn = true,\n\t\t\tspells = { { key = \"detectinvis\", ranks = { 132 }, anyCaster = true } } },\n",
+       "\t\t{ key = \"detectinvis\", optIn = true,\n\t\t\tspells = { { key = \"detectinvis\", ranks = { 132 }, anyCaster = true, castOnOthers = true } } },\n",
        "",
        "detectinvis: none on Burning Crusade",
        expect="detectinvis: tbc: switched on and none up, cast on yourself", script=S)

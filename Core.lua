@@ -255,6 +255,10 @@ local defaults = {
 			-- The buffs offered to nobody but you (Buffs.lua, tankChoice: a
 			-- druid's Thorns on herself): the same sparse set.
 			meOnly = {},
+			-- The buffs that are off until they are switched on (Buffs.lua, optIn:
+			-- Detect Invisibility for your group), switched on: a sparse set, absent
+			-- is off (ns.OptedOut).
+			optIn = {},
 			-- A paladin who knows Blessing of Kings offers it to everybody ahead of
 			-- the rest (Buffs.lua, `strongest`; CastableBuffs). On: the strongest
 			-- blessing first is what was asked for, and somebody already carrying
@@ -1058,6 +1062,25 @@ end
 -- which buff for which person
 ---------------------------------------------------------------------------
 
+-- Whether a buff that is off until it is switched on (Buffs.lua, optIn: Detect
+-- Invisibility for your group) is still off: its key not in db.buff.optIn, the
+-- sparse set of those switched on. Every other buff is on until its key is in
+-- db.buff.skip, which each reader asks beside this. `b` is the profile's buff
+-- section; with none, such a buff is off. One table read, so the walk asks it of
+-- every buff on every scan.
+function ns.OptedOut(buff, b)
+	if not buff.optIn then return false end
+	local on = type(b) == "table" and b.optIn
+	return not (type(on) == "table" and on[buff.key] == true)
+end
+
+-- Whether one of your buffs for others is switched off on Who to buff, either
+-- way (the skip set, or an optIn buff not switched on): for the options page.
+function ns.BuffOff(buff, b)
+	local skip = type(b) == "table" and b.skip
+	return (type(skip) == "table" and skip[buff.key] == true) or ns.OptedOut(buff, b)
+end
+
 -- The spell Automatic would name: reached only in Automatic (ResolveBuff answers
 -- pins), so neverAuto is skipped outright. Honours the per-spell switches like
 -- CastableBuffs, so the login line and previews never name a switched-off spell.
@@ -1066,7 +1089,7 @@ local function FirstKnownBuff()
 	local skip = db and db.buff and db.buff.skip
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
 		if ns.IsBuffKnown(buff) and not buff.neverAuto
-			and not (skip and skip[buff.key]) then
+			and not (skip and skip[buff.key]) and not ns.OptedOut(buff, db and db.buff) then
 			return buff
 		end
 	end
@@ -1278,6 +1301,7 @@ function ns.CastableBuffs()
 	for _, buff in ipairs(walk) do
 		if ns.IsBuffKnown(buff)
 			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
+			and (pinned == buff.key or not ns.OptedOut(buff, db and db.buff))
 			and (not buff.neverAuto or pinned == buff.key) then
 			if strongestFirst and buff.strongest then
 				table.insert(out, 1, buff)
@@ -1331,8 +1355,9 @@ function ns.OnlyReachesGroup(castable)
 	if #castable == 0 then return false end
 	for _, buff in ipairs(castable) do
 		-- A buff for one target at a time goes to your group alone (Buffs.lua,
-		-- oneTarget), as Salvation does.
-		if not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then return false end
+		-- oneTarget), as Salvation does, and so does one held to it by choice
+		-- (membersOnly: Detect Invisibility).
+		if not (buff.partyOnly or buff.groupOnly or buff.oneTarget or buff.membersOnly) then return false end
 	end
 	return true
 end
@@ -1356,6 +1381,7 @@ function ns.GroupMeansSubgroup(castable)
 	if not ns.PARTY_IS_SUBGROUP then return false end
 	for _, buff in ipairs(castable or ns.CastableBuffs()) do
 		if buff.groupOnly and not buff.partyOnly then return false end
+		if buff.membersOnly and not buff.partyOnly then return false end
 		if buff.oneTarget then return false end
 	end
 	return true
@@ -1654,6 +1680,10 @@ do
 		if buff.partyOnly and not opts.inParty then return false end
 		-- Salvation: the game refuses it on anybody outside your party or raid.
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
+		-- Held to your group by Manners' choice, where the game would take any
+		-- friendly target (Buffs.lua, membersOnly: Detect Invisibility): never a
+		-- passer-by, and never anybody outside the group who asks for it.
+		if buff.membersOnly and not (opts.inGroup or opts.inParty) then return false end
 		-- One target at a time (Buffs.lua, oneTarget): a cast on somebody takes
 		-- yours off the last. Your group alone, never a passer-by. There, while
 		-- one of yours is on somebody (opts.oneHeld, the scan's own reading of
@@ -2230,6 +2260,9 @@ do
 		-- A mage's scrolls on Forever too (the weapon imbue, the familiar), asked
 		-- for on CurseForge: they are used up like the rest.
 		if family.isScroll then return true end
+		-- Not a warlock's Firestone or Spellstone (Forever): his own, as a poison
+		-- is a rogue's, made rather than bought and wanted on everywhere.
+		if family.kind == "warlockstone" then return false end
 		return family.enhance == true and family.kind ~= "poison" and family.kind ~= "lure"
 	end
 
@@ -3278,7 +3311,7 @@ function ns.ResolveBuff(hasMana)
 		local skip = db.buff.skip
 		for _, buff in ipairs(walk) do
 			if ns.IsBuffKnown(buff) and not buff.neverAuto and not (skip and skip[buff.key])
-				and not (buff.manaOnly and not hasMana) then
+				and not (buff.manaOnly and not hasMana) and not ns.OptedOut(buff, db.buff) then
 				return buff
 			end
 		end
@@ -3321,7 +3354,7 @@ function ns.NothingToCast()
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
 		-- Learned, switched on and still not chosen: a spell Automatic never
 		-- reaches for, which is not a switch anybody can find turned off.
-		if ns.IsBuffKnown(buff) and not (skip and skip[buff.key]) then
+		if ns.IsBuffKnown(buff) and not (skip and skip[buff.key]) and not ns.OptedOut(buff, db and db.buff) then
 			return L["Automatic never offers %s"]:format(ns.BuffName(buff))
 		end
 	end
@@ -4486,6 +4519,7 @@ function ns.ClampSettings()
 	if type(profile.buff.skip) ~= "table" then profile.buff.skip = {} end
 	if type(profile.buff.tanksOnly) ~= "table" then profile.buff.tanksOnly = {} end
 	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
+	if type(profile.buff.optIn) ~= "table" then profile.buff.optIn = {} end
 	-- The buff order, read on every scan (ns.WalkBuffs), repaired for every class
 	-- in the profile whichever client wrote it: a key no client has for that
 	-- class, a key twice and an entry that is not a list of keys go; a key only

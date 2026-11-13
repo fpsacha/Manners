@@ -108,8 +108,8 @@ mutate("Core.lua",
        "data-audit: groupOnly read as your subgroup",
        expect="data-audit: Salvation reaches a raider in another raid group", script=S)
 mutate("Core.lua",
-       "\t\tif not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then return false end\n",
-       "\t\tif not (buff.partyOnly or buff.oneTarget) then return false end\n",
+       "\t\tif not (buff.partyOnly or buff.groupOnly or buff.oneTarget or buff.membersOnly) then return false end\n",
+       "\t\tif not (buff.partyOnly or buff.oneTarget or buff.membersOnly) then return false end\n",
        "data-audit: Salvation alone reads as reaching passers-by",
        expect="with Salvation pinned, People who buff me does not say it reaches your group", script=S)
 mutate("Core.lua",
@@ -125,7 +125,7 @@ mutate("Options/Who.lua",
 
 # ------------------------------------------------ favours Manners never offers
 mutate("Buffs.lua",
-       "\tfavourOnly = { 6346, 546, 11743, 2970, 132, 20765, 20764, 20763, 20762, 20707 },\n",
+       "\tfavourOnly = { 6346, 546, 20765, 20764, 20763, 20762, 20707 },\n",
        "\tfavourOnly = {},\n",
        "data-audit: a Fear Ward is no favour",
        expect="data-audit: a Fear Ward or a Soulstone from somebody is a favour", script=S)

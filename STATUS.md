@@ -81,6 +81,15 @@ as before), that resting at an inn inside a capital reads as the city, and
 that the emote and whisper from a timer, with no key press, go out as the
 immediate ones do.
 
+Unreleased after 1.11.16, asked for on CurseForge: a warlock's Firestone and
+Spellstone on Forever (`warlockstone`, an Imbue kind in Buffs.lua's
+CAMELOT_ROWS, main hand only; held in the off hand on Classic Era and TBC, so
+not there; `tests/scenarios/warlockstones.lua`), and Detect Invisibility for
+the group (`detectgroup`, `membersOnly` and `optIn`, new flags in Buffs.lua;
+`db.buff.optIn`; `tests/scenarios/detectgroup.lua`). Only the live game can
+say that `/use` of a Forever stone with the main hand named lands on it the way
+an oil does.
+
 In 1.11.15, all asked for on CurseForge: classes left out as
 passers-by (`filters.skipNearbyClasses`, a sparse set of class tokens;
 `SkippedClasses` in Queue.lua, a verdict in the walk and a let-go in

@@ -102,3 +102,26 @@ do
 		Mock.reset()
 	end
 end
+
+-- Since Detect Invisibility for your group (Buffs.lua, detectgroup) a warlock has
+-- two buffs for others on Forever, Classic Era and Burning Crusade, and his
+-- switches come with two. A buff that is still a class's only one and flagged
+-- switchable keeps its switch: Burning Crusade's Earth Shield for the tank.
+do
+	local scenario = "loneswitch: tbc: a shaman's lone Earth Shield has its switch"
+	Mock.reset()
+	Mock.setFlavour("tbc")
+	Mock.class = "SHAMAN"
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		ns.Guard("probe", ns.ProbeCapabilities)
+		local buffs = ns.GetClassBuffs("SHAMAN") or {}
+		if #buffs ~= 1 or not buffs[1].switchable then
+			fail(scenario, "SKIPPED -- a Burning Crusade shaman no longer has one switchable buff for others")
+		elseif not H.findOption(ns.optionsTable, "offer_" .. buffs[1].key) then
+			fail(scenario, "Who to buff has no switch for " .. buffs[1].key .. ", a lone buff flagged switchable")
+		end
+	end
+	Mock.reset()
+end

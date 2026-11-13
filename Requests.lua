@@ -74,6 +74,10 @@ do
 		light = { "bol", "blessing of light" },
 		sanctuary = { "sanc", "sanctuary", "blessing of sanctuary" },
 		breath = { "unending breath", "water breathing", "ub", "~breath" },
+		-- Your group's alone (Buffs.lua, membersOnly): a passer-by asking is not
+		-- answered. Classic Era names its first and last ranks for what they see.
+		detectgroup = { "detect invisibility", "detect invis", "detect lesser invisibility",
+			"detect greater invisibility" },
 		battleshout = { "battle shout", "~shout" },
 		emperor = { "legacy of the emperor", "~emperor" },
 		whitetiger = { "legacy of the white tiger", "white tiger" },

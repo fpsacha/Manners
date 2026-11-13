@@ -50,6 +50,10 @@ local function BuffLabel(buff)
 		label = L["%s |cff808080(mana users only)|r"]:format(label)
 	end
 	if buff.partyOnly or buff.groupOnly or buff.oneTarget then label = L["%s |cff808080(your group only)|r"]:format(label) end
+	-- Held to your group by choice (Buffs.lua, membersOnly: Detect Invisibility).
+	if buff.membersOnly and not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then
+		label = L["%s |cff808080(your group only)|r"]:format(label)
+	end
 	return label
 end
 
@@ -88,7 +92,7 @@ local function AutoExplanation()
 		-- still ticked, and learning it brings the prompt back. A neverAuto
 		-- spell is left out: learning it would bring nothing back.
 		for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
-			if not buff.neverAuto and not ns.IsBuffKnown(buff) and not B().skip[buff.key] then
+			if not buff.neverAuto and not ns.IsBuffKnown(buff) and not B().skip[buff.key] and not ns.OptedOut(buff, B()) then
 				return "|cffff8080"
 					.. L["Every spell you have learned is switched off, so nothing is offered until you switch one back on or learn one of the others."]
 					.. "|r"
@@ -215,14 +219,25 @@ local function AddBuffToggles(args)
 			-- class's counts: another class's is Automatic here.
 			hidden = function() return ns.PinnedBuff() ~= nil end,
 			disabled = function() return not ns.IsBuffKnown(buff) end,
-			get = function() return not B().skip[buff.key] end,
+			get = function() return not ns.BuffOff(buff, B()) end,
 			set = function(_, value)
 				-- nil rather than false: AceDB stores the difference from the
 				-- defaults, and an empty table is stored as nothing.
-				B().skip[buff.key] = (not value) or nil
+				if buff.optIn then
+					-- Off until it is ticked (Buffs.lua, optIn): ticked is a key in
+					-- buff.optIn, and a key in skip would hold it off all the same.
+					B().optIn[buff.key] = value or nil
+					if value then B().skip[buff.key] = nil end
+				else
+					B().skip[buff.key] = (not value) or nil
+				end
 				restyleAndMacro()
 			end,
 		}
+		-- One that is off until it is ticked says so (Buffs.lua, optIn).
+		if buff.optIn then
+			args["offer_" .. buff.key].desc = L["Off until you tick it. Tick to offer this buff."]
+		end
 		-- A buff the player may hold to the tanks of their group (Buffs.lua,
 		-- tankChoice: Thorns), under its own switch. Everybody is the absence of
 		-- a key, as the switches are.
