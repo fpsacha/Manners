@@ -1684,10 +1684,33 @@ do
 		return ok and not (issecretvalue and issecretvalue(aura)) and type(aura) == "table"
 	end
 
+	-- [name] = { [buff key] = when it lifts }: a buff the game said cannot land
+	-- on that person ("A more powerful spell is already active", "Target is too
+	-- low level"), written by Queue.lua's NoteRefusal for ten minutes. Apart
+	-- from the retry cooldown a press writes (ns.tried, asked through
+	-- opts.blocked): that one means "offered a moment ago, wait", and a
+	-- paladin's walk leaves the person alone for it; this one means the buff is
+	-- the wrong one for them, and the walk goes on to the next. Read here, so
+	-- it is "wrong spell for this person" for every class alike.
+	local heldOff = {}
+	ns.heldOff = heldOff
+
 	local function Castable(opts, buff)
+		local held = opts.name and heldOff[opts.name]
+		if held then
+			local lifts = held[buff.key]
+			if lifts and lifts > (opts.now or GetTime()) then return false end
+		end
 		-- Kept for a favour returned and a request by name (Buffs.lua,
 		-- returnOnly: Unending Breath): never offered unasked.
 		if buff.returnOnly and not (opts.owed or opts.asked) then return false end
+		-- Nobody too low for every rank of it (Buffs.lua, lowLevel): the game
+		-- refuses a cast on somebody more than ten levels under the rank, so
+		-- Kings (20) on a warrior of 8 was a press that failed, held Kings off
+		-- them for ten minutes and, for a paladin, every other blessing with
+		-- it, where Might would have landed. Asked for by name or not: it
+		-- cannot land. A level nobody read holds nothing back.
+		if buff.lowLevel and opts.targetLevel and opts.targetLevel + 10 < buff.lowLevel then return false end
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
 		-- "Don't offer Might to mages, warlocks and priests" (the scan works out
 		-- opts.casterOnly: Queue.lua), but not for somebody who asked by name.

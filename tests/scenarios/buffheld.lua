@@ -105,12 +105,29 @@ do
 end
 
 do
-	local scenario = "buffheld: a group cast holds the buff off everyone it covered"
+	-- Re-aimed by the right-buff audit. This held that a refused group cast kept
+	-- the single buff off everybody it covered ("a group cast holds the buff
+	-- off everyone it covered"): one member too low for Arcane Brilliance, or
+	-- wearing something stronger, cost the whole party its Intellect for ten
+	-- minutes. What cannot land is the group version aimed at that one, so that
+	-- is what is held, off them as the one a group cast is aimed at; nobody's
+	-- single buff is.
+	local scenario = "buffheld: a refused group cast holds the group version, and the single buff off nobody"
 	party(scenario, function(ns)
-		ns.NoteRefusal(ANNA, BOUNCED .. ".", nil, true, "intellect", { ANNA, BERT })
+		ns.NoteRefusal(ANNA, BOUNCED .. ".", nil, true, "intellect", { BERT })
 		Mock.advance(5)
-		if not ns.IsBlocked(BERT, "intellect", GetTime()) then
-			fail(scenario, "Bert, covered by the same cast, was offered the buff at once")
+		if ns.IsBlocked(BERT, "intellect", GetTime()) then
+			fail(scenario, "Bert, covered by the same cast, is held off the single buff")
+		end
+		if ns.IsBlocked(ANNA, "intellect", GetTime()) then
+			fail(scenario, "Anna, whom the group cast was aimed at, is held off the single buff")
+		end
+		if not ns.IsBlocked(ANNA, "intellect" .. ns.GROUP_HOLD, GetTime()) then
+			fail(scenario, "the group version is not held off Anna as the one it is aimed at")
+		end
+		Mock.advance(610)
+		if ns.IsBlocked(ANNA, "intellect" .. ns.GROUP_HOLD, GetTime()) then
+			fail(scenario, "ten minutes on, the group version is still held off her")
 		end
 	end)
 end

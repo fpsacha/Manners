@@ -113,6 +113,11 @@ end
 
 ns.owed, ns.tried, ns.refusals = owed, tried, refusals
 
+-- The key a group version is blocked under for the one it was aimed at, beside
+-- the buff's own: name .. "\0" .. buff key .. this (NoteRefusal writes it,
+-- GroupBuffs.lua's Build asks it).
+ns.GROUP_HOLD = "\1group"
+
 -- When a debt really runs out: the stamp it was filed with, or its age against
 -- the window as it stands now, whichever comes first -- so lowering "Remember a
 -- buff for" applies to debts already owed. Every reader asks this.
@@ -150,6 +155,8 @@ local function SaveDebts()
 				at = wall - (now - entry.at),
 				class = entry.class,
 				pvp = entry.pvp == true or nil,
+				-- And their level, for the rank the fallback's macro names.
+				level = type(entry.level) == "number" and entry.level or nil,
 			}
 		end
 	end
@@ -189,6 +196,7 @@ local function RestoreDebts()
 					at = now - (wall - at),
 					class = type(entry.class) == "string" and entry.class or nil,
 					pvp = entry.pvp == true or nil,
+					level = type(entry.level) == "number" and entry.level >= 1 and entry.level or nil,
 				}
 			end
 		end
@@ -345,6 +353,8 @@ do
 	-- everything else about them stays as it was.
 	local THIS_BUFF = { "SPELL_FAILED_AURA_BOUNCED", "SPELL_FAILED_LOWLEVEL" }
 	local THIS_BUFF_SECONDS = 600
+	-- Core.lua's table of the buffs so held, which its Castable reads.
+	local heldOff = ns.heldOff
 
 	-- Whether the game's words are one of these global strings.
 	local function OneOf(message, keys)
@@ -389,6 +399,27 @@ do
 				refusals[name] = nil
 			end
 		end
+		-- And the buffs held off one person that have run their ten minutes.
+		for name, held in pairs(heldOff) do
+			for key, lifts in pairs(held) do
+				if lifts <= now then held[key] = nil end
+			end
+			if next(held) == nil then heldOff[name] = nil end
+		end
+	end
+
+	-- One buff held off one person as the wrong one for them (Core.lua,
+	-- heldOff, which Castable reads). Bounded as the refusals are.
+	local function HoldOff(name, buffKey, lifts)
+		local held = heldOff[name]
+		if not held then
+			local count = 0
+			for _ in pairs(heldOff) do count = count + 1 end
+			if count >= CAP then wipe(heldOff) end
+			held = {}
+			heldOff[name] = held
+		end
+		held[buffKey] = lifts
 	end
 
 	-- One person's record, room made for it first. Counted here, not tallied: a
@@ -449,10 +480,18 @@ do
 		-- and no count towards backing them off from everything.
 		if buffKey and OneOf(why, THIS_BUFF) then
 			r.last = now
-			ns.MarkAttempted(name, buffKey, THIS_BUFF_SECONDS, true)
-			for _, member in ipairs(members or {}) do
-				ns.MarkAttempted(member, buffKey, THIS_BUFF_SECONDS, true)
-			end
+			-- A group cast (`members`): what cannot land is the group version
+			-- aimed at this one, so that is what is held, off them as the one a
+			-- group cast is aimed at (GroupBuffs.lua, Build). The single buff
+			-- is held off nobody: until the right-buff audit it was held off
+			-- everybody the cast covered, and one member too low for Arcane
+			-- Brilliance cost the whole party its Intellect for ten minutes.
+			local held = members and (buffKey .. ns.GROUP_HOLD) or buffKey
+			ns.MarkAttempted(name, held, THIS_BUFF_SECONDS, true)
+			-- And told to the walk as the wrong buff for them, not as a press to
+			-- wait out (Core.lua, Castable): a paladin's walk goes on to the
+			-- next blessing.
+			if not members then HoldOff(name, buffKey, now + THIS_BUFF_SECONDS) end
 			return
 		end
 		-- A run long over was swept (SweepRefusals), so this starts again at one.
@@ -2322,6 +2361,16 @@ function ns.BuildQueue(watch)
 	-- walks to (Source of Magic) that somebody asked for. nil for none.
 	local askOnly = ns.AskOnlyBuffs()
 	if askOnly then askOnly = Affordable(askOnly) end
+	-- Whether anybody's level decides what they are offered this scan: only
+	-- with a buff in hand whose lowest rank is out of a low level's reach
+	-- (Buffs.lua, lowLevel). A mage's Intellect has none, and asks nobody.
+	local levelDecides = false
+	for _, buff in ipairs(candidates) do
+		if buff.lowLevel then levelDecides = true break end
+	end
+	for _, buff in ipairs(not levelDecides and askOnly or {}) do
+		if buff.lowLevel then levelDecides = true break end
+	end
 	-- Who in the group wears one of yours of a buff for one target at a time,
 	-- before anybody is walked (OneTargetHolders). nil for none in hand.
 	local oneHeld = OneTargetHolders(candidates)
@@ -2609,6 +2658,18 @@ function ns.BuildQueue(watch)
 		local guid = plain(UnitGUID(unit))
 		local whenBuffed = f.whenBuffed or "skip"
 		local checked = whenBuffed ~= "always"
+		-- Their level, where it decides anything (Core.lua, Castable), and for
+		-- somebody owed on a client whose casts are held to it: kept on the
+		-- debt, since the favour's own way onto the prompt has no token to ask
+		-- and its macro must name a rank that lands on them (Prompt/Macro.lua,
+		-- ns.CastName). A level the client will not say, or a skull, is none.
+		local level
+		if levelDecides or (isOwed and ns.LEVEL_GATED) then
+			level = plain(UnitLevel(unit))
+			if type(level) ~= "number" or level < 1 then level = nil end
+			if level and isOwed then owed[full].level = level end
+		end
+		opts.targetLevel = level
 
 		-- Every field written for every person; PickBuffFor keeps nothing.
 		opts.unit, opts.guid, opts.checked = unit, guid, checked
@@ -2905,6 +2966,9 @@ function ns.BuildQueue(watch)
 					if entry.class then hasMana = MANA_CLASSES[entry.class] == true end
 
 					tokenless.hasMana = hasMana
+					-- Their level as a token last read it (visit, and
+					-- Favours.lua as the favour was noticed), nil for none.
+					tokenless.targetLevel = entry.level
 					tokenless.casterOnly = skipCasters and ns.CASTER_CLASSES[entry.class] or nil
 					tokenless.name = full
 					local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
@@ -2928,6 +2992,9 @@ function ns.BuildQueue(watch)
 							-- follows the setting.
 							checked = (f.whenBuffed or "skip") ~= "always",
 						}
+						-- Their level, for the rank the macro names: written
+						-- after the table is built, only when there is one.
+						if entry.level then queue[#queue].level = entry.level end
 					end
 				end
 			end

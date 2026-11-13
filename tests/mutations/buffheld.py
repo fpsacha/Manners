@@ -24,20 +24,25 @@ mutate("Queue.lua",
        "buffheld: too low a level is not read",
        expect="buffheld: too low a level holds that buff off too", script=S)
 
+# Re-aimed by the right-buff audit, which rewrote the branch (the same faults).
 mutate("Queue.lua",
-       "\t\t\t\tns.MarkAttempted(member, buffKey, THIS_BUFF_SECONDS, true)\n\t\t\tend\n\t\t\treturn\n",
-       "\t\t\t\tns.MarkAttempted(member, buffKey, THIS_BUFF_SECONDS, true)\n\t\t\tend\n",
+       "\t\t\tif not members then HoldOff(name, buffKey, now + THIS_BUFF_SECONDS) end\n\t\t\treturn\n",
+       "\t\t\tif not members then HoldOff(name, buffKey, now + THIS_BUFF_SECONDS) end\n",
        "buffheld: it counts towards backing the person off",
        expect="buffheld: it does not count towards backing the person off", script=S)
 
+# Re-aimed by the right-buff audit: a refused group cast used to hold the single
+# buff off everybody it covered, and the fault was holding off only the one it
+# was aimed at. It now holds the group version off that one and the single buff
+# off nobody, and the fault is the old spread: the single buff held.
 mutate("Queue.lua",
-       "\t\t\tfor _, member in ipairs(members or {}) do\n",
-       "\t\t\tfor _, member in ipairs({}) do\n",
-       "buffheld: a group cast holds off only the one it was aimed at",
-       expect="buffheld: a group cast holds the buff off everyone it covered", script=S)
+       "\t\t\tlocal held = members and (buffKey .. ns.GROUP_HOLD) or buffKey\n",
+       "\t\t\tlocal held = buffKey\n",
+       "buffheld: a refused group cast holds the single buff off the one it was aimed at",
+       expect="buffheld: a refused group cast holds the group version, and the single buff off nobody", script=S)
 
 mutate("Queue.lua",
-       "\t\t\tns.MarkAttempted(name, buffKey, THIS_BUFF_SECONDS, true)\n",
+       "\t\t\tns.MarkAttempted(name, held, THIS_BUFF_SECONDS, true)\n",
        "\t\t\tns.BlockPerson(name, THIS_BUFF_SECONDS, true)\n",
        "buffheld: the whole person is held off, not the buff",
        expect="buffheld: only that buff, only that person", script=S)

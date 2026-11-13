@@ -83,3 +83,49 @@ mutate("Queue.lua",
        "\t\t\topts.tanksOnly = tanksHeld\n",
        "audit-right-buff: buff pls is answered with a buff of no use to them",
        expect=BUFFPLS, script=S)
+
+LOW = P + "a buff none of whose ranks can land on somebody that low is offered anyway"
+HELD = P + "a blessing the game said cannot land holds every other blessing off for ten minutes"
+BYNAME = P + "a favour returned by name alone casts the top rank at a giver too low for it"
+
+# ------------------------------------------------- too low a level for it
+# A buff offered to somebody none of its ranks can land on.
+mutate("Core.lua",
+       "\t\tif buff.lowLevel and opts.targetLevel and opts.targetLevel + 10 < buff.lowLevel then return false end\n",
+       "",
+       "audit-right-buff: a buff out of a low level's reach is offered",
+       expect=LOW, script=S)
+
+# The walk never says what level they are.
+mutate("Queue.lua",
+       "\t\topts.targetLevel = level\n",
+       "\t\topts.targetLevel = nil\n",
+       "audit-right-buff: the walk does not read anybody's level",
+       expect=LOW, script=S)
+
+# No buff knows the level its lowest rank is learned at.
+mutate("Buffs.lua",
+       "\t\t\t\tif low and low > 11 then buff.lowLevel = low end\n",
+       "",
+       "audit-right-buff: no buff has a lowest level",
+       expect=LOW, script=S)
+
+# The ten-minute hold on one blessing read as "offered a moment ago, wait".
+mutate("Core.lua",
+       "\t\t\tif lifts and lifts > (opts.now or GetTime()) then return false end\n",
+       "\t\t\tif false then return false end\n",
+       "audit-right-buff: a blessing held off as refused holds the others with it",
+       expect=HELD, script=S)
+
+# The favour's own way onto the prompt casts the plain name, the top rank.
+mutate("Prompt/Macro.lua",
+       "\t\tif not unit and levels and type(entry.level) == \"number\" and entry.level >= 1 then\n",
+       "\t\tif false then\n",
+       "audit-right-buff: a favour with no token is cast at the top rank",
+       expect=BYNAME, script=S)
+
+mutate("Queue.lua",
+       "\t\t\t\t\t\tif entry.level then queue[#queue].level = entry.level end\n",
+       "",
+       "audit-right-buff: the favour's level does not reach its entry",
+       expect=BYNAME, script=S)

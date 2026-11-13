@@ -67,6 +67,10 @@
 --             Forever and Burning Crusade, where it is a warlock's one buff for
 --             others and so cannot be neverAuto as on Mists: nobody on dry land
 --             wants water breathing, and a favour is still worth returning.
+--   lowLevel  not written in a set: worked out when the lookups are built, the
+--             level the buff's lowest rank is learned at where that is above 11
+--             (so somebody of level 1 is out of its reach), on the sets where a
+--             cast lands only within ten levels of its rank (`levelGated`).
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
 --   strongest the buff of an exclusive class's list (a paladin's Kings) that
@@ -1553,6 +1557,14 @@ local VANILLA_SET = {
 	buffs = VANILLA,
 	own = VANILLA_OWN,
 	statValue = VANILLA_STAT,
+	-- A cast lands only on somebody within ten levels of a rank's own level:
+	-- the game refuses it on anybody lower ("Target is too low level"), and
+	-- from a macro it does not lower the rank by itself (GitHub issue 9).
+	-- True of the ranked sets (this one, and Forever's and Burning Crusade's,
+	-- which read it through __index); Mists and retail scale one spell to its
+	-- target and have no such refusal. ns.LEVEL_GATED; the lookups below work
+	-- out each buff's `lowLevel` from it, and Castable (Core.lua) reads that.
+	levelGated = true,
 	-- Classes whose buffs overwrite one another, so a target carries only one
 	-- of yours and walking the list would replace a blessing they have.
 	exclusive = { PALADIN = true },
@@ -3436,6 +3448,7 @@ if chosen then
 	ns.CLASSES_WITHOUT_BUFFS = chosen.without
 	ns.PARTY_IS_SUBGROUP = chosen.partyIsSubgroup == true
 	ns.GROUP_IS_RAID = chosen.groupIsRaid == true
+	ns.LEVEL_GATED = chosen.levelGated == true
 	ns.SHOUT_YARDS = chosen.shoutYards
 	ns.WIDE_CASTS = chosen.wideCasts == true
 	ns.GROUP_BY_CLASS = chosen.groupByClass
@@ -3608,6 +3621,22 @@ function ns.BuildBuffLookups()
 			for _, id in ipairs(buff.auraIds) do
 				ns.ALL_BUFF_IDS[id] = true
 				ns.BUFF_BY_ID[id] = buff
+			end
+
+			-- The level its lowest rank is learned at, where that keeps it off
+			-- anybody (ns.LEVEL_GATED: a cast lands within ten levels of a
+			-- rank's own): Blessing of Kings 20, Divine Spirit and Shadow
+			-- Protection 30. nil where the lowest rank reaches a level 1, and on
+			-- the sets with no such rule. Castable (Core.lua) offers nobody a
+			-- buff none of whose ranks can land on them.
+			buff.lowLevel = nil
+			if ns.LEVEL_GATED then
+				local low
+				for _, id in ipairs(buff.ranks) do
+					local at = ns.RankLevel(id) or 1
+					if not low or at < low then low = at end
+				end
+				if low and low > 11 then buff.lowLevel = low end
 			end
 
 			-- Another class's of the same kind: read as this one held, by

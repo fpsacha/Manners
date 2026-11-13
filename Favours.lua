@@ -407,6 +407,10 @@ do
 		seen.name = full
 		seen.guid = guid
 		seen.class = plain(select(2, UnitClass(source)))
+		-- Their level, which goes on the debt: the owed fallback, with no token
+		-- to ask, names the rank that lands on them by it (Queue.lua, visit).
+		local level = plain(UnitLevel(source))
+		seen.level = type(level) == "number" and level >= 1 and level or nil
 		-- Asked of the token while it still means them, like the name: in
 		-- your own party (a shout's reach) and in your party or raid at all
 		-- (Salvation's), as BuildQueue's walk asks it.
@@ -661,7 +665,7 @@ do
 		-- The spell rides along for "In character" (Phrases.lua), which thanks
 		-- them by it; the newest favour's, like the class. In memory only.
 		owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
-			guid = seen.guid, class = seen.class, pvp = seen.pvp,
+			guid = seen.guid, class = seen.class, pvp = seen.pvp, level = seen.level,
 			spell = type(seen.key) == "number" and seen.key or nil }
 		-- Whether a line was said about it, in memory only: the queue's own
 		-- line, should it find them covered and let the favour go, follows one
