@@ -108,7 +108,7 @@ local function groupsOf(r)
 		return g
 	end
 	g.intro, g.introCalm = { r.intro }, { r.introCalm }
-	if look.key == "leather" or look.key == "archmage" or look.key == "lightbringer" or look.key == "fel" then
+	if look.key == "leather" or look.key == "archmage" or look.key == "lightbringer" or look.key == "fel" or look.key == "wild" then
 		g.arrive = {}
 		for _, a in ipairs(look.arrive) do g.arrive[#g.arrive + 1] = a end
 		for _, a in ipairs(look.landing) do g.land[#g.land + 1] = a end
@@ -129,6 +129,7 @@ ALL[#ALL + 1] = "forge"
 ALL[#ALL + 1] = "archmage"
 ALL[#ALL + 1] = "lightbringer"
 ALL[#ALL + 1] = "fel"
+ALL[#ALL + 1] = "wild"
 
 local function snapshot(g)
 	return { arrive = total(g.arrive), land = total(g.land), reject = total(g.reject),
@@ -555,7 +556,7 @@ for _, style in ipairs(ALL) do
 		-- The Lightbringer's sun is round whatever the
 		-- setting says, and the Archmage's hexagon is a hexagon: its sweep's
 		-- edge turns about the middle either way.
-		local want = style == "archmage" or style == "lightbringer" or style == "fel"
+		local want = style == "archmage" or style == "lightbringer" or style == "fel" or style == "wild"
 		if cd._circular ~= want then
 			fail(scenario, "the sweep's edge stayed round after the icon was squared: " .. tostring(cd._circular))
 		end

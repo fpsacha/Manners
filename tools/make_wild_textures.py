@@ -13,8 +13,8 @@ The look is a druid's, and the Cenarion Circle's: a BOUGH of living wood,
 bark round a face of dark heartwood the words stand on, moss on its upper
 side; at its left a WREATH of two woven branches, in leaf, round the spell
 icon, the icon standing in a ring of MOONWELL water, and a stag's ANTLERS
-rising from the wreath; at its right the bough narrows and curls up into a
-crozier that holds a crescent MOON. The reason's colour is carried by the
+rising from the wreath; at its right the bough ends in a crozier, a branch
+curled into a ring that holds a crescent MOON. The reason's colour is carried by the
 moonwell's water round the icon, by the moon and by a fine inlay along the
 face's lower edge.
 
@@ -34,16 +34,18 @@ THE FILES (32), with what each is:
                            and below a carved face of heartwood, its edges
                            waving, moss on its upper side.
   Wild_BoughR     128x256  the right end, twice the bough's height: the bough
-                           narrows and curls up into a crozier, proud of the
-                           bough above, round the place the moon hangs in.
+                           ends, and from its end a branch curls under and
+                           round into a crozier, a ring proud of the bough
+                           above, which the moon hangs in.
   Wild_Circle     256x256  the wreath: two branches woven round one another, in
                            leaf, round the bed the water lies in and the icon's
                            hole.
-  Wild_Water       64x64   moonwell water: a caustic of light in greys, tiling
-                           both ways, scrolled (Looks/Flow.lua), two layers of it.
+  Wild_Water       64x64   moonwell water: light lying on it in soft bands, in
+                           greys, tiling both ways, scrolled (Looks/Flow.lua),
+                           two layers of it.
   Wild_WaterMask  128x128  the ring the water is cut to (a mask).
-  Wild_Lip        128x128  the pale lip round the icon, and the shade the lip
-                           and the wreath throw on the water.
+  Wild_Lip        128x128  the lip of dark wood round the icon, and the shade
+                           the lip and the wreath throw on the water.
   Wild_Halo       128x128  a soft ring of light over the water, white: the
                            owed breath.
   Wild_Antler     128x128  one antler of the two (the other is its mirror),
@@ -106,7 +108,7 @@ DESIGN_H = 128         # the bough's design height, in texels, shown at the boug
 CAP_W = 64             # the left end's width, in design texels
 END_W = 128            # the right end's width, in design texels
 END_OVER = 64          # how far the right end's file reaches above and below the bough, in design texels
-END_ROOT = 6           # where the right end begins to narrow, in design texels from its file's left
+END_ROOT = 6           # where the face stops and the crozier begins, in design texels from the right end's left
 TILE_W = 256           # the middle tile's width, in design texels
 MOON_AT = 62.0         # the moon's middle, in design texels from the bough's right edge
 MOON_UP = 28.0         # ... and above the bough's middle line
@@ -484,7 +486,7 @@ def make_water():
     a = pnoise(x, y, 21.34, 21.34, n, SEED + 40, period_y=n)
     b = pnoise(x, y, 10.67, 10.67, n, SEED + 41, period_y=n)
     band = np.clip(1.0 - np.abs(2.0 * (0.66 * a + 0.34 * b) - 1.0) * 2.6, 0, 1)
-    tone = np.clip(0.46 + 0.54 * band ** 1.25, 0, 1)
+    tone = np.clip(0.40 + 0.60 * band ** 1.2, 0, 1)
     rgb = np.repeat(tone[..., None], 3, -1).astype(np.float32)
     feature(3.0)
     emit("Wild_Water", rgb, np.ones((n * SS, n * SS), np.float32), 1.0)

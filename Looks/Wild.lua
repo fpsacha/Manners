@@ -10,11 +10,11 @@
 -- dark heartwood the words stand on. At its left a WREATH of two branches
 -- woven round one another, in leaf, with a stag's two antlers rising from it;
 -- the spell icon, round, stands in the wreath in a ring of MOONWELL water.
--- At its right the bough narrows and curls up into a crozier that holds a
--- crescent MOON. The WATER round the icon carries the reason's colour; the
--- moon and a fine inlay along the face's lower edge carry it too. The list is
--- a plank of the same wood under (or over) the bough, a small leaf for each
--- name.
+-- At its right the bough ends in a crozier, a branch curled into a ring
+-- that holds a crescent MOON. The WATER round the icon carries the reason's
+-- colour; the moon and a fine inlay along the face's lower edge carry it
+-- too. The list is a plank of the same wood under (or over) the bough, a
+-- small leaf for each name.
 --
 -- Every region is a texture from Textures/Wild (tools/make_wild_textures.py).
 -- The wood, the antlers and every leaf are baked, because they are
@@ -31,8 +31,8 @@
 --     and a wisp wander. hunt35-effects lets the groups of `idle` loop with
 --     nobody owed, by name; the Flow handles are `flows`;
 --   * a favour arriving GROWS A VINE along the bough's upper side, from the
---     wreath to the crozier (a sheet of eight drawn frames, played once),
---     and the water lights;
+--     wreath to the crozier (a sheet of eight drawn frames, played once), a
+--     light running at its tip, and its buds show as it reaches them;
 --   * owed, BLOSSOMS open on the vine one after another (a sheet of sixteen
 --     frames each, at its own pace) and stay open; a light over the water,
 --     the moon's and the inlay's breathe three times and then hold lit; the
@@ -49,8 +49,8 @@
 --     nothing;
 --   * the antlers, the sprigs and the vine stand past the panel, above it
 --     (and a sprig or two below). With the list hung over the panel the vine
---     keeps to the panel's own height and the sprigs on the bough's upper
---     side are not drawn;
+--     keeps to the panel's own height, the sprigs on the bough's upper side
+--     are not drawn, and the list keeps right of the antlers;
 --   * Calm keeps to fades: no ripple, no stirring, no drifting leaf, no
 --     firefly, no growing, no flying leaves; the vine and its blossoms are
 --     simply there while somebody is owed;
@@ -83,8 +83,8 @@ local Wild = ns.Looks.Register("wild", {
 -- compares them): the icon fills this much of the bezel's box and the wreath
 -- is drawn this much larger than it; the bough's design height, its left
 -- end's width, its right end's (which reaches END_OVER above and below the
--- bough), where the right end begins to narrow, and its middle tile's width,
--- in texels; the moon's middle from the bough's right edge and above its
+-- bough), where in the right end the face stops and the crozier begins, and
+-- its middle tile's width, in texels; the moon's middle from the bough's right edge and above its
 -- middle line, and its width, in design texels; the left antler's box
 -- against the wreath's; the two sheets, and where the vine's stem lies in a
 -- frame of its own; the tag's caps, the mask's fill and the ring file's line.
@@ -187,8 +187,6 @@ local MOTE_PEAK = 0.95
 local BURST = { { 96, 0.86, 260 }, { 128, 0.98, -300 }, { 158, 0.80, 220 }, { 188, 0.92, -240 }, { 218, 0.84, 280 },
 	{ 247, 0.94, -220 }, { 276, 0.78, 250 }, { 302, 0.88, -280 }, { 54, 0.96, 240 }, { 74, 0.82, -260 } }
 local BURST_SECONDS = 0.58
--- The longest an additive flourish may stay lit, in seconds.
-local FLOURISH = 0.6
 local COMMAND = "CLICK MannersPrompt:LeftButton"
 
 local function SubSize(fontSize) return math.max(7, fontSize - 3) end
@@ -862,8 +860,8 @@ function Wild:Apply(p, above)
 	self.plateIn, self.plateX, self.ph, self.su = plateIn, plateX, ph, su
 	local endX = PlaceBody(self.body, art, plateX, plateIn, W, H - plateIn)
 	self.endX = endX
-	-- Where the bough begins to narrow: the words, the tags and the list keep
-	-- left of it.
+	-- Where the crozier begins: the words, the tags and the list keep left
+	-- of it.
 	local rootX = endX + END_ROOT * su
 	self.rootX = rootX
 	-- The bough's colour: as it is, or a chosen panel colour mixed in.
@@ -939,7 +937,7 @@ function Wild:Apply(p, above)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
 	self.countMode, self.keyUp = nil, false
 	-- Measured again in the new font and size.
-	self.keyLabel, self.countText = nil, nil
+	self.keyLabel, self.countText, self.measuredText = nil, nil, nil
 
 	local base = art:GetFrameLevel()
 	self.chipFrame:SetFrameLevel(base + 3)
@@ -1121,6 +1119,7 @@ function Wild:PlaceGrowth(showIcon, above)
 	self.blossomAt = {}
 	for i, t in ipairs(self.blossoms) do
 		local bx, by = x0 - 3 + span * BLOSSOMS.at[i], upper - bs * 0.30
+		if above then by = math.max(by, bs / 2) end
 		At(t, art, bx, by, bs)
 		self.blossomAt[i] = { bx, by }
 	end
@@ -1489,10 +1488,22 @@ end
 -- aside for a paint in which the name would otherwise be cut.
 function Wild:Chip(on)
 	local kit = self.kit
-	-- The width FitLine took of the name just now, measured here only where
-	-- it could not; the tags' own words only when they change (kit.TextWidth
-	-- is a pcall: none on a per-scan path).
-	self.nameWidth = kit.fit.drawn[kit.name] or kit.TextWidth(kit.name)
+	-- The width FitLine took of the name just now. A name drawn at its
+	-- smallest was not measured there, so it is measured here, once for a
+	-- text at a size (kit.TextWidth is a pcall: none on a per-scan path); a
+	-- secret name cannot be told from the last, and is measured each time.
+	-- The tags' own words are measured only when they change.
+	local width = kit.fit.drawn[kit.name]
+	if not width then
+		local text, size = kit.name:GetText(), kit.fit.size[kit.name]
+		local secret = issecretvalue and issecretvalue(text)
+		if secret or text ~= self.measuredText or size ~= self.measuredSize then
+			self.measuredWidth = kit.TextWidth(kit.name)
+			self.measuredText, self.measuredSize = (not secret) and text or nil, size
+		end
+		width = self.measuredWidth
+	end
+	self.nameWidth = width
 
 	local key = self:KeyLabel()
 	local keyUp = false
@@ -1829,10 +1840,10 @@ function Wild:Flourish(kind)
 				self.vineFrame:SetAlpha(1)
 				PlayAll(self.refusal)
 			end
-			PlayAll(self.aftermath)
 			-- Only the sprigs that are drawn shed.
 			for i, g in ipairs(self.aftermath) do
-				if not self.sprigOn[i] then g:Stop() end
+				g:Stop()
+				if self.sprigOn[i] then g:Play() end
 			end
 		end
 		self:Spend()

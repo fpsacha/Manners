@@ -16,7 +16,7 @@
 --   * a settings string from somebody else that names a retired look ends on
 --     its heir as well;
 --   * the picker's cards and the fallback dialog's dropdown offer exactly the
---     nine looks there are, in the same order;
+--     ten looks there are, in the same order;
 --   * Looks.Allowed() refuses the four keys, and Looks.Choices() offers none
 --     of them, whatever registers under one;
 --   * nothing of the four still ships: no file the toc names, no texture
@@ -40,7 +40,7 @@ local MOVES = {
 }
 local RETIRED = { "framed", "luxe", "arcane", "toast" }
 -- The looks that remain, in the order the picker and the dropdown show them.
-local REMAIN = { "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "glass", "minimal" }
+local REMAIN = { "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "glass", "minimal" }
 
 local function noErrors(scenario, ns)
 	for _, e in ipairs(ns.errors or {}) do

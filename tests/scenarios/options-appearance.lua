@@ -479,7 +479,7 @@ do
 				p.style = style
 				if option.disabled() then fail(scenario, "greyed out on " .. style .. ", which it dims") end
 			end
-			for _, style in ipairs({ "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel" }) do
+			for _, style in ipairs({ "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild" }) do
 				p.style = style
 				if ns.Looks.Get(style) and not option.disabled() then
 					fail(scenario, "open on " .. style .. ", which draws a fight its own way")
