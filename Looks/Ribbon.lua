@@ -21,7 +21,10 @@
 -- enamel and crimson cloth. Every dye is held to the contrast the name needs
 -- on it (look-ribbon.lua reads the numbers).
 --
--- THE FONT. The serif the game itself sets quest titles in, Morpheus, which
+-- THE FONT. The name is in the serif the game itself sets quest titles in,
+-- Morpheus (the reason line, the list and the tags keep the game's standard
+-- face: Morpheus's small letters are hair-thin capitals, unreadable at their
+-- size), which
 -- every client ships (Blizzard_Fonts_Shared, QuestFont and Fancy fonts,
 -- alphabet "roman") for the languages written in Latin letters. The client
 -- languages that are not -- Korean, both Chinese and Russian -- keep the font
@@ -840,21 +843,26 @@ end
 function Ribbon:Styled(p)
 	local kit = self.kit
 	local fit = kit.fit
-	-- The face: Morpheus, in the sizes this look draws, unless the player chose
-	-- a font or the client has no such file (the line then keeps what Prompt
-	-- set).
+	-- The face: Morpheus for the name, in the size this look draws, unless the
+	-- player chose a font or the client has no such file (the line then keeps
+	-- what Prompt set). The reason, the list and the tags stay in the face
+	-- Prompt set, the game's own: Morpheus draws its small letters as hair-thin
+	-- capitals, and at the reason line's size the game left little of them to
+	-- read but their shadow.
 	local face = Face(p)
 	local nameSz, sub = self.nameSz or NameSize(p.fontSize), self.sub or SubSize(p.fontSize)
 	local path = fit.path or STANDARD_TEXT_FONT
+	local nameFace
 	if face then
 		local tried = kit.name:SetFont(face, nameSz, fit.flags) and kit.name:GetFont()
 		-- A face the client refuses leaves the line with no font: put Prompt's
 		-- back.
-		if tried then path = face else kit.name:SetFont(path, nameSz, fit.flags) end
+		if tried then nameFace = face else kit.name:SetFont(path, nameSz, fit.flags) end
 	else
 		kit.name:SetFont(path, nameSz, fit.flags)
 	end
-	fit.path = path
+	-- FitLine keeps the name in its own face as it shrinks.
+	fit.paths[kit.name] = nameFace
 	local function set(fs, size)
 		if not fs:SetFont(path, size, fit.flags) or not fs:GetFont() then fs:SetFont(STANDARD_TEXT_FONT, size, fit.flags) end
 	end
@@ -929,6 +937,7 @@ function Ribbon:Hide()
 	end
 	kit.count:Show()
 	kit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil
+	kit.fit.paths[kit.name] = nil
 	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)
 	kit.textLayer:SetAlpha(1)
 	kit.name:SetShadowOffset(1, -1)

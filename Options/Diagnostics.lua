@@ -595,7 +595,7 @@ function Page.BuildDiagnosticsTab()
 				order = 31.2,
 				fontSize = "medium",
 				name = function()
-					return L["Manners is made by fpsacha, who plays %s on the RP-PvP server of WoW Forever."]
+					return L["Manners is made by %s, who plays on the RP-PvP server of WoW Forever."]
 						:format("|cffffffff" .. tostring(ns.AUTHOR) .. "|r")
 				end,
 			},

@@ -5,8 +5,8 @@
 S = "runscenarios.py"
 
 mutate("Options/Diagnostics.lua",
-       "\t\t\t\t\treturn L[\"Manners is made by fpsacha, who plays %s on the RP-PvP server of WoW Forever.\"]\n\t\t\t\t\t\t:format(\"|cffffffff\" .. tostring(ns.AUTHOR) .. \"|r\")\n",
-       "\t\t\t\t\treturn L[\"Manners is made by fpsacha, who plays %s on the RP-PvP server of WoW Forever.\"]\n\t\t\t\t\t\t:format(\"|cffffffff\" .. \"somebody\" .. \"|r\")\n",
+       "\t\t\t\t\treturn L[\"Manners is made by %s, who plays on the RP-PvP server of WoW Forever.\"]\n\t\t\t\t\t\t:format(\"|cffffffff\" .. tostring(ns.AUTHOR) .. \"|r\")\n",
+       "\t\t\t\t\treturn L[\"Manners is made by %s, who plays on the RP-PvP server of WoW Forever.\"]\n\t\t\t\t\t\t:format(\"|cffffffff\" .. \"somebody\" .. \"|r\")\n",
        "about: the line names nobody",
        expect="the line does not name the author's character", script=S)
 
@@ -33,3 +33,9 @@ mutate("Options/Window/WindowChrome.lua",
        "\t\tfs:SetText(about)\n",
        "about: a line once shrunk stays small",
        expect="the line stayed small once it fitted again", script=S)
+
+mutate("Locales/deDE.lua",
+       "L[\"Manners is made by %s, who plays on the RP-PvP server of WoW Forever.\"] = \"Manners stammt von %s,",
+       "L[\"Manners is made by %s, who plays on the RP-PvP server of WoW Forever.\"] = \"Manners stammt von fpsacha, als %s,",
+       "about: a language names the account again",
+       expect="the line names the account as well as the character", script=S)

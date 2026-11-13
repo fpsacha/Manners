@@ -1190,8 +1190,8 @@ withTree("look-ribbon: a class colour is taken to the gold, and the chosen font 
 end)
 
 -- ------------------------------------------------------------------ 6
--- The face: Morpheus for the names and the reason where the client writes in
--- Latin letters, the client's own where it does not, the player's choice above
+-- The face: Morpheus for the name where the client writes in Latin letters (the
+-- reason and the list in the game's standard face, which reads at their size), the client's own where it does not, the player's choice above
 -- both, and never a line with no font.
 local MORPHEUS = "Fonts\\MORPHEUS.TTF"
 for _, case in ipairs({
@@ -1203,10 +1203,12 @@ for _, case in ipairs({
 		if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
 		local path, subPath, rowPath = r.name:GetFont(), r.sub:GetFont(), r.rows[1]:GetFont()
 		if case[2] then
-			if path ~= MORPHEUS or subPath ~= MORPHEUS or rowPath ~= MORPHEUS then
-				fail(scenario, case[1] .. ": the lines are not in Morpheus: " .. tostring(path))
+			if path ~= MORPHEUS then fail(scenario, case[1] .. ": the name is not in Morpheus: " .. tostring(path)) end
+			if subPath == MORPHEUS or rowPath == MORPHEUS then
+				fail(scenario, case[1] .. ": the reason or the list is in Morpheus, whose small letters nobody reads at that size")
 			end
-			if look.kit.fit.path ~= MORPHEUS then fail(scenario, "a line that is refitted would leave Morpheus") end
+			if look.kit.fit.paths[r.name] ~= MORPHEUS then fail(scenario, "a name that is refitted would leave Morpheus") end
+			if look.kit.fit.path == MORPHEUS then fail(scenario, "a reason line that is refitted would be put in Morpheus") end
 			local name = select(2, r.name:GetFont())
 			if name ~= math.floor(p.fontSize * 1.1 + 0.5) then fail(scenario, "the name is not the size the layout counts on: " .. tostring(name)) end
 		else
@@ -1235,7 +1237,7 @@ withTree("look-ribbon: a face the client refuses leaves a line with a font", ANN
 	for _, fs in ipairs({ r.name, r.sub, r.rows[1] }) do
 		if not fs:GetFont() then fail(scenario, "a line was left with no font when Morpheus was refused") end
 	end
-	if look.kit.fit.path == MORPHEUS then fail(scenario, "refitting would keep asking for a face the client refused") end
+	if look.kit.fit.paths[r.name] == MORPHEUS then fail(scenario, "refitting would keep asking for a face the client refused") end
 	local ok, err = pcall(function() ns.Prompt:Paint({ name = "Anna Aim", short = "Anna", reason = "owed", buff = ns.ResolveBuff(true) }, 2) end)
 	if not ok then fail(scenario, "painting with the face refused threw: " .. tostring(err)) end
 	Mock.badFonts = nil

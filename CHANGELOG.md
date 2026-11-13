@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Which pet: your pets by name.** *Which pet*, under *Companion pet* on
+  *Who to buff*, now lists every pet in your pet journal under its three
+  choices, so Manners brings out the one you pick. A pet you gave a name of
+  your own is listed by that name. WoW Forever.
+- **The Ribbon look reads at its size.** Its reason line, its list and its
+  tags are now in the game's standard lettering, pale on the cloth; the name
+  keeps the banner's serif. The serif's small letters were too fine to read
+  at the size of the second line.
+- The line at the foot of the options window names the character who makes
+  Manners, and nothing else.
 - **The options window, dressed.** A gilt moulding with a boss on each corner
   runs round it, a beaded gilt rail sits under the header and over the footer,
   its buttons are set in a rim of gold, a gilt stud stands before each

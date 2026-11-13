@@ -22,6 +22,7 @@ local strangers, freshPrompt, findOption = H.strangers, H.freshPrompt, H.findOpt
 local CAT, CAT_SPELL = 8485, 10673
 local EGG, EGG_SPELL = 18963, 23428
 local GUID_A, GUID_B = "BattlePet-0-00000000AAAA", "BattlePet-0-00000000BBBB"
+local GUID_C, GUID_D = "BattlePet-0-00000000CCCC", "BattlePet-0-00000000DDDD"
 
 local function key(entry) return tostring(entry and entry.buff and entry.buff.key) end
 local function macro(ns) return ns.Prompt:GetButton():GetAttribute("macrotext1") end
@@ -70,7 +71,29 @@ local function install()
 			end,
 			GetNumPets = function() return j.owned, j.owned end,
 			HasFavoritePets = function() return j.favourites == true end,
-			PetIsSummonable = function(guid) return guid == GUID_A or guid == GUID_B end,
+			PetIsSummonable = function(guid)
+				if j.pets then
+					for _, pet in ipairs(j.pets) do
+						if pet[1] == guid then return pet.summonable ~= false end
+					end
+					return false
+				end
+				return guid == GUID_A or guid == GUID_B
+			end,
+			-- The journal's own list of what is owned, and each pet's card
+			-- (speciesID, customName, level, xp, maxXp, displayID, isFavorite,
+			-- name): only where the scenario gives the pets (j.pets).
+			GetOwnedPetIDs = j.pets and function()
+				if j.secretList then return j.secretList end
+				local ids = {}
+				for i, pet in ipairs(j.pets) do ids[i] = pet[1] end
+				return ids
+			end or nil,
+			GetPetInfoByPetID = j.pets and function(guid)
+				for _, pet in ipairs(j.pets) do
+					if pet[1] == guid then return 1000, pet.custom, 1, 0, 0, 2000, false, pet[2] end
+				end
+			end or nil,
 			SummonPetByGUID = function(guid)
 				j.calls[#j.calls + 1] = "guid:" .. tostring(guid)
 				if j.works then j.out = guid end
@@ -94,7 +117,8 @@ local function with(scenario, opts, body)
 	Mock.class = opts.class or "WARRIOR"
 	world = { bags = opts.bags or {}, counted = {}, mounted = false, instance = nil, stealthed = false,
 		journal = opts.journal and { owned = opts.journal.owned or 2, out = opts.journal.out,
-			favourites = opts.journal.favourites, works = opts.journal.works ~= false, calls = {} } or nil }
+			favourites = opts.journal.favourites, works = opts.journal.works ~= false, calls = {},
+			pets = opts.journal.pets } or nil }
 	local saved = {}
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
 	local undo = strangers({})
@@ -517,5 +541,83 @@ do
 		stock(ns, {})
 		tick(ns)
 		if #world.journal.calls ~= 1 then fail(scenario, "the egg gone, and the journal not asked") end
+	end)
+end
+
+-- ------------------------------------------------------------------ by name
+-- Which pet lists every pet of the journal that can be brought out, by the name
+-- the journal's own window gives it, under the three ways to choose; the one
+-- picked is the one brought out; a pet picked that the journal no longer has
+-- reads, and works, as the one out last.
+
+local function petChoices(ns)
+	local choice = findOption(ns.optionsTable, "ownPetChoice")
+	return choice, choice.values(), choice.sorting()
+end
+
+do
+	local scenario = "pets: Which pet lists the journal's pets by name, and brings the one picked out"
+	local PETS = {
+		{ GUID_A, "Zergling" }, { GUID_B, "Excitable Slime" }, { GUID_C, "Zergling" },
+		{ GUID_D, "Mini Diablo", summonable = false },
+		{ "BattlePet-0-00000000EEEE", "Panda Cub", custom = "Bao" },
+	}
+	with(scenario, { flavour = "camelot", on = true, journal = { owned = 5, pets = PETS } }, function(ns)
+		local choice, values, sorting = petChoices(ns)
+		local want = { "last", "favourite", "random", "pet:BattlePet-0-00000000EEEE", "pet:" .. GUID_B, "pet:" .. GUID_A,
+			"pet:" .. GUID_C }
+		if table.concat(sorting, " ") ~= table.concat(want, " ") then
+			fail(scenario, "the list is " .. table.concat(sorting, " "))
+		end
+		for _, key in ipairs(sorting) do
+			if type(values[key]) ~= "string" or values[key] == "" then fail(scenario, key .. " has no words") end
+		end
+		if values["pet:" .. GUID_B] ~= "Excitable Slime" then fail(scenario, "the slime reads " .. tostring(values["pet:" .. GUID_B])) end
+		if values["pet:BattlePet-0-00000000EEEE"] ~= "Bao" then
+			fail(scenario, "a pet the player named reads " .. tostring(values["pet:BattlePet-0-00000000EEEE"]) .. ", not its own name")
+		end
+		if values["pet:" .. GUID_A] ~= "Zergling" or values["pet:" .. GUID_C] ~= "Zergling (2)" then
+			fail(scenario, ("two of a name read %s and %s"):format(tostring(values["pet:" .. GUID_A]), tostring(values["pet:" .. GUID_C])))
+		end
+		if values["pet:" .. GUID_D] then fail(scenario, "a pet that cannot be brought out is listed") end
+		-- Picked, kept, and brought out.
+		choice.set(nil, "pet:" .. GUID_C)
+		ns.ClampSettings()
+		if ns.db.profile.ownBuffs.petChoice ~= "pet:" .. GUID_C or choice.get() ~= "pet:" .. GUID_C then
+			fail(scenario, "a pet picked by name was not kept: " .. tostring(ns.db.profile.ownBuffs.petChoice))
+		end
+		ns.addon.db.char.pet = { guid = GUID_B }
+		tick(ns)
+		if world.journal.calls[1] ~= "guid:" .. GUID_C then
+			fail(scenario, "the pet picked by name was not the one brought out: " .. tostring(world.journal.calls[1]))
+		end
+		-- A pet picked that the journal no longer has: the one out last, on the
+		-- page and in what is brought out.
+		world.journal.out = nil
+		ns.db.profile.ownBuffs.petChoice = "pet:BattlePet-0-0000GONE"
+		ns.ClampSettings()
+		if choice.get() ~= "last" then fail(scenario, "a pet no longer in the journal reads " .. tostring(choice.get())) end
+		ns.addon.db.char.pet = { guid = GUID_B }
+		tick(ns, ns.Pet.TRY_EVERY + 1)
+		if world.journal.calls[2] ~= "guid:" .. GUID_B then
+			fail(scenario, "with the pet picked gone, the summon was " .. tostring(world.journal.calls[2]) .. ", not the one out last")
+		end
+		-- A journal that will not say what is owned, or answers something that
+		-- is no list, leaves the three ways.
+		for _, answer in ipairs({ Mock.SECRET, 7, "none" }) do
+			world.journal.secretList = answer
+			local _, _, short = petChoices(ns)
+			if #short ~= 3 then fail(scenario, "a journal that withholds its list gave " .. #short .. " choices") end
+		end
+	end)
+end
+
+do
+	local scenario = "pets: Which pet keeps to its three ways on a journal that lists no pets"
+	with(scenario, { flavour = "camelot", on = true, journal = { owned = 2 } }, function(ns)
+		local choice, values, sorting = petChoices(ns)
+		if table.concat(sorting, " ") ~= "last favourite random" then fail(scenario, "the list is " .. table.concat(sorting, " ")) end
+		if not (values.last and values.favourite and values.random) then fail(scenario, "one of the three has no words") end
+		if choice.get() ~= "last" then fail(scenario, "it starts at " .. tostring(choice.get())) end
 	end)
 end
