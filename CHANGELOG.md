@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.20
 
 ### Looks
 - **Framed, Luxe, Toast and Arcane are back.** Pick them again under *Look*:
