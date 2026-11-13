@@ -1019,6 +1019,38 @@ withTree("look-frost: the words are held to a strong contrast, the reason line o
 	if row and row._textColor and contrast(row._textColor) < 4.5 then fail(scenario, "the list's names read under 4.5 : 1") end
 end)
 
+-- A name too long for its room is drawn at its smallest, and FitLine does not
+-- measure it there: the look does, for its tags, once for a text at a size.
+-- kit.TextWidth is a pcall, and none may run on a per-scan path (the budget's
+-- city has no name that long in this look, so it is held here).
+withTree("look-frost: a name at its smallest is measured once, not at every scan",
+	{ nameplate1 = { "Bartholomewz", "Thistledownington" } }, function(ns, scenario)
+	freshPrompt(ns, scenario)
+	local p = ns.db.profile.prompt
+	p.style, p.effects, p.showIcon, p.width = "frost", "full", true, 150
+	ns.Prompt:ApplyStyle()
+	owe(ns, "Bartholomewz Thistledownington")
+	tick(ns)
+	local look = ns.Prompt:Regions().look
+	if skipped(scenario, look) then return end
+	local kit = look.kit
+	if kit.fit.drawn[kit.name] ~= nil then
+		fail(scenario, "SKIPPED -- the long name is not drawn at its smallest, so the look measures nothing")
+		return
+	end
+	if not (type(look.nameWidth) == "number" and look.nameWidth > 0) then
+		fail(scenario, "the look has no width for a name at its smallest: " .. tostring(look.nameWidth))
+	end
+	local calls, measure = 0, kit.TextWidth
+	kit.TextWidth = function(fs, ...)
+		if fs == kit.name then calls = calls + 1 end
+		return measure(fs, ...)
+	end
+	for _ = 1, 5 do tick(ns) end
+	kit.TextWidth = measure
+	if calls > 0 then fail(scenario, ("the name was measured %d times in five scans of the same face"):format(calls)) end
+end)
+
 -- The game keeps one alpha for a texture: SetVertexColor's fourth number
 -- writes over what SetAlpha set (a light meant to be faint stood at full
 -- strength in a player's screenshot of another look). Every texture of the

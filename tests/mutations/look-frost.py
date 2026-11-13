@@ -11,7 +11,7 @@
 # tags left of the shards, the slab on a tall button, the words' contrast and
 # the reason line's shadow, a name measured once, and the Lua and the
 # generator agreeing. Each is caught by the scenario in
-# tests/scenarios/look-frost.lua that names it (one by perf-budget.lua).
+# tests/scenarios/look-frost.lua that names it.
 
 S = "runscenarios.py"
 
@@ -399,7 +399,7 @@ mutate("Looks/Frost.lua",
        "\t-- Asked afresh: what falls may fall elsewhere now.\n\tself.idleState = nil\n",
        "\t-- Asked afresh: what falls may fall elsewhere now.\n",
        "look-frost: a restyle that leaves the ice as the last one had it",
-       expect="after the panel is widened, not running", script=S)
+       expect="an icicle that is not drawn still drips", script=S)
 
 mutate("Looks/Frost.lua",
        "local MIST = { tile = 22, du = { 0.040, -0.028 },",
@@ -455,7 +455,7 @@ mutate("Looks/Frost.lua",
        "\tif on then\n\t\tself:StopAttention()\n\t\tself:StopFlourishes()\n",
        "\tif on then\n\t\tself:StopFlourishes()\n",
        "look-frost: the ice left as it was until the fight's first repaint",
-       expect="in a fight the rime stays on the slab", script=S)
+       expect="look-frost: a fight stills the ice and keeps the reason: in a fight, still running", script=S)
 
 mutate("Looks/Frost.lua",
        "\tEach(self.body, \"SetDesaturated\", fight or dead)\n",
@@ -537,7 +537,7 @@ mutate("Looks/Frost.lua",
 
 mutate("Looks/Frost.lua",
        "\tink.lo, ink.hi = Luminance(TABLE_LO), Luminance(TABLE_HI)\n",
-       "\tink.lo, ink.hi = Luminance(TABLE_LO), Luminance(0.9)\n",
+       "\tink.lo, ink.hi = Luminance(TABLE_LO), Luminance(TABLE_LO)\n",
        "look-frost: the words judged against a ground that is not theirs",
        expect="the reason line reads at", script=S)
 
@@ -547,7 +547,7 @@ mutate("Looks/Frost.lua",
        "\t\tif secret or text ~= self.measuredText or size ~= self.measuredSize then\n",
        "\t\tif true then\n",
        "look-frost: a name at its smallest measured at every scan",
-       expect="frost, a key bound", script=S)
+       expect="times in five scans of the same face", script=S)
 
 # --- the generator ---
 
