@@ -1,6 +1,6 @@
 -- Manners -- the prompt's panel: its regions built once, and styled for the
--- player's settings -- the three looks drawn here (glass, framed, minimal), or
--- handed to a look from Looks/.
+-- player's settings -- the two looks drawn here (glass, minimal), or handed to
+-- a look from Looks/.
 
 local _, ns = ...
 local Prompt = ns.Prompt
@@ -15,17 +15,16 @@ local StyleText, FullEffects, BUTTON_SCRIPTS = lib.StyleText, lib.FullEffects, l
 local RING, RING_SQ, SHOCK = lib.RING, lib.RING_SQ, lib.SHOCK
 local RULE, GLINT, CRACK = lib.RULE, lib.GLINT, lib.CRACK
 local GLASS_PANE, GLASS_LIGHT, BEZEL, BEZEL_ROUND = lib.GLASS_PANE, lib.GLASS_LIGHT, lib.BEZEL, lib.BEZEL_ROUND
-local TOOLTIP_RIM, BEZEL_FRAME = lib.TOOLTIP_RIM, lib.BEZEL_FRAME
+local BEZEL_FRAME = lib.BEZEL_FRAME
 local Tint, WARM_WHITE = lib.Tint, lib.WARM_WHITE
 -- The client's own round mask: the shape of a round icon, its sweep and the
 -- icon's echo.
 local PORTRAIT_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
--- The glass pane, its light and the framed look's rim are nine-slices whose
--- corners are the outer quarter of the file (32 of GlassPane's and
--- GlassLight's 128 texels, 16 of TooltipRim's 64: tools/make_panel_textures.py,
--- which must agree), drawn at most this many units square: 8 for the pane's
--- files, 4 for the rim's, four texels to the unit.
-local SLICE_CUT, PANE_CORNER, RIM_CORNER = 0.25, 8, 4
+-- The glass pane and its light are nine-slices whose corners are the outer
+-- quarter of the file (32 of GlassPane's and GlassLight's 128 texels:
+-- tools/make_panel_textures.py, which must agree), drawn at most this many
+-- units square, four texels to the unit.
+local SLICE_CUT, PANE_CORNER = 0.25, 8
 -- The light on the glass, at this much of the panel's own opacity.
 local LIGHT_ALPHA = 0.9
 -- The bezel's metal when the reason colour is not on it, and how far its own
@@ -33,9 +32,6 @@ local LIGHT_ALPHA = 0.9
 -- as the amber of somebody owed, whose luma it shares).
 local NEUTRAL_METAL = { 0.42, 0.42, 0.46 }
 local HOVER_LIFT = 0.45
--- The framed look's rim: pale metal on a dark panel, dark on a pale one, each
--- mixed a fifth toward the panel colour so the rim belongs to its panel.
-local RIM_PALE, RIM_DARK, RIM_MIX = { 0.92, 0.92, 0.98 }, { 0.38, 0.38, 0.44 }, 0.20
 -- Where the icon sits and how far the text starts from it, in units.
 local ICON_X, ICON_GAP = 10, 10
 -- The two rules of light along the top and bottom edges: how far inside each
@@ -51,14 +47,6 @@ local SHINE_GAP, SHINE_MIN, SHINE_MAX, SHINE_SHARE = 2, 20, 64, 0.22
 -- is held (a seventh of the height between), in units. Never over 7, so its
 -- top stays under the reason line, which sits 8 units up (Text.lua).
 local CRACK_INSET, CRACK_END, CRACK_MIN, CRACK_MAX = 1.0, 0.3, 2, 7
--- The four edges of the panel, hung corner to corner: the lines the framed
--- look wore before its rim, kept hidden for one release.
-local EDGE_LINES = {
-	{ "TOPLEFT", "TOPRIGHT", height = 1 },
-	{ "BOTTOMLEFT", "BOTTOMRIGHT", height = 1 },
-	{ "TOPLEFT", "BOTTOMLEFT", width = 1 },
-	{ "TOPRIGHT", "BOTTOMRIGHT", width = 1 },
-}
 
 -- Nine textures cut from one file, as the looks' own slices are: the corners
 -- are the outer quarter of the file, the edges the middle strips.
@@ -180,10 +168,6 @@ function Prompt:Create()
 		R.shadows[i] = t
 	end
 
-	-- The framed look's flat panel. The glass has a pane of its own instead.
-	R.panel = Solid(R.art, "BACKGROUND", -6)
-	R.panel:SetAllPoints()
-
 	-- The glass: a pane of thick enchanted glass, nine pieces of GlassPane.tga
 	-- (a grey, brighter in the middle, with a cut edge) that the panel colour
 	-- tints, in the panel's own place.
@@ -203,24 +187,6 @@ function Prompt:Create()
 	for _, t in ipairs(R.glassLight) do
 		t:SetBlendMode("BLEND")
 		t:Hide()
-	end
-
-	-- The framed look's rim: the classic tooltip's rail, a half-round of lit
-	-- metal all the way round, nine pieces of TooltipRim.tga. Above the stripe,
-	-- which runs inside it.
-	R.tooltipRim = Slice(R.art, "BORDER", 3, TOOLTIP_RIM)
-	for _, t in ipairs(R.tooltipRim) do t:Hide() end
-
-	-- The four lines the framed look wore before its rim. Kept hidden for one
-	-- release (ApplyStyle never shows them), then removed.
-	R.edges = {}
-	for _, at in ipairs(EDGE_LINES) do
-		local edge = Solid(R.art, "BORDER", 3)
-		if at.height then edge:SetHeight(at.height) else edge:SetWidth(at.width) end
-		edge:SetPoint(at[1])
-		edge:SetPoint(at[2])
-		edge:Hide()
-		R.edges[#R.edges + 1] = edge
 	end
 
 	-- The accent stripe is two textures so it can fade out towards both ends
@@ -273,8 +239,8 @@ function Prompt:Create()
 	-- Doubles as the icon's frame and the reason signal: a chamfered metal
 	-- bezel round the icon (IconBezel.tga, grey, the reason colour or a
 	-- neutral metal on it), with a round twin for a rounded icon. Above the
-	-- pane's hairline and the framed look's rim, so neither draws across it,
-	-- and under the icon, which fills its hole.
+	-- pane's hairline, so it does not draw across it, and under the icon,
+	-- which fills its hole.
 	R.bezel = R.art:CreateTexture(nil, "BORDER", nil, 4)
 	R.bezel:SetTexture(BEZEL)
 	-- The same bezel lifted lighter, faded up under the cursor and let go: a
@@ -330,24 +296,20 @@ function Prompt:Create()
 	-- The panel's edge answering an outcome: the material itself lit, so the
 	-- frame flashes in the reason's colour as a buff lands and in red as one
 	-- is refused. A copy of the glass's light (the pane's cut edge and its
-	-- refraction line; the dark line adds nothing) and one of the framed look's rim,
-	-- nine pieces each, drawn ADD on a frame of their own: a level over the
-	-- pane's light, the rim and the bezel, under the text. Parked at nothing;
-	-- ApplyStyle lays them as the material is laid, shows the look's own with
-	-- the middle piece left dark (nothing lights under the words), and hides
-	-- the frame on Minimal, which has no edge to light.
+	-- refraction line; the dark line adds nothing), nine pieces, drawn ADD on
+	-- a frame of their own: a level over the pane's light and the bezel, under
+	-- the text. Parked at nothing; ApplyStyle lays them as the material is
+	-- laid, shows them with the middle piece left dark (nothing lights under
+	-- the words), and hides the frame on Minimal, which has no edge to light.
 	R.edgeLightFrame = CreateFrame("Frame", nil, R.art)
 	R.edgeLightFrame:SetAllPoints()
 	R.edgeLightFrame:SetAlpha(0)
 	R.edgeLightFrame.glass = Slice(R.edgeLightFrame, "OVERLAY", 1, GLASS_LIGHT)
-	R.edgeLightFrame.rim = Slice(R.edgeLightFrame, "OVERLAY", 1, TOOLTIP_RIM)
-	for _, pieces in ipairs({ R.edgeLightFrame.glass, R.edgeLightFrame.rim }) do
-		for _, t in ipairs(pieces) do
-			t:SetBlendMode("ADD")
-			t:Hide()
-		end
+	for _, t in ipairs(R.edgeLightFrame.glass) do
+		t:SetBlendMode("ADD")
+		t:Hide()
 	end
-	-- The pieces the look in use lights with (ApplyStyle picks).
+	-- The pieces an outcome lights (Effects.lua).
 	R.edgeLightFrame.pieces = R.edgeLightFrame.glass
 
 	-- The ground breaking under the words when a buff is refused: a crack of
@@ -456,14 +418,13 @@ function Prompt:Create()
 
 	self:BuildAnimations()
 
-	-- Everything only the three looks drawn here use, which a look from
+	-- Everything only the looks drawn here use, which a look from
 	-- Looks/ hides (ApplyLook) and ApplyStyle puts back.
-	local parts = { R.panel, R.accentTop, R.accentBottom, R.sweepFrame,
+	local parts = { R.accentTop, R.accentBottom, R.sweepFrame,
 		R.glowFrame, R.rimFrame, R.bezel, R.bezelHover, R.iconShade, R.burstFrame, R.shineFrame, R.countChip,
 		R.resultFill, R.queueBack, R.queueHair, R.ruleTop, R.ruleBottom, R.glintTop, R.glintBottom,
 		R.edgeLightFrame, R.crackFrame, R.washFrame }
-	for _, list in ipairs({ R.shadows, R.edges, R.queueBars, R.queueIcons, R.pane, R.glassLight, R.tooltipRim,
-		R.fx.frames }) do
+	for _, list in ipairs({ R.shadows, R.queueBars, R.queueIcons, R.pane, R.glassLight, R.fx.frames }) do
 		for _, part in ipairs(list) do parts[#parts + 1] = part end
 	end
 	self.builtinParts = parts
@@ -498,12 +459,12 @@ function Prompt:ApplyStyle()
 	local p = ns.db.profile.prompt
 	local style = p.style or "glass"
 	local glass = style == "glass"
-	-- A look from Looks/, or nil for the three drawn here. The one it replaces
+	-- A look from Looks/, or nil for the two drawn here. The one it replaces
 	-- takes down everything it drew and gives back what it borrowed.
 	local look = ns.Looks.Get(style)
 	if S.activeLook and S.activeLook ~= look then S.activeLook:Hide() end
 	S.activeLook = look
-	-- What one of the three looks drawn here wears over it (Looks/Glass.lua),
+	-- What one of the looks drawn here wears over it (Looks/Glass.lua),
 	-- taken down when another look takes the panel.
 	local dress = not look and ns.Looks.Dress(style) or nil
 	if S.dress and S.dress ~= dress then S.dress:Hide() end
@@ -537,32 +498,26 @@ function Prompt:ApplyStyle()
 	if hl then hl:SetVertexColor(1, 1, 1, 0.03) end
 
 	local br, bg, bb, ba = unpackColor(p.bgColor, { 0.04, 0.04, 0.06, 0.88 })
-	local framed = style == "framed"
 	-- The nine-slices' corners: as drawn, or what half the height leaves.
 	local corner = math.min(PANE_CORNER, math.floor(p.height / 2) - 1)
-	local rimCorner = math.min(RIM_CORNER, math.floor(p.height / 2) - 1)
 
 	-- panel
 	if style == "minimal" then
-		R.panel:Hide()
 		for _, t in ipairs(R.shadows) do t:Hide() end
 		for _, t in ipairs(R.pane) do t:Hide() end
 		for _, t in ipairs(R.glassLight) do t:Hide() end
 	else
-		-- The framed look keeps its flat panel and its rim, and gets only
-		-- the dark rim of the shadow under it: the rest is the glass's depth.
 		-- The steps are whole rectangles, so they darken the panel's own
 		-- footprint as well as the margin: drawn for the default opacity, they
 		-- fade with the panel's, or one made see-through stayed a dark box.
 		local shadowK = math.min(1, ba / SHADOW_AT)
 		for i, t in ipairs(R.shadows) do
-			t:SetShown(glass or i == 1)
+			t:SetShown(glass)
 			t:SetVertexColor(0, 0, 0, SHADOW_STEPS[i][2] * shadowK)
 		end
-		-- Vertical gradients run bottom-to-top, so the darker stop goes first.
-		R.panel:SetShown(framed)
-		Gradient(R.panel, "VERTICAL", br * 0.62, bg * 0.62, bb * 0.72, ba, br, bg, bb, ba)
-		-- The glass: the same gradient written on the pane's nine pieces, each
+		-- The glass: one gradient, darker at the bottom (vertical gradients
+		-- run bottom-to-top, so the darker stop goes first), written on the
+		-- pane's nine pieces, each
 		-- given the two colours at the ends of its own rows (the top row is
 		-- the top `corner` units, the middle the rest, the bottom row the
 		-- bottom `corner`), so the nine read as one pane. Nine Gradient calls,
@@ -594,34 +549,22 @@ function Prompt:ApplyStyle()
 		end
 	end
 
-	-- The rim, on the framed look only; its colour is set once the ink has
-	-- read the panel, below. The four lines it replaced stay hidden.
-	PlaceSlice(R.tooltipRim, R.art, rimCorner)
-	for _, t in ipairs(R.tooltipRim) do t:SetShown(framed) end
-	for _, edge in ipairs(R.edges) do edge:Hide() end
-
-	-- The edge's light: the look's own material laid as the material is, so
-	-- the flash lands on the cut edge or the rail exactly. The middle piece
-	-- carries no edge (the glass's is empty, as is the rim's inside) and stays
-	-- dark, so nothing lights under the words.
+	-- The edge's light: the glass's own material laid as the material is, so
+	-- the flash lands on the cut edge exactly. The middle piece carries no
+	-- edge and stays dark, so nothing lights under the words.
 	local lit = R.edgeLightFrame
 	PlaceSlice(lit.glass, lit, corner)
-	PlaceSlice(lit.rim, lit, rimCorner)
 	for i, t in ipairs(lit.glass) do t:SetShown(glass and i ~= 5) end
-	for i, t in ipairs(lit.rim) do t:SetShown(framed and i ~= 5) end
-	lit.pieces = framed and lit.rim or lit.glass
 
 	local mode = p.accentMode or "icon"
-	-- On every built-in look: on the framed look it is an inlay inside the
-	-- rim, three units in (the two-unit rail and a unit of panel).
+	-- On every built-in look, at the panel's left edge.
 	local showAccent = (mode == "stripe" or mode == "both")
-	local inlay = framed and 3 or 0
 	R.accentTop:ClearAllPoints()
-	R.accentTop:SetPoint("TOPLEFT", inlay, 0)
+	R.accentTop:SetPoint("TOPLEFT", 0, 0)
 	R.accentBottom:ClearAllPoints()
-	R.accentBottom:SetPoint("BOTTOMLEFT", inlay, 0)
+	R.accentBottom:SetPoint("BOTTOMLEFT", 0, 0)
 	R.sweepFrame:ClearAllPoints()
-	R.sweepFrame:SetPoint("TOPLEFT", inlay, 0)
+	R.sweepFrame:SetPoint("TOPLEFT", 0, 0)
 	R.accentTop:SetShown(showAccent)
 	R.accentBottom:SetShown(showAccent)
 	R.accentTop:SetHeight(p.height / 2)
@@ -846,17 +789,6 @@ function Prompt:ApplyStyle()
 	-- stripe may have changed shape: the next PaintAccent paints in full.
 	S.accentPainted = nil
 
-	-- The framed look's rim, now the ink has read the panel: pale metal on a
-	-- dark panel, dark metal on a pale one (StyleText's ink.light says which),
-	-- mixed a fifth toward the panel colour and a little more opaque than it,
-	-- so a white panel keeps a frame.
-	local metal = RIM_DARK
-	if ink.light then metal = RIM_PALE end
-	for _, t in ipairs(R.tooltipRim) do
-		t:SetVertexColor(metal[1] + (br - metal[1]) * RIM_MIX, metal[2] + (bg - metal[2]) * RIM_MIX,
-			metal[3] + (bb - metal[3]) * RIM_MIX, math.min(1, ba + 0.10))
-	end
-
 	-- Rows get one anchor and an explicit width: TOPLEFT and RIGHT together
 	-- fight over the vertical centre. Which way the list hangs is settled here.
 	S.queueAbove = QueueGoesAbove()
@@ -939,7 +871,7 @@ function Prompt:ApplyStyle()
 	self:Refresh()
 end
 
--- ApplyStyle for a look from Looks/: the regions only the three looks here
+-- ApplyStyle for a look from Looks/: the regions only the two looks here
 -- use hidden, the shared ones handed over, the text styled as for any panel.
 -- Out of ApplyStyle, for its upvalues.
 function Prompt:ApplyLook(p, look)
@@ -966,7 +898,7 @@ function Prompt:ApplyLook(p, look)
 	end
 	R.textLayer:SetAlpha(1)
 	S.glintPlaying = nil
-	-- And the icon in colour: a refusal's grey is the three looks' own, and a
+	-- And the icon in colour: a refusal's grey is the built-in looks' own, and a
 	-- look from Looks/ greys the icon itself when it wants to.
 	self:UngreyIcon()
 	-- The lift under the cursor let go at once: a texture of the looks drawn
@@ -1068,14 +1000,9 @@ function Prompt:Regions()
 		-- smaller than its digits throws nothing.
 		chip = R.countChip,
 		fill = R.resultFill,
-		-- The four lines the framed look wore before its rim: kept, never
-		-- shown, gone next release.
-		edges = R.edges,
-		-- The glass's pane and the light on it, the framed look's rim: nine
-		-- pieces each.
+		-- The glass's pane and the light on it: nine pieces each.
 		pane = R.pane,
 		glassLight = R.glassLight,
-		tooltipRim = R.tooltipRim,
 		-- The two carriers of the reason colour: the bezel round the icon
 		-- (switched off by hiding the icon), the stripe. And the bezel's lighter
 		-- twin, faded up under the cursor.
@@ -1111,8 +1038,8 @@ function Prompt:Regions()
 		rules = { R.ruleTop, R.ruleBottom },
 		glints = { R.glintTop, R.glintBottom },
 		reveal = R.textLayer and R.textLayer.reveal,
-		-- The panel's edge lit for an outcome (its `pieces`, the look's own
-		-- of its `glass` and `rim` slices, `land` and `reject`), the crack
+		-- The panel's edge lit for an outcome (its `pieces`, the `glass`
+		-- slices, `land` and `reject`), the crack
 		-- under the words (`band`, `split`) and the outcome's wash (the frame
 		-- `fill` is drawn on, and its `fade`).
 		edgeLight = R.edgeLightFrame,
@@ -1129,14 +1056,13 @@ function Prompt:Regions()
 		queueHair = R.queueHair,
 		rows = R.queueRows,
 		bars = R.queueBars,
-		-- The icon at each row's left (the three looks drawn here), and each
+		-- The icon at each row's left (the looks drawn here), and each
 		-- name's button: both for tests to read what was drawn and what can be
 		-- pressed.
 		rowIcons = R.queueIcons,
 		rowButtons = R.rowButtons,
-		-- The rest of what only the three looks here draw, and the look from
-		-- Looks/ in use (nil for those three), whose own regions are its `own`.
-		panel = R.panel,
+		-- The rest of what only the looks here draw, and the look from
+		-- Looks/ in use (nil for those), whose own regions are its `own`.
 		accentBottom = R.accentBottom,
 		builtin = Prompt.builtinParts,
 		look = S.activeLook, dress = S.dress,

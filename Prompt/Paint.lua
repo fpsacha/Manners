@@ -159,7 +159,7 @@ local outcomeGen = 0
 -- the panel (Refresh) or an outcome over it (ShowOutcome). In the first beat
 -- of the entrance, while the words are still arriving, the reveal is let go
 -- and the words put at full, so the dip starts from full and never leaves
--- them half-lit, nor has two groups drive their alpha at once. On the three
+-- them half-lit, nor has two groups drive their alpha at once. On the two
 -- looks drawn here only: under a look from Looks/ the words' alpha is the
 -- look's own.
 function Prompt:SwapText()

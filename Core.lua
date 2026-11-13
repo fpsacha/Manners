@@ -494,7 +494,7 @@ local defaults = {
 			-- (Prompt/Fight.lua, the fight's rota). Off, a fight holds the
 			-- prompt on the one person, as it did before 1.11.19.
 			fightRota = true,
-			-- The built-in looks (Glass, Framed, Minimal) draw the prompt at about
+			-- The built-in looks (Glass, Minimal) draw the prompt at about
 			-- half strength in a fight when this is on, so it reads as held. Off by
 			-- default: a dim that stacks with a low Opacity made it vanish.
 			dimInCombat = false,
@@ -4751,8 +4751,9 @@ function ns.ClampSettings()
 			end
 		end
 	end
-	-- The look once called "blizzard" is "framed" now; carried across rather
-	-- than reset to the default by the oneOf below.
+	-- The look once called "blizzard" became "framed", which is retired now:
+	-- carried to that name, so the lines below move it on to Framed's heir
+	-- and say so, rather than the oneOf resetting it without a word.
 	if p.style == "blizzard" then p.style = "framed" end
 	-- A look since retired is carried to the one that took its place
 	-- (Looks/Looks.lua, Looks.retired), not reset to the default.
@@ -4773,7 +4774,7 @@ function ns.ClampSettings()
 			end
 		end
 	end
-	-- Every look Looks/ registered, the three Prompt/Panel.lua draws among
+	-- Every look Looks/ registered, the two Prompt/Panel.lua draws among
 	-- them.
 	oneOf(p, "style", ns.Looks.Allowed(), ns.defaults.profile.prompt.style)
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")

@@ -16,8 +16,8 @@ of that is read from what the addon told the frames, never restated here.
     python tools/render_prompt.py --out DIR --states owed,refused
     python tools/render_prompt.py --addon OTHER_TREE   # draw an older build
     python tools/render_prompt.py --locale deDE        # as a German client
-    python tools/render_prompt.py --style toast        # a look other than the default
-    python tools/render_prompt.py --style arcane --key F  # every state in a look
+    python tools/render_prompt.py --style ribbon       # a look other than the default
+    python tools/render_prompt.py --style archmage --key F  # every state in a look
     python tools/render_prompt.py --compare BEFORE AFTER OUT.png
     python tools/render_prompt.py --states success --at 0.2     # 0.2 s into the animation
     python tools/render_prompt.py --states success --strip 0.05,0.15,0.3,0.5   # a film strip
@@ -475,7 +475,7 @@ _art_cache = {}
 def load_image_file(file):
     """An art file shipped with the addon, if the path points at one: the
     part after AddOns/Manners/ is where it sits in the tree being drawn
-    (ADDON), subfolders (Textures/Luxe/...) included."""
+    (ADDON), subfolders (Textures/Ribbon/...) included."""
     if not isinstance(file, str) or "Textures" not in file:
         return None
     candidate = addon_file(file, ("", ".tga"))
@@ -1139,7 +1139,7 @@ def main():
     ap.add_argument("--locale", default="", help="client language to load the addon as, e.g. deDE")
     # A look to draw every state in (a state that names its own keeps it), and
     # a key bound to the prompt, which the looks that show the key need.
-    ap.add_argument("--style", default="", help="draw every state in this look, e.g. arcane")
+    ap.add_argument("--style", default="", help="draw every state in this look, e.g. archmage")
     ap.add_argument("--key", default="", help="bind this key to the prompt first, e.g. F")
     # How far into its animation each picture is taken, in seconds after the
     # state's last act: one number for every state, or --strip for a film strip.

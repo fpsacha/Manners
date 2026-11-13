@@ -3,7 +3,7 @@
 -- out after the last buff, the cooldown sweep and the dim for a fight.
 --
 -- Every gesture means one thing and moves one way:
---   * the panel COMING UP unfurls (the three looks drawn here): it rises as
+--   * the panel COMING UP unfurls (the two looks drawn here): it rises as
 --     two rules of light draw out from the icon along its top and bottom
 --     edges, and the words arrive a beat behind them (under 0.5 s);
 --   * a favour ARRIVING converges: the icon's echo drops onto it and a bloom
@@ -367,7 +367,7 @@ lib.NewFX, lib.RingArt, lib.CapScale, lib.Rescale, lib.CapLock, lib.RingArtOf = 
 lib.TEXT_MARGIN, lib.EDGE_MARGIN, lib.SHAKE_LEFT = TEXT_MARGIN, EDGE_MARGIN, SHAKE_LEFT
 
 ---------------------------------------------------------------------------
--- the three looks drawn here
+-- the two looks drawn here
 ---------------------------------------------------------------------------
 
 -- The panel's edge lit as a buff lands: its peak. Held to 0.40 of the light,
@@ -649,7 +649,7 @@ function Prompt:BuildAnimations()
 	R.art.comeback = comeback
 end
 
--- The halo that flares round the icon (the three built-in looks): how deep it is
+-- The halo that flares round the icon (the built-in looks): how deep it is
 -- drawn beyond the icon's ring, and how far it may grow. `limit` is the
 -- distance from the icon's middle to the nearest thing it must stay clear of
 -- (the text, the panel's top and bottom edges: Fit's limits), `half` the icon's
@@ -706,7 +706,7 @@ local function RuleColour(self, p)
 end
 
 -- The entrance: the full one lands, Calm's fades. Played where the panel
--- comes up. On the three looks drawn here the full one also holds the words
+-- comes up. On the two looks drawn here the full one also holds the words
 -- back a beat and draws the two rules of light out from the icon in the
 -- reason's colour; a look from Looks/ gets the rise alone, as before.
 function Prompt:PlayIntro()
@@ -787,7 +787,7 @@ function Prompt:StopFlourishes()
 		R.ruleTop.flicker, R.edgeLightFrame.land, R.edgeLightFrame.reject, R.crackFrame.split, R.washFrame.fade }) do
 		if g and g:IsPlaying() then g:Stop() end
 	end
-	-- The words' reveal as well, and the words at full: on the three looks
+	-- The words' reveal as well, and the words at full: on the two looks
 	-- drawn here only. Under a look from Looks/ textLayer's alpha is the look's
 	-- own (its fight dim), and a flourish must leave it where the look put it.
 	if not S.activeLook then
@@ -811,7 +811,7 @@ function Prompt:PlayShine(r, g, b, strength)
 end
 
 -- The outcome's wash, risen and let fall to the rest for `kind`: once per
--- outcome (PaintOutcome keeps the stamp), on the three looks drawn here.
+-- outcome (PaintOutcome keeps the stamp), on the two looks drawn here.
 function Prompt:PlayWash(kind)
 	local fade = R.washFrame and R.washFrame.fade
 	if not fade then return end

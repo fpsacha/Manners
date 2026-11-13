@@ -26,7 +26,7 @@
 -- picture, at the rectangle the tool recorded for that look (Looks.PreviewIcon),
 -- shows the icon of the buff this character casts, cropped as the prompt crops
 -- it. The client draws it; no spell art is in any file of the addon. A look
--- that cuts its icon round (Toast, Ribbon, Letter) has the same mask file on the
+-- that cuts its icon round (Ribbon, Letter, Archmage) has the same mask file on the
 -- overlay; the others are square, as they are in the picture. A client without
 -- mask textures (none of the five) draws them square. The texture is set when
 -- the page is painted, so an icon the client had not loaded yet is there the
@@ -44,14 +44,6 @@
 -- outline, the size scaled with the picture. A line wider than its rectangle is
 -- drawn up to a fifth smaller, then cut by the client, as the prompt's are. Set
 -- when the page is painted and laid out; nothing is per frame.
---
--- A look that sets its reason line in a tag of its own (Luxe's pill) has the tag
--- drawn live as well, round the live words: baked into the picture it was the
--- English words' width, and a German or Korean reason ran past it. The tool
--- records the tag with the line (`pill`: its edges, how far it reaches past the
--- words on either side, its caps, and its layers, each the look's own file as a
--- horizontal three-slice in the look's colour), and the card lays those textures
--- over the picture, under the words, as wide as the words it has just measured.
 --
 -- Two or three cards to a row, as many as the page is wide enough for, every
 -- row as tall as its tallest card.
@@ -83,11 +75,6 @@ local SAMPLE_NAME = "Anna Aim"
 local LINES = { "name", "reason" }
 -- The smallest letters a card writes, and how far a line is drawn smaller to fit.
 local MIN_SIZE, MIN_SHRINK = 5, 0.8
--- A tag's three slices, cut from the file's quarters: the caps and the middle.
-local CUTS = { { 0, 0.25 }, { 0.25, 0.75 }, { 0.75, 1 } }
--- The sublevel the tag's first layer is drawn at, over the icon (3) and under
--- the lines (OVERLAY).
-local PILL_LEVEL = 4
 -- The client languages whose alphabet a look's own face (Morpheus) draws: the
 -- rule the looks follow for their own text.
 local LATIN = { enUS = true, enGB = true, deDE = true, esES = true, esMX = true, frFR = true,
@@ -138,7 +125,7 @@ local function Grey(c)
 end
 
 -- The sample lines in their own colours, or grey and dimmed with the rest of a
--- greyed-out card; the tag round the reason goes grey with them.
+-- greyed-out card.
 local function TintLines(card, off)
 	for _, name in ipairs(LINES) do
 		local fs, spec = card.lines[name], card.textAt and card.textAt[name]
@@ -151,22 +138,6 @@ local function TintLines(card, off)
 				fs:SetTextColor(c[1], c[2], c[3], c[4])
 			end
 			fs:SetAlpha(off and 0.5 or 1)
-		end
-	end
-	local pill = card.pillSpec
-	for i, s in ipairs(card.pill) do
-		local layer = pill and pill.layers[i]
-		for _, t in ipairs(s) do
-			if layer then
-				local c = layer.color
-				if off then
-					local grey = Grey(c)
-					t:SetVertexColor(grey, grey, grey, c[4])
-				else
-					t:SetVertexColor(c[1], c[2], c[3], c[4])
-				end
-			end
-			t:SetAlpha(off and 0.5 or 1)
 		end
 	end
 end
@@ -328,72 +299,10 @@ local function Offset(v)
 	return v < 0 and -n or n
 end
 
--- The tag's slices for its layer `i`, made the first time a look asks for them.
-local function PillSlices(card, i)
-	local s = card.pill[i]
-	if s then return s end
-	s = {}
-	for j = 1, 3 do
-		local t = card:CreateTexture(nil, "ARTWORK", nil, math.min(7, PILL_LEVEL + i - 1))
-		t:SetTexCoord(CUTS[j][1], CUTS[j][2], 0, 1)
-		t:Hide()
-		s[j] = t
-	end
-	card.pill[i] = s
-	return s
-end
-
-local function HidePill(card, from)
-	for i = from or 1, #card.pill do
-		for _, t in ipairs(card.pill[i]) do t:Hide() end
-	end
-	if not from then card.pillSpec, card.pillBox = nil, nil end
-end
-
--- The tag a look sets its reason line in, round the line as the card has just
--- fitted it: it reaches `lead` and `tail` past the words (what the line
--- measures, or its rectangle where the client is left to cut it), its edges and
--- its caps scaled with the picture as the letters are, each layer the look's own
--- file in the look's own colour. So a reason in any language wears a tag of its
--- own width, as it does on the prompt. card.pillBox is kept for the tests.
-local function PlacePill(card, spec, fs, room)
-	local pill = spec.pill
-	if not pill then
-		HidePill(card)
-		return
-	end
-	local w, h = card.picW, card.picH
-	local top, bottom = pill.t * h, pill.b * h
-	local height = bottom - top
-	local cap = (pill.cap or 0.5) * height
-	local left = spec.l * w - pill.lead * h
-	local right = spec.l * w + math.min(W.Measure(fs), room) + pill.tail * h
-	card.pillSpec, card.pillBox = pill, { left, top, right, bottom }
-	for i, layer in ipairs(pill.layers) do
-		local s = PillSlices(card, i)
-		for _, t in ipairs(s) do
-			t:SetTexture(layer.file)
-			t:ClearAllPoints()
-		end
-		s[1]:SetPoint("TOPLEFT", card.ground, "TOPLEFT", left, -top)
-		s[1]:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", left + cap, -bottom)
-		s[3]:SetPoint("TOPLEFT", card.ground, "TOPLEFT", right - cap, -top)
-		s[3]:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", right, -bottom)
-		s[2]:SetPoint("TOPLEFT", card.ground, "TOPLEFT", left + cap, -top)
-		s[2]:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", right - cap, -bottom)
-		for _, t in ipairs(s) do t:Show() end
-	end
-	HidePill(card, #pill.layers + 1)
-	-- Slices made here, at layout, after the card was last painted: tinted now,
-	-- or they stay the file's own white until the pointer passes over the card.
-	TintLines(card, card.row and card.row.off)
-end
-
 -- One line at its rectangle in the picture, in the look's face, at the look's
 -- size for this picture (a card's picture is smaller than the 248 x 62 units the
 -- tool drew), drawn up to a fifth smaller where the words are wider than the
 -- rectangle; what is still too wide the client cuts, as the prompt's lines are.
--- The reason line's tag, where its look has one, is laid round it.
 local function PlaceLine(card, name, spec, text)
 	local fs, w, h = card.lines[name], card.picW, card.picH
 	fs:ClearAllPoints()
@@ -424,7 +333,6 @@ local function PlaceLine(card, name, spec, text)
 	end
 	-- Kept for the tests: the client has no call that reads the size back.
 	card.lineSize[name], card.lineFace[name] = size, path
-	if name == "reason" then PlacePill(card, spec, fs, room) end
 	fs:Show()
 end
 
@@ -441,7 +349,6 @@ local function PlaceText(card)
 		else
 			card.lines[name]:Hide()
 			card.lineSize[name], card.lineFace[name] = nil, nil
-			if name == "reason" then HidePill(card) end
 		end
 	end
 end
@@ -477,9 +384,6 @@ local function BuildCard(row, i)
 	-- The spell icon, over the tile the picture draws there (see the header).
 	card.icon = card:CreateTexture(nil, "ARTWORK", nil, 3)
 	card.icon:Hide()
-	-- The tag round the reason line, for a look that has one: its slices are
-	-- made when a look first asks for them (PillSlices).
-	card.pill = {}
 	-- The sample name and reason over the picture, in a layer above the icon's.
 	card.lines, card.lineSize, card.lineFace = {}, {}, {}
 	for _, name in ipairs(LINES) do

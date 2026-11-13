@@ -158,26 +158,6 @@ local function withPrompt(edit)
 	end
 end
 
--- The prompt in Arcane with Anna owed on top, 40 s into her 100: `edit` the
--- settings, `names` the people about (a party among them makes a group), and
--- `after` what happens next.
-local function arcane(edit, names, after)
-	return function(ns)
-		Mock.bindings = { F = COMMAND }
-		if names and names.party1 then
-			Mock.groupSize = 2
-			partyIsParty()
-		end
-		boot(ns, names or OWED)
-		ns.db.profile.prompt.style = "arcane"
-		if edit then edit(ns.db.profile.prompt, ns) end
-		ns.Prompt:ApplyStyle()
-		ns.owed[ANNA] = { expires = GetTime() + 60, at = GetTime() - 40, class = "PRIEST" }
-		tick(ns)
-		if after then after(ns) end
-	end
-end
-
 -- The order is the contact sheet's.
 R.states = {
 	{ key = "idle", title = "Idle -- nobody to buff", setup = function(ns)
@@ -301,9 +281,6 @@ R.states = {
 		ns.Prompt:ApplyStyle()
 		tick(ns)
 	end },
-	{ key = "framed", title = "Look: framed", at = 0.85, setup = withPrompt(function(p)
-		p.style = "framed"
-	end) },
 	{ key = "minimal", title = "Look: minimal", at = 0.85, setup = withPrompt(function(p)
 		p.style = "minimal"
 	end) },
@@ -391,34 +368,6 @@ R.states = {
 	{ key = "glass", title = "Look: glass", at = 0.85, setup = withPrompt(function(p)
 		p.style = "glass"
 	end) },
-	-- Arcane, as a player who picks it sees it: a key bound for its keycap and
-	-- the favour's clock part-run. (--style arcane --key F draws every state
-	-- in it.)
-	{ key = "arcane", title = "Look: arcane", at = 0.85, setup = arcane() },
-	{ key = "arcane-round", title = "Look: arcane, round icon", at = 0.85, setup = arcane(function(p)
-		p.roundIcon = true
-	end) },
-	{ key = "arcane-combat", title = "Look: arcane, held in combat", at = 0.85, setup = arcane(nil, nil,
-		fight) },
-	{ key = "arcane-queue", title = "Look: arcane, list shown", at = 0.85, setup = arcane(function(p)
-		p.showQueue = true
-		p.queueRows = 3
-	end, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
-		nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
-	{ key = "arcane-noicon", title = "Look: arcane, icon off, list shown", at = 0.85,
-		setup = arcane(function(p)
-			p.showIcon = false
-			p.showQueue = true
-			p.queueRows = 3
-		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
-			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
-	{ key = "arcane-light", title = "Look: arcane, a light panel, list shown", at = 0.85,
-		setup = arcane(function(p)
-			p.bgColor = { 0.86, 0.84, 0.78, 0.92 }
-			p.showQueue = true
-			p.queueRows = 3
-		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
-			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
 	{ key = "hover", title = "The cursor on the panel", at = 0.3, setup = function(ns)
 		boot(ns, OWED)
 		owe(ns, ANNA)
@@ -626,10 +575,6 @@ function R.run(key, atOverride)
 		icon = icon and icon._serial,
 		name = regions.name and regions.name._serial,
 		sub = regions.sub and regions.sub._serial,
-		-- How wide the reason line's words measure to the prompt, which is
-		-- what a look that sets them in a tag of their own (Luxe) sized the
-		-- tag from: the tool reads how far the tag reaches past the words.
-		subWidth = regions.sub and regions.sub.GetStringWidth and regions.sub:GetStringWidth() or nil,
 		defaultFont = defaultFont,
 		now = Mock.now,
 		title = state.title,
