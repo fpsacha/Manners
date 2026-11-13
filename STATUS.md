@@ -362,7 +362,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the nine looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the thirteen looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and

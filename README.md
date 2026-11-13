@@ -511,7 +511,7 @@ and the only thing it ever says in chat is a new title.
 
 ## The prompt's look
 
-Nine looks, each a card under Look > *Panel style* that you click to switch:
+Thirteen looks, each a card under Look > *Panel style* that you click to switch:
 
 - **Glass** (the default): the game's own action bar. A dark pane of glass
   in beaded gilt rails, the spell icon set in a metal bezel that brightens

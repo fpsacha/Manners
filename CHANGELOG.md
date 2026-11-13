@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Looks
+- **Framed, Luxe, Toast and Arcane are back.** Pick them again under *Look*:
+  1.11.19 had moved them to Glass, Archmage and Ribbon. Thirteen looks now.
+
 ## 1.11.19
 
 ### In a fight

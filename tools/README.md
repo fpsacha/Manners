@@ -515,7 +515,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the nine looks, named |
+| `manners-looks.png` | the same favour in each of the thirteen looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |

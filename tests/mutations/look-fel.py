@@ -13,8 +13,8 @@ S = "runscenarios.py"
 # --- registered ---
 
 mutate("Looks/Looks.lua",
-       "Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true }\n",
-       "Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true }\n",
        "look-fel: the round switch live on the summoning circle",
        expect="fel is not in roundAlways", script=S)
 
