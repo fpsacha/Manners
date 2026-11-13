@@ -1,16 +1,17 @@
 -- The built-in looks' material: the glass as a pane of enchanted glass with
--- the light on it, the framed look as the classic tooltip's rim, the icon in
+-- the light on it, the icon in
 -- a chamfered metal bezel that carries the reason colour and lifts lighter
 -- under the cursor (Prompt/Panel.lua, tools/make_panel_textures.py).
 --
 -- What these hold the prompt to:
 --   * the glass shows nine pane pieces and nine of light and none of the
---     sheen, hairlines or bevel it wore before; the framed look a flat panel,
---     nine rim pieces and, when the marker asks, the stripe as an inlay inside
---     the rim; minimal none of those and still the bezel;
+--     sheen, hairlines or bevel it wore before, nor the flat panel, the rim
+--     and the four edge lines of the look that was retired; minimal none of
+--     those and still the bezel; both the stripe at the left edge when the
+--     marker asks;
 --   * the bezel follows the icon's shape, wears the reason colour (or a neutral
 --     metal), is drawn at iconSize / BEZEL_FRAME and never taller than the
---     panel, and sorts above the pane's light and the rim on the same frame;
+--     panel, and sorts above the pane's light on the same frame;
 --   * the cursor fades its lighter twin up in 0.12 s, holds it there for as
 --     long as the cursor stays (the owed amber, the colour hovered most, must
 --     visibly change), and lets go in 0.18 s to nothing, from wherever the
@@ -19,8 +20,8 @@
 --     the reason colour;
 --   * the text's ink is judged against the pane as drawn;
 --   * every file the panel names ships, the generator draws the same bytes
---     twice and the bytes that ship, the pane and the rim stay under their
---     caps, the bezels are grey, the light leaves the middle cell (under the
+--     twice and the bytes that ship, the pane stays under its
+--     cap, the bezels are grey, the light leaves the middle cell (under the
 --     words) empty, and the top-left corner pools the light along the cut
 --     instead of showing a speck;
 --   * the pane reads as a thick slab of cut glass struck from the upper left:
@@ -42,7 +43,7 @@ local FT = FrameTree
 local MC = dofile(dir .. "/tests/materials_check.lua")
 
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
-local BUILTIN = { "glass", "framed", "minimal" }
+local BUILTIN = { "glass", "minimal" }
 -- The figures the panel's material is drawn to (tools/make_panel_textures.py,
 -- Prompt/Prompt.lua and Prompt/Text.lua, which must agree).
 local BEZEL_FRAME = 0.75
@@ -50,7 +51,7 @@ local PANE_EDGE, PANE_MID = 0.60, 0.78
 local NEUTRAL = { 0.42, 0.42, 0.46 }
 local REFUSAL_RED = { 0.80, 0.26, 0.22 }
 local WORLD_GREY = 0.15
-local FILES = { "GlassPane", "GlassLight", "IconBezel", "IconBezelRound", "TooltipRim" }
+local FILES = { "GlassPane", "GlassLight", "IconBezel", "IconBezelRound" }
 local GENERATOR = "tools/make_panel_textures.py"
 local python = os.getenv("MANNERS_PYTHON") or "python"
 
@@ -157,28 +158,22 @@ end
 
 -- ------------------------------------------------------------------ 1
 -- What each built-in look is made of.
-withTree("panel-material: the glass is a pane with its light, the framed look a rim, minimal neither", ANNA,
+withTree("panel-material: the glass is a pane with its light, minimal neither", ANNA,
 	function(ns, scenario)
 	for _, style in ipairs(BUILTIN) do
 		local r = upIn(ns, scenario, style)
-		local glass, framed = style == "glass", style == "framed"
+		local glass = style == "glass"
 		if not allShown(r.pane, glass) then
 			fail(scenario, style .. ": the nine pane pieces are not " .. (glass and "shown" or "hidden"))
 		end
 		if not allShown(r.glassLight, glass) then
 			fail(scenario, style .. ": the nine pieces of light are not " .. (glass and "shown" or "hidden"))
 		end
-		if not allShown(r.tooltipRim, framed) then
-			fail(scenario, style .. ": the nine rim pieces are not " .. (framed and "shown" or "hidden"))
-		end
-		if shown(r.panel) ~= framed then
-			fail(scenario, style .. ": the flat panel is " .. (shown(r.panel) and "shown" or "hidden"))
-		end
 		if r.sheen or r.hairTop or r.hairBottom or r.bevel or r.iconBack or r.iconEdge then
 			fail(scenario, style .. ": a region of the old glass (sheen, hairline, bevel or ring) is still handed out")
 		end
-		for _, edge in ipairs(r.edges or {}) do
-			if shown(edge) then fail(scenario, style .. ": one of the four old edges is drawn") break end
+		if r.tooltipRim or r.panel or r.edges then
+			fail(scenario, style .. ": a region of the retired framed look (rim, flat panel or edge lines) is still handed out")
 		end
 		if not shown(r.bezel) then fail(scenario, style .. ": the bezel is not shown round the icon") end
 		if glass and not tostring(r.pane[5]._file):find("GlassPane", 1, true) then
@@ -190,15 +185,12 @@ withTree("panel-material: the glass is a pane with its light, the framed look a 
 		if glass and r.glassLight[5]._blend ~= "BLEND" then
 			fail(scenario, "the glass's light is drawn " .. tostring(r.glassLight[5]._blend) .. ", not BLEND")
 		end
-		if framed and not tostring(r.tooltipRim[5]._file):find("TooltipRim", 1, true) then
-			fail(scenario, "the rim is not the tooltip's rail: " .. tostring(r.tooltipRim[5]._file))
-		end
 	end
 end)
 
 -- ------------------------------------------------------------------ 2
--- The framed look carries the stripe, as an inlay inside its rim.
-withTree("panel-material: framed carries the stripe", ANNA, function(ns, scenario)
+-- Both built-in looks carry the stripe, at the panel's left edge.
+withTree("panel-material: the built-in looks carry the stripe", ANNA, function(ns, scenario)
 	for _, style in ipairs(BUILTIN) do
 		for _, mode in ipairs({ "stripe", "both" }) do
 			local r = upIn(ns, scenario, style, function(p) p.accentMode = mode end)
@@ -210,7 +202,7 @@ withTree("panel-material: framed carries the stripe", ANNA, function(ns, scenari
 			end
 			local point = r.accentTop.points and r.accentTop.points[#r.accentTop.points]
 			local x = point and point[#point - 1] or 0
-			local want = style == "framed" and 3 or 0
+			local want = 0
 			if not near(x, want, 0.01) then
 				fail(scenario, ("%s puts the stripe %s units in, not %d"):format(style, tostring(x), want))
 			end
@@ -301,13 +293,13 @@ withTree("panel-material: the bezel fits the panel at the largest icon", ANNA, f
 end)
 
 -- ------------------------------------------------------------------ 5
--- The bezel sorts above the pane's light and the framed look's rim on the
+-- The bezel sorts above the pane's light on the
 -- same frame, and under the icon.
-withTree("panel-material: the bezel sits over the hairline and the rim", ANNA, function(ns, scenario)
+withTree("panel-material: the bezel sits over the hairline", ANNA, function(ns, scenario)
 	local r = upIn(ns, scenario, "glass")
 	local layers = { BACKGROUND = 1, BORDER = 2, ARTWORK = 3, OVERLAY = 4, HIGHLIGHT = 5 }
 	local function order(t) return (layers[t._layer] or 0) * 100 + (t._sublevel or 0) end
-	for _, piece in ipairs({ r.glassLight[1], r.glassLight[5], r.tooltipRim[1], r.tooltipRim[5] }) do
+	for _, piece in ipairs({ r.glassLight[1], r.glassLight[5] }) do
 		if piece._parent ~= r.bezel._parent then fail(scenario, "the bezel and the panel's material are on different frames") end
 		if order(piece) >= order(r.bezel) then
 			fail(scenario, ("the bezel (%s %s) does not sort above a piece of the material (%s %s)"):format(
@@ -383,7 +375,7 @@ withTree("panel-material: hover leaves in 0.18 s", ANNA, function(ns, scenario)
 	if (hover._alpha or 0) ~= 0 then fail(scenario, "a leave stopped early left the gold lit") end
 	-- And a look of its own never sees it.
 	local p = ns.db.profile.prompt
-	p.style = "luxe"
+	p.style = "leather"
 	ns.Prompt:ApplyStyle()
 	local before = hover.enter._plays
 	b.scripts.OnEnter(b)
@@ -429,7 +421,7 @@ withTree("panel-material: hover lifts again after a look from Looks/", ANNA, fun
 	Mock.advance(0.2)
 	FT.settle()
 	local p = ns.db.profile.prompt
-	p.style = "luxe"
+	p.style = "leather"
 	ns.Prompt:ApplyStyle()
 	p.style = "glass"
 	ns.Prompt:ApplyStyle()
@@ -493,11 +485,11 @@ withTree("panel-material: ink is judged on the pane", ANNA, function(ns, scenari
 			luminance(over(br, pane, ba), over(bg, pane, ba), over(bb, pane, ba))
 	end
 	for _, colour in ipairs({ { 0.04, 0.04, 0.06, 0.88 }, { 1, 1, 1, 1 }, { 0.2, 0.3, 0.6, 0.7 } }) do
-		for _, style in ipairs({ "glass", "framed" }) do
+		for _, style in ipairs({ "glass" }) do
 			local r, p = upIn(ns, scenario, style, function(q) q.bgColor = { colour[1], colour[2], colour[3], colour[4] } end)
 			-- The words sit on the pane's middle cell, PANE_MID as the file
 			-- states it (the texel above holds the file to it within its hair
-			-- of noise); the framed look's panel is the bare colour.
+			-- of noise).
 			local pane = style == "glass" and PANE_MID or 1
 			local wantLo, wantHi = ends(colour[1], colour[2], colour[3], colour[4], pane)
 			if not near(ink.lo, wantLo, 0.01) or not near(ink.hi, wantHi, 0.01) then
@@ -525,7 +517,7 @@ end)
 -- Every file the panel names ships, a power of two a side.
 withTree("panel-material: every texture path the panel names is on disk", ANNA, function(ns, scenario)
 	local lib = ns.Prompt.lib
-	for _, key in ipairs({ "GLASS_PANE", "GLASS_LIGHT", "BEZEL", "BEZEL_ROUND", "TOOLTIP_RIM" }) do
+	for _, key in ipairs({ "GLASS_PANE", "GLASS_LIGHT", "BEZEL", "BEZEL_ROUND" }) do
 		local path = lib[key]
 		if type(path) ~= "string" then
 			fail(scenario, "Prompt.lua names no " .. key)
@@ -588,15 +580,15 @@ withTree("panel-material: the generator draws the same bytes twice and what ship
 end)
 
 -- ------------------------------------------------------------------ 11
--- The pane and the rim stay under their caps; the vertex-tinted art is grey.
-withTree("panel-material: the pane and rim stay under their caps", ANNA, function(_, scenario)
-	for _, case in ipairs({ { "GlassPane", 0.80 }, { "TooltipRim", 0.80 } }) do
+-- The pane stays under its cap; the vertex-tinted art is grey.
+withTree("panel-material: the pane stays under its cap", ANNA, function(_, scenario)
+	for _, case in ipairs({ { "GlassPane", 0.80 } }) do
 		local ok, maxLuma = MC.capOK(dir .. "/Textures/" .. case[1] .. ".tga", case[2])
 		if not ok then
 			fail(scenario, ("%s.tga reaches luma %s, over its cap of %.2f"):format(case[1], tostring(maxLuma), case[2]))
 		end
 	end
-	for _, name in ipairs({ "GlassPane", "IconBezel", "IconBezelRound", "TooltipRim" }) do
+	for _, name in ipairs({ "GlassPane", "IconBezel", "IconBezelRound" }) do
 		if not MC.isGrey(dir .. "/Textures/" .. name .. ".tga") then
 			fail(scenario, name .. ".tga carries a colour of its own, and vertex colour tints it")
 		end

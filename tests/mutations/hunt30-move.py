@@ -266,7 +266,7 @@ mutate("Prompt/Refresh.lua",
        "\t\t\tif R.subText:IsShown() then SetLine(R.subText, L[\"Let go and it locks itself\"]) end\n",
        "\t\t\tif R.subText:IsShown() then SetLine(R.subText, \"|cffff8080\" .. L[\"not buffing while unlocked\"] .. \"|r\") end\n",
        "hunt30-move: the unlocked prompt's second line is the red warning",
-       expect=LINES + " (luxe)",
+       expect=LINES + " (leather)",
        script=S)
 
 # No tooltip over the unlocked prompt.

@@ -31,8 +31,8 @@ local FT = FrameTree
 
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
 local ANNA_BERT = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } }
-local BUILTIN = { "glass", "framed", "minimal" }
-local ALL = { "glass", "framed", "minimal", "luxe", "toast", "arcane" }
+local BUILTIN = { "glass", "minimal" }
+local ALL = { "glass", "minimal" }  -- and the looks from Looks/, added below
 
 local function withTree(scenario, names, body)
 	Mock.reset()
@@ -115,23 +115,7 @@ local function groupsOf(r)
 		for _, a in ipairs(look.refusal) do g.reject[#g.reject + 1] = a end
 		return g
 	end
-	if look.key == "luxe" then
-		g.arrive = { look.lockAnim }
-		g.land[#g.land + 1] = look.landAnim
-		g.land[#g.land + 1] = look.sheenAnim
-		g.reject[#g.reject + 1] = look.landAnim
-	elseif look.key == "toast" then
-		g.arrive = {}
-		for _, a in ipairs(look.arrive) do g.arrive[#g.arrive + 1] = a end
-		for _, a in ipairs(look.flareAnims) do
-			g.land[#g.land + 1] = a
-			g.reject[#g.reject + 1] = a
-		end
-	elseif look.key == "arcane" then
-		g.arrive = { look.lockAnim, look.runeFlareAnim }
-		g.land[#g.land + 1] = look.runeFlareAnim
-		g.land[#g.land + 1] = look.checkAnim
-	elseif look.key == "forge" then
+	if look.key == "forge" then
 		g.arrive = { look.heatAnim }
 		g.land[#g.land + 1] = look.hotAnim
 		g.reject[#g.reject + 1] = look.steamAnim
@@ -139,7 +123,7 @@ local function groupsOf(r)
 	return g
 end
 
--- Leather joins the looks asked every question here.
+-- The looks from Looks/ asked every question here.
 ALL[#ALL + 1] = "leather"
 ALL[#ALL + 1] = "forge"
 ALL[#ALL + 1] = "archmage"
@@ -167,7 +151,6 @@ for _, style in ipairs(ALL) do
 		owe(ns, "Anna Aim")
 		ns.addon:Tick()
 		local after = snapshot(g)
-		-- Toast shows the arrival's light for a favour just done, which this is.
 		if after.arrive <= before.arrive then
 			fail(scenario, "somebody buffing you did not play the arrival")
 		end
@@ -407,10 +390,10 @@ for _, style in ipairs(ALL) do
 		-- the art's own and runs on whatever look is up.
 		ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
 		ns.Prompt:ShowOutcome("cast", "Anna Aim")
-		-- (From one of the three built-in looks to another the frames are the
+		-- (From one built-in look to the other the frames are the
 		-- same and stay up, so those go to a look of its own.)
-		local builtin = style == "glass" or style == "framed" or style == "minimal"
-		ns.db.profile.prompt.style = builtin and "luxe" or "glass"
+		local builtin = style == "glass" or style == "minimal"
+		ns.db.profile.prompt.style = builtin and "leather" or "glass"
 		ns.Prompt:ApplyStyle()
 		ns.addon:Tick()
 		if playingIn({ g.land, g.reject }, { [r.settle] = true }) then
@@ -494,7 +477,7 @@ withTree("hunt35-effects: the effects stay inside their times", ANNA, function(n
 		within(g.land, 0.7, "a landing's effect")
 		within({ g.reject[1] }, 0.35, "a refusal's ring")
 		within(g.reject, 0.5, "a refusal's effect")
-		if style == "glass" or style == "framed" or style == "minimal" then
+		if style == "glass" or style == "minimal" then
 			within({ r.fx.echo.drop, r.burst.arrive, r.intro, r.rules[1].draw, r.rules[2].draw, r.reveal }, 0.5,
 				"the arrival")
 			within(g.land, 0.7, "a landing")
@@ -505,8 +488,6 @@ withTree("hunt35-effects: the effects stay inside their times", ANNA, function(n
 			breath = r.glow.pulse and r.glow.pulse._anims[1]._duration
 			local rim = r.rim.pulse and r.rim.pulse._anims[1]._duration
 			if breath ~= rim then fail(scenario, style .. ": the glow and the rim breathe at different rates") end
-		elseif r.look.key == "luxe" or r.look.key == "arcane" then
-			breath = r.look.pulseAnim._anims[1]._duration
 		else
 			breath = r.look.pulse[1]._anims[1]._duration
 		end
@@ -537,8 +518,8 @@ withTree("hunt35-effects: the owed breath is the reason's colour and a warm whit
 		fail(scenario, "the rim is not the warm white")
 	end
 	if rim._color[3] >= rim._color[1] then fail(scenario, "the warm white is not warm: blue is not under red") end
-	-- The other three look keep a warm ring over the same breath.
-	for _, style in ipairs({ "luxe", "toast", "arcane", "leather" }) do
+	-- Leather keeps a warm ring over the same breath.
+	for _, style in ipairs({ "leather" }) do
 		local rr = upIn(ns, scenario, style)
 		owe(ns, "Anna Aim")
 		ns.addon:Tick()
@@ -570,10 +551,10 @@ for _, style in ipairs(ALL) do
 		if cd._circular ~= true then fail(scenario, "the sweep's edge is not round with a round icon") end
 		p.roundIcon = false
 		ns.Prompt:ApplyStyle()
-		-- Toast's medallion and the Lightbringer's sun are round whatever the
+		-- The Lightbringer's sun is round whatever the
 		-- setting says, and the Archmage's hexagon is a hexagon: its sweep's
 		-- edge turns about the middle either way.
-		local want = style == "toast" or style == "archmage" or style == "lightbringer"
+		local want = style == "archmage" or style == "lightbringer"
 		if cd._circular ~= want then
 			fail(scenario, "the sweep's edge stayed round after the icon was squared: " .. tostring(cd._circular))
 		end
@@ -581,9 +562,8 @@ for _, style in ipairs(ALL) do
 end
 
 -- ------------------------------------------------------------------ 10
--- The glass has its pane and the light on it, the framed look its rim, and
--- neither wears the other's; minimal has none of them.
-withTree("hunt35-effects: the glass has a pane and its light, the framed look a rim, minimal neither", ANNA, function(ns, scenario)
+-- The glass has its pane and the light on it; minimal has neither.
+withTree("hunt35-effects: the glass has a pane and its light, minimal neither", ANNA, function(ns, scenario)
 	for _, style in ipairs(BUILTIN) do
 		local r = upIn(ns, scenario, style)
 		local pane = FT.visible(r.pane[1]) and FT.visible(r.pane[5])
@@ -594,16 +574,12 @@ withTree("hunt35-effects: the glass has a pane and its light, the framed look a 
 		if (style == "glass") ~= light then
 			fail(scenario, style .. ": the glass's light is " .. (light and "shown" or "hidden") .. " when it should not be")
 		end
-		local rim = FT.visible(r.tooltipRim[1]) and FT.visible(r.tooltipRim[9])
-		if (style == "framed") ~= rim then
-			fail(scenario, style .. ": the rim is " .. (rim and "shown" or "hidden") .. " when it should not be")
-		end
 		if not tostring(r.pane[5]._file):find("GlassPane", 1, true) then
 			fail(scenario, style .. ": the glass's pane is not the glass art")
 		end
 	end
 	local r = upIn(ns, scenario, "glass")
-	if #r.pane ~= 9 or #r.glassLight ~= 9 or #r.tooltipRim ~= 9 then
+	if #r.pane ~= 9 or #r.glassLight ~= 9 then
 		fail(scenario, "a slice of the panel's material is not nine pieces")
 	end
 	-- Scaled by the panel's own opacity, so a nearly clear panel keeps no light.
@@ -688,10 +664,8 @@ end
 withTree("hunt35-effects: the new art ships at the right size", ANNA, function(ns, scenario)
 	local files = {
 		"Textures/Glow", "Textures/GlowRound", "Textures/Ring", "Textures/RingSq",
-		"Textures/Luxe/Luxe_Spine", "Textures/Toast/Toast_MedShade",
 		"Textures/Rule", "Textures/Glint", "Textures/Shock", "Textures/Crack",
 		"Textures/GlassPane", "Textures/GlassLight", "Textures/IconBezel", "Textures/IconBezelRound",
-		"Textures/TooltipRim",
 	}
 	for _, name in ipairs(files) do
 		local h = header(dir .. "/" .. name .. ".tga")
@@ -710,7 +684,7 @@ withTree("hunt35-effects: the new art ships at the right size", ANNA, function(n
 	-- draws it, so none is left shipping unused.
 	local source = assert(io.open(dir .. "/Prompt/Prompt.lua", "r")):read("*a")
 	for _, name in ipairs({ "Ring", "RingSq", "Shock", "Glow", "GlowRound", "Rule", "Glint", "Crack",
-		"GlassPane", "GlassLight", "IconBezel", "IconBezelRound", "TooltipRim" }) do
+		"GlassPane", "GlassLight", "IconBezel", "IconBezelRound" }) do
 		if not source:find("Textures\\\\" .. name .. '"', 1, true) then
 			fail(scenario, "Textures/" .. name .. ".tga is not drawn by Prompt/Prompt.lua")
 		end
@@ -741,9 +715,6 @@ end
 local GENERATORS = {
 	{ "tools/make-glow.py", "Textures" },
 	{ "tools/make_panel_textures.py", "Textures" },
-	{ "tools/make_luxe_textures.py", "Textures/Luxe" },
-	{ "tools/make_toast_textures.py", "Textures/Toast" },
-	{ "tools/make_arcane_textures.py", "Textures/Arcane" },
 }
 
 local python = os.getenv("MANNERS_PYTHON") or "python"

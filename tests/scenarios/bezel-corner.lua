@@ -6,7 +6,7 @@
 -- glow and the warm white rim, Prompt/Prompt.lua's Halo) start a square gap
 -- out from the icon. So a lip the light lay on along every side turned each
 -- corner inside the gap, out of the light, and showed as a dark notch at the
--- four corners of every owed bezel in glass, framed and minimal. Panel.lua now
+-- four corners of every owed bezel in glass and minimal. Panel.lua now
 -- carries the halos' light in at each corner as far as the lip comes, where
 -- (and only where) the lip along the sides is in the light.
 --
@@ -32,7 +32,7 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
-local BUILTIN = { "glass", "framed", "minimal" }
+local BUILTIN = { "glass", "minimal" }
 local GLOW = "Interface\\AddOns\\Manners\\Textures\\Glow"
 local GENERATOR = "tools/make_panel_textures.py"
 -- The bezel file's texels, and where its lip runs in them (from the file's

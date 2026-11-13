@@ -1,14 +1,14 @@
--- Hunt 39: faults found in the six looks the last hunt did not cover (Glass,
--- Framed, Minimal, Luxe, Toast, Arcane) and in the paint path all nine share.
+-- Hunt 39: faults found in the looks the hunt before did not cover (of those
+-- still here, Glass and Minimal) and in the paint path every look shares.
 --
 -- Run on the recording CreateFrame in tests/frametree.lua. Every name starts
 -- with "hunt39-looks:" so a mutation can name exactly one.
 --
 -- What it holds:
---   * Glass and Framed take their shadow away with the panel's opacity: the
+--   * Glass takes its shadow away with the panel's opacity: the
 --     shadow's steps are whole rectangles that lie under the panel as well as
 --     round it, so a panel the player made see-through was a dark box all the
---     same (Luxe, Toast and Arcane drop theirs).
+--     same.
 
 local dir, H = ...
 local fail, load = H.fail, H.load
@@ -32,7 +32,7 @@ end
 
 -- ------------------------------------------------------------------ 1
 -- The glass's shadow does not darken a see-through panel.
-for _, style in ipairs({ "glass", "framed" }) do
+for _, style in ipairs({ "glass" }) do
 	local scenario = "hunt39-looks: " .. style .. " has no dark box under a see-through panel"
 	withTree(scenario, { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		freshPrompt(ns, scenario)

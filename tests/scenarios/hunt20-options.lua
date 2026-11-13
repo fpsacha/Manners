@@ -99,15 +99,15 @@ for _, case in ipairs(BOXES) do
 	session(scenario, function(ns, p)
 		p.speech.phrases = case.text
 		p.prompt.width = 260
-		p.prompt.style = "framed"
-		local ok, message = ns.ImportSettings(signed("prompt.width=400;prompt.style=toast"))
+		p.prompt.style = "minimal"
+		local ok, message = ns.ImportSettings(signed("prompt.width=400;prompt.style=ribbon"))
 		if not ok or p.prompt.width ~= 400 then
 			fail(scenario, "SKIPPED -- the stranger's string did not apply: " .. tostring(message))
 			return
 		end
 		Mock.printed = {}
 		ns.addon:HandleSlash("import undo")
-		if p.prompt.width ~= 260 or p.prompt.style ~= "framed" then
+		if p.prompt.width ~= 260 or p.prompt.style ~= "minimal" then
 			fail(scenario, ("/manners import undo left the imported look (width %s, %s): %s")
 				:format(tostring(p.prompt.width), tostring(p.prompt.style), said()))
 		end

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Four looks are retired: Framed, Luxe, Arcane and Toast.** Each was too
+  like one of its neighbours, and every look on the Look page should be its
+  own. If your prompt wore one of them, it now wears the nearest look that
+  remains: Framed and Luxe become **Glass**, Arcane becomes **Archmage**, and
+  Toast becomes **Ribbon**. A line in chat tells you so once, a few seconds
+  after you log in, and nothing else about your settings changes. Eight looks
+  remain, each a card under Look > *Panel style*: Glass, Minimal, Ribbon,
+  Letter, Leather, Forge, Archmage and Lightbringer.
 - **Everybody's first buff before anybody's second.** A priest or a druid in
   a party was kept on the first person for every buff in turn (Fortitude,
   then Divine Spirit, then Shadow Protection) while the others stood there

@@ -1,13 +1,12 @@
 # Mutations for round 22's fixes outside the options window: Salvation read on
 # somebody it cannot be cast on (Core.lua), a favour from another raid group to
 # a Salvation-only paladin (Favours.lua, Ledger.lua), the PvP hold counting
-# raiders a group spell cannot reach (GroupBuffs.lua), Luxe on a light panel
-# (Looks/Luxe.lua, Prompt/Text.lua), the pleases and punctuation of other
-# languages (Requests.lua), Toast's keycap, the preview's count, the ledger's
+# raiders a group spell cannot reach (GroupBuffs.lua), the pleases and
+# punctuation of other languages (Requests.lua), the preview's count, the ledger's
 # group cast line, a silent press holding the line (Clicks.lua, Queue.lua) and
 # a shout's thank-you beyond 20 yards (Core.lua, Prompt/Macro.lua). Each undoes
-# a fix and is caught by the scenario in tests/scenarios/hunt22-core.lua (or
-# readable-luxe.lua) it names.
+# a fix and is caught by the scenario in tests/scenarios/hunt22-core.lua it
+# names.
 #
 # Run by selftest.py with mutate() in scope.
 
@@ -94,28 +93,6 @@ mutate("GroupBuffs.lua",
        "hunt22-core: the PvP hold asks nobody's reach",
        expect="core22: a flagged raider dead does not hold the raid's group cast", script=S)
 
-# ------------------------------------------------------------ Luxe on a light panel
-# The tag's words held to the panel again: dark on the tag's dark fill.
-mutate("Looks/Luxe.lua",
-       "\tif kit.ink.light then tr, tg, tb = kit.Legible(tr, tg, tb, 4.5) end\n",
-       "\ttr, tg, tb = kit.Legible(tr, tg, tb, 4.5)\n",
-       "hunt22-core: Luxe's tag words held to a light panel",
-       expect="Luxe's tag and count keep their own ground on a light panel", script=S)
-
-# ...and the count on its chip.
-mutate("Looks/Luxe.lua",
-       "\tkit.count:SetTextColor(0.80, 0.81, 0.86, 1)\n",
-       "\tkit.count:SetTextColor(kit.Legible(0.80, 0.81, 0.86, 4.5))\n",
-       "hunt22-core: Luxe's count held to a light panel",
-       expect="the count reads", script=S)
-
-# ...and the colour codes the lines bring, taken dark for the panel.
-mutate("Looks/Luxe.lua",
-       "\tsubOnDark = true,\n",
-       "",
-       "hunt22-core: Luxe's tag codes taken dark",
-       expect="a reason line in |cffb0b0b0", script=S)
-
 # ------------------------------------------------------------ chat
 mutate("Requests.lua",
        "\t\t\tif Mark(words, phrase, covered) then pleased = true end\n",
@@ -174,13 +151,6 @@ mutate("Requests.lua",
        "\t\tfor _, run in ipairs(words) do\n",
        "hunt22-core: a Chinese sentence capped per clause",
        expect="core22: a request in zhCN with its own please and punctuation is heard", script=S)
-
-# ------------------------------------------------------------ Toast's keycap
-mutate("Looks/Toast.lua",
-       "\tif not (self.kit.button:GetAttribute(\"type1\") or (ns.Prompt and ns.Prompt:InTest())) then return nil end\n",
-       "\tif not (ns.db and ns.db.profile.prompt.locked) then return nil end\n",
-       "hunt22-core: Toast's keycap follows the lock",
-       expect="core22: Toast shows its keycap only where a press casts", script=S)
 
 # ------------------------------------------------------------ the preview's count
 mutate("Prompt/Refresh.lua",

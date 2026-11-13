@@ -7,6 +7,38 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 1.11.17 is released. Unreleased after it, both asked for on CurseForge:
 
+- Four looks retired, at the author's word ("they all should be unique. remove
+  the one that are too similar"): Framed and Luxe (heir Glass), Arcane (heir
+  Archmage), Toast (heir Ribbon). Eight remain: Glass, Minimal, Ribbon, Letter,
+  Leather, Forge, Archmage, Lightbringer. Gone for real: `Looks/Luxe.lua`,
+  `Toast.lua`, `Arcane.lua`, `Textures/Luxe`, `Toast`, `Arcane`, their three
+  generators, their own scenario and mutation files, their four card pictures,
+  Arcane's key-chip strings, and the tag the picker drew round Luxe's reason
+  line (`WidgetsTheme.lua`, `make_look_previews.py`: no look sets its reason in
+  a tag now). **Framed is removed whole, nothing left behind in
+  `Prompt/Panel.lua`:** its flat panel (`R.panel`), its rim (`R.tooltipRim`,
+  `Textures/TooltipRim.tga`, the rim in `make_panel_textures.py`), the rim's
+  copy in the edge light, the stripe's three-unit inlay and the four edge
+  lines kept hidden since the rim replaced them (`R.edges`). Panel.lua draws
+  two looks, Glass and Minimal. What is left of the four is in
+  `Looks/Looks.lua`: `Looks.retired` (key -> heir), their four names
+  (`RETIRED_TITLE`, the strings `Framed`, `Luxe`, `Arcane`, `Toast` kept in
+  every locale for the line below), `Looks.Heir`, and `Allowed`/`Choices`
+  skipping a retired key whatever registers under it. `ns.ClampSettings`
+  moves a saved style to its heir (the older `"blizzard"` first to `framed`,
+  then on) and says one line six seconds later, once; an imported string
+  naming one takes the same road. `tests/scenarios/looks-retired.lua`. Two
+  option descriptions that named Framed were reworded (new keys, the eight
+  translations edited the same way). The dropdown and the picker now begin
+  with Ribbon (order 4): Glass stays the default and seventh in the list, as
+  its order (10) always put it after the looks from `Looks/`. **Only the
+  game can say:** how the one line reads among a login's other lines. **For
+  the author:** `manners-looks.png` and `manners-actionbar.png` in
+  `.github/media/` still show the twelve looks and Arcane's key chip;
+  `tools/make-screenshots.py` now draws eight and Archmage, and the listing
+  text says eight, so the two pictures want retaking before the listings are
+  pasted.
+
 - A favour is not returned with a buff its giver already wears
   (`filters.repayCovered`, off: *Refresh a buff they already have, to return a
   favour*, When to offer, Buffing back). Queue.lua writes `opts.spareCovered`
@@ -327,7 +359,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the twelve looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the eight looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and
@@ -341,10 +373,10 @@ it made). What it cannot say, because only eyes can, and what to look at after
 it: Ribbon, Letter and Leather on the prompt (`/manners test` for a preview)
 and the Leather's strips really tiled; the Letter's unroll cut to the paper;
 the `launch.anim` line's `Scale(x, y) about LEFT` probe, which the two rules of
-light on Glass, Framed and Minimal lean on (CHECK or FAIL there means they draw
+light on Glass and Minimal lean on (CHECK or FAIL there means they draw
 from the wrong end or not at all); Glass over a snowfield for the edge light
 (never over 0.40) and the wave from the icon's right edge, which the renderer
-understates; Toast's hammered gold and rope ring; Forge's slot, sparks along
+understates; Forge's slot, sparks along
 the band and the steam puff, which the renderer shows faintly;
 the bar slot drawing the spell's icon, cooldown and range, and the note icon
 back with nobody to buff; the Manners macro on a bar: put it on a bar (Start
@@ -460,7 +492,7 @@ the pillar look over the world behind the panel, and whether art drawn past
 the button's bounds is clipped by anything the player has it parented near.
 
 **The new looks in the game.** Ribbon, Letter and Leather (1.10.0), Forge, the
-glass and tooltip-rim rebuild of Glass and Framed, Toast's re-gilding and the
+glass rebuild of Glass and the
 picker's cards (the player's own buff icon laid over each picture) have only
 been seen in the renderer: the real Morpheus face, masks, the scroll's unroll
 clip, the tiled leather and the tiled iron want a look in the client. So do the

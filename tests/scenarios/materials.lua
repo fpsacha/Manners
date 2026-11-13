@@ -7,7 +7,7 @@
 -- brightness before anything else leans on it.
 --
 -- Only the swatches are read here. A look's shipped files are its own
--- scenario file's business (look-toast-gold.lua, panel-material.lua,
+-- scenario file's business (panel-material.lua,
 -- look-forge.lua), each of which dofiles materials_check.lua and names its
 -- own files, so nothing here is edited by two worktrees at once.
 

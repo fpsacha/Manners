@@ -7172,7 +7172,6 @@ if ns then
 	drive(scenario, ns)
 
 	local db = ns.db.profile
-	local regions = ns.Prompt:Regions()
 	local appearance = ns.optionsTable and ns.optionsTable.args.appearance
 	local look = appearance and findOption(ns.optionsTable, "style")
 	if not (look and look.values) then
@@ -7194,40 +7193,17 @@ if ns then
 			fail(scenario, "the dropdown still offers a name the addon draws nothing for")
 		end
 
-		if not look.values.framed then
-			fail(scenario, "SKIPPED -- there is no framed look to check")
-		else
-			db.prompt.style = "framed"
-			ns.Prompt:ApplyStyle()
-			local drawn = 0
-			for _, piece in ipairs(regions.tooltipRim or {}) do
-				if piece:IsShown() then drawn = drawn + 1 end
-			end
-			if drawn < 9 then
-				fail(scenario, ("the look offered as %q draws %d of its nine rim pieces")
-					:format(tostring(look.values.framed), drawn))
-			end
-
-			-- And it is the thing that tells the two looks apart, so it must
-			-- not be on the other one.
-			db.prompt.style = "glass"
-			ns.Prompt:ApplyStyle()
-			for _, piece in ipairs(regions.tooltipRim or {}) do
-				if piece:IsShown() then
-					fail(scenario, "the rim is drawn on the glass look as well, so the two"
-						.. " entries in the dropdown are the same panel")
-					break
-				end
-			end
-		end
-
-		-- Anybody whose profile holds the old name keeps the look they picked,
-		-- rather than being quietly handed the default.
+		-- Anybody whose profile holds the oldest name is not quietly handed
+		-- the default: "blizzard" became Framed, which is retired since, so
+		-- the profile ends on Framed's heir and is told which look went.
 		db.prompt.style = "blizzard"
+		Mock.printed = {}
 		ns.ClampSettings()
-		if db.prompt.style ~= "framed" then
-			fail(scenario, "a profile written under the old name came back as "
-				.. tostring(db.prompt.style) .. " instead of the look it asked for")
+		Mock.runTimers(7)
+		local told = table.concat(Mock.printed, "\n")
+		if db.prompt.style ~= "glass" or not told:find("Framed", 1, true) then
+			fail(scenario, ("a profile written under the old name came back as %s, told %q,"
+				.. " instead of the look it asked for carried to its heir"):format(tostring(db.prompt.style), told))
 		end
 	end
 
@@ -7738,7 +7714,7 @@ Mock.missingLibs = nil
 -- green is what most people see most often.
 --
 -- And both carriers are switched off from somewhere other than the dropdown
--- that asks for them. ApplyStyle refuses the stripe on the framed look; the
+-- that asks for them. The
 -- ring is a texture behind the icon, so hiding the icon takes it -- and so does
 -- rounding the icon off, which puts a mask where the ring was. Pick the ring,
 -- round the icon, and the page reads "Ring around the icon" over a prompt with
@@ -7841,28 +7817,28 @@ if ns then
 		if not (tostring(said):lower():find("icon", 1, true) and tostring(said):find("switched off", 1, true)) then
 			fail(scenario, "the note does not name the setting that took the bezel away: " .. said)
 		end
-		if tostring(said):lower():find("ring", 1, true) or tostring(said):lower():find("framed", 1, true) then
-			fail(scenario, "the note describes a ring or a framed look without a stripe, which are not what happens: " .. said)
+		if tostring(said):lower():find("ring", 1, true) then
+			fail(scenario, "the note describes a ring, which is not what happens: " .. said)
 		end
 
-		-- The stripe is drawn on every look Prompt/Panel.lua draws, the framed
-		-- look included (an inlay inside its rim).
+		-- The stripe is drawn on every look Prompt/Panel.lua draws, Minimal
+		-- included (it has no panel, and still a left edge).
 		if state("stripe", "glass", true, false) then
 			fail(scenario, "a warning about a stripe that is being drawn")
 		end
-		if state("stripe", "framed", true, false) then
-			fail(scenario, "a warning about the stripe the framed look draws inside its rim")
+		if state("stripe", "minimal", true, false) then
+			fail(scenario, "a warning about the stripe Minimal draws at its left edge")
 		end
 
-		-- Both carriers up at once on the framed look with a rounded icon: the
+		-- Both carriers up at once on Minimal with a rounded icon: the
 		-- bezel and the stripe are both drawn, so there is nothing to say.
-		if state("both", "framed", true, true) then
-			fail(scenario, "both carriers are drawn on the framed look and the page warns: "
+		if state("both", "minimal", true, true) then
+			fail(scenario, "both carriers are drawn on Minimal and the page warns: "
 				.. tostring(note.name and note.name() or ""))
 		end
 
 		-- And asking for no accent is not a fault to be warned about.
-		if state("off", "framed", true, true) then
+		if state("off", "minimal", true, true) then
 			fail(scenario, "somebody switched the accent off and was warned that it is off")
 		end
 	end
@@ -8735,7 +8711,7 @@ do
 	-- one this is about.
 	for _, file in ipairs({ "Locales/Init.lua", "Buffs.lua", "Core.lua", "Range.lua",
 		"Speech.lua", "Queue.lua", "Requests.lua", "Favours.lua", "Clicks.lua",
-		"Commands.lua", "Ledger.lua", "Looks/Looks.lua", "Looks/Luxe.lua",
+		"Commands.lua", "Ledger.lua", "Looks/Looks.lua",
 		"Prompt/Prompt.lua", "Prompt/Text.lua", "Prompt/Effects.lua", "Prompt/Hold.lua",
 		"Prompt/Macro.lua", "Prompt/Press.lua", "Prompt/Button.lua", "Prompt/Panel.lua",
 		"Prompt/List.lua", "Prompt/Rows.lua", "Prompt/Fight.lua", "Prompt/Paint.lua", "Prompt/Refresh.lua",
@@ -11706,57 +11682,6 @@ if ns then
 			.. " and reported")
 	end
 	ns.addon:HandleSlash("try")
-end
-Mock.reset()
-
--- ------------------------------------------------------------------ 171
--- The framed look on a panel colour that is not the default dark one.
---
--- The border is derived from the panel rather than fixed, and the comment above
--- it says why: a light panel with a hardcoded pale border has no border at all.
--- The derivation was brightening towards white, which is that same failure
--- reached from the other side -- the lighter the panel, the less room there is
--- above it, so the edge converges on the panel exactly as the panel goes pale,
--- and on a white panel the two are the same colour.
-Mock.reset()
-ns = load("the framed border does not converge on a pale panel")
-if ns then
-	local scenario = "the framed border does not converge on a pale panel"
-	drive(scenario, ns)
-	ns.Prompt:ExitTest()
-
-	local p = ns.db.profile.prompt
-	p.style = "framed"
-
-	-- How far the rim's metal sits from the panel it is drawn on, in the channel
-	-- that carries most of the apparent brightness. Zero is a frame nobody can
-	-- see.
-	local function edgeGap(r, g, b)
-		p.bgColor = { r, g, b, 1 }
-		ns.Prompt:ApplyStyle()
-		local rim = ns.Prompt:Regions().tooltipRim
-		local c = rim and rim[1] and rim[1]._color
-		if not c then return nil end
-		return math.abs(c[2] - g)
-	end
-
-	local dark = edgeGap(0.04, 0.04, 0.06)
-	local pale = edgeGap(0.95, 0.96, 0.98)
-	local white = edgeGap(1, 1, 1)
-	if not (dark and pale and white) then
-		fail(scenario, "SKIPPED -- the framed look painted no rim to measure")
-	else
-		if white < 0.20 then
-			fail(scenario, ("a white panel got a border %0.3f away from it: the framed look"
-				.. " has no frame, which is the one thing the comment above the"
-				.. " derivation says it exists to prevent"):format(white))
-		end
-		if pale < dark * 0.5 then
-			fail(scenario, ("the border closes on the panel as the panel gets lighter --"
-				.. " %0.3f of separation on a dark panel, %0.3f on a pale one")
-				:format(dark, pale))
-		end
-	end
 end
 Mock.reset()
 

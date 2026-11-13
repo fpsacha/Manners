@@ -369,8 +369,8 @@ do
 			{ "D:/Projects/tests/Manners", "@D:/Projects/tests/Manners/tools/perf_world.lua", true },
 			{ "D:\\Projects\\tests\\Manners", "@D:\\Projects\\tests\\Manners\\Core.lua", false },
 			{ "D:\\Projects\\tests\\Manners", "@D:\\Projects\\tests\\Manners\\tests\\mockwidgets.lua", true },
-			{ "d:/projects/tests/manners", "@D:/Projects/tests/Manners/Looks/Toast.lua", false },
-			{ "/home/ci/work/Manners", "@/home/ci/work/Manners/Looks/Toast.lua", false },
+			{ "d:/projects/tests/manners", "@D:/Projects/tests/Manners/Looks/Ribbon.lua", false },
+			{ "/home/ci/work/Manners", "@/home/ci/work/Manners/Looks/Ribbon.lua", false },
 			{ "/home/ci/work/Manners", "@/home/ci/work/Manners/tests/mockapi.lua", true },
 			{ "/home/ci/work/Manners", "@/home/ci/work/Manners/tests/scenarios/perf-budget.lua", true },
 		}
@@ -449,17 +449,17 @@ end
 
 -- ------------------------------------------------------------------ budget 5
 -- The same city in every look, with a key bound to the prompt and without:
--- the budget above measured the default look alone. Toast measured the name
--- on every repaint and Arcane the count, and Arcane the name again on every
--- fit with a key bound, though FitLine had just measured it: a pcall a scan
--- each, which put both over the ceiling (Looks.lua: no pcall on a per-scan
+-- the budget above measured the default look alone. Two looks since retired
+-- measured the name or the count on every repaint, and one the name again on
+-- every fit with a key bound, though FitLine had just measured it: a pcall a
+-- scan each, which put both over the ceiling (Looks.lua: no pcall on a per-scan
 -- path). A look is the same on every client. The ceiling is the city's 8.1
 -- rounded up (10.1 until a shrunk line was remembered, hunt 41), not the quarter
 -- above it: each of those faults is one pcall a scan.
 do
 	local scenario = "perf-budget: a city scan in any look makes at most 9 pcalls"
 	local KEY, COMMAND = "F", "CLICK MannersPrompt:LeftButton"
-	for _, style in ipairs({ "glass", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer" }) do
+	for _, style in ipairs({ "glass", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer" }) do
 		for _, keyed in ipairs({ false, true }) do
 			local label = style .. (keyed and ", a key bound" or "")
 			local applied = true

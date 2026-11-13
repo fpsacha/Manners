@@ -10,18 +10,18 @@ S = "runscenarios.py"
 # --- Round the icon off ----------------------------------------------------
 
 # The one fault the hunt found: the switch was greyed out for the Letter's seal
-# and live on the Toast's and the Ribbon's medallions, which are round whatever
-# it says.
+# and live on the Ribbon's medallion (and a medallion since retired), which is
+# round whatever it says.
 mutate("Looks/Looks.lua",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true }\n",
+       "Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true }\n",
        "Looks.roundAlways = { letter = true, archmage = true, lightbringer = true }\n",
        "hunt38-picker: Round the icon off live on the medallions",
        expect="hunt38-picker: Round the icon off is greyed out", script=S)
 
 # A look that reads the switch greyed out with the others.
 mutate("Looks/Looks.lua",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true }\n",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, leather = true }\n",
+       "Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true }\n",
+       "Looks.roundAlways = { ribbon = true, letter = true, archmage = true, lightbringer = true, leather = true }\n",
        "hunt38-picker: Round the icon off greyed out on a look that reads it",
        expect="hunt38-picker: Round the icon off is greyed out", script=S)
 
@@ -34,25 +34,11 @@ mutate("Prompt/Panel.lua",
        "hunt38-picker: the look put away is never told to hide",
        expect="hunt38-picker: switching", script=S)
 
-# Luxe's hand-back of textLayer's frame level.
-mutate("Looks/Luxe.lua",
-       "\tkit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)\n\tkit.textLayer:SetAlpha(1)\n",
-       "\tkit.textLayer:SetAlpha(1)\n",
-       "hunt38-picker: Luxe keeps its frame level on the text layer",
-       expect="hunt38-picker: switching", script=S)
-
 # The built-in looks' frames of light left hidden after a look from Looks/.
 mutate("Prompt/Panel.lua",
        "\tR.glowFrame:Show()\n\tR.rimFrame:Show()\n",
        "\tR.rimFrame:Show()\n",
        "hunt38-picker: the glass's glow frame stays hidden after another look",
-       expect="hunt38-picker: switching", script=S)
-
-# Luxe's room for the reason line, which it keeps in Prompt's own table.
-mutate("Looks/Luxe.lua",
-       "\tkit.fit.room[kit.sub] = nil\n\tself.combat, self.hovered,",
-       "\tself.combat, self.hovered,",
-       "hunt38-picker: Luxe leaves its room for the reason line in Prompt's table",
        expect="hunt38-picker: switching", script=S)
 
 # --- a fight ---------------------------------------------------------------
@@ -85,8 +71,8 @@ mutate("Core.lua",
 # One look left out of the styles that may be saved: its players start on glass
 # at the next login.
 mutate("Looks/Looks.lua",
-       "\tfor key in pairs(Looks.list) do out[key] = true end\n",
-       "\tfor key in pairs(Looks.list) do out[key] = key ~= \"leather\" or nil end\n",
+       "\t\tif not Looks.retired[key] then out[key] = true end\n",
+       "\t\tif not Looks.retired[key] then out[key] = key ~= \"leather\" or nil end\n",
        "hunt38-picker: the leather style is not one that may be saved",
        expect="hunt38-picker: every look's style goes out in a string", script=S)
 

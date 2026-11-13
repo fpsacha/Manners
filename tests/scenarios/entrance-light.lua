@@ -2,7 +2,7 @@
 -- a beat, the glint a favour runs along the rules, and what Calm and a look
 -- from Looks/ keep of it.
 --
--- When the prompt comes up on glass, framed or minimal, two rules of light
+-- When the prompt comes up on glass or minimal, two rules of light
 -- draw themselves out from the icon along the panel's top and bottom edges
 -- while the panel rises, and the words arrive a beat behind them
 -- (Prompt/Effects.lua, Prompt:PlayIntro and BuildAnimations; Prompt/Panel.lua
@@ -190,7 +190,7 @@ local SIZES = {
 }
 local TIMES = { 0.01, 0.03, 0.05, 0.08, 0.12, 0.16, 0.20, 0.26, 0.30, 0.36, 0.42, 0.46 }
 
-for _, style in ipairs({ "glass", "framed", "minimal" }) do
+for _, style in ipairs({ "glass", "minimal" }) do
 	withTree(T .. "the rules stay off the words, in " .. style, ANNA, function(ns, scenario)
 		for _, size in ipairs(SIZES) do
 			local r = upIn(ns, scenario, style, function(p)
@@ -434,7 +434,7 @@ withTree(T .. "a style change mid-entrance leaves the words lit", ANNA, function
 	if not comeUp(ns) then fail(scenario, "SKIPPED -- the panel did not come up again") return end
 	Mock.advance(0.05)
 	if not r.reveal._playing then fail(scenario, "SKIPPED -- the second entrance is not under way") return end
-	ns.db.profile.prompt.style = "luxe"
+	ns.db.profile.prompt.style = "leather"
 	ns.Prompt:ApplyStyle()
 	wordsLit("a look applied mid-entrance")
 	if ns.Prompt.state.glintPlaying then fail(scenario, "a look applied left the glints' flag up") end
@@ -444,9 +444,9 @@ end)
 -- A look's fight dim is the look's own: a flourish in a fight leaves
 -- textLayer's alpha exactly where the look put it, on every look that dims
 -- its words.
-local FIGHT_DIM = { toast = 0.78, ribbon = 0.86, arcane = 0.80 }
+local FIGHT_DIM = { ribbon = 0.86 }
 withTree(T .. "a look's fight dim survives a flourish", ANNA, function(ns, scenario)
-	for _, style in ipairs({ "toast", "ribbon", "arcane" }) do
+	for _, style in ipairs({ "ribbon" }) do
 		local r = upIn(ns, scenario, style)
 		owe(ns, "Anna Aim")
 		ns.addon:Tick()
@@ -557,20 +557,20 @@ end)
 -- A look from Looks/ sees none of it: the rise alone on coming up, no glint
 -- for a favour.
 withTree(T .. "a look from Looks/ sees none of it", ANNA, function(ns, scenario)
-	local r = upIn(ns, scenario, "luxe")
+	local r = upIn(ns, scenario, "leather")
 	local groups = { reveal = r.reveal, draw1 = r.rules[1].draw, draw2 = r.rules[2].draw,
 		glint1 = r.glints[1].run, glint2 = r.glints[2].run }
 	local before = {}
 	for name, g in pairs(groups) do before[name] = plays(g) end
 	local intro = plays(r.intro)
 	if not comeUp(ns) then fail(scenario, "SKIPPED -- the panel did not come up") return end
-	if plays(r.intro) ~= intro + 1 then fail(scenario, "Luxe's panel did not come up with the rise") end
+	if plays(r.intro) ~= intro + 1 then fail(scenario, "Leather's panel did not come up with the rise") end
 	owe(ns, "Anna Aim")
 	ns.addon:Tick()
 	for name, g in pairs(groups) do
-		if plays(g) ~= before[name] then fail(scenario, "under Luxe the built-in " .. name .. " played") end
+		if plays(g) ~= before[name] then fail(scenario, "under Leather the built-in " .. name .. " played") end
 	end
-	if ns.Prompt.state.glintPlaying then fail(scenario, "under Luxe the glints' flag went up") end
+	if ns.Prompt.state.glintPlaying then fail(scenario, "under Leather the glints' flag went up") end
 end)
 
 -- ------------------------------------------------------------------ 12

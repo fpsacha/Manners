@@ -105,7 +105,7 @@ mutate(PROMPT,
        "lib.TEXT_LEVEL = 6\n",
        "lib.TEXT_LEVEL = 1\n",
        "hunt37: the text level is the light's level",
-       expect=BENEATH + "framed", script=S)
+       expect=BENEATH + "minimal", script=S)
 
 # The band across the panel raised over the text.
 mutate(PANEL,
@@ -124,63 +124,3 @@ mutate(EFFECTS,
        expect="hunt37-effects: each ring's declared reach is the reach of its art", script=S)
 
 # --- the looks of their own --------------------------------------------------
-
-mutate("Looks/Luxe.lua",
-       "\t\tself.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)\n",
-       "",
-       "hunt37: Luxe never holds its rings to the room",
-       expect=ROOM + "luxe", script=S)
-
-mutate("Looks/Luxe.lua",
-       "\t\t\tkit.CapScale(math.min(limitH, limitV), half + ringPad, 0.96))\n",
-       "\t\t\t9)\n",
-       "hunt37: Luxe's lock-on ring closes from past the room",
-       expect=ROOM + "luxe", script=S)
-
-mutate("Looks/Luxe.lua",
-       "\tself.pillFrame:SetFrameLevel(base + 5)\n",
-       "\tself.pillFrame:SetFrameLevel(base + 5)\n\tself.sheenFrame:SetFrameLevel(base + 6)\n",
-       "hunt37: Luxe's crossing light is drawn over the text",
-       expect=BENEATH + "luxe", script=S)
-
-mutate("Looks/Toast.lua",
-       "\t\tself.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)\n",
-       "",
-       "hunt37: Toast never holds its rings to the room",
-       expect=ROOM + "toast", script=S)
-
-mutate("Looks/Toast.lua",
-       "\t\tkit.CapLock(self.gather, nil, 1.30, 1, kit.CapScale(math.min(limitH, limitV), 0.725 * M, 0.78))\n",
-       "",
-       "hunt37: Toast's arrival ring gathers from past the room",
-       expect=ROOM + "toast", script=S)
-
-mutate("Looks/Toast.lua",
-       "\tfor _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 2) end\n",
-       "\tfor _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 4) end\n",
-       "hunt37: Toast's rings are drawn at the text's level",
-       expect=BENEATH + "toast", script=S)
-
-mutate("Looks/Arcane.lua",
-       "\tself.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)\n",
-       "",
-       "hunt37: Arcane never holds its rings to the room",
-       expect=ROOM + "arcane", script=S)
-
-mutate("Looks/Arcane.lua",
-       "\t\tkit.CapScale(math.min(limitH, limitV), iconSize / ICON_FRAME / 2, 0.98))\n",
-       "\t\t9)\n",
-       "hunt37: Arcane's lock-on ring closes from past the room",
-       expect=ROOM + "arcane", script=S)
-
-mutate("Looks/Arcane.lua",
-       "\truneRing.half = M / 2\n",
-       "\truneRing.half = M / 4\n",
-       "hunt37: Arcane's rune ring is sized as if it were a quarter as wide",
-       expect=ROOM + "arcane", script=S)
-
-mutate("Looks/Arcane.lua",
-       "\tfor _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 2) end\n",
-       "\tfor _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 4) end\n",
-       "hunt37: Arcane's rings are drawn at the text's level",
-       expect=BENEATH + "arcane", script=S)

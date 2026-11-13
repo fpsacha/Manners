@@ -156,11 +156,11 @@ mutate("Options/Look.lua", "\t\t\t\tsorting = select(2, ns.Looks.Choices()),\n",
 
 # --- the pictures ---------------------------------------------------------
 
-mutate("Looks/Luxe.lua", "local SPINE_X = 6\n", "local SPINE_X = 7\n",
-       "theme-picker: Luxe changes and its picture is not drawn again",
+mutate("Looks/Leather.lua", "local ENAMEL = 0.80\n", "local ENAMEL = 0.70\n",
+       "theme-picker: Leather changes and its picture is not drawn again",
        expect="theme-picker: the pictures were drawn from the looks as they are now", script=S)
 
-mutate("Looks/Previews.lua", "\tluxe = true,\n", "",
+mutate("Looks/Previews.lua", "\tleather = true,\n", "",
        "theme-picker: a look has no picture",
        expect="theme-picker: every look has a picture", script=S)
 
@@ -294,20 +294,20 @@ mutate("Looks/Looks.lua", "function Looks.PreviewIcon(key)\n\tif not Looks.previ
 
 # --- the icon data, and the tool that writes it -----------------------------
 
-mutate("Looks/Previews.lua", "\tluxe = { l = ", "\tluxe_ = { l = ",
+mutate("Looks/Previews.lua", "\tleather = { l = ", "\tleather_ = { l = ",
        "theme-picker: a look has no icon rectangle",
        expect=DATA, script=S)
 
-mutate("Looks/Previews.lua", "\ttoast = { l = 0.08554,", "\ttoast = { l = 0.09554,",
+mutate("Looks/Previews.lua", "\tribbon = { l = 0.09073,", "\tribbon = { l = 0.10073,",
        "theme-picker: a recorded icon rectangle is edited by hand",
        expect=HASH, script=S)
 
-mutate("Looks/Previews.lua", "round = true, mask = \"Interface\\\\AddOns\\\\Manners\\\\Textures\\\\Toast\\\\Toast_IconMask\", ",
+mutate("Looks/Previews.lua", "round = true, mask = \"Interface\\\\AddOns\\\\Manners\\\\Textures\\\\Ribbon\\\\Ribbon_Mask\", ",
        "round = false, ",
        "theme-picker: a round look is recorded square",
        expect=MASK, script=S)
 
-mutate("Looks/Previews.lua", "Textures\\\\Toast\\\\Toast_IconMask\"", "Textures\\\\Toast\\\\Toast_IconMaskX\"",
+mutate("Looks/Previews.lua", "Textures\\\\Ribbon\\\\Ribbon_Mask\"", "Textures\\\\Ribbon\\\\Ribbon_MaskX\"",
        "theme-picker: a round look's mask is a file that is not shipped",
        expect=MASK, script=S)
 

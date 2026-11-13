@@ -13,30 +13,6 @@ SWEEP = "hunt40-layout: the name never overlaps the count or the key chip, "
 
 # --- the count chip's room follows the count shown -----------------------------
 
-_m("Looks/Luxe.lua",
-   "\t\tkit.fit.chipRoom = math.max(self.roomBase or 0, chipW + 14)\n",
-   "\t\tkit.fit.chipRoom = self.roomBase or 0\n",
-   "Luxe keeps the room of two digits for a count of three",
-   expect=SWEEP + "luxe")
-
-_m("Looks/Toast.lua",
-   "\t\tkit.fit.chipRoom = math.max(self.roomBase or 0, math.ceil(self.countW) + 15)\n",
-   "\t\tkit.fit.chipRoom = self.roomBase or 0\n",
-   "Toast keeps the room of two digits for a count of three",
-   expect=SWEEP + "toast")
-
-_m("Looks/Arcane.lua",
-   "\t\tkit.fit.chipRoom = math.max(self.roomBase or 0, 10 + self.countW + 4)\n",
-   "\t\tkit.fit.chipRoom = self.roomBase or 0\n",
-   "Arcane keeps the room of two digits for a count of three",
-   expect=SWEEP + "arcane")
-
-_m("Looks/Arcane.lua",
-   "\tif self.badgeUp then self:PlaceBadge() end\n",
-   "",
-   "Arcane's badge stays where the keycap was after the keycap steps aside",
-   expect=SWEEP + "arcane")
-
 _m("Looks/Ribbon.lua",
    "\t\tfit.chipRoom = math.max(self.roomBase or 0, math.floor(beside + 0.5) + 5 + self.rightBase)\n",
    "\t\tfit.chipRoom = self.roomBase or 0\n",

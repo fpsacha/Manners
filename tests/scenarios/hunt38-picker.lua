@@ -12,7 +12,7 @@ local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
-local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer" }
+local STYLES = { "glass", "minimal", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer" }
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
 local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" },
 	nameplate3 = { "Corwin", "Ash" }, nameplate4 = { "Dagna", "Moss" } }
@@ -301,7 +301,7 @@ local function play(ns, scenario, variant, moment, a, b)
 	return out, mine
 end
 
-local NATIVE = { glass = true, framed = true, minimal = true }
+local NATIVE = { glass = true, minimal = true }
 
 local function compare(base, after, mine, a)
 	local out = {}
@@ -504,7 +504,7 @@ do
 		end
 		-- A saved profile, read at the next login.
 		for _, junk in ipairs(GARBAGE) do
-			for _, from in ipairs({ "glass", "luxe", "leather" }) do
+			for _, from in ipairs({ "glass", "leather" }) do
 				setStyle(ns, from)
 				p.style = junk
 				ns.ClampSettings()
@@ -521,13 +521,13 @@ do
 			setStyle(ns, "letter")
 			p.style = junk
 			local text = ns.ExportSettings()
-			setStyle(ns, "toast")
+			setStyle(ns, "forge")
 			local ok, message = ns.ImportSettings(text)
 			if not ok then fail(scenario, ("importing %s was refused: %s"):format(junk, tostring(message))) end
 			drawn("imported " .. junk)
 		end
 		-- And back: what an import changed, its undo puts back, the look included.
-		setStyle(ns, "arcane")
+		setStyle(ns, "archmage")
 		p.style = "ribbon"
 		local text = ns.ExportSettings()
 		setStyle(ns, "leather")
@@ -552,7 +552,7 @@ do
 		for _, key in ipairs(STYLES) do
 			setStyle(ns, key)
 			local text = ns.ExportSettings()
-			setStyle(ns, key == "glass" and "luxe" or "glass")
+			setStyle(ns, key == "glass" and "leather" or "glass")
 			local ok, message = ns.ImportSettings(text)
 			if not ok then
 				fail(scenario, ("%s's own string was refused: %s"):format(key, tostring(message)))

@@ -969,16 +969,16 @@ do
 
 	scenario = "selftest-launch: a look that does not end up on the prompt is a FAIL"
 	session(scenario, {}, function(ns)
-		local look = ns.Looks.Get("toast")
+		local look = ns.Looks.Get("leather")
 		local apply = ns.Prompt.ApplyStyle
 		-- The prompt keeps wearing what it wore.
 		ns.Prompt.ApplyStyle = function(self, ...)
-			if ns.db.profile.prompt.style == "toast" then return end
+			if ns.db.profile.prompt.style == "leather" then return end
 			return apply(self, ...)
 		end
 		local results = run(ns)
 		ns.Prompt.ApplyStyle = apply
-		expect(scenario, results, "launch.look.toast", "FAIL", "did not end up wearing it")
+		expect(scenario, results, "launch.look.leather", "FAIL", "did not end up wearing it")
 		local _ = look
 	end)
 
@@ -1058,7 +1058,7 @@ do
 		ns.OpenOptions("appearance", true)
 		ns.Prompt:ExitTest()
 		results = run(ns)
-		expect(scenario, results, "launch.picker", "PASS", "the window's own cards: 12 shown, 12 with the live icon")
+		expect(scenario, results, "launch.picker", "PASS", "the window's own cards: 8 shown, 8 with the live icon")
 		local row = ns.WindowUI.RowFor("appearance.style")
 		local hidden
 		for _, card in ipairs(row.cards) do

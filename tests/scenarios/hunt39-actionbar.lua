@@ -53,7 +53,7 @@ with("hunt39-actionbar: the key chip follows the controller's glyphs and the pad
 	local plain = Mock.bindingText
 	freshPrompt(ns, scenario)
 	local checked = 0
-	for _, style in ipairs({ "arcane", "toast", "ribbon", "letter", "leather", "forge" }) do
+	for _, style in ipairs({ "ribbon", "letter", "leather", "forge" }) do
 		for _, key in ipairs({ "PAD1", "SHIFT-PAD1" }) do
 			local tag = style .. ", " .. key
 			-- The first look at the controller: its buttons are the generic ones.

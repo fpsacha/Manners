@@ -1,6 +1,6 @@
 -- A flat prompt (1.11.9). A player asked for a minimal look with no border
 -- round the icon and no outline or shadow on the words. Look has two switches
--- for the built-in looks (Glass, Framed, Minimal): Frame round the icon (the
+-- for the built-in looks (Glass, Minimal): Frame round the icon (the
 -- bezel and the shade under the icon) and Shadow and outline on the text. Both
 -- on by default, so nothing changes for anybody who leaves them.
 --
@@ -42,7 +42,7 @@ end
 
 do
 	local scenario = "flatlook: the icon's frame is drawn by default and can be taken away"
-	for _, style in ipairs({ "glass", "framed", "minimal" }) do
+	for _, style in ipairs({ "glass", "minimal" }) do
 		withTree(scenario, function(ns)
 			local r = armed(ns, style)
 			if not shown(r.bezel) then fail(scenario, style .. ": no bezel by default") end

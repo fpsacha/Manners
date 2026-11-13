@@ -109,7 +109,7 @@ mutate("Options/Look.lua",
        "L[\"There is nothing left to colour: %s puts it on the icon, which is switched off.\"]",
        "L[\"There is nothing left to colour: the ring is drawn behind the icon, which is switched off.\"]",
        "look: dead-marker note describes the old ring",
-       expect="the note describes a ring or a framed look", script="runscenarios.py")
+       expect="the note describes a ring, which is not what happens", script="runscenarios.py")
 
 # --- dropdown order ---
 
@@ -213,9 +213,3 @@ mutate("Looks/Looks.lua",
        "look: the Glass card describes the old panel",
        expect="the glass card reads", script=S)
 
-# The Framed card back on a flat panel with a thin border.
-mutate("Looks/Looks.lua",
-       "description = L[\"dark panel, a tooltip's rim\"]",
-       "description = L[\"flat panel, thin border\"]",
-       "look: the Framed card describes the old panel",
-       expect="the framed card reads", script=S)

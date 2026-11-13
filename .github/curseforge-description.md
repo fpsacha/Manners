@@ -24,7 +24,7 @@ Turn on *List the next few below* (Look) and every name under the prompt is a bu
 
 ![The options window on Who to buff, with a paladin's buff order and the Move the prompt button in the header](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options.png)
 
-![Twelve looks for the prompt: Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Glass, Framed and Minimal, the same favour drawn in each](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
+![Eight looks for the prompt: Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Glass and Minimal, the same favour drawn in each](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
 ![The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
 
@@ -110,9 +110,9 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 
 ### Looks
 
-- **Twelve looks**, picked from cards in the options window: Glass (the default, after the game's own action bar: dark glass in gilt rails, the ready border running round your icon while you owe somebody, and a gryphon at each end if you switch them on), Framed (a thin rim, like the game's tooltips), Minimal (the words alone), Luxe (a slim dark card with a spine in the reason colour), Toast (a warm banner, gilded medallion), Arcane (smoked glass, a rim lit by the reason), Ribbon (a crimson ribbon and a gold medallion), Letter (a parchment scroll with a red wax seal), Leather (a stitched leather tag with a brass ring), Forge (forged iron and a riveted band, the reason glowing like heated steel), Archmage (a violet crystal, your spell in a hexagon of six arcane charges that light, travel and discharge in lightning) and Lightbringer (a paladin's silver and blue enamel, your spell in a golden sun, with a pillar of light and wings when your buff lands). On Glass, Framed and Minimal, rules of light draw out as the prompt comes up and the panel's edge lights when your buff lands. Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Eight looks**, picked from cards in the options window: Glass (the default, after the game's own action bar: dark glass in gilt rails, the ready border running round your icon while you owe somebody, and a gryphon at each end if you switch them on), Minimal (the words alone), Ribbon (a crimson ribbon and a gold medallion), Letter (a parchment scroll with a red wax seal), Leather (a stitched leather tag with a brass ring), Forge (forged iron and a riveted band, the reason glowing like heated steel), Archmage (a violet crystal, your spell in a hexagon of six arcane charges that light, travel and discharge in lightning) and Lightbringer (a paladin's silver and blue enamel, your spell in a golden sun, with a pillar of light and wings when your buff lands). On Glass and Minimal, rules of light draw out as the prompt comes up and the panel's edge lights when your buff lands. Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
-- **A flat prompt, if you like:** on Glass, Framed and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
+- **A flat prompt, if you like:** on Glass and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go. The game's Edit Mode unlocks it too, and locks it again when it closes.
 - **Minimap button** and addon compartment: click for options, shift-click for the ledger, right-click for a menu.
 

@@ -143,8 +143,8 @@ Mock.reset()
 -- imported colour is.
 for _, case in ipairs({
 	{ style = "glass", key = "bgColor", value = { 0.04, 0.04, 0.06, "x" } },
-	{ style = "luxe", key = "bgColor", value = { 0.04, 0.04, 0.06, true } },
-	{ style = "toast", key = "bgColor", value = { 0.04, 0.04, 0.06, "x" } },
+	{ style = "leather", key = "bgColor", value = { 0.04, 0.04, 0.06, true } },
+	{ style = "ribbon", key = "bgColor", value = { 0.04, 0.04, 0.06, "x" } },
 	{ style = "glass", key = "fontColor", value = { 1, 1, 1, "x" } },
 	{ style = "glass", key = "accentColor", value = { 0.4, 0.4, 0.9, {} } },
 	{ style = "glass", key = "bgColor", value = { 2, -1, 0.5, 3 }, want = { 1, 0, 0.5, 1 } },

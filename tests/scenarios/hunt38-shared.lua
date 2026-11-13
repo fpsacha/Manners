@@ -108,7 +108,7 @@ end
 
 -- ------------------------------------------------------------------ 2
 -- "Round the icon off" is greyed out wherever the icon is round whatever it
--- says (the Letter's seal, the Ribbon's and the Toast's medallions), and live
+-- says (the Letter's seal, the Ribbon's medallion), and live
 -- on every look that reads it: a toggle that does nothing is a lie.
 do
 	local scenario = "hunt38-shared: the round icon toggle is off where the icon is always round"
@@ -120,7 +120,7 @@ do
 		p.showIcon = true
 		-- The Archmage's icon is a hexagon and the Lightbringer's a sun, whatever
 		-- the toggle says.
-		local always = { letter = true, ribbon = true, toast = true, archmage = true, lightbringer = true }
+		local always = { letter = true, ribbon = true, archmage = true, lightbringer = true }
 		local keys = {}
 		for key in pairs(ns.Looks.Allowed()) do keys[#keys + 1] = key end
 		table.sort(keys)

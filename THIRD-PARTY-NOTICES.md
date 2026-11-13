@@ -54,10 +54,9 @@ this project's own too, drawn by its own scripts and shipped under the same
 licence: the prompt's light (`Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`,
 `Rule.tga`, `Glint.tga`, `Shock.tga`, `Crack.tga`, `tools/make-glow.py`), the
 built-in looks' material (`GlassPane.tga`, `GlassLight.tga`, `IconBezel.tga`,
-`IconBezelRound.tga`, `TooltipRim.tga`, `tools/make_panel_textures.py`)
-the art of the Arcane, Luxe, Toast, Ribbon, Letter, Leather and Forge looks
-(`Textures\Arcane`, `Luxe`, `Toast`, `Ribbon`, `Letter`, `Leather` and `Forge`,
-`tools/make_arcane_textures.py`, `make_luxe_textures.py`,
-`make_toast_textures.py`, `make_ribbon_textures.py`, `make_letter_textures.py`,
+`IconBezelRound.tga`, `tools/make_panel_textures.py`),
+the art of the Ribbon, Letter, Leather and Forge looks
+(`Textures\Ribbon`, `Letter`, `Leather` and `Forge`,
+`tools/make_ribbon_textures.py`, `make_letter_textures.py`,
 `make_leather_textures.py` and `make_forge_textures.py`), and the pictures on the
 look cards (`Textures\Previews`, `tools/make_look_previews.py`).
