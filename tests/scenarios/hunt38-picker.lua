@@ -12,7 +12,7 @@ local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
-local STYLES = { "glass", "minimal", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer" }
+local STYLES = { "glass", "minimal", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel" }
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
 local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" },
 	nameplate3 = { "Corwin", "Ash" }, nameplate4 = { "Dagna", "Moss" } }

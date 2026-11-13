@@ -8,7 +8,7 @@
 | `manners-actionbar.png` | On a key, a bar or a controller | Bind Buff the prompted player to a key, or drop the Manners macro on any action bar slot: the slot shows the spell a press would cast, with its cooldown. A controller button bound the same way works too, and the prompt shows the button's picture. |
 | `manners-yourself.png` | Your own buffs too | When your own armor, poison or buff is missing, you come up on the prompt as "You": a mage's armor, a rogue's poison for the main hand, your own Arcane Intellect. |
 | `manners-options.png` | Set it up in one window | Open it with /manners or the minimap button. Shown on Who to buff for a paladin with a buff order of its own, and Move the prompt one click away in the header. |
-| `manners-looks.png` | Eight looks to choose from | Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Glass and Minimal, the same favour drawn in each; click a card under Look to switch. |
+| `manners-looks.png` | Nine looks to choose from | Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Glass and Minimal, the same favour drawn in each; click a card under Look to switch. |
 | `manners-ledger.png` | The favour ledger | Who buffed you, whether you returned it, and who you buffed without being asked. Open it with /manners ledger. |
 | `manners-languages.png` | In your language | English and eight translations, chosen by your game client. Shown here in German, French and Simplified Chinese. |
 | `manners-palette.png` | A palette for colour blindness | The five reason colours redrawn for red-green colour blindness, one setting away under Look > Style. |

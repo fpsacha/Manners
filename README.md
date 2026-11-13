@@ -511,7 +511,7 @@ and the only thing it ever says in chat is a new title.
 
 ## The prompt's look
 
-Eight looks, each a card under Look > *Panel style* that you click to switch:
+Nine looks, each a card under Look > *Panel style* that you click to switch:
 
 - **Glass** (the default): the game's own action bar. A dark pane of glass
   in beaded gilt rails, the spell icon set in a metal bezel that brightens
@@ -536,6 +536,13 @@ Eight looks, each a card under Look > *Panel style* that you click to switch:
   you, the sun breathes while you owe them, and wings of light spread when
   your buff lands. The sun turns slowly at rest; *Animations* on *Calm* stills
   it. The icon is always round on this look.
+- **Fel**: a warlock's slab of black felsteel, cracked and lit from within by
+  fel fire, your spell in a summoning circle of eight runes under a demon's
+  horns, and a soul shard held in a claw at the far end. The runes light one
+  after another when somebody buffs you, the circle turns while you owe them,
+  and a gout of fel flame and a shadow bolt answer when your buff lands. Fel
+  fire burns along its foot at rest; *Animations* on *Calm* stills it. The
+  icon is always round on this look.
 
 Pick your own colours and fonts too; LibSharedMedia is supported.
 

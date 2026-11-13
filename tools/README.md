@@ -515,7 +515,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the eight looks, named |
+| `manners-looks.png` | the same favour in each of the nine looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
@@ -951,6 +951,38 @@ sides); it used to draw such a piece unmirrored. It reads the eight-number
 SetTexCoord where it is a quarter turn of a piece (`Looks/Flow.lua` lays one
 strip along a box's four sides with it), and writes every Flow as it stands
 at the picture's moment (`Flow.TickAll`), since the mock runs no OnUpdate.
+It draws a Rotation animation too: the texture the group is on, turned as
+far as the picture's moment has it, about the animation's origin (a point of
+the region and an offset; `tests/frametree.lua` records the degrees), which
+is how Fel's runes go round their circle and Lightbringer's sun turns in a
+GIF. `render_prompt.TURNS = False` leaves turns undrawn, and
+`make_look_previews.py` sets it: a card is a still.
+
+## make_fel_textures.py
+
+The twenty-eight files of `Textures/Fel/` (the slab in three pieces, the
+right one twice the slab's height for its horns; the fire behind the cracks;
+the fire along the foot, a sheet of sixteen frames; the gout, another; the
+summoning circle's disc, its eight runes, its drawn lines, the bloom, the
+band; one horn; the soul shard and its light; the vein, the bolt, the ember,
+the smoke, the star, the round mask, the ring, the tag, the bead, the
+shadow, the glyphs, the rim's light, the shard struck). Felsteel under luma
+0.42 and horn under 0.52, lit through `materials.py` and a second time from
+below in fel green (`underlit`); the horns are figures (`figures.py`, cut
+with `facet`, ringed with `line`). The slab's cracks are holes in its alpha,
+for the scrolled fire under it. Both sheets are drawn by `tongues()`: columns
+of flame whose heights drift round a loop, read further sideways the higher
+they climb, over noise that rises a whole number of its periods in the
+loop, so the last frame leads back to the first and every frame tiles along
+its length (`tile_noise`). Needs scipy as well as numpy and Pillow. `--out
+DIR` writes the same files to DIR (what `tests/scenarios/look-fel.lua`
+compares with what ships, twice, byte for byte), `--sheet FILE` draws a
+contact sheet and `--reach` prints the ring file's peak and reach. The
+figures `Looks/Fel.lua` must agree with (`ICON_FRAME`, `CIRCLE_SCALE`,
+`DESIGN_H`, `CAP_W`, `FORK_W`, `FORK_OVER`, `TILE_W`, `SHARD_AT`, `SHARD_H`,
+`RUNES`, `RUNE_R`, `RUNE_BOX`, `HORN_X`, `HORN_Y`, `HORN_SIZE`, the two
+sheets' `COLS`, `ROWS` and `FRAMES`, `TAG_CAPS`, `MASK_FILL`, `RING_AT`) sit
+at the top of the script and `look-fel.lua` holds each to its twin.
 
 ## make_glass_textures.py
 
