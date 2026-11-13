@@ -584,13 +584,15 @@ function Page.BuildDiagnosticsTab()
 					return ("Manners |cffffffff%s|r"):format(tostring(ns.BUILD))
 				end,
 			},
-			-- Who makes Manners, and the character they play: a credit and nothing
+			-- Who makes Manners, and the character they play, in the window's footer
+			-- under the build (Options/Window/Layout.lua): a credit and nothing
 			-- more. Blizzard's add-on policy forbids an add-on to ask for
 			-- donations in the game, gold included, so this line asks for nothing
 			-- and never will (tests/scenarios/about.lua holds every language to it).
 			aboutNote = {
 				type = "description",
-				order = 32,
+				-- Its own place in the fallback dialog too, right under the build.
+				order = 31.2,
 				fontSize = "medium",
 				name = function()
 					return L["Manners is made by fpsacha, who plays %s on the RP-PvP server of WoW Forever."]

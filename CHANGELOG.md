@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Who makes Manners** is now at the foot of the options window, under the
+  version, on every page.
+
 ## 1.11.17
 
 - **A new look: Lightbringer.** A paladin's, in the Silver Hand's colours: a
