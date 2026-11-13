@@ -82,8 +82,8 @@ mutate("Looks/Frost.lua",
        expect="the mist is coloured", script=S)
 
 mutate("Looks/Frost.lua",
-       "\tself.rune:SetVertexColor(vr, vg, vb, 1)\n",
-       "\tself.rune:SetVertexColor(r, g, b, 1)\n",
+       "\tColour(self.rune, vr, vg, vb)\n",
+       "\tColour(self.rune, r, g, b)\n",
        "look-frost: the rune coloured whatever the marker",
        expect="the rune is coloured", script=S)
 
@@ -276,8 +276,8 @@ mutate("Looks/Frost.lua",
        expect="a refusal did not leave the mist spent", script=S)
 
 mutate("Looks/Frost.lua",
-       "\t\t\tt:SetVertexColor(DEAD[1], DEAD[2], DEAD[3], 1)\n",
-       "\t\t\tt:SetVertexColor(1, 1, 1, 1)\n",
+       "\t\t\tColour(t, DEAD[1], DEAD[2], DEAD[3])\n",
+       "\t\t\tColour(t, 1, 1, 1)\n",
        "look-frost: ice greyed by a refusal and no duller",
        expect="a refusal did not dull the crystal", script=S)
 
@@ -408,8 +408,8 @@ mutate("Looks/Frost.lua",
        expect="the mist's two layers run the same way", script=S)
 
 mutate("Looks/Frost.lua",
-       "\t\t{ x0 + span * 0.30, -9 * lift, 5, self.upper + 9 * lift - 2 },\n",
-       "\t\t{ x0 + span * 0.30, -9 * lift, 5, H * 0.8 },\n",
+       "\t\t{ x0 + span * 0.30, -16 * lift, 6, self.upper + 16 * lift - 2 },\n",
+       "\t\t{ x0 + span * 0.30, -16 * lift, 6, H * 0.8 },\n",
        "look-frost: snow falling across the words",
        expect="falls across the words", script=S)
 
@@ -484,10 +484,16 @@ mutate("Looks/Frost.lua",
        expect="does not stand proud of the slab", script=S)
 
 mutate("Looks/Frost.lua",
-       "\tlocal ph = math.min(H - 2 * plateIn, math.max(W * SLAB_MAX, (fs + 2 + sub + 4) / FACE))\n",
+       "\tlocal ph = math.min(math.max(H - 2 * plateIn, math.min(need, H * SLAB_OVER)), math.max(W * SLAB_MAX, need))\n",
        "\tlocal ph = H - 2 * plateIn\n",
        "look-frost: shards as wide as a tall button",
        expect="and its end takes", script=S)
+
+mutate("Looks/Frost.lua",
+       "local SLAB_OVER = 1.12\n",
+       "local SLAB_OVER = 0.5\n",
+       "look-frost: a slab held inside a low button, the name on its frosted rim",
+       expect="tall under two lines of", script=S)
 
 # --- the words ---
 
@@ -502,6 +508,26 @@ mutate("Looks/Frost.lua",
        "",
        "look-frost: the reason line in the reason's colour however dark",
        expect="the reason line reads at", script=S)
+
+mutate("Looks/Frost.lua",
+       "local SUB_CONTRAST = 7\n",
+       "local SUB_CONTRAST = 4.5\n",
+       "look-frost: the small reason line held only to the tags' contrast",
+       expect="the reason line reads at", script=S)
+
+# The game keeps one alpha for a texture: a colour with an alpha of 1 lights
+# what SetAlpha dimmed.
+mutate("Looks/Frost.lua",
+       "\tt:SetVertexColor(r, g, b, t:GetAlpha() or 1)\n",
+       "\tt:SetVertexColor(r, g, b, 1)\n",
+       "look-frost: a colour that writes an alpha of 1 over a dimmed light",
+       expect="look-frost: a colour leaves every light as faint as it was", script=S)
+
+mutate("Looks/Frost.lua",
+       "\tColour(self.core, o[1], o[2], o[3])\n",
+       "\tself.core:SetVertexColor(o[1], o[2], o[3], 1)\n",
+       "look-frost: a verdict's colour lighting the vein's core in full",
+       expect="a verdict's colour lit the vein's core", script=S)
 
 mutate("Looks/Frost.lua",
        "\tlocal vr, vg, vb = kit.Legible(o[1], o[2], o[3], SUB_CONTRAST)\n",

@@ -16,7 +16,7 @@
 --   * a settings string from somebody else that names a retired look ends on
 --     its heir as well;
 --   * the picker's cards and the fallback dialog's dropdown offer exactly the
---     ten looks there are, in the same order;
+--     eleven looks there are, in the same order;
 --   * Looks.Allowed() refuses the four keys, and Looks.Choices() offers none
 --     of them, whatever registers under one;
 --   * nothing of the four still ships: no file the toc names, no texture

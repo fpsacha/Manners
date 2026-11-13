@@ -59,7 +59,14 @@
 --     the words and greys the icon; the mist, the rune and the vein keep
 --     their colour;
 --   * the icon is the slider's size and always round ("Round the icon off"
---     reads nothing here).
+--     reads nothing here);
+--   * the words read: the name and the reason line stand on the deep ice
+--     over a full dark shadow, the reason line and the verdict held to a
+--     contrast of 7, and the slab stands a little past a low button so the
+--     name keeps clear of the frosted rim;
+--   * a colour never lights what was dimmed: the game keeps one alpha for a
+--     texture, so every colour goes through Colour, which keeps the alpha
+--     the texture has.
 
 local _, ns = ...
 local L = ns.L
@@ -118,6 +125,8 @@ local PLATE_IN = 0.05
 -- The slab is no taller than this much of the button's width, unless the
 -- words need more: the face they stand on is this much of its height.
 local SLAB_MAX, FACE = 0.30, 0.60
+-- How tall the slab may stand against the button where the words need it.
+local SLAB_OVER = 1.12
 -- How far a middle tile may be stretched to end on a whole one.
 local STRETCH = 0.20
 -- How far right of its middle the crystal is seen, as a fraction of its box;
@@ -126,9 +135,10 @@ local STRETCH = 0.20
 local CRYSTAL_REACH, TEXT_GAP, BARE_GAP = 0.46, 3, 15
 -- The deep ice's own luminance under the words, its darkest and its
 -- brightest (as greys, a crack's pale lip counted in), for Legible; and the
--- contrast the reason line is held to on it.
+-- contrast the reason line and the verdict are held to on it: 7, not the 4.5
+-- of the tags, since the line is small.
 local TABLE_LO, TABLE_HI = 0.03, 0.22
-local SUB_CONTRAST = 5.5
+local SUB_CONTRAST = 7
 -- A chosen panel colour is mixed this far into the slab.
 local BODY_MIX = 0.25
 -- The list's sheet: its nine-slice corner, in units.
@@ -245,6 +255,15 @@ local function Box(t, rel, x0, y0, x1, y1)
 	t:ClearAllPoints()
 	t:SetPoint("TOPLEFT", rel, "TOPLEFT", x0, -y0)
 	t:SetPoint("BOTTOMRIGHT", rel, "TOPLEFT", x1, -y1)
+end
+
+-- A texture's colour, its alpha left as it stands. The game keeps ONE alpha
+-- for a texture: SetVertexColor's fourth number writes over what SetAlpha
+-- set, so a light dimmed or parked at nothing and then coloured with an
+-- alpha of 1 would stand at full strength. Every colour given to a region
+-- whose alpha means something goes through here.
+local function Colour(t, r, g, b)
+	t:SetVertexColor(r, g, b, t:GetAlpha() or 1)
 end
 
 local function Each(s, method, ...)
@@ -915,7 +934,11 @@ function Frost:Apply(p, above)
 	-- than it is wide the slab keeps to a part of the width (and to what the
 	-- words need), and lies across the button's middle.
 	local plateIn = math.max(1, math.floor(H * PLATE_IN + 0.5))
-	local ph = math.min(H - 2 * plateIn, math.max(W * SLAB_MAX, (fs + 2 + sub + 4) / FACE))
+	-- The words want a face as tall as their two lines and a little over, so
+	-- that the name keeps clear of the frosted rim over it: where the button
+	-- is too low for that, the slab stands SLAB_OVER past it, above and below.
+	local need = (fs + 2 + sub + 4) / FACE
+	local ph = math.min(math.max(H - 2 * plateIn, math.min(need, H * SLAB_OVER)), math.max(W * SLAB_MAX, need))
 	plateIn = (H - ph) / 2
 	local su = ph / DESIGN_H
 	local plateX = showIcon and cx or 0
@@ -977,7 +1000,7 @@ function Frost:Apply(p, above)
 
 	-- The cursor's light over the upper rim.
 	Box(self.hoverFrame, art, plateX + 4, plateIn, rootX, plateIn + 22 * su)
-	self.hoverLight:SetVertexColor(FROSTLIGHT[1], FROSTLIGHT[2], FROSTLIGHT[3], 1)
+	Colour(self.hoverLight, FROSTLIGHT[1], FROSTLIGHT[2], FROSTLIGHT[3])
 
 	local block = fs + 2 + sub
 	self.blockH = block
@@ -1674,16 +1697,16 @@ function Frost:Dress()
 	for _, t in ipairs(self.icy) do
 		t:SetDesaturated(fight or dead)
 		if fight then
-			t:SetVertexColor(DULL[1], DULL[2], DULL[3], 1)
+			Colour(t, DULL[1], DULL[2], DULL[3])
 		elseif dead then
-			t:SetVertexColor(DEAD[1], DEAD[2], DEAD[3], 1)
+			Colour(t, DEAD[1], DEAD[2], DEAD[3])
 		else
-			t:SetVertexColor(1, 1, 1, 1)
+			Colour(t, 1, 1, 1)
 		end
 	end
 	for _, t in ipairs(self.baked) do
 		t:SetDesaturated(fight)
-		if fight then t:SetVertexColor(DULL[1], DULL[2], DULL[3], 1) else t:SetVertexColor(1, 1, 1, 1) end
+		if fight then Colour(t, DULL[1], DULL[2], DULL[3]) else Colour(t, 1, 1, 1) end
 	end
 	-- The slab: dimmed for a fight; greyed with the rest by a refusal.
 	local pc = self.bodyColour or { 1, 1, 1 }
@@ -1694,7 +1717,7 @@ function Frost:Dress()
 		fr, fg, fb = DEAD[1], DEAD[2], DEAD[3]
 	end
 	Each(self.body, "SetDesaturated", fight or dead)
-	Each(self.body, "SetVertexColor", pc[1] * fr, pc[2] * fg, pc[3] * fb, 1)
+	for _, t in ipairs(self.body) do Colour(t, pc[1] * fr, pc[2] * fg, pc[3] * fb) end
 end
 
 -- What a refusal leaves: the slab cracked and dull, the mist spent, the rime
@@ -1740,17 +1763,17 @@ function Frost:Tint(r, g, b, ring, stripe)
 		self:Mist(cr, cg, cb)
 	end
 	local hr, hg, hb = kit.Tint(cr, cg, cb, 0.45)
-	self.halo:SetVertexColor(hr, hg, hb, 1)
+	Colour(self.halo, hr, hg, hb)
 	local gr, gg, gb = kit.Tint(cr, cg, cb, 0.75)
-	for _, t in ipairs(self.glints) do t:SetVertexColor(gr, gg, gb, 1) end
-	self.rune:SetVertexColor(vr, vg, vb, 1)
-	self.runeGlow:SetVertexColor(vr, vg, vb, 1)
+	for _, t in ipairs(self.glints) do Colour(t, gr, gg, gb) end
+	Colour(self.rune, vr, vg, vb)
+	Colour(self.runeGlow, vr, vg, vb)
 	self.vein:SetVertexColor(vr, vg, vb, VEIN_ALPHA)
 	local ir, ig, ib = kit.Tint(vr, vg, vb, 0.45)
-	self.core:SetVertexColor(ir, ig, ib, 1)
+	Colour(self.core, ir, ig, ib)
 	local fr, fg, fb = kit.Tint(vr, vg, vb, FLASH_WHITE)
-	self.hot:SetVertexColor(fr, fg, fb, 1)
-	self.star:SetVertexColor(fr, fg, fb, 1)
+	Colour(self.hot, fr, fg, fb)
+	Colour(self.star, fr, fg, fb)
 	-- The reason line: a pale haze taken most of the way to the reason, held
 	-- to a strong contrast on the deep ice.
 	local sr = HAZE[1] + (r - HAZE[1]) * 0.6
@@ -1758,7 +1781,7 @@ function Frost:Tint(r, g, b, ring, stripe)
 	local sb = HAZE[3] + (b - HAZE[3]) * 0.6
 	sr, sg, sb = kit.Legible(sr, sg, sb, SUB_CONTRAST)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
-	self.glyph:SetVertexColor(sr, sg, sb, 1)
+	Colour(self.glyph, sr, sg, sb)
 	self.tint = { cr, cg, cb }
 end
 
@@ -2049,13 +2072,13 @@ function Frost:PaintOutcome(kind, lead, sub, who, stamp)
 	StopAll(self.calm)
 	StopAll(self.once)
 	if self.grown and not self.meltAnim:IsPlaying() then self.rimeFrame:SetAlpha(1) end
-	self.core:SetVertexColor(o[1], o[2], o[3], 1)
+	Colour(self.core, o[1], o[2], o[3])
 	self.refused = kind == "failed"
 	if self.refused then self:Spend() end
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], SUB_CONTRAST)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
-	self.glyph:SetVertexColor(vr, vg, vb, 1)
+	Colour(self.glyph, vr, vg, vb)
 	kit.icon:SetDesaturated(self.refused or self.combat or false)
 	self.glyph:SetTexture(ART .. (kind == "failed" and "Cross" or "Check"))
 	self.glyphOn = kind ~= "sent"
@@ -2098,7 +2121,7 @@ function Frost:PaintQueue(rows, shown, above)
 
 	for i = 1, shown do
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
-		self.beads[i]:SetVertexColor(c[1], c[2], c[3], 1)
+		Colour(self.beads[i], c[1], c[2], c[3])
 		self.beads[i]:Show()
 	end
 	-- Laid out again only when the number of rows or the side changes: the

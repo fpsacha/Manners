@@ -43,7 +43,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 **Four looks retired (Unreleased)**, at the author's word ("they all should be unique. remove
 the one that are too similar"): Framed and Luxe (heir Glass), Arcane (heir
 Archmage), Toast (heir Ribbon). Eight remain: Glass, Minimal, Ribbon, Letter,
-Leather, Forge, Archmage, Lightbringer (ten with Fel and Wild, below). Gone for real: `Looks/Luxe.lua`,
+Leather, Forge, Archmage, Lightbringer (eleven with Fel, Wild and Frost, below). Gone for real: `Looks/Luxe.lua`,
 `Toast.lua`, `Arcane.lua`, `Textures/Luxe`, `Toast`, `Arcane`, their three
 generators, their own scenario and mutation files, their four card pictures,
 Arcane's key-chip strings, and the tag the picker drew round Luxe's reason
@@ -362,7 +362,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the ten looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the eleven looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and
@@ -557,6 +557,41 @@ its second half takes up from the first without a held frame; whether the
 vine's sheets, two texels to a unit at the default width and stretched on a
 wide panel, are too soft at a large UI scale; and whether the picker's card, which cuts the antlers off at its
 upper edge, wants a taller view.
+
+**Frost (Unreleased), asked for by the author as a frost mage's look.**
+`Looks/Frost.lua`, `Textures/Frost/` (`tools/make_frost_textures.py`,
+thirty-six files), key `frost`, order 9.8 (after Wild, before Glass), in
+`Looks.roundAlways`. By `Looks/Flow.lua`: the mist in the ring round the icon
+(two layers of one REPEAT texture scrolled against one another, cut to the
+ring by a mask), the rime (two sheets of sixteen frames creeping from both
+ends at once, played once when a favour arrives) and three snowflakes (a
+sheet of sixteen each, at its own pace). The rest are animation groups: the
+Ice Block shut over the icon and shattered, its fractures and Frost Nova's
+ring (ADD, under 0.6 s), eight shards flung, the snowflakes' splinters, a
+refusal's cracks (they stay), melting rime and falling icicles; at rest
+(`look.idle`) four glints, five flakes of snow and a drop from an icicle.
+Two things were done for the two complaints players made of other looks.
+The words: the name and the reason line stand on the deep ice over a full
+dark shadow, the reason line and the verdict held to a contrast of 7
+(`SUB_CONTRAST`), and where the button is too low for its two lines the
+slab stands up to 1.12 of the button's height (`SLAB_OVER`) so the name
+keeps clear of the frosted rim. The alpha: every colour given to a texture
+whose alpha means something goes through `Colour`, which hands
+`SetVertexColor` the alpha the texture already has, because the game keeps
+one alpha for a texture and a colour with an alpha of 1 would light what
+`SetAlpha` dimmed (`look-frost: a colour leaves every light as faint as it
+was` makes the mock's textures behave so). Only the live game can say: that
+`GetAlpha` on a texture an Alpha animation is playing on answers the
+texture's own alpha and not the animated one (if it answers the animated
+one, a colour given mid-flash would hold the flash's light until the next
+`Rest`); how the mist's two layers read at the game's filtering under the
+mask; how bright the fractures and the nova are in ADD over the icon (the
+renderer understates them); whether the rime's two halves meet in the
+middle without a seam on a wide panel; that a desaturated texture takes its
+vertex colour, as the fight's dulling and a refusal's greying assume; how
+the reason line reads at 10 pt in the game's own face on the ice (the
+renderer's stand-in is bolder); and whether the picker's card, which cuts
+the rime's spikes and the icicles' points at its edges, wants a taller view.
 
 **The new looks in the game.** Ribbon, Letter and Leather (1.10.0), Forge, the
 glass rebuild of Glass and the

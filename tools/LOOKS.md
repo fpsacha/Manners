@@ -23,6 +23,19 @@ the kit it is handed. This file is the recipe and the rules of taste.
   draws its small letters as hair-thin capitals, and a reason line set in it
   could not be read in the game (1.11.18, Ribbon). The renderer's stand-in
   fonts are bolder than the game's, so a picture is no proof of legibility.
+  The small second line is the one players lose: give it a full dark shadow
+  and hold it to a contrast of 7 on the look's own ground (`SUB_CONTRAST` in
+  Archmage and Frost), and leave the two lines room clear of any bright rim
+  (`python tools/render_options.py --check --pages appearance` measures the
+  card's).
+- **A colour keeps its alpha.** The game keeps one alpha for a texture:
+  `SetVertexColor(r, g, b, 1)` writes over what `SetAlpha` set, and a light
+  meant to be faint or parked at nothing stands at full strength (Glass,
+  1.11.19, in a player's screenshot). Colour a dimmed texture with the alpha
+  it has (`Frost.lua`'s `Colour`), or put the alpha back after
+  (`Glass:PaintReason`), and hold it with a scenario that makes the mock's
+  textures behave as the game's (`look-frost: a colour leaves every light as
+  faint as it was`).
 
 ## The tools
 

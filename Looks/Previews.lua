@@ -52,8 +52,8 @@ ns.Looks.previewText = {
 		reason = { l = 0.27016, t = 0.53226, r = 0.90323, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.768, 0.444, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 	frost = {
-		name = { l = 0.30081, t = 0.29032, r = 0.81452, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 0.95 } } },
-		reason = { l = 0.30081, t = 0.53226, r = 0.81452, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.836, 0.58, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 1 } } },
+		name = { l = 0.30081, t = 0.29032, r = 0.79032, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 0.95 } } },
+		reason = { l = 0.30081, t = 0.53226, r = 0.79032, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.836, 0.58, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 1 } } },
 	},
 	glass = {
 		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
@@ -84,4 +84,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "2702c82eecbb65014096a5199d0458fa4a364f62d1093242c10896129670921e"
+ns.Looks.previewHash = "465a2c8835d50279dd9b567ebb31878231dd870f6ad5e0abae127c334ccf8c64"

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Looks
+
+- **A new look: Frost.** A frost mage's: a slab of glacial ice hung with
+  icicles, your spell in a frozen ring inside an ice crystal, a frost rune at
+  the far end. Frost creeps along it when somebody buffs you, an Ice Block
+  shatters off your spell when your buff lands, and a refusal cracks the slab.
+  Eleven looks now.
 - **A new look: Wild.** A druid's, and the Cenarion Circle's, named for Mark
   of the Wild: a bough of living wood, bark and moss round a face of dark
   heartwood; your spell in a wreath of woven branches under a stag's

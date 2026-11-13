@@ -511,7 +511,7 @@ and the only thing it ever says in chat is a new title.
 
 ## The prompt's look
 
-Ten looks, each a card under Look > *Panel style* that you click to switch:
+Eleven looks, each a card under Look > *Panel style* that you click to switch:
 
 - **Glass** (the default): the game's own action bar. A dark pane of glass
   in beaded gilt rails, the spell icon set in a metal bezel that brightens
@@ -551,6 +551,15 @@ Ten looks, each a card under Look > *Panel style* that you click to switch:
   lands. The water ripples, the leaves stir, fireflies wander and a wisp
   goes round the moon at rest; *Animations* on *Calm* stills it. The icon
   is always round on this look.
+- **Frost**: a frost mage's slab of glacial ice, rimed and hung with
+  icicles, your spell in a frozen ring inside a six-pointed ice crystal, and
+  a frost rune among shards at the far end. Frost creeps along the slab when
+  somebody buffs you and snowflakes crystallise on it while you owe them; an
+  Ice Block shuts over your spell and shatters when your buff lands, with
+  Frost Nova's ring behind it; a refusal cracks the slab and breaks the
+  icicles off. Mist drifts in the ring, the ice glints, snow falls and an
+  icicle drips at rest; *Animations* on *Calm* stills it. The icon is always
+  round on this look.
 
 Pick your own colours and fonts too; LibSharedMedia is supported.
 

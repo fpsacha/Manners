@@ -515,7 +515,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the ten looks, named |
+| `manners-looks.png` | the same favour in each of the eleven looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
@@ -1016,6 +1016,30 @@ sit at the top of the script and `look-wild.lua` holds each to its twin.
 `render_prompt.py` draws a desaturated texture as the game does: the art is
 greyed and then takes its vertex colour (Wild's leaves, browned by a
 refusal), where it used to grey the tinted product.
+
+## make_frost_textures.py
+
+The thirty-six files of `Textures/Frost/` (the slab of glacial ice in three
+pieces, the right one twice the slab's height for its shards; the
+six-pointed crystal; the mist, the ring it is cut to, the lip and the light
+over it; the rune and its light; an icicle, a flake of snow, a drop, a
+shard, a splinter; the rime, two sheets of sixteen frames, one for each
+half of it; the hoar laid over the rim; the snowflake, a sheet of sixteen;
+the Ice Block and its fractures, Frost Nova's ring, a refusal's crack, the
+vein, the star, the round mask, the ring, the tag, the list's crystal and
+its plank, the shadow, the glyphs, the rim's light, the rune lit). The ice
+is lit through `materials.py` and the crystals are cut from outlines by
+`figures.py` (`facet`), so it needs scipy as well as numpy and Pillow. The
+mist tiles both ways and the slab's middle along its width. `--out DIR`
+writes the same files to DIR (what `tests/scenarios/look-frost.lua`
+compares with what ships, twice, byte for byte), `--sheet FILE` draws a
+contact sheet and `--reach` prints the ring file's peak and reach. The
+figures `Looks/Frost.lua` must agree with (`ICON_FRAME`, `CIRCLE_SCALE`,
+`DESIGN_H`, `CAP_W`, `END_W`, `END_OVER`, `END_ROOT`, `TILE_W`, `RUNE_AT`,
+`RUNE_SIZE`, the rime's `COLS`, `ROWS`, `FRAMES` and `ROOT`, the
+snowflake's `COLS`, `ROWS` and `FRAMES`, `TAG_CAPS`, `MASK_FILL`,
+`RING_AT`) sit at the top of the script and `look-frost.lua` holds each to
+its twin.
 
 ## make_glass_textures.py
 

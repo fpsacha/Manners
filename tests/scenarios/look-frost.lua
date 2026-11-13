@@ -50,7 +50,7 @@ local SLAB_MAX = 0.30
 local FLOURISH = 0.6
 -- The deep ice at its brightest, as a grey, and the contrast the reason line
 -- is held to on it.
-local TABLE_HI, SUB_CONTRAST = 0.22, 5.5
+local TABLE_HI, SUB_CONTRAST = 0.22, 7
 local DRIP = 2
 
 -- Every file the generator writes (its docstring lists them), as the Lua
@@ -573,10 +573,12 @@ withTree("look-frost: a refusal cracks the slab, drops the icicles and dulls the
 		if look.icicleUp[i] then
 			hung = hung + 1
 			if not FT.visible(t) then fail(scenario, "icicle " .. i .. " is said to hang and is not drawn") end
-			-- Under the slab: its top inside the panel, its point below it.
+			-- Under the slab: its top inside the slab (which may stand a little
+			-- past the panel for the words' sake), its point below it.
 			local lo, hi = FT.span(t, "y")
 			local alo, ahi = FT.span(look.kit.art, "y")
-			if not (hi <= ahi and hi > alo and lo < alo) then fail(scenario, "icicle " .. i .. " does not hang under the slab") end
+			local foot = alo + look.plateIn
+			if not (hi <= ahi and hi > foot and lo < foot and lo < alo) then fail(scenario, "icicle " .. i .. " does not hang under the slab") end
 		end
 	end
 	if hung < 3 then fail(scenario, "SKIPPED -- only " .. hung .. " icicles hang at the default size") return end
@@ -957,6 +959,12 @@ withTree("look-frost: the words start past the crystal at every size", ANNA, fun
 		if look.ph > math.max(p.width * SLAB_MAX, (block + 4) / 0.60) + 0.01 then
 			fail(scenario, ("%s: the slab is %.1f tall, and its end takes %.0f%% of the width"):format(label, look.ph, 100 * look.ph / p.width))
 		end
+		-- And no lower than the words need: the face is as tall as the two
+		-- lines and a little over, so the name keeps clear of the frosted rim
+		-- (the slab stands up to 1.12 of the button's height for it).
+		if look.ph * 0.60 < math.min(block + 4, p.height * 1.12 * 0.60) - 0.01 then
+			fail(scenario, ("%s: the face is %.1f tall under two lines of %d"):format(label, look.ph * 0.60, block))
+		end
 		-- The rune lies in the socket: on the slab's middle line.
 		local rlo, rhi = FT.span(look.rune, "y")
 		if not near((rlo + rhi) / 2, (slo + shi) / 2, 0.05) then fail(scenario, label .. ": the rune does not lie on the slab's middle line") end
@@ -1009,6 +1017,80 @@ withTree("look-frost: the words are held to a strong contrast, the reason line o
 	-- The list's names too.
 	local row = look.kit.rows[1]
 	if row and row._textColor and contrast(row._textColor) < 4.5 then fail(scenario, "the list's names read under 4.5 : 1") end
+end)
+
+-- The game keeps one alpha for a texture: SetVertexColor's fourth number
+-- writes over what SetAlpha set (a light meant to be faint stood at full
+-- strength in a player's screenshot of another look). Every texture of the
+-- look is made to behave as the game's does here, and a colour -- a reason's,
+-- a fight's dulling, a verdict's -- must leave every alpha as it was: the
+-- lights parked at nothing stay dark, the faint ones faint.
+withTree("look-frost: a colour leaves every light as faint as it was", ANNA, function(ns, scenario)
+	local look = atRest(ns, scenario)
+	if skipped(scenario, look) then return end
+	local list = {}
+	for _, t in ipairs(look.own) do
+		if type(t.SetVertexColor) == "function" and type(t.GetAlpha) == "function" then
+			local set = t.SetVertexColor
+			t.SetVertexColor = function(self, cr, cg, cb, ca, ...)
+				if ca ~= nil then self:SetAlpha(ca) end
+				return set(self, cr, cg, cb, ca, ...)
+			end
+			list[#list + 1] = t
+		end
+	end
+	if #list < 40 then fail(scenario, "only " .. #list .. " textures of the look were found to hold to it") end
+	-- The mist's second layer and the vein are given their alpha with their
+	-- colour, in the one call: painted once so they stand as the game has them.
+	look:PaintReason(0.5, 0.5, 0.9, "owed", "both")
+	if not (near(look.vein:GetAlpha(), 0.60, 0.001) and near(look.mist[2]:GetAlpha(), 0.55, 0.001)) then
+		fail(scenario, "the vein and the mist's second layer are not at the alpha their colour names")
+	end
+	local function held(what, act)
+		local before = {}
+		for i, t in ipairs(list) do before[i] = t:GetAlpha() or 1 end
+		act()
+		for i, t in ipairs(list) do
+			if not near(t:GetAlpha() or 1, before[i], 0.001) then
+				fail(scenario, ("%s took %s from alpha %s to %s"):format(what, tostring(t._file):match("[^\\]+$") or ("texture " .. i),
+					tostring(before[i]), tostring(t:GetAlpha())))
+			end
+		end
+	end
+	-- What rests dark or faint is so to begin with, or the scenario holds nothing.
+	for name, t in pairs({ halo = look.halo, hot = look.hot, star = look.star, nova = look.nova, hover = look.hoverLight }) do
+		if (t:GetAlpha() or 1) > 0.001 then fail(scenario, "at rest the " .. name .. " is lit: " .. tostring(t:GetAlpha())) end
+	end
+	if not ((look.runeGlow:GetAlpha() or 1) < 0.5 and (look.core:GetAlpha() or 1) < 0.5) then
+		fail(scenario, "at rest the rune's light and the vein's core are not faint")
+	end
+	for _, mode in ipairs({ "both", "icon", "stripe", "off" }) do
+		held("a reason's colour with the marker " .. mode, function() look:PaintReason(0.2, 0.8, 0.3, "owed", mode) end)
+	end
+	held("the ice dressed again", function() look:Dress() end)
+	-- A fight dulls the ice by its colour: nothing parked dark comes up.
+	fight(ns, true)
+	tick(ns)
+	held("a fight's dulling", function() look:Dress() end)
+	held("a reason's colour in a fight", function() look:PaintReason(0.9, 0.3, 0.3, "owed", "both") end)
+	for name, t in pairs({ halo = look.halo, hot = look.hot, star = look.star, nova = look.nova }) do
+		if (t:GetAlpha() or 1) > 0.001 then fail(scenario, "in a fight the " .. name .. " is lit: " .. tostring(t:GetAlpha())) end
+	end
+	fight(ns, false)
+	tick(ns)
+	-- A verdict colours the vein's core, which stays faint; a refusal's
+	-- greying brings up nothing but its cracks.
+	ns.Prompt:ShowOutcome("cast", "Anna Aim", "x")
+	if (look.core:GetAlpha() or 1) > 0.61 then fail(scenario, "a verdict's colour lit the vein's core at " .. tostring(look.core:GetAlpha())) end
+	Mock.advance(2)
+	FT.settle()
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	Mock.advance(2)
+	FT.settle()
+	held("a refused slab dressed again", function() look:Dress() end)
+	for name, t in pairs({ halo = look.halo, hot = look.hot, star = look.star, nova = look.nova }) do
+		if (t:GetAlpha() or 1) > 0.001 then fail(scenario, "after a refusal the " .. name .. " is lit: " .. tostring(t:GetAlpha())) end
+	end
 end)
 
 -- ------------------------------------------------------------------ 16
