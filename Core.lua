@@ -4754,6 +4754,25 @@ function ns.ClampSettings()
 	-- The look once called "blizzard" is "framed" now; carried across rather
 	-- than reset to the default by the oneOf below.
 	if p.style == "blizzard" then p.style = "framed" end
+	-- A look since retired is carried to the one that took its place
+	-- (Looks/Looks.lua, Looks.retired), not reset to the default.
+	-- Said once, a little after the screen is up: the prompt looks different,
+	-- and the changelog is not where a player looks for why.
+	do
+		local was = p.style
+		local heir = ns.Looks.Heir(was)
+		if heir then
+			p.style = heir
+			if C_Timer and C_Timer.After then
+				C_Timer.After(6, function()
+					ns.Guard("retired look", function()
+						addon:Print(L["The look %s has been retired, so your prompt now wears %s. The other looks are on the Look page."]:format("|cffffffff" .. (ns.Looks.Card(was)) .. "|r",
+							"|cffffffff" .. (ns.Looks.Card(heir)) .. "|r"))
+					end)
+				end)
+			end
+		end
+	end
 	-- Every look Looks/ registered, the three Prompt/Panel.lua draws among
 	-- them.
 	oneOf(p, "style", ns.Looks.Allowed(), ns.defaults.profile.prompt.style)

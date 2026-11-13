@@ -65,6 +65,7 @@ L["every spell you know is switched off under Who to buff"] = "你已学会的�
 L["Above the action bars"] = "动作条上方"
 L["Under the minimap"] = "小地图下方"
 L["Middle of the screen"] = "屏幕中央"
+L["The look %s has been retired, so your prompt now wears %s. The other looks are on the Look page."] = "外观 %s 已停用，你的提示框现在使用 %s。其他外观在“外观”页面。"
 L["the prompt was moved onto its new anchor, the middle of the screen. If you had put it at the bottom edge on purpose, drag it back or pick a place under |cffffd100Where it sits|r on the options page."] = "提示框已移到新的锚点：屏幕中央。如果你是有意把它放在屏幕底边的，请把它拖回去，或在选项页面的|cffffd100所在位置|r中选一个位置。"
 L["build |cffffd100%s|r -- this class has no buffs to cast on other players."] = "版本|cffffd100%s|r——此职业没有可以给其他玩家加的增益。"
 L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."] = "版本|cffffd100%s|r——|cffff8080此配置文件已关闭|r；输入|cffffd100/manners on|r即可开始。"

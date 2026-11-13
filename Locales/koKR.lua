@@ -65,6 +65,7 @@ L["every spell you know is switched off under Who to buff"] = "배운 주문이 
 L["Above the action bars"] = "행동 단축바 위"
 L["Under the minimap"] = "미니맵 아래"
 L["Middle of the screen"] = "화면 가운데"
+L["The look %s has been retired, so your prompt now wears %s. The other looks are on the Look page."] = "%s 모양은 없어졌으므로 알림창이 이제 %s 모양을 씁니다. 다른 모양은 모양 페이지에 있습니다."
 L["the prompt was moved onto its new anchor, the middle of the screen. If you had put it at the bottom edge on purpose, drag it back or pick a place under |cffffd100Where it sits|r on the options page."] = "알림창을 새 기준점인 화면 가운데로 옮겼습니다. 일부러 화면 아래쪽 가장자리에 두었다면, 다시 끌어다 놓거나 설정 창의 |cffffd100위치|r 항목에서 위치를 고르세요."
 L["build |cffffd100%s|r -- this class has no buffs to cast on other players."] = "빌드 |cffffd100%s|r -- 이 직업은 다른 플레이어에게 시전할 버프가 없습니다."
 L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."] = "빌드 |cffffd100%s|r -- |cffff8080이 프로필에서 꺼져 있음|r; 시작하려면 |cffffd100/manners on|r 입력."
