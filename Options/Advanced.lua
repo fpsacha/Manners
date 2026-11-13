@@ -45,6 +45,7 @@ end
 Page.RESET = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
+		"buff.tanksOutside",
 		"sources.owed", "sources.group", "sources.strangers", "sources.asked", "sources.self",
 		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
 		"ownBuffs.shoutAlone", "ownBuffs.scrolls", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
@@ -79,6 +80,7 @@ Page.RESET = {
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget",
+		"filters.repayCovered",
 		after = function()
 			-- keepDebts can only go from off to on here, which deletes
 			-- nothing; SaveDebts is still what its setter runs, so the two
@@ -138,6 +140,7 @@ Page.RESET.advanced = {
 	"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
 	"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
 	"prompt.reasonRefresh", "prompt.reasonUnknown",
+	"filters.repayCovered",
 	after = Page.RESET.when.after,
 }
 
@@ -255,6 +258,22 @@ function Page.BuildAdvancedTab()
 				disabled = function() return not (S().owed or P().thankEmote) end,
 				get = sGet,
 				set = sSet,
+			},
+			-- Somebody who buffed you and already wears everything you could
+			-- give them, with time to spare: off, nothing is offered and the
+			-- favour is let go (Queue.lua, LetGoCovered); on, what they hold is
+			-- refreshed to return it, as it was before a priest asked.
+			repayCovered = {
+				type = "toggle",
+				name = L["Refresh a buff they already have, to return a favour"],
+				desc = L["Off, somebody who buffs you and already has everything you could give them, with time to spare, is offered nothing, whoever cast it: a thank-you is enough, and the favour is let go. A buff they are missing, or one about to run out, is still offered back."]
+					.. "\n\n" .. L["On, the buff they already have is offered again to return the favour."],
+				order = 11.5,
+				width = "full",
+				hidden = NoOthers,
+				disabled = function() return not S().owed end,
+				get = fGet,
+				set = fSet,
 			},
 			-- Every one of these is a number of seconds. There is no suffix
 			-- field on an AceConfig range, so the unit goes in the name or it

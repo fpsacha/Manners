@@ -49,6 +49,12 @@ function Page.BuildWhenTab()
 					if not HasClassBuffs() then
 						return L["Your own buffs are offered when none is up; with Offer a top-up when it runs low, also when one is running out (never an aura or an aspect)."]
 					end
+					-- By default not somebody who already has it with time to
+					-- spare (Buffing back, "Refresh a buff they already have,
+					-- to return a favour"): only with that on is it always.
+					if F().repayCovered ~= true then
+						return L["Someone who buffed you is offered a buff back unless they already have it with time to spare; Diagnostics shows which buffs Manners can see on others."]
+					end
 					return L["Someone who buffed you is always offered a buff back; Diagnostics shows which buffs Manners can see on others."]
 				end,
 				order = 2,

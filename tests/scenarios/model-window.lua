@@ -397,6 +397,7 @@ local EXPECTED = {
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
 		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.optIn", "ownBuffs.apart",
+		"buff.tanksOutside",
 	},
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
 	when = {
@@ -405,7 +406,7 @@ local EXPECTED = {
 		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets", "filters.quietInTownsWhere",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
-		"filters.restoreTarget",
+		"filters.restoreTarget", "filters.repayCovered",
 	},
 	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "speech.enabled", "speech.channel",
 		"speech.onlyWhenReturning", "prompt.thankWhisper", "prompt.thankDelay" },
@@ -431,7 +432,7 @@ local EXPECTED = {
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
 		"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
-		"prompt.reasonRefresh", "prompt.reasonUnknown",
+		"prompt.reasonRefresh", "prompt.reasonUnknown", "filters.repayCovered",
 	},
 }
 

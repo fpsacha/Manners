@@ -580,6 +580,10 @@ do
 	session(scenario, function(ns, ids, buff)
 		-- In a group: the mock's UnitInParty answers yes for every token then.
 		Mock.groupSize = 5
+		-- The refresh of a buff they already wear is a switch since "Refresh a buff
+		-- they already have, to return a favour" (tests/scenarios/covered.lua has
+		-- the default): on here, where the refresh is what is asked about.
+		ns.db.profile.filters.repayCovered = true
 		owe(ns, ANNA)
 		Mock.held, Mock.heldFor = { [buff.ranks[1]] = true }, 2400
 		Mock.advance(4)
@@ -630,6 +634,10 @@ do
 			fail(scenario, "SKIPPED -- no rank above yours within Anna's reach")
 			return
 		end
+		-- The refresh of a buff they already wear is a switch since "Refresh a buff
+		-- they already have, to return a favour" (tests/scenarios/covered.lua has
+		-- the default): on here, where the refresh is what is asked about.
+		ns.db.profile.filters.repayCovered = true
 		owe(ns, ANNA)
 		Mock.held, Mock.heldFor = { [info.topRank] = true }, 1800
 		Mock.advance(4)

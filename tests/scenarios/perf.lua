@@ -272,6 +272,10 @@ do
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
+		-- The refresh of a buff they already wear is a switch since "Refresh a buff
+		-- they already have, to return a favour" (tests/scenarios/covered.lua has
+		-- the default): on here, where the refresh is what is asked about.
+		ns.db.profile.filters.repayCovered = true
 		Mock.held = intellectIds(ns)
 		owe(ns, "Anna Aim")
 		local q = inQueue(ns)

@@ -252,6 +252,11 @@ local defaults = {
 			-- The buffs held to the tanks of your group (Buffs.lua, tankChoice), a
 			-- sparse set like skip: absent is everybody.
 			tanksOnly = {},
+			-- Of those, the ones still offered to everybody outside your group
+			-- (Offer to: Tanks, and anyone outside my group; what Tanks only did
+			-- until it was made to mean it): the same sparse set. Absent, Tanks
+			-- only holds a buff from everybody outside the group too.
+			tanksOutside = {},
 			-- The buffs offered to nobody but you (Buffs.lua, tankChoice: a
 			-- druid's Thorns on herself): the same sparse set.
 			meOnly = {},
@@ -419,6 +424,12 @@ local defaults = {
 			-- "unverified" (but not in the first seconds after a fight:
 			-- UNVERIFIED_SECONDS). On, never: a player asked for it.
 			verifiedOnly = false,
+			-- Off: somebody who buffed you and already wears everything you
+			-- could give them, with more than the top-up lead left, whoever cast
+			-- it, is offered nothing, and the favour is let go at once (Queue.lua,
+			-- "covered"). On, the buff they hold is refreshed to return it, as it
+			-- always was until a priest asked (CurseForge).
+			repayCovered = false,
 			minLevel = 1,
 			-- Off, because a press on a mount dismounts you, which somebody
 			-- buffing from the saddle may want. Dead, taxi and vehicle need no
@@ -1669,9 +1680,17 @@ do
 		-- opts.casterOnly: Queue.lua), but not for somebody who asked by name.
 		if opts.casterOnly and buff.meleeOnly and not opts.asked then return false end
 		-- Held to the tanks of your group (Who to buff, Offer to): somebody in
-		-- the group who is not one is left alone, and so is nobody else.
+		-- the group who is not one is left alone.
 		if opts.tanksOnly and buff.tankChoice and opts.tanksOnly[buff.key] and opts.inGroup
 			and not opts.isTank then
+			return false
+		end
+		-- And so is everybody outside it, a favour's giver included: a passer-by
+		-- cannot be known for a tank ("Tanks only" means it; a player's report).
+		-- Not under "Tanks, and anyone outside my group" (opts.tanksOutside),
+		-- which is what Tanks only did before, kept as a choice of its own.
+		if opts.tanksOnly and buff.tankChoice and opts.tanksOnly[buff.key] and not opts.inGroup
+			and not (opts.tanksOutside and opts.tanksOutside[buff.key]) then
 			return false
 		end
 		-- Held to yourself (Offer to: Only me): nobody else is offered it. Your own
@@ -1746,11 +1765,39 @@ do
 	-- when the client names us as its caster, or, where it names nobody (WoW
 	-- Forever, on another player's aura), when it is the cast Manners saw land
 	-- on them and no newer than that (ns.GaveSince).
+	-- Whoever cast it, for a favour with "Refresh a buff they already have, to
+	-- return a favour" off (opts.spareCovered): a refresh of what they wear with
+	-- time to spare is mana spent on nothing, and a thank-you is enough (a
+	-- priest's report).
 	local function Fresh(opts, mine, remaining, buff, seconds)
+		if opts.spareCovered then
+			return type(remaining) == "number" and remaining > (ns.LeadFor(opts, Length(buff, seconds)))
+		end
 		if opts.paidUp == nil or mine == false or type(remaining) ~= "number" then return false end
 		local length = Length(buff, seconds)
 		if mine == nil and not ns.GaveSince(opts.name, buff.key, remaining, length) then return false end
 		return remaining > (ns.LeadFor(opts, length))
+	end
+
+	-- Whether a favour's giver who is offered nothing (opts.spareCovered) is
+	-- covered: every buff they could be given was read on them with more than
+	-- the top-up lead left (Fresh), and at least one was. A rank above yours
+	-- counts like any other while it has that long; about to run out, it leaves
+	-- a gap the favour can still fill, so the favour waits. One that waits out
+	-- a press or a refusal (Blocked) was not asked about, so nobody can say:
+	-- the press may be the favour's return, about to be settled. The readings
+	-- are the walk's own, a moment old (the cache).
+	local function Covered(candidates, opts, has)
+		local any = false
+		for _, buff in ipairs(candidates) do
+			if Castable(opts, buff) and not Skipped(opts, buff) then
+				if Blocked(opts, buff) then return false end
+				local held, remaining, mine, _, seconds = has(buff, opts)
+				if held ~= true or not Fresh(opts, mine, remaining, buff, seconds) then return false end
+				any = true
+			end
+		end
+		return any
 	end
 
 	-- The candidate list a pin reduces the walk to, reused for every call.
@@ -1774,6 +1821,10 @@ do
 	--   paidUp       ...except with what they carry from us with more than the
 	--                top-up time left (Fresh): a group member's favour that
 	--                has nothing to repay.
+	--   spareCovered ...nor with what they carry from anybody with that much
+	--                left ("Refresh a buff they already have, to return a
+	--                favour" is off, the default). Only what is missing, or
+	--                due a top-up, returns the favour then.
 	--   rotate       false where there is nothing to walk along: the tokenless
 	--                owed path has one buff per favour and cannot verify it.
 	--
@@ -1783,6 +1834,12 @@ do
 	-- lead that made it due and which kind of lead that was (ns.LEAD_KINDS).
 	-- `has` hands back a fifth value after the others, how long the aura
 	-- lasts, where the client says.
+	--
+	-- With no buff, a third value of true says a favour's giver is covered
+	-- (opts.spareCovered): everything they could be given is on them with time
+	-- to spare, so there is nothing to return and the caller lets the favour go.
+	-- Never on a buff about to run out, a rank above yours included: the favour
+	-- waits for the gap.
 	function ns.PickBuffFor(candidates, opts, has)
 		local db = addon.db and addon.db.profile
 		if not db or #candidates == 0 then return nil end
@@ -1845,6 +1902,9 @@ do
 			-- The first blessing they carry from another paladin, kept for a debt
 			-- with nothing else left to give: see the end of this branch.
 			local theirs
+			-- A favour's giver spared a refresh of another paladin's blessing
+			-- (opts.spareCovered): with nothing else to give, they are covered.
+			local spared
 			-- Kings held back for a Fish Bowl's Boosted Stats (SparesFishBowl).
 			local kingsLater
 			for _, buff in ipairs(candidates) do
@@ -1869,6 +1929,8 @@ do
 						if castable and not skipped then
 							if Blocked(opts, buff) then
 								onCooldown = true
+							elseif opts.spareCovered and Fresh(opts, mine, remaining, buff, seconds) then
+								spared = true
 							elseif not theirs and not over then
 								theirs = buff
 							end
@@ -1880,6 +1942,10 @@ do
 						-- so is one we cannot cast on them, or one worn at a rank
 						-- above ours: nothing to top up.
 						if skipped or not castable or Blocked(opts, buff) then return nil, true end
+						-- A favour with the refresh switched off, and what they
+						-- wear has time to spare, whatever its rank: covered, the
+						-- third value says, and the caller lets the favour go.
+						if opts.spareCovered and Fresh(opts, mine, remaining, buff, seconds) then return nil, true, true end
 						if over then return nil, true end
 
 						-- The top-up, safest on this class: recasting a blessing
@@ -1953,6 +2019,8 @@ do
 			-- A debt, and every blessing we could give is already on them from
 			-- another paladin: offer anyway, as the debt policy does for every class.
 			if not pick and opts.offerAnyway and theirs then return theirs, true end
+			-- ...unless each has time to spare and the refresh is switched off.
+			if not pick and spared then return nil, true, true end
 			-- Spelled out: `allRead and false or nil` is always nil.
 			if allRead then return pick, false end
 			return pick, nil
@@ -2008,6 +2076,10 @@ do
 		-- Nothing missing, nothing running out, and a favour outstanding: offer
 		-- what they already hold, with `true` saying they are covered.
 		if opts.offerAnyway and firstHeld then return firstHeld, true end
+
+		-- A favour outstanding and the refresh switched off: whether they are
+		-- covered, for the caller to let the favour go.
+		if opts.spareCovered then return nil, true, Covered(candidates, opts, has) end
 
 		return nil, true
 	end
@@ -4518,6 +4590,7 @@ function ns.ClampSettings()
 	-- The set of switched-off spells, indexed on every scan by CastableBuffs.
 	if type(profile.buff.skip) ~= "table" then profile.buff.skip = {} end
 	if type(profile.buff.tanksOnly) ~= "table" then profile.buff.tanksOnly = {} end
+	if type(profile.buff.tanksOutside) ~= "table" then profile.buff.tanksOutside = {} end
 	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
 	if type(profile.buff.optIn) ~= "table" then profile.buff.optIn = {} end
 	-- The buff order, read on every scan (ns.WalkBuffs), repaired for every class

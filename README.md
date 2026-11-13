@@ -478,8 +478,8 @@ Who buffed you, with what and when, whether you returned it, and who you
 buffed without being asked, newest first. Today's count ("Returned 12 of 14
 favours today") and the all-time totals sit at the top, then tabs for
 everything, favours, and buffs you gave. A favour you did not return says why:
-the time ran out, nothing you cast helps them, or you put them on the
-never-offer list. A buff from somebody returning one of yours says *Buffed
+the time ran out, nothing you cast helps them, they already had your buff, or
+you put them on the never-offer list. A buff from somebody returning one of yours says *Buffed
 back*: nothing is owed for it, and it is not counted among the favours to
 return. Hover a favour still owed and it says whether the prompt will offer
 it, and when. A group buff counts as one buff given and says how many
@@ -841,7 +841,9 @@ list. They used to be at the bottom of *Who to buff*.
   ten-minute Thorns can come back before you pull, or later, 1 for a minute's
   notice of a Fortitude or 0.5 for thirty seconds of an oil. It holds in a
   dungeon or raid too, and is never more than half the buff's length ahead.
-  Somebody who buffed you is offered the favour back whichever you pick. Your
+  Somebody who buffed you is offered the favour back whichever you pick,
+  unless they already have your buff with time to spare (*Refresh a buff they
+  already have, to return a favour*, under *Buffing back* below). Your
   own buffs are always read, so you are never offered one you are wearing;
   a top-up reaches them too, but never an aura or an aspect. A rank below
   the one your cast would land (a level-60 wearing Fortitude's second rank)
@@ -868,6 +870,14 @@ list. They used to be at the bottom of *Who to buff*.
     Fortitude, a Fear Ward or a Soulstone count as a favour to return, or to
     `/thank`. A paladin's aura, a hunter's aspect or Trueshot Aura reaching
     you never counts, ticked or not.
+  - *Refresh a buff they already have, to return a favour* (off): somebody who
+    buffs you and already wears everything you could give them, with more
+    time left than a top-up waits for, is offered nothing, whoever cast it. A
+    thank-you is enough: the favour is let go at once, and the ledger and the
+    chat line say why. A buff they are missing, or one about to run out, is
+    still offered back, and so is somebody whose buffs the game hides. On,
+    the buff they already have is offered again to return the favour (never
+    one you cast on them yourself that still has time to spare).
   - *Stop sooner if they are probably gone* and *Let them go after (seconds)*
     (45): somebody who buffed you is rarely your target or on a nameplate, so
     all that is known is that they were in range when they buffed you. The
@@ -1151,13 +1161,15 @@ them. A tank who buffs you is owed one back.
 Individual buffs can be switched off on the *Who to buff* page (a warlock's
 Unending Breath too; his Detect Invisibility for the group is the one that
 starts off and is switched on there), or one pinned so it is the only thing ever cast. A druid's
-Thorns also has *Offer to*: *Everyone*; **Tanks only**, which in your group offers
-it only to players the game gives the tank role or marks as main tank in a raid,
-so the rest of a dungeon or raid is left alone (a player with no role is not a
-tank); or **Only me**, which offers it to nobody else and, with *Myself* on, still
-reminds you when your own is down. Under Tanks only, people outside your group and
-anybody who asks you for it in chat are offered it as usual; under Only me, anybody
-who asks is. Battle Shout reaches your own party (in a raid,
+Thorns also has *Offer to*: *Everyone*; **Tanks only**, which offers it only to
+the players in your group the game gives the tank role or marks as main tank in
+a raid, so the rest of a dungeon or raid is left alone (a player with no role is
+not a tank), and to nobody outside your group, passers-by and people who buffed
+you included; **Tanks, and anyone outside my group**, which holds only your group
+to its tanks and offers Thorns to passers-by and people who buffed you as usual;
+or **Only me**, which offers it to nobody else and, with *Myself* on, still
+reminds you when your own is down. Under any of them, anybody who asks you for
+Thorns in chat is offered it. Battle Shout reaches your own party (in a raid,
 your own subgroup on Classic Era and the whole raid on WoW Forever) and nobody
 else, so a warrior outside a group is offered nobody. That is deliberate rather than a fault.
 

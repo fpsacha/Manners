@@ -121,7 +121,13 @@ for _, case in ipairs({
 		else
 			Mock.held = {}
 		end
-		if how.owed then H.owe(ns, filed("Anna", "Aim")) end
+		if how.owed then
+			-- What a favour falls back on when nothing is missing is the refresh
+			-- of a blessing they wear, a switch since "Refresh a buff they already
+			-- have, to return a favour" (tests/scenarios/covered.lua): on here.
+			ns.db.profile.filters.repayCovered = true
+			H.owe(ns, filed("Anna", "Aim"))
+		end
 		ns.ForgetUnitAuras(ns.plain(UnitGUID("nameplate1")))
 		local entry = H.inQueue(ns)[filed("Anna", "Aim")]
 		local got = entry and entry.buff and entry.buff.key or nil
