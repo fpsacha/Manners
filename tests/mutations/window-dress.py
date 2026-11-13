@@ -81,4 +81,4 @@ mutate("Options/Window/WindowPage.lua",
        "\t\tif sec.stud then sec.stud:Hide() end\n",
        "",
        "window-dress: a stud left where its section was",
-       expect="window-dress:", script=S)
+       expect="a stud of the page left is still up", script=S)

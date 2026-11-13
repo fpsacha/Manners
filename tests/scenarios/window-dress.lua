@@ -78,7 +78,10 @@ do
 		if D.frame:GetFrameLevel() <= UI.frame:GetFrameLevel() then fail(scenario, "the moulding is under the window") end
 		if D.frame.IsMouseEnabled and D.frame:IsMouseEnabled() then fail(scenario, "the moulding takes the mouse") end
 		-- The rails: whole tiles along the window, under the header and over the footer.
-		for name, rail in pairs({ header = D.headerRail, footer = D.footerRail }) do
+		-- (By name, one after the other: a rail that is not there is a nil a
+		-- table of the two would leave out.)
+		for _, name in ipairs({ "header", "footer" }) do
+			local rail = D[name .. "Rail"]
 			local c = rail and rail._texCoord or {}
 			if not (rail and near((c[2] or 0) - (c[1] or 0), UI.WIDTH / RAIL_TILE)) then
 				fail(scenario, "the " .. name .. "'s rail is not tiled along the window")
@@ -132,5 +135,14 @@ do
 			end
 		end
 		if seen == 0 then fail(scenario, "SKIPPED -- the page's sections could not be read") end
+		-- Another page opened: the studs of the page left go with its titles
+		-- (they stand on the one scrolling pane every page is laid on).
+		ns.OpenOptions("general")
+		for _, sec in ipairs(UI.Model("who").sections or {}) do
+			if sec.stud and sec.stud:IsShown() then
+				fail(scenario, "a stud of the page left is still up over the page opened")
+				break
+			end
+		end
 	end)
 end
