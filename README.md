@@ -240,7 +240,11 @@ each class offers*).
   buffs on the *Who to buff* page. On WoW Forever a weapon wears an imbue (a
   shaman's Rockbiter Weapon, a rogue's poison, a mage's scroll imbue) and an
   oil, stone or lure at the same time, so each is reminded of on its own; a
-  stone and an oil still replace each other. Manners never answers the game's
+  stone and an oil still replace each other. A warlock on WoW Forever is
+  reminded of a Firestone or Spellstone the same way, for the main hand, the
+  best one in the bags first (*Firestone or Spellstone*); on Classic Era and
+  Burning Crusade the stones are held in the off hand, so nothing goes on a
+  weapon. Manners never answers the game's
   question about replacing an enchant: that is left to you.
 - **A shaman's weapon imbue.** Rockbiter, Flametongue, Frostbrand and Windfury
   Weapon are one family, *Weapon imbue*, under *Myself* on *Who to buff* (Classic
@@ -289,7 +293,10 @@ each class offers*).
 - **Detect Invisibility.** For warlocks: a switch under *Myself*, off until you
   switch it on. Then, with no Detect Invisibility on you (yours or another
   warlock's), "You" comes up and one press casts it on you. Classic Era, WoW
-  Forever and Burning Crusade.
+  Forever and Burning Crusade. To hand it to your group as well, tick
+  *Detect Invisibility (your group only)* among the buffs you offer on *Who to
+  buff*: off until you do, and only ever offered to the people in your party
+  or raid.
 - **Unending Breath while swimming.** For warlocks: a switch under *Myself*,
   on by default. While you swim with no Unending Breath on you (yours or
   another warlock's, or a shaman's Water Breathing), "You" comes up and one
@@ -1102,7 +1109,7 @@ your client runs in. Slash commands are English in all of them.
 | Druid | Mark of the Wild, Thorns |
 | Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade; Beacon of Light (Season of Discovery) or Oath of Light (WoW Forever), for your tank |
 | Shaman | Earth Shield and Spirit of the Alpha (Season of Discovery), for your tank |
-| Warlock | Unending Breath |
+| Warlock | Unending Breath; Detect Invisibility for your party or raid, off until you tick it (Classic Era, WoW Forever, Burning Crusade) |
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever); Commanding Shout too in Season of Discovery |
 
 **One person at a time.** Earth Shield, Spirit of the Alpha, Beacon of Light,
@@ -1116,7 +1123,8 @@ group who asks for one by name is offered it; a plain "buffs pls" never names
 them. A tank who buffs you is owed one back.
 
 Individual buffs can be switched off on the *Who to buff* page (a warlock's
-Unending Breath too), or one pinned so it is the only thing ever cast. A druid's
+Unending Breath too; his Detect Invisibility for the group is the one that
+starts off and is switched on there), or one pinned so it is the only thing ever cast. A druid's
 Thorns also has *Offer to*: *Everyone*; **Tanks only**, which in your group offers
 it only to players the game gives the tank role or marks as main tank in a raid,
 so the rest of a dungeon or raid is left alone (a player with no role is not a

@@ -102,7 +102,7 @@ mutate("Core.lua",
        "\t\tif spell.weapon and hand ~= spell.weapon then return false, \"weapon\" end\n",
        "",
        "scrolls: any weapon",
-       expect="with a dagger in hand you were offered", script=S)
+       expect="with a dagger in hand", script=S)
 
 # No weapon in the main hand said as a scroll not fitting it, or (after the
 # level) as a Spellbreak above yours.

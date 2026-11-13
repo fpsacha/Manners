@@ -66,7 +66,7 @@ mutate("Buffs.lua",
        "\t\t\tmembersOnly = true,\n\t\t\toptIn = true,\n\t\t\tneverSelf = true,\n\t\t\tgift = \"detectinvis\",\n\t\t},\n\t},\n\n\t-- Battle Shout",
        "\t\t\tmembersOnly = true,\n\t\t\toptIn = true,\n\t\t\tgift = \"detectinvis\",\n\t\t},\n\t},\n\n\t-- Battle Shout",
        "detectgroup: offered to yourself",
-       expect="detectgroup: never offered to you through it", script=S)
+       expect="never on yourself", script=S)
 
 mutate("Requests.lua",
        "\t\tdetectgroup = { \"detect invisibility\", \"detect invis\", \"detect lesser invisibility\",\n",

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Firestone and Spellstone on WoW Forever.** A warlock with a Firestone or
+  Spellstone in the bags and nothing of the kind on the main-hand weapon gets
+  "You" with the stone's icon, and one press puts it on, as with a wizard oil.
+  The best one you carry comes first. Its own switch, *Firestone or
+  Spellstone*, sits with your other own buffs on *Who to buff*. On Classic Era
+  and Burning Crusade the stones are held in the off hand, so there is nothing
+  to remind. Asked for on CurseForge.
+- **Detect Invisibility for your group.** Warlocks can now offer Detect
+  Invisibility (Lesser, plain or Greater, the best you know) to the people in
+  your party or raid, never to passers-by. It is off until you tick it on *Who
+  to buff*. Your own Detect Invisibility under *Myself* works as before.
+  Classic Era, WoW Forever and Burning Crusade. Asked for on CurseForge.
 - **The favour ledger is readable again.** Every row was washed in a bright
   pastel (mint for Returned, sky blue for your group, lavender for a stranger),
   and the names and the line under them could hardly be read on it. Rows are
