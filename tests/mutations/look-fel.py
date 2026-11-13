@@ -202,7 +202,7 @@ mutate("Looks/Fel.lua",
        "\t-- Asked afresh: the fire's tiles may be other tiles now.\n\tself.idleState = nil\n",
        "\t-- Asked afresh: the fire's tiles may be other tiles now.\n",
        "look-fel: a restyle that leaves the fire as the last one had it",
-       expect="back on Full, not running again", script=S)
+       expect="after the panel is widened, not running", script=S)
 
 # --- Calm and the fight ---
 
@@ -219,8 +219,8 @@ mutate("Looks/Fel.lua",
        expect="in a fight the fire burns on", script=S)
 
 mutate("Looks/Fel.lua",
-       "\t\tStopAll(self.aftermath)\n\t\tself:Runes(RUNE_COMBAT, RUNE_COMBAT)\n",
-       "\t\tStopAll(self.aftermath)\n",
+       "\telseif self.combat then\n\t\tself:Runes(RUNE_COMBAT, RUNE_COMBAT)\n",
+       "\telseif self.combat then\n\t\tself:Runes(RUNE_LIT, SIGIL_LIT)\n",
        "look-fel: the runes lit through a fight",
        expect="in a fight the runes stay lit", script=S)
 

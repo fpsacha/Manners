@@ -577,6 +577,20 @@ withTree("look-fel: the fire burns at rest, on Full, out of a fight and with the
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	if restRuns(look) then fail(scenario, "back on Full, not running again: " .. restRuns(look)) end
+	-- A wider panel has more tiles of fire, and each of them burns: the
+	-- restyle asks afresh, though nothing else about the moment changed.
+	local tiles = look.fireTiles
+	p.width = 400
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if look.fireTiles <= tiles then
+		fail(scenario, "SKIPPED -- a panel 400 wide has no more tiles of fire than the default (" .. look.fireTiles .. ")")
+	elseif restRuns(look) then
+		fail(scenario, "after the panel is widened, not running: " .. restRuns(look))
+	end
+	p.width = 220
+	ns.Prompt:ApplyStyle()
+	tick(ns)
 	-- The prompt down: nothing of the look runs under it.
 	for name in pairs({ ["Anna Aim"] = true, ["Brannoc Vale"] = true, ["Corwin Ash"] = true, ["Dagna Moss"] = true }) do
 		ns.BlockPerson(name)

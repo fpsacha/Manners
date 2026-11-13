@@ -1584,7 +1584,6 @@ function Fel:Combat(on)
 		self:StopFlourishes()
 		StopAll(self.greet)
 		StopAll(self.aftermath)
-		self:Runes(RUNE_COMBAT, RUNE_COMBAT)
 	elseif not self.refused then
 		self:Runes(RUNE_REST, SIGIL_REST)
 	end
