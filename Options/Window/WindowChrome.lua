@@ -566,7 +566,8 @@ function UI.BuildFooter(f)
 	local closeLabel = CLOSE or ""
 	footer.close = W.Button(foot, closeLabel, function() f:Hide() end)
 	footer.close:SetSize(math.max(80, math.ceil(UI.Measure(closeLabel)) + 26), 22)
-	footer.close:SetPoint("RIGHT", foot, "RIGHT", -10, 0)
+	-- Clear of the resize grip in the corner (Window.lua, BuildGrip).
+	footer.close:SetPoint("RIGHT", foot, "RIGHT", -24, 0)
 	-- Between the two buttons: the build, and under it who makes Manners, on
 	-- every page. The pair stands in the middle of the room the buttons leave.
 	local mid = CreateFrame("Frame", nil, foot)
@@ -585,7 +586,7 @@ end
 -- The room between the footer's buttons, whatever their labels' language.
 function UI.FooterRoom()
 	local reset, close = footer.reset:GetWidth() or 0, footer.close:GetWidth() or 0
-	return UI.WIDTH - 20 - reset - close - 2 * FOOT_GAP
+	return UI.WIDTH - 34 - reset - close - 2 * FOOT_GAP
 end
 
 -- The reset's own hidden rule answers for the page in view (ns.OptionsTab),

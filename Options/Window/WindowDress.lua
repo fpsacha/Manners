@@ -91,10 +91,15 @@ end
 
 -- A pane's grain and vignette, over its own colour: `w` by `h` units, which
 -- the grain is tiled to.
+-- Each grain and rail with what it is tiled over, so a resized window tiles
+-- them again (Dress.Retile) rather than stretching one tile across the room.
+Dress.tiled = {}
+
 function Dress.Pane(parent, over, w, h, sub)
 	local grain = Tex(parent, "BACKGROUND", sub or 2, "Ground", "REPEAT", "REPEAT")
 	grain:SetAllPoints(over)
 	grain:SetTexCoord(0, w / GROUND_TILE, 0, h / GROUND_TILE)
+	Dress.tiled[#Dress.tiled + 1] = { grain, over, GROUND_TILE, GROUND_TILE }
 	local shade = Tex(parent, "BACKGROUND", (sub or 2) + 1, "Shade")
 	shade:SetAllPoints(over)
 	return grain, shade
@@ -112,7 +117,22 @@ function Dress.Rail(frame, edge, width)
 		t:SetPoint("RIGHT", frame, "TOPRIGHT", 0, 0)
 	end
 	t:SetTexCoord(0, width / RAIL_TILE, 0, 1)
+	Dress.tiled[#Dress.tiled + 1] = { t, frame, RAIL_TILE }
 	return t
+end
+
+-- After a resize: every grain and rail tiled to the size it now covers. A
+-- size the client has not worked out yet (0) leaves the tiling as it was.
+function Dress.Retile()
+	for _, e in ipairs(Dress.tiled) do
+		local t, over, across, down = e[1], e[2], e[3], e[4]
+		local w, h = tonumber(over:GetWidth()) or 0, tonumber(over:GetHeight()) or 0
+		-- A rail runs the window's width, whatever its frame has worked out.
+		if not down and w <= 0 then w = UI.WIDTH end
+		if w > 0 and (not down or h > 0) then
+			t:SetTexCoord(0, w / across, 0, down and h / down or 1)
+		end
+	end
 end
 
 -- The header: a light behind the title and the rail under it.

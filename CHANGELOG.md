@@ -22,6 +22,9 @@
 - **Each choice sits under its switch on *Who to buff*.** The scrolls now come
   under *Scrolls*, the foods to leave out under *Well Fed*, and *Which pet*
   under *Companion pet*, each one step further in.
+- **A bigger options window.** Drag the grip in its bottom-right corner to
+  see more of a page at once; it keeps the size you leave it at. Right-click
+  the grip for the usual size.
 
 ### Thanks
 - **Several emotes, one at random.** Under *Emote to use* (What I say), tick

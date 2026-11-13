@@ -610,7 +610,9 @@ nothing.
 ## The options
 
 `/manners` opens the options window on the page you used last (*Start here*
-the first time). Drag it by its title bar; Esc closes it. The game's own
+the first time). Drag it by its title bar; Esc closes it. Drag the grip in its
+bottom-right corner to make it bigger and see more of a page at once (it
+keeps that size); right-click the grip for its usual size again. The game's own
 **Options > AddOns > Manners** has a button that opens it too. Most settings
 explain themselves; this is what their tooltips have no room for.
 
