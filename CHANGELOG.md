@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.21
 
 ### Who gets what
 - **Short buffs held back in cities and inns, if you want.** Tick *Hold back
