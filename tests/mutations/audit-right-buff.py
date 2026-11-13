@@ -59,7 +59,7 @@ mutate("Buffs.lua",
 
 mutate("Core.lua",
        "\t\tif buff.returnOnly and not (opts.owed or opts.asked) then\n\t\t\tlocal db = addon.db and addon.db.profile\n"
-       "\t\t\tlocal everybody = db and db.buff.unasked\n\t\t\tif not (everybody and everybody[buff.key]) then return false end\n\t\tend\n",
+       "\t\t\tlocal kept = db and db.buff.keptBack\n\t\t\tif kept and kept[buff.key] then return false end\n\t\tend\n",
        "",
        "audit-right-buff: a buff kept for favours is offered unasked",
        expect=BREATH, script=S)

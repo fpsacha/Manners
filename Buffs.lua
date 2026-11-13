@@ -61,12 +61,14 @@
 --   gift      the RP.GIFT pool a favour of it is thanked with where that is not
 --             its own key's (Phrases.lua, RP.GiftKey): Detect Invisibility's
 --             thanks were written when it was a favour Manners never offered.
---   returnOnly  offered to return a favour, and to whoever asks for it by name
---             in chat; never unasked, to your group or to a passer-by (Core.lua,
---             Castable: opts.owed, opts.asked). Unending Breath on Classic Era,
---             Forever and Burning Crusade, where it is a warlock's one buff for
---             others and so cannot be neverAuto as on Mists: nobody on dry land
---             wants water breathing, and a favour is still worth returning.
+--   returnOnly  may be kept for returning a favour and for whoever asks for it
+--             by name in chat, as a choice under its switch on Who to buff
+--             (buff.keptBack; Core.lua, Castable: opts.owed, opts.asked); not
+--             kept, it goes to everybody as any buff does. Unending Breath on
+--             Classic Era, Forever and Burning Crusade, where it is a warlock's
+--             one buff for others and so cannot be neverAuto as on Mists:
+--             water breathing is little use on dry land, but taking it from a
+--             warlock left him with nothing to offer anybody else (a report).
 --   lowLevel  not written in a set: worked out when the lookups are built, the
 --             level the buff's lowest rank is learned at where that is above 11
 --             (so somebody of level 1 is out of its reach), on the sets where a

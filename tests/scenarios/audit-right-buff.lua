@@ -285,12 +285,12 @@ do
 end
 
 -- ------------------------------------------------------------------------ 3
--- A warlock on a fresh profile, on dry land. Unending Breath goes to every
--- party member and every passer-by, and comes back every ten minutes. Mists'
--- own set keeps it away from Automatic ("nobody standing in a city wants to be
--- handed water breathing", Buffs.lua), the warlock's own is offered only while
--- he swims, and the README says nobody needs it on dry land; Classic Era's,
--- Burning Crusade's and Forever's sets walk it for everybody.
+-- A warlock on a fresh profile, on dry land. 1.11.19 kept Unending Breath for
+-- a favour returned and a request by name; a warlock's only buff for others, it
+-- left him with nothing to offer anybody else ("1.11.18 was working fine"), so
+-- it goes to every party member and passer-by again, and *Offer Unending
+-- Breath to everybody near me* (buff.keptBack), on, is the choice to keep it
+-- for favours and requests. A favour is returned with it either way.
 do
 	local scenario = "audit-right-buff: Unending Breath is offered on dry land to the group and to passers-by"
 	local env = { class = "WARLOCK", knows = { "breath" }, units = {
@@ -298,16 +298,25 @@ do
 		nameplate1 = { name = { "Pat", "Passer" }, class = "PRIEST" },
 	} }
 	session(scenario, env, function(ns)
-		local queue = queued(ns)
-		local offered = {}
-		for _, entry in ipairs(queue) do
-			if entry.buff.key == "breath" and (entry.reason == "group" or entry.reason == "nearby") then
-				offered[#offered + 1] = words(entry)
+		local function offered()
+			local list = {}
+			for _, entry in ipairs((queued(ns))) do
+				if entry.buff.key == "breath" and (entry.reason == "group" or entry.reason == "nearby") then
+					list[#list + 1] = words(entry)
+				end
 			end
+			return list
 		end
-		if #offered > 0 then
-			fail(scenario, ("on dry land, unasked, a fresh profile offers Unending Breath to %s; it should be kept for a"
-				.. " favour returned and for whoever asks for it, as Mists' set already does"):format(table.concat(offered, "; ")))
+		local list = offered()
+		if #list ~= 2 then
+			fail(scenario, ("a fresh profile offers Unending Breath to %d of the party member and the passer-by (%s);"
+				.. " both should be offered it"):format(#list, table.concat(list, "; ")))
+		end
+		-- Kept for favours and requests, as 1.11.19 had it.
+		ns.db.profile.buff.keptBack.breath = true
+		list = offered()
+		if #list > 0 then
+			fail(scenario, ("kept for favours and requests, Unending Breath is offered to %s"):format(table.concat(list, "; ")))
 		end
 		-- A favour is still returned with it: it is all a warlock has to give,
 		-- with a token on them and without one.
@@ -331,19 +340,18 @@ do
 end
 
 -- ------------------------------------------------------------------------ 3b
--- The choice that puts it back (a report on 1.11.20: a warlock's only buff for
--- others stopped going to anybody but a favour's giver, and "1.11.18 was working
--- fine"): *Offer Unending Breath to everybody near me* (buff.unasked), off by
--- default, offers it to the group and to passers-by as before 1.11.19.
+-- The choice itself: *Offer Unending Breath to everybody near me* under the
+-- buff's switch on Who to buff, on by default; off keeps it for favours and
+-- requests (buff.keptBack, a sparse set of what is kept).
 do
-	local scenario = "audit-right-buff: Offer Unending Breath to everybody near me puts it back on the walk"
+	local scenario = "audit-right-buff: Offer Unending Breath to everybody near me keeps it for favours when unticked"
 	local env = { class = "WARLOCK", knows = { "breath" }, units = {
 		party1 = { name = { "Anna", "Aim" }, class = "MAGE" },
 		nameplate1 = { name = { "Pat", "Passer" }, class = "PRIEST" },
 	} }
 	session(scenario, env, function(ns)
-		if type(ns.db.profile.buff.unasked) ~= "table" or next(ns.db.profile.buff.unasked) ~= nil then
-			fail(scenario, "a new profile's buff.unasked is not an empty set")
+		if type(ns.db.profile.buff.keptBack) ~= "table" or next(ns.db.profile.buff.keptBack) ~= nil then
+			fail(scenario, "a new profile's buff.keptBack is not an empty set")
 		end
 		local function count()
 			local n = 0
@@ -352,27 +360,25 @@ do
 			end
 			return n
 		end
-		if count() ~= 0 then fail(scenario, "offered to somebody with the choice off") end
-		ns.db.profile.buff.unasked.breath = true
-		if count() ~= 2 then fail(scenario, "with the choice on it is offered to " .. count() .. " of the two, not both") end
-		ns.db.profile.buff.unasked.breath = nil
-		if count() ~= 0 then fail(scenario, "with the choice put off again it is still offered") end
-		-- The switch under Unending Breath on Who to buff.
-		local control = H.findOption(ns.optionsTable, "unasked_breath")
+		local control = H.findOption(ns.optionsTable, "everyone_breath")
 		if not control then fail(scenario, "Who to buff has no choice under Unending Breath") return end
-		control.set(nil, true)
-		if ns.db.profile.buff.unasked.breath ~= true or control.get() ~= true then
-			fail(scenario, "ticking it wrote " .. tostring(ns.db.profile.buff.unasked.breath))
-		end
+		if control.get() ~= true then fail(scenario, "the choice reads off on a new profile") end
+		if count() ~= 2 then fail(scenario, "by default it is offered to " .. count() .. " of the two, not both") end
 		control.set(nil, false)
-		if ns.db.profile.buff.unasked.breath ~= nil then fail(scenario, "unticking it left " .. tostring(ns.db.profile.buff.unasked.breath)) end
+		if ns.db.profile.buff.keptBack.breath ~= true or control.get() ~= false then
+			fail(scenario, "unticking it wrote " .. tostring(ns.db.profile.buff.keptBack.breath))
+		end
+		if count() ~= 0 then fail(scenario, "unticked, it is still offered to " .. count()) end
+		control.set(nil, true)
+		if ns.db.profile.buff.keptBack.breath ~= nil then fail(scenario, "ticking it again left " .. tostring(ns.db.profile.buff.keptBack.breath)) end
+		if count() ~= 2 then fail(scenario, "ticked again, it is offered to " .. count()) end
 		-- A damaged value is repaired, and the choice travels with a profile.
-		ns.db.profile.buff.unasked = "yes"
+		ns.db.profile.buff.keptBack = "yes"
 		ns.ClampSettings()
-		if type(ns.db.profile.buff.unasked) ~= "table" then fail(scenario, "a damaged choice was left as " .. tostring(ns.db.profile.buff.unasked)) end
-		ns.db.profile.buff.unasked = { breath = true }
+		if type(ns.db.profile.buff.keptBack) ~= "table" then fail(scenario, "a damaged choice was left as " .. tostring(ns.db.profile.buff.keptBack)) end
+		ns.db.profile.buff.keptBack = { breath = true }
 		local text = ns.ExportSettings and ns.ExportSettings() or ""
-		if not text:find("buff.unasked=breath", 1, true) then fail(scenario, "the export does not carry the choice: " .. tostring(text)) end
+		if not text:find("buff.keptBack=breath", 1, true) then fail(scenario, "the export does not carry the choice: " .. tostring(text)) end
 	end)
 end
 

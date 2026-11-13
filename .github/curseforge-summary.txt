@@ -1,1 +1,1 @@
-Somebody buffed you. One click buffs them back, and your target is handed straight back.
+One click to buff back whoever just buffed you, and nearby players missing yours. It keeps your own buffs up too: armors, auras, aspects, poisons, food and more.

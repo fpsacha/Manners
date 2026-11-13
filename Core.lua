@@ -261,9 +261,9 @@ local defaults = {
 			-- druid's Thorns on herself): the same sparse set.
 			meOnly = {},
 			-- The buffs kept for a favour and a request by name (Buffs.lua,
-			-- returnOnly: Unending Breath) that are offered to everybody all the
-			-- same, as before 1.11.19: a sparse set, absent is kept.
-			unasked = {},
+			-- returnOnly: Unending Breath) because the player chose that: a sparse
+			-- set, absent is offered to everybody, as it was before 1.11.19.
+			keptBack = {},
 			-- The buffs that are off until they are switched on (Buffs.lua, optIn:
 			-- Detect Invisibility for your group), switched on: a sparse set, absent
 			-- is off (ns.OptedOut).
@@ -1730,9 +1730,6 @@ do
 			local lifts = held[buff.key]
 			if lifts and lifts > (opts.now or GetTime()) then return false end
 		end
-		-- Kept for a favour returned and a request by name (Buffs.lua,
-		-- returnOnly: Unending Breath): never offered unasked.
-		-- Unless the player asked for it to go to everybody (buff.unasked).
 		-- A short buff, while resting in a city or an inn with that held back
 		-- (filters.quietShortInTowns; the scan writes opts.shortHeld, in seconds):
 		-- one that lasts no longer than that. Somebody who asks by name still
@@ -1741,10 +1738,14 @@ do
 			local single = ns.BuffSeconds(buff)
 			if single and single > 0 and single <= opts.shortHeld then return false end
 		end
+		-- Kept for a favour returned and a request by name (Buffs.lua,
+		-- returnOnly: Unending Breath) when the player chose that (Who to buff,
+		-- buff.keptBack); otherwise it goes to everybody, as it did before
+		-- 1.11.19.
 		if buff.returnOnly and not (opts.owed or opts.asked) then
 			local db = addon.db and addon.db.profile
-			local everybody = db and db.buff.unasked
-			if not (everybody and everybody[buff.key]) then return false end
+			local kept = db and db.buff.keptBack
+			if kept and kept[buff.key] then return false end
 		end
 		-- Nobody too low for every rank of it (Buffs.lua, lowLevel): the game
 		-- refuses a cast on somebody more than ten levels under the rank, so
@@ -4767,7 +4768,7 @@ function ns.ClampSettings()
 	if type(profile.buff.tanksOnly) ~= "table" then profile.buff.tanksOnly = {} end
 	if type(profile.buff.tanksOutside) ~= "table" then profile.buff.tanksOutside = {} end
 	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
-	if type(profile.buff.unasked) ~= "table" then profile.buff.unasked = {} end
+	if type(profile.buff.keptBack) ~= "table" then profile.buff.keptBack = {} end
 	if type(profile.buff.optIn) ~= "table" then profile.buff.optIn = {} end
 	-- The buff order, read on every scan (ns.WalkBuffs), repaired for every class
 	-- in the profile whichever client wrote it: a key no client has for that

@@ -238,25 +238,21 @@ local function AddBuffToggles(args)
 		if buff.optIn then
 			args["offer_" .. buff.key].desc = L["Off until you tick it. Tick to offer this buff."]
 		end
-		-- One kept for a favour returned and a request by name says so
-		-- (Buffs.lua, returnOnly: Unending Breath).
+		-- And a switch under one that may be kept for a favour returned and a
+		-- request by name (Buffs.lua, returnOnly: Unending Breath, a warlock's
+		-- only buff for others): on, it goes to everybody as before 1.11.19.
 		if buff.returnOnly then
-			args["offer_" .. buff.key].desc = L["Offered only to return a favour, or to somebody who asks you for it by name in chat. Untick to never offer it."]
-		end
-		-- And a switch under it to send it to everybody all the same, as it went
-		-- before 1.11.19 (a warlock's only buff for others, asked for on GitHub).
-		if buff.returnOnly then
-			args["unasked_" .. buff.key] = {
+			args["everyone_" .. buff.key] = {
 				type = "toggle",
 				name = function() return L["Offer %s to everybody near me"]:format(ns.BuffName(buff) or buff.key) end,
-				desc = L["Off: it is offered only to return a favour, or to somebody who asks you for it by name in chat. On: it is offered to your group and to passers-by too, as it was before 1.11.19."],
+				desc = L["On: it is offered to your group and to passers-by, as it was before 1.11.19. Off: it is kept for returning a favour and for somebody who asks you for it by name in chat."],
 				order = 4 + index / 10 + 0.05,
 				width = "full",
 				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
 				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
-				get = function() return B().unasked[buff.key] == true end,
+				get = function() return B().keptBack[buff.key] ~= true end,
 				set = function(_, value)
-					B().unasked[buff.key] = value and true or nil
+					B().keptBack[buff.key] = (not value) or nil
 					restyleAndMacro()
 				end,
 			}

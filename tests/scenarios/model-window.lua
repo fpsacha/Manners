@@ -397,7 +397,7 @@ local EXPECTED = {
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
 		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.optIn", "ownBuffs.apart",
-		"buff.tanksOutside", "buff.unasked",
+		"buff.tanksOutside", "buff.keptBack",
 	},
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
 	when = {
