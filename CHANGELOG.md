@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.17
 
 - **A new look: Lightbringer.** A paladin's, in the Silver Hand's colours: a
   plate of silver and royal-blue enamel, your spell in a golden sun whose rays
