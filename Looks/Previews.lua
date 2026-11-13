@@ -37,7 +37,7 @@ ns.Looks.previewIcon = {
 ns.Looks.previewText = {
 	archmage = {
 		name = { l = 0.26521, t = 0.29032, r = 0.89516, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.04, 0, 0.1, 0.9 } } },
-		reason = { l = 0.26521, t = 0.53226, r = 0.89516, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.912, 0.764, 0.532, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
+		reason = { l = 0.26521, t = 0.53226, r = 0.89516, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.96265, 0.82817, 0.60032, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.04, 0, 0.1, 0.95 } } },
 	},
 	fel = {
 		name = { l = 0.29435, t = 0.29032, r = 0.83468, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.03, 0, 0.95 } } },
@@ -72,4 +72,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.25, t = 0.53468, r = 0.86694, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
 	},
 }
-ns.Looks.previewHash = "ac9a421b8da568a9d3d77f96e49681f3777edbaac12d490334c3d529d532e7aa"
+ns.Looks.previewHash = "f7c0720ea94170e6d0d728a4b66cb930c34d6b1701fc5aa1ff84d19686f1137a"

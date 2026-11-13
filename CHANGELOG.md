@@ -8,6 +8,10 @@
   you pick it. Classic Era, WoW Forever and Burning Crusade. Asked for on
   GitHub.
 
+### Looks
+- **Archmage reads better.** The second line ("buffed you") is brighter
+  and has a dark shadow under it, so it stands out on the violet crystal.
+
 ## 1.11.19
 
 ### In a fight

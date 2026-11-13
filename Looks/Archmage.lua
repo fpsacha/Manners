@@ -122,7 +122,10 @@ local LIST_TONE = 0.72
 local SHADOW_C, SHADOW_OUT = 16, 12
 local LILAC = { 0.96, 0.93, 1.00 }
 local TAG_INK = { 0.95, 0.91, 1.00 }
-local MIST = { 0.78, 0.74, 0.88 }
+local MIST = { 0.90, 0.87, 0.98 }
+-- The contrast the reason line and the verdict are held to: 7, not the 4.5
+-- of the tags, since the line is small and sits over the brightest crystal.
+local SUB_CONTRAST = 7
 -- A fight's wire and crystal.
 local DULL = { 0.60, 0.60, 0.64 }
 -- The charges and the vein with the marker off, and a charge a refusal spent.
@@ -1183,6 +1186,10 @@ function Archmage:Styled(p)
 	end
 	kit.name:SetShadowColor(0.04, 0, 0.10, 0.9)
 	kit.name:SetShadowOffset(1, -1)
+	-- The reason line is small and the crystal behind it bright with motes:
+	-- a dark drop under it, as under the name (it read faint without one).
+	kit.sub:SetShadowColor(0.04, 0, 0.10, 0.95)
+	kit.sub:SetShadowOffset(1, -1)
 	-- The tags are crystal whatever the panel, so their text is lilac as it is.
 	local tr, tg, tb = kit.Legible(TAG_INK[1], TAG_INK[2], TAG_INK[3], 4.5)
 	kit.count:SetTextColor(tr, tg, tb, 1)
@@ -1437,11 +1444,12 @@ function Archmage:Tint(r, g, b, ring, stripe)
 	for _, t in ipairs(self.drifts) do t:SetVertexColor(lr, lg, lb, 1) end
 	self.star:SetVertexColor(lr, lg, lb, 1)
 	-- The reason line: a lilac mist taken most of the way to the reason, held
-	-- to its contrast on the crystal.
+	-- to a strong contrast on the crystal (the crystal in the game is brighter
+	-- than its table says, with motes running behind the words).
 	local sr = MIST[1] + (r - MIST[1]) * 0.6
 	local sg = MIST[2] + (g - MIST[2]) * 0.6
 	local sb = MIST[3] + (b - MIST[3]) * 0.6
-	sr, sg, sb = kit.Legible(sr, sg, sb, 4.5)
+	sr, sg, sb = kit.Legible(sr, sg, sb, SUB_CONTRAST)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
 	self.glyph:SetVertexColor(sr, sg, sb, 1)
 	self.tint = { cr, cg, cb }
@@ -1701,7 +1709,7 @@ function Archmage:PaintOutcome(kind, lead, sub, who, stamp)
 	self.refused = kind == "failed"
 	if self.refused then self:Spend() end
 	-- The verdict in the outcome's colour, not the reason's.
-	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
+	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], SUB_CONTRAST)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
 	self.glyph:SetVertexColor(vr, vg, vb, 1)
 	kit.icon:SetDesaturated(self.refused or self.combat or false)
