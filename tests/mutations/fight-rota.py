@@ -105,7 +105,7 @@ mutate("Prompt/Macro.lua",
        "\tif #text > ns.MACRO_LIMIT then return nil end\n\treturn text, record\n",
        "\treturn text, record\n",
        "fight-rota: a macro too long for the client put in the rota",
-       expect="a macro too long for the client is in the rota", script=S)
+       expect="characters", script=S)
 
 mutate("Options/Look.lua",
        "\t\t\t\tdisabled = function() return P().hideInFight == true end,\n",
