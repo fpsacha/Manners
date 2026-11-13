@@ -25,7 +25,7 @@ something -- the water, the moon, the inlay, the list's leaves, the glyphs --
 is white or grey art coloured by SetVertexColor, so one file serves every
 reason, both palettes, a custom marker colour and the outcomes.
 
-THE FILES (32), with what each is:
+THE FILES (34), with what each is:
 
   Wild_BoughL      64x128  the bough's left end, at a design height of 128
                            texels shown at the bough's height (seen with the
@@ -44,8 +44,9 @@ THE FILES (32), with what each is:
                            greys, tiling both ways, scrolled (Looks/Flow.lua),
                            two layers of it.
   Wild_WaterMask  128x128  the ring the water is cut to (a mask).
-  Wild_Lip        128x128  the lip of dark wood round the icon, and the shade
-                           the lip and the wreath throw on the water.
+  Wild_Lip        128x128  the lip of dark wood round the icon, the shade the
+                           lip and the wreath throw on the water, and the
+                           light that lies on the water's upper side.
   Wild_Halo       128x128  a soft ring of light over the water, white: the
                            owed breath.
   Wild_Antler     128x128  one antler of the two (the other is its mirror),
@@ -57,14 +58,17 @@ THE FILES (32), with what each is:
   Wild_Leaf        32x32   one leaf: what drifts down at rest, flies when a
                            buff lands and falls, browned, on a refusal.
   Wild_Petal       16x16   one petal of blossom, for the burst.
-  Wild_Vine       256x256  the vine that grows along the bough: a SHEET of 8
-                           drawn frames, one across and eight down, each
-                           256x32, the vine a little longer and its leaves a
-                           little further out in each.
+  Wild_VineA      256x256  the vine that grows along the bough, its first
+                           half: a SHEET of 16 drawn frames, two across and
+                           eight down, each 128x32, the vine a little longer
+                           and its leaves a little further out in each.
+  Wild_VineB      256x256  ... and its second half, which grows on from where
+                           the first ends: sixteen frames more.
   Wild_Blossom    128x128  a blossom opening: a SHEET of 16 frames, 4 by 4,
                            each 32x32, from a bud to five open petals.
-  Wild_Mote        16x16   a firefly, a wisp: a point of light and its halo,
-                           white.
+  Wild_Mote        16x16   a firefly: a point of light and its halo, white.
+  Wild_Wisp        32x32   a wisp: a ball of light, its halo and the tail it
+                           trails, white.
   Wild_Paw         64x64   the Mark of the Wild's paw, white: lit over the
                            icon when a buff lands (ADD).
   Wild_Bloom      128x128  a bloom of nature magic, a soft flower of light,
@@ -116,8 +120,9 @@ MOON_SIZE = 60.0       # the moon's width, in design texels
 ANTLER_X = 0.27        # the left antler's box: its left edge, outside the wreath's box, as a fraction of the wreath
 ANTLER_Y = 0.38        # ... and how far its top stands over the wreath's box
 ANTLER_SIZE = 0.90     # ... and its size
-VINE_ROWS = 8          # the vine's sheet: frames down (one across),
-VINE_FRAMES = 8        # and in all
+VINE_COLS = 2          # each half of the vine's sheet: frames across,
+VINE_ROWS = 8          # down,
+VINE_FRAMES = 16       # and in all
 VINE_STEM = 0.75       # the vine's stem, as a fraction of a frame's height from its top
 BLOSSOM_COLS = 4       # the blossom's sheet
 BLOSSOM_ROWS = 4
@@ -260,9 +265,20 @@ FACE_0, FACE_1 = 25.0, 104.0   # the carved face, in design rows
 ROLL = 16.0                    # the bark rolls over this many texels at each edge
 
 
+STUB_AT, KNOT_AT = 58.0, (176.0, 113.0)   # a broken twig on the upper edge; a knot in the lower bark
+
+
+def wrapped(x, at):
+    """How far x is from `at` along the tile, which wraps."""
+    return (x - at + TILE_W / 2.0) % TILE_W - TILE_W / 2.0
+
+
 def edge_top(x):
     u = 2 * np.pi * x / TILE_W
-    return 10.0 + 4.0 * np.sin(u + 0.6) + 2.2 * np.sin(3 * u + 2.1) + 1.2 * np.sin(7 * u + 4.0)
+    top = 10.0 + 4.0 * np.sin(u + 0.6) + 2.2 * np.sin(3 * u + 2.1) + 1.2 * np.sin(7 * u + 4.0)
+    # The stub of a twig, broken off short.
+    stub = 7.0 * np.exp(-(np.abs(wrapped(x, STUB_AT)) / 5.6) ** 2.6)
+    return np.maximum(top - stub, 1.6)
 
 
 def edge_bot(x):
@@ -292,6 +308,10 @@ def bough(x, y, top=None, bot=None, face_cut=None):
         face = face * face_cut
     grain = pnoise(x, y, 64.0, 2.2, TILE_W, SEED + 5)
     height = roll + 3.4 * plates * (1 - face) - 2.6 * face + 0.5 * grain * face
+    # A knot in the lower bark: a boss, ringed.
+    kd = np.hypot(wrapped(x, KNOT_AT[0]) / 10.5, (y - KNOT_AT[1]) / 6.2)
+    knot = np.exp(-kd ** 2) * (1 - face)
+    height = height * (1 - 0.8 * knot) + knot * (roll + 4.6 - 1.5 * (0.5 + 0.5 * np.cos(kd * 9.5)) - 3.4 * np.exp(-(kd / 0.28) ** 2))
     return height.astype(np.float32), alpha.astype(np.float32), d_in, face.astype(np.float32), top, bot
 
 
@@ -513,9 +533,17 @@ def make_lip():
     shade_a = 0.66 * np.exp(-(np.clip(t - LIP_1, 0, None) / 4.4) ** 1.4) + 0.80 * np.exp(-(np.clip(BED_1 - t, 0, None) / 5.2) ** 1.4)
     shade_a = shade_a * cover(-(t + 0.6) / 2.0) * cover((t - (BED_1 + 1.0)) / 2.0)
     dark = np.zeros(x.shape + (3,), np.float32) + np.array((0.010, 0.014, 0.024), np.float32)
-    rgb, a = over(dark, np.clip(shade_a, 0, 1).astype(np.float32), lip, lip_a.astype(np.float32))
+    # The light that lies on water: a soft arc on its upper left, a fainter
+    # one answering it below.
+    th = np.arctan2(y - n / 2.0, x - n / 2.0)
+    mid = (LIP_1 + BED_1) / 2.0
+    band = np.exp(-((t - mid + 2.0) / 4.4) ** 2)
+    arc = np.clip(np.cos(th - np.radians(-128.0)), 0, 1) ** 5 * 0.46 + np.clip(np.cos(th - np.radians(48.0)), 0, 1) ** 9 * 0.20
+    wet = np.clip(band * arc, 0, 1).astype(np.float32)
+    rgb, a = over(dark, np.clip(shade_a, 0, 1).astype(np.float32), np.ones(x.shape + (3,), np.float32), wet)
+    rgb, a = over(rgb, a, lip, lip_a.astype(np.float32))
     feature(2.0)
-    emit("Wild_Lip", rgb, a, BARK_CAP)
+    emit("Wild_Lip", rgb, a, 1.0)
 
 
 def make_halo():
@@ -608,6 +636,21 @@ def make_mote():
     r = np.hypot(x - n / 2.0, y - n / 2.0)
     alpha = np.clip(np.exp(-(r / 1.9) ** 2) + 0.46 * np.exp(-(r / 4.4) ** 2), 0, 1) * sstep(8.0, 6.0, r)
     emit("Wild_Mote", white(alpha), alpha.astype(np.float32), 1.0)
+
+
+def make_wisp():
+    """A wisp: a ball of light in its halo, and the tail it trails below."""
+    n = 32
+    x, y = grid(n, n)
+    cx, cy = 16.0, 12.5
+    r = np.hypot(x - cx, y - cy)
+    ball = np.exp(-(r / 3.1) ** 2) + 0.50 * np.exp(-(r / 7.4) ** 2)
+    v = np.clip((y - cy) / 17.0, 0, 1)
+    sway = 2.2 * np.sin(v * 4.2 + 0.6) * v
+    tail = np.exp(-((x - cx - sway) / (3.4 * (1 - 0.72 * v) + 0.4)) ** 2) * (1 - v) ** 1.3 * (y > cy) * 0.62
+    alpha = np.clip(np.maximum(ball, tail), 0, 1)
+    alpha = alpha * sstep(16.0, 13.0, np.maximum(np.abs(x - 16.0), np.abs(y - 16.0)))
+    emit("Wild_Wisp", white(alpha), alpha.astype(np.float32), 1.0)
 
 
 def make_star():
@@ -717,62 +760,93 @@ def make_bead():
 # ------------------------------------------------------------------ the vine and the blossom
 
 VINE_W, VINE_H = 256, 32
+VINE_HALF = VINE_W // 2
+VINE_END = 250.0       # where the grown vine's tip lies
+LEAF_GROWS = 30.0      # a leaf is out by the time the tip is this far past it
 
 
 def vine_y(x):
     return VINE_H * VINE_STEM + 2.3 * np.sin(2 * np.pi * x / 86.0 + 0.7)
 
 
+def vine_leaves():
+    """Where the vine's leaves are rooted, none of them across the seam
+    between its two halves."""
+    out = []
+    k = 0
+    px = 13.0
+    while px < VINE_END:
+        at = px
+        if abs(at - VINE_HALF) < 15.0:
+            at = VINE_HALF + (15.0 if at >= VINE_HALF else -15.0)
+        out.append((at, k))
+        px += 19.0 + 3.0 * ((k * 5) % 3)
+        k += 1
+    return out
+
+
+def vine_picture(tip, leaf_tip, last):
+    """The vine grown as far as `tip`, its leaves as far out as a tip at
+    `leaf_tip` would have them; `last`: whole, without the curl it grows by."""
+    xs = np.arange(2.0, tip + 0.01, 4.0)
+    pts = [(float(px), float(vine_y(px))) for px in xs]
+    if not last:
+        # The growing tip: a curl, up and back.
+        ty = float(vine_y(tip))
+        pts += [(tip + 3.5, ty - 2.0), (tip + 4.5, ty - 6.0), (tip + 1.5, ty - 8.0), (tip - 0.8, ty - 5.6)]
+    wid = [2.9 - 1.5 * (i / max(1.0, len(pts) - 1.0)) ** 2 for i in range(len(pts))]
+    fig = Figure(VINE_W, VINE_H)
+    fig.part(limb(pts, wid, steps=4), rise=1.6, soft=0.8)
+    sa = fig.alpha
+    srgb, _ = shade(LEAF, (fig.height * sa).astype(np.float32), sa, SEED + 70, 2.0, wear=0.3, grime=0.5, micro=0.02)
+    srgb = srgb * np.array((1.05, 0.80, 0.60), np.float32)[None, None, :]
+    specs = []
+    for px, k in vine_leaves():
+        age = np.clip((leaf_tip - px) / LEAF_GROWS, 0, 1)
+        s = age * age * (3 - 2 * age)
+        if s > 0.12 and px <= tip:
+            py = float(vine_y(px))
+            side = -1.0 if k % 2 == 0 else 1.0
+            if k % 3 == 2:
+                # A small leaf under the stem, now and then.
+                specs.append(((px, py), (px + 6.0 * s, py + 6.2 * s), 5.6 * s, 1.0))
+            else:
+                reach = 15.5 + 2.5 * ((k * 7) % 3)
+                specs.append(((px, py), (px + side * 7.5 * s + 3.0 * s, py - reach * s), 9.6 * s, side * 1.8))
+    if not specs:
+        return srgb, sa.astype(np.float32)
+    lr, la, lc = leaves(VINE_W, VINE_H, specs, 2.0, SEED + 71, rise=2.6)
+    srgb = srgb * (1 - 0.45 * lc[..., None] * (1 - la[..., None]))
+    return over(srgb, sa.astype(np.float32), lr, la)
+
+
 def make_vine():
-    """Eight frames of a vine growing from the left: in each it is an eighth
-    of its length further on, its tip a curl, and the leaves behind the tip a
-    little further out."""
-    sheet_rgb = np.zeros((256 * SS, 256 * SS, 3), np.float32)
-    sheet_a = np.zeros((256 * SS, 256 * SS), np.float32)
-    for f in range(VINE_FRAMES):
-        g = (f + 1) / float(VINE_FRAMES)
-        tip = 5.0 + g * 244.0
-        last = f == VINE_FRAMES - 1
-        xs = np.arange(2.0, tip + 0.01, 4.0)
-        pts = [(float(px), float(vine_y(px))) for px in xs]
-        if not last:
-            # The growing tip: a curl, up and back.
-            ty = float(vine_y(tip))
-            pts += [(tip + 3.5, ty - 2.0), (tip + 4.5, ty - 6.0), (tip + 1.5, ty - 8.0), (tip - 0.8, ty - 5.6)]
-        wid = [2.9 - 1.5 * (i / max(1.0, len(pts) - 1.0)) ** 2 for i in range(len(pts))]
-        fig = Figure(VINE_W, VINE_H)
-        fig.part(limb(pts, wid, steps=4), rise=1.6, soft=0.8)
-        sa = fig.alpha
-        srgb, _ = shade(LEAF, (fig.height * sa).astype(np.float32), sa, SEED + 70, 2.0, wear=0.3, grime=0.5, micro=0.02)
-        srgb = srgb * np.array((1.05, 0.80, 0.60), np.float32)[None, None, :]
-        specs = []
-        k = 0
-        px = 13.0
-        while px < 250.0:
-            age = np.clip((tip - px) / 56.0, 0, 1)
-            s = age * age * (3 - 2 * age)
-            if s > 0.12:
-                py = float(vine_y(px))
-                side = -1.0 if k % 2 == 0 else 1.0
-                if k % 3 == 2:
-                    # A small leaf under the stem, now and then.
-                    specs.append(((px, py), (px + 6.0 * s, py + 6.2 * s), 5.6 * s, 1.0))
-                else:
-                    reach = 15.5 + 2.5 * ((k * 7) % 3)
-                    specs.append(((px, py), (px + side * 7.5 * s + 3.0 * s, py - reach * s), 9.6 * s, side * 1.8))
-            px += 19.0 + 3.0 * ((k * 5) % 3)
-            k += 1
-        if specs:
-            lr, la, lc = leaves(VINE_W, VINE_H, specs, 2.0, SEED + 71, rise=2.6)
-            srgb = srgb * (1 - 0.45 * lc[..., None] * (1 - la[..., None]))
-            rgb, a = over(srgb, sa.astype(np.float32), lr, la)
-        else:
-            rgb, a = srgb, sa.astype(np.float32)
-        ys = f * VINE_H * SS
-        sheet_rgb[ys:ys + VINE_H * SS, :VINE_W * SS] = rgb
-        sheet_a[ys:ys + VINE_H * SS, :VINE_W * SS] = a
-    feature(2.0)
-    emit("Wild_Vine", sheet_rgb, sheet_a, LEAF_CAP)
+    """The vine growing from the left, in two sheets of sixteen frames: its
+    first half, and then its second. In each frame the tip is a little
+    further on, a curl, and the leaves behind it a little further out; the
+    first half's last frame has its leaves full grown, since it is the frame
+    it rests on while the second half grows."""
+    for half, name in ((0, "Wild_VineA"), (1, "Wild_VineB")):
+        sheet_rgb = np.zeros((256 * SS, 256 * SS, 3), np.float32)
+        sheet_a = np.zeros((256 * SS, 256 * SS), np.float32)
+        for f in range(VINE_FRAMES):
+            g = (f + 1) / float(VINE_FRAMES)
+            if half == 0:
+                tip = 5.0 + g * (VINE_HALF - 5.0)
+                last = False
+            else:
+                tip = VINE_HALF + g * (VINE_END - VINE_HALF)
+                last = f == VINE_FRAMES - 1
+            # Each half's last frame is the one it rests on: its leaves are out.
+            leaf_tip = 1e9 if f == VINE_FRAMES - 1 else tip
+            rgb, a = vine_picture(tip, leaf_tip, last)
+            x0 = half * VINE_HALF * SS
+            col, row = f % VINE_COLS, f // VINE_COLS
+            ys, xs = row * VINE_H * SS, col * VINE_HALF * SS
+            sheet_rgb[ys:ys + VINE_H * SS, xs:xs + VINE_HALF * SS] = rgb[:, x0:x0 + VINE_HALF * SS]
+            sheet_a[ys:ys + VINE_H * SS, xs:xs + VINE_HALF * SS] = a[:, x0:x0 + VINE_HALF * SS]
+        feature(2.0)
+        emit(name, sheet_rgb, sheet_a, LEAF_CAP)
 
 
 def make_blossom():
@@ -950,6 +1024,7 @@ def main():
     make_vine()
     make_blossom()
     make_mote()
+    make_wisp()
     make_paw()
     make_bloom()
     streak("Wild_Inlay", 64, 16, 1.6, 4.2, 0.95)

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **A new look: Wild.** A druid's, and the Cenarion Circle's, named for Mark
+  of the Wild: a bough of living wood, bark and moss round a face of dark
+  heartwood; your spell in a wreath of woven branches under a stag's
+  antlers, standing in a ring of moonwell water; and at the far end a branch
+  curled into a crozier with a crescent moon in it. The water round the icon
+  carries the reason's colour; with the marker on *Stripe* or *Both* the
+  moon and a fine line under the words carry it too, and otherwise they keep
+  moonlight's silver. When somebody buffs you a vine grows along the bough;
+  while you owe them it stands in blossom; when your buff lands the Mark of
+  the Wild's paw lights over your spell and leaves and petals fly; a refusal
+  withers the vine, browns every leaf and lets a few fall. At rest the water
+  ripples and glints, the leaves stir, one drifts down now and then,
+  fireflies wander and a wisp goes round the moon; *Animations* on *Calm*
+  stills all of it, and so does a fight. The icon is always round on this
+  look.
 - **A new look: Fel.** A warlock's, and the Burning Legion's: a slab of black
   felsteel, cracked, with fel fire showing through the cracks and burning
   along its foot; your spell in a summoning circle, eight demonic runes cut
@@ -22,9 +37,9 @@
   remains: Framed and Luxe become **Glass**, Arcane becomes **Archmage**, and
   Toast becomes **Ribbon**. A line in chat tells you so once, a few seconds
   after you log in, and nothing else about your settings changes. Eight of
-  the old looks remain, and Fel makes nine, each a card under Look > *Panel
-  style*: Glass, Minimal, Ribbon, Letter, Leather, Forge, Archmage,
-  Lightbringer and Fel.
+  the old looks remain, and Fel and Wild make ten, each a card under Look >
+  *Panel style*: Glass, Minimal, Ribbon, Letter, Leather, Forge, Archmage,
+  Lightbringer, Fel and Wild.
 - **Everybody's first buff before anybody's second.** A priest or a druid in
   a party was kept on the first person for every buff in turn (Fortitude,
   then Divine Spirit, then Shadow Protection) while the others stood there

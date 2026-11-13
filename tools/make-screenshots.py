@@ -2418,7 +2418,10 @@ def picture_looks(snaps):
     rows = (len(layers) + cols - 1) // cols
     cell_w = WIDTH / cols
     label_h = 60
-    row = max(l.size[1] for l in layers) + label_h + 18
+    # A gap under each name: Wild's antlers stand as tall as its row, and
+    # would touch the words over them.
+    gap = 10
+    row = max(l.size[1] for l in layers) + label_h + gap + 18
     top = 140
     board = Board(top + row * rows + 10, seed=17, sun=(0.50, 0.53))
     heading(board, "Ten looks to choose from",
@@ -2430,7 +2433,7 @@ def picture_looks(snaps):
         board.text((cx, y + 20), name, 26, bold=True, anchor="mm")
         board.text((cx, y + 48), words, 17, fill=(214, 206, 214), anchor="mm")
         w, h = layer.size
-        board.place(layer, cx - w / 2, y + label_h + (row - label_h - 18 - h) / 2)
+        board.place(layer, cx - w / 2, y + label_h + gap + (row - label_h - gap - 18 - h) / 2)
     return board
 
 

@@ -515,7 +515,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the nine looks, named |
+| `manners-looks.png` | the same favour in each of the ten looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
@@ -983,6 +983,39 @@ figures `Looks/Fel.lua` must agree with (`ICON_FRAME`, `CIRCLE_SCALE`,
 `RUNES`, `RUNE_R`, `RUNE_BOX`, `HORN_X`, `HORN_Y`, `HORN_SIZE`, the two
 sheets' `COLS`, `ROWS` and `FRAMES`, `TAG_CAPS`, `MASK_FILL`, `RING_AT`) sit
 at the top of the script and `look-fel.lua` holds each to its twin.
+
+## make_wild_textures.py
+
+The thirty-four files of `Textures/Wild/` (the bough in three pieces, the
+right one twice the bough's height for its crozier; the wreath; the moonwell
+water, the ring it is cut to, the lip and the light over it; one antler; the
+moon and its light; a sprig, a leaf, a husk, a petal; the vine, two sheets
+of sixteen frames, one for each half of it; the blossom, a sheet of sixteen;
+the mote, the wisp, the paw, the bloom,
+the inlay, the star, the round mask, the ring, the tag, the list's leaf and
+its plank, the shadow, the glyphs, the rim's light, the moon lit). Bark under
+luma 0.46, heartwood under 0.23, antler under 0.80 and leaf under 0.60, lit
+through `materials.py`; the antlers, the crozier, the sprig and the vine's
+stem are limbs (`limb()`: a curve through points with a width at each, laid
+with `figures.py`'s `part`), and every leaf is a `blade` cut with `facet`, so
+it has a rib and a lit half. The three pieces of the bough are read from one
+field that wraps every tile (`pnoise`, `bough()`), so the bark runs on from
+the tile into each end. The wreath is two strands whose middle lines swing
+either side of one circle and whose heights swing with them, so each passes
+over the other in turn. The water tiles both ways. Needs scipy as well as
+numpy and Pillow. `--out DIR` writes the same files to DIR (what
+`tests/scenarios/look-wild.lua` compares with what ships, twice, byte for
+byte), `--sheet FILE` draws a contact sheet and `--reach` prints the ring
+file's peak and reach. The figures `Looks/Wild.lua` must agree with
+(`ICON_FRAME`, `CIRCLE_SCALE`, `DESIGN_H`, `CAP_W`, `END_W`, `END_OVER`,
+`END_ROOT`, `TILE_W`, `MOON_AT`, `MOON_UP`, `MOON_SIZE`, `ANTLER_X`,
+`ANTLER_Y`, `ANTLER_SIZE`, the vine's `COLS`, `ROWS`, `FRAMES` and `STEM`, the
+blossom's `COLS`, `ROWS` and `FRAMES`, `TAG_CAPS`, `MASK_FILL`, `RING_AT`)
+sit at the top of the script and `look-wild.lua` holds each to its twin.
+
+`render_prompt.py` draws a desaturated texture as the game does: the art is
+greyed and then takes its vertex colour (Wild's leaves, browned by a
+refusal), where it used to grey the tinted product.
 
 ## make_glass_textures.py
 

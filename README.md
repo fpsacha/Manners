@@ -511,7 +511,7 @@ and the only thing it ever says in chat is a new title.
 
 ## The prompt's look
 
-Nine looks, each a card under Look > *Panel style* that you click to switch:
+Ten looks, each a card under Look > *Panel style* that you click to switch:
 
 - **Glass** (the default): the game's own action bar. A dark pane of glass
   in beaded gilt rails, the spell icon set in a metal bezel that brightens
@@ -543,6 +543,14 @@ Nine looks, each a card under Look > *Panel style* that you click to switch:
   and a gout of fel flame and a shadow bolt answer when your buff lands. Fel
   fire burns along its foot at rest; *Animations* on *Calm* stills it. The
   icon is always round on this look.
+- **Wild**: a druid's bough of living wood, your spell in a wreath of woven
+  branches under a stag's antlers and ringed with moonwell water, and a
+  crescent moon in a curled branch at the far end. A vine grows along the
+  bough when somebody buffs you and stands in blossom while you owe them,
+  and the Mark of the Wild's paw lights in a burst of leaves when your buff
+  lands. The water ripples, the leaves stir, fireflies wander and a wisp
+  goes round the moon at rest;
+  *Animations* on *Calm* stills it. The icon is always round on this look.
 
 Pick your own colours and fonts too; LibSharedMedia is supported.
 

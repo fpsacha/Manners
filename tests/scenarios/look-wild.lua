@@ -5,7 +5,8 @@
 -- whatever "Round the icon off" says; the water, the moon and the inlay carry
 -- the reason as the marker setting says, and are moonlight's silver where it
 -- does not; the water is cut to its ring; a favour arriving grows the vine,
--- its buds showing one after another as it reaches them; owed, the blossoms
+-- its first half and then its second, its buds showing one after another as
+-- it reaches them; owed, the blossoms
 -- open, each at its own pace, and stay open, and the lights breathe three
 -- times and hold; a landing lights the paw, opens the bloom, throws the
 -- leaves and sheds every blossom; a refusal withers the vine, browns the
@@ -34,14 +35,14 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Wild\\Wild_"
 
 -- The constants the Lua and the generator must agree on.
 local AGREE = { "ICON_FRAME", "CIRCLE_SCALE", "DESIGN_H", "CAP_W", "END_W", "END_OVER", "END_ROOT", "TILE_W", "MOON_AT", "MOON_UP",
-	"MOON_SIZE", "ANTLER_X", "ANTLER_Y", "ANTLER_SIZE", "VINE_ROWS", "VINE_FRAMES", "VINE_STEM", "BLOSSOM_COLS", "BLOSSOM_ROWS",
+	"MOON_SIZE", "ANTLER_X", "ANTLER_Y", "ANTLER_SIZE", "VINE_COLS", "VINE_ROWS", "VINE_FRAMES", "VINE_STEM", "BLOSSOM_COLS", "BLOSSOM_ROWS",
 	"BLOSSOM_FRAMES", "TAG_CAPS", "MASK_FILL", "RING_AT" }
 local SILVER = { 0.84, 0.87, 0.90 }
 local SPENT = { 0.34, 0.35, 0.37 }
 local SERE = { 0.92, 0.66, 0.36 }
 local HALO_HELD = 0.30
 local BREATHS, BREATH = 3, 1.25
-local VINE_FRAMES, VINE_FPS, BLOSSOM_FRAMES = 8, 14, 16
+local VINE_FRAMES, BLOSSOM_FRAMES = 16, 16
 local END_W, END_ROOT, DESIGN_H = 128, 6, 128
 local ANTLER_X = 0.27
 local BOUGH_MAX = 0.30
@@ -50,7 +51,7 @@ local FLOURISH = 0.6
 -- Every file the generator writes (its docstring lists them), as the Lua
 -- names them without the Wild_ prefix.
 local FILES = { "BoughL", "BoughM", "BoughR", "Circle", "Water", "WaterMask", "Lip", "Halo", "Antler", "Moon", "MoonGlow",
-	"Sprig", "Leaf", "Husk", "Petal", "Vine", "Blossom", "Mote", "Paw", "Bloom", "Inlay", "Star", "Mask", "FxRing", "Tag",
+	"Sprig", "Leaf", "Husk", "Petal", "VineA", "VineB", "Blossom", "Mote", "Wisp", "Paw", "Bloom", "Inlay", "Star", "Mask", "FxRing", "Tag",
 	"Bead", "Plank", "Shadow", "Check", "Cross", "Edge", "Hot" }
 
 local function withTree(scenario, names, body, before)
@@ -109,7 +110,7 @@ local function atRest(ns, scenario, edit)
 end
 
 local function isWild(look)
-	return look ~= nil and look.sprigs ~= nil and look.vineSheet ~= nil and look.waterScroll ~= nil
+	return look ~= nil and look.sprigs ~= nil and look.vineSheets ~= nil and look.waterScroll ~= nil
 end
 
 local function skipped(scenario, look)
@@ -152,11 +153,15 @@ local function flowing(look)
 end
 
 -- What the look runs at rest, as one line of faults or nil: the water's two
--- layers, the sprigs that are drawn, the drifting leaves and the fireflies.
+-- layers and its glints, the sprigs that are drawn, the drifting leaves, the
+-- fireflies and the wisp.
 local function restRuns(look)
 	local stopped = {}
 	for i, h in ipairs(look.waterScroll) do
 		if not h:IsPlaying() then stopped[#stopped + 1] = "layer " .. i .. " of the water" end
+	end
+	for i, g in ipairs(look.glintAnims) do
+		if not g._playing then stopped[#stopped + 1] = "glint " .. i .. " on the water" end
 	end
 	for i, g in ipairs(look.sways) do
 		if look.sprigOn[i] and not g._playing then stopped[#stopped + 1] = "sprig " .. i end
@@ -340,24 +345,39 @@ withTree("look-wild: the water, the moon and the inlay carry the reason as the m
 end)
 
 -- ------------------------------------------------------------------ 5
--- A favour arriving grows the vine: its frames play once, its buds show one
--- after another as it reaches them; a repaint does not; a passer-by grows
--- nothing.
+-- A favour arriving grows the vine: its first half's frames play once and
+-- then its second's, timed from the moment the first was grown; its buds
+-- show one after another as it reaches them; a repaint does not; a passer-by
+-- grows nothing.
 withTree("look-wild: a favour arriving grows the vine, bud after bud", ANNA, function(ns, scenario)
 	local look = atRest(ns, scenario)
 	if skipped(scenario, look) then return end
-	if plays(look.arrive) > 0 or look.vineSheet:IsPlaying() then fail(scenario, "a passer-by grew the vine") end
+	if plays(look.arrive) > 0 or look.vineSheets[1]:IsPlaying() then fail(scenario, "a passer-by grew the vine") end
 	if (look.vineFrame._alpha or 1) > 0.001 then fail(scenario, "with nobody owed the vine is on the bough") end
 	owe(ns, "Anna Aim")
 	ns.addon:Tick()
 	if (look.vineIn._plays or 0) ~= 1 then fail(scenario, "a favour arriving did not bring the vine: " .. tostring(look.vineIn._plays)) end
-	if not look.vineSheet:IsPlaying() then fail(scenario, "a favour arriving did not play the vine's frames") end
-	if look.vineSheet.loop then fail(scenario, "the vine's frames loop") end
+	if #look.vineSheets ~= 2 or #look.vines ~= 2 then fail(scenario, "the vine is " .. #look.vines .. " pieces, not its two halves") return end
+	if not look.vineSheets[1]:IsPlaying() then fail(scenario, "a favour arriving did not play the vine's frames") end
+	if look.vineSheets[2]:IsPlaying() or (look.vines[2]._alpha or 1) > 0.001 then
+		fail(scenario, "the vine's second half is out before its first has grown")
+	end
+	for i, h in ipairs(look.vineSheets) do
+		if h.loop then fail(scenario, "the vine's frames loop (half " .. i .. ")") end
+		if h.frames ~= VINE_FRAMES then fail(scenario, "half " .. i .. " of the vine grows in " .. tostring(h.frames) .. " frames") end
+	end
+	-- The two halves meet, and are one height.
+	local _, seam = FT.span(look.vines[1], "x")
+	local seam2 = FT.span(look.vines[2], "x")
+	local lo1, hi1 = FT.span(look.vines[1], "y")
+	local lo2, hi2 = FT.span(look.vines[2], "y")
+	if not (near(seam, seam2, 0.01) and near(lo1, lo2, 0.01) and near(hi1, hi2, 0.01)) then fail(scenario, "the vine's two halves do not meet") end
 	if (look.tipAnim._plays or 0) ~= 1 then fail(scenario, "no light ran at the vine's tip") end
 	local off = look.tipAnim.move._offset or {}
 	if not ((off[1] or 0) > 40) then fail(scenario, "the light at the vine's tip does not run its length: " .. tostring(off[1])) end
-	-- The vine's frames and the light at its tip take the same time.
-	local grows = look.vineSheet.frames / look.vineSheet.fps
+	-- The vine's frames, both halves, and the light at its tip take the same
+	-- time.
+	local grows = 2 * look.vineSheets[1].frames / look.vineSheets[1].fps
 	if not near(grows, FT.groupLength(look.tipAnim), 0.01) then
 		fail(scenario, ("the vine grows for %.2f s and the light at its tip runs for %.2f"):format(grows, FT.groupLength(look.tipAnim)))
 	end
@@ -375,20 +395,37 @@ withTree("look-wild: a favour arriving grows the vine, bud after bud", ANNA, fun
 		local prev = i > 1 and FT.span(look.blossoms[i - 1], "x")
 		if prev and lo and lo <= prev then fail(scenario, "blossom " .. i .. " stands no further along the vine than the one before it") end
 	end
+	-- Half way: the first half is grown and rests so, the second grows, and
+	-- is timed from the moment the first was grown, however late the clock
+	-- was to say so (two hundredths of a second, here).
+	Mock.advance(grows / 2 + 0.02)
+	ns.Looks.Flow.TickAll(GetTime())
+	if look.vineSheets[1]:IsPlaying() or frameOf(look.vines[1], 2, 8) ~= VINE_FRAMES - 1 then
+		fail(scenario, "half way, the vine's first half is not grown: frame " .. tostring(frameOf(look.vines[1], 2, 8)))
+	end
+	if not (look.vineSheets[2]:IsPlaying() and near(look.vines[2]._alpha, 1)) then
+		fail(scenario, "half way, the vine's second half is not growing")
+	elseif not near(look.vineSheets[2].t0, look.vineSheets[1].t0 + grows / 2, 0.001) then
+		fail(scenario, ("the vine's second half is timed from when the clock said so, %.3f s late"):format(
+			look.vineSheets[2].t0 - look.vineSheets[1].t0 - grows / 2))
+	end
 	Mock.advance(2)
 	FT.settle()
 	ns.Looks.Flow.TickAll(GetTime())
-	if look.vineSheet:IsPlaying() then fail(scenario, "two seconds on, the vine's frames still play") end
-	if frameOf(look.vine, 1, VINE_FRAMES) ~= VINE_FRAMES - 1 then
-		fail(scenario, "two seconds on, the vine is not left grown: frame " .. tostring(frameOf(look.vine, 1, VINE_FRAMES)))
+	for i, h in ipairs(look.vineSheets) do
+		if h:IsPlaying() then fail(scenario, "two seconds on, the vine's frames still play (half " .. i .. ")") end
+		if frameOf(look.vines[i], 2, 8) ~= VINE_FRAMES - 1 then
+			fail(scenario, "two seconds on, half " .. i .. " of the vine is not left grown: frame " .. tostring(frameOf(look.vines[i], 2, 8)))
+		end
 	end
 	if not near(look.vineFrame._alpha, 1) then fail(scenario, ("two seconds on, the vine is at %.2f"):format(look.vineFrame._alpha or -1)) end
 	local quiet = plays(look.arrive)
 	ns.Prompt:ApplyStyle()
 	tick(ns)
-	if plays(look.arrive) ~= quiet or look.vineSheet:IsPlaying() then fail(scenario, "a repaint grew the vine again") end
+	if plays(look.arrive) ~= quiet or look.vineSheets[1]:IsPlaying() then fail(scenario, "a repaint grew the vine again") end
 	-- And the vine is there still, whole, after the restyle.
-	if not near(look.vineFrame._alpha, 1) or frameOf(look.vine, 1, VINE_FRAMES) ~= VINE_FRAMES - 1 then
+	if not near(look.vineFrame._alpha, 1) or frameOf(look.vines[1], 2, 8) ~= VINE_FRAMES - 1
+		or frameOf(look.vines[2], 2, 8) ~= VINE_FRAMES - 1 or not near(look.vines[2]._alpha, 1) then
 		fail(scenario, "after a restyle with somebody owed the vine is not on the bough, whole")
 	end
 end)
@@ -536,7 +573,7 @@ withTree("look-wild: with the list above, the vine keeps to the panel and the li
 	local _, _, look = upIn(ns, scenario)
 	if skipped(scenario, look) then return end
 	local _, top = FT.span(look.kit.art, "y")
-	local _, vineTop = FT.span(look.vine, "y")
+	local _, vineTop = FT.span(look.vines[1], "y")
 	if not (top and vineTop and vineTop > top + 5) then
 		fail(scenario, "with no list above, the vine does not stand over the bough: its top is at " .. tostring(vineTop) .. ", the panel's at " .. tostring(top))
 	end
@@ -545,7 +582,7 @@ withTree("look-wild: with the list above, the vine keeps to the panel and the li
 	_, _, look = upIn(ns, scenario, function(pp) pp.showQueue, pp.queueRows = true, 3 end)
 	if not look.above then fail(scenario, "SKIPPED -- the list did not hang over the panel") return end
 	_, top = FT.span(look.kit.art, "y")
-	_, vineTop = FT.span(look.vine, "y")
+	_, vineTop = FT.span(look.vines[2], "y")
 	if top and vineTop and vineTop > top + 0.5 then
 		fail(scenario, ("with the list above, the vine reaches %.1f units over the panel"):format(vineTop - top))
 	end
@@ -600,8 +637,8 @@ withTree("look-wild: no additive light at rest", CROWD, function(ns, scenario)
 	end
 	-- Nothing that rests lit, or moves at rest, is additive: the water, the
 	-- breath, the fireflies, the moon.
-	local resting = { look.halo, look.moonGlow, look.moon, look.core, look.inlay, look.star, look.hoverLight, look.tip, look.vine }
-	for _, list in ipairs({ look.water, look.motes, look.drift, look.sprigs, look.blossoms, look.husks, look.petals, look.burst }) do
+	local resting = { look.halo, look.moonGlow, look.moon, look.core, look.inlay, look.star, look.hoverLight, look.tip }
+	for _, list in ipairs({ look.water, look.glints, look.motes, look.drift, look.sprigs, look.vines, look.blossoms, look.husks, look.petals, look.burst }) do
 		for _, t in ipairs(list) do resting[#resting + 1] = t end
 	end
 	for _, t in ipairs(resting) do
@@ -610,17 +647,33 @@ withTree("look-wild: no additive light at rest", CROWD, function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 10
--- At rest the water ripples, the sprigs stir, the leaves drift and the
--- fireflies wander; on Full effects, out of a fight and with the prompt up.
--- Somebody new is greeted.
+-- At rest the water ripples and glints, the sprigs stir, the leaves drift,
+-- the fireflies wander and the wisp goes round the moon; on Full effects,
+-- out of a fight and with the prompt up. Somebody new is greeted.
 withTree("look-wild: the wood is alive at rest, on Full, out of a fight and with the prompt up", CROWD, function(ns, scenario)
 	local look, p = atRest(ns, scenario)
 	if skipped(scenario, look) then return end
 	local stopped = restRuns(look)
 	if stopped then fail(scenario, "at rest on Full, not running: " .. stopped) end
-	if #look.idle ~= #look.sways + #look.driftAnims + #look.moteAnims then
-		fail(scenario, "the look at rest is " .. #look.idle .. " lights, not its sprigs, its leaves and its fireflies")
+	if #look.idle ~= #look.sways + #look.driftAnims + #look.moteAnims + #look.glintAnims or #look.glintAnims < 2 then
+		fail(scenario, "the look at rest is " .. #look.idle .. " lights, not its sprigs, its leaves, its fireflies and the water's glints")
 	end
+	-- The glints lie on the water's ring: inside the wreath, outside the icon.
+	local ilo, ihi = FT.span(ns.Prompt:Regions().icon, "x")
+	local ibo, ito = FT.span(ns.Prompt:Regions().icon, "y")
+	for i, t in ipairs(look.glints) do
+		local lo, hi = FT.span(t, "x")
+		local bo, to = FT.span(t, "y")
+		local dx, dy = (lo + hi) / 2 - (ilo + ihi) / 2, (bo + to) / 2 - (ibo + ito) / 2
+		local d = math.sqrt(dx * dx + dy * dy)
+		if not (d > (ihi - ilo) / 2 and d < look.circle * 0.36) then
+			fail(scenario, ("glint %d is %.1f from the icon's middle, not on the water round it"):format(i, d))
+		end
+	end
+	-- The third mote is the wisp, in its own art and larger than a firefly.
+	local wlo, whi = FT.span(look.motes[3], "x")
+	local flo, fhi = FT.span(look.motes[1], "x")
+	if not (tostring(look.motes[3]._file):find("Wisp", 1, true) and whi - wlo > fhi - flo) then fail(scenario, "the wisp is not a wisp: " .. tostring(look.motes[3]._file)) end
 	if #look.flows ~= 2 then fail(scenario, "the look names " .. #look.flows .. " flows at rest, not the water's two layers") end
 	if not look.flow.driver:IsShown() then fail(scenario, "with the water rippling, Flow's clock is not running") end
 	-- The two layers run against one another, or there is no ripple.
@@ -741,7 +794,9 @@ withTree("look-wild: Calm keeps to fades", ANNA, function(ns, scenario)
 	end
 	-- The vine and its blossoms are simply there, whole and open.
 	if not near(look.vineFrame._alpha, 1) then fail(scenario, ("on Calm the vine rests at %.2f with somebody owed"):format(look.vineFrame._alpha or -1)) end
-	if frameOf(look.vine, 1, VINE_FRAMES) ~= VINE_FRAMES - 1 then fail(scenario, "on Calm the vine is not whole: frame " .. tostring(frameOf(look.vine, 1, VINE_FRAMES))) end
+	for i, t in ipairs(look.vines) do
+		if frameOf(t, 2, 8) ~= VINE_FRAMES - 1 or not near(t._alpha, 1) then fail(scenario, "on Calm the vine is not whole: half " .. i .. " at frame " .. tostring(frameOf(t, 2, 8))) end
+	end
 	if frameOf(look.blossoms[1], 4, 4) ~= BLOSSOM_FRAMES - 1 then fail(scenario, "on Calm the blossoms are not open") end
 	ns.Prompt:ShowOutcome("cast", "Anna Aim", "x")
 	if plays(look.landing) > 0 then fail(scenario, "on Calm a landing threw the leaves or lit the paw") end

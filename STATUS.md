@@ -43,7 +43,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 **Four looks retired (Unreleased)**, at the author's word ("they all should be unique. remove
 the one that are too similar"): Framed and Luxe (heir Glass), Arcane (heir
 Archmage), Toast (heir Ribbon). Eight remain: Glass, Minimal, Ribbon, Letter,
-Leather, Forge, Archmage, Lightbringer (nine with Fel, below). Gone for real: `Looks/Luxe.lua`,
+Leather, Forge, Archmage, Lightbringer (ten with Fel and Wild, below). Gone for real: `Looks/Luxe.lua`,
 `Toast.lua`, `Arcane.lua`, `Textures/Luxe`, `Toast`, `Arcane`, their three
 generators, their own scenario and mutation files, their four card pictures,
 Arcane's key-chip strings, and the tag the picker drew round Luxe's reason
@@ -362,7 +362,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the nine looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the ten looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and
@@ -520,6 +520,43 @@ unit is too soft for the gout at a large UI scale; how the alpha holes of
 the slab's cracks look over the scrolled fire at the game's filtering; and
 whether the picker's card, which cuts the horns' points off at its upper
 edge, wants a taller view.
+
+**Wild (Unreleased), asked for by the author as a druid's look.**
+`Looks/Wild.lua`, `Textures/Wild/` (`tools/make_wild_textures.py`, thirty-four
+files; the antlers, the crozier and every leaf through `tools/figures.py`),
+key `wild`, order 9.7 (after Fel, before Glass), in `Looks.roundAlways`. Four
+things move by their texture coordinates (`Looks/Flow.lua`): the moonwell
+water round the icon (two layers of one REPEAT texture scrolled against one
+another, both cut to the bed's ring by one mask texture), the vine (two
+sheets of sixteen frames, its first half and then its second, the second
+started from the first's `done` and timed from the moment the first ended,
+played once when a favour arrives) and its three blossoms (a sheet of
+sixteen, each at its own speed). Everything else that moves is an animation
+group: five sprigs that sway (a Rotation that bounces, about the sprig's
+root), three leaves that drift, three fireflies and a wisp, two glints on
+the water, a landing's ten leaves and six petals (two Translations and a
+Rotation each), a refusal's husks. Its sprigs, drifting leaves, fireflies,
+wisp and glints loop at rest (`look.idle`); nothing of it is scaled, so it names nothing in
+`look.skyward`; its antlers stand some 27 units over a default panel and its
+sprigs and vine past the button's bounds as drawn. A refusal browns the
+wreath, the sprigs and the bough by `SetDesaturated(true)` with a brown
+vertex colour, and `tools/render_prompt.py` now tints a greyed texture as
+the game does (it used to grey the tinted product, which lost the colour).
+With a key bound and the default width the words have 82 units between the
+wreath and the crozier, so a long reason line is drawn smaller sooner than
+on the other looks. Only the live game can say: that a mask texture on a
+REPEAT texture whose coordinates run past 1 cuts it as the renderer draws
+it (the launch check's masks are the icons'); that a desaturated texture
+takes its vertex colour (if not, a refusal's leaves are grey, not brown);
+that a Rotation on BOUNCE swings a sprig back the way it came; that two
+Translations in one group add up to the arc drawn here; how the two water
+layers read at the game's filtering and at thirty writes a second; how
+bright the paw and the bloom are in ADD over the icon (the renderer
+understates them); whether the vine's two halves meet without a seam and
+its second half takes up from the first without a held frame; whether the
+vine's sheets, two texels to a unit at the default width and stretched on a
+wide panel, are too soft at a large UI scale; and whether the picker's card, which cuts the antlers off at its
+upper edge, wants a taller view.
 
 **The new looks in the game.** Ribbon, Letter and Leather (1.10.0), Forge, the
 glass rebuild of Glass and the

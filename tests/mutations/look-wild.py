@@ -1,7 +1,8 @@
 # Mutations for the Wild look (Looks/Wild.lua, Looks/Looks.lua, Manners.toc,
 # tools/make_wild_textures.py): registered and loaded, round whatever the
 # switch says, the marker's carriers and moonlight's silver, the water cut to
-# its ring, the vine grown bud after bud, the blossoms each at its own pace,
+# its ring, the vine grown half after half and bud after bud, the blossoms
+# each at its own pace,
 # the three breaths, the paw, the bloom, the leaves and the shed blossoms, the
 # refusal, the vine and the list under a list hung over the panel, no
 # additive light at rest, the wood alive only at rest on Full with the prompt
@@ -59,8 +60,8 @@ mutate("Looks/Wild.lua",
        expect="is still shown under another look", script=S)
 
 mutate("Looks/Wild.lua",
-       "\t\tself.paw, self.bloom }) do\n\t\tt:SetShown(showIcon)\n",
-       "\t\tself.paw, self.bloom }) do\n\t\tt:SetShown(true)\n",
+       "\t\tself.paw, self.bloom, self.glints[1], self.glints[2] }) do\n\t\tt:SetShown(showIcon)\n",
+       "\t\tself.paw, self.bloom, self.glints[1], self.glints[2] }) do\n\t\tt:SetShown(true)\n",
        "look-wild: a wreath round an icon that is off",
        expect="with the icon off the wreath", script=S)
 
@@ -99,25 +100,49 @@ mutate("Looks/Wild.lua",
 # --- the vine ---
 
 mutate("Looks/Wild.lua",
-       "\t\t\tPlayAll(self.arrive)\n\t\t\tself.vineSheet:Play()\n",
-       "\t\t\tPlayAll(self.arrive)\n",
+       "\t\t\tself.vines[2]:SetAlpha(0)\n\t\t\tself.vineSheets[1]:Play()\n",
+       "\t\t\tself.vines[2]:SetAlpha(0)\n",
        "look-wild: a vine that comes whole",
        expect="a favour arriving did not play the vine's frames", script=S)
 
 mutate("Looks/Wild.lua",
-       "\t\t\tPlayAll(self.arrive)\n\t\t\tself.vineSheet:Play()\n",
-       "\t\t\tself.vineSheet:Play()\n",
+       "\t\t\tPlayAll(self.arrive)\n\t\t\t-- The first half grows; the second waits for it, unseen.\n",
+       "\t\t\t-- The first half grows; the second waits for it, unseen.\n",
        "look-wild: a favour arriving brings no vine",
        expect="a favour arriving did not bring the vine", script=S)
 
 mutate("Looks/Wild.lua",
-       "\tself.vineSheet = flow:Sheet(self.vine, 1, VINE_ROWS, VINE_FRAMES, VINE_FPS, false)\n",
-       "\tself.vineSheet = flow:Sheet(self.vine, 1, VINE_ROWS, VINE_FRAMES, VINE_FPS, true)\n",
+       "\t\tself.vineSheets[i] = flow:Sheet(t, VINE_COLS, VINE_ROWS, VINE_FRAMES, VINE_FPS, false)\n",
+       "\t\tself.vineSheets[i] = flow:Sheet(t, VINE_COLS, VINE_ROWS, VINE_FRAMES, VINE_FPS, true)\n",
        "look-wild: a vine that grows over and over",
        expect="the vine's frames loop", script=S)
 
 mutate("Looks/Wild.lua",
-       "\t\tself.budIn[i] = anim(Fade(t, 0, 1, 0.12, 0.10 + BLOSSOMS.at[i] * VINE_FRAMES / VINE_FPS))\n",
+       "\t\t\tself.vineSheets[2]:Stop()\n\t\t\tself.vines[2]:SetAlpha(0)\n",
+       "\t\t\tself.vineSheets[2]:Stop()\n",
+       "look-wild: the vine's far half out before its near half has grown",
+       expect="the vine's second half is out before its first has grown", script=S)
+
+mutate("Looks/Wild.lua",
+       "\t\tWild.vines[2]:SetAlpha(1)\n\t\tsecond:Play()\n",
+       "\t\tWild.vines[2]:SetAlpha(1)\n",
+       "look-wild: a vine that stops half way along the bough",
+       expect="half way, the vine's second half is not growing", script=S)
+
+mutate("Looks/Wild.lua",
+       "\t\tsecond.t0 = first.t0 + first.frames / first.fps\n",
+       "",
+       "look-wild: the vine's far half timed from a late clock",
+       expect="is timed from when the clock said so", script=S)
+
+mutate("Looks/Wild.lua",
+       "\t\tself.idle[#self.idle + 1] = self.glintAnims[i]\n",
+       "",
+       "look-wild: the water's glints looping unnamed",
+       expect="loop(s) kept going with nobody owed", script=S)
+
+mutate("Looks/Wild.lua",
+       "\t\tself.budIn[i] = anim(Fade(t, 0, 1, 0.12, 0.10 + BLOSSOMS.at[i] * VINE_SECONDS))\n",
        "\t\tself.budIn[i] = anim(Fade(t, 0, 1, 0.12, 0.10))\n",
        "look-wild: every bud shown at once, ahead of the vine",
        expect="shows no later than the one before it", script=S)
@@ -205,8 +230,8 @@ mutate("Looks/Wild.lua",
        expect="a refusal did not brown", script=S)
 
 mutate("Looks/Wild.lua",
-       "\tself.leafy = { self.disc }\n",
-       "\tself.leafy = { self.disc, self.antlers[1] }\n",
+       "\tself.leafy = { self.disc }\n\tfor _, t in ipairs(self.sprigs) do self.leafy[#self.leafy + 1] = t end\n\tself.baked = { self.antlers[1], self.antlers[2], self.lip, self.glyph }\n",
+       "\tself.leafy = { self.disc, self.antlers[1], self.antlers[2] }\n\tfor _, t in ipairs(self.sprigs) do self.leafy[#self.leafy + 1] = t end\n\tself.baked = { self.lip, self.glyph }\n",
        "look-wild: antlers that wither",
        expect="a refusal greyed the antlers", script=S)
 
@@ -329,8 +354,8 @@ mutate("Looks/Wild.lua",
 mutate("Looks/Wild.lua",
        "\tif on then\n\t\tself:StopAttention()\n\t\tself:StopFlourishes()\n",
        "\tif on then\n\t\tself:StopFlourishes()\n",
-       "look-wild: the vine in blossom through a fight",
-       expect="in a fight the vine stays on the bough", script=S)
+       "look-wild: the wood left as it was until the fight's first repaint",
+       expect="in a fight, still running", script=S)
 
 mutate("Looks/Wild.lua",
        "\tEach(self.body, \"SetDesaturated\", fight or sere)\n",
@@ -381,10 +406,10 @@ mutate("tools/make_wild_textures.py",
        expect="MOON_AT is 62 in the Lua and 52.0 in the generator", script=S)
 
 mutate("Looks/Wild.lua",
-       "local VINE_FRAMES = 8\n",
-       "local VINE_FRAMES = 6\n",
+       "local VINE_FRAMES = 16\n",
+       "local VINE_FRAMES = 12\n",
        "look-wild: the look playing fewer frames than the vine's sheet holds",
-       expect="VINE_FRAMES is 6 in the Lua and 8 in the generator", script=S)
+       expect="VINE_FRAMES is 12 in the Lua and 16 in the generator", script=S)
 
 mutate("tools/make_wild_textures.py",
        "SEED = 7717\n",

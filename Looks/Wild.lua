@@ -26,13 +26,14 @@
 --
 -- What moves, and when (tests/scenarios/look-wild.lua):
 --   * at rest, on Full effects, the moonwell's water RIPPLES (two layers of
---     one caustic scrolled against one another, Looks/Flow.lua), the sprigs
---     along the bough stir, a leaf drifts down now and then, and fireflies
---     and a wisp wander. hunt35-effects lets the groups of `idle` loop with
+--     one caustic scrolled against one another, Looks/Flow.lua) and glints,
+--     the sprigs along the bough stir, a leaf drifts down now and then,
+--     fireflies wander and a wisp goes round the moon. hunt35-effects lets the groups of `idle` loop with
 --     nobody owed, by name; the Flow handles are `flows`;
 --   * a favour arriving GROWS A VINE along the bough's upper side, from the
---     wreath to the crozier (a sheet of eight drawn frames, played once), a
---     light running at its tip, and its buds show as it reaches them;
+--     wreath to the crozier (two sheets of sixteen drawn frames, its first
+--     half and then its second, played once), a light running at its tip,
+--     and its buds show as it reaches them;
 --   * owed, BLOSSOMS open on the vine one after another (a sheet of sixteen
 --     frames each, at its own pace) and stay open; a light over the water,
 --     the moon's and the inlay's breathe three times and then hold lit; the
@@ -86,8 +87,8 @@ local Wild = ns.Looks.Register("wild", {
 -- bough), where in the right end the face stops and the crozier begins, and
 -- its middle tile's width, in texels; the moon's middle from the bough's right edge and above its
 -- middle line, and its width, in design texels; the left antler's box
--- against the wreath's; the two sheets, and where the vine's stem lies in a
--- frame of its own; the tag's caps, the mask's fill and the ring file's line.
+-- against the wreath's; the sheets (the vine's is two, one for each half of
+-- it), and where the vine's stem lies in a frame of its own; the tag's caps, the mask's fill and the ring file's line.
 local ICON_FRAME = 0.75
 local CIRCLE_SCALE = 1.45
 local DESIGN_H = 128
@@ -102,8 +103,9 @@ local MOON_SIZE = 60
 local ANTLER_X = 0.27
 local ANTLER_Y = 0.38
 local ANTLER_SIZE = 0.90
+local VINE_COLS = 2
 local VINE_ROWS = 8
-local VINE_FRAMES = 8
+local VINE_FRAMES = 16
 local VINE_STEM = 0.75
 local BLOSSOM_COLS = 4
 local BLOSSOM_ROWS = 4
@@ -170,18 +172,23 @@ local BREATHS, BREATH = 3, 1.25
 -- second, how much faster while somebody is owed, and the second layer's
 -- share.
 local WATER = { tile = 19, du = { 0.034, -0.026 }, dv = { 0.022, 0.030 }, owed = 2.4, second = 0.55 }
--- The vine: its frames a second, where its three blossoms stand along it,
--- each one's frames a second, and how large a blossom is against the button.
-local VINE_FPS = 14
+-- The vine: its frames a second (a half of it after the other, so it is
+-- grown in VINE_SECONDS), where its three blossoms stand along it, each
+-- one's frames a second, and how large a blossom is against the button.
+local VINE_FPS = 56
+local VINE_SECONDS = 2 * VINE_FRAMES / VINE_FPS
 local BLOSSOMS = { at = { 0.23, 0.52, 0.79 }, fps = { 22, 16, 12 }, size = 0.30 }
 -- The sprigs: how large against the button, and each one's sway (degrees,
 -- seconds one way).
 local SPRIG = { size = 0.36, sway = { { 8, 2.3 }, { -7, 2.9 }, { 7.5, 3.4 }, { -8, 2.6 }, { 7, 3.1 } } }
 -- What drifts at rest: three leaves (wait, fall, rest, turn), four motes
--- (wait, three legs, rest). No two share a measure.
+-- (wait, three legs, rest), the third of them the wisp. No two share a
+-- measure. And the two glints on the water: wait, rest.
 local DRIFT = { { 0.6, 3.4, 4.2, 220 }, { 2.8, 4.2, 5.0, -260 }, { 5.5, 3.0, 6.3, 180 } }
 local MOTES = { { 0.3, 2.6, 2.2, 2.9, 2.3 }, { 2.1, 3.1, 2.4, 2.6, 3.7 }, { 1.2, 2.8, 3.0, 2.4, 4.4 }, { 3.7, 2.4, 2.7, 3.2, 3.1 } }
 local MOTE_PEAK = 0.95
+local WISP = 3
+local GLINTS = { { 1.7, 4.9 }, { 4.3, 6.1 } }
 -- A landing's leaves and petals: where each flies (degrees, the sun's way
 -- from the right; how far, in wreaths), and how it turns.
 local BURST = { { 96, 0.86, 260 }, { 128, 0.98, -300 }, { 158, 0.80, 220 }, { 188, 0.92, -240 }, { 218, 0.84, 280 },
@@ -442,6 +449,21 @@ local function Twinkle(region, wait, peak, up, down)
 	return g
 end
 
+-- A glint on the water: dark for `wait`, up and out as it turns a quarter,
+-- dark again for `rest`, over and over.
+local function Glint(region, wait, rest, peak)
+	local g = region:CreateAnimationGroup()
+	g:SetLooping("REPEAT")
+	Alpha(g, 0, 0, wait, 1)
+	Alpha(g, 0, peak, 0.30, 2, nil, "OUT")
+	Alpha(g, peak, 0, 0.60, 3, nil, "IN")
+	Spin(g, -45, 0.30, 2)
+	Spin(g, -45, 0.60, 3)
+	Alpha(g, 0, 0, rest, 4)
+	Park(g, region, 0)
+	return g
+end
+
 -- A sprig stirring: a few degrees about its root and back, over and over.
 local function Sway(region, degrees, seconds, root)
 	local g = region:CreateAnimationGroup()
@@ -602,6 +624,13 @@ function Wild:Build(kit)
 	self.halo = tex(art, "ARTWORK", -3, "Halo")
 	self.halo:SetAlpha(0)
 	self.lip = tex(art, "ARTWORK", -2, "Lip")
+	-- The glints on the water, over the lip's shade and under the icon.
+	self.glints = {}
+	for i = 1, #GLINTS do
+		local t = tex(art, "ARTWORK", -1, "Star")
+		t:SetAlpha(0)
+		self.glints[i] = t
+	end
 	-- The sprigs: one on the wreath, two on the bough's upper side, one under
 	-- it and one on the crozier, over the wood and clear of the icon.
 	self.sprigs = {}
@@ -610,7 +639,9 @@ function Wild:Build(kit)
 	-- The vine and its blossoms, on a frame that fades as one.
 	self.vineFrame = frame(1)
 	self.vineFrame:SetAlpha(0)
-	self.vine = tex(self.vineFrame, "ARTWORK", 0, "Vine")
+	-- The vine is two halves, each a sheet of its own: the first grows, and
+	-- then the second.
+	self.vines = { tex(self.vineFrame, "ARTWORK", 0, "VineA"), tex(self.vineFrame, "ARTWORK", 0, "VineB") }
 	self.blossoms = {}
 	for i = 1, #BLOSSOMS.at do self.blossoms[i] = tex(self.vineFrame, "ARTWORK", 1, "Blossom") end
 
@@ -643,9 +674,9 @@ function Wild:Build(kit)
 	end
 	self.motes = {}
 	for i = 1, #MOTES do
-		local t = tex(self.idleFrame, "OVERLAY", 1, "Mote")
 		-- The third is a wisp, the moon's; the others are fireflies.
-		local c = (i == 3) and MOONLIGHT or SUNLIGHT
+		local t = tex(self.idleFrame, "OVERLAY", 1, (i == WISP) and "Wisp" or "Mote")
+		local c = (i == WISP) and MOONLIGHT or SUNLIGHT
 		t:SetVertexColor(c[1], c[2], c[3], 1)
 		t:SetAlpha(0)
 		self.motes[i] = t
@@ -708,14 +739,27 @@ function Wild:Build(kit)
 	end
 
 	-- What moves by its coordinates (Looks/Flow.lua): the water's two layers,
-	-- the vine, the blossoms.
+	-- the vine's two halves, the blossoms.
 	local flow = ns.Looks.Flow.New(art)
 	self.flow = flow
 	self.waterScroll = {}
 	for i, t in ipairs(self.water) do
 		self.waterScroll[i] = flow:Scroll(t, WATER.du[i], WATER.dv[i], 1, 1)
 	end
-	self.vineSheet = flow:Sheet(self.vine, 1, VINE_ROWS, VINE_FRAMES, VINE_FPS, false)
+	self.vineSheets = {}
+	for i, t in ipairs(self.vines) do
+		self.vineSheets[i] = flow:Sheet(t, VINE_COLS, VINE_ROWS, VINE_FRAMES, VINE_FPS, false)
+	end
+	-- The second half grows on from the moment the first is grown: started
+	-- then and timed from then, however late the clock was to say so.
+	self.vineSheets[1].done = function(first)
+		if not Wild.growing then return end
+		local second = Wild.vineSheets[2]
+		Wild.vines[2]:SetAlpha(1)
+		second:Play()
+		second.t0 = first.t0 + first.frames / first.fps
+		second:Write(GetTime())
+	end
 	self.blossomSheets = {}
 	for i, t in ipairs(self.blossoms) do
 		self.blossomSheets[i] = flow:Sheet(t, BLOSSOM_COLS, BLOSSOM_ROWS, BLOSSOM_FRAMES, BLOSSOMS.fps[i], false)
@@ -746,15 +790,16 @@ function Wild:BuildAnimations(anim)
 		anim(Fade(self.core, CORE.rest, CORE.held, 0.5)), anim(Fade(self.vineFrame, 0, 1, 0.5)),
 	}
 
-	-- A favour arriving: the vine comes (its frames are Flow's, 0.57 s), a
+	-- A favour arriving: the vine comes (its frames are Flow's, 0.57 s for
+	-- its two halves), a
 	-- light at its tip as it grows, and each blossom's bud shows as the vine
 	-- reaches it.
 	self.vineIn = anim(Fade(self.vineFrame, 0, 1, 0.08))
 	self.budIn = {}
 	for i, t in ipairs(self.blossoms) do
-		self.budIn[i] = anim(Fade(t, 0, 1, 0.12, 0.10 + BLOSSOMS.at[i] * VINE_FRAMES / VINE_FPS))
+		self.budIn[i] = anim(Fade(t, 0, 1, 0.12, 0.10 + BLOSSOMS.at[i] * VINE_SECONDS))
 	end
-	self.tipAnim = anim(Runner(self.tip, VINE_FRAMES / VINE_FPS, 0.85))
+	self.tipAnim = anim(Runner(self.tip, VINE_SECONDS, 0.85))
 	self.arrive = { self.vineIn, self.tipAnim }
 	for _, g in ipairs(self.budIn) do self.arrive[#self.arrive + 1] = g end
 
@@ -792,10 +837,14 @@ function Wild:BuildAnimations(anim)
 	self.burstAnim = self.fx.rings[1].land
 
 	-- At rest: the sprigs stir, the leaves drift, the fireflies and the wisp
-	-- wander. hunt35-effects lets the groups of this list loop with nobody
-	-- owed, and no others. See Idle for when they run.
-	self.sways, self.driftAnims, self.moteAnims = {}, {}, {}
+	-- wander, the water glints. hunt35-effects lets the groups of this list
+	-- loop with nobody owed, and no others. See Idle for when they run.
+	self.sways, self.driftAnims, self.moteAnims, self.glintAnims = {}, {}, {}, {}
 	self.idle = {}
+	for i, t in ipairs(self.glints) do
+		self.glintAnims[i] = anim(Glint(t, GLINTS[i][1], GLINTS[i][2], 0.85))
+		self.idle[#self.idle + 1] = self.glintAnims[i]
+	end
 	for i, t in ipairs(self.sprigs) do
 		self.sways[i] = anim(Sway(t, SPRIG.sway[i][1], SPRIG.sway[i][2], "BOTTOM"))
 		self.idle[#self.idle + 1] = self.sways[i]
@@ -901,11 +950,11 @@ function Wild:Apply(p, above)
 	At(self.star, art, gemX + moonSize * 0.16, moonY + moonSize * 0.20, math.max(8, moonSize * 1.1))
 	self.gemX, self.moonY, self.moonSize = gemX, moonY, moonSize
 	self.chipInset = math.ceil(W - rootX) + 2
-	-- The inlay: along the face's lower edge, under the reason line, from the
-	-- wreath to where the bough ends.
+	-- The inlay: along the lower bark's lip, clear of the reason line over
+	-- it, from the wreath to where the bough ends.
 	local inlayX0 = showIcon and (discRight - 2) or (plateX + 10)
 	local inlayX1 = rootX - 1
-	local inlayY = plateIn + 105 * su
+	local inlayY = plateIn + 110 * su
 	local inlayH = math.max(2.5, 3.2 * math.min(1.6, su / 0.3))
 	self.inlayOK = inlayX1 - inlayX0 >= 16
 	Box(self.inlay, art, inlayX0, inlayY - inlayH / 2, inlayX1, inlayY + inlayH / 2)
@@ -965,7 +1014,7 @@ function Wild:Apply(p, above)
 	for _, x in ipairs(self.own) do x:Show() end
 	PlaceBody(self.body, art, plateX, plateIn, W, H - plateIn)
 	for _, t in ipairs({ self.disc, self.antlers[1], self.antlers[2], self.water[1], self.water[2], self.halo, self.lip,
-		self.paw, self.bloom }) do
+		self.paw, self.bloom, self.glints[1], self.glints[2] }) do
 		t:SetShown(showIcon)
 	end
 	self.waterMask:SetShown(showIcon)
@@ -985,7 +1034,7 @@ function Wild:Apply(p, above)
 	-- changes, so the look puts it back itself.
 	local held = self.combat
 	self.combat, self.hovered, self.outcomeOn, self.refused = nil, nil, nil, nil
-	self.pulseSpent, self.calmLit, self.owed, self.grown, self.shedded = nil, nil, nil, nil, nil
+	self.pulseSpent, self.calmLit, self.owed, self.grown, self.shedded, self.growing = nil, nil, nil, nil, nil, nil
 	self:Rest()
 	self:Dress()
 	if held then self:Combat(true) end
@@ -1019,6 +1068,13 @@ function Wild:PlaceWreath(showIcon)
 	local hx, hy = cx - circle / 2 - circle * ANTLER_X, cy - circle / 2 - circle * ANTLER_Y
 	Box(self.antlers[1], art, hx, hy, hx + size, hy + size)
 	Box(self.antlers[2], art, 2 * cx - hx - size, hy, 2 * cx - hx, hy + size)
+	-- The glints: on the water's ring, one where the light lies on it and one
+	-- across from it.
+	local ring = circle * 0.31
+	for i, t in ipairs(self.glints) do
+		local a = math.rad(i == 1 and -128 or 40)
+		At(t, art, cx + ring * math.cos(a), cy + ring * math.sin(a), math.max(6, circle * 0.17))
+	end
 	-- The bloom behind the wreath, the paw over the icon: neither larger
 	-- than its room, for neither grows.
 	At(self.bloom, art, cx, cy, circle * 1.42)
@@ -1113,7 +1169,9 @@ function Wild:PlaceGrowth(showIcon, above)
 	if above then vineH = math.min(vineH, upper / VINE_STEM) end
 	local top = upper - vineH * VINE_STEM
 	self.vineOK = span >= 48
-	Box(self.vine, art, x0 - 3, top, x0 - 3 + span, top + vineH)
+	local vx = x0 - 3
+	Box(self.vines[1], art, vx, top, vx + span / 2, top + vineH)
+	Box(self.vines[2], art, vx + span / 2, top, vx + span, top + vineH)
 	local bs = math.max(7, math.min(18, H * BLOSSOMS.size))
 	if above then bs = math.min(bs, upper * 1.6) end
 	self.blossomAt = {}
@@ -1155,18 +1213,21 @@ function Wild:PlaceMotion(showIcon, above)
 		g.aside:SetOffset(s[3], 0)
 	end
 	self.driftOK = span >= 50
-	-- The fireflies: over the antlers, over the bough, under it; the wisp by
-	-- the moon. Each wanders three legs and ends near where it began.
+	-- The fireflies: over the antlers, over the bough, under it. Each wanders
+	-- three legs and ends near where it began. The wisp goes round the moon:
+	-- up past the crozier's near side, over it, and down into it.
 	local mote = math.max(6, math.min(16, H * 0.28))
+	local wisp = math.max(9, math.min(24, H * 0.44))
+	local ms = self.moonSize
 	local wander = {
 		{ cx + circle * 0.10, cy - circle * 0.5 - 7 * lift, { 9, 5 * lift }, { -13, -3 * lift }, { 7, -5 * lift } },
 		{ x0 + span * 0.46, self.upper - 5 * lift, { 13, 5 * lift }, { 9, -4 * lift }, { -9, 4 * lift } },
-		{ self.gemX - self.moonSize * 0.7, self.moonY + self.moonSize * 0.9, { 5, 9 * lift }, { 8, 5 * lift }, { -9, 4 * lift } },
+		{ self.gemX - ms * 0.45, self.moonY + ms * 0.95, { ms * 0.15, ms * 1.45 * lift }, { ms * 0.75, ms * 0.30 * lift }, { -ms * 0.45, -ms * 0.80 * lift } },
 		{ x0 + span * 0.26, H + 4, { -9, -4 }, { 12, -3 }, { 6, 5 } },
 	}
 	for i, t in ipairs(self.motes) do
 		local s = wander[i]
-		At(t, art, s[1], s[2], mote)
+		At(t, art, s[1], s[2], (i == WISP) and wisp or mote)
 		local legs = self.moteAnims[i].legs
 		for k = 1, 3 do legs[k]:SetOffset(s[2 + k][1], s[2 + k][2]) end
 	end
@@ -1219,7 +1280,7 @@ function Wild:Rest()
 	self.vineFrame:SetAlpha(0)
 	for _, t in ipairs(self.blossoms) do t:SetAlpha(1) end
 	for _, t in ipairs({ self.paw, self.bloom, self.hot, self.star, self.tip, self.hoverLight }) do t:SetAlpha(0) end
-	for _, list in ipairs({ self.burst, self.petals, self.husks, self.drift, self.motes }) do
+	for _, list in ipairs({ self.burst, self.petals, self.husks, self.drift, self.motes, self.glints }) do
 		for _, t in ipairs(list) do t:SetAlpha(0) end
 	end
 end
@@ -1227,10 +1288,13 @@ end
 -- The vine grown and its blossoms open, with nothing played: for a repaint
 -- of somebody already owed, a restyle, Calm.
 function Wild:Grown()
-	self.grown = true
-	self.vineSheet:Stop()
-	Still(self.vine, 1, VINE_ROWS, VINE_FRAMES - 1)
-	self.vineSheet.shown = nil
+	self.grown, self.growing = true, nil
+	for i, t in ipairs(self.vines) do
+		self.vineSheets[i]:Stop()
+		Still(t, VINE_COLS, VINE_ROWS, VINE_FRAMES - 1)
+		self.vineSheets[i].shown = nil
+		t:SetAlpha(1)
+	end
 	for i, t in ipairs(self.blossoms) do
 		self.blossomSheets[i]:Stop()
 		Still(t, BLOSSOM_COLS, BLOSSOM_ROWS, BLOSSOM_FRAMES - 1)
@@ -1241,8 +1305,8 @@ end
 
 -- The vine away, and its frames stopped.
 function Wild:Ungrow()
-	self.grown, self.shedded = nil, nil
-	self.vineSheet:Stop()
+	self.grown, self.shedded, self.growing = nil, nil, nil
+	for _, h in ipairs(self.vineSheets) do h:Stop() end
 	for _, h in ipairs(self.blossomSheets) do h:Stop() end
 	StopAll(self.budIn)
 	StopAll(self.shed)
@@ -1270,6 +1334,13 @@ function Wild:Idle()
 			if not h:IsPlaying() then h:Play() end
 		else
 			h:Stop()
+		end
+	end
+	for _, g in ipairs(self.glintAnims) do
+		if alive and self.kit.icon:IsShown() then
+			if not g:IsPlaying() then g:Play() end
+		else
+			g:Stop()
 		end
 	end
 	for i, g in ipairs(self.sways) do
@@ -1391,7 +1462,7 @@ function Wild:Hide()
 	self.combat, self.hovered, self.outcomeOn, self.refused = nil, nil, nil, nil
 	self.listShown, self.countMode, self.keyUp = nil, nil, false
 	self.pulseSpent, self.calmLit, self.owed, self.idleState, self.greeted = nil, nil, nil, nil, nil
-	self.grown, self.shedded = nil, nil
+	self.grown, self.shedded, self.growing = nil, nil, nil
 end
 
 ---------------------------------------------------------------------------
@@ -1635,6 +1706,8 @@ function Wild:Tint(r, g, b, ring, stripe)
 	end
 	local hr, hg, hb = kit.Tint(cr, cg, cb, 0.45)
 	self.halo:SetVertexColor(hr, hg, hb, 1)
+	local gr, gg, gb = kit.Tint(cr, cg, cb, 0.75)
+	for _, t in ipairs(self.glints) do t:SetVertexColor(gr, gg, gb, 1) end
 	self.moon:SetVertexColor(vr, vg, vb, 1)
 	self.moonGlow:SetVertexColor(vr, vg, vb, 1)
 	self.inlay:SetVertexColor(vr, vg, vb, INLAY_ALPHA)
@@ -1744,7 +1817,11 @@ function Wild:Attention(isNew, arrived, flashStyle)
 			self.grown, self.shedded = true, nil
 			for _, t in ipairs(self.blossoms) do t:SetAlpha(0) end
 			PlayAll(self.arrive)
-			self.vineSheet:Play()
+			-- The first half grows; the second waits for it, unseen.
+			self.growing = true
+			self.vineSheets[2]:Stop()
+			self.vines[2]:SetAlpha(0)
+			self.vineSheets[1]:Play()
 			for _, h in ipairs(self.blossomSheets) do h:Play() end
 		end
 	end
