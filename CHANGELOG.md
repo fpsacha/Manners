@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.18
 
 - **Who makes Manners** is now at the foot of the options window, under the
   version, on every page.
