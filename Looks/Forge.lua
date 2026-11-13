@@ -35,7 +35,18 @@
 --     white-hot and throws sparks along the strap band, never up to the
 --     words; a refusal quenches the slot to steel grey with a puff of steam
 --     and greys the icon; a cast nobody confirmed does nothing;
---   * Calm keeps to fades: no shimmer, no loop, no sparks, no steam;
+--   * the forge is ALIVE at rest, on Full effects (the author asked for it;
+--     hunt35-effects lets the groups of `idle` loop with nobody owed, by
+--     name): a seam of molten metal glows along the bottom strap in the
+--     slot's heat and flickers, embers rise from it across the plate, each
+--     in its own time and behind the words, and a glint runs along the top
+--     strap now and then. None of it
+--     is additive and none of it is on the words. Somebody new on the panel is
+--     greeted with the glint, once;
+--   * a landing also throws a fountain of sparks up off the bezel, past the
+--     plate's top (not with the list hung over the panel);
+--   * Calm keeps to fades: no shimmer, no loop, no sparks, no steam, no
+--     embers;
 --   * a fight turns the iron to dull iron, dims the words and greys the icon;
 --     the slot keeps its colour: the reason is the one coloured thing left;
 --   * the icon is the slider's size and reads "Round the icon off"; the bezel
@@ -130,6 +141,25 @@ local STEAM, STEAM_RISE = 10, 4
 -- The longest an additive flourish may stay lit, in seconds.
 local FLOURISH = 0.6
 local COMMAND = "CLICK MannersPrompt:LeftButton"
+-- The forge at rest. The embers: where along the seam each starts (a part of
+-- its length), how far it drifts sideways as it rises, in units, the seconds
+-- it waits in the seam and the seconds it takes to rise.
+-- The slot's flicker: the alphas a second core steps through, and how long
+-- each step takes. The glint on the top strap: its crossing and its wait. No
+-- two times share a measure, so nothing falls in step.
+local EMBERS = { { 0.06, -2.0, 1.9, 1.5 }, { 0.34, 1.2, 3.1, 1.8 }, { 0.58, 3.0, 2.3, 1.3 }, { 0.78, -1.6, 4.7, 1.7 },
+	{ 0.93, 2.2, 3.7, 1.6 } }
+local EMBER_PEAK, EMBER_RISE, EMBER_SIZE = 0.95, 24, 4.5
+local FLICKER = { { 0.62, 0.31 }, { 0.86, 0.23 }, { 0.70, 0.37 }, { 0.92, 0.29 }, { 0.74, 0.19 } }
+-- The seam: its height in units.
+local SEAM_H = 7
+-- The seam's glow on the iron above it: how far up it reaches, in units, and
+-- its alpha.
+local SEAM_GLOW_H, SEAM_GLOW = 18, 0.34
+local STRAP_GLINT_CROSS, STRAP_GLINT_WAIT, STRAP_GLINT_PEAK = 1.3, 7.3, 0.40
+-- The fountain a landing throws up off the bezel: how many sparks, and how
+-- high the highest flies, in units.
+local FOUNT, FOUNT_RISE, FOUNT_SIZE = 9, 24, 4
 
 local function Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 local function SubSize(fontSize) return math.max(7, fontSize - 3) end
@@ -368,6 +398,72 @@ local function Fade(region, from, to, duration)
 	return g
 end
 
+-- An ember: dark in the slot for `wait`, then up by the offset Apply gives it,
+-- lit as it leaves and gone as it arrives, over and over.
+local function Rise(region, wait, seconds, peak)
+	local g = region:CreateAnimationGroup()
+	g:SetLooping("REPEAT")
+	Alpha(g, 0, 0, wait, 1)
+	local move = g:CreateAnimation("Translation")
+	move:SetDuration(seconds)
+	move:SetOrder(2)
+	if move.SetSmoothing then move:SetSmoothing("OUT") end
+	g.move = move
+	Alpha(g, 0, peak, seconds * 0.2, 2, nil, "OUT")
+	Alpha(g, peak, 0, seconds * 0.8, 2, seconds * 0.2, "IN")
+	Park(g, region, 0)
+	return g
+end
+
+-- The slot's flicker: a second core stepping through FLICKER's alphas, each
+-- step a fade to the next, over and over.
+local function Flicker(region)
+	local g = region:CreateAnimationGroup()
+	g:SetLooping("REPEAT")
+	for i, step in ipairs(FLICKER) do
+		local nxt = FLICKER[i % #FLICKER + 1]
+		Alpha(g, step[1], nxt[1], step[2], i)
+	end
+	Park(g, region, 0)
+	return g
+end
+
+-- A glint that crosses by the offset Apply gives it, then waits, over and
+-- over (`wait`) or once (no wait).
+local function Glint(region, cross, wait, peak)
+	local g = region:CreateAnimationGroup()
+	if wait then g:SetLooping("REPEAT") end
+	local move = g:CreateAnimation("Translation")
+	move:SetDuration(cross)
+	move:SetOrder(1)
+	if move.SetSmoothing then move:SetSmoothing("IN_OUT") end
+	g.move = move
+	Alpha(g, 0, peak, cross * 0.3, 1, nil, "OUT")
+	Alpha(g, peak, 0, cross * 0.7, 1, cross * 0.3, "IN")
+	if wait then Alpha(g, 0, 0, wait, 2) end
+	Park(g, region, 0)
+	return g
+end
+
+-- A spark of the fountain: up and out by the offset Apply gives it, after its
+-- own short wait.
+local function Thrown(region, delay, seconds)
+	local g = region:CreateAnimationGroup()
+	local order = 1
+	if delay > 0 then
+		Alpha(g, 0, 0, delay, 1)
+		order = 2
+	end
+	local move = g:CreateAnimation("Translation")
+	move:SetDuration(seconds)
+	move:SetOrder(order)
+	if move.SetSmoothing then move:SetSmoothing("OUT") end
+	g.move = move
+	Alpha(g, 0.9, 0, seconds, order, nil, "IN")
+	Park(g, region, 0)
+	return g
+end
+
 local function PlayAll(list)
 	for _, g in ipairs(list) do
 		g:Stop()
@@ -465,6 +561,37 @@ function Forge:Build(kit)
 	self.hoverLight:SetTexture(WHITE)
 	self.hoverLight:SetAllPoints(self.hoverFrame)
 	self.hoverLight:SetAlpha(0)
+	-- The forge at rest, none of it additive: the embers, the slot's second
+	-- core that flickers, and the glint on the top strap (once more for the
+	-- greeting: two groups on one region would fight over its alpha).
+	self.idleFrame = frame(1)
+	self.embers = {}
+	for i = 1, #EMBERS do
+		local t = tex(self.idleFrame, "OVERLAY", 2, "Ember")
+		t:SetAlpha(0)
+		self.embers[i] = t
+	end
+	-- The seam: molten metal along the bottom strap's upper edge, in the
+	-- slot's heat, which is what flickers.
+	self.flicker = tex(art, "BORDER", 2, "Seam")
+	self.flicker:SetAlpha(0)
+	-- And its glow on the iron above it, which holds while the seam flickers.
+	self.seamGlow = tex(art, "BORDER", 1, "Seam")
+	self.seamGlow:SetAlpha(0)
+	self.strapGlint = tex(self.idleFrame, "OVERLAY", 1, "Ember")
+	self.strapGlintOnce = tex(self.idleFrame, "OVERLAY", 1, "Ember")
+	for _, t in ipairs({ self.strapGlint, self.strapGlintOnce }) do
+		t:SetVertexColor(1.00, 0.90, 0.70, 1)
+		t:SetAlpha(0)
+	end
+	-- The fountain a landing throws up off the bezel.
+	self.fountFrame = frame(2)
+	self.fount = {}
+	for i = 1, FOUNT do
+		local t = tex(self.fountFrame, "OVERLAY", 1, "Ember", "ADD")
+		t:SetAlpha(0)
+		self.fount[i] = t
+	end
 
 	-- The list's beads, one a row, in the row's reason colour.
 	self.beads = {}
@@ -556,6 +683,25 @@ function Forge:BuildAnimations(anim)
 	self.steamAnim = anim(steam)
 	-- The first of the two rings, which the scenarios watch for a landed buff.
 	self.burstAnim = self.fx.rings[1].land
+
+	-- The forge at rest: see Idle for when these run. hunt35-effects lets the
+	-- groups of this list loop with nobody owed, and no others.
+	self.idle, self.emberAnims = {}, {}
+	for i, e in ipairs(EMBERS) do
+		self.emberAnims[i] = anim(Rise(self.embers[i], e[3], e[4], EMBER_PEAK))
+		self.idle[#self.idle + 1] = self.emberAnims[i]
+	end
+	self.flickerAnim = anim(Flicker(self.flicker))
+	self.idle[#self.idle + 1] = self.flickerAnim
+	self.glintLoop = anim(Glint(self.strapGlint, STRAP_GLINT_CROSS, STRAP_GLINT_WAIT, STRAP_GLINT_PEAK))
+	self.idle[#self.idle + 1] = self.glintLoop
+	-- The greeting: the glint, once.
+	self.greetAnim = anim(Glint(self.strapGlintOnce, 0.7, nil, STRAP_GLINT_PEAK))
+	-- The fountain: each spark 0.012 s after the last, out by 0.52 s.
+	self.fountAnims = {}
+	for i, t in ipairs(self.fount) do
+		self.fountAnims[i] = anim(Thrown(t, 0.012 * (i - 1), 0.44))
+	end
 
 	-- The cursor's light on the top strap, both ways; from and to are set for
 	-- each play.
@@ -728,6 +874,42 @@ function Forge:Apply(p, above)
 	end
 	self.sparksOK = sparksOK
 
+	-- The forge at rest. The seam lies along the bottom strap's upper edge,
+	-- the plate's whole length. The embers leave it and rise behind the words
+	-- past the plate's own top, drifting; with the list hung over the panel
+	-- they stop at the plate's top. The glint runs along the top strap from
+	-- the bezel to the far end.
+	local seamY = H - strapH - 0.5
+	local seamX0, seamX1 = 6, W - 6
+	Box(self.flicker, art, seamX0, seamY - SEAM_H / 2, seamX1, seamY + SEAM_H / 2)
+	Box(self.seamGlow, art, seamX0, seamY - SEAM_GLOW_H * 0.75, seamX1, seamY + SEAM_GLOW_H * 0.25)
+	local emberRise = above and math.max(2, seamY - 2) or math.min(EMBER_RISE + seamY * 0.5, seamY + 10)
+	for i, e in ipairs(EMBERS) do
+		At(self.embers[i], art, seamX0 + (seamX1 - seamX0) * e[1], seamY, EMBER_SIZE, EMBER_SIZE)
+		self.emberAnims[i].move:SetOffset(e[2], emberRise)
+	end
+	local glintW = 22
+	local glintX0 = (showIcon and bezelRight or TEXT_X_BARE) + glintW / 2
+	local glintRun = W - 6 - glintW / 2 - glintX0
+	self.idleOK = glintRun >= 30
+	At(self.strapGlint, art, glintX0, strapH / 2, glintW, 2)
+	At(self.strapGlintOnce, art, glintX0, strapH / 2, glintW, 2)
+	self.glintLoop.move:SetOffset(math.max(0, glintRun), 0)
+	self.greetAnim.move:SetOffset(math.max(0, glintRun), 0)
+	self.idleFrame:ClearAllPoints()
+	self.idleFrame:SetAllPoints(art)
+	-- The fountain: off the bezel's top, each spark its own way, the middle
+	-- ones highest; kept under the plate's top with the list hung over it.
+	local fountRise = above and math.max(2, cy - bz / 2 - 1) or FOUNT_RISE
+	for i, t in ipairs(self.fount) do
+		local k = i - (FOUNT + 1) / 2
+		At(t, art, iconX + iconSize / 2 + k * 1.5, cy - bz / 2 + 1.5, FOUNT_SIZE, FOUNT_SIZE)
+		self.fountAnims[i].move:SetOffset(k * 3.4, fountRise * (1 - 0.09 * k * k / 2) * (0.82 + 0.06 * (i % 3)))
+		t:SetVertexColor(1.00, 0.84, 0.52, 1)
+	end
+	self.fountFrame:ClearAllPoints()
+	self.fountFrame:SetAllPoints(art)
+
 	-- The cursor's light over the top strap.
 	Box(self.hoverFrame, art, 2, 0, W - 2, strapH)
 	self.hoverLight:SetVertexColor(HOVER[1], HOVER[2], HOVER[3], 1)
@@ -781,6 +963,8 @@ function Forge:Apply(p, above)
 	self.steam:SetAlpha(0)
 	for _, t in ipairs(self.sparks) do t:SetAlpha(0) end
 	self.hoverLight:SetAlpha(0)
+	self:RestIdle()
+	self.fountFrame:SetShown(showIcon)
 	-- A fight's hold outlives a restyle: Prompt only says so again when it
 	-- changes, so the look puts it back itself.
 	local held = self.combat
@@ -788,11 +972,57 @@ function Forge:Apply(p, above)
 	self.pulseSpent, self.calmLit = nil, nil
 	self:Dull(false)
 	if held then self:Combat(true) end
+	self:Idle()
 
 	-- The count's room: a two-digit tag and its inset. Chip widens it for a
 	-- longer count.
 	self.roomBase = math.ceil(chipH * 1.75) + 15
 	return textX, self.roomBase
+end
+
+-- The lights of the forge at rest, of the greeting and of the fountain, dark.
+function Forge:RestIdle()
+	for _, t in ipairs(self.embers) do t:SetAlpha(0) end
+	for _, t in ipairs(self.fount) do t:SetAlpha(0) end
+	self.flicker:SetAlpha(0)
+	self.seamGlow:SetAlpha(0)
+	self.strapGlint:SetAlpha(0)
+	self.strapGlintOnce:SetAlpha(0)
+end
+
+-- The forge at rest: its embers, its flicker and its glint run on Full effects
+-- out of a fight, and are stopped otherwise (stopped, not paused: each parks
+-- dark). The glint only on a plate long enough to carry it.
+function Forge:Idle()
+	local on = self.active and not self.combat and self.kit.FullEffects()
+	self.seamGlow:SetAlpha(on and SEAM_GLOW or 0)
+	for _, g in ipairs(self.idle) do
+		local run = on and (g ~= self.glintLoop or self.idleOK)
+		if run then
+			if not g:IsPlaying() then g:Play() end
+		else
+			g:Stop()
+		end
+	end
+end
+
+-- The greeting, once: the glint along the top strap, on Full effects, never in
+-- a fight nor over an outcome.
+function Forge:Greet()
+	if not (self.active and self.idleOK) or self.combat or self.outcomeOn then return end
+	if not self.kit.FullEffects() then return end
+	self.greetAnim:Stop()
+	self.greetAnim:Play()
+end
+
+-- After every paint of a person, on the scan's own tick: somebody new on the
+-- panel is greeted, once. A favour arriving has its own heat, so the greeting
+-- is for a new face only.
+function Forge:Painted(entry)
+	local name = entry and entry.name
+	if name == self.greeted then return end
+	self.greeted = name
+	if name and not (entry.reason == "owed") then self:Greet() end
 end
 
 -- The shadow under the plate, and under the list's plate when it is out.
@@ -853,6 +1083,7 @@ function Forge:Hide()
 	self.steam:SetAlpha(0)
 	for _, t in ipairs(self.sparks) do t:SetAlpha(0) end
 	self.hoverLight:SetAlpha(0)
+	self:RestIdle()
 	for _, x in ipairs(self.own) do x:Hide() end
 	self.pulseGen = (self.pulseGen or 0) + 1
 	-- The shared regions, as the other looks expect to find them.
@@ -1060,6 +1291,12 @@ function Forge:Tint(r, g, b)
 	end
 	local cr, cg, cb = kit.Tint(r, g, b, 0.45)
 	self.core:SetVertexColor(cr, cg, cb, 1)
+	-- The seam is the slot's own heat; the embers are it, a little whiter.
+	local fr, fg, fb = Heated(r, g, b)
+	self.flicker:SetVertexColor(fr, fg, fb, 1)
+	self.seamGlow:SetVertexColor(fr, fg, fb, 1)
+	local er, eg, eb = kit.Tint(r, g, b, 0.30)
+	for _, t in ipairs(self.embers) do t:SetVertexColor(er, eg, eb, 1) end
 	-- The reason line: warm grey taken most of the way to the reason, held to
 	-- its contrast on the iron.
 	local sr = WARM_GREY[1] + (r - WARM_GREY[1]) * 0.6
@@ -1120,7 +1357,9 @@ function Forge:Combat(on)
 	if on then
 		self:StopAttention()
 		self:StopFlourishes()
+		self.greetAnim:Stop()
 	end
+	self:Idle()
 end
 
 ---------------------------------------------------------------------------
@@ -1221,6 +1460,8 @@ function Forge:Flourish(kind)
 		self.hotAnim:Play()
 		local t = self.tint or OUTCOME.cast
 		self.fx:Land(t[1], t[2], t[3], 0.70)
+		-- And the fountain, up off the bezel.
+		PlayAll(self.fountAnims)
 	end
 	-- Sparks along the strap band, only where the lowest line leaves them room.
 	if self.sparksOK then PlayAll(self.sparkAnims) end
@@ -1229,6 +1470,7 @@ end
 function Forge:StopFlourishes()
 	self.hotAnim:Stop()
 	StopAll(self.sparkAnims)
+	StopAll(self.fountAnims)
 	self.steamAnim:Stop()
 	self.fx:Stop()
 end
@@ -1247,6 +1489,7 @@ function Forge:Hover(on)
 	g.fade:SetDuration(on and 0.12 or 0.18)
 	if g.fade.SetSmoothing then g.fade:SetSmoothing(on and "OUT" or "IN") end
 	g:Play()
+	if on then self:Greet() end
 end
 
 ---------------------------------------------------------------------------

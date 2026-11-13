@@ -42,7 +42,7 @@ local FLOURISH = 0.6
 -- Every file the generator writes (its docstring lists them), as the Lua
 -- names them without the Forge_ prefix.
 local FILES = { "PlateL", "PlateM", "PlateR", "StrapM", "StrapEnd", "Slot", "SlotCore", "Bezel", "BezelRd",
-	"BezelGlow", "BezelGlowRd", "BezelHot", "BezelHotRd", "MaskRd", "Heat", "Spark", "Steam", "Ring", "RingSq", "Tag",
+	"BezelGlow", "BezelGlowRd", "BezelHot", "BezelHotRd", "MaskRd", "Heat", "Spark", "Ember", "Seam", "Steam", "Ring", "RingSq", "Tag",
 	"Bead", "Shadow", "Check", "Cross" }
 
 -- The sizes hunt37-effects asks of every look: width, height, font, icon.
@@ -685,8 +685,18 @@ withTree("look-forge: three breaths then still", ANNA, function(ns, scenario)
 	if not (warm and warm[1] > warm[3]) then fail(scenario, "the bezel's second tone is not warm") end
 	-- Held as the third breath ends, not a scan later.
 	Mock.runTimers(10)
-	local _, loops = FT.playing()
-	if look.pulse[1]._playing or #loops > 0 then fail(scenario, "the owed breath still loops after its three breaths") end
+	-- The forge's own lights at rest (look.idle: embers, the flicker, the
+	-- glint) are not the breath, and loop on.
+	local function breathing()
+		local idle, n = {}, 0
+		for _, g in ipairs(look.idle or {}) do idle[g] = true end
+		for _, g in ipairs(select(2, FT.playing())) do
+			if not idle[g] then n = n + 1 end
+		end
+		return n
+	end
+	local loops = { n = breathing() }
+	if look.pulse[1]._playing or loops.n > 0 then fail(scenario, "the owed breath still loops after its three breaths") end
 	if not near(look.core._alpha, CORE_HELD) then fail(scenario, "after its breaths the core is not held at its after-glow: " .. tostring(look.core._alpha)) end
 	if not near(look.bezelWarm._alpha, WARM_HELD) then fail(scenario, "after its breaths the bezel is not held warm: " .. tostring(look.bezelWarm._alpha)) end
 	tick(ns)
@@ -1634,3 +1644,75 @@ if type(fresh) == "string" then
 	for _, short in ipairs(FILES) do os.remove(fresh .. "/Forge_" .. short .. ".tga") end
 	os.remove(fresh)
 end
+
+-- ------------------------------------------------------------------ alive
+-- The forge at rest: its seam flickers, its embers rise and its glint crosses
+-- on Full effects, none of them additive; Calm and a fight have none of it; a
+-- landing throws the fountain up off the bezel, and not past the plate's top
+-- with the list hung over the panel; somebody new is greeted once.
+withTree("look-forge: the forge is alive at rest, on Full and out of a fight", CROWD, function(ns, scenario)
+	freshPrompt(ns, scenario)
+	local p = ns.db.profile.prompt
+	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "forge", "full", "pulse", true, false
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	local look = ns.Prompt:Regions().look
+	if skipped(scenario, look) then return end
+	if #look.idle ~= #look.embers + 2 then fail(scenario, "the forge at rest is " .. #look.idle .. " lights, not its embers, the flicker and the glint") end
+	for i, g in ipairs(look.idle) do
+		if not g._playing then fail(scenario, "at rest on Full, light " .. i .. " of the forge is not running") end
+	end
+	for _, t in ipairs({ look.flicker, look.seamGlow, look.strapGlint, look.strapGlintOnce, look.embers[1] }) do
+		if t._blend == "ADD" then fail(scenario, "a light of the forge at rest is additive: " .. tostring(t._file)) end
+	end
+	if (look.seamGlow._alpha or 0) < 0.1 then fail(scenario, "the seam's glow is not lit at rest on Full") end
+	if (look.greetAnim._plays or 0) < 1 then fail(scenario, "the first face on the panel was not greeted") end
+	local greeted = look.greetAnim._plays
+	tick(ns)
+	if look.greetAnim._plays ~= greeted then fail(scenario, "a repaint of the same face greeted again") end
+	fight(ns, true)
+	tick(ns)
+	for i, g in ipairs(look.idle) do
+		if g._playing then fail(scenario, "in a fight, light " .. i .. " of the forge still runs") end
+	end
+	if (look.seamGlow._alpha or 0) > 0.001 then fail(scenario, "in a fight the seam still glows") end
+	fight(ns, false)
+	tick(ns)
+	if not look.idle[1]._playing then fail(scenario, "after the fight the forge stays cold") end
+	p.effects = "calm"
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	for i, g in ipairs(look.idle) do
+		if g._playing then fail(scenario, "on Calm, light " .. i .. " of the forge still runs") end
+	end
+end)
+
+withTree("look-forge: a landing throws the fountain, under the plate's top with the list above", CROWD, function(ns, scenario)
+	local _, p, look = upIn(ns, scenario)
+	if skipped(scenario, look) then return end
+	Mock.advance(1)
+	FT.settle()
+	ns.Prompt:ShowOutcome("cast", "Anna Aim", "x")
+	local thrown = 0
+	for _, g in ipairs(look.fountAnims) do thrown = thrown + (g._plays or 0) end
+	if thrown < #look.fountAnims then fail(scenario, "a landing threw no fountain of sparks") end
+	local high = 0
+	for _, g in ipairs(look.fountAnims) do high = math.max(high, g.move._offset and g.move._offset[2] or 0) end
+	if high < 12 then fail(scenario, ("the fountain rises %.1f units, not past the plate's top"):format(high)) end
+	for i, g in ipairs(look.fountAnims) do
+		if FT.groupLength(g) > 0.6 + 0.001 then fail(scenario, ("spark %d of the fountain lasts %.2f s, over 0.6"):format(i, FT.groupLength(g))) end
+	end
+	-- With the list hung over the panel, the sparks stay under the plate's top.
+	Mock.promptCentreY = 40
+	p.showQueue, p.queueRows = true, 3
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if look.above then
+		for i, g in ipairs(look.fountAnims) do
+			local rise = g.move._offset and g.move._offset[2] or 0
+			if rise > p.height / 2 then fail(scenario, ("with the list above, spark %d still rises %.1f units"):format(i, rise)) end
+		end
+	else
+		fail(scenario, "SKIPPED -- the list did not hang over the panel")
+	end
+end)
