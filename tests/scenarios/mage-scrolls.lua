@@ -666,7 +666,7 @@ do
 		-- Placed under Myself, and drawn there.
 		for _, path in ipairs({ "who.own_familiar", "who.own_imbue" }) do
 			local page, section = H.placedOn(ns, path)
-			if page ~= "who" or not (section and section.key == "who.myself") then
+			if page ~= "who" or not (section and tostring(section.key):find("^who%.myself")) then
 				fail(scenario, path .. " is not placed under Myself: " .. tostring(page))
 			end
 		end

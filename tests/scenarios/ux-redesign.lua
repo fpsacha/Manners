@@ -119,11 +119,21 @@ local function placed(UI, path)
 	return w.page, w.sec.key, nil, w.sec
 end
 
+-- One control before another on a page: in an earlier section, or earlier in
+-- the same one (the page's settings are grouped in headed sections, and a
+-- group may follow another).
 local function before(UI, scenario, first, second)
-	local p1, s1, i1 = placed(UI, first)
-	local p2, s2, i2 = placed(UI, second)
-	if not (p1 and p2 and p1 == p2 and s1 == s2 and i1 and i2 and i1 < i2) then
-		fail(scenario, ("%s does not come before %s in one section (%s %s %s / %s %s %s)"):format(first, second,
+	local p1, s1, i1, sec1 = placed(UI, first)
+	local p2, s2, i2, sec2 = placed(UI, second)
+	local n1, n2
+	if p1 and p1 == p2 then
+		for n, sec in ipairs(UI.Model(p1).sections) do
+			if sec == sec1 then n1 = n end
+			if sec == sec2 then n2 = n end
+		end
+	end
+	if not (n1 and n2 and i1 and i2 and (n1 < n2 or (n1 == n2 and i1 < i2))) then
+		fail(scenario, ("%s does not come before %s (%s %s %s / %s %s %s)"):format(first, second,
 			tostring(p1), tostring(s1), tostring(i1), tostring(p2), tostring(s2), tostring(i2)))
 	end
 end

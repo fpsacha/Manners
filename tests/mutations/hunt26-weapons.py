@@ -304,7 +304,7 @@ mutate(C,
 # ------------------------------------------------ the options window
 # A family with no place in the window.
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_lure\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_lure\",\n",
        "",
        "hunt26-weapons: the lure row has no place in the window",
        expect="who.own_lure (select", script=S)

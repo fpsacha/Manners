@@ -239,35 +239,13 @@ ns.WindowLayout = {
 					{ "who.own_magicmod", indent = true },
 					{ "who.ownDampenAlone", indent = 2 },
 					{ "who.ownAmplifyAlone", indent = 2 },
-					-- A mage's scrolls on Forever, while there is one in the bags.
-					{ "who.own_familiar", indent = true },
-					{ "who.own_imbue", indent = true },
-					-- What goes on a weapon from the bags, per hand, while there is
-					-- one in them; a rogue's poisons as spells on Mists and retail.
-					{ "who.own_poisonmain", indent = true },
-					{ "who.own_poisonoff", indent = true },
-					{ "who.own_lethal", indent = true },
-					{ "who.own_nonlethal", indent = true },
-					{ "who.own_stonemain", indent = true },
-					{ "who.own_stoneoff", indent = true },
-					{ "who.own_oilmain", indent = true },
-					{ "who.own_oiloff", indent = true },
-					-- A warlock's Firestone or Spellstone on the main hand (Forever).
-					{ "who.own_warlockstone", indent = true },
-					{ "who.own_lure", indent = true },
 					{ "who.own_aura", indent = true },
 					{ "who.own_righteousfury", indent = true },
-					-- A Lightsmith paladin's rites on the weapon (retail).
-					{ "who.own_rite", indent = true },
 					{ "who.own_innerfire", indent = true },
 					{ "who.own_touchofweakness", indent = true },
 					{ "who.own_shadowguard", indent = true },
 					{ "who.own_shadowform", indent = true },
 					{ "who.own_shield", indent = true },
-					-- A shaman's weapon imbues, spells: one a hand at a time.
-					{ "who.own_shamanimbue", indent = true },
-					-- Retail's off hand: Flametongue beside Windfury, or a shield's ward.
-					{ "who.own_shamanimbueoff", indent = true },
 					-- Season of Discovery's Spirit of the Alpha on a shaman who tanks.
 					{ "who.own_spiritofthealpha", indent = true },
 					{ "who.own_demonarmor", indent = true },
@@ -280,45 +258,71 @@ ns.WindowLayout = {
 					{ "who.own_detectinvis", indent = true },
 					-- A warlock's Unending Breath on himself, only while he swims.
 					{ "who.own_selfbreath", indent = true },
-					-- Food that gives Well Fed, off until it is turned on; every class has it.
-					-- The foods to leave out right under it (a player found them at the
-					-- foot of the section, apart from the switch they belong to).
-					{ "who.own_food", indent = true },
-					{ "who.own_leave_food", indent = 2 },
-					-- The sleeping bag's Well-Rested, off until it is turned on;
-					-- shown while the bag is in the bags (Classic Era, Forever).
-					{ "who.own_rested", indent = true },
-					-- A companion pet, off until it is turned on; shown while one is in
-					-- the bags or (Forever) the pet journal. Which pet, under it.
-					{ "who.own_pet", indent = true },
-					{ "who.ownPetChoice", indent = 2 },
-					-- Flasks, elixirs and a scroll of each stat, off until turned on;
-					-- shown while one is in the bags (Buffs.lua, CONSUME).
-					{ "who.own_flask", indent = true },
-					{ "who.own_elixir", indent = true },
-					-- Every scroll at once, then each scroll's own switch under it, one
-					-- step further in: off, those switches are gone (Options/Who.lua,
-					-- ownScrolls). A player found them above the switch they hang from.
-					{ "who.ownScrolls", indent = true },
-					{ "who.own_scrollagility", indent = 2 },
-					{ "who.own_scrollstrength", indent = 2 },
-					{ "who.own_scrollprotection", indent = 2 },
-					{ "who.own_scrollintellect", indent = 2 },
-					{ "who.own_scrollstamina", indent = 2 },
-					{ "who.own_scrollspirit", indent = 2 },
 					{ "who.own_tracking", indent = true },
 					-- Forever's Find Treasure, kept on beside a gathering tracking.
 					{ "who.own_findtreasure", indent = true },
-					-- Where the reminders come up, right under the families, so
-					-- they never read as items of the list below them.
-					{ "who.ownCities", indent = true },
-					{ "who.ownDungeons", indent = true },
+				} },
+				{ key = "who.myselfWeapons", title = L["Weapons"], items = {
+					-- A shaman's weapon imbues, spells: one a hand at a time.
+					"who.own_shamanimbue",
+					-- Retail's off hand: Flametongue beside Windfury, or a shield's ward.
+					"who.own_shamanimbueoff",
+					-- A Lightsmith paladin's rites on the weapon (retail).
+					"who.own_rite",
+					-- What goes on a weapon from the bags, per hand, while there is
+					-- one in them; a rogue's poisons as spells on Mists and retail.
+					"who.own_poisonmain",
+					"who.own_poisonoff",
+					"who.own_lethal",
+					"who.own_nonlethal",
+					"who.own_stonemain",
+					"who.own_stoneoff",
+					"who.own_oilmain",
+					"who.own_oiloff",
+					-- A warlock's Firestone or Spellstone on the main hand (Forever).
+					"who.own_warlockstone",
+					"who.own_lure",
+				} },
+				{ key = "who.myselfItems", title = L["Food, flasks and scrolls"], items = {
+					-- Food that gives Well Fed, off until it is turned on; every class has it.
+					-- The foods to leave out right under it.
+					"who.own_food",
+					{ "who.own_leave_food", indent = true },
+					-- The sleeping bag's Well-Rested, off until it is turned on;
+					-- shown while the bag is in the bags (Classic Era, Forever).
+					"who.own_rested",
+					-- A companion pet, off until it is turned on; shown while one is in
+					-- the bags or (Forever) the pet journal. Which pet, under it.
+					"who.own_pet",
+					{ "who.ownPetChoice", indent = true },
+					-- Flasks, elixirs and a scroll of each stat, off until turned on;
+					-- shown while one is in the bags (Buffs.lua, CONSUME).
+					"who.own_flask",
+					"who.own_elixir",
+					-- Every scroll at once, then each scroll's own switch under it, one
+					-- step further in: off, those switches are gone (Options/Who.lua,
+					-- ownScrolls).
+					"who.ownScrolls",
+					{ "who.own_scrollagility", indent = true },
+					{ "who.own_scrollstrength", indent = true },
+					{ "who.own_scrollprotection", indent = true },
+					{ "who.own_scrollintellect", indent = true },
+					{ "who.own_scrollstamina", indent = true },
+					{ "who.own_scrollspirit", indent = true },
+					-- A mage's scrolls on Forever, while there is one in the bags.
+					{ "who.own_familiar", indent = true },
+					{ "who.own_imbue", indent = true },
+				} },
+				{ key = "who.myselfWhen", title = L["When my own buffs come up"], items = {
+					-- Where the reminders come up.
+					"who.ownCities",
+					"who.ownDungeons",
 					-- The consumables on a button of their own (Prompt/Supplies.lua).
-					{ "who.ownApart", indent = true },
+					"who.ownApart",
 					-- A warrior's shout for himself, alone (shown to a warrior only).
-					{ "who.ownShout", indent = true },
+					"who.ownShout",
 					-- The spells of those families you know, to leave out one by one.
-					{ "who.own_leave", indent = true },
+					"who.own_leave",
 					-- Why a buff of your own is not being offered, under the switches.
 					"diagnostics.ownDiag",
 				} },
@@ -395,6 +399,8 @@ ns.WindowLayout = {
 					{ "who.quietShortMinutes", indent = true },
 					"who.quietInInstances",
 					"who.quietTargets",
+				} },
+				{ key = "when.holdBack2", title = L["Mounted and mana"], items = {
 					"when.hideMounted",
 					"when.manaFloor",
 					-- What it still offers below it: favours and requests, your
@@ -502,16 +508,17 @@ ns.WindowLayout = {
 				{ key = "appearance.attention", header = "appearance.attentionHeader", items = {
 					{ "appearance.flashStyle", pair = true },
 					"appearance.effects",
-					"appearance.hideInFight",
-					"appearance.fightRota",
-					"appearance.hideInCombat",
-					"appearance.dimInCombat",
 					"appearance.soundEnabled",
 					{ "appearance.soundFile", indent = true },
 					{ "appearance.soundOwedOnly", indent = true },
 					"appearance.noSound",
-					-- The options window itself stepping aside while a look is changed.
-					"appearance.peekOnChange",
+				} },
+				-- What the prompt does when a fight starts, together.
+				{ key = "appearance.fight", title = L["In a fight"], items = {
+					"appearance.hideInFight",
+					"appearance.fightRota",
+					"appearance.hideInCombat",
+					"appearance.dimInCombat",
 				} },
 				{ key = "appearance.hover", header = "appearance.tooltipHeader", items = {
 					"appearance.tooltip",
@@ -524,6 +531,10 @@ ns.WindowLayout = {
 					"appearance.showQueue",
 					{ "appearance.queueRows", indent = true },
 					{ "appearance.clickRows", indent = true },
+				} },
+				-- The options window itself stepping aside while a look is changed.
+				{ key = "appearance.window", title = L["This window"], items = {
+					"appearance.peekOnChange",
 				} },
 				{ key = "appearance.exactPos", header = "advanced.exactPosHeader", fold = true, items = {
 					{ "advanced.x", widget = "number", pair = true },

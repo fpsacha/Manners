@@ -668,6 +668,12 @@ explain themselves; this is what their tooltips have no room for.
   the never-offer list, your key and *Manners is on*. *Start here*,
   *Profiles* and *Diagnostics* have no reset. The version number sits at the
   bottom too, for bug reports.
+- The settings are grouped under headings. On *Who to buff* your own buffs come
+  in four groups: *Myself* (your class's buffs), *Weapons*, *Food, flasks and
+  scrolls*, and *When my own buffs come up*; *under Myself* in this manual
+  means any of the four. On *When to offer*, *Hold back* (the places) is
+  apart from *Mounted and mana*, and on *Look* what the prompt does in a fight
+  sits under *In a fight*.
 - A change on *Look* shows on the prompt itself. With *Fade this window while
   I change the look* on (off by default), the window fades while you drag a
   slider there and for a moment after any other change, so you can see the

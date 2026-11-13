@@ -147,7 +147,7 @@ mutate("Options/Shared.lua",
        expect="wellfed: Myself is a warrior's too", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_food\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_food\",\n",
        "",
        "wellfed: the switch not placed on the page",
        expect="own_food", script=S)
@@ -155,8 +155,8 @@ mutate("Options/Window/Layout.lua",
 # --- the page's order: each sub-option under its switch ---
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_leave_food\", indent = 2 },\n",
        "\t\t\t\t\t{ \"who.own_leave_food\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_leave_food\",\n",
        "wellfed: the foods to leave out no further in than Well Fed",
        expect="the foods to leave out are not right under Well Fed", script=S)
 
@@ -173,14 +173,14 @@ mutate("Options/Who.lua",
        expect="with Well Fed off the list of foods is still shown", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_scrollspirit\", indent = 2 },\n",
        "\t\t\t\t\t{ \"who.own_scrollspirit\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_scrollspirit\",\n",
        "wellfed: a scroll no further in than the Scrolls switch",
        expect="is not one step further in than the Scrolls switch", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.ownPetChoice\", indent = 2 },\n",
        "\t\t\t\t\t{ \"who.ownPetChoice\", indent = true },\n",
+       "\t\t\t\t\t\"who.ownPetChoice\",\n",
        "wellfed: Which pet no further in than Companion pet",
        expect="Which pet is not one step further in", script=S)
 

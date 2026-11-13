@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Options
+- **Settings grouped under headings.** On *Who to buff*, your own buffs are
+  in four groups: *Myself*, *Weapons*, *Food, flasks and scrolls* and *When my
+  own buffs come up*. On *When to offer*, the places you hold back are apart
+  from *Mounted and mana*. On *Look*, the fight settings are together under
+  *In a fight*, and the window's own fade switch has a small group of its own.
+
 ## 1.11.21
 
 ### Who gets what

@@ -264,13 +264,13 @@ mutate("Options/Window/Layout.lua",
        expect="every control has one place in the options window", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_shamanimbueoff\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_shamanimbueoff\",\n",
        "",
        "self-buffs: the off hand's imbue not placed on the page",
        expect="self-buffs: mainline: the page names each hand", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_rite\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_rite\",\n",
        "",
        "self-buffs: the rites not placed on the page",
        expect="self-buffs: mainline: the page names each hand", script=S)

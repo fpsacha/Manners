@@ -42,7 +42,7 @@ mutate("Options/Who.lua",
        expect="itemsdungeon: Who to buff has the switch, off by default, and it is kept", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.ownDungeons\", indent = true },\n",
+       "\t\t\t\t\t\"who.ownDungeons\",\n",
        "",
        "itemsdungeon: the switch is not placed on the page",
        expect="ownDungeons", script=S)

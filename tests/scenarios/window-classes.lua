@@ -197,7 +197,8 @@ do
 		local mine = UI.Where("who.self")
 		if mine and not mine.sec.visible then fail(scenario, "a hunter's Myself is gone") end
 		for _, sec in ipairs(UI.Model("who").sections) do
-			if sec.visible and sec ~= (mine and mine.sec) then
+			-- Myself's own groups (food, weapons, when they come up) are Myself.
+			if sec.visible and sec ~= (mine and mine.sec) and not tostring(sec.key):find("^who%.myself") then
 				fail(scenario, "a hunter's Who to buff shows " .. sec.key .. " beside Myself")
 			end
 		end

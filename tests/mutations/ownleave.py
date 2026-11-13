@@ -162,7 +162,7 @@ mutate("Options/Who.lua",
        expect="ownleave: the control is hidden", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_leave\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_leave\",\n",
        "",
        "ownleave: the control not placed on the page",
        expect="own_leave", script=S)

@@ -86,7 +86,7 @@ mutate("Core.lua",
        expect="scrolls-switch: retail has no scroll and no switch", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.ownScrolls\", indent = true },\n",
+       "\t\t\t\t\t\"who.ownScrolls\",\n",
        "",
        "scrolls-switch: the switch not placed on the page",
        expect="ownScrolls", script=S)

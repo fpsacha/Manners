@@ -81,7 +81,7 @@ mutate("Options/Who.lua",
        expect="consume-buffs: off by default", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_flask\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_flask\",\n",
        "",
        "consume-buffs: the flask switch not placed on the page",
        expect="own_flask", script=S)

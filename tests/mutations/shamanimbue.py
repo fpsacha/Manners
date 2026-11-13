@@ -37,7 +37,7 @@ mutate("Options/Who.lua",
 
 # the control placed on the page.
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_shamanimbue\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_shamanimbue\",\n",
        "",
        "shamanimbue: the control not placed on the page",
        expect="own_shamanimbue", script=S)

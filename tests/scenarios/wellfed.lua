@@ -428,13 +428,13 @@ do
 	for _, page in pairs(layout.pages or {}) do
 		for _, section in ipairs(page.sections or {}) do
 			for i, item in ipairs(section.items or {}) do
-				if type(item) == "table" and item[1] == "who.own_food" then items = { section.items, i } end
+				if (type(item) == "table" and item[1] or item) == "who.own_food" then items = { section.items, i } end
 			end
 		end
 	end
 	if not items then fail(scenario, "Well Fed is not on the page") return end
 	local after = items[1][items[2] + 1]
-	if not (type(after) == "table" and after[1] == "who.own_leave_food" and after.indent == 2) then
+	if not (type(after) == "table" and after[1] == "who.own_leave_food" and after.indent == true) then
 		fail(scenario, "the foods to leave out are not right under Well Fed, one step further in")
 	end
 end
@@ -447,7 +447,7 @@ do
 		for _, page in pairs(layout.pages or {}) do
 			for _, section in ipairs(page.sections or {}) do
 				for _, item in ipairs(section.items or {}) do
-					if type(item) == "table" and item[1] == "who.ownScrolls" then list = section.items end
+					if (type(item) == "table" and item[1] or item) == "who.ownScrolls" then list = section.items end
 				end
 			end
 		end
@@ -464,11 +464,11 @@ do
 				fail(scenario, "the scroll of " .. stat .. " is not on the page")
 			elseif s[1] < switch[1] then
 				fail(scenario, "the scroll of " .. stat .. " is above the Scrolls switch it hangs from")
-			elseif s[2] ~= 2 then
+			elseif s[2] ~= true then
 				fail(scenario, "the scroll of " .. stat .. " is not one step further in than the Scrolls switch")
 			end
 		end
 		local pet = at["who.ownPetChoice"]
-		if not (pet and pet[2] == 2) then fail(scenario, "Which pet is not one step further in than Companion pet") end
+		if not (pet and pet[2] == true) then fail(scenario, "Which pet is not one step further in than Companion pet") end
 	end)
 end

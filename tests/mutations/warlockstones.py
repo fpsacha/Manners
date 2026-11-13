@@ -64,7 +64,7 @@ mutate("Core.lua",
 
 # The switch not placed on Who to buff's page.
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_warlockstone\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_warlockstone\",\n",
        "",
        "warlockstones: the switch is not placed on the page",
        expect="every control has one place in the options window", script=S)

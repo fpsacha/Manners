@@ -116,7 +116,7 @@ mutate("Options/Who.lua",
        expect="wellrested: off by default", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"who.own_rested\", indent = true },\n",
+       "\t\t\t\t\t\"who.own_rested\",\n",
        "",
        "wellrested: the switch not placed on the page",
        expect="own_rested", script=S)
