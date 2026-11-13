@@ -254,6 +254,20 @@ options button are untested in a real client: check the slot shows the spell's
 icon, cooldown and range, goes back to the note icon with nobody to buff, and
 that a controller button bound to the prompt shows its glyph on the chip.
 
+**The fight's rota (Unreleased), after a player wrote that Manners "retargets
+the same person when they are buffed and does not notice party members that
+are unbuffed".** `Prompt/Fight.lua`: at the pull the header is handed the
+macro of everybody in the queue (`manners-rota-1..n`, twelve at most), and a
+`SecureHandlerWrapScript` round the prompt's OnClick steps `macrotext1` to the
+next on every left press; `SyncFightRota` (from the prompt's PostClick) points
+`S.current` there. `prompt.fightRota`, on. Read against Blizzard's own
+`SecureHandlers.lua` on the forever branch (Wrapped_Click, line 272) and held
+by `tests/scenarios/fight-rota.lua` to the mock's model of it on all five
+clients. Only the live game can say: that the wrap takes on the prompt on
+Forever, that the post-body's write lands in a fight, that PostClick runs
+after it (the panel would otherwise name the person just buffed), and how it
+feels with the cooldown (a press it turns away still steps).
+
 **The credit line.** `diagnostics.aboutNote` names the author's
 character (`ns.AUTHOR`, Clicks.lua), in the options window's footer under the
 build since 1.11.18 (`Layout.lua`'s `footer.about`). It asks for nothing and must stay that

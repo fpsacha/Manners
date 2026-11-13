@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **In a fight, each press moves on to the next person.** A fight locks the
+  prompt, and until now it stayed on whoever it showed as the fight began:
+  every press cast at that one person again, and nobody else in your group
+  was reached until the fight was over. Now Manners hands the prompt everybody
+  who still needed a buff as the fight began, and each press of the prompt or
+  its key casts at the next of them in turn, round and round; the second line
+  says which of how many. *In a fight, each press moves on to the next
+  person*, on *Look* under *Hide the prompt in combat*, switches it off. The
+  Manners macro on an action bar keeps to the one person: the game leaves a
+  macro no other way.
 - **Which pet: your pets by name.** *Which pet*, under *Companion pet* on
   *Who to buff*, now lists every pet in your pet journal under its three
   choices, so Manners brings out the one you pick. A pet you gave a name of

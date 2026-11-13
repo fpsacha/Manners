@@ -524,6 +524,13 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   snippet takes the macro off the prompt and its rows and only then hides the
   prompt, and only when the pull (`PLAYER_REGEN_DISABLED`, before the
   lockdown) has left the bar macro holding no cast (`ns.BarMacroDisarmed`).
+  The other is the fight's rota (`Prompt/Fight.lua`, `prompt.fightRota`, on):
+  at the pull the header is handed the macro of everybody in the queue, and a
+  `SecureHandlerWrapScript` round the prompt's OnClick writes the next one on
+  the button at every left press, so a fight's presses go round the people it
+  began with rather than at one of them; `SyncFightRota`, from the prompt's
+  PostClick, then points `S.current` at whoever the button now casts at. Lua
+  still writes nothing on the button in a fight.
   Never hide the prompt by any route that leaves it, a row or the bar macro
   able to cast: a hidden secure button still fires from its binding and
   `/click`. The snippet writes nothing back; the repaint after the fight arms

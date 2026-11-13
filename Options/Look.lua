@@ -375,6 +375,19 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- The fight's rota (Prompt/Fight.lua): the prompt left up steps
+			-- through the people the fight began with, a press each. Nothing to
+			-- step with the prompt hidden for the fight.
+			fightRota = {
+				type = "toggle",
+				name = L["In a fight, each press moves on to the next person"],
+				desc = L["A fight locks the prompt, so Manners hands it everybody who still needed a buff as the fight began, and each press of the prompt or its key casts at the next of them in turn. Off, every press in a fight casts at the one person the prompt was on. The Manners macro on an action bar keeps to that one person either way."],
+				order = 32.45,
+				width = "full",
+				disabled = function() return P().hideInFight == true end,
+				get = pGet,
+				set = pSet,
+			},
 			-- Next to Animations, because that is what it is: the flashes of
 			-- a click in a fight, not whether anybody is offered.
 			--

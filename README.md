@@ -417,9 +417,9 @@ back, because returning a favour is the point; shift-right-click them again to
 let that favour go. Your `/ignore` list goes further: nobody on it is
 thanked, offered a favour back or offered as a passer-by, though a group
 member on it still is. The list is on the *Who to skip* page, and `/manners never`
-and `/manners allow <name>` work from chat. In a fight the prompt cannot move
-off the person it is showing, so a press still casts at them until the fight
-ends, and chat says so.
+and `/manners allow <name>` work from chat. In a fight a skip cannot take
+somebody off the prompt, so a press still casts at them when their turn comes
+until the fight ends, and chat says so.
 
 **Friends and guildmates first.** A friend (Battle.net friends included) or
 guildmate goes ahead of the other passers-by, or of the rest of your group. It
@@ -559,6 +559,18 @@ the Manners macro on your bar. It comes back when the fight ends. With it off,
 *No flashes in combat* keeps the prompt on screen in a fight with no flashes,
 and *Dim the prompt in combat* draws Glass, Framed and Minimal at about half
 strength while one lasts.
+
+**In a fight.** The game locks the prompt for as long as a fight lasts: an
+addon may not change what a button casts then. So as a fight begins Manners
+hands the prompt everybody who still needed a buff at that moment, and each
+press of the prompt or its key casts at the next of them in turn, round and
+round. The second line says which of how many ("in a fight -- 2 of 4, a press
+moves on"). Nobody is added to that list or taken off it before the fight
+ends, and a press the cooldown turned away still moves on; the one passed
+over comes round again. *In a fight, each press moves on to the next person*
+(on, under *Look*) switches this off, and every press in a fight then casts
+at the one person the prompt was on. The Manners macro on an action bar keeps
+to that one person either way.
 
 ## The minimap button
 
