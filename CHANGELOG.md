@@ -32,6 +32,11 @@
   at the size of the second line.
 - The line at the foot of the options window names the character who makes
   Manners, and nothing else.
+- **The options window, dressed.** A gilt moulding with a boss on each corner
+  runs round it, a beaded gilt rail sits under the header and over the footer,
+  its buttons are set in a rim of gold, a gilt stud stands before each
+  section's title, and the page that is open has a band of light and a stud
+  of its own in the sidebar.
 
 ## 1.11.18
 

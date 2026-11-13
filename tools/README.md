@@ -954,6 +954,15 @@ to its twin.
 past right or top past bottom (a wing, a facet, a strap end serving both
 sides); it used to draw such a piece unmirrored.
 
+## make_window_textures.py
+
+The seven files of `Textures/Window/`, what the options window wears
+(`Options/Window/WindowDress.lua`): the gilt moulding (a nine-slice with a
+boss on each corner), one tile of the beaded rail, the ground's grain
+(periodic both ways) and its vignette, a soft light, a fade and a gilt stud.
+`--out DIR` and `--sheet FILE` as the other generators. `FRAME_CORNER` and
+`RAIL_TILE` must agree with the Lua.
+
 ## materials.py
 
 The lit-material pipeline the texture generators share: a module, not a
