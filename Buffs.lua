@@ -2273,6 +2273,29 @@ end
 -- game no longer has. Kings and Divine Spirit are trained there (SpellLevels
 -- 20, and 30 to 60), in neither talent tree. A real table rather than an __index, because the
 -- lookups walk ns.BUFFS with pairs.
+--
+-- WoW Forever's camping features put an aura on everybody who sits by them, an
+-- hour long, each "mutually exclusive with" one class buff in the feature's own
+-- text (Spell.Description, build 1.60.1.70790) and, for three of them, the very
+-- aura that buff is (SpellEffect: MOD_STAT, aura 29, on the same stat), as a
+-- scroll's is:
+--
+--   First Aid Kit (1307244)   Boosted Stamina 1230124     Power Word: Fortitude
+--   Incense Candle (1307251)  Boosted Intellect 1229513   Arcane Intellect
+--   Faction Banner (1307239,  Boosted Spirit 1229718      Divine Spirit
+--     1307240 for the Horde)
+--
+-- So each is a blocker of that buff (the `blockers` field, above), weighed as
+-- the scrolls are: one worth at least what your rank would land holds your
+-- buff off, a lesser one is cast over. What it is worth goes by the wearer's
+-- level (CAMELOT_TIERS, below). The four others are not weighed, since nothing
+-- in the data says the game refuses the weaker of the two: the Enchanted Lute's
+-- Boosted Stats (1230653: armor, stats and resistances, against Mark of the
+-- Wild), the Lodestone's Boosted Attack Power (1230164, against Blessing of
+-- Might), the Mana Well's Boosted Mana Regeneration (1230587, against Blessing
+-- of Wisdom), and the Fish Bowl's Boosted Stats (1230098, against Kings: Core.lua,
+-- SparesFishBowl, behind its own switch). STATUS.md has the question.
+local CAMP_BLOCKER = { fortitude = 1230124, intellect = 1229513, spirit = 1229718 }
 local CAMELOT = {}
 do
 	local GONE = { sanctuary = true, salvation = true, light = true }
@@ -2286,6 +2309,14 @@ do
 				if TRAINED[entry.key] then entry.talent = nil end
 				-- Forever casts it in Moonkin Form.
 				entry.shiftsOut = nil
+				-- And the camping buff that holds it off, with the scrolls
+				-- (CAMP_BLOCKER, below): a list of its own, since the one
+				-- copied is Classic Era's.
+				if CAMP_BLOCKER[entry.key] and entry.blockers then
+					local blockers = { CAMP_BLOCKER[entry.key] }
+					for _, id in ipairs(entry.blockers) do blockers[#blockers + 1] = id end
+					entry.blockers = blockers
+				end
 				copy[#copy + 1] = entry
 			end
 		end
@@ -2344,9 +2375,26 @@ for id, value in pairs({ [1243] = 4, [1244] = 10, [1245] = 26, [2791] = 42, [109
 	CAMELOT_STAT[id] = value
 end
 
+-- The camping buffs (CAMP_BLOCKER, above): what each gives a level 60, which is
+-- the aura's own SpellEffect (EffectBasePointsF, build 1.60.1.70790) and its
+-- row here, and what it gives below, which is in the feature's text alone
+-- ("$?$PL<12[3]?$PL<24[8]..."): CAMELOT_TIERS, as { below this level, worth },
+-- lowest first. About four fifths of the rank a caster of that level has, so
+-- somebody of the wearer's own level casts over it, and a caster a tier behind
+-- is refused. tools/audit_ids.py holds every number to the client.
+for id, value in pairs({ [1230124] = 56, [1229513] = 25, [1229718] = 32 }) do
+	CAMELOT_STAT[id] = value
+end
+local CAMELOT_TIERS = {
+	[1230124] = { { 12, 3 }, { 24, 8 }, { 36, 21 }, { 48, 34 }, { 60, 45 } },
+	[1229513] = { { 14, 2 }, { 28, 6 }, { 42, 12 }, { 56, 18 } },
+	[1229718] = { { 40, 14 }, { 50, 19 }, { 60, 27 } },
+}
+
 local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true,
 	partyIsSubgroup = false }, { __index = VANILLA_SET })
 CAMELOT_SET.statValue = CAMELOT_STAT
+CAMELOT_SET.statTiers = CAMELOT_TIERS
 -- Classic Era's, with the shaman: Forever gives him no Earth Shield to learn
 -- (above), so he has nothing to put on anybody else.
 CAMELOT_SET.without = { HUNTER = true, ROGUE = true, SHAMAN = true }
@@ -3466,6 +3514,10 @@ end
 -- VANILLA_STAT). The sets whose stat buffs are percentages (Mists, retail) have
 -- none, and so no buff of theirs lists a blocker.
 ns.STAT_VALUE = chosen and chosen.statValue or {}
+-- And the blockers whose worth goes by their wearer's level (WoW Forever's
+-- camping buffs, CAMELOT_TIERS): [id] = { { below this level, worth }, ... },
+-- with ns.STAT_VALUE's row for the top. None on any other set.
+ns.STAT_TIERS = chosen and chosen.statTiers or {}
 
 -- How long each id lasts on this client (see "how long each lasts"): seconds,
 -- 0 for no timer, nothing for unknown. A client with no set has none.

@@ -3664,6 +3664,24 @@ local function LandingRank(buff, info, level)
 end
 ns.LandingRank = LandingRank
 
+-- What a camping buff is worth on somebody of `level` (Buffs.lua, statTiers:
+-- `tiers` is { { below this level, worth }, ... }, `top` what it gives from the
+-- last tier up). The aura's own first point where the client hands it over;
+-- else the tier its text documents for their level; nil with no level to go by,
+-- and then it holds nothing off. On ns: the main chunk has no local to spare.
+function ns.CampWorth(tiers, top, aura, level)
+	if type(aura) == "table" and not (issecretvalue and issecretvalue(aura)) then
+		local points = plain(aura.points)
+		local own = type(points) == "table" and plain(points[1]) or nil
+		if type(own) == "number" and own > 0 then return own end
+	end
+	if type(level) ~= "number" then return nil end
+	for _, tier in ipairs(tiers) do
+		if level < tier[1] then return tier[2] end
+	end
+	return top
+end
+
 -- Returns has, secondsRemaining, mine, over, seconds. `has` is nil when the client
 -- refuses any one of the buff's ids (the hidden one may be the one they wear);
 -- `secondsRemaining` is nil when the timer is unreadable, not "about to expire";
@@ -3819,6 +3837,32 @@ local function UnitHasBuff(unit, buff, guid)
 			else
 				aura = auraReads[at]
 				seen = (issecretvalue and issecretvalue(aura)) or (type(aura) == "table")
+			end
+			-- A camping buff (Buffs.lua, statTiers: WoW Forever's Boosted
+			-- Stamina, Intellect and Spirit) is weighed here, by what it is
+			-- worth on somebody of their level (ns.CampWorth), and then set
+			-- aside: worth less than what lands, it is cast over, and a scroll
+			-- listed after it is still weighed, where a scroll worth less ends
+			-- the weighing (the scrolls are listed strongest first; this is
+			-- first of all by what it gives a level 60).
+			local tiers = seen and ns.STAT_TIERS[id]
+			if tiers then
+				local level = plain(UnitLevel(unit))
+				if type(level) ~= "number" or level < 1 then level = nil end
+				if landing == false then
+					local landed = level and LandingRank(buff, info, level)
+					landing = landed and ns.STAT_VALUE[landed] or nil
+				end
+				local worth = ns.CampWorth(tiers, ns.STAT_VALUE[id], aura, level)
+				if landing and worth and worth >= landing then
+					if not (issecretvalue and issecretvalue(aura)) and type(aura) == "table" then
+						has, over, mine = true, true, false
+						break
+					end
+					refused = true
+					if info.secrecy[id] ~= true then withheld = true end
+				end
+				seen = false
 			end
 			if seen then
 				if landing == false then

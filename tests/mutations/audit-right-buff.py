@@ -129,3 +129,27 @@ mutate("Queue.lua",
        "",
        "audit-right-buff: the favour's level does not reach its entry",
        expect=BYNAME, script=S)
+
+CAMP = P + "Forever: a camping buff worth more than your rank does not hold your buff off"
+
+# --------------------------------------------- WoW Forever's camping buffs
+# No camping buff is anybody's blocker.
+mutate("Buffs.lua",
+       "\t\t\t\tif CAMP_BLOCKER[entry.key] and entry.blockers then\n",
+       "\t\t\t\tif false then\n",
+       "audit-right-buff: a camping buff holds nothing off",
+       expect=CAMP, script=S)
+
+# Weighed as a scroll is, by what it gives a level 60, whoever wears it.
+mutate("Core.lua",
+       "\t\t\tlocal tiers = seen and ns.STAT_TIERS[id]\n",
+       "\t\t\tlocal tiers = nil\n",
+       "audit-right-buff: a camping buff is worth a level 60's on everybody",
+       expect=CAMP, script=S)
+
+# The aura's own number, where the client gives it, is not read.
+mutate("Core.lua",
+       "\t\tif type(own) == \"number\" and own > 0 then return own end\n",
+       "",
+       "audit-right-buff: a camping buff's own points are not read",
+       expect=CAMP, script=S)

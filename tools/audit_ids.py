@@ -988,6 +988,35 @@ def check_stats(rep, c, d, flavour):
         elif got != want:
             rep.finding("statValue", "id %d (%s): the table says %g, SpellEffect says %g" % (
                 spell, c.names.get(spell), want, got))
+    # The blockers whose worth goes by the wearer's level (Buffs.lua, statTiers: Forever's camping
+    # buffs). Each has its row in statValue (the top, checked above against SpellEffect), is some
+    # buff's blocker, rises tier by tier to that top, and is what a camping feature's own text says
+    # it gives below each level: "... gain $?$PL<12[3]?$PL<24[8]...[$<id>s1] increased Stamina".
+    tiers = {int(k): [list(t) for t in v] for k, v in as_map(d.get("statTiers")).items()}
+    listed_blockers = {i for lst in as_map(d["buffs"]).values() for b in lst for i in (b.get("blockers") or [])}
+    for spell, steps in sorted(tiers.items()):
+        where = "statTiers.%d" % spell
+        if spell not in stat:
+            rep.finding(where, "%s has tiers and no row in statValue for its top" % c.names.get(spell))
+            continue
+        if spell not in listed_blockers:
+            rep.finding(where, "%s has tiers and is no buff's blocker" % c.names.get(spell))
+        flat = [(int(a), b) for a, b in steps]
+        if flat != sorted(flat) or any(b >= stat[spell] for _, b in flat):
+            rep.finding(where, "the tiers %r do not rise to the top, %g" % (flat, stat[spell]))
+        said = None
+        for sid, text in sorted(c.descriptions.items()):
+            mark = "[$%ds1]" % spell
+            at = text.find(mark)
+            if at < 0:
+                continue
+            start = text.rfind("gain ", 0, at)
+            said = [(int(a), int(b)) for a, b in re.findall(r"PL<(\d+)\[(\d+)\]", text[max(start, 0):at])]
+            if said != flat:
+                rep.finding(where, "spell %d (%s) says %r below each level, the table has %r" % (
+                    sid, c.names.get(sid), said, flat))
+        if said is None:
+            rep.finding(where, "no spell's text in this client gives %s by level" % c.names.get(spell))
     use_spell = {}
     for item, uses in c.item_effects.items():
         if item in c.stat_scrolls:
@@ -1022,7 +1051,8 @@ def check_stats(rep, c, d, flavour):
                 elif m != misc:
                     rep.finding(where, "blocker %d (%s) is MOD_STAT %d, the stat of %s is %d" % (
                         i, c.names.get(i), m, key, misc))
-                if not name_ok(c.names.get(i), name):
+                # A scroll's spell is named for the stat; a camping buff (statTiers) "Boosted <stat>".
+                if not name_ok(c.names.get(i), ("Boosted " + name) if i in tiers else name):
                     rep.finding(where, "blocker %d is %r, expected %s" % (i, c.names.get(i), name))
             # every scroll of that stat the client has is listed
             listed = set(blockers)
@@ -1676,7 +1706,7 @@ def audit(flavour, cache, offline, notes):
 
 
 def selftest(cache, offline):
-    """The audit goes red when a datum is wrong: Classic Era's dump is changed in nineteen ways, one
+    """The audit goes red when a datum is wrong: Classic Era's dump is changed in twenty ways, one
     after another, and each must produce the FINDING it exists for."""
     import copy
     fl = "vanilla"
@@ -1748,6 +1778,10 @@ def selftest(cache, offline):
     def no_rank_row(d):
         d["statValue"].pop("1460")
 
+    def wrong_tier(d):
+        # Classic Era has no camping buff: a Scroll of Intellect given tiers no spell's text gives.
+        d["statTiers"] = {"8096": [[10, 1]]}
+
     def consumable(d, key):
         for fams in d["own"].values():
             for fam in fams:
@@ -1780,6 +1814,7 @@ def selftest(cache, offline):
         ("a scroll of the client's that the addon does not list", drop_blocker, "does not list it"),
         ("a blocker of another stat", other_stat, "the stat of intellect"),
         ("a rank with no worth in the table", no_rank_row, "has no row in statValue"),
+        ("a blocker given a worth by level that no spell's text gives", wrong_tier, "by level"),
         ("a flask asking another level than the addon says", flask_level, "the addon says 1"),
         ("an elixir's spell read as a flask's", elixir_as_flask, "does not stay on through death"),
         ("a scroll of another stat in a scroll's family", scroll_of_another_stat, "not the stat of scrollagility"),
@@ -1813,7 +1848,7 @@ def main(argv=None):
     ap.add_argument("--notes", action="store_true", help="also print NOTE lines")
     ap.add_argument("--dump", choices=FLAVOURS, help="print the addon's side as JSON and stop")
     ap.add_argument("--selftest", action="store_true",
-                    help="change Classic Era's dump in nineteen ways and check each one is caught")
+                    help="change Classic Era's dump in twenty ways and check each one is caught")
     ap.add_argument("--build", action="append", default=[], metavar="CLIENT=BUILD",
                     help="audit against another build of that client (e.g. camelot=1.60.1.70338), "
                          "for data that moved since the build CLAUDE.md cites")

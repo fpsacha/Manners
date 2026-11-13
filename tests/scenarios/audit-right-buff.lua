@@ -115,6 +115,8 @@ local function session(scenario, env, body)
 			local worn = u and u.wears and u.wears[spellId]
 			if not worn then return nil end
 			return { spellId = spellId, expirationTime = Mock.now + (worn.left or 3000),
+				-- worn.points: what the aura gives, where the client hands it over.
+				points = worn.points,
 				sourceUnit = worn.source or (unit == "player" and "player" or nil) }
 		end,
 	}, { __index = base }))
@@ -713,10 +715,21 @@ end
 do
 	local scenario = "audit-right-buff: Forever: a camping buff worth more than your rank does not hold your buff off"
 	local BOOSTED_STAMINA, SCROLL_OF_STAMINA_IV = 1230124, 12178
-	local function priest(level, worn)
+	local function priest(level, worn, hers, points)
 		return { class = "PRIEST", level = level, knows = { "fortitude" }, units = {
-			party1 = { name = { "Anna", "Aim" }, class = "WARRIOR", level = 60, wears = { [worn] = { left = 3000 } } },
+			party1 = { name = { "Anna", "Aim" }, class = "WARRIOR", level = hers or 60,
+				wears = { [worn] = { left = 3000, points = points } } },
 		} }
+	end
+	-- Whether Anna is offered Fortitude by a priest of `level`, she of level
+	-- `hers` wearing Boosted Stamina (with `points`, where the client says).
+	local function offered(level, hers, points)
+		local entry
+		session(scenario, priest(level, BOOSTED_STAMINA, hers, points), function(ns)
+			local _, byName = queued(ns)
+			entry = byName["Anna Aim"]
+		end)
+		return entry ~= nil
 	end
 	-- The same with a scroll, which is known: a priest of 20 (rank 2, +10) and
 	-- her Scroll of Stamina IV (+16).
@@ -738,5 +751,25 @@ do
 					.. " nothing should be offered, as for a Scroll of Stamina worth more than the rank"):format(words(entry)))
 			end
 		end)
+		-- Worth less than the rank, it is cast over: rank 6 gives +70.
+		if not offered(60, 60) then
+			fail(scenario, "a priest of 60 (+70) is offered nothing for a level 60 wearing Boosted Stamina (+56); a camping"
+				.. " buff worth less than the rank should be cast over")
+		end
+		-- By the wearer's level: on a level 30 it is +21 (the feature's text),
+		-- under rank 3's +26 and over rank 2's +10.
+		if not offered(30, 30) then
+			fail(scenario, "a priest of 30 (rank 3, +26) is offered nothing for a level 30 wearing Boosted Stamina, +21 at"
+				.. " that level; it should be cast over")
+		end
+		if offered(20, 30) then
+			fail(scenario, "a priest of 20 (rank 2, +10) is offered Fortitude for a level 30 wearing Boosted Stamina, +21 at"
+				.. " that level; the game refuses it")
+		end
+		-- The aura's own number, where the client gives it, over the table's.
+		if not offered(47, 60, { 30 }) then
+			fail(scenario, "a priest of 47 (+42) is offered nothing for a level 60 whose Boosted Stamina the client says"
+				.. " gives +30; the aura's own number should decide")
+		end
 	end
 end
