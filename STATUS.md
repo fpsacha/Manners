@@ -256,7 +256,7 @@ that a controller button bound to the prompt shows its glyph on the chip.
 
 **The credit line.** `diagnostics.aboutNote` names the author's
 character (`ns.AUTHOR`, Clicks.lua), in the options window's footer under the
-build since the release after 1.11.17 (`Layout.lua`'s `footer.about`). It asks for nothing and must stay that
+build since 1.11.18 (`Layout.lua`'s `footer.about`). It asks for nothing and must stay that
 way: Blizzard's add-on policy forbids an add-on to ask for donations in the
 game, gold included. `tests/scenarios/about.lua` reads the line in all nine
 languages for the words a request would need.

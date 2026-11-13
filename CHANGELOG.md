@@ -10,6 +10,9 @@
   tags are now in the game's standard lettering, pale on the cloth; the name
   keeps the banner's serif. The serif's small letters were too fine to read
   at the size of the second line.
+
+## 1.11.18
+
 - **Who makes Manners** is now at the foot of the options window, under the
   version, on every page.
 
