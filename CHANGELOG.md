@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Looks
+- **A new look: Wild.** A druid's, named for Mark of the Wild: a bough of
+  living wood, your spell in a wreath under a stag's antlers, ringed with
+  moonwell water. A vine grows and blossoms while you owe somebody.
+- **A new look: Frost.** A frost mage's: a slab of glacial ice hung with
+  icicles, your spell frozen in an ice crystal. An Ice Block shatters off it
+  when your buff lands. Fifteen looks now.
+
 ### Options
 - **Settings grouped under headings.** On *Who to buff*, your own buffs are
   in four groups: *Myself*, *Weapons*, *Food, flasks and scrolls* and *When my
