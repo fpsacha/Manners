@@ -292,3 +292,45 @@ end, {
 		return t
 	end)(),
 })
+
+-- ------------------------------------------------------------------ 8
+-- A cast already in the rota that reaches somebody leaves them out of it: the
+-- members of a group cast, and, where one cast lands on the whole group, the
+-- rest of the group for that buff. The queue is the pull's own, with one of
+-- its entries made a group cast by hand.
+with("fight-rota: nobody a cast in the rota already reaches is given a press of their own", function(ns, scenario)
+	local S = ns.Prompt.state
+	local header = ns.Prompt:FightHeader()
+	local queue = ns.BuildQueue()
+	local top = S.current
+	if not (top and #queue >= 3) then fail(scenario, "SKIPPED -- no queue of three to make a rota from") return end
+	local others = {}
+	for _, entry in ipairs(queue) do
+		if entry.name ~= top.name then others[#others + 1] = entry end
+	end
+	-- The one on the prompt as a group cast that takes in the first of the others.
+	top.groupCast = { spell = top.buff.ranks and top.buff.ranks[1], spellName = ns.BuffName(top.buff), members = { others[1].name } }
+	S.fightQueue = queue
+	ns.Prompt:ArmFightRota()
+	local n = header:GetAttribute("manners-rota-n") or 0
+	if n ~= 2 then
+		fail(scenario, "with one of three taken in by a group cast the rota holds " .. n .. ", not 2")
+	else
+		for i = 1, n do
+			local text = header:GetAttribute("manners-rota-" .. i) or ""
+			if text:find(others[1].name, 1, true) then
+				fail(scenario, "the rota casts again at somebody a group cast in it already reaches: " .. flat(text))
+			end
+		end
+	end
+	-- A cast that lands on the whole group: the rest of the group is reached.
+	top.groupCast = nil
+	local wide = ns.WIDE_CASTS
+	ns.WIDE_CASTS = true
+	top.inGroup = true
+	for _, entry in ipairs(queue) do entry.inGroup = true end
+	ns.Prompt:ArmFightRota()
+	n = header:GetAttribute("manners-rota-n") or 0
+	ns.WIDE_CASTS = wide
+	if n ~= 0 then fail(scenario, "one cast lands on the whole group, and the rota still holds " .. n) end
+end)

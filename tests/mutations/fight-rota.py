@@ -112,3 +112,15 @@ mutate("Options/Look.lua",
        "\t\t\t\tdisabled = function() return false end,\n",
        "fight-rota: the switch live with the prompt hidden for the fight",
        expect="the switch is live with the prompt hidden for the fight", script=S)
+
+mutate(FIGHT,
+       "\t\tif entry ~= top and entry.buff and not (entry.name == top.name and entry.buff.key == top.buff.key)\n\t\t\tand not Reached(entry) then\n",
+       "\t\tif entry ~= top and entry.buff and not (entry.name == top.name and entry.buff.key == top.buff.key) then\n",
+       "fight-rota: a group cast's members each given a press of their own",
+       expect="nobody a cast in the rota already reaches", script=S)
+
+mutate(FIGHT,
+       "\t\treturn wide[key] == true and entry.inGroup == true and not entry.groupCast\n",
+       "\t\treturn false\n",
+       "fight-rota: a cast for the whole group pressed again for each of them",
+       expect="one cast lands on the whole group", script=S)
