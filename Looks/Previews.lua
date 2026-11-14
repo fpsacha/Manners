@@ -7,10 +7,12 @@ local _, ns = ...
 ns.Looks.previews = {
 	arcane = true,
 	archmage = true,
+	ebon = true,
 	fel = true,
 	forge = true,
 	framed = true,
 	frost = true,
+	gearworks = true,
 	glass = true,
 	leather = true,
 	letter = true,
@@ -18,7 +20,9 @@ ns.Looks.previews = {
 	luxe = true,
 	minimal = true,
 	ribbon = true,
+	stormcaller = true,
 	toast = true,
+	warchief = true,
 	wild = true,
 }
 -- Where each look draws the spell icon in its picture: the rectangle as fractions of
@@ -27,10 +31,12 @@ ns.Looks.previews = {
 ns.Looks.previewIcon = {
 	arcane = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	archmage = { l = 0.0984, t = 0.25806, r = 0.21937, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	ebon = { l = 0.08452, t = 0.25806, r = 0.20548, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ebon\\Ebon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	fel = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	forge = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	framed = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	frost = { l = 0.11694, t = 0.25806, r = 0.2379, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	gearworks = { l = 0.10797, t = 0.25806, r = 0.22894, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Gearworks\\Gearworks_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	glass = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	leather = { l = 0.08304, t = 0.25806, r = 0.20401, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	letter = { l = 0.15581, t = 0.31452, r = 0.24855, b = 0.68548, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Letter\\Letter_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
@@ -38,7 +44,9 @@ ns.Looks.previewIcon = {
 	luxe = { l = 0.125, t = 0.25806, r = 0.24597, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	minimal = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	ribbon = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	stormcaller = { l = 0.08823, t = 0.25806, r = 0.20919, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	toast = { l = 0.08554, t = 0.26152, r = 0.20478, b = 0.73848, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_IconMask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	warchief = { l = 0.12661, t = 0.25806, r = 0.24758, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	wild = { l = 0.1129, t = 0.25806, r = 0.23387, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Wild\\Wild_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 }
 -- Where each look writes its two lines in its picture, and how: the rectangle as
@@ -59,6 +67,10 @@ ns.Looks.previewText = {
 		name = { l = 0.26521, t = 0.29032, r = 0.89516, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.04, 0, 0.1, 0.9 } } },
 		reason = { l = 0.26521, t = 0.53226, r = 0.89516, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.96265, 0.82817, 0.60032, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.04, 0, 0.1, 0.95 } } },
 	},
+	ebon = {
+		name = { l = 0.24968, t = 0.29032, r = 0.75403, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.02, 0.95 } } },
+		reason = { l = 0.24968, t = 0.53226, r = 0.75403, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.936, 0.832, 0.572, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.02, 1 } } },
+	},
 	fel = {
 		name = { l = 0.29435, t = 0.29032, r = 0.83468, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.03, 0, 0.95 } } },
 		reason = { l = 0.29435, t = 0.53226, r = 0.83468, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.812, 0.476, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
@@ -75,6 +87,10 @@ ns.Looks.previewText = {
 		name = { l = 0.30081, t = 0.29032, r = 0.79032, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 0.95 } } },
 		reason = { l = 0.30081, t = 0.53226, r = 0.79032, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.836, 0.58, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 1 } } },
 	},
+	gearworks = {
+		name = { l = 0.30645, t = 0.27476, r = 0.73387, b = 0.48444, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.02, 0.02, 0.9 } } },
+		reason = { l = 0.30645, t = 0.5167, r = 0.73387, b = 0.67799, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.808, 0.492, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.02, 0.02, 1 } } },
+	},
 	glass = {
 		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
 		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.74, 0.6695, 0.547, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
@@ -84,8 +100,8 @@ ns.Looks.previewText = {
 		reason = { l = 0.2282, t = 0.54839, r = 0.82258, b = 0.70968, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.9056, 0.728, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.14, 0.07, 0.02, 0.9 } } },
 	},
 	letter = {
-		name = { l = 0.30645, t = 0.26029, r = 0.86331, b = 0.4861, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 0.23137, 0.20784, 0.19216, 1 }, shadow = { x = 0.00968, y = -0.00968, color = { 0.2, 0.105, 0.04, 0.4 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
-		reason = { l = 0.30645, t = 0.54616, r = 0.86331, b = 0.72358, h = "LEFT", v = "MIDDLE", size = 0.17742, color = { 0.36494, 0.19616, 0.07755, 1 }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		name = { l = 0.30645, t = 0.26047, r = 0.86331, b = 0.48628, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 0.23137, 0.21176, 0.19608, 1 }, shadow = { x = 0.00968, y = -0.00968, color = { 0.2, 0.105, 0.04, 0.4 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		reason = { l = 0.30645, t = 0.52299, r = 0.86331, b = 0.70041, h = "LEFT", v = "MIDDLE", size = 0.17742, color = { 0.36914, 0.19841, 0.07844, 1 }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 	},
 	lightbringer = {
 		name = { l = 0.3097, t = 0.29032, r = 0.875, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.02, 0.1, 0.9 } } },
@@ -103,13 +119,21 @@ ns.Looks.previewText = {
 		name = { l = 0.25, t = 0.2879, r = 0.86694, b = 0.51371, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 		reason = { l = 0.25, t = 0.53468, r = 0.86694, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
 	},
+	stormcaller = {
+		name = { l = 0.27435, t = 0.29032, r = 0.85081, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.03, 0.95 } } },
+		reason = { l = 0.27435, t = 0.53226, r = 0.85081, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.936, 0.812, 0.524, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.03, 1 } } },
+	},
 	toast = {
 		name = { l = 0.25806, t = 0.28968, r = 0.89516, b = 0.49935, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
 		reason = { l = 0.25806, t = 0.5329, r = 0.89516, b = 0.69419, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.768, 0.444, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
+	},
+	warchief = {
+		name = { l = 0.32984, t = 0.29032, r = 0.82661, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.02, 0, 0, 1 } } },
+		reason = { l = 0.32984, t = 0.53226, r = 0.82661, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.952, 0.8, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.02, 0, 0, 1 } } },
 	},
 	wild = {
 		name = { l = 0.30242, t = 0.29032, r = 0.77823, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.03, 0.02, 0, 0.95 } } },
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "dc2c295bb7a079d80a76539ca4f6fa726142ec3c23f5459bc31e969889c468ba"
+ns.Looks.previewHash = "0e8422273550a34ca3025ad4b3df57098fb4fb14e344aefd4e2199d2c8b447fc"

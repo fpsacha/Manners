@@ -42,10 +42,7 @@ from concurrent.futures import ProcessPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 LOOKS = ["glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge",
-         "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller"]
-         "archmage", "lightbringer", "fel", "wild", "frost", "warchief"]
-         "archmage", "lightbringer", "fel", "wild", "frost", "gearworks"]
-         "archmage", "lightbringer", "fel", "wild", "frost", "ebon"]
+         "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon"]
 # WIDTHxHEIGHTxFONTxICON: the default, and the ends of the options' sliders.
 SIZES = {"default": "", "small": "80x20x6x12", "large": "500x120x32x64"}
 LINES = ["name", "reason", "tag", "rows"]
