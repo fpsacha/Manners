@@ -985,6 +985,9 @@ function Courtesy.TradeOpened()
 	if plain(UnitExists("NPC")) ~= true or not Matches(press.request, "NPC") then return end
 	Serve(press.request, press.key)
 	local placed = Place(press.item)
+	-- In the window, which is as far as Manners goes: a milestone's worth
+	-- (Milestones.lua). A trade that opened with nothing put in it is none.
+	if placed and ns.Milestones then ns.Milestones.Note("courtesy") end
 	local db = addon.db and addon.db.profile
 	if placed and db and db.verbose then
 		addon:Print(L["%s is in the trade with |cffffffff%s|r -- accept it when you are ready."]
@@ -1004,6 +1007,8 @@ function Courtesy.CastWentOut(spellId)
 	if plain(spellId) ~= press.spell then return end
 	waiting.cast = nil
 	Serve(press.request, press.key)
+	-- The portal, the Soulwell or the summon went out (Milestones.lua).
+	if ns.Milestones then ns.Milestones.Note("courtesy") end
 end
 
 -- The two events, on a frame of its own: both are asked of the client by

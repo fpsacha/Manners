@@ -679,6 +679,9 @@ function Res.OnEvent(event, unit, second, third, fourth)
 		Res.pending = nil
 		Rest(pending, ACCEPT_SECONDS)
 		ns.Trail("outcome", "resurrection cast", pending.name)
+		-- The cast went its whole length and the game took it: a milestone's
+		-- worth (Milestones.lua). A refusal or an interruption comes below.
+		if ns.Milestones then ns.Milestones.Note("res") end
 		-- The favour ledger, as something given: one row, with how many a
 		-- cast for the whole group reached (Ledger.lua, Settled).
 		local others
