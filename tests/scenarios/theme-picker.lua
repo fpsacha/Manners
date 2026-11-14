@@ -1279,13 +1279,15 @@ do
 		if inSerif == 0 or inPlain == 0 then
 			fail(scenario, ("SKIPPED -- %d names in the serif and %d under the floor: both are needed"):format(inSerif, inPlain))
 		end
-		-- At the window's first size the three cards show their look's own face,
-		-- larger than the name on a card in the standard face by the fifth the
-		-- looks give it.
+		-- At the window's first size Ribbon's and Letter's cards show their look's
+		-- own face, larger than the name on a card in the standard face by the
+		-- fifth the looks give it. (Leather's picture is drawn smaller, to hold
+		-- its buckle and feathers: its name is under the floor there, and in the
+		-- serif on a larger card.)
 		row:Layout(612)
 		local glass = cardFor(row, "glass")
 		local standard = glass and select(2, glass.lines.name:GetFont())
-		for _, key in ipairs({ "ribbon", "letter", "leather" }) do
+		for _, key in ipairs({ "ribbon", "letter" }) do
 			local card = cardFor(row, key)
 			local path, size = card.lines.name:GetFont()
 			if path ~= SERIF then fail(scenario, key .. "'s card is not in its look's serif at the window's first size") end
@@ -1326,4 +1328,87 @@ do
 		LSM.media.font["Picker Face"] = nil
 		ns.RefreshOptionsDisplay()
 	end)
+end
+
+-- ------------------------------------------------------------------ the room
+-- A look whose art stands far outside its panel has a view of its own on its
+-- card (tools/make_look_previews.py, FRAMES): Stormcaller's totem lost its head
+-- to the view every look shared, Ebon its skull's fire, Leather its buckle and
+-- feathers, Warchief the tips of its spikes. What is recorded for the card says
+-- how much room the picture leaves round the panel; the others keep the view
+-- they had, and no view is so wide that a card of the window's first size
+-- writes its reason line at the least a card's letters go to.
+do
+	dofile(dir .. "/tests/frametree.lua")
+	local FT = FrameTree
+	local scenario = "theme-picker: a look whose art stands outside its panel has room for it on its card"
+	-- The least room, in units of the prompt, the picture must leave round the
+	-- panel: what the art was measured to reach.
+	local ROOM = {
+		stormcaller = { above = 31, left = 21 },
+		ebon = { above = 24, below = 13 },
+		leather = { right = 28.5, below = 36.5 },
+		warchief = { above = 10.5, below = 6.5 },
+	}
+	Mock.reset()
+	FT.install()
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		drive(scenario, ns)
+		local Looks = ns.Looks
+		local framed = 0
+		for _, key in ipairs(registry(ns)) do
+			local at, text = Looks.previewIcon[key], Looks.previewText[key]
+			ns.db.profile.prompt.style = key
+			ns.Prompt:ApplyStyle()
+			H.owe(ns, "Anna Aim")
+			ns.addon:Tick()
+			local r = ns.Prompt:Regions()
+			local il, ir = FT.span(r.icon, "x")
+			local ib, it = FT.span(r.icon, "y")
+			local al, ar = FT.span(r.art, "x")
+			local ab, atop = FT.span(r.art, "y")
+			if not (at and il and al) then
+				fail(scenario, "SKIPPED -- " .. key .. " has no icon to measure its picture by")
+			else
+				-- A unit of the prompt, as a share of the picture's height and width.
+				local ky, kx = (at.b - at.t) / (it - ib), (at.r - at.l) / (ir - il)
+				if math.abs(ky / kx - 4) > 0.05 then
+					fail(scenario, ("%s: the picture's scale is not one both ways (%.4f across, %.4f down)"):format(key, kx, ky))
+				end
+				local room = {
+					above = at.t / ky - (atop - it),
+					below = (1 - at.b) / ky - (ib - ab),
+					left = at.l / kx - (il - al),
+					right = (1 - at.r) / kx - (ar - ir),
+				}
+				local need = ROOM[key]
+				if need then
+					framed = framed + 1
+					for side, least in pairs(need) do
+						if room[side] < least - 0.25 then
+							fail(scenario, ("%s: the picture leaves %.1f units %s the panel, its art needs %.1f"):format(key,
+								room[side], side == "above" and "over" or side == "below" and "under" or side .. " of", least))
+						end
+					end
+				elseif math.abs(1 / ky - 62) > 0.2 then
+					-- Every other look keeps the view it had: 62 units of height.
+					fail(scenario, ("%s: its picture is %.1f units tall, not the 62 every other card's is"):format(key, 1 / ky))
+				end
+				-- The words stay readable on a card of the window's first size (46
+				-- units of picture): the reason line over the least a card writes.
+				local reason = text and text.reason
+				if reason and math.floor(reason.size * 46 + 0.5) < 6 then
+					fail(scenario, ("%s: its reason line is %.1f units on a card of the window's first size"):format(key,
+						reason.size * 46))
+				end
+			end
+		end
+		if framed < 4 then fail(scenario, "SKIPPED -- only " .. framed .. " of the four looks were measured") end
+		noErrors(scenario, ns)
+	end)
+	FT.uninstall()
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end

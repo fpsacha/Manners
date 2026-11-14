@@ -355,3 +355,24 @@ mutate("Options/Window/WidgetsTheme.lua",
        "local SERIF_MIN = 9\n",
        "theme-picker: the serif is written on a card at nine units, where nobody reads it",
        expect=SERIF, script=S)
+
+# --- the room round a look whose art stands outside its panel ------------------
+ROOM = "theme-picker: a look whose art stands outside its panel has room for it on its card"
+
+mutate("tools/make_look_previews.py", '    "stormcaller": (83, -10, 12),\n', "",
+       "theme-picker: Stormcaller's card cut from the view every look shares: the totem loses its head",
+       expect=HASH, script=S)
+
+mutate("tools/make_look_previews.py", "    return view, (brect[0] + dx, brect[1] + dy, brect[2] + dx, brect[3] + dy)\n",
+       "    return view, brect\n",
+       "theme-picker: a look's own view is recorded as centred on its panel, so the live icon and words sit off the picture's",
+       expect=HASH, script=S)
+
+mutate("Looks/Previews.lua", "\tstormcaller = { l = 0.22253, t = 0.46386,", "\tstormcaller = { l = 0.22253, t = 0.26386,",
+       "theme-picker: Stormcaller's picture recorded with less room over the panel than its totem needs",
+       expect=ROOM, script=S)
+
+mutate("Looks/Previews.lua", "\tleather = { l = 0.14637, t = 0.10843, r = 0.23673, b = 0.46988,",
+       "\tleather = { l = 0.14637, t = 0.25806, r = 0.23673, b = 0.61951,",
+       "theme-picker: Leather's picture recorded with no room under the tag for its feathers",
+       expect=ROOM, script=S)
