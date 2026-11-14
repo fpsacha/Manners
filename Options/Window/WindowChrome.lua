@@ -534,14 +534,15 @@ function UI.PaintSidebar()
 end
 
 ---------------------------------------------------------------------------
--- footer: the per-page reset, the build with who makes Manners under it, Close
+-- footer: the per-page reset, who makes Manners, the build at the right, Close
 ---------------------------------------------------------------------------
 
 local footer = {}
 UI.footer = footer
--- Between a button and the lines in the middle; the distance between the two
--- lines' middles; the smallest the second line is set to fit.
-local FOOT_GAP, FOOT_LINE, FOOT_SMALLEST = 8, 13, 7
+-- Between a button and what stands in the middle; the size who makes Manners
+-- is written at (the author asked for it larger and easier to see than the
+-- hint it was, 1.11.25); the smallest it is set to fit.
+local FOOT_GAP, FOOT_ABOUT, FOOT_SMALLEST = 8, 13, 7
 
 function UI.BuildFooter(f)
 	local W, layout = ns.WindowWidgets, UI.Layout().footer
@@ -568,25 +569,36 @@ function UI.BuildFooter(f)
 	footer.close:SetSize(math.max(80, math.ceil(UI.Measure(closeLabel)) + 26), 22)
 	-- Clear of the resize grip in the corner (Window.lua, BuildGrip).
 	footer.close:SetPoint("RIGHT", foot, "RIGHT", -24, 0)
-	-- Between the two buttons: the build, and under it who makes Manners, on
-	-- every page. The pair stands in the middle of the room the buttons leave.
+	-- Between the two buttons, on every page: who makes Manners, in the
+	-- window's own ink at a size to be read, in the middle of the room; and
+	-- the build, small and grey, at the right beside Close.
 	local mid = CreateFrame("Frame", nil, foot)
 	mid:SetPoint("TOPLEFT", footer.reset, "TOPRIGHT", FOOT_GAP, 0)
 	mid:SetPoint("BOTTOMRIGHT", footer.close, "BOTTOMLEFT", -FOOT_GAP, 0)
 	footer.mid = mid
 	footer.build = UI.Text(mid, GameFontDisableSmall, C.hint)
-	footer.build:SetJustifyH("CENTER")
+	footer.build:SetJustifyH("RIGHT")
 	footer.aboutItem = UI.Item(layout.about)
-	footer.about = UI.Text(mid, GameFontDisableSmall, C.hint)
+	footer.about = UI.Text(mid, FOOT_ABOUT, C.ink)
 	footer.about:SetJustifyH("CENTER")
 	if footer.about.SetWordWrap then footer.about:SetWordWrap(false) end
 	footer.aboutFont = { footer.about:GetFont() }
 end
 
--- The room between the footer's buttons, whatever their labels' language.
+-- How wide the build stands at the right of the footer, its gap included; 0
+-- with no build written.
+local function BuildRoom()
+	local text = footer.build and footer.build:GetText()
+	if not text or text == "" then return 0 end
+	local _, size = footer.build:GetFont()
+	return math.ceil(UI.TextWidth(footer.build, size or 10)) + FOOT_GAP
+end
+
+-- The room who makes Manners has: between the footer's buttons, whatever their
+-- labels' language, less the build at the right.
 function UI.FooterRoom()
 	local reset, close = footer.reset:GetWidth() or 0, footer.close:GetWidth() or 0
-	return UI.WIDTH - 34 - reset - close - 2 * FOOT_GAP
+	return UI.WIDTH - 34 - reset - close - 2 * FOOT_GAP - BuildRoom()
 end
 
 -- The reset's own hidden rule answers for the page in view (ns.OptionsTab),
@@ -599,27 +611,26 @@ function UI.PaintFooter()
 	if item then footer.reset:SetEnabled(not UI.Disabled(item)) end
 	local build = footer.buildItem and B.Text(footer.buildItem, "name")
 	footer.build:SetText(build and UI.Plain(build) or "")
-	-- Who makes Manners, the name in white as the line gives it. One line: a
+	-- The build at the right, beside Close.
+	footer.build:ClearAllPoints()
+	footer.build:SetPoint("RIGHT", footer.mid, "RIGHT", 0, 0)
+	-- Who makes Manners, the name in gold as the line gives it. One line: a
 	-- language that needs more than the room is set smaller, never cut short.
 	local about = footer.aboutItem and B.Text(footer.aboutItem, "name") or ""
 	local fs, font = footer.about, footer.aboutFont
-	if about ~= footer.aboutText then
-		footer.aboutText = about
-		local path, size, flags = font[1] or UI.FontPath(), font[2] or 10, font[3] or ""
+	local room = UI.FooterRoom()
+	if about ~= footer.aboutText or room ~= footer.aboutRoom then
+		footer.aboutText, footer.aboutRoom = about, room
+		local path, size, flags = font[1] or UI.FontPath(), font[2] or FOOT_ABOUT, font[3] or ""
 		if path then fs:SetFont(path, size, flags) end
 		fs:SetText(about)
-		local room, wide = UI.FooterRoom(), UI.TextWidth(fs, size)
+		local wide = UI.TextWidth(fs, size)
 		if path and wide > room then
 			fs:SetFont(path, math.max(FOOT_SMALLEST, math.floor(size * room / wide)), flags)
 		end
 	end
-	footer.build:ClearAllPoints()
-	if about ~= "" then
-		footer.build:SetPoint("CENTER", footer.mid, "CENTER", 0, FOOT_LINE / 2)
-		fs:ClearAllPoints()
-		fs:SetPoint("CENTER", footer.mid, "CENTER", 0, -FOOT_LINE / 2)
-	else
-		footer.build:SetPoint("CENTER", footer.mid, "CENTER", 0, 0)
-	end
+	-- In the middle of the room the build leaves, on the footer's own line.
+	fs:ClearAllPoints()
+	fs:SetPoint("CENTER", footer.mid, "CENTER", -BuildRoom() / 2, 0)
 	fs:SetShown(about ~= "")
 end

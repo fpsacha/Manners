@@ -493,11 +493,12 @@ local function BuildCard(row, i)
 	card.desc = W.Wrapping(W.Text(card, T.fonts.small, T.hint))
 	if card.desc.SetMaxLines then card.desc:SetMaxLines(2) end
 
-	-- The tick for the chosen one: a gold disc on a dark ring, over the
-	-- picture's corner, in a frame of its own so it draws over it.
+	-- The tick for the chosen one: a gold disc on a dark ring, under the
+	-- picture's right corner on the title's line, clear of the picture (over
+	-- its corner it covered the look's own art: Fel's gem, 1.11.25).
 	card.badge = CreateFrame("Frame", nil, card)
 	card.badge:SetSize(BADGE, BADGE)
-	card.badge:SetPoint("TOPRIGHT", card.ground, "TOPRIGHT", -4, -4)
+	card.badge:SetPoint("TOPRIGHT", card.ground, "BOTTOMRIGHT", 0, -3)
 	local ring = card.badge:CreateTexture(nil, "OVERLAY", nil, 1)
 	ring:SetTexture(ROUND)
 	ring:SetSize(BADGE + 4, BADGE + 4)

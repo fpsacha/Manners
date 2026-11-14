@@ -108,8 +108,8 @@ mutate(T, "\tcard.row = row\n\tcard.fill",
        "theme-picker: a card runs an OnUpdate",
        expect="theme-picker: nothing in the picker is secure, runs on a timer, or hangs off the prompt", script=S)
 
-mutate(T, '\tcard.badge:SetPoint("TOPRIGHT", card.ground, "TOPRIGHT", -4, -4)\n',
-       '\tcard.badge:SetPoint("TOPRIGHT", ns.Prompt:GetButton(), "TOPRIGHT", -4, -4)\n',
+mutate(T, '\tcard.badge:SetPoint("TOPRIGHT", card.ground, "BOTTOMRIGHT", 0, -3)\n',
+       '\tcard.badge:SetPoint("TOPRIGHT", ns.Prompt:GetButton(), "BOTTOMRIGHT", 0, -3)\n',
        "theme-picker: the tick is anchored to the prompt",
        expect="theme-picker: nothing in the picker is secure, runs on a timer, or hangs off the prompt", script=S)
 

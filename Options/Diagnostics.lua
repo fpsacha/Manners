@@ -588,8 +588,8 @@ function Page.BuildDiagnosticsTab()
 					return ("Manners |cffffffff%s|r"):format(tostring(ns.BUILD))
 				end,
 			},
-			-- Who makes Manners, and the character they play, in the window's footer
-			-- under the build (Options/Window/Layout.lua): a credit and nothing
+			-- Who makes Manners, and the character they play, in the middle of the
+			-- window's footer (Options/Window/Layout.lua), the name in gold: a credit and nothing
 			-- more. Blizzard's add-on policy forbids an add-on to ask for
 			-- donations in the game, gold included, so this line asks for nothing
 			-- and never will (tests/scenarios/about.lua holds every language to it).
@@ -600,7 +600,7 @@ function Page.BuildDiagnosticsTab()
 				fontSize = "medium",
 				name = function()
 					return L["Manners is made by %s, who plays on the RP-PvP server of WoW Forever."]
-						:format("|cffffffff" .. tostring(ns.AUTHOR) .. "|r")
+						:format("|cffffd100" .. tostring(ns.AUTHOR) .. "|r")
 				end,
 			},
 			-- Which of the two buttons below somebody asked for a report wants.

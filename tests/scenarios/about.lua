@@ -1,5 +1,6 @@
 -- The line that says who makes Manners (Options/Diagnostics.lua, aboutNote):
--- in the options window's footer under the build, on every page, naming the
+-- in the middle of the options window's footer, larger than the build that
+-- stands small at its right (the author's asking, 1.11.25), on every page, naming the
 -- author's character, and asking for nothing. Blizzard's add-on policy forbids an add-on to ask for donations in
 -- the game, gold included, so the line is a credit in every language and no
 -- word of it is a request.
@@ -36,8 +37,8 @@ do
 				fail(scenario, "the line does not name the author's character: " .. tostring(text))
 			end
 			if ns.AUTHOR ~= "Mort Defrette" then fail(scenario, "ns.AUTHOR is " .. tostring(ns.AUTHOR)) end
-			-- In the window's footer, under the build, whatever page is open, in
-			-- one line that fits between the footer's buttons.
+			-- In the window's footer, whatever page is open, in one line that
+			-- fits between the footer's buttons and the build at the right.
 			for _, page in ipairs({ "general", "appearance", "diagnostics" }) do
 				ns.OpenOptions(page)
 				local UI = ns.WindowUI
@@ -53,14 +54,28 @@ do
 					if wide > UI.FooterRoom() + 0.5 then
 						fail(scenario, ("the line is %.0f wide in a footer with %.0f of room"):format(wide, UI.FooterRoom()))
 					end
-					-- Both hang off the middle of the room between the buttons, the
-					-- build above it and the line below.
+					-- The build at the right of the room between the buttons; the
+					-- line in the middle of what that leaves, on the same level,
+					-- and written larger than the build.
 					local bp = foot.build.points[#foot.build.points]
-					local brel, by = bp[2], bp[5]
 					local ap = foot.about.points[#foot.about.points]
-					local arel, ay = ap[2], ap[5]
-					if brel ~= foot.mid or arel ~= foot.mid or not (by and ay and by > 0 and ay < 0) then
-						fail(scenario, ("the line is not under the build: %s %s"):format(tostring(by), tostring(ay)))
+					if not (bp[1] == "RIGHT" and bp[2] == foot.mid and bp[3] == "RIGHT") then
+						fail(scenario, ("the build is not at the right of the footer: %s to %s"):format(tostring(bp[1]), tostring(bp[3])))
+					end
+					if not (ap[1] == "CENTER" and ap[2] == foot.mid and (ap[4] or 0) < 0 and (ap[5] or 0) == 0) then
+						fail(scenario, ("the line is not in the middle of the room the build leaves: %s %s %s"):format(
+							tostring(ap[1]), tostring(ap[4]), tostring(ap[5])))
+					end
+					-- Written at 13 where it fits (the mock's widths run wide, so
+					-- here it may be set a point under), and larger than the build.
+					local _, small = foot.build:GetFont()
+					local base = foot.aboutFont and foot.aboutFont[2]
+					if not (base and base >= 13 and size and (not small or size > small)) then
+						fail(scenario, ("the line is no bigger than the build: %s (of %s) beside %s"):format(
+							tostring(size), tostring(base), tostring(small)))
+					end
+					if not shown:find("|cffffd100Mort Defrette|r", 1, true) then
+						fail(scenario, "the name is not in gold: " .. shown)
 					end
 				end
 			end
