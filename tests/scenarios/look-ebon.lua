@@ -601,6 +601,11 @@ withTree("look-ebon: a refusal puts the blade out, and the next reason lights it
 		last = waitOf(g)
 	end
 	if (look.snuff._plays or 0) < 1 then fail(scenario, "a refusal did not snuff the soulfire") end
+	-- The fire's heart goes out with the fire, not at a stroke before it.
+	if (look.snuffHeart._plays or 0) < 1 or not near(look.heart._alpha, look.flame._alpha, 0.01) then
+		fail(scenario, ("a refusal put the soulfire's heart out at a stroke: it stands at %.2f, the fire at %.2f"):format(
+			look.heart._alpha or -1, look.flame._alpha or -1))
+	end
 	if (look.notchIn._plays or 0) < 1 then fail(scenario, "a refusal struck no notch") end
 	if plays(look.aftermath) < #look.wisps or #look.wisps ~= #look.runes then fail(scenario, "a refusal left no wisp over every rune") end
 	for i, g in ipairs(look.aftermath) do
@@ -1161,6 +1166,139 @@ withTree("look-ebon: a colour leaves every light as faint as it was", ANNA, func
 	held("a reason's colour written on a refused blade", function() look:Fire(0.9, 0.3, 0.3) end)
 	for name, t in pairs(dark) do
 		if name ~= "notch" and (t:GetAlpha() or 1) > 0.001 then fail(scenario, "after a refusal the " .. name .. " is lit: " .. tostring(t:GetAlpha())) end
+	end
+end)
+
+-- ------------------------------------------------------------------ 15b
+-- A fire is a light. A passer-by's reason is a quiet grey, and a fire of that
+-- colour is smoke nobody sees against the world: the soulfire burns the
+-- reason's hue at nearly full strength, and the eyes with it. The light in the
+-- socket is the marker and keeps the reason's colour as it is.
+withTree("look-ebon: the soulfire burns a quiet reason bright, and the socket keeps its colour", ANNA, function(ns, scenario)
+	local look = atRest(ns, scenario)
+	if skipped(scenario, look) then return end
+	local c = look.kit.ReasonColor("nearby")
+	local top = math.max(c[1], c[2], c[3])
+	if top > 0.9 then fail(scenario, "SKIPPED -- a passer-by's colour is no longer a quiet one") return end
+	if not sameColour(look.socket._color, c) then fail(scenario, "the socket's light is not the reason's own colour") end
+	local f = look.flame._color
+	local burns = f and math.max(f[1], f[2], f[3]) or 0
+	if not (burns > 0.94) then
+		fail(scenario, ("the soulfire burns a quiet reason at %.2f of full strength, and is not seen"):format(burns))
+	end
+	-- The hue is the reason's: every part lifted by the same measure.
+	local k = burns / top
+	if not (f and near(f[1], c[1] * k, 0.01) and near(f[2], c[2] * k, 0.01) and near(f[3], c[3] * k, 0.01)) then
+		fail(scenario, "the soulfire burns a quiet reason in another hue than its own")
+	end
+	for i, t in ipairs(look.eyes) do
+		local e = t._color
+		if not (e and e[1] >= f[1] - 0.001 and e[2] >= f[2] - 0.001 and e[3] >= f[3] - 0.001) then
+			fail(scenario, "eye " .. i .. " is not the bright fire's colour, paler")
+		end
+	end
+	-- A colour already bright is burnt as it is.
+	owe(ns, "Anna Aim")
+	tick(ns)
+	local owed = look.kit.ReasonColor("owed")
+	if math.max(owed[1], owed[2], owed[3]) > 0.97 and not sameColour(look.flame._color, owed) then
+		fail(scenario, "the soulfire changes a reason's colour that was bright already")
+	end
+end)
+
+-- ------------------------------------------------------------------ 15c
+-- The words come first. On a blade too short to hold the lines and the runes
+-- both, the runes are not drawn (their cuts stay, dark) and the lines run on
+-- to where the point narrows: no letter is written over a lit rune.
+withTree("look-ebon: on a blade too short for words and runes the runes give way", ANNA, function(ns, scenario)
+	local _, p, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize, pp.iconSize = 80, 36, 24, 30 end)
+	if skipped(scenario, look) then return end
+	if look.rootX - look.textX >= 30 then fail(scenario, "SKIPPED -- 80 wide at 24 pt leaves the words room beside the runes") return end
+	if look.runesOK then fail(scenario, "with no room left of them for the words, the runes are still drawn") end
+	for i, t in ipairs(look.runes) do
+		if FT.visible(t) or FT.visible(look.runeLit[i]) or FT.visible(look.runeGlow[i]) or FT.visible(look.runeHot[i]) then
+			fail(scenario, "with no room for the words, rune " .. i .. " or a light of it is drawn under them")
+		end
+	end
+	for i, g in ipairs(look.chase) do
+		if g._playing then fail(scenario, "rune " .. i .. " takes its turn in a chase nobody sees") end
+	end
+	if not (look.chipInset < p.width - look.rootX) then
+		fail(scenario, ("with the runes gone the lines still stop %.1f short, where the runes began"):format(look.chipInset))
+	end
+	-- And at the default size they are there.
+	_, _, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize, pp.iconSize = 220, 44, 13, 30 end)
+	if not look.runesOK then fail(scenario, "the blade has no runes at the default size") end
+end)
+
+-- ------------------------------------------------------------------ 15d
+-- A row's lozenge grows with the small line. It keeps clear of the name it
+-- marks at every font size, and inside the plate.
+withTree("look-ebon: a row's lozenge keeps clear of its name at every font size", CROWD, function(ns, scenario)
+	for _, s in ipairs({ { 220, 44, 13, 30 }, { 320, 58, 17, 40 }, { 500, 120, 32, 64 } }) do
+		local _, _, look = upIn(ns, scenario, function(pp)
+			pp.width, pp.height, pp.fontSize, pp.iconSize = s[1], s[2], s[3], s[4]
+			pp.showQueue, pp.queueRows = true, 3
+		end)
+		if skipped(scenario, look) then return end
+		local label = ("%dx%d at %d pt"):format(s[1], s[2], s[3])
+		if not look.listShown then fail(scenario, "SKIPPED -- " .. label .. ": no list is shown") return end
+		local blo, bhi = FT.span(look.beads[1], "x")
+		local row = FT.span(look.kit.rows[1], "x")
+		local plate = FT.span(look.listBody[1], "x")
+		if not (blo and row and plate) then
+			fail(scenario, label .. ": the first row, its lozenge or the plate is not drawn")
+		else
+			if bhi > row - 1 then fail(scenario, ("%s: the lozenge reaches %.1f, over a name that begins at %.1f"):format(label, bhi, row)) end
+			if blo < plate then fail(scenario, label .. ": the lozenge hangs off the plate's left side") end
+			if look.rowReach < row - blo then fail(scenario, label .. ": a row's click area starts right of its lozenge") end
+		end
+	end
+end)
+
+-- ------------------------------------------------------------------ 15e
+-- A refusal is painted at once and again at every scan, the reason first and
+-- the verdict over it. None of those paints may mend the blade while the
+-- verdict stands: the guttering, the snuffing and the notch's stroke would be
+-- cut off in the frame they began. The blade is mended when the verdict goes.
+withTree("look-ebon: a refusal's guttering outlives the paints under its verdict", CROWD, function(ns, scenario)
+	local _, _, look = upIn(ns, scenario)
+	if skipped(scenario, look) then return end
+	if not (look.runesOK and look.notchOK) then fail(scenario, "SKIPPED -- the blade has no runes or no room for a notch at the default size") return end
+	Mock.advance(2)
+	FT.settle()
+	local function burning(when)
+		for i, g in ipairs(look.gutter) do
+			if not g._playing then fail(scenario, when .. ", rune " .. i .. " no longer gutters: the refusal was cut short") end
+		end
+		if not (look.snuff._playing and look.snuffHeart._playing) then fail(scenario, when .. ", the soulfire is out at a stroke, not snuffed") end
+		if not look.notchIn._playing then fail(scenario, when .. ", the notch stands at a stroke, not struck") end
+		if not look.refused then fail(scenario, when .. ", the blade is not out") end
+	end
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	burning("as a refusal is painted")
+	-- The scan paints the reason again, and the verdict over it.
+	ns.Prompt:Refresh()
+	burning("a repaint under the verdict later")
+	if not sameColour(look.socket._color, SPENT) then fail(scenario, "a repaint under the verdict lit the socket's light again") end
+	-- A buff that lands while the refusal is still on show mends the blade.
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if look.refused or (look.notch._alpha or 0) > 0.001 or look.notchIn._playing or look.guard._desaturated then
+		fail(scenario, "a landing over a refusal left the blade out, or its notch standing")
+	end
+	if sameColour(look.socket._color, SPENT) then fail(scenario, "a landing over a refusal left the socket's light spent") end
+	-- And a refusal whose verdict has gone is mended by that same paint.
+	Mock.advance(2)
+	tick(ns)
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	Mock.advance(8)
+	tick(ns)
+	if look.refused then fail(scenario, "with the verdict gone the blade stays out") end
+	if (look.notch._alpha or 0) > 0.001 or sameColour(look.socket._color, SPENT) then
+		fail(scenario, "with the verdict gone the notch stands or the socket's light stays spent")
+	end
+	for i, t in ipairs(look.runes) do
+		if (t._alpha or 0) < RUNE_REST - 0.01 then fail(scenario, ("with the verdict gone rune %d stays dark, at %.2f"):format(i, t._alpha or -1)) end
 	end
 end)
 

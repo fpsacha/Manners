@@ -528,7 +528,9 @@ def make_eye():
     n = 16
     x, y = grid(n, n)
     r = np.hypot(x - n / 2.0, y - n / 2.0)
-    alpha = np.clip(np.exp(-(r / 2.3) ** 2) + 0.50 * np.exp(-(r / 4.6) ** 2), 0, 1) * sstep(8.0, 6.0, r)
+    # A point of fire in the socket and a little light round it: a wide, even
+    # disc reads as a lens over the eye, not as a light in it.
+    alpha = np.clip(np.exp(-(r / 1.9) ** 2) + 0.26 * np.exp(-(r / 4.2) ** 2), 0, 1) * sstep(8.0, 6.0, r)
     emit("Ebon_Eye", white(alpha), alpha.astype(np.float32), 1.0)
 
 

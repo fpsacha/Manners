@@ -50,7 +50,14 @@
 --     dark, a wisp of vapour leaving each; the soulfire is snuffed and the
 --     eyes go dark; a notch stands in the upper edge; the steel goes dull,
 --     the vapour is gone, the icon greys and one ring snaps in; a cast
---     nobody confirmed does nothing;
+--     nobody confirmed does nothing. The blade stays out for as long as the
+--     refusal's verdict stands, through every paint the scan makes under it,
+--     and the first reason painted after mends it;
+--   * the soulfire is a light: it burns the reason's hue at nearly full
+--     strength, so a passer-by's quiet grey is a pale fire and not smoke
+--     nobody sees; the socket's light keeps the reason's colour as it is;
+--   * the words come first: on a blade too short for the lines and the runes
+--     both, the runes are not drawn;
 --   * no additive light at rest: the socket's and the runes' white heat and
 --     the rings are the only ADD regions, each lit under 0.6 s and parked at
 --     nothing;
@@ -194,7 +201,14 @@ local BREATHS, BREATH = 3, 1.25
 -- height, how much taller with somebody owed, its frames a second at rest
 -- and owed, how strong at rest, owed and in a fight, and how large its heart
 -- is against it.
-local FLAME = { tall = 0.27, wide = 1.93, owed = 1.06, fps = 11, quick = 16, rest = 0.85, lit = 1, combat = 0.45, heart = 0.70 }
+local FLAME = { tall = 0.32, wide = 1.60, owed = 1.10, fps = 11, quick = 16, rest = 0.85, lit = 1, combat = 0.45, heart = 0.70 }
+-- A fire is a light: it burns at this much of full strength whatever the
+-- reason's own colour is (a passer-by's quiet grey would burn as smoke
+-- nobody sees). The hue is the reason's still.
+local FIRE_VALUE = 0.96
+-- The words come first: with less than this left of the runes for them, the
+-- runes are not drawn and the lines run on to this much of the point.
+local WORDS_ROOM, TIP_KEEP = 30, 0.40
 -- The vapour: a tile of its cloud in units, how much longer than tall it is
 -- drawn, each layer's drift in tiles a second along the blade and away from
 -- it, how strong each layer is, and how much of that the upper edge's has.
@@ -253,6 +267,16 @@ end
 local function Known(english)
 	local locale = ns.LOCALE or "enUS"
 	return locale == "enUS" or locale == "enGB" or rawget(L, english) ~= nil
+end
+
+-- A colour as a fire burns it: its hue, at FIRE_VALUE of full strength when
+-- it is darker than that.
+local function Lit(r, g, b)
+	local m = math.max(r, g, b)
+	if m >= FIRE_VALUE then return r, g, b end
+	if m < 0.02 then return FIRE_VALUE, FIRE_VALUE, FIRE_VALUE end
+	local k = FIRE_VALUE / m
+	return r * k, g * k, b * k
 end
 
 -- Relative luminance of a grey, for the blued steel's own ink figures.
@@ -837,8 +861,10 @@ function Ebon:BuildAnimations(anim)
 		self.refusal[#self.refusal + 1] = self.gutter[i]
 	end
 	self.snuff = anim(Fade(self.flame, FLAME.rest, 0, 0.22))
+	self.snuffHeart = anim(Fade(self.heart, FLAME.rest, 0, 0.22))
 	self.notchIn = anim(Fade(self.notch, 0, NOTCH_HELD, 0.07))
 	self.refusal[#self.refusal + 1] = self.snuff
+	self.refusal[#self.refusal + 1] = self.snuffHeart
 	self.refusal[#self.refusal + 1] = self.notchIn
 	self.aftermath = {}
 	for i, t in ipairs(self.wisps) do
@@ -893,7 +919,11 @@ function Ebon:Apply(p, above)
 	-- How far apart the list's rows are, which is also how tall each name's
 	-- click area is (Prompt/Rows.lua), and how far left of the text it starts.
 	self.pitch = sub + 7
-	self.rowReach = 18
+	-- A row's lozenge, as large as the small line and a little over, and how
+	-- far left of the name its middle is: clear of it at every size.
+	self.bead = sub + 2
+	self.beadOut = self.bead / 2 + 3
+	self.rowReach = self.bead + 6
 
 	-- The icon: the slider's size, held inside the button. The socket's box
 	-- is the icon's frame, held inside the button's height; the guard is
@@ -965,6 +995,12 @@ function Ebon:Apply(p, above)
 	-- A blade too short for its point has no runes.
 	self.runesOK = W - plateX >= END_W * su + 12
 	self.chipInset = math.ceil(W - rootX) + 2
+	-- Nor has one on which they would leave the words no room: the words
+	-- come first, and run on over the bare cuts to where the point narrows.
+	if rootX - textX < WORDS_ROOM then
+		self.runesOK = false
+		self.chipInset = math.ceil(math.min(W - rootX, END_W * su * TIP_KEEP)) + 2
+	end
 
 	self:PlaceEdges(showIcon, above)
 	self:PlaceMotion(showIcon, above)
@@ -1001,7 +1037,7 @@ function Ebon:Apply(p, above)
 	-- The list's rows start right of the guard, whose skull and fangs stand
 	-- where a list would begin, and end where the runes begin.
 	self.listX0 = showIcon and (discRight - 1) or (plateX + 2)
-	self.rowX = math.max(textX, self.listX0 + 17)
+	self.rowX = math.max(textX, self.listX0 + self.bead + 5)
 	self.listX1 = math.max(self.rowX + 30, rootX + 3)
 	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
 	for _, row in ipairs(kit.rows) do
@@ -1037,7 +1073,7 @@ function Ebon:Apply(p, above)
 	-- A fight's hold outlives a restyle: Prompt only says so again when it
 	-- changes, so the look puts it back itself.
 	local held = self.combat
-	self.combat, self.hovered, self.outcomeOn, self.refused = nil, nil, nil, nil
+	self.combat, self.hovered, self.outcomeOn, self.refused, self.refusedAt = nil, nil, nil, nil, nil
 	self.pulseSpent, self.calmLit, self.owed = nil, nil, nil
 	self:Rest()
 	self:Breath()
@@ -1196,10 +1232,13 @@ end
 
 -- The soulfire, the eyes and the socket's light in their colour.
 function Ebon:Fire(r, g, b)
+	-- The socket's light is the marker: the reason's colour as it is. The
+	-- fire and the eyes burn it.
+	Colour(self.socket, r, g, b)
+	r, g, b = Lit(r, g, b)
 	Colour(self.flame, r, g, b)
 	local hr, hg, hb = self.kit.Tint(r, g, b, 0.72)
 	Colour(self.heart, hr, hg, hb)
-	Colour(self.socket, r, g, b)
 	local er, eg, eb = self.kit.Tint(r, g, b, 0.35)
 	for _, t in ipairs(self.eyes) do Colour(t, er, eg, eb) end
 end
@@ -1232,7 +1271,7 @@ function Ebon:Breath()
 		flame, eyes, rune = FLAME.lit, EYES.owed, RUNE.owed
 	end
 	if not self.snuff:IsPlaying() then self.flame:SetAlpha(flame) end
-	self.heart:SetAlpha(flame)
+	if not self.snuffHeart:IsPlaying() then self.heart:SetAlpha(flame) end
 	for _, t in ipairs(self.eyes) do t:SetAlpha(eyes) end
 	for i, t in ipairs(self.runes) do
 		if not (self.kindle[i]:IsPlaying() or self.gutter[i]:IsPlaying()) then t:SetAlpha(rune) end
@@ -1439,7 +1478,7 @@ function Ebon:Hide()
 	kit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil
 	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)
 	kit.textLayer:SetAlpha(1)
-	self.combat, self.hovered, self.outcomeOn, self.refused = nil, nil, nil, nil
+	self.combat, self.hovered, self.outcomeOn, self.refused, self.refusedAt = nil, nil, nil, nil, nil
 	self.listShown, self.listAt, self.countMode, self.keyUp = nil, nil, nil, false
 	self.pulseSpent, self.calmLit, self.owed, self.idleState, self.greeted = nil, nil, nil, nil, nil
 end
@@ -1674,6 +1713,7 @@ function Ebon:Mend()
 	self.notch:SetAlpha(0)
 	StopAll(self.gutter)
 	self.snuff:Stop()
+	self.snuffHeart:Stop()
 	for _, t in ipairs(self.runeGlow) do t:SetAlpha(self.combat and GLOW.combat or GLOW.rest) end
 	self:Breath()
 	self:Dress()
@@ -1722,19 +1762,37 @@ function Ebon:Tint(r, g, b, ring, stripe)
 	self.tint = { cr, cg, cb }
 end
 
+-- Whether a refusal's verdict is still on the panel: by the outcome's own
+-- clock, as Prompt tells whether to paint it again.
+function Ebon:RefusalStands()
+	local at = self.refusedAt
+	return at ~= nil and GetTime() - at <= (self.kit.OUTCOME_SECONDS or 0.6)
+end
+
 function Ebon:PaintReason(r, g, b, _, mode)
 	mode = mode or "icon"
 	-- A refusal put the blade out: it is lit again here, and a fight keeps
-	-- the icon grey.
+	-- the icon grey. Not while the refusal's verdict stands, though: the
+	-- scan paints the reason again several times a second with the verdict
+	-- over it (PaintOutcome follows), and mending here would cut the
+	-- guttering, the snuffing and the notch's stroke off at the first of
+	-- those paints. The blade is mended by the first reason painted after
+	-- the verdict has gone, or by a verdict that is not a refusal.
 	local was = self.refused
-	self.refused = nil
+	local held = was and self:RefusalStands()
+	if not held then self.refused = nil end
 	if mode == "off" then
 		self:Tint(RUNEFROST[1], RUNEFROST[2], RUNEFROST[3], false, false)
 	else
 		self:Tint(r, g, b, mode == "icon" or mode == "both", mode == "stripe" or mode == "both")
 	end
-	if was then self:Mend() end
-	self.kit.icon:SetDesaturated(self.combat and true or false)
+	if held then
+		-- The colours are the new reason's; the socket's light stays spent.
+		Colour(self.socket, SPENT[1], SPENT[2], SPENT[3])
+	elseif was then
+		self:Mend()
+	end
+	self.kit.icon:SetDesaturated((self.combat or held) and true or false)
 end
 
 -- The blade holds; everything that moves stops and the lights go out, the
@@ -1786,6 +1844,7 @@ function Ebon:StopLights()
 	StopAll(self.landing)
 	StopAll(self.gutter)
 	self.snuff:Stop()
+	self.snuffHeart:Stop()
 	self.forgeSheet:Stop()
 end
 
@@ -1897,6 +1956,7 @@ function Ebon:Flourish(kind)
 	if kind == "failed" then
 		local lit = not self.refused
 		self.refused = true
+		self.refusedAt = GetTime()
 		self:StopLights()
 		StopAll(self.pulse)
 		StopAll(self.calm)
@@ -1911,6 +1971,8 @@ function Ebon:Flourish(kind)
 			if shown then
 				self.snuff:Stop()
 				self.snuff:Play()
+				self.snuffHeart:Stop()
+				self.snuffHeart:Play()
 			end
 			if self.notchOK then
 				self.notchIn:Stop()
@@ -1999,11 +2061,21 @@ function Ebon:PaintOutcome(kind, lead, sub, who, stamp)
 	StopAll(self.calm)
 	StopAll(self.once)
 	Colour(self.halo, o[1], o[2], o[3])
+	local was = self.refused
 	self.refused = kind == "failed"
 	if self.refused then
+		self.refusedAt = stamp or self.refusedAt or GetTime()
 		self:Spend()
-	elseif not self.combat then
-		self.halo:SetAlpha(HALO.held)
+	else
+		self.refusedAt = nil
+		if was then
+			-- Over a refusal still on show: the blade is whole again, in the
+			-- colours the reason last gave it.
+			local t = self.tint
+			if t then self:Fire(t[1], t[2], t[3]) end
+			self:Mend()
+		end
+		if not self.combat then self.halo:SetAlpha(HALO.held) end
 	end
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], SUB_CONTRAST)
@@ -2019,8 +2091,10 @@ function Ebon:PaintOutcome(kind, lead, sub, who, stamp)
 	end
 end
 
+-- The verdict has gone: the next reason painted mends a blade it put out.
 function Ebon:ClearOutcome()
 	self.outcomeOn = nil
+	self.refusedAt = nil
 end
 
 ---------------------------------------------------------------------------
@@ -2078,7 +2152,7 @@ function Ebon:PaintQueue(rows, shown, above)
 	PlacePieces(self.listBody, art, x0, y0, self.listX1, y1, math.min(LIST_C, (y1 - y0) / 2))
 	self:PlaceShadow({ x0, y0, self.listX1, y1 })
 
-	local bead = self.sub + 2
+	local bead = self.bead
 	for i = 1, shown do
 		local fs = kit.rows[i]
 		-- Row centres, reading downwards either way.
@@ -2090,6 +2164,6 @@ function Ebon:PaintQueue(rows, shown, above)
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)
-		At(self.beads[i], art, self.rowX - 9, y, bead)
+		At(self.beads[i], art, self.rowX - self.beadOut, y, bead)
 	end
 end

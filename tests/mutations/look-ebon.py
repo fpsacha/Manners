@@ -10,7 +10,10 @@
 # with the prompt up, Calm, a fight, the words past the guard and the tags
 # left of the runes, the words' contrast and the reason line's shadow, a name
 # measured once, a colour that leaves every alpha alone, and the Lua and the
-# generator agreeing. Each is caught by the scenario in
+# generator agreeing; and, from the review, a fire a quiet reason still lets
+# be seen, the words before the runes on a short blade, a lozenge clear of its
+# name at every size and the fire's heart snuffed with it. Each is caught by
+# the scenario in
 # tests/scenarios/look-ebon.lua that names it.
 
 S = "runscenarios.py"
@@ -512,3 +515,41 @@ mutate("tools/make_ebon_textures.py",
        "SEED = 5114\n",
        "look-ebon: the generator no longer draws the files that ship",
        expect="does not match the file that ships", script=S)
+
+# --- the review's four: a fire seen, the words before the runes, the lozenges, the heart ---
+
+mutate("Looks/Ebon.lua",
+       "\tr, g, b = Lit(r, g, b)\n",
+       "",
+       "look-ebon: the soulfire burnt in a quiet reason's own grey",
+       expect="the soulfire burns a quiet reason at", script=S)
+
+mutate("Looks/Ebon.lua",
+       "\tif rootX - textX < WORDS_ROOM then\n",
+       "\tif false then\n",
+       "look-ebon: the runes kept on a blade with no room for the words",
+       expect="with no room left of them for the words, the runes are still drawn", script=S)
+
+mutate("Looks/Ebon.lua",
+       "\t\tAt(self.beads[i], art, self.rowX - self.beadOut, y, bead)\n",
+       "\t\tAt(self.beads[i], art, self.rowX - 9, y, bead)\n",
+       "look-ebon: a row's lozenge a fixed step left of its name",
+       expect="over a name that begins at", script=S)
+
+mutate("Looks/Ebon.lua",
+       "\tif not self.snuffHeart:IsPlaying() then self.heart:SetAlpha(flame) end\n",
+       "\tself.heart:SetAlpha(flame)\n",
+       "look-ebon: the soulfire's heart put out at a stroke by a refusal",
+       expect="a refusal put the soulfire's heart out at a stroke", script=S)
+
+mutate("Looks/Ebon.lua",
+       "\tlocal held = was and self:RefusalStands()\n",
+       "\tlocal held = false\n",
+       "look-ebon: the blade mended under a refusal's own verdict, at the scan's next paint",
+       expect="the refusal was cut short", script=S)
+
+mutate("Looks/Ebon.lua",
+       "\t\t\tif t then self:Fire(t[1], t[2], t[3]) end\n\t\t\tself:Mend()\n",
+       "\t\t\tif t then self:Fire(t[1], t[2], t[3]) end\n",
+       "look-ebon: a landing over a refusal leaves the notch standing",
+       expect="a landing over a refusal left the blade out, or its notch standing", script=S)
