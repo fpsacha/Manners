@@ -590,7 +590,11 @@ function UI.BuildFooter(f)
 	-- never does (tests/scenarios/about.lua).
 	if ns.Flavour and ns.Flavour.flavour == "camelot" then
 		local hit = CreateFrame("Button", nil, mid)
-		hit:SetAllPoints(footer.about)
+		-- Over the name alone, placed in PaintFooter from the widths of the
+		-- words before it and of the name: a font string cannot say where one
+		-- of its words is. `measure` is never shown.
+		footer.measure = UI.Text(mid, FOOT_ABOUT, C.ink)
+		footer.measure:Hide()
 		hit:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 		hit:SetScript("OnEnter", function(self)
 			GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -667,5 +671,23 @@ function UI.PaintFooter()
 	fs:ClearAllPoints()
 	fs:SetPoint("CENTER", footer.mid, "CENTER", -BuildRoom() / 2, 0)
 	fs:SetShown(about ~= "")
-	if footer.aboutHit then footer.aboutHit:SetShown(about ~= "") end
+	-- The click area, over the author's name where the line has it.
+	local hit = footer.aboutHit
+	if hit then
+		local plainLine, name = UI.Plain(about), tostring(ns.AUTHOR or "")
+		local at = name ~= "" and plainLine:find(name, 1, true) or nil
+		if at then
+			local m = footer.measure
+			local path, size, flags = fs:GetFont()
+			if path then m:SetFont(path, size, flags or "") end
+			m:SetText(plainLine:sub(1, at - 1))
+			local before = at > 1 and UI.TextWidth(m, size) or 0
+			m:SetText(name)
+			local wide = UI.TextWidth(m, size)
+			hit:ClearAllPoints()
+			hit:SetPoint("LEFT", fs, "LEFT", before, 0)
+			hit:SetSize(math.max(1, wide), (size or FOOT_ABOUT) + 6)
+		end
+		hit:SetShown(at ~= nil)
+	end
 end
