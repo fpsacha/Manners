@@ -181,6 +181,11 @@ def tree_key(shards, tests_only):
     for top, dirs, names in os.walk(DIR):
         dirs[:] = sorted(d for d in dirs if d not in (".git", "__pycache__"))
         rel_top = os.path.relpath(top, DIR).replace("\\", "/")
+        if rel_top == ".claude":
+            # The other checkouts kept under the main one (.claude/worktrees,
+            # gigabytes of them): never part of this tree. Hashing them was
+            # minutes before a run began, and copying them once per worker more.
+            dirs[:] = [d for d in dirs if d != "worktrees"]
         if rel_top in ("tests/mutations", "tests/baselines"):
             continue
         if tests_only and rel_top != "tests" and not rel_top.startswith("tests/"):
@@ -634,8 +639,13 @@ def own_tree():
         with _copies_lock:
             root = os.path.join(scratch(), "tree-%d" % len(_all_copies))
             _all_copies.append(root)
-        shutil.copytree(DIR, root, ignore=shutil.ignore_patterns(
-            ".git", "__pycache__", "*.selftest-backup", "selftest.out"))
+        def _ignore(folder, names, _usual=shutil.ignore_patterns(
+                ".git", "__pycache__", "*.selftest-backup", "selftest.out")):
+            skip = set(_usual(folder, names))
+            if os.path.basename(folder) == ".claude":
+                skip.add("worktrees")       # other checkouts: see tree_key
+            return skip
+        shutil.copytree(DIR, root, ignore=_ignore)
         _copies.root = root
     return root
 
@@ -4603,8 +4613,14 @@ _tree_before = tree_snapshot()
 
 mutations = [m for m in plan if isinstance(m, Mutation)]
 
-# The baseline and the trace, side by side: neither edits anything, so both
-# run on the tree itself.
+# A narrowed run that kept nothing (--changed with no file a mutation sits on,
+# --only with a text no label holds) has nothing to judge: it used to run the
+# whole baseline, every piece of the suite and a trace, to say so.
+if not mutations and not dead_anchors and ("--changed" in sys.argv[1:] or _only):
+    print()
+    print("RESULT: %s" % "no mutation to judge (nothing was run)")
+    sys.exit(0)
+
 _shards = []
 _trace_key = _trace_cached = None
 if not WHOLE:
@@ -4612,6 +4628,84 @@ if not WHOLE:
     _trace_cached = os.path.join(TRACE_CACHE, _trace_key + ".json")
     if FRESH_TRACE or not os.path.exists(_trace_cached):
         _trace_cached = None
+
+# ------------------------------------------------------------ the fast proof
+# --only and --changed with no trace kept of these tests (any test file changed
+# since the last run, which is every time a scenario or a mock was just
+# written): tracing the whole suite, and running every piece of it on the clean
+# tree, was 30 to 80 minutes before the first of three mutations was looked at.
+# Instead each mutation judged by runscenarios.py is first tried by the rule of
+# tools/prove.py: the scenario file of its topic (tests/mutations/<topic>.py ->
+# tests/scenarios/<topic>.lua) and every file whose text holds its `expect`,
+# green on the clean tree first, then with the mutation in a copy. A narrowed
+# run can hide the check that catches a mutation and never invent one, so
+# CAUGHT there is CAUGHT. One it does not catch proves nothing either way: it
+# is left for the trace and the whole suite, as before, and only those pay.
+_narrow_run = bool(_only) or "--changed" in sys.argv[1:]
+_fast_tried = False
+_scenarios_needed = True
+if _narrow_run and not WHOLE and not PLAN and not FRESH_TRACE and _trace_cached is None:
+    import prove as _prove
+    _texts = _prove.scenario_texts(DIR)
+    _fast = []
+    for m in mutations:
+        if (m.script != "runscenarios.py" or m.topic not in _texts
+                or m.filename.replace("\\", "/").startswith("Locales/")):
+            continue
+        m.fast_files = _prove.proof_files(m.expect, m.topic, _texts)
+        # Its topic's file first; each file is a run of its own, as a piece of
+        # the suite is, and never the same file twice at once on one tree.
+        m.fast_files.sort(key=lambda f: f != m.topic)
+        _fast.append(m)
+    if _fast:
+        _fast_tried = True
+        sys.stderr.write("selftest: no trace kept of these tests; %d of %d mutations are tried on their own"
+                         " scenario files first (the rule of tools/prove.py)\n" % (len(_fast), len(mutations)))
+        sys.stderr.flush()
+
+        def _fast_clean(f):
+            return f, verdict(*run("runscenarios.py", ["--file", f], DIR))[1]
+
+        def _fast_try(m):
+            if not all(_fast_green[f] for f in m.fast_files):
+                return m, None
+            _total = 0.0
+            for f in m.fast_files:
+                r = attempt(m, own_tree(), ["--file", f])
+                _total += r.seconds
+                if r.hits:
+                    m.fast_files = [f]
+                    break
+            r.seconds = _total
+            return m, r
+
+        with ThreadPoolExecutor(max_workers=JOBS) as _pool:
+            _fast_green = dict(_pool.map(_fast_clean, sorted({f for m in _fast for f in m.fast_files})))
+            for m, _r in _pool.map(_fast_try, _fast):
+                if _r is not None:
+                    m.seconds += _r.seconds
+                    m.runs += 1
+                if _r is not None and _r.hits:
+                    m.judged = "fast"
+                    finish(m, _r)
+                else:
+                    m.fast_left = ("its own files (%s) are red on the clean tree" % ", ".join(m.fast_files)
+                                   if _r is None else "its own files (%s) did not catch it" % ", ".join(m.fast_files))
+        _left = [m for m in mutations if m.judged != "fast"]
+        _scenarios_needed = any(m.script == "runscenarios.py" for m in _left)
+        _waiting = [m for m in _left if m.script == "runscenarios.py"]
+        if _waiting:
+            sys.stderr.write("selftest: %d mutation(s) left for the trace and the whole suite (minutes; python"
+                             " tools/prove.py \"<label>\" shows one in seconds):\n" % len(_waiting))
+            for m in _waiting:
+                sys.stderr.write("  %s: %s\n" % (m.label, getattr(m, "fast_left", "no scenario file of its topic")))
+            sys.stderr.flush()
+        mutations = _left
+
+# The baseline and the trace, side by side: neither edits anything, so both
+# run on the tree itself.
+_traced = not WHOLE and _scenarios_needed
+if _traced:
     PIECES = make_pieces()
     LOCALES_PIECE = _file_pieces.get("locales.lua")
     PIECES = [p for p in PIECES if p is not LOCALES_PIECE]
@@ -4629,7 +4723,7 @@ def _baseline_piece(args):
 # CI runs it, spread over every worker. The trace shards are the longest runs,
 # so they start first.
 with ThreadPoolExecutor(max_workers=JOBS) as _pool:
-    if not WHOLE and _trace_cached is None:
+    if _traced and _trace_cached is None:
         # Split by scenario name, one shard per worker. Each shard runs every
         # scenario file but loads only its own scenarios; the rest are skipped
         # in a fraction of a second, so the shards cost what their scenarios
@@ -4644,7 +4738,7 @@ with ThreadPoolExecutor(max_workers=JOBS) as _pool:
     _base = {script: _pool.submit(tally, script) for script in SUITES if script != "runscenarios.py"}
     if WHOLE:
         _base["runscenarios.py"] = _pool.submit(tally, "runscenarios.py", JOBS)
-    else:
+    elif _traced:
         _piece_runs = [(_p, _pool.submit(_baseline_piece, _p)) for _p in PIECES + [LOCALES_PIECE]]
     for _, _f in _shards:
         _f.result()
@@ -4657,6 +4751,10 @@ print("baseline:")
 # arriving from the other direction. So the baseline is a gate, not a note.
 dirty = []
 for script in SUITES:
+    if script == "runscenarios.py" and not WHOLE and not _traced:
+        print("  %-20s not run whole: every mutation it judges here was caught on its own"
+              " scenario files, each green on the clean tree first" % script)
+        continue
     if script == "runscenarios.py" and not WHOLE:
         _red = []
         for _p, _f in _piece_runs:
@@ -4696,7 +4794,7 @@ print()
 # to. What cannot be traced, or traces to most of the suite anyway, goes
 # straight to the whole suite, in pieces.
 scenario_map = None
-if not WHOLE:
+if _traced:
     _merged = {"lines": {}, "names": {}}
     _tree = tree_key(JOBS, False)
     try:
@@ -4814,24 +4912,43 @@ _judging_started = time.time()
 _judge = Judge(JOBS, _progress)
 _judge.run(sorted(mutations, key=lambda m: m.script == "runscenarios.py" and m.select is not None))
 save_catches()
+mutations = [m for m in plan if isinstance(m, Mutation)]
 
+# Which rule judged each one, said under --only and --changed (a full run's
+# log stays as it was: its summary counts them).
+RULES = {"fast": "the fast proof: its own scenario files, no trace",
+         "narrowed": "the scenarios its check is traced to",
+         "remembered": "the piece of the suite that caught it last time",
+         "likely": "the pieces of the suite its text points at",
+         "whole": "the whole suite",
+         "suite": "its own suite"}
 for item in plan:
     if isinstance(item, Mutation):
         for line in item.lines:
             print(line)
+        if _narrow_run and item.lines:
+            _rule = RULES[item.judged]
+            if item.judged == "fast":
+                _rule += " (%s)" % ", ".join(item.fast_files)
+            elif item.judged == "suite":
+                _rule += " (%s)" % item.script
+            elif hasattr(item, "fast_left"):
+                _rule += "; %s" % item.fast_left
+            print("      judged by: " + _rule)
     else:
         print(item)
 
 print()
 _by = {k: [m for m in mutations if m.judged == k]
-       for k in ("narrowed", "remembered", "likely", "whole", "suite")}
+       for k in ("narrowed", "remembered", "likely", "whole", "suite", "fast")}
 print("%d mutations in %d s on %d workers (%d s of it the baseline%s): %d caught by the scenarios"
       " their check is in, %d by the piece that caught them last time, %d by the pieces"
       " of the suite their text points at, %d on the"
-      " whole suite, %d by validate.py or runharness.py"
+      " whole suite, %d by validate.py or runharness.py%s"
       % (len(mutations), time.time() - _started, JOBS, _baseline_seconds,
-         "" if WHOLE or _trace_cached else " and the trace",
-         len(_by["narrowed"]), len(_by["remembered"]), len(_by["likely"]), len(_by["whole"]), len(_by["suite"])))
+         "" if not _traced or _trace_cached else " and the trace",
+         len(_by["narrowed"]), len(_by["remembered"]), len(_by["likely"]), len(_by["whole"]), len(_by["suite"]),
+         ", %d by the fast proof (their own scenario files, no trace)" % len(_by["fast"]) if _fast_tried else ""))
 for _kind in RUN_KINDS:
     if _kind in _judge.stats:
         print("  %5d %s, %d s" % (_judge.stats[_kind][0], RUN_KINDS[_kind], _judge.stats[_kind][1]))
