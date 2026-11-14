@@ -329,6 +329,18 @@ function BEFORE.carrying(ns)
 	ns.CreateClickMacro()
 end
 
+-- The options window's two views (Options/Shared.lua, ns.MenuView): the short
+-- list a new profile starts on, and everything with the line that offers the
+-- short list to a profile from before it. With neither, the mock's player has
+-- chosen Show everything.
+function BEFORE.simple(ns)
+	ns.db.profile.menuView = "simple"
+end
+
+function BEFORE.offer(ns)
+	ns.db.profile.menuView = "offer"
+end
+
 function BEFORE.unlocked(ns)
 	ns.db.profile.prompt.locked = false
 	if ns.Prompt and ns.Prompt.ApplyStyle then ns.Prompt:ApplyStyle() end

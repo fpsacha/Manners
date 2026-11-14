@@ -4930,6 +4930,15 @@ function ns.ClampSettings()
 		profile.firstRun = p.anchorCarried == true and "existing" or "pending"
 	end
 	oneOf(profile, "firstRun", { pending = true, answered = true, skipped = true, existing = true }, "existing")
+	-- The options window's view (Options/Shared.lua, ns.MenuView): a profile
+	-- new at this clamp starts on the short list ("simple"); one that has been
+	-- through a clamp before keeps everything on screen and is offered the
+	-- short list once ("offer"), then is "full" or "simple" as its player says.
+	-- Told apart, and stamped, as the first run is.
+	if profile.menuView == nil then
+		profile.menuView = p.anchorCarried == true and "offer" or "simple"
+	end
+	oneOf(profile, "menuView", { simple = true, full = true, offer = true }, "full")
 
 	-- Beta.1 moved the default anchor from the middle of the screen to the
 	-- bottom edge; AceDB strips values equal to their default, so a 0.9.x

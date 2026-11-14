@@ -187,11 +187,42 @@ local function ShownByModel(e)
 	return not UI.Hidden(e.item)
 end
 
--- ...and by the window's: not under a switch that is off.
+-- Whether the simple view leaves an entry out: on, the page not one drawn
+-- whole, and the entry (for a composite, every control of it) not on the
+-- short list (Layout.lua, `simple`). Never the view's own lines.
+local function SimpleHides(e)
+	if e.chrome or ns.MenuView() ~= "simple" then return false end
+	local simple = UI.Layout().simple
+	if type(simple) ~= "table" or (simple.pages or {})[e.sec.page] then return false end
+	local keep = simple.items or {}
+	if e.subs then
+		for _, sub in ipairs(e.subs) do
+			if keep[sub.path] then return false end
+		end
+		return true
+	end
+	return not keep[e.path]
+end
+
+-- ...and by the window's: on the short list while the simple view is on, and
+-- not under a switch that is off. `bySimple` says a control the model shows
+-- was left out by the view, for the count under the page.
 local function Shown(e)
-	return ShownByModel(e) and UnderOff(e) == nil
+	e.bySimple = false
+	if not ShownByModel(e) then return false end
+	if SimpleHides(e) then
+		e.bySimple = e.isControl
+		return false
+	end
+	return UnderOff(e) == nil
 end
 UI.EntryShown = Shown
+
+-- Whether a control is one the simple view is leaving out now.
+function UI.HiddenBySimple(path)
+	local w = UI.Where(path)
+	return w ~= nil and ShownByModel(w.e) and SimpleHides(w.e)
+end
 
 -- The switch to turn on first for a control the model shows and the window
 -- does not draw (UnderOff), or nil: for the search, which finds the control
@@ -803,8 +834,53 @@ local function RefreshRows(sec)
 end
 
 ---------------------------------------------------------------------------
--- columns
+-- the view's own lines: the offer over a page, what the short list leaves out
 ---------------------------------------------------------------------------
+
+-- Two sections of the window's own, on no page of the layout and so drawn on
+-- whichever is open (Layout.lua, `menu`): over the page, the line offering
+-- the simple view with its two buttons; under it, how many settings the short
+-- list leaves out and Show everything. Built once, with the rows of any page,
+-- and shown by their own rules (Options/Start.lua).
+local menu
+
+local function MenuSection(key, raws)
+	local sec = { def = {}, key = key, fold = false, entries = {}, hasControls = false, chrome = true }
+	for _, raw in ipairs(raws) do
+		local e = raw[1] and Entry(raw, sec)
+		if e then
+			e.level, e.chrome = 0, true
+			e.row = BuildRow(e, UI.view.child)
+			sec.entries[#sec.entries + 1] = e
+			sec.hasControls = sec.hasControls or e.isControl
+		end
+	end
+	return sec
+end
+
+local function MenuSections()
+	if menu then return menu end
+	local slots = UI.Layout().menu or {}
+	menu = {
+		offer = MenuSection("menu.offer", { { slots.offer, hint = true, block = true },
+			{ slots.try, buttons = true }, { slots.dismiss, buttons = true } }),
+		more = MenuSection("menu.more", { { slots.more, hint = true }, { slots.everything, buttons = true } }),
+	}
+	return menu
+end
+
+-- The row of one of the view's own controls ("offer", "try", "dismiss",
+-- "more", "everything"), for the scenarios; nil until a page has been painted.
+function UI.MenuRow(slot)
+	local path = (UI.Layout().menu or {})[slot]
+	for _, sec in pairs(menu or {}) do
+		for _, e in ipairs(sec.entries) do
+			if e.path == path then return e.row, e end
+		end
+	end
+	return nil
+end
+
 
 -- How many columns a page of this width flows into: one until there is room
 -- for two of MIN_COLUMN with the gap between them, three at most.
@@ -886,6 +962,17 @@ local function FlowSpan(sec, y)
 	return y + h
 end
 
+-- One of the view's own sections, across the page at y while its rules show
+-- it. Answers the y under it.
+local function PaintChrome(sec, y, mode)
+	if mode ~= "reflow" and Judge(sec) and mode ~= "layout" then RefreshRows(sec) end
+	if not sec.visible then
+		HideSection(sec)
+		return y
+	end
+	return FlowSpan(sec, y)
+end
+
 -- mode: nil reads every row again and lays the page out; "layout" places the
 -- rows again without reading them (a row changed height by itself); "reflow"
 -- also keeps which rows show as the last paint judged it, so nothing of the
@@ -904,6 +991,9 @@ function UI.PaintPage(mode)
 	m.title:SetPoint("TOPLEFT", UI.view.child, "TOPLEFT", PAD_LEFT, -y)
 	m.title:Show()
 	y = y + UI.TextHeight(m.title, 18) + 10
+	local chrome = MenuSections()
+	-- Over the page: the simple view, offered once.
+	y = PaintChrome(chrome.offer, y, mode)
 	local captioned, open = false, UI.State().open
 	local columns = UI.ColumnsFor(CONTENT_W)
 	m.columns = columns
@@ -940,6 +1030,18 @@ function UI.PaintPage(mode)
 	Flush()
 	m.judged = true
 	if not captioned then UI.ShowCaption(m, false) end
+	-- Under the page: what the short list left out of it, counted by the
+	-- judging above, and the way to it.
+	if mode ~= "reflow" then
+		local left = 0
+		for _, sec in ipairs(m.sections) do
+			for _, e in ipairs(sec.entries) do
+				if e.bySimple then left = left + 1 end
+			end
+		end
+		UI.simpleHidden = left
+	end
+	y = PaintChrome(chrome.more, y, mode)
 	UI.SetContentHeight(y + PAD_BOTTOM)
 end
 
@@ -955,6 +1057,11 @@ function UI.Reveal(path)
 	if UI.page ~= w.page then UI.ShowPage(w.page) end
 	if w.sec.fold then UI.State().open[w.sec.key] = true end
 	UI.Refresh()
+	-- Left out by the simple view: nothing is lost, the full view opens on it.
+	if not UI.RowShown(path) and UI.HiddenBySimple(path) then
+		ns.SetMenuView("full")
+		UI.Refresh()
+	end
 	if not UI.RowShown(path) then
 		-- Not drawn under a switch that is off: the switch is what to show.
 		local switch = UI.SwitchFor(path)

@@ -250,6 +250,32 @@ end
 Page.TAB, Page.Ref = TAB, Ref
 
 ---------------------------------------------------------------------------
+-- the options window's view: the short list, or everything
+--
+-- Kept in the profile (menuView, stamped by ClampSettings: no default, so
+-- AceDB never strips it): "simple" draws the short list of each page that the
+-- layout names (Options/Window/Layout.lua, `simple`), "full" every setting,
+-- and "offer" is full with one line offering the short list, which a profile
+-- from before the short list existed starts with. The fallback dialog always
+-- draws everything.
+---------------------------------------------------------------------------
+
+function ns.MenuView()
+	local profile = ns.db and ns.db.profile
+	local view = type(profile) == "table" and profile.menuView or nil
+	if view == "simple" or view == "offer" then return view end
+	return "full"
+end
+
+-- "simple" or "full": chosen, so the offer is answered either way.
+function ns.SetMenuView(view)
+	local profile = ns.db and ns.db.profile
+	if type(profile) ~= "table" then return end
+	profile.menuView = view == "simple" and "simple" or "full"
+	if ns.RefreshOptionsDisplay then ns.RefreshOptionsDisplay() end
+end
+
+---------------------------------------------------------------------------
 -- who the settings come to right now
 --
 -- A grey line at the top of Who to buff, Who to skip and When to offer: who

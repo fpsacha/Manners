@@ -196,3 +196,89 @@ mutate(LAYOUT,
        "\t\t\t\t\t-- (who buffs\n",
        "menu: no home named for sharing a group with other Manners users",
        expect="menu: the homes for what is coming are in the layout", script=S)
+
+# ------------------------------------------------ the simple view
+
+mutate("Core.lua",
+       "\t\tprofile.menuView = p.anchorCarried == true and \"offer\" or \"simple\"\n",
+       "\t\tprofile.menuView = \"full\"\n",
+       "menu: a new profile starts with everything, and nobody is offered the short list",
+       expect="menu: a new profile starts on the short list", script=S)
+
+mutate("Core.lua",
+       "\t\tprofile.menuView = p.anchorCarried == true and \"offer\" or \"simple\"\n",
+       "\t\tprofile.menuView = \"simple\"\n",
+       "menu: a profile from before is put on the short list unasked",
+       expect="a profile from before is stamped simple", script=S)
+
+mutate("Core.lua",
+       "\toneOf(profile, \"menuView\", { simple = true, full = true, offer = true }, \"full\")\n",
+       "",
+       "menu: a damaged view kept",
+       expect="a damaged view was left as tiny", script=S)
+
+mutate("Options/Shared.lua",
+       "\tprofile.menuView = view == \"simple\" and \"simple\" or \"full\"\n",
+       "\tprofile.menuView = view == \"simple\" and \"simple\" or \"offer\"\n",
+       "menu: Not now leaves the offer up",
+       expect="Not now left the view at offer", script=S)
+
+mutate(PAGE,
+       "\tif e.chrome or ns.MenuView() ~= \"simple\" then return false end\n",
+       "\tif true then return false end\n",
+       "menu: the simple view draws everything",
+       expect="menu: the simple view draws each page's short list", script=S)
+
+mutate(PAGE,
+       "\tif type(simple) ~= \"table\" or (simple.pages or {})[e.sec.page] then return false end\n",
+       "\tif type(simple) ~= \"table\" then return false end\n",
+       "menu: Start here, Profiles and Diagnostics thinned out too",
+       expect="general draws", script=S)
+
+mutate(PAGE,
+       "\t\t\t\tif e.bySimple then left = left + 1 end\n",
+       "",
+       "menu: the simple view never says what it leaves out",
+       expect="does not say what its short list leaves out", script=S)
+
+mutate(PAGE,
+       "\ty = PaintChrome(chrome.offer, y, mode)\n",
+       "",
+       "menu: the offer of the simple view never drawn",
+       expect="the offer's offer is not drawn", script=S)
+
+mutate(PAGE,
+       "\tif not UI.RowShown(path) and UI.HiddenBySimple(path) then\n\t\tns.SetMenuView(\"full\")\n\t\tUI.Refresh()\n\tend\n",
+       "",
+       "menu: search lands on a setting the simple view does not draw",
+       expect="menu: search finds a setting the simple view leaves out", script=S)
+
+mutate("Options/Window/WindowChrome.lua",
+       "\tif side.viewItem then side.view = ns.WindowWidgets.Build(\"toggle\", side.frame, side.viewItem) end\n",
+       "",
+       "menu: no Simple view switch in the window",
+       expect="no Simple view switch under the search box", script=S)
+
+mutate("Options/Window/WindowChrome.lua",
+       "\tlocal y, placed = side.top + PaintView(side) + 4, false\n",
+       "\tlocal y, placed = side.top + 4, false\n",
+       "menu: the Simple view switch built and never drawn",
+       expect="the Simple view switch is not drawn under the search box", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "\t\t\t[\"when.hideMounted\"] = true, [\"when.manaFloor\"] = true,\n",
+       "\t\t\t[\"when.manaFloor\"] = true,\n",
+       "menu: Hide the prompt while mounted off the short list",
+       expect="Hide the prompt while mounted is off the short list", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "\t\t\t\t\tkeep[path] = true\n",
+       "",
+       "menu: no buff and no own buff on the short list",
+       expect="a priest's Divine Spirit is off the short list", script=S)
+
+mutate("Options/Start.lua",
+       "\t\telseif key == \"menuView\" and type(value) == \"string\" then\n",
+       "\t\telseif false then\n",
+       "menu: the view's stamp counts as a setting somebody made",
+       expect="settings-fix: an own profile only visited is filled from the shared one", script=S)

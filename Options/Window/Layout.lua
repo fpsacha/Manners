@@ -41,6 +41,14 @@
 -- few change is in a fold, under the hairline. No page is longer than about
 -- three screens of the usual window with its folds shut.
 --
+-- The simple view (Options/Shared.lua, ns.MenuView) draws, of every page not
+-- named in `simple.pages`, only the controls and notes `simple.items` names:
+-- the short list, the ten or so a player of this class changes. A control
+-- left off it is still found by search, which opens the full view on it. The
+-- window draws the view's own controls itself, from `menu`: the switch under
+-- the search box, the offer over a page and what the short list leaves out
+-- under it.
+--
 -- A section marked `home = true` is a home: it has a title and may have no
 -- item yet, and a setting that arrives for what its comment names goes there,
 -- so it is found where its kin are (other homes are a comment inside the
@@ -195,6 +203,15 @@ ns.WindowLayout = {
 		combat = { click = "click.combatNotice", appearance = "appearance.combatNotice", when = "advanced.advCombatNotice" },
 	},
 	foldCaption = "advanced.advIntro",
+	-- The simple view's own controls: the switch under the search box; over a
+	-- page, the line that offers the view to a profile from before it, with its
+	-- two buttons; under a page's short list, what it leaves out and the way to
+	-- it.
+	menu = {
+		simple = "general.simpleView",
+		offer = "general.simpleOffer", try = "general.simpleTry", dismiss = "general.simpleDismiss",
+		more = "general.simpleMore", everything = "general.showEverything",
+	},
 	-- `about`: who makes Manners, under the build on every page.
 	footer = { reset = "advanced.resetAdvanced", build = "diagnostics.buildNote", about = "diagnostics.aboutNote" },
 
@@ -738,6 +755,42 @@ ns.WindowLayout = {
 		},
 	},
 
+	-- The simple view's short list. `pages` are drawn whole: Start here is the
+	-- short list already, and Profiles and Diagnostics are not settings to
+	-- thin out. Every buff's own switch (who.offer_*) and every own-buff family
+	-- (who.own_*, but not what to leave out) are added under the table.
+	simple = {
+		pages = { general = true, profiles = true, diagnostics = true },
+		items = {
+			-- Who to buff: who gets it, which buff, and yourself.
+			["who.rightNow"] = true, ["who.emptyWarning"] = true,
+			["who.owed"] = true, ["who.group"] = true, ["who.strangers"] = true,
+			["who.strangersPlatesNote"] = true, ["who.strangersShowPlates"] = true, ["who.strangersNote"] = true,
+			["who.asked"] = true,
+			["who.choice"] = true, ["who.autoNote"] = true, ["who.pinNote"] = true,
+			["who.self"] = true,
+			-- Who to skip.
+			["who.rightNowSkip"] = true, ["who.skipPvP"] = true, ["who.skipSameClass"] = true,
+			["who.minLevel"] = true, ["who.neverAdd"] = true,
+			-- When to offer.
+			["when.rightNow"] = true, ["when.whenBuffed"] = true, ["when.alwaysNote"] = true,
+			["when.selfTopUp"] = true,
+			["who.quietInTowns"] = true, ["who.quietInInstances"] = true,
+			["when.hideMounted"] = true, ["when.manaFloor"] = true,
+			-- What I say.
+			["general.quickVoice"] = true, ["general.quickVoiceSummary"] = true,
+			["click.thankEmote"] = true, ["click.thankWhisper"] = true, ["click.enabled"] = true,
+			["click.channel"] = true, ["click.platesNote"] = true, ["click.showPlates"] = true,
+			["click.linesOff"] = true, ["click.preset"] = true, ["click.phrasesHelp"] = true,
+			["click.inCharacterNote"] = true, ["click.phrases"] = true,
+			-- Look.
+			["appearance.style"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
+			["appearance.scale"] = true, ["appearance.alpha"] = true,
+			["appearance.soundEnabled"] = true, ["appearance.soundFile"] = true,
+			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,
+		},
+	},
+
 	-- The sections that run the page's whole width when it has columns: what
 	-- a page opens with, read before the columns under it.
 	spans = {
@@ -832,3 +885,21 @@ ns.WindowLayout = {
 		["diagnostics.chatHeader"] = true,
 	},
 }
+
+-- The short list's buffs: each buff's own switch, and each family of the
+-- player's own buffs (its dropdown or its switch), wherever the pages place
+-- them. Not the lists of what to leave out, which are fine print.
+do
+	local keep = ns.WindowLayout.simple.items
+	for _, page in pairs(ns.WindowLayout.pages) do
+		for _, section in ipairs(page.sections) do
+			for _, item in ipairs(section.items) do
+				local path = type(item) == "table" and item[1] or item
+				if type(path) == "string" and (path:find("^who%.offer_")
+					or (path:find("^who%.own_") and not path:find("^who%.own_leave"))) then
+					keep[path] = true
+				end
+			end
+		end
+	end
+end

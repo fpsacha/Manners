@@ -168,6 +168,9 @@ local function OnlyVisited(own)
 					return false
 				end
 			end
+		elseif key == "menuView" and type(value) == "string" then
+			-- The options window's view: stamped too, and no setting is lost
+			-- with it.
 		elseif not (key == "firstRun" and (value == "pending" or value == "existing")) then
 			return false
 		end
@@ -1188,6 +1191,67 @@ function Page.BuildStartTab()
 				width = "full",
 				get = function() return ns.db.profile.silentChat == true end,
 				set = function(_, v) ns.db.profile.silentChat = v end,
+			},
+			-- The options window's view (Shared.lua, ns.MenuView): the short
+			-- list of each page, or everything. The window draws the switch
+			-- under its search box, the offer over a page and the count of
+			-- what the short list leaves out under it (Layout.lua, `menu`);
+			-- the old dialog draws every setting and none of these.
+			simpleView = {
+				type = "toggle",
+				name = L["Simple view"],
+				desc = L["Shows only the settings most players change. Nothing is switched off by hiding it, and search still finds every setting."],
+				order = 90,
+				hidden = function() return ns.OptionsFallback() end,
+				get = function() return ns.MenuView() == "simple" end,
+				set = function(_, v) ns.SetMenuView(v and "simple" or "full") end,
+			},
+			simpleMore = {
+				type = "description",
+				order = 91,
+				hidden = function()
+					local UI = ns.WindowUI
+					return ns.OptionsFallback() or ns.MenuView() ~= "simple" or (UI.simpleHidden or 0) < 1
+				end,
+				name = function()
+					local n = ns.WindowUI.simpleHidden or 0
+					if n == 1 then
+						return L["The short list: 1 more setting on this page is in the full view. Search finds it too."]
+					end
+					return L["The short list: %d more settings on this page are in the full view. Search finds them all."]:format(n)
+				end,
+			},
+			showEverything = {
+				type = "execute",
+				name = L["Show everything"],
+				desc = L["Shows every setting on every page. The switch under the search box brings the short list back."],
+				order = 92,
+				hidden = function()
+					local UI = ns.WindowUI
+					return ns.OptionsFallback() or ns.MenuView() ~= "simple" or (UI.simpleHidden or 0) < 1
+				end,
+				func = function() ns.SetMenuView("full") end,
+			},
+			simpleOffer = {
+				type = "description",
+				order = 93,
+				hidden = function() return ns.OptionsFallback() or ns.MenuView() ~= "offer" end,
+				name = L["New: a simple view that shows only the settings most players change. Everything stays as you set it."],
+			},
+			simpleTry = {
+				type = "execute",
+				name = L["Try the simple view"],
+				order = 94,
+				hidden = function() return ns.OptionsFallback() or ns.MenuView() ~= "offer" end,
+				func = function() ns.SetMenuView("simple") end,
+			},
+			simpleDismiss = {
+				type = "execute",
+				name = L["Not now"],
+				desc = L["Keeps every setting on screen. The switch under the search box turns the simple view on later."],
+				order = 95,
+				hidden = function() return ns.OptionsFallback() or ns.MenuView() ~= "offer" end,
+				func = function() ns.SetMenuView("full") end,
 			},
 			-- /manners welcome as a button, last on the page people land on.
 			welcomeAgain = {
