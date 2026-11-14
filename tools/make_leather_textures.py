@@ -7,11 +7,16 @@ Writes Textures/Leather/*.tga, which ship in the zip. Deterministic: seeded
 noise and no clock, so run it twice and the files are byte for byte the same,
 and a diff in git is a change of art.
 
-The look is a luggage tag: saddle-brown leather with a fine, calm grain and a
-waxy sheen, its left end gently rounded and its right end a full half circle,
-the edge burnished dark over a slight bevel, a saddle stitch sewn all round
-just in from the edge, a polished brass eyelet near the right end, the spell
-icon set into the leather in a stitched well. Everything is drawn from
+The look is a hunter's luggage tag, worked hide as leatherworking draws it in
+Warcraft: saddle-brown leather with a fine, calm grain and a waxy sheen, its
+left end gently rounded and its right end a full half circle, the edge
+burnished dark over a bevel and a tooled crease, a padded welt all round that
+carries a saddle stitch of waxed two-ply thread, and inside the welt the
+field pressed down a good two texels, where the words stand; a polished
+brass eyelet near the right end, brass studs where the ends meet the
+straight, a brass buckle on a riveted tab at the tip with two feathers tied
+to it, a paw print burnt into the hide, and the spell icon set into the
+leather in a stitched well. Everything is drawn from
 distance fields at SS times its size, lit from the upper left, and
 box-filtered down in premultiplied alpha; the colour is then bled into the
 fully transparent texels so the client's bilinear filtering never pulls in a
@@ -22,7 +27,9 @@ the prompt is, so every size of it is the same object, smaller or larger. Its
 body is cut in three, because a tag is wider than it is tall:
 
   Leather_BodyL      32x128  the left end: a corner of radius 18, the edge
-                             burnished dark over a bevel that catches the light.
+                             burnished dark over a bevel that catches the
+                             light, the crease, the welt and the wall of the
+                             pressed field (RECESS).
   Leather_BodyM     128x128  the middle: seamless along its width (the grain,
                              the pores, the hide's gentle variation), repeated
                              by the Lua with SetTexture(..., "REPEAT") and a
@@ -84,6 +91,33 @@ own edge:
                              the Lua says so (kit.RingArt) and
                              tests/scenarios/hunt37-effects.lua reads the files.
 
+The trim, each a file of its own, baked in its own colours (a fight greys
+them) but for the ember:
+
+  Leather_Stud        32x32  a domed brass rivet on its flange, filling its
+                             file but for the shadow it throws.
+  Leather_Buckle      64x64  the brass buckle at the tag's tip: a frame of
+                             round bar and its prong, held by a leather tab
+                             riveted to the tag, the feathers' thong knotted
+                             on its outer bar. The tag's tip is at texel
+                             BUCKLE_TIP of its width; the thongs hang from
+                             BUCKLE_HANG.
+  Leather_FeatherA   64x128  a hawk's feather, barred, hanging by a thong
+                             with a bone and a brass bead from the top
+                             middle of the file (the Lua turns it about that
+                             point), leaning as it rests.
+  Leather_FeatherB   64x128  an eagle's, dark with a white base, shorter,
+                             leaning the other way.
+  Leather_Brand       64x64  the brand: a paw print in a ring, burnt in --
+                             char at the core, scorched round it, pressed a
+                             little into the hide (BLEND).
+  Leather_Ember       64x64  the same mark as it glows: yellow at the heart
+                             of each stroke, orange, red at its edge and a
+                             bloom past it (BLEND at rest for somebody owed;
+                             greyed and dyed, ADD, for the flash of a strike).
+  Leather_Smoke     128x128  a wisp of smoke off the struck brand: eight
+                             frames of 32x64, four by two, played once.
+
 The small tags -- the count's and the key's patches, and the list's rows -- are
 the same object drawn at a design height of 32, so their edge, bevel and
 stitch are sized for a tag a sixth the size, with the stitch baked in cream
@@ -115,6 +149,20 @@ CAP_L, CAP_R = 32, 64   # the pieces' widths
 CORNER = 18             # the left end's corner radius
 INSET = 9               # the thread's distance from the edge
 GRAIN = 128             # the grain's period along the tag
+
+# The pressed field: where its wall stands in from the edge, how wide the
+# wall is and how deep the field lies, in texels; the tooled crease's distance
+# from the edge. The welt between them carries the stitch.
+RECESS = (17.0, 3.6, 3.3)
+CREASE = 4.6
+# How much darker the pressed field is than the welt, in the ramp's units: the
+# words stand on it.
+FIELD_DARK = 0.058
+
+# The buckle's file: the texel column the tag's tip stands at, and where the
+# feathers' thongs hang from (Looks/Leather.lua: BUCKLE_TIP, BUCKLE_HANG).
+BUCKLE_TIP = 19.0
+BUCKLE_HANG = (55.0, 46.0)
 
 # The stitch: a period, the distance between a stitch's two holes and the
 # thread's thickness, in texels; the slant of each stitch to the seam, and the
@@ -340,19 +388,42 @@ def rbox_sdf(x, y, cx, cy, hx, hy, r):
     return np.hypot(np.maximum(qx, 0), np.maximum(qy, 0)) + np.minimum(np.maximum(qx, qy), 0) - r
 
 
-def hide_colour(d, y, field, height, base, edge, bevel, lift):
+def hide_colour(d, y, field, height, base, edge, bevel, lift, recess=None):
     """The leather: `d` the texels inside the edge, `y` the texel row over
     `height`, the grain's field. A burnished dark edge `edge` texels deep, a
     bevel `bevel` texels wide that catches the light on the sides that face it
-    and shades the others, a little lighter towards the top (`lift`)."""
-    t = base + lift * (0.5 - y / height) + field
+    and shades the others, a little lighter towards the top (`lift`). With
+    `recess` (inset, width, depth) the field inside the welt is pressed down:
+    a wall that is dark where it faces away from the light and lit where it
+    faces it, the shade the lit side's lip throws into the field, a tooled
+    crease near the edge, the welt's crown worn a shade lighter and the field
+    a shade darker and calmer (the words stand on it)."""
+    t = base + lift * (0.5 - y / height)
     t = t - 0.36 * np.exp(-np.maximum(d, 0) / edge)
     h = sstep(0.0, bevel, d) * bevel * 0.34
+    reach = bevel + 1
+    strength = 0.42
+    if recess:
+        inset, width, depth = recess
+        wall = sstep(inset - width / 2, inset + width / 2, d)
+        h = h - depth * wall - 0.85 * np.exp(-((d - CREASE) / 1.05) ** 2)
+        reach = inset + width
+        strength = 0.60
+        t = t + field * (1 - 0.30 * wall) - FIELD_DARK * wall
+        # The crown of the welt, burnished by handling.
+        t = t + 0.040 * np.exp(-((d - (CREASE + inset) / 2) / 3.2) ** 2)
+        # The shade of the lip on the sides the light comes from.
+        gy, gx = np.gradient(d, 1.0 / SS)
+        away = np.clip(gx * -LIGHT[0] + gy * -LIGHT[1], 0, 1)
+        foot = inset + width / 2
+        t = t - 0.085 * away * np.exp(-np.maximum(d - foot, 0) / 3.4) * (d > inset - width / 2)
+    else:
+        t = t + field
     gy, gx = np.gradient(h, 1.0 / SS)
     n = np.stack([-gx, -gy, np.ones_like(h)], -1)
     n /= np.linalg.norm(n, axis=-1, keepdims=True)
     flat = float(LIGHT[2])
-    t = t + 0.42 * ((n @ LIGHT) - flat) * (d < bevel + 1)
+    t = t + strength * ((n @ LIGHT) - flat) * (d < reach)
     return ramp(t, HIDE_STOPS)
 
 
@@ -361,7 +432,7 @@ def make_body():
         x, y = grid(w, DH)
         field = grain_columns(x_start, w)
         dd = d(x, y)
-        rgb = hide_colour(dd, y, field, DH, HIDE_BASE, 3.4, 7.5, 0.06)
+        rgb = hide_colour(dd, y, field, DH, HIDE_BASE, 3.4, 7.5, 0.06, RECESS)
         save(name, finish(rgb, cover(-dd), w, DH))
 
     piece("Leather_BodyM", GRAIN, lambda x, y: np.minimum(y, DH - y), CAP_L)
@@ -466,16 +537,20 @@ def thread_layers(signed, along, total, period=PERIOD, dash=DASH, width=THREAD, 
     t = np.clip(u * c - v * s, -h, h)
     d_seg = np.hypot(u - t * c, v + t * s)
     thread = cover(d_seg - width / 2)
-    # Round in section: lighter along its crest, and a hair darker where it
-    # dives into a hole.
+    # Round in section and waxed: bright along its crest, a hair darker where
+    # it dives into a hole, and the two plies' twist across it.
     crest = np.clip(1 - d_seg / (width / 2), 0, 1)
-    dive = 1 - 0.16 * sstep(h - width * 0.9, h, np.abs(t))
-    shade = (0.74 + 0.26 * crest ** 0.7) * dive
+    dive = 1 - 0.22 * sstep(h - width * 0.9, h, np.abs(t))
+    across = u * s + v * c
+    twist = 0.5 + 0.5 * np.cos((t * 1.15 + across * 0.9) * (2 * np.pi / (width * 0.95)))
+    shade = (0.60 + 0.40 * crest ** 0.8) * dive * (1 - 0.13 * twist ** 2)
     # The holes, where the thread goes through: a dark pit round each end.
     d_hole = np.minimum(np.hypot(u - h * c, v + h * s), np.hypot(u + h * c, v - h * s))
     holes = 0.85 * cover(d_hole - hole) + 0.30 * np.exp(-np.maximum(d_hole - hole, 0) / 0.9)
     groove = 0.26 * np.exp(-(v / 1.5) ** 2)
-    dark = np.clip(np.maximum(holes, groove), 0, 0.9)
+    # The shade the thread throws on the hide it lies on.
+    under = 0.42 * cover(d_seg - width / 2 - width * 0.30)
+    dark = np.clip(np.maximum(np.maximum(holes, groove), under), 0, 0.9)
     return thread, shade, dark
 
 
@@ -699,6 +774,309 @@ def make_patch():
         save(name, finish(rgb, a, w, PD))
 
 
+# ------------------------------------------------------------------ the trim
+
+def soften(a, radius):
+    """A box blur run twice each way, `radius` texels: a soft shadow from a
+    coverage. Pure arithmetic, so the same bytes on every machine."""
+    r = max(1, int(round(radius * SS)))
+    out = a.astype(np.float32)
+    for axis in (0, 1):
+        for _ in range(2):
+            pad = [(0, 0), (0, 0)]
+            pad[axis] = (r + 1, r)
+            c = np.cumsum(np.pad(out, pad, mode="edge"), axis=axis, dtype=np.float64)
+            n = out.shape[axis]
+            hi = np.take(c, np.arange(2 * r + 1, 2 * r + 1 + n), axis=axis)
+            lo = np.take(c, np.arange(0, n), axis=axis)
+            out = ((hi - lo) / (2 * r + 1)).astype(np.float32)
+    return out
+
+
+def shifted(a, dx, dy):
+    """`a` moved dx, dy texels (what leaves the file is lost)."""
+    out = np.zeros_like(a)
+    sx, sy = int(round(dx * SS)), int(round(dy * SS))
+    h, w = a.shape
+    out[max(sy, 0):h + min(sy, 0), max(sx, 0):w + min(sx, 0)] = a[max(-sy, 0):h + min(-sy, 0), max(-sx, 0):w + min(-sx, 0)]
+    return out
+
+
+def crop_noise(seed, cells, shape):
+    """The torus noise cut to a file's supersampled shape."""
+    n = pnoise(seed, cells)
+    reps = (-(-shape[0] // n.shape[0]), -(-shape[1] // n.shape[1]))
+    return np.tile(n, reps)[:shape[0], :shape[1]]
+
+
+def seg_d(x, y, ax, ay, bx, by):
+    """The distance to a segment, and how far along it (0..1) the nearest point is."""
+    vx, vy = bx - ax, by - ay
+    t = np.clip(((x - ax) * vx + (y - ay) * vy) / (vx * vx + vy * vy), 0, 1)
+    return np.hypot(x - (ax + vx * t), y - (ay + vy * t)), t
+
+
+def make_stud():
+    n = 32
+    x, y = grid(n, n)
+    cx, cy = 15.0, 14.6
+    r = np.hypot(x - cx, y - cy)
+    dome, flange = 11.0, 13.6
+    height = 0.85 * np.sqrt(np.clip(dome ** 2 - r ** 2, 0, None)) + 1.2 * cover(r - flange)
+    brass = shade_brass(height, x, y, cx, cy, spec=0.85, rim=0.30)
+    # The flange a shade darker than the dome, and the seam between them.
+    brass = brass * (1 - 0.30 * sstep(dome - 0.6, dome + 0.8, r))[..., None]
+    brass = brass * (1 - 0.40 * sstep(flange - 1.4, flange, r))[..., None]
+    body = cover(r - flange)
+    shadow = 0.62 * soften(shifted(body, 1.0, 1.7), 0.9)
+    rgb, a = compose([(black(shadow), np.clip(shadow, 0, 0.7)), (brass, body)])
+    save("Leather_Stud", finish(rgb, a, n, n))
+
+
+def make_buckle():
+    n = 64
+    x, y = grid(n, n)
+    # The frame: a rounded rectangle of round bar, its near bar at the tag's tip.
+    fx, fy, hx, hy, corner, bar = 41.0, 31.0, 14.0, 20.5, 7.0, 4.0
+    q = np.abs(rbox_sdf(x, y, fx, fy, hx, hy, corner))
+    frame = cover(q - bar)
+    h_frame = np.sqrt(np.clip(bar ** 2 - q ** 2, 0, None)) * 1.15
+    # The prong: hinged on the near bar, lying over the far one.
+    d_p, t_p = seg_d(x, y, fx - hx - 1.0, fy, fx + hx + 2.6, fy)
+    pr = 2.6 - 0.7 * t_p
+    prong = cover(d_p - pr)
+    h_prong = np.sqrt(np.clip(pr ** 2 - d_p ** 2, 0, None)) * 1.2 + 2.2 * prong
+    brass_a = np.maximum(frame, prong)
+    brass = shade_brass(np.maximum(h_frame * frame, h_prong), x, y, fx, fy, spec=0.80, rim=0.28)
+    # Where the prong crosses the far bar it throws a shade on it.
+    cross = 0.45 * soften(shifted(prong, 0.8, 1.6), 0.8) * frame * (1 - prong)
+    brass = brass * (1 - cross)[..., None]
+    # The tab: a short strap riveted to the tag and folded round the near bar.
+    tx0, tx1, ty0, ty1 = 3.0, fx - hx + bar + 0.6, 21.5, 40.5
+    d_tab = -rbox_sdf(x, y, (tx0 + tx1) / 2, (ty0 + ty1) / 2, (tx1 - tx0) / 2, (ty1 - ty0) / 2, 2.6)
+    tab = cover(-d_tab)
+    field = crop_noise(23, 64, x.shape) * 0.012 + crop_noise(9, 9, x.shape) * 0.02
+    leather = hide_colour(d_tab, y - ty0, field, ty1 - ty0, HIDE_BASE - 0.07, 1.3, 3.0, 0.05)
+    # The fold over the bar: a ridge, lit above and dark below.
+    fold = np.exp(-((x - (fx - hx)) / 2.6) ** 2)
+    leather = np.clip(leather * (1 + 0.42 * fold * np.clip((fy - y) / 9.0, -1, 1))[..., None], 0, 1)
+    # A line of cream stitches across the tab, and its rivet.
+    d_st, t_st = seg_d(x, y, 17.5, ty0 + 3.5, 17.5, ty1 - 3.5)
+    stitch = cover(d_st - 0.9) * (np.mod(t_st * 3.0, 1.0) < 0.62)
+    cream = np.asarray(CREAM, np.float32)[None, None, :] * np.ones(x.shape + (1,), np.float32)
+    rx_, ry_ = 10.0, fy
+    rr = np.hypot(x - rx_, y - ry_)
+    rivet = cover(rr - 4.3)
+    h_rivet = 0.85 * np.sqrt(np.clip(3.4 ** 2 - rr ** 2, 0, None)) + 0.9 * rivet
+    rivet_rgb = shade_brass(h_rivet, x, y, rx_, ry_, spec=0.8, rim=0.3)
+    rivet_rgb = rivet_rgb * (1 - 0.35 * sstep(3.0, 4.3, rr))[..., None]
+    rivet_shadow = 0.55 * soften(shifted(rivet, 0.9, 1.5), 0.9) * tab
+    # The thong, knotted twice round the far bar, its two tails going down.
+    hx_, hy_ = BUCKLE_HANG
+    knot = np.zeros(x.shape, np.float32)
+    k_shade = np.ones(x.shape, np.float32)
+    for ky in (hy_ - 3.2, hy_ + 0.4):
+        d_k, _ = seg_d(x, y, hx_ - bar - 1.2, ky + 0.7, hx_ + bar + 1.2, ky - 0.7)
+        c_k = cover(d_k - 1.45)
+        k_shade = np.where(c_k > knot, 0.72 + 0.28 * np.clip(1 - d_k / 1.45, 0, 1), k_shade)
+        knot = np.maximum(knot, c_k)
+    for tx_ in (hx_ - 1.7, hx_ + 1.4):
+        d_t, _ = seg_d(x, y, tx_, hy_ + 1.0, tx_ + 0.3 * (tx_ - hx_), n + 2.0)
+        c_t = cover(d_t - 1.0)
+        k_shade = np.where(c_t > knot, 0.70 + 0.30 * np.clip(1 - d_t / 1.0, 0, 1), k_shade)
+        knot = np.maximum(knot, c_t)
+    thong = np.asarray((0.50, 0.30, 0.15), np.float32)[None, None, :] * k_shade[..., None]
+    knot_shadow = 0.5 * soften(shifted(knot, 0.6, 1.2), 0.7)
+    # What all of it throws on the world behind it.
+    solid = np.maximum(np.maximum(brass_a, tab), knot)
+    shadow = 0.50 * soften(shifted(solid, 1.8, 2.8), 1.6) * (x > BUCKLE_TIP - 1.0)
+    rgb, a = compose([
+        (black(shadow), np.clip(shadow, 0, 0.6)),
+        (brass, frame * (x > fx)),                     # the far half of the frame, under the tab's side
+        (leather, tab),
+        (black(tab), 0.30 * soften(shifted(frame, 1.0, 1.6), 0.9) * tab * (x < fx - hx - bar)),
+        (black(tab), 0.40 * shifted(stitch, 0.5, 0.7) * tab),
+        (cream, stitch * tab * 0.9),
+        (black(tab), np.clip(rivet_shadow, 0, 0.6)),
+        (rivet_rgb, rivet),
+        (brass, frame * (x <= fx) * (1 - tab * (np.abs(y - fy) < (ty1 - ty0) / 2 - 0.5))),
+        (brass, frame * (x > fx)),
+        (black(knot), np.clip(knot_shadow * brass_a, 0, 0.5)),
+        (brass, prong),
+        (thong, knot),
+    ])
+    save("Leather_Buckle", finish(rgb, a, n, n))
+
+
+# The feathers: the file, how far it leans as it rests (degrees, right is
+# positive), its length and half its width in texels, its colours, its seed.
+FEATHERS = (
+    ("Leather_FeatherA", 8.0, 101.0, 13.5, "hawk", 31),
+    ("Leather_FeatherB", -10.0, 86.0, 11.5, "eagle", 47),
+)
+THONG = 21.0
+
+
+def make_feathers():
+    w, h = 64, 128
+    for name, lean, length, half, kind, seed in FEATHERS:
+        x, y = grid(w, h)
+        px, py = w / 2, 0.5
+        ang = np.radians(lean)
+        ax, ay = float(np.sin(ang)), float(np.cos(ang))
+        qx, qy = px + ax * THONG, py + ay * THONG
+        rx, ry = x - qx, y - qy
+        along = rx * ax + ry * ay
+        s = along / length
+        sc = np.clip(s, 0, 1)
+        # The shaft bows a little; `v` is the distance to its right.
+        v = (rx * ay - ry * ax) - 2.2 * np.sin(np.pi * sc) * (1 if lean > 0 else -1)
+        n1 = crop_noise(seed, 16, x.shape)
+        n2 = crop_noise(seed + 5, 48, x.shape)
+        # The vane: narrow at the quill, full by a third, rounded to its tip;
+        # the leading side narrower than the trailing one.
+        base = sstep(0.07, 0.34, sc) ** 0.8
+        tip = np.sqrt(np.clip(1 - np.clip((sc - 0.52) / 0.48, 0, 1) ** 2.4, 0, 1))
+        side = np.where(v < 0, 0.70, 1.0)
+        width = half * base * tip * side * (1 + 0.05 * n1)
+        vane = cover(np.abs(v) - width) * (s > 0.07) * (s < 1.0)
+        # Two splits in the vane, where the barbs have parted.
+        for at, sgn, depth in ((0.44, 1, 0.42), (0.70, -1, 0.50), (0.83, 1, 0.55)):
+            gap = np.abs((along - at * length) + 0.55 * np.abs(v)) < 1.25
+            vane = vane * (1 - (gap & (v * sgn > width * (1 - depth)) & (v * sgn > 0)))
+        wn = np.abs(v) / np.maximum(width, 0.5)
+        barbs = 0.5 + 0.5 * np.sin((along - np.abs(v) * 1.25) * 1.75)
+        shade = (0.93 + 0.07 * barbs) * (1 - 0.14 * wn ** 3) * (1 - 0.11 * np.clip(v / np.maximum(width, 0.5), -1, 1))
+        shade = shade * (1 + 0.05 * n2)
+        if kind == "hawk":
+            cream = np.array((0.90, 0.80, 0.62), np.float32)
+            dark = np.array((0.30, 0.17, 0.09), np.float32)
+            bars = sstep(0.18, 0.62, 0.5 + 0.5 * np.sin(2 * np.pi * (along / 15.5 - np.abs(v) * 0.045) + 0.9 + 0.5 * n1))
+            mix = np.maximum(bars * sstep(0.20, 0.34, sc), sstep(0.80, 0.90, sc))
+            quill = (0.95, 0.90, 0.76)
+        else:
+            cream = np.array((0.93, 0.91, 0.84), np.float32)
+            dark = np.array((0.16, 0.115, 0.085), np.float32)
+            mix = sstep(0.36, 0.52, sc + 0.05 * n1 + 0.012 * np.abs(v))
+            quill = (0.80, 0.74, 0.62)
+        col = cream[None, None, :] * (1 - mix[..., None]) + dark[None, None, :] * mix[..., None]
+        col = np.clip(col * shade[..., None], 0, 1)
+        # The shaft: pale, tapering to the tip, a dark line along its shaded side.
+        sw = 1.25 - 0.85 * sc
+        shaft = cover(np.abs(v) - sw) * (s > -0.02) * (s < 0.985)
+        shaft_rgb = np.asarray(quill, np.float32)[None, None, :] * (0.80 + 0.20 * np.clip(1 - np.abs(v + 0.4) / sw, 0, 1))[..., None]
+        groove = 0.34 * cover(np.abs(v - sw - 0.5) - 0.55) * vane
+        # The binding where the thong takes the quill, the thong and its beads.
+        d_th, t_th = seg_d(x, y, px, py, qx, qy)
+        thong = cover(d_th - 1.05)
+        thong_rgb = np.asarray((0.50, 0.30, 0.15), np.float32)[None, None, :] * (0.70 + 0.30 * np.clip(1 - d_th / 1.05, 0, 1))[..., None]
+        bind = cover(np.abs(v) - 1.9) * (s > -0.035) * (s < 0.06)
+        wraps = 0.75 + 0.25 * np.sin(along * 3.4)
+        bind_rgb = np.asarray((0.44, 0.25, 0.12), np.float32)[None, None, :] * (wraps * (0.75 + 0.25 * np.clip(1 - np.abs(v) / 1.9, 0, 1)))[..., None]
+        beads = []
+        for at, radius, tone, kind_ in ((0.46, 3.3, (0.93, 0.89, 0.78), "bone"), (0.74, 2.7, None, "brass")):
+            bx, by = px + (qx - px) * at, py + (qy - py) * at
+            rr = np.hypot((x - bx) / 1.0, (y - by) / 0.86)
+            c_b = cover(rr - radius)
+            if kind_ == "brass":
+                rgb_b = shade_brass(np.sqrt(np.clip(radius ** 2 - rr ** 2, 0, None)), x, y, bx, by, spec=0.8, rim=0.3)
+            else:
+                nz = np.sqrt(np.clip(1 - (rr / radius) ** 2, 0, 1))
+                lit = np.clip((-(x - bx) / radius) * 0.42 + (-(y - by) / radius) * 0.70 + nz * 0.58, 0, 1)
+                rgb_b = np.asarray(tone, np.float32)[None, None, :] * (0.50 + 0.55 * lit)[..., None]
+            beads.append((np.clip(rgb_b, 0, 1), c_b))
+        solid = np.maximum(np.maximum(vane, shaft), np.maximum(thong, bind))
+        for _, c_b in beads:
+            solid = np.maximum(solid, c_b)
+        # A soft dark edge round all of it, so it reads on sky and on stone.
+        shadow = np.clip(0.62 * soften(shifted(solid, 0.9, 1.4), 1.2), 0, 0.62)
+        layers = [(black(shadow), shadow), (thong_rgb, thong), (col, vane), (black(vane), groove),
+                  (shaft_rgb, shaft), (bind_rgb, bind)] + beads
+        rgb, a = compose(layers)
+        save(name, finish(rgb, a, w, h))
+
+
+def smin(a, b, k):
+    """A smooth minimum of two distances: the shapes melt into one."""
+    return -k * np.log(np.exp(-a / k) + np.exp(-b / k))
+
+
+def paw_sdf(x, y):
+    """The brand's mark in a 64-texel file: a paw print (the pad and four toes)
+    inside a ring, as a signed distance (negative inside)."""
+    c = 32.0
+
+    def blob(cx, cy, rx, ry, deg):
+        a = np.radians(deg)
+        ux = (x - cx) * np.cos(a) + (y - cy) * np.sin(a)
+        uy = -(x - cx) * np.sin(a) + (y - cy) * np.cos(a)
+        return (np.hypot(ux / rx, uy / ry) - 1.0) * min(rx, ry)
+
+    pad = smin(smin(blob(c, 37.5, 8.6, 7.0, 0), blob(c - 6.8, 42.6, 5.6, 5.0, 0), 1.6), blob(c + 6.8, 42.6, 5.6, 5.0, 0), 1.6)
+    toes = np.minimum(np.minimum(blob(c - 13.2, 29.0, 3.9, 5.2, -24), blob(c - 5.0, 21.6, 4.1, 5.6, -7)),
+                      np.minimum(blob(c + 5.0, 21.6, 4.1, 5.6, 7), blob(c + 13.2, 29.0, 3.9, 5.2, 24)))
+    ring = np.abs(np.hypot(x - c, y - c) - 27.2) - 1.55
+    return np.minimum(np.minimum(pad, toes), ring)
+
+
+def make_brand():
+    n = 64
+    x, y = grid(n, n)
+    rough = crop_noise(71, 32, x.shape)
+    fine = crop_noise(73, 64, x.shape)
+    d = paw_sdf(x, y) + 0.55 * rough + 0.25 * fine
+    # Char at the heart of each stroke, scorched hide round it, and the mark
+    # pressed in: the lit side's lip dark, the far lip catching a little light.
+    core = cover(d)
+    scorch = 0.50 * np.exp(-np.maximum(d, 0) / 2.3) * (1 + 0.3 * rough)
+    gy, gx = np.gradient(d, 1.0 / SS)
+    towards = gx * LIGHT[0] + gy * LIGHT[1]
+    lip = 0.30 * np.exp(-((d - 0.9) / 0.8) ** 2) * np.clip(towards, 0, 1)
+    char = np.array((0.060, 0.030, 0.018), np.float32)[None, None, :] * (1 + 0.5 * np.clip(fine, -1, 1))[..., None]
+    burnt = np.array((0.115, 0.050, 0.022), np.float32)[None, None, :] * np.ones(x.shape + (1,), np.float32)
+    glow = np.array((0.62, 0.36, 0.17), np.float32)[None, None, :] * np.ones(x.shape + (1,), np.float32)
+    window = 1 - sstep(29.5, 31.8, np.hypot(x - n / 2, y - n / 2))
+    rgb, a = compose([(burnt, np.clip(scorch, 0, 0.6) * window), (np.clip(char, 0, 1), core * 0.93 * window),
+                      (glow, lip * window)])
+    save("Leather_Brand", finish(rgb, a, n, n))
+
+    # The same mark, hot: yellow at the heart, orange, red at the edge, and a
+    # bloom past it.
+    heat = sstep(-0.2, 3.4, -d) * (0.72 + 0.28 * np.clip(0.5 + 0.5 * rough, 0, 1))
+    hot = ramp(heat, [(0.0, (0.80, 0.13, 0.02)), (0.45, (1.00, 0.46, 0.07)), (1.0, (1.00, 0.88, 0.46))])
+    bloom = 0.42 * np.exp(-np.maximum(d, 0) / 2.8)
+    a = np.clip(np.maximum(0.96 * sstep(-0.9, 0.9, -d), bloom), 0, 1) * window
+    save("Leather_Ember", finish(hot, a, n, n))
+
+
+def make_smoke():
+    """Eight frames of a wisp rising and thinning, four by two, each 32x64."""
+    fw, fh, cols, rows = 32, 64, 4, 2
+    sheet_rgb = np.zeros((rows * fh * SS, cols * fw * SS, 3), np.float32)
+    sheet_a = np.zeros((rows * fh * SS, cols * fw * SS), np.float32)
+    x, y = grid(fw, fh)
+    wisp = crop_noise(91, 24, x.shape)
+    for f in range(cols * rows):
+        t = f / (cols * rows - 1.0)
+        a = np.zeros(x.shape, np.float32)
+        for j in range(6):
+            age = t - 0.11 * j + 0.10
+            if age <= 0:
+                continue
+            cy = 58.0 - 49.0 * age ** 0.85
+            cx = 14.0 + 4.5 * np.sin(4.2 * age + 1.7 * j) + 5.0 * age
+            r = 3.4 + 7.5 * age
+            puff = np.exp(-(((x - cx) / r) ** 2 + ((y - cy) / (r * 1.35)) ** 2))
+            a = a + 0.66 * puff * sstep(0.0, 0.10, age) * np.clip(1.15 - age, 0, 1) ** 1.2
+        a = np.clip(a * (0.86 + 0.16 * wisp), 0, 0.80) * (1 - t ** 4)
+        a = a * sstep(0.0, 4.0, x) * (1 - sstep(fw - 4.0, fw, x)) * sstep(0.0, 5.0, y) * (1 - sstep(fh - 3.0, fh, y))
+        tone = np.array((0.86, 0.80, 0.72), np.float32)[None, None, :] * (0.92 + 0.08 * wisp)[..., None]
+        r0, c0 = (f // cols) * fh * SS, (f % cols) * fw * SS
+        sheet_rgb[r0:r0 + fh * SS, c0:c0 + fw * SS] = np.clip(tone, 0, 1)
+        sheet_a[r0:r0 + fh * SS, c0:c0 + fw * SS] = a
+    save("Leather_Smoke", finish(sheet_rgb, sheet_a, cols * fw, rows * fh))
+
+
 # ------------------------------------------------------------------ the light
 
 def make_sheen():
@@ -714,9 +1092,12 @@ def make_sheen():
 def make_band():
     w, h = 32, 64
     x, y = grid(w, h)
-    centre = 16.0 + (32.0 - y) * 0.36
-    a = np.exp(-((x - centre) / 5.5) ** 2) * (1 - sstep(24.0, 31.0, np.abs(x - 16.0)))
-    a = a * sstep(0.0, 6.0, y) * (1 - sstep(h - 6.0, h, y))
+    # Slanted, and wholly inside its file: the band's light is at nothing on
+    # every edge (it ran out through the sides at a third of its strength, and
+    # the file's own box showed as a pale rectangle crossing the leather).
+    centre = 16.0 + (32.0 - y) * 0.30
+    a = np.exp(-((x - centre) / 4.6) ** 2) * (1 - sstep(9.5, 15.5, np.abs(x - 16.0)))
+    a = a * sstep(0.0, 8.0, y) * (1 - sstep(h - 8.0, h, y))
     save("Leather_Band", finish(white(a), a, w, h))
 
 
@@ -752,6 +1133,11 @@ def main():
     make_glow()
     make_star()
     make_patch()
+    make_stud()
+    make_buckle()
+    make_feathers()
+    make_brand()
+    make_smoke()
     make_sheen()
     make_band()
     make_fx_rings()
