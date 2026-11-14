@@ -24,20 +24,30 @@ afterwards — pushing it again only says it already exists.
    user pastes them); `CLAUDE.md`, `tools/README.md` and `tests/README.md` where a
    file, a tool or a rule changed. A release with the changelog written and the
    README, status and listings left behind is not ready.
-2. **The full mutation suite runs on GitHub**: `.github/workflows/selftest.yml`
+2. **Check everything, here and in the game.** `python tools/check.py
+   --release` is the one command: lint, structure, the addon loading, the
+   anchors, the locales, the looks' previews and contrast, the known fault
+   shapes, every scenario on Forever, the quick fuzzer on five clients and each
+   other client's own files; one line per step and what to run to see a red
+   one, about ten minutes. Then `RELEASE-CHECK.md`: five minutes in the real
+   client, `/manners selftest launch` and five things to look at, which nothing
+   else here can do.
+3. **The full mutation suite runs on GitHub**: `.github/workflows/selftest.yml`
    judges it in sixteen parts (`selftest.py --part I/16`), every night, on every
-   push to master and on demand (`gh workflow run selftest.yml`). The release
-   tool reads its last green run of master: on that commit nothing more runs,
-   on a later one only the mutations of the files changed since
+   push to master and on demand (`gh workflow run selftest.yml`; `--ref
+   <branch>` proves a branch before it is merged). The release tool reads its
+   newest green run of a commit the release holds: on that commit nothing more
+   runs, on a later one only the mutations of the files changed since
    (`selftest.py --changed <that commit>`, minutes). With no green run it
    stops. A full run by hand (`python tests/selftest.py`) and
    `--skip-selftest` remain for when GitHub cannot run it.
-3. **Release with `python tools/release.py X.Y.Z`.** Try it with `--dry-run`
-   first, which prints every step and changes nothing. It:
+4. **Release with `python tools/release.py X.Y.Z`.** Try it with `--dry-run`
+   first, which makes the checks, prints the exact list of commands and changes
+   nothing. It:
    - checks it is on `master` with a clean tree, that `## Unreleased` has
      notes, and that CI passed on this commit (it waits for a run still going;
      only a commit CI has not passed, unpushed or red, gets
-     `python tools/check.py --anchors` here instead);
+     `python tools/check.py --release` here instead);
    - sets the version with `tests/setversion.py`, which renames
      `## Unreleased` to the version;
    - commits "Manners X.Y.Z", with the Co-Authored-By line given by
