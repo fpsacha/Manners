@@ -161,7 +161,7 @@ end
 -- ------------------------------------------------------------------ the data
 
 do
-	local scenario = "pets: Forever, Classic Era and TBC give every class the family, Mists and retail none"
+	local scenario = "pets: Forever, Classic Era and TBC give every class the family, Mists and retail the journal's alone"
 	for _, client in ipairs({ "camelot", "vanilla", "tbc", "mists", "mainline" }) do
 		Mock.reset()
 		Mock.setFlavour(client)
@@ -173,10 +173,13 @@ do
 				for _, family in ipairs(families) do
 					if family.pet then
 						has = has + 1
-						local rows = ns.PETS[client]
+						-- Mists and retail have no pet used from the bags: no rows, the
+						-- journal alone (tests/scenarios/journalpet.lua).
+						local rows = ns.PETS[client] or {}
+						local journalOnly = client == "mists" or client == "mainline"
 						if family.key ~= "pet" or family.toggle ~= true or family.bagged ~= true
-							or #family.spells ~= #rows or #rows == 0
-							or (family.journal == true) ~= (client == "camelot") then
+							or #family.spells ~= #rows or (#rows == 0) ~= journalOnly
+							or (family.journal == true) ~= (client == "camelot" or journalOnly) then
 							fail(scenario, client .. " " .. class .. ": the family is not the pets' toggle")
 						end
 						for i, spell in ipairs(family.spells) do
@@ -188,7 +191,7 @@ do
 					end
 				end
 			end
-			local want = (client == "camelot" or client == "vanilla" or client == "tbc") and total or 0
+			local want = total
 			if has ~= want or total == 0 then
 				fail(scenario, ("%s: %d of %d classes have the pet family, not %d"):format(client, has, total, want))
 			end

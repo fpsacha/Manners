@@ -903,7 +903,8 @@ end
 -- a handful on Forever (the turtle eggs, the Moro'gai gems, the orphan
 -- whistles...). Forever's other pets are taught once and live in the pet
 -- journal, which Manners summons itself, with no press (Companion.lua,
--- `journal`); Mists and retail have only the journal, and no family. A family
+-- `journal`); Mists and retail have only the journal, and a family with no
+-- rows (below). A family
 -- like Well Fed's (`bagged`, off until it is turned on, a toggle), with no
 -- aura to read: whether a pet is out is the journal's word on Forever, and
 -- for one used from the bags Manners' own count (Companion.lua, ns.PetOut).
@@ -918,6 +919,18 @@ do
 		PET[client] = { key = "pet", label = L["Companion pet"], bagged = true, pet = true, toggle = true,
 			journal = client == "camelot" or nil, spells = spells }
 	end
+end
+-- Mists and retail: every pet there is taught once and lives in the journal,
+-- none is used from the bags each time (Pets.lua has no rows for them). The
+-- same family with no rows: the journal alone, brought out by Manners with no
+-- press as Forever's is, by the same calls (C_PetJournal.SummonPetByGUID and
+-- SummonRandomPet, which each client's own /summonpet, /randompet and journal
+-- window call from plain Lua: Blizzard_ChatFrameBase SlashCommands.lua and
+-- Blizzard_Collections, branches `classic` 5.5.4 and `live` 12.1.5). With no
+-- row nothing of it ever goes on the prompt.
+for _, client in ipairs({ "mists", "mainline" }) do
+	PET[client] = PET[client] or { key = "pet", label = L["Companion pet"], bagged = true, pet = true,
+		toggle = true, journal = true, spells = {} }
 end
 
 -- Flasks, elixirs and stat scrolls (1.11.11): asked for as switches like Well

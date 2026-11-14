@@ -3346,6 +3346,7 @@ do
 	--   "dismissed" a companion pet: you put it away, until you bring one out again
 	--   "instance"  a companion pet: you are in a dungeon, raid, battleground or arena
 	--   "petbusy"   a companion pet: dead, flying, in a vehicle, stealthed, casting, or just loaded in
+	--   "petbattle" a companion pet: you are in a pet battle (Mists and retail)
 	--   "refused"   a companion pet: the game would not let Manners use the journal
 	--   "form"      a form (Moonkin Form), and you are in another
 	--   "noshield"  it goes on a shield, and there is none in your off hand

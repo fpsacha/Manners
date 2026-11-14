@@ -208,7 +208,8 @@ do
 			local own = {}
 			local keys = {}
 			for _, family in ipairs(ns.GetOwnFamilies(class) or {}) do
-				if not family.consumable then
+				-- And every class's companion pet, the journal's (tests/scenarios/journalpet.lua).
+				if not family.consumable and not family.pet then
 					own[#own + 1] = family
 					keys[#keys + 1] = family.key
 				end
