@@ -1,5 +1,6 @@
 # Mutations for the Letter look: tests/scenarios/look-letter.lua, with the seal's
-# room judged by hunt37-effects.lua and the switching checks by looks.lua.
+# room judged by hunt37-effects.lua and the switching checks by looks.lua. The
+# torn sheet, the writing, the flourish and the glint are at the end.
 #
 # Run by tests/selftest.py with mutate() in scope. Each puts back a mistake the
 # look could plausibly make and names the check that has to object.
@@ -129,8 +130,8 @@ _m(LETTER,
    expect="the default panel colour tints the parchment", script=S)
 
 _m(LETTER,
-   "local PAPER_LUM, PAPER_LUM_LOW = 0.756, 0.488\n",
-   "local PAPER_LUM, PAPER_LUM_LOW = 0.756, 0.70\n",
+   "local PAPER_LUM, PAPER_LUM_LOW = 0.755, 0.478\n",
+   "local PAPER_LUM, PAPER_LUM_LOW = 0.755, 0.70\n",
    "the look's idea of its paper lighter than the file's",
    expect="the look's idea of its paper is the file's", script=S)
 
@@ -361,7 +362,7 @@ _m(LETTER,
    expect="look-letter: Calm is fades only", script=S)
 
 _m(LETTER,
-   "\tif grow.SetScaleFrom then grow:SetScaleFrom(0.80, 0.80) end\n",
+   "\tif grow.SetScaleFrom then grow:SetScaleFrom(0.55, 0.55) end\n",
    "\tif grow.SetScaleFrom then grow:SetScaleFrom(1.30, 1.30) end\n",
    "the seal pressing down from a size bigger than the prompt",
    expect="hunt37-effects: the rings, the echo and the halo stay in their room, in letter", script=S)
@@ -575,3 +576,257 @@ _m("Core.lua",
    "\toneOf(p, \"style\", ns.Looks.Allowed(), \"letter\")\n",
    "an unknown saved style becoming the letter instead of the default",
    expect="an unknown saved style becomes the default", script=S)
+
+# --- the torn sheet and its folds --------------------------------------------
+
+_m(LETTER,
+   "\tg.b = math.max(2.4, 0.098 * g.paperH)\n",
+   "\tg.b = math.max(1, 0.03 * g.paperH)\n",
+   "the lines laid as near the sheet's edge as if it were cut straight",
+   expect="stands in the tear", script=S)
+
+_m(LETTER,
+   "\tself.lightClip:SetPoint(\"TOPLEFT\", art, \"TOPLEFT\", g.splitX, -(y0 + g.b))\n\tself.lightClip:SetSize(w, lightH)\n",
+   "\tself.lightClip:SetPoint(\"TOPLEFT\", art, \"TOPLEFT\", g.splitX, -y0)\n\tself.lightClip:SetSize(w, h)\n",
+   "the light that crosses cut at the file's edge, not the paper's",
+   expect="the light falls beyond the torn edge", script=S)
+
+_m(LETTER,
+   "local FOLD_FROM = 150\n",
+   "local FOLD_FROM = 0\n",
+   "a sheet too short to have been folded, folded",
+   expect="a short sheet is folded", script=S)
+
+_m(LETTER,
+   "\tself.folds[2]:SetTexCoord(1, 0, 0, 1)\n",
+   "",
+   "both folds going the same way",
+   expect="the second fold is not the first mirrored", script=S)
+
+_m(LETTER,
+   "\t\tColour(self.folds[i], r, g, b)\n",
+   "\t\tColour(self.folds[i], 1, 1, 1)\n",
+   "the folds left the parchment's own colour on a tinted sheet",
+   expect="is not the sheet's tint", script=S)
+
+_m(GEN,
+   "    return np.clip(e, 0.7, DECKLE_MAX - 0.9)\n",
+   "    return np.clip(e, 0.0, 0.2)\n",
+   "a sheet cut straight, drawn by the generator and not shipped",
+   expect="does not match the file that ships", script=S)
+
+_m(GEN,
+   "    make_quill()\n    make_flourish()\n",
+   "    make_flourish()\n",
+   "a file the look draws that the generator no longer writes",
+   expect="the generator wrote", script=S)
+
+_m(GEN,
+   "QUILL_NIB = (13, 11)\n",
+   "QUILL_NIB = (40, 11)\n",
+   "the quill's point in the generator not where the look holds it",
+   expect="the quill's point", script=S)
+
+_m(LETTER,
+   "\t\tif h - 2 * pv - 2 * b - LIFT * ph >= need then return h end\n",
+   "\t\tif h - 2 * pv >= need then return h end\n",
+   "two lines said to fit where the torn edges leave them no room",
+   expect="look-letter: the sheet is torn at its long edges and the lines stand clear of the tear", script=S)
+
+# --- the writing ---------------------------------------------------------------
+
+_m(LETTER,
+   "\tfor _, hold in ipairs(self.holds) do\n\t\thold:Stop()\n\t\thold:Play()\n\tend\n",
+   "",
+   "the words standing in the air beyond the roll while the scroll unrolls",
+   expect="the words are not held back while the scroll unrolls", script=S)
+
+_m(LETTER,
+   "\tfor i, f in ipairs({ kit.textLayer, self.chipFrame, self.rowFrame }) do\n",
+   "\tfor i, f in ipairs({ self.chipFrame, self.rowFrame, self.rowFrame }) do\n",
+   "the slips and the rows held back, and the words themselves not",
+   expect="the words, the slips or the rows are not held back", script=S)
+
+_m(LETTER,
+   "\t\tAlpha(hold, 0, 0, UNROLL_SECONDS + 0.01, 1)\n",
+   "\t\tAlpha(hold, 0, 0, UNROLL_SECONDS + 1.5, 1)\n",
+   "the words held back long after the scroll is open",
+   expect="a hold lasts", script=S)
+
+_m(LETTER,
+   "\tDelay(w.on, math.max(0, delay - 0.02))\n",
+   "\tDelay(w.on, 0)\n",
+   "the cover there while the scroll unrolls, paper where no paper is yet",
+   expect="the cover is over the sheet before the paper is", script=S)
+
+_m(LETTER,
+   "\tw.back:SetOffset(-travel, 0)\n",
+   "\tw.back:SetOffset(travel, 0)\n",
+   "the cover's copy sliding with its window, so it does not hold still",
+   expect="the cover's copy does not hold still", script=S)
+
+_m(LETTER,
+   "\t\t{ self.inkFrame, kit.TEXT_LEVEL + 1 }, { self.inkSlide, kit.TEXT_LEVEL + 1 }, { self.inkSheet, kit.TEXT_LEVEL + 1 },\n",
+   "\t\t{ self.inkFrame, 3 }, { self.inkSlide, 3 }, { self.inkSheet, 3 },\n",
+   "the cover under the text, where it covers nothing",
+   expect="cover is not over the text", script=S)
+
+_m(LETTER,
+   "\tif self.inkSlide.SetClipsChildren then self.inkSlide:SetClipsChildren(true) end\n",
+   "",
+   "a cover whose window does not cut it, over the whole sheet for as long as the pen is down",
+   expect="the cover's window does not cut what it holds", script=S)
+
+_m(LETTER,
+   "\tPark(slide, self.inkSlide, 0)\n",
+   "\tPark(slide, self.inkSlide, 1)\n",
+   "the cover left over the words when the pen has passed",
+   expect="the cover is left over the words after the pen has passed", script=S)
+
+_m(LETTER,
+   "\tlocal over = Cut(right, g.rodR - 0.5, \"left\")\n",
+   "\tlocal over = right\n",
+   "the cover running on over the right rod",
+   expect="the cover reaches over the right rod", script=S)
+
+_m(LETTER,
+   "\t\t\t\tBox(tc, self.inkSheet, cc[1] - ox, row[1] - oy, cc[2] - ox + 0.25, row[2] - oy + 0.25)\n",
+   "\t\t\t\tBox(tc, self.inkSheet, cc[1] - ox + 3, row[1] - oy, cc[2] - ox + 3.25, row[2] - oy + 0.25)\n",
+   "the cover laid three units off the paper it copies",
+   expect="a piece of the cover", script=S)
+
+_m(LETTER,
+   "\t\tfor _, t in ipairs(self.paperC[c]) do Colour(t, r, g, b) end\n",
+   "",
+   "the cover left the parchment's own colour over a tinted sheet",
+   expect="the cover is not the paper's colour", script=S)
+
+_m(LETTER,
+   "\tlocal from = g.textX - 2\n\tlocal room = g.rodR - 0.5 - from\n",
+   "\tlocal from = g.textX + 30\n\tlocal room = g.rodR - 0.5 - from\n",
+   "a pen that comes down in the middle of the name",
+   expect="the pen does not start at the name", script=S)
+
+_m(LETTER,
+   "\t\tif wide > 0 then reach = Clamp(wide + 8, 24, room) end\n",
+   "\t\tif wide > 0 then reach = Clamp(wide * 0.5, 24, room) end\n",
+   "a pen lifted half way along the line, the rest of it uncovered at a stroke",
+   expect="the longer line is", script=S)
+
+_m(LETTER,
+   "\tlocal function down()\n\t\tLetter.quill:SetAlpha(0)\n\t\tLetter.quill:Hide()\n\tend\n",
+   "\tlocal function down()\n\tend\n",
+   "the quill left on the sheet when it has written",
+   expect="the quill is left on the sheet", script=S)
+
+_m(LETTER,
+   "local QUILL_STROKES = { -5, 10, -10, 10, -10, 5 }\n",
+   "local QUILL_STROKES = { -5, 10, -10, 10, -10, 25 }\n",
+   "the quill's turns leaving it askew",
+   expect="the quill's turns do not sum to nothing", script=S)
+
+_m(LETTER,
+   "\tw.pen:SetOffset(travel, 0)\n",
+   "\tw.pen:SetOffset(travel * 0.5, 0)\n",
+   "the quill falling behind the pen it is",
+   expect="the quill does not go with", script=S)
+
+_m(LETTER,
+   "\tself.quill:SetPoint(\"BOTTOMLEFT\", art, \"TOPLEFT\", from - QUILL_NIB[1] * q, -penY - QUILL_NIB[2] * q)\n",
+   "\tself.quill:SetPoint(\"BOTTOMLEFT\", art, \"TOPLEFT\", from, -penY)\n",
+   "the quill set down by its corner, its point off the pen",
+   expect="the quill's point is not on the pen", script=S)
+
+_m(LETTER,
+   "\t\t\tfor _, g in ipairs(self.pressAnims) do\n\t\t\t\tg:Stop()\n\t\t\t\tg:Play()\n\t\t\tend\n",
+   "",
+   "a seal pressed with no light of the stamp on it",
+   expect="the stamp's light did not follow", script=S)
+
+_m(LETTER,
+   "\t\t\tself:WriteLetter()\n",
+   "",
+   "a favour that arrives and is not written in",
+   expect="did not put the cover over the sheet", script=S)
+
+# --- the outcomes: the flourish, the glow, the crack ---------------------------
+
+_m(LETTER,
+   "\tPlayAll(self.haloAnims)\n\tself:Sign()\n",
+   "\tPlayAll(self.haloAnims)\n",
+   "a landing nobody signs",
+   expect="a landed buff was not signed with a flourish", script=S)
+
+_m(LETTER,
+   "\tPlayAll(self.haloAnims)\n",
+   "",
+   "a landing with no glow round the seal",
+   expect="a landed buff did not glow round the seal", script=S)
+
+_m(LETTER,
+   "\t\t\tColour(self.swash, sr, sg, sb, 0.92)\n",
+   "\t\t\tColour(self.swash, 1, 1, 1, 0.92)\n",
+   "the flourish left white on the parchment",
+   expect="the flourish is not in the verdict's ink", script=S)
+
+_m(LETTER,
+   "\t\t\tsigned = self.textX + used + 6 <= self.swashX\n",
+   "\t\t\tsigned = true\n",
+   "the flourish written over a verdict that needs the room",
+   expect="the flourish is written over the verdict's own words", script=S)
+
+_m(LETTER,
+   "\tw.still:SetOffset(-sw, 0)\n",
+   "\tw.still:SetOffset(sw, 0)\n",
+   "the flourish sliding in with its window, not written from its left",
+   expect="the flourish's window and the stroke in it do not move together", script=S)
+
+_m(LETTER,
+   "\tself.swashSheet:SetPoint(\"TOPLEFT\", self.swashClip, \"TOPLEFT\", 0, 0)\nend\n",
+   "\tself.swashSheet:SetPoint(\"TOPLEFT\", self.swashClip, \"TOPLEFT\", 4, 0)\nend\n",
+   "the flourish not put back where it belongs when it is written",
+   expect="after it is written the flourish is not at rest", script=S)
+
+_m(LETTER,
+   "\tif two and sw >= 28 then\n",
+   "\tif sw >= 28 then\n",
+   "a flourish with no second line to lie on",
+   expect="a landing is signed with a flourish", script=S)
+
+_m(LETTER,
+   "\t\tself.crackAnims[1].to = CRACK_HELD\n",
+   "",
+   "a crack that closes again while the refusal is still on the panel",
+   expect="the crack does not stay in the wax while the refusal stands", script=S)
+
+# --- at rest: the glint ----------------------------------------------------------
+
+_m(LETTER,
+   "\tlocal on = (self.active and not self.combat and self.kit.FullEffects() and self.kit.button:IsShown()) and true or false\n",
+   "\tlocal on = (self.active and self.kit.FullEffects() and self.kit.button:IsShown()) and true or false\n",
+   "the glint going on in a fight",
+   expect="the glint goes on in a fight", script=S)
+
+_m(LETTER,
+   "\tlocal on = (self.active and not self.combat and self.kit.FullEffects() and self.kit.button:IsShown()) and true or false\n",
+   "\tlocal on = (self.active and not self.combat and self.kit.button:IsShown()) and true or false\n",
+   "the glint going on with Effects on Calm",
+   expect="the glint goes on with Effects on Calm", script=S)
+
+_m(LETTER,
+   "\tself.idle = { anim(glint) }\n",
+   "\tself.idle = {}\n\tanim(glint)\n",
+   "a loop at rest the look does not name",
+   expect="does not name its one loop at rest", script=S)
+
+_m(LETTER,
+   "\tAlpha(glint, 0, GLINT_PEAK, 0.14, 1, GLINT_EVERY, \"OUT\")\n",
+   "\tAlpha(glint, 0, GLINT_PEAK, 0.14, 1, 0.4, \"OUT\")\n",
+   "a glint that comes twice a second",
+   expect="which is a blink, not a glint", script=S)
+
+_m(LETTER,
+   "\tself.glint:SetPoint(\"CENTER\", art, \"TOPLEFT\", cx - 0.64 * rw, -(cy - 0.37 * rw))\n",
+   "\tself.glint:SetPoint(\"CENTER\", art, \"TOPLEFT\", cx + 2.5 * rw, -(cy - 0.37 * rw))\n",
+   "the glint out on the paper, off the wax",
+   expect="the glint is not on the wax", script=S)
