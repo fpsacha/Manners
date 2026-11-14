@@ -394,10 +394,34 @@ _m(RIBBON,
    expect="look-ribbon: the face on")
 
 _m(RIBBON,
-   "local function NameSize(fontSize) return math.floor(fontSize * 1.1 + 0.5) end",
-   "local function NameSize(fontSize) return fontSize end",
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * (serif and 1.2 or 1.1) + 0.5) end",
+   "local function NameSize(fontSize, serif) return fontSize end",
    "the name not drawn at the size the layout counts on",
    expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * (serif and 1.2 or 1.1) + 0.5) end",
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * 1.1 + 0.5) end",
+   "the name in the serif back at the size of any other face, which did not read in the game",
+   expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * (serif and 1.2 or 1.1) + 0.5) end",
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * 1.2 + 0.5) end",
+   "a font the player chose drawn at the serif's larger size",
+   expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "\tlocal g = Geometry(W, H, showIcon, two, nil, serif)\n",
+   "\tlocal g = Geometry(W, H, showIcon, two)\n",
+   "the cloth and the lines laid for a smaller name than the serif is drawn at",
+   expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "\tlocal least = math.max(sub + 1, 7, math.floor(NameSize(fontSize) * 0.8 + 0.5))\n",
+   "\tlocal least = math.max(sub + 1, 7, math.floor(name * 0.8 + 0.5))\n",
+   "the serif's larger name gives way less than any other face's: the reason dropped on a narrow cloth",
+   expect="look-ribbon: the reason line stays wherever")
 
 # --- the tags ---------------------------------------------------------------
 

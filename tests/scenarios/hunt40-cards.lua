@@ -329,7 +329,9 @@ do
 					end
 				end
 			end
-			if faces < 4 then fail(scenario, "SKIPPED -- only " .. faces .. " lines have a face of their own") end
+			-- Three: the names of Ribbon, Letter and Leather (the Letter's reason
+			-- line left the serif for the standard face).
+			if faces < 3 then fail(scenario, "SKIPPED -- only " .. faces .. " lines have a face of their own") end
 		end)
 	end
 
@@ -607,7 +609,7 @@ do
 		for key in pairs(Looks.previewText) do
 			if not Looks.list[key] then fail(scenario, "text is recorded for " .. key .. ", which is not a look") end
 		end
-		if faces < 4 then fail(scenario, "only " .. faces .. " lines record a face of their own") end
+		if faces < 3 then fail(scenario, "only " .. faces .. " lines record a face of their own") end
 		-- A look the tool has not drawn has none, whatever the table holds.
 		Looks.previewText.fake = Looks.previewText.glass
 		if Looks.PreviewText("fake") ~= nil then fail(scenario, "a look with no picture was handed text rectangles") end

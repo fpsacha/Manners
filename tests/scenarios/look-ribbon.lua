@@ -701,8 +701,11 @@ for _, locale in ipairs({ "enUS", "deDE" }) do
 						top, bottom, g.top + rails, g.bottom - rails))
 				end
 			end
-			local display = math.floor(fs * 1.1 + 0.5)
-			if look.nameSz < math.max(7, math.floor(display * 0.8 + 0.5)) or look.nameSz > display then
+			-- The name is in the display serif here (English and German), a fifth
+			-- over the prompt's size; it gives way as far as a name in any other
+			-- face does (a tenth over, fitted a fifth smaller).
+			local display, plain = math.floor(fs * 1.2 + 0.5), math.floor(fs * 1.1 + 0.5)
+			if look.nameSz < math.max(7, math.floor(plain * 0.8 + 0.5)) or look.nameSz > display then
 				fail(scenario, ("%s: the name is set at %s, outside %d down to its fitted least"):format(label,
 					tostring(look.nameSz), display))
 			end
@@ -729,10 +732,11 @@ for _, locale in ipairs({ "enUS", "deDE" }) do
 				for _, h in ipairs({ need, need + 1, need + 2 }) do
 					check(("300x%d at %d pt"):format(h, fs), { 300, h, fs, 34 })
 				end
-				-- One shorter, Glass has one line: Ribbon has two there only in its
-				-- display face at its full size.
+				-- One shorter, Glass has one line: Ribbon has two there only where
+				-- the cloth holds a name at the size any face has it (the serif's
+				-- larger name takes what room there is over that, never less).
 				local _, look = check(("300x%d at %d pt"):format(need - 1, fs), { 300, need - 1, fs, 34 })
-				if look and look.nameSz ~= math.floor(fs * 1.1 + 0.5) then
+				if look and look.nameSz < math.floor(fs * 1.1 + 0.5) then
 					fail(scenario, ("300x%d at %d pt: two lines squeezed in, the name at %d, where Glass draws one"):format(
 						need - 1, fs, look.nameSz))
 				end
@@ -856,8 +860,15 @@ for _, case in ipairs({ { "enUS", { "Elowen", "Thistledown" } }, { "deDE", { "Fr
 			if room and type(width) == "number" and width > room[3] - room[1] + 0.6 then
 				fail(scenario, ("the name is %.1f wide in a room of %.1f: it is cut"):format(width, room[3] - room[1]))
 			end
-			if type(size) == "number" and type(base) == "number" and size < base * 0.9 then
-				fail(scenario, ("the name is drawn at %s, shrunk from %s for the tags"):format(tostring(size), tostring(base)))
+			-- The serif's own size (a fifth over the player's) is a short name's: a
+			-- long one is fitted to its line, never under the size the player set
+			-- while a tag stands.
+			if type(size) == "number" and size < p.fontSize then
+				fail(scenario, ("the name is drawn at %s, under the %s the player set, for the tags"):format(tostring(size),
+					tostring(p.fontSize)))
+			end
+			if type(base) == "number" and base < p.fontSize + 2 then
+				fail(scenario, ("the name's own size is %s at the default size, not the serif's larger one"):format(tostring(base)))
 			end
 			if tostring(r.name:GetText()):find("%.%.%.") then fail(scenario, "the name is cut with an ellipsis") end
 			-- The reason is whole beside the key's tag too.
@@ -1235,19 +1246,33 @@ for _, case in ipairs({
 			end
 			if look.kit.fit.paths[r.name] ~= MORPHEUS then fail(scenario, "a name that is refitted would leave Morpheus") end
 			if look.kit.fit.path == MORPHEUS then fail(scenario, "a reason line that is refitted would be put in Morpheus") end
+			-- The serif's letters are small for their size: the name in it is a
+			-- fifth over the prompt's size (16 for 13), and the layout counts on it.
 			local name = select(2, r.name:GetFont())
-			if name ~= math.floor(p.fontSize * 1.1 + 0.5) then fail(scenario, "the name is not the size the layout counts on: " .. tostring(name)) end
+			if name ~= math.floor(p.fontSize * 1.2 + 0.5) then fail(scenario, "the name is not the size the layout counts on: " .. tostring(name)) end
+			if name ~= look.nameSz then fail(scenario, "the name is drawn at " .. tostring(name) .. ", the lines are laid for " .. tostring(look.nameSz)) end
+			if name < p.fontSize + 2 then fail(scenario, "the name in the serif is " .. tostring(name) .. ", not two points over the prompt's size") end
 		else
 			if tostring(path):upper():find("MORPHEUS", 1, true) or tostring(subPath):upper():find("MORPHEUS", 1, true) then
 				fail(scenario, case[1] .. ": the client's own face is left for a Latin one: " .. tostring(path))
 			end
 			if not r.name:GetFont() or not r.sub:GetFont() then fail(scenario, case[1] .. ": a line has no font") end
+			-- A client's own face keeps the size it had: a tenth over the prompt's.
+			local name = select(2, r.name:GetFont())
+			if name ~= math.floor(p.fontSize * 1.1 + 0.5) then
+				fail(scenario, case[1] .. ": the client's own face is drawn at the serif's size: " .. tostring(name))
+			end
 		end
 		-- A font the player picked wins, in the sizes this look draws.
 		p.font = "Chosen"
 		ns.Prompt:ApplyStyle()
 		if tostring(r.name:GetFont()):upper():find("MORPHEUS", 1, true) then fail(scenario, case[1] .. ": the chosen font did not win") end
 		if tostring(r.sub:GetFont()):upper():find("MORPHEUS", 1, true) then fail(scenario, case[1] .. ": the chosen font did not win on the reason") end
+		-- At the size it always had: the serif's larger size is the serif's alone.
+		local chosen = select(2, r.name:GetFont())
+		if chosen ~= math.floor(p.fontSize * 1.1 + 0.5) then
+			fail(scenario, case[1] .. ": a font the player chose is drawn at the serif's size: " .. tostring(chosen))
+		end
 		-- And back to the default: Morpheus again where it belongs.
 		p.font = ns.defaults.profile.prompt.font
 		ns.Prompt:ApplyStyle()

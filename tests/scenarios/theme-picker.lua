@@ -21,6 +21,12 @@
 -- a greyed-out control; set at the paint, never on a timer; and recorded for
 -- every look the registry holds.
 --
+-- And the sample name on the cards of the looks that write it in a display
+-- serif (Ribbon, Letter, Leather): in that serif only where it comes to twelve
+-- units or more on the card, which it does at the window's first size, and in
+-- the prompt's own font on a smaller card; never fitted smaller than that in
+-- the serif; and the reason line never in it.
+--
 -- Called by scenarios.lua with the addon directory and its helpers. Every name
 -- starts with "theme-picker:".
 
@@ -1209,5 +1215,115 @@ do
 		Looks.previewIcon.fake = { l = 0.1, t = 0.1, r = 0.2, b = 0.9, round = false }
 		if Looks.PreviewIcon("fake") ~= nil then fail(scenario, "a look with no picture was handed an icon rectangle") end
 		Looks.previewIcon.fake = nil
+	end)
+end
+
+-- ------------------------------------------------------------------ the serif
+-- Morpheus is thin and its letters are small for their size: at the ten units
+-- a card's picture scaled it to, the sample name on Ribbon's, Letter's and
+-- Leather's cards was the hardest writing in the window. The looks now draw
+-- that name a fifth over the prompt's size, a card follows, and a card writes
+-- it in the serif only at twelve units or more.
+do
+	local SERIF = "Fonts\\MORPHEUS.TTF"
+	local FLOOR = 12
+	local scenario = "theme-picker: a card writes a look's serif only at twelve units or more, and the prompt's own font under that"
+	with(scenario, function(ns, UI, row)
+		local LSM = LibStub("LibSharedMedia-3.0")
+		local plain = LSM:Fetch("font", ns.db.profile.prompt.font) or STANDARD_TEXT_FONT
+		if plain == SERIF then fail(scenario, "SKIPPED -- the prompt's own font is the serif") return end
+		local inSerif, inPlain = 0, 0
+		-- 612 is the page at the window's first size; 1000 a wide window, 480 and
+		-- 330 narrow ones.
+		for _, width in ipairs({ 612, 1000, 480, 330 }) do
+			row:Layout(width)
+			for _, key in ipairs({ "ribbon", "letter", "leather" }) do
+				local card = cardFor(row, key)
+				local at = ns.Looks.previewText[key]
+				local spec = at and at.name
+				local where = ("%s's name at %d wide"):format(key, width)
+				if not (card and spec and spec.font == SERIF) then
+					fail(scenario, "SKIPPED -- " .. key .. " records no name in the serif")
+				else
+					local scaled = math.max(5, math.floor(spec.size * card.picH + 0.5))
+					local path, size = card.lines.name:GetFont()
+					if card.lineFace.name ~= path then fail(scenario, where .. ": the card does not say which face it wrote") end
+					if card.lineSize.name ~= size then fail(scenario, where .. ": the card does not say which size it wrote") end
+					if scaled >= FLOOR then
+						inSerif = inSerif + 1
+						if path ~= SERIF then
+							fail(scenario, ("%s: %d units of its picture and not in its look's serif (%s)"):format(where, scaled, tostring(path)))
+						end
+					else
+						inPlain = inPlain + 1
+						if path == SERIF then
+							fail(scenario, ("%s: in the serif at %d units, under the %d it reads at"):format(where, scaled, FLOOR))
+						elseif path ~= plain then
+							fail(scenario, ("%s: in %s, not the prompt's own font (%s)"):format(where, tostring(path), tostring(plain)))
+						end
+						-- The size the look has for this picture, as every card's line.
+						if size ~= scaled then fail(scenario, ("%s: written at %s, the picture's size for it is %d"):format(where, tostring(size), scaled)) end
+					end
+					if path == SERIF and size < FLOOR then
+						fail(scenario, ("%s: the serif at %s units"):format(where, tostring(size)))
+					end
+					if card.lines.name:GetText() ~= "Anna Aim" then fail(scenario, where .. ": the name is not the sample") end
+				end
+				-- The reason line is never in the serif: its small letters are
+				-- thin capitals (the Letter wrote it so until this change).
+				local reason = at and at.reason
+				if reason and reason.font then fail(scenario, key .. " records its reason line in a face of its own: " .. tostring(reason.font)) end
+				if card and card.lines.reason:GetFont() == SERIF then fail(scenario, where .. ": the reason beside it is in the serif") end
+			end
+		end
+		if inSerif == 0 or inPlain == 0 then
+			fail(scenario, ("SKIPPED -- %d names in the serif and %d under the floor: both are needed"):format(inSerif, inPlain))
+		end
+		-- At the window's first size the three cards show their look's own face,
+		-- larger than the name on a card in the standard face by the fifth the
+		-- looks give it.
+		row:Layout(612)
+		local glass = cardFor(row, "glass")
+		local standard = glass and select(2, glass.lines.name:GetFont())
+		for _, key in ipairs({ "ribbon", "letter", "leather" }) do
+			local card = cardFor(row, key)
+			local path, size = card.lines.name:GetFont()
+			if path ~= SERIF then fail(scenario, key .. "'s card is not in its look's serif at the window's first size") end
+			if type(standard) == "number" and size < standard + 2 then
+				fail(scenario, ("%s's serif name is %s units at the window's first size, beside %s in the standard face"):format(key,
+					tostring(size), tostring(standard)))
+			end
+		end
+		-- A serif line too wide for its rectangle is cut by the client, never
+		-- fitted under the floor.
+		local at = ns.Looks.previewText.ribbon
+		local name = {}
+		for k, v in pairs(at.name) do name[k] = v end
+		name.r = name.l + 0.08
+		ns.Looks.previewText.ribbon = { name = name, reason = at.reason }
+		row:Refresh()
+		local card = cardFor(row, "ribbon")
+		local path, size = card.lines.name:GetFont()
+		if path ~= SERIF or size < FLOOR then
+			fail(scenario, ("a serif name too wide for its rectangle is written at %s in %s"):format(tostring(size), tostring(path)))
+		end
+		ns.Looks.previewText.ribbon = at
+		row:Refresh()
+		-- A font the player chose is theirs at any size of card.
+		LSM:Register("font", "Picker Face", "Interface\\AddOns\\Picker\\Face.ttf")
+		ns.db.profile.prompt.font = "Picker Face"
+		ns.RefreshOptionsDisplay()
+		for _, width in ipairs({ 612, 330 }) do
+			row:Layout(width)
+			for _, key in ipairs({ "ribbon", "letter", "leather" }) do
+				local c = cardFor(row, key)
+				if c and c.lines.name:GetFont() ~= "Interface\\AddOns\\Picker\\Face.ttf" then
+					fail(scenario, ("%s's card at %d wide is not in the font the player chose"):format(key, width))
+				end
+			end
+		end
+		ns.db.profile.prompt.font = ns.defaults.profile.prompt.font
+		LSM.media.font["Picker Face"] = nil
+		ns.RefreshOptionsDisplay()
 	end)
 end

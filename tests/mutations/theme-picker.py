@@ -328,3 +328,30 @@ mutate("tools/make_look_previews.py", "    cx, cy = (brect[0] + brect[2]) / 2, (
        "    cx, cy = (brect[0] + brect[2]) / 2 + 3, (brect[1] + brect[3]) / 2 + (snap.get(\"lift\") or 0)\n    left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2\n    entry = {",
        "theme-picker: the tool measures from a view three units off the picture's",
        expect=HASH, script=S)
+
+# --- the serif on a card ------------------------------------------------------
+SERIF = "theme-picker: a card writes a look's serif only at twelve units or more"
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) else least = math.max(least, SERIF_MIN) end\n",
+       "\t\tleast = math.max(least, 0)\n",
+       "theme-picker: a look's serif is written on a card however small the card's picture makes it",
+       expect=SERIF, script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) else least = math.max(least, SERIF_MIN) end\n",
+       "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) end\n",
+       "theme-picker: a serif line too wide for its rectangle is fitted under the size it reads at",
+       expect=SERIF, script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "local SERIF_MIN = 12\n",
+       "local SERIF_MIN = 14\n",
+       "theme-picker: the cards drop their look's serif at the window's first size",
+       expect=SERIF, script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "local SERIF_MIN = 12\n",
+       "local SERIF_MIN = 9\n",
+       "theme-picker: the serif is written on a card at nine units, where nobody reads it",
+       expect=SERIF, script=S)

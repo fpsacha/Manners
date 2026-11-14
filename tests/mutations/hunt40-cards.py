@@ -169,8 +169,10 @@ mutate("Looks/Previews.lua", "\t\tname = { l = 0.28629,", "\t\tname = { l = 0.38
        "hunt40-cards: a recorded rectangle is edited by hand",
        expect=HASH, script=S)
 
-mutate("Looks/Previews.lua", "\t\tname = { l = 0.25, t = 0.2879, r = 0.86694, b = 0.51371, h = \"LEFT\", v = \"MIDDLE\", size = 0.22581, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = \"Fonts\\\\MORPHEUS.TTF\", latin = true }",
-       "\t\tname = { l = 0.25, t = 0.2879, r = 0.86694, b = 0.51371, h = \"LEFT\", v = \"MIDDLE\", size = 0.22581, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = \"Fonts\\\\MORPHEUS.TTF\" }",
+# Ribbon's name line, found by its shadow (the one line with that colour at full
+# strength), so the anchor does not move with the look's rectangle or size.
+mutate("Looks/Previews.lua", "color = { 0.16, 0.02, 0.03, 1 } }, font = \"Fonts\\\\MORPHEUS.TTF\", latin = true }",
+       "color = { 0.16, 0.02, 0.03, 1 } }, font = \"Fonts\\\\MORPHEUS.TTF\" }",
        "hunt40-cards: a face drawn only on Latin clients is recorded as drawn everywhere",
        expect=DATA, script=S)
 

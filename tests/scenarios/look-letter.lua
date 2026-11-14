@@ -31,8 +31,11 @@
 --     the one loop with nobody owed; Calm is fades only;
 --   * the fight dims the letter and keeps the reason; leaving the look puts back
 --     everything it borrowed;
---   * its font is Morpheus on the Latin clients, the client's own on Korean and
---     Chinese, the player's choice when there is one;
+--   * its name is in Morpheus on the Latin clients, the client's own face on
+--     Korean and Chinese, the player's choice when there is one; the reason, the
+--     list and the slips are in the game's standard face everywhere; the name in
+--     Morpheus is a fifth larger than the player's size, as far as the sheet
+--     holds it, and costs nobody the reason line;
 --   * the art is 32-bit and drawn by a generator that draws the bytes that ship;
 --   * what a review of the pictures found (the last section): nothing that rests
 --     on the seal is additive; the spell comes with the stamp, not before the
@@ -737,8 +740,15 @@ for _, case in ipairs({ { "enUS", { "Elowen", "Thistledown" } }, { "deDE", { "Fr
 			if room and type(width) == "number" and width > room[3] - room[1] + 0.6 then
 				fail(scenario, ("the name is %.1f wide in a room of %.1f: it is cut"):format(width, room[3] - room[1]))
 			end
-			if type(size) == "number" and type(base) == "number" and size < base * 0.9 then
-				fail(scenario, ("the name is drawn at %s, shrunk from %s for the slips"):format(tostring(size), tostring(base)))
+			-- The serif's own size (a fifth over the player's) is a short name's: a
+			-- long one is fitted to its line, never under the size the player set
+			-- while a slip stands.
+			if type(size) == "number" and size < p.fontSize then
+				fail(scenario, ("the name is drawn at %s, under the %s the player set, for the slips"):format(tostring(size),
+					tostring(p.fontSize)))
+			end
+			if type(base) == "number" and base < p.fontSize + 2 then
+				fail(scenario, ("the name's own size is %s at the default size, not the serif's larger one"):format(tostring(base)))
 			end
 			if tostring(r.name:GetText()):find("%.%.%.") then fail(scenario, "the name is cut with an ellipsis") end
 			local rs = rectOf(r.sub)
@@ -2017,8 +2027,11 @@ withTree("look-letter: the look's idea of its paper is the file's", ANNA, functi
 end)
 
 -- ------------------------------------------------------------------ 15
--- The font: Morpheus on the Latin clients (the Cyrillic cut on a Russian one), the
--- client's own on Korean and Chinese, the player's choice when there is one.
+-- The font: the name in Morpheus on the Latin clients (the Cyrillic cut on a
+-- Russian one), the client's own on Korean and Chinese, the player's choice when
+-- there is one. Only the name: Morpheus's small letters are thin capitals, and
+-- the reason line set in them could not be read in the game, so the reason, the
+-- list's rows and the slips are in the face Prompt set, the game's own.
 local function fontOf(r) return r.name._font and r.name._font.path end
 
 for _, case in ipairs({
@@ -2036,11 +2049,33 @@ for _, case in ipairs({
 		local face = fontOf(r)
 		if case[2] then
 			if face ~= case[2] then fail(scenario, "the name is in " .. tostring(face) .. ", not " .. case[2]) end
-			for _, fs in ipairs({ r.sub, look.kit.count }) do
-				if not (fs._font and fs._font.path == case[2]) then fail(scenario, "a line is not in " .. case[2]) end
+			local plain = look.kit.fit.path
+			local small = { reason = r.sub, count = look.kit.count, key = look.keyText }
+			for i, row in ipairs(look.kit.rows) do small["row " .. i] = row end
+			for what, fs in pairs(small) do
+				local path = fs._font and fs._font.path
+				if not path then
+					fail(scenario, "the " .. what .. " has no font")
+				elseif path:find("MORPHEUS", 1, true) then
+					fail(scenario, "the " .. what .. " is in the serif's small capitals: " .. path)
+				elseif path ~= plain then
+					fail(scenario, ("the %s is in %s, not the face Prompt set (%s)"):format(what, path, tostring(plain)))
+				end
 			end
-			-- The size: a point over the font size for the name, two under for the reason.
-			if r.name._font.size ~= p.fontSize + 1 then fail(scenario, "the name is " .. tostring(r.name._font.size) .. " pt, not " .. (p.fontSize + 1)) end
+			if plain == nil or tostring(plain):find("MORPHEUS", 1, true) then
+				fail(scenario, "the letter left its serif as the prompt's own face: " .. tostring(plain))
+			end
+			-- The size: a fifth over the font size for the name in the serif (16 for
+			-- 13), three under it for the reason, as the built-in looks have it.
+			local want = math.floor(p.fontSize * 1.2 + 0.5)
+			if r.name._font.size ~= want then fail(scenario, "the name is " .. tostring(r.name._font.size) .. " pt, not " .. want) end
+			if want < p.fontSize + 2 then fail(scenario, "SKIPPED -- the serif is not two points over the player's size here") end
+			if r.sub._font.size ~= math.max(7, p.fontSize - 3) then
+				fail(scenario, "the reason is " .. tostring(r.sub._font.size) .. " pt, not " .. math.max(7, p.fontSize - 3))
+			end
+			-- A name too long for its line is fitted in its own face.
+			local fit = look.kit.fit
+			if fit.paths[r.name] ~= case[2] then fail(scenario, "a refitted name would leave its face: " .. tostring(fit.paths[r.name])) end
 		else
 			-- The client's own face: the library's default for a client with no
 			-- Friz Quadrata (font.ttf in the mock), unchanged, at the size the player set.
@@ -2060,6 +2095,72 @@ for _, case in ipairs({
 		LSM.media.font["Friz Quadrata TT"], LSM.media.font["Arial Narrow"] = nil, nil
 	end, function() Mock.locale = case[1] end)
 end
+
+-- The serif's name is as large as the sheet holds, and the reason line is kept
+-- wherever it was: at the least height two lines had before the name grew, they
+-- still stand, between the torn edges, the name no smaller than it was there
+-- (a point over the player's size); with room to spare the name is a fifth over
+-- it; and a player with a font of their own has the name at the size they set.
+withTree("look-letter: the serif's name is as large as the sheet holds and costs no reason line", ANNA, function(ns, scenario)
+	local LSM = LibStub("LibSharedMedia-3.0")
+	LSM:Register("font", "Friz Quadrata TT", [[Fonts\FRIZQT__.TTF]])
+	LSM:Register("font", "Arial Narrow", [[Fonts\ARIALN.TTF]])
+	local seen, gave = 0, 0
+	-- Up to the largest font the slider has: from the middle twenties the sheet
+	-- at its least height for two lines is too short for the serif at its size.
+	for fs = 8, 32 do
+		local full = math.floor(fs * 1.2 + 0.5)
+		-- What two lines needed when the name was a point over the player's size.
+		local was
+		for h = 28, 200 do
+			local pv = math.max(2, math.min(6, math.floor(0.055 * h + 0.5))) + 1
+			local ph = h - 2 * pv
+			if h - 2 * pv - 2 * math.max(2.4, 0.098 * ph) - 2.4 / 64 * ph >= (fs + 1) + math.max(7, fs - 2) + 3 then
+				was = h
+				break
+			end
+		end
+		if ns.TwoLineHeight(fs, "letter") ~= was then
+			fail(scenario, ("at %d pt two lines need %s, they needed %s before the name grew"):format(fs,
+				tostring(ns.TwoLineHeight(fs, "letter")), tostring(was)))
+		end
+		for _, h in ipairs({ was, was + 1, was + 2, was + 20 }) do
+			local r, p, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize = 300, h, fs end)
+			if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+			local label = ("300x%d at %d pt"):format(h, fs)
+			local size = look.kit.fit.base[r.name]
+			if p.height ~= h then fail(scenario, "SKIPPED -- " .. label .. " is not a height the prompt takes") end
+			if not r.sub:IsShown() then fail(scenario, label .. ": the reason line is gone") end
+			if type(size) ~= "number" or size < fs + 1 or size > full then
+				fail(scenario, ("%s: the name's size is %s, outside %d to %d"):format(label, tostring(size), fs + 1, full))
+			elseif h == was + 20 and size ~= full then
+				fail(scenario, ("%s: the name is %d with room to spare, not %d"):format(label, size, full))
+			end
+			if size == full then seen = seen + 1 elseif type(size) == "number" then gave = gave + 1 end
+			-- Both lines between the torn edges, and apart.
+			local g, panel = look.g, rectOf(r.art)
+			local name, sub = rectOf(r.name), rectOf(r.sub)
+			if name and sub and panel then
+				local n, s = rel(name, panel), rel(sub, panel)
+				if n[2] < g.zone0 - 0.6 or s[4] > g.zone1 + 0.6 then
+					fail(scenario, ("%s: the lines (%.1f to %.1f) leave the room between the torn edges (%.1f to %.1f)"):format(
+						label, n[2], s[4], g.zone0, g.zone1))
+				end
+				if n[4] > s[2] + 0.01 then fail(scenario, ("%s: the name (to %.1f) stands on the reason (from %.1f)"):format(label, n[4], s[2])) end
+			end
+		end
+	end
+	if seen < 15 then fail(scenario, "SKIPPED -- the name was at its full size only " .. seen .. " times") end
+	if gave < 3 then fail(scenario, "SKIPPED -- the name gave way to a short sheet only " .. gave .. " times") end
+	-- A font of the player's own: the size they set, and the same height for two lines.
+	local r, p, look = upIn(ns, scenario, function(pp) pp.font = "Arial Narrow" end)
+	if look.kit.fit.base[r.name] ~= p.fontSize then
+		fail(scenario, "a font the player chose is drawn at " .. tostring(look.kit.fit.base[r.name]) .. ", not the size they set")
+	end
+	if not r.sub:IsShown() then fail(scenario, "a font the player chose loses the reason line at the default size") end
+	p.font = ns.defaults.profile.prompt.font
+	LSM.media.font["Friz Quadrata TT"], LSM.media.font["Arial Narrow"] = nil, nil
+end)
 
 -- ------------------------------------------------------------------ 16
 -- The art: the right size, 32-bit, and every file named in the code ships and is

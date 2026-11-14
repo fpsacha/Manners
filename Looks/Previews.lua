@@ -96,12 +96,12 @@ ns.Looks.previewText = {
 		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.74, 0.6695, 0.547, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 	leather = {
-		name = { l = 0.2282, t = 0.29032, r = 0.82258, b = 0.51613, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.14, 0.07, 0.02, 0.95 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
-		reason = { l = 0.2282, t = 0.54839, r = 0.82258, b = 0.70968, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.9056, 0.728, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.14, 0.07, 0.02, 0.9 } } },
+		name = { l = 0.2282, t = 0.27419, r = 0.82258, b = 0.53226, h = "LEFT", v = "MIDDLE", size = 0.25806, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.14, 0.07, 0.02, 0.95 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		reason = { l = 0.2282, t = 0.56452, r = 0.82258, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.9056, 0.728, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.14, 0.07, 0.02, 0.9 } } },
 	},
 	letter = {
-		name = { l = 0.30645, t = 0.26047, r = 0.86331, b = 0.48628, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 0.23137, 0.21176, 0.19608, 1 }, shadow = { x = 0.00968, y = -0.00968, color = { 0.2, 0.105, 0.04, 0.4 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
-		reason = { l = 0.30645, t = 0.52299, r = 0.86331, b = 0.70041, h = "LEFT", v = "MIDDLE", size = 0.17742, color = { 0.36914, 0.19841, 0.07844, 1 }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		name = { l = 0.30645, t = 0.25725, r = 0.86331, b = 0.51531, h = "LEFT", v = "MIDDLE", size = 0.25806, color = { 0.23137, 0.21176, 0.19608, 1 }, shadow = { x = 0.00968, y = -0.00968, color = { 0.2, 0.105, 0.04, 0.4 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		reason = { l = 0.30645, t = 0.54235, r = 0.86331, b = 0.70364, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.36914, 0.19841, 0.07844, 1 } },
 	},
 	lightbringer = {
 		name = { l = 0.3097, t = 0.29032, r = 0.875, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.02, 0.1, 0.9 } } },
@@ -116,8 +116,8 @@ ns.Looks.previewText = {
 		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.909, 0.8385, 0.703, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
 	},
 	ribbon = {
-		name = { l = 0.25, t = 0.2879, r = 0.86694, b = 0.51371, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
-		reason = { l = 0.25, t = 0.53468, r = 0.86694, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
+		name = { l = 0.25, t = 0.27177, r = 0.86694, b = 0.52984, h = "LEFT", v = "MIDDLE", size = 0.25806, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		reason = { l = 0.25, t = 0.55081, r = 0.86694, b = 0.7121, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
 	},
 	stormcaller = {
 		name = { l = 0.27435, t = 0.29032, r = 0.85081, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.03, 0.95 } } },
@@ -136,4 +136,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "0e8422273550a34ca3025ad4b3df57098fb4fb14e344aefd4e2199d2c8b447fc"
+ns.Looks.previewHash = "73b13e11b6d66befadf7ba7b6a6ffb1e18b1b6c12f7ea48dfdd9b29d426fcc78"

@@ -45,6 +45,15 @@
 -- drawn up to a fifth smaller, then cut by the client, as the prompt's are. Set
 -- when the page is painted and laid out; nothing is per frame.
 --
+-- A look's own face is a display serif (Morpheus: Ribbon, Letter and Leather
+-- write the name in it), thin, with small letters for its size. A card's picture
+-- is smaller than the prompt, and the name scaled down with it was the hardest
+-- writing in the window to read (10 units of Morpheus on a card of the window's
+-- first size). So the looks draw that name larger than any other face's, which a
+-- card follows, and a card writes in the serif only what comes to SERIF_MIN units
+-- or more: on a picture smaller than that the name is in the prompt's own font,
+-- as every other card's is, and the serif is never drawn smaller to fit.
+--
 -- A look that sets its reason line in a tag of its own (Luxe's pill) has the tag
 -- drawn live as well, round the live words: baked into the picture it was the
 -- English words' width, and a German or Korean reason ran past it. The tool
@@ -83,6 +92,11 @@ local SAMPLE_NAME = "Anna Aim"
 local LINES = { "name", "reason" }
 -- The smallest letters a card writes, and how far a line is drawn smaller to fit.
 local MIN_SIZE, MIN_SHRINK = 5, 0.8
+-- The smallest a look's own display face is written on a card: under it the
+-- line is in the prompt's own font.
+local SERIF_MIN = 12
+-- A line with no face of its own, for LineFace.
+local PLAIN = {}
 -- A tag's three slices, cut from the file's quarters: the caps and the middle.
 local CUTS = { { 0, 0.25 }, { 0.25, 0.75 }, { 0.75, 1 } }
 -- The sublevel the tag's first layer is drawn at, over the icon (3) and under
@@ -393,6 +407,9 @@ end
 -- size for this picture (a card's picture is smaller than the 248 x 62 units the
 -- tool drew), drawn up to a fifth smaller where the words are wider than the
 -- rectangle; what is still too wide the client cuts, as the prompt's lines are.
+-- A look's own serif only at SERIF_MIN units or more: where the picture's size
+-- for the line is under that it is in the prompt's own font, and a line in the
+-- serif is never fitted to less. card.lineFace says which it was.
 -- The reason line's tag, where its look has one, is laid round it.
 local function PlaceLine(card, name, spec, text)
 	local fs, w, h = card.lines[name], card.picW, card.picH
@@ -414,6 +431,9 @@ local function PlaceLine(card, name, spec, text)
 	local path, flags = LineFace(spec), spec.flags or ""
 	local base = math.max(MIN_SIZE, math.floor(spec.size * h + 0.5))
 	local least = math.max(MIN_SIZE, math.floor(base * MIN_SHRINK + 0.5))
+	if spec.font and path == spec.font then
+		if base < SERIF_MIN then path = LineFace(PLAIN) else least = math.max(least, SERIF_MIN) end
+	end
 	local room = (spec.r - spec.l) * w
 	local size = base
 	SetFace(fs, path, size, flags)
