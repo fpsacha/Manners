@@ -39,6 +39,7 @@ Speech.lua
 Queue.lua
 GroupBuffs.lua
 Requests.lua
+Courtesy.lua
 Favours.lua
 Clicks.lua
 Companion.lua

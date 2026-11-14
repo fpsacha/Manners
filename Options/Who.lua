@@ -1258,6 +1258,54 @@ function Page.BuildWhoTab()
 				get = sGet,
 				set = sSet,
 			},
+			-- A class's courtesies for whoever asks (Courtesy.lua), under the
+			-- switch above: each off until ticked, and shown only for the class
+			-- that has it on this client.
+			courtesyRefresh = {
+				type = "toggle",
+				name = L["Water and food, when they ask"],
+				desc = L["Somebody who asks for water or food (\"water pls\", \"mage food\") is offered it. With none in your bags the first press conjures it; the next targets them and opens a trade with it in the window. Accepting the trade stays yours. Never in a fight."],
+				order = 14.1,
+				width = "full",
+				hidden = function() return not (S().asked and ns.Courtesy.Has("courtesyRefresh")) end,
+				get = sGet,
+				set = sSet,
+			},
+			courtesyPortals = {
+				type = "toggle",
+				name = L["Portals, when my group asks"],
+				desc = L["A member of your party or raid who asks for a portal by its city (\"port to Orgrimmar pls\", \"portal uc?\") is offered it, when you have learned it and carry what it costs. The press targets nobody and casts the portal. Never in a fight."],
+				order = 14.2,
+				width = "full",
+				hidden = function() return not (S().asked and ns.Courtesy.Has("courtesyPortals")) end,
+				get = sGet,
+				set = sSet,
+			},
+			courtesyHealthstones = {
+				type = "toggle",
+				name = L["Healthstones, when they ask"],
+				desc = function()
+					if ns.Courtesy.FromSoulwell() then
+						return L["A member of your party or raid who asks for a healthstone (\"hs pls\") is offered a Soulwell: the press targets nobody and casts it. Never in a fight."]
+					end
+					return L["Somebody who asks for a healthstone (\"hs pls\") is offered one. With none in your bags the first press creates it; the next targets them and opens a trade with it in the window. Accepting the trade stays yours. Never in a fight."]
+				end,
+				order = 14.3,
+				width = "full",
+				hidden = function() return not (S().asked and ns.Courtesy.Has("courtesyHealthstones")) end,
+				get = sGet,
+				set = sSet,
+			},
+			courtesySummons = {
+				type = "toggle",
+				name = L["Summons, when my group asks"],
+				desc = L["A member of your party or raid who asks for a summon (\"summon pls\") is offered it: the press targets them and casts Ritual of Summoning, and leaves them targeted for the summoning. Never in a fight."],
+				order = 14.4,
+				width = "full",
+				hidden = function() return not (S().asked and ns.Courtesy.Has("courtesySummons")) end,
+				get = sGet,
+				set = sSet,
+			},
 			-------------------------------------------------- myself
 			-- You, last, as the queue ranks you: behind favours and requests,
 			-- ahead of your group. Its own heading, with everything about you
