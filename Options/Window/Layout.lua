@@ -148,6 +148,8 @@ ns.WindowLayout = {
 				{ key = "general.lead", items = {
 					{ "general.noBuffs", standIn = true },
 					"general.howItWorks",
+					-- Asking for buffs, for a class with nothing to give (Ask.lua).
+					"general.startAsk",
 				} },
 				-- A new profile's two questions (Start.lua, Quick.Asking); the
 				-- section goes with them once answered or skipped. The two
@@ -227,6 +229,13 @@ ns.WindowLayout = {
 					{ "who.restingOnly", indent = true },
 					"who.asked",
 					{ "who.courtesyRefresh", indent = true }, { "who.courtesyPortals", indent = true }, { "who.courtesyHealthstones", indent = true }, { "who.courtesySummons", indent = true },
+				} },
+				-- Asking, not only giving (Ask.lua), with how it is said under it.
+				{ key = "who.ask", header = "who.askHeader", items = {
+					"who.ask",
+					{ "who.askChannel", indent = true },
+					{ "who.askLine", indent = true },
+					{ "who.askInTowns", indent = true },
 				} },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",
@@ -720,6 +729,10 @@ ns.WindowLayout = {
 		["who.courtesyRefresh"] = "who.asked", ["who.courtesyPortals"] = "who.asked", ["who.courtesyHealthstones"] = "who.asked", ["who.courtesySummons"] = "who.asked",
 		-- Dead passers-by too, shown only while My group's dead is on.
 		["who.resStrangers"] = "who.res",
+		-- How an ask is said, shown only while asking is on.
+		["who.askChannel"] = "who.ask",
+		["who.askLine"] = "who.ask",
+		["who.askInTowns"] = "who.ask",
 	},
 
 	-- In the model and drawn nowhere.

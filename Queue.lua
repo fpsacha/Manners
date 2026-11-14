@@ -2569,6 +2569,8 @@ function ns.BuildQueue(watch)
 	if #candidates == 0 and not (askOnly and #askOnly > 0) and ns.Courtesy and ns.Courtesy.Standing(now) then return ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked) end
 	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
+		-- Somebody to ask for a buff instead (Ask.lua), behind your own.
+		if db.sources.ask == true and ns.AskInto then return ns.AskInto(own and { own } or {}, own and {} or true) end
 		if own then return { own }, {} end
 		return {}, true
 	end
@@ -3295,5 +3297,7 @@ function ns.BuildQueue(watch)
 		return (a.name or "") < (b.name or "")
 	end)
 
+	-- Somebody to ask for a buff (Ask.lua), last of everything.
+	if db.sources.ask == true and ns.AskInto then return ns.AskInto(queue, rejected) end
 	return queue, rejected
 end

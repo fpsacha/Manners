@@ -502,6 +502,8 @@ local function OnPostClick(self, mouseButton, down)
 	-- One press delivers both a down and an up; count and settle once.
 	if S.clickAt and (now - S.clickAt) < 0.25 then return end
 	S.clickAt = now
+	-- A press on an ask (Ask.lua) said a line and cast nothing: filed there.
+	if S.current and S.current.ask then return ns.AskPressed(S, armedText) end
 
 	-- Lets the error and cast handlers tell our own outcome apart from
 	-- everything else the game is shouting about.
@@ -809,6 +811,14 @@ local function BarWaiting(now)
 		return
 	end
 	if not PromptIsLive() then return end
+	-- Somebody to ask for a buff (Ask.lua) is the prompt's own to say: the
+	-- bar macro carries a cast and its line, never a line alone.
+	if S.current and S.current.ask then
+		if db and db.verbose then
+			ns.addon:Print(L["the prompt is on somebody to ask for a buff -- press the prompt itself, or its key; the action bar macro only casts."])
+		end
+		return
+	end
 	-- The spell's own cooldown as well as the global one: the macro holds back
 	-- for the end of either (Clicks.lua, HoldNow).
 	local entry = S.current

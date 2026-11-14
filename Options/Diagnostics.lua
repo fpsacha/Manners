@@ -311,6 +311,7 @@ function ns.FullReport()
 		end
 	end
 	pcall(function() Heard(ns.RequestLines()) end)
+	pcall(function() Heard(ns.AskLines(GetTime())) end)
 	pcall(function() Heard(ns.RefusalLines(GetTime())) end)
 	pcall(function() Heard(ns.PvPLines()) end)
 	for name in pairs(ns.owed or {}) do Alias(name) end

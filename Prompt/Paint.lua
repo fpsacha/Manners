@@ -91,6 +91,8 @@ end
 
 function Prompt:ReasonText(entry)
 	local p = ns.db.profile.prompt
+	-- Somebody to ask for a buff (Ask.lua): the line says so, and for what.
+	if entry.ask then return ns.Ask.Reason(entry) end
 	-- A group cast's second line is what it is and for how many, which no
 	-- reason line the player wrote can say.
 	local group = entry.groupCast

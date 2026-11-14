@@ -496,6 +496,11 @@ end
 -- Step 1 for a class with nothing for anybody else (a hunter, a shaman): what
 -- the prompt is for instead, from the answers the scan reads.
 function Quick.OwnOnlySummary()
+	-- Asking for buffs (Ask.lua) is a prompt too, and the only one for a
+	-- class with nothing of its own to be reminded of.
+	if ns.AskLive and ns.AskLive() and not ns.OwnBuffsLive() then
+		return L["Your class has no buffs for other players, so the prompt asks them for theirs: a press says one polite line to somebody who could give you a buff you are missing."]
+	end
 	if not S().self then
 		return L["Your class has no buffs for other players, and %s is off, so the prompt never appears."]
 			:format(Ref(L["Myself, when I'm missing my own buff"], TAB.who))
@@ -515,6 +520,7 @@ function Quick.OwnOnlySummary()
 	if ns.db.profile.ownBuffs.inCities ~= true then
 		text = text .. " " .. L["Not in cities and inns."]
 	end
+	if ns.AskLive and ns.AskLive() then text = text .. " " .. L["It also asks other players for a buff you are missing."] end
 	return text
 end
 
@@ -795,6 +801,26 @@ function Page.BuildStartTab()
 						.. L["Either your class has nothing for other players, or the spell probe came back empty -- %s says which."]
 							:format(Ref(L["What Manners can see"], TAB.diagnostics))
 						.. "\n"
+				end,
+			},
+			-- Asking for buffs (Ask.lua), shown here to a class with nothing
+			-- to cast on anybody else: for it, this is the main thing the
+			-- prompt can do for other people. The same switch as Who to
+			-- buff's, with the rest of it there.
+			startAsk = {
+				type = "toggle",
+				name = L["Ask people for a buff I'm missing"],
+				desc = L["Your class has nothing to cast on other players, so this is what the prompt can do with them: ask for theirs, one short polite line at a press. How it is said, and where, is on %s."]
+					:format(TAB.who),
+				order = 2.5,
+				width = "full",
+				hidden = HasClassBuffs,
+				get = function() return S().ask == true end,
+				set = function(_, v)
+					S().ask = v == true
+					ns.Prompt:InvalidateMacro()
+					ns.Prompt:Refresh()
+					ns.RepaintOptions()
 				end,
 			},
 			-- One definition of the word every other tab uses. Putting it on

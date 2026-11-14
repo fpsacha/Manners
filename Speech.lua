@@ -389,6 +389,12 @@ do
 		end
 		return name
 	end
+	-- For an ask (Ask.lua), whose whole macro is a whisper: the name it carries,
+	-- and who the chat box will send a "/w" line to.
+	ns.WhisperName = WhisperName
+	function ns.WhisperGoesTo(line)
+		return WhisperTargetOf(type(line) == "string" and line:match("^/%S+(.*)$") or nil, RegionalNames())
+	end
 
 	-- The spoken line with its channel command taken off, and for a whisper the
 	-- name the client will send it to: the part somebody actually reads.

@@ -48,6 +48,7 @@ Companion.lua
 Commands.lua
 Hints.lua
 Phrases.lua
+Ask.lua
 Ledger.lua
 Looks\Looks.lua
 Looks\Flow.lua

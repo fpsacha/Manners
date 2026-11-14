@@ -130,8 +130,10 @@ local TOOLTIP_QUEUE_ROWS = 3
 -- than slotting a word for the reason into one sentence: "buffed you" slotted
 -- into three different sentences is a word a translation has to make agree
 -- with a subject it never sees.
-local function ByReason(entry, owed, group, target, nearby, asked, own)
+local function ByReason(entry, owed, group, target, nearby, asked, own, ask)
 	local reason = entry and entry.reason
+	-- Somebody to ask for a buff (Ask.lua), where the caller has a line for it.
+	if reason == "ask" and ask then return ask end
 	if reason == "owed" then return owed end
 	if reason == "group" then return group end
 	if reason == "target" then return target end
@@ -276,6 +278,10 @@ local function LauncherState()
 		if ownOnly then return true, L["Watching your own buffs."], 0.4, 0.9, 0.4, nil, nil, "ownwatch" end
 		return true, L["Watching your own buffs; nothing is offered to anybody else: %s."]
 			:format(ns.NothingToCast()), 0.4, 0.9, 0.4, true, nil, "ownwatch"
+	elseif not HasClassBuffs() and ns.AskLive and ns.AskLive() then
+		-- Nothing to give and nothing of its own, with asking on (Ask.lua):
+		-- the prompt is for whoever could give this character a buff.
+		return true, L["Watching for somebody to ask for a buff."], 0.4, 0.9, 0.4, nil, nil, "askwatch"
 	elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 		return false, L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0, nil, nil, "noclass"
 	elseif not HasClassBuffs() then
@@ -341,7 +347,8 @@ local function FillLauncherTooltip(tooltip)
 					L["On the prompt: |cffffffff%s|r -- %s, your target"],
 					L["On the prompt: |cffffffff%s|r -- %s, a passer-by"],
 					L["On the prompt: |cffffffff%s|r -- %s, asked for it"],
-					L["On the prompt: |cffffffff%s|r -- %s, your own buff"]
+					L["On the prompt: |cffffffff%s|r -- %s, your own buff"],
+					L["On the prompt: |cffffffff%s|r -- %s, to ask for"]
 				):format(WhoIs(entry), WhatBuff(entry)), 1, 0.82, 0, true)
 			elseif i <= TOOLTIP_QUEUE_ROWS + (showing and 1 or 0) then
 				tooltip:AddLine(ByReason(entry,
@@ -350,7 +357,8 @@ local function FillLauncherTooltip(tooltip)
 					L["Next: |cffffffff%s|r -- %s, your target"],
 					L["Next: |cffffffff%s|r -- %s, a passer-by"],
 					L["Next: |cffffffff%s|r -- %s, asked for it"],
-					L["Next: |cffffffff%s|r -- %s, your own buff"]
+					L["Next: |cffffffff%s|r -- %s, your own buff"],
+					L["Next: |cffffffff%s|r -- %s, to ask for"]
 				):format(WhoIs(entry), WhatBuff(entry)), 0.8, 0.8, 0.8, true)
 			end
 		end
@@ -592,7 +600,8 @@ local function FillWhoIsNext(parent)
 				L["%s -- %s (your target), on the prompt"],
 				L["%s -- %s (a passer-by), on the prompt"],
 				L["%s -- %s (asked for it), on the prompt"],
-				L["%s -- %s (your own buff), on the prompt"])
+				L["%s -- %s (your own buff), on the prompt"],
+				L["%s -- %s (to ask for), on the prompt"])
 		else
 			label = ByReason(entry,
 				L["%s -- %s (buffed you)"],
@@ -600,7 +609,8 @@ local function FillWhoIsNext(parent)
 				L["%s -- %s (your target)"],
 				L["%s -- %s (a passer-by)"],
 				L["%s -- %s (asked for it)"],
-				L["%s -- %s (your own buff)"])
+				L["%s -- %s (your own buff)"],
+				L["%s -- %s (to ask for)"])
 		end
 		local person = parent:CreateButton(label:format(WhoIs(entry), WhatBuff(entry)))
 		person:CreateButton(L["Skip for now"], Act(function() SkipFromMenu(entry) end))
