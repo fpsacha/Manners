@@ -38,6 +38,7 @@ Range.lua
 Speech.lua
 Queue.lua
 GroupBuffs.lua
+Share.lua
 Requests.lua
 Favours.lua
 Clicks.lua

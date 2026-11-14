@@ -452,6 +452,8 @@ local function Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 	local info = bucket.ready.info
 	local group = {}
 	for field, value in pairs(anchor) do group[field] = value end
+	-- Aimed at somebody kept for the fold alone (Share.lua): the cast itself stays.
+	group.foldOnly = nil
 	local display, label = Names(bucket, byClass, inRaid, ownSubgroup)
 	group.groupCast = {
 		spell = info.groupRank,
@@ -569,7 +571,9 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 	local absorbed, made
 	for _, bucket in ipairs(order) do
 		if bucket.missing + bucket.low >= atLeast then
-			local group = Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
+			-- Not one that is another Manners user's to cast (Share.lua).
+			local group = not (ns.ShareLeavesCast and ns.ShareLeavesCast(bucket))
+				and Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 			if group then
 				absorbed = absorbed or {}
 				made = made or {}

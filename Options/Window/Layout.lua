@@ -215,6 +215,8 @@ ns.WindowLayout = {
 					"who.group",
 					-- The pets of the people in it, under the switch it widens.
 					{ "who.pets", indent = true },
+					-- And the group split with other Manners users of your class.
+					{ "who.share", indent = true },
 					"who.strangers",
 					-- While passers-by are on and the game's nameplates are off.
 					{ "who.strangersPlatesNote", indent = true },
@@ -711,6 +713,8 @@ ns.WindowLayout = {
 		["click.roll"] = "click.enabled",
 		-- My group's pets too, shown only while My party and raid is on.
 		["who.pets"] = "who.group",
+		-- Share the group with other Manners users, the same.
+		["who.share"] = "who.group",
 	},
 
 	-- In the model and drawn nowhere.

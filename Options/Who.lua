@@ -1086,6 +1086,20 @@ function Page.BuildWhoTab()
 				get = sGet,
 				set = sSet,
 			},
+			-- The group split with the other Manners users of your class in it
+			-- (Share.lua), under the switch it narrows. On: it only takes double
+			-- offers away. Not shown while the group is off; search still finds
+			-- it (the layout's `parents`).
+			share = {
+				type = "toggle",
+				name = L["Share the group with other Manners users"],
+				desc = L["When somebody else of your class in your party or raid uses Manners too, the group is split between you, so you are not both sent to buff the same person. A favour owed, a request, your target and your focus are never held back, and anybody still missing the buff after 45 seconds is offered anyway."],
+				order = 12.6,
+				width = "full",
+				hidden = function() return not S().group end,
+				get = sGet,
+				set = sSet,
+			},
 			strangers = {
 				type = "toggle",
 				name = L["Passers-by (players near me, not in my group)"],

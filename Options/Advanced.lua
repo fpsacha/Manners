@@ -46,7 +46,7 @@ Page.RESET = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
 		"buff.tanksOutside", "buff.keptBack",
-		"sources.owed", "sources.group", "sources.pets", "sources.strangers", "sources.asked", "sources.self",
+		"sources.owed", "sources.group", "sources.pets", "sources.share", "sources.strangers", "sources.asked", "sources.self",
 		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
 		"ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.scrolls", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"buff.leaveBlessed",

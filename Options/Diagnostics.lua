@@ -114,6 +114,9 @@ local function BugReport()
 	if db.filters.repayCovered == true then lines[#lines + 1] = "repayCovered=on" end
 	lines[#lines + 1] = ("groupBuffs=%s atLeast=%s"):format(
 		tostring(db.groupBuffs.use), tostring(db.groupBuffs.atLeast))
+	-- The group shared with other Manners users (Share.lua): the switch, how
+	-- many have said hello, and what became of the hellos heard and said.
+	if ns.ShareSummary then lines[#lines + 1] = ns.ShareSummary() end
 	-- The dungeon and raid settings, each of which leaves people out or moves
 	-- them up: the raid groups as the ones switched off.
 	local skipped = {}
@@ -230,6 +233,11 @@ function ns.FullReport()
 				e.groupCast and ", a group cast" or "")
 		end
 	end)
+	-- Who the group is shared with and which share is yours (Share.lua), after
+	-- the queue above, so what that scan left to somebody else is in it.
+	Section("Sharing the group", function()
+		for _, line in ipairs(ns.ShareReport()) do lines[#lines + 1] = Plain(line) end
+	end)
 	Section("Where you are", function()
 		local function Ask(fn, ...)
 			if type(fn) ~= "function" then return "n/a" end
@@ -309,6 +317,7 @@ function ns.FullReport()
 	pcall(function() Heard(ns.RequestLines()) end)
 	pcall(function() Heard(ns.RefusalLines(GetTime())) end)
 	pcall(function() Heard(ns.PvPLines()) end)
+	pcall(function() Heard(ns.ShareReport()) end)
 	for name in pairs(ns.owed or {}) do Alias(name) end
 	local thanks = ns.thankLog or {}
 	if thanks.thanked then Alias(thanks.thanked.name) end

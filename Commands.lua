@@ -1947,6 +1947,8 @@ function addon:HandleSlash(rawInput)
 		-- Who that scan held back for PvP: missing from the prompt with
 		-- nothing on screen to say why.
 		for _, line in ipairs(ns.PvPLines()) do self:Print("  " .. line) end
+		-- And who that scan left to another Manners user of your class (Share.lua).
+		for _, line in ipairs(ns.ShareLines()) do self:Print("  " .. line) end
 		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
 		-- A word that is nearly a command gets that command named. Anything

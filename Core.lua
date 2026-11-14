@@ -308,6 +308,10 @@ local defaults = {
 			-- and walked only with `group` on (Queue.lua, IterateUnits): a pet
 			-- is reached by its name alone, which a player has to want.
 			pets = false,
+			-- The group split with the other Manners users of your class in it
+			-- (Share.lua), so two of you are not sent to the same member. On: it
+			-- only takes double offers away, and does nothing with no other user.
+			share = true,
 			strangers = true, -- nearby non-group players
 			owedClassBuffsOnly = true, -- ignore stray HoTs and procs
 			-- People who ask for your buff in chat. Off, because reading chat is
@@ -5269,6 +5273,10 @@ function addon:TickBody()
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
 	if pet and pet:Wanted() then ns.Guard("companion pet", pet.Tick, pet, now) end
+	-- Other Manners users in the group (Share.lua): the roster read again or a
+	-- hello said, when one is due. With none due a scan pays nothing for it.
+	local share = ns.Share
+	if share and share.due and share.due <= now then ns.Guard("share", share.Tick, share, now) end
 end
 
 function addon:ProfileDeleted(event, _, name)
