@@ -635,6 +635,10 @@ local defaults = {
 			onlyWhenReturning = false,
 			-- Filled in at load from the Roleplay set.
 			phrases = "",
+			-- The player's own lines said among the In character ones (Speech.lua,
+			-- MixedIn): one a line, about one press in three while it holds any.
+			-- Asked for on CurseForge by a player on the RP server.
+			mixedLines = "",
 		},
 
 		-- owedOnly, to match the flash, which only pulses for a favour owed.
@@ -4687,6 +4691,7 @@ function ns.ClampSettings()
 	if translatedSet and translatedSet ~= speech.phrases then speech.phrases = translatedSet end
 	-- The same for "In character", whose examples differ per character, so
 	-- Phrases.lua recognises its own.
+	if type(speech.mixedLines) ~= "string" then speech.mixedLines = "" end
 	if ns.InCharacter then ns.InCharacter.Repair(speech) end
 
 	-- Everything with a fixed set of values, checked against that set: an

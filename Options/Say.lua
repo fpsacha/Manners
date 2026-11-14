@@ -286,6 +286,25 @@ function Page.BuildSpeechTab()
 					spSet(info, value)
 				end,
 			},
+			-- The player's own lines said among the In character ones (Speech.lua,
+			-- MixedIn), which the box above cannot hold: typing in it turns In
+			-- character off. Shown while In character is the set.
+			mixedLines = {
+				type = "input",
+				name = L["My own lines, mixed in (one per line)"],
+				desc = L["With In character as the set, about one press in three says one of these instead of an In character line. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."],
+				order = 23.2,
+				multiline = 6,
+				width = "full",
+				hidden = function()
+					return speechOff() or not (ns.InCharacter and ns.InCharacter.Active(SP()))
+				end,
+				get = function() return SP().mixedLines or "" end,
+				set = function(_, value)
+					SP().mixedLines = type(value) == "string" and value or ""
+					ns.Prompt:InvalidateMacro()
+				end,
+			},
 			-- The way back from edited lines to In character, which the
 			-- dropdown cannot give: it shows the set still chosen as blank.
 			backToInCharacter = {

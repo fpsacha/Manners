@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### What I say
+- **Your own lines among the In character ones.** With *In character* as the
+  set, *My own lines, mixed in* (What I say) takes lines of your own: about one
+  press in three says one of them. Asked for on CurseForge.
+
 ## 1.11.24
 
 ### Who gets what
