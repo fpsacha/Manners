@@ -163,7 +163,8 @@ mutate("Queue.lua",
        expect="cures: the cure switches stand apart from the buff switches", script=S)
 
 mutate("Queue.lua",
-       "\t\t\tif reason == \"nearby\" and (not db.sources.strangers or groupOnly) then return end\n",
+       "\t\t\tif reason == \"nearby\" and (not db.sources.strangers or groupOnly) then\n"
+       "\t\t\t\trejected[full] = true\n\t\t\t\treturn\n\t\t\tend\n",
        "",
        "cures: a cure switch lets passers-by past their own",
        expect="cures: the cure switches stand apart from the buff switches", script=S)
@@ -171,7 +172,7 @@ mutate("Queue.lua",
 # ------------------------------------------------------------ a cure and nothing else
 # No walk with no buff in hand, a cure or not.
 mutate("Queue.lua",
-       " and not ns.CuresWanted(db) then\n",
+       " and not ns.CureScanned() then\n",
        " then\n",
        "cures: no walk for a cure alone",
        expect="cures: a class with a cure and no buff for others still walks", script=S)
@@ -320,10 +321,6 @@ mutate("Options/Who.lua",
 
 # Added before a class with nothing for others has the page cleared for it.
 mutate("Options/Who.lua",
-       "\tForOthersOnly(who.args)\n"
-       "\t-- Asking for buffs, added after it: a class with nothing for anybody else\n"
-       "\t-- is the one it is for above all.\n"
-       "\tPage.AddAskControls(who.args)\n"
        "\t-- After it: the cures are for a class with nothing else for others too.\n"
        "\tAddCureControls(who.args)\n",
        "\tAddCureControls(who.args)\n"

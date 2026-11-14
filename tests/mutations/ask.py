@@ -200,7 +200,7 @@ mutate("Ask.lua",
        expect=TALENT, script=S)
 
 mutate("Ask.lua",
-       "\t\t\tif not buff.oneTarget and Wearing(buff, now) ~= false then return nil end\n",
+       "\t\t\tif not buff.oneTarget and Wearing(buff, now, true) ~= false then return nil end\n",
        "",
        "ask: a second blessing asked for over the one worn",
        expect=PALADIN, script=S)

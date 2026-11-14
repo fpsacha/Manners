@@ -197,8 +197,8 @@ mutate("Share.lua",
 # ------------------------------------------------------------ nobody goes without
 # Held for good.
 mutate("Share.lua",
-       "\tif now - timers.since[name] >= GRACE then return false end\n",
-       "",
+       "\tif now - timers.since[name] >= GRACE then\n",
+       "\tif false then\n",
        "raidsplit: no grace",
        expect="held 46 seconds and still missing it, Dain is not offered", script=S)
 
@@ -211,15 +211,15 @@ mutate("Share.lua",
 
 # The 45 seconds never start again.
 mutate("Share.lua",
-       "\tif not last or now - last > LAPSE then\n",
-       "\tif not last then\n",
+       "before ~= nil and last ~= nil and before > last)\n",
+       "false)\n",
        "raidsplit: a hold that lapsed goes on counting",
        expect="missing it again, Dain is offered with no grace given to Bert", script=S)
 
 # A fight's seconds count.
 mutate("Share.lua",
-       "\telseif InCombatLockdown() then\n\t\ttimers.since[name]",
-       "\telseif false then\n\t\ttimers.since[name]",
+       "\tif InCombatLockdown() or now - last > LAPSE then return since + (now - last) end\n",
+       "\tif now - last > LAPSE then return since + (now - last) end\n",
        "raidsplit: a fight's seconds count towards the grace",
        expect="raidsplit: the 45 seconds are counted out of a fight", script=S)
 
@@ -260,7 +260,8 @@ mutate("Share.lua",
 
 # ------------------------------------------------------------ another player's word
 mutate("Share.lua",
-       "\tif channel ~= \"PARTY\" and channel ~= \"RAID\" then return \"not from the group's channel\" end\n",
+       "\tif channel ~= \"PARTY\" and channel ~= \"RAID\" and channel ~= \"INSTANCE_CHAT\" then\n"
+       "\t\treturn \"not from the group's channel\"\n\tend\n",
        "",
        "raidsplit: a whispered hello is taken",
        expect="a whisper: it was taken for a hello", script=S)
@@ -376,14 +377,14 @@ mutate("Share.lua",
        expect="two hellos went out within ten seconds", script=S)
 
 mutate("Share.lua",
-       "Text(me, not self.greeted), inRaid and \"RAID\" or \"PARTY\"))\n",
-       "Text(me, not self.greeted), \"PARTY\"))\n",
+       "\treturn plain(IsInRaid and IsInRaid()) == true and \"RAID\" or \"PARTY\"\n",
+       "\treturn \"PARTY\"\n",
        "raidsplit: a raid's hello goes to the party",
        expect="in a raid the hello went to", script=S)
 
 mutate("Share.lua",
-       "Text(me, not self.greeted), inRaid and \"RAID\" or \"PARTY\"))\n",
-       "Text(me, false), inRaid and \"RAID\" or \"PARTY\"))\n",
+       "Text(me, not self.greeted), Channel()))\n",
+       "Text(me, false), Channel()))\n",
        "raidsplit: the first hello asks for no answer",
        expect="the first hello reads", script=S)
 

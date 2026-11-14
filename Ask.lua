@@ -233,10 +233,28 @@ end
 -- auraIds), and what holds it off (blockerIds: a scroll of the same stat),
 -- which is reason enough to leave somebody in peace. Your own auras, so each
 -- read is one protected call and nothing else; kept a second.
-local worn = {}
+--
+-- `own` asks for the class's own ids alone, with nothing another class gives
+-- of the same kind (alikeIds): a druid's Mark of the Wild is no blessing, and
+-- says nothing of what a paladin has left to give.
+local worn, wornOwn = {}, {}
+local ownIds = {}
 
-local function Wearing(buff, now)
-	local kept = worn[buff]
+local function OwnIds(buff)
+	local ids = ownIds[buff]
+	if ids then return ids end
+	ids = {}
+	for _, id in ipairs(buff.readIds or buff.auraIds or {}) do
+		if not buff.alikeIds[id] then ids[#ids + 1] = id end
+	end
+	ownIds[buff] = ids
+	return ids
+end
+
+local function Wearing(buff, now, own)
+	own = own == true and buff.alikeIds ~= nil
+	local cache = own and wornOwn or worn
+	local kept = cache[buff]
 	if kept and now - kept.at < Ask.READ_SECONDS then return kept.has end
 	local read = C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID
 	local has = false
@@ -246,7 +264,7 @@ local function Wearing(buff, now)
 		local secret = _G.issecretvalue
 		local secrets = _G.C_Secrets
 		local hidden = type(secrets) == "table" and secrets.ShouldSpellAuraBeSecret
-		for _, id in ipairs(buff.readIds or buff.auraIds or {}) do
+		for _, id in ipairs(own and OwnIds(buff) or buff.readIds or buff.auraIds or {}) do
 			local ok, aura = pcall(read, "player", id)
 			if not ok or (secret and secret(aura)) then
 				has = nil
@@ -261,7 +279,7 @@ local function Wearing(buff, now)
 	if kept then
 		kept.at, kept.has = now, has
 	else
-		worn[buff] = { at = now, has = has }
+		cache[buff] = { at = now, has = has }
 	end
 	return has
 end
@@ -269,6 +287,7 @@ end
 -- For the scenarios, and for a press: what you wear is read afresh.
 function Ask.ForgetWorn()
 	wipe(worn)
+	wipe(wornOwn)
 end
 
 -- The same rules that decide what suits somebody else (Core.lua, Castable),
@@ -304,12 +323,12 @@ local function Want(name, class, unit, grouped, level, me, now)
 		-- One of theirs on you is all one of them gives: wearing any, or with
 		-- a reading nobody could take, there is nothing to ask for.
 		for _, buff in ipairs(buffs) do
-			if not buff.oneTarget and Wearing(buff, now) ~= false then return nil end
+			if not buff.oneTarget and Wearing(buff, now, true) ~= false then return nil end
 		end
 		local auto = ns.CLASS_AUTO[class]
 		local key = auto and (me.hasMana and auto.mana or auto.other)
 		local first = key and ns.FindBuff(class, key)
-		if first and Suits(first, me, unit, grouped, level) then
+		if first and Suits(first, me, unit, grouped, level) and Wearing(first, now) == false then
 			if AskedLately(name, class, first, now) then return nil end
 			return first
 		end
@@ -571,7 +590,9 @@ function ns.AskArm(R, S, entry)
 	local name, key = entry.name, entry.buff.key
 	local wanted = entry.buff.wanted
 	if db and not Ask.HeldBack(db, now) and not ns.IsBlocked(name, key, now)
-		and not (wanted and entry.class and AskedLately(name, entry.class, wanted, now)) then
+		and not (wanted and entry.class and AskedLately(name, entry.class, wanted, now))
+		-- Landed on you since the scan that found them: nothing left to ask for.
+		and not (wanted and Wearing(wanted, now) ~= false) then
 		macro, line, source = Ask.MacroFor(entry, S)
 	end
 	local applied = table.concat({ "ask", name, key, tostring(macro) }, "\1")

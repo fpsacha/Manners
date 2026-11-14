@@ -8,7 +8,8 @@
 --
 --   team   (on)   your team is offered your buffs there. Off, nobody else is,
 --                 as with Offer nothing in dungeons, raids and battlegrounds:
---                 somebody you target or focus still is, your own buffs too.
+--                 somebody you target or focus still is (until Hold back my
+--                 target and focus too is ticked), your own buffs too.
 --   speak  (off)  the line said with a cast is said there too.
 --   thank  (on)   the /thank and the whispered thank-you go there too, to
 --                 somebody of your own team and nobody else.
@@ -277,6 +278,26 @@ function Battle.Carry(profile)
 	if type(filters) == "table" and filters.quietInInstances == true then battle.team = false end
 end
 
+-- A settings string pasted (Commands.lua, ApplySettings): `carried` is not
+-- in it, so one made before this section, with that switch ticked, would
+-- put `team` back on over a profile carried long ago. A string that has
+-- the switch on and does not name `team` is carried as such a profile is;
+-- one made since names `team` beside that switch (Battle.Shared).
+function Battle.CarryPasted(profile, values)
+	if type(profile) ~= "table" or type(values) ~= "table" then return end
+	if values["filters.quietInInstances"] ~= true or values["battle.team"] ~= nil then return end
+	if type(profile.battle) ~= "table" then profile.battle = {} end
+	profile.battle.team = false
+end
+
+-- Whether a settings string has to name `team` although it is the default:
+-- on beside that switch, which a string from before this section never is.
+function Battle.Shared(profile)
+	local battle, filters = profile.battle, profile.filters
+	return type(battle) == "table" and battle.team == true
+		and type(filters) == "table" and filters.quietInInstances == true
+end
+
 -- For /manners debug and the check-up: nothing outside a battleground or an
 -- arena; there the state, and each switch that is holding something back.
 function Battle.Lines(now)
@@ -286,7 +307,11 @@ function Battle.Lines(now)
 	local db = addon.db and addon.db.profile
 	if not db then return out end
 	local function name(text) return "|cffffd100" .. text .. "|r" end
-	if not Battle.On("team") then
+	if not Battle.On("team") and type(db.filters) == "table" and db.filters.quietTargets == true then
+		-- Hold back my target and focus too reaches here (Queue.lua, inTown).
+		out[#out + 1] = L["|cffffd100battleground|r -- %s is off: nobody else is offered here, not even your target or focus (%s)"]
+			:format(name(L["Buff my team there"]), name(L["Hold back my target and focus too"]))
+	elseif not Battle.On("team") then
 		out[#out + 1] = L["|cffffd100battleground|r -- %s is off: nobody but your target or focus is offered here"]
 			:format(name(L["Buff my team there"]))
 	elseif state == "prep" then

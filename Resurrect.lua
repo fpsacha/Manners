@@ -192,6 +192,14 @@ local function Info()
 end
 Res.Info = Info
 
+-- Whether My group's dead is on: with it off a resurrection learned is
+-- nothing to cast (Core.lua, ns.CanCastAnything), as a cure with its switches
+-- off is none.
+function Res.Wanted()
+	local db = addon.db and addon.db.profile
+	return db ~= nil and db.sources.res == true
+end
+
 ---------------------------------------------------------------------------
 -- who
 ---------------------------------------------------------------------------
@@ -220,6 +228,9 @@ local counts = { offered = 0, ghost = 0, incoming = 0, far = 0, pvp = 0, resting
 Res.counts = counts
 -- One verdict a name a scan, as the walk keeps it.
 local taken = {}
+-- Whether a dead member of the group reads as flagged for PvP while the rule
+-- stands: the one cast for everybody would reach them, and flag you.
+local flaggedDead = false
 -- The press waiting on the game: { names, at, sent, name, mass, ... }.
 Res.pending = nil
 -- [name] = the token they were pressed through, while a press rests them: read
@@ -295,6 +306,17 @@ local function Consider(unit, db, now, strangers, single)
 	if feign and plain(feign(unit)) == true then return nil end
 	if plain(UnitCanAssist("player", unit)) ~= true then return nil end
 	if plain(UnitIsConnected(unit)) == false then return nil end
+	-- Helping somebody flagged for PvP flags you, and the cast for the whole
+	-- group reaches every dead member of it, whatever else is true of them
+	-- below: released, out of reach, on the never-offer list.
+	local flagged = db.filters.skipPvP == true and ns.PvPHoldsBack(ns.PvPFlag(unit))
+	if flagged and inGroup then flaggedDead = true end
+	-- Offer nothing in cities and inns, or in dungeons, raids and battlegrounds
+	-- (Queue.lua, inTown): nobody, the dead included, but your target or focus.
+	if scan.quiet and (db.filters.quietTargets == true
+		or not (plain(UnitIsUnit(unit, "target")) or plain(UnitIsUnit(unit, "focus")))) then
+		return nil
+	end
 	-- The never-offer list is of people you offer nothing, and nobody you
 	-- /ignore outside your group is offered anything either (ns.Ignored).
 	if ns.IsNeverOffered(name) then return nil end
@@ -313,7 +335,7 @@ local function Consider(unit, db, now, strangers, single)
 		return nil
 	end
 	-- Helping somebody flagged for PvP flags you, a resurrection included.
-	if db.filters.skipPvP == true and ns.PvPHoldsBack(ns.PvPFlag(unit)) then
+	if flagged then
 		counts.pvp = counts.pvp + 1
 		return nil
 	end
@@ -363,6 +385,10 @@ local function Find(db, info, rejected, now)
 		if #scan == 0 then return nil, nil end
 	end
 
+	-- Nobody asked for it, so it waits while you keep your mana, as every
+	-- unasked offer does (Queue.lua, savingMana).
+	if ns.SavingMana() ~= nil then return nil, nil end
+
 	-- What you cannot pay for is a button that fails: only the game's own "not
 	-- enough mana" counts, as for a buff (Queue.lua, Affordable).
 	local check = C_Spell and C_Spell.IsSpellUsable
@@ -381,6 +407,7 @@ local function Find(db, info, rejected, now)
 	if not single and not massReady then return nil, nil end
 
 	wipe(taken)
+	flaggedDead = false
 	local strangers = db.sources.resStrangers == true
 	local people = {}
 	for i = 1, #scan do
@@ -425,8 +452,11 @@ local function Find(db, info, rejected, now)
 	-- resting. Anchored on the first of them by name, resting or not, so a
 	-- right-click's skip of it holds (the block is on that one person) and the
 	-- cast does not form again around the next.
+	-- Not while a dead member of the group is flagged and the PvP rule stands,
+	-- nor where nothing is offered but to your target or focus: it is cast at
+	-- nobody, and reaches them all.
 	local mass
-	if massReady then
+	if massReady and not flaggedDead and not scan.quiet then
 		local names, units, waiting, anchor = {}, {}, 0, nil
 		for _, person in ipairs(people) do
 			if person.inGroup then
@@ -760,7 +790,7 @@ do
 		local db = addon.db and addon.db.profile
 		local info = db and db.sources.res == true and Info() or nil
 		for i = #scan, 1, -1 do scan[i] = nil end
-		scan.walked = nil
+		scan.walked, scan.quiet = nil, nil
 		ns.deadSeen = info and scan or nil
 		local queue, rejected = Build(watch)
 		ns.deadSeen = nil

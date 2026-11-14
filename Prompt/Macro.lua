@@ -300,6 +300,10 @@ function Prompt:ClickSummary(entry, slot)
 		-- Nothing about targets: the macro hands your target back (see
 		-- STRATEGIES.self), whatever the switch for other people says.
 		out[#out + 1] = L["Casts |cffffffff%s|r on you."]:format(spell)
+	elseif entry.resNames then
+		-- The one resurrection for the whole group (Resurrect.lua): a bare /cast,
+		-- and nothing lands on you.
+		out[#out + 1] = L["Casts |cffffffff%s|r; nobody is targeted."]:format(spell)
 	elseif entry.buff.selfCast then
 		out[#out + 1] = L["Casts |cffffffff%s|r on you; it reaches your party from there."]
 			:format(spell)

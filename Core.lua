@@ -1132,7 +1132,8 @@ function ns.CanCastAnything()
 	-- put on a weapon, whatever he has learned (ns.OwnItemsHeld).
 	if ns.OwnItemsHeld() then return true end
 	-- A resurrection learned is something to cast (Resurrect.lua): a monk on retail has nothing else.
-	if caps.res then return true end
+	-- Only with My group's dead on: off, it is as if there were none.
+	if caps.res and ns.Resurrect and ns.Resurrect.Wanted() then return true end
 	-- Nor with Ask people for a buff I'm missing on (Ask.lua): for a class
 	-- with nothing to give, asking is what the prompt does for other people.
 	if ns.AskLive and ns.AskLive() then return true end
@@ -4272,6 +4273,14 @@ local function IsBuffableUnit(unit, f, pet)
 		if isPlayer == true then return false end
 	elseif isPlayer ~= true then
 		return false
+	end
+	-- Mists and retail: while a member is in a vehicle the client puts the
+	-- vehicle on their pet token, and that is no pet of theirs.
+	if pet then
+		local riding = _G.UnitHasVehicleUI
+		if type(riding) == "function" and plain(riding(pet)) == true then return false end
+		riding = _G.UnitInVehicle
+		if type(riding) == "function" and plain(riding(pet)) == true then return false end
 	end
 	if plain(UnitIsDeadOrGhost(unit)) == true then
 		-- Their buffs went with them: what was last read worn says nothing now.

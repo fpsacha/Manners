@@ -614,6 +614,29 @@ function ns.GroupReady(db, candidates)
 	return ready
 end
 
+-- Which of them can be cast now, the reagent in the bags (or waived), as
+-- { [buff key] = true } or nil: what a hello to other Manners users says with
+-- a `+` (Share.lua, Payload), which names one of them the group's caster. Asked
+-- when a hello is put together, never by a scan. Learned alone said `+` with no
+-- powder in the bags, and the cast was left for good to somebody who could not
+-- make it.
+function ns.GroupStocked(db, candidates)
+	local ready = ns.GroupReady(db, candidates)
+	if not ready then return nil end
+	local out
+	for _, buff in ipairs(candidates) do
+		local info = ready[buff.key] and ns.BuffInfo(buff)
+		if info then
+			local have = ReagentCount(info.groupReagent)
+			if (have and have > 0) or ReagentWaived(info, have) then
+				out = out or {}
+				out[buff.key] = true
+			end
+		end
+	end
+	return out
+end
+
 -- The spell an entry's macro casts: the group version's own name for a group
 -- cast. Everything that names the spell about to go out asks this.
 function ns.EntrySpellName(entry)

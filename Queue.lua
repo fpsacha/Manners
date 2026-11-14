@@ -1131,7 +1131,7 @@ ns.OfferRank = OfferRank
 -- Their pets' too (raidpetN is raidN's, partypetN partyN's), walked only with
 -- "My group's pets too" on, and `names`, the group's names for that walk
 -- (ns.GroupNames), on this table to spare the main chunk a local.
-local GROUP_TOKENS = { raid = {}, party = {}, raidpet = {}, partypet = {}, names = {} }
+local GROUP_TOKENS = { raid = {}, party = {}, raidpet = {}, partypet = {}, names = {}, petNames = {} }
 for i = 1, 40 do
 	GROUP_TOKENS.raid[i] = "raid" .. i
 	GROUP_TOKENS.party[i] = "party" .. i
@@ -1207,7 +1207,8 @@ ns.IterateUnits, ns.PRIORITY = IterateUnits, PRIORITY
 -- The names of everybody in the group, you among them, as they are filed
 -- (ns.UnitFullName) and by their first word, for the walk of the group's pets
 -- (BuildQueue, visit): a pet is targeted by its name, and one named as a
--- person of the group could not be told from them on the /target line. One
+-- person of the group could not be told from them on the /target line, nor
+-- one named as another pet of the group or as your own pet. One
 -- table, emptied and filled when asked, which is once a scan and only when a
 -- pet is out.
 function ns.GroupNames()
@@ -1226,6 +1227,23 @@ function ns.GroupNames()
 		local tokens = inRaid and GROUP_TOKENS.raid or GROUP_TOKENS.party
 		for i = 1, inRaid and n or (n - 1) do
 			if tokens[i] and plain(UnitExists(tokens[i])) then add(ns.UnitFullName(tokens[i])) end
+		end
+		-- And a name two pets of the group go by (two hunters' "Wolf"), or one
+		-- that is your own pet's: /target could not say which is meant, and one
+		-- verdict a name would stand for both.
+		local once = GROUP_TOKENS.petNames
+		wipe(once)
+		local own = plain(UnitExists("pet")) and ns.UnitFullName("pet")
+		if own then once[own] = true end
+		local pets = inRaid and GROUP_TOKENS.raidpet or GROUP_TOKENS.partypet
+		for i = 1, inRaid and n or (n - 1) do
+			local token = pets[i]
+			if token and plain(UnitExists(token)) and not plain(UnitIsUnit(token, "pet")) then
+				local name = ns.UnitFullName(token)
+				if name then
+					if once[name] then names[name] = true else once[name] = true end
+				end
+			end
 		end
 	end
 	return names
@@ -2521,6 +2539,9 @@ function ns.BuildQueue(watch)
 	-- same rule, the target and focus still exempt.
 	if battle then inTown = not ns.Battle.On("team") end
 	if inTown then notResting = true end
+	-- A resurrection waits by the same rule (Resurrect.lua): the dead are handed
+	-- over by the walk before any of this is asked of them.
+	if ns.deadSeen then ns.deadSeen.quiet = inTown or nil end
 	-- The short buffs alone, while resting (Who to buff: Hold back short buffs in
 	-- cities and inns): their length in seconds, nil when nothing is held. The
 	-- whole-person rule above already holds everything, so it is not asked then.
@@ -2569,9 +2590,16 @@ function ns.BuildQueue(watch)
 	-- (askOnly), whom only the walk reads. And except with a cure to offer and
 	-- one of its switches on (Cures.lua): a shaman on Classic Era has no buff
 	-- for anybody else, and still walks for a poison or a disease.
+	-- The cure scan is asked first, once: only what it hands back is walked for,
+	-- so a fight, where it hands back nothing, is no walk for a class with no buff.
+	ns.CureScan(db, now)
 	-- A courtesy asked for (Courtesy.lua: water, a portal) is no buff, and is offered with none to give; with a spell only a request names, the walk below adds it.
-	if #candidates == 0 and not (askOnly and #askOnly > 0) and ns.Courtesy and ns.Courtesy.Standing(now) then return ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked) end
-	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CuresWanted(db) then
+	-- Not with a cure to offer, which the walk reads, nor in a battleground's fight: both are the lines below. And somebody to ask (Ask.lua) still follows it.
+	if #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= "fight" and not ns.CureScanned() and ns.Courtesy and ns.Courtesy.Standing(now) then
+		if db.sources.ask == true and ns.AskInto then return ns.AskInto(ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked)) end
+		return ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked)
+	end
+	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CureScanned() then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
 		-- Somebody to ask for a buff instead (Ask.lua), behind your own.
 		if db.sources.ask == true and ns.AskInto then return ns.AskInto(own and { own } or {}, own and {} or true) end
@@ -2595,7 +2623,11 @@ function ns.BuildQueue(watch)
 	local opts = { unpaid = UNPAID, tanksOutside = tanksOutside }
 	-- Cures (Cures.lua): the two switches as this scan has them, or nil with
 	-- none to offer (both off, nothing learned, a fight). The scan's too.
-	opts.cures = ns.CureScan(db, now)
+	opts.cures = ns.CureScanned()
+	-- In a battleground or an arena nobody measured out of a single cast's
+	-- reach is offered one, whatever Only in range says (Battle.lua, Reach):
+	-- so the walk keeps them for a group cast's fold there as that switch does.
+	opts.reachOnly = battle and true or nil
 
 	-- `unasked` walks somebody as if they had made no request (see below).
 	-- `owner` is given for a pet of the group ("My group's pets too",
@@ -2699,6 +2731,10 @@ function ns.BuildQueue(watch)
 		end
 		if reason == "nearby" and not db.sources.strangers and not curing then return end
 		if reason == "nearby" and groupOnly and not curing then return end
+		-- Nor with no buff in hand (a class walking for its cure alone) and no
+		-- cure for a passer-by: nothing could be offered them, so nobody is
+		-- measured for it.
+		if reason == "nearby" and #candidates == 0 and not curing then return end
 		-- A guild left out ("Leave out these guilds"), for the group and for
 		-- passers-by. A favour owed, a request and a target or focus are not
 		-- held back by it, as the never-offer list is not for a favour. A
@@ -2822,7 +2858,12 @@ function ns.BuildQueue(watch)
 				rejected[full] = true
 				return
 			end
-			if reason == "nearby" and (not db.sources.strangers or groupOnly) then return end
+			-- A verdict, as for a buff: read and with nothing to cure, so the
+			-- prompt's hold lets go of a cure offered them a moment ago.
+			if reason == "nearby" and (not db.sources.strangers or groupOnly) then
+				rejected[full] = true
+				return
+			end
 		end
 		local whenBuffed = f.whenBuffed or "skip"
 		local checked = whenBuffed ~= "always"
@@ -2937,6 +2978,19 @@ function ns.BuildQueue(watch)
 		if buff and reason == "group" and not pointed and ns.ShareHolds
 			and ns.ShareHolds(opts, buff, owner, has, remaining, queue) then
 			buff, has, remaining, seconds, lead, leadKind = ns.ShareOther(candidates, opts, ReadAura, owner)
+			-- Kept for the fold of a group cast of yours (Share.lua, Keep), with
+			-- nothing else for them: not turned down yet ("fold", no verdict to
+			-- the prompt). The cast may be aimed at them, and its line was held
+			-- and the cursor's hold ended as for somebody refused; the fold
+			-- says so when nothing came of it.
+			if not buff and queue[#queue] and queue[#queue].foldOnly and queue[#queue].name == full then
+				rejected[full] = "fold"
+				return
+			end
+		elseif not buff and reason == "group" and not pointed and ns.ShareSaw then
+			-- Nothing for them: Share is told they were looked at, so the
+			-- seconds it counts for somebody held back start again.
+			ns.ShareSaw(opts, queue)
 		end
 
 		if not buff then
@@ -3000,7 +3054,10 @@ function ns.BuildQueue(watch)
 		-- stands either way: out of range, as far as a single cast goes. Out
 		-- of sight they never get here (the test above).
 		-- Never a pet, which no group cast counts or is aimed at (GroupBuffs.lua).
-		if f.requireInRange and ranged == false and inGroup and not owner and checked and ns.GROUP_IS_RAID
+		-- In a battleground or an arena with Only in range off too
+		-- (`opts.reachOnly`): Battle.Reach takes their own entry out below, and
+		-- ten of the team across the yard were counted by no Arcane Brilliance.
+		if (f.requireInRange or opts.reachOnly) and ranged == false and inGroup and not owner and checked and ns.GROUP_IS_RAID
 			and (has == false or remaining ~= nil) then
 			if opts.foldReady == nil then opts.foldReady = ns.GroupReady and ns.GroupReady(db, candidates) or false end
 			if opts.foldReady and opts.foldReady[buff.key] then
@@ -3263,6 +3320,12 @@ function ns.BuildQueue(watch)
 	end
 	local mine = SelfEntry(db, candidates, now, neverVerdict)
 	ns.shoutUnreached = nil
+	-- Where a buff on anybody lands on the whole party, yours on yourself is
+	-- another Manners user's to cast while the split says so (Share.lua): your
+	-- class's own come in its place.
+	if ns.WIDE_CASTS == true and ns.ShareHoldsSelf and ns.ShareHoldsSelf(mine, queue, now) then
+		mine = SelfEntry(db, candidates, now, neverVerdict, true)
+	end
 	if mine and FormWaits(mine, queue) then mine = nil end
 	if mine then
 		queue[#queue + 1] = mine
@@ -3308,6 +3371,9 @@ function ns.BuildQueue(watch)
 		local kept = {}
 		for _, entry in ipairs(queue) do
 			if not entry.foldOnly then kept[#kept + 1] = entry end
+			-- Whoever went into no group cast is turned down, where the walk
+			-- had left it open (Share.lua's, above).
+			if entry.foldOnly and rejected[entry.name] == "fold" then rejected[entry.name] = true end
 		end
 		queue = kept
 	end

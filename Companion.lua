@@ -344,6 +344,10 @@ function Pet:Tick(now)
 			end
 		end
 	end
+	-- The player's own call on the journal is still to be judged (a second,
+	-- JudgeAsked): none out may be a pet just put away, so nothing is brought
+	-- out until that is known.
+	if session.asked then return end
 	if session.judging or session.refused or now - session.lastTry < TRY_EVERY then return end
 	if InCombatLockdown() then return end
 	local db = addon.db and addon.db.profile

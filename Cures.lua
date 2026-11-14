@@ -277,19 +277,22 @@ function ns.ClassHasCures()
 	return class ~= nil and CURES[class] ~= nil
 end
 
-local NOTHING = { byKind = {}, list = {}, any = false }
+local NOTHING = { byKind = {}, list = {}, any = false, live = {}, all = {}, lifts = {} }
 
 -- What this character can cure, per probe: caps is emptied by every probe
 -- (Core.lua, ProbeCapabilities), so the answer kept on it is asked again after
 -- one. byKind[kind] is the cure offered for that kind, `list` those cures in
--- the rows' order, `any` whether there is one.
+-- the rows' order, `any` whether there is one. `all` is every cure that can be
+-- cast, a kind's second spell too, `live` the same as a set, and
+-- lifts[ranks] the kinds that spell takes off in one cast: what the deny list
+-- asks before a spell is offered beside a debuff never removed (ReadInto).
 local function State()
 	local state = caps.cures
 	if state then return state end
 	local class = caps.class
 	-- Before the first probe there is no class to answer for, and nothing kept.
 	if not class then return NOTHING end
-	state = { byKind = {}, list = {}, any = false }
+	state = { byKind = {}, list = {}, any = false, live = {}, all = {}, lifts = {} }
 	for _, cure in ipairs(CURES[class] or {}) do
 		local info = { key = cure.key, buff = cure, unresolved = {}, secrecy = {} }
 		for _, id in ipairs(cure.ranks) do
@@ -305,6 +308,17 @@ local function State()
 		info.icon = ns.safecall(C_Spell and C_Spell.GetSpellTexture, named)
 		info.known = info.known == true and info.name ~= nil
 		cure.info = info
+		local castable = info.known and (not cure.needs or ns.SpellKnown(cure.needs))
+		if castable then
+			state.live[cure] = true
+			state.all[#state.all + 1] = cure
+			local lifts = state.lifts[cure.ranks]
+			if not lifts then
+				lifts = {}
+				state.lifts[cure.ranks] = lifts
+			end
+			lifts[cure.cure] = true
+		end
 		if info.known and not state.byKind[cure.cure] and (not cure.needs or ns.SpellKnown(cure.needs)) then
 			state.byKind[cure.cure] = cure
 			state.list[#state.list + 1] = cure
@@ -395,6 +409,7 @@ end
 -- offered at all: both switches off, nothing learned, a fight, or a client
 -- with no aura list to read. `fight` stays written for /manners debug.
 function ns.CureScan(db, now)
+	scan.live = nil
 	local sources = db.sources
 	if not (sources.cures == true or sources.curesStrangers == true) then return nil end
 	local state = State()
@@ -414,8 +429,17 @@ function ns.CureScan(db, now)
 	scan.owed = sources.owed == true
 	scan.now = now
 	scan.byKind = state.byKind
+	scan.state = state
 	wipe(scan.ready)
+	scan.live = true
 	return scan
+end
+
+-- What the last CureScan answered, for BuildQueue, which asks it once a scan
+-- ahead of its early ways out and again for the walk: a cure learned and a
+-- switch on are no reason to walk in a fight, where none is offered.
+function ns.CureScanned()
+	return scan.live and scan or nil
 end
 
 -- Whether the cure can be cast now: true, or why not ("mana", "cooldown").
@@ -423,7 +447,7 @@ end
 -- Its own cooldown is one longer than a global cooldown (Mists and retail
 -- give every cure eight seconds); the global one is the press's to wait out.
 local function Ready(cure)
-	local answer = scan.ready[cure.key]
+	local answer = scan.ready[cure]
 	if answer ~= nil then return answer end
 	answer = true
 	local id = cure.info.topRank
@@ -442,7 +466,7 @@ local function Ready(cure)
 			end
 		end
 	end
-	scan.ready[cure.key] = answer
+	scan.ready[cure] = answer
 	return answer
 end
 
@@ -482,6 +506,22 @@ end
 -- whether you can remove it, the deny list, a timer at all. `leftName` and
 -- `leftWhy` keep the first debuff turned down by the last two, for /manners
 -- debug.
+--
+-- A debuff on the deny list is more than left out: a cure lifts one debuff of
+-- each kind its spell removes, the spell choosing which, so with one worn
+-- nothing is offered that could take it off. Another debuff on them goes to
+-- the first spell that leaves the denied kind alone (Purify for a poison
+-- beside Unstable Affliction, where Cleanse would lift both), or to none.
+local denied = {}
+local function Spares(cure, lifts)
+	local kinds = lifts[cure.ranks]
+	if not kinds then return false end
+	for kind in pairs(denied) do
+		if kinds[kind] then return false end
+	end
+	return true
+end
+
 local function ReadInto(record, unit)
 	local list = record.list
 	for i = #list, 1, -1 do list[i] = nil end
@@ -489,6 +529,7 @@ local function ReadInto(record, unit)
 	-- A read that throws leaves the slots before it taken, and they are read.
 	pcall(TakeSlots, unit)
 	local byKind = scan.byKind
+	local anyDenied = false
 	for index = 1, taken do
 		local aura = slots[index]
 		slots[index] = nil
@@ -501,6 +542,8 @@ local function ReadInto(record, unit)
 				local name = plain(aura.name)
 				if type(name) ~= "string" or name == "" then name = KIND_LABEL[kind] end
 				if type(id) == "number" and DENIED[id] then
+					if not anyDenied then wipe(denied) end
+					anyDenied, denied[kind] = true, true
 					if not record.leftWhy then record.leftName, record.leftWhy = name, "denied" end
 				elseif type(expires) ~= "number" or expires <= 0 then
 					if not record.leftWhy then record.leftName, record.leftWhy = name, "untimed" end
@@ -516,6 +559,21 @@ local function ReadInto(record, unit)
 					end
 				end
 			end
+		end
+	end
+	if not anyDenied then return end
+	local state = scan.state
+	for i = #list, 1, -1 do
+		local cure = list[i].cure
+		if not Spares(cure, state.lifts) then
+			local other
+			for _, candidate in ipairs(state.all) do
+				if candidate.cure == cure.cure and Spares(candidate, state.lifts) then
+					other = candidate
+					break
+				end
+			end
+			if other then list[i].cure = other else table.remove(list, i) end
 		end
 	end
 end
@@ -608,7 +666,7 @@ function ns.CureFor(unit, full, guid, inGroup, pointed, flag)
 		local debuff = record.list[i]
 		local cure = debuff.cure
 		-- A probe since the reading may have taken the spell away.
-		if scan.byKind[cure.cure] ~= cure then
+		if not scan.state.live[cure] then
 			-- nothing to offer it with
 		elseif debuff.expires - now <= scan.seconds then
 			Leave(full, debuff.name, "short")
@@ -653,6 +711,9 @@ function ns.CureFor(unit, full, guid, inGroup, pointed, flag)
 		end
 	end
 	if record.leftWhy then Leave(full, record.leftName, record.leftWhy) end
+	-- Read through a token and nothing to offer: whatever was remembered of
+	-- them is over, or the memory would offer the cure this reading turned down.
+	Forget(full)
 	return nil
 end
 
@@ -660,7 +721,8 @@ end
 -- token reached this scan. `seen` and `rejected` are the walk's; `drop` is
 -- everything that turns passers-by down as a kind (saving mana, a city-only
 -- rule out in the world). One a token did reach was judged afresh there: a
--- cure offered renews the memory, and anything else ends it. A buff offered
+-- cure offered renews the memory, and anything else ends it (CureFor, and the
+-- walk's own verdict where it stops at them). A buff offered
 -- them from the other memory gives its place to the cure.
 function ns.CuresRemembered(queue, seen, rejected, now, drop)
 	if rememberedCount == 0 then return end
@@ -671,7 +733,7 @@ function ns.CuresRemembered(queue, seen, rejected, now, drop)
 			or now - memo.seen >= LINGER_SECONDS
 			or (ns.zonedAt and memo.seen < ns.zonedAt)
 			or ((seen[name] or rejected[name] == true) and memo.seen ~= now)
-			or scan.byKind[cure.cure] ~= cure
+			or not scan.state.live[cure]
 			or memo.expires - now <= scan.seconds
 			or ns.IsBlocked(name, cure.key, now)
 			or ns.IsNeverOffered(name)

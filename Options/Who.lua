@@ -616,6 +616,35 @@ local function ForOthersOnly(args)
 	end
 end
 
+-- Added after ForOthersOnly, as the cures are: a shaman on WoW Forever and a
+-- monk on retail have no buff for anybody else and still raise the dead.
+function Page.AddResControls(args)
+	-- Your resurrection for the group's dead (Resurrect.lua): on, and
+	-- shown only to a class that has one on this client. A dead
+	-- passer-by is a second switch under it, off until ticked, and not
+	-- shown while the first is off (the layout's `parents`).
+	args.res = {
+		type = "toggle",
+		name = L["My group's dead"],
+		desc = L["Offer your resurrection for somebody of your party or raid who is dead and within reach, ahead of everything else. Never in a fight, never for somebody who has released their spirit, and not while another resurrection is already on its way to them."],
+		order = 12.7,
+		width = "full",
+		hidden = function() return not (ns.Resurrect and ns.Resurrect.Has()) end,
+		get = sGet,
+		set = sSet,
+	}
+	args.resStrangers = {
+		type = "toggle",
+		name = L["Dead passers-by too"],
+		desc = L["Also offer it for a dead player outside your group whom you could help: your target, your focus or whoever is under your cursor."],
+		order = 12.8,
+		width = "full",
+		hidden = function() return not (ns.Resurrect and ns.Resurrect.Has() and S().res) end,
+		get = sGet,
+		set = sSet,
+	}
+end
+
 -- Asking, not only giving (Ask.lua): the one thing on Who to buff that is about
 -- what other people cast, under a heading of its own after the sources. The
 -- switch, and under it how the ask is said: shown only while it is on (the
@@ -1207,30 +1236,6 @@ function Page.BuildWhoTab()
 				get = sGet,
 				set = sSet,
 			},
-			-- Your resurrection for the group's dead (Resurrect.lua): on, and
-			-- shown only to a class that has one on this client. A dead
-			-- passer-by is a second switch under it, off until ticked, and not
-			-- shown while the first is off (the layout's `parents`).
-			res = {
-				type = "toggle",
-				name = L["My group's dead"],
-				desc = L["Offer your resurrection for somebody of your party or raid who is dead and within reach, ahead of everything else. Never in a fight, never for somebody who has released their spirit, and not while another resurrection is already on its way to them."],
-				order = 12.7,
-				width = "full",
-				hidden = function() return not (ns.Resurrect and ns.Resurrect.Has()) end,
-				get = sGet,
-				set = sSet,
-			},
-			resStrangers = {
-				type = "toggle",
-				name = L["Dead passers-by too"],
-				desc = L["Also offer it for a dead player outside your group whom you could help: your target, your focus or whoever is under your cursor."],
-				order = 12.8,
-				width = "full",
-				hidden = function() return not (ns.Resurrect and ns.Resurrect.Has() and S().res) end,
-				get = sGet,
-				set = sSet,
-			},
 			-- The group split with the other Manners users of your class in it
 			-- (Share.lua), under the switch it narrows. On: it only takes double
 			-- offers away. Not shown while the group is off; search still finds
@@ -1409,7 +1414,14 @@ function Page.BuildWhoTab()
 			quietTargets = {
 				type = "toggle",
 				name = L["Hold back my target and focus too"],
-				desc = L["On: the two switches above leave nobody out, not even somebody you target or focus. Off: they are still offered there."],
+				-- And a battleground or an arena with its own switch off, which
+				-- is the same rule there (Queue.lua, inTown).
+				desc = function()
+					return L["On: the two switches above leave nobody out, not even somebody you target or focus. Off: they are still offered there."]
+						.. " " .. L["In a battleground or an arena with %s off, %s holds back somebody you target or focus too."]
+							:format("|cffffd100" .. L["Buff my team there"] .. "|r",
+								"|cffffd100" .. L["Hold back my target and focus too"] .. "|r")
+				end,
 				order = 13.37,
 				width = "full",
 				get = fGet,
@@ -2041,6 +2053,9 @@ function Page.BuildWhoTab()
 	-- Asking for buffs, added after it: a class with nothing for anybody else
 	-- is the one it is for above all.
 	Page.AddAskControls(who.args)
+	-- And the resurrection's two switches: a class with nothing else for others
+	-- has one too.
+	Page.AddResControls(who.args)
 	-- After it: the cures are for a class with nothing else for others too.
 	AddCureControls(who.args)
 	return who
