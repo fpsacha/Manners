@@ -13,21 +13,32 @@
 --     seal and the right rod and between the paper's burnt edges, the slips for
 --     the count and the key beside the lines, the list's rows written on the
 --     paper, which is lengthened over them, their names secure buttons on frames;
---   * the paper is opaque at rest, light (a panel colour only tints it), and the
+--   * the sheet is torn at its long edges, not cut, and folded twice, and the
+--     lines stand clear of the tear at every size;
+--   * the paper is opaque at rest inside its torn edges, light (a panel colour
+--     only tints it), and the
 --     ink on it is dark enough: 4.5:1 for every colour the text can be, class
 --     colours included, tinted or dimmed for a fight;
 --   * the wax carries the reason in both palettes (red for somebody owed), the
 --     thin stroke of ink does too, and the marker's modes choose between them;
 --   * the motion is the look's own and keeps to its time and its room: the
---     scroll unrolls and the seal presses down for an arrival, owed breathes three
---     times and settles, a landing flashes the seal gold and passes a light over
---     the paper, a refusal flares and cracks the seal and shakes the scroll, a
---     cast nobody confirmed does nothing; Calm is fades only;
+--     scroll unrolls and the seal presses down for an arrival, and the letter is
+--     written in by a quill, from under a cover that is the paper itself; owed
+--     breathes three times and settles; a landing flashes the seal gold, glows,
+--     passes a light over the paper and is signed with a flourish; a refusal
+--     flares and cracks the seal, the crack staying, and shakes the scroll; a
+--     cast nobody confirmed does nothing; at rest the lamp glints on the wax,
+--     the one loop with nobody owed; Calm is fades only;
 --   * the fight dims the letter and keeps the reason; leaving the look puts back
 --     everything it borrowed;
 --   * its font is Morpheus on the Latin clients, the client's own on Korean and
 --     Chinese, the player's choice when there is one;
---   * the art is 32-bit and drawn by a generator that draws the bytes that ship.
+--   * the art is 32-bit and drawn by a generator that draws the bytes that ship;
+--   * what a review of the pictures found (the last section): nothing that rests
+--     on the seal is additive; the spell comes with the stamp, not before the
+--     wax; the landing's light starts whole and is soft on every side; a tall or
+--     a short sheet repeats its paper; the sheet is one paper from rod to rod;
+--     the list keeps clear of the seal; the glint and the flourish can be seen.
 
 local dir, H = ...
 local fail, load = H.fail, H.load
@@ -111,9 +122,16 @@ local function slurp(path)
 	return data
 end
 
-local function looping()
+-- How many groups loop; `skip`: the look's own at rest (its `idle`), where the
+-- question is whether anything else does.
+local function looping(skip)
 	local _, loops = FT.playing()
-	return #loops
+	local resting, n = {}, 0
+	for _, g in ipairs(skip or {}) do resting[g] = true end
+	for _, g in ipairs(loops) do
+		if not resting[g] then n = n + 1 end
+	end
+	return n
 end
 
 local function rectOf(r)
@@ -1313,14 +1331,14 @@ withTree("look-letter: owed breathes three times and settles, and stops with the
 	if not (warm and warm[1] > warm[3] + 0.3) then fail(scenario, "the glow is not warm") end
 	-- Held as the third breath ends, not a scan later.
 	Mock.runTimers(10)
-	if look.pulse[1]._playing or looping() > 0 then fail(scenario, "the owed breath still loops after its three breaths") end
+	if look.pulse[1]._playing or looping(look.idle) > 0 then fail(scenario, "the owed breath still loops after its three breaths") end
 	if (look.glow._alpha or 0) > 0.001 or (look.core._alpha or 0) > 0.001 then fail(scenario, "after its breaths the glow is not let go") end
 	tick(ns)
 	if look.pulse[1]._playing then fail(scenario, "the scan started the spent breath again") end
 	-- A new favour on top takes its own three breaths.
 	wipe(ns.owed)
 	tick(ns)
-	if looping() > 0 then fail(scenario, "a loop kept going with nobody owed") end
+	if looping(look.idle) > 0 then fail(scenario, "a loop kept going with nobody owed") end
 	owe(ns, "Brannoc Vale")
 	tick(ns)
 	if not look.pulse[1]._playing then fail(scenario, "a new favour did not breathe") end
@@ -1343,7 +1361,7 @@ withTree("look-letter: owed breathes three times and settles, and stops with the
 		tick(ns)
 		owe(ns, "Anna Aim")
 		tick(ns)
-		if looping() > 0 then fail(scenario, ("%d loop(s) on '%s'"):format(looping(), style)) end
+		if looping(look.idle) > 0 then fail(scenario, ("%d loop(s) on '%s'"):format(looping(look.idle), style)) end
 	end
 	-- With the icon off the seal still breathes: it is the seal that is lit.
 	ns.db.profile.prompt.flashStyle = "pulse"
@@ -1722,17 +1740,19 @@ local function paperStats(tint, k)
 end
 
 withTree("look-letter: the paper is opaque and light, and a panel colour only tints it", ANNA, function(ns, scenario)
-	-- The file: opaque across, with only the burnt top and bottom rows less.
+	-- The file: opaque across inside its torn edges (the generator's DECKLE_MAX
+	-- rows at the top, and the shadow's room more at the bottom; a TGA's rows are
+	-- kept from the bottom up).
 	local tga = readTGA(dir .. "/Textures/Letter/Letter_Paper.tga")
 	if not tga then fail(scenario, "Letter_Paper.tga cannot be read as a 32-bit TGA") return end
 	local clear = 0
-	for y = 2, tga.h - 3 do
+	for y = 9, tga.h - 7 do
 		for x = 0, tga.w - 1 do
 			local _, _, _, a = tga:at(x, y)
 			if a < 0.995 then clear = clear + 1 end
 		end
 	end
-	if clear > 0 then fail(scenario, clear .. " texels of the paper's file are see-through inside its edge") end
+	if clear > 0 then fail(scenario, clear .. " texels of the paper's file are see-through inside its torn edges") end
 	local rod = readTGA(dir .. "/Textures/Letter/Letter_Rod.tga")
 	if rod then
 		for y = 90, 160, 10 do
@@ -2062,7 +2082,8 @@ end
 
 local DRAWN = { Paper = { 256, 64 }, Rod = { 64, 256 }, Seal = { 128, 128 }, SealRim = { 128, 128 }, SealGloss = { 128, 128 },
 	SealShadow = { 128, 128 }, Mark = { 64, 64 }, Mask = { 128, 128 }, Glow = { 128, 128 }, Crack = { 128, 128 },
-	Slip = { 64, 32 }, Dot = { 32, 32 }, DotGloss = { 32, 32 }, Rule = { 128, 8 }, Sweep = { 64, 64 } }
+	Slip = { 64, 32 }, Dot = { 32, 32 }, DotGloss = { 32, 32 }, Rule = { 128, 8 }, Sweep = { 64, 64 },
+	Fold = { 32, 32 }, Quill = { 128, 128 }, Flourish = { 128, 32 }, Glint = { 32, 32 }, Candle = { 128, 128 } }
 
 withTree("look-letter: its art is 32-bit, a power of two, and every file is named, shipped and drawn", ANNA, function(_, scenario)
 	local names = {}
@@ -2087,7 +2108,7 @@ withTree("look-letter: its art is 32-bit, a power of two, and every file is name
 			end
 		end
 	end
-	if count < 15 then fail(scenario, "only " .. count .. " files are named in the look") end
+	if count < 20 then fail(scenario, "only " .. count .. " files are named in the look") end
 	-- Every shipped file is drawn by the look, and every drawn one ships.
 	for name in pairs(DRAWN) do
 		if not slurp(dir .. "/Textures/Letter/Letter_" .. name .. ".tga") then fail(scenario, name .. " does not ship") end
@@ -2106,6 +2127,8 @@ withTree("look-letter: its art is 32-bit, a power of two, and every file is name
 	same("the seal's radius, the icon's edge", "local SEAL_R, ICON_AT, SEAL_EDGE = ([%d%.]+), ([%d%.]+), [%d%.]+",
 		"SEAL_R = ([%d%.]+)\nICON_AT = ([%d%.]+)")
 	same("the shadow's zoom", "local SHADOW_ZOOM = ([%d%.]+)", "SHADOW_ZOOM = ([%d%.]+)")
+	same("the quill's point", "local QUILL_NIB = { ([%d%.]+) / 128, ([%d%.]+) / 128 }", "QUILL_NIB = %(([%d%.]+), ([%d%.]+)%)")
+	same("the room of the sheet's shadow", "local LIFT = ([%d%.]+) / 64", "DECKLE, DECKLE_MAX, LIFT = [%d%.]+, [%d%.]+, ([%d%.]+)")
 	-- The edge the look declares for the seal's files is at least as far as the wax goes.
 	local edge = tonumber(source:match("local SEAL_R, ICON_AT, SEAL_EDGE = [%d%.]+, [%d%.]+, ([%d%.]+)"))
 	local seal = readTGA(dir .. "/Textures/Letter/Letter_Seal.tga")
@@ -2346,4 +2369,815 @@ withTree("look-letter: the light on the wax is white whatever the wax is", CROWD
 			end
 		end
 	end
+end)
+
+-- ------------------------------------------------------------------ 18
+-- The sheet is torn, not cut, and folded. The file's long edges are deckled
+-- (see-through texels in its first and last rows) and paper all the way across
+-- inside them, the lines stand clear of the tear at every size, the light that
+-- crosses keeps inside it, and two folds cross a sheet long enough to have been
+-- folded, the second the first mirrored, tinted and dimmed as the sheet is.
+-- The first and the last row of the file that is paper all the way across,
+-- counted from the top of the picture (a TGA keeps its rows from the bottom up).
+local function solidRows(tga)
+	local first, last
+	for y = 0, tga.h - 1 do
+		local solid = true
+		for x = 0, tga.w - 1 do
+			local _, _, _, a = tga:at(x, y)
+			if a < 0.995 then solid = false break end
+		end
+		if solid then
+			first = first or y
+			last = y
+		end
+	end
+	if not first then return nil end
+	return tga.h - 1 - last, tga.h - 1 - first
+end
+
+withTree("look-letter: the sheet is torn at its long edges and the lines stand clear of the tear", LONG, function(ns, scenario)
+	local tga = readTGA(dir .. "/Textures/Letter/Letter_Paper.tga")
+	if not tga then fail(scenario, "Letter_Paper.tga cannot be read as a 32-bit TGA") return end
+	local first, last = solidRows(tga)
+	if not (first and last) then fail(scenario, "no row of the paper's file is paper all the way across") return end
+	-- Torn: the first rows are not paper all the way across, and neither are the
+	-- last, where the sheet's shadow lies under its edge.
+	if first < 3 then fail(scenario, "the paper's top edge is cut straight: row " .. first .. " is paper all the way across") end
+	if last > tga.h - 5 then fail(scenario, "the paper's bottom edge is cut straight: row " .. last .. " is paper all the way across") end
+	if first > 7 or last < tga.h - 11 then
+		fail(scenario, ("the tear reaches rows %d to %d of the file's %d, further in than the lines keep clear of"):format(first, last, tga.h))
+	end
+	local torn = 0
+	for x = 0, tga.w - 1 do
+		local _, _, _, a = tga:at(x, tga.h - 2)
+		if a < 0.5 then torn = torn + 1 end
+	end
+	if torn < tga.w * 0.2 then fail(scenario, "only " .. torn .. " texels of the paper's second row are see-through: the edge is not deckled") end
+	-- The edge wanders: where the top row's paper begins differs from column to column.
+	local lo, hi = tga.h, 0
+	for x = 8, tga.w - 9, 4 do
+		for y = 0, 12 do
+			local _, _, _, a = tga:at(x, tga.h - 1 - y)
+			if a >= 0.5 then
+				lo, hi = math.min(lo, y), math.max(hi, y)
+				break
+			end
+		end
+	end
+	if hi - lo < 2 then fail(scenario, ("the paper's top edge wanders only %d texel(s)"):format(hi - lo)) end
+	-- The lines: inside the rows that are paper all the way across, at every size,
+	-- and at the least height the look says two lines need, where they are
+	-- closest to the edges.
+	local sizes = { { 220, 44, 13 }, { 320, 58, 17 }, { 160, 32, 11 }, { 400, 72, 17 }, { 300, 120, 24 } }
+	for _, font in ipairs({ 11, 13, 17, 24 }) do
+		sizes[#sizes + 1] = { 260, ns.Looks.list.letter.TwoLineHeight(font), font, true }
+	end
+	for _, size in ipairs(sizes) do
+		local r, _, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize = size[1], size[2], size[3] end)
+		if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+		local panel = rectOf(r.art)
+		local g = look.g
+		local tag = ("%dx%d, %d pt"):format(size[1], size[2], size[3])
+		if size[4] and not r.sub:IsShown() then fail(scenario, tag .. ": the least height two lines need shows one") end
+		-- The file's rows are g.sy units each from either end (a tall sheet
+		-- repeats its middle band between them).
+		local top = look.paperTop + first * g.sy
+		local bottom = look.paperBottom - (tga.h - 1 - last) * g.sy
+		for label, fs in pairs({ name = r.name, reason = r.sub }) do
+			local box = fs:IsShown() and rectOf(fs)
+			if box then
+				local b = rel(box, panel)
+				-- The middle of the line and the letters' own height either side of it.
+				local mid, half = (b[2] + b[4]) / 2, (select(2, fs:GetFont()) or size[3]) / 2
+				if mid - half < top - 0.3 or mid + half > bottom + 0.3 then
+					fail(scenario, ("%s: the %s stands in the tear (%.1f to %.1f, the whole paper %.1f to %.1f)"):format(
+						tag, label, mid - half, mid + half, top, bottom))
+				end
+			end
+		end
+		-- At the least height the two lines are still two: apart by their own heights.
+		if size[4] and r.sub:IsShown() then
+			local nb, sb = rectOf(r.name), rectOf(r.sub)
+			local apart = (nb[2] + nb[4]) / 2 - (sb[2] + sb[4]) / 2
+			local need = ((select(2, r.name:GetFont()) or 0) + (select(2, r.sub:GetFont()) or 0)) / 2
+			if apart < need - 0.6 then fail(scenario, ("%s: at the least height the two lines meet (%.1f apart, their letters need %.1f)"):format(tag, apart, need)) end
+		end
+		-- The light that crosses keeps inside the torn edges.
+		local clip = rectOf(look.lightClip)
+		if clip then
+			local c = rel(clip, panel)
+			if c[2] < look.paperTop + g.b - 0.01 or c[4] > look.paperBottom - g.b + 0.01 then
+				fail(scenario, ("%s: the light falls beyond the torn edge (%.1f to %.1f)"):format(tag, c[2], c[4]))
+			end
+		end
+	end
+end)
+
+withTree("look-letter: two folds cross the sheet, the second the first mirrored", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	local panel = rectOf(r.art)
+	local g = look.g
+	if #look.folds ~= 2 or #look.foldsC ~= 2 then fail(scenario, "the sheet has " .. #look.folds .. " folds, not two") return end
+	local last
+	for i, fold in ipairs(look.folds) do
+		if not FT.visible(fold) then
+			fail(scenario, "fold " .. i .. " is not shown at the default size")
+		else
+			if fold._parent ~= look.paperSheet then fail(scenario, "fold " .. i .. " is not on the sheet that unrolls") end
+			local b = rel(rectOf(fold), panel)
+			if b[1] < g.splitX or b[3] > g.rodR then fail(scenario, "fold " .. i .. " is under the seal or the right rod") end
+			if b[2] < look.paperTop or b[4] > look.paperBottom then fail(scenario, "fold " .. i .. " runs past the sheet's edge") end
+			if last and b[1] < last + 10 then fail(scenario, "the two folds are on top of each other") end
+			last = b[3]
+			-- The cover carries the fold too, in the same place.
+			local c = rectOf(look.foldsC[i])
+			local own = rectOf(fold)
+			if not (c and near(c[1], own[1], 0.05) and near(c[3], own[3], 0.05) and near(c[2], own[2], 0.05) and near(c[4], own[4], 0.05)) then
+				fail(scenario, "the cover's fold " .. i .. " is not where the sheet's is")
+			end
+		end
+	end
+	local one, two = look.folds[1]._texCoord, look.folds[2]._texCoord
+	if not (two and two[1] > two[2]) or (one and one[1] > one[2]) then fail(scenario, "the second fold is not the first mirrored") end
+	-- Tinted and dimmed as the sheet is.
+	p.bgColor = { 0.1, 0.1, 0.9, 1 }
+	ns.Prompt:ApplyStyle()
+	local paper = look.paperR[2][1]._color
+	for i, fold in ipairs(look.folds) do
+		if not sameColour(fold._color, paper[1], paper[2], paper[3], 0.001) then fail(scenario, "fold " .. i .. " is not the sheet's tint") end
+	end
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	paper = look.paperR[2][1]._color
+	if not sameColour(look.folds[1]._color, paper[1], paper[2], paper[3], 0.001) then fail(scenario, "a fold is not dimmed with the sheet in a fight") end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+	-- A sheet too short to have been folded has none.
+	p.width = 120
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	for i, fold in ipairs(look.folds) do
+		if FT.visible(fold) or FT.visible(look.foldsC[i]) then fail(scenario, "a short sheet is folded (fold " .. i .. ")") end
+	end
+end)
+
+-- ------------------------------------------------------------------ 19
+-- The writing. A favour arriving is written in: everything on the sheet is held
+-- back while the scroll unrolls, then the cover (the sheet's right part again,
+-- over the text) is drawn off to the right behind the quill's point, and the
+-- quill is lifted away and put away. The cover is the paper under it, piece for
+-- piece; it is never there before the paper is, nor after the pen has passed.
+local function pieceUnder(look, c, r)
+	-- The piece of the sheet a piece of the cover lies on: the same row, wherever
+	-- its columns were cut.
+	local box = rectOf(c)
+	for col = 1, 3 do
+		local t = look.paperR[col][r]
+		if t and FT.visible(t) then
+			local b = rectOf(t)
+			if b and box[1] >= b[1] - 0.3 and box[3] <= b[3] + 0.3 then return t, b end
+		end
+	end
+end
+
+withTree("look-letter: a favour arriving is written in by the quill, from under a cover that is the paper", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	local panel = rectOf(r.art)
+	local g = look.g
+	local w = look.write
+	wipe(ns.owed)
+	tick(ns)
+	Mock.advance(3)
+	tick(ns)
+	local function counts()
+		return { cover = total(look.coverGroups), pen = plays(look.penGroup), hold = total(look.holds),
+			sign = total(look.signGroups), press = total(look.pressAnims), halo = total(look.haloAnims) }
+	end
+	-- A passer-by on the panel is not written in.
+	local c0 = counts()
+	Mock.advance(0.4)
+	tick(ns)
+	local c1 = counts()
+	if c1.cover ~= c0.cover or c1.pen ~= c0.pen or c1.hold ~= c0.hold then fail(scenario, "a passer-by on the panel was written in") end
+	owe(ns, "Anna Aim")
+	tick(ns)
+	local c2 = counts()
+	if c2.cover - c1.cover < 2 then fail(scenario, "somebody buffing you did not put the cover over the sheet (its window and the copy in it)") end
+	if c2.pen <= c1.pen then fail(scenario, "somebody buffing you did not bring the quill down") end
+	if c2.hold - c1.hold < 3 then fail(scenario, "the words are not held back while the scroll unrolls") end
+	if c2.press <= c1.press then fail(scenario, "the stamp's light did not follow the seal's pressing") end
+	if c2.sign ~= c1.sign or c2.halo ~= c1.halo then fail(scenario, "an arrival signed a flourish or glowed as a landing does") end
+	-- Held back: the text's own layer, the slips and the rows, for as long as the
+	-- unroll runs and no longer than a breath over it.
+	local unroll = look.slideB._duration
+	local owners = {}
+	for _, hold in ipairs(look.holds) do
+		owners[hold._owner] = true
+		local a = hold._anims[1]
+		if not (a and a._kind == "Alpha" and a._fromAlpha == 0 and a._toAlpha == 0) then fail(scenario, "a hold does not hold at nothing") end
+		local length = FT.groupLength(hold)
+		if length < unroll - 0.001 or length > unroll + 0.05 then
+			fail(scenario, ("a hold lasts %.2f s, the unroll %.2f"):format(length, unroll))
+		end
+	end
+	if not (owners[r.textLayer] and owners[look.chipFrame] and owners[look.rowFrame]) then
+		fail(scenario, "the words, the slips or the rows are not held back while the scroll unrolls")
+	end
+	-- The cover: over the text, in a window that cuts it, never before the paper
+	-- is there, its copy holding still as the window is drawn off.
+	local text = r.textLayer._level or 0
+	for name, f in pairs({ cover = look.inkFrame, ["cover's window"] = look.inkSlide, ["cover's copy"] = look.inkSheet, quill = look.quillFrame }) do
+		if (f._level or 0) <= text then fail(scenario, "the " .. name .. " is not over the text") end
+	end
+	if not look.inkSlide:DoesClipChildren() then fail(scenario, "the cover's window does not cut what it holds") end
+	if (w.on._startDelay or 0) < unroll - 0.05 then
+		fail(scenario, ("the cover is over the sheet before the paper is: it comes at %.2f s, the unroll takes %.2f"):format(w.on._startDelay or 0, unroll))
+	end
+	if (w.run._startDelay or 0) < unroll - 0.001 then fail(scenario, "the pen sets off before the scroll is open") end
+	if not (w.run._offset and w.back._offset and near(w.run._offset[1], -w.back._offset[1], 0.01) and w.run._offset[1] > 20) then
+		fail(scenario, "the cover's copy does not hold still as its window is drawn off")
+	end
+	if not (near(w.run._duration, w.back._duration, 0.001) and near(w.run._startDelay or 0, w.back._startDelay or 0, 0.001)) then
+		fail(scenario, "the cover's window and its copy do not keep time")
+	end
+	-- The pen starts just left of the name and goes as far as the longer line.
+	local win = look.inkSlide.points[1]
+	if not (win and win[4] <= g.textX and win[4] >= g.textX - 4) then fail(scenario, "the pen does not start at the name") end
+	local name, sub = rectOf(r.name), rectOf(r.sub)
+	local wide = math.max(r.name:GetUnboundedStringWidth() or 0, r.sub:GetUnboundedStringWidth() or 0)
+	if w.run._offset[1] < wide - 0.5 then fail(scenario, ("the pen goes %.1f, the longer line is %.1f"):format(w.run._offset[1], wide)) end
+	if win[4] + w.run._offset[1] > g.rodR + 0.01 then fail(scenario, "the pen runs on over the right rod") end
+	-- The quill: its point on the pen, going the same way in the same time, the
+	-- turns of the wrist summing to nothing, and lifted away at the end.
+	if look.quill._shown == false then fail(scenario, "the quill is not on the sheet while it writes") end
+	if not (near(w.pen._offset[1], w.run._offset[1], 0.01) and near(w.pen._duration, w.run._duration, 0.001)
+		and near(w.pen._startDelay or 0, w.run._startDelay or 0, 0.001)) then
+		fail(scenario, "the quill does not go with the pen")
+	end
+	local q = rectOf(look.quill)
+	if q and name then
+		local nibX = q[1] + (13 / 128) * (q[3] - q[1])
+		local nibY = q[2] + (11 / 128) * (q[4] - q[2])
+		if math.abs(nibX - (panel[1] + win[4])) > 0.6 then fail(scenario, "the quill's point is not on the pen") end
+		if nibY < name[2] - 2 or nibY > name[4] + 2 then fail(scenario, "the quill's point is not on the name's line") end
+	end
+	local turns = 0
+	for _, turn in ipairs(w.strokes) do
+		turns = turns + (turn._degrees or 0)
+		if not (turn._origin and turn._origin[1] == "BOTTOMLEFT" and turn._origin[2] > 0) then fail(scenario, "a turn of the quill is not about its point") end
+	end
+	if math.abs(turns) > 0.01 or #w.strokes < 4 then fail(scenario, ("the quill's turns do not sum to nothing (%s over %d)"):format(tostring(turns), #w.strokes)) end
+	if FT.groupLength(look.penGroup) > unroll + 0.60 then
+		fail(scenario, ("the quill is on the sheet for %.2f s"):format(FT.groupLength(look.penGroup)))
+	end
+	for i, group in ipairs(look.coverGroups) do
+		if FT.groupLength(group) > unroll + 0.55 then fail(scenario, ("the cover's group %d lasts %.2f s"):format(i, FT.groupLength(group))) end
+	end
+	-- The cover is the paper under it: every piece of it lies on a piece of the
+	-- sheet, cut from the same texels, in the same colour, and none reaches over
+	-- the right rod.
+	local pieces = 0
+	local function same(label)
+		for c = 1, 3 do
+			for i, t in ipairs(look.paperC[c]) do
+				if FT.visible(t) then
+					pieces = pieces + 1
+					local box = rectOf(t)
+					local under, ub = pieceUnder(look, t, i)
+					local tc, uc = t._texCoord, under and under._texCoord
+					if not under then
+						fail(scenario, label .. ": a piece of the cover lies on no piece of the sheet")
+						return
+					end
+					-- The texel under each of its edges is the sheet's there.
+					local k = (uc[2] - uc[1]) / (ub[3] - ub[1])
+					local u0, u1 = uc[1] + (box[1] - ub[1]) * k, uc[1] + (box[3] - ub[1]) * k
+					if not (near(tc[1], u0, 0.002) and near(tc[2], u1, 0.002) and near(tc[3], uc[3], 1e-6) and near(tc[4], uc[4], 1e-6)
+						and near(box[2], ub[2], 0.05) and near(box[4], ub[4], 0.05)) then
+						fail(scenario, label .. ": a piece of the cover is not the paper under it")
+						return
+					end
+					if not sameColour(t._color, under._color[1], under._color[2], under._color[3], 0.001) then
+						fail(scenario, label .. ": the cover is not the paper's colour")
+						return
+					end
+					if rel(box, panel)[3] > g.rodR + 0.3 then
+						fail(scenario, label .. ": the cover reaches over the right rod")
+						return
+					end
+				end
+			end
+		end
+	end
+	same("at rest")
+	if pieces < 3 then fail(scenario, "only " .. pieces .. " pieces of the cover are laid") end
+	-- When the pen has passed: the cover at nothing, the quill put away, the
+	-- words whole, the window back over the sheet's right part.
+	Mock.advance(1.5)
+	FT.settle()
+	if (look.inkSlide._alpha or 1) > 0.001 then fail(scenario, "the cover is left over the words after the pen has passed") end
+	if look.quill._shown ~= false or (look.quill._alpha or 0) > 0.001 then fail(scenario, "the quill is left on the sheet") end
+	if (r.textLayer._alpha or 1) < 0.999 then fail(scenario, "the words are left held back") end
+	for _, group in ipairs(look.holds) do
+		if group._playing then fail(scenario, "a hold is still on after the scroll is open") end
+	end
+	-- Once: the next scans are the same favour.
+	local c3 = counts()
+	Mock.advance(0.4)
+	tick(ns)
+	local c4 = counts()
+	if c4.cover ~= c3.cover or c4.pen ~= c3.pen or c4.hold ~= c3.hold then fail(scenario, "the letter was written again on a repaint of the same favour") end
+	-- Tinted and dimmed, and with a list hanging on it, the cover is still the paper.
+	p.bgColor = { 0.5, 0.1, 0.1, 1 }
+	p.showQueue, p.queueRows = true, 3
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	same("tinted, with a list")
+	if (look.inkSlide._alpha or 1) > 0.001 then fail(scenario, "laying the look out again put the cover over the words") end
+	-- A repaint about somebody else, mid-writing, lets the words go at once.
+	wipe(ns.owed)
+	tick(ns)
+	Mock.advance(3)
+	owe(ns, "Brannoc Vale")
+	tick(ns)
+	Mock.advance(0.1)
+	ns.Prompt:StopFlourishes()
+	if (look.inkSlide._alpha or 1) > 0.001 or look.quill._shown ~= false then fail(scenario, "a writing stopped half way leaves the cover or the quill on the sheet") end
+	for _, group in ipairs(look.holds) do
+		if group._playing then fail(scenario, "a writing stopped half way leaves the words held back") end
+	end
+	-- Not in a fight, and not on Calm.
+	Mock.advance(3)
+	wipe(ns.owed)
+	tick(ns)
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	local c5 = counts()
+	owe(ns, "Anna Aim")
+	tick(ns)
+	local c6 = counts()
+	if c6.cover ~= c5.cover or c6.pen ~= c5.pen or c6.hold ~= c5.hold then fail(scenario, "a favour arriving in a fight was written in") end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+	p.effects = "calm"
+	ns.Prompt:ApplyStyle()
+	Mock.advance(3)
+	wipe(ns.owed)
+	tick(ns)
+	local c7 = counts()
+	owe(ns, "Anna Aim")
+	tick(ns)
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	local c8 = counts()
+	for key, v in pairs(c8) do
+		if v ~= c7[key] then fail(scenario, "with Effects on Calm the " .. key .. " still played") end
+	end
+	if look.swash._shown ~= false and FT.visible(look.swash) then fail(scenario, "Calm signs a landing with a flourish") end
+end)
+
+-- ------------------------------------------------------------------ 20
+-- The outcomes. A landing glows round the seal and is signed off: the flourish
+-- at the reason line's end, in the verdict's ink, written in from its left by
+-- the quill, gone with the outcome and never where the verdict's own words need
+-- the room. A refusal's crack stays in the wax for as long as the refusal does.
+withTree("look-letter: a landing is signed with a flourish and glows, a refusal's crack stays", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	local panel = rectOf(r.art)
+	local g = look.g
+	local w = look.write
+	Mock.advance(2)
+	FT.settle()
+	local sign0, halo0, pen0 = total(look.signGroups), total(look.haloAnims), plays(look.penGroup)
+	if look.swash._shown ~= false and FT.visible(look.swash) then fail(scenario, "the flourish is on the sheet with nothing landed") end
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if total(look.signGroups) - sign0 < 2 then fail(scenario, "a landed buff was not signed with a flourish") end
+	if total(look.haloAnims) <= halo0 then fail(scenario, "a landed buff did not glow round the seal") end
+	if plays(look.penGroup) <= pen0 then fail(scenario, "the quill did not sign the landing") end
+	if not sameColour(look.halo._color, 1.00, 0.86, 0.46) then fail(scenario, "the glow round the seal is not gold") end
+	if not FT.visible(look.swash) then fail(scenario, "the flourish is not on the sheet during the landing") end
+	-- In the verdict's ink, which reads on the paper.
+	local ink = r.sub._textColor
+	if not (look.swash._color and ink and sameColour(look.swash._color, ink[1], ink[2], ink[3], 0.001)) then
+		fail(scenario, "the flourish is not in the verdict's ink")
+	end
+	-- Written from its left: the window starts its own width to the left, the copy
+	-- that much to the right of it, and the two slide the same way and the other.
+	if not look.swashClip:DoesClipChildren() then fail(scenario, "the flourish's window does not cut it") end
+	local clip, sheet = look.swashClip.points[1], look.swashSheet.points[1]
+	local sw = look.swashW
+	if not (clip and sheet and near(clip[4], look.swashX - sw, 0.01) and near(sheet[4], sw, 0.01)) then
+		fail(scenario, "the flourish is not written from its left end")
+	end
+	if not (near(w.open._offset[1], sw, 0.01) and near(w.still._offset[1], -sw, 0.01) and near(w.open._duration, w.still._duration, 0.001)) then
+		fail(scenario, "the flourish's window and the stroke in it do not move together")
+	end
+	if not (near(w.pen._offset[1], sw, 0.01) and near(w.pen._duration, w.open._duration, 0.001)) then fail(scenario, "the quill does not go with the flourish") end
+	for i, group in ipairs(look.signGroups) do
+		if FT.groupLength(group) > 0.45 then fail(scenario, ("the flourish's group %d lasts %.2f s, most of the outcome"):format(i, FT.groupLength(group))) end
+	end
+	-- Where it lies: at the reason line's end, right of the verdict, on the paper.
+	Mock.advance(0.5)
+	FT.settle()
+	clip, sheet = look.swashClip.points[1], look.swashSheet.points[1]
+	if not (clip and near(clip[4], look.swashX, 0.01) and sheet and near(sheet[4], 0, 0.01)) then fail(scenario, "after it is written the flourish is not at rest") end
+	local box, sub = rectOf(look.swash), rectOf(r.sub)
+	if box and sub then
+		local b = rel(box, panel)
+		if b[3] > g.textRight + 0.01 or b[1] < g.textX then fail(scenario, "the flourish leaves the text's room") end
+		local used = r.sub:GetUnboundedStringWidth() or 0
+		if b[1] < g.textX + used then fail(scenario, "the flourish runs into the verdict") end
+		if math.abs((box[2] + box[4]) / 2 - (sub[2] + sub[4]) / 2) > 3 then fail(scenario, "the flourish is not on the reason's line") end
+	end
+	if look.quill._shown ~= false then fail(scenario, "the quill is left on the sheet after signing") end
+	-- Gone with the outcome.
+	Mock.advance(3)
+	tick(ns)
+	if look.swash._shown ~= false then fail(scenario, "the flourish stayed after the outcome") end
+	-- A refusal: no flourish, no glow; the crack splits the wax and stays.
+	local sign1, halo1 = total(look.signGroups), total(look.haloAnims)
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	if total(look.signGroups) ~= sign1 or total(look.haloAnims) ~= halo1 then fail(scenario, "a refusal was signed or glowed as a landing does") end
+	if look.swash._shown ~= false then fail(scenario, "a refusal carries the landing's flourish") end
+	Mock.advance(0.4)
+	FT.settle()
+	if (look.crack._alpha or 0) < 0.5 then fail(scenario, "the crack does not stay in the wax while the refusal stands: " .. tostring(look.crack._alpha)) end
+	Mock.advance(3)
+	owe(ns, "Anna Aim")
+	tick(ns)
+	if (look.crack._alpha or 0) > 0.001 then fail(scenario, "the crack stayed after the refusal") end
+	-- A cast nobody confirmed is not signed.
+	Mock.advance(1)
+	local sign2 = total(look.signGroups)
+	ns.Prompt:ShowOutcome("sent", "Anna Aim")
+	if total(look.signGroups) ~= sign2 or look.swash._shown ~= false then fail(scenario, "a cast nobody confirmed was signed") end
+	-- No second line: no flourish (the headline has the line).
+	Mock.advance(3)
+	p.showSub = false
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if look.swashW then fail(scenario, "with no second line the look still keeps a flourish for it") end
+	local sign3 = total(look.signGroups)
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if total(look.signGroups) ~= sign3 or (look.swash._shown ~= false and FT.visible(look.swash)) then
+		fail(scenario, "a landing with no second line was signed over the headline")
+	end
+	p.showSub = true
+end)
+
+-- A verdict whose own words need the room has it: the flourish steps aside.
+withTree("look-letter: the flourish gives way to a verdict that needs its room", ANNA, function(ns, scenario)
+	local realMeasure = FT.measure
+	FT.measure = function(text, size)
+		local letters = select(2, text:gsub("[^\128-\191]", ""))
+		return letters * size * 1.6
+	end
+	local ok, err = pcall(function()
+		local r, _, look = upIn(ns, scenario, function(pp) pp.width = 180 end)
+		if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+		Mock.advance(2)
+		FT.settle()
+		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		if not look.swashW then fail(scenario, "SKIPPED -- this sheet has no room for a flourish at all") return end
+		local used = look.kit.fit.drawn[r.sub] or r.sub:GetUnboundedStringWidth() or 0
+		if look.textX + used + 6 <= look.swashX then fail(scenario, "SKIPPED -- the verdict leaves the flourish its room") return end
+		if look.swash._shown ~= false then fail(scenario, "the flourish is written over the verdict's own words") end
+	end)
+	FT.measure = realMeasure
+	if not ok then error(err, 0) end
+end)
+
+-- ------------------------------------------------------------------ 21
+-- At rest the lamp catches the wax: one glint, the one loop the look runs with
+-- nobody owed, named in `idle`; on the wax, brief, and stopped on Calm, in a
+-- fight and when the look goes.
+withTree("look-letter: at rest the lamp glints on the wax, and only there and then", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	local panel = rectOf(r.art)
+	local g = look.g
+	if type(look.idle) ~= "table" or #look.idle ~= 1 then fail(scenario, "the look does not name its one loop at rest in `idle`") return end
+	local glint = look.idle[1]
+	if glint._owner ~= look.glint then fail(scenario, "the loop at rest is not the glint's") end
+	if glint._looping ~= "REPEAT" then fail(scenario, "the glint does not come round again") end
+	if not glint._playing then fail(scenario, "the glint does not play with the prompt up on Full") end
+	-- With nobody owed it is the only loop.
+	wipe(ns.owed)
+	tick(ns)
+	Mock.advance(3)
+	tick(ns)
+	if not glint._playing then fail(scenario, "the glint stops with nobody owed, where it is what moves at rest") end
+	if looping(look.idle) > 0 then fail(scenario, "a loop that is not named in `idle` runs with nobody owed") end
+	-- Brief: a long wait, then lit for under 0.6 s.
+	local wait, lit = math.huge, 0
+	for _, a in ipairs(glint._anims) do
+		if a._kind == "Alpha" then
+			if a._order == 1 then wait = math.min(wait, a._startDelay or 0) end
+		end
+	end
+	lit = FT.groupLength(glint) - wait
+	if wait < 3 then fail(scenario, ("the glint comes every %.1f s, which is a blink, not a glint"):format(wait)) end
+	if lit > 0.6 then fail(scenario, ("the glint is lit for %.2f s, over 0.6"):format(lit)) end
+	if (look.glint._alpha or 0) > 0.001 and not glint._playing then fail(scenario, "the glint is lit with its loop stopped") end
+	if look.glint._blend == "ADD" then fail(scenario, "a light that comes round at rest is drawn additive") end
+	-- On the wax: where it starts and where it ends.
+	local box = rectOf(look.glint)
+	local wax = rel(seen(look.body), panel)
+	local move = look.glintMove._offset or { 0, 0 }
+	if box then
+		local b = rel(box, panel)
+		local cx, cy = (b[1] + b[3]) / 2, (b[2] + b[4]) / 2
+		for label, at in pairs({ start = { cx, cy }, ["end"] = { cx + move[1], cy - move[2] } }) do
+			local d = math.sqrt((at[1] - g.cx) ^ 2 + (at[2] - g.cy) ^ 2)
+			if d > g.sealD / 2 then fail(scenario, ("the glint is not on the wax at its %s (%.1f from the seal's middle, the wax %.1f)"):format(label, d, g.sealD / 2)) end
+		end
+		if not inside({ b[1], b[2] - math.max(0, move[2]), b[3] + math.max(0, move[1]), b[4] }, { 0, 0, panel[3] - panel[1], panel[4] - panel[2] }) then
+			fail(scenario, "the glint leaves the prompt")
+		end
+		if wax and (b[3] - b[1]) > (wax[3] - wax[1]) * 0.4 then fail(scenario, "the glint is as big as the seal") end
+	end
+	if not (math.abs(move[1]) > 2 or math.abs(move[2]) > 2) then fail(scenario, "the glint does not cross the wax") end
+	-- Stopped in a fight, and back after it.
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	if glint._playing then fail(scenario, "the glint goes on in a fight") end
+	if (look.glint._alpha or 0) > 0.001 then fail(scenario, "the glint is left lit in a fight") end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+	tick(ns)
+	if not glint._playing then fail(scenario, "the glint does not come back after the fight") end
+	-- Stopped on Calm.
+	p.effects = "calm"
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if glint._playing or looping() > 0 then fail(scenario, "the glint goes on with Effects on Calm") end
+	p.effects = "full"
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if not glint._playing then fail(scenario, "the glint does not come back with Full effects") end
+	-- Stopped when the look goes.
+	p.style = "glass"
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if glint._playing then fail(scenario, "the glint goes on after the look changed") end
+	if (look.glint._alpha or 0) > 0.001 then fail(scenario, "the glint is left lit after the look changed") end
+end)
+
+-- ------------------------------------------------------------------ 22
+-- What a review of the pictures found.
+
+-- Additive light is far brighter in the game than in a picture: it is for a
+-- flash, gone within 0.6 s. The candle breathes on the seal for seconds and the
+-- cursor's light stays as long as the cursor does, so neither is additive, and
+-- their file is hollow where the icon is.
+withTree("look-letter: what rests on the seal is not additive, and leaves the spell plain", ANNA, function(ns, scenario)
+	local r, _, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	for label, t in pairs({ ["the candle's glow"] = look.glow, ["the candle's hot light"] = look.core, ["the cursor's light"] = look.hilite }) do
+		if t._blend == "ADD" then fail(scenario, label .. " rests on the seal and is drawn additive") end
+		if tostring(t._file or "") ~= ART .. "Letter_Candle" then fail(scenario, label .. " is not the ring of light that leaves the icon plain: " .. tostring(t._file)) end
+	end
+	-- Every additive texture of the look is one of its flashes, and each of
+	-- those is over within 0.6 s.
+	local flashes = { [look.flash] = look.flashAnims, [look.press] = look.pressAnims, [look.halo] = look.haloAnims,
+		[look.sweepWhite] = look.passAnims }
+	for _, t in ipairs(look.own) do
+		if type(t) == "table" and t._blend == "ADD" then
+			local anims = flashes[t]
+			if not anims then
+				fail(scenario, "an additive texture is none of the look's flashes: " .. tostring(t._file))
+			else
+				for _, group in ipairs(anims) do
+					if FT.groupLength(group) > 0.6 + 1e-6 then
+						fail(scenario, ("an additive light (%s) is lit for %.2f s, over 0.6"):format(tostring(t._file), FT.groupLength(group)))
+					end
+				end
+			end
+		end
+	end
+	-- The candle's lights are on the wax and in the prompt, the hot one inside
+	-- the wide one.
+	local panel = rectOf(r.art)
+	local glow, core, hover = rectOf(look.glow), rectOf(look.core), rectOf(look.hilite)
+	if not (glow and core and hover) then fail(scenario, "the candle's lights are not laid") return end
+	if not inside(glow, panel) or not inside(hover, panel) then fail(scenario, "the candle's or the cursor's light leaves the prompt") end
+	if not (core[3] - core[1] < glow[3] - glow[1] and core[3] - core[1] > (glow[3] - glow[1]) * 0.7) then
+		fail(scenario, "the hot light's ring does not lie on the lip of the recess, inside the wide one's")
+	end
+	-- The file: a ring, hollow in the middle, nothing at its edge.
+	local tga = readTGA(dir .. "/Textures/Letter/Letter_Candle.tga")
+	if not tga then fail(scenario, "Letter_Candle.tga cannot be read as a 32-bit TGA") return end
+	local mid = select(4, tga:at(tga.w / 2, tga.h / 2))
+	local ring = 0
+	for x = 0, tga.w / 2 do ring = math.max(ring, (select(4, tga:at(x, tga.h / 2)))) end
+	if mid > 0.25 then fail(scenario, ("the candle's light is %.2f over the icon's middle: it would veil the spell"):format(mid)) end
+	if ring < 0.7 then fail(scenario, ("the candle's light is only %.2f at its ring"):format(ring)) end
+	local edge = 0
+	for i = 0, tga.w - 1 do
+		edge = math.max(edge, (select(4, tga:at(i, 0))), (select(4, tga:at(i, tga.h - 1))), (select(4, tga:at(0, i))), (select(4, tga:at(tga.w - 1, i))))
+	end
+	if edge > 0.02 then fail(scenario, "the candle's light is cut at its file's edge") end
+end)
+
+-- The spell is what the stamp leaves in the wax. While the wax is poured (it
+-- grows from under the icon's size) the icon is not there; it comes with the
+-- stamp. By an animation: the shared icon's own alpha is never written.
+withTree("look-letter: the spell comes with the stamp, not before the wax is poured", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	local struck = look.struck
+	if not (struck and struck._owner == r.icon) then fail(scenario, "nothing holds the icon back while the wax is poured") return end
+	local inStamp = false
+	for _, group in ipairs(look.stamp) do inStamp = inStamp or group == struck end
+	if not inStamp then fail(scenario, "the icon's coming is not part of the stamp: it would not play, nor stop, with it") end
+	if plays(struck) < 1 then fail(scenario, "a favour arriving did not hold the icon back") end
+	-- The wax grows from this share of its size; the icon is this share of it.
+	local pour, grow
+	for _, group in ipairs(look.stamp) do
+		if group._owner == look.body then
+			for _, a in ipairs(group._anims) do
+				if a._kind == "Scale" then pour, grow = a._duration, a end
+			end
+		end
+	end
+	if not pour then fail(scenario, "the wax is not poured") return end
+	local hidden, shown = 0, nil
+	for _, a in ipairs(struck._anims) do
+		if a._kind == "Alpha" and a._order == 1 and a._fromAlpha == 0 and a._toAlpha == 0 then hidden = a._duration end
+		if a._kind == "Alpha" and a._order == 2 then shown = a end
+	end
+	if hidden < pour * 0.5 then fail(scenario, ("the icon stands on the paper %.2f s into a pour of %.2f s"):format(hidden, pour)) end
+	if not (shown and shown._fromAlpha == 0 and shown._toAlpha == 1) then fail(scenario, "the icon does not come up to its full strength") end
+	if FT.groupLength(struck) > pour + 0.001 then fail(scenario, "the icon is still coming after the wax has set") end
+	-- The stamp's light starts as the icon does.
+	local press = look.pressAnims[1]
+	local lit = press and press._anims[1] and press._anims[1]._startDelay or 0
+	if math.abs(lit - hidden) > 0.03 then fail(scenario, ("the stamp's light starts at %.2f s, the icon at %.2f s"):format(lit, hidden)) end
+	Mock.advance(1)
+	FT.settle()
+	if not near(r.icon._alpha or 1, 1) then fail(scenario, "the icon's own alpha was written by the stamp") end
+	-- Stopped with the rest of the stamp, and never on Calm.
+	local before = plays(struck)
+	p.effects = "calm"
+	ns.Prompt:ApplyStyle()
+	wipe(ns.owed)
+	tick(ns)
+	Mock.advance(3)
+	owe(ns, "Anna Aim")
+	tick(ns)
+	if plays(struck) ~= before then fail(scenario, "the icon is held back on Calm, where nothing moves") end
+end)
+
+-- The light that crosses the paper at a landing starts whole, beside the seal,
+-- and its file is soft on all four sides: slid in through its window's edge and
+-- cut at the torn edges, it was a block of light with ruled sides.
+withTree("look-letter: the landing's light starts whole and is soft on every side", ANNA, function(ns, scenario)
+	local r, _, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	local clip, band = rectOf(look.lightClip), rectOf(look.sweepFrame)
+	if not (clip and band) then fail(scenario, "the light is not laid") return end
+	if band[1] < clip[1] - 0.01 then
+		fail(scenario, ("the light starts %.1f units outside its window, whose edge cuts it as it comes in"):format(clip[1] - band[1]))
+	end
+	if band[3] > clip[3] + 0.01 then fail(scenario, "the light is wider than the paper it crosses") end
+	local move = look.passAnims[1].move
+	if not (move._offset and band[1] + move._offset[1] >= clip[3]) then fail(scenario, "the light does not run off the paper's end") end
+	local tga = readTGA(dir .. "/Textures/Letter/Letter_Sweep.tga")
+	if not tga then fail(scenario, "Letter_Sweep.tga cannot be read as a 32-bit TGA") return end
+	local edge, peak = 0, 0
+	for i = 0, tga.w - 1 do
+		edge = math.max(edge, (select(4, tga:at(i, 0))), (select(4, tga:at(i, tga.h - 1))), (select(4, tga:at(0, i))), (select(4, tga:at(tga.w - 1, i))))
+		peak = math.max(peak, (select(4, tga:at(i, tga.h / 2))))
+	end
+	if edge > 0.03 then fail(scenario, ("the light's file is %.2f at its edge: the band ends on a ruled line"):format(edge)) end
+	if peak < 0.9 then fail(scenario, "the light's file has no band in it") end
+end)
+
+-- The file's rows are never drawn much larger than its columns: a tall prompt,
+-- and a short tall one, repeat the middle band (which was drawn to repeat).
+withTree("look-letter: a tall or a short sheet repeats its paper and does not pull it out", ANNA, function(ns, scenario)
+	for _, size in ipairs({ { 220, 44, 13 }, { 320, 58, 17 }, { 300, 120, 24 }, { 140, 120, 13 }, { 500, 120, 13 }, { 80, 36, 24 } }) do
+		local _, _, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize = size[1], size[2], size[3] end)
+		if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+		local tag = ("%dx%d"):format(size[1], size[2])
+		local g = look.g
+		if g.sy > 1.001 then fail(scenario, ("%s: a row of the paper's file is drawn %.2f units tall"):format(tag, g.sy)) end
+		-- Each piece: its units for each of the file's 64 rows, and, for the
+		-- right cap, for each of its 256 columns.
+		local tallest, wide = 0, nil
+		for c = 1, 3 do
+			for _, t in ipairs(look.paperR[c]) do
+				local tc, b = t._texCoord, FT.visible(t) and rectOf(t)
+				if tc and b and tc[4] > tc[3] then
+					tallest = math.max(tallest, (b[4] - b[2]) / ((tc[4] - tc[3]) * 64))
+					if tc[2] > 0.99 and tc[2] > tc[1] then wide = (b[3] - b[1]) / ((tc[2] - tc[1]) * 256) end
+				end
+			end
+		end
+		if tallest > 1.3 then fail(scenario, ("%s: a piece of the paper is stretched to %.2f units a row"):format(tag, tallest)) end
+		if wide and tallest > wide * 1.4 then
+			fail(scenario, ("%s: the paper's rows are %.2f units and its columns %.2f: its grain runs in streaks"):format(tag, tallest, wide))
+		end
+		-- The sheet still reaches from its top to its bottom.
+		local top, bottom = math.huge, -math.huge
+		for c = 1, 3 do
+			for _, t in ipairs(look.paperR[c]) do
+				local b = FT.visible(t) and rectOf(t)
+				if b then top, bottom = math.min(top, b[2]), math.max(bottom, b[4]) end
+			end
+		end
+		if bottom - top < g.paperH - 0.6 then fail(scenario, ("%s: the pieces cover %.1f of a sheet %.1f tall"):format(tag, bottom - top, g.paperH)) end
+	end
+end)
+
+-- The Lua stretches the file's middle between its caps, so the generator draws
+-- the middle's cockles and fibre closer together: on the screen the sheet is
+-- one paper from rod to rod. Drawn evenly, each cap stood out as finer paper.
+withTree("look-letter: the sheet is one paper from rod to rod, not finer at its ends", ANNA, function(_, scenario)
+	local tga = readTGA(dir .. "/Textures/Letter/Letter_Paper.tga")
+	if not tga then fail(scenario, "Letter_Paper.tga cannot be read as a 32-bit TGA") return end
+	-- How much the paper changes from one column to the next, in the middle
+	-- band: along the stretched middle and along the caps.
+	local function busy(x0, x1)
+		local sum, n = 0, 0
+		for y = 16, 47 do
+			for x = x0, x1 - 1 do
+				local _, a = tga:at(x, y)
+				local _, b = tga:at(x + 1, y)
+				sum, n = sum + math.abs(a - b), n + 1
+			end
+		end
+		return sum / n
+	end
+	local mid, caps = busy(80, 176), (busy(24, 56) + busy(200, 232)) / 2
+	if mid < caps * 1.15 then
+		fail(scenario, ("the file's middle is no busier (%.4f) than its caps (%.4f): stretched, it is smeared beside them"):format(mid, caps))
+	end
+end)
+
+-- The wax stands taller than the sheet, and the count's slip is pinned to it:
+-- the list's rows begin beyond both, above the prompt as below it.
+withTree("look-letter: the list's drops of wax keep clear of the seal and of the count pinned to it", CROWD, function(ns, scenario)
+	for _, above in ipairs({ false, true }) do
+		for _, size in ipairs({ { 220, 44, 13 }, { 320, 58, 17 } }) do
+			-- A prompt low on the screen hangs its list above itself.
+			Mock.promptCentreY = above and 40 or nil
+			local r, _, look = upIn(ns, scenario, function(pp)
+				pp.width, pp.height, pp.fontSize = size[1], size[2], size[3]
+				pp.showQueue, pp.queueRows = true, 3
+			end)
+			if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+			ns.Prompt:ApplyStyle()
+			tick(ns)
+			local tag = ("%dx%d, the list %s"):format(size[1], size[2], above and "above" or "below")
+			if (look.listAt and true or false) ~= above then fail(scenario, tag .. ": the list is not on that side of the prompt") end
+			local wax = seen(look.body)
+			local slip = FT.visible(look.countSlip[1]) and rectOf(look.countBox)
+			local shown = 0
+			for i, drop in ipairs(look.drops) do
+				local b = FT.visible(drop) and rectOf(drop)
+				if b then
+					shown = shown + 1
+					if wax and across(b, wax) then fail(scenario, ("%s: row %d's drop of wax lies on the seal"):format(tag, i)) end
+					if slip and across(b, slip) then fail(scenario, ("%s: row %d's drop of wax lies under the count's slip"):format(tag, i)) end
+				end
+			end
+			if shown < 2 then fail(scenario, tag .. ": the list is not up (" .. shown .. " rows)") end
+			if look.countMode == "seal" and not slip then fail(scenario, tag .. ": the count is on the seal and its slip is not") end
+		end
+	end
+end)
+
+-- The glint is the one thing that moves at rest, and the flourish the one mark
+-- a landing leaves: both large enough to be seen.
+withTree("look-letter: the glint and the flourish are large enough to be seen", ANNA, function(ns, scenario)
+	local r, _, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	local star, wax = rectOf(look.glint), seen(look.body)
+	if not (star and wax) then fail(scenario, "the glint or the wax is not laid") return end
+	if (star[3] - star[1]) < (wax[3] - wax[1]) * 0.33 then
+		fail(scenario, ("the glint is %.1f units across on a seal of %.1f: a speck"):format(star[3] - star[1], wax[3] - wax[1]))
+	end
+	-- The flourish is looped: somewhere the pen crosses its own line, so a
+	-- column of the file is inked in two places.
+	local tga = readTGA(dir .. "/Textures/Letter/Letter_Flourish.tga")
+	if not tga then fail(scenario, "Letter_Flourish.tga cannot be read as a 32-bit TGA") return end
+	local twice, inked = 0, 0
+	for x = 0, tga.w - 1 do
+		local runs, on = 0, false
+		for y = 0, tga.h - 1 do
+			local a = select(4, tga:at(x, y))
+			if a > 0.5 and not on then runs, on = runs + 1, true elseif a < 0.2 then on = false end
+		end
+		if runs >= 2 then twice = twice + 1 end
+		if runs >= 1 then inked = inked + 1 end
+	end
+	if twice < 5 then fail(scenario, "the flourish is a plain wave: the pen never loops back over its line") end
+	if inked < tga.w * 0.75 then fail(scenario, "the flourish does not run the length of its file") end
 end)
