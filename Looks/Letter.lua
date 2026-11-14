@@ -1699,8 +1699,10 @@ function Letter:PaintReason(r, g, b, reason, mode)
 	self.refused = nil
 	self.crackAnims[1].to = nil
 	self.crack:SetAlpha(0)
-	self.signed = nil
-	self.swash:Hide()
+	-- The flourish a landing was signed with is not the reason's to take
+	-- away: every repaint under a verdict comes through here first, for
+	-- whoever is next, and PaintOutcome follows. It goes with the outcome
+	-- (ClearOutcome) or with a refusal (Flourish).
 	local k = self.combat and DIM_SEAL or 1
 	self.kit.icon:SetVertexColor(k, k, k)
 	self.kit.icon:SetDesaturated(false)
@@ -1767,8 +1769,13 @@ function Letter:Attention(isNew, _, flashStyle)
 	if isNew then
 		self.pulseSpent = nil
 		-- The scroll unrolls, the seal is pressed and the letter is written for
-		-- a new favour, never for a new face.
-		if full then
+		-- a new favour, never for a new face, and never over an outcome: the
+		-- next person owed is news to the queue while the verdict still
+		-- stands, and the unroll, the seal's pour and the cover over the lines
+		-- would hide it for most of its life. Asked of Prompt as well as of
+		-- what was painted: the outcome's own repaint comes here before its
+		-- words are written (PaintOutcome).
+		if full and not (self.outcomeOn or self.kit.OutcomeLive()) then
 			self:StartUnroll()
 			for _, g in ipairs(self.stamp) do
 				g:Stop()
@@ -2016,11 +2023,21 @@ end
 -- back until the paper is there, then the pen across the lines, as far as the
 -- longer of them goes (the whole sheet when a list hangs on it).
 function Letter:WriteLetter()
-	local g, kit = self.g, self.kit
 	for _, hold in ipairs(self.holds) do
 		hold:Stop()
 		hold:Play()
 	end
+	self.wroteAt = GetTime()
+	self:Reach()
+end
+
+-- The pen's run and the cover's, as far as this paint's sheet asks. Attention
+-- begins the writing before the list of the same paint is laid (Refresh), so
+-- PaintQueue asks again when a list came or went under a writing just begun:
+-- the reach was otherwise the last paint's, a name's width under rows that
+-- cross the sheet, or the whole sheet for a name alone.
+function Letter:Reach()
+	local g, kit = self.g, self.kit
 	local from = g.textX - 2
 	local room = g.rodR - 0.5 - from
 	local reach = room
@@ -2176,6 +2193,7 @@ function Letter:PaintQueue(rows, shown, above)
 			self.listShown, self.listAt = nil, nil
 			self:LayPaper(self.g.pv, self.H - self.g.pv)
 			self:LayRods(1, self.H - 1)
+			if self.wroteAt == GetTime() then self:Reach() end
 		end
 		return
 	end
@@ -2192,7 +2210,11 @@ function Letter:PaintQueue(rows, shown, above)
 	-- Laid out again only when the number of rows or the side changes: the scan
 	-- repaints this several times a second.
 	if self.listShown == shown and self.listAt == above then return end
+	local hung = self.listShown ~= nil
 	self.listShown, self.listAt = shown, above
+	-- A list hung in the paint that began the writing: the pen crosses the
+	-- whole sheet (Reach).
+	if not hung and self.wroteAt == GetTime() then self:Reach() end
 
 	local block = shown * pitch
 	local drop = math.min(pitch * 0.9, g.chipH + 2)

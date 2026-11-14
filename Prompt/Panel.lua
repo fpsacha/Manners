@@ -1003,6 +1003,9 @@ function Prompt:LookKit()
 			Gradient = Gradient, Legible = Legible, TextWidth = TextWidth,
 			SetLine = SetLine, FitLine = FitLine, FullEffects = FullEffects,
 			ReasonColor = ReasonColor, OUTCOME_SECONDS = OUTCOME_SECONDS,
+			-- Whether a press's outcome is on the panel now: true from the
+			-- press itself, before the repaint that writes its words.
+			OutcomeLive = function() return Prompt:OutcomeLive() end,
 			-- The rings and the glows' tints, which a look draws in its own art.
 			FX = lib.NewFX, Tint = Tint, WARM_WHITE = WARM_WHITE,
 			-- How far they may spread (Prompt/Effects.lua): the files a look
