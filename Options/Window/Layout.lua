@@ -217,11 +217,11 @@ ns.WindowLayout = {
 					"who.group",
 					-- The pets of the people in it, under the switch it widens.
 					{ "who.pets", indent = true },
+					-- And the group split with other Manners users of your class.
+					{ "who.share", indent = true },
 					-- Your resurrection for the group's dead, and for a dead passer-by under it.
 					"who.res",
 					{ "who.resStrangers", indent = true },
-					-- And the group split with other Manners users of your class.
-					{ "who.share", indent = true },
 					"who.strangers",
 					-- While passers-by are on and the game's nameplates are off.
 					{ "who.strangersPlatesNote", indent = true },

@@ -100,6 +100,9 @@ end
 local function HasPrompt()
 	-- Or somebody to ask for a buff, with that switched on (Ask.lua).
 	if ns.AskLive and ns.AskLive() then return true end
+	-- Or a resurrection learned, with My group's dead on (Resurrect.lua): a
+	-- monk on retail has nothing else, and its switches are on Who to buff.
+	if ns.caps.res and ns.Resurrect and ns.Resurrect.Wanted() then return true end
 	return ns.caps.hasClassBuffs == true or ns.OwnBuffsOnly()
 end
 

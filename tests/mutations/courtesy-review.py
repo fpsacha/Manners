@@ -94,7 +94,7 @@ mutate("Courtesy.lua",
 
 # A courtesy standing takes the early way out even with a cure to walk for.
 mutate("Queue.lua",
-       "battle ~= \"fight\" and not ns.CuresWanted(db) and ns.Courtesy and ns.Courtesy.Standing(now) then\n",
+       "battle ~= \"fight\" and not ns.CureScanned() and ns.Courtesy and ns.Courtesy.Standing(now) then\n",
        "battle ~= \"fight\" and ns.Courtesy and ns.Courtesy.Standing(now) then\n",
        "courtesy-review: no walk for a cure while a courtesy stands",
        expect=CURE, script=S)

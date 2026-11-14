@@ -96,7 +96,7 @@ mutate("Queue.lua",
 
 # With no buff to give, the queue leaves before a courtesy is looked at.
 mutate("Queue.lua",
-       "\tif #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= \"fight\" and not ns.CuresWanted(db) and ns.Courtesy and ns.Courtesy.Standing(now) then\n",
+       "\tif #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= \"fight\" and not ns.CureScanned() and ns.Courtesy and ns.Courtesy.Standing(now) then\n",
        "\tif false then\n",
        "courtesy: nothing offered with no buff to give",
        expect=ALONE, script=S)

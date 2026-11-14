@@ -49,7 +49,7 @@ mutate("Resurrect.lua",
 
 # Shown to a class with no resurrection.
 mutate("Options/Who.lua",
-       "\t\t\t\thidden = function() return not (ns.Resurrect and ns.Resurrect.Has()) end,\n",
+       "\t\thidden = function() return not (ns.Resurrect and ns.Resurrect.Has()) end,\n",
        "",
        "res: the switch shown to a mage",
        expect=PAGE, script=S)

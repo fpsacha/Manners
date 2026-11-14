@@ -409,6 +409,7 @@ end
 -- offered at all: both switches off, nothing learned, a fight, or a client
 -- with no aura list to read. `fight` stays written for /manners debug.
 function ns.CureScan(db, now)
+	scan.live = nil
 	local sources = db.sources
 	if not (sources.cures == true or sources.curesStrangers == true) then return nil end
 	local state = State()
@@ -430,7 +431,15 @@ function ns.CureScan(db, now)
 	scan.byKind = state.byKind
 	scan.state = state
 	wipe(scan.ready)
+	scan.live = true
 	return scan
+end
+
+-- What the last CureScan answered, for BuildQueue, which asks it once a scan
+-- ahead of its early ways out and again for the walk: a cure learned and a
+-- switch on are no reason to walk in a fight, where none is offered.
+function ns.CureScanned()
+	return scan.live and scan or nil
 end
 
 -- Whether the cure can be cast now: true, or why not ("mana", "cooldown").

@@ -768,6 +768,11 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 
 	ns.IterateUnits(function(unit, pointed)
 		if plain(UnitExists(unit)) ~= true or plain(UnitIsPlayer(unit)) ~= true then return end
+		-- Nobody dead, offline or beyond your help, as the walk has it
+		-- (IsBuffableUnit): a trade with a corpse fails at every press, and the
+		-- walk's verdict on them stays.
+		if plain(UnitIsDeadOrGhost(unit)) == true or plain(UnitIsConnected(unit)) == false
+			or plain(UnitCanAssist("player", unit)) == false then return end
 		for _, request in ipairs(wanted) do
 			local st = State(request)
 			if not st.unit and Matches(request, unit) then st.unit, st.pointed = unit, pointed == true end
