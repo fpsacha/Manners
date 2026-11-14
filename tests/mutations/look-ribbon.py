@@ -854,3 +854,30 @@ _m(GEN,
    "    q = np.clip(xe / END_PX, 0, 1)\n",
    "the fork's flutter drawn from the seam whatever the generator says it holds still",
    expect="look-ribbon: the art is modelled")
+
+# --- the cloth is never absent on a prompt that is up -------------------------
+WHOLE = "look-ribbon: the cloth stands whole at the first instant of a "
+
+_m(RIBBON,
+   "\tfor _, g in ipairs(self.fade) do g:Stop() end\n\t-- The flash shared the pulse's light: a breath in progress goes on.\n",
+   "\t-- The flash shared the pulse's light: a breath in progress goes on.\n",
+   "an arrival's fade runs on under a landing: the medallion and the words with no cloth",
+   expect=WHOLE)
+
+_m(RIBBON,
+   "\t\tif not self.outcomeOn then self:Unfurl(full) end\n",
+   "\t\tself:Unfurl(full)\n",
+   "the next person owed plays the cloth's arrival over the verdict",
+   expect=WHOLE)
+
+_m(RIBBON,
+   "\tif rising then PlayAll(self.fade) end\n",
+   "\tPlayAll(self.fade)\n",
+   "a favour on a prompt already up fades the cloth in from nothing",
+   expect=WHOLE)
+
+_m(RIBBON,
+   "\tif rising then PlayAll(self.fade) end\n",
+   "",
+   "the cloth no longer fades in as the prompt comes up",
+   expect="look-ribbon: the cloth slides out from behind the medallion and the medallion glints")

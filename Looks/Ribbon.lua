@@ -1717,8 +1717,20 @@ end
 
 -- A new favour: the cloth slides out from behind the medallion, fading in, and
 -- the medallion glints; on Calm the cloth only fades in.
+--
+-- THE CLOTH IS NEVER ABSENT ON A PROMPT THAT IS UP. Its fade starts it from
+-- nothing, so it is played only while the prompt itself is coming up (Prompt's
+-- entrance is running: the whole panel is rising from nothing then); a favour
+-- that arrives on a prompt already up slides the cloth out at its full
+-- strength. The arrival is never played over an outcome (Attention), and an
+-- outcome ends a fade still running (StopFlourishes, which Prompt calls before
+-- every flourish): a landing or a refusal that came with the arrival, or with
+-- the next person owed, had the medallion and the words standing with no cloth
+-- under them while it faded back in.
 function Ribbon:Unfurl(full)
-	PlayAll(self.fade)
+	local art = self.kit.art
+	local rising = (art.intro and art.intro:IsPlaying()) or (art.introCalm and art.introCalm:IsPlaying())
+	if rising then PlayAll(self.fade) end
 	if full and self.slideBy > 0 then
 		-- Stopped first, so the home its stop puts the ribbon back to is not
 		-- put over the place it starts the slide from.
@@ -1739,8 +1751,9 @@ function Ribbon:Attention(isNew, arrived, flashStyle)
 	end
 	if isNew then
 		self.pulseSpent = nil
-		-- The cloth's arrival.
-		self:Unfurl(full)
+		-- The cloth's arrival: once per new favour, never over an outcome (the
+		-- next person owed is news to the queue while the verdict still stands).
+		if not self.outcomeOn then self:Unfurl(full) end
 	end
 	if flashStyle ~= "pulse" then
 		self:StopAttention()
@@ -1831,6 +1844,9 @@ function Ribbon:StopFlourishes()
 	-- The ribbon home: a slide stopped is put back (its first group's OnStop).
 	for _, g in ipairs(self.slide) do g:Stop() end
 	if self.W then self:PlaceRibbon(0) end
+	-- And whole: an arrival's fade still running is ended, the cloth at its
+	-- resting strength, so no flourish plays over cloth that is fading in.
+	for _, g in ipairs(self.fade) do g:Stop() end
 	-- The flash shared the pulse's light: a breath in progress goes on.
 end
 
