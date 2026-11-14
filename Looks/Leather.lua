@@ -15,8 +15,8 @@
 -- tip a brass buckle hangs on a riveted tab, past the tag's edge, and two
 -- feathers are tied to its outer bar -- a hawk's, barred, and an eagle's --
 -- hanging under the tag. A paw print in a ring is burnt into the field left
--- of the eyelet (and left of the patches when they are up; it gives way to
--- the words). The name is a bold serif in pale cream with a dark-brown drop
+-- of the eyelet (and left of the patches when they are up; it gives way,
+-- whole, to words that come near it). The name is a bold serif in pale cream with a dark-brown drop
 -- shadow; the reason is a lighter tan under it. The leather is opaque: the
 -- world never shows through it.
 --
@@ -67,9 +67,9 @@
 -- leather is opaque at rest; the tag itself lies inside the width and height
 -- the prompt is given, and only the buckle, the feathers and the smoke stand
 -- past it, each within its own reach (BUCKLE, FEATHER and SMOKE below); no
--- text is ever over the icon, the eyelet or a chip; the embers are cut where
--- the words begin, and the brand is not drawn where they would cover half of
--- it; every frame of light is under the text's frame level; nothing is
+-- text is ever over the icon, the eyelet or a chip; the brand is not drawn
+-- where the words would reach it or crowd it; what overlaps is stacked on
+-- frame levels of its own; every frame of light is under the text's frame level; nothing is
 -- scaled; a light that rests is drawn BLEND (the embers), ADD is a flash
 -- under 0.6 s; the secure list names are anchored to frames, never to a
 -- region; no pcall per repaint. The leather, the brass, the feathers, the
@@ -128,18 +128,25 @@ local FX_PEAK, FX_EDGE = 0.70, 0.88
 -- How many pieces the thread's light is cut into along each straight, for the
 -- landing to run round the tag.
 local PIECES = 6
+-- The frames' levels over the art, all under the text (kit.TEXT_LEVEL, 6): the
+-- thread, the icon's rim and the eyelet; the trim that lies over the thread
+-- (a stud on the stitch, the buckle's tab over the tip); the embers in the
+-- brand; the lights, all additive; the patches and the smoke.
+local LEVEL = { thread = 1, trim = 2, ember = 3, light = 4, chip = 5 }
 
 -- The trim, as fractions of the prompt's height (tools/make_leather_textures.py
 -- draws each file to these). A stud's box. The buckle's box, the column of
 -- its file the tag's tip stands at and the point the feathers hang from, as
 -- fractions of the box (BUCKLE_TIP and BUCKLE_HANG in the generator). A
 -- feather's box, hung by the middle of its top. The brand's box, its gap
--- from the eyelet (or the patches), and the room it must keep clear of where
--- the words start, in boxes. The smoke's box, standing on the brand.
+-- from the eyelet (or the patches), the room it must keep clear of where
+-- the words start and the gap it keeps from where they end (BRAND_WORDS), in
+-- boxes. The smoke's box, standing on the brand.
 local STUD = 0.17
 local BUCKLE, BUCKLE_TIP, BUCKLE_HANG = 0.66, 19 / 64, { 55 / 64, 46 / 64 }
 local FEATHER = { 0.62, 1.24 }
 local BRAND, BRAND_GAP, BRAND_CLEAR = 0.62, 0.05, 0.5
+local BRAND_WORDS = 0.14
 local SMOKE = { 0.42, 0.84 }
 local SMOKE_COLS, SMOKE_ROWS, SMOKE_FPS = 4, 2, 11
 -- The embers: what the brand rests at while somebody is owed, and the colour
@@ -517,7 +524,9 @@ function Leather:Build(kit)
 		return keep(t)
 	end
 	-- A frame of the tag's furniture or of light, a few levels over the art and
-	-- under the text (hunt37-effects).
+	-- under the text (hunt37-effects). Frames on one level are drawn in no
+	-- order the client promises, so what lies over something else has a level
+	-- of its own (LEVEL).
 	local function frame(level, parent)
 		local f = CreateFrame("Frame", nil, parent or art)
 		f:SetFrameLevel(base + level)
@@ -533,7 +542,7 @@ function Leather:Build(kit)
 	self.sheen = tex(art, "BACKGROUND", -5, "Sheen")
 
 	-- The thread: the straights top and bottom (repeated), the two ends.
-	self.threadFrame = frame(1)
+	self.threadFrame = frame(LEVEL.thread)
 	self.thread = {
 		top = tex(self.threadFrame, "ARTWORK", 0, "StitchM", nil, true),
 		bottom = tex(self.threadFrame, "ARTWORK", 0, "StitchM", nil, true),
@@ -542,14 +551,14 @@ function Leather:Build(kit)
 	}
 
 	-- The icon's setting: its rim, over the icon's own edge, and a flash.
-	self.iconFrame = frame(1)
+	self.iconFrame = frame(LEVEL.thread)
 	self.iconRim = tex(self.iconFrame, "ARTWORK", 0, "IconRim")
 	self.iconFlash = tex(self.iconFrame, "ARTWORK", 1, "IconMask", "ADD")
 	self.iconFlash:SetAlpha(0)
 
 	-- The eyelet and its enamel, on a frame of their own: the swing holds them
 	-- still by the opposite movement.
-	self.ringFrame = frame(1)
+	self.ringFrame = frame(LEVEL.thread)
 	self.eyelet = tex(self.ringFrame, "ARTWORK", 0, "Eyelet")
 	self.enamel = tex(self.ringFrame, "ARTWORK", 1, "Enamel")
 	-- The window reflected in the enamel: white over the dyed dome.
@@ -557,7 +566,7 @@ function Leather:Build(kit)
 
 	-- The owed breath: the thread's warm glow, and the brass's. Both at nothing
 	-- until it breathes.
-	self.glowFrame = frame(2)
+	self.glowFrame = frame(LEVEL.light)
 	self.glowFrame:SetAlpha(0)
 	self.glow = {
 		top = tex(self.glowFrame, "ARTWORK", 0, "StitchM", "ADD", true),
@@ -565,7 +574,7 @@ function Leather:Build(kit)
 		left = tex(self.glowFrame, "ARTWORK", 0, "StitchL", "ADD"),
 		right = tex(self.glowFrame, "ARTWORK", 0, "StitchR", "ADD"),
 	}
-	self.ringGlowFrame = frame(2)
+	self.ringGlowFrame = frame(LEVEL.light)
 	self.ringGlowFrame:SetAlpha(0)
 	self.ringGlow = tex(self.ringGlowFrame, "ARTWORK", 0, "Glow", "ADD")
 	-- The warm tone of the breath, which hunt35-effects looks for.
@@ -574,7 +583,7 @@ function Leather:Build(kit)
 	-- The light a landing and a refusal run round the thread: the thread cut in
 	-- pieces, each lit on its own turn, in the order round the tag: along the
 	-- top, round the right end, back along the bottom, up the left end.
-	self.litFrame = frame(2)
+	self.litFrame = frame(LEVEL.light)
 	self.pieces = {}
 	for k = 1, PIECES do
 		self.pieces[#self.pieces + 1] = { kind = "top", index = k,
@@ -589,13 +598,13 @@ function Leather:Build(kit)
 	for _, piece in ipairs(self.pieces) do piece.tex:SetAlpha(0) end
 
 	-- The band of light that crosses the leather for a landing.
-	self.bandFrame = frame(2)
+	self.bandFrame = frame(LEVEL.light)
 	self.bandFrame:SetAlpha(0)
 	self.band = tex(self.bandFrame, "ARTWORK", 0, "Band", "ADD")
 
 	-- The glints on the brass, the flash of it for a landing, the cursor's
 	-- light: textures of their own on one frame that stays up.
-	self.starFrame = frame(2)
+	self.starFrame = frame(LEVEL.light)
 	self.star = tex(self.starFrame, "OVERLAY", 1, "Star", "ADD")
 	self.ringFlash = tex(self.starFrame, "OVERLAY", 0, "Glow", "ADD")
 	self.hoverLight = tex(self.starFrame, "OVERLAY", 0, "Glow", "ADD")
@@ -607,13 +616,13 @@ function Leather:Build(kit)
 	self.fx = kit.FX(art, nil, true)
 	for _, f in ipairs(self.fx.frames) do
 		keep(f)
-		f:SetFrameLevel(base + 2)
+		f:SetFrameLevel(base + LEVEL.light)
 	end
 	kit.RingArt(ART .. "FxRing", FX_PEAK, FX_EDGE)
 	kit.RingArt(ART .. "FxRingSq", FX_PEAK, FX_EDGE)
 
 	-- The chips, left of the eyelet: leather patches; their text is on textLayer.
-	self.chipFrame = frame(3)
+	self.chipFrame = frame(LEVEL.chip)
 	self.chipBox = keep(CreateFrame("Frame", nil, self.chipFrame))
 	self.keyBox = keep(CreateFrame("Frame", nil, self.chipFrame))
 	self.chip = Slices(self.chipFrame, "ARTWORK", 1, keep, PATCH_FILES)
@@ -736,9 +745,9 @@ function Leather:BuildTrim(tex, frame)
 	local eagle = tex(art, "BACKGROUND", -8, "FeatherB")
 	self.feathers = { tex(art, "BACKGROUND", -8, "FeatherA"), eagle }
 
-	-- On the leather, with the thread: the brand burnt into the field, the
+	-- On the leather, over the thread: the brand burnt into the field, the
 	-- studs over the stitch, the buckle over the tip.
-	self.trimFrame = frame(1)
+	self.trimFrame = frame(LEVEL.trim)
 	self.brand = tex(self.trimFrame, "BORDER", 0, "Brand")
 	self.studs = {}
 	for i = 1, 4 do self.studs[i] = tex(self.trimFrame, "ARTWORK", 2, "Stud") end
@@ -746,27 +755,27 @@ function Leather:BuildTrim(tex, frame)
 
 	-- The embers in the brand: drawn BLEND, since they rest lit for as long as
 	-- somebody is owed; their strength is their frame's alpha.
-	self.emberFrame = frame(1)
+	self.emberFrame = frame(LEVEL.ember)
 	self.emberFrame:SetAlpha(0)
 	self.ember = tex(self.emberFrame, "ARTWORK", 1, "Ember")
 
 	-- A strike's flash: the same mark, greyed so it takes the outcome's
 	-- colour, additive and gone in a third of a second.
-	self.strikeFrame = frame(2)
+	self.strikeFrame = frame(LEVEL.light)
 	self.brandFlash = tex(self.strikeFrame, "ARTWORK", 0, "Ember", "ADD")
 	self.brandFlash:SetDesaturated(true)
 	self.brandFlash:SetAlpha(0)
 
 	-- The smoke off a struck brand: eight drawn frames, played once by Flow,
-	-- on a frame that fades it out.
-	self.smokeFrame = frame(2)
+	-- on a frame that fades it out, over the lights it rises through.
+	self.smokeFrame = frame(LEVEL.chip)
 	self.smokeFrame:SetAlpha(0)
 	self.smoke = tex(self.smokeFrame, "ARTWORK", 0, "Smoke")
 	self.flow = ns.Looks.Flow.New(art)
 	self.smokeSheet = self.flow:Sheet(self.smoke, SMOKE_COLS, SMOKE_ROWS, SMOKE_COLS * SMOKE_ROWS, SMOKE_FPS, false)
 
 	-- The glints of the brass at rest: on a stud and on the buckle.
-	self.twinkleFrame = frame(2)
+	self.twinkleFrame = frame(LEVEL.light)
 	self.twinkles = { tex(self.twinkleFrame, "OVERLAY", 1, "Star", "ADD"), tex(self.twinkleFrame, "OVERLAY", 1, "Star", "ADD") }
 	for _, t in ipairs(self.twinkles) do t:SetAlpha(0) end
 end
@@ -824,7 +833,9 @@ function Leather:BuildTrimAnimations(anim)
 	self.refusal[#self.refusal + 1] = anim(Flash(self.brandFlash, 0.85, 0.04, 0.24))
 	local cool = self.emberFrame:CreateAnimationGroup()
 	Alpha(cool, 1, 1, 0.30, 1)
-	Alpha(cool, 1, 0, 0.95, 2, "IN")
+	-- Down to what the brand rests at when it is struck (Strike says): dark,
+	-- or still smouldering where somebody is owed yet, with no jump at the end.
+	self.coolTo = Alpha(cool, 1, 0, 0.95, 2, "IN")
 	local function cooled() Leather:Smoulder(true) end
 	cool:SetScript("OnFinished", cooled)
 	cool:SetScript("OnStop", cooled)
@@ -933,11 +944,11 @@ end
 
 -- The brand's place, asked at every paint (Chip) and written only when it
 -- changes: left of the eyelet, or of whatever patch is up; not drawn where
--- that leaves it no room clear of the words' start, or where the words would
--- cover half of it. The embers and the strike's flash are cut where the
--- words end, in thirty-seconds of the mark (a light under a letter is the one
--- thing that costs the letter its contrast; the burnt mark itself is darker
--- than the hide, and costs it nothing).
+-- that leaves it no room clear of the words' start, nor where the longer
+-- line ends nearer to it than BRAND_WORDS of its box. It is whole or it is
+-- not there: a mark with a letter over its rim, or half a paw print alight
+-- beside one, reads as a fault, and a light under a letter costs the letter
+-- its contrast.
 function Leather:PlaceBrand()
 	local size = self.brandSize
 	if not size then return end
@@ -958,10 +969,10 @@ function Leather:PlaceBrand()
 		local sub = fit.drawn[kit.sub] or fit.room[kit.sub] or self.W
 		if sub > words then words = sub end
 	end
-	local cut = math.ceil(Clamp((self.textX + words + 3 - left) / size, 0, 1) * 32) / 32
-	local up = left >= self.textX + BRAND_CLEAR * size and cut < 0.5
-	if right == self.brandRight and up == self.brandUp and cut == self.brandCut then return end
-	self.brandRight, self.brandUp, self.brandCut = right, up, cut
+	local clear = left - (self.textX + words)
+	local up = left >= self.textX + BRAND_CLEAR * size and clear >= BRAND_WORDS * size
+	if right == self.brandRight and up == self.brandUp then return end
+	self.brandRight, self.brandUp = right, up
 	self.brandLit = up
 	self.brand:SetShown(up)
 	self.ember:SetShown(up)
@@ -971,10 +982,9 @@ function Leather:PlaceBrand()
 	local art = kit.art
 	local top = self.H / 2 - size / 2
 	Box(self.brand, art, left, top, right, top + size)
-	Box(self.ember, art, left + cut * size, top, right, top + size)
-	self.ember:SetTexCoord(cut, 1, 0, 1)
-	Box(self.brandFlash, art, left + cut * size, top, right, top + size)
-	self.brandFlash:SetTexCoord(cut, 1, 0, 1)
+	-- The embers and the strike's flash are the mark's own strokes: its box.
+	Box(self.ember, art, left, top, right, top + size)
+	Box(self.brandFlash, art, left, top, right, top + size)
 	-- The smoke stands on the brand and rises past the tag's top.
 	local sw, sh = SMOKE[1] * self.H, SMOKE[2] * self.H
 	local cx = left + size * 0.58
@@ -1151,16 +1161,19 @@ function Leather:Apply(p, above)
 	-- Measured again in the new font and size.
 	self.keyLabel, self.countText = nil, nil
 
+	-- The stack (LEVEL): the thread, the trim over it, the embers in the
+	-- brand, every light over those, the patches and the smoke on top.
 	local level = art:GetFrameLevel()
-	for _, f in ipairs({ self.threadFrame, self.iconFrame, self.ringFrame }) do f:SetFrameLevel(level + 1) end
-	for _, f in ipairs({ self.glowFrame, self.ringGlowFrame, self.litFrame, self.bandFrame, self.starFrame }) do
-		f:SetFrameLevel(level + 2)
+	for _, f in ipairs({ self.threadFrame, self.iconFrame, self.ringFrame }) do f:SetFrameLevel(level + LEVEL.thread) end
+	self.trimFrame:SetFrameLevel(level + LEVEL.trim)
+	self.emberFrame:SetFrameLevel(level + LEVEL.ember)
+	for _, f in ipairs({ self.glowFrame, self.ringGlowFrame, self.litFrame, self.bandFrame, self.starFrame,
+		self.strikeFrame, self.twinkleFrame }) do
+		f:SetFrameLevel(level + LEVEL.light)
 	end
-	self.chipFrame:SetFrameLevel(level + 3)
-	-- The trim: what is on the leather with the thread, and its lights over it.
-	self.trimFrame:SetFrameLevel(level + 1)
-	self.emberFrame:SetFrameLevel(level + 1)
-	for _, f in ipairs({ self.strikeFrame, self.smokeFrame, self.twinkleFrame }) do f:SetFrameLevel(level + 2) end
+	for _, f in ipairs(self.fx.frames) do f:SetFrameLevel(level + LEVEL.light) end
+	self.chipFrame:SetFrameLevel(level + LEVEL.chip)
+	self.smokeFrame:SetFrameLevel(level + LEVEL.chip)
 
 	-- The list: each row a tag, its eyelet under the main tag's, each starting
 	-- a little further in than the last.
@@ -1211,7 +1224,7 @@ function Leather:Apply(p, above)
 	self.emberFrame:SetAlpha(0)
 	self.smokeFrame:SetAlpha(0)
 	self.owed, self.struck, self.idleState = nil, nil, nil
-	self.brandRight, self.brandUp, self.brandCut = nil, nil, nil
+	self.brandRight, self.brandUp = nil, nil
 	self:PlaceBrand()
 	self:Tone()
 	self:Accent()
@@ -1719,6 +1732,9 @@ function Leather:Attention(isNew, arrived, flashStyle)
 		self:WarmThread()
 		self.glowFrame:SetAlpha(0)
 		self.ringGlowFrame:SetAlpha(0)
+		-- A brand still cooling from the last strike is the new favour's now:
+		-- two fades on the embers at once would fight over them.
+		if self.cool:IsPlaying() then self.cool:Stop() end
 		for _, g in ipairs(self.pulse) do g:Play() end
 	end
 	-- A few breaths and then still: a loop that runs for as long as somebody
@@ -1789,7 +1805,9 @@ function Leather:Strike(kind, r, g, b)
 	for _, glint in ipairs(self.shimmer) do glint:Stop() end
 	self.idleState = nil
 	Colour(self.brandFlash, r, g, b)
-	if kind == "cast" and self.brandLit then
+	-- Not in a fight: the brand is a cold mark there, and nothing rises off it.
+	if kind == "cast" and self.brandLit and not self.combat then
+		self.coolTo:SetToAlpha(self.owed and EMBER_REST or 0)
 		self.cool:Stop()
 		self.cool:Play()
 		self.smokeFade:Stop()

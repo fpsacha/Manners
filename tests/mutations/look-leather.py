@@ -499,8 +499,8 @@ _m(LEATHER,
    expect=S_STOP)
 
 _m(LEATHER,
-   "\t\tf:SetFrameLevel(level + 2)\n\tend\n\tself.chipFrame:SetFrameLevel(level + 3)\n",
-   "\t\tf:SetFrameLevel(level + 9)\n\tend\n\tself.chipFrame:SetFrameLevel(level + 3)\n",
+   "\t\tf:SetFrameLevel(level + LEVEL.light)\n\tend\n",
+   "\t\tf:SetFrameLevel(level + 9)\n\tend\n",
    "the lights over the text",
    expect=S_TIME)
 
@@ -712,27 +712,45 @@ _m(LEATHER,
    expect=S_BRAND)
 
 _m(LEATHER,
-   "\tBox(self.ember, art, left + cut * size, top, right, top + size)\n",
-   "\tBox(self.ember, art, left, top, right, top + size)\n",
+   "\tself.ember:SetShown(up)\n",
+   "\tself.ember:SetShown(true)\n",
    "the embers lit under the words",
    expect=S_BRAND)
 
 _m(LEATHER,
-   "\tself.ember:SetTexCoord(cut, 1, 0, 1)\n",
-   "\tself.ember:SetTexCoord(0, 1, 0, 1)\n",
-   "the cut embers squeezed into what is left of the mark",
+   "\tBox(self.ember, art, left, top, right, top + size)\n",
+   "\tBox(self.ember, art, left + size / 3, top, right, top + size)\n",
+   "the embers squeezed into two thirds of the mark",
    expect=S_BRAND)
 
 _m(LEATHER,
-   "\tBox(self.brandFlash, art, left + cut * size, top, right, top + size)\n",
-   "\tBox(self.brandFlash, art, left, top, right, top + size)\n",
+   "\tself.brandFlash:SetShown(up)\n",
+   "\tself.brandFlash:SetShown(true)\n",
    "the strike's flash over the words",
    expect=S_BRAND)
 
 _m(LEATHER,
-   "\tlocal up = left >= self.textX + BRAND_CLEAR * size and cut < 0.5\n",
-   "\tlocal up = left >= self.textX + BRAND_CLEAR * size and cut < 2\n",
+   "\tBox(self.brandFlash, art, left, top, right, top + size)\n",
+   "\tBox(self.brandFlash, art, left - size / 3, top, right, top + size)\n",
+   "the strike's flash wider than the mark it lights",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tlocal up = left >= self.textX + BRAND_CLEAR * size and clear >= BRAND_WORDS * size\n",
+   "\tlocal up = left >= self.textX + BRAND_CLEAR * size and clear >= -2 * size\n",
    "the brand drawn under words that cover it",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tlocal up = left >= self.textX + BRAND_CLEAR * size and clear >= BRAND_WORDS * size\n",
+   "\tlocal up = left >= self.textX + BRAND_CLEAR * size and clear >= 0\n",
+   "the brand's rim hard against the last letter",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\t\tif sub > words then words = sub end\n",
+   "",
+   "the brand drawn under a long reason line",
    expect=S_BRAND)
 
 _m(LEATHER,
@@ -746,6 +764,38 @@ _m(LEATHER,
    "",
    "the strike's flash in the embers' orange whatever the outcome",
    expect=S_BRAND)
+
+# --- the stack: what overlaps has a level of its own ---------------------------
+
+_m(LEATHER,
+   "local LEVEL = { thread = 1, trim = 2, ember = 3, light = 4, chip = 5 }\n",
+   "local LEVEL = { thread = 1, trim = 1, ember = 3, light = 4, chip = 5 }\n",
+   "the studs and the buckle on the thread's own level",
+   expect=S_REST)
+
+_m(LEATHER,
+   "local LEVEL = { thread = 1, trim = 2, ember = 3, light = 4, chip = 5 }\n",
+   "local LEVEL = { thread = 1, trim = 2, ember = 2, light = 4, chip = 5 }\n",
+   "the embers on the burnt mark's own level",
+   expect=S_REST)
+
+_m(LEATHER,
+   "local LEVEL = { thread = 1, trim = 2, ember = 3, light = 4, chip = 5 }\n",
+   "local LEVEL = { thread = 1, trim = 2, ember = 3, light = 3, chip = 5 }\n",
+   "the lights on the embers' own level",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\tself.smokeFrame:SetFrameLevel(level + LEVEL.chip)\n",
+   "\tself.smokeFrame:SetFrameLevel(level + LEVEL.light)\n",
+   "the smoke on the lights' own level",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\tlocal on = (self.active and not self.combat and kit.FullEffects() and kit.button:IsShown()) and true or false\n\tlocal lit",
+   "\tlocal on = (self.active and not self.combat and kit.FullEffects()) and true or false\n\tlocal lit",
+   "the feathers stirring under a prompt that is down",
+   expect=S_REST)
 
 # --- the embers --------------------------------------------------------------
 
@@ -844,15 +894,39 @@ _m(LEATHER,
    expect=S_STRIKE)
 
 _m(LEATHER,
+   "\t\tself.coolTo:SetToAlpha(self.owed and EMBER_REST or 0)\n",
+   "\t\tself.coolTo:SetToAlpha(0)\n",
+   "a brand struck while somebody is owed cools to nothing and jumps back alight",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\t\tself.coolTo:SetToAlpha(self.owed and EMBER_REST or 0)\n",
+   "\t\tself.coolTo:SetToAlpha(EMBER_REST)\n",
+   "a brand struck with nobody owed cools to a smoulder and jumps dark",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\t\tif self.cool:IsPlaying() then self.cool:Stop() end\n",
+   "",
+   "the cooling and a new favour's breath both on the embers",
+   expect=S_STRIKE)
+
+_m(LEATHER,
    "\t\tself.smokeSheet:Stop()\n\t\tself.smokeSheet:Play()\n",
    "",
    "a landing raises no smoke",
    expect=S_STRIKE)
 
 _m(LEATHER,
-   "\tif kind == \"cast\" and self.brandLit then\n",
-   "\tif self.brandLit then\n",
+   "\tif kind == \"cast\" and self.brandLit and not self.combat then\n",
+   "\tif self.brandLit and not self.combat then\n",
    "a refusal strikes the brand hot and raises smoke",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\tif kind == \"cast\" and self.brandLit and not self.combat then\n",
+   "\tif kind == \"cast\" and self.brandLit then\n",
+   "a landing in a fight lights the brand and raises smoke",
    expect=S_STRIKE)
 
 _m(LEATHER,

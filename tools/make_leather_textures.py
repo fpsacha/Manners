@@ -1092,9 +1092,12 @@ def make_sheen():
 def make_band():
     w, h = 32, 64
     x, y = grid(w, h)
-    centre = 16.0 + (32.0 - y) * 0.36
-    a = np.exp(-((x - centre) / 5.5) ** 2) * (1 - sstep(24.0, 31.0, np.abs(x - 16.0)))
-    a = a * sstep(0.0, 6.0, y) * (1 - sstep(h - 6.0, h, y))
+    # Slanted, and wholly inside its file: the band's light is at nothing on
+    # every edge (it ran out through the sides at a third of its strength, and
+    # the file's own box showed as a pale rectangle crossing the leather).
+    centre = 16.0 + (32.0 - y) * 0.30
+    a = np.exp(-((x - centre) / 4.6) ** 2) * (1 - sstep(9.5, 15.5, np.abs(x - 16.0)))
+    a = a * sstep(0.0, 8.0, y) * (1 - sstep(h - 8.0, h, y))
     save("Leather_Band", finish(white(a), a, w, h))
 
 
