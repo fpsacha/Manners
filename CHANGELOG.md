@@ -22,6 +22,9 @@
 - **Two Manners users share a group.** Two of the same class in one party or
   raid are each offered their own part of it, so nobody is buffed twice. On by
   default, under *My party and raid*.
+- **Detect Invisibility for passers-by.** *Offer Detect Invisibility to
+  passers-by too*, under a warlock's Detect Invisibility on *Who to buff* once
+  that is ticked. Off by default. Asked for by a player.
 
 ### Battlegrounds and arenas
 - **A section of their own** on *When to offer*. After a death your own buffs
@@ -78,6 +81,11 @@
 - **Milestones.** Thirteen marks of good manners, three of them hidden until
   earned, on a new *Milestones* tab of the ledger. A new one gets a small
   toast and a line in chat, never in a fight. Three switches on *Start here*.
+
+### Hall of fame
+- **Gentlefolk of Good Manners.** Earn every milestone your character can and
+  *Start here* shows a code: post it on the addon's GitHub page to have your
+  name listed there and inside the addon. An invitation, nothing asked for it.
 
 ### Options window
 - **A simple view.** *Simple view*, under the search box, draws only the

@@ -273,6 +273,11 @@ local defaults = {
 			-- Detect Invisibility for your group), switched on: a sparse set, absent
 			-- is off (ns.OptedOut).
 			optIn = {},
+			-- A buff held to your group by Manners' choice (Buffs.lua, membersOnly:
+			-- a warlock's Detect Invisibility) offered to passers-by too, and to a
+			-- passer-by who asks for it: asked for by a player. Off, so it stays
+			-- the group's alone until somebody ticks it (ns.PassersToo).
+			detectPassers = false,
 			-- A paladin who knows Blessing of Kings offers it to everybody ahead of
 			-- the rest (Buffs.lua, `strongest`; CastableBuffs). On: the strongest
 			-- blessing first is what was asked for, and somebody already carrying
@@ -1215,6 +1220,18 @@ function ns.OptedOut(buff, b)
 	return not (type(on) == "table" and on[buff.key] == true)
 end
 
+-- Whether a buff Manners holds to your group by choice (Buffs.lua, membersOnly:
+-- Detect Invisibility) goes to passers-by as well, because the player ticked
+-- "to passers-by too" under it (db.buff.detectPassers, off). Never true of a
+-- buff the game itself keeps to the group (groupOnly, partyOnly), which carry
+-- no membersOnly. One table read, and only for such a buff.
+function ns.PassersToo(buff)
+	if not buff.membersOnly then return false end
+	local db = addon.db and addon.db.profile
+	local b = db and db.buff
+	return type(b) == "table" and b.detectPassers == true
+end
+
 -- Whether one of your buffs for others is switched off on Who to buff, either
 -- way (the skip set, or an optIn buff not switched on): for the options page.
 function ns.BuffOff(buff, b)
@@ -1497,7 +1514,9 @@ function ns.OnlyReachesGroup(castable)
 	for _, buff in ipairs(castable) do
 		-- A buff for one target at a time goes to your group alone (Buffs.lua,
 		-- oneTarget), as Salvation does, and so does one held to it by choice
-		-- (membersOnly: Detect Invisibility).
+		-- (membersOnly: Detect Invisibility), unless the player sent that one to
+		-- passers-by too (ns.PassersToo).
+		if ns.PassersToo(buff) then return false end
 		if not (buff.partyOnly or buff.groupOnly or buff.oneTarget or buff.membersOnly) then return false end
 	end
 	return true
@@ -1877,8 +1896,9 @@ do
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
 		-- Held to your group by Manners' choice, where the game would take any
 		-- friendly target (Buffs.lua, membersOnly: Detect Invisibility): never a
-		-- passer-by, and never anybody outside the group who asks for it.
-		if buff.membersOnly and not (opts.inGroup or opts.inParty) then return false end
+		-- passer-by, and never anybody outside the group who asks for it, until
+		-- the player ticks "to passers-by too" under it (ns.PassersToo).
+		if buff.membersOnly and not (opts.inGroup or opts.inParty) and not ns.PassersToo(buff) then return false end
 		-- A group member's pet (opts.pet: Queue.lua, visit, with "My group's
 		-- pets too" on) is in the group and is nobody in it: never a buff for
 		-- one target at a time, which is for its people. One held to the

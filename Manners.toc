@@ -59,6 +59,8 @@ Phrases.lua
 Ask.lua
 Ledger.lua
 Milestones.lua
+HallOfFame.lua
+Hall.lua
 Looks\Looks.lua
 Looks\Flow.lua
 Looks\Previews.lua

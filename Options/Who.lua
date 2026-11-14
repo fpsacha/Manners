@@ -52,7 +52,8 @@ local function BuffLabel(buff)
 	if buff.partyOnly or buff.groupOnly or buff.oneTarget then label = L["%s |cff808080(your group only)|r"]:format(label) end
 	-- Held to your group by choice (Buffs.lua, membersOnly: Detect Invisibility).
 	if buff.membersOnly and not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then
-		label = L["%s |cff808080(your group only)|r"]:format(label)
+		-- Not once it goes to passers-by too (the switch under it).
+		if not ns.PassersToo(buff) then label = L["%s |cff808080(your group only)|r"]:format(label) end
 	end
 	return label
 end
@@ -253,6 +254,30 @@ local function AddBuffToggles(args)
 				get = function() return B().keptBack[buff.key] ~= true end,
 				set = function(_, value)
 					B().keptBack[buff.key] = (not value) or nil
+					restyleAndMacro()
+				end,
+			}
+		end
+		-- And a switch under one Manners holds to your group by choice (Buffs.lua,
+		-- membersOnly: a warlock's Detect Invisibility), asked for by a player:
+		-- on, passers-by are offered it too. Off by default, there only where the
+		-- class and the client have such a buff, and shown once the buff itself
+		-- is ticked.
+		if buff.membersOnly and not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then
+			args["passers_" .. buff.key] = {
+				type = "toggle",
+				name = function() return L["Offer %s to passers-by too"]:format(ns.BuffName(buff) or buff.key) end,
+				desc = L["Off: it is offered to the members of your party or raid only. On: passers-by missing it are offered it as well, and so is a passer-by who asks you for it in chat. Passers-by must be ticked above for it to reach them unasked."],
+				order = 4 + index / 10 + 0.05,
+				width = "full",
+				hidden = function()
+					if ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key then return true end
+					return ns.BuffOff(buff, B())
+				end,
+				disabled = function() return not ns.IsBuffKnown(buff) end,
+				get = function() return B().detectPassers == true end,
+				set = function(_, value)
+					B().detectPassers = value and true or false
 					restyleAndMacro()
 				end,
 			}

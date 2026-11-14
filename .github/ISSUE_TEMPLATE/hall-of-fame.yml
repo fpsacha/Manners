@@ -1,0 +1,35 @@
+name: Hall of fame
+description: Every milestone earned? Ask for your place among the Gentlefolk of Good Manners
+title: "Hall of fame: "
+labels: [hall-of-fame]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Congratulations, and thank you for your manners. When a character has
+        earned every milestone of the favour ledger it can earn, the options
+        (`/manners`) show a code on **Start here**, under **Gentlefolk of Good
+        Manners**: click in the box, Ctrl+A, Ctrl+C, and paste it below.
+
+        Your character's name is then added to the list in the README and to
+        the one inside the addon with the next release. It is an invitation and
+        nothing more: nothing is asked for a place, and nothing but the code is
+        needed. The code names your character, its class, your game client and
+        the day of your last milestone, and nothing else.
+
+  - type: input
+    id: code
+    attributes:
+      label: Your code
+      description: The whole line from the box, starting MANNERS1-
+      placeholder: MANNERS1-CAMELOT-MAGE-20261114-4D6F7274204465667265747465-0-DA8EF87D
+    validations:
+      required: true
+
+  - type: input
+    id: note
+    attributes:
+      label: A few words beside your name (optional)
+      description: A guild, a motto, a greeting. Short, please; it is shown in the list.
+    validations:
+      required: false

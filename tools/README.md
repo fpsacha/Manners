@@ -545,6 +545,33 @@ python tools/check.py
 What rp.lua checks and this cannot is left to it: a class that gives buffs
 needs all four kinds, thanks, asked, offer and group.
 
+## hall.py
+
+The hall of fame's clerk ("Gentlefolk of Good Manners"). `tools/hall.json` is
+the source of truth: a list of `{name, realm, client, class, date, note}`.
+From it the tool writes `HallOfFame.lua` (shipped, drawn by `Hall.lua` in the
+options window) and the block between `<!-- hall:start -->` and
+`<!-- hall:end -->` in `README.md`; neither is edited by hand.
+
+```
+python tools/hall.py check <code>           # decode a code: its fields, and whether its checksum holds
+python tools/hall.py add <code> [--note T]  # append its player to hall.json (refuses a bad checksum or a duplicate), write both outputs
+python tools/hall.py                        # write both outputs from hall.json
+python tools/hall.py --check                # exit 1 when either output is stale, or the code vectors fail
+```
+
+A code is `MANNERS1-<CLIENT>-<CLASS>-<YYYYMMDD>-<NAME>-<REALM>-<CHECK>`:
+capitals, digits and dashes; name and realm as the hex of their UTF-8 bytes
+(`0` for no realm), eight hex digits of checksum over everything before the
+last dash. The checksum catches a typo or a casual edit and is no proof: the
+arithmetic is public, here and in `Hall.lua`, so the author decides who is
+listed (look the character up, or ask for a screenshot of the Milestones tab,
+when in doubt). The `VECTORS` in the file are codes both sides must agree on:
+`--check` holds the Python to them, `tests/scenarios/hall.lua` reads them out
+of this file and holds `Hall.lua` to them. To list somebody from an issue:
+`check` the code, `add` it (with the issue's optional note), commit the three
+files. Standard library only. `hall.py` is not part of `check.py`.
+
 ## maketocs.py
 
 Writes one `Manners_<Flavour>.toc` from `Manners.toc` for each entry in its
