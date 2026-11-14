@@ -272,7 +272,7 @@ mutate("Milestones.lua",
        "milestones: every favour returned is quick",
        expect=E + "the same person counts once a day", script=S)
 mutate("Milestones.lua",
-       "\t\t\tif e.state ~= \"returned\" then return false end\n",
+       "\t\t\tif e.state ~= \"returned\" or Unsettled(e) then return false end\n",
        "",
        "milestones: a week with a favour let go is kept",
        expect=E + "a week with every favour returned", script=S)
@@ -282,8 +282,8 @@ mutate("Milestones.lua",
        "milestones: a week of four days",
        expect=E + "a week with every favour returned", script=S)
 mutate("Milestones.lua",
-       "\t\tif clock - c.at > SITTING_SECONDS then cast[other] = nil else total = total + c.reach end\n",
-       "\t\ttotal = total + c.reach\n",
+       "\t\tif clock - at > SITTING_SECONDS then cast[other] = nil else total = total + 1 end\n",
+       "\t\ttotal = total + 1\n",
        "milestones: a sitting never ends",
        expect=E + "a whole raid buffed in one sitting", script=S)
 mutate("Milestones.lua",

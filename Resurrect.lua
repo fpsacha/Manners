@@ -121,6 +121,22 @@ local SPELLS = {
 }
 Res.SPELLS = SPELLS
 
+-- Every resurrection of every class on every client, by id: a row of the
+-- favour ledger that holds one was somebody brought back, whichever character
+-- or client wrote it (Milestones.lua counts no buff for it).
+local EVERY = {}
+for _, set in pairs(SPELLS) do
+	for _, mine in pairs(set) do
+		for _, ids in pairs(mine) do
+			for _, id in ipairs(ids) do EVERY[id] = true end
+		end
+	end
+end
+
+function Res.IsSpell(id)
+	return id ~= nil and EVERY[id] == true
+end
+
 -- This class's, on this client, or nil: a client nobody here has seen gets its
 -- family's, as it gets its family's buffs (Buffs.lua).
 local function Mine()

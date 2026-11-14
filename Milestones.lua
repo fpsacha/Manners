@@ -35,6 +35,8 @@
 --   milestones.classes  class token -> true, of people a favour was returned to
 --   milestones.today    { day, n, names }: who was returned a favour today
 --   milestones.lately   stranger -> when the buff you gave them runs out
+--   milestones.due      the settles still inside the refusal wait, as { kind,
+--                       name, at }: what a reload in those seconds would lose
 --
 -- What the other features tell it, each one call where their cast is known to
 -- have landed: ns.Milestones.Note("res"), Note("cure"), Note("courtesy").
@@ -189,6 +191,9 @@ local SAME_DEFAULT, SAME_MIN, SAME_MAX = 1800, 300, 7200
 local MAX_PEOPLE = 300
 -- Strangers remembered as recently buffed, pruned as their buffs run out.
 local MAX_LATELY = 400
+-- Settles remembered across a reload while they wait out the refusal: a few
+-- seconds' worth of presses, never more.
+local MAX_DUE = 20
 -- One sitting, for "everybody in your raid", and the smallest raid it means.
 local SITTING_SECONDS = 900
 local RAID_LEAST = 10
@@ -296,6 +301,17 @@ local function Repair(char)
 		end
 	end
 	st.lately = lately
+	local due = {}
+	if type(st.due) == "table" then
+		for i = 1, math.min(#st.due, MAX_DUE) do
+			local d = st.due[i]
+			if type(d) == "table" and (d.kind == "received" or d.kind == "given") and type(d.name) == "string"
+				and type(d.at) == "number" and d.at == d.at then
+				due[#due + 1] = { kind = d.kind, name = d.name, at = d.at }
+			end
+		end
+	end
+	st.due = due
 	st.seeded = st.seeded == true
 	store = st
 	return st
@@ -362,24 +378,45 @@ local function Stranger(st, name, spell, now)
 	end
 end
 
+-- Settles waiting out the server's refusal, as a new title does.
+local waiting = {}
+
+-- Whether this row of the ledger is still inside that wait.
+local function Unsettled(e)
+	for _, w in ipairs(waiting) do
+		if w.entry == e then return true end
+	end
+	return false
+end
+
+-- Whether a spell given was a resurrection (Resurrect.lua files its casts in
+-- the ledger as something given): somebody brought back, not somebody buffed.
+local function IsRes(spell)
+	local R = ns.Resurrect
+	return R ~= nil and R.IsSpell ~= nil and R.IsSpell(spell) == true
+end
+
 -- This session's casts on the raid, per spell: who each reached and when.
 -- Never saved: a sitting does not outlast a reload.
 local sitting = {}
 
--- One of your buffs on `name` (and on `reach` people in all, for a group
--- cast) in a raid of `size`. Earned when one spell's casts inside the sitting
--- have reached everybody but you.
-local function Sat(st, spell, name, reach, size, clock)
+-- One of your buffs on `names` (the one it was cast on and, for a group cast,
+-- everybody else it reached) in a raid of `size`. Earned when one spell's
+-- casts inside the sitting have reached everybody but you: each person once,
+-- however many casts reached them, and never yourself.
+local function Sat(st, spell, names, size, clock)
 	local key = spell or 0
 	local cast = sitting[key]
 	if not cast then
 		cast = {}
 		sitting[key] = cast
 	end
-	cast[name] = { at = clock, reach = math.max(reach, cast[name] and clock - cast[name].at <= SITTING_SECONDS and cast[name].reach or 0) }
+	for _, name in ipairs(names) do
+		if not ns.IsPlayerName(name) then cast[name] = clock end
+	end
 	local total = 0
-	for other, c in pairs(cast) do
-		if clock - c.at > SITTING_SECONDS then cast[other] = nil else total = total + c.reach end
+	for other, at in pairs(cast) do
+		if clock - at > SITTING_SECONDS then cast[other] = nil else total = total + 1 end
 	end
 	if size >= RAID_LEAST and total >= size - 1 then st.n.raid = 1 end
 end
@@ -392,7 +429,9 @@ function WeekKept(now)
 	local favours, days, dayCount = 0, {}, 0
 	for _, e in ipairs(Ledger.Entries("favours")) do
 		if e.at >= now - WEEK_SECONDS and e.state ~= "back" and e.why ~= "useless" and e.why ~= "covered" then
-			if e.state ~= "returned" then return false end
+			-- Returned, and past the server's refusal: one still inside its
+			-- wait may yet go back to owed.
+			if e.state ~= "returned" or Unsettled(e) then return false end
 			favours = favours + 1
 			local day = DayKey(e.at)
 			if not days[day] then
@@ -411,6 +450,39 @@ local function CountReturn(st, e, now)
 	ThankedToday(st, e.name, day)
 	if e.class then st.classes[e.class] = true end
 	if e.doneAt and e.doneAt - e.at <= SWIFT_SECONDS then st.n.swift = st.n.swift + 1 end
+end
+
+-- What one settled row of the ledger is worth, once nothing can refuse it. A
+-- favour returned; a request answered; or a stranger buffed unprompted, which
+-- a buff they asked for is not and a resurrection is not either. Answers
+-- whether the row stood.
+local function CountRow(st, e, now)
+	if e.kind == "received" then
+		-- Still returned: a refusal puts the row back to owed.
+		if e.state ~= "returned" then return false end
+		CountReturn(st, e, now)
+		return true
+	end
+	if e.asked then
+		st.n.asked = st.n.asked + 1
+	elseif e.to == "stranger" and not IsRes(e.spell) then
+		Stranger(st, e.name, e.spell, e.at or now)
+	end
+	return true
+end
+
+-- The ledger's counts as a milestone may read them. The ledger counts a favour
+-- returned when the cast is sent and takes it back on a refusal; here it
+-- counts once the refusal can no longer come, so the returns still waiting are
+-- left out.
+local function Sum()
+	local sum = Ledger.Summary()
+	local held = 0
+	for _, w in ipairs(waiting) do
+		if w.entry.kind == "received" and w.entry.state == "returned" then held = held + 1 end
+	end
+	sum.totals.returned = math.max(0, (sum.totals.returned or 0) - held)
+	return sum
 end
 
 ---------------------------------------------------------------------------
@@ -662,7 +734,7 @@ end
 local function Evaluate(st, quiet)
 	local now = K.Wall()
 	if not now then return 0 end
-	local sum = Ledger.Summary()
+	local sum = Sum()
 	local new = 0
 	for _, def in ipairs(LIST) do
 		if not st.earned[def.id] and Available(def, st) and (def.value(st, sum, now) or 0) >= def.goal then
@@ -682,9 +754,11 @@ local function Seed(st)
 	local now = K.Wall()
 	if not now then return false end
 	local sum = Ledger.Summary()
-	st.n.strangers = math.max(st.n.strangers, Count(sum.totals.strangers))
 	local list = Ledger.Entries("all")
 	local days = {}
+	-- Of the ledger's strangers, the rows that were no buff given unprompted:
+	-- one they asked for, or a resurrection.
+	local other = 0
 	for i = #list, 1, -1 do
 		local e = list[i]
 		if e.kind == "received" and e.state == "returned" then
@@ -696,10 +770,12 @@ local function Seed(st)
 			if day == DayKey(now) then ThankedToday(st, e.name, day) end
 			if e.class then st.classes[e.class] = true end
 			if e.doneAt and e.doneAt - e.at <= SWIFT_SECONDS then st.n.swift = math.max(st.n.swift, 1) end
-		elseif e.kind == "given" and e.asked then
-			st.n.asked = math.max(st.n.asked, 1)
+		elseif e.kind == "given" then
+			if e.asked then st.n.asked = math.max(st.n.asked, 1) end
+			if e.to == "stranger" and (e.asked or IsRes(e.spell)) then other = other + 1 end
 		end
 	end
+	st.n.strangers = math.max(st.n.strangers, Count(Count(sum.totals.strangers) - other))
 	st.seeded = true
 	return true
 end
@@ -715,17 +791,26 @@ local function Begin(st)
 	end
 end
 
--- Settles waiting out the server's refusal, as a new title does.
-local waiting = {}
 local dueTimer = false
+
+-- A settle is no longer remembered for the next session: counted or refused.
+local function Undue(st, d)
+	for i = #st.due, 1, -1 do
+		if st.due[i] == d then table.remove(st.due, i) end
+	end
+end
+
+-- Nothing waits: the switch is off.
+local function Forget()
+	for i = #waiting, 1, -1 do waiting[i] = nil end
+	local st = Store()
+	if st then st.due = {} end
+end
 
 local function Due()
 	dueTimer = false
 	local st = On() and Store()
-	if not st then
-		for i = #waiting, 1, -1 do waiting[i] = nil end
-		return
-	end
+	if not st then return Forget() end
 	local clock, now = GetTime(), K.Wall()
 	local wait = Ledger.PROMOTE_SECONDS or 3
 	local left
@@ -734,17 +819,14 @@ local function Due()
 		local w = waiting[i]
 		if clock - w.clock >= wait - 0.01 then
 			table.remove(waiting, i)
+			Undue(st, w.due)
 			local e = w.entry
-			if now and e.kind == "received" then
-				-- Still returned: a refusal puts the row back to owed.
-				if e.state == "returned" then
-					CountReturn(st, e, now)
-					if w.size and not w.grouped then Sat(st, e.gave, e.name, 1, w.size, w.clock) end
+			if now and CountRow(st, e, now) and w.size then
+				if e.kind == "received" then
+					if not w.grouped then Sat(st, e.gave, { e.name }, w.size, w.clock) end
+				elseif e.to == "group" and not IsRes(e.spell) then
+					Sat(st, e.spell, w.names, w.size, w.clock)
 				end
-			elseif now then
-				if e.asked then st.n.asked = st.n.asked + 1 end
-				if e.to == "stranger" then Stranger(st, e.name, e.spell, now) end
-				if w.size and e.to == "group" then Sat(st, e.spell, e.name, e.covered or 1, w.size, w.clock) end
 			end
 		else
 			left = math.min(left or wait, wait - (clock - w.clock))
@@ -759,14 +841,44 @@ local function Due()
 	end
 end
 
+-- The settles a reload, a logout or a disconnect cut off inside their wait:
+-- the ledger has them on disk, and no refusal can come for them now. Each is
+-- counted from its row, if the row still stands, and what that earns is said
+-- as it would have been.
+local function Resume(st)
+	local due = st.due
+	if #due == 0 or #waiting > 0 then return end
+	st.due = {}
+	local now = K.Wall()
+	if not now then return end
+	local list, used = Ledger.Entries("all"), {}
+	for _, d in ipairs(due) do
+		for _, e in ipairs(list) do
+			local at = e.kind == "received" and e.doneAt or e.at
+			if not used[e] and e.kind == d.kind and e.name == d.name and at == d.at then
+				used[e] = true
+				CountRow(st, e, now)
+				break
+			end
+		end
+	end
+	Evaluate(st, false)
+end
+
 ---------------------------------------------------------------------------
 -- what the ledger and the other features tell it
 ---------------------------------------------------------------------------
 
 -- At login, after the ledger has its rows.
 function M.Load()
-	local st = On() and Store()
-	if st then Begin(st) end
+	local st = Store()
+	if not st then return end
+	if not On() then
+		st.due = {}
+		return
+	end
+	Begin(st)
+	Resume(st)
 end
 
 -- A cast settled: `entry` is the ledger's row for it, a favour returned or a
@@ -776,13 +888,23 @@ function M.Settled(entry, pending)
 	local st = Store()
 	if not st then return end
 	Begin(st)
-	local w = { entry = entry, clock = GetTime() }
+	local w = { entry = entry, clock = GetTime(), names = { entry.name } }
+	-- Remembered on disk until it is counted or refused (Resume).
+	w.due = { kind = entry.kind, name = entry.name, at = entry.kind == "received" and entry.doneAt or entry.at }
+	if #st.due < MAX_DUE then st.due[#st.due + 1] = w.due end
 	-- In a raid, for "everybody in your raid": how big it is now, and whether
 	-- this was one of the people a group cast covered, who are counted with it.
 	if type(pending) == "table" and pending.inGroup == true and plain(_G.IsInRaid and _G.IsInRaid()) == true then
 		local size = plain(_G.GetNumGroupMembers and _G.GetNumGroupMembers())
 		if type(size) == "number" then w.size = size end
 		w.grouped = type(pending.group) == "table"
+		-- Everybody else a group cast reached, by name: a member is a name
+		-- (GroupBuffs.lua) or a table that holds one.
+		local members = w.grouped and pending.group.members
+		for _, member in ipairs(type(members) == "table" and members or {}) do
+			local name = type(member) == "table" and member.name or member
+			if type(name) == "string" then w.names[#w.names + 1] = name end
+		end
 	end
 	waiting[#waiting + 1] = w
 	if not (C_Timer and C_Timer.After) then
@@ -797,8 +919,12 @@ end
 
 -- The server refused the cast after all: its row counts for nothing.
 function M.Refused(entry)
+	local st = Store()
 	for i = #waiting, 1, -1 do
-		if waiting[i].entry == entry then table.remove(waiting, i) end
+		if waiting[i].entry == entry then
+			if st then Undue(st, waiting[i].due) end
+			table.remove(waiting, i)
+		end
 	end
 end
 
@@ -820,9 +946,11 @@ function M.Ranked(title)
 	Toast({ heading = TEXT.HEAD_TITLE, name = title.name, line = title.flavour, icon = K.LOGO })
 end
 
--- The switch was turned. On: the ledger's past is read if it never was, and
--- whatever was passed while it was off is marked without a toast, so nothing
--- is to be had by turning it. Off: nothing waits, nothing shows.
+-- The switch was turned, by hand or by the profile changing under it (Core.lua,
+-- RefreshConfig: the switch is the profile's, the milestones the character's).
+-- On: the ledger's past is read if it never was, and whatever was passed while
+-- it was off is marked without a toast, so nothing is to be had by turning it.
+-- Off: nothing waits, nothing shows.
 function M.Switched()
 	if On() then
 		local st = Store()
@@ -830,7 +958,7 @@ function M.Switched()
 			if st.seeded then Evaluate(st, true) else Begin(st) end
 		end
 	else
-		for i = #waiting, 1, -1 do waiting[i] = nil end
+		Forget()
 		for i = #queue, 1, -1 do queue[i] = nil end
 		if toast then toast:Hide() end
 	end
@@ -890,7 +1018,7 @@ function M.Rows()
 	local out = {}
 	if not st then return out end
 	Begin(st)
-	local now, sum = K.Wall(), Ledger.Summary()
+	local now, sum = K.Wall(), Sum()
 	for order, def in ipairs(LIST) do
 		if Available(def, st) then
 			local row = rowById[def.id]
@@ -939,15 +1067,41 @@ local function LinkClicked(self)
 	if m and m.milestone and m.earnedAt then M.Link(m.def) end
 end
 
+-- How wide the link button is: a glyph, not its words, which in French or
+-- Portuguese took 130 of the row's 328 and left the line beside it a dozen
+-- letters.
+local LINK_WIDTH = 22
+
+-- A speech bubble drawn from the one solid texture: a body, a tail, three dots.
+local function LinkGlyph(b)
+	local ink = K.INK
+	local body = K.Solid(b, "ARTWORK")
+	body:SetSize(12, 8)
+	body:SetPoint("CENTER", b, "CENTER", 0, 1)
+	body:SetVertexColor(ink[1], ink[2], ink[3], 0.9)
+	local tail = K.Solid(b, "ARTWORK")
+	tail:SetSize(3, 2)
+	tail:SetPoint("TOPLEFT", body, "BOTTOMLEFT", 2, 0)
+	tail:SetVertexColor(ink[1], ink[2], ink[3], 0.9)
+	for i = 0, 2 do
+		local dot = K.Solid(b, "ARTWORK", 1)
+		dot:SetSize(2, 2)
+		dot:SetPoint("LEFT", body, "LEFT", 2 + i * 3, 0)
+		dot:SetVertexColor(0, 0, 0, 0.9)
+	end
+end
+
 -- A ledger row painted as a milestone: the icon, the name over a badge and
 -- the line, the date on the right, and on an earned one the link button.
 function M.Paint(row, m)
 	local def = m.def
 	if not row.link then
-		row.link = K.FlatButton(row, TEXT.LINK, 80, 14, 0.1)
-		row.link:SetWidth(K.FitWidth(row.link.label, { TEXT.LINK }, 50, 130))
+		-- A small button, the same in every language: its words are in its
+		-- tooltip, and the row's one line keeps the width they would take.
+		row.link = K.FlatButton(row, "", LINK_WIDTH, 14, 0.1)
+		LinkGlyph(row.link)
 		row.link:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -6, 2)
-		row.link.tip = TEXT.LINK_TIP
+		row.link.tip = "|cffffd100" .. TEXT.LINK .. "|r\n" .. TEXT.LINK_TIP
 		row.link:SetScript("OnClick", LinkClicked)
 	end
 	row.entry = m

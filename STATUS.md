@@ -591,8 +591,11 @@ press did. Paste whatever does not match.
 - [ ] A character with a long ledger, first login on 1.11.25: one line in
       chat saying how many it had already earned, no toast.
 - [ ] The ledger's *Milestones* tab: thirteen rows, three reading *Hidden*
-      until earned, each with how far along it is; *Link in chat* on an
-      earned row fills the chat box and sends nothing.
+      until earned, each with how far along it is; the speech-bubble
+      button on an earned row (*Link in chat* in its tooltip) fills the chat
+      box and sends nothing, and the row's line beside it is not cut short.
+- [ ] `/reload` within three seconds of buffing a stranger: the Milestones
+      tab's count of strangers is one more after it, as the ledger's is.
 - [ ] Return a first favour on a new character: the toast (*Much Obliged*)
       a few seconds after the cast, drawn like the game's own, clear of the
       prompt, gone at a click; its sound, and none with *Play the sound* off.

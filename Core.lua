@@ -5410,6 +5410,10 @@ function addon:RefreshConfig(event)
 	-- Guarded: nil if Options/Launcher.lua failed to load, and a throw here
 	-- would take StartScanner with it.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
+	-- The Milestones switch is the profile's and the milestones the
+	-- character's: what was passed while another profile had it off is marked
+	-- without a toast, as the switch itself marks it (Milestones.lua).
+	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Switched) end
 	-- An import's undo belongs to the profile it was made on:
 	-- ProfileChangedForUndo decides what a switch, copy or reset does to it,
 	-- and an import or its undo calling this ends it (an import sets it again).

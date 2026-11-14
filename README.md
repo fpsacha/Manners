@@ -611,9 +611,9 @@ day, *Old Acquaintance* for thanking the same person on ten different days,
 Thank-Yous*, *Back on Your Feet* for a resurrection through the prompt, *A
 Clean Bill of Health* for a cure, *At Your Service* for a courtesy on request,
 and three hidden ones that say what they were once earned. The ledger's
-*Milestones* tab lists them with how far along each is; an earned one has
-*Link in chat*, which puts a line about it in your chat box and sends nothing
-until you press Enter. A new milestone, or a new title, gets a small toast for
+*Milestones* tab lists them with how far along each is; an earned one has a
+small speech-bubble button, *Link in chat*, which puts a line about it in your
+chat box and sends nothing until you press Enter. A new milestone, or a new title, gets a small toast for
 a few seconds and one line in your chat window: never in a fight, never over
 the prompt, one at a time and at most one a minute, and a click sends it away.
 Nothing counts presses: the same stranger counts again only once the buff you
