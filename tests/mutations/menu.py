@@ -186,6 +186,13 @@ mutate(LAYOUT,
        "menu: Look's colours out of their fold",
        expect="appearance is 3.2 screens of the usual window", script=S)
 
+# The fold shut over a colour somebody changed, with nothing to say so.
+mutate(PAGE,
+       "for _, key in ipairs({ \"bgColor\", \"accentByReason\", \"accentMode\", \"accentColor\" }) do\n",
+       "for _, key in ipairs({ \"accentByReason\", \"accentMode\", \"accentColor\" }) do\n",
+       "menu: Style's fold never says a colour was changed",
+       expect="Style's dot stays dark", script=S)
+
 mutate(PAGE,
        "\t\"tooltip\", \"tooltipPosition\", \"peekOnChange\" }) do\n",
        "\t\"peekOnChange\" }) do\n",

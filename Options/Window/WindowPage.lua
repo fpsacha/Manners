@@ -295,6 +295,10 @@ for _, key in ipairs({ "font", "fontSize", "fontColor", "classColor", "showSub",
 	"tooltip", "tooltipPosition", "peekOnChange" }) do
 	FIELDS["appearance." .. key] = { { "prompt", key } }
 end
+-- Look's colours (Style), a fold too: its dot says a colour is not the look's own.
+for _, key in ipairs({ "bgColor", "accentByReason", "accentMode", "accentColor" }) do
+	FIELDS["appearance." .. key] = { { "prompt", key } }
+end
 
 local function Profile() return ns.db.profile end
 
