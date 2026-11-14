@@ -30,8 +30,19 @@
 --     breath (three, then still), the landing (a shine along the cloth, the
 --     medallion's flash), the refusal, the fight, the cooldown on the icon, the
 --     cursor, and leaving the look;
+--   * it moves at rest (Looks/Flow.lua): folds run down the cloth towards the
+--     fork, shade only, and the fork flutters in step with them, a sheet of
+--     frames; a gleam travels the gold now and then (`idle`); all of it on
+--     Full effects, out of a fight, with the prompt up, and not over a
+--     refusal; the middles are tiled in whole periods of their weave, never
+--     stretched;
+--   * a landing is a prize pinned on: the medallion comes down from over its
+--     size (the one scale, named in `skyward`), rays stand out behind it under
+--     the cloth, a gleam goes round its laurel and down the cords to the
+--     fork's tips;
 --   * every frame of light is under the text, nothing of the look's own scales
---     over the text, and every effect stays inside the prompt's box;
+--     but the medallion as it is pinned on, and every other effect stays
+--     inside the prompt's box;
 --   * the list: a small ribbon per name, each a button hung off a frame; and
 --     the tags for the count and the bound key;
 --   * the face: Morpheus where the client writes in Latin letters, the client's
@@ -54,6 +65,10 @@ local LOCALES = { "deDE", "esES", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW"
 -- The figures the code and the art share (Looks/Ribbon.lua, the generator).
 local RIBBON_PX, END_PX, NOTCH_PX = 64, 32, 19
 local M_BEZEL = 0.635
+-- How far a middle runs on over its forked end at the least, in units and in
+-- texels of the end's file (Looks/Ribbon.lua's LAP and LAP_TEXELS; the look
+-- says what it came to as look.lap, and look.rowLap for the list's).
+local LAP, LAP_TEXELS = 1, 3
 
 local function withTree(scenario, names, body, before)
 	Mock.reset()
@@ -394,14 +409,17 @@ local function layoutAt(ns, scenario, label, edit, ctx)
 	if not (near(c1[2], g.top, 0.05) and near(c1[4], g.bottom, 0.05) and near(c2[2], g.top, 0.05) and near(c2[4], g.bottom, 0.05)) then
 		fail(scenario, label .. ": the cloth is not the height the layout says")
 	end
-	if not (near(c1[3], c2[1], 0.05) and near(c2[3], W, 0.05)) then
+	if not (look.lap >= LAP and look.lap >= LAP_TEXELS * g.k - 1e-6 and look.lap <= math.max(LAP, LAP_TEXELS * g.k) + 1e-6) then
+		fail(scenario, label .. ": the middle does not cover its fork's empty column, or covers the fork: " .. tostring(look.lap))
+	end
+	if not (near(c1[3], c2[1] + look.lap, 0.05) and near(c2[3], W, 0.05)) then
 		fail(scenario, label .. ": the cloth's middle does not meet its fork, or the fork is short of the right edge")
 	end
 	if look.showIcon then
 		if not near(c1[1], g.cx, 0.05) then fail(scenario, label .. ": the cloth does not start under the medallion's middle") end
 	else
 		local c3 = rel(span(look.cloth[3]))
-		if not (near(c3[1], 0, 0.05) and near(c3[3], c1[1], 0.05)) then
+		if not (near(c3[1], 0, 0.05) and near(c3[3], c1[1] + look.lap, 0.05)) then
 			fail(scenario, label .. ": with no medallion the cloth's left fork does not meet its middle")
 		end
 	end
@@ -930,7 +948,8 @@ withTree("look-ribbon: the ribbon is a solid object at rest, not a veil", ANNA, 
 	-- Nothing is laid over it: every light is parked at nothing, and no
 	-- additive texture shows.
 	for what, t in pairs({ lit = look.lit, enamelLit = look.enamelLit, hover = look.hover, glint = look.glint, sweep = look.sweep,
-		dark1 = look.dark[1], dark2 = look.dark[2], hot1 = look.hot[1], hot2 = look.hot[2] }) do
+		dark1 = look.dark[1], dark2 = look.dark[2], hot1 = look.hot[1], hot2 = look.hot[2],
+		wake = look.wake, railGleam = look.railGleam, burst = look.burst, tip1 = look.tips[1], tip2 = look.tips[2], arc = look.arc }) do
 		if (t._alpha or 1) > 0.001 then fail(scenario, ("%s is lit at rest (%.2f)"):format(what, t._alpha or 1)) end
 	end
 	for _, f in ipairs(look.fx.frames) do
@@ -941,6 +960,9 @@ withTree("look-ribbon: the ribbon is a solid object at rest, not a veil", ANNA, 
 			fail(scenario, tostring(x._file) .. " is additive and lit at rest")
 		end
 	end
+	-- The folds on it are shade, never light: drawn BLEND from a black file,
+	-- with no colour of the look's given to them.
+	if look.wave._blend == "ADD" or look.wave._color then fail(scenario, "the folds on the cloth are light or tinted, not shade") end
 	-- The cloth's colour is at full strength: the dye is a colour, never a tint
 	-- of the world through it.
 	for i = 1, 2 do
@@ -961,8 +983,10 @@ withTree("look-ribbon: the ribbon is a solid object at rest, not a veil", ANNA, 
 		if not e then fail(scenario, end_ .. ".tga cannot be read") return end
 		-- The solid part: the rows between the rails, on the side that holds the
 		-- cloth, up to the apex of the notch (the tails are cut at an angle).
-		local solidFrom, solidTo = 0, END_PX - NOTCH_PX - 3
-		if end_ == "Ribbon_Cloth_EndL" then solidFrom, solidTo = NOTCH_PX + 3, END_PX - 1 end
+		-- (The first frame of its sheet, short of the column the sheet leaves
+		-- empty at the seam, which the middle lies over.)
+		local solidFrom, solidTo = 1, END_PX - NOTCH_PX - 3
+		if end_ == "Ribbon_Cloth_EndL" then solidFrom, solidTo = NOTCH_PX + 3, END_PX - 2 end
 		for y = 6, RIBBON_PX - 7 do
 			for x = solidFrom, solidTo do
 				if e.alpha(x, y) ~= 255 then fail(scenario, ("%s is not opaque at %d, %d: %d"):format(end_, x, y, e.alpha(x, y))) return end
@@ -981,7 +1005,9 @@ withTree("look-ribbon: the ribbon is a solid object at rest, not a veil", ANNA, 
 	end
 	for _, name in ipairs({ "Ribbon_Trim_Mid", "Ribbon_Trim_End" }) do
 		local t = readTGA(dir .. "/Textures/Ribbon/" .. name .. ".tga")
-		if t and t.alpha(math.floor(t.w / 2), 1) < 250 then fail(scenario, name .. "'s rail is not opaque") end
+		-- (Two texels in: the middle's file, and the first frame of the end's
+		-- sheet beside its seam, where the flutter has not yet moved the rail.)
+		if t and t.alpha(2, 1) < 250 then fail(scenario, name .. "'s rail is not opaque") end
 	end
 end)
 
@@ -1697,10 +1723,24 @@ withTree("look-ribbon: every frame of Ribbon's is under the text, and nothing th
 	if (look.chipFrame._level or 0) <= (r.art._level or 0) or (look.chipFrame._level or 0) >= text then
 		fail(scenario, "the tags' frame is not between the art and the text")
 	end
-	-- No scale among the look's own animations: they all cross the text's room.
+	-- No scale among the look's own animations, which all cross the text's
+	-- room, but the prize pinned on: the medallion's own parts coming down
+	-- onto the cloth, each of them named in `skyward` and down in a fifth of a
+	-- second.
+	local pinned, sky = {}, {}
+	for _, grp in ipairs(look.pin or {}) do pinned[grp] = true end
+	for _, t in ipairs(look.skyward or {}) do sky[t] = true end
 	for i, grp in ipairs(look.anims) do
 		for _, a in ipairs(grp._anims or {}) do
-			if a._kind == "Scale" then fail(scenario, "animation " .. i .. " of Ribbon's scales: it would cross the text") end
+			if a._kind == "Scale" then
+				if not pinned[grp] then
+					fail(scenario, "animation " .. i .. " of Ribbon's scales: it would cross the text")
+				elseif not sky[grp._owner] then
+					fail(scenario, "animation " .. i .. " scales a part the look does not name in skyward")
+				elseif FT.groupLength(grp) > 0.2 + 1e-6 then
+					fail(scenario, "animation " .. i .. " keeps the medallion over its size for more than a fifth of a second")
+				end
+			end
 		end
 	end
 	-- Nothing is a frame script on a clock.
@@ -1747,7 +1787,7 @@ withTree("look-ribbon: the list is a small ribbon per name, hung from behind the
 			local gem = rel(span(look.gems[i]))
 			-- The ribbon runs from under the medallion's right to the right edge.
 			if e[3] > look.W + 0.05 or m[1] < 0 then fail(scenario, "row " .. i .. "'s ribbon leaves the prompt's width") end
-			if not near(m[3], e[1], 0.05) then fail(scenario, "row " .. i .. "'s fork does not meet its middle") end
+			if not near(m[3], e[1] + look.rowLap, 0.05) then fail(scenario, "row " .. i .. "'s fork does not meet its middle") end
 			-- The name and the gem stand on it, the name short of the fork.
 			local mid = (m[2] + m[4]) / 2
 			if not (t[2] >= m[2] - 0.05 and t[4] <= m[4] + 0.05) then
@@ -1937,7 +1977,7 @@ end
 local FILES = { "Ribbon_Cloth_Mid", "Ribbon_Cloth_End", "Ribbon_Cloth_EndL", "Ribbon_Trim_Mid", "Ribbon_Trim_End", "Ribbon_Trim_EndL",
 	"Ribbon_Drop_Mid", "Ribbon_Drop_End", "Ribbon_Drop_EndL", "Ribbon_Medal", "Ribbon_Enamel", "Ribbon_Gloss", "Ribbon_Lit",
 	"Ribbon_Shade", "Ribbon_Disc", "Ribbon_Mask", "Ribbon_Ring", "Ribbon_Sweep", "Ribbon_Glint", "Ribbon_Tag", "Ribbon_Badge",
-	"Ribbon_Gem", "Ribbon_GemSet" }
+	"Ribbon_Gem", "Ribbon_GemSet", "Ribbon_Wave", "Ribbon_Burst", "Ribbon_Arc", "Ribbon_RailGleam" }
 
 withTree("look-ribbon: the generator draws the same bytes twice, and the bytes that ship", ANNA, function(_, scenario)
 	local a, b = tempDir() .. "-ribbon-a", tempDir() .. "-ribbon-b"
@@ -2060,6 +2100,38 @@ withTree("look-ribbon: the code and the generator agree about the art's figures"
 		fail(scenario, "the ring's peak or the shade's edge differs between the code and the generator")
 	end
 	_ = edge
+	-- The sheets of the forked end, the weave of the middles and the wave: the
+	-- code's figures are the generator's, and the files are that size.
+	local cols, rows, frames = code:match("local SHEET = { cols = (%d+), rows = (%d+), frames = (%d+), fps = %d+ }")
+	local gf, gc, grows = gen:match("\nFRAMES, COLS, SHEET_ROWS = (%d+), (%d+), (%d+)")
+	if not (cols and gf and tonumber(cols) == tonumber(gc) and tonumber(rows) == tonumber(grows) and tonumber(frames) == tonumber(gf)) then
+		fail(scenario, "the fork's sheet differs between the code and the generator")
+	end
+	for _, name in ipairs({ "Ribbon_Cloth_End", "Ribbon_Cloth_EndL", "Ribbon_Trim_End", "Ribbon_Trim_EndL" }) do
+		local h = header(dir .. "/Textures/Ribbon/" .. name .. ".tga")
+		if not (h and cols and h.width == tonumber(cols) * END_PX and h.height == tonumber(rows) * RIBBON_PX) then
+			fail(scenario, name .. " is not a sheet of the frames the code plays")
+		end
+	end
+	local cp, cw, tp, tw = code:match("local TILE = { cloth = { (%d+), (%d+) }, trim = { (%d+), (%d+) } }")
+	local dpx, rpx = gen:match("\nDAMASK_PX, ROPE_PX = ([%d%.]+), ([%d%.]+)")
+	if not (cp and dpx and tonumber(cw) / tonumber(cp) == tonumber(dpx) and tonumber(tw) / tonumber(tp) == tonumber(rpx)) then
+		fail(scenario, "the weave's period differs between the code and the generator")
+	end
+	local wavePx = num(code, "local WAVE_PX = (%d+)")
+	for name, width in pairs({ Ribbon_Cloth_Mid = tonumber(cw), Ribbon_Trim_Mid = tonumber(tw), Ribbon_Wave = wavePx }) do
+		local h = header(dir .. "/Textures/Ribbon/" .. name .. ".tga")
+		if not (h and h.width == width and h.height == RIBBON_PX) then fail(scenario, name .. " is not the width the code tiles it by") end
+	end
+	local lap, texels = code:match("\nlocal LAP, LAP_TEXELS = ([%d%.]+), ([%d%.]+)")
+	if tonumber(lap) ~= LAP or tonumber(texels) ~= LAP_TEXELS then fail(scenario, "the test's lap is not the look's") end
+	-- The fork is drawn still for as many texels as the middle lies over.
+	local still = num(gen, "\nSTILL_PX = ([%d%.]+)")
+	if not (still and still >= LAP_TEXELS) then fail(scenario, "the fork moves under the middle's lap: the generator holds it still for " .. tostring(still) .. " texels") end
+	-- A middle is told to tile in the one SetTexture it gets (Cloth), not set
+	-- plain and set again (Weave sets no texture).
+	local weave = code:match("\nlocal function Weave%(.-\nend\n")
+	if not weave or weave:find("SetTexture", 1, true) then fail(scenario, "a middle's file is set a second time to make it tile") end
 	-- The lettering's lightest cloth: no file is lighter than the code says.
 	local lit = num(code, "local LIT_GREY = ([%d%.]+)")
 	for _, name in ipairs({ "Ribbon_Cloth_Mid", "Ribbon_Cloth_End", "Ribbon_Cloth_EndL" }) do
@@ -2146,7 +2218,65 @@ withTree("look-ribbon: the art is modelled: a sheen and a hem on the cloth, gold
 			local l = luma(mid, x, at)
 			lo, hi = math.min(lo, l), math.max(hi, l)
 		end
-		if hi - lo < 0.05 then fail(scenario, ("the cloth has no folds along its length: %.3f to %.3f on the sheen's row"):format(lo, hi)) end
+		if hi - lo < 0.08 then fail(scenario, ("the cloth has no figure woven into it: %.3f to %.3f on the sheen's row"):format(lo, hi)) end
+		-- The figure repeats every 32 texels, so the middle tiles.
+		for x = 0, mid.w - 33, 5 do
+			if math.abs(luma(mid, x, 32) - luma(mid, x + 32, 32)) > 0.04 then
+				fail(scenario, ("the cloth's figure does not repeat every 32 texels: %d and %d differ"):format(x, x + 32))
+				break
+			end
+		end
+	end
+	-- The folds are the wave's: shade only (black, so it never lightens the
+	-- cloth under the words), deep in the troughs and nothing on the crests.
+	local wave = file("Ribbon_Wave")
+	if wave then
+		local lo, hi, bright = 1, 0, 0
+		for x = 0, wave.w - 1 do
+			local r, g, b, a = wave.at(x, 32)
+			lo, hi, bright = math.min(lo, a), math.max(hi, a), math.max(bright, r, g, b)
+		end
+		if hi - lo < 0.20 then fail(scenario, ("the cloth has no folds along its length: the wave's shade runs %.3f to %.3f"):format(lo, hi)) end
+		if lo > 0.03 then fail(scenario, ("the wave shades its crests too (%.3f): the cloth is never as it is drawn"):format(lo)) end
+		if bright > 0.02 then fail(scenario, "the wave is not shade: it would lighten the cloth under the words") end
+	end
+	-- The fork flutters: over the frames of its sheet the tail's edge swings
+	-- across a texel near the tip, and the seam with the middle never moves.
+	local fork = file("Ribbon_Cloth_End")
+	if fork then
+		local lo, hi, seam = 1, 0, 1
+		for f = 0, 31 do
+			local x0, y0 = (f % 8) * END_PX, math.floor(f / 8) * RIBBON_PX
+			local _, _, _, tip = fork.at(x0 + 27, y0 + 4)
+			local _, _, _, at = fork.at(x0 + 1, y0 + 32)
+			lo, hi, seam = math.min(lo, tip), math.max(hi, tip), math.min(seam, at)
+			-- The first and last columns are empty, so no frame is filtered with
+			-- its neighbour's cloth.
+			for _, x in ipairs({ 0, END_PX - 1 }) do
+				for y = 0, RIBBON_PX - 1, 9 do
+					local _, _, _, edge = fork.at(x0 + x, y0 + y)
+					if edge > 0 then fail(scenario, ("frame %d of the fork is drawn in its edge column %d"):format(f, x)) return end
+				end
+			end
+		end
+		if hi - lo < 0.6 then fail(scenario, ("the fork does not flutter: its tail's edge covers %.2f to %.2f of a texel by the tip in every frame"):format(lo, hi)) end
+		if seam < 0.999 then fail(scenario, "the fork's seam with the middle is not solid in every frame") end
+		-- Under the middle's lap the cloth's edge never moves: the lap's last
+		-- texel covers as much of the top row and of the hem's in every frame
+		-- (a tail that had begun to swing there would step where the middle
+		-- stops).
+		local still = { 1, 0, 1, 0 }
+		for f = 0, 31 do
+			local x0, y0 = (f % 8) * END_PX, math.floor(f / 8) * RIBBON_PX
+			local _, _, _, top = fork.at(x0 + 2, y0)
+			local _, _, _, hem = fork.at(x0 + 2, y0 + RIBBON_PX - 1)
+			still[1], still[2] = math.min(still[1], top), math.max(still[2], top)
+			still[3], still[4] = math.min(still[3], hem), math.max(still[4], hem)
+		end
+		if still[2] - still[1] > 0.01 or still[4] - still[3] > 0.01 or still[1] < 0.5 then
+			fail(scenario, ("the fork moves under the middle's lap: its edge there covers %.2f to %.2f of a texel at the top, %.2f to %.2f at the hem"):format(
+				still[1], still[2], still[3], still[4]))
+		end
 	end
 	-- The medallion's gold: the outer slope of the lip and of the bezel are
 	-- lit at the upper left and in shade at the lower right (sampled over a
@@ -2197,4 +2327,372 @@ withTree("look-ribbon: the art is modelled: a sheen and a hem on the cloth, gold
 		if not (g > 0.40 and r >= g and g > b) then fail(scenario, ("the badge's rim is not gold: %.2f %.2f %.2f"):format(r, g, b)) end
 	end
 	for _, name in ipairs(FILES) do os.remove(out .. "/" .. name .. ".tga") end
+end)
+
+-- ------------------------------------------------------------------ 17
+-- It moves. At rest the folds run down the cloth towards the fork (shade
+-- only, tiled, on the cloth and its rails) and the fork flutters, a sheet of
+-- frames, in step with them: where the wave stands at the seam is where the
+-- frame on the fork was drawn from. On Full effects, out of a fight, with the
+-- prompt up and not over a refusal.
+local function frameOf(t)
+	local c = t._texCoord
+	if not c then return nil end
+	return math.floor(c[1] * 8 + 0.5) + math.floor(c[3] * 4 + 0.5) * 8
+end
+
+withTree("look-ribbon: the cloth moves at rest: folds run down it and the fork flutters in step", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+	local wave, flutter = look.waveFlow, look.flutter
+	if not (wave and flutter and #flutter == 4) then fail(scenario, "the look has no wave and no sheets for its forks") return end
+	if not wave:IsPlaying() then fail(scenario, "the folds do not run down the cloth at rest") end
+	if not (wave.du < 0 and wave.dv == 0) then fail(scenario, "the folds do not run towards the fork") end
+	if not (flutter[1]:IsPlaying() and flutter[2]:IsPlaying()) then fail(scenario, "the fork does not flutter at rest") end
+	if flutter[3]:IsPlaying() or flutter[4]:IsPlaying() then fail(scenario, "the left fork flutters under the medallion, where it is not drawn") end
+	for i = 1, 2 do
+		local h = flutter[i]
+		if not (h.loop and near(h.frames / h.fps, 1 / -wave.du, 1e-6)) then
+			fail(scenario, "sheet " .. i .. " of the fork is not in step with the wave: one file of it to a round of the flutter")
+		end
+		if h.tex ~= (i == 1 and look.cloth[2] or look.trim[2]) then fail(scenario, "sheet " .. i .. " is not the fork's cloth and cord") end
+	end
+	-- Shade, tiled, lying on the cloth's middle and over its rails.
+	local w = look.wave
+	if w._blend == "ADD" then fail(scenario, "the folds are drawn as light") end
+	if not w:GetHorizTile() then fail(scenario, "the wave is not tiled along the ribbon") end
+	if not FT.visible(w) then fail(scenario, "the wave is not drawn") end
+	local wb, cb = span(w), span(look.cloth[1])
+	if not (near(wb[1], cb[1], 0.05) and near(wb[3], cb[3], 0.05) and near(wb[2], cb[2], 0.05) and near(wb[4], cb[4], 0.05)) then
+		fail(scenario, "the folds do not lie on the cloth's middle")
+	end
+	if w._layer ~= look.trim[1]._layer or (w._sublevel or 0) <= (look.trim[1]._sublevel or 0) then fail(scenario, "the folds are not over the rails") end
+	-- In step at the seam, at every moment: the wave's window there, less a
+	-- frame's worth for each frame the fork has played, is a whole file.
+	local Flow = ns.Looks.Flow
+	local frames = flutter[1].frames
+	for _ = 1, 9 do
+		Mock.advance(0.11)
+		Flow.TickAll(GetTime())
+		local c = w._texCoord
+		local per = (c[2] - c[1]) / (wb[3] - wb[1])
+		local seam = c[2] - look.lap * per
+		local f = frameOf(look.cloth[2])
+		local off = (seam + f / frames) % 1
+		if off > 0.5 then off = off - 1 end
+		-- The wave steps with the fork's frames: never a part of a frame ahead.
+		if math.abs(off) > 1e-6 then
+			fail(scenario, ("the fork is on frame %d with the wave %.3f of a file out of step at the seam"):format(f, off))
+			break
+		end
+		if frameOf(look.trim[2]) ~= f then fail(scenario, "the fork's cord is not on its cloth's frame") break end
+	end
+	if frameOf(look.cloth[2]) == 0 then fail(scenario, "the fork has not left its first frame after a second") end
+	-- A fight is steady, and after it the cloth flies again.
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	if wave:IsPlaying() or flutter[1]:IsPlaying() or flutter[2]:IsPlaying() then fail(scenario, "the cloth goes on moving in a fight") end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+	Mock.advance(3)
+	tick(ns)
+	if not (wave:IsPlaying() and flutter[1]:IsPlaying()) then fail(scenario, "the cloth does not move again after the fight") end
+	-- A refusal: the pennant hangs dead, its darkened pieces the frame the
+	-- cloth stopped on, until the next person.
+	Mock.advance(0.3)
+	Flow.TickAll(GetTime())
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	if wave:IsPlaying() or flutter[1]:IsPlaying() then fail(scenario, "the cloth goes on moving over a refusal") end
+	local stood = frameOf(look.cloth[2])
+	if frameOf(look.dark[2]) ~= stood or frameOf(look.hot[2]) ~= stood then
+		fail(scenario, ("the refusal darkens frame %s of the fork with the cloth on frame %s"):format(tostring(frameOf(look.dark[2])), tostring(stood)))
+	end
+	Mock.advance(look.kit.OUTCOME_SECONDS + 1)
+	tick(ns)
+	FT.settle()
+	if not (wave:IsPlaying() and flutter[1]:IsPlaying()) then fail(scenario, "the cloth does not move again for the next person") end
+	-- The prompt down: nothing flows on a frame nobody sees.
+	ns.Prompt:GetButton():Hide()
+	look:StopAttention()
+	if wave:IsPlaying() or flutter[1]:IsPlaying() then fail(scenario, "the cloth goes on moving with the prompt down") end
+	-- Leaving the look stops them too.
+	ns.Prompt:GetButton():Show()
+	look:Painted()
+	if not wave:IsPlaying() then fail(scenario, "the cloth does not move again with the prompt back up") end
+	p.style = "glass"
+	ns.Prompt:ApplyStyle()
+	for i, h in ipairs(flutter) do
+		if h:IsPlaying() then fail(scenario, "sheet " .. i .. " still plays on another look") end
+	end
+	if wave:IsPlaying() then fail(scenario, "the wave still scrolls on another look") end
+end)
+
+withTree("look-ribbon: Calm keeps the cloth still, the fork on its first frame", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario, function(pp) pp.effects = "calm" end)
+	if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+	if look.waveFlow:IsPlaying() then fail(scenario, "the folds run on Calm") end
+	for i, h in ipairs(look.flutter) do
+		if h:IsPlaying() then fail(scenario, "sheet " .. i .. " of the fork plays on Calm") end
+	end
+	for _, grp in ipairs(look.idle) do
+		if grp._playing then fail(scenario, "a gleam travels the gold on Calm") end
+	end
+	if frameOf(look.cloth[2]) ~= 0 or frameOf(look.trim[2]) ~= 0 then fail(scenario, "the fork is not on its first frame on Calm") end
+	if not FT.visible(look.wave) then fail(scenario, "Calm has no folds at all: they stand still, they do not go") end
+	-- And it stays so through a tick and a landing.
+	tick(ns)
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	Mock.advance(1)
+	if look.waveFlow:IsPlaying() or plays(look.prize) + plays(look.tipAnims) + (look.railAnim._plays or 0) + (look.wakeAnim._plays or 0) > 0 then
+		fail(scenario, "Calm moved the cloth or pinned the prize on")
+	end
+end)
+
+withTree("look-ribbon: with no medallion both forks flutter and whole files of the wave lie between them", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario, function(pp) pp.showIcon = false end)
+	if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+	for i, h in ipairs(look.flutter) do
+		if not h:IsPlaying() then fail(scenario, "sheet " .. i .. " of the forks does not play with no medallion") end
+	end
+	local w = look.wave
+	local wb, c = span(w), w._texCoord
+	local per = (c[2] - c[1]) / (wb[3] - wb[1])
+	local files = (c[2] - c[1]) - 2 * look.lap * per
+	if not (files > 0.5 and near(files, math.floor(files + 0.5), 1e-4)) then
+		fail(scenario, ("%.3f files of the wave lie between the two forks: it meets one of them out of step"):format(files))
+	end
+	for _, grp in ipairs(look.idle) do
+		if grp._playing then fail(scenario, "a gleam goes round a laurel that is not there") end
+	end
+end)
+
+-- The middles are tiled in whole periods of their weave: the damask and the
+-- cord's twist are drawn as they are at every width, never stretched to it.
+withTree("look-ribbon: the middles are tiled in whole periods of their weave, never stretched", CROWD, function(ns, scenario)
+	for _, width in ipairs({ 160, 220, 288, 400 }) do
+		local r, p, look = upIn(ns, scenario, function(pp)
+			pp.width = width
+			pp.showQueue, pp.queueRows = true, 3
+		end)
+		if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+		local sets = { { look.cloth, 4, 128, look.g.k, "the cloth", look.lap }, { look.trim, 8, 64, look.g.k, "the cord", look.lap },
+			{ look.rowCloth[1], 4, 128, look.rowK, "a row's cloth", look.rowLap },
+			{ look.rowTrim[1], 8, 64, look.rowK, "a row's cord", look.rowLap } }
+		for _, set in ipairs(sets) do
+			local t = set[1][1]
+			local what = ("%s at %d wide"):format(set[5], width)
+			if not t:GetHorizTile() then fail(scenario, what .. " is not tiled") end
+			local b, c = span(t), t._texCoord
+			if not (b and c) then
+				fail(scenario, what .. " has no place or no coordinates")
+			else
+				local long = b[3] - b[1]
+				local per = (c[2] - c[1]) / long
+				local periods = ((c[2] - c[1]) - set[6] * per) * set[2]
+				if not (periods > 0.5 and near(periods, math.floor(periods + 0.5), 1e-3)) then
+					fail(scenario, ("%s holds %.3f periods of its weave: it meets the fork out of step"):format(what, periods))
+				end
+				-- How far the weave is drawn from its own size: half a period over
+				-- the length at the most.
+				local own = set[3] / set[2] * set[4]
+				local drawn = (long - set[6]) / periods
+				if math.abs(drawn / own - 1) > 0.5 / periods + 1e-6 then
+					fail(scenario, ("%s is stretched to %.2f of its size"):format(what, drawn / own))
+				end
+			end
+			-- The forked end rests on a frame of its sheet, not the whole sheet.
+			local e = set[1][2]._texCoord
+			if not (e and near(e[2] - e[1], 1 / 8, 1e-6) and near(e[4] - e[3], 1 / 4, 1e-6)) then
+				fail(scenario, what .. ": its fork is not one frame of the sheet")
+			end
+			-- A row has no wave on its middle: its fork rests on the frame whose
+			-- folds are clear of the seam (the eighth), not on the first, which
+			-- is drawn a tenth darker there than the middle it meets.
+			if set[5]:find("row", 1, true) and e and not (near(e[1], 7 / 8, 1e-6) and near(e[3], 0, 1e-6)) then
+				fail(scenario, what .. ": its fork rests on a frame shaded by a wave the row does not have")
+			end
+		end
+		-- The ends lie under their middles, which cover the seam.
+		for _, set in ipairs({ look.cloth, look.trim }) do
+			if set[1]._layer ~= set[2]._layer or (set[1]._sublevel or 0) <= (set[2]._sublevel or 0) then
+				fail(scenario, "a middle is not drawn over its fork at " .. width .. " wide")
+			end
+		end
+		if (look.trim[2]._sublevel or 0) <= (look.cloth[1]._sublevel or 0) then fail(scenario, "the cord is not over the cloth") end
+		if (look.dark[1]._sublevel or 0) <= (look.trim[1]._sublevel or 0) then fail(scenario, "the refusal's darkening is not over the rails") end
+	end
+end)
+
+-- ------------------------------------------------------------------ 18
+-- A landing is a prize pinned on: the medallion comes down onto the cloth
+-- from over its size, rays stand out behind it under the cloth, a gleam goes
+-- once round its laurel and down both cords to the fork's tips, which glint,
+-- and a shade follows the shine down the cloth. Each within 0.6 s, each
+-- parked at nothing.
+withTree("look-ribbon: a landing pins the prize on: the medallion comes down, rays behind it, a gleam round the gold", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+	local g = look.g
+	-- The favour's arrival sent the gleam round the laurel and down the cords,
+	-- and nothing else of the prize.
+	if (look.prize[2]._plays or 0) < 1 or (look.railAnim._plays or 0) < 1 then fail(scenario, "no gleam travelled the gold as the favour arrived") end
+	if plays(look.pin) + (look.prize[1]._plays or 0) + plays(look.tipAnims) + (look.wakeAnim._plays or 0) ~= 0 then
+		fail(scenario, "the prize was pinned on before any buff landed")
+	end
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	-- The medallion: its gold, its enamel, its gloss, its shade and the
+	-- cursor's light on it, from over their size down to it.
+	local parts = { [look.medal] = "gold", [look.enamel] = "enamel", [look.gloss] = "gloss", [look.shade] = "shade",
+		[look.hover] = "cursor's light" }
+	local sky = {}
+	for _, t in ipairs(look.skyward or {}) do sky[t] = true end
+	-- (The cursor's light is the gold's own highlights and the cursor is on the
+	-- prompt at a click: left at its size, it is a second rim inside the gold.)
+	if #look.pin ~= 5 then fail(scenario, "the medallion comes down in " .. #look.pin .. " parts, not five") end
+	local seen = {}
+	for _, grp in ipairs(look.pin) do seen[grp._owner] = true end
+	for t, what in pairs(parts) do
+		if not seen[t] then fail(scenario, "the medallion's " .. what .. " stays at its size as the rest comes down") end
+	end
+	for i, grp in ipairs(look.pin) do
+		local a = grp._anims[1]
+		local what = parts[grp._owner]
+		if not what then fail(scenario, "pin " .. i .. " is not a part of the medallion") end
+		if not grp._playing then fail(scenario, "the medallion's " .. tostring(what) .. " does not come down") end
+		if not (a and a._kind == "Scale" and a._scaleFrom and a._scaleFrom[1] >= 1.15 and a._scaleFrom[1] <= 1.5 and a._scaleTo
+			and near(a._scaleTo[1], 1, 1e-6) and near(a._scaleTo[2], 1, 1e-6)) then
+			fail(scenario, "the medallion's " .. tostring(what) .. " does not come down from over its size to its own")
+		end
+		if not sky[grp._owner] then fail(scenario, "the medallion's " .. tostring(what) .. " leaves the panel and is not named in skyward") end
+	end
+	-- The rays: light, under the cloth, round the medallion.
+	local burst = look.burst
+	if not look.prize[1]._playing or look.prize[1]._owner ~= burst then fail(scenario, "no rays stand out behind the medallion") end
+	if burst._blend ~= "ADD" then fail(scenario, "the rays are not light") end
+	if burst._layer ~= "BACKGROUND" then fail(scenario, "the rays are not under the cloth: they would wash the words") end
+	if not sky[burst] then fail(scenario, "the rays leave the panel and are not named in skyward") end
+	local bb, art = span(burst), span(r.art)
+	if not (near((bb[1] + bb[3]) / 2 - art[1], g.cx, 0.05) and (bb[3] - bb[1]) > 2.6 * g.R) then fail(scenario, "the rays are not round the medallion, past its rim") end
+	-- The gleam: once round the laurel, and down the cords to the fork's seam.
+	local arc = look.prize[2]
+	if not arc._playing or arc._owner ~= look.arc then fail(scenario, "no gleam goes round the laurel") end
+	local turn = 0
+	for _, a in ipairs(arc._anims) do
+		if a._kind == "Rotation" then turn = turn + math.abs(a._degrees or 0) end
+	end
+	if turn < 300 then fail(scenario, "the gleam does not go round the laurel: " .. turn .. " degrees") end
+	if look.arc._blend == "ADD" or look.railGleam._blend == "ADD" then fail(scenario, "the gleam on the gold is additive") end
+	if not look.railAnim._playing then fail(scenario, "no gleam runs down the cords") end
+	local rb, off = span(look.railGleam), look.railAnim.move._offset[1]
+	if (rb[1] + rb[3]) / 2 - art[1] < g.cx + g.R - 0.05 then fail(scenario, "the cords' gleam starts under the medallion") end
+	if (rb[1] + rb[3]) / 2 - art[1] + off > look.W - g.endW + 0.05 then fail(scenario, "the cords' gleam runs on into the fork, where the cords turn") end
+	if art[4] - rb[4] < g.top - 0.05 or art[4] - rb[2] > g.bottom + 0.05 then fail(scenario, "the cords' gleam is taller than the ribbon") end
+	-- The tips and the ripple's shade.
+	for i, grp in ipairs(look.tipAnims) do
+		if not grp._playing then fail(scenario, "tip " .. i .. " of the fork does not glint") end
+		local tb = span(look.tips[i])
+		if (tb[1] + tb[3]) / 2 - art[1] < look.W - g.notch then fail(scenario, "glint " .. i .. " is not on a tip of the fork") end
+	end
+	if not look.wakeAnim._playing then fail(scenario, "no shade follows the shine down the cloth") end
+	if look.wake._blend == "ADD" then fail(scenario, "the ripple's shade is light") end
+	if not near(look.wakeAnim.move._offset[1], look.travelMove._offset[1], 0.01) then fail(scenario, "the ripple's shade does not follow the shine's path") end
+	local all = { look.railAnim, look.wakeAnim }
+	for _, grp in ipairs(look.prize) do all[#all + 1] = grp end
+	for _, grp in ipairs(look.tipAnims) do all[#all + 1] = grp end
+	for i, grp in ipairs(all) do
+		if FT.groupLength(grp) > 0.6 + 1e-6 then fail(scenario, ("part %d of the prize lasts %.2f s"):format(i, FT.groupLength(grp))) end
+	end
+	-- Parked at nothing when it is over, and when it is stopped.
+	local parked = { look.wake, look.railGleam, look.burst, look.tips[1], look.tips[2], look.arc }
+	Mock.advance(0.8)
+	FT.settle()
+	for i, t in ipairs(parked) do
+		if (t._alpha or 0) > 0.001 then fail(scenario, "light " .. i .. " of the prize was left lit") end
+	end
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	ns.Prompt:StopFlourishes()
+	FT.settle()
+	for i, grp in ipairs(all) do
+		if grp._playing then fail(scenario, "part " .. i .. " of the prize plays on after a repaint stopped it") end
+	end
+	for i, t in ipairs(parked) do
+		if (t._alpha or 0) > 0.001 then fail(scenario, "a stopped prize left light " .. i .. " lit") end
+	end
+	-- A fight is steady.
+	Mock.advance(look.kit.OUTCOME_SECONDS + 1)
+	tick(ns)
+	local count = plays(look.prize) + plays(look.tipAnims) + (look.railAnim._plays or 0) + (look.wakeAnim._plays or 0)
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if plays(look.prize) + plays(look.tipAnims) + (look.railAnim._plays or 0) + (look.wakeAnim._plays or 0) ~= count then
+		fail(scenario, "the prize was pinned on in a fight")
+	end
+	Mock.inCombat = false
+end)
+
+withTree("look-ribbon: with no medallion a landing pins nothing on, and the cloth still ripples", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario, function(pp) pp.showIcon = false end)
+	if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if plays(look.prize) > 0 or (look.railAnim._plays or 0) > 0 then fail(scenario, "a prize was pinned on with no medallion") end
+	if not (look.wakeAnim._playing and look.tipAnims[1]._playing) then fail(scenario, "the cloth does not ripple to its tips with no medallion") end
+	for _, t in ipairs({ look.burst, look.arc, look.idleArc }) do
+		if FT.visible(t) and (t._alpha or 0) > 0.001 then fail(scenario, "a light of the medallion's is drawn with no medallion") end
+	end
+end)
+
+-- ------------------------------------------------------------------ 19
+-- At rest, with nobody owed, a gleam travels the gold now and then: round the
+-- laurel, then down the cords. Two loops, named in `idle` (hunt35-effects lets
+-- those through), pale gold drawn BLEND, seldom; nothing else loops.
+withTree("look-ribbon: a gleam travels the gold at rest, seldom, and is named idle", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+	wipe(ns.owed)
+	tick(ns)
+	Mock.advance(1)
+	FT.settle()
+	if not (look.idle and #look.idle == 2) then fail(scenario, "the look names no gleams of its own at rest") return end
+	local idle = {}
+	for i, grp in ipairs(look.idle) do
+		idle[grp] = true
+		if not grp._playing then fail(scenario, "gleam " .. i .. " does not play with a passer-by on the prompt") end
+		if grp._looping ~= "REPEAT" then fail(scenario, "gleam " .. i .. " does not come round again") end
+		if FT.groupLength(grp) < 5 then fail(scenario, ("gleam %d comes round every %.1f s: restless"):format(i, FT.groupLength(grp))) end
+		local t = grp._owner
+		if t._blend == "ADD" then fail(scenario, "gleam " .. i .. " is additive light that stays on screen") end
+		local c = t._color
+		if not (c and c[1] > 0.9 and c[3] < c[1]) then fail(scenario, "gleam " .. i .. " is not pale gold") end
+		for _, a in ipairs(grp._anims) do
+			if a._kind == "Alpha" and (a._toAlpha or 0) > 1 then fail(scenario, "gleam " .. i .. " is brighter than its light") end
+			if a._kind == "Scale" then fail(scenario, "gleam " .. i .. " scales") end
+		end
+	end
+	if look.idle[1]._owner ~= look.idleArc or look.idle[2]._owner ~= look.idleRail then fail(scenario, "the gleams are not the laurel's and the cords'") end
+	if not near(FT.groupLength(look.idle[1]), FT.groupLength(look.idle[2]), 1e-6) then fail(scenario, "the two gleams drift apart: their rounds differ") end
+	-- The cords' follows the laurel's.
+	local first = look.idle[1]._anims[1]._duration
+	local second = look.idle[2]._anims[1]._duration
+	if not (second > first) then fail(scenario, "the cords' gleam does not follow the laurel's") end
+	-- Nothing else loops with nobody owed.
+	local _, loops = FT.playing()
+	for _, grp in ipairs(loops) do
+		if not idle[grp] then fail(scenario, "a loop that is not named idle goes on with nobody owed") end
+	end
+	-- In a fight they stop, and come back after.
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	for i, grp in ipairs(look.idle) do
+		if grp._playing then fail(scenario, "gleam " .. i .. " goes on in a fight") end
+		if (grp._owner._alpha or 0) > 0.001 then fail(scenario, "gleam " .. i .. " was left lit by the fight") end
+	end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+	Mock.advance(3)
+	tick(ns)
+	if not look.idle[1]._playing then fail(scenario, "the gleam does not come back after the fight") end
 end)
