@@ -318,3 +318,42 @@ mutate("Milestones.lua",
        "\tdo return true end\n",
        "milestones: a resurrection for a class with none",
        expect=E + "a resurrection, a cure and a courtesy", script=S)
+
+# The other features' own calls: each one taken out, and the cure's told
+# before the game has had its chance to refuse the cast.
+HOOK = "milestones: hook: "
+mutate("Resurrect.lua",
+       "\t\tif ns.Milestones then ns.Milestones.Note(\"res\") end\n",
+       "",
+       "milestones: a resurrection cast tells nobody",
+       expect=HOOK + "a resurrection that was cast earns one", script=S)
+mutate("Resurrect.lua",
+       "\t\tRest(pending, RETRY_SECONDS)\n",
+       "\t\tRest(pending, RETRY_SECONDS)\n\t\tif ns.Milestones then ns.Milestones.Note(\"res\") end\n",
+       "milestones: an interrupted resurrection earns one",
+       expect=HOOK + "a resurrection that was cast earns one", script=S)
+mutate("Clicks.lua",
+       "\t\t\tif record.cure and ns.Milestones then ns.Milestones.Note(\"cure\") end\n",
+       "",
+       "milestones: a cure that landed tells nobody",
+       expect=HOOK + "a cure nothing refused earns one", script=S)
+mutate("Clicks.lua",
+       "\t\tlanded = not unheard,\n\t\tcure = pending.cure,\n",
+       "\t\tlanded = not unheard,\n\t\tcure = pending.cure and ns.Milestones and ns.Milestones.Note(\"cure\"),\n",
+       "milestones: a cure counted when it is sent",
+       expect=HOOK + "a cure nothing refused earns one", script=S)
+mutate("Courtesy.lua",
+       "\tif ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
+       "",
+       "milestones: a portal cast tells nobody",
+       expect=HOOK + "a portal cast and water put in the trade earn one", script=S)
+mutate("Courtesy.lua",
+       "\tif placed and ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
+       "\tif false and ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
+       "milestones: water put in the trade tells nobody",
+       expect=HOOK + "a portal cast and water put in the trade earn one", script=S)
+mutate("Courtesy.lua",
+       "\tif placed and ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
+       "\tif ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
+       "milestones: an empty trade counts as a courtesy",
+       expect=HOOK + "a portal cast and water put in the trade earn one", script=S)

@@ -1280,3 +1280,321 @@ do
 	end
 end
 Mock.reset()
+
+-- ===========================================================================
+-- The other features' milestones, through each feature's own path: a
+-- resurrection (Resurrect.lua), a cure (Clicks.lua's settle) and a courtesy
+-- (Courtesy.lua) tell the milestones once the thing is known to have happened,
+-- and a cast that failed or was refused tells them nothing. Every name below
+-- starts "milestones: hook:".
+-- ===========================================================================
+
+-- Globals stood in for a scenario, and the function that puts them back.
+local function standIn(globals)
+	local saved, names = {}, {}
+	for name, value in pairs(globals) do
+		names[#names + 1] = name
+		saved[name] = rawget(_G, name)
+		rawset(_G, name, value)
+	end
+	return function()
+		for _, name in ipairs(names) do rawset(_G, name, saved[name]) end
+	end
+end
+
+-- How many of a kind the milestones have counted.
+local function counted(ns, kind)
+	local st = ns.db.char.milestones
+	return st and st.n and st.n[kind] or 0
+end
+
+-- ------------------------------------------------------------- hook 1
+-- A resurrection: not at the press and not from a cast that was interrupted,
+-- but once the cast has gone its length and the game has taken it.
+Mock.reset()
+do
+	local scenario = "milestones: hook: a resurrection that was cast earns one, and an interrupted one nothing"
+	Mock.class = "PRIEST"
+	Mock.groupSize = 4
+	local restoreUnits = H.strangers({ party1 = { "Anna", "Aim" }, party2 = { "Bert", "Beside" } })
+	local dead = {}
+	local realDead, realSpell = UnitIsDeadOrGhost, C_Spell
+	local known = { [2006] = true, [2010] = true }
+	local restore = standIn({
+		UnitIsDeadOrGhost = function(unit)
+			if unit == "player" then return realDead(unit) end
+			return dead[unit] == true
+		end,
+		UnitIsGhost = function() return false end,
+		UnitHasIncomingResurrection = function() return false end,
+		UnitIsFeignDeath = function() return false end,
+		UnitAffectingCombat = function() return false end,
+		UnitIsVisible = function() return true end,
+		UnitInParty = function(unit) return type(unit) == "string" and unit:find("^party%d") ~= nil end,
+		IsSpellKnown = function(id) return known[id] == true end,
+		IsPlayerSpell = function(id) return known[id] == true end,
+		C_Spell = setmetatable({
+			GetSpellName = function(id) return known[id] and "Resurrection" or realSpell.GetSpellName(id) end,
+			IsSpellUsable = function() return true, false end,
+		}, { __index = realSpell }),
+	})
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		begin(ns, scenario)
+		local sources = ns.db.profile.sources
+		sources.strangers, sources.self = false, false
+		ns.Guard("probe", ns.ProbeCapabilities)
+		local ANNA = "Anna Aim"
+		dead.party1 = true
+		local function press(guid)
+			Mock.advance(4)
+			ns.addon:Tick()
+			if ns.Prompt:PanelName() ~= ANNA then return false end
+			H.pressButton(ns)
+			if not ns.Resurrect.pending then return false end
+			Mock.advance(0.5)
+			ns.Resurrect.OnEvent("UNIT_SPELLCAST_SENT", "player", ANNA, guid, 2010)
+			ns.Resurrect.OnEvent("UNIT_SPELLCAST_START", "player", guid, 2010)
+			return true
+		end
+		if not press("cast-1") then
+			fail(scenario, "SKIPPED -- the press on the dead member was not filed")
+			return
+		end
+		if counted(ns, "res") ~= 0 then fail(scenario, "a resurrection was counted at the press") end
+		Mock.advance(4)
+		ns.Resurrect.OnEvent("UNIT_SPELLCAST_INTERRUPTED", "player", "cast-1", 2010)
+		settle(ns)
+		if counted(ns, "res") ~= 0 or earned(ns, "res") then
+			fail(scenario, "an interrupted resurrection earned the milestone")
+		end
+		if not press("cast-2") then
+			fail(scenario, "SKIPPED -- the second press was not filed")
+			return
+		end
+		Mock.advance(10)
+		ns.Resurrect.OnEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-2", 2010)
+		if counted(ns, "res") ~= 1 then
+			fail(scenario, ("a resurrection that was cast counted %d, not one"):format(counted(ns, "res")))
+		end
+		if not earned(ns, "res") then fail(scenario, "a resurrection that was cast did not earn the milestone") end
+		guarded(ns, scenario)
+	end)
+	restore()
+	restoreUnits()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- ------------------------------------------------------------- hook 2
+-- A cure: the press settles when the client sends the cast, which the server
+-- can still refuse; a refused one earns nothing, and one nothing refused
+-- earns the milestone once that wait is over, not before.
+Mock.reset()
+do
+	local scenario = "milestones: hook: a cure nothing refused earns one, and a refused one nothing"
+	local MOTW, CURE_POISON = 1126, 8946
+	Mock.class = "DRUID"
+	Mock.groupSize = 3
+	Mock.held = { [MOTW] = true }
+	local restoreUnits = H.strangers({ party1 = { "Gwen", "Hale" }, party2 = { "Hugo", "Holt" } })
+	local debuffs = {}
+	local known = { [MOTW] = true, [CURE_POISON] = true }
+	local base = C_UnitAuras
+	local restore = standIn({
+		IsSpellKnown = function(id) return known[id] == true end,
+		IsPlayerSpell = function(id) return known[id] == true end,
+		UnitInParty = function(unit) return type(unit) == "string" and unit:find("^party%d+$") ~= nil end,
+		C_UnitAuras = setmetatable({
+			GetAuraDataByIndex = function(unit, index, filter)
+				if filter ~= "HARMFUL" then return base.GetAuraDataByIndex(unit, index, filter) end
+				if not (debuffs[unit] and index == 1) then return nil end
+				return { name = "Poison thing", spellId = 90000, dispelName = "Poison",
+					expirationTime = Mock.now + 60, duration = 60, isHarmful = true, auraInstanceID = 9001 }
+			end,
+		}, { __index = base }),
+	})
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		begin(ns, scenario)
+		local sources = ns.db.profile.sources
+		sources.group, sources.strangers, sources.self, sources.cures = true, false, false, true
+		ns.Guard("probe", ns.ProbeCapabilities)
+		-- The cure offered to `name`, pressed, and its cast sent under `guid`.
+		local function press(name, guid)
+			Mock.advance(4)
+			local entry
+			for _, e in ipairs(ns.BuildQueue()) do
+				if e.name == name and e.cure then entry = e end
+			end
+			if not entry then return false end
+			local button = ns.Prompt:GetButton()
+			Mock.advance(1)
+			ns.pendingClick = nil
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:ApplyTarget(entry)
+			button.scripts.PostClick(button, "LeftButton", true)
+			if not (ns.pendingClick and ns.pendingClick.cure) then return false end
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, guid, CURE_POISON)
+			return ns.pendingClick == nil
+		end
+		debuffs.party1 = true
+		if not press("Gwen Hale", "cure-1") then
+			fail(scenario, "SKIPPED -- the press on the poisoned member did not settle as a cure")
+			return
+		end
+		-- The server refuses it a moment later.
+		Mock.advance(0.5)
+		ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "cure-1", CURE_POISON)
+		Mock.advance(3)
+		ns.addon:Tick()
+		settle(ns)
+		if counted(ns, "cure") ~= 0 or earned(ns, "cure") then
+			fail(scenario, "a cure the game refused earned the milestone")
+		end
+		debuffs.party1, debuffs.party2 = nil, true
+		if not press("Hugo Holt", "cure-2") then
+			fail(scenario, "SKIPPED -- the second press did not settle as a cure")
+			return
+		end
+		ns.addon:Tick()
+		if counted(ns, "cure") ~= 0 then
+			fail(scenario, "a cure was counted the moment it was sent, while the game could still refuse it")
+		end
+		Mock.advance(3)
+		ns.addon:Tick()
+		if counted(ns, "cure") ~= 1 then
+			fail(scenario, ("a cure nothing refused counted %d, not one"):format(counted(ns, "cure")))
+		end
+		if not earned(ns, "cure") then fail(scenario, "a cure nothing refused did not earn the milestone") end
+		guarded(ns, scenario)
+	end)
+	restore()
+	restoreUnits()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- ------------------------------------------------------------- hook 3
+-- A courtesy: the portal that went out, and the water put in the trade
+-- window. Another spell going out is no portal, and a trade that opened with
+-- nothing put in it (the cursor was busy) is no courtesy given.
+Mock.reset()
+do
+	local scenario = "milestones: hook: a portal cast and water put in the trade earn one, and neither failing does"
+	local NAMES = { [1459] = "Arcane Intellect", [10140] = "Conjure Water", [11417] = "Portal: Orgrimmar" }
+	local WATER, RUNE = 8079, 17032
+	Mock.class = "MAGE"
+	Mock.groupSize = 2
+	local names = { party1 = { "Anna", "Aim" } }
+	local restoreUnits = H.strangers(names)
+	local bags = { [RUNE] = 2 }
+	local trade, cursor = {}, nil
+	local function slotItems()
+		local list = {}
+		for item, count in pairs(bags) do
+			if count > 0 then list[#list + 1] = item end
+		end
+		table.sort(list)
+		return list
+	end
+	local knows = function(id) return NAMES[id] ~= nil end
+	local restore = standIn({
+		IsSpellKnown = knows, IsPlayerSpell = knows,
+		C_Spell = setmetatable({
+			GetSpellName = function(id) return NAMES[id] end,
+			GetSpellSubtext = function(id) return id == 10140 and "Rank 7" or nil end,
+			IsSpellUsable = function() return nil end,
+		}, { __index = _G.C_Spell }),
+		GetItemCount = function(item) return bags[item] or 0 end,
+		C_Container = {
+			GetContainerNumSlots = function(bag) return bag == 0 and 16 or 0 end,
+			GetContainerItemID = function(bag, slot) return bag == 0 and slotItems()[slot] or nil end,
+			GetContainerItemInfo = function() return { isLocked = false } end,
+			PickupContainerItem = function(_, slot) cursor = slotItems()[slot] end,
+		},
+		GetCursorInfo = function() if cursor then return "item", cursor end end,
+		CursorHasItem = function() return cursor ~= nil end,
+		ClearCursor = function() cursor = nil end,
+		ClickTradeButton = function(index) trade[index], cursor = cursor, nil end,
+		GetTradePlayerItemLink = function(index) return trade[index] and "link" or nil end,
+		UnitGUID = function(unit) return "Player-1-" .. (unit == "NPC" and "party1" or tostring(unit)) end,
+		UnitLevel = function() return 60 end,
+		UnitInParty = function() return true end,
+		MAX_TRADABLE_ITEMS = 6,
+	})
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		begin(ns, scenario)
+		local db = ns.db.profile
+		db.sources.asked, db.sources.strangers, db.sources.group, db.sources.self = true, false, false, false
+		db.sources.courtesyPortals, db.sources.courtesyRefresh = true, true
+		-- What Anna asks for in party chat, offered at `stage` and pressed.
+		local function ask(text, stage)
+			ns.addon.CHAT_MSG_PARTY(ns.addon, "CHAT_MSG_PARTY", text, "Anna Aim", "Common", "", "", "", 0, 0, "", 0, 1,
+				"Player-1-party1")
+			local entry
+			for _, e in ipairs(ns.BuildQueue()) do
+				if e.name == "Anna Aim" then entry = e end
+			end
+			if not (entry and entry.courtesy and entry.courtesy.stage == stage) then return false end
+			ns.Prompt:Refresh()
+			H.pressButton(ns)
+			return true
+		end
+
+		-- The portal.
+		if not ask("port to org pls", "cast") then
+			fail(scenario, "SKIPPED -- the party member's portal is not offered")
+			return
+		end
+		if counted(ns, "courtesy") ~= 0 then fail(scenario, "a courtesy was counted at the press") end
+		ns.Courtesy.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "cast-1", 1459)
+		if counted(ns, "courtesy") ~= 0 or earned(ns, "courtesy") then
+			fail(scenario, "another spell going out earned the milestone for the portal asked for")
+		end
+		ns.Courtesy.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "cast-2", 11417)
+		if counted(ns, "courtesy") ~= 1 then
+			fail(scenario, ("the portal going out counted %d, not one"):format(counted(ns, "courtesy")))
+		end
+		if not earned(ns, "courtesy") then fail(scenario, "the portal going out did not earn the milestone") end
+
+		-- The water, with some in the bags: the trade opens while the cursor
+		-- holds something else, so nothing goes in.
+		Mock.advance(61)
+		bags[WATER] = 20
+		if not ask("water pls", "trade") then
+			fail(scenario, "SKIPPED -- the water in the bags is not offered as a trade")
+			return
+		end
+		names.NPC = { "Anna", "Aim" }
+		cursor = RUNE
+		ns.Courtesy.OnEvent(nil, "TRADE_SHOW")
+		cursor = nil
+		if trade[1] then
+			fail(scenario, "SKIPPED -- the water went into the trade with the cursor busy")
+			return
+		end
+		if counted(ns, "courtesy") ~= 1 then fail(scenario, "a trade that nothing was put in counted as a courtesy") end
+		-- Asked again, and this time it goes in.
+		Mock.advance(61)
+		if not ask("water pls", "trade") then
+			fail(scenario, "SKIPPED -- the water is not offered a second time")
+			return
+		end
+		ns.Courtesy.OnEvent(nil, "TRADE_SHOW")
+		if trade[1] ~= WATER then
+			fail(scenario, "SKIPPED -- the water was not put in the trade window (" .. tostring(trade[1]) .. ")")
+			return
+		end
+		if counted(ns, "courtesy") ~= 2 then
+			fail(scenario, ("the water put in the trade left the count at %d, not two"):format(counted(ns, "courtesy")))
+		end
+		guarded(ns, scenario)
+	end)
+	restore()
+	restoreUnits()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+Mock.reset()

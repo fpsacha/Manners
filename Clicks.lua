@@ -251,6 +251,9 @@ local function PruneSettled(now)
 			-- itself: SENT is the client sending, and the refusal that repeats
 			-- comes after it.
 			if record.landed then ns.NoteLanded(record.name) end
+			-- A cure the game did not refuse either: a milestone's worth
+			-- (Milestones.lua). A refused one left this list in UnsettleLateRefusal.
+			if record.cure and ns.Milestones then ns.Milestones.Note("cure") end
 		end
 	end
 end
@@ -751,6 +754,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		listedAtSettle = ListedAs(pending.name) ~= nil, spoke = pending.spoke,
 		-- A shout nothing measured them inside of is not a cast on them.
 		landed = not unheard,
+		cure = pending.cure,
 		group = pending.group, members = members, givenAs = givenAs })
 	ns.pendingClick = nil
 end
