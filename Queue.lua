@@ -2531,8 +2531,10 @@ function ns.BuildQueue(watch)
 	-- right now -- leaves you alone to offer (an armor costs less than an
 	-- Intellect), and no walk: every person it reached would be turned down.
 	-- Except for somebody asking by name for a spell Automatic leaves alone
-	-- (askOnly), whom only the walk reads.
-	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) then
+	-- (askOnly), whom only the walk reads. And except with a cure to offer and
+	-- one of its switches on (Cures.lua): a shaman on Classic Era has no buff
+	-- for anybody else, and still walks for a poison or a disease.
+	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CuresWanted(db) then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
 		if own then return { own }, {} end
 		return {}, true
@@ -2542,6 +2544,9 @@ function ns.BuildQueue(watch)
 	-- everybody the walk reaches.
 	-- tanksOutside is the scan's, the same for everybody, so written once here.
 	local opts = { unpaid = UNPAID, tanksOutside = tanksOutside }
+	-- Cures (Cures.lua): the two switches as this scan has them, or nil with
+	-- none to offer (both off, nothing learned, a fight). The scan's too.
+	opts.cures = ns.CureScan(db, now)
 
 	-- `unasked` walks somebody as if they had made no request (see below).
 	-- `owner` is given for a pet of the group ("My group's pets too",
@@ -2628,17 +2633,23 @@ function ns.BuildQueue(watch)
 		-- the group and passer-by switches, the nearness and city checks do
 		-- not apply to it. Casting range still does, further down.
 		local reason = isOwed and "owed" or (asked and "asked") or (inGroup and "group" or "nearby")
+		-- Whether a cure may be offered them (Cures.lua): its own two switches,
+		-- apart from the buff switches below, which do not turn away somebody a
+		-- cure switch reaches until they have been read for one. Never somebody
+		-- owed a favour, whose buff back comes first, nor a pet.
+		local curing = opts.cures and not isOwed and not owner
+			and (inGroup and opts.cures.group or not inGroup and opts.cures.strangers) or nil
 		-- The group switch off turns a member away for good, so it is a verdict:
 		-- a stranger remembered as a passer-by who has joined the party since
 		-- would otherwise be offered from that memory (OfferPassersBy) while it
 		-- lasts. The passers-by switch below needs none, the memories being
 		-- dropped whole for it (`drop`).
-		if reason == "group" and not db.sources.group then
+		if reason == "group" and not db.sources.group and not curing then
 			rejected[full] = true
 			return
 		end
-		if reason == "nearby" and not db.sources.strangers then return end
-		if reason == "nearby" and groupOnly then return end
+		if reason == "nearby" and not db.sources.strangers and not curing then return end
+		if reason == "nearby" and groupOnly and not curing then return end
 		-- A guild left out ("Leave out these guilds"), for the group and for
 		-- passers-by. A favour owed, a request and a target or focus are not
 		-- held back by it, as the never-offer list is not for a favour. A
@@ -2747,6 +2758,23 @@ function ns.BuildQueue(watch)
 
 		local hasMana = UnitHasMana(unit)
 		local guid = plain(UnitGUID(unit))
+		-- A cure (Cures.lua), for somebody one of its switches reaches: read
+		-- here, past every test of the person and before any buff, and theirs
+		-- is the one entry they get, so it comes before a buff for them. With
+		-- nothing to cure the buff switches stand as they did above.
+		if curing then
+			local cure = ns.CureFor(unit, full, guid, inGroup, pointed, flag)
+			if cure then
+				seen[full] = true
+				queue[#queue + 1] = cure
+				return
+			end
+			if reason == "group" and not db.sources.group then
+				rejected[full] = true
+				return
+			end
+			if reason == "nearby" and (not db.sources.strangers or groupOnly) then return end
+		end
 		local whenBuffed = f.whenBuffed or "skip"
 		local checked = whenBuffed ~= "always"
 		-- Their level, where it decides anything (Core.lua, Castable), and for
@@ -3155,6 +3183,8 @@ function ns.BuildQueue(watch)
 	-- holds requests back too.
 	OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, neverVerdict,
 		not db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)
+	-- And the passers-by remembered for a cure (Cures.lua), by its own switch.
+	if opts.cures then ns.CuresRemembered(queue, seen, rejected, now, savingMana or notResting) end
 
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.

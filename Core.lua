@@ -309,6 +309,12 @@ local defaults = {
 			-- is reached by its name alone, which a player has to want.
 			pets = false,
 			strangers = true, -- nearby non-group players
+			-- A poison, a disease, a curse or a harmful spell taken off somebody,
+			-- out of combat (Cures.lua): your party and raid, and passers-by.
+			-- Both off: casting on other people in a new way is the player's
+			-- to choose. Neither waits on `group` or `strangers` above.
+			cures = false,
+			curesStrangers = false,
 			owedClassBuffsOnly = true, -- ignore stray HoTs and procs
 			-- People who ask for your buff in chat. Off, because reading chat is
 			-- guesswork, so the player should choose it.
@@ -461,6 +467,9 @@ local defaults = {
 			-- always was until a priest asked (CurseForge).
 			repayCovered = false,
 			minLevel = 1,
+			-- A cure is offered only for a debuff with more than this many
+			-- seconds left (Cures.lua): one about to run out is not worth the press.
+			cureSeconds = 10,
 			-- Off, because a press on a mount dismounts you, which somebody
 			-- buffing from the saddle may want. Dead, taxi and vehicle need no
 			-- switch: nothing can be cast there, so BuildQueue offers nobody.
@@ -751,6 +760,8 @@ do
 		end
 		return safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true
 	end
+	-- For Cures.lua, which probes its own spells when first asked after a probe.
+	ns.SpellKnown = SpellKnown
 
 	-- Whether the client declares an aura secret: true, false, or nil when it
 	-- will not say.
@@ -1067,6 +1078,8 @@ function ns.CanCastAnything()
 	-- A rogue or a warrior with a poison or a stone in the bags has something to
 	-- put on a weapon, whatever he has learned (ns.OwnItemsHeld).
 	if ns.OwnItemsHeld() then return true end
+	-- Or a cure, with one of its switches on (Cures.lua).
+	if ns.CuresWanted and ns.CuresWanted() then return true end
 	return caps.anyKnown == true or caps.anyOwnKnown == true
 end
 
@@ -1096,6 +1109,8 @@ end
 -- either kind.
 function ns.BuffInfo(buff)
 	if not buff then return nil end
+	-- A cure is no buff of the set, and answers for itself (Cures.lua).
+	if buff.cure then return ns.CureInfo(buff) end
 	if buff.own then
 		local info = caps.own and caps.own[buff.key]
 		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
@@ -4568,6 +4583,7 @@ local LIMITS = {
 	{ "filters", "refreshRaid", 1, 4 },
 	{ "filters", "manaFloor", 0, 90 },
 	{ "filters", "quietShortMinutes", 5, 60 },
+	{ "filters", "cureSeconds", 0, 120 },
 	{ "prompt", "width", 80, 500 },
 	{ "prompt", "height", 20, 120 },
 	{ "prompt", "scale", 0.5, 3 },

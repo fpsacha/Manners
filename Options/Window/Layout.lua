@@ -224,6 +224,8 @@ ns.WindowLayout = {
 					{ "who.restingOnly", indent = true },
 					"who.asked",
 				} },
+				-- Cures (Cures.lua), for a class with one: a poison, a disease, a curse or a spell taken off.
+				{ key = "who.cures", header = "who.curesHeader", items = { "who.curesNote", "who.cures", "who.curesStrangers", { "who.cureSeconds", indent = true } } },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",
 					-- Only the families this character knows are shown (their own rule).

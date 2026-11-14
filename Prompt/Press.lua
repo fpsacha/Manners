@@ -579,6 +579,8 @@ local function OnPostClick(self, mouseButton, down)
 		reason = S.current.reason,
 		-- A group member's pet (Queue.lua): the ledger files nothing for one.
 		pet = S.current.pet,
+		-- A cure (Cures.lua): settled with no favour returned and nothing filed.
+		cure = S.current.cure,
 		gave = ns.lastGave[S.current.name],
 		-- A group cast (GroupBuffs.lua): the spell, and everybody else it
 		-- covers, whom the settle repays and the ledger counts with this one.

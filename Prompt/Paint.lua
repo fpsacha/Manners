@@ -101,6 +101,9 @@ function Prompt:ReasonText(entry)
 		if missing == 0 then return L["%s -- %d running out"]:format(spell, low) end
 		return L["%s -- %d need it"]:format(spell, missing + low)
 	end
+	-- A cure (Cures.lua) says what they are under: poisoned, diseased, cursed,
+	-- under a spell. Said as it is, never through the substitution.
+	if entry.cure then return ns.CureReason(entry) end
 	-- A group member's pet ("My group's pets too", Queue.lua) says whose it
 	-- is: its own name tells the player little, and no reason line they wrote
 	-- is about a pet. Said as it is, never through the substitution.

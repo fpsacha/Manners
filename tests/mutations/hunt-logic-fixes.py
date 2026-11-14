@@ -78,7 +78,7 @@ mutate("Core.lua",
 
 # The early return back as it was: no walk whenever nothing is castable.
 mutate("Queue.lua",
-       "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) then\n",
+       "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CuresWanted(db) then\n",
        "\tif #candidates == 0 then\n",
        "hunt-logic-fix: no walk when nothing is castable, a request or not",
        expect="hunt-logic-fix: mainline: Source of Magic asked for while Blessing of the Bronze is switched off",
@@ -86,7 +86,7 @@ mutate("Queue.lua",
 
 # The same, for the Mists warlock who knows only Unending Breath.
 mutate("Queue.lua",
-       "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) then\n",
+       "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CuresWanted(db) then\n",
        "\tif #candidates == 0 then\n",
        "hunt-logic-fix: no walk when only Unending Breath is known",
        expect="hunt-logic-fix: mists: a warlock who knows only Unending Breath is asked for it (ub pls)",
@@ -96,8 +96,8 @@ mutate("Queue.lua",
 # only, whether or not anybody has asked: every passer-by judged and measured
 # for nothing.
 mutate("Queue.lua",
-       "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) then\n",
-       "\tif #candidates == 0 and not (askOnly and #askOnly > 0) then\n",
+       "\tif #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CuresWanted(db) then\n",
+       "\tif #candidates == 0 and not (askOnly and #askOnly > 0) and not ns.CuresWanted(db) then\n",
        "hunt-logic-fix: the walk made with nobody asking",
        expect="hunt-logic-fix: mainline: nobody is walked for what only a request could be given while none stands",
        script=S)

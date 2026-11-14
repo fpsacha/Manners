@@ -501,6 +501,8 @@ do
 		-- Nor is anything said to a group member's pet ("My group's pets
 		-- too", Queue.lua): no line, in no channel, and so no emote either.
 		if entry.pet then return nil end
+		-- Nor over a cure (Cures.lua): every line is about a buff given.
+		if entry.cure then return nil end
 		if db.speech.onlyWhenReturning and not Returning(entry) then return nil end
 
 		local command = ns.CHANNEL_COMMANDS[db.speech.channel]
@@ -615,7 +617,7 @@ do
 		if said or type(entry) ~= "table" then return end
 		local speech = addon.db and addon.db.profile.speech
 		if not (speech and addon.db.profile.verbose) then return end
-		if not (speech and speech.enabled) or entry.reason == "self" or entry.pet then return end
+		if not (speech and speech.enabled) or entry.reason == "self" or entry.pet or entry.cure then return end
 		if speech.onlyWhenReturning and entry.reason ~= "owed" then return end
 		if not ns.ChannelOpen(entry) then return end
 		if not ns.FriendlyPlatesOff() then return end
