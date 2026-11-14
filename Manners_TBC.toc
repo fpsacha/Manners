@@ -61,6 +61,7 @@ Looks\Fel.lua
 Looks\Wild.lua
 Looks\Frost.lua
 Looks\Glass.lua
+Looks\MinimalDress.lua
 Prompt\Prompt.lua
 Prompt\Text.lua
 Prompt\Effects.lua
