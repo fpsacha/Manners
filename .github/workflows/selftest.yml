@@ -34,8 +34,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      # scipy: tools/figures.py raises the gryphons, Fel's, Wild's and Frost's
+      # carved pieces with its distance transform; without it those generators'
+      # own scenarios skip themselves here.
       - name: Install the Lua runtime and the art tools the tests need
-        run: pip install Pillow numpy lupa
+        run: pip install Pillow numpy lupa scipy
 
       # The scenario trace and the catches (which piece of the suite caught
       # each mutation last time) are kept between runs, per part: they only

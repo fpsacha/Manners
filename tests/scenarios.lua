@@ -17957,8 +17957,32 @@ Mock.reset()
 --   local fail, load, drive = H.fail, H.load, H.drive
 -- A file that will not load, or throws, is a failure of its own rather than
 -- a silent skip: a scenario file nobody runs proves nothing.
+-- Two drawings of one texture alike: the same bytes, or the same size and
+-- header with no channel more than one step apart. A generator's sines and
+-- square roots round a last bit differently from one machine's maths library
+-- to another's (GitHub's Linux runners drew 1 to 84 pixels of four files one
+-- step off the Windows-made files that ship, and the nightly mutation run's
+-- baseline was red for it); a change to the art moves far more than a step.
+local function sameArt(one, two)
+	if one == two then return true end
+	if type(one) ~= "string" or type(two) ~= "string" or #one ~= #two then return false end
+	-- An uncompressed TGA's header is 18 bytes: the same picture, to the byte.
+	if one:sub(1, 18) ~= two:sub(1, 18) then return false end
+	local byte = string.byte
+	for i = 19, #one, 4096 do
+		local last = math.min(i + 4095, #one)
+		if one:sub(i, last) ~= two:sub(i, last) then
+			for k = i, last do
+				local d = byte(one, k) - byte(two, k)
+				if d > 1 or d < -1 then return false end
+			end
+		end
+	end
+	return true
+end
+
 local H = {
-	fail = fail, load = load, drive = drive,
+	fail = fail, load = load, drive = drive, sameArt = sameArt,
 	optionKeys = optionKeys, walkOptions = walkOptions,
 	inQueue = inQueue, settle = settle, withEmptyPrompt = withEmptyPrompt,
 	firstLogin = firstLogin, strangers = strangers, clearClicks = clearClicks,

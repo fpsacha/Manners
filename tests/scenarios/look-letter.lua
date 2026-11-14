@@ -2175,7 +2175,7 @@ withTree("look-letter: tools/make_letter_textures.py is deterministic and draws 
 			fail(scenario, file .. " differs between two runs with the same parameters")
 		elseif not ships then
 			fail(scenario, file .. " is drawn but does not ship")
-		elseif one ~= ships then
+		elseif not H.sameArt(one, ships) then
 			fail(scenario, file .. " does not match the file that ships: run the generator")
 		end
 		os.remove(a .. "/" .. file)
