@@ -586,7 +586,7 @@ while either is hiding the prompt and chat says which.
 Who buffed you, with what and when, whether you returned it, and who you
 buffed without being asked, newest first. Today's count ("Returned 12 of 14
 favours today") and the all-time totals sit at the top, then tabs for
-everything, favours, and buffs you gave. A favour you did not return says why:
+everything, favours, buffs you gave, and *Milestones*. A favour you did not return says why:
 the time ran out, nothing you cast helps them, they already had your buff, or
 you put them on the never-offer list. A buff from somebody returning one of yours says *Buffed
 back*: nothing is owed for it, and it is not counted among the favours to
@@ -602,11 +602,34 @@ Courteous"), and in the minimap tooltip. A new title gets one line in chat,
 once, even with chat lines off; a character that had earned some before titles
 existed simply has them.
 
+**Milestones.** Thirteen marks of good manners, read from what the ledger
+records: *Much Obliged* for the first favour you return, *You Only Had to Ask*
+for answering a request in chat, *All Walks of Life* for favours returned to
+five different classes, *Thank You, Everyone* for ten different people in one
+day, *Old Acquaintance* for thanking the same person on ten different days,
+*The Kindness of Strangers* for a hundred strangers buffed unasked, *A Hundred
+Thank-Yous*, *Back on Your Feet* for a resurrection through the prompt, *A
+Clean Bill of Health* for a cure, *At Your Service* for a courtesy on request,
+and three hidden ones that say what they were once earned. The ledger's
+*Milestones* tab lists them with how far along each is; an earned one has
+*Link in chat*, which puts a line about it in your chat box and sends nothing
+until you press Enter. A new milestone, or a new title, gets a small toast for
+a few seconds and one line in your chat window: never in a fight, never over
+the prompt, one at a time and at most one a minute, and a click sends it away.
+Nothing counts presses: the same stranger counts again only once the buff you
+gave would have run out, the same person once a day, and a cast only once the
+game has had its chance to refuse it. A ledger already long when milestones
+arrived is marked with what it had earned, with one line in chat and no
+toast. *Milestones* on *Start here*, under the favour ledger, switches all of
+it off (what was earned is kept, and nothing is counted meanwhile); *Show a
+toast* and *Play the sound* sit under it. They are kept per character, and
+neither *Clear* nor a profile reset touches them.
+
 `/manners ledger`, a shift-click on the minimap button, or *Open the ledger* on
 the Start here page, where it opens above the options. It keeps the last 200
 entries per character; *Clear* empties the list and today's count but keeps
 favours still owed, the all-time totals and your title. It opens in combat,
-and the only thing it ever says in chat is a new title.
+and the only things it ever says in chat are a new title and a new milestone.
 
 ## The prompt's look
 
@@ -752,7 +775,8 @@ nothing.
 `/manners` opens the options window on the page you used last (*Start here*
 the first time). Drag it by its title bar; Esc closes it. Drag the grip in its
 bottom-right corner to make it bigger and see more of a page at once (it
-keeps that size); right-click the grip for its usual size again. The game's own
+keeps that size); right-click the grip for its usual size again. Dragged wide
+enough, a page flows into two columns, and into three when there is room. The game's own
 **Options > AddOns > Manners** has a button that opens it too. Most settings
 explain themselves; this is what their tooltips have no room for.
 
@@ -787,6 +811,20 @@ explain themselves; this is what their tooltips have no room for.
   in, capitals or not, in every language Manners is translated into. Pick a
   result (Enter takes the first) and the window goes there, opens the
   section it is in and flashes it.
+- *Simple view*, a switch under the search box. On, each page draws only its
+  short list: the ten or so settings a player of your class changes, every
+  buff's own switch among them. Under the list it says how many settings it
+  leaves out, with *Show everything*. *Start here*, *Profiles* and
+  *Diagnostics* are always drawn whole. Nothing is lost in it: search finds
+  every setting in either view, and opens the full one when it lands on a
+  setting the short list leaves out. A new profile starts in the simple view;
+  one made before it existed keeps everything on screen and is offered it
+  once, in a line over the page (*Try the simple view*, *Not now*). The view
+  is kept in the profile and is not handed on in a string of settings.
+- A setting that belongs to a switch sits a step in under it, and is not
+  drawn while that switch is off: the sound under *Play a sound*, the list's
+  length under *List the next few*. Search still finds it, says which switch
+  to turn on first and opens it.
 - *Who to buff*, *Who to skip* and *When to offer* open on a grey line saying
   who the prompt is on right now and why, and how many more are waiting. It
   keeps up with the prompt while the window is open, and when nobody is on it
@@ -807,13 +845,16 @@ explain themselves; this is what their tooltips have no room for.
   asking. It keeps where the prompt sits and its lock, the lines you wrote,
   the never-offer list, your key and *Manners is on*. *Start here*,
   *Profiles* and *Diagnostics* have no reset. The version number sits at the
-  bottom too, for bug reports.
+  bottom too, for bug reports, beside who makes Manners. On WoW Forever a
+  click on the author's name there opens a whisper to them, and a right click
+  looks them up.
 - The settings are grouped under headings. On *Who to buff* your own buffs come
   in four groups: *Myself* (your class's buffs), *Weapons*, *Food, flasks and
   scrolls*, and *When my own buffs come up*; *under Myself* in this manual
   means any of the four. On *When to offer*, *Hold back* (the places) is
   apart from *Mounted and mana*, and on *Look* what the prompt does in a fight
-  sits under *In a fight*.
+  sits under *In a fight*, while its colours (*Style*) are folded with the
+  fine print, each look bringing its own.
 - A change on *Look* shows on the prompt itself. With *Fade this window while
   I change the look* on (off by default), the window fades while you drag a
   slider there and for a moment after any other change, so you can see the
@@ -821,8 +862,9 @@ explain themselves; this is what their tooltips have no room for.
   prompt is showing always does. Opening *Look* out of a fight shows
   the prompt.
 
-**Start here.** The two steps, the favour ledger, *Minimap and chat window*,
-and *Show the welcome again* at the bottom.
+**Start here.** The two steps, the favour ledger with *Milestones* and its
+two switches under it (see *The favour ledger*), *Minimap and chat window*,
+and *Show the welcome again* with the chat lines.
 
 - *1. Quick setup*, at the top, only on a profile that has never been set up
   (see *First steps*): the quick choices of step 1 and of *What I say*, put as
@@ -843,8 +885,14 @@ and *Show the welcome again* at the bottom.
 - *2. Put it on a key*: the key is saved with your game key bindings, so it
   follows every profile. *Put Manners on an action bar* puts the macro on
   your cursor to drop on a bar (where the game would not carry it, it opens the
-  macro window, so the macro is there to drag). The line under them says
-  whether you are ready.
+  macro window, so the macro is there to drag). The step opens with where
+  the key stands: *No key yet* and what to do about it, or the key itself. It
+  stays gold, never red: a key is a convenience. While Manners has no key,
+  one line in your chat window says where to set it, about twenty seconds
+  after you log in: never in a fight (it waits for the end), once a session,
+  on three logins at most for a character, never on the first login, and not
+  at all once a key is set, the Manners macro is made or Manners is off.
+  *Remind me in chat while Manners has no key*, under the step, turns it off.
 - *Minimap and chat window*: the minimap button, and *Show what Manners is doing in my
   chat window*. That is a line in your own chat when somebody buffs you, when a
   favour is repaid, and when a click fails. Use it to tell "the buff was never
@@ -863,8 +911,10 @@ and *Show the welcome again* at the bottom.
   missing, in list order: a priest walks Fortitude, then Divine Spirit, then
   Shadow Protection. Everybody is offered the first buff they are missing
   before anybody is offered a second, so a party gets its Fortitude all round
-  before the first Divine Spirit. Under it, one switch per buff; untick one to
-  never offer it. Shadow Protection (Classic Era, WoW Forever, Burning Crusade)
+  before the first Divine Spirit. Under it, each buff on a row of its own
+  with its switch, and that buff's own switches a step in under it (who gets
+  it, and for your class the one about who it is any use to); untick a buff
+  to never offer it. Shadow Protection (Classic Era, WoW Forever, Burning Crusade)
   starts unticked, like a warlock's Detect Invisibility: tick it to have it
   offered. A buff the game would refuse for somebody's level (more than ten
   levels under its lowest rank: Blessing of Kings under 10, Divine Spirit
@@ -1662,6 +1712,8 @@ The listing text is in `.github/`, one file per field: see
 python tools/check.py               validate, runharness and runscenarios, one line each
 python tools/check.py --flavours    ... and each client's own scenarios as that client
 python tools/check.py --anchors     ... and every mutation still finds its code
+python tools/check.py --release     everything a release is checked against, in one command
+python tools/prove.py "<label>"     one mutation proven on its own scenario files, in seconds
 python tests/selftest.py --changed  the mutations of the files you changed
 python tests/selftest.py            every mutation, each caught by the check it names
 ```
@@ -1672,8 +1724,10 @@ against a mock client) and `tests/runscenarios.py` (adversarial scenarios), and
 exits non-zero if any fails. `tests/selftest.py` puts back each fault the
 suites exist to catch and checks the named check catches it; the full run takes
 20 to 40 minutes, so it runs locally once before a release, while CI runs
-`--anchors` on every push. See `tests/README.md`, and `CLAUDE.md` for the
-flags.
+`--anchors` on every push. `tools/jobs.py` says how many processes the tools
+run at once (`MANNERS_JOBS` caps them), and `RELEASE-CHECK.md` is the five
+minutes in the game before a release. See `tests/README.md`, and `CLAUDE.md`
+for the flags.
 
 ## Listing images
 

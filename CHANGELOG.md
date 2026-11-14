@@ -74,9 +74,30 @@
 - **Lights that should be faint are faint.** Halos, flashes and glows meant to
   rest dark stood fully lit in the game on most looks. Fixed on all of them.
 
+### The favour ledger
+- **Milestones.** Thirteen marks of good manners, three of them hidden until
+  earned, on a new *Milestones* tab of the ledger. A new one gets a small
+  toast and a line in chat, never in a fight. Three switches on *Start here*.
+
 ### Options window
+- **A simple view.** *Simple view*, under the search box, draws only the
+  short list of each page; *Show everything* brings the rest back, and search
+  finds every setting in either. A new profile starts in it.
+- **Each buff on a row of its own**, with that buff's own switches under it.
+  A setting under a switch that is off is not drawn until the switch is on.
+- **Columns.** Drag the window wide and a page flows into two or three.
+- **Set a key.** *Start here* says *No key yet* until Manners is on a key, and
+  one line in chat says where to set it, on three logins at most. *Remind me
+  in chat while Manners has no key* turns it off.
+- **Look's colours are folded** with the rest of its fine print.
 - **The footer.** Who makes Manners is larger and easier to read, and the
-  version stands at the right.
+  version stands at the right. On WoW Forever a click on the author's name
+  opens a whisper, and a right click looks them up.
+
+### Fixes
+- **A read-through of everything new.** Some thirty faults put right in
+  resurrection, cures, courtesies, asking for a buff, sharing a group, the
+  group's pets and battlegrounds.
 
 ## 1.11.24
 

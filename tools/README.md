@@ -132,6 +132,15 @@ this misses on every other scenario, and `selftest.yml` runs it whole on
 GitHub. Its `--only` and `--changed` use this same rule first when no trace
 is kept (`tests/README.md`).
 
+A mutation whose check lives in another topic's file is proven by naming
+that scenario in its `expect`: `battleground.py`'s "where you are is a
+protected call every time" expects `perf-budget: a scan stays inside its pcall
+budget on every client`, so `prove.py` runs `battleground.lua` and
+`perf-budget.lua` for it. After an edit that moved a mutation's text
+(`anchors_for.py --check-after` names it), re-aim it and prove it again:
+an anchor that is live says only that the text is found, not that the fault
+is still caught.
+
 ## jobs.py
 
 How many processes the tools run at once when `--jobs` is not given:

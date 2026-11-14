@@ -24,7 +24,8 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 - **Dungeons and raids:** one group cast for a whole party when you carry the reagent, your group's pets if you tick them, ready checks and the fallen first, only the raid groups you buff, save mana below a level you set, holding back as much as you choose.
 - **Top-ups timed to each buff:** with top-ups on, about a tenth of its length before it ends, earlier in a raid or dungeon.
 - **Paladins:** Blessing of Kings first, and a buff order of your own for any class with several buffs.
-- **The favour ledger** and titles for your manners, from *Well Brought Up* to *The Very Soul of Courtesy*. `/manners ledger`.
+- **The favour ledger** and titles for your manners, from *Well Brought Up* to *The Very Soul of Courtesy*, and thirteen **milestones** to earn, three of them hidden. `/manners ledger`.
+- **Options that start short:** a simple view with the ten or so settings your class changes on each page, everything else one switch or one search away.
 - **Say something**, if you like: four sets, whispers, or **In character**, over two thousand lines picked for your race, class and the moment, with your own mixed in if you like. Off by default.
 - **Keys, action bars and controllers:** a key binding, a macro for any action bar slot that shows the spell it will cast and says your line, and the game's own controller support (bind a controller button; the prompt shows its picture).
 - **Nineteen looks** picked from cards, effects you can calm, and **Move the prompt** one click away in the options window.

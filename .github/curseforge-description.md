@@ -98,6 +98,8 @@ With *Offer a top-up when it runs low* on (the *kept topped up* choice on Start 
 
 Who buffed you and with what, whether you returned it (and if not, why), and who you buffed unasked, with today's count and your all-time totals. `/manners ledger`. Favours you return earn a title, from *Well Brought Up* at 10 to *The Very Soul of Courtesy* at 1,000, with how far you are from the next.
 
+**Milestones**: thirteen marks of good manners on a tab of their own, from *Much Obliged* for your first favour returned to *The Kindness of Strangers* for a hundred strangers buffed unasked, three of them hidden until you earn them. A new one gets a small toast and a line in chat, never in a fight, and one switch turns it all off.
+
 ### What it says
 
 Optional, and off until you turn it on: a line when you buff somebody, from four sets you can edit (Azeroth, Polite, Cheeky, or just their name). Say it, yell it, tell your group, or *whisper them*. It goes out through the button's macro, so it counts as you talking, and only with a buff that can land: when Manners cannot tell, the buff goes out without it.
@@ -114,6 +116,7 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **A flat prompt, if you like:** on Glass, Framed and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go. The game's Edit Mode unlocks it too, and locks it again when it closes.
+- **Options that start short:** a *Simple view* with the ten or so settings your class changes on each page, each buff on a row of its own, and everything else one switch or one search away.
 - **Minimap button** and addon compartment: click for options, shift-click for the ledger, right-click for a menu.
 
 ### Keys, action bars and controllers

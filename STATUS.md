@@ -6,11 +6,14 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 ## State
 
 **1.11.25 in progress** (1.11.24 is the last release). Built on 2026-11-14 in
-one day of parallel worktrees, merged to master, and BUILD ONLY: each piece
-was held to lint, its own scenario file and `anchors_for.py --check-after`.
-No suite was run over the merged tree and nothing was tried in the game. The
-checklist of what only the game can settle is the first item under *Open*;
-what the test pass still owes is the second.
+one day of parallel worktrees and merged to master: each piece was held to
+lint, its own scenario file and `anchors_for.py --check-after`, and each new
+mutation to `tools/prove.py`. One `tools/check.py --release` ran over an
+earlier master that day; what it found red was cleared on the `integrate`
+branch, each by its own scenario file (the list is the second item under
+*Open*). No whole suite has run over the tree as it now stands, and nothing
+was tried in the game. The checklist of what only the game can settle is the
+first item under *Open*.
 
 What was built:
 
@@ -49,7 +52,37 @@ What was built:
   `MixedIn`; What I say).
 - **The options window's footer** (WindowChrome.lua: the author's line
   larger and centred, the build at the right; the picker's tick clear of the
-  picture).
+  picture). On Forever the author's name alone takes a click: left opens a
+  whisper through the game's chat box, right looks them up with `/who`. No
+  scenario presses it yet.
+- **The options menu rebuilt** (`Options/Window/Layout.lua`, `WindowPage.lua`;
+  `menu.lua`): who before what on Who to buff; each buff on a row of its own
+  with its switches indented under it; a row under a switch that is off is
+  not drawn (`UnderOff`), and search says which switch to turn on; columns
+  when the window is dragged wide (two from 420 a column, three at most,
+  `UI.ColumnsFor`); the simple view (`menuView`: `simple`, `full`, `offer`,
+  stamped by `ClampSettings`; the layout's `simple` list; never in a string
+  of settings; the mock's player has chosen *Show everything*, a scenario
+  about a new profile sets `Mock.newMenu`); homes for the day's features
+  (*More than buffs* for resurrection and cures, the group's own section for
+  *Share the group*, the courtesies under *People who ask me in chat*).
+  Look's colours (*Style*) are a fold, which keeps the page inside three
+  screens under nineteen cards.
+- **The reminder to set a key** (Options/Start.lua `Setup`, `ns.KeyNudge`,
+  `ns.KEY_NUDGE_AFTER` 20 s; `keyReminder` on, `db.char.keyReminders`, three
+  at most): *No key yet* on Start here's step 2, and one line in chat.
+- **Milestones** (`Milestones.lua`, `db.char.milestones`,
+  `db.profile.milestones`: `enabled`, `toast`, `sound`; `milestones.lua`):
+  thirteen, three hidden; the ledger's fourth tab; a toast; three switches on
+  Start here. Resurrect.lua, Clicks.lua (a settled cure) and Courtesy.lua
+  tell it with `ns.Milestones.Note`.
+- **The read-through review** (`*-review.lua`, eight scenario files with
+  their mutation files): some thirty faults in resurrection, courtesies,
+  cures, sharing the group, asking, battlegrounds, pets and the seams
+  between them, fixed before any of it shipped.
+- **Faster test tools**: `tools/prove.py`, `tools/check.py --release`,
+  `tools/jobs.py`, `selftest.py --only/--changed` on the fast proof, and
+  `RELEASE-CHECK.md` (`tools/README.md`).
 - **Four new looks**, nineteen in all: Stormcaller, Warchief, Gearworks and
   Ebon, each with its generator, its `Textures/` folder, its scenario file
   (`look-<key>.lua`) and mutation file, its strings in eight languages and
@@ -527,6 +560,49 @@ press did. Paste whatever does not match.
 
 - [ ] The footer: the author's line larger and centred, the version at the
       right, nothing cut at the smallest window size.
+- [ ] The footer on Forever: the pointer over the author's name shows *Click
+      to whisper.* and *Right-click to look them up.*; a click opens the chat
+      box on a whisper to "Name Surname" and sends nothing; a right click
+      runs the `/who`. Nothing of it on the rest of the line.
+- [ ] Who to buff: who first, then what; each buff on a row of its own with
+      its switches a step in; a priest finds Divine Spirit's tick at once.
+- [ ] A row under a switch that is off is gone, and comes back with the
+      switch; search for it says which switch to turn on first and opens it.
+- [ ] Drag the grip wide: two columns, then three; nothing cut, no row over
+      another, and the usual size back at a right-click on the grip.
+- [ ] *Simple view* under the search box: the short list of each page, how
+      many settings it leaves out, *Show everything*; a search landing on a
+      setting it leaves out opens the full view. A new character starts in
+      it; an old profile is offered it once (*Try the simple view*, *Not
+      now*) and never again.
+- [ ] Look: *Style* (the colours) folded under the hairline, its gold dot lit
+      once a colour is changed; the page about three screens with its folds
+      shut.
+- [ ] Start here, step 2: *No key yet* in gold with no key; the key once one
+      is set.
+- [ ] The reminder: a character with no key, on its second login, gets one
+      line in chat about twenty seconds in; none in a fight until it ends;
+      none after three logins, with a key, with the Manners macro made, or
+      with *Remind me in chat while Manners has no key* off. `/manners debug`
+      says the key and why the reminder keeps quiet.
+
+*Milestones*
+
+- [ ] A character with a long ledger, first login on 1.11.25: one line in
+      chat saying how many it had already earned, no toast.
+- [ ] The ledger's *Milestones* tab: thirteen rows, three reading *Hidden*
+      until earned, each with how far along it is; *Link in chat* on an
+      earned row fills the chat box and sends nothing.
+- [ ] Return a first favour on a new character: the toast (*Much Obliged*)
+      a few seconds after the cast, drawn like the game's own, clear of the
+      prompt, gone at a click; its sound, and none with *Play the sound* off.
+- [ ] Earned in a fight: the toast waits for the fight to end. Two earned
+      together: one a minute.
+- [ ] A resurrection, a cure and a courtesy through the prompt each earn
+      theirs once the cast has landed; a refused or failed one earns nothing.
+- [ ] *Milestones* off on Start here: no tab, no toast, no line, and the two
+      switches under it greyed; on again, what was passed meanwhile is marked
+      with no toast.
 - [ ] The picker: nineteen cards, each picture whole (Stormcaller, Ebon,
       Leather and Warchief were given room), the tick clear of the picture.
 
@@ -569,52 +645,68 @@ prompt, and the renderer understates additive light)
 - [ ] The serif names on Ribbon, Letter and Leather, a fifth larger, with a
       long name and a key on the chip.
 
-**1.11.25: what the test pass still owes.** The day was build only, so before
-a release (`tools/check.py --lint --flavours --anchors`, then the selftest):
+**1.11.25: the test pass.** One `tools/check.py --release` ran on master
+before the menu and milestones were merged (10 min 39 s at `--jobs 6`). What
+it found, and what became of each on `integrate`, where every one was run
+again by its own scenario file and no whole suite:
 
-- The four new looks are in none of the shared lists: `looks.lua`,
-  `looks-alpha.lua`, `looks-read.lua`, `hunt35-effects.lua`,
-  `hunt37-effects.lua`, `hunt38-picker.lua`, `hunt38-shared.lua`,
-  `hunt40-layout.lua`, `perf-budget.lua`, `options-appearance.lua`,
-  `selftest-launch.lua` (the count of cards), `tools/make-screenshots.py`
-  (so `manners-looks.png` still draws fifteen) and
-  `tests/materials_check.lua`. `Looks.roundAlways` lacks `warchief`,
-  `gearworks` and `ebon`, whose icons ignore the round switch (re-aim the
-  mutations whose `old` is that line); `stormcaller` stays out of it.
-- `model-window.lua`'s `EXPECTED` lacks the new paths (who: `sources.res`,
-  `resStrangers`, `share`, `cures`, `curesStrangers`, `filters.cureSeconds`,
-  the four `sources.courtesy*`; when: `battle.team`, `speak`, `thank`,
-  `items`); `layout.lua` may want the new sections.
-- The fallback dialog's order 14.5 is used twice in `Options/Who.lua` (the
-  ask toggle and `curesHeader`): give one another.
+- `validate`: `ns.Cures` written and never read. The addon's: the table was
+  there for the tests alone. Gone; `cures-review.lua` sees the memory of a
+  passer-by by what is offered.
+- The previews stale: `Previews.lua`'s fingerprint, brought current with the
+  look lists (`make_look_previews.py --check` and `--check-bare` pass).
+- `perf-budget.lua`, 18.2 pcalls a raid scan against 18 (and 20.2 against 20
+  with group casts) on four clients. The addon's: Battle.lua asked
+  `IsInInstance` through `safecall` every two seconds, anywhere. It is now
+  protected only until it has answered once (`answered`, Battle.lua `Where`);
+  no budget was raised. Charged line by line, that was the only protected
+  call the day's features added to the raid scan with their switches as a
+  new profile has them: Share.lua, Resurrect, Cures, Milestones and Ask add
+  none there.
+- `hunt24-favours.lua` (4): the test's. The reminder to set a key parks a
+  twenty-second timer at login, on the clock those scenarios read for the
+  favours' settle timers; the file takes it off for its runs.
+- `settings-fixes.lua` (2, on all five clients): the addon's. Battle.lua
+  stamps `battle.carried` into every profile it meets, so an own profile only
+  visited read as one set up and *Give this character its own settings* went
+  back to defaults instead of copying. `OnlyVisited` (Options/Start.lua)
+  knows the stamp.
+- `menu.lua`: Look was 3.2 screens against 3.1 once the picker had nineteen
+  cards. The layout's: *Style* is a fold now.
+- `hunt38-picker` (28), `look-gearworks` (3), `theme-picker` (2),
+  `hunt40-layout` (2), `selftest-launch`, `looks-alpha`, `hunt40-cards`, the
+  fuzz canary and the fuzzer's `SetDegrees` on five clients: the tests' and
+  the mock's, all settled by the look lists (the four new looks in every
+  shared list, the mock's Rotation). Green.
+- `fuzz-fixes.lua` as the four other clients: green.
+
+Still owed, for the full pass the author runs (`tools/check.py --release`,
+then the selftest on GitHub):
+
 - `tests/mockapi.lua`'s `KNOWN_EVENTS` lacks `UNIT_SPELLCAST_FAILED_QUIET`
   and `INCOMING_RESURRECT_CHANGED`; `fuzz_check.lua` needs an `e.res`
   exception to "is dead and was offered" and does not know the reason "ask";
-  `fuzz_check.lua` and `fuzz_steps.lua` were edited for battlegrounds and
-  not run.
+  `fuzz_check.lua` and `fuzz_steps.lua` were edited for battlegrounds. The
+  fuzzer has not run since any of it.
 - `tools/audit_ids.py` does not cover Resurrect.lua's ids, and was not run
   for Courtesy.lua's or Cures.lua's.
-- `perf-budget.lua`: one more pcall every two seconds in a battleground, a
-  harmful-aura read a person with a cure switch on, the hello's cost, and
-  the looks that now run a `Painted` at every scan (Letter, Ribbon, Minimal's
-  `Rest`): re-measure (`MANNERS_PERF_REPORT=1`).
-- `model-fixes.lua`'s canary 0.5562 shifts with the new controls;
-  `quietinstances.lua` and its mutations, `pets.lua` and `mainline.lua` were
-  edited and not run; other scenarios listing Mists' or retail's families
-  may need `and not family.pet`.
-- No mutation written today has been seen CAUGHT: the eight look files
-  (several hundred between them), `res.py`, `cures.py`, `courtesy.py`, `ask.py`,
-  `battleground.py`, `battle-tracking.py`, `raidsplit.py`, `journalpet.py`,
-  `resting-hint.py`, and the ones re-aimed in `hunt-logic-fixes.py`,
-  `hunt23-queue.py`, `fuzz-fixes.py` and `tests/selftest.py`. Queue.lua near
-  the courtesy early answer and the cures exception was merged by hand.
-- `tests/validate.py` has not run on the merged tree (the upvalue and local
-  ceilings of the new look files were counted by hand), and the contrast
-  audit ran at the default size only for seven of the eight looks.
-- The listing image `manners-looks.png` and any picture showing Minimal,
-  Ribbon, Letter or Leather want redrawing once `make-screenshots.py` knows
-  the nineteen; the gallery row and the image's alt text say fifteen of the
-  nineteen until then.
+- `perf-budget.lua` measures no world with a cure switch on, a dead member
+  or a hello under way: a harmful-aura read a person, and the looks that run
+  a `Painted` at every scan (Letter, Ribbon, Minimal's `Rest`), are inside
+  the budgets as measured and have no line of their own.
+- `pets.lua` and `mainline.lua` were edited for the journal pet and run only
+  on their own; other scenarios listing Mists' or retail's families may need
+  `and not family.pet`.
+- No scenario presses the footer's author name.
+- The full selftest has judged none of the day's mutations: each was seen
+  CAUGHT by `tools/prove.py` on its own scenario files, which is not the
+  whole suite.
+- The contrast audit ran at the default size only for seven of the eight
+  new or redrawn looks.
+- `manners-looks.png` still shows fifteen of the nineteen looks, and any
+  listing picture showing Minimal, Ribbon, Letter or Leather wants redrawing
+  (`tools/make-screenshots.py` knows the nineteen now; the gallery row says
+  fifteen of nineteen until the picture is drawn again).
 
 **Launch day (WoW Forever, 2026-11-05): run one command.** Log in on the
 character that has the Manners macro (or any character: the test makes a
