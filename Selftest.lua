@@ -673,7 +673,13 @@ Check("beliefs.own", "beliefs", L["own buffs"], function(add)
 		if up == nil then
 			line = "the client would not say whether it is up"
 		elseif up then
-			line = ("up: %s%s%s"):format(spell and spell.key or "an enchant no scroll makes",
+			-- Up with no spell of Manners' own named: a weapon enchant from
+			-- elsewhere, a companion pet that is out, or (food) Well Fed or a
+			-- meal in progress from something the table does not hold.
+			local unnamed = (family.key == "pet" and "a pet is out")
+				or (family.bagged and "from something Manners has no row for")
+				or "an enchant no scroll makes"
+			line = ("up: %s%s%s"):format(spell and spell.key or unnamed,
 				left and (", " .. math.floor(left) .. "s left") or "",
 				charges and (", " .. tostring(charges) .. " charges") or "")
 		else
