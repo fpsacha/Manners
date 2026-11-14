@@ -4380,6 +4380,8 @@ L["A line too long for a macro is skipped; Try a few shows what would go out."] 
 L["In character picks one of its %d lines when you click, to fit your race, faction, class and the moment. The box below shows only a few examples; editing it turns In character off."] = "캐릭터 롤플레이는 클릭할 때 대사 %d개 중에서 내 종족, 진영, 직업, 그때 상황에 맞는 대사를 고릅니다. 아래 칸에는 예시 몇 개만 보이며, 고치면 꺼집니다."
 L["Your lines (one per line)"] = "내 대사 (한 줄에 하나씩)"
 L["Editing these turns In character off and uses only your lines. Continue?"] = "대사를 고치면 캐릭터 롤플레이가 꺼지고 내가 쓴 대사만 씁니다. 계속하시겠습니까?"
+L["My own lines, mixed in (one per line)"] = "내 대사를 섞어서 (한 줄에 하나)"
+L["With In character as the set, about one press in three says one of these instead of an In character line. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."] = "캐릭터 롤플레이 대사를 쓰는 동안, 세 번에 한 번쯤은 캐릭터 롤플레이 대사 대신 이 중 하나를 말합니다. {name}은 상대의 이름, {buff}는 주문입니다. 비워 두면 캐릭터 롤플레이 대사만 말합니다."
 L["Go back to In character"] = "캐릭터 롤플레이로 돌아가기"
 L["Try a few lines"] = "몇 줄 뽑아 보기"
 L["Prints sample lines in your chat; only you see them."] = "예시 대사를 대화창에 출력합니다. 나만 볼 수 있습니다."

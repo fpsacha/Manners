@@ -4380,6 +4380,8 @@ L["A line too long for a macro is skipped; Try a few shows what would go out."] 
 L["In character picks one of its %d lines when you click, to fit your race, faction, class and the moment. The box below shows only a few examples; editing it turns In character off."] = "“入戏”会在你点击时从%d句台词中挑选一句，贴合你的种族、阵营、职业和当时的情形。下方只列出几句示例；编辑它会关闭“入戏”。"
 L["Your lines (one per line)"] = "你的台词（每行一句）"
 L["Editing these turns In character off and uses only your lines. Continue?"] = "编辑这些台词会关闭“入戏”，只使用你自己的台词。继续吗？"
+L["My own lines, mixed in (one per line)"] = "我自己的台词，混入其中（每行一句）"
+L["With In character as the set, about one press in three says one of these instead of an In character line. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."] = "选用入戏台词时，大约每三次按键有一次会说这里的一句，而不是入戏台词。{name} 是对方的名字，{buff} 是法术。留空则只说入戏台词。"
 L["Go back to In character"] = "切回入戏"
 L["Try a few lines"] = "试几句台词"
 L["Prints sample lines in your chat; only you see them."] = "在聊天框中显示几句示例台词；只有你能看到。"

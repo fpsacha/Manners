@@ -783,6 +783,7 @@ do
 	local SHARE_SPEECH = {
 		["speech.channel"] = true,
 		["speech.phrases"] = true,
+		["speech.mixedLines"] = true,
 		["speech.presetChoice"] = true,
 		["speech.onlyWhenReturning"] = true,
 	}

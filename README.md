@@ -1032,7 +1032,10 @@ list. They used to be at the bottom of *Who to buff*.
   group cast), a trade for the one they gave you, how often you two have
   swapped, an inn or a dungeon, the hour, somebody of your own class or
   people. It does not repeat itself, and a context the game will not reveal
-  is left out. The line rides in the macro the button runs, because the game
+  is left out. *My own lines, mixed in*, under the box while In character is
+  the set, takes lines of your own (one a line, `{name}` and `{buff}` as
+  elsewhere): about one press in three says one of them, the rest stay In
+  character's. The line rides in the macro the button runs, because the game
   refuses addon-sent `/say` and `/yell` outside instances, which is exactly
   where somebody buffs you in passing. The Manners macro on an action bar
   carries the same line, written out of combat and rolled again after each

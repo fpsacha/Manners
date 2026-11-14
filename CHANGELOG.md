@@ -3,24 +3,16 @@
 ## Unreleased
 
 ### Looks
-- **Lights that should be faint are faint.** In the game, colouring a light
-  brought it up to full strength, so halos, flashes and glows meant to rest
-  dark stood lit on Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage,
-  Lightbringer and Fel, and the default look's icon bezel always wore its
-  lighter hover face. Every look now leaves a light as faint as it was.
-- **Names are easier to read.** A name in a deep class colour (the shaman's
-  blue, the death knight's red) is drawn light enough to read, and on Ribbon,
-  Leather and Forge every colour in the words is judged against the cloth, the
-  hide and the iron they sit on.
-- **The list is easier to read.** The words after each name are lighter.
-- **The name keeps its size.** On Fel, Lightbringer, Wild and Frost the count
-  and the key's tag give way before the name is drawn smaller.
-- **Fel:** the reason line and a refusal's words are brighter, and the smoke
-  of a refusal is thinner behind them.
-- **Ribbon:** the key's letter stays readable in a fight, and the shine of a
-  landed buff no longer hides the name.
-- **Toast, Arcane, Luxe:** a fight dims the clock, the runes and the shadow
-  over what they were, and they come back as they were after it.
+- **Lights that should be faint are faint.** Halos, flashes and glows meant to
+  rest dark stood fully lit in the game on most looks. Fixed on all of them.
+- **Easier to read.** Names in a deep class colour, the words in the list, and
+  the lines on Fel, Ribbon, Leather, Forge and Letter are all brighter against
+  what they sit on, and the name keeps its size when the panel is crowded.
+
+### What I say
+- **Your own lines among the In character ones.** With *In character* as the
+  set, *My own lines, mixed in* (What I say) takes lines of your own: about one
+  press in three says one of them. Asked for on CurseForge.
 
 ## 1.11.24
 

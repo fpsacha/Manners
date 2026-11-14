@@ -4380,6 +4380,8 @@ L["A line too long for a macro is skipped; Try a few shows what would go out."] 
 L["In character picks one of its %d lines when you click, to fit your race, faction, class and the moment. The box below shows only a few examples; editing it turns In character off."] = "El juego En rol elige una de sus %d frases al hacer clic, según tu raza, facción, clase y el momento. La casilla de abajo solo muestra unos ejemplos; editarla lo desactiva."
 L["Your lines (one per line)"] = "Tus frases (una por línea)"
 L["Editing these turns In character off and uses only your lines. Continue?"] = "Editarlas desactiva En rol y usa solo tus frases. ¿Continuar?"
+L["My own lines, mixed in (one per line)"] = "Mis propias frases, mezcladas (una por línea)"
+L["With In character as the set, about one press in three says one of these instead of an In character line. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."] = "Con En rol como conjunto, más o menos una pulsación de cada tres dice una de estas en lugar de una frase de En rol. {name} es su nombre y {buff} es el hechizo. Déjalo vacío para oír solo En rol."
 L["Go back to In character"] = "Volver a En rol"
 L["Try a few lines"] = "Probar unas frases"
 L["Prints sample lines in your chat; only you see them."] = "Muestra frases de ejemplo en tu chat; solo tú las ves."

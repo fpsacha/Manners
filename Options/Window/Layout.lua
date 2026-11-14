@@ -465,6 +465,8 @@ ns.WindowLayout = {
 					"click.phrasesHelp",
 					"click.inCharacterNote",
 					"click.phrases",
+					-- Your own lines among the In character ones, while that is the set.
+					"click.mixedLines",
 					{ "click.backToInCharacter", pair = true },
 					"click.roll",
 					"click.limits",
@@ -703,6 +705,7 @@ ns.WindowLayout = {
 	parents = {
 		["click.preset"] = "click.enabled",
 		["click.phrases"] = "click.enabled",
+		["click.mixedLines"] = "click.enabled",
 		["click.roll"] = "click.enabled",
 	},
 

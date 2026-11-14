@@ -417,10 +417,39 @@ do
 	-- remembers as said only once a press carries it (Prompt/Press.lua).
 	-- With quote (an emote), the addon's own words are quoted in it, measured
 	-- as they will go out; a line the player wrote is said as typed.
+	-- One of the player's own lines kept to be said among the In character ones
+	-- (speech.mixedLines, What I say), or nil: about one press in three while
+	-- the box holds a line that fits. Said as typed, an emote included, as the
+	-- player's lines always are.
+	local MIXED_ONE_IN = 3
+	local function MixedIn(db, entry, command, budget)
+		local text = db.speech.mixedLines
+		if type(text) ~= "string" or text == "" then return nil end
+		local spell = entry.groupCast and entry.groupCast.spellName
+		spell = spell or (entry.buff and ns.BuffName(entry.buff))
+		local fits = {}
+		for raw in text:gmatch("[^\r\n]+") do
+			local clean = SanitizePhrase(raw)
+			if clean then
+				local phrase = ns.Swap(clean, "{name}", entry.short or entry.name)
+				phrase = SanitizePhrase(ns.Swap(phrase, "{buff}", spell))
+				if phrase then
+					local line = "/" .. command .. " " .. phrase
+					if #line <= budget then fits[#fits + 1] = line end
+				end
+			end
+		end
+		if #fits == 0 or math.random(MIXED_ONE_IN) ~= 1 then return nil end
+		return fits[math.random(#fits)]
+	end
+
 	local function Roll(db, entry, command, budget, quote)
 		-- "In character" chooses for this person and moment, not from the box.
 		local inCharacter = ns.InCharacter
 		if inCharacter and inCharacter.Active(db.speech) then
+			-- The player's own lines among them, now and then.
+			local own = MixedIn(db, entry, command, budget)
+			if own then return own end
 			if not quote then return inCharacter.Pick(entry, command, budget) end
 			local line, source = inCharacter.Pick(entry, command, budget - #quote:format(""))
 			if not line then return nil end
