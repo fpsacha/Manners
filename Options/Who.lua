@@ -1205,11 +1205,20 @@ function Page.BuildWhoTab()
 			quietInInstances = {
 				type = "toggle",
 				name = L["Offer nothing in dungeons, raids and battlegrounds"],
-				desc = L["On: inside a dungeon, a raid, a battleground or an arena, nothing is offered to anybody: not your group, not a favour you owe. Somebody you target or focus is still offered, and your own buffs are not held back."],
+				-- How it meets In battlegrounds and arenas (When.lua, Battle.lua):
+				-- there that section's own switch decides, and ticking this one
+				-- unticks it, so the name still holds.
+				desc = function()
+					return L["On: inside a dungeon or a raid, nothing is offered to anybody: not your group, not a favour you owe. Somebody you target or focus is still offered, and your own buffs are not held back. A battleground or an arena goes by its own switch, %s, which ticking this one unticks."]
+						:format("|cffffd100" .. L["Buff my team there"] .. "|r")
+				end,
 				order = 13.36,
 				width = "full",
 				get = fGet,
-				set = fSet,
+				set = function(info, value)
+					fSet(info, value)
+					if value == true then ns.db.profile.battle.team = false end
+				end,
 			},
 			-- Short buffs alone held back while resting (asked for on CurseForge: a
 			-- druid wants Mark of the Wild shared everywhere and Thorns not).

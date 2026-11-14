@@ -161,6 +161,72 @@ function Page.BuildWhenTab()
 				set = fSet,
 			},
 
+			-- A battleground or an arena, a situation of its own (Battle.lua):
+			-- four switches on db.battle, which decide there whatever the
+			-- place rules under Hold back say.
+			battleHeader = { type = "header", name = L["In battlegrounds and arenas"], order = 14.1 },
+			battleTeam = {
+				type = "toggle",
+				name = L["Buff my team there"],
+				desc = function()
+					return L["On: in a battleground or an arena your team is offered your buffs: freely while the gates are still shut, group casts first, and after that only while you are out of combat and only somebody within reach. Off: nobody else is offered anything there but somebody you target or focus. This switch decides there, whatever %s says. Your own buffs are not held back either way: what you fight with comes first after a death, food and the like after."]
+						:format("|cffffd100" .. L["Offer nothing in dungeons, raids and battlegrounds"] .. "|r")
+				end,
+				order = 14.2,
+				width = "full",
+				-- About other people, which a class with nothing for them has none of.
+				hidden = function() return not HasClassBuffs() end,
+				get = function() return ns.db.profile.battle.team == true end,
+				set = function(_, value)
+					ns.db.profile.battle.team = value == true
+					ns.Guard("battleground repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+			battleSpeak = {
+				type = "toggle",
+				name = L["Say my line there"],
+				desc = function()
+					return L["Off: nothing is said when you buff somebody in a battleground or an arena, whatever %s is set to. On: your line is said there as it is anywhere else."]
+						:format(TAB.click)
+				end,
+				order = 14.3,
+				width = "full",
+				hidden = function() return not HasClassBuffs() end,
+				get = function() return ns.db.profile.battle.speak == true end,
+				-- The line is part of the armed macro, so it is built again.
+				set = function(_, value)
+					ns.db.profile.battle.speak = value == true
+					ns.Prompt:InvalidateMacro()
+				end,
+			},
+			battleThank = {
+				type = "toggle",
+				name = L["Thank people there"],
+				desc = L["On: the /thank and the whispered thank-you, where you have them switched on, also go to somebody of your own team who buffs you in a battleground or an arena, never in a fight. Off: nobody is thanked there."],
+				order = 14.4,
+				width = "full",
+				get = function() return ns.db.profile.battle.thank == true end,
+				set = function(_, value) ns.db.profile.battle.thank = value == true end,
+			},
+			-- It widens Consumables only in dungeons and raids (Who to buff), and
+			-- is greyed while that is off, when nothing is held back anywhere.
+			battleItems = {
+				type = "toggle",
+				name = L["Consumables there too"],
+				desc = function()
+					return L["On: in a battleground or an arena the reminders that %s holds back come up as they do in a dungeon. Off: they wait there, as they do out in the world. With that switch off this one changes nothing: they come up everywhere."]
+						:format("|cffffd100" .. L["Consumables only in dungeons and raids"] .. "|r")
+				end,
+				order = 14.5,
+				width = "full",
+				disabled = function() return ns.db.profile.ownBuffs.itemsInDungeons ~= true end,
+				get = function() return ns.db.profile.battle.items == true end,
+				set = function(_, value)
+					ns.db.profile.battle.items = value == true
+					ns.Guard("battleground repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
 			-- Only the mount has a switch: dead, a taxi and a vehicle are
 			-- places nothing can be cast from, while a cast from a mount
 			-- works and costs you the mount, a trade some players want.

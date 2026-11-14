@@ -421,8 +421,9 @@ local defaults = {
 			-- back where Mark of the Wild still goes (a CurseForge comment).
 			quietShortInTowns = false,
 			quietShortMinutes = 15,
-			-- The same inside a dungeon, a raid, a battleground or an arena
-			-- (Queue.lua, Inside): nothing for anybody but a target or focus.
+			-- The same inside a dungeon or a raid (Queue.lua, Inside): nothing
+			-- for anybody but a target or focus. A battleground or an arena goes
+			-- by battle.team below, which ticking this one unticks.
 			quietInInstances = false,
 			-- On: the two rules above hold back the target and focus too, which
 			-- they leave alone otherwise (asked for on GitHub, issue 8).
@@ -481,6 +482,23 @@ local defaults = {
 			-- The raid groups (1-8) switched off, as a sparse set (absent = on): in a
 			-- raid, those groups are offered nothing unasked.
 			skipRaidGroups = {},
+		},
+
+		-- In battlegrounds and arenas (Battle.lua, When to offer): a section of
+		-- its own, which decides there whatever Offer nothing in dungeons, raids
+		-- and battlegrounds says.
+		battle = {
+			-- On: your team is offered there -- freely before the gates open,
+			-- then out of combat and within reach. Off: nobody else is.
+			team = true,
+			-- Off: no line is said with a cast there, in any channel.
+			speak = false,
+			-- On: the /thank and the whispered thank-you go there too, to your
+			-- own team alone. Off: nobody is thanked there, as before 1.11.25.
+			thank = true,
+			-- Off: what Consumables only in dungeons and raids holds back stays
+			-- held there. On: a battleground or an arena counts as a dungeon.
+			items = false,
 		},
 
 		timing = {
@@ -3374,6 +3392,9 @@ do
 		-- Held to dungeons and raids by the player (Who to buff): out in the
 		-- world there is nothing to say about it, up or not.
 		if ns.OwnItemsHeldToDungeons(family) and addon.db.profile.ownBuffs.itemsInDungeons == true
+			-- A battleground or an arena counts as one with Consumables there
+			-- too ticked (Battle.lua); without it they wait there as well.
+			and not ns.Battle.ItemsThere()
 			and not InDungeon() then
 			return nil, nil, nil, "dungeon"
 		end
@@ -4851,6 +4872,9 @@ function ns.ClampSettings()
 	for class, flag in pairs(skipClasses) do
 		if type(class) ~= "string" or not class:find("^%u+$") or flag ~= true then skipClasses[class] = nil end
 	end
+	-- Offer nothing in dungeons, raids and battlegrounds, ticked before a
+	-- battleground had a section of its own: carried into it, once (Battle.lua).
+	if ns.Battle then ns.Battle.Carry(profile) end
 
 	-- An entry that is not a name set to true (typed) or "filed" (a name the game
 	-- gave, Queue.lua NEVER_FILED) is dropped: there is no telling who it was

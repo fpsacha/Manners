@@ -77,6 +77,8 @@ Page.RESET = {
 		-- Who to buff's two place rules, which this page draws under Hold back.
 		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets",
 		"filters.quietInTownsWhere", "filters.quietShortInTowns", "filters.quietShortMinutes",
+		-- In battlegrounds and arenas (Battle.lua).
+		"battle.team", "battle.speak", "battle.thank", "battle.items",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget",

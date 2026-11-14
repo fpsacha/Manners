@@ -414,6 +414,7 @@ ns.WindowLayout = {
 					{ "when.manaFloorKeeps", indent = true },
 					"when.manaNote",
 				} },
+				{ key = "when.battle", header = "when.battleHeader", items = { "when.battleTeam", "when.battleSpeak", "when.battleThank", "when.battleItems" } },
 				-- Where the old note pointing at Advanced was.
 				{ key = "when.favours", header = "advanced.favoursHeader", items = {
 					"advanced.reciprocateWindow",
@@ -686,6 +687,7 @@ ns.WindowLayout = {
 			end
 			return L["Needs %s ticked."]:format(NameOf("who.strangers"))
 		end,
+		["when.battleItems"] = function() return L["Needs %s ticked."]:format(NameOf("who.ownDungeons")) end,
 		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
 	},
 
