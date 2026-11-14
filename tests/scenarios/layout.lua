@@ -62,6 +62,8 @@ local STAND_IN = {
 	["who.strangersNote"] = true, ["advanced.noTargetNote"] = true, ["click.linesOff"] = true,
 	-- Errors this session, while Show every error waits for a sixth (round 37).
 	["diagnostics.errorList"] = true, ["diagnostics.noErrors"] = true,
+	-- The hall of fame, while there is no code to show yet (Hall.lua).
+	["general.hallNote"] = true, ["general.hallList"] = true,
 }
 
 local GROUPS = { { "general" }, { "who", "skip", "when", "click", "appearance" }, { "profiles", "diagnostics" } }

@@ -1305,6 +1305,42 @@ function Page.BuildStartTab()
 				set = function(_, v) ns.db.profile.milestones.sound = v and true or false end,
 			},
 
+			-- The hall of fame (Hall.lua), a fold of its own under the ledger:
+			-- how far along this character is, then, with every milestone
+			-- earned, the code to post on the addon's GitHub page, and the
+			-- list as this release shipped it. Gone while milestones are off.
+			hallHeader = {
+				type = "header", name = L["Gentlefolk of Good Manners"], order = 66,
+				hidden = function() return not (ns.Hall and ns.Hall.Shown()) end,
+			},
+			hallNote = {
+				type = "description",
+				order = 66.1,
+				fontSize = "medium",
+				hidden = function() return not (ns.Hall and ns.Hall.Shown()) end,
+				name = function() return ns.Hall and ns.Hall.NoteText() or "" end,
+			},
+			hallCode = {
+				type = "input",
+				-- On the page: the game has no way to put text on the clipboard.
+				name = L["Click in the box, press Ctrl+A to select it all, then Ctrl+C to copy (Cmd on a Mac)."],
+				order = 66.2,
+				multiline = 2,
+				width = "full",
+				-- Only once there is a code: every milestone earned.
+				hidden = function() return not (ns.Hall and ns.Hall.Shown() and ns.Hall.Code() ~= nil) end,
+				get = function() return ns.Hall and ns.Hall.Code() or "" end,
+				-- Read-only, as the settings text is: typing is thrown away.
+				set = function() end,
+			},
+			hallList = {
+				type = "description",
+				order = 66.3,
+				fontSize = "medium",
+				hidden = function() return not (ns.Hall and ns.Hall.Shown()) end,
+				name = function() return ns.Hall and ns.Hall.ListText() or "" end,
+			},
+
 			-- Last, under a header of its own: where the way back in lives,
 			-- and the chat lines people reach for when they want quiet.
 			minimapHeader = { type = "header", name = L["Minimap and chat window"], order = 69 },

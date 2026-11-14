@@ -145,6 +145,10 @@ local function OfferItems(placed)
 				if buff.tankChoice then items[#items + 1] = { "who.tank_" .. tostring(buff.key), indent = true } end
 				-- A buff kept for favours and requests (Buffs.lua, returnOnly), to everybody.
 				if buff.returnOnly then items[#items + 1] = { "who.everyone_" .. tostring(buff.key), indent = true } end
+				-- A buff held to your group by choice (Buffs.lua, membersOnly), to passers-by too.
+				if buff.membersOnly and not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then
+					items[#items + 1] = { "who.passers_" .. tostring(buff.key), indent = true }
+				end
 				-- Only to players with mana, under the buff it names: indented
 				-- when that is the one buff it is about.
 				if class == own and buff == mana then
@@ -265,6 +269,16 @@ ns.WindowLayout = {
 					"general.ledgerSummary",
 					"general.ledgerOpen",
 					"general.milestones", { "general.milestoneToast", indent = true }, { "general.milestoneSound", indent = true },
+				} },
+				-- The hall of fame (Hall.lua), folded under the ledger it is
+				-- earned by: how far along, the code once every milestone is
+				-- earned (a box that only copies: WidgetsEntry.lua, READ_ONLY),
+				-- and who is listed. The two notes keep the fold on the page
+				-- while there is no code yet.
+				{ key = "general.hall", header = "general.hallHeader", fold = true, items = {
+					{ "general.hallNote", standIn = true },
+					"general.hallCode",
+					{ "general.hallList", standIn = true },
 				} },
 				-- Unfolded, and on the one page that never hides: the chat lines
 				-- are what people look for when they annoy them.
@@ -933,6 +947,8 @@ ns.WindowLayout = {
 		["who.askInTowns"] = "who.ask",
 		-- Share the group with other Manners users, the same.
 		["who.share"] = "who.group",
+		-- Detect Invisibility to passers-by too, shown only once the buff is ticked.
+		["who.passers_detectgroup"] = "who.offer_detectgroup",
 	},
 
 	-- In the model and drawn nowhere.

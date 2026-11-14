@@ -45,7 +45,7 @@ mutate("Buffs.lua",
        expect="detectgroup: never offered to a passer-by, nor to one who asks", script=S)
 
 mutate("Core.lua",
-       "\t\tif buff.membersOnly and not (opts.inGroup or opts.inParty) then return false end\n",
+       "\t\tif buff.membersOnly and not (opts.inGroup or opts.inParty) and not ns.PassersToo(buff) then return false end\n",
        "",
        "detectgroup: a passer-by offered it",
        expect="detectgroup: never offered to a passer-by, nor to one who asks", script=S)

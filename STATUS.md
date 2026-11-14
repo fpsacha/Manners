@@ -480,6 +480,20 @@ press did. Paste whatever does not match.
       reaches the pet by its name and hands your target back.
 - [ ] A pet with the family's default name ("Cat"), two of them in one group.
 
+*The hall of fame and Detect Invisibility for passers-by*
+
+- [ ] *Start here*, the fold *Gentlefolk of Good Manners*: the progress line
+      reads "N of M milestones earned" with this character's own M, the list
+      says nobody is listed yet, and the fold is gone with *Milestones* off.
+- [ ] On a character with every milestone (or `/run` them earned on a test
+      one): the code box shows, a click selects it all, Ctrl+C copies it, and
+      `python tools/hall.py check <code>` reads the character's name (both
+      words on Forever, accents kept), class, client and day. On a client with
+      realms `GetRealmName()` is in it; that call is unseen in a client here.
+- [ ] A warlock with *Detect Invisibility* ticked: *Offer Detect Invisibility
+      to passers-by too* shows under it, and ticked, a passer-by without it
+      comes up on the prompt and the press lands.
+
 *Battlegrounds and arenas*
 
 - [ ] Before the gates open, `/manners debug` says "the gates are shut" (the

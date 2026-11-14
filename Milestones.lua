@@ -40,6 +40,9 @@
 --
 -- What the other features tell it, each one call where their cast is known to
 -- have landed: ns.Milestones.Note("res"), Note("cure"), Note("courtesy").
+--
+-- Every one of them earned opens the hall of fame (Hall.lua), which reads
+-- Tally and LastEarned from here and is told by Evaluate when the last lands.
 
 local _, ns = ...
 local L = ns.L
@@ -746,6 +749,8 @@ local function Evaluate(st, quiet)
 			end
 		end
 	end
+	-- The one that completed them: the hall of fame says where the code is.
+	if new > 0 and not quiet and ns.Hall then ns.Hall.Announce() end
 	return new
 end
 
@@ -977,6 +982,19 @@ function M.Tally()
 		end
 	end
 	return earned, of
+end
+
+-- When the latest of them was earned, on the wall clock (one marked as passed
+-- before milestones were kept counts from when it was marked); nil with none.
+-- The hall of fame's code carries its day (Hall.lua).
+function M.LastEarned()
+	local st = Store()
+	local last
+	for _, at in pairs(st and st.earned or {}) do
+		local when = math.abs(at)
+		if not last or when > last then last = when end
+	end
+	return last
 end
 
 -- /manners debug and the check-up: whether it is on, how many are earned, and
