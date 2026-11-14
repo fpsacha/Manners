@@ -243,6 +243,20 @@ function W.PlaceLabel(fs, parent, width)
 	return math.ceil(h) + 3
 end
 
+-- How wide a field is drawn in a row of `width`: its usual width (`base`) in
+-- a row up to the usual page's (W.USUAL, what a row has in the 820 window),
+-- and from there half of every unit the row gains, up to half as wide again.
+-- A window dragged wider in one column does not leave its sliders, dropdowns
+-- and boxes as narrow as they were; a column no wider than the usual page
+-- draws them as it always did.
+W.USUAL = 612
+
+function W.Grow(base, width)
+	width = tonumber(width) or 0
+	if width <= W.USUAL then return base end
+	return math.min(math.floor(base * 1.5), base + math.floor((width - W.USUAL) / 2))
+end
+
 -- Text with leading and trailing blank lines dropped: AceConfig spaced its
 -- notes with "\n", and the window spaces its rows itself. ASCII white space
 -- only: %s follows the C library's locale, and under a Western one takes

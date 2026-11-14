@@ -370,6 +370,7 @@ local function PlaceBody(top)
 	view.bar:ClearAllPoints()
 	view.bar:SetPoint("TOPRIGHT", f, "TOPRIGHT", -4, -(top + 4))
 	view.bar:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -4, UI.FOOTER + 4)
+	view.top = top
 	view.height = UI.HEIGHT - top - UI.FOOTER
 end
 
@@ -523,10 +524,13 @@ function UI.SavedSize()
 	return Clamp(s.w, UI.MIN_W, maxW), Clamp(s.h, UI.MIN_H, maxH)
 end
 
--- The window's size as it now stands: the panes tiled to it, the rows laid
--- out across its width and the page scrolled within its height. While the
--- grip is held the page is painted at most ten times a second; let go, it is
--- painted in full.
+-- The window's size as it now stands: the panes tiled to it, the page's
+-- sections flowed into as many columns as its width has room for
+-- (WindowPage.lua, UI.ColumnsFor) and the page scrolled within its height.
+-- While the grip is held everything is painted at most ten times a second,
+-- and between two such paints the page alone is flowed again at every change
+-- of size (UI.Reflow: rows placed, none read or built); let go, it is painted
+-- in full.
 local sizedAt = 0
 function UI.Resized(final)
 	local f = UI.frame
@@ -540,6 +544,8 @@ function UI.Resized(final)
 	if final or now - sizedAt >= 0.1 then
 		sizedAt = now
 		if UI.Shown() then UI.Refresh() end
+	elseif UI.Shown() then
+		UI.Reflow()
 	end
 end
 
@@ -794,12 +800,24 @@ end
 
 -- The open page placed again without re-reading its rows. Asked for while a
 -- paint runs, it is that paint's layout that places the row.
-function UI.Relayout()
+local function PlaceAgain(mode)
 	if not UI.built or UI.painting or not UI.page or not UI.frame:IsShown() then return end
 	UI.painting = true
-	local ok, err = pcall(UI.PaintPage, true)
+	local ok, err = pcall(UI.PaintPage, mode)
 	UI.painting = false
 	if not ok then error(err, 0) end
+end
+
+function UI.Relayout() PlaceAgain("layout") end
+
+-- The open page flowed again at the window's width as it stands, with the
+-- rows the last paint showed: no rule of the model asked, no value read, no
+-- row built. What a drag of the grip costs a frame.
+function UI.Reflow()
+	local view = UI.view
+	-- The page's room follows the window's height between two full paints.
+	if view and view.top then view.height = UI.HEIGHT - view.top - UI.FOOTER end
+	PlaceAgain("reflow")
 end
 
 -- After the spellbook changes (Core.lua probes it again on SPELLS_CHANGED,

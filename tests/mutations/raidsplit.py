@@ -37,12 +37,13 @@ mutate("Options/Who.lua",
        "raidsplit: the switch is shown with the group switch off",
        expect="raidsplit: the switch sits under My party and raid, and is reset and repaired", script=S)
 
-# Drawn level with My party and raid, as a source of its own.
+# Drawn a step in under the raid groups, which are not its switch: it sits in
+# the group's own section of the menu, level with the rows there.
 mutate("Options/Window/Layout.lua",
+       "\t\t\t\t\t\"who.share\",\n",
        "\t\t\t\t\t{ \"who.share\", indent = true },\n",
-       "\t\t\t\t\t{ \"who.share\" },\n",
-       "raidsplit: the switch is not a step in under the group switch",
-       expect="the switch is not a step in", script=S)
+       "raidsplit: the switch is a step in under a row that is not its switch",
+       expect="the switch is a step in under a row that is not its switch", script=S)
 
 # Search finds the hidden switch and cannot say what to turn on first.
 mutate("Options/Window/Layout.lua",

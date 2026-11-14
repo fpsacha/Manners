@@ -764,7 +764,9 @@ do
 	-- somebody, and kept through a paste as the page's reset keeps it. Its
 	-- default is empty, so the walk never found it; named here so that is a
 	-- decision rather than an accident.
-	local SHARE_SKIP = { enabled = true, debugClicks = true, never = true, minimap = true, verbose = true }
+	-- keyReminder too: the reminder to set a key is a line in the player's own
+	-- chat, like the others.
+	local SHARE_SKIP = { keyReminder = true, enabled = true, debugClicks = true, never = true, minimap = true, verbose = true }
 
 	-- The same further down. The lock is a state, and a string copied while the
 	-- prompt was unlocked would unlock everybody's, and an unlocked prompt never
@@ -1811,6 +1813,8 @@ function addon:HandleSlash(rawInput)
 				tostring(ns.logScan.armed), ns.logScan.applied, ns.logScan.noted))
 		end
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
+		-- The key, and why the reminder to set one keeps quiet (Options/Start.lua).
+		if ns.Setup and ns.Setup.ReminderLine then self:Print("  " .. ns.Setup.ReminderLine()) end
 
 		-- A buff table that never arrived says so first, or the lines below
 		-- read as "this class has nothing".

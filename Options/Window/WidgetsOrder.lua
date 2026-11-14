@@ -191,7 +191,7 @@ local function PlaceList(row, width, y)
 	local n = row.count or 0
 	row.list:SetShown(n > 0)
 	if n == 0 then return y end
-	local w = math.min(width, LIST_WIDTH)
+	local w = math.min(width, W.Grow(LIST_WIDTH, width))
 	local h = 2 * PAD + n * LINE + (n - 1) * GAP
 	row.list:ClearAllPoints()
 	row.list:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -y)

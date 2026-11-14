@@ -406,6 +406,9 @@ function Mock.reset()
 	-- file on disk. Cleared here so one scenario's debts cannot leak into the
 	-- next; a scenario that models a reload simply does not reset in between.
 	Mock.sv = {}
+	-- Whether the next profile made is left to start as a new one does, on the
+	-- options window's short list (see the AceDB stand-in below).
+	Mock.newMenu = nil
 	-- Who is logged in, as far as the saved file is concerned. Only a key:
 	-- nothing else in the mock reads it. It exists so a scenario can log an alt
 	-- in on the same account, which is the only way to tell a thing stored per
@@ -967,6 +970,13 @@ local function getLibrary(name, silent)
 			-- identically across a reload -- so the difference between them,
 			-- which this addon has now had to decide twice, was untestable.
 			Mock.sv.profile = Mock.sv.profile or deepcopy(defaults.profile)
+			-- The mock's player chose Show everything long ago: a profile new
+			-- to the addon opens its options window on the short list of each
+			-- page (Core.lua, menuView), and nearly every scenario that reads
+			-- the window is about a control the full view draws. A scenario
+			-- about what a new profile starts with sets Mock.newMenu before
+			-- its load.
+			if not Mock.newMenu and Mock.sv.profile.menuView == nil then Mock.sv.profile.menuView = "full" end
 
 			-- AceDB's per-character section, created on first access and kept
 			-- in the same one file. Keyed by who is logged in, so an alt is a
@@ -1034,6 +1044,7 @@ local function getLibrary(name, silent)
 				Mock.sv.profiles[current] = self.profile
 				local arrived = Mock.sv.profiles[name] or {}
 				copyDefaults(arrived, defaults.profile)
+				if not Mock.newMenu and arrived.menuView == nil then arrived.menuView = "full" end
 				Mock.sv.profiles[name] = arrived
 				Mock.sv.profileName = name
 				Mock.sv.profile = arrived

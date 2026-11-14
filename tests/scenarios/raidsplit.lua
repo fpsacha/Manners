@@ -1038,11 +1038,16 @@ do
 			local groupPage, groupSection, groupIndex = H.placedOn(ns, "who.group")
 			if not page then
 				fail(scenario, "the switch is on no page of the window")
-			elseif page ~= groupPage or section ~= groupSection or index <= groupIndex then
-				fail(scenario, "the switch is not under My party and raid")
+			elseif page ~= groupPage or section.key ~= "who.group" then
+				-- The menu's home for it: the group's own section on Who to buff,
+				-- with the group casts and the raid groups, not the list of sources.
+				fail(scenario, "the switch is not in the group's own section on Who to buff")
 			else
+				-- Level with the rows there: none of them is its switch.
 				local item = section.items[index]
-				if not (type(item) == "table" and item.indent) then fail(scenario, "the switch is not a step in") end
+				if type(item) == "table" and item.indent then
+					fail(scenario, "the switch is a step in under a row that is not its switch")
+				end
 			end
 			if ns.WindowLayout.parents["who.share"] ~= "who.group" then
 				fail(scenario, "search is not told the switch's parent")

@@ -262,11 +262,12 @@ KIND.select = {
 		row.field:SetEnabled(not row.off)
 	end,
 	-- The field fills a narrow column (half of a pair) and takes about
-	-- three-fifths of a wide one, never less than its longest choice needs.
+	-- three-fifths of a wide one, never less than its longest choice needs; in
+	-- a row wider than the usual page it grows with it (W.Grow).
 	Layout = function(row, width)
 		local lh = W.PlaceLabel(row.label, row.frame, width)
 		local fw = width
-		if width > 320 then fw = math.max(200, math.min(300, math.floor(width * 0.6))) end
+		if width > 320 then fw = math.max(200, math.min(W.Grow(300, width), math.floor(width * 0.6))) end
 		fw = math.min(width, math.max(fw, math.ceil(Widest(row)) + 40, row.matchField or 0))
 		row.field:ClearAllPoints()
 		row.field:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -lh)

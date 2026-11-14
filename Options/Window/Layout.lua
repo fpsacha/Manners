@@ -22,6 +22,38 @@
 -- left to right at their own widths), match (dropdowns sharing the same match
 -- draw their fields at one width) }. tests/scenarios/layout.lua holds every
 -- control to being placed exactly once.
+--
+-- A window dragged wide flows a page's sections into two columns, and three
+-- when very wide (WindowPage.lua, UI.ColumnsFor): in the order they are listed
+-- here, down the first column and then the next, a section never cut in two.
+-- So the order of the sections is the reading order at every width, and a
+-- section should be a group that stands on its own. `spans` names the
+-- sections that take the page's whole width instead, above the columns: the
+-- line a page opens with.
+--
+-- How the pages are arranged (1.12): by what the player came to do. A page
+-- answers one question, in the order somebody asks it -- who, then what, then
+-- the fine print -- and every section but the line a page opens with has a
+-- heading. Each buff has a row of its own with that buff's own switches under
+-- it. A sub-option is indented under its switch, and while that switch is off
+-- and has greyed it, it is not drawn at all (WindowPage.lua, UnderOff), so an
+-- item indented under a switch must be one that switch governs. What only a
+-- few change is in a fold, under the hairline. No page is longer than about
+-- three screens of the usual window with its folds shut.
+--
+-- The simple view (Options/Shared.lua, ns.MenuView) draws, of every page not
+-- named in `simple.pages`, only the controls and notes `simple.items` names:
+-- the short list, the ten or so a player of this class changes. A control
+-- left off it is still found by search, which opens the full view on it. The
+-- window draws the view's own controls itself, from `menu`: the switch under
+-- the search box, the offer over a page and what the short list leaves out
+-- under it.
+--
+-- A section marked `home = true` is a home: it has a title and may have no
+-- item yet, and a setting that arrives for what its comment names goes there,
+-- so it is found where its kin are (other homes are a comment inside the
+-- section the setting belongs to; grep HOME). A section with nothing to show
+-- is not drawn.
 
 local _, ns = ...
 local L = ns.L
@@ -67,8 +99,36 @@ end
 -- in its walk order, which is the order the buff set lists them; the model only
 -- ever holds the player's own class's. On Forever that is the priest's three,
 -- the paladin's six and the druid's two.
-local function OfferItems()
+--
+-- One buff a row, and under it the switches that are that buff's alone: who
+-- gets it (Thorns, Unending Breath), and for the player's own class the one
+-- about who it is any use to -- the buff only somebody with mana wants (a
+-- priest's Divine Spirit, a paladin's Wisdom), the blessing no caster wants.
+-- `placed` is told which of those two went under a buff; the class is asked
+-- of the client as the file loads, and where it will not say they keep their
+-- place under the list.
+local function OwnClass()
+	if type(UnitClass) ~= "function" then return nil end
+	local ok, _, class = pcall(UnitClass, "player")
+	class = ok and ns.plain(class) or nil
+	return type(class) == "string" and class or nil
+end
+
+-- The last buff of `buffs` carrying `flag`, and whether it is the only one.
+local function LastWith(buffs, flag)
+	local last, count = nil, 0
+	for _, buff in ipairs(buffs or {}) do
+		if buff[flag] then last, count = buff, count + 1 end
+	end
+	return last, count == 1
+end
+
+local function OfferItems(placed)
 	local items, seen, classes = {}, {}, {}
+	local own = OwnClass()
+	local ownBuffs = own and type(ns.BUFFS) == "table" and type(ns.BUFFS[own]) == "table" and ns.BUFFS[own] or nil
+	local mana, manaAlone = LastWith(ownBuffs, "manaOnly")
+	local melee, meleeAlone = LastWith(ownBuffs, "meleeOnly")
 	for class, buffs in pairs(ns.BUFFS or {}) do
 		if type(buffs) == "table" and (#buffs > 1 or (#buffs == 1 and buffs[1].switchable)) then
 			classes[#classes + 1] = class
@@ -80,11 +140,22 @@ local function OfferItems()
 			local path = "who.offer_" .. tostring(buff.key)
 			if not seen[path] then
 				seen[path] = true
-				items[#items + 1] = { path, columns = 2 }
+				items[#items + 1] = path
 				-- Thorns, held to the tanks (Buffs.lua, tankChoice), under its switch.
 				if buff.tankChoice then items[#items + 1] = { "who.tank_" .. tostring(buff.key), indent = true } end
 				-- A buff kept for favours and requests (Buffs.lua, returnOnly), to everybody.
 				if buff.returnOnly then items[#items + 1] = { "who.everyone_" .. tostring(buff.key), indent = true } end
+				-- Only to players with mana, under the buff it names: indented
+				-- when that is the one buff it is about.
+				if class == own and buff == mana then
+					items[#items + 1] = { "who.relevantOnly", indent = manaAlone or nil }
+					placed["who.relevantOnly"] = true
+				end
+				-- Not to mages, warlocks and priests, under the blessing it names.
+				if class == own and buff == melee then
+					items[#items + 1] = { "who.skipCasters", indent = meleeAlone or nil }
+					placed["who.skipCasters"] = true
+				end
 			end
 		end
 	end
@@ -100,15 +171,16 @@ local function NameOf(path)
 	return "|cffffd100" .. name .. "|r"
 end
 
--- What to cast: the buff dropdown, its switches, then the rest.
+-- What to cast: the buff dropdown, each buff's switch with its own under it,
+-- then what is about all of them.
 local function CastItems()
-	local items = { "who.choice" }
-	for _, item in ipairs(OfferItems()) do items[#items + 1] = item end
+	local items, placed = { "who.choice" }, {}
+	for _, item in ipairs(OfferItems(placed)) do items[#items + 1] = item end
 	-- A paladin's: nobody another paladin has blessed.
 	items[#items + 1] = "who.leaveBlessed"
-	items[#items + 1] = "who.skipCasters"
+	if not placed["who.skipCasters"] then items[#items + 1] = "who.skipCasters" end
 	items[#items + 1] = "who.spareFishBowl"
-	items[#items + 1] = "who.relevantOnly"
+	if not placed["who.relevantOnly"] then items[#items + 1] = "who.relevantOnly" end
 	items[#items + 1] = { "who.autoNote", standIn = true }
 	items[#items + 1] = "who.pinNote"
 	return items
@@ -131,6 +203,15 @@ ns.WindowLayout = {
 		combat = { click = "click.combatNotice", appearance = "appearance.combatNotice", when = "advanced.advCombatNotice" },
 	},
 	foldCaption = "advanced.advIntro",
+	-- The simple view's own controls: the switch under the search box; over a
+	-- page, the line that offers the view to a profile from before it, with its
+	-- two buttons; under a page's short list, what it leaves out and the way to
+	-- it.
+	menu = {
+		simple = "general.simpleView",
+		offer = "general.simpleOffer", try = "general.simpleTry", dismiss = "general.simpleDismiss",
+		more = "general.simpleMore", everything = "general.showEverything",
+	},
 	-- `about`: who makes Manners, under the build on every page.
 	footer = { reset = "advanced.resetAdvanced", build = "diagnostics.buildNote", about = "diagnostics.aboutNote" },
 
@@ -169,11 +250,16 @@ ns.WindowLayout = {
 					"general.startPlatesNote",
 					"general.startShowPlates",
 				} },
+				-- The step most players skip, and then can only click the prompt:
+				-- where it stands first (No key yet, or the key), in a block of its
+				-- own, then the box that sets it.
 				{ key = "general.key", header = "general.keyHeader", items = {
+					"general.bindStatus",
 					"general.bindKey",
 					{ "general.makeMacro", buttons = true },
 					{ "general.openBindings", buttons = true },
-					"general.bindStatus",
+					-- The line in chat that says how, while there is no key.
+					"general.keyReminder",
 				} },
 				{ key = "general.ledger", header = "general.ledgerHeader", items = {
 					"general.ledgerSummary",
@@ -185,9 +271,8 @@ ns.WindowLayout = {
 					"general.minimap",
 					"general.verbose",
 					"general.silentChat",
-				} },
-				-- What /manners welcome says, again, for somebody who skipped it.
-				{ key = "general.welcome", items = {
+					-- What /manners welcome says, again in the chat window, for
+					-- somebody who skipped it: with the chat lines, under their heading.
 					"general.welcomeAgain",
 				} },
 			},
@@ -199,6 +284,33 @@ ns.WindowLayout = {
 			sections = {
 				-- Who the prompt is on right now, so a switch can be seen to work.
 				{ key = "who.now", items = { "who.rightNow" } },
+				-- Who first: the page is called Who to buff. Then what they get,
+				-- the order it is tried in, and the group's own casts; your own
+				-- buffs after everybody else's, in four sections that go together.
+				{ key = "who.sources", header = "who.sourcesHeader", items = {
+					"who.emptyWarning",
+					"who.owed",
+					"who.group",
+					-- The pets of the people in it, under the switch it widens.
+					-- HOME: the group's pets (anything more about them goes here).
+					{ "who.pets", indent = true },
+					"who.strangers",
+					-- While passers-by are on and the game's nameplates are off.
+					{ "who.strangersPlatesNote", indent = true },
+					{ "who.strangersShowPlates", indent = true },
+					{ "who.strangersNote", standIn = true },
+					{ "who.proximity", indent = true },
+					{ "who.restingOnly", indent = true },
+					"who.asked",
+					-- What a class hands out to whoever asks (Courtesy.lua: a mage's
+					-- water and portals, a warlock's healthstones and summons), under
+					-- the switch that hears the asking: the model shows them only
+					-- while it is on, so they come up right where it was ticked.
+					{ "who.courtesyRefresh", indent = true },
+					{ "who.courtesyPortals", indent = true },
+					{ "who.courtesyHealthstones", indent = true },
+					{ "who.courtesySummons", indent = true },
+				} },
 				{ key = "who.cast", header = "who.buffsHeader", items = CastItems() },
 				-- The class's buffs as a list in the order they are tried, each with an
 				-- arrow up and one down (the "order" composite, Widgets: five
@@ -211,36 +323,34 @@ ns.WindowLayout = {
 						"who.orderNote", "who.orderPick", "who.orderUp", "who.orderDown", "who.orderReset",
 					} },
 				} },
-				{ key = "who.sources", header = "who.sourcesHeader", items = {
-					"who.emptyWarning",
-					"who.owed",
-					"who.group",
-					-- The pets of the people in it, under the switch it widens.
-					{ "who.pets", indent = true },
-					-- Your resurrection for the group's dead, and for a dead passer-by under it.
+				{ key = "who.group", header = "who.groupHeader", items = {
+					"who.groupBuffsUse",
+					{ "who.groupBuffsAtLeast", indent = true },
+					"who.reagentNote",
+					{ "who.skipRaidGroups", columns = 4 },
+					-- HOME: sharing a group with other Manners users (who buffs
+					-- whom when two of you are in it) goes here. The split with
+					-- the others of your class in it (Share.lua); the model shows
+					-- it only while My party and raid is on.
+					"who.share",
+				} },
+				-- HOME: what a class does for people beyond its buffs:
+				-- resurrection and cures. Their switches go here, a row each
+				-- with its own sub-options indented under it. (The courtesies
+				-- on request are under People who ask me in chat, above.)
+				{ key = "who.beyond", title = L["More than buffs"], home = true, items = {
+					-- Your resurrection for the group's dead (Resurrect.lua), and
+					-- for a dead passer-by under it.
 					"who.res",
 					{ "who.resStrangers", indent = true },
-					-- And the group split with other Manners users of your class.
-					{ "who.share", indent = true },
-					"who.strangers",
-					-- While passers-by are on and the game's nameplates are off.
-					{ "who.strangersPlatesNote", indent = true },
-					{ "who.strangersShowPlates", indent = true },
-					{ "who.strangersNote", standIn = true },
-					{ "who.proximity", indent = true },
-					{ "who.restingOnly", indent = true },
-					"who.asked",
-					{ "who.courtesyRefresh", indent = true }, { "who.courtesyPortals", indent = true }, { "who.courtesyHealthstones", indent = true }, { "who.courtesySummons", indent = true },
+					-- Cures (Cures.lua), for a class with one: which spell takes off
+					-- what, the two switches, and the seconds a debuff must have
+					-- left, which either switch governs: gone while both are off.
+					"who.curesNote",
+					"who.cures",
+					"who.curesStrangers",
+					{ "who.cureSeconds", indent = true },
 				} },
-				-- Asking, not only giving (Ask.lua), with how it is said under it.
-				{ key = "who.ask", header = "who.askHeader", items = {
-					"who.ask",
-					{ "who.askChannel", indent = true },
-					{ "who.askLine", indent = true },
-					{ "who.askInTowns", indent = true },
-				} },
-				-- Cures (Cures.lua), for a class with one: a poison, a disease, a curse or a spell taken off.
-				{ key = "who.cures", header = "who.curesHeader", items = { "who.curesNote", "who.cures", "who.curesStrangers", { "who.cureSeconds", indent = true } } },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",
 					-- Only the families this character knows are shown (their own rule).
@@ -316,6 +426,8 @@ ns.WindowLayout = {
 					"who.own_rested",
 					-- A companion pet, off until it is turned on; shown while one is in
 					-- the bags or (Forever) the pet journal. Which pet, under it.
+					-- HOME: companion pets (the journal's reminder on Mists and
+					-- retail, and anything more about them) go here, with these two.
 					"who.own_pet",
 					{ "who.ownPetChoice", indent = true },
 					-- Flasks, elixirs and a scroll of each stat, off until turned on;
@@ -349,11 +461,16 @@ ns.WindowLayout = {
 					-- Why a buff of your own is not being offered, under the switches.
 					"diagnostics.ownDiag",
 				} },
-				{ key = "who.group", header = "who.groupHeader", items = {
-					"who.groupBuffsUse",
-					{ "who.groupBuffsAtLeast", indent = true },
-					"who.reagentNote",
-					{ "who.skipRaidGroups", columns = 4 },
+				-- HOME: asking for a buff (what you want from other people, and
+				-- how it is asked) goes here: it is about you, like the four
+				-- sections above it.
+				-- Asking, not only giving (Ask.lua): the switch, and under it how
+				-- the ask is said, gone while it is off.
+				{ key = "who.asking", title = L["Asking for a buff"], home = true, items = {
+					"who.ask",
+					{ "who.askChannel", indent = true },
+					{ "who.askLine", indent = true },
+					{ "who.askInTowns", indent = true },
 				} },
 				{ key = "who.first", header = "who.firstHeader", fold = true, items = {
 					"who.target",
@@ -371,7 +488,7 @@ ns.WindowLayout = {
 			icon = ICONS.skip,
 			sections = {
 				{ key = "skip.now", items = { "who.rightNowSkip" } },
-				{ key = "skip.lead", items = {
+				{ key = "skip.lead", title = L["Players to skip"], items = {
 					"who.skipPvP",
 					-- Who that switch holds back right now, under it.
 					{ "diagnostics.pvpDiag", indent = true },
@@ -431,7 +548,15 @@ ns.WindowLayout = {
 					{ "when.manaFloorKeeps", indent = true },
 					"when.manaNote",
 				} },
-				{ key = "when.battle", header = "when.battleHeader", items = { "when.battleTeam", "when.battleSpeak", "when.battleThank", "when.battleItems" } },
+				-- HOME: battlegrounds and arenas (what is offered there, and to
+				-- whom) go here: a place rule, beside Hold back's. Four switches
+				-- of their own (Battle.lua), which decide there.
+				{ key = "when.battle", title = L["Battlegrounds and arenas"], home = true, items = {
+					"when.battleTeam",
+					"when.battleSpeak",
+					"when.battleThank",
+					"when.battleItems",
+				} },
 				-- Where the old note pointing at Advanced was.
 				{ key = "when.favours", header = "advanced.favoursHeader", items = {
 					"advanced.reciprocateWindow",
@@ -546,10 +671,6 @@ ns.WindowLayout = {
 					"appearance.hideInCombat",
 					"appearance.dimInCombat",
 				} },
-				{ key = "appearance.hover", header = "appearance.tooltipHeader", items = {
-					"appearance.tooltip",
-					"appearance.tooltipPosition",
-				} },
 				-- The names waiting after the first, out of the icon's fold: the
 				-- clickable list is a feature people look for, not a fine-tune.
 				{ key = "appearance.queue", title = L["Waiting list"], items = {
@@ -557,10 +678,6 @@ ns.WindowLayout = {
 					"appearance.showQueue",
 					{ "appearance.queueRows", indent = true },
 					{ "appearance.clickRows", indent = true },
-				} },
-				-- The options window itself stepping aside while a look is changed.
-				{ key = "appearance.window", title = L["This window"], items = {
-					"appearance.peekOnChange",
 				} },
 				{ key = "appearance.exactPos", header = "advanced.exactPosHeader", fold = true, items = {
 					{ "advanced.x", widget = "number", pair = true },
@@ -600,6 +717,15 @@ ns.WindowLayout = {
 					{ "appearance.iconFrame", indent = true },
 					{ "appearance.gryphons", indent = true },
 					{ "appearance.showCooldown", indent = true },
+				} },
+				-- Set once, if ever: folded, which keeps Look to three screens.
+				{ key = "appearance.hover", header = "appearance.tooltipHeader", fold = true, items = {
+					"appearance.tooltip",
+					"appearance.tooltipPosition",
+				} },
+				-- The options window itself stepping aside while a look is changed.
+				{ key = "appearance.window", title = L["This window"], fold = true, items = {
+					"appearance.peekOnChange",
 				} },
 			},
 		},
@@ -669,12 +795,66 @@ ns.WindowLayout = {
 		},
 	},
 
+	-- The simple view's short list. `pages` are drawn whole: Start here is the
+	-- short list already, and Profiles and Diagnostics are not settings to
+	-- thin out. Every buff's own switch (who.offer_*) and every own-buff family
+	-- (who.own_*, but not what to leave out) are added under the table.
+	simple = {
+		pages = { general = true, profiles = true, diagnostics = true },
+		items = {
+			-- Who to buff: who gets it, which buff, and yourself.
+			["who.rightNow"] = true, ["who.emptyWarning"] = true,
+			["who.owed"] = true, ["who.group"] = true, ["who.strangers"] = true,
+			["who.strangersPlatesNote"] = true, ["who.strangersShowPlates"] = true, ["who.strangersNote"] = true,
+			["who.asked"] = true,
+			-- A class's own courtesies under it (two at most for any class),
+			-- its resurrection, its cure for the group, and asking for a buff.
+			["who.courtesyRefresh"] = true, ["who.courtesyPortals"] = true,
+			["who.courtesyHealthstones"] = true, ["who.courtesySummons"] = true,
+			["who.res"] = true, ["who.cures"] = true, ["who.ask"] = true,
+			["who.choice"] = true, ["who.autoNote"] = true, ["who.pinNote"] = true,
+			["who.self"] = true,
+			-- Who to skip.
+			["who.rightNowSkip"] = true, ["who.skipPvP"] = true, ["who.skipSameClass"] = true,
+			["who.minLevel"] = true, ["who.neverAdd"] = true,
+			-- When to offer.
+			["when.rightNow"] = true, ["when.whenBuffed"] = true, ["when.alwaysNote"] = true,
+			["when.selfTopUp"] = true,
+			["who.quietInTowns"] = true, ["who.quietInInstances"] = true,
+			["when.hideMounted"] = true, ["when.manaFloor"] = true,
+			-- Whether the team is buffed in a battleground at all.
+			["when.battleTeam"] = true,
+			-- What I say.
+			["general.quickVoice"] = true, ["general.quickVoiceSummary"] = true,
+			["click.thankEmote"] = true, ["click.thankWhisper"] = true, ["click.enabled"] = true,
+			["click.channel"] = true, ["click.platesNote"] = true, ["click.showPlates"] = true,
+			["click.linesOff"] = true, ["click.preset"] = true, ["click.phrasesHelp"] = true,
+			["click.inCharacterNote"] = true, ["click.phrases"] = true,
+			-- Look.
+			["appearance.style"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
+			["appearance.scale"] = true, ["appearance.alpha"] = true,
+			["appearance.soundEnabled"] = true, ["appearance.soundFile"] = true,
+			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,
+		},
+	},
+
+	-- The sections that run the page's whole width when it has columns: what
+	-- a page opens with, read before the columns under it.
+	spans = {
+		["general.lead"] = true,
+		["who.now"] = true,
+		["skip.now"] = true,
+		["when.now"] = true,
+	},
+
 	-- How a note is drawn when not in the label colour: grey (a colour code
 	-- in its text still wins), or grey in a block inset from the page. Kept
 	-- apart from the items, which say where a row goes rather than how it
 	-- looks.
 	notes = {
 		["who.autoNote"] = { hint = true },
+		-- Start here, step 2: whether there is a key, in a block that leads the step.
+		["general.bindStatus"] = { block = true },
 		["diagnostics.ownDiag"] = { hint = true, block = true },
 		["diagnostics.pvpDiag"] = { hint = true, block = true },
 		["diagnostics.leadDiag"] = { hint = true, block = true },
@@ -730,7 +910,11 @@ ns.WindowLayout = {
 		["click.roll"] = "click.enabled",
 		-- My group's pets too, shown only while My party and raid is on.
 		["who.pets"] = "who.group",
-		["who.courtesyRefresh"] = "who.asked", ["who.courtesyPortals"] = "who.asked", ["who.courtesyHealthstones"] = "who.asked", ["who.courtesySummons"] = "who.asked",
+		-- A class's courtesies, shown only while People who ask me in chat is on.
+		["who.courtesyRefresh"] = "who.asked",
+		["who.courtesyPortals"] = "who.asked",
+		["who.courtesyHealthstones"] = "who.asked",
+		["who.courtesySummons"] = "who.asked",
 		-- Dead passers-by too, shown only while My group's dead is on.
 		["who.resStrangers"] = "who.res",
 		-- How an ask is said, shown only while asking is on.
@@ -755,6 +939,12 @@ ns.WindowLayout = {
 		-- which reads Lock it while the prompt is unlocked and goes the same
 		-- way as /manners unlock and lock; the saved setting is the same.
 		["appearance.locked"] = true,
+		-- "Cures", "Asking for buffs" and "In battlegrounds and arenas", the
+		-- fallback dialog's headings: the window has a home for each, titled
+		-- (More than buffs, Asking for a buff, Battlegrounds and arenas).
+		["who.curesHeader"] = true,
+		["who.askHeader"] = true,
+		["when.battleHeader"] = true,
 		-- Its string is the Who to skip page's title.
 		["who.skipHeader"] = true,
 		-- "Icon and waiting list": the window gives the icon's fold and the
@@ -764,3 +954,21 @@ ns.WindowLayout = {
 		["diagnostics.chatHeader"] = true,
 	},
 }
+
+-- The short list's buffs: each buff's own switch, and each family of the
+-- player's own buffs (its dropdown or its switch), wherever the pages place
+-- them. Not the lists of what to leave out, which are fine print.
+do
+	local keep = ns.WindowLayout.simple.items
+	for _, page in pairs(ns.WindowLayout.pages) do
+		for _, section in ipairs(page.sections) do
+			for _, item in ipairs(section.items) do
+				local path = type(item) == "table" and item[1] or item
+				if type(path) == "string" and (path:find("^who%.offer_")
+					or (path:find("^who%.own_") and not path:find("^who%.own_leave"))) then
+					keep[path] = true
+				end
+			end
+		end
+	end
+end

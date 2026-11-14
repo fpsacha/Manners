@@ -613,6 +613,9 @@ for _, case in ipairs({
 			return
 		end
 		ns.db.profile.sources.owed = false
+		-- The /thank on: its own choices are drawn only under a /thank that is
+		-- (the window leaves a sub-option out while its switch is off).
+		ns.db.profile.prompt.thankEmote = true
 		ns.OpenOptions("click")
 		if not (UI.visiblePages or {}).click or UI.page ~= "click" then
 			fail(scenario, "What I say is missing from " .. case.label .. "'s sidebar")

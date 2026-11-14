@@ -454,6 +454,10 @@ end
 function UI.BuildSidebar()
 	local side, layout = UI.side, UI.Layout()
 	side.top = UI.BuildSearch(side.frame)
+	-- The simple view's switch, under the search box on every page (Layout.lua,
+	-- `menu`): the model's control, drawn and run as the window runs any.
+	side.viewItem = UI.Item((layout.menu or {}).simple)
+	if side.viewItem then side.view = ns.WindowWidgets.Build("toggle", side.frame, side.viewItem) end
 	side.lines = {}
 	for gi, group in ipairs(layout.groups) do
 		if gi > 1 then side.lines[gi] = Hairline(side.frame) end
@@ -503,11 +507,28 @@ local function PaintPageButton(b, page, y)
 	return height
 end
 
+-- The simple view's switch under the search box, read again and laid out at
+-- the sidebar's width; answers the room it takes, none while its rule hides it.
+local function PaintView(side)
+	local row, item = side.view, side.viewItem
+	if not row then return 0 end
+	local shown = not UI.Hidden(item)
+	row.frame:SetShown(shown)
+	if not shown then return 0 end
+	row.Refresh(row)
+	local width = UI.SIDEBAR - 20
+	local height = row.Layout(row, width) or 20
+	row.frame:ClearAllPoints()
+	row.frame:SetPoint("TOPLEFT", side.frame, "TOPLEFT", 10, -(side.top + 2))
+	row.frame:SetSize(width, height)
+	return height + 8
+end
+
 -- Pages with no control for this character leave the sidebar; a hairline
 -- separates the groups that still have one.
 function UI.PaintSidebar()
 	local side, layout = UI.side, UI.Layout()
-	local y, placed = side.top + 4, false
+	local y, placed = side.top + PaintView(side) + 4, false
 	UI.visiblePages = {}
 	for gi, group in ipairs(layout.groups) do
 		local line, any = side.lines[gi], false
