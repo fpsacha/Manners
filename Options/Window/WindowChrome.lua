@@ -583,6 +583,40 @@ function UI.BuildFooter(f)
 	footer.about:SetJustifyH("CENTER")
 	if footer.about.SetWordWrap then footer.about:SetWordWrap(false) end
 	footer.aboutFont = { footer.about:GetFont() }
+	-- The line is a way to reach the author, where the character it names can
+	-- be reached: on WoW Forever only. A left click opens a whisper to them in
+	-- the chat box (nothing is sent: the player writes and sends it), a right
+	-- click looks them up with /who. It asks for nothing, as the line itself
+	-- never does (tests/scenarios/about.lua).
+	if ns.Flavour and ns.Flavour.flavour == "camelot" then
+		local hit = CreateFrame("Button", nil, mid)
+		hit:SetAllPoints(footer.about)
+		hit:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		hit:SetScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_TOP")
+			GameTooltip:AddLine(tostring(ns.AUTHOR), C.gold[1], C.gold[2], C.gold[3])
+			GameTooltip:AddLine(L["Click to whisper."], 1, 1, 1)
+			GameTooltip:AddLine(L["Right-click to look them up."], 1, 1, 1)
+			GameTooltip:Show()
+		end)
+		hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
+		hit:SetScript("OnClick", UI.Guarded(function(_, button) UI.AuthorClicked(button) end))
+		footer.aboutHit = hit
+	end
+end
+
+-- What a click on the footer's line does (see BuildFooter). The whisper goes
+-- through the game's own chat box; the look-up through its /who.
+function UI.AuthorClicked(button)
+	local name = ns.AUTHOR
+	if type(name) ~= "string" or name == "" then return end
+	if button == "RightButton" then
+		local who = C_FriendList and C_FriendList.SendWho or _G.SendWho
+		if type(who) == "function" then who('n-"' .. name .. '"') end
+		return
+	end
+	local open = _G.ChatFrame_OpenChat
+	if type(open) == "function" then open("/w " .. name .. " ") end
 end
 
 -- How wide the build stands at the right of the footer, its gap included; 0
@@ -633,4 +667,5 @@ function UI.PaintFooter()
 	fs:ClearAllPoints()
 	fs:SetPoint("CENTER", footer.mid, "CENTER", -BuildRoom() / 2, 0)
 	fs:SetShown(about ~= "")
+	if footer.aboutHit then footer.aboutHit:SetShown(about ~= "") end
 end
