@@ -20,8 +20,8 @@ for look in LOOKS:
     out = os.path.join(OUT, look)
     r = subprocess.run([sys.executable, tool, "--out", out], capture_output=True, text=True)
     if r.returncode != 0:
-        print(look, "-- generator failed:
-" + (r.stderr or r.stdout)[-1500:])
+        print(look, "-- generator failed:")
+        print((r.stderr or r.stdout)[-1500:])
         continue
     folder = look.capitalize()
     for path in sorted(glob.glob(os.path.join(out, "*.tga"))):
