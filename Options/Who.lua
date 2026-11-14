@@ -680,6 +680,56 @@ function Page.AddAskControls(args)
 	}
 end
 
+-- Cures (Cures.lua): a heading of their own under the sources, the two
+-- switches and the seconds a debuff must have left. Added after ForOthersOnly:
+-- a shaman on Classic Era has no buff for anybody else and still has a cure.
+-- Shown only for a class with a cure on this client, learned or not; the note
+-- says which spell takes off what, or that none is learned yet.
+local function AddCureControls(args)
+	local function NoCures() return not ns.ClassHasCures() end
+	local function CuresOff() return not (S().cures or S().curesStrangers) end
+	args.curesHeader = { type = "header", name = L["Cures"], order = 14.5, hidden = NoCures }
+	args.curesNote = {
+		type = "description",
+		order = 14.51,
+		hidden = NoCures,
+		name = function() return "|cff888888" .. ns.CureSummary() .. "|r" end,
+	}
+	args.cures = {
+		type = "toggle",
+		name = L["Cure my party and raid"],
+		desc = L["Out of combat, offer to take a poison, a disease, a curse or a harmful spell off someone in your party or raid, with the spell your class has for it. A cure comes before a buff for the same person, and after a favour you owe."],
+		order = 14.52,
+		width = "full",
+		hidden = NoCures,
+		get = sGet,
+		set = sSet,
+	}
+	args.curesStrangers = {
+		type = "toggle",
+		name = L["Cure passers-by"],
+		desc = L["The same for players near you who are not in your group, seen through nameplates, your target, focus and mouseover."],
+		order = 14.53,
+		width = "full",
+		hidden = NoCures,
+		get = sGet,
+		set = sSet,
+	}
+	args.cureSeconds = {
+		type = "range",
+		name = L["Only with more than this many seconds left"],
+		desc = L["A poison, disease, curse or spell about to run out on its own is left alone. One with no timer is never offered."],
+		order = 14.54,
+		min = 0,
+		max = 120,
+		step = 5,
+		hidden = NoCures,
+		disabled = CuresOff,
+		get = fGet,
+		set = fSet,
+	}
+end
+
 -- Who is picked in the never-offer dropdown, waiting for Remove from list; a
 -- state of the window, like Page.reportOpen.
 local neverPicked
@@ -1976,5 +2026,7 @@ function Page.BuildWhoTab()
 	-- Asking for buffs, added after it: a class with nothing for anybody else
 	-- is the one it is for above all.
 	Page.AddAskControls(who.args)
+	-- After it: the cures are for a class with nothing else for others too.
+	AddCureControls(who.args)
 	return who
 end

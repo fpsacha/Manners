@@ -3315,7 +3315,7 @@ mutate("Range.lua",
 # A warrior's scan measuring strangers it can never offer anything, which fed
 # the counts and dropped a silent rung.
 mutate("Queue.lua",
-       "\t\tif reason == \"nearby\" and groupOnly then return end\n",
+       "\t\tif reason == \"nearby\" and groupOnly and not curing then return end\n",
        "",
        "a warrior's scan measuring strangers",
        expect="strangers a warrior can never offer were measured",

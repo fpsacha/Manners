@@ -683,6 +683,10 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- Read before SettleFavour clears it: an undo puts back the entry that
 	-- stood, including when the favour was done, which the grace window reads.
 	local wasOwed = owed[pending.name]
+	-- A cure (Cures.lua) is no buff: the press is answered and its cooldown
+	-- written like any other, and nothing is returned, served, given or filed
+	-- for it, whatever they may be owed.
+	if pending.cure then unheard, wasOwed = true, nil end
 
 	if unheard and wasOwed and pending.outOfShout then
 		SayStillOwed(pending.name, L["the shout went out, but they were too far away to hear it"])

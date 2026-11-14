@@ -64,6 +64,9 @@ local function BugReport()
 		tostring(db.sources.pets),
 		tostring(db.filters.whenBuffed), tostring(db.priority.target),
 		tostring(db.timing.keepDebts), tostring(db.prompt.thankEmote))
+	-- Cures (Cures.lua): the two switches and the seconds a debuff must have left.
+	lines[#lines + 1] = ("cures group/passers-by/seconds=%s/%s/%s"):format(tostring(db.sources.cures),
+		tostring(db.sources.curesStrangers), tostring(db.filters.cureSeconds))
 	-- "Myself": where, and per family you know its pick and the one last up
 	-- (key=pick/last), which is what Automatic reads.
 	local picks = {}
@@ -314,6 +317,7 @@ function ns.FullReport()
 	pcall(function() Heard(ns.AskLines(GetTime())) end)
 	pcall(function() Heard(ns.RefusalLines(GetTime())) end)
 	pcall(function() Heard(ns.PvPLines()) end)
+	pcall(function() Heard(ns.CureLines()) end)
 	for name in pairs(ns.owed or {}) do Alias(name) end
 	local thanks = ns.thankLog or {}
 	if thanks.thanked then Alias(thanks.thanked.name) end

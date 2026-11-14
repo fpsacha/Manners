@@ -38,6 +38,7 @@ Battle.lua
 Range.lua
 Speech.lua
 Queue.lua
+Cures.lua
 GroupBuffs.lua
 Requests.lua
 Courtesy.lua

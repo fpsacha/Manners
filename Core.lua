@@ -314,6 +314,12 @@ local defaults = {
 			res = true,
 			resStrangers = false,
 			strangers = true, -- nearby non-group players
+			-- A poison, a disease, a curse or a harmful spell taken off somebody,
+			-- out of combat (Cures.lua): your party and raid, and passers-by.
+			-- Both off: casting on other people in a new way is the player's
+			-- to choose. Neither waits on `group` or `strangers` above.
+			cures = false,
+			curesStrangers = false,
 			owedClassBuffsOnly = true, -- ignore stray HoTs and procs
 			-- People who ask for your buff in chat. Off, because reading chat is
 			-- guesswork, so the player should choose it.
@@ -486,6 +492,9 @@ local defaults = {
 			-- always was until a priest asked (CurseForge).
 			repayCovered = false,
 			minLevel = 1,
+			-- A cure is offered only for a debuff with more than this many
+			-- seconds left (Cures.lua): one about to run out is not worth the press.
+			cureSeconds = 10,
 			-- Off, because a press on a mount dismounts you, which somebody
 			-- buffing from the saddle may want. Dead, taxi and vehicle need no
 			-- switch: nothing can be cast there, so BuildQueue offers nobody.
@@ -795,6 +804,7 @@ do
 	end
 	-- For Courtesy.lua's spells, which are no buff's and are asked on a request alone.
 	-- Resurrect.lua asks the same of its spells, with each probe.
+	-- For Cures.lua, which probes its own spells when first asked after a probe.
 	ns.SpellKnown = SpellKnown
 
 	-- Whether the client declares an aura secret: true, false, or nil when it
@@ -1117,6 +1127,8 @@ function ns.CanCastAnything()
 	-- Nor with Ask people for a buff I'm missing on (Ask.lua): for a class
 	-- with nothing to give, asking is what the prompt does for other people.
 	if ns.AskLive and ns.AskLive() then return true end
+	-- Or a cure, with one of its switches on (Cures.lua).
+	if ns.CuresWanted and ns.CuresWanted() then return true end
 	return caps.anyKnown == true or caps.anyOwnKnown == true
 end
 
@@ -1152,6 +1164,8 @@ function ns.BuffInfo(buff)
 	if buff.res then return buff.info end
 	-- Another class's buff you can ask for (Ask.lua) brings its own answers.
 	if buff.askInfo then return buff.askInfo end
+	-- A cure is no buff of the set, and answers for itself (Cures.lua).
+	if buff.cure then return ns.CureInfo(buff) end
 	if buff.own then
 		local info = caps.own and caps.own[buff.key]
 		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
@@ -4630,6 +4644,7 @@ local LIMITS = {
 	{ "filters", "refreshRaid", 1, 4 },
 	{ "filters", "manaFloor", 0, 90 },
 	{ "filters", "quietShortMinutes", 5, 60 },
+	{ "filters", "cureSeconds", 0, 120 },
 	{ "prompt", "width", 80, 500 },
 	{ "prompt", "height", 20, 120 },
 	{ "prompt", "scale", 0.5, 3 },

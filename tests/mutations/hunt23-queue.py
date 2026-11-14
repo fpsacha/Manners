@@ -60,8 +60,8 @@ mutate("Queue.lua",
 # A group member turned away by the group switch with no verdict: the memory of
 # her as a passer-by offers her on.
 mutate("Queue.lua",
-       "\t\tif reason == \"group\" and not db.sources.group then\n\t\t\trejected[full] = true\n\t\t\treturn\n",
-       "\t\tif reason == \"group\" and not db.sources.group then\n\t\t\treturn\n",
+       "\t\tif reason == \"group\" and not db.sources.group and not curing then\n\t\t\trejected[full] = true\n\t\t\treturn\n",
+       "\t\tif reason == \"group\" and not db.sources.group and not curing then\n\t\t\treturn\n",
        "hunt23-queue: the group switch writes no verdict",
        expect="hunt23-queue: the group switch turns away a remembered passer-by who joins",
        script=S)

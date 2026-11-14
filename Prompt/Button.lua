@@ -86,6 +86,8 @@ local function PersonTooltipLines(entry, brief)
 			or entry.reason == "target" and L["Your target."]
 			or L["Nearby."]
 	end
+	-- A cure (Cures.lua): what they are under, by its name, and how long it has.
+	if entry.cure then why = ns.CureReason(entry, true) end
 	-- A group member's pet: whose it is, as the reason line says it.
 	if entry.pet and entry.owner then
 		GameTooltip:AddLine(L["%s's pet"]:format(ns.ShortName(entry.owner) or entry.owner), 0.7, 0.7, 0.7, true)

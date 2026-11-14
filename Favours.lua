@@ -1311,6 +1311,8 @@ function addon:UNIT_AURA(_, unit)
 
 	-- Keyed by GUID, never the unit token: nameplate tokens are recycled.
 	ForgetUnitAuras(plain(UnitGUID(unit)))
+	-- And what was read of their debuffs, once anything has been (Cures.lua).
+	if ns.cureReads then ns.ForgetCureRead(unit) end
 end
 
 function addon:PLAYER_ENTERING_WORLD(_, isInitialLogin, isReloadingUi)
