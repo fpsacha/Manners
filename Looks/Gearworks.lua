@@ -33,8 +33,9 @@
 --     (Looks/Flow.lua; at rest they drift), three breaths, and then it
 --     holds lit;
 --   * a landing LETS THE STEAM OFF: a cloud from the vent, drawn frame by
---     frame, the cogs spin six teeth on and slow, the dial flashes and the
---     shared rings spread from the glass;
+--     frame, the cogs spin six teeth on and slow, the dial flashes, one ring
+--     pulses on the glass and a second crosses the dial and leaves the brass
+--     (`skyward`: the gauge stands proud of the room the rings are held to);
 --   * a refusal SHORTS it: a spark jumps the terminals, frame by frame, the
 --     dial blinks red and goes grey, the cogs kick back half a tooth and jam
 --     until the next person, one ring snaps in; a cast nobody confirmed does
@@ -111,6 +112,8 @@ local RING_AT = 0.78
 -- The ring file as the generator prints it (--reach): where the line is
 -- brightest and how far out it is seen, as fractions of the half-width.
 local RING_PEAK, RING_EDGE = 0.773, 0.914
+-- How far past the gauge's brass a landing's second ring is seen, in units.
+local WAVE_PAST = 4
 -- The housing's upper rim and its lower, in design texels: the enamel lies
 -- between them, a little above the housing's middle.
 local RIM_TOP, RIM_BOT = 12.5, 19
@@ -177,8 +180,8 @@ local OUTCOME = {
 local FIGHT = { text = 0.78, icon = 0.70, body = 0.78 }
 -- The dial at rest, lit and held after its breaths; the gaslight over it,
 -- and the bubbles in the tube, over the same breath.
-local DIAL = { rest = 0.78, peak = 1.00, held = 0.92 }
-local WARM = { rest = 0, peak = 0.55, held = 0.24 }
+local DIAL = { rest = 0.68, peak = 1.00, held = 0.92 }
+local WARM = { rest = 0, peak = 0.90, held = 0.30 }
 local BUBBLE = { rest = 0.22, peak = 0.90, held = 0.50 }
 local TUBE_ALPHA = 0.95
 local BREATHS, BREATH = 3, 1.25
@@ -579,6 +582,10 @@ function Gearworks:Build(kit)
 		keep(f)
 	end
 	kit.RingArt(ART .. "Ring", RING_PEAK, RING_EDGE)
+	-- The second ring is let out of the button's room, over the gauge that
+	-- stands proud of it (Apply): hunt37-effects holds every scaled light to
+	-- that room but the ones a look names here.
+	self.skyward = { self.fx.rings[2].tex }
 
 	-- The lights: the dial's flash and the spark (ADD), the steam's two
 	-- clouds (BLEND: steam is not light).
@@ -837,7 +844,7 @@ function Gearworks:Apply(p, above)
 		self.mask:Hide()
 	end
 	if showIcon then
-		-- The rings spread from the dial's outer edge.
+		-- The rings' line, at their own size, is the dial's outer edge.
 		self.fx:Place(icon, self.fx.ThinPad(iconSize, gz * DIAL_OUT / 2 - iconSize / 2 + 1), iconSize)
 		self.fx:Shape(true, ART .. "Ring", ART .. "Ring", maskFile)
 		-- The room the rings have: to the text (less a margin), to the
@@ -845,6 +852,21 @@ function Gearworks:Apply(p, above)
 		local limitH = math.min(textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN)
 		local limitV = H / 2 - kit.EDGE_MARGIN
 		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+		-- That room is the button's, and the gauge stands proud of it: held
+		-- to it, neither ring gets past the icon's rim. The first stays there
+		-- (it is the one a refusal snaps in). The second is the gauge's own
+		-- wave: from the icon's edge across the dial and a little past the
+		-- brass, short of the words (`skyward`).
+		local wave = self.fx.rings[2]
+		local grow = wave.landGrow
+		if wave.half and grow.SetScaleFrom and grow.SetScaleTo then
+			local reach = math.min(textX - cx - kit.TEXT_MARGIN, gz / 2 + WAVE_PAST)
+			local from = (iconSize / 2) / (RING_PEAK * wave.half)
+			local to = math.max(from, reach / (RING_EDGE * wave.half))
+			grow:SetScaleFrom(from, from)
+			grow:SetScaleTo(to, to)
+			self.waveFrom, self.waveTo, self.waveReach = from, to, reach
+		end
 		local cooldown = kit.cooldown
 		if cooldown then
 			cooldown:ClearAllPoints()
@@ -1130,6 +1152,15 @@ end
 -- face only.
 function Gearworks:Painted(entry)
 	self:Idle()
+	-- The needle's mark is read here too: Prompt leaves PaintReason out when
+	-- the colour is the one it painted last, and with "Colour marker by
+	-- reason" off every reason has the one colour, so the needle would stand
+	-- for good at the first mark it was given.
+	local mark = self.ringOn and MARK[entry and entry.reason] or ZERO
+	if mark ~= self.mark then
+		self.mark = mark
+		if not self.outcomeOn then self:SetNeedle(mark, true) end
+	end
 	local name = entry and entry.name
 	if name == self.greeted then return end
 	self.greeted = name
@@ -1444,6 +1475,7 @@ function Gearworks:PaintReason(r, g, b, reason, mode)
 	-- outcome holds it at nothing, and the cogs it jammed with it, until it
 	-- is over: PaintOutcome follows this on every scan while one is live, and
 	-- ClearOutcome on the scan it ends.
+	self.ringOn = ring
 	self.mark = ring and MARK[reason] or ZERO
 	if not self.outcomeOn then
 		self.jammed = nil
@@ -1560,7 +1592,10 @@ function Gearworks:Attention(isNew, arrived, flashStyle)
 		-- Calm: one fade up to the held light, and nothing loops.
 		if not self.calmLit then
 			self.calmLit = true
-			StopAll(self.pulse)
+			-- Calm chosen while it breathed: the needle's tremble and the
+			-- bubbles' run stop with the breath (HoldPulse), not only the
+			-- three lights.
+			self:HoldPulse()
 			PlayAll(self.calm)
 		end
 		return

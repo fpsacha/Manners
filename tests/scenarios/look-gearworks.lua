@@ -45,6 +45,7 @@ local FLOURISH = 0.6
 local TEETH = { 12, 8, 8 }
 local GEAR_M, GEAR_FILL, TOOTH_TIP, BOX_N = 6.6, 0.9375, 0.6, 128
 local GAUGE_MAX, ICON_FRAME = 1.27, 0.54
+local DIAL_OUT, RING_PEAK, RING_EDGE = 0.82, 0.773, 0.914
 
 -- Every file the generator writes (its docstring lists them), as the Lua
 -- names them without the Gearworks_ prefix.
@@ -804,4 +805,100 @@ withTree("look-gearworks: the generator draws the same bytes", ANNA, function(_,
 		os.remove(b .. "/" .. file)
 	end
 	if not outA:find("Gearworks_HousingM.tga 128x128 cap=0.66", 1, true) then fail(scenario, "the generator does not print the housing's cap line") end
+end)
+
+-- ------------------------------------------------------------------ 18
+-- With "Colour marker by reason" off every reason has the one colour, and
+-- Prompt leaves PaintReason out when the colour has not changed: the needle
+-- still goes to each person's mark, because the look reads it at every paint.
+withTree("look-gearworks: one marker colour, and the needle still finds each reason's mark", ANNA, function(ns, scenario)
+	local _, _, look = atRest(ns, scenario, function(pp)
+		pp.accentByReason = false
+		pp.accentColor = { 0.85, 0.35, 0.75, 1 }
+	end)
+	if skipped(scenario, look) then return end
+	pass(ns, 1)
+	if look.needleAt ~= MARK.nearby then fail(scenario, "with a passer-by on top the needle is at " .. tostring(look.needleAt)) end
+	local colour = { look.dial._color[1], look.dial._color[2], look.dial._color[3] }
+	owe(ns, "Anna Aim")
+	tick(ns)
+	pass(ns, 1)
+	if not sameColour(look.dial._color, colour[1], colour[2], colour[3]) then
+		fail(scenario, "SKIPPED -- the dial changed colour with the reason, so this holds nothing")
+	end
+	if look.needleAt ~= MARK.owed or shownMark(look) ~= MARK.owed then
+		fail(scenario, ("one marker colour: owed, the needle stands at %s (drawn at %s), not %d"):format(
+			tostring(look.needleAt), tostring(shownMark(look)), MARK.owed))
+	end
+	-- And an outcome still holds it at nothing until it is over.
+	ns.Prompt:ShowOutcome("cast", "Anna Aim", "x")
+	tick(ns)
+	if look.needleAt ~= MARK.nearby then fail(scenario, "one marker colour: a landing's needle was taken back up to " .. tostring(look.needleAt)) end
+end)
+
+-- ------------------------------------------------------------------ 19
+-- Calm chosen while the owed breath runs: the needle's tremble and the
+-- bubbles' run stop with it, at the next paint.
+withTree("look-gearworks: Calm chosen mid-breath stills the needle and the bubbles", ANNA, function(ns, scenario)
+	local _, p, look = upIn(ns, scenario)
+	if skipped(scenario, look) then return end
+	pass(ns, 0.7)
+	if not (look.trembleAnim._playing and near(look.bubbleRun.du, BUBBLE_RUN, 0.001)) then
+		fail(scenario, "SKIPPED -- owed on Full, the needle does not tremble or the bubbles do not run")
+		return
+	end
+	p.effects = "calm"
+	tick(ns)
+	for i, g in ipairs(look.pulse) do
+		if g._playing then fail(scenario, "Calm chosen mid-breath: breath " .. i .. " still loops") end
+	end
+	if look.trembleAnim._playing then fail(scenario, "Calm chosen mid-breath: the needle still trembles") end
+	if not near(look.bubbleRun.du, BUBBLE_DRIFT, 0.001) then
+		fail(scenario, "Calm chosen mid-breath: the bubbles are still set to run: " .. tostring(look.bubbleRun.du))
+	end
+	if look.bubbleRun:IsPlaying() then fail(scenario, "Calm chosen mid-breath: the bubbles still move") end
+	pass(ns, 0.6)
+	if not near(look.dial._alpha, DIAL_HELD) then
+		fail(scenario, ("Calm chosen mid-breath: the dial is at %.2f, not held at %.2f"):format(look.dial._alpha or -1, DIAL_HELD))
+	end
+end)
+
+-- ------------------------------------------------------------------ 20
+-- A landing's two rings. The gauge stands proud of the button, so the room
+-- Prompt's rings are held to ends inside the dial: the first ring stays in
+-- it, on the glass; the second is the gauge's own, named in `skyward`, from
+-- the icon's edge across the dial and past the brass, and short of the words.
+withTree("look-gearworks: a landing's second ring crosses the dial and stops short of the words", ANNA, function(ns, scenario)
+	local sizes = { { 220, 44, 13, 30 }, { 320, 58, 17, 40 }, { 220, 44, 13, 16 }, { 160, 32, 11, 24 } }
+	for _, s in ipairs(sizes) do
+		local _, p, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize, pp.iconSize = s[1], s[2], s[3], s[4] end)
+		if skipped(scenario, look) then return end
+		local label = ("%dx%d icon %d"):format(s[1], s[2], s[4])
+		local first, second = look.fx.rings[1], look.fx.rings[2]
+		local sky = {}
+		for _, t in ipairs(look.skyward or {}) do sky[t] = true end
+		if not sky[second.tex] then fail(scenario, label .. ": the second ring is not named in skyward") end
+		if sky[first.tex] then fail(scenario, label .. ": the first ring is named in skyward too, so hunt37 holds nothing here") end
+		local from, to = second.landGrow._scaleFrom, second.landGrow._scaleTo
+		if not (from and to and second.half) then fail(scenario, label .. ": the second ring has no scale to read") return end
+		-- Where its brightest line starts and ends, and how far out it is seen.
+		local lineFrom, lineTo = from[1] * RING_PEAK * second.half, to[1] * RING_PEAK * second.half
+		local seenTo = to[1] * RING_EDGE * second.half
+		local dialOut = look.gz * DIAL_OUT / 2
+		if lineFrom > look.iconSize / 2 + 0.6 then
+			fail(scenario, ("%s: the second ring starts %.1f out, off the icon's edge at %.1f"):format(label, lineFrom, look.iconSize / 2))
+		end
+		if lineTo < dialOut - 0.01 then
+			fail(scenario, ("%s: the second ring does not cross the dial: its line ends %.1f out, the dial at %.1f"):format(label, lineTo, dialOut))
+		end
+		local room = look.textX - look.cx
+		if seenTo > room - 1.99 then
+			fail(scenario, ("%s: the second ring reaches the words: seen %.1f out, the words start %.1f out"):format(label, seenTo, room))
+		end
+		-- The first is still held to the button's own room.
+		local firstTo = first.landGrow._scaleTo
+		if firstTo and first.half and firstTo[1] * RING_EDGE * first.half > math.max(look.iconSize / 2, p.height / 2 - 1) + 0.01 then
+			fail(scenario, ("%s: the first ring leaves the button's room: seen %.1f out"):format(label, firstTo[1] * RING_EDGE * first.half))
+		end
+	end
 end)

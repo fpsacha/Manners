@@ -351,3 +351,35 @@ mutate(GEN,
        "SEED_STEAM, SEED_SPARK, SEED_BUBBLE, SEED_STACK, SEED_PLANK = 7107, 6108, 6109, 6110, 6111\n",
        "look-gearworks: the shipped steam is not the generator's",
        expect="does not match the file that ships", script=S)
+
+# --- found by the review: one marker colour, Calm mid-breath, the second ring ---
+
+mutate(LUA,
+       "\tif mark ~= self.mark then\n\t\tself.mark = mark\n\t\tif not self.outcomeOn then self:SetNeedle(mark, true) end\n",
+       "\tif mark ~= self.mark then\n\t\tself.mark = mark\n",
+       "look-gearworks: the needle waits for a PaintReason that one marker colour never sends",
+       expect="one marker colour: owed, the needle stands at", script=S)
+
+mutate(LUA,
+       "\t\t\tself:HoldPulse()\n\t\t\tPlayAll(self.calm)\n",
+       "\t\t\tStopAll(self.pulse)\n\t\t\tPlayAll(self.calm)\n",
+       "look-gearworks: Calm chosen mid-breath stops the lights and leaves the needle trembling",
+       expect="Calm chosen mid-breath: the needle still trembles", script=S)
+
+mutate(LUA,
+       "\tself.skyward = { self.fx.rings[2].tex }\n",
+       "\tself.skyward = {}\n",
+       "look-gearworks: the second ring let out of the room with no word to hunt37",
+       expect="the second ring is not named in skyward", script=S)
+
+mutate(LUA,
+       "\t\t\tlocal reach = math.min(textX - cx - kit.TEXT_MARGIN, gz / 2 + WAVE_PAST)\n",
+       "\t\t\tlocal reach = gz / 2 + WAVE_PAST + 12\n",
+       "look-gearworks: the second ring spread over the words",
+       expect="the second ring reaches the words", script=S)
+
+mutate(LUA,
+       "\t\t\tgrow:SetScaleTo(to, to)\n",
+       "\t\t\tgrow:SetScaleTo(from, from)\n",
+       "look-gearworks: the second ring left on the icon's rim",
+       expect="the second ring does not cross the dial", script=S)
