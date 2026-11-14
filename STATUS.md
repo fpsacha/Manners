@@ -5,7 +5,65 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-Unreleased after 1.11.24, a pass over all fifteen looks (branch
+**1.11.25 in progress** (1.11.24 is the last release). Built on 2026-11-14 in
+one day of parallel worktrees, merged to master, and BUILD ONLY: each piece
+was held to lint, its own scenario file and `anchors_for.py --check-after`.
+No suite was run over the merged tree and nothing was tried in the game. The
+checklist of what only the game can settle is the first item under *Open*;
+what the test pass still owes is the second.
+
+What was built:
+
+- **The group's pets** (`sources.pets`, off; Queue.lua `IterateUnits`,
+  `entry.pet` and `entry.owner`; `tests/scenarios/grouppets.lua`).
+- **Battlegrounds and arenas** (`Battle.lua`, `db.battle`; When to offer, *In
+  battlegrounds and arenas*, four switches; `battleground.lua`), and tracking
+  quiet there (Core.lua `OwnVerdict`: `"battle"`; `battle-tracking.lua`).
+  `filters.quietInInstances` no longer decides inside one: `battle.team`
+  does, and a profile that had the old switch ticked has `team` unticked once
+  (`Battle.Carry`).
+- **Resurrection** (`Resurrect.lua`; `sources.res` on, `sources.resStrangers`
+  off; `res.lua`). Not built: memory of a dead passer-by once the cursor
+  leaves; a flash on the panel for a resurrection.
+- **Cures** (`Cures.lua`; `sources.cures`, `sources.curesStrangers`, both
+  off; `filters.cureSeconds` 10; `cures.lua`). Deny list: Unstable
+  Affliction, Vampiric Touch, Mutating Injection, Delusions of Jin'do.
+  `canActivePlayerDispel` on the Classic clients is assumed from Blizzard's UI
+  code. Not built: curing yourself or pets; Mass Dispel; pet dispels.
+- **Courtesies on request** (`Courtesy.lua`; four `sources.courtesy*`, all
+  off; `courtesy.lua`). Not built: Pick Lock (it needs a /click on the trade
+  slot); "port pls" with no city; a trade press from the bar macro.
+- **Asking for a buff** (`Ask.lua`; `sources.ask`, off; `db.ask`; `ask.lua`).
+  The bar macro does not carry an ask; asks are forgotten at a `/reload`; on
+  Forever and retail a group member is held only to "in sight".
+- **Sharing a group between Manners users** (`Share.lua`; `sources.share`,
+  on; `raidsplit.lua`). Not covered: LFG instance groups (INSTANCE_CHAT is
+  not used); a non-casting user's own self-reminder for a raid-wide buff is
+  not held back; a non-caster keeps offering singles to their share while
+  the caster's group cast is due.
+- **The companion pet on Mists and retail** (Companion.lua `journalOnly`,
+  `"petbattle"`; `journalpet.lua`).
+- **A line said once in town** (`Hints.lua`, `db.char.hints.resting`;
+  `resting-hint.lua`).
+- **Own lines among the In character ones** (`speech.mixedLines`, Speech.lua
+  `MixedIn`; What I say).
+- **The options window's footer** (WindowChrome.lua: the author's line
+  larger and centred, the build at the right; the picker's tick clear of the
+  picture).
+- **Four new looks**, nineteen in all: Stormcaller, Warchief, Gearworks and
+  Ebon, each with its generator, its `Textures/` folder, its scenario file
+  (`look-<key>.lua`) and mutation file, its strings in eight languages and
+  its picker card.
+- **Four looks redrawn**: Minimal (a dressing, `Looks/MinimalDress.lua`,
+  `Textures/Minimal/`; `prompt.minimalLine = false` takes it off but no
+  switch sets it), Ribbon, Letter and Leather; then the serif names a fifth
+  larger on those three, Letter's reason line in the standard face, and
+  Ribbon's cloth kept through a landing.
+- **The looks pass** below (one alpha, the words measured), from before the
+  day's build.
+
+Before that, still unreleased after 1.11.24: a pass over the fifteen looks
+there were then (branch
 `looks-polish`), in three parts.
 
 - **One alpha.** The game keeps one alpha for a texture, and a colour given
@@ -94,9 +152,9 @@ players asked for them straight back (GitHub issue 15, CurseForge): 1.11.20
 restored them whole, files, art, generators, tests, the panel's rim and the
 strings, from the commits that removed them, and removed `Looks.retired`,
 `Looks.Heir` and the move of a saved style to an heir. A profile that 1.11.19
-moved to Glass stays on Glass; the player picks the old look again. There are
-now fifteen looks, with Wild (a druid's) and Frost (a frost mage's) added in
-1.11.22. **Only the game can say:** whether the four read as they did.
+moved to Glass stays on Glass; the player picks the old look again. There
+were fifteen looks with Wild (a druid's) and Frost (a frost mage's) added in
+1.11.22, and there are nineteen since 1.11.25. **Only the game can say:** whether the four read as they did.
 
 **The right-buff audit (Unreleased).** A player called the addon "a buggy
 mess": "very frequently it retargets the same person when they are buffed and
@@ -376,6 +434,188 @@ permissions list, a hook that lints each edited file, and the commands
 
 ## Open
 
+**1.11.25 in the game: the checklist.** Nothing of 1.11.25 has been seen in a
+client. Walk through it by feature; `/manners debug` and *Run a full check-up*
+(Diagnostics) give the lines named here, and `/manners clicks` on shows what a
+press did. Paste whatever does not match.
+
+*The group's pets*
+
+- [ ] In a party with a hunter or a warlock, *My group's pets too* ticked:
+      the pet comes up with its owner named on the second line, and the press
+      reaches the pet by its name and hands your target back.
+- [ ] A pet with the family's default name ("Cat"), two of them in one group.
+
+*Battlegrounds and arenas*
+
+- [ ] Before the gates open, `/manners debug` says "the gates are shut" (the
+      Preparation aura's ids are from the data, unseen in a client).
+- [ ] After a graveyard's resurrection "You" leads, your armor before food.
+- [ ] In combat with a team-mate on the prompt, the key casts nothing at
+      anybody new; out of combat the team is offered again.
+- [ ] The pull: what is on the prompt as the gates open.
+- [ ] *Thank people there*: a `/thank` to a team-mate who buffs you, none in
+      a fight; *Say my line there* off says nothing with a buff.
+- [ ] No Find Minerals or Find Herbs reminder after a death there.
+
+*Resurrection*
+
+- [ ] A healer in a party, somebody dies and does not release: the prompt
+      shows them first; the press casts and hands the target back; they leave
+      the prompt during the cast.
+- [ ] A second healer casts first: yours drops them (incoming resurrection).
+- [ ] Move mid-cast: they are back on the prompt in about two seconds.
+- [ ] On Forever, a member who released, seen through their frame: never
+      offered.
+- [ ] A hunter in Feign Death is not offered.
+
+*Cures*
+
+- [ ] A druid or a priest on Forever, *Cure my party and raid* ticked, a
+      party member poisoned out of combat: the prompt offers the cure, the
+      press removes it, and `/manners debug` shows a "cures:" line.
+- [ ] Every cure, on every client, is unseen live: each class's spell for
+      each kind, and whether `canActivePlayerDispel` is given on the Classic
+      clients.
+- [ ] A debuff with under ten seconds left, and one with no timer, are left
+      alone.
+
+*Courtesies on request* (Forever first)
+
+- [ ] A mage: `/target X` then `/trade` from the press opens the trade, and
+      the water lands in slot 1 with no "action blocked".
+- [ ] `/cast Conjure Water(Rank 3)` conjures the lower rank for a low asker.
+- [ ] A warlock: Ritual of Summoning ends the request when the channel
+      starts; a shard is asked for on Forever, Classic Era and TBC.
+- [ ] A portal for a group member who names the city; nothing with no rune.
+- [ ] Mists or retail: a healthstone request casts Create Soulwell.
+
+*Asking for a buff*
+
+- [ ] A rogue on Forever, the switch ticked, beside a priest outside town
+      with no Fortitude: the prompt offers the ask last; the press whispers
+      "Name Surname" and leaves the target untouched.
+- [ ] `/manners debug` has an "asking for buffs:" line.
+- [ ] `/say` as the channel; an In character line with that set chosen.
+
+*Sharing a group*
+
+- [ ] Two characters of one class grouped, both with Manners, a full
+      check-up on each: "Sharing the group" shows users=1, and each prompt
+      offers only its own part.
+- [ ] If the check-up says "refused ... (a sender written ...)", send that
+      line: it is how Forever writes an addon message's sender.
+- [ ] One of the two leaves or goes offline: the other is offered everybody
+      at the next scan.
+
+*The companion pet on Mists and retail*
+
+- [ ] With the switch on, a pet comes out of the journal with no press.
+- [ ] No flicker after a flight or a pet battle: one summon, not several.
+
+*The line said once in town*
+
+- [ ] Log in at an inn with an own buff missing: one line in chat about
+      twelve seconds in, never again on that character.
+
+*Own lines among the In character ones*
+
+- [ ] With lines in *My own lines, mixed in*, about one press in three says
+      one of them, and the bar macro carries it too.
+
+*The options window*
+
+- [ ] The footer: the author's line larger and centred, the version at the
+      right, nothing cut at the smallest window size.
+- [ ] The picker: nineteen cards, each picture whole (Stormcaller, Ebon,
+      Leather and Warchief were given room), the tick clear of the picture.
+
+*The four new looks* (`/manners test` for a preview; none has been on a real
+prompt, and the renderer understates additive light)
+
+- [ ] Stormcaller: the totem standing above and left of the panel; the icon
+      square, and round with *Round the icon off*; lava and water running
+      (Flow); the lightning sheets at their frame rate; the list's tablet
+      hanging from the slab; Calm stills it.
+- [ ] Warchief: the icon cut to the chamfered square; the crest's glow while
+      owed; the banner stirring; the drum beat and sparks on a landing; the
+      reason line on the iron.
+- [ ] Gearworks: the icon round under the glass; the needle finding its
+      mark for each reason; the three cogs turning in mesh (Rotation); steam
+      on a landing and the spark on a refusal.
+- [ ] Ebon: the icon cut to the eight-sided socket; soulfire and vapour
+      (Flow) seen and not too strong; the three runes kindling in turn; the
+      refusal playing out.
+- [ ] On all four: `/manners selftest launch` (masks, clipping, tiling,
+      animations), and the words at the smallest and largest sizes (the
+      contrast audit ran at the default size only).
+
+*The four redrawn looks*
+
+- [ ] Minimal: the strength of the two additive flashes; the cast's slide
+      ending where it began; `SetClipsChildren` cutting the fill at the left
+      tick; the tick and cross sheets' frame rate; the hairline crisp at real
+      UI scales.
+- [ ] Ribbon: the seam between the tiled middle and the fork's sheet; the
+      fork's flutter and the wave in step; the rays and tip glints'
+      brightness (ADD); the Rotation of the laurel's gleam; the medallion's
+      scale as it is pinned on; the cloth never absent through a landing.
+- [ ] Letter: the cover's seam and the frame it hands off on; the hold on
+      the text layer while the quill writes; the quill turning about its
+      point; the ADD strengths; the reason line in the standard face.
+- [ ] Leather: the feathers turning about their top; how bright the
+      thread's glints and the strike's flash are; the embers' strength at
+      rest; the smoke sheet's frames.
+- [ ] The serif names on Ribbon, Letter and Leather, a fifth larger, with a
+      long name and a key on the chip.
+
+**1.11.25: what the test pass still owes.** The day was build only, so before
+a release (`tools/check.py --lint --flavours --anchors`, then the selftest):
+
+- The four new looks are in none of the shared lists: `looks.lua`,
+  `looks-alpha.lua`, `looks-read.lua`, `hunt35-effects.lua`,
+  `hunt37-effects.lua`, `hunt38-picker.lua`, `hunt38-shared.lua`,
+  `hunt40-layout.lua`, `perf-budget.lua`, `options-appearance.lua`,
+  `selftest-launch.lua` (the count of cards), `tools/make-screenshots.py`
+  (so `manners-looks.png` still draws fifteen) and
+  `tests/materials_check.lua`. `Looks.roundAlways` lacks `warchief`,
+  `gearworks` and `ebon`, whose icons ignore the round switch (re-aim the
+  mutations whose `old` is that line); `stormcaller` stays out of it.
+- `model-window.lua`'s `EXPECTED` lacks the new paths (who: `sources.res`,
+  `resStrangers`, `share`, `cures`, `curesStrangers`, `filters.cureSeconds`,
+  the four `sources.courtesy*`; when: `battle.team`, `speak`, `thank`,
+  `items`); `layout.lua` may want the new sections.
+- The fallback dialog's order 14.5 is used twice in `Options/Who.lua` (the
+  ask toggle and `curesHeader`): give one another.
+- `tests/mockapi.lua`'s `KNOWN_EVENTS` lacks `UNIT_SPELLCAST_FAILED_QUIET`
+  and `INCOMING_RESURRECT_CHANGED`; `fuzz_check.lua` needs an `e.res`
+  exception to "is dead and was offered" and does not know the reason "ask";
+  `fuzz_check.lua` and `fuzz_steps.lua` were edited for battlegrounds and
+  not run.
+- `tools/audit_ids.py` does not cover Resurrect.lua's ids, and was not run
+  for Courtesy.lua's or Cures.lua's.
+- `perf-budget.lua`: one more pcall every two seconds in a battleground, a
+  harmful-aura read a person with a cure switch on, the hello's cost, and
+  the looks that now run a `Painted` at every scan (Letter, Ribbon, Minimal's
+  `Rest`): re-measure (`MANNERS_PERF_REPORT=1`).
+- `model-fixes.lua`'s canary 0.5562 shifts with the new controls;
+  `quietinstances.lua` and its mutations, `pets.lua` and `mainline.lua` were
+  edited and not run; other scenarios listing Mists' or retail's families
+  may need `and not family.pet`.
+- No mutation written today has been seen CAUGHT: the eight look files
+  (several hundred between them), `res.py`, `cures.py`, `courtesy.py`, `ask.py`,
+  `battleground.py`, `battle-tracking.py`, `raidsplit.py`, `journalpet.py`,
+  `resting-hint.py`, and the ones re-aimed in `hunt-logic-fixes.py`,
+  `hunt23-queue.py`, `fuzz-fixes.py` and `tests/selftest.py`. Queue.lua near
+  the courtesy early answer and the cures exception was merged by hand.
+- `tests/validate.py` has not run on the merged tree (the upvalue and local
+  ceilings of the new look files were counted by hand), and the contrast
+  audit ran at the default size only for seven of the eight looks.
+- The listing image `manners-looks.png` and any picture showing Minimal,
+  Ribbon, Letter or Leather want redrawing once `make-screenshots.py` knows
+  the nineteen; the gallery row and the image's alt text say fifteen of the
+  nineteen until then.
+
 **Launch day (WoW Forever, 2026-11-05): run one command.** Log in on the
 character that has the Manners macro (or any character: the test makes a
 temporary macro and deletes it), out of combat, with something targeted if you
@@ -385,7 +625,7 @@ opens in the box under Reporting a bug on Diagnostics (a line in chat says the
 counts); click in the box, select all, copy, paste it back. The first line after
 the header is the summary (`Launch checks: N PASS, N CHECK, N FAIL -- look at:
 ...`), then one line per item with the game's own answer: the Morpheus font
-file, masks, clipping, `REPEAT` tiling, animations, each of the fifteen looks put
+file, masks, clipping, `REPEAT` tiling, animations, each of the looks put
 on the real prompt (regions, font, masks) and the style put back, the picker's
 card icon and text, the bar slot (`SetMacroSpell`/`GetMacroSpell`, what an
 empty string leaves, `SetMacroItem`, `PickupMacro`, `UPDATE_MACROS`, and

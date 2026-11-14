@@ -297,8 +297,8 @@ mutate("Ask.lua",
 # ------------------------------------------- a class with nothing to give
 
 mutate("Core.lua",
-       "\tif ns.AskLive and ns.AskLive() then return true end\n\t-- Or a cure, with one of its switches on (Cures.lua).\n",
-       "\t-- Or a cure, with one of its switches on (Cures.lua).\n",
+       "\tif ns.AskLive and ns.AskLive() then return true end\n",
+       "",
        "ask: no prompt for a class with nothing to cast",
        expect=NOTHING, script=S)
 

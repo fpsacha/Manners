@@ -1134,6 +1134,54 @@ snowflake's `COLS`, `ROWS` and `FRAMES`, `TAG_CAPS`, `MASK_FILL`,
 `RING_AT`) sit at the top of the script and `look-frost.lua` holds each to
 its twin.
 
+## make_stormcaller_textures.py, make_warchief_textures.py, make_gearworks_textures.py, make_ebon_textures.py
+
+The art of the four looks added in 1.11.25, one script a look, each built as
+`make_frost_textures.py` is: lit through `materials.py`, seeded and with no
+clock, so two runs write the same bytes, and each look's own scenario file
+(`tests/scenarios/look-<key>.lua`) holds the files that ship to a second run
+and the figures at the top of the script to their twins in `Looks/<Look>.lua`.
+`--out DIR` writes the same files to DIR, `--sheet FILE` draws a contact
+sheet, `--reach` prints the ring file's peak and reach (0.773 and 0.914 on
+all four, what `kit.RingArt` is told).
+
+| Script | Writes | Needs | Notes |
+|---|---|---|---|
+| `make_stormcaller_textures.py` | `Textures/Stormcaller/`, 30 files: the slab of stone and its slate, the totem, the four sigils, lava and water for `Flow`, the lightning sheets, two ring files (round and square: the icon follows the round switch) | numpy, Pillow, scipy (`figures.py`) | caps: stone 0.60, the totem 0.82 for its tusks, feather 0.92 |
+| `make_warchief_textures.py` | `Textures/Warchief/`, 27 files: the spiked iron slab, the tusks, the crest and its glow, the banner and sparks for `Flow`, the chamfered mask (`Warchief_Mask`) | numpy, Pillow, scipy | `--ground` prints how bright the iron is under the words; caps: iron 0.46, ivory 0.88, hide 0.30 |
+| `make_gearworks_textures.py` | `Textures/Gearworks/`, 31 files: the brass housing and its enamel plate, the gauge, its needle and dial, three cogs, steam, the round mask (`Gearworks_Mask`) | numpy, Pillow | |
+| `make_ebon_textures.py` | `Textures/Ebon/`, 32 files: the runeblade, the guard and its skull, the eight-sided mask (`Ebon_Mask`), three runes, soulfire and vapour for `Flow` | numpy, Pillow, scipy (`figures.py`) | |
+
+After any of them: `python tools/make_look_previews.py` (the picker's card)
+and `python tools/audit_look_contrast.py --looks <key>`.
+
+## make_minimal_textures.py
+
+The six files of `Textures/Minimal/`, what Minimal wears
+(`Looks/MinimalDress.lua`): the hairline (`Line`), its end tick (`Cap`), its
+glow, the cast bar's spark, and the ready check's tick and cross (`Check`,
+`Cross`: sheets of eight frames, four by two, played by `Flow`). Nothing in it
+is random, so it needs no seed; `--out DIR` and `--sheet FILE` as the others.
+Needs numpy and Pillow. `tests/scenarios/look-minimal.lua` holds it.
+
+## make_ribbon_textures.py, make_letter_textures.py, make_leather_textures.py
+
+The three looks redrawn in 1.11.25, with the flags of the other generators
+(`--out DIR`, `--sheet FILE`).
+
+- `make_ribbon_textures.py`: 27 files in `Textures/Ribbon/`. Four are 256 x
+  256 sheets of 32 frames, the fluttering fork and its trim at each end
+  (`Cloth_End`, `Cloth_EndL`, `Trim_End`, `Trim_EndL`); new with the pennant
+  are `Ribbon_Wave`, `Ribbon_Burst`, `Ribbon_Arc` and `Ribbon_RailGleam`.
+- `make_letter_textures.py`: the torn, folded sheet; new are `Letter_Fold`,
+  `Letter_Quill`, `Letter_Flourish` and `Letter_Glint`, and its `measured`
+  line prints `paper_solid_rows`, `fold_shade` and `quill_box`, which
+  `Looks/Letter.lua` must agree with.
+- `make_leather_textures.py`: 32 files in `Textures/Leather/`; new are
+  `Leather_Stud`, `Leather_Buckle`, `Leather_FeatherA`, `Leather_FeatherB`,
+  `Leather_Brand`, `Leather_Ember` and `Leather_Smoke` (a sheet for `Flow`).
+  `Leather_BodyM` stays 128 x 128, the launch check's `REPEAT` tile.
+
 ## make_glass_textures.py
 
 The ten files of `Textures/Glass/`, what the default look wears
@@ -1263,7 +1311,8 @@ appended to `materials.lua` for another look.
 ## audit_look_contrast.py
 
 How well the words on every prompt look read, measured on the pictures. Each
-of the nineteen looks is taken through the moments that change what is behind
+of the nineteen looks (`LOOKS` at the top of the script: a new look adds its
+key there) is taken through the moments that change what is behind
 its words or what colour they are (`tools/audit_look_contrast.lua`: every
 reason at rest in both palettes with a class's colour on the name, somebody
 owed at three moments of the lights' run, an outcome that succeeded and one

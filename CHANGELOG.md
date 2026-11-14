@@ -3,29 +3,80 @@
 ## Unreleased
 
 ### Who gets what
-- **Your group's pets.** *My group's pets too* on *Who to buff*, under *My party
-  and raid*: a hunter's beast or a warlock's demon missing your buff is offered
-  it, targeted by its name. Off by default. Asked for on CurseForge.
-- **Battlegrounds: your class buff, not tracking.** After a death in a
-  battleground or an arena the prompt reminded you of Find Minerals or Find
-  Herbs ahead of your own buff. Tracking is no longer offered there. Reported
-  on CurseForge.
+- **Your group's pets.** *My group's pets too* (Who to buff, under *My party
+  and raid*): a hunter's beast or a warlock's demon missing your buff is
+  offered it. Off by default. Asked for on CurseForge.
+- **Resurrection.** Out of a fight, a dead member of your group is offered
+  your resurrection first of all. Never a released spirit or somebody already
+  being resurrected. *My group's dead* (on) and *Dead passers-by too* (off).
+- **Cures.** *Cure my party and raid* and *Cure passers-by* (Who to buff, both
+  off): a poison, disease, curse or harmful spell your class can remove is
+  offered its cure, out of combat.
+- **Courtesies on request.** Mages can hand out water, food and portals, and
+  warlocks healthstones and summons, to whoever asks in chat. Four switches
+  under *People who ask me in chat*, all off.
+- **Asking for a buff.** *Ask people for a buff I'm missing* (off): when
+  somebody in your group or beside you could give you a buff you lack, a press
+  whispers them one polite line. Classes with nothing to give find it on
+  *Start here*.
+- **Two Manners users share a group.** Two of the same class in one party or
+  raid are each offered their own part of it, so nobody is buffed twice. On by
+  default, under *My party and raid*.
+
+### Battlegrounds and arenas
+- **A section of their own** on *When to offer*. After a death your own buffs
+  come first, what you fight with before food. Your team is offered freely
+  before the gates open; after, only out of combat and within reach. Nothing
+  is said there unless you tick it.
+- **No tracking reminder there.** Find Minerals or Find Herbs no longer comes
+  up ahead of your class's buff after each death. Reported on CurseForge.
+
+### Your own buffs
+- **Companion pet on Mists and retail.** Switch it on under *Myself* and
+  Manners keeps a pet from your journal out, by *Which pet*. Never in a fight,
+  an instance or a pet battle, nor mounted, stealthed or flying.
+- **Why nothing comes up in town.** Your own buffs wait while you rest in a
+  city or an inn. Chat now says so once, and names the switch that changes it.
+
+### What I say
+- **Your own lines among the In character ones.** With *In character* as the
+  set, *My own lines, mixed in* takes lines of your own: about one press in
+  three says one of them. Asked for on CurseForge.
+
+### Looks
+- **A new look: Stormcaller.** A shaman's, from Warcraft's totems and the four
+  elements: a carved totem holds your spell, a standing stone wakes the sigil
+  of air, fire, water or earth, and chain lightning arcs when your buff lands.
+- **A new look: Warchief.** The Horde's, in Orgrimmar's black iron and red
+  hide: a spiked slab between two tusks, the crest glowing like iron out of
+  the forge, a war banner, a drum beat and sparks when your buff lands.
+- **A new look: Gearworks.** An engineer's, in Gnomeregan's brass and Kezan's
+  copper: your spell under the glass of a pressure gauge, three cogs turning,
+  steam let off when a buff lands.
+- **A new look: Ebon.** A death knight's runeblade of Icecrown's saronite:
+  your spell in a socket under a skull, soulfire behind it, and three runes
+  that kindle when somebody buffs you. Nineteen looks now.
+- **Minimal redrawn.** After the game's cast bar and ready check: a hairline
+  under the words fills behind a spark when somebody buffs you, flashes with a
+  tick when your buff lands, and runs out red with a cross when it is refused.
+- **Ribbon redrawn.** A pennant from the Argent Tournament: crimson damask, a
+  forked end that flutters, and a laurelled medallion pinned on when your buff
+  lands.
+- **Letter redrawn.** After the game's quest parchment and sealed mail: a
+  torn, folded sheet. A quill writes each name in and signs a landed buff; a
+  refusal cracks the seal.
+- **Leather redrawn.** Tooled hide as a leatherworker makes it: brass studs, a
+  buckle, two feathers that stir, and a paw-print brand that smoulders while
+  you owe somebody.
+- **Easier to read.** Names in a deep class colour, the list's words and the
+  lines on Fel, Ribbon, Leather, Forge and Letter are brighter; the serif
+  names on Ribbon, Letter and Leather are larger.
+- **Lights that should be faint are faint.** Halos, flashes and glows meant to
+  rest dark stood fully lit in the game on most looks. Fixed on all of them.
 
 ### Options window
 - **The footer.** Who makes Manners is larger and easier to read, and the
   version stands at the right.
-
-### Looks
-- **Lights that should be faint are faint.** Halos, flashes and glows meant to
-  rest dark stood fully lit in the game on most looks. Fixed on all of them.
-- **Easier to read.** Names in a deep class colour, the words in the list, and
-  the lines on Fel, Ribbon, Leather, Forge and Letter are all brighter against
-  what they sit on, and the name keeps its size when the panel is crowded.
-
-### What I say
-- **Your own lines among the In character ones.** With *In character* as the
-  set, *My own lines, mixed in* (What I say) takes lines of your own: about one
-  press in three says one of them. Asked for on CurseForge.
 
 ## 1.11.24
 

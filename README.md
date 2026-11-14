@@ -159,9 +159,15 @@ Everybody who could use your buff is queued, in this order:
    turns them on, *Start here* says the same under step 1, and a press of your
    key on an empty prompt says why it is empty.
 
-It skips the dead, the out-of-range, anyone you just tried, anyone the buff
-does nothing for (Arcane Intellect is wasted on a rogue), and, while you are not
-flagged yourself, anyone flagged for PvP, since buffing them would flag you.
+It skips the dead (but see *Resurrection* below), the out-of-range, anyone you
+just tried, anyone the buff does nothing for (Arcane Intellect is wasted on a
+rogue), and, while you are not flagged yourself, anyone flagged for PvP, since
+buffing them would flag you.
+
+Beside buffs, the prompt can offer four more things, each with its own
+switches and described below: your **resurrection** for the group's dead, a
+**cure**, a **courtesy** somebody asked for (a mage's water, a warlock's
+summon), and a polite **ask** for a buff you are missing yourself.
 
 **On the prompt:** left-click (or your key) casts. **Right-click** skips that
 person for now without marking their favour repaid; on one of your own buffs
@@ -211,7 +217,9 @@ each class offers*).
   not reminded. Righteous Fury on Automatic waits until your group role is
   tank.
 - Never in a fight, and not in cities and inns unless you tick *Also in
-  cities and inns*; that goes for your buff for others too. Nothing is offered
+  cities and inns*; that goes for your buff for others too. The first time a
+  buff of yours waits for that reason, chat says so, once a character, and
+  names the switch. Nothing is offered
   while the game says the spell cannot be cast (a druid in cat form, a priest
   in Shadowform, a mage out of mana).
 - With *Offer a top-up when it runs low*, a buff with a timer is also offered
@@ -300,7 +308,9 @@ each class offers*).
   pet you put away (its item used again, *Dismiss*, or the journal's button)
   stays away until you bring one out yourself. Should the game not let
   Manners use the journal, it stops trying for the session and says so in
-  `/manners debug`. WoW Forever, Classic Era and Burning Crusade.
+  `/manners debug`. On Mists of Pandaria Classic and retail every pet is in
+  the journal: Manners brings one out itself there too, by *Which pet*, and
+  waits out a pet battle. Every client.
 - **Detect Invisibility.** For warlocks: a switch under *Myself*, off until you
   switch it on. Then, with no Detect Invisibility on you (yours or another
   warlock's), "You" comes up and one press casts it on you. Classic Era, WoW
@@ -351,7 +361,9 @@ each class offers*).
   Find Minerals, so there it has a switch of its own, *Find Treasure*: once
   you have had it on, it is reminded of whenever it is off, and a gathering
   tracking is still reminded of while Find Treasure is on. A dwarf who never
-  turns it on is never asked to.
+  turns it on is never asked to. In a battleground or an arena tracking is
+  not reminded of at all: every death there drops it, and your class's buff
+  matters more.
 - *Save mana* holds you back only when *Below it, still offer* is *Nothing*,
   and *Raid groups I buff* never does. In a party you count towards a group
   buff, and the group cast covers you.
@@ -476,6 +488,88 @@ before your group. Nothing is ever said back. What counts:
 They must still lack the buff and be somebody the game can see.
 `/manners debug` lists the requests still standing.
 
+**Resurrection.** For a class with a resurrection. *My group's dead* (Who to
+buff, under *My party and raid*, on by default): out of a fight, somebody of
+your party or raid who is dead and within reach comes up first of everything
+with your resurrection, and a press targets them, casts and hands your target
+back. Never somebody who has released their spirit, never a hunter feigning
+death, and not while another resurrection is already on its way to them, so
+two healers are not sent to the same body. After a press they rest until they
+live or the cast fails. Nothing is said aloud. *Dead passers-by too* (off)
+adds a dead player outside your group whom you target, focus or hover. Once
+they stand, *Group members just revived first* brings their buffs up.
+`/manners debug` says why a resurrection is held back.
+
+**Cures.** *Cure my party and raid* and *Cure passers-by*, under *Cures* on
+*Who to buff*, both off until ticked and shown to a class that has a cure.
+With one ticked, somebody carrying a poison, a disease, a curse or a harmful
+spell your class can remove is offered the cure, out of combat: before any
+buff for that person, after a favour you owe. *Only with more than this many
+seconds left* (10) leaves alone what is about to run out by itself, and a
+debuff with no timer is never offered. A handful that punish whoever removes
+them (Unstable Affliction, Vampiric Touch) are never offered either. Nothing
+is said with a cure and nothing goes in the ledger. `/manners debug` has a
+*cures:* line.
+
+**Courtesies on request.** Four switches under *People who ask me in chat* on
+*Who to buff*, each off until ticked and shown to the class that has it. They
+are read from chat by the same rules as a request for a buff.
+
+- *Water and food, when they ask* (mages): "water pls" or "mage food" puts
+  them on the prompt. With none in your bags that suits their level, the first
+  press conjures it; the next targets them and opens a trade with it already
+  in the window. Accepting the trade stays yours.
+- *Portals, when my group asks* (mages): a member of your party or raid who
+  names a city ("port to Orgrimmar pls") is offered that portal, once you
+  have learned it and carry its rune where the game asks for one. The press
+  targets nobody.
+- *Healthstones, when they ask* (warlocks): as water, with a trade. On Mists
+  and retail it is a Soulwell for a member of your group.
+- *Summons, when my group asks* (warlocks): "summon pls" from a member of
+  your party or raid; the press targets them and casts Ritual of Summoning,
+  and leaves them targeted for the portal's clicks.
+
+Never in a fight.
+
+**Asking for a buff.** *Ask people for a buff I'm missing*, under *Asking for
+buffs* on *Who to buff* (on *Start here* for a class with nothing to give),
+off until ticked. When somebody in your group, or right beside you, could cast
+a buff you would want and do not have, they come up last of everything on the
+prompt, and a press whispers them one short polite line. It casts nothing and
+leaves your target alone. One ask a person for each buff in ten minutes, and
+one ask in all in two; never in a fight, a battleground or an arena; nobody
+on your never-offer or `/ignore` list, nobody dead, fighting, away or busy.
+*Ask in* chooses a whisper (the default) or `/say`, *What the ask says* one of
+three lines (with In character as your set, a line in character is said),
+and *Ask in cities and inns too* is off. An ask is not carried by the Manners
+macro on an action bar. `/manners debug` has an *asking for buffs:* line.
+
+**Sharing a group with other Manners users.** *Share the group with other
+Manners users*, under *My party and raid*, on by default. When somebody else
+of your class in your party or raid uses Manners too, the group is split
+between you (a raid by its groups, a party by its members), and each of you is
+offered only your own part, so two priests are not sent to the same member. A
+favour owed, a request, your target and your focus are never held back, and
+anybody still missing the buff after 45 seconds is offered anyway. A group
+cast is left to one of you. `/manners debug` says who you share with and which
+part is yours.
+
+**Battlegrounds and arenas.** They have a section of their own on *When to
+offer*, *In battlegrounds and arenas*. After a death your own buffs come ahead
+of your team's, what you fight with before food, flasks and the rest. While
+the gates are still shut your team is offered freely, group casts first, and
+*Save mana* holds nothing back; once they open, only while you are out of
+combat, and only somebody within reach. The four switches:
+
+- *Buff my team there* (on): off, nobody else is offered anything there but
+  somebody you target or focus. It decides there whatever *Offer nothing in
+  dungeons, raids and battlegrounds* says; ticking that one unticks it.
+- *Say my line there* (off): nothing is said with a buff there unless ticked.
+- *Thank people there* (on): the `/thank` and the whispered thank-you go to
+  somebody of your own team, never in a fight.
+- *Consumables there too* (off): what *Consumables only in dungeons and
+  raids* holds back comes up there as it does in a dungeon.
+
 **Snooze, and hiding while mounted.** `/manners snooze` hides the prompt for
 15 minutes; `snooze 5`, `snooze 1h` (up to four hours) or `snooze off` for
 your own. The minimap menu and the *Snooze* button at the top of the options
@@ -516,7 +610,7 @@ and the only thing it ever says in chat is a new title.
 
 ## The prompt's look
 
-Fifteen looks, each a card under Look > *Panel style* that you click to switch:
+Nineteen looks, each a card under Look > *Panel style* that you click to switch:
 
 - **Glass** (the default): the game's own action bar. A dark pane of glass
   in beaded gilt rails, the spell icon set in a metal bezel that brightens
@@ -525,14 +619,23 @@ Fifteen looks, each a card under Look > *Panel style* that you click to switch:
   ends* (off, under *Look*) sits a gilt gryphon at each end, its eyes burning
   in the reason's colour while you owe somebody.
 - **Framed**: a flat dark panel in a thin rim, like the game's tooltips.
-- **Minimal**: the words alone, no panel.
+- **Minimal**: the words alone, no panel, over one hairline of light after
+  the game's cast bar: it fills behind a spark when somebody buffs you,
+  flashes with a ready check's tick on the icon when your buff lands, and
+  runs back out red with a cross when it is refused.
 - **Luxe**: a slim dark card with a spine in the reason colour.
 - **Toast**: a warm banner and a gilded medallion, the gold hammered and worn,
   the icon's ring a twist of rope.
 - **Arcane**: smoked glass with a rim lit by the reason.
-- **Ribbon**: a crimson ribbon and a gold medallion.
-- **Letter**: parchment and a red wax seal.
-- **Leather**: a stitched leather tag with a brass ring.
+- **Ribbon**: a tournament pennant of crimson damask on a twisted gold cord,
+  its forked end fluttering, and a medallion with a victor's laurel. A buff
+  that lands pins the prize on, with rays behind it.
+- **Letter**: a torn and folded sheet of parchment under a red wax seal. A
+  quill writes each new name in and signs a landed buff with a flourish; a
+  refusal cracks the seal, and the wax glints at rest.
+- **Leather**: tooled, stitched hide with brass studs and a buckle, two
+  feathers stirring on a thong, and a paw-print brand that smoulders while
+  you owe somebody and is struck again, smoking, when your buff lands.
 - **Forge**: forged iron and a riveted band, the reason glowing in a slot beside
   the icon like a bar of heated steel. At rest a molten seam flickers along
   its foot and embers rise off it.
@@ -570,6 +673,21 @@ Fifteen looks, each a card under Look > *Panel style* that you click to switch:
   icicles off. Mist drifts in the ring, the ice glints, snow falls and an
   icicle drips at rest; *Animations* on *Calm* stills it. The icon is always
   round on this look.
+- **Stormcaller**: a shaman's. A carved totem holds your spell beside a slab
+  of weathered stone, and the reason wakes the sigil of air, fire, water or
+  earth on a standing stone. Lava or water runs along the slab, and chain
+  lightning arcs along it when your buff lands.
+- **Warchief**: the Horde's, in Orgrimmar's black iron and red hide. A spiked
+  iron slab between two ivory tusks, the Horde's crest glowing like iron out
+  of the forge while you owe somebody, a war banner stirring, and a drum beat
+  and sparks when your buff lands.
+- **Gearworks**: an engineer's, in Gnomeregan's brass and Kezan's copper.
+  Your spell sits under the glass of a pressure gauge whose needle and dial
+  tell the reason, three cogs turn in mesh, steam is let off when a buff
+  lands and a spark jumps when one is refused.
+- **Ebon**: a death knight's runeblade of dark saronite. Your spell in an
+  eight-sided socket under a skull with soulfire behind it, and three runes
+  along the blade that kindle one after another when somebody buffs you.
 
 Pick your own colours and fonts too; LibSharedMedia is supported.
 
@@ -779,6 +897,20 @@ and *Show the welcome again* at the bottom.
   out. The second line says whose pet it is. Nothing is said to a
   pet, a group cast neither counts nor aims at one, and the favour ledger
   lists none.
+- *My group's dead* (on) and *Dead passers-by too* (off), under *My party and
+  raid*, for a class with a resurrection: see *Resurrection* above.
+- *Share the group with other Manners users* (on), under *My party and raid*:
+  see *Sharing a group with other Manners users* above.
+- Under *People who ask me in chat*, for a mage or a warlock: *Water and
+  food, when they ask*, *Portals, when my group asks*, *Healthstones, when
+  they ask* and *Summons, when my group asks*, all off (*Courtesies on
+  request* above).
+- *Asking for buffs*: *Ask people for a buff I'm missing* (off), then *Ask
+  in*, *What the ask says* and *Ask in cities and inns too* (*Asking for a
+  buff* above).
+- *Cures*, for a class with one: *Cure my party and raid* and *Cure
+  passers-by* (both off) and *Only with more than this many seconds left*
+  (*Cures* above).
 - *Passers-by within*: *Anywhere I can cast* (about thirty yards), *Nearby*
   (about ten, the default) or *Right beside me* (about five). Only passers-by
   are measured: somebody who buffed you was close enough a moment ago, and
@@ -917,12 +1049,16 @@ list. They used to be at the bottom of *Who to buff*.
     target or focus, is still offered it. Greyed out while *Offer nothing in
     cities and inns* is on, which holds everything.
   - *Offer nothing in dungeons, raids and battlegrounds*: off by default. The
-    same rule inside a dungeon, a raid, a battleground or an arena: nothing
-    for anybody but somebody you target or focus. Your own buffs are not held
-    back.
+    same rule inside a dungeon or a raid: nothing for anybody but somebody
+    you target or focus. Your own buffs are not held back. A battleground or
+    an arena goes by its own switch, *Buff my team there*, which ticking this
+    one unticks; a profile that had this one ticked keeps its silence there.
   - *Hold back my target and focus too*: off by default. With either rule
     above on, it leaves the person you target or focus alone in a city, an inn
     or an instance as well.
+- *In battlegrounds and arenas*: *Buff my team there* (on), *Say my line
+  there* (off), *Thank people there* (on) and *Consumables there too* (off);
+  see *Battlegrounds and arenas* above.
 - *Other people already buffed* (*Already buffed* for a class with nothing for
   others):
   *If they already have it*: *Skip them*, *Offer a top-up when it runs low*
@@ -1178,8 +1314,9 @@ written, a damaged line is refused before anything changes, and `/manners
 import undo` puts your own settings back.
 
 A pasted line never carries whether Manners is on, the lock, where the prompt
-sits, the click log or the minimap button. It never switches speaking on, and
-while you have it on, what you say and where stays yours.
+sits, the click log or the minimap button. It never switches speaking on, nor
+*Ask people for a buff I'm missing*, since both talk to other players, and
+while you have speaking on, what you say and where stays yours.
 
 ## Commands
 

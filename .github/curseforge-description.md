@@ -24,7 +24,7 @@ Turn on *List the next few below* (Look) and every name under the prompt is a bu
 
 ![The options window on Who to buff, with a paladin's buff order and the Move the prompt button in the header](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options.png)
 
-![Fifteen looks for the prompt: Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Glass, Framed and Minimal, the same favour drawn in each](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
+![Fifteen of the nineteen looks for the prompt: Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Glass, Framed and Minimal, the same favour drawn in each](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
 ![The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
 
@@ -39,10 +39,16 @@ Turn on *List the next few below* (Look) and every name under the prompt is a bu
 3. **Somebody who buffed you.** Strangers too.
 4. **Somebody who asked in chat**, if you switch that on. "int pls", "fort?" or "can I get motw" in /say, /yell, group chat or a whisper counts for a minute (short messages that plainly ask, nothing said in a fight unless whispered). Nothing is ever said back.
 5. **You**, when your own buffs are missing.
-6. **Your party or raid**, anyone missing your buff.
+6. **Your party or raid**, anyone missing your buff, and their pets if you tick *My group's pets too*.
 7. **Passers-by** missing your buff: nameplates, your target, focus and mouseover.
 
-It skips the dead, the out of range, anyone you just tried, anyone the buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged yourself, anyone flagged for PvP, since buffing them would flag you too. Friends and guildmates go ahead of other passers-by. A *Never offer* list keeps people off the prompt, unless they buff you, because returning a favour is the point. How near is near: passers-by can be limited to about ten yards (the default), right beside you, or cities and inns.
+Out of a fight, a dead member of your group is offered your **resurrection** ahead of all of them (never a released spirit, never somebody already being resurrected), and with *Cure my party and raid* or *Cure passers-by* ticked, somebody carrying a poison, disease, curse or harmful spell your class can remove is offered the **cure** before a buff. Two Manners users of the same class in one group **share it**: each is offered only their own part, so nobody is buffed twice.
+
+**Courtesies on request**, each off until ticked: a mage hands water, food and portals, and a warlock healthstones and summons, to whoever asks in chat ("water pls", "port to Orgrimmar?", "summon pls"). Water and healthstones are conjured, then put in a trade window for you to accept.
+
+**Ask for a buff**, off until ticked: when somebody in your group or right beside you could give you a buff you are missing, a press whispers them one polite line. Never in a fight, and never the same person twice in ten minutes.
+
+For a buff it skips the dead, the out of range, anyone you just tried, anyone the buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged yourself, anyone flagged for PvP, since buffing them would flag you too. Friends and guildmates go ahead of other passers-by. A *Never offer* list keeps people off the prompt, unless they buff you, because returning a favour is the point. How near is near: passers-by can be limited to about ten yards (the default), right beside you, or cities and inns.
 
 Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shadow Protection once you switch it on; druid Mark of the Wild, Thorns; paladin Wisdom, Might, Kings (and Salvation, Light and Sanctuary where the game still has them); warlock Unending Breath, to return a favour or when somebody asks for it; warrior Battle Shout. Everybody gets the first buff they are missing before anybody gets a second. Any one can be switched off, Thorns held to tanks or to you alone, and Unending Breath left out.
 
@@ -52,7 +58,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shad
 
 - **Your own buff and your class's own:** armors, auras, aspects, shields, Inner Fire, Shadowform, Moonkin Form, Demonic Sacrifice, Grimoire of Sacrifice, the Season of Discovery runes, Righteous Fury when you tank, and more.
 - **Weapons, one hand at a time:** poisons, stones, oils and fishing lures from your bags (and a warlock's Firestone or Spellstone on WoW Forever), a shaman's imbues (optionally ahead of the shield), a Lightsmith paladin's rites on retail. One press puts it on.
-- **Switched on when you want them:** Well Fed, flasks, elixirs and scrolls, a companion pet (on WoW Forever brought out of your journal with no press), Well-Rested from a Cozy Sleeping Bag, a warlock's Detect Invisibility, Unending Breath while you swim, and Battle Shout for a warrior on his own. A *Scrolls* switch turns every scroll off at once.
+- **Switched on when you want them:** Well Fed, flasks, elixirs and scrolls, a companion pet (on WoW Forever, Mists and retail brought out of your journal with no press), Well-Rested from a Cozy Sleeping Bag, a warlock's Detect Invisibility, Unending Breath while you swim, and Battle Shout for a warrior on his own. A *Scrolls* switch turns every scroll off at once.
 - **Consumables only in dungeons and raids**, if you like.
 - **Automatic, or your choice** where a class has several of one kind; *Never remind me about* leaves any out. Only when none is up, never in a fight, and not in cities and inns unless you tick *Also in cities and inns*.
 - Hunters and rogues, who give nothing to others, get a prompt for their own buffs, and so does a shaman without Earth Shield.
@@ -64,12 +70,13 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shad
 - **Raid groups I buff.** Untick the groups you were not assigned; people who buffed you or asked are still offered.
 - **Save mana.** Below the level you set, only your own buffs and people who buffed you or asked are offered, or only your own buffs, or nothing at all: your choice.
 - **Quieter raids.** No "buffed you" chat line inside a raid; the favour is still remembered.
+- **Battlegrounds and arenas.** A section of their own on When to offer: after a death your own buffs come first, your team is offered freely before the gates open and only out of combat after, tracking is not reminded of, and nothing is said there unless you tick it.
 - **Battle Shout reach.** A warrior's shout is offered only to the people it reaches: your own party, or your whole raid on WoW Forever.
 
 ### Quiet when you want it
 
 - **Offer nothing in cities and inns:** nothing offered to anybody while you are resting (passers-by, your group, a favour you owe); a target or focus still is, unless you tick *Hold back my target and focus too*. Or only in cities, or only in inns.
-- **Offer nothing in dungeons, raids and battlegrounds:** the same inside any instance; a target or focus still is, and your own buffs too.
+- **Offer nothing in dungeons, raids and battlegrounds:** the same inside a dungeon or a raid; a target or focus still is, and your own buffs too. A battleground or an arena goes by *Buff my team there*.
 - **Might off the casters:** for paladins, a switch on Who to buff; mages, warlocks and priests are never offered Blessing of Might.
 - **Leave out these guilds:** a box on Who to skip, one guild a line; nobody in them is offered anything, unless they buff you or ask. *Show their guild under the name* on Look writes the guild on the prompt's second line.
 - **Consumables on a button of their own:** food, flasks, elixirs, scrolls and weapon oils on a small button you put where you like, so the prompt stays for buffs.
@@ -95,7 +102,7 @@ Who buffed you and with what, whether you returned it (and if not, why), and who
 
 Optional, and off until you turn it on: a line when you buff somebody, from four sets you can edit (Azeroth, Polite, Cheeky, or just their name). Say it, yell it, tell your group, or *whisper them*. It goes out through the button's macro, so it counts as you talking, and only with a buff that can land: when Manners cannot tell, the buff goes out without it.
 
-Or pick **In character (fits your race and class)**: over two thousand lines, chosen when you click to fit your people, your class and the moment. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*), it does not repeat itself, and it speaks all nine languages.
+Or pick **In character (fits your race and class)**: over two thousand lines, chosen when you click to fit your people, your class and the moment. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*), it does not repeat itself, and it speaks all nine languages. *My own lines, mixed in* adds lines of your own: about one press in three says one of them.
 
 > *"Most kind, Mort. You've lifted me from 'deceased' to 'mildly deceased'."* -- a Forsaken, returning a favour
 
@@ -103,7 +110,7 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 
 ### Looks
 
-- **Fifteen looks**, picked from cards in the options window: Glass (the default, after the game's own action bar: dark glass in gilt rails, the ready border running round your icon while you owe somebody, and a gryphon at each end if you switch them on), Framed (a thin rim, like the game's tooltips), Minimal (the words alone), Luxe (a slim dark card), Toast (a warm banner and a gilded medallion), Arcane (smoked glass with a rim lit by the reason), Ribbon (a crimson ribbon and a gold medallion), Letter (a parchment scroll with a red wax seal), Leather (a stitched leather tag with a brass ring), Forge (forged iron and a riveted band, the reason glowing like heated steel), Archmage (a violet crystal, your spell in a hexagon of six arcane charges that light, travel and discharge in lightning), Lightbringer (a paladin's silver and blue enamel, your spell in a golden sun, with a pillar of light and wings when your buff lands), Fel (a warlock's black felsteel cracked with fel fire, your spell in a summoning circle of runes under a demon's horns, a soul shard at the far end, and a gout of fel flame and a shadow bolt when your buff lands), Wild (a druid's living bough, your spell in a wreath under a stag's antlers) and Frost (a frost mage's glacial ice, your spell in an ice crystal, an Ice Block that shatters when your buff lands). On Glass and Minimal, rules of light draw out as the prompt comes up and the panel's edge lights when your buff lands. Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Nineteen looks**, picked from cards in the options window: Glass (the default, after the game's own action bar: dark glass in gilt rails, the ready border running round your icon while you owe somebody, and a gryphon at each end if you switch them on), Framed (a thin rim, like the game's tooltips), Minimal (the words alone over one hairline of light, after the game's cast bar), Luxe (a slim dark card), Toast (a warm banner and a gilded medallion), Arcane (smoked glass with a rim lit by the reason), Ribbon (a tournament pennant of crimson damask that flutters, a laurelled medallion pinned on when your buff lands), Letter (torn, folded parchment under a red wax seal, each name written in by a quill), Leather (tooled hide with brass studs, a buckle and two feathers, a paw-print brand that smoulders while you owe somebody), Forge (forged iron and a riveted band, the reason glowing like heated steel), Archmage (a violet crystal, your spell in a hexagon of six arcane charges that light, travel and discharge in lightning), Lightbringer (a paladin's silver and blue enamel, your spell in a golden sun, with a pillar of light and wings when your buff lands), Fel (a warlock's black felsteel cracked with fel fire, your spell in a summoning circle of runes under a demon's horns, a soul shard at the far end, and a gout of fel flame and a shadow bolt when your buff lands), Wild (a druid's living bough, your spell in a wreath under a stag's antlers), Frost (a frost mage's glacial ice, your spell in an ice crystal, an Ice Block that shatters when your buff lands), Stormcaller (a shaman's carved totem and standing stone, the sigil of air, fire, water or earth for the reason, chain lightning when your buff lands), Warchief (the Horde's black iron and tusks, its crest glowing like iron out of the forge, a war banner and a drum beat), Gearworks (an engineer's riveted brass, your spell under a pressure gauge, three cogs turning and steam let off when a buff lands) and Ebon (a death knight's runeblade of saronite, your spell in a socket under a skull, three runes that kindle). On Glass and Minimal, rules of light draw out as the prompt comes up and the panel's edge lights when your buff lands. Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **A flat prompt, if you like:** on Glass, Framed and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go. The game's Edit Mode unlocks it too, and locks it again when it closes.
