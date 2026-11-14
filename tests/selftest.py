@@ -56,7 +56,8 @@ no piece catches has the whole suite's verdict.
   --plan         run the baseline and the trace, print which scenarios would
                  judge each runscenarios.py mutation -- and, for one with none,
                  which pieces of the suite go first -- and stop
-  --jobs N       how many runs at once (default: cores but two)
+  --jobs N       how many runs at once (default: cores but two, fewer when
+                 memory is short, MANNERS_JOBS at most: tools/jobs.py)
   --fresh-trace  trace the scenarios again even if a trace of these same tests
                  is kept in %TEMP%/manners-selftest-trace (it is kept across
                  changes to the addon: see TRACE_CACHE)
@@ -97,15 +98,19 @@ for _stream in (sys.stdout, sys.stderr):
 ANCHORS_ONLY = "--anchors" in sys.argv[1:]
 WHOLE = "--whole" in sys.argv[1:]
 PLAN = "--plan" in sys.argv[1:]
-# Two cores left free by default, so the machine stays usable during a run.
-JOBS = max(1, (os.cpu_count() or 4) - 2)
-if "--jobs" in sys.argv[1:]:
-    JOBS = max(1, int(sys.argv[sys.argv.index("--jobs") + 1]))
-
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(DIR, "tests")
 sys.path.insert(0, os.path.join(DIR, "tools"))
 import lua51_limits
+import jobs as _jobs
+
+# Two cores left free by default, so the machine stays usable during a run,
+# fewer when memory is short, and never more than MANNERS_JOBS (tools/jobs.py).
+# The kept trace is keyed on this number (one shard per worker), so a run with
+# another count traces afresh.
+JOBS = _jobs.default_jobs()
+if "--jobs" in sys.argv[1:]:
+    JOBS = max(1, int(sys.argv[sys.argv.index("--jobs") + 1]))
 
 # Every suite a mutation below is judged by. validate.py judges some of them,
 # so it has to be green before they run and green again after the restore --

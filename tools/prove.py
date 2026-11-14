@@ -74,12 +74,7 @@ for _stream in (sys.stdout, sys.stderr):
         _stream.reconfigure(errors="backslashreplace")
 
 
-def default_jobs():
-    try:
-        import jobs
-        return jobs.default_jobs()
-    except ImportError:
-        return max(1, (os.cpu_count() or 4) - 2)
+from jobs import default_jobs
 
 
 def topic_of(m):

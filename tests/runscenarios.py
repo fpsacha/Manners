@@ -183,7 +183,20 @@ def compare_with_baseline(lines):
 # shares the process. So scenarios.lua in BASELINE_SHARDS shards and every
 # other file on its own, which also keeps one throw from hiding a whole file.
 BASELINE_SHARDS = 8
-JOBS = int(os.environ.get("MANNERS_SCENARIO_JOBS") or 0) or max(1, (os.cpu_count() or 4) - 2)
+# The default is tools/jobs.py's: the cores less two, no more than the free
+# memory allows, no more than MANNERS_JOBS.
+def _default_jobs():
+    sys.path.insert(0, os.path.join(ADDON_DIR, "tools"))
+    try:
+        import jobs
+        return jobs.default_jobs()
+    except ImportError:
+        return max(1, (os.cpu_count() or 4) - 2)
+    finally:
+        sys.path.pop(0)
+
+
+JOBS = int(os.environ.get("MANNERS_SCENARIO_JOBS") or 0) or _default_jobs()
 if (JOBS > 1 or baseline) and names is None and files is None and shard is None and trace_path is None:
     import subprocess
     from concurrent.futures import ThreadPoolExecutor
