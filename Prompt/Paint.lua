@@ -107,6 +107,8 @@ function Prompt:ReasonText(entry)
 	if entry.pet and entry.owner then
 		return L["%s's pet"]:format(ns.ShortName(entry.owner) or entry.owner)
 	end
+	-- Somebody dead, offered your resurrection (Resurrect.lua), says that.
+	if entry.res then return ns.Resurrect.Reason(entry) end
 	local template = p[REASON_KEY[entry.reason] or "reasonNearby"] or ""
 	-- The sub-line must be true without hovering: a top-up gets its own
 	-- wording, and so does an unreadable aura except for owed or asked, whose

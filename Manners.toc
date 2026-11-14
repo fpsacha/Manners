@@ -47,6 +47,7 @@ GroupBuffs.lua
 Requests.lua
 Favours.lua
 Clicks.lua
+Resurrect.lua
 Companion.lua
 Commands.lua
 Phrases.lua

@@ -523,6 +523,8 @@ local function OnPostClick(self, mouseButton, down)
 		end
 	end
 	if not (S.current and S.current.name) then return end
+	-- A resurrection is no buff: its press is filed by Resurrect.lua, and nothing below is true of it.
+	if S.current.res then return ns.Resurrect.Pressed(S.current) end
 
 	-- The line went out with this press, so "In character" counts it as said
 	-- lately now rather than when it was rolled: a roll the press left out

@@ -215,6 +215,9 @@ ns.WindowLayout = {
 					"who.group",
 					-- The pets of the people in it, under the switch it widens.
 					{ "who.pets", indent = true },
+					-- Your resurrection for the group's dead, and for a dead passer-by under it.
+					"who.res",
+					{ "who.resStrangers", indent = true },
 					"who.strangers",
 					-- While passers-by are on and the game's nameplates are off.
 					{ "who.strangersPlatesNote", indent = true },
@@ -711,6 +714,8 @@ ns.WindowLayout = {
 		["click.roll"] = "click.enabled",
 		-- My group's pets too, shown only while My party and raid is on.
 		["who.pets"] = "who.group",
+		-- Dead passers-by too, shown only while My group's dead is on.
+		["who.resStrangers"] = "who.res",
 	},
 
 	-- In the model and drawn nowhere.

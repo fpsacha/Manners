@@ -3040,6 +3040,8 @@ function ns.BuildQueue(watch)
 	local walked, walkError = pcall(IterateUnits, visit, db.sources.pets == true and db.sources.group == true)
 	neverSeen.scan = nil
 	if not walked then error(walkError, 0) end
+	-- The walk ran, so every dead unit it met has been handed over (Resurrect.lua).
+	if ns.deadSeen then ns.deadSeen.walked = true end
 
 	-- The favours the walk read as covered, let go now that it is over.
 	if f.repayCovered ~= true and next(owed) ~= nil then LetGoCovered(db, candidates) end
