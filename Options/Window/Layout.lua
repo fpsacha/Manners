@@ -220,6 +220,8 @@ ns.WindowLayout = {
 					-- Your resurrection for the group's dead, and for a dead passer-by under it.
 					"who.res",
 					{ "who.resStrangers", indent = true },
+					-- And the group split with other Manners users of your class.
+					{ "who.share", indent = true },
 					"who.strangers",
 					-- While passers-by are on and the game's nameplates are off.
 					{ "who.strangersPlatesNote", indent = true },
@@ -735,6 +737,8 @@ ns.WindowLayout = {
 		["who.askChannel"] = "who.ask",
 		["who.askLine"] = "who.ask",
 		["who.askInTowns"] = "who.ask",
+		-- Share the group with other Manners users, the same.
+		["who.share"] = "who.group",
 	},
 
 	-- In the model and drawn nowhere.

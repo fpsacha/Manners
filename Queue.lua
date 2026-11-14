@@ -1093,6 +1093,8 @@ PRIORITY.sweep = 0.5
 -- you will not; ahead of your group and passers-by, since what you carry is
 -- what you fight with.
 PRIORITY.self = 1.75
+-- For Share.lua, which keeps a group member for the fold as the walk does.
+ns.PRIORITY = PRIORITY
 
 -- The order inside one of those tiers, after the range (the sort at the end of
 -- BuildQueue, and the prompt's pick: Prompt/Hold.lua, PickTop). First by what
@@ -2929,6 +2931,13 @@ function ns.BuildQueue(watch)
 			opts.isTank, opts.class = nil, nil
 		end
 		local buff, has, remaining, seconds, lead, leadKind = ns.PickBuffFor(asked or candidates, opts, ReadAura)
+		-- In another Manners user's share of the group for that buff (Share.lua):
+		-- theirs to offer, unless you picked this one out. What is offered is
+		-- another of yours that is in your own share, and nothing with none.
+		if buff and reason == "group" and not pointed and ns.ShareHolds
+			and ns.ShareHolds(opts, buff, owner, has, remaining, queue) then
+			buff, has, remaining, seconds, lead, leadKind = ns.ShareOther(candidates, opts, ReadAura, owner)
+		end
 
 		if not buff then
 			-- A favour's giver read as covered (PickBuffFor's third value, which

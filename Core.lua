@@ -313,6 +313,10 @@ local defaults = {
 			-- group, and only ever adds an offer. For a dead passer-by too: off.
 			res = true,
 			resStrangers = false,
+			-- The group split with the other Manners users of your class in it
+			-- (Share.lua), so two of you are not sent to the same member. On: it
+			-- only takes double offers away, and does nothing with no other user.
+			share = true,
 			strangers = true, -- nearby non-group players
 			-- A poison, a disease, a curse or a harmful spell taken off somebody,
 			-- out of combat (Cures.lua): your party and raid, and passers-by.
@@ -5356,6 +5360,10 @@ function addon:TickBody()
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
 	if pet and pet:Wanted() then ns.Guard("companion pet", pet.Tick, pet, now) end
+	-- Other Manners users in the group (Share.lua): the roster read again or a
+	-- hello said, when one is due. With none due a scan pays nothing for it.
+	local share = ns.Share
+	if share and share.due and share.due <= now then ns.Guard("share", share.Tick, share, now) end
 end
 
 function addon:ProfileDeleted(event, _, name)

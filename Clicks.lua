@@ -531,7 +531,9 @@ do
 
 	-- The author's side: whoever's Manners says it buffed them, in gold.
 	-- Only on the author's character, only on Forever, only this word.
-	function ns.HeardAddonMessage(prefix, text, _, sender)
+	function ns.HeardAddonMessage(prefix, text, channel, sender)
+		-- Another Manners user's hello to the group (Share.lua), which is its to read.
+		if ns.plain(prefix) == PREFIX and ns.ShareHeard and ns.ShareHeard(text, channel, sender) then return end
 		if ns.plain(prefix) ~= PREFIX or ns.plain(text) ~= WORD then return end
 		if (ns.Flavour and ns.Flavour.flavour) ~= "camelot" or not ns.IsPlayerName(AUTHOR) then return end
 		local who = ns.plain(sender)

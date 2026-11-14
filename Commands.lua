@@ -1973,6 +1973,8 @@ function addon:HandleSlash(rawInput)
 		for _, line in ipairs(ns.PvPLines()) do self:Print("  " .. line) end
 		-- What this character cures, and who that scan left alone and why (Cures.lua).
 		for _, line in ipairs(ns.CureLines()) do self:Print("  " .. line) end
+		-- And who that scan left to another Manners user of your class (Share.lua).
+		for _, line in ipairs(ns.ShareLines()) do self:Print("  " .. line) end
 		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
 		-- A word that is nearly a command gets that command named. Anything
