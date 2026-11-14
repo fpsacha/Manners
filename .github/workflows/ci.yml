@@ -129,11 +129,16 @@ jobs:
           python tools/make-screenshots.py --strict
           python - <<'EOF'
           from PIL import Image
-          for name in ("prompt", "moment", "reasons", "looks", "ledger", "languages", "palette",
-                       "list", "options", "yourself", "actionbar", "tooltip"):
+          for name in ("prompt", "moment", "reasons", "more", "list", "tooltip", "actionbar",
+                       "yourself", "options", "options-wide", "looks", "ledger", "milestones",
+                       "languages", "palette"):
               im = Image.open(".github/media/manners-%s.png" % name)
               assert im.width == 1280 and im.height >= 300, (name, im.size)
               print("ok", name, im.size)
+          for name in ("stormcaller", "lightbringer"):
+              im = Image.open(".github/media/manners-look-%s.gif" % name)
+              assert im.width == 800 and im.n_frames >= 10, (name, im.size, im.n_frames)
+              print("ok", name, im.size, im.n_frames)
           EOF
           git checkout -- .github/media
 
