@@ -9,8 +9,7 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "diag-out")
-LOOKS = sys.argv[1:] or ["lightbringer", "toast", "letter", "ribbon", "leather", "forge", "archmage", "fel",
-                         "wild", "frost", "luxe", "arcane", "glass"]
+LOOKS = sys.argv[1:] or ["fel", "wild", "frost", "glass", "letter", "panel", "window", "ribbon"]
 
 print("python", sys.version.split()[0], "numpy", np.__version__, "Pillow", Image.__version__)
 for look in LOOKS:
@@ -21,7 +20,8 @@ for look in LOOKS:
     out = os.path.join(OUT, look)
     r = subprocess.run([sys.executable, tool, "--out", out], capture_output=True, text=True)
     if r.returncode != 0:
-        print(look, "-- generator failed:", (r.stderr or r.stdout)[-300:])
+        print(look, "-- generator failed:
+" + (r.stderr or r.stdout)[-1500:])
         continue
     folder = look.capitalize()
     for path in sorted(glob.glob(os.path.join(out, "*.tga"))):
