@@ -17,8 +17,10 @@
 -- hanging under the tag. A paw print in a ring is burnt into the field left
 -- of the eyelet (and left of the patches when they are up; it gives way,
 -- whole, to words that come near it). The name is a bold serif in pale cream with a dark-brown drop
--- shadow; the reason is a lighter tan under it. The leather is opaque: the
--- world never shows through it.
+-- shadow, drawn a fifth larger than the size the player set (the serif's
+-- letters are small for their size: 16 for the default 13), as far as the tag's
+-- height holds it; the reason is a lighter tan under it, in the game's
+-- standard face. The leather is opaque: the world never shows through it.
 --
 -- The reason's colour is carried where leather can carry it:
 --   * the icon's marker (the default): the thread round the icon;
@@ -205,11 +207,29 @@ local LATIN = { enUS = true, enGB = true, deDE = true, esES = true, esMX = true,
 
 local function Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 local function SubSize(fontSize) return math.max(7, fontSize - 3) end
+-- The margin the thread and the leather's edge take from the top and the
+-- bottom, together, and the gap between the two lines.
+local MARGIN, GAP = 16, 2
+-- The name's size in the display serif, whose letters are small for their size
+-- and thin: SERIF times the size the player set (a point over it, as it was,
+-- did not read in the game), as far as a tag `height` tall holds it beside the
+-- margin (and the gap and a reason `sub` tall, with two lines), and never less
+-- than that point over. A name in any other face is the size the player set.
+-- With it, the gap between the lines.
+local SERIF = 1.2
+function Leather.NameSize(fontSize, serif, height, sub)
+	if not serif then return fontSize, GAP end
+	local full = math.floor(fontSize * SERIF + 0.5)
+	local room = height - MARGIN - (sub and GAP + sub or 0)
+	return Clamp(math.floor(room), math.min(full, fontSize + 1), full), GAP
+end
 
--- The name, the gap and the reason as one block, and the margin the thread and
--- the leather's edge take from the top and the bottom.
+-- The name, the gap and the reason as one block, and the margin. The name is
+-- counted a point over the player's size, as the serif was drawn before it
+-- grew: the reason line is kept at every height it had, and the serif's name
+-- takes what room there is over that (NameSize).
 function Leather.TwoLineHeight(fontSize)
-	return math.ceil((fontSize + 1) + 2 + SubSize(fontSize) + 16)
+	return math.ceil((fontSize + 1) + GAP + SubSize(fontSize) + MARGIN)
 end
 
 -- The ring is the icon's setting; the stripe is the thread and the enamel in
@@ -996,10 +1016,10 @@ function Leather:Apply(p, above)
 	local art, icon, fit = kit.art, kit.icon, kit.fit
 	local W, H, fs = p.width, p.height, p.fontSize
 	local face = Face(p)
-	local nameSize = face and fs + 1 or fs
 	local sub = SubSize(fs)
 	local showIcon = p.showIcon and true or false
 	local twoLine = p.showSub and H >= Leather.TwoLineHeight(fs)
+	local nameSize, gap = Leather.NameSize(fs, face, H, twoLine and sub)
 	self.active = true
 	self.p, self.W, self.H, self.sub, self.above = p, W, H, sub, above
 	self.nameSize, self.twoLine = nameSize, twoLine and true or false
@@ -1022,10 +1042,10 @@ function Leather:Apply(p, above)
 	self.ringInset = math.ceil(W - self.ringLeft + 3)
 
 	-- The lines, from the top: the name, a gap and the reason, centred.
-	local block = twoLine and (nameSize + 2 + sub) or nameSize
+	local block = twoLine and (nameSize + gap + sub) or nameSize
 	local m = (H - block) / 2
 	local nameC = m + nameSize / 2
-	local subC = m + nameSize + 2 + sub / 2
+	local subC = m + nameSize + gap + sub / 2
 	self.nameY = H / 2 - nameC
 	self.oneY = 0
 	self.subY = H / 2 - subC

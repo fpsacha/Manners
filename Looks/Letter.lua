@@ -13,8 +13,9 @@
 -- folded in three before it was rolled. At its left a round seal of red wax
 -- with the spell pressed into it: the wax has a blobby edge, a raised lip and
 -- an embossed ring, and the icon sits in its recess, cut round. The name is
--- written in dark ink, the reason under it in a lighter brown, and between the
--- two lines runs a thin stroke of ink. Fully opaque and light: the one look
+-- written in dark ink, in a scribe's serif and large; the reason under it in a
+-- lighter brown, in the game's plain hand; and between the two lines runs a
+-- thin stroke of ink. Fully opaque and light: the one look
 -- that is not dark, so its text is dark ink and its panel colour only tints the
 -- paper (never darker than a parchment can be).
 --
@@ -231,9 +232,13 @@ local COMMAND = "CLICK MannersPrompt:LeftButton"
 -- edge, and only while the slip is three quarters of that radius at most.
 local SEAL_BADGE_FROM = 15
 
--- The serif the letter writes in: Blizzard's Morpheus, in every client (its
--- Fonts.xml), with the Cyrillic cut for a Russian client. Korean and Chinese
--- clients keep their own face, as does a font the player picked.
+-- THE FONT. The name is in the serif the game sets its own letters and quest
+-- titles in, Blizzard's Morpheus, in every client (its Fonts.xml), with the
+-- Cyrillic cut for a Russian client. Only the name: the reason line, the list
+-- and the slips keep the game's standard face, because Morpheus's small
+-- letters are thin capitals with a low x-height, and the reason line set in
+-- them could not be read in the game. Korean and Chinese clients keep their
+-- own face for the name too, as does a font the player picked.
 local MORPHEUS = "Fonts\\MORPHEUS.TTF"
 local MORPHEUS_CYR = "Fonts\\MORPHEUS_CYR.TTF"
 local LATIN = { enUS = true, enGB = true, deDE = true, esES = true, esMX = true, frFR = true, itIT = true, ptBR = true }
@@ -273,9 +278,9 @@ local function Known(english)
 	return locale == "enUS" or locale == "enGB" or rawget(L, english) ~= nil
 end
 
--- The face the letter writes in, or nil for the client's own: nil when the
--- player picked a font (the default is what an untouched profile holds), and on
--- the Korean and Chinese clients.
+-- The face the letter writes the name in, or nil for the client's own: nil
+-- when the player picked a font (the default is what an untouched profile
+-- holds), and on the Korean and Chinese clients.
 local function FaceFor(p)
 	local d = ns.defaults and ns.defaults.profile.prompt.font
 	if d ~= nil and p.font ~= d then return nil end
@@ -285,11 +290,16 @@ local function FaceFor(p)
 	return nil
 end
 
--- The sizes of the name and the reason: Morpheus has a small x-height and gets
--- a point more on the name; the reason's italic runs a little larger than the
--- built-in looks' (fontSize - 3).
+-- The sizes of the name and the reason. Morpheus has a low x-height and thin
+-- strokes: the name in it is drawn SERIF times the size the player set (16
+-- for the default 13; a point more, as it was, did not read in the game), and
+-- on a sheet too short for that as much of it as the sheet holds, never less
+-- than that point more (Geometry). A name in any other face is the size the
+-- player set. The reason is in the standard face either way, at the built-in
+-- looks' size for it.
+local SERIF = 1.2
 local function Sizes(fs, serif)
-	if serif then return fs + 1, math.max(7, fs - 2) end
+	if serif then return math.floor(fs * SERIF + 0.5), math.max(7, fs - 3) end
 	return fs, math.max(7, fs - 3)
 end
 
@@ -328,6 +338,15 @@ local function Geometry(W, H, fs, two, serif)
 	g.lift = LIFT * g.paperH
 	g.zone0, g.zone1 = pv + g.b, H - pv - g.b - g.lift
 	g.zoneH = g.zone1 - g.zone0
+	-- The serif's name as large as the lines' room between the torn edges holds
+	-- (the reason and the rule's gap counted where there are two lines), from
+	-- its own size down to the point over the player's it used to be, which is
+	-- the size TwoLineHeight counts: the reason line is kept wherever it was.
+	if serif then
+		local room = two and g.zoneH - subSize - 3 or g.zoneH - 1
+		nameSize = Clamp(math.floor(room), math.min(nameSize, fs + 1), nameSize)
+		g.nameSize = nameSize
+	end
 	-- The seal: as tall as the prompt allows (the wax's farthest edge, top to
 	-- bottom, is the prompt's height less a unit and a quarter at either end),
 	-- the icon in its recess. A seal that would leave the name under 60 units is
@@ -365,12 +384,21 @@ local function Geometry(W, H, fs, two, serif)
 		g.ruleY = Clamp(g.nameMid + hn / 2 + 0.5, g.zone0, g.zone1)
 	end
 	g.chipH = Clamp(subSize + 5, 11, math.max(11, g.zoneH * 0.52))
+	-- A slip on the reason line stands under the name's line, not over its foot
+	-- (the name's letters are taller than they were), its words still inside it.
+	if two then
+		g.chipH = math.max(subSize + 2, math.min(g.chipH, 2 * (g.subMid - g.nameMid - nameSize / 2)))
+	end
 	return g
 end
 
--- The least height two lines need: both lines between the torn edges.
+-- The least height two lines need: both lines between the torn edges. The
+-- name counted a point over the player's size and the reason two under it, as
+-- the look drew them before the serif's name grew: the reason line is kept at
+-- every height it had, and the serif's name takes what room there is over
+-- that (Geometry).
 function Letter.TwoLineHeight(fontSize)
-	local nameSize, subSize = Sizes(fontSize, true)
+	local nameSize, subSize = fontSize + 1, math.max(7, fontSize - 2)
 	local need = nameSize + subSize + 3
 	for h = 28, 200 do
 		local pv = Clamp(math.floor(0.055 * h + 0.5), 2, 6) + 1
@@ -1316,14 +1344,25 @@ function Letter:Styled(p)
 	ink.codes = {}
 	local serif = self.serif
 	local g = self.g
-	-- The face and the sizes.
-	if self.face then fit.path = self.face end
+	-- The face and the sizes. Morpheus for the name alone, at the size this look
+	-- draws it; the reason, the list and the slips stay in the face Prompt set,
+	-- the game's own (Morpheus's small letters are thin capitals: at the reason
+	-- line's size they could not be read in the game).
 	local path = fit.path or STANDARD_TEXT_FONT
 	local function face(fs, size)
 		if not fs:SetFont(path, size, "") or not fs:GetFont() then fs:SetFont(STANDARD_TEXT_FONT, size, "") end
 		fit.base[fs], fit.size[fs] = size, size
 	end
-	face(kit.name, g.nameSize)
+	-- A face the client refuses leaves the line with no font: Prompt's is put
+	-- back. FitLine keeps the name in its own face as it shrinks.
+	local own = self.face
+	if own and not (kit.name:SetFont(own, g.nameSize, "") and kit.name:GetFont()) then own = nil end
+	if own then
+		fit.base[kit.name], fit.size[kit.name] = g.nameSize, g.nameSize
+	else
+		face(kit.name, g.nameSize)
+	end
+	fit.paths[kit.name] = own
 	face(kit.sub, g.subSize)
 	if not kit.count:SetFont(path, g.subSize, "") or not kit.count:GetFont() then
 		kit.count:SetFont(STANDARD_TEXT_FONT, g.subSize, "")
@@ -1410,6 +1449,7 @@ function Letter:Hide()
 	kit.sub:SetJustifyH("LEFT")
 	kit.name:SetShadowOffset(0, 0)
 	kit.sub:SetShadowOffset(0, 0)
+	kit.fit.paths[kit.name] = nil
 	kit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil
 	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)
 	kit.textLayer:SetAlpha(1)

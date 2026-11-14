@@ -328,3 +328,51 @@ mutate("tools/make_look_previews.py", "    cx, cy = (brect[0] + brect[2]) / 2, (
        "    cx, cy = (brect[0] + brect[2]) / 2 + 3, (brect[1] + brect[3]) / 2 + (snap.get(\"lift\") or 0)\n    left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2\n    entry = {",
        "theme-picker: the tool measures from a view three units off the picture's",
        expect=HASH, script=S)
+
+# --- the serif on a card ------------------------------------------------------
+SERIF = "theme-picker: a card writes a look's serif only at twelve units or more"
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) else least = math.max(least, SERIF_MIN) end\n",
+       "\t\tleast = math.max(least, 0)\n",
+       "theme-picker: a look's serif is written on a card however small the card's picture makes it",
+       expect=SERIF, script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) else least = math.max(least, SERIF_MIN) end\n",
+       "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) end\n",
+       "theme-picker: a serif line too wide for its rectangle is fitted under the size it reads at",
+       expect=SERIF, script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "local SERIF_MIN = 12\n",
+       "local SERIF_MIN = 14\n",
+       "theme-picker: the cards drop their look's serif at the window's first size",
+       expect=SERIF, script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "local SERIF_MIN = 12\n",
+       "local SERIF_MIN = 9\n",
+       "theme-picker: the serif is written on a card at nine units, where nobody reads it",
+       expect=SERIF, script=S)
+
+# --- the room round a look whose art stands outside its panel ------------------
+ROOM = "theme-picker: a look whose art stands outside its panel has room for it on its card"
+
+mutate("tools/make_look_previews.py", '    "stormcaller": (83, -10, 12),\n', "",
+       "theme-picker: Stormcaller's card cut from the view every look shares: the totem loses its head",
+       expect=HASH, script=S)
+
+mutate("tools/make_look_previews.py", "    return view, (brect[0] + dx, brect[1] + dy, brect[2] + dx, brect[3] + dy)\n",
+       "    return view, brect\n",
+       "theme-picker: a look's own view is recorded as centred on its panel, so the live icon and words sit off the picture's",
+       expect=HASH, script=S)
+
+mutate("Looks/Previews.lua", "\tstormcaller = { l = 0.22253, t = 0.46386,", "\tstormcaller = { l = 0.22253, t = 0.26386,",
+       "theme-picker: Stormcaller's picture recorded with less room over the panel than its totem needs",
+       expect=ROOM, script=S)
+
+mutate("Looks/Previews.lua", "\tleather = { l = 0.14637, t = 0.10843, r = 0.23673, b = 0.46988,",
+       "\tleather = { l = 0.14637, t = 0.25806, r = 0.23673, b = 0.61951,",
+       "theme-picker: Leather's picture recorded with no room under the tag for its feathers",
+       expect=ROOM, script=S)

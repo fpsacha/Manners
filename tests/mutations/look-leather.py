@@ -996,3 +996,36 @@ _m(GENERATOR,
    "RECESS = (17.0, 3.6, 1.0)\n",
    "the field pressed a third as deep as the hide that ships",
    expect=S_GEN)
+
+# --- the serif's size ---------------------------------------------------------
+S_SERIF = "look-leather: the serif's name is as large as the tag holds and costs no reason line"
+
+mutate(LEATHER,
+       "local SERIF = 1.2\nfunction Leather.NameSize(fontSize, serif, height, sub)\n",
+       "local SERIF = 1.08\nfunction Leather.NameSize(fontSize, serif, height, sub)\n",
+       "look-leather: the serif's name back at a point over the player's size, which did not read in the game",
+       expect=S_FACE, script=S)
+
+mutate(LEATHER,
+       "\tif not serif then return fontSize, GAP end\n",
+       "",
+       "look-leather: a font the player chose drawn at the serif's larger size",
+       expect=S_FACE, script=S)
+
+mutate(LEATHER,
+       "\treturn Clamp(math.floor(room), math.min(full, fontSize + 1), full), GAP\n",
+       "\treturn full, GAP\n",
+       "look-leather: the serif's larger name never gives way on a short tag: the lines leave their margin",
+       expect=S_SERIF, script=S)
+
+mutate(LEATHER,
+       "\treturn Clamp(math.floor(room), math.min(full, fontSize + 1), full), GAP\n",
+       "\treturn math.min(full, fontSize + 1), GAP\n",
+       "look-leather: the serif's name left a point over the player's size on every tag",
+       expect=S_SERIF, script=S)
+
+mutate(LEATHER,
+       "\treturn math.ceil((fontSize + 1) + GAP + SubSize(fontSize) + MARGIN)\n",
+       "\treturn math.ceil(math.floor(fontSize * 1.2 + 0.5) + GAP + SubSize(fontSize) + MARGIN)\n",
+       "look-leather: two lines counted with the serif's larger name: the reason line dropped at heights that had it",
+       expect=S_SERIF, script=S)

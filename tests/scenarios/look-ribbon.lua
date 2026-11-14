@@ -701,8 +701,11 @@ for _, locale in ipairs({ "enUS", "deDE" }) do
 						top, bottom, g.top + rails, g.bottom - rails))
 				end
 			end
-			local display = math.floor(fs * 1.1 + 0.5)
-			if look.nameSz < math.max(7, math.floor(display * 0.8 + 0.5)) or look.nameSz > display then
+			-- The name is in the display serif here (English and German), a fifth
+			-- over the prompt's size; it gives way as far as a name in any other
+			-- face does (a tenth over, fitted a fifth smaller).
+			local display, plain = math.floor(fs * 1.2 + 0.5), math.floor(fs * 1.1 + 0.5)
+			if look.nameSz < math.max(7, math.floor(plain * 0.8 + 0.5)) or look.nameSz > display then
 				fail(scenario, ("%s: the name is set at %s, outside %d down to its fitted least"):format(label,
 					tostring(look.nameSz), display))
 			end
@@ -729,10 +732,11 @@ for _, locale in ipairs({ "enUS", "deDE" }) do
 				for _, h in ipairs({ need, need + 1, need + 2 }) do
 					check(("300x%d at %d pt"):format(h, fs), { 300, h, fs, 34 })
 				end
-				-- One shorter, Glass has one line: Ribbon has two there only in its
-				-- display face at its full size.
+				-- One shorter, Glass has one line: Ribbon has two there only where
+				-- the cloth holds a name at the size any face has it (the serif's
+				-- larger name takes what room there is over that, never less).
 				local _, look = check(("300x%d at %d pt"):format(need - 1, fs), { 300, need - 1, fs, 34 })
-				if look and look.nameSz ~= math.floor(fs * 1.1 + 0.5) then
+				if look and look.nameSz < math.floor(fs * 1.1 + 0.5) then
 					fail(scenario, ("300x%d at %d pt: two lines squeezed in, the name at %d, where Glass draws one"):format(
 						need - 1, fs, look.nameSz))
 				end
@@ -856,8 +860,15 @@ for _, case in ipairs({ { "enUS", { "Elowen", "Thistledown" } }, { "deDE", { "Fr
 			if room and type(width) == "number" and width > room[3] - room[1] + 0.6 then
 				fail(scenario, ("the name is %.1f wide in a room of %.1f: it is cut"):format(width, room[3] - room[1]))
 			end
-			if type(size) == "number" and type(base) == "number" and size < base * 0.9 then
-				fail(scenario, ("the name is drawn at %s, shrunk from %s for the tags"):format(tostring(size), tostring(base)))
+			-- The serif's own size (a fifth over the player's) is a short name's: a
+			-- long one is fitted to its line, never under the size the player set
+			-- while a tag stands.
+			if type(size) == "number" and size < p.fontSize then
+				fail(scenario, ("the name is drawn at %s, under the %s the player set, for the tags"):format(tostring(size),
+					tostring(p.fontSize)))
+			end
+			if type(base) == "number" and base < p.fontSize + 2 then
+				fail(scenario, ("the name's own size is %s at the default size, not the serif's larger one"):format(tostring(base)))
 			end
 			if tostring(r.name:GetText()):find("%.%.%.") then fail(scenario, "the name is cut with an ellipsis") end
 			-- The reason is whole beside the key's tag too.
@@ -1235,19 +1246,33 @@ for _, case in ipairs({
 			end
 			if look.kit.fit.paths[r.name] ~= MORPHEUS then fail(scenario, "a name that is refitted would leave Morpheus") end
 			if look.kit.fit.path == MORPHEUS then fail(scenario, "a reason line that is refitted would be put in Morpheus") end
+			-- The serif's letters are small for their size: the name in it is a
+			-- fifth over the prompt's size (16 for 13), and the layout counts on it.
 			local name = select(2, r.name:GetFont())
-			if name ~= math.floor(p.fontSize * 1.1 + 0.5) then fail(scenario, "the name is not the size the layout counts on: " .. tostring(name)) end
+			if name ~= math.floor(p.fontSize * 1.2 + 0.5) then fail(scenario, "the name is not the size the layout counts on: " .. tostring(name)) end
+			if name ~= look.nameSz then fail(scenario, "the name is drawn at " .. tostring(name) .. ", the lines are laid for " .. tostring(look.nameSz)) end
+			if name < p.fontSize + 2 then fail(scenario, "the name in the serif is " .. tostring(name) .. ", not two points over the prompt's size") end
 		else
 			if tostring(path):upper():find("MORPHEUS", 1, true) or tostring(subPath):upper():find("MORPHEUS", 1, true) then
 				fail(scenario, case[1] .. ": the client's own face is left for a Latin one: " .. tostring(path))
 			end
 			if not r.name:GetFont() or not r.sub:GetFont() then fail(scenario, case[1] .. ": a line has no font") end
+			-- A client's own face keeps the size it had: a tenth over the prompt's.
+			local name = select(2, r.name:GetFont())
+			if name ~= math.floor(p.fontSize * 1.1 + 0.5) then
+				fail(scenario, case[1] .. ": the client's own face is drawn at the serif's size: " .. tostring(name))
+			end
 		end
 		-- A font the player picked wins, in the sizes this look draws.
 		p.font = "Chosen"
 		ns.Prompt:ApplyStyle()
 		if tostring(r.name:GetFont()):upper():find("MORPHEUS", 1, true) then fail(scenario, case[1] .. ": the chosen font did not win") end
 		if tostring(r.sub:GetFont()):upper():find("MORPHEUS", 1, true) then fail(scenario, case[1] .. ": the chosen font did not win on the reason") end
+		-- At the size it always had: the serif's larger size is the serif's alone.
+		local chosen = select(2, r.name:GetFont())
+		if chosen ~= math.floor(p.fontSize * 1.1 + 0.5) then
+			fail(scenario, case[1] .. ": a font the player chose is drawn at the serif's size: " .. tostring(chosen))
+		end
 		-- And back to the default: Morpheus again where it belongs.
 		p.font = ns.defaults.profile.prompt.font
 		ns.Prompt:ApplyStyle()
@@ -1388,6 +1413,102 @@ withTree("look-ribbon: the cloth slides out from behind the medallion and the me
 	c2 = span(look.cloth[1])
 	if not near(c2[1] - art[1], g.cx, 0.05) then fail(scenario, "a stopped slide left the ribbon off its place") end
 end)
+
+-- The cloth is never absent on a prompt that is up. Its fade starts it from
+-- nothing, and Prompt ends the one-shots before a flourish but the fade ran on:
+-- a landing or a refusal that came with the arrival drew the medallion and the
+-- words with no cloth under them, the cloth fading back in; and the next person
+-- owed, news to the queue while the verdict still stood, played the arrival
+-- over the outcome. At the first instant of a landing and of a refusal every
+-- piece of the cloth stands at its resting alpha with nothing fading it in.
+do
+	local function pieces(look)
+		local out = {}
+		for what, set in pairs({ cloth = look.cloth, trim = look.trim, drop = look.drop }) do
+			for i, t in ipairs(set) do out[#out + 1] = { what .. " " .. i, t } end
+		end
+		out[#out + 1] = { "wave", look.wave }
+		return out
+	end
+	-- Whole: no fade of the arrival running, no piece under its resting alpha,
+	-- and no group on a piece playing an alpha that starts under it.
+	local function whole(scenario, look, when)
+		local seen = 0
+		for i, grp in ipairs(look.fade) do
+			if grp._playing then fail(scenario, ("%s: the cloth's fade %d is still running, from nothing"):format(when, i)) end
+		end
+		for _, pair in ipairs(pieces(look)) do
+			local what, t = pair[1], pair[2]
+			if t._shown ~= false then
+				seen = seen + 1
+				local rest = t.restAlpha
+				if type(rest) ~= "number" then
+					fail(scenario, ("%s: the %s has no resting alpha"):format(when, what))
+				elseif not near(t:GetAlpha(), rest, 0.001) then
+					fail(scenario, ("%s: the %s is at %.2f, it rests at %.2f"):format(when, what, t:GetAlpha(), rest))
+				elseif what ~= "wave" then
+					for _, grp in ipairs(t._groups or {}) do
+						for _, a in ipairs(grp._anims) do
+							if grp._playing and a._kind == "Alpha" and (a._fromAlpha or rest) < rest - 0.001 then
+								fail(scenario, ("%s: the %s is being faded in from %.2f"):format(when, what, a._fromAlpha))
+							end
+						end
+					end
+				end
+			end
+		end
+		if seen < 4 then fail(scenario, "SKIPPED -- " .. when .. ": only " .. seen .. " pieces of the cloth are shown") end
+		-- And home: no slide in progress.
+		for i, grp in ipairs(look.slide) do
+			if grp._playing then fail(scenario, ("%s: piece %d of the cloth is sliding"):format(when, i)) end
+		end
+	end
+
+	-- A session each: the prompt comes up once in it, with the arrival.
+	for _, case in ipairs({ { "cast", "a landing" }, { "failed", "a refusal" } }) do
+		local kind, what = case[1], case[2]
+		withTree("look-ribbon: the cloth stands whole at the first instant of " .. what, CROWD, function(ns, scenario)
+			-- With the arrival: the outcome at the instant the prompt came up.
+			local r, p, look = upIn(ns, scenario, nil, true)
+			if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+			local fading = false
+			for _, grp in ipairs(look.fade) do fading = fading or grp._playing end
+			if not fading then fail(scenario, "SKIPPED -- the cloth does not fade in as the prompt comes up") end
+			ns.Prompt:ShowOutcome(kind, "Anna Aim", kind == "failed" and "Out of range." or nil)
+			if not look.outcomeOn then fail(scenario, "SKIPPED -- " .. what .. " is not on the panel") end
+			whole(scenario, look, what .. " with the arrival")
+			-- Long after it: the cloth was whole and stays so.
+			r, p, look = upIn(ns, scenario)
+			whole(scenario, look, "at rest")
+			ns.Prompt:ShowOutcome(kind, "Anna Aim", kind == "failed" and "Out of range." or nil)
+			whole(scenario, look, what .. " at rest")
+			-- The next scan, the verdict still standing: the next person owed is
+			-- new to the queue, and the arrival is not played over the outcome.
+			owe(ns, "Brannoc Vale")
+			local told = false
+			local real = look.Attention
+			look.Attention = function(self, isNew, ...)
+				if isNew and self.outcomeOn then told = true end
+				return real(self, isNew, ...)
+			end
+			look:Attention(true, false, "pulse")
+			look.Attention = real
+			if not (told and look.outcomeOn) then fail(scenario, "SKIPPED -- no new favour was told to the look over " .. what) end
+			whole(scenario, look, "the next favour over " .. what)
+			-- A favour on a prompt already up, no outcome: the cloth slides out at
+			-- its full strength, never from nothing.
+			r, p, look = upIn(ns, scenario)
+			if look.outcomeOn then fail(scenario, "SKIPPED -- the outcome is still on the panel") end
+			look:Attention(true, false, "pulse")
+			for i, grp in ipairs(look.fade) do
+				if grp._playing then fail(scenario, "a favour on a prompt already up fades the cloth in from nothing (fade " .. i .. ")") end
+			end
+			local sliding = false
+			for _, grp in ipairs(look.slide) do sliding = sliding or grp._playing end
+			if not sliding then fail(scenario, "a favour on a prompt already up does not slide the cloth out") end
+		end)
+	end
+end
 
 withTree("look-ribbon: with the icon off the whole ribbon fades and slides without a medallion to hide behind", ANNA, function(ns, scenario)
 	local r, p, look = arrival(ns, scenario, function(pp) pp.showIcon = false end)

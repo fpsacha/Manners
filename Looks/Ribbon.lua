@@ -50,7 +50,11 @@
 -- alphabet "roman") for the languages written in Latin letters. The client
 -- languages that are not -- Korean, both Chinese and Russian -- keep the font
 -- their client draws its writing in, and so does a player who chose a font of
--- their own.
+-- their own. Morpheus has a low x-height and thin strokes, so the name in it
+-- is drawn a fifth larger than the size the player set (16 for the default
+-- 13; a tenth larger, the size a name in any other face keeps, did not read
+-- in the game), and where the cloth is too narrow for that, as much of it as
+-- the cloth holds (Lines).
 --
 -- The art is Textures/Ribbon, drawn by tools/make_ribbon_textures.py, every
 -- surface modelled in relief and lit from the upper left. The gold and the
@@ -186,7 +190,9 @@ local GLEAM_EVERY, GLEAM_PEAK = 7, 1
 
 local function Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 local function SubSize(fontSize) return math.max(8, fontSize - 3) end
-local function NameSize(fontSize) return math.floor(fontSize * 1.1 + 0.5) end
+-- The name's size: a tenth over the player's, and a fifth over it in the
+-- display serif (`serif`), whose letters are small for their size.
+local function NameSize(fontSize, serif) return math.floor(fontSize * (serif and 1.2 or 1.1) + 0.5) end
 local function Gap(fontSize) return math.max(1, fontSize * 0.1) end
 -- How much taller than the cloth the medallion always stands, at the least.
 local TALLER = 1.1
@@ -199,12 +205,15 @@ local TALLER = 1.1
 -- is drawn (Prompt/Text.lua, FitLine) and never as small as the reason; last,
 -- the same with nothing to spare (the lines' boxes then meet the rails, their
 -- letters inside them). Nothing where even that does not fit.
-local function Lines(fontSize, inner, full)
-	local name, gap, sub = NameSize(fontSize), Gap(fontSize), SubSize(fontSize)
+local function Lines(fontSize, inner, full, serif)
+	local name, gap, sub = NameSize(fontSize, serif), Gap(fontSize), SubSize(fontSize)
 	if name + gap + sub + 2 <= inner then return name, gap end
 	if full then return nil end
+	-- The serif's larger name gives way as far as a name in any other face
+	-- does, so the reason line is kept on every cloth that kept it.
+	local least = math.max(sub + 1, 7, math.floor(NameSize(fontSize) * 0.8 + 0.5))
 	for spare = 1, 0, -1 do
-		for size = name, math.max(sub + 1, 7, math.floor(name * 0.8 + 0.5)), -1 do
+		for size = name, least, -1 do
 			if size + 1 + sub + spare <= inner then return size, 1 end
 		end
 	end
@@ -220,12 +229,12 @@ end
 -- time, as far as keeps the medallion (with the icon off, the height it would
 -- have) TALLER times the cloth, before the face gives way; `nameSz` and `gap`
 -- are then the lines' (Lines, `full` passed on), nil where they do not fit.
-local function Geometry(W, H, icon, two, full)
+local function Geometry(W, H, icon, two, full, serif)
 	local M = icon and math.min(H - 3, math.max(24, math.floor(W * 0.5))) or 0
 	local ov = Clamp(math.floor(H * 0.115 + 0.5), 1, 14)
 	if two then
 		local least = math.max(1, math.ceil((H - (icon and M or H - 3) / TALLER) / 2 - 1e-6))
-		while ov > least and not Lines(two, (H - 2 * ov) * (1 - 2 * 5.8 / RIBBON_PX), true) do ov = ov - 1 end
+		while ov > least and not Lines(two, (H - 2 * ov) * (1 - 2 * 5.8 / RIBBON_PX), true, serif) do ov = ov - 1 end
 	end
 	-- With no medallion the cloth has a forked end at each side, and the shadow
 	-- under it ends are wider still (its canvas draws the cloth in 56 rows of
@@ -240,7 +249,7 @@ local function Geometry(W, H, icon, two, full)
 	g.notch = NOTCH_PX * g.k
 	-- The room the cloth leaves inside the rails.
 	g.inner = g.rh * (1 - 2 * 5.8 / RIBBON_PX)
-	if two then g.nameSz, g.gap = Lines(two, g.inner, full) end
+	if two then g.nameSz, g.gap = Lines(two, g.inner, full, serif) end
 	g.M, g.R = M, M / 2
 	g.cx, g.cy = 1.5 + M / 2, H / 2
 	g.half = g.R / M_OUT
@@ -254,7 +263,9 @@ end
 -- height at which the built-in look keeps the reason line, so the reason is
 -- never dropped where that one keeps it and never squeezed in where it does
 -- not. "From": so does every taller prompt (the cloth's margin is whole units,
--- and a prompt a unit taller can have a unit's less cloth).
+-- and a prompt a unit taller can have a unit's less cloth). Counted with the
+-- name at the size any face has it: the serif's larger name takes what room
+-- there is over that (Lines), and costs nobody the reason line.
 function Ribbon.TwoLineHeight(fontSize)
 	local function from(full)
 		local function holds(H) return Geometry(200, H, true, fontSize, full).nameSz ~= nil end
@@ -402,6 +413,7 @@ local function Face(p)
 	if not ROMAN[ns.LOCALE or "enUS"] then return nil end
 	return FACE
 end
+Ribbon.NameFace = Face
 
 ---------------------------------------------------------------------------
 -- pieces
@@ -980,9 +992,15 @@ function Ribbon:Apply(p, above)
 	-- Two lines where Prompt draws two (the test it makes, Prompt/Panel.lua):
 	-- the cloth widened and the face sized to hold them (Geometry).
 	local two = p.showSub and H >= Ribbon.TwoLineHeight(fs) and fs or nil
-	local g = Geometry(W, H, showIcon, two)
+	-- The name in the display serif is drawn larger (NameSize), and the cloth
+	-- and the lines are laid for that size.
+	local serif = Ribbon.NameFace(p) ~= nil
+	local g = Geometry(W, H, showIcon, two, nil, serif)
 	self.g = g
-	local nameSz, sub = g.nameSz or NameSize(fs), SubSize(fs)
+	-- One line: the serif at its size where the cloth holds it between the
+	-- rails, never smaller than a name in any other face.
+	local nameSz = g.nameSz or Clamp(math.floor(g.inner - 2), NameSize(fs), NameSize(fs, serif))
+	local sub = SubSize(fs)
 	self.active = true
 	self.p, self.W, self.H, self.above = p, W, H, above
 	self.nameSz, self.sub, self.showIcon = nameSz, sub, showIcon
@@ -1699,8 +1717,20 @@ end
 
 -- A new favour: the cloth slides out from behind the medallion, fading in, and
 -- the medallion glints; on Calm the cloth only fades in.
+--
+-- THE CLOTH IS NEVER ABSENT ON A PROMPT THAT IS UP. Its fade starts it from
+-- nothing, so it is played only while the prompt itself is coming up (Prompt's
+-- entrance is running: the whole panel is rising from nothing then); a favour
+-- that arrives on a prompt already up slides the cloth out at its full
+-- strength. The arrival is never played over an outcome (Attention), and an
+-- outcome ends a fade still running (StopFlourishes, which Prompt calls before
+-- every flourish): a landing or a refusal that came with the arrival, or with
+-- the next person owed, had the medallion and the words standing with no cloth
+-- under them while it faded back in.
 function Ribbon:Unfurl(full)
-	PlayAll(self.fade)
+	local art = self.kit.art
+	local rising = (art.intro and art.intro:IsPlaying()) or (art.introCalm and art.introCalm:IsPlaying())
+	if rising then PlayAll(self.fade) end
 	if full and self.slideBy > 0 then
 		-- Stopped first, so the home its stop puts the ribbon back to is not
 		-- put over the place it starts the slide from.
@@ -1721,8 +1751,9 @@ function Ribbon:Attention(isNew, arrived, flashStyle)
 	end
 	if isNew then
 		self.pulseSpent = nil
-		-- The cloth's arrival.
-		self:Unfurl(full)
+		-- The cloth's arrival: once per new favour, never over an outcome (the
+		-- next person owed is news to the queue while the verdict still stands).
+		if not self.outcomeOn then self:Unfurl(full) end
 	end
 	if flashStyle ~= "pulse" then
 		self:StopAttention()
@@ -1813,6 +1844,9 @@ function Ribbon:StopFlourishes()
 	-- The ribbon home: a slide stopped is put back (its first group's OnStop).
 	for _, g in ipairs(self.slide) do g:Stop() end
 	if self.W then self:PlaceRibbon(0) end
+	-- And whole: an arrival's fade still running is ended, the cloth at its
+	-- resting strength, so no flourish plays over cloth that is fading in.
+	for _, g in ipairs(self.fade) do g:Stop() end
 	-- The flash shared the pulse's light: a breath in progress goes on.
 end
 

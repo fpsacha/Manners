@@ -15,6 +15,16 @@ uncompressed, over the dusk render_prompt draws everything over. It also writes
 Looks/Previews.lua, which says which looks have a picture, what they were drawn
 from, and where each one's spell icon sits.
 
+The room. A look whose art stands far outside its panel (Stormcaller's totem
+head, Ebon's skull and soulfire, Leather's buckle and feathers, Warchief's
+spikes) was cut by that view. FRAMES gives such a look a view of its own: taller
+(and four times as wide, as every picture is), and set off the panel's middle to
+where the art is, so the whole object is on its card, drawn smaller. Everything
+recorded for the card (the icon's tile, the two lines, a tag) is measured
+against the look's own view, so the window lays its live icon and words where
+the smaller picture has them. A look not in FRAMES is cut as it always was, and
+its picture is the same bytes.
+
 The icon. The picture holds a tile where the look draws the spell icon, because
 the renderer has no game art; the options window lays the real icon over it
 live (the client draws it, nothing of Blizzard's is in a file here). So for each
@@ -93,6 +103,24 @@ SIZE = (256, 64)
 # The view round the panel, in UI units: the panel is 220 x 44, and a card's
 # picture is four times as wide as it is tall.
 VIEW = (248, 62)
+# The looks whose art needs more room than that, each with the height of its own
+# view in units (the width is four times it) and where the view's middle lies from
+# the panel's: right, up. Measured on the pictures: Stormcaller's totem stands 31
+# units over the panel and 11 under it, its feathers 21 left of it; Ebon's
+# soulfire 24 over and its lowest spike 13 under; Leather's buckle and feathers
+# 29 right of the tag and 37 under it; Warchief's spikes 11 over (its view is
+# only moved, not made larger). No view is taller than FRAME_MOST: the window
+# writes the sample lines at the picture's scale, and on a taller view the
+# reason line of a card at the window's first size (46 units of picture) would
+# be at the five units a card's letters stop at. Stormcaller's view is held to
+# it, and cuts the foot of the totem's base three units short.
+FRAME_MOST = 83
+FRAMES = {
+    "stormcaller": (83, -10, 12),
+    "ebon": (82, 0, 5.5),
+    "leather": (83, 14, -17.5),
+    "warchief": (62, 0, 2),
+}
 
 STUB = """local _, ns = ...
 ns.Looks.previews = {}
@@ -170,6 +198,20 @@ def registered(addon_dir=ROOT):
     return keys
 
 
+def framing(snap, brect=None):
+    """The view a look's picture is cut from, and what it is centred on: (width,
+    height) in units, and the button's rectangle moved to the view's middle (VIEW
+    round the button itself for a look with no entry in FRAMES). With no rectangle:
+    the view, and how far its middle lies right of and above the button's."""
+    height, dx, dy = FRAMES.get(snap.get("look"), (VIEW[1], 0, 0))
+    if not VIEW[1] <= height <= FRAME_MOST:
+        raise SystemExit("%s: a view %s units tall (FRAMES), outside %d to %d" % (snap.get("look"), height, VIEW[1], FRAME_MOST))
+    view = (height * VIEW[0] / VIEW[1], height)
+    if brect is None:
+        return view, (dx, dy)
+    return view, (brect[0] + dx, brect[1] + dy, brect[2] + dx, brect[3] + dy)
+
+
 def text_bytes(path):
     with open(path, "rb") as f:
         return f.read().replace(b"\r\n", b"\n")
@@ -177,7 +219,12 @@ def text_bytes(path):
 
 def snapshots(keys):
     """Every look's frame tree in the state the pictures are drawn in."""
-    return {key: to_py(states(key)["run"](STATE, None)) for key in keys}
+    out = {}
+    for key in keys:
+        out[key] = to_py(states(key)["run"](STATE, None))
+        # Which look it is: its view is its own (framing).
+        out[key]["look"] = key
+    return out
 
 
 def mask_cover(path):
@@ -217,6 +264,7 @@ def icon_entry(snap):
     rect, brect = tree.rect(icon["id"]), tree.rect(button["id"])
     if rect is None or brect is None:
         return None
+    VIEW, brect = framing(snap, brect)
     cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get("lift") or 0)
     left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2
     entry = {
@@ -327,6 +375,7 @@ def text_entry(snap, which, other=None):
     rect, brect = tree.rect(fs["id"]), tree.rect(button["id"])
     if rect is None or brect is None:
         return None
+    VIEW, brect = framing(snap, brect)
     cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get("lift") or 0)
     left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2
     scale = tree.eff_scale(fs)
@@ -446,6 +495,7 @@ def pill_entry(snap, key, which):
         if len(colours) != 1:
             raise SystemExit("%s whose slices are not one colour (%s)" % (where, file))
         layers.append({"file": file, "color": list(colours.pop())})
+    VIEW, brect = framing(snap, brect)
     cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get("lift") or 0)
     top = cy + VIEW[1] / 2
     entry = {
@@ -722,6 +772,7 @@ def check_tile(rp, snap, key, entry):
                 key, "drawn" if placed else "not drawn", "recorded" if entry else "not recorded"))
         return
     brect = rp.Tree(snap).rect(snap["button"])
+    VIEW, brect = framing(snap, brect)
     cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get("lift") or 0)
     left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2
     drawn = ((placed[0] - left) / VIEW[0], (top - placed[3]) / VIEW[1],
@@ -744,6 +795,7 @@ def check_text(rp, snap, key, name, which, entry):
         return
     tree = rp.Tree(snap)
     brect = tree.rect(snap["button"])
+    VIEW, brect = framing(snap, brect)
     cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get("lift") or 0)
     left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2
     drawn = ((placed[0] - left) / VIEW[0], (top - placed[3]) / VIEW[1],
@@ -780,8 +832,9 @@ def bare_picture(rp, snap, entry):
 
 
 def picture(rp, snap, skip):
-    """One look's picture as an image: the 248 x 62 unit view round the panel, cut
-    out of the tile and brought to SIZE. `skip`: the regions not painted."""
+    """One look's picture as an image: the look's view round the panel (framing: 248
+    x 62 units for most), cut out of the tile and brought to SIZE. `skip`: the
+    regions not painted."""
     from PIL import Image
 
     tile = rp.draw_state(snap, rp.ZOOM * rp.SUPER, skip=skip)
@@ -789,9 +842,12 @@ def picture(rp, snap, skip):
     # draw_state): half the tile across, and this far down.
     # The picture is drawn at SUPER times what it is returned at.
     scale = tile.width / rp.TILE_W
-    cx = rp.TILE_W / 2 * scale
-    cy = (rp.TILE_H * 0.18 + 22) * scale
-    half_w, half_h = VIEW[0] / 2 * scale, VIEW[1] / 2 * scale
+    view, (dx, dy) = framing(snap)
+    cx = (rp.TILE_W / 2 + dx) * scale
+    cy = (rp.TILE_H * 0.18 + 22 - dy) * scale
+    half_w, half_h = view[0] / 2 * scale, view[1] / 2 * scale
+    if cx - half_w < 0 or cy - half_h < 0 or cx + half_w > tile.width or cy + half_h > tile.height:
+        raise SystemExit("%s: its view (FRAMES) reaches past what render_prompt draws" % snap.get("look"))
     view = tile.crop((int(round(cx - half_w)), int(round(cy - half_h)),
                       int(round(cx + half_w)), int(round(cy + half_h))))
     return view.resize(SIZE, Image.LANCZOS).convert("RGBA")
@@ -823,6 +879,7 @@ def draw(keys, out, entries, lines):
     for key in keys:
         R = rp.load_states(ROOT, style=key)
         snap = rp.to_py(R["run"](STATE, None))
+        snap["look"] = key
         view = bare_picture(rp, snap, lines.get(key))
         skip = hidden(snap, lines.get(key))
         view.save(os.path.join(out, "Preview_%s.tga" % key), "TGA", compression=None)
@@ -870,6 +927,7 @@ def check_bare(keys):
     for key in keys:
         entry = lines.get(key) or {}
         snap = rp.to_py(rp.load_states(ROOT, style=key)["run"](STATE, None))
+        snap["look"] = key
         bare = np.asarray(bare_picture(rp, snap, entry)).astype(int)
         full = np.asarray(picture(rp, snap, set())).astype(int)
         path = os.path.join(SHOTS, "Preview_%s.tga" % key)

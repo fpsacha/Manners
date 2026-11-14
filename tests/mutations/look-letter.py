@@ -448,10 +448,53 @@ _m(LETTER,
    expect="the font on a ruRU client", script=S)
 
 _m(LETTER,
-   "\tif serif then return fs + 1, math.max(7, fs - 2) end\n",
+   "\tif serif then return math.floor(fs * SERIF + 0.5), math.max(7, fs - 3) end\n",
    "\tif serif then return fs, math.max(7, fs - 3) end\n",
    "Morpheus at the size of a face with a bigger x-height",
    expect="pt, not", script=S)
+
+_m(LETTER,
+   "local SERIF = 1.2\nlocal function Sizes(fs, serif)\n",
+   "local SERIF = 1.08\nlocal function Sizes(fs, serif)\n",
+   "the serif's name back at a point over the player's size, which did not read in the game",
+   expect="pt, not", script=S)
+
+_m(LETTER,
+   "\t-- line's size they could not be read in the game).\n\tlocal path = fit.path or STANDARD_TEXT_FONT\n",
+   "\t-- line's size they could not be read in the game).\n\tif self.face then fit.path = self.face end\n"
+   "\tlocal path = fit.path or STANDARD_TEXT_FONT\n",
+   "the reason line, the list and the slips back in Morpheus's thin small capitals",
+   expect="is in the serif's small capitals", script=S)
+
+_m(LETTER,
+   "\tfit.paths[kit.name] = own\n",
+   "",
+   "a name fitted to its line leaves the serif",
+   expect="a refitted name would leave its face", script=S)
+
+_m(LETTER,
+   "\t\tnameSize = Clamp(math.floor(room), math.min(nameSize, fs + 1), nameSize)\n",
+   "\t\tnameSize = Clamp(math.floor(room), nameSize, nameSize)\n",
+   "the serif's larger name never gives way on a short sheet: it stands on the reason",
+   expect="look-letter: the serif's name is as large as the sheet holds and costs no reason line", script=S)
+
+_m(LETTER,
+   "\t\tnameSize = Clamp(math.floor(room), math.min(nameSize, fs + 1), nameSize)\n",
+   "\t\tnameSize = math.min(nameSize, fs + 1)\n",
+   "the serif's name left a point over the player's size wherever two lines stand",
+   expect="look-letter: the serif's name is as large as the sheet holds and costs no reason line", script=S)
+
+_m(LETTER,
+   "\tlocal nameSize, subSize = fontSize + 1, math.max(7, fontSize - 2)\n",
+   "\tlocal nameSize, subSize = math.floor(fontSize * 1.2 + 0.5), math.max(7, fontSize - 3)\n",
+   "two lines counted with the serif's larger name: the reason line dropped at heights that had it",
+   expect="look-letter: the serif's name is as large as the sheet holds and costs no reason line", script=S)
+
+_m(LETTER,
+   "\t\tg.chipH = math.max(subSize + 2, math.min(g.chipH, 2 * (g.subMid - g.nameMid - nameSize / 2)))\n",
+   "",
+   "a slip on the reason line as tall as before the name grew: it stands over the name's foot",
+   expect="slip is over the name", script=S)
 
 # --- the art, the toc, the translations and the generator -------------------
 

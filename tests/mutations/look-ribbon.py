@@ -394,10 +394,34 @@ _m(RIBBON,
    expect="look-ribbon: the face on")
 
 _m(RIBBON,
-   "local function NameSize(fontSize) return math.floor(fontSize * 1.1 + 0.5) end",
-   "local function NameSize(fontSize) return fontSize end",
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * (serif and 1.2 or 1.1) + 0.5) end",
+   "local function NameSize(fontSize, serif) return fontSize end",
    "the name not drawn at the size the layout counts on",
    expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * (serif and 1.2 or 1.1) + 0.5) end",
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * 1.1 + 0.5) end",
+   "the name in the serif back at the size of any other face, which did not read in the game",
+   expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * (serif and 1.2 or 1.1) + 0.5) end",
+   "local function NameSize(fontSize, serif) return math.floor(fontSize * 1.2 + 0.5) end",
+   "a font the player chose drawn at the serif's larger size",
+   expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "\tlocal g = Geometry(W, H, showIcon, two, nil, serif)\n",
+   "\tlocal g = Geometry(W, H, showIcon, two)\n",
+   "the cloth and the lines laid for a smaller name than the serif is drawn at",
+   expect="look-ribbon: the face on")
+
+_m(RIBBON,
+   "\tlocal least = math.max(sub + 1, 7, math.floor(NameSize(fontSize) * 0.8 + 0.5))\n",
+   "\tlocal least = math.max(sub + 1, 7, math.floor(name * 0.8 + 0.5))\n",
+   "the serif's larger name gives way less than any other face's: the reason dropped on a narrow cloth",
+   expect="look-ribbon: the reason line stays wherever")
 
 # --- the tags ---------------------------------------------------------------
 
@@ -830,3 +854,30 @@ _m(GEN,
    "    q = np.clip(xe / END_PX, 0, 1)\n",
    "the fork's flutter drawn from the seam whatever the generator says it holds still",
    expect="look-ribbon: the art is modelled")
+
+# --- the cloth is never absent on a prompt that is up -------------------------
+WHOLE = "look-ribbon: the cloth stands whole at the first instant of a "
+
+_m(RIBBON,
+   "\tfor _, g in ipairs(self.fade) do g:Stop() end\n\t-- The flash shared the pulse's light: a breath in progress goes on.\n",
+   "\t-- The flash shared the pulse's light: a breath in progress goes on.\n",
+   "an arrival's fade runs on under a landing: the medallion and the words with no cloth",
+   expect=WHOLE)
+
+_m(RIBBON,
+   "\t\tif not self.outcomeOn then self:Unfurl(full) end\n",
+   "\t\tself:Unfurl(full)\n",
+   "the next person owed plays the cloth's arrival over the verdict",
+   expect=WHOLE)
+
+_m(RIBBON,
+   "\tif rising then PlayAll(self.fade) end\n",
+   "\tPlayAll(self.fade)\n",
+   "a favour on a prompt already up fades the cloth in from nothing",
+   expect=WHOLE)
+
+_m(RIBBON,
+   "\tif rising then PlayAll(self.fade) end\n",
+   "",
+   "the cloth no longer fades in as the prompt comes up",
+   expect="look-ribbon: the cloth slides out from behind the medallion and the medallion glints")

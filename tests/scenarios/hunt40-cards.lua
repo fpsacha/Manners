@@ -310,6 +310,13 @@ do
 						local fs = card.lines[name]
 						local spec = ns.Looks.previewText[key][name]
 						local worn = promptFace(ns, key, region)
+						-- A look's own serif is written on a card only at twelve
+						-- units or more (WidgetsTheme, SERIF_MIN): under that the
+						-- line is in the prompt's own font, as on a client whose
+						-- alphabet the serif lacks.
+						local small = spec.font ~= nil
+							and math.max(5, math.floor(spec.size * card.ground._height + 0.5)) < 12
+						if small then worn = "font.ttf" end
 						if got ~= worn then
 							fail(scenario, ("the %s card writes its %s in %s, its look writes it in %s"):format(key, name,
 								tostring(got), tostring(worn)))
@@ -320,7 +327,7 @@ do
 						end
 						if spec.font then
 							faces = faces + 1
-							local want = latin and spec.font or "font.ttf"
+							local want = (latin and not small) and spec.font or "font.ttf"
 							if got ~= want then
 								fail(scenario, ("the %s card's %s is in %s on a %s client, not %s"):format(key, name,
 									tostring(got), locale, want))
@@ -329,7 +336,9 @@ do
 					end
 				end
 			end
-			if faces < 4 then fail(scenario, "SKIPPED -- only " .. faces .. " lines have a face of their own") end
+			-- Three: the names of Ribbon, Letter and Leather (the Letter's reason
+			-- line left the serif for the standard face).
+			if faces < 3 then fail(scenario, "SKIPPED -- only " .. faces .. " lines have a face of their own") end
 		end)
 	end
 
@@ -607,7 +616,7 @@ do
 		for key in pairs(Looks.previewText) do
 			if not Looks.list[key] then fail(scenario, "text is recorded for " .. key .. ", which is not a look") end
 		end
-		if faces < 4 then fail(scenario, "only " .. faces .. " lines record a face of their own") end
+		if faces < 3 then fail(scenario, "only " .. faces .. " lines record a face of their own") end
 		-- A look the tool has not drawn has none, whatever the table holds.
 		Looks.previewText.fake = Looks.previewText.glass
 		if Looks.PreviewText("fake") ~= nil then fail(scenario, "a look with no picture was handed text rectangles") end

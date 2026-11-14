@@ -776,8 +776,15 @@ for _, case in ipairs({ { "enUS", { "Elowen", "Thistledown" } }, { "deDE", { "Fr
 			if room and type(width) == "number" and width > room[3] - room[1] + 0.6 then
 				fail(scenario, ("the name is %.1f wide in a room of %.1f: it is cut"):format(width, room[3] - room[1]))
 			end
-			if type(size) == "number" and type(base) == "number" and size < base * 0.9 then
-				fail(scenario, ("the name is drawn at %s, shrunk from %s for the patches"):format(tostring(size), tostring(base)))
+			-- The serif's own size (a fifth over the player's) is a short name's: a
+			-- long one is fitted to its line, never under the size the player set
+			-- while a patch stands.
+			if type(size) == "number" and size < p.fontSize then
+				fail(scenario, ("the name is drawn at %s, under the %s the player set, for the patches"):format(tostring(size),
+					tostring(p.fontSize)))
+			end
+			if type(base) == "number" and base < p.fontSize + 2 then
+				fail(scenario, ("the name's own size is %s at the default size, not the serif's larger one"):format(tostring(base)))
 			end
 			if tostring(r.name:GetText()):find("%.%.%.") then fail(scenario, "the name is cut with an ellipsis") end
 			local rs = rectOf(r.sub)
@@ -1116,9 +1123,21 @@ for _, case in ipairs({
 			if path ~= "Fonts\\MORPHEUS.TTF" then fail(scenario, "the name is in " .. tostring(path) .. ", not the display serif") end
 			if r.sub._font and r.sub._font.path == "Fonts\\MORPHEUS.TTF" then fail(scenario, "the reason is in the display serif too") end
 			if fit.paths[r.name] ~= "Fonts\\MORPHEUS.TTF" then fail(scenario, "FitLine does not keep the name in its face as it shrinks") end
+			-- The serif's letters are small for their size: the name in it is a
+			-- fifth over the size the player set (16 for 13).
+			local want = math.floor(p.fontSize * 1.2 + 0.5)
+			if r.name._font.size ~= want or fit.base[r.name] ~= want then
+				fail(scenario, ("the name in the serif is %s pt (fitted from %s), not %d"):format(tostring(r.name._font.size),
+					tostring(fit.base[r.name]), want))
+			end
+			if want < p.fontSize + 2 then fail(scenario, "SKIPPED -- the serif is not two points over the player's size here") end
 		else
 			if path == "Fonts\\MORPHEUS.TTF" then fail(scenario, "a " .. locale .. " client's name is in a Latin-only face") end
 			if fit.paths[r.name] then fail(scenario, "a face is named for the name on a " .. locale .. " client") end
+			if r.name._font.size ~= p.fontSize or look.nameSize ~= p.fontSize then
+				fail(scenario, ("a %s client's name is %s pt, laid for %s, not the size the player set"):format(locale,
+					tostring(r.name._font.size), tostring(look.nameSize)))
+			end
 		end
 		-- A line too long shrinks and stays in its face.
 		r.name:SetText("A name far too long to fit the room it has been given on this tag")
@@ -1133,8 +1152,53 @@ for _, case in ipairs({
 			fail(scenario, "the player's chosen font was not used for the name")
 		end
 		if fit.paths[r.name] then fail(scenario, "a face is named for the name with the player's own font chosen") end
+		if fit.base[r.name] ~= p.fontSize or look.nameSize ~= p.fontSize then
+			fail(scenario, ("the player's chosen font is drawn at %s, laid for %s, not the size they set"):format(
+				tostring(fit.base[r.name]), tostring(look.nameSize)))
+		end
 	end, function() Mock.locale = locale end)
 end
+
+-- The serif's name is as large as the tag holds, and the reason line is kept
+-- wherever it was: at the least height two lines had before the name grew they
+-- still stand, apart and inside the margin the thread takes, the name no
+-- smaller than it was there (a point over the player's size); with room to
+-- spare it is a fifth over it.
+withTree("look-leather: the serif's name is as large as the tag holds and costs no reason line", ANNA, function(ns, scenario)
+	local seen = 0
+	for fs = 8, 22 do
+		local full, sub = math.floor(fs * 1.2 + 0.5), math.max(7, fs - 3)
+		local was = math.ceil((fs + 1) + 2 + sub + 16)
+		if ns.TwoLineHeight(fs, "leather") ~= was then
+			fail(scenario, ("at %d pt two lines need %s, they needed %d before the name grew"):format(fs,
+				tostring(ns.TwoLineHeight(fs, "leather")), was))
+		end
+		for _, h in ipairs({ was, was + 1, was + 2, was + 12 }) do
+			local r, p, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize = 300, h, fs end)
+			if not isLeather(look) then fail(scenario, "SKIPPED -- Leather is not the look in use") return end
+			local label = ("300x%d at %d pt"):format(h, fs)
+			local size = ns.Prompt.lib.fit.base[r.name]
+			if not r.sub:IsShown() then fail(scenario, label .. ": the reason line is gone") end
+			if type(size) ~= "number" or size < fs + 1 or size > full then
+				fail(scenario, ("%s: the name's size is %s, outside %d to %d"):format(label, tostring(size), fs + 1, full))
+			elseif h == was + 12 and size ~= full then
+				fail(scenario, ("%s: the name is %d with room to spare, not %d"):format(label, size, full))
+			end
+			if size == full then seen = seen + 1 end
+			if size ~= look.nameSize then fail(scenario, label .. ": the lines are laid for another size than the name is drawn at") end
+			local _, top = FT.span(r.art, "y")
+			local nb, nt = FT.span(r.name, "y")
+			local sb, st = FT.span(r.sub, "y")
+			if top and nb and sb then
+				if nb < st - 0.01 then fail(scenario, ("%s: the name (down to %.1f) stands on the reason (up to %.1f)"):format(label, top - nb, top - st)) end
+				if top - nt < 8 - 0.6 or top - sb > h - 8 + 0.6 then
+					fail(scenario, ("%s: the lines (%.1f to %.1f) leave the margin the thread takes"):format(label, top - nt, top - sb))
+				end
+			end
+		end
+	end
+	if seen < 15 then fail(scenario, "SKIPPED -- the name was at its full size only " .. seen .. " times") end
+end)
 
 withTree("look-leather: leaving the look leaves the name's face to the next look", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
