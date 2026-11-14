@@ -901,7 +901,7 @@ function Gearworks:Apply(p, above)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
 	self.countMode, self.keyUp = nil, false
 	-- Measured again in the new font and size.
-	self.keyLabel, self.countText = nil, nil
+	self.keyLabel, self.countText, self.measuredText = nil, nil, nil
 
 	local base = art:GetFrameLevel()
 	self.chipFrame:SetFrameLevel(base + 3)
@@ -1343,10 +1343,22 @@ end
 -- aside for a paint in which the name would otherwise be cut.
 function Gearworks:Chip(on)
 	local kit = self.kit
-	-- The width FitLine took of the name just now, measured here only where
-	-- it could not; the tags' own words only when they change (kit.TextWidth
-	-- is a pcall: none on a per-scan path).
-	self.nameWidth = kit.fit.drawn[kit.name] or kit.TextWidth(kit.name)
+	-- The width FitLine took of the name just now. A name drawn at its
+	-- smallest was not measured there, so it is measured here, once for a
+	-- text at a size (kit.TextWidth is a pcall: none on a per-scan path); a
+	-- secret name cannot be told from the last, and is measured each time.
+	-- The tags' own words are measured only when they change.
+	local width = kit.fit.drawn[kit.name]
+	if not width then
+		local text, size = kit.name:GetText(), kit.fit.size[kit.name]
+		local secret = issecretvalue and issecretvalue(text)
+		if secret or text ~= self.measuredText or size ~= self.measuredSize then
+			self.measuredWidth = kit.TextWidth(kit.name)
+			self.measuredText, self.measuredSize = (not secret) and text or nil, size
+		end
+		width = self.measuredWidth
+	end
+	self.nameWidth = width
 
 	local key = self:KeyLabel()
 	local keyUp = false
@@ -1649,6 +1661,9 @@ function Gearworks:StopAttention()
 	self.dial:SetAlpha(DIAL.rest)
 	self.bubbles:SetAlpha(BUBBLE.rest)
 	self.calmLit = nil
+	-- The prompt taken down ends here and nowhere else of the look's: the
+	-- cogs, the glint and the bubbles stop under a hidden panel.
+	self:Idle()
 end
 
 function Gearworks:Flourish(kind)
