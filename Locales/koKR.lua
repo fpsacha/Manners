@@ -303,6 +303,7 @@ L["%s: %s is ticked under Never remind me about."] = "%s: %s 주문은 '알림 �
 L["%s: you are in another form, so it is not offered."] = "%s: 다른 변신 상태라 제안하지 않습니다."
 L["%s: %s goes on a shield, and there is none in your off hand."] = "%s: %s은(는) 방패에 쓰는데, 보조 손에 방패가 없습니다."
 L["%s: %s is only offered when you are alone, and you are in a group."] = "%s: %s 주문은 혼자일 때만 제안되며, 지금은 파티에 있습니다."
+L["%s: tracking is not offered in a battleground or an arena."] = "%s: 전장이나 투기장에서는 추적을 권하지 않습니다."
 L["%s: you are not swimming, so it is not offered."] = "%s: 수영 중이 아니라 제안하지 않습니다."
 L["%s: none out -- Manners brings one out of your pet journal itself."] = "%s: 나와 있는 애완동물 없음 -- Manners가 애완동물 도감에서 직접 하나를 소환합니다."
 L["%s: you put your pet away, so none comes out until you bring one out yourself."] = "%s: 애완동물을 돌려보냈으므로 직접 소환할 때까지 나오지 않습니다."

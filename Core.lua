@@ -2645,6 +2645,18 @@ do
 		return (inside == true or inside == 1) and (kind == "party" or kind == "raid")
 	end
 
+	-- In a battleground or an arena, by the game's word; a client that will not
+	-- say is in none. Called directly: it takes nothing and throws nothing, and
+	-- the tracking family asks it on every scan. On ns, to spare OwnVerdict an
+	-- upvalue.
+	function ns.InBattleground()
+		local ask = _G.IsInInstance
+		if type(ask) ~= "function" then return false end
+		local inside, kind = ask()
+		inside, kind = plain(inside), plain(kind)
+		return (inside == true or inside == 1) and (kind == "pvp" or kind == "arena")
+	end
+
 	-- What Automatic reminds you of in this family right now, and why:
 	--   "tank"     a family for the tank, and your group role is tank
 	--   "notank"   it is not, so nothing (the spell is nil)
@@ -3339,6 +3351,7 @@ do
 	--   "noshield"  it goes on a shield, and there is none in your off hand
 	--   "dry"       one for the water alone (Unending Breath), and you are not swimming
 	--   "grouped"   Dampen or Amplify Magic with its alone switch on, held back in a party or raid
+	--   "battle"    tracking, and you are in a battleground or an arena
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
@@ -3353,6 +3366,11 @@ do
 		-- For the water alone (Buffs.lua, `swimming`: Unending Breath on yourself):
 		-- on dry land nothing is said about it, up or not, and nothing is read.
 		if family.swimming and not Swimming(ctx.now or GetTime()) then return nil, nil, nil, "dry" end
+		-- Tracking in a battleground or an arena: every death there drops it,
+		-- and the reminder stood on the prompt ahead of the class's own buff
+		-- after each one, for herbs and ore nobody gathers in a fight (a
+		-- CurseForge report). Nothing is said about it there, on or off.
+		if family.tracking and ns.InBattleground() then return nil, nil, nil, "battle" end
 		-- Held to dungeons and raids by the player (Who to buff): out in the
 		-- world there is nothing to say about it, up or not.
 		if ns.OwnItemsHeldToDungeons(family) and addon.db.profile.ownBuffs.itemsInDungeons == true

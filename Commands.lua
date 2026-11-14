@@ -109,6 +109,9 @@ do
 		elseif why == "grouped" then
 			-- Dampen Magic in a group (Buffs.lua, solo).
 			return L["%s: %s is only offered when you are alone, and you are in a group."]:format(label, name or "?")
+		elseif why == "battle" then
+			-- Tracking in a battleground or an arena (Core.lua, OwnVerdict).
+			return L["%s: tracking is not offered in a battleground or an arena."]:format(label)
 		elseif why == "dry" then
 			-- Unending Breath on yourself, for the water alone (Buffs.lua, swimming).
 			return L["%s: you are not swimming, so it is not offered."]:format(label)

@@ -303,6 +303,7 @@ L["%s: %s is ticked under Never remind me about."] = "%s：%s 已在“永不提
 L["%s: you are in another form, so it is not offered."] = "%s：你处于其他形态，所以不会提示。"
 L["%s: %s goes on a shield, and there is none in your off hand."] = "%s：%s需要用在盾牌上，但你的副手没有盾牌。"
 L["%s: %s is only offered when you are alone, and you are in a group."] = "%s：%s 只在你独自一人时提示，而你在队伍中。"
+L["%s: tracking is not offered in a battleground or an arena."] = "%s：在战场或竞技场中不提示追踪。"
 L["%s: you are not swimming, so it is not offered."] = "%s：你没有在游泳，所以不会提示。"
 L["%s: none out -- Manners brings one out of your pet journal itself."] = "%s：没有宠物在外——Manners 会自己从你的宠物手册中召唤一只。"
 L["%s: you put your pet away, so none comes out until you bring one out yourself."] = "%s：你解散了宠物，所以在你自己召唤之前不会再召唤。"

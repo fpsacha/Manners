@@ -303,6 +303,7 @@ L["%s: %s is ticked under Never remind me about."] = "%s: %s está marcado en «
 L["%s: you are in another form, so it is not offered."] = "%s: estás en otra forma, así que no se ofrece."
 L["%s: %s goes on a shield, and there is none in your off hand."] = "%s: %s va en un escudo, y no tienes ninguno en la mano izquierda."
 L["%s: %s is only offered when you are alone, and you are in a group."] = "%s: %s solo se ofrece cuando estás solo, y estás en un grupo."
+L["%s: tracking is not offered in a battleground or an arena."] = "%s: el rastreo no se ofrece en un campo de batalla ni en una arena."
 L["%s: you are not swimming, so it is not offered."] = "%s: no estás nadando, así que no se ofrece."
 L["%s: none out -- Manners brings one out of your pet journal itself."] = "%s: ninguna fuera; Manners invoca una de tu diario de mascotas por sí mismo."
 L["%s: you put your pet away, so none comes out until you bring one out yourself."] = "%s: retiraste tu mascota, así que no saldrá ninguna hasta que tú mismo invoques una."

@@ -6,6 +6,14 @@
 - **Your group's pets.** *My group's pets too* on *Who to buff*, under *My party
   and raid*: a hunter's beast or a warlock's demon missing your buff is offered
   it, targeted by its name. Off by default. Asked for on CurseForge.
+- **Battlegrounds: your class buff, not tracking.** After a death in a
+  battleground or an arena the prompt reminded you of Find Minerals or Find
+  Herbs ahead of your own buff. Tracking is no longer offered there. Reported
+  on CurseForge.
+
+### Options window
+- **The footer.** Who makes Manners is larger and easier to read, and the
+  version stands at the right.
 
 ### Looks
 - **Lights that should be faint are faint.** Halos, flashes and glows meant to
