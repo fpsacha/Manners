@@ -1082,6 +1082,10 @@ do
 		for _, field in ipairs(ShareFields()) do
 			local holder = Holder(profile, field.path)
 			local text = holder and EncodeValue(field, holder[field.key], profile)
+			-- Buff my team there, on beside the instance switch, is named although
+			-- it is the default: a string without it is read as one from before
+			-- a battleground had a section (Battle.lua, CarryPasted).
+			if not text and field.name == "battle.team" and ns.Battle.Shared(profile) then text = "1" end
 			if text then parts[#parts + 1] = field.name .. "=" .. text end
 		end
 		local signed = ns.SHARE_PREFIX .. table.concat(parts, ";")
@@ -1240,6 +1244,10 @@ do
 				holder[field.key] = value
 			end
 		end
+		-- A string from before a battleground had a section of its own, with
+		-- Offer nothing in dungeons, raids and battlegrounds ticked: carried as
+		-- a saved profile of that release is at login (Battle.lua).
+		if not own then ns.Battle.CarryPasted(profile, parsed.values) end
 		-- What a profile switch runs, since every setting changed at once. Safe in
 		-- a fight: ApplyStyle waits for the fight to end. It also forgets the
 		-- undo, which each caller then sets as it needs.

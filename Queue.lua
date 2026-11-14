@@ -2603,6 +2603,10 @@ function ns.BuildQueue(watch)
 	-- Cures (Cures.lua): the two switches as this scan has them, or nil with
 	-- none to offer (both off, nothing learned, a fight). The scan's too.
 	opts.cures = ns.CureScan(db, now)
+	-- In a battleground or an arena nobody measured out of a single cast's
+	-- reach is offered one, whatever Only in range says (Battle.lua, Reach):
+	-- so the walk keeps them for a group cast's fold there as that switch does.
+	opts.reachOnly = battle and true or nil
 
 	-- `unasked` walks somebody as if they had made no request (see below).
 	-- `owner` is given for a pet of the group ("My group's pets too",
@@ -3025,7 +3029,10 @@ function ns.BuildQueue(watch)
 		-- stands either way: out of range, as far as a single cast goes. Out
 		-- of sight they never get here (the test above).
 		-- Never a pet, which no group cast counts or is aimed at (GroupBuffs.lua).
-		if f.requireInRange and ranged == false and inGroup and not owner and checked and ns.GROUP_IS_RAID
+		-- In a battleground or an arena with Only in range off too
+		-- (`opts.reachOnly`): Battle.Reach takes their own entry out below, and
+		-- ten of the team across the yard were counted by no Arcane Brilliance.
+		if (f.requireInRange or opts.reachOnly) and ranged == false and inGroup and not owner and checked and ns.GROUP_IS_RAID
 			and (has == false or remaining ~= nil) then
 			if opts.foldReady == nil then opts.foldReady = ns.GroupReady and ns.GroupReady(db, candidates) or false end
 			if opts.foldReady and opts.foldReady[buff.key] then

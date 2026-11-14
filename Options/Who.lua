@@ -1408,7 +1408,14 @@ function Page.BuildWhoTab()
 			quietTargets = {
 				type = "toggle",
 				name = L["Hold back my target and focus too"],
-				desc = L["On: the two switches above leave nobody out, not even somebody you target or focus. Off: they are still offered there."],
+				-- And a battleground or an arena with its own switch off, which
+				-- is the same rule there (Queue.lua, inTown).
+				desc = function()
+					return L["On: the two switches above leave nobody out, not even somebody you target or focus. Off: they are still offered there."]
+						.. " " .. L["In a battleground or an arena with %s off, %s holds back somebody you target or focus too."]
+							:format("|cffffd100" .. L["Buff my team there"] .. "|r",
+								"|cffffd100" .. L["Hold back my target and focus too"] .. "|r")
+				end,
 				order = 13.37,
 				width = "full",
 				get = fGet,
