@@ -109,6 +109,8 @@ function Prompt:ReasonText(entry)
 	end
 	-- A courtesy says what they asked for (Courtesy.lua): no reason line the player wrote names water or a portal.
 	if entry.courtesy then return ns.Courtesy.Reason(entry) end
+	-- Somebody dead, offered your resurrection (Resurrect.lua), says that.
+	if entry.res then return ns.Resurrect.Reason(entry) end
 	local template = p[REASON_KEY[entry.reason] or "reasonNearby"] or ""
 	-- The sub-line must be true without hovering: a top-up gets its own
 	-- wording, and so does an unreadable aura except for owed or asked, whose

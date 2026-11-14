@@ -1818,6 +1818,7 @@ function addon:HandleSlash(rawInput)
 					:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
 			end
 			for _, line in ipairs(ns.MyselfLines(GetTime())) do self:Print("  " .. line) end
+			for _, line in ipairs(ns.ResurrectLines and ns.ResurrectLines(true) or {}) do self:Print("  " .. line) end
 			PrintLeads(self)
 			-- Somebody buffing you is noticed for the /thank all the same.
 			PrintFavourWatch(self, db, GetTime())
@@ -1896,6 +1897,8 @@ function addon:HandleSlash(rawInput)
 		-- Who the game keeps refusing, since they are missing from the prompt
 		-- with nothing else on screen to say why.
 		for _, line in ipairs(ns.RefusalLines(now)) do self:Print("  " .. line) end
+		-- Why a resurrection is, or is not, on the prompt (Resurrect.lua).
+		for _, line in ipairs(ns.ResurrectLines and ns.ResurrectLines(true) or {}) do self:Print("  " .. line) end
 
 		PrintFavourWatch(self, db, now)
 

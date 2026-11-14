@@ -525,6 +525,8 @@ local function OnPostClick(self, mouseButton, down)
 	if not (S.current and S.current.name) then return end
 	-- A courtesy (Courtesy.lua) is no buff to settle: its press is filed there, and nothing is parked.
 	if S.current.courtesy then return ns.Courtesy.Pressed(S.current, S, now) end
+	-- A resurrection is no buff: its press is filed by Resurrect.lua, and nothing below is true of it.
+	if S.current.res then return ns.Resurrect.Pressed(S.current) end
 
 	-- The line went out with this press, so "In character" counts it as said
 	-- lately now rather than when it was rolled: a roll the press left out

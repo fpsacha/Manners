@@ -1092,6 +1092,30 @@ function Page.BuildWhoTab()
 				get = sGet,
 				set = sSet,
 			},
+			-- Your resurrection for the group's dead (Resurrect.lua): on, and
+			-- shown only to a class that has one on this client. A dead
+			-- passer-by is a second switch under it, off until ticked, and not
+			-- shown while the first is off (the layout's `parents`).
+			res = {
+				type = "toggle",
+				name = L["My group's dead"],
+				desc = L["Offer your resurrection for somebody of your party or raid who is dead and within reach, ahead of everything else. Never in a fight, never for somebody who has released their spirit, and not while another resurrection is already on its way to them."],
+				order = 12.7,
+				width = "full",
+				hidden = function() return not (ns.Resurrect and ns.Resurrect.Has()) end,
+				get = sGet,
+				set = sSet,
+			},
+			resStrangers = {
+				type = "toggle",
+				name = L["Dead passers-by too"],
+				desc = L["Also offer it for a dead player outside your group whom you could help: your target, your focus or whoever is under your cursor."],
+				order = 12.8,
+				width = "full",
+				hidden = function() return not (ns.Resurrect and ns.Resurrect.Has() and S().res) end,
+				get = sGet,
+				set = sSet,
+			},
 			strangers = {
 				type = "toggle",
 				name = L["Passers-by (players near me, not in my group)"],

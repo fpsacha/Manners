@@ -43,6 +43,7 @@ Requests.lua
 Courtesy.lua
 Favours.lua
 Clicks.lua
+Resurrect.lua
 Companion.lua
 Commands.lua
 Hints.lua

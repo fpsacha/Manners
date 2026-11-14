@@ -48,6 +48,7 @@ Page.RESET = {
 		"buff.tanksOutside", "buff.keptBack",
 		"sources.owed", "sources.group", "sources.pets", "sources.strangers", "sources.asked", "sources.self",
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
+		"sources.res", "sources.resStrangers",
 		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
 		"ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.scrolls", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"buff.leaveBlessed",

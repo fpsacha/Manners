@@ -308,6 +308,11 @@ local defaults = {
 			-- and walked only with `group` on (Queue.lua, IterateUnits): a pet
 			-- is reached by its name alone, which a player has to want.
 			pets = false,
+			-- Your resurrection for the group's dead, out of a fight (Resurrect.lua).
+			-- On, the one offer here nobody ticked: it is for a member of your
+			-- group, and only ever adds an offer. For a dead passer-by too: off.
+			res = true,
+			resStrangers = false,
 			strangers = true, -- nearby non-group players
 			owedClassBuffsOnly = true, -- ignore stray HoTs and procs
 			-- People who ask for your buff in chat. Off, because reading chat is
@@ -777,6 +782,7 @@ do
 		return safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true
 	end
 	-- For Courtesy.lua's spells, which are no buff's and are asked on a request alone.
+	-- Resurrect.lua asks the same of its spells, with each probe.
 	ns.SpellKnown = SpellKnown
 
 	-- Whether the client declares an aura secret: true, false, or nil when it
@@ -1094,6 +1100,8 @@ function ns.CanCastAnything()
 	-- A rogue or a warrior with a poison or a stone in the bags has something to
 	-- put on a weapon, whatever he has learned (ns.OwnItemsHeld).
 	if ns.OwnItemsHeld() then return true end
+	-- A resurrection learned is something to cast (Resurrect.lua): a monk on retail has nothing else.
+	if caps.res then return true end
 	return caps.anyKnown == true or caps.anyOwnKnown == true
 end
 
@@ -1125,6 +1133,8 @@ function ns.BuffInfo(buff)
 	if not buff then return nil end
 	-- A courtesy's entry (Courtesy.lua) carries its own answers: it is no buff of the sets.
 	if buff.courtesy then return buff.info end
+	-- A resurrection (Resurrect.lua) carries its own answer: it is no buff of the class's set.
+	if buff.res then return buff.info end
 	if buff.own then
 		local info = caps.own and caps.own[buff.key]
 		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
@@ -4226,6 +4236,8 @@ local function IsBuffableUnit(unit, f, pet)
 	if plain(UnitIsDeadOrGhost(unit)) == true then
 		-- Their buffs went with them: what was last read worn says nothing now.
 		ForgetAllWorn(plain(UnitGUID(unit)))
+		-- And the scan's dead are Resurrect.lua's to look at, while it is listening.
+		if ns.deadSeen then ns.deadSeen[#ns.deadSeen + 1] = unit end
 		return false, true
 	end
 	-- Only a definite refusal is a judgement about the person: a withheld
