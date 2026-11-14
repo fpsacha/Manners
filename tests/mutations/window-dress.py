@@ -72,8 +72,8 @@ mutate(DRESS,
        expect="a page no longer open keeps the lighter second line", script=S)
 
 mutate("Options/Window/WindowPage.lua",
-       "\tsec.rule:Show()\n\tUI.Dress.PlaceSection(sec)\n",
-       "\tsec.rule:Show()\n",
+       "\t\tsec.rule:Show()\n\t\tUI.Dress.PlaceSection(sec)\n",
+       "\t\tsec.rule:Show()\n",
        "window-dress: a section's title without its stud",
        expect="a section's title has no stud", script=S)
 

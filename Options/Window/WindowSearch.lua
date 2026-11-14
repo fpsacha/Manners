@@ -51,6 +51,14 @@ local function Add(out, item, sec, id, title)
 		if not parent then return end
 		first = Ask(B.Text, parent, "name")
 		ref = { path = parent.path, page = id, via = item.path }
+	else
+		-- Shown by its own rule and not drawn: indented under a switch that is
+		-- off (WindowPage.lua, UnderOff). Found the same way.
+		local switch = Ask(UI.SwitchFor, item.path)
+		if switch then
+			first = Ask(B.Text, switch, "name")
+			ref = { path = switch.path, page = id, via = item.path }
+		end
 	end
 	local choices = {}
 	local t = item.def.type

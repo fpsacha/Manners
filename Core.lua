@@ -242,6 +242,9 @@ local defaults = {
 		verbose = true, -- "X buffed you", and why a cast failed
 		-- Stronger than verbose: not one line of its own in chat (addon:Print).
 		silentChat = false,
+		-- One line in chat a while after login while Manners has no key
+		-- (Options/Start.lua, ns.KeyNudge): three logins at most.
+		keyReminder = true,
 		debugClicks = false, -- raw attribute dump on every click; on via /manners clicks
 
 		buff = {
@@ -5016,6 +5019,15 @@ function ns.ClampSettings()
 		profile.firstRun = p.anchorCarried == true and "existing" or "pending"
 	end
 	oneOf(profile, "firstRun", { pending = true, answered = true, skipped = true, existing = true }, "existing")
+	-- The options window's view (Options/Shared.lua, ns.MenuView): a profile
+	-- new at this clamp starts on the short list ("simple"); one that has been
+	-- through a clamp before keeps everything on screen and is offered the
+	-- short list once ("offer"), then is "full" or "simple" as its player says.
+	-- Told apart, and stamped, as the first run is.
+	if profile.menuView == nil then
+		profile.menuView = p.anchorCarried == true and "offer" or "simple"
+	end
+	oneOf(profile, "menuView", { simple = true, full = true, offer = true }, "full")
 
 	-- Beta.1 moved the default anchor from the middle of the screen to the
 	-- bottom edge; AceDB strips values equal to their default, so a 0.9.x
@@ -5305,6 +5317,8 @@ function addon:OnEnable()
 		-- (nothing printed before the chat frame exists is seen); guarded, and told
 		-- whether the line above said the profile is off.
 		ns.Guard("Welcome", ns.Welcome, false, off)
+		-- Later, once the login's own lines have scrolled by: how to put Manners on a key, while it has none.
+		if ns.KeyNudge then C_Timer.After(ns.KEY_NUDGE_AFTER, function() ns.Guard("key reminder", ns.KeyNudge, true) end) end
 	end)
 end
 
@@ -5611,6 +5625,8 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- A first greeting stood down by a fight gets another go; on every other
 	-- fight the flag is read first and this returns at once.
 	ns.Guard("Welcome", ns.Welcome)
+	-- The reminder to set a key, stood down by a fight, is said as it ends.
+	if ns.KeyNudge then ns.Guard("key reminder", ns.KeyNudge) end
 	-- And the old macro, for the same reason: it cannot be edited in a fight.
 	if ns.SettleOldMacro then ns.SettleOldMacro() end
 	-- And the macro's slot on an action bar, for what the fight held back

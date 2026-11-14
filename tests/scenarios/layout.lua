@@ -75,6 +75,9 @@ local SLOT_TYPES = {
 	["header.snoozeTip"] = "description", ["strip.lock"] = "execute", ["strip.combat"] = "description",
 	foldCaption = "description", ["footer.reset"] = "execute", ["footer.build"] = "description",
 	["footer.about"] = "description",
+	-- The simple view's own controls (Layout.lua, `menu`).
+	["menu.simple"] = "toggle", ["menu.offer"] = "description", ["menu.try"] = "execute",
+	["menu.dismiss"] = "execute", ["menu.more"] = "description", ["menu.everything"] = "execute",
 }
 
 -- Every path the layout names, with where and as what. `uses[path]` is a list
@@ -106,6 +109,10 @@ local function Collect(layout, problem)
 	use(footer.reset, "the footer", "footer.reset")
 	use(footer.build, "the footer", "footer.build")
 	use(footer.about, "the footer", "footer.about")
+	local menu = layout.menu or {}
+	for _, slot in ipairs({ "simple", "offer", "try", "dismiss", "more", "everything" }) do
+		use(menu[slot], "the simple view", "menu." .. slot)
+	end
 	for pageId, page in pairs(layout.pages or {}) do
 		for s, section in ipairs(page.sections or {}) do
 			local where = ("%s, section %d (%s)"):format(pageId, s, tostring(section.key))
@@ -169,7 +176,15 @@ local function CheckShape(layout, problem)
 			if section.title ~= nil and (type(section.title) ~= "string" or section.title == "") then
 				problem(where .. " has an empty title")
 			end
-			if type(section.items) ~= "table" or #section.items == 0 then problem(where .. " has no items") end
+			-- A home waits for the settings its comment names (Layout.lua's
+			-- header): it may be empty, and says what it is with a title.
+			if section.home ~= nil then
+				if section.home ~= true then problem(where .. " has home = " .. tostring(section.home)) end
+				if type(section.title) ~= "string" then problem(where .. " is a home with no title of its own") end
+				if type(section.items) ~= "table" then problem(where .. " is a home with no items table to fill") end
+			elseif type(section.items) ~= "table" or #section.items == 0 then
+				problem(where .. " has no items")
+			end
 			for _, item in ipairs(section.items or {}) do
 				if type(item) == "table" and not item.composite then
 					for flag in pairs(item) do

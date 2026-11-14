@@ -329,6 +329,18 @@ function BEFORE.carrying(ns)
 	ns.CreateClickMacro()
 end
 
+-- The options window's two views (Options/Shared.lua, ns.MenuView): the short
+-- list a new profile starts on, and everything with the line that offers the
+-- short list to a profile from before it. With neither, the mock's player has
+-- chosen Show everything.
+function BEFORE.simple(ns)
+	ns.db.profile.menuView = "simple"
+end
+
+function BEFORE.offer(ns)
+	ns.db.profile.menuView = "offer"
+end
+
 function BEFORE.unlocked(ns)
 	ns.db.profile.prompt.locked = false
 	if ns.Prompt and ns.Prompt.ApplyStyle then ns.Prompt:ApplyStyle() end
@@ -393,6 +405,29 @@ function AFTER.big(ns)
 	local UI = ns.WindowUI
 	assert(UI and UI.SetWindowSize, "this tree has no ns.WindowUI.SetWindowSize")
 	UI.SetWindowSize(1100, 800)
+end
+
+-- The window dragged wide on a 16:9 screen, as the author's screenshot had it:
+-- 1320 x 720, where a page's sections flow into two columns.
+function AFTER.wide(ns)
+	local UI = ns.WindowUI
+	assert(UI and UI.SetWindowSize, "this tree has no ns.WindowUI.SetWindowSize")
+	UI.SetWindowSize(1320, 720)
+end
+
+-- A 21:9 screen (1792 x 768 at UI scale 1) and the window dragged across it:
+-- 1740 x 720, where a page's sections flow into three columns.
+function BEFORE.ultrawide()
+	Mock.screenWidth = 1792
+	FT.screen = { width = 1792, height = SCREEN.height }
+end
+
+function AFTER.ultrawide(ns)
+	local UI = ns.WindowUI
+	assert(UI and UI.SetWindowSize, "this tree has no ns.WindowUI.SetWindowSize")
+	-- The grip's bounds were set when the window was built, from the screen.
+	if UI.frame.SetResizeBounds then UI.frame:SetResizeBounds(UI.MIN_W, UI.MIN_H, 1752, 728) end
+	UI.SetWindowSize(1740, 720)
 end
 
 -- The page scrolled to its end, as the mouse wheel would take it, for what a
@@ -482,7 +517,7 @@ function R.page(page, spec)
 		failed = not ok and tostring(err) or nil,
 		notes = notes,
 		now = Mock.now,
-		screen = SCREEN,
+		screen = FT.screen or SCREEN,
 		errors = ns.errors and #ns.errors or 0,
 		firstError = ns.errors and ns.errors[1] and (tostring(ns.errors[1].where) .. " -> "
 			.. tostring(ns.errors[1].err)) or nil,
