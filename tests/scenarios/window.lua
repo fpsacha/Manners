@@ -515,7 +515,9 @@ do
 		ns.OpenOptions()
 		local entries = UI.SearchEntries()
 		local paths = {}
-		for _, e in ipairs(entries) do paths[e.ref.path] = e end
+		-- By the control found: one not drawn until a switch is on (Where to
+		-- say it, under Say a line) is found with that switch as where it leads.
+		for _, e in ipairs(entries) do paths[e.ref.via or e.ref.path] = e end
 		for _, path in ipairs({ "general.howItWorks", "diagnostics.pvpDiag", "diagnostics.ownDiag", "diagnostics.diag" }) do
 			if paths[path] then fail(scenario, "the note " .. path .. " is searched") end
 		end
@@ -528,7 +530,7 @@ do
 		end
 		local found = ns.WindowSearch.Find(channel and channel.choices[#channel.choices] or "", entries, 8)
 		local hit = false
-		for _, e in ipairs(found) do hit = hit or e.ref.path == "click.channel" end
+		for _, e in ipairs(found) do hit = hit or (e.ref.via or e.ref.path) == "click.channel" end
 		if channel and not hit then fail(scenario, "a choice of Where to say it does not find it") end
 	end)
 end

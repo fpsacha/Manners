@@ -108,3 +108,91 @@ mutate("Options/Window/WidgetsChoice.lua",
        "math.min(300, math.floor(width * 0.6))",
        "menu: a dropdown that never grows",
        expect="menu: a field grows with a row wider than the usual page", script=S)
+
+# ------------------------------------------------ the pages, by what the player came to do
+
+LAYOUT = "Options/Window/Layout.lua"
+
+mutate(LAYOUT,
+       "\t\t\t\titems[#items + 1] = path\n",
+       "\t\t\t\titems[#items + 1] = { path, columns = 2 }\n",
+       "menu: the buffs two to a row again",
+       expect="menu: each buff has a row of its own", script=S)
+
+mutate(LAYOUT,
+       "\t\t\t\tif class == own and buff == mana then\n",
+       "\t\t\t\tif false then\n",
+       "menu: Only to players with mana under the whole list, not its buff",
+       expect="menu: each buff has a row of its own", script=S)
+
+mutate(LAYOUT,
+       "\t\t\t\tif class == own and buff == melee then\n",
+       "\t\t\t\tif false then\n",
+       "menu: Not to casters under the whole list, not its blessing",
+       expect="Not to mages, warlocks and priests is not under a paladin's Blessing of Might", script=S)
+
+mutate(LAYOUT,
+       "\t\t\t\t\titems[#items + 1] = { \"who.relevantOnly\", indent = manaAlone or nil }\n",
+       "\t\t\t\t\titems[#items + 1] = \"who.relevantOnly\"\n",
+       "menu: Only to players with mana level with the buff it is about",
+       expect="not a step in from Divine Spirit", script=S)
+
+mutate(PAGE,
+       "\t\tif p.kind == \"toggle\" and not UI.Hidden(p.item) and SwitchedOff(p.item) then return p end\n",
+       "",
+       "menu: a sub-option greyed out under a switch that is off, as it was",
+       expect="menu: a sub-option is not drawn under a switch that is off", script=S)
+
+mutate(PAGE,
+       "\tif e.isControl and not UI.Disabled(e.item) then return nil end\n",
+       "",
+       "menu: a control goes with the switch above it whatever else it serves",
+       expect="the pause is gone with the /thank off", script=S)
+
+mutate(PAGE,
+       "\t\t\t\t\tif sec.entries[k].level < e.level then\n",
+       "\t\t\t\t\tif sec.entries[k].level == 0 then\n",
+       "menu: a row two steps in is under the switch, past the row it belongs to",
+       expect="a row two steps in is not under the row one step in above it", script=S)
+
+mutate("Options/Window/WindowSearch.lua",
+       "\t\tlocal switch = Ask(UI.SwitchFor, item.path)\n",
+       "\t\tlocal switch = nil\n",
+       "menu: search sends the player to a row that is not drawn",
+       expect="menu: search finds a sub-option under a switch that is off", script=S)
+
+mutate(PAGE,
+       "\t\tif switch and switch.path ~= path then return UI.Reveal(switch.path) end\n",
+       "",
+       "menu: asked for a row under a switch that is off, the window shows nothing",
+       expect="asked for Sound, the window showed", script=S)
+
+mutate(LAYOUT,
+       "\t\t\t\t{ key = \"skip.lead\", title = L[\"Players to skip\"], items = {\n",
+       "\t\t\t\t{ key = \"skip.lead\", items = {\n",
+       "menu: Who to skip's switches under no heading",
+       expect="menu: Who to buff asks who before what, and every section has a heading", script=S)
+
+mutate(LAYOUT,
+       "\t\t\t\t{ key = \"appearance.hover\", header = \"appearance.tooltipHeader\", fold = true, items = {\n",
+       "\t\t\t\t{ key = \"appearance.hover\", header = \"appearance.tooltipHeader\", items = {\n",
+       "menu: Look's Tooltip out of its fold",
+       expect="appearance.hover is not a fold on Look", script=S)
+
+mutate(PAGE,
+       "\t\"tooltip\", \"tooltipPosition\", \"peekOnChange\" }) do\n",
+       "\t\"peekOnChange\" }) do\n",
+       "menu: Tooltip's fold never says it holds a change",
+       expect="Tooltip's dot stays dark", script=S)
+
+mutate(LAYOUT,
+       "\t\t\t\t{ key = \"when.battle\", title = L[\"Battlegrounds and arenas\"], home = true, items = {\n",
+       "\t\t\t\t{ key = \"when.battle\", title = L[\"Battlegrounds and arenas\"], items = {\n",
+       "menu: the home for battlegrounds not marked as one",
+       expect="when.battle is not marked as a home", script=S)
+
+mutate(LAYOUT,
+       "\t\t\t\t\t-- HOME: sharing a group with other Manners users (who buffs\n",
+       "\t\t\t\t\t-- (who buffs\n",
+       "menu: no home named for sharing a group with other Manners users",
+       expect="menu: the homes for what is coming are in the layout", script=S)

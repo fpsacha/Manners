@@ -17,16 +17,36 @@ local PAD_LEFT, PAD_BOTTOM, COLUMN_GAP = 18, 26, 28
 
 local function near(a, b, eps) return type(a) == "number" and type(b) == "number" and math.abs(a - b) < (eps or 0.5) end
 
--- opts: class, page, screen (the screen's width in UI units), before(ns).
+-- The buffs a class has learned, by key (every rank), for the scenarios that
+-- need its switches on the page.
+local KNOWS = {
+	PRIEST = { "fortitude", "spirit", "shadow" },
+	PALADIN = { "wisdom", "might", "kings" },
+}
+
+-- opts: class, page, screen (the screen's width in UI units), before(ns),
+-- newProfile (the profile left to start as a new one does).
 local function with(scenario, opts, body)
 	Mock.reset()
 	FT.install()
+	local known, playerSpell = rawget(_G, "IsSpellKnown"), rawget(_G, "IsPlayerSpell")
 	local ok, err = pcall(function()
 		if opts.class then Mock.class = opts.class end
 		if opts.screen then Mock.screenWidth = opts.screen end
+		if opts.newProfile then Mock.newMenu = true end
 		local ns = load(scenario)
 		if not ns then return end
+		if KNOWS[opts.class or ""] then
+			local set = {}
+			for _, key in ipairs(KNOWS[opts.class]) do
+				local buff = ns.FindBuff(opts.class, key)
+				for _, id in ipairs(buff and buff.ranks or {}) do set[id] = true end
+			end
+			IsSpellKnown = function(id) return set[id] == true end
+			IsPlayerSpell = IsSpellKnown
+		end
 		drive(scenario, ns)
+		if KNOWS[opts.class or ""] then ns.Guard("probe", ns.ProbeCapabilities) end
 		ns.Prompt:ExitTest()
 		if opts.before then opts.before(ns) end
 		ns.OpenOptions(opts.page or "when")
@@ -36,6 +56,8 @@ local function with(scenario, opts, body)
 			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
 		end
 	end)
+	rawset(_G, "IsSpellKnown", known)
+	rawset(_G, "IsPlayerSpell", playerSpell)
 	FT.uninstall()
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
@@ -172,49 +194,60 @@ end
 
 do
 	local scenario = "menu: what comes under the columns starts under the tallest, and the page scrolls to its end"
-	with(scenario, { page = "when" }, function(ns, UI)
+	with(scenario, { page = "who", class = "PRIEST" }, function(ns, UI)
 		UI.SetWindowSize(1320, 620)
-		-- Where each column of the sections before the folds ends, and where
-		-- the folds under them begin and end.
-		local bottoms, foldTop, last = {}, nil, 0
-		for _, sec in ipairs(drawn(UI)) do
-			if sec.fold then
-				foldTop = math.min(foldTop or math.huge, sec.top)
-				last = math.max(last, sec.y + 26)
-			else
-				for _, e in ipairs(rows(UI, sec)) do
-					if not sec.span then bottoms[sec.column] = math.max(bottoms[sec.column] or 0, e.y + e.h) end
-					last = math.max(last, e.y + e.h)
+		-- Where each column of the sections before the folds ends, where the
+		-- folds under them begin, and the last thing on the page.
+		for _, id in ipairs({ "who", "when" }) do
+			ns.OpenOptions(id)
+			local bottoms, foldTop, last = {}, nil, 0
+			for _, sec in ipairs(drawn(UI)) do
+				if sec.fold then
+					foldTop = math.min(foldTop or math.huge, sec.top)
+					last = math.max(last, sec.y + 26)
+				else
+					for _, e in ipairs(rows(UI, sec)) do
+						if not sec.span then bottoms[sec.column] = math.max(bottoms[sec.column] or 0, e.y + e.h) end
+						last = math.max(last, e.y + e.h)
+					end
 				end
 			end
-		end
-		if not (bottoms[1] and bottoms[2]) then fail(scenario, "the page is not in two columns") return end
-		if not foldTop then fail(scenario, "no fold under the columns of When to offer") return end
-		if near(bottoms[1], bottoms[2], 30) then fail(scenario, "the two columns end level: the scenario proves nothing") end
-		-- The folds' caption stands between the columns and the folds: a line
-		-- of small text and its room, 24 at the least.
-		if foldTop < math.max(bottoms[1], bottoms[2]) + 24 then
-			fail(scenario, ("the folds start at %s, over a column or its caption (the columns end at %s and %s)"):format(tostring(foldTop),
-				tostring(bottoms[1]), tostring(bottoms[2])))
-		end
-		local total = UI.view.range + UI.view.height
-		-- The last thing drawn, the gap under it, the padding under the page.
-		if total < last + PAD_BOTTOM or total > last + PAD_BOTTOM + 40 then
-			fail(scenario, ("the page is %s tall and the last thing on it ends at %s"):format(tostring(total), tostring(last)))
-		end
-		-- No fold on Who to skip: the page ends under its taller column.
-		ns.OpenOptions("skip")
-		local ends = {}
-		for _, sec in ipairs(drawn(UI)) do
-			for _, e in ipairs(rows(UI, sec)) do
-				if not sec.span then ends[sec.column] = math.max(ends[sec.column] or 0, e.y + e.h) end
+			if not (bottoms[1] and bottoms[2]) then
+				fail(scenario, id .. " is not in two columns")
+			elseif not foldTop then
+				fail(scenario, "no fold under the columns of " .. id)
+			else
+				-- The folds' caption stands between the columns and the folds: a
+				-- line of small text and its room, 24 at the least.
+				local tallest = math.max(bottoms[1], bottoms[2])
+				if foldTop < tallest + 24 then
+					fail(scenario, ("%s: the folds start at %s, over a column or its caption (the columns end at %s and %s)"):format(id,
+						tostring(foldTop), tostring(bottoms[1]), tostring(bottoms[2])))
+				end
+			end
+			local total = UI.view.range + UI.view.height
+			-- The last thing drawn, the gap under it, the padding under the page.
+			if total < last + PAD_BOTTOM or total > last + PAD_BOTTOM + 40 then
+				fail(scenario, ("%s is %s tall and the last thing on it ends at %s"):format(id, tostring(total), tostring(last)))
 			end
 		end
-		if not (ends[1] and ends[2]) then fail(scenario, "Who to skip is not in two columns") return end
-		local tallest = math.max(ends[1], ends[2])
-		total = UI.view.range + UI.view.height
-		if total < tallest + PAD_BOTTOM then
-			fail(scenario, ("Who to skip is %s tall, its columns end at %s and %s"):format(tostring(total), tostring(ends[1]), tostring(ends[2])))
+		-- The folds are flowed the same way, and the page ends under the taller
+		-- of them: Timing open in the first column, Targeting shut in the second.
+		UI.State().open = { ["when.timing"] = true }
+		ns.RefreshOptionsDisplay()
+		local timing, targeting = UI.Where("advanced.retryCooldown"), UI.Where("advanced.restoreTarget")
+		if not (timing and targeting and timing.sec.column == 1 and targeting.sec.column == 2) then
+			fail(scenario, "When to offer's two folds are not side by side in a window 1320 wide")
+			return
+		end
+		local last = 0
+		for _, e in ipairs(rows(UI, timing.sec)) do last = math.max(last, e.y + e.h) end
+		if not (last > targeting.sec.y + 26 + 30) then
+			fail(scenario, "Timing, open, is no taller than Targeting, shut: the scenario proves nothing")
+		end
+		local total = UI.view.range + UI.view.height
+		if total < last + PAD_BOTTOM then
+			fail(scenario, ("the page is %s tall and its open fold, in the first column, ends at %s"):format(tostring(total), tostring(last)))
 		end
 	end)
 end
@@ -305,6 +338,218 @@ do
 		UI.SetWindowSize(1320, 600)
 		if not near(field(), usual) then
 			fail(scenario, ("the dropdown is %s wide in the usual window and %s in a column of a wide one"):format(tostring(usual), tostring(field())))
+		end
+	end)
+end
+
+---------------------------------------------------------------------------
+-- the pages, arranged by what the player came to do
+---------------------------------------------------------------------------
+
+local INDENT = 16
+
+do
+	local scenario = "menu: each buff has a row of its own, with that buff's own switch under it"
+	with(scenario, { page = "who", class = "PRIEST" }, function(ns, UI)
+		local fort, spirit, shadow = UI.Where("who.offer_fortitude"), UI.Where("who.offer_spirit"), UI.Where("who.offer_shadow")
+		local mana = UI.Where("who.relevantOnly")
+		if not (fort and spirit and shadow and mana) then fail(scenario, "SKIPPED -- a priest's switches are not placed") return end
+		for _, path in ipairs({ "who.offer_fortitude", "who.offer_spirit", "who.offer_shadow", "who.relevantOnly" }) do
+			if not UI.RowShown(path) then fail(scenario, path .. " is not drawn on a priest's Who to buff") return end
+		end
+		if not (fort.e.y < spirit.e.y and spirit.e.y < shadow.e.y) then
+			fail(scenario, ("the three buffs are not one under the other: %s, %s, %s"):format(tostring(fort.e.y), tostring(spirit.e.y), tostring(shadow.e.y)))
+		end
+		if fort.e.x ~= spirit.e.x or spirit.e.x ~= shadow.e.x then fail(scenario, "the three buffs do not start at one edge") end
+		-- Only to players with mana: Divine Spirit's, so right under it and a step in.
+		if not (mana.e.y > spirit.e.y and mana.e.y < shadow.e.y) then
+			fail(scenario, ("Only to players with mana is at %s, not between Divine Spirit (%s) and the buff after it (%s)"):format(
+				tostring(mana.e.y), tostring(spirit.e.y), tostring(shadow.e.y)))
+		end
+		if mana.e.x ~= spirit.e.x + INDENT then
+			fail(scenario, ("Only to players with mana starts at %s, not a step in from Divine Spirit (%s)"):format(tostring(mana.e.x), tostring(spirit.e.x)))
+		end
+	end)
+	with(scenario, { page = "who", class = "PALADIN" }, function(ns, UI)
+		local wisdom, might, casters, mana = UI.Where("who.offer_wisdom"), UI.Where("who.offer_might"),
+			UI.Where("who.skipCasters"), UI.Where("who.relevantOnly")
+		if not (wisdom and might and casters and mana) then fail(scenario, "SKIPPED -- a paladin's switches are not placed") return end
+		if not (UI.RowShown("who.skipCasters") and UI.RowShown("who.relevantOnly")) then
+			fail(scenario, "a paladin's two switches about who a blessing is any use to are not drawn")
+			return
+		end
+		if not (mana.e.y > wisdom.e.y and mana.e.y < might.e.y and mana.e.x == wisdom.e.x + INDENT) then
+			fail(scenario, "Only to players with mana is not under a paladin's Blessing of Wisdom")
+		end
+		if not (casters.e.y > might.e.y and casters.e.x == might.e.x + INDENT) then
+			fail(scenario, "Not to mages, warlocks and priests is not under a paladin's Blessing of Might")
+		end
+	end)
+end
+
+do
+	local scenario = "menu: a sub-option is not drawn under a switch that is off, and is back with the switch"
+	with(scenario, { page = "appearance" }, function(ns, UI)
+		local db = ns.db.profile
+		db.sound.enabled = false
+		ns.RefreshOptionsDisplay()
+		if not UI.RowShown("appearance.soundEnabled") then fail(scenario, "SKIPPED -- no Play a sound on Look") return end
+		if UI.RowShown("appearance.soundFile") or UI.RowShown("appearance.soundOwedOnly") then
+			fail(scenario, "the sound's own choices are drawn under Play a sound while it is off")
+		end
+		db.sound.enabled = true
+		ns.RefreshOptionsDisplay()
+		if not (UI.RowShown("appearance.soundFile") and UI.RowShown("appearance.soundOwedOnly")) then
+			fail(scenario, "the sound's own choices are not back with Play a sound on")
+		else
+			local switch, file = UI.Where("appearance.soundEnabled").e, UI.Where("appearance.soundFile").e
+			if file.x ~= switch.x + INDENT or not (file.y > switch.y) then fail(scenario, "Sound is not a step in under Play a sound") end
+		end
+		-- The model decides what a switch governs: the pause before a /thank is
+		-- the whisper's too, and stays while the whisper is on.
+		ns.OpenOptions("click")
+		db.prompt.thankEmote, db.prompt.thankWhisper = false, true
+		ns.RefreshOptionsDisplay()
+		if UI.RowShown("click.thankEmoteToken") then fail(scenario, "Emote to use is drawn under a /thank that is off") end
+		if not UI.RowShown("click.thankDelay") then
+			fail(scenario, "the pause is gone with the /thank off, though the whispered thank-you still waits it out")
+		end
+		db.prompt.thankWhisper = false
+		ns.RefreshOptionsDisplay()
+		if UI.RowShown("click.thankDelay") then fail(scenario, "the pause is drawn with neither the /thank nor the whisper on") end
+		-- A choice under a dropdown under a switch goes with the switch too.
+		local magic = UI.Where("who.ownDampenAlone")
+		if magic and magic.e.parent and magic.e.parent.parent then
+			if magic.e.parent.parent.path ~= "who.self" then
+				fail(scenario, "a mage's Dampen Magic choice is under " .. tostring(magic.e.parent.parent.path) .. ", not Myself")
+			end
+		else
+			fail(scenario, "a row two steps in is not under the row one step in above it")
+		end
+	end)
+end
+
+do
+	local scenario = "menu: search finds a sub-option under a switch that is off, and opens the switch"
+	with(scenario, { page = "appearance" }, function(ns, UI)
+		ns.db.profile.sound.enabled = false
+		ns.RefreshOptionsDisplay()
+		local found
+		for _, entry in ipairs(UI.SearchEntries()) do
+			if (entry.ref.via or entry.ref.path) == "appearance.soundFile" then found = entry end
+		end
+		if not found then fail(scenario, "Sound is not searched while Play a sound is off") return end
+		if found.ref.path ~= "appearance.soundEnabled" or found.ref.via ~= "appearance.soundFile" then
+			fail(scenario, "the result for Sound leads to " .. tostring(found.ref.path) .. ", not to Play a sound")
+		end
+		local name = ns.WindowBind.Text(UI.Item("appearance.soundEnabled"), "name")
+		if found.first ~= name then
+			fail(scenario, ("the result does not say to turn %s on first: %s"):format(tostring(name), tostring(found.first)))
+		end
+		ns.OpenOptions("when")
+		local e = UI.Reveal("appearance.soundFile")
+		if not (e and e.path == "appearance.soundEnabled") then
+			fail(scenario, "asked for Sound, the window showed " .. tostring(e and e.path) .. ", not Play a sound")
+		end
+		if UI.page ~= "appearance" then fail(scenario, "asked for Sound, the window is on " .. tostring(UI.page)) end
+	end)
+end
+
+do
+	local scenario = "menu: Who to buff asks who before what, and every section has a heading"
+	with(scenario, { page = "who", class = "PRIEST" }, function(ns, UI)
+		local at = {}
+		for i, sec in ipairs(UI.Model("who").sections) do at[sec.key] = i end
+		local order = { "who.now", "who.sources", "who.cast", "who.order", "who.group", "who.myself", "who.first" }
+		for i = 2, #order do
+			local a, b = at[order[i - 1]], at[order[i]]
+			if not (a and b) then
+				fail(scenario, "Who to buff has no section " .. (a and order[i] or order[i - 1]))
+			elseif a > b then
+				fail(scenario, order[i] .. " comes before " .. order[i - 1] .. " on Who to buff")
+			end
+		end
+		-- A heading on every section; the one a page opens with may go without.
+		for id, page in pairs(ns.WindowLayout.pages) do
+			for i, section in ipairs(page.sections) do
+				if i > 1 and section.title == nil and section.header == nil then
+					fail(scenario, ("%s, section %d (%s) has no heading"):format(id, i, tostring(section.key)))
+				end
+			end
+		end
+	end)
+end
+
+do
+	local scenario = "menu: Look's fine print is folded, its dot lit by a change, and no page is much over three screens"
+	with(scenario, { page = "appearance" }, function(ns, UI)
+		local byKey = {}
+		for _, sec in ipairs(UI.Model("appearance").sections) do byKey[sec.key] = sec end
+		for _, key in ipairs({ "appearance.hover", "appearance.window" }) do
+			if not (byKey[key] and byKey[key].fold) then fail(scenario, key .. " is not a fold on Look") end
+		end
+		if not byKey["appearance.queue"] or byKey["appearance.queue"].fold then fail(scenario, "the waiting list is folded away") end
+		local hover = byKey["appearance.hover"]
+		if hover then
+			if UI.FoldChanged(hover) then fail(scenario, "Tooltip's dot is lit on a profile nobody changed") end
+			ns.db.profile.prompt.tooltip = "off"
+			ns.RefreshOptionsDisplay()
+			if not UI.FoldChanged(hover) then fail(scenario, "Tooltip's dot stays dark with the tooltip switched off") end
+			ns.db.profile.prompt.tooltip = ns.defaults.profile.prompt.tooltip
+		end
+		-- The folds as a new profile has them, shut; the usual window.
+		UI.State().open = {}
+		for _, group in ipairs(ns.WindowLayout.groups) do
+			for _, id in ipairs(group) do
+				ns.OpenOptions(id)
+				if UI.page == id then
+					local screens = (UI.view.range + UI.view.height) / UI.view.height
+					if screens > 3.1 then
+						fail(scenario, ("%s is %.1f screens of the usual window with its folds shut"):format(id, screens))
+					end
+				end
+			end
+		end
+	end)
+end
+
+do
+	local scenario = "menu: the homes for what is coming are in the layout, titled, and not drawn while empty"
+	with(scenario, { page = "who", class = "PRIEST" }, function(ns, UI)
+		local homes = { ["who.beyond"] = "who", ["who.asking"] = "who", ["when.battle"] = "when" }
+		for key, pageId in pairs(homes) do
+			local def
+			for _, section in ipairs(ns.WindowLayout.pages[pageId].sections) do
+				if section.key == key then def = section end
+			end
+			if not def then
+				fail(scenario, "no section " .. key)
+			else
+				if def.home ~= true then fail(scenario, key .. " is not marked as a home") end
+				if type(def.title) ~= "string" or def.title == "" then fail(scenario, key .. " has no title") end
+				if #def.items == 0 then
+					ns.OpenOptions(pageId)
+					for _, sec in ipairs(UI.Model(pageId).sections) do
+						if sec.key == key and (sec.visible or (sec.title and sec.title:IsShown())) then
+							fail(scenario, key .. " is drawn with nothing in it")
+						end
+					end
+				end
+			end
+		end
+		-- The others are a comment where the setting belongs.
+		local file = io.open(dir .. "/Options/Window/Layout.lua", "r")
+		local text = file and file:read("*a") or ""
+		if file then file:close() end
+		local named = 0
+		for line in text:gmatch("[^\n]+") do
+			if line:find("-- HOME:", 1, true) then named = named + 1 end
+		end
+		if named < 6 then fail(scenario, "the layout names " .. named .. " homes in its comments, not the six it has") end
+		text = text:lower():gsub("%s*\n%s*%-%-%s*", " ")
+		for _, what in ipairs({ "resurrection", "courtesies", "cures", "other manners users", "asking for a buff",
+			"battlegrounds and arenas", "companion pets", "group's pets" }) do
+			if not text:find(what, 1, true) then fail(scenario, "no home says it is for " .. what) end
 		end
 	end)
 end

@@ -87,6 +87,14 @@ local function Entry(raw, sec)
 	return e
 end
 
+-- How many steps in the layout indents a row: `indent = true` one, `indent =
+-- 2` two (a choice that belongs to a switch which is itself indented).
+local function Level(e)
+	local n = e.layout.indent
+	if not n then return 0 end
+	return n == true and 1 or tonumber(n) or 1
+end
+
 -- A page's sections and entries, made once. Controls the model does not have
 -- for this character are left out.
 function UI.Model(id)
@@ -102,6 +110,16 @@ function UI.Model(id)
 		for _, raw in ipairs(s.items or {}) do
 			local e = Entry(raw, sec)
 			if e then
+				-- What the row is indented under: the nearest row above it that
+				-- is further out (UnderOff).
+				e.level = Level(e)
+				for k = #sec.entries, 1, -1 do
+					if e.level == 0 then break end
+					if sec.entries[k].level < e.level then
+						e.parent = sec.entries[k]
+						break
+					end
+				end
 				sec.entries[#sec.entries + 1] = e
 				sec.hasControls = sec.hasControls or e.isControl
 				where[e.path] = { page = id, sec = sec, e = e }
@@ -130,10 +148,36 @@ function UI.Where(path)
 	return where[path]
 end
 
+-- A switch's value as the window reads any; one that throws reads as on, so
+-- nothing is hidden on the strength of a rule that failed.
+local function SwitchedOff(item)
+	local ok, value = pcall(ns.WindowBind.Value, item)
+	return ok and value ~= true
+end
+
+-- The switch a row is indented under, while that switch is off and has made
+-- the row useless: a sub-option is not drawn under a switch that is off, where
+-- it used to stand greyed out. Going by the layout's indents, up through every
+-- row it is under (a choice under a dropdown under a switch): the first switch
+-- on the way that is on screen and off. A control goes only while its own rule
+-- greys it too -- the model decides what a switch governs, so the pause before
+-- a /thank stays while the whisper that shares it is on -- and a note goes
+-- with its switch.
+local function UnderOff(e)
+	if not e.parent or e.subs then return nil end
+	if e.isControl and not UI.Disabled(e.item) then return nil end
+	local p = e.parent
+	while p do
+		if p.kind == "toggle" and not UI.Hidden(p.item) and SwitchedOff(p.item) then return p end
+		p = p.parent
+	end
+	return nil
+end
+
 -- Whether an entry is shown by its own rules and its tab's. A composite is
 -- shown while any of its controls is. A rule that throws hides its entry
 -- (UI.Hidden).
-local function Shown(e)
+local function ShownByModel(e)
 	if e.subs then
 		for _, sub in ipairs(e.subs) do
 			if not IsNote(sub) and not UI.Hidden(sub) then return true end
@@ -142,14 +186,29 @@ local function Shown(e)
 	end
 	return not UI.Hidden(e.item)
 end
+
+-- ...and by the window's: not under a switch that is off.
+local function Shown(e)
+	return ShownByModel(e) and UnderOff(e) == nil
+end
 UI.EntryShown = Shown
+
+-- The switch to turn on first for a control the model shows and the window
+-- does not draw (UnderOff), or nil: for the search, which finds the control
+-- and opens its switch.
+function UI.SwitchFor(path)
+	local w = UI.Where(path)
+	if not w or w.e.path ~= path or not ShownByModel(w.e) then return nil end
+	local p = UnderOff(w.e)
+	return p and p.item or nil
+end
 
 -- A page is in the sidebar while one of its controls is shown. Notes never
 -- keep it there, and their rules are never asked for a page not open.
 function UI.PageVisible(id)
 	for _, sec in ipairs(UI.Model(id).sections) do
 		for _, e in ipairs(sec.entries) do
-			if e.isControl and Shown(e) then return true end
+			if e.isControl and ShownByModel(e) then return true end
 		end
 	end
 	return false
@@ -200,7 +259,9 @@ for _, key in ipairs({ "format", "reasonTarget", "reasonOwed", "reasonAsked", "r
 	FIELDS["advanced." .. key] = { { "prompt", key } }
 end
 for _, key in ipairs({ "font", "fontSize", "fontColor", "classColor", "showSub", "showIcon", "iconSize",
-	"roundIcon", "iconFrame", "textShadow", "showCooldown", "showCount", "showQueue", "queueRows", "clickRows" }) do
+	"roundIcon", "iconFrame", "textShadow", "showCooldown", "showCount", "showQueue", "queueRows", "clickRows",
+	-- Look's Tooltip and This window, folds since 1.12.
+	"tooltip", "tooltipPosition", "peekOnChange" }) do
 	FIELDS["appearance." .. key] = { { "prompt", key } }
 end
 
@@ -894,7 +955,12 @@ function UI.Reveal(path)
 	if UI.page ~= w.page then UI.ShowPage(w.page) end
 	if w.sec.fold then UI.State().open[w.sec.key] = true end
 	UI.Refresh()
-	if not UI.RowShown(path) then return nil end
+	if not UI.RowShown(path) then
+		-- Not drawn under a switch that is off: the switch is what to show.
+		local switch = UI.SwitchFor(path)
+		if switch and switch.path ~= path then return UI.Reveal(switch.path) end
+		return nil
+	end
 	local e = w.e
 	UI.ScrollTo(e.y - 30)
 	return e

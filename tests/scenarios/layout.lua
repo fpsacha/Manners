@@ -169,7 +169,15 @@ local function CheckShape(layout, problem)
 			if section.title ~= nil and (type(section.title) ~= "string" or section.title == "") then
 				problem(where .. " has an empty title")
 			end
-			if type(section.items) ~= "table" or #section.items == 0 then problem(where .. " has no items") end
+			-- A home waits for the settings its comment names (Layout.lua's
+			-- header): it may be empty, and says what it is with a title.
+			if section.home ~= nil then
+				if section.home ~= true then problem(where .. " has home = " .. tostring(section.home)) end
+				if type(section.title) ~= "string" then problem(where .. " is a home with no title of its own") end
+				if type(section.items) ~= "table" then problem(where .. " is a home with no items table to fill") end
+			elseif type(section.items) ~= "table" or #section.items == 0 then
+				problem(where .. " has no items")
+			end
 			for _, item in ipairs(section.items or {}) do
 				if type(item) == "table" and not item.composite then
 					for flag in pairs(item) do
