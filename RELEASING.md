@@ -185,13 +185,11 @@ so they show inline only once `master` holds them.
 The images are generated rather than captured: `python tools/make-icon.py` and
 `python tools/make-screenshots.py`. See `tools/README.md`.
 
-The twelve screenshots -- `manners-prompt.png`, `manners-moment.png`, `manners-reasons.png`,
-`manners-list.png`, `manners-tooltip.png`, `manners-actionbar.png`,
-`manners-yourself.png`, `manners-options.png`, `manners-looks.png`,
-`manners-ledger.png`, `manners-languages.png` and
-`manners-palette.png` in `.github/media/` -- go into the CurseForge and Wago
-galleries by hand; neither upload in the release workflow carries images. Their
-order, titles and descriptions are in `.github/gallery.md`. When they are
+The seventeen pictures in `.github/media/` -- fifteen screenshots and two
+animated GIFs of a look as a buff lands -- go into the CurseForge and Wago
+galleries by hand; neither upload in the release workflow carries images.
+`.github/media/UPLOAD.md` is the checklist: every file in order, with its title
+and description (the same table as `.github/gallery.md`). When they are
 regenerated, replace the gallery copies too.
 
 ## Moderation

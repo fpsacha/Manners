@@ -19,21 +19,27 @@ chip holds the client's inline atlas for it (the renderer has no atlas art).
     python tools/make-screenshots.py            # into .github/media
     python tools/make-screenshots.py --strict   # refuse to draw anything doubtful
     python tools/make-screenshots.py --out DIR --addon OTHER_TREE
+    python tools/make-screenshots.py --out DIR --only looks,options   # some of them, while working
 
-What it writes, all 1280 pixels wide:
+What it writes, in the gallery's order (.github/gallery.md), the stills 1280
+pixels wide and the animated ones 800:
 
-    manners-prompt.png     the moment your buff lands, rings and wave
-    manners-moment.png     film strips: they buffed you, it lands, it is refused
-    manners-reasons.png    the five reasons somebody is offered, each in its colour
-    manners-looks.png      the same favour in each of the nineteen looks, named
-    manners-ledger.png     the favour ledger with a day of ordinary play in it
-    manners-languages.png  the prompt in German, French and Chinese
-    manners-palette.png    the standard and the colour-blind reason colours
-    manners-list.png       the list under the prompt, a name lit and its tooltip up
-    manners-options.png    the options window on Who to buff, a buff order of its own
-    manners-yourself.png   three prompts for the player's own buffs
-    manners-actionbar.png  the prompt on a key, the Manners macro on an action bar, and on a controller button
-    manners-tooltip.png    the prompt's Short tooltip above it, and the Full one with Shift held
+    manners-prompt.png        the moment your buff lands, rings and wave
+    manners-moment.png        film strips: they buffed you, it lands, it is refused
+    manners-reasons.png       the five reasons somebody is offered, each in its colour
+    manners-more.png          a resurrection, a cure, water asked for, asking for a buff
+    manners-list.png          the list under the prompt, a name lit and its tooltip up
+    manners-tooltip.png       the prompt's Short tooltip above it, and the Full one with Shift held
+    manners-actionbar.png     the prompt on a key, the Manners macro on an action bar, and on a controller button
+    manners-yourself.png      three prompts for the player's own buffs
+    manners-options.png       the options window on Start here, in the Simple view
+    manners-options-wide.png  the window dragged wide on Who to buff, in two columns
+    manners-looks.png         the same favour in each of the nineteen looks, named
+    manners-look-STYLE.gif    a buff landing in a look, animated (FILMS: Stormcaller, Lightbringer)
+    manners-ledger.png        the favour ledger with a day of ordinary play in it
+    manners-milestones.png    the ledger's Milestones tab, and a milestone's toast
+    manners-languages.png     the prompt in German, French and Chinese
+    manners-palette.png       the standard and the colour-blind reason colours
 
 Every player name is invented. Real names from a live session once reached a
 draft of these images; they belong to real people and were scrubbed. Keep it
@@ -43,10 +49,14 @@ that way.
 than what it claims: a state the addon cannot build or that raised a guarded
 error, the wrong person or the wrong reason on the prompt, a list that is not
 the people and buffs the picture names or a name under the cursor the tooltip
-is not about, a tooltip that no longer says what each click does, an options
-window that fails render_options' own checks (text cut, rows overlapping,
-a control off the window, contrast under 4.5:1) or whose buff order is not the
-one shown, a ledger row the queue would never have produced, a line the client
+is not about, a tooltip that no longer says what each click does, a
+resurrection, cure, courtesy or ask that is a plain buff under that caption,
+an options window that fails render_options' own checks (text cut, rows
+overlapping, a control off the window, contrast under 4.5:1), that is not on
+the page or in the view its picture names or not in two columns where the
+picture says so, a ledger row the queue would never have produced, a
+Milestones tab without the milestones shown or a toast the addon did not put
+up, an animated picture whose frames do not move, a line the client
 would cut with an ellipsis, a translated picture still in English, a character
 the font cannot draw (a Chinese line in a Latin face comes out as boxes), or no
 TrueType face at all. Without it the same
@@ -113,6 +123,18 @@ CJK_BOLD = [
 CJK_LOCALES = ("zhCN", "zhTW", "koKR")
 LATIN_REGULAR = list(rp.FONT_CANDIDATES)
 LATIN_BOLD = list(rp.BOLD_CANDIDATES)
+# Whether this run draws in the face the published pictures are drawn in, the
+# renderer's first choice. CI's is wider by a fifth, and one check reads its
+# result differently there (see Layer, `may_cut`).
+IN_PUBLISHED_FACE = os.path.exists(LATIN_REGULAR[0])
+
+# The looks drawn landing a buff, as animated pictures: the look, the name the
+# picture gives it and the line under it. Named here because the states below
+# are made from them.
+FILMS = [
+    ("stormcaller", "Stormcaller", "Chain lightning arcs when your buff lands."),
+    ("lightbringer", "Lightbringer", "The sun of the Light flares when your buff lands."),
+]
 
 problems = []
 
@@ -143,6 +165,12 @@ def problem(msg):
 SPELL_LUA = r"""
 local OWN_NAMES = {}
 for _, id in ipairs({ 10220, 10219, 7320, 7302, 7301, 7300, 168 }) do OWN_NAMES[id] = "Frost Armor" end
+-- What the newer kinds of entry cast: a priest's Resurrection, a druid's two
+-- cures, a mage's Conjure Water (every rank, so whichever the addon picks is
+-- named).
+for _, id in ipairs({ 2006, 2010, 10880, 10881, 20770 }) do OWN_NAMES[id] = "Resurrection" end
+OWN_NAMES[8946], OWN_NAMES[2782] = "Cure Poison", "Remove Curse"
+for _, id in ipairs({ 5504, 5505, 5506, 6127, 10138, 10139, 10140, 468766 }) do OWN_NAMES[id] = "Conjure Water" end
 local ICONS = {
 	["Blessing of Wisdom"] = 135970,
 	["Blessing of Kings"] = 135995,
@@ -150,6 +178,10 @@ local ICONS = {
 	["Blessing of Salvation"] = 135969,
 	["Blessing of Light"] = 135944,
 	["Frost Armor"] = 135843,
+	["Power Word: Fortitude"] = 135987,
+	["Resurrection"] = 135955,
+	["Cure Poison"] = 136067,
+	["Conjure Water"] = 132794,
 }
 
 -- The mock's spell API with those over it. `translated` is what this client
@@ -182,6 +214,12 @@ local realKnown, realPlayerSpell = IsSpellKnown, IsPlayerSpell
 local realLevel, realInventoryItem = rawget(_G, "UnitLevel"), rawget(_G, "GetInventoryItemID")
 local realTip = { GameTooltip.SetOwner, GameTooltip.AddLine, GameTooltip.AddDoubleLine }
 local realShift, realBindingText = rawget(_G, "IsShiftKeyDown"), rawget(_G, "GetBindingText")
+-- What the newer moments stand in front of the mock: who is dead, what
+-- somebody wears that harms them, what the bags hold, whether you rest.
+local WORLD = { "UnitIsDeadOrGhost", "UnitIsGhost", "UnitHasIncomingResurrection", "UnitAffectingCombat",
+	"C_UnitAuras", "GetItemCount", "IsResting" }
+local realWorld = {}
+for _, name in ipairs(WORLD) do realWorld[name] = rawget(_G, name) end
 
 local function people(names)
 	Mock.unitNames = names
@@ -424,7 +462,100 @@ local function carrying(counts, hands, level)
 	end)
 end
 
+-- The newer moments' own settle: a few seconds on first, past every reading
+-- the addon keeps of who is dead or what they wear, and what the top of the
+-- queue is offered for, which the reason alone no longer says (a resurrection
+-- and a cure are both "group").
+local function settleKind(ns)
+	Mock.advance(4)
+	settle(ns)
+	local top = ns.BuildQueue()[1]
+	ShotKind = top and {
+		res = top.res and true or false, cure = top.cure and true or false,
+		courtesy = top.courtesy and top.courtesy.stage or false, ask = top.ask and true or false,
+		spell = ns.EntrySpellName(top),
+	} or false
+end
+
+-- A buff landing in a look, for the animated pictures: the favour waiting,
+-- and the same favour returned. The time is the picture's (`--at`).
+local function landing(style, landed)
+	return function(ns)
+		boot(ns, { nameplate1 = ELOWEN })
+		roomy(ns)
+		ns.db.profile.prompt.style = style
+		owe(ns, "Mort Defrette")
+		settle(ns)
+		ns.ClampSettings()
+		ShotStyle = ns.db.profile.prompt.style
+		if landed then
+			ns.Prompt:ShowOutcome("cast", "Mort Defrette")
+			FrameTree.settle()
+		end
+	end
+end
+
 local added = {
+	-- More than buffs, one moment each. A priest in a party of three, one of
+	-- them dead: the resurrection comes before the member missing Fortitude.
+	{ key = "shot-res", at = 0.85, setup = function(ns)
+		Mock.class = "PRIEST"
+		Mock.groupSize = 3
+		partyIsParty()
+		know(ns, "PRIEST", { "fortitude" }, { 2006, 2010 })
+		rawset(_G, "UnitIsDeadOrGhost", function(unit) return unit == "party1" end)
+		rawset(_G, "UnitIsGhost", function() return false end)
+		rawset(_G, "UnitHasIncomingResurrection", function() return false end)
+		rawset(_G, "UnitAffectingCombat", function() return false end)
+		boot(ns, { party1 = OSKAR, party2 = MIRA })
+		settleKind(ns)
+	end },
+	-- A druid whose party wears Mark of the Wild already, one of them
+	-- poisoned, with Cure my party and raid ticked.
+	{ key = "shot-cure", at = 0.85, setup = function(ns)
+		Mock.class = "DRUID"
+		Mock.groupSize = 3
+		Mock.held = { [1126] = true }
+		partyIsParty()
+		know(ns, "DRUID", {}, { 1126, 8946, 2782 })
+		local base = C_UnitAuras
+		rawset(_G, "C_UnitAuras", setmetatable({
+			GetAuraDataByIndex = function(unit, index, filter)
+				if filter ~= "HARMFUL" then return base.GetAuraDataByIndex(unit, index, filter) end
+				if unit ~= "party1" or index ~= 1 then return nil end
+				return { name = "Deadly Poison", spellId = 2818, dispelName = "Poison",
+					expirationTime = Mock.now + 60, duration = 60, isHarmful = true, auraInstanceID = 9001 }
+			end,
+		}, { __index = base }))
+		boot(ns, { party1 = BRAM, party2 = MIRA })
+		ns.db.profile.sources.cures = true
+		ns.ForgetCureRead("party1")
+		settleKind(ns)
+	end },
+	-- A mage with water in the bags and Water and food ticked, asked in /say.
+	{ key = "shot-water", at = 0.85, setup = function(ns)
+		Mock.class = "MAGE"
+		know(ns, "MAGE", { "intellect" }, { 5504, 5505, 5506, 6127, 10138, 10139, 10140 })
+		rawset(_G, "GetItemCount", function() return 20 end)
+		rawset(_G, "IsResting", function() return false end)
+		boot(ns, { nameplate1 = MARIBEL })
+		ns.db.profile.sources.asked = true
+		ns.db.profile.sources.courtesyRefresh = true
+		ask(ns, "Maribel Quickwater", "nameplate1", "water pls")
+		settleKind(ns)
+	end },
+	-- A warrior, who has nothing to give, beside a priest: with Ask people
+	-- for a buff I'm missing ticked, the prompt offers to ask.
+	{ key = "shot-ask", at = 0.85, setup = function(ns)
+		Mock.class = "WARRIOR"
+		Mock.unitClass = "PRIEST"
+		Mock.playerHeld = {}
+		rawset(_G, "IsResting", function() return false end)
+		rawset(_G, "UnitAffectingCombat", function() return false end)
+		boot(ns, { nameplate1 = SABLE })
+		ns.db.profile.sources.ask = true
+		settleKind(ns)
+	end },
 	-- The hero: a favour to return, the pulse near its brightest.
 	{ key = "shot-owed", at = 0.85, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
@@ -597,6 +728,11 @@ for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane"
 		ShotStyle = ns.db.profile.prompt.style
 	end }
 end
+for _, style in ipairs({ --GIFS
+}) do
+	added[#added + 1] = { key = "shot-wait-" .. style, at = 0.85, setup = landing(style, false) }
+	added[#added + 1] = { key = "shot-land-" .. style, at = 0.20, setup = landing(style, true) }
+end
 -- Every state starts from the mock as it was: what an earlier one made of the
 -- classes, the spellbook, the bags and the tooltip is put back first.
 local function restore()
@@ -607,8 +743,9 @@ local function restore()
 	rawset(_G, "GetInventoryItemID", realInventoryItem)
 	rawset(_G, "IsShiftKeyDown", realShift)
 	rawset(_G, "GetBindingText", realBindingText)
+	for _, name in ipairs(WORLD) do rawset(_G, name, realWorld[name]) end
 	GameTooltip.SetOwner, GameTooltip.AddLine, GameTooltip.AddDoubleLine = realTip[1], realTip[2], realTip[3]
-	ShotTip, ShotHover, ShotQueue, ShotTipChoices = nil, nil, nil, nil
+	ShotTip, ShotHover, ShotQueue, ShotTipChoices, ShotKind = nil, nil, nil, nil, nil
 end
 for _, state in ipairs(added) do
 	local setup = state.setup
@@ -621,6 +758,7 @@ for _, state in ipairs(added) do
 end
 """
 PROMPT_STATES = PROMPT_STATES.replace("--SPELLS\n", SPELL_LUA)
+PROMPT_STATES = PROMPT_STATES.replace("--GIFS\n", ", ".join('"%s"' % f[0] for f in FILMS) + "\n")
 
 # The options window's, added to render_options.lua's in the same way: the
 # spell icons put in front of the mock's one for all (re-read by the probe,
@@ -640,6 +778,12 @@ end
 -- here page carries a red dot, which says the setup is not done.
 R.BEFORE.keybound = function()
 	Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
+end
+
+-- The window dragged wide, as far as a 1280 picture shows it whole at the
+-- game's own size: two columns of sections.
+R.AFTER.twocolumns = function(ns)
+	ns.WindowUI.SetWindowSize(1236, 720)
 end
 
 R.AFTER.locate = function(ns)
@@ -734,6 +878,56 @@ local function day(ns)
 	received(ns, "Mort Defrette", "DRUID", 1126)
 	Mock.advance(30)
 end
+
+-- The months behind the day, for the Milestones tab: three earned on their
+-- days, one of them from before milestones were kept, the others under way
+-- with their numbers. The dates are written as the client writes them (the
+-- mock's date() keeps no calendar).
+local function calendar()
+	local real = date
+	date = function(fmt, t)
+		if fmt == "%Y-%m-%d" or fmt == "%Y%m%d" then return os.date(fmt, t) end
+		return real(fmt, t)
+	end
+end
+
+table.insert(R.states, { key = "shot-milestones", title = "shot-milestones", setup = function(ns)
+	calendar()
+	day(ns)
+	local t = ns.db.char.ledger.totals
+	t.received, t.returned, t.letGo, t.group, t.strangers = 164, 137, 21, 58, 212
+	Mock.runTimers(4)
+	local st, now = ns.db.char.milestones, time()
+	st.earned.first = -(now - 61 * 86400)
+	st.earned.asked = now - 20 * 86400
+	st.earned.hundred = now - 3 * 86400
+	st.n.strangers = 64
+	st.people["Rowan Ashvale"] = { n = 7, day = "x" }
+	st.classes.PRIEST, st.classes.MAGE, st.classes.DRUID, st.classes.PALADIN = true, true, true, true
+	ns.addon:HandleSlash("ledger")
+	local window = ns.Ledger.Window()
+	for _, tab in ipairs(window and window.tabs or {}) do
+		if tab.key == "milestones" and tab.scripts.OnClick then tab.scripts.OnClick(tab) end
+	end
+	-- Each milestone's line, which the row hangs short of its edge or its
+	-- link button and leaves to the client to cut.
+	ShotLines = {}
+	for i, def in ipairs(ns.Milestones.LIST) do ShotLines[i] = def.desc end
+end })
+
+-- The toast, by the addon's own doing: the first favour ever returned earns
+-- Much Obliged, and the toast is drawn past its fade-in.
+table.insert(R.states, { key = "shot-toast", title = "shot-toast",
+	frame = function(ns) return ns.Milestones and ns.Milestones.ToastFrame() end,
+	setup = function(ns)
+		received(ns, "Rowan Ashvale", "PRIEST", 21562)
+		Mock.advance(25)
+		returned(ns, "Rowan Ashvale", 25)
+		Mock.runTimers(4)
+		local f = ns.Milestones.ToastFrame()
+		ShotToast = f and f:IsShown() or false
+		if f and f:IsShown() and f.scripts and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.6) end
+	end })
 
 table.insert(R.states, { key = "shot-ledger", title = "shot-ledger", setup = function(ns)
 	day(ns)
@@ -982,7 +1176,7 @@ class Layer:
     would have been drawn on it. Kept at the renderer's supersampled size and
     cropped to what the UI covers."""
 
-    def __init__(self, draw, key, frame=None):
+    def __init__(self, draw, key, frame=None, may_cut=()):
         del _cut[:]
         del _atlases[:]
         _matte[0] = 0.0
@@ -992,8 +1186,17 @@ class Layer:
         draw()
         white = _last[0]
         _matte[0] = None
-        for line in _cut:
-            problem("%s: a line is drawn cut: %s" % (key, line))
+        # `may_cut`: lines the addon hangs between two edges for the client to
+        # cut where they do not fit (a milestone's line in the ledger, whose
+        # tooltip has it whole). In the published face a cut one is still a
+        # picture nobody wants and is refused; in a wider face it says nothing
+        # about the published picture, and is noted.
+        for line in dict.fromkeys(_cut):
+            if line in may_cut and not IN_PUBLISHED_FACE:
+                print("  note: %s: cut in this face, as the client would cut it: %s" % (key, line),
+                      file=sys.stderr)
+            else:
+                problem("%s: a line is drawn cut: %s" % (key, line))
         # The lines holding an inline atlas, left blank for a glyph.
         self.atlases = sorted(set(_atlases))
         add, through = black, np.clip(white - black, 0, 1)
@@ -1044,9 +1247,9 @@ def prompt_layer(key, snap, zoom):
     return Layer(lambda: rp.draw_state(snap, px=pixels(zoom)), key)
 
 
-def ledger_layer(key, snap, zoom):
+def ledger_layer(key, snap, zoom, may_cut=()):
     rp.Tree = LedgerTree
-    return Layer(lambda: rl.draw_window(snap, px=pixels(zoom)), key)
+    return Layer(lambda: rl.draw_window(snap, px=pixels(zoom)), key, may_cut=may_cut)
 
 
 def options_layer(key, scene, zoom):
@@ -1471,6 +1674,47 @@ def _emblem(kind, n):
         w = max(1, int(n * 0.07))
         d.ellipse([0.18 * n, 0.18 * n, 0.62 * n, 0.62 * n], outline=255, width=w)
         d.line(pts([(0.58, 0.58), (0.82, 0.82)]), fill=255, width=int(w * 1.4))
+    elif kind == "ankh":
+        # A looped cross: life given back.
+        w = max(1, int(n * 0.085))
+        d.ellipse([0.37 * n, 0.12 * n, 0.63 * n, 0.44 * n], outline=255, width=w)
+        d.rectangle([0.455 * n, 0.42 * n, 0.545 * n, 0.86 * n], fill=255)
+        d.rectangle([0.25 * n, 0.47 * n, 0.75 * n, 0.56 * n], fill=255)
+    elif kind == "drop":
+        # A drop of water, a glint cut out of it.
+        d.polygon(pts([(0.5, 0.12), (0.71, 0.52), (0.29, 0.52)]), fill=255)
+        disc(0.5, 0.60, 0.225)
+        d.arc([0.36 * n, 0.46 * n, 0.64 * n, 0.74 * n], 100, 170, fill=0, width=max(1, int(n * 0.035)))
+    elif kind == "leaf":
+        # A leaf on the diagonal, its midrib cut out of it: a herb for a cure.
+        t = np.linspace(0, 1, 40)
+        ax, ay = 0.22 + 0.58 * t, 0.80 - 0.60 * t
+        nx, ny = 0.72, 0.69
+        half = 0.20 * np.sin(np.pi * t) ** 0.7 * (1 - 0.35 * t)
+        top = list(zip(ax + nx * half, ay + ny * half))
+        low = list(zip(ax - nx * half, ay - ny * half))
+        d.polygon(pts(top + low[::-1]), fill=255)
+        d.line(pts([(0.14, 0.88), (0.74, 0.26)]), fill=0, width=max(1, int(n * 0.03)))
+        d.line(pts([(0.14, 0.88), (0.26, 0.76)]), fill=255, width=max(1, int(n * 0.035)))
+    elif kind == "gift":
+        # A box tied with a ribbon and a bow.
+        d.rectangle([0.20 * n, 0.44 * n, 0.80 * n, 0.84 * n], fill=255)
+        d.rectangle([0.16 * n, 0.34 * n, 0.84 * n, 0.44 * n], fill=255)
+        w = max(1, int(n * 0.035))
+        d.line(pts([(0.5, 0.34), (0.5, 0.84)]), fill=0, width=w)
+        d.line(pts([(0.16, 0.445), (0.84, 0.445)]), fill=0, width=w)
+        disc(0.41, 0.25, 0.085, 0.07)
+        disc(0.59, 0.25, 0.085, 0.07)
+    elif kind == "letter":
+        # A sealed envelope.
+        d.rectangle([0.14 * n, 0.28 * n, 0.86 * n, 0.74 * n], fill=255)
+        w = max(1, int(n * 0.03))
+        d.line(pts([(0.14, 0.28), (0.5, 0.56), (0.86, 0.28)]), fill=0, width=w)
+        disc(0.5, 0.56, 0.05, fill=0)
+    elif kind == "heart":
+        disc(0.38, 0.38, 0.17)
+        disc(0.62, 0.38, 0.17)
+        d.polygon(pts([(0.225, 0.45), (0.775, 0.45), (0.5, 0.82)]), fill=255)
     return m
 
 
@@ -1491,6 +1735,19 @@ EMBLEMS = {
     135944: "cross",     # Blessing of Light
     135843: "snowflake",  # Frost Armor
     132273: "flask",     # a rogue's poison
+    135955: "ankh",      # Resurrection, and the milestone Back on Your Feet
+    136067: "leaf",      # Cure Poison
+    132794: "drop",      # Conjure Water, and the milestone At Your Service
+    134141: "gift",      # the milestones: Much Obliged
+    134327: "note",      # You Only Had to Ask
+    135946: "flame",     # All Walks of Life
+    133471: "letter",    # Thank You, Everyone
+    135453: "heart",     # Old Acquaintance
+    135908: "crown",     # A Hundred Thank-Yous
+    135949: "leaf",      # A Clean Bill of Health
+    134376: "clock",     # Quick to Thank
+    135941: "sun",       # Nobody Left Out
+    133743: "book",      # A Week Without a Debt
     "INV_Misc_Map_01": "map",                # Start here
     "Ability_Vanish": "mask",                # Who to skip
     "INV_Misc_PocketWatch_01": "clock",      # When to offer
@@ -1512,6 +1769,9 @@ TILES = {
     135987: ((0.30, 0.20, 0.05), (1.00, 0.90, 0.55)),
     135843: ((0.04, 0.16, 0.36), (0.72, 0.96, 1.00)),
     132273: ((0.04, 0.20, 0.07), (0.62, 1.00, 0.42)),
+    135955: ((0.30, 0.26, 0.10), (1.00, 0.95, 0.60)),
+    136067: ((0.05, 0.22, 0.10), (0.66, 1.00, 0.52)),
+    132794: ((0.06, 0.16, 0.36), (0.62, 0.86, 1.00)),
 }
 PAGE_TILE = ((0.16, 0.15, 0.24), (0.84, 0.76, 0.62))
 for _file, _tile in TILES.items():
@@ -1705,9 +1965,17 @@ def world(w, h, seed=11, sun=(0.72, 0.50)):
 class Board:
     """One listing picture: the world, the UI laid over it, then captions."""
 
-    def __init__(self, height, seed=11, sun=(0.72, 0.50)):
-        self.w, self.h = WIDTH, int(height)
-        self.rgb = world(self.w * SS, self.h * SS, seed, sun)
+    # The world behind a board is the same for the same size, seed and sun:
+    # an animated picture has twenty boards of one world.
+    _worlds = {}
+
+    def __init__(self, height, seed=11, sun=(0.72, 0.50), width=None):
+        self.w, self.h = int(width or WIDTH), int(height)
+        key = (self.w, self.h, seed, sun)
+        if key not in Board._worlds:
+            Board._worlds.clear()
+            Board._worlds[key] = world(self.w * SS, self.h * SS, seed, sun)
+        self.rgb = Board._worlds[key].copy()
         self.texts = []
 
     def place(self, layer, x, y):
@@ -1793,6 +2061,29 @@ def check_captions(board, name):
             problem("%s: the caption %r cannot be drawn: %s" % (name, text, "".join(gone)))
 
 
+class Film:
+    """An animated picture: boards of one size, and how long each is shown,
+    in milliseconds. Written as a GIF that loops."""
+
+    def __init__(self, boards, durations):
+        self.boards, self.durations = boards, durations
+        self.texts = [t for b in boards[:1] for t in b.texts]
+
+    def save(self, path):
+        frames = [b.image() for b in self.boards]
+        # One palette for every frame, taken from the first and the brightest
+        # moments together: a palette a frame would flicker between the
+        # frames' own.
+        strip = Image.new("RGB", (frames[0].width, frames[0].height * len(frames)))
+        for i, f in enumerate(frames):
+            strip.paste(f, (0, i * f.height))
+        palette = strip.quantize(255, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+        frames = [f.quantize(palette=palette, dither=Image.Dither.FLOYDSTEINBERG) for f in frames]
+        frames[0].save(path, save_all=True, append_images=frames[1:], duration=self.durations, loop=0,
+                       optimize=False, disposal=1)
+        return frames[0]
+
+
 def heading(board, title, sub):
     board.shade(20, 12, 20 + 760, 112, 0.35)
     board.text((56, 44), title, 34, bold=True)
@@ -1815,6 +2106,26 @@ REASONS = [
     ("shot-nearby", "Sable Harrow", "nearby", "Passing by",
      "A stranger close enough to buff, missing yours."),
 ]
+# More than buffs: the state, who it puts on top and why, what the entry has
+# to be (ShotKind), the words the prompt has to carry, and the caption.
+MORE = [
+    ("shot-res", "Oskar Fenwick", "group", "res", ["Oskar Fenwick", "dead"], "A resurrection",
+     "Out of a fight, a dead member of your group comes first of all."),
+    ("shot-cure", "Bram Cinderfell", "group", "cure", ["Bram Cinderfell", "Poisoned"], "A cure",
+     "A poison, disease, curse or harmful spell your class can remove."),
+    ("shot-water", "Maribel Quickwater", "asked", "courtesy", ["Maribel Quickwater", "asked for water"],
+     "Water, food, a portal",
+     "A mage's or a warlock's courtesies, for whoever asks in chat."),
+    ("shot-ask", "Sable Harrow", "ask", "ask", ["Sable Harrow", "ask for Power Word: Fortitude"],
+     "Asking for a buff",
+     "One polite whisper to somebody who could give you theirs."),
+]
+
+# An animated picture's frames: the favour waiting, held, then the landing at
+# these moments, the last held.
+FILM_TIMES = tuple(round(0.04 * i, 2) for i in range(21))
+FILM_WAIT, FILM_HOLD = 900, 1100
+
 # The hero: the favour returned, the cast confirmed, at the frame where the
 # landing reads best (the rings off the icon spread into two, the wave of light
 # started across the panel, the words fully drawn). Earlier the rings are
@@ -1845,9 +2156,11 @@ MOMENTS = [
 # them there.
 LIST_ROWS = ["Mira Holt", "Tam Rook", "Rowan Lark"]
 
-# The looks the Look tab offers, in the order its gallery shows them, each
-# with the name and the few words its card gives it.
+# The looks the Look tab offers, each with the name and the few words its
+# card gives it: Glass, the default, first and on its own at the top of the
+# board, then the other eighteen, six rows of three.
 LOOKS = [
+    ("glass", "Glass", "dark cut glass, a metal bezel"),
     ("luxe", "Luxe", "slim dark card, a spine in the reason colour"),
     ("toast", "Toast", "warm banner, gilded medallion"),
     ("arcane", "Arcane", "smoked glass, a rim lit by the reason"),
@@ -1864,7 +2177,6 @@ LOOKS = [
     ("ebon", "Ebon", "a runeblade of saronite, a skull over the socket, runes that kindle"),
     ("gearworks", "Gearworks", "riveted brass, a pressure gauge and turning cogs"),
     ("warchief", "Warchief", "black iron and tusks, the Horde's crest in the forge's glow"),
-    ("glass", "Glass", "dark cut glass, a metal bezel"),
     ("framed", "Framed", "dark panel, a tooltip's rim"),
     ("minimal", "Minimal", "text only, no panel"),
 ]
@@ -2122,54 +2434,83 @@ def build_keys(addon_dir, snaps):
         snaps[key] = snap
 
 
-def build_options(addon_dir, snaps):
-    """The options window on Who to buff for a paladin whose buff order is
-    Wisdom, Kings, Might ..., drawn and held to render_options' own checks."""
-    key = "options"
+def options_scene(addon_dir, key, cls, page, states, names):
+    """The options window as `cls` on `page` in `states`, drawn and held to
+    render_options' own checks and to the words the picture needs on it.
+    Returns the scene and the Lua it was built in, or nothing."""
     ro.use_faces(None)
-    lua, R = options_states(addon_dir, "PALADIN")
+    lua, R = options_states(addon_dir, cls)
     lua.globals().ShotOrder = None
     try:
-        snap = rp.to_py(R["page"]("who", "icons\nkeybound\norder\nreturning\nlocate"))
+        snap = rp.to_py(R["page"](page, "\n".join(states)))
     except Exception as e:  # noqa: BLE001 - a Lua error is a window that cannot be built
         problem("%s: the addon could not be put into this state: %s" % (key, e))
-        return
+        return None, None
     if snap.get("failed"):
         problem("%s: the window could not be drawn: %s" % (key, snap["failed"]))
-        return
+        return None, None
     if snap.get("errors"):
         problem("%s: %d guarded error(s), first %s" % (key, snap["errors"], snap.get("firstError")))
-    if snap.get("page") != "who":
-        problem("%s: the window is on %s, not Who to buff" % (key, snap.get("page")))
+    if snap.get("page") != page:
+        problem("%s: the window is on %s, not %s" % (key, snap.get("page"), page))
     scene = ro.Scene(snap)
     for finding in ro.check(scene):
         problem("%s: (%s) %s" % (key, finding["kind"], finding["message"]))
-    order = rp.to_py(lua.globals().ShotOrder)
-    if not order or not order.get("lines"):
-        problem("%s: the page has no Buff order list" % key)
-        return
-    keys = [line["key"] for line in order["lines"]]
-    if keys[:len(ORDER_KEYS)] != ORDER_KEYS:
-        problem("%s: the Buff order reads %s, not %s" % (key, keys, ORDER_KEYS))
     if find_button(scene, "Move the prompt") is None:
         problem("%s: there is no Move the prompt button in the header" % key)
-        return
+        return None, None
     texts = [ro.plain(r["text"]).strip() for r in scene.regions.values()
              if r["kind"] == "FontString" and r.get("text") and scene.visible(r)
              and scene.alpha(r) > 0.01]
-    expect_names(key, texts, ["Move the prompt", "Show me the prompt", "Buff order",
-                              "Blessing of Wisdom", "Blessing of Kings", "Blessing of Might",
-                              "Back to Automatic"])
+    expect_names(key, texts, ["Move the prompt", "Show me the prompt", "Simple view"] + names)
     if "Stop preview" in texts:
         problem("%s: the header reads Stop preview: the window was opened for the first time" % key)
     check_glyphs(key, texts)
-    snaps[key] = {"scene": scene, "order": order}
+    return scene, lua
 
 
-def build(addon_dir):
-    """Every snapshot the pictures need, checked. Nothing is drawn until all of
-    them are in, so a strict run refuses before it writes anything."""
-    snaps = {}
+def find_text(scene, label):
+    """The shown font string that reads `label`."""
+    for rid, r in scene.regions.items():
+        if (r["kind"] == "FontString" and r.get("text") and scene.visible(r) and scene.alpha(r) > 0.01
+                and ro.plain(r["text"]).strip() == label):
+            return rid
+    return None
+
+
+def build_options(addon_dir, snaps):
+    """The two pictures of the options window. Start here in the Simple view,
+    for a mage with a key bound: the page a new player sees. And Who to buff
+    for a paladin, the window dragged wide enough for two columns."""
+    key = "options"
+    scene, lua = options_scene(addon_dir, key, "MAGE", "general",
+                               ["icons", "keybound", "returning", "simple"],
+                               ["Start here", "Quick setup", "Put it on a key", "Favour ledger"])
+    if scene:
+        switch = find_text(scene, "Simple view")
+        if switch is None:
+            problem("%s: there is no Simple view switch under the search box" % key)
+        else:
+            snaps[key] = {"scene": scene, "switch": switch}
+    key = "options-wide"
+    scene, lua = options_scene(addon_dir, key, "PALADIN", "who",
+                               ["icons", "keybound", "order", "returning", "twocolumns"],
+                               ["Who to buff", "Offer my buff to", "What to cast", "My group and raid",
+                                "More than buffs", "My group's dead", "Cure my party and raid",
+                                "Blessing of Wisdom", "Blessing of Kings", "Blessing of Might"])
+    if scene:
+        # Two columns: a section's heading stands beside the first, not under it.
+        first, second = find_text(scene, "Offer my buff to"), find_text(scene, "My group and raid")
+        if first is None or second is None:
+            problem("%s: the page's sections are not all there" % key)
+            return
+        a, b = scene.geo.rect(first), scene.geo.rect(second)
+        if not (b[0] > a[0] + 300 and abs(b[3] - a[3]) < 4):
+            problem("%s: the page is not in two columns: My group and raid is not beside Offer my buff to" % key)
+        snaps[key] = {"scene": scene}
+
+
+def build_reasons(addon_dir, snaps):
     use_faces("enUS")
     lua, R = prompt_states(addon_dir)
     for key, name, reason, _, _ in REASONS:
@@ -2180,9 +2521,15 @@ def build(addon_dir):
             expect_names(key, texts, [name])
             check_glyphs(key, texts)
             snaps[key] = snap
-    # The hero and the film strip: the same favour at the moments the pictures
-    # show. Every frame is held to what its row's title says, so a frame that
-    # shows the arrival under "Your buff lands" is caught rather than drawn.
+
+
+def build_moments(addon_dir, snaps):
+    """The hero and the film strip: the same favour at the moments the
+    pictures show. Every frame is held to what its row's title says, so a
+    frame that shows the arrival under "Your buff lands" is caught rather
+    than drawn."""
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
     snap, top = snap_of(R, lua, "shot-landed")
     if snap:
         expect_top("shot-landed", top, "Mort Defrette", "owed")
@@ -2205,6 +2552,63 @@ def build(addon_dir):
                     problem("%s: the prompt says %r, which is not this moment" % (frame, gone))
             check_glyphs(frame, texts)
             snaps[frame] = snap
+
+
+def build_more(addon_dir, snaps):
+    """The newer kinds of entry, each held to being that kind: a resurrection
+    and a cure are both "group" to the queue, so the reason alone would pass
+    a plain buff under either caption."""
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
+    for key, name, reason, kind, words, _, _ in MORE:
+        lua.globals().ShotKind = None
+        snap, top = snap_of(R, lua, key)
+        if not snap:
+            continue
+        expect_top(key, top, name, reason)
+        got = rp.to_py(lua.globals().ShotKind)
+        if not isinstance(got, dict) or not got.get(kind):
+            problem("%s: the entry on top is not a %s: %s" % (key, kind, got))
+        texts = shown_texts(snap, PromptTree)
+        expect_names(key, texts, words)
+        check_glyphs(key, texts)
+        snaps[key] = snap
+
+
+def build_films(addon_dir, snaps):
+    """A buff landing in a look, frame by frame: the favour waiting, then the
+    landing at each of FILM_TIMES."""
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
+    for style, _, _ in FILMS:
+        frames = [("shot-wait-" + style, None, ["Mort Defrette", "buffed you"])]
+        frames += [("shot-land-" + style, t, None) for t in FILM_TIMES]
+        for key, t, words in frames:
+            name = key if t is None else "%s@%.2f" % (key, t)
+            lua.globals().ShotStyle = None
+            snap, top = snap_of(R, lua, key) if t is None else snap_of(R, lua, key, t)
+            if not snap:
+                continue
+            expect_top(name, top, "Mort Defrette", "owed")
+            got = lua.globals().ShotStyle
+            if got != style:
+                problem("%s: the prompt is drawn in %s, not %s" % (name, got, style))
+            texts = shown_texts(snap, PromptTree)
+            if words:
+                expect_names(name, texts, words)
+            elif "buffed you" in "\n".join(texts).lower():
+                problem("%s: the prompt still says buffed you: the buff has not landed" % name)
+            check_glyphs(name, texts)
+            snaps[name] = snap
+        # The words of the landing, once they are fully drawn.
+        last = snaps.get("shot-land-%s@%.2f" % (style, FILM_TIMES[-1]))
+        if last:
+            expect_names("shot-land-" + style, shown_texts(last, PromptTree), ["Mort Defrette"])
+
+
+def build_palette(addon_dir, snaps):
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
     for key in ("shot-palette-standard", "shot-palette-colourblind"):
         snap, top = snap_of(R, lua, key)
         if snap:
@@ -2214,6 +2618,11 @@ def build(addon_dir):
                                       "Sable Harrow"])
             check_glyphs(key, texts)
             snaps[key] = snap
+
+
+def build_looks(addon_dir, snaps):
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
     for style, _, _ in LOOKS:
         key = "shot-look-" + style
         lua.globals().ShotStyle = None
@@ -2227,8 +2636,13 @@ def build(addon_dir):
             expect_names(key, texts, ["Mort Defrette"])
             check_glyphs(key, texts)
             snaps[key] = snap
+
+
+def build_languages(addon_dir, snaps):
     # The list in English, drawn nowhere: what each translated one is held
     # against, line by line.
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
     snap, top = snap_of(R, lua, "shot-list")
     english = set(shown_texts(snap, PromptTree)) if snap else set()
     list_names = ["Mort Defrette"] + LIST_ROWS
@@ -2257,23 +2671,61 @@ def build(addon_dir):
         snaps[key] = snap
     use_faces("enUS")
 
-    build_click(addon_dir, snaps)
-    build_yourself(addon_dir, snaps)
-    build_tips(addon_dir, snaps)
-    build_keys(addon_dir, snaps)
-    build_options(addon_dir, snaps)
-    use_faces("enUS")
 
+def build_ledger(addon_dir, snaps):
+    use_faces("enUS")
     lua, R = ledger_states(addon_dir)
     lua.globals().ShotDoubts = lua.table()
     snap, _ = snap_of(R, lua, "shot-ledger", "enUS")
-    for doubt in (rp.to_py(lua.globals().ShotDoubts) or []):
-        problem("shot-ledger: " + doubt)
     if snap:
         texts = shown_texts(snap, LedgerTree)
-        expect_names("shot-ledger", texts, ["Mort Defrette", "Rowan Ashvale", "Oskar Fenwick"])
+        expect_names("shot-ledger", texts, ["Mort Defrette", "Rowan Ashvale", "Oskar Fenwick", "Milestones"])
         check_glyphs("shot-ledger", texts)
         snaps["shot-ledger"] = snap
+    # The Milestones tab over the same day, and the toast a milestone earns.
+    snap, _ = snap_of(R, lua, "shot-milestones", "enUS")
+    if snap:
+        texts = shown_texts(snap, LedgerTree)
+        expect_names("shot-milestones", texts, ["Milestones", "Much Obliged", "You Only Had to Ask",
+                                                "A Hundred Thank-Yous", "Earned", "Link in chat",
+                                                "The Kindness of Strangers", "64 of 100"])
+        check_glyphs("shot-milestones", texts)
+        snaps["shot-milestones"] = snap
+        snaps["shot-milestones-lines"] = set(rp.to_py(lua.globals().ShotLines) or [])
+    lua.globals().ShotToast = None
+    snap, _ = snap_of(R, lua, "shot-toast", "enUS")
+    if snap:
+        if lua.globals().ShotToast is not True:
+            problem("shot-toast: returning a first favour put no toast up")
+        tree = LedgerTree(snap)
+        under = [r for r in tree.regions.values() if r["kind"] == "FontString" and r.get("text")
+                 and any(c["id"] == snap.get("window") for c in tree.chain(r))]
+        texts = [rp.plain_text(r["text"]).strip() for r in under]
+        expect_names("shot-toast", texts, ["Milestone earned", "Much Obliged"])
+        check_glyphs("shot-toast", texts)
+        snaps["shot-toast"] = snap
+    for doubt in (rp.to_py(lua.globals().ShotDoubts) or []):
+        problem("shot-ledger: " + doubt)
+
+
+# What each picture is built from, by name: a run for some of the pictures
+# (--only) builds only theirs.
+BUILDERS = {
+    "reasons": build_reasons, "moments": build_moments, "more": build_more, "films": build_films,
+    "palette": build_palette, "looks": build_looks, "languages": build_languages,
+    "click": build_click, "yourself": build_yourself, "tips": build_tips, "keys": build_keys,
+    "options": build_options, "ledger": build_ledger,
+}
+
+
+def build(addon_dir, wanted=None):
+    """Every snapshot the pictures need, checked. Nothing is drawn until all of
+    them are in, so a strict run refuses before it writes anything."""
+    snaps = {}
+    for name, builder in BUILDERS.items():
+        if wanted is None or name in wanted:
+            builder(addon_dir, snaps)
+            use_faces("enUS")
     return snaps
 
 
@@ -2357,6 +2809,75 @@ def picture_reasons(snaps):
     return board
 
 
+def picture_more(snaps):
+    """The newer kinds of entry, one prompt each with what it is beside it,
+    laid out as the reasons are."""
+    layers = [prompt_layer(key, snaps[key], 2.0) for key, *_ in MORE]
+    row = max(l.size[1] for l in layers) + 4
+    top = 150
+    board = Board(top + row * len(layers) + 36, seed=13, sun=(0.18, 0.52))
+    heading(board, "More than buffs",
+            "The prompt offers what the moment needs. Each has a switch of its own.")
+    lx = 96
+    board.shade(lx + max(l.size[0] for l in layers) + 8, top - 6, WIDTH - 40,
+                top + row * len(layers) + 6, 0.45)
+    for i, ((key, _, _, _, _, title, line), layer) in enumerate(zip(MORE, layers)):
+        cy = top + row * i + row / 2
+        board.place(layer, lx, cy - layer.size[1] / 2)
+        tx = lx + layer.size[0] + 40
+        board.text((tx, cy - 14), title, 24, bold=True, anchor="lm")
+        board.text((tx, cy + 16), line, fit_caption([line], 18, WIDTH - 60 - tx), fill=(214, 206, 214),
+                   anchor="lm")
+    return board
+
+
+def picture_film(style, title, line):
+    """A buff landing in one look, animated: the favour waiting, the press,
+    the landing. Every frame is placed by the button's corner, so the panel
+    stands still and only what the look animates moves."""
+    def make(snaps):
+        zoom = 2.0
+        keys = ["shot-wait-" + style] + ["shot-land-%s@%.2f" % (style, t) for t in FILM_TIMES]
+        layers = [prompt_layer(k, snaps[k], zoom) for k in keys]
+        same = sum(1 for a, b in zip(layers[1:], layers[2:])
+                   if a.add.shape == b.add.shape and np.array_equal(a.add, b.add))
+        if same > len(FILM_TIMES) // 2:
+            problem("manners-look-%s.gif: %d of its frames are the same: the landing does not move"
+                    % (style, same))
+        # How far each layer reaches round its button, so the picture holds
+        # the widest of them.
+        reach = []
+        for k, layer in zip(keys, layers):
+            left, bottom, right, top = PromptTree(snaps[k]).rect(snaps[k]["button"])
+            ax, ay = layer.at(left, top)
+            bx, by = layer.at(right, bottom)
+            w, h = layer.size
+            reach.append((ax, ay, w - bx, h - by, bx - ax, by - ay))
+        pad_l, pad_t = max(r[0] for r in reach), max(r[1] for r in reach)
+        pad_r, pad_b = max(r[2] for r in reach), max(r[3] for r in reach)
+        bw, bh = reach[0][4], reach[0][5]
+        width = 800
+        head = 62
+        height = int(head + pad_t + bh + pad_b + 26)
+        if pad_l + bw + pad_r > width - 20:
+            problem("manners-look-%s.gif: the prompt and its light are wider than the picture" % style)
+        x0 = (width - bw) / 2 + (pad_l - pad_r) / 4
+        y0 = head + pad_t
+        boards = []
+        for (ax, ay, *_), layer in zip(reach, layers):
+            board = Board(height, seed=29, sun=(0.80, 0.46), width=width)
+            board.shade(10, 6, width - 10, head, 0.4)
+            board.text((26, 22), title, 24, bold=True, anchor="lm")
+            board.text((26 + caption_face(title, 24, True).getlength(title) + 16, 24), line,
+                       fit_caption([line], 17, width - 80 - caption_face(title, 24, True).getlength(title)),
+                       fill=(214, 206, 214), anchor="lm")
+            board.place(layer, x0 - ax, y0 - ay)
+            boards.append(board)
+        step = int(round((FILM_TIMES[1] - FILM_TIMES[0]) * 1000))
+        return Film(boards, [FILM_WAIT] + [step] * (len(FILM_TIMES) - 1) + [FILM_HOLD])
+    return make
+
+
 def picture_ledger(snaps):
     layer = ledger_layer("shot-ledger", snaps["shot-ledger"], 2.0)
     w, h = layer.size
@@ -2370,6 +2891,39 @@ def picture_ledger(snaps):
                               "and who you buffed without being asked.",
                               "", "/manners ledger"]):
         board.text((72, 170 + i * 30), line, 20, fill=(214, 206, 214))
+    return board
+
+
+def picture_milestones(snaps):
+    """The ledger on its Milestones tab, and beside it the toast one of them
+    puts up when it is earned."""
+    layer = ledger_layer("shot-milestones", snaps["shot-milestones"], 2.0,
+                         may_cut=snaps["shot-milestones-lines"])
+    toast = ledger_layer("shot-toast", snaps["shot-toast"], 1.5)
+    w, h = layer.size
+    board = Board(h + 80, seed=37, sun=(0.20, 0.60))
+    x = WIDTH - w - 16
+    board.place(layer, x, 40)
+    # What is left of the window is the toast's and the words'.
+    room = x
+    if toast.size[0] > room - 8:
+        problem("manners-milestones.png: the toast is %d wide, wider than the %d beside the ledger"
+                % (toast.size[0], room))
+    board.shade(30, 60, x - 20, 330, 0.35)
+    board.text((60, 110), "Milestones", 36, bold=True)
+    lines = ["Small things worth doing, kept on a tab",
+             "of the favour ledger, a few of them",
+             "a surprise."]
+    for i, line in enumerate(lines):
+        board.text((62, 170 + i * 30), line, fit_caption(lines, 20, room - 80), fill=(214, 206, 214))
+    ty = 420
+    board.place(toast, (room - toast.size[0]) / 2, ty)
+    below = ty + toast.size[1] + 14
+    board.shade(30, below - 6, x - 20, below + 74, 0.4)
+    said = ["A toast when you earn one,", "and a link to show it in chat."]
+    for i, line in enumerate(said):
+        board.text((room / 2, below + 18 + i * 28), line, fit_caption(said, 20, room - 80),
+                   fill=(228, 222, 226), anchor="mm")
     return board
 
 
@@ -2416,33 +2970,68 @@ def picture_palette(snaps):
     return board
 
 
+def wrap_caption(text, size, width, bold=False):
+    """`text` in as few lines as fit `width`, broken at its spaces."""
+    face = caption_face(text, size, bold)
+    lines, line = [], ""
+    for word in text.split():
+        trial = (line + " " + word).strip()
+        if line and face.getlength(trial) > width:
+            lines.append(line)
+            line = word
+        else:
+            line = trial
+    return lines + [line] if line else lines
+
+
 def picture_looks(snaps):
-    """Every look, three to a row in the order the Look tab's gallery shows
-    them, each named over its panel. Every panel is drawn at the same zoom from
-    the same moment, so what differs between them is the look and nothing
-    else. The zoom is the largest at which three panels fit a row."""
+    """Every look, the same favour in each. Glass, the default, stands first
+    and larger at the top; the other eighteen follow three to a row, six rows,
+    each named over its panel. Those are all drawn at the same zoom from the
+    same moment, so what differs between them is the look and nothing else."""
+    hero = prompt_layer("shot-look-" + LOOKS[0][0], snaps["shot-look-" + LOOKS[0][0]], 2.0)
+    rest = LOOKS[1:]
     layers = [prompt_layer("shot-look-" + style, snaps["shot-look-" + style], 1.5)
-              for style, _, _ in LOOKS]
+              for style, _, _ in rest]
     cols = 3
     rows = (len(layers) + cols - 1) // cols
     cell_w = WIDTH / cols
-    label_h = 60
+    label_h = 78
     # A gap under each name: Wild's antlers stand as tall as its row, and
     # would touch the words over them.
-    gap = 10
-    row = max(l.size[1] for l in layers) + label_h + gap + 18
-    top = 140
-    board = Board(top + row * rows + 10, seed=17, sun=(0.50, 0.53))
+    gap = 8
+    # A row is as tall as its tallest panel: the plain looks of the first
+    # rows do not wait under their names for room only Wild's antlers need.
+    heights = [max(l.size[1] for l in layers[r * cols:(r + 1) * cols]) + label_h + gap + 14
+               for r in range(rows)]
+    hero_top = 136
+    hero_h = hero.size[1] + 24
+    top = hero_top + hero_h + 6
+    board = Board(top + sum(heights) + 10, seed=17, sun=(0.50, 0.53))
     heading(board, "Nineteen looks to choose from",
-            "The same favour in each. Pick one from the cards under Look; Glass is the default.")
-    for i, ((_, name, words), layer) in enumerate(zip(LOOKS, layers)):
+            "The same favour in each. Pick one from the cards under Look.")
+    # Glass and its words side by side, in the middle of the page.
+    _, name, words = LOOKS[0]
+    hx = WIDTH / 2 - hero.size[0] - 10
+    board.place(hero, hx, hero_top + 12)
+    tx = WIDTH / 2 + 30
+    board.shade(tx - 24, hero_top + 14, tx + 420, hero_top + hero_h - 10, 0.4)
+    cy = hero_top + 12 + hero.size[1] / 2
+    board.text((tx, cy - 16), name, 30, bold=True, anchor="lm")
+    board.text((tx, cy + 20), words + ": the default", 19, fill=(214, 206, 214), anchor="lm")
+    for i, ((_, name, words), layer) in enumerate(zip(rest, layers)):
         cx = cell_w * (i % cols) + cell_w / 2
-        y = top + row * (i // cols)
-        board.shade(cx - cell_w / 2 + 12, y + 4, cx + cell_w / 2 - 12, y + label_h, 0.4)
-        board.text((cx, y + 20), name, 26, bold=True, anchor="mm")
-        board.text((cx, y + 48), words, 17, fill=(214, 206, 214), anchor="mm")
+        row = heights[i // cols]
+        y = top + sum(heights[:i // cols])
+        board.shade(cx - cell_w / 2 + 12, y + 2, cx + cell_w / 2 - 12, y + label_h, 0.4)
+        board.text((cx, y + 18), name, 26, bold=True, anchor="mm")
+        lines = wrap_caption(words, 16, cell_w - 44)
+        if len(lines) > 2:
+            problem("manners-looks.png: %s's words do not fit two lines" % name)
+        for n, line in enumerate(lines):
+            board.text((cx, y + 44 + n * 20), line, 16, fill=(214, 206, 214), anchor="mm")
         w, h = layer.size
-        board.place(layer, cx - w / 2, y + label_h + gap + (row - label_h - gap - 18 - h) / 2)
+        board.place(layer, cx - w / 2, y + label_h + gap + (row - label_h - gap - 14 - h) / 2)
     return board
 
 
@@ -2531,10 +3120,11 @@ def ring(sheet, layer, rect, grow, zoom, number=None):
 
 
 def picture_options(snaps):
-    """The options window on Who to buff, a ring on the buff order's arrows
-    and one on Move the prompt in the header, and a line under for each."""
+    """The options window on Start here in the Simple view, a ring on the
+    view's switch and one on Move the prompt in the header, and a line under
+    for each."""
     got = snaps["options"]
-    scene, order = got["scene"], got["order"]
+    scene = got["scene"]
     zoom = 1.5
     layer = options_layer("options", scene, zoom)
     w, h = layer.size
@@ -2546,21 +3136,36 @@ def picture_options(snaps):
     x = (WIDTH - w) / 2
     board.place(layer, x, top)
     sheet = Sheet(w, h)
-    move = geo.rect(find_button(scene, "Move the prompt"))
-    ring(sheet, layer, move, 3, zoom, 2)
-    arrows = [geo.rect(line[side]) for line in order["lines"] for side in ("up", "down")]
-    ring(sheet, layer, (min(a[0] for a in arrows), min(a[1] for a in arrows),
-                        max(a[2] for a in arrows), max(a[3] for a in arrows)), 4, zoom, 1)
+    ring(sheet, layer, geo.rect(find_button(scene, "Move the prompt")), 3, zoom, 2)
+    # The switch: its box and its words, which are one row of the sidebar.
+    label = geo.rect(got["switch"])
+    ring(sheet, layer, (label[0] - 34, label[1] - 5, label[2] + 6, label[3] + 5), 2, zoom, 1)
     board.place(sheet, x, top)
     base = top + h + 20
     board.shade(40, base - 8, WIDTH - 40, base + 96, 0.45)
     for i, (word, line) in enumerate((
-            ("The buff order", "Move a blessing up or down with its arrows."),
+            ("Simple view", "The short list of every page. Untick it for everything."),
             ("Move the prompt", "One click in the header, then drag it where you like."))):
-        x0 = 110 + i * 600
+        x0 = 100 + i * 610
         board.text((x0, base + 24), str(i + 1), 26, bold=True, fill=(255, 209, 64), anchor="mm")
         board.text((x0 + 26, base + 24), word, 26, bold=True, anchor="lm")
-        board.text((x0 + 26, base + 62), line, 20, fill=(214, 206, 214), anchor="lm")
+        board.text((x0 + 26, base + 62), line, fit_caption([line], 20, 530), fill=(214, 206, 214),
+                   anchor="lm")
+    return board
+
+
+def picture_options_wide(snaps):
+    """The window dragged wide on Who to buff, at the game's own size: the
+    page's sections in two columns."""
+    scene = snaps["options-wide"]["scene"]
+    layer = options_layer("options-wide", scene, 1.0)
+    w, h = layer.size
+    if w > WIDTH:
+        problem("manners-options-wide.png: the window is %d wide, wider than the picture" % w)
+    top = 132
+    board = Board(top + h + 24, seed=67, sun=(0.78, 0.50))
+    heading(board, "Drag it wide", "A page flows into two columns, and three on an ultrawide screen.")
+    board.place(layer, (WIDTH - w) / 2, top)
     return board
 
 
@@ -2715,19 +3320,28 @@ def picture_tooltips(snaps):
     return board
 
 
+# The pictures in the order the gallery shows them (.github/gallery.md): the
+# file, what draws it, and the builders it needs.
 PICTURES = [
-    ("manners-prompt.png", picture_prompt),
-    ("manners-moment.png", picture_moment),
-    ("manners-reasons.png", picture_reasons),
-    ("manners-looks.png", picture_looks),
-    ("manners-ledger.png", picture_ledger),
-    ("manners-languages.png", picture_languages),
-    ("manners-palette.png", picture_palette),
-    ("manners-list.png", picture_click),
-    ("manners-options.png", picture_options),
-    ("manners-yourself.png", picture_yourself),
-    ("manners-actionbar.png", picture_keys),
-    ("manners-tooltip.png", picture_tooltips),
+    ("manners-prompt.png", picture_prompt, ("moments",)),
+    ("manners-moment.png", picture_moment, ("moments",)),
+    ("manners-reasons.png", picture_reasons, ("reasons",)),
+    ("manners-more.png", picture_more, ("more",)),
+    ("manners-list.png", picture_click, ("click",)),
+    ("manners-tooltip.png", picture_tooltips, ("tips",)),
+    ("manners-actionbar.png", picture_keys, ("keys",)),
+    ("manners-yourself.png", picture_yourself, ("yourself",)),
+    ("manners-options.png", picture_options, ("options",)),
+    ("manners-options-wide.png", picture_options_wide, ("options",)),
+    ("manners-looks.png", picture_looks, ("looks",)),
+] + [
+    ("manners-look-%s.gif" % style, picture_film(style, title, line), ("films",))
+    for style, title, line in FILMS
+] + [
+    ("manners-ledger.png", picture_ledger, ("ledger",)),
+    ("manners-milestones.png", picture_milestones, ("ledger",)),
+    ("manners-languages.png", picture_languages, ("languages",)),
+    ("manners-palette.png", picture_palette, ("palette",)),
 ]
 
 
@@ -2742,14 +3356,25 @@ def main():
     ap.add_argument("--addon", default=ROOT, help="the addon tree to draw (default: this one)")
     ap.add_argument("--strict", action="store_true",
                     help="write nothing if any picture would be wrong")
+    ap.add_argument("--only", default="",
+                    help="comma-separated words: draw only the pictures whose file names hold one "
+                         "(looks, options, gif), for a look at one while working on it")
     args = ap.parse_args()
 
-    snaps = build(os.path.abspath(args.addon))
+    pictures = PICTURES
+    wanted = None
+    if args.only:
+        words = [w.strip() for w in args.only.split(",") if w.strip()]
+        pictures = [p for p in PICTURES if any(w in p[0] for w in words)]
+        if not pictures:
+            ap.error("--only %s names none of: %s" % (args.only, ", ".join(p[0] for p in PICTURES)))
+        wanted = {b for p in pictures for b in p[2]}
+    snaps = build(os.path.abspath(args.addon), wanted)
     if args.strict and problems:
         print("refusing to draw: %d problem(s) above" % len(problems), file=sys.stderr)
         sys.exit(1)
     boards = []
-    for name, make in PICTURES:
+    for name, make, _ in pictures:
         try:
             boards.append((name, make(snaps)))
         except KeyError as e:
@@ -2762,9 +3387,13 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     for name, board in boards:
         path = os.path.join(args.out, name)
+        if isinstance(board, Film):
+            im = board.save(path)
+            print("  %-28s %dx%d, %d frames" % (name, im.width, im.height, len(board.boards)))
+            continue
         im = board.image()
         im.save(path, optimize=True)
-        print("  %-24s %dx%d" % (name, im.width, im.height))
+        print("  %-28s %dx%d" % (name, im.width, im.height))
     if problems:
         print("%d problem(s); the pictures above may not show what they claim" % len(problems),
               file=sys.stderr)

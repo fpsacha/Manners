@@ -605,22 +605,32 @@ check that nothing drifted.
 
 ## make-screenshots.py
 
-The listing images for CurseForge, Wago and the README, all 1280 wide:
+The listing images for CurseForge, Wago and the README, in the gallery's order
+(`.github/gallery.md`; `.github/media/UPLOAD.md` is the checklist for uploading
+them at a release). The stills are 1280 wide, the animated ones 800:
 
 | File | Shows |
 |---|---|
 | `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the nineteen looks, named |
+| `manners-more.png` | the newer kinds of entry, a prompt each: a priest's resurrection for a dead party member, a druid's cure for a poisoned one, water asked of a mage in /say, a warrior's ask of a priest beside him |
+| `manners-list.png` | the prompt with the next four under it, the cursor on the second name: its wash lit and its tooltip up, and what each click does |
+| `manners-tooltip.png` | the prompt twice with its tooltip above it: Short, the default, and the Full one with Shift held; the setting's choices and places named from the options model |
+| `manners-actionbar.png` | the prompt (Arcane) with a key on its chip, a row of the game's action bar slots with the Manners macro on one -- the spell the prompt would cast, part way through a cooldown -- and the prompt with a controller button's glyph on its chip |
+| `manners-yourself.png` | three prompts for "You": a mage's armor, a rogue's poison for the main hand, a mage's own Arcane Intellect |
+| `manners-options.png` | the options window on Start here in the Simple view, for a mage with a key bound, with a ring on the Simple view switch and on Move the prompt |
+| `manners-options-wide.png` | the window dragged to 1236 x 720 on Who to buff for a paladin, at the game's own size: the page in two columns |
+| `manners-looks.png` | the same favour in each of the nineteen looks, named: Glass, the default, larger at the top, the other eighteen in six rows of three |
+| `manners-look-stormcaller.gif`, `manners-look-lightbringer.gif` | a buff landing in a look (`FILMS`): the favour waiting, held, then the landing every 0.04 s to 0.80 s, the last frame held; loops |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
+| `manners-milestones.png` | the same ledger on its Milestones tab (three earned, the rest under way) and the toast the first favour returned puts up |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
-| `manners-list.png` | the prompt with the next four under it, the cursor on the second name: its wash lit and its tooltip up, and what each click does |
-| `manners-options.png` | the options window on Who to buff for a paladin whose buff order is Wisdom, Kings, Might ..., with a ring on the arrows and on Move the prompt |
-| `manners-yourself.png` | three prompts for "You": a mage's armor, a rogue's poison for the main hand, a mage's own Arcane Intellect |
-| `manners-actionbar.png` | the prompt (Arcane) with a key on its chip, a row of the game's action bar slots with the Manners macro on one -- the spell the prompt would cast, part way through a cooldown -- and the prompt with a controller button's glyph on its chip |
-| `manners-tooltip.png` | the prompt twice with its tooltip above it: Short, the default, and the Full one with Shift held; the setting's choices and places named from the options model |
+
+`--only looks,options` (words out of the file names; `gif` for the animated
+ones) builds and draws only those, for a look at one picture while working on
+it; everything, strictly, is about two and a half minutes.
 
 These are **renders of the addon, not captures from the game**, and nothing
 about the prompt, the ledger or the options window is drawn in this script. It
@@ -653,10 +663,18 @@ it claims:
 - a list that is not the five people, reasons and buffs the list picture names,
   a name under the cursor the tooltip is not about, a tooltip that no longer says
   what each click does, or a name that is not lit;
+- a resurrection, a cure, a courtesy or an ask that is not that kind of entry
+  (`ShotKind`: a resurrection and a cure are both "group" to the queue, so the
+  reason alone would pass a plain buff under either caption);
 - an options window that fails `render_options.py --check` (text cut, rows
   overlapping, a control off the window, contrast under 4.5:1, a glyph the face
-  lacks), whose buff order is not Wisdom, Kings, Might ..., whose header reads
+  lacks), that is not on the page its picture names, lacks the Simple view
+  switch, is not in two columns where the picture says so, whose header reads
   Stop preview or lacks Move the prompt;
+- a Milestones tab without the milestones the picture shows, or a toast the
+  addon did not put up by itself;
+- an animated picture whose frames are mostly alike, drawn in another look
+  than it names, or still saying "buffed you" after the press;
 - a ledger row the queue disagrees with -- a buff given to a class it would
   never offer one to, or a favour called beyond anything you cast when it is
   not;
@@ -665,7 +683,10 @@ it claims:
   the four the caption names, a key chip that does not read the bound key or
   hold the controller button's glyph, or a bar slot whose icon is not one
   `tools/icons` keeps;
-- a line the client would cut with an ellipsis;
+- a line the client would cut with an ellipsis (one exception: a milestone's
+  line in the ledger, which the row is built to let the client cut and whose
+  tooltip has it whole, is refused cut only in the face the published pictures
+  are drawn in, Candara; in CI's wider DejaVu it is printed as a note);
 - a translated line still in English;
 - a character the face would draw as a box, or no TrueType face at all.
 
@@ -853,7 +874,8 @@ name (`GameFontNormal` gold, `GameFontHighlight` white, `GameFontDisable` grey;
 passed down the tree, hidden frames left out, and text that wraps. The client's
 own art files are drawn as stand-ins rather than flat tiles: an icon from
 `Interface\Icons` as a tile with the initials of its name, a check box's tick,
-arrows, plus and minus, the close X (a `UIPanelCloseButton` is 24 square), the
+arrows, plus and minus, the window's size grip (three strokes across the
+corner), the close X (a `UIPanelCloseButton` is 24 square), the
 loot window's Pass cross and the round portrait mask (white, for its colour),
 each seen through its `SetTexCoord`, so a fold's arrow turned to point down
 while it is open is drawn pointing down.
@@ -885,7 +907,10 @@ drawn at all):
   as much of a scroll frame as is inside it). A frame lifted above its
   siblings -- another strata, or a frame level set higher -- is meant to cover
   them (a menu, the search results, the confirm box), so it is left out of its
-  parent's comparison, and checked within.
+  parent's comparison, and checked within. A button with nothing of its own to
+  draw (no art, no words, no frame inside it) is a place to click laid over
+  what is there -- the footer's line has one over the author's name -- and
+  collides with nothing.
 - **(c) outside**: a control (button, edit box, slider) or a line of text
   outside the window; inside a scroll frame, one cut by its left or right edge
   or lying past the end of the scroll child, where no scrolling reaches it;

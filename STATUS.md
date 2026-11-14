@@ -717,10 +717,11 @@ then the selftest on GitHub):
   whole suite.
 - The contrast audit ran at the default size only for seven of the eight
   new or redrawn looks.
-- `manners-looks.png` still shows fifteen of the nineteen looks, and any
-  listing picture showing Minimal, Ribbon, Letter or Leather wants redrawing
-  (`tools/make-screenshots.py` knows the nineteen now; the gallery row says
-  fifteen of nineteen until the picture is drawn again).
+- The listing pictures are redrawn (seventeen: the nineteen looks, the
+  rebuilt options window twice, Milestones and its toast, the newer kinds of
+  entry, two GIFs of a look as a buff lands) and are not in the CurseForge or
+  Wago galleries yet: `.github/media/UPLOAD.md` is the list to upload at the
+  release. Whether each gallery takes a GIF is to be seen at the upload.
 
 **Launch day (WoW Forever, 2026-11-05): run one command.** Log in on the
 character that has the Manners macro (or any character: the test makes a

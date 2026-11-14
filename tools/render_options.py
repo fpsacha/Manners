@@ -666,6 +666,10 @@ def drawn_art(kind, w, h):
         d.ellipse((0, 0, W - 1, H - 1), fill=(255, 255, 255, 255))
     elif kind == "thumb":
         d.rounded_rectangle((W * 0.2, 0, W * 0.8, H), radius=W * 0.2, fill=(200, 180, 120, 255))
+    elif kind == "grip":
+        # The chat frame's size grabber: three strokes across the corner.
+        for t in (0.25, 0.5, 0.75):
+            d.line([(W * t, H * 0.92), (W * 0.92, H * t)], fill=(170, 160, 140, 255), width=max(1, int(W * 0.07)))
     img = img.resize((w, h), Image.LANCZOS)
     return np.asarray(img).astype(np.float32) / 255
 
@@ -686,6 +690,8 @@ def standin(file, w, h):
         return drawn_art("cross", w, h)
     if "portraitalphamask" in base:
         return drawn_art("disc", w, h)
+    if "sizegrabber" in base:
+        return drawn_art("grip", w, h)
     if "sliderbar-button" in base or "thumb" in base:
         return drawn_art("thumb", w, h)
     if "arrow" in base or "scroll" in base or "expand" in base or "collapse" in base:
@@ -1128,7 +1134,11 @@ class Checker:
         lay = self.scene.layouts.get(rid)
         if lay:
             boxes.append(lay.ink())
-        if r["kind"] in CONTROLS:
+        # A control with nothing of its own to draw -- no art, no words, no
+        # frame inside it -- is a place to click laid over what is there (the
+        # footer's line has one over the author's name), not a row that can
+        # run into another.
+        if r["kind"] in CONTROLS and (lay or self.geo.children.get(rid) or r["kind"] != "Button"):
             boxes.append(self.geo.rect(rid))
         for cid in self.geo.children.get(rid, []):
             c = self.geo.regions[cid]
