@@ -564,9 +564,6 @@ do
 		if not H.layoutInToc() then return end
 		local page, section, index = H.placedOn(ns, "who.res")
 		local tooPage, tooSection, tooIndex = H.placedOn(ns, "who.resStrangers")
-		-- Share the group is the group's own too, and sits between the two.
-		local _, _, shareIndex = H.placedOn(ns, "who.share")
-		if shareIndex == petsIndex + 1 then petsIndex = shareIndex end
 		if not (page and tooPage) then
 			fail(scenario, "the window places one of them on no page")
 		elseif page ~= "who" or section.key ~= "who.beyond" then
