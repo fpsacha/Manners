@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.23
 
 ### Who gets what
 - **Which food.** Under *Well Fed* on *Who to buff*: the best one you can eat
