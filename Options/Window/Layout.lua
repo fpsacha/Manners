@@ -646,17 +646,6 @@ ns.WindowLayout = {
 					{ "appearance.width", pair = true },
 					"appearance.height",
 				} },
-				{ key = "appearance.style", header = "appearance.styleHeader", items = {
-					{ "appearance.bgColor", pair = true },
-					"appearance.accentByReason",
-					-- With Colour marker, whatever else shows: Marker colour
-					-- follows on a row of its own while Colour marker by
-					-- reason is off.
-					{ "appearance.reasonPalette", pair = true },
-					"appearance.accentMode",
-					"appearance.accentColor",
-					"appearance.accentDead",
-				} },
 				{ key = "appearance.attention", header = "appearance.attentionHeader", items = {
 					{ "appearance.flashStyle", pair = true },
 					"appearance.effects",
@@ -679,6 +668,20 @@ ns.WindowLayout = {
 					"appearance.showQueue",
 					{ "appearance.queueRows", indent = true },
 					{ "appearance.clickRows", indent = true },
+				} },
+				-- The pane's and the marker's colours: every look comes with its own,
+				-- so they are fine print, folded, first under the hairline. With the
+				-- gallery's nineteen cards above, this keeps Look to three screens.
+				{ key = "appearance.style", header = "appearance.styleHeader", fold = true, items = {
+					{ "appearance.bgColor", pair = true },
+					"appearance.accentByReason",
+					-- With Colour marker, whatever else shows: Marker colour
+					-- follows on a row of its own while Colour marker by
+					-- reason is off.
+					{ "appearance.reasonPalette", pair = true },
+					"appearance.accentMode",
+					"appearance.accentColor",
+					"appearance.accentDead",
 				} },
 				{ key = "appearance.exactPos", header = "advanced.exactPosHeader", fold = true, items = {
 					{ "advanced.x", widget = "number", pair = true },

@@ -35,6 +35,11 @@ local function run(scenario, body)
 		restore = strangers({ nameplate1 = { "Anna", "Aim" } })
 		ns = load(scenario)
 		if not ns then return end
+		-- The reminder to put Manners on a key is parked twenty seconds after
+		-- the login's lines (Core.lua), on the same clock these scenarios
+		-- read for the settle timers: without it here, the only timers parked
+		-- are the favours' own.
+		ns.KeyNudge = nil
 		freshPrompt(ns, scenario)
 		local scans = { n = 0 }
 		scan = ns.ScanOwnBuffs

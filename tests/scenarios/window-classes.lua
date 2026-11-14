@@ -263,6 +263,8 @@ do
 	with(scenario, "MAGE", nil, function(ns, UI)
 		ns.db.profile.prompt.accentByReason = false
 		ns.OpenOptions("appearance")
+		-- The colours are in a fold on Look: opened, so its rows are drawn.
+		unfold(ns, "appearance.reasonPalette")
 		local palette, mode, colour = UI.Where("appearance.reasonPalette"), UI.Where("appearance.accentMode"),
 			UI.Where("appearance.accentColor")
 		if not (UI.RowShown("appearance.reasonPalette") and UI.RowShown("appearance.accentMode")

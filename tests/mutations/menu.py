@@ -179,6 +179,13 @@ mutate(LAYOUT,
        "menu: Look's Tooltip out of its fold",
        expect="appearance.hover is not a fold on Look", script=S)
 
+# The colours unfolded again, under the gallery's nineteen cards.
+mutate(LAYOUT,
+       "\t\t\t\t{ key = \"appearance.style\", header = \"appearance.styleHeader\", fold = true, items = {\n",
+       "\t\t\t\t{ key = \"appearance.style\", header = \"appearance.styleHeader\", items = {\n",
+       "menu: Look's colours out of their fold",
+       expect="appearance is 3.2 screens of the usual window", script=S)
+
 mutate(PAGE,
        "\t\"tooltip\", \"tooltipPosition\", \"peekOnChange\" }) do\n",
        "\t\"peekOnChange\" }) do\n",
