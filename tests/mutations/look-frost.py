@@ -18,8 +18,8 @@ S = "runscenarios.py"
 # --- registered ---
 
 mutate("Looks/Looks.lua",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, wild = true, frost = true }\n",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, wild = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, wild = true, frost = true, warchief = true, gearworks = true, ebon = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, wild = true, warchief = true, gearworks = true, ebon = true }\n",
        "look-frost: the round switch live on the crystal",
        expect="frost is not in roundAlways", script=S)
 

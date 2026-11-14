@@ -1476,7 +1476,9 @@ function Letter:PlaceLines()
 		if self.countMode == "sub" then subRoom = subRoom + (self.countW or 0) + 4 end
 	else
 		if self.keyUp then nameRoom = (self.keyW or 0) + 4 end
-		if self.countMode then nameRoom = nameRoom + (self.countW or 0) + 4 end
+		-- Pinned on the seal the count takes nothing from the line: its slip
+		-- ends short of the words.
+		if self.countMode and self.countMode ~= "seal" then nameRoom = nameRoom + (self.countW or 0) + 4 end
 	end
 	-- The two points never cross: the name keeps 20 units, the room at the right
 	-- gives way.

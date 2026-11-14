@@ -603,7 +603,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-prompt.png` | the moment your buff lands: the confirmed prompt 0.20 s in, rings off the icon and the wave crossing the panel |
 | `manners-moment.png` | film strips of one favour in Glass, four frames each (0.05, 0.15, 0.30, 0.60 s): they buffed you, your buff lands, the game refused it |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
-| `manners-looks.png` | the same favour in each of the fifteen looks, named |
+| `manners-looks.png` | the same favour in each of the nineteen looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
@@ -1263,7 +1263,7 @@ appended to `materials.lua` for another look.
 ## audit_look_contrast.py
 
 How well the words on every prompt look read, measured on the pictures. Each
-of the fifteen looks is taken through the moments that change what is behind
+of the nineteen looks is taken through the moments that change what is behind
 its words or what colour they are (`tools/audit_look_contrast.lua`: every
 reason at rest in both palettes with a class's colour on the name, somebody
 owed at three moments of the lights' run, an outcome that succeeded and one
@@ -1287,7 +1287,7 @@ python tools/audit_look_contrast.py --json OUT.json # every measurement, with th
 The floors are 4.5:1 for the name, the reason line, a look's tags (the count,
 the key) and the list's rows, judged on the 10th percentile of the ring so
 one bright mote does not decide it; the lowest pixel is printed beside it.
-Minimal is measured over dusk, a bright world and a dark cave. All fifteen
+Minimal is measured over dusk, a bright world and a dark cave. All nineteen
 looks at three sizes take about four minutes on two workers (`--jobs`);
 `--looks` splits it. A pass is necessary, not sufficient: the stand-in fonts
 are bolder than the game's and additive light is drawn dimmer. Needs scipy.

@@ -40,7 +40,7 @@ the kit it is handed. This file is the recipe and the rules of taste.
   (`Looks/Looks.lua`, ONE ALPHA). A light's strength is its animation's
   alpha, never its colour's. The shared icon is the one thing left on
   `SetVertexColor`: it is every look's, at full alpha wherever it is
-  coloured. `tests/scenarios/looks-alpha.lua` takes all fifteen looks through
+  coloured. `tests/scenarios/looks-alpha.lua` takes all nineteen looks through
   their states on a mock that keeps one alpha, and fails on any texture that
   differs.
 - **The words are measured.** `python tools/audit_look_contrast.py` draws

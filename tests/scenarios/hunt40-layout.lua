@@ -38,7 +38,7 @@ end
 -- ------------------------------------------------------------------ 1
 -- The sweep.
 
-local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost" }
+local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon" }
 local COUNTS = { 1, 9, 10, 99, 100, 999 }
 local WIDTHS = { 160, 220, 300, 400 }
 local HEIGHTS = { 20, 32, 44, 72 }

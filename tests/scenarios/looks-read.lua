@@ -1,4 +1,4 @@
--- The words read, on every one of the fifteen looks.
+-- The words read, on every one of the nineteen looks.
 --
 -- tools/audit_look_contrast.py measures the pictures; this holds what a
 -- scenario can, so the floor does not slip between two runs of the tool. On
@@ -25,7 +25,7 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage",
-	"lightbringer", "fel", "wild", "frost" }
+	"lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon" }
 local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }
 local COMMAND = "CLICK MannersPrompt:LeftButton"
 local FLOOR = 4.5
@@ -34,7 +34,7 @@ local FLOOR = 4.5
 -- luminance, a little under the measure): the look has to judge its words
 -- against a ground at least that bright, or everything above reads on paper
 -- and not on the prompt.
-local GROUND = { ribbon = 0.10, leather = 0.10, forge = 0.08, letter = 0.60 }
+local GROUND = { ribbon = 0.10, leather = 0.10, forge = 0.08, letter = 0.60, gearworks = 0.007 }
 -- The looks that hang the key's tag and the count beside the name, where a
 -- long name is still drawn at the size set.
 local LONG = { fel = true, lightbringer = true, wild = true, frost = true }

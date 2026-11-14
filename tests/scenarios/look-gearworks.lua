@@ -202,7 +202,8 @@ withTree("look-gearworks: it is registered and in the toc", ANNA, function(ns, s
 	if not look then fail(scenario, "no look is registered as gearworks") return end
 	if look.order ~= 9.9 then fail(scenario, "gearworks is not after the other looks in the picker: " .. tostring(look.order)) end
 	for key, other in pairs(ns.Looks.list) do
-		if key ~= "gearworks" and not other.native and (other.order or 50) >= look.order then
+		-- Warchief and Ebon stand at the same place: the picker then goes by key.
+		if key ~= "gearworks" and not other.native and (other.order or 50) > look.order then
 			fail(scenario, "gearworks is not the last of the looks: " .. key .. " is at " .. tostring(other.order))
 		end
 	end

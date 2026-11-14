@@ -518,6 +518,8 @@ local frameMethods = {
 	-- into its tag: every one a method the client has on these regions.
 	"RemoveMaskTexture", "SetParent", "SetStartDelay", "SetScaleFrom", "SetScaleTo",
 	"SetOrigin",
+	-- A Rotation's turn, which Gearworks sets again at every swing of its needle.
+	"SetDegrees",
 }
 
 local KNOWN_EVENTS = {}
