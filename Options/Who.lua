@@ -1072,6 +1072,20 @@ function Page.BuildWhoTab()
 				get = sGet,
 				set = sSet,
 			},
+			-- Their pets, under the switch it widens (asked for on CurseForge
+			-- by a hunter and a warlock). Off until ticked, and not shown
+			-- while the group is off, when it would offer nobody: search
+			-- still finds it (the layout's `parents`).
+			pets = {
+				type = "toggle",
+				name = L["My group's pets too"],
+				desc = L["Also offer your buffs to the pets of the people in your party or raid: a hunter's beast, a warlock's demon. A pet is targeted by its name, so one with a name of its own is reached most surely."],
+				order = 12.5,
+				width = "full",
+				hidden = function() return not S().group end,
+				get = sGet,
+				set = sSet,
+			},
 			strangers = {
 				type = "toggle",
 				name = L["Passers-by (players near me, not in my group)"],

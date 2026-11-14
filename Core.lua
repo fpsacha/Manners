@@ -303,6 +303,11 @@ local defaults = {
 		sources = {
 			owed = true, -- people who buffed us
 			group = true, -- party/raid missing it
+			-- The pets of the people in it too: a hunter's beast, a warlock's
+			-- demon (asked for on CurseForge by a hunter and a warlock). Off,
+			-- and walked only with `group` on (Queue.lua, IterateUnits): a pet
+			-- is reached by its name alone, which a player has to want.
+			pets = false,
 			strangers = true, -- nearby non-group players
 			owedClassBuffsOnly = true, -- ignore stray HoTs and procs
 			-- People who ask for your buff in chat. Off, because reading chat is
@@ -1794,6 +1799,11 @@ do
 		-- friendly target (Buffs.lua, membersOnly: Detect Invisibility): never a
 		-- passer-by, and never anybody outside the group who asks for it.
 		if buff.membersOnly and not (opts.inGroup or opts.inParty) then return false end
+		-- A group member's pet (opts.pet: Queue.lua, visit, with "My group's
+		-- pets too" on) is in the group and is nobody in it: never a buff for
+		-- one target at a time, which is for its people. One held to the
+		-- tanks is kept off it above: the walk reads no role for a pet.
+		if opts.pet and buff.oneTarget then return false end
 		-- One target at a time (Buffs.lua, oneTarget): a cast on somebody takes
 		-- yours off the last. Your group alone, never a passer-by. There, while
 		-- one of yours is on somebody (opts.oneHeld, the scan's own reading of
@@ -4148,10 +4158,20 @@ ns.UnitHasMana = UnitHasMana
 -- tokenless owed fallback has to honour too, while "no such unit" or "that is
 -- you" says nothing about anybody. Only the first return may be tested for
 -- truth; the second is advisory.
-local function IsBuffableUnit(unit, f)
+--
+-- `pet` asks it of a group member's pet (Queue.lua, IterateUnits, with "My
+-- group's pets too" on): no player then, and never your own pet, which a raid
+-- lists among its pets as it lists you among its members. Every other test
+-- stands for a pet as for a person: dead, not yours to help, too low.
+local function IsBuffableUnit(unit, f, pet)
 	if not unit or not plain(UnitExists(unit)) then return false end
-	if plain(UnitIsUnit(unit, "player")) then return false end
-	if plain(UnitIsPlayer(unit)) ~= true then return false end
+	if plain(UnitIsUnit(unit, pet and "pet" or "player")) then return false end
+	local isPlayer = plain(UnitIsPlayer(unit))
+	if pet then
+		if isPlayer == true then return false end
+	elseif isPlayer ~= true then
+		return false
+	end
 	if plain(UnitIsDeadOrGhost(unit)) == true then
 		-- Their buffs went with them: what was last read worn says nothing now.
 		ForgetAllWorn(plain(UnitGUID(unit)))

@@ -149,7 +149,9 @@ Everybody who could use your buff is queued, in this order:
 4. **Somebody who asked for it in chat**, if you switch that on (see below).
 5. **You**, when you are missing your own buff or one of your class's own
    (see *Buffing yourself* below).
-6. **Your party or raid**, anyone missing your buff.
+6. **Your party or raid**, anyone missing your buff. Their pets too, a
+   hunter's beast or a warlock's demon, once you tick *My group's pets too*
+   on *Who to buff*.
 7. **Passers-by** missing your buff, seen through nameplates, your target,
    your focus and your mouseover. With the game's friendly nameplates off
    Manners sees almost nobody outside your group: *Who to buff* says so in
@@ -766,6 +768,17 @@ and *Show the welcome again* at the bottom.
   yours is left alone whatever the order, and Greater Blessings follow it.
 - *Offer my buff to*: *People who buff me*, *My party and raid*, *Passers-by
   (players near me, not in my group)* and *People who ask me in chat*.
+- *My group's pets too*, under *My party and raid* and shown while that is
+  on: off by default. On, the pets of the people in your party or raid are
+  offered your buffs as its members are: a hunter's beast, a warlock's demon.
+  Only what does something for a pet (no Arcane Intellect for one without
+  mana), never a buff that goes to one target at a time or one you hold to
+  your tanks, and in a raid by the groups you buff, going by its owner's. A
+  pet is targeted by its name like everybody else, so one with a name of its
+  own is reached most surely, and one named as somebody in your group is left
+  out. The second line says whose pet it is. Nothing is said to a
+  pet, a group cast neither counts nor aims at one, and the favour ledger
+  lists none.
 - *Passers-by within*: *Anywhere I can cast* (about thirty yards), *Nearby*
   (about ten, the default) or *Right beside me* (about five). Only passers-by
   are measured: somebody who buffed you was close enough a moment ago, and

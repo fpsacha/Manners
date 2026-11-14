@@ -81,15 +81,15 @@ mutate("Core.lua",
 # Everybody asked the six questions of "can this be buffed" twice: 300 more
 # calls to the client in a raid, 130 in a city.
 mutate("Queue.lua",
-       "\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
-       "\t\tIsBuffableUnit(unit, f)\n\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
+       "\t\tlocal ok, person = IsBuffableUnit(unit, f, owner)\n",
+       "\t\tIsBuffableUnit(unit, f, owner)\n\t\tlocal ok, person = IsBuffableUnit(unit, f, owner)\n",
        "perf-budget: everybody asked about twice",
        expect="perf-budget: a scan stays inside its client call budget on every client", script=S)
 
 # A table built for every person walked and thrown away: 10 KB a raid scan.
 mutate("Queue.lua",
-       "\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
-       "\t\tlocal _ = { unit, unit, unit, unit, unit, unit, unit, unit }\n\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
+       "\t\tlocal ok, person = IsBuffableUnit(unit, f, owner)\n",
+       "\t\tlocal _ = { unit, unit, unit, unit, unit, unit, unit, unit }\n\t\tlocal ok, person = IsBuffableUnit(unit, f, owner)\n",
        "perf-budget: a table per person walked",
        expect="perf-budget: a scan stays inside its allocation budget on every client", script=S)
 

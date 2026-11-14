@@ -213,6 +213,8 @@ ns.WindowLayout = {
 					"who.emptyWarning",
 					"who.owed",
 					"who.group",
+					-- The pets of the people in it, under the switch it widens.
+					{ "who.pets", indent = true },
 					"who.strangers",
 					-- While passers-by are on and the game's nameplates are off.
 					{ "who.strangersPlatesNote", indent = true },
@@ -707,6 +709,8 @@ ns.WindowLayout = {
 		["click.phrases"] = "click.enabled",
 		["click.mixedLines"] = "click.enabled",
 		["click.roll"] = "click.enabled",
+		-- My group's pets too, shown only while My party and raid is on.
+		["who.pets"] = "who.group",
 	},
 
 	-- In the model and drawn nowhere.

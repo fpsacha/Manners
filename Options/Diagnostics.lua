@@ -57,10 +57,11 @@ local function BugReport()
 	-- with it on, somebody buffing you is noticed even with owed off.
 	local db = ns.db.profile
 	lines[#lines + 1] = ("enabled=%s buff=%s sources owed/group/strangers/self=%s/%s/%s/%s"
-		.. " whenBuffed=%s targetFirst=%s keepDebts=%s thank=%s"):format(
+		.. " pets=%s whenBuffed=%s targetFirst=%s keepDebts=%s thank=%s"):format(
 		tostring(db.enabled), tostring(db.buff.choice),
 		tostring(db.sources.owed), tostring(db.sources.group), tostring(db.sources.strangers),
 		tostring(db.sources.self),
+		tostring(db.sources.pets),
 		tostring(db.filters.whenBuffed), tostring(db.priority.target),
 		tostring(db.timing.keepDebts), tostring(db.prompt.thankEmote))
 	-- "Myself": where, and per family you know its pick and the one last up

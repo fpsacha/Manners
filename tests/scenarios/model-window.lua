@@ -392,7 +392,7 @@ end
 local EXPECTED = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly", "sources.owed", "sources.group",
-		"sources.strangers", "sources.asked", "sources.self", "filters.proximity",
+		"sources.pets", "sources.strangers", "sources.asked", "sources.self", "filters.proximity",
 		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.scrolls", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
