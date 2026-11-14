@@ -1415,6 +1415,12 @@ function ns.SavingMana()
 		sweep.saving = nil
 		return nil
 	end
+	-- Nor before a battleground's or an arena's gates open, where a cast costs
+	-- nothing (Battle.lua): asked only with a floor set.
+	if ns.Battle.State() == "prep" then
+		sweep.saving = nil
+		return nil
+	end
 	local most = plain(UnitPowerMax("player", MANA))
 	local mana = plain(UnitPower("player", MANA))
 	if type(most) ~= "number" or most <= 0 or type(mana) ~= "number" then
@@ -2100,6 +2106,9 @@ end
 -- the time left for a top-up, the charges left for a charge shield's, and for
 -- a top-up how long it lasts, its lead and the kind of lead. nil when none does.
 local function OwnPick(db, full, now)
+	-- In a battleground or an arena the order is the fight's: what you fight
+	-- with before the long extras, the missing before the low (Battle.lua).
+	if ns.Battle.State(now) then return ns.Battle.OwnPick(db, full, now) end
 	local ctx = { name = full, now = now, whenBuffed = ns.SelfWhenBuffed(db.filters),
 		refreshUnder = db.filters.refreshUnder }
 	-- "Put consumables on a button of their own": the families used from the
@@ -2308,6 +2317,14 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	if #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end
 	if not buff and fight then return nil end
 	if not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end
+	-- In a battleground or an arena (Battle.lua), your group buff only running
+	-- low steps behind something you fight with and are missing altogether:
+	-- after a death there it is the armor that is gone.
+	local battle = not fight and ns.Battle.State(now)
+	if battle and buff and has == true then
+		local spell, up, left, count, length, early, how = ns.Battle.OwnPick(db, full, now, true)
+		if spell then buff, has, remaining, charges, seconds, lead, kind = spell, up, left, count, length, early, how end
+	end
 	if not buff then return nil end
 	-- Last, so the list is walked only for an offer about to be made, and
 	-- through the scan's answers, which a list edit alone sets walking again.
@@ -2346,6 +2363,10 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	-- your Fortitude with minutes to run came ahead of a party member with
 	-- none. Missing, your own buff keeps its place ahead of the group.
 	if has == true then entry.priority = PRIORITY.group end
+	-- In a battleground or an arena what you fight with and are missing comes
+	-- ahead of the team, the people a graveyard raised beside you included,
+	-- and the long extras after it (Battle.lua).
+	if battle then ns.Battle.Rank(entry) end
 	return entry
 end
 
@@ -2400,6 +2421,10 @@ function ns.BuildQueue(watch)
 	-- evidence as forty in one.
 	prox.asked, prox.answered = 0, 0
 
+	-- In a battleground or an arena (Battle.lua): nil anywhere else, there
+	-- "prep" until the gates open, "fight" while you are in combat, else "open".
+	local battle = ns.Battle.State(now)
+
 	-- Everything below until the walk is asked once per scan, not per person.
 	-- Nothing you cannot pay for is offered to anybody (see Affordable); an
 	-- empty list is the "nothing to give anybody else" below.
@@ -2448,6 +2473,8 @@ function ns.BuildQueue(watch)
 	if inRaid and type(f.skipRaidGroups) == "table" and next(f.skipRaidGroups) ~= nil then
 		skipGroups = f.skipRaidGroups
 	end
+	-- Before the gates open the whole team is offered, every raid group of it.
+	if battle == "prep" then skipGroups = nil end
 	local readyCheck = db.priority.readyCheck == true and ns.ReadyCheckRunning(now)
 	local ignoring = IgnoresAnybody()
 
@@ -2482,9 +2509,13 @@ function ns.BuildQueue(watch)
 			inTown = f.quietInTownsWhere ~= "cities"
 		end
 	end
-	-- And inside a dungeon, raid, battleground or arena, when that is asked
-	-- for: the same rule, the target and focus still exempt.
+	-- And inside a dungeon or a raid, when that is asked for: the same rule,
+	-- the target and focus still exempt.
 	if f.quietInInstances == true and Inside() then inTown = true end
+	-- A battleground or an arena has a switch of its own, which decides there
+	-- whatever the one above says (Battle.lua, Buff my team there): off, the
+	-- same rule, the target and focus still exempt.
+	if battle then inTown = not ns.Battle.On("team") end
 	if inTown then notResting = true end
 	-- The short buffs alone, while resting (Who to buff: Hold back short buffs in
 	-- cities and inns): their length in seconds, nil when nothing is held. The
@@ -2533,6 +2564,16 @@ function ns.BuildQueue(watch)
 	-- Except for somebody asking by name for a spell Automatic leaves alone
 	-- (askOnly), whom only the walk reads.
 	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) then
+		local own = SelfEntry(db, candidates, now, neverVerdict)
+		if own then return { own }, {} end
+		return {}, true
+	end
+
+	-- In a battleground or an arena, once the gates are open, nobody else is
+	-- offered while you fight (Battle.lua): the pull's own repaint finds the
+	-- queue empty, so no press of the fight targets a team-mate. Your own is
+	-- SelfEntry's to judge, as in any fight.
+	if battle == "fight" then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
 		if own then return { own }, {} end
 		return {}, true
@@ -3156,6 +3197,11 @@ function ns.BuildQueue(watch)
 	OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, neverVerdict,
 		not db.sources.strangers or groupOnly or savingMana or notResting, ignoring, manaHoldsAsked)
 
+	-- In a battleground or an arena only somebody within reach (Battle.lua):
+	-- nobody measured out of range, whatever Only in range says, and nobody
+	-- no token names.
+	if battle then queue = ns.Battle.Reach(queue, rejected) end
+
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.
 	-- A shout the walk queued for nobody covers you through nobody: said to
@@ -3207,6 +3253,8 @@ function ns.BuildQueue(watch)
 			queue = ns.GroupCasts(queue, db, candidates, inRaid)
 		end)
 	end
+	-- Before the gates open a cast costs nothing: the group casts first.
+	if battle == "prep" then ns.Battle.GroupFirst(queue) end
 	-- Whoever was kept for the fold alone (visit, `foldOnly`) and went into no
 	-- group cast is out of a single cast's reach, and is offered nothing.
 	if opts.folding then

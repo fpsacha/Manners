@@ -2,6 +2,8 @@
 # line that joins it to the cities rule, Core.lua's default, Options/Who.lua, the
 # layout slot and the page's reset). Each is caught by the scenario in
 # tests/scenarios/quietinstances.lua (or model-window.lua) that names it.
+# A battleground or an arena goes by its own switch since 1.11.25 (Battle.lua;
+# tests/scenarios/battleground.lua and tests/mutations/battleground.py).
 
 S = "runscenarios.py"
 
@@ -32,8 +34,8 @@ mutate("Queue.lua",
 mutate("Queue.lua",
        "\treturn (inside == true or inside == 1) and type(kind) == \"string\" and kind ~= \"none\"\n",
        "\treturn (inside == true or inside == 1) and (kind == \"party\" or kind == \"raid\")\n",
-       "quietinstances: battlegrounds left out",
-       expect="quietinstances: on, nobody but the target is offered inside (pvp)", script=S)
+       "quietinstances: only dungeons and raids, a scenario left out",
+       expect="quietinstances: on, nobody but the target is offered inside (scenario)", script=S)
 
 mutate("Core.lua",
        "\t\t\tquietInInstances = false,\n",
@@ -42,8 +44,8 @@ mutate("Core.lua",
        expect="quietinstances: off by default, and then a dungeon changes nothing", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\t\torder = 13.36,\n\t\t\t\twidth = \"full\",\n\t\t\t\tget = fGet,\n\t\t\t\tset = fSet,\n",
-       "\t\t\t\torder = 13.36,\n\t\t\t\twidth = \"full\",\n\t\t\t\tget = fGet,\n\t\t\t\tset = function() end,\n",
+       "\t\t\t\t\tfSet(info, value)\n\t\t\t\t\tif value == true then ns.db.profile.battle.team = false end\n",
+       "\t\t\t\t\tif value == true then ns.db.profile.battle.team = false end\n",
        "quietinstances: the switch writes nothing",
        expect="quietinstances: Who to buff has the switch, and it is kept", script=S)
 

@@ -77,7 +77,10 @@ do
 	end)
 end
 
-for _, kind in ipairs({ "party", "raid", "pvp", "arena", "scenario" }) do
+-- A battleground and an arena are not here: since 1.11.25 they go by the switch
+-- of their own section, Buff my team there, which ticking this one unticks
+-- (Battle.lua; tests/scenarios/battleground.lua).
+for _, kind in ipairs({ "party", "raid", "scenario" }) do
 	local scenario = "quietinstances: on, nobody but the target is offered inside (" .. kind .. ")"
 	with(scenario, function(ns, state)
 		ns.db.profile.filters.quietInInstances = true

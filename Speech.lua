@@ -269,6 +269,9 @@ local function InHome(fn)
 end
 
 function ns.ChannelOpen(entry)
+	-- Nothing is said in a battleground or an arena, in any channel, until Say
+	-- my line there is ticked (Battle.lua): a fight is no place for a line.
+	if ns.Battle.Quiet() then return false end
 	local db = addon.db and addon.db.profile
 	local channel = db and db.speech.channel
 	if channel ~= "PARTY" and channel ~= "RAID" then return true end

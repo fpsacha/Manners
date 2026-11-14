@@ -390,6 +390,20 @@ local function quietNow(W, f)
 	return (f.quietInTowns == true and W.resting == true) or (f.quietInInstances == true and W.inInstance ~= nil)
 end
 
+-- A battleground or an arena, which goes by rules of its own (Battle.lua):
+-- Buff my team there in place of Never inside an instance, nobody else in a
+-- fight, only somebody within reach, consumables by Consumables there too.
+local function battleNow(W)
+	return W.inInstance == "pvp" or W.inInstance == "arena"
+end
+
+-- For two seconds after the place changed the addon may still hold its last
+-- answer about it (Battle.lua, HOLD, which a loading screen outlasts): what
+-- the place rules forbid or promise is not judged across that seam.
+local function placeSettling(W)
+	return (Mock.now - (W.instanceAt or -100)) <= 2
+end
+
 -- Whether the member named wears one of yours of a buff for one target at a
 -- time: the world's own record of who cast the aura on them, which a cast from
 -- the bar on the current target leaves without any ask (the top-up is theirs).
@@ -421,6 +435,9 @@ function X.checkComplete(W, queue, standing)
 	if W.mana0 or W.me.mana <= 0.02 or W.me.dead or W.me.ghost then return end
 	if W.charmed or W.inVehicle or W.onTaxi or (W.mounted and f.hideMounted) then return end
 	if f.manaFloor ~= 0 or f.restingOnly or quietNow(W, f) or (W.raid and next(f.skipRaidGroups or {})) then return end
+	-- Who is plainly worth a buff in a battleground is Battle.lua's to say (a
+	-- fight, the reach, the team's own switch), not this walk's.
+	if battleNow(W) or placeSettling(W) then return end
 	if not ns.CanCastAnything() or ns.EXCLUSIVE_BUFFS[ns.PlayerClass()] then return end
 	if ns.SnoozeLeft and ns.SnoozeLeft(Mock.now) then return end
 	for _, e in ipairs(queue) do if e.groupCast then return end end
@@ -796,7 +813,10 @@ function X.checkQueue(W, queue)
 		end
 		-- An oil, a stone or food held to dungeons and raids, offered outside one.
 		if buff.own and db.ownBuffs.itemsInDungeons == true and ns.OwnItemsHeldToDungeons(buff.family)
-			and not (W.inInstance == "party" or W.inInstance == "raid") then
+			and not (W.inInstance == "party" or W.inInstance == "raid")
+			-- A battleground or an arena counts as one with Consumables there too
+			-- ticked (Battle.lua).
+			and not placeSettling(W) and not (battleNow(W) and db.battle and db.battle.items == true) then
 			return fail(W, "forbidden", ("%s offered out of a dungeon with Oils, stones and food only in dungeons on"):format(buff.key))
 		end
 		if reason ~= "owed" and reason ~= "self" then
@@ -906,7 +926,10 @@ function X.checkQueue(W, queue)
 			if f.quietInTowns == true and W.resting and not pointed then
 				return fail(W, "forbidden", e.name .. " offered in a city with Never in cities and inns on")
 			end
-			if f.quietInInstances == true and W.inInstance ~= nil and not pointed then
+			-- Not a battleground or an arena, where Buff my team there decides
+			-- whatever this switch says (Battle.lua).
+			if f.quietInInstances == true and W.inInstance ~= nil and not pointed
+				and not battleNow(W) and not placeSettling(W) then
 				return fail(W, "forbidden", e.name .. " offered inside an instance with Never inside an instance on")
 			end
 			if f.restingOnly == true and reason == "nearby" and not pointed and not W.resting then

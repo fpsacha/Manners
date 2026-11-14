@@ -1250,6 +1250,9 @@ def("instance", 2, function(W, s)
 	local kinds = { false, "party", "raid", "pvp", "arena" }
 	local k = kinds[1 + math.floor(s.a * 5) % 5]
 	W.inInstance = k or nil
+	-- When the place last changed: the model judges no place rule for a moment
+	-- after it (fuzz_check.lua, placeSettling).
+	W.instanceAt = Mock.now
 end)
 def("shapeshift", 2, function(W, s)
 	if W.forms <= 0 then return end

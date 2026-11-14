@@ -792,6 +792,8 @@ do
 		["speech.mixedLines"] = true,
 		["speech.presetChoice"] = true,
 		["speech.onlyWhenReturning"] = true,
+		-- Saying it in a battleground or an arena too (Battle.lua).
+		["battle.speak"] = true,
 	}
 
 	-- Defaults that are not a constant: the phrase box is filled from the chosen
@@ -1932,6 +1934,9 @@ function addon:HandleSlash(rawInput)
 		if ns.ReadyCheckRunning() then
 			self:Print(L["|cffffd100ready check|r -- your party or raid comes first until the pull"])
 		end
+		-- In a battleground or an arena: which of its rules stands now, and each
+		-- of its switches that is holding something back (Battle.lua).
+		for _, line in ipairs(ns.Battle.Lines(now)) do self:Print(line) end
 		-- Always, not only in a raid: groups unticked for last week's
 		-- assignment are what leaves somebody out next week with no sign why,
 		-- and this is where to check before the raid.

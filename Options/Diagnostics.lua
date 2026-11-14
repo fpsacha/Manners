@@ -109,6 +109,10 @@ local function BugReport()
 		:format(tostring(db.filters.quietInTowns), tostring(db.filters.quietInTownsWhere),
 			tostring(db.filters.quietInInstances), tostring(db.filters.quietTargets),
 			tostring(db.prompt.thankWhisper), tostring(db.prompt.thankDelay))
+	-- In battlegrounds and arenas (Battle.lua): its four switches, and which
+	-- of its states stands now (nil anywhere else).
+	lines[#lines + 1] = ("battle: team=%s speak=%s thank=%s items=%s state=%s"):format(tostring(db.battle.team),
+		tostring(db.battle.speak), tostring(db.battle.thank), tostring(db.battle.items), tostring(ns.Battle.State()))
 	-- A favour returned by refreshing what its giver already wears, when that
 	-- is switched on (off, the default, lets such a favour go).
 	if db.filters.repayCovered == true then lines[#lines + 1] = "repayCovered=on" end

@@ -73,7 +73,7 @@ do
 	-- stealthed rogue or a night elf in Shadowmeld would give herself away, and
 	-- Feign Death drops combat while the fight goes on. Both are asked of the
 	-- player alone, so no secret goes in, and neither is pcalled.
-	local function Held()
+	local function Held(seen)
 		if InCombatLockdown() then return L["in a fight"] end
 		-- A favour from the fight, found by the walk made as it ended.
 		if walkAfterFight then return L["in a fight"] end
@@ -82,6 +82,17 @@ do
 			return L["in a fight"]
 		end
 		local inside = Answer(_G.IsInInstance)
+		-- A battleground or an arena has a switch of its own (Battle.lua, Thank
+		-- people there): somebody of your own team is thanked there, and
+		-- nobody else. The checks below still hold it where chat is held.
+		if inside == true or inside == 1 then
+			local battle = ns.Battle.Thanks(seen)
+			if battle == true then
+				inside = false
+			elseif battle then
+				return battle
+			end
+		end
 		if inside ~= false then return L["in an instance"] end
 		local encounter = _G.C_InstanceEncounter
 		if Answer(encounter and encounter.IsEncounterInProgress) == true
@@ -132,7 +143,7 @@ do
 	-- may not (the reason Skip writes down), or nil and the token to thank at.
 	local function Blocked(seen, now)
 		local name = seen.name
-		local why = Held()
+		local why = Held(seen)
 		if why then return why end
 		local unit = Holding(seen)
 		if not unit then return L["no unit for them"] end
