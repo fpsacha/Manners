@@ -45,6 +45,7 @@ LOOKS = ["glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "let
          "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller"]
          "archmage", "lightbringer", "fel", "wild", "frost", "warchief"]
          "archmage", "lightbringer", "fel", "wild", "frost", "gearworks"]
+         "archmage", "lightbringer", "fel", "wild", "frost", "ebon"]
 # WIDTHxHEIGHTxFONTxICON: the default, and the ends of the options' sliders.
 SIZES = {"default": "", "small": "80x20x6x12", "large": "500x120x32x64"}
 LINES = ["name", "reason", "tag", "rows"]
