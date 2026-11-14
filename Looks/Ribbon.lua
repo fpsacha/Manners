@@ -161,14 +161,21 @@ local ROMAN = { enUS = true, enGB = true, deDE = true, esES = true, esMX = true,
 -- rows long that scrolls one file a flutter, so the folds that run down the
 -- middle run on into the tails.
 local SHEET = { cols = 8, rows = 4, frames = 32, fps = 16 }
+-- The frame a ribbon of the list rests its fork on: no wave lies on a row's
+-- middle, and this is the frame whose own folds are clear of the seam (the
+-- first frame's are a tenth darker there than the middle it meets).
+SHEET.row = 7
 local TILE = { cloth = { 4, 128 }, trim = { 8, 64 } }
 local WAVE_PX = 128
 -- How far a middle runs on over its forked end, in units, and at the least in
 -- texels of the end's file: a sheet's frame is filtered with its neighbour's
 -- edge, so every frame is drawn with its first and last column empty, and the
--- middle, a level above the end, covers that column and the one that fades in
--- after it (Lap).
-local LAP, LAP_TEXELS = 1, 1.6
+-- middle, a level above the end, covers that column, the one that fades in
+-- after it (the end is whole from a texel and a half in) and a texel and a
+-- half more: the client sets a texture's edge on a whole pixel, and a middle
+-- that ended where the end became whole showed the seam as a hairline (1.6
+-- did, in the pictures, on a big ribbon most of all).
+local LAP, LAP_TEXELS = 1, 3
 -- The prize pinned on (a landing): the medallion comes down from this many
 -- times its size in PIN_SECONDS, its shade from wider still, and the rays
 -- behind it reach this many of its radii.
@@ -447,11 +454,16 @@ end
 -- The cloth's three pieces (the middle, the forked end, the end turned round
 -- for a ribbon with no medallion: the file of the end with an L) as textures of
 -- one kind.
-local function Cloth(parent, layer, sublevel, mid, endFile, blend, keep)
+-- `tiled`: the middle is drawn REPEAT along the ribbon (Weave). Said in the
+-- one SetTexture the texture ever gets, as every look that tiles says it: a
+-- file set plain and then set again to tile is not known to tile on every
+-- client, and a middle that did not would be its last column smeared along
+-- the ribbon.
+local function Cloth(parent, layer, sublevel, mid, endFile, blend, keep, tiled)
 	local set = {}
 	for i, file in ipairs({ mid, endFile, endFile .. "L" }) do
 		local t = parent:CreateTexture(nil, layer, nil, sublevel)
-		t:SetTexture(ART .. file)
+		if i == 1 and tiled then t:SetTexture(ART .. file, "REPEAT", "CLAMP") else t:SetTexture(ART .. file) end
 		if blend then t:SetBlendMode(blend) end
 		set[i] = keep(t)
 	end
@@ -484,18 +496,18 @@ local function Tile(t, weave, width, k, lapLeft, lapRight)
 	t:SetTexCoord(-lapLeft * per, span + lapRight * per, 0, 1)
 end
 
--- The three pieces as woven cloth or twisted cord: the middle's file tiled,
--- the ends' sheets at their first frame, the ends on sublevel `level` and the
--- middle on the one above. `flash`: a piece that is light or shade, which
--- would show twice where two pieces lie over one another, so its middle runs
--- on over its end by the empty column alone.
-local function Weave(set, kind, mid, layer, level, flash)
+-- The three pieces as woven cloth or twisted cord: the middle's file tiled
+-- (Cloth made it so), the ends' sheets at frame `frame` (the first, unless
+-- said), the ends on sublevel `level` and the middle on the one above.
+-- `flash`: a piece that is light or shade, which would show twice where two
+-- pieces lie over one another, so its middle runs on over its end by the
+-- empty column alone.
+local function Weave(set, kind, layer, level, flash, frame)
 	set.weave, set.flash = TILE[kind], flash
-	set[1]:SetTexture(ART .. mid, "REPEAT", "CLAMP")
 	set[1]:SetDrawLayer(layer, level + 1)
 	for i = 2, 3 do
 		set[i]:SetDrawLayer(layer, level)
-		Frame(set[i], 0)
+		Frame(set[i], frame or 0)
 	end
 	return set
 end
@@ -618,12 +630,12 @@ function Ribbon:Build(kit)
 	-- them.
 	self.drop = Cloth(art, "BACKGROUND", -8, "Drop_Mid", "Drop_End", nil, keep)
 	self.shade = tex(art, "BACKGROUND", -7, "Shade")
-	self.cloth = Cloth(art, "BORDER", 0, "Cloth_Mid", "Cloth_End", nil, keep)
-	self.trim = Cloth(art, "BORDER", 1, "Trim_Mid", "Trim_End", nil, keep)
+	self.cloth = Cloth(art, "BORDER", 0, "Cloth_Mid", "Cloth_End", nil, keep, true)
+	self.trim = Cloth(art, "BORDER", 1, "Trim_Mid", "Trim_End", nil, keep, true)
 	-- The refusal: the cloth darkens towards red, and flashes amber. The same
 	-- cloth, drawn again, over the rails, parked at nothing.
-	self.dark = Cloth(art, "BORDER", 2, "Cloth_Mid", "Cloth_End", nil, keep)
-	self.hot = Cloth(art, "BORDER", 3, "Cloth_Mid", "Cloth_End", "ADD", keep)
+	self.dark = Cloth(art, "BORDER", 2, "Cloth_Mid", "Cloth_End", nil, keep, true)
+	self.hot = Cloth(art, "BORDER", 3, "Cloth_Mid", "Cloth_End", "ADD", keep, true)
 	Each(self.dark, "SetAlpha", 0)
 	Each(self.hot, "SetAlpha", 0)
 	-- The shine that runs along the cloth when a buff lands.
@@ -633,10 +645,10 @@ function Ribbon:Build(kit)
 	-- frames (the refusal's pieces are the cloth's own, frame for frame).
 	-- From the bottom up: the cloth's ends and its middle, the cord's ends
 	-- and its middle, the refusal's two flashes, the shine.
-	Weave(self.cloth, "cloth", "Cloth_Mid", "BORDER", -2)
-	Weave(self.trim, "trim", "Trim_Mid", "BORDER", 0)
-	Weave(self.dark, "cloth", "Cloth_Mid", "BORDER", 2, true)
-	Weave(self.hot, "cloth", "Cloth_Mid", "BORDER", 3, true)
+	Weave(self.cloth, "cloth", "BORDER", -2)
+	Weave(self.trim, "trim", "BORDER", 0)
+	Weave(self.dark, "cloth", "BORDER", 2, true)
+	Weave(self.hot, "cloth", "BORDER", 3, true)
 	Each(self.dark, "SetDrawLayer", "BORDER", 2)
 	Each(self.hot, "SetDrawLayer", "BORDER", 3)
 	-- The folds that run down the ribbon: shade only (the file is black), over
@@ -659,10 +671,10 @@ function Ribbon:Build(kit)
 	-- The list's ribbons: smaller, hanging from behind the main one.
 	self.rowCloth, self.rowTrim, self.gems, self.gemSets = {}, {}, {}, {}
 	for i = 1, #kit.rows do
-		self.rowCloth[i] = Cloth(art, "BORDER", -3, "Cloth_Mid", "Cloth_End", nil, keep)
-		self.rowTrim[i] = Cloth(art, "BORDER", -2, "Trim_Mid", "Trim_End", nil, keep)
-		Weave(self.rowCloth[i], "cloth", "Cloth_Mid", "BORDER", -6)
-		Weave(self.rowTrim[i], "trim", "Trim_Mid", "BORDER", -4)
+		self.rowCloth[i] = Cloth(art, "BORDER", -3, "Cloth_Mid", "Cloth_End", nil, keep, true)
+		self.rowTrim[i] = Cloth(art, "BORDER", -2, "Trim_Mid", "Trim_End", nil, keep, true)
+		Weave(self.rowCloth[i], "cloth", "BORDER", -6, nil, SHEET.row)
+		Weave(self.rowTrim[i], "trim", "BORDER", -4, nil, SHEET.row)
 		self.rowCloth[i][3]:Hide()
 		self.rowTrim[i][3]:Hide()
 		self.gems[i] = tex(art, "ARTWORK", 1, "Gem")
@@ -695,9 +707,9 @@ function Ribbon:Build(kit)
 	self.lights = { self.wake, self.railGleam, self.idleRail, self.burst, self.tips[1], self.tips[2], self.arc, self.idleArc }
 	for _, t in ipairs(self.lights) do t:SetAlpha(0) end
 	-- What leaves the panel on purpose when the prize is pinned on: the
-	-- medallion as it comes down from over its size, its shade, and the rays
-	-- (hunt37-effects reads this).
-	self.skyward = { self.medal, self.enamel, self.gloss, self.shade, self.burst }
+	-- medallion as it comes down from over its size (the cursor's light on
+	-- its gold with it), its shade, and the rays (hunt37-effects reads this).
+	self.skyward = { self.medal, self.enamel, self.gloss, self.shade, self.burst, self.hover }
 	self.enamelLit:SetAlpha(0)
 	self.lit:SetAlpha(0)
 	self.hover:SetAlpha(0)
@@ -848,8 +860,11 @@ function Ribbon:BuildPrize(anim)
 	-- gloss on it from PIN_FROM times their size, its shade from wider. The
 	-- icon and its well stay where they are, so the prize closes round the
 	-- spell. A scale ends at the size it had, so nothing is left to put back.
+	-- The cursor's light is the gold's own highlights, and the cursor is on
+	-- the prompt at a click: it comes down with the gold, or it would stand at
+	-- the medallion's size inside the bigger one, a second rim.
 	self.pin = {}
-	for i, t in ipairs({ self.medal, self.enamel, self.gloss, self.shade }) do
+	for i, t in ipairs({ self.medal, self.enamel, self.gloss, self.shade, self.hover }) do
 		self.pin[i] = anim(M.Land(t, t == self.shade and PIN_SHADE or PIN_FROM, PIN_SECONDS))
 	end
 	-- The rays, as it lands: up at once, turning a little as they fade.
@@ -1005,7 +1020,7 @@ function Ribbon:Apply(p, above)
 	-- The gleams round the laurel, and the rays behind the medallion.
 	for _, t in ipairs({ self.arc, self.idleArc }) do
 		Disc(t, art, cx, cy, size)
-		Colour(t, 1, 0.95, 0.78)
+		Colour(t, 1, 0.99, 0.90)
 	end
 	Disc(self.burst, art, cx, cy, 2 * BURST_REACH * g.R)
 	Colour(self.burst, 1, 0.88, 0.56)
@@ -1143,7 +1158,7 @@ function Ribbon:Apply(p, above)
 		t:ClearAllPoints()
 		t:SetPoint("CENTER", art, "TOPLEFT", railFrom, -cy)
 		t:SetSize(g.rh, g.rh)
-		Colour(t, 1, 0.95, 0.78)
+		Colour(t, 1, 0.99, 0.90)
 	end
 	self.railAnim.move:SetOffset(railBy, 0)
 	self.idleRailAnim.move:SetOffset(railBy, 0)

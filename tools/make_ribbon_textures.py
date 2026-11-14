@@ -153,6 +153,10 @@ WAVE_DEPTH, WAVE_LEAN = 0.40, 0.30
 # The flutter of the tails: the wavelength of the fold that runs out along
 # them, how far it lifts the cloth (texels), and how far a tail's edge swings.
 FLUTTER_PX, FLUTTER_DEPTH, SWING_PX = 46.0, 5.6, 7.0
+# The texels at the seam in which the forked end never moves: the middle lies
+# over them (Looks/Ribbon.lua's LAP_TEXELS), and a tail that had begun to swing
+# under it would step where the middle stops.
+STILL_PX = 3.0
 
 # Light from the upper left, a little in front (x right, y down, z out).
 LIGHT = np.array([-0.46, -0.66, 0.60], np.float32)
@@ -474,9 +478,9 @@ def flutter(x, y, end, f):
     phi = 2 * np.pi * f / FRAMES
     xe = mirror(x, end)
     v = y / RIBBON_PX
-    q = np.clip(xe / END_PX, 0, 1)
+    q = np.clip((xe - STILL_PX) / (END_PX - STILL_PX), 0, 1)
     amp = q ** 1.35
-    damp = 1.35 * q ** 0.35 / END_PX
+    damp = 1.35 * q ** 0.35 / (END_PX - STILL_PX)
     th = 2 * np.pi * (xe / FLUTTER_PX - 0.30 * (v - 0.5)) - phi + 0.6
     zx = FLUTTER_DEPTH * (damp * np.sin(th) + amp * np.cos(th) * 2 * np.pi / FLUTTER_PX)
     # Drawn shorter where it slopes: summed out from the seam.
@@ -882,12 +886,14 @@ def make_arc():
         nx_, ny_, r = polar(x, y, size)
         ang = np.degrees(np.arctan2(ny_, nx_))
         rb = (M_LIP + M_BEVEL) / 2
-        band = np.exp(-((r - rb) / 0.034) ** 2)
+        # The whole lip, laurel and milled edge (a thread of light down the
+        # leaves' ridge alone was lost on gold that is bright already).
+        band = np.exp(-((r - rb) / 0.058) ** 2)
         # The head at the top, the tail trailing clockwise behind it.
         d = np.mod(ang + 90.0 + 180.0, 360.0) - 180.0
-        tail = np.where(d > 0, np.exp(-(d / 9.0) ** 2), np.exp(-(d / 46.0) ** 2))
-        bezel = 0.45 * np.exp(-((r - (M_BEZEL + M_CH_IN) / 2) / 0.030) ** 2)
-        a = np.clip((band + bezel) * tail, 0, 1)
+        tail = np.where(d > 0, np.exp(-(d / 10.0) ** 2), np.exp(-(d / 52.0) ** 2))
+        bezel = 0.60 * np.exp(-((r - (M_BEZEL + M_CH_IN) / 2) / 0.036) ** 2)
+        a = np.clip((band + bezel) * tail, 0, 1) * (1 - sstep(M_OUT - 0.02, M_OUT, r))
         return np.ones_like(a), a
     make("Ribbon_Arc", size, size, paint)
 
@@ -899,8 +905,10 @@ def make_rail_gleam():
     def paint(x, y):
         d = np.minimum(y, RIBBON_PX - y)
         c0 = OUTLINE_PX + CORD_PX / 2
-        cord = np.exp(-((d - c0) / (CORD_PX * 0.42)) ** 2)
-        run = np.exp(-((x - 32.0) / 11.0) ** 2) * sstep(0.0, 6.0, np.minimum(x, 64 - x))
+        cord = np.exp(-((d - c0) / (CORD_PX * 0.55)) ** 2)
+        # A long soft streak with a hot head a little ahead of its middle.
+        streak = 0.75 * np.exp(-((x - 32.0) / 15.0) ** 2) + 0.55 * np.exp(-((x - 38.0) / 5.0) ** 2)
+        run = streak * sstep(0.0, 8.0, np.minimum(x, 64 - x))
         return np.ones_like(d), np.clip(cord * run, 0, 1)
     make("Ribbon_RailGleam", 64, RIBBON_PX, paint)
 

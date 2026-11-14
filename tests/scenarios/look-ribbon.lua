@@ -68,7 +68,7 @@ local M_BEZEL = 0.635
 -- How far a middle runs on over its forked end at the least, in units and in
 -- texels of the end's file (Looks/Ribbon.lua's LAP and LAP_TEXELS; the look
 -- says what it came to as look.lap, and look.rowLap for the list's).
-local LAP, LAP_TEXELS = 1, 1.6
+local LAP, LAP_TEXELS = 1, 3
 
 local function withTree(scenario, names, body, before)
 	Mock.reset()
@@ -409,7 +409,7 @@ local function layoutAt(ns, scenario, label, edit, ctx)
 	if not (near(c1[2], g.top, 0.05) and near(c1[4], g.bottom, 0.05) and near(c2[2], g.top, 0.05) and near(c2[4], g.bottom, 0.05)) then
 		fail(scenario, label .. ": the cloth is not the height the layout says")
 	end
-	if not (look.lap >= LAP and look.lap >= LAP_TEXELS * g.k - 1e-6 and look.lap <= math.max(LAP, 2 * g.k)) then
+	if not (look.lap >= LAP and look.lap >= LAP_TEXELS * g.k - 1e-6 and look.lap <= math.max(LAP, LAP_TEXELS * g.k) + 1e-6) then
 		fail(scenario, label .. ": the middle does not cover its fork's empty column, or covers the fork: " .. tostring(look.lap))
 	end
 	if not (near(c1[3], c2[1] + look.lap, 0.05) and near(c2[3], W, 0.05)) then
@@ -2125,6 +2125,13 @@ withTree("look-ribbon: the code and the generator agree about the art's figures"
 	end
 	local lap, texels = code:match("\nlocal LAP, LAP_TEXELS = ([%d%.]+), ([%d%.]+)")
 	if tonumber(lap) ~= LAP or tonumber(texels) ~= LAP_TEXELS then fail(scenario, "the test's lap is not the look's") end
+	-- The fork is drawn still for as many texels as the middle lies over.
+	local still = num(gen, "\nSTILL_PX = ([%d%.]+)")
+	if not (still and still >= LAP_TEXELS) then fail(scenario, "the fork moves under the middle's lap: the generator holds it still for " .. tostring(still) .. " texels") end
+	-- A middle is told to tile in the one SetTexture it gets (Cloth), not set
+	-- plain and set again (Weave sets no texture).
+	local weave = code:match("\nlocal function Weave%(.-\nend\n")
+	if not weave or weave:find("SetTexture", 1, true) then fail(scenario, "a middle's file is set a second time to make it tile") end
 	-- The lettering's lightest cloth: no file is lighter than the code says.
 	local lit = num(code, "local LIT_GREY = ([%d%.]+)")
 	for _, name in ipairs({ "Ribbon_Cloth_Mid", "Ribbon_Cloth_End", "Ribbon_Cloth_EndL" }) do
@@ -2254,6 +2261,22 @@ withTree("look-ribbon: the art is modelled: a sheen and a hem on the cloth, gold
 		end
 		if hi - lo < 0.6 then fail(scenario, ("the fork does not flutter: its tail's edge covers %.2f to %.2f of a texel by the tip in every frame"):format(lo, hi)) end
 		if seam < 0.999 then fail(scenario, "the fork's seam with the middle is not solid in every frame") end
+		-- Under the middle's lap the cloth's edge never moves: the lap's last
+		-- texel covers as much of the top row and of the hem's in every frame
+		-- (a tail that had begun to swing there would step where the middle
+		-- stops).
+		local still = { 1, 0, 1, 0 }
+		for f = 0, 31 do
+			local x0, y0 = (f % 8) * END_PX, math.floor(f / 8) * RIBBON_PX
+			local _, _, _, top = fork.at(x0 + 2, y0)
+			local _, _, _, hem = fork.at(x0 + 2, y0 + RIBBON_PX - 1)
+			still[1], still[2] = math.min(still[1], top), math.max(still[2], top)
+			still[3], still[4] = math.min(still[3], hem), math.max(still[4], hem)
+		end
+		if still[2] - still[1] > 0.01 or still[4] - still[3] > 0.01 or still[1] < 0.5 then
+			fail(scenario, ("the fork moves under the middle's lap: its edge there covers %.2f to %.2f of a texel at the top, %.2f to %.2f at the hem"):format(
+				still[1], still[2], still[3], still[4]))
+		end
 	end
 	-- The medallion's gold: the outer slope of the lip and of the bezel are
 	-- lit at the upper left and in shade at the lower right (sampled over a
@@ -2483,6 +2506,12 @@ withTree("look-ribbon: the middles are tiled in whole periods of their weave, ne
 			if not (e and near(e[2] - e[1], 1 / 8, 1e-6) and near(e[4] - e[3], 1 / 4, 1e-6)) then
 				fail(scenario, what .. ": its fork is not one frame of the sheet")
 			end
+			-- A row has no wave on its middle: its fork rests on the frame whose
+			-- folds are clear of the seam (the eighth), not on the first, which
+			-- is drawn a tenth darker there than the middle it meets.
+			if set[5]:find("row", 1, true) and e and not (near(e[1], 7 / 8, 1e-6) and near(e[3], 0, 1e-6)) then
+				fail(scenario, what .. ": its fork rests on a frame shaded by a wave the row does not have")
+			end
 		end
 		-- The ends lie under their middles, which cover the seam.
 		for _, set in ipairs({ look.cloth, look.trim }) do
@@ -2512,12 +2541,20 @@ withTree("look-ribbon: a landing pins the prize on: the medallion comes down, ra
 		fail(scenario, "the prize was pinned on before any buff landed")
 	end
 	ns.Prompt:ShowOutcome("cast", "Anna Aim")
-	-- The medallion: its gold, its enamel, its gloss and its shade, from over
-	-- their size down to it.
-	local parts = { [look.medal] = "gold", [look.enamel] = "enamel", [look.gloss] = "gloss", [look.shade] = "shade" }
+	-- The medallion: its gold, its enamel, its gloss, its shade and the
+	-- cursor's light on it, from over their size down to it.
+	local parts = { [look.medal] = "gold", [look.enamel] = "enamel", [look.gloss] = "gloss", [look.shade] = "shade",
+		[look.hover] = "cursor's light" }
 	local sky = {}
 	for _, t in ipairs(look.skyward or {}) do sky[t] = true end
-	if #look.pin ~= 4 then fail(scenario, "the medallion comes down in " .. #look.pin .. " parts, not four") end
+	-- (The cursor's light is the gold's own highlights and the cursor is on the
+	-- prompt at a click: left at its size, it is a second rim inside the gold.)
+	if #look.pin ~= 5 then fail(scenario, "the medallion comes down in " .. #look.pin .. " parts, not five") end
+	local seen = {}
+	for _, grp in ipairs(look.pin) do seen[grp._owner] = true end
+	for t, what in pairs(parts) do
+		if not seen[t] then fail(scenario, "the medallion's " .. what .. " stays at its size as the rest comes down") end
+	end
 	for i, grp in ipairs(look.pin) do
 		local a = grp._anims[1]
 		local what = parts[grp._owner]

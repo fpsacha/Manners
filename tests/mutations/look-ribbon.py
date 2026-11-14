@@ -157,8 +157,8 @@ _m(RIBBON,
    expect="look-ribbon: the ribbon is a solid object")
 
 _m(RIBBON,
-   "\tself.cloth = Cloth(art, \"BORDER\", 0, \"Cloth_Mid\", \"Cloth_End\", nil, keep)\n",
-   "\tself.cloth = Cloth(art, \"BORDER\", 0, \"Cloth_Mid\", \"Cloth_End\", \"ADD\", keep)\n",
+   "\tself.cloth = Cloth(art, \"BORDER\", 0, \"Cloth_Mid\", \"Cloth_End\", nil, keep, true)\n",
+   "\tself.cloth = Cloth(art, \"BORDER\", 0, \"Cloth_Mid\", \"Cloth_End\", \"ADD\", keep, true)\n",
    "the cloth drawn as light",
    expect="look-ribbon: the ribbon is a solid object")
 
@@ -734,7 +734,7 @@ _m(RIBBON,
    expect="look-ribbon: a landing pins the prize on")
 
 _m(RIBBON,
-   "\tself.skyward = { self.medal, self.enamel, self.gloss, self.shade, self.burst }\n",
+   "\tself.skyward = { self.medal, self.enamel, self.gloss, self.shade, self.burst, self.hover }\n",
    "\tself.skyward = { self.burst }\n",
    "the medallion leaving the panel as it comes down, and not named",
    expect="look-ribbon: a landing pins the prize on")
@@ -786,3 +786,47 @@ _m(RIBBON,
    "\t\tself.flow:StopAll()\n\t\treturn\n",
    "the gleam going on in a fight",
    expect="look-ribbon: a gleam travels the gold")
+
+# --- the review: the seam, the list's forks, the cursor's light ---------------
+
+_m(RIBBON,
+   "\t\tif i == 1 and tiled then t:SetTexture(ART .. file, \"REPEAT\", \"CLAMP\") else t:SetTexture(ART .. file) end\n",
+   "\t\tt:SetTexture(ART .. file)\n",
+   "the middles made with no wrap mode: the last column smeared along the ribbon",
+   expect="look-ribbon: the middles are tiled")
+
+_m(RIBBON,
+   "\tset.weave, set.flash = TILE[kind], flash\n",
+   "\tset.weave, set.flash = TILE[kind], flash\n\tset[1]:SetTexture(set[1]:GetTexture(), \"REPEAT\", \"CLAMP\")\n",
+   "a middle's file set a second time to make it tile",
+   expect="look-ribbon: the code and the generator agree")
+
+_m(RIBBON,
+   "SHEET.row = 7\n",
+   "SHEET.row = 0\n",
+   "the list's forks resting on the frame the wave shades, with no wave on the row",
+   expect="look-ribbon: the middles are tiled")
+
+_m(RIBBON,
+   "local LAP, LAP_TEXELS = 1, 3\n",
+   "local LAP, LAP_TEXELS = 1, 1.6\n",
+   "the middle ending where its fork becomes whole: the seam a hairline",
+   expect="look-ribbon: the code and the generator agree")
+
+_m(RIBBON,
+   "\tfor i, t in ipairs({ self.medal, self.enamel, self.gloss, self.shade, self.hover }) do\n",
+   "\tfor i, t in ipairs({ self.medal, self.enamel, self.gloss, self.shade }) do\n",
+   "the cursor's light left at its size as the medallion comes down: a second rim",
+   expect="look-ribbon: a landing pins the prize on")
+
+_m(GEN,
+   "STILL_PX = 3.0\n",
+   "STILL_PX = 0.0\n",
+   "the fork's tails swinging from the seam itself, under the middle's lap",
+   expect="look-ribbon: the code and the generator agree")
+
+_m(GEN,
+   "    q = np.clip((xe - STILL_PX) / (END_PX - STILL_PX), 0, 1)\n",
+   "    q = np.clip(xe / END_PX, 0, 1)\n",
+   "the fork's flutter drawn from the seam whatever the generator says it holds still",
+   expect="look-ribbon: the art is modelled")
