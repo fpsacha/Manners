@@ -88,8 +88,8 @@ mutate("Looks/Frost.lua",
        expect="the rune is coloured", script=S)
 
 mutate("Looks/Frost.lua",
-       "\tself.vein:SetVertexColor(vr, vg, vb, VEIN_ALPHA)\n",
-       "\tself.vein:SetVertexColor(cr, cg, cb, VEIN_ALPHA)\n",
+       "\tColour(self.vein, vr, vg, vb, VEIN_ALPHA)\n",
+       "\tColour(self.vein, cr, cg, cb, VEIN_ALPHA)\n",
        "look-frost: the vein coloured by the icon's marker",
        expect="the vein is", script=S)
 
@@ -518,14 +518,14 @@ mutate("Looks/Frost.lua",
 # The game keeps one alpha for a texture: a colour with an alpha of 1 lights
 # what SetAlpha dimmed.
 mutate("Looks/Frost.lua",
-       "\tt:SetVertexColor(r, g, b, t:GetAlpha() or 1)\n",
-       "\tt:SetVertexColor(r, g, b, 1)\n",
+       "\tColour(self.halo, hr, hg, hb)\n",
+       "\tself.halo:SetVertexColor(hr, hg, hb, 1)\n",
        "look-frost: a colour that writes an alpha of 1 over a dimmed light",
        expect="look-frost: a colour leaves every light as faint as it was", script=S)
 
 mutate("Looks/Frost.lua",
        "\tColour(self.core, o[1], o[2], o[3])\n",
-       "\tself.core:SetVertexColor(o[1], o[2], o[3], 1)\n",
+       "\tColour(self.core, o[1], o[2], o[3])\n",
        "look-frost: a verdict's colour lighting the vein's core in full",
        expect="a verdict's colour lit the vein's core", script=S)
 

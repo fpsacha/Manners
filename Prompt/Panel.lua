@@ -1044,7 +1044,10 @@ function Prompt:PaintAccent(reason)
 	if mode == "icon" or mode == "both" then mr, mg, mb = r, g, b end
 	R.bezel:SetVertexColor(mr, mg, mb, 1)
 	local hr, hg, hb = Tint(mr, mg, mb, HOVER_LIFT)
-	R.bezelHover:SetVertexColor(hr, hg, hb, 1)
+	-- Parked at nothing until the cursor comes: coloured at the alpha it
+	-- rests at, or the game would stand the lifted twin over the bezel for
+	-- good (Looks.lua, ONE ALPHA).
+	ns.Looks.Colour(R.bezelHover, hr, hg, hb)
 
 	-- The reason line, warmed a little towards the same colour so the two agree
 	-- at a glance -- but not with accents off, nor on a light panel where the

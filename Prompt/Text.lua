@@ -18,9 +18,15 @@ local ink = { light = true, lo = 0, hi = 0, codes = {} }
 -- dusky grey: usually dark, but not black.
 local WORLD_GREY = 0.15
 
--- Coloured text is held to 3:1 against the panel (WCAG large text), and taken
--- to 4.5:1 once it has to move at all; the plain lines are held to 4.5:1.
-local CODE_CONTRAST, TEXT_CONTRAST = 3, 4.5
+-- Coloured text is held to the body-text line as the plain lines are: a name
+-- in the shaman's blue or the death knight's red is 13 pt, not a headline, and
+-- at 3:1 (WCAG's figure for large text, which this was held to through
+-- 1.11.24)
+-- it was the hardest word on the panel. 5 here, because the line is judged
+-- against the panel's flat colour and drawn on a pane with a grain: measured
+-- on the picture (tools/audit_look_contrast.py) that leaves it over 4.5. A
+-- colour already there is left as it is; one that has to move stops there.
+local CODE_CONTRAST, TEXT_CONTRAST = 5, 4.5
 
 -- Relative luminance as the web's contrast rules define it (the sRGB curve
 -- off, then weighted). Rec. 601 answers "is this panel light"; this answers
@@ -86,7 +92,7 @@ local function LegibleCode(a, r, g, b)
 	-- parchment: the full 4.5:1 for all of them).
 	local least = S.activeLook and S.activeLook.codeContrast or CODE_CONTRAST
 	if Contrast(fr, fg, fb) < least then
-		nr, ng, nb = Legible(fr, fg, fb, TEXT_CONTRAST)
+		nr, ng, nb = Legible(fr, fg, fb, math.max(least, TEXT_CONTRAST))
 	end
 	hit = ("|c%s%02x%02x%02x"):format(a, math.floor(nr * 255 + 0.5),
 		math.floor(ng * 255 + 0.5), math.floor(nb * 255 + 0.5))
@@ -308,8 +314,8 @@ local PANE_MID = 0.78
 -- outline). `reason` is the list's dimmer grey, a colour code the row's text
 -- colour cannot reach.
 local GREYS = {
-	panel = { sub = { 0.60, 0.61, 0.68 }, count = { 0.72, 0.73, 0.80 }, row = { 0.62, 0.63, 0.70 },
-		reason = "|cff707078" },
+	panel = { sub = { 0.60, 0.61, 0.68 }, count = { 0.72, 0.73, 0.80 }, row = { 0.76, 0.77, 0.84 },
+		reason = "|cff8c8e9c" },
 	bare = { sub = { 0.86, 0.87, 0.92 }, count = { 0.92, 0.93, 0.96 }, row = { 0.86, 0.87, 0.92 },
 		reason = "|cffbdbfd1" },
 }

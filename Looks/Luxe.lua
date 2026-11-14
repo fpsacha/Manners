@@ -37,6 +37,7 @@
 --     built-in looks' draws the tag slimmer rather than dropping it.
 
 local _, ns = ...
+local Colour, Dim = ns.Looks.Colour, ns.Looks.Dim
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_"
@@ -163,7 +164,7 @@ local function PlaceSlice(s, top, bottom, l, t, r, b)
 end
 
 local function SliceColor(s, r, g, b, a)
-	for _, tex in ipairs(s) do tex:SetVertexColor(r, g, b, a) end
+	for _, tex in ipairs(s) do Colour(tex, r, g, b, a) end
 end
 
 local function SliceShown(s, on)
@@ -367,6 +368,9 @@ function Luxe:Build(kit)
 	self.sheenFrame:SetFrameLevel(base + 3)
 
 	self:BuildAnimations()
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Luxe:BuildAnimations()
@@ -674,9 +678,9 @@ function Luxe:Apply(p, above)
 	-- A dark chip, as the tag: solid enough that however the game weighs its
 	-- alpha, the count stands on dark.
 	for _, t in ipairs(self.chipFill) do
-		t:SetVertexColor(NEUTRAL[1] * PILL_DARK, NEUTRAL[2] * PILL_DARK, NEUTRAL[3] * PILL_DARK, PILL_ALPHA)
+		Colour(t, NEUTRAL[1] * PILL_DARK, NEUTRAL[2] * PILL_DARK, NEUTRAL[3] * PILL_DARK, PILL_ALPHA)
 	end
-	for _, t in ipairs(self.chipEdge) do t:SetVertexColor(1, 1, 1, 0.12) end
+	for _, t in ipairs(self.chipEdge) do Colour(t, 1, 1, 1, 0.12) end
 	kit.count:ClearAllPoints()
 	kit.count:SetPoint("CENTER", self.chipBox, "CENTER", 0, 0)
 
@@ -823,9 +827,9 @@ end
 function Luxe:PaintPill()
 	local c = self.pillCode or self.tint or NEUTRAL
 	local r, g, b = c[1], c[2], c[3]
-	for _, t in ipairs(self.pillEdge) do t:SetVertexColor(r, g, b, 0.50) end
+	for _, t in ipairs(self.pillEdge) do Colour(t, r, g, b, 0.50) end
 	local k = (self.clear and 0) or (self.combat and PILL_DARK_COMBAT) or PILL_DARK
-	for _, t in ipairs(self.pillFill) do t:SetVertexColor(r * k, g * k, b * k, PILL_ALPHA) end
+	for _, t in ipairs(self.pillFill) do Colour(t, r * k, g * k, b * k, PILL_ALPHA) end
 end
 
 -- The tag hugs its words. The scan repaints the same line several times a
@@ -935,7 +939,9 @@ end
 -- ring keep their colour, so the reason still reads.
 function Luxe:SetInk(ink, ground, text)
 	local kit = self.kit
-	for _, t in ipairs(self.ground) do t:SetAlpha(ground) end
+	-- A dim over each piece's own alpha (the shadow's comes with its colour):
+	-- the client keeps one number, and the dim alone wrote over it.
+	for _, t in ipairs(self.ground) do Dim(t, ground) end
 	for _, t in ipairs({ self.rim, kit.icon }) do t:SetAlpha(ink) end
 	if kit.cooldown then kit.cooldown:SetAlpha(ink) end
 	-- On the lines themselves, not on textLayer: Prompt's cross-fade plays
@@ -949,19 +955,19 @@ end
 -- The marks in one colour: the spine, its light, the ring, the tag.
 function Luxe:Tint(r, g, b, ring)
 	local kit = self.kit
-	self.spine:SetVertexColor(r, g, b, 1)
+	Colour(self.spine, r, g, b)
 	-- The resting bloom: stronger than the design's, so the spine is a light.
 	-- Light added to a light card only greys it, so there it is a hint.
-	self.glow:SetVertexColor(r, g, b, kit.ink.light and 0.26 or 0.10)
-	self.wash:SetVertexColor(r, g, b, 0.11)
-	self.flare:SetVertexColor(r, g, b, 1)
-	self.pulseGlow:SetVertexColor(r, g, b, 1)
-	self.hoverGlow:SetVertexColor(r, g, b, 0.35)
-	self.ring:SetVertexColor(r, g, b, 0.85)
+	Colour(self.glow, r, g, b, kit.ink.light and 0.26 or 0.10)
+	Colour(self.wash, r, g, b, 0.11)
+	Colour(self.flare, r, g, b)
+	Colour(self.pulseGlow, r, g, b)
+	Colour(self.hoverGlow, r, g, b, 0.35)
+	Colour(self.ring, r, g, b, 0.85)
 	self.ring:SetShown(ring and kit.icon:IsShown() and true or false)
 	-- The warm white on the same ring, for the owed breath.
 	local w = kit.WARM_WHITE
-	self.pulseRing:SetVertexColor(w[1], w[2], w[3], 0.9)
+	Colour(self.pulseRing, w[1], w[2], w[3], 0.9)
 	self.pulseRing:SetShown(ring and kit.icon:IsShown() and true or false)
 	-- The top edge, shown by PaintReason for "both" only.
 	SliceColor(self.edge, r, g, b, 0.45)
@@ -977,7 +983,7 @@ function Luxe:Tint(r, g, b, ring)
 	local tr, tg, tb = Mix(r, g, b, kit.ink.light and 0.35 or 0.5)
 	if kit.ink.light then tr, tg, tb = kit.Legible(tr, tg, tb, 4.5) end
 	kit.sub:SetTextColor(tr, tg, tb, 1)
-	self.glyph:SetVertexColor(tr, tg, tb, 1)
+	Colour(self.glyph, tr, tg, tb)
 end
 
 function Luxe:PaintReason(r, g, b, _, mode)
@@ -1067,8 +1073,8 @@ function Luxe:StopAttention()
 end
 
 function Luxe:Sheen(r, g, b, a)
-	self.sheen:SetVertexColor(r, g, b, a or 0.30)
-	self.glint:SetVertexColor(Mix(r, g, b, 0.3))
+	Colour(self.sheen, r, g, b, a or 0.30)
+	Colour(self.glint, Mix(r, g, b, 0.3))
 	self.sheenAnim:Stop()
 	self.sheenAnim:Play()
 end
@@ -1116,7 +1122,7 @@ end
 -- cursor is on the panel (the frame of light fades the rest).
 function Luxe:HoverWash()
 	local t = self.tint or NEUTRAL
-	self.hoverWash:SetVertexColor(t[1], t[2], t[3], self.hovered and 0.11 or 0)
+	Colour(self.hoverWash, t[1], t[2], t[3], self.hovered and 0.11 or 0)
 end
 
 function Luxe:Hover(on)
@@ -1249,7 +1255,7 @@ function Luxe:PaintQueue(rows, shown, above)
 	for i = 1, shown do
 		local dot = self.dots[i]
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
-		dot:SetVertexColor(c[1], c[2], c[3], 0.95)
+		Colour(dot, c[1], c[2], c[3], 0.95)
 		dot:Show()
 	end
 	if placed then return end

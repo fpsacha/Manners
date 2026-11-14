@@ -1648,7 +1648,9 @@ withTree("look-letter: the cursor lights the seal, and unlocked it can still be 
 	b.scripts.OnEnter(b)
 	Mock.advance(0.3)
 	FT.settle()
-	if (look.hilite._alpha or 0) < 0.9 then fail(scenario, "the cursor on the panel does not light the seal: " .. tostring(look.hilite._alpha)) end
+	-- To the light's own strength (HILITE_PEAK), and no further: its colour
+	-- carries no alpha, so the fade's end is what the game shows.
+	if not near(look.hilite._alpha or 0, 0.20) then fail(scenario, "the cursor on the panel does not light the seal: " .. tostring(look.hilite._alpha)) end
 	b.scripts.OnLeave(b)
 	Mock.advance(0.5)
 	FT.settle()
@@ -2266,8 +2268,7 @@ withTree("look-letter: the light on the wax is white whatever the wax is", CROWD
 	tick(ns)
 	white("a fight")
 	-- A fight makes the light fainter, never coloured.
-	local c = look.gloss._color
-	if not (c and (c[4] or 1) < 0.95) then fail(scenario, "the light on the wax is not fainter in a fight") end
+	if not ((look.gloss._alpha or 1) < 0.95) then fail(scenario, "the light on the wax is not fainter in a fight") end
 	Mock.inCombat = false
 	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
 	tick(ns)

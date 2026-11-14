@@ -173,7 +173,9 @@
 -- animations played frame by frame), and that only while something moves;
 -- nothing done
 -- to the secure button; art only from Textures/<Look>/, white or grey so the
--- vertex colour carries every reason; and everything the built-in looks honour
+-- vertex colour carries every reason, given through Looks.Colour and never
+-- SetVertexColor (ONE ALPHA, below); a ground of the look's own stated in
+-- kit.ink.lo and kit.ink.hi, as bright as it is drawn under the words; and everything the built-in looks honour
 -- still works -- size, font, colours, both palettes, the second line and the
 -- chip off, the list above and below, a round icon, Calm, the fight, the
 -- outcomes, the preview and the drag.
@@ -186,6 +188,82 @@ ns.Looks = Looks
 
 -- Loaded next: Looks/Flow.lua (ns.Looks.Flow), the clock for art that moves by
 -- its texture coordinates.
+
+---------------------------------------------------------------------------
+-- ONE ALPHA
+--
+-- The game keeps one alpha for a texture. SetVertexColor(r, g, b, a) writes
+-- over what SetAlpha set, an alpha left out is documented as 1, and an Alpha
+-- animation plays over the same number. So a light dimmed with SetAlpha and
+-- coloured afterwards stands at full strength in the game and nowhere else:
+-- 1.11.19's Glass covered its pane with a grey marble that way (GitHub issue
+-- 15). Every look colours its art through Looks.Colour, which never lets a
+-- colour move a texture's transparency:
+--
+--   Looks.Colour(t, r, g, b)         the colour, at the alpha the texture rests at
+--   Looks.Colour(t, r, g, b, alpha)  the colour and its own alpha, together
+--   Looks.Dim(t, by)                 a dim over its own alpha (a fight's): the
+--                                    two are multiplied here, since the client
+--                                    keeps one number and the last call wins
+--   Looks.Hold(t)                    write down what t rests at, from now on
+--
+-- The resting alpha is the last one the look itself gave (SetAlpha, or
+-- Colour's fifth number), kept in t.restAlpha: Hold reads the texture once and
+-- from then on hears every SetAlpha. It is never read back from the texture
+-- at the moment of colouring, because GetAlpha in the middle of a flash may
+-- answer the flash's passing value, and a colour given then would leave the
+-- light lit for good. A look holds all its art at the end of Build
+-- (Looks.HoldAll), while nothing plays; a texture nobody held is held at its
+-- first colour. The shared icon (kit.icon) is every look's and stays on
+-- SetVertexColor: it stands at full alpha wherever a look colours it, and a
+-- hold left on it would be one look's mark on the next. A light's strength is
+-- its animation's alpha, never an alpha given with its colour.
+-- tests/scenarios/looks-alpha.lua takes every look through its states on a
+-- mock that keeps one alpha as the game does.
+---------------------------------------------------------------------------
+
+-- The look's own SetAlpha: the number it gives is the texture's own alpha
+-- from now on, with no dim over it.
+local function Tracked(self, alpha)
+	self.restAlpha, self.ownAlpha, self.dimBy = alpha, nil, nil
+	return self:rawSetAlpha(alpha)
+end
+
+function Looks.Hold(t)
+	if t.restAlpha == nil then
+		t.restAlpha = t:GetAlpha() or 1
+		t.rawSetAlpha = t.SetAlpha
+		t.SetAlpha = Tracked
+	end
+	return t
+end
+
+-- Everything in a look's list that takes a colour.
+function Looks.HoldAll(list)
+	for _, t in ipairs(list) do
+		if type(t.SetVertexColor) == "function" and type(t.GetAlpha) == "function" and type(t.SetAlpha) == "function" then
+			Looks.Hold(t)
+		end
+	end
+end
+
+function Looks.Colour(t, r, g, b, alpha)
+	if t.restAlpha == nil then Looks.Hold(t) end
+	if alpha ~= nil then
+		t.ownAlpha = alpha
+		t.restAlpha = alpha * (t.dimBy or 1)
+	end
+	t:SetVertexColor(r, g, b)
+	t:rawSetAlpha(t.restAlpha)
+end
+
+function Looks.Dim(t, by)
+	if t.restAlpha == nil then Looks.Hold(t) end
+	if t.ownAlpha == nil then t.ownAlpha = t.restAlpha end
+	t.dimBy = by
+	t.restAlpha = t.ownAlpha * by
+	t:rawSetAlpha(t.restAlpha)
+end
 
 -- The three Prompt/Panel.lua draws, named here so the dropdown is one list.
 -- They are never handed back by Get.

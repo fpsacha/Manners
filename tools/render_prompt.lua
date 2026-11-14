@@ -606,6 +606,31 @@ function R.run(key, atOverride)
 	if type(atOverride) ~= "number" or atOverride < 0 then atOverride = nil end
 	Mock.advance(atOverride or state.at or 0)
 	FrameTree.settle()
+	return R.snap(ns, state)
+end
+
+-- What the states are built from, for a tool that drives one loaded addon
+-- through several pictures of its own (tools/audit_look_contrast.py), with
+-- R.snap for each.
+R.helpers = {
+	load = load, boot = boot, owe = owe, tick = tick, fight = fight, people = people, partyIsParty = partyIsParty,
+	-- The mock's own answers put back, as R.run does after a state.
+	restore = function()
+		UnitExists = realUnitExists
+		UnitInParty, UnitInSubgroup = realInParty, realInSubgroup
+	end,
+}
+
+-- A driver of its own, run in this Lua and handed R and its arguments.
+function R.drive(path, ...)
+	local chunk = assert(loadfile(path))
+	return chunk(R, ...)
+end
+
+-- The tree as it stands, with what the picture needs beside it. `state`: the
+-- picture's title, backdrop and lift, all optional.
+function R.snap(ns, state)
+	state = state or {}
 	-- Art that moves by its texture coordinates (Looks/Flow.lua) is written as
 	-- it stands at that moment: the mock runs no OnUpdate.
 	if ns.Looks and ns.Looks.Flow then ns.Looks.Flow.TickAll(GetTime()) end
@@ -626,6 +651,14 @@ function R.run(key, atOverride)
 		icon = icon and icon._serial,
 		name = regions.name and regions.name._serial,
 		sub = regions.sub and regions.sub._serial,
+		-- The count beside the lines and the list's names, which the contrast
+		-- audit tells apart from a look's own tags.
+		count = regions.count and regions.count._serial,
+		rows = (function()
+			local out = {}
+			for i, row in ipairs(regions.rows or {}) do out[i] = row._serial end
+			return out
+		end)(),
 		-- How wide the reason line's words measure to the prompt, which is
 		-- what a look that sets them in a tag of their own (Luxe) sized the
 		-- tag from: the tool reads how far the tag reaches past the words.

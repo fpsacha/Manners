@@ -488,7 +488,7 @@ end)
 withTree("look-forge: the words stand on the iron at 4.5:1", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if skipped(scenario, look) then return end
-	local lo, hi = luminance(0.14, 0.14, 0.14), luminance(0.30, 0.30, 0.30)
+	local lo, hi = luminance(0.14, 0.14, 0.14), luminance(0.33, 0.33, 0.33)
 	local ink = ns.Prompt:LookKit().ink
 	local function judge(label)
 		for _, reason in ipairs({ "owed", "target", "nearby", "group", "asked" }) do
@@ -557,7 +557,7 @@ withTree("look-forge: the slot carries the reason and the bezel never does", ANN
 				if not sameColour(look.slot._color, hr, hg, hb, 0.01) then
 					fail(scenario, label .. ": the slot is not in the reason's heated colour")
 				end
-				if not near(look.slot._color and look.slot._color[4], 0.85) then fail(scenario, label .. ": the slot is not at alpha 0.85") end
+				if not near(look.slot._alpha, 0.85) then fail(scenario, label .. ": the slot is not at alpha 0.85") end
 				if not (look.bezel._color == nil or sameColour(look.bezel._color, 1, 1, 1)) then
 					fail(scenario, label .. ": the bezel carries the reason")
 				end
@@ -751,7 +751,7 @@ withTree("look-forge: the bezel breathes in the slot's heat", ANNA, function(ns,
 			if white and sameColour(c, white[1], white[2], white[3], 0.01) then
 				fail(scenario, label .. ": the bezel's breath is warm white, a film over the iron")
 			end
-			if not near(c and c[4], 1) then fail(scenario, label .. ": the bezel's breath carries its own alpha") end
+			if not (c and (c[4] == nil or near(c[4], 1))) then fail(scenario, label .. ": the bezel's breath carries its own alpha") end
 		end
 	end
 	p.accentMode = "icon"

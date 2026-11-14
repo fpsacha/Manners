@@ -950,7 +950,7 @@ withTree("Luxe carries its text on a nearly clear panel", ANNA, function(ns, sce
 		end
 	end
 	local c = look.pillFill[2]._color
-	if not (c and c[1] < 0.05 and c[2] < 0.05 and c[3] < 0.05 and c[4] >= 0.4) then
+	if not (c and c[1] < 0.05 and c[2] < 0.05 and c[3] < 0.05 and (look.pillFill[2]._alpha or 1) >= 0.4) then
 		fail(scenario, "the tag has no dark ground of its own on a nearly clear panel")
 	end
 	if FT.visible(look.shadow[5]) then fail(scenario, "the shadow is drawn round a clear panel") end

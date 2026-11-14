@@ -357,8 +357,8 @@ _m(LEATHER,
    expect=S_LIST)
 
 _m(LEATHER,
-   "\t\tself.tags[i].dot:SetVertexColor(r, g, b, 1)\n",
-   "\t\tself.tags[i].dot:SetVertexColor(1, 1, 1, 1)\n",
+   "\t\tColour(self.tags[i].dot, r, g, b)\n",
+   "\t\tColour(self.tags[i].dot, 1, 1, 1)\n",
    "a row's enamel not in its reason's colour",
    expect=S_LIST)
 
@@ -590,8 +590,8 @@ _m(LEATHER,
    expect=S_SHADOW)
 
 _m(LEATHER,
-   '\tEach(self.shadow, "SetVertexColor", 0, 0, 0, SHADOW_ALPHA)\n',
-   '\tEach(self.shadow, "SetVertexColor", 1, 1, 1, SHADOW_ALPHA)\n',
+   '\tfor _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, SHADOW_ALPHA) end\n',
+   '\tfor _, t in ipairs(self.shadow) do Colour(t, 1, 1, 1, SHADOW_ALPHA) end\n',
    "the shadow drawn white",
    expect=S_SHADOW)
 

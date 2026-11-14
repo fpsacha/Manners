@@ -54,6 +54,7 @@
 --     the slot.
 
 local _, ns = ...
+local Colour = ns.Looks.Colour
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_"
@@ -105,7 +106,7 @@ local ICON_X, SLOT_GAP = 13, 8
 local TEXT_GAP, TEXT_X_BARE = 5, 14
 -- The plate's own luminance under the words, its darkest and its brightest
 -- (relative luminance of the iron's two ends), for Legible.
-local PLATE_LO, PLATE_HI = 0.14, 0.30
+local PLATE_LO, PLATE_HI = 0.14, 0.33
 -- A chosen panel colour is mixed this far into the iron.
 local PLATE_MIX = 0.25
 -- The list's plate is this much darker than the first.
@@ -581,7 +582,7 @@ function Forge:Build(kit)
 	self.strapGlint = tex(self.idleFrame, "OVERLAY", 1, "Ember")
 	self.strapGlintOnce = tex(self.idleFrame, "OVERLAY", 1, "Ember")
 	for _, t in ipairs({ self.strapGlint, self.strapGlintOnce }) do
-		t:SetVertexColor(1.00, 0.90, 0.70, 1)
+		Colour(t, 1.00, 0.90, 0.70)
 		t:SetAlpha(0)
 	end
 	-- The fountain a landing throws up off the bezel.
@@ -625,6 +626,9 @@ function Forge:Build(kit)
 	for _, t in ipairs(self.listPlate) do self.ironTone[t] = LIST_TONE end
 
 	self:BuildAnimations(anim)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Forge:BuildAnimations(anim)
@@ -751,7 +755,7 @@ function Forge:Apply(p, above)
 	self.plateColour = { pr, pg, pb }
 	local alpha = (type(c) == "table" and c[4]) or 1
 	self.shadowAlpha = math.min(1, alpha + 0.05) * (alpha < 0.2 and 0 or 1)
-	Each(self.shadow, "SetVertexColor", 0, 0, 0, self.shadowAlpha)
+	for _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
 	self.listBox = nil
 	self:PlaceShadow(nil)
 
@@ -811,7 +815,7 @@ function Forge:Apply(p, above)
 	At(self.bezelHot, art, iconX + iconSize / 2, cy, hotOnRim and bz or bloom)
 	-- The warm copy takes the slot's heat colour in Tint: the iron warms, it
 	-- is never whitened.
-	self.bezelHot:SetVertexColor(1.00, 0.85, 0.60, 1)
+	Colour(self.bezelHot, 1.00, 0.85, 0.60)
 	-- Round only when asked: the mask on the icon and the cooldown's swipe.
 	local maskFile = ART .. "MaskRd"
 	self.mask:ClearAllPoints()
@@ -870,7 +874,7 @@ function Forge:Apply(p, above)
 		local run = math.min(46 - 5 * k, W - 2 - x - 1.5)
 		if run < 4 then sparksOK = false end
 		self.sparkAnims[i].move:SetOffset(math.max(0, run), dys[i])
-		self.sparks[i]:SetVertexColor(1.00, 0.80, 0.45, 1)
+		Colour(self.sparks[i], 1.00, 0.80, 0.45)
 	end
 	self.sparksOK = sparksOK
 
@@ -905,14 +909,14 @@ function Forge:Apply(p, above)
 		local k = i - (FOUNT + 1) / 2
 		At(t, art, iconX + iconSize / 2 + k * 1.5, cy - bz / 2 + 1.5, FOUNT_SIZE, FOUNT_SIZE)
 		self.fountAnims[i].move:SetOffset(k * 3.4, fountRise * (1 - 0.09 * k * k / 2) * (0.82 + 0.06 * (i % 3)))
-		t:SetVertexColor(1.00, 0.84, 0.52, 1)
+		Colour(t, 1.00, 0.84, 0.52)
 	end
 	self.fountFrame:ClearAllPoints()
 	self.fountFrame:SetAllPoints(art)
 
 	-- The cursor's light over the top strap.
 	Box(self.hoverFrame, art, 2, 0, W - 2, strapH)
-	self.hoverLight:SetVertexColor(HOVER[1], HOVER[2], HOVER[3], 1)
+	Colour(self.hoverLight, HOVER[1], HOVER[2], HOVER[3])
 
 	self.nameY = block / 2 - fs / 2 + 0.5
 	self.subY = -(block / 2 - sub / 2) + 0.5
@@ -1282,21 +1286,21 @@ end
 function Forge:Tint(r, g, b)
 	local kit = self.kit
 	if self.refused then
-		self.slot:SetVertexColor(STEEL[1], STEEL[2], STEEL[3], SLOT_ALPHA)
+		Colour(self.slot, STEEL[1], STEEL[2], STEEL[3], SLOT_ALPHA)
 	else
 		local hr, hg, hb = Heated(r, g, b)
-		self.slot:SetVertexColor(hr, hg, hb, SLOT_ALPHA)
+		Colour(self.slot, hr, hg, hb, SLOT_ALPHA)
 		-- The bezel breathes in the slot's own heat.
-		self.bezelWarm:SetVertexColor(hr, hg, hb, 1)
+		Colour(self.bezelWarm, hr, hg, hb)
 	end
 	local cr, cg, cb = kit.Tint(r, g, b, 0.45)
-	self.core:SetVertexColor(cr, cg, cb, 1)
+	Colour(self.core, cr, cg, cb)
 	-- The seam is the slot's own heat; the embers are it, a little whiter.
 	local fr, fg, fb = Heated(r, g, b)
-	self.flicker:SetVertexColor(fr, fg, fb, 1)
-	self.seamGlow:SetVertexColor(fr, fg, fb, 1)
+	Colour(self.flicker, fr, fg, fb)
+	Colour(self.seamGlow, fr, fg, fb)
 	local er, eg, eb = kit.Tint(r, g, b, 0.30)
-	for _, t in ipairs(self.embers) do t:SetVertexColor(er, eg, eb, 1) end
+	for _, t in ipairs(self.embers) do Colour(t, er, eg, eb) end
 	-- The reason line: warm grey taken most of the way to the reason, held to
 	-- its contrast on the iron.
 	local sr = WARM_GREY[1] + (r - WARM_GREY[1]) * 0.6
@@ -1304,7 +1308,7 @@ function Forge:Tint(r, g, b)
 	local sb = WARM_GREY[3] + (b - WARM_GREY[3]) * 0.6
 	sr, sg, sb = kit.Legible(sr, sg, sb, 4.5)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
-	self.glyph:SetVertexColor(sr, sg, sb, 1)
+	Colour(self.glyph, sr, sg, sb)
 	self.tint = { r, g, b }
 end
 
@@ -1328,14 +1332,14 @@ function Forge:Dull(on)
 		t:SetDesaturated(on)
 		local k = self.ironTone[t] or 1
 		if on then
-			t:SetVertexColor(IRON[1] * k, IRON[2] * k, IRON[3] * k, 1)
+			Colour(t, IRON[1] * k, IRON[2] * k, IRON[3] * k)
 		else
-			t:SetVertexColor(k, k, k, 1)
+			Colour(t, k, k, k)
 		end
 	end
 	local pc = self.plateColour or { 1, 1, 1 }
 	local f = on and PLATE_COMBAT or 1
-	Each(self.plate, "SetVertexColor", pc[1] * f, pc[2] * f, pc[3] * f, 1)
+	for _, t in ipairs(self.plate) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
 end
 
 -- The plate holds; the iron dulls, the icon greys, the words dim and the
@@ -1527,15 +1531,15 @@ function Forge:PaintOutcome(kind, lead, sub, who, stamp)
 	self:HoldPulse()
 	StopAll(self.calm)
 	StopAll(self.once)
-	self.core:SetVertexColor(o[1], o[2], o[3], 1)
+	Colour(self.core, o[1], o[2], o[3])
 	self.refused = kind == "failed"
 	if self.refused then
-		self.slot:SetVertexColor(STEEL[1], STEEL[2], STEEL[3], SLOT_ALPHA)
+		Colour(self.slot, STEEL[1], STEEL[2], STEEL[3], SLOT_ALPHA)
 	end
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
-	self.glyph:SetVertexColor(vr, vg, vb, 1)
+	Colour(self.glyph, vr, vg, vb)
 	kit.icon:SetDesaturated(self.refused or self.combat or false)
 	self.glyph:SetTexture(ART .. (kind == "failed" and "Cross" or "Check"))
 	self.glyphOn = kind ~= "sent"
@@ -1575,7 +1579,7 @@ function Forge:PaintQueue(rows, shown, above)
 
 	for i = 1, shown do
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
-		self.beads[i]:SetVertexColor(c[1], c[2], c[3], 1)
+		Colour(self.beads[i], c[1], c[2], c[3])
 		self.beads[i]:Show()
 	end
 	-- Laid out again only when the number of rows or the side changes: the

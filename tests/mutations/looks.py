@@ -68,8 +68,8 @@ mutate("Prompt/Panel.lua",
 
 # The ring left out of the reason's colour.
 mutate("Looks/Luxe.lua",
-       "\tself.ring:SetVertexColor(r, g, b, 0.85)\n",
-       "\tself.ring:SetVertexColor(1, 1, 1, 0.85)\n",
+       "\tColour(self.ring, r, g, b, 0.85)\n",
+       "\tColour(self.ring, 1, 1, 1, 0.85)\n",
        "Luxe's ring not in the reason colour",
        expect="the ring round the icon is not in",
        script="runscenarios.py")

@@ -330,7 +330,7 @@ withTree("look-wild: the water, the moon and the inlay carry the reason as the m
 		if not sameColour(look.moonGlow._color, look.moon._color) then fail(scenario, "with the marker " .. mode .. " the moon's light is not the moon's colour") end
 		-- The water's second layer is its first taken paler, never another hue.
 		local a, b = look.water[1]._color, look.water[2]._color
-		if not (a and b and b[1] >= a[1] - 0.001 and b[2] >= a[2] - 0.001 and b[3] >= a[3] - 0.001 and (b[4] or 1) < 1) then
+		if not (a and b and b[1] >= a[1] - 0.001 and b[2] >= a[2] - 0.001 and b[3] >= a[3] - 0.001 and (look.water[2]._alpha or 1) < 1) then
 			fail(scenario, "with the marker " .. mode .. " the water's second layer is not a paler, thinner first")
 		end
 	end

@@ -5,6 +5,48 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
+Unreleased after 1.11.24, a pass over all fifteen looks (branch
+`looks-polish`), in three parts.
+
+- **One alpha.** The game keeps one alpha for a texture, and a colour given
+  with an alpha (documented as 1 when left out) writes over what `SetAlpha`
+  set. Nine looks coloured lights they had parked or dimmed (Archmage,
+  Lightbringer, Fel, Forge, Leather, Letter, Ribbon, Toast, Arcane), and
+  Panel.lua the bezel's hover twin on glass, framed and minimal. Every look
+  now colours through `ns.Looks.Colour` (`Looks/Looks.lua`, ONE ALPHA: the
+  resting alpha kept in a field, never read back mid-flash), a fight's dim is
+  `Looks.Dim` over a light's own alpha (Toast's clock, Arcane's runes, well
+  and drain, Luxe's shadow: the last call used to win), and the lights whose
+  colour carried their strength flash to it (Toast's hover, warm ring,
+  arrival and glints, Letter's seal light, Ribbon's shine, Arcane's wash).
+  `tests/scenarios/looks-alpha.lua` runs every look three times (the mock,
+  the game's one alpha, an alpha left out read as 1) and compares every
+  texture at every checkpoint.
+- **The words measured.** `tools/audit_look_contrast.py` (4.5:1 for the name,
+  the reason line, the tags and the list's rows, on the pictures, three
+  sizes). Coloured words are held to the body-text line, 5 against the flat
+  panel colour (`CODE_CONTRAST`, was 3: the shaman's blue and the death
+  knight's red on a name); the list's grey after a name is `8c8e9c`;
+  Ribbon, Leather and Forge state the ground they draw (`kit.ink`); Fel's
+  reason line and verdict are held to 7 and its smoke is thinner; Ribbon's
+  key letter is on the tags' frame and near black in a fight, its shine 0.5;
+  Letter's inks are held to 5 (a byte's rounding took 4.5 under); on Fel,
+  Lightbringer, Wild and Frost a tag gives way before the name is drawn
+  smaller (`NameFits` at the size set). `tests/scenarios/looks-read.lua`.
+- **Looked at.** Film strips of every look with a long name, a key bound and
+  a count, and a check that no tag's text overlaps a line at five sizes:
+  nothing overlapping, cut off or left lit was found in the pictures.
+
+Only the live game can say: whether an alpha left out of `SetVertexColor`
+is read as 1 or left alone (the helper is right either way); how bright the
+flashes that now go to their own strength are in ADD (Toast's arrival at
+0.55, its glints at 0.8, Ribbon's shine at 0.5: the renderer understates
+ADD); how the lifted class colours look beside the game's own on a name; how
+the reason line reads at 10 pt in the game's face on Forge's iron, which
+passes at 4.6 and is the nearest to the floor with Glass's and Arcane's
+colour-blind "asked"; and whether Letter's seal, whose light at the top of
+its pulse covers the icon in the renderer, does so in the game.
+
 Unreleased after 1.11.23, asked for on CurseForge: *Weapon imbues before the
 shield* (`ownBuffs.imbueFirst`, off; Who to buff, Weapons; Core.lua
 `KnownOwnFamilies` puts a shaman's imbue families ahead of the rest;
@@ -561,15 +603,13 @@ dark shadow, the reason line and the verdict held to a contrast of 7
 (`SUB_CONTRAST`), and where the button is too low for its two lines the
 slab stands up to 1.12 of the button's height (`SLAB_OVER`) so the name
 keeps clear of the frosted rim. The alpha: every colour given to a texture
-whose alpha means something goes through `Colour`, which hands
-`SetVertexColor` the alpha the texture already has, because the game keeps
-one alpha for a texture and a colour with an alpha of 1 would light what
+goes through `ns.Looks.Colour` (the shared helper since the pass after
+1.11.24: the colour, then the alpha the texture rests at, kept in a field
+and never read back from `GetAlpha` mid-flash), because the game keeps one
+alpha for a texture and a colour with an alpha of 1 would light what
 `SetAlpha` dimmed (`look-frost: a colour leaves every light as faint as it
-was` makes the mock's textures behave so). Only the live game can say: that
-`GetAlpha` on a texture an Alpha animation is playing on answers the
-texture's own alpha and not the animated one (if it answers the animated
-one, a colour given mid-flash would hold the flash's light until the next
-`Rest`); how the mist's two layers read at the game's filtering under the
+was` makes the mock's textures behave so). Only the live game can say: how
+the mist's two layers read at the game's filtering under the
 mask; how bright the fractures and the nova are in ADD over the icon (the
 renderer understates them); whether the rime's two halves meet in the
 middle without a seam on a wide panel; that a desaturated texture takes its

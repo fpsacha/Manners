@@ -45,8 +45,8 @@ mutate("Looks/Lightbringer.lua",
        expect="the nimbus is coloured", script=S)
 
 mutate("Looks/Lightbringer.lua",
-       "\tself.gem:SetVertexColor(vr, vg, vb, 1)\n",
-       "\tself.gem:SetVertexColor(cr, cg, cb, 1)\n",
+       "\tColour(self.gem, vr, vg, vb)\n",
+       "\tColour(self.gem, cr, cg, cb)\n",
        "lightbringer: the gem follows the nimbus, not the stripe",
        expect="the gem is", script=S)
 
@@ -129,14 +129,14 @@ mutate("Looks/Lightbringer.lua",
        expect="a cast nobody confirmed played a flourish", script=S)
 
 mutate("Looks/Lightbringer.lua",
-       "\tself.nimbus:SetVertexColor(SPENT[1], SPENT[2], SPENT[3], 1)\n\tself.rays:SetDesaturated(true)\n",
+       "\tColour(self.nimbus, SPENT[1], SPENT[2], SPENT[3])\n\tself.rays:SetDesaturated(true)\n",
        "\tself.rays:SetDesaturated(true)\n",
        "lightbringer: a refusal leaves the nimbus lit",
        expect="a refusal did not leave the nimbus spent", script=S)
 
 mutate("Looks/Lightbringer.lua",
-       "\tself.nimbus:SetVertexColor(SPENT[1], SPENT[2], SPENT[3], 1)\n\tself.rays:SetDesaturated(true)\n",
-       "\tself.nimbus:SetVertexColor(SPENT[1], SPENT[2], SPENT[3], 1)\n",
+       "\tColour(self.nimbus, SPENT[1], SPENT[2], SPENT[3])\n\tself.rays:SetDesaturated(true)\n",
+       "\tColour(self.nimbus, SPENT[1], SPENT[2], SPENT[3])\n",
        "lightbringer: a refusal leaves the rays gold",
        expect="a refusal did not grey the rays", script=S)
 

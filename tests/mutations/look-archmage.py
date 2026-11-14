@@ -119,7 +119,7 @@ mutate("Looks/Archmage.lua",
        expect="a cast nobody confirmed played a flourish", script=S)
 
 mutate("Looks/Archmage.lua",
-       "\tfor _, t in ipairs(self.charges) do t:SetVertexColor(SPENT[1], SPENT[2], SPENT[3], 1) end\n",
+       "\tfor _, t in ipairs(self.charges) do Colour(t, SPENT[1], SPENT[2], SPENT[3]) end\n",
        "",
        "archmage: a refusal leaves the charges lit",
        expect="a refusal did not leave the charges spent", script=S)

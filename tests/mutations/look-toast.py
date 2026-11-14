@@ -10,8 +10,8 @@ TOAST = "Looks/Toast.lua"
 # --- the reason ------------------------------------------------------------
 
 mutate(TOAST,
-       "\tself.band:SetVertexColor(dr, dg, db, 1)\n",
-       "\tself.band:SetVertexColor(1, 1, 1, 1)\n",
+       "\tColour(self.band, dr, dg, db)\n",
+       "\tColour(self.band, 1, 1, 1)\n",
        "the enamel left uncoloured",
        expect="the enamel is not in",
        script="runscenarios.py")
@@ -109,8 +109,8 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tEach(self.flare, \"SetVertexColor\", 1, 0.85, 0.55, 1)\n\tPlayAll(self.flareAnims)\n",
-       "\tEach(self.flare, \"SetVertexColor\", 1, 0.85, 0.55, 1)\n",
+       "\tfor _, t in ipairs(self.flare) do Colour(t, 1, 0.85, 0.55) end\n\tPlayAll(self.flareAnims)\n",
+       "\tfor _, t in ipairs(self.flare) do Colour(t, 1, 0.85, 0.55) end\n",
        "a landed buff without its flare",
        expect="did not flare the gilding",
        script="runscenarios.py")
@@ -310,7 +310,7 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\t\tself.gems[i]:SetVertexColor(c[1], c[2], c[3], 1)\n",
+       "\t\tColour(self.gems[i], c[1], c[2], c[3])\n",
        "",
        "the list's gems in no colour",
        expect="has no reason colour",
@@ -350,8 +350,8 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tself.well:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)\n",
-       "\tself.well:SetVertexColor(WELL[1], WELL[2], WELL[3], 0.5)\n",
+       "\tColour(self.well, WELL[1], WELL[2], WELL[3])\n",
+       "\tColour(self.well, WELL[1], WELL[2], WELL[3], 0.5)\n",
        "nothing opaque under the icon",
        expect="nothing opaque under the icon",
        script="runscenarios.py")
@@ -388,7 +388,7 @@ mutate(TOAST,
 
 # With the icon off, nothing carries the reason.
 mutate(TOAST,
-       "\tself.jewel:SetVertexColor((er + dr) / 2, (eg + dg) / 2, (eb + db) / 2, 1)\n",
+       "\tColour(self.jewel, (er + dr) / 2, (eg + dg) / 2, (eb + db) / 2)\n",
        "",
        "the jewel in no colour",
        expect="Toast carries the reason on a jewel",
@@ -448,8 +448,8 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\t\tself.ember:SetVertexColor(er, eg, eb, 0.55)\n",
-       "\t\tself.ember:SetVertexColor(dr, dg, db, 0.55)\n",
+       "\t\tColour(self.ember, er, eg, eb, 0.55)\n",
+       "\t\tColour(self.ember, dr, dg, db, 0.55)\n",
        "the clock in the enamel's colour",
        expect="no lighter than the enamel",
        script="runscenarios.py")
@@ -520,8 +520,8 @@ mutate(TOAST,
 
 # The arrival's ring of light held for over a second, as 1.5.1's was.
 mutate(TOAST,
-       "\tself.arrive = { anim(Flash(self.ringArrive, 1, 0.15, 0.40, nil, \"IN\")) }\n",
-       "\tself.arrive = { anim(Flash(self.ringArrive, 1, 0.3, 0.9, nil, \"IN\")) }\n",
+       "\tself.arrive = { anim(Flash(self.ringArrive, ARRIVE_PEAK, 0.15, 0.40, nil, \"IN\")) }\n",
+       "\tself.arrive = { anim(Flash(self.ringArrive, ARRIVE_PEAK, 0.3, 0.9, nil, \"IN\")) }\n",
        "the arrival's light lingers",
        expect="an additive flourish lasts",
        script="runscenarios.py")

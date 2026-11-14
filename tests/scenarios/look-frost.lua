@@ -351,7 +351,7 @@ withTree("look-frost: the mist, the rune and the vein carry the reason as the ma
 		if not sameColour(look.runeGlow._color, look.rune._color) then fail(scenario, "with the marker " .. mode .. " the rune's light is not the rune's colour") end
 		-- The mist's second layer is its first taken paler, never another hue.
 		local a, b = look.mist[1]._color, look.mist[2]._color
-		if not (a and b and b[1] >= a[1] - 0.001 and b[2] >= a[2] - 0.001 and b[3] >= a[3] - 0.001 and (b[4] or 1) < 1) then
+		if not (a and b and b[1] >= a[1] - 0.001 and b[2] >= a[2] - 0.001 and b[3] >= a[3] - 0.001 and (look.mist[2]._alpha or 1) < 1) then
 			fail(scenario, "with the marker " .. mode .. " the mist's second layer is not a paler, thinner first")
 		end
 	end

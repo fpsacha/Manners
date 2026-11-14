@@ -35,6 +35,7 @@
 -- The art is Textures/Glass, drawn by tools/make_glass_textures.py.
 
 local _, ns = ...
+local Colour = ns.Looks.Colour
 local Looks = ns.Looks
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Glass\\Glass_"
@@ -238,6 +239,9 @@ function Glass:Build(kit)
 		if turn.SetOrigin then turn:SetOrigin("CENTER", 0, 0) end
 	end
 	self.wink = anim(wink)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 ---------------------------------------------------------------------------
@@ -350,9 +354,9 @@ end
 -- The gilt's own colour: as drawn, or dimmed for a fight.
 function Glass:Gilt()
 	local k = self.combat and COMBAT_GILT or 1
-	for i = 1, 2 do self.gryphon[i]:SetVertexColor(k, k, k, 1) end
-	self.railTop:SetVertexColor(k, k, k, 1)
-	self.railBottom:SetVertexColor(k, k, k, 1)
+	for i = 1, 2 do Colour(self.gryphon[i], k, k, k) end
+	Colour(self.railTop, k, k, k)
+	Colour(self.railBottom, k, k, k)
 end
 
 -- What runs with nobody owed: the light in the glass and the eyes' glint, on
@@ -411,39 +415,24 @@ end
 -- The game keeps one alpha for a texture: SetVertexColor's fourth number
 -- writes over what SetAlpha set. 1.11.19 coloured the light in the glass
 -- after Rest had dimmed it, and drew it at full strength over the pane, a
--- grey marble under the words. So each texture coloured here keeps the alpha
--- it had (the list and the table made once).
-local held = {}
-
-local function Recoloured(self)
-	local list = self.recoloured
-	if not list then
-		list = { self.eye[1], self.eye[2], self.bloom, self.star }
-		for i = 1, 4 do list[#list + 1] = self.ants[i] end
-		for _, t in ipairs(self.caustic) do list[#list + 1] = t end
-		self.recoloured = list
-	end
-	return list
-end
-
+-- grey marble under the words. So every colour here goes through Colour
+-- (Looks.lua, ONE ALPHA), which leaves each texture at the alpha it rests at
+-- and never reads one back in the middle of a flash.
 function Glass:PaintReason(r, g, b, reason, mode)
-	local list = Recoloured(self)
-	for i, t in ipairs(list) do held[i] = t:GetAlpha() end
 	self:Recolour(r, g, b, mode)
-	for i, t in ipairs(list) do t:SetAlpha(held[i] or 1) end
 end
 
 function Glass:Recolour(r, g, b, mode)
 	local kit = self.kit
 	local er, eg, eb = WARM[1], WARM[2], WARM[3]
 	if mode ~= "off" then er, eg, eb = kit.Tint(r, g, b, 0.25) end
-	for i = 1, 2 do self.eye[i]:SetVertexColor(er, eg, eb, 1) end
+	for i = 1, 2 do Colour(self.eye[i], er, eg, eb) end
 	local ar, ag, ab = kit.Tint(r, g, b, 0.72)
-	for i = 1, 4 do self.ants[i]:SetVertexColor(ar, ag, ab, 1) end
-	self.bloom:SetVertexColor(r, g, b, 1)
+	for i = 1, 4 do Colour(self.ants[i], ar, ag, ab) end
+	Colour(self.bloom, r, g, b)
 	local cr, cg, cb = kit.Tint(r, g, b, 0.75)
-	for _, t in ipairs(self.caustic) do t:SetVertexColor(cr, cg, cb, 1) end
-	self.star:SetVertexColor(kit.Tint(r, g, b, 0.6))
+	for _, t in ipairs(self.caustic) do Colour(t, cr, cg, cb) end
+	Colour(self.star, kit.Tint(r, g, b, 0.6))
 end
 
 ---------------------------------------------------------------------------

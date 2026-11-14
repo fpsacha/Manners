@@ -1172,6 +1172,39 @@ each look's own scenario file (`local MC = dofile(dir ..
 `MC.pow2(path)`. Each look's scenario file names its own files; nothing is
 appended to `materials.lua` for another look.
 
+## audit_look_contrast.py
+
+How well the words on every prompt look read, measured on the pictures. Each
+of the fifteen looks is taken through the moments that change what is behind
+its words or what colour they are (`tools/audit_look_contrast.lua`: every
+reason at rest in both palettes with a class's colour on the name, somebody
+owed at three moments of the lights' run, an outcome that succeeded and one
+that was refused, under the cursor, the list shown, a fight), at the default
+size and at the ends of the options' sliders (80 x 20 at 6 pt, 500 x 120 at
+32 pt). Each moment is drawn twice with `render_prompt.py`: as it is, and
+with every line's letters left out (`draw_state`'s `under`: the shadow and
+the outline stay). Each line's own colour is held against the ring of pixels
+half a unit wide round its letters by the WCAG formula; a shadow on the
+letters' own side of the ground (dark under dark ink) counts as letter.
+
+```
+python tools/audit_look_contrast.py                 # the table: per look and line, the worst moment
+python tools/audit_look_contrast.py --check         # exit 1 when a line is under its floor
+python tools/audit_look_contrast.py --looks fel,forge --sizes default
+python tools/audit_look_contrast.py --addon TREE    # an older build, with today's tool
+python tools/audit_look_contrast.py --worst DIR     # each worst moment as a picture
+python tools/audit_look_contrast.py --json OUT.json # every measurement, with the ground's luminance
+```
+
+The floors are 4.5:1 for the name, the reason line, a look's tags (the count,
+the key) and the list's rows, judged on the 10th percentile of the ring so
+one bright mote does not decide it; the lowest pixel is printed beside it.
+Minimal is measured over dusk, a bright world and a dark cave. All fifteen
+looks at three sizes take about four minutes on two workers (`--jobs`);
+`--looks` splits it. A pass is necessary, not sufficient: the stand-in fonts
+are bolder than the game's and additive light is drawn dimmer. Needs scipy.
+`tests/scenarios/looks-read.lua` holds what a scenario can of the same rule.
+
 ## make_look_previews.py
 
 The pictures on the look cards of the options window (`Options/Window/WidgetsTheme.lua`):

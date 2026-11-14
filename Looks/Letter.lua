@@ -55,6 +55,7 @@
 --     taken dark enough to read (Prompt/Paint.lua, classContrast).
 
 local _, ns = ...
+local Colour = ns.Looks.Colour
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Letter\\Letter_"
@@ -68,9 +69,9 @@ local Letter = ns.Looks.Register("letter", {
 	combatArtAlpha = 1,
 	-- A class colour on parchment is taken darker until it reads at this
 	-- contrast (Prompt/Paint.lua).
-	classContrast = 4.5,
+	classContrast = 5,
 	-- Every other colour code in the text is held to it as well (Prompt/Text.lua).
-	codeContrast = 4.5,
+	codeContrast = 5,
 	-- ... after being taken part of the way to the ink, so that every class is a
 	-- shade of ink and none a grey.
 	classInk = { 0.20, 0.105, 0.04, 0.55 },
@@ -146,6 +147,8 @@ local DIM_PAPER, DIM_SEAL = 0.90, 0.80
 local GLOW_PEAK, CORE_PEAK = 0.62, 0.48
 local BREATHS, BREATH = 3, 1.3
 local FLOURISH = 0.6
+-- How bright the cursor's light on the seal gets.
+local HILITE_PEAK = 0.20
 local UNROLL_SECONDS, POP_SECONDS = 0.30, 0.18
 -- How much of the paper the unroll starts with.
 local UNROLL_FROM = 0.38
@@ -564,14 +567,17 @@ function Letter:Build(kit)
 	end
 	-- The light on every drop is white, and stays so: a tint would make it a
 	-- colour, not a shine.
-	self.countPinLight:SetVertexColor(1, 1, 1, 1)
-	for _, t in ipairs(self.dropLights) do t:SetVertexColor(1, 1, 1, 1) end
+	Colour(self.countPinLight, 1, 1, 1)
+	for _, t in ipairs(self.dropLights) do Colour(t, 1, 1, 1) end
 
 	-- The icon's shape; taken off it in Hide, so not in `own`.
 	self.mask = art:CreateMaskTexture()
 	self.mask:SetTexture(ART .. "Mask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 
 	self:BuildAnimations(anim)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Letter:BuildAnimations(anim)
@@ -837,8 +843,8 @@ function Letter:Apply(p, above)
 		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 		t:SetSize(g.sealD * 0.96, g.sealD * 0.96)
 	end
-	self.flash:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
-	self.hilite:SetVertexColor(1, 0.86, 0.55, 0.20)
+	Colour(self.flash, GOLD[1], GOLD[2], GOLD[3])
+	Colour(self.hilite, 1, 0.86, 0.55)
 	self.crack:ClearAllPoints()
 	self.crack:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 	self.crack:SetSize(sq, sq)
@@ -878,8 +884,8 @@ function Letter:Apply(p, above)
 	end
 	self.glow:SetSize(half * 2, half * 2)
 	self.core:SetSize(half * 1.2, half * 1.2)
-	self.glow:SetVertexColor(WARM[1], WARM[2], WARM[3], 1)
-	self.core:SetVertexColor(1, 0.80, 0.42, 1)
+	Colour(self.glow, WARM[1], WARM[2], WARM[3])
+	Colour(self.core, 1, 0.80, 0.42)
 
 	-- The lines: the name and the reason on the paper, their stroke of ink between.
 	local shift = H / 2
@@ -1033,11 +1039,11 @@ function Letter:PaintPaper(k)
 	local t = self.tint or { 1, 1, 1 }
 	local r, g, b = t[1] * k, t[2] * k, t[3] * k
 	for c = 1, 3 do
-		Each(self.paperL[c], "SetVertexColor", r, g, b, 1)
-		Each(self.paperR[c], "SetVertexColor", r, g, b, 1)
+		for _, t in ipairs(self.paperL[c]) do Colour(t, r, g, b) end
+		for _, t in ipairs(self.paperR[c]) do Colour(t, r, g, b) end
 	end
-	Each(self.rodL, "SetVertexColor", k, k, k, 1)
-	Each(self.rodR, "SetVertexColor", k, k, k, 1)
+	for _, t in ipairs(self.rodL) do Colour(t, k, k, k) end
+	for _, t in ipairs(self.rodR) do Colour(t, k, k, k) end
 end
 
 function Letter:Styled(p)
@@ -1099,7 +1105,7 @@ function Letter:Styled(p)
 	self.keyText:SetShadowOffset(0, 0)
 	-- The list: the ink, held to the contrast it has to have.
 	local lr, lg, lb = kit.Legible(ROW_INK[1], ROW_INK[2], ROW_INK[3], 4.5)
-	local qr, qg, qb = kit.Legible(ROW_REASON[1], ROW_REASON[2], ROW_REASON[3], 4.5)
+	local qr, qg, qb = kit.Legible(ROW_REASON[1], ROW_REASON[2], ROW_REASON[3], 5)
 	ink.rowReason = ("|cff%02x%02x%02x"):format(math.floor(qr * 255 + 0.5), math.floor(qg * 255 + 0.5),
 		math.floor(qb * 255 + 0.5))
 	for _, fs in ipairs(kit.rows) do
@@ -1361,7 +1367,7 @@ function Letter:Tinted(wr, wg, wb, rr, rg, rb, ruleOn)
 	-- paper, and the reason line's ink leaning towards it.
 	if ruleOn then
 		local dr, dg, db = kit.Legible(rr, rg, rb, 3)
-		self.rule:SetVertexColor(dr, dg, db, 0.92)
+		Colour(self.rule, dr, dg, db, 0.92)
 		self.rule:Show()
 		self.ruleColour = { dr, dg, db }
 		local base = self.subBase or SUB_INK
@@ -1396,11 +1402,11 @@ end
 -- turn a shine into a colour): a fight only makes it fainter.
 function Letter:DimSeal(k)
 	local w = self.wax or WAX_NEUTRAL
-	self.body:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1)
-	self.rim:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1)
-	self.mark:SetVertexColor(w[1] * k * 0.78, w[2] * k * 0.78, w[3] * k * 0.78, 1)
-	for _, t in ipairs(self.pins) do t:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1) end
-	self.gloss:SetVertexColor(1, 1, 1, k >= 1 and 1 or 0.7)
+	Colour(self.body, w[1] * k, w[2] * k, w[3] * k)
+	Colour(self.rim, w[1] * k, w[2] * k, w[3] * k)
+	Colour(self.mark, w[1] * k * 0.78, w[2] * k * 0.78, w[3] * k * 0.78)
+	for _, t in ipairs(self.pins) do Colour(t, w[1] * k, w[2] * k, w[3] * k) end
+	Colour(self.gloss, 1, 1, 1, k >= 1 and 1 or 0.7)
 end
 
 -- The fight: the whole letter dimmer, the ink as dark as ever and as plain. The
@@ -1504,7 +1510,7 @@ function Letter:Flourish(kind)
 	-- A refusal: the seal flares red and amber and splits, and the scroll
 	-- shakes. The text's shake is Prompt's.
 	if kind == "failed" then
-		self.flash:SetVertexColor(EMBER[1], EMBER[2], EMBER[3], 1)
+		Colour(self.flash, EMBER[1], EMBER[2], EMBER[3])
 		PlayAll(self.flashAnims)
 		PlayAll(self.crackAnims)
 		PlayAll(self.shakes)
@@ -1513,10 +1519,10 @@ function Letter:Flourish(kind)
 	-- Nothing for a cast nobody confirmed: a flourish is a claim.
 	if kind ~= "cast" then return end
 	-- The seal flashes gold and a warm light passes over the paper.
-	self.flash:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
+	Colour(self.flash, GOLD[1], GOLD[2], GOLD[3])
 	PlayAll(self.flashAnims)
-	self.sweepWarm:SetVertexColor(SWEEP_AMBER[1], SWEEP_AMBER[2], SWEEP_AMBER[3], 0.34)
-	self.sweepWhite:SetVertexColor(1, 0.95, 0.80, 0.42)
+	Colour(self.sweepWarm, SWEEP_AMBER[1], SWEEP_AMBER[2], SWEEP_AMBER[3], 0.34)
+	Colour(self.sweepWhite, 1, 0.95, 0.80, 0.42)
 	PlayAll(self.passAnims)
 end
 
@@ -1536,7 +1542,9 @@ function Letter:Hover(on)
 	local from = t:GetAlpha()
 	g:Stop()
 	t:SetAlpha(from)
-	g.to = on and 1 or 0
+	-- The light's own strength is where its fade goes: a colour carries no
+	-- alpha (Looks.lua, ONE ALPHA).
+	g.to = on and HILITE_PEAK or 0
 	g.fade:SetFromAlpha(from)
 	g.fade:SetToAlpha(g.to)
 	g.fade:SetDuration(on and 0.12 or 0.18)
@@ -1627,7 +1635,7 @@ function Letter:PaintQueue(rows, shown, above)
 		local reason = rows[i] and rows[i].reason
 		local c = kit.ReasonColor(reason)
 		local wr, wg, wb = self:WaxFor(c[1], c[2], c[3], reason, self.p.accentMode or "icon")
-		self.drops[i]:SetVertexColor(wr, wg, wb, 1)
+		Colour(self.drops[i], wr, wg, wb)
 		self.drops[i]:Show()
 		self.dropLights[i]:Show()
 		self.lines[i]:Show()
@@ -1671,6 +1679,6 @@ function Letter:PaintQueue(rows, shown, above)
 		self.lines[i]:ClearAllPoints()
 		self.lines[i]:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -(y + pitch / 2 - 0.5))
 		self.lines[i]:SetSize(ruleW, 3)
-		self.lines[i]:SetVertexColor(0.45, 0.28, 0.12, 0.34)
+		Colour(self.lines[i], 0.45, 0.28, 0.12, 0.34)
 	end
 end

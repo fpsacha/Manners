@@ -49,8 +49,8 @@ _m(LETTER,
    expect="wax are only", script=S)
 
 _m(LETTER,
-   "\tself.rim:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1)\n",
-   "\tself.rim:SetVertexColor(k, k, k, 1)\n",
+   "\tColour(self.rim, w[1] * k, w[2] * k, w[3] * k)\n",
+   "\tColour(self.rim, k, k, k)\n",
    "the seal's lip left uncoloured",
    expect="the lip is not", script=S)
 
@@ -81,7 +81,7 @@ _m(LETTER,
 # --- the ink and the paper ---------------------------------------------------
 
 _m(LETTER,
-   "\tclassContrast = 4.5,\n",
+   "\tclassContrast = 5,\n",
    "",
    "class colours left as the class paints them, on parchment",
    expect="the ink reads on the paper at 4.5:1", script=S)
@@ -93,7 +93,7 @@ _m("Prompt/Paint.lua",
    expect="the ink reads on the paper at 4.5:1", script=S)
 
 _m(LETTER,
-   "\tcodeContrast = 4.5,\n",
+   "\tcodeContrast = 5,\n",
    "",
    "colour codes held to 3:1 only, on parchment",
    expect="a colour code the player wrote", script=S)
@@ -153,8 +153,8 @@ _m(LETTER,
    expect="the paper is not dimmer in a fight", script=S)
 
 _m(LETTER,
-   "\t\tEach(self.paperL[c], \"SetVertexColor\", r, g, b, 1)\n",
-   "\t\tEach(self.paperL[c], \"SetVertexColor\", r, g, b, 0.9)\n",
+   "\t\tfor _, t in ipairs(self.paperL[c]) do Colour(t, r, g, b) end\n",
+   "\t\tfor _, t in ipairs(self.paperL[c]) do Colour(t, r, g, b, 0.9) end\n",
    "the paper a little see-through",
    expect="see-through", script=S)
 
@@ -505,26 +505,26 @@ _m(LETTER,
    expect="of the wax's diameter", script=S)
 
 _m(LETTER,
-   "\tself.gloss:SetVertexColor(1, 1, 1, k >= 1 and 1 or 0.7)\n",
-   "\tself.gloss:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, k >= 1 and 1 or 0.7)\n",
+   "\tColour(self.gloss, 1, 1, 1, k >= 1 and 1 or 0.7)\n",
+   "\tColour(self.gloss, w[1] * k, w[2] * k, w[3] * k, k >= 1 and 1 or 0.7)\n",
    "the light on the wax tinted with the wax",
    expect="the light on the seal is tinted", script=S)
 
 _m(LETTER,
-   "\tself.gloss:SetVertexColor(1, 1, 1, k >= 1 and 1 or 0.7)\n",
-   "\tself.gloss:SetVertexColor(1, 1, 1, 1)\n",
+   "\tColour(self.gloss, 1, 1, 1, k >= 1 and 1 or 0.7)\n",
+   "\tColour(self.gloss, 1, 1, 1)\n",
    "the light on the wax as bright in a fight as out of one",
    expect="the light on the wax is not fainter in a fight", script=S)
 
 _m(LETTER,
-   "\tfor _, t in ipairs(self.pins) do t:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1) end\n",
+   "\tfor _, t in ipairs(self.pins) do Colour(t, w[1] * k, w[2] * k, w[3] * k) end\n",
    "",
    "the drops that pin the slips left white, not the seal's wax",
    expect="is not the seal's wax", script=S)
 
 _m(LETTER,
-   "\tfor _, t in ipairs(self.dropLights) do t:SetVertexColor(1, 1, 1, 1) end\n",
-   "\tfor _, t in ipairs(self.dropLights) do t:SetVertexColor(0.9, 0.2, 0.2, 1) end\n",
+   "\tfor _, t in ipairs(self.dropLights) do Colour(t, 1, 1, 1) end\n",
+   "\tfor _, t in ipairs(self.dropLights) do Colour(t, 0.9, 0.2, 0.2) end\n",
    "the light on the list's drops tinted",
    expect="a drop's light is tinted", script=S)
 
