@@ -66,6 +66,7 @@ Looks\Lightbringer.lua
 Looks\Fel.lua
 Looks\Wild.lua
 Looks\Frost.lua
+Looks\Gearworks.lua
 Looks\Glass.lua
 Prompt\Prompt.lua
 Prompt\Text.lua
