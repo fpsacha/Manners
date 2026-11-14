@@ -39,13 +39,14 @@ end
 -- Never inside an instance (Who to buff) switched on from the options window
 -- while inside a party dungeon: the addon offers nobody, and the model must
 -- not expect a passer-by to be offered. (The setting step's a picks the
--- control by its place in the layout: 0.5144 is who.quietInInstances on
--- Classic Era, the 161st of 312 since the rebuilt menu and the settings for
--- resurrection, cures, courtesies, asking and battlegrounds. A
+-- control by its place in the layout: 0.5190 is who.quietInInstances on
+-- Classic Era, the 164th of 315 since the rebuilt menu, the settings for
+-- resurrection, cures, courtesies, asking and battlegrounds, and Start
+-- here's three for milestones. A
 -- layout that moves it again shows as this canary's mutation MISSED.)
 canary("model-fix: the model knows Never inside an instance", "vanilla", 97, {
 	"instance,0.250000,0.300000,0.300000,1,1.000",
-	"setting,0.514400,0.100000,0.100000,1,0.100",
+	"setting,0.519000,0.100000,0.100000,1,0.100",
 	"tick,0.100000,0.200000,0.300000,4,1.000",
 	"tick,0.100000,0.200000,0.300000,4,1.000",
 })

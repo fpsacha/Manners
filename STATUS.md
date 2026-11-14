@@ -680,6 +680,20 @@ again by its own scenario file and no whole suite:
   shared list, the mock's Rotation). Green.
 - `fuzz-fixes.lua` as the four other clients: green.
 
+Found beside them by `tools/prove.py`, three mutations that had gone MISSED
+with their scenarios green, all the tests' own:
+
+- `model-fixes.lua`'s canary picks *Never inside an instance* by its place
+  among the window's controls, which Start here's three switches for
+  milestones moved: 0.5190, the 164th of 315, now.
+- Two of `fuzz-fixes.lua`'s canaries had gone blind. "A group member left off
+  the queue" replayed seed 6, a warlock whose one buff for others (Unending
+  Breath) goes only to a favour or a request by name since the right-buff
+  audit, so nobody was plainly worth it: seed 75, a priest in a party. "The
+  raised member behind a plain one" no longer fired on seed 22: seed 35.
+  Both seeds were picked by playing the same steps on eighty, with the fault
+  and without. All fifteen of `fuzz-fixes.py` are CAUGHT.
+
 Still owed, for the full pass the author runs (`tools/check.py --release`,
 then the selftest on GitHub):
 

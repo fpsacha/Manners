@@ -84,7 +84,11 @@ canary("fuzz-canary: a flagged player offered under Skip PvP", "tbc", 56, {
 })
 
 -- A group member in reach, plainly lacking the buff, missing from the queue.
-canary("fuzz-canary: a group member left off the queue", "tbc", 6, {
+-- (Seed 75: a priest in a party. Seed 6, where it was found, is a warlock
+-- whose one buff for others, Unending Breath, has since gone only to a favour
+-- or a request by name, so nobody there is plainly worth it and the oracle
+-- had nothing to judge.)
+canary("fuzz-canary: a group member left off the queue", "tbc", 75, {
 	"setting,0.266806,0.210344,0.258705,48259,0.509",
 })
 
@@ -100,7 +104,9 @@ canary("fuzz-canary: somebody who asked is not offered as asked for", "tbc", 2, 
 })
 
 -- Somebody raised from the dead in the group, queued behind a plain member.
-canary("fuzz-canary: the raised member behind a plain one", "tbc", 22, {
+-- (Seed 35: with the fault put back the oracle no longer fired on seed 22,
+-- where the steps were found, and does on this one.)
+canary("fuzz-canary: the raised member behind a plain one", "tbc", 35, {
 	"profile+reload_garbage,0.381686,0.996115,0.696477,697297,0.622",
 	"join_party,0.227737,0.569527,0.035757,973559,0.920",
 	"join_raid,0.811681,0.915084,0.822841,483117,0.629",
