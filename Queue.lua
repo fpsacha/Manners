@@ -2949,6 +2949,19 @@ function ns.BuildQueue(watch)
 		if buff and reason == "group" and not pointed and ns.ShareHolds
 			and ns.ShareHolds(opts, buff, owner, has, remaining, queue) then
 			buff, has, remaining, seconds, lead, leadKind = ns.ShareOther(candidates, opts, ReadAura, owner)
+			-- Kept for the fold of a group cast of yours (Share.lua, Keep), with
+			-- nothing else for them: not turned down yet ("fold", no verdict to
+			-- the prompt). The cast may be aimed at them, and its line was held
+			-- and the cursor's hold ended as for somebody refused; the fold
+			-- says so when nothing came of it.
+			if not buff and queue[#queue] and queue[#queue].foldOnly and queue[#queue].name == full then
+				rejected[full] = "fold"
+				return
+			end
+		elseif not buff and reason == "group" and not pointed and ns.ShareSaw then
+			-- Nothing for them: Share is told they were looked at, so the
+			-- seconds it counts for somebody held back start again.
+			ns.ShareSaw(opts, queue)
 		end
 
 		if not buff then
@@ -3275,6 +3288,12 @@ function ns.BuildQueue(watch)
 	end
 	local mine = SelfEntry(db, candidates, now, neverVerdict)
 	ns.shoutUnreached = nil
+	-- Where a buff on anybody lands on the whole party, yours on yourself is
+	-- another Manners user's to cast while the split says so (Share.lua): your
+	-- class's own come in its place.
+	if ns.WIDE_CASTS == true and ns.ShareHoldsSelf and ns.ShareHoldsSelf(mine, queue, now) then
+		mine = SelfEntry(db, candidates, now, neverVerdict, true)
+	end
 	if mine and FormWaits(mine, queue) then mine = nil end
 	if mine then
 		queue[#queue + 1] = mine
@@ -3320,6 +3339,9 @@ function ns.BuildQueue(watch)
 		local kept = {}
 		for _, entry in ipairs(queue) do
 			if not entry.foldOnly then kept[#kept + 1] = entry end
+			-- Whoever went into no group cast is turned down, where the walk
+			-- had left it open (Share.lua's, above).
+			if entry.foldOnly and rejected[entry.name] == "fold" then rejected[entry.name] = true end
 		end
 		queue = kept
 	end

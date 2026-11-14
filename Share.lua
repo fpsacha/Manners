@@ -6,12 +6,13 @@
 -- the group, with nothing negotiated: the sums are made from what both sides
 -- hold (who said hello, the roster, everybody's GUID).
 --
---   the hello    "H1;build;CLASS;flags;groups;guid;keys" on PARTY or RAID,
---       never a whisper: the build, the class, `g` while this Manners offers
+--   the hello    "H1;build;CLASS;flags;groups;guid;keys" on PARTY or RAID
+--       (INSTANCE_CHAT in a group the game formed: a dungeon queue, a
+--       battleground), never a whisper: the build, the class, `g` while this Manners offers
 --       its group and shares it (and `q` on a first hello: say hello back),
 --       the raid groups it buffs (Who to buff's, as bits), the sender's GUID,
 --       and the buff keys it casts for others, a `+` after one whose group
---       version it can cast. Said on joining a group, at login, when somebody
+--       version it can cast now, the reagent in the bags. Said on joining a group, at login, when somebody
 --       new is on the roster, when any of it changes, and in answer to a `q`:
 --       never more than one in GAP seconds, never in a fight, never while the
 --       client holds chat back (C_ChatInfo.InChatMessagingLockdown). The
@@ -35,7 +36,12 @@
 --       place (ShareOther). A favour owed, a request, your target and your
 --       focus are never held.
 --   nobody goes without    a member held back for GRACE seconds out of a
---       fight, still missing the buff, is offered anyway. A user who leaves,
+--       fight, still missing the buff, is offered anyway: the seconds are
+--       added up across fights, and start again only once a scan has seen
+--       them without the gap. Your own entry for a buff that lands on the
+--       whole party goes by the same rule, and so does a group cast left to
+--       another user: it is yours again once it has waited that long, or
+--       once anybody it would cover has. A user who leaves,
 --       goes offline or dies is out of the split at the next scan; one that
 --       never said hello was never in it.
 --   group casts    one user casts: in a raid whose group version reaches one
@@ -57,7 +63,8 @@ local PREFIX, TAG = "Manners", "H1"
 -- Seconds a member of another user's share may go without before they are
 -- offered anyway, counted out of a fight.
 local GRACE = 45
--- A hold not renewed for this long starts again: they were buffed, or left.
+-- A hold not renewed for this long was not being counted meanwhile (a fight,
+-- a taxi, the member out of sight): the gap is left out, and the count goes on.
 local LAPSE = 3
 -- The least time between two hellos, and how often what a hello says is
 -- compared with the last one said while there is anybody to tell.
@@ -130,7 +137,9 @@ local function Payload()
 	me.on = Sharing()
 	if me.on then
 		local castable = ns.CastableBuffs()
-		local ready = ns.GroupReady and ns.GroupReady(db, castable)
+		-- Able to cast it now, the reagent in the bags (GroupBuffs.lua): a `+`
+		-- names you the group's caster on every side.
+		local ready = ns.GroupStocked and ns.GroupStocked(db, castable)
 		for _, buff in ipairs(castable) do
 			if not buff.oneTarget then
 				me.keys[buff.key] = (ready and ready[buff.key]) and "group" or "single"
@@ -323,20 +332,42 @@ Share.Caster = Caster
 -- since/last by buff key and name: how long somebody has been held back.
 -- held: [name] = the time of the scan that held them, for the check-up.
 -- left: [key and bucket] = the group cast last left to another user.
+-- visited: [name] = the last scan out of a fight that asked about them at all,
+-- held or not. walk: the last two such scans. over: [key] = the scan in which
+-- somebody held for it had waited the whole grace.
 local grace, held, left = {}, {}, {}
+local visited, walk, over = {}, {}, {}
+
+-- When a wait began, moved on: `since` and `last` as kept, `again` for one
+-- that starts afresh (a scan has seen them without the gap since). A fight's
+-- seconds are left out, and so is a stretch nothing was asked in (no scan runs
+-- in a fight, on a taxi, dead, or with the prompt hidden on a mount): the
+-- count pauses there, and goes on after.
+local function Since(since, last, now, again)
+	if not last or again then return now end
+	if InCombatLockdown() or now - last > LAPSE then return since + (now - last) end
+	return since
+end
 
 -- What is kept about people held back, let go once it is a minute old.
 local function Forget(now)
 	for name, at in pairs(held) do
 		if now - at > 60 then held[name] = nil end
 	end
+	-- A count that is only paused is kept: let go once a scan has seen them
+	-- without the gap, or after a quarter of an hour.
 	for _, timers in pairs(grace) do
 		for name, last in pairs(timers.last) do
-			if now - last > 60 then timers.last[name], timers.since[name] = nil, nil end
+			if now - last > 60 and ((visited[name] or 0) > last or now - last > 900) then
+				timers.last[name], timers.since[name] = nil, nil
+			end
 		end
 	end
+	for name, at in pairs(visited) do
+		if now - at > 60 then visited[name] = nil end
+	end
 	for id, cast in pairs(left) do
-		if now - cast.at > 60 then left[id] = nil end
+		if now - cast.last > 60 and (cast.last < (walk.prev or 0) or now - cast.last > 900) then left[id] = nil end
 	end
 end
 
@@ -448,7 +479,9 @@ end
 -- was taken (or was your own, come back to you).
 local function Read(text, channel, sender)
 	if #text > 255 then return "too long" end
-	if channel ~= "PARTY" and channel ~= "RAID" then return "not from the group's channel" end
+	if channel ~= "PARTY" and channel ~= "RAID" and channel ~= "INSTANCE_CHAT" then
+		return "not from the group's channel"
+	end
 	if type(sender) ~= "string" or sender == "" or #sender > 100 then return "no sender" end
 	local fields, n = {}, 0
 	for field in (text .. ";"):gmatch("([^;]*);") do
@@ -564,6 +597,18 @@ local function Quiet()
 	return false
 end
 
+-- The channel the group in hand talks on. A group the game formed (a dungeon
+-- queue, a battleground) is the one GetNumGroupMembers and IsInRaid answer
+-- for, and it talks on INSTANCE_CHAT: PARTY and RAID there reach your own
+-- party or raid, who are not in it, or nobody (Speech.lua, InHome).
+local function Channel()
+	local instance, inGroup = _G.LE_PARTY_CATEGORY_INSTANCE, _G.IsInGroup
+	if instance ~= nil and type(inGroup) == "function" and plain(inGroup(instance)) == true then
+		return "INSTANCE_CHAT"
+	end
+	return plain(IsInRaid and IsInRaid()) == true and "RAID" or "PARTY"
+end
+
 -- Called from the scan's tick when `due` has come (Core.lua, TickBody), under
 -- a Guard: the roster read again when it changed, and a hello when one is due.
 function Share:Tick(now)
@@ -574,6 +619,13 @@ function Share:Tick(now)
 		wipe(plans)
 		wipe(known)
 		self.greeted, self.newcomer, self.reply, self.said, self.dirty = false, false, false, nil, false
+		return
+	end
+	-- Not sharing (the switch, the addon off, a snooze), nobody to share with
+	-- and nothing said that is no longer so: the roster is not read at all. A
+	-- raid's changes every few seconds, and there is nobody to tell.
+	if next(users) == nil and (self.said == nil or (me.on == false and self.said == self.sig)) and not Sharing() then
+		self.newcomer, self.reply = false, false
 		return
 	end
 	-- A setting of your own changed since the splits were made: made again.
@@ -604,9 +656,8 @@ function Share:Tick(now)
 		self.due = self.sentAt + GAP
 		return
 	end
-	local inRaid = plain(IsInRaid and IsInRaid()) == true
 	self.sentAt = now
-	local result = plain(send(PREFIX, Text(me, not self.greeted), inRaid and "RAID" or "PARTY"))
+	local result = plain(send(PREFIX, Text(me, not self.greeted), Channel()))
 	-- Enum.SendAddonMessageResult: 0 is Success on all five clients.
 	if result == nil or result == true or result == 0 then
 		if not self.greeted then ns.Trail("share", "said hello to the group") end
@@ -711,29 +762,38 @@ end
 function ns.ShareHolds(opts, buff, petOwner, has, remaining, queue)
 	if next(users) == nil then return false end
 	if scanQueue ~= queue then BeginScan(queue) end
-	local plan = plans[buff.key]
-	if not plan then return false end
+	-- Asked about, held or not (`buff` nil: the walk had nothing for them):
+	-- what tells a count that stopped because they were buffed from one that
+	-- only paused. Not in a fight, where nobody's buffs may be read.
 	local name = opts.name
+	local now = opts.now or GetTime()
+	local before = visited[name]
+	if not InCombatLockdown() then
+		visited[name] = now
+		if walk.at ~= now then walk.prev, walk.at = walk.at, now end
+	end
+	local plan = buff and plans[buff.key]
+	if not plan then return false end
 	local whose = plan.owner[petOwner and ns.UnitFullName(petOwner) or name]
 	if not whose or whose.me then return false end
 
-	-- Nobody goes without: held for GRACE seconds running, they are offered
-	-- anyway. A fight's seconds do not count, and a hold not renewed for a
-	-- moment (they were buffed, or went out of sight) starts again.
-	local now = opts.now or GetTime()
+	-- Nobody goes without: held for GRACE seconds, they are offered anyway. A
+	-- fight's seconds do not count, nor a stretch with no scan in it: the
+	-- count pauses (Since). It starts again once a scan has asked about them
+	-- and not held them for this buff: they were buffed.
 	local timers = grace[buff.key]
 	if not timers then
 		timers = { since = {}, last = {} }
 		grace[buff.key] = timers
 	end
 	local last = timers.last[name]
-	if not last or now - last > LAPSE then
-		timers.since[name] = now
-	elseif InCombatLockdown() then
-		timers.since[name] = timers.since[name] + (now - last)
-	end
+	timers.since[name] = Since(timers.since[name], last, now, before ~= nil and last ~= nil and before > last)
 	timers.last[name] = now
-	if now - timers.since[name] >= GRACE then return false end
+	if now - timers.since[name] >= GRACE then
+		-- And the group cast left to that user is yours too (ShareLeavesCast).
+		over[buff.key] = now
+		return false
+	end
 
 	held[name] = now
 	if not petOwner and not plan.wide and me.keys[buff.key] == "group" then
@@ -741,6 +801,27 @@ function ns.ShareHolds(opts, buff, petOwner, has, remaining, queue)
 		if where and Caster(plan, where) == me then Keep(opts, buff, has, remaining, queue) end
 	end
 	return true
+end
+
+-- Somebody the walk looked at and had nothing for (Queue.lua, visit): they
+-- wear it now, so a count kept for them starts again the next time.
+function ns.ShareSaw(opts, queue)
+	if next(users) == nil then return end
+	ns.ShareHolds(opts, nil, nil, nil, nil, queue)
+end
+
+-- Your own entry (Queue.lua, after the walk; `entry` nil for none), where a
+-- buff on anybody lands on the whole party (ns.WIDE_CASTS): whether it is
+-- another user's to cast, as it is for the members the walk held back. That
+-- buff has one caster, you included, and yours came 'on yourself' all the
+-- same, ahead of the group, and was cast twice.
+local own = {}
+function ns.ShareHoldsSelf(entry, queue, now)
+	if next(users) == nil or not me.name then return false end
+	local buff = entry and entry.reason == "self" and not entry.groupCast and entry.buff or nil
+	if buff and (buff.selfCast or buff.own or buff.alone) then buff = nil end
+	own.name, own.now = me.name, now
+	return ns.ShareHolds(own, buff, nil, nil, nil, queue)
 end
 
 -- Somebody the walk was just told is another user's for the buff it picked
@@ -780,8 +861,15 @@ function ns.ShareLeavesCast(bucket)
 		cast = {}
 		left[id] = cast
 	end
+	-- Nobody goes without here either: left to them for GRACE seconds (counted
+	-- as a member's are; afresh once a scan walked the group and no cast was
+	-- wanted), or with somebody it would cover held that long, it is yours.
+	local now = GetTime()
+	cast.since = Since(cast.since, cast.last, now, cast.last ~= nil and cast.last < (walk.prev or 0))
+	cast.last = now
+	if over[bucket.buff.key] == now or now - cast.since >= GRACE then return false end
 	local info = bucket.ready and bucket.ready.info
-	cast.at, cast.who, cast.spell = GetTime(), who.name, info and info.groupName or ns.BuffName(bucket.buff)
+	cast.at, cast.who, cast.spell = now, who.name, info and info.groupName or ns.BuffName(bucket.buff)
 	return true
 end
 
