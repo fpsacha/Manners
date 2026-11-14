@@ -22,6 +22,14 @@
 -- left to right at their own widths), match (dropdowns sharing the same match
 -- draw their fields at one width) }. tests/scenarios/layout.lua holds every
 -- control to being placed exactly once.
+--
+-- A window dragged wide flows a page's sections into two columns, and three
+-- when very wide (WindowPage.lua, UI.ColumnsFor): in the order they are listed
+-- here, down the first column and then the next, a section never cut in two.
+-- So the order of the sections is the reading order at every width, and a
+-- section should be a group that stands on its own. `spans` names the
+-- sections that take the page's whole width instead, above the columns: the
+-- line a page opens with.
 
 local _, ns = ...
 local L = ns.L
@@ -649,6 +657,15 @@ ns.WindowLayout = {
 				} },
 			},
 		},
+	},
+
+	-- The sections that run the page's whole width when it has columns: what
+	-- a page opens with, read before the columns under it.
+	spans = {
+		["general.lead"] = true,
+		["who.now"] = true,
+		["skip.now"] = true,
+		["when.now"] = true,
 	},
 
 	-- How a note is drawn when not in the label colour: grey (a colour code

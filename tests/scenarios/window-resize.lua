@@ -59,26 +59,28 @@ do
 		end
 		local path = "when.hideMounted"
 		local before, tall = rowWidth(UI, path), UI.view.height
-		UI.SetWindowSize(1100, 800)
-		if not near(f:GetWidth(), 1100) or not near(f:GetHeight(), 800) then
-			fail(scenario, ("set to 1100 x 800 it is %s x %s"):format(tostring(f:GetWidth()), tostring(f:GetHeight())))
+		-- 980 wide is still one column (tests/scenarios/menu.lua has the
+		-- columns a wider window flows into), so the row has all of it.
+		UI.SetWindowSize(980, 800)
+		if not near(f:GetWidth(), 980) or not near(f:GetHeight(), 800) then
+			fail(scenario, ("set to 980 x 800 it is %s x %s"):format(tostring(f:GetWidth()), tostring(f:GetHeight())))
 		end
-		if UI.WIDTH ~= 1100 or UI.HEIGHT ~= 800 then fail(scenario, "the window's own size reads " .. UI.WIDTH .. " x " .. UI.HEIGHT) end
+		if UI.WIDTH ~= 980 or UI.HEIGHT ~= 800 then fail(scenario, "the window's own size reads " .. UI.WIDTH .. " x " .. UI.HEIGHT) end
 		local after = rowWidth(UI, path)
-		if before and not (after and near(after - before, 280)) then
-			fail(scenario, ("a row laid out at %s before is %s after, not 280 wider"):format(tostring(before), tostring(after)))
+		if before and not (after and near(after - before, 160)) then
+			fail(scenario, ("a row laid out at %s before is %s after, not 160 wider"):format(tostring(before), tostring(after)))
 		end
-		if not near(UI.view.child:GetWidth(), 1100 - UI.SIDEBAR - 13) then fail(scenario, "the scrolled page is as narrow as before") end
+		if not near(UI.view.child:GetWidth(), 980 - UI.SIDEBAR - 13) then fail(scenario, "the scrolled page is as narrow as before") end
 		if not near(UI.view.height - tall, 200) then
 			fail(scenario, ("the page's room went from %s to %s"):format(tostring(tall), tostring(UI.view.height)))
 		end
 		local rail = UI.Dress.headerRail
 		local c = rail and rail._texCoord or {}
-		if not near((c[2] or 0) - (c[1] or 0), 1100 / RAIL_TILE, 0.01) then
+		if not near((c[2] or 0) - (c[1] or 0), 980 / RAIL_TILE, 0.01) then
 			fail(scenario, "the header's rail is stretched, not tiled along the wider window")
 		end
 		local saved = Mock.sv.global and Mock.sv.global.window
-		if not (saved and saved.w == 1100 and saved.h == 800) then fail(scenario, "the size is not kept in the window's state") end
+		if not (saved and saved.w == 980 and saved.h == 800) then fail(scenario, "the size is not kept in the window's state") end
 		if Mock.sv.profile.window ~= nil then fail(scenario, "the window's size went into the profile") end
 	end)
 end

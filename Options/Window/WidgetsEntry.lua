@@ -273,7 +273,7 @@ KIND.range = {
 	end,
 	Layout = function(row, width)
 		local lh = W.PlaceLabel(row.label, row.frame, width)
-		local cw = math.min(width, 360)
+		local cw = math.min(width, W.Grow(360, width))
 		local sw = math.max(40, cw - 68)
 		row.slider:ClearAllPoints()
 		row.slider:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -(lh + 1))
@@ -477,7 +477,7 @@ KIND.input = {
 		row.boxTop = lh
 		row.box:ClearAllPoints()
 		row.box:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -lh)
-		row.box:SetWidth(math.min(width, 360))
+		row.box:SetWidth(math.min(width, W.Grow(360, width)))
 		row.fieldTop, row.fieldHeight = lh, 22
 		local h = lh + 22
 		if row.error then
@@ -830,7 +830,7 @@ local function PlaceList(row, width, y)
 	local n = row.count or 0
 	row.list:SetShown(n > 0)
 	if n == 0 then return y end
-	local w = math.min(width, LIST_WIDTH)
+	local w = math.min(width, W.Grow(LIST_WIDTH, width))
 	local h = 6 + n * LINE + (n - 1) * 2
 	row.list:ClearAllPoints()
 	row.list:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -y)
@@ -849,7 +849,7 @@ end
 local function PlaceAdd(row, width, y)
 	local h, addWidth = 0, 0
 	if row.add then
-		addWidth = math.min(width, ADD_WIDTH)
+		addWidth = math.min(width, W.Grow(ADD_WIDTH, width))
 		h = row.add:Layout(addWidth)
 		row.add.frame:ClearAllPoints()
 		row.add.frame:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -y)

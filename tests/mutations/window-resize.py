@@ -9,7 +9,7 @@ mutate("Options/Window/WindowPage.lua",
        "\tCONTENT_W = ContentWidth()\n\tlocal m = UI.Model(UI.page)\n",
        "\tlocal m = UI.Model(UI.page)\n",
        "window-resize: the rows keep the old width",
-       expect="not 280 wider", script=S)
+       expect="not 160 wider", script=S)
 
 mutate("Options/Window/Window.lua",
        "\tUI.view.child:SetWidth(UI.WIDTH - UI.SIDEBAR - 13)\n",

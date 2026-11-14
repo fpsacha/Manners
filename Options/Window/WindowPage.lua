@@ -11,12 +11,23 @@ local _, ns = ...
 local UI = ns.WindowUI
 
 local PAD_LEFT, PAD_TOP, PAD_BOTTOM = 18, 14, 26
--- The rows' width: the window's, less the sidebar, the bar and the padding.
+-- The page's width: the window's, less the sidebar, the bar and the padding.
 -- Worked out again at every layout, since the window can be resized
 -- (Window.lua, UI.Resized).
 local function ContentWidth() return UI.WIDTH - UI.SIDEBAR - 13 - PAD_LEFT - 17 end
 local CONTENT_W = ContentWidth()
 local GAP, ROW_GAP, SECTION_GAP, INDENT = 18, 6, 10, 16
+-- Columns: a page wide enough for two columns of MIN_COLUMN flows its sections
+-- into two, and into three when there is room for three (UI.ColumnsFor). The
+-- usual 820 window is one column of 612, as it always was. COLUMN_W is the
+-- width of the column being laid out, the page's own while there is one.
+-- A page with fewer sections than columns does not stretch them past
+-- MAX_COLUMN: a line of text that long is hard to read back.
+local COLUMN_GAP, MIN_COLUMN, MAX_COLUMN, MAX_COLUMNS = 28, 420, 760, 3
+local COLUMN_W = CONTENT_W
+-- Every row placed in the paint under way carries its number, so the columns
+-- move only what this paint laid out.
+local stamp = 0
 local C = UI.C
 
 -- path -> { page, sec, e }, for every placed control and note
@@ -86,6 +97,7 @@ function UI.Model(id)
 	for si, s in ipairs(page and page.sections or {}) do
 		local sec = { def = s, key = s.key or (id .. "." .. si), fold = s.fold and true or false,
 			entries = {}, hasControls = false, page = id }
+		sec.span = (UI.Layout().spans or {})[sec.key] and true or false
 		sec.headerItem = UI.Item(s.header)
 		for _, raw in ipairs(s.items or {}) do
 			local e = Entry(raw, sec)
@@ -403,16 +415,15 @@ local function NaturalWidth(e)
 	return type(w) == "number" and w or math.huge
 end
 
+-- A row laid out at a width and given its place within its section: x from
+-- the column's left edge, y from the section's top. The section is put in its
+-- column afterwards (AnchorSection), which is what anchors and shows the row.
 -- `h` when the row was laid out at this width already.
 local function Place(e, x, y, width, h)
 	local row = e.row
 	h = h or row.Layout(row, width) or 20
-	local frame = row.frame
-	frame:ClearAllPoints()
-	frame:SetPoint("TOPLEFT", UI.view.child, "TOPLEFT", x, -y)
-	frame:SetSize(width, h)
-	frame:Show()
-	e.y, e.x, e.h = y, x, h
+	row.frame:SetSize(width, h)
+	e.y, e.x, e.h, e.stamp = y, x, h, stamp
 	return h
 end
 
@@ -479,7 +490,7 @@ local function PlacePairs(list, i, y)
 	local k = 1
 	while k <= #shown do
 		local a, b = shown[k], shown[k + 1]
-		local x, width = PAD_LEFT + Indent(a), CONTENT_W - Indent(a)
+		local x, width = PAD_LEFT + Indent(a), COLUMN_W - Indent(a)
 		local half = math.floor((width - GAP) / 2)
 		if b and NaturalWidth(a) <= half and NaturalWidth(b) <= half then
 			y = PlaceTwo(a, b, x, half, y)
@@ -507,14 +518,14 @@ local function PlaceColumns(list, i, y)
 			list[k].row.frame:Hide()
 		end
 	end
-	local x, width = PAD_LEFT + Indent(e), CONTENT_W - Indent(e)
+	local x, width = PAD_LEFT + Indent(e), COLUMN_W - Indent(e)
 	local colW = math.floor((width - (cols - 1) * GAP) / cols)
 	local fits = true
 	for _, r in ipairs(run) do
 		if NaturalWidth(r) > colW then fits = false end
 	end
 	if not fits then
-		for _, r in ipairs(run) do y = y + Place(r, PAD_LEFT + Indent(r), y, CONTENT_W - Indent(r)) + ROW_GAP end
+		for _, r in ipairs(run) do y = y + Place(r, PAD_LEFT + Indent(r), y, COLUMN_W - Indent(r)) + ROW_GAP end
 		return y, last + 1
 	end
 	local col, tallest = 0, 0
@@ -538,7 +549,7 @@ local function PlaceButtons(list, i, y)
 	local last = i
 	while list[last + 1] and list[last + 1].layout.buttons do last = last + 1 end
 	local x0 = PAD_LEFT + Indent(list[i])
-	local right = PAD_LEFT + CONTENT_W
+	local right = PAD_LEFT + COLUMN_W
 	local x, tallest = x0, 0
 	for k = i, last do
 		local e = list[k]
@@ -590,7 +601,7 @@ local function LayoutRows(sec, y)
 		elseif cols and cols > 1 and e.kind ~= "multiselect" and e.kind ~= "never" then
 			y, i = PlaceColumns(list, i, y)
 		else
-			y = y + Place(e, PAD_LEFT + Indent(e), y, CONTENT_W - Indent(e)) + ROW_GAP
+			y = y + Place(e, PAD_LEFT + Indent(e), y, COLUMN_W - Indent(e)) + ROW_GAP
 			i = i + 1
 		end
 	end
@@ -606,9 +617,7 @@ UI.SectionText = SectionText
 
 local function PlaceFold(sec, y)
 	local b = sec.button
-	b:ClearAllPoints()
-	b:SetPoint("TOPLEFT", UI.view.child, "TOPLEFT", PAD_LEFT - 4, -y)
-	b:SetWidth(CONTENT_W + 4)
+	b:SetWidth(COLUMN_W + 4)
 	b.label:SetText(SectionText(sec))
 	b.dot:ClearAllPoints()
 	b.dot:SetPoint("LEFT", b.label, "LEFT", math.ceil(UI.TextWidth(b.label, 13)) + 8, 0)
@@ -619,32 +628,61 @@ local function PlaceFold(sec, y)
 	else
 		b.chevron:SetTexCoord(0, 1, 0, 1)
 	end
-	b:Show()
 	sec.y = y
 	return y + 26
 end
 
--- The title, and its gold rule running on from it to the content's right
+-- The title, and its gold rule running on from it to its column's right
 -- edge on the same line, fading out, as the mock-up and a model header row
--- (Widgets.lua) draw it.
+-- (Widgets.lua) draw it. Measured here; AnchorSection puts both in the column.
 local function PlaceTitle(sec, y)
-	local child = UI.view.child
 	sec.title:SetText(SectionText(sec))
-	sec.title:ClearAllPoints()
-	sec.title:SetPoint("TOPLEFT", child, "TOPLEFT", PAD_LEFT, -y)
-	sec.title:Show()
 	local h = UI.TextHeight(sec.title, 13)
-	local from = math.min(math.ceil(UI.TextWidth(sec.title, 13)) + 10, CONTENT_W)
-	local middle = -(y + math.floor(h / 2 + 0.5))
-	sec.rule:ClearAllPoints()
-	sec.rule:SetPoint("LEFT", child, "TOPLEFT", PAD_LEFT + from, middle)
-	sec.rule:SetPoint("RIGHT", child, "TOPLEFT", PAD_LEFT + CONTENT_W, middle)
-	sec.rule:Show()
-	UI.Dress.PlaceSection(sec)
+	sec.ruleFrom = math.min(math.ceil(UI.TextWidth(sec.title, 13)) + 10, COLUMN_W)
+	sec.ruleTo = COLUMN_W
+	sec.ruleMiddle = y + math.floor(h / 2 + 0.5)
 	sec.y = y
 	return y + h + 6
 end
 
+-- A section laid out (LayoutSection) put where its column has it: its fold
+-- button or its title and rule, and every row this paint placed in it, moved
+-- by the column's left edge and the section's top. Placement only: nothing is
+-- laid out or read again.
+local function AnchorSection(sec, ox, oy, column)
+	local child = UI.view.child
+	if sec.fold then
+		local b = sec.button
+		b:ClearAllPoints()
+		b:SetPoint("TOPLEFT", child, "TOPLEFT", ox + PAD_LEFT - 4, -(oy + sec.y))
+		b:Show()
+	elseif sec.title then
+		sec.title:ClearAllPoints()
+		sec.title:SetPoint("TOPLEFT", child, "TOPLEFT", ox + PAD_LEFT, -(oy + sec.y))
+		sec.title:Show()
+		local middle = -(oy + sec.ruleMiddle)
+		sec.rule:ClearAllPoints()
+		sec.rule:SetPoint("LEFT", child, "TOPLEFT", ox + PAD_LEFT + sec.ruleFrom, middle)
+		sec.rule:SetPoint("RIGHT", child, "TOPLEFT", ox + PAD_LEFT + sec.ruleTo, middle)
+		sec.rule:Show()
+		UI.Dress.PlaceSection(sec)
+	end
+	for _, e in ipairs(sec.entries) do
+		if e.stamp == stamp and e.row then
+			local frame = e.row.frame
+			e.x, e.y = e.x + ox, e.y + oy
+			frame:ClearAllPoints()
+			frame:SetPoint("TOPLEFT", child, "TOPLEFT", e.x, -e.y)
+			frame:Show()
+		end
+	end
+	if sec.fold or sec.title then sec.y = sec.y + oy end
+	-- Where the section stands: its column (1 the leftmost), that column's
+	-- left edge and width, and its own top.
+	sec.column, sec.left, sec.width, sec.top = column, ox, COLUMN_W, oy
+end
+
+-- Across the whole page, over however many columns the folds under it take.
 local function PlaceCaption(m, y)
 	local cap = m.caption
 	local text = cap.item and ns.WindowBind.Text(cap.item, "name")
@@ -667,11 +705,11 @@ local function PlaceCaption(m, y)
 	return y + h + 16
 end
 
-local function LayoutSection(sec, y)
-	if not sec.visible then
-		HideSection(sec)
-		return y
-	end
+-- A visible section laid out at the column's width from its own top: its
+-- fold button or title, then its rows. Answers how tall it is, the gap under
+-- it included.
+local function LayoutSection(sec)
+	local y = 0
 	if sec.fold then
 		y = PlaceFold(sec, y)
 		if not UI.State().open[sec.key] then
@@ -703,12 +741,102 @@ local function RefreshRows(sec)
 	end
 end
 
--- layoutOnly: a row changed height by itself, so the rows are placed again
--- without being read again.
-function UI.PaintPage(layoutOnly)
+---------------------------------------------------------------------------
+-- columns
+---------------------------------------------------------------------------
+
+-- How many columns a page of this width flows into: one until there is room
+-- for two of MIN_COLUMN with the gap between them, three at most.
+function UI.ColumnsFor(width)
+	local n = math.floor(((tonumber(width) or 0) + COLUMN_GAP) / (MIN_COLUMN + COLUMN_GAP))
+	return math.max(1, math.min(MAX_COLUMNS, n))
+end
+
+-- How many columns the page in view has room for as the window stands.
+function UI.Columns() return UI.ColumnsFor(ContentWidth()) end
+
+-- Where to break a run of sections into `n` columns: the sections stay in
+-- order and whole, each column a stretch of the run, and of every way to cut
+-- it the one whose tallest column is shortest; between two as short, the one
+-- that fills the columns to the left first. Answers the index each column
+-- starts at. The runs are a handful of sections and the columns three at
+-- most, so every cut is simply tried.
+local function Breaks(heights, n)
+	local count = #heights
+	local sum = { [0] = 0 }
+	for i = 1, count do sum[i] = sum[i - 1] + heights[i] end
+	if n <= 1 or count <= 1 then return { 1 } end
+	local best, bestTall, bestLeft
+	local function Try(a, b)
+		local one, two = sum[a - 1], b and sum[b - 1] - sum[a - 1] or sum[count] - sum[a - 1]
+		local three = b and sum[count] - sum[b - 1] or 0
+		local tall = math.max(one, two, three)
+		-- Left first: the leftmost column as tall as the cut allows, then the next.
+		local left = one * 1e6 + two
+		if not best or tall < bestTall or (tall == bestTall and left > bestLeft) then
+			best, bestTall, bestLeft = b and { 1, a, b } or { 1, a }, tall, left
+		end
+	end
+	for a = 2, count do
+		if n >= 3 and count >= 3 then
+			for b = a + 1, count do Try(a, b) end
+		else
+			Try(a)
+		end
+	end
+	return best
+end
+UI.ColumnBreaks = Breaks
+
+-- A run of sections that share the page's width: laid out at the width of a
+-- column, cut into columns (Breaks) and put there. A run of one section, or a
+-- page with room for one column, is the page as it always was. Answers the y
+-- under the tallest column.
+local function FlowRun(run, y, columns)
+	local n = math.min(columns, #run)
+	if n < 1 then return y end
+	local width = math.floor((CONTENT_W - (n - 1) * COLUMN_GAP) / n)
+	-- Fewer sections than the page has columns for: not stretched across it.
+	if columns > 1 then width = math.min(width, MAX_COLUMN) end
+	COLUMN_W = width
+	local heights = {}
+	for i, sec in ipairs(run) do heights[i] = LayoutSection(sec) end
+	local starts = Breaks(heights, n)
+	local bottom = y
+	for c, first in ipairs(starts) do
+		local last = (starts[c + 1] or (#run + 1)) - 1
+		local ox, oy = (c - 1) * (width + COLUMN_GAP), y
+		for i = first, last do
+			AnchorSection(run[i], ox, oy, c)
+			oy = oy + heights[i]
+		end
+		bottom = math.max(bottom, oy)
+	end
+	COLUMN_W = CONTENT_W
+	return bottom
+end
+
+-- A section that takes the page's whole width whatever the columns: one the
+-- layout's `spans` names (the line a page opens with).
+local function FlowSpan(sec, y)
+	COLUMN_W = CONTENT_W
+	local h = LayoutSection(sec)
+	AnchorSection(sec, 0, y, 1)
+	return y + h
+end
+
+-- mode: nil reads every row again and lays the page out; "layout" places the
+-- rows again without reading them (a row changed height by itself); "reflow"
+-- also keeps which rows show as the last paint judged it, so nothing of the
+-- model is asked: the window being dragged wider or narrower, every frame.
+function UI.PaintPage(mode)
+	if mode == true then mode = "layout" end
 	CONTENT_W = ContentWidth()
 	local m = UI.Model(UI.page)
+	if mode == "reflow" and not m.judged then mode = "layout" end
 	BuildFrames(m)
+	stamp = stamp + 1
+	COLUMN_W = CONTENT_W
 	local y = PAD_TOP
 	m.title:SetText(m.page.title or "")
 	m.title:ClearAllPoints()
@@ -716,15 +844,40 @@ function UI.PaintPage(layoutOnly)
 	m.title:Show()
 	y = y + UI.TextHeight(m.title, 18) + 10
 	local captioned, open = false, UI.State().open
-	for _, sec in ipairs(m.sections) do
-		-- A shut fold's rows are not drawn, so not read either.
-		if Judge(sec) and not layoutOnly and not (sec.fold and not open[sec.key]) then RefreshRows(sec) end
-		if sec.fold and sec.visible and not captioned then
-			y = PlaceCaption(m, y)
-			captioned = true
+	local columns = UI.ColumnsFor(CONTENT_W)
+	m.columns = columns
+	-- The sections in order, in runs: the ones before the folds, then the
+	-- folds under their caption, a `span` section standing alone between runs.
+	local run = {}
+	local function Flush()
+		if #run > 0 then
+			y = FlowRun(run, y, columns)
+			run = {}
 		end
-		y = LayoutSection(sec, y)
 	end
+	for _, sec in ipairs(m.sections) do
+		if mode ~= "reflow" then
+			-- A shut fold's rows are not drawn, so not read either.
+			if Judge(sec) and mode ~= "layout" and not (sec.fold and not open[sec.key]) then RefreshRows(sec) end
+		end
+		if not sec.visible then
+			HideSection(sec)
+		else
+			if sec.fold and not captioned then
+				Flush()
+				y = PlaceCaption(m, y)
+				captioned = true
+			end
+			if sec.span then
+				Flush()
+				y = FlowSpan(sec, y)
+			else
+				run[#run + 1] = sec
+			end
+		end
+	end
+	Flush()
+	m.judged = true
 	if not captioned then UI.ShowCaption(m, false) end
 	UI.SetContentHeight(y + PAD_BOTTOM)
 end
