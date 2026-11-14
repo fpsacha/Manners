@@ -646,8 +646,10 @@ local function OnPostClick(self, mouseButton, down)
 	if S.current.buff then
 		ns.MarkAttempted(S.current.name, S.current.buff.key)
 		-- Only where the walk will read it back: a paladin's blessings
-		-- overwrite one another, so PickBuffFor never rotates them.
-		if ns.RotatesBuffs() then
+		-- overwrite one another, so PickBuffFor never rotates them. Nor for a
+		-- cure (Cures.lua): it is no buff of the walk's, and its key there
+		-- would lose the place the rotation had reached.
+		if ns.RotatesBuffs() and not S.current.cure then
 			-- Bounded like every other per-person table. It is only a rotation
 			-- hint for people whose auras cannot be read, so losing an old
 			-- pointer costs at most one repeated first buff.

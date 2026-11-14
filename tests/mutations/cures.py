@@ -163,7 +163,8 @@ mutate("Queue.lua",
        expect="cures: the cure switches stand apart from the buff switches", script=S)
 
 mutate("Queue.lua",
-       "\t\t\tif reason == \"nearby\" and (not db.sources.strangers or groupOnly) then return end\n",
+       "\t\t\tif reason == \"nearby\" and (not db.sources.strangers or groupOnly) then\n"
+       "\t\t\t\trejected[full] = true\n\t\t\t\treturn\n\t\t\tend\n",
        "",
        "cures: a cure switch lets passers-by past their own",
        expect="cures: the cure switches stand apart from the buff switches", script=S)

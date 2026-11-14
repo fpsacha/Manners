@@ -1309,7 +1309,7 @@ end""",
 #      seconds later.
 mutate("Clicks.lua",
        """	ns.MarkAttempted(pending.name, pending.buffKey)
-	if pending.buffKey and ns.RotatesBuffs() then
+	if pending.buffKey and not pending.cure and ns.RotatesBuffs() then
 		ns.lastGave[pending.name] = pending.buffKey
 	end
 """,

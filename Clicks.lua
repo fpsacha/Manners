@@ -720,7 +720,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- Put back what PostClick wrote, which an error inside the window may have
 	-- rewound; written unconditionally, as what a landed cast leaves behind.
 	ns.MarkAttempted(pending.name, pending.buffKey)
-	if pending.buffKey and ns.RotatesBuffs() then
+	if pending.buffKey and not pending.cure and ns.RotatesBuffs() then
 		ns.lastGave[pending.name] = pending.buffKey
 	end
 	-- A gift, not a favour returned, is the ledger's "Gave": a buff from them

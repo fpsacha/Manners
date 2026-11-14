@@ -2829,7 +2829,12 @@ function ns.BuildQueue(watch)
 				rejected[full] = true
 				return
 			end
-			if reason == "nearby" and (not db.sources.strangers or groupOnly) then return end
+			-- A verdict, as for a buff: read and with nothing to cure, so the
+			-- prompt's hold lets go of a cure offered them a moment ago.
+			if reason == "nearby" and (not db.sources.strangers or groupOnly) then
+				rejected[full] = true
+				return
+			end
 		end
 		local whenBuffed = f.whenBuffed or "skip"
 		local checked = whenBuffed ~= "always"
