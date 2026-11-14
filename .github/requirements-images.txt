@@ -1,0 +1,4 @@
+# ci.yml's images job (tools/make-icon.py, tools/make-screenshots.py).
+Pillow
+numpy
+lupa

@@ -1,0 +1,5 @@
+# selftest.yml: the Lua runtime and the art tools the scenarios run.
+Pillow
+numpy
+lupa
+scipy
