@@ -313,6 +313,13 @@ local defaults = {
 			-- People who ask for your buff in chat. Off, because reading chat is
 			-- guesswork, so the player should choose it.
 			asked = false,
+			-- A class's courtesies for whoever asks for one (Courtesy.lua), under
+			-- `asked`, each off until ticked: a mage's water and food and his
+			-- portals, a warlock's healthstones and summons.
+			courtesyRefresh = false,
+			courtesyPortals = false,
+			courtesyHealthstones = false,
+			courtesySummons = false,
 			-- Yourself, missing your own buff. On: it costs nobody anything and reads
 			-- your own auras, which the game does not hide.
 			self = true,
@@ -769,6 +776,8 @@ do
 		end
 		return safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true
 	end
+	-- For Courtesy.lua's spells, which are no buff's and are asked on a request alone.
+	ns.SpellKnown = SpellKnown
 
 	-- Whether the client declares an aura secret: true, false, or nil when it
 	-- will not say.
@@ -1114,6 +1123,8 @@ end
 -- either kind.
 function ns.BuffInfo(buff)
 	if not buff then return nil end
+	-- A courtesy's entry (Courtesy.lua) carries its own answers: it is no buff of the sets.
+	if buff.courtesy then return buff.info end
 	if buff.own then
 		local info = caps.own and caps.own[buff.key]
 		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).

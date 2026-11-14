@@ -1,0 +1,1090 @@
+-- Manners -- a class's courtesies beyond buffs, on request: a mage's water,
+-- food and portals, a warlock's healthstone and summon.
+--
+-- Requests.lua reads chat for somebody asking for a buff. The same reader is
+-- handed the names below (Courtesy.Named, from its Asks), so "water pls",
+-- "port to Orgrimmar?" and "hs pls" are read by the same rules as "int pls":
+-- eight words at most, nothing that says no, a please or an opener or nothing
+-- but the name. What was asked for goes on the request it keeps as a key of
+-- its own ("courtesy:water", "courtesy:portal:11417"), which no buff has, so a
+-- courtesy is never read as a buff request, nor "buff pls" as a courtesy.
+--
+-- The queue then gets one entry for whoever asked (Courtesy.Queue, from
+-- BuildQueue), under the reason "asked", and the prompt arms it like any
+-- other (Prompt/Macro.lua, STRATEGIES.courtesy). What a press does:
+--
+--   water, food, a healthstone   with none in the bags that suits them, the
+--       press conjures it and targets nobody; with one, it targets them and
+--       opens a trade (the client's own /trade), and when the window opens
+--       Manners puts the item in it. Picking an item up from the bags and
+--       setting it in a trade slot are calls any addon may make out of a
+--       fight on all five clients (C_Container.PickupContainerItem carries no
+--       restriction in Blizzard's API documentation, and ClickTradeButton is
+--       what the game's own trade window calls from unprotected code).
+--       Manners never accepts a trade.
+--   a portal   /cast Portal: <city>, nobody targeted; for a member of your
+--       party or raid, with the city learned and a Rune of Portals in the bags
+--       where the client asks for one.
+--   a summon   targets the member who asked and casts Ritual of Summoning,
+--       leaving them targeted: the portal's clicks summon your target.
+--   a healthstone on Mists and retail, where a warlock makes them for the
+--       group at a Soulwell: /cast Create Soulwell, for a member of the group.
+--
+-- Nothing here is offered or armed in a fight: the queue gets no courtesy
+-- from the pull's own repaint on (Prompt.armedForFight), so none is frozen on
+-- the button or handed to the fight's rota.
+--
+-- A rogue's Pick Lock is left out. The cast has to be aimed at the box in the
+-- other player's trade slot, which is a /click on the trade window's own
+-- button after the cast: a shape the bar macro's writer refuses (Clicks.lua,
+-- Shaped), and one that rests on the asker having opened the trade and set
+-- the box in the seventh slot first, which the prompt cannot see coming.
+--
+-- Each kind has a switch under "People who ask me in chat", off until ticked
+-- (sources.courtesyRefresh, courtesyPortals, courtesyHealthstones,
+-- courtesySummons), shown for the class that has it on this client.
+
+local ns = select(2, ...)
+local L = ns.L
+local addon = ns.addon
+
+local InCombatLockdown = _G.InCombatLockdown
+local GetTime = _G.GetTime
+
+-- Core.lua's, Queue.lua's and GroupBuffs.lua's, which load first.
+local plain, safecall = ns.plain, ns.safecall
+local ShortName, FirstName, SameName = ns.ShortName, ns.FirstName, ns.SameName
+
+local Courtesy = {}
+ns.Courtesy = Courtesy
+
+---------------------------------------------------------------------------
+-- what each client has
+--
+-- From each client's own tables (wago.tools, the builds CLAUDE.md cites):
+-- SkillLineAbility for the class, SpellEffect's created item (effect 24) for
+-- what a conjure makes, ItemSparse for the level an item asks of whoever
+-- drinks it and for the Improved Healthstone copies (the same name, three
+-- ids), SpellReagents for the rune and the shard. A row is the rank, the
+-- level its item needs and the items it can leave in the bags, best first.
+---------------------------------------------------------------------------
+
+local RUNE_OF_PORTALS, SOUL_SHARD = 17032, 6265
+
+local VANILLA_WATER = {
+	{ spell = 10140, level = 55, items = { 8079 } },
+	{ spell = 10139, level = 45, items = { 8078 } },
+	{ spell = 10138, level = 35, items = { 8077 } },
+	{ spell = 6127, level = 25, items = { 3772 } },
+	{ spell = 5506, level = 15, items = { 2136 } },
+	{ spell = 5505, level = 5, items = { 2288 } },
+	{ spell = 5504, level = 1, items = { 5350 } },
+}
+local VANILLA_FOOD = {
+	{ spell = 28612, level = 55, items = { 22895 } },
+	{ spell = 10145, level = 45, items = { 8076 } },
+	{ spell = 10144, level = 35, items = { 8075 } },
+	{ spell = 6129, level = 25, items = { 1487 } },
+	{ spell = 990, level = 15, items = { 1114 } },
+	{ spell = 597, level = 5, items = { 1113 } },
+	{ spell = 587, level = 1, items = { 5349 } },
+}
+local VANILLA_STONES = {
+	{ spell = 11730, level = 48, items = { 9421, 19012, 19013 } },
+	{ spell = 11729, level = 36, items = { 5510, 19010, 19011 } },
+	{ spell = 5699, level = 24, items = { 5509, 19008, 19009 } },
+	{ spell = 6202, level = 12, items = { 5511, 19006, 19007 } },
+	{ spell = 6201, level = 1, items = { 5512, 19004, 19005 } },
+}
+
+-- `rows` first, then the rest of `more`: a later client's ranks over an
+-- earlier one's.
+local function Over(rows, more)
+	local out = {}
+	for _, row in ipairs(rows) do out[#out + 1] = row end
+	for _, row in ipairs(more) do out[#out + 1] = row end
+	return out
+end
+
+-- Classic Era and Forever: Season of Discovery's Conjure Water (468766, its
+-- Mountain Spring Water) leads where it is learned.
+local ERA_WATER = Over({ { spell = 468766, level = 55, items = { 231778 } } }, VANILLA_WATER)
+
+-- The one spell of Mists and retail makes what suits the mage's own level,
+-- water and food in one, so there is no rank to pick for anybody.
+local MISTS_REFRESHMENT = {
+	{ spell = 42955, items = { 80610, 65499, 43523, 43518, 34062, 65517, 65516, 65515, 65500 } },
+}
+local RETAIL_REFRESHMENT = {
+	{ spell = 190336, items = { 113509, 80610, 65499, 43523, 43518, 65517, 65516, 65515, 65500 } },
+}
+
+local SETTING = {
+	water = "courtesyRefresh", food = "courtesyRefresh", portal = "courtesyPortals",
+	healthstone = "courtesyHealthstones", summon = "courtesySummons",
+}
+-- The order they are told in, and the order one request naming two is
+-- answered in.
+local ORDER = { "water", "food", "healthstone", "summon", "portal" }
+
+local SETS = {}
+SETS.vanilla = {
+	MAGE = {
+		water = { rows = ERA_WATER },
+		food = { rows = VANILLA_FOOD },
+		portal = { spells = { 10059, 11416, 11419, 11417, 11418, 11420 }, reagent = RUNE_OF_PORTALS },
+	},
+	WARLOCK = {
+		healthstone = { rows = VANILLA_STONES, reagent = SOUL_SHARD },
+		summon = { spell = 698, reagent = SOUL_SHARD },
+	},
+}
+-- Forever's are Classic Era's: the same ranks, items, rune and shard in its
+-- own tables (1.60.1.70790).
+SETS.camelot = SETS.vanilla
+SETS.tbc = {
+	MAGE = {
+		water = { rows = Over({
+			{ spell = 27090, level = 65, items = { 22018 } },
+			{ spell = 37420, level = 60, items = { 30703 } },
+		}, VANILLA_WATER) },
+		food = { rows = Over({ { spell = 33717, level = 65, items = { 22019 } } }, VANILLA_FOOD) },
+		portal = { spells = { 10059, 11416, 11419, 32266, 33691, 49360, 11417, 11418, 11420, 32267, 35717, 49361 },
+			reagent = RUNE_OF_PORTALS },
+	},
+	WARLOCK = {
+		healthstone = { rows = Over({ { spell = 27230, level = 60, items = { 22103, 22104, 22105 } } },
+			VANILLA_STONES), reagent = SOUL_SHARD },
+		summon = { spell = 698, reagent = SOUL_SHARD },
+	},
+}
+SETS.mists = {
+	MAGE = {
+		water = { rows = MISTS_REFRESHMENT },
+		food = { rows = MISTS_REFRESHMENT },
+		portal = { spells = { 10059, 11416, 11419, 32266, 33691, 49360, 11417, 11418, 11420, 32267, 35717, 49361,
+			53142, 88345, 88346, 132620, 132626 } },
+	},
+	WARLOCK = {
+		-- Create Healthstone makes the warlock's own; the group's come from
+		-- the Soulwell.
+		healthstone = { cast = 29893 },
+		summon = { spell = 698 },
+	},
+}
+SETS.mainline = {
+	MAGE = {
+		water = { rows = RETAIL_REFRESHMENT },
+		food = { rows = RETAIL_REFRESHMENT },
+		-- Midnight's Silvermoon City ahead of the Burning Crusade's, the
+		-- Broken Isles' Dalaran after Northrend's: a request naming a city
+		-- with two portals is answered with the first of them learned.
+		portal = { spells = { 10059, 11416, 11419, 32266, 49360, 11417, 11418, 11420, 1259194, 32267, 49361,
+			33691, 35717, 53142, 224871, 88345, 88346, 132620, 132626, 176246, 176244, 281400, 281402,
+			344597, 395289, 446534 } },
+	},
+	WARLOCK = {
+		healthstone = { cast = 29893 },
+		summon = { spell = 698 },
+	},
+}
+
+-- This client's set for this class, or nil: an unrecognised client gets its
+-- family's, as Buffs.lua's sets do.
+local function MySet()
+	local flavour = ns.Flavour and ns.Flavour.flavour
+	local set = SETS[flavour]
+	if not set then
+		set = (ns.Flavour and ns.Flavour.family) == "classic" and SETS.vanilla or SETS.mainline
+	end
+	return set[ns.PlayerClass() or ""]
+end
+
+---------------------------------------------------------------------------
+-- the names people ask by
+--
+-- Lower case, apostrophes dropped, as Requests.lua's Words leaves a message.
+-- A name of one word is a nickname ("water", "hs"): beside it every other
+-- word has to be a small one. English, and the words of the languages the
+-- reader already knows a please in; the spell's own name on this client is
+-- added to each (Aliases).
+---------------------------------------------------------------------------
+
+local NAMES = {
+	water = { "water", "waters", "mage water", "drink", "drinks", "wasser", "eau", "agua", "acqua",
+		"água", "вода", "воды", "водички", "물", "求水", "要水", "来点水", "來點水", "给点水", "給點水" },
+	food = { "food", "foods", "mage food", "bread", "essen", "brot", "nourriture", "bouffe", "comida",
+		"pan", "cibo", "еда", "хлеб", "음식", "빵", "求面包", "求麵包", "求吃的", "来点面包", "來點麵包" },
+	healthstone = { "hs", "healthstone", "healthstones", "health stone", "cookie", "cookies",
+		"gesundheitsstein", "pierre de soins", "piedra de salud", "pietra della salute", "pedra de vida", "pedra da vida",
+		"камень здоровья", "생명석", "생석", "糖", "求糖", "来个糖", "來個糖", "治疗石", "治療石" },
+	summon = { "summon", "summons", "summ", "sum", "beschwörung", "beschwören", "invocation", "invoc",
+		"invocación", "invocar", "evocazione", "evocação", "призыв", "призови", "소환", "求拉", "拉我", "拉一下" },
+}
+
+-- What stands for "portal" beside a city's name, in any order: "port to org",
+-- "org portal pls".
+local PORTAL_WORDS = { "port", "portal", "ports", "portals", "portail", "portale", "портал", "порт",
+	"포탈", "차원문" }
+-- In Chinese the word sits inside the sentence, with the city's own name.
+local PORTAL_INSIDE = { "门", "門", "传送", "傳送" }
+
+-- The short names of the cities, by the portal's spell; the city's own name
+-- on this client comes off the spell's ("Portal: Orgrimmar"), which covers
+-- every language. Not "if": a word of every other sentence.
+local CITIES = {
+	[10059] = { "sw", "stormwind", "storm" },
+	[11416] = { "ironforge", "forge" },
+	[11419] = { "darn", "darna", "darnassus" },
+	[11417] = { "org", "orgri", "orgrimmar", "og" },
+	[11418] = { "uc", "undercity" },
+	[11420] = { "tb", "thunder bluff", "thunderbluff" },
+	[32266] = { "exo", "exodar" },
+	[32267] = { "smc", "silvermoon", "silvermoon city" },
+	[1259194] = { "smc", "silvermoon", "silvermoon city" },
+	[33691] = { "shatt", "shat", "shattrath" },
+	[35717] = { "shatt", "shat", "shattrath" },
+	[49360] = { "theramore", "thera" },
+	[49361] = { "stonard" },
+	[53142] = { "dal", "dala", "dalaran", "northrend" },
+	[224871] = { "dal", "dala", "dalaran", "legion", "broken isles" },
+	[88345] = { "tol barad", "tolbarad" },
+	[88346] = { "tol barad", "tolbarad" },
+	[132620] = { "vale", "shrine", "pandaria" },
+	[132626] = { "vale", "shrine", "pandaria" },
+	[176246] = { "stormshield", "ashran" },
+	[176244] = { "warspear", "ashran" },
+	[281400] = { "boralus" },
+	[281402] = { "dazaralor", "dazar", "zuldazar" },
+	[344597] = { "oribos" },
+	[395289] = { "valdrakken", "vald" },
+	[446534] = { "dornogal", "dorn" },
+}
+
+-- What joins two things asked for at once ("water and food pls"): covered
+-- beside a courtesy, so the pair still reads as nothing but names.
+local JOINERS = { "and", "und", "et", "y", "e", "и", "&" }
+
+---------------------------------------------------------------------------
+-- what this character can give, now
+---------------------------------------------------------------------------
+
+-- Whether a spell is learned, kept a few seconds: asked on a chat line and on
+-- a scan with a request standing, never otherwise.
+local known = { at = nil }
+local function Known(spell)
+	local now = GetTime()
+	if not known.at or now - known.at > 5 or now < known.at then
+		for id in pairs(known) do known[id] = nil end
+		known.at = now
+	end
+	local answer = known[spell]
+	if answer == nil then
+		answer = ns.SpellKnown ~= nil and ns.SpellKnown(spell) == true
+		known[spell] = answer
+	end
+	return answer
+end
+
+-- For a trainer's visit and the tests: what is learned is asked again.
+function Courtesy.Forget()
+	known.at = nil
+	Courtesy.asks = nil
+end
+
+-- Whether this kind can be given at all: a rank of it learned.
+local function KindKnown(kind)
+	if kind.rows then
+		for _, row in ipairs(kind.rows) do
+			if Known(row.spell) then return true end
+		end
+		return false
+	end
+	if kind.spells then
+		for _, spell in ipairs(kind.spells) do
+			if Known(spell) then return true end
+		end
+		return false
+	end
+	return Known(kind.cast or kind.spell)
+end
+
+-- Whether this class has a courtesy behind this switch on this client, for
+-- the options page: learned or not, the class has it.
+function Courtesy.Has(setting)
+	local set = MySet()
+	if not set then return false end
+	for name, wanted in pairs(SETTING) do
+		if wanted == setting and set[name] then return true end
+	end
+	return false
+end
+
+-- A healthstone made at a Soulwell rather than traded (Mists, retail), for
+-- the option's words.
+function Courtesy.FromSoulwell()
+	local set = MySet()
+	return set ~= nil and set.healthstone ~= nil and set.healthstone.cast ~= nil
+end
+
+local function Switched(name)
+	local db = addon.db and addon.db.profile
+	return db ~= nil and db.sources.asked == true and db.sources[SETTING[name]] == true
+end
+
+-- The city a portal goes to, as this client names it: what follows the colon
+-- of the spell's name, else the whole name.
+local function City(spell)
+	local name = ns.SpellNameFor(spell)
+	if type(name) ~= "string" then return nil end
+	local city = name:match("：%s*(.+)$") or name:match(":%s*(.+)$")
+	if not city or city == "" then return name end
+	return city
+end
+
+-- What is asked for by a key, in words, for the reason line and the check-up.
+local function Noun(key)
+	if key == "courtesy:water" then return L["water"] end
+	if key == "courtesy:food" then return L["food"] end
+	if key == "courtesy:healthstone" then return L["a healthstone"] end
+	if key == "courtesy:summon" then return L["a summon"] end
+	local spell = tonumber(key:match("^courtesy:portal:(%d+)$") or "")
+	if spell then return L["a portal to %s"]:format(City(spell) or "?") end
+	return key
+end
+
+-- The courtesy keys a request holds, in the order they are answered: by kind,
+-- and a portal by its place in the client's list.
+local function KeysOf(request)
+	local keys = request and request.keys
+	if type(keys) ~= "table" then return nil end
+	local found
+	for key in pairs(keys) do
+		if type(key) == "string" and key:sub(1, 9) == "courtesy:" then
+			found = found or {}
+			found[#found + 1] = key
+		end
+	end
+	if not found then return nil end
+	if #found > 1 then
+		local place = {}
+		for i, name in ipairs(ORDER) do place[name] = i end
+		local function rank(key)
+			local name, id = key:match("^courtesy:(%a+):?(%d*)$")
+			return (place[name] or 99) * 1e8 + (tonumber(id) or 0)
+		end
+		table.sort(found, function(a, b) return rank(a) < rank(b) end)
+	end
+	return found
+end
+
+-- For Requests.lua's check-up lines: what a request's courtesy keys ask for,
+-- added to the buffs it names.
+function Courtesy.Describe(keys, what)
+	for _, key in ipairs(KeysOf({ keys = keys }) or {}) do
+		what[#what + 1] = Noun(key)
+	end
+end
+
+---------------------------------------------------------------------------
+-- the reader's half (Requests.lua, Asks)
+---------------------------------------------------------------------------
+
+-- Everything that can be asked of this character now, with its names split
+-- into words by the reader's own Words: { key, names } for a kind,
+-- { key, cities, inside } for a portal. Built again when what is switched on
+-- or learned may have changed (a few seconds, as Known).
+local function Asks(Words)
+	local set = MySet()
+	if not set then return nil end
+	local now = GetTime()
+	local db = addon.db and addon.db.profile
+	local sign = table.concat({ tostring(db and db.sources.courtesyRefresh), tostring(db and db.sources.courtesyPortals),
+		tostring(db and db.sources.courtesyHealthstones), tostring(db and db.sources.courtesySummons),
+		tostring(ns.PlayerClass()) }, ",")
+	local asks = Courtesy.asks
+	if asks and asks.sign == sign and now - asks.at <= 5 and now >= asks.at then return asks end
+	asks = { sign = sign, at = now, portalWords = {} }
+	for _, word in ipairs(PORTAL_WORDS) do asks.portalWords[#asks.portalWords + 1] = (Words(word)) end
+	asks.joiners = {}
+	for _, word in ipairs(JOINERS) do asks.joiners[word] = true end
+
+	local function split(list, name)
+		if type(name) ~= "string" or name == "" then return end
+		local words = Words(name)
+		if #words > 0 then list[#list + 1] = words end
+	end
+	for _, name in ipairs(ORDER) do
+		local kind = set[name]
+		if kind and Switched(name) and KindKnown(kind) then
+			if kind.spells then
+				for _, spell in ipairs(kind.spells) do
+					if Known(spell) then
+						local ask = { key = "courtesy:portal:" .. spell, cities = {} }
+						for _, city in ipairs(CITIES[spell] or {}) do split(ask.cities, city) end
+						local city = City(spell)
+						split(ask.cities, city)
+						-- A Chinese name is found inside the sentence, which
+						-- has no spaces: two ideographs at least.
+						if type(city) == "string" and city:find("[\228-\233]") and #city >= 6 then
+							ask.inside = city:gsub("[A-Z]", string.lower)
+						end
+						asks[#asks + 1] = ask
+					end
+				end
+			else
+				local ask = { key = "courtesy:" .. name, names = {} }
+				for _, entry in ipairs(NAMES[name]) do split(ask.names, entry) end
+				-- The spell's own name on this client, every rank's.
+				local seen = {}
+				for _, row in ipairs(kind.rows or { { spell = kind.cast or kind.spell } }) do
+					local own = ns.SpellNameFor(row.spell)
+					if type(own) == "string" and not seen[own] then
+						seen[own] = true
+						split(ask.names, own)
+					end
+				end
+				asks[#asks + 1] = ask
+			end
+		end
+	end
+	Courtesy.asks = asks
+	return asks
+end
+
+-- Called by Requests.lua's Asks with the message as its words, beside the
+-- buffs it has just looked for: every courtesy the message names goes into
+-- `found` under its key, "short" for a nickname and "strict" for a name of
+-- more than one word or a portal with its city, and the places they stand in
+-- into `covered` (and `strict`), so the reader's own rules then judge the
+-- message exactly as they judge one about a buff. `Mark` and `Words` are the
+-- reader's.
+function Courtesy.Named(words, lowered, found, covered, strict, Mark, Words)
+	local asks = Asks(Words)
+	if not asks or #asks == 0 then return end
+	local any = false
+	-- Where a word for "portal" stands, looked for once.
+	local portalAt
+	for _, ask in ipairs(asks) do
+		if ask.names then
+			local strength
+			for _, name in ipairs(ask.names) do
+				if Mark(words, name, covered) then
+					if #name > 1 then
+						Mark(words, name, strict)
+						strength = "strict"
+					else
+						strength = strength or "short"
+					end
+				end
+			end
+			if strength then found[ask.key], any = strength, true end
+		else
+			if portalAt == nil then
+				portalAt = {}
+				local some = false
+				for _, word in ipairs(asks.portalWords) do
+					if Mark(words, word, portalAt) then some = true end
+				end
+				if not some then portalAt = false end
+			end
+			-- The city, marked apart first: named without a word for "portal"
+			-- it is no request, and must not read as covered either.
+			local cityAt, named = {}, false
+			for _, city in ipairs(ask.cities) do
+				if Mark(words, city, cityAt) then named = true end
+			end
+			local inside = false
+			if ask.inside and lowered:find(ask.inside, 1, true) then
+				for _, part in ipairs(PORTAL_INSIDE) do
+					if lowered:find(part, 1, true) then inside = true break end
+				end
+			end
+			if (named and portalAt) or inside then
+				for i in pairs(cityAt) do covered[i], strict[i] = true, true end
+				for i in pairs(portalAt or {}) do covered[i], strict[i] = true, true end
+				if inside then
+					-- The one long "word" the sentence is.
+					for i, word in ipairs(words) do
+						if word:find(ask.inside, 1, true) then covered[i], strict[i] = true, true end
+					end
+				end
+				found[ask.key], any = "strict", true
+			end
+		end
+	end
+	if any then
+		for i, word in ipairs(words) do
+			if asks.joiners[word] then covered[i] = true end
+		end
+	end
+end
+
+---------------------------------------------------------------------------
+-- the queue's half (Queue.lua, BuildQueue)
+---------------------------------------------------------------------------
+
+-- What Manners knows about each standing request it is answering, by the
+-- request itself: the key in hand, the token that named them at the last
+-- scan, why nothing was offered (`verdict`), and whether a press has conjured
+-- for it. Weak: a request Requests.lua lets go takes its state with it.
+local state = setmetatable({}, { __mode = "k" })
+local function State(request)
+	local st = state[request]
+	if not st then
+		st = {}
+		state[request] = st
+	end
+	return st
+end
+
+-- The pseudo-buffs the entries carry, one table a key kept from scan to scan:
+-- `courtesy` is what ns.BuffInfo answers from (its `info`), and `alone` says
+-- the cast lands on nobody else (Buffs.lua).
+local buffs = {}
+local function BuffFor(key, spell)
+	local buff = buffs[key]
+	if not buff then
+		buff = { key = key, courtesy = true, alone = true, info = { key = key, known = true } }
+		buff.info.buff = buff
+		buffs[key] = buff
+	end
+	local info = buff.info
+	info.name = ns.SpellNameFor(spell) or "?"
+	info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, spell)
+	info.topRank = spell
+	return buff
+end
+
+local function Standing(now)
+	local list = ns.standingRequests
+	if not list or #list == 0 then return false end
+	for _, request in ipairs(list) do
+		if (request.fight or request.expires > now) and KeysOf(request) then return true end
+	end
+	return false
+end
+-- Whether any courtesy is still asked for, for the queue to know there is
+-- something to add before it pays for the call.
+Courtesy.Standing = Standing
+
+-- Whether a request was made by the person behind this token: the GUID where
+-- both sides have one, else the name or its first word, as Requests.lua's own
+-- Made has it.
+local function Matches(request, unit)
+	local guid = plain(UnitGUID(unit))
+	if request.guid and type(guid) == "string" then return request.guid == guid end
+	local full = ns.UnitFullName(unit)
+	if not full then return false end
+	local first = FirstName(full)
+	return SameName(request.short, ShortName(full)) or (first ~= nil and SameName(request.short, first))
+end
+
+-- How many of a row's items the bags hold, and the first of them held.
+local function Held(row)
+	local total, first = 0, nil
+	for _, item in ipairs(row.items) do
+		local count = ns.ReagentCount(item)
+		if type(count) == "number" and count > 0 then
+			total = total + count
+			first = first or item
+		end
+	end
+	return total, first
+end
+
+-- Whether a reagent is missing: none in the bags, on the client's own count.
+-- Not on Forever when the client calls the spell usable all the same (the
+-- Reagent Economy perk, GroupBuffs.lua), and not where the client will not
+-- count.
+local function Lacks(reagent, spell)
+	if not reagent then return false end
+	local have = ns.ReagentCount(reagent)
+	if have ~= 0 then return false end
+	if (ns.Flavour and ns.Flavour.flavour) == "camelot" then
+		local check = C_Spell and C_Spell.IsSpellUsable
+		if type(check) ~= "function" then check = _G.IsUsableSpell end
+		if safecall(check, spell) == true then return false end
+	end
+	return true
+end
+
+-- What the /cast line names for a rank: the spell's name, with its rank
+-- where a higher one of the same name is learned ("Conjure Water(Rank 3)":
+-- the game casts the best rank of a bare name), and "()" after a name that
+-- ends in a bracket of its own, which the macro would read as a rank
+-- ("Create Healthstone (Minor)()").
+local function CastText(spell, rows)
+	local name = ns.SpellNameFor(spell)
+	if type(name) ~= "string" then return nil end
+	if name:sub(-1) == ")" then return name .. "()" end
+	for _, row in ipairs(rows or {}) do
+		if row.spell == spell then break end
+		if Known(row.spell) and ns.SpellNameFor(row.spell) == name then
+			local get = _G.C_Spell and _G.C_Spell.GetSpellSubtext or _G.GetSpellSubtext
+			local rank = type(get) == "function" and plain(get(spell)) or nil
+			if type(rank) == "string" and rank ~= "" then return name .. "(" .. rank .. ")" end
+			break
+		end
+	end
+	return name
+end
+
+-- What a press would do for this key at this person, or nil and why not.
+-- { stage, spell, text, item }: "conjure" (cast, nobody targeted), "trade"
+-- (target and /trade), "cast" (a portal or a Soulwell, nobody targeted),
+-- "summon" (target and cast, left targeted).
+local function Plan(key, set, unit, inGroup, st)
+	local name, id = key:match("^courtesy:(%a+):?(%d*)$")
+	local kind = name and set[name]
+	if not kind or not Switched(name) then return nil, "off" end
+	local sighted = plain(UnitIsVisible and UnitIsVisible(unit)) ~= false
+
+	if kind.spells or kind.cast then
+		local spell = kind.cast or tonumber(id)
+		if not spell or not Known(spell) then return nil, "off" end
+		if not inGroup then return nil, "group" end
+		if not sighted then return nil, "sight" end
+		if Lacks(kind.reagent, spell) then return nil, "reagent", kind.reagent end
+		return { stage = "cast", spell = spell, text = CastText(spell) }
+	end
+
+	if kind.spell then
+		if not Known(kind.spell) then return nil, "off" end
+		if not inGroup then return nil, "group" end
+		if Lacks(kind.reagent, kind.spell) then return nil, "reagent", kind.reagent end
+		return { stage = "summon", spell = kind.spell, text = CastText(kind.spell) }
+	end
+
+	if not sighted then return nil, "sight" end
+	-- Their level, where a rank's item asks one: somebody of level 20 cannot
+	-- drink what a level 60 mage conjures by default.
+	local level = plain(UnitLevel(unit))
+	if type(level) ~= "number" or level < 1 then level = nil end
+	local function suits(row) return not (level and row.level) or row.level <= level end
+	for _, row in ipairs(kind.rows) do
+		if suits(row) then
+			local count, item = Held(row)
+			if count > 0 then return { stage = "trade", spell = row.spell, item = item } end
+		end
+	end
+	-- Conjured for them already and still nothing that suits them: what the
+	-- bags hold is what there is, rather than a conjure asked for again.
+	if st.conjured then
+		for _, row in ipairs(kind.rows) do
+			local count, item = Held(row)
+			if count > 0 then return { stage = "trade", spell = row.spell, item = item } end
+		end
+	end
+	local conjure, lowest
+	for _, row in ipairs(kind.rows) do
+		if Known(row.spell) then
+			lowest = row
+			if not conjure and suits(row) then conjure = row end
+		end
+	end
+	conjure = conjure or lowest
+	if not conjure then return nil, "off" end
+	if Lacks(kind.reagent, conjure.spell) then return nil, "reagent", kind.reagent end
+	return { stage = "conjure", spell = conjure.spell, text = CastText(conjure.spell, kind.rows) }
+end
+
+-- The queue's hook: one entry for each person with a courtesy standing whom a
+-- token names now, in place of an offer nobody asked for (a group member's or
+-- a passer-by's buff, which comes back once this is answered) and behind one
+-- that outranks it (a favour, a buff they asked for, your target). `inTown`
+-- and `manaHeld` are the scan's own: "Offer nothing in cities and inns" and the mana
+-- floor hold a courtesy as they hold a request for a buff.
+function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
+	local list = ns.standingRequests
+	local db = addon.db and addon.db.profile
+	if not (list and db and db.sources.asked) then return end
+	local set = MySet()
+	if not set then return end
+	local wanted
+	for _, request in ipairs(list) do
+		if request.fight or request.expires > now then
+			local keys = KeysOf(request)
+			if keys then
+				local st = State(request)
+				st.keys, st.unit, st.pointed, st.verdict, st.detail = keys, nil, nil, nil, nil
+				wanted = wanted or {}
+				wanted[#wanted + 1] = request
+			end
+		end
+	end
+	if not wanted then return end
+	-- Never in a fight, nor from the pull's own repaint, which arms what the
+	-- fight then freezes on the button.
+	local held = (InCombatLockdown() or (ns.Prompt and ns.Prompt.armedForFight == true)) and "fight"
+		or manaHeld and "mana" or nil
+	if held then
+		for _, request in ipairs(wanted) do State(request).verdict = held end
+		return
+	end
+
+	ns.IterateUnits(function(unit, pointed)
+		if plain(UnitExists(unit)) ~= true or plain(UnitIsPlayer(unit)) ~= true then return end
+		for _, request in ipairs(wanted) do
+			local st = State(request)
+			if not st.unit and Matches(request, unit) then st.unit, st.pointed = unit, pointed == true end
+		end
+	end)
+
+	local asked = ns.PRIORITY and ns.PRIORITY.asked or 1.5
+	for _, request in ipairs(wanted) do
+		local st = State(request)
+		local unit = st.unit
+		local full = unit and ns.UnitFullName(unit)
+		if not full then
+			st.verdict = "unseen"
+		elseif inTown and not (st.pointed and db.filters.quietTargets ~= true) then
+			st.verdict = "town"
+		elseif ns.IsBlocked(full, nil, now) then
+			st.verdict = "skipped"
+		elseif ns.IsNeverOffered(full) then
+			st.verdict = "never"
+		else
+			local inGroup = (plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit)))
+				and true or false
+			if not inGroup and ns.Ignored(unit) then
+				st.verdict = "never"
+			else
+				-- The first thing they asked for that can be given now.
+				local plan, key, why, detail
+				for _, each in ipairs(st.keys) do
+					local made, whyNot, what = Plan(each, set, unit, inGroup, st)
+					if made then
+						local buffKey = each .. ":" .. made.stage .. (made.stage == "conjure" and (":" .. made.spell) or "")
+						if ns.IsBlocked(full, buffKey, now) then
+							why = why or "pressed"
+						else
+							plan, key = made, each
+							plan.key, plan.buffKey, plan.request = each, buffKey, request
+							break
+						end
+					elseif not why or why == "off" then
+						why, detail = whyNot, what
+					end
+				end
+				if not plan then
+					st.verdict, st.detail = why or "off", detail
+				else
+					-- One entry a person: theirs for a buff stays ahead when it
+					-- outranks a request, or is a group cast aimed at them.
+					local at, waits
+					for i, entry in ipairs(queue) do
+						if entry.name == full then
+							at = i
+							waits = entry.groupCast ~= nil or (entry.priority or 9) <= asked
+							break
+						end
+					end
+					if waits then
+						st.verdict = "behind"
+					else
+						if at then table.remove(queue, at) end
+						st.verdict, st.key = "offered", key
+						if type(rejected) == "table" then rejected[full] = nil end
+						queue[#queue + 1] = {
+							name = full,
+							short = ShortName(full),
+							targetName = ns.TargetName(full),
+							unit = unit,
+							class = plain(select(2, UnitClass(unit))),
+							buff = BuffFor(plan.buffKey, plan.spell),
+							reason = "asked",
+							inGroup = inGroup,
+							priority = asked,
+							known = false,
+							checked = true,
+							courtesy = plan,
+						}
+					end
+				end
+			end
+		end
+	end
+end
+
+-- BuildQueue's early way out, with no buff to give anybody: your own entry
+-- (or none) and whoever asked for a courtesy, in the queue's own shape.
+function Courtesy.Alone(own, now, inTown, manaHeld)
+	local queue, rejected = {}, {}
+	if own then queue[1] = own end
+	ns.Guard("courtesies", Courtesy.Queue, queue, rejected, now, inTown, manaHeld)
+	if #queue == 0 then return {}, true end
+	table.sort(queue, function(a, b) return (a.priority or 9) < (b.priority or 9) end)
+	return queue, rejected
+end
+
+---------------------------------------------------------------------------
+-- the prompt's half
+---------------------------------------------------------------------------
+
+-- The macro (Prompt/Macro.lua, STRATEGIES.courtesy): the lines, whether the
+-- hand-back follows, and the record of it. `target` is the prompt's own
+-- strategy for a cast at somebody, whose targeting line and hand-back rule a
+-- trade and a summon take as they are.
+function Courtesy.Macro(entry, target)
+	local plan = entry.courtesy
+	local text = plan.text or ns.EntrySpellName(entry)
+	if plan.stage == "trade" then
+		local lines, restore, record = target(entry, text)
+		lines[2] = "/trade"
+		return lines, restore, record
+	elseif plan.stage == "summon" then
+		-- No hand-back: whoever clicks the portal summons their target.
+		local lines, _, record = target(entry, text)
+		return lines, false, record
+	end
+	return { "/cast " .. text }, false, { targeted = false, selfCast = false, onSelf = true, aimedAt = nil }
+end
+
+-- The reason line (Prompt/Paint.lua, ReasonText): what they asked for, and
+-- that the first press makes it where the bags hold none.
+function Courtesy.Reason(entry)
+	local plan = entry.courtesy
+	local key = plan.key
+	if plan.stage == "conjure" then
+		if key == "courtesy:water" then return L["asked for water -- conjure it first"] end
+		if key == "courtesy:food" then return L["asked for food -- conjure it first"] end
+		return L["asked for a healthstone -- create it first"]
+	end
+	if key == "courtesy:water" then return L["asked for water"] end
+	if key == "courtesy:food" then return L["asked for food"] end
+	if key == "courtesy:healthstone" then return L["asked for a healthstone"] end
+	if key == "courtesy:summon" then return L["asked for a summon"] end
+	return L["asked for a portal to %s"]:format(City(plan.spell) or "?")
+end
+
+-- The tooltip's account of the press (Prompt/Macro.lua, ClickSummary).
+function Courtesy.Summary(entry, out)
+	local plan = entry.courtesy
+	local who = entry.targetName or entry.name or entry.short or "?"
+	local spell = ns.EntrySpellName(entry)
+	if plan.stage == "trade" then
+		out[#out + 1] = L["Targets |cffffffff%s|r and opens a trade."]:format(who)
+		out[#out + 1] = L["Manners puts it in the trade window; accepting the trade is yours."]
+	elseif plan.stage == "summon" then
+		out[#out + 1] = L["Targets |cffffffff%s|r, casts |cffffffff%s|r, and leaves them targeted for the summoning."]
+			:format(who, spell)
+	else
+		out[#out + 1] = L["Casts |cffffffff%s|r; nobody is targeted."]:format(spell)
+	end
+	return out
+end
+
+-- A press waiting on the game: `trade` for the window to open, `cast` for the
+-- spell to go out.
+local waiting = {}
+
+-- The courtesy's key comes off the request, which closes once nothing it
+-- asked for is left, as a buff landing closes one (Requests.lua).
+local function Serve(request, key)
+	if type(request) ~= "table" or type(request.keys) ~= "table" then return end
+	request.keys[key] = nil
+	if next(request.keys) ~= nil then return end
+	local list = ns.standingRequests
+	for i = #(list or {}), 1, -1 do
+		if list[i] == request then table.remove(list, i) end
+	end
+end
+
+-- A press on a courtesy (Prompt/Press.lua, OnPostClick): nothing is parked
+-- for the settle, which judges a buff landing on somebody. The entry leaves
+-- the prompt for a moment (the same block a buff's press writes), and what
+-- the press began is watched for: the bags filling moves a conjure on to the
+-- trade at the next scan, the trade window opening is TradeOpened, the cast
+-- going out is CastWentOut.
+function Courtesy.Pressed(entry, S, now)
+	local plan = entry.courtesy
+	local request = plan.request
+	ns.Trail("press", ("pressed: %s, asked, from %s"):format(tostring(plan.buffKey),
+		S.isBar and "the action bar" or (S.isRow and "the list" or "the prompt")), entry.name)
+	-- A request is good for a minute from the asking; one being answered is
+	-- not let go half way.
+	if type(request) == "table" and type(request.expires) == "number" and request.expires < now + 30 then
+		request.expires = now + 30
+	end
+	if plan.stage == "trade" then
+		ns.MarkAttempted(entry.name, plan.buffKey, 8)
+		waiting.trade = { request = request, key = plan.key, item = plan.item, at = now, name = entry.name }
+	elseif plan.stage == "conjure" then
+		ns.MarkAttempted(entry.name, plan.buffKey, 4)
+		State(request).conjured = true
+	else
+		ns.MarkAttempted(entry.name, plan.buffKey, 12)
+		waiting.cast = { request = request, key = plan.key, spell = plan.spell, at = now }
+	end
+	if not S.isRow and ns.Prompt then ns.Prompt:StopAttention() end
+end
+
+-- The first bag slot holding an item, or nil: the backpack and the four bags.
+local function SlotOf(item)
+	local bags = _G.C_Container
+	if type(bags) ~= "table" or type(bags.GetContainerNumSlots) ~= "function"
+		or type(bags.GetContainerItemID) ~= "function" then
+		return nil
+	end
+	for bag = 0, 4 do
+		local slots = plain(bags.GetContainerNumSlots(bag))
+		for slot = 1, type(slots) == "number" and slots or 0 do
+			if plain(bags.GetContainerItemID(bag, slot)) == item then
+				local info = type(bags.GetContainerItemInfo) == "function" and bags.GetContainerItemInfo(bag, slot)
+				if not (type(info) == "table" and plain(info.isLocked) == true) then return bag, slot end
+			end
+		end
+	end
+	return nil
+end
+
+-- Puts the item into the first free slot of the trade window, as a drag from
+-- the bags would: picked up, set down, and the cursor never left holding it.
+-- Out of a fight only, and only with the cursor empty. Answers whether it
+-- went in.
+local function Place(item)
+	if InCombatLockdown() or not item then return false end
+	local bags = _G.C_Container
+	local click, link = _G.ClickTradeButton, _G.GetTradePlayerItemLink
+	if type(bags) ~= "table" or type(bags.PickupContainerItem) ~= "function"
+		or type(click) ~= "function" or type(link) ~= "function" then
+		return false
+	end
+	if type(_G.GetCursorInfo) == "function" and _G.GetCursorInfo() ~= nil then return false end
+	local free
+	for i = 1, _G.MAX_TRADABLE_ITEMS or 6 do
+		if not link(i) then free = i break end
+	end
+	local bag, slot = SlotOf(item)
+	if not (free and bag) then return false end
+	bags.PickupContainerItem(bag, slot)
+	local holding = type(_G.CursorHasItem) == "function" and _G.CursorHasItem()
+	if not holding then
+		if type(_G.ClearCursor) == "function" then _G.ClearCursor() end
+		return false
+	end
+	click(free)
+	if _G.CursorHasItem() then
+		_G.ClearCursor()
+		return false
+	end
+	return true
+end
+
+-- TRADE_SHOW: the window a trade press asked for is open, with them. The
+-- request is answered; the item goes in where it can, and accepting stays
+-- the player's.
+function Courtesy.TradeOpened()
+	local press = waiting.trade
+	if not press then return end
+	waiting.trade = nil
+	if GetTime() - press.at > 20 or InCombatLockdown() then return end
+	-- The other side of the trade is the client's "NPC" token, as its own
+	-- trade window names them.
+	if plain(UnitExists("NPC")) ~= true or not Matches(press.request, "NPC") then return end
+	Serve(press.request, press.key)
+	local placed = Place(press.item)
+	local db = addon.db and addon.db.profile
+	if placed and db and db.verbose then
+		addon:Print(L["%s is in the trade with |cffffffff%s|r -- accept it when you are ready."]
+			:format(ns.ReagentName(press.item) or Noun(press.key), ShortName(press.name) or press.name))
+	end
+end
+
+-- UNIT_SPELLCAST_SUCCEEDED of your own: the portal, the Soulwell or the
+-- ritual a press began has gone out.
+function Courtesy.CastWentOut(spellId)
+	local press = waiting.cast
+	if not press then return end
+	if GetTime() - press.at > 20 then
+		waiting.cast = nil
+		return
+	end
+	if plain(spellId) ~= press.spell then return end
+	waiting.cast = nil
+	Serve(press.request, press.key)
+end
+
+-- The two events, on a frame of its own: both are asked of the client by
+-- addons known to work on each of the five, and neither is an event of
+-- Manners' own lifecycle.
+do
+	local function OnEvent(_, event, unit, _, spellId)
+		if event == "TRADE_SHOW" then
+			ns.Guard("courtesy trade", Courtesy.TradeOpened)
+		elseif waiting.cast and unit == "player" then
+			ns.Guard("courtesy cast", Courtesy.CastWentOut, spellId)
+		end
+	end
+	Courtesy.OnEvent = OnEvent
+	local frame = type(_G.CreateFrame) == "function" and _G.CreateFrame("Frame") or nil
+	if type(frame) == "table" and type(frame.RegisterEvent) == "function" then
+		frame:SetScript("OnEvent", OnEvent)
+		ns.Guard("RegisterEvent TRADE_SHOW", frame.RegisterEvent, frame, "TRADE_SHOW")
+		if type(frame.RegisterUnitEvent) == "function" then
+			ns.Guard("RegisterEvent UNIT_SPELLCAST_SUCCEEDED", frame.RegisterUnitEvent, frame,
+				"UNIT_SPELLCAST_SUCCEEDED", "player")
+		else
+			ns.Guard("RegisterEvent UNIT_SPELLCAST_SUCCEEDED", frame.RegisterEvent, frame, "UNIT_SPELLCAST_SUCCEEDED")
+		end
+		Courtesy.frame = frame
+	end
+end
+
+---------------------------------------------------------------------------
+-- the check-up (Requests.lua, RequestLines, for /manners debug)
+---------------------------------------------------------------------------
+
+-- One line for the switches, and one for each courtesy asked for saying
+-- whether it is on the prompt or what holds it back.
+function Courtesy.Lines(lines)
+	local set = MySet()
+	if not set then return end
+	local on = {}
+	for _, name in ipairs(ORDER) do
+		if set[name] and Switched(name) and KindKnown(set[name]) then
+			on[#on + 1] = name == "portal" and L["portals"] or Noun("courtesy:" .. name)
+		end
+	end
+	lines[#lines + 1] = #on > 0 and L["courtesies answered: %s"]:format(table.concat(on, ", "))
+		or L["courtesies answered: none (each has a switch under %s)."]:format("|cffffd100" .. L["People who ask me in chat"] .. "|r")
+	local now = GetTime()
+	for _, request in ipairs(ns.standingRequests or {}) do
+		local keys = (request.fight or request.expires > now) and KeysOf(request)
+		if keys then
+			local st = State(request)
+			local verdict = st.verdict
+			local why
+			if verdict == "offered" then
+				why = L["on the prompt"]
+			elseif verdict == "fight" then
+				why = L["never in a fight"]
+			elseif verdict == "mana" then
+				why = L["held back while you save mana"]
+			elseif verdict == "town" then
+				why = L["held back in a city or an inn"]
+			elseif verdict == "unseen" then
+				why = L["nobody by that name is in sight"]
+			elseif verdict == "sight" then
+				why = L["they are out of sight"]
+			elseif verdict == "group" then
+				why = L["they are not in your party or raid"]
+			elseif verdict == "reagent" then
+				why = L["no %s in your bags"]:format(ns.ReagentName(st.detail) or tostring(st.detail))
+			elseif verdict == "behind" then
+				why = L["after the buff you have for them"]
+			elseif verdict == "skipped" or verdict == "pressed" then
+				why = L["pressed or skipped a moment ago"]
+			elseif verdict == "never" then
+				why = L["they are on your never-offer or ignore list"]
+			else
+				why = L["not looked at yet"]
+			end
+			-- What was last offered of it, while that is still asked for.
+			local key = st.key
+			if not (key and request.keys[key]) then key = keys[1] end
+			lines[#lines + 1] = L["courtesy: |cffffffff%s|r asked for %s -- %s"]:format(request.name, Noun(key), why)
+		end
+	end
+end

@@ -182,6 +182,8 @@ do
 	-- channel, fight, held, full }. `fight` is held through the one going on;
 	-- `held` has been, and will not be again.
 	local requests = {}
+	-- The same list for Courtesy.lua, whose keys ("courtesy:water") ride on a request beside the buffs'.
+	ns.standingRequests = requests
 	-- For /manners debug: how many messages were read, and why the ones that
 	-- were not requests were set aside where that is worth knowing.
 	ns.askScan = { heard = 0, unreadable = 0, own = 0, fight = 0, noted = 0 }
@@ -389,6 +391,8 @@ do
 				end
 			end
 		end
+		-- A courtesy (Courtesy.lua: water, a portal, a healthstone, a summon) is named by keys of its own, and judged below as a buff is.
+		if ns.Courtesy then ns.Courtesy.Named(words, lowered, found, covered, strict, Mark, Words) end
 		-- A looser word standing only inside another buff's whole name names
 		-- that one, not its own: "beacon of faith pls" is no ask for Beacon of
 		-- Light.
@@ -664,6 +668,7 @@ do
 				for _, buff in ipairs(ns.GetClassBuffs(ns.PlayerClass()) or {}) do
 					if request.keys[buff.key] then what[#what + 1] = ns.BuffName(buff) end
 				end
+				if ns.Courtesy then ns.Courtesy.Describe(request.keys, what) end
 			end
 			local where = ASK.slash[request.channel] or tostring(request.channel)
 			if request.fight then
@@ -676,6 +681,7 @@ do
 			end
 		end
 		if #requests == 0 then lines[#lines + 1] = L["nobody has asked you for a buff recently."] end
+		if ns.Courtesy then ns.Guard("courtesy lines", ns.Courtesy.Lines, lines) end
 		return lines
 	end
 end

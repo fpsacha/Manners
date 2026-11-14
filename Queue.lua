@@ -1199,6 +1199,8 @@ local function IterateUnits(fn, pets)
 		end
 	end
 end
+-- For Courtesy.lua, which finds whoever asked by the same walk and files its entries in the request's tier.
+ns.IterateUnits, ns.PRIORITY = IterateUnits, PRIORITY
 
 -- The names of everybody in the group, you among them, as they are filed
 -- (ns.UnitFullName) and by their first word, for the walk of the group's pets
@@ -2563,6 +2565,8 @@ function ns.BuildQueue(watch)
 	-- Intellect), and no walk: every person it reached would be turned down.
 	-- Except for somebody asking by name for a spell Automatic leaves alone
 	-- (askOnly), whom only the walk reads.
+	-- A courtesy asked for (Courtesy.lua: water, a portal) is no buff, and is offered with none to give; with a spell only a request names, the walk below adds it.
+	if #candidates == 0 and not (askOnly and #askOnly > 0) and ns.Courtesy and ns.Courtesy.Standing(now) then return ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked) end
 	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
 		if own then return { own }, {} end
@@ -3264,6 +3268,9 @@ function ns.BuildQueue(watch)
 		end
 		queue = kept
 	end
+
+	-- Whoever asked for a courtesy (Courtesy.lua), before the sort: only with one standing, so a scan pays nothing.
+	if ns.Courtesy and ns.Courtesy.Standing(now) then ns.Guard("courtesies", ns.Courtesy.Queue, queue, rejected, now, inTown, manaHoldsAsked) end
 
 	table.sort(queue, function(a, b)
 		if a.priority ~= b.priority then return a.priority < b.priority end

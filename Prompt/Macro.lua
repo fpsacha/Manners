@@ -66,6 +66,7 @@ end
 -- and fails silently (a retail 12.0 restriction), and [@nameplateN] resolves
 -- nowhere. Targeting reaches ungrouped strangers everywhere.
 local function StrategyFor(entry)
+	if entry.courtesy then return "courtesy" end
 	if entry.reason == "self" then
 		if entry.buff and entry.buff.onAlly then return "allyscroll" end
 		if entry.buff and entry.buff.item then return "scroll" end
@@ -183,6 +184,9 @@ STRATEGIES.target = function(entry, spell)
 		{ targeted = true, selfCast = false, aimedAt = who }
 end
 
+-- A courtesy somebody asked for (Courtesy.lua): a conjure or a portal at nobody, or a trade or a summon at them.
+STRATEGIES.courtesy = function(entry) return ns.Courtesy.Macro(entry, STRATEGIES.target) end
+
 -- What the /cast line names. Mostly the spell's name, and the game picks the
 -- best rank you know. A macro does not lower the rank for a low-level target as
 -- an action bar button does (GitHub issue 9): with Arcane Intellect rank 3 and
@@ -284,6 +288,8 @@ function Prompt:ClickSummary(entry, slot)
 		return out
 	end
 
+	-- A courtesy says what its press does in its own words (Courtesy.lua).
+	if entry.courtesy then return ns.Courtesy.Summary(entry, out) end
 	if entry.reason == "self" and entry.buff.item then
 		-- A scroll: used from the bags (STRATEGIES.scroll; one cast at a friendly
 		-- target is aimed at you, STRATEGIES.allyscroll).
@@ -566,6 +572,8 @@ local function Arm(R, S, entry, silent)
 			if #ns.BAR_LINE + 1 + #barText > ns.MACRO_LIMIT then barText = nil end
 		end
 		S.barText, S.barSpoke, S.barSource = barText, spoke, spoke and S.phraseSource or nil
+		-- A courtesy's trade is no shape the bar macro may hold (Clicks.lua, Shaped): the prompt alone opens one.
+		if entry.courtesy and entry.courtesy.stage == "trade" then S.barText = nil end
 	end
 
 	R.button:SetAttribute("type1", "macro")

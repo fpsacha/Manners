@@ -223,6 +223,7 @@ ns.WindowLayout = {
 					{ "who.proximity", indent = true },
 					{ "who.restingOnly", indent = true },
 					"who.asked",
+					{ "who.courtesyRefresh", indent = true }, { "who.courtesyPortals", indent = true }, { "who.courtesyHealthstones", indent = true }, { "who.courtesySummons", indent = true },
 				} },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",
@@ -713,6 +714,7 @@ ns.WindowLayout = {
 		["click.roll"] = "click.enabled",
 		-- My group's pets too, shown only while My party and raid is on.
 		["who.pets"] = "who.group",
+		["who.courtesyRefresh"] = "who.asked", ["who.courtesyPortals"] = "who.asked", ["who.courtesyHealthstones"] = "who.asked", ["who.courtesySummons"] = "who.asked",
 	},
 
 	-- In the model and drawn nowhere.

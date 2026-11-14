@@ -523,6 +523,8 @@ local function OnPostClick(self, mouseButton, down)
 		end
 	end
 	if not (S.current and S.current.name) then return end
+	-- A courtesy (Courtesy.lua) is no buff to settle: its press is filed there, and nothing is parked.
+	if S.current.courtesy then return ns.Courtesy.Pressed(S.current, S, now) end
 
 	-- The line went out with this press, so "In character" counts it as said
 	-- lately now rather than when it was rolled: a roll the press left out
