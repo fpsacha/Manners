@@ -49,6 +49,13 @@ mutate("Options/Start.lua",
        "settings-fix: typed lines taken for the repair's",
        expect="settings-fix: an own profile with lines typed on it is gone back to", script=S)
 
+# The battlegrounds' stamp (Battle.lua, `carried`) counted as a setting made.
+mutate("Options/Start.lua",
+       "\t\telseif key == \"battle\" and type(value) == \"table\" then\n",
+       "\t\telseif false then\n",
+       "settings-fix: the battlegrounds' stamp counts as a setting somebody made",
+       expect="settings-fix: an own profile only visited is filled from the shared one", script=S)
+
 # ------------------------------------------------ other clients
 
 # Another client's own buff counted as a later version's setting.

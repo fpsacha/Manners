@@ -235,6 +235,12 @@ local function OnlyVisited(own)
 		elseif key == "menuView" and type(value) == "string" then
 			-- The options window's view: stamped too, and no setting is lost
 			-- with it.
+		elseif key == "battle" and type(value) == "table" then
+			-- The battlegrounds' own stamp (Battle.lua, `carried`): no setting
+			-- either. A switch it unticked on the way is one, and counts.
+			for k, v in pairs(value) do
+				if not (k == "carried" and v == true) then return false end
+			end
 		elseif not (key == "firstRun" and (value == "pending" or value == "existing")) then
 			return false
 		end

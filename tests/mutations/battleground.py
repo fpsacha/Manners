@@ -29,10 +29,18 @@ mutate(B,
        expect="the game's 1 for inside is not read as inside", script=S)
 
 mutate(B,
-       "\tlocal inside, kind = safecall(_G.IsInInstance)\n\twhere.at = now\n",
-       "\tlocal inside, kind = _G.IsInInstance()\n\twhere.at = now\n",
+       "\t\tinside, kind = safecall(ask)\n",
+       "\t\tinside, kind = ask()\n",
        "battleground: a client that will not say throws in the scan",
        expect="a client that will not say where you are", script=S)
+
+# The read protected every time it is made: one more pcall every two seconds
+# on every scan anywhere, with nobody in a battleground.
+mutate(B,
+       "\t\tif inside ~= nil or kind ~= nil then answered = ask end\n",
+       "",
+       "battleground: where you are is a protected call every time",
+       expect="perf-budget: a scan stays inside its pcall budget on every client", script=S)
 
 mutate(B,
        "\tif Preparing(now) then return \"prep\" end\n",

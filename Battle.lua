@@ -84,12 +84,28 @@ local PREPARATION = Battle.PREPARATION[ns.Flavour and ns.Flavour.flavour]
 -- In a battleground or an arena, by the game's word, kept for HOLD seconds:
 -- it changes only across a loading screen, and the scan asks every 0.4 s. A
 -- client that will not say (a throw, a secret, no kind) is in none.
+-- Protected only until it has answered once: the game's own function takes
+-- nothing and, having answered, does not throw the next time, so a scan
+-- outside a battleground pays no protected call for this. Another function
+-- in its place (`answered` is the one that did) is protected afresh.
 local HOLD = 2
 local where = { at = nil, battle = false }
+local answered
 local function Where(now)
 	local at = where.at
 	if at and now >= at and now - at < HOLD then return where.battle end
-	local inside, kind = safecall(_G.IsInInstance)
+	local ask = _G.IsInInstance
+	local inside, kind
+	if type(ask) ~= "function" then
+		inside, kind = nil, nil
+	elseif ask == answered then
+		inside, kind = ask()
+		inside, kind = plain(inside), plain(kind)
+	else
+		inside, kind = safecall(ask)
+		-- Answered, whatever it said: a throw leaves both nil.
+		if inside ~= nil or kind ~= nil then answered = ask end
+	end
 	where.at = now
 	where.battle = (inside == true or inside == 1) and (kind == "pvp" or kind == "arena")
 	return where.battle
