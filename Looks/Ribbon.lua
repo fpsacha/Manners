@@ -85,10 +85,14 @@ DYES.self = DYES.group
 -- How bright the art's lit top is (the name stands on cloth up to this
 -- grey), and the relative luminance the dyes are held to there.
 local LIT_GREY = 0.935
--- How bright the shine along the cloth gets when a buff lands.
-local SWEEP_PEAK = 0.9
+-- How bright the shine along the cloth gets when a buff lands: it passes
+-- under the name, which has to read through it.
+local SWEEP_PEAK = 0.5
 -- The contrast the reason line and the verdict are held to on the cloth.
 local READ = 4.6
+-- How bright the cloth is under the words at its lightest (relative
+-- luminance; tools/audit_look_contrast.py measures it on the picture).
+local CLOTH_LUM = 0.115
 local DYE_LUMA, DYE_LUMA_LOW, DYE_LUMA_HIGH = 0.105, 0.016, 0.125
 -- The ink: the name in warm gold, the reason in pale peach, a shadow of dark
 -- crimson under both (the emboss of lettering raised on a banner); the key's
@@ -97,6 +101,8 @@ local GOLD_INK = { 1.00, 0.88, 0.54 }
 local PEACH = { 1.00, 0.88, 0.80 }
 local SHADOW = { 0.16, 0.02, 0.03 }
 local TAG_INK = { 0.27, 0.05, 0.04 }
+-- And in a fight, when the gold has gone to iron: the crimson was 3:1 on it.
+local TAG_INK_COMBAT = { 0.02, 0, 0 }
 local BADGE_INK = { 1.00, 0.90, 0.62 }
 local ROW_INK = { 1.00, 0.89, 0.80 }
 -- The enamel with the marker switched off, and with a reason it has none for.
@@ -544,7 +550,10 @@ function Ribbon:Build(kit)
 	self.keyBox = keep(CreateFrame("Frame", nil, art))
 	self.chip = ThreeSlice(self.chipFrame, "ARTWORK", 1, ART .. "Badge", keep)
 	self.keyChip = ThreeSlice(self.chipFrame, "ARTWORK", 1, ART .. "Tag", keep)
-	self.keyText = keep(textLayer:CreateFontString(nil, "OVERLAY"))
+	-- The key's letter is dark on gold, and is the tag's own: on textLayer
+	-- the fight's dim (an alpha) took it towards the gold it stands on, to
+	-- 3:1. On the tags' frame it keeps its ink while the gold goes to iron.
+	self.keyText = keep(self.chipFrame:CreateFontString(nil, "OVERLAY"))
 	self.keyText:SetJustifyH("CENTER")
 	self.keyText:SetWordWrap(false)
 	self.keyText:SetPoint("CENTER", self.keyBox, "CENTER", 0, 0)
@@ -851,6 +860,13 @@ end
 function Ribbon:Styled(p)
 	local kit = self.kit
 	local fit = kit.fit
+	-- The ground is the cloth, whatever the panel colour: every colour in the
+	-- lines (a class's, an outcome's) is held to the cloth at its lightest
+	-- under the name (every dye is held to that luminance), not to a panel
+	-- colour nobody sees.
+	kit.ink.light = true
+	kit.ink.lo, kit.ink.hi = CLOTH_LUM, CLOTH_LUM
+	kit.ink.codes = {}
 	-- The face: Morpheus for the name, in the size this look draws, unless the
 	-- player chose a font or the client has no such file (the line then keeps
 	-- what Prompt set). The reason, the list and the tags stay in the face
@@ -1213,6 +1229,8 @@ function Ribbon:Cloth()
 	Colour(self.enamel, ring[1] * 0.92, ring[2] * 0.92, ring[3] * 0.92)
 	Colour(self.enamelLit, math.min(1, ring[1] * 1.25 + 0.1), math.min(1, ring[2] * 1.25 + 0.1), math.min(1, ring[3] * 1.25 + 0.1))
 	Colour(self.jewel, ring[1], ring[2], ring[3])
+	local tag = self.combat and TAG_INK_COMBAT or TAG_INK
+	self.keyText:SetTextColor(tag[1], tag[2], tag[3], 1)
 	-- The reason line: pale peach, a little towards the dye where the cloth is
 	-- dyed by the reason, never darker than the contrast it needs.
 	local sr, sg, sb = PEACH[1], PEACH[2], PEACH[3]

@@ -69,9 +69,9 @@ local Letter = ns.Looks.Register("letter", {
 	combatArtAlpha = 1,
 	-- A class colour on parchment is taken darker until it reads at this
 	-- contrast (Prompt/Paint.lua).
-	classContrast = 4.5,
+	classContrast = 5,
 	-- Every other colour code in the text is held to it as well (Prompt/Text.lua).
-	codeContrast = 4.5,
+	codeContrast = 5,
 	-- ... after being taken part of the way to the ink, so that every class is a
 	-- shade of ink and none a grey.
 	classInk = { 0.20, 0.105, 0.04, 0.55 },
@@ -1105,7 +1105,7 @@ function Letter:Styled(p)
 	self.keyText:SetShadowOffset(0, 0)
 	-- The list: the ink, held to the contrast it has to have.
 	local lr, lg, lb = kit.Legible(ROW_INK[1], ROW_INK[2], ROW_INK[3], 4.5)
-	local qr, qg, qb = kit.Legible(ROW_REASON[1], ROW_REASON[2], ROW_REASON[3], 4.5)
+	local qr, qg, qb = kit.Legible(ROW_REASON[1], ROW_REASON[2], ROW_REASON[3], 5)
 	ink.rowReason = ("|cff%02x%02x%02x"):format(math.floor(qr * 255 + 0.5), math.floor(qg * 255 + 0.5),
 		math.floor(qb * 255 + 0.5))
 	for _, fs in ipairs(kit.rows) do

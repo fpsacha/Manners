@@ -204,6 +204,12 @@ local FLARE_H, FLARE_FAVOUR, FLARE_LAND, FLARE_FPS = 1.7, 0.50, 0.90, 22
 local BOLT_L, BOLT_H = 2.2, 0.62
 -- The smoke of a refusal: how many puffs, and how far they rise.
 local PUFFS, PUFF_RISE = 3, 18
+-- How thick a puff gets: it rises behind the verdict, which has to be read
+-- through it (0.85 hid a word of it for half a second).
+local PUFF_PEAK = 0.5
+-- The contrast the reason line and the verdict are held to on the felsteel:
+-- the small second line is the one players lose.
+local SUB_CONTRAST = 7
 -- The longest an additive flourish may stay lit, in seconds.
 local FLOURISH = 0.6
 local COMMAND = "CLICK MannersPrompt:LeftButton"
@@ -810,7 +816,7 @@ function Fel:BuildAnimations(anim)
 	self.gutterAnim:SetScript("OnStop", settle)
 	self.refusal = { self.gutterAnim }
 	self.aftermath = {}
-	for i, t in ipairs(self.puffs) do self.aftermath[i] = anim(Puff(t, 0.10 + 0.14 * (i - 1), 1.05, 0.85)) end
+	for i, t in ipairs(self.puffs) do self.aftermath[i] = anim(Puff(t, 0.10 + 0.14 * (i - 1), 1.05, PUFF_PEAK)) end
 	-- The first of the two rings, which the scenarios watch for a landed buff.
 	self.burstAnim = self.fx.rings[1].land
 
@@ -1340,15 +1346,17 @@ function Fel:Fitted(fs)
 	self.glyph:SetShown((glyph and fs:IsShown()) and true or false)
 end
 
--- Whether the name, even at its smallest, fits beside `room` at the right.
+-- Whether the name, at the size the player set, fits beside `room` at the right.
 -- Its width is taken once a paint, by Chip.
 function Fel:NameFits(room)
 	local kit = self.kit
 	local name, fit = kit.name, kit.fit
 	local width, size, base = self.nameWidth, fit.size[name], fit.base[name]
 	if not (width and size and base and size > 0) then return true end
-	local least = math.max(7, math.floor(base * 0.8 + 0.5))
-	return width * least / size <= self.W - self.textX - math.max(room, self.chipInset or 18) + 0.5
+	-- At the size the player set, not at the name's smallest: a tag gives way
+	-- before the name is drawn smaller (held to its smallest, a short name
+	-- beside two tags was drawn at 11 pt of 13).
+	return width * base / size <= self.W - self.textX - math.max(room, self.chipInset or 18) + 0.5
 end
 
 -- The key bound to the prompt, as the game spells it short, or nil: only
@@ -1521,7 +1529,7 @@ function Fel:Tint(r, g, b, ring, stripe)
 	local sr = MIST[1] + (r - MIST[1]) * 0.6
 	local sg = MIST[2] + (g - MIST[2]) * 0.6
 	local sb = MIST[3] + (b - MIST[3]) * 0.6
-	sr, sg, sb = kit.Legible(sr, sg, sb, 4.5)
+	sr, sg, sb = kit.Legible(sr, sg, sb, SUB_CONTRAST)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
 	Colour(self.glyph, sr, sg, sb)
 	self.tint = { cr, cg, cb }
@@ -1857,7 +1865,7 @@ function Fel:PaintOutcome(kind, lead, sub, who, stamp)
 	self.refused = kind == "failed"
 	if self.refused then self:Spend() end
 	-- The verdict in the outcome's colour, not the reason's.
-	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
+	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], SUB_CONTRAST)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
 	Colour(self.glyph, vr, vg, vb)
 	kit.icon:SetDesaturated(self.refused or self.combat or false)

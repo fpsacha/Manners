@@ -81,7 +81,7 @@ _m(LETTER,
 # --- the ink and the paper ---------------------------------------------------
 
 _m(LETTER,
-   "\tclassContrast = 4.5,\n",
+   "\tclassContrast = 5,\n",
    "",
    "class colours left as the class paints them, on parchment",
    expect="the ink reads on the paper at 4.5:1", script=S)
@@ -93,7 +93,7 @@ _m("Prompt/Paint.lua",
    expect="the ink reads on the paper at 4.5:1", script=S)
 
 _m(LETTER,
-   "\tcodeContrast = 4.5,\n",
+   "\tcodeContrast = 5,\n",
    "",
    "colour codes held to 3:1 only, on parchment",
    expect="a colour code the player wrote", script=S)

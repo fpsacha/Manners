@@ -179,7 +179,7 @@ end
 -- hunter's purple and the shaman's blue. Each goes through the same pass every
 -- line does, and has to come out as it went in.
 do
-	local scenario = "the default panel leaves the colours near its contrast line alone"
+	local scenario = "the default panel holds its coloured words to the body-text line and no further"
 	withTree(scenario, { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Corwin", "Ash" },
 		nameplate3 = { "Dara", "Fenn" } }, nil, function(ns)
 		freshPrompt(ns, scenario)
@@ -192,19 +192,42 @@ do
 		local row = tostring(r.rows[1]._text or "")
 		if row == "" then
 			fail(scenario, "SKIPPED -- three people and an empty list")
-		elseif not row:find("|cff707078", 1, true) then
+		elseif not row:find("|cff8c8e9c", 1, true) then
 			fail(scenario, "the list's grey behind a name was redrawn on the default panel: " .. row)
 		end
-		local deep = { "|cffc41e3aDeath knight|r", "|cffa330c9Demon hunter|r", "|cff0070ddShaman|r" }
-		local rows = {}
-		for i, text in ipairs(deep) do rows[i] = { text = text, reason = "group" } end
-		ns.Prompt:PaintQueue(rows)
-		for i, text in ipairs(deep) do
-			local got = tostring(r.rows[i]._text or "")
-			if got ~= text then
-				fail(scenario, ("%s was redrawn as %s on the default panel, where it reads as it is")
-					:format(text, got))
+		-- The deepest class colours are under the line and are taken to it,
+		-- each still its own hue, and no further; the mage's is over it and
+		-- stays the game's own.
+		local ink = ns.Prompt.lib.ink
+		local function reads(c)
+			local l = 0.2126 * lin(c[1]) + 0.7152 * lin(c[2]) + 0.0722 * lin(c[3])
+			local function ratio(a, b)
+				if a < b then a, b = b, a end
+				return (a + 0.05) / (b + 0.05)
 			end
+			return math.min(ratio(l, ink.lo), ratio(l, ink.hi))
+		end
+		local deep = { { "|cffc41e3aDeath knight|r", 1 }, { "|cffa330c9Demon hunter|r", 3 }, { "|cff0070ddShaman|r", 3 } }
+		local rows = {}
+		for i, d in ipairs(deep) do rows[i] = { text = d[1], reason = "group" } end
+		ns.Prompt:PaintQueue(rows)
+		for i, d in ipairs(deep) do
+			local got = tostring(r.rows[i]._text or "")
+			local c = hexColour(got:match("(|c%x%x%x%x%x%x%x%x)"))
+			if not c then
+				fail(scenario, d[1] .. " lost its colour on the default panel: " .. got)
+			else
+				local at = reads(c)
+				if at < 4.5 or at > 5.6 then
+					fail(scenario, ("%s is drawn as %s on the default panel, which reads at %.2f:1, not at the body-text line"):format(d[1], got, at))
+				end
+				local top = math.max(c[1], c[2], c[3])
+				if c[d[2]] < top - 1e-6 then fail(scenario, d[1] .. " lost its hue: " .. got) end
+			end
+		end
+		ns.Prompt:PaintQueue({ { text = "|cff3fc7ebMage|r", reason = "group" } })
+		if tostring(r.rows[1]._text or "") ~= "|cff3fc7ebMage|r" then
+			fail(scenario, "the mage's colour, which reads as it is, was redrawn: " .. tostring(r.rows[1]._text))
 		end
 	end)
 end

@@ -177,7 +177,7 @@ mutate("Looks/Toast.lua",
        expect="the cursor's colour carries an alpha", script=S)
 
 mutate("Looks/Ribbon.lua",
-       "local SWEEP_PEAK = 0.9\n",
+       "local SWEEP_PEAK = 0.5\n",
        "local SWEEP_PEAK = 1\n",
        "looks-alpha: ribbon: the shine at full strength",
        expect="looks-alpha: ribbon: the shine along the cloth goes to its own strength", script=S)

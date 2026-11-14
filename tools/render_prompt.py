@@ -519,11 +519,15 @@ class Canvas:
         # other half of what text with no panel has to survive: white text
         # that reads over dusk can vanish here, and the rocks are there so a
         # remedy that only works on white is caught too.
+        # "cave" is the dark half taken further: near black, a few dim rocks.
         bright = kind == "bright"
         yy = np.linspace(0, 1, self.h, dtype=np.float32)[:, None, None]
         if bright:
             top = np.array([0.80, 0.86, 0.94], np.float32)
             bottom = np.array([0.93, 0.92, 0.89], np.float32)
+        elif kind == "cave":
+            top = np.array([0.020, 0.022, 0.030], np.float32)
+            bottom = np.array([0.045, 0.038, 0.030], np.float32)
         else:
             top = np.array([0.20, 0.24, 0.30], np.float32)
             bottom = np.array([0.16, 0.14, 0.10], np.float32)
@@ -540,6 +544,8 @@ class Canvas:
         b = np.asarray(blobs).astype(np.float32)[..., None] / 255
         if bright:
             self.rgb *= 1 - b * np.array([0.80, 0.80, 0.78], np.float32)
+        elif kind == "cave":
+            self.rgb += b * np.array([0.06, 0.05, 0.04], np.float32)
         else:
             self.rgb += b * np.array([0.25, 0.22, 0.12], np.float32)
 
@@ -581,10 +587,12 @@ def coverage(x0f, y0f, x1f, y1f):
     return x0, y0, cov
 
 
-def draw_state(snap, px=ZOOM * SUPER, hover=False, skip=()):
+def draw_state(snap, px=ZOOM * SUPER, hover=False, skip=(), under=()):
     """The snapshot drawn. `skip`: ids of regions to lay out and record but not paint
     (tools/make_look_previews.py leaves the two text lines out of the cards' pictures,
-    which the options window writes live in the player's language)."""
+    which the options window writes live in the player's language). `under`: ids of
+    font strings drawn without their letters' fill, their shadow and outline only:
+    what the letters stand on (tools/audit_look_contrast.py measures them against it)."""
     tree = Tree(snap)
     regions = tree.regions
     now = snap["now"]
@@ -737,7 +745,7 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False, skip=()):
             # the box they are laid in (the bloom of a name, the panel settling).
             ow = rect[2] - rect[0]
             grown = (R - L) / ow if ow > 1e-6 else 1.0
-            draw_text(canvas, tree, r, (x0, y0, x1, y1), a, px, grown)
+            draw_text(canvas, tree, r, (x0, y0, x1, y1), a, px, grown, fill=r["id"] not in under)
         elif r["kind"] == "Cooldown":
             draw_cooldown(canvas, r, (x0, y0, x1, y1), a, now)
         else:
@@ -991,7 +999,9 @@ def draw_cooldown(canvas, r, box, alpha, now):
                          np.ones((h, w, 3), np.float32), em * alpha, "ADD")
 
 
-def draw_text(canvas, tree, r, box, alpha, px, grown=1.0):
+def draw_text(canvas, tree, r, box, alpha, px, grown=1.0, fill=True):
+    """`fill` False: the shadow and the outline only, the letters themselves left
+    out (an outline's black stands where they would be)."""
     text = r.get("text")
     if text is None or plain_text(text) == "":
         return
@@ -1057,8 +1067,9 @@ def draw_text(canvas, tree, r, box, alpha, px, grown=1.0):
     for t, c in pieces:
         col = tuple(int(max(0, min(1, v)) * 255) for v in c[:3]) + (int(max(0, min(1, c[3])) * 255),)
         if stroke:
-            d.text((cx, pad), t, font=f, fill=col, stroke_width=stroke, stroke_fill=(0, 0, 0, col[3]))
-        else:
+            d.text((cx, pad), t, font=f, fill=col if fill else (0, 0, 0, col[3]), stroke_width=stroke,
+                   stroke_fill=(0, 0, 0, col[3]))
+        elif fill:
             d.text((cx, pad), t, font=f, fill=col)
         if so and sc:
             scol = tuple(int(max(0, min(1, v if v is not None else 0)) * 255) for v in (sc + [1])[:4])

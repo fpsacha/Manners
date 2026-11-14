@@ -499,7 +499,7 @@ end)
 
 withLook("looks-alpha: ribbon: the shine along the cloth goes to its own strength", "ribbon", function(_, look)
 	local scenario = "looks-alpha: ribbon: the shine along the cloth goes to its own strength"
-	if not near(peak(look.travel), 0.9) then fail(scenario, "the shine goes to " .. tostring(peak(look.travel)) .. ", its own strength is 0.9") end
+	if not near(peak(look.travel), 0.5) then fail(scenario, "the shine goes to " .. tostring(peak(look.travel)) .. ", its own strength is 0.5") end
 	local c = look.sweep._color
 	if c and c[4] ~= nil and not near(c[4], 1) then fail(scenario, "the shine's colour carries an alpha: " .. tostring(c[4])) end
 	if not near(look.sweep._alpha or 1, 0) then fail(scenario, "at rest the shine stands at " .. tostring(look.sweep._alpha)) end

@@ -1531,15 +1531,17 @@ function Wild:Fitted(fs)
 	self.glyph:SetShown((glyph and fs:IsShown()) and true or false)
 end
 
--- Whether the name, even at its smallest, fits beside `room` at the right.
+-- Whether the name, at the size the player set, fits beside `room` at the right.
 -- Its width is taken once a paint, by Chip.
 function Wild:NameFits(room)
 	local kit = self.kit
 	local name, fit = kit.name, kit.fit
 	local width, size, base = self.nameWidth, fit.size[name], fit.base[name]
 	if not (width and size and base and size > 0) then return true end
-	local least = math.max(7, math.floor(base * 0.8 + 0.5))
-	return width * least / size <= self.W - self.textX - math.max(room, self.chipInset or 18) + 0.5
+	-- At the size the player set, not at the name's smallest: a tag gives way
+	-- before the name is drawn smaller (held to its smallest, a short name
+	-- beside two tags was drawn at 11 pt of 13).
+	return width * base / size <= self.W - self.textX - math.max(room, self.chipInset or 18) + 0.5
 end
 
 -- The key bound to the prompt, as the game spells it short, or nil: only

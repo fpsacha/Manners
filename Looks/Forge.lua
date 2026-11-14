@@ -106,7 +106,7 @@ local ICON_X, SLOT_GAP = 13, 8
 local TEXT_GAP, TEXT_X_BARE = 5, 14
 -- The plate's own luminance under the words, its darkest and its brightest
 -- (relative luminance of the iron's two ends), for Legible.
-local PLATE_LO, PLATE_HI = 0.14, 0.30
+local PLATE_LO, PLATE_HI = 0.14, 0.33
 -- A chosen panel colour is mixed this far into the iron.
 local PLATE_MIX = 0.25
 -- The list's plate is this much darker than the first.

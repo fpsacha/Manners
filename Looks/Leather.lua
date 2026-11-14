@@ -117,6 +117,9 @@ local OUTCOME = {
 local GHOSTS = { { 1.00, 0.26, 0.20 }, { 1.00, 0.72, 0.22 } }
 -- What a fight does: the text dims, the leather and the icon darken.
 local TEXT_COMBAT, LEATHER_COMBAT, ICON_COMBAT = 0.78, 0.62, 0.70
+-- How bright the hide is under the words at its lightest (relative
+-- luminance; tools/audit_look_contrast.py measures it on the picture).
+local HIDE_LUM = 0.115
 -- The owed breath: the glow lifts to this and back, this many breaths, and
 -- then it is still.
 local GLOW_PEAK = 0.55
@@ -927,6 +930,12 @@ end
 function Leather:Styled(p)
 	local kit = self.kit
 	local ink, fit = kit.ink, kit.fit
+	-- The ground is the hide, whatever the panel colour: every colour in the
+	-- lines (a class's, an outcome's) is held to the leather at its lightest
+	-- under the words, not to a panel colour nobody sees.
+	ink.light = true
+	ink.lo, ink.hi = HIDE_LUM, HIDE_LUM
+	ink.codes = {}
 	-- The name's face: the display serif, unless the player chose a font or the
 	-- client has no such file (the line then keeps what Prompt set). Only the
 	-- name is set apart; FitLine keeps it in its face as it shrinks.

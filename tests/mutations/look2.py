@@ -139,10 +139,10 @@ mutate("Prompt/Text.lua",
 # The coloured words held to body-text contrast: the list's grey and the
 # deepest class colours all redrawn on the default panel.
 mutate("Prompt/Text.lua",
+       "local CODE_CONTRAST, TEXT_CONTRAST = 5, 4.5\n",
        "local CODE_CONTRAST, TEXT_CONTRAST = 3, 4.5\n",
-       "local CODE_CONTRAST, TEXT_CONTRAST = 4.6, 4.5\n",
-       "default panel's near-line colours moved",
-       expect="leaves the colours near its contrast line alone",
+       "default panel's deep class colours left under the body-text line",
+       expect="holds its coloured words to the body-text line and no further",
        script="runscenarios.py")
 
 # The palette greyed out wherever the ring is off, though the list's bars,
