@@ -1131,7 +1131,7 @@ ns.OfferRank = OfferRank
 -- Their pets' too (raidpetN is raidN's, partypetN partyN's), walked only with
 -- "My group's pets too" on, and `names`, the group's names for that walk
 -- (ns.GroupNames), on this table to spare the main chunk a local.
-local GROUP_TOKENS = { raid = {}, party = {}, raidpet = {}, partypet = {}, names = {} }
+local GROUP_TOKENS = { raid = {}, party = {}, raidpet = {}, partypet = {}, names = {}, petNames = {} }
 for i = 1, 40 do
 	GROUP_TOKENS.raid[i] = "raid" .. i
 	GROUP_TOKENS.party[i] = "party" .. i
@@ -1207,7 +1207,8 @@ ns.IterateUnits, ns.PRIORITY = IterateUnits, PRIORITY
 -- The names of everybody in the group, you among them, as they are filed
 -- (ns.UnitFullName) and by their first word, for the walk of the group's pets
 -- (BuildQueue, visit): a pet is targeted by its name, and one named as a
--- person of the group could not be told from them on the /target line. One
+-- person of the group could not be told from them on the /target line, nor
+-- one named as another pet of the group or as your own pet. One
 -- table, emptied and filled when asked, which is once a scan and only when a
 -- pet is out.
 function ns.GroupNames()
@@ -1226,6 +1227,23 @@ function ns.GroupNames()
 		local tokens = inRaid and GROUP_TOKENS.raid or GROUP_TOKENS.party
 		for i = 1, inRaid and n or (n - 1) do
 			if tokens[i] and plain(UnitExists(tokens[i])) then add(ns.UnitFullName(tokens[i])) end
+		end
+		-- And a name two pets of the group go by (two hunters' "Wolf"), or one
+		-- that is your own pet's: /target could not say which is meant, and one
+		-- verdict a name would stand for both.
+		local once = GROUP_TOKENS.petNames
+		wipe(once)
+		local own = plain(UnitExists("pet")) and ns.UnitFullName("pet")
+		if own then once[own] = true end
+		local pets = inRaid and GROUP_TOKENS.raidpet or GROUP_TOKENS.partypet
+		for i = 1, inRaid and n or (n - 1) do
+			local token = pets[i]
+			if token and plain(UnitExists(token)) and not plain(UnitIsUnit(token, "pet")) then
+				local name = ns.UnitFullName(token)
+				if name then
+					if once[name] then names[name] = true else once[name] = true end
+				end
+			end
 		end
 	end
 	return names

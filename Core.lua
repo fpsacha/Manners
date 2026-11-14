@@ -4269,6 +4269,14 @@ local function IsBuffableUnit(unit, f, pet)
 	elseif isPlayer ~= true then
 		return false
 	end
+	-- Mists and retail: while a member is in a vehicle the client puts the
+	-- vehicle on their pet token, and that is no pet of theirs.
+	if pet then
+		local riding = _G.UnitHasVehicleUI
+		if type(riding) == "function" and plain(riding(pet)) == true then return false end
+		riding = _G.UnitInVehicle
+		if type(riding) == "function" and plain(riding(pet)) == true then return false end
+	end
 	if plain(UnitIsDeadOrGhost(unit)) == true then
 		-- Their buffs went with them: what was last read worn says nothing now.
 		ForgetAllWorn(plain(UnitGUID(unit)))
