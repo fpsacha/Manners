@@ -148,7 +148,9 @@ local LAY = {
 	slabH = 1.14, slabMax = 0.30, face = (FACE_1 - FACE_0) / DESIGN_H, faceMid = (FACE_0 + FACE_1) / 2 / DESIGN_H,
 	stretch = 0.20, textGap = 3, bareGap = 5, bodyMix = 0.25, listC = 9, shadowC = 16, shadowOut = 12,
 	-- A tile of what runs in the channel is this many times as long as tall.
-	flowTile = 4,
+	flowTile = 8,
+	-- The stone rim of the list's tablet, which a row's pebble keeps clear of.
+	listRim = 4.5,
 }
 -- The slate's own luminance under the words, its darkest and its brightest
 -- (as greys), for Legible.
@@ -187,8 +189,11 @@ local GLOW = { rest = 0.34, peak = 0.84, held = 0.56, combat = 0.14 }
 local CORE = { rest = 0.22, peak = 0.70, held = 0.42 }
 local BREATHS, BREATH = 3, 1.25
 -- The channel: each layer's drift in tiles a second, how much faster while
--- somebody is owed, the second layer's share and how much paler it is.
-local FLOW = { du = { 0.085, 0.052 }, dv = { 0, 0 }, owed = 1.7, second = 0.50, pale = 0.40 }
+-- somebody is owed, the second layer's share and how much paler it is. The
+-- second layer is the same drawing laid longer (`long`: the part of the first
+-- one's window it shows), upside down and begun elsewhere (`phase`), so the
+-- two never fall into one figure seen again and again along the channel.
+local FLOW = { du = { 0.06, 0.022 }, dv = { 0, 0 }, owed = 1.7, second = 0.50, pale = 0.40, long = 0.62, phase = 0.37 }
 -- The sheets' frames a second: the chain lightning (0.5 s), the bolt from
 -- the sky (0.44 s), the arc.
 local BOLT_FPS, STRIKE_FPS, ARC_FPS = 16, 18, 13
@@ -741,7 +746,8 @@ function Storm:Build(kit)
 	self.flow = flow
 	self.runScroll = {}
 	for i, pair in ipairs(self.runs) do
-		self.runScroll[i] = { flow:Scroll(pair[1], FLOW.du[1], FLOW.dv[1], 1, 1), flow:Scroll(pair[2], FLOW.du[2], FLOW.dv[2], 1, 1) }
+		self.runScroll[i] = { flow:Scroll(pair[1], FLOW.du[1], FLOW.dv[1], 1, 1), flow:Scroll(pair[2], FLOW.du[2], FLOW.dv[2], 1, -1) }
+		self.runScroll[i][2]:Phase(FLOW.phase, 0)
 	end
 	self.boltSheets = {}
 	for i, t in ipairs(self.bolts) do self.boltSheets[i] = flow:Sheet(t, 1, BOLT_ROWS, BOLT_ROWS, BOLT_FPS, false) end
@@ -947,12 +953,14 @@ function Storm:Apply(p, above)
 	-- where the standing stone begins. Hung over the panel, the list keeps
 	-- right of the totem's wing and the feather on it.
 	-- The tablet begins far enough left of them to hold each row's pebble,
-	-- behind the totem's jaw.
+	-- behind the totem's jaw: a pebble is sub + 1 across, its middle 9 left
+	-- of its row's words, and lies on the tablet's slate, clear of its rim.
+	local reach = 9 + (sub + 1) / 2 + LAY.listRim
 	self.rowX = math.max(textX, 24)
-	self.listX0 = math.min(showIcon and (cx + TOTEM_POST * totem + 2) or (plateX + 2), self.rowX - 17)
+	self.listX0 = math.min(showIcon and (cx + TOTEM_POST * totem + 2) or (plateX + 2), self.rowX - reach)
 	if above and showIcon then
 		self.listX0 = math.max(self.listX0, cx + totem * 0.5 + 3)
-		self.rowX = math.max(self.rowX, self.listX0 + 17)
+		self.rowX = math.max(self.rowX, self.listX0 + reach)
 	end
 	self.listX1 = math.max(self.rowX + 30, self.rootX + 3)
 	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
@@ -1149,7 +1157,12 @@ function Storm:PlaceChannel(showIcon)
 	for i, pair in ipairs(self.runs) do
 		for k, t in ipairs(pair) do
 			Box(t, art, x0, y0, x1, y1)
-			self.runScroll[i][k]:Window((x1 - x0) / tile, 1)
+			-- The second layer: longer, and upside down.
+			if k == 2 then
+				self.runScroll[i][k]:Window((x1 - x0) / tile * FLOW.long, -1)
+			else
+				self.runScroll[i][k]:Window((x1 - x0) / tile, 1)
+			end
 		end
 	end
 	Box(self.core, art, x0, y0 - 2 * su, x1, y1 + 2 * su)
@@ -1843,6 +1856,9 @@ function Storm:Attention(isNew, arrived, flashStyle)
 			self.calmLit = true
 			StopAll(self.pulse)
 			StopAll(self.glowPulse)
+			-- Effects turned to Calm in the middle of a breath: the arc's
+			-- frames were still being played, with Flow's clock under them.
+			self.arcSheet:Stop()
 			PlayAll(self.calm)
 			for i = 1, 4 do
 				if self.awake[i] then self.glows[i]:SetAlpha(GLOW.held) end

@@ -1055,7 +1055,11 @@ withTree("look-stormcaller: the list hangs under the slab, each row's pebble on 
 	if not FT.visible(look.listBody[1]) or not FT.visible(look.beads[1]) then fail(scenario, "SKIPPED -- no list is out") return end
 	local plank = FT.span(look.listBody[1], "x")
 	local bead = FT.span(look.beads[1], "x")
-	if not (bead >= plank + 1) then fail(scenario, ("a row's pebble begins at %.1f, off a tablet that begins at %.1f"):format(bead, plank)) end
+	-- On the tablet's slate: its rim of stone is four units wide, and a pebble
+	-- that began on it was drawn over the rim (the review's pictures).
+	if not (bead >= plank + 4) then
+		fail(scenario, ("a row's pebble begins at %.1f, off the slate of a tablet that begins at %.1f"):format(bead, plank))
+	end
 	local row = FT.span(look.kit.rows[1], "x")
 	local name = FT.span(r.name, "x")
 	if not near(row, name, 0.6) then fail(scenario, ("the list's names begin at %.1f, the name above them at %.1f"):format(row, name)) end
@@ -1067,4 +1071,72 @@ withTree("look-stormcaller: the list hangs under the slab, each row's pebble on 
 	-- A pebble for each row out, in its row's reason colour.
 	local c = look.kit.ReasonColor("nearby")
 	if not sameColour(look.beads[2]._color, c) then fail(scenario, "a passer-by's pebble is not a passer-by's colour") end
+end)
+
+-- ------------------------------------------------------------------ 19
+-- What runs in the channel is one drawing in two layers. As first built the
+-- two were the same tile at the same length, four times as long as tall, and
+-- the channel read as one figure seen a dozen times along it. The tile is
+-- eight times as long as tall, and the second layer is laid longer and upside
+-- down, drifting at another pace on the screen.
+withTree("look-stormcaller: what runs in the channel is no figure seen again and again", CROWD, function(ns, scenario)
+	local look = atRest(ns, scenario)
+	if skipped(scenario, look) then return end
+	local a, b = look.flows[1], look.flows[2]
+	if not (a and b) then fail(scenario, "SKIPPED -- the channel has no two layers") return end
+	local x0, x1 = FT.span(look.runs[look.liquid][1], "x")
+	local y0, y1 = FT.span(look.runs[look.liquid][1], "y")
+	if not (x0 and y0) then fail(scenario, "SKIPPED -- the channel is not laid out") return end
+	local tiles = math.abs(x1 - x0) / (math.abs(y1 - y0) * 8)
+	if not near(a.uSpan, tiles, 0.01) then
+		fail(scenario, ("a tile of the channel is not eight times as long as it is tall: its window is %.2f tiles, not %.2f"):format(a.uSpan, tiles))
+	end
+	if not (b.uSpan < a.uSpan * 0.9 and b.uSpan > a.uSpan * 0.3) then
+		fail(scenario, ("the channel's second layer is the first one's drawing again at its length: %.2f tiles beside %.2f"):format(b.uSpan, a.uSpan))
+	end
+	if not (a.vSpan > 0 and b.vSpan < 0) then fail(scenario, "the channel's second layer is not laid upside down over the first") end
+	-- On the screen: tiles a second over the tiles the window holds.
+	local pa, pb = a.du / a.uSpan, b.du / b.uSpan
+	if not (pa * pb > 0 and math.abs(pa - pb) > 0.2 * math.abs(pa)) then
+		fail(scenario, ("on the screen the channel's two layers drift as one: %.3f and %.3f of its length a second"):format(pa, pb))
+	end
+	-- The files are that tile: eight times as long as tall.
+	for _, file in ipairs({ "Lava", "Water" }) do
+		local data = slurp(dir .. "/Textures/Stormcaller/Stormcaller_" .. file .. ".tga")
+		if not data or #data < 18 then
+			fail(scenario, "Stormcaller_" .. file .. ".tga does not ship")
+		else
+			local w, h = data:byte(13) + data:byte(14) * 256, data:byte(15) + data:byte(16) * 256
+			if w ~= h * 8 then fail(scenario, ("Stormcaller_%s.tga is %d by %d, not the tile the look lays, eight to one"):format(file, w, h)) end
+		end
+	end
+end)
+
+-- ------------------------------------------------------------------ 20
+-- Effects turned to Calm while the owed breath runs: the breath stops, and so
+-- do the arc's drawn frames, which are Flow's and not an animation group's.
+-- Left playing, they kept Flow's clock running under a panel that shows
+-- nothing moving, until nobody was owed.
+withTree("look-stormcaller: Calm in the middle of a breath stops the arc's frames", ANNA, function(ns, scenario)
+	local _, p, look = upIn(ns, scenario)
+	if skipped(scenario, look) then return end
+	-- Past the bolt from the sky, whose frames play once and end themselves.
+	Mock.advance(0.6)
+	ns.Looks.Flow.TickAll(GetTime())
+	if not (look.arcSheet:IsPlaying() and look.pulse[1]._playing) then
+		fail(scenario, "SKIPPED -- owed on Full, the breath and the arc's frames do not play")
+		return
+	end
+	if look.strikeSheet:IsPlaying() then fail(scenario, "SKIPPED -- the bolt from the sky still plays after 0.6 s") return end
+	p.effects = "calm"
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	for i, g in ipairs(look.pulse) do
+		if g._playing then fail(scenario, "turned to Calm in the middle of a breath, breath " .. i .. " loops on") end
+	end
+	if look.arcSheet:IsPlaying() then fail(scenario, "turned to Calm in the middle of a breath, the arc's frames play on") end
+	if flowing(look) > 0 or look.flow.driver:IsShown() then
+		fail(scenario, "turned to Calm in the middle of a breath, Flow's clock still runs")
+	end
+	if (look.arc._alpha or 1) > 0.001 then fail(scenario, "turned to Calm in the middle of a breath, the arc still stands") end
 end)

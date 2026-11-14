@@ -390,9 +390,15 @@ mutate(LUA,
 # --- the list ---
 
 mutate(LUA,
-       "(plateX + 2), self.rowX - 17)\n",
+       "(plateX + 2), self.rowX - reach)\n",
        "(plateX + 2), self.rowX + 30)\n",
        "look-stormcaller: the rows' pebbles off the tablet",
+       expect="a row's pebble begins at", script=S)
+
+mutate(LUA,
+       "\tlocal reach = 9 + (sub + 1) / 2 + LAY.listRim\n",
+       "\tlocal reach = 17\n",
+       "look-stormcaller: the rows' pebbles on the tablet's rim of stone",
        expect="a row's pebble begins at", script=S)
 
 mutate(LUA,
@@ -400,3 +406,53 @@ mutate(LUA,
        "\t\ty0 = self.H + 6\n\t\ty1 = low + depth\n",
        "look-stormcaller: the tablet adrift under the slab",
        expect="the tablet does not hang from the slab's lower edge", script=S)
+
+# --- the review's fixes: the channel's figure, Calm in the middle of a breath ---
+
+mutate(LUA,
+       "\tflowTile = 8,\n",
+       "\tflowTile = 4,\n",
+       "look-stormcaller: the channel's tile laid at half its length",
+       expect="a tile of the channel is not eight times as long as it is tall", script=S)
+
+mutate(LUA,
+       "\t\t\t\tself.runScroll[i][k]:Window((x1 - x0) / tile * FLOW.long, -1)\n",
+       "\t\t\t\tself.runScroll[i][k]:Window((x1 - x0) / tile, -1)\n",
+       "look-stormcaller: the channel's second layer as long as its first",
+       expect="the channel's second layer is the first one's drawing again", script=S)
+
+mutate(LUA,
+       "\t\t\t\tself.runScroll[i][k]:Window((x1 - x0) / tile * FLOW.long, -1)\n",
+       "\t\t\t\tself.runScroll[i][k]:Window((x1 - x0) / tile * FLOW.long, 1)\n",
+       "look-stormcaller: the channel's second layer the same way up as its first",
+       expect="the channel's second layer is not laid upside down", script=S)
+
+mutate(LUA,
+       "local FLOW = { du = { 0.06, 0.022 },",
+       "local FLOW = { du = { 0.06, 0.036 },",
+       "look-stormcaller: the channel's two layers at one pace on the screen",
+       expect="on the screen the channel's two layers drift as one", script=S)
+
+mutate("tools/make_stormcaller_textures.py",
+       "FLOW_W, FLOW_H = 256, 32\n",
+       "FLOW_W, FLOW_H = 128, 32\n",
+       "look-stormcaller: the generator drawing the channel's short tile",
+       expect="Stormcaller_Lava.tga does not match the file that ships", script=S)
+
+mutate("tools/make_stormcaller_textures.py",
+       "sstep(1.0, 16.0, x) * sstep(fw, fw - 3.0, x)\n",
+       "sstep(0.0, 3.0, x) * sstep(fw, fw - 3.0, x)\n",
+       "look-stormcaller: the chain's start cut off over the totem",
+       expect="Stormcaller_Bolt.tga does not match the file that ships", script=S)
+
+mutate(LUA,
+       "\t\t\tself.arcSheet:Stop()\n\t\t\tPlayAll(self.calm)\n",
+       "\t\t\tPlayAll(self.calm)\n",
+       "look-stormcaller: the arc's frames playing on under Calm",
+       expect="turned to Calm in the middle of a breath, the arc's frames play on", script=S)
+
+mutate("tools/make_stormcaller_textures.py",
+       "    return (0.45 * mask + 0.55 * blur(mask, 5.0 * SS)).astype(np.float32)\n",
+       "    return mask\n",
+       "look-stormcaller: a breaking bolt's glow cut into holes",
+       expect="Stormcaller_Bolt.tga does not match the file that ships", script=S)

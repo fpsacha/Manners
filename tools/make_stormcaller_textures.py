@@ -51,10 +51,12 @@ THE FILES (30), with what each is:
   Stormcaller_Glow       64x64   a soft white disc: a sigil's light, the
                                  flashes (ADD).
   Stormcaller_Feather    32x64   a feather on its thong, a bead above it.
-  Stormcaller_Lava      128x32   lava: plates of crust on a bright body, in
+  Stormcaller_Lava      256x32   lava: plates of crust on a bright body, in
                                  greys, tiling both ways, scrolled (Looks/
-                                 Flow.lua), two layers of it.
-  Stormcaller_Water     128x32   water: light lying on it in bands, in greys,
+                                 Flow.lua), two layers of it: a tile eight
+                                 times as long as tall, so the channel holds
+                                 a few of it and no figure is seen to repeat.
+  Stormcaller_Water     256x32   water: light lying on it in bands, in greys,
                                  tiling both ways, scrolled likewise.
   Stormcaller_Core       64x16   a soft white line: the light in the channel.
   Stormcaller_Bolt      256x256  chain lightning along the slab: a SHEET of 8
@@ -790,7 +792,7 @@ def make_star():
 
 # ------------------------------------------------------------------ what runs in the channel
 
-FLOW_W, FLOW_H = 128, 32
+FLOW_W, FLOW_H = 256, 32
 
 
 def make_lava():
@@ -840,6 +842,14 @@ def lit_line(x, y, pts, core, glow, k=0.5):
     return np.clip(np.exp(-(d / core) ** 2) + k * np.exp(-(d / glow) ** 2), 0, 1)
 
 
+def broken(mask):
+    """A bolt breaking up: the stroke goes in pieces, the light round it thins
+    evenly. Cut by the pieces alone, the glow was left with holes the shape of
+    the gaps, which read as dark smudges on the sky (and the game draws
+    additive light brighter than the pictures do)."""
+    return (0.45 * mask + 0.55 * blur(mask, 5.0 * SS)).astype(np.float32)
+
+
 def sheet_of(frames, cols, rows, fw, fh):
     """Frames (each fh x fw, supersampled) laid left to right, top to bottom."""
     out = np.zeros((rows * fh * SS, cols * fw * SS), np.float32)
@@ -876,8 +886,10 @@ def make_bolt():
             a = np.maximum(a, np.exp(-(np.hypot(x - end[0], y - end[1]) / 4.0) ** 2))
         if left < 1.0:
             gaps = pnoise(x, y, 14.0, 6.0, 256.0, SEED + 80 + k)
-            a = a * sstep(1.0 - left - 0.12, 1.0 - left + 0.12, gaps)
-        a = a * bright * sstep(0.0, 3.0, y) * sstep(fh, fh - 3.0, y) * sstep(0.0, 3.0, x) * sstep(fw, fw - 3.0, x)
+            a = a * broken(sstep(1.0 - left - 0.12, 1.0 - left + 0.12, gaps))
+        # It grows out of the totem: its first texels widen from nothing, so
+        # no end of it stands cut off over the wood.
+        a = a * bright * sstep(0.0, 3.0, y) * sstep(fh, fh - 3.0, y) * sstep(1.0, 16.0, x) * sstep(fw, fw - 3.0, x)
         frames.append(np.clip(a, 0, 1))
     alpha = sheet_of(frames, 1, BOLT_ROWS, fw, fh)
     emit("Stormcaller_Bolt", white(alpha), alpha, 1.0)
@@ -909,7 +921,7 @@ def make_strike():
             a = np.maximum(a, bright * np.exp(-(np.hypot(x - foot[0], (y - foot[1]) * 1.5) / (9.0 * thick ** 0.5)) ** 2))
         if left < 1.0:
             gaps = pnoise(x, y, 8.0, 14.0, 256.0, SEED + 100 + k)
-            a = a * sstep(1.0 - left - 0.12, 1.0 - left + 0.12, gaps)
+            a = a * broken(sstep(1.0 - left - 0.12, 1.0 - left + 0.12, gaps))
         a = a * bright * sstep(0.0, 3.0, x) * sstep(fw, fw - 3.0, x) * sstep(fh, fh - 3.0, y)
         frames.append(np.clip(a, 0, 1))
     alpha = sheet_of(frames, STRIKE_COLS, STRIKE_ROWS, fw, fh)
