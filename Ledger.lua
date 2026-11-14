@@ -71,6 +71,7 @@ local TEXT = {
 	TAB_ALL = L["Everything"],
 	TAB_FAVOURS = L["Favours"],
 	TAB_GIVEN = L["Buffs you gave"],
+	TAB_MILESTONES = L["Milestones"],
 
 	EMPTY_ALL = L["Nothing recorded. When somebody buffs you it is listed here, and so is what you give back and who you buff unprompted."],
 	EMPTY_FAVOURS = L["No favours recorded. When somebody buffs you, they are listed here."],
@@ -262,6 +263,8 @@ local WHY = { expired = true, useless = true, notkept = true, never = true }
 -- to return (Queue.lua, LetGoCovered; Favours.lua, CoveredAlready).
 WHY.covered = true
 local FILTERS = { all = true, favours = true, given = true }
+-- The fourth tab, whose rows Milestones.lua lists and paints.
+FILTERS.milestones = true
 local TOTALS = { "received", "returned", "letGo", "group", "strangers" }
 -- Today's counts of favours, kept beside today's count of gifts.
 local TODAY = { "received", "returned", "useless" }
@@ -630,6 +633,7 @@ local function Announce(s)
 	s.title = level
 	local t = TITLES[level]
 	if ns.addon and ns.addon.Print then ns.addon:Print(TEXT.EARNED:format(t.name, t.flavour)) end
+	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Ranked, t) end
 end
 
 -- When the latest favour that could earn a title was settled, while its
@@ -768,6 +772,7 @@ function Ledger.Load()
 			Bump(s, "letGo")
 		end
 	end
+	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Load) end
 	Changed()
 end
 
@@ -926,6 +931,7 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 		undo.entry, undo.to = e, to
 	end
 	recent[#recent + 1] = undo
+	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Settled, undo.entry, pending) end
 	Changed()
 end
 
@@ -943,6 +949,7 @@ function Ledger.Refused(name, clock)
 		end
 	end
 	if not undo then return end
+	if ns.Milestones then ns.Guard("milestones", ns.Milestones.Refused, undo.entry) end
 	-- The row the settle wrote may be gone: Clear can be pressed between a
 	-- settle and its refusal. The counts, which Clear keeps, are taken back all
 	-- the same, and a favour Core has just put back gets its owed row back, or
@@ -1373,6 +1380,10 @@ local function FitWidth(fs, texts, floor, ceiling)
 	return math.min(ceiling, math.max(floor, math.ceil(widest) + 20))
 end
 
+-- What Milestones.lua draws its rows and its toast with, so they are the
+-- window's own strings, plates and colours.
+Ledger.Kit = { Text = Text, Solid = Solid, FlatButton = FlatButton, FitWidth = FitWidth, TextWidth = TextWidth, Wrap = Wrap, Wall = Wall, COLOUR = COLOUR, INK = INK, INK_SOFT = INK_SOFT, INK_FAINT = INK_FAINT, RANK_INK = RANK_INK, LOGO = LOGO }
+
 local function SavePosition()
 	local s = Store()
 	if not (s and window) then return end
@@ -1473,6 +1484,7 @@ end
 local function RowTooltip(row)
 	local e = row.entry
 	if not e then return end
+	if e.milestone then return ns.Milestones.Tooltip(row, e) end
 	local now = Wall() or e.at
 	GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
 	GameTooltip:AddLine(Coloured(e.name, e.class))
@@ -1596,6 +1608,7 @@ local function BuildRow(i)
 end
 
 local function Paint(row, e, now)
+	if row.link then ns.Milestones.Unpaint(row) end
 	row.entry = e
 	-- Not `a and b or c`: a gift's `spell` can be nil, and the `or` would then
 	-- read a favour's spell list on a row that has none.
@@ -1695,7 +1708,11 @@ function Render()
 	if not (window and window:IsShown()) then return end
 	local now = Wall()
 	if not now then return end
-	local list = Ledger.Entries(filter)
+	-- The Milestones tab: there while milestones are on, its rows listed and
+	-- painted by Milestones.lua in the rows of this list.
+	local page = ns.Milestones and ns.Milestones.Page(window, filter)
+	if filter == "milestones" and not page then SetFilter("all") end
+	local list = page and page.Rows() or Ledger.Entries(filter)
 	local sum = Ledger.Summary()
 
 	PaintRank(sum)
@@ -1711,7 +1728,7 @@ function Render()
 	window.showing:SetText(TEXT.SHOWING:format(offset + 1, math.min(#list, offset + ROWS), #list))
 	for i = 1, ROWS do
 		local e = list[offset + i]
-		if e then Paint(rows[i], e, now) else
+		if e then (page and page.Paint or Paint)(rows[i], e, now) else
 			rows[i].entry = nil
 			rows[i]:Hide()
 		end
@@ -1903,6 +1920,7 @@ local function BuildTabs()
 		{ key = "all", label = TEXT.TAB_ALL },
 		{ key = "favours", label = TEXT.TAB_FAVOURS },
 		{ key = "given", label = TEXT.TAB_GIVEN },
+		{ key = "milestones", label = TEXT.TAB_MILESTONES },
 	}) do
 		local tab = FlatButton(window, def.label, 80, TAB_HEIGHT)
 		tab.key = def.key

@@ -215,6 +215,27 @@ local function open(ns, tab)
 	return window
 end
 
+-- The calendar, which the mock's date() does not keep: a milestone's date is
+-- drawn as the client would write it. Put back by the next Mock.reset.
+local function calendar()
+	local real = date
+	date = function(fmt, t)
+		if fmt == "%Y-%m-%d" or fmt == "%Y%m%d" then return os.date(fmt, t) end
+		return real(fmt, t)
+	end
+end
+
+-- The toast (Milestones.lua), which is a frame of its own and not the window.
+local function toastFrame(ns)
+	return ns.Milestones and ns.Milestones.ToastFrame()
+end
+
+-- A second of the toast's own OnUpdate, so it is drawn past its fade-in.
+local function landed(ns)
+	local f = toastFrame(ns)
+	if f and f:IsShown() and f.scripts and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.6) end
+end
+
 R.states = {
 	{ key = "all", title = "Everything", setup = function(ns) busy(ns) open(ns, "all") end },
 	{ key = "favours", title = "Favours", setup = function(ns) busy(ns) open(ns, "favours") end },
@@ -236,6 +257,39 @@ R.states = {
 		few(ns)
 		ns.db.char.ledger.totals.returned = 1204
 		open(ns, "all")
+	end },
+	-- The Milestones tab (Milestones.lua): some earned, one of them before
+	-- milestones were kept, some under way with their numbers, the hidden ones.
+	{ key = "milestones", title = "Milestones", setup = function(ns)
+		calendar()
+		busy(ns)
+		Mock.runTimers(4)
+		local st, now = ns.db.char.milestones, time()
+		st.earned.first = now - 9 * 86400
+		st.earned.asked = -(now - 20 * 86400)
+		st.earned.swift = now - 2 * 86400
+		st.n.strangers = 37
+		st.people["Hild Ironbraid-Stormrage"] = { n = 4, day = "x" }
+		st.classes.PRIEST, st.classes.MAGE = true, true
+		open(ns, "milestones")
+	end },
+	{ key = "milestones-end", title = "Milestones, scrolled to the end", setup = function(ns)
+		calendar()
+		busy(ns)
+		Mock.runTimers(4)
+		ns.db.char.milestones.n.strangers = 37
+		open(ns, "milestones")
+		ns.Ledger.Scroll(100)
+	end },
+	-- The toast, a second in: for a milestone, and for a new title.
+	{ key = "toast", title = "A milestone's toast", frame = toastFrame, setup = function(ns)
+		few(ns)
+		Mock.runTimers(4)
+		landed(ns)
+	end },
+	{ key = "toast-title", title = "A new title's toast", frame = toastFrame, setup = function(ns)
+		ns.Milestones.Ranked(ns.Ledger.TITLES[4])
+		landed(ns)
 	end },
 	{ key = "empty", title = "Nothing yet", setup = function(ns) open(ns, "all") end },
 	{ key = "empty-given", title = "Nothing given yet", setup = function(ns)
@@ -274,6 +328,8 @@ function R.run(key, locale)
 		FrameTree.settle()
 	end)
 	local window = ns.Ledger and ns.Ledger.Window()
+	-- A state may be framed on a frame of its own (the milestone toast).
+	if state.frame then window = state.frame(ns) or window end
 	-- Whether each string wraps, which the recorder keeps and its snapshot
 	-- leaves out: the prompt never wraps a line, and the ledger's empty-list
 	-- message is nothing but wrapping.

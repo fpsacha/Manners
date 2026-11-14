@@ -243,6 +243,8 @@ local defaults = {
 		-- Stronger than verbose: not one line of its own in chat (addon:Print).
 		silentChat = false,
 		debugClicks = false, -- raw attribute dump on every click; on via /manners clicks
+		-- Milestones (Milestones.lua): the whole of it, its toast, the toast's sound.
+		milestones = { enabled = true, toast = true, sound = true },
 
 		buff = {
 			choice = "auto",
