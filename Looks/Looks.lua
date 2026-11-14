@@ -173,7 +173,9 @@
 -- animations played frame by frame), and that only while something moves;
 -- nothing done
 -- to the secure button; art only from Textures/<Look>/, white or grey so the
--- vertex colour carries every reason; and everything the built-in looks honour
+-- vertex colour carries every reason, given through Looks.Colour and never
+-- SetVertexColor (ONE ALPHA, below); a ground of the look's own stated in
+-- kit.ink.lo and kit.ink.hi, as bright as it is drawn under the words; and everything the built-in looks honour
 -- still works -- size, font, colours, both palettes, the second line and the
 -- chip off, the list above and below, a round icon, Calm, the fight, the
 -- outcomes, the preview and the drag.
@@ -212,8 +214,12 @@ ns.Looks = Looks
 -- answer the flash's passing value, and a colour given then would leave the
 -- light lit for good. A look holds all its art at the end of Build
 -- (Looks.HoldAll), while nothing plays; a texture nobody held is held at its
--- first colour. tests/scenarios/looks-alpha.lua takes every look through its
--- states on a mock that keeps one alpha as the game does.
+-- first colour. The shared icon (kit.icon) is every look's and stays on
+-- SetVertexColor: it stands at full alpha wherever a look colours it, and a
+-- hold left on it would be one look's mark on the next. A light's strength is
+-- its animation's alpha, never an alpha given with its colour.
+-- tests/scenarios/looks-alpha.lua takes every look through its states on a
+-- mock that keeps one alpha as the game does.
 ---------------------------------------------------------------------------
 
 -- The look's own SetAlpha: the number it gives is the texture's own alpha

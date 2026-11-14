@@ -84,7 +84,7 @@ ns.Looks.previewText = {
 		reason = { l = 0.2282, t = 0.54839, r = 0.82258, b = 0.70968, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.9056, 0.728, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.14, 0.07, 0.02, 0.9 } } },
 	},
 	letter = {
-		name = { l = 0.30645, t = 0.26029, r = 0.86331, b = 0.4861, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 0.25882, 0.23529, 0.21961, 1 }, shadow = { x = 0.00968, y = -0.00968, color = { 0.2, 0.105, 0.04, 0.4 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
+		name = { l = 0.30645, t = 0.26029, r = 0.86331, b = 0.4861, h = "LEFT", v = "MIDDLE", size = 0.22581, color = { 0.23137, 0.20784, 0.19216, 1 }, shadow = { x = 0.00968, y = -0.00968, color = { 0.2, 0.105, 0.04, 0.4 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 		reason = { l = 0.30645, t = 0.54616, r = 0.86331, b = 0.72358, h = "LEFT", v = "MIDDLE", size = 0.17742, color = { 0.36494, 0.19616, 0.07755, 1 }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 	},
 	lightbringer = {
@@ -112,4 +112,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "6d8d42fc829696f3a1b3a0c6692458815c8bb1c623219c47ec69eb85d35e7b5b"
+ns.Looks.previewHash = "fe772a29de573bb4e4a98ce292661aa6146f6a78d8bdb6675efa98e52dcbfdc8"

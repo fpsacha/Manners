@@ -29,13 +29,29 @@ the kit it is handed. This file is the recipe and the rules of taste.
   (`python tools/render_options.py --check --pages appearance` measures the
   card's).
 - **A colour keeps its alpha.** The game keeps one alpha for a texture:
-  `SetVertexColor(r, g, b, 1)` writes over what `SetAlpha` set, and a light
-  meant to be faint or parked at nothing stands at full strength (Glass,
-  1.11.19, in a player's screenshot). Colour a dimmed texture with the alpha
-  it has (`Colour` in `Frost.lua` and `Wild.lua`), or put the alpha back after
-  (`Glass:PaintReason`), and hold it with a scenario that makes the mock's
-  textures behave as the game's (`look-frost: a colour leaves every light as
-  faint as it was`).
+  `SetVertexColor(r, g, b, 1)` writes over what `SetAlpha` set (an alpha left
+  out is documented as 1), and a light meant to be faint or parked at nothing
+  stands at full strength (Glass, 1.11.19, in a player's screenshot; nine more
+  looks did the same until the release after 1.11.24). A look never calls `SetVertexColor` on its own art: it
+  colours through `ns.Looks.Colour(t, r, g, b)` (the colour, at the alpha the
+  texture rests at), gives an alpha of its own with the colour as
+  `Colour(t, r, g, b, alpha)`, lays a fight's dim over that with
+  `ns.Looks.Dim(t, by)`, and ends `Build` with `ns.Looks.HoldAll(self.own)`
+  (`Looks/Looks.lua`, ONE ALPHA). A light's strength is its animation's
+  alpha, never its colour's. The shared icon is the one thing left on
+  `SetVertexColor`: it is every look's, at full alpha wherever it is
+  coloured. `tests/scenarios/looks-alpha.lua` takes all fifteen looks through
+  their states on a mock that keeps one alpha, and fails on any texture that
+  differs.
+- **The words are measured.** `python tools/audit_look_contrast.py` draws
+  every look through its states at three sizes and holds each line's colour
+  against the pixels beside its letters: 4.5:1 for the name, the reason line,
+  the tags and the list's rows, by the 10th percentile. A look with a ground
+  of its own states how bright it is under the words (`kit.ink.lo`,
+  `kit.ink.hi`, relative luminance, in `Styled`; the tool's `--json` holds
+  the measured `ground`), so every colour in the lines is held to the ground
+  that is drawn (`tests/scenarios/looks-read.lua`). A tag gives way before
+  the name is drawn smaller than the player set it.
 
 ## The tools
 
@@ -47,6 +63,7 @@ the kit it is handed. This file is the recipe and the rules of taste.
 | `tools/render_prompt.py` | the prompt as a picture: `--style KEY --states owed,stranger,queue,success,refused --at T --size large --out DIR` |
 | `tools/look_gif.py` | an animation as a GIF: `STYLE STATE OUT.gif [--start --end --step --box]`, or `--all STYLE DIR`. Look at the frames: a GIF you have not looked at proves nothing |
 | `tools/make_look_previews.py` | the picker's cards; run it after any change to a look or to a shipped texture |
+| `tools/audit_look_contrast.py` | the words' contrast on every look, measured on the pictures: `--check` exits 1 under a floor, `--looks a,b --sizes default` narrows it, `--worst DIR` saves each worst moment |
 
 The renderer understates additive light: the game draws ADD far brighter. Keep
 ADD for flashes under 0.6 s; draw what rests BLEND. It draws Alpha,
@@ -99,7 +116,9 @@ prompt is down. Flow handles are not animation groups: stop them yourself.
    say), `CLAUDE.md`'s file map, `tools/README.md` (the generator), the
    listings in `.github/` (the count of looks and the new one's line).
 9. Checks, sparing the machine (`--jobs 2`, one suite at a time): the look's
-   own scenario file, then `python tools/check.py --lint --flavours --anchors
+   own scenario file, `looks-alpha.lua` and `looks-read.lua` (add the key to
+   both lists), `python tools/audit_look_contrast.py --check` (add the key to
+   its `LOOKS`), then `python tools/check.py --lint --flavours --anchors
    --jobs 2`, then `python tests/selftest.py --only "look-<key>" --jobs 2`.
 10. GIFs of the five moments for the author: `python tools/look_gif.py --all
     <key> DIR`.

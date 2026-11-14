@@ -20,7 +20,8 @@ local WORLD_GREY = 0.15
 
 -- Coloured text is held to the body-text line as the plain lines are: a name
 -- in the shaman's blue or the death knight's red is 13 pt, not a headline, and
--- at 3:1 (WCAG's figure for large text, which this was held to until 1.11.25)
+-- at 3:1 (WCAG's figure for large text, which this was held to through
+-- 1.11.24)
 -- it was the hardest word on the panel. 5 here, because the line is judged
 -- against the panel's flat colour and drawn on a pane with a grain: measured
 -- on the picture (tools/audit_look_contrast.py) that leaves it over 4.5. A

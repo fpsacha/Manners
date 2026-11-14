@@ -745,7 +745,12 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False, skip=(), under=()):
             # the box they are laid in (the bloom of a name, the panel settling).
             ow = rect[2] - rect[0]
             grown = (R - L) / ow if ow > 1e-6 else 1.0
-            draw_text(canvas, tree, r, (x0, y0, x1, y1), a, px, grown, fill=r["id"] not in under)
+            if r["id"] in under:
+                draw_text(canvas, tree, r, (x0, y0, x1, y1), a, px, grown, fill=False)
+            else:
+                # As ever, for a tool that draws its text through its own
+                # function (make-screenshots.py notes the lines it cuts).
+                draw_text(canvas, tree, r, (x0, y0, x1, y1), a, px, grown)
         elif r["kind"] == "Cooldown":
             draw_cooldown(canvas, r, (x0, y0, x1, y1), a, now)
         else:
