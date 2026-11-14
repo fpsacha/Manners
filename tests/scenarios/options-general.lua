@@ -127,6 +127,8 @@ end
 -- (tests/scenarios/quick-setup.lua).
 local START_PAGE = {
 	"general.noBuffs", "general.howItWorks",
+	-- Asking for buffs, for a class with nothing to give (tests/scenarios/ask.lua).
+	"general.startAsk",
 	"general.firstWho", "general.firstVoice", "general.firstDone", "general.firstSkip", "general.quickWho", "general.quickWhoSummary",
 	-- Passers-by on and the friendly nameplates off (tests/scenarios/plates-cta.lua).
 	"general.startPlatesNote", "general.startShowPlates",

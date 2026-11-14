@@ -563,12 +563,12 @@ do
 
 		if not H.layoutInToc() then return end
 		local page, section, index = H.placedOn(ns, "who.res")
-		local petsPage, petsSection, petsIndex = H.placedOn(ns, "who.pets")
 		local tooPage, tooSection, tooIndex = H.placedOn(ns, "who.resStrangers")
 		if not (page and tooPage) then
 			fail(scenario, "the window places one of them on no page")
-		elseif page ~= petsPage or section ~= petsSection or index ~= petsIndex + 1 then
-			fail(scenario, "the window does not draw My group's dead with the group's switches")
+		elseif page ~= "who" or section.key ~= "who.beyond" then
+			-- The menu's home for it: More than buffs, on Who to buff.
+			fail(scenario, "the window does not draw My group's dead under More than buffs")
 		elseif tooSection ~= section or tooIndex ~= index + 1 or type(section.items[tooIndex]) ~= "table"
 			or section.items[tooIndex].indent ~= true then
 			fail(scenario, "Dead passers-by too is not a step in under My group's dead")

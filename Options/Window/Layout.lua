@@ -465,8 +465,8 @@ ns.WindowLayout = {
 				-- how it is asked) goes here: it is about you, like the four
 				-- sections above it.
 				-- Asking, not only giving (Ask.lua): the switch, and under it how
-				-- the ask is said. The model's own heading is the title.
-				{ key = "who.asking", header = "who.askHeader", items = {
+				-- the ask is said, gone while it is off.
+				{ key = "who.asking", title = L["Asking for a buff"], home = true, items = {
 					"who.ask",
 					{ "who.askChannel", indent = true },
 					{ "who.askLine", indent = true },
@@ -550,8 +550,8 @@ ns.WindowLayout = {
 				} },
 				-- HOME: battlegrounds and arenas (what is offered there, and to
 				-- whom) go here: a place rule, beside Hold back's. Four switches
-				-- of their own (Battle.lua); the model's heading is the title.
-				{ key = "when.battle", header = "when.battleHeader", items = {
+				-- of their own (Battle.lua), which decide there.
+				{ key = "when.battle", title = L["Battlegrounds and arenas"], home = true, items = {
 					"when.battleTeam",
 					"when.battleSpeak",
 					"when.battleThank",
@@ -939,8 +939,12 @@ ns.WindowLayout = {
 		-- which reads Lock it while the prompt is unlocked and goes the same
 		-- way as /manners unlock and lock; the saved setting is the same.
 		["appearance.locked"] = true,
-		-- "Cures": the two switches say it, under More than buffs.
+		-- "Cures", "Asking for buffs" and "In battlegrounds and arenas", the
+		-- fallback dialog's headings: the window has a home for each, titled
+		-- (More than buffs, Asking for a buff, Battlegrounds and arenas).
 		["who.curesHeader"] = true,
+		["who.askHeader"] = true,
+		["when.battleHeader"] = true,
 		-- Its string is the Who to skip page's title.
 		["who.skipHeader"] = true,
 		-- "Icon and waiting list": the window gives the icon's fold and the

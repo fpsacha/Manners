@@ -619,10 +619,11 @@ end
 -- Asking, not only giving (Ask.lua): the one thing on Who to buff that is about
 -- what other people cast, under a heading of its own after the sources. The
 -- switch, and under it how the ask is said: shown only while it is on (the
--- layout's `parents` lets search find them).
+-- layout's `parents` lets search find them). In the fallback dialog the block
+-- runs 14.45 to 14.8, after the courtesies (to 14.4) and before the cures (14.9).
 function Page.AddAskControls(args)
 	local function off() return S().ask ~= true end
-	args.askHeader = { type = "header", name = L["Asking for buffs"], order = 14.4 }
+	args.askHeader = { type = "header", name = L["Asking for buffs"], order = 14.45 }
 	args.ask = {
 		type = "toggle",
 		name = L["Ask people for a buff I'm missing"],
@@ -688,10 +689,10 @@ end
 local function AddCureControls(args)
 	local function NoCures() return not ns.ClassHasCures() end
 	local function CuresOff() return not (S().cures or S().curesStrangers) end
-	args.curesHeader = { type = "header", name = L["Cures"], order = 14.5, hidden = NoCures }
+	args.curesHeader = { type = "header", name = L["Cures"], order = 14.9, hidden = NoCures }
 	args.curesNote = {
 		type = "description",
-		order = 14.51,
+		order = 14.91,
 		hidden = NoCures,
 		name = function() return "|cff888888" .. ns.CureSummary() .. "|r" end,
 	}
@@ -699,7 +700,7 @@ local function AddCureControls(args)
 		type = "toggle",
 		name = L["Cure my party and raid"],
 		desc = L["Out of combat, offer to take a poison, a disease, a curse or a harmful spell off someone in your party or raid, with the spell your class has for it. A cure comes before a buff for the same person, and after a favour you owe."],
-		order = 14.52,
+		order = 14.92,
 		width = "full",
 		hidden = NoCures,
 		get = sGet,
@@ -709,7 +710,7 @@ local function AddCureControls(args)
 		type = "toggle",
 		name = L["Cure passers-by"],
 		desc = L["The same for players near you who are not in your group, seen through nameplates, your target, focus and mouseover."],
-		order = 14.53,
+		order = 14.93,
 		width = "full",
 		hidden = NoCures,
 		get = sGet,
@@ -719,7 +720,7 @@ local function AddCureControls(args)
 		type = "range",
 		name = L["Only with more than this many seconds left"],
 		desc = L["A poison, disease, curse or spell about to run out on its own is left alone. One with no timer is never offered."],
-		order = 14.54,
+		order = 14.94,
 		min = 0,
 		max = 120,
 		step = 5,

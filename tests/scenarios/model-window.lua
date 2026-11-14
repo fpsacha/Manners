@@ -392,7 +392,11 @@ end
 local EXPECTED = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly", "sources.owed", "sources.group",
-		"sources.pets", "sources.strangers", "sources.asked", "sources.self", "filters.proximity",
+		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "sources.self", "filters.proximity",
+		-- A class's courtesies on request, resurrection, cures and asking for a buff.
+		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
+		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "filters.cureSeconds",
+		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
 		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.scrolls", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
@@ -407,6 +411,8 @@ local EXPECTED = {
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
 		"filters.restoreTarget", "filters.repayCovered",
+		-- In battlegrounds and arenas.
+		"battle.team", "battle.speak", "battle.thank", "battle.items",
 	},
 	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "prompt.thankEmoteMore", "speech.enabled", "speech.channel",
 		"speech.onlyWhenReturning", "prompt.thankWhisper", "prompt.thankDelay" },

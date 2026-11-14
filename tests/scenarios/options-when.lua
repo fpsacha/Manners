@@ -46,7 +46,9 @@ do
 		-- (round 37).
 		local ORDER = { "rightNow", "buffedHeader", "whenBuffed", "refreshUnder", "refreshRaid",
 			"alwaysNote", "verifiedOnly", "selfHeader", "selfTopUp", "selfLead", "selfLeadNote",
-			"wayHeader", "hideMounted", "manaFloor", "manaFloorKeeps", "manaNote" }
+			"wayHeader", "hideMounted", "manaFloor", "manaFloorKeeps", "manaNote",
+			-- In battlegrounds and arenas (tests/scenarios/battleground.lua).
+			"battleHeader", "battleTeam", "battleSpeak", "battleThank", "battleItems" }
 		local last
 		for _, key in ipairs(ORDER) do
 			local control = tab.args[key]

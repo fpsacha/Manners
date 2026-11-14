@@ -337,7 +337,7 @@ mutate("Core.lua",
 # --- the section, the reset, the explanation, a pasted string ---
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t{ key = \"when.battle\", header = \"when.battleHeader\", items = { \"when.battleTeam\", \"when.battleSpeak\", \"when.battleThank\", \"when.battleItems\" } },\n",
+       "\t\t\t\t\t\"when.battleTeam\",\n\t\t\t\t\t\"when.battleSpeak\",\n\t\t\t\t\t\"when.battleThank\",\n\t\t\t\t\t\"when.battleItems\",\n",
        "",
        "battleground: the section is not on the page",
        expect="battleground: When to offer has the section, its switches are kept and its reset puts them back", script=S)
