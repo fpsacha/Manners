@@ -99,7 +99,7 @@ mutate("Core.lua",
 
 # A resurrection learned is not something to cast: no prompt for a monk.
 mutate("Core.lua",
-       "\tif caps.res then return true end\n",
+       "\tif caps.res and ns.Resurrect and ns.Resurrect.Wanted() then return true end\n",
        "",
        "res: a resurrection alone is nothing to cast",
        expect=ALONE, script=S)
@@ -227,7 +227,7 @@ mutate("Resurrect.lua",
 
 # The PvP rule not asked.
 mutate("Resurrect.lua",
-       "\tif db.filters.skipPvP == true and ns.PvPHoldsBack(ns.PvPFlag(unit)) then\n",
+       "\tif flagged then\n",
        "\tif false then\n",
        "res: offered to somebody flagged for PvP",
        expect=RULES, script=S)

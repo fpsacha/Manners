@@ -2521,6 +2521,9 @@ function ns.BuildQueue(watch)
 	-- same rule, the target and focus still exempt.
 	if battle then inTown = not ns.Battle.On("team") end
 	if inTown then notResting = true end
+	-- A resurrection waits by the same rule (Resurrect.lua): the dead are handed
+	-- over by the walk before any of this is asked of them.
+	if ns.deadSeen then ns.deadSeen.quiet = inTown or nil end
 	-- The short buffs alone, while resting (Who to buff: Hold back short buffs in
 	-- cities and inns): their length in seconds, nil when nothing is held. The
 	-- whole-person rule above already holds everything, so it is not asked then.

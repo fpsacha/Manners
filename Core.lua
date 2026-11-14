@@ -1127,7 +1127,8 @@ function ns.CanCastAnything()
 	-- put on a weapon, whatever he has learned (ns.OwnItemsHeld).
 	if ns.OwnItemsHeld() then return true end
 	-- A resurrection learned is something to cast (Resurrect.lua): a monk on retail has nothing else.
-	if caps.res then return true end
+	-- Only with My group's dead on: off, it is as if there were none.
+	if caps.res and ns.Resurrect and ns.Resurrect.Wanted() then return true end
 	-- Nor with Ask people for a buff I'm missing on (Ask.lua): for a class
 	-- with nothing to give, asking is what the prompt does for other people.
 	if ns.AskLive and ns.AskLive() then return true end
