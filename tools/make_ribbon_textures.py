@@ -12,9 +12,10 @@ box-filtered down in premultiplied alpha; the colour is then bled into the
 fully transparent texels, so the client's bilinear filtering never pulls in a
 dark fringe.
 
-Ribbon is a length of crimson satin with a forked end, edged in gold cord,
-and a round gold medallion lying over its left end with the spell cut round
-into it. Everything is modelled, not painted flat: a surface is a height in
+Ribbon is a tournament pennant (the Argent Tournament's, in Icecrown): a
+length of crimson damask with a forked end, edged in twisted gold cord, and a
+round gold medallion lying over its left end, a victor's laurel on its lip,
+with the spell cut round into it. Everything is modelled, not painted flat: a surface is a height in
 texels, its normal is read off the slope, and the gold is lit as polished
 metal is (a warm sky above reflected in every face that looks up, a dark
 ground in every face that looks down, a hot specular where the half-vector
@@ -38,21 +39,34 @@ here, so they land as a number of UI units there (Looks/Ribbon.lua names the
 figures that must agree: END_PX, NOTCH_PX, RIBBON_PX, SHADOW_PX, RING_PEAK,
 MEDAL_*; the rails take RAIL_ROWS rows, which is the 5.8 in its Geometry).
 
-  Ribbon_Cloth_Mid   128x64  the cloth's middle, stretched: grey satin, a
-                             sheen band on the bulge, soft folds, a shaded hem
-  Ribbon_Cloth_End    32x64  the cloth's forked end: the tails turn back a
-                             little and crease from the apex; _EndL is it
-                             turned round, lit from the same side, for a
-                             ribbon with no medallion
-  Ribbon_Trim_Mid     16x64  the gold cord along the top and the hem: a dark
-                             outline outside it, a dark seam and a thread of
-                             gold stitching against the cloth
-  Ribbon_Trim_End     32x64  the same, running round the fork (and _EndL)
+  Ribbon_Cloth_Mid   128x64  the cloth's middle, tiled (REPEAT) in whole
+                             periods of its damask, four to the file: grey
+                             satin, a sheen band on the bulge, a shaded hem,
+                             and a figure of lozenges and quatrefoils woven in
+  Ribbon_Cloth_End   256x256 the cloth's forked end as a sheet of 32 frames
+                             (8 x 4, each 32x64) of one flutter: a fold runs
+                             out along the tails, which swing in turn; the
+                             first and last column of every frame are empty.
+                             _EndL is it turned round, lit from the same
+                             side, for a ribbon with no medallion
+  Ribbon_Wave        128x64  the folds that run down the ribbon: black, as
+                             deep as a fold is turned from the light, one
+                             fold to the file (REPEAT), scrolled one file to
+                             a round of the flutter, whose frames take it up
+                             at the seam
+  Ribbon_Trim_Mid     64x64  the gold cord along the top and the hem, tiled
+                             in whole strands of its twist, eight to the
+                             file: a dark outline outside it, a dark seam and
+                             a thread of gold stitches against the cloth
+  Ribbon_Trim_End    256x256 the same, running round the fork, frame for
+                             frame with the cloth's sheet (and _EndL)
   Ribbon_Drop_Mid     16x64  the ribbon's shadow, blurred (black)
   Ribbon_Drop_End     32x64  the same for the forked end (and _EndL)
-  Ribbon_Medal       128x128 the medallion's gold: a beaded lip, a channel for
-                             the enamel, a rounded bezel for the icon, a
-                             bevelled edge with a dark outline
+  Ribbon_Medal       128x128 the medallion's gold: a laurel on its lip, a
+                             channel for the enamel, a tall bezel for the
+                             icon with a groove turned in its crown, a milled
+                             and bevelled edge with a dark outline, the
+                             hollows in shade
   Ribbon_Enamel      128x128 white: the ring that lies in the channel, in the
                              reason colour, shaded as glossy fired enamel is
   Ribbon_Gloss       128x128 the light on the enamel: a crescent at the upper
@@ -69,7 +83,14 @@ MEDAL_*; the rails take RAIL_ROWS rows, which is the 5.8 in its Geometry).
                              of the half-width
   Ribbon_Sweep        64x64  a soft slanted band of light that runs along the
                              cloth (ADD)
-  Ribbon_Glint        64x64  a four-pointed star for the medallion (ADD)
+  Ribbon_Glint        64x64  a four-pointed star for the medallion and the
+                             fork's tips (ADD)
+  Ribbon_Burst       128x128 the rays that stand out behind the medallion
+                             when the prize is pinned on (ADD, under the cloth)
+  Ribbon_Arc         128x128 the gleam that goes round the laurel: a crescent
+                             with a bright head, which the Lua turns
+  Ribbon_RailGleam    64x64  the gleam that runs down the two cords: light on
+                             the rows the cord lies in, soft at both ends
   Ribbon_Tag          64x32  3 pieces: a small bevelled gold tag for the bound
                              key
   Ribbon_Badge        64x32  3 pieces: a small gold badge with a field of
@@ -117,6 +138,21 @@ SHADE_FILL = 0.70
 RING_PEAK, RING_SIGMA = 0.70, 0.075
 # The brightest grey of the cloth (Looks/Ribbon.lua's LIT_GREY counts on it).
 LIGHTEST = 0.930
+# The damask woven into the cloth repeats every DAMASK_PX texels along the
+# ribbon and the cord's twist every ROPE_PX: the middles are drawn REPEAT, in
+# whole periods (Looks/Ribbon.lua's CLOTH_PER and TRIM_PER are the periods a
+# file holds), so the weave is never stretched to the prompt's width.
+DAMASK_PX, ROPE_PX = 32.0, 8.0
+# The forked end is a drawn animation: FRAMES frames of one flutter, COLS by
+# SHEET_ROWS to a sheet, played over and over by Looks/Flow.lua in step with the
+# wave that scrolls down the middle (one file of Ribbon_Wave a loop).
+FRAMES, COLS, SHEET_ROWS = 32, 8, 4
+# The wave: how deep its folds shade the cloth, and how far a fold leans from
+# the top of the ribbon to the hem, in files.
+WAVE_DEPTH, WAVE_LEAN = 0.40, 0.30
+# The flutter of the tails: the wavelength of the fold that runs out along
+# them, how far it lifts the cloth (texels), and how far a tail's edge swings.
+FLUTTER_PX, FLUTTER_DEPTH, SWING_PX = 46.0, 5.6, 7.0
 
 # Light from the upper left, a little in front (x right, y down, z out).
 LIGHT = np.array([-0.46, -0.66, 0.60], np.float32)
@@ -336,11 +372,40 @@ def cloth_height(x, y, end):
         # from the apex out along the middle of the tail.
         h = h - 4.2 * t ** 1.4
         h = h - 2.0 * np.exp(-((v - 0.5) / 0.07) ** 2) * sstep(0.0, 0.7, t)
-    else:
-        u = x / 128.0
-        env = np.sin(np.pi * u)
-        h = h + env * (1.3 * np.sin(2 * np.pi * u + 0.5) + 0.6 * np.sin(2 * np.pi * 2.3 * u + 2.1))
     return h
+
+
+def wave_alpha(u, v):
+    """How deep the folds of the wave shade the cloth at u (files along the
+    ribbon) and v (0 at the top, 1 at the hem): the troughs, turned from the
+    light, lean down the ribbon; the crests are the cloth as it is drawn. One
+    fold and a ripple on it to a file, so the file tiles."""
+    th = 2 * np.pi * (u - WAVE_LEAN * (v - 0.5))
+    a = 0.80 * np.clip(np.sin(th), 0, 1) ** 1.5 + 0.20 * np.clip(np.sin(2 * th + 1.3), 0, 1) ** 2
+    return WAVE_DEPTH * a * (0.82 + 0.18 * v)
+
+
+def damask(x, y, along):
+    """The figure woven into the cloth, 0 to 1: a lattice of lozenges, a
+    small quatrefoil in each and a pip where four meet, DAMASK_PX to a
+    period along the ribbon (`along`: from the seam of an end, so the pieces
+    meet in step)."""
+    px, py = DAMASK_PX / 2, 23.0
+    dx = np.abs(np.mod(along, DAMASK_PX) - px)
+    dy = np.abs(y - RIBBON_PX / 2)
+    norm = (1 / px ** 2 + 1 / py ** 2) ** -0.5
+    lattice = np.abs(dx / px + dy / py - 1.0) * norm
+    line = 1 - sstep(0.75, 1.65, lattice)
+    # The quatrefoil: four petals round the middle of the lozenge.
+    petal = None
+    for ox, oy in ((3.6, 0.0), (0.0, 4.6)):
+        d = np.sqrt((dx - ox) ** 2 + (dy - oy) ** 2)
+        p = 1 - sstep(2.3, 3.3, d)
+        petal = p if petal is None else np.maximum(petal, p)
+    heart = sstep(0.6, 1.4, np.sqrt(dx * dx + dy * dy))
+    # The pip in the corner, where the lozenges meet (half a period along).
+    pip = 1 - sstep(1.6, 2.6, np.sqrt((dx - px) ** 2 + dy ** 2))
+    return np.clip(np.maximum(np.maximum(line, petal * heart), pip), 0, 1)
 
 
 def cloth_shade(x, y, end):
@@ -359,11 +424,12 @@ def cloth_shade(x, y, end):
         # from the light and catches it along the other.
         fold = np.exp(-np.maximum(d, 0) / 3.5)
         s = s * (1 - 0.22 * fold * (lit < 0.0)) * (1 + 0.05 * fold * (lit > 0.0))
-    # A faint twill: diagonal threads, six rows apart, and the grain of the
-    # weave (a hash of the texel, the same every run).
-    twill = np.cos((x + 2.0 * y) * (2 * np.pi / 6.0))
-    grain = np.modf(np.sin(x * 12.9898 + y * 78.233) * 43758.5453)[0] - 0.5
-    s = s * (1 + 0.014 * twill + 0.012 * grain)
+    # A faint twill: diagonal threads, four rows apart (so the middle tiles),
+    # and the grain of the weave (a hash of the texel, the same every run).
+    twill = np.cos((x + 2.0 * y) * (2 * np.pi / 4.0))
+    gx, gy = np.floor(x * SS) / SS, np.floor(y * SS) / SS
+    grain = np.modf(np.sin(np.mod(gx, 128.0) * 12.9898 + gy * 78.233) * 43758.5453)[0] - 0.5
+    s = s * (1 + 0.016 * twill + 0.012 * grain)
     return s
 
 
@@ -380,9 +446,84 @@ def cloth_grey(x, y, end, k):
     """The cloth's grey scaled to the plain cloth's LIGHTEST, the crests of
     the folds eased in above it (a soft knee, so nothing clips flat)."""
     s = cloth_shade(x, y, end) * k
+    # The damask: its figure is woven the other way, so it takes the light
+    # duller than the satin round it, with a thread of light along the upper
+    # left of every shape (the figure stands a hair proud). Under the rails
+    # and in the fork's shade it gives way.
+    d, _, _ = nearest_edge(x, y, end)
+    along = mirror(x, end) if end else x
+    fig = damask(x, y, along)
+    rim = np.clip(fig - damask(x, y + 1.1, along + 0.9), 0, 1)
+    field = sstep(RAIL_ROWS + 0.5, RAIL_ROWS + 3.5, d)
+    s = s * (1 - 0.17 * fig * field) * (1 + 0.10 * rim * field)
     knee = LIGHTEST - 0.03
     s = np.where(s > knee, knee + (s - knee) * 0.4, s)
     return np.clip(np.minimum(s, LIGHTEST), 0, 1)
+
+
+def flutter(x, y, end, f):
+    """Frame f of the forked end's flutter: where on the cloth as it lies at
+    rest the texel (x, y) of the frame looks, how deep the folds shade it
+    there, and how far the faces turned to the light are lifted. A fold runs
+    out along the tails, growing from nothing at the seam: the cloth comes
+    towards the eye and falls back, so it is drawn shorter where it slopes
+    (the tips draw in), its faces turned from the light go dark, and each
+    tail's edge swings in and out, the two a little out of step. Under it the
+    wave of the middle runs on from the seam, in step with Ribbon_Wave as
+    Looks/Flow.lua scrolls it (one file a loop)."""
+    phi = 2 * np.pi * f / FRAMES
+    xe = mirror(x, end)
+    v = y / RIBBON_PX
+    q = np.clip(xe / END_PX, 0, 1)
+    amp = q ** 1.35
+    damp = 1.35 * q ** 0.35 / END_PX
+    th = 2 * np.pi * (xe / FLUTTER_PX - 0.30 * (v - 0.5)) - phi + 0.6
+    zx = FLUTTER_DEPTH * (damp * np.sin(th) + amp * np.cos(th) * 2 * np.pi / FLUTTER_PX)
+    # Drawn shorter where it slopes: summed out from the seam.
+    short = 0.5 * zx * zx / SS
+    if end == END_L:
+        r = np.cumsum(short[:, ::-1], axis=1)[:, ::-1]
+    else:
+        r = np.cumsum(short, axis=1)
+    xme = xe + r
+    top = SWING_PX * amp * (0.5 + 0.5 * np.sin(2 * np.pi * xe / FLUTTER_PX - phi + 1.5))
+    hem = SWING_PX * amp * (0.5 + 0.5 * np.sin(2 * np.pi * xe / FLUTTER_PX - phi + 1.5 + np.pi))
+    half = RIBBON_PX / 2
+    ym = np.where(y < half, half - (half - y) * half / (half - top), half + (y - half) * half / (half - hem))
+    # The light is at the upper left: on the right end a face that rises
+    # away from the seam looks at it, on the left end one that falls.
+    face = zx if end != END_L else -zx
+    shade = np.clip(-face * 0.95, 0, 0.50) * sstep(0.0, 0.3, q)
+    lift = np.clip(face * 0.22, 0, 0.10) * sstep(0.0, 0.3, q)
+    # The wave of the middle, running on: to the right of the right seam,
+    # to the left of the left one (the Lua lays whole files of it between
+    # two forked ends).
+    u = -f / float(FRAMES) + (xme / 128.0 if end != END_L else -xme / 128.0)
+    ride = wave_alpha(u, ym / RIBBON_PX) * (1 - 0.55 * sstep(0.2, 1.0, q))
+    shade = 1 - (1 - ride) * (1 - shade)
+    return mirror(xme, end), ym, shade, lift
+
+
+def sheet(name, paint):
+    """A sheet of FRAMES frames of the forked end, COLS by SHEET_ROWS, read
+    left to right and top to bottom; paint(x, y, f) -> (rgb, alpha). The
+    first and the last column of every frame are left empty: the client
+    filters a frame's edge with its neighbour's, which would draw a hair of
+    the next frame's seam beyond the tips and a hair of nothing at the seam.
+    The Lua lays the middle over the seam's column (its LAP)."""
+    x, y = grid(END_PX, RIBBON_PX)
+    out = np.zeros((RIBBON_PX * SHEET_ROWS, END_PX * COLS, 4), np.uint8)
+    for f in range(FRAMES):
+        rgb, a = paint(x, y, f)
+        rgb = np.asarray(rgb, np.float32)
+        if rgb.ndim == 2:
+            rgb = np.repeat(rgb[..., None], 3, axis=2)
+        col, row = f % COLS, f // COLS
+        cell = finish(rgb, a.astype(np.float32), END_PX, RIBBON_PX)
+        cell[:, 0, 3] = 0
+        cell[:, END_PX - 1, 3] = 0
+        out[row * RIBBON_PX:(row + 1) * RIBBON_PX, col * END_PX:(col + 1) * END_PX] = cell
+    save(name, out)
 
 
 def make_cloth_mid():
@@ -397,11 +538,22 @@ def make_cloth_mid():
 def make_cloth_end():
     k = cloth_norm()
     for name, end in (("Ribbon_Cloth_End", END_R), ("Ribbon_Cloth_EndL", END_L)):
-        def paint(x, y, end=end):
-            s = cloth_grey(x, y, end, k)
-            a = cover(-silhouette(x, y, end))
+        def paint(x, y, f, end=end):
+            xm, ym, shade, lift = flutter(x, y, end, f)
+            s = np.minimum(cloth_grey(xm, ym, end, k) * (1 + lift), LIGHTEST) * (1 - shade)
+            a = cover(-silhouette(xm, ym, end))
             return s, a
-        make(name, END_PX, RIBBON_PX, paint)
+        sheet(name, paint)
+
+
+def make_wave():
+    """The folds that run down the ribbon: black, as deep as the fold is
+    turned from the light, drawn over the cloth and its rails and scrolled
+    towards the fork."""
+    def paint(x, y):
+        a = wave_alpha(x / 128.0, y / float(RIBBON_PX))
+        return np.zeros(a.shape), a
+    make("Ribbon_Wave", 128, RIBBON_PX, paint)
 
 
 def trim_paint(x, y, end):
@@ -423,16 +575,21 @@ def trim_paint(x, y, end):
     nh = np.clip(across * lit * hxy + up * HALF[2], 0, 1)
     env = 0.5 + 0.5 * across * lit
     t = 0.20 + 0.34 * env + 0.30 * nl + 0.75 * nh ** 30
-    # The twist of the cord: a strand every seven rows, leaning across it (a
-    # hint only: the middle is stretched, and a strong twist would wobble).
-    t = t + 0.035 * np.cos(2 * np.pi * (along / 7.0) + np.pi * k)
+    # The twist of the cord: a strand every ROPE_PX texels, leaning across
+    # it, round on top and dark in the groove between two (the middle is
+    # tiled in whole strands, so the twist is drawn as it is).
+    strand = np.cos(2 * np.pi * (along / ROPE_PX) + 2.2 * np.pi * k)
+    t = t + 0.085 * strand - 0.15 * np.clip(-strand - 0.45, 0, 1)
     cord = sstep(c0 - 0.3, c0 + 0.3, d) * (1 - sstep(c1 - 0.3, c1 + 0.3, d))
     # The seam: a dark line against the cloth; the thread: gold stitching.
     s1 = c1 + SEAM_PX
     seam = sstep(c1 - 0.3, c1 + 0.3, d) * (1 - sstep(s1 - 0.3, s1 + 0.3, d)) * 0.85
     t0, t1 = s1 + 0.12, s1 + 0.12 + 0.55
     thread = sstep(t0 - 0.25, t0 + 0.25, d) * (1 - sstep(t1 - 0.25, t1 + 0.25, d)) * 0.70
-    stitch = 0.60 + 0.16 * np.cos(2 * np.pi * along / 3.0)
+    # Stitches, four texels each: a dash of thread and the cloth between.
+    dash = np.cos(2 * np.pi * along / 4.0)
+    stitch = 0.66 + 0.14 * dash
+    thread = thread * (0.30 + 0.70 * sstep(-0.55, 0.05, dash))
     out = (dark(d.shape, (0.13, 0.05, 0.02)) * outline[..., None] + gold(t) * cord[..., None]
            + dark(d.shape, (0.10, 0.03, 0.02)) * seam[..., None] + gold(stitch) * thread[..., None])
     a = np.clip(outline + cord + seam + thread, 0, 1)
@@ -441,12 +598,16 @@ def trim_paint(x, y, end):
 
 
 def make_trim_mid():
-    make("Ribbon_Trim_Mid", 16, RIBBON_PX, lambda x, y: trim_paint(x, y, MID))
+    make("Ribbon_Trim_Mid", 64, RIBBON_PX, lambda x, y: trim_paint(x, y, MID))
 
 
 def make_trim_end():
-    make("Ribbon_Trim_End", END_PX, RIBBON_PX, lambda x, y: trim_paint(x, y, END_R))
-    make("Ribbon_Trim_EndL", END_PX, RIBBON_PX, lambda x, y: trim_paint(x, y, END_L))
+    for name, end in (("Ribbon_Trim_End", END_R), ("Ribbon_Trim_EndL", END_L)):
+        def paint(x, y, f, end=end):
+            xm, ym, shade, lift = flutter(x, y, end, f)
+            col, a = trim_paint(xm, ym, end)
+            return col * (1 - shade)[..., None], a
+        sheet(name, paint)
 
 
 def drop_paint(w, end):
@@ -481,8 +642,12 @@ def polar(x, y, size):
     return dx / half, dy / half, r
 
 
-# The beads on the lip.
-BEADS = 32
+# The laurel on the lip: this many leaves round it, each lying along the lip
+# and leaning out, climbing both sides from a boss at the foot to one at the
+# crown, as a victor's wreath is bound.
+LEAVES = 18
+# The milling on the edge's bevel, as a coin's edge is milled.
+MILLS = 60
 
 
 def medal_height(x, y, size):
@@ -494,30 +659,54 @@ def medal_height(x, y, size):
     ang = np.arctan2(ny_, nx_)
     h = np.zeros_like(r)
     k = np.clip((r - M_BEZEL) / (M_CH_IN - M_BEZEL), 0, 1)
-    bezel = 3.6 * np.maximum(np.sin(np.pi * k), 0) ** 0.85
+    # The bezel: a ring that stands well proud of the well and of the channel,
+    # with a fine groove turned into its crown.
+    bezel = 5.0 * np.maximum(np.sin(np.pi * k), 0) ** 0.80 - 0.9 * np.exp(-((k - 0.5) / 0.09) ** 2)
     h = np.where((r >= M_BEZEL) & (r < M_CH_IN), bezel, h)
-    h = np.where((r >= M_CH_IN) & (r < M_LIP), -1.8, h)
+    h = np.where((r >= M_CH_IN) & (r < M_LIP), -2.4, h)
     k = np.clip((r - M_LIP) / (M_BEVEL - M_LIP), 0, 1)
-    lip = 3.4 * np.maximum(np.sin(np.pi * k), 0) ** 0.8
-    # Each bead is a small sphere on the lip, evenly round it.
+    lip = 3.2 * np.maximum(np.sin(np.pi * k), 0) ** 0.8
+    # The laurel: each leaf a long low dome lying along the lip, leaning
+    # outward as it climbs, a vein down its middle; the leaves of the two
+    # sides mirror one another and meet at the crown.
     rb = (M_LIP + M_BEVEL) / 2
-    rs = (2 * np.pi * rb * half / BEADS) / 2 * 0.92
-    a0 = np.round(ang * BEADS / (2 * np.pi)) * (2 * np.pi / BEADS)
-    bx, by = rb * np.cos(a0) * half, rb * np.sin(a0) * half
-    db = np.sqrt((nx_ * half - bx) ** 2 + (ny_ * half - by) ** 2)
-    bead = np.sqrt(np.maximum(rs * rs - db * db, 0)) * 0.75
-    h = np.where((r >= M_LIP) & (r < M_BEVEL), lip * 0.70 + bead, h)
+    step = 2 * np.pi / LEAVES
+    climb = np.where(nx_ >= 0, -1.0, 1.0)
+    la, lb = rb * half * step * 0.78, (M_BEVEL - M_LIP) * half * 0.62
+    tilt = np.radians(24.0)
+    leaf = np.zeros_like(r)
+    for off in (-1, 0, 1):
+        a0 = (np.round(ang / step - 0.5) + 0.5 + off) * step
+        along = (ang - a0) * rb * half * climb
+        across = (r - rb) * half
+        u = along * np.cos(tilt) + across * np.sin(tilt)
+        w = -along * np.sin(tilt) + across * np.cos(tilt)
+        e = 1 - (u / la) ** 2 - (w / lb) ** 2
+        dome = np.sqrt(np.maximum(e, 0)) * (1 - 0.30 * np.exp(-(w / 0.55) ** 2))
+        leaf = np.maximum(leaf, dome)
+    # The bosses at the crown and the foot, where the wreath is bound.
+    for ay in (-1.0, 1.0):
+        db = np.sqrt((nx_ * half) ** 2 + ((ny_ - ay * rb) * half) ** 2)
+        rs = (M_BEVEL - M_LIP) * half * 0.60
+        leaf = np.maximum(leaf, np.sqrt(np.maximum(rs * rs - db * db, 0)) / rs * 1.25)
+    h = np.where((r >= M_LIP) & (r < M_BEVEL), lip * 0.50 + 3.7 * leaf, h)
     k = np.clip((r - M_BEVEL) / (M_OUT - M_BEVEL), 0, 1)
-    h = np.where(r >= M_BEVEL, -3.6 * k, h)
+    # The edge: milled, and bevelled away to the outline.
+    h = np.where(r >= M_BEVEL, -3.6 * k + 0.55 * np.sin(ang * MILLS) * np.sin(np.pi * k), h)
     return h, r, ang, nx_, ny_
 
 
 def medal_shading(x, y, size):
     h, r, ang, nx_, ny_ = medal_height(x, y, size)
     nx, ny, nz = normals(h, 0.55)
-    t, spec = metal(nx, ny, nz)
+    t, spec = metal(nx, ny, nz, 30.0)
     # The disc is domed a little as a whole: a broad light from the upper left.
     t = t + 0.14 * (-(nx_ * 0.5 + ny_ * 0.85))
+    # Relief throws shade: the hollows (the channel under its walls, the
+    # gaps between the leaves) stand lower than the metal round them, and are
+    # darker for it.
+    hollow = np.clip(blur(h, 2.2 * SS) - h, 0, 3.0)
+    t = t - 0.105 * hollow
     return r, ang, t, spec, nx_, ny_
 
 
@@ -666,6 +855,56 @@ def make_glint():
     make("Ribbon_Glint", 64, 64, paint)
 
 
+def make_burst():
+    """The rays that stand out behind the medallion when a prize is pinned
+    on: eight long and eight short, thin at the tip, drawn under the cloth so
+    they show only round the medallion and past the ribbon's edges."""
+    size = 128
+
+    def paint(x, y):
+        nx_, ny_, r = polar(x, y, size)
+        ang = np.arctan2(ny_, nx_)
+        c = np.cos(8 * ang + 0.4)
+        long_ = np.clip(c, 0, 1) ** 4 * (1 - sstep(0.40, 0.97, r)) ** 0.7
+        short = np.clip(-c, 0, 1) ** 8 * (1 - sstep(0.30, 0.78, r))
+        glow = 0.75 * np.exp(-(r / 0.62) ** 2)
+        a = np.clip(long_ + 0.8 * short + glow, 0, 1) * (1 - sstep(0.90, 0.99, r))
+        return np.ones_like(a), a
+    make("Ribbon_Burst", size, size, paint)
+
+
+def make_arc():
+    """The gleam that runs round the medallion's lip: a crescent of light on
+    the laurel, long and thin, bright at its head; the Lua turns it."""
+    size = 128
+
+    def paint(x, y):
+        nx_, ny_, r = polar(x, y, size)
+        ang = np.degrees(np.arctan2(ny_, nx_))
+        rb = (M_LIP + M_BEVEL) / 2
+        band = np.exp(-((r - rb) / 0.034) ** 2)
+        # The head at the top, the tail trailing clockwise behind it.
+        d = np.mod(ang + 90.0 + 180.0, 360.0) - 180.0
+        tail = np.where(d > 0, np.exp(-(d / 9.0) ** 2), np.exp(-(d / 46.0) ** 2))
+        bezel = 0.45 * np.exp(-((r - (M_BEZEL + M_CH_IN) / 2) / 0.030) ** 2)
+        a = np.clip((band + bezel) * tail, 0, 1)
+        return np.ones_like(a), a
+    make("Ribbon_Arc", size, size, paint)
+
+
+def make_rail_gleam():
+    """The gleam that runs down the two cords: light on the rows the cord
+    lies in, at the top and at the hem, soft at both ends; a square the
+    height of the ribbon, which the Lua slides along it."""
+    def paint(x, y):
+        d = np.minimum(y, RIBBON_PX - y)
+        c0 = OUTLINE_PX + CORD_PX / 2
+        cord = np.exp(-((d - c0) / (CORD_PX * 0.42)) ** 2)
+        run = np.exp(-((x - 32.0) / 11.0) ** 2) * sstep(0.0, 6.0, np.minimum(x, 64 - x))
+        return np.ones_like(d), np.clip(cord * run, 0, 1)
+    make("Ribbon_RailGleam", 64, RIBBON_PX, paint)
+
+
 # ------------------------------------------------------------------ tags and gems
 
 # The pill the tags are cut to, 64 x 32: half circles of the full height at
@@ -775,6 +1014,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     make_cloth_mid()
     make_cloth_end()
+    make_wave()
     make_trim_mid()
     make_trim_end()
     make_drops()
@@ -788,6 +1028,9 @@ def main():
     make_ring()
     make_sweep()
     make_glint()
+    make_burst()
+    make_arc()
+    make_rail_gleam()
     make_tag()
     make_badge()
     make_gem()

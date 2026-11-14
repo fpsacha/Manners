@@ -300,11 +300,36 @@ _m(GEN,
    "the cloth painted flat: no sheen, no hem",
    expect="look-ribbon: the art is modelled")
 
+# The folds are the wave's since the cloth moves: ironed out there.
 _m(GEN,
-   "        h = h + env * (1.3 * np.sin(2 * np.pi * u + 0.5) + 0.6 * np.sin(2 * np.pi * 2.3 * u + 2.1))\n",
-   "        h = h + env * 0.0\n",
+   "WAVE_DEPTH, WAVE_LEAN = 0.40, 0.30\n",
+   "WAVE_DEPTH, WAVE_LEAN = 0.0, 0.30\n",
    "the cloth's folds ironed out",
    expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "    s = s * (1 - 0.17 * fig * field) * (1 + 0.10 * rim * field)\n",
+   "    s = s * 1.0\n",
+   "the cloth plain: no figure woven into it",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "FLUTTER_PX, FLUTTER_DEPTH, SWING_PX = 46.0, 5.6, 7.0\n",
+   "FLUTTER_PX, FLUTTER_DEPTH, SWING_PX = 46.0, 5.6, 0.0\n",
+   "the fork's tails never swing: thirty-two frames of one picture",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "        return np.zeros(a.shape), a\n    make(\"Ribbon_Wave\", 128, RIBBON_PX, paint)\n",
+   "        return np.ones(a.shape), a\n    make(\"Ribbon_Wave\", 128, RIBBON_PX, paint)\n",
+   "the folds drawn white: light on the cloth under the words",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "FRAMES, COLS, SHEET_ROWS = 32, 8, 4\n",
+   "FRAMES, COLS, SHEET_ROWS = 16, 8, 2\n",
+   "the fork's sheet drawn in half the frames the code plays",
+   expect="look-ribbon: the code and the generator agree")
 
 _m(GEN,
    "    t = 0.12 + 0.42 * env + 0.30 * diff + 0.90 * spec - 0.10 * np.clip(tilt - 0.85, 0, 1) / 0.15\n",
@@ -583,3 +608,181 @@ _m(RIBBON,
    "\t\tif false then\n\t\t\tdye = { Ribbon.Dye(c[1], c[2], c[3], reason, p.reasonPalette, p.accentByReason) }\n",
    "the rows' cloth never dyed",
    expect="look-ribbon: the rows' gems carry the reason")
+
+# --- it moves: the wave, the flutter, the weave ------------------------------
+
+_m(RIBBON,
+   "\tself.waveFlow = flow:Scroll(self.wave, -SHEET.fps / SHEET.frames, 0, 1, 1)\n",
+   "\tself.waveFlow = flow:Scroll(self.wave, SHEET.fps / SHEET.frames, 0, 1, 1)\n",
+   "the folds running back up the cloth, away from the fork",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "\t\tself.flutter[i] = flow:Sheet(t, SHEET.cols, SHEET.rows, SHEET.frames, SHEET.fps, true)\n",
+   "\t\tself.flutter[i] = flow:Sheet(t, SHEET.cols, SHEET.rows, SHEET.frames, SHEET.fps * 0.75, true)\n",
+   "the fork fluttering out of step with the folds",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "\t\treturn write(handle, t0 + math.floor((now - t0) * SHEET.fps) / SHEET.fps)\n",
+   "\t\treturn write(handle, now)\n",
+   "the folds running on between two frames of the fork: a seam that comes and goes",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "\t\tself.wavePhase = -span - lapLeft * per\n",
+   "\t\tself.wavePhase = 0\n",
+   "the folds not taken up by the fork's frame at the seam",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "\tself.wave:SetTexture(ART .. \"Wave\", \"REPEAT\", \"CLAMP\")\n",
+   "\tself.wave:SetTexture(ART .. \"Wave\")\n",
+   "the wave not tiled along the ribbon",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "not self.refused and kit.FullEffects() and kit.button:IsShown()",
+   "not self.refused and kit.button:IsShown()",
+   "the cloth moving on Calm",
+   expect="look-ribbon: Calm keeps the cloth still")
+
+_m(RIBBON,
+   "(self.active and not self.combat and not self.refused and kit.FullEffects()",
+   "(self.active and not self.refused and kit.FullEffects()",
+   "the cloth moving in a fight",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "not self.combat and not self.refused and kit.FullEffects()",
+   "not self.combat and kit.FullEffects()",
+   "the pennant flying over a refusal",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "kit.FullEffects() and kit.button:IsShown()) and true or false",
+   "kit.FullEffects()) and true or false",
+   "the cloth moving with the prompt down",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "\t\tself:MatchFrames()\n\t\tPlayAll(self.refuse)\n",
+   "\t\tPlayAll(self.refuse)\n",
+   "the refusal darkening the fork's first frame, not the one drawn",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "\tfor _, t in ipairs(self.lights) do t:SetAlpha(0) end\n\tself.flow:StopAll()\n",
+   "\tfor _, t in ipairs(self.lights) do t:SetAlpha(0) end\n",
+   "the cloth still flowing on another look",
+   expect="look-ribbon: the cloth moves at rest")
+
+_m(RIBBON,
+   "\tif not self.showIcon then span = math.max(1, math.floor(span + 0.5)) end\n",
+   "",
+   "the folds meeting the left fork out of step",
+   expect="look-ribbon: with no medallion both forks flutter")
+
+_m(RIBBON,
+   "\t\tif i <= 2 or not self.showIcon then h:Play() else h:Stop() end\n",
+   "\t\tif i <= 2 then h:Play() else h:Stop() end\n",
+   "the left fork still with no medallion over it",
+   expect="look-ribbon: with no medallion both forks flutter")
+
+_m(RIBBON,
+   "\tlocal n = math.max(1, math.floor(width / (weave[2] / weave[1] * k) + 0.5))\n",
+   "\tlocal n = weave[1]\n",
+   "the weave stretched to the prompt's width: one file whatever the length",
+   expect="look-ribbon: the middles are tiled")
+
+_m(RIBBON,
+   "\tset[1]:SetDrawLayer(layer, level + 1)\n",
+   "\tset[1]:SetDrawLayer(layer, level)\n",
+   "a middle on its fork's own level, the seam left to the order they were made in",
+   expect="look-ribbon: the middles are tiled")
+
+_m(RIBBON,
+   "\t\tlapRight = set.flash and k or Lap(k)\n",
+   "\t\tlapRight = 0\n",
+   "the middle stopping at its fork's seam, the fork's empty column uncovered",
+   expect="look-ribbon: the layout holds")
+
+_m(RIBBON,
+   "\treturn math.max(LAP, LAP_TEXELS * k)\n",
+   "\treturn LAP\n",
+   "a big ribbon's middle short of covering its fork's empty column",
+   expect="look-ribbon: the layout holds")
+
+_m(GEN,
+   "        cell[:, 0, 3] = 0\n        cell[:, END_PX - 1, 3] = 0\n",
+   "",
+   "the fork's frames drawn to their edges, each filtered with its neighbour's cloth",
+   expect="look-ribbon: the art is modelled")
+
+# --- the prize pinned on, and the gleam at rest ------------------------------
+
+_m(RIBBON,
+   "\t\tPlayAll(self.prize)\n\t\tself.railAnim:Stop()\n",
+   "\t\tself.railAnim:Stop()\n",
+   "a landing that pins nothing on",
+   expect="look-ribbon: a landing pins the prize on")
+
+_m(RIBBON,
+   "\tself.burst = tex(art, \"BACKGROUND\", -6, \"Burst\", \"ADD\")\n",
+   "\tself.burst = tex(art, \"BORDER\", 7, \"Burst\", \"ADD\")\n",
+   "the rays drawn over the cloth, under the words",
+   expect="look-ribbon: a landing pins the prize on")
+
+_m(RIBBON,
+   "\tself.skyward = { self.medal, self.enamel, self.gloss, self.shade, self.burst }\n",
+   "\tself.skyward = { self.burst }\n",
+   "the medallion leaving the panel as it comes down, and not named",
+   expect="look-ribbon: a landing pins the prize on")
+
+_m(RIBBON,
+   "local PIN_FROM, PIN_SHADE, PIN_SECONDS, BURST_REACH = 1.24, 1.42, 0.14, 1.95\n",
+   "local PIN_FROM, PIN_SHADE, PIN_SECONDS, BURST_REACH = 1.24, 1.42, 0.45, 1.95\n",
+   "the medallion hanging over its size for half a second",
+   expect="look-ribbon: every frame of Ribbon's is under the text")
+
+_m(RIBBON,
+   "\tfor _, g in ipairs(self.prize) do g:Stop() end\n\tfor _, g in ipairs(self.tipAnims) do g:Stop() end\n",
+   "\tfor _, g in ipairs(self.tipAnims) do g:Stop() end\n",
+   "the prize playing on after a repaint about somebody else",
+   expect="look-ribbon: a landing pins the prize on")
+
+_m(RIBBON,
+   "\tlocal railBy = math.max(0, W - g.endW - g.rh * 0.3 - railFrom)\n",
+   "\tlocal railBy = math.max(0, W - railFrom)\n",
+   "the cords' gleam running straight on across the fork",
+   expect="look-ribbon: a landing pins the prize on")
+
+_m(RIBBON,
+   "\t\t-- And a gleam goes round its laurel and down the cords.\n\t\tif self.showIcon then PlayAll(self.gleam) end\n",
+   "",
+   "no gleam on the gold as a favour arrives",
+   expect="look-ribbon: a landing pins the prize on")
+
+_m(RIBBON,
+   "\tself.idleArc = tex(art, \"ARTWORK\", -1, \"Arc\")\n",
+   "\tself.idleArc = tex(art, \"ARTWORK\", -1, \"Arc\", \"ADD\")\n",
+   "the laurel's gleam at rest drawn additive",
+   expect="look-ribbon: a gleam travels the gold")
+
+_m(RIBBON,
+   "local GLEAM_EVERY, GLEAM_PEAK = 7, 1\n",
+   "local GLEAM_EVERY, GLEAM_PEAK = 3, 1\n",
+   "the gleam coming round every three seconds",
+   expect="look-ribbon: a gleam travels the gold")
+
+_m(RIBBON,
+   "\tself.idle = { anim(round), anim(along) }\n",
+   "\tself.idle = { anim(round) }\n\tanim(along)\n",
+   "a loop at rest the look does not name",
+   expect="look-ribbon: a gleam travels the gold")
+
+_m(RIBBON,
+   "\t\tself.flow:StopAll()\n\t\tfor _, g in ipairs(self.idle) do g:Stop() end\n\t\treturn\n",
+   "\t\tself.flow:StopAll()\n\t\treturn\n",
+   "the gleam going on in a fight",
+   expect="look-ribbon: a gleam travels the gold")

@@ -1,13 +1,33 @@
--- Manners -- the Ribbon look: a length of crimson cloth with a forked end, edged
--- in gold, and a round gold medallion lying over its left end with the spell
--- cut round into it.
+-- Manners -- the Ribbon look: a tournament pennant. A length of crimson damask
+-- with a forked end, edged in gold cord, and a round gold medallion lying over
+-- its left end with the spell cut round into it.
+--
+-- FROM WARCRAFT. The Argent Tournament in Icecrown: the swallow-tailed
+-- pennants that fly over the lists, heavy cloth with a figure woven in and a
+-- gold cord sewn along the edge, and the Champion's Seal a rider is handed for
+-- a won joust -- a gold medal with a victor's laurel round it. The prompt is
+-- that pennant with that prize pinned on it.
 --
 -- It is an object, not a panel. The cloth is opaque (its alpha is 1 at rest:
 -- tests/scenarios/look-ribbon.lua holds it there), lit from the top, shaded at
 -- the hem and edged in two gold rails that follow the fork. The medallion is
--- the prompt's height, a little less: a beaded gold lip, a channel of enamel,
--- a rounded bezel, and the spell in the middle, round. The name stands on the
--- cloth in warm gold with a dark shadow, the reason under it in pale peach.
+-- the prompt's height, a little less: a laurel on its lip, a channel of
+-- enamel, a tall bezel, a milled edge, and the spell in the middle, round. The
+-- name stands on the cloth in warm gold with a dark shadow, the reason under
+-- it in pale peach.
+--
+-- IT MOVES (Looks/Flow.lua). The cloth is never still: folds run down the
+-- ribbon from the medallion to the fork (Ribbon_Wave, shade only, scrolled
+-- over the cloth and its rails), and the forked end flutters, a drawn
+-- animation of thirty-two frames in step with them, so a fold that reaches
+-- the seam runs on out along the tails. Now and then a gleam goes round the
+-- laurel and down the two cords (`idle`). All of it stops on Calm, in a
+-- fight, with the prompt down, and over a refusal, when the pennant hangs
+-- dead until the next person. A landed buff is a prize pinned on: the
+-- medallion comes down onto the cloth from a quarter over its size, rays
+-- stand out behind it, a gleam whirls round its laurel and runs down both
+-- cords to the fork's tips, which glint, and a ripple of light and shade goes
+-- down the cloth (`skyward` names what leaves the panel as it does).
 --
 -- WHERE THE REASON IS. The ribbon stays crimson, because that is the object;
 -- the reason is the enamel ring in the medallion (the exact colour of the
@@ -19,7 +39,8 @@
 -- keeping their order of lightness. "Ring around the icon" is the enamel,
 -- "Stripe on the left edge" is the cloth, "Both" is both and "None" is a dark
 -- enamel and crimson cloth. Every dye is held to the contrast the name needs
--- on it (look-ribbon.lua reads the numbers).
+-- on it (look-ribbon.lua reads the numbers); the damask and the folds only
+-- ever darken the cloth, so the lettering reads at least as well on them.
 --
 -- THE FONT. The name is in the serif the game itself sets quest titles in,
 -- Morpheus (the reason line, the list and the tags keep the game's standard
@@ -133,6 +154,28 @@ local MEDAL_BADGE_FROM = 16
 -- The client languages whose "roman" alphabet Morpheus draws.
 local FACE = "Fonts\\MORPHEUS.TTF"
 local ROMAN = { enUS = true, enGB = true, deDE = true, esES = true, esMX = true, frFR = true, itIT = true, ptBR = true }
+-- The art that moves (Looks/Flow.lua), as tools/make_ribbon_textures.py draws
+-- it. The forked end is a sheet of drawn frames, one flutter round. The
+-- middles hold whole periods of their weave ({ periods to a file, the file's
+-- width in rows }) and are tiled, never stretched. The wave is a file WAVE_PX
+-- rows long that scrolls one file a flutter, so the folds that run down the
+-- middle run on into the tails.
+local SHEET = { cols = 8, rows = 4, frames = 32, fps = 16 }
+local TILE = { cloth = { 4, 128 }, trim = { 8, 64 } }
+local WAVE_PX = 128
+-- How far a middle runs on over its forked end, in units, and at the least in
+-- texels of the end's file: a sheet's frame is filtered with its neighbour's
+-- edge, so every frame is drawn with its first and last column empty, and the
+-- middle, a level above the end, covers that column and the one that fades in
+-- after it (Lap).
+local LAP, LAP_TEXELS = 1, 1.6
+-- The prize pinned on (a landing): the medallion comes down from this many
+-- times its size in PIN_SECONDS, its shade from wider still, and the rays
+-- behind it reach this many of its radii.
+local PIN_FROM, PIN_SHADE, PIN_SECONDS, BURST_REACH = 1.24, 1.42, 0.14, 1.95
+-- The gleam that travels the gold at rest: once in this many seconds, and how
+-- bright (BLEND: it stays on screen for a second).
+local GLEAM_EVERY, GLEAM_PEAK = 7, 1
 
 local function Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 local function SubSize(fontSize) return math.max(8, fontSize - 3) end
@@ -418,9 +461,55 @@ end
 -- The three pieces laid over a ribbon from x0 to x1 and top to bottom: the
 -- fork on the right, and on the left either the medallion's place (no piece)
 -- or the end turned round.
+-- The lap for a ribbon drawn `k` units to a texel.
+local function Lap(k)
+	return math.max(LAP, LAP_TEXELS * k)
+end
+
+-- Frame `n` of a forked end's sheet; at rest it is the first.
+local function Frame(t, n)
+	local col, row = n % SHEET.cols, math.floor(n / SHEET.cols)
+	t:SetTexCoord(col / SHEET.cols, (col + 1) / SHEET.cols, row / SHEET.rows, (row + 1) / SHEET.rows)
+end
+
+-- A middle `width` units long whose file is drawn `k` units to a row, tiled in
+-- whole periods of its weave (stretched by half a period at the most, where a
+-- file stretched to the width would be by three times), the weave in step with
+-- the forked end at each seam; `lapLeft` and `lapRight` are the units it runs
+-- on under an end.
+local function Tile(t, weave, width, k, lapLeft, lapRight)
+	local n = math.max(1, math.floor(width / (weave[2] / weave[1] * k) + 0.5))
+	local span = n / weave[1]
+	local per = span / math.max(width, 0.01)
+	t:SetTexCoord(-lapLeft * per, span + lapRight * per, 0, 1)
+end
+
+-- The three pieces as woven cloth or twisted cord: the middle's file tiled,
+-- the ends' sheets at their first frame, the ends on sublevel `level` and the
+-- middle on the one above. `flash`: a piece that is light or shade, which
+-- would show twice where two pieces lie over one another, so its middle runs
+-- on over its end by the empty column alone.
+local function Weave(set, kind, mid, layer, level, flash)
+	set.weave, set.flash = TILE[kind], flash
+	set[1]:SetTexture(ART .. mid, "REPEAT", "CLAMP")
+	set[1]:SetDrawLayer(layer, level + 1)
+	for i = 2, 3 do
+		set[i]:SetDrawLayer(layer, level)
+		Frame(set[i], 0)
+	end
+	return set
+end
+
 local function PlaceCloth(set, rel, x0, x1, top, bottom, endW, medallion)
 	local from = medallion and x0 or x0 + endW
-	Box(set[1], rel, from, top, x1 - endW, bottom)
+	local lapLeft, lapRight = 0, 0
+	if set.weave then
+		local k = (bottom - top) / RIBBON_PX
+		lapRight = set.flash and k or Lap(k)
+		lapLeft = medallion and 0 or lapRight
+		Tile(set[1], set.weave, x1 - endW - from, k, lapLeft, lapRight)
+	end
+	Box(set[1], rel, from - lapLeft, top, x1 - endW + lapRight, bottom)
 	Box(set[2], rel, x1 - endW, top, x1, bottom)
 	Box(set[3], rel, x0, top, x0 + endW, bottom)
 	set[3]:SetShown(not medallion)
@@ -464,6 +553,47 @@ local function PlayAll(list)
 	end
 end
 
+-- The helpers of what is new in the look's motion, kept out of the file's own
+-- locals.
+local Motion = {}
+
+function Motion.Hold(group, seconds, order)
+	return Alpha(group, 0, 0, seconds, order)
+end
+
+function Motion.Move(group, duration, order, delay, smoothing)
+	local move = group:CreateAnimation("Translation")
+	move:SetDuration(duration)
+	move:SetOrder(order or 1)
+	if delay and move.SetStartDelay then move:SetStartDelay(delay) end
+	if smoothing and move.SetSmoothing then move:SetSmoothing(smoothing) end
+	return move
+end
+
+function Motion.Turn(group, degrees, duration, order, delay, smoothing)
+	local turn = group:CreateAnimation("Rotation")
+	if turn.SetDegrees then turn:SetDegrees(degrees) end
+	if turn.SetOrigin then turn:SetOrigin("CENTER", 0, 0) end
+	turn:SetDuration(duration)
+	turn:SetOrder(order or 1)
+	if delay and turn.SetStartDelay then turn:SetStartDelay(delay) end
+	if smoothing and turn.SetSmoothing then turn:SetSmoothing(smoothing) end
+	return turn
+end
+
+-- From `from` times its size down to its own, about its middle.
+function Motion.Land(region, from, duration)
+	local g = region:CreateAnimationGroup()
+	local grow = g:CreateAnimation("Scale")
+	if grow.SetScaleFrom then grow:SetScaleFrom(from, from) end
+	if grow.SetScaleTo then grow:SetScaleTo(1, 1) end
+	if grow.SetOrigin then grow:SetOrigin("CENTER", 0, 0) end
+	grow:SetDuration(duration)
+	grow:SetOrder(1)
+	if grow.SetSmoothing then grow:SetSmoothing("IN") end
+	return g
+end
+
 ---------------------------------------------------------------------------
 -- building
 ---------------------------------------------------------------------------
@@ -499,12 +629,40 @@ function Ribbon:Build(kit)
 	-- The shine that runs along the cloth when a buff lands.
 	self.sweep = tex(art, "BORDER", 4, "Sweep", "ADD")
 	self.sweep:SetAlpha(0)
+	-- Woven: the middles tiled in whole periods, the forked ends a sheet of
+	-- frames (the refusal's pieces are the cloth's own, frame for frame).
+	-- From the bottom up: the cloth's ends and its middle, the cord's ends
+	-- and its middle, the refusal's two flashes, the shine.
+	Weave(self.cloth, "cloth", "Cloth_Mid", "BORDER", -2)
+	Weave(self.trim, "trim", "Trim_Mid", "BORDER", 0)
+	Weave(self.dark, "cloth", "Cloth_Mid", "BORDER", 2, true)
+	Weave(self.hot, "cloth", "Cloth_Mid", "BORDER", 3, true)
+	Each(self.dark, "SetDrawLayer", "BORDER", 2)
+	Each(self.hot, "SetDrawLayer", "BORDER", 3)
+	-- The folds that run down the ribbon: shade only (the file is black), over
+	-- the cloth and its rails, scrolled towards the fork.
+	self.wave = keep(art:CreateTexture(nil, "BORDER", nil, 5))
+	self.wave:SetTexture(ART .. "Wave", "REPEAT", "CLAMP")
+	-- The shade that follows the shine down the cloth when a buff lands (the
+	-- shine's own file, dark), and the gleam on the two cords: one for a
+	-- landing and an arrival, one for the rest.
+	self.wake = tex(art, "BORDER", 6, "Sweep")
+	self.railGleam = tex(art, "BORDER", 7, "RailGleam")
+	self.idleRail = tex(art, "BORDER", 7, "RailGleam")
+	-- The rays behind the medallion when the prize is pinned on: under the
+	-- cloth, so they stand out round the medallion and past the ribbon's edges
+	-- and never under the words.
+	self.burst = tex(art, "BACKGROUND", -6, "Burst", "ADD")
+	-- The glints at the fork's two tips, where the cords' gleam ends.
+	self.tips = { tex(art, "ARTWORK", 3, "Glint", "ADD"), tex(art, "ARTWORK", 3, "Glint", "ADD") }
 
 	-- The list's ribbons: smaller, hanging from behind the main one.
 	self.rowCloth, self.rowTrim, self.gems, self.gemSets = {}, {}, {}, {}
 	for i = 1, #kit.rows do
 		self.rowCloth[i] = Cloth(art, "BORDER", -3, "Cloth_Mid", "Cloth_End", nil, keep)
 		self.rowTrim[i] = Cloth(art, "BORDER", -2, "Trim_Mid", "Trim_End", nil, keep)
+		Weave(self.rowCloth[i], "cloth", "Cloth_Mid", "BORDER", -6)
+		Weave(self.rowTrim[i], "trim", "Trim_Mid", "BORDER", -4)
 		self.rowCloth[i][3]:Hide()
 		self.rowTrim[i][3]:Hide()
 		self.gems[i] = tex(art, "ARTWORK", 1, "Gem")
@@ -529,6 +687,17 @@ function Ribbon:Build(kit)
 	self.hover = tex(art, "ARTWORK", -3, "Lit")
 	self.well = tex(art, "ARTWORK", -2, "Disc")
 	self.glint = tex(art, "ARTWORK", 3, "Glint", "ADD")
+	-- The gleam that goes round the laurel: one for a landing and an arrival,
+	-- one for the rest.
+	self.arc = tex(art, "ARTWORK", -1, "Arc")
+	self.idleArc = tex(art, "ARTWORK", -1, "Arc")
+	-- Every light added to the look that waits at nothing.
+	self.lights = { self.wake, self.railGleam, self.idleRail, self.burst, self.tips[1], self.tips[2], self.arc, self.idleArc }
+	for _, t in ipairs(self.lights) do t:SetAlpha(0) end
+	-- What leaves the panel on purpose when the prize is pinned on: the
+	-- medallion as it comes down from over its size, its shade, and the rays
+	-- (hunt37-effects reads this).
+	self.skyward = { self.medal, self.enamel, self.gloss, self.shade, self.burst }
 	self.enamelLit:SetAlpha(0)
 	self.lit:SetAlpha(0)
 	self.hover:SetAlpha(0)
@@ -571,7 +740,28 @@ function Ribbon:Build(kit)
 		for _, t in ipairs(s) do self.gold[#self.gold + 1] = t end
 	end
 
+	-- What moves by its coordinates (Looks/Flow.lua): the wave, a file a
+	-- flutter, and the four sheets of the forked ends (the cloth's and the
+	-- cord's, right and left).
+	local flow = ns.Looks.Flow.New(art)
+	self.flow = flow
+	self.waveFlow = flow:Scroll(self.wave, -SHEET.fps / SHEET.frames, 0, 1, 1)
+	-- The wave steps with the fork's frames: written at the moment the frame
+	-- on the fork was drawn for, so the folds never part at the seam between
+	-- two frames (a scroll written at every tick ran up to a frame ahead of
+	-- the fork, and the seam showed as a line that came and went).
+	local write = self.waveFlow.Write
+	self.waveFlow.Write = function(handle, now)
+		local t0 = handle.t0 or now
+		return write(handle, t0 + math.floor((now - t0) * SHEET.fps) / SHEET.fps)
+	end
+	self.flutter = {}
+	for i, t in ipairs({ self.cloth[2], self.trim[2], self.cloth[3], self.trim[3] }) do
+		self.flutter[i] = flow:Sheet(t, SHEET.cols, SHEET.rows, SHEET.frames, SHEET.fps, true)
+	end
+
 	self:BuildAnimations(anim)
+	self:BuildPrize(anim)
 	-- Written down while nothing plays: what each texture rests at, so a
 	-- colour never moves it (Looks.lua, ONE ALPHA).
 	ns.Looks.HoldAll(self.own)
@@ -596,6 +786,8 @@ function Ribbon:BuildAnimations(anim)
 	for _, set in ipairs({ self.cloth, self.trim, self.drop }) do
 		for _, t in ipairs(set) do pieces[#pieces + 1] = t end
 	end
+	-- The folds lie on the cloth, and arrive with it.
+	pieces[#pieces + 1] = self.wave
 	for i, t in ipairs(pieces) do
 		local fade = t:CreateAnimationGroup()
 		Alpha(fade, 0, 1, 0.26, 1, nil, "OUT")
@@ -629,7 +821,7 @@ function Ribbon:BuildAnimations(anim)
 	Park(travel, self.sweep, 0)
 	self.travel = anim(travel)
 	self.travelMove = move
-	self.flash = anim(Flash(self.lit, 0.95, 0.07, 0.40))
+	self.flash = anim(Flash(self.lit, 0.95, 0.07, 0.40, PIN_SECONDS - 0.02))
 
 	-- A refusal: the cloth darkens towards red and flashes amber.
 	self.refuse = {}
@@ -646,6 +838,73 @@ function Ribbon:BuildAnimations(anim)
 	self.hoverAnim = anim(hover)
 end
 
+-- The prize pinned on, the gleam that travels the gold, and the ripple: what a
+-- landing plays beside the shine (Flourish), what an arrival plays beside the
+-- slide (Unfurl), and what goes on at rest (Idle). Each light is on the
+-- texture it lights, parked at nothing between plays.
+function Ribbon:BuildPrize(anim)
+	local M = Motion
+	-- The medallion comes down onto the cloth: its gold, its enamel and the
+	-- gloss on it from PIN_FROM times their size, its shade from wider. The
+	-- icon and its well stay where they are, so the prize closes round the
+	-- spell. A scale ends at the size it had, so nothing is left to put back.
+	self.pin = {}
+	for i, t in ipairs({ self.medal, self.enamel, self.gloss, self.shade }) do
+		self.pin[i] = anim(M.Land(t, t == self.shade and PIN_SHADE or PIN_FROM, PIN_SECONDS))
+	end
+	-- The rays, as it lands: up at once, turning a little as they fade.
+	local burst = Flash(self.burst, 0.95, 0.06, 0.36, PIN_SECONDS - 0.02, "IN")
+	M.Turn(burst, -22, 0.36, 2, nil, "OUT")
+	-- The gleam round the laurel: once round, its head leading.
+	local arc = self.arc:CreateAnimationGroup()
+	Alpha(arc, 0, 1, 0.08, 1, PIN_SECONDS - 0.04, "OUT")
+	Alpha(arc, 1, 0, 0.16, 1, PIN_SECONDS + 0.28, "IN")
+	M.Turn(arc, -360, 0.44, 1, PIN_SECONDS - 0.04, "IN_OUT")
+	Park(arc, self.arc, 0)
+	-- The gleam down the two cords, from the medallion to the fork's seam.
+	local rail = self.railGleam:CreateAnimationGroup()
+	Alpha(rail, 0, 1, 0.07, 1, 0.06, "OUT")
+	Alpha(rail, 1, 0, 0.12, 1, 0.30, "IN")
+	rail.move = M.Move(rail, 0.36, 1, 0.06, "IN_OUT")
+	Park(rail, self.railGleam, 0)
+	self.railAnim = anim(rail)
+	-- The two tips glint as it gets there, one a breath after the other.
+	self.tipAnims = { anim(Flash(self.tips[1], 1, 0.06, 0.22, 0.28)), anim(Flash(self.tips[2], 0.9, 0.06, 0.20, 0.34)) }
+	-- The shade that follows the shine down the cloth: a ripple.
+	local wake = self.wake:CreateAnimationGroup()
+	Alpha(wake, 0, 0.34, 0.10, 1, 0.07)
+	Alpha(wake, 0.34, 0, 0.16, 1, 0.37)
+	wake.move = M.Move(wake, 0.48, 1, 0.07, "IN_OUT")
+	Park(wake, self.wake, 0)
+	self.wakeAnim = anim(wake)
+	-- A landing with a medallion plays these; an arrival, the two gleams.
+	self.prize = { anim(burst), anim(arc) }
+	for _, g in ipairs(self.pin) do self.prize[#self.prize + 1] = g end
+	self.gleam = { self.prize[2], self.railAnim }
+
+	-- At rest: every GLEAM_EVERY seconds a gleam goes once round the laurel
+	-- and then down the cords. Pale gold, BLEND; these two loop with nobody
+	-- owed, and are named so (`idle`: hunt35-effects lets them).
+	local wait = GLEAM_EVERY - 2.2
+	local round = self.idleArc:CreateAnimationGroup()
+	round:SetLooping("REPEAT")
+	M.Hold(round, wait, 1)
+	Alpha(round, 0, GLEAM_PEAK, 0.25, 2, nil, "OUT")
+	Alpha(round, GLEAM_PEAK, 0, 0.40, 2, 0.80, "IN")
+	M.Turn(round, -330, 1.20, 2, nil, "IN_OUT")
+	M.Hold(round, 1.0, 3)
+	Park(round, self.idleArc, 0)
+	local along = self.idleRail:CreateAnimationGroup()
+	along:SetLooping("REPEAT")
+	M.Hold(along, wait + 1.0, 1)
+	Alpha(along, 0, GLEAM_PEAK, 0.25, 2, nil, "OUT")
+	Alpha(along, GLEAM_PEAK, 0, 0.35, 2, 0.85, "IN")
+	along.move = M.Move(along, 1.20, 2, nil, "IN_OUT")
+	Park(along, self.idleRail, 0)
+	self.idle = { anim(round), anim(along) }
+	self.idleRailAnim = along
+end
+
 ---------------------------------------------------------------------------
 -- laying out
 ---------------------------------------------------------------------------
@@ -657,6 +916,27 @@ function Ribbon:PlaceRibbon(dx)
 	local art = self.kit.art
 	for _, set in ipairs({ self.cloth, self.trim, self.dark, self.hot }) do
 		PlaceCloth(set, art, x0, x1, g.top, g.bottom, g.endW, self.showIcon)
+	end
+	-- The folds lie on the middle, from the medallion (or the left fork's
+	-- seam) to the right fork's seam, a file to WAVE_PX rows; between two
+	-- forks, whole files of them, so they meet both ends in step.
+	-- They lie over the cloth's own lap at each fork (PlaceCloth).
+	local from, to = self.showIcon and x0 or x0 + g.endW, x1 - g.endW
+	local lap = Lap(g.k)
+	self.lap = lap
+	local lapLeft = self.showIcon and 0 or lap
+	Box(self.wave, art, from - lapLeft, g.top, to + lap, g.bottom)
+	local span = math.max(0.05, (to - from) / (WAVE_PX * g.k))
+	if not self.showIcon then span = math.max(1, math.floor(span + 0.5)) end
+	if span ~= self.waveSpan or lapLeft ~= self.waveLap then
+		self.waveSpan, self.waveLap = span, lapLeft
+		local per = span / math.max(to - from, 0.01)
+		self.waveFlow:Window(span + (lapLeft + lap) * per, 1)
+		-- At the right seam where the flutter's first frame takes it up;
+		-- whatever plays starts again from there (Idle).
+		self.wavePhase = -span - lapLeft * per
+		self.waveFlow:Phase(self.wavePhase, 0)
+		self.idleState = nil
 	end
 	-- The shadow: the cloth's own silhouette, blurred, lower by a unit or
 	-- three (the cloth stands a little off the world), drawn on a canvas of
@@ -722,6 +1002,13 @@ function Ribbon:Apply(p, above)
 	Colour(self.glint, 1, 0.92, 0.66)
 	Colour(self.lit, PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3])
 	Colour(self.hover, 1, 0.90, 0.62)
+	-- The gleams round the laurel, and the rays behind the medallion.
+	for _, t in ipairs({ self.arc, self.idleArc }) do
+		Disc(t, art, cx, cy, size)
+		Colour(t, 1, 0.95, 0.78)
+	end
+	Disc(self.burst, art, cx, cy, 2 * BURST_REACH * g.R)
+	Colour(self.burst, 1, 0.88, 0.56)
 
 	icon:ClearAllPoints()
 	icon:SetShown(showIcon)
@@ -814,6 +1101,7 @@ function Ribbon:Apply(p, above)
 		self.glint, self.shade }) do
 		t:SetShown(showIcon)
 	end
+	for _, t in ipairs({ self.arc, self.idleArc, self.burst }) do t:SetShown(showIcon) end
 	self.fx:SetShown(showIcon)
 	self.cloth[3]:SetShown(not showIcon)
 	self.trim[3]:SetShown(not showIcon)
@@ -841,6 +1129,29 @@ function Ribbon:Apply(p, above)
 	self.travelMove:SetOffset(math.max(10, W - g.notch - 4 - sweepW - from + sweepW * 0.5), 0)
 	for _, t in ipairs(self.hot) do Colour(t, 1, 0.40, 0.10) end
 	for _, t in ipairs(self.dark) do Colour(t, 0.12, 0.0, 0.0) end
+	-- The ripple's shade follows the shine, on its path.
+	self.wake:ClearAllPoints()
+	self.wake:SetPoint("CENTER", art, "TOPLEFT", from, -cy)
+	self.wake:SetSize(sweepW, sweepH)
+	Colour(self.wake, 0.10, 0.0, 0.0)
+	self.wakeAnim.move:SetOffset(math.max(10, W - g.notch - 4 - sweepW - from + sweepW * 0.5), 0)
+	-- The gleam on the cords: a square the height of the cloth, from the
+	-- medallion's edge (or the left fork's seam) to the right fork's seam.
+	local railFrom = showIcon and (cx + g.R) or (g.endW + g.rh * 0.3)
+	local railBy = math.max(0, W - g.endW - g.rh * 0.3 - railFrom)
+	for _, t in ipairs({ self.railGleam, self.idleRail }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", railFrom, -cy)
+		t:SetSize(g.rh, g.rh)
+		Colour(t, 1, 0.95, 0.78)
+	end
+	self.railAnim.move:SetOffset(railBy, 0)
+	self.idleRailAnim.move:SetOffset(railBy, 0)
+	-- The glints on the fork's tips.
+	local tip = Clamp(g.rh * 0.62, 10, 26)
+	Disc(self.tips[1], art, W - 1.5, g.top + 1.5, tip)
+	Disc(self.tips[2], art, W - 1.5, g.bottom - 1.5, tip)
+	for _, t in ipairs(self.tips) do Colour(t, 1, 0.94, 0.72) end
 
 	-- A fight's hold outlives a restyle: Prompt only says so again when it
 	-- changes, so the look puts it back itself.
@@ -850,6 +1161,9 @@ function Ribbon:Apply(p, above)
 	self.dyeNow, self.ringNow = nil, nil
 	self:Cloth()
 	if held then self:Combat(true) end
+	-- What plays at rest starts again on the new layout.
+	self.idleState = nil
+	self:Idle()
 
 	-- The count's room: a two-digit tag and its inset.
 	-- Chip widens it for a longer count.
@@ -944,6 +1258,9 @@ function Ribbon:Hide()
 	Each(self.dark, "SetAlpha", 0)
 	Each(self.hot, "SetAlpha", 0)
 	for _, x in ipairs(self.own) do x:Hide() end
+	for _, t in ipairs(self.lights) do t:SetAlpha(0) end
+	self.flow:StopAll()
+	self.idleState = nil
 	self.pulseGen = (self.pulseGen or 0) + 1
 	-- The shared regions, as the other looks expect to find them.
 	local icon = kit.icon
@@ -1275,6 +1592,8 @@ function Ribbon:PaintReason(r, g, b, reason, mode)
 	self.verdictInk = nil
 	self.kit.icon:SetDesaturated(self.combat and true or false)
 	self:Cloth()
+	-- A refusal left the pennant hanging; the next person has it flying.
+	self:Idle()
 end
 
 -- The banner holds; the gold dims to bronze, the cloth darkens, the icon greys
@@ -1286,6 +1605,8 @@ function Ribbon:Combat(on)
 	self.combat = on
 	local kit = self.kit
 	self:Cloth()
+	-- A fight is steady: nothing flows, nothing gleams; after it, it flies.
+	self:Idle()
 	kit.icon:SetDesaturated(on or self.refused or false)
 	-- Dimmed by its colour, never its alpha: a see-through icon showed the
 	-- world through one half and the banner through the other.
@@ -1301,6 +1622,58 @@ end
 ---------------------------------------------------------------------------
 -- motion
 ---------------------------------------------------------------------------
+
+-- What the look does at rest: the folds run down the cloth, the fork
+-- flutters in step with them, and now and then a gleam travels the gold. On
+-- Full effects, out of a fight, with the prompt up, and not over a refusal
+-- (the pennant hangs dead until the next reason clears it); stopped
+-- otherwise, the cloth standing as it was. Asked at every paint (Painted), so
+-- it does nothing unless something changed.
+function Ribbon:Idle()
+	local kit = self.kit
+	local on = (self.active and not self.combat and not self.refused and kit.FullEffects() and kit.button:IsShown()) and true or false
+	local state = (on and 1 or 0) + (self.showIcon and 2 or 0)
+	if state == self.idleState then return end
+	self.idleState = state
+	if not on then
+		self.flow:StopAll()
+		for _, g in ipairs(self.idle) do g:Stop() end
+		return
+	end
+	-- Together from the top: the wave's end at the seam where the flutter's
+	-- first frame takes it up (both are worked out from the clock, so they
+	-- stay in step for as long as they play).
+	self.waveFlow:Phase(self.wavePhase or 0, 0)
+	self.waveFlow:Play()
+	for i, h in ipairs(self.flutter) do
+		-- The left fork is drawn only with no medallion.
+		if i <= 2 or not self.showIcon then h:Play() else h:Stop() end
+	end
+	for _, g in ipairs(self.idle) do
+		-- The gleam starts on the medallion's laurel.
+		if self.showIcon then
+			if not g:IsPlaying() then g:Play() end
+		else
+			g:Stop()
+		end
+	end
+end
+
+-- After every paint of a person, on the scan's own tick: the prompt is up, so
+-- what runs at rest may run.
+function Ribbon:Painted()
+	self:Idle()
+end
+
+-- The refusal's pieces and the left fork at the frame the right fork's flutter
+-- stands at, so the cloth that darkens is the cloth that is drawn.
+function Ribbon:MatchFrames()
+	local right, left = self.flutter[1].shown or 0, self.flutter[3].shown or 0
+	for _, set in ipairs({ self.dark, self.hot }) do
+		Frame(set[2], right)
+		Frame(set[3], left)
+	end
+end
 
 -- The breathing, let go: after its breaths, and on Calm.
 function Ribbon:HoldPulse()
@@ -1320,6 +1693,8 @@ function Ribbon:Unfurl(full)
 		self:PlaceRibbon(-self.slideBy)
 		for _, g in ipairs(self.slide) do g:Play() end
 		if self.showIcon then self.glintAnim:Stop() self.glintAnim:Play() end
+		-- And a gleam goes round its laurel and down the cords.
+		if self.showIcon then PlayAll(self.gleam) end
 	end
 end
 
@@ -1368,6 +1743,7 @@ end
 
 function Ribbon:StopAttention()
 	self.pulseGen = (self.pulseGen or 0) + 1
+	if self.active then self:Idle() end
 	for _, g in ipairs(self.pulse) do g:Stop() end
 	self.lit:SetAlpha(0)
 	self.enamelLit:SetAlpha(0)
@@ -1380,6 +1756,7 @@ function Ribbon:Flourish(kind)
 	-- A refusal: the cloth darkens towards red and flashes amber, and one ring
 	-- snaps in onto the medallion. The text's shake is Prompt's.
 	if kind == "failed" then
+		self:MatchFrames()
 		PlayAll(self.refuse)
 		if self.kit.icon:IsShown() then self.fx:Refuse(1.00, 0.40, 0.22, 0.85) end
 		return
@@ -1389,7 +1766,16 @@ function Ribbon:Flourish(kind)
 	-- A shine along the cloth and a flash of the medallion's gold.
 	self.travel:Stop()
 	self.travel:Play()
+	-- The ripple's shade behind it, and the fork's tips.
+	self.wakeAnim:Stop()
+	self.wakeAnim:Play()
+	PlayAll(self.tipAnims)
 	if self.kit.icon:IsShown() then
+		-- The prize pinned on: the medallion comes down, the rays stand out
+		-- behind it, and the gleam goes round its laurel and down the cords.
+		PlayAll(self.prize)
+		self.railAnim:Stop()
+		self.railAnim:Play()
 		self.flash:Stop()
 		self.flash:Play()
 		self.glintAnim:Stop()
@@ -1405,6 +1791,10 @@ function Ribbon:StopFlourishes()
 	self.flash:Stop()
 	self.glintAnim:Stop()
 	self.fx:Stop()
+	for _, g in ipairs(self.prize) do g:Stop() end
+	for _, g in ipairs(self.tipAnims) do g:Stop() end
+	self.railAnim:Stop()
+	self.wakeAnim:Stop()
 	-- The ribbon home: a slide stopped is put back (its first group's OnStop).
 	for _, g in ipairs(self.slide) do g:Stop() end
 	if self.W then self:PlaceRibbon(0) end
@@ -1465,6 +1855,8 @@ function Ribbon:PaintOutcome(kind, lead, sub, who, stamp)
 	self.refused = kind == "failed"
 	kit.icon:SetDesaturated(self.refused or self.combat or false)
 	self:Cloth()
+	-- Refused, the pennant hangs dead: nothing flows until the next reason.
+	self:Idle()
 	if kit.sub:IsShown() then kit.SetLine(kit.sub, word) end
 end
 
@@ -1552,10 +1944,14 @@ function Ribbon:PaintQueue(rows, shown, above)
 		local top, bottom = y - rh / 2, y + rh / 2
 		local cloth, trim = self.rowCloth[i], self.rowTrim[i]
 		local from, to = x0, x1
-		Box(cloth[1], art, from, top, to - self.rowEnd, bottom)
+		local lap = Lap(self.rowK)
+		self.rowLap = lap
+		Box(cloth[1], art, from, top, to - self.rowEnd + lap, bottom)
 		Box(cloth[2], art, to - self.rowEnd, top, to, bottom)
-		Box(trim[1], art, from, top, to - self.rowEnd, bottom)
+		Box(trim[1], art, from, top, to - self.rowEnd + lap, bottom)
 		Box(trim[2], art, to - self.rowEnd, top, to, bottom)
+		Tile(cloth[1], TILE.cloth, to - self.rowEnd - from, self.rowK, 0, lap)
+		Tile(trim[1], TILE.trim, to - self.rowEnd - from, self.rowK, 0, lap)
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)
 		for _, t in ipairs({ self.gems[i], self.gemSets[i] }) do
