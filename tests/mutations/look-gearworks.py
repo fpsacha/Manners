@@ -15,8 +15,8 @@ GEN = "tools/make_gearworks_textures.py"
 # --- registered ---
 
 mutate("Manners.toc",
-       "Looks\\Frost.lua\nLooks\\Gearworks.lua\n",
-       "Looks\\Frost.lua\n",
+       "Looks\\Warchief.lua\nLooks\\Gearworks.lua\n",
+       "Looks\\Warchief.lua\n",
        "look-gearworks: the toc does not load the look",
        expect="look-gearworks: it is registered and in the toc", script=S)
 

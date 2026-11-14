@@ -321,10 +321,14 @@ mutate("Options/Who.lua",
 # Added before a class with nothing for others has the page cleared for it.
 mutate("Options/Who.lua",
        "\tForOthersOnly(who.args)\n"
+       "\t-- Asking for buffs, added after it: a class with nothing for anybody else\n"
+       "\t-- is the one it is for above all.\n"
+       "\tPage.AddAskControls(who.args)\n"
        "\t-- After it: the cures are for a class with nothing else for others too.\n"
        "\tAddCureControls(who.args)\n",
        "\tAddCureControls(who.args)\n"
-       "\tForOthersOnly(who.args)\n",
+       "\tForOthersOnly(who.args)\n"
+       "\tPage.AddAskControls(who.args)\n",
        "cures: the controls hidden from a shaman",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)
 

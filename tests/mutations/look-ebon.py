@@ -21,8 +21,8 @@ S = "runscenarios.py"
 # --- registered ---
 
 mutate("Manners.toc",
-       "Looks\\Frost.lua\nLooks\\Ebon.lua\n",
-       "Looks\\Frost.lua\n",
+       "Looks\\Gearworks.lua\nLooks\\Ebon.lua\n",
+       "Looks\\Gearworks.lua\n",
        "look-ebon: the toc does not load the look",
        expect="look-ebon: it is registered and loaded after the other looks", script=S)
 

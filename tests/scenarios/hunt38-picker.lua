@@ -12,7 +12,7 @@ local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
-local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost" }
+local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon" }
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
 local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" },
 	nameplate3 = { "Corwin", "Ash" }, nameplate4 = { "Dagna", "Moss" } }
@@ -144,6 +144,22 @@ local function dumpAll(root, ns)
 	walk(root)
 	-- Regions hung under a frame as children of the tree only; textures are in
 	-- _children too in this tree.
+	-- A scroll (Looks/Flow.lua) rests where it stands and goes on from there:
+	-- where its window stands is the time it has run, which is not the look's
+	-- to put back. Its window's size is, and that is what is compared.
+	local function scrolls(wearer)
+		for _, h in ipairs(wearer and wearer.flow and wearer.flow.handles or {}) do
+			local e = h.kind == "scroll" and h.tex and out[h.tex._serial]
+			local c = e and h.tex._texCoord
+			if c then
+				e.d._texCoord = #c == 4 and ("a window %.4f by %.4f"):format(c[2] - c[1], c[4] - c[3]) or "a turned window"
+			end
+		end
+	end
+	if ns then
+		for _, look in pairs(ns.Looks.list) do scrolls(look) end
+		for _, dress in pairs(ns.Looks.dress) do scrolls(dress) end
+	end
 	return out
 end
 
@@ -295,6 +311,11 @@ local function play(ns, scenario, variant, moment, a, b)
 	Mock.advance(10)
 	settle(ns)
 	ns.Prompt:ApplyStyle()
+	settle(ns)
+	-- What an animation starts as it ends (Minimal's far tick, lit when the
+	-- cast's spark arrives) began at this very moment: a beat for it to end
+	-- in, on the fresh start and after the pick alike.
+	Mock.advance(2)
 	settle(ns)
 	local out = dumpAll(UIParent, ns)
 	Mock.optionsOpen = nil

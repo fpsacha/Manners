@@ -80,3 +80,11 @@ _m("Core.lua",
    "function addon:TickBody()\n\tif ns.Prompt then ns.Prompt:ApplyStyle() end\n\tlocal now = GetTime()\n",
    "the scan styles the prompt again every time",
    expect="hunt40-layout: the scan does not style the prompt again")
+
+# --- a count pinned on the Letter's seal takes no room from the name ----------
+
+_m("Looks/Letter.lua",
+   "\t\tif self.countMode and self.countMode ~= \"seal\" then nameRoom = nameRoom + (self.countW or 0) + 4 end\n",
+   "\t\tif self.countMode then nameRoom = nameRoom + (self.countW or 0) + 4 end\n",
+   "the Letter's one line gives way to a count that is pinned on the seal",
+   expect=SWEEP + "letter")

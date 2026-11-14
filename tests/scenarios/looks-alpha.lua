@@ -1,4 +1,4 @@
--- A colour never changes a texture's transparency, on any of the fifteen looks.
+-- A colour never changes a texture's transparency, on any of the nineteen looks.
 --
 -- The game keeps ONE alpha for a texture: SetVertexColor(r, g, b, a) writes
 -- over what SetAlpha set, and an alpha left out is documented as 1. The mock
@@ -29,7 +29,7 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage",
-	"lightbringer", "fel", "wild", "frost" }
+	"lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon" }
 local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" },
 	nameplate3 = { "Corwin", "Ash" }, nameplate4 = { "Dagna", "Moss" } }
 local REASONS = { "target", "owed", "asked", "self", "group", "nearby" }
@@ -78,7 +78,7 @@ local function run(scenario, style, game)
 	Mock.reset()
 	local realNew = Mock.newFrame
 	local moved, restFaults = {}, {}
-	local animated = nil
+	local animated, sharedIcon = nil, nil
 	if game then
 		Mock.newFrame = function(...)
 			local f = realNew(...)
@@ -111,8 +111,12 @@ local function run(scenario, style, game)
 					end
 				end
 				-- Coloured where an Alpha animation plays on it: through the
-				-- helper, which knows what the texture rests at.
-				if self._kind == "Texture" and animated and animated[self] and self.restAlpha == nil then
+				-- helper, which knows what the texture rests at. The shared icon
+				-- is every look's and takes no hold (Looks.lua, ONE ALPHA): it
+				-- stands at full alpha wherever it is coloured, which the check
+				-- above holds it to, so a look's fade on it (the Letter's spell
+				-- struck into the wax) is an animation's alpha and no more.
+				if self._kind == "Texture" and animated and animated[self] and self.restAlpha == nil and self ~= sharedIcon then
 					local key = "rest " .. short(self)
 					if not restFaults[key] then
 						restFaults[key] = true
@@ -169,6 +173,7 @@ local function run(scenario, style, game)
 			P:ApplyStyle()
 			ns.addon:Tick()
 			animated = alphaAnimated()
+			sharedIcon = P:LookKit().icon
 			point("at rest")
 			FT.settle()
 			point("at rest, settled")

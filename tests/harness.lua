@@ -25,7 +25,7 @@ local frameMethods = {
   -- A look from Looks/ reshapes the shared icon and moves the reason line
   -- into its tag.
   "SetDesaturated", "RemoveMaskTexture", "SetParent", "SetFrameLevel", "SetStartDelay",
-  "SetScaleFrom", "SetScaleTo", "SetOrigin",
+  "SetScaleFrom", "SetScaleTo", "SetOrigin", "SetDegrees",
   -- The options window (Options/Window/*.lua), which /manners opens: the
   -- frame, button, slider, scroll frame, edit box and font string methods
   -- BUILD.md's Interface 4 allows it.

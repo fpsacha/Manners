@@ -16,8 +16,8 @@ S = "runscenarios.py"
 # --- registered ---
 
 mutate("Looks/Looks.lua",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, wild = true, frost = true }\n",
-       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, frost = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, wild = true, frost = true, warchief = true, gearworks = true, ebon = true }\n",
+       "Looks.roundAlways = { toast = true, ribbon = true, letter = true, archmage = true, lightbringer = true, fel = true, frost = true, warchief = true, gearworks = true, ebon = true }\n",
        "look-wild: the round switch live on the wreath",
        expect="wild is not in roundAlways", script=S)
 

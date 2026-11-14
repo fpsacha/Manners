@@ -108,7 +108,8 @@ local function groupsOf(r)
 		return g
 	end
 	g.intro, g.introCalm = { r.intro }, { r.introCalm }
-	if look.key == "leather" or look.key == "archmage" or look.key == "lightbringer" or look.key == "fel" or look.key == "wild" or look.key == "frost" then
+	if look.key == "leather" or look.key == "archmage" or look.key == "lightbringer" or look.key == "fel" or look.key == "wild" or look.key == "frost"
+		or look.key == "stormcaller" or look.key == "warchief" or look.key == "gearworks" or look.key == "ebon" then
 		g.arrive = {}
 		for _, a in ipairs(look.arrive) do g.arrive[#g.arrive + 1] = a end
 		for _, a in ipairs(look.landing) do g.land[#g.land + 1] = a end
@@ -147,6 +148,10 @@ ALL[#ALL + 1] = "lightbringer"
 ALL[#ALL + 1] = "fel"
 ALL[#ALL + 1] = "wild"
 ALL[#ALL + 1] = "frost"
+ALL[#ALL + 1] = "stormcaller"
+ALL[#ALL + 1] = "warchief"
+ALL[#ALL + 1] = "gearworks"
+ALL[#ALL + 1] = "ebon"
 
 local function snapshot(g)
 	return { arrive = total(g.arrive), land = total(g.land), reject = total(g.reject),
@@ -577,6 +582,7 @@ for _, style in ipairs(ALL) do
 		-- setting says, and the Archmage's hexagon is a hexagon: its sweep's
 		-- edge turns about the middle either way.
 		local want = style == "toast" or style == "archmage" or style == "lightbringer" or style == "fel" or style == "wild" or style == "frost"
+			or style == "warchief" or style == "gearworks" or style == "ebon"
 		if cd._circular ~= want then
 			fail(scenario, "the sweep's edge stayed round after the icon was squared: " .. tostring(cd._circular))
 		end

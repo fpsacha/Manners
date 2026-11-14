@@ -71,6 +71,10 @@ ALL[#ALL + 1] = "lightbringer"
 ALL[#ALL + 1] = "fel"
 ALL[#ALL + 1] = "wild"
 ALL[#ALL + 1] = "frost"
+ALL[#ALL + 1] = "stormcaller"
+ALL[#ALL + 1] = "warchief"
+ALL[#ALL + 1] = "gearworks"
+ALL[#ALL + 1] = "ebon"
 
 local function upIn(ns, scenario, style, size)
 	freshPrompt(ns, scenario)
@@ -273,12 +277,17 @@ local RING_FILES = {
 	{ "Textures/Fel/Fel_FxRing", "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_FxRing" },
 	{ "Textures/Wild/Wild_FxRing", "Interface\\AddOns\\Manners\\Textures\\Wild\\Wild_FxRing" },
 	{ "Textures/Frost/Frost_FxRing", "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_FxRing" },
+	{ "Textures/Stormcaller/Stormcaller_FxRing", "Interface\\AddOns\\Manners\\Textures\\Stormcaller\\Stormcaller_FxRing" },
+	{ "Textures/Stormcaller/Stormcaller_FxRingSq", "Interface\\AddOns\\Manners\\Textures\\Stormcaller\\Stormcaller_FxRingSq" },
+	{ "Textures/Warchief/Warchief_Ring", "Interface\\AddOns\\Manners\\Textures\\Warchief\\Warchief_Ring" },
+	{ "Textures/Gearworks/Gearworks_Ring", "Interface\\AddOns\\Manners\\Textures\\Gearworks\\Gearworks_Ring" },
+	{ "Textures/Ebon/Ebon_FxRing", "Interface\\AddOns\\Manners\\Textures\\Ebon\\Ebon_FxRing" },
 }
 
 withTree("hunt37-effects: each ring's declared reach is the reach of its art", ANNA, function(ns, scenario)
 	local lib = ns.Prompt.lib
 	-- A look registers its files when it is built.
-	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost" }) do
+	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon" }) do
 		freshPrompt(ns, scenario)
 		ns.db.profile.prompt.style = style
 		ns.Prompt:ApplyStyle()
