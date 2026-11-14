@@ -130,8 +130,8 @@ _m(LETTER,
    expect="the default panel colour tints the parchment", script=S)
 
 _m(LETTER,
-   "local PAPER_LUM, PAPER_LUM_LOW = 0.755, 0.478\n",
-   "local PAPER_LUM, PAPER_LUM_LOW = 0.755, 0.70\n",
+   "local PAPER_LUM, PAPER_LUM_LOW = 0.756, 0.494\n",
+   "local PAPER_LUM, PAPER_LUM_LOW = 0.756, 0.70\n",
    "the look's idea of its paper lighter than the file's",
    expect="the look's idea of its paper is the file's", script=S)
 
@@ -830,3 +830,113 @@ _m(LETTER,
    "\tself.glint:SetPoint(\"CENTER\", art, \"TOPLEFT\", cx + 2.5 * rw, -(cy - 0.37 * rw))\n",
    "the glint out on the paper, off the wax",
    expect="the glint is not on the wax", script=S)
+
+# --- what a review of the pictures found -------------------------------------------
+
+_m(LETTER,
+   "\tself.glow = tex(self.glowFrame, \"ARTWORK\", 0, \"Candle\")\n",
+   "\tself.glow = tex(self.glowFrame, \"ARTWORK\", 0, \"Candle\", \"ADD\")\n",
+   "the candle's glow additive again, for the seconds it breathes",
+   expect="the candle's glow rests on the seal and is drawn additive", script=S)
+
+_m(LETTER,
+   "\tself.hilite = tex(self.sealFrame, \"ARTWORK\", 2, \"Candle\")\n",
+   "\tself.hilite = tex(self.sealFrame, \"ARTWORK\", 2, \"Mask\", \"ADD\")\n",
+   "the cursor's light additive again, for as long as the cursor stays",
+   expect="the cursor's light rests on the seal and is drawn additive", script=S)
+
+_m(LETTER,
+   "\tself.core:SetSize(half * 2 * CORE_SIZE, half * 2 * CORE_SIZE)\n",
+   "\tself.core:SetSize(half * 1.2, half * 1.2)\n",
+   "the candle's hot ring laid over the icon",
+   expect="the hot light's ring does not lie on the lip of the recess", script=S)
+
+_m(GEN,
+   "    a = ring * side + 0.14 * np.exp(-(rho / 0.45) ** 2)\n",
+   "    a = ring * side + 0.9 * np.exp(-(rho / 0.45) ** 2)\n",
+   "the candle's light as strong over the icon as on the wax",
+   expect="does not match the file that ships", script=S)
+
+_m(LETTER,
+   "\tAlpha(struck, 0, 0, POP_SECONDS * STRUCK_AT, 1)\n",
+   "\tAlpha(struck, 1, 1, POP_SECONDS * STRUCK_AT, 1)\n",
+   "the icon standing on the paper while the wax is poured under it",
+   expect="the icon stands on the paper", script=S)
+
+_m(LETTER,
+   "\tself.stamp[#self.stamp + 1] = struck\n",
+   "",
+   "the icon's coming left out of the stamp",
+   expect="the icon's coming is not part of the stamp", script=S)
+
+_m(LETTER,
+   "local STRUCK_AT = 0.7\n",
+   "local STRUCK_AT = 0.2\n",
+   "the icon struck into wax that is still a puddle",
+   expect="the icon stands on the paper", script=S)
+
+_m(LETTER,
+   "\tself.sweepFrame:SetPoint(\"TOPLEFT\", self.lightClip, \"TOPLEFT\", 0, 0)\n",
+   "\tself.sweepFrame:SetPoint(\"TOPLEFT\", self.lightClip, \"TOPLEFT\", -bw, 0)\n",
+   "the landing's light slid in through its window's edge",
+   expect="units outside its window", script=S)
+
+_m(LETTER,
+   "\tself.passAnims[1].move:SetOffset(w + 2, 0)\n",
+   "\tself.passAnims[1].move:SetOffset(w * 0.5, 0)\n",
+   "the landing's light stopping halfway along the paper",
+   expect="the light does not cross the whole paper", script=S)
+
+_m(GEN,
+   "    a = a * sstep(0.0, 0.26, y / h) * sstep(1.0, 0.74, y / h)\n",
+   "",
+   "the landing's light at full strength where it is cut at the torn edges",
+   expect="does not match the file that ships", script=S)
+
+_m(LETTER,
+   "\tg.sy = math.min(g.paperH / 64, SY_MAX, SY_NARROW * (g.x1 - g.x0))\n",
+   "\tg.sy = g.paperH / 64\n",
+   "a tall prompt's paper pulled out from one copy of the file",
+   expect="a row of the paper's file is drawn", script=S)
+
+_m(LETTER,
+   "\tg.sy = math.min(g.paperH / 64, SY_MAX, SY_NARROW * (g.x1 - g.x0))\n",
+   "\tg.sy = math.min(g.paperH / 64, SY_MAX)\n",
+   "a short tall sheet's rows drawn three times its columns",
+   expect="its grain runs in streaks", script=S)
+
+_m(GEN,
+   "MID_STRETCH = 1.8\n",
+   "MID_STRETCH = 1.0\n",
+   "the paper drawn evenly along a middle the look stretches",
+   expect="does not match the file that ships", script=S)
+
+_m(GEN,
+   "    side = np.clip(0.5 + 0.5 * toward, 0, 1)\n",
+   "    side = 0.5 + 0.5 * toward - 0.2\n",
+   "the lip's shadow raised to a power where it is under nothing",
+   expect="does not match the file that ships", script=S)
+
+_m(LETTER,
+   "\t\tlocal rowsTop = math.max(g.zone1 + 2, g.cy + g.sealW / 2 + 1 - slack)\n",
+   "\t\tlocal rowsTop = g.zone1 + 2\n",
+   "the list begun at the lines' edge, its first drop on the seal",
+   expect="drop of wax lies", script=S)
+
+_m(LETTER,
+   "\t\tlocal rowsBottom = math.min(g.zone0 - 2, g.cy - g.sealW / 2 - 1 + slack)\n",
+   "\t\tlocal rowsBottom = g.zone0 - 2\n",
+   "a list above ending at the lines' edge, its last drop on the seal",
+   expect="the list above: row 3's drop of wax lies on the seal", script=S)
+
+_m(LETTER,
+   "local GLINT_EVERY, GLINT_PEAK, GLINT_SIZE = 4.0, 1, 0.8\n",
+   "local GLINT_EVERY, GLINT_PEAK, GLINT_SIZE = 4.0, 1, 0.5\n",
+   "the glint a speck on the wax",
+   expect="a speck", script=S)
+
+_m(GEN,
+   "    px = 6 + 114 * ts + 11.0 * np.sin(turn)\n",
+   "    px = 6 + 114 * ts\n",
+   "the flourish a plain wave, with no loop in it",
+   expect="does not match the file that ships", script=S)

@@ -44,7 +44,9 @@ SEAL_* constants name the figures that must agree with the ones here.
                             here and there scorched) and curl up off the screen,
                             with the sheet's shadow under the bottom one; the skin
                             cockles under the lamp. The noise is periodic over the
-                            middle band, so the repeats join
+                            middle band, so the repeats join, and is drawn closer
+                            together along the stretched middle (MID_STRETCH), so
+                            the sheet is one paper from rod to rod on the screen
   Letter_Fold        32x32  A fold across the sheet: shade, a crease, a lit
                             panel. The same from top to bottom
   Letter_Rod         64x256 A turned wooden rod: a finial, a brass collar and a
@@ -63,7 +65,9 @@ SEAL_* constants name the figures that must agree with the ones here.
   Letter_Mark        64x64  A raised star, for the seal when the icon is off. Grey
   Letter_Mask       128x128 A white disc: the icon's mask, the cooldown's sweep and
                             the shape of the flashes
-  Letter_Glow       128x128 The candle's glow round the seal (ADD)
+  Letter_Glow       128x128 A landing's glow round the seal (ADD, a flash)
+  Letter_Candle     128x128 The light a candle and the cursor lay on the wax's
+                            ring, hollow over the icon (BLEND: it rests). White
   Letter_Crack      128x128 The crack a refusal splits the wax with
   Letter_Slip        64x32  A slip of paper, in three pieces: for the count and the
                             bound key
@@ -117,6 +121,14 @@ TEXT_U = (0.30, 0.92)
 # that far from the edge and more; the scenario reads the rows). The bottom
 # edge stands LIFT texels higher, which is the room of the shadow under it.
 DECKLE, DECKLE_MAX, LIFT = 2.7, 6, 2.4
+# The Lua draws the caps at their own size and stretches the middle between
+# them: 1.7 times at the default size, twice at 320 x 58. So everything the
+# sheet is made of (its cockles, its fibre, its stains, the teeth of its torn
+# edge) is drawn MID_STRETCH times closer together along the middle, and comes
+# out on the screen the size it has in the caps. Drawn evenly, the middle was
+# smeared sideways and each cap stood out from it as a square of finer paper.
+MID_STRETCH = 1.8
+PATTERN_AT = 96
 # The fold's file, square.
 FOLD = 32
 
@@ -138,6 +150,8 @@ SEAL_EDGE = 0.96
 STAMP_AT = 0.81
 RING_AT = 0.705
 BEADS = 18
+# The candle's light lies on a ring CANDLE_AT of its file's half-width out.
+CANDLE_AT = 0.66
 
 written = []
 measured = {}
@@ -328,13 +342,25 @@ FIBRE = np.array([0.995, 0.955, 0.820], np.float32)
 SHADE = np.array([0.07, 0.04, 0.02], np.float32)
 
 
+def along(x):
+    """Where a column of the paper's file lies along the sheet as the screen
+    shows it, in texels of the caps: the middle counts MID_STRETCH times."""
+    mid = PAPER_W - 2 * PAPER_CAP
+    return np.where(x < PAPER_CAP, x,
+                    np.where(x < PAPER_W - PAPER_CAP, PAPER_CAP + (x - PAPER_CAP) * MID_STRETCH,
+                             PAPER_CAP + mid * MID_STRETCH + (x - (PAPER_W - PAPER_CAP)))).astype(np.float32)
+
+
+LENGTH = 2 * PAPER_CAP + (PAPER_W - 2 * PAPER_CAP) * MID_STRETCH
+
+
 def spots(x, y, count, seed, period_y, rmin, rmax):
     """Little round marks (the brown foxing of old paper) scattered over the
-    sheet, repeating every period_y rows."""
+    sheet, repeating every period_y rows. `x` is along the sheet (`along`)."""
     rng = np.random.default_rng(seed)
     out = np.zeros(x.shape, np.float32)
     for _ in range(count):
-        cx = rng.uniform(0, PAPER_W)
+        cx = rng.uniform(0, LENGTH)
         cy = rng.uniform(0, period_y)
         r = rng.uniform(rmin, rmax)
         amp = rng.uniform(0.25, 1.0)
@@ -346,12 +372,13 @@ def spots(x, y, count, seed, period_y, rmin, rmax):
 def deckle(x, seed):
     """How far in from the file's top or bottom row the sheet's torn edge runs at
     each column, in texels: the slow wander of a sheet torn against a rule, the
-    fine tooth of its fibres, and a few bites where a piece came away."""
+    fine tooth of its fibres, and a few bites where a piece came away. `x` is
+    along the sheet (`along`)."""
     row = x * 0 + 3.0
     e = DECKLE + 2.10 * fbm(x, row, [30, 12, 5], seed) + 0.60 * vnoise(x, row, 2.1, seed + 7)
     rng = np.random.default_rng(seed + 3)
-    for _ in range(8):
-        cx = rng.uniform(8, PAPER_W - 8)
+    for _ in range(11):
+        cx = rng.uniform(8, LENGTH - 8)
         wd = rng.uniform(1.3, 3.4)
         dp = rng.uniform(0.9, 2.3)
         e = e + dp * np.exp(-((x - cx) / wd) ** 2)
@@ -364,8 +391,11 @@ def make_paper():
     # The sheet: torn, not cut. Its top and bottom edges are deckled (they wander,
     # and are bitten), and feather out into loose fibre; under the bottom edge
     # lies the shadow the sheet throws, which is what lifts it off the screen.
-    top_edge = deckle(x, 11)
-    bot_edge = h - LIFT - deckle(x, 12)
+    # Which stretch of the pattern the file shows: PATTERN_AT along it, where the
+    # part the lines are written on is lightest and most even.
+    xs = along(x) + PATTERN_AT
+    top_edge = deckle(xs, 11)
+    bot_edge = h - LIFT - deckle(xs, 12)
     fuzz = vnoise(x, y, 0.9, 13) * 0.45
     d_top, d_bot = y - top_edge, bot_edge - y
     dd = np.minimum(d_top, d_bot)
@@ -379,34 +409,40 @@ def make_paper():
 
     # Mottling, from coarse clouds to fibre: all periodic over the middle band.
     py = float(PAPER_MID)
-    cloud = fbm(x, y, [48, 24, 12], 21, py)
+    cloud = fbm(xs, y, [48, 24, 12], 21, py)
     rgb = rgb * (1 + 0.070 * cloud[..., None])
-    warm = fbm(x, y, [32, 16], 22, py)
+    warm = fbm(xs, y, [32, 16], 22, py)
     rgb = rgb * (1 + 0.09 * warm[..., None] * np.array([0.35, 0.0, -0.75], np.float32))
     # Age: patches taken a little towards tan, soft at their edge, never a blotch.
-    st = fbm(x, y, [40, 20, 10], 23, py) * 0.6 + fbm(x, y, [16, 8], 24, py) * 0.4
+    st = fbm(xs, y, [40, 20, 10], 23, py) * 0.6 + fbm(xs, y, [16, 8], 24, py) * 0.4
     stain = sstep(0.20, 0.76, st) * 0.19
     rgb = rgb * (1 - stain[..., None]) + STAIN * stain[..., None]
     # The skin's own relief: parchment is never flat. It cockles in slow waves
     # and carries the grain of the hide, and the lamp at the upper left picks
     # both out: lit on the slopes that face it, a shade darker on those that
     # turn away.
-    cockle = fbm(x * 0.45, y, [32, 16, 8], 35, py) * 3.4 + fbm(x, y, [4, 2], 36, py) * 0.22
-    relief = normals(cockle, 1.0, 1.0) @ LIGHT / LIGHT[2]
+    cockle = fbm(xs * 0.45, y, [32, 16, 8], 35, py) * 3.4 + fbm(xs, y, [4, 2], 36, py) * 0.22
+    # Its slopes as the screen shows them: along the middle the file's columns
+    # are MID_STRETCH times closer than the sheet's.
+    gy, gx = np.gradient(cockle, 1.0 / SS, 1.0 / SS)
+    gx = gx / np.where((x >= PAPER_CAP) & (x < PAPER_W - PAPER_CAP), MID_STRETCH, 1.0)
+    nrm = np.stack([-gx, -gy, np.ones_like(cockle)], -1)
+    nrm = nrm / np.linalg.norm(nrm, axis=-1, keepdims=True)
+    relief = nrm @ LIGHT / LIGHT[2]
     rgb = rgb * np.clip(0.46 + 0.54 * relief, 0.915, 1.075)[..., None]
     # Fibres: the pulp's drift along the sheet, fine grain, and a few long
     # threads lying in it, lighter and darker than the paper.
-    fib = fbm(x * 0.45, y * 1.5, [6, 3, 1.5], 25, py)
+    fib = fbm(xs * 0.45, y * 1.5, [6, 3, 1.5], 25, py)
     rgb = rgb * (1 + 0.040 * fib[..., None])
-    threads = 1 - np.abs(vnoise(x * 0.22, y * 1.9, 1.6, 26, py))
-    threads = sstep(0.80, 1.0, threads) * (0.5 + 0.5 * vnoise(x * 0.08, y, 8, 27, py))
-    rgb = rgb * (1 + 0.06 * threads[..., None] * np.sign(vnoise(x * 0.05, y, 12, 28, py))[..., None])
+    threads = 1 - np.abs(vnoise(xs * 0.22, y * 1.9, 1.6, 26, py))
+    threads = sstep(0.80, 1.0, threads) * (0.5 + 0.5 * vnoise(xs * 0.08, y, 8, 27, py))
+    rgb = rgb * (1 + 0.06 * threads[..., None] * np.sign(vnoise(xs * 0.05, y, 12, 28, py))[..., None])
     grain = vnoise(x, y, 1.0, 29, py) * 0.6 + vnoise(x, y, 0.5, 30, py) * 0.4
     rgb = rgb * (1 + 0.035 * grain[..., None])
     # The brown foxing, and a faint laid line, as handmade paper has.
-    fox = spots(x, y, 30, 31, py, 0.5, 1.4)
+    fox = spots(xs, y, 42, 31, py, 0.6, 1.5)
     rgb = rgb * (1 - 0.20 * fox[..., None]) + STAIN * (0.20 * fox[..., None]) * 0.85
-    laid = 0.5 + 0.5 * np.sin(y * (2 * math.pi / 4.0) + vnoise(x, y, 18, 32, py) * 2.0)
+    laid = 0.5 + 0.5 * np.sin(y * (2 * math.pi / 4.0) + vnoise(xs, y, 18, 32, py) * 2.0)
     rgb = rgb * (1 - 0.012 * laid[..., None])
 
     # The edges, kept narrow so the middle band stays even. Handled and aged:
@@ -415,13 +451,13 @@ def make_paper():
     # the top edge turns up into the lamp and is lit, and the bottom edge turns
     # up away from it and shows a line of its shaded underside. Last the tear
     # itself: loose fibre, thinner than the sheet and paler.
-    edge_noise = fbm(x * 0.7, y * 0.7, [10, 5, 2.5], 33) * 0.5 + 0.5
+    edge_noise = fbm(xs * 0.7, y * 0.7, [10, 5, 2.5], 33) * 0.5 + 0.5
     dpos = np.clip(dd, 0, None)
     aged = np.exp(-np.power(dpos / (4.4 + 2.6 * edge_noise), 1.2)) * 0.58
     rgb = rgb * (1 - aged[..., None]) + BURN * aged[..., None] * 1.30
     scorch = np.exp(-((dpos - 0.9) / 0.8) ** 2) * (0.45 + 0.55 * edge_noise) * 0.55
     rgb = rgb * (1 - scorch[..., None]) + CHAR * scorch[..., None] * 1.6
-    bloom = sstep(0.60, 0.92, fbm(x * 0.5, y * 0.5, [20, 9], 34) * 0.5 + 0.5)
+    bloom = sstep(0.60, 0.92, fbm(xs * 0.5, y * 0.5, [20, 9], 34) * 0.5 + 0.5)
     bl = bloom * np.exp(-dpos / 5.0) * 0.62
     rgb = rgb * (1 - bl[..., None]) + BURN * bl[..., None] * 0.80
     ember = bloom * np.exp(-((dpos - 1.6) / 1.1) ** 2) * 0.40
@@ -734,7 +770,10 @@ def make_rim():
     # the lamp, darkest under the lip at the upper left, nothing at the lower
     # right where the wall is lit instead.
     toward = (dx * LIGHT[0] + dy * LIGHT[1]) / np.maximum(rho, 1e-3) / math.hypot(LIGHT[0], LIGHT[1])
-    side = 0.5 + 0.5 * toward
+    # Held to 0..1: at the point straight away from the lamp rounding took it a
+    # hair under nothing, and its power below was not a number (a texel of the
+    # lip's shadow written as whatever the machine makes of that).
+    side = np.clip(0.5 + 0.5 * toward, 0, 1)
     depth = np.exp(-np.clip(ri - rho, 0, None) / 5.0) * (rho < ri + 0.4)
     sh = np.clip(depth * (0.16 + 0.62 * side ** 1.5), 0, 0.80) * (1 - a_in)
     alpha = np.clip(lip + sh * (1 - lip), 0, 1)
@@ -794,10 +833,31 @@ def make_glow():
     n = SEAL
     x, y = grid(n, n)
     rho = np.hypot(x - n / 2, y - n / 2) / (n / 2)
-    # Candlelight: a hot middle and a long warm fall-off, nothing at the edge.
+    # A hot middle and a long warm fall-off, nothing at the edge.
     a = np.clip(1 - rho, 0, 1) ** 2.2
     a = a * (0.75 + 0.25 * np.clip(1 - rho * 2.0, 0, 1))
     save("Letter_Glow", finish(white(a), np.clip(a, 0, 1), n, n))
+
+
+def make_candle():
+    """The light a candle lays on the seal, and the cursor: on the wax's raised
+    ring, where wax catches a flame, strongest on the lamp's side, little of
+    it in the recess (the spell stays plain under it) and none at the file's
+    edge. It rests on the seal for seconds, so the Lua draws it BLEND (additive
+    light is far brighter in the game than a picture shows, and whitened the
+    icon out). White: the Lua colours it."""
+    n = SEAL
+    x, y = grid(n, n)
+    dx, dy = x - n / 2, y - n / 2
+    rho = np.hypot(dx, dy) / (n / 2)
+    th = np.arctan2(dy, dx)
+    ring = np.exp(-((rho - CANDLE_AT) / 0.17) ** 2)
+    side = 0.80 + 0.20 * np.cos(th - math.atan2(float(LIGHT[1]), float(LIGHT[0])))
+    a = ring * side + 0.14 * np.exp(-(rho / 0.45) ** 2)
+    a = np.clip(a, 0, 1) * sstep(1.0, 0.86, rho)
+    save("Letter_Candle", finish(white(a), a, n, n))
+    arr = sheet_items[-1][1].astype(np.float32) / 255
+    measured["candle_middle"] = round(float(arr[n // 2 - 4:n // 2 + 4, n // 2 - 4:n // 2 + 4, 3].mean()), 3)
 
 
 def make_crack():
@@ -935,7 +995,13 @@ def make_sweep():
     u = x / w - 0.18 * (y / h - 0.5)
     a = np.exp(-((u - 0.5) / 0.20) ** 2)
     a = a * sstep(0.0, 0.08, x / w) * sstep(1.0, 0.92, x / w)
+    # Soft at its top and bottom too: the Lua cuts the light inside the sheet's
+    # torn edges, and a band that ran to the cut at full strength ended on a
+    # ruled line there.
+    a = a * sstep(0.0, 0.26, y / h) * sstep(1.0, 0.74, y / h)
     save("Letter_Sweep", finish(white(a), np.clip(a, 0, 1), w, h))
+    arr = sheet_items[-1][1]
+    measured["sweep_edges"] = int(max(arr[0, :, 3].max(), arr[-1, :, 3].max(), arr[:, 0, 3].max(), arr[:, -1, 3].max()))
 
 
 # ------------------------------------------------------------------ the quill
@@ -1036,10 +1102,15 @@ def make_flourish():
     w, h = 128, 32
     x, y = grid(w, h)
     ts = np.linspace(0, 1, 420, dtype=np.float32)
-    px = 7 + 113 * ts - 9.0 * np.sin(2 * math.pi * 1.0 * ts) * (1 - ts)
-    py = 17 - 8.5 * np.sin(2 * math.pi * 1.5 * ts + 0.5) * (1 - 0.72 * ts) - 2.0 * ts
+    # Set down, taken up and back round in a loop (the turn runs faster than
+    # the hand moves on, so the line crosses itself), then run out along the
+    # line in one long wave that lifts as it thins.
+    turn = 2 * math.pi * np.clip((ts - 0.10) / 0.24, 0, 1)
+    after = np.clip((ts - 0.34) / 0.66, 0, 1)
+    px = 6 + 114 * ts + 11.0 * np.sin(turn)
+    py = 23.5 - 8.6 * (1 - np.cos(turn)) - 5.5 * np.sin(2 * math.pi * 0.95 * after) * (1 - 0.45 * after) - 6.0 * after ** 2
     ang = np.arctan2(np.gradient(py), np.gradient(px))
-    wid = (0.42 + 1.75 * np.abs(np.sin(ang - 0.80)) ** 1.3) * np.clip(np.sin(math.pi * np.clip(ts * 0.96 + 0.02, 0, 1)), 0, 1) ** 0.55
+    wid = (0.50 + 1.85 * np.abs(np.sin(ang - 0.80)) ** 1.3) * np.clip(np.sin(math.pi * np.clip(ts * 0.96 + 0.02, 0, 1)), 0, 1) ** 0.55
     d = np.full(x.shape, 1e9, np.float32)
     for i in range(len(ts)):
         d = np.minimum(d, np.hypot(x - px[i], y - py[i]) - wid[i])
@@ -1058,9 +1129,9 @@ def make_glint():
     x, y = grid(n, n)
     dx, dy = x - n / 2, y - n / 2
     rho = np.hypot(dx, dy)
-    a = np.exp(-(rho / 3.0) ** 2) * 0.95
-    a = a + np.exp(-(dy / 1.0) ** 2) * np.exp(-(np.abs(dx) / 6.5) ** 1.5) * 0.75
-    a = a + np.exp(-(dx / 1.0) ** 2) * np.exp(-(np.abs(dy) / 6.5) ** 1.5) * 0.75
+    a = np.exp(-(rho / 3.3) ** 2) * 0.95
+    a = a + np.exp(-(dy / 1.1) ** 2) * np.exp(-(np.abs(dx) / 8.0) ** 1.5) * 0.80
+    a = a + np.exp(-(dx / 1.1) ** 2) * np.exp(-(np.abs(dy) / 8.0) ** 1.5) * 0.80
     a = a * sstep(n / 2 - 0.5, n / 2 - 3.5, rho)
     save("Letter_Glint", finish(tinted(a, (1.0, 0.97, 0.90)), np.clip(a, 0, 1), n, n))
 
@@ -1147,6 +1218,7 @@ def main():
     make_mark()
     make_mask()
     make_glow()
+    make_candle()
     make_crack()
     make_slip()
     make_dot()

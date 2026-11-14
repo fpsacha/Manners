@@ -31,13 +31,14 @@
 -- It moves in the idiom of a letter:
 --   * arriving: the scroll unrolls from the seal, the right rod running out to
 --     its end with the paper; the wax is poured and the seal pressed into it
---     (it grows into its place and the stamp's light passes over it); and then
+--     (it grows into its place, and the spell comes with the stamp, whose
+--     light passes over it); and then
 --     the letter is written: a quill comes down on the sheet and the name and
 --     the reason appear under its point, left to right, as ink does, after
 --     which the quill is lifted away with a turn of the wrist (on Calm the
 --     panel only fades in, which is Prompt's entrance);
 --   * owed: a warm light like a candle's breathes on the seal, three breaths and
---     still;
+--     still (on the wax's ring and the lip of its recess: the spell stays plain);
 --   * landed: the seal flashes gold and glows, a warm light passes over the
 --     paper, and the quill signs the verdict off with a flourish;
 --   * refused: the seal flares red and amber and cracks, and the scroll shakes a
@@ -80,6 +81,12 @@
 --     light is under the text, nothing is lit for long (three breaths and a
 --     rest; a flourish is gone within 0.6 s); the cover and the quill are the
 --     two things that pass over the text, and neither is a light;
+--   * only a flash is additive (the game draws ADD far brighter than a picture
+--     shows), and each is gone within 0.6 s; what rests on the seal (the candle,
+--     the cursor's light, the glint) is drawn BLEND;
+--   * the paper is never pulled out of shape: a tall sheet, or a short tall one,
+--     repeats the file's middle band (Geometry's `sy`), and a list's rows begin
+--     beyond the seal, which stands taller than the sheet;
 --   * the icon is always round, whatever "Round the icon off" says, and the
 --     seal sizes it from the prompt's height (Options says so);
 --   * the ink: dark brown on parchment, at 4.5:1 or more, a class-coloured name
@@ -126,9 +133,9 @@ local SHADOW_ZOOM = 1.34
 -- mean and the darkest 2% of it), and its mean colour, as drawn. The low is
 -- taken down again by a fold's shade (0.13 of a dark brown over the sheet at
 -- its deepest: the generator's `fold_shade`), since a word may stand in one:
--- 0.544 as the file is, 0.478 in the shade.
-local PAPER_RGB = { 0.957, 0.876, 0.651 }
-local PAPER_LUM, PAPER_LUM_LOW = 0.755, 0.478
+-- 0.563 as the file is, 0.494 in the shade.
+local PAPER_RGB = { 0.949, 0.879, 0.674 }
+local PAPER_LUM, PAPER_LUM_LOW = 0.756, 0.494
 -- How light a tinted parchment stays at its least (its mean's luminance).
 local PAPER_FLOOR = 0.55
 -- The sheet's torn edge: the lower one stands LIFT of the file's height
@@ -141,6 +148,10 @@ local FOLDS = { 0.37, 0.70 }
 local FOLD_FROM = 150
 -- The most tiles of the middle band a list's paper is cut in.
 local TILES = 9
+-- The most units a row of the paper's file is drawn at, and the most for
+-- each unit of the sheet's length: 1.6 times what its columns are drawn at
+-- (the file is 358 texels long as the screen shows it: the generator's LENGTH).
+local SY_MAX, SY_NARROW = 1, 1.6 / 358.4
 
 -- The ink.
 local INK = { 0.20, 0.105, 0.04 }
@@ -187,12 +198,18 @@ local SWEEP_AMBER = { 1.00, 0.74, 0.30 }
 -- fight as well as out of one.
 local DIM_PAPER, DIM_SEAL = 0.90, 0.80
 -- The owed breath: the candle lit to these and back, this many breaths.
-local GLOW_PEAK, CORE_PEAK = 0.62, 0.48
+-- Both are drawn BLEND, so these are what the game shows too.
+local GLOW_PEAK, CORE_PEAK = 0.46, 0.34
+-- The hot light's size, of the wide one's.
+local CORE_SIZE = 0.86
 local BREATHS, BREATH = 3, 1.3
 local FLOURISH = 0.6
 -- How bright the cursor's light on the seal gets.
 local HILITE_PEAK = 0.20
 local UNROLL_SECONDS, POP_SECONDS = 0.28, 0.20
+-- The share of the pour after which the stamp comes down: the icon is in the
+-- wax from then, and the stamp's light starts.
+local STRUCK_AT = 0.7
 -- How much of the paper the unroll starts with.
 local UNROLL_FROM = 0.16
 -- The writing: the pen crosses the lines in WRITE_SECONDS and the quill is
@@ -204,7 +221,9 @@ local WRITE_SECONDS, QUILL_LIFT, SIGN_SECONDS = 0.34, 0.14, 0.30
 local QUILL_NIB = { 13 / 128, 11 / 128 }
 local QUILL_STROKES = { -5, 10, -10, 10, -10, 5 }
 -- The glint on the wax at rest: one every GLINT_EVERY seconds, this bright.
-local GLINT_EVERY, GLINT_PEAK = 5.2, 1
+-- Its star is GLINT_SIZE of the wax's radius across (a third smaller, it was a
+-- speck nobody would see move).
+local GLINT_EVERY, GLINT_PEAK, GLINT_SIZE = 4.0, 1, 0.8
 -- How dark the crack stands in the wax for as long as a refusal is on the panel.
 local CRACK_HELD = 0.9
 local COMMAND = "CLICK MannersPrompt:LeftButton"
@@ -297,10 +316,16 @@ local function Geometry(W, H, fs, two, serif)
 	local pv = Clamp(math.floor(0.055 * H + 0.5), 2, 6) + 1
 	g.pv = pv
 	g.paperH = H - 2 * pv
-	g.sy = g.paperH / 64
+	g.x0, g.x1 = g.rodL + rodW / 2, g.rodR + rodW / 2
+	-- The file's rows are `sy` units each: the sheet's height over the file's,
+	-- but never more than SY_MAX, nor more than SY_NARROW of the length the
+	-- sheet has (a short one squeezes the file's columns, and its rows go with
+	-- them). A sheet taller than that repeats its middle band (LayPaper), which
+	-- was drawn to repeat: pulled out to the whole of a tall prompt, the
+	-- parchment's grain ran in streaks.
+	g.sy = math.min(g.paperH / 64, SY_MAX, SY_NARROW * (g.x1 - g.x0))
 	g.b = math.max(2.4, 0.098 * g.paperH)
 	g.lift = LIFT * g.paperH
-	g.x0, g.x1 = g.rodL + rodW / 2, g.rodR + rodW / 2
 	g.zone0, g.zone1 = pv + g.b, H - pv - g.b - g.lift
 	g.zoneH = g.zone1 - g.zone0
 	-- The seal: as tall as the prompt allows (the wax's farthest edge, top to
@@ -601,7 +626,10 @@ function Letter:Build(kit)
 	self.mark = tex(self.sealFrame, "ARTWORK", 0, "Mark")
 	self.gloss = tex(self.sealFrame, "ARTWORK", 1, "SealGloss")
 	self.flash = tex(self.sealFrame, "ARTWORK", 2, "Mask", "ADD")
-	self.hilite = tex(self.sealFrame, "ARTWORK", 2, "Mask", "ADD")
+	-- The cursor's light rests for as long as the cursor does, so it is not
+	-- additive (the game draws ADD far brighter than a picture shows): the
+	-- candle's ring of light, laid over the wax.
+	self.hilite = tex(self.sealFrame, "ARTWORK", 2, "Candle")
 	self.crack = tex(self.sealFrame, "ARTWORK", 3, "Crack")
 	self.flash:SetAlpha(0)
 	self.hilite:SetAlpha(0)
@@ -613,11 +641,14 @@ function Letter:Build(kit)
 	self.press:SetAlpha(0)
 	self.glint:SetAlpha(0)
 
-	-- The candle: a wide warm glow and a small hot one, above everything of the
-	-- letter and under the text.
+	-- The candle: a warm light on the wax's raised ring and a hotter one on the
+	-- lip of its recess, above everything of the letter and under the text.
+	-- Neither is additive: they breathe for seconds, and ADD, which the game
+	-- draws far brighter than a picture shows, whitened the spell out at every
+	-- breath. The file is hollow in its middle, so the icon stays plain.
 	self.glowFrame = frame()
-	self.glow = tex(self.glowFrame, "ARTWORK", 0, "Glow", "ADD")
-	self.core = tex(self.glowFrame, "ARTWORK", 1, "Glow", "ADD")
+	self.glow = tex(self.glowFrame, "ARTWORK", 0, "Candle")
+	self.core = tex(self.glowFrame, "ARTWORK", 1, "Candle")
 	self.glow:SetAlpha(0)
 	self.core:SetAlpha(0)
 	-- A landing's glow round the seal, gold, for a moment.
@@ -707,6 +738,15 @@ function Letter:BuildAnimations(anim)
 	local cast = self.shadow:CreateAnimationGroup()
 	Alpha(cast, 0, 1, POP_SECONDS, 1, nil, "IN")
 	self.stamp[#self.stamp + 1] = anim(cast)
+	-- The spell is what the stamp leaves in the wax: it is not there while the
+	-- wax is being poured (it stood bare on the paper for the first frames, a
+	-- disc larger than the wax growing under it), and comes with the stamp's
+	-- light. An animation's alpha: the shared icon's own is never written.
+	local struck = kit.icon:CreateAnimationGroup()
+	Alpha(struck, 0, 0, POP_SECONDS * STRUCK_AT, 1)
+	Alpha(struck, 0, 1, POP_SECONDS * (1 - STRUCK_AT), 2, nil, "OUT")
+	self.struck = anim(struck)
+	self.stamp[#self.stamp + 1] = struck
 
 	-- The candle: a breath of the wide glow and a quicker one of the hot core,
 	-- so the light is never quite regular; see Attention for how many.
@@ -852,13 +892,17 @@ function Letter:LayPaper(y0, y1)
 	self:Relay()
 	self:LayCover()
 	-- The light that crosses: a band a third as wide as the paper, run from the
-	-- seal side to the end.
+	-- seal side to the end. It starts whole, beside the seal, and comes up
+	-- there (its file is soft on all four sides): begun outside the window and
+	-- slid in, the window's left edge cut it, and for the first tenth of a
+	-- second a landing drew a block of light with a ruled side behind the name.
+	-- It leaves under the right rod, by when it has faded.
 	local bw = math.max(18, w * 0.34)
 	self.sweepFrame:ClearAllPoints()
-	self.sweepFrame:SetPoint("TOPLEFT", self.lightClip, "TOPLEFT", -bw, 0)
+	self.sweepFrame:SetPoint("TOPLEFT", self.lightClip, "TOPLEFT", 0, 0)
 	self.sweepFrame:SetSize(bw, lightH)
 	for _, t in ipairs({ self.sweepWarm, self.sweepWhite }) do t:SetAllPoints(self.sweepFrame) end
-	self.passAnims[1].move:SetOffset(w + bw, 0)
+	self.passAnims[1].move:SetOffset(w + 2, 0)
 end
 
 -- The unroll's frames in their place: the window onto the paper, the paper in
@@ -992,20 +1036,20 @@ function Letter:Apply(p, above)
 	local ssz = sq * SHADOW_ZOOM
 	self.shadow:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 	self.shadow:SetSize(ssz, ssz)
-	-- The mask doubles as the flash's and the hover's shape, the size of the wax.
-	for _, t in ipairs({ self.flash, self.hilite, self.press }) do
+	-- The mask doubles as the flashes' shape, the size of the wax.
+	for _, t in ipairs({ self.flash, self.press }) do
 		t:ClearAllPoints()
 		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 		t:SetSize(g.sealD * 0.96, g.sealD * 0.96)
 	end
 	Colour(self.flash, GOLD[1], GOLD[2], GOLD[3])
-	Colour(self.hilite, 1, 0.86, 0.55)
+	Colour(self.hilite, 1, 0.95, 0.80)
 	Colour(self.press, 1, 0.94, 0.80)
 	-- The glint crosses the wax's lit shoulder, upper left, inside the seal.
 	local rw = g.sealD / 2
 	self.glint:ClearAllPoints()
 	self.glint:SetPoint("CENTER", art, "TOPLEFT", cx - 0.64 * rw, -(cy - 0.37 * rw))
-	self.glint:SetSize(math.max(7, 0.62 * rw), math.max(7, 0.62 * rw))
+	self.glint:SetSize(math.max(8, GLINT_SIZE * rw), math.max(8, GLINT_SIZE * rw))
 	self.glintMove:SetOffset(0.51 * rw, 0.36 * rw)
 	Colour(self.glint, 1, 1, 1)
 	self.crack:ClearAllPoints()
@@ -1046,9 +1090,14 @@ function Letter:Apply(p, above)
 		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 	end
 	self.glow:SetSize(half * 2, half * 2)
-	self.core:SetSize(half * 1.2, half * 1.2)
+	-- The hot one a little smaller: its ring lies on the lip of the recess.
+	self.core:SetSize(half * 2 * CORE_SIZE, half * 2 * CORE_SIZE)
 	Colour(self.glow, WARM[1], WARM[2], WARM[3])
 	Colour(self.core, 1, 0.80, 0.42)
+	-- The cursor's light is the same ring, paler.
+	self.hilite:ClearAllPoints()
+	self.hilite:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+	self.hilite:SetSize(half * 2, half * 2)
 	self.halo:ClearAllPoints()
 	self.halo:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 	self.halo:SetSize(half * 2, half * 2)
@@ -1731,8 +1780,9 @@ function Letter:StopAttention()
 	self:Idle()
 end
 
--- The lights are ADD at the peaks set here: the amplitudes ride on the vertex
--- alphas, the animation on the texture's own alpha.
+-- The flashes are ADD and gone within 0.6 s; what rests on the seal for longer
+-- (the candle, the cursor's light, the glint) is BLEND. A light's strength is
+-- its animation's alpha.
 function Letter:Flourish(kind)
 	-- A refusal: the seal flares red and amber and splits, and the scroll
 	-- shakes. The text's shake is Prompt's.
@@ -2103,24 +2153,28 @@ function Letter:PaintQueue(rows, shown, above)
 	self.listShown, self.listAt = shown, above
 
 	local block = shown * pitch
+	local drop = math.min(pitch * 0.9, g.chipH + 2)
+	-- The rows keep clear of the seal, whose wax stands taller than the sheet:
+	-- begun at the lines' edge, the nearest row's drop of wax lay on the seal's
+	-- own, and under the count's slip pinned to it.
+	local slack = (pitch - drop) / 2
 	local y0, y1
 	if above then
 		-- The rows read downwards, ending just over the name; the paper and the
 		-- rods grow upwards over them.
-		local rowsBottom = g.zone0 - 2
+		local rowsBottom = math.min(g.zone0 - 2, g.cy - g.sealW / 2 - 1 + slack)
 		local rowsTop = rowsBottom - block
 		y0 = rowsTop - g.b
 		y1 = self.H - g.pv
 		self.listTop = rowsTop
 	else
-		local rowsTop = g.zone1 + 2
+		local rowsTop = math.max(g.zone1 + 2, g.cy + g.sealW / 2 + 1 - slack)
 		self.listTop = rowsTop
 		y0 = g.pv
 		y1 = rowsTop + block + g.b + g.lift
 	end
 	self:LayPaper(y0, y1)
 	self:LayRods(y0 - g.pv + 1, y1 + g.pv - 1)
-	local drop = math.min(pitch * 0.9, g.chipH + 2)
 	local ruleW = g.textRight - self.rowX
 	for i = 1, shown do
 		local fs = kit.rows[i]
