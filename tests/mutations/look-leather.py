@@ -626,3 +626,299 @@ _m(GENERATOR,
    "    for name, w, h in written:",
    "a file the generator no longer writes",
    expect=S_GEN)
+
+# --- the trim: studs, the buckle, the feathers -------------------------------
+
+S_TRIM = 'look-leather: the studs, the buckle and the feathers stand where the art says, each within its reach'
+S_BRAND = 'look-leather: the brand stands left of the eyelet and of the patches, and gives way to the words'
+S_EMBER = 'look-leather: the brand smoulders while somebody is owed, and goes out with the favour and in a fight'
+S_REST = ('look-leather: at rest the feathers stir and the thread catches the light, and it stops on Calm, in a fight '
+          'and with the look')
+S_STRIKE = ('look-leather: a landing strikes the brand and raises smoke, a refusal flashes it red, and the feathers '
+            'are flung and settle')
+
+_m(LEATHER,
+   "\t\tcentre(t, stud, stud, at[i], (i % 2 == 1) and inset or H - inset)\n",
+   "\t\tcentre(t, stud, stud, at[i], H / 2)\n",
+   "the studs in the middle of the field, off the stitch",
+   expect=S_TRIM)
+
+_m(LEATHER,
+   "\tlocal at = { capL, capL, W - capR, W - capR }\n",
+   "\tlocal at = { capL, capL, W - capR / 2, W - capR / 2 }\n",
+   "the right studs out on the half circle, not where it meets the straight",
+   expect=S_TRIM)
+
+_m(LEATHER,
+   "\tlocal inset = math.max(INSET * su, stud / 2)\n",
+   "\tlocal inset = 0\n",
+   "the studs half off the leather's edge",
+   expect=S_TRIM)
+
+_m(LEATHER,
+   "\tlocal left = W - BUCKLE_TIP * box\n",
+   "\tlocal left = W\n",
+   "the buckle hanging in the air past the tip",
+   expect=S_TRIM)
+
+_m(LEATHER,
+   "local BUCKLE, BUCKLE_TIP, BUCKLE_HANG = 0.66, 19 / 64, { 55 / 64, 46 / 64 }\n",
+   "local BUCKLE, BUCKLE_TIP, BUCKLE_HANG = 0.66, 30 / 64, { 55 / 64, 46 / 64 }\n",
+   "the Lua's column for the tip not the buckle's art's",
+   expect=S_TRIM)
+
+_m(LEATHER,
+   "\t\tt:SetPoint(\"TOP\", art, \"TOPLEFT\", hangX, -hangY)\n",
+   "\t\tt:SetPoint(\"CENTER\", art, \"TOPLEFT\", hangX, -hangY)\n",
+   "the feathers pinned by their middle, not hung by their top",
+   expect=S_TRIM)
+
+_m(LEATHER,
+   "local FEATHER = { 0.62, 1.24 }\n",
+   "local FEATHER = { 0.62, 2.40 }\n",
+   "feathers twice as long as the tag is tall",
+   expect=S_TRIM)
+
+_m(LEATHER,
+   "\tlocal eagle = tex(art, \"BACKGROUND\", -8, \"FeatherB\")\n",
+   "\tlocal eagle = tex(art, \"BACKGROUND\", -5, \"FeatherB\")\n",
+   "a feather drawn over the leather",
+   expect=S_TRIM)
+
+_m(LEATHER,
+   "\tself.buckle:SetDesaturated(on)\n",
+   "\tself.buckle:SetDesaturated(false)\n",
+   "the buckle keeps its colour in a fight",
+   expect=S_EMBER)
+
+# --- the brand ---------------------------------------------------------------
+
+_m(LEATHER,
+   "\tlocal right = self.W - room - self.brandGap\n",
+   "\tlocal right = self.W - self.brandGap\n",
+   "the brand under the eyelet",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tif self.keyLane then room = math.max(room, self.keyRoom or 0) end\n",
+   "",
+   "the brand under the key's patch",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\t-- The brand stands left of whatever is up, and gives way to the words.\n\tself:PlaceBrand()\n",
+   "",
+   "the brand left where it stood when a patch comes up",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tBox(self.ember, art, left + cut * size, top, right, top + size)\n",
+   "\tBox(self.ember, art, left, top, right, top + size)\n",
+   "the embers lit under the words",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tself.ember:SetTexCoord(cut, 1, 0, 1)\n",
+   "\tself.ember:SetTexCoord(0, 1, 0, 1)\n",
+   "the cut embers squeezed into what is left of the mark",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tBox(self.brandFlash, art, left + cut * size, top, right, top + size)\n",
+   "\tBox(self.brandFlash, art, left, top, right, top + size)\n",
+   "the strike's flash over the words",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tlocal up = left >= self.textX + BRAND_CLEAR * size and cut < 0.5\n",
+   "\tlocal up = left >= self.textX + BRAND_CLEAR * size and cut < 2\n",
+   "the brand drawn under words that cover it",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tself.ember = tex(self.emberFrame, \"ARTWORK\", 1, \"Ember\")\n",
+   "\tself.ember = tex(self.emberFrame, \"ARTWORK\", 1, \"Ember\", \"ADD\")\n",
+   "the embers, which rest lit, drawn additive",
+   expect=S_BRAND)
+
+_m(LEATHER,
+   "\tself.brandFlash:SetDesaturated(true)\n",
+   "",
+   "the strike's flash in the embers' orange whatever the outcome",
+   expect=S_BRAND)
+
+# --- the embers --------------------------------------------------------------
+
+_m(LEATHER,
+   "\tself.emberFrame:SetAlpha((self.owed and not self.combat) and EMBER_REST or 0)\n",
+   "\tself.emberFrame:SetAlpha(EMBER_REST)\n",
+   "the brand glowing with nobody owed",
+   expect=S_EMBER)
+
+_m(LEATHER,
+   "\tself.emberFrame:SetAlpha((self.owed and not self.combat) and EMBER_REST or 0)\n",
+   "\tself.emberFrame:SetAlpha(0)\n",
+   "the brand dark once it has breathed, with somebody still owed",
+   expect=S_EMBER)
+
+_m(LEATHER,
+   "\tself.owed = true\n\tif isNew then\n",
+   "\tif isNew then\n",
+   "somebody owed never told to the brand",
+   expect=S_EMBER)
+
+_m(LEATHER,
+   "\t-- Nobody owed: the embers go out.\n\tself.owed = nil\n",
+   "\t-- Nobody owed: the embers go out.\n",
+   "the embers left lit when the favour is gone",
+   expect=S_EMBER)
+
+_m(LEATHER,
+   "\tAlpha(ember, EMBER_LOW, 1, BREATH, 1, \"IN_OUT\")\n",
+   "\tAlpha(ember, 0, 1, BREATH, 1, \"IN_OUT\")\n",
+   "the embers going out between breaths",
+   expect=S_EMBER)
+
+# --- at rest -----------------------------------------------------------------
+
+_m(LEATHER,
+   "\tlocal on = (self.active and not self.combat and kit.FullEffects() and kit.button:IsShown()) and true or false\n\tlocal lit",
+   "\tlocal on = (self.active and not self.combat and kit.button:IsShown()) and true or false\n\tlocal lit",
+   "the feathers stirring on Calm",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\tlocal on = (self.active and not self.combat and kit.FullEffects() and kit.button:IsShown()) and true or false\n\tlocal lit",
+   "\tlocal on = (self.active and kit.FullEffects() and kit.button:IsShown()) and true or false\n\tlocal lit",
+   "the feathers stirring in a fight",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\t\tself.shimmer[i] = anim(Glint(piece.tex, 0.5 + (i - 1) * GLINT_STEP, GLINT_PEAK, 0.08, 0.30, GLINT_EVERY))\n",
+   "\t\tself.shimmer[i] = anim(Glint(piece.tex, 0.5, GLINT_PEAK, 0.08, 0.30, GLINT_EVERY))\n",
+   "the whole thread glinting at once",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\t\tself.shimmer[i] = anim(Glint(piece.tex, 0.5 + (i - 1) * GLINT_STEP, GLINT_PEAK, 0.08, 0.30, GLINT_EVERY))\n",
+   "\t\tself.shimmer[i] = anim(Glint(piece.tex, 0.5 + (i - 1) * GLINT_STEP, GLINT_PEAK, 0.08, 1.30, GLINT_EVERY))\n",
+   "an additive glint that stays for over a second",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\t\tself.idle[#self.idle + 1] = self.sways[i]\n",
+   "",
+   "the feathers' sway not named among the look's loops at rest",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\t\tif a.SetOrigin then a:SetOrigin(\"TOP\", 0, 0) end\n",
+   "\t\tif a.SetOrigin then a:SetOrigin(\"CENTER\", 0, 0) end\n",
+   "a feather turning about its middle like a propeller",
+   expect=S_REST)
+
+_m(LEATHER,
+   "local SWAY = { { 8, 1.9 }, { -6.5, 2.4 } }\n",
+   "local SWAY = { { 8, 1.9 }, { 8, 1.9 } }\n",
+   "the two feathers swaying as one",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\t-- Flow's handles are not animation groups: stopped by hand.\n\tself.flow:StopAll()\n",
+   "",
+   "the smoke's clock left running under another look",
+   expect=S_REST)
+
+_m(LEATHER,
+   "\t\t\tif full then self:Stir(\"arrive\") end\n",
+   "\t\t\tself:Stir(\"arrive\")\n",
+   "the feathers flung on Calm",
+   expect=S_REST)
+
+# --- a strike ----------------------------------------------------------------
+
+_m(LEATHER,
+   "\t\tself.cool:Stop()\n\t\tself.cool:Play()\n",
+   "",
+   "a landing leaves the brand cold",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\t\tself.smokeSheet:Stop()\n\t\tself.smokeSheet:Play()\n",
+   "",
+   "a landing raises no smoke",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\tif kind == \"cast\" and self.brandLit then\n",
+   "\tif self.brandLit then\n",
+   "a refusal strikes the brand hot and raises smoke",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\tcast = { { -9, 0.10 }, { 14, 0.16 }, { -7, 0.20 }, { 2, 0.24 } },\n",
+   "\tcast = { { -9, 0.10 }, { 14, 0.16 }, { -7, 0.20 }, { 5, 0.24 } },\n",
+   "a kick that leaves the feathers turned",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\tif not set or self.combat then return end\n",
+   "\tif not set then return end\n",
+   "the feathers flung in a fight",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\t\tfor _, piece in ipairs(self.pieces) do Colour(piece.tex, GLINT[1], GLINT[2], GLINT[3]) end\n",
+   "",
+   "the thread glinting in the last outcome's colour",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\tself.struck = true\n",
+   "",
+   "the thread's own warm white painted over a landing's green",
+   expect=S_LAND)
+
+_m(LEATHER,
+   "\tfor _, g in ipairs(self.aftermath) do g:Stop() end\n\tself.smokeSheet:Stop()\n",
+   "\tself.smokeSheet:Stop()\n",
+   "the feathers' fling and the cooling left running by a repaint",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\tfor _, g in ipairs(self.aftermath) do g:Stop() end\n\tself.smokeSheet:Stop()\n",
+   "\tfor _, g in ipairs(self.aftermath) do g:Stop() end\n",
+   "the smoke left rising by a repaint",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\t\tif Leather.active then Leather:Idle() end\n\tend\n\tself.stirs, self.aftermath = {}, {}\n",
+   "\tend\n\tself.stirs, self.aftermath = {}, {}\n",
+   "the feathers hanging dead after a fling",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\tself:Strike(kind, self.kit.Tint(o[1], o[2], o[3], 0.30))\n",
+   "\tself:Strike(kind, 1, 0.3, 0.3)\n",
+   "a landing's flash on the brand not green",
+   expect=S_STRIKE)
+
+_m(LEATHER,
+   "\t\tself:Strike(kind, 1.00, 0.30, 0.16)\n",
+   "\t\tself:Strike(\"cast\", 1.00, 0.30, 0.16)\n",
+   "a refusal told to the brand as a landing",
+   expect=S_STRIKE)
+
+# --- the trim's art ------------------------------------------------------------
+
+_m(GENERATOR,
+   "    make_smoke()\n    make_sheen()\n",
+   "    make_sheen()\n",
+   "the smoke's sheet no longer drawn",
+   expect=S_GEN)
+
+_m(GENERATOR,
+   "RECESS = (17.0, 3.6, 3.3)\n",
+   "RECESS = (17.0, 3.6, 1.0)\n",
+   "the field pressed a third as deep as the hide that ships",
+   expect=S_GEN)

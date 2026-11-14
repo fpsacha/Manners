@@ -27,6 +27,14 @@
 --     jerks it and flashes red and amber, a cast nobody confirmed does nothing;
 --     Calm is fades only; a fight greys the leather and keeps the reason;
 --     leaving the look puts everything it borrowed back;
+--   * the trim: four studs on the stitch, the buckle astride the tip and the
+--     two feathers hung from its outer bar, each within its reach; the brand
+--     left of the eyelet and of the patches, its embers cut where the words
+--     end, gone where the words would cover it; it smoulders for as long as
+--     somebody is owed and goes out with the favour and in a fight; at rest
+--     the feathers stir and the thread catches the light, named in `idle`,
+--     on Full effects only; a landing strikes the brand and raises smoke, a
+--     refusal flashes it red, and every fling of the feathers sums to nothing;
 --   * the generator draws the bytes that ship.
 
 local dir, H = ...
@@ -52,7 +60,8 @@ local FILES = { "Leather_BodyL", "Leather_BodyM", "Leather_BodyR", "Leather_Stit
 	"Leather_StitchR", "Leather_IconRim", "Leather_IconRimRd", "Leather_IconMask", "Leather_IconMaskRd",
 	"Leather_Eyelet", "Leather_Enamel", "Leather_Gloss", "Leather_Glow", "Leather_Star", "Leather_Sheen",
 	"Leather_Band", "Leather_FxRing", "Leather_FxRingSq", "Leather_ShadowL", "Leather_ShadowM", "Leather_ShadowR",
-	"Leather_PatchL", "Leather_PatchM", "Leather_PatchR" }
+	"Leather_PatchL", "Leather_PatchM", "Leather_PatchR", "Leather_Stud", "Leather_Buckle", "Leather_FeatherA",
+	"Leather_FeatherB", "Leather_Brand", "Leather_Ember", "Leather_Smoke" }
 
 local function withTree(scenario, names, body, before)
 	Mock.reset()
@@ -81,6 +90,11 @@ local function tick(ns)
 	FT.settle()
 end
 
+-- The look's own loops at rest (look.idle: the feathers stirring, the thread
+-- and the brass catching the light), which its author asked for and which are
+-- no breath: `looping` counts every loop but these. Filled by upIn.
+local AT_REST = {}
+
 -- The prompt up in Leather with Anna owed on top (or `who`). Returns the
 -- regions, the settings and the look.
 local function upIn(ns, scenario, edit, who)
@@ -98,6 +112,8 @@ local function upIn(ns, scenario, edit, who)
 	owe(ns, who or "Anna Aim")
 	tick(ns)
 	local r = ns.Prompt:Regions()
+	AT_REST = {}
+	for _, g in ipairs(r.look and r.look.idle or {}) do AT_REST[g] = true end
 	return r, p, r.look
 end
 
@@ -122,7 +138,11 @@ end
 
 local function looping()
 	local _, loops = FT.playing()
-	return #loops
+	local n = 0
+	for _, g in ipairs(loops) do
+		if not AT_REST[g] then n = n + 1 end
+	end
+	return n
 end
 
 local function rectOf(r)
@@ -440,9 +460,15 @@ end
 -- Every texture the look keeps on the prompt itself, which must lie inside
 -- it: not the list's tags (outside by design), the shadow the tag throws
 -- (past the edge by design, held to its own reach below), the rings' frames
--- (scaled to fit when they play) or the textures a swing moves.
+-- (scaled to fit when they play) or the textures a swing moves; nor the trim
+-- that stands past the tag by design -- the buckle at the tip, the feathers
+-- hung from it, the smoke off the brand and the glints on the brass at the
+-- edge -- each of which is held to its own reach by the trim's scenario.
 local function mainTextures(look)
 	local out, skip = {}, {}
+	for _, list in ipairs({ look.feathers or {}, look.twinkles or {}, { look.buckle, look.smoke } }) do
+		for _, t in pairs(list) do skip[t] = true end
+	end
 	for _, tag in ipairs(look.tags) do
 		for _, t in ipairs(tag.body) do skip[t] = true end
 		skip[tag.eyelet], skip[tag.dot] = true, true
@@ -1495,7 +1521,8 @@ withTree("look-leather: owed glows three times and rests, and stops with the fav
 	local r, _, look = upIn(ns, scenario)
 	if not isLeather(look) then fail(scenario, "SKIPPED -- Leather is not the look in use") return end
 	if not look.pulse[1]._playing then fail(scenario, "somebody owed on top on Full, and the thread does not glow") end
-	if #look.pulse ~= 2 or not look.pulse[2]._playing then fail(scenario, "the brass does not glow with the thread") end
+	if #look.pulse ~= 3 or not look.pulse[2]._playing then fail(scenario, "the brass does not glow with the thread") end
+	if not (look.pulse[3] and look.pulse[3]._playing) then fail(scenario, "the brand's embers do not breathe with them") end
 	local breath
 	for i, group in ipairs(look.pulse) do
 		local d = group._anims[1]._duration
@@ -1600,10 +1627,15 @@ withTree("look-leather: the effects stay inside their time and their room under 
 			if a._kind == "Scale" and o and o._kind ~= "Frame" then fail(scenario, "a scale on a region") end
 		end
 	end
+	local feather = {}
+	for _, t in ipairs(look.feathers or {}) do feather[t] = true end
 	for _, group in ipairs(look.anims) do
 		for _, a in ipairs(group._anims) do
 			if a._kind == "Scale" then fail(scenario, "the look scales something: the rings are the shared FX's, and nothing else") end
-			if a._kind == "Rotation" then fail(scenario, "the look rotates something, which a frame cannot do") end
+			-- A turn is a texture's: the feathers', about the point they hang from.
+			if a._kind == "Rotation" and not feather[group._owner] then
+				fail(scenario, "the look turns something that is not a feather, which a frame cannot do")
+			end
 		end
 	end
 end)
@@ -1911,4 +1943,474 @@ withTree("look-leather: tools/make_leather_textures.py is deterministic and draw
 		os.remove(a .. "/" .. file)
 		os.remove(b .. "/" .. file)
 	end
+end)
+
+-- ------------------------------------------------------------------ 15
+-- The trim: brass studs on the stitch, a buckle at the tip, two feathers tied
+-- to its outer bar. The studs lie on the leather; the buckle and the feathers
+-- stand past it by design, each within its own reach.
+withTree("look-leather: the studs, the buckle and the feathers stand where the art says, each within its reach", ANNA, function(ns, scenario)
+	for _, size in ipairs({ { 220, 44 }, { 320, 58 }, { 160, 32 }, { 400, 72 } }) do
+		local r, _, look = upIn(ns, scenario, function(pp) pp.width, pp.height = size[1], size[2] end)
+		if not (isLeather(look) and look.studs and look.buckle and look.feathers) then
+			fail(scenario, "SKIPPED -- Leather is not the look in use, or it has no trim")
+			return
+		end
+		local tag = ("%dx%d"):format(size[1], size[2])
+		local H = size[2]
+		local panel = rectOf(r.art)
+		-- Four studs, round, on the leather, on the stitch's line where each end
+		-- meets the straight.
+		if #look.studs ~= 4 then fail(scenario, tag .. ": " .. #look.studs .. " studs, not four") end
+		local top, bottom = rectOf(look.thread.top), rectOf(look.thread.bottom)
+		for i, t in ipairs(look.studs) do
+			local box = rectOf(t)
+			if not (box and FT.visible(t)) then
+				fail(scenario, tag .. ": stud " .. i .. " is not drawn")
+			elseif top and bottom then
+				if t._file ~= ART .. "Leather_Stud" then fail(scenario, tag .. ": stud " .. i .. " is " .. tostring(t._file)) end
+				if not inside(box, panel) then fail(scenario, tag .. ": stud " .. i .. " leaves the leather") end
+				if not near(box[3] - box[1], box[4] - box[2], 0.02) then fail(scenario, tag .. ": stud " .. i .. " is not round") end
+				local line = (i % 2 == 1) and top or bottom
+				local cy, ly = (box[2] + box[4]) / 2, (line[2] + line[4]) / 2
+				if math.abs(cy - ly) > 0.03 * H + 0.01 then
+					fail(scenario, ("%s: stud %d is %.1f off the stitch's line"):format(tag, i, math.abs(cy - ly)))
+				end
+				local cx, want = (box[1] + box[3]) / 2, (i <= 2) and line[1] or line[3]
+				if math.abs(cx - want) > 0.6 then
+					fail(scenario, ("%s: stud %d is at %.1f, not where the end meets the straight (%.1f)"):format(tag, i, cx, want))
+				end
+			end
+		end
+		-- The buckle: square, on the middle line, astride the tip at the column
+		-- its art puts the tip at, and no further past it than half the height.
+		local b = rectOf(look.buckle)
+		if not (b and FT.visible(look.buckle)) then fail(scenario, tag .. ": the buckle is not drawn") return end
+		if not near(b[3] - b[1], b[4] - b[2], 0.02) then fail(scenario, tag .. ": the buckle's box is not square") end
+		if not near((b[2] + b[4]) / 2, (panel[2] + panel[4]) / 2, 0.05) then fail(scenario, tag .. ": the buckle is not on the middle line") end
+		if not (b[1] < panel[3] - 0.5 and b[3] > panel[3] + 0.5) then fail(scenario, tag .. ": the buckle is not astride the tag's tip") end
+		if not near((panel[3] - b[1]) / (b[3] - b[1]), 19 / 64, 0.01) then
+			fail(scenario, ("%s: the tag's tip is at %.3f of the buckle's file, not 19/64"):format(tag, (panel[3] - b[1]) / (b[3] - b[1])))
+		end
+		if b[3] - panel[3] > 0.5 * H + 0.01 then fail(scenario, tag .. ": the buckle reaches past half the height") end
+		local eye = rectOf(look.eyelet)
+		if eye and b[1] < eye[1] then fail(scenario, tag .. ": the buckle's tab is over the eyelet's hole") end
+		-- The feathers: two, hung by the middle of their top from one point on
+		-- the buckle's outer bar, under the tag and its shadow, within their reach.
+		if #look.feathers ~= 2 then fail(scenario, tag .. ": " .. #look.feathers .. " feathers, not two") end
+		local hang
+		for i, t in ipairs(look.feathers) do
+			local f = rectOf(t)
+			if not (f and FT.visible(t)) then
+				fail(scenario, tag .. ": feather " .. i .. " is not drawn")
+			else
+				local hx, hy = (f[1] + f[3]) / 2, f[4]
+				if not (hx > panel[3] and hx < b[3] and hy < b[4] and hy > b[2]) then
+					fail(scenario, ("%s: feather %d hangs from %.1f, %.1f, which is not on the buckle's outer bar"):format(tag, i, hx, hy))
+				end
+				if hang and not (near(hang[1], hx, 0.02) and near(hang[2], hy, 0.02)) then
+					fail(scenario, tag .. ": the two feathers do not hang from one point")
+				end
+				hang = { hx, hy }
+				if f[2] > panel[2] - 0.3 * H then fail(scenario, tag .. ": feather " .. i .. " does not hang under the tag") end
+				if panel[2] - f[2] > 1.4 * H or f[3] - panel[3] > 0.8 * H then
+					fail(scenario, ("%s: feather %d reaches %.1f under the tag and %.1f past it"):format(tag, i, panel[2] - f[2], f[3] - panel[3]))
+				end
+				if not (t._layer == look.shadow[1]._layer and (t._sublevel or 0) < (look.shadow[1]._sublevel or 0)) then
+					fail(scenario, tag .. ": feather " .. i .. " is not behind the tag's shadow")
+				end
+			end
+		end
+		-- The smoke stands on the brand and leaves by the top, by half the height at most.
+		local smoke = rectOf(look.smoke)
+		if smoke and FT.visible(look.smoke) then
+			if smoke[2] < panel[2] or smoke[2] > panel[4] then fail(scenario, tag .. ": the smoke does not stand on the tag") end
+			if smoke[4] - panel[4] > 0.5 * H then fail(scenario, tag .. ": the smoke reaches past half the height") end
+		end
+		-- The brass's glints at rest keep to the brass they are on.
+		for i, t in ipairs(look.twinkles) do
+			local box = rectOf(t)
+			local home = (i == 1) and rectOf(look.studs[3]) or b
+			if box and home then
+				local cx, cy = (box[1] + box[3]) / 2, (box[2] + box[4]) / 2
+				if not (cx >= home[1] and cx <= home[3] and cy >= home[2] and cy <= home[4]) then
+					fail(scenario, tag .. ": glint " .. i .. " is not on its brass")
+				end
+				if box[3] - box[1] > 0.5 * H then fail(scenario, tag .. ": glint " .. i .. " is half the tag across") end
+			end
+			if t._blend ~= "ADD" then fail(scenario, tag .. ": glint " .. i .. " is not additive") end
+		end
+	end
+end)
+
+-- The brand: a paw print burnt in, left of the eyelet and of whatever patch is
+-- up; its embers cut where the words end; not drawn where the words would
+-- cover half of it or where the prompt has no room for it.
+withTree("look-leather: the brand stands left of the eyelet and of the patches, and gives way to the words", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario, function(pp) pp.showCount = false end)
+	if not (isLeather(look) and look.brand and look.ember) then fail(scenario, "SKIPPED -- Leather is not the look in use, or it has no brand") return end
+	local panel, eye = rectOf(r.art), rectOf(look.eyelet)
+	local brand = rectOf(look.brand)
+	if not (brand and FT.visible(look.brand)) then fail(scenario, "no brand on the default prompt") return end
+	if look.brand._file ~= ART .. "Leather_Brand" then fail(scenario, "the brand is " .. tostring(look.brand._file)) end
+	if not near(brand[3] - brand[1], brand[4] - brand[2], 0.02) then fail(scenario, "the brand is not square") end
+	if not near((brand[2] + brand[4]) / 2, (panel[2] + panel[4]) / 2, 0.05) then fail(scenario, "the brand is not on the middle line") end
+	if not inside(brand, panel) then fail(scenario, "the brand leaves the leather") end
+	if brand[3] > eye[1] + 0.01 then fail(scenario, "the brand is over the eyelet") end
+	local icon = rectOf(r.icon)
+	if icon and across(icon, brand) then fail(scenario, "the brand is over the icon") end
+	-- The burnt mark is drawn BLEND, and so are the embers that rest lit; the
+	-- strike's flash is the same mark, greyed for its colour, additive.
+	if look.brand._blend and look.brand._blend ~= "BLEND" then fail(scenario, "the brand is drawn " .. tostring(look.brand._blend)) end
+	if look.ember._blend and look.ember._blend ~= "BLEND" then fail(scenario, "the embers, which rest lit, are drawn " .. tostring(look.ember._blend)) end
+	if look.ember._file ~= ART .. "Leather_Ember" or look.brandFlash._file ~= ART .. "Leather_Ember" then fail(scenario, "the embers are not the brand's own mark") end
+	if look.brandFlash._blend ~= "ADD" or not look.brandFlash._desaturated then fail(scenario, "the strike's flash is not the mark greyed and additive") end
+	-- With room, the embers are the whole mark.
+	local function sameBox(a, b) return a and b and near(a[1], b[1], 0.02) and near(a[2], b[2], 0.02) and near(a[3], b[3], 0.02) and near(a[4], b[4], 0.02) end
+	if not sameBox(rectOf(look.ember), brand) then fail(scenario, "with room for it the embers are not the whole mark") end
+	local coord = look.ember._texCoord
+	if coord and math.abs(coord[1]) > 0.001 then fail(scenario, "with room for it the embers are cut") end
+	-- A key bound and a count: the brand moves left of both, whole.
+	p.showCount = true
+	ns.Prompt:ApplyStyle()
+	SetBinding("SHIFT-F", COMMAND)
+	tick(ns)
+	if not (look.keyUp and look.countMode) then fail(scenario, "SKIPPED -- the patches are not up") return end
+	for _, item in ipairs({ { "key", look.keyBox }, { "count", look.chipBox } }) do
+		local box = rectOf(item[2])
+		brand = rectOf(look.brand)
+		if FT.visible(look.brand) and box and brand and brand[3] > box[1] + 0.01 then
+			fail(scenario, ("the brand (to %.1f) is under the %s's patch (from %.1f)"):format(brand[3], item[1], box[1]))
+		end
+	end
+	SetBinding("SHIFT-F")
+	p.showCount = false
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	-- The words reach into the mark: the embers begin where the words end, and
+	-- their texture is cut by the same share.
+	local realMeasure = FT.measure
+	local ok, err = pcall(function()
+		brand = rectOf(look.brand)
+		local size = brand[3] - brand[1]
+		local nameLeft = rectOf(r.name)[1]
+		local target = brand[1] + 0.3 * size - nameLeft
+		FT.measure = function(text)
+			if tostring(text):find("Anna", 1, true) then return target end
+			return 10
+		end
+		r, p, look = upIn(ns, scenario, function(pp) pp.showCount = false end)
+		if not near(r.name:GetUnboundedStringWidth(), target, 0.5) then
+			fail(scenario, "SKIPPED -- the name is not as wide as the scenario made it: " .. tostring(r.name:GetUnboundedStringWidth()))
+			return
+		end
+		brand = rectOf(look.brand)
+		local ember = rectOf(look.ember)
+		if not (FT.visible(look.brand) and FT.visible(look.ember) and ember) then
+			fail(scenario, "words over a third of the mark took the whole brand away")
+		else
+			local wordsEnd = nameLeft + target
+			if ember[1] < wordsEnd - 0.01 then
+				fail(scenario, ("the embers start at %.1f, under the words, which end at %.1f"):format(ember[1], wordsEnd))
+			end
+			if ember[1] > wordsEnd + 0.2 * size then fail(scenario, "the embers are cut far past the words") end
+			local cut = (ember[1] - brand[1]) / size
+			local c = look.ember._texCoord
+			if not (c and near(c[1], cut, 0.01) and near(c[2], 1, 0.001)) then
+				fail(scenario, ("the embers' box is cut by %.3f and their texture by %s: the mark is squeezed"):format(cut, tostring(c and c[1])))
+			end
+			local flash = rectOf(look.brandFlash)
+			if flash and flash[1] < wordsEnd - 0.01 then fail(scenario, "the strike's flash is not cut with the embers") end
+			if not sameBox(brand, { ember[3] - size, ember[2], ember[3], ember[4] }) then fail(scenario, "the burnt mark moved with the cut") end
+		end
+		-- Words over more than half of it: no brand at all.
+		target = brand[1] + 0.7 * size - nameLeft
+		r, p, look = upIn(ns, scenario, function(pp) pp.showCount = false end)
+		if FT.visible(look.brand) or FT.visible(look.ember) then fail(scenario, "the brand is drawn under words that cover most of it") end
+	end)
+	FT.measure = realMeasure
+	if not ok then error(err, 0) end
+	-- A prompt with no room between the words' start and the eyelet has none.
+	r, p, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.showCount = 100, 60, false end)
+	if FT.visible(look.brand) or FT.visible(look.ember) then fail(scenario, "a brand on a prompt with no room for it") end
+end)
+
+-- The brand smoulders for as long as somebody is owed: it breathes with the
+-- brass and the thread, then rests lit, still; it goes out with the favour, in
+-- a fight and with the flash off; Calm has it lit and still.
+withTree("look-leather: the brand smoulders while somebody is owed, and goes out with the favour and in a fight", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not (isLeather(look) and look.emberFrame) then fail(scenario, "SKIPPED -- Leather is not the look in use, or it has no brand") return end
+	local ember = look.pulse[3]
+	if not (ember and ember._owner == look.emberFrame and ember._playing) then fail(scenario, "somebody owed, and the embers do not breathe") return end
+	local a = ember._anims[1]
+	if not (a._kind == "Alpha" and (a._from or a._fromAlpha or 1) > 0.2) then
+		-- (the breath never takes the embers out: they dim and brighten)
+		fail(scenario, "the embers' breath goes down to nothing")
+	end
+	Mock.runTimers(10)
+	local rest = look.emberFrame._alpha or 0
+	if not (rest > 0.4 and rest < 1) then fail(scenario, "after its breaths the brand is at " .. tostring(rest) .. ", not smouldering") end
+	if looping() > 0 then fail(scenario, "the embers still loop after their breaths") end
+	tick(ns)
+	if not near(look.emberFrame._alpha, rest, 0.001) then fail(scenario, "a scan moved the resting embers") end
+	-- Nobody owed: out.
+	wipe(ns.owed)
+	tick(ns)
+	if (look.emberFrame._alpha or 0) > 0.001 then fail(scenario, "the brand still glows with nobody owed") end
+	-- Owed again, then a fight: out, and no breath.
+	owe(ns, "Brannoc Vale")
+	tick(ns)
+	if (look.emberFrame._alpha or 0) < 0.001 and not ember._playing then fail(scenario, "a new favour did not light the brand") end
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	if ember._playing or (look.emberFrame._alpha or 0) > 0.001 then fail(scenario, "the brand glows in a fight") end
+	if not (look.brand._desaturated and look.ember._desaturated) then fail(scenario, "the brand keeps its colour in a fight") end
+	for i, t in ipairs(look.feathers) do
+		if not t._desaturated then fail(scenario, "feather " .. i .. " keeps its colour in a fight") end
+	end
+	if not (look.buckle._desaturated and look.studs[1]._desaturated) then fail(scenario, "the studs and the buckle keep their colour in a fight") end
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_ENABLED()
+	Mock.advance(2)
+	tick(ns)
+	if look.brand._desaturated or look.feathers[1]._desaturated or look.buckle._desaturated then fail(scenario, "the trim stays grey after the fight") end
+	-- The flash off: no embers. Calm: lit and still.
+	p.flashStyle = "off"
+	wipe(ns.owed)
+	tick(ns)
+	owe(ns, "Anna Aim")
+	tick(ns)
+	if (look.emberFrame._alpha or 0) > 0.001 then fail(scenario, "the brand glows with the flash off") end
+	r, p, look = upIn(ns, scenario, function(pp) pp.effects = "calm" end)
+	if look.pulse[3]._playing then fail(scenario, "the embers breathe on Calm") end
+	if not ((look.emberFrame._alpha or 0) > 0.4) then fail(scenario, "on Calm somebody owed leaves the brand dark") end
+end)
+
+-- At rest the look is alive: the feathers stir about the point they hang
+-- from, the thread catches the light piece after piece, the brass glints. All
+-- of it is named in `idle`, runs on Full effects only, and stops in a fight
+-- and with the look.
+withTree("look-leather: at rest the feathers stir and the thread catches the light, and it stops on Calm, in a fight and with the look", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not (isLeather(look) and look.idle and look.sways and look.shimmer) then fail(scenario, "SKIPPED -- Leather is not the look in use, or it has nothing at rest") return end
+	wipe(ns.owed)
+	tick(ns)
+	Mock.advance(3)
+	tick(ns)
+	local function playing(list)
+		local n = 0
+		for _, g in ipairs(list) do if g._playing then n = n + 1 end end
+		return n
+	end
+	if #look.sways ~= 2 or playing(look.sways) ~= 2 then fail(scenario, "a passer-by on the panel, and the feathers do not stir") end
+	if #look.shimmer ~= #look.pieces + 2 or playing(look.shimmer) ~= #look.shimmer then
+		fail(scenario, ("%d of %d glints run at rest"):format(playing(look.shimmer), #look.shimmer))
+	end
+	-- Every loop the look runs with nobody owed is named in `idle`.
+	local named = {}
+	for _, g in ipairs(look.idle) do named[g] = true end
+	local _, loops = FT.playing()
+	for _, g in ipairs(loops) do
+		if not named[g] then fail(scenario, "a loop at rest is not named in idle") break end
+	end
+	if #look.idle ~= #look.sways + #look.shimmer then fail(scenario, "idle names " .. #look.idle .. " groups, not the sways and the glints") end
+	-- A feather turns about the middle of its top, a few degrees, there and
+	-- back; nothing else in the look turns.
+	for i, g in ipairs(look.sways) do
+		local a = g._anims[1]
+		if g._owner ~= look.feathers[i] then fail(scenario, "sway " .. i .. " is not on its feather") end
+		if not (a and a._kind == "Rotation" and #g._anims == 1) then fail(scenario, "sway " .. i .. " is not one turn") end
+		if a and not (a._origin and a._origin[1] == "TOP" and a._origin[2] == 0 and a._origin[3] == 0) then
+			fail(scenario, "feather " .. i .. " does not turn about the point it hangs from")
+		end
+		if a and not (math.abs(a._degrees or 0) >= 3 and math.abs(a._degrees or 0) <= 12) then
+			fail(scenario, "feather " .. i .. " sways " .. tostring(a._degrees) .. " degrees")
+		end
+		if g._looping ~= "BOUNCE" then fail(scenario, "sway " .. i .. " does not come back") end
+	end
+	local a1, a2 = look.sways[1]._anims[1], look.sways[2]._anims[1]
+	if a1 and a2 and (a1._duration == a2._duration or (a1._degrees or 0) * (a2._degrees or 0) > 0) then
+		fail(scenario, "the two feathers sway as one")
+	end
+	-- The thread's glint runs round the tag: each piece later than the last, all
+	-- on one period, each lit for well under 0.6 s (it is additive).
+	local last, period = -1, nil
+	for i = 1, #look.pieces do
+		local g = look.shimmer[i]
+		if g._owner ~= look.pieces[i].tex then fail(scenario, "glint " .. i .. " is not on its piece of the thread") end
+		local wait = g._anims[1]._duration
+		if wait <= last + 1e-6 then fail(scenario, "the thread's pieces do not glint one after another (piece " .. i .. ")") break end
+		last = wait
+		local lit = g._anims[2]._duration + g._anims[3]._duration
+		if lit > 0.6 then fail(scenario, ("piece %d is lit for %.2f s, and it is additive"):format(i, lit)) end
+		local round = FT.groupLength(g)
+		if period and not near(round, period, 0.001) then fail(scenario, "the pieces glint on different periods, so the run comes apart") end
+		period = round
+		if g._looping ~= "REPEAT" then fail(scenario, "glint " .. i .. " does not repeat") end
+		for _, a in ipairs(g._anims) do
+			if a._kind ~= "Alpha" then fail(scenario, "a glint moves") end
+		end
+	end
+	if period and (period < 4 or period > 12) then fail(scenario, ("the thread glints every %.1f s"):format(period)) end
+	-- At rest the pieces are a warm white, not the last outcome's colour.
+	local c = look.pieces[1].tex._color
+	if not (c and c[1] > 0.9 and c[2] > 0.8 and c[3] > 0.5 and c[3] < c[1]) then fail(scenario, "the thread glints in a colour that is not a warm white") end
+	-- Nothing of it over the text's level.
+	local text = r.textLayer._level or 0
+	for name, f in pairs({ trim = look.trimFrame, embers = look.emberFrame, strike = look.strikeFrame, smoke = look.smokeFrame,
+		glints = look.twinkleFrame }) do
+		if (f._level or 0) >= text then fail(scenario, "the " .. name .. " are not beneath the text") end
+	end
+	-- A fight: all of it stops, and comes back after.
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	if playing(look.idle) > 0 then fail(scenario, playing(look.idle) .. " of the look's lights at rest run in a fight") end
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_ENABLED()
+	Mock.advance(2)
+	tick(ns)
+	if playing(look.idle) ~= #look.idle then fail(scenario, "after the fight the tag stays still") end
+	-- Calm: none of it.
+	p.effects = "calm"
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if playing(look.idle) > 0 then fail(scenario, playing(look.idle) .. " of the look's lights at rest run on Calm") end
+	-- Nor is anything flung there: a favour arriving on Calm is a fade.
+	local flung = plays(look.stirs.arrive[1]) + plays(look.stirs.arrive[2])
+	owe(ns, "Anna Aim")
+	tick(ns)
+	if plays(look.stirs.arrive[1]) + plays(look.stirs.arrive[2]) ~= flung then fail(scenario, "on Calm a favour arriving flings the feathers") end
+	if playing(look.idle) > 0 then fail(scenario, "on Calm a favour set the tag stirring") end
+	wipe(ns.owed)
+	tick(ns)
+	p.effects = "full"
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if playing(look.idle) ~= #look.idle then fail(scenario, "back on Full the tag stays still") end
+	-- Another look: none of it, and the smoke's clock is stopped, in the
+	-- middle of a landing's smoke too.
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if not look.smokeSheet:IsPlaying() then fail(scenario, "SKIPPED -- a landing raised no smoke to stop") end
+	p.style = "glass"
+	ns.Prompt:ApplyStyle()
+	tick(ns)
+	if playing(look.idle) > 0 then fail(scenario, "the feathers stir on under another look") end
+	if look.smokeSheet:IsPlaying() or look.flow.live > 0 then fail(scenario, "the smoke's clock runs on under another look") end
+	for _, t in ipairs(look.feathers) do
+		if t._shown ~= false then fail(scenario, "a feather is still drawn under another look") break end
+	end
+end)
+
+-- A landing strikes the brand: the flash in the landing's colour, the mark
+-- white-hot and cooling, smoke off it, the feathers kicked. A refusal flashes
+-- it red and shudders the feathers, with no smoke. An arrival flings them.
+-- Each fling sums to nothing; a repaint about somebody else stops all of it.
+withTree("look-leather: a landing strikes the brand and raises smoke, a refusal flashes it red, and the feathers are flung and settle", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not (isLeather(look) and look.stirs and look.cool and look.smokeSheet) then fail(scenario, "SKIPPED -- Leather is not the look in use, or it has no trim") return end
+	-- The arrival flung the feathers, once.
+	local arrive = look.stirs.arrive
+	if not (arrive and plays(arrive[1]) == 1 and plays(arrive[2]) == 1) then fail(scenario, "a favour arriving did not fling the feathers once") end
+	if look.sways[1]._playing then fail(scenario, "the feathers stir while they are flung") end
+	if plays(look.cool) > 0 or plays(look.smokeFade) > 0 then fail(scenario, "an arrival struck the brand") end
+	-- Every fling: turns only, about the point the feather hangs from, summing
+	-- to nothing, dying away, on a feather.
+	for kind, set in pairs(look.stirs) do
+		for i, g in ipairs(set) do
+			if g._owner ~= look.feathers[i] then fail(scenario, kind .. ": fling " .. i .. " is not on its feather") end
+			local sum, peak, lastStep = 0, 0, 0
+			local steps = {}
+			for _, a in ipairs(g._anims) do steps[#steps + 1] = a end
+			table.sort(steps, function(x, y) return x._order < y._order end)
+			for _, a in ipairs(steps) do
+				if a._kind ~= "Rotation" then fail(scenario, kind .. ": a fling has a " .. tostring(a._kind) .. " in it") end
+				if not (a._origin and a._origin[1] == "TOP") then fail(scenario, kind .. ": a fling does not turn about the hang point") end
+				sum = sum + (a._degrees or 0)
+				peak = math.max(peak, math.abs(a._degrees or 0))
+				lastStep = math.abs(a._degrees or 0)
+			end
+			if math.abs(sum) > 0.001 then fail(scenario, ("%s: feather %d's fling adds up to %.1f degrees, so it ends turned"):format(kind, i, sum)) end
+			if lastStep >= peak / 2 then fail(scenario, kind .. ": a fling ends nearly as hard as it began") end
+			if peak > 25 then fail(scenario, kind .. ": a fling of " .. peak .. " degrees") end
+			if FT.groupLength(g) > 1.6 then fail(scenario, ("%s: a fling lasts %.2f s"):format(kind, FT.groupLength(g))) end
+		end
+	end
+	-- Settled, they stir again.
+	Mock.advance(2)
+	FT.settle()
+	if not (look.sways[1]._playing and look.sways[2]._playing) then fail(scenario, "the feathers do not stir again once the fling has settled") end
+	-- A landing.
+	local flash = look.landing[#look.landing]
+	local before = { flash = plays(flash), cool = plays(look.cool), smoke = plays(look.smokeFade), kick = plays(look.stirs.cast[1]) }
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if flash._owner ~= look.brandFlash or plays(flash) <= before.flash then fail(scenario, "a landing did not flash the brand") end
+	local c = look.brandFlash._color
+	if not (c and c[2] > c[1] and c[2] > c[3]) then fail(scenario, "the landing's flash on the brand is not green") end
+	if plays(look.cool) <= before.cool then fail(scenario, "a landing did not leave the brand hot and cooling") end
+	if look.cool._owner ~= look.emberFrame then fail(scenario, "the cooling is not the embers'") end
+	if plays(look.smokeFade) <= before.smoke or not look.smokeSheet:IsPlaying() then fail(scenario, "a landing raised no smoke off the brand") end
+	if plays(look.stirs.cast[1]) <= before.kick then fail(scenario, "a landing did not kick the feathers") end
+	for i = 1, #look.pieces do
+		if look.shimmer[i]._playing then fail(scenario, "the thread's own glints run over the landing's light") break end
+	end
+	for _, a in ipairs(flash._anims) do
+		if a._kind ~= "Alpha" then fail(scenario, "the brand's flash moves") end
+	end
+	if FT.groupLength(flash) > 0.6 then fail(scenario, ("the brand's additive flash lasts %.2f s"):format(FT.groupLength(flash))) end
+	for _, g in ipairs({ look.cool, look.smokeFade }) do
+		for _, a in ipairs(g._anims) do
+			if a._kind ~= "Alpha" then fail(scenario, "the cooling or the smoke's fade is not a fade") end
+		end
+	end
+	-- A repaint about somebody else stops what outlasts the light too.
+	ns.Prompt:StopFlourishes()
+	for i, g in ipairs(look.aftermath) do
+		if g._playing then fail(scenario, "aftermath " .. i .. " was still playing after a repaint stopped the flourishes") end
+	end
+	if look.smokeSheet:IsPlaying() then fail(scenario, "the smoke was still rising after a repaint stopped the flourishes") end
+	if (look.smokeFrame._alpha or 0) > 0.001 then fail(scenario, "the smoke was left hanging") end
+	-- The outcome over: the thread glints again, in its own warm white.
+	Mock.advance(look.kit.OUTCOME_SECONDS + 1)
+	Mock.runTimers(1)
+	tick(ns)
+	if not look.shimmer[1]._playing then fail(scenario, "after the outcome the thread no longer catches the light") end
+	c = look.pieces[1].tex._color
+	if not (c and c[1] > 0.9 and c[1] > c[2] and c[2] > 0.8) then fail(scenario, "after a landing the thread glints in the landing's green") end
+	-- A refusal: red on the brand, the feathers shudder, no cooling and no smoke.
+	local refuse = look.refusal[#look.refusal]
+	before = { flash = plays(refuse), cool = plays(look.cool), smoke = plays(look.smokeFade), shudder = plays(look.stirs.failed[1]),
+		kick = plays(look.stirs.cast[1]) }
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	if refuse._owner ~= look.brandFlash or plays(refuse) <= before.flash then fail(scenario, "a refusal did not flash the brand") end
+	c = look.brandFlash._color
+	if not (c and c[1] > 0.9 and c[2] < 0.5 and c[3] < 0.5) then fail(scenario, "the refusal's flash on the brand is not red") end
+	if plays(look.stirs.failed[1]) <= before.shudder then fail(scenario, "a refusal did not shudder the feathers") end
+	if plays(look.cool) ~= before.cool or plays(look.smokeFade) ~= before.smoke or plays(look.stirs.cast[1]) ~= before.kick then
+		fail(scenario, "a refusal struck the brand hot or raised smoke, as if it had landed")
+	end
+	-- A cast nobody confirmed: nothing.
+	Mock.advance(look.kit.OUTCOME_SECONDS + 1)
+	Mock.runTimers(1)
+	tick(ns)
+	before = { cool = plays(look.cool), smoke = plays(look.smokeFade), kick = plays(look.stirs.cast[1]), shudder = plays(look.stirs.failed[1]) }
+	ns.Prompt:ShowOutcome("sent", "Anna Aim")
+	if plays(look.cool) ~= before.cool or plays(look.smokeFade) ~= before.smoke or plays(look.stirs.cast[1]) ~= before.kick
+		or plays(look.stirs.failed[1]) ~= before.shudder then
+		fail(scenario, "a cast nobody confirmed struck the brand or flung the feathers")
+	end
+	-- In a fight nothing is flung.
+	Mock.advance(look.kit.OUTCOME_SECONDS + 1)
+	Mock.runTimers(1)
+	tick(ns)
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	before = { kick = plays(look.stirs.cast[1]) }
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if plays(look.stirs.cast[1]) ~= before.kick then fail(scenario, "the feathers are flung in a fight") end
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_ENABLED()
 end)
