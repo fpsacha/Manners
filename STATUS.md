@@ -450,6 +450,26 @@ options button are untested in a real client: check the slot shows the spell's
 icon, cooldown and range, goes back to the note icon with nobody to buff, and
 that a controller button bound to the prompt shows its glyph on the chip.
 
+**Group pets (Unreleased), asked for on CurseForge by a hunter and a
+warlock: needs a look in the real game.** *My group's pets too*
+(`sources.pets`, off, under *My party and raid*): the walk goes on to
+`partypetN` / `raidpetN` after everybody else (`Queue.lua`, `IterateUnits`),
+`IsBuffableUnit` lets a pet through, and its entry carries `pet` and `owner`
+(`tests/scenarios/grouppets.lua`). Only the live game can say: that `/target
+<pet name>` reaches the pet (a pet with a common name, "Wolf" or "Cat", may
+share it with another pet or a creature near by, and the name search may take
+either); that `UnitIsUnit(unit, "pet")` names your own among a raid's pets;
+what `UnitPowerMax` says of a pet's mana on each client (a withheld answer
+falls back on the client's class for the pet); and whether a group cast
+already covers the pets on each client (a pet is never counted for one, so
+where it does, a pet missing the buff is offered a single cast the group cast
+would have made unnecessary). Left out on purpose: a pet named as somebody of
+the group, by the whole name or its first word, and one named as somebody
+you owe a favour while it stands. A passer-by who shares a pet's name keeps
+theirs: people are walked first, and one verdict is reached per name a scan.
+A request in chat from somebody of a pet's name is still ticked off by a buff
+that lands on the pet (`ns.ServeRequest` goes by name).
+
 **The fight's rota (Unreleased), after a player wrote that Manners "retargets
 the same person when they are buffed and does not notice party members that
 are unbuffed".** `Prompt/Fight.lua`: at the pull the header is handed the

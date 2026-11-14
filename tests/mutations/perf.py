@@ -40,8 +40,8 @@ mutate("Queue.lua",
 
 # The walk unprotected, so a scan that throws never withdraws them.
 mutate("Queue.lua",
-       "\tlocal walked, walkError = pcall(IterateUnits, visit)\n",
-       "\tIterateUnits(visit)\n\tlocal walked, walkError = true\n",
+       "\tlocal walked, walkError = pcall(IterateUnits, visit, db.sources.pets == true and db.sources.group == true)\n",
+       "\tIterateUnits(visit, db.sources.pets == true and db.sources.group == true)\n\tlocal walked, walkError = true\n",
        "never-list answers outlive a scan that threw",
        expect="the never-offer list asked between scans reads the list",
        script="runscenarios.py")

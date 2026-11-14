@@ -1126,10 +1126,15 @@ end
 ns.OfferRank = OfferRank
 
 -- The group's unit tokens, spelled out once rather than joined on every scan.
-local GROUP_TOKENS = { raid = {}, party = {} }
+-- Their pets' too (raidpetN is raidN's, partypetN partyN's), walked only with
+-- "My group's pets too" on, and `names`, the group's names for that walk
+-- (ns.GroupNames), on this table to spare the main chunk a local.
+local GROUP_TOKENS = { raid = {}, party = {}, raidpet = {}, partypet = {}, names = {} }
 for i = 1, 40 do
 	GROUP_TOKENS.raid[i] = "raid" .. i
 	GROUP_TOKENS.party[i] = "party" .. i
+	GROUP_TOKENS.raidpet[i] = "raidpet" .. i
+	GROUP_TOKENS.partypet[i] = "partypet" .. i
 end
 
 -- fn(unit, pointed). `pointed` marks a unit the player deliberately picked out:
@@ -1137,19 +1142,28 @@ end
 -- wherever the cursor happens to be, and counting it would flash distant
 -- strangers onto the prompt. Focus comes before mouseover because one verdict
 -- is reached per person per scan, on whichever token reaches them first.
-local function IterateUnits(fn)
+--
+-- `pets` asks for the group's pets as well ("My group's pets too",
+-- sources.pets; BuildQueue alone asks): fn(unit, nil, nil, owner), `owner`
+-- being the token of the member the pet belongs to. Without it not one of
+-- their tokens is touched, so the switch off costs a scan nothing.
+local function IterateUnits(fn, pets)
 	fn("target", true)
 	fn("focus", true)
 	fn("mouseover")
 
+	local owners, petTokens, count
 	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
 	if n > 0 then
 		local inRaid = plain(IsInRaid and IsInRaid()) == true
 		local prefix = inRaid and "raid" or "party"
 		local tokens = GROUP_TOKENS[prefix]
-		local count = inRaid and n or (n - 1)
+		count = inRaid and n or (n - 1)
 		for i = 1, count do
 			fn(tokens[i] or (prefix .. i))
+		end
+		if pets then
+			owners, petTokens = tokens, inRaid and GROUP_TOKENS.raidpet or GROUP_TOKENS.partypet
 		end
 	end
 
@@ -1174,6 +1188,43 @@ local function IterateUnits(fn)
 			end
 		end
 	end
+
+	-- The group's pets, after everybody: a pet is filed under its name like
+	-- anybody, and one verdict is reached per name per scan, so a person a
+	-- token found is never walked over by a pet that shares their name.
+	if petTokens then
+		for i = 1, count do
+			local token = petTokens[i]
+			if token and owners[i] then fn(token, nil, nil, owners[i]) end
+		end
+	end
+end
+
+-- The names of everybody in the group, you among them, as they are filed
+-- (ns.UnitFullName) and by their first word, for the walk of the group's pets
+-- (BuildQueue, visit): a pet is targeted by its name, and one named as a
+-- person of the group could not be told from them on the /target line. One
+-- table, emptied and filled when asked, which is once a scan and only when a
+-- pet is out.
+function ns.GroupNames()
+	local names = GROUP_TOKENS.names
+	wipe(names)
+	local function add(name)
+		if not name then return end
+		names[name] = true
+		local first = ns.FirstName(name)
+		if first then names[first] = true end
+	end
+	add(ns.UnitFullName("player"))
+	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
+	if n > 0 then
+		local inRaid = plain(IsInRaid and IsInRaid()) == true
+		local tokens = inRaid and GROUP_TOKENS.raid or GROUP_TOKENS.party
+		for i = 1, inRaid and n or (n - 1) do
+			if tokens[i] and plain(UnitExists(tokens[i])) then add(ns.UnitFullName(tokens[i])) end
+		end
+	end
+	return names
 end
 
 -- The token that names this person at this moment, or nil. Asked by the
@@ -2493,8 +2544,10 @@ function ns.BuildQueue(watch)
 	local opts = { unpaid = UNPAID, tanksOutside = tanksOutside }
 
 	-- `unasked` walks somebody as if they had made no request (see below).
-	local function visit(unit, pointed, unasked)
-		local ok, person = IsBuffableUnit(unit, f)
+	-- `owner` is given for a pet of the group ("My group's pets too",
+	-- IterateUnits): the token of the member it belongs to, nil for a person.
+	local function visit(unit, pointed, unasked, owner)
+		local ok, person = IsBuffableUnit(unit, f, owner)
 		if not ok then
 			-- Somebody turned down here must not walk back in through the
 			-- fallbacks, which cannot check any of this, nor be held on the
@@ -2503,13 +2556,23 @@ function ns.BuildQueue(watch)
 			-- caller is watching (see above).
 			if person and (watch or next(owed) or next(passing)) then
 				local bad = ns.UnitFullName(unit)
-				if bad then rejected[bad] = true end
+				-- Not a pet's over a person this scan has offered: the name is
+				-- theirs first.
+				if bad and not (owner and seen[bad]) then rejected[bad] = true end
 			end
 			return
 		end
 
 		local full = ns.UnitFullName(unit)
 		if not full then return end
+		-- A pet of the group is reached by its name alone, as everybody is, so
+		-- one named as somebody of the group, you included, is left out: the
+		-- /target line could not tell the two apart (ns.GroupNames, read at
+		-- the scan's first pet).
+		if owner then
+			if not opts.groupNames then opts.groupNames = ns.GroupNames() end
+			if opts.groupNames[full] then return end
+		end
 		-- One verdict per person per scan, whichever way it went: somebody in
 		-- front of you is commonly both your target and a nameplate.
 		if seen[full] or rejected[full] then return end
@@ -2518,8 +2581,20 @@ function ns.BuildQueue(watch)
 		-- nobody, so we do not march down the list failing at each buff.
 		if ns.IsBlocked(full, nil, now) then return end
 
-		local inGroup = plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
+		-- A pet of the group is in it on the walk's word: UnitInParty answers
+		-- false of one.
+		local inGroup = owner ~= nil or plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
 		local isOwed = db.sources.owed and owed[full] and LiveExpiry(owed[full]) > now
+		-- Nor is a pet anybody's debtor or asker. One named as somebody you
+		-- owe a favour is left out while it stands, before any verdict is
+		-- written under that name: the favour is theirs, and a pet offered or
+		-- turned down under it would keep the fallback below off them. And no
+		-- request is looked up for a pet: a name it happens to share with
+		-- somebody who asked is theirs.
+		if owner then
+			if isOwed then return end
+			unasked = true
+		end
 
 		-- The never-offer list, for everybody but a person owed a favour: that
 		-- exception is a decision (STATUS.md), and the options page says so. Safe to
@@ -2569,7 +2644,9 @@ function ns.BuildQueue(watch)
 		-- held back by it, as the never-offer list is not for a favour. A
 		-- verdict, so a passer-by remembered is not offered from memory.
 		if skipGuilds and (reason == "group" or reason == "nearby") and not pointed then
-			local guild = GuildOf(unit, full, now)
+			-- A pet has none: the answer is kept by name, and a player's
+			-- must not leave out a pet that shares it.
+			local guild = not owner and GuildOf(unit, full, now)
 			if guild and skipGuilds[guild:lower()] then
 				rejected[full] = true
 				return
@@ -2599,7 +2676,9 @@ function ns.BuildQueue(watch)
 		-- remembered as a passer-by who has joined a group switched off would
 		-- otherwise be offered from that memory (OfferPassersBy).
 		if skipGroups and reason == "group" and not pointed then
-			local group = RaidGroupOf(unit)
+			-- A pet goes by the group of the member it belongs to: the roster
+			-- lists people.
+			local group = RaidGroupOf(owner or unit)
 			if group and skipGroups[group] then
 				rejected[full] = true
 				return
@@ -2693,8 +2772,9 @@ function ns.BuildQueue(watch)
 		opts.shortHeld = (not pointed) and townShort or nil
 		opts.inGroup = inGroup
 		-- Who a shout reaches, which in a raid is not the group: see
-		-- SameParty. inGroup stays the reason on the card.
-		opts.inParty = SameParty(unit, inRaid)
+		-- SameParty. inGroup stays the reason on the card. Never a pet: a
+		-- shout is aimed at nobody, and UnitInParty says no of one.
+		opts.inParty = not owner and SameParty(unit, inRaid)
 		opts.relevantOnly = f.relevantOnly and not asked
 		opts.casterOnly = skipCasters and ns.CASTER_CLASSES[plain(select(2, UnitClass(unit)))] or nil
 		-- "Asked", to the walk, is asked for by name: what lifts its rules for
@@ -2761,6 +2841,18 @@ function ns.BuildQueue(watch)
 		opts.sameClass = same
 		opts.level = same and plain(UnitLevel(unit)) or nil
 		opts.skip = SelfServed
+		-- A pet of the group (Core.lua, Castable, keeps a buff for one target
+		-- at a time off it). Its "class" is the client's own and nothing a
+		-- player knows it by, so no rule that goes by one reads it: Might
+		-- held from casters, your own class skipped, Symbiosis. Nor is it a
+		-- tank, whatever role the client gives it, so a buff held to your
+		-- tanks is not for it. What does nothing for it still goes by its
+		-- mana (hasMana).
+		opts.pet = owner and true or nil
+		if owner then
+			opts.casterOnly, opts.sameClass, opts.level = nil, false, nil
+			opts.isTank, opts.class = nil, nil
+		end
 		local buff, has, remaining, seconds, lead, leadKind = ns.PickBuffFor(asked or candidates, opts, ReadAura)
 
 		if not buff then
@@ -2823,7 +2915,8 @@ function ns.BuildQueue(watch)
 		-- three people never offered until they walked up. Their verdict
 		-- stands either way: out of range, as far as a single cast goes. Out
 		-- of sight they never get here (the test above).
-		if f.requireInRange and ranged == false and inGroup and checked and ns.GROUP_IS_RAID
+		-- Never a pet, which no group cast counts or is aimed at (GroupBuffs.lua).
+		if f.requireInRange and ranged == false and inGroup and not owner and checked and ns.GROUP_IS_RAID
 			and (has == false or remaining ~= nil) then
 			if opts.foldReady == nil then opts.foldReady = ns.GroupReady and ns.GroupReady(db, candidates) or false end
 			if opts.foldReady and opts.foldReady[buff.key] then
@@ -2866,7 +2959,7 @@ function ns.BuildQueue(watch)
 		-- Asked last, since the answer only orders the queue, and not for a
 		-- favour owed or your target, who outrank everybody it could pass.
 		local close
-		if friendsFirst and (reason == "group" or reason == "nearby") then
+		if friendsFirst and not owner and (reason == "group" or reason == "nearby") then
 			close = Closeness(unit, full, now)
 		end
 
@@ -2917,6 +3010,16 @@ function ns.BuildQueue(watch)
 			local made = queue[#queue]
 			made.duration, made.lead, made.leadKind = seconds, lead, leadKind
 		end
+		-- A pet of the group: marked as one, with whose it is, which the
+		-- reason line says (Prompt/Paint.lua). No class, the client's own for
+		-- a pet being nothing to colour a name by or to count among a class
+		-- for a Greater Blessing, and no guild, which is kept by name. Written
+		-- after the table is built, as above.
+		if owner then
+			local made = queue[#queue]
+			made.pet, made.owner = true, ns.UnitFullName(owner)
+			made.class, made.guild = nil, nil
+		end
 		-- Remembered for when the token goes, which for the cursor is the
 		-- moment the player moves it to the prompt. Not somebody pointed at:
 		-- a target or focus stands until the player changes it. A favour is
@@ -2934,7 +3037,7 @@ function ns.BuildQueue(watch)
 	-- the list may be edited between two scans. So the walk is protected, the
 	-- answers withdrawn whichever way it ends, and a failure goes on as before.
 	neverSeen.scan = neverVerdict
-	local walked, walkError = pcall(IterateUnits, visit)
+	local walked, walkError = pcall(IterateUnits, visit, db.sources.pets == true and db.sources.group == true)
 	neverSeen.scan = nil
 	if not walked then error(walkError, 0) end
 

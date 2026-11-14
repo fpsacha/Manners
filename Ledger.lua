@@ -867,6 +867,9 @@ local recent = {}
 -- Stamped with GetTime(), which is the stamp Core's own record carries, so the
 -- refusal can name this settle and no other.
 function Ledger.Settled(name, wasOwed, pending, spellId)
+	-- A buff on a group member's pet (the press carries `pet`: Prompt/Press.lua)
+	-- is no favour and no gift to anybody: the ledger is about people.
+	if type(pending) == "table" and pending.pet == true then return end
 	local s, now = Store(), Wall()
 	name = CleanName(name)
 	if not s or not now or not name then return end

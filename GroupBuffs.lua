@@ -527,8 +527,11 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 		-- favours have no party anybody can name. You among them, when you are
 		-- missing it too: your own entry (Queue.lua) holds the "player" token,
 		-- which the party's tokens never do, and the group version lands on
-		-- the caster as on the rest of the party (or class).
-		if r and entry.unit and entry.inGroup then
+		-- the caster as on the rest of the party (or class). Never a group
+		-- member's pet ("My group's pets too", Queue.lua): it is in no bucket,
+		-- so it neither counts towards "When this many need it" nor is the one
+		-- a group cast is aimed at, and it stays the single cast it was.
+		if r and entry.unit and entry.inGroup and not entry.pet then
 			local where
 			if byClass then
 				where = entry.class

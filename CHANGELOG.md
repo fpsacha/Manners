@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Who gets what
+- **Your group's pets.** *My group's pets too* on *Who to buff*, under *My party
+  and raid*: a hunter's beast or a warlock's demon missing your buff is offered
+  it, targeted by its name. Off by default. Asked for on CurseForge.
+
 ### Looks
 - **Lights that should be faint are faint.** Halos, flashes and glows meant to
   rest dark stood fully lit in the game on most looks. Fixed on all of them.

@@ -306,6 +306,10 @@ function Mock.reset()
 	-- for your own subgroup. A mock with one idea of "the group" made a warrior
 	-- in a forty-man raid look exactly like one in a party of five.
 	Mock.raid = nil
+	-- Which of the group's pets have a mana bar, by token ({ partypet1 = true }):
+	-- nil is none of them. A pet is out only when Mock.unitNames names its
+	-- token (see UnitExists).
+	Mock.petMana = nil
 	-- Spell ids IsSpellInRange has nothing to say about, e.g. { [6673] = true },
 	-- asked by id or by the name the id resolves to. A shout is cast on
 	-- yourself and has no range to anybody, and the client answers nil for it;
@@ -1239,13 +1243,31 @@ function UnitRace(u)
 	return RACE_NAMES[race] or race, race, 1
 end
 function UnitGUID(u) return maybeSecret("Player-1-" .. tostring(u)) end
-function UnitExists() return maybeSecret(true) end
-function UnitIsPlayer() return maybeSecret(true) end
+-- A group member's pet, by its token: partypetN is partyN's, raidpetN raidN's.
+-- One is out only where a scenario names it in Mock.unitNames, as it names a
+-- party member ({ partypet1 = { "Rex" } }): no pet token exists otherwise,
+-- which is every scenario written before there were any. A pet is no player
+-- and is in no party or raid by the client's own answers, and has no mana
+-- unless Mock.petMana says so by token (a hunter's beast has focus, a
+-- warlock's imp mana).
+local function petToken(u)
+	return type(u) == "string" and (u:find("^partypet%d+$") ~= nil or u:find("^raidpet%d+$") ~= nil)
+end
+function UnitExists(u)
+	if petToken(u) and not (Mock.unitNames and Mock.unitNames[u]) then return false end
+	return maybeSecret(true)
+end
+function UnitIsPlayer(u)
+	if petToken(u) then return false end
+	return maybeSecret(true)
+end
 -- In a raid the player is one of the raid tokens as well, and the scan walks
 -- all of them -- so "is raid1 me" has to come back yes for the right one, or the
 -- player is offered their own buff.
 local function canonicalUnit(u)
 	if Mock.raid and u == "raid" .. tostring(Mock.raid.player or 1) then return "player" end
+	-- And your own pet is one of the raid's pets, as you are one of its members.
+	if Mock.raid and u == "raidpet" .. tostring(Mock.raid.player or 1) then return "pet" end
 	return u
 end
 function UnitIsUnit(a, b) return canonicalUnit(a) == canonicalUnit(b) end
@@ -1294,11 +1316,13 @@ local MANA_CLASSES = {
 
 function UnitPowerMax(unit)
 	if unit == "player" and not MANA_CLASSES[Mock.class] then return 0 end
+	if petToken(unit) and not (Mock.petMana and Mock.petMana[unit]) then return 0 end
 	return maybeSecret(1000)
 end
 
 function UnitPower(unit)
 	if unit == "player" and not MANA_CLASSES[Mock.class] then return 0 end
+	if petToken(unit) and not (Mock.petMana and Mock.petMana[unit]) then return 0 end
 	return maybeSecret(500)
 end
 -- Party membership drives the partyOnly buffs -- Battle Shout reaches your
@@ -1336,6 +1360,8 @@ local function inOwnSubgroup(unit)
 end
 
 function UnitInParty(unit)
+	-- Never a pet, in a party or a raid: the client answers false of one.
+	if petToken(unit) then return false end
 	if Mock.raid then return maybeSecret(inOwnSubgroup(unit)) end
 	return maybeSecret(Mock.groupSize > 0)
 end
@@ -1343,10 +1369,12 @@ end
 -- answer to "are they in my raid" and no answer at all to "does my shout reach
 -- them".
 function UnitInRaid(unit)
+	if petToken(unit) then return nil end
 	if Mock.raid then return maybeSecret(raidIndex(unit)) end
 	return maybeSecret(false)
 end
 function UnitInSubgroup(unit)
+	if petToken(unit) then return false end
 	if Mock.raid then return maybeSecret(inOwnSubgroup(unit)) end
 	return maybeSecret(Mock.groupSize > 0)
 end

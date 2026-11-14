@@ -83,6 +83,10 @@ local function PersonTooltipLines(entry, brief)
 			or entry.reason == "target" and L["Your target."]
 			or L["Nearby."]
 	end
+	-- A group member's pet: whose it is, as the reason line says it.
+	if entry.pet and entry.owner then
+		GameTooltip:AddLine(L["%s's pet"]:format(ns.ShortName(entry.owner) or entry.owner), 0.7, 0.7, 0.7, true)
+	end
 	GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
 	-- The short tooltip says why and no more.
 	if brief then return end
