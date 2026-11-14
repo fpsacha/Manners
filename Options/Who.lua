@@ -610,6 +610,70 @@ local function ForOthersOnly(args)
 	end
 end
 
+-- Asking, not only giving (Ask.lua): the one thing on Who to buff that is about
+-- what other people cast, under a heading of its own after the sources. The
+-- switch, and under it how the ask is said: shown only while it is on (the
+-- layout's `parents` lets search find them).
+function Page.AddAskControls(args)
+	local function off() return S().ask ~= true end
+	args.askHeader = { type = "header", name = L["Asking for buffs"], order = 14.4 }
+	args.ask = {
+		type = "toggle",
+		name = L["Ask people for a buff I'm missing"],
+		desc = L["When somebody in your group, or right beside you, could cast a buff you would want and do not have, the prompt can offer to ask them. A press says one short polite line to them and casts nothing. It comes last of everything on the prompt; never in a fight, a battleground or an arena; one ask a person for each buff in ten minutes, and one ask in all in two minutes. Nobody on your never-offer list or your ignore list is asked."],
+		order = 14.5,
+		width = "full",
+		get = function() return S().ask == true end,
+		set = function(_, v)
+			S().ask = v == true
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:Refresh()
+			-- Start here and this page's own shape follow the switch.
+			ns.RepaintOptions()
+		end,
+	}
+	args.askChannel = {
+		type = "select",
+		name = L["Ask in"],
+		desc = L["A whisper reaches only the person you ask. /say is heard by everybody near you."],
+		order = 14.6,
+		values = { WHISPER = L["A whisper to them"], SAY = L["/say, aloud"] },
+		sorting = { "WHISPER", "SAY" },
+		hidden = off,
+		get = function() return ns.db.profile.ask.channel end,
+		set = function(_, v)
+			ns.db.profile.ask.channel = v
+			ns.Prompt:InvalidateMacro()
+		end,
+	}
+	args.askLine = {
+		type = "select",
+		name = L["What the ask says"],
+		desc = L["{name} is their name and {buff} the spell. With the In character set chosen on %s, a line in character is said instead."]
+			:format(TAB.click),
+		order = 14.7,
+		width = "full",
+		values = function() return ns.Ask.LINES end,
+		sorting = function() return ns.Ask.LINE_ORDER end,
+		hidden = off,
+		get = function() return ns.db.profile.ask.line end,
+		set = function(_, v)
+			ns.db.profile.ask.line = v
+			ns.Prompt:InvalidateMacro()
+		end,
+	}
+	args.askInTowns = {
+		type = "toggle",
+		name = L["Ask in cities and inns too"],
+		desc = L["Off: nobody is asked while the game calls you resting, in a city or an inn."],
+		order = 14.8,
+		width = "full",
+		hidden = off,
+		get = function() return ns.db.profile.ask.inTowns == true end,
+		set = function(_, v) ns.db.profile.ask.inTowns = v == true end,
+	}
+end
+
 -- Who is picked in the never-offer dropdown, waiting for Remove from list; a
 -- state of the window, like Page.reportOpen.
 local neverPicked
@@ -1822,5 +1886,8 @@ function Page.BuildWhoTab()
 	AddOwnControls(who.args)
 	-- Last, over everything above and the per-spell switches alike.
 	ForOthersOnly(who.args)
+	-- Asking for buffs, added after it: a class with nothing for anybody else
+	-- is the one it is for above all.
+	Page.AddAskControls(who.args)
 	return who
 end

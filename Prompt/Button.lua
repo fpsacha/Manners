@@ -58,6 +58,9 @@ end
 -- The tooltip's lines about one person: why they are offered, and what the
 -- game would say about the buff on them.
 local function PersonTooltipLines(entry, brief)
+	-- Somebody to ask for a buff (Ask.lua): one line, and nothing about a
+	-- reading of theirs, since none was taken.
+	if entry.ask then return GameTooltip:AddLine(ns.Ask.TooltipLine(), 0.7, 0.7, 0.7, true) end
 	-- A top-up reads as one, and "missing it" only where it was read as
 	-- missing; "Always offer" and unreadable auras get the plain reason.
 	local left = RemainingText(entry.remaining)

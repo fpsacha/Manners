@@ -98,6 +98,8 @@ end
 -- else, or one of the class's own learned (a hunter's aspects). Start here's
 -- key and preview steps and the Who to buff tab follow it.
 local function HasPrompt()
+	-- Or somebody to ask for a buff, with that switched on (Ask.lua).
+	if ns.AskLive and ns.AskLive() then return true end
 	return ns.caps.hasClassBuffs == true or ns.OwnBuffsOnly()
 end
 
@@ -266,6 +268,7 @@ local RIGHT_NOW = {
 	nearby = L["Right now: |cffffffff%s|r -- %s, a passer-by."],
 	asked = L["Right now: |cffffffff%s|r -- %s, asked for it."],
 	self = L["Right now: |cffffffff%s|r -- %s, your own buff."],
+	ask = L["Right now: |cffffffff%s|r -- %s, to ask for."],
 }
 
 function Page.RightNow()

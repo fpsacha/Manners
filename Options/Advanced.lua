@@ -54,6 +54,7 @@ Page.RESET = {
 		"buff.spareFishBowl",
 		"buff.optIn",
 		"ownBuffs.apart",
+		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()

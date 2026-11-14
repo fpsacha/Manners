@@ -305,6 +305,10 @@ function ns.Welcome(force, offSaid)
 		-- No preview and no macro for a class that can never fill the prompt.
 		addon:Print(L["|cffffd100Manners|r is installed, but this class has no buffs to cast on other players."])
 		addon:Print(L["It is still worth keeping for an alt that does -- it will say hello again there."])
+		-- What it can do for such a class (Ask.lua), and where the switch is.
+		addon:Print((ns.AskLive and ns.AskLive() and L["With %s on, the prompt comes up when somebody could give you a buff you are missing, and a press asks them for it."]
+			or L["It can also ask other players for a buff you are missing, one polite line at a press: tick %s in the options (|cffffd100/manners|r)."])
+			:format("|cffffd100" .. L["Ask people for a buff I'm missing"] .. "|r"))
 		return true
 	end
 
@@ -779,6 +783,8 @@ do
 	-- switch on speaking to other players, nor the /thank everybody near sees
 	-- (off by default for that reason). Each names what the import then says.
 	local SHARE_KEEP_MINE = { ["speech.enabled"] = "switch", ["prompt.thankEmote"] = "thank" }
+	-- Asking people for a buff (Ask.lua) talks to other players too.
+	SHARE_KEEP_MINE["sources.ask"] = "ask"
 
 	-- What is said and where, kept as the player has it whenever speaking is on,
 	-- so a paste cannot start yelling a stranger's words. With speaking off they
@@ -1261,6 +1267,9 @@ do
 		end
 		if kept.thank then
 			lines[#lines + 1] = L["The string had /thank people who buff me switched on. That is left off, because everybody near you sees it: switch it on under What I say if you want it."]
+		end
+		if kept.ask then
+			lines[#lines + 1] = L["The string had asking people for a buff switched on. That is left off, because it talks to other players: switch it on under Who to buff if you want it."]
 		end
 		if kept.words then
 			lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
@@ -1813,6 +1822,8 @@ function addon:HandleSlash(rawInput)
 					:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
 			end
 			for _, line in ipairs(ns.MyselfLines(GetTime())) do self:Print("  " .. line) end
+			-- Asking for buffs (Ask.lua): on or off, and what holds it back.
+			for _, line in ipairs(ns.AskLines and ns.AskLines(GetTime()) or {}) do self:Print("  " .. line) end
 			PrintLeads(self)
 			-- Somebody buffing you is noticed for the /thank all the same.
 			PrintFavourWatch(self, db, GetTime())
@@ -1872,6 +1883,8 @@ function addon:HandleSlash(rawInput)
 			end
 		end
 		for _, line in ipairs(ns.RequestLines()) do self:Print("  " .. line) end
+		-- Asking for buffs (Ask.lua): on or off, and what holds it back.
+		for _, line in ipairs(ns.AskLines and ns.AskLines(now) or {}) do self:Print("  " .. line) end
 		-- And yourself, so a prompt that reads "You" is explained by a switch
 		-- rather than taken for the addon mistaking you for somebody else.
 		if not db.sources.self then

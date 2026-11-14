@@ -316,6 +316,18 @@ local defaults = {
 			-- Yourself, missing your own buff. On: it costs nobody anything and reads
 			-- your own auras, which the game does not hide.
 			self = true,
+			-- Somebody who could cast a buff you would want and do not wear,
+			-- asked for it with one polite line (Ask.lua). Off: it speaks to
+			-- other players, so the player chooses it.
+			ask = false,
+		},
+
+		-- How an ask is said (Ask.lua): a whisper or /say, which of the three
+		-- plain lines, and whether anybody is asked in a city or an inn.
+		ask = {
+			channel = "WHISPER",
+			line = "moment",
+			inTowns = false,
 		},
 
 		-- The rest of "Myself": the buffs only your class puts on itself
@@ -1067,6 +1079,9 @@ function ns.CanCastAnything()
 	-- A rogue or a warrior with a poison or a stone in the bags has something to
 	-- put on a weapon, whatever he has learned (ns.OwnItemsHeld).
 	if ns.OwnItemsHeld() then return true end
+	-- Nor with Ask people for a buff I'm missing on (Ask.lua): for a class
+	-- with nothing to give, asking is what the prompt does for other people.
+	if ns.AskLive and ns.AskLive() then return true end
 	return caps.anyKnown == true or caps.anyOwnKnown == true
 end
 
@@ -1096,6 +1111,8 @@ end
 -- either kind.
 function ns.BuffInfo(buff)
 	if not buff then return nil end
+	-- Another class's buff you can ask for (Ask.lua) brings its own answers.
+	if buff.askInfo then return buff.askInfo end
 	if buff.own then
 		local info = caps.own and caps.own[buff.key]
 		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
@@ -4711,6 +4728,8 @@ function ns.ClampSettings()
 	local iconMax = ns.IconCeiling(p)
 	if p.iconSize > iconMax then p.iconSize = iconMax end
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
+	-- An ask's channel and line (Ask.lua), each one of a few.
+	if ns.AskClamp then ns.AskClamp(profile) end
 
 
 	-- An empty phrase box refilled from the set the dropdown names, so the two
@@ -5186,7 +5205,12 @@ function addon:OnEnable()
 		-- hunter or a shaman, a warlock before Unending Breath, or every spell
 		-- switched off. Still a prompt, for yourself.
 		local ownLive = not buff and ns.OwnBuffsLive()
-		if not buff and nothingToGive and not ownLive then
+		-- ...or with nothing at all of its own, and asking switched on (Ask.lua).
+		local asking = not buff and nothingToGive and not ownLive and ns.AskLive ~= nil and ns.AskLive()
+		if asking and not off then
+			self:Print(L["build |cffffd100%s|r -- this class has no buffs for other players, so Manners asks them for theirs."]
+				:format(tostring(ns.BUILD)))
+		elseif not buff and nothingToGive and not ownLive and not asking then
 			self:Print(L["build |cffffd100%s|r -- this class has no buffs to cast on other players."]:format(tostring(ns.BUILD)))
 		elseif off then
 			self:Print(L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."]
