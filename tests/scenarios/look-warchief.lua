@@ -12,7 +12,9 @@
 -- text; the spikes are put away under a list hung over the panel and a list
 -- hung under it ends where the banner begins; at rest the banner stirs on
 -- Full effects, and not on Calm or in a fight; no additive light is left at
--- rest; the words start past the right tusk at every size; the generator
+-- rest; the words start past the right tusk at every size; the slab and the
+-- list each have a shadow of their own; the paint keeps to the rim on a tall
+-- slab; the reason line is held to 7:1 on the iron; the generator
 -- draws the same bytes twice, they are the files that ship, and the Lua and
 -- the generator agree on every figure they share.
 
@@ -658,6 +660,96 @@ withTree("look-warchief: the soot lies under each line of words, over the lights
 	if p2.showSub == false and look2.kit.sub and not FT.visible(look2.kit.sub) then
 		if FT.visible(look2.soot[2].slice[2]) then fail(scenario, "with no reason line there is soot where it would be") end
 	end
+end)
+
+-- ------------------------------------------------------------------ 17
+-- A list hung under the slab ends where the banner begins, so it is narrower
+-- than the slab: one shadow round both lay black beside the list, under the
+-- banner. The slab's shadow keeps to the slab, the list has its own, and the
+-- list's goes with the list.
+withTree("look-warchief: the slab and the list each have their own shadow", CROWD, function(ns, scenario)
+	local _, p, look = upIn(ns, scenario, function(pp) pp.showQueue, pp.queueRows = true, 3 end)
+	if skipped(scenario, look) then return end
+	if look.above then fail(scenario, "SKIPPED -- the list did not hang under the panel") return end
+	if not FT.visible(look.list[9]) then fail(scenario, "SKIPPED -- the list is not out") return end
+	local bottom = FT.span(look.kit.art, "y")
+	local slabShadow = FT.span(look.shadow[7], "y")
+	if not (bottom and slabShadow) then fail(scenario, "the slab's shadow has no place") return end
+	if slabShadow < bottom - 20 then
+		fail(scenario, ("with the list out the slab's shadow reaches %.1f under the panel: black beside the list"):format(bottom - slabShadow))
+	end
+	if not FT.visible(look.listShadow[9]) then
+		fail(scenario, "the list under the panel has no shadow of its own")
+	else
+		local listLeft, shadowLeft = FT.span(look.list[4], "x"), FT.span(look.listShadow[4], "x")
+		local _, listRight = FT.span(look.list[5], "x")
+		local _, shadowRight = FT.span(look.listShadow[5], "x")
+		if not (listLeft and listRight and shadowLeft and shadowRight) then
+			fail(scenario, "the list's shadow has no place")
+		elseif shadowLeft < listLeft - 16 or shadowRight > listRight + 16 or shadowLeft > listLeft or shadowRight < listRight then
+			fail(scenario, ("the list's shadow runs from %.1f to %.1f, the list from %.1f to %.1f"):format(shadowLeft, shadowRight, listLeft, listRight))
+		end
+		for _, t in ipairs(look.listShadow) do
+			if t._color and (t._color[1] ~= 0 or t._color[2] ~= 0 or t._color[3] ~= 0) then
+				fail(scenario, "the list's shadow is not black")
+				break
+			end
+		end
+	end
+	-- The list goes at a repaint, with no restyle to put everything away.
+	p.showQueue = false
+	tick(ns)
+	if FT.visible(look.list[9]) then fail(scenario, "SKIPPED -- the list did not go at a repaint") return end
+	if FT.visible(look.listShadow[9]) then fail(scenario, "with the list gone its shadow stays") end
+end)
+
+-- ------------------------------------------------------------------ 18
+-- The paint is a daub along the lower rim: on a tall slab it stays a daub, and
+-- does not hang under the slab's foot.
+withTree("look-warchief: the paint keeps to the rim on a tall slab", ANNA, function(ns, scenario)
+	for _, s in ipairs({ { 140, 110, 13, 30 }, { 320, 72, 17, 64 }, { 220, 44, 13, 30 } }) do
+		local _, p, look = upIn(ns, scenario, function(pp) pp.width, pp.height, pp.fontSize, pp.iconSize = s[1], s[2], s[3], s[4] end)
+		if skipped(scenario, look) then return end
+		local label = ("%dx%d"):format(s[1], s[2])
+		local low, high = FT.span(look.paint, "y")
+		local bottom = FT.span(look.kit.art, "y")
+		if not (low and high and bottom) then fail(scenario, label .. ": the paint has no place") return end
+		if p.height ~= s[2] then fail(scenario, label .. ": SKIPPED -- the height was not taken") end
+		if high - low > 7.01 then fail(scenario, ("%s: the paint is %.1f tall, a flood and not a daub"):format(label, high - low)) end
+		if low < bottom + look.plateIn - 1.5 then
+			fail(scenario, ("%s: the paint hangs %.1f under the slab's foot"):format(label, bottom + look.plateIn - low))
+		end
+	end
+end)
+
+-- ------------------------------------------------------------------ 19
+-- The reason line is the small one: whatever the reason, and for a verdict
+-- too, its colour is held to 7:1 on the brightest ground the look states
+-- under the words (tools/LOOKS.md).
+withTree("look-warchief: the reason line is held to 7 on the iron", ANNA, function(ns, scenario)
+	local r, _, look = upIn(ns, scenario)
+	if skipped(scenario, look) then return end
+	local function lum(c)
+		if c <= 0.03928 then return c / 12.92 end
+		return ((c + 0.055) / 1.055) ^ 2.4
+	end
+	local function hold(what)
+		local tc = r.sub._textColor or {}
+		local cr, cg, cb = tc[1] or 0, tc[2] or 0, tc[3] or 0
+		local l = 0.2126 * lum(cr) + 0.7152 * lum(cg) + 0.0722 * lum(cb)
+		local c = (l + 0.05) / ((look.kit.ink.hi or 0) + 0.05)
+		if c < 6.95 then fail(scenario, ("%s: the reason line stands at %.2f on the iron, under 7"):format(what, c)) end
+	end
+	for _, c in ipairs({ { 0.90, 0.20, 0.20 }, { 0.30, 0.35, 0.95 }, { 0.55, 0.20, 0.70 }, { 1.00, 0.82, 0.30 } }) do
+		look:PaintReason(c[1], c[2], c[3], nil, "icon")
+		hold(("a reason of %.2f %.2f %.2f"):format(c[1], c[2], c[3]))
+	end
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	FT.settle()
+	hold("a refusal")
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	FT.settle()
+	hold("a landed buff")
 end)
 
 -- ------------------------------------------------------------------ 15

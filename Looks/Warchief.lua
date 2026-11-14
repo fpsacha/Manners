@@ -139,6 +139,10 @@ local TEXT_GAP, BARE_GAP = 3, 12
 -- red paint, which the words stand on at rest. Lit, the crest is under the
 -- soot, which is darker than the paint.
 local TABLE_LO, TABLE_HI = 0.02, 0.22
+-- The reason line is the small one, and the one players lose: its colour is
+-- held to this contrast on the iron (tools/LOOKS.md), not to the 4.5 a line of
+-- words is measured against.
+local SUB_CONTRAST = 7
 -- A chosen panel colour is mixed this far into the slab.
 local BODY_MIX = 0.25
 -- The shadow and the list's sheet: their 9-slice corners in units, and how
@@ -166,7 +170,9 @@ local OUTCOME = {
 	sent = { 0.91, 0.86, 0.60 },
 }
 -- What a fight does: the text dims, the icon greys and dims, the slab dims.
-local TEXT_COMBAT, ICON_COMBAT, BODY_COMBAT = 0.78, 0.70, 0.78
+-- The text only a little: "held -- in combat" is grey already, and on iron
+-- dulled this far a deeper dim took the small line under 6:1.
+local TEXT_COMBAT, ICON_COMBAT, BODY_COMBAT = 0.90, 0.70, 0.78
 -- The lights that breathe when somebody is owed, in the order the breath is
 -- built: what each rests at with nobody owed, the breath's low and its peak,
 -- and what it holds after its breaths. The crest's glow first:
@@ -179,6 +185,8 @@ local LIGHTS = {
 	{ "coalB", 0, 0.06, 0.28, 0.17 },
 }
 local PAINT_ALPHA = 0.92
+-- The paint is never taller than this, in units.
+local PAINT_MAX = 7
 local BREATHS, BREATH = 3, 1.25
 -- The coals: how many times each field tiles across the crest, and how fast
 -- each crawls, in files a second. The two cross one another.
@@ -189,7 +197,7 @@ local COALS = { span = { 1.5, 2.1 }, du = { 0.012, -0.021 }, dv = { 0.050, 0.031
 -- as a part of the button's height. No two waits share a measure.
 local EMBERS = { at = { -0.30, 0.22, -0.06, 0.34 }, wait = { 0.10, 0.75, 1.45, 2.05 }, rise = 1.7, far = 0.80, peak = 0.90 }
 -- The glint's crossing and its wait, at rest.
-local GLINT_CROSS, GLINT_WAIT, GLINT_PEAK = 1.7, 7.3, 0.50
+local GLINT_CROSS, GLINT_WAIT, GLINT_PEAK = 1.7, 7.3, 0.85
 -- The longest an additive flourish may stay lit, in seconds.
 local FLOURISH = 0.6
 local COMMAND = "CLICK MannersPrompt:LeftButton"
@@ -527,6 +535,9 @@ function Warchief:Build(kit)
 	-- The ground, on art itself: below the icon and the list's rows, which
 	-- are art's too. A frame of its own would draw over both.
 	self.shadow = Pieces(art, "BACKGROUND", -8, ART .. "Shadow", keep)
+	-- The list's own shadow: a list hung under the slab ends where the banner
+	-- begins, and one shadow round both would lie black beside it.
+	self.listShadow = Pieces(art, "BACKGROUND", -8, ART .. "Shadow", keep)
 	self.list = Pieces(art, "BACKGROUND", -7, ART .. "List", keep)
 	self.body = Body(art, "BACKGROUND", -6, keep)
 	-- The crest on the iron: the paint, the coals that show through its shape
@@ -760,6 +771,7 @@ function Warchief:Apply(p, above)
 	local alpha = (type(c) == "table" and c[4]) or 1
 	self.shadowAlpha = math.min(1, alpha + 0.05) * (alpha < 0.2 and 0 or 1)
 	for _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
+	for _, t in ipairs(self.listShadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
 	self:PlaceShadow(nil)
 
 	local frameRight = cx + bz / 2
@@ -866,7 +878,8 @@ function Warchief:Apply(p, above)
 	local paintX0 = showIcon and (frameRight + reach * 0.4) or (plateX + 8)
 	local paintX1 = W - self.bannerRoom - 2
 	local paintY = H - plateIn - RIM * su * 0.55
-	local paintH = math.max(3, RIM * su * 2.0)
+	-- A daub, not a flood: on a tall slab it keeps to the rim.
+	local paintH = math.max(3, math.min(RIM * su * 2.0, PAINT_MAX))
 	self.paintOK = paintX1 - paintX0 >= 16
 	Box(self.paint, art, paintX0, paintY - paintH / 2, paintX1, paintY + paintH / 2)
 
@@ -920,7 +933,7 @@ function Warchief:Apply(p, above)
 	-- The list's rows start where the name does, clear of the tusks, and end
 	-- before the banner.
 	self.rowX = math.max(textX, 24)
-	local rowWidth = math.max(20, W - self.rowX - self.bannerRoom - 6)
+	local rowWidth = math.max(20, W - self.rowX - self.bannerRoom - 10)
 	for _, row in ipairs(kit.rows) do
 		row:SetWidth(rowWidth)
 		fit.room[row] = rowWidth
@@ -944,6 +957,7 @@ function Warchief:Apply(p, above)
 	self.coalMask:SetShown(self.crestOK)
 	self.paint:SetShown(self.paintOK)
 	Each(self.list, "Hide")
+	Each(self.listShadow, "Hide")
 	for _, t in ipairs(self.beads) do t:Hide() end
 	self.glyph:Hide()
 	for _, t in ipairs(self.chip) do t:Hide() end
@@ -1054,15 +1068,17 @@ function Warchief:Painted(entry)
 	if name and not (entry.reason == "owed") then self:Greet() end
 end
 
--- The shadow under the slab, and under the list's sheet when it is out.
+-- The shadow under the slab, and the list's own under its sheet when it is
+-- out: each keeps to its own box, so a sheet narrower than the slab leaves no
+-- black beside it.
 function Warchief:PlaceShadow(list)
 	local W, H = self.W, self.H
-	local x0, y0, x1, y1 = (self.plateX or 0) - SHADOW_OUT + 2, -SHADOW_OUT + 3, W + SHADOW_OUT + 1, H + SHADOW_OUT + 2
+	local art = self.kit.art
+	PlacePieces(self.shadow, art, (self.plateX or 0) - SHADOW_OUT + 2, -SHADOW_OUT + 3, W + SHADOW_OUT + 1, H + SHADOW_OUT + 2, SHADOW_C)
 	if list then
-		y0 = math.min(y0, list[2] - SHADOW_OUT + 2)
-		y1 = math.max(y1, list[4] + SHADOW_OUT + 3)
+		PlacePieces(self.listShadow, art, list[1] - SHADOW_OUT + 2, list[2] - SHADOW_OUT + 2, list[3] + SHADOW_OUT + 1, list[4] + SHADOW_OUT + 3, SHADOW_C)
 	end
-	PlacePieces(self.shadow, self.kit.art, x0, y0, x1, y1, SHADOW_C)
+	Each(self.listShadow, "SetShown", list ~= nil)
 end
 
 function Warchief:Styled(p)
@@ -1399,7 +1415,7 @@ function Warchief:Tint(r, g, b, ring, stripe)
 	local sr = MIST[1] + (r - MIST[1]) * 0.6
 	local sg = MIST[2] + (g - MIST[2]) * 0.6
 	local sb = MIST[3] + (b - MIST[3]) * 0.6
-	sr, sg, sb = kit.Legible(sr, sg, sb, 4.5)
+	sr, sg, sb = kit.Legible(sr, sg, sb, SUB_CONTRAST)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
 	Colour(self.glyph, sr, sg, sb)
 	self.tint = { cr, cg, cb }
@@ -1679,7 +1695,7 @@ function Warchief:PaintOutcome(kind, lead, sub, who, stamp)
 	self.refused = kind == "failed"
 	if self.refused then self:Spend() end
 	-- The verdict in the outcome's colour, not the reason's.
-	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
+	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], SUB_CONTRAST)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
 	Colour(self.glyph, vr, vg, vb)
 	kit.icon:SetDesaturated(self.refused or self.combat or false)

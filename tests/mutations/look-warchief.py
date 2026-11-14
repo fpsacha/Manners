@@ -297,3 +297,35 @@ mutate(GEN,
        "TUSK_EDGE = 0.45       # where the frame's edge lies in the tusk's file, from its outer side\n",
        "look-warchief: the tusk's place disagrees with the Lua",
        expect="TUSK_EDGE is", script=S)
+
+# --- the review's fixes: the shadows, the paint, the reason line ---
+
+mutate(LUA,
+       "\tEach(self.listShadow, \"SetShown\", list ~= nil)\n",
+       "\tEach(self.listShadow, \"SetShown\", true)\n",
+       "look-warchief: the list's shadow left behind when the list goes",
+       expect="with the list gone its shadow stays", script=S)
+
+mutate(LUA,
+       "\tPlacePieces(self.shadow, art, (self.plateX or 0) - SHADOW_OUT + 2, -SHADOW_OUT + 3, W + SHADOW_OUT + 1, H + SHADOW_OUT + 2, SHADOW_C)\n",
+       "\tPlacePieces(self.shadow, art, (self.plateX or 0) - SHADOW_OUT + 2, -SHADOW_OUT + 3, W + SHADOW_OUT + 1, (list and list[4] or H) + SHADOW_OUT + 2, SHADOW_C)\n",
+       "look-warchief: one shadow round the slab and the list, black beside the list",
+       expect="black beside the list", script=S)
+
+mutate(LUA,
+       "\tlocal paintH = math.max(3, math.min(RIM * su * 2.0, PAINT_MAX))\n",
+       "\tlocal paintH = math.max(3, RIM * su * 2.0)\n",
+       "look-warchief: the paint floods the foot of a tall slab",
+       expect="a flood and not a daub", script=S)
+
+mutate(LUA,
+       "\tsr, sg, sb = kit.Legible(sr, sg, sb, SUB_CONTRAST)\n",
+       "\tsr, sg, sb = kit.Legible(sr, sg, sb, 4.5)\n",
+       "look-warchief: the reason line held only to 4.5",
+       expect="the reason line stands at", script=S)
+
+mutate(LUA,
+       "\tlocal vr, vg, vb = kit.Legible(o[1], o[2], o[3], SUB_CONTRAST)\n",
+       "\tlocal vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)\n",
+       "look-warchief: the verdict held only to 4.5",
+       expect="a refusal: the reason line stands at", script=S)
