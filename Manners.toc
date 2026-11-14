@@ -67,6 +67,7 @@ Looks\Fel.lua
 Looks\Wild.lua
 Looks\Frost.lua
 Looks\Stormcaller.lua
+Looks\Warchief.lua
 Looks\Glass.lua
 Prompt\Prompt.lua
 Prompt\Text.lua
