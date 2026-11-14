@@ -43,9 +43,6 @@ local GetTime, InCombatLockdown = _G.GetTime, _G.InCombatLockdown
 -- Read at load, as ns.plain reads it: absent on a client that never had secrets.
 local issecretvalue = _G.issecretvalue
 
-local Cures = {}
-ns.Cures = Cures
-
 ---------------------------------------------------------------------------
 -- the spells, per client
 --
@@ -253,7 +250,6 @@ end
 -- A cure's place in the queue: below a favour owed (1), above somebody who
 -- asked (1.5), yourself, your group and passers-by (Queue.lua, PRIORITY).
 local PRIORITY = 1.25
-Cures.PRIORITY = PRIORITY
 
 -- The kinds in words: a list of what you can cure, and the prompt's reason
 -- line for somebody under one.
@@ -626,7 +622,6 @@ local LINGER_SECONDS = 10
 local LINGER_CAP = 40
 -- [name] = { seen, cure, class, targetName, guid, pvp, debuff, expires }
 local remembered, rememberedCount = {}, 0
-Cures.remembered = remembered
 
 local function Forget(name)
 	if remembered[name] then

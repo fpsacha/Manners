@@ -227,10 +227,6 @@ do
 			fail(scenario, "SKIPPED -- the cursed passer-by is not offered a cure")
 			return
 		end
-		if not ns.Cures.remembered[nell] then
-			fail(scenario, "SKIPPED -- a passer-by found by a nameplate is not remembered")
-			return
-		end
 		-- Somebody else lifts the curse; their nameplate is still there.
 		world.debuffs.nameplate1 = nil
 		Mock.advance(4)
@@ -258,8 +254,8 @@ do
 		sources.cures, sources.curesStrangers, sources.strangers = false, true, false
 		world.debuffs.nameplate1 = { debuff("Curse", 300) }
 		local nell = filed(names.nameplate1)
-		if not (queue(ns)[nell] or {}).cure or not ns.Cures.remembered[nell] then
-			fail(scenario, "SKIPPED -- the cursed passer-by is not offered a cure and remembered")
+		if not (queue(ns)[nell] or {}).cure then
+			fail(scenario, "SKIPPED -- the cursed passer-by is not offered a cure")
 			return
 		end
 		world.debuffs.nameplate1 = nil
@@ -271,8 +267,16 @@ do
 		local answer = ns.CureFor("nameplate1", nell, ns.plain(UnitGUID("nameplate1")), false, false, nil)
 		if answer then
 			fail(scenario, "SKIPPED -- the passer-by read clean is still offered a cure")
-		elseif ns.Cures.remembered[nell] then
-			fail(scenario, "read with nothing to cure, the passer-by is still remembered for one")
+		else
+			-- The memory is the addon's own: seen by what it does. Their
+			-- nameplate gone, a passer-by still remembered would be offered
+			-- by name for the rest of the ten seconds.
+			world.names.nameplate1 = nil
+			for _, e in ipairs(ns.BuildQueue()) do
+				if e.name == nell then
+					fail(scenario, "read with nothing to cure, the passer-by is still remembered for one")
+				end
+			end
 		end
 	end)
 end
