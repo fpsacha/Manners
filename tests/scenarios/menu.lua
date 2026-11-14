@@ -759,3 +759,147 @@ do
 		if args.simpleOffer and args.simpleOffer.hidden() ~= true then fail(scenario, "the offer is made to a profile on the short list") end
 	end)
 end
+
+---------------------------------------------------------------------------
+-- the nudge to put Manners on a key
+---------------------------------------------------------------------------
+
+local NO_KEY = "Manners has no key yet"
+
+local function saidOf(needle)
+	local n = 0
+	for _, line in ipairs(Mock.printed or {}) do
+		if tostring(line):find(needle, 1, true) then n = n + 1 end
+	end
+	return n
+end
+
+-- A login on the saved file as it stands (no reset in between is a later
+-- login of the same character): the addon loaded and enabled, the clock run
+-- past the login's own lines and then past the reminder's wait. `before` runs
+-- between the two. Answers the addon and how often the reminder was said.
+local function login(scenario, before)
+	local ns = load(scenario)
+	if not ns then return nil end
+	ns.addon:OnInitialize()
+	ns.addon:OnEnable()
+	Mock.printed = {}
+	Mock.runTimers(2)
+	if before then before(ns) end
+	Mock.runTimers(ns.KEY_NUDGE_AFTER + 1)
+	return ns, saidOf(NO_KEY)
+end
+
+local function sessions(scenario, body)
+	Mock.reset()
+	FT.install()
+	local ok, err = pcall(body)
+	FT.uninstall()
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+do
+	local scenario = "menu: the reminder to set a key is said once a login, on three at most, and never on the first"
+	sessions(scenario, function()
+		local ns, said = login(scenario)
+		if not ns then return end
+		if said ~= 0 then fail(scenario, "the first login Manners sees a character, it was told " .. said .. " time(s)") end
+		if Mock.sv.char.keyReminders ~= 0 then
+			fail(scenario, "the first login was not noted: " .. tostring(Mock.sv.char.keyReminders))
+		end
+		for n = 1, 3 do
+			ns, said = login(scenario)
+			if said ~= 1 then fail(scenario, ("login %d after the first: said %d time(s), not once"):format(n, said)) end
+			-- Once a session: a fight ending later in it says nothing more.
+			ns.addon:PLAYER_REGEN_ENABLED()
+			ns.KeyNudge()
+			if saidOf(NO_KEY) ~= 1 then fail(scenario, "said again in the same session") end
+			local line
+			for _, text in ipairs(Mock.printed) do
+				if tostring(text):find(NO_KEY, 1, true) then line = tostring(text) end
+			end
+			if line and not (line:find("/manners", 1, true) and line:find("Start here", 1, true)
+				and line:find(("%d of 3"):format(n), 1, true)) then
+				fail(scenario, "the line does not say where the key is set, or which of the three it is: " .. line)
+			end
+		end
+		ns, said = login(scenario)
+		if said ~= 0 then fail(scenario, "said on a fourth login") end
+		if Mock.sv.char.keyReminders ~= 3 then fail(scenario, "the count reads " .. tostring(Mock.sv.char.keyReminders)) end
+		local held = ns.Setup.ReminderHeld()
+		if held ~= "said three times" then fail(scenario, "after three, the reminder is held by: " .. tostring(held)) end
+		-- /manners debug says where it stands.
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if saidOf("key: none | reminder: said three times (said 3 of 3)") ~= 1 then
+			fail(scenario, "/manners debug does not say why the reminder keeps quiet")
+		end
+	end)
+end
+
+do
+	local scenario = "menu: the reminder keeps quiet with a key set, a macro made, its switch off, and through a fight"
+	local function second(why, before, want)
+		sessions(scenario, function()
+			if not login(scenario) then return end
+			local ns, said = login(scenario, before)
+			if said ~= want then fail(scenario, ("%s: said %d time(s), not %d"):format(why, said, want)) end
+			return ns
+		end)
+	end
+	second("a key set", function() SetBinding("F9", "CLICK MannersPrompt:LeftButton") end, 0)
+	second("its switch off", function(ns) ns.db.profile.keyReminder = false end, 0)
+	second("Manners off", function(ns) ns.db.profile.enabled = false end, 0)
+	second("nothing in the way", nil, 1)
+	-- A fight at the moment it is due: said when the fight ends, once.
+	sessions(scenario, function()
+		if not login(scenario) then return end
+		local ns, said = login(scenario, function() Mock.inCombat = true end)
+		if said ~= 0 then fail(scenario, "said in a fight") end
+		if Mock.sv.char.keyReminders ~= 0 then fail(scenario, "a login in a fight was counted as told") end
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		if saidOf(NO_KEY) ~= 1 then fail(scenario, "not said when the fight ended: " .. saidOf(NO_KEY)) end
+	end)
+	-- The macro made for an action bar is a key of a kind.
+	sessions(scenario, function()
+		if not login(scenario) then return end
+		local real = rawget(_G, "GetMacroIndexByName")
+		GetMacroIndexByName = function() return 3 end
+		local ns, said = login(scenario)
+		rawset(_G, "GetMacroIndexByName", real)
+		if not ns then return end
+		if said ~= 0 then fail(scenario, "said with the Manners macro made") end
+	end)
+end
+
+do
+	local scenario = "menu: Start here's second step says No key yet first, then the key, and has the reminder's switch"
+	with(scenario, { page = "general" }, function(ns, UI)
+		local status, key, switch = UI.Where("general.bindStatus"), UI.Where("general.bindKey"), UI.Where("general.keyReminder")
+		if not (status and key and switch) then fail(scenario, "SKIPPED -- the key step is not placed") return end
+		for _, path in ipairs({ "general.bindStatus", "general.bindKey", "general.keyReminder" }) do
+			if not UI.RowShown(path) then fail(scenario, path .. " is not drawn on Start here") end
+		end
+		if not (status.e.y < key.e.y) then fail(scenario, "where the key stands is not said before the box that sets it") end
+		if status.sec.key ~= "general.key" or switch.sec.key ~= "general.key" then fail(scenario, "the state or the switch is outside step 2") end
+		local text = status.e.row.text:GetText() or ""
+		if not text:find("No key yet.", 1, true) then fail(scenario, "with no key, step 2 says: " .. text) end
+		if not status.e.row.well then fail(scenario, "the state is not in a block of its own") end
+		SetBinding("F9", "CLICK MannersPrompt:LeftButton")
+		ns.RefreshOptionsDisplay()
+		text = status.e.row.text:GetText() or ""
+		if text:find("No key yet.", 1, true) or not text:find("Ready:", 1, true) then
+			fail(scenario, "with a key set, step 2 says: " .. text)
+		end
+		-- The switch is the setting, on until it is turned off, and a taste of
+		-- the player's own: not in a string of settings handed to somebody.
+		local option = ns.optionsTable.args.general.args.keyReminder
+		if ns.defaults.profile.keyReminder ~= true or option.get() ~= true then fail(scenario, "the reminder is not on by default") end
+		option.set(nil, false)
+		if ns.db.profile.keyReminder ~= false then fail(scenario, "the switch does not turn the reminder off") end
+		local shared = ns.ExportSettings and ns.ExportSettings() or ""
+		if shared:find("keyReminder", 1, true) then fail(scenario, "the reminder's switch travels in a string of settings") end
+	end)
+end

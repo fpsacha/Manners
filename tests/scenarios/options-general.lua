@@ -130,7 +130,9 @@ local START_PAGE = {
 	"general.firstWho", "general.firstVoice", "general.firstDone", "general.firstSkip", "general.quickWho", "general.quickWhoSummary",
 	-- Passers-by on and the friendly nameplates off (tests/scenarios/plates-cta.lua).
 	"general.startPlatesNote", "general.startShowPlates",
-	"general.bindKey", "general.makeMacro", "general.openBindings", "general.bindStatus",
+	-- Step 2: where the key stands first, then the box that sets it, and the
+	-- switch of the reminder that says how (tests/scenarios/menu.lua).
+	"general.bindStatus", "general.bindKey", "general.makeMacro", "general.openBindings", "general.keyReminder",
 	"general.ledgerSummary", "general.ledgerOpen", "general.minimap", "general.verbose", "general.silentChat",
 	"general.welcomeAgain",
 }

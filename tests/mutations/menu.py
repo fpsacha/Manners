@@ -282,3 +282,91 @@ mutate("Options/Start.lua",
        "\t\telseif false then\n",
        "menu: the view's stamp counts as a setting somebody made",
        expect="settings-fix: an own profile only visited is filled from the shared one", script=S)
+
+# ------------------------------------------------ the nudge to put Manners on a key
+
+START = "Options/Start.lua"
+
+mutate("Core.lua",
+       "\t\tif ns.KeyNudge then C_Timer.After(ns.KEY_NUDGE_AFTER, function() ns.Guard(\"key reminder\", ns.KeyNudge, true) end) end\n",
+       "",
+       "menu: the reminder to set a key never asked for",
+       expect="menu: the reminder to set a key is said once a login", script=S)
+
+mutate("Core.lua",
+       "\tif ns.KeyNudge then ns.Guard(\"key reminder\", ns.KeyNudge) end\n",
+       "",
+       "menu: a reminder a fight held back is never said",
+       expect="not said when the fight ended", script=S)
+
+mutate(START,
+       "\tif not reminder.due or reminder.said then return false end\n",
+       "\tif not reminder.due then return false end\n",
+       "menu: the reminder said again at every fight's end",
+       expect="said again in the same session", script=S)
+
+mutate(START,
+       "\tif InCombatLockdown() then return false end\n\treminder.said = true\n",
+       "\treminder.said = true\n",
+       "menu: the reminder said in a fight",
+       expect="said in a fight", script=S)
+
+mutate(START,
+       "\tif char.keyReminders == nil then\n\t\tchar.keyReminders = 0\n\t\treturn false\n\tend\n",
+       "",
+       "menu: the reminder said on the first login, over the welcome",
+       expect="the first login Manners sees a character", script=S)
+
+mutate(START,
+       "\tif (tonumber(char.keyReminders) or 0) >= Setup.REMINDERS then return \"said three times\" end\n",
+       "",
+       "menu: the reminder said at every login for ever",
+       expect="said on a fourth login", script=S)
+
+mutate(START,
+       "\tif Setup.Key() then return \"a key is set\" end\n",
+       "",
+       "menu: the reminder said to a player who has a key",
+       expect="a key set: said 1 time(s), not 0", script=S)
+
+mutate(START,
+       "\tif Setup.MacroMade() then return \"the Manners macro is made\" end\n",
+       "",
+       "menu: the reminder said to a player with Manners on a bar",
+       expect="said with the Manners macro made", script=S)
+
+mutate(START,
+       "\tif profile.keyReminder == false then return \"switched off\" end\n",
+       "",
+       "menu: the reminder's switch does nothing",
+       expect="its switch off: said 1 time(s), not 0", script=S)
+
+mutate(START,
+       "\tif profile.enabled == false then return \"Manners is off\" end\n",
+       "",
+       "menu: the reminder said with Manners switched off",
+       expect="Manners off: said 1 time(s), not 0", script=S)
+
+mutate(START,
+       "\t\t\t\t\tif Setup.CanBind() then\n\t\t\t\t\t\treturn \"|cffffd100\" .. L[\"No key yet.\"] .. \"|r \"\n",
+       "\t\t\t\t\tif false then\n\t\t\t\t\t\treturn \"|cffffd100\" .. L[\"No key yet.\"] .. \"|r \"\n",
+       "menu: step 2 calls a key optional and no more, as it did",
+       expect="with no key, step 2 says", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "\t\t[\"general.bindStatus\"] = { block = true },\n",
+       "",
+       "menu: whether there is a key is said in a plain line",
+       expect="the state is not in a block of its own", script=S)
+
+mutate("Commands.lua",
+       "\tlocal SHARE_SKIP = { keyReminder = true, enabled = true,",
+       "\tlocal SHARE_SKIP = { enabled = true,",
+       "menu: the reminder's switch handed on in a string of settings",
+       expect="the reminder's switch travels in a string of settings", script=S)
+
+mutate("Commands.lua",
+       "\t\tif ns.Setup and ns.Setup.ReminderLine then self:Print(\"  \" .. ns.Setup.ReminderLine()) end\n",
+       "",
+       "menu: /manners debug silent about the key and its reminder",
+       expect="/manners debug does not say why the reminder keeps quiet", script=S)

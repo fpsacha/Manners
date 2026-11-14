@@ -127,6 +127,70 @@ function Setup.OpenMacros()
 	return (pcall(ShowMacroFrame))
 end
 
+---------------------------------------------------------------------------
+-- the reminder to put Manners on a key
+--
+-- Most players never bind one, and can then only click the prompt. Start here
+-- says "No key yet" in its second step until there is one; and a while after
+-- a login, out of combat, one line in chat says where to set it: once a
+-- session, on three logins at most for a character (db.char.keyReminders),
+-- never on the first login Manners sees it (that one has the welcome to
+-- read), and not at all with the switch under step 2 off (keyReminder), a key
+-- bound, or the Manners macro made for an action bar.
+---------------------------------------------------------------------------
+
+Setup.REMINDERS = 3
+-- Seconds after the login's own lines (Core.lua asks for it then).
+ns.KEY_NUDGE_AFTER = 20
+
+local reminder = { due = false, said = false }
+
+-- Why the reminder keeps quiet, as a word for /manners debug, or nil when it
+-- would speak at the next login.
+function Setup.ReminderHeld()
+	local db = ns.db
+	local profile, char = db and db.profile, db and db.char
+	if type(profile) ~= "table" or type(char) ~= "table" then return "no settings" end
+	if profile.enabled == false then return "Manners is off" end
+	if profile.keyReminder == false then return "switched off" end
+	if not HasPrompt() then return "no prompt for this class" end
+	if not Setup.CanBind() then return "no key bindings here" end
+	if Setup.Key() then return "a key is set" end
+	if Setup.MacroMade() then return "the Manners macro is made" end
+	if (tonumber(char.keyReminders) or 0) >= Setup.REMINDERS then return "said three times" end
+	return nil
+end
+
+-- /manners debug's line: the key, and where the reminder stands.
+function Setup.ReminderLine()
+	local char = ns.db and ns.db.char
+	local told = type(char) == "table" and tonumber(char.keyReminders) or 0
+	return ("key: %s | reminder: %s (said %d of %d)"):format(tostring(Setup.Key() or "none"),
+		Setup.ReminderHeld() or "due at a login", told, Setup.REMINDERS)
+end
+
+-- `login` is the login's own call, which makes it due; any other call (a
+-- fight ending) only says what a fight held back. Answers whether it spoke.
+function ns.KeyNudge(login)
+	if login then reminder.due = true end
+	if not reminder.due or reminder.said then return false end
+	-- Not in a fight: Core asks again as it ends.
+	if InCombatLockdown() then return false end
+	reminder.said = true
+	local char = ns.db and ns.db.char
+	if type(char) ~= "table" then return false end
+	-- The first login Manners sees a character is only noted.
+	if char.keyReminders == nil then
+		char.keyReminders = 0
+		return false
+	end
+	if Setup.ReminderHeld() then return false end
+	char.keyReminders = (tonumber(char.keyReminders) or 0) + 1
+	ns.addon:Print(L["Manners has no key yet: with one, a key press buffs whoever the prompt shows. |cffffd100/manners|r opens %s, where step 2 sets it (reminder %d of %d)."]
+		:format(TAB.general, char.keyReminders, Setup.REMINDERS))
+	return true
+end
+
 -- How many other characters use the profile this one is on, from AceDB's own
 -- record of who uses which. 0 where the database cannot say.
 function Setup.SharedWith()
@@ -983,8 +1047,29 @@ function Page.BuildStartTab()
 					end
 					-- Gold, not red: a key is a convenience, and clicking the
 					-- prompt works without one.
-					return "|cffffd100" .. L["Optional: pick a key or put Manners on a bar, or just click the prompt."] .. "|r"
+					local optional = "|cffffd100" .. L["Optional: pick a key or put Manners on a bar, or just click the prompt."] .. "|r"
+					-- With a box to set one in, the state first, as the state it is
+					-- (the step's first line), and what to do about it.
+					if Setup.CanBind() then
+						return "|cffffd100" .. L["No key yet."] .. "|r "
+							.. L["Click the box below and press the key you want: one press then buffs whoever the prompt shows."]
+							.. "\n" .. optional
+					end
+					return optional
 				end,
+			},
+
+			-- The line in chat that says how, a while after a login with no
+			-- key (ns.KeyNudge): its own switch, under the step it is about.
+			keyReminder = {
+				type = "toggle",
+				name = L["Remind me in chat while Manners has no key"],
+				desc = L["One line a little after you log in, never in a fight, on three logins at most. It stops by itself once a key is set or Manners is on an action bar."],
+				order = 24.5,
+				width = "full",
+				hidden = function() return not HasPrompt() or not Setup.CanBind() end,
+				get = function() return ns.db.profile.keyReminder ~= false end,
+				set = function(_, v) ns.db.profile.keyReminder = v and true or false end,
 			},
 
 			-- Step 3. The preview, which the options window draws in its

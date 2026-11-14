@@ -186,8 +186,8 @@ mutate("Options/Launcher.lua", "L[\"On the prompt: |cffffffff%s|r -- %s, a passe
        "ux-redesign: the launcher calls a passer-by nearby",
        expect="ux-redesign: the launcher calls a passer-by a passer-by", script=S)
 
-mutate(START, "\t\t\t\t\treturn \"|cffffd100\" .. L[\"Optional: pick a key or put Manners on a bar, or just click the prompt.\"] .. \"|r\"\n",
-       "\t\t\t\t\treturn \"|cffff8080\" .. L[\"Optional: pick a key or put Manners on a bar, or just click the prompt.\"] .. \"|r\"\n",
+mutate(START, "\t\t\t\t\tlocal optional = \"|cffffd100\" .. L[\"Optional: pick a key or put Manners on a bar, or just click the prompt.\"] .. \"|r\"\n",
+       "\t\t\t\t\tlocal optional = \"|cffff8080\" .. L[\"Optional: pick a key or put Manners on a bar, or just click the prompt.\"] .. \"|r\"\n",
        "ux-redesign: no key said in red",
        expect="ux-redesign: no key is said in gold", script=S)
 

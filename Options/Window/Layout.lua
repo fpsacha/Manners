@@ -248,11 +248,16 @@ ns.WindowLayout = {
 					"general.startPlatesNote",
 					"general.startShowPlates",
 				} },
+				-- The step most players skip, and then can only click the prompt:
+				-- where it stands first (No key yet, or the key), in a block of its
+				-- own, then the box that sets it.
 				{ key = "general.key", header = "general.keyHeader", items = {
+					"general.bindStatus",
 					"general.bindKey",
 					{ "general.makeMacro", buttons = true },
 					{ "general.openBindings", buttons = true },
-					"general.bindStatus",
+					-- The line in chat that says how, while there is no key.
+					"general.keyReminder",
 				} },
 				{ key = "general.ledger", header = "general.ledgerHeader", items = {
 					"general.ledgerSummary",
@@ -806,6 +811,8 @@ ns.WindowLayout = {
 	-- looks.
 	notes = {
 		["who.autoNote"] = { hint = true },
+		-- Start here, step 2: whether there is a key, in a block that leads the step.
+		["general.bindStatus"] = { block = true },
 		["diagnostics.ownDiag"] = { hint = true, block = true },
 		["diagnostics.pvpDiag"] = { hint = true, block = true },
 		["diagnostics.leadDiag"] = { hint = true, block = true },
