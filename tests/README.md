@@ -9,10 +9,15 @@ file rather than named outright — hardcoded ones passed here and failed the
 first time CI ran them on a machine that was not this one.
 
 `python tools/check.py --lint --flavours --anchors` runs them together, one
-line per suite (`tools/README.md`). Before any of it, `python tools/lint.py`
-says in under a second whether every Lua and Python file compiles, and
-`python tools/anchors_for.py FILE:LINE` says which mutations sit on a line
-you are about to change.
+line per suite (`tools/README.md`); `python tools/check.py --release` adds the
+locales, the looks' previews and contrast, `bughunt.py` and the quick fuzzer:
+everything a release is checked against, about ten minutes. Before any of it,
+`python tools/lint.py` says in under a second whether every Lua and Python
+file compiles, and `python tools/anchors_for.py FILE:LINE` says which
+mutations sit on a line you are about to change.
+
+A new mutation is proven with `python tools/prove.py "<label>"` (seconds: its
+own scenario files, no trace), not with the full run below.
 
 ## `runharness.py` — load the addon for real
 
@@ -50,7 +55,8 @@ python tests/selftest.py            # the full run: about half an hour on 8 work
 python tests/selftest.py --anchors  # only that every mutation still finds its text: seconds
 python tests/selftest.py --plan     # which scenarios would judge each mutation, then stop
 python tests/selftest.py --whole    # every mutation on the whole suite, as it used to be
-python tests/selftest.py --jobs 4   # fewer at once (default: the cores less two)
+python tests/selftest.py --jobs 4   # fewer at once (default: tools/jobs.py -- the cores less two,
+                                    # fewer when memory is short, MANNERS_JOBS at most)
 python tests/selftest.py --fresh-trace  # trace the scenarios again, kept trace or not
 python tests/selftest.py --changed  # only the mutations of files that differ from master
 python tests/selftest.py --changed v1.5.4  # ... or from any commit or tag
@@ -61,6 +67,28 @@ python tests/selftest.py --part 3/16  # every 16th mutation from the 3rd: one CI
 `python tools/anchors_for.py FILE:LINE` lists the mutations anchored on a line
 before it is changed, and `--check-after` the ones that lost their text after:
 `--anchors` with only the gone ones printed.
+
+**`--only` and `--changed` with no trace kept.** The trace below is keyed on
+the tests, so it is stale the moment a scenario is written, and a narrowed run
+then used to trace the whole suite and run every piece of it on the clean tree
+before judging three mutations: 30 to 80 minutes at `--jobs 2`. Now such a run
+first tries each mutation judged by `runscenarios.py` by the rule of
+`tools/prove.py`: the scenario file of its topic (`tests/mutations/<topic>.py`
+-> `tests/scenarios/<topic>.lua`; `scenarios.lua` for the mutations written in
+`selftest.py`) and every scenario file whose text holds its `expect`, each run
+green on the clean tree first, then with the mutation in a copy. A narrowed
+run can hide the check that catches a mutation and never invent one, so CAUGHT
+there is CAUGHT; one it does not catch is left for the trace and the whole
+suite, as before, and the run says which ones before it starts tracing. When
+none is left, neither the trace nor the whole-suite baseline runs: three
+mutations in 17 s. Under every mutation of a narrowed run a line says which
+rule judged it (`judged by: the fast proof: its own scenario files, no trace
+(thank.lua)`, `... the scenarios its check is traced to`, `... its own suite
+(validate.py)`). `--fresh-trace` asks for the trace regardless. A narrowed run
+that keeps no mutation ends at once (`RESULT: no mutation to judge`).
+
+The other checkouts kept under `.claude/worktrees` (2 GB here) are not part of
+the tree: they are neither hashed into its key nor copied once per worker.
 
 It used to take 25 minutes here and over two hours on GitHub's runner; the
 options window then took it back up past 26 minutes on 14 workers. Measured

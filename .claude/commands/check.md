@@ -6,9 +6,12 @@ Run from the repository root (your worktree, if you work in one):
 
     python tools/check.py --lint --flavours --anchors --jobs $ARGUMENTS
 
-With no argument leave `--jobs` out (default: cores less two). With other agents
-running tests, pass `--jobs 2`: total workers across everybody stay at cores
-minus two. It takes minutes; run it in the background and wait.
+With no argument leave `--jobs` out (default: `tools/jobs.py`, the cores less
+two, fewer when memory is short). With other agents running tests, set
+`MANNERS_JOBS` or pass `--jobs` so the total across everybody stays at cores
+minus two. It takes minutes; run it in the background and wait. Before a
+release the command is `python tools/check.py --release` (the same and the
+locales, the looks' previews and contrast, bughunt and the quick fuzzer).
 
 Then report, and change nothing:
 

@@ -24,7 +24,9 @@ at the first red:
    `python tests/selftest.py --jobs N` (20 to 40 minutes, leave 2 cores free;
    run it in the background). It must end `RESULT: every mutation was caught`.
    Any MISSED, WRONG CHECK, ANCHOR GONE or NOT RESTORED stops the release.
-4. `python tools/check.py --lint --flavours --anchors`. For the fastest release,
+4. `python tools/check.py --release` (everything, about ten minutes), and ask
+   the user to run `RELEASE-CHECK.md` in the game (five minutes; a clean
+   `/manners selftest launch` and five things to look at). For the fastest release,
    push master first and let CI and `selftest.yml` pass on it: the release then
    reads them, skips its own check and the CI wait, and tags in a minute or two.
 5. Dry run, and show the user its output: `python tools/release.py $ARGUMENTS --dry-run`

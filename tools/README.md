@@ -1,8 +1,10 @@
 # tools
 
 Two kinds of thing. First the tools for working on the addon: running the
-suites (`check.py`), the quick checks for the middle of an edit (`lint.py`,
-`anchors_for.py`), watching the clients' interface numbers (`clients_watch.py`),
+suites (`check.py`, with `--release` for everything before a release), proving
+a new mutation in seconds (`prove.py`), the quick checks for the middle of an
+edit (`lint.py`, `anchors_for.py`), how many processes they run at once
+(`jobs.py`), watching the clients' interface numbers (`clients_watch.py`),
 making a release (`release.py`), keeping the translations
 whole (`locale_todo.py`, `locale_add.py`, with `build_locale.py`,
 `check_translation.py` and `locale_keys.py` under them) and adding In character
@@ -27,6 +29,7 @@ python tools/check.py --flavours                   # and each client's own files
 python tools/check.py --anchors                    # and every mutation still finds its code
 python tools/check.py --lint                       # tools/lint.py first; nothing else runs if it fails
 python tools/check.py --flavours --anchors --jobs 3
+python tools/check.py --release                    # everything a release is checked against
 ```
 
 Each step is the existing script, run as it is:
@@ -39,6 +42,18 @@ Each step is the existing script, run as it is:
 | `scenarios` | `tests/runscenarios.py --jobs N`: every scenario, as WoW Forever (camelot), the default client |
 | `--flavours` | `tests/runscenarios.py --flavour X --file F`, one step per pair: `era.lua` as vanilla, `tbc.lua` as tbc, `mists.lua` as mists, `mainline.lua` as mainline, every `tests/scenarios/*-fixes.lua` as each of those four (the `scenarios` step has run them as camelot), and the files in `ALSO` (top of `check.py`) as mainline: `unverified.lua`, `hunt23-queue.lua`, `hunt23-favours.lua`. Retail hides other players' auras in a fight as Forever does, so the fight logic of 1.7.7 and what 1.7.8 fixed in the queue and the aura scan are run as both; these files follow the client the suite runs as, and take their stranger's name from it |
 | `--anchors` | `tests/selftest.py --anchors --jobs N` |
+| `--release` | `--lint`, `--flavours` and `--anchors`, and: `locales` (`tools/locale_keys.py`), `previews` (`tools/make_look_previews.py --check`), `bughunt` (`tests/bughunt.py`: it lists fault shapes with known false positives and never fails; its line carries the counts), `fuzz` (`tools/fuzz.py --quick --jobs N`, 24 seeds on each of the five clients) and `contrast` (`tools/audit_look_contrast.py --check`) |
+
+`--release` is the one command before a release, in an order that shows a red
+early: `lint` alone, then `validate`, `harness`, `anchors`, `locales`,
+`previews` and `bughunt` side by side (seconds each), then `scenarios`, then
+`fuzz`, then the clients' files with `contrast` (two minutes) beside them.
+Every step runs whatever the others said, so one run lists everything red, and
+under each red step is the command that shows it alone. It does not run the
+mutations (`selftest.yml` does, on GitHub) and nothing in the game: that is
+`RELEASE-CHECK.md`. Measured at `--jobs 6` with other work on the machine: 105
+steps in 10 min 39 s (the scenarios 437 s, the contrast audit 127 s, the
+fuzzer 28 s).
 
 As each step ends it prints `PASS` or `FAIL`, its seconds and its own verdict
 line (`RESULT: all checks passed`, `failures: 0`, `errors: 0`). Then, for each
@@ -55,7 +70,8 @@ start of each run and named on the first line), so a red step can be read
 without running it again.
 
 `--jobs N` is how many processes run at once, all steps together; the default
-is the cores less two, which stay free. It is passed on as `--jobs`, so
+is `jobs.py`'s: the cores less two, which stay free, fewer when memory is
+short, and `MANNERS_JOBS` at most. It is passed on as `--jobs`, so
 `MANNERS_SCENARIO_JOBS` (which `runscenarios.py` reads when it gets no
 `--jobs`) does not change it. `validate` and `harness` go first, then
 `scenarios` on all N, then the rest N at a time. Pass `--jobs 3` when other
@@ -73,6 +89,68 @@ reds are mostly fixtures written for Camelot, and `--baseline` there prints
 only the reds that are not in `tests/baselines/X.txt` (`tests/README.md`). The
 files `--flavours` runs are the ones written for each client, and they are
 green.
+
+## prove.py
+
+A mutation proven in seconds, while building: is it caught by the check it
+names?
+
+```
+python tools/prove.py "thank: on by default"           # every mutation whose label holds the text
+python tools/prove.py "thank:" "look-ebon"             # several texts
+python tools/prove.py --file tests/mutations/thank.py  # every mutation of one file (a path, a name or a topic)
+python tools/prove.py --list "thank:"                  # what would run, on which files; runs nothing
+python tools/prove.py --file thank --jobs 6
+```
+
+For each mutation: where its check is looked for is the scenario file of its
+topic (`tests/mutations/<topic>.py` -> `tests/scenarios/<topic>.lua`;
+`tests/scenarios.lua` for the ones written in `selftest.py`) plus every
+scenario file whose text holds its `expect` (a plain search, any case; more
+than eight such files name no place, and the topic's alone is run). Each of
+those files is run once on the tree as it is, in a process of its own, and has
+to be green; then the mutation is applied in a throwaway copy of the tree (one
+per worker under `%TEMP%`, pictures hard-linked where the disk allows; the
+checkout is never edited), the files run there one by one, the topic's first,
+until one catches it, and the file is put back. A mutation judged by
+`validate.py` or `runharness.py` runs that script instead.
+
+| Verdict | Means |
+|---|---|
+| `CAUGHT` | a failing line holds `expect` |
+| `MISSED` | nothing failed in those files. A check that lives in another file (a control's place, in `layout.lua`) is not looked for: name that scenario in `expect`, or let `selftest.py --only` find it |
+| `WRONG CHECK` | something failed, and no line holds `expect` (the first three lines are shown) |
+| `ANCHOR GONE` | its `old` text is no longer in the file |
+| `RED BEFORE` | its files fail with no mutation applied (their lines are shown): fix that first |
+| `NO FILE` | no scenario file of its topic, and its `expect` is in none: only the full selftest can place it |
+
+Exit 0 when every one is `CAUGHT`, 1 otherwise, 2 when nothing matched. A
+scenario file takes 2 to 25 seconds; `thank.py`'s 56 mutations took 41 s at
+`--jobs 6`, three of `look-ebon.py`'s (a 25-second file) with one of
+`scenarios.lua`'s 73 s. `tests/selftest.py` stays the judge: it tries what
+this misses on every other scenario, and `selftest.yml` runs it whole on
+GitHub. Its `--only` and `--changed` use this same rule first when no trace
+is kept (`tests/README.md`).
+
+## jobs.py
+
+How many processes the tools run at once when `--jobs` is not given:
+`check.py`, `prove.py`, `fuzz.py`, `tests/runscenarios.py` and
+`tests/selftest.py` all ask it.
+
+```
+python tools/jobs.py                     # 14 jobs (16 cores less 2; 13.0 GB free is enough)
+MANNERS_JOBS=6 python tools/check.py --release       # bash: never more than six
+$env:MANNERS_JOBS = 6                                # PowerShell, for the session
+```
+
+The cores less two, no more than the free memory allows at 0.75 GB a job, no
+more than `MANNERS_JOBS`. Set `MANNERS_JOBS` while several agents or suites
+share the machine; an explicit `--jobs N` is taken as it is.
+`MANNERS_SCENARIO_JOBS` is still what `selftest.py` and `check.py` hand a
+`runscenarios.py` they start, and is not for setting by hand. The selftest's
+kept trace is keyed on the number of jobs, so a run with another count traces
+afresh.
 
 ## lint.py
 
@@ -213,18 +291,21 @@ toc's is the one to prepare for.
 RELEASING.md's "Each release", run in order, waiting where it says to wait.
 
 ```
-python tools/release.py 1.7.4 --dry-run    # every check, every command it would run; changes nothing
+python tools/release.py 1.7.4 --dry-run    # every check, then the exact list of commands; changes nothing
 python tools/release.py 1.7.4
 python tools/release.py 1.8.0-beta.1 --coauthor "Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 Before it: write the notes under `## Unreleased` at the top of `CHANGELOG.md`.
-The full mutation selftest runs on GitHub (`selftest.yml`, sixteen parts, nightly
-and on every push to master); the preflight reads its last green run of master
-and runs here only `tests/selftest.py --changed <that commit> --jobs 4`, or
-nothing when that run was of this very commit. It stops when no green run
-exists (`gh workflow run selftest.yml` starts one). `--skip-selftest` is for a
-full run made by hand instead.
+The full mutation selftest runs on GitHub (`selftest.yml`, sixteen parts, nightly,
+on every push to master, and on demand for a branch: `gh workflow run
+selftest.yml --ref <branch>`); the preflight reads its newest green run of a
+commit this one holds (master's, or a branch's proven before it was merged)
+and runs here only `tests/selftest.py --changed <that commit>`, or nothing
+when that run was of this very commit. It stops when no such run exists (`gh
+workflow run selftest.yml` starts one). `--skip-selftest` is for a full run
+made by hand instead. Before any of it, the author's five minutes in the game:
+`RELEASE-CHECK.md`.
 
 Preflight, read-only; nothing changes unless every check passes:
 
@@ -236,8 +317,15 @@ Preflight, read-only; nothing changes unless every check passes:
 - origin's master is already in this branch (`git ls-remote`, no fetch);
 - the tag `vX.Y.Z` exists neither here nor on origin;
 - CI (`ci.yml`) passed on this commit, waited for while it runs; only a commit
-  CI has not passed (unpushed or red) runs `python tools/check.py --anchors`
-  here instead (its lines shown as it runs, on all but two cores).
+  CI has not passed (unpushed or red) runs `python tools/check.py --release`
+  here instead (its lines shown as it runs; about ten minutes). It was
+  `--anchors` alone: a release of unpushed work was then checked by nothing
+  but the anchors.
+
+A check that fails names the command that shows it alone. `--dry-run` ends
+with the exact list: every command the preflight ran (the `gh` reads, and
+`check.py --release` or `selftest.py --changed <commit>` when it had to run
+them) and every command a real run would run after it.
 
 After the version commit it waits for CI on it, except when that commit changes
 nothing but the version since a commit CI passed: then it tags at once. Pushing

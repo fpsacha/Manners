@@ -258,12 +258,22 @@ default everywhere in the tests and the only client anybody here plays.
 | `python tools/check.py --lint` | lint first, and nothing else runs if it fails | |
 | `python tools/check.py --flavours` | also each client's own scenario file as that client (era.lua as vanilla, tbc.lua, mists.lua, mainline.lua), every `tests/scenarios/*-fixes.lua` as each client, and `unverified.lua`, `hunt23-queue.lua` and `hunt23-favours.lua` as mainline (retail hides auras in a fight as Forever does) | longer |
 | `python tools/check.py --anchors` | also `tests/selftest.py --anchors` | seconds more |
-| `python tests/selftest.py --changed [REF]` | the mutations of every file that differs from REF, committed or not (default master): code, tests, docs and workflows alike | minutes (about 15 for a handful judged by runscenarios) |
-| `python tests/selftest.py` | every mutation (about 4,000), each judged by the check it names; `--part I/N` one share of them | hours locally on 4 jobs; on GitHub `selftest.yml` runs it in 8 parts |
+| `python tools/check.py --release` | **everything before a release, one command**: lint, then validate, harness, anchors, `tools/locale_keys.py`, `tools/make_look_previews.py --check` and `tests/bughunt.py` (counted, never red) side by side, the scenarios on Forever, `tools/fuzz.py --quick` on five clients, then each other client's files with `tools/audit_look_contrast.py --check`; one line per step, each red step followed by the command that shows it alone, and the wall time | 10 min 39 s at `--jobs 6` (105 steps) |
+| `python tools/prove.py "<label text>"` or `--file tests/mutations/<topic>.py` | **the proof of a new mutation while building**: its topic's scenario file and every scenario file holding its `expect`, green on the clean tree, then with the mutation in a throwaway copy. CAUGHT, MISSED, WRONG CHECK, ANCHOR GONE, RED BEFORE, NO FILE. No trace, no whole suite | 2 to 25 s a scenario file; `thank.py`'s 56 mutations in 41 s at `--jobs 6` |
+| `python tests/selftest.py --changed [REF]` | the mutations of every file that differs from REF, committed or not (default master): code, tests, docs and workflows alike. With no trace kept of these tests it tries each on its own scenario files first (prove.py's rule) and traces only for the ones that leaves; `judged by:` under each says which rule | seconds to a few minutes when the fast proof catches them all; the trace (tens of minutes) only for what is left |
+| `python tests/selftest.py --only "<label>"` | the same for the mutations whose label or file holds the text | as above: 3 mutations in 17 s where it used to trace the suite first |
+| `python tests/selftest.py` | every mutation (about 6,000), each judged by the check it names; `--part I/N` one share of them | hours locally; on GitHub `selftest.yml` runs it in 16 parts |
 
-`--jobs N` on check.py, runscenarios.py and selftest.py defaults to cores - 2.
-Run the cheap checks while working, `--changed` before handing work back; the
-full selftest runs on GitHub (`selftest.yml`) and the release tool reads it.
+`--jobs N` on check.py, prove.py, fuzz.py, runscenarios.py and selftest.py
+defaults to `tools/jobs.py`'s number: the cores less two, fewer when free
+memory is short (0.75 GB a job), and never more than `MANNERS_JOBS` when that
+is set (`python tools/jobs.py` prints it and why). Set `MANNERS_JOBS=6` once
+while other agents share the machine rather than `--jobs` on every command.
+While building, prove each new mutation with `tools/prove.py`; before handing
+work back, `check.py --lint --flavours --anchors` and `selftest.py --changed`;
+the full selftest runs on GitHub (`selftest.yml`) and the release tool reads
+it. Before a release, `check.py --release` and `RELEASE-CHECK.md` (five
+minutes in the game, by the author).
 
 `tests/runscenarios.py` flags: `--scenario NAME` and `--file FILE`
 (`scenarios.lua` or a file in `tests/scenarios/`; both repeatable),
@@ -276,10 +286,12 @@ baseline entries that now pass; `--update-baseline` rewrites the file),
 names, scrolls, secrets), which is what the baselines hold.
 
 `tests/selftest.py` flags: `--anchors` (every mutation still finds its text),
-`--changed [REF]`, `--plan` (which scenarios judge each mutation), `--whole`
-(every mutation on the whole suite, slow), `--fresh-trace` (ignore the trace
-kept in `%TEMP%/manners-selftest-trace`), `--jobs N`. A run fails on MISSED,
-WRONG CHECK, ANCHOR GONE or NOT RESTORED.
+`--changed [REF]`, `--only TEXT`, `--plan` (which scenarios judge each
+mutation), `--whole` (every mutation on the whole suite, slow), `--fresh-trace`
+(ignore the trace kept in `%TEMP%/manners-selftest-trace`, and trace even
+where the fast proof would do), `--jobs N`. A run fails on MISSED, WRONG
+CHECK, ANCHOR GONE or NOT RESTORED. A narrowed run that keeps no mutation
+ends at once.
 
 Others: `tests/baseline.py` (a fingerprint of what Forever decides and arms:
 diff it before and after a change made for another client), `tests/bughunt.py`
@@ -290,12 +302,14 @@ diff it before and after a change made for another client), `tests/bughunt.py`
 `tools/audit_look_contrast.py` (every look's words measured on the pictures:
 4.5:1 for each line, `--check`; run it after any change to a look).
 
-CI (`ci.yml`, every push): validate, runharness, runscenarios (`--jobs 4`),
-`selftest.py --anchors`, and the listing images drawn with `--strict`.
+CI (`ci.yml`, every push): validate, runharness, `selftest.py --anchors`,
+runscenarios (`--jobs 4`), and the listing images drawn with `--strict`.
 `release.yml` runs only validate, runharness and `--anchors` before packaging:
 `tools/release.py` tags only content CI passed. The full
 selftest is `selftest.yml`: sixteen runners, one `--part I/16` each, nightly, on
-every push to master and on `gh workflow run selftest.yml`. A mutation the
+every push to master and on `gh workflow run selftest.yml`; `gh workflow run
+selftest.yml --ref <branch>` proves a branch before it is merged, and the
+release tool counts that run once the branch is in master. A mutation the
 pieces of the suite judged is remembered by the piece that caught it
 (`catches.json` beside the kept trace) and tried there first next time.
 
@@ -324,8 +338,19 @@ Quick helpers for working in a worktree (`tools/README.md` has the details):
   `Ketho/BlizzardInterfaceResources`, plus the PTR and beta branches. Exit 1 on
   drift (a toc that would show out of date to players on that client) or when
   the repo's own sources disagree; 2 when upstream cannot be read. Needs `gh`.
-- `python tools/check.py --lint --flavours --anchors --jobs 2`: lint first, then
-  the rest; a lint failure stops it before anything else runs.
+- `python tools/prove.py "<label text>" [...]` or `--file
+  tests/mutations/<topic>.py` (`--list` says what would run): a new mutation
+  proven in seconds, on its topic's scenario file and the files that hold its
+  `expect`. This is what to run after writing a scenario and its mutation,
+  not `selftest.py --only`. MISSED there means "not in those files": a check
+  that lives elsewhere (a control's place in `layout.lua`) needs its scenario
+  named in `expect`, or `selftest.py --only` to find it.
+- `python tools/check.py --lint --flavours --anchors`: lint first, then the
+  rest; a lint failure stops it before anything else runs. `--release` is the
+  same and the locales, the looks' previews and contrast, bughunt and the
+  quick fuzzer: the one command before a release.
+- `python tools/jobs.py`: how many processes the tools run at once by default
+  and why; `MANNERS_JOBS=N` caps them all.
 - `.claude/settings.json` allows the commands above, `python tools/*`,
   `python tests/*`, the everyday git (`git branch` only to list) and `gh run`
   commands and `gh api` reads of the two upstream repos (every flag that makes it
@@ -370,8 +395,9 @@ Quick helpers for working in a worktree (`tools/README.md` has the details):
 - Edit nothing under `tests/` or the addon while `check.py` or `selftest.py`
   runs: each scenario process keeps a compiled copy of every file, and a change
   mid-run fails the step with "changed during the run" while still printing
-  `failures: 0`. The selftest trace is keyed on the tests, so the first
-  `--changed` after a test edit pays for it (minutes).
+  `failures: 0`. The selftest trace is keyed on the tests (and on `--jobs`);
+  after a test edit `--changed` and `--only` no longer trace first: they try
+  each mutation on its own scenario files and trace only for what that leaves.
 
 ## Scenarios and mutations
 

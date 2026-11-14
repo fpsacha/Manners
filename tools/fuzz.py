@@ -573,7 +573,8 @@ def play_steps(args):
 
 
 def main():
-    cores = os.cpu_count() or 4
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from jobs import default_jobs
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0],
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--seeds", type=int, default=100, help="seeds per client (default 100)")
@@ -581,7 +582,9 @@ def main():
     ap.add_argument("--seed", type=int, help="play only this seed (a replay), verbosely")
     ap.add_argument("--flavour", default="all", help="camelot vanilla tbc mists mainline, or all")
     ap.add_argument("--steps", type=int, default=200, help="steps per seed (default 200)")
-    ap.add_argument("--jobs", type=int, default=max(1, cores - 2), help="worker processes (default cores - 2)")
+    ap.add_argument("--jobs", type=int, default=default_jobs(),
+                    help="worker processes (default: cores - 2, fewer when memory is short,"
+                         " MANNERS_JOBS at most)")
     ap.add_argument("--addon", help="the addon tree to play on, if not this one (read before anything else)")
     ap.add_argument("--quick", action="store_true", help="24 seeds x every client x 100 steps (about 30 s with --jobs 2)")
     ap.add_argument("--minimize", action="store_true", help="with --seed: shrink the failing steps")

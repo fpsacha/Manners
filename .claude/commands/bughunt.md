@@ -34,7 +34,9 @@ and selftest.py; no new or changed `L["..."]` (list it under needs_strings
 instead); no behaviour change except a proven fix; Lua 5.1 limits; no pcall on
 busy paths. Per fix: a scenario in `tests/scenarios/<area>-fixes.lua`, a mutation
 in `tests/mutations/<area>-fixes.py` undoing it, proven with
-`python tests/selftest.py --only "<label>" --jobs 2`; before editing a line,
+`python tools/prove.py "<label>"` (seconds; never the full selftest, and
+`selftest.py --only` only for a mutation prove.py reports MISSED whose check
+lives in another file); before editing a line,
 `python tools/anchors_for.py FILE:LINE`; after,
 `python tools/anchors_for.py --check-after` and re-aim what moved. Finish with
 `python tools/check.py --lint --flavours --anchors --jobs 2`, then

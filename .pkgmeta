@@ -58,6 +58,7 @@ ignore:
   - STATUS.md
   - CLAUDE.md
   - RELEASING.md
+  - RELEASE-CHECK.md
   - README.md
   - CHANGELOG.md
 

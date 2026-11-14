@@ -3,9 +3,15 @@ name: Selftest
 # The full mutation selftest, the step a release used to wait hours for on the
 # author's machine. Here it runs in parts, each on a runner of its own, every
 # night, on every push to master and on demand (gh workflow run selftest.yml).
-# tools/release.py reads the last green run of master: a release of that
-# commit needs nothing more, and one of a later commit runs only the mutations
-# of the files changed since (selftest.py --changed <that commit>).
+# A branch is proven before it is merged the same way:
+#
+#   gh workflow run selftest.yml --ref <branch>
+#   gh run watch            # or: gh run list --workflow selftest.yml --branch <branch>
+#
+# tools/release.py reads the newest green run of a commit the release holds
+# (master's, or such a branch's once merged): a release of that commit needs
+# nothing more, and one of a later commit runs only the mutations of the files
+# changed since (selftest.py --changed <that commit>).
 
 on:
   schedule:
@@ -30,15 +36,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
+      # The wheels (over 100 MB with scipy) come from the cache on all sixteen
+      # runners, keyed on the list of names.
       - uses: actions/setup-python@v7.0.0
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: .github/requirements-selftest.txt
 
       # scipy: tools/figures.py raises the gryphons, Fel's, Wild's and Frost's
       # carved pieces with its distance transform; without it those generators'
       # own scenarios skip themselves here.
       - name: Install the Lua runtime and the art tools the tests need
-        run: pip install Pillow numpy lupa scipy
+        run: pip install -r .github/requirements-selftest.txt
 
       # The scenario trace and the catches (which piece of the suite caught
       # each mutation last time) are kept between runs, per part: they only

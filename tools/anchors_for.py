@@ -45,9 +45,10 @@ NAME = re.compile(r"^[A-Za-z_][\w.]*$")
 
 
 class Mutation:
-    def __init__(self, filename, old, label, expect, script, source, line):
+    def __init__(self, filename, old, label, expect, script, source, line, new=None):
         self.file = filename.replace("\\", "/")
         self.old, self.label, self.expect, self.script = old, label, expect, script
+        self.new = new                            # what replaces it (tools/prove.py applies it)
         self.source, self.line = source, line     # where the mutate() call is
         self.first = self.last = None             # lines the old text covers
         self.count = 0                            # how many times it occurs
@@ -60,7 +61,7 @@ def load():
     def recorder(source):
         def mutate(filename, old, new=None, label="", expect="", script="runharness.py"):
             found.append(Mutation(filename, old, label, expect, script, source,
-                                  sys._getframe(1).f_lineno))
+                                  sys._getframe(1).f_lineno, new))
         return mutate
 
     for path in sorted(glob.glob(os.path.join(ROOT, "tests", "mutations", "*.py"))):
