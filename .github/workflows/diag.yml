@@ -1,0 +1,18 @@
+name: diag
+# One-off: how the texture generators' output on the runner differs from what ships.
+on:
+  push:
+    branches: [ci-diag-generators]
+permissions:
+  contents: read
+jobs:
+  diff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install Pillow numpy lupa
+      - run: python tools/diag/gen_diff.py
+      - run: python tools/make_look_previews.py --check || true
