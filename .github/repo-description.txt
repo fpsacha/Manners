@@ -1,0 +1,13 @@
+Description (GitHub "About", under 120 characters):
+
+A World of Warcraft addon that returns buffs: one press buffs back whoever buffed you. Five clients, nine languages.
+
+Topics:
+
+world-of-warcraft
+wow-addon
+wow-classic
+lua
+buffs
+user-interface
+ace3
