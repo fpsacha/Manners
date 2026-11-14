@@ -818,6 +818,9 @@ ns.WindowLayout = {
 			["who.res"] = true, ["who.cures"] = true, ["who.ask"] = true,
 			["who.choice"] = true, ["who.autoNote"] = true, ["who.pinNote"] = true,
 			["who.self"] = true,
+			-- Scrolls: the switch each scroll's own (who.own_*, added below) is
+			-- indented under, and the only way back to them once it is off.
+			["who.ownScrolls"] = true,
 			-- Who to skip.
 			["who.rightNowSkip"] = true, ["who.skipPvP"] = true, ["who.skipSameClass"] = true,
 			["who.minLevel"] = true, ["who.neverAdd"] = true,

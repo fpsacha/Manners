@@ -143,7 +143,7 @@ Setup.REMINDERS = 3
 -- Seconds after the login's own lines (Core.lua asks for it then).
 ns.KEY_NUDGE_AFTER = 20
 
-local reminder = { due = false, said = false }
+local reminder = { due = false, said = false, lead = false }
 
 -- Why the reminder keeps quiet, as a word for /manners debug, or nil when it
 -- would speak at the next login.
@@ -153,6 +153,9 @@ function Setup.ReminderHeld()
 	if type(profile) ~= "table" or type(char) ~= "table" then return "no settings" end
 	if profile.enabled == false then return "Manners is off" end
 	if profile.keyReminder == false then return "switched off" end
+	-- Its line would be dropped (Core.lua, addon:Print), and must not be
+	-- counted as said: it waits for a login with the chat back on.
+	if profile.silentChat == true then return "chat messages are hidden" end
 	if not HasPrompt() then return "no prompt for this class" end
 	if not Setup.CanBind() then return "no key bindings here" end
 	if Setup.Key() then return "a key is set" end
@@ -188,7 +191,19 @@ function ns.KeyNudge(login)
 	char.keyReminders = (tonumber(char.keyReminders) or 0) + 1
 	ns.addon:Print(L["Manners has no key yet: with one, a key press buffs whoever the prompt shows. |cffffd100/manners|r opens %s, where step 2 sets it (reminder %d of %d)."]
 		:format(TAB.general, char.keyReminders, Setup.REMINDERS))
+	-- The line says /manners opens Start here: so it does, once.
+	reminder.lead = true
 	return true
+end
+
+-- The page a bare /manners opens: Start here for the first one typed after
+-- the reminder said so, while there is still no key and no macro; nil (the
+-- page the window was last on) at any other time.
+function Setup.ReminderPage()
+	if not reminder.lead then return nil end
+	reminder.lead = false
+	if Setup.Key() or Setup.MacroMade() then return nil end
+	return "general"
 end
 
 -- How many other characters use the profile this one is on, from AceDB's own

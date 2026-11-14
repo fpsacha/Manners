@@ -224,6 +224,13 @@ function UI.HiddenBySimple(path)
 	return w ~= nil and ShownByModel(w.e) and SimpleHides(w.e)
 end
 
+-- Whether the simple view would leave a control out, shown by its own rule
+-- or not: for a search result that leads to it through its switch.
+function UI.OffShortList(path)
+	local w = UI.Where(path)
+	return w ~= nil and SimpleHides(w.e)
+end
+
 -- The switch to turn on first for a control the model shows and the window
 -- does not draw (UnderOff), or nil: for the search, which finds the control
 -- and opens its switch.

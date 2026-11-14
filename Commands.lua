@@ -1621,7 +1621,9 @@ function addon:HandleSlash(rawInput)
 
 
 	if input == "" or input == "config" or input == "options" then
-		ns.OpenOptions()
+		-- Start here when the reminder to set a key has just sent the player
+		-- to it (Options/Start.lua), the page last open otherwise.
+		ns.OpenOptions(ns.Setup and ns.Setup.ReminderPage and ns.Setup.ReminderPage() or nil)
 	elseif input == "welcome" then
 		-- Forced, so it plays for somebody who has already seen it.
 		ns.Guard("welcome", ns.Welcome, true)
