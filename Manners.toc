@@ -49,6 +49,7 @@ Favours.lua
 Clicks.lua
 Companion.lua
 Commands.lua
+Hints.lua
 Phrases.lua
 Ledger.lua
 Looks\Looks.lua
