@@ -854,6 +854,7 @@ def check_bare(keys):
     rp = renderer()
     snaps = snapshots(keys)
     lines = texts(snaps)
+    tiles = icons(snaps)
     held = read_icons("previewText")
     if held is None or not same_icons(held, lines):
         print("  Looks/Previews.lua does not say where the looks write their name and reason as they do now")
@@ -895,6 +896,17 @@ def check_bare(keys):
             problems.append("%s: the lines draw outside their recorded rectangles (%d pixels, from x %d y %d)" % (
                 key, len(xs), xs.min(), ys.min()))
         left = np.abs(shipped - bare).max(axis=2) > INK
+        # Not in the icon's tile: the renderer writes initials there in place of
+        # game art, in whatever face this machine has (GitHub's runners drew them
+        # 30 to 100 pixels off the Windows-made pictures), and the window lays the
+        # live icon over it. The lines' text is never there.
+        tile = tiles.get(key)
+        if tile:
+            x0 = max(0, int(tile["l"] * SIZE[0]) - OVERHANG)
+            x1 = min(SIZE[0], int(tile["r"] * SIZE[0] + 0.999) + OVERHANG)
+            y0 = max(0, int(tile["t"] * SIZE[1]) - OVERHANG)
+            y1 = min(SIZE[1], int(tile["b"] * SIZE[1] + 0.999) + OVERHANG)
+            left[y0:y1, x0:x1] = False
         if left.any():
             ys, xs = np.nonzero(left)
             problems.append("%s: the picture differs from the drawing without its text in %d pixels "

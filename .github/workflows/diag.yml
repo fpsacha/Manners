@@ -13,6 +13,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install Pillow numpy lupa
-      - run: python tools/diag/gen_diff.py
-      - run: python tools/make_look_previews.py --check || true
+      - run: pip install Pillow numpy lupa scipy
+      - run: python tools/diag/gen_diff.py fel wild frost glass lightbringer toast letter
+      - run: python tools/make_look_previews.py --check-bare || true
+      - run: >
+          python tests/runscenarios.py --jobs 4
+          --file sameart.lua --file hunt40-cards.lua --file hunt35-effects.lua --file panel-material.lua
+          --file look-archmage.lua --file look-fel.lua --file look-forge.lua --file look-frost.lua
+          --file look-leather.lua --file look-letter.lua --file look-lightbringer.lua --file look-ribbon.lua
+          --file look-wild.lua --file look-glass.lua --file theme-picker.lua | tail -n 40
