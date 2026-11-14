@@ -16,7 +16,7 @@ mutate("Hints.lua",
        expect="said with Myself switched off", script=S)
 
 mutate("Hints.lua",
-       "\tif not SomethingOfYours(now) then return false end\n",
+       "\tif not SomethingOfYours(db.profile, now) then return false end\n",
        "",
        "resting-hint: said with nothing of yours missing",
        expect="said with nothing of yours missing", script=S)

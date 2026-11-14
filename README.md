@@ -361,9 +361,10 @@ each class offers*).
   Find Minerals, so there it has a switch of its own, *Find Treasure*: once
   you have had it on, it is reminded of whenever it is off, and a gathering
   tracking is still reminded of while Find Treasure is on. A dwarf who never
-  turns it on is never asked to. In a battleground or an arena tracking is
-  not reminded of at all: every death there drops it, and your class's buff
-  matters more.
+  turns it on is never asked to. In a battleground or an arena a gathering
+  tracking is not reminded of at all: every death there drops it, and your
+  class's buff matters more. One to fight with (Track Humanoids, Track
+  Hidden), picked or the last you had on, is still reminded of there.
 - *Save mana* holds you back only when *Below it, still offer* is *Nothing*,
   and *Raid groups I buff* never does. In a party you count towards a group
   buff, and the group cast covers you.

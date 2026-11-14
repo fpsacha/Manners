@@ -2275,9 +2275,15 @@ end
 -- is on your Intellect (Commands.lua, MyselfLines). Not one held back for a
 -- flagged member of the party it lands on, which the prompt is not on. Nor
 -- one while your own name is on the never-offer list (MyselfHeldBack says so):
--- SelfEntry offers you nothing then.
-function ns.SelfBuffFirst(db, now)
+-- SelfEntry offers you nothing then. `pastResting`: the one it would be on
+-- were you not resting in a city or an inn, for the line that says your buffs
+-- wait there (Hints.lua); every other hold still answers nil.
+function ns.SelfBuffFirst(db, now, pastResting)
 	local held, full = ns.MyselfHeldBack(db, now)
+	if held == "resting" and pastResting then
+		held, full = nil, ns.UnitFullName("player")
+		if not full or ns.IsBlocked(full, nil, now or GetTime()) or ns.IsNeverOffered(full) then return nil end
+	end
 	if held then return nil end
 	-- The list BuildQueue hands SelfEntry: a group buff you cannot pay for is
 	-- not the one the prompt is on.

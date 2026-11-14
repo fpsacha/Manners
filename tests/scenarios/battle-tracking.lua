@@ -24,10 +24,11 @@ local function minimap(entries)
 	})
 end
 
--- Find Herbs and Find Minerals learned, beside the mock's Arcane Intellect.
+-- Find Herbs and Find Minerals learned, beside the mock's Arcane Intellect,
+-- and Frost Armor: a family that is not tracking, for the hold to leave alone.
 local realKnown, realPlayer, realInstance = IsSpellKnown, IsPlayerSpell, rawget(_G, "IsInInstance")
 local function learn()
-	local known = { [1459] = true, [2383] = true, [2580] = true }
+	local known = { [1459] = true, [2383] = true, [2580] = true, [168] = true }
 	rawset(_G, "IsSpellKnown", function(id) return known[id] == true end)
 	rawset(_G, "IsPlayerSpell", function(id) return known[id] == true end)
 end

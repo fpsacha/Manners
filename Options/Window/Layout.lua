@@ -818,6 +818,9 @@ ns.WindowLayout = {
 			["who.res"] = true, ["who.cures"] = true, ["who.ask"] = true,
 			["who.choice"] = true, ["who.autoNote"] = true, ["who.pinNote"] = true,
 			["who.self"] = true,
+			-- Also in cities and inns: the tick the line said once at an inn names
+			-- (Hints.lua), and the answer to "nothing comes up when I log in".
+			["who.ownCities"] = true,
 			-- Scrolls: the switch each scroll's own (who.own_*, added below) is
 			-- indented under, and the only way back to them once it is off.
 			["who.ownScrolls"] = true,

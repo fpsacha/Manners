@@ -20,8 +20,9 @@ What was built:
 - **The group's pets** (`sources.pets`, off; Queue.lua `IterateUnits`,
   `entry.pet` and `entry.owner`; `tests/scenarios/grouppets.lua`).
 - **Battlegrounds and arenas** (`Battle.lua`, `db.battle`; When to offer, *In
-  battlegrounds and arenas*, four switches; `battleground.lua`), and tracking
-  quiet there (Core.lua `OwnVerdict`: `"battle"`; `battle-tracking.lua`).
+  battlegrounds and arenas*, four switches; `battleground.lua`), and a
+  gathering tracking quiet there (Core.lua `OwnVerdict`: `"battle"`,
+  `ns.GATHERING`; `battle-tracking.lua`).
   `filters.quietInInstances` no longer decides inside one: `battle.team`
   does, and a profile that had the old switch ticked has `team` unticked once
   (`Battle.Carry`).

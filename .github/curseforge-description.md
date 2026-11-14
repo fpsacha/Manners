@@ -70,7 +70,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shad
 - **Raid groups I buff.** Untick the groups you were not assigned; people who buffed you or asked are still offered.
 - **Save mana.** Below the level you set, only your own buffs and people who buffed you or asked are offered, or only your own buffs, or nothing at all: your choice.
 - **Quieter raids.** No "buffed you" chat line inside a raid; the favour is still remembered.
-- **Battlegrounds and arenas.** A section of their own on When to offer: after a death your own buffs come first, your team is offered freely before the gates open and only out of combat after, tracking is not reminded of, and nothing is said there unless you tick it.
+- **Battlegrounds and arenas.** A section of their own on When to offer: after a death your own buffs come first, your team is offered freely before the gates open and only out of combat after, a gathering tracking is not reminded of, and nothing is said there unless you tick it.
 - **Battle Shout reach.** A warrior's shout is offered only to the people it reaches: your own party, or your whole raid on WoW Forever.
 
 ### Quiet when you want it
