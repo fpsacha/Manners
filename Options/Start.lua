@@ -1241,6 +1241,48 @@ function Page.BuildStartTab()
 				-- and Show raises the ledger above this one.
 				func = function() ns.Ledger.Show() end,
 			},
+			-- Milestones (Milestones.lua): one switch for all of it, and under
+			-- it the toast and its sound, which have no say while it is off.
+			milestones = {
+				type = "toggle",
+				name = L["Milestones"],
+				desc = L["A dozen or so marks of good manners, earned by what your ledger records: listed on the ledger's Milestones tab, with a toast and one line in your chat window when you earn one or a new title."]
+					.. "\n\n"
+					.. L["Off: no toast, no tab, no line, and nothing is counted. What you have earned is kept for when you switch it back on."],
+				order = 63,
+				width = "full",
+				hidden = function() return not ns.Milestones end,
+				get = function() return ns.db.profile.milestones.enabled ~= false end,
+				set = function(_, v)
+					ns.db.profile.milestones.enabled = v and true or false
+					ns.Guard("milestones", ns.Milestones.Switched)
+				end,
+			},
+			milestoneToast = {
+				type = "toggle",
+				name = L["Show a toast"],
+				desc = L["A small plate on screen for a few seconds when you earn a milestone or a title. Never in a fight, never over the prompt, and at most one a minute; a click sends it away."],
+				order = 64,
+				width = "full",
+				hidden = function() return not ns.Milestones end,
+				disabled = function() return ns.db.profile.milestones.enabled == false end,
+				get = function() return ns.db.profile.milestones.toast ~= false end,
+				set = function(_, v) ns.db.profile.milestones.toast = v and true or false end,
+			},
+			milestoneSound = {
+				type = "toggle",
+				name = L["Play the sound"],
+				desc = L["The fanfare that goes with the toast."],
+				order = 65,
+				width = "full",
+				hidden = function() return not ns.Milestones end,
+				disabled = function()
+					local m = ns.db.profile.milestones
+					return m.enabled == false or m.toast == false
+				end,
+				get = function() return ns.db.profile.milestones.sound ~= false end,
+				set = function(_, v) ns.db.profile.milestones.sound = v and true or false end,
+			},
 
 			-- Last, under a header of its own: where the way back in lives,
 			-- and the chat lines people reach for when they want quiet.

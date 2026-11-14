@@ -52,6 +52,7 @@ Hints.lua
 Phrases.lua
 Ask.lua
 Ledger.lua
+Milestones.lua
 Looks\Looks.lua
 Looks\Flow.lua
 Looks\Previews.lua

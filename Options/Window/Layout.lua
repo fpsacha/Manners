@@ -264,6 +264,7 @@ ns.WindowLayout = {
 				{ key = "general.ledger", header = "general.ledgerHeader", items = {
 					"general.ledgerSummary",
 					"general.ledgerOpen",
+					"general.milestones", { "general.milestoneToast", indent = true }, { "general.milestoneSound", indent = true },
 				} },
 				-- Unfolded, and on the one page that never hides: the chat lines
 				-- are what people look for when they annoy them.
