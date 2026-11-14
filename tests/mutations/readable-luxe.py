@@ -44,8 +44,8 @@ mutate(LUXE,
 
 # 1.5.0's chip: white at a whisper, which the game drew light.
 mutate(LUXE,
-       "\t\tt:SetVertexColor(NEUTRAL[1] * PILL_DARK, NEUTRAL[2] * PILL_DARK, NEUTRAL[3] * PILL_DARK, PILL_ALPHA)\n",
-       "\t\tt:SetVertexColor(1, 1, 1, 0.075)\n",
+       "\t\tColour(t, NEUTRAL[1] * PILL_DARK, NEUTRAL[2] * PILL_DARK, NEUTRAL[3] * PILL_DARK, PILL_ALPHA)\n",
+       "\t\tColour(t, 1, 1, 1, 0.075)\n",
        "readable-luxe: the count chip left pale",
        expect="the count chip's fill is not solid enough",
        script="runscenarios.py")

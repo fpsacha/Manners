@@ -247,9 +247,7 @@ end
 -- alpha for a texture: SetVertexColor(r, g, b, 1) writes over what SetAlpha
 -- set, and a light parked at nothing, or a faint one, stands at full
 -- strength. So the colour is given with the alpha the texture has.
-local function Colour(t, r, g, b)
-	t:SetVertexColor(r, g, b, t:GetAlpha() or 1)
-end
+local Colour = ns.Looks.Colour
 
 local function Each(s, method, ...)
 	for _, t in ipairs(s) do t[method](t, ...) end
@@ -605,7 +603,7 @@ function Wild:Build(kit)
 	-- The bloom opens BEHIND the wreath, and the leaves fly from behind it: on
 	-- art itself, under the wreath.
 	self.bloom = tex(art, "BORDER", 7, "Bloom", "ADD")
-	self.bloom:SetVertexColor(SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3], 1)
+	Colour(self.bloom, SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3])
 	self.bloom:SetAlpha(0)
 	self.burst = {}
 	for i = 1, #BURST do
@@ -666,7 +664,7 @@ function Wild:Build(kit)
 	-- The lights: the Mark of the Wild's paw over the icon, the moon lit.
 	self.lightFrame = frame(2)
 	self.paw = tex(self.lightFrame, "OVERLAY", 2, "Paw", "ADD")
-	self.paw:SetVertexColor(SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3], 1)
+	Colour(self.paw, SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3])
 	self.paw:SetAlpha(0)
 	self.hot = tex(self.lightFrame, "OVERLAY", 3, "Hot", "ADD")
 	self.hot:SetAlpha(0)
@@ -685,7 +683,7 @@ function Wild:Build(kit)
 		-- The third is a wisp, the moon's; the others are fireflies.
 		local t = tex(self.idleFrame, "OVERLAY", 1, (i == WISP) and "Wisp" or "Mote")
 		local c = (i == WISP) and MOONLIGHT or SUNLIGHT
-		t:SetVertexColor(c[1], c[2], c[3], 1)
+		Colour(t, c[1], c[2], c[3])
 		t:SetAlpha(0)
 		self.motes[i] = t
 	end
@@ -705,7 +703,7 @@ function Wild:Build(kit)
 	self.star:SetAlpha(0)
 	-- The light at the vine's tip as it grows.
 	self.tip = tex(self.idleFrame, "OVERLAY", 2, "Mote")
-	self.tip:SetVertexColor(SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3], 1)
+	Colour(self.tip, SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3])
 	self.tip:SetAlpha(0)
 	-- The cursor's light: the upper bark lit.
 	self.hoverFrame = frame(1)
@@ -776,6 +774,9 @@ function Wild:Build(kit)
 	self.flows = { self.waterScroll[1], self.waterScroll[2] }
 
 	self:BuildAnimations(function(g) anims[#anims + 1] = g return g end)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Wild:BuildAnimations(anim)
@@ -933,8 +934,8 @@ function Wild:Apply(p, above)
 	self.bodyColour = { pr, pg, pb }
 	local alpha = (type(c) == "table" and c[4]) or 1
 	self.shadowAlpha = math.min(1, alpha + 0.05) * (alpha < 0.2 and 0 or 1)
-	Each(self.shadow, "SetVertexColor", 0, 0, 0, self.shadowAlpha)
-	Each(self.listShadow, "SetVertexColor", 0, 0, 0, self.shadowAlpha)
+	for _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
+	for _, t in ipairs(self.listShadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
 	self:PlaceShadow(nil)
 
 	local discRight = cx + circle / 2
@@ -1276,7 +1277,7 @@ end
 function Wild:Water(r, g, b)
 	Colour(self.water[1], r, g, b)
 	local lr, lg, lb = self.kit.Tint(r, g, b, 0.30)
-	self.water[2]:SetVertexColor(lr, lg, lb, WATER.second)
+	Colour(self.water[2], lr, lg, lb, WATER.second)
 end
 
 -- Every light where it rests: the water lit, the moon's light low, the core
@@ -1718,7 +1719,7 @@ function Wild:Tint(r, g, b, ring, stripe)
 	for _, t in ipairs(self.glints) do Colour(t, gr, gg, gb) end
 	Colour(self.moon, vr, vg, vb)
 	Colour(self.moonGlow, vr, vg, vb)
-	self.inlay:SetVertexColor(vr, vg, vb, INLAY_ALPHA)
+	Colour(self.inlay, vr, vg, vb, INLAY_ALPHA)
 	local ir, ig, ib = kit.Tint(vr, vg, vb, 0.45)
 	Colour(self.core, ir, ig, ib)
 	local fr, fg, fb = kit.Tint(vr, vg, vb, FLASH_WHITE)

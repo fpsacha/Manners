@@ -47,6 +47,7 @@
 --     reads nothing here).
 
 local _, ns = ...
+local Colour = ns.Looks.Colour
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_"
@@ -630,7 +631,7 @@ function Lightbringer:Build(kit)
 	self.gemStar = tex(self.idleFrame, "OVERLAY", 2, "Star")
 	self.gemStarOnce = tex(self.idleFrame, "OVERLAY", 2, "Star")
 	for _, t in ipairs({ self.glint, self.glintOnce, self.gemStar, self.gemStarOnce }) do
-		t:SetVertexColor(SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3], 1)
+		Colour(t, SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3])
 		t:SetAlpha(0)
 	end
 	-- The cursor's light: the upper rim lit.
@@ -671,6 +672,9 @@ function Lightbringer:Build(kit)
 	for _, t in ipairs(self.listBody) do self.bakedTone[t] = LIST_TONE end
 
 	self:BuildAnimations(anim)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Lightbringer:BuildAnimations(anim)
@@ -786,7 +790,7 @@ function Lightbringer:Apply(p, above)
 	self.bodyColour = { pr, pg, pb }
 	local alpha = (type(c) == "table" and c[4]) or 1
 	self.shadowAlpha = math.min(1, alpha + 0.05) * (alpha < 0.2 and 0 or 1)
-	Each(self.shadow, "SetVertexColor", 0, 0, 0, self.shadowAlpha)
+	for _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
 	self.listBox = nil
 	self:PlaceShadow(nil)
 
@@ -868,14 +872,14 @@ function Lightbringer:Apply(p, above)
 	local pillarW = bz * PILLAR_W
 	local pillarUp = above and 0 or H * PILLAR_UP
 	Box(self.pillar, art, cx - pillarW / 2, -pillarUp, cx + pillarW / 2, cy)
-	self.pillar:SetVertexColor(SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3], 1)
+	Colour(self.pillar, SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3])
 	-- The wings: their roots a little either side of the sun's middle, spread
 	-- up and out; not with the list hung over the panel.
 	local wing = math.min(H * WING_H, WING_MAX)
 	local root = bz * WING_ROOT
 	Box(self.wings[1], art, cx + root, cy - wing, cx + root + wing, cy)
 	Box(self.wings[2], art, cx - root - wing, cy - wing, cx - root, cy)
-	for _, t in ipairs(self.wings) do t:SetVertexColor(SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3], 1) end
+	for _, t in ipairs(self.wings) do Colour(t, SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3]) end
 	self.wingsOK = showIcon and not above
 	-- The motes: along the plate's upper rim, between the text's start and
 	-- the boss, each rising when its turn comes.
@@ -883,7 +887,7 @@ function Lightbringer:Apply(p, above)
 	local rise = above and 3 or MOTE_RISE
 	for i, t in ipairs(self.motes) do
 		At(t, art, textX + span * (i - 0.5) / MOTES, plateIn + 1, 6)
-		t:SetVertexColor(SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3], 1)
+		Colour(t, SUNLIGHT[1], SUNLIGHT[2], SUNLIGHT[3])
 		self.moteAnims[i].move:SetOffset(0, rise)
 	end
 	self.motesOK = span >= 40
@@ -905,7 +909,7 @@ function Lightbringer:Apply(p, above)
 
 	-- The cursor's light over the upper rim.
 	Box(self.hoverFrame, art, plateX + 4, plateIn, W - 4, plateIn + 8 * su)
-	self.hoverLight:SetVertexColor(HOVER[1], HOVER[2], HOVER[3], 1)
+	Colour(self.hoverLight, HOVER[1], HOVER[2], HOVER[3])
 
 	local block = fs + 2 + sub
 	self.block = block
@@ -1289,7 +1293,7 @@ end
 -- A nimbus a refusal spent, and the rays gone grey with it: until the next
 -- PaintReason.
 function Lightbringer:Spend()
-	self.nimbus:SetVertexColor(SPENT[1], SPENT[2], SPENT[3], 1)
+	Colour(self.nimbus, SPENT[1], SPENT[2], SPENT[3])
 	self.rays:SetDesaturated(true)
 end
 
@@ -1305,23 +1309,23 @@ function Lightbringer:Tint(r, g, b, ring, stripe)
 	if self.refused then
 		self:Spend()
 	else
-		self.nimbus:SetVertexColor(cr, cg, cb, 1)
+		Colour(self.nimbus, cr, cg, cb)
 		self.rays:SetDesaturated(self.combat and true or false)
 	end
-	self.halo:SetVertexColor(cr, cg, cb, 1)
+	Colour(self.halo, cr, cg, cb)
 	-- The rays' warm second tone: the Light, taken a part of the way to the
 	-- reason, so it is warm whatever the reason is.
 	local wr = SUNLIGHT[1] + (cr - SUNLIGHT[1]) * WARM_REASON
 	local wg = SUNLIGHT[2] + (cg - SUNLIGHT[2]) * WARM_REASON
 	local wb = SUNLIGHT[3] + (cb - SUNLIGHT[3]) * WARM_REASON
-	self.raysWarm:SetVertexColor(wr, wg, wb, 1)
+	Colour(self.raysWarm, wr, wg, wb)
 	local fr, fg, fb = kit.Tint(wr, wg, wb, FLASH_WHITE)
-	self.raysHot:SetVertexColor(fr, fg, fb, 1)
-	self.haloHot:SetVertexColor(fr, fg, fb, 1)
-	self.gem:SetVertexColor(vr, vg, vb, 1)
-	self.inlay:SetVertexColor(vr, vg, vb, INLAY_ALPHA)
+	Colour(self.raysHot, fr, fg, fb)
+	Colour(self.haloHot, fr, fg, fb)
+	Colour(self.gem, vr, vg, vb)
+	Colour(self.inlay, vr, vg, vb, INLAY_ALPHA)
 	local ir, ig, ib = kit.Tint(vr, vg, vb, 0.45)
-	self.core:SetVertexColor(ir, ig, ib, 1)
+	Colour(self.core, ir, ig, ib)
 	-- The reason line: a warm mist taken most of the way to the reason, held
 	-- to its contrast on the enamel.
 	local sr = MIST[1] + (r - MIST[1]) * 0.6
@@ -1329,7 +1333,7 @@ function Lightbringer:Tint(r, g, b, ring, stripe)
 	local sb = MIST[3] + (b - MIST[3]) * 0.6
 	sr, sg, sb = kit.Legible(sr, sg, sb, 4.5)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
-	self.glyph:SetVertexColor(sr, sg, sb, 1)
+	Colour(self.glyph, sr, sg, sb)
 	self.tint = { cr, cg, cb }
 end
 
@@ -1353,15 +1357,15 @@ function Lightbringer:Dull(on)
 		t:SetDesaturated(on or (t == self.rays and self.refused) or false)
 		local k = self.bakedTone[t] or 1
 		if on then
-			t:SetVertexColor(DULL[1] * k, DULL[2] * k, DULL[3] * k, 1)
+			Colour(t, DULL[1] * k, DULL[2] * k, DULL[3] * k)
 		else
-			t:SetVertexColor(k, k, k, 1)
+			Colour(t, k, k, k)
 		end
 	end
 	local pc = self.bodyColour or { 1, 1, 1 }
 	local f = on and BODY_COMBAT or 1
 	Each(self.body, "SetDesaturated", on)
-	Each(self.body, "SetVertexColor", pc[1] * f, pc[2] * f, pc[3] * f, 1)
+	for _, t in ipairs(self.body) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
 end
 
 -- The plate holds; it and the sun dull, the icon greys, the words dim and the
@@ -1499,7 +1503,7 @@ function Lightbringer:Flourish(kind)
 		self:Spend()
 		if shown then
 			self:StopLights()
-			self.raysHot:SetVertexColor(o[1], o[2], o[3], 1)
+			Colour(self.raysHot, o[1], o[2], o[3])
 			PlayAll(self.refusal)
 			self.fx:Refuse(1.00, 0.40, 0.34, 0.85)
 		end
@@ -1577,13 +1581,13 @@ function Lightbringer:PaintOutcome(kind, lead, sub, who, stamp)
 	self:HoldPulse()
 	StopAll(self.calm)
 	StopAll(self.once)
-	self.core:SetVertexColor(o[1], o[2], o[3], 1)
+	Colour(self.core, o[1], o[2], o[3])
 	self.refused = kind == "failed"
 	if self.refused then self:Spend() end
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
-	self.glyph:SetVertexColor(vr, vg, vb, 1)
+	Colour(self.glyph, vr, vg, vb)
 	kit.icon:SetDesaturated(self.refused or self.combat or false)
 	self.glyph:SetTexture(ART .. (kind == "failed" and "Cross" or "Check"))
 	self.glyphOn = kind ~= "sent"
@@ -1622,7 +1626,7 @@ function Lightbringer:PaintQueue(rows, shown, above)
 
 	for i = 1, shown do
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
-		self.beads[i]:SetVertexColor(c[1], c[2], c[3], 1)
+		Colour(self.beads[i], c[1], c[2], c[3])
 		self.beads[i]:Show()
 	end
 	-- Laid out again only when the number of rows or the side changes: the

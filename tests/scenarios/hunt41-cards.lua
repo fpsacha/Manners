@@ -306,9 +306,13 @@ do
 					if slices[1]:GetTexture() ~= layer.file then
 						fail(scenario, ("layer %d is recorded as %s, the prompt wears %s"):format(i, layer.file, tostring(slices[1]:GetTexture())))
 					end
-					if not sameColour(slices[1]._color, layer.color) then
+					-- The colour and the alpha the slice stands at: a look gives
+					-- them apart (Looks.Colour), the record holds them as one.
+					local c = slices[1]._color or {}
+					local painted = { c[1], c[2], c[3], (c[4] == nil and 1 or c[4]) * (slices[1]._alpha or 1) }
+					if not sameColour(painted, layer.color) then
 						fail(scenario, ("layer %d is recorded %s, the prompt paints it %s"):format(i, colourText(layer.color),
-							colourText(slices[1]._color)))
+							colourText(painted)))
 					end
 					-- Caps half the height, as the look places its slices.
 					if not near(slices[1]._width, (pill.cap or 0.5) * look.pillH, 1e-3) then

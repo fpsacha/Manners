@@ -38,6 +38,7 @@
 -- of Looks/Looks.lua.
 
 local _, ns = ...
+local Colour = ns.Looks.Colour
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_"
@@ -84,6 +85,8 @@ DYES.self = DYES.group
 -- How bright the art's lit top is (the name stands on cloth up to this
 -- grey), and the relative luminance the dyes are held to there.
 local LIT_GREY = 0.935
+-- How bright the shine along the cloth gets when a buff lands.
+local SWEEP_PEAK = 0.9
 -- The contrast the reason line and the verdict are held to on the cloth.
 local READ = 4.6
 local DYE_LUMA, DYE_LUMA_LOW, DYE_LUMA_HIGH = 0.105, 0.016, 0.125
@@ -560,6 +563,9 @@ function Ribbon:Build(kit)
 	end
 
 	self:BuildAnimations(anim)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Ribbon:BuildAnimations(anim)
@@ -607,8 +613,10 @@ function Ribbon:BuildAnimations(anim)
 	move:SetDuration(0.48)
 	move:SetOrder(1)
 	if move.SetSmoothing then move:SetSmoothing("IN_OUT") end
-	Alpha(travel, 0, 1, 0.10, 1)
-	Alpha(travel, 1, 0, 0.18, 1, 0.30)
+	-- To the shine's own strength: its colour carries no alpha (Looks.lua,
+	-- ONE ALPHA).
+	Alpha(travel, 0, SWEEP_PEAK, 0.10, 1)
+	Alpha(travel, SWEEP_PEAK, 0, 0.18, 1, 0.30)
 	Park(travel, self.sweep, 0)
 	self.travel = anim(travel)
 	self.travelMove = move
@@ -693,18 +701,18 @@ function Ribbon:Apply(p, above)
 	end
 	-- The well under the icon, a hair wider than the icon's frame.
 	Disc(self.well, art, cx, cy, 2 * M_BEZEL * half + 1)
-	self.well:SetVertexColor(0.05, 0.02, 0.02, 1)
+	Colour(self.well, 0.05, 0.02, 0.02)
 	-- The shade the medallion throws, its edge at SHADE_FILL of its file.
 	self.shade:ClearAllPoints()
 	self.shade:SetPoint("CENTER", art, "TOPLEFT", cx + 0.03 * g.M, -(cy + 0.045 * g.M))
 	-- A little under the medallion, so only a crescent of it is seen.
 	self.shade:SetSize(1.88 * g.R / SHADE_FILL, 1.88 * g.R / SHADE_FILL)
-	self.shade:SetVertexColor(0, 0, 0, 0.62)
+	Colour(self.shade, 0, 0, 0, 0.62)
 	-- The glint sits on the lip at the upper left.
 	Disc(self.glint, art, cx - 0.60 * g.R, cy - 0.60 * g.R, 0.85 * g.R)
-	self.glint:SetVertexColor(1, 0.92, 0.66, 1)
-	self.lit:SetVertexColor(PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3], 1)
-	self.hover:SetVertexColor(1, 0.90, 0.62, 1)
+	Colour(self.glint, 1, 0.92, 0.66)
+	Colour(self.lit, PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3])
+	Colour(self.hover, 1, 0.90, 0.62)
 
 	icon:ClearAllPoints()
 	icon:SetShown(showIcon)
@@ -820,10 +828,10 @@ function Ribbon:Apply(p, above)
 	local from = (showIcon and cx or 0) + sweepW * 0.5
 	self.sweep:SetPoint("CENTER", art, "TOPLEFT", from, -cy)
 	self.sweep:SetSize(sweepW, sweepH)
-	self.sweep:SetVertexColor(1, 0.90, 0.62, 0.9)
+	Colour(self.sweep, 1, 0.90, 0.62)
 	self.travelMove:SetOffset(math.max(10, W - g.notch - 4 - sweepW - from + sweepW * 0.5), 0)
-	Each(self.hot, "SetVertexColor", 1, 0.40, 0.10, 1)
-	Each(self.dark, "SetVertexColor", 0.12, 0.0, 0.0, 1)
+	for _, t in ipairs(self.hot) do Colour(t, 1, 0.40, 0.10) end
+	for _, t in ipairs(self.dark) do Colour(t, 0.12, 0.0, 0.0) end
 
 	-- A fight's hold outlives a restyle: Prompt only says so again when it
 	-- changes, so the look puts it back itself.
@@ -1194,17 +1202,17 @@ function Ribbon:Cloth()
 	local dye, ring = self.dyeNow, self.ringNow
 	local k = self.combat and CLOTH_COMBAT or 1
 	local kit = self.kit
-	Each(self.cloth, "SetVertexColor", dye[1] * k, dye[2] * k, dye[3] * k, 1)
+	for _, t in ipairs(self.cloth) do Colour(t, dye[1] * k, dye[2] * k, dye[3] * k) end
 	local rk = k * 0.86
 	for i, row in ipairs(self.rowCloth) do
 		local rd = self.rowDye and self.rowDye[i] or dye
-		Each(row, "SetVertexColor", rd[1] * rk, rd[2] * rk, rd[3] * rk, 1)
+		for _, t in ipairs(row) do Colour(t, rd[1] * rk, rd[2] * rk, rd[3] * rk) end
 	end
 	local gold = self.combat and GOLD_COMBAT or { 1, 1, 1 }
-	for _, t in ipairs(self.gold) do t:SetVertexColor(gold[1], gold[2], gold[3], 1) end
-	self.enamel:SetVertexColor(ring[1] * 0.92, ring[2] * 0.92, ring[3] * 0.92, 1)
-	self.enamelLit:SetVertexColor(math.min(1, ring[1] * 1.25 + 0.1), math.min(1, ring[2] * 1.25 + 0.1), math.min(1, ring[3] * 1.25 + 0.1), 1)
-	self.jewel:SetVertexColor(ring[1], ring[2], ring[3], 1)
+	for _, t in ipairs(self.gold) do Colour(t, gold[1], gold[2], gold[3]) end
+	Colour(self.enamel, ring[1] * 0.92, ring[2] * 0.92, ring[3] * 0.92)
+	Colour(self.enamelLit, math.min(1, ring[1] * 1.25 + 0.1), math.min(1, ring[2] * 1.25 + 0.1), math.min(1, ring[3] * 1.25 + 0.1))
+	Colour(self.jewel, ring[1], ring[2], ring[3])
 	-- The reason line: pale peach, a little towards the dye where the cloth is
 	-- dyed by the reason, never darker than the contrast it needs.
 	local sr, sg, sb = PEACH[1], PEACH[2], PEACH[3]
@@ -1483,10 +1491,10 @@ function Ribbon:PaintQueue(rows, shown, above)
 		local reason = rows[i] and rows[i].reason
 		local c = kit.ReasonColor(reason)
 		if mode == "off" then
-			self.gems[i]:SetVertexColor(NEUTRAL[1], NEUTRAL[2], NEUTRAL[3], 1)
+			Colour(self.gems[i], NEUTRAL[1], NEUTRAL[2], NEUTRAL[3])
 		else
 			local er, eg, eb = Fired(c[1], c[2], c[3])
-			self.gems[i]:SetVertexColor(er, eg, eb, 1)
+			Colour(self.gems[i], er, eg, eb)
 		end
 		local dye
 		if clothOn then
@@ -1496,7 +1504,7 @@ function Ribbon:PaintQueue(rows, shown, above)
 		end
 		self.rowDye[i] = dye
 		local k = (self.combat and CLOTH_COMBAT or 1) * 0.86
-		Each(self.rowCloth[i], "SetVertexColor", dye[1] * k, dye[2] * k, dye[3] * k, 1)
+		for _, t in ipairs(self.rowCloth[i]) do Colour(t, dye[1] * k, dye[2] * k, dye[3] * k) end
 		self.gems[i]:Show()
 		self.gemSets[i]:Show()
 		for j = 1, 2 do

@@ -26,8 +26,8 @@ _m(FORGE,
    expect="the slot stayed steel after the refusal ran out")
 
 _m(FORGE,
-   "\t\tself.slot:SetVertexColor(hr, hg, hb, SLOT_ALPHA)\n",
-   "\t\tself.slot:SetVertexColor(1, 1, 1, SLOT_ALPHA)\n",
+   "\t\tColour(self.slot, hr, hg, hb, SLOT_ALPHA)\n",
+   "\t\tColour(self.slot, 1, 1, 1, SLOT_ALPHA)\n",
    "the slot left uncoloured",
    expect="the slot is not in the reason's heated colour")
 
@@ -213,8 +213,8 @@ _m(FORGE,
 # The bezel's breath back in warm white: on the rounded square it lays a pale
 # film over the bolts and the dark seam at every pulse, and Calm holds it.
 _m(FORGE,
-   "\t\tself.bezelWarm:SetVertexColor(hr, hg, hb, 1)\n",
-   "\t\tself.bezelWarm:SetVertexColor(kit.WARM_WHITE[1], kit.WARM_WHITE[2], kit.WARM_WHITE[3], 1)\n",
+   "\t\tColour(self.bezelWarm, hr, hg, hb)\n",
+   "\t\tColour(self.bezelWarm, kit.WARM_WHITE[1], kit.WARM_WHITE[2], kit.WARM_WHITE[3])\n",
    "the bezel's breath whitened",
    expect="look-forge: the bezel breathes in the slot's heat")
 

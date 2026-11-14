@@ -65,8 +65,8 @@ mutate("Looks/Fel.lua",
        expect="the shard is coloured", script=S)
 
 mutate("Looks/Fel.lua",
-       "\tself.vein:SetVertexColor(vr, vg, vb, VEIN_ALPHA)\n",
-       "\tself.vein:SetVertexColor(cr, cg, cb, VEIN_ALPHA)\n",
+       "\tColour(self.vein, vr, vg, vb, VEIN_ALPHA)\n",
+       "\tColour(self.vein, cr, cg, cb, VEIN_ALPHA)\n",
        "look-fel: the vein coloured by the icon's marker",
        expect="the vein is", script=S)
 

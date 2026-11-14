@@ -262,9 +262,7 @@ end
 -- set, so a light dimmed or parked at nothing and then coloured with an
 -- alpha of 1 would stand at full strength. Every colour given to a region
 -- whose alpha means something goes through here.
-local function Colour(t, r, g, b)
-	t:SetVertexColor(r, g, b, t:GetAlpha() or 1)
-end
+local Colour = ns.Looks.Colour
 
 local function Each(s, method, ...)
 	for _, t in ipairs(s) do t[method](t, ...) end
@@ -645,7 +643,7 @@ function Frost:Build(kit)
 	-- The nova flashes BEHIND the crystal, and the shards fly from behind it:
 	-- on art itself, under the crystal.
 	self.nova = tex(art, "BORDER", 7, "Nova", "ADD")
-	self.nova:SetVertexColor(FROSTLIGHT[1], FROSTLIGHT[2], FROSTLIGHT[3], 1)
+	Colour(self.nova, FROSTLIGHT[1], FROSTLIGHT[2], FROSTLIGHT[3])
 	self.nova:SetAlpha(0)
 	self.shards = {}
 	for i = 1, #SHARDS do
@@ -705,7 +703,7 @@ function Frost:Build(kit)
 	self.block = tex(self.lightFrame, "OVERLAY", 1, "Block")
 	self.block:SetAlpha(0)
 	self.crackle = tex(self.lightFrame, "OVERLAY", 2, "Crackle", "ADD")
-	self.crackle:SetVertexColor(FROSTLIGHT[1], FROSTLIGHT[2], FROSTLIGHT[3], 1)
+	Colour(self.crackle, FROSTLIGHT[1], FROSTLIGHT[2], FROSTLIGHT[3])
 	self.crackle:SetAlpha(0)
 	self.hot = tex(self.lightFrame, "OVERLAY", 3, "Hot", "ADD")
 	self.hot:SetAlpha(0)
@@ -739,7 +737,7 @@ function Frost:Build(kit)
 	self.tips = {}
 	for i = 1, 2 do
 		local t = tex(self.idleFrame, "OVERLAY", 2, "Mote")
-		t:SetVertexColor(FROSTLIGHT[1], FROSTLIGHT[2], FROSTLIGHT[3], 1)
+		Colour(t, FROSTLIGHT[1], FROSTLIGHT[2], FROSTLIGHT[3])
 		t:SetAlpha(0)
 		self.tips[i] = t
 	end
@@ -801,6 +799,9 @@ function Frost:Build(kit)
 	self.flows = { self.mistScroll[1], self.mistScroll[2] }
 
 	self:BuildAnimations(function(g) anims[#anims + 1] = g return g end)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Frost:BuildAnimations(anim)
@@ -961,8 +962,8 @@ function Frost:Apply(p, above)
 	self.bodyColour = { pr, pg, pb }
 	local alpha = (type(c) == "table" and c[4]) or 1
 	self.shadowAlpha = math.min(1, alpha + 0.05) * (alpha < 0.2 and 0 or 1)
-	Each(self.shadow, "SetVertexColor", 0, 0, 0, self.shadowAlpha)
-	Each(self.listShadow, "SetVertexColor", 0, 0, 0, self.shadowAlpha)
+	for _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
+	for _, t in ipairs(self.listShadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
 	self:PlaceShadow(nil)
 
 	local discRight = cx + circle * CRYSTAL_REACH
@@ -1286,9 +1287,9 @@ end
 
 -- The mist in its colour, or what a refusal leaves of it.
 function Frost:Mist(r, g, b)
-	self.mist[1]:SetVertexColor(r, g, b, 1)
+	Colour(self.mist[1], r, g, b)
 	local lr, lg, lb = self.kit.Tint(r, g, b, 0.30)
-	self.mist[2]:SetVertexColor(lr, lg, lb, MIST.second)
+	Colour(self.mist[2], lr, lg, lb, MIST.second)
 end
 
 -- Every light where it rests: the mist lit, the rune's light low, the core
@@ -1768,7 +1769,7 @@ function Frost:Tint(r, g, b, ring, stripe)
 	for _, t in ipairs(self.glints) do Colour(t, gr, gg, gb) end
 	Colour(self.rune, vr, vg, vb)
 	Colour(self.runeGlow, vr, vg, vb)
-	self.vein:SetVertexColor(vr, vg, vb, VEIN_ALPHA)
+	Colour(self.vein, vr, vg, vb, VEIN_ALPHA)
 	local ir, ig, ib = kit.Tint(vr, vg, vb, 0.45)
 	Colour(self.core, ir, ig, ib)
 	local fr, fg, fb = kit.Tint(vr, vg, vb, FLASH_WHITE)

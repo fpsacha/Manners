@@ -56,6 +56,7 @@
 --     reads nothing here).
 
 local _, ns = ...
+local Colour = ns.Looks.Colour
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_"
@@ -626,7 +627,7 @@ function Fel:Build(kit)
 	self.fireFrame = frame(1)
 	-- The glow the fire stands in.
 	self.bed = tex(self.fireFrame, "ARTWORK", 0, "Edge")
-	self.bed:SetVertexColor(FELLIGHT[1], FELLIGHT[2], FELLIGHT[3], BED_ALPHA)
+	Colour(self.bed, FELLIGHT[1], FELLIGHT[2], FELLIGHT[3], BED_ALPHA)
 	self.fire = {}
 	for i = 1, FIRE_TILES do self.fire[i] = tex(self.fireFrame, "ARTWORK", 1, "Fire") end
 
@@ -666,7 +667,7 @@ function Fel:Build(kit)
 	self.embers = {}
 	for i = 1, EMBERS do
 		local t = tex(self.idleFrame, "OVERLAY", 1, "Ember")
-		t:SetVertexColor(FELLIGHT[1], FELLIGHT[2], FELLIGHT[3], 1)
+		Colour(t, FELLIGHT[1], FELLIGHT[2], FELLIGHT[3])
 		t:SetAlpha(0)
 		self.embers[i] = t
 	end
@@ -737,6 +738,9 @@ function Fel:Build(kit)
 	for _, h in ipairs(self.fireSheets) do self.flows[#self.flows + 1] = h end
 
 	self:BuildAnimations(function(g) anims[#anims + 1] = g return g end)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Fel:BuildAnimations(anim)
@@ -890,7 +894,7 @@ function Fel:Apply(p, above)
 	self.bodyColour = { pr, pg, pb }
 	local alpha = (type(c) == "table" and c[4]) or 1
 	self.shadowAlpha = math.min(1, alpha + 0.05) * (alpha < 0.2 and 0 or 1)
-	Each(self.shadow, "SetVertexColor", 0, 0, 0, self.shadowAlpha)
+	for _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
 	self.listBox = nil
 	self:PlaceShadow(nil)
 
@@ -1036,7 +1040,7 @@ function Fel:Apply(p, above)
 
 	-- The cursor's light over the upper rim.
 	Box(self.hoverFrame, art, plateX + 4, plateIn, forkX + FORK_ROOT * su, plateIn + 8 * su)
-	self.hoverLight:SetVertexColor(FELLIGHT[1], FELLIGHT[2], FELLIGHT[3], 1)
+	Colour(self.hoverLight, FELLIGHT[1], FELLIGHT[2], FELLIGHT[3])
 
 	local block = fs + 2 + sub
 	self.block = block
@@ -1123,15 +1127,15 @@ end
 -- core low, the rest dark.
 function Fel:Rest()
 	self:Runes(RUNE_REST, SIGIL_REST)
-	for _, t in ipairs(self.runes) do t:SetVertexColor(RUNELIGHT[1], RUNELIGHT[2], RUNELIGHT[3], 1) end
-	self.sigil:SetVertexColor(FELLIGHT[1], FELLIGHT[2], FELLIGHT[3], 1)
-	self.bloom:SetVertexColor(FELLIGHT[1], FELLIGHT[2], FELLIGHT[3], 1)
+	for _, t in ipairs(self.runes) do Colour(t, RUNELIGHT[1], RUNELIGHT[2], RUNELIGHT[3]) end
+	Colour(self.sigil, FELLIGHT[1], FELLIGHT[2], FELLIGHT[3])
+	Colour(self.bloom, FELLIGHT[1], FELLIGHT[2], FELLIGHT[3])
 	self.band:SetAlpha(BAND_REST)
 	self.bloom:SetAlpha(0)
 	self.shardGlow:SetAlpha(GLOW_REST)
 	self.core:SetAlpha(CORE_REST)
 	self.fireFrame:SetAlpha(FIRE_ALPHA)
-	self.flowTex:SetVertexColor(FLOW_REST, FLOW_REST, FLOW_REST, 1)
+	Colour(self.flowTex, FLOW_REST, FLOW_REST, FLOW_REST)
 	self.flowTex:SetDesaturated(false)
 	for _, t in ipairs(self.flare) do t:SetAlpha(0) end
 	for _, t in ipairs({ self.gout, self.bolt, self.hot, self.star, self.starOnce, self.hoverLight }) do t:SetAlpha(0) end
@@ -1451,11 +1455,11 @@ end
 -- What a refusal leaves: the band spent, the runes dark, the fire a glow and
 -- the fire behind the cracks low: until the next PaintReason.
 function Fel:Spend()
-	self.band:SetVertexColor(SPENT[1], SPENT[2], SPENT[3], 1)
+	Colour(self.band, SPENT[1], SPENT[2], SPENT[3])
 	self:Runes(RUNE_DARK, RUNE_DARK)
 	self:TurnCircle(false)
 	if not self.gutterAnim:IsPlaying() then self.fireFrame:SetAlpha(self:FireAlpha()) end
-	self.flowTex:SetVertexColor(FLOW_SPENT, FLOW_SPENT, FLOW_SPENT, 1)
+	Colour(self.flowTex, FLOW_SPENT, FLOW_SPENT, FLOW_SPENT)
 	self:Idle()
 end
 
@@ -1478,10 +1482,10 @@ function Fel:Kindle()
 		flow = FLOW_LIT
 	end
 	if not self.gutterAnim:IsPlaying() then self.fireFrame:SetAlpha(self:FireAlpha()) end
-	self.flowTex:SetVertexColor(flow, flow, flow, 1)
+	Colour(self.flowTex, flow, flow, flow)
 	self.flowTex:SetDesaturated(self.combat and true or false)
 	if self.listFlow then
-		self.listFlow:SetVertexColor(flow * 0.7, flow * 0.7, flow * 0.7, 1)
+		Colour(self.listFlow, flow * 0.7, flow * 0.7, flow * 0.7)
 		self.listFlow:SetDesaturated(self.combat and true or false)
 	end
 end
@@ -1501,17 +1505,17 @@ function Fel:Tint(r, g, b, ring, stripe)
 	if self.refused then
 		self:Spend()
 	else
-		self.band:SetVertexColor(cr, cg, cb, 1)
+		Colour(self.band, cr, cg, cb)
 	end
-	self.shard:SetVertexColor(gr, gg, gb, 1)
-	self.shardGlow:SetVertexColor(gr, gg, gb, 1)
-	self.vein:SetVertexColor(vr, vg, vb, VEIN_ALPHA)
+	Colour(self.shard, gr, gg, gb)
+	Colour(self.shardGlow, gr, gg, gb)
+	Colour(self.vein, vr, vg, vb, VEIN_ALPHA)
 	local ir, ig, ib = kit.Tint(vr, vg, vb, 0.45)
-	self.core:SetVertexColor(ir, ig, ib, 1)
+	Colour(self.core, ir, ig, ib)
 	local fr, fg, fb = kit.Tint(gr, gg, gb, FLASH_WHITE)
-	self.hot:SetVertexColor(fr, fg, fb, 1)
-	self.star:SetVertexColor(fr, fg, fb, 1)
-	self.starOnce:SetVertexColor(fr, fg, fb, 1)
+	Colour(self.hot, fr, fg, fb)
+	Colour(self.star, fr, fg, fb)
+	Colour(self.starOnce, fr, fg, fb)
 	-- The reason line: a pale mist taken most of the way to the reason, held
 	-- to its contrast on the felsteel.
 	local sr = MIST[1] + (r - MIST[1]) * 0.6
@@ -1519,7 +1523,7 @@ function Fel:Tint(r, g, b, ring, stripe)
 	local sb = MIST[3] + (b - MIST[3]) * 0.6
 	sr, sg, sb = kit.Legible(sr, sg, sb, 4.5)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
-	self.glyph:SetVertexColor(sr, sg, sb, 1)
+	Colour(self.glyph, sr, sg, sb)
 	self.tint = { cr, cg, cb }
 end
 
@@ -1555,15 +1559,15 @@ function Fel:Dull(on)
 		t:SetDesaturated(on or false)
 		local k = self.bakedTone[t] or 1
 		if on then
-			t:SetVertexColor(DULL[1] * k, DULL[2] * k, DULL[3] * k, 1)
+			Colour(t, DULL[1] * k, DULL[2] * k, DULL[3] * k)
 		else
-			t:SetVertexColor(k, k, k, 1)
+			Colour(t, k, k, k)
 		end
 	end
 	local pc = self.bodyColour or { 1, 1, 1 }
 	local f = on and BODY_COMBAT or 1
 	Each(self.body, "SetDesaturated", on)
-	Each(self.body, "SetVertexColor", pc[1] * f, pc[2] * f, pc[3] * f, 1)
+	for _, t in ipairs(self.body) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
 end
 
 -- The slab holds; the fire goes out and the lights with it, the felsteel
@@ -1849,13 +1853,13 @@ function Fel:PaintOutcome(kind, lead, sub, who, stamp)
 	self:HoldPulse()
 	StopAll(self.calm)
 	StopAll(self.once)
-	self.core:SetVertexColor(o[1], o[2], o[3], 1)
+	Colour(self.core, o[1], o[2], o[3])
 	self.refused = kind == "failed"
 	if self.refused then self:Spend() end
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
-	self.glyph:SetVertexColor(vr, vg, vb, 1)
+	Colour(self.glyph, vr, vg, vb)
 	kit.icon:SetDesaturated(self.refused or self.combat or false)
 	self.glyph:SetTexture(ART .. (kind == "failed" and "Cross" or "Check"))
 	self.glyphOn = kind ~= "sent"
@@ -1895,7 +1899,7 @@ function Fel:PaintQueue(rows, shown, above)
 
 	for i = 1, shown do
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
-		self.beads[i]:SetVertexColor(c[1], c[2], c[3], 1)
+		Colour(self.beads[i], c[1], c[2], c[3])
 		self.beads[i]:Show()
 	end
 	-- Laid out again only when the number of rows or the side changes: the

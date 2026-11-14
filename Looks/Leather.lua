@@ -52,6 +52,7 @@
 -- implements is described at the top of Looks/Looks.lua.
 
 local _, ns = ...
+local Colour = ns.Looks.Colour
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Leather\\Leather_"
@@ -418,7 +419,7 @@ function Leather:Build(kit)
 	-- art itself, under the icon: the three slices, and the waxy light across
 	-- its upper half.
 	self.shadow = Slices(art, "BACKGROUND", -7, keep, SHADOW_FILES)
-	Each(self.shadow, "SetVertexColor", 0, 0, 0, SHADOW_ALPHA)
+	for _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, SHADOW_ALPHA) end
 	self.body = Slices(art, "BACKGROUND", -6, keep)
 	self.sheen = tex(art, "BACKGROUND", -5, "Sheen")
 
@@ -529,6 +530,9 @@ function Leather:Build(kit)
 	self.mask:SetTexture(ART .. "IconMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 
 	self:BuildAnimations(anim)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Leather:BuildAnimations(anim)
@@ -726,7 +730,7 @@ function Leather:Apply(p, above)
 	PlaceShadow(self.shadow, art, 0, 0, W, H)
 	-- The sheen: across the upper half, well inside the edge and the ends.
 	Box(self.sheen, art, capL * 0.8, edge + 1, math.max(capL * 0.8 + 8, W - capR * 0.9), edge + 1 + 0.55 * H)
-	self.sheen:SetVertexColor(1, 1, 1, 1)
+	Colour(self.sheen, 1, 1, 1)
 
 	-- The thread, the light that breathes over it and the pieces a landing runs.
 	self:PlaceThread(self.thread, 0, W, capL, capR, nil, su)
@@ -748,9 +752,9 @@ function Leather:Apply(p, above)
 	centre(self.ringFlash, eyeSize * 1.7, ringX, H / 2)
 	centre(self.hoverLight, eyeSize * 1.7, ringX, H / 2)
 	local wr, wg, wb = WARM[1], WARM[2], WARM[3]
-	self.ringGlow:SetVertexColor(wr, wg, wb, 1)
-	self.star:SetVertexColor(1, 0.96, 0.82, 1)
-	self.hoverLight:SetVertexColor(wr, wg, wb, 1)
+	Colour(self.ringGlow, wr, wg, wb)
+	Colour(self.star, 1, 0.96, 0.82)
+	Colour(self.hoverLight, wr, wg, wb)
 	for _, f in ipairs({ self.ringFrame, self.ringGlowFrame, self.starFrame }) do
 		f:ClearAllPoints()
 		f:SetAllPoints(art)
@@ -764,7 +768,7 @@ function Leather:Apply(p, above)
 	self.bandFrame:SetSize(bandW, H - 2 * (edge + 1))
 	self.band:ClearAllPoints()
 	self.band:SetAllPoints(self.bandFrame)
-	self.band:SetVertexColor(1, 0.94, 0.78, 1)
+	Colour(self.band, 1, 0.94, 0.78)
 	self.bandMove:SetOffset(math.max(8, W - capR - capL - bandW), 0)
 
 	-- The icon: its shape, its rim over its edge, the flash.
@@ -905,17 +909,17 @@ function Leather:Tone()
 	local v = on and 0.72 or 1
 	for _, t in ipairs({ self.eyelet, self.enamel }) do
 		t:SetDesaturated(on)
-		t:SetVertexColor(v, v, v, 1)
+		Colour(t, v, v, v)
 	end
-	self.gloss:SetVertexColor(v, v, v, on and 0.6 or 1)
+	Colour(self.gloss, v, v, v, on and 0.6 or 1)
 	self.sheen:SetDesaturated(on)
-	self.sheen:SetVertexColor(1, 1, 1, on and 0.5 or 1)
+	Colour(self.sheen, 1, 1, 1, on and 0.5 or 1)
 	-- The list's tags follow, whether or not they are up: PaintQueue shows them.
 	for _, tag in ipairs(self.tags) do
 		Dye(grad, tag.body, self.dye, k * 0.96, 0.2, 0.6, PATCH_SPANS)
 		Grey(tag.body, on)
 		tag.eyelet:SetDesaturated(on)
-		tag.eyelet:SetVertexColor(v, v, v, 1)
+		Colour(tag.eyelet, v, v, v)
 		tag.dot:SetDesaturated(on)
 	end
 end
@@ -1241,13 +1245,13 @@ function Leather:Accent()
 		if stripe then pr, pg, pb = tr, tg, tb end
 		if rim then ir, ig, ib = tr, tg, tb end
 	end
-	for _, t in pairs(self.thread) do t:SetVertexColor(pr, pg, pb, 1) end
-	self.iconRim:SetVertexColor(ir, ig, ib, 1)
+	for _, t in pairs(self.thread) do Colour(t, pr, pg, pb) end
+	Colour(self.iconRim, ir, ig, ib)
 	-- The enamel in the eyelet's hole: every mode but off, and in a fight (grey).
 	local enamel = out or mode ~= "off"
 	self.enamel:SetShown(enamel)
 	self.gloss:SetShown(enamel)
-	self.enamel:SetVertexColor(er, eg, eb, 1)
+	Colour(self.enamel, er, eg, eb)
 	-- The reason's words: tan, a little towards the colour.
 	local sr, sg, sb = TAN[1], TAN[2], TAN[3]
 	if mode ~= "off" and not out then
@@ -1302,7 +1306,7 @@ end
 -- The glow over the thread in the colour it wears: the reason's, warmed.
 function Leather:WarmThread()
 	local w = WARM
-	for _, t in pairs(self.glow) do t:SetVertexColor(w[1], w[2], w[3], 1) end
+	for _, t in pairs(self.glow) do Colour(t, w[1], w[2], w[3]) end
 end
 
 function Leather:Attention(isNew, arrived, flashStyle)
@@ -1370,7 +1374,7 @@ end
 
 -- The thread's pieces in one colour, or the two of a refusal in turn.
 function Leather:LightThread(r, g, b)
-	for _, piece in ipairs(self.pieces) do piece.tex:SetVertexColor(r, g, b, 1) end
+	for _, piece in ipairs(self.pieces) do Colour(piece.tex, r, g, b) end
 end
 
 function Leather:Flourish(kind)
@@ -1380,10 +1384,10 @@ function Leather:Flourish(kind)
 		-- ring closes on the icon. The text's shake is Prompt's.
 		for i, piece in ipairs(self.pieces) do
 			local c = GHOSTS[(i % 2) + 1]
-			piece.tex:SetVertexColor(c[1], c[2], c[3], 1)
+			Colour(piece.tex, c[1], c[2], c[3])
 		end
-		self.ringFlash:SetVertexColor(1.00, 0.42, 0.20, 1)
-		self.iconFlash:SetVertexColor(1.00, 0.42, 0.20, 1)
+		Colour(self.ringFlash, 1.00, 0.42, 0.20)
+		Colour(self.iconFlash, 1.00, 0.42, 0.20)
 		PlayAll(self.refusal)
 		if icon then self.fx:Refuse(1.00, 0.40, 0.22, 0.85) end
 		return
@@ -1393,8 +1397,8 @@ function Leather:Flourish(kind)
 	local o = OUTCOME.cast
 	-- The thread lights up paler than it rests: it is lit, over green already.
 	self:LightThread(self.kit.Tint(o[1], o[2], o[3], 0.45))
-	self.ringFlash:SetVertexColor(o[1], o[2], o[3], 1)
-	self.iconFlash:SetVertexColor(o[1], o[2], o[3], 1)
+	Colour(self.ringFlash, o[1], o[2], o[3])
+	Colour(self.iconFlash, o[1], o[2], o[3])
 	PlayAll(self.landing)
 	if icon then self.fx:Land(o[1], o[2], o[3], 0.70) end
 end
@@ -1490,7 +1494,7 @@ function Leather:PaintQueue(rows, shown, above)
 	for i = 1, shown do
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
 		local r, g, b = Bright(kit.Tint, c[1], c[2], c[3], 0.22)
-		self.tags[i].dot:SetVertexColor(r, g, b, 1)
+		Colour(self.tags[i].dot, r, g, b)
 	end
 	-- Laid out again only when the number of rows or the side changes: the scan
 	-- repaints this several times a second.

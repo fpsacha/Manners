@@ -435,8 +435,14 @@ def pill_entry(snap, key, which):
             cap = widths[0] / height
         elif abs(cap - widths[0] / height) > 10 ** -PLACES:
             raise SystemExit("%s whose layers have caps of different widths" % where)
-        colours = {tuple(round(float(v), PLACES) for v in (list(r.get("color") or [1, 1, 1, 1]) + [1])[:4])
-                   for r in group}
+        # What each slice is drawn in: its colour, at its own alpha (a look
+        # gives the two apart, Looks.Colour; the game keeps one alpha).
+        def painted(r):
+            c = [1 if v is None else float(v) for v in (list(r.get("color") or [1, 1, 1]) + [1, 1, 1, 1])[:4]]
+            own = r.get("alpha")
+            c[3] *= 1.0 if own is None else float(own)
+            return tuple(round(v, PLACES) for v in c)
+        colours = {painted(r) for r in group}
         if len(colours) != 1:
             raise SystemExit("%s whose slices are not one colour (%s)" % (where, file))
         layers.append({"file": file, "color": list(colours.pop())})

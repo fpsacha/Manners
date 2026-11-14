@@ -65,6 +65,7 @@
 --   * a class-coloured name is taken a third of the way to white.
 
 local _, ns = ...
+local Colour, Dim = ns.Looks.Colour, ns.Looks.Dim
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_"
@@ -133,6 +134,10 @@ local PULSE_PEAK = 0.55
 -- The warm tone on the gold ring over the same breath: how much of the pale
 -- gold it takes at the top of it.
 local PULSE_WARM = 0.34
+-- How bright the arrival's ring and the rails' glints get, and how far the
+-- fight dims the clock. Each is the light's own alpha, which its animation
+-- reaches: a colour never carries one (Looks.lua, ONE ALPHA).
+local ARRIVE_PEAK, GLINT_PEAK, CLOCK_FIGHT = 0.55, 0.8, 0.7
 local BREATHS = 3
 local BREATH = 1.3
 -- The longest an additive flourish may stay lit, in seconds.
@@ -347,8 +352,8 @@ local function Travel(region, delay)
 	move:SetDuration(FLOURISH - 0.1 - delay)
 	if move.SetStartDelay then move:SetStartDelay(delay) end
 	if move.SetSmoothing then move:SetSmoothing("IN_OUT") end
-	Alpha(g, 0, 1, 0.1, 1, delay)
-	Alpha(g, 1, 0, 0.2, 1, FLOURISH - 0.3)
+	Alpha(g, 0, GLINT_PEAK, 0.1, 1, delay)
+	Alpha(g, GLINT_PEAK, 0, 0.2, 1, FLOURISH - 0.3)
 	g.move = move
 	Park(g, region, 0)
 	return g
@@ -480,6 +485,9 @@ function Toast:Build(kit)
 	self.goldTint = { [self.rim] = RIM }
 
 	self:BuildAnimations(anim)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Toast:BuildAnimations(anim)
@@ -491,10 +499,10 @@ function Toast:BuildAnimations(anim)
 	-- ...and, on the same breath, the gold ring warmed.
 	local warm = self.ringWarm:CreateAnimationGroup()
 	warm:SetLooping("BOUNCE")
-	Alpha(warm, 0, 1, BREATH, 1, nil, "IN_OUT")
+	Alpha(warm, 0, PULSE_WARM, BREATH, 1, nil, "IN_OUT")
 	self.pulse = { anim(pulse), anim(warm) }
 
-	self.arrive = { anim(Flash(self.ringArrive, 1, 0.15, 0.40, nil, "IN")) }
+	self.arrive = { anim(Flash(self.ringArrive, ARRIVE_PEAK, 0.15, 0.40, nil, "IN")) }
 	-- The arrival's ring converges on the medallion as it fades in: from wider
 	-- to home in the 0.15 s it takes to light, so the group stays the 0.55 s
 	-- the light may.
@@ -589,7 +597,7 @@ function Toast:Apply(p, above)
 	PlacePieces(self.border, art, left, top, W, bottom, C, showIcon)
 	PlacePieces(self.flare, art, left, top, W, bottom, C, showIcon)
 	self.shadowBox = { left - 12 + 4, top - 9, W + 12, bottom + 15 }
-	Each(self.shadow, "SetVertexColor", 1, 1, 1, self.shadowAlpha)
+	for _, t in ipairs(self.shadow) do Colour(t, 1, 1, 1, self.shadowAlpha) end
 	self.drawnList = nil
 	self:PlaceShadow(nil)
 
@@ -619,16 +627,16 @@ function Toast:Apply(p, above)
 	Disc(self.ring, art, cx, cy, rRing)
 	Disc(self.ringHover, art, cx, cy, rRing)
 	Disc(self.well, art, cx, cy, rWell)
-	self.medallion:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)
-	self.well:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)
-	self.seam:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)
-	self.ringHover:SetVertexColor(HOVER[1], HOVER[2], HOVER[3], HOVER[4])
+	Colour(self.medallion, WELL[1], WELL[2], WELL[3])
+	Colour(self.well, WELL[1], WELL[2], WELL[3])
+	Colour(self.seam, WELL[1], WELL[2], WELL[3])
+	Colour(self.ringHover, HOVER[1], HOVER[2], HOVER[3])
 	Disc(self.ringWarm, art, cx, cy, rRing)
-	self.ringWarm:SetVertexColor(PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3], PULSE_WARM)
+	Colour(self.ringWarm, PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3])
 	self.shade:ClearAllPoints()
 	self.shade:SetPoint("CENTER", art, "TOPLEFT", cx + 0.04 * M, -(cy + 0.07 * M))
 	self.shade:SetSize(M / SHADE_FILL, M / SHADE_FILL)
-	self.shade:SetVertexColor(0, 0, 0, SHADE_ALPHA)
+	Colour(self.shade, 0, 0, 0, SHADE_ALPHA)
 	self.ringArrive:ClearAllPoints()
 	self.ringArrive:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 	self.ringArrive:SetSize(1.45 * M, 1.45 * M)
@@ -663,10 +671,10 @@ function Toast:Apply(p, above)
 		t:ClearAllPoints()
 		t:SetPoint("CENTER", art, "TOPLEFT", from, -y)
 		t:SetSize(gw, gh)
-		t:SetVertexColor(1, 0.90, 0.66, 0.8)
+		Colour(t, 1, 0.90, 0.66)
 		self.sweep[i].move:SetOffset(run, 0)
 	end
-	Each(self.flare, "SetVertexColor", 1, 0.85, 0.55, 1)
+	for _, t in ipairs(self.flare) do Colour(t, 1, 0.85, 0.55) end
 
 	self.clockY = -(bottom - clockAt)
 	local dy = (bottom - clockAt) - cy
@@ -679,7 +687,7 @@ function Toast:Apply(p, above)
 	self.ash:ClearAllPoints()
 	self.ash:SetPoint("LEFT", art, "TOPLEFT", self.clockX, self.clockY)
 	self.ash:SetSize(self.clockLen, self.clockH * 16 / 11.5)
-	self.ash:SetVertexColor(0.30, 0.13, 0.06, 0.60)
+	Colour(self.ash, 0.30, 0.13, 0.06, 0.60)
 	-- The burning end: a bead big enough to see at the game's own scale (and
 	-- no bigger: it is the line's own colour, not a pearl), placed by Clock,
 	-- and never back over the medallion.
@@ -1074,18 +1082,18 @@ function Toast:Tint(r, g, b, outcome)
 	local kit = self.kit
 	local er, eg, eb = Fired(r, g, b)
 	local dr, dg, db = Dark(er, eg, eb)
-	self.band:SetVertexColor(dr, dg, db, 1)
-	self.glow:SetVertexColor(er, eg, eb, 1)
+	Colour(self.band, dr, dg, db)
+	Colour(self.glow, er, eg, eb)
 	-- The jewel halfway between the enamel and the fired colour: it carries
 	-- the reason, with the enamel's restraint.
-	self.jewel:SetVertexColor((er + dr) / 2, (eg + dg) / 2, (eb + db) / 2, 1)
-	self.ringArrive:SetVertexColor(r, g, b, 0.55)
+	Colour(self.jewel, (er + dr) / 2, (eg + dg) / 2, (eb + db) / 2)
+	Colour(self.ringArrive, r, g, b)
 	if not outcome then
 		-- The time left in the fired colour, lighter than the dark enamel,
 		-- so it is a live line over its ash; quiet, never a second rail, and
 		-- its bead in the same colour, never brighter than the gold.
-		self.ember:SetVertexColor(er, eg, eb, 0.55)
-		self.bead:SetVertexColor(er, eg, eb, 0.85)
+		Colour(self.ember, er, eg, eb, 0.55)
+		Colour(self.bead, er, eg, eb, 0.85)
 	end
 	-- The subtitle: warm grey taken most of the way to the reason, held to its
 	-- contrast; on a light panel the plain grey, which the tint would cost.
@@ -1100,7 +1108,7 @@ function Toast:Tint(r, g, b, outcome)
 	end
 	sr, sg, sb = kit.Legible(sr, sg, sb, 4.5)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
-	self.glyph:SetVertexColor(sr, sg, sb, 1)
+	Colour(self.glyph, sr, sg, sb)
 	self.tint = { r, g, b }
 end
 
@@ -1109,7 +1117,7 @@ function Toast:PaintReason(r, g, b, _, mode)
 	if mode == "off" then
 		-- Neutral enamel, and the clock a warm white.
 		self:Tint(NEUTRAL[1], NEUTRAL[2], NEUTRAL[3])
-		self.ember:SetVertexColor(0.86, 0.76, 0.58, 0.9)
+		Colour(self.ember, 0.86, 0.76, 0.58, 0.9)
 	else
 		-- "stripe" is "both" here: the toast has no stripe, and the enamel is
 		-- where its reason is.
@@ -1126,11 +1134,11 @@ function Toast:Iron(on)
 		local tint = self.goldTint[t]
 		if on then
 			local k = tint and tint[1] or 1
-			t:SetVertexColor(IRON[1] * k, IRON[2] * k, IRON[3] * k, 1)
+			Colour(t, IRON[1] * k, IRON[2] * k, IRON[3] * k)
 		elseif tint then
-			t:SetVertexColor(tint[1], tint[2], tint[3], 1)
+			Colour(t, tint[1], tint[2], tint[3])
 		else
-			t:SetVertexColor(1, 1, 1, 1)
+			Colour(t, 1, 1, 1)
 		end
 	end
 end
@@ -1151,8 +1159,10 @@ function Toast:Combat(on)
 	local v = on and ICON_COMBAT or 1
 	kit.icon:SetVertexColor(v, v, v)
 	if kit.cooldown then kit.cooldown:SetAlpha(on and ICON_COMBAT or 1) end
-	self.ember:SetAlpha(on and 0.7 or 1)
-	self.bead:SetAlpha(on and 0.7 or 1)
+	-- A dim over the clock's own alpha (Tint's): multiplied, where the last
+	-- of the two calls used to win.
+	Dim(self.ember, on and CLOCK_FIGHT or 1)
+	Dim(self.bead, on and CLOCK_FIGHT or 1)
 	if on then
 		self:StopAttention()
 		for _, g in ipairs(self.arrive) do g:Stop() end
@@ -1239,14 +1249,14 @@ function Toast:Flourish(kind)
 	-- A refusal contracts: the gilding flares in red and amber, and one ring
 	-- snaps in onto the medallion. The text's shake is Prompt's.
 	if kind == "failed" then
-		Each(self.flare, "SetVertexColor", 1, 0.42, 0.20, 1)
+		for _, t in ipairs(self.flare) do Colour(t, 1, 0.42, 0.20) end
 		PlayAll(self.flareAnims)
 		if self.kit.icon:IsShown() then self.fx:Refuse(1.00, 0.40, 0.22, 0.85) end
 		return
 	end
 	-- Nothing for a cast nobody confirmed: a flourish is a claim.
 	if kind ~= "cast" then return end
-	Each(self.flare, "SetVertexColor", 1, 0.85, 0.55, 1)
+	for _, t in ipairs(self.flare) do Colour(t, 1, 0.85, 0.55) end
 	PlayAll(self.flareAnims)
 	if self.kit.icon:IsShown() then
 		local o = OUTCOME.cast
@@ -1268,7 +1278,7 @@ function Toast:Hover(on)
 	local from = t:GetAlpha()
 	g:Stop()
 	t:SetAlpha(from)
-	g.to = on and 1 or 0
+	g.to = on and HOVER[4] or 0
 	g.fade:SetFromAlpha(from)
 	g.fade:SetToAlpha(g.to)
 	g.fade:SetDuration(on and 0.12 or 0.18)
@@ -1313,7 +1323,7 @@ function Toast:PaintOutcome(kind, lead, sub, who, stamp)
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
-	self.glyph:SetVertexColor(vr, vg, vb, 1)
+	Colour(self.glyph, vr, vg, vb)
 	self.refused = kind == "failed"
 	kit.icon:SetDesaturated(self.refused or self.combat or false)
 	self.glyph:SetTexture(ART .. (kind == "failed" and "Cross" or "Check"))
@@ -1357,7 +1367,7 @@ function Toast:PaintQueue(rows, shown, above)
 
 	for i = 1, shown do
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
-		self.gems[i]:SetVertexColor(c[1], c[2], c[3], 1)
+		Colour(self.gems[i], c[1], c[2], c[3])
 		self.gems[i]:Show()
 		self.gemSets[i]:Show()
 	end

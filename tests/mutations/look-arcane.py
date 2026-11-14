@@ -18,12 +18,12 @@ mutate(A, "\tSliceColor(self.rim, r, g, b, rimA)\n", "\tSliceColor(self.rim, 0.7
        "Arcane's rim never coloured",
        expect="the rim is not in", script=S)
 
-mutate(A, "\tself.ring:SetVertexColor(lr, lg, lb, 1)\n", "\tself.ring:SetVertexColor(r, g, b, 1)\n",
+mutate(A, "\tColour(self.ring, lr, lg, lb)\n", "\tColour(self.ring, r, g, b)\n",
        "Arcane's ring coloured on the stripe setting",
        expect="the ring round the icon is still coloured", script=S)
 
-mutate(A, "\tself.runes:SetVertexColor(lr, lg, lb, math.min(1, rest[2] / RUNE_ALPHA))\n",
-       "\tself.runes:SetVertexColor(1, 1, 1, math.min(1, rest[2] / RUNE_ALPHA))\n",
+mutate(A, "\tColour(self.runes, lr, lg, lb, math.min(RUNE_ALPHA, rest[2]))\n",
+       "\tColour(self.runes, 1, 1, 1, math.min(RUNE_ALPHA, rest[2]))\n",
        "Arcane's runes never coloured",
        expect="the runes are not in", script=S)
 
@@ -79,7 +79,7 @@ mutate(A, "\tcombatArtAlpha = 1,\n", "\tcombatArtAlpha = 0.55,\n",
 # them changes nothing a player sees -- there is no single-line bug left to
 # put back. The scenario still checks the icon is grey in a fight.
 
-mutate(A, "\tSliceAlpha(self.bloom, fight and 0 or 1)\n", "\tSliceAlpha(self.bloom, 1)\n",
+mutate(A, "\tfor _, t in ipairs(self.bloom) do Dim(t, fight and 0 or 1) end\n", "\tfor _, t in ipairs(self.bloom) do Dim(t, 1) end\n",
        "Arcane's bloom glows in a fight",
        expect="the bloom still glows in a fight", script=S)
 
@@ -271,7 +271,7 @@ mutate(A, "\tself.lightGlass = clear < 0.55\n", "\tself.lightGlass = false\n",
        "Arcane adds the reason to a light panel",
        expect="which whitens it", script=S)
 
-mutate(A, "\t\tself.drain:SetVertexColor(dr, dg, db, 0.95)\n", "\t\tself.drain:SetVertexColor(r, g, b, 0.95)\n",
+mutate(A, "\t\tColour(self.drain, dr, dg, db, 0.95)\n", "\t\tColour(self.drain, r, g, b, 0.95)\n",
        "Arcane's clock pale on a light panel",
        expect="not a deeper shade", script=S)
 

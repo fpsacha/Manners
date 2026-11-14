@@ -169,8 +169,8 @@ mutate(GLASS,
        expect="on Calm side", script=S)
 
 mutate(GLASS,
-       "\tself.bloom:SetVertexColor(r, g, b, 1)\n",
-       "\tself.bloom:SetVertexColor(1, 1, 1, 1)\n",
+       "\tColour(self.bloom, r, g, b)\n",
+       "\tColour(self.bloom, 1, 1, 1)\n",
        "look-glass: the bloom white whatever the reason",
        expect="the bloom is not in the owed colour", script=S)
 
@@ -225,7 +225,7 @@ mutate(GLASS,
        expect="the star lasts", script=S)
 
 mutate(GLASS,
-       "\tfor i, t in ipairs(list) do t:SetAlpha(held[i] or 1) end\n",
-       "",
+       "\tfor _, t in ipairs(self.caustic) do Colour(t, cr, cg, cb) end\n",
+       "\tfor _, t in ipairs(self.caustic) do t:SetVertexColor(cr, cg, cb, 1) end\n",
        "look-glass: a reason's colour brings the light in the glass up to full",
        expect="look-glass: a reason's colour leaves the light in the glass as faint", script=S)

@@ -945,7 +945,7 @@ withTree("look-ribbon: the ribbon is a solid object at rest, not a veil", ANNA, 
 	-- of the world through it.
 	for i = 1, 2 do
 		local c = look.cloth[i]._color
-		if not (c and near(c[4], 1, 0.001)) then fail(scenario, "the cloth's colour is not opaque") end
+		if not (c and (c[4] == nil or near(c[4], 1, 0.001)) and near(look.cloth[i]._alpha or 1, 1, 0.001)) then fail(scenario, "the cloth's colour is not opaque") end
 	end
 	-- The files: the cloth is opaque all through its body, the rails and the
 	-- medallion where they are drawn.

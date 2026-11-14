@@ -62,6 +62,7 @@
 --     and the count stands at the right of the lines, never on the icon.
 
 local _, ns = ...
+local Colour, Dim = ns.Looks.Colour, ns.Looks.Dim
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Arcane\\Arcane_"
@@ -181,15 +182,11 @@ local function PlaceSlice(s, top, bottom, l, t, r, b)
 end
 
 local function SliceColor(s, r, g, b, a)
-	for _, tex in ipairs(s) do tex:SetVertexColor(r, g, b, a) end
+	for _, tex in ipairs(s) do Colour(tex, r, g, b, a) end
 end
 
 local function SliceShown(s, on)
 	for _, tex in ipairs(s) do tex:SetShown(on) end
-end
-
-local function SliceAlpha(s, a)
-	for _, tex in ipairs(s) do tex:SetAlpha(a) end
 end
 
 -- A one-shot fade on a frame or a texture, parked where it ends.
@@ -363,6 +360,9 @@ function Arcane:Build(kit)
 	for _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 2) end
 
 	self:BuildAnimations()
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Arcane:BuildAnimations()
@@ -557,7 +557,7 @@ function Arcane:Apply(p, above)
 	self.glint:SetPoint("TOPLEFT", 6, -0.6)
 	self.glint:SetPoint("TOPRIGHT", -6, -0.6)
 	self.glint:SetHeight(2)
-	self.glint:SetVertexColor(1, 1, 1, 0.30 * clear)
+	Colour(self.glint, 1, 1, 1, 0.30 * clear)
 	SliceColor(self.trayGlass, br, bg, bb, ba * 0.92)
 	SliceColor(self.trayRim, 0.75, 0.78, 0.90, 0.18)
 
@@ -571,7 +571,7 @@ function Arcane:Apply(p, above)
 		t:SetPoint("CENTER", art, "LEFT", cx, cy)
 		t:SetSize(M, M)
 	end
-	self.well:SetVertexColor(1, 1, 1, 0.40)
+	Colour(self.well, 1, 1, 1, 0.40)
 	icon:ClearAllPoints()
 	icon:SetShown(showIcon)
 	local maskFile = ART .. (round and "CircleMask" or "SquircleMask")
@@ -595,7 +595,7 @@ function Arcane:Apply(p, above)
 	-- The rings that spread: the lens's ring first, and the circle of runes
 	-- after it, a size up.
 	local w = kit.WARM_WHITE
-	self.warmRing:SetVertexColor(w[1], w[2], w[3], 1)
+	Colour(self.warmRing, w[1], w[2], w[3])
 	self.fx:Place(icon, (iconSize / ICON_FRAME - iconSize) / 2, iconSize)
 	self.fx:Shape(round, ART .. "IconRing", ART .. "IconRingSq")
 	local runeRing = self.fx.rings[2]
@@ -615,7 +615,7 @@ function Arcane:Apply(p, above)
 	self.check:ClearAllPoints()
 	self.check:SetPoint("CENTER", icon, "CENTER", 0, 0)
 	self.check:SetSize(iconSize * 0.86, iconSize * 0.86)
-	self.check:SetVertexColor(0.80, 1.00, 0.82, 1)
+	Colour(self.check, 0.80, 1.00, 0.82)
 	-- An outcome's wash lights the lens round the icon, under it, and stops
 	-- short of the text: the verdict is written on the glass beside it.
 	self.wash:ClearAllPoints()
@@ -979,12 +979,16 @@ end
 function Arcane:SetInk(fight)
 	local kit = self.kit
 	local ink = fight and COMBAT.ink or 1
-	for _, t in ipairs({ kit.icon, self.well }) do t:SetAlpha(ink) end
+	-- A dim over each light's own alpha (Tint gives that with its colour):
+	-- the client keeps one number, and whichever of the two came last used
+	-- to win.
+	kit.icon:SetAlpha(ink)
+	Dim(self.well, ink)
 	if kit.cooldown then kit.cooldown:SetAlpha(ink) end
-	self.runes:SetAlpha((fight and COMBAT.runes or 1) * RUNE_ALPHA)
-	for _, t in ipairs({ self.track, self.drain, self.spark }) do t:SetAlpha(fight and COMBAT.drain or 1) end
+	Dim(self.runes, fight and COMBAT.runes or 1)
+	for _, t in ipairs({ self.track, self.drain, self.spark }) do Dim(t, fight and COMBAT.drain or 1) end
 	-- The bloom is the one light that goes: a glowing card says "live".
-	SliceAlpha(self.bloom, fight and 0 or 1)
+	for _, t in ipairs(self.bloom) do Dim(t, fight and 0 or 1) end
 	kit.textLayer:SetAlpha(fight and COMBAT.text or 1)
 end
 
@@ -999,23 +1003,23 @@ function Arcane:Tint(r, g, b, ring, rest, neutral)
 	SliceColor(self.liftRim, r, g, b, 0.6)
 	SliceColor(self.hoverRim, r, g, b, 0.14)
 	local lr, lg, lb = ring[1], ring[2], ring[3]
-	self.ring:SetVertexColor(lr, lg, lb, 1)
+	Colour(self.ring, lr, lg, lb)
 	if self.lightGlass then
 		-- Laid over a light panel (BLEND, Apply) in a deeper shade: added,
 		-- the colour would only whiten it.
 		local dr, dg, db = r * DEEP, g * DEEP, b * DEEP
-		self.track:SetVertexColor(dr, dg, db, 0.22)
-		self.drain:SetVertexColor(dr, dg, db, 0.95)
-		self.spark:SetVertexColor(dr, dg, db, 0.9)
+		Colour(self.track, dr, dg, db, 0.22)
+		Colour(self.drain, dr, dg, db, 0.95)
+		Colour(self.spark, dr, dg, db, 0.9)
 		-- The runes at their full resting strength: thin dark lines on a light
 		-- panel are the faintest thing on it.
-		self.runes:SetVertexColor(lr * DEEP, lg * DEEP, lb * DEEP, 1)
+		Colour(self.runes, lr * DEEP, lg * DEEP, lb * DEEP, RUNE_ALPHA)
 	else
-		self.track:SetVertexColor(r, g, b, 0.10)
-		self.drain:SetVertexColor(r, g, b, 0.85)
+		Colour(self.track, r, g, b, 0.10)
+		Colour(self.drain, r, g, b, 0.85)
 		local sr, sg, sb = Mix(r, g, b, 0.5)
-		self.spark:SetVertexColor(sr, sg, sb, 0.9)
-		self.runes:SetVertexColor(lr, lg, lb, math.min(1, rest[2] / RUNE_ALPHA))
+		Colour(self.spark, sr, sg, sb, 0.9)
+		Colour(self.runes, lr, lg, lb, math.min(RUNE_ALPHA, rest[2]))
 	end
 	self.tint = { r, g, b }
 end
@@ -1203,7 +1207,7 @@ function Arcane:StopAttention()
 end
 
 function Arcane:Shine(r, g, b, a)
-	self.shine:SetVertexColor(r, g, b, a or 0.30)
+	Colour(self.shine, r, g, b, a or 0.30)
 	self.shineAnim:Stop()
 	self.shineAnim:Play()
 end
@@ -1305,12 +1309,15 @@ function Arcane:PaintOutcome(kind, lead, sub, who, stamp)
 	if stamp ~= self.washFor then
 		self.washFor = stamp
 		if self.lightGlass then
-			self.wash:SetVertexColor(o[1] * DEEP, o[2] * DEEP, o[3] * DEEP, o[4])
+			Colour(self.wash, o[1] * DEEP, o[2] * DEEP, o[3] * DEEP)
 		else
-			self.wash:SetVertexColor(o[1], o[2], o[3], o[4])
+			Colour(self.wash, o[1], o[2], o[3])
 		end
 		self.washAnim:Stop()
-		self.wash:SetAlpha(1)
+		-- The wash at the outcome's own strength, and its fade from there: an
+		-- alpha given with the colour was written over by this one.
+		self.wash:SetAlpha(o[4])
+		self.washAnim.fade:SetFromAlpha(o[4])
 		-- Round the lens: with no icon there is none, and the rim says it.
 		self.wash:SetShown(self.showIcon)
 		if kit.FullEffects() then
@@ -1386,7 +1393,7 @@ function Arcane:PaintQueue(rows, shown, above)
 	for i = 1, shown do
 		local dot = self.dots[i]
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
-		dot:SetVertexColor(c[1], c[2], c[3], 1)
+		Colour(dot, c[1], c[2], c[3])
 		dot:Show()
 	end
 	if placed then return end

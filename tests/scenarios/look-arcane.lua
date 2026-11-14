@@ -110,9 +110,11 @@ withTree("Arcane lights the rim, the ring and the runes in the reason's colour",
 	p.reasonPalette = "standard"
 	ns.Prompt:ApplyStyle()
 	ns.Prompt:PaintAccent("owed")
-	local owedBloom = look.bloom[1]._color[4]
+	-- The bloom's strength is its own alpha, given with its colour
+	-- (Looks.Colour): the game keeps one alpha for a texture.
+	local owedBloom = look.bloom[1]._alpha
 	ns.Prompt:PaintAccent("nearby")
-	if not (owedBloom > look.bloom[1]._color[4]) then
+	if not (owedBloom > look.bloom[1]._alpha) then
 		fail(scenario, "a favour owed does not glow more than a passer-by")
 	end
 	p.accentMode = "off"
@@ -186,6 +188,10 @@ withTree("Arcane in a fight keeps the reason readable", ANNA, function(ns, scena
 	local r, _, look = upIn(ns, scenario, function(pp) pp.roundIcon = true end)
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
 	local cr, cg, cb = ns.Prompt:AccentColor("owed")
+	-- What the glass, the rim and the bloom stand at before the fight: each
+	-- carries its own alpha (Looks.Colour), which the fight must leave.
+	local glassWas, rimWas, bloomWas = look.glass[5]._alpha or 1, look.rim[2]._alpha or 1, look.bloom[1]._alpha or 1
+	if not (bloomWas > 0) then fail(scenario, "the bloom does not glow before the fight") end
 	Mock.inCombat = true
 	ns.addon:PLAYER_REGEN_DISABLED()
 	ns.addon:Tick()
@@ -193,8 +199,8 @@ withTree("Arcane in a fight keeps the reason readable", ANNA, function(ns, scena
 	if (r.art._alpha or 1) < 0.99 then
 		fail(scenario, "art dimmed whole in a fight (" .. tostring(r.art._alpha) .. "), glass and all")
 	end
-	if (look.glass[5]._alpha or 1) < 0.99 then fail(scenario, "the glass does not hold in a fight") end
-	if not sameColour(look.rim[2]._color, cr, cg, cb) or (look.rim[2]._alpha or 1) < 0.99 then
+	if not near(look.glass[5]._alpha or 1, glassWas) then fail(scenario, "the glass does not hold in a fight") end
+	if not sameColour(look.rim[2]._color, cr, cg, cb) or not near(look.rim[2]._alpha or 1, rimWas) then
 		fail(scenario, "the rim lost the reason's colour in a fight")
 	end
 	if not sameColour(look.ring._color, cr, cg, cb) or look.ring._shown == false then
@@ -219,7 +225,7 @@ withTree("Arcane in a fight keeps the reason readable", ANNA, function(ns, scena
 		fail(scenario, "the fight's dim stayed on after it ended")
 	end
 	if not look.spinAnim._playing then fail(scenario, "the rune circle did not turn again after the fight") end
-	if (look.bloom[1]._alpha or 1) < 1 then fail(scenario, "the bloom did not come back after the fight") end
+	if not near(look.bloom[1]._alpha or 1, bloomWas) then fail(scenario, "the bloom did not come back after the fight") end
 end)
 
 -- ------------------------------------------------------------------ 5
@@ -668,9 +674,9 @@ withTree("Arcane's resting glow follows the reason with one marker colour", CROW
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
 	local buff = ns.ResolveBuff(true)
 	ns.Prompt:Paint({ name = "Brannoc Vale", short = "Brannoc", reason = "nearby", buff = buff }, 0)
-	local passer = look.bloom[1]._color[4]
+	local passer = look.bloom[1]._alpha
 	ns.Prompt:Paint({ name = "Anna Aim", short = "Anna", reason = "owed", buff = buff }, 0)
-	local owed = look.bloom[1]._color[4]
+	local owed = look.bloom[1]._alpha
 	if not (owed > passer) then
 		fail(scenario, ("with one marker colour a favour owed glows %.2f, a passer-by %.2f"):format(owed, passer))
 	end

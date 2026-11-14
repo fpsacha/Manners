@@ -151,8 +151,8 @@ _m(RIBBON,
 # --- solid, not a veil ------------------------------------------------------
 
 _m(RIBBON,
-   "\tEach(self.cloth, \"SetVertexColor\", dye[1] * k, dye[2] * k, dye[3] * k, 1)\n",
-   "\tEach(self.cloth, \"SetVertexColor\", dye[1] * k, dye[2] * k, dye[3] * k, 0.8)\n",
+   "\tfor _, t in ipairs(self.cloth) do Colour(t, dye[1] * k, dye[2] * k, dye[3] * k) end\n",
+   "\tfor _, t in ipairs(self.cloth) do Colour(t, dye[1] * k, dye[2] * k, dye[3] * k, 0.8) end\n",
    "the cloth drawn as a veil",
    expect="look-ribbon: the ribbon is a solid object")
 
@@ -497,8 +497,8 @@ _m(RIBBON,
    expect="look-ribbon: a landing shines")
 
 _m(RIBBON,
-   "\tEach(self.hot, \"SetVertexColor\", 1, 0.40, 0.10, 1)\n",
-   "\tEach(self.hot, \"SetVertexColor\", 0.2, 0.4, 1, 1)\n",
+   "\tfor _, t in ipairs(self.hot) do Colour(t, 1, 0.40, 0.10) end\n",
+   "\tfor _, t in ipairs(self.hot) do Colour(t, 0.2, 0.4, 1) end\n",
    "the refusal's flash not amber",
    expect="look-ribbon: a refusal darkens")
 
@@ -573,8 +573,8 @@ _m(RIBBON,
    expect="look-ribbon: the list is a small ribbon per name")
 
 _m(RIBBON,
-   "\t\tif mode == \"off\" then\n\t\t\tself.gems[i]:SetVertexColor(NEUTRAL[1], NEUTRAL[2], NEUTRAL[3], 1)\n",
-   "\t\tif false then\n\t\t\tself.gems[i]:SetVertexColor(NEUTRAL[1], NEUTRAL[2], NEUTRAL[3], 1)\n",
+   "\t\tif mode == \"off\" then\n\t\t\tColour(self.gems[i], NEUTRAL[1], NEUTRAL[2], NEUTRAL[3])\n",
+   "\t\tif false then\n\t\t\tColour(self.gems[i], NEUTRAL[1], NEUTRAL[2], NEUTRAL[3])\n",
    "the rows' gems carrying a reason with the marker off",
    expect="look-ribbon: the rows' gems carry the reason")
 

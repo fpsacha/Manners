@@ -60,6 +60,7 @@
 -- each is lit for its turn by an Alpha that holds. The lightning is that.
 
 local _, ns = ...
+local Colour = ns.Looks.Colour
 local L = ns.L
 
 local ART = "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_"
@@ -678,12 +679,12 @@ function Archmage:Build(kit)
 	self.twinkles = {}
 	for i = 1, #SPARKLES do
 		local t = tex(self.idleFrame, "OVERLAY", 2, "Star")
-		t:SetVertexColor(STARLIGHT[1], STARLIGHT[2], STARLIGHT[3], 1)
+		Colour(t, STARLIGHT[1], STARLIGHT[2], STARLIGHT[3])
 		t:SetAlpha(0)
 		self.twinkles[i] = t
 	end
 	self.sheen = tex(self.idleFrame, "OVERLAY", 1, "Vein")
-	self.sheen:SetVertexColor(STARLIGHT[1], STARLIGHT[2], STARLIGHT[3], 1)
+	Colour(self.sheen, STARLIGHT[1], STARLIGHT[2], STARLIGHT[3])
 	self.sheen:SetAlpha(0)
 	-- The crystal at rest: the lights that drift along the ridges, the glints
 	-- on the bevels and the ember in the stone, none of them additive.
@@ -695,7 +696,7 @@ function Archmage:Build(kit)
 	end
 	for i = 1, #GLINTS do
 		local t = tex(self.idleFrame, "OVERLAY", 2, "Star")
-		t:SetVertexColor(STARLIGHT[1], STARLIGHT[2], STARLIGHT[3], 1)
+		Colour(t, STARLIGHT[1], STARLIGHT[2], STARLIGHT[3])
 		t:SetAlpha(0)
 		self.glints[i] = t
 	end
@@ -740,6 +741,9 @@ function Archmage:Build(kit)
 	for _, t in ipairs(self.listBody) do self.bakedTone[t] = LIST_TONE end
 
 	self:BuildAnimations(anim)
+	-- Written down while nothing plays: what each texture rests at, so a
+	-- colour never moves it (Looks.lua, ONE ALPHA).
+	ns.Looks.HoldAll(self.own)
 end
 
 function Archmage:BuildAnimations(anim)
@@ -877,7 +881,7 @@ function Archmage:Apply(p, above)
 	self.bodyColour = { pr, pg, pb }
 	local alpha = (type(c) == "table" and c[4]) or 1
 	self.shadowAlpha = math.min(1, alpha + 0.05) * (alpha < 0.2 and 0 or 1)
-	Each(self.shadow, "SetVertexColor", 0, 0, 0, self.shadowAlpha)
+	for _, t in ipairs(self.shadow) do Colour(t, 0, 0, 0, self.shadowAlpha) end
 	self.listBox = nil
 	self:PlaceShadow(nil)
 
@@ -1022,7 +1026,7 @@ function Archmage:Apply(p, above)
 
 	-- The cursor's light over the top bevel, between the cuts.
 	Box(self.hoverFrame, art, cut, 4 * H / DESIGN_H, W - cut, ridge)
-	self.hoverLight:SetVertexColor(HOVER[1], HOVER[2], HOVER[3], 1)
+	Colour(self.hoverLight, HOVER[1], HOVER[2], HOVER[3])
 
 	local block = fs + 2 + sub
 	self.block = block
@@ -1411,7 +1415,7 @@ end
 
 -- A charge a refusal spent: grey until the next PaintReason.
 function Archmage:Spend()
-	for _, t in ipairs(self.charges) do t:SetVertexColor(SPENT[1], SPENT[2], SPENT[3], 1) end
+	for _, t in ipairs(self.charges) do Colour(t, SPENT[1], SPENT[2], SPENT[3]) end
 end
 
 -- The charges and the vein in the reason's colour (each only where the
@@ -1426,23 +1430,23 @@ function Archmage:Tint(r, g, b, ring, stripe)
 	if self.refused then
 		self:Spend()
 	else
-		for _, t in ipairs(self.charges) do t:SetVertexColor(cr, cg, cb, 1) end
+		for _, t in ipairs(self.charges) do Colour(t, cr, cg, cb) end
 	end
 	local fr, fg, fb = kit.Tint(cr, cg, cb, FLASH_WHITE)
-	for _, t in ipairs(self.sparks) do t:SetVertexColor(fr, fg, fb, 1) end
-	for _, t in ipairs(self.arcs) do t:SetVertexColor(fr, fg, fb, 1) end
-	self.halo:SetVertexColor(cr, cg, cb, 1)
-	self.haloHot:SetVertexColor(fr, fg, fb, 1)
-	self.spill:SetVertexColor(cr, cg, cb, 1)
-	self.ember:SetVertexColor(cr, cg, cb, 1)
-	self.spillHot:SetVertexColor(fr, fg, fb, 1)
-	self.vein:SetVertexColor(vr, vg, vb, VEIN_ALPHA)
+	for _, t in ipairs(self.sparks) do Colour(t, fr, fg, fb) end
+	for _, t in ipairs(self.arcs) do Colour(t, fr, fg, fb) end
+	Colour(self.halo, cr, cg, cb)
+	Colour(self.haloHot, fr, fg, fb)
+	Colour(self.spill, cr, cg, cb)
+	Colour(self.ember, cr, cg, cb)
+	Colour(self.spillHot, fr, fg, fb)
+	Colour(self.vein, vr, vg, vb, VEIN_ALPHA)
 	local wr, wg, wb = kit.Tint(vr, vg, vb, 0.45)
-	self.core:SetVertexColor(wr, wg, wb, 1)
+	Colour(self.core, wr, wg, wb)
 	local lr, lg, lb = kit.Tint(vr, vg, vb, FLASH_WHITE)
-	for _, t in ipairs(self.runners) do t:SetVertexColor(lr, lg, lb, 1) end
-	for _, t in ipairs(self.drifts) do t:SetVertexColor(lr, lg, lb, 1) end
-	self.star:SetVertexColor(lr, lg, lb, 1)
+	for _, t in ipairs(self.runners) do Colour(t, lr, lg, lb) end
+	for _, t in ipairs(self.drifts) do Colour(t, lr, lg, lb) end
+	Colour(self.star, lr, lg, lb)
 	-- The reason line: a lilac mist taken most of the way to the reason, held
 	-- to a strong contrast on the crystal (the crystal in the game is brighter
 	-- than its table says, with motes running behind the words).
@@ -1451,7 +1455,7 @@ function Archmage:Tint(r, g, b, ring, stripe)
 	local sb = MIST[3] + (b - MIST[3]) * 0.6
 	sr, sg, sb = kit.Legible(sr, sg, sb, SUB_CONTRAST)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
-	self.glyph:SetVertexColor(sr, sg, sb, 1)
+	Colour(self.glyph, sr, sg, sb)
 	self.tint = { cr, cg, cb }
 end
 
@@ -1474,15 +1478,15 @@ function Archmage:Dull(on)
 		t:SetDesaturated(on)
 		local k = self.bakedTone[t] or 1
 		if on then
-			t:SetVertexColor(DULL[1] * k, DULL[2] * k, DULL[3] * k, 1)
+			Colour(t, DULL[1] * k, DULL[2] * k, DULL[3] * k)
 		else
-			t:SetVertexColor(k, k, k, 1)
+			Colour(t, k, k, k)
 		end
 	end
 	local pc = self.bodyColour or { 1, 1, 1 }
 	local f = on and BODY_COMBAT or 1
 	Each(self.body, "SetDesaturated", on)
-	Each(self.body, "SetVertexColor", pc[1] * f, pc[2] * f, pc[3] * f, 1)
+	for _, t in ipairs(self.body) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
 end
 
 -- The crystal holds; it and the wire dull, the icon greys, the words dim and
@@ -1624,7 +1628,7 @@ function Archmage:Flourish(kind)
 		self:Spend()
 		if shown then
 			self:StopLights()
-			for _, t in ipairs(self.sparks) do t:SetVertexColor(o[1], o[2], o[3], 1) end
+			for _, t in ipairs(self.sparks) do Colour(t, o[1], o[2], o[3]) end
 			PlayAll(self.refusal)
 			self.fx:Refuse(1.00, 0.40, 0.34, 0.85)
 		end
@@ -1705,13 +1709,13 @@ function Archmage:PaintOutcome(kind, lead, sub, who, stamp)
 	self:HoldPulse()
 	StopAll(self.calm)
 	StopAll(self.once)
-	self.core:SetVertexColor(o[1], o[2], o[3], 1)
+	Colour(self.core, o[1], o[2], o[3])
 	self.refused = kind == "failed"
 	if self.refused then self:Spend() end
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], SUB_CONTRAST)
 	kit.sub:SetTextColor(vr, vg, vb, 1)
-	self.glyph:SetVertexColor(vr, vg, vb, 1)
+	Colour(self.glyph, vr, vg, vb)
 	kit.icon:SetDesaturated(self.refused or self.combat or false)
 	self.glyph:SetTexture(ART .. (kind == "failed" and "Cross" or "Check"))
 	self.glyphOn = kind ~= "sent"
@@ -1750,7 +1754,7 @@ function Archmage:PaintQueue(rows, shown, above)
 
 	for i = 1, shown do
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
-		self.beads[i]:SetVertexColor(c[1], c[2], c[3], 1)
+		Colour(self.beads[i], c[1], c[2], c[3])
 		self.beads[i]:Show()
 	end
 	-- Laid out again only when the number of rows or the side changes: the

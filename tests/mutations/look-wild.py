@@ -86,8 +86,8 @@ mutate("Looks/Wild.lua",
        expect="the moon is coloured", script=S)
 
 mutate("Looks/Wild.lua",
-       "\tself.inlay:SetVertexColor(vr, vg, vb, INLAY_ALPHA)\n",
-       "\tself.inlay:SetVertexColor(cr, cg, cb, INLAY_ALPHA)\n",
+       "\tColour(self.inlay, vr, vg, vb, INLAY_ALPHA)\n",
+       "\tColour(self.inlay, cr, cg, cb, INLAY_ALPHA)\n",
        "look-wild: the inlay coloured by the icon's marker",
        expect="the inlay is", script=S)
 
@@ -420,7 +420,7 @@ mutate("tools/make_wild_textures.py",
 # The game keeps one alpha for a texture: a colour with an alpha of 1 lights
 # what SetAlpha dimmed (the halo, the flash, the cursor's light, the moon's).
 mutate("Looks/Wild.lua",
-       "\tt:SetVertexColor(r, g, b, t:GetAlpha() or 1)\n",
-       "\tt:SetVertexColor(r, g, b, 1)\n",
+       "\tColour(self.halo, hr, hg, hb)\n",
+       "\tself.halo:SetVertexColor(hr, hg, hb, 1)\n",
        "look-wild: a colour that writes an alpha of 1 over a dimmed light",
        expect="look-wild: a colour leaves every light as faint as it was", script=S)
