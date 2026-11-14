@@ -19,7 +19,7 @@ mutate(MIN,
        expect="short of the panel's edge", script=S)
 
 mutate(MIN,
-       "\tbox:SetPoint(\"BOTTOMLEFT\", art, \"BOTTOMLEFT\", x0 - out, (LINE_UP - LINE_UNITS / 2) * k)\n",
+       "\tbox:SetPoint(\"BOTTOMLEFT\", art, \"BOTTOMLEFT\", x0 - out, (LINE_UP - LINE_MID) * k)\n",
        "\tbox:SetPoint(\"BOTTOMLEFT\", art, \"BOTTOMLEFT\", x0 - out, 0)\n",
        "look-minimal: the line's light off Panel.lua's bottom rule",
        expect="the line's light is", script=S)
@@ -31,8 +31,8 @@ mutate(MIN,
        expect="look-minimal: a hairline under the words", script=S)
 
 mutate(MIN,
-       "local LINE_UNITS, CAP_W, CAP_H, TICK_X, CORE = 8, 8, 16, 2.4, 0.7",
-       "local LINE_UNITS, CAP_W, CAP_H, TICK_X, CORE = 8, 8, 8, 2.4, 0.7",
+       "local LINE_MID, CAP_W, CAP_H, TICK_X, CORE = 4, 8, 16, 2.4, 0.7",
+       "local LINE_MID, CAP_W, CAP_H, TICK_X, CORE = 4, 8, 8, 2.4, 0.7",
        "look-minimal: the cap's file squashed to half its height",
        expect="line's cap is", script=S)
 
@@ -73,16 +73,65 @@ mutate(MIN,
        expect="the fill is not cut at the line's ends", script=S)
 
 mutate(MIN,
-       "\tclip:SetSize(wide, SPARK_H * k)\n",
-       "\tclip:SetSize(wide, LINE_UNITS * k)\n",
+       "\tclip:SetSize(wide - cut + FLARE * k, SPARK_H * k)\n",
+       "\tclip:SetSize(wide - cut + FLARE * k, 2 * LINE_MID * k)\n",
        "look-minimal: the spark's lens cut off at the line's height",
        expect="the cut is not the line's length and the spark's height", script=S)
 
+# The cut as wide as the caps' files, as it was first built: the fill being
+# cast, a refused line running back out and a spark's tail were all seen for
+# 1.7 units left of the left tick, where the line has not started.
 mutate(MIN,
-       "\t\tf:SetPoint(\"BOTTOMLEFT\", clip, \"BOTTOMLEFT\", (TICK_X - SPARK_HEAD * SPARK_W) * k, 0)\n",
-       "\t\tf:SetPoint(\"BOTTOMLEFT\", clip, \"BOTTOMLEFT\", 0, 0)\n",
+       "\tlocal cut, under = out - CUT_KEEP * k, (SPARK_H / 2 - LINE_MID) * k\n",
+       "\tlocal cut, under = 0, (SPARK_H / 2 - LINE_MID) * k\n",
+       "look-minimal: the cut starts at the cap's edge, a cast line seen left of its tick",
+       expect="a line being cast is seen outside its tick", script=S)
+
+mutate(MIN,
+       "\tclip:SetSize(wide - cut + FLARE * k, SPARK_H * k)\n",
+       "\tclip:SetSize(wide - cut, SPARK_H * k)\n",
+       "look-minimal: the cut ends at the far cap, the spark's flare sheared there",
+       expect="a spark's flare is sheared at the far tick", script=S)
+
+mutate(MIN,
+       "local CUT_KEEP, FLARE = 0.25, 4.5\n",
+       "local CUT_KEEP, FLARE = 0.25, 9\n",
+       "look-minimal: the room for a spark's flare reaches past the panel's edge",
+       expect="outside the panel", script=S)
+
+mutate(MIN,
+       "\t\tf:SetPoint(\"BOTTOMLEFT\", box, \"BOTTOMLEFT\", (TICK_X + inside - SPARK_HEAD * SPARK_W) * k, -under)\n",
+       "\t\tf:SetPoint(\"BOTTOMLEFT\", box, \"BOTTOMLEFT\", 0, -under)\n",
        "look-minimal: the sparks start three quarters of their length along the line",
        expect="a spark's head rests at", script=S)
+
+mutate(MIN,
+       "\t\tf:SetPoint(\"BOTTOMLEFT\", box, \"BOTTOMLEFT\", (TICK_X + inside - SPARK_HEAD * SPARK_W) * k, -under)\n",
+       "\t\tf:SetPoint(\"BOTTOMLEFT\", box, \"BOTTOMLEFT\", (TICK_X + inside - SPARK_HEAD * SPARK_W) * k, 0)\n",
+       "look-minimal: the sparks ride half a spark over the hairline",
+       expect="a spark does not ride the hairline", script=S)
+
+# The sparks that fade in standing still, on the tick itself: the cut, now at
+# the tick, would shear the head's halo there.
+mutate(MIN,
+       "\t\tlocal inside = f == self.spark and 0 or START_IN\n",
+       "\t\tlocal inside = 0\n",
+       "look-minimal: the owed spark and the glint fade in on the tick, their halo sheared by the cut",
+       expect="a spark's head rests at", script=S)
+
+# The hairline laid at half its caps' height, as it was first built (a file of
+# its own height): the client rounds pieces of two heights to the screen apart.
+mutate(MIN,
+       "\tb[2]:SetHeight(tall)\n",
+       "\tb[2]:SetHeight(tall / 2)\n",
+       "look-minimal: the hairline laid at half its caps' height",
+       expect="not one height", script=S)
+
+mutate(MIN,
+       "\tself.dash.run:SetOffset(run, 0)\n",
+       "\tself.dash.run:SetOffset(roam, 0)\n",
+       "look-minimal: a landing's dash stops short of the far tick",
+       expect="not from tick to tick", script=S)
 
 mutate(MIN,
        "\t\tf.tex = tex(f, \"Spark\", \"BLEND\", 2)\n",
@@ -163,7 +212,7 @@ mutate(MIN,
        expect="what loops at rest is not named", script=S)
 
 mutate(MIN,
-       "\tself.drift.run:SetOffset(run, 0)\n",
+       "\tself.drift.run:SetOffset(roam, 0)\n",
        "\tself.drift.run:SetOffset(wide, 0)\n",
        "look-minimal: the glint runs past the far tick",
        expect="the glint runs", script=S)
@@ -243,7 +292,7 @@ mutate(MIN,
        expect="does not glow in the owed colour", script=S)
 
 mutate(MIN,
-       "\tself.patrol.run:SetOffset(run, 0)\n",
+       "\tself.patrol.run:SetOffset(roam, 0)\n",
        "\tself.patrol.run:SetOffset(wide, 0)\n",
        "look-minimal: the owed spark runs past the far tick",
        expect="the spark does not run from tick to tick", script=S)

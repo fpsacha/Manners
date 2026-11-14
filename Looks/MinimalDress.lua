@@ -27,10 +27,11 @@
 -- before); nothing sets it yet, so it is on.
 --
 -- Nothing here is scaled, so nothing can grow over the words: the fill and
--- the sparks slide inside a frame that cuts them at the line's ends, and
--- every light is an alpha. The two marks are drawn animations, played frame
--- by frame by Looks/Flow.lua. On Calm nothing moves and nothing loops: the
--- line stands, lit. In a fight the loops stop and the line rests.
+-- the sparks slide inside a frame that cuts them at the left tick (nothing
+-- lit is ever seen left of where the line starts), and every light is an
+-- alpha. The two marks are drawn animations, played frame by frame by
+-- Looks/Flow.lua. On Calm nothing moves and nothing loops: the line stands,
+-- lit. In a fight the loops stop and the line rests.
 --
 -- `idle` lists the animation groups that loop with nobody owed (the glint at
 -- rest): the author asked for a prompt that is alive at rest, and the
@@ -46,11 +47,14 @@ local Looks = ns.Looks
 local ART = "Interface\\AddOns\\Manners\\Textures\\Minimal\\Minimal_"
 
 -- ---- must agree with tools/make_minimal_textures.py --------------------
--- The hairline's file in units (its light is the file's middle), the cap's,
--- where the tick's middle is in from the cap's outer edge, half the
--- hairline's thickness, the spark's file and where its head is along it, the
--- glow's height, and the marks' sheets.
-local LINE_UNITS, CAP_W, CAP_H, TICK_X, CORE = 8, 8, 16, 2.4, 0.7
+-- How far the hairline's middle is over the foot of its file and of the
+-- cap's (the two files are one height, and every piece of a line is laid at
+-- that height: the client rounds a texture's edges to the screen, and pieces
+-- of two heights would be rounded apart, a step in the hairline where they
+-- meet), the cap's file in units, where the tick's middle is in from the
+-- cap's outer edge, half the hairline's thickness, the spark's file and where
+-- its head is along it, the glow's height, and the marks' sheets.
+local LINE_MID, CAP_W, CAP_H, TICK_X, CORE = 4, 8, 16, 2.4, 0.7
 local SPARK_W, SPARK_H, SPARK_HEAD, GLOW_H = 32, 16, 0.75, 16
 local MARK_COLS, MARK_ROWS, MARK_FRAMES = 4, 2, 8
 
@@ -63,6 +67,20 @@ local BREAK = { 1.00, 0.42, 0.20 }
 -- short of the panel's right edge it stops. Everything is drawn for a panel
 -- 44 tall and follows the height between these two.
 local LINE_UP, LINE_END = 2.5, 8
+-- The cut the fill and the sparks slide in. On the left it stands CUT_KEEP
+-- outside the left tick's outer edge and no further: the fill is cast from
+-- that side and runs back out to it, and a spark's tail trails that way, and
+-- none of them may be seen left of where the line starts. On the right it
+-- stands FLARE past the line's box: nothing goes there but a spark's own
+-- flare as it reaches the far tick, which a nearer cut would shear (and
+-- which stays inside the panel: FLARE and the cap's margin are under
+-- LINE_END at the largest scale).
+local CUT_KEEP, FLARE = 0.25, 4.5
+-- Where the two sparks that fade in standing still (the run while somebody
+-- is owed, the glint at rest) start: this far inside the left tick, so the
+-- cut is well behind the head's halo and only crosses its tail, which lies
+-- on the line.
+local START_IN = 3
 local SCALE_AT, SCALE_LO, SCALE_HI = 44, 0.55, 1.2
 -- The unlit line under the fill: a cool grey, faint.
 local TRACK = { 0.62, 0.64, 0.72 }
@@ -185,7 +203,7 @@ function Minimal:Build(kit)
 
 	-- Everything stands on one frame over art, under the text: the unlit line
 	-- on the frame itself, the fill and the sparks inside a frame that cuts
-	-- them at the line's ends.
+	-- them at the left tick (Apply, the cut).
 	local root = frame(art, 1)
 	root:SetAllPoints(art)
 	self.frame = root
@@ -361,9 +379,10 @@ end
 -- layout
 ---------------------------------------------------------------------------
 
--- A line's three pieces laid in `box`, caps `cap` wide and `tall`, the
--- hairline `line` tall between them, all on the box's foot.
-local function PlaceBar(b, box, cap, tall, line)
+-- A line's three pieces laid in `box`, caps `cap` wide, the hairline between
+-- them, all three `tall` and on the box's foot: one height, so the client
+-- rounds them to the screen alike and the hairline runs straight through.
+local function PlaceBar(b, box, cap, tall)
 	for _, t in ipairs(b) do t:ClearAllPoints() end
 	b[1]:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", 0, 0)
 	b[1]:SetSize(cap, tall)
@@ -371,7 +390,7 @@ local function PlaceBar(b, box, cap, tall, line)
 	b[3]:SetSize(cap, tall)
 	b[2]:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", cap, 0)
 	b[2]:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -cap, 0)
-	b[2]:SetHeight(line)
+	b[2]:SetHeight(tall)
 end
 
 function Minimal:Apply(p, above)
@@ -402,42 +421,50 @@ function Minimal:Apply(p, above)
 	local wide = x1 - x0 + 2 * out
 	local box = self.box
 	box:ClearAllPoints()
-	box:SetPoint("BOTTOMLEFT", art, "BOTTOMLEFT", x0 - out, (LINE_UP - LINE_UNITS / 2) * k)
+	box:SetPoint("BOTTOMLEFT", art, "BOTTOMLEFT", x0 - out, (LINE_UP - LINE_MID) * k)
 	box:SetSize(wide, CAP_H * k)
-	-- The cut: the line's length, and as tall as the spark, whose lens stands
-	-- over the line and under it.
+	-- The cut (CUT_KEEP, FLARE): from just outside the left tick to a spark's
+	-- flare past the far one, and as tall as the spark, whose lens stands over
+	-- the line and under it. `under` is how far the spark's foot hangs below
+	-- the box's.
+	local cut, under = out - CUT_KEEP * k, (SPARK_H / 2 - LINE_MID) * k
 	local clip = self.clip
 	clip:ClearAllPoints()
-	clip:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", 0, -(SPARK_H - LINE_UNITS) / 2 * k)
-	clip:SetSize(wide, SPARK_H * k)
-	PlaceBar(self.track, box, cap, CAP_H * k, LINE_UNITS * k)
-	PlaceBar(self.fillBar, self.fill, cap, CAP_H * k, LINE_UNITS * k)
-	PlaceBar(self.hotBar, self.hot, cap, CAP_H * k, LINE_UNITS * k)
+	clip:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", cut, -under)
+	clip:SetSize(wide - cut + FLARE * k, SPARK_H * k)
+	PlaceBar(self.track, box, cap, CAP_H * k)
+	PlaceBar(self.fillBar, self.fill, cap, CAP_H * k)
+	PlaceBar(self.hotBar, self.hot, cap, CAP_H * k)
 	-- The glow: from tick to tick, its middle on the hairline's.
 	self.glow:ClearAllPoints()
-	self.glow:SetPoint("BOTTOMLEFT", self.fill, "BOTTOMLEFT", TICK_X * k, -(GLOW_H - LINE_UNITS) / 2 * k)
-	self.glow:SetPoint("BOTTOMRIGHT", self.fill, "BOTTOMRIGHT", -TICK_X * k, -(GLOW_H - LINE_UNITS) / 2 * k)
+	self.glow:SetPoint("BOTTOMLEFT", self.fill, "BOTTOMLEFT", TICK_X * k, -(GLOW_H / 2 - LINE_MID) * k)
+	self.glow:SetPoint("BOTTOMRIGHT", self.fill, "BOTTOMRIGHT", -TICK_X * k, -(GLOW_H / 2 - LINE_MID) * k)
 	self.glow:SetHeight(GLOW_H * k)
 	self.ping:ClearAllPoints()
 	self.ping:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", 0, 0)
 	self.ping:SetSize(cap, CAP_H * k)
 
-	-- The sparks: each with its head on the left tick, and the tick-to-tick
-	-- distance to run. The cast's starts a tick further back, where the
-	-- fill's leading end starts, and runs the fill's whole slide with it.
+	-- The sparks, laid against the line's box (the cut is not where the line
+	-- starts). The cast's and the landing's has its head on the left tick, and
+	-- the tick-to-tick distance to dash; cast, it starts a tick further back,
+	-- where the fill's leading end starts, and runs the fill's whole slide
+	-- with it. The two that fade in standing still start START_IN inside the
+	-- tick and run the rest of the way to the far one.
 	local run = wide - 2 * TICK_X * k
+	local roam = run - START_IN * k
 	for _, f in ipairs({ self.spark, self.rover, self.glint }) do
+		local inside = f == self.spark and 0 or START_IN
 		f:ClearAllPoints()
 		f:SetSize(SPARK_W * k, SPARK_H * k)
-		f:SetPoint("BOTTOMLEFT", clip, "BOTTOMLEFT", (TICK_X - SPARK_HEAD * SPARK_W) * k, 0)
+		f:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", (TICK_X + inside - SPARK_HEAD * SPARK_W) * k, -under)
 	end
 	self.fillIn.away:SetOffset(-wide, 0)
 	self.fillIn.home:SetOffset(wide, 0)
 	self.sputter.out:SetOffset(-wide, 0)
 	self.cast.away:SetOffset(-2 * TICK_X * k, 0)
 	self.cast.run:SetOffset(wide, 0)
-	self.patrol.run:SetOffset(run, 0)
-	self.drift.run:SetOffset(run, 0)
+	self.patrol.run:SetOffset(roam, 0)
+	self.drift.run:SetOffset(roam, 0)
 	self.dash.run:SetOffset(run, 0)
 
 	-- The mark, on the icon's lower right corner (which Panel.lua has placed).

@@ -21,9 +21,14 @@ snow as well as over a cave.
 
 THE FILES, with the UI units they are drawn at:
 
-  Minimal_Line    16x32   the hairline, the same along its length (it is
+  Minimal_Line    16x64   the hairline, the same along its length (it is
                           stretched): a core 1.4 units thick, a little bloom,
-                          on a soft dark bed. Its middle is the file's.
+                          on a soft dark bed. The file is as tall as the cap's
+                          and its hairline at the same height in it, so the
+                          three pieces of a line are laid at one height and
+                          the client rounds all three to the screen alike: a
+                          shorter file beside the cap's put a step of part of
+                          a pixel in the hairline where they met.
   Minimal_Cap     32x64   the bar's left end: the hairline turning up into a
                           tick 4 units tall, round at its tip. The right end is
                           this file drawn the other way round. Its hairline
@@ -54,9 +59,9 @@ OUT = os.path.join(ROOT, "Textures", "Minimal")
 
 # ---- must agree with Looks/MinimalDress.lua -----------------------------
 TPU = 4.0              # texels per unit, in every file but the marks
-LINE_UNITS = 8         # the hairline's file is this many units tall
+LINE_MID = 4.0         # the hairline's middle, in units over the foot of its file and the cap's
 CORE = 0.7             # half the hairline's thickness, in units
-CAP_UNITS = (8, 16)    # the cap's file, in units
+CAP_UNITS = (8, 16)    # the cap's file, in units; the hairline's is as tall
 TICK_X = 2.4           # the tick's middle, in units from the cap's outer edge
 TICK_RISE = 4.0        # how far the tick's tip stands over the hairline's middle
 GLOW_UNITS = 16        # the glow's file is this many units tall
@@ -102,9 +107,10 @@ def stroke(dist):
 # ------------------------------------------------------------------ the hairline
 
 def make_line():
-    w, h = 16, int(LINE_UNITS * TPU)
+    # As tall as the cap's file, the hairline where the cap's is.
+    w, h = 16, int(CAP_UNITS[1] * TPU)
     x, y = grid(w, h)
-    dist = np.abs(y - h / 2.0) / TPU
+    dist = np.abs((h - y) / TPU - LINE_MID)
     light, bed = stroke(dist)
     # What is seen is the light on its bed: a dark-lined stroke this wide.
     feature(2 * BED_OUT)
@@ -115,10 +121,10 @@ def make_cap():
     w, h = int(CAP_UNITS[0] * TPU), int(CAP_UNITS[1] * TPU)
     x, y = grid(w, h)
     # In units, from the file's bottom left: the hairline's middle is where
-    # Minimal_Line's is (half of LINE_UNITS up from the bottom), and runs out
-    # of the file's right edge; the tick rises from its end.
+    # Minimal_Line's is (LINE_MID up from the bottom), and runs out of the
+    # file's right edge; the tick rises from its end.
     u, v = x / TPU, (h - y) / TPU
-    mid = LINE_UNITS / 2.0
+    mid = LINE_MID
     dist = polyline(u, v, [(TICK_X, mid + TICK_RISE - CORE), (TICK_X, mid), (CAP_UNITS[0] + 4.0, mid)])
     light, bed = stroke(dist)
     feature(2 * BED_OUT)

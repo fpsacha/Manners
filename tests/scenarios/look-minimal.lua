@@ -20,9 +20,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Minimal\\Minimal_"
 local FILES = { "Line", "Cap", "Glow", "Spark", "Check", "Cross" }
 -- What Looks/MinimalDress.lua and the generator agree on, and the figures
 -- read here.
-local LINE_UNITS, CAP_W, CAP_H, TICK_X, CORE = 8, 8, 16, 2.4, 0.7
+local LINE_MID, CAP_W, CAP_H, TICK_X, CORE = 4, 8, 16, 2.4, 0.7
 local SPARK_W, SPARK_H, SPARK_HEAD = 32, 16, 0.75
 local LINE_UP, LINE_END = 2.5, 8
+local CUT_KEEP, FLARE, START_IN = 0.25, 4.5, 3
 local REST, OWED, GLOW, TRACK_ALPHA, FILL_LIFT = 0.62, 1, 0.6, 0.5, 0.22
 local BREAK = { 1.00, 0.42, 0.20 }
 local FLOURISH = 0.6
@@ -121,13 +122,15 @@ withTree("look-minimal: the art is there, each file a power of two and 32 bits",
 			if h.bits ~= 32 or h.imageType ~= 2 then fail(scenario, name .. " is not a 32-bit uncompressed TGA") end
 		end
 	end
-	-- The files are as many texels to the unit as the Lua lays them at, so the
-	-- hairline in the cap meets the hairline beside it.
+	-- The hairline's file is as tall as the cap's (the three pieces of a line
+	-- are laid at one height, so the client rounds them to the screen alike),
+	-- and the cap's is as many texels to the unit both ways.
 	local line, cap, spark = header(dir .. "/Textures/Minimal/Minimal_Line.tga"), header(dir .. "/Textures/Minimal/Minimal_Cap.tga"),
 		header(dir .. "/Textures/Minimal/Minimal_Spark.tga")
 	if line and cap and spark then
-		if not (near(line.height / LINE_UNITS, cap.height / CAP_H) and near(cap.width / CAP_W, cap.height / CAP_H)) then
-			fail(scenario, "the cap and the hairline are drawn at different texels to the unit")
+		if not (line.height == cap.height and near(cap.width / CAP_W, cap.height / CAP_H)) then
+			fail(scenario, ("the hairline's file is %d tall and the cap's %d by %d: not one height, or not the shape the cap is laid at"):format(
+				line.height, cap.width, cap.height))
 		end
 		if not near(spark.width / SPARK_W, spark.height / SPARK_H) then fail(scenario, "the spark's file is not the shape it is laid at") end
 	end
@@ -178,14 +181,14 @@ withTree("look-minimal: a hairline under the words, from where they start, a tic
 				fail(scenario, ("%s: the right tick stands %.1f short of the panel's edge, not %d"):format(tag, art[3] - (box[3] - out), LINE_END))
 			end
 			-- Its light where Panel.lua's bottom rule lies, scaled with the panel.
-			local middle = box[2] + LINE_UNITS / 2 * k - art[2]
+			local middle = box[2] + LINE_MID * k - art[2]
 			if not near(middle, LINE_UP * k, 0.05) then
 				fail(scenario, ("%s: the line's light is %.2f over the panel's foot, not %.2f"):format(tag, middle, LINE_UP * k))
 			end
 			-- Under the reason line, never in it.
 			if r.sub and FT.visible(r.sub) then
 				local subFoot = select(1, FT.span(r.sub, "y"))
-				if box[2] + (LINE_UNITS / 2 + CORE) * k > subFoot then fail(scenario, tag .. ": the hairline is drawn in the reason line") end
+				if box[2] + (LINE_MID + CORE) * k > subFoot then fail(scenario, tag .. ": the hairline is drawn in the reason line") end
 			end
 		end
 		-- Three lines of the same three pieces: unlit, lit, and the flash.
@@ -198,8 +201,14 @@ withTree("look-minimal: a hairline under the words, from where they start, a tic
 					fail(scenario, ("%s: the %s line's cap is %.1f by %.1f, not %.1f by %.1f"):format(tag, which,
 						capL[3] - capL[1], capL[4] - capL[2], CAP_W * k, CAP_H * k))
 				end
-				if not (near(mid[1], capL[3]) and near(mid[3], capR[1]) and near(mid[4] - mid[2], LINE_UNITS * k) and near(mid[2], capL[2])) then
+				if not (near(mid[1], capL[3]) and near(mid[3], capR[1]) and near(mid[2], capL[2])) then
 					fail(scenario, tag .. ": the " .. which .. " line's hairline does not join its caps")
+				end
+				-- One height for all three: pieces of two heights are rounded to
+				-- the screen apart, a step in the hairline where they meet.
+				if not (near(mid[4] - mid[2], capL[4] - capL[2]) and near(capR[4] - capR[2], capL[4] - capL[2])) then
+					fail(scenario, ("%s: the %s line's hairline is %.1f tall beside caps of %.1f: not one height"):format(tag, which,
+						mid[4] - mid[2], capL[4] - capL[2]))
 				end
 				if not (near(capL[1], box[1]) and near(capR[3], box[3]) and near(capL[2], box[2])) then
 					fail(scenario, tag .. ": the " .. which .. " line is not laid in the line's box")
@@ -223,21 +232,38 @@ withTree("look-minimal: a hairline under the words, from where they start, a tic
 			fail(scenario, tag .. ": a flash or the mark is up at rest")
 		end
 		if (dress.glow:GetAlpha() or 1) > 0.001 then fail(scenario, tag .. ": the line glows with nobody owed") end
-		-- The cut holds the fill and the three sparks, and is the line's length.
+		-- The cut holds the fill and the three sparks. It is the spark's height,
+		-- and the hairline's middle is its own.
 		local clip = rectOf(dress.clip)
 		if not (dress.clip._ft and dress.clip._ft.clips) then fail(scenario, tag .. ": the fill is not cut at the line's ends") end
-		if not (clip and box and near(clip[1], box[1]) and near(clip[3], box[3]) and near(clip[4] - clip[2], SPARK_H * k)) then
+		if not (clip and box and near(clip[4] - clip[2], SPARK_H * k) and near((clip[2] + clip[4]) / 2, box[2] + LINE_MID * k, 0.05)) then
 			fail(scenario, tag .. ": the cut is not the line's length and the spark's height")
+		elseif nameLeft then
+			-- On the left it stands at the tick's outer edge, a quarter unit
+			-- kept for the edge's own softness: the fill is cast from that side
+			-- and a spark's tail trails that way, and neither may be seen left
+			-- of where the line starts.
+			if not near(clip[1], nameLeft - CUT_KEEP * k, 0.05) then
+				fail(scenario, ("%s: the cut starts %.2f left of the left tick: a line being cast is seen outside its tick"):format(tag, nameLeft - clip[1]))
+			end
+			-- On the right it leaves a spark's flare room past the far tick,
+			-- and that room is inside the panel.
+			if not near(clip[3], box[3] + FLARE * k, 0.05) then
+				fail(scenario, ("%s: the cut ends %.2f past the line's box: a spark's flare is sheared at the far tick"):format(tag, clip[3] - box[3]))
+			end
+			if clip[3] > art[3] + 0.01 then fail(scenario, ("%s: the cut reaches %.2f outside the panel"):format(tag, clip[3] - art[3])) end
 		end
-		-- Each spark's head rests on the left tick, its middle on the hairline's.
+		-- The cast's spark rests with its head on the left tick; the two that
+		-- fade in standing still, START_IN inside it. Each rides the hairline.
 		for _, f in ipairs({ dress.spark, dress.rover, dress.glint }) do
 			local s = rectOf(f)
 			if not s then
 				fail(scenario, tag .. ": a spark is not placed")
 			else
 				local head = s[1] + SPARK_HEAD * (s[3] - s[1])
-				if not near(head, box[1] + TICK_X * k, 0.05) then fail(scenario, ("%s: a spark's head rests at %.1f, the tick is at %.1f"):format(tag, head, box[1] + TICK_X * k)) end
-				if not near((s[2] + s[4]) / 2, box[2] + LINE_UNITS / 2 * k, 0.05) then fail(scenario, tag .. ": a spark does not ride the hairline") end
+				local want = box[1] + (TICK_X + (f == dress.spark and 0 or START_IN)) * k
+				if not near(head, want, 0.05) then fail(scenario, ("%s: a spark's head rests at %.1f, not at %.1f"):format(tag, head, want)) end
+				if not near((s[2] + s[4]) / 2, box[2] + LINE_MID * k, 0.05) then fail(scenario, tag .. ": a spark does not ride the hairline") end
 			end
 			if f.tex._blend == "ADD" then fail(scenario, tag .. ": a spark that loops is additive") end
 		end
@@ -321,10 +347,11 @@ withTree("look-minimal: at rest a glint crosses the line on Full; not on Calm, i
 	if loops() ~= 1 then fail(scenario, "at rest " .. loops() .. " loops run, not the glint alone") end
 	if not (#dress.idle == 1 and dress.idle[1] == dress.drift) then fail(scenario, "what loops at rest is not named") end
 	if dress.drift._looping ~= "REPEAT" then fail(scenario, "the glint does not come round again") end
-	-- It runs from tick to tick, and is gone before it gets there.
+	-- It runs from where it starts, START_IN inside the left tick, to the far
+	-- tick, and is gone before it gets there.
 	local box = rectOf(dress.box)
 	local k = scaleFor(p.height)
-	local run = (box[3] - box[1]) - 2 * TICK_X * k
+	local run = (box[3] - box[1]) - (2 * TICK_X + START_IN) * k
 	local off = dress.drift.run._offset or {}
 	if not (near(off[1], run, 0.05) and near(off[2], 0)) then fail(scenario, ("the glint runs %s units along a line of %.1f"):format(tostring(off[1]), run)) end
 	-- A wider panel, a longer run.
@@ -333,7 +360,7 @@ withTree("look-minimal: at rest a glint crosses the line on Full; not on Calm, i
 	tick(ns)
 	box = rectOf(dress.box)
 	off = dress.drift.run._offset or {}
-	if not near(off[1], (box[3] - box[1]) - 2 * TICK_X * k, 0.05) then fail(scenario, "on a wider panel the glint still runs the old line's length") end
+	if not near(off[1], (box[3] - box[1]) - (2 * TICK_X + START_IN) * k, 0.05) then fail(scenario, "on a wider panel the glint still runs the old line's length") end
 	-- A turn takes seconds: a prompt at rest is not busy.
 	if FT.groupLength(dress.drift) < 4 then fail(scenario, ("the glint comes round every %.1f s"):format(FT.groupLength(dress.drift))) end
 
@@ -421,7 +448,7 @@ withTree("look-minimal: somebody owed casts the line, then it breathes and the s
 	if not (sameColour(dress.glow, cr, cg, cb) and near(dress.glow:GetAlpha(), GLOW, 0.001)) then fail(scenario, "the owed line does not glow in the owed colour") end
 	if dress.glow._blend == "ADD" then fail(scenario, "the glow that rests is additive") end
 	local off = dress.patrol.run._offset or {}
-	if not near(off[1], wide - 2 * TICK_X * k, 0.05) then fail(scenario, "the spark does not run from tick to tick") end
+	if not near(off[1], wide - (2 * TICK_X + START_IN) * k, 0.05) then fail(scenario, "the spark does not run from tick to tick") end
 	-- The marker off: plain warm light, not the reason's colour.
 	p.accentMode = "off"
 	ns.Prompt:ApplyStyle()
@@ -479,6 +506,12 @@ withTree("look-minimal: a landing dashes the line, flashes it and strikes the ti
 	if not dress.flow.driver:IsShown() then fail(scenario, "nothing plays the tick's frames") end
 	for _, g in ipairs({ dress.flash, dress.dash }) do
 		if FT.groupLength(g) > FLOURISH + 0.001 then fail(scenario, ("a landing's light lasts %.2f s"):format(FT.groupLength(g))) end
+	end
+	-- The dash goes from the one tick to the other.
+	local lineBox = rectOf(dress.box)
+	local dashed = dress.dash.run._offset or {}
+	if not near(dashed[1], (lineBox[3] - lineBox[1]) - 2 * TICK_X * scaleFor(p.height), 0.05) then
+		fail(scenario, ("a landing's spark dashes %s units, not from tick to tick"):format(tostring(dashed[1])))
 	end
 	-- The mark: on the icon's lower right corner, eight frames in a sheet four
 	-- across, its last frame the one it rests on.
