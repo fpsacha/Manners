@@ -802,6 +802,15 @@ do
 		["battle.speak"] = true,
 	}
 
+	-- How an ask is said and where (Ask.lua), kept as the player has it while
+	-- asking is on, for the same reason: a paste must not turn a whisper outside
+	-- towns into a /say in a city. With asking off they travel.
+	local SHARE_ASK = {
+		["ask.channel"] = true,
+		["ask.line"] = true,
+		["ask.inTowns"] = true,
+	}
+
 	-- Defaults that are not a constant: the phrase box is filled from the chosen
 	-- set at load.
 	local SHARE_DEFAULT = {
@@ -1209,6 +1218,7 @@ do
 	-- has them. Returns what was kept back.
 	local function ApplySettings(profile, parsed, own)
 		local speaking = profile.speech and profile.speech.enabled == true
+		local asking = type(profile.sources) == "table" and profile.sources.ask == true
 		local kept = { switch = false, thank = false, words = false }
 		for _, field in ipairs(ShareFields()) do
 			local holder = Holder(profile, field.path, true)
@@ -1222,6 +1232,10 @@ do
 					and not SameValue(parsed.values[field.name], holder[field.key]) then
 					kept.words = true
 				end
+			elseif not own and asking and SHARE_ASK[field.name] then
+				-- Kept whatever the string holds, one made before asking existed
+				-- too; said only when that differs from the player's.
+				if not SameValue(value, holder[field.key]) then kept.asking = true end
 			else
 				holder[field.key] = value
 			end
@@ -1278,6 +1292,9 @@ do
 		end
 		if kept.words then
 			lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
+		end
+		if kept.asking then
+			lines[#lines + 1] = L["How you ask for a buff, and where, is kept as you had it, because you have asking switched on."]
 		end
 		if InCombatLockdown() then
 			lines[#lines + 1] = L["The prompt's look changes when this fight ends."]

@@ -221,6 +221,14 @@ local function OnPreClick(self, mouseButton, down)
 	if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then
 		ready = true
 	end
+	-- An ask (Ask.lua) casts nothing: its macro is one line, which no cooldown
+	-- and no cast of your own holds back. Out of a fight only, where no ask is
+	-- ever on the button; what the cooldown had left is kept for a press the
+	-- scan below turns into a cast after all.
+	local askLeft
+	if not ready and not InCombatLockdown() and S.current and S.current.ask then
+		ready, askLeft = true, left
+	end
 	-- Then the combat return: in combat nothing below can change the macro,
 	-- since the attributes are frozen, so neither the target nor the spoken
 	-- line (range, a refusal) is looked at again until the fight ends.
@@ -275,6 +283,9 @@ local function OnPreClick(self, mouseButton, down)
 		return
 	end
 
+	-- What you wear is read afresh for a press (Ask.lua keeps a reading a
+	-- second): the buff an ask is for may have landed since.
+	ns.Ask.ForgetWorn()
 	local queue, verdicts = ns.BuildQueue(S.hovering)
 	NoteVerdicts(verdicts)
 	local top = Prompt:PickTop(queue, queue[1])
@@ -284,6 +295,12 @@ local function OnPreClick(self, mouseButton, down)
 	-- the screen (at worst the game refuses the cast, in red) rather than
 	-- silently doing nothing. Not for somebody retired, and not under a flash
 	-- about somebody else: the press follows the words on the panel.
+	-- Never for an ask: a line to somebody the scan has just dropped (the buff
+	-- landed, they are fighting, dead or away) is not the game's to refuse.
+	if not top and S.current and S.current.ask then
+		Prompt:ApplyTarget(nil)
+		return
+	end
 	if not top and S.current and not Retired(S.current, now) and named == S.current.name then
 		LightFuse(now)
 		pressStale = true
@@ -318,6 +335,16 @@ local function OnPreClick(self, mouseButton, down)
 		for _, candidate in ipairs(queue) do
 			if candidate.name == top.name then pressStale = nil break end
 		end
+	end
+
+	-- Let past the cooldown as an ask, and the scan now has a cast: turned
+	-- away as any press in the cooldown is.
+	if askLeft and top and not top.ask then
+		lastPreClickAt = nil
+		cooldownPressAt, guardedEntry = now, nil
+		Prompt:ApplyTarget(nil)
+		Prompt:SayWaiting(askLeft)
+		return
 	end
 
 	S.appliedKey = nil
@@ -693,6 +720,8 @@ local function OnRowPreClick(self, mouseButton, down)
 	-- The global cooldown holds a press back: nothing is armed, so nothing goes
 	-- out, and PostClick says so as it does for the prompt.
 	local ready, left = ns.CastReady()
+	-- An ask's row says a line and casts nothing: no cooldown holds it back.
+	if entry.ask then ready = true end
 	cooldownPressAt = (not ready) and now or nil
 	if not ready then
 		guardedEntry = nil
@@ -704,6 +733,7 @@ local function OnRowPreClick(self, mouseButton, down)
 	-- Stamped once the press is going ahead: a press turned away above says
 	-- nothing of the next.
 	row.preAt = now
+	ns.Ask.ForgetWorn()
 	local queue, verdicts = ns.BuildQueue(S.hovering)
 	NoteVerdicts(verdicts)
 	row.pickedFrom = queue
