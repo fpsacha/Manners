@@ -264,7 +264,8 @@ own. The full list for each class is under *Which buffs each class offers*.
   (after you die, say). On WoW Forever a dwarf can keep Find Treasure on
   beside a gathering tracking, so there it has a switch of its own, *Find
   Treasure*, reminded of once you have had it on. In a battleground or an
-  arena tracking is not reminded of at all.
+  arena a gathering tracking is not reminded of at all; one to fight with
+  (Track Humanoids, Track Hidden), picked or the last you had on, still is.
 - **Detect Invisibility** (warlocks; Classic Era, WoW Forever, Burning
   Crusade): off until you switch it on. To hand it to your group as well,
   tick *Detect Invisibility (your group only)* among the buffs you offer.
@@ -557,7 +558,7 @@ day, *Old Acquaintance* for thanking the same person on ten different days,
 Thank-Yous*, *Back on Your Feet* for a resurrection through the prompt, *A
 Clean Bill of Health* for a cure, *At Your Service* for a courtesy on request,
 and three hidden ones that say what they were once earned. The *Milestones*
-tab lists them with how far along each is; an earned one has *Link in chat*,
+tab lists them with how far along each is; an earned one has a small speech-bubble button, *Link in chat*,
 which puts a line about it in your chat box and sends nothing until you press
 Enter. A new milestone gets a small toast for a few seconds and one line in
 your chat window: never in a fight, never over the prompt, at most one a

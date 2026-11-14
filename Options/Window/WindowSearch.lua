@@ -129,6 +129,9 @@ end
 function UI.Choose(ref)
 	UI.CloseResults()
 	if search.box then search.box:ClearFocus() end
+	-- A setting found behind its switch (`via`) and not on the short list:
+	-- the full view first, or turning the switch on would show nothing.
+	if ref.via and UI.OffShortList(ref.via) then ns.SetMenuView("full") end
 	local e = UI.Reveal(ref.path)
 	local row = e and e.row
 	if row and row.Flash then row.Flash(row) end

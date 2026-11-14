@@ -5,14 +5,14 @@
 S = "runscenarios.py"
 
 mutate("Core.lua",
-       "\t\tif family.tracking and ns.InBattleground() then return nil, nil, nil, \"battle\" end\n",
+       "\t\t\tif not wanted or ns.GATHERING[wanted.key] then return nil, nil, nil, \"battle\" end\n",
        "",
        "battle-tracking: tracking reminded in a battleground",
        expect="instance tracking is still offered", script=S)
 
 mutate("Core.lua",
-       "\t\tif family.tracking and ns.InBattleground() then return nil, nil, nil, \"battle\" end\n",
-       "\t\tif ns.InBattleground() then return nil, nil, nil, \"battle\" end\n",
+       "\t\tif family.tracking and ns.InBattleground() then\n\t\t\tlocal wanted = spell or ns.OwnAutoPick(family)\n",
+       "\t\tif ns.InBattleground() then\n\t\t\tlocal wanted = nil\n",
        "battle-tracking: every own buff held back in a battleground",
        expect="is held back in a battleground as tracking is", script=S)
 

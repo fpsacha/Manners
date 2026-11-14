@@ -511,7 +511,9 @@ local function BuildCard(row, i)
 	card.title = W.Text(card, T.fonts.label, T.ink)
 	card.title:SetWordWrap(false)
 	card.desc = W.Wrapping(W.Text(card, T.fonts.small, T.hint))
-	if card.desc.SetMaxLines then card.desc:SetMaxLines(2) end
+	-- As many lines as the words take: the row is as tall as its tallest card
+	-- (Layout), and a cap of two cut the longest description short in German,
+	-- French, Spanish, Portuguese and Italian at the window's smallest.
 
 	-- The tick for the chosen one: a gold disc on a dark ring, under the
 	-- picture's right corner on the title's line, clear of the picture (over

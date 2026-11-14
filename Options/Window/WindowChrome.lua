@@ -305,10 +305,12 @@ local function StateLine()
 end
 
 -- Whether the control a combat line is about is on screen: shown by its own
--- rules, and its fold open, so the line never speaks of something shut away.
+-- rules, on the short list while the simple view is on, and its fold open,
+-- so the line never speaks of something shut away.
 local function NeedShown(path)
 	local needs = UI.Item(path)
 	if not needs or UI.Hidden(needs) then return false end
+	if UI.HiddenBySimple(path) then return false end
 	local w = UI.Where(path)
 	return not (w and w.sec.fold and not UI.State().open[w.sec.key])
 end

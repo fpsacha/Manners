@@ -1369,6 +1369,14 @@ function Ribbon:Fitted(fs)
 	local text = fs:GetText()
 	if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return end
 	if not text:find("|c%x%x%x%x%x%x%x%x") then return end
+	-- An outcome's headline (PaintOutcome, with no second line to hold the
+	-- verdict) keeps its own colours: the refusal's red and the landing's
+	-- green are what the words say, and the gold would make one pale ink of
+	-- both. Remembered like a line already mixed, so a refit leaves it too.
+	if self.headline then
+		self.mixedText = text
+		return
+	end
 	-- A line refitted (the tags came or went) is the text this look wrote
 	-- itself: taken to the gold once, not again.
 	if text == self.mixedText then return end
@@ -1720,16 +1728,20 @@ end
 --
 -- THE CLOTH IS NEVER ABSENT ON A PROMPT THAT IS UP. Its fade starts it from
 -- nothing, so it is played only while the prompt itself is coming up (Prompt's
--- entrance is running: the whole panel is rising from nothing then); a favour
--- that arrives on a prompt already up slides the cloth out at its full
--- strength. The arrival is never played over an outcome (Attention), and an
+-- entrance is fading the whole panel in from nothing: the first part of the
+-- full entrance, intro.rise long, and not the settle after it, where the panel
+-- stands at its full strength while the group still plays); a favour that
+-- arrives on a prompt already up slides the cloth out at its full strength. The arrival is never played over an outcome (Attention), and an
 -- outcome ends a fade still running (StopFlourishes, which Prompt calls before
 -- every flourish): a landing or a refusal that came with the arrival, or with
 -- the next person owed, had the medallion and the words standing with no cloth
 -- under them while it faded back in.
 function Ribbon:Unfurl(full)
 	local art = self.kit.art
-	local rising = (art.intro and art.intro:IsPlaying()) or (art.introCalm and art.introCalm:IsPlaying())
+	local intro = art.intro
+	local rising = (intro and intro:IsPlaying()
+		and GetTime() - (art.introAt or GetTime()) < (intro.rise or math.huge))
+		or (art.introCalm and art.introCalm:IsPlaying())
 	if rising then PlayAll(self.fade) end
 	if full and self.slideBy > 0 then
 		-- Stopped first, so the home its stop puts the ribbon back to is not
@@ -1890,8 +1902,11 @@ function Ribbon:PaintOutcome(kind, lead, sub, who, stamp)
 		if not word then word = sub or "" end
 	else
 		-- Nobody to name, or no second line to hold the verdict: the built-in
-		-- looks' headline, which says both what happened and to whom.
+		-- looks' headline, which says both what happened and to whom, in its
+		-- own colours (Fitted).
+		self.headline = true
 		kit.SetLine(kit.name, lead)
+		self.headline = nil
 		word = sub or ""
 	end
 	self.outcomeOn = true

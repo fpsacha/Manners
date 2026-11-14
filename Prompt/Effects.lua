@@ -401,6 +401,11 @@ function Prompt:BuildAnimations()
 	Slide(intro, 0, 8, 0.22, 2, 0, "OUT")
 	Grow(intro, 0.95, 1.025, 0.22, 2, 0, "OUT")
 	Grow(intro, 1.025, 1, 0.11, 3, 0, "IN_OUT")
+	-- How much of it is the fade: the panel is at its full strength for the
+	-- settle that follows, and a look that asks whether the prompt is still
+	-- coming up from nothing (Ribbon's cloth) asks about this part alone,
+	-- from R.art.introAt (PlayIntro).
+	intro.rise = 0.01 + 0.22
 	R.art.intro = intro
 
 	-- The same on Calm: a fade, nothing that moves or grows.
@@ -713,6 +718,7 @@ function Prompt:PlayIntro()
 	if not R.art.intro then return end
 	if FullEffects() then
 		R.art.introCalm:Stop()
+		R.art.introAt = GetTime()
 		if not S.activeLook and R.ruleTop and R.ruleTop.draw then
 			-- A panel coming back part-way through a settle or a fade: those
 			-- are let go first, so the rise starts from rest.

@@ -52,7 +52,7 @@ same list (`tests/validate.py` fails until they match).
 | `Resurrect.lua` | resurrection (`ns.Resurrect`; `sources.res` on, `sources.resStrangers` off): each client's resurrections per class (out of combat, no cooldown, no reagent; `caps.res`), the dead the walk meets handed over by `IsBuffableUnit` (`ns.deadSeen`), an entry ahead of everything (`Res.PRIORITY`, -1), never in a fight, for a released spirit, a feigned death or with a resurrection on its way (`UnitHasIncomingResurrection`); wraps `ns.BuildQueue` and `ns.ProbeCapabilities` at its end; `ns.ResurrectLines` for `/manners debug` |
 | `Companion.lua` | the companion pet (`ns.Pet`): whether one is out (`ns.ReadPet`: Forever's journal, `C_PetJournal.GetSummonedPetGUID`, else Manners' own count of a bag pet in `db.char.pet`), what holds it (`ns.PetHold`), Forever's journal summoned with no press from the scan (`Pet:Tick`, by *Which pet*, `ownBuffs.petChoice`: `last`, `favourite`, `random`, or `pet:<GUID>` for a pet of the journal picked by name, which `Pet.Choices` lists from `GetOwnedPetIDs`; three summons that bring nothing out, or ADDON_ACTION_FORBIDDEN/BLOCKED naming Manners, leave it to the player for the session), the player's own putting away (hooks on the journal, judged a second later); on Mists and retail the journal is all there is (`Pet.journalOnly`, a `pet` family with no bag rows), brought out the same way and held through a pet battle (`ns.PetHold` answers `"petbattle"`) |
 | `Commands.lua` | first run, test console, snooze, sharing, slash commands (`ns.COMMANDS`, `ns.DEV_COMMANDS`) |
-| `Hints.lua` | things said once a character, so a default does not read as a fault (`db.char.hints`): the first is `ns.RestingHint`, twelve seconds after the world loads, when your own buffs wait because you rest in a city or an inn and one of them is in fact missing |
+| `Hints.lua` | things said once a character, so a default does not read as a fault (`db.char.hints`): the first is `ns.RestingHint`, twelve seconds after the world loads, when your own buffs wait because you rest in a city or an inn and one of them (a family of your own, or your group buff on yourself) is in fact missing; never while Manners is off or snoozed |
 | `Phrases.lua` | the In character set (`RP` = `ns.InCharacter`) |
 | `Ask.lua` | asking for a buff you lack (`ns.Ask`; `sources.ask`, off; `db.ask`: `channel`, `line`, `inTowns`): an entry last of everything (`Ask.PRIORITY`, 9) for somebody in the group or beside you whose class could cast it, whose macro is one spoken line (a whisper, or `/say`) and no cast or target; one ask a person per buff in ten minutes and one in all in two, never in a fight, a battleground or an arena; three plain lines and six In character ones (`Ask.POOL`); never on the bar macro, never carried by a pasted settings line; `ns.AskLines` for `/manners debug` |
 | `Ledger.lua` | the favour ledger window (`/manners ledger`) |
@@ -284,9 +284,10 @@ default everywhere in the tests and the only client anybody here plays.
   frozen on the button or handed to the fight's rota. `ns.CanCastAnything` is
   true for a class with a resurrection (`caps.res`), a cure switched on
   (`ns.CuresWanted`) or asking switched on (`ns.AskLive`), so a class with no
-  buff for others can still have a prompt. Tracking is never reminded of in a
-  battleground or an arena (`OwnVerdict` answers `"battle"`,
-  `ns.InBattleground`).
+  buff for others can still have a prompt. A gathering tracking
+  (`ns.GATHERING`) is never reminded of in a battleground or an arena
+  (`OwnVerdict` answers `"battle"`, `ns.InBattleground`); one to fight with,
+  picked or Automatic's last, still is.
 
 ## Checks
 
