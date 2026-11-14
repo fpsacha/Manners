@@ -267,6 +267,22 @@ sub-second subset for the middle of an edit.
   `capOK`, `underText`, `isGrey`, `pow2`), dofile'd by each look's own scenario
   file; see `tools/README.md` under `materials.py`.
 
+Each look has a scenario file of its own, `scenarios/look-<key>.lua`, with its
+mutations in `mutations/look-<key>.py`: nineteen looks since 1.11.25, the four
+new ones (`stormcaller`, `warchief`, `gearworks`, `ebon`) and Minimal's
+dressing (`look-minimal.lua`) among them. A new look also joins the shared
+lists (`looks.lua`, `looks-alpha.lua`, `looks-read.lua`, `hunt35-effects.lua`,
+`hunt37-effects.lua`, `hunt38-picker.lua`, `hunt38-shared.lua`,
+`hunt40-layout.lua`, `perf-budget.lua`, `options-appearance.lua`,
+`selftest-launch.lua`) and `LOOKS` in `tools/audit_look_contrast.py`;
+`tools/LOOKS.md` has the whole list. The four new looks are in the audit's
+list and not yet in the shared scenarios' (`STATUS.md`, Open).
+
+The features of 1.11.25 each have a file of their own too: `res.lua`,
+`cures.lua`, `courtesy.lua`, `ask.lua`, `raidsplit.lua`, `battleground.lua`,
+`battle-tracking.lua`, `grouppets.lua`, `journalpet.lua` and
+`resting-hint.lua`, with the mutation file of the same name.
+
 ## `bughunt.py` — patterns
 
 Greps for fault shapes seen here: `a and b or c` where `b` can legitimately be

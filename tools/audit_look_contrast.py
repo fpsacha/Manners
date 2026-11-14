@@ -1,6 +1,6 @@
 """Measure how well the words on every prompt look read.
 
-For each of the fifteen looks the prompt is taken through the moments that
+For each of the nineteen looks the prompt is taken through the moments that
 change what is behind its words or what colour they are (tools/
 audit_look_contrast.lua: every reason at rest in both palettes, somebody owed
 with the lights at three moments of their run, an outcome that succeeded and
@@ -249,7 +249,7 @@ def table(found, looks):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--check", action="store_true", help="exit 1 when any line is under its floor")
-    ap.add_argument("--looks", help="a comma-separated list (default: all fifteen)")
+    ap.add_argument("--looks", help="a comma-separated list (default: all nineteen)")
     ap.add_argument("--sizes", help="default,small,large (default: all three)")
     ap.add_argument("--addon", default=ROOT, help="the tree to measure (default: this one)")
     ap.add_argument("--jobs", type=int, default=2)

@@ -16,13 +16,18 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 - **Click any name** in the list under the prompt to buff that person; right-click skips them, shift-right-click never offers them again.
 - **Kept out of the way:** a *Never offer* list, friends and guildmates first, nobody flagged for PvP while you are not, `/manners snooze`, the prompt hidden while you ride or in a fight, *Offer nothing in cities and inns* (or cities only, or inns only) or *in dungeons, raids and battlegrounds*, paladins skipping players another paladin has blessed, Thorns for tanks only or for you alone, consumables only in dungeons and raids, and *Hide all Manners messages in my chat window*.
 - **People who ask me in chat** (off by default): "int pls", "fort?" or "can I get motw" puts them on the prompt for a minute.
-- **Dungeons and raids:** one group cast for a whole party when you carry the reagent, ready checks and the fallen first, only the raid groups you buff, save mana below a level you set, holding back as much as you choose.
+- **Courtesies on request:** a mage's water, food and portals, a warlock's healthstones and summons, for whoever asks in chat. Off until ticked.
+- **Resurrection and cures:** out of a fight, your group's dead are offered your resurrection first, and a poison, disease, curse or harmful spell its cure, if you tick it.
+- **Ask for a buff:** when somebody near could give you a buff you are missing, one press whispers them a polite line. Off until ticked.
+- **Two Manners users, one group:** two of the same class each get their own part of it, so nobody is buffed twice.
+- **Battlegrounds and arenas:** your own buffs first after a death, your team freely before the gates open, and nothing said there unless you tick it.
+- **Dungeons and raids:** one group cast for a whole party when you carry the reagent, your group's pets if you tick them, ready checks and the fallen first, only the raid groups you buff, save mana below a level you set, holding back as much as you choose.
 - **Top-ups timed to each buff:** with top-ups on, about a tenth of its length before it ends, earlier in a raid or dungeon.
 - **Paladins:** Blessing of Kings first, and a buff order of your own for any class with several buffs.
 - **The favour ledger** and titles for your manners, from *Well Brought Up* to *The Very Soul of Courtesy*. `/manners ledger`.
-- **Say something**, if you like: four sets, whispers, or **In character**, over two thousand lines picked for your race, class and the moment. Off by default.
+- **Say something**, if you like: four sets, whispers, or **In character**, over two thousand lines picked for your race, class and the moment, with your own mixed in if you like. Off by default.
 - **Keys, action bars and controllers:** a key binding, a macro for any action bar slot that shows the spell it will cast and says your line, and the game's own controller support (bind a controller button; the prompt shows its picture).
-- **Fifteen looks** picked from cards, effects you can calm, and **Move the prompt** one click away in the options window.
+- **Nineteen looks** picked from cards, effects you can calm, and **Move the prompt** one click away in the options window.
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.
 
 Blizzard does not let an addon cast on its own, so nothing happens until you press the key: Manners decides who deserves the buff, and the game casts when you click. Passers-by are seen through friendly nameplates, which the options can turn on.
