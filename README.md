@@ -1287,7 +1287,7 @@ you have learned them:
 | Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out; Unending Breath while you swim |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
 | Hunter | *Aspect*: Hawk, Monkey, Wild or Beast, and in Season of Discovery Falcon and Viper (Viper never picked by *Automatic*; Cheetah and Pack count as up, but are never suggested); Trueshot Aura; Heart of the Lion in Season of Discovery (another hunter's does not count for yours) |
-| Shaman | *Shield*: Lightning Shield or Water Shield; *Weapon imbue*; Spirit of the Alpha in Season of Discovery while your group role is tank (Loyal Beta counts) |
+| Shaman | *Shield*: Lightning Shield or Water Shield; *Weapon imbue* (with *Weapon imbues before the shield* on, it comes up ahead of the shield, for a shaman short of mana); Spirit of the Alpha in Season of Discovery while your group role is tank (Loyal Beta counts) |
 | Druid | Moonkin Form; Tree of Life in Season of Discovery; Omen of Clarity on Classic Era only (a passive on WoW Forever) |
 
 A warrior has no buff of his own to be reminded of, and a rogue's own buffs are

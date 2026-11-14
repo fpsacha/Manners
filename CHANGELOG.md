@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Who gets what
+- **Weapon imbues before the shield.** A shaman's switch on *Who to buff*, under
+  *Weapon imbue*: the imbues come up ahead of Lightning Shield, so a shield you
+  have no mana for does not keep your imbue waiting. Off by default. Asked for on
+  CurseForge.
+
 ## 1.11.23
 
 ### Who gets what

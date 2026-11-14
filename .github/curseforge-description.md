@@ -51,7 +51,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shad
 ### Buff myself
 
 - **Your own buff and your class's own:** armors, auras, aspects, shields, Inner Fire, Shadowform, Moonkin Form, Demonic Sacrifice, Grimoire of Sacrifice, the Season of Discovery runes, Righteous Fury when you tank, and more.
-- **Weapons, one hand at a time:** poisons, stones, oils and fishing lures from your bags (and a warlock's Firestone or Spellstone on WoW Forever), a shaman's imbues, a Lightsmith paladin's rites on retail. One press puts it on.
+- **Weapons, one hand at a time:** poisons, stones, oils and fishing lures from your bags (and a warlock's Firestone or Spellstone on WoW Forever), a shaman's imbues (optionally ahead of the shield), a Lightsmith paladin's rites on retail. One press puts it on.
 - **Switched on when you want them:** Well Fed, flasks, elixirs and scrolls, a companion pet (on WoW Forever brought out of your journal with no press), Well-Rested from a Cozy Sleeping Bag, a warlock's Detect Invisibility, Unending Breath while you swim, and Battle Shout for a warrior on his own. A *Scrolls* switch turns every scroll off at once.
 - **Consumables only in dungeons and raids**, if you like.
 - **Automatic, or your choice** where a class has several of one kind; *Never remind me about* leaves any out. Only when none is up, never in a fight, and not in cities and inns unless you tick *Also in cities and inns*.

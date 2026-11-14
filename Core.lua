@@ -335,6 +335,9 @@ local defaults = {
 			dampenAlone = true,
 			-- The same for Amplify Magic (Buffs.lua, `solo`), a switch of its own.
 			amplifyAlone = true,
+			-- On: a shaman's weapon imbues come ahead of his shield on the prompt
+			-- (KnownOwnFamilies), for one who is short of mana for the shield.
+			imbueFirst = false,
 			-- Off: food, flasks, elixirs, scrolls and a weapon's oils, stones and
 			-- poisons come up on the prompt as "You". On: on a button of their
 			-- own (Prompt/Supplies.lua, ns.SupplyEntry), asked for on CurseForge,
@@ -2491,6 +2494,20 @@ do
 				-- journal, which Manners brings out itself (Companion.lua).
 				out[#out + 1] = family
 			end
+		end
+		-- "Weapon imbues first" (ownBuffs.imbueFirst, asked for on CurseForge): a
+		-- shaman's imbues come ahead of his shield, so one that cannot be cast for
+		-- want of mana does not hold the imbue back behind it.
+		local db = addon.db
+		if playerClass == "SHAMAN" and db and db.profile and db.profile.ownBuffs
+			and db.profile.ownBuffs.imbueFirst == true then
+			local first, rest = {}, {}
+			for _, family in ipairs(out) do
+				local into = family.imbue and first or rest
+				into[#into + 1] = family
+			end
+			for _, family in ipairs(rest) do first[#first + 1] = family end
+			out = first
 		end
 		return out
 	end

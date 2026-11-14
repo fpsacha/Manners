@@ -599,7 +599,7 @@ local function ForOthersOnly(args)
 		-- Consumables only in dungeons and raids is about your own buffs too:
 		-- a hunter's or a shaman's food and flasks.
 		if not (key == "myselfHeader" or key == "self" or key == "ownCities" or key == "ownDungeons"
-			or key == "ownScrolls" or key == "ownShout" or key:find("^own_")) then
+			or key == "ownScrolls" or key == "ownShout" or key == "ownImbueFirst" or key:find("^own_")) then
 			local was = arg.hidden
 			arg.hidden = function(...)
 				if not HasClassBuffs() then return true end
@@ -1481,6 +1481,29 @@ function Page.BuildWhoTab()
 				get = function() return ns.db.profile.ownBuffs.amplifyAlone ~= false end,
 				set = function(_, value)
 					ns.db.profile.ownBuffs.amplifyAlone = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
+			-- A shaman's weapon imbues ahead of his shield (Core.lua,
+			-- KnownOwnFamilies), asked for on CurseForge. Shown to a shaman who
+			-- knows an imbue.
+			ownImbueFirst = {
+				type = "toggle",
+				name = L["Weapon imbues before the shield"],
+				desc = L["On: your weapon imbues come up ahead of your shield, so a shield you cannot cast for want of mana does not keep your imbue waiting behind it."],
+				order = 15.967,
+				width = "full",
+				hidden = function()
+					for _, family in ipairs(ns.KnownOwnFamilies()) do
+						if family.imbue then return false end
+					end
+					return true
+				end,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.imbueFirst == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.imbueFirst = value == true
 					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 				end,
 			},

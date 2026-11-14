@@ -5,6 +5,11 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
+Unreleased after 1.11.23, asked for on CurseForge: *Weapon imbues before the
+shield* (`ownBuffs.imbueFirst`, off; Who to buff, Weapons; Core.lua
+`KnownOwnFamilies` puts a shaman's imbue families ahead of the rest;
+`tests/scenarios/imbuefirst.lua`).
+
 1.11.17 is released. Unreleased after it, both asked for on CurseForge:
 
 - A favour is not returned with a buff its giver already wears

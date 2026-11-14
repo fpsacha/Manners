@@ -267,6 +267,8 @@ ns.WindowLayout = {
 					"who.own_shamanimbue",
 					-- Retail's off hand: Flametongue beside Windfury, or a shield's ward.
 					"who.own_shamanimbueoff",
+					-- Imbues ahead of the shield, for a shaman short of mana.
+					{ "who.ownImbueFirst", indent = 2 },
 					-- A Lightsmith paladin's rites on the weapon (retail).
 					"who.own_rite",
 					-- What goes on a weapon from the bags, per hand, while there is
