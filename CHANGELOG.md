@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.24
 
 ### Who gets what
 - **Weapon imbues before the shield.** A shaman's switch on *Who to buff*, under
