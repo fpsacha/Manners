@@ -514,6 +514,9 @@ local function AddOwnControls(args)
 					or family.food
 					and L["Reminds you to eat when Well Fed is not on you and food that gives it is in your bags. Off until you turn it on. A food you keep for something else, a fishing food say, can be ticked under %s."]
 						:format(L["Never remind me about"])
+					-- Mists and retail: the journal alone, no pet is used from the bags.
+					or family.pet and family.journal and #family.spells == 0
+					and L["Keeps a companion pet out: Manners brings one out of your pet journal itself, with no press. Never in a fight, a dungeon, a raid, a battleground, an arena or a pet battle, nor while you are mounted, stealthed or flying, and a pet you put away stays away until you bring one out. Off until you turn it on."]
 					or family.pet and family.journal
 					and L["Keeps a companion pet out. Manners brings one out of your pet journal itself, with no press; a pet you use from your bags each time comes up on the prompt. Never in a fight, a dungeon, a raid, a battleground or an arena, nor while you are mounted, stealthed or flying, and a pet you put away stays away until you bring one out. Off until you turn it on."]
 					or family.pet
@@ -599,7 +602,10 @@ local function ForOthersOnly(args)
 		-- Consumables only in dungeons and raids is about your own buffs too:
 		-- a hunter's or a shaman's food and flasks.
 		if not (key == "myselfHeader" or key == "self" or key == "ownCities" or key == "ownDungeons"
-			or key == "ownScrolls" or key == "ownShout" or key == "ownImbueFirst" or key:find("^own_")) then
+			-- Which pet stands under the companion pet's switch, which is every
+			-- class's own (a retail death knight has nothing else on this page).
+			or key == "ownScrolls" or key == "ownShout" or key == "ownImbueFirst" or key == "ownPetChoice"
+			or key:find("^own_")) then
 			local was = arg.hidden
 			arg.hidden = function(...)
 				if not HasClassBuffs() then return true end

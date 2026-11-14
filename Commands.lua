@@ -124,6 +124,9 @@ do
 			return L["%s: not in a dungeon, a raid, a battleground or an arena."]:format(label)
 		elseif why == "petbusy" then
 			return L["%s: waits until you are not dead, flying, stealthed or casting."]:format(label)
+		elseif why == "petbattle" then
+			-- Mists and retail (Companion.lua, ns.PetHold).
+			return L["%s: waits until your pet battle is over."]:format(label)
 		elseif why == "refused" then
 			return L["%s: the game would not let Manners bring a pet out of your journal, so that is left to you."]:format(label)
 		end

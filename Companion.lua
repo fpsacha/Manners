@@ -12,6 +12,13 @@
 --       brings nothing out, three times running, or ADDON_ACTION_FORBIDDEN or
 --       _BLOCKED naming Manners), the journal is left to the player for the
 --       session.
+--   the pet journal alone (Mists and retail)  every pet there lives in the
+--       journal and none is used from the bags, so the family has no rows
+--       (`journalOnly`, at the end of this file). Brought out as Forever's is,
+--       by the same calls, which no client keeps to its own code: each one's
+--       /summonpet, /randompet and /randomfavoritepet, and its journal
+--       window's own buttons, make them from plain Lua. Two holds of its own:
+--       a pet battle, and the air (a druid's Flight Form is no mount).
 --   a pet used from the bags (Classic Era and Burning Crusade, a handful on
 --       Forever: Pets.lua)  a press, on the prompt, as food is: /use item:<id>.
 --       No call says whether one is out, so Manners keeps its own count: out
@@ -50,6 +57,10 @@ Pet.TRY_EVERY, Pet.CHECK_AFTER, Pet.GIVE_UP, Pet.SETTLE = TRY_EVERY, CHECK_AFTER
 local session = { lastTry = -math.huge, judging = nil, failures = 0, refused = false, quietUntil = 0,
 	ours = false }
 Pet.session = session
+
+-- Whether this client's pets all live in the journal (Mists and retail: the
+-- family has no bag rows). Found at the end of this file, and Pet.journalOnly.
+local journalOnly = false
 
 -- This character's pet family (Buffs.lua), or nil where there is none.
 local function Family()
@@ -147,10 +158,18 @@ local function Yes(fn, ...)
 	return type(fn) == "function" and plain(fn(...)) == true
 end
 
+-- Whether a pet battle is on (Mists and retail): the game puts your pet away
+-- for it, lets none be brought out (the journal's own summon button is locked
+-- by the same question) and brings yours back after.
+local function InPetBattle()
+	local battles = _G.C_PetBattles
+	return type(battles) == "table" and Yes(battles.IsInBattle)
+end
+
 -- Why no pet is brought out or offered just now, or nil (Core.lua,
 -- OwnVerdict): "dismissed" (the player put it away), "instance", "mounted",
 -- "petbusy" (dead, flying, in a vehicle, stealthed, casting, or a moment after
--- a loading screen).
+-- a loading screen), and where the journal is all there is "petbattle".
 function ns.PetHold(now)
 	local mine = Char()
 	if mine and mine.dismissed then return "dismissed" end
@@ -160,6 +179,13 @@ function ns.PetHold(now)
 	if Yes(_G.UnitIsDeadOrGhost, "player") or Yes(_G.UnitOnTaxi, "player") or Yes(_G.UnitInVehicle, "player")
 		or Yes(_G.IsStealthed) then
 		return "petbusy"
+	end
+	-- Mists and retail: not in a pet battle, nor in the air, where a druid's
+	-- Flight Form is no mount and a summon that brings nothing out would count
+	-- towards leaving the journal to the player.
+	if journalOnly then
+		if InPetBattle() then return "petbattle" end
+		if Yes(_G.IsFlying) then return "petbusy" end
 	end
 	if type(_G.UnitCastingInfo) == "function" and plain((_G.UnitCastingInfo("player"))) ~= nil then return "petbusy" end
 	if type(_G.UnitChannelInfo) == "function" and plain((_G.UnitChannelInfo("player"))) ~= nil then return "petbusy" end
@@ -371,6 +397,10 @@ end
 -- summon of ours.
 function Pet:PutAway(guid)
 	if session.ours then return end
+	-- Mists and retail: nothing is noted with the switch off (no scan judges
+	-- it then), so a pet put away before the switch was turned on does not
+	-- keep the journal shut once it is.
+	if journalOnly and not self:Wanted() then return end
 	session.asked = { guid = plain(guid), at = GetTime() }
 end
 
@@ -387,7 +417,11 @@ function Pet:OnEvent(event, ...)
 		local unit, _, spellId = ...
 		if unit == "player" then self:Cast(spellId) end
 	elseif event == "COMPANION_UPDATE" then
-		if ... ~= "MOUNT" then self:JournalChanged() end
+		-- Mists and retail send it with no kind for anybody near who mounts or
+		-- brings a pet out: there only "CRITTER" is read, your own pet changing,
+		-- the one kind their journal window reads (Blizzard_PetCollection).
+		local kind = ...
+		if kind ~= "MOUNT" and (kind == "CRITTER" or not journalOnly) then self:JournalChanged() end
 	elseif event == "PLAYER_ENTERING_WORLD" then
 		local _, reload = ...
 		-- A /reload keeps the pet; a login or a loading screen does not.
@@ -409,6 +443,10 @@ function Pet:OnEvent(event, ...)
 			session.refused = true
 			ns.Trail("pet", "the game refused " .. what .. ": the journal is left to the player")
 		end
+	elseif event == "PET_BATTLE_CLOSE" then
+		-- The game brings your pet back itself after a pet battle: a moment for
+		-- it, as after a loading screen.
+		session.quietUntil = GetTime() + SETTLE
 	end
 end
 
@@ -438,6 +476,40 @@ do
 					-- runs after, so the GUID last seen out is asked as well.
 					hooksecurefunc(journal, "SummonPetByGUID", function(guid) Pet:PutAway(guid) end)
 				end
+			end
+		end
+	end
+end
+
+-- Mists and retail: Pets.lua has no rows for them, so the block above
+-- registers nothing there. The family alone says it (Buffs.lua: the journal's,
+-- with no bag rows), for an unknown client that takes retail's set too. What
+-- the journal needs and no more: no cast is read (no bag pet to count, and
+-- UNIT_SPELLCAST_SUCCEEDED is every cast of the session), nor a death or a
+-- flight, which only ever cleared that count. The same hooks tell the player's
+-- own putting away, as on Forever: the journal's Dismiss, and SummonPetByGUID,
+-- which /dismisspet and the journal's button call on the pet that is out.
+do
+	local only = false
+	for _, families in pairs(ns.OWN_BUFFS or {}) do
+		for _, family in ipairs(families) do
+			if family.pet and family.journal == true and #family.spells == 0 then only = true end
+		end
+	end
+	if only then
+		journalOnly, Pet.journalOnly = true, true
+		local frame = Pet.frame
+		for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_CONTROL_GAINED",
+			"ADDON_ACTION_FORBIDDEN", "ADDON_ACTION_BLOCKED", "COMPANION_UPDATE", "PET_BATTLE_CLOSE" }) do
+			pcall(frame.RegisterEvent, frame, event)
+		end
+		local journal = _G.C_PetJournal
+		if type(journal) == "table" and type(hooksecurefunc) == "function" then
+			if type(journal.DismissSummonedPet) == "function" then
+				hooksecurefunc(journal, "DismissSummonedPet", function() Pet:PutAway(nil) end)
+			end
+			if type(journal.SummonPetByGUID) == "function" then
+				hooksecurefunc(journal, "SummonPetByGUID", function(guid) Pet:PutAway(guid) end)
 			end
 		end
 	end
