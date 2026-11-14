@@ -1392,7 +1392,7 @@ function Letter:PaintReason(r, g, b, reason, mode)
 	self.refused = nil
 	self.crack:SetAlpha(0)
 	local k = self.combat and DIM_SEAL or 1
-	Colour(self.kit.icon, k, k, k)
+	self.kit.icon:SetVertexColor(k, k, k)
 	self.kit.icon:SetDesaturated(false)
 	self:DimSeal(self.combat and DIM_SEAL or 1)
 end

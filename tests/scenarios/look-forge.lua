@@ -488,7 +488,7 @@ end)
 withTree("look-forge: the words stand on the iron at 4.5:1", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if skipped(scenario, look) then return end
-	local lo, hi = luminance(0.14, 0.14, 0.14), luminance(0.30, 0.30, 0.30)
+	local lo, hi = luminance(0.14, 0.14, 0.14), luminance(0.33, 0.33, 0.33)
 	local ink = ns.Prompt:LookKit().ink
 	local function judge(label)
 		for _, reason in ipairs({ "owed", "target", "nearby", "group", "asked" }) do
