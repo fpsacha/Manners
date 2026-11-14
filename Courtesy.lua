@@ -369,9 +369,15 @@ local function KeysOf(request)
 	if #found > 1 then
 		local place = {}
 		for i, name in ipairs(ORDER) do place[name] = i end
+		-- A portal by where its spell stands in this client's list, not by
+		-- its id: Midnight's Silvermoon City is the newest id and the first
+		-- of the two in the list.
+		local set = MySet()
+		local spot = {}
+		for i, spell in ipairs(set and set.portal and set.portal.spells or {}) do spot[spell] = i end
 		local function rank(key)
 			local name, id = key:match("^courtesy:(%a+):?(%d*)$")
-			return (place[name] or 99) * 1e8 + (tonumber(id) or 0)
+			return (place[name] or 99) * 1e8 + (spot[tonumber(id) or 0] or 0)
 		end
 		table.sort(found, function(a, b) return rank(a) < rank(b) end)
 	end
@@ -394,6 +400,15 @@ end
 -- into words by the reader's own Words: { key, names } for a kind,
 -- { key, cities, inside } for a portal. Built again when what is switched on
 -- or learned may have changed (a few seconds, as Known).
+local function Shares(a, b)
+	for _, one in ipairs(a or {}) do
+		for _, other in ipairs(b or {}) do
+			if one == other then return true end
+		end
+	end
+	return false
+end
+
 local function Asks(Words)
 	local set = MySet()
 	if not set then return nil end
@@ -420,7 +435,16 @@ local function Asks(Words)
 			if kind.spells then
 				for _, spell in ipairs(kind.spells) do
 					if Known(spell) then
-						local ask = { key = "courtesy:portal:" .. spell, cities = {} }
+						local ask = { key = "courtesy:portal:" .. spell, spell = spell, cities = {} }
+						-- A city with two portals, both learned (Dalaran, Silvermoon
+						-- City): the one ahead of this in the client's list, which
+						-- one request for the city is answered with.
+						for _, earlier in ipairs(asks) do
+							if earlier.spell and Shares(CITIES[earlier.spell], CITIES[spell]) then
+								ask.twin = earlier.key
+								break
+							end
+						end
 						for _, city in ipairs(CITIES[spell] or {}) do split(ask.cities, city) end
 						local city = City(spell)
 						split(ask.cities, city)
@@ -465,6 +489,8 @@ function Courtesy.Named(words, lowered, found, covered, strict, Mark, Words)
 	local any = false
 	-- Where a word for "portal" stands, looked for once.
 	local portalAt
+	-- How many words of the message named each portal's city.
+	local cityWords
 	for _, ask in ipairs(asks) do
 		if ask.names then
 			local strength
@@ -509,7 +535,18 @@ function Courtesy.Named(words, lowered, found, covered, strict, Mark, Words)
 						if word:find(ask.inside, 1, true) then covered[i], strict[i] = true, true end
 					end
 				end
-				found[ask.key], any = "strict", true
+				-- One portal for one city: of two that go there the first in
+				-- the client's list, unless more of the message names the
+				-- other ("dalaran broken isles").
+				local count = 0
+				for _ in pairs(cityAt) do count = count + 1 end
+				cityWords = cityWords or {}
+				cityWords[ask.key] = count
+				local twin = ask.twin
+				if not (twin and found[twin] and count <= (cityWords[twin] or 0)) then
+					if twin then found[twin] = nil end
+					found[ask.key], any = "strict", true
+				end
 			end
 		end
 	end
@@ -554,6 +591,12 @@ local function BuffFor(key, spell)
 	info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, spell)
 	info.topRank = spell
 	return buff
+end
+
+-- Whether water and food are one thing on this client: the one spell of
+-- Mists and retail, whose items are both.
+local function Both(set)
+	return set ~= nil and set.water ~= nil and set.food ~= nil and set.water.rows == set.food.rows
 end
 
 local function Standing(now)
@@ -757,7 +800,11 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 					if made then
 						local buffKey = each .. ":" .. made.stage .. (made.stage == "conjure" and (":" .. made.spell) or "")
 						if ns.IsBlocked(full, buffKey, now) then
+							-- Pressed a moment ago: what that press began is waited
+							-- for, and the next thing they asked for is not offered
+							-- over it.
 							why = why or "pressed"
+							break
 						else
 							plan, key = made, each
 							plan.key, plan.buffKey, plan.request = each, buffKey, request
@@ -876,7 +923,7 @@ function Courtesy.Summary(entry, out)
 end
 
 -- A press waiting on the game: `trade` for the window to open, `cast` for the
--- spell to go out.
+-- spell to go out, `conjure` for the conjure to.
 local waiting = {}
 
 -- The courtesy's key comes off the request, which closes once nothing it
@@ -884,6 +931,9 @@ local waiting = {}
 local function Serve(request, key)
 	if type(request) ~= "table" or type(request.keys) ~= "table" then return end
 	request.keys[key] = nil
+	-- Water and food asked for together where they are one item: both answered.
+	local other = key == "courtesy:water" and "courtesy:food" or key == "courtesy:food" and "courtesy:water" or nil
+	if other and request.keys[other] and Both(MySet()) then request.keys[other] = nil end
 	if next(request.keys) ~= nil then return end
 	local list = ns.standingRequests
 	for i = #(list or {}), 1, -1 do
@@ -897,6 +947,7 @@ end
 -- the press began is watched for: the bags filling moves a conjure on to the
 -- trade at the next scan, the trade window opening is TradeOpened, the cast
 -- going out is CastWentOut.
+local Hand, TradingWith
 function Courtesy.Pressed(entry, S, now)
 	local plan = entry.courtesy
 	local request = plan.request
@@ -909,10 +960,18 @@ function Courtesy.Pressed(entry, S, now)
 	end
 	if plan.stage == "trade" then
 		ns.MarkAttempted(entry.name, plan.buffKey, 8)
-		waiting.trade = { request = request, key = plan.key, item = plan.item, at = now, name = entry.name }
+		if type(request) == "table" and not InCombatLockdown() and TradingWith(request) then
+			-- The window is open with them already (they opened it): /trade
+			-- opens nothing and no TRADE_SHOW follows, so the item goes in now.
+			Hand(request, plan.key, plan.item, entry.name)
+		else
+			waiting.trade = { request = request, key = plan.key, item = plan.item, at = now, name = entry.name }
+		end
 	elseif plan.stage == "conjure" then
 		ns.MarkAttempted(entry.name, plan.buffKey, 4)
-		State(request).conjured = true
+		-- Conjured for them once the cast is seen to go out (CastWentOut), not
+		-- at the press: one that failed has made nothing.
+		waiting.conjure = { request = request, spell = plan.spell, at = now }
 	else
 		ns.MarkAttempted(entry.name, plan.buffKey, 12)
 		waiting.cast = { request = request, key = plan.key, spell = plan.spell, at = now }
@@ -972,29 +1031,73 @@ local function Place(item)
 	return true
 end
 
--- TRADE_SHOW: the window a trade press asked for is open, with them. The
--- request is answered; the item goes in where it can, and accepting stays
--- the player's.
-function Courtesy.TradeOpened()
-	local press = waiting.trade
-	if not press then return end
-	waiting.trade = nil
-	if GetTime() - press.at > 20 or InCombatLockdown() then return end
-	-- The other side of the trade is the client's "NPC" token, as its own
-	-- trade window names them.
-	if plain(UnitExists("NPC")) ~= true or not Matches(press.request, "NPC") then return end
-	Serve(press.request, press.key)
-	local placed = Place(press.item)
+-- The request is answered; the item goes into the open trade where it can,
+-- and accepting stays the player's.
+function Hand(request, key, item, name)
+	Serve(request, key)
+	local placed = Place(item)
 	local db = addon.db and addon.db.profile
 	if placed and db and db.verbose then
 		addon:Print(L["%s is in the trade with |cffffffff%s|r -- accept it when you are ready."]
-			:format(ns.ReagentName(press.item) or Noun(press.key), ShortName(press.name) or press.name))
+			:format(ns.ReagentName(item) or Noun(key), ShortName(name) or name))
+	end
+end
+
+-- Whether the trade window is open with whoever made this request. The other
+-- side of a trade is the client's "NPC" token, as its own trade window names
+-- them.
+function TradingWith(request)
+	local frame = _G.TradeFrame
+	if type(frame) ~= "table" or type(frame.IsShown) ~= "function" or not frame:IsShown() then return false end
+	return plain(UnitExists("NPC")) == true and Matches(request, "NPC")
+end
+
+-- TRADE_SHOW: a trade is open. With whoever a trade press was for, that
+-- press's item goes in. With somebody who asked and opened the trade
+-- themselves, which is what people asking a mage for water mostly do, what
+-- the prompt was offering them goes in where the bags hold it.
+function Courtesy.TradeOpened()
+	local press = waiting.trade
+	waiting.trade = nil
+	if InCombatLockdown() or plain(UnitExists("NPC")) ~= true then return end
+	if press and GetTime() - press.at <= 20 and Matches(press.request, "NPC") then
+		Hand(press.request, press.key, press.item, press.name)
+		return
+	end
+	local set = MySet()
+	local list = ns.standingRequests
+	if not (set and list) then return end
+	local now = GetTime()
+	for i = #list, 1, -1 do
+		local request = list[i]
+		local st = state[request]
+		-- Only what the last scan had on the prompt for them, or would have
+		-- but for a press a moment ago: a city's quiet, a skip and the
+		-- never-offer list hold this as they hold the offer.
+		if st and st.keys and (st.verdict == "offered" or st.verdict == "pressed")
+			and (request.fight or request.expires > now) and Matches(request, "NPC") then
+			for _, key in ipairs(st.keys) do
+				local plan = request.keys[key] and Plan(key, set, "NPC", false, st)
+				if plan and plan.stage == "trade" then Hand(request, key, plan.item, request.name) end
+			end
+		end
 	end
 end
 
 -- UNIT_SPELLCAST_SUCCEEDED of your own: the portal, the Soulwell or the
 -- ritual a press began has gone out.
 function Courtesy.CastWentOut(spellId)
+	-- A conjure: made for them, so that what the bags then hold is what there
+	-- is to give (Plan).
+	local made = waiting.conjure
+	if made then
+		if GetTime() - made.at > 20 then
+			waiting.conjure = nil
+		elseif plain(spellId) == made.spell then
+			waiting.conjure = nil
+			if type(made.request) == "table" then State(made.request).conjured = true end
+		end
+	end
 	local press = waiting.cast
 	if not press then return end
 	if GetTime() - press.at > 20 then
@@ -1013,7 +1116,7 @@ do
 	local function OnEvent(_, event, unit, _, spellId)
 		if event == "TRADE_SHOW" then
 			ns.Guard("courtesy trade", Courtesy.TradeOpened)
-		elseif waiting.cast and unit == "player" then
+		elseif (waiting.cast or waiting.conjure) and unit == "player" then
 			ns.Guard("courtesy cast", Courtesy.CastWentOut, spellId)
 		end
 	end

@@ -2573,7 +2573,11 @@ function ns.BuildQueue(watch)
 	-- one of its switches on (Cures.lua): a shaman on Classic Era has no buff
 	-- for anybody else, and still walks for a poison or a disease.
 	-- A courtesy asked for (Courtesy.lua: water, a portal) is no buff, and is offered with none to give; with a spell only a request names, the walk below adds it.
-	if #candidates == 0 and not (askOnly and #askOnly > 0) and ns.Courtesy and ns.Courtesy.Standing(now) then return ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked) end
+	-- Not with a cure to offer, which the walk reads, nor in a battleground's fight: both are the lines below. And somebody to ask (Ask.lua) still follows it.
+	if #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= "fight" and not ns.CuresWanted(db) and ns.Courtesy and ns.Courtesy.Standing(now) then
+		if db.sources.ask == true and ns.AskInto then return ns.AskInto(ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked)) end
+		return ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked)
+	end
 	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) and not ns.CuresWanted(db) then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
 		-- Somebody to ask for a buff instead (Ask.lua), behind your own.

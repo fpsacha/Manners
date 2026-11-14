@@ -96,8 +96,8 @@ mutate("Queue.lua",
 
 # With no buff to give, the queue leaves before a courtesy is looked at.
 mutate("Queue.lua",
-       "\tif #candidates == 0 and not (askOnly and #askOnly > 0) and ns.Courtesy and ns.Courtesy.Standing(now) then return ns.Courtesy.Alone(SelfEntry(db, candidates, now, neverVerdict), now, inTown, manaHoldsAsked) end\n",
-       "",
+       "\tif #candidates == 0 and not (askOnly and #askOnly > 0) and battle ~= \"fight\" and not ns.CuresWanted(db) and ns.Courtesy and ns.Courtesy.Standing(now) then\n",
+       "\tif false then\n",
        "courtesy: nothing offered with no buff to give",
        expect=ALONE, script=S)
 
@@ -253,8 +253,8 @@ mutate("Prompt/Macro.lua",
 # ------------------------------------------------------------ the trade
 # The item goes into a trade with anybody.
 mutate("Courtesy.lua",
-       "\tif plain(UnitExists(\"NPC\")) ~= true or not Matches(press.request, \"NPC\") then return end\n",
-       "\tif plain(UnitExists(\"NPC\")) ~= true then return end\n",
+       "\tif press and GetTime() - press.at <= 20 and Matches(press.request, \"NPC\") then\n",
+       "\tif press and GetTime() - press.at <= 20 then\n",
        "courtesy: the item goes into a trade with somebody else",
        expect=STONE, script=S)
 
@@ -267,7 +267,7 @@ mutate("Courtesy.lua",
 
 # The request still stands once the trade has opened.
 mutate("Courtesy.lua",
-       "\tServe(press.request, press.key)\n\tlocal placed = Place(press.item)\n",
-       "\tlocal placed = Place(press.item)\n",
+       "\tServe(request, key)\n\tlocal placed = Place(item)\n",
+       "\tlocal placed = Place(item)\n",
        "courtesy: the trade opening does not answer the request",
        expect=WATER, script=S)
