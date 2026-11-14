@@ -71,6 +71,7 @@ Looks\Warchief.lua
 Looks\Gearworks.lua
 Looks\Ebon.lua
 Looks\Glass.lua
+Looks\MinimalDress.lua
 Prompt\Prompt.lua
 Prompt\Text.lua
 Prompt\Effects.lua
