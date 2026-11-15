@@ -770,12 +770,32 @@ ns.WindowLayout = {
 					"profiles.choosedesc",
 					{ "profiles.new", pair = true },
 					"profiles.choose",
+					-- How a profile is edited, under the dropdown that does it.
+					"profiles.editNote",
+					-- A copy of the one in use under a new name, and the one in use
+					-- renamed (AutoProfile.lua): typed and Enter, as New profile is.
+					{ "profiles.saveAs", pair = true },
+					"profiles.rename",
 					"profiles.copydesc",
 					"profiles.copyfrom",
 					"profiles.deldesc",
 					"profiles.delete",
 					"profiles.descreset",
-					"profiles.reset",
+					"profiles.resetProfile",
+				} },
+				-- Switching profile by where you are (AutoProfile.lua). The
+				-- master switch, and under it a dropdown a situation and the
+				-- chat line's tick, gone while it is off.
+				{ key = "profiles.auto", header = "profiles.autoHeader", items = {
+					"profiles.autoEnabled",
+					{ "profiles.auto_world", indent = true, match = "auto" },
+					{ "profiles.auto_dungeon", indent = true, match = "auto" },
+					{ "profiles.auto_raid", indent = true, match = "auto" },
+					{ "profiles.auto_battle", indent = true, match = "auto" },
+					{ "profiles.autoSay", indent = true },
+					-- When a switch happens, in one line: last, so the rows above
+					-- are the switch's own and the note stays while it is off.
+					"profiles.switchNote",
 				} },
 				{ key = "profiles.share", header = "profiles.shareHeader", items = {
 					"profiles.shareNote",
@@ -898,6 +918,8 @@ ns.WindowLayout = {
 		["profiles.copydesc"] = { hint = true },
 		["profiles.deldesc"] = { hint = true },
 		["profiles.descreset"] = { hint = true },
+		["profiles.editNote"] = { hint = true },
+		["profiles.switchNote"] = { hint = true },
 	},
 
 	-- Why a control is greyed out, drawn under it in grey while it is, and in
@@ -931,6 +953,8 @@ ns.WindowLayout = {
 		["appearance.hideInFight"] = L["window frame invisible fight"],
 		-- Asked for as moving "the bar".
 		["appearance.moveInEditMode"] = L["bar position drag place"],
+		-- Asked for as profiles that "auto switch in raid, instance, normal".
+		["profiles.autoEnabled"] = L["auto raid dungeon instance battleground arena world normal"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the
@@ -960,12 +984,21 @@ ns.WindowLayout = {
 		-- Never Kings over Boosted Stats, shown only while Don't put Kings over
 		-- a Fish Bowl's Boosted Stats is on.
 		["who.neverFishBowl"] = "who.spareFishBowl",
+		-- A situation's profile and the chat line's tick, shown only while
+		-- Switch profile automatically is on.
+		["profiles.auto_world"] = "profiles.autoEnabled",
+		["profiles.auto_dungeon"] = "profiles.autoEnabled",
+		["profiles.auto_raid"] = "profiles.autoEnabled",
+		["profiles.auto_battle"] = "profiles.autoEnabled",
+		["profiles.autoSay"] = "profiles.autoEnabled",
 	},
 
 	-- In the model and drawn nowhere.
 	unplaced = {
 		-- AceDBOptions' opening paragraph, hidden today: profilesIntro says it.
 		["profiles.desc"] = true,
+		-- AceDBOptions' Reset, hidden too: profiles.resetProfile asks first.
+		["profiles.reset"] = true,
 		-- "3. See it": its preview is the header's button now.
 		["general.tryHeader"] = true,
 		-- "4. Say thanks (optional)": the voice choice leads What I say.

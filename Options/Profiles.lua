@@ -148,5 +148,8 @@ function Page.BuildProfilesTab()
 	}) do
 		t.args[key] = option
 	end
+	-- Making, renaming and deleting a profile, and switching by where you are
+	-- (AutoProfile.lua): ours, in place of the library's six controls.
+	if ns.Profiles then ns.Profiles.AddOptions(t.args) end
 	return t
 end

@@ -960,11 +960,50 @@ cannot send it to somebody else by mistake.
 
 ### Profiles
 
-Which settings this character uses. When another character uses the same
-profile, a grey line says so, and *Give this character its own settings*
-copies the settings into a profile named after this one. Then *New profile*,
-*Use profile*, *Copy from*, *Delete* and *Reset this profile*, and ***Share as
-text***.
+A profile holds every setting on the other pages: who is offered, when, what
+is said, how the prompt looks and where it sits. Every character starts on
+*Default*; the favour ledger, the milestones and what you are owed stay
+with the character whatever profile it is on. The page's first line
+says which profile this character uses. When another character uses the same
+one, a grey line says so, and *Give this character its own settings* copies
+the settings into a profile named after this one.
+
+- *New profile*: type a name and press Enter, for a profile with every
+  setting at its default. *New profile from these settings* does the same
+  with a copy of the profile in use. Either way this character switches to
+  the new one.
+- *Use profile* switches to another. That is also how a profile is edited:
+  every page shows and changes the profile in use.
+- *Rename this profile*: type the new name and press Enter. Every character
+  on it stays on it.
+- *Copy from* replaces this profile's settings with another's, *Delete*
+  removes a profile other than the one in use, and *Reset this profile* puts
+  every setting back to its default. Each asks first.
+
+None of them does anything in a fight.
+
+***Switch automatically.*** *Switch profile automatically* (off) picks the
+profile by where you are, with a dropdown for each place: *In the open
+world*, *In a dungeon*, *In a raid*, *In a battleground or arena*. Each lists
+your profiles and *Do not switch*, which is where they start. On arriving
+somewhere, the character switches to the profile picked for it, a moment
+after the loading screen and never in a fight (it waits for the end of it). A
+place left on *Do not switch* keeps the profile you are on: nothing is put
+back when you leave. A profile you pick yourself holds until you next arrive
+somewhere else. A raid group out in the world is the open world: the switch
+is at the instance's door. *Say so in chat* (on) prints one line a switch,
+"profile Raid (in a raid)", and the page's first line then says "Chosen
+automatically: in a raid". These choices are the character's own, so an alt
+can do otherwise, and deleting a profile puts the places that named it
+back on *Do not switch*.
+
+An example: make a profile *Raid* with *New profile from these settings*,
+untick *Passers-by* and *Say a line when I buff someone* on it, then go back to
+*Default* and pick *Raid* for *In a raid* and *Default* for *In the open
+world*. Out in the world Manners offers everybody and speaks; inside a raid
+it keeps to your group and says nothing.
+
+***Share as text.***
 
 `/manners export`, or *Show my settings as text*, puts your settings in a box
 as one line of text to keep or hand to somebody. Paste one into *Paste
@@ -974,7 +1013,8 @@ before anything changes, and *Put my settings back* (`/manners import undo`)
 takes it back. A pasted line never carries whether Manners is on, the lock,
 where the prompt sits or the minimap button, and it never switches speaking
 on, nor *Ask people for a buff I'm missing*, since both talk to other
-players.
+players. Nor does it carry *Switch automatically*'s choices, which name
+profiles of your own.
 
 ### Diagnostics
 

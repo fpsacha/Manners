@@ -62,6 +62,7 @@ Milestones.lua
 HallOfFame.lua
 Hall.lua
 HallProof.lua
+AutoProfile.lua
 Looks\Looks.lua
 Looks\Flow.lua
 Looks\Previews.lua
