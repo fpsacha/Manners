@@ -93,6 +93,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "gearworks"
+	-- This file holds Gearworks' own art, which Earlier art draws (the
+	-- painted frame over it is painted-gearworks.lua's).
+	p.classicArt = true
 	p.effects = "full"
 	p.flashStyle = "pulse"
 	p.showIcon = true
@@ -109,6 +112,7 @@ local function atRest(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "gearworks", "full", "pulse", true, false
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	tick(ns)

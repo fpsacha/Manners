@@ -76,6 +76,16 @@ local Gearworks = ns.Looks.Register("gearworks", {
 	-- The words stand on the enamel whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/gearworks): what of this
+	-- file's own art it replaces. The painting has its own housing, gauge
+	-- bezel, valve and gearbox with its cogs; the dial, the needle, the steam,
+	-- the spark, the glint and the list stay this file's. The sight tube has
+	-- no room on the painted rims (rivets below, the words in the well): the
+	-- dial carries the stripe's colour. The icon is smaller than the glass, so
+	-- the dial's band and the needle lie in the glass round it.
+	paintedHides = { "shadow", "shade", "body", "bezel", "dialBack", "tube", "bubbles", "ferrules", "stack", "contacts",
+		"gearbox", "cogs", "cogLights", "keyChip" },
+	paintedIconFill = 0.68,
 })
 
 -- MUST AGREE with tools/make_gearworks_textures.py
@@ -206,6 +216,17 @@ local SPARK_FPS = 24
 -- The longest an additive flourish may stay lit, in seconds.
 local FLOURISH = 0.6
 local COMMAND = "CLICK MannersPrompt:LeftButton"
+-- The painted frame's own parts (art/looks/gearworks/meta.json's notes): its
+-- knurled bezel's outer edge against its glass's; in units of the bar's core
+-- from the bar's right and its top, the valve's mouth, where the two cogs
+-- mesh (the spark's middle) and the gearbox's left; the upper rivets' row
+-- from the top; a fight's dim of the painting (less than the old housing's,
+-- so the outlined key keeps its keycap); the dial's colour in the painted
+-- glass, taken this far down.
+local PAINT = {
+	glass = 0.62, bezel = 1.68, valveX = 0.517, valveY = 0.313, meshX = 0.373, meshY = 0.49, sparkW = 0.44, sparkH = 0.22,
+	works = 0.66, rivets = 0.09, fight = 0.86,
+}
 
 -- The three cogs: the file, the teeth, where it sits round the driving cog
 -- (degrees clockwise from its right; nil for the driving cog itself) and
@@ -712,6 +733,11 @@ function Gearworks:BuildAnimations(anim)
 	self.sparkAnim = anim(Reel(self.spark, SPARK_FRAMES / SPARK_FPS, 1))
 	self.gutterAnim = anim(Gutter(self.dialHot))
 	self.refusal = { self.sparkAnim, self.gutterAnim }
+	-- A sheet's frames end with the light that shows them: its clock (Flow's
+	-- one OnUpdate) stops with it, not at its next tick.
+	self.whistleAnim:HookScript("OnFinished", function() Gearworks.whistleSheet:Stop() end)
+	self.steamAnim:HookScript("OnFinished", function() Gearworks.steamSheet:Stop() end)
+	self.sparkAnim:HookScript("OnFinished", function() Gearworks.sparkSheet:Stop() end)
 	-- The first of the two rings, which the scenarios watch for a landed buff.
 	self.burstAnim = self.fx.rings[1].land
 
@@ -900,6 +926,9 @@ function Gearworks:Apply(p, above)
 	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -self.chipInset, -lift)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
 	self.countMode, self.keyUp = nil, false
+	-- A painted frame moves the key's letter onto its keycap's frame: back
+	-- with the words.
+	self.keyText:SetParent(kit.textLayer)
 	-- Measured again in the new font and size.
 	self.keyLabel, self.countText, self.measuredText = nil, nil, nil
 
@@ -915,6 +944,9 @@ function Gearworks:Apply(p, above)
 		fit.room[row] = rowWidth
 	end
 	self.listShown, self.listAt = nil, nil
+	-- Where the list's sheet runs and how far its rows keep off the bar
+	-- (a painted frame sets them).
+	self.listX0, self.listX1, self.listGap = nil, nil, 0
 
 	-- Everything shown, then what waits: the lights parked at nothing, the
 	-- list for PaintQueue, the chips for Chip.
@@ -988,7 +1020,8 @@ function Gearworks:PlaceWorks(showIcon, above)
 	local ty, th = plateIn + TUBE_AT * su, TUBE_H * su
 	local tx0 = (gaugeEdge(ty) or (plateX + PLATE_AT * su)) - 1
 	local tx1 = boxed and (W - boxW + 1) or (W - PLATE_AT * su)
-	self.tubeOK = tx1 - tx0 >= 16
+	-- The painted frame has no tube: its bubbles never start.
+	self.tubeOK = tx1 - tx0 >= 16 and not ns.Looks.Painted.On(self)
 	if not self.tubeOK then self.bubbleRun:Stop() end
 	Box(self.tube, art, tx0, ty - th / 2, tx1, ty + th / 2)
 	Box(self.bubbles, art, tx0 + 1, ty - th / 2, tx1 - 1, ty + th / 2)
@@ -1249,6 +1282,123 @@ function Gearworks:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): the gauge's dial and needle, the
+-- steam, the spark, the glint, the lines, the key and the list moved onto the
+-- painting. Looks/Painted.lua has laid the three pieces and put the icon in
+-- the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+function Gearworks:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local showIcon = p.showIcon and true or false
+	local H, u = self.H, g.unit
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	-- The gauge is the painting's: the dial's band in the reason's colour lies
+	-- in its glass round the icon, the needle on the band.
+	local cx, cy = g.socketX, g.socketY
+	local iconSize = g.iconSize
+	local gz = iconSize / ICON_FRAME
+	self.cx, self.gz, self.iconSize, self.textX = cx, gz, iconSize, g.textX
+	for _, t in ipairs({ self.dial, self.dialWarm, self.dialHot, self.needle }) do At(t, art, cx, cy, gz) end
+	local brass = g.socketR * PAINT.bezel
+	if showIcon then
+		self.fx:Place(icon, self.fx.ThinPad(iconSize, gz * DIAL_OUT / 2 - iconSize / 2 + 1), iconSize)
+		local limitH = math.min(g.textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN)
+		-- The socket may sit off the button's middle: the nearer of its top
+		-- and bottom holds the rings.
+		self.fx:Fit(limitH, math.min(cy, H - cy) - kit.EDGE_MARGIN, kit.SHAKE_LEFT)
+		-- The second ring: from the icon's edge across the glass and a little
+		-- past the painted brass, short of the words.
+		local wave = self.fx.rings[2]
+		local grow = wave.landGrow
+		if wave.half and grow.SetScaleFrom and grow.SetScaleTo then
+			local reach = math.min(g.textX - cx - kit.TEXT_MARGIN, brass + WAVE_PAST)
+			local from = (iconSize / 2) / (RING_PEAK * wave.half)
+			local to = math.max(from, reach / (RING_EDGE * wave.half))
+			grow:SetScaleFrom(from, from)
+			grow:SetScaleTo(to, to)
+			self.waveFrom, self.waveTo, self.waveReach = from, to, reach
+		end
+	end
+	-- The painting's own cogs stand still; this file's are hidden, and no
+	-- turn runs under them. Nor a tube.
+	self.boxed, self.tubeOK = false, false
+	self.bubbleRun:Stop()
+	-- The steam from the painted valve's mouth, climbing as it thins; not
+	-- with the list hung over the bar.
+	local sx, mouth = g.right - PAINT.valveX * u, g.top + PAINT.valveY * u
+	local big = math.min(H * PUFF.size, PUFF.max)
+	local small = big * PUFF.small
+	Box(self.steam, art, sx - big / 2, mouth - big * 0.906, sx + big / 2, mouth + big * 0.094)
+	Box(self.whistle, art, sx - small / 2, mouth - small * 0.906, sx + small / 2, mouth + small * 0.094)
+	self.stackOK = not above
+	self.steam:SetShown(self.stackOK)
+	self.whistle:SetShown(self.stackOK)
+	-- A refusal's spark jumps where the painted cogs mesh.
+	local mx, my = g.right - PAINT.meshX * u, g.top + PAINT.meshY * u
+	local sw, sh = PAINT.sparkW * u, PAINT.sparkH * u
+	Box(self.spark, art, mx - sw / 2, my - sh / 2, mx + sw / 2, my + sh / 2)
+	self.contactsOK = true
+	self.spark:Show()
+	-- The glint along the upper rivets, from the bezel to the gearbox; the
+	-- cursor's light over the upper rim.
+	local glintW = 26
+	local works = g.right - PAINT.works * u
+	local glintY = g.top + PAINT.rivets * u
+	local glintX0 = (showIcon and (cx + brass) or (g.left + 6)) + glintW / 2
+	local glintRun = works - glintW / 2 - glintX0
+	self.greetOK = glintRun >= 30
+	At(self.glint, art, glintX0, glintY, glintW, 3)
+	At(self.glintOnce, art, glintX0, glintY, glintW, 3)
+	self.glintLoop.move:SetOffset(math.max(0, glintRun), 0)
+	self.sheenAnim.move:SetOffset(math.max(0, glintRun), 0)
+	Box(self.hoverFrame, art, glintX0 - glintW / 2, g.top, works, g.wellTop)
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = H / 2 - g.textY
+	self.nameY, self.subY, self.lift = self.nameY + dy, self.subY + dy, self.lift + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap; the lines and the count's tag
+	-- keep left of it.
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	-- The letter is part of the keycap: a fight's dim of the words is not.
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+	-- The list from the words' start to the keycap's far side, its rows
+	-- clear of what the painting hangs past the bar.
+	self.rowX = math.max(g.textX, 24)
+	self.listX0 = math.max(2, self.rowX - 22)
+	self.listX1 = math.max(self.rowX + 30, keyR + 3)
+	self.listGap = math.max(0, (above and -g.y0 or (g.y1 - H)) * 0.85)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter in the keycap's own ink (outlined where the brass is
+-- mid-toned), no larger than the keycap holds.
+function Gearworks:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	local path = self.kit.fit.path or STANDARD_TEXT_FONT
+	local size = math.max(6, math.min(self.sub or 10, math.floor(g.keyH * 0.7)))
+	local flags = g.keyOutline and "OUTLINE" or ""
+	if not self.keyText:SetFont(path, size, flags) or not self.keyText:GetFont() then
+		self.keyText:SetFont(STANDARD_TEXT_FONT, size, flags)
+	end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1370,11 +1520,17 @@ function Gearworks:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.chipInset + 7)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1448,6 +1604,9 @@ function Gearworks:Tint(r, g, b, ring, stripe)
 	if not stripe then vr, vg, vb = NEUTRAL[1], NEUTRAL[2], NEUTRAL[3] end
 	if self.refused then
 		self:Spend()
+	elseif ns.Looks.Painted.On(self) then
+		-- In the painted glass the dial is the glass tinted, not a lamp.
+		Colour(self.dial, cr * PAINT.glass, cg * PAINT.glass, cb * PAINT.glass)
 	else
 		Colour(self.dial, cr, cg, cb)
 	end
@@ -1479,6 +1638,9 @@ function Gearworks:PaintReason(r, g, b, reason, mode)
 	-- back here, and a fight keeps the icon grey.
 	self.refused = nil
 	local ring = mode == "icon" or mode == "both"
+	-- On the painted frame, which has no tube, the dial carries the stripe's
+	-- colour too.
+	if mode == "stripe" and ns.Looks.Painted.On(self) then ring = true end
 	if mode == "off" then
 		self:Tint(NEUTRAL[1], NEUTRAL[2], NEUTRAL[3], false, false)
 	else
@@ -1513,6 +1675,9 @@ function Gearworks:Dull(on)
 	local f = on and FIGHT.body or 1
 	Each(self.body, "SetDesaturated", on)
 	for _, t in ipairs(self.body) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	local pf = on and PAINT.fight or 1
+	ns.Looks.Painted.Tone(self, pc[1] * pf, pc[2] * pf, pc[3] * pf, on)
 end
 
 -- The housing holds; it and the gauge dull, the cogs stop, the icon greys,
@@ -1829,8 +1994,11 @@ function Gearworks:PaintQueue(rows, shown, above)
 	self.listShown, self.listAt = shown, above
 
 	local pitch = self.pitch
-	local depth = shown * pitch + 8
-	local W, H = self.W, self.H
+	-- Under a painted frame the rows keep clear of what the painting hangs
+	-- past the bar (its gauge's bezel): the sheet runs on under it.
+	local gap = self.listGap or 0
+	local depth = shown * pitch + 8 + gap
+	local H = self.H
 	local y0, y1
 	if above then
 		y1 = self.plateIn + 2
@@ -1839,10 +2007,11 @@ function Gearworks:PaintQueue(rows, shown, above)
 		y0 = H - self.plateIn - 2
 		y1 = H + depth
 	end
-	local x0 = math.max(self.plateX, self.rowX - 22)
-	PlacePieces(self.listBody, art, x0, y0, W, y1, math.min(PLANK_C, (y1 - y0) / 2))
+	local x0 = self.listX0 or math.max(self.plateX, self.rowX - 22)
+	local x1 = self.listX1 or self.W
+	PlacePieces(self.listBody, art, x0, y0, x1, y1, math.min(PLANK_C, (y1 - y0) / 2))
 	Each(self.listBody, "Show")
-	self:PlaceShadow({ x0, y0, W, y1 })
+	self:PlaceShadow({ x0, y0, x1, y1 })
 
 	local bead = self.sub + 3
 	for i = 1, shown do
@@ -1850,9 +2019,9 @@ function Gearworks:PaintQueue(rows, shown, above)
 		-- Row centres, reading downwards either way.
 		local y
 		if above then
-			y = -(5 + (shown - i) * pitch + pitch / 2)
+			y = -(5 + gap + (shown - i) * pitch + pitch / 2)
 		else
-			y = H + 3 + (i - 1) * pitch + pitch / 2
+			y = H + 3 + gap + (i - 1) * pitch + pitch / 2
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)
