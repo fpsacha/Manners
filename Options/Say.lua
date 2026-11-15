@@ -62,7 +62,7 @@ function Page.BuildSpeechTab()
 			thankEmote = {
 				type = "toggle",
 				name = L["/thank people who buff me"],
-				desc = L["Everyone near you sees it; never in combat or instances, and at most once per person every five minutes."],
+				desc = L["Everyone near you sees it; never in combat, a dungeon or a raid, in a battleground or an arena only for your own team, and at most once per person every five minutes."],
 				order = 11,
 				width = "full",
 				get = function() return P().thankEmote end,
@@ -121,7 +121,7 @@ function Page.BuildSpeechTab()
 			thankWhisper = {
 				type = "toggle",
 				name = L["Whisper a thank-you to people I can't buff back"],
-				desc = L["A line from the In character set, fitting your race and class, whispered to somebody who buffs you when nothing of yours goes back to them. Never in combat or instances, and at most once per person every five minutes."],
+				desc = L["A line from the In character set, fitting your race and class, whispered to somebody who buffs you when nothing of yours goes back to them. Never in combat, a dungeon or a raid, in a battleground or an arena only to your own team, and at most once per person every five minutes."],
 				order = 11.7,
 				width = "full",
 				get = function() return P().thankWhisper end,

@@ -76,6 +76,11 @@ local MAX_TEXT, MAX_KEYS, MAX_KEY, MAX_USERS = 240, 24, 24, 40
 -- split for it (Deal). known: the roster's names as last read. stats: for the
 -- check-up. due: when Tick next has something to do (Core.lua, TickBody).
 local users, plans, known = {}, {}, {}
+-- lost: [filed name] = a user the roster stopped naming while there was still
+-- a group (you went into a battleground without them). Back on the roster,
+-- they never saw you leave and have no reason to say hello again: your hello
+-- to them asks for one (Share.ask).
+local lost = {}
 local stats = { heard = 0, refused = 0, own = 0, other = 0, sent = 0, failed = 0, why = nil, result = nil,
 	shape = nil }
 local Share = { users = users, plans = plans, stats = stats, due = nil, dirty = false,
@@ -99,6 +104,10 @@ end
 -- The raid groups a user buffs unasked, as bits (group 1 is 1, group 8 is 128).
 local function Mask(db)
 	local skip = db and db.filters and db.filters.skipRaidGroups
+	-- Before a battleground's gates open the walk offers every raid group
+	-- (Queue.lua), so the hello says every one: a subgroup no user's own
+	-- groups take would be nobody's, and offered by all of them at once.
+	if ns.Battle and ns.Battle.State() == "prep" then skip = nil end
 	local mask = 0
 	for group = 1, 8 do
 		if not (type(skip) == "table" and skip[group]) then mask = mask + 2 ^ (group - 1) end
@@ -384,10 +393,12 @@ local function Compute()
 	if not grouped then
 		wipe(users)
 		wipe(known)
+		wipe(lost)
 		return
 	end
 	for name in pairs(byName) do
 		if not known[name] then Share.newcomer = true end
+		if not known[name] and lost[name] then Share.ask, lost[name] = true, nil end
 	end
 	wipe(known)
 	for name in pairs(byName) do known[name] = true end
@@ -395,6 +406,7 @@ local function Compute()
 		local member = byName[name]
 		if not member then
 			users[name] = nil
+			lost[name] = true
 		else
 			user.unit, user.sub = member.unit, member.sub
 			user.live = Live(member.unit)
@@ -523,6 +535,10 @@ local function Read(text, channel, sender)
 		return nil
 	end
 	local unit = UnitOf(sender)
+	-- A hello that came before the roster named its sender is lost, and its
+	-- sender will not repeat it: the hello said once they are on the roster
+	-- asks for another.
+	if not unit then Share.ask = true end
 	if not unit then
 		-- The shape of the name alone (letters as "a"), for a report: how this
 		-- client writes an addon message's sender.
@@ -618,7 +634,9 @@ function Share:Tick(now)
 		if next(users) then wipe(users) end
 		wipe(plans)
 		wipe(known)
+		wipe(lost)
 		self.greeted, self.newcomer, self.reply, self.said, self.dirty = false, false, false, nil, false
+		self.ask = false
 		return
 	end
 	-- Not sharing (the switch, the addon off, a snooze), nobody to share with
@@ -657,12 +675,15 @@ function Share:Tick(now)
 		return
 	end
 	self.sentAt = now
-	local result = plain(send(PREFIX, Text(me, not self.greeted), Channel()))
+	-- `q` on a first hello, and on one to somebody whose own was lost.
+	local asks = not self.greeted or self.ask == true
+	local result = plain(send(PREFIX, Text(me, asks), Channel()))
 	-- Enum.SendAddonMessageResult: 0 is Success on all five clients.
 	if result == nil or result == true or result == 0 then
 		if not self.greeted then ns.Trail("share", "said hello to the group") end
 		stats.sent = stats.sent + 1
 		self.greeted, self.newcomer, self.reply, self.said = true, false, false, sig
+		self.ask = false
 		if next(users) then self.due = now + POLL end
 	else
 		stats.failed = stats.failed + 1
@@ -700,12 +721,15 @@ end
 -- scan (Queue.lua keeps its own the same way); scanQueue is the queue of the
 -- scan in hand.
 local pool, scanQueue = { used = 0 }, nil
+-- Whether the scan in hand held a member back for a shout (ns.ShareShoutHeld).
+local shoutHeld = false
 
 -- Once a scan, at the first member it asks about: the users still alive and
 -- online, and the splits made again when that changed or anything else did.
 local function BeginScan(queue)
 	scanQueue = queue
 	pool.used = 0
+	shoutHeld = false
 	-- The switch itself is asked every scan: off, nobody is left to anybody
 	-- from this scan on, and not from the next hello.
 	if Sharing() ~= me.on then Share.dirty = true end
@@ -796,11 +820,20 @@ function ns.ShareHolds(opts, buff, petOwner, has, remaining, queue)
 	end
 
 	held[name] = now
+	if buff.selfCast then shoutHeld = true end
 	if not petOwner and not plan.wide and me.keys[buff.key] == "group" then
 		local where = Bucket(opts.unit, plan.inRaid)
 		if where and Caster(plan, where) == me then Keep(opts, buff, has, remaining, queue) end
 	end
 	return true
+end
+
+-- Whether the scan of `queue` left a shout to another user for somebody: the
+-- walk then queued it for nobody because it is that user's to cast, not
+-- because nobody is in reach, and "Remind me of my shout when I'm alone"
+-- waits as the members do (Queue.lua, ns.shoutUnreached).
+function ns.ShareShoutHeld(queue)
+	return scanQueue == queue and shoutHeld
 end
 
 -- Somebody the walk looked at and had nothing for (Queue.lua, visit): they

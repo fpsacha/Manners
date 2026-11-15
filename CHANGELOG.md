@@ -20,8 +20,8 @@
   whispers them one polite line. Classes with nothing to give find it on
   *Start here*.
 - **Two Manners users share a group.** Two of the same class in one party or
-  raid are each offered their own part of it, so nobody is buffed twice. On by
-  default, under *My party and raid*.
+  raid are each offered their own part of it, so nobody is buffed twice. *Share
+  the group with other Manners users*, on by default, in *My group and raid*.
 - **Detect Invisibility for passers-by.** *Offer Detect Invisibility to
   passers-by too*, under a warlock's Detect Invisibility on *Who to buff* once
   that is ticked. Off by default. Asked for by a player.
@@ -38,14 +38,16 @@
 ### Battlegrounds and arenas
 - **A section of their own** on *When to offer*. After a death your own buffs
   come first, what you fight with before food. Your team is offered freely
-  before the gates open; after, only out of combat and within reach. Nothing
-  is said there unless you tick it.
+  before the gates open; after, only out of combat and within reach. No line
+  is said with a cast there unless you tick it, and a thank-you you have
+  switched on goes to your own team alone (*Thank people there*, on).
 - **No tracking reminder there.** Find Minerals or Find Herbs no longer comes
   up ahead of your class's buff after each death. Reported on CurseForge.
 
 ### Your own buffs
-- **Companion pet on Mists and retail.** Switch it on under *Myself* and
-  Manners keeps a pet from your journal out, by *Which pet*. Never in a fight,
+- **Companion pet on Mists and retail.** Switch it on under *Food, flasks and
+  scrolls* (Who to buff) and Manners keeps a pet from your journal out, by
+  *Which pet*. Never in a fight,
   an instance or a pet battle, nor mounted, stealthed or flying.
 - **Why nothing comes up in town.** Your own buffs wait while you rest in a
   city or an inn. Chat now says so once, and names the switch that changes it.
@@ -121,6 +123,24 @@
 - **A read-through of everything new.** Some thirty faults put right in
   resurrection, cures, courtesies, asking for a buff, sharing a group, the
   group's pets and battlegrounds.
+- **Companion pet while Manners is off.** Switched off or snoozed, Manners
+  no longer brings a pet out of your journal.
+- **Sharing a group.** Back from a battleground, the split with another
+  Manners user is found again; a shout left to them is not offered on
+  yourself; before the gates open every raid group is shared out.
+- **Asking in chat.** A Korean or Chinese please beside "water" or a
+  healthstone is read; "need to drink" no longer asks a mage for water.
+- **Resurrection tooltip.** It says the person is dead.
+- **Milestones.** *Nobody Left Out* counts one buff whichever of its spells
+  reached each person, and the one a group cast was aimed at; the ledger's
+  *Clear* no longer resets, or excuses, *A Week Without a Debt*; a toast moves
+  off a prompt that comes up under it.
+- **Options.** Search no longer says to turn on a switch that is on, or one
+  that would show your class nothing; with *Show spell icon* off its
+  sub-options are gone; a greyed-out button shows its tooltip.
+- **Looks.** A cure that lands reads "cured", not "buffed"; on seven looks the
+  next favour no longer cuts a landing's flourish short; Warchief's soot fades
+  once under a verdict; flowing art picks up where it stopped after a fight.
 
 ## 1.11.24
 

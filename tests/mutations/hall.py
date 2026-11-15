@@ -113,8 +113,8 @@ mutate("Hall.lua",
 
 # Off with milestones.
 mutate("Hall.lua",
-       "\treturn M.On() == true\nend\n",
-       "\treturn true\nend\n",
+       "\tif M.On() ~= true then return false end\n",
+       "",
        "hall: shown with milestones switched off",
        expect=OFF, script=S)
 
@@ -162,8 +162,8 @@ mutate("Hall.lua",
 
 # The window.
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t{ key = \"general.hall\", header = \"general.hallHeader\", fold = true, items = {\n",
-       "\t\t\t\t{ key = \"general.hall\", header = \"general.hallHeader\", items = {\n",
+       "\t\t\t\t{ key = \"general.hall\", header = \"general.hallHeader\", fold = true, plain = true, items = {\n",
+       "\t\t\t\t{ key = \"general.hall\", header = \"general.hallHeader\", plain = true, items = {\n",
        "hall: the hall is no fold",
        expect=WINDOW, script=S)
 mutate("Options/Window/Layout.lua",

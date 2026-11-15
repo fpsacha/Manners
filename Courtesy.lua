@@ -111,9 +111,14 @@ end
 local ERA_WATER = Over({ { spell = 468766, level = 55, items = { 231778 } } }, VANILLA_WATER)
 
 -- The one spell of Mists and retail makes what suits the mage's own level,
--- water and food in one, so there is no rank to pick for anybody.
+-- water and food in one, so there is no rank to pick for anybody. On Mists
+-- each item still asks a level of whoever eats it (`needs`, ItemSparse's
+-- RequiredLevel; retail's copies ask none): somebody below it is handed only
+-- what the bags hold that suits them, and nothing is conjured that would not.
 local MISTS_REFRESHMENT = {
-	{ spell = 42955, items = { 80610, 65499, 43523, 43518, 34062, 65517, 65516, 65515, 65500 } },
+	{ spell = 42955, items = { 80610, 65499, 43523, 43518, 34062, 65517, 65516, 65515, 65500 },
+		needs = { [80610] = 90, [65499] = 85, [43523] = 80, [43518] = 74, [34062] = 65, [65517] = 64,
+			[65516] = 54, [65515] = 44, [65500] = 34 } },
 }
 local RETAIL_REFRESHMENT = {
 	{ spell = 190336, items = { 113509, 80610, 65499, 43523, 43518, 65517, 65516, 65515, 65500 } },
@@ -210,8 +215,9 @@ end
 -- added to each (Aliases).
 ---------------------------------------------------------------------------
 
+-- Not "drink": "need to drink" is somebody sitting down with their own.
 local NAMES = {
-	water = { "water", "waters", "mage water", "drink", "drinks", "wasser", "eau", "agua", "acqua",
+	water = { "water", "waters", "mage water", "wasser", "eau", "agua", "acqua",
 		"água", "вода", "воды", "водички", "물", "求水", "要水", "来点水", "來點水", "给点水", "給點水" },
 	food = { "food", "foods", "mage food", "bread", "essen", "brot", "nourriture", "bouffe", "comida",
 		"pan", "cibo", "еда", "хлеб", "음식", "빵", "求面包", "求麵包", "求吃的", "来点面包", "來點麵包" },
@@ -623,11 +629,15 @@ local function Matches(request, unit)
 	return SameName(request.short, ShortName(full)) or (first ~= nil and SameName(request.short, first))
 end
 
--- How many of a row's items the bags hold, and the first of them held.
-local function Held(row)
+-- How many of a row's items the bags hold, and the first of them held. With
+-- `level`, only the items somebody of that level can use, where the row says
+-- what each asks (`needs`).
+local function Held(row, level)
 	local total, first = 0, nil
+	local needs = level and row.needs
 	for _, item in ipairs(row.items) do
 		local count = ns.ReagentCount(item)
+		if needs and (needs[item] or 0) > level then count = 0 end
 		if type(count) == "number" and count > 0 then
 			total = total + count
 			first = first or item
@@ -650,6 +660,17 @@ local function Lacks(reagent, spell)
 		if safecall(check, spell) == true then return false end
 	end
 	return true
+end
+
+-- Whether a spell is on a cooldown of its own, longer than the global one:
+-- a ritual, a Soulwell or a portal cast a moment ago for somebody else. A
+-- /cast of it now reaches the server and is refused there.
+local function Cooling(spell)
+	local info = safecall(C_Spell and C_Spell.GetSpellCooldown, spell)
+	if type(info) ~= "table" then return false end
+	local start, duration = plain(info.startTime), plain(info.duration)
+	return type(start) == "number" and type(duration) == "number" and duration > 3
+		and start + duration > GetTime()
 end
 
 -- What the /cast line names for a rank: the spell's name, with its rank
@@ -689,6 +710,7 @@ local function Plan(key, set, unit, inGroup, st)
 		if not inGroup then return nil, "group" end
 		if not sighted then return nil, "sight" end
 		if Lacks(kind.reagent, spell) then return nil, "reagent", kind.reagent end
+		if Cooling(spell) then return nil, "cooldown" end
 		return { stage = "cast", spell = spell, text = CastText(spell) }
 	end
 
@@ -696,6 +718,7 @@ local function Plan(key, set, unit, inGroup, st)
 		if not Known(kind.spell) then return nil, "off" end
 		if not inGroup then return nil, "group" end
 		if Lacks(kind.reagent, kind.spell) then return nil, "reagent", kind.reagent end
+		if Cooling(kind.spell) then return nil, "cooldown" end
 		return { stage = "summon", spell = kind.spell, text = CastText(kind.spell) }
 	end
 
@@ -707,8 +730,23 @@ local function Plan(key, set, unit, inGroup, st)
 	local function suits(row) return not (level and row.level) or row.level <= level end
 	for _, row in ipairs(kind.rows) do
 		if suits(row) then
-			local count, item = Held(row)
+			local count, item = Held(row, level)
 			if count > 0 then return { stage = "trade", spell = row.spell, item = item } end
+		end
+	end
+	-- One spell that makes what suits your own level (Mists): with nothing in
+	-- the bags they can use, and a conjure that would make only what they
+	-- cannot, there is nothing to hand them.
+	for _, row in ipairs(kind.rows) do
+		local needs = level and row.needs
+		if needs then
+			local mine = plain(UnitLevel("player"))
+			for _, item in ipairs(type(mine) == "number" and row.items or {}) do
+				if (needs[item] or 0) <= mine then
+					if (needs[item] or 0) > level then return nil, "level" end
+					break
+				end
+			end
 		end
 	end
 	-- Conjured for them already and still nothing that suits them: what the
@@ -729,6 +767,7 @@ local function Plan(key, set, unit, inGroup, st)
 	conjure = conjure or lowest
 	if not conjure then return nil, "off" end
 	if Lacks(kind.reagent, conjure.spell) then return nil, "reagent", kind.reagent end
+	if Cooling(conjure.spell) then return nil, "cooldown" end
 	return { stage = "conjure", spell = conjure.spell, text = CastText(conjure.spell, kind.rows) }
 end
 
@@ -1076,6 +1115,11 @@ function Courtesy.TradeOpened()
 	local list = ns.standingRequests
 	if not (set and list) then return end
 	local now = GetTime()
+	-- No press came first, so this rests on the last scan's offer, and with
+	-- Manners switched off, snoozed or its prompt unlocked no scan offers
+	-- anything: what an earlier one left standing is not gone by.
+	local db = addon.db and addon.db.profile
+	if not (db and db.enabled) or ns.SnoozeLeft(now) or (db.prompt and db.prompt.locked == false) then return end
 	for i = #list, 1, -1 do
 		local request = list[i]
 		local st = state[request]
@@ -1185,6 +1229,10 @@ function Courtesy.Lines(lines)
 				why = L["they are not in your party or raid"]
 			elseif verdict == "reagent" then
 				why = L["no %s in your bags"]:format(ns.ReagentName(st.detail) or tostring(st.detail))
+			elseif verdict == "cooldown" then
+				why = L["the spell is cooling down"]
+			elseif verdict == "level" then
+				why = L["they are too low in level for what you can conjure"]
 			elseif verdict == "behind" then
 				why = L["after the buff you have for them"]
 			elseif verdict == "skipped" or verdict == "pressed" then

@@ -56,11 +56,11 @@ Out of a fight, a dead member of your group is offered your **resurrection** ahe
 
 **Courtesies on request**, each off until ticked: a mage hands water, food and portals, and a warlock healthstones and summons, to whoever asks in chat ("water pls", "port to Orgrimmar?", "summon pls"). Water and healthstones are conjured, then put in a trade window for you to accept.
 
-**Ask for a buff**, off until ticked: when somebody in your group or right beside you could give you a buff you are missing, a press whispers them one polite line. Never in a fight, and never the same person twice in ten minutes.
+**Ask for a buff**, off until ticked: when somebody in your group or right beside you could give you a buff you are missing, a press whispers them one polite line. Never in a fight, never the same person for the same buff twice in ten minutes, and one ask in all every two minutes.
 
 For a buff it skips the dead, the out of range, anyone you just tried, anyone the buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged yourself, anyone flagged for PvP, since buffing them would flag you too. Friends and guildmates go ahead of other passers-by. A *Never offer* list keeps people off the prompt, unless they buff you, because returning a favour is the point. How near is near: passers-by can be limited to about ten yards (the default), right beside you, or cities and inns.
 
-Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shadow Protection once you switch it on; druid Mark of the Wild, Thorns; paladin Wisdom, Might, Kings (and Salvation, Light and Sanctuary where the game still has them); warlock Unending Breath, to return a favour or when somebody asks for it; warrior Battle Shout. Everybody gets the first buff they are missing before anybody gets a second. Any one can be switched off, Thorns held to tanks or to you alone, and Unending Breath left out.
+Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shadow Protection once you switch it on; druid Mark of the Wild, Thorns; paladin Wisdom, Might, Kings (and Salvation, Light and Sanctuary where the game still has them); warlock Unending Breath; warrior Battle Shout. Everybody gets the first buff they are missing before anybody gets a second. Any one can be switched off, Thorns held to tanks or to you alone, and Unending Breath kept for a favour returned or somebody who asks for it.
 
 **For your tank:** Earth Shield, Spirit of the Alpha, Beacon of Light (Oath of Light on WoW Forever), Beacon of Faith, Symbiotic Relationship and Blistering Scales, the buffs only one person can wear, go to the player your group gives the tank role, and only while none of yours is on anybody. Put yours on somebody else and it stays there, and Beacon of Faith finds your second tank. A tank who buffs you gets one back. Season of Discovery, Burning Crusade, Mists and retail, wherever the game has them. Mists druids also get Symbiosis for one member of the group, and Season of Discovery warriors Commanding Shout beside Battle Shout.
 
@@ -80,7 +80,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shad
 - **Raid groups I buff.** Untick the groups you were not assigned; people who buffed you or asked are still offered.
 - **Save mana.** Below the level you set, only your own buffs and people who buffed you or asked are offered, or only your own buffs, or nothing at all: your choice.
 - **Quieter raids.** No "buffed you" chat line inside a raid; the favour is still remembered.
-- **Battlegrounds and arenas.** A section of their own on When to offer: after a death your own buffs come first, your team is offered freely before the gates open and only out of combat after, a gathering tracking is not reminded of, and nothing is said there unless you tick it.
+- **Battlegrounds and arenas.** A section of their own on When to offer: after a death your own buffs come first, your team is offered freely before the gates open and only out of combat after, a gathering tracking is not reminded of, no line is said with a cast there unless you tick it, and a thank-you you have switched on goes to your own team alone.
 - **Battle Shout reach.** A warrior's shout is offered only to the people it reaches: your own party, or your whole raid on WoW Forever.
 
 ### Quiet when you want it
@@ -118,7 +118,7 @@ Or pick **In character (fits your race and class)**: over two thousand lines, ch
 
 > *"Most kind, Mort. You've lifted me from 'deceased' to 'mildly deceased'."* -- a Forsaken, returning a favour
 
-Or just `/thank` them with an emote (off by default, never in a fight or an instance, after a moment's wait if you like), and with nothing to give back, a warrior say, whisper them a thank-you in character.
+Or just `/thank` them with an emote (off by default, never in a fight, a dungeon or a raid, after a moment's wait if you like), and with nothing to give back, a warrior say, whisper them a thank-you in character.
 
 ### Looks
 

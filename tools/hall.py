@@ -217,8 +217,19 @@ def lua_text(entries):
     return "\n".join(lines) + "\n"
 
 
+# What Markdown reads as markup inside a table cell: a link, an image, emphasis,
+# a code span, strike-through, a column's end, an escape of its own.
+MARKUP = re.compile(r"([\\`*_\[\]()!~|])")
+
+
 def cell(text):
-    return re.sub(r"\s+", " ", text).replace("|", "\\|").replace("<", "&lt;").strip()
+    """`text` as a README table cell that shows it letter for letter: a name, a
+    realm or a note is never live Markdown, a link or a picture least of all."""
+    text = re.sub(r"\s+", " ", text).strip()
+    text = MARKUP.sub(r"\\\1", text.replace("&", "&amp;").replace("<", "&lt;"))
+    # An address GitHub would make a link of by itself.
+    text = text.replace("://", "\\://").replace("@", "&#64;")
+    return re.sub(r"(?i)\bwww\.", lambda m: m.group(0)[:-1] + "&#46;", text)
 
 
 def readme_block(entries):
@@ -315,8 +326,12 @@ def main():
         else:
             print("no --proof: listed with no record of the screenshot")
         entries.append(fields)
+        # Built before anything is written: a README whose hall section does
+        # not read stops here with hall.json as it was, so the same code can
+        # be added once the README is put right.
+        made = outputs(entries)
         write(SOURCE, json.dumps(entries, ensure_ascii=False, indent=2) + "\n")
-        for path, text in outputs(entries):
+        for path, text in made:
             write(path, text)
         print("added: %d listed. HallOfFame.lua and the README section are written." % len(entries))
         return 0

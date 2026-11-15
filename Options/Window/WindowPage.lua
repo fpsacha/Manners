@@ -1029,7 +1029,9 @@ function UI.PaintPage(mode)
 		if not sec.visible then
 			HideSection(sec)
 		else
-			if sec.fold and not captioned then
+			-- Over the first fold of fine print: a `plain` fold (the hall of
+			-- fame on Start here) holds no setting and takes no caption.
+			if sec.fold and not sec.def.plain and not captioned then
 				Flush()
 				y = PlaceCaption(m, y)
 				captioned = true

@@ -66,6 +66,8 @@ local TEXT = {
 	-- Once they all are. An invitation: nothing is asked for a place.
 	-- The proof is a screenshot of the certificate (HallProof.lua).
 	INVITE = L["Every milestone is yours. If you would like your name listed among the Gentlefolk of Good Manners, here and on the addon's GitHub page:\n1. Open your certificate with the button below.\n2. Take a screenshot of it with the game's Print Screen key. It is saved in the game's Screenshots folder.\n3. Post the screenshot and the code below with the \"Hall of fame\" form: |cffffd100github.com/fpsacha/Manners|r.\nThe screenshot is the proof. It is an invitation and nothing more: nothing of value is asked for it."],
+	-- Every milestone, and no code could be made for this name.
+	NOCODE = L["Every milestone is yours. Manners could not make a code for this character's name, so there is none to copy. If you would like your name listed among the Gentlefolk of Good Manners, say so on the addon's GitHub page: |cffffd100github.com/fpsacha/Manners|r."],
 	LISTED = L["You are listed among the Gentlefolk of Good Manners. Thank you for your manners."],
 	-- The one chat line when the last milestone is earned.
 	OPEN = L["Every milestone earned. A place among the Gentlefolk of Good Manners is open to you: your code is on Start here (|cffffd100/manners|r)."],
@@ -159,9 +161,13 @@ local function Me()
 	return { name = name, realm = realm, client = client, class = class }
 end
 
--- Whether the section is there at all: only while milestones are on.
+-- Whether the section is there at all: only while milestones are on, and not
+-- for a character with no milestone to earn (a class with no buff, cure,
+-- resurrection or courtesy for anybody).
 function Hall.Shown()
-	return M.On() == true
+	if M.On() ~= true then return false end
+	local _, of = M.Tally()
+	return of > 0
 end
 
 -- How many milestones are earned, of how many this character can earn, and
@@ -191,10 +197,15 @@ local function Same(a, b)
 	return type(a) == "string" and type(b) == "string" and a:lower() == b:lower()
 end
 
--- Whether a row of the list is this character.
+-- Whether a row of the list is this character. The class as well, where the
+-- row has one (every row tools/hall.py writes does): a name is not one
+-- character for ever, and one made again under a freed name as another class
+-- is somebody else. A namesake of the same class in another region cannot be
+-- told apart: neither the code nor the row says the region.
 local function IsMe(row, who)
 	return who ~= nil and Same(row.name, who.name) and row.client == who.client
 		and Same(row.realm or "", who.realm or "")
+		and (type(row.class) ~= "string" or Same(row.class, who.class))
 end
 
 -- The list as shipped, newest first (HallOfFame.lua is written in that order;
@@ -226,6 +237,10 @@ end
 function Hall.NoteText()
 	local earned, of, done = Hall.Progress()
 	if Hall.Listed() then return TEXT.LISTED end
+	-- Every milestone, and no code to copy (a name a code cannot carry, or one
+	-- the client would not give): said, where the invitation would point at a
+	-- box that is not there.
+	if done and Hall.Code() == nil then return TEXT.NOCODE end
 	if done then return TEXT.INVITE end
 	return TEXT.PROGRESS:format(earned, of)
 end
@@ -244,18 +259,26 @@ function Hall.ListText()
 	local rows, who = Rows(), Me()
 	if #rows == 0 then return TEXT.EMPTY end
 	local lines = { TEXT.HEAD }
+	-- Past the cut only the player's own row is drawn, so somebody told they
+	-- are listed finds their name; the rest are counted.
+	local more = 0
 	for i, r in ipairs(rows) do
-		if i > MAX_ROWS then
-			lines[#lines + 1] = TEXT.MORE:format(#rows - MAX_ROWS)
-			break
-		end
 		local row = r.row
-		local name = row.name:gsub("|", "")
-		if type(row.realm) == "string" and row.realm ~= "" then name = name .. "-" .. row.realm:gsub("|", "") end
-		local line = TEXT.ROW:format(Coloured(name, row.class), CLIENTS[row.client] or tostring(row.client or ""), r.date)
-		if IsMe(row, who) then line = TEXT.YOU:format(line) end
-		lines[#lines + 1] = line
+		local cut = false
+		if i > MAX_ROWS then
+			cut = not IsMe(row, who)
+		end
+		if cut then
+			more = more + 1
+		else
+			local name = row.name:gsub("|", "")
+			if type(row.realm) == "string" and row.realm ~= "" then name = name .. "-" .. row.realm:gsub("|", "") end
+			local line = TEXT.ROW:format(Coloured(name, row.class), CLIENTS[row.client] or tostring(row.client or ""), r.date)
+			if IsMe(row, who) then line = TEXT.YOU:format(line) end
+			lines[#lines + 1] = line
+		end
 	end
+	if more > 0 then lines[#lines + 1] = TEXT.MORE:format(more) end
 	return table.concat(lines, "\n")
 end
 
@@ -264,5 +287,7 @@ end
 function Hall.Announce()
 	local _, _, done = Hall.Progress()
 	if not done or Hall.Listed() then return end
+	-- Nothing about a code there is none of (NoteText says why on the page).
+	if Hall.Code() == nil then return end
 	if ns.addon and ns.addon.Print then ns.addon:Print(TEXT.OPEN) end
 end

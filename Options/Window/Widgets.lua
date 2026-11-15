@@ -522,10 +522,18 @@ local function TipLeave(owner)
 	GameTooltip:Hide()
 end
 
+-- A button greyed out still says why under the mouse: the client runs no
+-- OnEnter on a disabled Button unless told to. For every button that carries
+-- a tooltip and can be disabled.
+function W.TipsWhileOff(frame)
+	if frame.SetMotionScriptsWhileDisabled then frame:SetMotionScriptsWhileDisabled(true) end
+end
+
 -- The row's tooltip on `frame`; `hover(frame, on)` also runs, for a field
 -- that lights its border under the mouse.
 function W.Tip(frame, row, hover)
 	frame.row, frame.hover = row, hover
+	W.TipsWhileOff(frame)
 	frame:SetScript("OnEnter", function(self) ns.Guard("options tooltip", TipEnter, self) end)
 	frame:SetScript("OnLeave", function(self) ns.Guard("options tooltip", TipLeave, self) end)
 end

@@ -352,6 +352,8 @@ function Pet:Tick(now)
 	if InCombatLockdown() then return end
 	local db = addon.db and addon.db.profile
 	if not (db and db.sources and db.sources.self == true) then return end
+	-- Switched off or snoozed, Manners brings nothing out, as it offers nothing.
+	if not db.enabled or ns.SnoozeLeft(now) then return end
 	local family = Family()
 	local ctx = { name = ns.UnitFullName("player"), now = now, whenBuffed = ns.SelfWhenBuffed(db.filters),
 		refreshUnder = db.filters.refreshUnder }

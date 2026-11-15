@@ -853,6 +853,14 @@ local function BarWaiting(now)
 		end
 		return
 	end
+	-- A courtesy's trade is the prompt's own too (Prompt/Macro.lua keeps it
+	-- off the bar macro, which may hold no /trade).
+	if S.current and S.current.courtesy and S.current.courtesy.stage == "trade" then
+		if db and db.verbose then
+			ns.addon:Print(L["the prompt is on a trade somebody asked for -- press the prompt itself, or its key; the action bar macro only casts."])
+		end
+		return
+	end
 	-- The spell's own cooldown as well as the global one: the macro holds back
 	-- for the end of either (Clicks.lua, HoldNow).
 	local entry = S.current

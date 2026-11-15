@@ -1544,7 +1544,7 @@ function Archmage:Attention(isNew, arrived, flashStyle)
 	if isNew then
 		self.pulseSpent, self.calmLit = nil, nil
 		-- The setting charges for a new favour, never for a new face.
-		if full and self.kit.icon:IsShown() then
+		if full and self.kit.icon:IsShown() and not (self.outcomeOn or self.kit.OutcomeLive()) then
 			self:StopLights()
 			for i = 1, 6 do self.arrive[i]:Play() end
 			if self.runOK and self.veinOK then

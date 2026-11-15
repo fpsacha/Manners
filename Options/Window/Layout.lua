@@ -11,8 +11,9 @@
 -- functions the window calls when it draws the sidebar.
 --
 -- A section is { header = "tab.key" (the model header's name is its title) or
--- title = L[...], fold = true below the hairline, key = "<page>.<name>" (stable:
--- an open fold is remembered by it), items = { ... } }. An item is "tab.key"
+-- title = L[...], fold = true below the hairline (plain = true for a fold that
+-- is no fine print and wants no caption over it: the hall of fame), key =
+-- "<page>.<name>" (stable: an open fold is remembered by it), items = { ... } }. An item is "tab.key"
 -- or { "tab.key", indent (true one step in, 2 two: a choice under a switch
 -- that is itself in), pair (may share a row with the item after it; pairs
 -- that follow one another are one run, whose shown items go two to a row),
@@ -276,8 +277,9 @@ ns.WindowLayout = {
 				-- earned by: how far along, the code once every milestone is
 				-- earned (a box that only copies: WidgetsEntry.lua, READ_ONLY),
 				-- and who is listed. The two notes keep the fold on the page
-				-- while there is no code yet.
-				{ key = "general.hall", header = "general.hallHeader", fold = true, items = {
+				-- while there is no code yet. `plain`: it holds no setting, so
+				-- the line that introduces the fine print is not drawn over it.
+				{ key = "general.hall", header = "general.hallHeader", fold = true, plain = true, items = {
 					{ "general.hallNote", standIn = true },
 					"general.hallCertificate",
 					"general.hallCode",
@@ -735,14 +737,19 @@ ns.WindowLayout = {
 				-- The model's header reads "Icon and waiting list", for the old
 				-- dialog; the waiting list has its own section above.
 				{ key = "appearance.icon", title = L["Icon"], fold = true, items = {
+					-- Everything Show spell icon governs stands straight under it,
+					-- with no row further out between: such a row would be taken
+					-- for their switch, and they would stay drawn with the icon
+					-- off. The gryphons and the consumables button go by other
+					-- settings, so they stand apart.
 					"appearance.showIcon",
 					{ "appearance.iconSize", indent = true },
-					"appearance.iconSizeCapped",
-					"appearance.suppliesSize",
+					{ "appearance.iconSizeCapped", indent = true },
 					{ "appearance.roundIcon", indent = true },
 					{ "appearance.iconFrame", indent = true },
-					{ "appearance.gryphons", indent = true },
 					{ "appearance.showCooldown", indent = true },
+					"appearance.gryphons",
+					"appearance.suppliesSize",
 				} },
 				-- Set once, if ever: folded, which keeps Look to three screens.
 				{ key = "appearance.hover", header = "appearance.tooltipHeader", fold = true, items = {
@@ -991,6 +998,21 @@ ns.WindowLayout = {
 		["profiles.auto_raid"] = "profiles.autoEnabled",
 		["profiles.auto_battle"] = "profiles.autoEnabled",
 		["profiles.autoSay"] = "profiles.autoEnabled",
+	},
+
+	-- What else a control of `parents` needs before its switch would show it:
+	-- asked by search, which does not say "turn on" a switch that would show
+	-- nothing. A courtesy is its class's alone, and the lines mixed in belong
+	-- to the In character set.
+	parentsIf = {
+		["who.courtesyRefresh"] = function() return ns.Courtesy.Has("courtesyRefresh") end,
+		["who.courtesyPortals"] = function() return ns.Courtesy.Has("courtesyPortals") end,
+		["who.courtesyHealthstones"] = function() return ns.Courtesy.Has("courtesyHealthstones") end,
+		["who.courtesySummons"] = function() return ns.Courtesy.Has("courtesySummons") end,
+		["click.mixedLines"] = function()
+			local db = ns.db and ns.db.profile
+			return ns.InCharacter ~= nil and ns.InCharacter.Active(db and db.speech)
+		end,
 	},
 
 	-- In the model and drawn nowhere.

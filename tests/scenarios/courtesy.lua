@@ -731,7 +731,8 @@ do
 	local scenario = "courtesy: mists: one refreshment for water and food"
 	Mock.setFlavour("mists")
 	local restoreUnits = strangers({ nameplate1 = { "Anna" } })
-	local w = world({ known = { 1459, 42955 } })
+	-- Level 90, as the Conjured Mana Pudding (80610) asks of whoever eats it.
+	local w = world({ known = { 1459, 42955 }, levels = { nameplate1 = 90 } })
 	with(scenario, w.globals, function()
 		local ns = load(scenario)
 		if not ns then return end

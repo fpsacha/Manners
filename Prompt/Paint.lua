@@ -267,6 +267,10 @@ function Prompt:PaintOutcome()
 	local who = ns.ShortName and ns.ShortName(S.outcomeName) or S.outcomeName
 	-- A press on yourself says so, rather than naming you like a stranger.
 	local own = ns.IsPlayerName(S.outcomeName)
+	-- A cure (Cures.lua) is no buff, and its outcome does not say one was
+	-- given: known by the key the press was for.
+	local cure = type(S.outcomeBuff) == "string" and S.outcomeBuff:sub(1, 5) == "cure:"
+	local them = who or tostring(S.outcomeName)
 
 	local r, g, b = self:AccentColor(S.current and S.current.reason or "owed")
 	local lead, sub
@@ -275,7 +279,9 @@ function Prompt:PaintOutcome()
 		-- Red, with the game's own localised words underneath: often the only
 		-- thing that says why (range, line of sight, mana).
 		r, g, b = 0.90, 0.26, 0.22
-		lead = own and L["|cffff8080could not buff|r |cffffffffyourself|r"]
+		lead = cure and (own and L["|cffff8080could not cure|r |cffffffffyourself|r"]
+				or L["|cffff8080could not cure|r |cffffffff%s|r"]:format(them))
+			or own and L["|cffff8080could not buff|r |cffffffffyourself|r"]
 			or who and L["|cffff8080could not buff|r |cffffffff%s|r"]:format(who)
 			or L["|cffff8080could not buff|r |cffffffffthem|r"]
 		sub = S.outcomeDetail
@@ -287,6 +293,9 @@ function Prompt:PaintOutcome()
 		lead = who and L["|cffe8e0a0sent to|r |cffffffff%s|r"]:format(who)
 			or L["|cffe8e0a0sent to|r |cffffffffthem|r"]
 		sub = S.outcomeDetail or L["cast -- this client will not confirm who to"]
+	elseif cure then
+		lead = own and L["|cff8ce88ccured|r |cffffffffyourself|r"] or L["|cff8ce88ccured|r |cffffffff%s|r"]:format(them)
+		sub = own and L["cast on you"] or L["the game confirmed it"]
 	elseif own then
 		-- [@player] can land nowhere else, so our spell going out is the
 		-- whole answer (Clicks.lua, SettleSelf).
@@ -300,7 +309,12 @@ function Prompt:PaintOutcome()
 
 	-- A look of its own writes the outcome its way; the count goes as here.
 	if S.activeLook then
-		S.activeLook:PaintOutcome(S.outcomeKind, lead, sub, own and L["You"] or who, S.outcomeAt)
+		-- A look's own verdict words are a buff's ("buffed", "could not buff"):
+		-- a cure is handed over with nobody to name, which makes the look write
+		-- the headline above, the one that says what happened and to whom.
+		local named = own and L["You"] or who
+		if cure and S.outcomeKind ~= "sent" then named = nil end
+		S.activeLook:PaintOutcome(S.outcomeKind, lead, sub, named, S.outcomeAt)
 		S.accentPainted = nil
 		S.outcomePainted = S.outcomeName
 		ShowChip(false)

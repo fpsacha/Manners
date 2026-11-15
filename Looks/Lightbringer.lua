@@ -1425,7 +1425,7 @@ function Lightbringer:Attention(isNew, arrived, flashStyle)
 	if isNew then
 		self.pulseSpent, self.calmLit = nil, nil
 		-- The Light answers a new favour, never a new face.
-		if full and self.kit.icon:IsShown() then
+		if full and self.kit.icon:IsShown() and not (self.outcomeOn or self.kit.OutcomeLive()) then
 			self:StopLights()
 			PlayAll(self.arrive)
 		end

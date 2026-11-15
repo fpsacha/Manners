@@ -497,6 +497,13 @@ end
 -- many people can owe you at once.
 local function Trim(s)
 	local entries = s.entries
+	-- A favour's row that goes is told to the milestones first, whose week
+	-- without a debt is read from the rows (Milestones.lua, Dropped).
+	local M = ns.Milestones
+	local function Drop(i)
+		if M and M.Dropped then ns.Guard("milestones", M.Dropped, entries[i]) end
+		table.remove(entries, i)
+	end
 	local given = 0
 	for i = 1, #entries do
 		if entries[i].kind == "given" then given = given + 1 end
@@ -515,7 +522,7 @@ local function Trim(s)
 		if entries[i].state == "owed" then
 			i = i + 1
 		else
-			table.remove(entries, i)
+			Drop(i)
 		end
 	end
 end
@@ -1022,8 +1029,15 @@ function Ledger.Clear()
 	local s = Store()
 	if not s then return end
 	local kept = {}
+	local M = ns.Milestones
 	for _, e in ipairs(s.entries) do
-		if e.kind == "received" and e.state == "owed" then kept[#kept + 1] = e end
+		if e.kind == "received" and e.state == "owed" then
+			kept[#kept + 1] = e
+		elseif M and M.Dropped then
+			-- The week without a debt is read from these rows: a favour of the
+			-- last week, returned or left, is remembered there past its row.
+			ns.Guard("milestones", M.Dropped, e)
+		end
 	end
 	s.entries = kept
 	s.today = nil

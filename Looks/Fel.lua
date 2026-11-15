@@ -1669,7 +1669,7 @@ function Fel:Attention(isNew, arrived, flashStyle)
 	if isNew then
 		self.pulseSpent, self.calmLit = nil, nil
 		-- The circle is lit for a new favour, never a new face.
-		if full and not self.refused then
+		if full and not self.refused and not (self.outcomeOn or self.kit.OutcomeLive()) then
 			self:StopLights()
 			StopAll(self.calm)
 			self:Runes(RUNE_REST, SIGIL_REST)

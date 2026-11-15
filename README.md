@@ -761,9 +761,10 @@ no room for. Defaults are in brackets.
     your group with the tank role or a raid's main tank mark, and nobody
     outside it); *Tanks, and anyone outside my group*; or *Only me*. Anybody
     who asks you for Thorns in chat is still offered it.
-  - A warlock's Unending Breath goes to return a favour and to whoever asks
-    for it by name, and to everybody with *Offer Unending Breath to everybody
-    near me*.
+  - A warlock's Unending Breath goes to everybody, your group and passers-by,
+    with *Offer Unending Breath to everybody near me* (on) on Classic Era,
+    WoW Forever and Burning Crusade. Unticked, it goes to return a favour
+    and to whoever asks for it by name.
   - **Paladins.** Blessings overwrite one another, so anybody already
     carrying one of yours is left alone rather than handed a different one.
     Automatic picks Wisdom for anyone with a mana bar and Might for everyone
@@ -879,8 +880,10 @@ Everything here is off until you turn it on.
   *Whisper them a thank-you*. It sets the switches under it.
 - ***Thanks and speech***:
   - */thank people who buff me*: when somebody buffs you, you `/thank` them,
-    whether or not you could buff them back. Never in a fight or in any
-    instance, nor while you are stealthed or feigning death, at most once per
+    whether or not you could buff them back. Never in a fight, a dungeon or
+    a raid (in a battleground or an arena only somebody of your own team,
+    with *Thank people there* on), nor while you are stealthed or feigning
+    death, at most once per
     person every five minutes and once every ten seconds in all, so a raid
     buffing you on the pull is one thank. *Emote to use* picks which of
     twenty-four friendly emotes (`/thank`, `/cheer`, `/bow`, `/salute` and
@@ -1097,7 +1100,7 @@ On WoW Forever and Classic Era:
 | Druid | Mark of the Wild, Thorns |
 | Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade; Beacon of Light (Season of Discovery) or Oath of Light (WoW Forever), for your tank |
 | Shaman | Earth Shield and Spirit of the Alpha (Season of Discovery), for your tank |
-| Warlock | Unending Breath, to return a favour and to whoever asks for it by name; Detect Invisibility for your party or raid, off until you tick it |
+| Warlock | Unending Breath (or, with its switch unticked, only to return a favour and to whoever asks for it by name); Detect Invisibility for your party or raid, off until you tick it |
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever); Commanding Shout too in Season of Discovery |
 
 Mages, priests, druids and paladins also cast the group version of a buff

@@ -44,7 +44,7 @@ end
 --     of Era 1.15.9.70003 or TBC 2.5.6.69795 (wago.tools DB2), where Mists
 --     5.5.4.70032 has it as "Global Cooldown"; Blizzard's own UI source of every
 --     branch never names it. The same tables hold no row for it on Forever
---     either (1.60.1.70178), where addons do read it (EnhanceQoL's GCD bar), so
+--     either (1.60.1.70178), where addons do read it (for a cooldown bar), so
 --     the data alone is not proof the client answers nothing: what is proved is
 --     that nothing on those two clients promises an answer.
 --   * On both, the global cooldown is a property of each spell, not a spell:

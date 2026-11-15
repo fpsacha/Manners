@@ -1810,6 +1810,10 @@ local function StillCastable(memo, candidates, f, askOnly)
 		and not (db.buff.tanksOutside and db.buff.tanksOutside[key]) then
 		return false
 	end
+	-- Held to your group again since ("to passers-by too" unticked under a buff
+	-- Manners keeps to the group, Detect Invisibility): nobody remembered here
+	-- is of the group, asking or not, as Castable answers a token on them.
+	if memo.buff.membersOnly and not ns.PassersToo(memo.buff) then return false end
 	-- Might, once "Don't offer Might to mages, warlocks and priests" is on.
 	if memo.buff.meleeOnly and memo.reason ~= "asked" and db and db.buff.skipCasters == true
 		and ns.CASTER_CLASSES[memo.class] then
@@ -3324,6 +3328,8 @@ function ns.BuildQueue(watch)
 			break
 		end
 	end
+	-- Nor one the walk left to another Manners user (Share.lua): theirs to cast.
+	if ns.ShareShoutHeld and ns.ShareShoutHeld(queue) then ns.shoutUnreached = nil end
 	local mine = SelfEntry(db, candidates, now, neverVerdict)
 	ns.shoutUnreached = nil
 	-- Where a buff on anybody lands on the whole party, yours on yourself is

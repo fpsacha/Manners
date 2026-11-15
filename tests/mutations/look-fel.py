@@ -85,8 +85,8 @@ mutate("Looks/Fel.lua",
        expect="the runes are not each cut from their own place", script=S)
 
 mutate("Looks/Fel.lua",
-       "\t\tif full and not self.refused then\n\t\t\tself:StopLights()\n\t\t\tStopAll(self.calm)\n\t\t\tself:Runes(RUNE_REST, SIGIL_REST)\n\t\t\tPlayAll(self.arrive)\n",
-       "\t\tif full and not self.refused then\n\t\t\tself:StopLights()\n\t\t\tStopAll(self.calm)\n\t\t\tself:Runes(RUNE_REST, SIGIL_REST)\n",
+       "\t\tif full and not self.refused and not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n\t\t\tStopAll(self.calm)\n\t\t\tself:Runes(RUNE_REST, SIGIL_REST)\n\t\t\tPlayAll(self.arrive)\n",
+       "\t\tif full and not self.refused and not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n\t\t\tStopAll(self.calm)\n\t\t\tself:Runes(RUNE_REST, SIGIL_REST)\n",
        "look-fel: a favour arriving lights nothing",
        expect="look-fel: a favour arriving lights the runes one after another", script=S)
 

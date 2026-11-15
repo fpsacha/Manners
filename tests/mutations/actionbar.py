@@ -120,14 +120,14 @@ mutate("Core.lua",
 # ------------------------------------------------------------ armed from the prompt
 
 mutate("Prompt/Macro.lua",
-       "\tif not S.isRow then ns.SyncMacroSlot(entry) end\n",
+       "\tif not S.isRow then ns.SyncMacroSlot(not (entry.courtesy and entry.courtesy.stage == \"trade\") and entry or nil) end\n",
        "",
        "actionbar: arming the prompt never sets the slot",
        expect=FOLLOWS, script=S)
 
 # A list row's macro taken for the prompt's.
 mutate("Prompt/Macro.lua",
-       "\tif not S.isRow then ns.SyncMacroSlot(entry) end\n",
+       "\tif not S.isRow then ns.SyncMacroSlot(not (entry.courtesy and entry.courtesy.stage == \"trade\") and entry or nil) end\n",
        "\tns.SyncMacroSlot(entry)\n",
        "actionbar: a list row sets the slot",
        expect=ROWS, script=S)

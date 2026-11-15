@@ -59,7 +59,7 @@ mutate("Looks/Lightbringer.lua",
 # --- a favour arriving ---
 
 mutate("Looks/Lightbringer.lua",
-       "\t\tif full and self.kit.icon:IsShown() then\n\t\t\tself:StopLights()\n\t\t\tPlayAll(self.arrive)\n",
+       "\t\tif full and self.kit.icon:IsShown() and not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n\t\t\tPlayAll(self.arrive)\n",
        "\t\tif false then\n\t\t\tself:StopLights()\n\t\t\tPlayAll(self.arrive)\n",
        "lightbringer: no pillar for a favour",
        expect="a favour arriving brought no pillar down", script=S)
