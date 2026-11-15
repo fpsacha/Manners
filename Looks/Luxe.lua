@@ -52,12 +52,25 @@ local Luxe = ns.Looks.Register("luxe", {
 	classSoften = 0.85,
 	-- The tag carries its own dark ground (PaintPill), whatever the panel.
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/luxe): the card, its
+	-- bevel, its shadow and the icon's rim are the painting's. The spine stays
+	-- this look's own, laid over the painted one in the reason colour, with
+	-- its light, the ring, the tag, the chip and the list.
+	paintedHides = { "shadow", "card", "bevel", "rim" },
+	paintedIconFill = 0.80,
 })
 
 -- Where the spine sits, and what a fight does to each part: the card holds,
 -- the ink (the icon, its shade and rim, the light) recedes, the text a little.
 local SPINE_X = 6
 local GROUND_COMBAT, INK_COMBAT, TEXT_COMBAT = 0.92, 0.62, 0.80
+-- The painted frame in a fight: greyed and dimmed this far.
+local PAINT_COMBAT = 0.86
+-- Where the painting (art/looks/luxe) has its parts, in units of the bar's
+-- core height: the gold spine's face from the left end's edge (left, top,
+-- right, bottom), and the card's inside, its right from the right end's edge.
+local PAINT_SPINE = { 0.052, 0.045, 0.184, 0.955 }
+local PAINT_CARD = { 0.23, 0.033, 0.20, 0.969 }
 -- The reason with the marker switched off.
 local NEUTRAL = { 0.55, 0.56, 0.62 }
 -- The outcomes' own colours: the tag, the spine, the ring and the wash.
@@ -304,6 +317,16 @@ function Luxe:Build(kit)
 	self.ring = tex(art, "ARTWORK", 3, "IconRing")
 	self.dots = {}
 	for i = 1, #kit.rows do self.dots[i] = tex(art, "ARTWORK", 1, "Dot") end
+	-- The key's letter on the painted keycap, on a frame of its own over the
+	-- painting; drawn only while the painting is up (Chip), never by the
+	-- earlier art, which shows no key.
+	self.chipFrame = keep(CreateFrame("Frame", nil, art))
+	self.keyBox = keep(CreateFrame("Frame", nil, self.chipFrame))
+	self.keyText = self.chipFrame:CreateFontString(nil, "OVERLAY")
+	self.keyText:SetJustifyH("CENTER")
+	self.keyText:SetWordWrap(false)
+	self.keyText:SetPoint("CENTER", self.keyBox, "CENTER", 0, 0)
+	self.keyText:Hide()
 
 	-- The icon's shape. Not ours to keep in `own`: it is taken off the icon in
 	-- Hide.
@@ -364,6 +387,7 @@ function Luxe:Build(kit)
 		f:SetFrameLevel(base + 1)
 	end
 	self.spineFrame:SetFrameLevel(base + 2)
+	self.chipFrame:SetFrameLevel(base + 3)
 	for _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 3) end
 	self.sheenFrame:SetFrameLevel(base + 3)
 
@@ -710,6 +734,10 @@ function Luxe:Apply(p, above)
 	self.wash:Show()
 	self:HoverWash()
 	self:SetInk(1, 1, 1)
+	-- What the painted frame moves (PaintedPlace), back where this card has it.
+	self.dotX, self.trayX0, self.trayX1, self.trayGap = SPINE_X + spineW / 2, 0, 0, 3
+	self.lineInset, self.chipInset, self.keyLabel, self.outcomeOn = nil, 8, nil, nil
+	self.keyText:Hide()
 
 	-- The count's room: a two-digit count and the chip's caps. Chip widens it
 	-- for a longer count.
@@ -720,6 +748,7 @@ end
 
 function Luxe:Styled(p, twoLine)
 	local kit = self.kit
+	self.twoLine = twoLine
 	-- The chip on the name line, wherever the name line is: centred when it
 	-- is the only one.
 	self.chipBox:ClearAllPoints()
@@ -792,12 +821,147 @@ function Luxe:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): the card, its bevel and shadow and
+-- the icon's rim are the painting's; the spine, its light, the ring, the tag,
+-- the chip, the list and the light that crosses are this look's, moved onto
+-- the painting. `g` is Painted.Layout's.
+---------------------------------------------------------------------------
+
+function Luxe:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local u, W, H = g.unit, self.W, self.H
+	local showIcon = p.showIcon and true or false
+	-- The painted card is solid whatever the panel's colour: no outline, and
+	-- the tag on its usual fill.
+	self.clear = false
+	-- The spine over the painted one's face, in the reason colour.
+	local sx0, sy0 = g.left + PAINT_SPINE[1] * u, g.top + PAINT_SPINE[2] * u
+	local sx1, sy1 = g.left + PAINT_SPINE[3] * u, g.top + PAINT_SPINE[4] * u
+	local spineW, spineLen = sx1 - sx0, sy1 - sy0
+	self.spineW = spineW
+	self.spine:ClearAllPoints()
+	self.spine:SetPoint("TOPLEFT", art, "TOPLEFT", sx0, -sy0)
+	self.spine:SetSize(spineW, spineLen)
+	-- Its bloom, cut where the socket begins.
+	local iconL = g.socketX - g.iconSize / 2
+	local half = spineW / 2 + 12
+	local reach = (showIcon and (g.socketX - g.socketR) or g.textX) - 1 - (sx0 + spineW / 2)
+	local glowW = half + math.max(spineW / 2, math.min(half, reach))
+	for _, t in ipairs({ self.glow, self.flare, self.pulseGlow, self.hoverGlow }) do
+		t:ClearAllPoints()
+		t:SetPoint("LEFT", self.spine, "CENTER", -half, 0)
+		t:SetSize(glowW, spineLen + 24)
+		t:SetTexCoord(0, glowW / (2 * half), 0, 1)
+	end
+	-- The card's inside on the painting.
+	local cardL, cardR = g.left + PAINT_CARD[1] * u, g.right - PAINT_CARD[3] * u
+	local cardT, cardB = g.top + PAINT_CARD[2] * u, g.top + PAINT_CARD[4] * u
+	for _, t in ipairs({ self.wash, self.hoverWash }) do
+		t:ClearAllPoints()
+		t:SetPoint("TOPLEFT", art, "TOPLEFT", sx1, -cardT)
+		t:SetPoint("BOTTOMLEFT", art, "TOPLEFT", sx1, -cardB)
+		t:SetWidth(math.max(1, math.min(math.floor(W * 0.52), g.textX + 1) - sx1))
+	end
+	-- The ring round the icon in the socket, and the rings that spread from it.
+	self.iconX = iconL
+	if showIcon then
+		local size = g.iconSize
+		local ringPad = RING_PAD * size / 30
+		for _, t in ipairs({ self.ring, self.pulseRing }) do
+			t:ClearAllPoints()
+			t:SetPoint("TOPLEFT", icon, "TOPLEFT", -ringPad, ringPad)
+			t:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", ringPad, -ringPad)
+		end
+		self.fx:Place(icon, ringPad, size)
+		local r = size / 2
+		local limitH = r + math.min(g.textX - iconL - size - kit.TEXT_MARGIN, iconL - kit.EDGE_MARGIN)
+		-- The socket sits a little off the middle: the rings keep to the nearer edge.
+		local limitV = math.min(g.socketY, H - g.socketY) - kit.EDGE_MARGIN
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+		kit.CapLock(self.lockIn, self.lockSettle, 1.30, 0.97,
+			kit.CapScale(math.min(limitH, limitV), r + ringPad, 0.96))
+	end
+	-- The light that crosses, and the cursor's and the outcome's, on the well.
+	local clearX = showIcon and math.ceil(g.socketX + g.socketR + 1) or math.ceil(cardL)
+	self.clearX = clearX
+	local band = math.max(24, math.floor(W * 0.22))
+	self.sheenFrame:ClearAllPoints()
+	self.sheenFrame:SetPoint("LEFT", art, "TOPLEFT", clearX, -(cardT + cardB) / 2)
+	self.sheenFrame:SetSize(band, cardB - cardT)
+	self.sheenAnim.move:SetOffset(math.max(0, cardR - band - clearX), 0)
+	PlaceSlice(self.hoverLight, self.hoverFrame, self.hoverFrame, -clearX, -cardT, cardR - W, cardB - H)
+	PlaceSlice(self.result, self.resultFrame, self.resultFrame, -clearX, -cardT, cardR - W, cardB - H)
+	-- "Reason colour: both": the card's top edge, on the painting's card.
+	PlaceSlice(self.edge, art, art, 1 - cardL, 1 - cardT, cardR - W + 1, cardB - H + 1)
+	-- The two lines centred on the well.
+	local dy = H / 2 - g.textY
+	self.textX = g.textX
+	self.nameY, self.pillTop = self.nameY + dy, self.pillTop - dy
+	self.pillFrame:ClearAllPoints()
+	self.pillFrame:SetPoint("TOPLEFT", kit.textLayer, "TOPLEFT", g.textX, -self.pillTop)
+	-- The key's letter on the keycap.
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	-- The list under the bar, from the spine to the card's right edge, clear
+	-- of what the painting hangs past the prompt; its marks under the spine.
+	self.dotX = (sx0 + sx1) / 2
+	self.trayX0 = math.floor(g.left + 0.02 * u)
+	self.trayX1 = math.ceil(g.right - 0.17 * u) - W
+	self.trayGap = 3 + math.max(0, above and -g.y0 or (g.y1 - H))
+	self.trayHeight = nil
+	local rowWidth = math.max(20, cardR - iconL - 8)
+	for _, fs in ipairs(kit.rows) do
+		fs:SetWidth(rowWidth)
+		kit.fit.room[fs] = rowWidth
+	end
+	self:PaintedInsets(g, ns.Looks.Painted.KeyShown(self))
+	return g.textX, self.roomBase
+end
+
+-- Where the lines, the tag and the chip end: left of the keycap while it is
+-- up, at the well's end while it is not.
+function Luxe:PaintedInsets(g, keyUp)
+	local lineRight
+	if keyUp then
+		lineRight = g.keyX - g.keyW / 2 - 4
+	else
+		lineRight = g.right - (PAINT_CARD[3] + 0.10) * g.unit - 4
+	end
+	local inset = math.ceil(self.W - lineRight)
+	self.lineInset, self.chipInset = inset, inset
+	self.subRoom = math.max(20, lineRight - self.textX - self.pillH)
+	self.roomBase = math.ceil(self.sub * 1.2 + 0.9 * self.chipH) + inset + 6
+	self.chipBox:ClearAllPoints()
+	self.chipBox:SetPoint("RIGHT", self.kit.textLayer, "RIGHT", -inset, self.twoLine and self.nameY or 0)
+end
+
+-- The key's letter in the painting's keycap ink, no larger than it holds; the
+-- chip where the insets put it.
+function Luxe:PaintedStyled(g)
+	local kit = self.kit
+	local path = kit.fit.path or STANDARD_TEXT_FONT
+	local size = math.max(6, math.min(self.p and self.p.fontSize or 12, math.floor(g.keyH * 0.6)))
+	local flags = g.keyOutline and "OUTLINE" or ""
+	if not self.keyText:SetFont(path, size, flags) or not self.keyText:GetFont() then
+		self.keyText:SetFont(STANDARD_TEXT_FONT, size, flags)
+	end
+	local k = g.keyInk
+	self.keyText:SetTextColor(k[1], k[2], k[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	self:PaintedInsets(g, ns.Looks.Painted.KeyShown(self))
+end
+
+---------------------------------------------------------------------------
 -- the lines
 ---------------------------------------------------------------------------
 
 function Luxe:PlaceLines(right)
 	local kit = self.kit
 	local name, sub = kit.name, kit.sub
+	-- On the painted frame the lines keep inside the well, left of the keycap.
+	if self.lineInset then right = math.max(right, self.lineInset) end
 	-- The name keeps 20 units: the two points never cross.
 	right = math.min(right, math.max(0, self.W - self.textX - 20))
 	-- The reason line lost its anchor to the tag: the next fit places it again.
@@ -910,7 +1074,10 @@ function Luxe:Chip(on)
 		local digits = type(text) == "string" and math.max(1, #text) or 1
 		chipW = math.floor(digits * 0.6 * self.sub + 0.9 * self.chipH + 0.5)
 		kit.fit.chipRoom = math.max(self.roomBase or 0, chipW + 14)
+		-- On the painted frame the chip stands left of the keycap.
+		if self.lineInset then kit.fit.chipRoom = math.max(self.roomBase or 0, chipW + self.chipInset + 6) end
 	end
+	self:KeyLetter()
 	if on then
 		-- The name wins: a chip that would leave the name cut even at its
 		-- smallest size is left out of this paint. The margin is on the
@@ -929,6 +1096,33 @@ function Luxe:Chip(on)
 	end
 	kit.count:SetShown(on)
 	return on
+end
+
+-- The key bound to the prompt, as the game spells it short, on the painted
+-- keycap: there exactly while the keycap is (Painted.KeyShown, which asks Show
+-- my key on the prompt through Looks.KeyWanted). The earlier art has no key.
+function Luxe:KeyLabel()
+	local Painted = ns.Looks.Painted
+	if not (Painted and Painted.KeyShown(self)) then return nil end
+	if not ns.Looks.KeyWanted(self) then return nil end
+	local key = ns.Looks.BoundKey()
+	if not key then return nil end
+	local text = ns.Looks.ShortKey and ns.Looks.ShortKey(key)
+	if type(text) == "string" and text ~= "" then key = text end
+	return key
+end
+
+function Luxe:KeyLetter()
+	local key = self:KeyLabel()
+	if key ~= self.keyLabel then
+		self.keyLabel = key
+		self.keyText:SetText(key or "")
+	end
+	self.keyText:SetShown(key ~= nil)
+	-- The lines and the chip keep left of the keycap while it is up, and
+	-- take the well to its end while it is not.
+	local g = self.paintedArt and self.paintedArt.on and self.paintedArt.g
+	if g then self:PaintedInsets(g, key ~= nil) end
 end
 
 ---------------------------------------------------------------------------
@@ -950,6 +1144,10 @@ function Luxe:SetInk(ink, ground, text)
 	kit.name:SetAlpha(text)
 	kit.sub:SetAlpha(text)
 	kit.count:SetAlpha(text)
+	-- The painted frame, when it is up, the card's way: a fight greys it and
+	-- dims it a little, less than the ink, so the well keeps its dark.
+	local tone = ground < 1 and PAINT_COMBAT or 1
+	if ns.Looks.Painted then ns.Looks.Painted.Tone(self, tone, tone, tone, ground < 1) end
 end
 
 -- The marks in one colour: the spine, its light, the ring, the tag.
@@ -1151,6 +1349,7 @@ end
 function Luxe:PaintOutcome(kind, lead, sub, who, stamp)
 	local kit = self.kit
 	local o = OUTCOME[kind] or OUTCOME.cast
+	self.outcomeOn = true
 	local tag = kit.sub:IsShown()
 	local word
 	if kind == "failed" then
@@ -1200,6 +1399,8 @@ function Luxe:PaintOutcome(kind, lead, sub, who, stamp)
 end
 
 function Luxe:ClearOutcome()
+	-- The painted keycap (Painted.KeyShown) is left out over an outcome.
+	self.outcomeOn = nil
 	if not self.washFor then return end
 	self.washFor = nil
 	self.resultAnim:Stop()
@@ -1241,17 +1442,21 @@ function Luxe:PaintQueue(rows, shown, above)
 	if not placed then
 		self.trayHeight, self.trayAt = height, above
 		self.trayBox:ClearAllPoints()
+		-- Under the card, or under the painted bar and what it hangs past it.
+		local x0, x1, gap = self.trayX0 or 0, self.trayX1 or 0, self.trayGap or 3
 		if above then
-			self.trayBox:SetPoint("BOTTOMLEFT", art, "TOPLEFT", 0, 3)
-			self.trayBox:SetPoint("BOTTOMRIGHT", art, "TOPRIGHT", 0, 3)
+			self.trayBox:SetPoint("BOTTOMLEFT", art, "TOPLEFT", x0, gap)
+			self.trayBox:SetPoint("BOTTOMRIGHT", art, "TOPRIGHT", x1, gap)
 		else
-			self.trayBox:SetPoint("TOPLEFT", art, "BOTTOMLEFT", 0, -3)
-			self.trayBox:SetPoint("TOPRIGHT", art, "BOTTOMRIGHT", 0, -3)
+			self.trayBox:SetPoint("TOPLEFT", art, "BOTTOMLEFT", x0, -gap)
+			self.trayBox:SetPoint("TOPRIGHT", art, "BOTTOMRIGHT", x1, -gap)
 		end
 		self.trayBox:SetHeight(height)
 	end
 
-	local dotX = SPINE_X + self.spineW / 2
+	local dotX = self.dotX or (SPINE_X + self.spineW / 2)
+	-- Rows sit this much further out where the tray hangs lower than the card's.
+	local drop = (self.trayGap or 3) - 3
 	for i = 1, shown do
 		local dot = self.dots[i]
 		local c = kit.ReasonColor(rows[i] and rows[i].reason)
@@ -1270,6 +1475,7 @@ function Luxe:PaintQueue(rows, shown, above)
 		else
 			y = -y
 		end
+		y = y + (above and drop or -drop)
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, edge, self.iconX, y)
 		dot:ClearAllPoints()

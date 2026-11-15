@@ -578,6 +578,8 @@ local function upIn(ns, scenario, edit)
 	local d = ns.defaults.profile.prompt
 	for _, key in ipairs(TOUCHED) do p[key] = d[key] end
 	p.style = "luxe"
+	-- Luxe's own card (its painted frame is painted-luxe.lua's).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")

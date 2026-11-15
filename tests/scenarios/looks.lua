@@ -938,7 +938,8 @@ end)
 -- A panel made nearly clear: the text outlined, the tag on a dark ground of
 -- its own, and under 0.2 no shadow round nothing.
 withTree("Luxe carries its text on a nearly clear panel", ANNA, function(ns, scenario)
-	local r, p = upIn(ns, scenario, "luxe", function(pp) pp.bgColor = { 0.04, 0.04, 0.06, 0.1 } end)
+	-- The card made clear: Luxe's own (its painted frame is solid whatever the colour).
+	local r, p = upIn(ns, scenario, "luxe", function(pp) pp.bgColor, pp.classicArt = { 0.04, 0.04, 0.06, 0.1 }, true end)
 	local look = r.look
 	if not (look and look.pillFill) then
 		fail(scenario, "SKIPPED -- Luxe is not the look in use")
