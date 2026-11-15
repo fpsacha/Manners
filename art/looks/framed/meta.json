@@ -1,0 +1,35 @@
+{
+  "key": "framed",
+  "socket": {
+    "shape": "square",
+    "cx": 646,
+    "cy": 525,
+    "half": 168
+  },
+  "name_xy": [
+    875,
+    404
+  ],
+  "reason_xy": [
+    877,
+    566
+  ],
+  "keycap": {
+    "cx": 3628,
+    "cy": 530,
+    "w": 265,
+    "h": 260
+  },
+  "bar": [
+    362,
+    260,
+    3872,
+    782
+  ],
+  "stretch": [
+    900,
+    3450
+  ],
+  "text_colour_ok": true,
+  "notes": "Static, quiet look. Layerable: a slow soft highlight sweep travelling along the top steel rim (left to right), a faint gold glint running round the icon border when the prompt appears, and a gentle press/brighten on the keycap face. The black glass top gradient could breathe very slightly. No other moving parts by design."
+}

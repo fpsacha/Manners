@@ -71,6 +71,9 @@ local function upIn(ns, scenario, style, size, edit)
 	p.showIcon = true
 	p.roundIcon = false
 	p.accentMode = "icon"
+	-- The framed look's own bezel at the icon size set (its painting, whose
+	-- socket sizes the icon: painted-framed.lua).
+	p.classicArt = true
 	size = size or { 220, 44, 13, 30 }
 	p.width, p.height, p.fontSize, p.iconSize = size[1], size[2], size[3], size[4]
 	if edit then edit(p) end

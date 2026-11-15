@@ -203,6 +203,8 @@ withTree("look-glass: Gryphons at the ends takes them away, and another look tak
 	tick(ns)
 	if not dress.gryphon[1]:IsShown() then fail(scenario, "switched on, the gryphons did not come") end
 	-- Another look of Panel.lua's, then one from Looks/: nothing of Glass's left.
+	-- (Framed under Earlier art: its painting is a dressing of its own.)
+	p.classicArt = true
 	for _, style in ipairs({ "framed", "forge" }) do
 		p.style = style
 		ns.Prompt:ApplyStyle()

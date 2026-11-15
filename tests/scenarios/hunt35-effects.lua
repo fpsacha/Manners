@@ -594,7 +594,8 @@ end
 -- neither wears the other's; minimal has none of them.
 withTree("hunt35-effects: the glass has a pane and its light, the framed look a rim, minimal neither", ANNA, function(ns, scenario)
 	for _, style in ipairs(BUILTIN) do
-		local r = upIn(ns, scenario, style)
+		-- The framed look's own rim (its painting: painted-framed.lua).
+		local r = upIn(ns, scenario, style, function(p) p.classicArt = true end)
 		local pane = FT.visible(r.pane[1]) and FT.visible(r.pane[5])
 		if (style == "glass") ~= pane then
 			fail(scenario, style .. ": the pane is " .. (pane and "shown" or "hidden") .. " when it should not be")

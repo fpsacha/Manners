@@ -506,6 +506,9 @@ function Prompt:ApplyStyle()
 	-- What one of the three looks drawn here wears over it (Looks/Glass.lua),
 	-- taken down when another look takes the panel.
 	local dress = not look and ns.Looks.Dress(style) or nil
+	-- The framed look's painting is a dressing only while it is wanted: under
+	-- Earlier art the framed look wears nothing, as it always did.
+	if dress and dress.Wanted and not dress:Wanted(p) then dress = nil end
 	if S.dress and S.dress ~= dress then S.dress:Hide() end
 	S.dress = dress
 
@@ -839,9 +842,14 @@ function Prompt:ApplyStyle()
 
 	R.countText:ClearAllPoints()
 	R.countText:SetPoint("CENTER", R.countChip, "CENTER", 0, 0)
+	-- The framed look's painting (FramedPainting below): the words start in
+	-- its well and stop short of its keycap, read against its well, and the
+	-- chip stands where the keycap is painted.
+	local ground = p
+	if framed and dress and dress.Ground then ground, textX, chipRoom = dress:Ground(p, chipWidth, textX, chipRoom) end
 	-- Fonts, colours, shadows and the lines' anchors, from the panel colour.
 	-- The count's font is the size the chip was just sized from.
-	StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize)
+	StyleText(ground, style, fontPath, textX, chipRoom, twoLine, countSize)
 	-- The grey just written over the reason line's tint, and the bezel and the
 	-- stripe may have changed shape: the next PaintAccent paints in full.
 	S.accentPainted = nil
@@ -991,6 +999,323 @@ function Prompt:ApplyLook(p, look)
 	S.accentPainted = nil
 	self:SyncCooldown()
 	self:Refresh()
+end
+
+---------------------------------------------------------------------------
+-- The framed look's painting (art/looks/framed, cut by
+-- tools/make_painted_look.py into Textures/Painted/Framed/, its numbers in
+-- Looks/PaintedData.lua): a riveted steel frame round a dark well, a socket
+-- rimmed in gold and a keycap, in place of the flat panel, the tooltip's rim,
+-- the shadow and the shade under the icon. Everything else is the framed
+-- look's own and keeps its meaning, moved onto the painting: the bezel (the
+-- reason's colour, drawn on the socket's rim), the halos, rings and burst
+-- round the icon, the cooldown, the two rules and their glints, the wave, the
+-- crack, the outcome's wash (on the well), the edge's light (on the steel),
+-- the stripe, the count chip (on the keycap's place) and the list.
+--
+-- The framed look is drawn here, not by a look of Looks/, so Looks/Painted.lua's
+-- wrapping never reaches it: this is a dressing (Looks.RegisterDress) whose
+-- Ground runs before the words are styled and whose Apply runs at the end of
+-- ApplyStyle, reading the engine's Layout, KeyShown and Tone. Earlier art
+-- (prompt.classicArt) leaves the framed look exactly as it was, and with no
+-- painting in the data nothing here is registered at all.
+---------------------------------------------------------------------------
+do
+	local Looks = ns.Looks
+	local Painted = Looks.Painted
+	local d = ns.PaintedData and ns.PaintedData.framed
+	-- The icon fills the socket's hole, inside its gold rim (the hole is about
+	-- 0.89 of the rim's width); the bezel is drawn the rim's own size, its hole
+	-- under the icon, so what shows of it lies on the rim.
+	local ICON_FILL, BEZEL_FILL = 0.88, 1.0
+	-- A fight greys the painting and dims it a little: art's alpha does the rest.
+	local FIGHT_TONE = 0.86
+	-- The edge's light: the rim file's corner against the bar's core, so its
+	-- half-round lies along the painted steel.
+	local EDGE_CORNER = 0.26
+	-- The list's ground: the well's own colour, a little see-through.
+	local LIST_ALPHA = 0.92
+	-- The smallest the painting's core may be drawn against the prompt's height.
+	local SMALLEST = 0.9
+	-- The well's luminance at its brightest under an outcome's wash.
+	local WASH_HI = 0.06
+	local Framed = (d and Painted) and Looks.RegisterDress("framed", {}) or nil
+
+	local function Box(t, x0, y0, x1, y1)
+		t:ClearAllPoints()
+		t:SetPoint("TOPLEFT", R.art, "TOPLEFT", x0, -y0)
+		t:SetPoint("BOTTOMRIGHT", R.art, "TOPLEFT", x1, -y1)
+	end
+
+	-- The grey whose luminance is the well's at its brightest: what the words
+	-- are styled against (StyleText reads a panel colour).
+	local function Grey(l)
+		if l <= 0.0031308 then return 12.92 * l end
+		return 1.055 * l ^ (1 / 2.4) - 0.055
+	end
+
+	if Framed then
+		-- The words are held to the well at its brightest: the painting's own
+		-- top band, or that band under an outcome's wash, which the well's
+		-- lighter glass lifts higher than the flat panel did (measured with
+		-- tools/audit_look_contrast.py: a refusal's red over the band is 0.053).
+		local hi = math.max(d.ink.hi, WASH_HI)
+		local grey = Grey(hi)
+		Framed.ground = { grey, grey, grey, 1 }
+
+		function Framed:Wanted(p) return not p.classicArt end
+
+		function Framed:Build(kit)
+			self.kit = kit
+			local pieces = {}
+			for i, part in ipairs({ "left", "middle", "right" }) do
+				local t = R.art:CreateTexture(nil, "BACKGROUND", nil, -5)
+				t:SetTexture(d[part].file)
+				t:Hide()
+				Looks.Hold(t)
+				pieces[i] = t
+			end
+			local keycap = R.art:CreateTexture(nil, "BACKGROUND", nil, -4)
+			keycap:SetTexture(d.keycap.file)
+			keycap:Hide()
+			Looks.Hold(keycap)
+			self.paintedArt = { data = d, pieces = pieces, keycap = keycap, on = false }
+			-- The key's letter on the keycap, with the words.
+			self.keyText = R.textLayer:CreateFontString(nil, "OVERLAY")
+			self.keyText:SetJustifyH("CENTER")
+			self.keyText:SetWordWrap(false)
+			self.keyText:Hide()
+			-- The painting's outline, never drawn: what the edge's light is laid on.
+			self.outline = CreateFrame("Frame", nil, R.art)
+		end
+
+		-- Before the words are styled: where the painting lies at these
+		-- settings (nil under Earlier art), the chip on the keycap's place (left
+		-- of the keycap while it is up), and the ground the words read against.
+		-- The lines' room is counted from a width that ends where the words must
+		-- stop, the chip's room taken off the same width.
+		function Framed:Ground(p, chipWidth, textX, chipRoom)
+			local g = (not p.classicArt) and Painted.Layout(d, p.width, p.height, p.fontSize) or nil
+			-- A prompt too narrow for the painting at its height would have it
+			-- drawn smaller than the prompt, and the words, which the framed look
+			-- lays from the prompt's own edges, off its well: the earlier art there.
+			if g and g.unit < p.height * SMALLEST then g = nil end
+			self.g = g
+			if not g then return p, textX, chipRoom end
+			local choice = p.keycap
+			local keyUp = (choice == "show" or (choice ~= "hide" and d.keycap.shown ~= false)) and Looks.BoundKey() ~= nil
+			local keyL = g.keyX - g.keyW / 2
+			-- Never further right than the framed look always had it, seven in
+			-- from the prompt's edge (a small prompt's painting hangs past it).
+			local chipRight = math.min(keyUp and (keyL - 3) or (g.keyX + chipWidth / 2), p.width - 7)
+			R.countChip:ClearAllPoints()
+			R.countChip:SetPoint("RIGHT", R.art, "TOPLEFT", chipRight, -g.keyY)
+			-- With the keycap down the words have the well to its end, EDGE_ROOM
+			-- in from the prompt's edge as ever; with it up they stop short of it.
+			local wide = keyUp and (keyL - 4 + EDGE_ROOM) or p.width
+			local room = p.showCount and (wide - (chipRight - chipWidth) + 1) or EDGE_ROOM
+			return setmetatable({ width = wide, bgColor = self.ground }, { __index = p }), g.textX, room
+		end
+
+		-- The pieces over the layout, the keycap a piece of its own over the
+		-- right end (the frame is whole under it).
+		local function Place(art, g)
+			local s = art.pieces
+			Box(s[1], g.left, g.y0, g.x1, g.y1)
+			s[1]:SetTexCoord(0, g.leftR, 0, d.left.b)
+			Box(s[2], g.x1, g.y0, g.x2, g.y1)
+			s[2]:SetTexCoord(0, d.middle.r, 0, d.middle.b)
+			Box(s[3], g.x2, g.y0, g.right, g.y1)
+			s[3]:SetTexCoord(g.rightL, d.right.r, 0, d.right.b)
+			s[1]:Show()
+			s[2]:SetShown(g.x2 - g.x1 > 0.5)
+			s[3]:Show()
+			local c, k, u = d.keycap, art.keycap, g.unit
+			local kx, ky = g.keyX + c.dx * u, g.keyY + c.dy * u
+			Box(k, kx - c.pw * u / 2, ky - c.ph * u / 2, kx + c.pw * u / 2, ky + c.ph * u / 2)
+			k:SetTexCoord(0, c.r, 0, c.b)
+		end
+
+		-- The keycap and its letter: up while a key is bound and Show my key on
+		-- the prompt asks for it (framed's own default: hidden), never over an
+		-- outcome. At every paint.
+		function Framed:Key()
+			local art = self.paintedArt
+			if not (art and art.on) then return end
+			self.outcomeOn = Prompt:OutcomeLive()
+			local up = Painted.KeyShown(self)
+			art.keycap:SetShown(up)
+			local text
+			if up then
+				local key = Looks.BoundKey()
+				local short = Looks.ShortKey(key)
+				text = (type(short) == "string" and short ~= "") and short or key
+			end
+			if text ~= self.keyLabel then
+				self.keyLabel = text
+				self.keyText:SetText(text or "")
+			end
+			self.keyText:SetShown(up)
+		end
+
+		-- The icon in the socket's hole, the bezel on its rim, and the light
+		-- round the icon held to the room the socket has.
+		function Framed:Socket(p, g)
+			local size = 2 * g.socketR * ICON_FILL
+			R.icon:ClearAllPoints()
+			R.icon:SetSize(size, size)
+			R.icon:SetPoint("CENTER", R.art, "TOPLEFT", g.socketX, -g.socketY)
+			local bezel = 2 * g.socketR * BEZEL_FILL
+			R.bezel:SetSize(bezel, bezel)
+			R.bezelHover:SetSize(bezel, bezel)
+			-- The bezel is there for the reason's colour: where the marker is not
+			-- on the icon, the painted gold rim is left bare.
+			local mode = p.accentMode or "icon"
+			local mark = mode == "icon" or mode == "both"
+			if not mark then
+				R.bezel:Hide()
+				R.bezelHover:Hide()
+			end
+			local half = size / 2
+			local outer = (mark and 2 or 1) + 1
+			local limitH = half + math.min(g.textX - g.socketX - half - lib.TEXT_MARGIN,
+				g.socketX - half - g.left - lib.EDGE_MARGIN)
+			local limitV = math.min(g.socketY - g.y0, g.y1 - g.socketY) - lib.EDGE_MARGIN
+			local limit = math.min(limitH, limitV)
+			local sy = math.max(0, math.min(8, math.floor(limitV - half) - outer))
+			local sx = math.max(2, math.min(8, math.floor(limitH - half) - outer))
+			local round = R.iconMask ~= nil and R.iconMask:IsShown()
+			local roundSize = round and size or nil
+			local lipCorner = bezel * lib.BEZEL_LIP_CORNER
+			local fill = half + outer < bezel * lib.BEZEL_LIP_SIDE and math.max(0, half + outer - lipCorner) or 0
+			PlaceHalo(R.glowHalo, R.glowFrame, sx, sy, outer, roundSize, fill)
+			local deep = Prompt:FitBurst(limit, half, outer, round and size / lib.GLOW_RING_AT / 2 or nil)
+			PlaceHalo(R.burstHalo, R.burstFrame, deep, deep, outer, roundSize, fill)
+			local rim = math.max(0, math.min(3, limit - half - outer))
+			PlaceHalo(R.rimHalo, R.rimFrame, rim, rim, outer, roundSize, fill)
+			R.fx:Place(R.icon, R.fx.ThinPad(size, outer + 1), size)
+			R.fx:Fit(limitH, limitV, lib.SHAKE_LEFT)
+		end
+
+		-- The framed look's light, on the painting: the rules along the well's
+		-- edges from the socket to the keycap, the wave and the crack in the
+		-- well, the wash over it, the edge's light on the steel, the stripe in
+		-- the gap left of the socket.
+		function Framed:Light(p, g)
+			local keyR = g.keyX + g.keyW / 2
+			-- The well's inner ends: the socket sits as far in from its left as
+			-- from its top, the keycap as far from its right.
+			local x0 = g.socketX - g.socketR - (g.socketY - g.socketR - g.wellTop)
+			local x1 = keyR + (g.keyY - g.keyH / 2 - g.wellTop)
+			local wellH = g.wellBottom - g.wellTop
+			local start = g.socketX + g.socketR + SHINE_GAP
+			local shineW = math.max(SHINE_MIN, math.min(SHINE_MAX, math.floor((x1 - x0) * SHINE_SHARE)))
+			R.shineFrame:ClearAllPoints()
+			R.shineFrame:SetPoint("TOPLEFT", R.art, "TOPLEFT", start, -g.wellTop)
+			R.shineFrame:SetSize(shineW, wellH)
+			if R.shineFrame.anim then R.shineFrame.anim.move:SetOffset(math.max(0, keyR - start - shineW), 0) end
+			local crackY = -(g.wellBottom - CRACK_INSET)
+			R.crackFrame:ClearAllPoints()
+			R.crackFrame:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", start, crackY)
+			R.crackFrame:SetPoint("BOTTOMRIGHT", R.art, "TOPLEFT", start + (keyR - start) * (1 - CRACK_END), crackY)
+			-- The rules run the steel along the top and the bottom, where they
+			-- always lay, from the socket's middle to the end they always had.
+			local ruleX = g.socketX
+			R.ruleTop:ClearAllPoints()
+			R.ruleTop:SetPoint("TOPLEFT", R.art, "TOPLEFT", ruleX, -RULE_INSET)
+			R.ruleTop:SetPoint("TOPRIGHT", R.art, "TOPRIGHT", -RULE_END, -RULE_INSET)
+			R.ruleBottom:ClearAllPoints()
+			R.ruleBottom:SetPoint("BOTTOMLEFT", R.art, "BOTTOMLEFT", ruleX, RULE_INSET)
+			R.ruleBottom:SetPoint("BOTTOMRIGHT", R.art, "BOTTOMRIGHT", -RULE_END, RULE_INSET)
+			for _, glint in ipairs({ R.glintTop, R.glintBottom }) do
+				if glint.run then glint.run.move:SetOffset(p.width - RULE_END - ruleX - GLINT_LENGTH, 0) end
+			end
+			Box(R.resultFill, x0, g.wellTop, x1, g.wellBottom)
+			Box(self.outline, g.left, g.y0, g.right, g.y1)
+			local corner = math.max(RIM_CORNER, math.min(math.floor((g.y1 - g.y0) / 2) - 1, g.unit * EDGE_CORNER))
+			PlaceSlice(R.edgeLightFrame.rim, self.outline, corner)
+			local stripeX = (x0 + g.socketX - g.socketR) / 2 - 1.5
+			R.accentTop:ClearAllPoints()
+			R.accentTop:SetPoint("TOPLEFT", R.art, "TOPLEFT", stripeX, -g.wellTop)
+			R.accentTop:SetHeight(wellH / 2)
+			R.accentBottom:ClearAllPoints()
+			R.accentBottom:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", stripeX, -g.wellBottom)
+			R.accentBottom:SetHeight(wellH / 2)
+			R.sweepFrame:ClearAllPoints()
+			R.sweepFrame:SetPoint("TOPLEFT", R.art, "TOPLEFT", stripeX, -g.wellTop)
+		end
+
+		function Framed:Apply(p, above)
+			local g, art = self.g, self.paintedArt
+			if not g then return self:Release() end
+			art.on, art.g = true, g
+			-- What the painting replaces.
+			R.panel:Hide()
+			for _, list in ipairs({ R.tooltipRim, R.shadows }) do
+				for _, t in ipairs(list) do t:Hide() end
+			end
+			R.iconShade:Hide()
+			Place(art, g)
+			if p.showIcon then self:Socket(p, g) end
+			self:Light(p, g)
+			-- The key's letter: the painting's ink for it, no shadow, no larger
+			-- than the keycap holds.
+			local key = self.keyText
+			local path = LSM:Fetch("font", p.font) or STANDARD_TEXT_FONT
+			local size = math.max(6, math.min(p.fontSize, math.floor(g.keyH * 0.7)))
+			local flags = g.keyOutline and "OUTLINE" or ""
+			if not key:SetFont(path, size, flags) or not key:GetFont() then key:SetFont(STANDARD_TEXT_FONT, size, flags) end
+			local k = g.keyInk or { 1, 1, 1 }
+			key:SetTextColor(k[1], k[2], k[3], 1)
+			key:SetShadowOffset(0, 0)
+			key:ClearAllPoints()
+			key:SetPoint("CENTER", R.art, "TOPLEFT", g.keyX, -g.keyY)
+			self:Key()
+			-- The words were styled against the well; Legible holds them to it
+			-- at its darkest and its brightest from here on.
+			ink.lo, ink.hi = d.ink.lo, hi
+			local w = d.wellColour
+			R.queueBack:SetVertexColor(w[1], w[2], w[3], LIST_ALPHA)
+			if self.fight then self:Combat(true) else Painted.Tone(self, 1, 1, 1, false) end
+		end
+
+		-- The painting taken down, out of any fight's grey; the wash given back
+		-- the whole panel.
+		function Framed:Release()
+			local art = self.paintedArt
+			if not art then return end
+			if self.fight then self:Combat(false) end
+			art.on, art.g = false, nil
+			for _, t in ipairs(art.pieces) do t:Hide() end
+			art.keycap:Hide()
+			self.keyText:Hide()
+			self.keyLabel = nil
+			R.resultFill:ClearAllPoints()
+			R.resultFill:SetAllPoints(R.art)
+		end
+
+		function Framed:Hide()
+			self.g = nil
+			self:Release()
+		end
+
+		function Framed:Combat(on)
+			self.fight = on and true or nil
+			local k = on and FIGHT_TONE or 1
+			Painted.Tone(self, k, k, k, on and true or false)
+		end
+
+		-- At every paint: the keycap follows a key bound or unbound, and an
+		-- outcome coming or going.
+		function Framed:Painted() self:Key() end
+		function Framed:Flourish() self:Key() end
+		function Framed:StopFlourishes() self:Key() end
+		-- The reason's colour and the owed light are the framed look's own
+		-- (PaintAccent, Effects.lua), on the bezel and the halos it moved.
+		function Framed:PaintReason() end
+		function Framed:Attention() end
+		function Framed:StopAttention() end
+	end
 end
 
 -- What a look is handed to draw with: see Looks/Looks.lua.
