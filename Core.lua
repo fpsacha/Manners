@@ -650,6 +650,10 @@ local defaults = {
 			-- Glass's gryphons, one at each end (Looks/Glass.lua): off until
 			-- they are switched on, since not everybody wants the bar that wide.
 			gryphons = false,
+			-- Earlier art: every look drawn as it was before its painted frame
+			-- (Looks/Painted.lua), for whoever liked it better. Off: a look with a
+			-- painting wears it.
+			classicArt = false,
 			textShadow = true,
 			showCount = true,
 			showQueue = false,
