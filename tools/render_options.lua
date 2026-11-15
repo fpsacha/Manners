@@ -477,6 +477,21 @@ function AFTER.modal(ns, win, _, notes)
 	notes[#notes + 1] = "modal: no reset on this page, the box opened directly"
 end
 
+-- One sub-division of the page chosen, as a click on its chip in the bar over
+-- the page chooses it (Layout.lua, `subpages`): the argument is its key, the
+-- first section it names ("who.myself").
+function AFTER.sub(ns, _, key, notes)
+	local UI = ns.WindowUI
+	assert(UI and UI.subbar, "this tree has no sub-divisions bar")
+	local chip
+	for _, b in ipairs(UI.subbar.chips) do
+		if b.key == key and b:IsShown() then chip = b end
+	end
+	assert(chip, "no sub-division " .. tostring(key) .. " on this page")
+	chip:GetScript("OnClick")(chip, "LeftButton", false)
+	notes[#notes + 1] = "sub: " .. tostring(key) .. " chosen"
+end
+
 function AFTER.search(ns, win, text)
 	local box = searchBox(win)
 	assert(box, "no search box in the window's sidebar")
@@ -523,7 +538,7 @@ function R.page(page, spec)
 		assert(win, "ns.OptionsWindow is not built: this tree does not have the new options window")
 		for _, s in ipairs(states) do
 			local fn = AFTER[s.name]
-			if fn then fn(ns, win, s.name == "search" and s.arg or page, notes) end
+			if fn then fn(ns, win, (s.name == "search" or s.name == "sub") and s.arg or page, notes) end
 		end
 		-- Past the window's fades, every timer run and every one-shot settled
 		-- (a state that wants a fade caught part way says how long to wait).

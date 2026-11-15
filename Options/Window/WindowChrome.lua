@@ -314,7 +314,8 @@ local function NeedShown(path)
 	if not needs or UI.Hidden(needs) then return false end
 	if UI.HiddenBySimple(path) then return false end
 	local w = UI.Where(path)
-	return not (w and w.sec.fold and not UI.State().open[w.sec.key])
+	-- In the sub-division in view too, where a fold is drawn open.
+	return not w or UI.SectionOpen(w.sec)
 end
 
 -- Line 2: in a fight, the open page's note on what waits for it to end.
@@ -384,6 +385,152 @@ function UI.PaintStrip()
 	s.frame:SetShown(height > 0)
 	s.frame:SetHeight(math.max(height, 1))
 	strip.height = height
+	return height
+end
+
+---------------------------------------------------------------------------
+-- the sub-divisions bar: the open page's second level (Layout.lua,
+-- `subpages`), pinned over the page so it never scrolls away. Under the
+-- strip and beside the sidebar; none for a page without sub-divisions.
+---------------------------------------------------------------------------
+
+local subbar = { chips = {} }
+UI.subbar = subbar
+-- A chip's height and padding, the gaps between chips and rows, and the
+-- bar's margin: its first chip in line with the page's own left edge.
+local CHIP_H, CHIP_PAD, CHIP_GAP, ROW_GAP, BAR_PAD, BAR_LEFT = 20, 10, 6, 2, 4, 18
+local WHITE = { 1, 1, 1 }
+
+function UI.BuildSubBar(f)
+	local bar = CreateFrame("Frame", nil, f)
+	bar:SetHeight(1)
+	local band = UI.Solid(bar, "BACKGROUND", C.side)
+	band:SetAllPoints()
+	local rule = UI.Solid(bar, "BORDER", C.line)
+	rule:SetPoint("BOTTOMLEFT")
+	rule:SetPoint("BOTTOMRIGHT")
+	rule:SetHeight(1)
+	-- The wheel over the bar scrolls the page under it, as over the page.
+	bar:EnableMouseWheel(true)
+	bar:SetScript("OnMouseWheel", UI.Guarded(function(_, delta) UI.ScrollBy(-(delta or 0) * 48) end))
+	bar:Hide()
+	subbar.frame = bar
+	subbar.height = 0
+end
+
+-- A chip, made the first time the bar needs one more. `key` nil is All.
+local function Chip(i)
+	local b = CreateFrame("Button", nil, subbar.frame)
+	b:SetHeight(CHIP_H)
+	b.hover = UI.Solid(b, "BACKGROUND", C.hover)
+	b.hover:SetAllPoints()
+	b.hover:Hide()
+	b.selected = UI.Solid(b, "BACKGROUND", C.select, 1)
+	b.selected:SetAllPoints()
+	-- The one in view: a gold line under it, as the open page's gold bar.
+	b.mark = UI.Solid(b, "ARTWORK", C.gold)
+	b.mark:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+	b.mark:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+	b.mark:SetHeight(2)
+	b.label = UI.Text(b, GameFontHighlightSmall, C.nav)
+	b.label:SetPoint("CENTER", b, "CENTER", 0, 0)
+	b.label:SetWordWrap(false)
+	b.dot = UI.Dot(b, C.dot)
+	b.dot:SetPoint("CENTER", b, "TOPRIGHT", -3, -4)
+	b:SetScript("OnClick", UI.Guarded(function(self) UI.ShowSub(self.page, self.key) end))
+	b:SetScript("OnEnter", function(self) self.hover:Show() end)
+	b:SetScript("OnLeave", function(self) self.hover:Hide() end)
+	subbar.chips[i] = b
+	return b
+end
+
+-- Which sub-divisions hold a warning shown now: Page.WarnAt's, each where the
+-- layout places the note that says it, while the page has its red dot.
+local function SubWarnings(id)
+	local out = {}
+	local at = ns.OptionsPage.WarnAt
+	if type(at) ~= "table" or not UI.PageWarned(id) then return out end
+	for path, fn in pairs(at) do
+		local w = UI.Where(path)
+		if w and w.page == id and w.sec.sub then
+			local ok, on = pcall(fn)
+			if not ok then
+				ns.Guard("options red dot " .. path, error, on, 0)
+			elseif on then
+				out[w.sec.sub] = true
+			end
+		end
+	end
+	return out
+end
+
+-- What the bar shows, in one string: the page, the sub-divisions listed and
+-- the one in view. A paint of the page that changes it paints the bar again.
+local function Signature(id)
+	local current = UI.SubInView(id)
+	local s = tostring(id) .. ":" .. tostring(current and current.key)
+	for _, sub in ipairs(UI.SubsShown(id)) do s = s .. "," .. sub.key end
+	return s
+end
+
+function UI.SubsStale()
+	return subbar.sig ~= Signature(UI.page)
+end
+
+-- One chip at x, y: its label, marked when it is in view. Answers its width.
+local function PaintChip(b, label, selected, warned, x, y)
+	b.label:SetText(label)
+	local c = selected and WHITE or C.nav
+	b.label:SetTextColor(c[1], c[2], c[3], 1)
+	local w = math.ceil(UI.TextWidth(b.label, 10)) + 2 * CHIP_PAD
+	b:SetWidth(w)
+	b.selected:SetShown(selected)
+	b.mark:SetShown(selected)
+	b.dot:SetShown(warned)
+	b:ClearAllPoints()
+	b:SetPoint("TOPLEFT", subbar.frame, "TOPLEFT", x, -y)
+	b:Show()
+	return w
+end
+
+-- Lays the bar out at the top of the content area, `top` down the window:
+-- All, then each sub-division with something to show, left to right and onto
+-- another row where the width runs out. Answers its height, 0 when hidden.
+function UI.PaintSubBar(top)
+	local bar, id = subbar.frame, UI.page
+	local subs = id and UI.SubsShown(id) or {}
+	subbar.sig = Signature(id)
+	local used, height = 0, 0
+	if #subs > 0 then
+		local current, warned = UI.SubInView(id), SubWarnings(id)
+		local right = UI.WIDTH - UI.SIDEBAR - 1 - 12 - BAR_PAD
+		local x, y = BAR_LEFT, BAR_PAD
+		local function Add(key, label, selected, dot)
+			used = used + 1
+			local b = subbar.chips[used] or Chip(used)
+			b.page, b.key = id, key
+			local w = PaintChip(b, label, selected, dot, x, y)
+			-- Too wide for what is left of the row: the next row.
+			if x > BAR_LEFT and x + w > right then
+				x, y = BAR_LEFT, y + CHIP_H + ROW_GAP
+				b:ClearAllPoints()
+				b:SetPoint("TOPLEFT", bar, "TOPLEFT", x, -y)
+			end
+			x = x + w + CHIP_GAP
+		end
+		Add(nil, L["All"], current == nil, false)
+		for _, sub in ipairs(subs) do
+			Add(sub.key, UI.Plain(UI.SubLabel(sub)), current == sub, warned[sub] == true)
+		end
+		height = y + CHIP_H + BAR_PAD + 1
+		bar:ClearAllPoints()
+		bar:SetPoint("TOPLEFT", UI.frame, "TOPLEFT", UI.SIDEBAR + 1, -top)
+		bar:SetPoint("TOPRIGHT", UI.frame, "TOPRIGHT", -12, -top)
+		bar:SetHeight(height)
+	end
+	bar:SetShown(height > 0)
+	for k = used + 1, #subbar.chips do subbar.chips[k]:Hide() end
+	subbar.height = height
 	return height
 end
 
@@ -481,6 +628,7 @@ local function Warned(id)
 	end
 	return on and true or false
 end
+UI.PageWarned = Warned
 
 local function PaintPageButton(b, page, y)
 	local icon = page.icon

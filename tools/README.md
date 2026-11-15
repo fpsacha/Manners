@@ -915,6 +915,7 @@ and can be given more than once:
 | `scrolled` | the page scrolled to its end (`ns.WindowUI.ScrollTo`), for what a long page holds below the first screen |
 | `modal` | the footer's "Put these back to default" pressed; on a page without one, `ns.WindowWidgets.Modal` opened with its words |
 | `search WORDS` | the words typed into the sidebar's search box (`window.search`, else the topmost edit box in the sidebar), with the 0.15 s wait let run |
+| `sub KEY` | the page's sub-division KEY (its first section's key, `who.myself`) chosen as a click on its chip in the bar over the page chooses it |
 
 Before the picture is taken, every shown frame of the window gets a second of
 `OnUpdate` with the clock and the timers moving, as the client would give it,

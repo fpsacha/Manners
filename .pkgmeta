@@ -55,6 +55,7 @@ ignore:
   - .github
   - tests
   - tools
+  - art
   - STATUS.md
   - CLAUDE.md
   - RELEASING.md

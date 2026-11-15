@@ -58,7 +58,10 @@ do
 			fail(scenario, ("a new window is %s x %s, not 820 x 600"):format(tostring(f:GetWidth()), tostring(f:GetHeight())))
 		end
 		local path = "when.hideMounted"
-		local before, tall = rowWidth(UI, path), UI.view.height
+		-- The page's room with the sub-divisions bar's (fewer rows of chips
+		-- in a wider window).
+		local function Room() return UI.view.height + (UI.subbar.height or 0) end
+		local before, tall = rowWidth(UI, path), Room()
 		-- 980 wide is still one column (tests/scenarios/menu.lua has the
 		-- columns a wider window flows into), so the row has all of it.
 		UI.SetWindowSize(980, 800)
@@ -71,8 +74,8 @@ do
 			fail(scenario, ("a row laid out at %s before is %s after, not 160 wider"):format(tostring(before), tostring(after)))
 		end
 		if not near(UI.view.child:GetWidth(), 980 - UI.SIDEBAR - 13) then fail(scenario, "the scrolled page is as narrow as before") end
-		if not near(UI.view.height - tall, 200) then
-			fail(scenario, ("the page's room went from %s to %s"):format(tostring(tall), tostring(UI.view.height)))
+		if not near(Room() - tall, 200) then
+			fail(scenario, ("the page's room went from %s to %s"):format(tostring(tall), tostring(Room())))
 		end
 		local rail = UI.Dress.headerRail
 		local c = rail and rail._texCoord or {}

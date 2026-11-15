@@ -300,7 +300,8 @@ do
 		if read > 0 then fail(scenario, "a row was read again while the grip was held") end
 		if asked > 0 then fail(scenario, asked .. " rule(s) of the model asked while the grip was held") end
 		local total = UI.view.range + UI.view.height
-		if not near(UI.view.height, 720 - (600 - 522), 1) then
+		-- Less the sub-divisions bar over the page, as tall as its chips' rows.
+		if not near(UI.view.height, 720 - (600 - 522) - (UI.subbar.height or 0), 1) then
 			fail(scenario, "the page's room is " .. tostring(UI.view.height) .. " in a window 720 tall")
 		end
 		-- Let go: painted in full, and the rows are where the drag left them.
@@ -533,7 +534,10 @@ do
 			for _, id in ipairs(group) do
 				ns.OpenOptions(id)
 				if UI.page == id then
-					local screens = (UI.view.range + UI.view.height) / UI.view.height
+					-- The usual window's room for a page, the sub-divisions bar's
+					-- share of it included: the page is as long as ever.
+					local room = UI.view.height + (UI.subbar.height or 0)
+					local screens = (UI.view.range + UI.view.height) / room
 					if screens > 3.1 then
 						fail(scenario, ("%s is %.1f screens of the usual window with its folds shut"):format(id, screens))
 					end

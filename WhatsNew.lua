@@ -12,6 +12,9 @@ ns.WhatsNew = {
 		{ title = "Who gets what", accent = "7cc4ff", entries = {
 			"|cff7cc4ffA blessing for each class.|r Pick a class, then its blessing.",
 		} },
+		{ title = "Options window", accent = "7cc4ff", entries = {
+			"|cff7cc4ffPages in parts.|r A long page has a bar of its parts over it: pick one to see only those settings, or |cffffffffAll|r for the whole page.",
+		} },
 	} },
 	{ version = "1.11.25", date = "14 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {

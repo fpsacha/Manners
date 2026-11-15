@@ -13,6 +13,10 @@
   already wears it from another paladin, or who cannot be given it, gets what
   the order would have chosen, and anybody wearing one of yours is left alone.
 
+### Options window
+- **Pages in parts.** A long page has a bar of its parts over it: pick one to
+  see only those settings, or *All* for the whole page.
+
 ## 1.11.25
 
 *14 November 2026*

@@ -33,6 +33,13 @@ local C = UI.C
 -- path -> { page, sec, e }, for every placed control and note
 local where = {}
 local models = {}
+-- While a sub-division is in view (Layout.lua, `subpages`), its folds are
+-- drawn open under their titles, with no caption over them.
+local flat = false
+local NONE = {}
+-- page id -> the key of the sub-division last chosen on it, for the session
+-- (a /reload forgets it); nil is All, the whole page.
+UI.subOf = UI.subOf or {}
 
 ---------------------------------------------------------------------------
 -- the page model: sections and entries, no frames
@@ -95,6 +102,26 @@ local function Level(e)
 	return n == true and 1 or tonumber(n) or 1
 end
 
+-- The page's sub-divisions from the layout's `subpages`: each the sections
+-- it names, in the page's order, each section in one at most (sec.sub). A key
+-- the page does not have is passed over; an entry left with none is dropped.
+local function Subdivide(m)
+	m.subs = {}
+	local byKey = {}
+	for _, sec in ipairs(m.sections) do byKey[sec.key] = sec end
+	for _, def in ipairs(m.page and m.page.subpages or {}) do
+		local sub = { def = def, key = def[1], secs = {}, page = m.id }
+		for _, key in ipairs(def) do
+			local sec = byKey[key]
+			if sec and not sec.sub then sec.sub = sub end
+		end
+		for _, sec in ipairs(m.sections) do
+			if sec.sub == sub then sub.secs[#sub.secs + 1] = sec end
+		end
+		if #sub.secs > 0 then m.subs[#m.subs + 1] = sub end
+	end
+end
+
 -- A page's sections and entries, made once. Controls the model does not have
 -- for this character are left out.
 function UI.Model(id)
@@ -130,6 +157,7 @@ function UI.Model(id)
 		end
 		m.sections[#m.sections + 1] = sec
 	end
+	Subdivide(m)
 	models[id] = m
 	return m
 end
@@ -480,23 +508,25 @@ local function BuildFrames(m)
 	m.title = UI.Text(child, 18, C.gold)
 	m.title:Hide()
 	for _, sec in ipairs(m.sections) do
-		if sec.fold then
-			sec.button = FoldButton(sec, child)
-		elseif sec.def.title or sec.headerItem then
-			SectionTitle(sec, child)
-		end
+		if sec.fold then sec.button = FoldButton(sec, child) end
+		-- A fold has a title too: drawn open under it in a sub-division.
+		if sec.def.title or sec.headerItem then SectionTitle(sec, child) end
 		for _, e in ipairs(sec.entries) do e.row = BuildRow(e, child) end
 	end
 	Caption(m, child)
 	m.built = true
 end
 
-local function HideSection(sec)
+local function HideTitle(sec)
 	if sec.title then
 		sec.title:Hide()
 		sec.rule:Hide()
 		if sec.stud then sec.stud:Hide() end
 	end
+end
+
+local function HideSection(sec)
+	HideTitle(sec)
 	if sec.button then sec.button:Hide() end
 	for _, e in ipairs(sec.entries) do
 		if e.row then e.row.frame:Hide() end
@@ -758,12 +788,14 @@ end
 -- laid out or read again.
 local function AnchorSection(sec, ox, oy, column)
 	local child = UI.view.child
-	if sec.fold then
+	if sec.fold and not flat then
+		HideTitle(sec)
 		local b = sec.button
 		b:ClearAllPoints()
 		b:SetPoint("TOPLEFT", child, "TOPLEFT", ox + PAD_LEFT - 4, -(oy + sec.y))
 		b:Show()
 	elseif sec.title then
+		if sec.button then sec.button:Hide() end
 		sec.title:ClearAllPoints()
 		sec.title:SetPoint("TOPLEFT", child, "TOPLEFT", ox + PAD_LEFT, -(oy + sec.y))
 		sec.title:Show()
@@ -783,7 +815,7 @@ local function AnchorSection(sec, ox, oy, column)
 			frame:Show()
 		end
 	end
-	if sec.fold or sec.title then sec.y = sec.y + oy end
+	if (sec.fold and not flat) or sec.title then sec.y = sec.y + oy end
 	-- Where the section stands: its column (1 the leftmost), that column's
 	-- left edge and width, and its own top.
 	sec.column, sec.left, sec.width, sec.top = column, ox, COLUMN_W, oy
@@ -817,7 +849,7 @@ end
 -- it included.
 local function LayoutSection(sec)
 	local y = 0
-	if sec.fold then
+	if sec.fold and not flat then
 		y = PlaceFold(sec, y)
 		if not UI.State().open[sec.key] then
 			for _, e in ipairs(sec.entries) do
@@ -896,6 +928,70 @@ function UI.MenuRow(slot)
 	return nil
 end
 
+
+---------------------------------------------------------------------------
+-- sub-divisions: the second level of the sidebar (Layout.lua, `subpages`)
+---------------------------------------------------------------------------
+
+-- A page's sub-divisions that have a section shown, as the last paint judged
+-- the page; none at all unless two or more have, and none before the page
+-- has been painted (the paint that judges it paints the sidebar again).
+function UI.SubsShown(id)
+	local m = models[id]
+	local out = {}
+	if not (m and m.judged and m.subs) then return out end
+	for _, sub in ipairs(m.subs) do
+		for _, sec in ipairs(sub.secs) do
+			if sec.visible then
+				out[#out + 1] = sub
+				break
+			end
+		end
+	end
+	if #out < 2 then return {} end
+	return out
+end
+
+-- The sub-division chosen on a page while it has something to show; nil for
+-- All. One that has nothing now (the simple view on) shows All and is kept.
+function UI.SubInView(id)
+	local key = UI.subOf[id]
+	if key == nil then return nil end
+	for _, sub in ipairs(UI.SubsShown(id)) do
+		if sub.key == key then return sub end
+	end
+	return nil
+end
+
+-- What the sidebar calls a sub-division: its title, or the title of its first
+-- section shown.
+function UI.SubLabel(sub)
+	if sub.def.title then return sub.def.title end
+	for _, sec in ipairs(sub.secs) do
+		if sec.visible and (sec.def.title or sec.headerItem) then return SectionText(sec) end
+	end
+	return SectionText(sub.secs[1])
+end
+
+-- A sub-division chosen in the sidebar (key nil: All), on its page, from the
+-- top.
+function UI.ShowSub(id, key)
+	UI.subOf[id] = key
+	if UI.page ~= id then return UI.ShowPage(id) end
+	if UI.LeaveSearch then UI.LeaveSearch() end
+	UI.view.scrollY = 0
+	UI.Refresh()
+end
+
+-- Whether a section's rows are on screen as far as the page goes: in the
+-- sub-division in view, and open (a fold is open in a sub-division). Read
+-- from the choice as it stands, not from the last paint, so the strip
+-- painted before the page agrees with it.
+function UI.SectionOpen(sec)
+	local sub = UI.SubInView(sec.page)
+	if sub and sec.sub and sec.sub ~= sub then return false end
+	return sub ~= nil or not sec.fold or UI.State().open[sec.key] == true
+end
 
 -- How many columns a page of this width flows into: one until there is room
 -- for two of MIN_COLUMN with the gap between them, three at most.
@@ -1009,7 +1105,19 @@ function UI.PaintPage(mode)
 	local chrome = MenuSections()
 	-- Over the page: the simple view, offered once.
 	y = PaintChrome(chrome.offer, y, mode)
-	local captioned, open = false, UI.State().open
+	-- Which sections show, all of them, before any is placed: the sidebar's
+	-- sub-divisions are the ones with a section shown.
+	for _, sec in ipairs(m.sections) do
+		if mode ~= "reflow" then
+			Judge(sec)
+		end
+	end
+	m.judged = true
+	-- The sub-division in view, nil for the whole page: only its sections are
+	-- placed, each fold of them open, and no caption is drawn over them.
+	local sub = UI.SubInView(m.id)
+	flat = sub ~= nil
+	local captioned, open = flat, UI.State().open
 	local columns = UI.ColumnsFor(CONTENT_W)
 	m.columns = columns
 	-- The sections in order, in runs: the ones before the folds, then the
@@ -1022,11 +1130,13 @@ function UI.PaintPage(mode)
 		end
 	end
 	for _, sec in ipairs(m.sections) do
-		if mode ~= "reflow" then
+		-- Out of the sub-division in view: put away, and not read.
+		sec.away = sub ~= nil and sec.sub ~= nil and sec.sub ~= sub
+		if mode == nil and sec.visible and not sec.away then
 			-- A shut fold's rows are not drawn, so not read either.
-			if Judge(sec) and mode ~= "layout" and not (sec.fold and not open[sec.key]) then RefreshRows(sec) end
+			if flat or not (sec.fold and not open[sec.key]) then RefreshRows(sec) end
 		end
-		if not sec.visible then
+		if not sec.visible or sec.away then
 			HideSection(sec)
 		else
 			-- Over the first fold of fine print: a `plain` fold (the hall of
@@ -1045,14 +1155,13 @@ function UI.PaintPage(mode)
 		end
 	end
 	Flush()
-	m.judged = true
-	if not captioned then UI.ShowCaption(m, false) end
-	-- Under the page: what the short list left out of it, counted by the
-	-- judging above, and the way to it.
+	if flat or not captioned then UI.ShowCaption(m, false) end
+	-- Under the page: what the short list left out of it (of the sub-division
+	-- in view), counted by the judging above, and the way to it.
 	if mode ~= "reflow" then
 		local left = 0
 		for _, sec in ipairs(m.sections) do
-			for _, e in ipairs(sec.entries) do
+			for _, e in ipairs(sec.away and NONE or sec.entries) do
 				if e.bySimple then left = left + 1 end
 			end
 		end
@@ -1071,6 +1180,8 @@ end
 function UI.Reveal(path)
 	local w = UI.Where(path)
 	if not w then return nil end
+	-- The sub-division that holds it, chosen and remembered as a click would.
+	if w.sec.sub then UI.subOf[w.page] = w.sec.sub.key end
 	if UI.page ~= w.page then UI.ShowPage(w.page) end
 	if w.sec.fold then UI.State().open[w.sec.key] = true end
 	UI.Refresh()
@@ -1100,6 +1211,5 @@ end
 function UI.RowShown(path)
 	local w = UI.Where(path)
 	if not (w and w.page == UI.page and w.e.row and w.e.visible and w.sec.visible) then return false end
-	if w.sec.fold and not UI.State().open[w.sec.key] then return false end
-	return true
+	return UI.SectionOpen(w.sec)
 end

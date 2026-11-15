@@ -55,44 +55,34 @@
 -- so it is found where its kin are (other homes are a comment inside the
 -- section the setting belongs to; grep HOME). A section with nothing to show
 -- is not drawn.
+--
+-- A page of many sections names its sub-divisions in `subpages`: a list of
+-- entries, each a list of section keys of that page that go together, with
+-- an optional `title = L[...]` (else the label is the title of its first
+-- section shown). Seven at most: neighbouring small sections share one. The
+-- sidebar lists them under the open page, All first, while two or more have
+-- something to show (WindowPage.lua, UI.SubsShown); one chosen draws only its
+-- sections, at the top of the page with their folds open, and a section no
+-- entry names (the line a page opens with) is drawn with every one. Nothing
+-- moves between pages: they are only a way to look at one.
 
 local _, ns = ...
 local L = ns.L
 
--- Only Interface\Icons: an atlas this client lacks draws as a green square.
+-- One picture a page, painted for it (Textures/Menu, tools/make_menu_icons.py):
+-- the addon's own files, so every client has them. Never an atlas: one this
+-- client lacks draws as a green square.
+local MENU = "Interface\\AddOns\\Manners\\Textures\\Menu\\"
 local ICONS = {
-	general = "Interface\\Icons\\INV_Misc_Map_01",
-	who = "Interface\\Icons\\Spell_Holy_WordFortitude",
-	skip = "Interface\\Icons\\Ability_Vanish",
-	when = "Interface\\Icons\\INV_Misc_PocketWatch_01",
-	click = "Interface\\Icons\\INV_Misc_Note_01",
-	appearance = "Interface\\Icons\\Spell_Holy_MindVision",
-	profiles = "Interface\\Icons\\INV_Misc_Head_Human_01",
-	diagnostics = "Interface\\Icons\\INV_Misc_Spyglass_03",
+	general = MENU .. "Start",
+	who = MENU .. "Who",
+	skip = MENU .. "Skip",
+	when = MENU .. "When",
+	click = MENU .. "Say",
+	appearance = MENU .. "Look",
+	profiles = MENU .. "Profiles",
+	diagnostics = MENU .. "Diagnostics",
 }
-
--- The first spell in `spells` the client has a texture for. The probe asked
--- for each with C_Spell.GetSpellTexture, as the prompt's own icon is.
-local function FirstIcon(spells)
-	for _, spell in ipairs(spells or {}) do
-		local info = ns.BuffInfo(spell)
-		local icon = info and ns.plain(info.icon)
-		if type(icon) == "number" or type(icon) == "string" then return icon end
-	end
-end
-
--- Who to buff shows the class's own first buff: Arcane Intellect for a mage,
--- Fortitude for a priest. A hunter has none for anybody else, so the first of
--- its own (an aspect); a class with neither, the fallback.
-local function WhoIcon()
-	local class = ns.caps and ns.caps.class
-	local icon = FirstIcon(ns.GetClassBuffs(class))
-	if not icon then
-		local family = (ns.GetOwnFamilies(class) or {})[1]
-		icon = family and FirstIcon(family.spells)
-	end
-	return icon or ICONS.who
-end
 
 -- The per-spell switches under Buff to offer (Who.lua's AddBuffToggles): one
 -- per buff, only for a class with two or more or a lone one flagged switchable (a
@@ -317,11 +307,19 @@ ns.WindowLayout = {
 					{ "general.newsHead16", lead = 3 }, "general.newsNote16",
 				} },
 			},
+			-- The steps as they are numbered, the lead with the first.
+			subpages = {
+				{ "general.lead", "general.firstRun", "general.who" },
+				{ "general.key" },
+				{ "general.ledger", "general.hall" },
+				{ "general.minimap" },
+				{ "general.news" },
+			},
 		},
 
 		who = {
 			title = L["Who to buff"],
-			icon = WhoIcon,
+			icon = ICONS.who,
 			sections = {
 				-- Who the prompt is on right now, so a switch can be seen to work.
 				{ key = "who.now", items = { "who.rightNow" } },
@@ -525,6 +523,16 @@ ns.WindowLayout = {
 					"who.revived",
 				} },
 			},
+			-- Your own buffs' four sections are one: Myself.
+			subpages = {
+				{ "who.sources" },
+				{ "who.cast", "who.order" },
+				{ "who.group" },
+				{ "who.beyond" },
+				{ "who.myself", "who.myselfWeapons", "who.myselfItems", "who.myselfWhen" },
+				{ "who.asking" },
+				{ "who.first" },
+			},
 		},
 
 		-- Every "Skip ..." switch and the never-offer list, out of Who to buff.
@@ -623,6 +631,16 @@ ns.WindowLayout = {
 					-- A warrior's: the switch is hidden, the note says why.
 					{ "advanced.noTargetNote", standIn = true },
 				} },
+			},
+			-- Hold back and Mounted and mana are one rule; the two folds of
+			-- fine print one entry.
+			subpages = {
+				{ "when.buffed" },
+				{ "when.self" },
+				{ "when.holdBack", "when.holdBack2" },
+				{ "when.battle" },
+				{ "when.favours" },
+				{ "when.timing", "when.targeting" },
 			},
 		},
 
@@ -786,6 +804,17 @@ ns.WindowLayout = {
 				{ key = "appearance.window", title = L["This window"], fold = true, items = {
 					"appearance.peekOnChange",
 				} },
+			},
+			-- The folds join the section they fine-tune: the colours the look,
+			-- the numbers the position, the icon the waiting list it heads.
+			subpages = {
+				{ "appearance.themes", "appearance.style" },
+				{ "appearance.where", "appearance.size", "appearance.exactPos" },
+				{ "appearance.attention" },
+				{ "appearance.fight" },
+				{ "appearance.queue", "appearance.icon" },
+				{ "appearance.text", "appearance.wording" },
+				{ "appearance.hover", "appearance.window" },
 			},
 		},
 
