@@ -548,12 +548,16 @@ needs all four kinds, thanks, asked, offer and group.
 ## make_whatsnew.py
 
 Writes `WhatsNew.lua`, the notes behind the *What's new* fold at the foot of
-Start here, from the first `## ` section of `CHANGELOG.md` that holds an
-entry: each `###` title, and each entry as its bold lead and first sentence in
-the game's colour codes. `--check` exits 1 when the file is not current. Run
-it after any change to the top of the changelog (`tests/scenarios/whatsnew.lua`
-goes red otherwise); setting the version changes nothing in it, the fold's
-title reads `ns.BUILD`. Standard library only.
+Start here, from the first four `## ` sections of `CHANGELOG.md` that hold an
+entry: per release its version, its date, each `###` title, and each entry as
+its bold lead and first sentence in the game's colour codes. A release's date
+is the line in italics under its heading (`*14 November 2026*`), else the date
+of its tag, so run it in a clone that has the tags. `--check` exits 1 when the
+file is not current. Run it after any change to the top of the changelog
+(`tests/scenarios/whatsnew.lua` goes red otherwise, and also when the newest
+release has no date line or does not start with `### Highlights`); setting the
+version changes nothing in it: a release the changelog still calls Unreleased
+is named by `ns.BUILD` when the fold is drawn. Standard library only.
 
 ## hall.py
 

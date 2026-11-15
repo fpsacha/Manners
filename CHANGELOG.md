@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+*14 November 2026*
+
+### Highlights
+- **More than buffs.** Resurrection for your group's dead, cures, and water,
+  food, portals, healthstones and summons for whoever asks. Each has its own
+  switch on *Who to buff*.
+- **Profiles that switch by themselves.** One for the open world, one for
+  dungeons, one for raids, one for battlegrounds, chosen as you arrive.
+- **Battlegrounds and arenas** have a section of their own on *When to offer*.
+- **Four new looks and four redrawn.** Stormcaller, Warchief, Gearworks and
+  Ebon are new; Minimal, Ribbon, Letter and Leather are redrawn. Nineteen now.
+- **Milestones and a hall of fame.** Thirteen marks of good manners on the
+  favour ledger, and a place among the Gentlefolk of Good Manners for whoever
+  earns them all.
+- **A simpler options window.** A short view of every page, columns when you
+  drag it wide, a row for each buff, and *What's new* on *Start here*.
+
 ### Who gets what
 - **Your group's pets.** *My group's pets too* (Who to buff, under *My party
   and raid*): a hunter's beast or a warlock's demon missing your buff is
@@ -112,7 +129,8 @@
 - **Look's colours are folded** with the rest of its fine print, and *Width*
   and *Height* are under *Exact position*.
 - **What's new.** A fold at the foot of *Start here* lists what the
-  release you are running changed, in short.
+  release you are running changed, most important first, with its date,
+  and the three releases before it in brief.
 - **The footer.** Who makes Manners is larger and easier to read, and the
   version stands at the right. On WoW Forever a click on the author's name
   opens a whisper, and a right click looks them up.

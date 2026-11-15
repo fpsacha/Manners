@@ -3,33 +3,45 @@
 local dir, H = ...
 local fail, load = H.fail, H.load
 
--- The `###` titles of the first `## ` section of CHANGELOG.md that holds an
--- entry, and how many entries each has: what the generated file must hold.
+-- The changelog's releases that hold an entry, newest first: each one's
+-- version, the date in italics under its heading if it has one, and its
+-- `###` titles with how many entries each holds. What the generated file
+-- must hold.
 local function changelog()
 	local file = io.open(dir .. "/CHANGELOG.md", "r")
 	if not file then return nil end
-	local sections, started = {}, false
+	local releases, release, section = {}, nil, nil
 	for line in file:lines() do
 		line = line:gsub("\r$", "")
-		if line:find("^## ") then
-			if #sections > 0 then break end
-			started = true
-		elseif started and line:find("^### ") then
-			sections[#sections + 1] = { title = line:sub(5), entries = 0 }
-		elseif started and line:find("^%- ") and #sections > 0 then
-			sections[#sections].entries = sections[#sections].entries + 1
+		local version = line:match("^## (%S+)%s*$")
+		if version then
+			release = { version = version, sections = {} }
+			releases[#releases + 1] = release
+			section = nil
+		elseif release and line:find("^### ") then
+			section = { title = line:sub(5), entries = 0 }
+			release.sections[#release.sections + 1] = section
+		elseif section and line:find("^%- ") then
+			section.entries = section.entries + 1
+		elseif release and not section and line:match("^%*(%d+ %a+ %d+)%*$") then
+			release.date = line:match("^%*(%d+ %a+ %d+)%*$")
 		end
 	end
 	file:close()
 	local kept = {}
-	for _, s in ipairs(sections) do
-		if s.entries > 0 then kept[#kept + 1] = s end
+	for _, r in ipairs(releases) do
+		local sections = {}
+		for _, s in ipairs(r.sections) do
+			if s.entries > 0 then sections[#sections + 1] = s end
+		end
+		r.sections = sections
+		if #sections > 0 then kept[#kept + 1] = r end
 	end
 	return kept
 end
 
 do
-	local scenario = "whatsnew: the generated notes are the changelog's newest release"
+	local scenario = "whatsnew: the generated notes are the changelog's newest releases"
 	Mock.reset()
 	local ns = load(scenario)
 	if ns then
@@ -40,75 +52,149 @@ do
 		elseif type(have) ~= "table" then
 			fail(scenario, "ns.WhatsNew is not there")
 		else
-			if #have ~= #want then
-				fail(scenario, ("WhatsNew.lua holds %d sections and the changelog's newest release %d: run python tools/make_whatsnew.py")
-					:format(#have, #want))
+			if #have < 2 then
+				fail(scenario, ("WhatsNew.lua holds %d releases: the newest and at least the one before it are shown"):format(#have))
 			end
-			for i, s in ipairs(want) do
-				local h = have[i]
-				if type(h) ~= "table" or h.title ~= s.title then
-					fail(scenario, ("section %d is %s, and the changelog says %s"):format(i, tostring(h and h.title), s.title))
-				elseif #(h.entries or {}) ~= s.entries then
-					fail(scenario, ("%s holds %d entries, and the changelog %d"):format(s.title, #(h.entries or {}), s.entries))
-				end
-			end
-			for _, h in ipairs(have) do
-				for _, entry in ipairs(h.entries or {}) do
-					if entry:find("%*") or entry:find("`") then
-						fail(scenario, "an entry still holds Markdown: " .. entry)
-					elseif #entry > 420 then
-						fail(scenario, "an entry is longer than the fold draws well: " .. entry)
+			for r, release in ipairs(have) do
+				local w = want[r]
+				if not w or release.version ~= w.version then
+					fail(scenario, ("release %d is %s, and the changelog says %s: run python tools/make_whatsnew.py")
+						:format(r, tostring(release.version), tostring(w and w.version)))
+				else
+					if w.date and release.date ~= w.date then
+						fail(scenario, ("%s is dated %s, and the changelog says %s"):format(w.version, tostring(release.date), w.date))
+					end
+					if #(release.sections or {}) ~= #w.sections then
+						fail(scenario, ("%s holds %d sections and the changelog %d: run python tools/make_whatsnew.py")
+							:format(w.version, #(release.sections or {}), #w.sections))
+					end
+					for i, s in ipairs(w.sections) do
+						local h = release.sections and release.sections[i]
+						if type(h) ~= "table" or h.title ~= s.title then
+							fail(scenario, ("%s, section %d is %s, and the changelog says %s")
+								:format(w.version, i, tostring(h and h.title), s.title))
+						elseif #(h.entries or {}) ~= s.entries then
+							fail(scenario, ("%s, %s holds %d entries, and the changelog %d")
+								:format(w.version, s.title, #(h.entries or {}), s.entries))
+						end
 					end
 				end
+				for _, h in ipairs(release.sections or {}) do
+					for _, entry in ipairs(h.entries or {}) do
+						if entry:find("%*") or entry:find("`") then
+							fail(scenario, "an entry still holds Markdown: " .. entry)
+						elseif #entry > 420 then
+							fail(scenario, "an entry is longer than the fold draws well: " .. entry)
+						end
+					end
+				end
+			end
+			-- The newest release says when, and leads with what matters most.
+			local newest = want[1]
+			if newest and not newest.date then
+				fail(scenario, "the changelog's newest release has no date in italics under its heading")
+			end
+			if newest and newest.sections[1] and newest.sections[1].title ~= "Highlights" then
+				fail(scenario, "the changelog's newest release does not start with its Highlights")
 			end
 		end
 	end
 end
 
 do
-	local scenario = "whatsnew: a note a section, titled with this build, folded at the foot of Start here"
+	local scenario = "whatsnew: the newest release by section under its date, the earlier ones in brief, folded at the foot of Start here"
 	Mock.reset()
 	local ns = load(scenario)
 	if ns then
-		local News = ns.News
+		local News = ns.OptionsPage and ns.OptionsPage.News
 		if type(News) ~= "table" then
-			fail(scenario, "ns.News is not there")
+			fail(scenario, "the options page's News is not there")
 		else
-			local sections = News.Sections()
-			if #sections == 0 then fail(scenario, "no section to show") end
-			if #sections > News.SLOTS then
-				fail(scenario, ("%d sections and only %d notes to draw them in"):format(#sections, News.SLOTS))
+			local releases = News.Releases()
+			local blocks = News.Blocks()
+			local newest = releases[1] or { sections = {} }
+			if #blocks == 0 then fail(scenario, "nothing to show") end
+			if #blocks > News.SLOTS then
+				fail(scenario, ("%d notes and only %d to draw them in"):format(#blocks, News.SLOTS))
+			end
+			if #newest.sections > News.SLOTS - 1 then
+				fail(scenario, ("the newest release has %d sections and the fold %d notes: no room for a release before it")
+					:format(#newest.sections, News.SLOTS))
+			end
+			local want = math.min(News.SLOTS, #newest.sections + (#releases - 1))
+			if #blocks ~= want then
+				fail(scenario, ("%d notes for %d sections of the newest release and %d earlier releases")
+					:format(#blocks, #newest.sections, #releases - 1))
 			end
 			if not News.Title():find(tostring(ns.BUILD), 1, true) then
 				fail(scenario, "the fold's title does not name this build: " .. News.Title())
 			end
-			local first = News.Text(1)
-			if not first:find(sections[1].title, 1, true) then
-				fail(scenario, "the first note does not start with its section's title")
+			-- The first note: version and date, the section's title, its entries.
+			local first = blocks[1] or ""
+			local head = first:match("^[^\n]*") or ""
+			if not head:find(News.Version(newest), 1, true) then
+				fail(scenario, "the first note does not start with the newest release's version: " .. head)
 			end
-			local _, lines = first:gsub("\n", "\n")
-			if lines ~= #sections[1].entries then
-				fail(scenario, ("the first note has %d lines under its title for %d entries"):format(lines, #sections[1].entries))
+			if newest.date and not head:find(newest.date, 1, true) then
+				fail(scenario, "the first note does not say when the newest release is from: " .. head)
 			end
-			if News.Text(#sections + 1) ~= "" then
-				fail(scenario, "a note past the last section is not empty")
+			if News.Version({ version = "Unreleased" }) ~= tostring(ns.BUILD) then
+				fail(scenario, "a release the changelog calls Unreleased is not named by this build")
 			end
-			-- The options: a note shown for each section, the rest hidden.
+			if newest.sections[1] and not first:find(newest.sections[1].title, 1, true) then
+				fail(scenario, "the first note does not hold its section's title")
+			end
+			local _, breaks = first:gsub("\n", "\n")
+			if newest.sections[1] and breaks ~= #newest.sections[1].entries + 1 then
+				fail(scenario, ("the first note has %d lines under its head for %d entries and a title")
+					:format(breaks, #newest.sections[1].entries))
+			end
+			-- A later section of the newest release carries no version again.
+			if blocks[2] and newest.sections[2] and blocks[2]:match("^[^\n]*"):find(News.Version(newest), 1, true) then
+				fail(scenario, "the second note repeats the release's version")
+			end
+			-- An earlier release: one note, headed by its version and date.
+			local earlier = releases[2]
+			local note = blocks[#newest.sections + 1]
+			if earlier and note then
+				local line = note:match("^[^\n]*") or ""
+				if not line:find(tostring(earlier.version), 1, true) then
+					fail(scenario, "the release before the newest is not headed by its version: " .. line)
+				end
+				if earlier.date and not line:find(earlier.date, 1, true) then
+					fail(scenario, "the release before the newest is not dated: " .. line)
+				end
+				local entries = 0
+				for _, s in ipairs(earlier.sections or {}) do entries = entries + #(s.entries or {}) end
+				local _, lines = note:gsub("\n", "\n")
+				if lines ~= entries then
+					fail(scenario, ("the release before the newest has %d lines for %d entries"):format(lines, entries))
+				end
+			elseif earlier then
+				fail(scenario, "the release before the newest has no note")
+			end
+			if News.Text(#blocks + 1) ~= "" then
+				fail(scenario, "a note past the last is not empty")
+			end
+			-- The options: a note shown for each, the rest hidden.
 			local tab = ns.OptionsPage and ns.OptionsPage.BuildStartTab and ns.OptionsPage.BuildStartTab()
 			local args = tab and tab.args
 			if type(args) ~= "table" then
 				fail(scenario, "Start here's options could not be built")
 			else
 				for i = 1, News.SLOTS do
-					local note = args["newsNote" .. i]
-					if not note then
+					local option = args["newsNote" .. i]
+					if not option then
 						fail(scenario, "newsNote" .. i .. " is not among Start here's options")
 					else
-						local hidden = note.hidden()
-						if (i <= #sections) == (hidden and true or false) then
-							fail(scenario, ("note %d is %s with %d sections"):format(i, hidden and "hidden" or "shown", #sections))
+						local hidden = option.hidden()
+						if (i <= #blocks) == (hidden and true or false) then
+							fail(scenario, ("note %d is %s with %d notes to show"):format(i, hidden and "hidden" or "shown", #blocks))
 						end
 					end
+				end
+				if args["newsNote" .. (News.SLOTS + 1)] then
+					fail(scenario, "more notes among the options than News.SLOTS says")
 				end
 				if not args.newsHeader or args.newsHeader.hidden() then
 					fail(scenario, "the fold's header is hidden while there are notes")

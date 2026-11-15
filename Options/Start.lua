@@ -774,15 +774,25 @@ end
 -- profile lines on Profiles. Ledger.lua repaints this page by its id,
 -- "general".
 -- What's new (WhatsNew.lua, generated from the top of CHANGELOG.md): the
--- newest release's notes in short, one note a section of the changelog, in a
--- fold at the foot of Start here. The text is the changelog's own English:
--- release notes are not among the translated strings.
+-- newest release's notes in short, a note a section of the changelog in the
+-- changelog's order (its Highlights first) under the release's date, then the
+-- releases before it, a note each, in a fold at the foot of Start here. The
+-- text is the changelog's own English: release notes are not among the
+-- translated strings.
 local News = {}
-ns.News = News
-News.SLOTS = 12
+Page.News = News
+News.SLOTS = 16
 
-function News.Sections()
+function News.Releases()
 	return type(ns.WhatsNew) == "table" and ns.WhatsNew or {}
+end
+
+-- What a release is called: its version, and this build's for the one the
+-- changelog still calls Unreleased.
+function News.Version(release)
+	local version = tostring(release and release.version or "")
+	if version:lower() == "unreleased" then version = tostring(ns.BUILD or "") end
+	return version
 end
 
 -- The fold's title, with the version this build is.
@@ -790,15 +800,42 @@ function News.Title()
 	return L["What's new in %s"]:format(tostring(ns.BUILD or ""))
 end
 
--- Section `i` as one note: its title in gold, then an entry a line.
-function News.Text(i)
-	local section = News.Sections()[i]
-	if type(section) ~= "table" then return "" end
-	local lines = { "|cffffd100" .. tostring(section.title) .. "|r" }
+local function Entries(lines, section)
 	for _, entry in ipairs(section.entries or {}) do
 		lines[#lines + 1] = "- " .. tostring(entry)
 	end
-	return table.concat(lines, "\n")
+end
+
+-- The notes, top to bottom, as the fold draws them. The newest release: its
+-- version and date over its first section, then a note a section. Each
+-- release before it: one note, its version and date over every entry it has.
+-- Never more than SLOTS: the oldest go first.
+function News.Blocks()
+	local blocks = {}
+	for r, release in ipairs(News.Releases()) do
+		local head = "|cffffd100" .. News.Version(release) .. "|r"
+		if release.date then head = head .. "  |cff9d9d9d" .. tostring(release.date) .. "|r" end
+		if r == 1 then
+			for s, section in ipairs(release.sections or {}) do
+				local lines = {}
+				if s == 1 then lines[1] = head end
+				lines[#lines + 1] = "|cffffd100" .. tostring(section.title) .. "|r"
+				Entries(lines, section)
+				blocks[#blocks + 1] = table.concat(lines, "\n")
+			end
+		else
+			local lines = { head }
+			for _, section in ipairs(release.sections or {}) do Entries(lines, section) end
+			blocks[#blocks + 1] = table.concat(lines, "\n")
+		end
+		if #blocks >= News.SLOTS then break end
+	end
+	for i = #blocks, News.SLOTS + 1, -1 do blocks[i] = nil end
+	return blocks
+end
+
+function News.Text(i)
+	return News.Blocks()[i] or ""
 end
 
 function Page.BuildStartTab()
@@ -1514,67 +1551,87 @@ function Page.BuildStartTab()
 			-- What's new, folded at the foot of the page (News, above).
 			newsHeader = {
 				type = "header", name = function() return News.Title() end, order = 90,
-				hidden = function() return #News.Sections() == 0 end,
+				hidden = function() return #News.Blocks() == 0 end,
 			},
 			newsNote1 = {
 				type = "description", order = 90.01, fontSize = "medium",
-				hidden = function() return News.Sections()[1] == nil end,
+				hidden = function() return News.Blocks()[1] == nil end,
 				name = function() return News.Text(1) end,
 			},
 			newsNote2 = {
 				type = "description", order = 90.02, fontSize = "medium",
-				hidden = function() return News.Sections()[2] == nil end,
+				hidden = function() return News.Blocks()[2] == nil end,
 				name = function() return News.Text(2) end,
 			},
 			newsNote3 = {
 				type = "description", order = 90.03, fontSize = "medium",
-				hidden = function() return News.Sections()[3] == nil end,
+				hidden = function() return News.Blocks()[3] == nil end,
 				name = function() return News.Text(3) end,
 			},
 			newsNote4 = {
 				type = "description", order = 90.04, fontSize = "medium",
-				hidden = function() return News.Sections()[4] == nil end,
+				hidden = function() return News.Blocks()[4] == nil end,
 				name = function() return News.Text(4) end,
 			},
 			newsNote5 = {
 				type = "description", order = 90.05, fontSize = "medium",
-				hidden = function() return News.Sections()[5] == nil end,
+				hidden = function() return News.Blocks()[5] == nil end,
 				name = function() return News.Text(5) end,
 			},
 			newsNote6 = {
 				type = "description", order = 90.06, fontSize = "medium",
-				hidden = function() return News.Sections()[6] == nil end,
+				hidden = function() return News.Blocks()[6] == nil end,
 				name = function() return News.Text(6) end,
 			},
 			newsNote7 = {
 				type = "description", order = 90.07, fontSize = "medium",
-				hidden = function() return News.Sections()[7] == nil end,
+				hidden = function() return News.Blocks()[7] == nil end,
 				name = function() return News.Text(7) end,
 			},
 			newsNote8 = {
 				type = "description", order = 90.08, fontSize = "medium",
-				hidden = function() return News.Sections()[8] == nil end,
+				hidden = function() return News.Blocks()[8] == nil end,
 				name = function() return News.Text(8) end,
 			},
 			newsNote9 = {
 				type = "description", order = 90.09, fontSize = "medium",
-				hidden = function() return News.Sections()[9] == nil end,
+				hidden = function() return News.Blocks()[9] == nil end,
 				name = function() return News.Text(9) end,
 			},
 			newsNote10 = {
 				type = "description", order = 90.10, fontSize = "medium",
-				hidden = function() return News.Sections()[10] == nil end,
+				hidden = function() return News.Blocks()[10] == nil end,
 				name = function() return News.Text(10) end,
 			},
 			newsNote11 = {
 				type = "description", order = 90.11, fontSize = "medium",
-				hidden = function() return News.Sections()[11] == nil end,
+				hidden = function() return News.Blocks()[11] == nil end,
 				name = function() return News.Text(11) end,
 			},
 			newsNote12 = {
 				type = "description", order = 90.12, fontSize = "medium",
-				hidden = function() return News.Sections()[12] == nil end,
+				hidden = function() return News.Blocks()[12] == nil end,
 				name = function() return News.Text(12) end,
+			},
+			newsNote13 = {
+				type = "description", order = 90.13, fontSize = "medium",
+				hidden = function() return News.Blocks()[13] == nil end,
+				name = function() return News.Text(13) end,
+			},
+			newsNote14 = {
+				type = "description", order = 90.14, fontSize = "medium",
+				hidden = function() return News.Blocks()[14] == nil end,
+				name = function() return News.Text(14) end,
+			},
+			newsNote15 = {
+				type = "description", order = 90.15, fontSize = "medium",
+				hidden = function() return News.Blocks()[15] == nil end,
+				name = function() return News.Text(15) end,
+			},
+			newsNote16 = {
+				type = "description", order = 90.16, fontSize = "medium",
+				hidden = function() return News.Blocks()[16] == nil end,
+				name = function() return News.Text(16) end,
 			},
 		},
 	}

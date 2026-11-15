@@ -145,9 +145,9 @@ local START_PAGE = {
 	"general.minimap", "general.verbose", "general.silentChat",
 	"general.welcomeAgain",
 	-- What's new, folded (tests/scenarios/whatsnew.lua).
-	"general.newsNote1", "general.newsNote2", "general.newsNote3", "general.newsNote4", "general.newsNote5", "general.newsNote6", "general.newsNote7", "general.newsNote8", "general.newsNote9", "general.newsNote10", "general.newsNote11", "general.newsNote12",
+	"general.newsNote1", "general.newsNote2", "general.newsNote3", "general.newsNote4", "general.newsNote5", "general.newsNote6", "general.newsNote7", "general.newsNote8", "general.newsNote9", "general.newsNote10", "general.newsNote11", "general.newsNote12", "general.newsNote13", "general.newsNote14", "general.newsNote15", "general.newsNote16",
 }
-local START_FOLDED = { ["general.newsNote1"] = true, ["general.newsNote2"] = true, ["general.newsNote3"] = true, ["general.newsNote4"] = true, ["general.newsNote5"] = true, ["general.newsNote6"] = true, ["general.newsNote7"] = true, ["general.newsNote8"] = true, ["general.newsNote9"] = true, ["general.newsNote10"] = true, ["general.newsNote11"] = true, ["general.newsNote12"] = true, ["general.hallNote"] = true, ["general.hallCertificate"] = true, ["general.hallCode"] = true, ["general.hallList"] = true }
+local START_FOLDED = { ["general.newsNote1"] = true, ["general.newsNote2"] = true, ["general.newsNote3"] = true, ["general.newsNote4"] = true, ["general.newsNote5"] = true, ["general.newsNote6"] = true, ["general.newsNote7"] = true, ["general.newsNote8"] = true, ["general.newsNote9"] = true, ["general.newsNote10"] = true, ["general.newsNote11"] = true, ["general.newsNote12"] = true, ["general.newsNote13"] = true, ["general.newsNote14"] = true, ["general.newsNote15"] = true, ["general.newsNote16"] = true, ["general.hallNote"] = true, ["general.hallCertificate"] = true, ["general.hallCode"] = true, ["general.hallList"] = true }
 do
 	local scenario = "start here: the page as the window draws it"
 	local ns = session(scenario)

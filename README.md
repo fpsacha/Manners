@@ -736,7 +736,8 @@ no room for. Defaults are in brackets.
   even the few lines the first leaves (what you type after `/manners` is
   still answered); and *Show the welcome again*.
 - ***What's new in*** *the version you run*, folded at the foot of the page:
-  what that release changed, in short, section by section. In English, as
+  that release's date and what it changed, in short, the highlights first and
+  the fixes last, then the three releases before it in brief. In English, as
   the changelog is.
 
 ### Who to buff
