@@ -1,4 +1,4 @@
-**Somebody buffed you. One click buffs them back, and your target is handed straight back.**
+**Somebody buffed you? One press buffs them back, and your own target comes straight back to you.**
 
 ![Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
@@ -21,10 +21,11 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 - **Battlegrounds and arenas:** your own buffs first after a death, your team freely before the gates open, no line said with a cast there unless you tick it, and your thanks to your own team alone.
 - **Dungeons and raids:** one group cast for a whole party when you carry the reagent, your group's pets if you tick them, ready checks and the fallen first, only the raid groups you buff, save mana below a level you set, holding back as much as you choose.
 - **Top-ups timed to each buff:** with top-ups on, about a tenth of its length before it ends, earlier in a raid or dungeon.
-- **Paladins:** Blessing of Kings first, and a buff order of your own for any class with several buffs.
-- **The favour ledger** and titles for your manners, from *Well Brought Up* to *The Very Soul of Courtesy*, and thirteen **milestones** to earn, three of them hidden. `/manners ledger`.
-- **Options that start short:** a simple view with the ten or so settings your class changes on each page, everything else one switch or one search away.
-- **Say something**, if you like: four sets, whispers, or **In character**, over two thousand lines picked for your race, class and the moment, with your own mixed in if you like. Off by default.
+- **Paladins:** Blessing of Kings first, **a blessing for each class** (Wisdom for mages, say), and a buff order of your own for any class with several buffs.
+- **The favour ledger** and titles for your manners, from *Well Brought Up* to *The Very Soul of Courtesy*, and thirteen **milestones** to earn, three of them hidden. Earn them all and you join the **hall of fame**, the *Gentlefolk of Good Manners*. `/manners ledger`.
+- **Profiles that switch by themselves** as you arrive in the open world, a dungeon, a raid or a battleground, and a profile manager: every profile at a glance, use, duplicate, rename or delete one, with *Undo*.
+- **Options that start short:** a simple view with the ten or so settings your class changes on each page, everything else one switch or one search away; a long page in parts you pick from a bar, and a painted icon for each page.
+- **Say something**, if you like: four sets, whispers, or **In character**, over two thousand lines picked for your race, class and the moment (about a hundred of them the Forsaken's own), with your own mixed in if you like. Off by default.
 - **Keys, action bars and controllers:** a key binding, a macro for any action bar slot that shows the spell it will cast and says your line, and the game's own controller support (bind a controller button; the prompt shows its picture).
 - **Nineteen looks** picked from cards, effects you can calm, and **Move the prompt** one click away in the options window.
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.

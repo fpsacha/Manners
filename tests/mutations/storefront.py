@@ -67,3 +67,62 @@ mutate(MS,
        '    before = prompt_layer("shot-landed", snaps["shot-landed"], zoom)',
        "storefront: the hero shows only the landing, not the press",
        expect="no longer draws the prompt before the press", script=V)
+
+# ---- the headline features on every page a browser reads first
+
+mutate(".github/curseforge-description.md",
+       "**profiles that switch by themselves** as you arrive in the open world, a dungeon, a raid or a "
+       "battleground, ",
+       "",
+       "storefront: the CurseForge opening leaves out automatic profiles",
+       expect="curseforge-description.md's opening does not mention profiles that switch by themselves",
+       script=V)
+
+mutate(".github/curseforge-description.md",
+       " and a **hall of fame** for whoever earns them all",
+       "",
+       "storefront: the CurseForge opening leaves out the hall of fame",
+       expect="curseforge-description.md's opening does not mention the hall of fame", script=V)
+
+mutate(".github/wago-description.md",
+       "- **Profiles that switch by themselves** as you arrive",
+       "- **Profiles** as you arrive",
+       "storefront: the Wago page leaves out automatic profiles",
+       expect="wago-description.md does not mention profiles that switch by themselves", script=V)
+
+mutate(".github/wago-description.md",
+       " Earn them all and you join the **hall of fame**, the *Gentlefolk of Good Manners*.",
+       "",
+       "storefront: the Wago page leaves out the hall of fame",
+       expect="wago-description.md does not mention the hall of fame", script=V)
+
+mutate(".github/wago-description.md",
+       "Blessing of Kings first, **a blessing for each class** (Wisdom for mages, say), and",
+       "Blessing of Kings first, and",
+       "storefront: the Wago page leaves out a blessing for each class",
+       expect="wago-description.md does not mention a blessing for each class", script=V)
+
+mutate("README.md",
+       "- **Profiles that switch by themselves.** One for the open world, one for",
+       "- **Profiles.** One for the open world, one for",
+       "storefront: the README's opening leaves out automatic profiles",
+       expect="README.md's opening does not mention profiles that switch by themselves", script=V)
+
+mutate("README.md",
+       "- **A blessing for each class.** A paladin picks the blessing each class is",
+       "- **Paladins.** A paladin picks the blessing each class is",
+       "storefront: the README's opening leaves out a blessing for each class",
+       expect="README.md's opening does not mention a blessing for each class", script=V)
+
+mutate(".github/curseforge-summary.txt",
+       "Somebody buffed you? One press buffs them back. It also",
+       "One click to buff back whoever just buffed you, and nearby players missing yours. It keeps your "
+       "own buffs up too: armors, auras, aspects, poisons, food and more. It also",
+       "storefront: the summary grows past one short line",
+       expect="curseforge-summary.txt is", script=V)
+
+mutate(".github/curseforge-summary.txt",
+       "Somebody buffed you? One press buffs them back.",
+       "The polite buff addon.",
+       "storefront: the summary no longer says what the addon is for",
+       expect="curseforge-summary.txt does not say what the addon is for", script=V)

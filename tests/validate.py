@@ -813,6 +813,52 @@ if not _lf_bad:
     print("  ok  %d pictures in one order on the gallery and the upload list,"
           " the moment first on every page" % len(_gallery))
 
+print("\n== the listings name what ships ==")
+# 1.11.25 shipped with profiles that switch by themselves as its highlight,
+# and neither listing said so (the 2026-11-15 review). What a player deciding
+# whether to install looks for, each said where a browser reads in the first
+# seconds: the CurseForge description's opening (down to What you see), the
+# README's (down to Installing) and the whole of Wago's short page. A
+# headline that ships later belongs here too. The summary, the one line
+# CurseForge's search shows, says what the addon is for, on one short line.
+_HEADLINES = [
+    ("buffing back with one press", r"one press"),
+    ("resurrection", r"resurrect"),
+    ("cures", r"\bcures?\b"),
+    ("courtesies on request", r"courtes"),
+    ("a blessing for each class", r"blessing for each class"),
+    ("profiles that switch by themselves", r"profiles? that switch(es)? by themselves"),
+    ("the profile manager's Undo", r"\*Undo\*"),
+    ("milestones", r"milestones"),
+    ("the hall of fame", r"hall of fame"),
+    ("pages in parts with painted icons", r"painted (page )?icons?"),
+    ("the Forsaken's In character lines", r"Forsaken"),
+]
+_hl_bad = 0
+_opening = {
+    "README.md's opening": _pages["README.md"].split("\n## Installing", 1)[0],
+    "curseforge-description.md's opening":
+        _pages["curseforge-description.md"].split("\n### What you see", 1)[0],
+    "wago-description.md": _pages["wago-description.md"],
+}
+for _where, _text in _opening.items():
+    for _what, _pattern in _HEADLINES:
+        if not re.search(_pattern, _text, re.I if _pattern != r"\*Undo\*" else 0):
+            print("  %s does not mention %s" % (_where, _what))
+            _hl_bad += 1
+_summary = open(os.path.join(_GH, "curseforge-summary.txt"), encoding="utf-8").read().strip()
+if "\n" in _summary or len(_summary) > 150:
+    print("  curseforge-summary.txt is %d characters on %d line(s); the search results show one"
+          " short line (150 at most)" % (len(_summary), _summary.count("\n") + 1))
+    _hl_bad += 1
+if not re.search(r"buff\w* (them|you) back|buffs? back", _summary, re.I):
+    print("  curseforge-summary.txt does not say what the addon is for: buffing back whoever buffed you")
+    _hl_bad += 1
+fail += _hl_bad
+if not _hl_bad:
+    print("  ok  %d headline features on every page, the summary one line of %d characters"
+          % (len(_HEADLINES), len(_summary)))
+
 print("\n== version consistency ==")
 # Every toc carries a Version line -- the source and each generated one -- and
 # setversion.py used to write exactly one. A bump that reaches the source and

@@ -39,10 +39,20 @@ of Pandaria Classic** and **retail**, in nine languages.
   between them, so nobody is buffed twice.
 - **Battlegrounds and arenas.** Rules of their own: your own buffs first
   after a death, your team freely before the gates open.
-- **The favour ledger and milestones.** Who buffed you, what you gave back,
-  the title your manners have earned and thirteen milestones.
+- **A blessing for each class.** A paladin picks the blessing each class is
+  offered first: Wisdom for mages, say, where the order would give them Kings.
+- **The favour ledger, milestones and a hall of fame.** Who buffed you, what
+  you gave back, the title your manners have earned and thirteen milestones;
+  earn them all and you join the *Gentlefolk of Good Manners*.
+- **Profiles that switch by themselves.** One for the open world, one for
+  dungeons, raids or battlegrounds, chosen as you arrive, and a profile
+  manager that can use, duplicate, rename or delete any of them, with *Undo*.
 - **Nineteen looks.** From a pane of dark glass to a death knight's
   runeblade, each with its own animations, picked from a gallery of cards.
+- **Options that start short.** A simple view of each page, a long page in
+  parts you pick from a bar, and a painted icon for each page.
+- **In character, if you like.** A line when you buff somebody, fitted to your
+  race, class and the moment: the Forsaken alone have about a hundred.
 
 <img src=".github/media/manners-reasons.png" alt="Five prompts, each a different colour: your target, somebody who buffed you, somebody who asked in chat, a group member and a passer-by" width="640">
 
@@ -681,8 +691,9 @@ it too.
   doing what you would expect: Manners is off, the prompt is unlocked, a
   snooze is running, nothing can be offered, or the prompt is kept away while
   you are mounted.
-- On the left, the pages: *Start here*; *Who to buff*, *Who to skip*, *When
-  to offer*, *What I say*, *Look*; *Profiles* and *Diagnostics*. A page with
+- On the left, the pages, each with a painted icon of its own: *Start here*;
+  *Who to buff*, *Who to skip*, *When to offer*, *What I say*, *Look*;
+  *Profiles* and *Diagnostics*. A page with
   nothing for your character is left out. A red dot beside a page means
   something there wants looking at; a key binding is optional, so no red dot
   asks for one.
