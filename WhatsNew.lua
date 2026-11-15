@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "14 November 2026", sections = {
+	{ version = "1.11.25", date = "14 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100More than buffs.|r Resurrection for your group's dead, cures, and water, food, portals, healthstones and summons for whoever asks.",
 			"|cffffd100Profiles that switch by themselves.|r One for the open world, one for dungeons, one for raids, one for battlegrounds, chosen as you arrive.",
