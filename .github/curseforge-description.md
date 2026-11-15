@@ -1,16 +1,16 @@
-**Somebody buffed you. One click buffs them back, and your target is handed straight back.**
+**Somebody buffed you? One press buffs them back, and your own target comes straight back to you.**
 
-> **I read every comment here and on GitHub, and I fix bugs as fast as I can.** Found one? Please send a log with it: it takes ten seconds and turns a guess into a fix. See **Report a bug** below.
-
-![The prompt as your buff lands: a dark panel reading buffed Mort Defrette and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
-
-![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
+![Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
 A priest buffs you in passing. By the time you have picked them out of a dozen nameplates, they are gone. Manners saw who it was, worked out what you owe them and put one button on screen. Click it, or press your key: they get their buff, your own target comes straight back, and the favour is remembered through a reload or a disconnect.
 
-The same button offers your group, people who ask for your buff in chat, and passers-by who are missing it, so buffing a stranger costs one click instead of a minute of squinting at names. It looks after you too: your own armor, aura, aspect or shield, and the poison, stone, oil or lure for each weapon, come up as "You" when they are missing. In a dungeon or a raid it offers one group cast for a whole party when you carry the reagent, and offers a top-up at the moment that suits each buff's length.
+The same button offers your group, people who ask for your buff in chat, and passers-by who are missing it, so buffing a stranger costs one click instead of a minute of squinting at names. Out of a fight it offers your **resurrection** to the group's dead and, if you tick it, a **cure** for a poison, disease or curse, and a mage's or warlock's **courtesies** (water, portals, healthstones, summons) to whoever asks. It looks after you too: your own armor, aura, aspect or shield, and the poison, stone, oil or lure for each weapon, come up as "You" when they are missing. In a dungeon or a raid it offers one group cast for a whole party when you carry the reagent, and offers a top-up at the moment that suits each buff's length.
+
+Lately: **a blessing for each class** for paladins, **profiles that switch by themselves** as you arrive in the open world, a dungeon, a raid or a battleground, a profile manager with *Undo*, thirteen **milestones** on the favour ledger and a **hall of fame** for whoever earns them all, options pages in parts with painted page icons, and about a hundred new In character lines for the Forsaken.
 
 Setting it up takes one page. `/manners` opens **Start here**: two numbered steps (who to buff, one key). The first time, two questions set the defaults for you, or *Not now* keeps them.
+
+> **I read every comment here and on GitHub, and I fix bugs as fast as I can.** Found one? Please send a log with it: it takes ten seconds and turns a guess into a fix. See **Report a bug** below.
 
 ### What you see
 
@@ -18,15 +18,11 @@ Setting it up takes one page. `/manners` opens **Start here**: two numbered step
 
 ![Four more prompts: a dead member of your group offered a resurrection, a poisoned one a cure, somebody who asked for water, and a priest you could ask for Power Word: Fortitude](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-more.png)
 
+![Your own buffs on the prompt: a mage's armor, a rogue's poison for the main hand, your own Arcane Intellect](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-yourself.png)
+
 ![Click any name in the list: left-click buffs that person, right-click skips them, shift-right-click never offers them again](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-list.png)
 
 Turn on *List the next few below* (Look) and every name under the prompt is a button of its own, with the icon of the buff they would get: left-click buffs that person, right-click skips them for now, shift-right-click puts them on your never-offer list.
-
-![Your own buffs on the prompt: a mage's armor, a rogue's poison for the main hand, your own Arcane Intellect](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-yourself.png)
-
-![The options window on Start here in the Simple view: two questions, a key for the prompt, the favour ledger, with the Simple view switch and the Move the prompt button ringed](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options.png)
-
-![The options window dragged wide on Who to buff, its sections in two columns: who is offered, what to cast, the group, More than buffs and Myself](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options-wide.png)
 
 ![The nineteen looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
@@ -34,9 +30,15 @@ Turn on *List the next few below* (Look) and every name under the prompt is a bu
 
 ![The Lightbringer look as a buff lands: the sun of the Light flares round the spell](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-lightbringer.gif)
 
+![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
+
 ![The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
 
 ![The favour ledger on its Milestones tab: three earned with their dates and a Link in chat button, the others with how far along they are, and beside it the toast for Much Obliged](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-milestones.png)
+
+![The options window on Start here in the Simple view: two questions, a key for the prompt, the favour ledger, with the Simple view switch and the Move the prompt button ringed](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options.png)
+
+![The options window dragged wide on Who to buff, its sections in two columns: who is offered, what to cast, the group, More than buffs and Myself](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options-wide.png)
 
 ![The prompt and its list in German, French and Simplified Chinese](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-languages.png)
 
@@ -96,6 +98,13 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shad
 - **Hide all Manners messages in my chat window:** not even the few lines the *Show what Manners is doing* switch leaves. What you type after `/manners` is still answered.
 - **A controller on:** Manners opens none of the game's own menus (the minimap right click is the switch, a drop-down opens a list Manners draws itself).
 
+### Profiles
+
+- **Profiles that switch by themselves.** Pick a profile for the open world, a dungeon, a raid and a battleground or arena, and the character switches as it arrives, never in a fight. A raid profile that keeps to your group and says nothing, say, and your usual one outside. Off until you turn it on, and each character's own.
+- **Every profile at a glance**, with the characters on it and where it is switched to. Pick one and *Use*, *Duplicate*, *Rename*, *Delete* or copy it, and take a delete, reset, copy, rename or paste back with *Undo*.
+- **New characters start on** a profile you choose, for the whole account.
+- **Share as text:** `/manners export` puts your settings in one line to keep or share, and a pasted line can go into a new profile of its own. It never switches on speaking to other players or moves your prompt.
+
 ### Timing
 
 With *Offer a top-up when it runs low* on (the *kept topped up* choice on Start here sets it), Manners knows how long every buff lasts on your client and offers the top-up about a tenth of that before it ends: a minute before a ten-minute buff, five before an hour's. In a raid or dungeon it starts earlier (twice as early by default, which you can change), earlier still for your own buffs, and only in the last half minute for somebody outside your group. The tooltip says how long the buff lasts and when the top-up is due. After a fight everybody is read again at once.
@@ -104,17 +113,21 @@ With *Offer a top-up when it runs low* on (the *kept topped up* choice on Start 
 
 **Blessing of Kings first**: once you have learned it, everybody is offered Kings before Might or Wisdom, and a whole class gets it as a Greater Blessing (on WoW Forever, Classic Era and Burning Crusade; Mists already does). Blessings overwrite one another, so nobody wearing one of yours is switched to another. A **buff order** under Who to buff, for any class with more than one buff, puts your buffs in your order with a pair of arrows: the first one a person can use is what they are offered, and it travels with `/manners export`.
 
+**A blessing for each class**, under the buff order: pick a class, then the blessing its players are offered first (Wisdom for mages, say, where the order would give them Kings). Somebody who already wears it from another paladin, or who cannot be given it, gets what the order would have chosen.
+
 ### The favour ledger
 
 Who buffed you and with what, whether you returned it (and if not, why), and who you buffed unasked, with today's count and your all-time totals. `/manners ledger`. Favours you return earn a title, from *Well Brought Up* at 10 to *The Very Soul of Courtesy* at 1,000, with how far you are from the next.
 
 **Milestones**: thirteen marks of good manners on a tab of their own, from *Much Obliged* for your first favour returned to *The Kindness of Strangers* for a hundred strangers buffed unasked, three of them hidden until you earn them. A new one gets a small toast and a line in chat, never in a fight, and one switch turns it all off.
 
+**The hall of fame**: earn every milestone your character can and *Start here* gives you a code and a certificate. Post a screenshot of it with the code on [GitHub](https://github.com/fpsacha/Manners#gentlefolk-of-good-manners) and your name joins the *Gentlefolk of Good Manners*, on the addon's page and inside the addon.
+
 ### What it says
 
 Optional, and off until you turn it on: a line when you buff somebody, from four sets you can edit (Azeroth, Polite, Cheeky, or just their name). Say it, yell it, tell your group, or *whisper them*. It goes out through the button's macro, so it counts as you talking, and only with a buff that can land: when Manners cannot tell, the buff goes out without it.
 
-Or pick **In character (fits your race and class)**: over two thousand lines, chosen when you click to fit your people, your class and the moment. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*), it does not repeat itself, and it speaks all nine languages. *My own lines, mixed in* adds lines of your own: about one press in three says one of them.
+Or pick **In character (fits your race and class)**: over three thousand lines, chosen when you click to fit your people, your class and the moment. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*, the Forsaken's Undercity, Brill and loose stitching in about a hundred lines of their own), it does not repeat itself, and it speaks all nine languages. *My own lines, mixed in* adds lines of your own: about one press in three says one of them.
 
 > *"Most kind, Mort. You've lifted me from 'deceased' to 'mildly deceased'."* -- a Forsaken, returning a favour
 
@@ -122,11 +135,11 @@ Or just `/thank` them with an emote (off by default, never in a fight, a dungeon
 
 ### Looks
 
-- **Nineteen looks**, picked from cards in the options window: Glass (the default, after the game's own action bar: dark glass in gilt rails, the ready border running round your icon while you owe somebody, and a gryphon at each end if you switch them on), Framed (a thin rim, like the game's tooltips), Minimal (the words alone over one hairline of light, after the game's cast bar), Luxe (a slim dark card), Toast (a warm banner and a gilded medallion), Arcane (smoked glass with a rim lit by the reason), Ribbon (a tournament pennant of crimson damask that flutters, a laurelled medallion pinned on when your buff lands), Letter (torn, folded parchment under a red wax seal, each name written in by a quill), Leather (tooled hide with brass studs, a buckle and two feathers, a paw-print brand that smoulders while you owe somebody), Forge (forged iron and a riveted band, the reason glowing like heated steel), Archmage (a violet crystal, your spell in a hexagon of six arcane charges that light, travel and discharge in lightning), Lightbringer (a paladin's silver and blue enamel, your spell in a golden sun, with a pillar of light and wings when your buff lands), Fel (a warlock's black felsteel cracked with fel fire, your spell in a summoning circle of runes under a demon's horns, a soul shard at the far end, and a gout of fel flame and a shadow bolt when your buff lands), Wild (a druid's living bough, your spell in a wreath under a stag's antlers), Frost (a frost mage's glacial ice, your spell in an ice crystal, an Ice Block that shatters when your buff lands), Stormcaller (a shaman's carved totem and standing stone, the sigil of air, fire, water or earth for the reason, chain lightning when your buff lands), Warchief (the Horde's black iron and tusks, its crest glowing like iron out of the forge, a war banner and a drum beat), Gearworks (an engineer's riveted brass, your spell under a pressure gauge, three cogs turning and steam let off when a buff lands) and Ebon (a death knight's runeblade of saronite, your spell in a socket under a skull, three runes that kindle). On Glass and Minimal, rules of light draw out as the prompt comes up and the panel's edge lights when your buff lands. Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Nineteen looks**, picked from cards in the options window: from Glass, the default, after the game's own action bar, to a paladin's Lightbringer, a shaman's Stormcaller, a death knight's Ebon runeblade or the Horde's Warchief, each with its own way of greeting a favour and a landed buff (the pictures above show them all). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **A flat prompt, if you like:** on Glass, Framed and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go. The game's Edit Mode unlocks it too, and locks it again when it closes.
-- **Options that start short:** a *Simple view* with the ten or so settings your class changes on each page, each buff on a row of its own, and everything else one switch or one search away.
+- **Options that start short:** a *Simple view* with the ten or so settings your class changes on each page, each buff on a row of its own, and everything else one switch or one search away. A long page has a bar of its parts over it, so one click shows only the settings you came for, and each page has a painted icon of its own in the menu.
 - **Minimap button** and addon compartment: click for options, shift-click for the ledger, right-click for a menu.
 
 ### Keys, action bars and controllers
@@ -164,7 +177,7 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 /manners help       every command, grouped
 ```
 
-`/mnr` works as well. Profiles are supported, and a pasted settings line never switches on speaking to other players or moves your prompt.
+`/mnr` works as well.
 
 ### Good to know
 
@@ -175,7 +188,7 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 ![The prompt twice with its tooltip above it: the Short one with the name, the spell, why they are offered and Hold Shift for more; the Full one with Shift held, saying what the press and each click do](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-tooltip.png)
 
 - In a fight the prompt keeps what the fight found, and names in the list cannot be clicked until it ends. Or switch on *Hide the prompt in combat* (Look): it leaves the screen for the fight, its key and your bar macro casting nothing, and comes back when the fight ends.
-- Passers-by are seen through the game's friendly nameplates. With them off Manners sees almost nobody outside your group; the *Who to buff* tab says so and has a button to turn them on.
+- Passers-by are seen through the game's friendly nameplates. With them off, as a fresh install has them, Manners sees almost nobody outside your group and cannot tell who a stranger who buffs you is. It says so where you look, in the first greeting, on *Start here* and *Who to buff* and in the minimap tooltip, with *Show friendly nameplates* one click away.
 
 ### Report a bug (please include a log)
 

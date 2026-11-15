@@ -849,11 +849,37 @@ then the selftest on GitHub):
   whole suite.
 - The contrast audit ran at the default size only for seven of the eight
   new or redrawn looks.
-- The listing pictures are redrawn (seventeen: the nineteen looks, the
-  rebuilt options window twice, Milestones and its toast, the newer kinds of
-  entry, two GIFs of a look as a buff lands) and are not in the CurseForge or
-  Wago galleries yet: `.github/media/UPLOAD.md` is the list to upload at the
-  release. Whether each gallery takes a GIF is to be seen at the upload.
+- **The listing pictures are to be redrawn and uploaded once the painted
+  looks land** (the prompt's art is being repainted; drawing them before
+  would draw them twice). `tools/make-screenshots.py` already holds the new
+  story (2026-11-15 review): the first picture is the moment the addon is for,
+  somebody buffed you, a pointer and your key, the same prompt as your buff
+  lands (`picture_prompt`, `HERO_STEPS`), and the gallery runs the moment,
+  who is offered, the looks, the ledger and milestones, the options window
+  (`GALLERY`, which `.github/gallery.md`, `.github/media/UPLOAD.md` and every
+  page's alt text follow; `tests/validate.py` holds them to it). It passes
+  `--strict` on the current art. The files in `.github/media` are still the
+  old drawing, old order: the pages already ask for the new first picture by
+  its old file name, so until the redraw is on `master` they show the old
+  one. At the redraw: `python tools/make-screenshots.py --strict`, look at
+  each, commit `.github/media`, then upload in UPLOAD.md's order (none of the
+  seventeen is in either gallery yet; whether each takes a GIF is to be seen
+  there). What the redraw changes besides the first picture:
+  `manners-options.png` (its footer reads 1.11.24; the menu's painted page
+  icons and the bar of a page's parts are newer than it),
+  `manners-options-wide.png` (the same icons and parts bar), every picture
+  of a look (`manners-looks.png`, the two GIFs, `manners-moment.png`, and
+  the prompts in the rest) for the painted art.
+- **The listing text is up to date (2026-11-15) and not pasted yet**: the
+  summary, both descriptions and the README's opening name the profiles
+  that switch by themselves, the profile manager with *Undo*, a blessing for
+  each class, the hall of fame, pages in parts with painted icons and the
+  Forsaken's lines; the CurseForge looks paragraph is one line; every alt
+  text is GALLERY's. Paste `curseforge-summary.txt` and
+  `curseforge-description.md` into CurseForge and `wago-description.md` into
+  Wago once the release that ships *Unreleased* is out (they describe it),
+  and after the redraw above is on `master` (the descriptions show the new
+  first picture by its file name).
 
 **Launch day (WoW Forever, 2026-11-05): run one command.** Log in on the
 character that has the Manners macro (or any character: the test makes a

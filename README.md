@@ -9,9 +9,7 @@ your own target is handed straight back to you.**
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-<img src=".github/media/manners-prompt.png" alt="The prompt as your buff lands: a dark panel naming the player you buffed back, rings spreading off the spell icon and a wave of light crossing the panel" width="640">
-
-<img src=".github/media/manners-moment.png" alt="Three film strips of the prompt: somebody buffed you, your buff lands, the game refuses it" width="640">
+<img src=".github/media/manners-prompt.png" alt="Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it" width="640">
 
 A priest buffs you in passing. By the time you have picked them out of a dozen
 nameplates, they are gone. Manners saw who it was, worked out what you owe them
@@ -41,10 +39,20 @@ of Pandaria Classic** and **retail**, in nine languages.
   between them, so nobody is buffed twice.
 - **Battlegrounds and arenas.** Rules of their own: your own buffs first
   after a death, your team freely before the gates open.
-- **The favour ledger and milestones.** Who buffed you, what you gave back,
-  the title your manners have earned and thirteen milestones.
+- **A blessing for each class.** A paladin picks the blessing each class is
+  offered first: Wisdom for mages, say, where the order would give them Kings.
+- **The favour ledger, milestones and a hall of fame.** Who buffed you, what
+  you gave back, the title your manners have earned and thirteen milestones;
+  earn them all and you join the *Gentlefolk of Good Manners*.
+- **Profiles that switch by themselves.** One for the open world, one for
+  dungeons, raids or battlegrounds, chosen as you arrive, and a profile
+  manager that can use, duplicate, rename or delete any of them, with *Undo*.
 - **Twenty-nine looks.** From a pane of dark glass to a death knight's
   runeblade, picked from a gallery of cards on four shelves.
+- **Options that start short.** A simple view of each page, a long page in
+  parts you pick from a bar, and a painted icon for each page.
+- **In character, if you like.** A line when you buff somebody, fitted to your
+  race, class and the moment: the Forsaken alone have about a hundred.
 
 <img src=".github/media/manners-reasons.png" alt="Five prompts, each a different colour: your target, somebody who buffed you, somebody who asked in chat, a group member and a passer-by" width="640">
 
@@ -83,14 +91,14 @@ spell a press would cast, with its cooldown and range. A controller button
 bound to the same command works too. Without a key you can still click the
 prompt.
 
-<img src=".github/media/manners-actionbar.png" alt="The prompt with a key on its chip, a row of action bar slots with the Manners macro on one showing the spell a press would cast, and the prompt with a controller button's picture on its chip" width="640">
+<img src=".github/media/manners-actionbar.png" alt="The prompt with a key on its chip, a row of action bar slots with the Manners macro on one showing the spell a press would cast with its cooldown sweep, and the prompt with a controller button's picture on its chip" width="640">
 
 **3. Stay in the Simple view.** A new profile opens the options in the
 *Simple view*: each page draws only the ten or so settings a player of your
 class changes, every buff's own switch among them. *Show everything* under the
 list brings the rest, and the search box finds any setting in either view.
 
-<img src=".github/media/manners-options.png" alt="The options window on Who to buff, with the pages on the left and Show me the prompt, Move the prompt and Snooze along the top" width="640">
+<img src=".github/media/manners-options.png" alt="The options window on Start here in the Simple view: two questions, a key for the prompt, the favour ledger, with the Simple view switch and the Move the prompt button ringed" width="640">
 
 A new profile offers your buff to everyone near you, says nothing aloud and
 reminds you of your own buffs. That suits most players; the rest of this page
@@ -152,14 +160,14 @@ with the icon of the buff that person would get: left-click buffs them and
 hands your target back, right-click skips them, shift-right-click never offers
 them again. *Click a name in the list to buff them* turns the buttons off.
 
-<img src=".github/media/manners-list.png" alt="The prompt with its list: left-click a name to buff that person, right-click to skip them, shift-right-click to never offer them again" width="640">
+<img src=".github/media/manners-list.png" alt="Click any name in the list: left-click buffs that person, right-click skips them, shift-right-click never offers them again" width="640">
 
 **The tooltip.** Hover the prompt, or a name in its list, and it says who and
 what, and why they are offered, in one short line; hold Shift for everything
 (who comes first and why, how long the buff lasts, what the clicks do).
 Nothing shows in a fight.
 
-<img src=".github/media/manners-tooltip.png" alt="The prompt twice with its tooltip: the Short one with the name, the spell and why they are offered; the Full one with Shift held" width="640">
+<img src=".github/media/manners-tooltip.png" alt="The prompt twice with its tooltip above it: the Short one with the name, the spell, why they are offered and Hold Shift for more; the Full one with Shift held, saying what the press and each click do" width="640">
 
 ### Keys, action bars and controllers
 
@@ -210,7 +218,7 @@ moment after: somebody whose buffs cannot be read is offered marked
 
 ## Your own buffs
 
-<img src=".github/media/manners-yourself.png" alt="Your own buffs on the prompt as You: a mage's armor, a rogue's poison for the main hand, your own Arcane Intellect" width="640">
+<img src=".github/media/manners-yourself.png" alt="Your own buffs on the prompt: a mage's armor, a rogue's poison for the main hand, your own Arcane Intellect" width="640">
 
 When you are missing the buff you give others, "You" comes up on the prompt
 with "your own Arcane Intellect" under it, and a press casts it on you and
@@ -582,7 +590,7 @@ profile reset touches them.
 
 ## The prompt's look
 
-<img src=".github/media/manners-looks.png" alt="The looks for the prompt, the same favour drawn in each" width="640">
+<img src=".github/media/manners-looks.png" alt="The nineteen looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal" width="640">
 
 Twenty-nine looks, each a card under Look > *Panel style* that you click to
 switch, on four shelves: **Minimal**, **Classic**, **Themed** and **Class**.
@@ -667,6 +675,8 @@ and the text shakes. The other looks answer in ways of their own. *Animations*
 on *Calm* stills all of it. The icon shows the global cooldown sweep, like an
 action bar, and the prompt fades out after your last buff.
 
+<img src=".github/media/manners-moment.png" alt="Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it" width="640">
+
 Pick your own colours and fonts too; LibSharedMedia is supported. Leave the
 text colour at white and it turns dark by itself on a light panel colour.
 
@@ -704,8 +714,9 @@ it too.
   doing what you would expect: Manners is off, the prompt is unlocked, a
   snooze is running, nothing can be offered, or the prompt is kept away while
   you are mounted.
-- On the left, the pages: *Start here*; *Who to buff*, *Who to skip*, *When
-  to offer*, *What I say*, *Look*; *Profiles* and *Diagnostics*. A page with
+- On the left, the pages, each with a painted icon of its own: *Start here*;
+  *Who to buff*, *Who to skip*, *When to offer*, *What I say*, *Look*;
+  *Profiles* and *Diagnostics*. A page with
   nothing for your character is left out. A red dot beside a page means
   something there wants looking at; a key binding is optional, so no red dot
   asks for one.
@@ -946,7 +957,7 @@ Everything here is off until you turn it on.
     back* (off) under it.
 - ***Lines***: *Line set* has four sets you can edit (Azeroth (general),
   Polite, Cheeky, Just their name) and a fifth, *In character (fits your race
-  and class)*: over two thousand lines, picked when you click to fit your
+  and class)*: over three thousand lines, picked when you click to fit your
   people, your class, your faction and the moment. *My own lines, mixed in*,
   while In character is the set, takes lines of your own (`{name}` and
   `{buff}` as elsewhere): about one press in three says one of them. *Try a

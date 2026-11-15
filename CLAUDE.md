@@ -741,6 +741,21 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
 - **Listings** are pasted by the user from `.github/curseforge-summary.txt`,
   `curseforge-description.md`, `wago-description.md` and `gallery.md`:
   neither CurseForge nor Wago has an API for the page text (uploads only).
+  The pictures' order, titles, descriptions and alt text are one list,
+  `GALLERY` in `tools/make-screenshots.py`: `gallery.md`, `media/UPLOAD.md`
+  and every page's alt text follow it, and every page opens on its first
+  picture, the moment the addon is for (`tests/validate.py`, "the listings
+  tell the moment first"; mutations in `tests/mutations/storefront.py`).
+  The CurseForge opening (down to *What you see*), the README's (down to
+  *Installing*) and Wago's page each name every headline feature in
+  validate.py's `_HEADLINES` ("the listings name what ships"): a release
+  whose highlight is new adds it there and to the three pages. The summary
+  is one line of 150 characters at most. Every picture's alt text is
+  GALLERY's, the listings say passer-by (never "nearby"), and a count of
+  looks or of In character lines ("Nineteen looks", "over three thousand
+  lines") is read against `Looks/` and `Phrases.lua` ("the listings' small
+  facts are the addon's"): a new look or a thousandth line turns it red
+  until the pages say so.
 - **Secrets.** Never take, type or store an API key. The user sets them with
   `gh secret set CF_API_KEY` (and `WAGO_API_TOKEN`), which prompts.
 - **CPU.** Leave 2 cores free. With several agents running tests, split the

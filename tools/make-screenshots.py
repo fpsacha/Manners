@@ -21,23 +21,25 @@ chip holds the client's inline atlas for it (the renderer has no atlas art).
     python tools/make-screenshots.py --out DIR --addon OTHER_TREE
     python tools/make-screenshots.py --out DIR --only looks,options   # some of them, while working
 
-What it writes, in the gallery's order (.github/gallery.md), the stills 1280
-pixels wide and the animated ones 800:
+What it writes, in the gallery's order (GALLERY below, which .github/gallery.md
+and .github/media/UPLOAD.md follow), the stills 1280 pixels wide and the
+animated ones 800. The order tells the story a browsing player needs: the
+moment the addon is for, who it offers, the looks, the ledger, the window.
 
-    manners-prompt.png        the moment your buff lands, rings and wave
-    manners-moment.png        film strips: they buffed you, it lands, it is refused
+    manners-prompt.png        the moment: somebody buffed you, one press, your buff lands
+    manners-actionbar.png     the prompt on a key, the Manners macro on an action bar, and on a controller button
     manners-reasons.png       the five reasons somebody is offered, each in its colour
     manners-more.png          a resurrection, a cure, water asked for, asking for a buff
+    manners-yourself.png      three prompts for the player's own buffs
     manners-list.png          the list under the prompt, a name lit and its tooltip up
     manners-tooltip.png       the prompt's Short tooltip above it, and the Full one with Shift held
-    manners-actionbar.png     the prompt on a key, the Manners macro on an action bar, and on a controller button
-    manners-yourself.png      three prompts for the player's own buffs
-    manners-options.png       the options window on Start here, in the Simple view
-    manners-options-wide.png  the window dragged wide on Who to buff, in two columns
     manners-looks.png         the same favour in each of the nineteen looks, named
     manners-look-STYLE.gif    a buff landing in a look, animated (FILMS: Stormcaller, Lightbringer)
+    manners-moment.png        film strips: they buffed you, it lands, it is refused
     manners-ledger.png        the favour ledger with a day of ordinary play in it
     manners-milestones.png    the ledger's Milestones tab, and a milestone's toast
+    manners-options.png       the options window on Start here, in the Simple view
+    manners-options-wide.png  the window dragged wide on Who to buff, in two columns
     manners-languages.png     the prompt in German, French and Chinese
     manners-palette.png       the standard and the colour-blind reason colours
 
@@ -1516,6 +1518,27 @@ def pointer_sheet(zoom):
     return sheet
 
 
+def keycap_sheet(size, letter):
+    """A keyboard key, `size` output pixels across, with `letter` on it: the
+    player's own key, beside the pointer in the hero. The keyboard's, not
+    the addon's (Glass, the default, shows no key on the prompt)."""
+    sheet = Sheet(size + 6, size + 8)
+    r = size * 0.16
+
+    def cap(d, k, dx=0, dy=0, grow=0):
+        d.rounded_rectangle([(3 + dx - grow) * k, (3 + dy - grow) * k, (3 + size + dx + grow) * k,
+                             (3 + size + dy + grow) * k], radius=r * k, fill=255)
+    sheet.paint(lambda d, k: cap(d, k, 0, 4), (0.02, 0.02, 0.03), 0.85)
+    sheet.paint(lambda d, k: cap(d, k, 0, 0, 0.6), (0.78, 0.74, 0.66))
+    sheet.paint(lambda d, k: cap(d, k, 0, 0, -size * 0.07), (0.16, 0.15, 0.18))
+
+    def face(d, k):
+        d.text(((3 + size / 2) * k, (3 + size * 0.47) * k), letter,
+               font=rp.get_font(size * 0.5 * k, True), fill=255, anchor="mm")
+    sheet.paint(face, (0.97, 0.94, 0.86))
+    return sheet
+
+
 # ---------------------------------------------------------------- icons
 #
 # The renderers draw a spell's icon as its initials on a tile, which is right
@@ -2126,14 +2149,32 @@ MORE = [
 FILM_TIMES = tuple(round(0.04 * i, 2) for i in range(21))
 FILM_WAIT, FILM_HOLD = 900, 1100
 
-# The hero: the favour returned, the cast confirmed, at the frame where the
-# landing reads best (the rings off the icon spread into two, the wave of light
+# The landing: the favour returned, the cast confirmed, at the frame where it
+# reads best (the rings off the icon spread into two, the wave of light
 # started across the panel, the words fully drawn). Earlier the rings are
 # tight and the words still fading in; later the rings have thinned out and the
 # wave is off the panel. It is the state's own time, so this is where
 # the state is built.
 LANDED_AT = 0.20
 LANDED_WORDS = ["buffed Mort Defrette", "the game confirmed it"]
+
+# The hero, the first picture anybody browsing sees, is the moment the addon
+# is for, told in three steps down the page: somebody buffed you and is on the
+# prompt (the arrival, drawn once it has settled), one click or one key, and
+# your buff landing on them. A picture of the landing alone showed what
+# happens after the press and never the press. Each step is the title and the
+# line beside it; the first and last are held to the words the prompt has to
+# be saying, and must not say, like the film strip's rows.
+HERO_BEFORE = ("shot-moment-arrival", 0.60)
+HERO_KEY = "F"
+HERO_STEPS = [
+    ("Somebody buffed you", "Manners saw who, and puts them on the prompt.",
+     ["Mort Defrette", "buffed you"], ["buffed Mort", "could not buff"]),
+    ("Click it, or press your key", "One press casts it and hands your target back.",
+     None, None),
+    ("They have yours back", "The game confirms it. You are even.",
+     LANDED_WORDS, ["buffed you", "could not buff"]),
+]
 
 # The film strip: one favour, three moments, four frames of each. A row is the
 # state, the title and caption it carries, and the two lines the prompt has to
@@ -2530,13 +2571,23 @@ def build_moments(addon_dir, snaps):
     than drawn."""
     use_faces("enUS")
     lua, R = prompt_states(addon_dir)
-    snap, top = snap_of(R, lua, "shot-landed")
-    if snap:
-        expect_top("shot-landed", top, "Mort Defrette", "owed")
+    # The hero's two prompts: before the press and after it, each held to
+    # its step's words, so a picture whose first prompt already says the buff
+    # landed (the hero this one replaced) is refused rather than drawn.
+    hero = [("shot-hero-before",) + HERO_BEFORE, ("shot-landed", "shot-landed", None)]
+    for (name, key, at), (_, _, words, never) in zip(hero, HERO_STEPS[::2]):
+        snap, top = snap_of(R, lua, key, *([at] if at is not None else []))
+        if not snap:
+            continue
+        expect_top(name, top, "Mort Defrette", "owed")
         texts = shown_texts(snap, PromptTree)
-        expect_names("shot-landed", texts, LANDED_WORDS)
-        check_glyphs("shot-landed", texts)
-        snaps["shot-landed"] = snap
+        expect_names(name, texts, words)
+        joined = "\n".join(texts)
+        for gone in never:
+            if gone in joined:
+                problem("%s: the prompt says %r, which is not its step of the hero" % (name, gone))
+        check_glyphs(name, texts)
+        snaps[name] = snap
     for key, _, _, words, never in MOMENTS:
         for t in MOMENT_TIMES:
             frame = "%s@%.2f" % (key, t)
@@ -2730,15 +2781,44 @@ def build(addon_dir, wanted=None):
 
 
 def picture_prompt(snaps):
-    """The first picture on the page, so the addon at its best moment: the buff
-    has landed and the panel is mid-celebration. No heading; one line under it."""
-    board = Board(600, seed=11, sun=(0.87, 0.47))
-    layer = prompt_layer("shot-landed", snaps["shot-landed"], 3.0)
-    cx = WIDTH / 2 - 40
-    board.centre(layer, cx, 270)
-    below = 270 + layer.size[1] / 2
-    board.shade(cx - 230, below + 22, cx + 230, below + 82, 0.4)
-    board.text((cx, below + 52), "The moment your buff lands.", 26, bold=True, anchor="mm")
+    """The first picture on the page, so the moment the addon is for, in three
+    steps down it (HERO_STEPS): the prompt as somebody who buffed you comes
+    up, a pointer on it and your key beside it, then the same prompt as your
+    buff lands on them. The two prompts stand by their button's top left, one
+    over the other, so the panel stays put and only what it says changes.
+    Each step's title is large enough to read at the 640 pixels the README
+    and the listings show it at."""
+    zoom = 2.5
+    before = prompt_layer("shot-hero-before", snaps["shot-hero-before"], zoom)
+    after = prompt_layer("shot-landed", snaps["shot-landed"], zoom)
+    rects = [PromptTree(snaps[k]).rect(snaps[k]["button"]) for k in ("shot-hero-before", "shot-landed")]
+    bw = (rects[0][2] - rects[0][0]) * zoom
+    bh = (rects[0][3] - rects[0][1]) * zoom
+    px = WIDTH - 70 - bw
+    if px < 470:
+        problem("manners-prompt.png: the prompt is %d wide, leaving the steps' words %d" % (bw, px - 60))
+    gap = 150
+    tops = [64, 64 + bh + gap]
+    board = Board(tops[1] + bh + 64, seed=11, sun=(0.90, 0.52))
+    for layer, (left, _, _, top), y in zip((before, after), rects, tops):
+        ax, ay = layer.at(left, top)
+        board.place(layer, px - ax, y - ay)
+    # The pointer on the button, past the words; the key in the gap under it.
+    left, bottom, right, top = rects[0]
+    tx, ty = before.at(left + (right - left) * 0.82, (top + bottom) / 2 - (top - bottom) * 0.1)
+    board.place(pointer_sheet(zoom), px - before.at(left, top)[0] + tx - 1, tops[0] - before.at(left, top)[1] + ty - 1)
+    cap = keycap_sheet(64, HERO_KEY)
+    mid = tops[0] + bh + gap / 2
+    board.place(cap, px + bw / 2 - cap.w / 2, mid - cap.h / 2)
+    # The steps, by the prompt they belong to; the press's in the gap.
+    for n, ((title, line, _, _), cy) in enumerate(zip(HERO_STEPS, (tops[0] + bh / 2, mid, tops[1] + bh / 2))):
+        width = px - 60 - 40
+        tsize = fit_caption([title], 32, width - 52, bold=True)
+        lsize = fit_caption([line], 19, width)
+        board.shade(34, cy - 50, px - 30, cy + 50, 0.45)
+        board.text((56, cy - 10), str(n + 1), 40, bold=True, fill=(255, 209, 64), anchor="lm")
+        board.text((100, cy - 12), title, tsize, bold=True, anchor="lm")
+        board.text((100, cy + 24), line, lsize, fill=(214, 206, 214), anchor="lm")
     return board
 
 
@@ -3320,29 +3400,133 @@ def picture_tooltips(snaps):
     return board
 
 
-# The pictures in the order the gallery shows them (.github/gallery.md): the
-# file, what draws it, and the builders it needs.
-PICTURES = [
-    ("manners-prompt.png", picture_prompt, ("moments",)),
-    ("manners-moment.png", picture_moment, ("moments",)),
-    ("manners-reasons.png", picture_reasons, ("reasons",)),
-    ("manners-more.png", picture_more, ("more",)),
-    ("manners-list.png", picture_click, ("click",)),
-    ("manners-tooltip.png", picture_tooltips, ("tips",)),
-    ("manners-actionbar.png", picture_keys, ("keys",)),
-    ("manners-yourself.png", picture_yourself, ("yourself",)),
-    ("manners-options.png", picture_options, ("options",)),
-    ("manners-options-wide.png", picture_options_wide, ("options",)),
-    ("manners-looks.png", picture_looks, ("looks",)),
-] + [
-    ("manners-look-%s.gif" % style, picture_film(style, title, line), ("films",))
-    for style, title, line in FILMS
-] + [
-    ("manners-ledger.png", picture_ledger, ("ledger",)),
-    ("manners-milestones.png", picture_milestones, ("ledger",)),
-    ("manners-languages.png", picture_languages, ("languages",)),
-    ("manners-palette.png", picture_palette, ("palette",)),
+# The gallery, in the order it tells the story: the moment the addon is for
+# (and the press, on a key, a bar or a controller), who it offers, the looks,
+# the ledger and its milestones, the options window, then languages and the
+# colour-blind palette. Each picture's file, its title and description (pasted
+# beside it in the CurseForge and Wago galleries) and the alt text every page
+# that shows it gives it (README.md, the two descriptions). This is the one
+# copy: tests/validate.py holds .github/gallery.md, .github/media/UPLOAD.md and
+# those pages to it, and the first picture of each page to the first here. It
+# is a plain literal so validate.py can read it without Pillow.
+GALLERY = [
+    ("manners-prompt.png", "Somebody buffed you. One press.",
+     "Somebody buffed you in passing, and Manners puts them on the prompt. Click it or press your key: "
+     "they get your buff back, your own target comes straight back, and the game confirms it.",
+     "Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and "
+     "a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it"),
+    ("manners-actionbar.png", "On a key, a bar or a controller",
+     "Bind Buff the prompted player to a key, or drop the Manners macro on any action bar slot: the slot "
+     "shows the spell a press would cast, with its cooldown. A controller button bound the same way works "
+     "too, and the prompt shows the button's picture.",
+     "The prompt with a key on its chip, a row of action bar slots with the Manners macro on one showing "
+     "the spell a press would cast with its cooldown sweep, and the prompt with a controller button's "
+     "picture on its chip"),
+    ("manners-reasons.png", "Why somebody is on the prompt",
+     "Your target, somebody who buffed you, somebody who asked in chat, your group, and passers-by missing "
+     "your buff -- each in its own colour, offered in that order.",
+     "Five prompts, each a different colour: your target, somebody who buffed you, somebody who asked in "
+     "chat, a group member and a passer-by"),
+    ("manners-more.png", "More than buffs",
+     "A resurrection for a dead member of your group, a cure for a poison, disease, curse or harmful spell, "
+     "water, food or a portal for whoever asks a mage or a warlock in chat, and one polite whisper asking "
+     "for a buff you are missing. Each has its own switch.",
+     "Four more prompts: a dead member of your group offered a resurrection, a poisoned one a cure, "
+     "somebody who asked for water, and a priest you could ask for Power Word: Fortitude"),
+    ("manners-yourself.png", "Your own buffs too",
+     "When your own armor, poison or buff is missing, you come up on the prompt as \"You\": a mage's "
+     "armor, a rogue's poison for the main hand, your own Arcane Intellect.",
+     "Your own buffs on the prompt: a mage's armor, a rogue's poison for the main hand, your own Arcane "
+     "Intellect"),
+    ("manners-list.png", "Click any name",
+     "Switch on List the next few below (Look) and every name under the prompt is a button, with the icon "
+     "of the buff they would get. Left-click buffs that person, right-click skips them for now, "
+     "shift-right-click never offers them again.",
+     "Click any name in the list: left-click buffs that person, right-click skips them, "
+     "shift-right-click never offers them again"),
+    ("manners-tooltip.png", "A tooltip that stays out of the way",
+     "Hover the prompt for the Short tooltip: the name, the spell and why they are offered. Hold Shift for "
+     "the Full one, which says what the press and each click do. Short, Full, Shift only or Off, and where "
+     "it shows, under Look.",
+     "The prompt twice with its tooltip above it: the Short one with the name, the spell, why they are "
+     "offered and Hold Shift for more; the Full one with Shift held, saying what the press and each click do"),
+    ("manners-looks.png", "Nineteen looks to choose from",
+     "Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, "
+     "Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal, the "
+     "same favour drawn in each; click a card under Look to switch.",
+     "The nineteen looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, "
+     "Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, "
+     "Ebon, Gearworks, Warchief, Framed and Minimal"),
+    ("manners-look-stormcaller.gif", "Stormcaller, as a buff lands",
+     "Animated: somebody buffed you, you press, and chain lightning arcs from the totem to the standing "
+     "stone.",
+     "The Stormcaller look as a buff lands: chain lightning arcs from the totem to the standing stone"),
+    ("manners-look-lightbringer.gif", "Lightbringer, as a buff lands",
+     "Animated: somebody buffed you, you press, and the sun of the Light flares round your spell.",
+     "The Lightbringer look as a buff lands: the sun of the Light flares round the spell"),
+    ("manners-moment.png", "Three moments",
+     "Film strips of one favour, four frames each: somebody buffs you, your buff lands, the game refuses "
+     "it. Frames at 0.05, 0.15, 0.30 and 0.60 seconds.",
+     "Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game "
+     "refuses it"),
+    ("manners-ledger.png", "The favour ledger",
+     "Who buffed you, whether you returned it, and who you buffed without being asked. Open it with "
+     "/manners ledger.",
+     "The favour ledger: the title your manners have earned, today's count and all-time totals, then rows "
+     "of favours still owed, returned and let go, and buffs given to the group and to strangers"),
+    ("manners-milestones.png", "Milestones",
+     "Small things worth doing, kept on a tab of the favour ledger: earned ones with their date and a link "
+     "to show in chat, the rest with how far along you are. A toast comes up when you earn one, and earning "
+     "them all puts you among the Gentlefolk of Good Manners, the hall of fame.",
+     "The favour ledger on its Milestones tab: three earned with their dates and a Link in chat button, "
+     "the others with how far along they are, and beside it the toast for Much Obliged"),
+    ("manners-options.png", "Set it up in one window",
+     "Open it with /manners or the minimap button. Shown on Start here in the Simple view, the short list "
+     "of every page: two questions, one key, the favour ledger. Untick Simple view for everything; Move "
+     "the prompt is one click away in the header.",
+     "The options window on Start here in the Simple view: two questions, a key for the prompt, the favour "
+     "ledger, with the Simple view switch and the Move the prompt button ringed"),
+    ("manners-options-wide.png", "Drag it wide",
+     "Drag the corner and a page flows into two columns, three on an ultrawide screen. Shown on Who to buff "
+     "for a paladin: who is offered, what to cast, the group, More than buffs and Myself on one screen.",
+     "The options window dragged wide on Who to buff, its sections in two columns: who is offered, what "
+     "to cast, the group, More than buffs and Myself"),
+    ("manners-languages.png", "In your language",
+     "English and eight translations, chosen by your game client. Shown here in German, French and "
+     "Simplified Chinese.",
+     "The prompt and its list in German, French and Simplified Chinese"),
+    ("manners-palette.png", "A palette for colour blindness",
+     "The five reason colours redrawn for red-green colour blindness, one setting away under Look > Style.",
+     "The same prompt and list in the standard reason colours and in the colour-blind friendly set"),
 ]
+
+# What draws each picture, and the builders it needs.
+DRAWN = {
+    "manners-prompt.png": (picture_prompt, ("moments",)),
+    "manners-moment.png": (picture_moment, ("moments",)),
+    "manners-reasons.png": (picture_reasons, ("reasons",)),
+    "manners-more.png": (picture_more, ("more",)),
+    "manners-list.png": (picture_click, ("click",)),
+    "manners-tooltip.png": (picture_tooltips, ("tips",)),
+    "manners-actionbar.png": (picture_keys, ("keys",)),
+    "manners-yourself.png": (picture_yourself, ("yourself",)),
+    "manners-options.png": (picture_options, ("options",)),
+    "manners-options-wide.png": (picture_options_wide, ("options",)),
+    "manners-looks.png": (picture_looks, ("looks",)),
+    "manners-ledger.png": (picture_ledger, ("ledger",)),
+    "manners-milestones.png": (picture_milestones, ("ledger",)),
+    "manners-languages.png": (picture_languages, ("languages",)),
+    "manners-palette.png": (picture_palette, ("palette",)),
+}
+DRAWN.update({
+    "manners-look-%s.gif" % style: (picture_film(style, title, line), ("films",))
+    for style, title, line in FILMS
+})
+
+# The pictures in the gallery's order: the file, what draws it, and the
+# builders it needs. A picture drawn here and not in the gallery, or the other
+# way round, is a problem (main), so neither list goes stale on its own.
+PICTURES = [(name,) + DRAWN[name] for name, *_ in GALLERY if name in DRAWN]
 
 
 def main():
@@ -3361,6 +3545,11 @@ def main():
                          "(looks, options, gif), for a look at one while working on it")
     args = ap.parse_args()
 
+    listed = [g[0] for g in GALLERY]
+    for name in sorted(set(DRAWN) - set(listed)):
+        problem("%s: drawn, but not in GALLERY, so no page shows it in its place" % name)
+    for name in sorted(set(listed) - set(DRAWN)):
+        problem("%s: in GALLERY, but nothing here draws it" % name)
     pictures = PICTURES
     wanted = None
     if args.only:
