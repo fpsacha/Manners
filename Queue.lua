@@ -341,9 +341,22 @@ do
 
 	-- The game itself said they are out of range, which the scan cannot always
 	-- learn on this client: long enough for the prompt not to put them straight
-	-- back up. A floor under the back-off's first steps, not a step of its own.
+	-- back up. A floor under the first step of their own (WHERE), not a step.
 	local OUT_OF_RANGE = { "ERR_OUT_OF_RANGE", "SPELL_FAILED_OUT_OF_RANGE" }
 	local OUT_OF_RANGE_SECONDS = 10
+
+	-- Refusals about where they stand, not who they are: out of sight round a
+	-- pillar, or out of range. A step puts them right, so they are a run of
+	-- their own (`away` on the record), never past half a minute, no step of
+	-- the person's run (`count`, whose third step is five minutes) and never
+	-- the chat line that the game keeps refusing them. Counted in with the
+	-- person's run, a healer behind a pillar was off the prompt for five
+	-- minutes after three presses (review 2026-11-15). Line of sight no scan
+	-- can read, and range not always, so they still back off, a little more
+	-- each time: somebody who stays forty yards off is not pressed at every
+	-- few seconds.
+	local WHERE = { "SPELL_FAILED_LINE_OF_SIGHT", "ERR_OUT_OF_RANGE", "SPELL_FAILED_OUT_OF_RANGE" }
+	local WHERE_STEPS = { 5, 15, 30 }
 
 	-- The game said this buff cannot land on them, and nothing about them: a
 	-- stronger one of the same kind is on them already (a campfire's or a
@@ -591,15 +604,49 @@ do
 		return r
 	end
 
+	-- A refusal about where they stand (WHERE): a step of their own run, held
+	-- under OUT_OF_RANGE_SECONDS' floor when the game said range. Their own
+	-- target, picked out by the player, is spared as the person's run spares it
+	-- (see NoteRefusal). `hold` is whether the spoken line is held.
+	local function StoodAway(name, r, why, now, hold)
+		r.away = (r.away or 0) + 1
+		if name == pointedAt and ns.UnitFullName("target") == pointedAt then return end
+		local seconds = WHERE_STEPS[math.min(r.away, #WHERE_STEPS)]
+		if seconds < OUT_OF_RANGE_SECONDS and OneOf(why, OUT_OF_RANGE) then seconds = OUT_OF_RANGE_SECONDS end
+		if now + seconds > r.blockUntil then r.blockUntil = now + seconds end
+		-- The spoken line held past it, as for the person's run.
+		local quiet = r.blockUntil + QUIET_SECONDS
+		if hold and quiet > r.quietUntil then r.quietUntil = quiet end
+	end
+
 	-- Every error line the game raises. One arriving just after a refusal that
 	-- had no reason of its own is taken as that reason. `id` is the message's
-	-- string id where the client gives one (Clicks.lua, UI_ERROR_MESSAGE).
+	-- string id where the client gives one (Clicks.lua, UI_ERROR_MESSAGE). When
+	-- it says where they stand (WHERE), the step that refusal took on the
+	-- person's run is taken back and taken on their own instead (`undo`, written
+	-- by that step): the error line can come a moment after the refusal.
 	function ns.NoteGameError(message, id)
 		if type(message) ~= "string" then return end
 		local now = GetTime()
 		lastError, lastErrorAt, lastErrorId = message, now, type(id) == "string" and id or nil
 		local r = newest and refusals[newest]
 		if r and r.why == nil and now - r.last <= ERROR_SECONDS and not AboutTheCaster(message) then
+			local undo = r.undo
+			if undo and undo.at == r.last and OneOf(message, WHERE) then
+				r.undo = nil
+				r.count = r.count - 1
+				r.blockUntil, r.quietUntil = undo.blockUntil, undo.quietUntil
+				if r.count < TELL_AT then r.said = nil end
+				StoodAway(newest, r, message, now, undo.hold)
+				-- Nor does it count towards the same buff refused twice (LateReason).
+				local late = r.late
+				r.late = nil
+				if late and not OneOf(message, AGAIN) then
+					firstRefusal[newest] = nil
+					if late.again then LiftAgain(newest, late.key) end
+				end
+				return
+			end
 			r.why = message
 		end
 		-- And acted on as the refusal would have, had it come first.
@@ -655,6 +702,15 @@ do
 		end
 		-- A run long over was swept (SweepRefusals), so this starts again at one.
 		r.last = now
+		-- Where they stand, not who they are: a run of its own (WHERE).
+		if OneOf(why, WHERE) then
+			r.undo = nil
+			StoodAway(name, r, why, now, hold)
+			return
+		end
+		-- What this step is about to write, for an error line just after it
+		-- saying where they stand (NoteGameError). Only with no reason yet.
+		r.undo = why == nil and { at = now, blockUntil = r.blockUntil, quietUntil = r.quietUntil, hold = hold } or nil
 		r.count = r.count + 1
 		r.why = type(why) == "string" and why or nil
 		-- What a reason arriving after this refusal acts on (LateReason): the
@@ -675,7 +731,6 @@ do
 		local debt = owed[name]
 		local steps = (debt and LiveExpiry(debt) > now) and OWED_STEPS or STEPS
 		local seconds = steps[math.min(r.count, #steps)]
-		if seconds < OUT_OF_RANGE_SECONDS and OneOf(why, OUT_OF_RANGE) then seconds = OUT_OF_RANGE_SECONDS end
 		if now + seconds > r.blockUntil then r.blockUntil = now + seconds end
 		-- The line stays held past the back-off: somebody the game keeps refusing
 		-- comes back when it runs out, and the first press then would thank them
@@ -686,8 +741,12 @@ do
 			if r.why or not (C_Timer and C_Timer.After) then
 				Tell(name, r.why)
 			else
-				-- The error line can arrive a moment after the refusal it explains.
-				C_Timer.After(0.3, function() ns.Guard("refusal line", Tell, name, r.why) end)
+				-- The error line can arrive a moment after the refusal it explains,
+				-- and when it says where they stand this was no step of the
+				-- person's run at all (NoteGameError takes `said` back).
+				C_Timer.After(0.3, function()
+					if r.said then ns.Guard("refusal line", Tell, name, r.why) end
+				end)
 			end
 		end
 	end

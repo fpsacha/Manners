@@ -42,7 +42,7 @@ mutate("Queue.lua",
        expect="range-follow: refused out of range stays off the prompt", script=S)
 
 mutate("Queue.lua",
-       "if seconds < OUT_OF_RANGE_SECONDS and OneOf(why, OUT_OF_RANGE) then",
-       "if seconds < OUT_OF_RANGE_SECONDS then",
+       "\t\tlocal seconds = steps[math.min(r.count, #steps)]\n",
+       "\t\tlocal seconds = steps[math.min(r.count, #steps)]\n\t\tif seconds < OUT_OF_RANGE_SECONDS then seconds = OUT_OF_RANGE_SECONDS end\n",
        "range-follow: every refusal backs off ten seconds",
        expect="range-follow: refused out of range stays off the prompt", script=S)

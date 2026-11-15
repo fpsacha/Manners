@@ -191,6 +191,71 @@ end
 -- the client nothing: it runs on every scan, listed or not.
 local busy = false
 
+-- What a line under the cursor shows once its person has left the list: nothing,
+-- and a click on it casts nothing (PaintRows keeps it in place, unarmed).
+local function Blank(name)
+	return { text = "", held = name }
+end
+
+-- The list as it is about to be painted (List.lua, PaintQueue), with every
+-- line the cursor is on kept on the person it named when the cursor got there
+-- (`held` on the slot): the list is rebuilt from the queue on every scan, and
+-- in a crowd its order moves every second or so, so a click meant for one name
+-- buffed whoever had slid into that line (review 2026-11-15). Somebody still
+-- listed is moved back into their line and the others fill the rest in the
+-- queue's order; somebody gone from the list leaves the line blank (Blank)
+-- rather than handing it the next name. A press still asks a fresh queue for
+-- the person and buff (Press.lua, OnRowPreClick), so a line kept never casts at
+-- somebody the scan has let go. The cursor gone, the queue's order comes back
+-- at the next repaint. Nothing is written on a button here.
+function Prompt:HoldRows(rows)
+	local slots = R.rowSlots
+	if not slots then return rows end
+	local any = false
+	for _, row in ipairs(slots) do
+		if not row.hovered then
+			row.held = nil
+		elseif row.held == nil then
+			row.held = row.name
+		end
+		if row.held then any = true end
+	end
+	if not (any and rows) then return rows end
+	local out, used, last = {}, {}, #rows
+	for i, row in ipairs(slots) do
+		local name = row.held
+		if name then
+			for j, data in ipairs(rows) do
+				if not used[j] and data.entry and data.entry.name == name then
+					out[i], used[j] = data, true
+					break
+				end
+			end
+			if not out[i] then out[i] = Blank(name) end
+			if i > last then last = i end
+		end
+	end
+	local j = 1
+	for i = 1, last do
+		if not out[i] then
+			while used[j] do j = j + 1 end
+			if rows[j] then
+				out[i], used[j] = rows[j], true
+			elseif i < last then
+				-- A gap above a held line: the line keeps its place.
+				out[i] = Blank(nil)
+			end
+		end
+	end
+	-- Trailing lines nobody filled are dropped, a gap's blank with them: a
+	-- sequence, as PaintQueue reads, no longer than it has to be.
+	while last > 0 and (out[last] == nil or (out[last].text == "" and out[last].held == nil)) do
+		out[last] = nil
+		last = last - 1
+	end
+	return out
+end
+
 -- The rows as the list was just painted: each name the list holds is pressable
 -- until the next repaint says otherwise. `rows` is the list's own (List.lua),
 -- nil to clear it. A row with nobody, with the option off, or in a preview (a
@@ -233,6 +298,15 @@ function Prompt:PaintRows(rows)
 					local onEnter = row.button:GetScript("OnEnter")
 					if onEnter then onEnter(row.button) end
 				end
+			end
+		elseif data and data.held and row.hovered then
+			-- The line under the cursor whose person has left (HoldRows): kept
+			-- where it is and shown, so the next name does not come up under the
+			-- cursor, and naming nobody, so a click casts nothing. The tooltip
+			-- named the one who left.
+			row.entry, row.name, row.buffKey = nil, nil, nil
+			if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(row.button) then
+				GameTooltip:Hide()
 			end
 		else
 			row.entry, row.name, row.buffKey = nil, nil, nil

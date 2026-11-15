@@ -157,6 +157,31 @@ What was built:
   branch's), the key reminder on the first login, and the raid-groups-all-
   unticked hold, which `/manners debug` says and the strip does not.
 
+- **The review's core job, first share** (branch `par-core1`, 2026-11-15).
+  (1) A passer-by who walked off, kept by name for `LINGER_SECONDS` with
+  `ranged` unset, held the prompt on the tie of the tier for up to ten
+  seconds while somebody in reach, sorted ahead, waited: `Prompt/Hold.lua`
+  `WorseOffer` now reads the queue's range key first (`Reach`), and the hold
+  gives way on it too for the queue's own entry, never under the cursor
+  (`CursorHolds`, 1.1.1). `linger.lua`'s right-click skip case now puts the
+  cursor on the prompt before Bert arrives (it relied on the old rule).
+  (2) Line of sight and range refusals are a run of their own (Queue.lua
+  `WHERE`, `WHERE_STEPS` 5/15/30 s, `StoodAway`, `r.away`), with the range's
+  ten-second floor, no step of the person's run and no chat line; an error
+  line arriving just after a reasonless refusal takes that step back
+  (`r.undo`, `NoteGameError`). (3) A list line under the cursor keeps the
+  person it named (`Prompt/Rows.lua` `HoldRows`, from List.lua's
+  `PaintQueue`), blank and shown, naming nobody, once they leave the list.
+  `tests/scenarios/par-core1.lua` (red before), fifteen mutations in
+  `tests/mutations/par-core1.py` seen CAUGHT; `hunt13-fix2.py` and
+  `range-follow.py` each had one re-aimed. Only the game can say: that the
+  client's line-of-sight and range errors match `SPELL_FAILED_LINE_OF_SIGHT`,
+  `ERR_OUT_OF_RANGE` and `SPELL_FAILED_OUT_OF_RANGE` as Forever words them,
+  and in which order they come against UNIT_SPELLCAST_FAILED; and that a
+  secure row shown and kept under a still cursor keeps its OnEnter (the
+  blank line relies on the cursor not falling off it).
+
+
 Before that, still unreleased after 1.11.24: a pass over the fifteen looks
 there were then (branch
 `looks-polish`), in three parts.
@@ -320,9 +345,9 @@ scenario in `tests/scenarios/audit-right-buff.lua` and a mutation in
 Left for the author to decide: **Thorns' default is still Everyone**, so a
 druid is offered it for cloth casters and for herself every ten minutes; the
 audit left it, since Thorns does something for anybody who gets hit, and
-*Offer Thorns to* already narrows it. And three refusals in a row for line of
-sight or range still take a party member off the prompt for five minutes
-(Queue.lua `STEPS`), though nothing about them is wrong once they are back.
+*Offer Thorns to* already narrows it. (Three refusals in a row for line of
+sight or range no longer take a party member off for five minutes: they are
+a run of their own since `par-core1`, half a minute at most.)
 
 Only the live game can say, about the audit:
 
