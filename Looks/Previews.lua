@@ -196,4 +196,19 @@ ns.Looks.previewText = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "747091c627e696c4b6759724764434c25395656e6b439ff25d406ce86c171922"
+-- The looks with an earlier art (Looks.HasEarlierArt), each with a second picture,
+-- Preview_<key>_earlier, drawn with Earlier art on, and its icon and text as above:
+-- a card wears them while the prompt draws that art.
+ns.Looks.previewsEarlier = {
+	frost = true,
+}
+ns.Looks.previewIconEarlier = {
+	frost = { l = 0.11694, t = 0.25806, r = 0.2379, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+}
+ns.Looks.previewTextEarlier = {
+	frost = {
+		name = { l = 0.30081, t = 0.29032, r = 0.79032, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 0.95 } } },
+		reason = { l = 0.30081, t = 0.53226, r = 0.79032, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.836, 0.58, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.01, 0.04, 1 } } },
+	},
+}
+ns.Looks.previewHash = "1923826c50e572c425ceac881c5e85670ff14ff44aaa683b9fed52e057e7b38a"

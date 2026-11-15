@@ -117,9 +117,12 @@ def to_py(v):
     return {k: to_py(val) for k, val in items}
 
 
-def load_states(addon_dir, locale=None, style=None, key=None, size=None):
+def load_states(addon_dir, locale=None, style=None, key=None, size=None, earlier=False):
+    """`earlier`: every state with Earlier art on (prompt.classicArt), as
+    tools/make_look_previews.py draws a look's second picture."""
     draw_from(addon_dir)
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
+    lua.globals().MANNERS_RENDER_EARLIER = bool(earlier)
     printed = []
     lua.globals().print = lambda *a: printed.append(" ".join(str(x) for x in a))
     run = lua.eval("function(path, dir, addon, locale, style, key, size) "

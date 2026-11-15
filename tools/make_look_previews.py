@@ -82,8 +82,18 @@ redrawn, the default settings moved or this tool edited, and it no longer
 matches until the tool is run again. The picture files themselves are checked
 for being where the manifest says and 256 x 64 at 32 bits.
 
+Earlier art. A look painted from a painting (Looks/Painted.lua) that is not
+painted only has an earlier art, which *Earlier art* (prompt.classicArt) draws
+(Looks.HasEarlierArt). Such a look has a second picture, drawn the same way with
+that switch on, Textures/Previews/Preview_<key>_earlier.tga, and its own icon and
+text records (ns.Looks.previewsEarlier, previewIconEarlier, previewTextEarlier):
+the card wears it while the prompt draws that art, so the pictures follow the
+switch. --check holds the set of second pictures to exactly the looks that have
+an earlier art now: a look painted since, and the pictures are not current.
+
 Deterministic: run it twice and the files are the same bytes (on one machine:
-the font is the machine's).
+the font is the machine's). Every list is walked in the registry's order and
+every table written sorted by key.
 """
 import argparse
 import hashlib
@@ -129,7 +139,12 @@ STUB = """local _, ns = ...
 ns.Looks.previews = {}
 ns.Looks.previewIcon = {}
 ns.Looks.previewText = {}
+ns.Looks.previewsEarlier = {}
+ns.Looks.previewIconEarlier = {}
+ns.Looks.previewTextEarlier = {}
 """
+# A look's second picture, of its earlier art, is Preview_<key> and this.
+EARLIER = "_earlier"
 # A look's icon is round when its mask lets less of its square than this through.
 ROUND_BELOW = 0.85
 # What a fraction is written to, and compared at.
@@ -161,10 +176,12 @@ def to_py(v):
     return {k: to_py(val) for k, val in items}
 
 
-def states(style, measure=None, locale=""):
-    """render_prompt.lua's states, with `style` the look every state is in."""
+def states(style, measure=None, locale="", earlier=False):
+    """render_prompt.lua's states, with `style` the look every state is in
+    (`earlier`: with Earlier art on)."""
     lua = lua51.LuaRuntime(unpack_returned_tuples=True)
     lua.globals().print = lambda *a: None
+    lua.globals().MANNERS_RENDER_EARLIER = bool(earlier)
     run = lua.eval("function(path, dir, addon, locale, style, key, size) "
                    "local f = assert(loadfile(path)) return f(dir, addon, locale, style, key, size) end")
     R = run(fwd(os.path.join(ROOT, "tools", "render_prompt.lua")), fwd(ROOT), fwd(ROOT), locale, style, "", "")
@@ -175,6 +192,13 @@ def states(style, measure=None, locale=""):
 
 def registered(addon_dir=ROOT):
     """Every style key the registry holds, in the dropdown's order."""
+    return registry(addon_dir)[0]
+
+
+def registry(addon_dir=ROOT):
+    """Every style key the registry holds, in the dropdown's order, and the
+    ones of them that have an earlier art (Looks.HasEarlierArt), in the same
+    order."""
     if not os.path.exists(MANIFEST):
         with open(MANIFEST, "w", encoding="utf-8", newline="") as f:
             f.write(STUB)
@@ -192,13 +216,19 @@ def registered(addon_dir=ROOT):
             chunk("Manners", ns)
         end
         local _, sorting = ns.Looks.Choices()
-        return sorting
+        local earlier = {}
+        for _, key in ipairs(sorting) do
+            if ns.Looks.HasEarlierArt and ns.Looks.HasEarlierArt(key) then earlier[#earlier + 1] = key end
+        end
+        return { sorting, earlier }
     """, fwd(addon_dir))
-    keys = list(to_py(keys))
+    keys, earlier = (list(to_py(v)) for v in to_py(keys))
     for key in keys:
         if not re.fullmatch(r"[a-z0-9_]+", key):
             raise SystemExit("the look %r has a key a file name cannot carry" % key)
-    return keys
+        if key.endswith(EARLIER):
+            raise SystemExit("the look %r has a key its earlier art's picture would share" % key)
+    return keys, earlier
 
 
 PAINTED_FILE = "Interface\\AddOns\\Manners\\Textures\\Painted\\"
@@ -271,11 +301,12 @@ def text_bytes(path):
         return f.read().replace(b"\r\n", b"\n")
 
 
-def snapshots(keys):
-    """Every look's frame tree in the state the pictures are drawn in."""
+def snapshots(keys, earlier=False):
+    """Every look's frame tree in the state the pictures are drawn in (`earlier`:
+    with Earlier art on)."""
     out = {}
     for key in keys:
-        out[key] = to_py(states(key)["run"](STATE, None))
+        out[key] = to_py(states(key, earlier=earlier)["run"](STATE, None))
         # Which look it is: its view is its own (framing).
         out[key]["look"] = key
     return out
@@ -563,7 +594,7 @@ def pill_entry(snap, key, which):
     return round_entry(entry)
 
 
-def texts(snaps):
+def texts(snaps, earlier=False):
     """The text entries of every look that shows a name or a reason line, with
     the tag a look sets its reason line in."""
     out = {}
@@ -573,7 +604,7 @@ def texts(snaps):
         for name, which in LINES:
             face = face_of(snap, which)
             if face and face != snap.get("defaultFont") and other is None:
-                other = to_py(states(key, locale=OTHER_LOCALE)["run"](STATE, None))
+                other = to_py(states(key, locale=OTHER_LOCALE, earlier=earlier)["run"](STATE, None))
             entry = text_entry(snap, which, other)
             if entry:
                 pill = pill_entry(snap, key, which)
@@ -600,10 +631,18 @@ def canonical(v):
     return v
 
 
-def fingerprint(keys, snaps, entries, written):
+def fingerprint(keys, snaps, entries, written, second=None):
     """What the pictures are drawn from, as one hash: the frame trees, where the
-    icons sit in them, the shipped textures and the two tools."""
+    icons sit in them, the shipped textures and the two tools. `second` is the
+    same for the earlier art's pictures: (keys, snaps, entries, written)."""
     h = hashlib.sha256()
+    if second and second[0]:
+        k2, s2, e2, w2 = second
+        for key in k2:
+            h.update((key + EARLIER).encode("utf-8") + b"\0")
+            h.update(json.dumps(canonical(s2[key]), sort_keys=True, default=str).encode("utf-8") + b"\0")
+            h.update(json.dumps(e2.get(key), sort_keys=True).encode("utf-8") + b"\0")
+            h.update(json.dumps(canonical(w2.get(key)), sort_keys=True).encode("utf-8") + b"\0")
     # The tree's numbers are rounded as the recorded ones are: a look that lays
     # art out round a circle (Fel's runes, by math.cos and math.sin) gets its
     # last bit from the machine's own maths library, and the hash then differed
@@ -664,7 +703,21 @@ def lua_value(v):
     return "{ " + ", ".join("%s = %s" % (k, lua_value(v[k])) for k in order) + " }"
 
 
-def manifest_text(keys, digest, entries, written):
+def text_table(name, written):
+    """One table of text entries, as manifest_text writes it."""
+    lines = ["ns.Looks.%s = {" % name]
+    for key in sorted(written):
+        lines.append("\t%s = {" % key)
+        for line, _ in LINES:
+            if line in written[key]:
+                lines.append("\t\t%s = %s," % (line, lua_value(written[key][line])))
+        lines.append("\t},")
+    lines.append("}")
+    return lines
+
+
+def manifest_text(keys, digest, entries, written, second=None):
+    """Looks/Previews.lua. `second`: the earlier art's (keys, entries, written)."""
     lines = [
         "-- Manners -- the looks that have a picture on the options window's cards.",
         "--",
@@ -702,7 +755,20 @@ def manifest_text(keys, digest, entries, written):
             if name in written[key]:
                 lines.append("\t\t%s = %s," % (name, lua_value(written[key][name])))
         lines.append("\t},")
-    lines += ["}", 'ns.Looks.previewHash = "%s"' % digest, ""]
+    lines.append("}")
+    k2, e2, w2 = second or ([], {}, {})
+    lines += [
+        "-- The looks with an earlier art (Looks.HasEarlierArt), each with a second picture,",
+        "-- Preview_<key>_earlier, drawn with Earlier art on, and its icon and text as above:",
+        "-- a card wears them while the prompt draws that art.",
+        "ns.Looks.previewsEarlier = {",
+    ]
+    lines += ["\t%s = true," % key for key in sorted(k2)]
+    lines += ["}", "ns.Looks.previewIconEarlier = {"]
+    lines += ["\t%s = %s," % (key, lua_entry(e2[key])) for key in sorted(e2)]
+    lines.append("}")
+    lines += text_table("previewTextEarlier", w2)
+    lines += ['ns.Looks.previewHash = "%s"' % digest, ""]
     return "\n".join(lines)
 
 
@@ -747,9 +813,25 @@ def read_manifest():
             text = f.read()
     except OSError:
         return None, None
-    keys = re.findall(r"^\t([a-z0-9_]+) = true,$", text, re.M)
+    keys = listed(text, "previews")
     digest = re.search(r'ns\.Looks\.previewHash = "([0-9a-f]+)"', text)
     return keys, digest.group(1) if digest else None
+
+
+def listed(text, table):
+    """The keys one `name = true` table of Looks/Previews.lua lists, or [] when it
+    is not there (a manifest from before the earlier art's pictures)."""
+    block = re.search(r"^ns\.Looks\.%s = \{\n(.*?)^\}" % table, text, re.M | re.S)
+    return re.findall(r"^\t([a-z0-9_]+) = true,$", block.group(1), re.M) if block else []
+
+
+def read_earlier():
+    """The looks Looks/Previews.lua says have an earlier art's picture."""
+    try:
+        with open(MANIFEST, encoding="utf-8") as f:
+            return listed(f.read(), "previewsEarlier")
+    except OSError:
+        return []
 
 
 def tga_header(path):
@@ -762,51 +844,71 @@ def tga_header(path):
 
 
 def check():
-    keys = registered()
+    keys, earlier = registry()
     problems = []
     shipped, digest = read_manifest()
     if shipped is None:
         problems.append("Looks/Previews.lua is missing")
         shipped = []
+    shipped_earlier = read_earlier()
     for key in keys:
         if key not in shipped:
             problems.append("the look %s has no picture" % key)
     for key in shipped:
         if key not in keys:
             problems.append("Looks/Previews.lua lists %s, which is not a look" % key)
-    for key in shipped:
-        path = os.path.join(SHOTS, "Preview_%s.tga" % key)
+    # A picture of the earlier art for exactly the looks that have one now: a
+    # look painted since has none, and one whose painting went has one too many.
+    for key in earlier:
+        if key not in shipped_earlier:
+            problems.append("the look %s has an earlier art and no picture of it" % key)
+    for key in shipped_earlier:
+        if key not in earlier:
+            problems.append("Looks/Previews.lua has a picture of %s's earlier art, which it has not" % key)
+    files = ["Preview_%s.tga" % key for key in shipped] + ["Preview_%s%s.tga" % (key, EARLIER) for key in shipped_earlier]
+    for name in files:
+        path = os.path.join(SHOTS, name)
         head = tga_header(path) if os.path.exists(path) else None
         if head is None:
-            problems.append("Textures/Previews/Preview_%s.tga is missing" % key)
+            problems.append("Textures/Previews/%s is missing" % name)
         elif (head["width"], head["height"], head["bits"], head["type"]) != (SIZE[0], SIZE[1], 32, 2):
-            problems.append("Textures/Previews/Preview_%s.tga is %dx%d at %d bits, type %d" % (
-                key, head["width"], head["height"], head["bits"], head["type"]))
+            problems.append("Textures/Previews/%s is %dx%d at %d bits, type %d" % (
+                name, head["width"], head["height"], head["bits"], head["type"]))
     if os.path.isdir(SHOTS):
+        wanted = set("Preview_%s.tga" % key for key in keys) | set("Preview_%s%s.tga" % (key, EARLIER) for key in earlier)
         for name in sorted(os.listdir(SHOTS)):
-            m = re.fullmatch(r"Preview_([a-z0-9_]+)\.tga", name)
-            if not m or m.group(1) not in keys:
+            if name not in wanted:
                 problems.append("Textures/Previews/%s belongs to no look" % name)
     if not problems:
         snaps = snapshots(keys)
         entries = icons(snaps)
         held = read_icons()
         held_text = read_icons("previewText")
+        snaps2 = snapshots(earlier, earlier=True)
+        entries2 = icons(snaps2)
+        held2 = read_icons("previewIconEarlier")
+        held_text2 = read_icons("previewTextEarlier")
         # Where a line's text sits is measured in a face, which needs Pillow and
         # the faces of the machine that drew the pictures: without it (CI's test
         # job) the text is taken as recorded, and the rest is still held to it.
         measures = geometry().ImageFont is not None
         if measures:
             lines = texts(snaps)
+            lines2 = texts(snaps2, earlier=True)
         else:
-            lines = held_text
+            lines, lines2 = held_text, held_text2
             print("  text placement not measured here (no Pillow): taken as recorded")
         if held is None or not same_icons(held, entries):
             problems.append("Looks/Previews.lua does not say where the looks draw their icons as they do now")
         elif held_text is None or not same_icons(held_text, lines):
             problems.append("Looks/Previews.lua does not say where the looks write their name and reason "
                             "and how, as they do now")
-        elif digest != fingerprint(keys, snaps, entries, lines):
+        elif held2 is None or not same_icons(held2, entries2):
+            problems.append("Looks/Previews.lua does not say where the looks' earlier art draws its icons as it does now")
+        elif held_text2 is None or not same_icons(held_text2, lines2):
+            problems.append("Looks/Previews.lua does not say where the looks' earlier art writes its name and "
+                            "reason and how, as it does now")
+        elif digest != fingerprint(keys, snaps, entries, lines, (earlier, snaps2, entries2, lines2)):
             problems.append("the pictures were drawn from something that has changed since")
     for p in problems:
         print("  " + p)
@@ -922,21 +1024,22 @@ def renderer():
     return rp
 
 
-def draw(keys, out, entries, lines):
+def draw(keys, out, entries, lines, earlier=False):
     """Every look's picture, into `out`. `entries` is where each look's icon is
     recorded to sit: the tile drawn there is what the live icon covers, so the two
     are held to each other. `lines` is where its name and reason sit: they are not
     drawn at all, the window writes them live, so what is recorded is checked
-    against where they would have been laid out."""
+    against where they would have been laid out. `earlier`: the earlier art's
+    pictures, Preview_<key>_earlier."""
     rp = renderer()
     written = []
     for key in keys:
-        R = rp.load_states(ROOT, style=key)
+        R = rp.load_states(ROOT, style=key, earlier=earlier)
         snap = rp.to_py(R["run"](STATE, None))
         snap["look"] = key
         view = bare_picture(rp, snap, lines.get(key))
         skip = hidden(snap, lines.get(key))
-        view.save(os.path.join(out, "Preview_%s.tga" % key), "TGA", compression=None)
+        view.save(os.path.join(out, "Preview_%s%s.tga" % (key, EARLIER if earlier else "")), "TGA", compression=None)
         written.append(key)
         check_tile(rp, snap, key, entries.get(key))
         for name, which in LINES:
@@ -946,7 +1049,7 @@ def draw(keys, out, entries, lines):
         if any((lines.get(key) or {}).get(n, {}).get("pill") for n, _ in LINES):
             left_out.append("the tag")
         print("  Textures/Previews/Preview_%-12s %dx%d  text layers skipped: %s%s" % (
-            key + ".tga", SIZE[0], SIZE[1], ", ".join(left_out) or "none",
+            key + (EARLIER if earlier else "") + ".tga", SIZE[0], SIZE[1], ", ".join(left_out) or "none",
             "  %d guarded error(s): %s" % (errors, snap.get("firstError")) if errors else ""))
     return written
 
@@ -965,20 +1068,22 @@ FOLLOWS_TEXT = {"warchief"}
 OVERHANG = 4
 
 
-def check_bare(keys):
+def check_bare(keys, earlier=False):
     """Do the shipped pictures carry no text? Draws every look twice, with its name
     and reason lines and without, and holds the files to the second: the lines'
     pixels (what differs between the two drawings) lie inside the rectangles
     Looks/Previews.lua records for them, there are some, the file is the drawing
-    without them, and it is not the drawing with them. Needs Pillow and numpy."""
+    without them, and it is not the drawing with them. Needs Pillow and numpy.
+    `earlier`: the earlier art's pictures, against its own records."""
     import numpy as np
     from PIL import Image
 
     rp = renderer()
-    snaps = snapshots(keys)
-    lines = texts(snaps)
+    snaps = snapshots(keys, earlier=earlier)
+    lines = texts(snaps, earlier=earlier)
     tiles = icons(snaps)
-    held = read_icons("previewText")
+    held = read_icons("previewTextEarlier" if earlier else "previewText")
+    suffix = EARLIER if earlier else ""
     if held is None or not same_icons(held, lines):
         print("  Looks/Previews.lua does not say where the looks write their name and reason as they do now")
         print("run python tools/make_look_previews.py")
@@ -986,13 +1091,13 @@ def check_bare(keys):
     problems = []
     for key in keys:
         entry = lines.get(key) or {}
-        snap = rp.to_py(rp.load_states(ROOT, style=key)["run"](STATE, None))
+        snap = rp.to_py(rp.load_states(ROOT, style=key, earlier=earlier)["run"](STATE, None))
         snap["look"] = key
         bare = np.asarray(bare_picture(rp, snap, entry)).astype(int)
         full = np.asarray(picture(rp, snap, set())).astype(int)
-        path = os.path.join(SHOTS, "Preview_%s.tga" % key)
+        path = os.path.join(SHOTS, "Preview_%s%s.tga" % (key, suffix))
         if not os.path.exists(path):
-            problems.append("%s: Textures/Previews/Preview_%s.tga is missing" % (key, key))
+            problems.append("%s: Textures/Previews/Preview_%s%s.tga is missing" % (key, key, suffix))
             continue
         shipped = np.asarray(Image.open(path).convert("RGBA")).astype(int)
         # Where the lines are allowed to be: their rectangles, a little over.
@@ -1066,18 +1171,31 @@ def main():
     if args.check:
         sys.exit(check())
     if args.check_bare:
-        sys.exit(check_bare(registered()))
-    keys = registered()
+        keys, earlier = registry()
+        first = check_bare(keys)
+        sys.exit(check_bare(earlier, earlier=True) or first)
+    keys, earlier = registry()
     out = os.path.abspath(args.out) if args.out else SHOTS
     os.makedirs(out, exist_ok=True)
     snaps = snapshots(keys)
     entries = icons(snaps)
     lines = texts(snaps)
     draw(keys, out, entries, lines)
-    digest = fingerprint(keys, snaps, entries, lines)
+    snaps2 = snapshots(earlier, earlier=True)
+    entries2 = icons(snaps2)
+    lines2 = texts(snaps2, earlier=True)
+    draw(earlier, out, entries2, lines2, earlier=True)
+    # A picture no look has any more (a look gone, or its earlier art) goes:
+    # --check counts it as belonging to no look.
+    wanted = set("Preview_%s.tga" % key for key in keys) | set("Preview_%s%s.tga" % (key, EARLIER) for key in earlier)
+    for name in sorted(os.listdir(out)):
+        if re.fullmatch(r"Preview_[a-z0-9_]+\.tga", name) and name not in wanted:
+            os.remove(os.path.join(out, name))
+            print("  removed %s, which belongs to no look" % name)
+    digest = fingerprint(keys, snaps, entries, lines, (earlier, snaps2, entries2, lines2))
     target = os.path.join(out, "Previews.lua") if args.out else MANIFEST
     with open(target, "w", encoding="utf-8", newline="") as f:
-        f.write(manifest_text(keys, digest, entries, lines))
+        f.write(manifest_text(keys, digest, entries, lines, (earlier, entries2, lines2)))
     print("  %s" % os.path.relpath(target, ROOT) if not args.out else "  " + target)
 
 

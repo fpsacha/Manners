@@ -320,6 +320,26 @@ local BEFORE, AFTER = {}, {}
 -- screenshots.py puts the spell icons a picture wants in front of the mock's).
 R.BEFORE, R.AFTER = BEFORE, AFTER
 
+-- The look chosen: `look KEY` (Look's own settings follow it).
+function BEFORE.look(ns, _, key)
+	ns.db.profile.prompt.style = key
+end
+
+-- Earlier art on: the cards of the looks that have one wear its picture.
+function BEFORE.earlier(ns)
+	ns.db.profile.prompt.classicArt = true
+end
+
+-- One of the look picker's tabs chosen, as a click on it: `tab KEY` (mine,
+-- all, minimal, classic, themed, class).
+function AFTER.tab(ns, _, key, notes)
+	local row = ns.WindowUI.RowFor("appearance.style")
+	local b = row and row.tabs and row.tabs[key]
+	assert(b and b:IsShown(), "no tab " .. tostring(key) .. " over the looks")
+	b:GetScript("OnClick")(b, "LeftButton", false)
+	notes[#notes + 1] = "tab: " .. tostring(key) .. " chosen"
+end
+
 -- A player who has had the window open before: the first open of all starts
 -- the prompt's preview by itself, once, and the header then reads Stop preview
 -- where every later open reads Show me the prompt.
@@ -568,7 +588,7 @@ function R.page(page, spec)
 		assert(win, "ns.OptionsWindow is not built: this tree does not have the new options window")
 		for _, s in ipairs(states) do
 			local fn = AFTER[s.name]
-			if fn then fn(ns, win, (s.name == "search" or s.name == "sub") and s.arg or page, notes) end
+			if fn then fn(ns, win, (s.name == "search" or s.name == "sub" or s.name == "tab") and s.arg or page, notes) end
 		end
 		-- Past the window's fades, every timer run and every one-shot settled
 		-- (a state that wants a fade caught part way says how long to wait).

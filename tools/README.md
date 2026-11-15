@@ -880,6 +880,8 @@ python tools/render_options.py --out renders                     # every page, a
 python tools/render_options.py --class PRIEST --locale deDE --pages who,when
 python tools/render_options.py --class DRUID --flavour mists       # another client's buffs (KNOWS covers SHAMAN too)
 python tools/render_options.py --state combat --state search whisper --pages who
+python tools/render_options.py --pages appearance --state look frost --state earlier --state tab all
+                                                                 # Look with a look chosen, Earlier art on, a picker tab
 python tools/render_options.py --check                           # exit 1 on any fault
 python tools/render_options.py --demo                            # prove the drawing and the checks
 ```
