@@ -56,6 +56,8 @@ local function upIn(ns, scenario, style, edit)
 	local p = ns.db.profile.prompt
 	p.style, p.flashStyle, p.effects, p.hideInCombat = style, "pulse", "full", false
 	p.showIcon, p.roundIcon, p.showSub = true, false, true
+	-- The framed look's own material, not its painting (painted-framed.lua).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")

@@ -393,6 +393,8 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 			ns.Prompt:ShowOutcome("cast", "Anna Aim")
 		end
 		p.style = style
+		-- The framed look's own panel and rim (its painting: painted-framed.lua).
+		p.classicArt = style == "framed"
 		ns.Prompt:ApplyStyle()
 		owe(ns, "Anna Aim")
 		ns.addon:Tick()

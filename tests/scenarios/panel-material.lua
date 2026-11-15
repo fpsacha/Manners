@@ -86,6 +86,8 @@ local function upIn(ns, scenario, style, edit)
 	p.showIcon = true
 	p.roundIcon = false
 	p.accentMode = "icon"
+	-- The framed look's own material, not its painting (painted-framed.lua).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")

@@ -1819,7 +1819,8 @@ withTree("look-ribbon: leaving the look takes down every part and gives back wha
 	local art, c = span(r.art), span(look.cloth[1])
 	if not near(c[1] - art[1], look.g.cx, 0.05) then fail(scenario, "the ribbon is not home after coming back") end
 	-- Every region of the built-in looks it hid is shown again by them, not by it.
-	p.style = "framed"
+	-- (The framed look's own panel: under its painting it has none to give back.)
+	p.style, p.classicArt = "framed", true
 	ns.Prompt:ApplyStyle()
 	if not FT.visible(r.panel) then fail(scenario, "the framed look's panel is not back") end
 end)
