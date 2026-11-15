@@ -39,6 +39,9 @@
 - **Two Manners users share a group.** Two of the same class in one party or
   raid are each offered their own part of it, so nobody is buffed twice. *Share
   the group with other Manners users*, on by default, in *My group and raid*.
+- **Thorns for the tank, not for you.** With a druid's Thorns on *Tanks only*,
+  your own is left alone in a group unless you are the tank. On your own you
+  are reminded as before. Asked for on CurseForge.
 - **Detect Invisibility for passers-by.** *Offer Detect Invisibility to
   passers-by too*, under a warlock's Detect Invisibility on *Who to buff* once
   that is ticked. Off by default. Asked for by a player.

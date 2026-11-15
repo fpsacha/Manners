@@ -551,3 +551,45 @@ do
 		if offers(ns)[zed] then fail(scenario, "a favour owed out of sight was offered Thorns with Only me on") end
 	end)
 end
+
+-- Tanks only and yourself (1.11.25, asked for on CurseForge by a healer:
+-- Mark of the Wild for everybody, me included, Thorns for the tank and not for
+-- me). In a group you are a member like any other; alone, yours as ever.
+local function mineWith(ns, role, alone)
+	ns.db.profile.sources.self = true
+	Mock.playerHeld = {}
+	for _, id in ipairs(ns.FindBuff("DRUID", "motw").ranks) do Mock.playerHeld[id] = true end
+	ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+	Mock.roles = { party2 = "TANK", player = role }
+	if alone then Mock.groupSize = 0 end
+	local mine = selfEntry(ns)
+	return mine and mine.buff and mine.buff.key
+end
+
+do
+	local scenario = "tankonly: Tanks only in a group leaves your own Thorns alone while you are no tank"
+	session(scenario, { setup = setTanksOnly }, function(ns)
+		local key = mineWith(ns, "HEALER")
+		if key == "thorns" then fail(scenario, "a healer was reminded of Thorns on herself with Thorns held to tanks") end
+		ns.db.profile.buff.tanksOnly = {}
+		key = mineWith(ns, "HEALER")
+		if key ~= "thorns" then fail(scenario, "with Everyone chosen your own Thorns was not reminded of: " .. tostring(key)) end
+	end)
+	session(scenario, { setup = setTanksOutside }, function(ns)
+		if mineWith(ns, "HEALER") == "thorns" then
+			fail(scenario, "a healer was reminded of Thorns on herself under the looser choice")
+		end
+	end)
+end
+
+do
+	local scenario = "tankonly: Tanks only still reminds you of your own Thorns as the tank, and alone"
+	session(scenario, { setup = setTanksOnly }, function(ns)
+		local key = mineWith(ns, "TANK")
+		if key ~= "thorns" then fail(scenario, "the tank was not reminded of Thorns on herself: " .. tostring(key)) end
+	end)
+	session(scenario, { setup = setTanksOnly }, function(ns)
+		local key = mineWith(ns, "NONE", true)
+		if key ~= "thorns" then fail(scenario, "alone, your own Thorns was not reminded of: " .. tostring(key)) end
+	end)
+end

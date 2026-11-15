@@ -233,3 +233,21 @@ mutate("Options/Advanced.lua",
        "\t\t\"buff.keptBack\",\n",
        "tankonly: the page's reset leaves the looser choice",
        expect="model: the reset puts who back", script=S)
+
+mutate("Queue.lua",
+       "\t\ttanksOnly = tanksHeld or nil,\n\t\tisTank = tanksHeld and ns.IsTankUnit(\"player\") or nil,\n",
+       "",
+       "tankonly: your own Thorns under Tanks only whatever your role",
+       expect="tankonly: Tanks only in a group leaves your own Thorns alone while you are no tank", script=S)
+
+mutate("Queue.lua",
+       "\tlocal tanksHeld = grouped and db.buff.tanksOnly\n",
+       "\tlocal tanksHeld = db.buff.tanksOnly\n",
+       "tankonly: Tanks only takes your own Thorns from you alone",
+       expect="tankonly: Tanks only still reminds you of your own Thorns as the tank, and alone", script=S)
+
+mutate("Queue.lua",
+       "\t\tisTank = tanksHeld and ns.IsTankUnit(\"player\") or nil,\n",
+       "\t\tisTank = nil,\n",
+       "tankonly: the tank is not reminded of her own Thorns",
+       expect="tankonly: Tanks only still reminds you of your own Thorns as the tank, and alone", script=S)

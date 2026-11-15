@@ -2209,11 +2209,20 @@ local function SelfBuff(db, mine, full, now)
 	end
 	-- The same walk everybody gets: the switches, the pin, a paladin's one
 	-- blessing at a time, and the per-buff retry cooldown.
+	-- A buff held to the tanks of your group (Offer to: Tanks only, either
+	-- kind): in a group you are a member like any other, reminded of yours only
+	-- while you are its tank (a healer asked: Thorns for the tank, not for me).
+	-- Alone there is no group to hold it to, and yours is reminded of as ever.
+	local grouped = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0
+	local tanksHeld = grouped and db.buff.tanksOnly
+	if tanksHeld and next(tanksHeld) == nil then tanksHeld = nil end
 	local buff, has, remaining, seconds, lead, kind = ns.PickBuffFor(mine, {
 		-- Yours: a top-up comes earlier than for anybody else's (Core.lua, ns.LeadFor).
 		own = true,
 		hasMana = UnitHasMana("player"),
-		inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0,
+		inGroup = grouped,
+		tanksOnly = tanksHeld or nil,
+		isTank = tanksHeld and ns.IsTankUnit("player") or nil,
 		-- The caster is always inside their own party.
 		inParty = true,
 		relevantOnly = f.relevantOnly,

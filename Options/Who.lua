@@ -296,6 +296,7 @@ local function AddBuffToggles(args)
 				desc = L["Tanks only offers this buff only to players in your group whom the game gives the tank role, or marks as main tank in a raid. The rest of a dungeon or raid is left alone, and so is everybody outside your group, passers-by and people who buffed you included. A player with no role is not a tank."]
 					.. "\n\n" .. L["Tanks, and anyone outside my group holds only your group to its tanks: passers-by and people who buffed you are offered it as usual."]
 					.. "\n\n" .. L["Under either, anybody who asks you for it in chat is still offered it."]
+					.. "\n\n" .. L["In a group, both hold your own to the same rule: you are reminded of yours only while you are the tank. On your own you are reminded as ever."]
 					.. "\n\n" .. L["Only me offers it to nobody else, and still reminds you when yours is down (Myself must be on)."],
 				order = 4 + index / 10 + 0.05,
 				width = "full",

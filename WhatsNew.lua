@@ -21,6 +21,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffCourtesies on request.|r Mages can hand out water, food and portals, and warlocks healthstones and summons, to whoever asks in chat.",
 			"|cff7cc4ffAsking for a buff.|r |cffffffffAsk people for a buff I'm missing|r (off): when somebody in your group or beside you could give you a buff you lack, a press whispers them one polite line.",
 			"|cff7cc4ffTwo Manners users share a group.|r Two of the same class in one party or raid are each offered their own part of it, so nobody is buffed twice.",
+			"|cff7cc4ffThorns for the tank, not for you.|r With a druid's Thorns on |cffffffffTanks only|r, your own is left alone in a group unless you are the tank.",
 			"|cff7cc4ffDetect Invisibility for passers-by.|r |cffffffffOffer Detect Invisibility to passers-by too|r, under a warlock's Detect Invisibility on |cffffffffWho to buff|r once that is ticked.",
 		} },
 		{ title = "Profiles", accent = "7cc4ff", entries = {

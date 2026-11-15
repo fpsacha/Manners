@@ -764,7 +764,9 @@ no room for. Defaults are in brackets.
   - A druid's Thorns has *Offer to*: *Everyone*; *Tanks only* (the players in
     your group with the tank role or a raid's main tank mark, and nobody
     outside it); *Tanks, and anyone outside my group*; or *Only me*. Anybody
-    who asks you for Thorns in chat is still offered it.
+    who asks you for Thorns in chat is still offered it. In a group, the two
+    tank choices leave your own Thorns alone too unless you are the tank; on
+    your own you are reminded as ever.
   - A warlock's Unending Breath goes to everybody, your group and passers-by,
     with *Offer Unending Breath to everybody near me* (on) on Classic Era,
     WoW Forever and Burning Crusade. Unticked, it goes to return a favour
