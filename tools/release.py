@@ -9,9 +9,10 @@ sixteen parts every night, on every push to master and on demand for any
 branch (gh workflow run selftest.yml --ref <branch>). The preflight reads its
 newest green run of a commit this one holds -- master's, or a branch's proven
 before it was merged; on that very commit nothing more is needed, on a later
-one only the mutations of the files changed since are run here
-(tests/selftest.py --changed <that commit>). --skip-selftest is for a full run
-made by hand instead.
+one only the mutations the changes since are about are run here
+(tests/selftest.py --changed <that commit>: the ones on a changed file, the
+ones whose scenario file changed, the ones new in a changed mutations file).
+--skip-selftest is for a full run made by hand instead.
 
 Preflight, all read-only, and nothing changes unless every one passes:
 
@@ -27,6 +28,11 @@ Preflight, all read-only, and nothing changes unless every one passes:
   with python tools/check.py --release: the one command that runs everything
   (lint, validate, harness, anchors, locales, the looks' previews and
   contrast, bughunt, the scenarios, the quick fuzzer, each client's files).
+  CI is less than that command: validate, the harness, the anchors and the
+  scenarios on Forever. On a commit CI passed, the other clients' files, the
+  fuzzer, the locales, lint and the looks' previews and contrast rest on
+  RELEASING.md's step 2, python tools/check.py --release by hand, and the
+  preflight says so.
 - selftest.yml passed on a commit this one holds: this one, or an earlier one
   and the mutations of the files changed since pass here.
 
@@ -192,9 +198,14 @@ def preflight(version, dry_run, skip_selftest=False):
         result(not taken, "the tag %s is not taken%s" % (
             tag, " (it exists %s)" % " and ".join(taken) if taken else ""))
 
-        # CI's run of this very commit is the same check on GitHub's machine:
-        # read it (or wait for it) rather than make it again here. Only a
-        # commit CI never saw -- not pushed yet -- or a red run is checked here.
+        # CI's run of this very commit is read (or waited for) rather than
+        # made again here. It is not the whole of check.py --release: ci.yml
+        # runs validate, the harness, the anchors and the scenarios on
+        # Forever, and none of the other clients' files, the quick fuzzer, the
+        # locales, lint or the looks' previews and contrast. Those are
+        # RELEASING.md's step 2, by hand, and the line below says they were
+        # not run here. Only a commit CI never saw -- not pushed yet -- or a
+        # red run gets the whole command here.
         head_sha = git("rev-parse", "HEAD")
         state, ci_id = ci_state(head_sha)
         did("gh", "run", "list", "--workflow", "ci.yml", "--commit", head_sha, "--event", "push")
@@ -202,7 +213,10 @@ def preflight(version, dry_run, skip_selftest=False):
             say("  ..    CI is still running on this commit (%s); waiting for it" % head_sha[:10])
             state = "success" if watch(ci_id, "CI") else "failure"
         if state == "success":
-            result(True, "CI passed on this commit (%s): no local check needed" % head_sha[:10])
+            result(True, "CI passed on this commit (%s): validate, harness, anchors and the scenarios"
+                         " on Forever. Not run here, and not by CI: the other clients' files, the"
+                         " fuzzer, the locales and the looks -- python tools/check.py --release"
+                         " (RELEASING.md, step 2)" % head_sha[:10])
         else:
             say("  ..    python tools/check.py --release (CI %s on %s; push first and let"
                 " it pass to skip this)" % ({"failure": "is red"}.get(state, "has not run"),
@@ -235,7 +249,9 @@ def preflight(version, dry_run, skip_selftest=False):
                     " (selftest.yml passed on %s)" % (green[:10], green[:10]))
                 did(sys.executable, "tests/selftest.py", "--changed", green)
                 code = stream([sys.executable, "tests/selftest.py", "--changed", green], indent="        ")
-                result(code == 0, "the mutations of the files changed since %s are all caught" % green[:10]
+                result(code == 0, "tests/selftest.py --changed %s left nothing uncaught (its lines above"
+                                  " say how many mutations it judged, and what it did not judge again)"
+                       % green[:10]
                        + ("" if code == 0 else " -- see one alone, in seconds: python tools/prove.py"
                                                " <its label>; all again: python tests/selftest.py"
                                                " --changed %s" % green[:10]))
@@ -249,7 +265,7 @@ def last_green_selftest():
     holds (HEAD itself or one of its ancestors), or None. Master's runs, and a
     branch's proven before it was merged (gh workflow run selftest.yml --ref
     <branch>): what was judged there is in this commit either way, and the
-    mutations of everything changed since are run here."""
+    mutations the changes since are about are run here."""
     r = run(["gh", "run", "list", "--workflow", "selftest.yml", "--status", "success",
              "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
     if r.returncode != 0:

@@ -15,9 +15,12 @@ The steps, each the existing script run as it is:
              the default client)
   --flavours each client's own scenario file as that client -- era.lua as
              vanilla, tbc.lua as tbc, mists.lua as mists, mainline.lua as
-             mainline -- and every tests/scenarios/*-fixes.lua as each of those
-             four (the scenarios step has already run them as camelot), and
-             the files in ALSO below (unverified.lua, hunt23-queue.lua and
+             mainline -- and every tests/scenarios/*-fixes.lua, *-review.lua
+             and *-review2.lua (the scenarios of a hunt's fixes) as each of
+             those four (the scenarios step has already run them as
+             camelot), but the pairs in FOREVER_FIXTURES below, whose
+             scenarios are written on Forever's names and spells; and the
+             files in ALSO below (unverified.lua, hunt23-queue.lua and
              hunt23-favours.lua as mainline):
              tests/runscenarios.py --flavour X --file F
   --lint     tools/lint.py, first of all steps and alone until it passes: a file
@@ -99,6 +102,49 @@ CLIENTS = (("vanilla", "era.lua"), ("tbc", "tbc.lua"), ("mists", "mists.lua"),
 # but Forever.
 ALSO = (("mainline", "unverified.lua"), ("mainline", "hunt23-queue.lua"),
         ("mainline", "hunt23-favours.lua"))
+
+# The scenario files of fixes: every one is run as each client besides Forever.
+# It was *-fixes.lua alone, so the thirteen files of 1.11.25's two review hunts
+# (*-review.lua, *-review2.lua) were asked of Forever and of nobody else.
+FIX_FILES = ("*-fixes.lua", "*-review.lua", "*-review2.lua")
+
+# ...but these, on these clients: a file whose scenarios stand on Forever's own
+# fixtures (two-part names in the macro, Forever's spells and bags) is red
+# there by its fixtures, each such scenario saying SKIPPED or naming the
+# surname it looked for. Tried one by one on 2026-11-14; a file comes off this
+# list when its fixtures no longer need Forever. tests/validate.py holds every
+# fix file to being run on every client or named here.
+OTHERS = ("vanilla", "tbc", "mists", "mainline")
+FOREVER_FIXTURES = {
+    "ask-review.lua": OTHERS,
+    "courtesy-review.lua": OTHERS,
+    "day-fixes-review2.lua": ("mists", "mainline"),
+    "looks-new-review2.lua": OTHERS,
+    "looks-redrawn-review2.lua": OTHERS,
+    "menu-review2.lua": ("mainline",),
+    "raidsplit-review.lua": OTHERS,
+    "seams-review.lua": OTHERS,
+}
+
+
+def fix_files():
+    """Every scenario file of fixes, by name."""
+    found = set()
+    for pattern in FIX_FILES:
+        found.update(os.path.basename(p) for p in glob.glob(os.path.join(TESTS, "scenarios", pattern)))
+    return sorted(found)
+
+
+def client_files():
+    """What --flavours runs: [(client, scenario file)], in the order of the steps."""
+    out = []
+    fixes = fix_files()
+    for client, own in CLIENTS:
+        out.append((client, own))
+        out.extend((client, name) for name in fixes if client not in FOREVER_FIXTURES.get(name, ()))
+    out.extend(ALSO)
+    return out
+
 
 # Lines that say nothing about why a step failed.
 NOISE = re.compile(r"^(=== .* ===|== .* ==|  ok\b.*|narrowed: .*|all scenarios clean|\s*)$")
@@ -236,7 +282,8 @@ def release_steps(jobs):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Run the test suites and summarise them.")
     parser.add_argument("--flavours", action="store_true",
-                        help="also run each client's own scenario file and every *-fixes.lua as each client")
+                        help="also run each client's own scenario file and every *-fixes.lua,"
+                             " *-review.lua and *-review2.lua as each client")
     parser.add_argument("--anchors", action="store_true",
                         help="also run tests/selftest.py --anchors")
     parser.add_argument("--lint", action="store_true",
@@ -261,12 +308,7 @@ def main(argv=None):
     scenarios = Step("scenarios", ["tests/runscenarios.py", "--jobs", str(jobs)])
     rest = []
     if args.flavours:
-        fixes = sorted(os.path.basename(p) for p in glob.glob(os.path.join(TESTS, "scenarios", "*-fixes.lua")))
-        for client, own in CLIENTS:
-            for name in [own] + fixes:
-                rest.append(Step("%s: %s" % (client, name),
-                                 ["tests/runscenarios.py", "--flavour", client, "--file", name]))
-        for client, name in ALSO:
+        for client, name in client_files():
             rest.append(Step("%s: %s" % (client, name),
                              ["tests/runscenarios.py", "--flavour", client, "--file", name]))
     if args.anchors:

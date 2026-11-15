@@ -390,6 +390,10 @@ local function spellFor(W, name)
 			return { kind = "own", entry = entry }
 		end
 	end
+	-- A resurrection of this class's (fuzz_world.lua, indexSpells).
+	local mine = W.resSpells and W.resSpells[W.me.class]
+	if mine and name == X.RES_NAME then return { kind = "res", ids = mine.single or {} } end
+	if mine and name == X.MASS_RES_NAME then return { kind = "res", mass = true, ids = mine.mass or {} } end
 	return nil
 end
 
@@ -440,6 +444,64 @@ local function reach(W, spell, target)
 	return out
 end
 
+-- A resurrection cast: at the dead target, or at nobody for the one that
+-- reaches every dead member of the group. Out of a fight only, as the spell
+-- is; the ten seconds of the cast are not played, the game's answer comes
+-- with the press as a buff's does, and whoever it reaches stands up after.
+local function castRes(W, spell, events)
+	local function refuse(text, outcome)
+		events[#events + 1] = { "UI_ERROR_MESSAGE", 0, text }
+		return outcome
+	end
+	local id = topKnown(W, spell.ids)
+	if not id then return refuse("Spell not learned.", "unlearned") end
+	local now = Mock.now
+	if W.me.dead then return refuse("You can't do that while dead.", "dead") end
+	if Mock.inCombat then return refuse("You can't do that while in combat.", "combat") end
+	if W.gcdEnds > now then return refuse("Spell is not ready yet.", "cooldown") end
+	if W.flying then return refuse("You are mounted.", "mounted") end
+	if W.me.mana <= 0.02 then return refuse("Not enough mana.", "mana") end
+	local raised, aimedName = {}, ""
+	if spell.mass then
+		for _, p in ipairs(W.raid or W.party or {}) do
+			if p ~= W.me and p.dead and not p.feign and not p.ghost and p.visible then raised[#raised + 1] = p end
+		end
+	else
+		local target = W.tok.target
+		if not target or target.npc or not target.assist or not target.dead or target.feign or target.ghost then
+			return refuse("Invalid target.", "no body")
+		end
+		if not target.visible or target.yards > 30 then return refuse("Out of range.", "range") end
+		raised[1] = target
+		aimedName = target.first
+		if W.surnames and target.surname then aimedName = target.first .. " " .. target.surname end
+		events.aimed = target
+	end
+	local guid = castGuid(W)
+	events[#events + 1] = { "UNIT_SPELLCAST_SENT", "player", aimedName, guid, id }
+	events[#events + 1] = { "UNIT_SPELLCAST_START", "player", guid, id }
+	local roll = (W.stepNo or 0) * 0.6180339 % 1
+	if roll < 0.06 and W.lateRefusals then
+		events[#events + 1] = { "UNIT_SPELLCAST_FAILED", "player", guid, id }
+		events.late = true
+		return "late refusal"
+	end
+	events[#events + 1] = { "UNIT_SPELLCAST_SUCCEEDED", "player", guid, id }
+	events.ok = true
+	W.gcdStart, W.gcdEnds = now, now + 1.5
+	events.landing = function()
+		for _, p in ipairs(raised) do
+			if p.dead then
+				p.dead, p.feign, p.ghost = false, false, false
+				W.stats.raised = (W.stats.raised or 0) + 1
+				auraEvent(W, p, 0.1)
+			end
+		end
+	end
+	W.me.mana = math.max(0, W.me.mana - 0.04)
+	return "ok"
+end
+
 -- One /cast as the secure handler does it: the outcome, with the events the
 -- client sends for it appended to `events`.
 local function castSpell(W, name, events)
@@ -449,6 +511,7 @@ local function castSpell(W, name, events)
 		events[#events + 1] = { "UI_ERROR_MESSAGE", 0, "That spell is not available." }
 		return "unknown"
 	end
+	if spell.kind == "res" then return castRes(W, spell, events) end
 	local id
 	if spell.kind == "rank" then id = topKnown(W, spell.entry.buff.ranks)
 	elseif spell.kind == "group" then
@@ -1312,7 +1375,7 @@ end, modern)
 -- What the player knows.
 def("relearn", 2, function(W, s)
 	local rng = X.newRng(s.d + 17)
-	X.learn(W, W.ns, rng)
+	X.learn(W, W.ns, rng, s.d + 29)
 	fire(W, "SPELLS_CHANGED")
 	fire(W, "BAG_UPDATE_DELAYED")
 	fire(W, "PLAYER_EQUIPMENT_CHANGED")
@@ -1685,6 +1748,19 @@ def("setting", 14, function(W, s)
 	elseif t == "execute" then
 		if s.c < 0.5 then B.Run(item) end
 	end
+end)
+
+-- Asking for a buff you lack (Ask.lua), ticked and unticked through its own
+-- control: `setting` picks one control among some three hundred, and all but
+-- never this one.
+def("ask_switch", 2, function(W, s)
+	local ns = W.ns
+	local B, UI = ns.WindowBind, ns.WindowUI
+	if not B or not UI then return end
+	if not UI.Shown() then ns.OpenOptions(nil, true) end
+	local item = B.Item("who.ask", nil, UI.ctx)
+	if not item or B.Hidden(item) or B.Disabled(item) then return end
+	B.Commit(item, s.a < 0.75)
 end)
 
 -- A profile switch, and the saved file flushed and read again.

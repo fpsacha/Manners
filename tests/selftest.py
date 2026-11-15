@@ -61,9 +61,14 @@ no piece catches has the whole suite's verdict.
   --fresh-trace  trace the scenarios again even if a trace of these same tests
                  is kept in %TEMP%/manners-selftest-trace (it is kept across
                  changes to the addon: see TRACE_CACHE)
-  --changed [REF]  only the mutations of files that differ from REF (default
-                 master), for a quick check of a small change; the full run
-                 is still what a release is checked against
+  --changed [REF]  only the mutations a difference from REF (default master)
+                 is about: the ones on a file that differs, the ones whose
+                 own scenario file (tests/scenarios/<topic>.lua) differs,
+                 and the ones new or rewritten in a tests/mutations file
+                 (or in this one) that differs. A change to what judges
+                 every mutation (the mock, the runners) is named and not
+                 re-judged: the full run is still what a release is
+                 checked against
   --only TEXT    only the mutations whose label or file holds TEXT (any case;
                  repeatable), judged exactly as in the full run
   --part I/N     only every Nth mutation from the Ith: one machine's share of
@@ -106,8 +111,10 @@ import jobs as _jobs
 
 # Two cores left free by default, so the machine stays usable during a run,
 # fewer when memory is short, and never more than MANNERS_JOBS (tools/jobs.py).
-# The kept trace is keyed on this number (one shard per worker), so a run with
-# another count traces afresh.
+# The kept trace is not keyed on this number: it is every shard's trace laid
+# together, the same whatever the count, and the default moves with the
+# memory free at the moment, so a key that held it sent a second run on the
+# same tests back to trace the suite again.
 JOBS = _jobs.default_jobs()
 if "--jobs" in sys.argv[1:]:
     JOBS = max(1, int(sys.argv[sys.argv.index("--jobs") + 1]))
@@ -178,11 +185,12 @@ if "--part" in sys.argv[1:]:
         sys.exit("--part I/N needs 1 <= I <= N")
 
 
-def tree_key(shards, tests_only):
+def tree_key(tests_only):
     """A hash of every file a scenario run reads -- with tests_only, of the
-    tests' own -- and of the number of shards."""
+    tests' own. Never of how many workers the run has: the trace kept under
+    it is the union of every worker's."""
     import hashlib
-    h = hashlib.sha256(("shards %d\n" % shards).encode())
+    h = hashlib.sha256(b"trace 2\n")
     for top, dirs, names in os.walk(DIR):
         dirs[:] = sorted(d for d in dirs if d not in (".git", "__pycache__"))
         rel_top = os.path.relpath(top, DIR).replace("\\", "/")
@@ -205,8 +213,8 @@ def tree_key(shards, tests_only):
     return h.hexdigest()[:32]
 
 
-def trace_key(shards):
-    return tree_key(shards, True)
+def trace_key():
+    return tree_key(True)
 
 
 class Cancelled(Exception):
@@ -285,6 +293,77 @@ def findings(out):
             if (l.startswith("  ") and l.strip()) or l.startswith("SCENARIO HARNESS ERROR")]
 
 
+# What judges every mutation, whatever its topic: a change to one of these is
+# not a change --changed can turn into a handful of mutations.
+SHARED_JUDGES = ("tests/mockapi.lua", "tests/mockwidgets.lua", "tests/mockwindow.lua",
+                 "tests/mockmacros.lua", "tests/addonfiles.lua", "tests/frametree.lua",
+                 "tests/harness.lua", "tests/runscenarios.py", "tests/runharness.py",
+                 "tests/validate.py")
+
+
+def changed_selection(mutations, changed, written_before):
+    """Which of `mutations` a difference from REF is about: [(mutation, why)].
+
+    changed: the paths that differ from REF. written_before(source): what the
+    file `source` held at REF, a set of (filename, old, new, label, expect,
+    script), or None when that cannot be said (the file is new, or does not
+    read) -- then every mutation written in it counts as new.
+
+    Kept: a mutation on a file that differs; one whose own scenario file
+    differs (the check that has to catch it may be the thing that changed);
+    one that is new or rewritten in a mutations file that differs (it was
+    never judged). Selecting by the mutated file alone let a weakened
+    scenario, or a mutation added on untouched code, through with nothing
+    run."""
+    kept, before = [], {}
+    for m in mutations:
+        target = m.filename.replace("\\", "/")
+        judge = "tests/scenarios.lua" if m.topic == "scenarios.lua" else "tests/scenarios/" + m.topic
+        why = None
+        if target in changed:
+            why = "its file differs"
+        elif m.script == "runscenarios.py" and judge in changed:
+            why = "its scenario file differs"
+        elif m.source in changed:
+            if m.source not in before:
+                before[m.source] = written_before(m.source)
+            was = before[m.source]
+            if was is None or (m.filename, m.old, m.new, m.label, m.expect, m.script) not in was:
+                why = "new or rewritten in " + m.source
+        if why:
+            kept.append((m, why))
+    return kept
+
+
+def mutations_at(ref, source):
+    """The mutations the file `source` held at the commit `ref`, as
+    changed_selection wants them, or None."""
+    import ast
+    out = subprocess.run(["git", "-C", DIR, "show", "%s:%s" % (ref, source)],
+                         capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if out.returncode != 0:
+        return None
+    found = set()
+
+    def record(filename, old, new, label, expect, script="runharness.py"):
+        found.add((filename, old, new, label, expect, script))
+
+    try:
+        if source == "tests/selftest.py":
+            # This file's own, which are its top-level mutate() statements:
+            # each run alone, as tools/anchors_for.py reads them.
+            for node in ast.parse(out.stdout).body:
+                if (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+                        and getattr(node.value.func, "id", None) == "mutate"):
+                    exec(compile(ast.Module(body=[node], type_ignores=[]), source, "exec"),
+                         {"mutate": record})
+        else:
+            exec(compile(out.stdout, source, "exec"), {"mutate": record, "__file__": source})
+    except Exception:
+        return None
+    return found
+
+
 dead_anchors = []
 missed = []
 misattributed = []
@@ -296,8 +375,10 @@ not_restored = []
 plan = []
 _sources = {}
 # The topic of the mutations being read in: "scenarios.lua" for this file's,
-# "<topic>.lua" while tests/mutations/<topic>.py runs.
+# "<topic>.lua" while tests/mutations/<topic>.py runs; and the file they are
+# written in.
 _topic = "scenarios.lua"
+_source = "tests/selftest.py"
 
 
 def say(text=""):
@@ -314,6 +395,7 @@ class Mutation:
         # The scenario file its own tests/mutations/<topic>.py is named after,
         # where the check usually is; scenarios.lua for this file's own.
         self.topic = _topic
+        self.source = _source   # the file its mutate() call is in
         self.located = (set(), set())  # (names, files) its expect is traced to
         self.select = None      # runscenarios.py arguments narrowing its run
         self.lines = []
@@ -342,6 +424,10 @@ def mutate(filename, old, new, label, expect, script="runharness.py"):
     Called at the top level of this file and of tests/mutations/*.py, it only
     records the mutation; they are all run together at the end.
     """
+    if old == new:
+        # Nothing would change, the check would stay green, and the verdict
+        # could only be MISSED: said here, where the mutation is written.
+        raise ValueError("the mutation %r replaces its text with the same text" % label)
     path = os.path.join(DIR, filename)
     if filename not in _sources:
         _sources[filename] = open(path, encoding="utf-8").read()
@@ -4547,6 +4633,7 @@ for _mf in sorted(_glob.glob(os.path.join(DIR, "tests", "mutations", "*.py"))):
     say()
     say("-- " + os.path.basename(_mf))
     _topic = os.path.basename(_mf)[:-3] + ".lua"
+    _source = "tests/mutations/" + os.path.basename(_mf)
     exec(compile(open(_mf, encoding="utf-8").read(), _mf, "exec"),
          {"mutate": mutate, "__file__": _mf})
 
@@ -4572,10 +4659,21 @@ if "--changed" in sys.argv[1:]:
     _ref = sys.argv[_i + 1] if _i + 1 < len(sys.argv) and not sys.argv[_i + 1].startswith("--") else "master"
     _out = subprocess.run(["git", "-C", DIR, "diff", "--name-only", _ref], capture_output=True, text=True)
     _changed = {p.strip().replace("\\", "/") for p in _out.stdout.splitlines() if p.strip()}
-    _kept = [m for m in plan if not isinstance(m, Mutation) or m.filename.replace("\\", "/") in _changed]
+    _chosen = dict((id(m), why) for m, why in changed_selection(
+        [m for m in plan if isinstance(m, Mutation)], _changed, lambda source: mutations_at(_ref, source)))
+    _kept = [m for m in plan if not isinstance(m, Mutation) or id(m) in _chosen]
     print("--changed %s: %d files differ; %d of %d mutations kept" % (
         _ref, len(_changed), sum(isinstance(m, Mutation) for m in _kept),
         sum(isinstance(m, Mutation) for m in plan)))
+    for _why in sorted(set(_chosen.values())):
+        print("  %d: %s" % (sum(1 for w in _chosen.values() if w == _why), _why))
+    _shared = sorted(p for p in _changed if p in SHARED_JUDGES)
+    if _shared:
+        # Through %s: validate.py reads a print ending in a colon and a
+        # space before a quote as a failure word the CI grep must know.
+        print("%s %s differ%s, and judge every mutation: none is judged again for that here;"
+              " the full run is (selftest.yml)" % ("NOT JUDGED AGAIN --", ", ".join(_shared),
+                                                    "s" if len(_shared) == 1 else ""))
     plan[:] = _kept
 
 # --only TEXT (repeatable): the mutations whose label or file holds TEXT, in any
@@ -4629,7 +4727,7 @@ if not mutations and not dead_anchors and ("--changed" in sys.argv[1:] or _only)
 _shards = []
 _trace_key = _trace_cached = None
 if not WHOLE:
-    _trace_key = trace_key(JOBS)
+    _trace_key = trace_key()
     _trace_cached = os.path.join(TRACE_CACHE, _trace_key + ".json")
     if FRESH_TRACE or not os.path.exists(_trace_cached):
         _trace_cached = None
@@ -4801,7 +4899,7 @@ print()
 scenario_map = None
 if _traced:
     _merged = {"lines": {}, "names": {}}
-    _tree = tree_key(JOBS, False)
+    _tree = tree_key(False)
     try:
         _made_on = _tree
         for _p in [_trace_cached] if _trace_cached else [p for p, _ in _shards]:

@@ -677,7 +677,7 @@ function X.install(W)
 			if Mock.inCombat then why = "in a fight"
 			elseif W.stealthed then why = "while stealthed"
 			elseif me.feign then why = "while feigning death"
-			elseif W.inInstance then why = "in an instance"
+			elseif W.inInstance and not X.teamThanked(W, p) then why = "in an instance"
 			elseif W.chatLockdown then why = "under a chat lockdown"
 			elseif not p or p == me or p.npc then
 				why = "at " .. tostring(token) .. ", who is not another player"
@@ -938,6 +938,18 @@ local function loadAddon(W)
 	return ns
 end
 
+-- A battleground or an arena has a switch of its own for a thank-you
+-- (Battle.lua, Thank people there, on): somebody of the player's own team is
+-- thanked there, and nobody else in any instance.
+function X.teamThanked(W, p)
+	if not (W.inInstance == "pvp" or W.inInstance == "arena") then return false end
+	local battle = W.ns and W.ns.Battle
+	return battle ~= nil and battle.On("thank") and p ~= nil and p ~= W.me and p.grouped == true
+end
+
+-- What the client calls a resurrection, and the one for the whole group.
+X.RES_NAME, X.MASS_RES_NAME = "Resurrection of the Fuzz", "Mass Resurrection of the Fuzz"
+
 -- The spell data the client answers from, built from the addon's own tables:
 -- one name per buff (every rank shares it, as the game does), a group
 -- version's own, and the ids a class's own families cast.
@@ -972,10 +984,26 @@ local function indexSpells(W, ns)
 		end
 	end
 	table.sort(W.ownSpells, function(a, b) return a.class .. a.spell.key < b.class .. b.spell.key end)
+	-- A resurrection's (Resurrect.lua): this client's ids per class, the one
+	-- for one person and the one for the whole group, each under one name.
+	W.resSpells = {}
+	local res, flavour = ns.Resurrect, ns.Flavour or {}
+	local sets = res and res.SPELLS or {}
+	local set = sets[flavour.flavour] or (flavour.family == "classic" and sets.vanilla or sets.mainline) or {}
+	for class, mine in pairs(set) do
+		W.resSpells[class] = mine
+		for _, id in ipairs(mine.single or {}) do name(id, X.RES_NAME) end
+		for _, id in ipairs(mine.mass or {}) do
+			name(id, X.MASS_RES_NAME)
+			W.rangeless[id] = true
+		end
+	end
 end
 
 -- Which of the player's spells are learned, and what is in the bags.
-function X.learn(W, ns, rng)
+-- `resSeed` is for the dice a resurrection is learned by, which are its own:
+-- the draws of `rng` are the ones a seed made before the world had any.
+function X.learn(W, ns, rng, resSeed)
 	local known = {}
 	W.known = known
 	for _, entry in ipairs(W.classBuffs) do
@@ -1013,6 +1041,21 @@ function X.learn(W, ns, rng)
 			W.formSpells[W.forms] = entry.spell.ranks[1]
 		end
 	end
+	-- A resurrection (Resurrect.lua asks ns.SpellKnown for each id): on four
+	-- seeds in five from some rank down, and the one for the whole group on
+	-- most of those where the client has one.
+	local mine = W.resSpells and W.resSpells[W.me.class]
+	if mine then
+		local dice = X.newRng(resSeed or ((W.seed or 0) * 71 + 13))
+		if dice() < 0.8 then
+			local ids = mine.single or {}
+			local from = 1 + math.floor(dice() * #ids)
+			for i = from, #ids do known[ids[i]] = true end
+			if dice() < 0.7 then
+				for _, id in ipairs(mine.mass or {}) do known[id] = true end
+			end
+		end
+	end
 end
 
 -- A traceback along with the error, for the failure report.
@@ -1029,9 +1072,31 @@ function X.fire(W, event, ...)
 	local addon = W.ns and W.ns.addon
 	if not addon then return end
 	local handler = addon[event]
-	if type(handler) ~= "function" then return end
-	local ok, err = X.xcall(handler, addon, event, ...)
-	if not ok then X.escaped(W, "event " .. event, err) end
+	local ok = nil
+	if type(handler) == "function" then
+		local err
+		ok, err = X.xcall(handler, addon, event, ...)
+		if not ok then X.escaped(W, "event " .. event, err) end
+	end
+	-- The modules that listen on a frame of their own (Resurrect.lua for the
+	-- player's casts, Courtesy.lua): each handed what it registered for, as
+	-- the client hands it, and a unit's event only for that unit.
+	local unit = ...
+	for _, module in ipairs({ W.ns.Resurrect or false, W.ns.Courtesy or false }) do
+		local frame = module and module.frame
+		local script = frame and frame.scripts and frame.scripts.OnEvent
+		if type(script) == "function" then
+			local units = frame.unitEvents and frame.unitEvents[event]
+			local heard = frame.events and frame.events[event] == true
+			for _, token in ipairs(units or {}) do
+				if token == unit then heard = true end
+			end
+			if heard then
+				local fine, err = X.xcall(script, frame, event, ...)
+				if not fine then X.escaped(W, "frame event " .. event, err) end
+			end
+		end
+	end
 	return ok
 end
 
@@ -1056,7 +1121,7 @@ function X.boot(W, reloading)
 		X.learn(W, ns, W.rng)
 		W.indexed = true
 	elseif W.needLearn then
-		X.learn(W, ns, X.newRng(W.needLearn + 99))
+		X.learn(W, ns, X.newRng(W.needLearn + 99), W.needLearn + 199)
 	end
 	W.needLearn = nil
 	-- The prompt's scans are read through ns.BuildQueue, so the check sees the

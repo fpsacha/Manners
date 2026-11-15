@@ -525,7 +525,7 @@ mutate("Looks/Frost.lua",
 
 mutate("Looks/Frost.lua",
        "\tColour(self.core, o[1], o[2], o[3])\n",
-       "\tColour(self.core, o[1], o[2], o[3])\n",
+       "\tself.core:SetVertexColor(o[1], o[2], o[3], 1)\n",
        "look-frost: a verdict's colour lighting the vein's core in full",
        expect="a verdict's colour lit the vein's core", script=S)
 
