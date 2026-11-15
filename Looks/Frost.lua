@@ -85,6 +85,11 @@ local Frost = ns.Looks.Register("frost", {
 	-- The words stand on the deep ice whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/frost): what of this
+	-- file's own art it replaces, and the icon a little smaller than the
+	-- socket, so the mist drifts in the socket's dark ring round it.
+	paintedHides = { "shadow", "body", "hoar", "disc", "lip", "rune", "runeGlow", "icicles", "rimes", "keyChip" },
+	paintedIconFill = 0.76,
 })
 
 -- MUST AGREE with tools/make_frost_textures.py (tests/scenarios/look-frost.lua
@@ -168,6 +173,9 @@ local OUTCOME = {
 }
 -- What a fight does: the text dims, the icon greys and dims, the slab dims.
 local TEXT_COMBAT, ICON_COMBAT, BODY_COMBAT = 0.78, 0.70, 0.72
+-- A painted frame (Looks/Painted.lua) is dimmed less: its light keycap keeps
+-- the key's dark letter readable.
+local PAINT_COMBAT = 0.86
 -- The light over the mist at rest, lit and held after its breaths; the
 -- rune's light and the vein's soft core over the same breath.
 local HALO = { rest = 0, peak = 0.62, held = 0.30 }
@@ -1017,6 +1025,8 @@ function Frost:Apply(p, above)
 	local chipH = sub + 7
 	self.chipH = chipH
 	PlaceThree(self.keyChip, self.keyBox, chipH)
+	-- With the words (a painted frame moves it to its keycap's frame).
+	self.keyText:SetParent(kit.textLayer)
 	self.keyBox:ClearAllPoints()
 	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -self.chipInset, 0)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
@@ -1043,7 +1053,7 @@ function Frost:Apply(p, above)
 		row:SetWidth(rowWidth)
 		fit.room[row] = rowWidth
 	end
-	self.listShown, self.listAt = nil, nil
+	self.listShown, self.listAt, self.listGap = nil, nil, nil
 
 	-- Everything shown, then what waits: the lights parked at nothing, the
 	-- list for PaintQueue, the chips for Chip.
@@ -1141,7 +1151,8 @@ function Frost:PlaceCrystal(showIcon)
 		-- The room the rings have: to the text (less a margin), to the
 		-- button's left edge, and to its top and bottom.
 		local limitH = math.min(self.textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN)
-		local limitV = H / 2 - kit.EDGE_MARGIN
+		-- (to the nearer of the two: a painted socket may sit off the middle)
+		local limitV = math.min(cy, H - cy) - kit.EDGE_MARGIN
 		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
 		local cooldown = kit.cooldown
 		if cooldown then
@@ -1511,6 +1522,97 @@ function Frost:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): Frost's own lights, motion, tags
+-- and lines moved onto the painting. Looks/Painted.lua has laid the three
+-- pieces and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The crystal's ring of mist, against the icon: the crystal file is drawn
+-- this many icons across, so the mist lies just round the icon.
+local MIST_OF_ICON = 2
+
+function Frost:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art = kit.art
+	local showIcon = p.showIcon and true or false
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	-- The socket is the crystal: the mist in its dark ring round the icon,
+	-- the light over it, the block, the nova and the rings, centred in it.
+	self.cx, self.cy, self.iconSize = g.socketX, g.socketY, g.iconSize
+	self.circle = g.iconSize * MIST_OF_ICON
+	self.discRight = g.socketX + g.socketR
+	self.textX = g.textX
+	self:PlaceCrystal(showIcon)
+	-- The slab is the painted bar's core, from the socket to the keycap's far
+	-- side; the rune's flash and glint are on the ornament at its end.
+	self.plateIn, self.ph, self.plateX, self.su = g.top, g.unit, 0, g.unit / DESIGN_H
+	self.rootX = keyR
+	self.gemX, self.runeSize = g.endX, math.max(6, g.unit * 0.42)
+	At(self.hot, art, g.endX, g.endY, self.runeSize * 1.25)
+	At(self.star, art, g.endX + self.runeSize * 0.16, g.endY - self.runeSize * 0.20, math.max(8, self.runeSize * 1.1))
+	self:PlaceGrowth(showIcon, above)
+	-- The painting has icicles of its own: none of this look's hangs, drips
+	-- or falls.
+	for i in ipairs(self.icicles) do self.icicleOn[i] = false end
+	self:PlaceMotion(showIcon, above)
+	-- The vein along the well's lower edge, from the words to the keycap.
+	local veinH = math.max(2, g.unit * 0.05)
+	local veinY = g.wellBottom - veinH
+	Box(self.vein, art, g.textX - 2, veinY - veinH / 2, keyL - 2, veinY + veinH / 2)
+	Box(self.core, art, g.textX - 2, veinY - veinH / 2, keyL - 2, veinY + veinH / 2)
+	self.veinOK = keyL - g.textX >= 16
+	self.vein:SetShown(self.veinOK)
+	self.core:SetShown(self.veinOK)
+	-- The cursor's light along the bar's upper edge.
+	Box(self.hoverFrame, art, self.discRight, g.top, keyR, g.top + g.unit * 0.18)
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = self.H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap (its own tag is the painting's);
+	-- the lines and the count's tag keep left of it.
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	-- The letter is part of the keycap: a fight's dim of the words (textLayer's
+	-- alpha) would leave a dark letter grey on the light glass.
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+	-- The list from the socket to the keycap's far side.
+	self.rowX, self.listX0 = math.max(g.textX, 24), math.max(2, g.socketX)
+	if above and showIcon then
+		self.listX0 = self.discRight + 1
+		self.rowX = math.max(self.rowX, self.listX0 + 17)
+	end
+	self.listX1 = math.max(self.rowX + 30, keyR + 3)
+	self.listGap = math.max(0, (above and -g.y0 or (g.y1 - self.H)) * 0.85)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	-- What runs at rest, asked again where it now falls.
+	self:Hang()
+	self.idleState = nil
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter is dark on the painted keycap's light glass.
+function Frost:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	-- No larger than the keycap holds, so the letter stays on its glass.
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1631,11 +1733,17 @@ function Frost:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.chipInset + 7)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1721,6 +1829,9 @@ function Frost:Dress()
 	end
 	Each(self.body, "SetDesaturated", fight or dead)
 	for _, t in ipairs(self.body) do Colour(t, pc[1] * fr, pc[2] * fg, pc[3] * fb) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	if fight then fr, fg, fb = PAINT_COMBAT, PAINT_COMBAT, PAINT_COMBAT end
+	ns.Looks.Painted.Tone(self, pc[1] * fr, pc[2] * fg, pc[3] * fb, fight or dead)
 end
 
 -- What a refusal leaves: the slab cracked and dull, the mist spent, the rime
@@ -2136,7 +2247,11 @@ function Frost:PaintQueue(rows, shown, above)
 	self:Idle()
 
 	local pitch = self.pitch
-	local depth = shown * pitch + 7
+	-- Under a painted frame the rows keep clear of what the painting hangs
+	-- past the bar (its icicles, its crystal's points): the sheet runs on
+	-- under them.
+	local gap = self.listGap or 0
+	local depth = shown * pitch + 7 + gap
 	local H = self.H
 	local y0, y1
 	if above then
@@ -2157,9 +2272,9 @@ function Frost:PaintQueue(rows, shown, above)
 		-- Row centres, reading downwards either way.
 		local y
 		if above then
-			y = -(4 + (shown - i) * pitch + pitch / 2)
+			y = -(4 + gap + (shown - i) * pitch + pitch / 2)
 		else
-			y = H + 3 + (i - 1) * pitch + pitch / 2
+			y = H + 3 + gap + (i - 1) * pitch + pitch / 2
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)

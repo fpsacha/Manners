@@ -120,6 +120,10 @@ FRAMES = {
     "ebon": (82, 0, 5.5),
     "leather": (83, 14, -17.5),
     "warchief": (62, 0, 2),
+    # Frost's painted frame (Looks/Painted.lua): its socket's crystal 13 units
+    # over the panel, its icicles 20 under, and its two ends hanging 21 left and
+    # 30 right of it where the well is short for the words.
+    "frost": (80, 4.5, -3.5),
 }
 
 STUB = """local _, ns = ...
