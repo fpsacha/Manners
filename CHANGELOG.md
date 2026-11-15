@@ -61,6 +61,9 @@
   tooltip, the broker text and the options window name it in red, with *Run
   a full check-up*. With *Say nothing at all in chat* on, one line goes on
   screen instead of chat, once a session.
+- **`/manners selftest launch` says what the session did.** Any action the
+  game refused Manners since login, the map the town rule reads, and whether
+  a debuff's timer is given, so one pasted report answers them.
 
 ## 1.11.25
 

@@ -68,6 +68,58 @@ mutate("Core.lua",
        "par-trust: a broken scan is broken for good",
        expect="par-trust: a scan that recovers takes the mark down", script=S)
 
+# ------------------------------------------- /manners selftest launch, the session
+
+mutate("SelftestLaunch.lua",
+       "\t\tfor _, event in ipairs({ \"ADDON_ACTION_BLOCKED\", \"ADDON_ACTION_FORBIDDEN\" }) do\n"
+       "\t\t\tpcall(frame.RegisterEvent, frame, event)\n",
+       "\t\tfor _, event in ipairs({}) do\n"
+       "\t\t\tpcall(frame.RegisterEvent, frame, event)\n",
+       "par-trust: nothing listens for the game's refusals",
+       expect="par-trust: the launch report lists what the game refused Manners", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\t\t\tif who ~= \"Manners\" then return end\n",
+       "",
+       "par-trust: another addon's refusal is put on Manners",
+       expect="par-trust: the launch report lists what the game refused Manners", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\tif refused.count == 0 then\n",
+       "\tif true then\n",
+       "par-trust: a refusal reads as a clean session",
+       expect="par-trust: the launch report lists what the game refused Manners", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\tlocal okC, city = pcall(function() return ns.InCity and ns.InCity() end)\n",
+       "\tlocal okC, city = true, nil\n",
+       "par-trust: the town line does not ask the town rule",
+       expect="par-trust: the launch report says where the town rule thinks you are", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\tif okM ~= true or type(id) ~= \"number\" then\n",
+       "\tif okM ~= true then\n",
+       "par-trust: no map reads as a map",
+       expect="par-trust: the launch report says where the town rule thinks you are", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\telseif given < timed then\n",
+       "\telseif false then\n",
+       "par-trust: a debuff with no expiry reads as fine",
+       expect="par-trust: the launch report reads a debuff's timer", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\tif timed == 0 then\n\t\tadd(CHECK, line",
+       "\tif false then\n\t\tadd(CHECK, line",
+       "par-trust: nothing timed reads as a pass",
+       expect="par-trust: the launch report reads a debuff's timer", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\t\t\t\tlocal ok, aura = pcall(get, unit, i, \"HARMFUL\")\n",
+       "\t\t\t\tlocal ok, aura = pcall(get, unit, i, \"HELPFUL\")\n",
+       "par-trust: the debuff check reads helpful auras",
+       expect="par-trust: the launch report reads a debuff's timer", script=S)
+
 # ------------------------------------------- the gates off Forever (validate.py)
 
 V = "validate.py"

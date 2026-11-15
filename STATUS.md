@@ -5,15 +5,17 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-**1.11.25 in progress** (1.11.24 is the last release). Built on 2026-11-14 in
-one day of parallel worktrees and merged to master: each piece was held to
+**1.11.25 is the last release** (tagged on 2026-11-14); what is on master
+since is under *Unreleased* in the changelog. 1.11.25 was built that day in
+parallel worktrees and merged to master: each piece was held to
 lint, its own scenario file and `anchors_for.py --check-after`, and each new
 mutation to `tools/prove.py`. One `tools/check.py --release` ran over an
 earlier master that day; what it found red was cleared on the `integrate`
 branch, each by its own scenario file (the list is the second item under
 *Open*). No whole suite has run over the tree as it now stands, and nothing
-was tried in the game. The checklist of what only the game can settle is the
-first item under *Open*.
+was tried in the game. The checklist of what only the game can settle, now
+on WoW Forever in the owner's own play sessions, is the first item under
+*Open*.
 
 What was built:
 
@@ -503,255 +505,253 @@ permissions list, a hook that lints each edited file, and the commands
 
 ## Open
 
-**1.11.25 in the game: the checklist.** Nothing of 1.11.25 has been seen in a
-client. Walk through it by feature; `/manners debug` and *Run a full check-up*
-(Diagnostics) give the lines named here, and `/manners clicks` on shows what a
-press did. Paste whatever does not match.
+**In the game: the checklist** (rewritten 2026-11-15 from the 74 open boxes
+of 1.11.25's list, `RELEASE-CHECK.md` and the "only the live game can say"
+notes below; WoW Forever has been playable since 5 November). One list, in
+the order to do it in your own play sessions on Forever, the things that
+would cost a player's trust first. Each step says what to do and what to look
+for. Paste what does not match, and the report of step 1 every time.
 
-*The group's pets*
+*First, the report that checks itself*
 
-- [ ] In a party with a hunter or a warlock, *My group's pets too* ticked:
-      the pet comes up with its owner named on the second line, and the press
-      reaches the pet by its name and hands your target back.
-- [ ] A pet with the family's default name ("Cat"), two of them in one group.
+1. **The launch report, before playing and after.** Log in, out of combat,
+   `/manners selftest launch`. Look for: `0 failed` on both chat lines and
+   in the box. It now also lists *actions the game refused* (every
+   ADDON_ACTION_BLOCKED or FORBIDDEN naming Manners since login, so it
+   answers for steps 3 to 6 below once you have done them) and *where you
+   are* (the map Manners reads, and whether it calls it a capital), and *a
+   debuff's timer* (whether a harmful aura's `expirationTime` is given). Run
+   it again at the end of the session and paste both.
 
-*Profiles and automatic switching*
+*What would put "blocked" or an error on a player's screen*
 
-- [ ] *Profiles*: *New profile* (a name, Enter) makes one at the defaults and
-      the first line names it; *New profile from these settings* makes a copy
-      (change a setting first and see it carried); *Rename this profile*
-      keeps the settings and the old name is gone from *Use profile*;
-      *Delete* never lists the profile in use, and it, *Copy from* and *Reset
-      this profile* each ask in the window's own box first.
-- [ ] A second character on the renamed profile logs in on it under the new
-      name, with its settings (the rename writes AceDB's own record of who
-      uses what: seen only against the test client's stand-in for it).
-- [ ] *Switch profile automatically* on, a profile picked for *In a raid* and
-      another for *In the open world*: walking into a raid instance switches
-      a moment after the loading screen, with one line in chat ("profile X
-      (in a raid)"), the prompt in the new profile's look and place, and the
-      page's first line saying "Chosen automatically: in a raid". Walking out
-      switches back. No toast, no key reminder, no greeting with it.
-- [ ] The same in a dungeon and in a battleground; and on Mists or retail a
-      scenario counts as a dungeon (`IsInInstance`'s "scenario").
-- [ ] Zoning in while in a fight (a wipe's run back, pulled at the door): the
-      switch waits for the fight's end.
-- [ ] Picking another profile by hand inside the raid holds through a
-      `/reload` there and through the raid's own zone changes, until the next
-      instance door.
-- [ ] Typing in a box of the options window as the loading screen ends: the
-      switch waits until the box is left, and the text is not lost.
-- [ ] *Say so in chat* unticked: no line. *Hide all Manners messages* ticked
-      on the profile arrived at: no line either.
+2. **A real favour, start to end.** Have somebody buff you (an alt in a
+   group will do). Look for: the prompt names them; one press buffs them
+   back and your target comes back; the ledger (`/manners ledger`) has the
+   line; the spoken line, if on, is said once; with *Thank* on, the `/thank`
+   emote goes out (`C_ChatInfo.PerformEmote` from addon code has never run).
+3. **Edit Mode.** Open the game's Edit Mode, drag the prompt over its
+   overlay, close it, then `/reload` and open and close it once more. Look
+   for: the prompt unlocks and locks with it, keeps its new place, and no
+   "blocked" popup or Lua error, then or at the next Edit Mode save. Step 1's
+   *actions the game refused* says the same.
+4. **The companion pet from the journal.** *Keep a companion pet out* on,
+   *Which pet* on a favourite. Look for: a pet comes out with no press within
+   a few seconds, comes back once after a flight or a death, and no
+   "blocked" popup (step 1 says the same).
+5. **A fight.** With a person on the prompt, pull a mob. Look for: no
+   "action blocked" message, no error; the key casts at the people the fight
+   began with, one after another (the fight's rota); with *Hide the prompt
+   in combat* on it hides and comes back after; the action bar's Manners
+   macro still casts out of combat.
+6. **A refused cast.** Press the prompt at somebody out of range or behind
+   a wall. Look for: the game's own error, the person still owed (not marked
+   repaid), and in `/manners clicks` on, a `CAST SENT` and a `CAST FAILED`
+   carrying the same cast id. If the ids are missing, a late refusal goes
+   unnoticed.
+7. **A warrior's Battle Shout.** On a warrior, repay a favour with the shout
+   (it is cast with no `/target`). Look for: the favour settled and the
+   ledger line; only Mage has ever cast in the live client.
+8. **Resurrection.** A healer in a party, somebody dies and does not
+   release. Look for: they are first on the prompt; the press casts and
+   hands your target back; they leave the prompt during the cast, are back
+   about two seconds after you move mid-cast, and are dropped when another
+   healer casts first. A member who released, and a hunter in Feign Death,
+   are never offered.
+9. **A courtesy on Forever.** A mage asked for water by a party member.
+   Look for: `/target` then `/trade` from the press opens the trade with the
+   water in slot 1 and no "action blocked"; a low asker gets the lower rank
+   conjured. A warlock: Ritual of Summoning ends the request when the
+   channel starts, and asks for a shard; a portal only for a group member
+   who names the city, and nothing with no rune.
+10. **Asking for a buff.** A rogue, *Ask for buffs I lack* ticked, beside a
+    priest outside town with no Fortitude. Look for: the ask comes last; the
+    press whispers "Name Surname" and leaves your target untouched;
+    `/manners debug` has an "asking for buffs:" line; `/say` as the channel,
+    and an In character line with that set chosen.
+11. **A cure.** A druid or a priest, *Cure my party and raid* ticked, a party
+    member poisoned out of combat. Look for: the cure offered, the press
+    removes it, `/manners debug` has a "cures:" line; a debuff with under ten
+    seconds left, and one with no timer, are left alone.
+12. **Sharing a group.** Two characters of one class grouped, both with
+    Manners. Look for: a full check-up on each shows "Sharing the group"
+    users=1 and each prompt offers only its own part; if it says "refused
+    ... (a sender written ...)", send that line; when one leaves or goes
+    offline the other is offered everybody at the next scan.
 
-*The hall of fame and Detect Invisibility for passers-by*
+*Where you are*
 
-- [ ] *Start here*, the fold *Gentlefolk of Good Manners*: the progress line
-      reads "N of M milestones earned" with this character's own M, the list
-      says nobody is listed yet, and the fold is gone with *Milestones* off.
-- [ ] On a character with every milestone (or `/run` them earned on a test
-      one): the code box shows, a click selects it all, Ctrl+C copies it, and
-      `python tools/hall.py check <code>` reads the character's name (both
-      words on Forever, accents kept), class, client and day. On a client with
-      realms `GetRealmName()` is in it; that call is unseen in a client here.
-- [ ] The same character, *Show my certificate* in the fold: the ledger opens
-      on *Milestones* with the certificate beside it (on the left when the
-      window sits at the right edge of the screen). Print Screen, then open
-      the picture from the Screenshots folder: the name, class, client, date,
-      "N of N milestones", every milestone's date and the whole code are
-      legible at the game's usual UI scale, the code's lines put together are
-      the code in the box, and no line is cut with an ellipsis. Another tab,
-      and *Milestones* off: no certificate.
-- [ ] A warlock with *Detect Invisibility* ticked: *Offer Detect Invisibility
-      to passers-by too* shows under it, and ticked, a passer-by without it
-      comes up on the prompt and the press lands.
+13. **Battlegrounds.** Before the gates open, `/manners debug` says "the
+    gates are shut". Look for: what is on the prompt as the gates open;
+    after a graveyard's resurrection "You" first, armour before food; in a
+    fight the key casts nothing at anybody new, out of combat the team again;
+    with *Thank people there* a `/thank` to a team-mate who buffs you and none
+    in a fight; *Say my line there* off says nothing; no Find Minerals or Find
+    Herbs reminder after a death there.
+14. **Switching profile by place.** *Switch profile automatically* on, one
+    profile for *In a raid*, one for *In a dungeon*, one for *In
+    battlegrounds*, one for *In the open world*. Look for: a moment after the
+    loading screen, one line in chat ("profile X (in a raid)"), the prompt in
+    that profile's look and place, the page's first line "Chosen
+    automatically", and back on the way out; no toast, key reminder or
+    greeting with it. Zoning in during a fight waits for its end; a profile
+    picked by hand inside holds through a `/reload` and the instance's own
+    zone changes until the next door; typing in a box of the options window
+    as the loading screen ends waits until the box is left and keeps the
+    text; *Say so in chat* off, or *Hide all Manners messages* on the profile
+    arrived at, says nothing.
+15. **Towns and inns.** Log in at an inn with one of your own buffs
+    missing. Look for: one line in chat about twelve seconds in, never again
+    on that character; step 1's *where you are* reads a capital in one and
+    "resting, not a capital" at an inn outside one.
 
-*The options window and the milestones (hunt 3)*
+*Your settings and your profiles*
 
-- [ ] A greyed-out switch (Start here, the chat lines' switch with *Hide all
-      Manners messages in my chat window* on) and, in a fight, *Move the prompt* in the
-      header: the tooltip opens under the mouse. The buttons are told
-      `SetMotionScriptsWhileDisabled(true)` (Widgets.lua, `W.TipsWhileOff`);
-      whether a greyed button then also lights its highlight is unseen.
-- [ ] A milestone's toast with the prompt dragged to the top centre and
-      hidden: when the prompt comes up the toast moves to its next spot
-      within a fifth of a second.
-- [ ] *Start here* with *Milestones* on: no grey line about the defaults
-      between *Favour ledger* and *Gentlefolk of Good Manners*.
-
-*Battlegrounds and arenas*
-
-- [ ] Before the gates open, `/manners debug` says "the gates are shut" (the
-      Preparation aura's ids are from the data, unseen in a client).
-- [ ] After a graveyard's resurrection "You" leads, your armor before food.
-- [ ] In combat with a team-mate on the prompt, the key casts nothing at
-      anybody new; out of combat the team is offered again.
-- [ ] The pull: what is on the prompt as the gates open.
-- [ ] *Thank people there*: a `/thank` to a team-mate who buffs you, none in
-      a fight; *Say my line there* off says nothing with a buff.
-- [ ] No Find Minerals or Find Herbs reminder after a death there.
-
-*Resurrection*
-
-- [ ] A healer in a party, somebody dies and does not release: the prompt
-      shows them first; the press casts and hands the target back; they leave
-      the prompt during the cast.
-- [ ] A second healer casts first: yours drops them (incoming resurrection).
-- [ ] Move mid-cast: they are back on the prompt in about two seconds.
-- [ ] On Forever, a member who released, seen through their frame: never
-      offered.
-- [ ] A hunter in Feign Death is not offered.
-
-*Cures*
-
-- [ ] A druid or a priest on Forever, *Cure my party and raid* ticked, a
-      party member poisoned out of combat: the prompt offers the cure, the
-      press removes it, and `/manners debug` shows a "cures:" line.
-- [ ] Every cure, on every client, is unseen live: each class's spell for
-      each kind, and whether `canActivePlayerDispel` is given on the Classic
-      clients.
-- [ ] A debuff with under ten seconds left, and one with no timer, are left
-      alone.
-- [ ] Classic Era: `/dump C_UnitAuras.GetAuraDataByIndex("party1", 1,
-      "HARMFUL")` on a party member with a timed debuff you did not cast
-      shows an `expirationTime` above 0. If it shows 0 there, every debuff
-      reads as having no timer and no cure is ever offered on that client
-      (Cures.lua, `ReadInto`).
-
-*Courtesies on request* (Forever first)
-
-- [ ] A mage: `/target X` then `/trade` from the press opens the trade, and
-      the water lands in slot 1 with no "action blocked".
-- [ ] `/cast Conjure Water(Rank 3)` conjures the lower rank for a low asker.
-- [ ] A warlock: Ritual of Summoning ends the request when the channel
-      starts; a shard is asked for on Forever, Classic Era and TBC.
-- [ ] A portal for a group member who names the city; nothing with no rune.
-- [ ] Mists or retail: a healthstone request casts Create Soulwell.
-
-*Asking for a buff*
-
-- [ ] A rogue on Forever, the switch ticked, beside a priest outside town
-      with no Fortitude: the prompt offers the ask last; the press whispers
-      "Name Surname" and leaves the target untouched.
-- [ ] `/manners debug` has an "asking for buffs:" line.
-- [ ] `/say` as the channel; an In character line with that set chosen.
-
-*Sharing a group*
-
-- [ ] Two characters of one class grouped, both with Manners, a full
-      check-up on each: "Sharing the group" shows users=1, and each prompt
-      offers only its own part.
-- [ ] If the check-up says "refused ... (a sender written ...)", send that
-      line: it is how Forever writes an addon message's sender.
-- [ ] One of the two leaves or goes offline: the other is offered everybody
-      at the next scan.
-
-*The companion pet on Mists and retail*
-
-- [ ] With the switch on, a pet comes out of the journal with no press.
-- [ ] No flicker after a flight or a pet battle: one summon, not several.
-
-*The line said once in town*
-
-- [ ] Log in at an inn with an own buff missing: one line in chat about
-      twelve seconds in, never again on that character.
-
-*Own lines among the In character ones*
-
-- [ ] With lines in *My own lines, mixed in*, about one press in three says
-      one of them, and the bar macro carries it too.
+16. **Profiles.** *New profile* (a name, Enter) makes one at the defaults
+    and the first line names it; *Duplicate* copies (change a setting first
+    and see it carried); *Rename* keeps the settings and the old name is
+    gone; *Delete* never lists the one in use and asks first, as *Copy from*
+    and *Reset* do; Undo puts each back. A second character on the renamed
+    profile logs in on it under the new name.
+17. **The group's pets.** In a party with a hunter or a warlock, *My group's
+    pets too* ticked. Look for: the pet with its owner named on the second
+    line; the press reaches it by name and hands your target back; two pets
+    with the family's default name ("Cat") are told apart.
+18. **Own lines.** With lines in *My own lines, mixed in*, about one press
+    in three says one of them, and the bar macro carries it too.
+19. **Milestones.** A character with a long ledger, its first login on
+    1.11.25: one line saying how many it had already earned, no toast.
+    Return a first favour on a new character: the toast (*Much Obliged*) a
+    few seconds after the cast, drawn like the game's own, clear of the
+    prompt (also with the prompt dragged to the top centre), gone at a
+    click, with its sound and none with *Play the sound* off; earned in a
+    fight it waits for the end, two together one a minute. A resurrection,
+    a cure and a courtesy each earn theirs once landed, a refused one
+    nothing. `/reload` within three seconds of buffing a stranger: the
+    Milestones tab's count of strangers is one more, as the ledger's is.
+    The tab: thirteen rows, three *Hidden* until earned, each with how far
+    along; *Link in chat* fills the chat box and sends nothing. *Milestones*
+    off: no tab, toast or line, the two switches under it greyed; on again,
+    what passed meanwhile is marked with no toast.
+20. **The hall of fame.** *Start here*, *Gentlefolk of Good Manners*: "N of
+    M milestones earned" with this character's M, nobody listed yet, the
+    fold gone with *Milestones* off. With every milestone (or `/run` them
+    earned on a test character): the code box, a click selects it all,
+    Ctrl+C copies it, and `python tools/hall.py check <code>` reads both
+    words of the name with accents, the class, client and day; *Show my
+    certificate* opens the ledger on *Milestones* with it beside (on the
+    left at the right edge of the screen), and a screenshot of it is legible
+    at the usual UI scale, the code's lines put together are the code in
+    the box, and nothing is cut with an ellipsis.
+21. **A warlock's Detect Invisibility.** Ticked, *Offer Detect Invisibility
+    to passers-by too* shows under it; ticked, a passer-by without it comes
+    up and the press lands.
 
 *The options window*
 
-- [ ] The footer: the author's line larger and centred, the version at the
-      right, nothing cut at the smallest window size.
-- [ ] The footer on Forever: the pointer over the author's name shows *Click
-      to whisper.* and *Right-click to look them up.*; a click opens the chat
-      box on a whisper to "Name Surname" and sends nothing; a right click
-      runs the `/who`. Nothing of it on the rest of the line.
-- [ ] Who to buff: who first, then what; each buff on a row of its own with
-      its switches a step in; a priest finds Divine Spirit's tick at once.
-- [ ] A row under a switch that is off is gone, and comes back with the
-      switch; search for it says which switch to turn on first and opens it.
-- [ ] Drag the grip wide: two columns, then three; nothing cut, no row over
-      another, and the usual size back at a right-click on the grip.
-- [ ] *Simple view* under the search box: the short list of each page, how
-      many settings it leaves out, *Show everything*; a search landing on a
-      setting it leaves out opens the full view. A new character starts in
-      it; an old profile is offered it once (*Try the simple view*, *Not
-      now*) and never again.
-- [ ] Look: *Style* (the colours) folded under the hairline, its gold dot lit
-      once a colour is changed; the page about three screens with its folds
-      shut.
-- [ ] Start here, step 2: *No key yet* in gold with no key; the key once one
-      is set.
-- [ ] The reminder: a character with no key, on its second login, gets one
-      line in chat about twenty seconds in; none in a fight until it ends;
-      none after three logins, with a key, with the Manners macro made, or
-      with *Remind me in chat while Manners has no key* off. `/manners debug`
-      says the key and why the reminder keeps quiet.
+22. **Every page.** Open each tab: no empty page, no control on another,
+    search finds "emote"; change one setting, `/reload`, it stuck. Who to
+    buff: who first, then what, each buff on its own row with its switches a
+    step in; a priest finds Divine Spirit's tick at once. A row under a
+    switch that is off is gone and comes back with it, and search for it
+    says which switch to turn on first and opens it. Start here with
+    *Milestones* on: no grey line about the defaults between *Favour ledger*
+    and *Gentlefolk*.
+23. **Its shapes.** Drag the grip wide: two columns, then three, nothing
+    cut, no row over another, the usual size back at a right-click on the
+    grip. *Simple view*: the short list of each page, how many settings it
+    leaves out, *Show everything*; a search landing on one left out opens
+    the full view; a new character starts in it; an old profile is offered
+    it once (*Try the simple view*, *Not now*) and never again.
+24. **Its small parts.** The footer: the author's line larger and centred,
+    the version at the right, nothing cut at the smallest size; on Forever
+    the pointer over the author's name shows *Click to whisper.* and
+    *Right-click to look them up.*, a click opens a whisper to "Name Surname"
+    and sends nothing, a right click runs the `/who`. A greyed switch (the
+    chat lines' with *Hide all Manners messages* on) and, in a fight, *Move
+    the prompt* in the header: the tooltip opens under the mouse (and say
+    whether the greyed button lights its highlight). Start here, step 2: *No
+    key yet* in gold with no key, the key once set. The reminder: a character
+    with no key gets one line about twenty seconds into its second login,
+    none in a fight until it ends, none after three logins, with a key, with
+    the Manners macro made or with the reminder switch off; `/manners debug`
+    says why it keeps quiet.
 
-*Milestones*
+*The looks* (`/manners test` for a preview; other work is changing them, so
+do these last, on the build you are about to release)
 
-- [ ] A character with a long ledger, first login on 1.11.25: one line in
-      chat saying how many it had already earned, no toast.
-- [ ] The ledger's *Milestones* tab: thirteen rows, three reading *Hidden*
-      until earned, each with how far along it is; the speech-bubble
-      button on an earned row (*Link in chat* in its tooltip) fills the chat
-      box and sends nothing, and the row's line beside it is not cut short.
-- [ ] `/reload` within three seconds of buffing a stranger: the Milestones
-      tab's count of strangers is one more after it, as the ledger's is.
-- [ ] Return a first favour on a new character: the toast (*Much Obliged*)
-      a few seconds after the cast, drawn like the game's own, clear of the
-      prompt, gone at a click; its sound, and none with *Play the sound* off.
-- [ ] Earned in a fight: the toast waits for the fight to end. Two earned
-      together: one a minute.
-- [ ] A resurrection, a cure and a courtesy through the prompt each earn
-      theirs once the cast has landed; a refused or failed one earns nothing.
-- [ ] *Milestones* off on Start here: no tab, no toast, no line, and the two
-      switches under it greyed; on again, what was passed meanwhile is marked
-      with no toast.
-- [ ] The picker: nineteen cards, each picture whole (Stormcaller, Ebon,
-      Leather and Warchief were given room), the tick clear of the picture.
+25. **The prompt and the picker.** `/manners test`: where you left it, the
+    icon, name and reason readable, nothing overlapping or poking out; press
+    it, the cast goes off and your target comes back. *Look*: every card has
+    its picture whole with your own buff icon on it and the tick clear of the
+    picture; pick three, the newest first: no green or white squares, no
+    stretched strip, the words on the art, the animation once, then still.
+    *Style* (the colours) folded under the hairline, its gold dot lit once a
+    colour is changed, the page about three screens with its folds shut.
+26. **The four new looks.** Stormcaller: the totem above and left of the
+    panel, the icon square and round with *Round the icon off*, lava and
+    water running, the lightning sheets at their frame rate, the list's
+    tablet hanging from the slab, Calm stills it. Warchief: the icon cut to
+    the chamfered square, the crest's glow while owed, the banner stirring,
+    the drum beat and sparks on a landing, the reason on the iron.
+    Gearworks: the icon round under the glass, the needle finding its mark
+    for each reason, the three cogs turning in mesh, steam on a landing and
+    the spark on a refusal. Ebon: the icon cut to the eight-sided socket,
+    soulfire and vapour seen and not too strong, the three runes kindling in
+    turn, the refusal playing out. All four: the words at the smallest and
+    largest sizes.
+27. **The four redrawn looks.** Minimal: the two additive flashes' strength,
+    the cast's slide ending where it began, the fill cut at the left tick,
+    the tick and cross sheets' frame rate, the hairline crisp. Ribbon: the
+    seam between the tiled middle and the fork, the flutter and the wave in
+    step, the rays' and glints' brightness, the laurel's gleam turning, the
+    medallion pinned on, the cloth never absent through a landing. Letter:
+    the cover's seam, the text held while the quill writes, the quill turning
+    about its point, the reason line in the standard face. Leather: the
+    feathers turning about their top, the glints, the strike's flash, the
+    embers at rest, the smoke's frames. The serif names on Ribbon, Letter and
+    Leather a fifth larger, with a long name and a key on the chip.
 
-*The four new looks* (`/manners test` for a preview; none has been on a real
-prompt, and the renderer understates additive light)
+*Not on Forever: for a player of that client* (asked for in the listings'
+comments when one turns up)
 
-- [ ] Stormcaller: the totem standing above and left of the panel; the icon
-      square, and round with *Round the icon off*; lava and water running
-      (Flow); the lightning sheets at their frame rate; the list's tablet
-      hanging from the slab; Calm stills it.
-- [ ] Warchief: the icon cut to the chamfered square; the crest's glow while
-      owed; the banner stirring; the drum beat and sparks on a landing; the
-      reason line on the iron.
-- [ ] Gearworks: the icon round under the glass; the needle finding its
-      mark for each reason; the three cogs turning in mesh (Rotation); steam
-      on a landing and the spark on a refusal.
-- [ ] Ebon: the icon cut to the eight-sided socket; soulfire and vapour
-      (Flow) seen and not too strong; the three runes kindling in turn; the
-      refusal playing out.
-- [ ] On all four: `/manners selftest launch` (masks, clipping, tiling,
-      animations), and the words at the smallest and largest sizes (the
-      contrast audit ran at the default size only).
+- Classic Era: `/manners selftest launch`'s *a debuff's timer* on a party
+  member with a timed debuff you did not cast (an `expirationTime` of 0
+  there means no cure is ever offered on that client, Cures.lua `ReadInto`),
+  and whether `canActivePlayerDispel` is given; each cure spell per class.
+- Mists or retail: a scenario counts as a dungeon for automatic profiles; a
+  healthstone request casts Create Soulwell; the companion pet out of the
+  journal with no press, once after a flight or a pet battle, not several.
+- A client with realms: `GetRealmName()` is in the hall of fame's code.
 
-*The four redrawn looks*
-
-- [ ] Minimal: the strength of the two additive flashes; the cast's slide
-      ending where it began; `SetClipsChildren` cutting the fill at the left
-      tick; the tick and cross sheets' frame rate; the hairline crisp at real
-      UI scales.
-- [ ] Ribbon: the seam between the tiled middle and the fork's sheet; the
-      fork's flutter and the wave in step; the rays and tip glints'
-      brightness (ADD); the Rotation of the laurel's gleam; the medallion's
-      scale as it is pinned on; the cloth never absent through a landing.
-- [ ] Letter: the cover's seam and the frame it hands off on; the hold on
-      the text layer while the quill writes; the quill turning about its
-      point; the ADD strengths; the reason line in the standard face.
-- [ ] Leather: the feathers turning about their top; how bright the
-      thread's glints and the strike's flash are; the embers' strength at
-      rest; the smoke sheet's frames.
-- [ ] The serif names on Ribbon, Letter and Leather, a fifth larger, with a
-      long name and a key on the chip.
+**The baselines' new reds (2026-11-15).** The four baselines were written
+again whole, in sections by piece, once `scenarios.lua` ran to its end on
+every client. Against the old flat lists: Classic Era 908 reds (193 not in
+the old list, 8 gone), TBC 921 (202, 9), Mists 1188 (386, 19), retail 1246
+(411, 33). None is from this change: on Classic Era and TBC the old lists
+were simply stale (they predate 1.11.25, and its asking, courtesies,
+battlegrounds, hall of fame, Forever's Find Treasure and downranking are
+written on Forever's two-part names, "Anna Aim", which those clients read as
+a realm); on Mists and retail most are the 299 scenario loads of
+`scenarios.lua` that had never run there. They are accepted as known so the
+gate can see the next one; they are not all read. Worth reading first, on
+retail and Mists, as they may be faults and not fixtures (each a section of
+`tests/baselines/mainline.txt`): "who the proximity setting does not apply
+to" (a party member, your target and your focus dropped for distance), "one
+landing seen twice" (one favour filed as two debts, aura scan first and log
+first), "a right-click skip holds against the next left press", "a press
+goes to whoever the panel names", "the fallback does not undo a rejection"
+(the level and range filters), "nobody is measured in a fight", "a refusal
+read through the library is still a refusal", "the mark is consumed rather
+than timed out", "an unknown class is not told it has nothing", "a spell
+learned in a burst is not missed", and "Battle Shout reaches only who can
+hear it". And 2, 2, 14 and 19 lines are scenarios that threw (`threw:`), each
+a fixture asking for a buff or a family the client has not got: Wisdom and
+Might (`whatif.lua`, `ask.lua`), Righteous Fury and the paladin auras
+(`ownbuffs.lua`, `mage-scrolls.lua`'s `db.char.ownLast`, never made where no
+such family is remembered), `linger.lua`, `hunt13-fix1.lua`, `self.lua`,
+`perf.lua`. Each wants the `hasBuffs` skip `scenarios.lua` now has, or a
+fixture of its client; a crash is a poor known red.
 
 **1.11.25: the test pass.** One `tools/check.py --release` ran on master
 before the menu and milestones were merged (10 min 39 s at `--jobs 6`). What
@@ -1145,7 +1145,17 @@ but quieter. Confirm with `/manners clicks` in game.
 failures are fixtures written for Forever (two-part names, Forever's scrolls
 and raid-wide group casts, a raid pcall ceiling set for Forever's data). Run it
 with `--baseline` to see only failures that are not already in
-`tests/baselines/<X>.txt`.
+`tests/baselines/<X>.txt`. Since 2026-11-15 that is a gate:
+`tools/check.py --baselines`, part of `--release`, runs the whole suite as
+each of the four other clients in eight pieces and fails on a red that is not
+written down in its piece's section. Before, `scenarios.lua` stopped at its
+block 16 on Mists and retail (`FindBuff("PALADIN", "wisdom")` is nil there),
+so 299 of its scenario loads, and in a one-process run every topic file, never
+ran on those two clients, and the baselines accepted the abort as a known red.
+The four baselines were written again whole that day; what that run found
+that the old lists did not hold is under *Open* (the baselines' new reds).
+What it costs: about 95 minutes of two cores, some 32 at `--jobs 6`, so it is
+a release step and not an every-change one. CI still runs Forever alone.
 
 **Client builds move.** `python tools/clients_watch.py` says when one has (its
 row reads DRIFT); the toc then needs the number (`tools/maketocs.py`'s
@@ -1196,7 +1206,8 @@ after it (Favours.lua). A target chosen before the addon heard any target event
 as mainline (`ALSO` in `tools/check.py`), since retail hides auras in a fight
 as Forever does. Neither `ci.yml` nor `tools/release.py` runs `--flavours`
 (release.py runs `check.py --anchors`); adding it to release.py's check would
-cost about 30 s.
+cost about 30 s. `check.py --release` runs it, and the whole-suite baselines
+of the four other clients beside it.
 
 **A client bump stales `tests/baselines/mainline.txt`.** Nine of its lines
 carry the client line ("12.1.5 (...), interface 120105"); they were rewritten

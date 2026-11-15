@@ -37,6 +37,7 @@ ns.WhatsNew = {
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52A fault that keeps repeating is said where you look.|r The minimap tooltip, the broker text and the options window name it in red, with |cffffffffRun a full check-up|r.",
+			"|cffff9a52/manners selftest launch says what the session did.|r Any action the game refused Manners since login, the map the town rule reads, and whether a debuff's timer is given, so one pasted report answers them.",
 		} },
 	} },
 	{ version = "1.11.25", date = "14 November 2026", sections = {

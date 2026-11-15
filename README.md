@@ -1321,8 +1321,12 @@ put on the real prompt in turn and your own comes back, the *Manners* macro's
 slot is set, read back and given back what it showed (with no such macro, a
 temporary one called MannersSelfTest is made for the test and deleted at the
 end), and the tooltip is a scratch one. Each line reads PASS, CHECK or FAIL
-with the game's own answer. It is the report to paste when a look, the bar
-slot or a controller does not draw right.
+with the game's own answer. It also says what your session did: any action
+the game refused Manners since you logged in (its "blocked" message), the map
+Manners reads for *Offer nothing in cities and inns*, and whether a debuff's
+timer is given, which cures rest on. It is the report to paste when a look,
+the bar slot or a controller does not draw right, or when the game blamed
+Manners for something.
 
 ## For developers
 

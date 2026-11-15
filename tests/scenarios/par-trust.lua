@@ -185,3 +185,158 @@ do
 		if select(8, ns.LauncherState()) ~= "broken" then fail(scenario, "the launcher does not say it") end
 	end)
 end
+
+-- ------------------------------------------- /manners selftest launch, the session
+-- What the game refused Manners this session (SelftestLaunch.lua,
+-- launch.refused): a listener from load, so the owner plays as usual (Edit
+-- Mode, a pet out of the journal, a fight) and pastes one report.
+local function launchRun(ns)
+	local results, finish = ns.Selftest.RunLaunch({ createMacro = true })
+	finish()
+	return results
+end
+
+local function launchLine(results, id)
+	local out, worst = {}, nil
+	local RANK = { PASS = 1, CHECK = 2, FAIL = 3 }
+	for _, r in ipairs(results) do
+		if r.id == id then
+			out[#out + 1] = r.value
+			if not worst or RANK[r.status] > RANK[worst] then worst = r.status end
+		end
+	end
+	return worst, table.concat(out, " / ")
+end
+
+-- One session with every frame made at load written down.
+local function launchSession(scenario, body)
+	Mock.reset()
+	local made = {}
+	local realCreate = CreateFrame
+	CreateFrame = function(...)
+		local f = realCreate(...)
+		made[#made + 1] = f
+		return f
+	end
+	local ns
+	local ok, err = pcall(function()
+		ns = load(scenario)
+		CreateFrame = realCreate
+		if not ns then return end
+		H.freshPrompt(ns, scenario)
+		if not (ns.Selftest and ns.Selftest.RunLaunch) then
+			fail(scenario, "SKIPPED -- SelftestLaunch.lua did not load")
+			return
+		end
+		-- The listener: a frame told both events that is not the companion's.
+		local listener
+		for _, f in ipairs(made) do
+			local ev = type(f) == "table" and f.events
+			if ev and ev.ADDON_ACTION_BLOCKED and ev.ADDON_ACTION_FORBIDDEN and f ~= (ns.Pet and ns.Pet.frame) then
+				listener = f
+			end
+		end
+		body(ns, listener)
+	end)
+	CreateFrame = realCreate
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+do
+	local scenario = "par-trust: the launch report lists what the game refused Manners"
+	launchSession(scenario, function(ns, listener)
+		if not listener then fail(scenario, "nothing listens for ADDON_ACTION_BLOCKED and FORBIDDEN from load") return end
+		local status, text = launchLine(launchRun(ns), "launch.refused")
+		if status ~= "PASS" then fail(scenario, "a clean session reads " .. tostring(status) .. ": " .. text) end
+		if not text:find("no action of Manners' was blocked", 1, true) then fail(scenario, "the clean line says " .. text) end
+		-- Another addon's refusal is not Manners'.
+		Mock.fire(listener, "OnEvent", "ADDON_ACTION_BLOCKED", "SomebodyElse", "CastSpellByName")
+		status = launchLine(launchRun(ns), "launch.refused")
+		if status ~= "PASS" then fail(scenario, "another addon's refusal was put on Manners") end
+		Mock.fire(listener, "OnEvent", "ADDON_ACTION_FORBIDDEN", "Manners", "SummonPetByGUID()")
+		Mock.fire(listener, "OnEvent", "ADDON_ACTION_BLOCKED", "Manners", "UNKNOWN()")
+		status, text = launchLine(launchRun(ns), "launch.refused")
+		if status ~= "FAIL" then fail(scenario, "two refusals read " .. tostring(status) .. ": " .. text) end
+		if not (text:find("2 time", 1, true) and text:find("forbidden SummonPetByGUID()", 1, true)
+			and text:find("blocked UNKNOWN()", 1, true)) then
+			fail(scenario, "the line does not name them: " .. text)
+		end
+	end)
+end
+
+do
+	local scenario = "par-trust: the launch report says where the town rule thinks you are"
+	launchSession(scenario, function(ns)
+		local realMap = rawget(_G, "C_Map")
+		local realResting = rawget(_G, "IsResting")
+		local function with(map, resting)
+			rawset(_G, "C_Map", map)
+			rawset(_G, "IsResting", function() return resting end)
+			local status, text = launchLine(launchRun(ns), "launch.town")
+			rawset(_G, "C_Map", realMap)
+			rawset(_G, "IsResting", realResting)
+			return status, text
+		end
+		-- Stormwind's uiMap: 1453 on Forever and its classic cousins, 84 from
+		-- Mists on (Range.lua's capitals).
+		local family = ns.Flavour and ns.Flavour.flavour
+		local sw = (family == "mists" or family == "mainline") and 84 or 1453
+		local status, text = with({
+			GetBestMapForUnit = function() return sw end,
+			GetMapInfo = function(id) return { name = "Stormwind City", parentMapID = 13 } end,
+		}, true)
+		if status ~= "PASS" or not (text:find("map " .. sw .. " (Stormwind City)", 1, true) and text:find("Manners reads a capital", 1, true)) then
+			fail(scenario, "Stormwind reads " .. tostring(status) .. ": " .. text)
+		end
+		status, text = with({ GetBestMapForUnit = function() return 1429 end,
+			GetMapInfo = function() return { name = "Elwynn Forest", parentMapID = 0 } end }, true)
+		if status ~= "PASS" or not text:find("not a capital", 1, true) then
+			fail(scenario, "Goldshire's inn reads " .. tostring(status) .. ": " .. text)
+		end
+		status, text = with({ GetBestMapForUnit = function() return nil end }, false)
+		if status ~= "CHECK" or not text:find("holds back in both", 1, true) then
+			fail(scenario, "no map reads " .. tostring(status) .. ": " .. text)
+		end
+	end)
+end
+
+-- A debuff's expirationTime, which a cure is offered on (Cures.lua, ReadInto):
+-- asked of every harmful aura on you, your party and your target.
+do
+	local scenario = "par-trust: the launch report reads a debuff's timer"
+	launchSession(scenario, function(ns)
+		local real = rawget(_G, "C_UnitAuras")
+		local realExists = rawget(_G, "UnitExists")
+		local function with(harmful)
+			local stub = setmetatable({
+				GetAuraDataByIndex = function(unit, i, filter)
+					if filter == "HARMFUL" then
+						local list = harmful[unit]
+						return list and list[i] or nil
+					end
+					return real.GetAuraDataByIndex(unit, i, filter)
+				end,
+			}, { __index = real })
+			rawset(_G, "C_UnitAuras", stub)
+			rawset(_G, "UnitExists", function(unit) return unit == "player" or harmful[unit] ~= nil end)
+			local status, text = launchLine(launchRun(ns), "launch.debuffs")
+			rawset(_G, "C_UnitAuras", real)
+			rawset(_G, "UnitExists", realExists)
+			return status, text
+		end
+		local status, text = with({})
+		if status ~= "CHECK" or not text:find("nothing timed to judge", 1, true) then
+			fail(scenario, "nothing to read reads " .. tostring(status) .. ": " .. text)
+		end
+		status, text = with({ party1 = { { name = "Poison", dispelName = "Poison", duration = 30,
+			expirationTime = Mock.now + 20, canActivePlayerDispel = true } } })
+		if status ~= "PASS" or not text:find("1 with a duration, 1 of them with an expirationTime; canActivePlayerDispel given", 1, true) then
+			fail(scenario, "a timed debuff reads " .. tostring(status) .. ": " .. text)
+		end
+		status, text = with({ party1 = { { name = "Poison", dispelName = "Poison", duration = 30, expirationTime = 0 } } })
+		if status ~= "FAIL" or not text:find("no cure would be offered", 1, true) then
+			fail(scenario, "a timed debuff with no expiry reads " .. tostring(status) .. ": " .. text)
+		end
+	end)
+end
