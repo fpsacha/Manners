@@ -9,6 +9,24 @@
   *Who to buff*, under *Buff order*. Asked for on CurseForge.
 - **Profiles you can manage.** The Profiles page lists every profile and who
   is on it; pick one and use, duplicate, rename, delete or copy it, with Undo.
+- **Painted looks, ten of them new.** Frost Mage wears a painted frame, ten
+  new looks join it, and the picker sorts them all into four shelves.
+
+### Looks
+- **Painted frames.** The looks are being repainted, each from one painting:
+  Frost Mage first, the rest as they are finished. *Earlier art* (Look, under
+  *Panel style*) keeps the frames they had before.
+- **Ten new looks.** For the classes: Fire Mage, Priest, Rogue, Monk, Demon
+  Hunter and Evoker. And four quiet ones: Ghost (a pane of smoked glass),
+  Hairline (an icon and one fine line), Pill and Slate. Ghost, Pill and Slate
+  let a little of the world show through, never enough to lose the words.
+- **The picker in shelves.** The cards are sorted under Minimal, Classic,
+  Themed and Class, and the class looks are named for their class: Frost
+  Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter and
+  Warrior. Your choice is kept.
+- **Show my key on the prompt.** As the look has it (on the class and themed
+  looks, off on the calmer ones), always or never. Look, under *Style*.
+  Nothing is shown while no key is bound.
 
 ### Profiles
 - **Every profile at a glance.** One line each, the one in use first: which

@@ -9,6 +9,13 @@ ns.WhatsNew = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100A blessing for each class.|r Paladins can pick the blessing each class is offered first: Wisdom for mages, say, where the order would give them Kings.",
 			"|cffffd100Profiles you can manage.|r The Profiles page lists every profile and who is on it; pick one and use, duplicate, rename, delete or copy it, with Undo.",
+			"|cffffd100Painted looks, ten of them new.|r Frost Mage wears a painted frame, ten new looks join it, and the picker sorts them all into four shelves.",
+		} },
+		{ title = "Looks", accent = "7cc4ff", entries = {
+			"|cff7cc4ffPainted frames.|r The looks are being repainted, each from one painting: Frost Mage first, the rest as they are finished.",
+			"|cff7cc4ffTen new looks.|r For the classes: Fire Mage, Priest, Rogue, Monk, Demon Hunter and Evoker.",
+			"|cff7cc4ffThe picker in shelves.|r The cards are sorted under Minimal, Classic, Themed and Class, and the class looks are named for their class: Frost Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter and Warrior.",
+			"|cff7cc4ffShow my key on the prompt.|r As the look has it (on the class and themed looks, off on the calmer ones), always or never.",
 		} },
 		{ title = "Profiles", accent = "7cc4ff", entries = {
 			"|cff7cc4ffEvery profile at a glance.|r One line each, the one in use first: which characters are on it, and where automatic switching picks it for you.",
