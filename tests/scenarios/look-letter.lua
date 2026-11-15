@@ -92,6 +92,8 @@ local function upIn(ns, scenario, edit, who)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "letter"
+	-- The letter's own art: its painted frame is painted-letter.lua's.
+	p.classicArt = true
 	p.flashStyle = "pulse"
 	p.effects = "full"
 	p.hideInCombat = false
