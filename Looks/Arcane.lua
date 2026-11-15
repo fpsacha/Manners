@@ -76,6 +76,16 @@ local Arcane = ns.Looks.Register("arcane", {
 	-- The glass holds in a fight; the ink dims itself (Combat).
 	combatArtAlpha = 1,
 	classSoften = 0.55,
+	-- The painted frame (Looks/Painted.lua, art/looks/arcane): what of this
+	-- look the painting replaces -- the smoked glass, its shadow, its second
+	-- coat of smoke and top edge, the lens's dark well and the keycap. What
+	-- carries the reason stays and is laid on the painting (PaintedPlace): the
+	-- rim round the painted well, the bloom, the ring and the runes in the
+	-- socket, the clock along the well's foot, the count's coin, the list.
+	paintedHides = { "shadow", "glass", "smoke", "glint", "well", "keycap" },
+	-- The icon leaves a band of the socket's hole round it for the ring and
+	-- the runes, as the lens did.
+	paintedIconFill = 0.74,
 })
 
 -- The reason with the marker off.
@@ -119,6 +129,15 @@ local ICON_FRAME = 0.75
 -- The icon's share of the rune circle at which its frame just clears the
 -- inner runes (RuneRing's and RuneRingSq's inner hairlines).
 local ICON_FIT = 0.69
+-- The painted frame (art/looks/arcane/final-empty.jpg), in units of the bar's
+-- core height: the thin rim round its well (its line's middle: from the bar's
+-- left, from its right, from the core's top) and the bar's body without the
+-- crystal at its end. Measured on the painting; the reason's rim is laid on
+-- the painted one.
+local PAINT_RIM = { left = 1.115, right = 0.657, top = 0.0935, bottom = 0.915 }
+local PAINT_BODY = { left = 0.026, right = 0.587, top = 0.017, bottom = 0.996 }
+-- A fight greys the painted frame and dims it a little (the rim holds).
+local PAINT_COMBAT = 0.86
 
 function Arcane.AccentCarriers(p)
 	local mode = p.accentMode or "icon"
@@ -492,6 +511,9 @@ function Arcane:Apply(p, above)
 	local br, bg, bb, ba = c[1] or 0.04, c[2] or 0.04, c[3] or 0.06, c[4] == nil and 0.88 or c[4]
 	local showIcon = p.showIcon and true or false
 	local round = p.roundIcon and true or false
+	-- The painted frame's places, set again by PaintedPlace when it is up.
+	self.pg, self.edge, self.minRight, self.lineDY = nil, nil, nil, nil
+	self.trayL, self.trayR, self.outcomeOn = nil, nil, nil
 
 	-- The lens: the rune circle wants the icon at 0.69 of it and 3-5 units above
 	-- and below. An icon asked bigger than that room holds still grows with the
@@ -787,6 +809,141 @@ function Arcane:Hide()
 	kit.textLayer:SetAlpha(1)
 	self.combat, self.hovered, self.washFor, self.outcome, self.trayShown = nil, nil, nil, nil, nil
 	self.breathe = nil
+	self.pg, self.edge, self.minRight, self.lineDY = nil, nil, nil, nil
+	self.trayL, self.trayR, self.outcomeOn = nil, nil, nil
+end
+
+---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): Arcane's reason, lights, clock,
+-- key, count and list moved onto the painting. Looks/Painted.lua has laid the
+-- three pieces and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- A slice round a box given in units from art's top left, `pad` outside it.
+local function SliceOn(s, art, W, H, x0, y0, x1, y1, pad)
+	pad = pad or 0
+	PlaceSlice(s, art, art, -x0 + pad, -y0 + pad, x1 - W + pad, y1 - H + pad)
+end
+
+function Arcane:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local W, H, u = self.W, self.H, g.unit
+	local showIcon = self.showIcon
+	self.pg = g
+	-- The rim round the painted well, and the bar's body.
+	local rx0, rx1 = g.left + PAINT_RIM.left * u, g.right - PAINT_RIM.right * u
+	local ry0, ry1 = g.top + PAINT_RIM.top * u, g.top + PAINT_RIM.bottom * u
+	local bx0, bx1 = g.left + PAINT_BODY.left * u, g.right - PAINT_BODY.right * u
+	local by0, by1 = g.top + PAINT_BODY.top * u, g.top + PAINT_BODY.bottom * u
+
+	-- The reason's rim lies on the painted one, the cursor's and the flare's
+	-- with it; the bloom round the body, short of the crystal.
+	local corner = math.max(2, math.min(6, u * 0.07))
+	for _, s in ipairs({ self.rim, self.liftRim, self.hoverRim }) do
+		s.corner = corner
+		SliceOn(s, art, W, H, rx0, ry0, rx1, ry1)
+	end
+	for _, s in ipairs({ self.bloom, self.liftBloom }) do SliceOn(s, art, W, H, bx0, by0, bx1, by1, 10) end
+
+	-- The socket: the runes in its hole round the icon, the ring hugging the
+	-- icon, the wash and the tick, the rings that spread.
+	local iconSize = g.iconSize
+	local M = 2 * g.socketR
+	local cx, cy = g.socketX, g.socketY
+	self.cx, self.M, self.iconSize, self.textX = cx, M, iconSize, g.textX
+	for _, t in ipairs({ self.runes, self.wash }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+	end
+	self.runes:SetSize(M, M)
+	self.wash:SetSize(M + 10, M + 10)
+	for _, t in ipairs({ self.ring, self.warmRing }) do t:SetSize(iconSize / ICON_FRAME, iconSize / ICON_FRAME) end
+	self.check:SetSize(iconSize * 0.86, iconSize * 0.86)
+	self.fx:Place(icon, (iconSize / ICON_FRAME - iconSize) / 2, iconSize)
+	local runeRing = self.fx.rings[2]
+	runeRing.half = M / 2
+	runeRing.frame:ClearAllPoints()
+	runeRing.frame:SetPoint("TOPLEFT", icon, "TOPLEFT", -(M - iconSize) / 2, (M - iconSize) / 2)
+	runeRing.frame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", (M - iconSize) / 2, -(M - iconSize) / 2)
+	local limitH = math.max(1, math.min(g.textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN))
+	local limitV = math.max(1, math.min(cy, H - cy) - kit.EDGE_MARGIN)
+	self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+	kit.CapLock(self.lockIn, self.lockSettle, 1.22, 0.97,
+		kit.CapScale(math.min(limitH, limitV), iconSize / ICON_FRAME / 2, 0.98))
+
+	-- The clock along the well's foot, inside the rim, from the words to the
+	-- rim's far side.
+	local drainX = g.textX - 2
+	local drainY = math.min(g.wellBottom, ry1) - 2.5
+	self.drainFull = math.max(8, rx1 - 5 - drainX)
+	for _, t in ipairs({ self.track, self.drain }) do
+		t:ClearAllPoints()
+		t:SetPoint("LEFT", art, "TOPLEFT", drainX, -drainY)
+	end
+	self.track:SetWidth(self.drainFull)
+	self.drain:SetWidth(self.drainFull)
+	self.drainWidth = nil
+
+	-- The light that crosses: over the well, from the socket to the rim.
+	local from = showIcon and math.floor(cx + g.socketR + 0.5) or math.floor(rx0)
+	local band = math.max(16, math.min(48, math.floor((rx1 - from) * 0.2)))
+	self.shineFrame:ClearAllPoints()
+	self.shineFrame:SetPoint("TOPLEFT", art, "TOPLEFT", from, -ry0)
+	self.shineFrame:SetSize(band, math.max(4, ry1 - ry0))
+	self.shineAnim.move:SetOffset(math.max(0, rx1 - band - from), 0)
+
+	-- The two lines centred on the well.
+	local dy = H / 2 - g.textY
+	self.nameY, self.subY, self.lineDY = self.nameY + dy, self.subY + dy, dy
+
+	-- The count's coin and the lines stop inside the rim; the key's letter on
+	-- the painted keycap, the lines and the coin left of it.
+	self.edge = math.max(8, math.ceil(W - rx1) + 5)
+	self.minRight = self.edge + 2
+	local keyL = g.keyX - g.keyW / 2
+	self.paintedKeyRoom = math.max(0, math.ceil(W - keyL) + 4 - self.edge)
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	self.keyLabel, self.keyRoom, self.keyOn = nil, 0, nil
+	self.roomBase = self.edge + 2 + math.ceil(self.sub * 1.3 + 8) + 4
+
+	-- The list on a sheet of the well's own colour under the body, its rows
+	-- clear of the crystal.
+	self.trayL, self.trayR = math.floor(bx0 + 1), math.floor(W - bx1 + 1)
+	local wc = self.paintedArt.data.wellColour or { 0.115, 0.103, 0.172 }
+	SliceColor(self.trayGlass, wc[1], wc[2], wc[3], 0.94)
+	SliceColor(self.trayRim, 0.62, 0.58, 0.95, 0.30)
+	self.dotX = math.max(g.textX - 8, 12)
+	self.rowX = math.max(g.textX, self.dotX + 8)
+	local rowWidth = math.max(20, bx1 - 6 - self.rowX - 8)
+	for _, fs in ipairs(kit.rows) do
+		fs:SetWidth(rowWidth)
+		kit.fit.room[fs] = rowWidth
+	end
+
+	ns.Looks.Painted.Tone(self, 1, 1, 1, false)
+	return g.textX, self.roomBase
+end
+
+-- The painted keycap goes with the letter as an outcome comes and goes, not
+-- only at the next repaint (Painted.KeyShown asks outcomeOn).
+function Arcane:PaintedKey()
+	local art = self.paintedArt
+	if art and art.on then art.keycap:SetShown(ns.Looks.Painted.KeyShown(self)) end
+end
+
+-- The key's letter is light on the painted keycap's dark glass, and no larger
+-- than the keycap holds.
+function Arcane:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
 end
 
 ---------------------------------------------------------------------------
@@ -802,6 +959,8 @@ end
 function Arcane:PlaceLines(right)
 	local kit = self.kit
 	local name, sub, fit = kit.name, kit.sub, kit.fit
+	-- On the painting the lines stop inside the well's rim.
+	if self.minRight then right = math.max(right, self.minRight) end
 	self.lineRight = right
 	-- The count's and the keycap's room, never so much that the two points
 	-- cross: the name keeps 20 units, and the room at the right gives way.
@@ -815,8 +974,8 @@ function Arcane:PlaceLines(right)
 		sub:SetPoint("LEFT", self.textX, self.subY)
 		sub:SetPoint("RIGHT", -inset, self.subY)
 	else
-		name:SetPoint("LEFT", self.textX, 0)
-		name:SetPoint("RIGHT", -inset, 0)
+		name:SetPoint("LEFT", self.textX, self.lineDY or 0)
+		name:SetPoint("RIGHT", -inset, self.lineDY or 0)
 	end
 	fit.room[name], fit.room[sub] = room, room
 end
@@ -851,6 +1010,9 @@ end
 
 function Arcane:CheckKey()
 	if self.placing or not self.keyLabel then return end
+	-- The painted keycap is there whatever the name: its letter with it, and
+	-- the name fits the room left of it.
+	if self.pg then return end
 	local yield = self:NameNeedsTheKeysRoom()
 	if yield ~= (self.keyYield or false) then
 		self.keyYield = yield
@@ -904,6 +1066,13 @@ function Arcane:ReadKey(force)
 		self.keyText:SetText("")
 		self.keyRoom = 0
 	end
+	-- On the painted keycap: its own size, and the room from the well's edge
+	-- to its left side.
+	local pg = self.pg
+	if pg and label then
+		self.keyBox:SetSize(pg.keyW, pg.keyH)
+		self.keyRoom = self.paintedKeyRoom or self.keyRoom
+	end
 	self:PlaceKey()
 	self:CheckKey()
 end
@@ -934,7 +1103,9 @@ end
 -- must follow it, or the lines, which stop short of the badge's own place,
 -- would run under it).
 function Arcane:PlaceBadge()
-	local right = self:KeyShown() and (8 + self.keyRoom + 1) or 8
+	-- On the painting, inside the well's rim.
+	local edge = self.edge or 8
+	local right = self:KeyShown() and (edge + self.keyRoom + 1) or edge
 	self.badgeBox:ClearAllPoints()
 	self.badgeBox:SetPoint("RIGHT", self.kit.textLayer, "RIGHT", -right, 0)
 end
@@ -961,6 +1132,7 @@ function Arcane:Chip(on)
 		-- (never less than Apply's, a count of two digits), so the name does not
 		-- run under a count of three digits. PlaceLines adds the keycap's.
 		kit.fit.chipRoom = math.max(self.roomBase or 0, 10 + self.countW + 4)
+		if self.edge then kit.fit.chipRoom = math.max(kit.fit.chipRoom, self.edge + 2 + self.countW + 4) end
 		self.badgeBox:SetWidth(self.countW)
 		self.badgeUp = true
 		self:PlaceBadge()
@@ -1080,6 +1252,9 @@ function Arcane:Combat(on)
 	-- verdict on it waits for the next paint, which is the reason's own.
 	if not self.outcome then self:Retint() end
 	self.kit.icon:SetDesaturated(on)
+	-- The painted frame greys a little with the icon; the rim round its well
+	-- keeps the reason's colour.
+	ns.Looks.Painted.Tone(self, on and PAINT_COMBAT or 1, on and PAINT_COMBAT or 1, on and PAINT_COMBAT or 1, on)
 	self:Spin()
 end
 
@@ -1290,6 +1465,9 @@ function Arcane:PaintOutcome(kind, lead, sub, who, stamp)
 		word = sub or ""
 	end
 	self.outcome = kind
+	-- The painted keycap steps aside with the letter (Painted.KeyShown).
+	self.outcomeOn = true
+	self:PaintedKey()
 	self:ShowKey()
 	-- The clock steps aside and keeps its time, so the outcome's end brings
 	-- it back, in a fight too (where nothing else would).
@@ -1332,6 +1510,8 @@ end
 function Arcane:ClearOutcome()
 	if not (self.washFor or self.outcome) then return end
 	self.washFor, self.outcome = nil, nil
+	self.outcomeOn = nil
+	self:PaintedKey()
 	self.washAnim:Stop()
 	self.wash:Hide()
 	self.checkAnim:Stop()
@@ -1377,15 +1557,17 @@ function Arcane:PaintQueue(rows, shown, above)
 	if not placed then
 		self.trayHeight, self.trayAt = depth, above
 		self.trayBox:ClearAllPoints()
+		-- Under a painted frame, the bar's body without its end ornament.
+		local tl, tr = self.trayL or 0, -(self.trayR or 0)
 		if above then
-			self.trayBox:SetPoint("BOTTOMLEFT", art, "TOPLEFT", 0, 0)
-			self.trayBox:SetPoint("BOTTOMRIGHT", art, "TOPRIGHT", 0, 0)
+			self.trayBox:SetPoint("BOTTOMLEFT", art, "TOPLEFT", tl, 0)
+			self.trayBox:SetPoint("BOTTOMRIGHT", art, "TOPRIGHT", tr, 0)
 			self.trayBox:SetHeight(depth)
 			PlaceSlice(self.trayGlass, self.trayBox, self.trayBox, -5, 0, -5, 8)
 			PlaceSlice(self.trayRim, self.trayBox, self.trayBox, -5, 0, -5, 8)
 		else
-			self.trayBox:SetPoint("TOPLEFT", art, "BOTTOMLEFT", 0, 0)
-			self.trayBox:SetPoint("TOPRIGHT", art, "BOTTOMRIGHT", 0, 0)
+			self.trayBox:SetPoint("TOPLEFT", art, "BOTTOMLEFT", tl, 0)
+			self.trayBox:SetPoint("TOPRIGHT", art, "BOTTOMRIGHT", tr, 0)
 			self.trayBox:SetHeight(depth)
 			PlaceSlice(self.trayGlass, self.trayBox, self.trayBox, -5, 8, -5, 0)
 			PlaceSlice(self.trayRim, self.trayBox, self.trayBox, -5, 8, -5, 0)

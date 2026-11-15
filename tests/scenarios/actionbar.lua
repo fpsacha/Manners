@@ -550,6 +550,9 @@ do
 					SetBinding(key, COMMAND)
 					local p = ns.db.profile.prompt
 					p.style, p.width, p.locked, p.hideInCombat = style, width, true, false
+					-- Arcane's own chip, which Earlier art draws (its painting
+					-- keeps the key off as the look has it: painted-arcane.lua).
+					if style == "arcane" then p.classicArt = true end
 					ns.Prompt:ApplyStyle()
 					Mock.advance(60)
 					owe(ns, "Anna Aim")
