@@ -244,14 +244,14 @@ _m(LETTER,
    expect="is not cut at the default size", script=S)
 
 _m(LETTER,
-   "\t\tself.countBox:SetPoint(\"CENTER\", art, \"TOPLEFT\", g.cx + dx, -(g.cy + dy))\n",
-   "\t\tself.countBox:SetPoint(\"CENTER\", art, \"TOPLEFT\", g.cx + dx, -g.cy)\n",
+   "\t\tself.countBox:SetPoint(\"CENTER\", art, \"TOPLEFT\", x, -(g.cy + dy))\n",
+   "\t\tself.countBox:SetPoint(\"CENTER\", art, \"TOPLEFT\", x, -g.cy)\n",
    "the count's slip in the middle of the seal, off the wax's edge",
    expect="not on the wax's edge", script=S)
 
 _m(LETTER,
-   "\t\tself.countBox:SetPoint(\"RIGHT\", art, \"RIGHT\", -edge, nameDy)\n",
-   "\t\tself.countBox:SetPoint(\"RIGHT\", art, \"RIGHT\", -edge, subDy)\n",
+   "\t\tself.countBox:SetPoint(\"RIGHT\", art, \"RIGHT\", -edge - extra, nameDy)\n",
+   "\t\tself.countBox:SetPoint(\"RIGHT\", art, \"RIGHT\", -edge - extra, subDy)\n",
    "the count on the reason's line",
    expect="the count's slip is not on the name line", script=S)
 

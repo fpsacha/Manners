@@ -1,0 +1,35 @@
+{
+ "key": "letter",
+ "socket": {
+  "shape": "round",
+  "cx": 680,
+  "cy": 512,
+  "r": 165
+ },
+ "name_xy": [
+  1058,
+  373
+ ],
+ "reason_xy": [
+  1058,
+  563
+ ],
+ "keycap": {
+  "cx": 3555,
+  "cy": 517,
+  "w": 196,
+  "h": 196
+ },
+ "bar": [
+  210,
+  226,
+  4025,
+  804
+ ],
+ "stretch": [
+  1100,
+  3350
+ ],
+ "text_colour_ok": false,
+ "notes": "TEXT IS DARK: the well is light cream parchment, so the name must be dark brown-black ink (about #2a1d16) and the reason dark red-brown ink (about #5a1a12), not white and gold. Socket r is the dark inner disc of the wax seal (icon area); the seal's outer poured rim reaches r about 275 around the same centre. The flat parchment strip itself runs y 288-745; the bar box includes the paper rolls (y 226-804) and the red ribbon tail at the right (x 3800-4025). Faint soft tonal seam in the paper near x 3180 of the empty frame; keep stretch slices left of it if it shows. Could be animated as layers: a soft specular glint sliding across the glossy wax seal, a slow arcane pulse of the icon glow inside the seal, and a gentle flutter of the red silk ribbon tail at the right end."
+}

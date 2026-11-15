@@ -115,7 +115,25 @@ local Letter = ns.Looks.Register("letter", {
 	-- ... after being taken part of the way to the ink, so that every class is a
 	-- shade of ink and none a grey.
 	classInk = { 0.20, 0.105, 0.04, 0.55 },
+	-- The painted frame (Looks/Painted.lua, art/looks/letter): what of this
+	-- letter the painting replaces. The sheet on the bar, its folds, the rods,
+	-- the wax and its shine and shadow, the key's slip, and the cover's copy
+	-- of the sheet (a copy of the painting takes its place, PaintedLay). The
+	-- seal's lip in the reason's wax, the lights, the stroke of ink, the
+	-- count's slip, the list on a sheet of its own, the quill and the cover
+	-- stay.
+	paintedHides = { "sheetL", "sheetR", "folds", "rodL", "rodR", "body", "gloss", "shadow", "keySlip", "coverPaper", "foldsC" },
+	paintedIconFill = 0.76,
 })
+
+-- The painted seal's wax reaches this far round its socket, in the socket's
+-- radii (the painter's note: the poured rim at r 275 round a hole of 165).
+local PAINTED_WAX = 1.6
+-- The list's sheet under a painted frame is the painting's own parchment: the
+-- middle piece's inside (from LIST_IN to LIST_OUT of the core) stretched over
+-- the rows, and its torn edge, the last LIST_EDGE of the core and what hangs
+-- past it, at the sheet's far end.
+local LIST_IN, LIST_OUT, LIST_EDGE = 0.25, 0.75, 0.2
 
 -- The files' figures (tools/make_letter_textures.py, which must agree). The
 -- paper is 256 x 64: caps a quarter of its width, bands a quarter, a half and a
@@ -726,6 +744,38 @@ function Letter:Build(kit)
 	-- colour, not a shine.
 	Colour(self.countPinLight, 1, 1, 1)
 	for _, t in ipairs(self.dropLights) do Colour(t, 1, 1, 1) end
+	-- Flat lists of the sheet's right part and of the cover, for the painted
+	-- frame's paintedHides (a region or a list of them).
+	self.sheetL, self.sheetR, self.coverPaper = {}, {}, {}
+	for c = 1, 3 do
+		for r = 1, rows do
+			self.sheetL[#self.sheetL + 1] = self.paperL[c][r]
+			self.sheetR[#self.sheetR + 1] = self.paperR[c][r]
+			self.coverPaper[#self.coverPaper + 1] = self.paperC[c][r]
+		end
+	end
+	-- Under a painted frame the cover is a copy of the painting: its three
+	-- pieces again on the cover's sheet; and the list hangs on a sheet of the
+	-- painting's own parchment, its inside and its torn edge, on art under the
+	-- painting (PaintedLay). Never shown otherwise.
+	local pd = ns.PaintedData and ns.PaintedData.letter
+	if pd then
+		self.coverArt, self.listArt = {}, {}
+		for i, part in ipairs({ "left", "middle", "right" }) do
+			local t = self.inkSheet:CreateTexture(nil, "BACKGROUND", nil, -6)
+			t:SetTexture(pd[part].file)
+			t:Hide()
+			ns.Looks.Hold(t)
+			self.coverArt[i] = t
+		end
+		for i = 1, 2 do
+			local t = art:CreateTexture(nil, "BACKGROUND", nil, -6)
+			t:SetTexture(pd.middle.file)
+			t:Hide()
+			ns.Looks.Hold(t)
+			self.listArt[i] = t
+		end
+	end
 
 	-- The icon's shape; taken off it in Hide, so not in `own`.
 	self.mask = art:CreateMaskTexture()
@@ -965,6 +1015,8 @@ end
 -- The unroll begins: the window starts a way to the left of its place, the
 -- paper a way to the right of the window, the rod a way to the left.
 function Letter:StartUnroll()
+	-- A painted scroll is there whole: nothing of it unrolls.
+	if self.pg then return end
 	local back = self.unrollBack or 0
 	-- Stopped first: a stop puts the frames at rest (Rest), and a run still going
 	-- would otherwise put them back after they were moved.
@@ -1020,6 +1072,12 @@ function Letter:Apply(p, above)
 	local showIcon = p.showIcon and true or false
 	local g = Geometry(W, H, fs, two, serif)
 	self.active = true
+	-- The painted frame's, until PaintedPlace says otherwise: its layout, its
+	-- copy of the painting for the cover, and the key's letter on its keycap.
+	self.pg = nil
+	for _, t in ipairs(self.coverArt or {}) do t:Hide() end
+	for _, t in ipairs(self.listArt or {}) do t:Hide() end
+	self.keyText:SetParent(kit.textLayer)
 	self.p, self.W, self.H, self.above, self.g, self.two = p, W, H, above, g, two
 	self.face, self.serif = face, serif
 	self.showIcon = showIcon
@@ -1330,6 +1388,17 @@ function Letter:PaintPaper(k)
 	end
 	for _, t in ipairs(self.rodL) do Colour(t, k, k, k) end
 	for _, t in ipairs(self.rodR) do Colour(t, k, k, k) end
+	-- The painted frame, when it is up, and the cover's copy of it: the same
+	-- tint and dim, greyed in a fight.
+	ns.Looks.Painted.Tone(self, r, g, b, k < 1)
+	for _, piece in ipairs(self.listArt or {}) do
+		piece:SetDesaturated(k < 1)
+		Colour(piece, r, g, b)
+	end
+	for _, piece in ipairs(self.coverArt or {}) do
+		piece:SetDesaturated(k < 1)
+		Colour(piece, r, g, b)
+	end
 end
 
 function Letter:Styled(p)
@@ -1455,6 +1524,10 @@ function Letter:Hide()
 	kit.textLayer:SetAlpha(1)
 	self.combat, self.hovered, self.outcomeOn = nil, nil, nil
 	self.listShown, self.countMode, self.keyUp = nil, nil, false
+	self.pg = nil
+	for _, t in ipairs(self.coverArt or {}) do t:Hide() end
+	for _, t in ipairs(self.listArt or {}) do t:Hide() end
+	self.keyText:SetParent(kit.textLayer)
 end
 
 ---------------------------------------------------------------------------
@@ -1479,6 +1552,20 @@ function Letter:PlaceLines()
 		-- Pinned on the seal the count takes nothing from the line: its slip
 		-- ends short of the words.
 		if self.countMode and self.countMode ~= "seal" then nameRoom = nameRoom + (self.countW or 0) + 4 end
+	end
+	-- On the painted keycap the key takes none of the lines' room: the well
+	-- already stops short of it.
+	if self.pg and self.keyUp then
+		if self.two then
+			subRoom = subRoom - (self.keyW or 0) - 4
+		else
+			nameRoom = nameRoom - (self.keyW or 0) - 4
+		end
+		-- But for a label that runs past the keycap: both lines give it room, as
+		-- it stands between them.
+		local over = (self.keyExtra or 0) > 0 and self.keyExtra + 4 or 0
+		nameRoom = nameRoom + over
+		if self.two then subRoom = subRoom + over end
 	end
 	-- The two points never cross: the name keeps 20 units, the room at the right
 	-- gives way.
@@ -1568,7 +1655,23 @@ function Letter:Chip(on)
 		-- prompt as narrow as the slider allows the slip would stand over the seal
 		-- and the reason.
 		if keyUp and self.keyW + 4 > g.textRight - self.textX - 20 then keyUp = false end
+		-- The painted keycap is there whatever the lines hold: its letter with it.
+		-- A label wider than the keycap (a controller's buttons) runs on into the
+		-- well, which the lines then give it, and where they cannot spare that
+		-- it is not written.
+		if self.pg then
+			keyUp = true
+			if self.paintedLabel ~= key then
+				self.paintedLabel = key
+				self.keyExtra = math.max(0, math.ceil((kit.TextWidth(self.keyText) or 0) + 6 - self.pg.keyW))
+			end
+			if self.keyExtra > 0 and self.keyExtra + 4 > g.textRight - self.textX - 20 then keyUp = false end
+		end
 	end
+	-- What the key takes of a line's room: on the painted keycap only what its
+	-- label runs past it.
+	local extra = (self.pg and keyUp and (self.keyExtra or 0) > 0) and self.keyExtra + 4 or 0
+	local keyCost = (keyUp and not self.pg) and self.keyW + 4 or extra
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
 		kit.fit.right = nil
@@ -1595,17 +1698,19 @@ function Letter:Chip(on)
 	local mode
 	if on then
 		local need = base + self.countW + 4
-		if self.sealOK then
+		-- On a painted seal, only a slip that fits between the prompt's left
+		-- and the words.
+		if self.sealOK and not (self.pg and self.countW + 3 > g.textX - 1) then
 			mode = "seal"
 		elseif two then
 			self.subWidth = kit.fit.drawn[kit.sub] or kit.TextWidth(kit.sub)
-			if self:SubFits(need + (keyUp and self.keyW + 4 or 0)) then
+			if self:SubFits(need + keyCost) then
 				mode = "sub"
 			elseif self:NameFits(need) then
 				mode = "chip"
 			end
 		elseif keyUp then
-			if self:NameFits(need + self.keyW + 4) then mode = "pair" end
+			if self:NameFits(need + keyCost) then mode = "pair" end
 		elseif self:NameFits(need) then
 			mode = "chip"
 		end
@@ -1620,7 +1725,12 @@ function Letter:Chip(on)
 	local edge = self.W - g.textRight
 	self.countBox:ClearAllPoints()
 	self.keyBox:ClearAllPoints()
-	if keyUp then
+	local pg = self.pg
+	if keyUp and pg then
+		-- The letter's middle on the painted keycap's.
+		self.keyBox:SetPoint("CENTER", art, "TOPLEFT", pg.keyX - self.keyExtra / 2, -pg.keyY)
+		self.keyBox:SetSize(pg.keyW + self.keyExtra, pg.keyH)
+	elseif keyUp then
 		self.keyBox:SetPoint("RIGHT", art, "RIGHT", -edge, subDy)
 		self.keyBox:SetSize(self.keyW, h)
 	end
@@ -1631,13 +1741,16 @@ function Letter:Chip(on)
 		local rw = g.sealD / 2
 		local dx = math.min(0.6 * rw, g.sealRight - g.cx + 3 - bw / 2)
 		local dy = math.min(math.sqrt(math.max(0, rw * rw - dx * dx)), self.H / 2 - 1 - bh / 2)
-		self.countBox:SetPoint("CENTER", art, "TOPLEFT", g.cx + dx, -(g.cy + dy))
-	elseif mode == "pair" or (mode == "sub" and keyUp) then
+		local x = g.cx + dx
+		-- A painted seal may hang past the prompt's left: the slip stays inside.
+		if pg then x = math.min(math.max(x, bw / 2 + 1), g.textX - 2 - bw / 2) end
+		self.countBox:SetPoint("CENTER", art, "TOPLEFT", x, -(g.cy + dy))
+	elseif (mode == "pair" or (mode == "sub" and keyUp)) and not pg then
 		self.countBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
 	elseif mode == "sub" then
-		self.countBox:SetPoint("RIGHT", art, "RIGHT", -edge, subDy)
+		self.countBox:SetPoint("RIGHT", art, "RIGHT", -edge - extra, subDy)
 	elseif mode then
-		self.countBox:SetPoint("RIGHT", art, "RIGHT", -edge, nameDy)
+		self.countBox:SetPoint("RIGHT", art, "RIGHT", -edge - extra, nameDy)
 	end
 	if mode then
 		local ch = mode == "seal" and self.badgeH or h
@@ -1659,7 +1772,7 @@ function Letter:Chip(on)
 	kit.count:SetShown(mode ~= nil)
 	-- Only a slip on the name line takes room from it; PlaceLines gives each line
 	-- its room.
-	return mode ~= nil or (keyUp and not two)
+	return mode ~= nil or (keyUp and not two and not pg)
 end
 
 ---------------------------------------------------------------------------
@@ -1843,7 +1956,10 @@ function Letter:Flourish(kind)
 		Colour(self.flash, EMBER[1], EMBER[2], EMBER[3])
 		PlayAll(self.flashAnims)
 		PlayAll(self.crackAnims)
-		PlayAll(self.shakes)
+		-- The scroll shakes; a painted one stands still (the seal's lights and
+		-- the icon would shake off its painted socket), the text's shake is
+		-- still Prompt's.
+		if not self.pg then PlayAll(self.shakes) end
 		return
 	end
 	-- Nothing for a cast nobody confirmed: a flourish is a claim.
@@ -2190,6 +2306,15 @@ function Letter:PaintQueue(rows, shown, above)
 			self.lines[i]:Hide()
 		end
 	end
+	if not list and self.pg then
+		-- Under a painted frame the list's sheet goes with it.
+		if self.listShown then
+			self.listShown, self.listAt = nil, nil
+			self:PaintedLay()
+			if self.wroteAt == GetTime() then self:Reach() end
+		end
+		return
+	end
 	if not list then
 		if self.listShown then
 			self.listShown, self.listAt = nil, nil
@@ -2217,6 +2342,7 @@ function Letter:PaintQueue(rows, shown, above)
 	-- A list hung in the paint that began the writing: the pen crosses the
 	-- whole sheet (Reach).
 	if not hung and self.wroteAt == GetTime() then self:Reach() end
+	if self.pg then return self:PaintedList(shown, above) end
 
 	local block = shown * pitch
 	local drop = math.min(pitch * 0.9, g.chipH + 2)
@@ -2258,4 +2384,256 @@ function Letter:PaintQueue(rows, shown, above)
 		self.lines[i]:SetSize(ruleW, 3)
 		Colour(self.lines[i], 0.45, 0.28, 0.12, 0.34)
 	end
+end
+
+---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): the letter's seal lights, its lines,
+-- its slips, its list and its writing moved onto the painting. Painted.lua has
+-- laid the three pieces and put the icon in the socket; `g` is its
+-- Painted.Layout. The letter's own geometry (self.g) is taken over where the
+-- painting says otherwise, so everything that reads it (Chip, PlaceLines,
+-- Reach, Sign) finds the painted seal and well.
+---------------------------------------------------------------------------
+
+function Letter:PaintedPlace(g, p, above)
+	local kit, lg = self.kit, self.g
+	local art = kit.art
+	local H = self.H
+	self.pg = g
+	local keyL = g.keyX - g.keyW / 2
+	local cx, cy = g.socketX, g.socketY
+	-- The seal is the painting's: its wax round the socket.
+	local waxR = PAINTED_WAX * g.socketR
+	lg.cx, lg.cy = cx, cy
+	lg.sealW, lg.sealRight = 2 * waxR, cx + waxR
+	lg.sealD = 2 * waxR * 0.95
+	lg.sq = lg.sealD / SEAL_R
+	lg.iconSize = g.iconSize
+	-- The words in the well, from its start to short of the keycap; the two
+	-- lines and the stroke between them centred where the painting has them.
+	local dy = H / 2 - g.textY
+	lg.textX, lg.textRight = g.textX, keyL - 4
+	lg.nameMid, lg.ruleY = lg.nameMid - dy, lg.ruleY - dy
+	if lg.subMid then lg.subMid = lg.subMid - dy end
+	self.textX = g.textX
+	self.nameY = self.nameY + dy
+	if self.subY then self.subY = self.subY + dy end
+	-- The pen and the cover keep to the well: from the words to the keycap.
+	lg.splitX, lg.rodR = g.textX - 4, keyL - 1
+	self.rule:ClearAllPoints()
+	self.rule:SetPoint("LEFT", art, "TOPLEFT", lg.textX, -lg.ruleY)
+	self.rule:SetSize(lg.textRight - lg.textX, 3)
+	-- The flourish at the reason line's end, as Apply lays it.
+	local sw = math.min(0.44 * (lg.textRight - lg.textX), 5.2 * lg.hs)
+	self.swashW = nil
+	if self.two and sw >= 28 then
+		self.swashW, self.swashH = sw, math.min(sw / 4, lg.hs * 1.15)
+		self.swashX, self.swashY = lg.textRight - sw, lg.subMid
+		for _, f in ipairs({ self.swashClip, self.swashSheet }) do f:SetSize(sw, self.swashH) end
+		self:RestSwash()
+	end
+
+	-- The seal's own lights on the painted wax: the flashes and the stamp's
+	-- light over it, the glint on its shoulder, the crack across it.
+	for _, t in ipairs({ self.flash, self.press }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+		t:SetSize(lg.sealD * 0.96, lg.sealD * 0.96)
+	end
+	local rw = lg.sealD / 2
+	self.glint:ClearAllPoints()
+	self.glint:SetPoint("CENTER", art, "TOPLEFT", cx - 0.64 * rw, -(cy - 0.37 * rw))
+	self.glint:SetSize(math.max(8, GLINT_SIZE * rw), math.max(8, GLINT_SIZE * rw))
+	self.glintMove:SetOffset(0.51 * rw, 0.36 * rw)
+	self.crack:ClearAllPoints()
+	self.crack:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+	self.crack:SetSize(lg.sq, lg.sq)
+	-- The lip of the recess in the reason's wax, round the icon (its file's
+	-- recess is ICON_AT of the wax, which is SEAL_R of the file), and the
+	-- mark pressed in the wax where there is no icon.
+	local lip = g.iconSize / (ICON_AT * SEAL_R)
+	-- No further than a unit inside the prompt's top and bottom (the socket
+	-- may sit a little off its middle).
+	lip = math.min(lip, 2 * (math.min(cy, H - cy) - 1) / SEAL_EDGE)
+	self.rim:ClearAllPoints()
+	self.rim:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+	self.rim:SetSize(lip, lip)
+	self.mark:ClearAllPoints()
+	self.mark:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+	self.mark:SetSize(g.iconSize, g.iconSize)
+	-- The candle, the cursor's light and a landing's glow, round the wax.
+	local half = math.min(H / 2 - 1, g.textX - cx - kit.TEXT_MARGIN, cx - 1)
+	half = math.max(half, rw)
+	for _, t in ipairs({ self.glow, self.core, self.hilite, self.halo }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+	end
+	self.glow:SetSize(half * 2, half * 2)
+	self.core:SetSize(half * 2 * CORE_SIZE, half * 2 * CORE_SIZE)
+	self.hilite:SetSize(half * 2, half * 2)
+	self.halo:SetSize(half * 2, half * 2)
+
+	-- The count's slip pinned on the painted wax, where it is big enough.
+	self.sealOK = self.showIcon and rw >= SEAL_BADGE_FROM and self.badgeH <= rw * 0.75
+	-- The key's letter on the painted keycap (Chip places it): a part of the
+	-- keycap, on the slips' frame, not dimmed with the words.
+	self.keyText:SetParent(self.chipFrame)
+	self.paintedLabel, self.keyExtra = nil, 0
+	-- The list's rows from where the name starts, a drop of wax under the seal,
+	-- on a sheet from the seal to the keycap's far side (PaintedList), which
+	-- they may cross: nothing stands at its end.
+	self.dropX, self.rowX = cx, g.textX
+	self.listX0, self.listX1 = cx - self.pitch * 1.4, g.keyX + g.keyW / 2 + 4
+	self.rowRight = self.listX1 - 8
+	local rowWidth = math.max(20, self.rowRight - self.rowX)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	self.listShown, self.listAt = nil, nil
+	self:PaintedLay()
+	-- The list's sheet in the painting's colour (PaintPaper, now that the
+	-- painting is up).
+	self:PaintPaper(self.combat and DIM_PAPER or 1)
+	return g.textX, 0
+end
+
+-- What the painted frame lays of the letter's own: the list's sheet (the
+-- painting's parchment, on art under the painting, so it comes out from under
+-- the bar; nothing without a list, from y0 to y1 and x0 to x1 with one, its
+-- torn edge at the far end), the cover's copy of the painting, and the light
+-- that crosses the well.
+function Letter:PaintedLay(y0, y1, x0, x1, above)
+	local pg, lg = self.pg, self.g
+	local art = self.kit.art
+	local d = self.paintedArt.data
+	local body, edge = self.listArt and self.listArt[1], self.listArt and self.listArt[2]
+	if body and y0 then
+		local m = d.middle
+		local tall = 1 + d.above + d.below
+		local function v(u) return u / tall * m.b end
+		local u0, u1 = 0.04 * m.r, 0.96 * m.r
+		local edgeH, by0, by1
+		if above then
+			edgeH = (LIST_EDGE + d.above) * pg.unit
+			Box(edge, art, x0, y0, x1, y0 + edgeH)
+			edge:SetTexCoord(u0, u1, 0, v(d.above + LIST_EDGE))
+			by0, by1 = y0 + edgeH, y1
+		else
+			edgeH = (LIST_EDGE + d.below) * pg.unit
+			Box(edge, art, x0, y1 - edgeH, x1, y1)
+			edge:SetTexCoord(u0, u1, v(d.above + 1 - LIST_EDGE), m.b)
+			by0, by1 = y0, y1 - edgeH
+		end
+		edge:Show()
+		-- A quarter of a unit under the edge, so no seam shows.
+		Box(body, art, x0, by0 - 0.25, x1, by1 + 0.25)
+		body:SetTexCoord(u0, u1, v(d.above + LIST_IN), v(d.above + LIST_OUT))
+		body:SetShown(by1 - by0 > 0.5)
+	else
+		for _, t in ipairs(self.listArt or {}) do t:Hide() end
+	end
+	-- The cover: the painting's three pieces again, where the painting has
+	-- them, seen through the cover's window over the well.
+	local ox, top, h = lg.splitX, pg.y0, pg.y1 - pg.y0
+	self.paperTop = top
+	local w = math.max(1, lg.rodR + 0.5 - ox)
+	for _, f in ipairs({ self.inkSlide, self.inkSheet }) do f:SetSize(w, h) end
+	-- Each piece cut where the well ends, short of the keycap: the window
+	-- slides on past it as the pen runs, and the keycap is not paper.
+	local stop = lg.rodR
+	local pieces = {
+		{ pg.left, pg.x1, 0, pg.leftR, d.left.b },
+		{ pg.x1, pg.x2, 0, d.middle.r, d.middle.b },
+		{ pg.x2, pg.right, pg.rightL, d.right.r, d.right.b },
+	}
+	for i, t in ipairs(self.coverArt or {}) do
+		local s = pieces[i]
+		local a, b = s[1], math.min(s[2], stop)
+		if b - a > 0.5 then
+			local u1 = s[3] + (s[4] - s[3]) * (b - a) / (s[2] - s[1])
+			Box(t, self.inkSheet, a - ox, 0, b - ox, h)
+			t:SetTexCoord(s[3], u1, 0, s[5])
+			t:Show()
+		else
+			t:Hide()
+		end
+	end
+	self:LayCover()
+	-- The light that crosses the well when a buff lands.
+	local lw, ly, lh = w, pg.top + 0.12 * pg.unit, 0.76 * pg.unit
+	self.lightClip:ClearAllPoints()
+	self.lightClip:SetPoint("TOPLEFT", art, "TOPLEFT", ox, -ly)
+	self.lightClip:SetSize(lw, lh)
+	local bw = math.max(18, lw * 0.34)
+	self.sweepFrame:ClearAllPoints()
+	self.sweepFrame:SetPoint("TOPLEFT", self.lightClip, "TOPLEFT", 0, 0)
+	self.sweepFrame:SetSize(bw, lh)
+	self.passAnims[1].move:SetOffset(lw + 2, 0)
+end
+
+-- The list under a painted frame: its rows on a sheet of their own that
+-- comes out from under the bar, clear of the wax that hangs past it.
+function Letter:PaintedList(shown, above)
+	local kit, pg, lg = self.kit, self.pg, self.g
+	local art, pitch = kit.art, self.pitch
+	local block = shown * pitch
+	local drop = math.min(pitch * 0.9, lg.chipH + 2)
+	local slack = (pitch - drop) / 2
+	local waxR = lg.sealW / 2
+	local coreTop, coreBottom = pg.top, pg.top + pg.unit
+	local tuck = pg.unit * 0.3
+	local d = self.paintedArt.data
+	local x0, x1 = self.listX0, self.listX1
+	local y0, y1
+	if above then
+		local rowsBottom = math.min(coreTop - 3, pg.socketY - waxR - 1 + slack)
+		self.listTop = rowsBottom - block
+		y0, y1 = self.listTop - (LIST_EDGE * 0.6 + d.above) * pg.unit, coreTop + tuck
+	else
+		self.listTop = math.max(coreBottom + 3, pg.socketY + waxR + 1 - slack)
+		y0, y1 = coreBottom - tuck, self.listTop + block + (LIST_EDGE * 0.6 + d.below) * pg.unit
+	end
+	self:PaintedLay(y0, y1, x0, x1, above)
+	local ruleW = self.rowRight - self.rowX
+	for i = 1, shown do
+		local fs = kit.rows[i]
+		local y = self.listTop + (i - 0.5) * pitch
+		fs:ClearAllPoints()
+		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)
+		self.drops[i]:ClearAllPoints()
+		self.drops[i]:SetPoint("CENTER", art, "TOPLEFT", self.dropX, -y)
+		self.drops[i]:SetSize(drop, drop)
+		self.dropLights[i]:ClearAllPoints()
+		self.dropLights[i]:SetAllPoints(self.drops[i])
+		self.lines[i]:ClearAllPoints()
+		self.lines[i]:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -(y + pitch / 2 - 0.5))
+		self.lines[i]:SetSize(ruleW, 3)
+		Colour(self.lines[i], 0.45, 0.28, 0.12, 0.34)
+	end
+end
+
+-- The words on the painted parchment: Painted.lua has written the name and
+-- the reason in the painting's own ink. The ground they are held to from here
+-- on is the parchment at its darkest, dimmed for a fight; the reason line
+-- comes back to the painting's ink between reasons; the serif's name keeps
+-- its hair of ink; the key's letter is dark on the keycap.
+function Letter:PaintedStyled(g)
+	local kit = self.kit
+	local ink = kit.ink
+	local d = self.paintedArt.data
+	ink.lo = d.ink.lo * Lum(DIM_PAPER, DIM_PAPER, DIM_PAPER)
+	if ink.sub then self.subBase = { ink.sub[1], ink.sub[2], ink.sub[3] } end
+	if self.face and kit.name.GetTextColor then
+		local r, gg, b = kit.name:GetTextColor()
+		kit.name:SetShadowColor(r, gg, b, 0.40)
+		kit.name:SetShadowOffset(0.6, -0.6)
+	end
+	local key = g and g.keyInk
+	if not key then return end
+	self.keyText:SetTextColor(key[1], key[2], key[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
 end
