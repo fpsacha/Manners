@@ -90,9 +90,12 @@ local function with(scenario, env, body)
 			end
 		end
 	end
-	local restore = H.strangers(names)
+	-- Saved before H.strangers stands in for UnitExists: saved after it, the
+	-- stand-in was what this put back, and every file run after this one in
+	-- the same process met a world of these five people only.
 	local saved = {}
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
+	local restore = H.strangers(names)
 	local ctx = { sent = {}, send = 0, held = {}, names = names, viewer = viewer }
 
 	local function who(unit)

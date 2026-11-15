@@ -918,7 +918,7 @@ cannot send it to somebody else by mistake.
   places) and *Move it in Edit Mode* (on): while the game's Edit Mode is open
   the prompt is unlocked to be dragged with the game's own frames, casts
   nothing meanwhile, and locks again when Edit Mode closes.
-- ***Size***: *Scale*, *Opacity*, *Width*, *Height*.
+- ***Size***: *Scale*, *Opacity*.
 - ***Getting my attention***: *Flash when someone buffs me*, *Animations*
   (*Full* or *Calm*), *Play a sound* (off) with *Sound* and *Only for people
   who buff me* under it.
@@ -940,7 +940,8 @@ cannot send it to somebody else by mistake.
   - ***Style***: *Panel colour*, *Colour by why they are offered*, *Colour
     set*, *Where the colour shows* and *Colour when not by reason*. Each look
     brings its own.
-  - ***Exact position***: the prompt's place in numbers.
+  - ***Exact position***: the prompt's place in numbers, with the *Width*
+    and *Height* of its pane.
   - ***Text***: *Font*, *Font size*, *Text colour*, *Colour names by class*,
     *Shadow and outline on the text*, *Show a second line* and *Show their
     guild under the name*.

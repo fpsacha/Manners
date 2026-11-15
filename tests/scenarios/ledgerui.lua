@@ -540,7 +540,9 @@ end
 -- ------------------------------------------------------------------ ledgerui 5
 -- Each tab: the one chosen is the one marked, and it lists what it says, newest
 -- first, each row's badge the word and the colour for its entry and its stripe
--- the same colour.
+-- the same colour. The fourth tab lists milestones, not entries: its rows are
+-- Milestones.lua's, in its order, and what each one reads is milestones.lua's
+-- to say.
 do
 	local scenario = "ledgerui: each tab lists its own rows, badged"
 	withWindow(scenario, "enUS", function(ns)
@@ -561,12 +563,17 @@ do
 						marked and "marked too" or "not marked"))
 				end
 			end
-			local list = ns.Ledger.Entries(tab.key)
+			local marks = tab.key == "milestones"
+			local list = marks and ns.Milestones.Rows() or ns.Ledger.Entries(tab.key)
 			if #list == 0 then fail(scenario, "SKIPPED -- the " .. tab.key .. " tab has nothing to list") end
 			for i, row in ipairs(window.rows) do
 				local e = list[i]
 				if e and not shown(row) then
 					fail(scenario, ("the %s tab shows no row %d with %d to list"):format(tab.key, i, #list))
+				elseif e and marks then
+					if row.entry ~= e then
+						fail(scenario, ("the milestones tab's row %d is not its %dth milestone"):format(i, i))
+					end
 				elseif e then
 					if row.entry ~= e then
 						fail(scenario, ("the %s tab's row %d is not its %dth entry, newest first"):format(tab.key, i, i))

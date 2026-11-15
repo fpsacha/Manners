@@ -306,6 +306,10 @@ end
 for _, key in ipairs({ "bgColor", "accentByReason", "accentMode", "accentColor" }) do
 	FIELDS["appearance." .. key] = { { "prompt", key } }
 end
+-- The pane's width and height, in Exact position's fold with where it sits.
+for _, key in ipairs({ "width", "height" }) do
+	FIELDS["appearance." .. key] = { { "prompt", key } }
+end
 
 local function Profile() return ns.db.profile end
 

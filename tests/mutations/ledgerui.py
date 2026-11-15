@@ -40,6 +40,13 @@ mutate("Ledger.lua",
        "\t\twidths[i] = 70\n",
        "ledgerui: tabs too narrow for German",
        expect="ledgerui: long text fits or ellipsises", script=S)
+# Four tabs: the room comes out of what a short word's tab has to spare, not
+# out of the long word's own box (French's "Buffs you gave").
+mutate("Ledger.lua",
+       "\tif over > 0 and slack >= over then\n",
+       "\tif false then\n",
+       "ledgerui: four tabs narrowed alike, the long word cut",
+       expect="ledgerui: long text fits or ellipsises (frFR)", script=S)
 mutate("Ledger.lua",
        "\tclear:SetWidth(FitWidth(clear.label, { TEXT.CLEAR, TEXT.CLEAR_ARMED }, 90, 180))\n",
        "",

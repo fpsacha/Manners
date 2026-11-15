@@ -509,6 +509,24 @@ do
 			if not UI.FoldChanged(hover) then fail(scenario, "Tooltip's dot stays dark with the tooltip switched off") end
 			ns.db.profile.prompt.tooltip = ns.defaults.profile.prompt.tooltip
 		end
+		-- The pane's width and height, in Exact position's fold since the
+		-- cards' descriptions took the lines they need: fine print beside
+		-- Size's scale, the fold's dot lit by a width that was changed.
+		local exact = byKey["appearance.exactPos"]
+		local where = { UI.Where("appearance.width"), UI.Where("appearance.height") }
+		if not (exact and exact.fold and #where == 2 and where[1].sec.key == "appearance.exactPos"
+			and where[2].sec.key == "appearance.exactPos") then
+			fail(scenario, "Width and Height are not in Exact position's fold")
+		else
+			ns.RefreshOptionsDisplay()
+			if UI.FoldChanged(exact) then fail(scenario, "Exact position's dot is lit on a profile nobody changed") end
+			local was = ns.db.profile.prompt.width
+			ns.db.profile.prompt.width = was + 40
+			ns.RefreshOptionsDisplay()
+			if not UI.FoldChanged(exact) then fail(scenario, "Exact position's dot stays dark with the width changed") end
+			ns.db.profile.prompt.width = was
+			ns.RefreshOptionsDisplay()
+		end
 		-- The folds as a new profile has them, shut; the usual window.
 		UI.State().open = {}
 		for _, group in ipairs(ns.WindowLayout.groups) do

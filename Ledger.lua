@@ -1910,12 +1910,15 @@ local function BuildStats()
 end
 
 -- The tabs, each as wide as its label and a little more, so "Buffs you gave"
--- and a word of four letters are not given the same box. Should the three not
--- fit across the window in some language, all three are narrowed alike and
--- their labels cut inside them.
+-- and a word of four letters are not given the same box. Should they not fit
+-- across the window in some language, the room is found in what each has to
+-- spare round its word, so a short word's tab gives way before a long word is
+-- cut; only when that is not enough are all narrowed alike and their labels
+-- cut inside them.
 local function BuildTabs()
 	window.tabs = {}
 	local widths, total, gap = {}, 0, 4
+	local spare, slack = {}, 0
 	for i, def in ipairs({
 		{ key = "all", label = TEXT.TAB_ALL },
 		{ key = "favours", label = TEXT.TAB_FAVOURS },
@@ -1931,9 +1934,17 @@ local function BuildTabs()
 		tab:SetScript("OnClick", TabClicked)
 		widths[i] = FitWidth(tab.label, { def.label }, 70, 160)
 		total = total + widths[i]
+		-- The label is inset four on each side (FlatButton).
+		spare[i] = math.max(0, widths[i] - (math.ceil(TextWidth(tab.label)) + 8))
+		slack = slack + spare[i]
 		window.tabs[i] = tab
 	end
 	local room = WIDTH - 2 * PAD - gap * (#widths - 1)
+	local over = total - room
+	if over > 0 and slack >= over then
+		for i in ipairs(widths) do widths[i] = widths[i] - over * spare[i] / slack end
+		total = room
+	end
 	local shrink = total > room and room / total or 1
 	local x = PAD
 	for i, tab in ipairs(window.tabs) do

@@ -97,7 +97,8 @@
 - **Set a key.** *Start here* says *No key yet* until Manners is on a key, and
   one line in chat says where to set it, on three logins at most. *Remind me
   in chat while Manners has no key* turns it off.
-- **Look's colours are folded** with the rest of its fine print.
+- **Look's colours are folded** with the rest of its fine print, and *Width*
+  and *Height* are under *Exact position*.
 - **The footer.** Who makes Manners is larger and easier to read, and the
   version stands at the right. On WoW Forever a click on the author's name
   opens a whisper, and a right click looks them up.

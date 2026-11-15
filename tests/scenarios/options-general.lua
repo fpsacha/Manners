@@ -121,7 +121,8 @@ end
 
 -- ------------------------------------------------------------------ 1a
 -- The page as the window draws it: the lead,
--- the two steps, the ledger, then minimap and chat, nothing folded; the switch,
+-- the two steps, the ledger with the milestones' switches, the hall of fame in
+-- a fold of its own (the one fold on the page), then minimap and chat; the switch,
 -- the preview and the snooze in the header, Lock it at the strip's end. Above
 -- them all but the lead, a new profile's two questions
 -- (tests/scenarios/quick-setup.lua).
@@ -135,9 +136,16 @@ local START_PAGE = {
 	-- Step 2: where the key stands first, then the box that sets it, and the
 	-- switch of the reminder that says how (tests/scenarios/menu.lua).
 	"general.bindStatus", "general.bindKey", "general.makeMacro", "general.openBindings", "general.keyReminder",
-	"general.ledgerSummary", "general.ledgerOpen", "general.minimap", "general.verbose", "general.silentChat",
+	"general.ledgerSummary", "general.ledgerOpen",
+	-- The milestones' three switches, under the ledger they are read from
+	-- (tests/scenarios/milestones.lua).
+	"general.milestones", "general.milestoneToast", "general.milestoneSound",
+	-- The hall of fame, folded (tests/scenarios/hall.lua).
+	"general.hallNote", "general.hallCode", "general.hallList",
+	"general.minimap", "general.verbose", "general.silentChat",
 	"general.welcomeAgain",
 }
+local START_FOLDED = { ["general.hallNote"] = true, ["general.hallCode"] = true, ["general.hallList"] = true }
 do
 	local scenario = "start here: the page as the window draws it"
 	local ns = session(scenario)
@@ -150,8 +158,10 @@ do
 		for i, want in ipairs(START_PAGE) do
 			if list[i] ~= want then
 				fail(scenario, ("Start here's row %d is %s, not %s"):format(i, tostring(list[i]), want))
-			elseif sections[want].fold then
+			elseif sections[want].fold and not START_FOLDED[want] then
 				fail(scenario, want .. " is folded away on Start here")
+			elseif START_FOLDED[want] and not sections[want].fold then
+				fail(scenario, want .. " is not in the hall of fame's fold on Start here")
 			end
 		end
 		if #list ~= #START_PAGE then

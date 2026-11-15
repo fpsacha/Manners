@@ -186,6 +186,23 @@ mutate(LAYOUT,
        "menu: Look's colours out of their fold",
        expect="appearance is 3.2 screens of the usual window", script=S)
 
+# Width and Height back under Size, over a gallery whose cards take the lines
+# their descriptions need.
+mutate(LAYOUT,
+       "\t\t\t\t\t{ \"appearance.width\", pair = true },\n\t\t\t\t\t\"appearance.height\",\n\t\t\t\t} },\n"
+       "\t\t\t\t{ key = \"appearance.text\"",
+       "\t\t\t\t} },\n"
+       "\t\t\t\t{ key = \"appearance.size2\", header = \"appearance.posHeader\", items = {\n"
+       "\t\t\t\t\t{ \"appearance.width\", pair = true },\n\t\t\t\t\t\"appearance.height\",\n\t\t\t\t} },\n"
+       "\t\t\t\t{ key = \"appearance.text\"",
+       "menu: Look's Width and Height out of their fold",
+       expect="Width and Height are not in Exact position's fold", script=S)
+mutate(PAGE,
+       "for _, key in ipairs({ \"width\", \"height\" }) do\n",
+       "for _, key in ipairs({ \"height\" }) do\n",
+       "menu: Exact position's fold never says the width was changed",
+       expect="Exact position's dot stays dark", script=S)
+
 # The fold shut over a colour somebody changed, with nothing to say so.
 mutate(PAGE,
        "for _, key in ipairs({ \"bgColor\", \"accentByReason\", \"accentMode\", \"accentColor\" }) do\n",

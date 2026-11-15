@@ -402,6 +402,9 @@ local EXPECTED = {
 		"priority.readyCheck", "priority.revived",
 		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.optIn", "ownBuffs.apart",
 		"buff.tanksOutside", "buff.keptBack",
+		-- Detect Invisibility for passers-by too, under its own tick
+		-- (tests/scenarios/detect-passers.lua).
+		"buff.detectPassers",
 	},
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
 	when = {

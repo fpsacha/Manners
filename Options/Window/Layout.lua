@@ -657,8 +657,6 @@ ns.WindowLayout = {
 				{ key = "appearance.size", header = "appearance.posHeader", items = {
 					{ "appearance.scale", pair = true },
 					"appearance.alpha",
-					{ "appearance.width", pair = true },
-					"appearance.height",
 				} },
 				{ key = "appearance.attention", header = "appearance.attentionHeader", items = {
 					{ "appearance.flashStyle", pair = true },
@@ -697,9 +695,16 @@ ns.WindowLayout = {
 					"appearance.accentColor",
 					"appearance.accentDead",
 				} },
+				-- The pane's width and height with them: the numbers of where the
+				-- prompt sits and how big its pane is, fine print beside Size's
+				-- scale. Since a card's description takes the lines it needs
+				-- (WidgetsTheme.lua), that row out of Size keeps Look to three
+				-- screens.
 				{ key = "appearance.exactPos", header = "advanced.exactPosHeader", fold = true, items = {
 					{ "advanced.x", widget = "number", pair = true },
 					{ "advanced.y", widget = "number" },
+					{ "appearance.width", pair = true },
+					"appearance.height",
 				} },
 				{ key = "appearance.text", header = "appearance.textHeader", fold = true, items = {
 					{ "appearance.font", pair = true },
