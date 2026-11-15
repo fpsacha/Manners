@@ -1,0 +1,14 @@
+{
+  "key": "fel",
+  "socket": {"shape": "round", "cx": 659, "cy": 514, "r": 145},
+  "socket_outer": {"cx": 667, "cy": 516, "r": 223},
+  "name_xy": [968, 436],
+  "reason_xy": [972, 545],
+  "keycap": {"cx": 3527, "cy": 521, "w": 170, "h": 168},
+  "bar": [243, 281, 3957, 748],
+  "bar_body": [243, 324, 3957, 712],
+  "well": [915, 380, 3660, 650],
+  "stretch": [1400, 3000],
+  "text_colour_ok": true,
+  "notes": "Well averages rgb(34,33,41): white and gold text read far above 4.5:1. Glowing layers that could move: the low fel-green flames along the bottom edge at both ends (x 820-1600 and 3050-3900, y 640-750) could flicker; the ring of green runes around the socket (r 165-215 from the socket centre) could pulse or slowly rotate; the slit-pupilled demon-eye gem (cx 3803, cy 520, r about 60) could glow and blink or narrow its pupil; the hairline fel cracks at the corners could throb faintly. The stretch run still carries faint painted brushwork along the rails (column difference about 5 levels), fine for stretching."
+}

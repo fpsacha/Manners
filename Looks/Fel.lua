@@ -75,6 +75,16 @@ local Fel = ns.Looks.Register("fel", {
 	-- The words stand on the felsteel whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/fel): what of this look's
+	-- own art it replaces. The felsteel slab and its shadow, the fire behind
+	-- the cracks (under the slab), the disc, its horns, its drawn lines and
+	-- eight runes (the painting has its own ring of runes), the soul shard
+	-- (the painting ends in a demon's eye) and the key's tag (its keycap).
+	-- Kept: the band (the reason's mark), the bloom, the fire along the foot,
+	-- the embers, the gout, the bolt, the shard's light (on the eye), the
+	-- vein, the count's tag, the glyph and the list's slab.
+	paintedHides = { "shadow", "body", "flowTex", "disc", "horns", "sigil", "runes", "shard", "keyChip" },
+	paintedIconFill = 0.80,
 })
 
 -- MUST AGREE with tools/make_fel_textures.py (tests/scenarios/look-fel.lua
@@ -149,6 +159,8 @@ local NEUTRAL = { 0.62, 0.82, 0.50 }
 local SPENT = { 0.38, 0.40, 0.38 }
 -- A soul shard's own colour, which it keeps where the marker does not colour it.
 local SOUL = { 0.68, 0.42, 0.96 }
+-- The painted demon's eye's own light, where the marker does not colour it.
+local EYELIGHT = { 0.62, 1.00, 0.36 }
 -- A flash is the reason's colour taken this far to white.
 local FLASH_WHITE = 0.5
 local OUTCOME = {
@@ -158,6 +170,9 @@ local OUTCOME = {
 }
 -- What a fight does: the text dims, the icon greys and dims, the slab dims.
 local TEXT_COMBAT, ICON_COMBAT, BODY_COMBAT = 0.78, 0.70, 0.74
+-- A painted frame (Looks/Painted.lua) is dimmed less: its keycap keeps its
+-- letter and the painted runes stay read.
+local PAINT_COMBAT = 0.86
 -- The runes and the circle's lines: dark, at rest, lit; and in a fight.
 local RUNE_DARK, RUNE_REST, RUNE_LIT, RUNE_COMBAT = 0.10, 0.34, 1.00, 0.16
 local SIGIL_REST, SIGIL_LIT = 0.22, 0.50
@@ -1011,6 +1026,8 @@ function Fel:Apply(p, above)
 	for i, t in ipairs(self.fire) do
 		local x0 = fireX0 + (i - 1) * tileW
 		Box(t, art, x0, foot - fireH, x0 + tileW, foot)
+		-- At its full strength (a painted frame draws it fainter).
+		ns.Looks.Dim(t, 1)
 		-- The leap: the same run, taller; with the list hung over the panel
 		-- no taller than the fire.
 		local leap = fireH * (above and 1 or FLARE_H)
@@ -1064,6 +1081,10 @@ function Fel:Apply(p, above)
 	local chipH = sub + 7
 	self.chipH = chipH
 	PlaceThree(self.keyChip, self.keyBox, chipH)
+	-- With the words (a painted frame moves it to its keycap's frame), and the
+	-- list from the slab's own ends (a painted frame gives it others).
+	self.keyText:SetParent(kit.textLayer)
+	self.listX0, self.listX1, self.listGap = nil, nil, nil
 	self.keyBox:ClearAllPoints()
 	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -self.chipInset, 0)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
@@ -1292,6 +1313,163 @@ function Fel:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): Fel's own lights, fire, tags and
+-- lines moved onto the painting. Looks/Painted.lua has laid the three pieces
+-- and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The painting's demon eye at its end, its radius in cores: the shard's light,
+-- the strike and the glint are on it.
+local EYE_R = 0.155
+-- The fire along the foot stands on the painting's lower rail: its foot this
+-- far down the core, its top this far under the well, and drawn this strong
+-- (the painting burns at its two ends already: the bar is to stay quiet).
+local PAINT_FIRE_FOOT, PAINT_FIRE_GAP, PAINT_FIRE_DIM = 0.99, 0.02, 0.55
+-- The vein along the well's upper edge, its thickness in cores.
+local PAINT_VEIN = 0.05
+
+function Fel:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local showIcon = p.showIcon and true or false
+	local H, unit = self.H, g.unit
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	-- The circle round the socket: the icon the engine put there, the band and
+	-- the bloom over the painted ring of runes, drawn as this look draws them.
+	local iconSize = g.iconSize
+	local circle = iconSize / ICON_FRAME * CIRCLE_SCALE
+	local cx, cy = g.socketX, g.socketY
+	local discRight = cx + g.socketR
+	self.iconSize, self.cx, self.cy, self.circle, self.discRight = iconSize, cx, cy, circle, discRight
+	self.textX = g.textX
+	self.plateIn, self.plateX, self.ph, self.su = g.top, math.max(0, g.left), unit, unit / DESIGN_H
+	At(self.bloom, art, cx, cy, circle)
+	At(self.band, art, cx, cy, circle)
+	if showIcon then
+		self.fx:Place(icon, self.fx.ThinPad(iconSize, 2), iconSize)
+		local limitH = math.min(g.textX - cx - kit.TEXT_MARGIN, cx - g.left - kit.EDGE_MARGIN)
+		-- The socket sits a little off the bar's middle: the rings keep to the
+		-- nearer of its top and bottom.
+		self.fx:Fit(limitH, math.min(cy, H - cy) - kit.EDGE_MARGIN, kit.SHAKE_LEFT)
+	end
+
+	-- The eye at the end: the shard's light, its strike and its glint.
+	local gemX, gemY = g.endX, g.endY
+	local shardH = math.max(6, 2 * EYE_R * unit)
+	At(self.shardGlow, art, gemX, gemY, shardH * 1.25)
+	At(self.hot, art, gemX, gemY, shardH * 1.5)
+	local star = math.max(8, shardH * 1.1)
+	At(self.star, art, gemX - shardH * 0.06, gemY - shardH * 0.22, star)
+	At(self.starOnce, art, gemX - shardH * 0.06, gemY - shardH * 0.22, star)
+	self.gemX, self.shardH = gemX, shardH
+
+	-- The vein along the well's upper edge, from the socket to the keycap.
+	local veinH = math.max(2, unit * PAINT_VEIN)
+	local veinX0 = showIcon and (discRight + 2) or (g.textX - 4)
+	Box(self.vein, art, veinX0, g.wellTop - veinH / 2, keyR, g.wellTop + veinH / 2)
+	Box(self.core, art, veinX0, g.wellTop - veinH / 2, keyR, g.wellTop + veinH / 2)
+	self.veinOK = keyR - veinX0 >= 16
+	self.vein:SetShown(self.veinOK)
+	self.core:SetShown(self.veinOK)
+
+	-- The fire along the foot: on the painting's lower rail, under the well,
+	-- from the socket's ring to the keycap's far side.
+	local foot = g.top + unit * PAINT_FIRE_FOOT
+	local fireH = math.max(4, foot - g.wellBottom - unit * PAINT_FIRE_GAP)
+	local fireX0 = showIcon and (cx + g.socketR * 1.1) or (g.textX - 4)
+	local fireX1 = keyR
+	local span = fireX1 - fireX0
+	local tiles = math.max(1, math.min(FIRE_TILES, math.floor(span / (fireH * 4) + 0.5)))
+	local tileW = span / tiles
+	self.fireOK = span >= 24
+	self.fireTiles, self.fireH = self.fireOK and tiles or 0, fireH
+	-- No glow under it: the painted rail is its bed.
+	self.bed:Hide()
+	for i, t in ipairs(self.fire) do
+		ns.Looks.Dim(t, PAINT_FIRE_DIM)
+		local x0 = fireX0 + (i - 1) * tileW
+		Box(t, art, x0, foot - fireH, x0 + tileW, foot)
+		local leap = fireH * (above and 1 or FLARE_H)
+		Box(self.flare[i], art, x0, foot - leap, x0 + tileW, foot)
+		t:SetShown(i <= self.fireTiles)
+		self.flare[i]:SetShown(i <= self.fireTiles)
+	end
+	-- The embers and the smoke rise from it.
+	local rise = H * EMBER_RISE
+	for i, t in ipairs(self.embers) do
+		local x = fireX0 + span * (i - 0.5 + ((i % 2 == 0) and 0.18 or -0.12)) / EMBERS
+		At(t, art, x, foot - fireH * 0.5, math.max(6, H * 0.20))
+		self.emberAnims[i].move:SetOffset((i % 2 == 0) and 3 or -2, above and rise * 0.45 or rise)
+	end
+	for i, t in ipairs(self.puffs) do
+		At(t, art, fireX0 + span * (i - 0.5) / PUFFS, foot - fireH * 0.5, math.max(14, H * 0.62))
+		self.aftermath[i].move:SetOffset((i - 2) * 3, above and PUFF_RISE * 0.4 or PUFF_RISE)
+	end
+	self.emberOK = span >= 40
+
+	-- The gout, up from the socket; the bolt, from the socket to the eye.
+	local goutW, goutH = circle * GOUT_W, circle * GOUT_H
+	local goutFoot = cy + circle * GOUT_FOOT
+	if above then goutH = math.min(goutH, goutFoot) end
+	Box(self.gout, art, cx - goutW / 2, goutFoot - goutH, cx + goutW / 2, goutFoot)
+	local boltL, boltH = unit * BOLT_L, unit * BOLT_H
+	local boltX0 = (showIcon and discRight or g.textX) + boltL * 0.2
+	At(self.bolt, art, boltX0, g.textY, boltL, boltH)
+	local run = gemX - boltL * 0.36 - boltX0
+	self.boltAnim.move:SetOffset(math.max(0, run), 0)
+	self.boltOK = run >= 30
+
+	-- The cursor's light along the bar's upper rail.
+	Box(self.hoverFrame, art, discRight, g.top, keyR, g.top + unit * 0.12)
+
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap (its own tag is the painting's);
+	-- the lines and the count's tag keep left of it.
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	-- The letter is part of the keycap: a fight's dim of the words (textLayer's
+	-- alpha) would leave it grey on the stone.
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+
+	-- The list from the socket to the keycap's far side, clear of what the
+	-- painting hangs under (or over) the bar.
+	self.rowX, self.listX0 = math.max(g.textX, 24), math.max(2, cx)
+	if above and showIcon then
+		self.listX0 = discRight + 1
+		self.rowX = math.max(self.rowX, self.listX0 + 17)
+	end
+	self.listX1 = math.max(self.rowX + 30, keyR + 3)
+	self.listGap = math.max(0, (above and (g.top - g.y0) or (g.y1 - g.top - unit)) * 0.85)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	-- What runs at rest, asked again where the fire now falls.
+	self.idleState = nil
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter in the keycap's own ink, no larger than the keycap holds.
+function Fel:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1402,11 +1580,17 @@ function Fel:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.chipInset + 7)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1514,6 +1698,8 @@ function Fel:Tint(r, g, b, ring, stripe)
 	-- The shard: the reason's where the marker says so, else its own violet.
 	local gr, gg, gb = r, g, b
 	if not stripe then gr, gg, gb = SOUL[1], SOUL[2], SOUL[3] end
+	-- Painted, its light is on a green demon's eye, not a violet shard.
+	if not stripe and ns.Looks.Painted.On(self) then gr, gg, gb = EYELIGHT[1], EYELIGHT[2], EYELIGHT[3] end
 	if self.refused then
 		self:Spend()
 	else
@@ -1580,6 +1766,9 @@ function Fel:Dull(on)
 	local f = on and BODY_COMBAT or 1
 	Each(self.body, "SetDesaturated", on)
 	for _, t in ipairs(self.body) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	f = on and PAINT_COMBAT or 1
+	ns.Looks.Painted.Tone(self, pc[1] * f, pc[2] * f, pc[3] * f, on)
 end
 
 -- The slab holds; the fire goes out and the lights with it, the felsteel
@@ -1920,7 +2109,10 @@ function Fel:PaintQueue(rows, shown, above)
 	self.listShown, self.listAt = shown, above
 
 	local pitch = self.pitch
-	local depth = shown * pitch + 6
+	-- Under a painted frame the rows keep clear of what the painting hangs
+	-- past the bar (its fire, the socket's ring): the slab runs on under it.
+	local gap = self.listGap or 0
+	local depth = shown * pitch + 6 + gap
 	local W, H = self.W, self.H
 	local y0, y1
 	if above then
@@ -1930,14 +2122,16 @@ function Fel:PaintQueue(rows, shown, above)
 		y0 = H - self.plateIn
 		y1 = H + depth
 	end
+	-- From the slab's own ends, or, painted, from the socket to the keycap.
+	local x0, x1 = self.listX0 or self.plateX, self.listX1 or W
 	Each(self.listBody, "Show")
-	PlaceBody(self.listBody, art, self.plateX, y0, W, y1)
+	PlaceBody(self.listBody, art, x0, y0, x1, y1)
 	-- What shows through the list's cracks: the same fire, still and lower.
-	Box(self.listFlow, art, self.plateX + 3, y0 + 1, W - 3, y1 - 1)
-	self.listFlow:SetTexCoord(0, (W - self.plateX - 6) / FLOW_TILE, 0, (y1 - y0 - 2) / FLOW_TILE)
+	Box(self.listFlow, art, x0 + 3, y0 + 1, x1 - 3, y1 - 1)
+	self.listFlow:SetTexCoord(0, (x1 - x0 - 6) / FLOW_TILE, 0, (y1 - y0 - 2) / FLOW_TILE)
 	self.listFlow:Show()
 	self:Kindle()
-	self:PlaceShadow({ self.plateX, y0, W, y1 })
+	self:PlaceShadow({ x0, y0, x1, y1 })
 
 	local bead = self.sub + 3
 	for i = 1, shown do
@@ -1945,9 +2139,9 @@ function Fel:PaintQueue(rows, shown, above)
 		-- Row centres, reading downwards either way.
 		local y
 		if above then
-			y = -(3 + (shown - i) * pitch + pitch / 2)
+			y = -(3 + gap + (shown - i) * pitch + pitch / 2)
 		else
-			y = H + 3 + (i - 1) * pitch + pitch / 2
+			y = H + 3 + gap + (i - 1) * pitch + pitch / 2
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)
