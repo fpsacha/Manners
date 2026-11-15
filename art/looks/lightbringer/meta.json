@@ -1,0 +1,43 @@
+{
+  "key": "lightbringer",
+  "socket": {
+    "shape": "round",
+    "cx": 542,
+    "cy": 516,
+    "r": 165
+  },
+  "name_xy": [
+    871,
+    429
+  ],
+  "reason_xy": [
+    874,
+    546
+  ],
+  "keycap": {
+    "cx": 3548,
+    "cy": 513,
+    "w": 104,
+    "h": 104
+  },
+  "bar": [
+    226,
+    212,
+    3976,
+    812
+  ],
+  "stretch": [
+    1050,
+    3400
+  ],
+  "text_colour_ok": true,
+  "contrast": {
+    "white": 13.74,
+    "gold": 9.23
+  },
+  "notes": "Measured on final-empty.jpg (v2, Holy Light). bar is the whole silhouette including the sun's rays and glow; the gold slab alone spans y 315-713 (height ~398), the text well's inner edge about x 815-3660, y 375-650. The sun crown spans about y 256-785 (1.33x the slab, rays ~14% above and ~19% below with their glow). Socket r is the dark glass disc; the gold ring reaches about r 235. Contrast is WCAG over the mean of the lightest tenth of the ground under both text boxes (871,429-1463,518 and 874,546-1282,621); a looser box gives white 12.96, gold 8.71. Background is about (41,43,56), not #20222a. Animatable layers: the flame rays of the sun crown (slow breathing glow, or a very slow rotation of a ray layer), the warm holy light along the well's inner rim (gentle pulse or a light sweep travelling along it), the radiant core on the libram cover (soft pulse in time with the rim), a glint sliding along the white-gold top rail, the eye rune glow in the socket.",
+  "end": {
+    "cx": 3863,
+    "cy": 482
+  }
+}
