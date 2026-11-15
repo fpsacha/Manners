@@ -846,6 +846,16 @@ then the selftest on GitHub):
   `manners-options-wide.png` (the same icons and parts bar), every picture
   of a look (`manners-looks.png`, the two GIFs, `manners-moment.png`, and
   the prompts in the rest) for the painted art.
+- **The listing text is up to date (2026-11-15) and not pasted yet**: the
+  summary, both descriptions and the README's opening name the profiles
+  that switch by themselves, the profile manager with *Undo*, a blessing for
+  each class, the hall of fame, pages in parts with painted icons and the
+  Forsaken's lines; the CurseForge looks paragraph is one line; every alt
+  text is GALLERY's. Paste `curseforge-summary.txt` and
+  `curseforge-description.md` into CurseForge and `wago-description.md` into
+  Wago once the release that ships *Unreleased* is out (they describe it),
+  and after the redraw above is on `master` (the descriptions show the new
+  first picture by its file name).
 
 **Launch day (WoW Forever, 2026-11-05): run one command.** Log in on the
 character that has the Manners macro (or any character: the test makes a

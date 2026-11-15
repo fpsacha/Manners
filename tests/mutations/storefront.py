@@ -126,3 +126,29 @@ mutate(".github/curseforge-summary.txt",
        "The polite buff addon.",
        "storefront: the summary no longer says what the addon is for",
        expect="curseforge-summary.txt does not say what the addon is for", script=V)
+
+# ---- the small facts: alt text, the addon's own words, the counts
+
+mutate("README.md",
+       'manners-options.png" alt="The options window on Start here in the Simple view',
+       'manners-options.png" alt="The options window on Who to buff, with the pages on the left',
+       "storefront: the README describes the options picture as another page",
+       expect="README.md describes manners-options.png", script=V)
+
+mutate(".github/curseforge-summary.txt",
+       "passers-by, resurrects",
+       "nearby players, resurrects",
+       "storefront: the summary says nearby, not passer-by",
+       expect="curseforge-summary.txt says", script=V)
+
+mutate(".github/curseforge-description.md",
+       "- **Nineteen looks**, picked",
+       "- **Eighteen looks**, picked",
+       "storefront: the CurseForge page counts the looks wrong",
+       expect="curseforge-description.md says Eighteen looks", script=V)
+
+mutate(".github/wago-description.md",
+       "over three thousand lines picked",
+       "over two thousand lines picked",
+       "storefront: the Wago page counts the In character lines as before the Forsaken's",
+       expect="wago-description.md says over two thousand In character lines", script=V)

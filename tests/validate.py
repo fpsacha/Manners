@@ -859,6 +859,70 @@ if not _hl_bad:
     print("  ok  %d headline features on every page, the summary one line of %d characters"
           % (len(_HEADLINES), len(_summary)))
 
+print("\n== the listings' small facts are the addon's ==")
+# Small things that had gone stale and undercut trust (the 2026-11-15
+# review): a picture described as another page than it shows (the README's
+# alt text for the options window named Who to buff; the picture is Start
+# here), "nearby" where the addon says "passer-by", a count of looks or of
+# In character lines that the addon has outgrown. Every alt text is
+# GALLERY's; the counts are read from the addon.
+_sf_bad = 0
+_alts = {g[0]: g[3] for g in _gallery}
+for _name, _pics in _shown.items():
+    for _file, _alt in _pics:
+        if _file not in _alts:
+            print("  %s shows %s, which is not in GALLERY" % (_name, _file))
+            _sf_bad += 1
+        elif _alt != _alts[_file]:
+            print("  %s describes %s as %r; GALLERY says %r" % (_name, _file, _alt[:70], _alts[_file][:70]))
+            _sf_bad += 1
+_listing_text = {
+    "curseforge-summary.txt": _summary,
+    "curseforge-description.md": _pages["curseforge-description.md"],
+    "wago-description.md": _pages["wago-description.md"],
+    "gallery.md": open(os.path.join(_GH, "gallery.md"), encoding="utf-8").read(),
+}
+for _name, _text in _listing_text.items():
+    _m = re.search(r"\bnearby\b", _text, re.I)
+    if _m:
+        print("  %s says %r; the addon's word is passer-by" % (_name, _text[max(0, _m.start() - 30):_m.end() + 10]))
+        _sf_bad += 1
+# The looks: the three Prompt/Panel.lua draws (NATIVE in Looks/Looks.lua) and
+# every Looks.Register.
+_looks_src = open(os.path.join(ROOT, "Looks", "Looks.lua"), encoding="utf-8").read()
+_native = re.search(r"^local NATIVE = \{(.*?)^\}", _looks_src, re.M | re.S)
+_nlooks = len(re.findall(r"^\t(\w+) = \{", _native.group(1), re.M)) if _native else 0
+for _f in sorted(os.listdir(os.path.join(ROOT, "Looks"))):
+    if _f.endswith(".lua"):
+        _nlooks += len(re.findall(r'^local \w+ = ns\.Looks\.Register\("',
+                                  open(os.path.join(ROOT, "Looks", _f), encoding="utf-8").read(), re.M))
+_WORDS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen"
+    " sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three twenty-four"
+    " twenty-five".split())}
+_said = dict(_listing_text, **{"README.md": _pages["README.md"]})
+for _name, _text in _said.items():
+    for _m in re.finditer(r"\b([A-Za-z-]+) looks\b", _text):
+        _n = _WORDS.get(_m.group(1).lower())
+        if _n is not None and _n != _nlooks:
+            print("  %s says %s looks; the addon has %d" % (_name, _m.group(1), _nlooks))
+            _sf_bad += 1
+# The In character lines: every line of its pools, RP.RACE down to RP.LEGACY.
+_ph = open(os.path.join(ROOT, "Phrases.lua"), encoding="utf-8").read()
+_a, _b = _ph.find("\nRP.RACE = {"), _ph.find("\nRP.LEGACY = {")
+_nlines = len(set(re.findall(r'L\["((?:[^"\\]|\\.)*)"\]', _ph[_a:_b]))) if 0 <= _a < _b else 0
+for _name, _text in _said.items():
+    for _m in re.finditer(r"over (\w+) thousand lines", _text):
+        _k = _WORDS.get(_m.group(1).lower())
+        if _k is None or not (_k * 1000 <= _nlines < (_k + 1) * 1000):
+            print("  %s says over %s thousand In character lines; the set has %d"
+                  % (_name, _m.group(1), _nlines))
+            _sf_bad += 1
+fail += _sf_bad
+if not _sf_bad:
+    print("  ok  every picture's alt text is GALLERY's, no 'nearby', %d looks and %d In character"
+          " lines as said" % (_nlooks, _nlines))
+
 print("\n== version consistency ==")
 # Every toc carries a Version line -- the source and each generated one -- and
 # setversion.py used to write exactly one. A bump that reaches the source and
