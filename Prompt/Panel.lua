@@ -506,9 +506,10 @@ function Prompt:ApplyStyle()
 	-- What one of the three looks drawn here wears over it (Looks/Glass.lua),
 	-- taken down when another look takes the panel.
 	local dress = not look and ns.Looks.Dress(style) or nil
-	-- The framed look's painting is a dressing only while it is wanted: under
-	-- Earlier art the framed look wears nothing, as it always did.
-	if dress and dress.Wanted and not dress:Wanted(p) then dress = nil end
+	-- A painting (framed's, minimal's) is a dressing only while it is wanted:
+	-- under Earlier art the look wears what it always did, nothing for the
+	-- framed look, its hairline (Looks/MinimalDress.lua) for Minimal.
+	if dress and dress.Wanted and not dress:Wanted(p) then dress = dress.earlier end
 	if S.dress and S.dress ~= dress then S.dress:Hide() end
 	S.dress = dress
 	-- What a painted bar (DressPainted) set for the lines and the list, forgotten
@@ -849,11 +850,11 @@ function Prompt:ApplyStyle()
 
 	R.countText:ClearAllPoints()
 	R.countText:SetPoint("CENTER", R.countChip, "CENTER", 0, 0)
-	-- The framed look's painting (FramedPainting below): the words start in
-	-- its well and stop short of its keycap, read against its well, and the
-	-- chip stands where the keycap is painted.
+	-- A look's painting (the framed look's and Minimal's, below): the words
+	-- start in its well and stop short of its keycap, read against its well,
+	-- and the chip stands where the keycap is painted.
 	local ground = p
-	if framed and dress and dress.Ground then ground, textX, chipRoom = dress:Ground(p, chipWidth, textX, chipRoom) end
+	if dress and dress.Ground then ground, textX, chipRoom = dress:Ground(p, chipWidth, textX, chipRoom) end
 	-- Fonts, colours, shadows and the lines' anchors, from the panel colour.
 	-- The count's font is the size the chip was just sized from.
 	StyleText(ground, style, fontPath, textX, chipRoom, twoLine, countSize)
@@ -1435,6 +1436,248 @@ function Prompt:DressPainted(p, dress, textX, fontPath, twoLine, countSize, chip
 	end
 	-- The list's sheet in the painted well's colour.
 	R.queueBack:SetVertexColor(wc[1] * 0.8, wc[2] * 0.8, wc[3] * 0.8, 0.9)
+end
+
+---------------------------------------------------------------------------
+-- Minimal's painting (art/looks/minimal, cut by tools/make_painted_look.py
+-- into Textures/Painted/Minimal/, its numbers in Looks/PaintedData.lua): a
+-- little frame box, barely there. A square socket with a fine pale gold
+-- hairline for a rim, a soft smoky pane under the words (see-through, no
+-- outline), one fine gold hairline under them and a small quiet keycap. It
+-- takes the place of the bezel round the icon and the shade under it, and of
+-- the hairline Looks/MinimalDress.lua draws: under Earlier art
+-- (prompt.classicArt) Minimal is exactly what it was, that hairline and all
+-- (the dressing below hands ApplyStyle its `earlier`). The words keep
+-- Minimal's own ink, outlined and shadowed as on nothing, which reads on the
+-- pane as on the world. Everything else of Minimal's light is its own and
+-- keeps its meaning, moved onto the painting: the halos, rings and burst
+-- round the icon in the socket, the two rules of light (the bottom one on the
+-- painted hairline, the top one along the pane's top), the crack under the
+-- words, the outcome's wash on the pane; the count chip stands on the
+-- keycap's place.
+---------------------------------------------------------------------------
+do
+	local Looks = ns.Looks
+	local Painted = Looks.Painted
+	local d = ns.PaintedData and ns.PaintedData.minimal
+	-- The hairline dressing: what Earlier art draws over Minimal.
+	local line = Looks.Dress("minimal")
+	-- The icon fills the socket inside its hairline rim.
+	local ICON_FILL = 0.90
+	-- A fight greys the painting and dims it a little: art's alpha does the rest.
+	local FIGHT_TONE = 0.86
+	-- The smallest the painting's core may be drawn against the prompt's height.
+	local SMALLEST = 0.9
+	local Minimal = (d and Painted) and Looks.RegisterDress("minimal", { earlier = line }) or nil
+
+	local function Box(t, x0, y0, x1, y1)
+		t:ClearAllPoints()
+		t:SetPoint("TOPLEFT", R.art, "TOPLEFT", x0, -y0)
+		t:SetPoint("BOTTOMRIGHT", R.art, "TOPLEFT", x1, -y1)
+	end
+
+	if Minimal then
+		-- Not under Earlier art, nor on a prompt too narrow for the painting at
+		-- its height (it would be drawn smaller than the prompt and the lines,
+		-- laid from the prompt's own height, off its pane): the hairline there.
+		function Minimal:Wanted(p)
+			if p.classicArt then return false end
+			return Painted.Layout(d, p.width, p.height, p.fontSize).unit >= p.height * SMALLEST
+		end
+
+		function Minimal:Build(kit)
+			self.kit = kit
+			local pieces = {}
+			for i, part in ipairs({ "left", "middle", "right" }) do
+				local t = R.art:CreateTexture(nil, "BACKGROUND", nil, -5)
+				t:SetTexture(d[part].file)
+				t:Hide()
+				Looks.Hold(t)
+				pieces[i] = t
+			end
+			local keycap = R.art:CreateTexture(nil, "BACKGROUND", nil, -4)
+			keycap:SetTexture(d.keycap.file)
+			keycap:Hide()
+			Looks.Hold(keycap)
+			self.paintedArt = { data = d, pieces = pieces, keycap = keycap, on = false }
+			-- The key's letter on the keycap, with the words.
+			self.keyText = R.textLayer:CreateFontString(nil, "OVERLAY")
+			self.keyText:SetJustifyH("CENTER")
+			self.keyText:SetWordWrap(false)
+			self.keyText:Hide()
+		end
+
+		-- Before the words are styled: where the painting lies, the chip on the
+		-- keycap's place (left of the keycap while it is up), where the words
+		-- start and the room they keep at the right.
+		function Minimal:Ground(p, chipWidth, textX, chipRoom)
+			local g = Painted.Layout(d, p.width, p.height, p.fontSize)
+			self.g = g
+			local choice = p.keycap
+			local keyUp = (choice == "show" or (choice ~= "hide" and d.keycap.shown ~= false)) and Looks.BoundKey() ~= nil
+			local keyL = g.keyX - g.keyW / 2
+			local chipRight = math.min(keyUp and (keyL - 3) or (g.keyX + chipWidth / 2), p.width - 7)
+			R.countChip:ClearAllPoints()
+			R.countChip:SetPoint("RIGHT", R.art, "TOPLEFT", chipRight, -g.keyY)
+			-- With the keycap down the words have the pane to its end; with it up
+			-- they stop short of it.
+			local wide = keyUp and (keyL - 4 + EDGE_ROOM) or p.width
+			local room = p.showCount and (wide - (chipRight - chipWidth) + 1) or EDGE_ROOM
+			return setmetatable({ width = wide }, { __index = p }), g.textX, room
+		end
+
+		local function Place(art, g)
+			local s = art.pieces
+			Box(s[1], g.left, g.y0, g.x1, g.y1)
+			s[1]:SetTexCoord(0, g.leftR, 0, d.left.b)
+			Box(s[2], g.x1, g.y0, g.x2, g.y1)
+			s[2]:SetTexCoord(0, d.middle.r, 0, d.middle.b)
+			Box(s[3], g.x2, g.y0, g.right, g.y1)
+			s[3]:SetTexCoord(g.rightL, d.right.r, 0, d.right.b)
+			s[1]:Show()
+			s[2]:SetShown(g.x2 - g.x1 > 0.5)
+			s[3]:Show()
+			local c, k, u = d.keycap, art.keycap, g.unit
+			local kx, ky = g.keyX + c.dx * u, g.keyY + c.dy * u
+			Box(k, kx - c.pw * u / 2, ky - c.ph * u / 2, kx + c.pw * u / 2, ky + c.ph * u / 2)
+			k:SetTexCoord(0, c.r, 0, c.b)
+		end
+
+		-- The keycap and its letter: up while a key is bound and Show my key on
+		-- the prompt asks for it (Minimal's own default: hidden), never over an
+		-- outcome. At every paint.
+		function Minimal:Key()
+			local art = self.paintedArt
+			if not (art and art.on) then return end
+			self.outcomeOn = Prompt:OutcomeLive()
+			local up = Painted.KeyShown(self)
+			art.keycap:SetShown(up)
+			local text
+			if up then
+				local key = Looks.BoundKey()
+				local short = Looks.ShortKey(key)
+				text = (type(short) == "string" and short ~= "") and short or key
+			end
+			if text ~= self.keyLabel then
+				self.keyLabel = text
+				self.keyText:SetText(text or "")
+			end
+			self.keyText:SetShown(up)
+		end
+
+		-- The icon in the socket inside its hairline rim, and the light round it
+		-- held to the room the socket has. No bezel: the painted rim is the frame.
+		function Minimal:Socket(g)
+			local size = 2 * g.socketR * ICON_FILL
+			R.icon:ClearAllPoints()
+			R.icon:SetSize(size, size)
+			R.icon:SetPoint("CENTER", R.art, "TOPLEFT", g.socketX, -g.socketY)
+			local half = size / 2
+			local outer = 2
+			local limitH = half + math.min(g.textX - g.socketX - half - lib.TEXT_MARGIN,
+				g.socketX - half - g.left - lib.EDGE_MARGIN)
+			-- Held to the prompt's own top and bottom (the painting's core), not
+			-- to the soft pane that hangs a little past them.
+			local limitV = math.min(g.socketY - g.top, g.top + g.unit - g.socketY) - lib.EDGE_MARGIN
+			local limit = math.min(limitH, limitV)
+			local sy = math.max(0, math.min(8, math.floor(limitV - half) - outer))
+			local sx = math.max(2, math.min(8, math.floor(limitH - half) - outer))
+			local round = R.iconMask ~= nil and R.iconMask:IsShown()
+			local roundSize = round and size or nil
+			PlaceHalo(R.glowHalo, R.glowFrame, sx, sy, outer, roundSize, 0)
+			local deep = Prompt:FitBurst(limit, half, outer, round and size / lib.GLOW_RING_AT / 2 or nil)
+			PlaceHalo(R.burstHalo, R.burstFrame, deep, deep, outer, roundSize, 0)
+			local rim = math.max(0, math.min(3, limit - half - outer))
+			PlaceHalo(R.rimHalo, R.rimFrame, rim, rim, outer, roundSize, 0)
+			R.fx:Place(R.icon, R.fx.ThinPad(size, outer + 1), size)
+			R.fx:Fit(limitH, limitV, lib.SHAKE_LEFT)
+		end
+
+		-- Minimal's light on the painting: the two rules where Minimal always
+		-- drew them, just inside the prompt's top and bottom (the bottom one
+		-- just under the painted hairline, clear of the words), from the
+		-- socket's middle to the end they always had; the crack over the
+		-- hairline, to the keycap; the wash over the pane.
+		function Minimal:Light(p, g)
+			local x0 = g.socketX
+			local x1 = g.keyX + g.keyW / 2
+			local top = g.top + RULE_INSET
+			local foot = g.top + g.unit - RULE_INSET
+			R.ruleTop:ClearAllPoints()
+			R.ruleTop:SetPoint("TOPLEFT", R.art, "TOPLEFT", x0, -top)
+			R.ruleTop:SetPoint("TOPRIGHT", R.art, "TOPRIGHT", -RULE_END, -top)
+			R.ruleBottom:ClearAllPoints()
+			R.ruleBottom:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", x0, -foot)
+			R.ruleBottom:SetPoint("BOTTOMRIGHT", R.art, "TOPRIGHT", -RULE_END, -foot)
+			for _, glint in ipairs({ R.glintTop, R.glintBottom }) do
+				if glint.run then glint.run.move:SetOffset(p.width - RULE_END - x0 - GLINT_LENGTH, 0) end
+			end
+			R.crackFrame:ClearAllPoints()
+			R.crackFrame:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", g.textX, -(foot - CRACK_INSET))
+			R.crackFrame:SetPoint("BOTTOMRIGHT", R.art, "TOPLEFT", g.textX + (x1 - g.textX) * (1 - CRACK_END), -(foot - CRACK_INSET))
+			Box(R.resultFill, g.socketX - g.socketR, g.top, x1, g.wellBottom)
+		end
+
+		function Minimal:Apply(p, above)
+			local g, art = self.g, self.paintedArt
+			if not g then return self:Release() end
+			art.on, art.g = true, g
+			-- What the painting replaces: the bezel's square and the shade.
+			R.bezel:Hide()
+			R.bezelHover:Hide()
+			R.iconShade:Hide()
+			Place(art, g)
+			if p.showIcon then self:Socket(g) end
+			self:Light(p, g)
+			-- The key's letter: the painting's ink for it, no shadow, no larger
+			-- than the keycap holds.
+			local key = self.keyText
+			local path = LSM:Fetch("font", p.font) or STANDARD_TEXT_FONT
+			local size = math.max(6, math.min(p.fontSize, math.floor(g.keyH * 0.7)))
+			local flags = g.keyOutline and "OUTLINE" or ""
+			if not key:SetFont(path, size, flags) or not key:GetFont() then key:SetFont(STANDARD_TEXT_FONT, size, flags) end
+			local k = g.keyInk or { 1, 1, 1 }
+			key:SetTextColor(k[1], k[2], k[3], 1)
+			key:SetShadowOffset(0, 0)
+			key:ClearAllPoints()
+			key:SetPoint("CENTER", R.art, "TOPLEFT", g.keyX, -g.keyY)
+			self:Key()
+			if self.fight then self:Combat(true) else Painted.Tone(self, 1, 1, 1, false) end
+		end
+
+		function Minimal:Release()
+			local art = self.paintedArt
+			if not art then return end
+			if self.fight then self:Combat(false) end
+			art.on, art.g = false, nil
+			for _, t in ipairs(art.pieces) do t:Hide() end
+			art.keycap:Hide()
+			self.keyText:Hide()
+			self.keyLabel = nil
+			R.resultFill:ClearAllPoints()
+			R.resultFill:SetAllPoints(R.art)
+		end
+
+		function Minimal:Hide()
+			self.g = nil
+			self:Release()
+		end
+
+		function Minimal:Combat(on)
+			self.fight = on and true or nil
+			local k = on and FIGHT_TONE or 1
+			Painted.Tone(self, k, k, k, self.fight == true)
+		end
+
+		function Minimal:Painted() self:Key() end
+		function Minimal:Flourish() self:Key() end
+		function Minimal:StopFlourishes() self:Key() end
+		-- The reason's colour and the owed light are Minimal's own (PaintAccent,
+		-- Effects.lua), on the halos and rules it moved.
+		function Minimal:PaintReason() end
+		function Minimal:Attention() end
+		function Minimal:StopAttention() end
+	end
 end
 
 -- What a look is handed to draw with: see Looks/Looks.lua.

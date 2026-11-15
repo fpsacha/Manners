@@ -20,7 +20,7 @@ mutate(P,
        expect="painted-framed: Framed wears its painting and none of its own frame", script=S)
 
 mutate(P,
-       "\tif dress and dress.Wanted and not dress:Wanted(p) then dress = nil end\n",
+       "\tif dress and dress.Wanted and not dress:Wanted(p) then dress = dress.earlier end\n",
        "",
        "painted-framed: Earlier art keeps the painting's dressing on",
        expect="look-glass: Gryphons at the ends takes them away", script=S)

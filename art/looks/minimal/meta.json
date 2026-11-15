@@ -1,0 +1,14 @@
+{
+  "key": "minimal",
+  "socket": {"shape": "square", "cx": 600, "cy": 512, "half": 139},
+  "name_xy": [807, 408],
+  "reason_xy": [814, 536],
+  "keycap": {"cx": 3681, "cy": 555, "w": 128, "h": 128},
+  "bar": [446, 361, 3807, 673],
+  "stretch": [1500, 3450],
+  "pane": [745, 380, 3810, 672],
+  "see_through": true,
+  "text_colour_ok": true,
+  "line": {"y0": 647, "y1": 651, "x0": 801, "x1": 3781},
+  "notes": "A little frame box, barely there: a square socket with a fine pale gold hairline rim, a soft feathered near-black smoky pane behind the words (no outline), one even pale gold hairline under the text from the socket to past the keycap (y 647-651, x 801-3781), a small dark keycap with a gold hairline edge sitting on the line. Nothing glows; the hairline could carry a soft glint, the socket rim a faint brightening when the key is ready. Measured on final-empty.jpg (empty-02); text positions on final-mock.jpg (r2-02), whose frame matches within a few pixels."
+}
