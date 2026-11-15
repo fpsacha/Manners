@@ -141,11 +141,11 @@ local START_PAGE = {
 	-- (tests/scenarios/milestones.lua).
 	"general.milestones", "general.milestoneToast", "general.milestoneSound",
 	-- The hall of fame, folded (tests/scenarios/hall.lua).
-	"general.hallNote", "general.hallCode", "general.hallList",
+	"general.hallNote", "general.hallCertificate", "general.hallCode", "general.hallList",
 	"general.minimap", "general.verbose", "general.silentChat",
 	"general.welcomeAgain",
 }
-local START_FOLDED = { ["general.hallNote"] = true, ["general.hallCode"] = true, ["general.hallList"] = true }
+local START_FOLDED = { ["general.hallNote"] = true, ["general.hallCertificate"] = true, ["general.hallCode"] = true, ["general.hallList"] = true }
 do
 	local scenario = "start here: the page as the window draws it"
 	local ns = session(scenario)
