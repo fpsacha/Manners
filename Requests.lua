@@ -698,7 +698,7 @@ do
 end
 
 -- The channels a request can arrive in, each registered on this client by
--- addons known to work on it (EnhanceQoL). Each hands over the text, the
+-- addons known to work on it. Each hands over the text, the
 -- sender and, twelfth, the sender's GUID. Your own whispers arrive as
 -- WHISPER_INFORM, which is not listened to.
 function addon:CHAT_MSG_SAY(_, text, sender, ...)

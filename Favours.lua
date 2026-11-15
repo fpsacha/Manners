@@ -67,8 +67,8 @@ do
 	-- Why the client would not want an emote from addon code now, or nil. Retail
 	-- 12.x holds addon chat back in an encounter, and which instance does it when
 	-- nobody here has seen, so every instance is out, as is a client that will not
-	-- say. Then the two checks other addons here make before chatting (EnhanceQoL,
-	-- Prat): the messaging lockdown and the Chat restriction state. Ahead of all
+	-- say. Then the two checks addons on this client make before chatting:
+	-- the messaging lockdown and the Chat restriction state. Ahead of all
 	-- that, hiding: a text emote reaches everybody near, of either faction, so a
 	-- stealthed rogue or a night elf in Shadowmeld would give herself away, and
 	-- Feign Death drops combat while the fight goes on. Both are asked of the

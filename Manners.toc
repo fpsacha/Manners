@@ -1,11 +1,12 @@
-# The source the per-flavour tocs are generated from -- one today,
-# Manners_Camelot.toc -- and the fallback the game reads on any client that does
-# not honour a suffixed name. Edit this one; run `python tools/maketocs.py` and
-# the generated toc follows. tests/validate.py fails if they have drifted.
+# The source the per-flavour tocs are generated from -- five of them, one for
+# each client, Manners_Camelot.toc for WoW Forever first -- and the fallback
+# the game reads on any client that does not honour a suffixed name. Edit this
+# one; run `python tools/maketocs.py` and the generated tocs follow.
+# tests/validate.py fails if they have drifted.
 #
-# The interface is a single number, 16001, because 1.0 ships for WoW Forever
-# alone. It is the one client anybody here can test, and the number is the one
-# that shipped and is known to work there.
+# The interface line lists every client's number, WoW Forever's 16001 first:
+# tools/maketocs.py's FLAVOURS is the list, and each generated toc carries its
+# own number alone.
 ## Interface: 16001, 11509, 20506, 50504, 120105
 ## Title: Manners
 ## Notes: Somebody buffed you. One click buffs them back, and your target is handed straight back.

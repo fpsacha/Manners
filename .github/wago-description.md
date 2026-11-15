@@ -20,7 +20,7 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 - **Resurrection and cures:** out of a fight, your group's dead are offered your resurrection first, and a poison, disease, curse or harmful spell its cure, if you tick it.
 - **Ask for a buff:** when somebody near could give you a buff you are missing, one press whispers them a polite line. Off until ticked.
 - **Two Manners users, one group:** two of the same class each get their own part of it, so nobody is buffed twice.
-- **Battlegrounds and arenas:** your own buffs first after a death, your team freely before the gates open, and nothing said there unless you tick it.
+- **Battlegrounds and arenas:** your own buffs first after a death, your team freely before the gates open, no line said with a cast there unless you tick it, and your thanks to your own team alone.
 - **Dungeons and raids:** one group cast for a whole party when you carry the reagent, your group's pets if you tick them, ready checks and the fallen first, only the raid groups you buff, save mana below a level you set, holding back as much as you choose.
 - **Top-ups timed to each buff:** with top-ups on, about a tenth of its length before it ends, earlier in a raid or dungeon.
 - **Paladins:** Blessing of Kings first, and a buff order of your own for any class with several buffs.

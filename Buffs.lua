@@ -147,10 +147,10 @@ local L = ns.L
 -- Forever, the one client anybody here can test.
 
 -- The reagents the group versions eat, one per cast. The item ids and names
--- were checked against QuestieDB_Camelot (the Forever client's own item data:
--- 17020 Arcane Powder, 17021 Wild Berries, 17026 Wild Thornroot, 17029 Sacred
--- Candle, 21177 Symbol of Kings), Forever's ItemSparse (17028 Holy Candle) and
--- Questie's list of what reagent vendors sell to each class. Which rank eats
+-- were checked against the Forever client's own item data (17020 Arcane
+-- Powder, 17021 Wild Berries, 17026 Wild Thornroot, 17029 Sacred Candle, 21177
+-- Symbol of Kings; 17028 Holy Candle from its ItemSparse) and against what
+-- the reagent vendors there sell to each class. Which rank eats
 -- which is Forever's own SpellReagents (build 1.60.1.70532), the same as
 -- Classic Era's: two first ranks take the cheaper reagent, Prayer of
 -- Fortitude's (learned at 48) a Holy Candle and Gift of the Wild's (50) Wild
@@ -1220,13 +1220,13 @@ end
 --             on you from another player is a favour like any shield, where
 --             nothing else here ever is (ns.IsOwnAura).
 --
--- Every id below was checked against Forever's own spell data (EnhanceQoL's
--- SpellRankData_Camelot, generated from build 1.60.1.69913) and Wowhead
+-- Every id below was checked against Forever's own spell data (its spell
+-- ranks, build 1.60.1.69913) and Wowhead
 -- Classic. Forever added ranks of its own to two spells (Aspect of the Beast
 -- and Trueshot Aura, the 1299xxx ids), which no other vanilla client has; they
 -- only ever fail to be known there. Water Shield, one rank and so not in that
--- data, was checked against Wowhead Classic and the Forever build of
--- EnhanceQoL's buff reminder, which puts it in the shaman's one shield family.
+-- data, was checked against Wowhead Classic and Forever's own buff-reminder
+-- data, which puts it in the shaman's one shield family.
 -- A spell is "known" by these ids alone, so a wrong id costs the reminder,
 -- never a nag.
 --
@@ -1399,7 +1399,7 @@ local VANILLA_OWN = {
 				-- Season of Discovery's Aspect of the Falcon (469145, level 60): the
 				-- Hawk's attack power on melee as well, and "Only one Aspect can be
 				-- active at a time" (wago.tools, Classic Era 1.15.9.70003 and Forever
-				-- 1.60.1.70790, where Forever's own buff-reminder data, EnhanceQoL's,
+				-- 1.60.1.70790, where Forever's own buff-reminder data
 				-- lists it with the aspects). First, so Automatic takes it over the
 				-- Hawk once it is known.
 				{ key = "aspectfalcon", ranks = { 469145 } },
@@ -1536,9 +1536,9 @@ table.insert(VANILLA_OWN.WARLOCK, 1, SelfBreath({ 131 }))
 -- profession, not a class, and drop when you die like a buff ("when I die I
 -- often forget to put it on", a player on CurseForge). On this client it is
 -- not an aura but the minimap's tracking list (Core.lua, TrackingList), as
--- EnhanceQoL's Forever build reads it; a spell missing from that list is never
+-- the Forever client itself fills it; a spell missing from that list is never
 -- known, so a wrong id here can only cost the reminder. The gathering ids are
--- EnhanceQoL's, each with the second id Forever also uses. One table shared by
+-- Forever's own, each with the second id it also uses. One table shared by
 -- every class's list, so the memory of the one you had on is one memory.
 -- Forever's copy leaves Find Treasure out, as a family of its own (CAMELOT_OWN).
 local TRACKING = {
@@ -2245,7 +2245,7 @@ end
 -- Forever's were copied from them (above): Forever's data has both spells, and
 -- nothing there teaches either. Molten Armor (428741) has no SkillLineAbility
 -- row and no trait on Forever 1.60.1.70790, and Heart of the Lion is in no trait
--- and not in Forever's own buff-reminder data (EnhanceQoL's), where the Viper
+-- and not in Forever's own buff-reminder data, where the Viper
 -- and the Falcon are.
 do
 	-- Molten Armor, the mage's rune (wago.tools, Classic Era 1.15.9.70003): 30

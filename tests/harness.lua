@@ -108,19 +108,19 @@ for _, e in ipairs({
   "PLAYER_ALIVE", "PLAYER_UNGHOST", "UNIT_SPELLCAST_SENT",
   "UNIT_SPELLCAST_SUCCEEDED", "UNIT_SPELLCAST_FAILED", "UI_ERROR_MESSAGE",
   "GROUP_ROSTER_UPDATE", "ADDON_LOADED",
-  -- Registered on this client by BetterBlizzFrames' forever build.
+  -- Registered on this client by an addon's Forever build.
   "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_INTERRUPTED", "SPELL_UPDATE_COOLDOWN",
   "UNIT_SPELLCAST_DELAYED",
   -- The default target frame runs on it, in every client since the first.
   "PLAYER_TARGET_CHANGED",
-  -- Registered on this client by EnhanceQoL's chat and ignore modules.
+  -- Registered on this client by addons' chat and ignore modules.
   "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
   "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER", "CHAT_MSG_ADDON",
   "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
-  -- Registered on this client by EnhanceQoL's group frames and class-buff
+  -- Registered on this client by an addon's group frames and class-buff
   -- reminder.
   "READY_CHECK", "READY_CHECK_FINISHED",
-  -- Registered on this client by EnhanceQoL's class-buff reminder, which
+  -- Registered on this client by an addon's class-buff reminder, which
   -- watches the bags and the weapon for its weapon buffs.
   "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
   -- A weapon's temporary enchant going on or off: in every client's event
@@ -136,7 +136,7 @@ for _, e in ipairs({
   -- A loading screen or a logout beginning: in the event list of all five
   -- clients (Ketho's BlizzardInterfaceResources, every branch).
   "PLAYER_LEAVING_WORLD",
-  -- Registered on this client by EnhanceQoL's class-buff reminder.
+  -- Registered on this client by an addon's class-buff reminder.
   "ADDON_RESTRICTION_STATE_CHANGED",
 }) do KNOWN_EVENTS[e] = true end
 

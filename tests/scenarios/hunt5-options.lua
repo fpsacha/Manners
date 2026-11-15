@@ -28,7 +28,7 @@ end
 -- ------------------------------------------------------------------ compartment
 -- The minimap switch says hiding the button loses nothing only while the
 -- compartment really holds Manners: registered there, and the compartment
--- itself on screen. BetterBlizzFrames and EnhanceQoL hide it.
+-- itself on screen. An addon that tidies the minimap can hide it.
 local function compartmentFrame(canRegister)
 	local frame = { registered = {}, shown = true }
 	if canRegister then

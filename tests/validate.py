@@ -16,7 +16,7 @@ import maketocs
 
 # Manners.toc is the hand-edited source and the fallback for a client that does
 # not honour a suffixed name; every per-flavour toc (tools/maketocs.py's
-# FLAVOURS, one today) is generated from it.
+# FLAVOURS, one for each client) is generated from it.
 TOCS = [maketocs.SOURCE] + sorted(maketocs.expected())
 
 # Our own Lua files, in the order Manners.toc loads them: every .lua it names

@@ -14,8 +14,9 @@ body:
         Your character's name is then added to the list in the README and to
         the one inside the addon with the next release. It is an invitation and
         nothing more: nothing is asked for a place, and nothing but the code is
-        needed. The code names your character, its class, your game client and
-        the day of your last milestone, and nothing else.
+        needed. The code names your character, its realm where your game has
+        realms, its class, your game client and the day of your last
+        milestone, and nothing else.
 
   - type: input
     id: code

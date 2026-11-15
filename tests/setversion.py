@@ -11,7 +11,7 @@ wrong. This sets all of them from one argument and does not care what they said
 before.
 
 "The toc" is more than one file since the per-flavour split: Manners.toc and
-every Manners_<Flavour>.toc generated from it (one today, Manners_Camelot.toc;
+every Manners_<Flavour>.toc generated from it (one for each client;
 tools/maketocs.py's FLAVOURS is the list). Writing the source and regenerating
 is what keeps them equal -- editing each Version line with its own substitution
 would be the same hand-maintenance this script exists to replace, one file

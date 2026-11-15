@@ -821,8 +821,8 @@ end
 
 -- The global cooldown, read where the client will say and tracked where not.
 -- On the retail line Forever descends from, spell 61304 IS the global
--- cooldown for every class, and addons on Forever read it (EnhanceQoL's
--- GCD bar); Classic Era and Burning Crusade Classic have no such spell, and
+-- cooldown for every class, and addons on Forever read it for their
+-- cooldown bars; Classic Era and Burning Crusade Classic have no such spell, and
 -- GlobalCooldownReading reads one of our buffs instead. It may be withheld, in
 -- a fight most of all, so the fallback tracks it: once a cast is sent, nothing
 -- else casts for about 1.5 seconds.

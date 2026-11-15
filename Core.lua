@@ -714,7 +714,7 @@ local defaults = {
 		-- owedOnly, to match the flash, which only pulses for a favour owed.
 		sound = { enabled = false, file = ns.SOUND_KEY, owedOnly = true },
 		-- A place of our own on the minimap's rim: LibDBIcon puts every addon at 225
-		-- degrees, where the button sat on Questie's, and a player saw Questie's "!"
+		-- degrees, where the button sat on another addon's, and a player saw its "!"
 		-- and got Manners' tooltip (1.5.1). A dragged button keeps its place.
 		minimap = { hide = false, minimapPos = 195 },
 
@@ -2313,7 +2313,7 @@ end
 -- In a block of its own for the main chunk's 200 locals.
 do
 	-- Tracking (Buffs.lua, TRACKING) is no aura here: the minimap's tracking
-	-- list says what is on, by spell id, as EnhanceQoL's Forever build reads
+	-- list says what is on, by spell id, as the Forever client fills
 	-- it. Kept a second, or until the client says it changed; nil while the
 	-- client has not filled it in, or on a client without the list.
 	local trackingAt, trackingList

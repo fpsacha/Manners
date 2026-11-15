@@ -27,7 +27,7 @@ local broker
 local compartment
 
 -- Whether the compartment is a way in right now: Manners is registered there
--- and the compartment is on screen. BetterBlizzFrames and EnhanceQoL hide it.
+-- and the compartment is on screen. An addon that tidies the minimap can hide it.
 local function CompartmentShown()
 	local frame = _G.AddonCompartmentFrame
 	if not compartment or type(frame) ~= "table" then return false end

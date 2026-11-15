@@ -68,8 +68,8 @@ do
 end
 
 -- The minimap button has a place of its own on the rim. With none, LibDBIcon
--- puts every addon at 225 degrees, and Manners sat on Questie's button: a
--- player saw Questie's "!" and Manners' tooltip. A position somebody dragged
+-- puts every addon at 225 degrees, and Manners sat on another addon's button:
+-- a player saw its "!" and Manners' tooltip. A position somebody dragged
 -- to is theirs and is kept.
 do
 	local scenario = "hotfix151: the minimap button does not sit on everybody's spot"
