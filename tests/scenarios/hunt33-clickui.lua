@@ -175,10 +175,10 @@ end)
 -- female character says it in a man's voice every time it is picked.
 -- tools/audit_i18n_gender.py lists 52 such lines; these four stand for them.
 local MASCULINE = {
-	frFR = "Éloignez les torches de moi, {name}. Je suis vieux, sec et très inflammable.",
-	itIT = "Tieni le torce lontane, {name}. Sono vecchio, secco e molto infiammabile.",
+	frFR = "Tenez, {name}. Gardez les torches loin de moi. Je suis vieux, sec et très inflammable.",
+	itIT = "Tieni, {name}. Tieni le torce lontane da me. Sono vecchio, secco e molto infiammabile.",
 	esES = "Gracias, {name}. Los susurros se callaron. Así sé que era sincero.",
-	ptBR = "Amanheceu, {name}. Goblin rico dorme até tarde. Ainda não sou rico.",
+	ptBR = "Toma, {name}. Mantém as tochas longe de mim. Sou velho, seco e muito inflamável.",
 }
 for _, code in ipairs({ "frFR", "itIT", "esES", "ptBR" }) do
 	local scenario = "hunt33-speech: a female speaker is not given a masculine first-person line in " .. code
