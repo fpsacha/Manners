@@ -50,6 +50,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "toast"
+	-- This file holds Toast's own art, which Earlier art draws (the painted
+	-- frame over it is painted-toast.lua's).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")
@@ -174,6 +177,7 @@ withTree("Toast sparkles only for a new favour", CROWD, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "toast"
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	local look = ns.Prompt:Regions().look

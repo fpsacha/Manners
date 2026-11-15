@@ -1,0 +1,37 @@
+{
+  "key": "toast",
+  "socket": {
+    "shape": "round",
+    "cx": 461,
+    "cy": 518,
+    "r": 177,
+    "ring_r": 264
+  },
+  "name_xy": [
+    842,
+    430
+  ],
+  "reason_xy": [
+    847,
+    559
+  ],
+  "keycap": {
+    "cx": 3682,
+    "cy": 525,
+    "w": 185,
+    "h": 180
+  },
+  "bar": [
+    200,
+    256,
+    3980,
+    785
+  ],
+  "stretch": [
+    830,
+    3540
+  ],
+  "text_colour_ok": true,
+  "notes": "socket r is the dark glass disc (icon area); ring_r is the outer gold ring. Bar proper (without socket) spans y 330-728, well interior about x 790-3840, y 390-665. Background is flat but painted about #2b2a37, not exactly #20222a. Could animate: the amber gem in the end cap (soft pulse), a slow warm glint sweeping along the top bronze edge on show, a faint glow ring on the socket glass, the keycap rim brightening on press.",
+  "well_hi": 0.006
+}

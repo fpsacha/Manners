@@ -224,6 +224,7 @@ do
 			freshPrompt(ns, scenario)
 			local p = ns.db.profile.prompt
 			p.style = "toast"
+			p.classicArt = true
 			ns.Prompt:ApplyStyle()
 			owe(ns, "Anna Aim")
 			ns.addon:Tick()
