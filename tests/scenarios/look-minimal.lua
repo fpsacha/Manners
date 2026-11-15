@@ -152,7 +152,7 @@ withTree("look-minimal: the art is there, each file a power of two and 32 bits",
 	end
 	-- Minimal keeps its key, its name and its place in the picker.
 	local title, line2 = ns.Looks.Card("minimal")
-	if title ~= ns.L["Minimal"] or line2 ~= ns.L["text only, no panel"] or ns.Looks.list.minimal.order ~= 12 then
+	if title ~= ns.L["Minimal"] or line2 ~= ns.L["a thin rim, a soft pane, one fine line"] or ns.Looks.list.minimal.order ~= 12 then
 		fail(scenario, "Minimal's card is no longer Minimal's")
 	end
 	if ns.Looks.Get("minimal") ~= nil then fail(scenario, "Minimal is a look of its own now, not Panel.lua's with a dressing") end

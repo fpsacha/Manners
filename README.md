@@ -642,8 +642,8 @@ is bound. With them, *Gryphons at the ends* on Glass and the reason's colours.
   round the icon. *Gryphons at the ends* (off, with Glass's settings) sits a gilt
   gryphon at each end.
 - **Framed**: a flat dark panel in a thin rim, like the game's tooltips.
-- **Minimal**: the words alone, no panel, over one hairline of light after
-  the game's cast bar: it fills behind a spark when somebody buffs you,
+- **Minimal**: a thin gold rim round the icon and a soft pane you can
+  barely see under the words, over one hairline of light: it fills behind a spark when somebody buffs you,
   flashes with a ready check's tick when your buff lands, and runs back out
   red with a cross when it is refused.
 - **Luxe**: a slim dark card with a spine in the reason colour.
