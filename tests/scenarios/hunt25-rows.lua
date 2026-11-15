@@ -109,6 +109,8 @@ local function session(scenario, opts, body)
 		local p = ns.db.profile.prompt
 		p.showQueue, p.queueRows, p.clickRows = true, 3, true
 		p.style = opts.style or "glass"
+		-- The glass's earlier art: its painting's list is painted-glass.lua's.
+		p.classicArt = true
 		ns.db.profile.speech.enabled = opts.speech == true
 		if opts.edit then opts.edit(ns, p) end
 		ns.Prompt:ApplyStyle()

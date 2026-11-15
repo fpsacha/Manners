@@ -13,6 +13,15 @@ local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
 local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 
+-- The glass's earlier art: these scenarios hold the pane, the bezel and the
+-- lights Panel.lua lays for it, with Earlier art on (prompt.classicArt); the
+-- glass in its painting is painted-glass.lua's.
+local function freshPrompt(ns, scenario)
+	H.freshPrompt(ns, scenario)
+	ns.db.profile.prompt.classicArt = true
+	ns.Prompt:ApplyStyle()
+end
+
 dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 

@@ -236,7 +236,9 @@ end)
 -- ------------------------------------------------------------------ 5
 withTree("painted: Earlier art changes nothing on a look without a painting", function(ns, scenario)
 	for _, style in ipairs({ "wild", "glass" }) do
-		if ns.PaintedData[style] then fail(scenario, "SKIPPED -- " .. style .. " has a painting now") return end
+		-- A look painted since is held by its own painted-<key>.lua: Minimal,
+		-- which has no painting, stands in for it.
+		if ns.PaintedData[style] then style = "minimal" end
 		local r, p, look = upIn(ns, scenario, style)
 		if look and look.paintedArt then fail(scenario, style .. " has a painted frame it has no painting for") end
 		local function picture()

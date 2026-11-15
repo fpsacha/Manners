@@ -511,6 +511,13 @@ function Prompt:ApplyStyle()
 	if dress and dress.Wanted and not dress:Wanted(p) then dress = nil end
 	if S.dress and S.dress ~= dress then S.dress:Hide() end
 	S.dress = dress
+	-- What a painted bar (DressPainted) set for the lines and the list, forgotten
+	-- until it says so again; and a painting put away for Earlier art taken down
+	-- before the panel is laid, so the pane it hid is shown below.
+	S.queueGap, fit.edgeRoom, fit.lineTop, fit.lineBottom, fit.lineMid = nil, nil, nil, nil, nil
+	R.resultFill:ClearAllPoints()
+	R.resultFill:SetAllPoints(R.art)
+	if dress and p.classicArt and ns.Looks.Painted.On(dress) then dress:Hide() end
 
 	R.button:SetSize(p.width, p.height)
 	R.button:SetScale(p.scale)
@@ -941,7 +948,9 @@ function Prompt:ApplyStyle()
 
 	if dress then
 		if not dress.kit then dress:Build(self:LookKit()) end
-		dress:Apply(p, S.queueAbove)
+		-- A painted bar (Looks/Painted.lua's wrap) answers where its text starts.
+		local paintedX = dress:Apply(p, S.queueAbove)
+		if paintedX then self:DressPainted(p, dress, paintedX, fontPath, twoLine, countSize, chipWidth) end
 		S.accentPainted = nil
 	end
 	self:Refresh()
@@ -1318,6 +1327,116 @@ do
 	end
 end
 
+-- The glass in its painting (Looks/Painted.lua wrapped round Looks/Glass.lua,
+-- art/looks/glass): ApplyStyle has laid the panel for the earlier art and the
+-- wrap has hidden what the painting replaces, put the icon in the painted
+-- socket and answered where the text starts. What the panel keeps is moved
+-- onto the painting here: the bezel (the reason's colour) filling the socket's
+-- dark glass, the rings at the icon's new size, the lights along the well, the
+-- count chip on the keycap's place (beside it while the keycap is up), the
+-- lines kept off the right end, the words held to the painted well's ink, and
+-- the list clear of what hangs under the bar.
+local PAINTED_COUNT_CONTRAST = 7
+function Prompt:DressPainted(p, dress, textX, fontPath, twoLine, countSize, chipWidth)
+	local g = dress.paintedArt.g
+	local W, u = p.width, g.unit
+	local wellEnd = g.right - (dress.PAINT_WELL_END or 0) * u
+	if p.showIcon then
+		local socket = 2 * g.socketR
+		R.bezel:SetSize(socket, socket)
+		R.bezelHover:SetSize(socket, socket)
+		R.iconShade:SetHeight(math.max(2, math.floor(g.iconSize * 0.55)))
+		local outer = (p.accentMode == "icon" or p.accentMode == "both") and 3 or 2
+		R.fx:Place(R.icon, R.fx.ThinPad(g.iconSize, outer + 1), g.iconSize)
+	end
+	-- The wave, the crack and the rules: from the socket's gilt to the well's end.
+	local start = g.socketX + g.socketR * 1.35
+	local shineWidth = math.max(SHINE_MIN, math.min(SHINE_MAX, math.floor(W * SHINE_SHARE)))
+	R.shineFrame:ClearAllPoints()
+	R.shineFrame:SetPoint("LEFT", R.art, "LEFT", start, 0)
+	if R.shineFrame.anim then R.shineFrame.anim.move:SetOffset(math.max(0, wellEnd - start - shineWidth), 0) end
+	R.crackFrame:SetPoint("BOTTOMLEFT", R.art, "BOTTOMLEFT", start, CRACK_INSET)
+	local ruleX = p.showIcon and g.socketX or start
+	R.ruleTop:SetPoint("TOPLEFT", R.art, "TOPLEFT", ruleX, -RULE_INSET)
+	R.ruleTop:SetPoint("TOPRIGHT", R.art, "TOPLEFT", wellEnd, -RULE_INSET)
+	R.ruleBottom:SetPoint("BOTTOMLEFT", R.art, "BOTTOMLEFT", ruleX, RULE_INSET)
+	R.ruleBottom:SetPoint("BOTTOMRIGHT", R.art, "BOTTOMLEFT", wellEnd, RULE_INSET)
+	for _, glint in ipairs({ R.glintTop, R.glintBottom }) do
+		if glint.run then glint.run.move:SetOffset(math.max(0, wellEnd - ruleX - GLINT_LENGTH), 0) end
+	end
+	-- The count chip on the keycap's place, or beside the keycap while it is up;
+	-- the lines keep clear of whichever is there.
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	local keyUp = ns.Looks.KeyWanted(dress) and ns.Looks.BoundKey() ~= nil
+	local chipRight = keyUp and (keyL - 3) or keyR
+	R.countChip:ClearAllPoints()
+	R.countChip:SetPoint("RIGHT", R.art, "TOPLEFT", chipRight, -g.keyY)
+	local edge = math.max(EDGE_ROOM, math.ceil(W - (keyUp and keyL or wellEnd)) + 4)
+	local chipRoom = edge
+	if p.showCount then chipRoom = math.max(edge, math.ceil(W - (chipRight - chipWidth)) + 3) end
+	fit.edgeRoom = edge
+	-- The lines on the bar's core where it is drawn smaller than the prompt, and
+	-- an outcome's wash over the well alone.
+	fit.lineTop, fit.lineBottom = math.max(0, g.top), math.max(0, g.H - g.top - u)
+	fit.lineMid = g.H / 2 - g.textY
+	R.resultFill:ClearAllPoints()
+	R.resultFill:SetPoint("TOPLEFT", R.art, "TOPLEFT", g.left + (dress.PAINT_WELL_IN or 0) * u, -g.wellTop)
+	R.resultFill:SetPoint("BOTTOMRIGHT", R.art, "TOPLEFT", wellEnd, -g.wellBottom)
+	-- The ground is the painted well, whatever panel colour was picked for the
+	-- earlier art: the lines are styled as on a panel of the well's colour.
+	local wc = dress.paintedArt.data.wellColour or { 0.1, 0.1, 0.15 }
+	local ground = setmetatable({ bgColor = { wc[1], wc[2], wc[3], 1 } }, { __index = p })
+	StyleText(ground, "painted", fontPath, textX, chipRoom, twoLine, countSize)
+	-- The painted well's own ink (the wrap's Styled), and the greys held to it.
+	dress:Styled(p, twoLine)
+	local greys = GREYS.panel
+	local sr, sg, sb = Legible(greys.sub[1], greys.sub[2], greys.sub[3], TEXT_CONTRAST)
+	ink.sub = { sr, sg, sb }
+	R.subText:SetTextColor(sr, sg, sb, 1)
+	-- The count is small and stands on its chip's light over the well's sheen:
+	-- held further from the ground than the lines.
+	R.countText:SetTextColor(Legible(greys.count[1], greys.count[2], greys.count[3], PAINTED_COUNT_CONTRAST))
+	local qr, qg, qb = Legible(greys.row[1], greys.row[2], greys.row[3], TEXT_CONTRAST)
+	-- The list from the socket's gilt to the right end's, clear of what hangs
+	-- under (or over) the bar.
+	local x0, x1 = math.max(g.left, g.socketX - g.socketR * 1.35), wellEnd + 0.15 * u
+	local below, above = math.max(0, g.y1 - g.H), math.max(0, -g.y0)
+	S.queueGap = math.ceil(above)
+	local gap = S.queueAbove and S.queueGap or math.ceil(below)
+	local rowHeight = p.fontSize + 4
+	local rowCount = math.max(1, p.queueRows or 1)
+	local width = math.max(20, x1 - textX - 8)
+	-- The rows the list can show; the rest are left where ApplyStyle laid them.
+	for i = 1, math.min(rowCount, #R.queueRows) do
+		local fs = R.queueRows[i]
+		fs:SetTextColor(qr, qg, qb, 1)
+		fs:ClearAllPoints()
+		if S.queueAbove then
+			fs:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", textX, 4 + gap + (rowCount - i) * rowHeight)
+		else
+			fs:SetPoint("TOPLEFT", R.art, "BOTTOMLEFT", textX, -4 - gap - (i - 1) * rowHeight)
+		end
+		fs:SetWidth(width)
+		fit.room[fs] = width
+	end
+	S.queueTextX = textX
+	R.queueBack:ClearAllPoints()
+	R.queueHair:ClearAllPoints()
+	if S.queueAbove then
+		R.queueBack:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", x0, gap)
+		R.queueBack:SetPoint("BOTTOMRIGHT", R.art, "TOPLEFT", x1, gap)
+		R.queueHair:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", x0, gap)
+		R.queueHair:SetPoint("BOTTOMRIGHT", R.art, "TOPLEFT", x1, gap)
+	else
+		R.queueBack:SetPoint("TOPLEFT", R.art, "BOTTOMLEFT", x0, -gap)
+		R.queueBack:SetPoint("TOPRIGHT", R.art, "BOTTOMLEFT", x1, -gap)
+		R.queueHair:SetPoint("TOPLEFT", R.art, "BOTTOMLEFT", x0, -gap)
+		R.queueHair:SetPoint("TOPRIGHT", R.art, "BOTTOMLEFT", x1, -gap)
+	end
+	-- The list's sheet in the painted well's colour.
+	R.queueBack:SetVertexColor(wc[1] * 0.8, wc[2] * 0.8, wc[3] * 0.8, 0.9)
+end
+
 -- What a look is handed to draw with: see Looks/Looks.lua.
 function Prompt:LookKit()
 	if not self.kit then
@@ -1473,4 +1592,13 @@ function Prompt:Regions()
 		look = S.activeLook, dress = S.dress,
 		textLayer = R.textLayer,
 	}
+end
+
+-- The glass's painting: Looks/Painted.lua wraps only the looks from Looks/, and
+-- the glass is drawn here, so its dressing (Looks/Glass.lua) is wrapped here,
+-- once, at load: ApplyStyle's dress:Apply then answers where the text starts
+-- while the painting is up (DressPainted), and nothing while Earlier art is on.
+do
+	local data, dress = ns.PaintedData and ns.PaintedData.glass, ns.Looks.Dress("glass")
+	if data and dress and ns.Looks.Painted and ns.Looks.Painted.Wrap then ns.Looks.Painted.Wrap(dress, data) end
 end

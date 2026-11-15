@@ -1,0 +1,53 @@
+{
+  "key": "glass",
+  "socket": {
+    "shape": "square",
+    "cx": 545,
+    "cy": 538,
+    "half": 175,
+    "bezel_outer": [
+      312,
+      305,
+      780,
+      775
+    ]
+  },
+  "name_xy": [
+    837,
+    413
+  ],
+  "reason_xy": [
+    842,
+    579
+  ],
+  "keycap": {
+    "cx": 3658,
+    "cy": 538,
+    "w": 207,
+    "h": 210
+  },
+  "bar": [
+    137,
+    300,
+    4006,
+    776
+  ],
+  "rails": {
+    "top_gold_y": [
+      332,
+      346
+    ],
+    "bottom_gold_y": [
+      733,
+      749
+    ]
+  },
+  "stretch": [
+    880,
+    3480
+  ],
+  "background_measured": "#2b2d3a (Gemini painted it a little lighter than #20222a; key on the measured value)",
+  "text_colour_ok": true,
+  "notes": "Socket half is the inner dark glass square (icon area); bezel_outer is the gold frame. The name line sits on the upper sheen band (white 11:1, gold 4.6:1); the reason line sits on the dark lower glass (white 16:1, gold 6.7:1). The stretch run has no ornament, only a very soft horizontal vignette (about 8 grey levels brighter toward each end), which stretches cleanly. Could animate as layers: a slow horizontal glint sliding along the upper sheen band and the top gilt rail; a soft gold pulse on the icon bezel when the prompt appears; a faint glint in the two gryphon heads' eyes; the keycap brightening on press.",
+  "well_hi": 0.03
+}

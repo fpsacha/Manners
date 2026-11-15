@@ -33,6 +33,14 @@
 -- pass these by name. `outside` lists the art that stands outside the panel.
 --
 -- The art is Textures/Glass, drawn by tools/make_glass_textures.py.
+--
+-- THE PAINTED FRAME. Unless *Earlier art* (prompt.classicArt) is on, the bar is
+-- a painting (art/looks/glass, Looks/Painted.lua, wrapped round this dressing
+-- by Prompt/Panel.lua): dark glass in gilt rails, a gilt socket for the icon, a
+-- gryphon's head at each end. It replaces the pane, its light, its shadow, the
+-- rails and the gryphons (`paintedHides`); what tells something stays live over
+-- it: the bezel in the reason's colour inside the gilt socket, the light in the
+-- glass, the ready border, the star, and Panel.lua's own lights.
 
 local _, ns = ...
 local Colour = ns.Looks.Colour
@@ -75,8 +83,28 @@ local GLINT_EVERY, GLINT_UP, GLINT_DOWN = 7, 0.5, 1.1
 
 local WARM = { 1.00, 0.86, 0.55 }
 
+-- ---- must agree with art/looks/glass (units of the bar's core height) -----
+-- The painted socket's gilt frame, half its side; where the well starts after
+-- it (from the painting's left end) and where it stops before the right end.
+local PAINT_FRAME_HALF, PAINT_WELL_IN, PAINT_WELL_END = 0.533, 1.53, 0.46
+-- The painting in a fight: dimmed, less than the gilt was, so the words keep it.
+local PAINT_FIGHT = 0.72
+-- The light in the painted glass, against the pane's.
+local PAINT_CAUSTIC = 0.6
+-- The brightest ground the words are held to on the painted well (a luminance):
+-- its sheen with that light over it, a little over what the painting measures.
+local PAINT_INK_HI = 0.07
+
 local Glass = { idle = {}, outside = {} }
 Looks.RegisterDress("glass", Glass)
+
+-- What the painting replaces: Panel.lua's pane, its light, its shadow and the
+-- edge light laid on the pane's cut (Build copies them in from the panel), and
+-- this dressing's rails and gryphons. The bezel stays: it carries the reason.
+Glass.paintedHides = { "pane", "glassLight", "shadows", "edgeGlass", "railTop", "railBottom", "gryphon", "lit", "eye" }
+-- Of the socket's dark glass: the bezel fills it, the icon its hole.
+Glass.paintedIconFill = 0.84
+Glass.PAINT_WELL_IN, Glass.PAINT_WELL_END = PAINT_WELL_IN, PAINT_WELL_END
 
 ---------------------------------------------------------------------------
 -- pieces
@@ -174,6 +202,19 @@ function Glass:Build(kit)
 	self.star = tex(frame, "OVERLAY", 2, "Star", "ADD")
 	self.star:SetAlpha(0)
 
+	-- The key's letter on the painted keycap, shown only with Show my key on
+	-- the prompt asking for it and a key bound (Painted.KeyShown).
+	self.keyText = frame:CreateFontString(nil, "OVERLAY")
+	self.keyText:SetJustifyH("CENTER")
+	self.keyText:SetWordWrap(false)
+	self.keyText:Hide()
+	-- What the painting replaces of the panel's own (paintedHides).
+	local regions = ns.Prompt and ns.Prompt.Regions and ns.Prompt:Regions()
+	if regions then
+		self.pane, self.glassLight, self.shadows = regions.pane, regions.glassLight, regions.shadows
+		self.edgeGlass = regions.edgeLight and regions.edgeLight.glass
+	end
+
 	-- What moves by its coordinates.
 	local flow = Looks.Flow.New(frame)
 	self.flow = flow
@@ -254,6 +295,8 @@ function Glass:Apply(p, above)
 	self.p, self.active = p, true
 	local W, H = p.width, p.height
 	self.frame:Show()
+	-- The key's letter is the painting's alone: the next paint asks again.
+	self.keyText:Hide()
 
 	-- The gryphons: each at its end, its file reaching a little in over the
 	-- pane, its foot just under the pane's.
@@ -310,37 +353,7 @@ function Glass:Apply(p, above)
 	self.showIcon = p.showIcon and true or false
 	if self.showIcon then
 		local bezel = math.min(p.iconSize / 0.75, H - 1)
-		local side = bezel + 2 * ANT_OUT
-		local ants = self.antsFrame
-		ants:ClearAllPoints()
-		ants:SetSize(side, side)
-		ants:SetPoint("CENTER", kit.icon, "CENTER", 0, 0)
-		self.bloom:ClearAllPoints()
-		self.bloom:SetPoint("TOPLEFT", ants, "TOPLEFT", -BLOOM_OUT, BLOOM_OUT)
-		self.bloom:SetPoint("BOTTOMRIGHT", ants, "BOTTOMRIGHT", BLOOM_OUT, -BLOOM_OUT)
-		-- Top, right, bottom, left: each strip its side's length, the dash
-		-- handed from the end of one to the start of the next.
-		local span = side / ANT_TILE
-		local places = {
-			{ "TOPLEFT", "TOPLEFT", 0, ANT_H / 2, "BOTTOMRIGHT", "TOPRIGHT", 0, -ANT_H / 2 },
-			{ "TOPLEFT", "TOPRIGHT", -ANT_H / 2, 0, "BOTTOMRIGHT", "BOTTOMRIGHT", ANT_H / 2, 0 },
-			{ "TOPLEFT", "BOTTOMLEFT", 0, ANT_H / 2, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -ANT_H / 2 },
-			{ "TOPLEFT", "TOPLEFT", -ANT_H / 2, 0, "BOTTOMRIGHT", "BOTTOMLEFT", ANT_H / 2, 0 },
-		}
-		for i, at in ipairs(places) do
-			local t = self.ants[i]
-			t:ClearAllPoints()
-			t:SetPoint(at[1], ants, at[2], at[3], at[4])
-			t:SetPoint(at[5], ants, at[6], at[7], at[8])
-			t:SetAlpha(ANT_ALPHA)
-			self.antFlow[i]:Window(span, 1)
-			self.antFlow[i]:Phase(-(i - 1) * span, 0)
-		end
-		local star = self.star
-		star:ClearAllPoints()
-		star:SetSize(p.iconSize * STAR_SIZE, p.iconSize * STAR_SIZE)
-		star:SetPoint("CENTER", kit.icon, "TOPRIGHT", -p.iconSize * 0.14, -p.iconSize * 0.14)
-		star:Show()
+		self:PlaceBorder(bezel + 2 * ANT_OUT, p.iconSize)
 	else
 		self.antsFrame:Hide()
 		self.star:Hide()
@@ -351,12 +364,51 @@ function Glass:Apply(p, above)
 	self:Rest()
 end
 
+-- The ready border `side` units square, centred on the icon, and the star on
+-- the icon's corner.
+function Glass:PlaceBorder(side, iconSize)
+	local kit = self.kit
+	local ants = self.antsFrame
+	ants:ClearAllPoints()
+	ants:SetSize(side, side)
+	ants:SetPoint("CENTER", kit.icon, "CENTER", 0, 0)
+	self.bloom:ClearAllPoints()
+	self.bloom:SetPoint("TOPLEFT", ants, "TOPLEFT", -BLOOM_OUT, BLOOM_OUT)
+	self.bloom:SetPoint("BOTTOMRIGHT", ants, "BOTTOMRIGHT", BLOOM_OUT, -BLOOM_OUT)
+	-- Top, right, bottom, left: each strip its side's length, the dash
+	-- handed from the end of one to the start of the next.
+	local span = side / ANT_TILE
+	local places = {
+		{ "TOPLEFT", "TOPLEFT", 0, ANT_H / 2, "BOTTOMRIGHT", "TOPRIGHT", 0, -ANT_H / 2 },
+		{ "TOPLEFT", "TOPRIGHT", -ANT_H / 2, 0, "BOTTOMRIGHT", "BOTTOMRIGHT", ANT_H / 2, 0 },
+		{ "TOPLEFT", "BOTTOMLEFT", 0, ANT_H / 2, "BOTTOMRIGHT", "BOTTOMRIGHT", 0, -ANT_H / 2 },
+		{ "TOPLEFT", "TOPLEFT", -ANT_H / 2, 0, "BOTTOMRIGHT", "BOTTOMLEFT", ANT_H / 2, 0 },
+	}
+	for i, at in ipairs(places) do
+		local t = self.ants[i]
+		t:ClearAllPoints()
+		t:SetPoint(at[1], ants, at[2], at[3], at[4])
+		t:SetPoint(at[5], ants, at[6], at[7], at[8])
+		t:SetAlpha(ANT_ALPHA)
+		self.antFlow[i]:Window(span, 1)
+		self.antFlow[i]:Phase(-(i - 1) * span, 0)
+	end
+	local star = self.star
+	star:ClearAllPoints()
+	star:SetSize(iconSize * STAR_SIZE, iconSize * STAR_SIZE)
+	star:SetPoint("CENTER", kit.icon, "TOPRIGHT", -iconSize * 0.14, -iconSize * 0.14)
+	star:Show()
+end
+
 -- The gilt's own colour: as drawn, or dimmed for a fight.
 function Glass:Gilt()
 	local k = self.combat and COMBAT_GILT or 1
 	for i = 1, 2 do Colour(self.gryphon[i], k, k, k) end
 	Colour(self.railTop, k, k, k)
 	Colour(self.railBottom, k, k, k)
+	-- The painting dims with it, less far (nothing while it is not up).
+	local t = self.combat and PAINT_FIGHT or 1
+	Looks.Painted.Tone(self, t, t, t, self.combat)
 end
 
 -- What runs with nobody owed: the light in the glass and the eyes' glint, on
@@ -367,8 +419,11 @@ function Glass:Rest()
 	local state = (on and 1 or 0) + (self.owed and 2 or 0) + (self.combat and 4 or 0)
 	if state == self.rested then return end
 	self.rested = state
+	-- The painting has gryphons of its own: these eyes are hidden under it, and
+	-- its glass has a sheen of its own, which the light in it keeps fainter on.
+	local eyes = not Looks.Painted.On(self)
 	for i, t in ipairs(self.caustic) do
-		t:SetAlpha(on and CAUSTIC_ALPHA or 0)
+		t:SetAlpha(on and (eyes and CAUSTIC_ALPHA or CAUSTIC_ALPHA * PAINT_CAUSTIC) or 0)
 		if on then
 			if not self.causticFlow[i]:IsPlaying() then self.causticFlow[i]:Play() end
 		else
@@ -376,7 +431,7 @@ function Glass:Rest()
 		end
 	end
 	for i, g in ipairs(self.eyeGlint) do
-		local run = on and not self.owed
+		local run = on and not self.owed and eyes
 		if run then
 			if not g:IsPlaying() then g:Play() end
 		elseif g:IsPlaying() then
@@ -391,6 +446,76 @@ end
 -- Every paint of a person: the prompt is up, so what runs at rest may run.
 function Glass:Painted()
 	self:Rest()
+	-- The key's letter (and, by Looks/Painted.lua's wrap, the keycap) follows a
+	-- key bound or unbound since, and an outcome on the panel.
+	self:Chip(true)
+end
+
+---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): what this dressing keeps, moved onto
+-- the painting. Painted.lua has laid the pieces and put the icon in the
+-- socket; `g` is its Painted.Layout. Panel.lua lays its own regions after.
+---------------------------------------------------------------------------
+
+function Glass:PaintedPlace(g, p, above)
+	local art = self.kit.art
+	local u = g.unit
+	-- The light in the glass: inside the well, from the socket's gilt to the
+	-- right end's.
+	local x0 = g.left + PAINT_WELL_IN * u
+	local x1 = math.max(x0 + 1, g.right - PAINT_WELL_END * u)
+	local y0, y1 = g.wellTop, math.max(g.wellTop + 1, g.wellBottom)
+	for i, t in ipairs(self.caustic) do
+		t:ClearAllPoints()
+		t:SetPoint("TOPLEFT", art, "TOPLEFT", x0, -y0)
+		t:SetPoint("BOTTOMRIGHT", art, "TOPLEFT", x1, -y1)
+		self.causticFlow[i]:Window((x1 - x0) / CAUSTIC_W, (y1 - y0) / CAUSTIC_H)
+	end
+	-- The ready border round the painted socket's gilt frame.
+	if self.showIcon then self:PlaceBorder(2 * PAINT_FRAME_HALF * u + 2 * ANT_OUT, g.iconSize) end
+	-- The key's letter centred on the keycap.
+	self.keyText:ClearAllPoints()
+	self.keyText:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyText:SetWidth(g.keyW)
+	-- The middle piece reaches a unit under each end, so no hairline of the
+	-- world shows where the pieces meet at a fraction of a pixel.
+	local mid = self.paintedArt and self.paintedArt.pieces[2]
+	if mid and g.x2 - g.x1 > 0.5 then
+		mid:ClearAllPoints()
+		mid:SetPoint("TOPLEFT", art, "TOPLEFT", g.x1 - 1, -g.y0)
+		mid:SetPoint("BOTTOMRIGHT", art, "TOPLEFT", g.x2 + 1, -g.y1)
+	end
+	return g.textX
+end
+
+-- The key's letter in the keycap's ink, no larger than the keycap holds.
+function Glass:PaintedStyled(g)
+	-- The words are held to the painted well at its brightest with the light in
+	-- the glass over its sheen: never a ground darker than PAINT_INK_HI.
+	local words = self.kit.ink
+	words.hi = math.max(words.hi or 0, PAINT_INK_HI)
+	local ink = g and g.keyInk
+	if not ink then return end
+	local path = self.kit.name:GetFont()
+	local size = math.max(6, math.min(self.kit.fit.base[self.kit.name] or 13, math.floor(g.keyH * 0.7)))
+	if not (path and self.keyText:SetFont(path, size, "")) or not self.keyText:GetFont() then
+		self.keyText:SetFont(STANDARD_TEXT_FONT, size, "")
+	end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+end
+
+-- The key's letter while the painted keycap is up (Painted.lua's wrap shows
+-- the keycap after this, by the same rule); the count chip is Panel.lua's.
+function Glass:Chip(on)
+	self.outcomeOn = self.kit and self.kit.OutcomeLive() or nil
+	local key = Looks.Painted.KeyShown(self) and Looks.BoundKey()
+	if key then
+		local text = Looks.ShortKey(key)
+		self.keyText:SetText(type(text) == "string" and text ~= "" and text or key)
+	end
+	self.keyText:SetShown(key and true or false)
+	return on
 end
 
 function Glass:Hide()
@@ -475,6 +600,10 @@ function Glass:Attention(isNew, arrived, flashStyle)
 			self.eyeBurn[i]:Stop()
 			self.eye[i]:SetAlpha(EYE_OWED)
 		end
+	end
+	-- No eyes to burn under the painting.
+	if Looks.Painted.On(self) then
+		for i = 1, 2 do self.eyeBurn[i]:Stop() end
 	end
 	-- A favour just done: the gilt catches the light, once.
 	if arrived and full then self:Catch(CATCH_FAVOUR) end

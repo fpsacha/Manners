@@ -113,7 +113,7 @@ mutate("Prompt/Text.lua",
 
 # The chip's room kept by the lines when the chip is down.
 mutate("Prompt/Text.lua",
-       "\tlocal right = chipUp and fit.chipRoom or EDGE_ROOM\n",
+       "\tlocal right = chipUp and fit.chipRoom or fit.edgeRoom or EDGE_ROOM\n",
        "\tlocal right = fit.chipRoom\n",
        "the chip's room never given back",
        expect="the reason line's room stayed",
