@@ -443,9 +443,20 @@ local function InputLeft(box)
 	if Submit(row) then W.Settle(row) end
 end
 
+-- Boxes whose text is kept as it is typed, with no Enter: a name the
+-- buttons beside it read (Profiles' Duplicate and Rename, a paste into a new
+-- profile), since a click on a button leaves the box holding the focus and
+-- nothing typed would reach them otherwise.
+local LIVE = { ["profiles.name"] = true, ["profiles.pasteName"] = true }
+
 local function InputTyped(box, userInput)
 	local row = box.row
 	if userInput and row.error then HideError(row) end
+	if userInput and LIVE[row.item.path] and not row.busy and not W.Off(row) then
+		row.busy = true
+		W.Commit(row, box:GetText() or "")
+		row.busy = false
+	end
 end
 
 KIND.input = {

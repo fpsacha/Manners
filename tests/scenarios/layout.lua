@@ -64,6 +64,8 @@ local STAND_IN = {
 	["diagnostics.errorList"] = true, ["diagnostics.noErrors"] = true,
 	-- The hall of fame, while there is no code to show yet (Hall.lua).
 	["general.hallNote"] = true, ["general.hallList"] = true,
+	-- Profiles' overview, while Undo and the button under it are away.
+	["profiles.current"] = true,
 }
 
 local GROUPS = { { "general" }, { "who", "skip", "when", "click", "appearance" }, { "profiles", "diagnostics" } }

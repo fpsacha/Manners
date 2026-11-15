@@ -281,15 +281,16 @@ mutate(LAYOUT, "\t\t\t\t\t\"general.welcomeAgain\",\n",
        "ux-redesign: the welcome only by command",
        expect="every control has one place in the options window", script=S)
 
-mutate("Options/Profiles.lua", "\t\t\thidden = function() return not (ns.ImportUndoHeld and ns.ImportUndoHeld()) end,\n",
-       "\t\t\thidden = true,\n",
+# Since 1.12 the import's undo is the Profiles page's own Undo (AutoProfile.lua).
+mutate("AutoProfile.lua", "\tif r.kind == \"import\" then return ns.ImportUndoHeld ~= nil and ns.ImportUndoHeld() == true end\n",
+       "\tif r.kind == \"import\" then return false end\n",
        "ux-redesign: the import undo only by command",
-       expect="ux-redesign: Put my settings back shows while an import can be undone", script=S)
+       expect="ux-redesign: Undo shows while an import can be undone", script=S)
 
 mutate("Commands.lua", "\tfunction ns.ImportUndoHeld() return lastImportUndo ~= nil and addon.db ~= nil and addon.db.profile == undoProfile end\n",
        "\tfunction ns.ImportUndoHeld() return addon.db ~= nil end\n",
        "ux-redesign: Put my settings back with nothing to undo",
-       expect="ux-redesign: Put my settings back shows while an import can be undone", script=S)
+       expect="ux-redesign: Undo shows while an import can be undone", script=S)
 
 mutate("Options/Shared.lua", "\tlocal queue = prompt.state and prompt.state.pickedFrom\n",
        "\tlocal queue = ns.BuildQueue()\n",

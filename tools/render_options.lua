@@ -93,6 +93,12 @@ local function profileOptions()
 		local function current() return Mock.sv.profileName or "Default" end
 		-- The sidebar's second line under Profiles is the profile's name.
 		db.GetCurrentProfile = db.GetCurrentProfile or function() return current() end
+		-- Who this character is in AceDB's record of who uses what, as the
+		-- mock writes it, so Profiles' overview says "this character".
+		db.keys = db.keys or { char = Mock.character .. " - Mockrealm" }
+		-- The saved file whole, as the library's own `sv` is: the profiles
+		-- beside who uses which, for the page's Rename and Duplicate.
+		if db.sv and db.sv.profileKeys == Mock.sv.profileKeys then db.sv = Mock.sv end
 		-- The names, for the page's own dropdowns (AutoProfile.lua).
 		db.GetProfiles = db.GetProfiles or function(_, out)
 			out = out or {}
@@ -354,6 +360,14 @@ function BEFORE.switching(ns)
 	ns.db:SetProfile("Default")
 	ns.db.char.autoProfile = { enabled = true, say = true, at = "world",
 		rules = { world = "Default", raid = "Raid" }, chose = { profile = "Default", at = "world" } }
+	-- Alts on both, so the overview at the top of Profiles names them.
+	local keys = ns.db.sv and ns.db.sv.profileKeys
+	if type(keys) == "table" then
+		keys["Bellamy - Mockrealm"], keys["Tamsin - Mockrealm"] = "Raid", "Raid"
+		keys["Orrin - Silvermoon"] = "Default"
+	end
+	-- And the last action's line with Undo beside it, under the overview.
+	if ns.Profiles and ns.Profiles.Rename then ns.Profiles.Rename("Raid team", "Raid") end
 end
 
 function BEFORE.offer(ns)

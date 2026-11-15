@@ -793,27 +793,38 @@ ns.WindowLayout = {
 			title = L["Profiles"],
 			icon = ICONS.profiles,
 			sections = {
-				-- AceDBOptions' own entries (current to reset) with its grey
-				-- descriptions beside the controls they explain.
+				-- The profile manager (AutoProfile.lua), top to bottom: every
+				-- profile and who is on it, in a well; the last action's line
+				-- with Undo beside it; a profile of this character's own.
 				{ key = "profiles.lead", items = {
 					"profiles.profilesIntro",
-					"general.sharedNote",
+					-- Keeps the section while Undo and the button under it are
+					-- away, which they mostly are.
+					{ "profiles.current", standIn = true },
+					{ "profiles.undoNote", buttons = true },
+					{ "profiles.undo", buttons = true },
 					"general.ownProfile",
-					"profiles.current",
-					"profiles.choosedesc",
-					{ "profiles.new", pair = true },
-					"profiles.choose",
-					-- How a profile is edited, under the dropdown that does it.
+				} },
+				-- Pick, then act: the dropdown and the name Duplicate and Rename
+				-- take side by side, the buttons that act on the picked profile
+				-- in one row, and why some are greyed under them.
+				{ key = "profiles.pick", title = L["Pick a profile"], items = {
+					{ "profiles.choose", pair = true },
+					"profiles.name",
+					{ "profiles.use", buttons = true },
+					{ "profiles.duplicate", buttons = true },
+					{ "profiles.rename", buttons = true },
+					{ "profiles.delete", buttons = true },
+					{ "profiles.copyfrom", buttons = true },
+					"profiles.pickNote",
+					-- How a profile is edited, under the buttons.
 					"profiles.editNote",
-					-- A copy of the one in use under a new name, and the one in use
-					-- renamed (AutoProfile.lua): typed and Enter, as New profile is.
-					{ "profiles.saveAs", pair = true },
-					"profiles.rename",
-					"profiles.copydesc",
-					"profiles.copyfrom",
-					"profiles.deldesc",
-					"profiles.delete",
-					"profiles.descreset",
+				} },
+				-- A new profile from the defaults, where a new character starts,
+				-- and the profile in use back to the defaults.
+				{ key = "profiles.start", title = L["Fresh starts"], items = {
+					{ "profiles.new", pair = true },
+					"profiles.newCharacters",
 					"profiles.resetProfile",
 				} },
 				-- Switching profile by where you are (AutoProfile.lua). The
@@ -834,8 +845,11 @@ ns.WindowLayout = {
 					"profiles.shareNote",
 					"profiles.shareCopy",
 					"profiles.shareText",
+					-- Where a paste goes: over the profile in use, or into a new
+					-- one named under it (AutoProfile.lua).
+					"profiles.pasteInto",
+					{ "profiles.pasteName", indent = true },
 					"profiles.sharePaste",
-					"profiles.shareUndo",
 				} },
 			},
 		},
@@ -949,11 +963,10 @@ ns.WindowLayout = {
 		["diagnostics.reportHint"] = { hint = true },
 		["when.selfLeadNote"] = { hint = true },
 		["who.minLevelNote"] = { hint = true },
-		-- AceDBOptions' descriptions, beside the controls they explain.
-		["profiles.choosedesc"] = { hint = true },
-		["profiles.copydesc"] = { hint = true },
-		["profiles.deldesc"] = { hint = true },
-		["profiles.descreset"] = { hint = true },
+		-- Every profile and who is on it, in a well (AutoProfile.lua).
+		["profiles.current"] = { block = true },
+		-- Why a button is greyed, under the row of them.
+		["profiles.pickNote"] = { hint = true },
 		["profiles.editNote"] = { hint = true },
 		["profiles.switchNote"] = { hint = true },
 	},
@@ -1050,6 +1063,9 @@ ns.WindowLayout = {
 		["profiles.desc"] = true,
 		-- AceDBOptions' Reset, hidden too: profiles.resetProfile asks first.
 		["profiles.reset"] = true,
+		-- "These settings are shared by your other characters": the
+		-- overview at the top of Profiles names who is on which profile.
+		["general.sharedNote"] = true,
 		-- "3. See it": its preview is the header's button now.
 		["general.tryHeader"] = true,
 		-- "4. Say thanks (optional)": the voice choice leads What I say.

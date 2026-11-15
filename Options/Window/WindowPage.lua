@@ -652,25 +652,36 @@ end
 -- out; Done beside Skip rather than half a page apart.
 local BUTTON_GAP = 10
 
+-- A note in a run of buttons (the line Profiles' Undo stands beside) set
+-- level with them: moved down by half of what the line's tallest has more.
+local function Level(line, tallest)
+	for _, e in ipairs(line) do
+		if e.row.kind == "description" and e.h < tallest then e.y = e.y + math.floor((tallest - e.h) / 2) end
+	end
+end
+
 local function PlaceButtons(list, i, y)
 	local last = i
 	while list[last + 1] and list[last + 1].layout.buttons do last = last + 1 end
 	local x0 = PAD_LEFT + Indent(list[i])
 	local right = PAD_LEFT + COLUMN_W
-	local x, tallest = x0, 0
+	local x, tallest, line = x0, 0, {}
 	for k = i, last do
 		local e = list[k]
 		if Usable(e) then
 			local w = math.min(NaturalWidth(e), right - x0)
 			if x > x0 and x + w > right then
-				y, x, tallest = y + tallest + ROW_GAP, x0, 0
+				Level(line, tallest)
+				y, x, tallest, line = y + tallest + ROW_GAP, x0, 0, {}
 			end
 			tallest = math.max(tallest, Place(e, x, y, w))
+			line[#line + 1] = e
 			x = x + w + BUTTON_GAP
 		elseif e.row then
 			e.row.frame:Hide()
 		end
 	end
+	Level(line, tallest)
 	if tallest > 0 then y = y + tallest + ROW_GAP end
 	return y, last + 1
 end

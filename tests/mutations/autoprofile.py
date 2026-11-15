@@ -215,10 +215,11 @@ mutate(A,
        "autoprofile: a name counted in bytes",
        expect=MAKE, script=S)
 
-# New profile from these settings starts at the defaults.
+# Duplicate (since 1.12, in place of New profile from these settings) makes a
+# profile at the defaults.
 mutate(A,
-       "\tif copy and type(db.CopyProfile) == \"function\" then db:CopyProfile(from, true) end\n",
-       "",
+       "\tsv.profiles[name] = Stripped(source, ns.defaults and ns.defaults.profile)\n",
+       "\tsv.profiles[name] = {}\n",
        "autoprofile: the copy is not a copy",
        expect=MAKE, script=S)
 
@@ -239,14 +240,14 @@ mutate(A,
        expect=ASKS, script=S)
 
 mutate(A,
-       "\t\tconfirm = true,\n\t\tconfirmText = L[\"Delete this profile? This cannot be undone.\"],\n",
-       "\t\tconfirm = false,\n\t\tconfirmText = L[\"Delete this profile? This cannot be undone.\"],\n",
+       "\targs.delete.confirm = function() return P.DeleteQuestion(P.Picked()) end\n",
+       "\targs.delete.confirm = false\n",
        "autoprofile: Delete does not ask",
        expect=ASKS, script=S)
 
 mutate(A,
-       "\t\tconfirm = true,\n\t\tconfirmText = L[\"Put every setting of this profile back to its default? This cannot be undone.\"],\n",
-       "\t\tconfirm = false,\n\t\tconfirmText = L[\"Put every setting of this profile back to its default? This cannot be undone.\"],\n",
+       "\t\tconfirm = true,\n\t\tconfirmText = L[\"Put every setting of this profile back to its default? Undo puts them back.\"],\n",
+       "\t\tconfirm = false,\n\t\tconfirmText = L[\"Put every setting of this profile back to its default? Undo puts them back.\"],\n",
        "autoprofile: Reset does not ask",
        expect=ASKS, script=S)
 
