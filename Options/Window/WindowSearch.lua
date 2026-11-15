@@ -35,11 +35,19 @@ end
 
 -- A control hidden until a switch is on (the layout's `parents`: Line set
 -- under Say a line) is found too, while that switch is shown: choosing it
--- opens the switch, and the result says to turn it on first.
+-- opens the switch, and the result says to turn it on first. Only while
+-- that is true: the switch is off, and turning it on would show the control.
+-- One hidden with its switch on is hidden for another reason, and one the
+-- layout's `parentsIf` answers no for (a courtesy another class has) would
+-- stay hidden whatever the switch says; neither is found.
 local function Parent(item)
-	local path = (UI.Layout().parents or {})[item.path]
+	local layout = UI.Layout()
+	local path = (layout.parents or {})[item.path]
 	local parent = path and UI.Item(path)
 	if not parent or UI.Hidden(parent) then return nil end
+	if Ask(ns.WindowBind.Value, parent) == true then return nil end
+	local reach = (layout.parentsIf or {})[item.path]
+	if type(reach) == "function" and not Ask(reach) then return nil end
 	return parent
 end
 

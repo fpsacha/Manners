@@ -330,6 +330,9 @@ function W.enable(f)
 	wrap(f, "Disable", function(self) self._ft.enabled = false end)
 	wrap(f, "SetEnabled", function(self, v) self._ft.enabled = v and true or false end)
 	if not f.IsEnabled then f.IsEnabled = function(self) return self._ft.enabled ~= false end end
+	-- Whether it was told to run OnEnter and OnLeave while disabled, which
+	-- the client does not do by itself.
+	wrap(f, "SetMotionScriptsWhileDisabled", function(self, v) self._ft.motionWhileDisabled = v and true or false end)
 end
 
 function W.Button(f)

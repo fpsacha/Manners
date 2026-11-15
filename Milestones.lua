@@ -8,8 +8,10 @@
 -- one line in chat.
 --
 -- Quiet by design. One switch (Start here, under Favour ledger) turns all of
--- it off: no toast, no tab, no chat line, and nothing counted while it is off;
--- what was earned is kept for when it is switched back on. A toast never shows
+-- it off: no toast, no tab, no chat line for a milestone, and nothing counted
+-- while it is off (a new title keeps its one line in chat, which is the
+-- ledger's own and older than these: Ledger.lua, Announce); what was earned is
+-- kept for when it is switched back on. A toast never shows
 -- in a fight (it waits for the end), never over the prompt, one at a time and
 -- at most one a minute, and goes after a few seconds or at a click. A ledger
 -- that was already long when milestones arrived takes what it has earned
@@ -24,7 +26,9 @@
 --
 -- Per character, in db.char.milestones, like the ledger. A profile reset does
 -- not touch it, and neither does the ledger's Clear, which keeps the all-time
--- counts these are read from.
+-- counts these are read from. The week without a debt is the one read from
+-- the ledger's rows: a row of the last week that Clear or the ledger's trim
+-- takes is told here first (M.Dropped) and kept in `week`.
 --
 --   milestones.seeded   true once the ledger's past has been read
 --   milestones.earned   id -> when (the wall clock); negative for one already
@@ -37,6 +41,9 @@
 --   milestones.lately   stranger -> when the buff you gave them runs out
 --   milestones.due      the settles still inside the refusal wait, as { kind,
 --                       name, at }: what a reload in those seconds would lose
+--   milestones.week     { kept = when each favour was received that was
+--                       returned and whose row the ledger has dropped since,
+--                       broke = when the latest one left unreturned was }
 --
 -- What the other features tell it, each one call where their cast is known to
 -- have landed: ns.Milestones.Note("res"), Note("cure"), Note("courtesy").
@@ -203,11 +210,15 @@ local SITTING_SECONDS = 900
 local RAID_LEAST = 10
 -- The week: how far back, how many favours and on how many days at least.
 local WEEK_SECONDS, WEEK_FAVOURS, WEEK_DAYS = 7 * 86400, 10, 5
+-- How many returned favours of the week are remembered past their rows.
+local MAX_KEPT = 300
 
 -- Toasts: seconds fading in, held and fading out; the gap kept between two;
 -- and how many may wait (more than that are said in chat only).
 local TOAST_IN, TOAST_HOLD, TOAST_OUT = 0.3, 5.5, 0.7
 local TOAST_GAP = 60
+-- How often a toast on screen looks whether the prompt has come up under it.
+local TOAST_LOOK = 0.2
 local TOAST_QUEUE = 4
 M.TOAST_GAP = TOAST_GAP
 M.TOAST_SECONDS = TOAST_IN + TOAST_HOLD + TOAST_OUT
@@ -316,6 +327,14 @@ local function Repair(char)
 		end
 	end
 	st.due = due
+	local week, kept = type(st.week) == "table" and st.week or {}, {}
+	if type(week.kept) == "table" then
+		for i = math.max(1, #week.kept - MAX_KEPT + 1), #week.kept do
+			local at = week.kept[i]
+			if type(at) == "number" and at == at then kept[#kept + 1] = at end
+		end
+	end
+	st.week = { kept = kept, broke = type(week.broke) == "number" and week.broke == week.broke and week.broke or nil }
 	st.seeded = st.seeded == true
 	store = st
 	return st
@@ -405,9 +424,12 @@ end
 local sitting = {}
 
 -- One of your buffs on `names` (the one it was cast on and, for a group cast,
--- everybody else it reached) in a raid of `size`. Earned when one spell's
+-- everybody else it reached) in a raid of `size`. Earned when one buff's
 -- casts inside the sitting have reached everybody but you: each person once,
--- however many casts reached them, and never yourself.
+-- however many casts reached them, and never yourself. `spell` is the buff's
+-- key where the press said it (M.Settled), so the group version, the single
+-- one and a lower rank for somebody low fill one sitting; the spell's id
+-- only where no key came with the settle.
 local function Sat(st, spell, names, size, clock)
 	local key = spell or 0
 	local cast = sitting[key]
@@ -431,6 +453,23 @@ end
 function WeekKept(now)
 	if not now then return false end
 	local favours, days, dayCount = 0, {}, 0
+	-- What the ledger no longer has a row for (M.Dropped): a favour left
+	-- unreturned inside the week still bars it, and one returned still counts.
+	local st = Store()
+	local week = st and st.week
+	if week then
+		if week.broke and week.broke >= now - WEEK_SECONDS then return false end
+		for _, at in ipairs(week.kept) do
+			if at >= now - WEEK_SECONDS then
+				favours = favours + 1
+				local day = DayKey(at)
+				if not days[day] then
+					days[day] = true
+					dayCount = dayCount + 1
+				end
+			end
+		end
+	end
 	for _, e in ipairs(Ledger.Entries("favours")) do
 		if e.at >= now - WEEK_SECONDS and e.state ~= "back" and e.why ~= "useless" and e.why ~= "covered" then
 			-- Returned, and past the server's refusal: one still inside its
@@ -504,6 +543,8 @@ local TOAST_WIDTH, TOAST_HEIGHT = 300, 72
 local SPOTS = { { "TOP", 0, -150 }, { "CENTER", 0, 170 }, { "BOTTOM", 0, 250 } }
 local GOLD = { 1.00, 0.82, 0.30 }
 
+local StepAside -- below
+
 local function ToastUpdate(self, elapsed)
 	-- Never in a fight: one that starts under a toast takes it away.
 	if InCombatLockdown() then
@@ -512,6 +553,12 @@ local function ToastUpdate(self, elapsed)
 	end
 	self.age = self.age + (tonumber(elapsed) or 0)
 	local age = self.age
+	-- Never over the prompt, which may come up, or be dragged, under a toast
+	-- already showing: looked at a few times a second while it shows.
+	if age >= (self.lookAt or 0) then
+		self.lookAt = age + TOAST_LOOK
+		StepAside(self)
+	end
 	if age < TOAST_IN then
 		self:SetAlpha(age / TOAST_IN)
 	elseif age < TOAST_IN + TOAST_HOLD then
@@ -621,9 +668,10 @@ local function BuildToast()
 	return f
 end
 
--- Whether two frames share any of the screen. Asked once a toast, out of a
--- fight, through pcall: a prompt that will not say where it is leaves the
--- toast at its first spot, which is nowhere near the prompt's own.
+-- Whether two frames share any of the screen. Asked when a toast is placed
+-- and a few times a second while it shows (StepAside), out of a fight,
+-- through pcall: a prompt that will not say where it is leaves the toast at
+-- its first spot, which is nowhere near the prompt's own.
 local function Covers(a, b)
 	local ok, over = pcall(function()
 		local sa, sb = a:GetEffectiveScale(), b:GetEffectiveScale()
@@ -647,6 +695,14 @@ local function PlaceToast(f)
 	end
 end
 
+-- A toast on screen that the prompt has come up under moves to the first
+-- spot clear of it; one that is clear stays where it is.
+function StepAside(f)
+	local P = ns.Prompt
+	local prompt = (P and P.GetButton and P:GetButton()) or _G.MannersPrompt
+	if prompt and prompt.IsShown and prompt:IsShown() and Covers(f, prompt) then PlaceToast(f) end
+end
+
 local function PlaySoundFor()
 	if not Setting("sound") or type(_G.PlaySound) ~= "function" then return end
 	local flavour = ns.Flavour and ns.Flavour.flavour
@@ -662,6 +718,7 @@ local function ShowToast(item, now)
 	if type(item.icon) == "number" then toast.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) else toast.icon:SetTexCoord(0, 1, 0, 1) end
 	toast.item = item
 	toast.age = 0
+	toast.lookAt = TOAST_LOOK
 	toast:SetAlpha(0)
 	toast.glint:Hide()
 	toast.glow:Hide()
@@ -839,9 +896,9 @@ local function Due()
 			local e = w.entry
 			if now and CountRow(st, e, now) and w.size then
 				if e.kind == "received" then
-					if not w.grouped then Sat(st, e.gave, w.names, w.size, w.clock) end
+					if not w.grouped then Sat(st, w.key or e.gave, w.names, w.size, w.clock) end
 				elseif e.to == "group" and not IsRes(e.spell) then
-					Sat(st, e.spell, w.names, w.size, w.clock)
+					Sat(st, w.key or e.spell, w.names, w.size, w.clock)
 				end
 			end
 		else
@@ -908,15 +965,21 @@ function M.Settled(entry, pending)
 	-- Remembered on disk until it is counted or refused (Resume).
 	w.due = { kind = entry.kind, name = entry.name, at = entry.kind == "received" and entry.doneAt or entry.at }
 	if #st.due < MAX_DUE then st.due[#st.due + 1] = w.due end
+	-- Which buff it was, for the sitting: one key for its every spell.
+	if type(pending) == "table" and type(pending.buffKey) == "string" then w.key = pending.buffKey end
 	-- In a raid, for "everybody in your raid": how big it is now, and whether
 	-- this was one of the people a group cast covered, who are counted with it.
+	-- The one the cast was aimed at is not such a one (Clicks.lua marks the
+	-- others `member`): owed a favour, their row is the only one that names
+	-- them, so it counts them and everybody the cast reached with them.
 	if type(pending) == "table" and pending.inGroup == true and plain(_G.IsInRaid and _G.IsInRaid()) == true then
 		local size = plain(_G.GetNumGroupMembers and _G.GetNumGroupMembers())
 		if type(size) == "number" then w.size = size end
-		w.grouped = type(pending.group) == "table"
+		local group = type(pending.group) == "table" and pending.group or nil
+		w.grouped = group ~= nil and (pending.member == true or entry.kind ~= "received")
 		-- Everybody else a group cast reached, by name: a member is a name
 		-- (GroupBuffs.lua) or a table that holds one.
-		local members = w.grouped and pending.group.members
+		local members = group and group.members
 		for _, member in ipairs(type(members) == "table" and members or {}) do
 			local name = type(member) == "table" and member.name or member
 			if type(name) == "string" then w.names[#w.names + 1] = name end
@@ -940,6 +1003,28 @@ function M.Settled(entry, pending)
 		dueTimer = true
 		C_Timer.After(Ledger.PROMOTE_SECONDS or 3, function() ns.Guard("milestones", Due) end)
 	end
+end
+
+-- The ledger is about to drop a row, by its Clear or its trim. A favour of
+-- the last week is remembered for the week without a debt, which is read from
+-- the rows: one returned as returned, one left unreturned as that. Whatever
+-- the week does not score (WeekKept) is not kept.
+function M.Dropped(e)
+	if type(e) ~= "table" or e.kind ~= "received" or type(e.at) ~= "number" or not On() then return end
+	local st, now = Store(), K.Wall()
+	if not st or not now or e.at < now - WEEK_SECONDS then return end
+	if e.state == "back" or e.why == "useless" or e.why == "covered" then return end
+	local week = st.week
+	if e.state ~= "returned" then
+		if not week.broke or e.at > week.broke then week.broke = e.at end
+		return
+	end
+	local kept = week.kept
+	for i = #kept, 1, -1 do
+		if kept[i] < now - WEEK_SECONDS then table.remove(kept, i) end
+	end
+	if #kept >= MAX_KEPT then table.remove(kept, 1) end
+	kept[#kept + 1] = e.at
 end
 
 -- The server refused the cast after all: its row counts for nothing.

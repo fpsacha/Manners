@@ -494,6 +494,19 @@ press did. Paste whatever does not match.
       to passers-by too* shows under it, and ticked, a passer-by without it
       comes up on the prompt and the press lands.
 
+*The options window and the milestones (hunt 3)*
+
+- [ ] A greyed-out switch (Start here, the chat lines' switch with *Hide all
+      Manners messages in my chat window* on) and, in a fight, *Move the prompt* in the
+      header: the tooltip opens under the mouse. The buttons are told
+      `SetMotionScriptsWhileDisabled(true)` (Widgets.lua, `W.TipsWhileOff`);
+      whether a greyed button then also lights its highlight is unseen.
+- [ ] A milestone's toast with the prompt dragged to the top centre and
+      hidden: when the prompt comes up the toast moves to its next spot
+      within a fifth of a second.
+- [ ] *Start here* with *Milestones* on: no grey line about the defaults
+      between *Favour ledger* and *Gentlefolk of Good Manners*.
+
 *Battlegrounds and arenas*
 
 - [ ] Before the gates open, `/manners debug` says "the gates are shut" (the

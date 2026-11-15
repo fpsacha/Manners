@@ -114,6 +114,13 @@
 - **Asking in chat.** A Korean or Chinese please beside "water" or a
   healthstone is read; "need to drink" no longer asks a mage for water.
 - **Resurrection tooltip.** It says the person is dead.
+- **Milestones.** *Nobody Left Out* counts one buff whichever of its spells
+  reached each person, and the one a group cast was aimed at; the ledger's
+  *Clear* no longer resets, or excuses, *A Week Without a Debt*; a toast moves
+  off a prompt that comes up under it.
+- **Options.** Search no longer says to turn on a switch that is on, or one
+  that would show your class nothing; with *Show spell icon* off its
+  sub-options are gone; a greyed-out button shows its tooltip.
 
 ## 1.11.24
 

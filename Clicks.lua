@@ -371,7 +371,9 @@ end
 -- anchor would decide whether a group cast counts. Returns what a late
 -- refusal needs to undo it: the members, and whom the given row is under.
 local function SettleGroup(pending, spellId, anchorOwed)
-	local covered = { buffKey = pending.buffKey, group = pending.group, inGroup = true }
+	-- `member`: filed for somebody the cast covered, not for the one it was
+	-- aimed at (Milestones.lua counts a raid by it).
+	local covered = { buffKey = pending.buffKey, group = pending.group, inGroup = true, member = true }
 	local records, repaid = SettleMembers(pending.group.members, pending, covered, spellId)
 	local givenAs
 	if anchorOwed then

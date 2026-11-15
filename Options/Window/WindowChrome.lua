@@ -171,6 +171,8 @@ function UI.BuildHeader(f)
 
 	header.moveItem = UI.Item(layout.move)
 	header.move = W.Button(h, L["Move the prompt"], UI.Guarded(MoveClicked))
+	-- Greyed out in a fight, which is when its tooltip says why.
+	W.TipsWhileOff(header.move)
 	header.move:HookScript("OnEnter", UI.Guarded(MoveTip))
 	header.move:HookScript("OnLeave", function() GameTooltip:Hide() end)
 	-- The same: the longer of Move the prompt and Lock it.

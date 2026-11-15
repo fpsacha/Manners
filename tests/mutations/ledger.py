@@ -94,8 +94,8 @@ mutate("Options/Launcher.lua",
 
 # Clear keeps the favours still owed.
 mutate("Ledger.lua",
-       "\t\tif e.kind == \"received\" and e.state == \"owed\" then kept[#kept + 1] = e end\n",
-       "",
+       "\t\tif e.kind == \"received\" and e.state == \"owed\" then\n\t\t\tkept[#kept + 1] = e\n",
+       "\t\tif e.kind == \"received\" and e.state == \"owed\" then\n",
        "ledger: Clear drops favours still owed",
        expect="the ledger window lists entries", script=S)
 

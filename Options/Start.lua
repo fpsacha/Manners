@@ -1269,7 +1269,7 @@ function Page.BuildStartTab()
 				name = L["Milestones"],
 				desc = L["A dozen or so marks of good manners, earned by what your ledger records: listed on the ledger's Milestones tab, with a toast and one line in your chat window when you earn one or a new title."]
 					.. "\n\n"
-					.. L["Off: no toast, no tab, no line, and nothing is counted. What you have earned is kept for when you switch it back on."],
+					.. L["Off: no toast, no tab, no line for a milestone, and nothing is counted. A new title keeps its one line in chat. What you have earned is kept for when you switch it back on."],
 				order = 63,
 				width = "full",
 				hidden = function() return not ns.Milestones end,

@@ -16,8 +16,8 @@ mutate("Milestones.lua",
        "hunt3-clients: a shout's hearers count for nothing",
        expect=RAID, script=S)
 mutate("Milestones.lua",
-       "\t\t\t\t\tif not w.grouped then Sat(st, e.gave, w.names, w.size, w.clock) end\n",
-       "\t\t\t\t\tif not w.grouped then Sat(st, e.gave, { e.name }, w.size, w.clock) end\n",
+       "\t\t\t\t\tif not w.grouped then Sat(st, w.key or e.gave, w.names, w.size, w.clock) end\n",
+       "\t\t\t\t\tif not w.grouped then Sat(st, w.key or e.gave, { e.name }, w.size, w.clock) end\n",
        "hunt3-clients: a favour returned by a raid-wide cast counts one name",
        expect=RAID, script=S)
 
