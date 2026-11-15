@@ -113,7 +113,7 @@ mutate(P,
        expect="the outcome's wash is not on the well", script=S)
 
 mutate(P,
-       "\t\t\tR.resultFill:ClearAllPoints()\n\t\t\tR.resultFill:SetAllPoints(R.art)\n",
-       "",
+       "\tR.resultFill:ClearAllPoints()\n\tR.resultFill:SetAllPoints(R.art)\n\tif dress and p.classicArt",
+       "\tif dress and p.classicArt",
        "painted-framed: the wash left on the well for another look",
        expect="the wash is still laid on Framed's well", script=S)
