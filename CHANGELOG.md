@@ -47,6 +47,16 @@
   already wears it from another paladin, or who cannot be given it, gets what
   the order would have chosen, and anybody wearing one of yours is left alone.
 
+### Your own buffs
+- **Demonic Pact keeps both.** On WoW Forever, a warlock with Demonic Pact
+  is reminded of Demonic Sacrifice and Soul Link alike, the sacrifice first,
+  each with its own switch under *Myself*. Learning or dropping the talent
+  takes effect at once. Asked for on GitHub.
+- **Make a Firestone or Spellstone.** On WoW Forever, with this turned on, a
+  warlock with no stone in his bags or on his weapon and a Soul Shard is
+  offered the spell that makes one, then the stone to put on. Off by default.
+  Asked for on GitHub.
+
 ### Options window
 - **Pages in parts.** A long page has a bar of its parts over it: pick one to
   see only those settings, or *All* for the whole page.

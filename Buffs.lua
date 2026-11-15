@@ -711,8 +711,9 @@ do
 		-- on a weapon of inventory type one-hand, two-hand or main hand
 		-- (SpellEquippedItems class 2, subclass mask 0), so held to every melee
 		-- weapon as an oil is. ItemSparse asks no level of any of them (the
-		-- spells are SpellLevels 28, 36, 46 and 56 for the firestones and 28 for
-		-- the spellstones, and only a warlock makes them). Best first, rank by
+		-- spells that make them are SpellLevels 28, 36, 46 and 56 for the
+		-- firestones and 36, 48 and 60 for the spellstones, and only a warlock
+		-- makes them: `makestone`, below). Best first, rank by
 		-- rank, a firestone ahead of a spellstone of its rank; one in the bags is
 		-- all Automatic asks, and a warlock carries the one he made.
 		warlockstone = {
@@ -1215,6 +1216,19 @@ end
 --   byPet     on a spell: its aura on you is put there by your demon, and the
 --             client names your pet as its caster: yours all the same (Burning
 --             Crusade's Soul Link).
+--   needsSpell  on a spell: a spell id the client must say you know as well
+--   notWithSpell  (needsSpell), or must not (notWithSpell), for this one to
+--             count as known, asked at each probe (Core.lua). Forever's Demonic
+--             Pact (425464) parts Soul Link from Demonic Sacrifice (below).
+--   splitTo   on a family: the key of the family one of its spells moves to
+--             while a needsSpell says so, for the page's word (Options/Who.lua).
+--   pact      on a family: Forever's Soul Link beside Demonic Sacrifice.
+--   makes     on a family: it casts what makes an item of that other family
+--             (by key), and counts as up while one is in the bags or on the
+--             weapon (Core.lua, ReadOwnFamily); its spells' `items` say which
+--             items each makes. Forever's Create Firestone and Create Spellstone.
+--   reagent   with makes: an item the cast uses up, offered only with one in
+--             the bags (a Soul Shard).
 --   castOnOthers on a spell: also cast on somebody else, at a target rather
 --             than as an area aura (Earth Shield, on the tank above all). One
 --             on you from another player is a favour like any shield, where
@@ -2239,6 +2253,78 @@ do
 	end
 	table.insert(CAMELOT_OWN.MAGE, 2, FAMILIAR)
 	table.insert(CAMELOT_OWN.MAGE, 3, IMBUE)
+end
+
+-- Demonic Pact (GitHub issue 18), Forever's Demonology capstone at 40: spell
+-- 425464 (TraitDefinition 135421, a passive, SpellMisc Attributes_0 0x40, one
+-- dummy aura on the warlock, SpellEffect 6 aura 4), whose text on 1.60.1.70790
+-- and 1.60.1.70938 reads "Your Demonic Sacrifice effect is no longer cancelled
+-- by summoning a different Demon pet. Resummoning the sacrificed pet will still
+-- cancel the effect." Without it Demonic Sacrifice (18788) says "The effect is
+-- canceled if any Demon is summoned" and Soul Link (19028) lasts "as long as the
+-- Demon is active", so the two never stand together and vanilla's one family
+-- holds them as a choice. With it they do: sacrifice one demon, summon another,
+-- link to that one. So on Forever the family is copied, its Soul Link counted
+-- known only without the Pact (`notWithSpell`), and Soul Link has a family of its
+-- own after it, known only with the Pact (`needsSpell`), reminded beside the
+-- sacrifice and after it: the sacrifice takes the demon out that Soul Link needs.
+-- The probe asks the client whether 425464 is known (Core.lua, the same call
+-- Blizzard's IsPlayerSpell makes), at login and at every SPELLS_CHANGED, which a
+-- talent learned or unlearned fires. Classic Era keeps its family as it was: 425464
+-- there is Season of Discovery's rune of the same name, another thing entirely.
+do
+	local DEMONIC_PACT = 425464
+	local list = CAMELOT_OWN.WARLOCK
+	for i, family in ipairs(list) do
+		if family.key == "demonicsacrifice" then
+			local copy = {}
+			for k, v in pairs(family) do copy[k] = v end
+			copy.spells = {}
+			for j, spell in ipairs(family.spells) do
+				local each = {}
+				for k, v in pairs(spell) do each[k] = v end
+				if each.key == "soullink" then each.notWithSpell = DEMONIC_PACT end
+				copy.spells[j] = each
+			end
+			-- Said on the page: with the Pact, Soul Link has its own switch.
+			copy.splitTo = "soullink"
+			list[i] = copy
+			table.insert(list, i + 1, { key = "soullink", toggle = true, pact = true,
+				spells = { { key = "soullinkpact", ranks = { 19028, 25228 }, talent = true, byPet = true,
+					needsSpell = DEMONIC_PACT } } })
+			break
+		end
+	end
+end
+
+-- Making a Firestone or a Spellstone (GitHub issue 18): the warlock's stone
+-- family above is offered only with a stone in the bags. This one, Forever's
+-- alone and off until it is turned on (`optIn`), offers the spell that makes one
+-- when the create spell is known, no stone of the family is in the bags, none is
+-- on the main-hand weapon (`makes`: the family whose bags and hand are read, Core.lua
+-- ReadOwnFamily) and a Soul Shard is (`reagent`, item 6265: SpellReagents gives
+-- every rank one; a Soul Shard is no vendor's, so Forever's Reagent Economy perk
+-- does not waive it). Once one is made, the stone family offers to use it. The
+-- create spells and their levels (wago.tools 1.60.1.70790 and 1.60.1.70938, SpellLevels,
+-- SpellEffect 24 for the item made): Create Firestone 6366 (Lesser, 28), 17951
+-- (36), 17952 (Greater, 46), 17953 (Major, 56); Create Spellstone 2362 (36), 17727
+-- (Greater, 48), 17728 (Major, 60). `items` names what each makes, so Automatic
+-- takes the kind last on the weapon. A toggle: nothing to top up.
+do
+	local list = CAMELOT_OWN.WARLOCK
+	for i, family in ipairs(list) do
+		if family.kind == "warlockstone" then
+			table.insert(list, i + 1, { key = "makestone", label = L["Make a Firestone or Spellstone"], optIn = true,
+				toggle = true, makes = "warlockstone", reagent = 6265, slot = 16,
+				spells = {
+					{ key = "createfirestone", ranks = { 17953, 17952, 17951, 6366 }, needsWeapon = true,
+						items = { 13701, 13700, 13699, 1254 } },
+					{ key = "createspellstone", ranks = { 17728, 17727, 2362 }, needsWeapon = true,
+						items = { 13603, 13602, 5522 } },
+				} })
+			break
+		end
+	end
 end
 
 -- Two Season of Discovery runes for Classic Era alone, added to its lists after
@@ -3829,6 +3915,8 @@ end
 function ns.OwnLeaveable(family)
 	return family ~= nil and #family.spells > 1 and not (family.scroll or family.enhance or family.imbue
 		or family.tank or (family.bagged and not family.food))
+		-- Nor what makes a stone (makes): its switch and pick say it all.
+		and not family.makes
 end
 
 -- Whether any class on this client has a buff by that key. A pin lives in the

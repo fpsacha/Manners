@@ -229,7 +229,19 @@ default everywhere in the tests and the only client anybody here plays.
     `tracking` there because Forever keeps Find Treasure on with a gathering
     tracking (Classic Era and TBC keep it in `tracking`); `ns.SplitFindTreasure`
     in `Core.lua` moves a pick, tick or memory of it off `tracking` once.
-    `shoutYards` is read only by `tools/audit_ids.py`.
+    `shoutYards` is read only by `tools/audit_ids.py`. GitHub issue 18's
+    spell flags `needsSpell`/`notWithSpell` (a spell id the client must say
+    you know, or must not, for the spell to count as known; asked only in the
+    probe, so a talent learned counts at the next SPELLS_CHANGED): Forever's
+    Demonic Pact (425464) moves Soul Link out of `demonicsacrifice` into a
+    family of its own, `soullink` (`pact`; the old family's `splitTo` names
+    it for the page), after the sacrifice; Classic Era and TBC are untouched.
+    Its family flags `makes` (the key of a family whose items this one's
+    spells create: up while one is in the bags or on the hand, Core.lua
+    `ReadMakes`; each spell's `items` say which, for Automatic) and `reagent`
+    (an item the cast uses up, counted with the bags, `ns.OwnReagentCount`;
+    OwnVerdict answers `"reagent"` without one): Forever's `makestone`,
+    Create Firestone or Spellstone, `optIn`, under `warlockstone`.
   - weapon enhancements (poisons, sharpening stones and weightstones, wizard
     and mana oils, fishing lures), vanilla, tbc, camelot and mists: items from
     the bags, one family per kind and hand (`slot` 16 or 17), the rows in

@@ -610,6 +610,10 @@ OWN_NAMES.update({
 })
 # A warlock's Unending Breath on himself while he swims (1.11.13).
 OWN_NAMES.update({"selfbreath": r"Unending Breath"})
+# GitHub issue 18 (Forever): Soul Link of its own with Demonic Pact, and the spells
+# that make a Firestone or a Spellstone.
+OWN_NAMES.update({"soullinkpact": r"Soul Link", "createfirestone": r"Create Firestone",
+                  "createspellstone": r"Create Spellstone"})
 # A warlock's Detect Invisibility on himself (1.11.11), every rank's name as the buff for his group's.
 OWN_NAMES.update({"detectinvis": r"Detect (Lesser |Greater )?Invisibility"})
 # An own spell's `group` ids (Buffs.lua): another class's spell that counts as it up, by key.

@@ -28,6 +28,10 @@ ns.WhatsNew = {
 		{ title = "Who gets what", accent = "7cc4ff", entries = {
 			"|cff7cc4ffA blessing for each class.|r Pick a class, then its blessing.",
 		} },
+		{ title = "Your own buffs", accent = "7cc4ff", entries = {
+			"|cff7cc4ffDemonic Pact keeps both.|r On WoW Forever, a warlock with Demonic Pact is reminded of Demonic Sacrifice and Soul Link alike, the sacrifice first, each with its own switch under |cffffffffMyself|r.",
+			"|cff7cc4ffMake a Firestone or Spellstone.|r On WoW Forever, with this turned on, a warlock with no stone in his bags or on his weapon and a Soul Shard is offered the spell that makes one, then the stone to put on.",
+		} },
 		{ title = "Options window", accent = "7cc4ff", entries = {
 			"|cff7cc4ffPages in parts.|r A long page has a bar of its parts over it: pick one to see only those settings, or |cffffffffAll|r for the whole page.",
 			"|cff7cc4ffA picture for each page.|r The menu's pages have painted icons of their own.",

@@ -444,6 +444,8 @@ local function AddOwnControls(args)
 				-- Food (and the sleeping bag) is counted in the bags only while
 				-- its switch is on.
 				if family.bagged and ns.ForgetScrolls then ns.ForgetScrolls() end
+				-- Nor a reagent (a Soul Shard for a stone to make).
+				if family.reagent and ns.ForgetScrolls then ns.ForgetScrolls() end
 				-- The prompt follows at once rather than at the next scan.
 				ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 			end
@@ -496,12 +498,23 @@ local function AddOwnControls(args)
 						end
 						return L["Reminds you when no imbue is on the weapon in your main hand. Automatic takes the first of these you know, Windfury ahead of the rest."]
 					end
+					-- Making a Firestone or Spellstone (Buffs.lua, makes).
+					if family.makes then
+						return L["Reminds you to make a stone when none is in your bags or on the weapon in your main hand and a Soul Shard is in your bags. Once it is made, Firestone or Spellstone offers to put it on. Automatic makes the kind you used last. Off until you turn it on."]
+					end
 					if family.imbue then
 						return L["Reminds you when nothing is on the weapon in your main hand and a scroll in your bags fits it. Automatic takes the one you used last, else the best you can use."]
 					elseif family.scroll then
 						return L["Reminds you when no familiar is with you and a scroll for one is in your bags. Automatic takes the one you used last, else the best your level allows."]
 					end
 					local text = L["Reminds you when none of these is up. Automatic takes the one you had up last."]
+					-- Demonic Sacrifice with Demonic Pact known (Buffs.lua, splitTo):
+					-- Soul Link has moved to a switch of its own.
+					local split = family.splitTo and ns.OWN_FAMILY_BY_KEY[family.splitTo]
+					if split and ns.OwnSpellKnown(split.spells[1]) then
+						return L["Reminds you when it is not up. With Demonic Pact, %s has a switch of its own below and is reminded of too."]
+							:format(ns.BuffName(split.spells[1]))
+					end
 					-- A mage before any armor has been up: where Automatic
 					-- goes, both ways, while that is what it is doing.
 					local dungeon = family.dungeon and ns.FindOwnSpell(family.dungeon)
@@ -563,6 +576,9 @@ local function AddOwnControls(args)
 					and L["Reminds you while you are swimming and it is not on you, whoever cast it. Never on dry land."]
 					or family.form
 					and L["Reminds you when you are not in it, and never while you are in another form."]
+					-- Forever's Soul Link beside Demonic Sacrifice (Buffs.lua, pact).
+					or family.pact
+					and L["Reminds you when it is not up and a demon is out. With Demonic Pact it stands beside Demonic Sacrifice, which is reminded of first: the sacrifice takes the demon Soul Link needs."]
 					or L["Reminds you when it is not up."]
 				control.get = function() return pick() ~= "off" end
 				control.set = function(info, value) write(info, value and "auto" or "off") end

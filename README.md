@@ -296,7 +296,10 @@ own. The full list for each class is under *Which buffs each class offers*.
   are reminded on Mists and retail too (spells there, not items). On WoW
   Forever a weapon wears an imbue and an oil, stone or lure at the same time,
   so each is reminded of on its own, and a warlock is reminded of a
-  *Firestone or Spellstone* for the main hand. Alone, a stone, oil or poison
+  *Firestone or Spellstone* for the main hand. With *Make a Firestone or
+  Spellstone* turned on (off by default), a warlock with no stone in his bags
+  or on his weapon and a Soul Shard to hand is offered Create Firestone or
+  Create Spellstone first. Alone, a stone, oil or poison
   is offered again only once it has worn off; in a group, with top-ups on, it
   is renewed ahead of the next pull. Manners never answers the game's
   question about replacing an enchant: that is left to you.
@@ -1172,7 +1175,7 @@ group is offered nobody. That is deliberate rather than a fault.
 |---|---|
 | Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; *Dampen Magic* or Amplify Magic, off until you pick one; and on WoW Forever, from the scrolls in your bags, *Familiar* and *Weapon imbue* |
 | Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them; Shadowform |
-| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out; Unending Breath while you swim |
+| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out (on WoW Forever, with the Demonic Pact talent, both, each with its own switch); Unending Breath while you swim |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
 | Hunter | *Aspect*: Hawk, Monkey, Wild or Beast, and in Season of Discovery Falcon and Viper; Trueshot Aura; Heart of the Lion in Season of Discovery |
 | Shaman | *Shield*: Lightning Shield or Water Shield; *Weapon imbue*; Spirit of the Alpha in Season of Discovery while your group role is tank |

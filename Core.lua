@@ -1134,6 +1134,14 @@ do
 			for _, spell in ipairs((family.enhance or family.bagged) and {} or family.spells) do
 				local info = spell.item and ProbeScroll(spell) or ProbeBuff(spell)
 				info.known = info.known == true and info.name ~= nil
+				-- Known only with another spell known too, or only without it
+				-- (Buffs.lua, needsSpell, notWithSpell: Forever's Demonic Pact parts
+				-- Soul Link from Demonic Sacrifice). Asked here alone, so a talent
+				-- learned mid-session counts at the next SPELLS_CHANGED.
+				if info.known and ((spell.needsSpell and not SpellKnown(spell.needsSpell))
+					or (spell.notWithSpell and SpellKnown(spell.notWithSpell))) then
+					info.known = false
+				end
 				caps.own[spell.key] = info
 				if info.known then caps.anyOwnKnown = true end
 			end
@@ -2425,6 +2433,13 @@ do
 							anyHeld = true
 						end
 					end
+					-- The reagent a family's cast uses up (Buffs.lua, reagent: a
+					-- Soul Shard for a stone), counted while it is switched on.
+					local reagent = family.reagent
+					if reagent and scrollCounts[reagent] == nil and ns.OwnPick(family) ~= "off" then
+						local n = plain(count(reagent))
+						scrollCounts[reagent] = type(n) == "number" and n or 0
+					end
 				end
 			end
 		end
@@ -2438,6 +2453,20 @@ do
 	function ns.OwnItemsHeld()
 		ScrollCount(NO_ITEM)
 		return anyHeld == true
+	end
+
+	-- How many of a family's reagent the bags hold (Buffs.lua, reagent), as last
+	-- read with the rest (ScrollCount): nothing is asked of the client per scan.
+	function ns.OwnReagentCount(family)
+		ScrollCount(NO_ITEM)
+		return family.reagent and scrollCounts[family.reagent] or 0
+	end
+
+	-- Whether a family that makes another's items (Buffs.lua, makes) has one of
+	-- them in the bags: the first held, as last read, or nil.
+	function ns.OwnHeldFirst(family)
+		ScrollCount(NO_ITEM)
+		return heldFirst[family]
 	end
 
 	-- The item subclass of the weapon in a hand (its inventory slot, 16 or 17),
@@ -3218,6 +3247,28 @@ do
 		return true, scroll, left
 	end
 
+	-- A family that makes another's items (Buffs.lua, makes: a warlock's Create
+	-- Firestone and Create Spellstone, Forever): up while one of them is in the
+	-- bags, which that family then offers to use, or while the hand carries
+	-- one, whose maker is remembered for Automatic; down with neither. No time
+	-- left: it is a toggle. Nil when the hand will not say.
+	local function ReadMakes(family)
+		local stones = ns.OWN_FAMILY_BY_KEY[family.makes]
+		if not stones then return false end
+		if ns.OwnHeldFirst(stones) then return true end
+		local on, stone = ReadImbue(stones)
+		if not on then return on end
+		for _, spell in ipairs(stone and family.spells or {}) do
+			for _, item in ipairs(spell.items or {}) do
+				if item == stone.item then
+					Remember(family, spell)
+					return true, spell
+				end
+			end
+		end
+		return true
+	end
+
 	-- A familiar (Buffs.lua) is its aura on you, from you. Read the one you had
 	-- up last first, whatever your level says now, then the rest your level
 	-- allows (a scroll asks for its level, and nothing else puts the aura on):
@@ -3414,6 +3465,7 @@ do
 		-- A companion pet: no aura, the journal's word or Manners' count (Companion.lua).
 		if family.pet then return ns.ReadPet(family) end
 		if family.consumable then return ReadConsumable(family, GetTime()) end
+		if family.makes then return ReadMakes(family) end
 		if family.imbue then return ReadImbue(family) end
 		-- A stone, a poison, an oil or a lure: its hand carries an enchant or not.
 		if family.enhance then return ReadImbue(family) end
@@ -3515,6 +3567,7 @@ do
 	--   "refused"   a companion pet: the game would not let Manners use the journal
 	--   "form"      a form (Moonkin Form), and you are in another
 	--   "noshield"  it goes on a shield, and there is none in your off hand
+	--   "reagent"   it uses up an item (a Soul Shard), and the bags hold none
 	--   "dry"       one for the water alone (Unending Breath), and you are not swimming
 	--   "grouped"   Dampen or Amplify Magic with its alone switch on, held back in a party or raid
 	--   "battle"    a gathering tracking, and you are in a battleground or an arena
@@ -3698,6 +3751,10 @@ do
 		elseif spell.shield and not HandShield(family.slot or 17) then
 			-- What goes on a shield (Buffs.lua, `shield`), with none in that hand.
 			return nil, up, left, "noshield", spell
+		elseif family.reagent and ns.OwnReagentCount(family) <= 0 then
+			-- A cast that uses up an item (Buffs.lua, reagent: a Soul Shard for
+			-- a stone), with none in the bags.
+			return nil, up, left, "reagent", spell
 		elseif not Usable(spell) then
 			return nil, up, left, "unusable", spell
 		end
