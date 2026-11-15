@@ -1,0 +1,11 @@
+{
+  "key": "forge",
+  "socket": {"shape": "square", "cx": 447, "cy": 520, "half": 172},
+  "name_xy": [818, 425],
+  "reason_xy": [826, 571],
+  "keycap": {"cx": 3465, "cy": 522, "w": 250, "h": 245},
+  "bar": [147, 248, 3986, 800],
+  "stretch": [800, 3280],
+  "text_colour_ok": true,
+  "notes": "The thin ember-red seam along the inside of the lower band (y about 680-705, full length of the well) is the one thing that glows: it could pulse or flicker slowly as a separate additive layer, and a faint warm bloom could breathe on the lower band beside it. The shield boss at the right could catch a slow travelling glint. Measured contrast on the well (95th percentile luminance): white text about 12:1, gold about 5.4:1. Bar body (iron bands) runs y 290-776; the socket frame rises to 248 and drops to about 790; the crossed blades at the right reach x 3986."
+}

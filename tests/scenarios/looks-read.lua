@@ -124,7 +124,10 @@ for _, style in ipairs(STYLES) do
 				fail(scenario, "SKIPPED -- " .. style .. " is not the look in use")
 				return
 			end
-			if GROUND[style] and not (ink.hi >= GROUND[style]) then
+			-- (A look wearing its painting stands on the painted well, which
+			-- the audit measures from the painting itself.)
+			local painted = r.look and r.look.paintedArt and r.look.paintedArt.on
+			if GROUND[style] and not painted and not (ink.hi >= GROUND[style]) then
 				fail(scenario, ("the look judges its words against a ground of %.3f, and draws one of %.3f under them"):format(ink.hi or 0,
 					GROUND[style]))
 			end

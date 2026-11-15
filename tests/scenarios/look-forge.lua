@@ -90,6 +90,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "forge"
+	-- This file holds Forge's own art, which Earlier art draws (the painted
+	-- frame over it is painted-forge.lua's).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")
@@ -662,6 +665,7 @@ withTree("look-forge: a passer-by raises no heat", ANNA, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "forge"
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	local look = ns.Prompt:Regions().look
@@ -1654,6 +1658,7 @@ withTree("look-forge: the forge is alive at rest, on Full and out of a fight", C
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "forge", "full", "pulse", true, false
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	local look = ns.Prompt:Regions().look
