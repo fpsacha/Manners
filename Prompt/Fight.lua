@@ -68,18 +68,28 @@
 -- the button first), and the prompt's OnClick is wrapped
 -- (SecureHandlerWrapScript: Blizzard's Wrapped_Click runs the pre-body, the
 -- click itself, then the post-body when the pre-body gave it a message). The
--- post-body writes the next macro of the rota on the button, round and round:
--- each press in the fight casts at the next person. It reads nothing of the
--- game (a snippet can ask neither the cooldown nor anybody's buffs), so a
--- press the cooldown turned away still moves on, and the one passed over
--- comes round again.
+-- post-body writes the next macro of the rota on the button: each press in the
+-- fight casts at the next person, once round. It reads nothing of the game (a
+-- snippet can ask neither the cooldown nor anybody's buffs: the restricted
+-- environment's functions are the macro conditionals' and a few action-bar
+-- reads, RestrictedEnvironment.lua, and a handle to a frame Lua could write
+-- in a fight is refused, RestrictedFrames.lua GetHandleFrame), so "pressed
+-- for" is all it can know of who has the buff. After its last it writes
+-- nothing on the button, and a press then casts nothing until the fight ends:
+-- it went round and round until the review of 2026-11-15, casting a buff of
+-- half an hour again at somebody it had buffed seconds before. A press the
+-- cooldown turned away still moves on; whoever it passed over is offered
+-- again after the fight, as everybody still missing a buff is.
 --
 -- Lua follows: PostClick (Press.lua) files the press on the person it was
 -- armed at, as ever, and then SyncFightRota reads where the snippet has got to
 -- and points `current` there, so the panel names who the next press is for.
 -- Only a left press steps, as only a left press casts. Not with the prompt
 -- hidden for the fight (its macro is off), nor from the Manners macro on a
--- bar, which casts by its own lines and holds the one the pull wrote.
+-- bar, which casts by its own lines and holds the one the pull wrote: no
+-- macro may /click a button that runs a macro (CLAUDE.md, Macro), and an
+-- addon may not rewrite one in a fight, so the bar macro cannot step at all.
+-- Start here says so on the button that makes it (Options/Start.lua).
 
 local _, ns = ...
 local L = ns.L
@@ -128,17 +138,22 @@ local SNIPPET = [=[
 -- environment: `self` is the prompt's handle, `control` the header's. The
 -- first lets the second run for a left press with a rota of two or more (the
 -- one place that is asked: the second runs only on the first's word); the
--- second steps the button to the rota's next macro.
+-- second steps the button to the rota's next macro, and past its last to
+-- none: `manners-rota-i` past n, which SyncFightRota reads as the round done.
+-- Nothing above n is ever cast from: a longer rota of an earlier fight may
+-- have left its later macros on the header.
 local ROTA_PRE = [=[
 	if button ~= "LeftButton" or down == false then return end
-	if (control:GetAttribute("manners-rota-n") or 0) < 2 then return end
+	local n = control:GetAttribute("manners-rota-n") or 0
+	if n < 2 then return end
 	return nil, "step"
 ]=]
 local ROTA_POST = [=[
 	local n = control:GetAttribute("manners-rota-n") or 0
-	local i = (control:GetAttribute("manners-rota-i") or 1) % n + 1
+	local i = (control:GetAttribute("manners-rota-i") or 1) + 1
 	control:SetAttribute("manners-rota-i", i)
 	local text = control:GetAttribute("manners-rota-" .. i)
+	if i > n then text = nil end
 	self:SetAttribute("macrotext1", text)
 	self:SetAttribute("macrotext", text)
 ]=]
@@ -280,7 +295,21 @@ function Prompt:SyncFightRota()
 	local rota, header = S.rota, R.fight
 	if not (rota and header and InCombatLockdown()) then return end
 	local i = header:GetAttribute("manners-rota-i")
-	if type(i) ~= "number" or i == rota.index or not rota.entries[i] then return end
+	if type(i) ~= "number" or i == rota.index then return end
+	if i > #rota.entries then
+		-- Past its last: everybody it began with has had a press, and the
+		-- button casts nothing (ROTA_POST). Nobody is on the panel, so a press
+		-- of nothing is filed on nobody. Said once: every press after steps
+		-- the count on, and casts nothing either.
+		if rota.done then return end
+		rota.index, rota.steps, rota.done = i, rota.steps + 1, true
+		S.current, S.frozenEntry, S.armed = nil, nil, nil
+		ns.lastMacro, ns.lastTopEntry, ns.lastTopUnit = nil, nil, nil
+		ns.Trail("fight", "the rota has pressed for everybody it began with")
+		ns.Guard("rota repaint", self.Refresh, self)
+		return
+	end
+	if not rota.entries[i] then return end
 	rota.index, rota.steps = i, rota.steps + 1
 	local entry = rota.entries[i]
 	S.current, S.frozenEntry, S.armed = entry, nil, rota.records[i] or nil
@@ -296,6 +325,12 @@ function Prompt:FightRotaAt()
 	local rota = S.rota
 	if not (rota and InCombatLockdown()) then return nil end
 	return rota.index, #rota.entries
+end
+
+-- Whether the fight's rota has pressed for everybody it began with.
+function Prompt:FightRotaDone()
+	local rota = S.rota
+	return rota ~= nil and rota.done == true and InCombatLockdown()
 end
 
 -- PLAYER_REGEN_ENABLED, out of lockdown, before its repaint (Core.lua): the

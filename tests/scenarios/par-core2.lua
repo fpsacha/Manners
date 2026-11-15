@@ -214,7 +214,10 @@ local function owedThree(scenario, body, opts)
 	opts = opts or {}
 	Mock.reset()
 	Mock.setFlavour(opts.flavour or "camelot")
-	local restore = strangers(opts.people or PEOPLE)
+	-- A copy: a scenario takes somebody off the mock's units mid-fight.
+	local people = {}
+	for unit, n in pairs(opts.people or PEOPLE) do people[unit] = n end
+	local restore = strangers(people)
 	local ok, err = true, nil
 	local ns = load(scenario)
 	if ns then
@@ -389,3 +392,111 @@ for i, case in ipairs({
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
+
+-- ------------------------------------------------------------------ 3
+-- The fight's rota goes round once. Secure code cannot read anybody's buffs
+-- or the cooldown, so "pressed for" is all it can know: after a press for
+-- each, the prompt casts nothing until the fight ends, rather than casting a
+-- half-hour buff again at somebody it has just buffed.
+local function aimedAt(ns)
+	local text = ns.Prompt:GetButton():GetAttribute("macrotext1") or ""
+	return text:match("/target ([^\n]+)")
+end
+
+for _, flavour in ipairs({ "camelot", "vanilla", "mainline" }) do
+	owedThree("par-core2: in a fight the rota presses for each person once, then casts nothing (" .. flavour .. ")", function(ns, scenario)
+		local header = ns.Prompt:FightHeader()
+		local R = ns.Prompt.regions
+		pull(ns)
+		local n = header and header:GetAttribute("manners-rota-n") or 0
+		if n ~= 3 then fail(scenario, "SKIPPED -- the rota holds " .. tostring(n)) return end
+		local before = #Mock.castLog
+		local order = {}
+		for i = 1, 6 do
+			order[i] = tostring(aimedAt(ns))
+			press()
+		end
+		local casts = castsSince(before)
+		local seen, again = {}, {}
+		for _, e in ipairs(casts) do
+			local who = tostring(e.target)
+			if seen[who] then again[#again + 1] = who end
+			seen[who] = true
+		end
+		if #casts ~= 3 then
+			local who = {}
+			for _, e in ipairs(casts) do who[#who + 1] = tostring(e.target) end
+			fail(scenario, ("six presses for a rota of three cast %d times: %s"):format(#casts, table.concat(who, ", ")))
+		end
+		if #again > 0 then fail(scenario, "the rota cast again at somebody it had pressed for: " .. table.concat(again, ", ")) end
+		if ns.Prompt:GetButton():GetAttribute("macrotext1") then
+			fail(scenario, "after its last the rota still casts: " .. flat(ns.Prompt:GetButton():GetAttribute("macrotext1")))
+		end
+		-- The panel says so, and files nothing for a press of nothing.
+		-- (Past the last press's own outcome, and the mock's silence about
+		-- the cast, which the settle reads as nothing cast.)
+		for _ = 1, 3 do
+			Mock.advance(ns.Prompt.lib.OUTCOME_SECONDS or 4)
+			ns.addon:Tick()
+		end
+		local sub = tostring(R.subText:GetText())
+		if not sub:find("everybody it began with has had a press", 1, true) then
+			fail(scenario, "after the rota's last press the second line reads " .. sub)
+		end
+		if ns.pendingClick and ns.pendingClick.name and not seen[ns.pendingClick.name] then
+			fail(scenario, "a press of nothing was filed on " .. tostring(ns.pendingClick.name))
+		end
+		-- The fight over, the prompt is armed afresh as ever.
+		release(ns)
+		if (header:GetAttribute("manners-rota-n") or 0) ~= 0 then fail(scenario, "the rota is still set after the fight") end
+	end, { flavour = flavour, owed = flavour ~= "camelot" and {} or nil })
+end
+
+-- A rota longer than this one in an earlier fight left its later macros on
+-- the header: the press after this rota's last must not reach them.
+owedThree("par-core2: a longer rota of an earlier fight is never cast from", function(ns, scenario)
+	local header = ns.Prompt:FightHeader()
+	header:SetAttribute("manners-rota-4", "/target Zed Zorn\n/cast Arcane Intellect\n/targetlasttarget [help]")
+	header:SetAttribute("manners-rota-5", "/target Zed Zorn\n/cast Arcane Intellect\n/targetlasttarget [help]")
+	pull(ns)
+	if (header:GetAttribute("manners-rota-n") or 0) ~= 3 then fail(scenario, "SKIPPED -- no rota of three") return end
+	local before = #Mock.castLog
+	for _ = 1, 5 do press() end
+	for _, e in ipairs(castsSince(before)) do
+		if tostring(e.target):find("Zed", 1, true) or tostring(e.target) == "nil" then
+			fail(scenario, "a press past the rota's last cast at " .. tostring(e.target))
+		end
+	end
+	release(ns)
+end)
+
+-- The bar macro cannot step: a macro's lines are written out of a fight only,
+-- and no macro may /click a button that runs one. It keeps to the one person
+-- the pull put on it, and the button that makes it says so.
+owedThree("par-core2: the bar macro casts at the one person the fight began with, and says so where it is made", function(ns, scenario)
+	ns.CreateClickMacro()
+	Mock.dropOnBar(2)
+	for _ = 1, 3 do Mock.advance(1) ns.addon:Tick() Mock.runTimers(0) end
+	pull(ns)
+	local first = aimedAt(ns)
+	local before = #Mock.castLog
+	for _ = 1, 3 do Mock.advance(2) Mock.pressBar(2) end
+	for _, e in ipairs(castsSince(before)) do
+		if first and tostring(e.target) ~= first then fail(scenario, "a bar press in the fight cast at " .. tostring(e.target) .. ", not " .. first) end
+	end
+	release(ns)
+	local control = H.findOption(ns.optionsTable, "makeMacro")
+	local desc = control and control.desc
+	if type(desc) == "function" then desc = desc() end
+	if not (type(desc) == "string" and desc:find("In a fight it casts at the one person the fight began with", 1, true)) then
+		fail(scenario, "Put Manners on an action bar does not say what the macro does in a fight: " .. tostring(desc))
+	end
+	-- With the rota switched off the prompt keeps to one person too, and the
+	-- line does not promise that it moves on.
+	ns.db.profile.prompt.fightRota = false
+	desc = control and control.desc
+	if type(desc) == "function" then desc = desc() end
+	if type(desc) == "string" and desc:find("move on", 1, true) then
+		fail(scenario, "with the rota off the line still says the prompt moves on: " .. desc)
+	end
+end)

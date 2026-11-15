@@ -227,6 +227,10 @@
 - **A press in a fight keeps your enemy targeted.** When the person whose
   turn it is has gone out of sight, the press no longer switches you off the
   mob onto whatever you had targeted before.
+- **The fight's rota goes round once.** Each press reaches the next person
+  the fight began with, once each; then the prompt says everybody has had a
+  press and casts nothing, instead of buffing them all again. *Put Manners on
+  an action bar* says that the bar macro casts at one person in a fight.
 
 ## 1.11.24
 

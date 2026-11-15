@@ -657,9 +657,14 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   The other is the fight's rota (`Prompt/Fight.lua`, `prompt.fightRota`, on):
   at the pull the header is handed the macro of everybody in the queue, and a
   `SecureHandlerWrapScript` round the prompt's OnClick writes the next one on
-  the button at every left press, so a fight's presses go round the people it
-  began with rather than at one of them; `SyncFightRota`, from the prompt's
-  PostClick, then points `S.current` at whoever the button now casts at. Lua
+  the button at every left press, so a fight's presses go once round the
+  people it began with rather than at one of them, and past the last it
+  writes none (the button casts nothing until the fight ends; secure code
+  can read no cooldown and no aura, so "pressed for" is all it knows);
+  `SyncFightRota`, from the prompt's PostClick, then points `S.current` at
+  whoever the button now casts at, or at nobody once the round is done
+  (`Prompt:FightRotaDone`). The pull arms none of it from a passer-by
+  offered from memory alone (`ForFight`, Queue.lua's `remembered`). Lua
   still writes nothing on the button in a fight.
   Never hide the prompt by any route that leaves it, a row or the bar macro
   able to cast: a hidden secure button still fires from its binding and

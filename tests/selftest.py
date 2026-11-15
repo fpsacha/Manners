@@ -2103,7 +2103,8 @@ mutate("Core.lua",
 #     green headline for its whole length over a button holding no macro.
 mutate("Prompt/Refresh.lua",
        '\t\t\t\tself:PaintHeldInert(L["held -- a press still casts what the fight froze"],\n'
-       '\t\t\t\t\tL["held -- nothing armed, and the panel cannot go"])\n',
+       '\t\t\t\t\tself:FightRotaDone() and L["in a fight -- everybody it began with has had a press"]\n'
+       '\t\t\t\t\tor L["held -- nothing armed, and the panel cannot go"])\n',
        "",
        "a held panel that names nobody at all",
        expect="stops quoting the last click",

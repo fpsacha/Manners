@@ -197,14 +197,21 @@ change what a button casts then. So as a fight begins Manners hands the prompt
 everybody who still needed a buff at that moment (a passer-by who walked off
 in the seconds before is left out, though the prompt would still have offered
 them out of a fight), and each press of the prompt
-or its key casts at the next of them in turn, round and round. The second line
-says which of how many ("in a fight -- 2 of 4, a press moves on"). Nobody is
+or its key casts at the next of them in turn, once each. The second line
+says which of how many ("in a fight -- 2 of 4, a press moves on"); once
+everybody has had a press it says so, and a press casts nothing until the
+fight ends, rather than buffing again somebody it has just buffed. The game
+lets no addon see in a fight whether a press landed, so a press the global
+cooldown turned away still moves on: whoever it passed over is offered again
+when the fight ends. Nobody is
 added to that list or taken off it before the fight ends, a skip cannot take
 somebody off it (chat says so), and names in the list cannot be clicked. *In a
 fight, each press moves on to the next person* (Look, under *In a fight*, on)
 switches the round off, and every press then casts at the one person the
 prompt was on. The Manners macro on an action bar keeps to that one person
-either way, and the game does not let an addon rewrite a macro in a fight.
+either way: the game does not let an addon rewrite a macro in a fight, nor a
+macro press a button that runs one, so in a fight the bar macro cannot move
+on. *Put Manners on an action bar* (Start here) says so.
 
 Other players' buffs are hidden by the game in a fight, and sometimes for a
 moment after: somebody whose buffs cannot be read is offered marked

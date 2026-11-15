@@ -961,6 +961,25 @@ hand-back's line says `[help] answers "yes"`, then `"no"`); and, in a real
 fight, a press at somebody who has run off leaving your mob targeted, then
 the next press at somebody there giving the mob back.
 
+Closed: in a fight the rota went round and round, casting a half-hour buff
+again at people it had just buffed. It goes round once now (`ROTA_POST`
+writes nothing on the button past its last, and never reads a macro above
+`manners-rota-n`, which a longer rota of an earlier fight may have left);
+`SyncFightRota` empties `current` and the panel says *in a fight --
+everybody it began with has had a press*. Secure code can know no more than
+that: the restricted environment has no cooldown or aura read, and a handle
+to a frame Lua could write in a fight is refused (`RestrictedFrames.lua`
+`GetHandleFrame` on the forever branch), so a press the cooldown turned away
+still uses its turn. A rota of one is no rota, as before: its press keeps to
+the one person. The bar macro cannot step (no macro may /click a button that
+runs a macro, and none may be rewritten in a fight): it keeps to the one
+person the pull wrote, and *Put Manners on an action bar* says so in its
+tooltip. Only the live game can say: in a dungeon pull, that presses one a
+cooldown apart reach each person once and the fourth of three casts nothing
+with the panel saying so; that a press inside the cooldown passes its person
+by; and that the bar macro's tooltip reads right with *Hide the prompt in
+combat* on and off.
+
 **The credit line.** `diagnostics.aboutNote` names the author's
 character (`ns.AUTHOR`, Clicks.lua), in the options window's footer under the
 build since 1.11.18 (`Layout.lua`'s `footer.about`). It asks for nothing and must stay that

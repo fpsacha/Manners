@@ -315,8 +315,11 @@ function Prompt:RefreshPanel()
 				-- started with nobody on the panel, so the click's green
 				-- headline would otherwise stand for the whole fight over an
 				-- empty button.
+				-- Or the fight's rota went round once and the button casts nothing
+				-- now (Fight.lua): said as such, not as an empty queue.
 				self:PaintHeldInert(L["held -- a press still casts what the fight froze"],
-					L["held -- nothing armed, and the panel cannot go"])
+					self:FightRotaDone() and L["in a fight -- everybody it began with has had a press"]
+					or L["held -- nothing armed, and the panel cannot go"])
 			end
 		end
 		return

@@ -86,6 +86,52 @@ mutate("SelftestLaunch.lua",
        "par-core2: the launch check asks the parser nothing",
        expect="par-core2: the launch check says what [help] reads (2)", script=S)
 
+# 3. The fight's rota goes round once, and the bar macro says what it does in
+# a fight.
+ONCE = "par-core2: in a fight the rota presses for each person once, then casts nothing (camelot)"
+
+mutate(FIGHT,
+       "\tlocal i = (control:GetAttribute(\"manners-rota-i\") or 1) + 1\n",
+       "\tlocal i = (control:GetAttribute(\"manners-rota-i\") or 1) % n + 1\n",
+       "par-core2: the rota comes round again",
+       expect=ONCE, script=S)
+
+mutate(FIGHT,
+       "\tif i > n then text = nil end\n",
+       "",
+       "par-core2: the rota casts from an earlier fight's longer rota",
+       expect="par-core2: a longer rota of an earlier fight is never cast from", script=S)
+
+mutate(FIGHT,
+       "\tif i > #rota.entries then\n",
+       "\tif false then\n",
+       "par-core2: the panel stays on the rota's last person once it is done",
+       expect="after the rota's last press the second line reads", script=S)
+
+mutate(FIGHT,
+       "\t\tS.current, S.frozenEntry, S.armed = nil, nil, nil\n\t\tns.lastMacro",
+       "\t\tS.frozenEntry, S.armed = nil, nil\n\t\tns.lastMacro",
+       "par-core2: the done rota leaves the last person as current",
+       expect="after the rota's last press the second line reads", script=S)
+
+mutate(REFRESH,
+       "\t\t\t\t\tself:FightRotaDone() and L[\"in a fight -- everybody it began with has had a press\"]\n\t\t\t\t\tor L[",
+       "\t\t\t\t\tL[",
+       "par-core2: the done rota reads as an empty queue",
+       expect="after the rota's last press the second line reads", script=S)
+
+mutate("Options/Start.lua",
+       "\t\t\t\t\treturn L[\"Makes the Manners macro and puts it on your cursor: drop it on any action bar slot. The slot then shows the spell a press would cast.\"]\n\t\t\t\t\t\t.. \" \" .. fight\n",
+       "\t\t\t\t\treturn L[\"Makes the Manners macro and puts it on your cursor: drop it on any action bar slot. The slot then shows the spell a press would cast.\"]\n",
+       "par-core2: the bar macro's button says nothing of a fight",
+       expect="does not say what the macro does in a fight", script=S)
+
+mutate("Options/Start.lua",
+       "\t\t\t\t\telseif p and p.fightRota ~= false then\n",
+       "\t\t\t\t\telseif p then\n",
+       "par-core2: the bar macro's button promises the prompt moves on with the rota off",
+       expect="with the rota off the line still says the prompt moves on", script=S)
+
 mutate(REFRESH,
        "\t\t\tif S.fightLine then\n",
        "\t\t\tif false then\n",
