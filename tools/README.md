@@ -545,6 +545,16 @@ python tools/check.py
 What rp.lua checks and this cannot is left to it: a class that gives buffs
 needs all four kinds, thanks, asked, offer and group.
 
+## make_whatsnew.py
+
+Writes `WhatsNew.lua`, the notes behind the *What's new* fold at the foot of
+Start here, from the first `## ` section of `CHANGELOG.md` that holds an
+entry: each `###` title, and each entry as its bold lead and first sentence in
+the game's colour codes. `--check` exits 1 when the file is not current. Run
+it after any change to the top of the changelog (`tests/scenarios/whatsnew.lua`
+goes red otherwise); setting the version changes nothing in it, the fold's
+title reads `ns.BUILD`. Standard library only.
+
 ## hall.py
 
 The hall of fame's clerk ("Gentlefolk of Good Manners"). `tools/hall.json` is

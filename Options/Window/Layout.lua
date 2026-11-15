@@ -295,6 +295,22 @@ ns.WindowLayout = {
 					-- somebody who skipped it: with the chat lines, under their heading.
 					"general.welcomeAgain",
 				} },
+				-- What's new (Options/Start.lua, News): the newest release's notes
+				-- in short, folded at the foot of the page. `plain`: no setting in it.
+				{ key = "general.news", header = "general.newsHeader", fold = true, plain = true, items = {
+					"general.newsNote1",
+					"general.newsNote2",
+					"general.newsNote3",
+					"general.newsNote4",
+					"general.newsNote5",
+					"general.newsNote6",
+					"general.newsNote7",
+					"general.newsNote8",
+					"general.newsNote9",
+					"general.newsNote10",
+					"general.newsNote11",
+					"general.newsNote12",
+				} },
 			},
 		},
 

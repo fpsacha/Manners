@@ -773,6 +773,34 @@ end
 -- preview and the snooze in its header, the voice choice on What I say, the
 -- profile lines on Profiles. Ledger.lua repaints this page by its id,
 -- "general".
+-- What's new (WhatsNew.lua, generated from the top of CHANGELOG.md): the
+-- newest release's notes in short, one note a section of the changelog, in a
+-- fold at the foot of Start here. The text is the changelog's own English:
+-- release notes are not among the translated strings.
+local News = {}
+ns.News = News
+News.SLOTS = 12
+
+function News.Sections()
+	return type(ns.WhatsNew) == "table" and ns.WhatsNew or {}
+end
+
+-- The fold's title, with the version this build is.
+function News.Title()
+	return L["What's new in %s"]:format(tostring(ns.BUILD or ""))
+end
+
+-- Section `i` as one note: its title in gold, then an entry a line.
+function News.Text(i)
+	local section = News.Sections()[i]
+	if type(section) ~= "table" then return "" end
+	local lines = { "|cffffd100" .. tostring(section.title) .. "|r" }
+	for _, entry in ipairs(section.entries or {}) do
+		lines[#lines + 1] = "- " .. tostring(entry)
+	end
+	return table.concat(lines, "\n")
+end
+
 function Page.BuildStartTab()
 	-- The steps and the snooze are about a prompt; a class with nothing to
 	-- cast gets the noBuffs text instead.
@@ -1481,6 +1509,72 @@ function Page.BuildStartTab()
 				desc = L["Says again in your chat window what Manners does and the one thing it needs from you."],
 				order = 80,
 				func = function() ns.addon:HandleSlash("welcome") end,
+			},
+
+			-- What's new, folded at the foot of the page (News, above).
+			newsHeader = {
+				type = "header", name = function() return News.Title() end, order = 90,
+				hidden = function() return #News.Sections() == 0 end,
+			},
+			newsNote1 = {
+				type = "description", order = 90.01, fontSize = "medium",
+				hidden = function() return News.Sections()[1] == nil end,
+				name = function() return News.Text(1) end,
+			},
+			newsNote2 = {
+				type = "description", order = 90.02, fontSize = "medium",
+				hidden = function() return News.Sections()[2] == nil end,
+				name = function() return News.Text(2) end,
+			},
+			newsNote3 = {
+				type = "description", order = 90.03, fontSize = "medium",
+				hidden = function() return News.Sections()[3] == nil end,
+				name = function() return News.Text(3) end,
+			},
+			newsNote4 = {
+				type = "description", order = 90.04, fontSize = "medium",
+				hidden = function() return News.Sections()[4] == nil end,
+				name = function() return News.Text(4) end,
+			},
+			newsNote5 = {
+				type = "description", order = 90.05, fontSize = "medium",
+				hidden = function() return News.Sections()[5] == nil end,
+				name = function() return News.Text(5) end,
+			},
+			newsNote6 = {
+				type = "description", order = 90.06, fontSize = "medium",
+				hidden = function() return News.Sections()[6] == nil end,
+				name = function() return News.Text(6) end,
+			},
+			newsNote7 = {
+				type = "description", order = 90.07, fontSize = "medium",
+				hidden = function() return News.Sections()[7] == nil end,
+				name = function() return News.Text(7) end,
+			},
+			newsNote8 = {
+				type = "description", order = 90.08, fontSize = "medium",
+				hidden = function() return News.Sections()[8] == nil end,
+				name = function() return News.Text(8) end,
+			},
+			newsNote9 = {
+				type = "description", order = 90.09, fontSize = "medium",
+				hidden = function() return News.Sections()[9] == nil end,
+				name = function() return News.Text(9) end,
+			},
+			newsNote10 = {
+				type = "description", order = 90.10, fontSize = "medium",
+				hidden = function() return News.Sections()[10] == nil end,
+				name = function() return News.Text(10) end,
+			},
+			newsNote11 = {
+				type = "description", order = 90.11, fontSize = "medium",
+				hidden = function() return News.Sections()[11] == nil end,
+				name = function() return News.Text(11) end,
+			},
+			newsNote12 = {
+				type = "description", order = 90.12, fontSize = "medium",
+				hidden = function() return News.Sections()[12] == nil end,
+				name = function() return News.Text(12) end,
 			},
 		},
 	}

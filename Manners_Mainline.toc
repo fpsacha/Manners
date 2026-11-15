@@ -57,6 +57,7 @@ HallOfFame.lua
 Hall.lua
 HallProof.lua
 AutoProfile.lua
+WhatsNew.lua
 Looks\Looks.lua
 Looks\Flow.lua
 Looks\Previews.lua

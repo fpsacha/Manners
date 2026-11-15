@@ -4327,6 +4327,7 @@ L["Says %s in %s when you buff someone back."] = "Dice %s in %s quando ricambi u
 L["Says %s in %s when you buff someone."] = "Dice %s in %s quando dai un beneficio a qualcuno."
 L["Says one of your own lines in %s when you buff someone back."] = "Dice una delle tue frasi in %s quando ricambi un beneficio."
 L["Says one of your own lines in %s when you buff someone."] = "Dice una delle tue frasi in %s quando dai un beneficio a qualcuno."
+L["What's new in %s"] = "Novità della versione %s"
 L["1. Quick setup"] = "1. Configurazione rapida"
 L["Who do you want to buff?"] = "A chi vuoi dare benefici?"
 L["Should your character talk?"] = "Il tuo personaggio deve parlare?"

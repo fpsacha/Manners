@@ -4327,6 +4327,7 @@ L["Says %s in %s when you buff someone back."] = "버프로 보답할 때 %s 한
 L["Says %s in %s when you buff someone."] = "버프를 줄 때 %s 한 줄을 말합니다(%s)."
 L["Says one of your own lines in %s when you buff someone back."] = "버프로 보답할 때 직접 쓴 대사 중 하나를 말합니다(%s)."
 L["Says one of your own lines in %s when you buff someone."] = "버프를 줄 때 직접 쓴 대사 중 하나를 말합니다(%s)."
+L["What's new in %s"] = "%s의 새로운 기능"
 L["1. Quick setup"] = "1. 빠른 설정"
 L["Who do you want to buff?"] = "누구에게 버프를 줄까요?"
 L["Should your character talk?"] = "캐릭터가 말을 할까요?"

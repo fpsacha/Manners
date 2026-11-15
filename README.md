@@ -735,6 +735,9 @@ no room for. Defaults are in brackets.
   else; *Hide all Manners messages in my chat window* (off), which silences
   even the few lines the first leaves (what you type after `/manners` is
   still answered); and *Show the welcome again*.
+- ***What's new in*** *the version you run*, folded at the foot of the page:
+  what that release changed, in short, section by section. In English, as
+  the changelog is.
 
 ### Who to buff
 

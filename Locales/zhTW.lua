@@ -4327,6 +4327,7 @@ L["Says %s in %s when you buff someone back."] = "加回增益時說%s（%s）�
 L["Says %s in %s when you buff someone."] = "加增益時說%s（%s）。"
 L["Says one of your own lines in %s when you buff someone back."] = "加回增益時說一句你自己的台詞（%s）。"
 L["Says one of your own lines in %s when you buff someone."] = "加增益時說一句你自己的台詞（%s）。"
+L["What's new in %s"] = "%s 版本更新內容"
 L["1. Quick setup"] = "1. 快速設定"
 L["Who do you want to buff?"] = "你想為誰加增益？"
 L["Should your character talk?"] = "你的角色要說話嗎？"
