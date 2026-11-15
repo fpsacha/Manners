@@ -1,0 +1,11 @@
+{
+  "key": "ribbon",
+  "socket": {"shape": "round", "cx": 737, "cy": 511, "r": 152},
+  "name_xy": [1048, 398],
+  "reason_xy": [1052, 539],
+  "keycap": {"cx": 3462, "cy": 511, "w": 151, "h": 153},
+  "bar": [315, 284, 3850, 736],
+  "stretch": [1000, 3300],
+  "text_colour_ok": true,
+  "notes": "socket r is the dark glass disc (icon area); the gold medallion ring's outer radius is about 225. Cloth band runs y 330-693 (363 px tall), medallion 1.25x the band. Middle well averages rgb(71,6,19): white about 16:1, gold about 7:1. Animatable layers: a satin sheen highlight sliding slowly along the upper third of the cloth; a glint travelling along the twisted gold cords and around the medallion ring; a faint glow in the medallion's glass; a gentle ripple of the swallowtail fork."
+}
