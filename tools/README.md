@@ -86,7 +86,9 @@ before a release (RELEASING.md); `--anchors` only proves every mutation still
 finds the text it changes. And `--flavours` is not the whole suite as another
 client: that is `python tests/runscenarios.py --flavour X`, a diagnostic whose
 reds are mostly fixtures written for Camelot, and `--baseline` there prints
-only the reds that are not in `tests/baselines/X.txt` (`tests/README.md`). The
+only the reds that are not in `tests/baselines/X.txt` (`tests/README.md`);
+`--baselines` (part of `--release`) runs it for the four other clients, in
+eight pieces each, and fails on a red not written down. The
 files `--flavours` runs are the ones written for each client, and they are
 green.
 

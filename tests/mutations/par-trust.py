@@ -67,3 +67,32 @@ mutate("Core.lua",
        "\t\tif run.n >= BROKEN_AFTER\n",
        "par-trust: a broken scan is broken for good",
        expect="par-trust: a scan that recovers takes the mark down", script=S)
+
+# ------------------------------------------- the gates off Forever (validate.py)
+
+V = "validate.py"
+
+mutate("tests/scenarios.lua",
+       "ns = load(\"paladin auto\")\n-- Wisdom and Might are the classic family's and Forever's (hasBuffs).\n"
+       "ns = hasBuffs(ns, \"PALADIN\", \"wisdom\", \"might\")\n",
+       "ns = load(\"paladin auto\")\n-- Wisdom and Might are the classic family's and Forever's (hasBuffs).\n",
+       "par-trust: block 16 stops the main file on Mists and retail again",
+       expect="a guard was lost", script=V)
+
+mutate("tests/scenarios.lua",
+       "\t\tif not ns.FindBuff(class, (select(i, ...))) then return nil end\n",
+       "",
+       "par-trust: hasBuffs lets every block through",
+       expect="SCENARIO HARNESS ERROR", script=V)
+
+mutate("tools/check.py",
+       "        args.lint = args.flavours = args.anchors = args.baselines = True\n",
+       "        args.lint = args.flavours = args.anchors = True\n",
+       "par-trust: --release leaves the baselines out",
+       expect="check.py --release no longer runs --baselines", script=V)
+
+mutate("tools/check.py",
+       "            for client in OTHERS for i in range(BASELINE_PARTS)]\n",
+       "            for client in OTHERS[1:] for i in range(BASELINE_PARTS)]\n",
+       "par-trust: --baselines leaves Classic Era out",
+       expect="pieces of vanilla's whole suite", script=V)

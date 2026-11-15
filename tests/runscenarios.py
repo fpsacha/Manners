@@ -25,6 +25,13 @@ mutation by the scenarios its check lives in rather than by the whole suite:
                     that pass now. Exits 1 on anything new.
   --update-baseline with --flavour: run, and write the failures down in
                     tests/baselines/<flavour>.txt as the new baseline.
+  --part I/K        with --baseline or --update-baseline: only the I-th of K
+                    pieces of the whole suite (0 <= I < K), so one client's
+                    suite can be compared, or written down, piece by piece
+                    (tools/check.py --release runs the pieces side by side).
+                    The baseline is kept in sections, one per piece of work
+                    (a shard of scenarios.lua, a topic file), so a part
+                    compares and rewrites only its own sections.
 
 A scenario that is left out gets nil from load(), which every scenario reads as
 "skip". A narrowed run that admits nothing at all fails, so a selection that no
@@ -50,7 +57,7 @@ ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCENARIOS = os.path.join(ADDON_DIR, "tests", "scenarios.lua")
 BASELINES = os.path.join(ADDON_DIR, "tests", "baselines")
 
-names = files = shard = trace_path = baseline = None
+names = files = shard = trace_path = baseline = part = None
 args = sys.argv[1:]
 while args:
     flag = args.pop(0)
@@ -75,6 +82,11 @@ while args:
         shard = (int(i), int(k))
     elif flag == "--trace":
         trace_path = value
+    elif flag == "--part":
+        i, k = value.split("/")
+        part = (int(i), int(k))
+        if not 0 <= part[0] < part[1]:
+            sys.exit("runscenarios.py: --part I/K needs 0 <= I < K")
     elif flag == "--jobs":
         os.environ["MANNERS_SCENARIO_JOBS"] = value
     elif flag == "--flavour":
@@ -86,7 +98,9 @@ FLAVOUR = os.environ.get("MANNERS_MOCK_FLAVOUR") or "camelot"
 if baseline and (names is not None or files is not None or shard is not None or trace_path):
     # A narrowed run would read every baseline entry it did not run as fixed.
     sys.exit("runscenarios.py: --%s compares the whole suite, so it takes no"
-             " --scenario, --file, --select, --shard or --trace" % baseline)
+             " --scenario, --file, --select, --shard or --trace (--part splits it)" % baseline)
+if part and not baseline:
+    sys.exit("runscenarios.py: --part goes with --baseline or --update-baseline")
 
 
 # ------------------------------------------------------------ the baselines
@@ -129,43 +143,97 @@ def normalise(line):
     return _TIMING.sub(r"T \1", line)
 
 
-def compare_with_baseline(lines):
-    """Print what changed against the flavour's baseline; the exit status."""
+# A baseline file is a header of "#" lines, then one section per piece of
+# work the run is made of, "## <piece>" (baseline_tasks below: a shard of
+# scenarios.lua, or one topic file), each holding that piece's failures,
+# normalised and sorted. A failure is known only in the section of the piece
+# that printed it, so a red that moves to another file reads as new. Lines
+# above the first "##" (the flat list the file used to be) count as known in
+# every piece until the file is next written whole.
+def read_baseline(path):
+    flat, sections, current = [], {}, None
+    if not os.path.exists(path):
+        return False, flat, sections
+    for raw in open(path, encoding="utf-8"):
+        line = raw.rstrip("\n")
+        if line.startswith("## "):
+            current = line[3:].strip()
+            sections.setdefault(current, [])
+        elif line.strip() and not line.startswith("#"):
+            (sections[current] if current is not None else flat).append(line)
+    return True, flat, sections
+
+
+def write_baseline(path, sections):
+    os.makedirs(BASELINES, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write("# The scenarios that fail when the whole suite runs as %s, normalised,\n"
+                "# one section per piece of the run (a shard of scenarios.lua, a topic file).\n"
+                "# Written by: python tests/runscenarios.py --flavour %s --update-baseline [--part I/K]\n"
+                "# Read by:    python tests/runscenarios.py --flavour %s --baseline [--part I/K]\n"
+                "#             and tools/check.py --release, which fails on a line not in here\n"
+                % (FLAVOUR, FLAVOUR, FLAVOUR))
+        for key in sorted(sections, key=task_order):
+            if not sections[key]:
+                continue
+            f.write("## %s\n" % key)
+            for line in sections[key]:
+                f.write(line + "\n")
+
+
+def compare_with_baseline(per_task, whole):
+    """Print what changed against the flavour's baseline; the exit status.
+    per_task: {piece: [output lines]} for the pieces this run ran; whole: True
+    when that is every piece."""
     path = os.path.join(BASELINES, FLAVOUR + ".txt")
     rel = os.path.relpath(path, ADDON_DIR).replace("\\", "/")
-    now = sorted({normalise(l) for l in failure_lines(lines)})
+    now = {key: sorted({normalise(l) for l in failure_lines(lines)}) for key, lines in per_task.items()}
+    exists, flat, sections = read_baseline(path)
+    which = "" if whole else " (part %d/%d: %d pieces)" % (part[0], part[1], len(per_task))
     if baseline == "update-baseline":
-        os.makedirs(BASELINES, exist_ok=True)
-        with open(path, "w", encoding="utf-8", newline="") as f:
-            f.write("# The scenarios that fail when the whole suite runs as %s, normalised.\n"
-                    "# Written by: python tests/runscenarios.py --flavour %s --update-baseline\n"
-                    "# Read by:    python tests/runscenarios.py --flavour %s --baseline\n"
-                    % (FLAVOUR, FLAVOUR, FLAVOUR))
-            for line in now:
-                f.write(line + "\n")
-        print("baseline %s: %d failures written to %s" % (FLAVOUR, len(now), rel))
+        if not whole and flat:
+            # A flat list cannot be split by piece: it is written whole once.
+            print("runscenarios.py: %s is still a flat list; write it whole once"
+                  " (--update-baseline with no --part)" % rel)
+            return 1
+        if whole:
+            sections = {}
+        sections.update(now)
+        write_baseline(path, sections)
+        print("baseline %s%s: %d failures written to %s"
+              % (FLAVOUR, which, sum(len(v) for v in now.values()), rel))
         return 0
-    known = []
-    if os.path.exists(path):
-        known = [l.rstrip("\n") for l in open(path, encoding="utf-8")
-                 if l.strip() and not l.startswith("#")]
-    elif FLAVOUR == "camelot":
-        print("(no %s: on Camelot the whole suite is green, so every failure is new)" % rel)
-    else:
-        print("(no %s yet: every failure is new; --update-baseline writes it)" % rel)
-    new = [l for l in now if l not in set(known)]
-    fixed = [l for l in sorted(set(known)) if l not in set(now)]
-    print("=== scenarios as %s, against %s ===" % (FLAVOUR, rel))
+    if not exists:
+        if FLAVOUR == "camelot":
+            print("(no %s: on Camelot the whole suite is green, so every failure is new)" % rel)
+        else:
+            print("(no %s yet: every failure is new; --update-baseline writes it)" % rel)
+    flat_known = set(flat)
+    new, fixed, known_count, failing = [], [], 0, 0
+    for key in sorted(now, key=task_order):
+        mine = set(sections.get(key, ()))
+        known = mine | flat_known
+        known_count += len(mine)
+        failing += len(now[key])
+        new += [(key, l) for l in now[key] if l not in known]
+        fixed += [(key, l) for l in sorted(mine) if l not in set(now[key])]
+    if whole:
+        # A section for a piece that no longer exists: its file is gone.
+        for key in sorted(set(sections) - set(now), key=task_order):
+            known_count += len(sections[key])
+            fixed += [(key, l) for l in sections[key]]
+        known_count += len(flat)
+    print("=== scenarios as %s, against %s%s ===" % (FLAVOUR, rel, which))
     if new:
         print("not in the baseline:")
-        for line in new:
-            print("  " + line)
+        for key, line in new:
+            print("  [%s] %s" % (key, line))
     if fixed:
         print("in the baseline, passing now (--update-baseline takes them out):")
-        for line in fixed:
-            print("  " + line)
-    print("baseline %s: %d failing, %d written down, %d new, %d passing now"
-          % (FLAVOUR, len(now), len(set(known)), len(new), len(fixed)))
+        for key, line in fixed:
+            print("  [%s] %s" % (key, line))
+    print("baseline %s%s: %d failing, %d written down, %d new, %d passing now"
+          % (FLAVOUR, which, failing, known_count, len(new), len(fixed)))
     return 1 if new else 0
 
 
@@ -183,6 +251,26 @@ def compare_with_baseline(lines):
 # shares the process. So scenarios.lua in BASELINE_SHARDS shards and every
 # other file on its own, which also keeps one throw from hiding a whole file.
 BASELINE_SHARDS = 8
+
+
+def baseline_tasks():
+    """The pieces a baseline run is made of, in a fixed order: [(piece, args)],
+    the shards of scenarios.lua, then the topic files biggest first, so a run
+    does not end waiting on one started last."""
+    extras = glob.glob(os.path.join(ADDON_DIR, "tests", "scenarios", "*.lua"))
+    tasks = [("scenarios.lua %d/%d" % (i, BASELINE_SHARDS),
+              ["--file", "scenarios.lua", "--shard", "%d/%d" % (i, BASELINE_SHARDS)])
+             for i in range(BASELINE_SHARDS)]
+    tasks += [(os.path.basename(p), ["--file", os.path.basename(p)])
+              for p in sorted(extras, key=lambda p: (-os.path.getsize(p), os.path.basename(p)))]
+    return tasks
+
+
+def task_order(key):
+    """Sections in a file sorted the same way whatever wrote them."""
+    return (0, key) if key.startswith("scenarios.lua ") else (1, key)
+
+
 # The default is tools/jobs.py's: the cores less two, no more than the free
 # memory allows, no more than MANNERS_JOBS.
 def _default_jobs():
@@ -202,10 +290,15 @@ if (JOBS > 1 or baseline) and names is None and files is None and shard is None 
     from concurrent.futures import ThreadPoolExecutor
     here = os.path.abspath(__file__)
     extras = sorted(glob.glob(os.path.join(ADDON_DIR, "tests", "scenarios", "*.lua")))
+    keys = None
     if baseline:
-        tasks = [["--file", "scenarios.lua", "--shard", "%d/%d" % (i, BASELINE_SHARDS)]
-                 for i in range(BASELINE_SHARDS)]
-        tasks += [["--file", os.path.basename(p)] for p in sorted(extras, key=os.path.getsize, reverse=True)]
+        pieces = baseline_tasks()
+        # A part takes every K-th piece: the pieces go biggest first, so each
+        # part gets a like share of the big files and of the small.
+        if part:
+            pieces = [t for n, t in enumerate(pieces) if n % part[1] == part[0]]
+        keys = [key for key, _ in pieces]
+        tasks = [a for _, a in pieces]
     else:
         shards = max(1, JOBS // 2)
         tasks = [["--file", "scenarios.lua", "--shard", "%d/%d" % (i, shards)] for i in range(shards)]
@@ -226,7 +319,9 @@ if (JOBS > 1 or baseline) and names is None and files is None and shard is None 
     with ThreadPoolExecutor(max_workers=JOBS) as pool:
         results = list(pool.map(work, tasks))
     lines, failures, broken = [], 0, False
-    for text, code in results:
+    per_task = {}
+    for n, (text, code) in enumerate(results):
+        mine = per_task.setdefault(keys[n], []) if keys else None
         for line in text.splitlines():
             if line.startswith("failures:"):
                 failures += int(line.split(":", 1)[1] or 0)
@@ -235,10 +330,12 @@ if (JOBS > 1 or baseline) and names is None and files is None and shard is None 
                 continue
             else:
                 lines.append(line)
+                if mine is not None:
+                    mine.append(line)
                 if line.startswith(_HARNESS) or "Traceback" in line:
                     broken = True
     if baseline:
-        sys.exit(compare_with_baseline(lines))
+        sys.exit(compare_with_baseline(per_task, part is None))
     print("=== scenarios ===")
     for line in lines:
         print(line)
