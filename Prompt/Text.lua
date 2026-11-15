@@ -226,7 +226,9 @@ end
 -- while it is up, at the panel's inset while it is not (nearly always), so
 -- longer translations get the room.
 local function PlaceLines(chipUp)
-	local right = chipUp and fit.chipRoom or EDGE_ROOM
+	-- fit.edgeRoom: a painted bar's right end, which the lines keep clear of
+	-- (Panel.lua's DressPainted); nil on every other look.
+	local right = chipUp and fit.chipRoom or fit.edgeRoom or EDGE_ROOM
 	-- At the ends of the sliders (80 wide, a big font or icon) the two points
 	-- would cross and the client has nothing to draw the name in: the name
 	-- keeps MIN_ROOM, its left end moving in over the icon's margin where it
@@ -240,12 +242,14 @@ local function PlaceLines(chipUp)
 	if S.activeLook then
 		S.activeLook:PlaceLines(right)
 	elseif fit.twoLine then
-		R.nameText:SetPoint("TOPLEFT", left, -8)
+		-- fit.lineTop, lineBottom, lineMid: how far a painted bar drawn smaller
+		-- than the prompt keeps its well in from the prompt's edges (nil: none).
+		R.nameText:SetPoint("TOPLEFT", left, -8 - (fit.lineTop or 0))
 		R.nameText:SetPoint("RIGHT", -right, 0)
-		R.subText:SetPoint("BOTTOMLEFT", left, 8)
+		R.subText:SetPoint("BOTTOMLEFT", left, 8 + (fit.lineBottom or 0))
 		R.subText:SetPoint("RIGHT", -right, 0)
 	else
-		R.nameText:SetPoint("LEFT", left, 0)
+		R.nameText:SetPoint("LEFT", left, fit.lineMid or 0)
 		R.nameText:SetPoint("RIGHT", -right, 0)
 	end
 	FitLine(R.nameText)

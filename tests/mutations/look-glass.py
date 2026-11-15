@@ -157,7 +157,7 @@ mutate(GLASS,
        expect="dash runs backwards", script=S)
 
 mutate(GLASS,
-       "\t\t\tself.antFlow[i]:Phase(-(i - 1) * span, 0)\n",
+       "\t\tself.antFlow[i]:Phase(-(i - 1) * span, 0)\n",
        "",
        "look-glass: the dash jumps at each corner",
        expect="of a tile after side", script=S)

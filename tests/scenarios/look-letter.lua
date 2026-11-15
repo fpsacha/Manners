@@ -1636,6 +1636,9 @@ withTree("look-letter: leaving it gives the lines, the icon, the rows and the sw
 	for _, row in ipairs(r.rows) do
 		if row._parent ~= look.rowFrame then fail(scenario, "SKIPPED -- the rows are not on the letter's frame") return end
 	end
+	-- The glass's earlier art, whose room the lines' size is judged by below (its
+	-- painted well is narrower: painted-glass.lua).
+	p.classicArt = true
 	p.style = "glass"
 	ns.Prompt:ApplyStyle()
 	tick(ns)

@@ -79,7 +79,7 @@ function Prompt:PaintQueue(rows)
 			if i <= shown then
 				fs:ClearAllPoints()
 				fs:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT",
-					S.queueTextX, 4 + (shown - i) * rowHeight)
+					S.queueTextX, 4 + (S.queueGap or 0) + (shown - i) * rowHeight)
 			end
 		end
 	end
