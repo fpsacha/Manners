@@ -1021,6 +1021,62 @@ for _line in _problems:
     fail += 1
 print("  " + ", ".join(_summary))
 
+print("\n== the main scenario file off Forever ==")
+# tests/scenarios.lua is one chunk: a block that throws outside a scenario's own
+# protection ends the file there, and everything after it never runs. On Mists
+# and retail it stopped at block 16 (FindBuff("PALADIN", "wisdom") is nil
+# there), 299 scenario loads early, and the baselines took the abort for a
+# known red. Every block about a buff another client lacks now asks hasBuffs
+# and is a skip there: those blocks are run here as mists and as mainline,
+# narrowed to them (two seconds each), and must not throw past their guard.
+# And tools/check.py --release must hold the whole-suite baselines of the four
+# other clients, the one gate that sees a regression off Forever.
+import subprocess
+_main = open(os.path.join(ROOT, "tests", "scenarios.lua"), encoding="utf-8").read().split("\n")
+_guarded = []
+for _i, _line in enumerate(_main):
+    if "hasBuffs(" in _line and "local function" not in _line:
+        for _j in range(_i, max(0, _i - 3), -1):
+            _m = re.search(r'load\("([^"]+)"\)', _main[_j])
+            if _m:
+                _guarded.append(_m.group(1))
+                break
+_before = fail
+if len(_guarded) < 33:
+    print("  only %d blocks of scenarios.lua ask hasBuffs by name (were 33): a guard was lost" % len(_guarded))
+    fail += 1
+_args = []
+for _n in _guarded:
+    _args += ["--scenario", _n]
+_env = dict(os.environ, MANNERS_SCENARIO_JOBS="1", PYTHONIOENCODING="utf-8")
+for _flavour in ("mists", "mainline"):
+    _r = subprocess.run([sys.executable, os.path.join(ROOT, "tests", "runscenarios.py"), "--flavour", _flavour,
+                         "--file", "scenarios.lua"] + _args, capture_output=True, text=True,
+                        encoding="utf-8", errors="replace", env=_env)
+    for _l in (_r.stdout + _r.stderr).splitlines():
+        if _l.startswith("SCENARIO HARNESS ERROR") or "Traceback" in _l:
+            print("  as %s: %s" % (_flavour, _l))
+            fail += 1
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+try:
+    import check as _check
+    _src = open(os.path.join(ROOT, "tools", "check.py"), encoding="utf-8").read()
+    if "args.lint = args.flavours = args.anchors = args.baselines = True" not in _src \
+            or "rest.extend(baseline_steps())" not in _src:
+        print("  check.py --release no longer runs --baselines")
+        fail += 1
+    _names = [st.name for st in _check.baseline_steps()]
+    for _client in ("vanilla", "tbc", "mists", "mainline"):
+        _have = [n for n in _names if n.startswith(_client + ": whole suite ")]
+        if len(_have) != _check.BASELINE_PARTS:
+            print("  check.py --baselines runs %d of %d pieces of %s's whole suite against its baseline"
+                  % (len(_have), _check.BASELINE_PARTS, _client))
+            fail += 1
+finally:
+    sys.path.pop(0)
+if fail == _before:
+    print("  clean")
+
 print("\n== stale names ==")
 allsrc = "\n".join(open(os.path.join(ROOT, f), encoding="utf-8").read() for f in OURS) + toc
 for bad_name in ["ArcaneManners", "ArcaneMannersDB", "ARCANEMANNERS"]:

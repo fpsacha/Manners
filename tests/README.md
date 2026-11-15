@@ -196,6 +196,7 @@ python tests/runscenarios.py --trace lines.json       # which scenario ran each 
 python tests/runscenarios.py --flavour vanilla        # every scenario as Classic Era
 python tests/runscenarios.py --flavour vanilla --baseline         # only what is new red
 python tests/runscenarios.py --flavour vanilla --update-baseline  # write the reds down
+python tests/runscenarios.py --flavour vanilla --baseline --part 3/8  # one eighth of it, a few minutes
 python tests/runscenarios.py --shard 2/8              # the names that hash to 2 of 8
 ```
 
@@ -205,7 +206,11 @@ suite to keep green: the scenarios about Forever's own scrolls, surnames and
 secret values go red on any other client by design. What is red there is
 written down in `tests/baselines/<client>.txt`, so `--flavour X --baseline`
 prints only a failure that is not in it, and an entry that now passes; the
-list is what is left to read. Each client's own scenarios, which run in every
+list is what is left to read. The file holds one section per piece of the
+run (`## scenarios.lua 3/8`, `## <topic file>`), and a red is known only in
+the section of the piece that printed it; `--part I/K` runs, compares or
+writes only every K-th piece, and `python tools/check.py --baselines` (and
+`--release`) runs all of them, red on anything new. Each client's own scenarios, which run in every
 normal run, are `tests/scenarios/era.lua`, `tbc.lua`, `mists.lua` and
 `mainline.lua`; `python tools/check.py --flavours` also runs every
 `*-fixes.lua` as each client, and `unverified.lua`, `hunt23-queue.lua` and

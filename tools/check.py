@@ -5,6 +5,7 @@
     python tools/check.py --anchors        # and selftest.py --anchors
     python tools/check.py --lint           # first tools/lint.py: stops there if it fails
     python tools/check.py --flavours --anchors --jobs 6
+    python tools/check.py --baselines      # and the whole suite as each other client, against its baseline
     python tools/check.py --release        # everything a release is checked against, one command
 
 The steps, each the existing script run as it is:
@@ -29,9 +30,17 @@ The steps, each the existing script run as it is:
   --anchors  tests/selftest.py --anchors --jobs N: every mutation still finds
              the code it changes. Not the full mutation run, which is
              python tests/selftest.py on its own and is done before a release.
+  --baselines the WHOLE suite as each of the four other clients, against
+             tests/baselines/<client>.txt, in BASELINE_PARTS pieces a client
+             run side by side: tests/runscenarios.py --flavour X --baseline
+             --part I/K --jobs 1. A failure that is not written down there
+             (in the section of the piece that printed it) fails the step;
+             the reds the baseline records, Forever's fixtures off Forever,
+             do not. This is the only gate that sees a regression on Classic
+             Era, TBC, Mists or retail outside the files --flavours names.
 
---release is the one command before a release: --lint, --flavours and
---anchors, and besides them
+--release is the one command before a release: --lint, --flavours,
+--anchors and --baselines, and besides them
 
   locales    tools/locale_keys.py: every locale holds every string
   previews   tools/make_look_previews.py --check: the picker's pictures are current
@@ -52,7 +61,10 @@ the mutations: tests/selftest.py is selftest.yml's, on GitHub.
 Measured at --jobs 6 with other work on the machine (November 2026, 105
 steps): 10 min 39 s, of which the scenarios 437 s, the contrast audit 127 s
 (it then ran before the scenarios; it runs beside the clients' files now) and
-the fuzzer 28 s.
+the fuzzer 28 s. --baselines is the whole suite four times over: a piece
+(1/8 of a client) took 2 min 52 s at --jobs 2 (15 November 2026), so the four
+clients are about 95 min of one pair of cores and some 32 min at --jobs 6
+on top of the rest.
 
 --jobs N is how many processes run at once, all steps together (default: the
 cores less two, which stay free, fewer when memory is short, and never more
@@ -107,6 +119,10 @@ ALSO = (("mainline", "unverified.lua"), ("mainline", "hunt23-queue.lua"),
 # It was *-fixes.lua alone, so the thirteen files of 1.11.25's two review hunts
 # (*-review.lua, *-review2.lua) were asked of Forever and of nobody else.
 FIX_FILES = ("*-fixes.lua", "*-review.lua", "*-review2.lua")
+
+# How many pieces --baselines cuts each client's whole suite into: steps of a
+# few minutes each, so the pool keeps every core busy to the end.
+BASELINE_PARTS = 8
 
 # ...but these, on these clients: a file whose scenarios stand on Forever's own
 # fixtures (two-part names in the macro, Forever's spells and bags) is red
@@ -262,6 +278,17 @@ def locales_line(output):
     return "%s, %d locales whole" % (lines[0], len(whole))
 
 
+def baseline_steps():
+    """What --baselines runs: each other client's whole suite in BASELINE_PARTS
+    pieces, each against tests/baselines/<client>.txt (tests/validate.py holds
+    --release to running them all)."""
+    return [Step("%s: whole suite %d/%d" % (client, i, BASELINE_PARTS),
+                 ["tests/runscenarios.py", "--flavour", client, "--baseline",
+                  "--part", "%d/%d" % (i, BASELINE_PARTS), "--jobs", "1"],
+                 why=r"^  \[|^not in the baseline|Traceback|flat list")
+            for client in OTHERS for i in range(BASELINE_PARTS)]
+
+
 def release_steps(jobs):
     """The steps --release adds: (the short ones, the fuzzer, the contrast)."""
     short = [
@@ -288,6 +315,9 @@ def main(argv=None):
                         help="also run tests/selftest.py --anchors")
     parser.add_argument("--lint", action="store_true",
                         help="run tools/lint.py first, and stop there if it fails")
+    parser.add_argument("--baselines", action="store_true",
+                        help="also run the whole suite as each other client against tests/baselines/"
+                             "<client>.txt, failing on a red that is not written down there")
     parser.add_argument("--release", action="store_true",
                         help="everything a release is checked against: --lint --flavours --anchors,"
                              " the locales, the looks' previews and contrast, bughunt and the quick fuzzer")
@@ -297,7 +327,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     jobs = max(1, args.jobs)
     if args.release:
-        args.lint = args.flavours = args.anchors = True
+        args.lint = args.flavours = args.anchors = args.baselines = True
 
     os.makedirs(LOGS, exist_ok=True)
     for old in glob.glob(os.path.join(LOGS, "*.txt")):
@@ -311,6 +341,8 @@ def main(argv=None):
         for client, name in client_files():
             rest.append(Step("%s: %s" % (client, name),
                              ["tests/runscenarios.py", "--flavour", client, "--file", name]))
+    if args.baselines:
+        rest.extend(baseline_steps())
     if args.anchors:
         rest.append(Step("anchors", ["tests/selftest.py", "--anchors", "--jobs", str(jobs)],
                          why=r"^ANCHOR GONE: |Traceback|Error"))

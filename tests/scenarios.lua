@@ -67,6 +67,20 @@ local function load(scenario)
 	return ns
 end
 
+-- Whether this client has every one of a class's buffs a block is written
+-- about. The old blocks below were written on Forever and its classic cousins:
+-- a Mists or retail paladin has no Wisdom, a priest there no Divine Spirit,
+-- and indexing the nil FindBuff answered stopped this whole file on those
+-- clients (everything after the first such block, the topic files included,
+-- never ran). Such a block is a skip there, as a load that comes back nil is.
+local function hasBuffs(ns, class, ...)
+	if not ns then return nil end
+	for i = 1, select("#", ...) do
+		if not ns.FindBuff(class, (select(i, ...))) then return nil end
+	end
+	return ns
+end
+
 -- A control anywhere on the options page, by its key: controls move between
 -- tabs, and a test that names the tab breaks when one does.
 local function findOption(node, key)
@@ -700,6 +714,7 @@ Mock.reset()
 Mock.class = "WARRIOR"
 Mock.groupSize = 0
 ns = load("solo warrior offers nobody")
+ns = hasBuffs(ns, "WARRIOR", "battleshout")
 if ns then
 	local known = {}
 	for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
@@ -732,6 +747,8 @@ end
 Mock.reset()
 Mock.class = "PALADIN"
 ns = load("paladin auto")
+-- Wisdom and Might are the classic family's and Forever's (hasBuffs).
+ns = hasBuffs(ns, "PALADIN", "wisdom", "might")
 if ns then
 	local known = {}
 	for _, key in ipairs({ "wisdom", "might" }) do
@@ -766,6 +783,7 @@ Mock.reset()
 Mock.class = "WARRIOR"
 Mock.groupSize = 3
 ns = load("no mana bar still works")
+ns = hasBuffs(ns, "WARRIOR", "battleshout")
 if ns then
 	local known = {}
 	for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
@@ -917,6 +935,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("priest walks its buff list")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit", "shadow")
 if ns then
 	local known = {}
 	for _, key in ipairs({ "fortitude", "spirit", "shadow" }) do
@@ -979,6 +998,7 @@ end
 Mock.reset()
 Mock.class = "PALADIN"
 ns = load("paladin does not walk")
+ns = hasBuffs(ns, "PALADIN", "wisdom", "might", "kings")
 if ns then
 	local known = {}
 	for _, key in ipairs({ "wisdom", "might", "kings" }) do
@@ -1015,6 +1035,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("a pinned buff does not walk")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local known = {}
 	for _, key in ipairs({ "fortitude", "spirit" }) do
@@ -1056,6 +1077,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("the owed fallback obeys the same filters")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local known = {}
 	for _, key in ipairs({ "fortitude", "spirit" }) do
@@ -1878,6 +1900,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("a click moves the walk along, not off the person")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local known = {}
 	for _, key in ipairs({ "fortitude", "spirit" }) do
@@ -2397,6 +2420,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("a refused cast costs one block, not the whole list")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local scenario = "a refused cast costs one block, not the whole list"
 	local known = {}
@@ -2506,6 +2530,7 @@ end
 Mock.reset()
 Mock.class = "PALADIN"
 ns = load("a guess never outranks a debt")
+ns = hasBuffs(ns, "PALADIN", "wisdom", "might")
 if ns then
 	local scenario = "a guess never outranks a debt"
 	local known = {}
@@ -2577,6 +2602,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("an unreadable class is walked through its list")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit", "shadow")
 if ns then
 	local scenario = "an unreadable class is walked through its list"
 	local known = {}
@@ -3181,6 +3207,7 @@ Mock.class = "WARRIOR"
 -- Battle Shout is partyOnly, so this path only exists in a group.
 Mock.groupSize = 3
 ns = load("a warrior can repay a favour")
+ns = hasBuffs(ns, "WARRIOR", "battleshout")
 if ns then
 	local scenario = "a warrior can repay a favour"
 	local known = {}
@@ -3270,6 +3297,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("a refused cast does not move the rotation on")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local scenario = "a refused cast does not move the rotation on"
 	local known = {}
@@ -3851,6 +3879,7 @@ end
 Mock.reset()
 Mock.class = "PALADIN"
 ns = load("a paladin is not walked off the blessing just given")
+ns = hasBuffs(ns, "PALADIN", "wisdom", "might", "kings")
 if ns then
 	local scenario = "a paladin is not walked off the blessing just given"
 	local known = {}
@@ -4198,6 +4227,7 @@ end
 Mock.reset()
 Mock.class = "PALADIN"
 ns = load("a debt does not walk a paladin off the blessing they hold")
+ns = hasBuffs(ns, "PALADIN", "might", "wisdom", "kings")
 if ns then
 	local scenario = "a debt does not walk a paladin off the blessing they hold"
 	local known = {}
@@ -4300,6 +4330,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("a second press does not bury the first")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local scenario = "a second press does not bury the first"
 	local known = {}
@@ -5502,6 +5533,7 @@ local REQUIRED_OPTIONS = {
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("the options page is whole")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit", "shadow")
 if ns then
 	local scenario = "the options page is whole"
 	local known = {}
@@ -5686,6 +5718,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("each spell can be switched off on its own")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit", "shadow")
 if ns then
 	local scenario = "each spell can be switched off on its own"
 	local known = {}
@@ -5802,6 +5835,7 @@ end
 Mock.reset()
 Mock.class = "PALADIN"
 ns = load("the note does not promise a paladin a walk")
+ns = hasBuffs(ns, "PALADIN", "wisdom", "might", "kings")
 if ns then
 	local scenario = "the note does not promise a paladin a walk"
 	local known = {}
@@ -5836,6 +5870,7 @@ end
 Mock.reset()
 Mock.class = "WARRIOR"
 ns = load("a switch with nothing behind it is not shown")
+ns = hasBuffs(ns, "WARRIOR", "battleshout")
 if ns then
 	local scenario = "a switch with nothing behind it is not shown"
 	local known = {}
@@ -5889,6 +5924,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("the page says when it will never do anything")
+ns = hasBuffs(ns, "PRIEST", "fortitude")
 if ns then
 	local scenario = "the page says when it will never do anything"
 	local known = {}
@@ -6514,6 +6550,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("an abandoned press still gets its writes back")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local scenario = "an abandoned press still gets its writes back"
 	local known = {}
@@ -6618,6 +6655,7 @@ Mock.reset()
 Mock.class = "WARRIOR"
 Mock.groupSize = 3
 ns = load("a selfCast buff is sent, not confirmed")
+ns = hasBuffs(ns, "WARRIOR", "battleshout")
 if ns then
 	local scenario = "a selfCast buff is sent, not confirmed"
 	local known = {}
@@ -6722,6 +6760,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("a refusal after the send undoes the confirmation")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local scenario = "a refusal after the send undoes the confirmation"
 	local known = {}
@@ -7089,6 +7128,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("a tokenless favour does not blame the user for what it could not read")
+ns = hasBuffs(ns, "PRIEST", "fortitude")
 if ns then
 	local scenario = "a tokenless favour does not blame the user for what it could not read"
 	local known = {}
@@ -7249,6 +7289,7 @@ Mock.class = "PALADIN"
 -- so the one carrying it here is a warrior.
 Mock.unitClass = "WARRIOR"
 ns = load("a paladin is offered the blessing that is running out")
+ns = hasBuffs(ns, "PALADIN", "wisdom", "might")
 if ns then
 	local scenario = "a paladin is offered the blessing that is running out"
 	local known = {}
@@ -7582,6 +7623,7 @@ end
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("the re-offer wait says which of the two things it blocks")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit", "shadow")
 if ns then
 	local scenario = "the re-offer wait says which of the two things it blocks"
 	local known = {}
@@ -13572,6 +13614,7 @@ for _, mode in ipairs({ "restricted", "on" }) do
 	local scenario = "a warrior is not told that strangers are measured (interact "
 		.. mode .. ")"
 	ns = load(scenario)
+	ns = hasBuffs(ns, "WARRIOR", "battleshout")
 	if ns then
 		local known = {}
 		for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
@@ -13673,6 +13716,7 @@ for _, case in ipairs({ { api = "UnitInSubgroup" }, { api = "the raid roster" } 
 	local scenario = "Battle Shout in a raid reaches the warrior's own subgroup ("
 		.. case.api .. ")"
 	ns = load(scenario)
+	ns = hasBuffs(ns, "WARRIOR", "battleshout")
 	if ns then
 		ns.PARTY_IS_SUBGROUP = true
 		knowShout(ns)
@@ -13789,6 +13833,7 @@ for _, case in ipairs({
 	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
 	local scenario = "Battle Shout reaches only who can hear it (" .. case.label .. ")"
 	ns = load(scenario)
+	ns = hasBuffs(ns, "WARRIOR", "battleshout")
 	if ns then
 		knowShout(ns)
 		Mock.rangeless = {}
@@ -13910,6 +13955,7 @@ for _, case in ipairs({
 	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
 	local scenario = "a favour the prompt cannot return is not promised (" .. case.label .. ")"
 	ns = load(scenario)
+	ns = hasBuffs(ns, "PRIEST", "fortitude")
 	if ns then
 		local known = {}
 		for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").ranks) do known[id] = true end
@@ -14056,7 +14102,7 @@ for _, case in ipairs({
 	Mock.class = "PRIEST"
 	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
 	local scenario = "a pinned spell is offered with its switch off (" .. case.label .. ")"
-	ns = load(scenario)
+	ns = hasBuffs(load(scenario), "PRIEST", unpack(case.know))
 	if ns then
 		local known = {}
 		for _, key in ipairs(case.know) do
@@ -14161,6 +14207,7 @@ for _, case in ipairs({
 	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
 	local scenario = "the spell named is one that is switched on (" .. case.label .. ")"
 	ns = load(scenario)
+	ns = hasBuffs(ns, "PALADIN", "wisdom", "might", "kings")
 	if ns then
 		local known = {}
 		for _, key in ipairs({ "wisdom", "might", "kings" }) do
@@ -14210,6 +14257,7 @@ do
 	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
 	local scenario = "every spell switched off is not 'no buff learned'"
 	ns = load(scenario)
+	ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit", "shadow")
 	if ns then
 		local known = {}
 		for _, key in ipairs({ "fortitude", "spirit", "shadow" }) do
@@ -14271,6 +14319,7 @@ for _, case in ipairs({
 	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
 	local scenario = "an unlearned pin is named, not replaced (" .. case.label .. ")"
 	ns = load(scenario)
+	ns = hasBuffs(ns, "PRIEST", "fortitude")
 	if ns then
 		local known = {}
 		for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").ranks) do known[id] = true end
@@ -14378,6 +14427,7 @@ for _, case in ipairs({
 	end
 	local scenario = "another paladin's blessing is not one of yours (" .. case.label .. ")"
 	ns = load(scenario)
+	ns = hasBuffs(ns, "PALADIN", "wisdom", "might", "kings")
 	if ns then
 		local known = {}
 		for _, key in ipairs({ "wisdom", "might", "kings" }) do
@@ -15400,6 +15450,7 @@ Mock.class = "WARRIOR"
 -- Battle Shout is partyOnly, so this path only exists in a group.
 Mock.groupSize = 3
 ns = load("the repaid line for a shout names the shout")
+ns = hasBuffs(ns, "WARRIOR", "battleshout")
 if ns then
 	local scenario = "the repaid line for a shout names the shout"
 	local known = {}
@@ -17005,6 +17056,7 @@ Mock.reset()
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("mana users only follows its switch")
+ns = hasBuffs(ns, "PRIEST", "fortitude", "spirit")
 if ns then
 	local scenario = "mana users only follows its switch"
 	local known = {}
@@ -17059,6 +17111,7 @@ Mock.reset()
 Mock.reset()
 Mock.class = "PRIEST"
 ns = load("every spell switched off means every one")
+ns = hasBuffs(ns, "PRIEST", "fortitude")
 if ns then
 	local scenario = "every spell switched off means every one"
 	local known = {}
@@ -17157,6 +17210,7 @@ for _, case in ipairs({
 		return "Yorick", "Vane"
 	end
 	ns = load(scenario)
+	ns = hasBuffs(ns, "PALADIN", "wisdom", "might", "kings")
 	if ns then
 		local known = {}
 		for _, key in ipairs({ "wisdom", "might", "kings" }) do
@@ -17671,6 +17725,7 @@ Mock.groupSize = 3
 Mock.unitNames = { party1 = { "Near", "Ally" }, party2 = { "Far", "Ally" } }
 local realKnown270, realPlayer270 = IsSpellKnown, IsPlayerSpell
 ns = load("a warrior's queue built in a fight does not ask the follow prompt")
+ns = hasBuffs(ns, "WARRIOR", "battleshout")
 if ns then
 	local scenario = "a warrior's queue built in a fight does not ask the follow prompt"
 	knowShout(ns)
@@ -17828,6 +17883,7 @@ Mock.unitNames = { party1 = { "Near", "Ally" }, party2 = { "Far", "Ally" } }
 Mock.yards = { party1 = 5, party2 = 60 }
 local realKnown273, realPlayer273 = IsSpellKnown, IsPlayerSpell
 ns = load("a shout at somebody measured too far away says so")
+ns = hasBuffs(ns, "WARRIOR", "battleshout")
 if ns then
 	local scenario = "a shout at somebody measured too far away says so"
 	knowShout(ns)
@@ -17884,6 +17940,7 @@ Mock.class = "PALADIN"
 Mock.unitClass = "PALADIN"
 local realKnown274, realPlayer274 = IsSpellKnown, IsPlayerSpell
 ns = load("an owed person wearing every blessing you know is still offered one")
+ns = hasBuffs(ns, "PALADIN", "might")
 if ns then
 	local scenario = "an owed person wearing every blessing you know is still offered one"
 	local known = {}

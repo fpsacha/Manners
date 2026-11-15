@@ -1,76 +1,172 @@
-# The scenarios that fail when the whole suite runs as vanilla, normalised.
-# Written by: python tests/runscenarios.py --flavour vanilla --update-baseline
-# Read by:    python tests/runscenarios.py --flavour vanilla --baseline
-/manners never takes the person off the prompt before a fight can freeze it: SKIPPED -- the panel named Anna to start with
-1 changes to your auras this session, read in 1 walks
-2 changes to your auras this session, read in 2 walks
-Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group.
-Arcane on Calm leaves nothing looping: the owed breath kept going with nobody owed on top
-Arcane shows the key on a keycap, and the name wins: no key bound and the lines still keep its room: -35
-Arcane's drain follows the time left to return a favour: halfway through the favour the clock is 166.0 of 166.0
+# The scenarios that fail when the whole suite runs as vanilla, normalised,
+# one section per piece of the run (a shard of scenarios.lua, a topic file).
+# Written by: python tests/runscenarios.py --flavour vanilla --update-baseline [--part I/K]
+# Read by:    python tests/runscenarios.py --flavour vanilla --baseline [--part I/K]
+#             and tools/check.py --release, which fails on a line not in here
+## scenarios.lua 0/8
+a favour the prompt cannot return is not promised (a warrior, skipping the useless): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- nothing you cast is any use to them ("Only give Arcane Intellect to players with mana" is on)
+a passer-by in range but not near: SKIPPED -- the passer-by four yards away was not offered either, so nothing below is about distance
+a pinned spell is offered with its switch off (one off and pinned, the rest on): the stranger was offered nothing with a learned spell pinned
+a shorter window applies to live debts (a profile switch): SKIPPED -- no favour was filed
+another paladin's blessing is not one of yours (a warrior with another paladin's Might): cached: offered false, expected kings
+another paladin's blessing is not one of yours (a warrior with another paladin's Might): read: offered false, expected kings
+odd names: A/B: the target line is '/target A'
+odd names: Nameof/Averylongsurnamethatgoesonandonandon: the target line is '/target Nameof'
+odd names: Petra/Stonewell: the target line is '/target Petra'
+odd names: Ûmlaut/Nàme: the target line is '/target Ûmlaut'
+one spelling of a player's name: the surname came back as Petra-Stonewell
+the aura baseline forgets what fell off: a second cast was taken for the one already held
+the favour names who was there, not who is there now: the favour went missing with the scan that first saw it
+## scenarios.lua 1/8
+Battle Shout reaches only who can hear it (ten yards): SKIPPED -- the party member was not offered the shout at all
+Battle Shout reaches only who can hear it (ten yards): a shout that reached them did not clear the debt
+a favour the prompt cannot return is not promised (nothing in the way): SKIPPED -- the control favour was not recorded: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
+a refused aura read is not a definite no (an id declared secret): SKIPPED -- the target was not offered at all
+an interface number with no band: claimed to recognise 40400 as vanilla
+the fallback does not undo a rejection: offered somebody the level filter had already refused
+the fallback does not undo a rejection: offered somebody the range filter had already refused
+the range library is found through a LibStub shaped like the game's: "Nearby" dropped somebody nine yards away, inside the library's ten-yard edge
+your target wins: SKIPPED -- nobody was offered under the cursor
+your target wins: SKIPPED -- the target vanished with whenBuffed=always
+your target wins: an owed target lost the amber wording: target at 0
+your target wins: the top of the queue was Petra-Stonewell/target/0, not the target
+## scenarios.lua 2/8
+a favour the prompt cannot return is not promised (a priest): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- returning the favour is on the prompt
+a macro armed for a fight hands your target back: SKIPPED -- Anna was not armed through the target token without a hand-back: /target Anna / /cast Arcane Intellect
+a refused aura read is not a definite no (a read that comes back secret): SKIPPED -- the target was not offered at all
+another paladin's blessing is not one of yours (a warrior with another paladin's Greater Kings): cached: offered false, expected might
+another paladin's blessing is not one of yours (a warrior with another paladin's Greater Kings): read: offered false, expected might
+another paladin's blessing is not one of yours (an owed paladin with our own Kings): cached: offered wisdom, expected false
+another paladin's blessing is not one of yours (an owed paladin with our own Kings): read: offered wisdom, expected false
+buffing your own target leaves them targeted: SKIPPED -- Anna was not offered through the target token: /target Anna
+buffing your own target leaves them targeted: a stranger off a nameplate no longer gets your target handed back: /target Bert / /cast Arcane Intellect / /targetlasttarget
+no buff table for this client: said the table was missing without saying on which client: no buff data for this client -- vanilla/classic interface=11509 build=1.15.9 project=2
+right beside me is never looser than nearby: SKIPPED -- "nearby" did not separate the two, so there is no step above to compare with
+the target rule can be switched off: SKIPPED -- the target was not on top to begin with
+## scenarios.lua 3/8
 Battle Shout in a raid reaches the warrior's own subgroup (UnitInSubgroup): SKIPPED -- 0 of the warrior's own four subgroup mates were offered the shout
 Battle Shout in a raid reaches the warrior's own subgroup (UnitInSubgroup): SKIPPED -- the favour from raid30 was not noticed:
 Battle Shout in a raid reaches the warrior's own subgroup (the raid roster): SKIPPED -- 0 of the warrior's own four subgroup mates were offered the shout
 Battle Shout in a raid reaches the warrior's own subgroup (the raid roster): SKIPPED -- the favour from raid30 was not noticed:
 Battle Shout reaches only who can hear it (nothing measures): SKIPPED -- the party member was not offered the shout at all
-Battle Shout reaches only who can hear it (ten yards): SKIPPED -- the party member was not offered the shout at all
-Battle Shout reaches only who can hear it (ten yards): a shout that reached them did not clear the debt
-Luxe on Calm leaves nothing looping: the owed pulse kept going with nobody owed on top
-Toast draws the spell icon clean: SKIPPED -- the favour clock was not burning
-Toast's clock burns over its ash: no ash under the clock's spent time
-Toast's clock burns over its ash: the clock did not burn down
-Toast's favour clock burns down with the debt: half the time gone and the clock is at 172.16109114615 of 172.16109114615
-Toast's favour clock burns down with the debt: the favour clock went in a fight
-Toast's favour clock burns down with the debt: the favour clock went on Calm
-Toast's pulse breathes three times and holds: the owed glow stayed with nobody owed
-When a top-up is due (top-ups are off)
-a buff given to somebody who asked is filed as asked: SKIPPED -- Anna is not on the prompt as somebody who asked
-a buff that lands serves the request: SKIPPED -- Anna was not offered after asking
-a class only hears requests for its own buffs: "buff pls" did not offer Fortitude: nothing
-a class only hears requests for its own buffs: "fort pls" did not offer Fortitude: nothing
-a class only hears requests for its own buffs: "pw:f please" did not offer Fortitude: nothing
-a class only hears requests for its own buffs: "stam?" did not offer Fortitude: nothing
-a different name compare throws the never-offer answers away: the list was matched with the compare the client no longer has
-a favour appears in the ledger: SKIPPED -- no favour was filed, so there is nothing to record
-a favour forgotten at a reload names the setting: SKIPPED -- no favour was filed, so there is nothing to record
-a favour only your party can be repaid says so (control): SKIPPED -- no favour was filed, so there is nothing to record
-a favour owed at logout is let go when its debt did not come back: SKIPPED -- no favour was filed, so there is nothing to record
-a favour repaid is marked returned: SKIPPED -- no favour was filed, so there is nothing to record
-a favour that runs out is let go: SKIPPED -- no favour was filed, so there is nothing to record
-a favour the prompt cannot return is not promised (a priest): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- returning the favour is on the prompt
 a favour the prompt cannot return is not promised (a warrior, offering everybody): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- returning the favour is on the prompt
-a favour the prompt cannot return is not promised (a warrior, skipping the useless): SKIPPED -- the buff from party1 was not noticed: |cff80ff80Grom buffed you|r -- nothing you cast is any use to them ("Only give mana buffs to players with mana" is on)
-a favour the prompt cannot return is not promised (nothing in the way): SKIPPED -- the control favour was not recorded: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
-a fight during the fade out brings the panel back gently: SKIPPED -- the panel did not start fading out
-a friend added is ranked as one once the answer runs out: SKIPPED -- the stranger was not offered, or was already a friend
-a line rolled for your target still fits once they are not: SKIPPED -- Anna was not offered as owed through the target token
-a listed person who is owed still gets the fuse: SKIPPED -- the panel named Anna to start with
-a long row in the list is drawn smaller to fit: SKIPPED -- Sable Harrow is not in the list
-a macro armed for a fight hands your target back: SKIPPED -- Anna was not armed through the target token without a hand-back: /target Anna / /cast Arcane Intellect
-a paladin is offered what was asked for, within its pin: "bok?" offered nothing, not kings
-a paladin is offered what was asked for, within its pin: "buff pls" to a paladin pinned to Might offered nothing
-a paladin is offered what was asked for, within its pin: "kings" offered nothing, not kings
-a paladin is offered what was asked for, within its pin: "might pls" offered nothing, not might
-a passer-by in range but not near: SKIPPED -- the passer-by four yards away was not offered either, so nothing below is about distance
-a person put on the never list gets no fuse: SKIPPED -- the panel named Anna to start with
-a person put on the never list leaves the panel at once: SKIPPED -- the panel named Anna to start with
-a pinned spell is offered with its switch off (everything off, Divine Spirit pinned): the stranger was offered nothing with a learned spell pinned
 a pinned spell is offered with its switch off (everything off, Fortitude pinned): the stranger was offered nothing with a learned spell pinned
-a pinned spell is offered with its switch off (one off and pinned, the rest on): the stranger was offered nothing with a learned spell pinned
+a warrior in a raid is told the shout reaches his subgroup: SKIPPED -- the favour from another subgroup was not noticed:
+doubt does not outlive the scan that had it: a recast after a refused scan was taken for the buff already held
+the mark is consumed rather than timed out: a second cast inside the window was announced 0 times -- the mark was a timer, not a claim
+the mark is consumed rather than timed out: a second favour from the same person was not filed
+the mark is consumed rather than timed out: the pair was announced 2 times
+the spoken line survives a change of unit token: SKIPPED -- no spoken line to compare (alpha / nil)
+## scenarios.lua 4/8
+a line rolled for your target still fits once they are not: SKIPPED -- Anna was not offered as owed through the target token
+a refused aura read is not a definite no (everything readable): SKIPPED -- the target was not offered at all
+the page names every source and everything the chat line says: SKIPPED -- nobody was reached through the focus token, so the description cannot be judged against it
+## scenarios.lua 5/8
 a pinned spell is offered with its switch off (the only spell learned, off and pinned): the stranger was offered nothing with a learned spell pinned
+a refusal read through the library is still a refusal: dropped somebody a yard away because the client would not answer about a stranger (interact restricted)
+a refusal read through the library is still a refusal: dropped somebody a yard away because the client would not answer about a stranger (interact secret)
+a refused aura read is not a definite no (a read that throws): SKIPPED -- the target was not offered at all
+a right-click skip holds against the next left press: a left press after a block cast at Petra: /target Petra / /cast Arcane Intellect / /targetlasttarget
+a right-click skip holds against the next left press: a press was filed against somebody just skipped (block)
+a shorter window applies to live debts (the slider): SKIPPED -- no favour was filed
+a shout at somebody measured too far away says so: SKIPPED -- the far party member was not offered as measured out of earshot
+a signal that resolves and then answers nobody: dropped somebody four yards away
+one landing seen twice, log first: one courtesy was announced 2 times
+one landing seen twice, log first: one person who buffed us was filed as 2 debts
+who the proximity setting does not apply to: a party member was dropped for distance
+who the proximity setting does not apply to: dropped the player you have set as your focus
+who the proximity setting does not apply to: dropped the player you have targeted, which is the plainest statement of intent there is
+## scenarios.lua 6/8
+2 changes to your auras this session, read in 2 walks
+Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group.
+When a top-up is due (top-ups are off)
 a press goes to whoever the panel names: SKIPPED -- the target did not outrank the debt, so nothing is promoted over the panel
 a press goes to whoever the panel names: the panel was not brought up to date with who the next press is for
 a press goes to whoever the panel names: the press after the panel moved on did not go to Bert: /target Anna
 a press goes to whoever the panel names: the press did nothing and nothing said who the prompt had moved on to
 a press turned away by the cooldown keeps the quoted line: SKIPPED -- no spoken line to compare (alpha / nil)
 a press under an old flash goes to whoever it names: SKIPPED -- the flash came off onto something other than Bert: |cffffffffAnna|r
-a refusal read through the library is still a refusal: dropped somebody a yard away because the client would not answer about a stranger (interact restricted)
-a refusal read through the library is still a refusal: dropped somebody a yard away because the client would not answer about a stranger (interact secret)
-a refused aura read is not a definite no (a read that comes back secret): SKIPPED -- the target was not offered at all
-a refused aura read is not a definite no (a read that throws): SKIPPED -- the target was not offered at all
-a refused aura read is not a definite no (an id declared secret): SKIPPED -- the target was not offered at all
-a refused aura read is not a definite no (everything readable): SKIPPED -- the target was not offered at all
-a refused cast puts the ledger back: SKIPPED -- no favour was filed, so there is nothing to record
+an unanswered press is not called a miss: SKIPPED -- Anna was not the one offered
+another paladin's blessing is not one of yours (a warrior with another paladin's Kings): cached: offered false, expected might
+another paladin's blessing is not one of yours (a warrior with another paladin's Kings): read: offered false, expected might
+asking for buffs: off -- |cffffd100Ask people for a buff I'm missing|r is not ticked.
+buff data: |cffffffffvanilla|r
+build |cffffffffVERSION|r
+combat log favours: armed=true, 0 seen, 0 filed
+combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm
+cures: nothing learned to cure with yet.
+debug says when favours are not being watched (both on): SKIPPED -- the control favour is not listed: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
+intellect      Arcane Intellect       known=true readable=true
+key: none | reminder: due at a login (said 0 of 3)
+milestones: 0 of 12 earned.
+not listening for requests -- |cffffd100People who ask me in chat|r is switched off.
+owes returning: |cffffffffPetra|r (T s left, buffed you T s ago)
+own buffs: 3 read, baseline 2
+proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet
+targeting: conditional=true @unit=true /targetexact=true
+thank with an emote: |cffff0000off|r
+the key keeps the realm and the macro drops it: /manners try expands {name}|{aim} to 'Vann|Vann'
+the key keeps the realm and the macro drops it: filed a cross-realm player as Vann
+the paladin note says when a blessing can be replaced (always offer): SKIPPED -- somebody wearing your Might was left alone, which is not what this case was built to show
+your own buff: offered to you when you are missing it.
+## scenarios.lua 7/8
+1 changes to your auras this session, read in 1 walks
+a pinned spell is offered with its switch off (everything off, Divine Spirit pinned): the stranger was offered nothing with a learned spell pinned
+a rung that cannot tell hands the person down: dropped somebody four yards away the library measured
+an error answers a press once: SKIPPED -- the press was not aimed at Anna (Anna owed nothing)
+another paladin's blessing is not one of yours (a bare warrior): cached: offered false, expected might
+another paladin's blessing is not one of yours (a bare warrior): read: offered false, expected might
+asking for buffs: off -- |cffffd100Ask people for a buff I'm missing|r is not ticked.
+buff data: |cffffffffvanilla|r
+capabilities on Forever: asked the client a question that is itself forbidden here: true
+capabilities on Forever: believed the combat log is available here
+capabilities on Forever: offered conditional targeting on the one client whose behaviour is not allowed to change
+capabilities on Forever: read UnitName's second return as a realm here, where it is a surname
+capabilities on Forever: the probe carried vanilla/classic
+combat log favours: armed=true, 0 seen, 0 filed
+combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm
+debug names the client for a class with nothing to cast: never named the flavour: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
+debug names the client for a class with nothing to cast: never named the interface number: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
+key: none | reminder: no prompt for this class (said 0 of 3)
+nobody is measured in a fight: dropped somebody during a fight, on a distance the client will not answer during one
+one landing seen twice, aura scan first: one courtesy was announced 2 times
+one landing seen twice, aura scan first: one person who buffed us was filed as 2 debts
+own buffs: 2 read, baseline 2
+surnames: built name 'Petra'
+targeting: conditional=true @unit=true /targetexact=true
+thank with an emote: |cffff0000off|r
+the library measures, and owns up to what it measured: dropped somebody four yards away, who is inside every bucket this client has
+the paladin note says when a blessing can be replaced (blessings the game hides): SKIPPED -- somebody wearing your Might was left alone, which is not what this case was built to show
+the paladin note says when a blessing can be replaced (blessings the game hides, topping up): SKIPPED -- somebody wearing your Might was left alone, which is not what this case was built to show
+the tooltip quotes the line that will actually run: SKIPPED -- no spoken line to compare (alpha / nil)
+## ask-review.lua
+ask-review: an ask's name in the list is said during the cooldown: a click on the ask's name in the cooldown ran |/w Anna Could I have Power Word: Fortitude when you have a moment, Anna? Thank you.|
+## ask.lua
+ask: /say as a choice, and each of the three lines: may in /say: |/say Anna, may I ask you for Power Word: Fortitude, please?|, not |/say Anna Aim, may I ask you for Power Word: Fortitude, please?|
+ask: /say as a choice, and each of the three lines: may: |/w Anna Anna, may I ask you for Power Word: Fortitude, please?|, not |/w Anna Aim Anna Aim, may I ask you for Power Word: Fortitude, please?|
+ask: /say as a choice, and each of the three lines: mind in /say: |/say Hello Anna, would you mind casting Power Word: Fortitude on me? Thanks!|, not |/say Hello Anna Aim, would you mind casting Power Word: Fortitude on me? Thanks!|
+ask: /say as a choice, and each of the three lines: mind: |/w Anna Hello Anna, would you mind casting Power Word: Fortitude on me? Thanks!|, not |/w Anna Aim Hello Anna Aim, would you mind casting Power Word: Fortitude on me? Thanks!|
+ask: /say as a choice, and each of the three lines: moment in /say: |/say Could I have Power Word: Fortitude when you have a moment, Anna? Thank you.|, not |/say Could I have Power Word: Fortitude when you have a moment, Anna Aim? Thank you.|
+ask: /say as a choice, and each of the three lines: moment: |/w Anna Could I have Power Word: Fortitude when you have a moment, Anna? Thank you.|, not |/w Anna Aim Could I have Power Word: Fortitude when you have a moment, Anna Aim? Thank you.|
+ask: a press whispers one polite line, targets nobody and casts nothing: the press ran |/w Anna Could I have Power Word: Fortitude when you have a moment, Anna? Thank you.|, not |/w Anna Aim Could I have Power Word: Fortitude when you have a moment, Anna Aim? Thank you.|
+ask: nobody on the never-offer list or the ignore list, dead, fighting or away is asked: somebody on the never-offer list is asked
+ask: nobody on the never-offer list or the ignore list, dead, fighting or away is asked: somebody skipped with a right-click is asked
+ask: nobody whose whisper the chat box would send to somebody else: asked by a whisper the chat box reads as going to "Petra Could"
+ask: off until it is ticked, and then somebody who could give you a buff comes up: asked Anna
+ask: one ask a person for a buff in ten minutes, and one ask in all in two: two minutes on Bram is asked again, for the same buff
+ask: somebody in your group is asked, and the tooltip says what the press will say: the button holds |/w Anna Could I have Power Word: Fortitude when you have a moment, Anna? Thank you.|
+ask: with the In character set on, a line from its own pool, short and safe in a macro: the press ran |/w Anna Well met, Anna. Could you grant me Power Word: Fortitude before I go?|, no line of the pool
+## asked.lua
+a buff given to somebody who asked is filed as asked: SKIPPED -- Anna is not on the prompt as somebody who asked
+a buff that lands serves the request: SKIPPED -- Anna was not offered after asking
+a class only hears requests for its own buffs: "buff pls" did not offer Fortitude: nothing
+a class only hears requests for its own buffs: "fort pls" did not offer Fortitude: nothing
+a class only hears requests for its own buffs: "pw:f please" did not offer Fortitude: nothing
+a class only hears requests for its own buffs: "stam?" did not offer Fortitude: nothing
+a paladin is offered what was asked for, within its pin: "bok?" offered nothing, not kings
+a paladin is offered what was asked for, within its pin: "buff pls" to a paladin pinned to Might offered nothing
+a paladin is offered what was asked for, within its pin: "kings" offered nothing, not kings
+a paladin is offered what was asked for, within its pin: "might pls" offered nothing, not might
 a request in a fight is offered after it: Anna asked before the fight and was let go during it
 a request in a fight is offered after it: Cara whispered during the fight and was not offered after it
 a request in a fight is offered after it: the minute after the fight was cut short
@@ -102,51 +198,191 @@ a request in the client's own language is heard: zhCN: request 1 was not heard a
 a request in the client's own language is heard: zhCN: request 2 was not heard as one
 a request in the client's own language is heard: zhCN: request 3 was not heard as one
 a request waits for the asker to be seen: Zed was not offered when his nameplate came into view
-a right-click skip holds against the next left press: a left press after a block cast at Petra: /target Petra / /cast Arcane Intellect / /targetlasttarget
-a right-click skip holds against the next left press: a press was filed against somebody just skipped (block)
-a rung that cannot tell hands the person down: dropped somebody four yards away the library measured
 a secret message or sender is not a request: a request whose GUID was secret was thrown away with it
-a shorter window applies to live debts (a profile switch): SKIPPED -- no favour was filed
-a shorter window applies to live debts (the slider): SKIPPED -- no favour was filed
-a shout at somebody measured too far away says so: SKIPPED -- the far party member was not offered as measured out of earshot
-a shout follows the group from a party to a raid and back: SKIPPED -- the party member was not offered the shout
-a signal that resolves and then answers nobody: dropped somebody four yards away
-a spell learned between scans is offered on the next: a spell learned since the last scan was not offered: nil
 a targeted asker comes first: targeting somebody who asked did not put them first: Anna/asked/0, Bert Beside/owed/1
 a targeted asker comes first: with the target not first, a request is not where it belongs: Bert Beside/owed/1, Anna/asked/1.5
-a warrior in a raid is told the shout reaches his subgroup: SKIPPED -- the favour from another subgroup was not noticed:
 an asker covered for what they asked is still offered what they lack (nearby): SKIPPED -- before asking, Anna is offered nothing as -, not Spirit as nearby
 an asker covered for what they asked is still offered what they lack (party): SKIPPED -- before asking, Anna is offered nothing as -, not Spirit as group
-an error answers a press once: SKIPPED -- the press was not aimed at Anna (Anna owed nothing)
-an interface number with no band: claimed to recognise 40400 as vanilla
-an old reading of somebody's buffs is replaced by a new one: somebody whose buff ran out was read as carrying it again from the kept reading
-an old reading of somebody's buffs is replaced by a new one: somebody whose buff ran out was still read as carrying it
-an out-of-range friend stays behind somebody in range: SKIPPED -- Cara was not queued as an out-of-range friend
-an out-of-range friend stays behind somebody in range: expected the friend in range, the stranger in range, then the friend out of range: Bert,Anna,Cara
-an unanswered press is not called a miss: SKIPPED -- Anna was not the one offered
-another paladin's blessing is not one of yours (a bare warrior): cached: offered false, expected might
-another paladin's blessing is not one of yours (a bare warrior): read: offered false, expected might
-another paladin's blessing is not one of yours (a warrior with another paladin's Greater Kings): cached: offered false, expected might
-another paladin's blessing is not one of yours (a warrior with another paladin's Greater Kings): read: offered false, expected might
-another paladin's blessing is not one of yours (a warrior with another paladin's Kings): cached: offered false, expected might
-another paladin's blessing is not one of yours (a warrior with another paladin's Kings): read: offered false, expected might
-another paladin's blessing is not one of yours (a warrior with another paladin's Might): cached: offered false, expected kings
-another paladin's blessing is not one of yours (a warrior with another paladin's Might): read: offered false, expected kings
-another paladin's blessing is not one of yours (an owed paladin with our own Kings): cached: offered wisdom, expected false
-another paladin's blessing is not one of yours (an owed paladin with our own Kings): read: offered wisdom, expected false
-buff data: |cffffffffvanilla|r
-buffing your own target leaves them targeted: SKIPPED -- Anna was not offered through the target token: /target Anna
-buffing your own target leaves them targeted: a stranger off a nameplate no longer gets your target handed back: /target Bert / /cast Arcane Intellect / /targetlasttarget
-buffs given unprompted are filed under group or strangers: SKIPPED -- nobody was offered
-buffs given unprompted are filed under group or strangers: SKIPPED -- the group member was not offered as one
-build |cffffffffVERSION|r
-capabilities on Forever: asked the client a question that is itself forbidden here: true
-capabilities on Forever: believed the combat log is available here
-capabilities on Forever: offered conditional targeting on the one client whose behaviour is not allowed to change
-capabilities on Forever: read UnitName's second return as a realm here, where it is a surname
-capabilities on Forever: the probe carried vanilla/classic
-combat log favours: armed=true, 0 seen, 0 filed
-combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm
+requests are one per person, thirty at most: asking again did not start the minute again
+somebody who asked comes after a favour and before your group: SKIPPED -- the prompt shows Bert
+somebody who asked comes after a favour and before your group: expected the favour, then the request, then your group: Anna Aim/owed, Bert/asked, Cara/group
+somebody who asked is offered it until they have it: a warrior who asked for Intellect was not offered it
+somebody who asked is offered it until they have it: somebody who asked was dropped when their auras could not be read
+tactical chat is not a request: SKIPPED -- "anyone need int?" from a priest was not a request
+tactical chat is not a request: a druid did not hear "mark pls" in CHAT_MSG_SAY as a request
+tactical chat is not a request: a druid did not hear "motw pls" in CHAT_MSG_PARTY as a request
+the common names for a buff are recognised: "AI?" was not heard as asking for a buff
+the common names for a buff are recognised: "INT PLEASE" was not heard as asking for a buff
+the common names for a buff are recognised: "Int?" was not heard as asking for a buff
+the common names for a buff are recognised: "ai" was not heard as asking for a buff
+the common names for a buff are recognised: "any mage for brilliance?" was not heard as asking for a buff
+the common names for a buff are recognised: "anyone got int" was not heard as asking for a buff
+the common names for a buff are recognised: "arcane intellect please" was not heard as asking for a buff
+the common names for a buff are recognised: "buff pls" was not heard as asking for a buff
+the common names for a buff are recognised: "buffs?" was not heard as asking for a buff
+the common names for a buff are recognised: "can I get a buff" was not heard as asking for a buff
+the common names for a buff are recognised: "can I get int" was not heard as asking for a buff
+the common names for a buff are recognised: "could i have AI" was not heard as asking for a buff
+the common names for a buff are recognised: "int pls" was not heard as asking for a buff
+the common names for a buff are recognised: "int plz ty" was not heard as asking for a buff
+the common names for a buff are recognised: "mage int" was not heard as asking for a buff
+the common names for a buff are recognised: "need int" was not heard as asking for a buff
+the common names for a buff are recognised: "|cff71d5ff|Hspell:1459:0|h[Arcane Intellect]|h|r pls" was not heard as asking for a buff
+the launcher says who asked: SKIPPED -- no launcher, or Anna is not on the prompt
+two people with one name are told apart by GUID: SKIPPED -- the Anna beside you was not offered when she asked
+your own messages are not requests: expected three of your own and none noted, got 2 and 1
+## author-egg.lua
+author-egg: a press that lands on the author says so once: SKIPPED -- the author was not offered
+author-egg: it also shows across the screen, in gold in chat: a second buff bowed again
+author-egg: it also shows across the screen, in gold in chat: a second buff made the fanfare again
+author-egg: it also shows across the screen, in gold in chat: a second buff put it across the screen again
+author-egg: it also shows across the screen, in gold in chat: no banner in the raid warning's lettering:
+author-egg: it also shows across the screen, in gold in chat: no fanfare:
+author-egg: it also shows across the screen, in gold in chat: nothing was put across the screen:
+author-egg: it also shows across the screen, in gold in chat: the buffer did not bow:
+author-egg: it also shows across the screen, in gold in chat: the chat line is not gold: nil
+author-egg: the author is told who it was, and nobody else is: the author was told:
+author-egg: the author's Manners is told, once: 0 messages went to the author
+author-egg: the seal is shown under the line, then fades and goes: no seal was made
+## battleground.lua
+battleground: Buff my team there decides in a battleground, the instance switch in a dungeon: Buff my team there, off, held a dungeon's party back
+battleground: Buff my team there decides in a battleground, the instance switch in a dungeon: Buff my team there, off, held a party back out in the world
+battleground: Buff my team there decides in a battleground, the instance switch in a dungeon: in a arena instance the instance switch held the team back with Buff my team there on
+battleground: Buff my team there decides in a battleground, the instance switch in a dungeon: in a arena instance your target was dropped with Buff my team there off
+battleground: Buff my team there decides in a battleground, the instance switch in a dungeon: in a pvp instance the instance switch held the team back with Buff my team there on
+battleground: Buff my team there decides in a battleground, the instance switch in a dungeon: in a pvp instance your target was dropped with Buff my team there off
+battleground: after a death your own buff comes ahead of the team raised beside you: SKIPPED -- out in the world somebody raised is not first: Bert, Mort, Anna, Cara, Dora
+battleground: before the gates open every raid group is offered: SKIPPED -- out in the world the raid group switched off is not held back: Mort, Raider2, Raider3, Raider4, Raider5
+battleground: before the gates open the group casts come first: SKIPPED -- the group cast is not in the queue: Mort, Anna, Bert, Cara, Dora
+battleground: before the gates open the mana floor holds nobody back: under Preparation the mana floor still held the team back: Mort, Anna, Bert, Cara, Dora
+battleground: of your own, what you fight with before the long extras, the missing before the low: SKIPPED -- no team-mate is offered ahead of your food
+battleground: once the gates are open nobody else is offered in a fight: SKIPPED -- out in the world a fight leaves no party member in the queue
+battleground: only somebody within reach is offered: SKIPPED -- out in the world, with Only in range off, somebody out of range or with no token is not offered: Zed Far, Anna, Bert, Dora, Cara
+## courtesy-review.lua
+courtesy-review: a conjure that failed is offered again, not a trade of water they cannot drink: SKIPPED -- somebody of level 30 is not offered a conjure over the level 55 water held
+courtesy-review: a courtesy standing does not stop the walk for a cure: SKIPPED -- the cursed party member is not offered the cure with nobody asking
+courtesy-review: a press with her trade already open puts the water in it: SKIPPED -- with empty bags the conjure is not offered
+courtesy-review: a trade the asker opens themselves gets the water and answers the request: SKIPPED -- the water in the bags is not offered as a trade
+## courtesy.lua
+courtesy: Offer nothing in cities and inns holds a courtesy too: SKIPPED -- resting with the rule off, the two who asked are not both offered
+courtesy: a favour comes first, and an unasked buff gives way: SKIPPED -- Anna is not offered Intellect as a passer-by
+courtesy: a healthstone is created with a shard, then traded to whoever asked: SKIPPED -- the healthstone is not offered as a create
+courtesy: a portal is for the group, needs its rune and targets nobody: SKIPPED -- the party member's portal is not offered
+courtesy: a summon targets the member who asked, hands nothing back, and needs a shard: SKIPPED -- the summon is not offered with a shard in the bags
+courtesy: each is off until ticked, and shown to the class that has it: water is not offered once its switch is ticked
+courtesy: nothing is offered or left armed in a fight: the request held through the fight is not offered after it
+courtesy: the tooltip says what the press does, and a skip lets them go: SKIPPED -- water is not offered
+courtesy: the water suits the level of whoever asked: SKIPPED -- water is not offered
+courtesy: the words that ask for one are heard, and no others: "Portal: Undercity please" was not heard as courtesy:portal:11418 (nil)
+courtesy: the words that ask for one are heard, and no others: "Water?" was not heard as courtesy:water (nil)
+courtesy: the words that ask for one are heard, and no others: "agua por favor" was not heard as courtesy:water (nil)
+courtesy: the words that ask for one are heard, and no others: "any food?" was not heard as courtesy:food (nil)
+courtesy: the words that ask for one are heard, and no others: "can I get some water" was not heard as courtesy:water (nil)
+courtesy: the words that ask for one are heard, and no others: "can i get a port to org" was not heard as courtesy:portal:11417 (nil)
+courtesy: the words that ask for one are heard, and no others: "conjure water pls" was not heard as courtesy:water (nil)
+courtesy: the words that ask for one are heard, and no others: "food pls" was not heard as courtesy:food (nil)
+courtesy: the words that ask for one are heard, and no others: "mage food" was not heard as courtesy:food (nil)
+courtesy: the words that ask for one are heard, and no others: "mage water please" was not heard as courtesy:water (nil)
+courtesy: the words that ask for one are heard, and no others: "need water" was not heard as courtesy:water (nil)
+courtesy: the words that ask for one are heard, and no others: "org portal pls" was not heard as courtesy:portal:11417 (nil)
+courtesy: the words that ask for one are heard, and no others: "port to Orgrimmar pls" was not heard as courtesy:portal:11417 (nil)
+courtesy: the words that ask for one are heard, and no others: "portal uc?" was not heard as courtesy:portal:11418 (nil)
+courtesy: the words that ask for one are heard, and no others: "wasser bitte" was not heard as courtesy:water (nil)
+courtesy: the words that ask for one are heard, and no others: "water and food pls" was not heard as courtesy:water (nil)
+courtesy: the words that ask for one are heard, and no others: "water pls" was not heard as courtesy:water (nil)
+courtesy: water asked for is conjured, then traded, and the trade is never accepted: asking for water did not put Anna on the prompt for it
+courtesy: water is no buff request, and a buff request no courtesy: buff pls was not offered as a buff (nil)
+courtesy: water is no buff request, and a buff request no courtesy: int pls was not offered as Arcane Intellect (nil)
+courtesy: water is offered with every buff switched off: with no buff to give, the water she asked for is not offered
+## cures.lua
+cures: a class with a cure and no buff for others still walks: SKIPPED -- the shaman has a buff for somebody else in hand
+cures: the switches are on Who to buff, for a class with a cure: SKIPPED -- My party and raid is not hidden from a shaman with nothing for others
+## data-audit.lua
+data-audit: Omen of Clarity is a druid's own buff only on Classic Era (Forever): a Forever druid was offered Omen of Clarity, a passive there with nothing to cast: the press casts nothing, on every quiet scan
+data-audit: Skip my own class skips a paladin who trains Kings on Forever: a level 60 paladin with Skip my own class on was offered kings for a level 60 paladin, who trains it at 20 on Forever
+data-audit: Skip my own class skips a priest who trains Divine Spirit on Forever: a level 60 priest with Skip my own class on was offered spirit for a level 60 priest, who trains it at 30 to 60 on Forever
+data-audit: a Fear Ward or a Soulstone from somebody is a favour: Anna's Fear Ward was taken for a stray proc: no 'buffed you' line, no debt, no /thank
+data-audit: a Fear Ward or a Soulstone from somebody is a favour: Bert's Soulstone was taken for a stray proc: no 'buffed you' line, no debt, no /thank
+data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown: a Forever paladin is shown Blessing of Sanctuary, which no paladin there can learn
+data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown: every Forever paladin is told in red that Manners has the wrong spell ids: sanctuary 20914, sanctuary 20913, sanctuary 20912, sanctuary 20911, sanctuary 25899
+data-audit: on Forever a raider flagged in any raid group holds the group cast back: /manners debug does not say why the raid gets no group cast: |cffffffffRaider4|r: flagged for PvP -- buffing them would flag you
+data-audit: on Forever a raider flagged in any raid group holds the group cast back: a press would cast the group spell over Raider4, flagged for PvP in another raid group, and flag you: on Forever it lands on them too
+data-audit: on Forever a raider flagged in any raid group holds the group cast back: a raider flagged for PvP in another raid group did not hold back the group cast, which lands on them on Forever and would flag you
+data-audit: on Forever one group spell covers everybody in the raid: two missing it in each of two raid groups were offered 0 group casts and 4 single ones, where one Arcane Brilliance covers all four on Forever
+data-audit: the group buff settings say what one cast counts (Forever): Forever's Arcane Brilliance is taken to reach only one raid group
+data-audit: the group buff settings say what one cast counts (Forever): the group buff settings do not say they count your party or raid: Cast one Arcane Brilliance when enough of one party need it and you carry the reagent. / How many in one party must be missing it first.
+## downrank.lua
+downrank: a change of level rebuilds the macro: SKIPPED -- Anna was not on the prompt
+downrank: a level the client will not say keeps the plain name: SKIPPED -- Anna was not on the prompt
+downrank: a skull keeps the plain name: SKIPPED -- Anna was not on the prompt
+downrank: level 1 gets rank 1: SKIPPED -- Anna was not on the prompt
+downrank: level 12 gets rank 2: SKIPPED -- Anna was not on the prompt
+downrank: level 30 gets rank 3: SKIPPED -- Anna was not on the prompt
+downrank: no rank text from the client keeps the plain name: SKIPPED -- Anna was not on the prompt
+downrank: somebody of level 60 keeps the plain name: SKIPPED -- Anna was not on the prompt
+downrank: the rank is the plain name once they are high enough for the top: SKIPPED -- Anna was not on the prompt
+## entrance-light.lua
+entrance-light: Calm drops the light sweep: on Full the stripe's sweep did not slide for a favour
+entrance-light: a favour's glint runs the rules: glint 1 kept running after the favour left the panel
+entrance-light: a favour's glint runs the rules: glint 2 kept running after the favour left the panel
+entrance-light: a favour's glint runs the rules: the glints' flag stayed up after the favour left
+## forever-tracking.lua
+forever-tracking: Find Treasure on still reminds you of Find Herbs: Find Treasure is not a family of its own on Forever
+forever-tracking: a memory or a pick of it on Tracking moves across: SKIPPED -- Find Treasure is not a family of its own here
+forever-tracking: a tick or Tracking off keeps it off: SKIPPED -- Find Treasure is not a family of its own here
+forever-tracking: never had Find Treasure up, never asked for it: SKIPPED -- Find Treasure is not a family of its own here
+forever-tracking: the page has a switch for it: Who to buff has no Find Treasure control
+## groupbuffs.lua
+groupbuffs: a Greater Blessing counts one class: the Greater Blessing does not cover the warriors, across subgroups: Raider2, Raider3, Raider6, Raider7
+groupbuffs: a Greater Blessing counts one class: the mages lost their own single Wisdom
+groupbuffs: a Greater Blessing waits while a warrior is unread: SKIPPED -- the unread warrior is not offered with an unread answer
+groupbuffs: a fight freezes the group cast: the press in the fight covered 0 of the four
+groupbuffs: a group cast aimed at a favour still counts as one buff given: SKIPPED -- the press was not the group cast at Cora: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
+groupbuffs: a group cast answers a member who asked in chat: SKIPPED -- Dain's request is not standing behind a group cast at somebody else: nil / Cora
+groupbuffs: a group cast that returns a favour thanks the one it repays (everybody missing it): a ready check tied the party, and the cast was aimed at Bram, not Gwen who is owed: /target Bram / /cast Arcane Brilliance / /targetlasttarget
+groupbuffs: a group cast that returns a favour thanks the one it repays (she wears another mage's Intellect): the group cast repays Gwen, and the line is missing: /target Bram / /cast Arcane Brilliance / /targetlasttarget
+groupbuffs: a group cast's /party line is asked of the member it thanks (owed inside the subgroup, the cast aimed outside it): Raider3 is in the player's subgroup, and the /party line is missing: /target Raider10 / /cast Arcane Brilliance / /targetlasttarget
+groupbuffs: a late refusal lets go a favour listed since the settle: SKIPPED -- the group cast at Cora did not settle Dain's favour: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
+groupbuffs: a late refusal puts every favour back: SKIPPED -- the group cast did not settle both favours: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
+groupbuffs: a refused press gives everybody it covered back: three seconds after a refused press the party is not offered again: Bram, Cora, Dain, Gwen
+groupbuffs: four of a party missing it get one group cast: the group cast does not cover the party: Bram, Cora, Dain, Gwen
+groupbuffs: four of a party missing it get one group cast: the macro does not target one of them and cast Arcane Brilliance: /target Bram / /cast Arcane Brilliance / /targetlasttarget
+groupbuffs: four of a party missing it get one group cast: the spoken line does not name the group spell: /target Bram / /cast Arcane Brilliance / /say Here is Arcane Brilliance, Bram. / /targetlasttarget
+groupbuffs: not now on a group cast skips the whole party: the party did not come back after the cooldown
+groupbuffs: the group cast is aimed at somebody in range: the group cast is not aimed at the one in range: Dain
+groupbuffs: the group cast returns the favours it covers: SKIPPED -- the press was not the group cast at Cora: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
+groupbuffs: the group cast returns the favours it covers: the group cast does not take a favour's place: group
+groupbuffs: the group cast returns the favours it covers: the group cast is not aimed at somebody owed: Bram
+groupbuffs: the group cast returns the favours it covers: the tooltip does not name the favours the group cast returns: Manners / Cora Vell	Arcane Intellect / Buffed you -- return the favour. / Buff state unreadable on this build -- they may already have it. /   / Targets |cffffffffCora Vell|r, casts |cffffffffArcane Intellect|r. / Hands your own target back afterwards. /   / Click to cast. |cffffd100/manners|r for options. / Right-click to skip this one. / Shift-right-click to put them on your never-offer list.
+groupbuffs: the macro follows a party filling up: SKIPPED -- Bram's single cast is not armed: /target Bram / /cast Arcane Intellect / /targetlasttarget
+groupbuffs: the settings: the threshold does not say it counts your party or raid: How many in one party must be missing it first.
+groupbuffs: the tooltip counts the reagent: the tooltip does not say what a right-click does to a group cast: Manners / Your party	Arcane Brilliance / 4 in your party are missing Arcane Intellect. / One cast gives it to everybody in your party. / Uses one Arcane Powder -- you have 20. /   / Targets |cffffffffBram|r, casts |cffffffffArcane Brilliance|r on everybody in your party. / Hands your own target back afterwards. /   / Click to cast. |cffffd100/manners|r for options. / Right-click to skip this group buff for now. / Shift-right-click to put Bram on your never-offer list.
+groupbuffs: under the threshold they are buffed one by one: SKIPPED -- the two missing it are not both offered: 2
+## hall-proof.lua
+hall-proof: the certificate names the character in class colour, the day, the count and the code the fold gives: the line under the name lacks the class or the client: Mage, Classic Era
+## hall.lua
+hall: a client with realms puts the realm in the code, Forever does not: Forever's code carries a realm: Somewhere
+hall: every milestone earned, the code is this character's, dated the last one, in a box that only copies: the code names Mort, not the two words of Mort
+hall: every milestone earned, the code is this character's, dated the last one, in a box that only copies: the code says MAGE on vanilla, realm ''
+hall: the list is newest first in class colours, marks your own name, and says when nobody is listed: somebody listed is still invited
+hall: the list is newest first in class colours, marks your own name, and says when nobody is listed: somebody listed was told the hall is open
+hall: the list is newest first in class colours, marks your own name, and says when nobody is listed: your own name is not marked: |cff40c7ebMort Defrette|r  |cff808080WoW Forever, 2026-12-01|r
+## hunt13-fix1.lua
+hunt13-fix1: a party member out of sight is not offered though asking: SKIPPED -- the party in sight was not offered, or Cara out of sight was
+hunt13-fix1: a party member out of sight is not offered though owed: SKIPPED -- the party in sight was not offered, or Cara out of sight was
+## hunt13-fix2.lua
+fix2 fight: a fight's withheld auras are no new favour (a new favour in the fight): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
+fix2 fight: a fight's withheld auras are no new favour (the aura's number withheld): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
+fix2 fight: a fight's withheld auras are no new favour (the spell withheld): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
+fix2 fight: a fight's withheld auras are no new favour (the spell, ending and caster withheld): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
+fix2 hold: a lapsed favour gives the panel to the group: SKIPPED -- the favour was not on the prompt ahead of the group: Anna Aim
+fix2 hold: a new target takes the panel from the old one: SKIPPED -- Anna as your target was not put on the prompt: Anna
+fix2 hold: a party target cleared hands the panel to a favour: SKIPPED -- the party member you targeted was not on the prompt: Gwen
+fix2 hold: clearing your target hands the panel to a favour: SKIPPED -- your target was not on the prompt ahead of the favour: Anna
+fix2 shout: one shout repays everybody measured in its reach: SKIPPED -- the three were not offered as measured (panel Bo)
+fix2 skip: a right-press skip in a fight says the press still casts: SKIPPED -- the prompt was not armed on Anna
+fix2 sound: a mage's group member plays nothing with only favours on: SKIPPED -- the group member was not on the prompt
+## hunt20-core.lua
 core20: a line in another script is not compared with English words: a Russian request with a capital at the start was not heard
 core20: a passer-by whose name has not loaded is not offered as Unknown: once her name loaded the panel showed Cora, not Cora
 core20: a press on somebody just dead says nothing (held, Bert queued): SKIPPED -- Anna was not armed with the line: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
@@ -158,6 +394,7 @@ core20: the death watch asks about feigning once, as somebody goes down: Anna Ai
 core20: the death watch asks about feigning once, as somebody goes down: Bert Beside stood up and was not offered as just revived
 core20: the death watch asks about feigning once, as somebody goes down: Dora Deep stood up and was not offered as just revived
 core20: the spellbook is read without the deprecated calls: with the deprecated spellbook calls gone, a stranger is not offered
+## hunt22-core.lua
 core22: a flagged raider a hunter feigning death holds the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider dead does not hold the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
 core22: a flagged raider in sight and alive holds the raid's group cast: SKIPPED -- no group cast for the raid with nobody flagged
@@ -201,6 +438,67 @@ core22: a shout at 5 yards carries the thank-you: SKIPPED -- Bob is not offered 
 core22: a silent press where another spell went out leaves the next press its line: SKIPPED -- the line was not armed to begin with
 core22: a silent press where it went to somebody else leaves the next press its line: SKIPPED -- the line was not armed to begin with
 core22: a silent press where nothing answers it leaves the next press its line: SKIPPED -- the line was not armed to begin with
+## hunt3-clients.lua
+hunt3-clients: a conjure still cooling down is not offered: SKIPPED -- the conjure is not offered when ready
+hunt3-clients: the milestones read from the ledger stay for a class with a buff to give: SKIPPED -- Forever's shaman has a buff for others
+## hunt3-core.lua
+core: a late refusal keeps the newer favour's debt: SKIPPED -- Petra is not owed and offered
+core: the favour line does not promise a prompt that is kept away (mounted): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt once you get off your mount
+core: the favour line does not promise a prompt that is kept away (neither): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
+core: the favour line does not promise a prompt that is kept away (snoozed): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- the prompt is snoozed until 12:00:00, so returning it is offered only if the snooze ends before the favour runs out
+core: the favour line does not promise a prompt that is kept away (unlocked): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt once you lock it
+core: the never-offer list lets the favour go in the ledger (call): SKIPPED -- no favour from Petra was filed
+core: the never-offer list lets the favour go in the ledger (shift-right-click): SKIPPED -- no favour from Petra was filed
+core: the never-offer list lets the favour go in the ledger (slash): SKIPPED -- no favour from Petra was filed
+## hunt3-favours-new.lua
+hunt3-favours-new: a Chinese thanks beside a one-word name is read: "求水 謝謝" was not heard as a request for water (nil)
+hunt3-favours-new: a Chinese thanks beside a one-word name is read: "求水 谢谢" was not heard as a request for water (nil)
+hunt3-favours-new: a Korean or Chinese please beside a one-word name is read: SKIPPED -- "water pls" is not heard as a request for water
+hunt3-favours-new: somebody who says they drink asks for no water: SKIPPED -- "need water" is not heard as a request for water
+## hunt3-hall-detect.lua
+hunt3-hall-detect: a listed player past the list's cut still finds their own row: SKIPPED -- the player is not read as listed
+hunt3-hall-detect: a namesake of another class is not the listed character: a row with no class no longer matches by name
+hunt3-hall-detect: a namesake of another class is not the listed character: the mage's own row is no longer the mage
+## hunt3-ledger.lua
+hunt3 ledger: Clear inside a refusal's window keeps the undo: SKIPPED -- no favour was filed, so there is nothing to record
+hunt3 ledger: a refusal after a second buff leaves one owed row: SKIPPED -- no favour was filed, so there is nothing to record
+hunt3 ledger: an owed row does not promise an offer the prompt cannot make: SKIPPED -- no favour was filed, so there is nothing to record
+hunt3 ledger: putting a giver on the never-offer list lets their favour go: SKIPPED -- no favour was filed, so there is nothing to record
+## hunt3-looks.lua
+hunt3-looks: archmage plays no arrival over a verdict: SKIPPED -- the scan did not bring the next person owed to the top as news
+hunt3-looks: ebon plays no arrival over a verdict: SKIPPED -- the scan did not bring the next person owed to the top as news
+hunt3-looks: fel plays no arrival over a verdict: SKIPPED -- the scan did not bring the next person owed to the top as news
+hunt3-looks: gearworks plays no arrival over a verdict: SKIPPED -- the scan did not bring the next person owed to the top as news
+hunt3-looks: lightbringer plays no arrival over a verdict: SKIPPED -- the scan did not bring the next person owed to the top as news
+hunt3-looks: stormcaller plays no arrival over a verdict: SKIPPED -- the scan did not bring the next person owed to the top as news
+hunt3-looks: warchief plays no arrival over a verdict: SKIPPED -- the scan did not bring the next person owed to the top as news
+## hunt3-options.lua
+hunt3-options: no favour to let go for somebody who owes nothing: SKIPPED -- Anna is not on the prompt as a passer-by: Anna
+hunt3-options: who's next does not deny favours it cannot offer: with Anna skipped, who's next does not say her favour is waiting: Anna -- Arcane Intellect (a passer-by)
+hunt3-options: who's next does not deny favours it cannot offer: with both skipped, who's next does not count the favours waiting: Anna -- Arcane Intellect (a passer-by)
+## hunt3-prompt.lua
+/manners never takes the person off the prompt before a fight can freeze it: SKIPPED -- the panel named Anna to start with
+a listed person who is owed still gets the fuse: SKIPPED -- the panel named Anna to start with
+a person put on the never list gets no fuse: SKIPPED -- the panel named Anna to start with
+a person put on the never list leaves the panel at once: SKIPPED -- the panel named Anna to start with
+the options page's never box takes the person off the prompt before a fight can freeze it: SKIPPED -- the panel named Anna to start with
+## hunt3-seams.lua
+hunt3-seams: /manners debug says the cure lines and the count to a class with no buff for others: SKIPPED -- the shaman has a buff for somebody else
+hunt3-seams: a trade the asker opens gets nothing while Manners is off, snoozed or unlocked: SKIPPED -- the water in the bags is not offered as a trade
+## hunt30-move.lua
+hunt30-move: Look leads with a big Move the prompt button, the places beside it: Look begins appearance.classicArt, appearance.move
+hunt30-move: Look leads with a big Move the prompt button, the places beside it: appearance.classicArt is drawn above the button
+## hunt39-press.lua
+hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target false) was left out: /target Anna Aim / /cast Arcane Intellect / /cleartarget
+hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target true) was left out: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
+## hunt40-cards.lua
+hunt40-cards: the recorded text is current with the looks, held by the hash:   the pictures were drawn from something that has changed since
+## hunt5-core.lua
+core: a long Cyrillic name and surname is a person: a 49-byte name and surname was not a name: \208\144\208\187\208\181\208\186\209\129\208\176\208\189\208\180\209\128\208\184\208\189\208\176
+core: a long Cyrillic name and surname is a person: a 98-byte name was let through
+core: a long Cyrillic name and surname is a person: a name that could break out of the macro was let through
+core: one name put on a long list costs one compare per favour: one name put on the list took 2303 compares
+## hunt5-core2.lua
 core2: a Chinese name with punctuation is found inside the message: zhCN: request 1 was not heard as one
 core2: a Chinese name with punctuation is found inside the message: zhCN: request 2 was not heard as one
 core2: a Korean name is not found inside another word: koKR: request 1 was not heard as one
@@ -217,6 +515,7 @@ core2: a question about the buff is not a request (koKR): koKR: request 1 was no
 core2: a question about the buff is not a request (koKR): koKR: request 2 was not heard as one
 core2: a question about the buff is not a request (zhCN): zhCN: request 1 was not heard as one
 core2: a rebuff after the last buff ran out is a favour (a later end): the rebuff under its old number was not taken for a favour
+core2: a rebuff after the last buff ran out is a favour (a moment later): the rebuff under its old number was not taken for a favour
 core2: a request is answered buff by buff (buffs please): SKIPPED -- Anna is not offered anything after asking
 core2: a request is answered buff by buff (buffs please, unreadable): SKIPPED -- Anna is not offered anything after asking
 core2: a request is answered buff by buff (owed asker): after her favour was returned she is offered nothing, not the Shadow Protection she asked for
@@ -234,94 +533,16 @@ core2: an accented question about the buff is not a request (itIT): itIT: reques
 core2: the Chinese please inside another word is not a please: zhCN: request 1 was not heard as one
 core2: the Chinese please inside another word is not a please: zhCN: request 2 was not heard as one
 core2: the Chinese please inside another word is not a please: zhCN: request 3 was not heard as one
-core: a late refusal keeps the newer favour's debt: SKIPPED -- Petra is not owed and offered
-core: a long Cyrillic name and surname is a person: a 49-byte name and surname was not a name: \208\144\208\187\208\181\208\186\209\129\208\176\208\189\208\180\209\128\208\184\208\189\208\176
-core: a long Cyrillic name and surname is a person: a 98-byte name was let through
-core: a long Cyrillic name and surname is a person: a name that could break out of the macro was let through
-core: one name put on a long list costs one compare per favour: one name put on the list took 2303 compares
-core: the favour line does not promise a prompt that is kept away (mounted): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt once you get off your mount
-core: the favour line does not promise a prompt that is kept away (neither): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
-core: the favour line does not promise a prompt that is kept away (snoozed): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- the prompt is snoozed until 12:00:00, so returning it is offered only if the snooze ends before the favour runs out
-core: the favour line does not promise a prompt that is kept away (unlocked): SKIPPED -- no favour was filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt once you lock it
-core: the never-offer list lets the favour go in the ledger (call): SKIPPED -- no favour from Petra was filed
-core: the never-offer list lets the favour go in the ledger (shift-right-click): SKIPPED -- no favour from Petra was filed
-core: the never-offer list lets the favour go in the ledger (slash): SKIPPED -- no favour from Petra was filed
-data-audit: Omen of Clarity is a druid's own buff only on Classic Era (Forever): a Forever druid was offered Omen of Clarity, a passive there with nothing to cast: the press casts nothing, on every quiet scan
-data-audit: Skip my own class skips a paladin who trains Kings on Forever: a level 60 paladin with Skip my own class on was offered kings for a level 60 paladin, who trains it at 20 on Forever
-data-audit: Skip my own class skips a priest who trains Divine Spirit on Forever: a level 60 priest with Skip my own class on was offered spirit for a level 60 priest, who trains it at 30 to 60 on Forever
-data-audit: a Fear Ward or a Soulstone from somebody is a favour: Anna's Fear Ward was taken for a stray proc: no 'buffed you' line, no debt, no /thank
-data-audit: a Fear Ward or a Soulstone from somebody is a favour: Bert's Soulstone was taken for a stray proc: no 'buffed you' line, no debt, no /thank
-data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown: a Forever paladin is shown Blessing of Sanctuary, which no paladin there can learn
-data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown: every Forever paladin is told in red that Manners has the wrong spell ids: sanctuary 20914, sanctuary 20913, sanctuary 20912, sanctuary 20911, sanctuary 25899
-data-audit: on Forever a raider flagged in any raid group holds the group cast back: /manners debug does not say why the raid gets no group cast: |cffffffffRaider4|r: flagged for PvP -- buffing them would flag you
-data-audit: on Forever a raider flagged in any raid group holds the group cast back: a press would cast the group spell over Raider4, flagged for PvP in another raid group, and flag you: on Forever it lands on them too
-data-audit: on Forever a raider flagged in any raid group holds the group cast back: a raider flagged for PvP in another raid group did not hold back the group cast, which lands on them on Forever and would flag you
-data-audit: on Forever one group spell covers everybody in the raid: two missing it in each of two raid groups were offered 0 group casts and 4 single ones, where one Arcane Brilliance covers all four on Forever
-data-audit: the group buff settings say what one cast counts (Forever): Forever's Arcane Brilliance is taken to reach only one raid group
-data-audit: the group buff settings say what one cast counts (Forever): the group buff settings do not say they count your party or raid: Cast one Arcane Brilliance when enough of one party need it and you carry the reagent. / How many in one party must be missing it first.
-debug names the client for a class with nothing to cast: never named the flavour: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
-debug names the client for a class with nothing to cast: never named the interface number: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
-debug says when favours are not being watched (both on): SKIPPED -- the control favour is not listed: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r
-doubt does not outlive the scan that had it: a recast after a refused scan was taken for the buff already held
-entrance-light: Calm drops the light sweep: on Full the stripe's sweep did not slide for a favour
-entrance-light: a favour's glint runs the rules: glint 1 kept running after the favour left the panel
-entrance-light: a favour's glint runs the rules: glint 2 kept running after the favour left the panel
-entrance-light: a favour's glint runs the rules: the glints' flag stayed up after the favour left
-every outcome over an empty queue gets its own fade: SKIPPED -- the first fade did not run to nothing
-every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_familiar, which no class's model has
-every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_imbue, which no class's model has
-fix2 fight: a fight's withheld auras are no new favour (a new favour in the fight): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
-fix2 fight: a fight's withheld auras are no new favour (the aura's number withheld): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
-fix2 fight: a fight's withheld auras are no new favour (the spell withheld): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
-fix2 fight: a fight's withheld auras are no new favour (the spell, ending and caster withheld): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
-fix2 hold: a lapsed favour gives the panel to the group: SKIPPED -- the favour was not on the prompt ahead of the group: Anna Aim
-fix2 hold: a new target takes the panel from the old one: SKIPPED -- Anna as your target was not put on the prompt: Anna
-fix2 hold: a party target cleared hands the panel to a favour: SKIPPED -- the party member you targeted was not on the prompt: Gwen
-fix2 hold: clearing your target hands the panel to a favour: SKIPPED -- your target was not on the prompt ahead of the favour: Anna
-fix2 shout: one shout repays everybody measured in its reach: SKIPPED -- the three were not offered as measured (panel Bo)
-fix2 skip: a right-press skip in a fight says the press still casts: SKIPPED -- the prompt was not armed on Anna
-fix2 sound: a mage's group member plays nothing with only favours on: SKIPPED -- the group member was not on the prompt
-friends and guildmates come first, within their kind: expected your group, then the friend, then the stranger: Gus, Anna, Zed
-friends and guildmates come first: a stranger was ranked ahead of a friend or guildmate: Bert, Cara, Anna
-friends and guildmates come first: the friend was not recognised as one: nil
-friends and guildmates come first: the guildmate was not recognised as one: nil
-friends and guildmates come first: with the switch off the order still moved: Anna, Bert, Cara
-groupbuffs: a Greater Blessing counts one class: the Greater Blessing does not cover the warriors, across subgroups: Raider2, Raider3, Raider6, Raider7
-groupbuffs: a Greater Blessing counts one class: the mages lost their own single Wisdom
-groupbuffs: a Greater Blessing waits while a warrior is unread: SKIPPED -- the unread warrior is not offered with an unread answer
-groupbuffs: a fight freezes the group cast: the press in the fight covered 0 of the four
-groupbuffs: a group cast aimed at a favour still counts as one buff given: SKIPPED -- the press was not the group cast at Cora: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
-groupbuffs: a group cast answers a member who asked in chat: SKIPPED -- Dain's request is not standing behind a group cast at somebody else: nil / Cora
-groupbuffs: a group cast that returns a favour thanks the one it repays (everybody missing it): a ready check tied the party, and the cast was aimed at Bram, not Gwen who is owed: /target Bram / /cast Arcane Brilliance / /targetlasttarget
-groupbuffs: a group cast that returns a favour thanks the one it repays (she wears another mage's Intellect): the group cast repays Gwen, and the line is missing: /target Bram / /cast Arcane Brilliance / /targetlasttarget
-groupbuffs: a group cast's /party line is asked of the member it thanks (owed inside the subgroup, the cast aimed outside it): Raider3 is in the player's subgroup, and the /party line is missing: /target Raider10 / /cast Arcane Brilliance / /targetlasttarget
-groupbuffs: a late refusal lets go a favour listed since the settle: SKIPPED -- the group cast at Cora did not settle Dain's favour: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
-groupbuffs: a late refusal puts every favour back: SKIPPED -- the group cast did not settle both favours: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
-groupbuffs: a refused press gives everybody it covered back: three seconds after a refused press the party is not offered again: Bram, Cora, Dain, Gwen
-groupbuffs: four of a party missing it get one group cast: the group cast does not cover the party: Bram, Cora, Dain, Gwen
-groupbuffs: four of a party missing it get one group cast: the macro does not target one of them and cast Arcane Brilliance: /target Bram / /cast Arcane Brilliance / /targetlasttarget
-groupbuffs: four of a party missing it get one group cast: the spoken line does not name the group spell: /target Bram / /cast Arcane Brilliance / /say Here is Arcane Brilliance, Bram. / /targetlasttarget
-groupbuffs: not now on a group cast skips the whole party: the party did not come back after the cooldown
-groupbuffs: the group cast is aimed at somebody in range: the group cast is not aimed at the one in range: Dain
-groupbuffs: the group cast returns the favours it covers: SKIPPED -- the press was not the group cast at Cora: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
-groupbuffs: the group cast returns the favours it covers: the group cast does not take a favour's place: group
-groupbuffs: the group cast returns the favours it covers: the group cast is not aimed at somebody owed: Bram
-groupbuffs: the group cast returns the favours it covers: the tooltip does not name the favours the group cast returns: Manners / Cora Vell	Arcane Intellect / Buffed you -- return the favour. / Buff state unreadable on this build -- they may already have it. /   / Targets |cffffffffCora Vell|r, casts |cffffffffArcane Intellect|r. / Hands your own target back afterwards. /   / Click to cast. |cffffd100/manners|r for options. / Right-click to skip this one. / Shift-right-click to put them on your never-offer list.
-groupbuffs: the macro follows a party filling up: SKIPPED -- Bram's single cast is not armed: /target Bram / /cast Arcane Intellect / /targetlasttarget
-groupbuffs: the settings: the threshold does not say it counts your party or raid: How many in one party must be missing it first.
-groupbuffs: the tooltip counts the reagent: the tooltip does not say what a right-click does to a group cast: Manners / Your party	Arcane Brilliance / 4 in your party are missing Arcane Intellect. / One cast gives it to everybody in your party. / Uses one Arcane Powder -- you have 20. /   / Targets |cffffffffBram|r, casts |cffffffffArcane Brilliance|r on everybody in your party. / Hands your own target back afterwards. /   / Click to cast. |cffffd100/manners|r for options. / Right-click to skip this group buff for now. / Shift-right-click to put Bram on your never-offer list.
-groupbuffs: under the threshold they are buffed one by one: SKIPPED -- the two missing it are not both offered: 2
-hunt13-fix1: a party member out of sight is not offered though asking: SKIPPED -- the party in sight was not offered, or Cara out of sight was
-hunt13-fix1: a party member out of sight is not offered though owed: SKIPPED -- the party in sight was not offered, or Cara out of sight was
-hunt3 ledger: Clear inside a refusal's window keeps the undo: SKIPPED -- no favour was filed, so there is nothing to record
-hunt3 ledger: a refusal after a second buff leaves one owed row: SKIPPED -- no favour was filed, so there is nothing to record
-hunt3 ledger: an owed row does not promise an offer the prompt cannot make: SKIPPED -- no favour was filed, so there is nothing to record
-hunt3 ledger: putting a giver on the never-offer list lets their favour go: SKIPPED -- no favour was filed, so there is nothing to record
-hunt3-options: no favour to let go for somebody who owes nothing: SKIPPED -- Anna is not on the prompt as a passer-by: Anna
-hunt3-options: who's next does not deny favours it cannot offer: with Anna skipped, who's next does not say her favour is waiting: Anna -- Arcane Intellect (nearby)
-hunt3-options: who's next does not deny favours it cannot offer: with both skipped, who's next does not count the favours waiting: Anna -- Arcane Intellect (nearby)
-hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target false) was left out: /target Anna Aim / /cast Arcane Intellect / /cleartarget
-hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target true) was left out: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
+## hunt5-prompt.lua
+prompt5: a press after your target changed hands it back (fused): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
+prompt5: a press after your target changed hands it back (fused, pressed before a repaint): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
+prompt5: a press after your target changed hands it back (held): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
+prompt5: a press after your target changed hands it back (still targeted): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
+prompt5: a pull inside the fuse does not freeze the dropped person's macro: SKIPPED -- Anna was not armed: /target Anna / /cast Arcane Intellect
+prompt5: a pull inside the hold arms whoever the queue holds: SKIPPED -- the panel named Anna to start with
+prompt5: a shout pressed after she walked out of earshot keeps the debt (fused): SKIPPED -- Anna was not on the prompt measured inside the shout's reach: Anna, ranged true
+prompt5: a shout pressed after she walked out of earshot keeps the debt (held): SKIPPED -- Anna was not on the prompt measured inside the shout's reach: Bert, ranged true
+## ids-online.lua
 ids-online: Reagent Economy offers the group spell with no reagent (druid): a druid with Reagent Economy and no Wild Thornroot was not offered Gift of the Wild, which the game lets them cast without it
 ids-online: Reagent Economy offers the group spell with no reagent (mage): a mage with Reagent Economy and no Arcane Powder was not offered Arcane Brilliance, which the game lets them cast without it
 ids-online: Reagent Economy offers the group spell with no reagent (paladin): a paladin with Reagent Economy and no Symbol of Kings was not offered Greater Blessing of Might, which the game lets them cast without it
@@ -330,9 +551,31 @@ ids-online: Reagent Economy: an empty bag is not running out: a mage with Reagen
 ids-online: Reagent Economy: an empty bag is not running out: the group cast went with the last Arcane Powder, though the perk needs none
 ids-online: Reagent Economy: the options do not say group buffs are off: Start here tells a mage with Reagent Economy group buffs are off: Offering to: people who buff me, my group, passers-by within about 10 yards, myself (outside cities and inns). Already buffed: skipped. People who buff me are offered one back unless they already have it. Arcane Powder: none in your bags, so group buffs are not offered. Ready checks and the just-revived go first.
 ids-online: Reagent Economy: the options do not say group buffs are off: Who to buff tells a mage with Reagent Economy group buffs are off: |cffff8080Arcane Powder: none in your bags, so group buffs are not offered.|r
-ids-online: Reagent Economy: the options do not say group buffs are off: the bug report does not say the reagent is waived: Manners VERSION / client 1.15.9 (69893), interface 11509 / class MAGE | secrets true | auras secret now false | nameplates true / buff data vanilla /   intellect    known=true readable=true off=false /     group spell 23028, reagent 17020 x0 / enabled=true buff=auto sources owed/group/strangers/self=true/true/true/true whenBuffed=skip targetFirst=true keepDebts=true thank=false / own inCities=false none known / friendsFirst=true restingOnly=false skipPvP=true neverOffered=0 / groupBuffs=true atLeast=3 / manaFloor=0 readyCheckFirst=true revivedFirst=true raidGroupsOff=none / own buffs: 2 read, baseline 2, primed=true, doubt=nil / combat log: armed=true, 0 seen, 0 filed / errors: none this session
+ids-online: Reagent Economy: the options do not say group buffs are off: the bug report does not say the reagent is waived: Manners VERSION / client 1.15.9 (69893), interface 11509 / class MAGE | secrets true | auras secret now false | nameplates true / buff data vanilla /   intellect    known=true readable=true off=false /     group spell 23028, reagent 17020 x0 / enabled=true buff=auto sources owed/group/strangers/self=true/true/true/true pets=false whenBuffed=skip targetFirst=true keepDebts=true thank=false / cures group/passers-by/seconds=false/false/10 / own inCities=false none known / friendsFirst=true restingOnly=false skipPvP=true neverOffered=0 / quietInTowns=false where=both quietInInstances=false quietTargets=false thankWhisper=false thankDelay=false / battle: team=true speak=false thank=true items=false state=nil / groupBuffs=true atLeast=3 / share=true users=0 hellos heard=0 refused=0 own=0 other classes=0 sent=0 failed=0 / manaFloor=0 readyCheckFirst=true revivedFirst=true raidGroupsOff=none / own buffs: 2 read, baseline 2, primed=true, doubt=nil / combat log: armed=true, 0 seen, 0 filed / errors: none this session
 ids-online: Reagent Economy: the tooltip says no reagent is needed: SKIPPED -- no group cast with Reagent Economy
-intellect      Arcane Intellect       known=true readable=true
+## ingame-selftest.lua
+selftest: the button, names, the line rule, repairs and errors: a Camelot surname reads PASS UnitName (surname): "Mort", second nil, read as a realm, full name "Mort"
+selftest: the main hand and the familiar are compared: Manners reading an imbue over an empty list reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: false, false, nil, 0 / PASS main hand enchants: MAGE has no imbue reminder
+selftest: the main hand and the familiar are compared: Manners reading no familiar over a Rat on you reads PASS familiar: MAGE has no familiar
+selftest: the main hand and the familiar are compared: Manners reading nothing over a listed imbue reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
+selftest: the main hand and the familiar are compared: a Rat up reads PASS familiar: MAGE has no familiar
+selftest: the main hand and the familiar are compared: the report does not say the imbue is C_Item's alone: PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
+## layout.lua
+every path in the options window's layout is in the model: who, section 7 (who.myself) places who.own_findtreasure, which no class's model has
+every path in the options window's layout is in the model: who, section 8 (who.myselfWeapons) places who.own_warlockstone, which no class's model has
+every path in the options window's layout is in the model: who, section 9 (who.myselfItems) places who.own_familiar, which no class's model has
+every path in the options window's layout is in the model: who, section 9 (who.myselfItems) places who.own_imbue, which no class's model has
+## ledger.lua
+a favour appears in the ledger: SKIPPED -- no favour was filed, so there is nothing to record
+a favour forgotten at a reload names the setting: SKIPPED -- no favour was filed, so there is nothing to record
+a favour only your party can be repaid says so (control): SKIPPED -- no favour was filed, so there is nothing to record
+a favour owed at logout is let go when its debt did not come back: SKIPPED -- no favour was filed, so there is nothing to record
+a favour repaid is marked returned: SKIPPED -- no favour was filed, so there is nothing to record
+a favour that runs out is let go: SKIPPED -- no favour was filed, so there is nothing to record
+a refused cast puts the ledger back: SKIPPED -- no favour was filed, so there is nothing to record
+buffs given unprompted are filed under group or strangers: SKIPPED -- nobody was offered
+buffs given unprompted are filed under group or strangers: SKIPPED -- the group member was not offered as one
+## linger.lua
 linger: a crowd is remembered forty at a time: somebody new was not remembered in a full crowd
 linger: a loading screen forgets the passers-by remembered: SKIPPED -- Anna was not remembered once the cursor left her
 linger: a passer-by just past the edge stays until the window closes: SKIPPED -- Anna five yards off on a nameplate was not offered
@@ -382,15 +625,75 @@ linger: under the cursor the prompt still goes for your own state (with nothing 
 linger: under the cursor the prompt still moves on for a right-click skip with Bert waiting: SKIPPED -- Anna was not on the prompt once the cursor left her
 linger: under the cursor the prompt still moves on for a right-click skip with nobody else: SKIPPED -- Anna was not on the prompt once the cursor left her
 linger: under the cursor the prompt still moves on for somebody who buffed you: SKIPPED -- Anna was not on the prompt once the cursor left her
+## look-arcane.lua
+Arcane on Calm leaves nothing looping: the owed breath kept going with nobody owed on top
+Arcane shows the key on a keycap, and the name wins: no key bound and the lines still keep its room: -35
+Arcane's drain follows the time left to return a favour: halfway through the favour the clock is 166.0 of 166.0
+## look-ebon.lua
+look-ebon: the blade is alive at rest, on Full, out of a fight and with the prompt up: SKIPPED -- the panel did not come down with nobody left
+## look-fel.lua
+look-fel: the fire burns at rest, on Full, out of a fight and with the prompt up: SKIPPED -- the panel did not come down with nobody left
+## look-forge.lua
 look-forge: heat rises once for a new favour: a favour arriving again did not raise the heat
 look-forge: heat rises once for a new favour: the heat rose on Calm
 look-forge: three breaths then still: the owed glow stayed with nobody owed
+## look-frost.lua
+look-frost: the ice is alive at rest, on Full, out of a fight and with the prompt up: SKIPPED -- the panel did not come down with nobody left
+## look-glass.lua
+look-glass: light drifts in the glass at rest on Full; not on Calm, in a fight or with the prompt down: SKIPPED -- the panel did not come down with nobody left
+look-glass: somebody owed runs the ready border round the icon, in their colour: nobody owed any more, and the border is still up
+look-glass: somebody owed runs the ready border round the icon, in their colour: nobody owed, and side 1 still runs
+look-glass: somebody owed runs the ready border round the icon, in their colour: nobody owed, and side 2 still runs
+look-glass: somebody owed runs the ready border round the icon, in their colour: nobody owed, and side 3 still runs
+look-glass: somebody owed runs the ready border round the icon, in their colour: nobody owed, and side 4 still runs
+look-glass: somebody owed runs the ready border round the icon, in their colour: nobody owed, and the eyes do not go back to their glint
+## look-leather.lua
+look-leather: at rest the feathers stir and the thread catches the light, and it stops on Calm, in a fight and with the look: SKIPPED -- the panel did not come down with nobody left
 look-leather: owed glows three times and rests, and stops with the favour: a new favour did not glow
+look-leather: the brand smoulders while somebody is owed, and goes out with the favour and in a fight: the brand still glows with nobody owed
+## look-letter.lua
 look-letter: Elowen Thistledown with a count and a key is not cut at the default size, enUS: the count does not say +2: +3
 look-letter: Friedrich Eichwald with a count and a key is not cut at the default size, deDE: the count does not say +2: +3
 look-letter: owed breathes three times and settles, and stops with the favour: a new favour did not breathe
+## look-minimal.lua
+look-minimal: a colour never moves a texture's alpha: with nobody owed again, texture 7 (Minimal_Glow) stands at alpha 0.6, not 0
+look-minimal: at rest a glint crosses the line on Full; not on Calm, in a fight or with the prompt down: SKIPPED -- the panel did not come down with nobody left
+look-minimal: somebody owed casts the line, then it breathes and the spark runs it: nobody owed any more, and the owed loops run on
+look-minimal: somebody owed casts the line, then it breathes and the spark runs it: nobody owed, and the glint at rest does not come back
+look-minimal: somebody owed casts the line, then it breathes and the spark runs it: nobody owed, and the line still glows
+## look-ribbon.lua
 look-ribbon: Elowen Thistledown with a count and a key is not cut at the default size, enUS: the count does not say +2: +3
 look-ribbon: Friedrich Eichwald with a count and a key is not cut at the default size, deDE: the count does not say +2: +3
+look-ribbon: a gleam travels the gold at rest, seldom, and is named idle: a loop that is not named idle goes on with nobody owed
+## look-stormcaller.lua
+look-stormcaller: the elements are alive at rest, on Full, out of a fight and with the prompt up: SKIPPED -- the panel did not come down with nobody left
+## look-toast.lua
+Toast's clock burns over its ash: no ash under the clock's spent time
+Toast's clock burns over its ash: the clock did not burn down
+Toast's favour clock burns down with the debt: half the time gone and the clock is at 172.16109114615 of 172.16109114615
+Toast's favour clock burns down with the debt: the favour clock went in a fight
+Toast's favour clock burns down with the debt: the favour clock went on Calm
+Toast's pulse breathes three times and holds: the owed glow stayed with nobody owed
+## look-wild.lua
+look-wild: the wood is alive at rest, on Full, out of a fight and with the prompt up: SKIPPED -- the panel did not come down with nobody left
+## look.lua
+a fight during the fade out brings the panel back gently: SKIPPED -- the panel did not start fading out
+every outcome over an empty queue gets its own fade: SKIPPED -- the first fade did not run to nothing
+nothing new runs while the prompt is idle: SKIPPED -- the panel did not come down with nobody left
+the fade out is cancelled by the next person and never leaves the panel invisible: after the last buff the panel did not fade on its way out
+the panel catches the light when somebody already on it buffs you: SKIPPED -- Anna was not on the panel as a passer-by
+## look2.lua
+a long row in the list is drawn smaller to fit: SKIPPED -- Sable Harrow is not in the list
+## looks-new-review2.lua
+looks-new-review2: Gearworks stops its works when the prompt goes down: SKIPPED -- the panel did not come down with nobody left
+## looks-redrawn-review2.lua
+looks-redrawn-review2: Letter does not play the arrival at a scan under a verdict: SKIPPED -- the scan did not bring the next person owed to the top as news
+looks-redrawn-review2: Letter does not play the arrival in an outcome's own repaint: SKIPPED -- the outcome's repaint did not bring the next person owed to the top as news
+looks-redrawn-review2: Letter's pen stops at the lines when the list has gone: SKIPPED -- a list still hangs with one person about
+looks-redrawn-review2: Letter's signed flourish stands when the next reason is another colour: SKIPPED -- the outcome's repaint painted no reason: nobody of another colour was next
+## looks.lua
+Luxe on Calm leaves nothing looping: the owed pulse kept going with nobody owed on top
+## mage-scrolls.lua
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: SKIPPED -- Spellbreak and Lesser Flame at level 50: offered nil
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: Spellbreak and Frost at level 50: offered nil
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: Spellbreak, Flame and Accuracy at level 50: offered nil; /manners debug says
@@ -455,39 +758,56 @@ mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue besi
 mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil: another imbue listed after two minutes of Lesser Flame: offered nil with nil left; /manners debug says
 mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil: another imbue listed before two minutes of Lesser Flame: offered nil with nil left; /manners debug says
 mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil: two minutes of Lesser Flame on the list, top-ups on: offered nil, nil left
+## manafloor.lua
 mana floor: only favours and requests below it: SKIPPED -- the party and the target were not offered to begin with
+## manakeeps.lua
+manakeeps: a remembered asker waits below the floor too: SKIPPED -- Quinn asking under the cursor was not offered
+manakeeps: only my own buff holds favours and requests back, and the debt stays: the favours, the request and the group did not come back with the mana: Anna, Anna Aim, Bert, Cara, Zed Far, self
+manakeeps: people who buffed me or asked keeps favours, requests and your own buff: below the floor the favours, the request and your own buff were not all offered: Anna Aim, Bert, Zed Far, self
+## milestones.lua
 milestones: a new title is said once in chat, chat lines or not: SKIPPED -- Petra is not owed and offered, so nothing can be repaid
 milestones: a title waits out the refusal of the cast that earned it: SKIPPED -- Petra is not owed and offered, or the press went nowhere
-no buff table for this client: said the table was missing without saying on which client: no buff data for this client -- vanilla/classic interface=11509 build=1.15.9 project=2
-nobody is measured in a fight: dropped somebody during a fight, on a distance the client will not answer during one
-not listening for requests -- |cffffd100People who ask me in chat|r is switched off.
-nothing new runs while the prompt is idle: SKIPPED -- the panel did not come down with nobody left
-odd names: A/B: the target line is '/target A'
-odd names: Nameof/Averylongsurnamethatgoesonandonandon: the target line is '/target Nameof'
-odd names: Petra/Stonewell: the target line is '/target Petra'
-odd names: Ûmlaut/Nàme: the target line is '/target Ûmlaut'
-one landing seen twice, aura scan first: one courtesy was announced 2 times
-one landing seen twice, aura scan first: one person who buffed us was filed as 2 debts
-one landing seen twice, log first: one courtesy was announced 2 times
-one landing seen twice, log first: one person who buffed us was filed as 2 debts
-one spelling of a player's name: the surname came back as Petra-Stonewell
-owes returning: |cffffffffPetra|r (T s left, buffed you T s ago)
-own buffs: 2 read, baseline 2
-own buffs: 3 read, baseline 2
+milestones: hook: a cure nothing refused earns one, and a refused one nothing: SKIPPED -- the press on the poisoned member did not settle as a cure
+milestones: hook: a portal cast and water put in the trade earn one, and neither failing does: SKIPPED -- the party member's portal is not offered
+milestones: hook: a resurrection that was cast earns one, and an interrupted one nothing: SKIPPED -- the press on the dead member was not filed
+## model-window.lua
+model: the reset puts appearance back: appearance reset: the list reaches prompt.classicArt, which is not on this page
+## options-presets.lua
+presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are offered one back unless they already have it. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
+## ownbuffs.lua
 own: a mage with no armor is offered their Automatic armor: offered frostarmor as self (Mort), known false
 own: the macro casts on you with no speech: the armor was not given its retry cooldown after the press
+## ownskip.lua
+ownskip: a right-click skips that buff of yours alone, and the next comes up: the right-click did not skip intellect
+ownskip: ctrl-right-click skips every buff of yours: ctrl-right-click did not skip every buff of yours
+ownskip: the tooltip and Not now agree: Not now did not skip intellect
+ownskip: under the flash of a press on yourself the skip is of the buff pressed: SKIPPED -- the flash is not over your next buff (frostarmor under Mort)
+## people.lua
+an out-of-range friend stays behind somebody in range: SKIPPED -- Cara was not queued as an out-of-range friend
+an out-of-range friend stays behind somebody in range: expected the friend in range, the stranger in range, then the friend out of range: Bert,Anna,Cara
+friends and guildmates come first, within their kind: expected your group, then the friend, then the stranger: Gus, Anna, Zed
+friends and guildmates come first: a stranger was ranked ahead of a friend or guildmate: Bert, Cara, Anna
+friends and guildmates come first: the friend was not recognised as one: nil
+friends and guildmates come first: the guildmate was not recognised as one: nil
+friends and guildmates come first: with the switch off the order still moved: Anna, Bert, Cara
 passers-by only while resting: out in the world with the setting on, expected only the target: Tess
-presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are offered one back unless they already have it. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
-prompt5: a press after your target changed hands it back (fused): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
-prompt5: a press after your target changed hands it back (fused, pressed before a repaint): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
-prompt5: a press after your target changed hands it back (held): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
-prompt5: a press after your target changed hands it back (still targeted): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
-prompt5: a pull inside the fuse does not freeze the dropped person's macro: SKIPPED -- Anna was not armed: /target Anna / /cast Arcane Intellect
-prompt5: a pull inside the hold arms whoever the queue holds: SKIPPED -- the panel named Anna to start with
-prompt5: a shout pressed after she walked out of earshot keeps the debt (fused): SKIPPED -- Anna was not on the prompt measured inside the shout's reach: Anna, ranged true
-prompt5: a shout pressed after she walked out of earshot keeps the debt (held): SKIPPED -- Anna was not on the prompt measured inside the shout's reach: Bert, ranged true
-proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- nobody measured yet
-pvp: /manners debug and Diagnostics say who is held back: /manners debug does not say who is held back for PvP: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm /   combat log favours: armed=true, 0 seen, 0 filed /   buff data: |cffffffffvanilla|r / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- answered for 6 of 6 last scan /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 6 /   |cffffffffFlagA|r: flagged for PvP -- buffing them would flag you
+shift-right-click never offers them again: SKIPPED -- the prompt was not armed at Anna: /target Anna
+the never list folds accented capitals: SKIPPED -- both passers-by were not offered to start with
+the never list is safe in combat: SKIPPED -- the prompt did not name Anna
+the never list persists and can be emptied: Bert taken off the list was still not offered
+unknown friend answers are not friends: a friend on the friends list was not found by name when IsFriend is missing: nil
+unknown friend answers are not friends: the friend found by name was not put first
+## perf.lua
+a different name compare throws the never-offer answers away: the list was matched with the compare the client no longer has
+a friend added is ranked as one once the answer runs out: SKIPPED -- the stranger was not offered, or was already a friend
+a shout follows the group from a party to a raid and back: SKIPPED -- the party member was not offered the shout
+a spell learned between scans is offered on the next: a spell learned since the last scan was not offered: nil
+an old reading of somebody's buffs is replaced by a new one: somebody whose buff ran out was read as carrying it again from the kept reading
+an old reading of somebody's buffs is replaced by a new one: somebody whose buff ran out was still read as carrying it
+the never-offer list asked between scans reads the list: SKIPPED -- the stranger was not offered to begin with
+the never-offer list edited behind the queue is honoured at once: SKIPPED -- the two strangers were not both offered to begin with
+## pvp.lua
+pvp: /manners debug and Diagnostics say who is held back: /manners debug does not say who is held back for PvP: client: |cffffffffvanilla/classic interface=11509 build=1.15.9 project=2|r /   targeting: conditional=true @unit=true /targetexact=true /   combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm /   combat log favours: armed=true, 0 seen, 0 filed /   buff data: |cffffffffvanilla|r /   key: none | reminder: due at a login (said 0 of 3) / class: |cffffffffMAGE|r / C_Secrets: true | auras secret now: false | nameplates: true /   proximity: Nearby (about 10 yards) via CheckInteractDistance, really 8yd -- answered for 6 of 6 last scan /   intellect      Arcane Intellect       known=true readable=true /   When a top-up is due (top-ups are off) /     Arcane Intellect: lasts 30m (1h as a group cast) -- topped up at 3m left, 6m in a raid or dungeon, T s outside your group. /   nobody has buffed you recently. /   not listening for requests -- |cffffd100People who ask me in chat|r is switched off. /   asking for buffs: off -- |cffffd100Ask people for a buff I'm missing|r is not ticked. /   your own buff: offered to you when you are missing it. /   own buffs: 2 read, baseline 2 /     1 changes to your auras this session, read in 1 walks /   thank with an emote: |cffff0000off|r /   build |cffffffffVERSION|r / queue now: 6 /   |cffffffffFlagA|r: flagged for PvP -- buffing them would flag you /   cures: nothing learned to cure with yet. /   milestones: 0 of 12 earned.
 pvp: /manners debug and Diagnostics say who is held back: Diagnostics does not say who is held back for PvP
 pvp: /manners debug names only people a source would offer (Passers-by off): SKIPPED -- the flagged passer-by was not named with every source on
 pvp: /manners debug names only people a source would offer (out in the world with passers-by left for cities): SKIPPED -- the flagged passer-by was not named with every source on
@@ -536,6 +856,7 @@ pvp: whether you are flagged yourself (your flag withheld in a battleground): SK
 pvp: whether you are flagged yourself (your flag withheld in an arena): SKIPPED -- the passer-by was not offered unflagged
 pvp: whether you are flagged yourself (your flag withheld out in the world): SKIPPED -- the passer-by was not offered unflagged
 pvp: with the setting off a flagged passer-by is offered: a flagged passer-by was held back with Skip players flagged for PvP off
+## raid.lua
 raid: a favour in an instance fight is filed quietly (a dungeon, in a fight): SKIPPED -- no favour was filed
 raid: a favour in an instance fight is filed quietly (a dungeon, out of a fight): SKIPPED -- no favour was filed
 raid: a favour in an instance fight is filed quietly (a raid, in a fight): SKIPPED -- no favour was filed
@@ -558,12 +879,41 @@ raid: somebody just back from the dead comes first: somebody back from the dead 
 raid: somebody just back from the dead comes first: somebody back from the dead was put first with the switch off
 raid: somebody just back from the dead comes first: somebody who came back while you were dead was not put first
 raid: somebody just back from the dead comes first: somebody who died and came back in a fight was not put first after it
+## raidsplit-review.lua
+raidsplit-review: a group cast aimed at the other's share is not a verdict on who it is aimed at: SKIPPED -- with only Bert's subgroup missing it, Anna is offered
+raidsplit-review: a group cast left to another user for T seconds is yours to cast: SKIPPED -- Bert is offered the group cast at once, though it is Anna's
+## raidsplit.lua
+raidsplit: one user casts the group cast, and counts the other's share: /manners debug does not say the group cast is Anna's: |cffffd100sharing your group|r -- Arcane Intellect with |cffffffffRA|r: your share is groups 2 | 5 left to another Manners user on this scan
+raidsplit: one user casts the group cast, and counts the other's share: Bert is offered RG, not the four of his subgroup
+raidsplit: one user casts the group cast, and counts the other's share: Bert is offered a group cast too
+raidsplit: one user casts the group cast, and counts the other's share: the group cast does not count RF, of subgroup 2
+raidsplit: one user casts the group cast, and counts the other's share: the group cast does not count RG, of subgroup 2
+raidsplit: one user casts the group cast, and counts the other's share: the group cast does not count RH, of subgroup 2
+raidsplit: one user casts the group cast, and counts the other's share: the group cast does not count RI, of subgroup 2
+raidsplit: one user casts the group cast, and counts the other's share: the group cast does not count RJ, of subgroup 2
+raidsplit: one user casts the group cast, and counts the other's share: with only Bert's subgroup missing it, Anna is offered  and no group cast
+raidsplit: the author's line is still heard, and a hello is not taken for it: the author was told:
+## range-follow.lua
+range-follow: Skip players out of range switched off offers them: the switch is off and Anna was dropped
+range-follow: past the follow prompt is not offered when the spell will not say: SKIPPED -- Bert, five yards away, was not offered
+range-follow: the follow prompt's silence is still offered: nothing said Anna was far and she was dropped all the same
+range-follow: the press hears it too: the press read Anna, sixty yards away, as nil
+## readable-toast.lua
+Toast draws the spell icon clean: SKIPPED -- the favour clock was not burning
+## refusal-backoff.lua
 refusal-backoff: targeting them lifts it, the press's own targeting does not: targeting Ejp on purpose left the back-off standing
-requests are one per person, thirty at most: asking again did not start the minute again
-right beside me is never looser than nearby: SKIPPED -- "nearby" did not separate the two, so there is no step above to compare with
+## rp.lua
 rp: the line stays with the person: the press said |nil| after the prompt settled on |Old Sen'jin said a gift is a promise, Ana Field. I keep mine. Here.|
+## sameclass.lua
 sameclass: a lower-level mage still gets your better rank: a level 10 mage, too low for your rank 2 Intellect, was skipped
 sameclass: a mage who can cast it is skipped: SKIPPED -- the mage stranger is not offered even with the option off
+## seams-review.lua
+seams-review: a class with a cure and no buff walks nobody in a fight: SKIPPED -- out of a fight the cursed party member is not offered the cure
+seams-review: a class with no buff for others is shown the resurrection's switches: SKIPPED -- the shaman has a buff for somebody else
+seams-review: a courtesy is not offered to an asker who is dead or offline: SKIPPED -- the water is not offered while she lives
+seams-review: a resurrection learned and switched on is a prompt for Start here: SKIPPED -- the shaman has a prompt with the resurrection switched off
+seams-review: no passer-by is measured for a cure that is the group's alone: the cursed party member is no longer offered the cure
+## self.lua
 self: a /manners try press on yourself files nothing: SKIPPED -- the try macro did not go out on you: /target Mort / /cast Arcane Intellect
 self: a failed press on yourself says so: a cast that went out after an error left you only its two seconds of cooldown
 self: a group cast never files a gift to you: SKIPPED -- the group cast is not aimed at Anna: Anna Aim
@@ -575,17 +925,7 @@ self: you count towards your party's group cast: a press on the group cast left 
 self: you count towards your party's group cast: the group cast does not cover you
 self: you count towards your raid group's and your class's group cast: the raid's group cast counts 3 missing in your group
 self: your own name on the never-offer list is honoured: offered your own buff with your name on the never-offer list
-selftest: the button, names, the line rule, repairs and errors: a Camelot surname reads PASS UnitName (surname): "Mort", second nil, read as a realm, full name "Mort"
-selftest: the main hand and the familiar are compared: Manners reading an imbue over an empty list reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: false, false, nil, 0 / PASS main hand enchants: MAGE has no imbue reminder
-selftest: the main hand and the familiar are compared: Manners reading no familiar over a Rat on you reads PASS familiar: MAGE has no familiar
-selftest: the main hand and the familiar are compared: Manners reading nothing over a listed imbue reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
-selftest: the main hand and the familiar are compared: a Rat up reads PASS familiar: MAGE has no familiar
-selftest: the main hand and the familiar are compared: the report does not say the imbue is C_Item's alone: PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
-shift-right-click never offers them again: SKIPPED -- the prompt was not armed at Anna: /target Anna
-somebody who asked comes after a favour and before your group: SKIPPED -- the prompt shows Bert
-somebody who asked comes after a favour and before your group: expected the favour, then the request, then your group: Anna Aim/owed, Bert/asked, Cara/group
-somebody who asked is offered it until they have it: a warrior who asked for Intellect was not offered it
-somebody who asked is offered it until they have it: somebody who asked was dropped when their auras could not be read
+## speech-lines.lua
 speech-lines: no party line in an instance group alone: /party, your own group: the macro lost the line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-lines: no party line in an instance group alone: /raid, your own group: the macro lost the line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-lines: no party line to another subgroup of the raid: a raider in another subgroup lost the /raid line (by the roster): /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
@@ -594,6 +934,7 @@ speech-lines: no party line to another subgroup of the raid: your subgroup (by t
 speech-lines: no party line to another subgroup of the raid: your subgroup: the macro lost the /party line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-lines: no party line to somebody outside the party: a party member: the macro lost the /party line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-lines: no party line to somebody outside the party: a stranger lost the /say line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+## speech-range.lua
 speech-range: /party is said only in a party: in a party: the macro lost the /party line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-range: /raid is said only in a raid: in a raid: the macro lost the /raid line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-range: /say needs no group: solo, the /say line is gone: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
@@ -640,60 +981,12 @@ speech-range: the press knows him by his surname (Weirbeard Smith on a nameplate
 speech-range: the tooltip quotes no line for the held entry: SKIPPED -- Weirbeard was not armed with the line ahead of Ejp: /target Weirbeard / /cast Arcane Intellect / /say The Light already likes you, Weirbeard. Consider this a second opinion.
 speech-range: the tooltip quotes no line while the cursor holds an empty queue: SKIPPED -- the cursor did not hold Weirbeard on the panel
 speech-range: the tooltip quotes no line while the cursor holds an empty queue: SKIPPED -- the press did not go to Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
-surnames: built name 'Petra'
-tactical chat is not a request: SKIPPED -- "anyone need int?" from a priest was not a request
-tactical chat is not a request: a druid did not hear "mark pls" in CHAT_MSG_SAY as a request
-tactical chat is not a request: a druid did not hear "motw pls" in CHAT_MSG_PARTY as a request
-targeting: conditional=true @unit=true /targetexact=true
-thank with an emote: |cffff0000off|r
-the aura baseline forgets what fell off: a second cast was taken for the one already held
-the common names for a buff are recognised: "AI?" was not heard as asking for a buff
-the common names for a buff are recognised: "INT PLEASE" was not heard as asking for a buff
-the common names for a buff are recognised: "Int?" was not heard as asking for a buff
-the common names for a buff are recognised: "ai" was not heard as asking for a buff
-the common names for a buff are recognised: "any mage for brilliance?" was not heard as asking for a buff
-the common names for a buff are recognised: "anyone got int" was not heard as asking for a buff
-the common names for a buff are recognised: "arcane intellect please" was not heard as asking for a buff
-the common names for a buff are recognised: "buff pls" was not heard as asking for a buff
-the common names for a buff are recognised: "buffs?" was not heard as asking for a buff
-the common names for a buff are recognised: "can I get a buff" was not heard as asking for a buff
-the common names for a buff are recognised: "can I get int" was not heard as asking for a buff
-the common names for a buff are recognised: "could i have AI" was not heard as asking for a buff
-the common names for a buff are recognised: "int pls" was not heard as asking for a buff
-the common names for a buff are recognised: "int plz ty" was not heard as asking for a buff
-the common names for a buff are recognised: "mage int" was not heard as asking for a buff
-the common names for a buff are recognised: "need int" was not heard as asking for a buff
-the common names for a buff are recognised: "|cff71d5ff|Hspell:1459:0|h[Arcane Intellect]|h|r pls" was not heard as asking for a buff
-the fade out is cancelled by the next person and never leaves the panel invisible: after the last buff the panel did not fade on its way out
-the fallback does not undo a rejection: offered somebody the level filter had already refused
-the fallback does not undo a rejection: offered somebody the range filter had already refused
-the favour names who was there, not who is there now: the favour went missing with the scan that first saw it
-the key keeps the realm and the macro drops it: /manners try expands {name}|{aim} to 'Vann|Vann'
-the key keeps the realm and the macro drops it: filed a cross-realm player as Vann
-the launcher says who asked: SKIPPED -- no launcher, or Anna is not on the prompt
-the library measures, and owns up to what it measured: dropped somebody four yards away, who is inside every bucket this client has
-the mark is consumed rather than timed out: a second cast inside the window was announced 0 times -- the mark was a timer, not a claim
-the mark is consumed rather than timed out: a second favour from the same person was not filed
-the mark is consumed rather than timed out: the pair was announced 2 times
-the never list folds accented capitals: SKIPPED -- both passers-by were not offered to start with
-the never list is safe in combat: SKIPPED -- the prompt did not name Anna
-the never list persists and can be emptied: Bert taken off the list was still not offered
-the never-offer list asked between scans reads the list: SKIPPED -- the stranger was not offered to begin with
-the never-offer list edited behind the queue is honoured at once: SKIPPED -- the two strangers were not both offered to begin with
-the options page's never box takes the person off the prompt before a fight can freeze it: SKIPPED -- the panel named Anna to start with
-the page names every source and everything the chat line says: SKIPPED -- nobody was reached through the focus token, so the description cannot be judged against it
-the paladin note says when a blessing can be replaced (always offer): SKIPPED -- somebody wearing your Might was left alone, which is not what this case was built to show
-the paladin note says when a blessing can be replaced (blessings the game hides): SKIPPED -- somebody wearing your Might was left alone, which is not what this case was built to show
-the paladin note says when a blessing can be replaced (blessings the game hides, topping up): SKIPPED -- somebody wearing your Might was left alone, which is not what this case was built to show
-the panel catches the light when somebody already on it buffs you: SKIPPED -- Anna was not on the panel as a passer-by
-the range library is found through a LibStub shaped like the game's: "Nearby" dropped somebody nine yards away, inside the library's ten-yard edge
-the spoken line survives a change of unit token: SKIPPED -- no spoken line to compare (alpha / nil)
-the target rule can be switched off: SKIPPED -- the target was not on top to begin with
-the tooltip quotes the line that will actually run: SKIPPED -- no spoken line to compare (alpha / nil)
-two people with one name are told apart by GUID: SKIPPED -- the Anna beside you was not offered when she asked
-unknown friend answers are not friends: a friend on the friends list was not found by name when IsFriend is missing: nil
-unknown friend answers are not friends: the friend found by name was not put first
-whatif: a group member's favour, your blessing on him: a party warrior who buffed you, wearing your Might with forty minutes left, was offered might
+## subpages.lua
+subpages: each page of many sections names its sub-divisions, every one its own sections, seven at most: profiles has 4 sections with a title and no sub-divisions
+## theme-picker.lua
+theme-picker: the pictures were drawn from the looks as they are now:   the pictures were drawn from something that has changed since
+## whatif.lua
+whatif: a group member's favour, your blessing on him: SKIPPED -- a party warrior who buffed you, your Might running out, was not offered it
 whatif: a group member's lapsing shout: SKIPPED -- the shouts were never noticed
 whatif: a group member's lapsing shout: a party warrior who buffed you, wearing your Fortitude with forty minutes left, was offered fortitude as owed
 whatif: a group member's lapsing shout: a stranger who buffed you, wearing your Fortitude with forty minutes left, was offered fortitude as owed when they already wear your buff
@@ -708,19 +1001,14 @@ whatif: nobody on your ignore list is thanked or offered: SKIPPED -- a favour fr
 whatif: nobody on your ignore list is thanked or offered: SKIPPED -- a passer-by missing Intellect was not offered it
 whatif: nobody on your ignore list is thanked or offered: a group member on your ignore list was not offered
 whatif: one line per person a minute: a thank-you for a favour was held back by the minute: /target Munin Hugins / /cast Power Word: Fortitude / /targetlasttarget
+## whisper.lua
 whisper: Camelot whispers name and surname, and nothing it would misread: Munin Hugins: the spoken line is nil, wanted /w Munin Hugins Thanks for the buff, Munin Hugins.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 whisper: Camelot whispers name and surname, and nothing it would misread: Petra Brâve: the spoken line is nil, wanted /w Petra Brâve Thanks for the buff, Petra Brâve.: /target Petra Brâve / /cast Arcane Intellect / /targetlasttarget
 whisper: Camelot whispers name and surname, and nothing it would misread: Solo: the spoken line is /w Solo Thanks for the buff, Solo., wanted nil: /target Solo / /cast Arcane Intellect / /w Solo Thanks for the buff, Solo. / /targetlasttarget
 whisper: the client's regional-names answer decides the parse: Munin Hugins with regional names true: the spoken line is nil, wanted /w Munin Hugins Thanks for the buff, Munin Hugins.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
-who the proximity setting does not apply to: a party member was dropped for distance
-who the proximity setting does not apply to: dropped the player you have set as your focus
-who the proximity setting does not apply to: dropped the player you have targeted, which is the plainest statement of intent there is
+## widgets.lua
 widgets: a colour shows live, and Cancel puts it back: the picker did not open on the panel colour with its opacity
-window: each move of the colour picker is committed once: the colour came out 0.2 0.3 0.4 0.4
+## window-classes.lua
 window: the class table (WARRIOR): a warrior with one buff is offered a choice
-your own buff: offered to you when you are missing it.
-your own messages are not requests: expected three of your own and none noted, got 2 and 1
-your target wins: SKIPPED -- nobody was offered under the cursor
-your target wins: SKIPPED -- the target vanished with whenBuffed=always
-your target wins: an owed target lost the amber wording: target at 0
-your target wins: the top of the queue was Petra-Stonewell/target/0, not the target
+## window-polish.lua
+window: each move of the colour picker is committed once: the colour came out 0.2 0.3 0.4 0.4

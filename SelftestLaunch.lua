@@ -1390,6 +1390,143 @@ Launch("launch.fighthide", "hide in combat", function(add)
 end)
 
 ---------------------------------------------------------------------------
+-- what the session did: actions the game refused Manners, and where you are
+---------------------------------------------------------------------------
+
+-- The worst thing an addon can put on a player's screen is the game's "Manners
+-- has been blocked from an action only available to the Blizzard UI". Several
+-- of Manners' paths are judged safe from Blizzard's code and documentation
+-- alone: the prompt moved with Edit Mode (a callback on EventRegistry, which
+-- must leave Edit Mode's own save untainted), a pet out of the journal from
+-- the scan with no key press (Companion.lua), the /trade a courtesy opens, the
+-- secure snippets of a fight. None of those can be tried here without doing
+-- it, so the session is watched instead: from the moment Manners loads, every
+-- ADDON_ACTION_BLOCKED or ADDON_ACTION_FORBIDDEN that names Manners is written
+-- down (the function the game names, the time), and the launch check lists
+-- them. Play as usual -- open and close Edit Mode, let the pet come out, take
+-- a fight -- then run /manners selftest launch: a clean line is the answer.
+-- Listening only: nothing is called, nothing changed, nothing to put back.
+local REFUSED_KEPT = 20
+local refused = { count = 0, list = {}, since = nil }
+do
+	local okF, frame = pcall(CreateFrame, "Frame")
+	if okF and frame then
+		refused.since = date and date("%H:%M:%S") or nil
+		frame:SetScript("OnEvent", function(_, event, who, what)
+			if who ~= "Manners" then return end
+			refused.count = refused.count + 1
+			local list = refused.list
+			list[#list + 1] = { event = event, what = tostring(what), at = date and date("%H:%M:%S") or "?" }
+			while #list > REFUSED_KEPT do table.remove(list, 1) end
+		end)
+		-- Setup, and an event a client might not list: protected, once.
+		for _, event in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN" }) do
+			pcall(frame.RegisterEvent, frame, event)
+		end
+	end
+end
+
+Launch("launch.refused", "actions the game refused", function(add)
+	local parts = {}
+	parts[#parts + 1] = "watched since " .. tostring(refused.since or "never (no frame could be made)")
+	local okE, editMode = pcall(function() return ns.HasEditMode and ns.HasEditMode() end)
+	parts[#parts + 1] = "Edit Mode " .. ((okE and editMode) and ("here, the prompt "
+		.. ((ns.db and ns.db.profile.prompt.moveInEditMode) and "moves with it" or "does not move with it"))
+		or "not on this client")
+	local okT, taint = Ask(_G.GetCVar, "taintLog")
+	parts[#parts + 1] = "taintLog " .. (okT == true and Show(taint) or "n/a")
+	if not refused.since then
+		add(CHECK, table.concat(parts, "; ") .. " -- nothing was listening, so nothing can be said")
+		return
+	end
+	if refused.count == 0 then
+		add(PASS, table.concat(parts, "; ") .. " -- no action of Manners' was blocked or forbidden this session")
+		return
+	end
+	local seen = {}
+	for _, r in ipairs(refused.list) do
+		seen[#seen + 1] = ("%s %s %s"):format(r.at, r.event == "ADDON_ACTION_FORBIDDEN" and "forbidden" or "blocked", r.what)
+	end
+	add(FAIL, table.concat(parts, "; ") .. (" -- the game refused Manners %d time(s) this session: %s"):format(
+		refused.count, table.concat(seen, ", ")))
+end)
+
+-- The town rule (Range.lua, ns.InCity; Queue.lua's inTown) stands on
+-- C_Map.GetBestMapForUnit("player") answering in a city, and its parents
+-- leading to a capital's uiMap id; IsResting says an inn. Asked, never
+-- changed: what the map is, what Manners makes of it. Run it once in a
+-- capital and once at an inn outside one; the line says what to compare.
+Launch("launch.town", "where you are", function(add)
+	local maps = _G.C_Map
+	local get = type(maps) == "table" and maps.GetBestMapForUnit or nil
+	local okM, id = Ask(get, "player")
+	id = okM == true and Plain(id) or nil
+	local name
+	if type(id) == "number" and type(maps.GetMapInfo) == "function" then
+		local okI, info = pcall(maps.GetMapInfo, id)
+		name = okI and type(info) == "table" and Plain(info.name) or nil
+	end
+	local okR, resting = Ask(_G.IsResting)
+	local okC, city = pcall(function() return ns.InCity and ns.InCity() end)
+	local reading = not okC and "an error" or city == true and "a capital" or city == false and "not a capital" or "no answer"
+	local line = ("map %s%s; resting %s; Manners reads %s"):format(Show(id), name and (" (" .. tostring(name) .. ")") or "",
+		okR == true and Show(Plain(resting)) or "n/a", reading)
+	if okM ~= true or type(id) ~= "number" then
+		add(CHECK, line .. " -- the game names no map here, so Offer nothing in cities and inns holds back in both")
+	elseif not okC then
+		add(FAIL, line)
+	else
+		add(PASS, line .. " -- in a capital this should read a capital; at an inn outside one, resting and not a capital")
+	end
+end)
+
+-- A cure (Cures.lua, ReadInto) is offered only for a debuff whose
+-- expirationTime is a time to come: one that reads 0 counts as having no
+-- timer and is left alone. Whether a client fills it in for a debuff on
+-- somebody else, and whether it says canActivePlayerDispel, is asked of every
+-- harmful aura on you, your party and your target -- read only, as the cure
+-- scan reads them. With none timed there is nothing to judge, and the line
+-- says where to stand.
+local DEBUFF_UNITS = { "player", "party1", "party2", "party3", "party4", "target" }
+
+Launch("launch.debuffs", "a debuff's timer", function(add)
+	local auras = _G.C_UnitAuras
+	local get = type(auras) == "table" and auras.GetAuraDataByIndex or nil
+	if type(get) ~= "function" then
+		add(CHECK, "C_UnitAuras.GetAuraDataByIndex is missing here, so no cure is ever offered")
+		return
+	end
+	local timed, given, dispel, read = 0, 0, nil, 0
+	for _, unit in ipairs(DEBUFF_UNITS) do
+		local okX, exists = Ask(_G.UnitExists, unit)
+		if okX == true and Plain(exists) == true then
+			for i = 1, 40 do
+				local ok, aura = pcall(get, unit, i, "HARMFUL")
+				aura = ok and Plain(aura) or nil
+				if type(aura) ~= "table" then break end
+				read = read + 1
+				local duration, expires = Plain(aura.duration), Plain(aura.expirationTime)
+				if type(duration) == "number" and duration > 0 then
+					timed = timed + 1
+					if type(expires) == "number" and expires > 0 then given = given + 1 end
+				end
+				local can = Plain(aura.canActivePlayerDispel)
+				if type(can) == "boolean" then dispel = true elseif dispel == nil then dispel = false end
+			end
+		end
+	end
+	local line = ("%d harmful aura(s) read on you, your party and your target; %d with a duration, %d of them with an expirationTime; canActivePlayerDispel %s")
+		:format(read, timed, given, dispel == true and "given" or dispel == false and "never given" or "n/a")
+	if timed == 0 then
+		add(CHECK, line .. " -- nothing timed to judge: run it again with a debuff from a mob on you or a party member")
+	elseif given < timed then
+		add(FAIL, line .. " -- a timed debuff reads as having no timer here, so no cure would be offered for it")
+	else
+		add(PASS, line)
+	end
+end)
+
+---------------------------------------------------------------------------
 -- running them
 ---------------------------------------------------------------------------
 

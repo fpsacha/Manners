@@ -78,6 +78,9 @@ end
 -- translation sees what the word describes and can put it, and its colour,
 -- where its own grammar wants them. The name itself is never translated.
 local function BrokerText()
+	-- A fault that keeps repeating (Core.lua, ns.Broken) first while on, as
+	-- the state line has it: a broker bar is in view where chat may be silenced.
+	if Enabled() and ns.Broken and ns.Broken() then return L["%s |cffff4040something broke|r"]:format("Manners") end
 	-- Off outranks a snooze, since a snooze ending brings nothing back while off.
 	local ends = Enabled() and ns.SnoozeEndsAt and ns.SnoozeEndsAt()
 	if ends then return L["%s |cffffd100snoozed until %s|r"]:format("Manners", ends) end
@@ -226,6 +229,15 @@ local function LauncherState()
 				1, 0.5, 0.5, true, nil, "off"
 		end
 		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5, nil, nil, "off"
+	elseif ns.Broken and ns.Broken() then
+		-- A fault that keeps repeating (Core.lua, ns.Broken: the scan failing
+		-- every time, say): the prompt may be frozen or gone, so every other
+		-- line here would be a promise. Red, ahead of all but "off", with the
+		-- button that writes the bug report. Said here for the player who has
+		-- chat silenced, whose chat line about it never went out.
+		return false, L["Something keeps failing in %s, so the prompt may stop changing. %s on %s says what, for a bug report."]
+			:format(ns.Broken(), "|cffffd100" .. L["Run a full check-up"] .. "|r", L["Diagnostics"]),
+			1, 0.35, 0.35, true, nil, "broken"
 	elseif DragPanelUp() then
 		-- Ahead of the snooze, as the prompt reads them: an unlocked prompt is
 		-- up to be dragged and casts nothing.

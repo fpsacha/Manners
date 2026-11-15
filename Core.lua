@@ -170,6 +170,64 @@ ns.errors = {}
 ns.errorCount = 0
 ns.shouted = {}
 
+-- A fault that repeats: the same label failing BROKEN_AFTER times with no gap
+-- of BROKEN_SECONDS between them (the scan, failing 2.5 times a second, gets
+-- there in about a second; a rare fault never does). Per label, the run's
+-- count and the time of its last failure. While one lasts, ns.Broken() names
+-- it, and the launcher's state says so in red ahead of everything but "off"
+-- (Options/Launcher.lua, kind "broken"): its tooltip, its broker text and the
+-- options window's strip, all places a player who chose "Say nothing at all
+-- in chat" still looks. For that player, whose chat line silentChat swallows,
+-- one line goes on screen as well (UIErrorsFrame, not chat), once a session.
+local BROKEN_AFTER, BROKEN_SECONDS = 3, 10
+local failing = {}
+local broken = { shown = false, told = false }
+
+function ns.Broken()
+	local now, worst = GetTime(), nil
+	for label, run in pairs(failing) do
+		if run.n >= BROKEN_AFTER and now - run.last <= BROKEN_SECONDS
+			and (not worst or run.n > failing[worst].n) then
+			worst = label
+		end
+	end
+	return worst
+end
+
+-- Noted from Guard on every failure; never throws (Guard's own rule).
+local function NoteFailing(label)
+	local now = GetTime()
+	local run = failing[label]
+	if not run or now - run.last > BROKEN_SECONDS then
+		run = { n = 0 }
+		failing[label] = run
+	end
+	run.n, run.last = run.n + 1, now
+	if run.n ~= BROKEN_AFTER then return end
+	broken.shown = true
+	local db = ns.addon and ns.addon.db and ns.addon.db.profile
+	if not broken.told and db and db.silentChat == true then
+		broken.told = true
+		local screen = _G.UIErrorsFrame
+		if type(screen) == "table" and type(screen.AddMessage) == "function" then
+			-- The tab and the button by their own keys, so a translation names
+			-- what the window shows; the command as it is typed.
+			pcall(screen.AddMessage, screen, L["Manners keeps failing in %s, so the prompt may stop changing. %s on the %s tab (%s) says what."]
+				:format(label, L["Run a full check-up"], L["Diagnostics"], "/manners"), 1, 0.25, 0.25)
+		end
+	end
+	if ns.RepaintOptions and label ~= "options repaint" and label ~= "broker text" then ns.RepaintOptions() end
+end
+
+-- From the scan, after a good one: once the run has lapsed, the mark comes
+-- down where it was shown. Costs one test of a flag while nothing is broken.
+local function MendedScan()
+	if broken.shown and not ns.Broken() then
+		broken.shown = false
+		if ns.RepaintOptions then ns.RepaintOptions() end
+	end
+end
+
 function ns.Guard(label, fn, ...)
 	local ok, err = pcall(fn, ...)
 	if ok then return true end
@@ -183,6 +241,7 @@ function ns.Guard(label, fn, ...)
 	ns.errorCount = (ns.errorCount or 0) + 1
 	ns.errors[#ns.errors + 1] = { at = date("%H:%M:%S"), where = label, err = err }
 	while #ns.errors > 30 do table.remove(ns.errors, 1) end
+	pcall(NoteFailing, label)
 
 	if not ns.shouted[label] then
 		ns.shouted[label] = true
@@ -5503,7 +5562,7 @@ function addon:StartScanner()
 end
 
 function addon:Tick()
-	ns.Guard("Tick", addon.TickBody, self)
+	if ns.Guard("Tick", addon.TickBody, self) then MendedScan() end
 end
 
 function addon:TickBody()
