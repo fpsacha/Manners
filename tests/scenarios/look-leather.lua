@@ -105,6 +105,9 @@ local function upIn(ns, scenario, edit, who)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "leather"
+	-- This file holds Leather's own art, which Earlier art draws (the painted
+	-- frame over it is painted-leather.lua's).
+	p.classicArt = true
 	p.flashStyle = "pulse"
 	p.effects = "full"
 	p.hideInCombat = false

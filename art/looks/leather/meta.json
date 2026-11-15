@@ -1,0 +1,12 @@
+{
+  "key": "leather",
+  "socket": {"shape": "round", "cx": 495, "cy": 512, "r": 165, "ring_outer_r": 242},
+  "name_xy": [883, 396],
+  "reason_xy": [883, 529],
+  "keycap": {"cx": 3645, "cy": 504, "w": 234, "h": 232},
+  "bar": [200, 217, 3948, 843],
+  "well": [825, 375, 3180, 663],
+  "stretch": [1000, 3150],
+  "text_colour_ok": true,
+  "notes": "Strap body 269-755 tall; socket leather surround 217-800; feathers hang to 843 under the right end. Well mean colour about rgb(50,35,38): white text ~15:1, warm gold ~6:1. Could move as layers: a soft arcane glow pulse in the socket glass (behind the live icon); a slow sheen sweep across the brass ring and keycap rim; the two feathers swaying gently from the brass ring (pivot at the ring, about 3700,560); the paw-print stamp warming to a faint gold when the key is ready."
+}

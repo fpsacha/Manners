@@ -102,6 +102,14 @@ local Leather = ns.Looks.Register("leather", {
 	-- Every line sits on leather whatever the panel colour says.
 	subOnDark = true,
 	inkOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/leather): what of this
+	-- file's own art it replaces. The painting has its own hide, stitching,
+	-- brass porthole, paw print, keycap, brass loop and feathers; the thread
+	-- round the icon (the reason's mark), the count's patch, the list's tags,
+	-- the lights, the embers and the smoke stay this file's.
+	paintedHides = { "shadow", "body", "sheen", "threadParts", "glowParts", "eyelet", "enamel", "gloss",
+		"studs", "buckle", "feathers", "brand", "keyChip" },
+	paintedIconFill = 0.92,
 })
 
 -- The art is drawn 128 texels tall and shown at the prompt's height: one unit
@@ -206,6 +214,22 @@ local COMMAND = "CLICK MannersPrompt:LeftButton"
 local NAME_FACE = "Fonts\\MORPHEUS.TTF"
 local LATIN = { enUS = true, enGB = true, deDE = true, esES = true, esMX = true, frFR = true, itIT = true,
 	ptBR = true }
+-- Where things are on the painting (art/looks/leather/final-empty.jpg), in
+-- units of the bar's core height: the well's top and bottom from the core's
+-- top; where it ends from the art's right edge; the stitching's two lines from
+-- the core's top, where it starts past the porthole's centre and where each line
+-- ends from the right edge; the brass ring's middle from the porthole's centre;
+-- the paw print's centre from the right edge and the core's top, and its size.
+-- A fight dims the painting this much (less than the old leather: the keycap's
+-- pale letter keeps its ground).
+local PAINT = {
+	wellTop = 0.220, wellBottom = 0.799, wellEnd = 1.595,
+	stitchTop = 0.0965, stitchBottom = 0.920, stitchFrom = 0.50, topEnd = 0.433, bottomEnd = 0.71,
+	ring = 0.418, pawX = 1.237, pawY = 0.497, pawW = 0.33, pawH = 0.43,
+	combat = 0.80,
+}
+-- A square icon in the round porthole: this much of the glass's width.
+local SQUARE_FILL = 0.78
 
 local function Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 local function SubSize(fontSize) return math.max(7, fontSize - 3) end
@@ -461,10 +485,12 @@ local function Swing(region, steps, sign)
 	return g
 end
 
-local function PlayAll(list)
+-- `skip`, a set of groups left stopped: under the painted frame, the counter-
+-- swings that held the eyelet still (the painting's brass moves with the tag).
+local function PlayAll(list, skip)
 	for _, g in ipairs(list) do
 		g:Stop()
-		g:Play()
+		if not (skip and skip[g]) then g:Play() end
 	end
 end
 
@@ -571,6 +597,8 @@ function Leather:Build(kit)
 		left = tex(self.threadFrame, "ARTWORK", 0, "StitchL"),
 		right = tex(self.threadFrame, "ARTWORK", 0, "StitchR"),
 	}
+	-- The same as a list, for the painted frame's paintedHides.
+	self.threadParts = { self.thread.top, self.thread.bottom, self.thread.left, self.thread.right }
 
 	-- The icon's setting: its rim, over the icon's own edge, and a flash.
 	self.iconFrame = frame(LEVEL.thread)
@@ -596,6 +624,7 @@ function Leather:Build(kit)
 		left = tex(self.glowFrame, "ARTWORK", 0, "StitchL", "ADD"),
 		right = tex(self.glowFrame, "ARTWORK", 0, "StitchR", "ADD"),
 	}
+	self.glowParts = { self.glow.top, self.glow.bottom, self.glow.left, self.glow.right }
 	self.ringGlowFrame = frame(LEVEL.light)
 	self.ringGlowFrame:SetAlpha(0)
 	self.ringGlow = tex(self.ringGlowFrame, "ARTWORK", 0, "Glow", "ADD")
@@ -697,6 +726,9 @@ function Leather:BuildAnimations(anim)
 	self.swing = Swing(art, SWING, 1)
 	into(self.swing)
 	for _, f in ipairs({ self.ringFrame, self.ringGlowFrame, self.starFrame }) do into(Swing(f, SWING, -1)) end
+	-- The counter-swings, which the painted frame leaves stopped (Held).
+	self.counter = {}
+	for i = 2, #arrive do self.counter[arrive[i]] = true end
 	into(Flash(self.star, 0.95, 0.06, 0.28, 0.26))
 	self.arrive = arrive
 
@@ -734,6 +766,7 @@ function Leather:BuildAnimations(anim)
 	local refusal = { anim(Swing(art, JERK, 1)) }
 	for _, f in ipairs({ self.ringFrame, self.ringGlowFrame, self.starFrame }) do
 		refusal[#refusal + 1] = anim(Swing(f, JERK, -1))
+		self.counter[refusal[#refusal]] = true
 	end
 	for i = 1, #self.flash do refusal[#refusal + 1] = self.flash[i] end
 	refusal[#refusal + 1] = anim(Flash(self.ringFlash, 0.70, 0.04, 0.22))
@@ -972,6 +1005,8 @@ end
 -- beside one, reads as a fault, and a light under a letter costs the letter
 -- its contrast.
 function Leather:PlaceBrand()
+	-- Under the painted frame the brand is the painting's paw print.
+	if ns.Looks.Painted.On(self) then return self:PaintedBrand() end
 	local size = self.brandSize
 	if not size then return end
 	local kit = self.kit
@@ -1026,6 +1061,8 @@ function Leather:Apply(p, above)
 	self.p, self.W, self.H, self.sub, self.above = p, W, H, sub, above
 	self.nameSize, self.twoLine = nameSize, twoLine and true or false
 	self:Dye(p)
+	-- What the painted frame changed, given back (PaintedPlace sets it again).
+	self:Unpaint()
 
 	local su = H / DESIGN
 	local capL, capR = CAP_L * su, CAP_R * su
@@ -1266,6 +1303,10 @@ function Leather:Tone()
 	local on = self.combat and true or false
 	local k = on and LEATHER_COMBAT or 1
 	local grad = self.kit.Gradient
+	-- The painted frame, when it is up: dyed as the leather, a fight dimming
+	-- and greying it less.
+	local pk, dye = on and PAINT.combat or 1, self.dye or { 1, 1, 1 }
+	ns.Looks.Painted.Tone(self, dye[1] * pk, dye[2] * pk, dye[3] * pk, on)
 	Dye(grad, self.body, self.dye, k, 0, 1, self.spans)
 	Dye(grad, self.chip, self.dye, k * PATCH, 0.2, 0.6, PATCH_SPANS)
 	Dye(grad, self.keyChip, self.dye, k * PATCH, 0.2, 0.6, PATCH_SPANS)
@@ -1400,6 +1441,241 @@ function Leather:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): the leather's own lights, embers,
+-- smoke, lines, patches and list moved onto the painting. Looks/Painted.lua
+-- has laid the three pieces and put the icon in the porthole; `g` is its
+-- Painted.Layout. With Earlier art on none of this runs, and Unpaint (from
+-- Apply) gives back what it changed.
+---------------------------------------------------------------------------
+
+-- The counter-swings left stopped under the painted frame: its brass is the
+-- painting's and moves with the tag.
+function Leather:Held()
+	if ns.Looks.Painted.On(self) then return self.counter end
+end
+
+function Leather:Unpaint()
+	self.listGap = nil
+	if not self.unpainted then return end
+	self.unpainted = nil
+	for _, piece in ipairs(self.pieces) do
+		if piece.kind == "left" then
+			piece.tex:SetTexture(ART .. "StitchL")
+		elseif piece.kind == "right" then
+			piece.tex:SetTexture(ART .. "StitchR")
+		else
+			piece.tex:SetTexture(ART .. "StitchM", "REPEAT", "REPEAT")
+		end
+	end
+	self.ember:SetTexture(ART .. "Ember")
+	self.brandFlash:SetTexture(ART .. "Ember")
+	Colour(self.ember, 1, 1, 1, 1)
+	self.keyText:SetParent(self.kit.textLayer)
+end
+
+-- The embers, the strike's flash and the smoke on the painting's paw print:
+-- a warm glow over it while somebody is owed, the strike's light, the smoke
+-- rising off it. Not where the right end was cut back over the print.
+function Leather:PaintedBrand()
+	local g = self.paintedArt and self.paintedArt.g
+	local up, cx = false, nil
+	if g then
+		local u = g.unit
+		cx = g.right - PAINT.pawX * u
+		up = cx - PAINT.pawW / 2 * u >= g.x2 - 0.5
+	end
+	if cx == self.brandRight and up == self.brandUp then return end
+	self.brandRight, self.brandUp, self.brandLit = cx, up, up
+	self.ember:SetShown(up)
+	self.brandFlash:SetShown(up)
+	self.smoke:SetShown(up)
+	if not up then return end
+	local art, u = self.kit.art, g.unit
+	local cy = g.top + PAINT.pawY * u
+	local w, h = PAINT.pawW * 1.6 * u, PAINT.pawH * 1.5 * u
+	Box(self.ember, art, cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+	Box(self.brandFlash, art, cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+	local sw, sh = SMOKE[1] * u, SMOKE[2] * u
+	local base = cy + 0.06 * u
+	Box(self.smoke, art, cx - sw / 2, base - sh, cx + sw / 2, base)
+end
+
+function Leather:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local u, W, H = g.unit, self.W, self.H
+	local showIcon = p.showIcon and true or false
+	self.unpainted = true
+
+	-- The lines: centred on the painted well, the name as large as it holds.
+	local wellTop, wellBottom = g.top + PAINT.wellTop * u, g.top + PAINT.wellBottom * u
+	local sub = self.sub
+	local nameSize, gap = Leather.NameSize(p.fontSize, Face(p), wellBottom - wellTop - 2 + MARGIN,
+		self.twoLine and sub)
+	self.nameSize = nameSize
+	local block = self.twoLine and (nameSize + gap + sub) or nameSize
+	local m = g.textY - block / 2
+	local nameC, subC = m + nameSize / 2, m + nameSize + gap + sub / 2
+	self.nameY, self.subY, self.oneY = H / 2 - nameC, H / 2 - subC, H / 2 - g.textY
+	self.nameC = self.twoLine and nameC or g.textY
+	self.textX = g.textX
+	-- They end where the well does: past it are the paw print and the keycap.
+	local wellRight = math.max(g.x2, g.right - PAINT.wellEnd * u)
+	local inset = math.ceil(W - wellRight + 0.12 * u)
+	self.ringInset, self.baseInset, self.chipRight = inset, inset, inset
+	-- The count's patch at the end of a line, inside the well.
+	self.chipTop = Clamp(self.nameC - self.chipH / 2, wellTop, math.max(wellTop, wellBottom - self.chipH))
+	self.subChipTop = self.twoLine and Clamp(subC - self.subChipH / 2, wellTop,
+		math.max(wellTop, wellBottom - self.subChipH)) or nil
+
+	-- The key's letter on the painted keycap (its patch is the painting's). It
+	-- is part of the keycap: a fight's dim of the words leaves it be.
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	self.keyText:SetParent(self.chipFrame)
+	self.keyW = g.keyW
+
+	-- The icon in the porthole, its thread round it; its shape is the look's
+	-- own (Round the icon off, which Apply has followed). A square one is drawn
+	-- smaller, its corners just over the glass's edge.
+	local S = g.iconSize or 0
+	if not self.round then
+		S = 2 * g.socketR * SQUARE_FILL
+		icon:SetSize(S, S)
+		g.iconSize = S
+	end
+	self.S, self.cx, self.cy = S, g.socketX, g.socketY
+	self.iconFrame:ClearAllPoints()
+	self.iconFrame:SetPoint("CENTER", art, "TOPLEFT", g.socketX, -g.socketY)
+	self.iconFrame:SetSize(math.max(1, S), math.max(1, S))
+	if showIcon then
+		local pad = (S / 2 + 1.5) / FX_PEAK - S / 2
+		self.fx:Place(icon, pad, S)
+		-- The rings stay inside the prompt, as Apply keeps them.
+		local limitH = math.min(g.textX - g.socketX - kit.TEXT_MARGIN, g.socketX - kit.EDGE_MARGIN)
+		local limitV = math.min(g.socketY, H - g.socketY) - kit.EDGE_MARGIN
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+	end
+
+	-- The brass's lights on the painting's brass loop at the end; the glints at
+	-- rest on the porthole's ring and on the loop.
+	local function centre(t, size, x, y)
+		t:ClearAllPoints()
+		t:SetSize(size, size)
+		t:SetPoint("CENTER", art, "TOPLEFT", x, -y)
+	end
+	local eye = 0.46 * u
+	centre(self.ringGlow, eye * 1.7, g.endX, g.endY)
+	centre(self.star, eye * 1.5, g.endX - eye * 0.12, g.endY - eye * 0.14)
+	centre(self.ringFlash, eye * 1.7, g.endX, g.endY)
+	centre(self.hoverLight, eye * 1.7, g.endX, g.endY)
+	local r = PAINT.ring * u * 0.707
+	local star = STUD * u * 1.6
+	centre(self.twinkles[1], star, g.socketX + r, g.socketY - r)
+	centre(self.twinkles[2], star * 1.25, g.endX, g.endY - 0.05 * u)
+
+	-- The band of light crosses the well.
+	local bx0 = g.socketX + (PAINT.ring + 0.08) * u
+	local bandW = math.max(10, 0.75 * u)
+	self.bandFrame:ClearAllPoints()
+	self.bandFrame:SetPoint("TOPLEFT", art, "TOPLEFT", bx0, -wellTop)
+	self.bandFrame:SetSize(bandW, math.max(1, wellBottom - wellTop))
+	self.bandMove:SetOffset(math.max(8, wellRight - bx0 - bandW), 0)
+
+	-- The thread's light runs along the painted stitching: a soft light on each
+	-- share of the two lines (a stitch of this file's own would not keep the
+	-- painting's pace once the middle is stretched); the ends' pieces go.
+	local x0 = g.socketX + PAINT.stitchFrom * u
+	local lines = {
+		top = { g.top + PAINT.stitchTop * u, g.right - PAINT.topEnd * u },
+		bottom = { g.top + PAINT.stitchBottom * u, g.right - PAINT.bottomEnd * u },
+	}
+	local half = 0.06 * u
+	for _, piece in ipairs(self.pieces) do
+		local line = lines[piece.kind]
+		if line then
+			local a, b = (piece.index - 1) / PIECES, piece.index / PIECES
+			local length = line[2] - x0
+			piece.tex:SetTexture(ART .. "Glow")
+			piece.tex:SetTexCoord(0, 1, 0, 1)
+			Box(piece.tex, art, x0 + length * a, line[1] - half, x0 + length * b, line[1] + half)
+		else
+			piece.tex:Hide()
+		end
+	end
+
+	-- The embers over the paw print: a warm light, not the old brand's strokes.
+	self.ember:SetTexture(ART .. "Glow")
+	self.brandFlash:SetTexture(ART .. "Glow")
+	Colour(self.ember, 1.00, 0.70, 0.28, 0.55)
+	self.brandRight, self.brandUp = nil, nil
+	self:PlaceBrand()
+
+	-- The list: its tags' eyelets under the keycap, from the porthole's edge,
+	-- hung clear of what the painting hangs past the bar.
+	self.ringX = g.keyX
+	self.rowBase = math.max(2, math.floor(g.socketX - g.socketR))
+	self.listGap = above and math.max(0, -g.y0) or math.max(0, g.y1 - H)
+	local eyeLeft = self.ringX - EYE_RING * self.tagH
+	for i, row in ipairs(kit.rows) do
+		local x = self.rowBase + (i - 1) * self.stagger + self.rowOffset
+		local width = math.max(20, eyeLeft - 3 - x)
+		row:SetWidth(width)
+		kit.fit.room[row] = width
+	end
+	self.listShown, self.listAt = nil, nil
+	self.idleState = nil
+	self:Idle()
+	return g.textX, self.chipRight + self.chipW2 + 4
+end
+
+-- The key's letter on the painted keycap: the ink the tool chose for it, no
+-- shadow, in the name's serif, no larger than the keycap holds.
+function Leather:PaintedStyled(g)
+	-- The count's patch and the list's tags are still this file's leather:
+	-- what is written is held to the lighter of the two grounds.
+	local ground = self.kit.ink
+	ground.hi = math.max(ground.hi or 0, HIDE_LUM)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	local p = self.p or {}
+	local size = math.max(6, math.min(math.floor(g.keyH * 0.7), math.max(self.sub or 0, math.floor(g.keyH * 0.6))))
+	local face = Face(p)
+	if not (face and self.keyText:SetFont(face, size, "") and self.keyText:GetFont()) then
+		self.keyText:SetFont(self.kit.fit.path or STANDARD_TEXT_FONT, size, "")
+	end
+	-- Chip measures the letter against the keycap afresh in this font.
+	self.keyFitFor = nil
+end
+
+-- A key's label wider than the keycap (a controller's two buttons, a long
+-- modifier) is drawn smaller until it fits: the keycap is painted, it cannot
+-- grow. Measured only when the label changes (Chip).
+function Leather:FitKey()
+	local g = self.paintedArt and self.paintedArt.g
+	if not g then return end
+	local path, size, flags = self.keyText:GetFont()
+	local width = self.kit.TextWidth(self.keyText)
+	local room = g.keyW - 4
+	if not (path and size and width and width > room and room > 0) then return end
+	self.keyText:SetFont(path, math.max(6, math.floor(size * room / width)), flags or "")
+	-- A button's glyph is drawn at the size its markup says: told a smaller one.
+	for _ = 1, 3 do
+		local text = self.keyText:GetText()
+		width = self.kit.TextWidth(self.keyText)
+		if type(text) ~= "string" or not width or width <= room or not text:find("|A:", 1, true) then return end
+		local k = room / width
+		text = text:gsub("|A:([^:|]*):(%d+):(%d+)", function(name, h, w)
+			return ("|A:%s:%d:%d"):format(name, math.max(1, math.floor(h * k)), math.max(1, math.floor(w * k)))
+		end)
+		self.keyText:SetText(text)
+	end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1525,6 +1801,14 @@ function Leather:Chip(on)
 		end
 		if not lane and self:NameFits(self.keyRoom) then lane = "name" end
 	end
+	-- On the painted keycap the key takes no patch and no room of the lines':
+	-- its letter is there whenever a key is.
+	local capped = ns.Looks.Painted.On(self)
+	if capped then lane = nil end
+	if capped and key and key ~= self.keyFitFor then
+		self.keyFitFor = key
+		self:FitKey()
+	end
 	if lane ~= self.keyLane then
 		self.keyLane, self.keyUp = lane, lane ~= nil
 		-- Prompt places the lines again, and PlaceLines keeps the key's room.
@@ -1545,7 +1829,7 @@ function Leather:Chip(on)
 		end
 	end
 	Each(self.keyChip, "SetShown", lane ~= nil)
-	self.keyText:SetShown(lane ~= nil)
+	self.keyText:SetShown(lane ~= nil or (capped and key ~= nil))
 
 	-- The count's patch is as wide as its words need: the room the lines keep
 	-- for it is too, so the name never runs under a count of three digits.
@@ -1631,6 +1915,10 @@ function Leather:Accent()
 	local ir, ig, ib = cr, cg, cb
 	local stripe = out or mode == "stripe" or mode == "both"
 	local rim = out or mode == "icon" or mode == "both"
+	-- Under the painted frame the tag's thread and the eyelet's enamel are the
+	-- painting's: the thread round the icon carries the reason in every mode
+	-- but off, as the enamel did.
+	if ns.Looks.Painted.On(self) then rim = out or mode ~= "off" end
 	if self.combat then
 		cr, cg, cb = FIGHT_THREAD[1], FIGHT_THREAD[2], FIGHT_THREAD[3]
 		pr, pg, pb, ir, ig, ib = cr, cg, cb, cr, cg, cb
@@ -1726,7 +2014,7 @@ function Leather:Attention(isNew, arrived, flashStyle)
 		-- Calm (fades only: a soft glow instead).
 		if not self.outcomeOn then
 			if full then
-				PlayAll(self.arrive)
+				PlayAll(self.arrive, self:Held())
 			else
 				self:WarmThread()
 				self.soft:Stop()
@@ -1803,7 +2091,7 @@ function Leather:Flourish(kind)
 		Colour(self.ringFlash, 1.00, 0.42, 0.20)
 		Colour(self.iconFlash, 1.00, 0.42, 0.20)
 		self:Strike(kind, 1.00, 0.30, 0.16)
-		PlayAll(self.refusal)
+		PlayAll(self.refusal, self:Held())
 		if icon then self.fx:Refuse(1.00, 0.40, 0.22, 0.85) end
 		return
 	end
@@ -1848,6 +2136,8 @@ end
 function Leather:Stir(kind)
 	local set = self.stirs[kind]
 	if not set or self.combat then return end
+	-- The painting's feathers are painted: none of these to fling.
+	if ns.Looks.Painted.On(self) then return end
 	for _, g in ipairs(self.sways) do g:Stop() end
 	for _, g in ipairs(self.aftermath) do
 		if g ~= self.cool and g ~= self.smokeFade then g:Stop() end
@@ -1870,6 +2160,8 @@ function Leather:Idle()
 	if state == self.idleState then return end
 	self.idleState = state
 	local sway = on and not self.stirring
+	-- Nor stirred: the painting's feathers are painted, these are hidden.
+	if ns.Looks.Painted.On(self) then sway = false end
 	for _, g in ipairs(self.sways) do
 		if sway then
 			if not g:IsPlaying() then g:Play() end
@@ -2016,6 +2308,10 @@ function Leather:PaintQueue(rows, shown, above)
 	else
 		y0 = self.H + 3
 	end
+	-- Under a painted frame the tags hang clear of what the painting hangs past
+	-- the bar (the porthole's leather above, the feathers below).
+	local gap = self.listGap or 0
+	y0 = above and y0 - gap or y0 + gap
 	local right = self.ringX + 0.38 * h
 	for i = 1, shown do
 		local tag = self.tags[i]
