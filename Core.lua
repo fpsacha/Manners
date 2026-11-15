@@ -269,6 +269,12 @@ local defaults = {
 			-- returnOnly: Unending Breath) because the player chose that: a sparse
 			-- set, absent is offered to everybody, as it was before 1.11.19.
 			keptBack = {},
+			-- A blessing for each class (Who to buff, under the buff order; a
+			-- paladin's ask on CurseForge: Wisdom for mages rather than Kings):
+			-- CLASS -> the key of the buff of yours tried first for somebody of
+			-- that class, for a class whose buffs replace one another
+			-- (PickBuffFor's exclusive branch). Absent is the walk as it stands.
+			forClass = {},
 			-- The buffs that are off until they are switched on (Buffs.lua, optIn:
 			-- Detect Invisibility for your group), switched on: a sparse set, absent
 			-- is off (ns.OptedOut).
@@ -1581,6 +1587,18 @@ function ns.HasShout()
 	return false
 end
 
+-- The buffs "A blessing for each class" may name: your class's buffs that
+-- replace one another, known, not for one target at a time. Empty for a class
+-- whose buffs stack, which has no such choice to make.
+function ns.ClassBlessings()
+	local out = {}
+	if not (ns.EXCLUSIVE_BUFFS and ns.EXCLUSIVE_BUFFS[playerClass]) then return out end
+	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+		if not buff.oneTarget and not buff.selfCast and ns.IsBuffKnown(buff) then out[#out + 1] = buff end
+	end
+	return out
+end
+
 -- The buffs "Myself" can offer, out of CastableBuffs' answer (asked here when
 -- the caller does not have it): shared by the scan and the options page, which
 -- hides the switch from a class that has none.
@@ -2013,6 +2031,8 @@ do
 	-- A paladin's blessings with his buffs for one target at a time taken out
 	-- (Buffs.lua, oneTarget), reused the same way.
 	local BLESSINGS_ONLY = {}
+	-- And the walk with one class's own blessing at its head (buff.forClass).
+	local CLASS_FIRST = {}
 
 	-- Which of their buffs this person should be offered, or nil for none. Every
 	-- castable buff is walked, so holding the first one never hides somebody.
@@ -2104,6 +2124,28 @@ do
 				for i = 1, #all do
 					local held, _, mine = has(all[i], opts)
 					if held == true and mine == false and not all[i].oneTarget then return nil, true end
+				end
+			end
+			-- "A blessing for each class" (buff.forClass): the one chosen for
+			-- their class goes to the head of the walk, the rest behind it as
+			-- they stood. Nothing else changes, as for Kings first
+			-- (ns.CastableBuffs): the branch reads the whole list before it
+			-- offers anything, so one of yours on them still covers them, and
+			-- one that cannot go to them is passed over for the next. Never
+			-- over a pin, which is one buff alone.
+			local first = not pinned and opts.theirClass and db.buff.forClass[opts.theirClass]
+			if first then
+				local at
+				for i = 2, #candidates do
+					if candidates[i].key == first then at = i break end
+				end
+				if at then
+					wipe(CLASS_FIRST)
+					CLASS_FIRST[1] = candidates[at]
+					for i = 1, #candidates do
+						if i ~= at then CLASS_FIRST[#CLASS_FIRST + 1] = candidates[i] end
+					end
+					candidates = CLASS_FIRST
 				end
 			end
 			local pick, allRead, onCooldown = nil, true, false
@@ -5012,6 +5054,16 @@ function ns.ClampSettings()
 	if type(profile.buff.tanksOutside) ~= "table" then profile.buff.tanksOutside = {} end
 	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
 	if type(profile.buff.keptBack) ~= "table" then profile.buff.keptBack = {} end
+	-- A class token to a buff key, and nothing else (PickBuffFor reads it per
+	-- person): a key this client does not know is simply never found.
+	if type(profile.buff.forClass) ~= "table" then profile.buff.forClass = {} end
+	for class, key in pairs(profile.buff.forClass) do
+		if not (type(class) == "string" and class:match("^%u+$")
+			and type(key) == "string" and key:match("^[%w_]+$")) then
+			fixed("buff.forClass." .. tostring(class), key)
+			profile.buff.forClass[class] = nil
+		end
+	end
 	if type(profile.buff.optIn) ~= "table" then profile.buff.optIn = {} end
 	-- The buff order, read on every scan (ns.WalkBuffs), repaired for every class
 	-- in the profile whichever client wrote it: a key no client has for that

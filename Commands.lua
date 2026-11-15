@@ -847,6 +847,9 @@ do
 							or name == "filters.skipNearbyClasses"
 							or name == "prompt.thankEmoteMore" then
 							kind = "set"
+						elseif name == "buff.forClass" then
+							-- A class to one buff key (A blessing for each class).
+							kind = "byclass"
 						elseif name == "buff.order" then
 							-- The buffs of each class in an order of the player's
 							-- own, kept per class. Its default is empty, so the
@@ -984,6 +987,19 @@ do
 			if #keys == 0 then return nil end
 			table.sort(keys)
 			return table.concat(keys, ",")
+		elseif kind == "byclass" then
+			-- CLASS=key, the classes joined by commas: MAGE=wisdom,ROGUE=might.
+			if type(value) ~= "table" then return nil end
+			local classes = {}
+			for class, key in pairs(value) do
+				if type(class) == "string" and class:match("^%u+$")
+					and type(key) == "string" and key:match("^[%w_]+$") then
+					classes[#classes + 1] = class .. "=" .. key
+				end
+			end
+			if #classes == 0 then return nil end
+			table.sort(classes)
+			return table.concat(classes, ",")
 		elseif kind == "order" then
 			-- CLASS=key:key:key, the classes joined by commas: PRIEST=spirit:fortitude.
 			-- Only keys of the plain kind buff.skip allows, a class and a key at a time.
@@ -1037,6 +1053,17 @@ do
 				count = count + 1
 				if count > 64 then return nil end
 				out[part] = true
+			end
+			return out
+		elseif kind == "byclass" then
+			-- Each class once, one key of the plain kind each.
+			local out, count = {}, 0
+			for part in (raw .. ","):gmatch("([^,]*),") do
+				local class, key = part:match("^(%u+)=([%w_]+)$")
+				if not class or out[class] ~= nil then return nil end
+				count = count + 1
+				if count > 32 then return nil end
+				out[class] = key
 			end
 			return out
 		elseif kind == "order" then

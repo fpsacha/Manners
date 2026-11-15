@@ -2223,6 +2223,8 @@ local function SelfBuff(db, mine, full, now)
 		inGroup = grouped,
 		tanksOnly = tanksHeld or nil,
 		isTank = tanksHeld and ns.IsTankUnit("player") or nil,
+		-- Your own class, for a blessing chosen for it.
+		theirClass = next(db.buff.forClass) ~= nil and ns.caps and ns.caps.class or nil,
 		-- The caster is always inside their own party.
 		inParty = true,
 		relevantOnly = f.relevantOnly,
@@ -2583,6 +2585,9 @@ function ns.BuildQueue(watch)
 	-- answer to "does anybody need their role read".
 	local tanksHeld = db.buff.tanksOnly
 	if tanksHeld and next(tanksHeld) == nil then tanksHeld = nil end
+	-- A blessing chosen for a class (buff.forClass): the class is read for the
+	-- walk only while one is.
+	local classHeld = next(db.buff.forClass) ~= nil
 	-- And the ones held to you alone: nobody else is offered them.
 	local meHeld = db.buff.meOnly
 	if meHeld and next(meHeld) == nil then meHeld = nil end
@@ -2936,6 +2941,8 @@ function ns.BuildQueue(watch)
 		else
 			opts.class = nil
 		end
+		-- Their class, for a blessing chosen for it (Core.lua, PickBuffFor).
+		opts.theirClass = next(db.buff.forClass) ~= nil and not owner and plain(select(2, UnitClass(unit))) or nil
 		-- Held to you alone, for everybody who is not you, and not for somebody
 		-- who asked for it by name.
 		opts.meOnly = not asked and meHeld or nil
@@ -3279,6 +3286,7 @@ function ns.BuildQueue(watch)
 					-- Favours.lua as the favour was noticed), nil for none.
 					tokenless.targetLevel = entry.level
 					tokenless.casterOnly = skipCasters and ns.CASTER_CLASSES[entry.class] or nil
+					tokenless.theirClass = classHeld and entry.class or nil
 					tokenless.name = full
 					local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
 

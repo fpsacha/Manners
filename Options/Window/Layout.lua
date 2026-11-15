@@ -363,6 +363,11 @@ ns.WindowLayout = {
 					{ composite = "order", ids = {
 						"who.orderNote", "who.orderPick", "who.orderUp", "who.orderDown", "who.orderReset",
 					} },
+					-- A blessing for each class, under the order it steps out of.
+					"who.classNote",
+					{ "who.classPick", match = "classBlessing" },
+					{ "who.classBlessing", match = "classBlessing" },
+					{ "who.classReset", buttons = true },
 				} },
 				{ key = "who.group", header = "who.groupHeader", items = {
 					"who.groupBuffsUse",

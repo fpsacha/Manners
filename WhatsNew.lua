@@ -5,6 +5,14 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "15 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100A blessing for each class.|r Paladins can pick the blessing each class is offered first: Wisdom for mages, say, where the order would give them Kings.",
+		} },
+		{ title = "Who gets what", accent = "7cc4ff", entries = {
+			"|cff7cc4ffA blessing for each class.|r Pick a class, then its blessing.",
+		} },
+	} },
 	{ version = "1.11.25", date = "14 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100More than buffs.|r Resurrection for your group's dead, cures, and water, food, portals, healthstones and summons for whoever asks.",
@@ -86,15 +94,6 @@ ns.WhatsNew = {
 	{ version = "1.11.23", date = "13 November 2026", sections = {
 		{ title = "Who gets what", accent = "7cc4ff", entries = {
 			"|cff7cc4ffWhich food.|r Under |cffffffffWell Fed|r on |cffffffffWho to buff|r: the best one you can eat (as before), the weakest first, or a food in your bags by name.",
-		} },
-	} },
-	{ version = "1.11.22", date = "13 November 2026", sections = {
-		{ title = "Looks", accent = "7cc4ff", entries = {
-			"|cff7cc4ffA new look: Wild.|r A druid's, named for Mark of the Wild: a bough of living wood, your spell in a wreath under a stag's antlers, ringed with moonwell water.",
-			"|cff7cc4ffA new look: Frost.|r A frost mage's: a slab of glacial ice hung with icicles, your spell frozen in an ice crystal.",
-		} },
-		{ title = "Options", accent = "7cc4ff", entries = {
-			"|cff7cc4ffSettings grouped under headings.|r On |cffffffffWho to buff|r, your own buffs are in four groups: |cffffffffMyself|r, |cffffffffWeapons|r, |cffffffffFood, flasks and scrolls|r and |cffffffffWhen my own buffs come up|r.",
 		} },
 	} },
 }

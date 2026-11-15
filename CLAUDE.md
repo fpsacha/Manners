@@ -148,6 +148,12 @@ default everywhere in the tests and the only client anybody here plays.
   replace one another), then group cast, friends, name. `Prompt:PickTop` keeps
   the current person on a tie only while no worse by that order, and the
   fight's rota steps through the queue as built.
+- **A blessing for each class** (`buff.forClass`, CLASS -> buff key; Who to
+  buff, under the buff order: `who.classNote`, `classPick`, `classBlessing`,
+  `classReset`, for a class whose buffs replace one another): the blessing
+  chosen for somebody's class goes to the head of the walk in `PickBuffFor`'s
+  exclusive branch (`opts.theirClass`, read by the queue only while a class
+  has one) and nothing else changes; never over a pin.
 - **Unasked, by default**: `optIn` buffs are off until ticked (Detect
   Invisibility for the group; Shadow Protection on Classic Era, Forever and
   TBC), and Detect Invisibility stays the group's alone (`membersOnly`) until

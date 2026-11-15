@@ -773,6 +773,10 @@ no room for. Defaults are in brackets.
     and to whoever asks for it by name.
   - **Paladins.** Blessings overwrite one another, so anybody already
     carrying one of yours is left alone rather than handed a different one.
+    *A blessing for each class*, under *Buff order*: pick a class, then the
+    blessing its players are offered first (Wisdom for mages, say). Somebody
+    who already wears it from another paladin, or who cannot be given it,
+    gets what the order would have chosen.
     Automatic picks Wisdom for anyone with a mana bar and Might for everyone
     else. *Don't offer Might to mages, warlocks and priests* (on); *Skip
     players another paladin has blessed* (off); *Don't put Kings over a Fish

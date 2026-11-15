@@ -401,7 +401,7 @@ local EXPECTED = {
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
 		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.neverFishBowl", "buff.optIn", "ownBuffs.apart",
-		"buff.tanksOutside", "buff.keptBack",
+		"buff.tanksOutside", "buff.keptBack", "buff.forClass",
 		-- Detect Invisibility for passers-by too, under its own tick
 		-- (tests/scenarios/detect-passers.lua).
 		"buff.detectPassers",

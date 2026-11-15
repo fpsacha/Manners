@@ -826,6 +826,56 @@ local function ClassChoices()
 	return values
 end
 
+-- A blessing for each class (buff.forClass; Core.lua, PickBuffFor): for a class
+-- whose buffs replace one another and that knows two of them, and not while one
+-- spell is pinned. One class is picked at a time, a state of the window.
+local classPicked
+
+local function ClassHidden()
+	return ns.PinnedBuff() ~= nil or #ns.ClassBlessings() < 2
+end
+
+-- The classes by their names, as the client spells them.
+local function ClassKeys()
+	local values, keys = ClassChoices(), {}
+	for class in pairs(values) do keys[#keys + 1] = class end
+	table.sort(keys, function(a, b)
+		if values[a] == values[b] then return a < b end
+		return tostring(values[a]) < tostring(values[b])
+	end)
+	return keys
+end
+
+local function ClassPick()
+	local values = ClassChoices()
+	if classPicked and values[classPicked] then return classPicked end
+	return ClassKeys()[1]
+end
+
+-- The chosen blessing's buff for a class, or nil: one this character knows.
+local function ClassBlessing(class)
+	local key = B().forClass[class]
+	if not key then return nil end
+	for _, buff in ipairs(ns.ClassBlessings()) do
+		if buff.key == key then return buff end
+	end
+	return nil
+end
+
+local function ClassNote()
+	local values, chosen = ClassChoices(), {}
+	for _, class in ipairs(ClassKeys()) do
+		local buff = ClassBlessing(class)
+		if buff then chosen[#chosen + 1] = tostring(values[class]) .. ": " .. (ns.BuffName(buff) or buff.key) end
+	end
+	local text = "|cffffd100" .. L["A blessing for each class"] .. "|r\n"
+		.. L["Pick a class, then the blessing its players are offered first. Somebody who already wears it from another paladin, or who cannot be given it, gets what the order above would have chosen; anybody wearing one of yours is left alone."]
+	if #chosen == 0 then
+		return text .. "\n\n" .. L["No class has a blessing of its own yet."]
+	end
+	return text .. "\n\n" .. L["Chosen: %s."]:format(table.concat(chosen, ", "))
+end
+
 -- A passer-by is seen mostly through a nameplate token, and with the game's
 -- friendly nameplates off almost nobody outside your group has one, so the
 -- note and the button under the passers-by switch say so (they hold only
@@ -1229,6 +1279,67 @@ function Page.BuildWhoTab()
 						restyleAndMacro()
 						ns.RefreshOptionsDisplay()
 					end
+				end,
+			},
+
+			-------------------------------------------------- a blessing a class
+			-- Asked for on CurseForge by a paladin: Wisdom for mages, say, where
+			-- the order would give them Kings.
+			classNote = {
+				type = "description",
+				order = 6.6,
+				fontSize = "medium",
+				hidden = ClassHidden,
+				name = ClassNote,
+			},
+			classPick = {
+				type = "select",
+				name = L["Class"],
+				order = 6.7,
+				values = ClassChoices,
+				sorting = ClassKeys,
+				hidden = ClassHidden,
+				get = ClassPick,
+				set = function(_, value) classPicked = value end,
+			},
+			classBlessing = {
+				type = "select",
+				name = L["Blessing for that class"],
+				desc = L["Automatic leaves this class to the order above."],
+				order = 6.8,
+				values = function()
+					local values = { auto = L["Automatic"] }
+					for _, buff in ipairs(ns.ClassBlessings()) do
+						values[buff.key] = ns.BuffName(buff) or buff.key
+					end
+					return values
+				end,
+				sorting = function()
+					local keys = { "auto" }
+					for _, buff in ipairs(ns.ClassBlessings()) do keys[#keys + 1] = buff.key end
+					return keys
+				end,
+				hidden = ClassHidden,
+				get = function()
+					local buff = ClassBlessing(ClassPick())
+					return buff and buff.key or "auto"
+				end,
+				set = function(_, value)
+					B().forClass[ClassPick()] = (value ~= "auto") and value or nil
+					restyleAndMacro()
+					ns.RefreshOptionsDisplay()
+				end,
+			},
+			-- Only once a class has one: nothing chosen needs no way back.
+			classReset = {
+				type = "execute",
+				name = L["Clear every class's blessing"],
+				order = 6.9,
+				hidden = function() return ClassHidden() or next(B().forClass) == nil end,
+				func = function()
+					wipe(B().forClass)
+					restyleAndMacro()
+					ns.RefreshOptionsDisplay()
 				end,
 			},
 

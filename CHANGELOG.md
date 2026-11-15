@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+*15 November 2026*
+
+### Highlights
+- **A blessing for each class.** Paladins can pick the blessing each class is
+  offered first: Wisdom for mages, say, where the order would give them Kings.
+  *Who to buff*, under *Buff order*. Asked for on CurseForge.
+
+### Who gets what
+- **A blessing for each class.** Pick a class, then its blessing. Somebody who
+  already wears it from another paladin, or who cannot be given it, gets what
+  the order would have chosen, and anybody wearing one of yours is left alone.
+
 ## 1.11.25
 
 *14 November 2026*
