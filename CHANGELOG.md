@@ -56,6 +56,12 @@
 - **The Forsaken have about a hundred new In character lines**, in every
   language: Undercity, Brill, the apothecaries and loose stitching.
 
+### Fixes
+- **A fault that keeps repeating is said where you look.** The minimap
+  tooltip, the broker text and the options window name it in red, with *Run
+  a full check-up*. With *Say nothing at all in chat* on, one line goes on
+  screen instead of chat, once a session.
+
 ## 1.11.25
 
 *14 November 2026*

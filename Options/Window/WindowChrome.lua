@@ -10,7 +10,7 @@ local C = UI.C
 -- The strip says the launcher's state line only for these: the states that
 -- keep the prompt from doing what the player expects. Start here and Who to
 -- buff say the rest in full.
-local STRIP_KINDS = { off = true, unlocked = true, snoozed = true, ownoff = true, blocked = true, mounted = true,
+local STRIP_KINDS = { off = true, broken = true, unlocked = true, snoozed = true, ownoff = true, blocked = true, mounted = true,
 	plates = true }
 
 -- The friendly nameplates off (the launcher's `plates`): the strip carries

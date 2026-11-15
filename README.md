@@ -1278,6 +1278,9 @@ works here registers `"AnyDown"`.
   group with, the last thank, and why a resurrection, a cure or an ask is
   held back.
 - **`/manners errors`** lists the last few things that broke, if any did.
+  When one keeps breaking, the minimap tooltip, the broker text and the
+  options window say so in red, with *Run a full check-up* to send; with
+  *Say nothing at all in chat* on, one line says it on screen as well.
 
 ### Reporting a bug
 
