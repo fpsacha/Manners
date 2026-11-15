@@ -57,7 +57,7 @@ ns.Looks.previewIcon = {
 	letter = { l = 0.13856, t = 0.31663, r = 0.22808, b = 0.67475, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Letter\\Letter_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	lightbringer = { l = 0.15579, t = 0.32412, r = 0.24557, b = 0.68323, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	luxe = { l = 0.13497, t = 0.2778, r = 0.241, b = 0.7019, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
-	minimal = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	minimal = { l = 0.08988, t = 0.20294, r = 0.22947, b = 0.7613, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	monk = { l = 0.0575, t = 0.29448, r = 0.16026, b = 0.70552, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	pill = { l = 0.08338, t = 0.23797, r = 0.21521, b = 0.76529, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	priest = { l = 0.07126, t = 0.27617, r = 0.17746, b = 0.70097, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
@@ -152,8 +152,8 @@ ns.Looks.previewText = {
 		reason = { l = 0.31201, t = 0.58546, r = 0.84395, b = 0.74675, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.857, 0.545, 1 }, pill = { t = 0.54514, b = 0.78708, lead = 0.12097, tail = 0.12097, cap = 0.5, layers = { { file = "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_Pill", color = { 0.2, 0.156, 0.06, 0.9 } }, { file = "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_PillEdge", color = { 1, 0.78, 0.3, 0.5 } } } } },
 	},
 	minimal = {
-		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
-		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.909, 0.8385, 0.703, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
+		name = { l = 0.27516, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
+		reason = { l = 0.27516, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.909, 0.8385, 0.703, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
 	},
 	monk = {
 		name = { l = 0.24507, t = 0.29017, r = 0.72984, b = 0.49985, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
@@ -213,6 +213,7 @@ ns.Looks.previewsEarlier = {
 	letter = true,
 	lightbringer = true,
 	luxe = true,
+	minimal = true,
 	ribbon = true,
 	stormcaller = true,
 	toast = true,
@@ -233,6 +234,7 @@ ns.Looks.previewIconEarlier = {
 	letter = { l = 0.15581, t = 0.31452, r = 0.24855, b = 0.68548, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Letter\\Letter_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	lightbringer = { l = 0.11694, t = 0.25806, r = 0.2379, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	luxe = { l = 0.125, t = 0.25806, r = 0.24597, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	minimal = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	ribbon = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	stormcaller = { l = 0.22253, t = 0.46386, r = 0.31289, b = 0.8253, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	toast = { l = 0.08554, t = 0.26152, r = 0.20478, b = 0.73848, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_IconMask", crop = { 0.08, 0.92, 0.08, 0.92 } },
@@ -292,6 +294,10 @@ ns.Looks.previewTextEarlier = {
 		name = { l = 0.28629, t = 0.25, r = 0.90323, b = 0.45968, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
 		reason = { l = 0.31653, t = 0.56935, r = 0.87298, b = 0.73065, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.857, 0.545, 1 }, pill = { t = 0.52903, b = 0.77097, lead = 0.12097, tail = 0.12097, cap = 0.5, layers = { { file = "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_Pill", color = { 0.2, 0.156, 0.06, 0.9 } }, { file = "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_PillEdge", color = { 1, 0.78, 0.3, 0.5 } } } } },
 	},
+	minimal = {
+		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
+		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.909, 0.8385, 0.703, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
+	},
 	ribbon = {
 		name = { l = 0.25, t = 0.27177, r = 0.86694, b = 0.52984, h = "LEFT", v = "MIDDLE", size = 0.25806, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 		reason = { l = 0.25, t = 0.55081, r = 0.86694, b = 0.7121, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
@@ -313,4 +319,4 @@ ns.Looks.previewTextEarlier = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "017b33791187c4ace598742e7eac10c2676b5099f66c03aeb0f8468acdcd2d4a"
+ns.Looks.previewHash = "1f61cc1dcad3339ee2b1d72849d2082ab262d362a743f087e4b39e904707574c"
