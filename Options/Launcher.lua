@@ -199,6 +199,62 @@ local function ArmedButtonLeft()
 	return ok and armed == true
 end
 
+-- A setting's name as the window shows it, in gold.
+local function Gold(text) return "|cffffd100" .. text .. "|r" end
+
+-- Where each rule of Queue.lua's ns.PlaceHold holds everybody back, as a
+-- phrase for the line below.
+local PLACE_WORDS = {
+	both = L["in cities and inns"],
+	cities = L["in cities"],
+	inns = L["in inns"],
+	instances = L["in dungeons and raids"],
+}
+
+-- The rule holding everybody back here, said with its switch and the tab it
+-- is on, so a prompt that stays empty in a city does not read as broken.
+-- Somebody you target or focus is still offered, unless Hold back my target
+-- and focus too says otherwise. nil while no such rule holds; the passers-by
+-- rule out in the world is PassersHeldLine's.
+local function PlaceHeldLine(now)
+	local key = ns.PlaceHold and ns.PlaceHold(now)
+	if not key or key == "world" then return nil end
+	local always = ns.db.profile.filters.quietTargets == true
+	local tab = L["When to offer"]
+	if key == "battle" then
+		if always then
+			return L["Nothing is offered in a battleground or an arena, not even to your target or focus: %s is off and %s is on, on the %s tab."]
+				:format(Gold(L["Buff my team there"]), Gold(L["Hold back my target and focus too"]), tab)
+		end
+		return L["Nothing is offered in a battleground or an arena but to your target or focus: %s is off, on the %s tab."]
+			:format(Gold(L["Buff my team there"]), tab)
+	end
+	local switch = key == "instances" and Page.InstancesLabel() or L["Offer nothing in cities and inns"]
+	if always then
+		return L["Nothing is offered %s, not even to your target or focus: %s and %s, on the %s tab."]
+			:format(PLACE_WORDS[key], Gold(switch), Gold(L["Hold back my target and focus too"]), tab)
+	end
+	return L["Nothing is offered %s but to your target or focus: %s, on the %s tab."]
+		:format(PLACE_WORDS[key], Gold(switch), tab)
+end
+ns.PlaceHeldLine = PlaceHeldLine
+
+-- Out in the world with Only in cities and inns on: passers-by are left alone,
+-- the group still watched. Only while passers-by could be offered at all.
+local function PassersHeld(now)
+	return ns.PlaceHold and ns.PlaceHold(now) == "world" and not ns.OnlyReachesGroup()
+end
+ns.PassersHeld = PassersHeld
+
+-- Saving mana under the floor (Queue.lua, ns.SavingMana): what is still
+-- offered is "Below it, still offer"'s, and the line names the floor.
+local function SavingManaLine()
+	local _, resume = ns.SavingMana()
+	if not resume then return nil end
+	return L["Saving mana until you are back to %d%%, so less is offered: %s, on the %s tab."]
+		:format(resume, Gold(L["Save mana: stop below (% mana)"]), L["When to offer"])
+end
+
 -- Whether a prompt can appear at all right now, and the line that says so:
 -- watching, then the line with its colour and whether it wraps. "On" is not
 -- enough to say "watching": a class with nothing to give, nothing learned yet
@@ -210,8 +266,9 @@ end
 -- and still worth a Skip, and nobody after them is going to be offered.
 --
 -- An eighth, `kind`, names the branch the line came from -- off, unlocked,
--- snoozed, ownoff, mounted, ownwatch, noclass, nothing, blocked, unlearned,
--- plates, watching -- so the options window's status strip can show only the states
+-- snoozed, ownoff, mounted, ownwatch, askwatch, noclass, nothing, blocked,
+-- unlearned, placeheld, mana, passersheld, plates, watching -- so the options
+-- window's status strip can show only the states
 -- that keep the prompt from doing what the player expects. The tooltip and
 -- the menu ignore it.
 local function LauncherState()
@@ -312,6 +369,20 @@ local function LauncherState()
 		-- the labels the window shows.
 		return false, L["Kept away while you are mounted -- %s, on the %s tab."]
 			:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true, nil, "mounted"
+	end
+	-- A place rule holding everybody back (Queue.lua, ns.PlaceHold), then the
+	-- mana floor: amber, and still watching, since your target or focus and
+	-- your own buffs can still come up. Named with the switch and its tab, so
+	-- "Watching" in green does not promise what the rule turns down.
+	local place = PlaceHeldLine()
+	if place then return true, place, 1, 0.82, 0, true, nil, "placeheld" end
+	local mana = SavingManaLine()
+	if mana then return true, mana, 1, 0.82, 0, true, nil, "mana" end
+	if PassersHeld() then
+		-- Passers-by are left alone out here by choice: green, the group watched,
+		-- and before the nameplates, which matter to nobody it would offer.
+		return true, L["Watching your group -- out in the world passers-by are left alone: %s, on the %s tab."]
+			:format(Gold(L["Only in cities and inns"]), L["Who to buff"]), 0.4, 0.9, 0.4, true, nil, "passersheld"
 	elseif Page.PlatesWanted and Page.PlatesWanted() then
 		-- Passers-by on and the game's friendly nameplates off, as a fresh
 		-- install has them: the group is watched, but a stranger has no token
@@ -324,6 +395,24 @@ local function LauncherState()
 end
 -- The options window's status strip reads the same line.
 ns.LauncherState = LauncherState
+
+-- Every state holding the prompt back right now, for Diagnostics: the
+-- launcher's own line first, then each rule it stopped short of (a city rule
+-- and the mana floor at once), so the page answers "why is nothing offered?"
+-- whole. Empty when nothing holds it back.
+local WATCHING = { watching = true, ownwatch = true, askwatch = true }
+function Page.HoldLines()
+	local out = {}
+	local _, line, _, _, _, _, _, kind = LauncherState()
+	if type(line) == "string" and not WATCHING[kind] then out[1] = line end
+	-- The launcher's line names the first; a place rule and the mana floor can
+	-- both hold at once, and then the floor is said too.
+	if kind == "placeheld" then
+		local mana = SavingManaLine()
+		if mana then out[#out + 1] = mana end
+	end
+	return out
+end
 
 -- What the launcher's tooltip says, for the minimap button, a broker display
 -- and the addon compartment alike.

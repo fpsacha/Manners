@@ -170,7 +170,7 @@ function Page.BuildWhenTab()
 				name = L["Buff my team there"],
 				desc = function()
 					return L["On: in a battleground or an arena your team is offered your buffs: freely while the gates are still shut, group casts first, and after that only while you are out of combat and only somebody within reach. Off: nobody else is offered anything there but somebody you target or focus. This switch decides there, whatever %s says. Your own buffs are not held back either way: what you fight with comes first after a death, food and the like after."]
-						:format("|cffffd100" .. L["Offer nothing in dungeons, raids and battlegrounds"] .. "|r")
+						:format("|cffffd100" .. Page.InstancesLabel() .. "|r")
 						.. " " .. L["In a battleground or an arena with %s off, %s holds back somebody you target or focus too."]
 							:format("|cffffd100" .. L["Buff my team there"] .. "|r",
 								"|cffffd100" .. L["Hold back my target and focus too"] .. "|r")

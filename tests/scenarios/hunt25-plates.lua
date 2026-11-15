@@ -335,7 +335,14 @@ for _, case in ipairs(CASES) do
 			if text:find("nameplate", 1, true) then
 				fail(scenario, "the press named the nameplates: " .. text)
 			end
-			if not text:find("nobody to buff right now.", 1, true) then
+			-- Out in the world with Only in cities and inns on, what holds
+			-- passers-by back is that switch, and the press names it
+			-- (par-clarity.lua); everywhere else the plain line.
+			if set.restingOnly then
+				if not text:find("Only in cities and inns", 1, true) then
+					fail(scenario, "the press does not name Only in cities and inns: " .. text)
+				end
+			elseif not text:find("nobody to buff right now.", 1, true) then
 				fail(scenario, "the press lost its plain line: " .. text)
 			end
 		end)

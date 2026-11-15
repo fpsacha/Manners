@@ -132,6 +132,30 @@ What was built:
   Forever really reads `sourceUnit` as a plain nil out of a fight (the line
   depends on it), and whether `SetCVar` from the strip's button is accepted
   as the page's own is.
+- **The first hour, said plainly** (branch `par-clarity`, 2026-11-15; five
+  of the reviewers' runners-up, `tests/scenarios/par-clarity.lua`, red
+  before, 27 mutations in `tests/mutations/par-clarity.py` seen CAUGHT).
+  Closed: (1) a player with no key had no way to learn why the prompt stayed
+  empty, and (2) a place rule holding everybody back still read "Watching"
+  in green: Queue.lua's `ns.PlaceHold` names the rule as BuildQueue reads it
+  (a scenario walks 864 combinations of place and switch and holds the two together), and the
+  launcher's `placeheld`, `mana` and `passersheld` states (Launcher.lua
+  `PlaceHeldLine`, `SavingManaLine`) put it in the tooltip, the options
+  window's strip (the first two), *Diagnostics*' new first line
+  (`Page.HoldLines`, `diagnostics.holdDiag`), a press on the empty prompt and
+  `/manners debug`; (3) a brand-new character's greeting waits for the first
+  buff (`db.char.welcomeWaits`, one line naming it, the greeting from the
+  probe after SPELLS_CHANGED: Commands.lua's wrap of `ns.ProbeCapabilities`);
+  (4) Forever's, Mists' and retail's warrior is told the shout reaches the
+  raid around them, and *Raid groups I buff* gets a note for a shout
+  (`who.skipRaidGroupsNote`); (5) the dungeon switch reads *Offer nothing in
+  dungeons and raids* while *Buff my team there* is ticked beside it
+  (`Page.InstancesLabel`). Only the game can say whether SPELLS_CHANGED
+  follows a trainer's lesson closely enough on Forever for the greeting to
+  read as the reply to it (the probe is throttled to one in five seconds).
+  Left alone: the preview's "Click it to put it away" line (Prompt, not this
+  branch's), the key reminder on the first login, and the raid-groups-all-
+  unticked hold, which `/manners debug` says and the strip does not.
 
 Before that, still unreleased after 1.11.24: a pass over the fifteen looks
 there were then (branch
@@ -513,6 +537,15 @@ would cost a player's trust first. Each step says what to do and what to look
 for. Paste what does not match, and the report of step 1 every time.
 
 *Refusals (the owner's report on Forever 1.60.1.70938, branch `refused`)*
+
+*The first hour, said plainly*
+- [ ] A new character with its buff still at the trainer: the first login
+      says Manners starts once you learn it; at the trainer, the greeting
+      and its preview come within a few seconds of the lesson.
+- [ ] *Offer nothing in cities and inns* on, in Stormwind: the minimap
+      tooltip and the options window's strip name the switch in amber, and
+      *Diagnostics* opens with the same line.
+
 
 - [ ] Arcane Intellect refused with "A more powerful spell is already active":
       the full check-up's trail shows, after the `refused` line, an `event`

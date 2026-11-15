@@ -161,8 +161,20 @@ mutate("Prompt/Press.lua",
        script="runscenarios.py")
 
 # ... out in the world under the city rule, which turns passers-by down anyway.
+# The press names that rule first (par-clarity.lua), so the fault is both
+# gone: the rule's own line and the guard on this one.
 mutate("Prompt/Press.lua",
+       "\t\telseif ns.PassersHeld and ns.PassersHeld(now) and db.sources.strangers == true then\n"
+       "\t\t\t-- Out in the world with Only in cities and inns on: passers-by are\n"
+       "\t\t\t-- left alone, ahead of the nameplates below, which then matter to\n"
+       "\t\t\t-- nobody it would offer.\n"
+       "\t\t\tns.addon:Print(L[\"nobody to buff right now -- out in the world passers-by are left alone: %s, on the %s tab.\"]\n"
+       "\t\t\t\t:format(\"|cffffd100\" .. L[\"Only in cities and inns\"] .. \"|r\", L[\"Who to buff\"]))\n"
+       "\t\telseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true\n"
+       "\t\t\tand #ns.CastableBuffs() > 0\n"
        "\t\t\tand not ns.OnlyReachesGroup() and not (db.filters.restingOnly == true and ns.Resting() == false)\n",
+       "\t\telseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true\n"
+       "\t\t\tand #ns.CastableBuffs() > 0\n"
        "\t\t\tand not ns.OnlyReachesGroup()\n",
        "plates line under the city rule",
        expect=NOT_NAMED + " (passers-by only in cities, out in the world)",

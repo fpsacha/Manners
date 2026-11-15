@@ -908,6 +908,18 @@ function Page.PlatesWanted()
 	return not PlatesHidden()
 end
 
+-- The dungeon switch's name, true to what it holds back. Ticking it unticks
+-- Buff my team there, so it holds a battleground too; ticked with that switch
+-- ticked again since, a battleground is that one's (Battle.lua) and the name
+-- leaves it out. Read wherever the switch is named, so they agree.
+function Page.InstancesLabel()
+	local db = ns.db and ns.db.profile
+	if db and db.filters.quietInInstances == true and type(db.battle) == "table" and db.battle.team == true then
+		return L["Offer nothing in dungeons and raids"]
+	end
+	return L["Offer nothing in dungeons, raids and battlegrounds"]
+end
+
 -- The buff order (Core.lua, ns.WalkBuffs): a list of the class's buffs in the
 -- order they are tried, each one moved up or down a place, and the way back to
 -- Automatic. For a class with a choice to make -- two buffs or more on this
@@ -1477,8 +1489,13 @@ function Page.BuildWhoTab()
 								.. "|r"
 						end
 					end
+					-- How far a shout reaches is the client's (Buffs.lua): your own
+					-- party on Classic Era and Burning Crusade, the whole raid
+					-- round you on WoW Forever, Mists and retail.
 					return "|cff888888"
-						.. L["Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by."]
+						.. (ns.PARTY_IS_SUBGROUP
+							and L["Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by."]
+							or L["Everything you can offer is cast on yourself and reaches your party and raid around you, so there is nothing for passers-by."])
 						.. "|r"
 				end,
 			},
@@ -1545,7 +1562,9 @@ function Page.BuildWhoTab()
 			-- no offers in a dungeon, where the group sorts out its own buffs.
 			quietInInstances = {
 				type = "toggle",
-				name = L["Offer nothing in dungeons, raids and battlegrounds"],
+				-- Says what it holds back now: ticked with Buff my team there
+				-- ticked again afterwards, a battleground is that switch's.
+				name = function() return Page.InstancesLabel() end,
 				-- How it meets In battlegrounds and arenas (When.lua, Battle.lua):
 				-- there that section's own switch decides, and ticking this one
 				-- unticks it, so the name still holds.
@@ -2007,6 +2026,29 @@ function Page.BuildWhoTab()
 				get = function(_, group) return F().skipRaidGroups[group] ~= true end,
 				set = function(_, group, on)
 					F().skipRaidGroups[group] = (not on) or nil
+				end,
+			},
+			-- A shout is cast on yourself and lands on whoever it reaches, so
+			-- the ticks above cannot aim it: they choose whose missing shout
+			-- brings the prompt up. How far it reaches is the client's
+			-- (Buffs.lua: partyIsSubgroup on Classic Era and Burning Crusade).
+			skipRaidGroupsNote = {
+				type = "description",
+				order = 23.1,
+				hidden = function()
+					if not S().group then return true end
+					local castable = ns.CastableBuffs()
+					if #castable == 0 then return true end
+					for _, buff in ipairs(castable) do
+						if not buff.selfCast then return true end
+					end
+					return false
+				end,
+				name = function()
+					return "|cff888888" .. (ns.PARTY_IS_SUBGROUP
+						and L["What you offer is cast on yourself and reaches only your own group of a raid, so the other groups' ticks change nothing."]
+						or L["What you offer is cast on yourself and reaches every group of the raid around you: these ticks only choose whose missing buff brings the prompt up."])
+						.. "|r"
 				end,
 			},
 

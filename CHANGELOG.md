@@ -241,6 +241,21 @@
   line says so; *Offer held-back buffs again*, under *Never offer*, tries now.
   Arcane Intellect is no longer offered over another Arcane Intellect worth as
   much. Reported in game.
+- **Why nothing comes up, without a key.** The minimap tooltip, the options
+  window's strip and a new first line on *Diagnostics* say what holds the
+  prompt back: the mana floor, or a rule for cities and inns, dungeons or
+  battlegrounds, named with its switch and tab.
+- **Passers-by left alone out in the world** with *Only in cities and inns*
+  is said in the tooltip and on *Diagnostics*, and by a press on the empty
+  prompt, instead of plain *Watching*.
+- **A new character's greeting.** With its buff still at the trainer, the
+  first login says Manners starts once you learn it, and the greeting comes
+  when you do.
+- **A warrior's shout on WoW Forever.** *Who to buff* says it reaches the raid
+  around you, not only your party, and what *Raid groups I buff* does for it.
+- **The dungeon switch's name.** Ticked with *Buff my team there* ticked
+  again, it reads *Offer nothing in dungeons and raids*, which is what it then
+  does.
 - **Greater Blessing of Kings and a Fish Bowl.** With *Don't put Kings over a
   Fish Bowl's Boosted Stats* on, the Greater Blessing no longer lands on a
   class with somebody sitting by one: the others get single Kings. Under it,

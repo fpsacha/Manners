@@ -68,8 +68,8 @@ mutate("Options/Launcher.lua",
 # ----------------------------------------------------------------- strip
 
 mutate("Options/Window/WindowChrome.lua",
-       "\tplates = true }\n",
-       "\tplates = false }\n",
+       "\tplates = true, placeheld = true, mana = true }\n",
+       "\tplates = false, placeheld = true, mana = true }\n",
        "par: the strip says nothing of the nameplates",
        expect="When to offer's strip says", script=S)
 
