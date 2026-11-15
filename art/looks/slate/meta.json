@@ -1,0 +1,14 @@
+{
+  "key": "slate",
+  "socket": {"shape": "square", "cx": 547, "cy": 530, "half": 152},
+  "name_xy": [756, 405],
+  "reason_xy": [763, 561],
+  "keycap": {"cx": 3635, "cy": 527, "w": 211, "h": 205},
+  "bar": [327, 326, 3796, 731],
+  "stretch": [720, 3500],
+  "text_colour_ok": true,
+  "contrast": {"white": 17.8, "gold": 11.96},
+  "see_through": true,
+  "pane": [351, 348, 3773, 711],
+  "notes": "Nothing in the frame glows or moves; it is a static box. Only the icon (live) and perhaps a faint brightening of the thin steel border line could be animated as a layer. Bar face is near-black (about 18,19,23), border steel about 85-110 grey, measured face is uniform across x 720-3500 (column means 21.9-22.5). Socket frame outer box x 393-701, y 379-680; keycap x 3529-3740, y 424-629."
+}

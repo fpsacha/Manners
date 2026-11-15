@@ -1,0 +1,39 @@
+{
+ "key": "demonhunter",
+ "socket": {
+  "shape": "round",
+  "cx": 431,
+  "cy": 505,
+  "r": 134
+ },
+ "name_xy": [
+  919,
+  431
+ ],
+ "reason_xy": [
+  921,
+  539
+ ],
+ "keycap": {
+  "cx": 3690,
+  "cy": 512,
+  "w": 190,
+  "h": 195
+ },
+ "bar": [
+  169,
+  253,
+  3961,
+  777
+ ],
+ "stretch": [
+  1480,
+  3250
+ ],
+ "text_colour_ok": true,
+ "contrast": {
+  "white": 14.56,
+  "gold": 9.79
+ },
+ "notes": "Painted empty frame (Gemini reproduce pass of r5-01). Bar body (leather and metal) is y 325-684; the socket blade ring and glaive cap set the 253-777 extent. Glowing parts that could be layers: the thin fel-green lines on the two chevron end plates (slow breathing pulse), the fel-green gem in the glaive cap (glint or pulse), a faint violet rim light on the socket bevel; the blade ring around the socket is radially regular and could turn slowly. Contrast measured as WCAG ratio over the mean luminance of the lightest tenth of x 905-1470, y 420-625."
+}

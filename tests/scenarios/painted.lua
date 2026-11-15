@@ -435,3 +435,329 @@ withTree("painted: Show my key is a setting on the Look page, repaired and carri
 	local ok = ns.ImportSettings(text)
 	if not ok or p.keycap ~= "hide" then fail(scenario, "the settings text does not carry Show my key: " .. tostring(p.keycap)) end
 end)
+
+-- ------------------------------------------------------------------ 9
+-- See-through panes (Ghost, Pill, Slate): the pane's inside is drawn at the
+-- data's fixed opacity, its rim solid; words on nothing (Hairline) get a soft
+-- dark backing; both judged against a white world as well as a black one.
+local function tgaPixel(path, x, y)
+	local f = io.open(path, "rb")
+	if not f then return nil end
+	local data = f:read("*a")
+	f:close()
+	local idLen, w, h = data:byte(1), data:byte(13) + data:byte(14) * 256, data:byte(15) + data:byte(16) * 256
+	local topDown = math.floor(data:byte(18) / 32) % 2 == 1
+	if x < 0 or y < 0 or x >= w or y >= h then return nil end
+	local row = topDown and y or (h - 1 - y)
+	local at = 18 + idLen + (row * w + x) * 4 + 1
+	local b, g, r, a = data:byte(at, at + 3)
+	return r, g, b, a
+end
+
+local function pieceFile(d, part)
+	return dir .. "/" .. d[part].file:gsub("^Interface\\AddOns\\Manners\\", ""):gsub("\\", "/") .. ".tga"
+end
+
+local function luminance(r, g, b)
+	local function lin(c) return c <= 0.03928 and c / 12.92 or ((c + 0.055) / 1.055) ^ 2.4 end
+	return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+end
+
+withTree("painted: a see-through pane is drawn at its opacity and its rim stays solid", function(ns, scenario)
+	local seen = 0
+	for _, key in ipairs({ "ghost", "pill", "slate" }) do
+		local d = ns.PaintedData[key]
+		if not (d and d.pane) then
+			fail(scenario, key .. " has no see-through pane in its data")
+		else
+			seen = seen + 1
+			if math.abs(d.pane - 0.8) > 0.001 then fail(scenario, key .. "'s pane opacity is " .. d.pane .. ", not 0.80") end
+			-- The middle piece, its texel rows: the core's middle, and its top edge.
+			local path = pieceFile(d, "middle")
+			local f = io.open(path, "rb")
+			local head = f and f:read(18)
+			if f then f:close() end
+			local tw, th = head:byte(13) + head:byte(14) * 256, head:byte(15) + head:byte(16) * 256
+			local usedH = th * d.middle.b
+			local tall = 1 + d.above + d.below
+			local function rowAt(u) return math.floor(usedH * (d.above + u) / tall) end
+			local x = math.floor(tw * d.middle.r / 2)
+			local _, _, _, a = tgaPixel(path, x, rowAt(0.5))
+			if not a or math.abs(a / 255 - d.pane) > 0.06 then
+				fail(scenario, ("%s: the pane's middle is drawn at %s of 255, not %.0f"):format(key, tostring(a), d.pane * 255))
+			end
+			local rim = 0
+			for dy = -3, 6 do
+				local _, _, _, ar = tgaPixel(path, x, rowAt(0) + dy)
+				rim = math.max(rim, ar or 0)
+			end
+			if rim < 240 then fail(scenario, ("%s: the rim along the pane's top is drawn at %d of 255, not solid"):format(key, rim)) end
+			-- The words are held to the pane over a white world: its brightest
+			-- then is what Legible reads.
+			if not (d.ink.hi > 0.04 and d.ink.hi < 0.12) then
+				fail(scenario, ("%s: the pane's ground is %.3f at its brightest; over a white world it is more"):format(key, d.ink.hi))
+			end
+			-- In the game the pieces are drawn at their own alpha, whole.
+			local _, _, look = upIn(ns, scenario, key)
+			local art = look and look.paintedArt
+			if not (art and art.on) then
+				fail(scenario, key .. " does not wear its painting")
+			else
+				for i, t in ipairs(art.pieces) do
+					if math.abs((t:GetAlpha() or 0) - 1) > 0.001 then fail(scenario, ("%s: piece %d drawn at %.2f"):format(key, i, t:GetAlpha())) end
+				end
+				-- White words read at 4.5:1 over the pane on a white world.
+				local l = luminance(unpack(look.kit.name._textColor or { 0, 0, 0 }))
+				if (l + 0.05) / (d.ink.hi + 0.05) < 4.5 then fail(scenario, key .. ": the name does not read over the pane on a white world") end
+			end
+		end
+	end
+	if seen < 3 then fail(scenario, "SKIPPED -- only " .. seen .. " see-through panes") end
+end)
+
+withTree("painted: words on nothing get a soft dark backing", function(ns, scenario)
+	local d = ns.PaintedData.hairline
+	if not (d and d.bare) then fail(scenario, "Hairline's data says nothing of words on nothing") return end
+	local _, _, look = upIn(ns, scenario, "hairline")
+	if not (look and look.backing) then fail(scenario, "Hairline has no backing") return end
+	local core = look.backing[1]
+	if not FT.visible(core) then fail(scenario, "the backing under Hairline's words is not drawn") return end
+	if math.abs((core:GetAlpha() or 0) - d.bare) > 0.01 then fail(scenario, "the backing is drawn at " .. tostring(core:GetAlpha())) end
+	local nb, bb = box(look.kit.name), box(core)
+	if not (nb and bb and bb.x0 <= nb.x0 + 0.5 and bb.x1 >= nb.x0 + 10) then fail(scenario, "the backing is not under the name") end
+	local x, y = unpack(look.kit.name._shadowOffset or { 0, 0 })
+	if x == 0 and y == 0 then fail(scenario, "Hairline's name has no shadow") end
+	-- On a look with a pane, no backing.
+	local _, _, ghost = upIn(ns, scenario, "ghost")
+	if ghost and ghost.backing and FT.visible(ghost.backing[1]) then fail(scenario, "Ghost draws a backing over its pane") end
+end)
+
+-- ------------------------------------------------------------------ 10
+-- Dark ink: a painting with words in its own ink on a light ground (Letter's
+-- parchment, whose meta says text_colour_ok false). Tried on Priest's painting
+-- told it is light, and on the wrapping's rule for class colours.
+withTree("painted: dark ink on a light painted ground", function(ns, scenario)
+	local d = ns.PaintedData.priest
+	if not d then fail(scenario, "SKIPPED -- no Priest painting") return end
+	local was = { light = d.ink.light, lo = d.ink.lo, hi = d.ink.hi, name = d.ink.name, reason = d.ink.reason }
+	d.ink.light, d.ink.lo, d.ink.hi = false, 0.62, 0.80
+	d.ink.name, d.ink.reason = { 0.165, 0.114, 0.086 }, { 0.353, 0.102, 0.071 }
+	local ok, err = pcall(function()
+		local _, _, look = upIn(ns, scenario, "priest")
+		local kit = look.kit
+		if kit.ink.light ~= false then fail(scenario, "the ground is not taken for a light one") end
+		for _, fs in ipairs({ kit.name, kit.sub }) do
+			local r, g, b = unpack(fs._textColor or { 1, 1, 1 })
+			local l = luminance(r, g, b)
+			if (0.62 + 0.05) / (l + 0.05) < 4.5 then
+				fail(scenario, ("the %s is %.2f %.2f %.2f, under 4.5:1 on the light ground"):format(fs == kit.name and "name" or "reason", r, g, b))
+			end
+			local x, y = unpack(fs._shadowOffset or { 0, 0 })
+			if x ~= 0 or y ~= 0 then fail(scenario, "dark ink is drawn with a shadow under it") end
+		end
+		-- The rule a dark-ink painting gives a look for class colours.
+		local stub = { Build = function() end, Apply = function() return 0, 0 end, Hide = function() end }
+		ns.Looks.Painted.Wrap(stub, d)
+		if stub.classContrast ~= 5 or not (stub.classInk and stub.classInk[4]) then
+			fail(scenario, "a look in dark ink is not given the class colours' contrast and ink")
+		end
+		local lit = { Build = function() end, Apply = function() return 0, 0 end, Hide = function() end }
+		ns.Looks.Painted.Wrap(lit, ns.PaintedData.frost)
+		if lit.classContrast ~= nil then fail(scenario, "a look in light ink is given the dark ink's class contrast") end
+	end)
+	for k, v in pairs(was) do d.ink[k] = v end
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end)
+
+-- ------------------------------------------------------------------ 11
+-- The plain looks (Looks/Plain.lua): the whole interface, from data alone.
+local PLAIN = { "firemage", "priest", "rogue", "monk", "demonhunter", "evoker", "ghost", "hairline", "pill", "slate" }
+local METHODS = { "Build", "Apply", "Hide", "PlaceLines", "Fitted", "PaintReason", "Chip", "Attention",
+	"StopAttention", "Flourish", "StopFlourishes", "PaintOutcome", "ClearOutcome", "Combat", "Hover", "PaintQueue" }
+
+withTree("painted: a plain look answers the whole interface through a fight, a look change, the list and an outcome", function(ns, scenario)
+	Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
+	for _, key in ipairs(PLAIN) do
+		local look = ns.Looks.list[key]
+		if not look then
+			fail(scenario, key .. " is not registered")
+		else
+			if not look.paintedOnly then fail(scenario, key .. " is not a plain painted look") end
+			for _, m in ipairs(METHODS) do
+				if type(look[m]) ~= "function" then fail(scenario, key .. " has no " .. m) end
+			end
+			local r, p, l = upIn(ns, scenario, key, function(pp) pp.showQueue, pp.queueRows = true, 3 end)
+			local art = l and l.paintedArt
+			if not (art and art.on) then fail(scenario, key .. " does not wear its painting") return end
+			-- Earlier art leaves it painted: it has nothing else.
+			p.classicArt = true
+			restyle(ns)
+			if not (art.on and FT.visible(art.pieces[1])) then fail(scenario, key .. ": Earlier art takes its painting away") end
+			p.classicArt = false
+			restyle(ns)
+			-- The icon in the socket, the name in the well.
+			local icon, name, a = box(r.icon), box(r.name), box(l.kit.art)
+			if not (icon and name and a) then
+				fail(scenario, key .. ": the icon or the name is not placed")
+			else
+				if not near((icon.x0 + icon.x1) / 2 - a.x0, art.g.socketX, 0.6) then fail(scenario, key .. ": the icon is off its socket") end
+				if not near(name.x0 - a.x0, art.g.textX, 0.6) then fail(scenario, key .. ": the name does not start in the well") end
+			end
+			-- The round rule from the socket's shape.
+			local round = ns.PaintedData[key].socket.shape == "round"
+			if (ns.Looks.roundAlways[key] == true) ~= round then fail(scenario, key .. ": its round rule is not its socket's") end
+			-- A fight, an outcome, then another look and back.
+			Mock.inCombat = true
+			ns.addon:PLAYER_REGEN_DISABLED()
+			tick(ns)
+			if not art.pieces[2]._desaturated then fail(scenario, key .. ": a fight does not grey the painting") end
+			if not (l.kit.textLayer:GetAlpha() > 0.5) then fail(scenario, key .. ": a fight leaves the reason unreadable") end
+			Mock.inCombat = false
+			if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+			tick(ns)
+			if art.pieces[2]._desaturated then fail(scenario, key .. ": the painting stays grey after the fight") end
+			ns.Prompt:ShowOutcome("cast", "Anna Aim")
+			tick(ns)
+			ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+			tick(ns)
+			p.style = "glass"
+			restyle(ns)
+			if art.on or FT.visible(art.pieces[1]) then fail(scenario, key .. ": its painting stays under Glass") end
+			p.style = key
+			restyle(ns)
+			if not art.on then fail(scenario, key .. ": back again, its painting is not up") end
+			for _, e in ipairs(ns.errors or {}) do fail(scenario, key .. ": " .. tostring(e.where) .. " -> " .. tostring(e.err)) end
+		end
+	end
+end)
+
+withTree("painted: a plain look's list is on a sheet under the bar", function(ns, scenario)
+	local _, _, look = upIn(ns, scenario, "rogue", function(pp) pp.showQueue, pp.queueRows = true, 3 end)
+	owe(ns, "Brannoc Vale")
+	owe(ns, "Corwin Ash")
+	tick(ns)
+	if not (look and look.sheet) then fail(scenario, "no sheet") return end
+	if not FT.visible(look.sheet) then fail(scenario, "SKIPPED -- no list shown") return end
+	local sb, a = box(look.sheet), box(look.kit.art)
+	if not (sb and a and sb.y1 <= a.y0 + 0.5) then fail(scenario, "the sheet is not under the bar") end
+	local row = look.kit.rows[1]
+	local rb = row and box(row)
+	if not (rb and rb.y0 >= sb.y0 - 0.5 and rb.y1 <= sb.y1 + 0.5) then fail(scenario, "the first row is not on the sheet") end
+end)
+
+withTree("painted: a plain look's socket breathes a few times, and nothing loops on Calm", function(ns, scenario)
+	local _, p, look = upIn(ns, scenario, "priest")
+	if not look then fail(scenario, "no Priest") return end
+	look:Attention(true, false, "pulse")
+	if not look.breathe:IsPlaying() then fail(scenario, "somebody owed: the socket does not breathe on Full effects") end
+	p.effects = "calm"
+	restyle(ns)
+	look:Attention(true, true, "pulse")
+	if look.breathe:IsPlaying() or look.flash:IsPlaying() then fail(scenario, "on Calm the socket's light still moves") end
+end)
+
+-- ------------------------------------------------------------------ 12
+-- Categories in the picker: Minimal, Classic, Themed, Class, every look in
+-- exactly one, the gallery a heading over each; a renamed look keeps its key.
+withTree("painted: the looks are in categories, in order, each in exactly one", function(ns, scenario)
+	local Looks = ns.Looks
+	local want = { "minimal", "classic", "themed", "class" }
+	for i, c in ipairs(want) do
+		if Looks.CATEGORIES[i] ~= c then fail(scenario, "category " .. i .. " is " .. tostring(Looks.CATEGORIES[i])) end
+		if type(Looks.CATEGORY_TITLE[c]) ~= "string" then fail(scenario, c .. " has no heading") end
+	end
+	local rank = { minimal = 1, classic = 2, themed = 3, class = 4 }
+	local _, sorting = Looks.Choices()
+	local last, count = 0, 0
+	for _, key in ipairs(sorting) do
+		local c = Looks.Category(key)
+		if not rank[c] then fail(scenario, key .. " is in no category") end
+		if (rank[c] or 0) < last then fail(scenario, key .. " (" .. tostring(c) .. ") comes after a look of a later category") end
+		last = rank[c] or last
+		count = count + 1
+	end
+	local n = 0
+	for _ in pairs(Looks.list) do n = n + 1 end
+	if count ~= n then fail(scenario, "the dropdown lists " .. count .. " of " .. n .. " looks") end
+	local where = { glass = "classic", framed = "classic", toast = "classic", arcane = "classic", minimal = "minimal",
+		luxe = "minimal", ghost = "minimal", hairline = "minimal", pill = "minimal", slate = "minimal", ribbon = "themed",
+		letter = "themed", warchief = "themed", gearworks = "themed", frost = "class", archmage = "class", firemage = "class",
+		fel = "class", wild = "class", lightbringer = "class", stormcaller = "class", ebon = "class", leather = "class",
+		forge = "class", priest = "class", rogue = "class", monk = "class", demonhunter = "class", evoker = "class" }
+	for key, c in pairs(where) do
+		if not Looks.list[key] then fail(scenario, key .. " is not registered") end
+		if Looks.Category(key) ~= c then fail(scenario, key .. " is in " .. tostring(Looks.Category(key)) .. ", not " .. c) end
+	end
+end)
+
+withTree("painted: a renamed look keeps its saved key and wears its class's name", function(ns, scenario)
+	freshPrompt(ns, scenario)
+	local p = ns.db.profile.prompt
+	local L = ns.L
+	local names = { fel = L["Warlock"], wild = L["Druid"], lightbringer = L["Paladin"], stormcaller = L["Shaman"],
+		ebon = L["Death Knight"], archmage = L["Arcane Mage"], frost = L["Frost Mage"], leather = L["Hunter"], forge = L["Warrior"] }
+	local values = ns.Looks.Choices()
+	for key, title in pairs(names) do
+		p.style = key
+		ns.ClampSettings()
+		if p.style ~= key then fail(scenario, "a saved " .. key .. " is " .. tostring(p.style) .. " after the clamp") end
+		if (ns.Looks.Card(key)) ~= title then fail(scenario, key .. "'s card says " .. tostring((ns.Looks.Card(key)))) end
+		if type(values[key]) ~= "string" or values[key]:sub(1, #title) ~= title then
+			fail(scenario, key .. "'s dropdown label is " .. tostring(values[key]))
+		end
+	end
+end)
+
+do
+	local scenario = "painted: the gallery draws a heading over each category, its cards under it"
+	Mock.reset()
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		H.drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		ns.OpenOptions("appearance", true)
+		local UI = ns.WindowUI
+		local row = UI.RowFor("appearance.style")
+		if not (row and row.cards and row.heads) then fail(scenario, "SKIPPED -- no gallery") return end
+		local heads = {}
+		for i, c in ipairs(ns.Looks.CATEGORIES) do
+			local h = row.heads[c]
+			if not (h and h:IsShown()) then
+				fail(scenario, "no heading for " .. c)
+			else
+				heads[i] = h
+				local said = h.text and h.text:GetText()
+				if not (type(said) == "string" and said:find(ns.Looks.CATEGORY_TITLE[c], 1, true)) then fail(scenario, c .. "'s heading reads " .. tostring(said)) end
+				if i > 1 and heads[i - 1] and not (h.y > heads[i - 1].y) then fail(scenario, c .. "'s heading is not under the one before") end
+			end
+		end
+		-- Shelves fold: the chosen look's (Glass, Classic) open, the others shut,
+		-- and a click on a heading opens one.
+		if row.open.classic ~= true then fail(scenario, "the chosen look's shelf is shut") end
+		for _, card in ipairs(row.cards) do
+			if card.category == "class" and card:IsShown() then fail(scenario, "a shut shelf shows its cards: " .. tostring(card.key)) break end
+		end
+		local click = row.heads.class and row.heads.class:GetScript("OnClick")
+		if click then click(row.heads.class, "LeftButton") end
+		local opened = 0
+		for _, card in ipairs(row.cards) do
+			if card.category == "class" and card:IsShown() then opened = opened + 1 end
+		end
+		if opened == 0 then fail(scenario, "a click on the Class heading does not open its shelf") end
+		for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+		ns.RefreshOptionsDisplay()
+		local index = {}
+		for i, c in ipairs(ns.Looks.CATEGORIES) do index[c] = i end
+		for _, card in ipairs(row.cards) do
+			if card:IsShown() then
+				local i = index[card.category]
+				local h, nexth = i and heads[i], i and heads[i + 1]
+				if not (h and card.y >= h.y) then fail(scenario, tostring(card.key) .. "'s card is above its heading") end
+				if nexth and card.y >= nexth.y then fail(scenario, tostring(card.key) .. "'s card is under the next category's heading") end
+			end
+		end
+	end)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end

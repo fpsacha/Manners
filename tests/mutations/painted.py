@@ -193,3 +193,119 @@ mutate("Options/Look.lua",
        "\t\t\tkeycapGone = {\n\t\t\t\ttype = \"select\",\n",
        "painted: no control for Show my key",
        expect="no control on the Look page sets prompt.keycap", script=S)
+
+# --- see-through panes and words on nothing ---
+
+mutate("Looks/PaintedData.lua",
+       "\t\tpane = 0.8,\n",
+       "\t\tpane = 1,\n",
+       "painted: a see-through pane said to be solid",
+       expect="pane opacity is", script=S)
+
+mutate("Looks/Plain.lua",
+       "\tfor _, t in ipairs(self.backing) do t:SetShown(bare ~= nil) end\n",
+       "\tfor _, t in ipairs(self.backing) do t:SetShown(false) end\n",
+       "painted: words on nothing with nothing under them",
+       expect="the backing under Hairline's words is not drawn", script=S)
+
+mutate("Looks/Plain.lua",
+       "\t\tkit.name:SetShadowOffset(1, -1)\n",
+       "\t\tkit.name:SetShadowOffset(0, 0)\n",
+       "painted: a plain look's name with no shadow",
+       expect="Hairline's name has no shadow", script=S)
+
+# --- dark ink ---
+
+mutate("Looks/Painted.lua",
+       "\t\tif d.ink.name then DarkInk(self.kit, d.ink, p) end\n",
+       "",
+       "painted: a painting's own ink ignored",
+       expect="under 4.5:1 on the light ground", script=S)
+
+mutate("Looks/Painted.lua",
+       "\t\tlook.classContrast, look.codeContrast = DARK_CONTRAST, DARK_CONTRAST\n",
+       "",
+       "painted: class colours not held to a dark-ink ground",
+       expect="not given the class colours' contrast", script=S)
+
+# --- the plain looks ---
+
+mutate("Looks/Painted.lua",
+       "\t\tif not (art and (Wanted() or self.paintedOnly)) then\n",
+       "\t\tif not (art and Wanted()) then\n",
+       "painted: Earlier art strips a plain look bare",
+       expect="Earlier art takes its painting away", script=S)
+
+mutate("Looks/Plain.lua",
+       "\tLooks.Painted.Tone(self, paint, paint, paint, on)\n",
+       "",
+       "painted: a plain look's fight leaves its painting alone",
+       expect="a fight does not grey the painting", script=S)
+
+mutate("Looks/Plain.lua",
+       "\tif d.socket.shape == \"round\" then Looks.roundAlways[row.key] = true end\n",
+       "",
+       "painted: a round socket follows the round switch",
+       expect="its round rule is not its socket's", script=S)
+
+mutate("Looks/Plain.lua",
+       "\tlocal textX = self.textX or 0\n",
+       "\tlocal textX = 0\n",
+       "painted: a plain look's words over its socket",
+       expect="the name does not start in the well", script=S)
+
+mutate("Looks/Plain.lua",
+       "\tif flashStyle == \"off\" or self.combat or not full then\n",
+       "\tif flashStyle == \"off\" or self.combat then\n",
+       "painted: a plain look breathes on Calm",
+       expect="on Calm the socket's light still moves", script=S)
+
+mutate("Looks/Plain.lua",
+       "\t\ty0 = self.H + gap\n",
+       "\t\ty0 = gap\n",
+       "painted: a plain look's list over its bar",
+       expect="the sheet is not under the bar", script=S)
+
+# --- categories and names ---
+
+mutate("Looks/Looks.lua",
+       "\t\tif ca ~= cb then return ca < cb end\n",
+       "",
+       "painted: the dropdown not sorted by category",
+       expect="comes after a look of a later category", script=S)
+
+mutate("Looks/Looks.lua",
+       "\tminimal = { \"minimal\", \"ghost\", \"hairline\", \"pill\", \"slate\", \"luxe\" },\n",
+       "\tminimal = { \"minimal\", \"ghost\", \"hairline\", \"pill\", \"slate\" },\n",
+       "painted: Luxe on no shelf",
+       expect="luxe is in themed, not minimal", script=S)
+
+mutate("Looks/Fel.lua",
+       "\ttitle = L[\"Warlock\"],\n",
+       "\ttitle = L[\"Fel\"],\n",
+       "painted: Fel keeps its old name",
+       expect="fel's card says", script=S)
+
+mutate("Looks/Fel.lua",
+       "\tname = L[\"Warlock -- black felsteel and fel fire, a summoning circle\"],\n",
+       "\tname = L[\"Fel -- black felsteel and fel fire, a summoning circle\"],\n",
+       "painted: the dropdown's label not the card's name",
+       expect="dropdown label is", script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "\t\t\tif i == 1 or row.cards[i - 1].category ~= cat then y = PlaceHead(row, cat, y, width) end\n",
+       "",
+       "painted: the gallery's categories with no heading",
+       expect="no heading for", script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "\t\tif mine and row.open[mine] == nil then row.open[mine] = true end\n",
+       "",
+       "painted: the chosen look's shelf shut",
+       expect="the chosen look's shelf is shut", script=S)
+
+mutate("Options/Window/WidgetsTheme.lua",
+       "\trow.open[head.cat] = not row.open[head.cat]\n",
+       "",
+       "painted: a shelf's heading opens nothing",
+       expect="does not open its shelf", script=S)

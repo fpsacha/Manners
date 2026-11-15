@@ -75,8 +75,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Frost = ns.Looks.Register("frost", {
-	name = L["Frost -- a slab of glacial ice, a frozen ring and icicles"],
-	title = L["Frost"],
+	name = L["Frost Mage -- a slab of glacial ice, a frozen ring and icicles"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Frost Mage"],
 	description = L["a slab of glacial ice, a frozen ring and icicles"],
 	order = 9.8,
 	-- The slab holds in a fight; the look dims its own parts.

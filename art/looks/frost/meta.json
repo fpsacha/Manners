@@ -2,43 +2,35 @@
  "key": "frost",
  "socket": {
   "shape": "round",
-  "cx": 754,
-  "cy": 520,
-  "r": 175,
-  "ring_r": 267
+  "cx": 655,
+  "cy": 508,
+  "r": 197
  },
  "name_xy": [
-  1131,
-  435
+  1090,
+  380
  ],
  "reason_xy": [
-  1132,
-  556
+  1090,
+  540
  ],
  "keycap": {
-  "cx": 3272,
-  "cy": 524,
-  "w": 168,
-  "h": 176
+  "cx": 3085,
+  "cy": 520,
+  "w": 220,
+  "h": 230
  },
  "bar": [
-  338,
-  311,
-  3833,
-  746
+  313,
+  174,
+  3899,
+  874
  ],
  "stretch": [
-  1150,
-  3050
+  1250,
+  2900
  ],
  "text_colour_ok": true,
- "contrast": {
-  "white": 15.51,
-  "gold": 10.43
- },
- "notes": "Mage trio v2: Frost, Arcane and Fire share one skeleton (same bar, round socket, well, keycap and end-cap footprint); only materials, colours and the end-cap signature differ. Contrast measured on final-empty.jpg by the WCAG formula against the mean luminance of the lightest tenth of the pixels under the two text lines' boxes. Socket r is the dark glass disc; ring_r is the outer metal ring. Ring spans y 256-790 (about 1.23x the bar's height). Animate as layers: a sharp glint sweeping across the ice crystal's facets and a slow cold pulse in its core; the faint icy-blue inner light along the well's edges breathing; a cold shimmer travelling along the ice band's top highlight; the frost feathers at the ends slowly growing in and fading.",
- "made_from": {
-  "final-mock": "v2g-01.jpg",
-  "final-empty": "v2-empty-01.jpg"
- }
+ "notes": "Socket disc r is the dark glass disc; the faceted ice ring reaches about r 340 (x 315-990, y 174-854). Text well inner area about x 970-3500, y 350-690 (chevron tip at about x 3530). Slab without icicles ends at about y 780; icicles hang to 874. Animate as layers: a slow cold shimmer travelling along the ice slab's top and bottom highlight; a soft pulse in the snowflake crystal's core; a faint glint sweeping the socket's ice ring; optional tiny glints on the icicle tips. The well itself stays still.",
+ "well_hi": 0.035
 }

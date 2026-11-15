@@ -1,0 +1,13 @@
+{
+  "key": "firemage",
+  "socket": {"shape": "round", "cx": 640, "cy": 524, "r": 205,
+             "frame": "forged-bronze ring, outer circle spans x 343-950, y ~206-822 (about 1.41x the bar's height); r is the dark glass disc"},
+  "name_xy": [1043, 439],
+  "reason_xy": [1043, 561],
+  "keycap": {"cx": 3334, "cy": 535, "w": 194, "h": 190},
+  "bar": [343, 320, 3858, 752],
+  "stretch": [1050, 3150],
+  "text_colour_ok": true,
+  "contrast": {"white": 14.47, "gold": 9.72},
+  "notes": "Contrast measured on final-empty.jpg over the ground under both text lines (x 1028-1512, y 429-656), WCAG formula against the mean luminance of the lightest tenth of that area (L 0.0226). Well is near-black charcoal (mean RGB about 42,37,50). Stretch run has one soft warm highlight on the top bronze edge around x 1900, which stretches without harm. Could animate: a slow breathing glow in the molten flame-tongue relief on the socket ring; a flicker of the ember in the right end block (bright core pulsing); a faint pulse travelling along the thin molten cracks at the two ends; a soft heat shimmer of the glow along the bottom edge under the socket."
+}

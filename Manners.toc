@@ -87,6 +87,7 @@ Looks\Ebon.lua
 Looks\Glass.lua
 Looks\MinimalDress.lua
 Looks\PaintedData.lua
+Looks\Plain.lua
 Looks\Painted.lua
 Prompt\Prompt.lua
 Prompt\Text.lua
