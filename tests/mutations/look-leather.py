@@ -60,8 +60,8 @@ _m(LEATHER,
    expect=S_REG)
 
 _m(LEATHER,
-   "\tname = L[\"Leather -- a stitched leather tag with a brass ring\"],\n",
-   "\tname = L[\"Leather\"],\n",
+   "\ttitle = L[\"Hunter\"],\n",
+   "\ttitle = L[\"Leather\"],\n",
    "the dropdown's label is only the name",
    expect=S_REG)
 
@@ -72,8 +72,8 @@ _m("Manners.toc",
    expect=S_REG)
 
 _m("Locales/deDE.lua",
-   "L[\"Leather\"] = \"Leder\"\n",
-   "L[\"Leather\"] = \"Leather\"\n",
+   "L[\"Hunter\"] = \"Jäger\"\n",
+   "L[\"Hunter\"] = \"Hunter\"\n",
    "a title left in English in German",
    expect=S_TRANS)
 

@@ -7,19 +7,29 @@ local _, ns = ...
 ns.Looks.previews = {
 	arcane = true,
 	archmage = true,
+	demonhunter = true,
 	ebon = true,
+	evoker = true,
 	fel = true,
+	firemage = true,
 	forge = true,
 	framed = true,
 	frost = true,
 	gearworks = true,
+	ghost = true,
 	glass = true,
+	hairline = true,
 	leather = true,
 	letter = true,
 	lightbringer = true,
 	luxe = true,
 	minimal = true,
+	monk = true,
+	pill = true,
+	priest = true,
 	ribbon = true,
+	rogue = true,
+	slate = true,
 	stormcaller = true,
 	toast = true,
 	warchief = true,
@@ -31,19 +41,29 @@ ns.Looks.previews = {
 ns.Looks.previewIcon = {
 	arcane = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	archmage = { l = 0.0984, t = 0.25806, r = 0.21937, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	demonhunter = { l = 0.12113, t = 0.26375, r = 0.23051, b = 0.70127, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	ebon = { l = 0.18585, t = 0.38415, r = 0.27732, b = 0.75, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ebon\\Ebon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	evoker = { l = 0.07951, t = 0.27367, r = 0.19033, b = 0.71697, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	fel = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	firemage = { l = 0.09021, t = 0.22517, r = 0.22972, b = 0.78322, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	forge = { l = 0.10887, t = 0.25806, r = 0.22984, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	framed = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
-	frost = { l = 0.15383, t = 0.31477, r = 0.22765, b = 0.61005, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	frost = { l = 0.07222, t = 0.3026, r = 0.16163, b = 0.66024, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	gearworks = { l = 0.10797, t = 0.25806, r = 0.22894, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Gearworks\\Gearworks_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	ghost = { l = 0.08589, t = 0.23927, r = 0.21824, b = 0.76868, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	glass = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	hairline = { l = 0.0807, t = 0.15226, r = 0.25458, b = 0.84774, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	leather = { l = 0.14637, t = 0.10843, r = 0.23673, b = 0.46988, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	letter = { l = 0.15581, t = 0.31452, r = 0.24855, b = 0.68548, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Letter\\Letter_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	lightbringer = { l = 0.11694, t = 0.25806, r = 0.2379, b = 0.74194, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	luxe = { l = 0.125, t = 0.25806, r = 0.24597, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	minimal = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	monk = { l = 0.0575, t = 0.29448, r = 0.16026, b = 0.70552, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	pill = { l = 0.08338, t = 0.23797, r = 0.21521, b = 0.76529, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	priest = { l = 0.07126, t = 0.27617, r = 0.17746, b = 0.70097, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	ribbon = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	rogue = { l = 0.05782, t = 0.22783, r = 0.18985, b = 0.75598, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	slate = { l = 0.09012, t = 0.24139, r = 0.22032, b = 0.76216, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	stormcaller = { l = 0.22253, t = 0.46386, r = 0.31289, b = 0.8253, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
 	toast = { l = 0.08554, t = 0.26152, r = 0.20478, b = 0.73848, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_IconMask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	warchief = { l = 0.12661, t = 0.29032, r = 0.24758, b = 0.77419, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
@@ -67,13 +87,25 @@ ns.Looks.previewText = {
 		name = { l = 0.26521, t = 0.29032, r = 0.89516, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.04, 0, 0.1, 0.9 } } },
 		reason = { l = 0.26521, t = 0.53226, r = 0.89516, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.96265, 0.82817, 0.60032, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.04, 0, 0.1, 0.95 } } },
 	},
+	demonhunter = {
+		name = { l = 0.37903, t = 0.34698, r = 0.76754, b = 0.52514, h = "LEFT", v = "MIDDLE", size = 0.17816, color = { 1, 1, 1, 1 }, shadow = { x = 0.0137, y = -0.0137, color = { 0, 0, 0, 0.9 } } },
+		reason = { l = 0.37903, t = 0.55364, r = 0.76754, b = 0.69069, h = "LEFT", v = "MIDDLE", size = 0.13704, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.0137, y = -0.0137, color = { 0, 0, 0, 1 } } },
+	},
 	ebon = {
 		name = { l = 0.31073, t = 0.40854, r = 0.69207, b = 0.56707, h = "LEFT", v = "MIDDLE", size = 0.15854, color = { 1, 1, 1, 1 }, shadow = { x = 0.0122, y = -0.0122, color = { 0, 0.01, 0.02, 0.95 } } },
 		reason = { l = 0.31073, t = 0.59146, r = 0.69207, b = 0.71341, h = "LEFT", v = "MIDDLE", size = 0.12195, color = { 0.936, 0.832, 0.572, 1 }, shadow = { x = 0.0122, y = -0.0122, color = { 0, 0.01, 0.02, 1 } } },
 	},
+	evoker = {
+		name = { l = 0.27814, t = 0.30524, r = 0.71742, b = 0.49622, h = "LEFT", v = "MIDDLE", size = 0.19098, color = { 1, 1, 1, 1 }, shadow = { x = 0.01469, y = -0.01469, color = { 0, 0, 0, 0.9 } } },
+		reason = { l = 0.27814, t = 0.52677, r = 0.71742, b = 0.67368, h = "LEFT", v = "MIDDLE", size = 0.14691, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01469, y = -0.01469, color = { 0, 0, 0, 1 } } },
+	},
 	fel = {
 		name = { l = 0.29435, t = 0.29032, r = 0.83468, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.03, 0, 0.95 } } },
 		reason = { l = 0.29435, t = 0.53226, r = 0.83468, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.92, 0.812, 0.476, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
+	},
+	firemage = {
+		name = { l = 0.29989, t = 0.33799, r = 0.71726, b = 0.51855, h = "LEFT", v = "MIDDLE", size = 0.18056, color = { 1, 1, 1, 1 }, shadow = { x = 0.01389, y = -0.01389, color = { 0, 0, 0, 0.9 } } },
+		reason = { l = 0.29989, t = 0.54744, r = 0.71726, b = 0.68633, h = "LEFT", v = "MIDDLE", size = 0.13889, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01389, y = -0.01389, color = { 0, 0, 0, 1 } } },
 	},
 	forge = {
 		name = { l = 0.27016, t = 0.29032, r = 0.90323, b = 0.5, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
@@ -84,16 +116,24 @@ ns.Looks.previewText = {
 		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.74, 0.6695, 0.547, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 	frost = {
-		name = { l = 0.30779, t = 0.30404, r = 0.68281, b = 0.46654, h = "LEFT", v = "MIDDLE", size = 0.1625, color = { 1, 1, 1, 1 }, shadow = { x = 0.0125, y = -0.0125, color = { 0, 0.01, 0.04, 0.95 } } },
-		reason = { l = 0.30779, t = 0.49154, r = 0.68281, b = 0.61654, h = "LEFT", v = "MIDDLE", size = 0.125, color = { 0.95844, 0.87828, 0.68828, 1 }, shadow = { x = 0.0125, y = -0.0125, color = { 0, 0.01, 0.04, 1 } } },
+		name = { l = 0.2468, t = 0.30345, r = 0.6949, b = 0.49823, h = "LEFT", v = "MIDDLE", size = 0.19479, color = { 1, 1, 1, 1 }, shadow = { x = 0.01498, y = -0.01498, color = { 0, 0.01, 0.04, 0.95 } } },
+		reason = { l = 0.2468, t = 0.5282, r = 0.6949, b = 0.67803, h = "LEFT", v = "MIDDLE", size = 0.14984, color = { 0.944, 0.836, 0.58, 1 }, shadow = { x = 0.01498, y = -0.01498, color = { 0, 0.01, 0.04, 1 } } },
 	},
 	gearworks = {
 		name = { l = 0.30645, t = 0.27476, r = 0.73387, b = 0.48444, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.02, 0.02, 0.9 } } },
 		reason = { l = 0.30645, t = 0.5167, r = 0.73387, b = 0.67799, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.808, 0.492, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0.02, 0.02, 1 } } },
 	},
+	ghost = {
+		name = { l = 0.24817, t = 0.34815, r = 0.81855, b = 0.55783, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+		reason = { l = 0.24817, t = 0.59138, r = 0.81855, b = 0.75267, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+	},
 	glass = {
 		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
 		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.74, 0.6695, 0.547, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
+	},
+	hairline = {
+		name = { l = 0.31155, t = 0.31217, r = 0.86694, b = 0.52185, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+		reason = { l = 0.31155, t = 0.5554, r = 0.86694, b = 0.71669, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
 	},
 	leather = {
 		name = { l = 0.2548, t = 0.12048, r = 0.6988, b = 0.31325, h = "LEFT", v = "MIDDLE", size = 0.19277, color = { 1, 1, 1, 1 }, shadow = { x = 0.01205, y = -0.01205, color = { 0.14, 0.07, 0.02, 0.95 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
@@ -115,9 +155,29 @@ ns.Looks.previewText = {
 		name = { l = 0.25806, t = 0.27419, r = 0.90323, b = 0.48387, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
 		reason = { l = 0.25806, t = 0.56452, r = 0.90323, b = 0.72581, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.909, 0.8385, 0.703, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } }, flags = "OUTLINE" },
 	},
+	monk = {
+		name = { l = 0.24507, t = 0.29017, r = 0.72984, b = 0.49985, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
+		reason = { l = 0.24507, t = 0.5334, r = 0.72984, b = 0.69469, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+	},
+	pill = {
+		name = { l = 0.23758, t = 0.29308, r = 0.80645, b = 0.50276, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+		reason = { l = 0.23758, t = 0.53631, r = 0.80645, b = 0.6976, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.94775, 0.80218, 0.48866, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+	},
+	priest = {
+		name = { l = 0.23653, t = 0.29145, r = 0.72177, b = 0.50113, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
+		reason = { l = 0.23653, t = 0.53468, r = 0.72177, b = 0.69597, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+	},
 	ribbon = {
 		name = { l = 0.25, t = 0.27177, r = 0.86694, b = 0.52984, h = "LEFT", v = "MIDDLE", size = 0.25806, color = { 1, 0.91765, 0.67843, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 1 } }, font = "Fonts\\MORPHEUS.TTF", latin = true },
 		reason = { l = 0.25, t = 0.55081, r = 0.86694, b = 0.7121, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 1, 0.88, 0.8, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0.16, 0.02, 0.03, 0.95 } } },
+	},
+	rogue = {
+		name = { l = 0.24375, t = 0.2862, r = 0.72581, b = 0.49588, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.9 } } },
+		reason = { l = 0.24375, t = 0.52943, r = 0.72581, b = 0.69072, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+	},
+	slate = {
+		name = { l = 0.24654, t = 0.29337, r = 0.80645, b = 0.50305, h = "LEFT", v = "MIDDLE", size = 0.20968, color = { 1, 1, 1, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
+		reason = { l = 0.24654, t = 0.53659, r = 0.80645, b = 0.69788, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.788, 0.452, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 1 } } },
 	},
 	stormcaller = {
 		name = { l = 0.36157, t = 0.48795, r = 0.79217, b = 0.64458, h = "LEFT", v = "MIDDLE", size = 0.15663, color = { 1, 1, 1, 1 }, shadow = { x = 0.01205, y = -0.01205, color = { 0, 0.01, 0.03, 0.95 } } },
@@ -136,4 +196,4 @@ ns.Looks.previewText = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "c0f2c4a34a6ff6ca904baf572723270ef8ad270341dea002f69d99554643db41"
+ns.Looks.previewHash = "747091c627e696c4b6759724764434c25395656e6b439ff25d406ce86c171922"

@@ -1,0 +1,48 @@
+{
+  "key": "hairline",
+  "socket": {
+    "shape": "square",
+    "cx": 617,
+    "cy": 513,
+    "half": 217,
+    "half_w": 243
+  },
+  "name_xy": [
+    969,
+    339
+  ],
+  "reason_xy": [
+    972,
+    542
+  ],
+  "keycap": {
+    "cx": 3717,
+    "cy": 658,
+    "w": 143,
+    "h": 143
+  },
+  "bar": [
+    375,
+    296,
+    3788,
+    730
+  ],
+  "stretch": [
+    1000,
+    3600
+  ],
+  "text_colour_ok": true,
+  "contrast": {
+    "white": 13.37,
+    "gold": 8.99
+  },
+  "see_through": false,
+  "pane": null,
+  "line": {
+    "y0": 725,
+    "y1": 730,
+    "x0": 891,
+    "x1": 3623
+  },
+  "notes": "No pane: text sits on the bare (keyed-out) background, so see_through is false and pane is null. The socket frame is 486x435 px (slightly wider than tall), hence half (vertical) and half_w. The hairline runs y 725-730 from x 891 to 3623, level with the socket bottom and the keycap bottom. Animatable as layers: a soft specular glint sliding once along the hairline when the prompt appears; a faint pulse of the gold outline on the socket and keycap when the key is ready; the icon rune glow."
+}

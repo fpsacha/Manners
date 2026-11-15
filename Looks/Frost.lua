@@ -75,8 +75,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Frost\\Frost_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Frost = ns.Looks.Register("frost", {
-	name = L["Frost -- a slab of glacial ice, a frozen ring and icicles"],
-	title = L["Frost"],
+	name = L["Frost Mage -- a slab of glacial ice, a frozen ring and icicles"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Frost Mage"],
 	description = L["a slab of glacial ice, a frozen ring and icicles"],
 	order = 9.8,
 	-- The slab holds in a fight; the look dims its own parts.
@@ -1557,7 +1559,7 @@ function Frost:PaintedPlace(g, p, above)
 	self:PlaceMotion(showIcon, above)
 	-- The vein along the well's lower edge, from the words to the keycap.
 	local veinH = math.max(2, g.unit * 0.05)
-	local veinY = g.wellBottom - veinH
+	local veinY = g.wellBottom
 	Box(self.vein, art, g.textX - 2, veinY - veinH / 2, keyL - 2, veinY + veinH / 2)
 	Box(self.core, art, g.textX - 2, veinY - veinH / 2, keyL - 2, veinY + veinH / 2)
 	self.veinOK = keyL - g.textX >= 16
@@ -1688,6 +1690,8 @@ end
 function Frost:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
 	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then

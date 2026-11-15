@@ -1,6 +1,6 @@
 """Measure how well the words on every prompt look read.
 
-For each of the nineteen looks the prompt is taken through the moments that
+For each look the prompt is taken through the moments that
 change what is behind its words or what colour they are (tools/
 audit_look_contrast.lua: every reason at rest in both palettes, somebody owed
 with the lights at three moments of their run, an outcome that succeeded and
@@ -42,7 +42,32 @@ from concurrent.futures import ProcessPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 LOOKS = ["glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge",
-         "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon"]
+         "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon",
+         "firemage", "priest", "rogue", "monk", "demonhunter", "evoker", "ghost", "hairline", "pill", "slate"]
+
+
+def open_grounds():
+    """The painted looks whose ground lets the world through (Looks/PaintedData.lua:
+    a see-through `pane`, or `bare` words on nothing): measured, like Minimal, over
+    the bright world and the cave in every moment, not only at rest."""
+    import re
+    path = os.path.join(ROOT, "Looks", "PaintedData.lua")
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return set()
+    out, key = set(), None
+    for line in text.splitlines():
+        m = re.match(r"^\t([a-z0-9_]+) = \{", line)
+        if m:
+            key = m.group(1)
+        elif key and re.match(r"^\t\t(pane|bare) = ", line):
+            out.add(key)
+    return out
+
+
+OPEN = open_grounds()
 # WIDTHxHEIGHTxFONTxICON: the default, and the ends of the options' sliders.
 SIZES = {"default": "", "small": "80x20x6x12", "large": "500x120x32x64"}
 LINES = ["name", "reason", "tag", "rows"]
@@ -170,7 +195,7 @@ def measure(rp, snap):
 
 
 def worlds(look, state, reason):
-    if look == "minimal":
+    if look == "minimal" or look in OPEN:
         return [None, "bright", "cave"]
     if (state == "rest" and reason == "nearby") or state == "owed":
         return [None, "bright"]

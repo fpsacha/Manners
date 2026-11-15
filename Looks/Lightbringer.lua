@@ -54,8 +54,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Lightbringer = ns.Looks.Register("lightbringer", {
-	name = L["Lightbringer -- silver and blue enamel, a sun of the Light"],
-	title = L["Lightbringer"],
+	name = L["Paladin -- silver and blue enamel, a sun of the Light"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Paladin"],
 	description = L["silver and blue enamel, a sun of the Light"],
 	order = 9,
 	-- The plate holds in a fight; the look dims its own parts.
@@ -1197,6 +1199,8 @@ end
 function Lightbringer:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
 	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then

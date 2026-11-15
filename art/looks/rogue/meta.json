@@ -1,0 +1,39 @@
+{
+  "key": "rogue",
+  "socket": {
+    "shape": "square",
+    "cx": 655,
+    "cy": 508,
+    "half": 150
+  },
+  "name_xy": [
+    922,
+    414
+  ],
+  "reason_xy": [
+    927,
+    537
+  ],
+  "keycap": {
+    "cx": 3331,
+    "cy": 513,
+    "w": 150,
+    "h": 158
+  },
+  "bar": [
+    437,
+    302,
+    3765,
+    721
+  ],
+  "stretch": [
+    900,
+    3200
+  ],
+  "text_colour_ok": true,
+  "contrast": {
+    "white": 14.04,
+    "gold": 9.44
+  },
+  "notes": "Measured on final-empty.jpg (Gemini repaint of keeper r2-01, about 2 px left of the keeper). Socket half is the dark glass opening; the engraved brass frame spans x 437-857, y 302-721. Bar body y 316-707, so the socket is 1.07x the bar. Contrast is WCAG over the lightest tenth of x 900-1650, y 380-650 (under both text lines). Animate: the poison-green vial in the dagger tip (centre about x 3590, y 512) can pulse its glow; a slow glint can run along the honed dagger edge and the blackened steel top trim; the thin blood-red silk piping could shimmer faintly; a soft sheen could sweep across the socket's dark glass."
+}

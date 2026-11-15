@@ -1,0 +1,14 @@
+{
+  "key": "pill",
+  "socket": {"shape": "round", "cx": 530, "cy": 512, "r": 163},
+  "name_xy": [744, 392],
+  "reason_xy": [747, 547],
+  "keycap": {"cx": 3627, "cy": 513, "w": 196, "h": 194},
+  "bar": [318, 301, 3810, 720],
+  "stretch": [760, 3470],
+  "pane": [331, 314, 3798, 708],
+  "see_through": true,
+  "contrast": {"white": 13.87, "gold": 9.32},
+  "text_colour_ok": true,
+  "notes": "Nothing glows in the frame itself. Layers that could move: the thin pale rim (a slow soft brightening or a faint highlight gliding once along the top edge when the prompt appears), the small specular glint on the round socket glass and on the keycap disc (a gentle pulse when the key is ready). Socket r is the outer edge of the socket's pale rim; the dark glass inside it runs to about r 150. Bar rim is about 12 px thick; pane is the interior inside it. Measured on final-empty.jpg (4128x1024); text positions measured on final-mock.jpg, whose bar matches the empty frame to within a few pixels."
+}

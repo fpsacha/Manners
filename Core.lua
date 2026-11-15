@@ -654,6 +654,11 @@ local defaults = {
 			-- (Looks/Painted.lua), for whoever liked it better. Off: a look with a
 			-- painting wears it.
 			classicArt = false,
+			-- Show my key on the prompt: "look" as the look has it (a painted
+			-- look's own default from Looks/PaintedData.lua: shown on the class
+			-- and themed looks, hidden on the calmer ones), "show" or "hide" on
+			-- every look. No key bound shows nothing whatever it says.
+			keycap = "look",
 			textShadow = true,
 			showCount = true,
 			showQueue = false,
@@ -5165,6 +5170,7 @@ function ns.ClampSettings()
 	oneOf(p, "effects", { full = true, calm = true }, "full")
 	oneOf(p, "tooltip", { full = true, short = true, shift = true, off = true }, "short")
 	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
+	oneOf(p, "keycap", { look = true, show = true, hide = true }, "look")
 	oneOf(p, "thankEmoteToken", ns.THANK_EMOTE_SET, "THANK")
 	-- The others to pick from: a table of known tokens, each true; anything
 	-- else in it is dropped.

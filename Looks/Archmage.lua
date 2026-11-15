@@ -67,8 +67,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Archmage = ns.Looks.Register("archmage", {
-	name = L["Archmage -- a violet crystal, six arcane charges"],
-	title = L["Archmage"],
+	name = L["Arcane Mage -- a violet crystal, six arcane charges"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Arcane Mage"],
 	description = L["a violet crystal, six arcane charges"],
 	order = 8,
 	-- The crystal holds in a fight; the look dims its own parts.
@@ -1318,6 +1320,8 @@ end
 function Archmage:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
 	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then

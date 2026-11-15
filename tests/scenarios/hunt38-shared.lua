@@ -122,6 +122,10 @@ do
 		-- the toggle says.
 		local always = { letter = true, ribbon = true, toast = true, archmage = true, lightbringer = true, fel = true, wild = true, frost = true,
 			warchief = true, gearworks = true, ebon = true }
+		-- The plain painted looks with a round socket (Looks/Plain.lua).
+		for key in pairs(ns.Looks.roundAlways) do
+			if ns.Looks.list[key] and ns.Looks.list[key].paintedOnly then always[key] = true end
+		end
 		local keys = {}
 		for key in pairs(ns.Looks.Allowed()) do keys[#keys + 1] = key end
 		table.sort(keys)

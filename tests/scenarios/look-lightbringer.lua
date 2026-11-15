@@ -162,7 +162,7 @@ withTree("look-lightbringer: it is registered, in the toc, and translated in all
 	end
 	for _, code in ipairs({ "deDE", "esES", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW" }) do
 		local text = slurp(dir .. "/Locales/" .. code .. ".lua") or ""
-		for _, key in ipairs({ "Lightbringer -- silver and blue enamel, a sun of the Light", "Lightbringer",
+		for _, key in ipairs({ "Paladin -- silver and blue enamel, a sun of the Light", "Paladin",
 			"silver and blue enamel, a sun of the Light" }) do
 			if not text:find('L["' .. key .. '"] = ', 1, true) then
 				fail(scenario, code .. " does not translate '" .. key .. "'")

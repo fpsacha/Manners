@@ -63,7 +63,10 @@
 -- over the picture, under the words, as wide as the words it has just measured.
 --
 -- Two or three cards to a row, as many as the page is wide enough for, every
--- row as tall as its tallest card.
+-- row as tall as its tallest card. The looks are on shelves by category
+-- (Looks.CATEGORIES: Minimal, Classic, Themed, Class, in that order), each
+-- under a small heading of its own, a shelf's cards starting a row of their
+-- own; the dropdown, which the fallback dialog keeps, is the same list flat.
 
 local _, ns = ...
 local W = ns.WindowWidgets
@@ -74,6 +77,8 @@ local LSM = LibStub("LibSharedMedia-3.0")
 local function Bind() return ns.WindowBind end
 
 local GAP, PAD, TEXT_GAP = 10, 6, 6
+-- A category's heading: its height, and the room under it before its cards.
+local HEAD_H, HEAD_GAP = 16, 4
 -- The narrowest a card is drawn, and the most to a row.
 local MIN_WIDTH, MAX_COLUMNS = 150, 3
 -- Textures/Previews are 256 x 64.
@@ -544,8 +549,60 @@ local function BuildCard(row, i)
 	return card
 end
 
+-- The heading over a category's first card, at `y` from the row's top; returns
+-- where its cards start. row.heads is kept for the tests.
+-- A shelf folds: its heading, a click, opens or shuts it. The shelf holding
+-- the chosen look is open when the page is first drawn, the others shut (so
+-- the page stays its usual length); what the player opens stays open for the
+-- session.
+local function Toggle(head)
+	local row = head.row
+	row.open[head.cat] = not row.open[head.cat]
+	for _, card in ipairs(row.cards) do
+		if card.key and card.category == head.cat then card:SetShown(row.open[head.cat] and true or false) end
+	end
+	W.Relayout(row)
+end
+
+local function HeadLook(head)
+	local open = head.row.open[head.cat]
+	W.TextColour(head.text, (open or head.hover) and T.gold or T.hint)
+	head.text:SetText(("%s %s  (%d)"):format(open and "-" or "+", ns.Looks.CATEGORY_TITLE[head.cat] or head.cat, head.n or 0))
+end
+
+local function PlaceHead(row, cat, y, width)
+	local head = row.heads[cat]
+	if not head then
+		head = CreateFrame("Button", nil, row.frame)
+		head:RegisterForClicks("LeftButtonUp")
+		head.row, head.cat = row, cat
+		head.text = W.Text(head, T.fonts.normal, T.gold)
+		head.text:SetJustifyH("LEFT")
+		head.text:SetWordWrap(false)
+		head.text:SetPoint("LEFT", head, "LEFT", 0, 0)
+		head:SetScript("OnClick", function(self) ns.Guard("options look", Toggle, self) end)
+		head:SetScript("OnEnter", function(self) self.hover = true HeadLook(self) end)
+		head:SetScript("OnLeave", function(self) self.hover = false HeadLook(self) end)
+		row.heads[cat] = head
+	end
+	local n = 0
+	for _, card in ipairs(row.cards) do
+		if card.key and card.category == cat then n = n + 1 end
+	end
+	head.n = n
+	HeadLook(head)
+	head:ClearAllPoints()
+	head:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -y)
+	head:SetSize(width, HEAD_H)
+	head.text:SetWidth(width)
+	head:Show()
+	head.y = y
+	return y + HEAD_H + HEAD_GAP
+end
+
 KIND.themes = {
 	Build = function(row)
+		row.heads, row.open = {}, {}
 		row.cards = {}
 		row.count = 0
 		row.cols = 1
@@ -557,6 +614,9 @@ KIND.themes = {
 		-- is drawn.
 		local _, values = ns.Looks.Choices()
 		local now = Bind().Value(row.item)
+		-- The chosen look's shelf open the first time it is seen.
+		local mine = now and ns.Looks.list[now] and ns.Looks.Category(now)
+		if mine and row.open[mine] == nil then row.open[mine] = true end
 		-- One icon for every card, asked at every paint.
 		local spell = BuffIcon()
 		for i, key in ipairs(values) do
@@ -565,6 +625,7 @@ KIND.themes = {
 			card.selected = now ~= nil and now == key
 			-- The pointer may have left while the page was away.
 			card.hover = card.hover and card:IsMouseOver() or false
+			card.category = ns.Looks.Category(key)
 			local title, line = ns.Looks.Card(key)
 			card.title:SetText(W.Trim(title))
 			card.desc:SetText(W.Trim(line))
@@ -583,7 +644,7 @@ KIND.themes = {
 			DressIcon(card, file and ns.Looks.PreviewIcon(key), spell)
 			DressText(card, file and ns.Looks.PreviewText(key))
 			Look(card)
-			card:Show()
+			card:SetShown(row.open[card.category] == true)
 		end
 		for i = #values + 1, #row.cards do row.cards[i]:Hide() end
 		local was = row.count
@@ -602,13 +663,23 @@ KIND.themes = {
 		-- One height for every picture, so the names line up across a row.
 		local shotH = math.floor((base - 2 * PAD) / SHOT_RATIO + 0.5)
 		local y, i = 0, 1
+		for _, head in pairs(row.heads) do head:Hide() end
 		while i <= count do
+			-- A heading over each category's first card; its cards start a row.
+			local cat = row.cards[i].category
+			if i == 1 or row.cards[i - 1].category ~= cat then y = PlaceHead(row, cat, y, width) end
 			local last = math.min(count, i + cols - 1)
+			while last > i and row.cards[last].category ~= cat do last = last - 1 end
+			-- A shelf folded: only its heading, its cards passed over.
+			local open = row.open[cat] == true
+			if not open then
+				while last < count and row.cards[last + 1].category == cat do last = last + 1 end
+			end
 			local x, tallest = 0, 0
 			-- Every card of the row, the first few a unit wider where the
 			-- width does not divide, so the row runs the whole width.
 			local sized = {}
-			for k = i, last do
+			for k = i, open and last or i - 1 do
 				local card = row.cards[k]
 				local w = base + ((k - i) < extra and 1 or 0)
 				local inner = w - 2 * PAD
@@ -640,7 +711,7 @@ KIND.themes = {
 				card.x, card.y, card.w, card.h = x, y, s.w, tallest
 				x = x + s.w + GAP
 			end
-			y = y + tallest + GAP
+			y = y + tallest + (open and GAP or (GAP - HEAD_GAP))
 			i = last + 1
 		end
 		return y - GAP

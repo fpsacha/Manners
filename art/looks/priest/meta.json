@@ -1,0 +1,12 @@
+{
+  "key": "priest",
+  "socket": {"shape": "round", "cx": 552, "cy": 515, "r": 142},
+  "name_xy": [846, 416],
+  "reason_xy": [850, 555],
+  "keycap": {"cx": 3429, "cy": 526, "w": 182, "h": 182},
+  "bar": [304, 290, 3873, 751],
+  "stretch": [950, 3300],
+  "text_colour_ok": true,
+  "contrast": {"white": 13.56, "gold": 9.11},
+  "notes": "Measured on final-empty.jpg (Gemini's emptied repaint of final-mock.jpg; the frame sits about 2 px from the mock's). socket r is the dark glass disc inside the gold ring; the ivory halo ring reaches r ~242, flush with the bar's top and bottom. Contrast is the WCAG ratio of white and of gold (255,204,110) against the mean luminance of the lightest tenth of x 840-1520, y 410-660 (L 0.027). The well (~46 grey, faint violet) is close to the slate background, so key out by flood fill from the canvas edge, not by colour. Animatable layers: the faint shadow-violet glow hugging the well's inner edge (slow breathing pulse); the gold sunburst boss of the end cap (soft light sweep or glow pulse); the engraved rays of the halo ring round the socket (a slow shimmer travelling round); a pearly sheen sweeping left to right along the ivory bands; the sheen on the empty socket glass."
+}

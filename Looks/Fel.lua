@@ -63,8 +63,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Fel = ns.Looks.Register("fel", {
-	name = L["Fel -- black felsteel and fel fire, a summoning circle"],
-	title = L["Fel"],
+	name = L["Warlock -- black felsteel and fel fire, a summoning circle"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Warlock"],
 	description = L["black felsteel and fel fire, a summoning circle"],
 	order = 9.5,
 	-- The slab holds in a fight; the look dims its own parts.
@@ -1365,6 +1367,8 @@ end
 function Fel:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
 	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then

@@ -1,0 +1,47 @@
+{
+ "key": "ghost",
+ "socket": {
+  "shape": "square",
+  "cx": 463,
+  "cy": 511,
+  "half": 137
+ },
+ "name_xy": [
+  658,
+  411
+ ],
+ "reason_xy": [
+  661,
+  549
+ ],
+ "keycap": {
+  "cx": 3769,
+  "cy": 510,
+  "w": 160,
+  "h": 161
+ },
+ "bar": [
+  277,
+  325,
+  3903,
+  688
+ ],
+ "pane": [
+  286,
+  333,
+  3901,
+  687
+ ],
+ "see_through": true,
+ "stretch": [
+  1500,
+  3620
+ ],
+ "text_colour_ok": true,
+ "contrast": {
+  "white": 17.77,
+  "gold": 11.94
+ },
+ "notes": "Almost nothing moves: the thin glass rim could carry a slow soft light that travels along it once when the prompt appears (top edge and upper-left corner already catch the light), and the pane's opacity could breathe or fade in; the keycap could brighten a shade on press. The socket's hairline edge could take a faint blue-violet tint from the icon.",
+ "clip": true
+}

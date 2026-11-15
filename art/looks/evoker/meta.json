@@ -1,0 +1,10 @@
+{"key": "evoker",
+ "socket": {"shape": "round", "cx": 557, "cy": 510, "r": 120},
+ "name_xy": [861, 445],
+ "reason_xy": [866, 535],
+ "keycap": {"cx": 3333, "cy": 512, "w": 160, "h": 166},
+ "bar": [304, 295, 3792, 731],
+ "stretch": [1000, 3100],
+ "text_colour_ok": true,
+ "contrast": {"white": 13.83, "gold": 9.29},
+ "notes": "Painted by Gemini: keeper r3-01 (final-mock), emptied frame r4-empty-02 (final-empty). Contrast measured over the lightest tenth of the text area x 855-1300, y 440-600 of final-empty.jpg (WCAG, gold = 255,204,110). Animate as layers: the dragon head's small violet eye (slow glow pulse or blink); the teal crystal in the claw end cap (soft inner glow, a gold glint travelling over its facets); a faint light sheen sliding along the scaled bronze rims; a slow highlight turning on the socket's dark teal glass disc. Stretch note: the well is even (column mean 34-40) across 1000-3100, but the top scale rim is lit a little brighter around x 1500-2100 (mean ~90 vs ~66 at the ends), so a wide stretch widens that soft highlight."}

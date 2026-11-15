@@ -157,7 +157,7 @@ withTree("look-archmage: it is registered, in the toc, and translated in all eig
 	end
 	for _, code in ipairs({ "deDE", "esES", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW" }) do
 		local text = slurp(dir .. "/Locales/" .. code .. ".lua") or ""
-		for _, key in ipairs({ "Archmage -- a violet crystal, six arcane charges", "Archmage",
+		for _, key in ipairs({ "Arcane Mage -- a violet crystal, six arcane charges", "Arcane Mage",
 			"a violet crystal, six arcane charges" }) do
 			if not text:find('L["' .. key .. '"] = ', 1, true) then
 				fail(scenario, code .. " does not translate '" .. key .. "'")

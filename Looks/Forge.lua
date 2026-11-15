@@ -61,8 +61,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Forge = ns.Looks.Register("forge", {
-	name = L["Forge -- forged iron, a riveted band"],
-	title = L["Forge"],
+	name = L["Warrior -- forged iron, a riveted band"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Warrior"],
 	description = L["forged iron, a riveted band"],
 	order = 7,
 	-- The plate holds in a fight; the look dims its own parts.
@@ -1186,6 +1188,8 @@ end
 function Forge:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
 	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then

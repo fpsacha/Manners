@@ -87,8 +87,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Ebon\\Ebon_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Ebon = ns.Looks.Register("ebon", {
-	name = L["Ebon -- a runeblade of saronite, a skull over the socket, runes that kindle"],
-	title = L["Ebon"],
+	name = L["Death Knight -- a runeblade of saronite, a skull over the socket, runes that kindle"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Death Knight"],
 	description = L["a runeblade of saronite, a skull over the socket, runes that kindle"],
 	order = 9.9,
 	-- The blade holds in a fight; the look dims its own parts.
@@ -1558,6 +1560,8 @@ end
 function Ebon:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
 	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then

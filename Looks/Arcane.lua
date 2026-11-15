@@ -882,6 +882,8 @@ end
 -- an event of its own, and so do the client's words for the same key.
 function Arcane:ReadKey(force)
 	local key = type(GetBindingKey) == "function" and GetBindingKey(COMMAND) or nil
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then key = nil end
 	if key == self.boundKey and not force then
 		-- The same key, in other words: the client's glyphs change when a
 		-- controller of another family is told apart, and a pad button's

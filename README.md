@@ -43,8 +43,8 @@ of Pandaria Classic** and **retail**, in nine languages.
   after a death, your team freely before the gates open.
 - **The favour ledger and milestones.** Who buffed you, what you gave back,
   the title your manners have earned and thirteen milestones.
-- **Nineteen looks.** From a pane of dark glass to a death knight's
-  runeblade, each with its own animations, picked from a gallery of cards.
+- **Twenty-nine looks.** From a pane of dark glass to a death knight's
+  runeblade, picked from a gallery of cards on four shelves.
 
 <img src=".github/media/manners-reasons.png" alt="Five prompts, each a different colour: your target, somebody who buffed you, somebody who asked in chat, a group member and a passer-by" width="640">
 
@@ -584,8 +584,15 @@ profile reset touches them.
 
 <img src=".github/media/manners-looks.png" alt="The looks for the prompt, the same favour drawn in each" width="640">
 
-Nineteen looks, each a card under Look > *Panel style* that you click to
-switch:
+Twenty-nine looks, each a card under Look > *Panel style* that you click to
+switch, on four shelves: **Minimal**, **Classic**, **Themed** and **Class**.
+The looks are being repainted, each from one painting (Frost Mage first);
+*Earlier art*, under the cards, keeps the frames they had before.
+*Show my key on the prompt* (under *Style*) puts the key you press on the
+prompt's keycap: as the look has it (on the class and themed looks, not on
+the calmer ones), always, or never; nothing is shown while no key is bound.
+
+**Minimal** and **Classic**:
 
 - **Glass** (the default): the game's own action bar. A dark pane of glass
   in beaded gilt rails, the spell icon in a metal bezel. Light drifts inside
@@ -598,35 +605,43 @@ switch:
   flashes with a ready check's tick when your buff lands, and runs back out
   red with a cross when it is refused.
 - **Luxe**: a slim dark card with a spine in the reason colour.
+- **Ghost**: a pane of smoked glass in a thin rim; **Pill**, a rounded pane
+  with a pale rim; **Slate**, a dark pane in a steel edge. A little of the
+  world shows through the three panes, never enough to lose the words.
+- **Hairline**: a framed icon and one fine line, the words on a soft shadow.
 - **Toast**: a warm banner and a gilded medallion, the icon's ring a twist
   of rope.
 - **Arcane**: smoked glass with a rim lit by the reason.
+
+**Themed** and **Class** (Ribbon, Letter, Warchief and Gearworks are the
+themed ones; a class look is named for its class):
+
 - **Ribbon**: a tournament pennant of crimson damask on a twisted gold cord,
   its forked end fluttering. A buff that lands pins a laurelled medallion on.
 - **Letter**: a torn and folded sheet of parchment under a red wax seal. A
   quill writes each new name in and signs a landed buff; a refusal cracks the
   seal.
-- **Leather**: tooled, stitched hide with brass studs and a buckle, two
+- **Hunter** (once Leather): tooled, stitched hide with brass studs and a buckle, two
   feathers stirring, and a paw-print brand that smoulders while you owe
   somebody.
-- **Forge**: forged iron and a riveted band, the reason glowing in a slot
+- **Warrior** (once Forge): forged iron and a riveted band, the reason glowing in a slot
   like a bar of heated steel, embers rising off a molten seam.
-- **Archmage**: a violet crystal, your spell in a hexagon of six arcane
+- **Arcane Mage** (once Archmage): a violet crystal, your spell in a hexagon of six arcane
   charges that light one by one, travel round while you owe somebody and
   discharge in lightning when your buff lands.
-- **Lightbringer**: a paladin's plate of silver and royal-blue enamel, your
+- **Paladin** (once Lightbringer): a paladin's plate of silver and royal-blue enamel, your
   spell in a golden sun. A pillar of light comes down when somebody buffs
   you, and wings of light spread when your buff lands.
-- **Fel**: a warlock's slab of black felsteel lit from within by fel fire,
+- **Warlock** (once Fel): a warlock's slab of black felsteel lit from within by fel fire,
   your spell in a summoning circle of eight runes under a demon's horns, and
   a soul shard held in a claw.
-- **Wild**: a druid's bough of living wood, your spell in a wreath under a
+- **Druid** (once Wild): a druid's bough of living wood, your spell in a wreath under a
   stag's antlers and ringed with moonwell water. A vine grows along the bough
   when somebody buffs you and stands in blossom while you owe them.
-- **Frost**: a frost mage's slab of glacial ice hung with icicles, your
-  spell in an ice crystal. An Ice Block shuts over your spell and shatters
+- **Frost Mage** (once Frost): a frost mage's slab of glacial ice hung with
+  icicles, your spell in an ice crystal, in a painted frame. An Ice Block shuts over your spell and shatters
   when your buff lands.
-- **Stormcaller**: a shaman's. A carved totem holds your spell beside a slab
+- **Shaman** (once Stormcaller): a shaman's. A carved totem holds your spell beside a slab
   of weathered stone, the reason wakes the sigil of air, fire, water or
   earth, and chain lightning arcs along it when your buff lands.
 - **Warchief**: the Horde's, in Orgrimmar's black iron and red hide. A
@@ -635,9 +650,14 @@ switch:
 - **Gearworks**: an engineer's, in Gnomeregan's brass and Kezan's copper.
   Your spell under the glass of a pressure gauge, three cogs turning in mesh,
   steam let off when a buff lands and a spark when one is refused.
-- **Ebon**: a death knight's runeblade of dark saronite. Your spell in an
+- **Death Knight** (once Ebon): a death knight's runeblade of dark saronite. Your spell in an
   eight-sided socket under a skull with soulfire behind it, and three runes
   that kindle one after another when somebody buffs you.
+- **Fire Mage**, **Priest**, **Rogue**, **Monk**, **Demon Hunter** and
+  **Evoker**: painted frames of their own (bronze and embers; ivory and gold;
+  black leather and a poisoned blade; red lacquer and jade; fel steel and a
+  warglaive's ring; scaled bronze and a dragon), the socket's rim breathing
+  softly while you owe somebody.
 
 On Glass, Framed and Minimal the prompt has a way of arriving and of
 answering: rules of light draw out from the icon as it comes up, a ring pops
@@ -942,7 +962,9 @@ cannot send it to somebody else by mistake.
 
 ### Look
 
-- ***Panel style***: the nineteen cards.
+- ***Panel style***: the twenty-nine cards on four shelves (Minimal, Classic,
+  Themed, Class; the one with your look open, a click on a shelf's name opens
+  another), and *Earlier art* (off) under them.
 - ***Position***: *Move the prompt*, *Where it sits* (three ready-made
   places) and *Move it in Edit Mode* (on): while the game's Edit Mode is open
   the prompt is unlocked to be dragged with the game's own frames, casts
@@ -966,7 +988,8 @@ cannot send it to somebody else by mistake.
   below* (off) with *How many to list* (3) and *Click a name in the list to
   buff them* (on).
 - Folded:
-  - ***Style***: *Panel colour*, *Colour by why they are offered*, *Colour
+  - ***Style***: *Panel colour*, *Show my key on the prompt* (*As the look
+    has it*, *Always*, *Never*), *Colour by why they are offered*, *Colour
     set*, *Where the colour shows* and *Colour when not by reason*. Each look
     brings its own.
   - ***Exact position***: the prompt's place in numbers, with the *Width*

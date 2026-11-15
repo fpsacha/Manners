@@ -5,8 +5,10 @@
 -- every region was told: a look that is wrong throws nothing, it just shows the
 -- wrong thing. What it holds:
 --   * it is registered, in the toc after the other looks, in all eight
---     languages, and the look it replaced is gone (a saved style of "slate"
---     becomes the default);
+--     languages (its card named for the class, Hunter), and the look it
+--     replaced is gone (a saved style of "slate" is the painted Slate now, a
+--     plain look of Looks/Plain.lua, and a key nobody registered becomes the
+--     default);
 --   * it draws only art of its own, every file of it ships and every file is
 --     drawn in some state;
 --   * every state paints without an error on all five clients;
@@ -56,7 +58,7 @@ local COMMAND = "CLICK MannersPrompt:LeftButton"
 local CLIENTS = { "camelot", "vanilla", "tbc", "mists", "mainline" }
 local REASONS = { "target", "owed", "asked", "group", "nearby", "self" }
 local LOCALES = { "deDE", "esES", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW" }
-local NAME_KEY = "Leather -- a stitched leather tag with a brass ring"
+local NAME_KEY = "Hunter -- a stitched leather tag with a brass ring"
 -- Every texture the look ships, as the generator writes them.
 local FILES = { "Leather_BodyL", "Leather_BodyM", "Leather_BodyR", "Leather_StitchL", "Leather_StitchM",
 	"Leather_StitchR", "Leather_IconRim", "Leather_IconRimRd", "Leather_IconMask", "Leather_IconMaskRd",
@@ -211,7 +213,7 @@ withTree("look-leather: it is registered, listed and loaded after the other look
 	if not at then fail(scenario, "the dropdown does not list it") end
 	if look.order ~= 6 then fail(scenario, "its place in the dropdown is " .. tostring(look.order) .. ", not 6") end
 	local title, line = ns.Looks.Card("leather")
-	if title ~= "Leather" or line ~= "a stitched leather tag with a brass ring" then
+	if title ~= "Hunter" or line ~= "a stitched leather tag with a brass ring" then
 		fail(scenario, "the picker's card says " .. tostring(title) .. " / " .. tostring(line))
 	end
 	-- The toc: after the last look, before the prompt that calls into it.
@@ -240,10 +242,10 @@ withTree("look-leather: it is registered, listed and loaded after the other look
 end)
 
 withTree("look-leather: the look it replaced is gone and a saved style of it falls back", ANNA, function(ns, scenario)
-	if ns.Looks.list.slate then fail(scenario, "a look is still registered as slate") end
-	if ns.Looks.Get("slate") then fail(scenario, "Looks.Get still hands back a look for slate") end
-	for _, path in ipairs({ "Looks/Slate.lua", "tools/make_slate_textures.py", "Textures/Previews/Preview_slate.tga",
-		"tests/scenarios/look-slate.lua", "tests/mutations/look-slate.py" }) do
+	-- The key is the painted Slate's now (Looks/Plain.lua), not the old look's.
+	local slate = ns.Looks.list.slate
+	if slate and not slate.paintedOnly then fail(scenario, "the old code-drawn Slate is still registered") end
+	for _, path in ipairs({ "Looks/Slate.lua", "tools/make_slate_textures.py", "tests/scenarios/look-slate.lua", "tests/mutations/look-slate.py" }) do
 		local f = io.open(dir .. "/" .. path, "rb")
 		if f then f:close() fail(scenario, path .. " is still in the package") end
 	end
@@ -251,10 +253,10 @@ withTree("look-leather: the look it replaced is gone and a saved style of it fal
 	if toc:find("Slate", 1, true) then fail(scenario, "Manners.toc still names Slate") end
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
-	p.style = "slate"
+	p.style = "shale"
 	ns.ClampSettings()
 	if p.style ~= ns.defaults.profile.prompt.style then
-		fail(scenario, "a saved style of slate is " .. tostring(p.style) .. " after the clamp, not the default")
+		fail(scenario, "a saved style of a look nobody registered is " .. tostring(p.style) .. " after the clamp, not the default")
 	end
 	p.style = "leather"
 	ns.ClampSettings()
@@ -262,7 +264,7 @@ withTree("look-leather: the look it replaced is gone and a saved style of it fal
 end)
 
 withTree("look-leather: its name is translated into all eight languages", ANNA, function(_, scenario)
-	local keys = { 'L["Leather -- a stitched leather tag with a brass ring"] = "', 'L["Leather"] = "',
+	local keys = { 'L["Hunter -- a stitched leather tag with a brass ring"] = "', 'L["Hunter"] = "',
 		'L["a stitched leather tag with a brass ring"] = "' }
 	for _, code in ipairs(LOCALES) do
 		local text = slurp(dir .. "/Locales/" .. code .. ".lua") or ""
@@ -272,7 +274,7 @@ withTree("look-leather: its name is translated into all eight languages", ANNA, 
 				fail(scenario, code .. " has no translation of " .. key:sub(4, 30))
 			else
 				local value = text:match('^[^\r\n]-"([^\r\n]*)"', at + #key - 1)
-				if not value or value == "" or value:find("Leather", 1, true) or value:find("leather", 1, true) then
+				if not value or value == "" or value == "Hunter" or value:find("Leather", 1, true) or value:find("leather", 1, true) then
 					fail(scenario, code .. "'s translation of " .. key:sub(4, 30) .. " is empty or still English: " .. tostring(value))
 				end
 			end
@@ -285,10 +287,10 @@ end)
 
 withTree("look-leather: a German client's card and label read in German", ANNA, function(ns, scenario)
 	local title, line = ns.Looks.Card("leather")
-	if title ~= "Leder" then fail(scenario, "the German card's title is " .. tostring(title)) end
+	if title ~= "Jäger" then fail(scenario, "the German card's title is " .. tostring(title)) end
 	if not line or line == "" or line:find("leather", 1, true) then fail(scenario, "the German card's line is " .. tostring(line)) end
 	local values = ns.Looks.Choices()
-	if not values.leather or values.leather:find("Leather", 1, true) then
+	if not values.leather or values.leather:find("Leather", 1, true) or values.leather:find("Hunter", 1, true) then
 		fail(scenario, "the German label is " .. tostring(values.leather))
 	end
 end, function() Mock.locale = "deDE" end)

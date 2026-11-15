@@ -73,6 +73,9 @@ local function with(scenario, body)
 			fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 			return
 		end
+		-- Every shelf of the gallery open (the chosen look's alone is, at first).
+		for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+		ns.RefreshOptionsDisplay()
 		body(ns, UI, row)
 		noErrors(scenario, ns)
 	end)
@@ -546,8 +549,11 @@ do
 					if n > want then fail(scenario, where .. (": %d cards in a row, %d fit"):format(n, want)) end
 				end
 				if width >= 330 and want < 2 then fail(scenario, where .. ": fewer than two to a row") end
-				if width == 612 and rowsSeen[0] ~= math.min(3, #cards) then
-					fail(scenario, where .. (": %d in the first row"):format(rowsSeen[0] or 0))
+				-- The first row is under the first shelf's heading.
+				local firstY = math.huge
+				for _, c in ipairs(cards) do firstY = math.min(firstY, c.y) end
+				if width == 612 and rowsSeen[firstY] ~= math.min(3, #cards) then
+					fail(scenario, where .. (": %d in the first row"):format(rowsSeen[firstY] or 0))
 				end
 				if height ~= top then fail(scenario, where .. (": the row says %d high, the cards reach %d"):format(height, top)) end
 				-- Rows run the whole width, and every card of a row is as tall as the rest.
@@ -555,7 +561,7 @@ do
 					for _, d in ipairs(cards) do
 						if c.y == d.y and c.h ~= d.h then fail(scenario, where .. ": cards of a row differ in height") end
 					end
-					if c.y == 0 and c.x + c.w > width then fail(scenario, where .. ": a card runs past the width") end
+					if c.y == firstY and c.x + c.w > width then fail(scenario, where .. ": a card runs past the width") end
 				end
 				local first = {}
 				for _, c in ipairs(cards) do
@@ -799,6 +805,11 @@ local function withCharacter(scenario, spec, body)
 		ns.Prompt:ExitTest()
 		local UI = ns.WindowUI
 		local row = UI.RowFor("appearance.style")
+		-- Every shelf of the gallery open (the chosen look's alone is, at first).
+		if row and row.open then
+			for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+			ns.RefreshOptionsDisplay()
+		end
 		if not (row and row.cards and UI.RowShown("appearance.style")) then
 			fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 			return
@@ -1349,9 +1360,16 @@ do
 		ebon = { above = 24, below = 13 },
 		leather = { right = 28.5, below = 36.5 },
 		warchief = { above = 10.5, below = 6.5 },
-		-- The painted frame (Looks/Painted.lua, tools/make_look_previews.py's FRAMES).
-		frost = { above = 13, below = 20, left = 21, right = 30 },
 	}
+	-- A painted look (Looks/Painted.lua) needs the room its painting takes,
+	-- read from where its pieces were laid (tools/make_look_previews.py works
+	-- its view out the same way); less half a unit the picture may cut.
+	local function paintedRoom(look)
+		local g = look and look.paintedArt and look.paintedArt.on and look.paintedArt.g
+		if not g then return nil end
+		return { above = math.max(0, -g.y0 - 0.5), below = math.max(0, g.y1 - g.H - 0.5),
+			left = math.max(0, -g.left - 0.5), right = math.max(0, g.right - g.W - 0.5) }
+	end
 	Mock.reset()
 	FT.install()
 	local ok, err = pcall(function()
@@ -1385,7 +1403,7 @@ do
 					left = at.l / kx - (il - al),
 					right = (1 - at.r) / kx - (ar - ir),
 				}
-				local need = ROOM[key]
+				local need = ROOM[key] or paintedRoom(r.look)
 				if need then
 					framed = framed + 1
 					for side, least in pairs(need) do

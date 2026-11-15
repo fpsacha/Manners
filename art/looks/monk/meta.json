@@ -1,0 +1,13 @@
+{"key": "monk",
+ "socket": {"shape": "round", "cx": 384, "cy": 514, "r": 117, "outer_r": 193},
+ "name_xy": [688, 428],
+ "reason_xy": [690, 543],
+ "keycap": {"cx": 3577, "cy": 514, "w": 193, "h": 193},
+ "endcap": {"shape": "round", "cx": 3857, "cy": 515, "r": 99},
+ "well": [628, 385, 3708, 642],
+ "bar": [186, 316, 3955, 711],
+ "stretch": [700, 3400],
+ "text_colour_ok": true,
+ "contrast": {"white": 17.8, "gold": 11.96},
+ "contrast_method": "WCAG ratio against the mean relative luminance of the lightest 10% of pixels in x 660-1800, y 400-630 of final-empty.jpg (the ground under both text lines)",
+ "notes": "The jade socket's faint pale halo could breathe slowly as a glow layer; the endless knot on the end-cap medallion could catch a slow gold glint; a soft satin sheen could sweep along the lacquer edge lines. Nothing hangs below the bar (tassel dropped), no mist on the background."}

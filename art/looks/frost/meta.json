@@ -1,13 +1,36 @@
 {
-  "key": "frost",
-  "source": "frost/r4-empty-01.jpg, the pilot painting (to be replaced by a subtler one)",
-  "socket": {"shape": "round", "cx": 554, "cy": 515, "r": 190},
-  "name_xy": [1012, 372],
-  "reason_xy": [1014, 531],
-  "keycap": {"cx": 3177, "cy": 522, "w": 225, "h": 245},
-  "end": {"cx": 3700, "cy": 505},
-  "bar": [114, 210, 4030, 777],
-  "stretch": [1790, 2580],
-  "text_colour_ok": true,
-  "notes": "Frost's own moving layers kept over it: the mist in the socket, the falling snow, the snowflakes that crystallise on the top edge while somebody is owed, the Ice Block over the icon, Frost Nova and the rune's flash at the snowflake."
+ "key": "frost",
+ "socket": {
+  "shape": "round",
+  "cx": 655,
+  "cy": 508,
+  "r": 197
+ },
+ "name_xy": [
+  1090,
+  380
+ ],
+ "reason_xy": [
+  1090,
+  540
+ ],
+ "keycap": {
+  "cx": 3085,
+  "cy": 520,
+  "w": 220,
+  "h": 230
+ },
+ "bar": [
+  313,
+  174,
+  3899,
+  874
+ ],
+ "stretch": [
+  1250,
+  2900
+ ],
+ "text_colour_ok": true,
+ "notes": "Socket disc r is the dark glass disc; the faceted ice ring reaches about r 340 (x 315-990, y 174-854). Text well inner area about x 970-3500, y 350-690 (chevron tip at about x 3530). Slab without icicles ends at about y 780; icicles hang to 874. Animate as layers: a slow cold shimmer travelling along the ice slab's top and bottom highlight; a soft pulse in the snowflake crystal's core; a faint glint sweeping the socket's ice ring; optional tiny glints on the icicle tips. The well itself stays still.",
+ "well_hi": 0.035
 }

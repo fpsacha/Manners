@@ -88,8 +88,10 @@ local L = ns.L
 local ART = "Interface\\AddOns\\Manners\\Textures\\Leather\\Leather_"
 
 local Leather = ns.Looks.Register("leather", {
-	name = L["Leather -- a stitched leather tag with a brass ring"],
-	title = L["Leather"],
+	name = L["Hunter -- a stitched leather tag with a brass ring"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Hunter"],
 	description = L["a stitched leather tag with a brass ring"],
 	order = 6,
 	-- The tag holds in a fight; the look dims its own parts.
@@ -1468,6 +1470,8 @@ end
 function Leather:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
 	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then
