@@ -201,6 +201,34 @@ local function lineAllowed(W, entry)
 	return true
 end
 
+-- The macro of an ask, armed or pressed.
+function X.checkAskMacro(W, macro, entry, label)
+	local ns = W.ns
+	local db = ns.db.profile
+	local all = lines(macro)
+	local flat = macro:gsub("\n", " / ")
+	if #all ~= 1 or #spokenOf(macro) ~= 1 then
+		return fail(W, "macro", label .. ": an ask is not one spoken line: " .. flat, nil,
+			label .. ": an ask is not one spoken line")
+	end
+	if db.sources.ask ~= true then
+		return fail(W, "speech", label .. ": an ask with asking off: " .. flat, nil, label .. ": an ask with asking off")
+	end
+	local say = type(db.ask) == "table" and db.ask.channel == "SAY"
+	local cmd = all[1]:match("^/(%S+)")
+	if cmd ~= (say and "say" or "w") then
+		return fail(W, "speech", ("%s: an ask speaks on /%s and its setting says /%s"):format(
+			label, tostring(cmd), say and "say" or "w"))
+	end
+	if not say then
+		local who = ns.WhisperName(entry)
+		if type(who) ~= "string" or all[1]:sub(1, 4 + #who) ~= "/w " .. who .. " " then
+			return fail(W, "speech", ("%s: an ask of %s reads: %s"):format(label, tostring(who), all[1]), nil,
+				label .. ": an ask is not whispered to the person asked")
+		end
+	end
+end
+
 function X.checkMacro(W)
 	local ns = W.ns
 	local button = ns.Prompt and ns.Prompt:GetButton()
@@ -235,6 +263,16 @@ function X.checkMacro(W)
 	local S = ns.Prompt.state
 	local spoken = spokenOf(macro)
 	if #spoken > 0 then W.stats.lines = (W.stats.lines or 0) + 1 end
+	-- An ask is its one line and nothing else: no cast, no target, and the
+	-- channel is its own setting, not the thank-you's (Ask.lua, MacroFor).
+	if S.current and S.current.ask and not ns.tryMacro and not Mock.inCombat then
+		return X.checkAskMacro(W, macro, S.current, "armed")
+	end
+	-- Nothing is said with a resurrection (Speech.lua).
+	if #spoken > 0 and S.current and S.current.res and not ns.tryMacro and not Mock.inCombat then
+		return fail(W, "speech", "a resurrection is armed with a spoken line: " .. spoken[1], nil,
+			"a resurrection is armed with a spoken line")
+	end
 	if #spoken > 0 and not ns.tryMacro then
 		-- Out of a fight the macro on the button was armed by the last repaint.
 		if Mock.inCombat then
@@ -305,6 +343,17 @@ function X.checkPress(W, macro, rowEntry)
 	local S = ns.Prompt.state
 	-- A name in the list is armed for its own press: the entry it holds, not the prompt's.
 	local entry = rowEntry or S.current
+	if entry and entry.ask then
+		if Mock.inCombat then
+			return fail(W, "speech", "a press in a fight carries an ask: " .. spoken[1], nil,
+				"a press in a fight carries an ask")
+		end
+		return X.checkAskMacro(W, macro, entry, "pressed")
+	end
+	if entry and entry.res then
+		return fail(W, "speech", "a press on a resurrection carries a spoken line: " .. spoken[1], nil,
+			"a press on a resurrection carries a spoken line")
+	end
 	if Mock.inCombat then
 		return fail(W, "speech", "a press in a fight carries a spoken line: " .. spoken[1], nil,
 			"a press in a fight carries a spoken line")
@@ -653,7 +702,87 @@ end
 
 -- ----------------------------------------------------------------- queue
 
-local REASONS = { owed = true, group = true, nearby = true, asked = true, target = true, self = true }
+local REASONS = { owed = true, group = true, nearby = true, asked = true, target = true, self = true,
+	-- Ask.lua's own: somebody asked for a buff the player lacks.
+	ask = true }
+
+-- A resurrection (Resurrect.lua) and a polite ask (Ask.lua) are on the queue
+-- and are no buff of the player's for anybody: each is judged by what its own
+-- file promises, below, and by none of a buff's rules.
+local function otherKind(e) return e.res == true or e.ask == true end
+
+-- A resurrection: only with My group's dead on and something learned, never
+-- in a fight, ahead of everything that is not one, for somebody the world
+-- has dead where they fell (not feigning, not released) and whom the player
+-- may help, and for a passer-by only with its own switch.
+local function checkRes(W, e, i, queue)
+	local ns = W.ns
+	local src = ns.db.profile.sources
+	W.stats.res = (W.stats.res or 0) + 1
+	if src.res ~= true then return fail(W, "forbidden", e.name .. " is offered a resurrection with My group's dead off") end
+	if not (ns.caps and ns.caps.res) then
+		return fail(W, "forbidden", e.name .. " is offered a resurrection and none is learned")
+	end
+	if Mock.inCombat then return fail(W, "forbidden", e.name .. " is offered a resurrection in a fight") end
+	if e.reason ~= "group" and e.reason ~= "nearby" then
+		return fail(W, "queue", e.name .. "'s resurrection has the reason " .. tostring(e.reason))
+	end
+	if i > 1 and not queue[i - 1].res then
+		return fail(W, "queue", ("%s's resurrection is queued behind %s"):format(e.name, queue[i - 1].name))
+	end
+	if e.resNames then
+		if i ~= 1 then return fail(W, "queue", "the resurrection for the whole group is not first") end
+		if #e.resNames < 2 then
+			return fail(W, "queue", ("the resurrection for the whole group is for %d"):format(#e.resNames))
+		end
+	end
+	if not e.inGroup and src.resStrangers ~= true then
+		return fail(W, "forbidden", e.name .. ", outside the group, is offered a resurrection with its switch off")
+	end
+	if W.secret.all or W.secret.identity or W.flaky then return end
+	local units = e.resUnits or { [e.name] = e.unit }
+	for name, unit in pairs(units) do
+		local p = unit and W.resolve(unit) or nil
+		if p and X.filedName(W, p) == name then
+			if not p.dead or p.feign then
+				return fail(W, "forbidden", name .. " is not dead and is offered a resurrection", nil,
+					"somebody alive is offered a resurrection")
+			end
+			if p.ghost then return fail(W, "forbidden", name .. " released and is offered a resurrection") end
+			if not p.assist then return fail(W, "forbidden", name .. " cannot be assisted and is offered a resurrection") end
+			if e.inGroup ~= (p.grouped == true) then
+				return fail(W, "consistency", ("%s's resurrection is %s in the group by the entry and %s by the world"):format(
+					name, e.inGroup and "marked" or "not marked", p.grouped and "is" or "is not"))
+			end
+		end
+	end
+end
+
+-- An ask: only with its switch on, never in a fight, a battleground or an
+-- arena, one and last of everything, of somebody alive of another class who
+-- is not also on the queue for a buff.
+local function checkAsk(W, e, i, queue)
+	local ns = W.ns
+	local db = ns.db.profile
+	W.stats.asks = (W.stats.asks or 0) + 1
+	if db.sources.ask ~= true then return fail(W, "forbidden", e.name .. " is asked for a buff with asking off") end
+	if e.reason ~= "ask" then return fail(W, "queue", e.name .. "'s ask has the reason " .. tostring(e.reason)) end
+	if Mock.inCombat then return fail(W, "forbidden", e.name .. " is asked for a buff in a fight") end
+	if (W.inInstance == "pvp" or W.inInstance == "arena") and (Mock.now - (W.instanceAt or -100)) > 2 then
+		return fail(W, "forbidden", e.name .. " is asked for a buff in a battleground or an arena")
+	end
+	if i ~= #queue then
+		return fail(W, "queue", ("%s's ask is queued ahead of %s"):format(e.name, queue[i + 1].name))
+	end
+	if e.class == W.me.class then return fail(W, "forbidden", e.name .. ", of the player's own class, is asked for a buff") end
+	if W.secret.all or W.secret.identity or W.flaky then return end
+	local p = e.unit and W.resolve(e.unit) or nil
+	if p and X.filedName(W, p) == e.name then
+		if p == W.me then return fail(W, "forbidden", "the player is asked for a buff") end
+		if p.dead or p.ghost then return fail(W, "forbidden", e.name .. " is dead and is asked for a buff") end
+		if not p.assist then return fail(W, "forbidden", e.name .. " cannot be assisted and is asked for a buff") end
+	end
+end
 
 local function standsPvP(W)
 	local me = W.me
@@ -703,7 +832,7 @@ function X.checkQueue(W, queue)
 		if type(e.buff) ~= "table" or type(e.buff.key) ~= "string" then
 			return fail(W, "queue", e.name .. " has no buff")
 		end
-		if type(e.reason) ~= "string" or not REASONS[e.reason] then
+		if type(e.reason) ~= "string" or not REASONS[e.reason] or (e.reason == "ask") ~= (e.ask == true) then
 			return fail(W, "queue", e.name .. " has the reason " .. tostring(e.reason))
 		end
 		if i > 1 and e.priority < queue[i - 1].priority then
@@ -714,7 +843,8 @@ function X.checkQueue(W, queue)
 		-- could read before a top-up, and then by the buff's place in the walk
 		-- (Queue.lua, OfferRank), so nobody's second buff comes before
 		-- somebody else's first. Nobody kept for the fold alone is handed on.
-		if i > 1 and e.priority == queue[i - 1].priority and ns.OfferRank then
+		if i > 1 and e.priority == queue[i - 1].priority and ns.OfferRank
+			and not otherKind(e) and not otherKind(queue[i - 1]) then
 			local before = queue[i - 1]
 			local function range(x) return x.ranged == true and 0 or (x.ranged == nil and 1 or 2) end
 			if range(e) == range(before) then
@@ -727,8 +857,12 @@ function X.checkQueue(W, queue)
 			end
 		end
 		if e.foldOnly then return fail(W, "queue", e.name .. " was kept for the fold alone and is on the queue") end
-		if names[e.name] then return fail(W, "queue", e.name .. " is queued twice") end
-		names[e.name] = true
+		-- The resurrection for the whole group goes by the first of its dead,
+		-- who may have one of their own behind it (Resurrect.lua, Find).
+		if not (e.res and e.resNames) then
+			if names[e.name] then return fail(W, "queue", e.name .. " is queued twice") end
+			names[e.name] = true
+		end
 		if type(e.priority) ~= "number" or e.priority ~= e.priority then
 			return fail(W, "queue", e.name .. " has priority " .. tostring(e.priority))
 		end
@@ -748,6 +882,17 @@ function X.checkQueue(W, queue)
 	end
 	for name in pairs(memberOf) do
 		if names[name] then return fail(W, "queue", name .. " is queued and also covered by a group cast") end
+	end
+
+	-- A resurrection and an ask by their own rules; the rest of this is for
+	-- the buffs, and judges the queue as it would be without them.
+	local whole = queue
+	queue = {}
+	for i, e in ipairs(whole) do
+		if e.res then checkRes(W, e, i, whole)
+		elseif e.ask then checkAsk(W, e, i, whole)
+		else queue[#queue + 1] = e end
+		if W.failure then return end
 	end
 
 	-- What the settings forbid.
