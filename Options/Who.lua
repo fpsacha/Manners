@@ -272,6 +272,10 @@ local function AddBuffToggles(args)
 				width = "full",
 				hidden = function()
 					if ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key then return true end
+					-- Pinned, it is offered whatever its own tick says
+					-- (ns.CastableBuffs), and that tick is hidden under a pin:
+					-- this one stays in reach.
+					if ns.PinnedBuff() ~= nil then return false end
 					return ns.BuffOff(buff, B())
 				end,
 				disabled = function() return not ns.IsBuffKnown(buff) end,

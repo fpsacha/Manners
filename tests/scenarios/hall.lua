@@ -324,8 +324,9 @@ do
 		{ name = "Petra Stonewell", client = "camelot", class = "PRIEST", date = "2026-11-20" },
 		{ name = "Mort Defrette", client = "camelot", class = "MAGE", date = "2026-12-01" },
 		{ name = "Anna", realm = "Pyrewood Village", client = "vanilla", class = "MAGE", date = "2026-11-25" },
-		-- The same name on another client is somebody else.
-		{ name = "Mort Defrette", client = "tbc", class = "WARLOCK", date = "2026-11-01" },
+		-- The same name on another client is somebody else, of the same class
+		-- too (another class is somebody else by that alone).
+		{ name = "Mort Defrette", client = "tbc", class = "MAGE", date = "2026-11-01" },
 	}
 	session(scenario, { list = LIST }, function(ns, Hall)
 		local list = H.findOption(ns.optionsTable, "hallList")

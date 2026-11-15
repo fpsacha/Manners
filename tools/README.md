@@ -570,7 +570,11 @@ when in doubt). The `VECTORS` in the file are codes both sides must agree on:
 `--check` holds the Python to them, `tests/scenarios/hall.lua` reads them out
 of this file and holds `Hall.lua` to them. To list somebody from an issue:
 `check` the code, `add` it (with the issue's optional note), commit the three
-files. Standard library only. `hall.py` is not part of `check.py`.
+files. `add` builds both outputs before it writes anything, so a README whose
+hall markers do not read leaves `hall.json` as it was; a name, realm or note
+goes into the README's table escaped, so it shows letter for letter and is
+never a link or a picture. The addon takes a row for the player's own by name,
+realm, client and class. Standard library only. `hall.py` is not part of `check.py`.
 
 ## maketocs.py
 

@@ -1810,6 +1810,10 @@ local function StillCastable(memo, candidates, f, askOnly)
 		and not (db.buff.tanksOutside and db.buff.tanksOutside[key]) then
 		return false
 	end
+	-- Held to your group again since ("to passers-by too" unticked under a buff
+	-- Manners keeps to the group, Detect Invisibility): nobody remembered here
+	-- is of the group, asking or not, as Castable answers a token on them.
+	if memo.buff.membersOnly and not ns.PassersToo(memo.buff) then return false end
 	-- Might, once "Don't offer Might to mages, warlocks and priests" is on.
 	if memo.buff.meleeOnly and memo.reason ~= "asked" and db and db.buff.skipCasters == true
 		and ns.CASTER_CLASSES[memo.class] then
