@@ -63,7 +63,7 @@ mutate("Prompt/Macro.lua",
 
 # "In your group." under the cast for everybody.
 mutate("Prompt/Button.lua",
-       "\tif entry.resNames then why = ns.Resurrect.Reason(entry) end\n",
+       "\tif entry.resNames or entry.res then why = ns.Resurrect.Reason(entry) end\n",
        "",
        "res-review: the tooltip speaks of one member",
        expect=TIP, script=S)

@@ -550,7 +550,7 @@ do
 		Mock.tooltip = {}
 		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
 		local tip = table.concat(Mock.tooltip or {}, " / ")
-		if not tip:find("In your group.", 1, true) then
+		if not tip:find("Resurrection", 1, true) then
 			fail(scenario, "SKIPPED -- the full tooltip is not up for the resurrection: " .. tip)
 			return
 		end

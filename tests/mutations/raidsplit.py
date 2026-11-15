@@ -383,8 +383,8 @@ mutate("Share.lua",
        expect="in a raid the hello went to", script=S)
 
 mutate("Share.lua",
-       "Text(me, not self.greeted), Channel()))\n",
-       "Text(me, false), Channel()))\n",
+       "\tlocal asks = not self.greeted or self.ask == true\n",
+       "\tlocal asks = self.ask == true\n",
        "raidsplit: the first hello asks for no answer",
        expect="the first hello reads", script=S)
 

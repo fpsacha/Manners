@@ -210,8 +210,9 @@ end
 -- added to each (Aliases).
 ---------------------------------------------------------------------------
 
+-- Not "drink": "need to drink" is somebody sitting down with their own.
 local NAMES = {
-	water = { "water", "waters", "mage water", "drink", "drinks", "wasser", "eau", "agua", "acqua",
+	water = { "water", "waters", "mage water", "wasser", "eau", "agua", "acqua",
 		"água", "вода", "воды", "водички", "물", "求水", "要水", "来点水", "來點水", "给点水", "給點水" },
 	food = { "food", "foods", "mage food", "bread", "essen", "brot", "nourriture", "bouffe", "comida",
 		"pan", "cibo", "еда", "хлеб", "음식", "빵", "求面包", "求麵包", "求吃的", "来点面包", "來點麵包" },

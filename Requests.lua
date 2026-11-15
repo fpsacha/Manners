@@ -157,7 +157,7 @@ do
 		-- What else may stand beside a nickname or "buff": "can I get int",
 		-- "int pls ty". Not filler, since "thanks for the int" asks for nothing.
 		aside = Set({ "get", "have", "give", "can", "you", "u", "ty", "thx", "thanks",
-			"again", "too", "also" }),
+			"again", "too", "also", "谢谢", "謝謝" }),
 		-- Where the looser words are tactics, not buffs: raid markers, a shout
 		-- to pull.
 		group = Set({ "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "INSTANCE_CHAT",
@@ -325,6 +325,17 @@ do
 	-- The buffs a message asks for, as a set of keys (ASK.ANY for "buff pls"),
 	-- or nil: the rules at the top of this section, in order. `channel` decides
 	-- whether the looser words count at all.
+	-- Whether a word is one of the pleases written inside a word
+	-- (ASK.pleaseInside), standing by itself: the Chinese one alone, a Korean
+	-- one with its ending ("부탁해요"). A small word beside a nickname, as
+	-- "pls" is.
+	local function PleaseWord(word)
+		for _, inside in ipairs(ASK.pleaseInside) do
+			if word == inside or (inside:byte() >= 234 and word:sub(1, #inside) == inside) then return true end
+		end
+		return false
+	end
+
 	local function Asks(text, channel)
 		local words, lowered = Words(text)
 		if #words == 0 or #words > ASK_MOST_WORDS then return nil end
@@ -413,7 +424,7 @@ do
 			if not covered[i] and not Among(ASK.filler, word) then
 				only = false
 				if not (Among(ASK.please, word) or Among(ASK.opener, word)
-					or Among(ASK.aside, word)) then
+					or Among(ASK.aside, word) or PleaseWord(word)) then
 					small = false
 				end
 			end

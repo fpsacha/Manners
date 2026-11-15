@@ -90,7 +90,8 @@ local function PersonTooltipLines(entry, brief)
 	if entry.cure then why = ns.CureReason(entry, true) end
 	-- The one resurrection for the whole group: how many it is for, not a word
 	-- about the one member it is filed under (Resurrect.lua).
-	if entry.resNames then why = ns.Resurrect.Reason(entry) end
+	-- And one member's: dead, which the plain words of a group member do not say.
+	if entry.resNames or entry.res then why = ns.Resurrect.Reason(entry) end
 	-- A group member's pet: whose it is, as the reason line says it.
 	if entry.pet and entry.owner then
 		GameTooltip:AddLine(L["%s's pet"]:format(ns.ShortName(entry.owner) or entry.owner), 0.7, 0.7, 0.7, true)

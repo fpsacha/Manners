@@ -108,6 +108,12 @@
   group's pets and battlegrounds.
 - **Companion pet while Manners is off.** Switched off or snoozed, Manners
   no longer brings a pet out of your journal.
+- **Sharing a group.** Back from a battleground, the split with another
+  Manners user is found again; a shout left to them is not offered on
+  yourself; before the gates open every raid group is shared out.
+- **Asking in chat.** A Korean or Chinese please beside "water" or a
+  healthstone is read; "need to drink" no longer asks a mage for water.
+- **Resurrection tooltip.** It says the person is dead.
 
 ## 1.11.24
 

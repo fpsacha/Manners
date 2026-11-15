@@ -3328,6 +3328,8 @@ function ns.BuildQueue(watch)
 			break
 		end
 	end
+	-- Nor one the walk left to another Manners user (Share.lua): theirs to cast.
+	if ns.ShareShoutHeld and ns.ShareShoutHeld(queue) then ns.shoutUnreached = nil end
 	local mine = SelfEntry(db, candidates, now, neverVerdict)
 	ns.shoutUnreached = nil
 	-- Where a buff on anybody lands on the whole party, yours on yourself is
