@@ -427,6 +427,8 @@ ns.WindowLayout = {
 					-- A warlock's Demonic Sacrifice and Soul Link (Classic Era, Forever,
 					-- Burning Crusade).
 					{ "who.own_demonicsacrifice", indent = true },
+					-- Forever's Soul Link of its own, with Demonic Pact known.
+					{ "who.own_soullink", indent = true },
 					-- A warlock's Detect Invisibility, off until it is turned on.
 					{ "who.own_detectinvis", indent = true },
 					-- A warlock's Unending Breath on himself, only while he swims.
@@ -456,6 +458,8 @@ ns.WindowLayout = {
 					"who.own_oiloff",
 					-- A warlock's Firestone or Spellstone on the main hand (Forever).
 					"who.own_warlockstone",
+					-- Making one when none is in the bags (Forever), off until turned on.
+					{ "who.own_makestone", indent = true },
 					"who.own_lure",
 				} },
 				{ key = "who.myselfItems", title = L["Food, flasks and scrolls"], items = {

@@ -52,6 +52,11 @@ do
 			return L["%s: none up -- %s is the one to cast."]:format(label, ns.BuffName(spell))
 		elseif why == "off" then
 			return L["%s: switched off (Don't remind me)."]:format(label)
+		elseif why == "up" and family.makes then
+			-- A stone to make (Buffs.lua, makes): one is in the bags or on the weapon.
+			return L["%s: a stone is in your bags or on your weapon already."]:format(label)
+		elseif why == "reagent" then
+			return L["%s: %s needs a Soul Shard, and your bags hold none."]:format(label, name or "?")
 		elseif why == "up" and not name and family.enhance then
 			-- An enchant none of this family's items makes: the weapon is seen to.
 			return L["%s: the weapon already carries a temporary enchant."]:format(label)

@@ -45,7 +45,9 @@ local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.ow
 	-- The missing-buffs round: Tree of Life (Burning Crusade, Classic Era), Spirit
 	-- of the Alpha (Classic Era), Demonic Sacrifice (Classic Era, Forever, TBC).
 	["who.own_treeoflife"] = true, ["who.own_spiritofthealpha"] = true,
-	["who.own_demonicsacrifice"] = true }
+	["who.own_demonicsacrifice"] = true,
+	-- GitHub issue 18: Forever's Soul Link of its own and its stone to make.
+	["who.own_soullink"] = true, ["who.own_makestone"] = true }
 
 local ACEDB = {
 	["profiles.current"] = true, ["profiles.choosedesc"] = true, ["profiles.new"] = true,
