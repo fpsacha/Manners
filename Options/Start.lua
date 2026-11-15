@@ -806,10 +806,12 @@ local function Entries(lines, section)
 	end
 end
 
--- The notes, top to bottom, as the fold draws them. The newest release: its
--- version and date over its first section, then a note a section. Each
--- release before it: one note, its version and date over every entry it has.
--- Never more than SLOTS: the oldest go first.
+-- The notes, top to bottom, as the fold draws them: { head =, body = } each,
+-- the head drawn a size up from the body (the layout's `lead`), as a heading
+-- is. The newest release: its version and date over its first section's
+-- title, then a section's title over each of the others. Each release before
+-- it: one note, its version and date over every entry it has. Never more
+-- than SLOTS: the oldest go first.
 function News.Blocks()
 	local blocks = {}
 	for r, release in ipairs(News.Releases()) do
@@ -817,16 +819,15 @@ function News.Blocks()
 		if release.date then head = head .. "  |cff9d9d9d" .. tostring(release.date) .. "|r" end
 		if r == 1 then
 			for s, section in ipairs(release.sections or {}) do
+				local title = "|cffffd100" .. tostring(section.title) .. "|r"
 				local lines = {}
-				if s == 1 then lines[1] = head end
-				lines[#lines + 1] = "|cffffd100" .. tostring(section.title) .. "|r"
 				Entries(lines, section)
-				blocks[#blocks + 1] = table.concat(lines, "\n")
+				blocks[#blocks + 1] = { head = s == 1 and (head .. "\n" .. title) or title, body = table.concat(lines, "\n") }
 			end
 		else
-			local lines = { head }
+			local lines = {}
 			for _, section in ipairs(release.sections or {}) do Entries(lines, section) end
-			blocks[#blocks + 1] = table.concat(lines, "\n")
+			blocks[#blocks + 1] = { head = head, body = table.concat(lines, "\n") }
 		end
 		if #blocks >= News.SLOTS then break end
 	end
@@ -834,8 +835,14 @@ function News.Blocks()
 	return blocks
 end
 
+function News.Head(i)
+	local block = News.Blocks()[i]
+	return block and block.head or ""
+end
+
 function News.Text(i)
-	return News.Blocks()[i] or ""
+	local block = News.Blocks()[i]
+	return block and block.body or ""
 end
 
 function Page.BuildStartTab()
@@ -1553,83 +1560,163 @@ function Page.BuildStartTab()
 				type = "header", name = function() return News.Title() end, order = 90,
 				hidden = function() return #News.Blocks() == 0 end,
 			},
-			newsNote1 = {
+			newsHead1 = {
 				type = "description", order = 90.01, fontSize = "medium",
+				hidden = function() return News.Blocks()[1] == nil end,
+				name = function() return News.Head(1) end,
+			},
+			newsNote1 = {
+				type = "description", order = 90.015, fontSize = "medium",
 				hidden = function() return News.Blocks()[1] == nil end,
 				name = function() return News.Text(1) end,
 			},
-			newsNote2 = {
+			newsHead2 = {
 				type = "description", order = 90.02, fontSize = "medium",
+				hidden = function() return News.Blocks()[2] == nil end,
+				name = function() return News.Head(2) end,
+			},
+			newsNote2 = {
+				type = "description", order = 90.025, fontSize = "medium",
 				hidden = function() return News.Blocks()[2] == nil end,
 				name = function() return News.Text(2) end,
 			},
-			newsNote3 = {
+			newsHead3 = {
 				type = "description", order = 90.03, fontSize = "medium",
+				hidden = function() return News.Blocks()[3] == nil end,
+				name = function() return News.Head(3) end,
+			},
+			newsNote3 = {
+				type = "description", order = 90.035, fontSize = "medium",
 				hidden = function() return News.Blocks()[3] == nil end,
 				name = function() return News.Text(3) end,
 			},
-			newsNote4 = {
+			newsHead4 = {
 				type = "description", order = 90.04, fontSize = "medium",
+				hidden = function() return News.Blocks()[4] == nil end,
+				name = function() return News.Head(4) end,
+			},
+			newsNote4 = {
+				type = "description", order = 90.045, fontSize = "medium",
 				hidden = function() return News.Blocks()[4] == nil end,
 				name = function() return News.Text(4) end,
 			},
-			newsNote5 = {
+			newsHead5 = {
 				type = "description", order = 90.05, fontSize = "medium",
+				hidden = function() return News.Blocks()[5] == nil end,
+				name = function() return News.Head(5) end,
+			},
+			newsNote5 = {
+				type = "description", order = 90.055, fontSize = "medium",
 				hidden = function() return News.Blocks()[5] == nil end,
 				name = function() return News.Text(5) end,
 			},
-			newsNote6 = {
+			newsHead6 = {
 				type = "description", order = 90.06, fontSize = "medium",
+				hidden = function() return News.Blocks()[6] == nil end,
+				name = function() return News.Head(6) end,
+			},
+			newsNote6 = {
+				type = "description", order = 90.065, fontSize = "medium",
 				hidden = function() return News.Blocks()[6] == nil end,
 				name = function() return News.Text(6) end,
 			},
-			newsNote7 = {
+			newsHead7 = {
 				type = "description", order = 90.07, fontSize = "medium",
+				hidden = function() return News.Blocks()[7] == nil end,
+				name = function() return News.Head(7) end,
+			},
+			newsNote7 = {
+				type = "description", order = 90.075, fontSize = "medium",
 				hidden = function() return News.Blocks()[7] == nil end,
 				name = function() return News.Text(7) end,
 			},
-			newsNote8 = {
+			newsHead8 = {
 				type = "description", order = 90.08, fontSize = "medium",
+				hidden = function() return News.Blocks()[8] == nil end,
+				name = function() return News.Head(8) end,
+			},
+			newsNote8 = {
+				type = "description", order = 90.085, fontSize = "medium",
 				hidden = function() return News.Blocks()[8] == nil end,
 				name = function() return News.Text(8) end,
 			},
-			newsNote9 = {
+			newsHead9 = {
 				type = "description", order = 90.09, fontSize = "medium",
+				hidden = function() return News.Blocks()[9] == nil end,
+				name = function() return News.Head(9) end,
+			},
+			newsNote9 = {
+				type = "description", order = 90.095, fontSize = "medium",
 				hidden = function() return News.Blocks()[9] == nil end,
 				name = function() return News.Text(9) end,
 			},
-			newsNote10 = {
+			newsHead10 = {
 				type = "description", order = 90.10, fontSize = "medium",
+				hidden = function() return News.Blocks()[10] == nil end,
+				name = function() return News.Head(10) end,
+			},
+			newsNote10 = {
+				type = "description", order = 90.105, fontSize = "medium",
 				hidden = function() return News.Blocks()[10] == nil end,
 				name = function() return News.Text(10) end,
 			},
-			newsNote11 = {
+			newsHead11 = {
 				type = "description", order = 90.11, fontSize = "medium",
+				hidden = function() return News.Blocks()[11] == nil end,
+				name = function() return News.Head(11) end,
+			},
+			newsNote11 = {
+				type = "description", order = 90.115, fontSize = "medium",
 				hidden = function() return News.Blocks()[11] == nil end,
 				name = function() return News.Text(11) end,
 			},
-			newsNote12 = {
+			newsHead12 = {
 				type = "description", order = 90.12, fontSize = "medium",
+				hidden = function() return News.Blocks()[12] == nil end,
+				name = function() return News.Head(12) end,
+			},
+			newsNote12 = {
+				type = "description", order = 90.125, fontSize = "medium",
 				hidden = function() return News.Blocks()[12] == nil end,
 				name = function() return News.Text(12) end,
 			},
-			newsNote13 = {
+			newsHead13 = {
 				type = "description", order = 90.13, fontSize = "medium",
+				hidden = function() return News.Blocks()[13] == nil end,
+				name = function() return News.Head(13) end,
+			},
+			newsNote13 = {
+				type = "description", order = 90.135, fontSize = "medium",
 				hidden = function() return News.Blocks()[13] == nil end,
 				name = function() return News.Text(13) end,
 			},
-			newsNote14 = {
+			newsHead14 = {
 				type = "description", order = 90.14, fontSize = "medium",
+				hidden = function() return News.Blocks()[14] == nil end,
+				name = function() return News.Head(14) end,
+			},
+			newsNote14 = {
+				type = "description", order = 90.145, fontSize = "medium",
 				hidden = function() return News.Blocks()[14] == nil end,
 				name = function() return News.Text(14) end,
 			},
-			newsNote15 = {
+			newsHead15 = {
 				type = "description", order = 90.15, fontSize = "medium",
+				hidden = function() return News.Blocks()[15] == nil end,
+				name = function() return News.Head(15) end,
+			},
+			newsNote15 = {
+				type = "description", order = 90.155, fontSize = "medium",
 				hidden = function() return News.Blocks()[15] == nil end,
 				name = function() return News.Text(15) end,
 			},
-			newsNote16 = {
+			newsHead16 = {
 				type = "description", order = 90.16, fontSize = "medium",
+				hidden = function() return News.Blocks()[16] == nil end,
+				name = function() return News.Head(16) end,
+			},
+			newsNote16 = {
+				type = "description", order = 90.165, fontSize = "medium",
 				hidden = function() return News.Blocks()[16] == nil end,
 				name = function() return News.Text(16) end,
 			},

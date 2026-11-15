@@ -32,14 +32,14 @@ mutate("Options/Start.lua",
        expect="the first note does not say when the newest release is from", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\tif s == 1 then lines[1] = head end\n",
-       "\t\t\t\tlines[1] = head\n",
+       "head = s == 1 and (head .. \"\\n\" .. title) or title,",
+       "head = head .. \"\\n\" .. title,",
        "whatsnew: the version over every section of the newest release",
        expect="the second note repeats the release's version", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\tfor _, section in ipairs(release.sections or {}) do Entries(lines, section) end\n",
-       "",
+       "\t\t\tfor _, section in ipairs(release.sections or {}) do Entries(lines, section) end\n\t\t\tblocks[#blocks + 1] = { head = head,",
+       "\t\t\tblocks[#blocks + 1] = { head = head,",
        "whatsnew: an earlier release that is its version alone",
        expect="the release before the newest has 0 lines for", script=S)
 
@@ -60,3 +60,15 @@ mutate("CHANGELOG.md",
        "### In short\n",
        "whatsnew: a newest release that does not lead with its highlights",
        expect="does not start with its Highlights", script=S)
+
+mutate("Options/Start.lua",
+       "blocks[#blocks + 1] = { head = s == 1 and (head .. \"\\n\" .. title) or title, body = table.concat(lines, \"\\n\") }",
+       "blocks[#blocks + 1] = { head = s == 1 and head or \"\", body = title .. \"\\n\" .. table.concat(lines, \"\\n\") }",
+       "whatsnew: a section's title in the body, the size of its entries",
+       expect="the first note's head does not hold its section's title", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "{ \"general.newsHead3\", lead = true }, \"general.newsNote3\",",
+       "\"general.newsHead3\", \"general.newsNote3\",",
+       "whatsnew: a head the size of its note",
+       expect="general.newsHead3 is not drawn a size up from its note", script=S)
