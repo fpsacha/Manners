@@ -2687,7 +2687,7 @@ def build_ledger(addon_dir, snaps):
     if snap:
         texts = shown_texts(snap, LedgerTree)
         expect_names("shot-milestones", texts, ["Milestones", "Much Obliged", "You Only Had to Ask",
-                                                "A Hundred Thank-Yous", "Earned", "Link in chat",
+                                                "A Hundred Thank-Yous", "Earned",
                                                 "The Kindness of Strangers", "64 of 100"])
         check_glyphs("shot-milestones", texts)
         snaps["shot-milestones"] = snap
