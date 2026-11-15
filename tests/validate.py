@@ -896,10 +896,13 @@ for _f in sorted(os.listdir(os.path.join(ROOT, "Looks"))):
     if _f.endswith(".lua"):
         _nlooks += len(re.findall(r'^local \w+ = ns\.Looks\.Register\("',
                                   open(os.path.join(ROOT, "Looks", _f), encoding="utf-8").read(), re.M))
+# And the plain painted looks, registered from one table (Looks/Plain.lua).
+_nlooks += len(re.findall(r'^	\{ key = "', open(os.path.join(ROOT, "Looks", "Plain.lua"), encoding="utf-8").read(), re.M))
 _WORDS = {w: i for i, w in enumerate(
     "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen"
     " sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three twenty-four"
-    " twenty-five".split())}
+    " twenty-five twenty-six twenty-seven twenty-eight twenty-nine thirty thirty-one thirty-two"
+    " thirty-three thirty-four thirty-five".split())}
 _said = dict(_listing_text, **{"README.md": _pages["README.md"]})
 for _name, _text in _said.items():
     for _m in re.finditer(r"\b([A-Za-z-]+) looks\b", _text):

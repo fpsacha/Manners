@@ -24,7 +24,7 @@ Setting it up takes one page. `/manners` opens **Start here**: two numbered step
 
 Turn on *List the next few below* (Look) and every name under the prompt is a button of its own, with the icon of the buff they would get: left-click buffs that person, right-click skips them for now, shift-right-click puts them on your never-offer list.
 
-![The nineteen looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
+![Looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
 ![The Stormcaller look as a buff lands: chain lightning arcs from the totem to the standing stone](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-stormcaller.gif)
 
