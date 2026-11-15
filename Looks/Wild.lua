@@ -80,6 +80,13 @@ local Wild = ns.Looks.Register("wild", {
 	-- The words stand on the heartwood whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/wild): what of this
+	-- file's own art it replaces (the bough, its shadow, the wreath, the lip,
+	-- the antlers, the moon and the sprigs are the painting's), and the icon
+	-- a little smaller than the socket, so the moonwell's water lies in the
+	-- socket's dark glass round it.
+	paintedHides = { "shadow", "body", "disc", "lip", "antlers", "moon", "sprigs" },
+	paintedIconFill = 0.74,
 })
 
 -- MUST AGREE with tools/make_wild_textures.py (tests/scenarios/look-wild.lua
@@ -163,6 +170,9 @@ local OUTCOME = {
 }
 -- What a fight does: the text dims, the icon greys and dims, the bough dims.
 local TEXT_COMBAT, ICON_COMBAT, BODY_COMBAT = 0.78, 0.70, 0.74
+-- A painted frame (Looks/Painted.lua) is dimmed less: the bough keeps its
+-- grain and the key's tag reads on it.
+local PAINT_COMBAT = 0.86
 -- The light over the water at rest, lit and held after its breaths; the
 -- moon's light and the inlay's soft core over the same breath.
 local HALO = { rest = 0, peak = 0.62, held = 0.30 }
@@ -1019,6 +1029,10 @@ function Wild:Apply(p, above)
 		fit.room[row] = rowWidth
 	end
 	self.listShown, self.listAt = nil, nil
+	-- A painted frame's (PaintedPlace) taken back: no gap over the list, the
+	-- key's letter with the words again.
+	self.listGap = nil
+	self.keyText:SetParent(kit.textLayer)
 
 	-- Everything shown, then what waits: the lights parked at nothing, the
 	-- list for PaintQueue, the chips for Chip.
@@ -1120,7 +1134,8 @@ function Wild:PlaceWreath(showIcon)
 		-- The room the rings have: to the text (less a margin), to the
 		-- button's left edge, and to its top and bottom.
 		local limitH = math.min(self.textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN)
-		local limitV = H / 2 - kit.EDGE_MARGIN
+		-- (to the nearer of the two: a painted socket may sit off the middle)
+		local limitV = math.min(cy, H - cy) - kit.EDGE_MARGIN
 		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
 		local cooldown = kit.cooldown
 		if cooldown then
@@ -1477,6 +1492,103 @@ function Wild:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): Wild's own water, lights, vine,
+-- motion, tags and lines moved onto the painting. Looks/Painted.lua has laid
+-- the three pieces and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The painted moonwell gem at the bough's end, across, against the core.
+local GEM_OF_UNIT = 0.43
+
+function Wild:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art = kit.art
+	local showIcon = p.showIcon and true or false
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	-- The socket is the wreath: the water in the dark glass round the icon,
+	-- the light over it, the bloom, the paw and the rings, centred in it.
+	self.cx, self.cy, self.iconSize = g.socketX, g.socketY, g.iconSize
+	self.circle = g.iconSize * CIRCLE_SCALE / ICON_FRAME
+	self.discRight = g.socketX + g.socketR
+	self.textX = g.textX
+	self:PlaceWreath(showIcon)
+	-- The bough is the painted bar's core, from the socket to the keycap's far
+	-- side; the moon's light, flash and glint on the painted gem at its end.
+	self.plateIn, self.ph, self.plateX, self.su = g.top, g.unit, 0, g.unit / DESIGN_H
+	self.rootX = keyR
+	local gem = math.max(6, g.unit * GEM_OF_UNIT)
+	self.gemX, self.moonY, self.moonSize = g.endX, g.endY, gem
+	At(self.moonGlow, art, g.endX, g.endY, gem * 1.7)
+	At(self.hot, art, g.endX, g.endY, gem * 1.25)
+	At(self.star, art, g.endX + gem * 0.16, g.endY - gem * 0.20, math.max(8, gem * 1.1))
+	-- The vine's stem on the upper bark, between the bar's top and the well
+	-- (PlaceGrowth reads the upper bark's middle line from plateIn).
+	self.plateIn = (g.top + g.wellTop) / 2 - 5 * self.su - 2
+	self:PlaceGrowth(showIcon, above)
+	self.plateIn = g.top
+	-- The painting has leaves of its own: none of this look's sprigs stand or
+	-- stir on it, and none sheds a husk.
+	for i in ipairs(self.sprigs) do self.sprigOn[i] = false end
+	self:PlaceMotion(showIcon, above)
+	-- The inlay along the well's lower edge, from the words to the keycap.
+	local inlayH = math.max(2, g.unit * 0.05)
+	local inlayY = g.wellBottom - inlayH
+	Box(self.inlay, art, g.textX - 2, inlayY - inlayH / 2, keyL - 2, inlayY + inlayH / 2)
+	Box(self.core, art, g.textX - 2, inlayY - inlayH / 2, keyL - 2, inlayY + inlayH / 2)
+	self.inlayOK = keyL - g.textX >= 16
+	self.inlay:SetShown(self.inlayOK)
+	self.core:SetShown(self.inlayOK)
+	self.vineFrame:SetShown(self.vineOK)
+	-- The cursor's light along the bough's upper bark.
+	Box(self.hoverFrame, art, self.discRight, g.top, keyR, g.top + g.unit * 0.18)
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = self.H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's tag on the painted keycap (the painting leaves the well bare
+	-- there: the tag is the keycap's face); the lines and the count's tag keep
+	-- left of it.
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	PlaceThree(self.keyChip, self.keyBox, g.keyH)
+	-- The letter is part of the tag: a fight's dim of the words (textLayer's
+	-- alpha) would leave it fainter than its tag.
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+	-- The list from the socket to the keycap's far side; hung over the bar it
+	-- keeps right of the wreath, which stands over the bar's top.
+	self.rowX, self.listX0 = math.max(g.textX, 24), math.max(2, g.socketX)
+	if above and showIcon then
+		self.listX0 = self.discRight + 1
+		self.rowX = math.max(self.rowX, self.listX0 + 17)
+	end
+	self.listX1 = math.max(self.rowX + 30, keyR + 3)
+	-- What the painting's bark hangs past the core where the rows run (the
+	-- wreath and the crozier hang further, but beside them, under the plank).
+	self.listGap = math.max(0, g.unit * 0.08)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	-- What runs at rest, asked again where it now falls.
+	self.idleState = nil
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter on its tag, no larger than the keycap holds.
+function Wild:PaintedStyled(g)
+	if not g then return end
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.62))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1599,11 +1711,17 @@ function Wild:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.chipInset + 7)
+			-- On the painted frame the key's tag is the keycap's: it takes no
+			-- room of the lines' own, the well already stops short of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its tag with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1690,6 +1808,9 @@ function Wild:Dress()
 	end
 	Each(self.body, "SetDesaturated", fight or sere)
 	for _, t in ipairs(self.body) do Colour(t, pc[1] * fr, pc[2] * fg, pc[3] * fb) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	if fight then fr, fg, fb = PAINT_COMBAT, PAINT_COMBAT, PAINT_COMBAT end
+	ns.Looks.Painted.Tone(self, pc[1] * fr, pc[2] * fg, pc[3] * fb, fight or sere)
 end
 
 -- What a refusal leaves: the water spent, the leaves brown, the vine gone and
@@ -2083,7 +2204,10 @@ function Wild:PaintQueue(rows, shown, above)
 	self.listShown, self.listAt = shown, above
 
 	local pitch = self.pitch
-	local depth = shown * pitch + 7
+	-- Under a painted frame the rows keep clear of what the painting hangs
+	-- past the bar: the plank runs on under it.
+	local gap = self.listGap or 0
+	local depth = shown * pitch + 7 + gap
 	local H = self.H
 	local y0, y1
 	if above then
@@ -2104,9 +2228,9 @@ function Wild:PaintQueue(rows, shown, above)
 		-- Row centres, reading downwards either way.
 		local y
 		if above then
-			y = -(4 + (shown - i) * pitch + pitch / 2)
+			y = -(4 + gap + (shown - i) * pitch + pitch / 2)
 		else
-			y = H + 3 + (i - 1) * pitch + pitch / 2
+			y = H + 3 + gap + (i - 1) * pitch + pitch / 2
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)
