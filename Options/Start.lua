@@ -800,18 +800,29 @@ function News.Title()
 	return L["What's new in %s"]:format(tostring(ns.BUILD or ""))
 end
 
+-- A section's accent (WhatsNew.lua: gold for the highlights, amber for the
+-- fixes, a pale blue for the rest), as a colour code.
+local function Accent(section)
+	local hex = type(section.accent) == "string" and section.accent:match("^%x%x%x%x%x%x$")
+	return "|cff" .. (hex or "ffd100")
+end
+
+-- An entry a line, behind a marker in its section's accent.
 local function Entries(lines, section)
+	local mark = Accent(section) .. "\194\187|r "
 	for _, entry in ipairs(section.entries or {}) do
-		lines[#lines + 1] = "- " .. tostring(entry)
+		lines[#lines + 1] = mark .. tostring(entry)
 	end
 end
 
 -- The notes, top to bottom, as the fold draws them: { head =, body = } each,
--- the head drawn a size up from the body (the layout's `lead`), as a heading
--- is. The newest release: its version and date over its first section's
--- title, then a section's title over each of the others. Each release before
--- it: one note, its version and date over every entry it has. Never more
--- than SLOTS: the oldest go first.
+-- the head drawn larger than the body (the layout's `lead`), as a heading
+-- is. The newest release: its version and date alone, the fold's title line
+-- (the first note, drawn largest, with no body); then a note a section, the
+-- section's title in capitals and in its accent over its entries, the first
+-- of them (the highlights) in a well. Each release before it: one note, its
+-- version and date over every entry it has. Never more than SLOTS: the
+-- oldest go first.
 function News.Blocks()
 	local blocks = {}
 	for r, release in ipairs(News.Releases()) do
@@ -819,10 +830,11 @@ function News.Blocks()
 		if release.date then head = head .. "  |cff9d9d9d" .. tostring(release.date) .. "|r" end
 		if r == 1 then
 			for s, section in ipairs(release.sections or {}) do
-				local title = "|cffffd100" .. tostring(section.title) .. "|r"
+				local title = Accent(section) .. tostring(section.title):upper() .. "|r"
 				local lines = {}
 				Entries(lines, section)
-				blocks[#blocks + 1] = { head = s == 1 and (head .. "\n" .. title) or title, body = table.concat(lines, "\n") }
+				if s == 1 then blocks[#blocks + 1] = { head = head, body = "", title = true } end
+				blocks[#blocks + 1] = { head = title, body = table.concat(lines, "\n") }
 			end
 		else
 			local lines = {}
@@ -1567,7 +1579,7 @@ function Page.BuildStartTab()
 			},
 			newsNote1 = {
 				type = "description", order = 97.015, fontSize = "medium",
-				hidden = function() return News.Blocks()[1] == nil end,
+				hidden = function() return News.Text(1) == "" end,
 				name = function() return News.Text(1) end,
 			},
 			newsHead2 = {
@@ -1577,7 +1589,7 @@ function Page.BuildStartTab()
 			},
 			newsNote2 = {
 				type = "description", order = 97.025, fontSize = "medium",
-				hidden = function() return News.Blocks()[2] == nil end,
+				hidden = function() return News.Text(2) == "" end,
 				name = function() return News.Text(2) end,
 			},
 			newsHead3 = {
@@ -1587,7 +1599,7 @@ function Page.BuildStartTab()
 			},
 			newsNote3 = {
 				type = "description", order = 97.035, fontSize = "medium",
-				hidden = function() return News.Blocks()[3] == nil end,
+				hidden = function() return News.Text(3) == "" end,
 				name = function() return News.Text(3) end,
 			},
 			newsHead4 = {
@@ -1597,7 +1609,7 @@ function Page.BuildStartTab()
 			},
 			newsNote4 = {
 				type = "description", order = 97.045, fontSize = "medium",
-				hidden = function() return News.Blocks()[4] == nil end,
+				hidden = function() return News.Text(4) == "" end,
 				name = function() return News.Text(4) end,
 			},
 			newsHead5 = {
@@ -1607,7 +1619,7 @@ function Page.BuildStartTab()
 			},
 			newsNote5 = {
 				type = "description", order = 97.055, fontSize = "medium",
-				hidden = function() return News.Blocks()[5] == nil end,
+				hidden = function() return News.Text(5) == "" end,
 				name = function() return News.Text(5) end,
 			},
 			newsHead6 = {
@@ -1617,7 +1629,7 @@ function Page.BuildStartTab()
 			},
 			newsNote6 = {
 				type = "description", order = 97.065, fontSize = "medium",
-				hidden = function() return News.Blocks()[6] == nil end,
+				hidden = function() return News.Text(6) == "" end,
 				name = function() return News.Text(6) end,
 			},
 			newsHead7 = {
@@ -1627,7 +1639,7 @@ function Page.BuildStartTab()
 			},
 			newsNote7 = {
 				type = "description", order = 97.075, fontSize = "medium",
-				hidden = function() return News.Blocks()[7] == nil end,
+				hidden = function() return News.Text(7) == "" end,
 				name = function() return News.Text(7) end,
 			},
 			newsHead8 = {
@@ -1637,7 +1649,7 @@ function Page.BuildStartTab()
 			},
 			newsNote8 = {
 				type = "description", order = 97.085, fontSize = "medium",
-				hidden = function() return News.Blocks()[8] == nil end,
+				hidden = function() return News.Text(8) == "" end,
 				name = function() return News.Text(8) end,
 			},
 			newsHead9 = {
@@ -1647,7 +1659,7 @@ function Page.BuildStartTab()
 			},
 			newsNote9 = {
 				type = "description", order = 97.095, fontSize = "medium",
-				hidden = function() return News.Blocks()[9] == nil end,
+				hidden = function() return News.Text(9) == "" end,
 				name = function() return News.Text(9) end,
 			},
 			newsHead10 = {
@@ -1657,7 +1669,7 @@ function Page.BuildStartTab()
 			},
 			newsNote10 = {
 				type = "description", order = 97.105, fontSize = "medium",
-				hidden = function() return News.Blocks()[10] == nil end,
+				hidden = function() return News.Text(10) == "" end,
 				name = function() return News.Text(10) end,
 			},
 			newsHead11 = {
@@ -1667,7 +1679,7 @@ function Page.BuildStartTab()
 			},
 			newsNote11 = {
 				type = "description", order = 97.115, fontSize = "medium",
-				hidden = function() return News.Blocks()[11] == nil end,
+				hidden = function() return News.Text(11) == "" end,
 				name = function() return News.Text(11) end,
 			},
 			newsHead12 = {
@@ -1677,7 +1689,7 @@ function Page.BuildStartTab()
 			},
 			newsNote12 = {
 				type = "description", order = 97.125, fontSize = "medium",
-				hidden = function() return News.Blocks()[12] == nil end,
+				hidden = function() return News.Text(12) == "" end,
 				name = function() return News.Text(12) end,
 			},
 			newsHead13 = {
@@ -1687,7 +1699,7 @@ function Page.BuildStartTab()
 			},
 			newsNote13 = {
 				type = "description", order = 97.135, fontSize = "medium",
-				hidden = function() return News.Blocks()[13] == nil end,
+				hidden = function() return News.Text(13) == "" end,
 				name = function() return News.Text(13) end,
 			},
 			newsHead14 = {
@@ -1697,7 +1709,7 @@ function Page.BuildStartTab()
 			},
 			newsNote14 = {
 				type = "description", order = 97.145, fontSize = "medium",
-				hidden = function() return News.Blocks()[14] == nil end,
+				hidden = function() return News.Text(14) == "" end,
 				name = function() return News.Text(14) end,
 			},
 			newsHead15 = {
@@ -1707,7 +1719,7 @@ function Page.BuildStartTab()
 			},
 			newsNote15 = {
 				type = "description", order = 97.155, fontSize = "medium",
-				hidden = function() return News.Blocks()[15] == nil end,
+				hidden = function() return News.Text(15) == "" end,
 				name = function() return News.Text(15) end,
 			},
 			newsHead16 = {
@@ -1717,7 +1729,7 @@ function Page.BuildStartTab()
 			},
 			newsNote16 = {
 				type = "description", order = 97.165, fontSize = "medium",
-				hidden = function() return News.Blocks()[16] == nil end,
+				hidden = function() return News.Text(16) == "" end,
 				name = function() return News.Text(16) end,
 			},
 		},

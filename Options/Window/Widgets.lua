@@ -642,7 +642,7 @@ end
 
 -- description: wrapping text, colour codes kept. fontSize "medium" is
 -- GameFontHighlight, anything else GameFontHighlightSmall; a page's lead is a
--- size up from that. The layout's `hint` draws it grey rather than in the
+-- size up from that (two points, or as many as the layout's `lead` says). The layout's `hint` draws it grey rather than in the
 -- label colour (a colour code in the text still wins), and `block` in a faint
 -- well with a rule down its left, the text inset.
 local BLOCK_X, BLOCK_Y = 11, 6
@@ -653,13 +653,15 @@ local function NoteFont(row)
 	if type(size) == "function" then size = size(row.item.info) end
 	local font = size == "medium" and T.fonts.label or T.fonts.small
 	local layout = row.item.layout or {}
-	local key = font .. (layout.lead and "+" or "") .. (layout.hint and "~" or "")
+	-- `lead`: two points up, or the number of points it gives (a title).
+	local up = layout.lead == true and 2 or tonumber(layout.lead) or 0
+	local key = font .. (up > 0 and ("+" .. up) or "") .. (layout.hint and "~" or "")
 	if row.fontKey == key then return end
 	row.fontKey = key
 	W.SetFont(row.text, font)
-	if layout.lead then
+	if up > 0 then
 		local path, px, flags = row.text:GetFont()
-		if path then row.text:SetFont(path, (px or 12) + 2, flags or "") end
+		if path then row.text:SetFont(path, (px or 12) + up, flags or "") end
 	end
 	TextColour(row.text, layout.hint and T.hint or T.ink)
 end

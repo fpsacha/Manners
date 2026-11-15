@@ -113,56 +113,84 @@ do
 			local releases = News.Releases()
 			local blocks = News.Blocks()
 			local newest = releases[1] or { sections = {} }
+			local function count(text)
+				text = tostring(text or "")
+				local _, n = text:gsub("\n", "\n")
+				return text == "" and 0 or n + 1
+			end
 			if #blocks == 0 then fail(scenario, "nothing to show") end
 			if #blocks > News.SLOTS then
 				fail(scenario, ("%d notes and only %d to draw them in"):format(#blocks, News.SLOTS))
 			end
-			if #newest.sections > News.SLOTS - 1 then
+			if #newest.sections + 1 > News.SLOTS - 1 then
 				fail(scenario, ("the newest release has %d sections and the fold %d notes: no room for a release before it")
 					:format(#newest.sections, News.SLOTS))
 			end
-			local want = math.min(News.SLOTS, #newest.sections + (#releases - 1))
+			-- A title, a note a section, a note a release before.
+			local want = math.min(News.SLOTS, 1 + #newest.sections + (#releases - 1))
 			if #blocks ~= want then
-				fail(scenario, ("%d notes for %d sections of the newest release and %d earlier releases")
+				fail(scenario, ("%d notes for a title, %d sections of the newest release and %d earlier releases")
 					:format(#blocks, #newest.sections, #releases - 1))
 			end
 			if not News.Title():find(tostring(ns.BUILD), 1, true) then
 				fail(scenario, "the fold's title does not name this build: " .. News.Title())
 			end
-			-- The first note: the version and date over the section's title as
-			-- its head, the entries as its body.
+			-- The first note: the release's version and date, and nothing under it.
 			local first = blocks[1] or {}
-			local head = tostring(first.head or "")
-			local top = head:match("^[^\n]*") or ""
+			local top = tostring(first.head or "")
 			if not top:find(News.Version(newest), 1, true) then
 				fail(scenario, "the first note does not start with the newest release's version: " .. top)
 			end
 			if newest.date and not top:find(newest.date, 1, true) then
 				fail(scenario, "the first note does not say when the newest release is from: " .. top)
 			end
+			if tostring(first.body or "") ~= "" then
+				fail(scenario, "the release's title line has text under it")
+			end
 			if News.Version({ version = "Unreleased" }) ~= tostring(ns.BUILD) then
 				fail(scenario, "a release the changelog calls Unreleased is not named by this build")
 			end
-			if newest.sections[1] and not head:find(newest.sections[1].title, 1, true) then
-				fail(scenario, "the first note's head does not hold its section's title")
+			-- The second: the first section, its title as the head in its accent.
+			local second = blocks[2] or {}
+			local section = newest.sections[1]
+			if section then
+				local head = tostring(second.head or "")
+				if not head:find(section.title:upper(), 1, true) then
+					fail(scenario, "the second note's head does not hold its section's title: " .. head)
+				end
+				if head:find(News.Version(newest), 1, true) then
+					fail(scenario, "a section's head repeats the release's version")
+				end
+				if type(section.accent) ~= "string" or not head:find("|cff" .. section.accent, 1, true) then
+					fail(scenario, "a section's title is not in its accent: " .. head)
+				end
+				if count(second.body) ~= #section.entries then
+					fail(scenario, ("the first section has %d lines under its head for %d entries")
+						:format(count(second.body), #section.entries))
+				end
+				if not tostring(second.body):find("^|cff" .. tostring(section.accent)) then
+					fail(scenario, "an entry does not start with a marker in its section's accent")
+				end
 			end
-			local body = tostring(first.body or "")
-			local _, breaks = body:gsub("\n", "\n")
-			local lines = body == "" and 0 or breaks + 1
-			if newest.sections[1] and lines ~= #newest.sections[1].entries then
-				fail(scenario, ("the first note has %d lines under its head for %d entries")
-					:format(lines, #newest.sections[1].entries))
+			-- And the one after it, in an accent of its own.
+			local third, next = blocks[3] or {}, newest.sections[2]
+			if next and not tostring(third.head):find("|cff" .. tostring(next.accent), 1, true) then
+				fail(scenario, "the second section's title is not in its own accent: " .. tostring(third.head))
 			end
-			if body:find(newest.sections[1] and newest.sections[1].title or "\0", 1, true) == 1 then
-				fail(scenario, "the first note's body starts with the title its head already says")
+			-- Three kinds of section, three accents.
+			local accents = {}
+			for _, sec in ipairs(newest.sections) do accents[sec.title:lower()] = sec.accent end
+			local other
+			for title, accent in pairs(accents) do
+				if title ~= "highlights" and title ~= "fixes" then other = accent end
 			end
-			-- A later section of the newest release carries no version again.
-			if blocks[2] and newest.sections[2] and tostring(blocks[2].head):find(News.Version(newest), 1, true) then
-				fail(scenario, "the second note repeats the release's version")
+			if accents.highlights and accents.fixes and other
+				and (accents.highlights == accents.fixes or accents.highlights == other or accents.fixes == other) then
+				fail(scenario, "the highlights, the fixes and the rest are not told apart by colour")
 			end
 			-- An earlier release: one note, headed by its version and date.
 			local earlier = releases[2]
-			local note = blocks[#newest.sections + 1]
+			local note = blocks[1 + #newest.sections + 1]
 			if earlier and note then
 				local line = tostring(note.head)
 				if not line:find(tostring(earlier.version), 1, true) then
@@ -173,11 +201,8 @@ do
 				end
 				local entries = 0
 				for _, sec in ipairs(earlier.sections or {}) do entries = entries + #(sec.entries or {}) end
-				local text = tostring(note.body or "")
-				local _, n = text:gsub("\n", "\n")
-				local have = text == "" and 0 or n + 1
-				if have ~= entries then
-					fail(scenario, ("the release before the newest has %d lines for %d entries"):format(have, entries))
+				if count(note.body) ~= entries then
+					fail(scenario, ("the release before the newest has %d lines for %d entries"):format(count(note.body), entries))
 				end
 			elseif earlier then
 				fail(scenario, "the release before the newest has no note")
@@ -185,8 +210,8 @@ do
 			if News.Text(#blocks + 1) ~= "" or News.Head(#blocks + 1) ~= "" then
 				fail(scenario, "a note past the last is not empty")
 			end
-			if News.Head(1) ~= head or News.Text(1) ~= body then
-				fail(scenario, "the first note's head and body are not what the options are given")
+			if News.Head(2) ~= second.head or News.Text(2) ~= second.body then
+				fail(scenario, "the second note's head and body are not what the options are given")
 			end
 			-- The options: a note shown for each, the rest hidden.
 			local tab = ns.OptionsPage and ns.OptionsPage.BuildStartTab and ns.OptionsPage.BuildStartTab()
@@ -200,8 +225,10 @@ do
 						if not option then
 							fail(scenario, key .. " is not among Start here's options")
 						else
-							local hidden = option.hidden()
-							if (i <= #blocks) == (hidden and true or false) then
+							local hidden = option.hidden() and true or false
+							-- A head for every note; a body where the note has one (the title has none).
+							local shown = i <= #blocks and (key:find("Head") ~= nil or tostring(blocks[i].body) ~= "")
+							if shown == hidden then
 								fail(scenario, ("%s is %s with %d notes to show"):format(key, hidden and "hidden" or "shown", #blocks))
 							end
 						end
@@ -222,6 +249,20 @@ do
 			end
 			-- The layout: every note in the one fold.
 			if ns.WindowLayout then
+				local function lead(path)
+					local _, at = H.pagePaths(ns, "general")
+					for _, item in ipairs(at and at[path] and at[path].items or {}) do
+						if type(item) == "table" and item[1] == path then return tonumber(item.lead) or 0 end
+					end
+					return 0
+				end
+				if lead("general.newsHead1") <= lead("general.newsHead2") then
+					fail(scenario, "the release's title is no larger than a section's")
+				end
+				local notes = ns.WindowLayout.notes or {}
+				if not (notes["general.newsNote2"] and notes["general.newsNote2"].block) then
+					fail(scenario, "the highlights are not set apart in a well")
+				end
 				local _, where = H.pagePaths(ns, "general")
 				for i = 1, News.SLOTS do
 					for _, path in ipairs({ "general.newsHead" .. i, "general.newsNote" .. i }) do
@@ -236,7 +277,7 @@ do
 					local section = where and where["general.newsHead" .. i]
 					local lead = false
 					for _, item in ipairs(section and section.items or {}) do
-						if type(item) == "table" and item[1] == "general.newsHead" .. i then lead = item.lead == true end
+						if type(item) == "table" and item[1] == "general.newsHead" .. i then lead = (tonumber(item.lead) or 0) >= 2 end
 					end
 					if not lead then
 						fail(scenario, "general.newsHead" .. i .. " is not drawn a size up from its note")

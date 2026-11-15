@@ -130,6 +130,16 @@ run("widgets: notes keep their colours and take the font their size asks for", f
 			if size ~= base + 2 then
 				fail(scenario, ("the lead is drawn at %s, not a size up from %d"):format(tostring(size), base))
 			end
+			-- A lead that gives its own number of points: a title (What's new).
+			local title = build(scenario, ns, ctx, "description", "general.newsHead1", { lead = 8 })
+			if title then
+				local _, tbase = (title.item.def.fontSize == "medium" and GameFontHighlight or GameFontHighlightSmall):GetFont()
+				local _, tsize = title.text:GetFont()
+				if tsize ~= tbase + 8 then
+					fail(scenario, ("a title's lead is drawn no larger than a plain lead: %s for a base of %d and 8 points up")
+						:format(tostring(tsize), tbase))
+				end
+			end
 			local text = small.text:GetText() or ""
 			if not text:find("|cff888888", 1, true) then
 				fail(scenario, "the colour code in Placeholders' second line was lost: " .. text)

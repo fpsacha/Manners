@@ -454,7 +454,9 @@ end
 function AFTER.scrolled(ns)
 	local UI = ns.WindowUI
 	assert(UI and UI.ScrollTo, "this tree has no ns.WindowUI.ScrollTo")
-	UI.ScrollTo(math.huge)
+	-- MANNERS_RENDER_SCROLL: that many points down instead, to look at the
+	-- middle of a page longer than two screens.
+	UI.ScrollTo(tonumber(os.getenv("MANNERS_RENDER_SCROLL") or "") or math.huge)
 end
 
 -- The confirm box, asked for the way a player asks: the footer's reset pressed.

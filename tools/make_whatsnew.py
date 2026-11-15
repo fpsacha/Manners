@@ -36,7 +36,17 @@ OUT = os.path.join(ROOT, "WhatsNew.lua")
 RELEASES = 4
 # The longest an entry may be drawn: its lead and first sentence, or this much.
 LONGEST = 220
-GOLD, WHITE, END = "|cffffd100", "|cffffffff", "|r"
+WHITE, END = "|cffffffff", "|r"
+# A section's accent, by what it holds: its title and its entries' leads are
+# drawn in it (Options/Start.lua, News). The highlights in the window's gold,
+# the fixes in amber, everything else -- what is new or changed -- in a pale
+# blue, so a glance down the fold tells the three apart.
+ACCENTS = {"highlights": "ffd100", "fixes": "ff9a52"}
+ACCENT = "7cc4ff"
+
+
+def accent(title):
+    return ACCENTS.get(title.strip().lower(), ACCENT)
 MONTHS = ("January February March April May June July August September October"
           " November December").split()
 DATE_LINE = re.compile(r"^\*(\d{1,2} [A-Z][a-z]+ \d{4})\*$")
@@ -84,8 +94,10 @@ def releases(text, limit=RELEASES):
     return out
 
 
-def short(entry):
-    """An entry's bold lead and its first sentence, in the game's colour codes."""
+def short(entry, tint):
+    """An entry's bold lead, in its section's accent `tint`, and its first
+    sentence, in the game's colour codes."""
+    GOLD = "|cff" + tint
     lead, rest = "", entry
     m = re.match(r"\*\*(.+?)\*\*\s*(.*)$", entry)
     if m:
@@ -120,9 +132,9 @@ def build():
         out.append("\t{ version = %s, date = %s, sections = {" % (
             quote(release["version"]), quote(release["date"]) if release["date"] else "nil"))
         for title, entries in release["sections"]:
-            out.append("\t\t{ title = %s, entries = {" % quote(title))
+            out.append("\t\t{ title = %s, accent = %s, entries = {" % (quote(title), quote(accent(title))))
             for e in entries:
-                out.append("\t\t\t%s," % quote(short(e)))
+                out.append("\t\t\t%s," % quote(short(e, accent(title))))
             out.append("\t\t} },")
         out.append("\t} },")
     out.append("}")

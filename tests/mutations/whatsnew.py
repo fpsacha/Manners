@@ -2,10 +2,22 @@
 S = "runscenarios.py"
 
 mutate("Options/Start.lua",
-       "\t\tlines[#lines + 1] = \"- \" .. tostring(entry)\n",
+       "\t\tlines[#lines + 1] = mark .. tostring(entry)\n",
        "",
        "whatsnew: a note that is its head alone",
        expect="lines under its head for", script=S)
+
+mutate("Options/Start.lua",
+       "\tlocal mark = Accent(section) .. \"\\194\\187|r \"\n",
+       "\tlocal mark = \"- \"\n",
+       "whatsnew: an entry behind a plain dash",
+       expect="an entry does not start with a marker in its section's accent", script=S)
+
+mutate("Options/Start.lua",
+       "\t\t\t\tlocal title = Accent(section) .. tostring(section.title):upper() .. \"|r\"\n",
+       "\t\t\t\tlocal title = \"|cffffd100\" .. tostring(section.title):upper() .. \"|r\"\n",
+       "whatsnew: every section's title in the one gold",
+       expect="the second section's title is not in its own accent", script=S)
 
 mutate("Options/Start.lua",
        "\t\t\t\thidden = function() return #News.Blocks() == 0 end,\n",
@@ -32,10 +44,16 @@ mutate("Options/Start.lua",
        expect="the first note does not say when the newest release is from", script=S)
 
 mutate("Options/Start.lua",
-       "head = s == 1 and (head .. \"\\n\" .. title) or title,",
-       "head = head .. \"\\n\" .. title,",
+       "\t\t\t\tblocks[#blocks + 1] = { head = title, body = table.concat(lines, \"\\n\") }\n",
+       "\t\t\t\tblocks[#blocks + 1] = { head = head .. \" \" .. title, body = table.concat(lines, \"\\n\") }\n",
        "whatsnew: the version over every section of the newest release",
-       expect="the second note repeats the release's version", script=S)
+       expect="a section's head repeats the release's version", script=S)
+
+mutate("Options/Start.lua",
+       "if s == 1 then blocks[#blocks + 1] = { head = head, body = \"\", title = true } end",
+       "if s == 1 then blocks[#blocks + 1] = { head = head, body = title, title = true } end",
+       "whatsnew: text under the release's title line",
+       expect="the release's title line has text under it", script=S)
 
 mutate("Options/Start.lua",
        "\t\t\tfor _, section in ipairs(release.sections or {}) do Entries(lines, section) end\n\t\t\tblocks[#blocks + 1] = { head = head,",
@@ -50,8 +68,8 @@ mutate("Options/Window/Layout.lua",
        expect="general.newsNote1 is not folded", script=S)
 
 mutate("WhatsNew.lua",
-       "\t\t{ title = \"Profiles\", entries = {\n",
-       "\t\t{ title = \"Profile\", entries = {\n",
+       "\t\t{ title = \"Profiles\", accent",
+       "\t\t{ title = \"Profile\", accent",
        "whatsnew: a section's title that is not the changelog's",
        expect="and the changelog says Profiles", script=S)
 
@@ -61,14 +79,26 @@ mutate("CHANGELOG.md",
        "whatsnew: a newest release that does not lead with its highlights",
        expect="does not start with its Highlights", script=S)
 
-mutate("Options/Start.lua",
-       "blocks[#blocks + 1] = { head = s == 1 and (head .. \"\\n\" .. title) or title, body = table.concat(lines, \"\\n\") }",
-       "blocks[#blocks + 1] = { head = s == 1 and head or \"\", body = title .. \"\\n\" .. table.concat(lines, \"\\n\") }",
-       "whatsnew: a section's title in the body, the size of its entries",
-       expect="the first note's head does not hold its section's title", script=S)
-
 mutate("Options/Window/Layout.lua",
-       "{ \"general.newsHead3\", lead = true }, \"general.newsNote3\",",
+       "{ \"general.newsHead3\", lead = 3 }, \"general.newsNote3\",",
        "\"general.newsHead3\", \"general.newsNote3\",",
        "whatsnew: a head the size of its note",
        expect="general.newsHead3 is not drawn a size up from its note", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "{ \"general.newsHead1\", lead = 8 }, \"general.newsNote1\",",
+       "{ \"general.newsHead1\", lead = 3 }, \"general.newsNote1\",",
+       "whatsnew: a release's title the size of a section's",
+       expect="the release's title is no larger than a section's", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "\t\t[\"general.newsNote2\"] = { block = true },\n",
+       "",
+       "whatsnew: the highlights with no well round them",
+       expect="the highlights are not set apart in a well", script=S)
+
+mutate("Options/Window/Widgets.lua",
+       "\tlocal up = layout.lead == true and 2 or tonumber(layout.lead) or 0\n",
+       "\tlocal up = layout.lead and 2 or 0\n",
+       "whatsnew: a lead's own number of points ignored",
+       expect="a title's lead is drawn no larger than a plain lead", script=S)
