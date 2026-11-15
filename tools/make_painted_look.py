@@ -116,6 +116,16 @@ HANG_KEEP = 0.1
 # A light keycap's letter: the keycap's own colour taken this far down, near
 # black, so it reads through a fight's dim of the words and of the painting.
 KEY_DARK = 0.04
+# The keycap's piece: how much of the well round it is cut with it (of its own
+# width and height, each side), its edge feathered over that margin.
+KEYCAP_PAD = 0.08
+# The share of the cut, at its right, over which the well filled in from the
+# left meets the painting's own right of it.
+KEYCAP_BLEND = 0.15
+# The looks whose keycap is hidden unless the player shows it (Show my key on
+# the prompt, "As the look has it"): the classic and the minimal ones. A
+# meta.json may say otherwise with keycap_shown.
+KEYCAP_HIDDEN = {"glass", "framed", "toast", "arcane", "luxe", "minimal", "ghost", "hairline", "pill", "slate"}
 # The largest texture side written.
 LARGEST = 1024
 
@@ -354,6 +364,9 @@ def read_meta(key, src):
                                         for f in ("lo", "ramp")), "keying must be { lo, ramp }, numbers over 0")
     meta["tune"] = {"lo": tune.get("lo"), "ramp": tune.get("ramp")}
     meta["clip"] = bool(raw.get("clip"))
+    shown = raw.get("keycap_shown")
+    need(shown is None or isinstance(shown, bool), "keycap_shown must be true or false")
+    meta["keycap_shown"] = (key not in KEYCAP_HIDDEN) if shown is None else shown
     need(not meta["clip"] or "bar" in meta, "clip without a bar box")
     meta["see_through"] = bool(raw.get("see_through"))
     if meta["see_through"]:
@@ -545,7 +558,38 @@ def build(key):
     straight_u8 = np.clip(straight, 0, 255)
     rgba = np.concatenate([straight_u8, (a * 255)[..., None]], -1)
     rgba = np.clip(np.round(rgba), 0, 255).astype(np.uint8)
-    pieces = {"Left": rgba[:, :c0], "Middle": rgba[:, c0:c1], "Right": rgba[:, c1:]}
+
+    # The keycap, a piece of its own (Show my key on the prompt hides it): cut
+    # out with KEYCAP_PAD of the well round it, its edge feathered over that
+    # margin, and the frame under it filled from the well's own columns either
+    # (mirrored in from its left, met by its right's over KEYCAP_BLEND at the
+    # end), which is the painting's uniform well, cleaned, not anything new.
+    kpw, kph = key_cap["w"] * (1 + 2 * KEYCAP_PAD) * k, key_cap["h"] * (1 + 2 * KEYCAP_PAD) * k
+    kcx, kcy = px(key_cap["cx"]), py(key_cap["cy"])
+    bx0, bx1 = int(np.floor(kcx - kpw / 2)), int(np.ceil(kcx + kpw / 2))
+    by0, by1 = max(0, int(np.floor(kcy - kph / 2))), min(rgba.shape[0], int(np.ceil(kcy + kph / 2)))
+    if bx0 <= c1 or bx1 >= rgba.shape[1]:
+        raise SystemExit("%s: the keycap (with its margin) must lie between the stretch run's end and the bar's "
+                         "right; check keycap and stretch in meta.json" % key)
+    cap = rgba[by0:by1, bx0:bx1].astype(np.float32)
+    bw, bh = bx1 - bx0, by1 - by0
+    xs = np.arange(bw, dtype=np.float32) + 0.5
+    ys = np.arange(by0, by1, dtype=np.float32) + 0.5
+    inner_x = key_cap["w"] * k / 2
+    inner_y = key_cap["h"] * k / 2
+    fx = np.clip((kpw / 2 - np.abs(bx0 + xs - kcx)) / max(1.0, kpw / 2 - inner_x), 0, 1)
+    fy = np.clip((kph / 2 - np.abs(ys - kcy)) / max(1.0, kph / 2 - inner_y), 0, 1)
+    cap[..., 3] *= np.outer(fy, fx)
+    keycap_piece = np.clip(np.round(cap), 0, 255).astype(np.uint8)
+    j = np.arange(bw)
+    left_src = np.clip(bx0 - 1 - (j % max(1, bx0 - c1)), 0, rgba.shape[1] - 1)
+    right_src = np.clip(bx1 + ((bw - 1 - j) % max(1, rgba.shape[1] - bx1)), 0, rgba.shape[1] - 1)
+    blend = max(2.0, bw * KEYCAP_BLEND)
+    t = np.clip((j - (bw - blend)) / blend, 0, 1).astype(np.float32)[None, :, None]
+    fill = rgba[by0:by1][:, left_src].astype(np.float32) * (1 - t) + rgba[by0:by1][:, right_src].astype(np.float32) * t
+    rgba[by0:by1, bx0:bx1] = np.clip(np.round(fill), 0, 255).astype(np.uint8)
+
+    pieces = {"Left": rgba[:, :c0], "Middle": rgba[:, c0:c1], "Right": rgba[:, c1:], "Keycap": keycap_piece}
     textures = {}
     tex = {}
     for name, piece in pieces.items():
@@ -581,7 +625,10 @@ def build(key):
         "textX": text_x,
         "textY": (words_mid - core_top) / core_h,
         "keycap": {"x": key_from_right, "y": (key_cap["cy"] - core_top) / core_h,
-                   "w": key_cap["w"] / core_h, "h": key_cap["h"] / core_h},
+                   "w": key_cap["w"] / core_h, "h": key_cap["h"] / core_h,
+                   # The piece: as wide and tall as cut, centred where the keycap is.
+                   "pw": bw / C, "ph": bh / C, "dx": ((bx0 + bx1) / 2 - kcx) / C, "dy": ((by0 + by1) / 2 - kcy) / C,
+                   "shown": meta["keycap_shown"]},
         "ornament": {"x": (right_edge - ornament["cx"]) / core_h, "y": (ornament["cy"] - core_top) / core_h},
         "well": {"top": (up / k + y0 - core_top) / core_h, "bottom": ((down + 1) / k + y0 - core_top) / core_h},
         "ink": {"light": True, "lo": lo, "hi": hi},
@@ -611,7 +658,10 @@ def lua_data(all_data):
            "-- hangRight: how far each may hang past the prompt's own edge when the well is too",
            "-- short for the words (the socket's hole and the keycap stay over it). ink: the well's",
            "-- own luminance at its darkest and brightest (linear), for Legible; keyInk: the key's",
-           "-- letter on the keycap.",
+           "-- letter on the keycap. keycap: the keycap's middle (x from the bar's right) and size,",
+           "-- and its piece (file, texcoords r b, size pw ph, its middle dx dy off the keycap's),",
+           "-- drawn over the frame, which is whole under it; shown: whether the look shows it while",
+           "-- Show my key on the prompt is \"As the look has it\".",
            "",
            "local _, ns = ...",
            "",
@@ -630,7 +680,10 @@ def lua_data(all_data):
         out.append('\t\tsocket = { shape = "%s", x = %s, y = %s, r = %s },' % (s["shape"], num(s["x"]), num(s["y"]), num(s["r"])))
         out.append("\t\ttextX = %s, textY = %s," % (num(d["textX"]), num(d["textY"])))
         c = d["keycap"]
-        out.append("\t\tkeycap = { x = %s, y = %s, w = %s, h = %s }," % (num(c["x"]), num(c["y"]), num(c["w"]), num(c["h"])))
+        t = d["tex"]["Keycap"]
+        out.append('\t\tkeycap = { x = %s, y = %s, w = %s, h = %s, file = "%sKeycap", r = %s, b = %s, pw = %s, ph = %s, dx = %s, dy = %s, shown = %s },' % (
+            num(c["x"]), num(c["y"]), num(c["w"]), num(c["h"]), folder, num(t["r"]), num(t["b"]),
+            num(c["pw"]), num(c["ph"]), num(c["dx"]), num(c["dy"]), "true" if c["shown"] else "false"))
         o = d["ornament"]
         out.append("\t\tornament = { x = %s, y = %s }," % (num(o["x"]), num(o["y"])))
         w = d["well"]

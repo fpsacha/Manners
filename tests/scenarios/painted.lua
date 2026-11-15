@@ -322,3 +322,116 @@ withTree("painted: the switch is on the Look page and every painted file is a po
 		end
 	end
 end)
+
+-- ------------------------------------------------------------------ 8
+-- The keycap, a piece of its own: Show my key on the prompt (prompt.keycap),
+-- "look" (the look's own default from its data), "show" or "hide"; with no key
+-- bound nothing is there whatever it says.
+withTree("painted: the keycap follows Show my key on the prompt, the look's default and a key bound", function(ns, scenario)
+	Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
+	local r, p, look = upIn(ns, scenario, "frost")
+	local art = look and look.paintedArt
+	if not (art and art.keycap) then fail(scenario, "Frost's painting has no keycap piece") return end
+	if ns.defaults.profile.prompt.keycap ~= "look" then fail(scenario, "Show my key is not \"as the look has it\" by default") end
+	local d = ns.PaintedData.frost
+	local function seen(what)
+		tick(ns)
+		local cap, letter = FT.visible(art.keycap), FT.visible(look.keyText)
+		return cap, letter
+	end
+	local cap, letter = seen()
+	if not (cap and letter) then fail(scenario, ("as the look has it on Frost (shown), keycap %s, letter %s"):format(tostring(cap), tostring(letter))) end
+	-- The piece on the keycap, the frame's right end under it.
+	local kb, g = box(art.keycap), art.g
+	local a = box(look.kit.art)
+	if kb and a and not near((kb.x0 + kb.x1) / 2 - a.x0, g.keyX + d.keycap.dx * g.unit, 0.5) then
+		fail(scenario, ("the keycap piece is at %.1f, the keycap at %.1f"):format((kb.x0 + kb.x1) / 2 - a.x0, g.keyX))
+	end
+	p.keycap = "hide"
+	restyle(ns)
+	cap, letter = seen()
+	if cap or letter then fail(scenario, "Never: the keycap or its letter is still drawn") end
+	if not FT.visible(art.pieces[3]) then fail(scenario, "Never: the right end of the frame went with the keycap") end
+	p.keycap = "look"
+	local was = d.keycap.shown
+	d.keycap.shown = false
+	restyle(ns)
+	cap, letter = seen()
+	if cap or letter then fail(scenario, "as the look has it, on a look whose keycap is hidden, the key is drawn") end
+	p.keycap = "show"
+	restyle(ns)
+	cap, letter = seen()
+	if not (cap and letter) then fail(scenario, "Always: on a look whose keycap is hidden the key is not drawn") end
+	d.keycap.shown = was
+	-- No key bound: nothing, whatever the setting says.
+	Mock.bindings = {}
+	restyle(ns)
+	cap, letter = seen()
+	if cap or letter then fail(scenario, "with no key bound the keycap or a letter is drawn") end
+	-- Earlier art: Frost's own tag as it always was, gone with Never.
+	Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
+	p.classicArt, p.keycap = true, "look"
+	restyle(ns)
+	if FT.visible(art.keycap) then fail(scenario, "Earlier art: the painted keycap is drawn") end
+	if not FT.visible(look.keyText) then fail(scenario, "Earlier art, as the look has it: Frost's own key tag is gone") end
+	p.keycap = "hide"
+	restyle(ns)
+	if FT.visible(look.keyText) then fail(scenario, "Earlier art, Never: Frost's own key tag is drawn") end
+	-- Another look: nothing of the keycap left.
+	p.classicArt, p.keycap = false, "look"
+	restyle(ns)
+	if not FT.visible(art.keycap) then fail(scenario, "SKIPPED -- the keycap is not up to be taken down") end
+	p.style = "glass"
+	restyle(ns)
+	if FT.visible(art.keycap) then fail(scenario, "under Glass, Frost's keycap is drawn") end
+end)
+
+-- An end cut back where the prompt is too short for the whole painting: what
+-- is shown of its file is cut where the end is, so it keeps the painting's
+-- proportion (Frost's final painting has its stretch run at the words' start,
+-- so its left end is never cut: the data is given room to cut here).
+withTree("painted: an end cut back keeps the painting's proportion", function(ns, scenario)
+	local _, p, look = upIn(ns, scenario, "frost")
+	local art = look and look.paintedArt
+	if not art then fail(scenario, "Frost has no painted frame") return end
+	local d = ns.PaintedData.frost
+	local wasL, wasR = d.leftMin, d.rightMin
+	d.leftMin, d.rightMin = d.left.w * 0.6, d.right.w * 0.7
+	local tall = 1 + d.above + d.below
+	local cut = 0
+	for _, size in ipairs({ { 80, 40 }, { 80, 44 }, { 90, 48 } }) do
+		p.width, p.height = size[1], size[2]
+		ns.ClampSettings()
+		restyle(ns)
+		local g, L = art.g, box(art.pieces[1])
+		if g and L then
+			local lw = (g.x1 - g.left) / g.unit
+			if lw < d.left.w - 0.01 then cut = cut + 1 end
+			local c = art.pieces[1]._texCoord or {}
+			local want = d.left.w * ((c[2] or 0) - (c[1] or 0)) / d.left.r / tall
+			if not near(L.w / L.h, want, 0.01 + want * 0.01) then
+				fail(scenario, ("%dx%d: the left end cut back is drawn %.3f wide a unit of height, the painting %.3f"):format(size[1], size[2], L.w / L.h, want))
+			end
+		end
+	end
+	d.leftMin, d.rightMin = wasL, wasR
+	if cut == 0 then fail(scenario, "SKIPPED -- no size cut the left end back") end
+end)
+
+withTree("painted: Show my key is a setting on the Look page, repaired and carried by the settings text", function(ns, scenario)
+	freshPrompt(ns, scenario)
+	local opt = H.findOption(ns.optionsTable, "keycap")
+	if not (opt and opt.type == "select") then fail(scenario, "no control on the Look page sets prompt.keycap") return end
+	for _, v in ipairs({ "look", "show", "hide" }) do
+		if not (opt.values and opt.values[v]) then fail(scenario, "the control offers no " .. v) end
+	end
+	local p = ns.db.profile.prompt
+	p.keycap = "sometimes"
+	ns.ClampSettings()
+	if p.keycap ~= "look" then fail(scenario, "a damaged Show my key is kept: " .. tostring(p.keycap)) end
+	p.keycap = "hide"
+	local text = ns.ExportSettings()
+	p.keycap = "look"
+	local ok = ns.ImportSettings(text)
+	if not ok or p.keycap ~= "hide" then fail(scenario, "the settings text does not carry Show my key: " .. tostring(p.keycap)) end
+end)

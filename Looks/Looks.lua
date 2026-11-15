@@ -324,6 +324,32 @@ function Looks.RoundAlways(key)
 	return look ~= nil and Looks.roundAlways[look.key] == true
 end
 
+-- Show my key on the prompt (prompt.keycap): whether a look shows the key
+-- bound to the prompt, on its painted keycap or its own key tag. "show" and
+-- "hide" are the player's, on every look; "look" is the look's own default:
+-- a painted look's from its data (Looks/PaintedData.lua's keycap.shown: shown
+-- on the class and themed looks, not on the calmer ones), and under Earlier
+-- art, or for a look with no painting, what the look always did. With no key
+-- bound the look shows nothing whatever this says (its KeyLabel).
+function Looks.KeyWanted(look)
+	local p = ns.db and ns.db.profile and ns.db.profile.prompt
+	local choice = p and p.keycap
+	if choice == "show" then return true end
+	if choice == "hide" then return false end
+	local art = look and look.paintedArt
+	if art and art.on then return art.data.keycap.shown ~= false end
+	return true
+end
+
+-- The key bound to the prompt, or nil: the client's own name for it.
+Looks.COMMAND = "CLICK MannersPrompt:LeftButton"
+function Looks.BoundKey()
+	if type(GetBindingKey) ~= "function" then return nil end
+	local key = GetBindingKey(Looks.COMMAND)
+	if type(key) ~= "string" or key == "" then return nil end
+	return key
+end
+
 -- The words on a look's key chip for a key bound to the prompt, in the
 -- client's own short form (what its action bars print: "s-F", a gamepad
 -- button as its glyph, an inline atlas the chip measures as it draws it), or

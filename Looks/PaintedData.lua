@@ -12,7 +12,10 @@
 -- hangRight: how far each may hang past the prompt's own edge when the well is too
 -- short for the words (the socket's hole and the keycap stay over it). ink: the well's
 -- own luminance at its darkest and brightest (linear), for Legible; keyInk: the key's
--- letter on the keycap.
+-- letter on the keycap. keycap: the keycap's middle (x from the bar's right) and size,
+-- and its piece (file, texcoords r b, size pw ph, its middle dx dy off the keycap's),
+-- drawn over the frame, which is whole under it; shown: whether the look shows it while
+-- Show my key on the prompt is "As the look has it".
 
 local _, ns = ...
 
@@ -24,7 +27,7 @@ ns.PaintedData = {
 		above = 0.1606, below = 0.1244, leftMin = 1.8672, rightMin = 1.7556, hangLeft = 0.5792, hangRight = 0.9755,
 		socket = { shape = "round", x = 0.9751, y = 0.4819, r = 0.3959 },
 		textX = 1.8281, textY = 0.4995,
-		keycap = { x = 1.2656, y = 0.491, w = 0.3801, h = 0.3982 },
+		keycap = { x = 1.2656, y = 0.491, w = 0.3801, h = 0.3982, file = "Interface\\AddOns\\Manners\\Textures\\Painted\\Frost\\Keycap", r = 0.9062, b = 0.9375, pw = 0.4531, ph = 0.4688, dx = -0.0001, dy = -0.0031, shown = true },
 		ornament = { x = 0.5378, y = 0.491 },
 		well = { top = 0.2144, bottom = 0.7847 },
 		ink = { light = true, lo = 0.0096, hi = 0.0301 },

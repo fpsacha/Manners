@@ -64,13 +64,13 @@ mutate("Looks/Painted.lua",
        "\t\tlw, over = L - cut, over - cut\n",
        "\t\tover = over - cut\n",
        "painted: the left end squeezed rather than cut back",
-       expect="end is drawn", script=S)
+       expect="painted: an end cut back keeps the painting's proportion", script=S)
 
 mutate("Looks/Painted.lua",
        "\ts[1]:SetTexCoord(0, g.leftR, 0, d.left.b)\n",
        "\ts[1]:SetTexCoord(0, d.left.r, 0, d.left.b)\n",
        "painted: the left end's file not cut where the end is",
-       expect="the left end is drawn", script=S)
+       expect="the left end cut back is drawn", script=S)
 
 mutate("Looks/Painted.lua",
        "\t\t\tunit = W / (lw + rw - hlu - hru)\n",
@@ -143,3 +143,53 @@ mutate("Looks/Painted.lua",
        "\tif false then\n",
        "painted: the ends never hang past a prompt too short for the words",
        expect="the well leaves", script=S)
+
+# --- the keycap and Show my key on the prompt ---
+
+mutate("Looks/Looks.lua",
+       "\tif choice == \"hide\" then return false end\n",
+       "",
+       "painted: Never shows the key",
+       expect="Never: the keycap", script=S)
+
+mutate("Looks/Looks.lua",
+       "\tif art and art.on then return art.data.keycap.shown ~= false end\n",
+       "",
+       "painted: a look's own keycap default ignored",
+       expect="on a look whose keycap is hidden, the key is drawn", script=S)
+
+mutate("Looks/Painted.lua",
+       "\treturn art ~= nil and art.on == true and Looks.KeyWanted(look) and Looks.BoundKey() ~= nil\n",
+       "\treturn art ~= nil and art.on == true and Looks.KeyWanted(look)\n",
+       "painted: a blank keycap with no key bound",
+       expect="with no key bound", script=S)
+
+mutate("Looks/Frost.lua",
+       "\tif not ns.Looks.KeyWanted(self) then return nil end\n",
+       "",
+       "painted: Frost's own tag deaf to Show my key",
+       expect="Earlier art, Never", script=S)
+
+mutate("Looks/Painted.lua",
+       "\tart.keycap:Hide()\n",
+       "",
+       "painted: the keycap left up when the painting goes",
+       expect="under Glass, Frost's keycap is drawn", script=S)
+
+mutate("Looks/Painted.lua",
+       "\tlocal kx, ky = g.keyX + c.dx * g.unit, g.keyY + c.dy * g.unit\n",
+       "\tlocal kx, ky = g.keyX + 4, g.keyY + c.dy * g.unit\n",
+       "painted: the keycap piece beside the keycap",
+       expect="the keycap piece is at", script=S)
+
+mutate("Core.lua",
+       "\toneOf(p, \"keycap\", { look = true, show = true, hide = true }, \"look\")\n",
+       "",
+       "painted: Show my key not repaired",
+       expect="a damaged Show my key is kept", script=S)
+
+mutate("Options/Look.lua",
+       "\t\t\tkeycap = {\n\t\t\t\ttype = \"select\",\n",
+       "\t\t\tkeycapGone = {\n\t\t\t\ttype = \"select\",\n",
+       "painted: no control for Show my key",
+       expect="no control on the Look page sets prompt.keycap", script=S)

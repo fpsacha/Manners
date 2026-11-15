@@ -49,6 +49,7 @@ local Painted = {}
 Looks.Painted = Painted
 
 local PARTS = { "left", "middle", "right" }
+-- The keycap is a fourth piece (art.keycap), over the right end.
 local ICON_FILL = 0.98
 
 -- Whether the player wants the painted frames: Earlier art is off.
@@ -188,6 +189,24 @@ local function Place(art, rel, g)
 	s[1]:Show()
 	s[2]:SetShown(g.x2 - g.x1 > 0.5)
 	s[3]:Show()
+	-- The keycap, a piece of its own over the right end (the frame under it is
+	-- whole): where the keycap is painted, at the painting's own scale.
+	local c, k = d.keycap, art.keycap
+	local kx, ky = g.keyX + c.dx * g.unit, g.keyY + c.dy * g.unit
+	Box(k, rel, kx - c.pw * g.unit / 2, ky - c.ph * g.unit / 2, kx + c.pw * g.unit / 2, ky + c.ph * g.unit / 2)
+	k:SetTexCoord(0, c.r, 0, c.b)
+end
+
+-- Whether the painted keycap is up: the painting up, a key bound to the prompt,
+-- and Show my key on the prompt (Looks.KeyWanted) asking for it.
+function Painted.KeyShown(look)
+	local art = look and look.paintedArt
+	return art ~= nil and art.on == true and Looks.KeyWanted(look) and Looks.BoundKey() ~= nil
+end
+
+local function ShowKeycap(look)
+	local art = look.paintedArt
+	if art then art.keycap:SetShown(Painted.KeyShown(look)) end
 end
 
 -- The live spell icon in the socket; its shape (a mask) is the look's own, by
@@ -207,6 +226,7 @@ local function Release(look)
 	if not art then return end
 	art.on, art.g = false, nil
 	for _, t in ipairs(art.pieces) do t:Hide() end
+	art.keycap:Hide()
 	Each(look, Unmuffle)
 end
 
@@ -217,6 +237,8 @@ function Painted.Tone(look, r, g, b, grey)
 		t:SetDesaturated(grey and true or false)
 		Colour(t, r, g, b)
 	end
+	art.keycap:SetDesaturated(grey and true or false)
+	Colour(art.keycap, r, g, b)
 end
 
 ---------------------------------------------------------------------------
@@ -224,7 +246,7 @@ end
 ---------------------------------------------------------------------------
 
 function Painted.Wrap(look, d)
-	local build, apply, styled, hide = look.Build, look.Apply, look.Styled, look.Hide
+	local build, apply, styled, hide, chip = look.Build, look.Apply, look.Styled, look.Hide, look.Chip
 
 	function look:Build(kit)
 		build(self, kit)
@@ -236,7 +258,11 @@ function Painted.Wrap(look, d)
 			Looks.Hold(t)
 			pieces[i] = t
 		end
-		self.paintedArt = { data = d, pieces = pieces, on = false }
+		local keycap = kit.art:CreateTexture(nil, "BACKGROUND", nil, -4)
+		keycap:SetTexture(d.keycap.file)
+		keycap:Hide()
+		Looks.Hold(keycap)
+		self.paintedArt = { data = d, pieces = pieces, keycap = keycap, on = false }
 	end
 
 	function look:Apply(p, above)
@@ -252,6 +278,7 @@ function Painted.Wrap(look, d)
 		g.round = Looks.roundAlways[self.key] == true or p.roundIcon == true
 		art.g = g
 		Place(art, self.kit.art, g)
+		ShowKeycap(self)
 		PlaceIcon(self, self.kit, g)
 		if self.PaintedPlace then
 			local x, room = self:PaintedPlace(g, p, above)
@@ -274,6 +301,15 @@ function Painted.Wrap(look, d)
 	function look:Hide()
 		hide(self)
 		Release(self)
+	end
+
+	-- At every repaint: the keycap follows a key bound or unbound since.
+	if chip then
+		function look:Chip(on)
+			local up = chip(self, on)
+			ShowKeycap(self)
+			return up
+		end
 	end
 end
 

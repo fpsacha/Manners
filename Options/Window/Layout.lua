@@ -736,6 +736,9 @@ ns.WindowLayout = {
 				-- gallery's nineteen cards above, this keeps Look to three screens.
 				{ key = "appearance.style", header = "appearance.styleHeader", fold = true, items = {
 					{ "appearance.bgColor", pair = true },
+					-- The key on the prompt: every look's, so with the look's
+					-- colours, in the same fold.
+					"appearance.keycap",
 					"appearance.accentByReason",
 					-- With Colour marker, whatever else shows: Marker colour
 					-- follows on a row of its own while Colour marker by
@@ -882,6 +885,13 @@ ns.WindowLayout = {
 					"profiles.sharePaste",
 				} },
 			},
+			-- Four titled sections: picking and starting afresh together, the
+			-- switching by place, the sharing; the manager's lead goes with each.
+			subpages = {
+				{ "profiles.pick", "profiles.start" },
+				{ "profiles.auto" },
+				{ "profiles.share" },
+			},
 		},
 
 		diagnostics = {
@@ -960,7 +970,7 @@ ns.WindowLayout = {
 			["click.linesOff"] = true, ["click.preset"] = true, ["click.phrasesHelp"] = true,
 			["click.inCharacterNote"] = true, ["click.phrases"] = true,
 			-- Look.
-			["appearance.style"] = true, ["appearance.classicArt"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
+			["appearance.style"] = true, ["appearance.classicArt"] = true, ["appearance.keycap"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
 			["appearance.scale"] = true, ["appearance.alpha"] = true,
 			["appearance.soundEnabled"] = true, ["appearance.soundFile"] = true,
 			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,

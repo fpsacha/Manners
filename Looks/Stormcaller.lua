@@ -1499,6 +1499,8 @@ end
 function Storm:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
 	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
+	-- Show my key on the prompt (prompt.keycap): the player's choice, else the look's.
+	if not ns.Looks.KeyWanted(self) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then

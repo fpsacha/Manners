@@ -228,6 +228,23 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- The key bound to the prompt, on the painted keycap (and on a look's
+			-- own key tag): as the look has it, or always, or never. With no key
+			-- bound nothing is shown there whatever this says.
+			keycap = {
+				type = "select",
+				name = L["Show my key on the prompt"],
+				desc = L["Whether the key you press for the prompt is shown on it. As the look has it: on the class and themed looks, not on the calmer ones. Nothing is shown while no key is bound."],
+				order = 21.6,
+				values = {
+					look = L["As the look has it"],
+					show = L["Always"],
+					hide = L["Never"],
+				},
+				sorting = { "look", "show", "hide" },
+				get = pGet,
+				set = pSet,
+			},
 			bgColor = {
 				type = "color",
 				name = L["Panel colour"],
