@@ -1167,7 +1167,22 @@ function Page.BuildStartTab()
 			makeMacro = {
 				type = "execute",
 				name = L["Put Manners on an action bar"],
-				desc = L["Makes the Manners macro and puts it on your cursor: drop it on any action bar slot. The slot then shows the spell a press would cast."],
+				-- And what it does in a fight, where it cannot step: an addon
+				-- may not rewrite a macro then, and no macro may /click a
+				-- button that runs one (Prompt/Fight.lua, the fight's rota).
+				desc = function()
+					local p = ns.db and ns.db.profile.prompt
+					local fight
+					if p and p.hideInFight then
+						fight = L["In a fight it casts nothing, as the prompt hidden for the fight does."]
+					elseif p and p.fightRota ~= false then
+						fight = L["In a fight it casts at the one person the fight began with: only the prompt and its key move on to the others."]
+					else
+						fight = L["In a fight it casts at the one person the fight began with, as the prompt does."]
+					end
+					return L["Makes the Manners macro and puts it on your cursor: drop it on any action bar slot. The slot then shows the spell a press would cast."]
+						.. " " .. fight
+				end,
 				order = 23,
 				hidden = noPrompt,
 				-- Not greyed in a fight: the press says why it does nothing.

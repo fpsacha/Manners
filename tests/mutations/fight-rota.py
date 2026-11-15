@@ -18,16 +18,16 @@ mutate(FIGHT,
        expect="the prompt's click is not wrapped for the rota", script=S)
 
 mutate(FIGHT,
-       "\tlocal i = (control:GetAttribute(\"manners-rota-i\") or 1) % n + 1\n",
+       "\tlocal i = (control:GetAttribute(\"manners-rota-i\") or 1) + 1\n",
        "\tlocal i = control:GetAttribute(\"manners-rota-i\") or 1\n",
        "fight-rota: the snippet stays on the one person",
        expect=EACH, script=S)
 
 mutate(FIGHT,
-       "\tlocal i = (control:GetAttribute(\"manners-rota-i\") or 1) % n + 1\n",
+       "\tlocal i = (control:GetAttribute(\"manners-rota-i\") or 1) + 1\n",
        "\tlocal i = math.min(n, (control:GetAttribute(\"manners-rota-i\") or 1) + 1)\n",
        "fight-rota: the rota stops on its last instead of coming round",
-       expect="the rota does not come round in the same order", script=S)
+       expect="the rota casts again after a press for each", script=S)
 
 mutate(FIGHT,
        "\tself:SetAttribute(\"macrotext1\", text)\n\tself:SetAttribute(\"macrotext\", text)\n",
@@ -42,8 +42,8 @@ mutate(FIGHT,
        expect="a right press stepped the rota", script=S)
 
 mutate(FIGHT,
-       "\tif (control:GetAttribute(\"manners-rota-n\") or 0) < 2 then return end\n\treturn nil, \"step\"\n",
-       "\treturn nil, \"step\"\n",
+       "\tif n < 2 then return end\n",
+       "",
        "fight-rota: the first half lets the second run with no rota",
        expect="fight-rota:", script=S)
 

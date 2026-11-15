@@ -492,7 +492,7 @@ with("barclick: in a fight the macro keeps what it held at the pull", function(n
 	-- Just before the lockdown, as the client sends it.
 	ns.addon:PLAYER_REGEN_DISABLED()
 	local fight = bodyNow() or ""
-	if not fight:find("/target Anna Aim", 1, true) or lastLine(fight) ~= "/targetlasttarget" then
+	if not fight:find("/target Anna Aim", 1, true) or lastLine(fight) ~= "/targetlasttarget [help]" then
 		fail(scenario, "the pull wrote " .. flat(fight))
 	end
 	Mock.inCombat = true

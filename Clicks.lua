@@ -1471,8 +1471,9 @@ do
 	-- Prompt/Macro.lua allyscroll, in the account-wide macro) one /use
 	-- item:<id> alone; then, after a /target, at most one hand-back.
 	-- None at all is the bar line alone. Nothing Manners writes has a
-	-- conditional in it. A line of any other kind, or these in any other
-	-- order or number (a trinket's /use 13 added under the cast), is not.
+	-- conditional in it but the fight's hand-back, "/targetlasttarget [help]".
+	-- A line of any other kind, or these in any other order or number (a
+	-- trinket's /use 13 added under the cast), is not.
 	local function Shaped(rest)
 		local i = 2
 		if rest[i] == nil then return true end
@@ -1502,7 +1503,14 @@ do
 		end
 		if targeted then
 			command, arg = Command(rest[i])
-			if (command == "targetlasttarget" or command == "cleartarget") and arg == "" then i = i + 1 end
+			if (command == "targetlasttarget" or command == "cleartarget") and arg == "" then
+				i = i + 1
+			-- The one conditional Manners writes: the hand-back of a macro armed
+			-- for a fight, only after a /target that found somebody friendly
+			-- (Prompt/Macro.lua, HandBack).
+			elseif command == "targetlasttarget" and arg == "[help]" then
+				i = i + 1
+			end
 		end
 		return rest[i] == nil
 	end

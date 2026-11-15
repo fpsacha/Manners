@@ -2102,6 +2102,10 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 				priority = PRIORITY[memo.reason],
 				-- ranged is left unwritten, as on the owed fallback: nothing
 				-- measured them this scan.
+				-- Offered from memory alone, which the pull's own repaint
+				-- leaves out (Prompt/Fight.lua, ForFight): a press in the fight
+				-- is no time to find out whether they are still about.
+				remembered = true,
 				known = memo.known,
 				remaining = memo.expires and (memo.expires - now) or nil,
 				checked = memo.checked,

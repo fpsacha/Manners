@@ -281,6 +281,17 @@
 - **Looks.** A cure that lands reads "cured", not "buffed"; on seven looks the
   next favour no longer cuts a landing's flourish short; Warchief's soot fades
   once under a verdict; flowing art picks up where it stopped after a fight.
+- **A fight just after a crowd passed.** A passer-by who walked off a few
+  seconds before the pull is no longer frozen on the prompt for the fight, nor
+  put in its rota; the fight over, the second line no longer says where the
+  rota stood.
+- **A press in a fight keeps your enemy targeted.** When the person whose
+  turn it is has gone out of sight, the press no longer switches you off the
+  mob onto whatever you had targeted before.
+- **The fight's rota goes round once.** Each press reaches the next person
+  the fight began with, once each; then the prompt says everybody has had a
+  press and casts nothing, instead of buffing them all again. *Put Manners on
+  an action bar* says that the bar macro casts at one person in a fight.
 
 ## 1.11.24
 

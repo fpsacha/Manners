@@ -838,6 +838,12 @@ do
 			fail(scenario, "SKIPPED -- no group cast armed before the fight: " .. flat(armed))
 		else
 			ns.addon:PLAYER_REGEN_DISABLED()
+			-- What the pull armed: the same cast, with the fight's own hand-back
+			-- (Prompt/Macro.lua, HandBack).
+			armed = macro(ns)
+			if not (armed and armed:find("Arcane Brilliance", 1, true)) then
+				fail(scenario, "the pull armed something else: " .. flat(armed))
+			end
 			Mock.inCombat = true
 			-- Two of them buffed by somebody else mid-fight: out of combat that
 			-- would drop the party under the threshold.

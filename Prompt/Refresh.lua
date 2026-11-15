@@ -10,6 +10,7 @@ local HideQueue, Substitute, SetLine, ShowChip = lib.HideQueue, lib.Substitute, 
 local ClearHold, LightFuse, NoteVerdicts, Retired = lib.ClearHold, lib.LightFuse, lib.NoteVerdicts, lib.Retired
 local CursorHolds, ArmingForFight, EMPTY_FUSE_SECONDS = lib.CursorHolds, lib.ArmingForFight, lib.EMPTY_FUSE_SECONDS
 local FullEffects, OutroAlpha, EntryIcon = lib.FullEffects, lib.OutroAlpha, lib.EntryIcon
+local ForFight = lib.ForFight
 
 -- Who was last painted on the panel, by name, and why they were on it.
 local lastTop, lastTopReason
@@ -301,6 +302,9 @@ function Prompt:RefreshPanel()
 					local at, of = self:FightRotaAt()
 					SetLine(R.subText, "|cffb0b0b0" .. (at and L["in a fight -- %d of %d, a press moves on"]:format(at, of)
 						or L["held -- in combat"]) .. "|r")
+					-- For the fuse after the fight, which keeps the panel as
+					-- it stands: this line is the fight's alone.
+					S.fightLine = true
 				end
 				-- No count: it is a claim about the queue this branch just
 				-- blanked.
@@ -311,8 +315,11 @@ function Prompt:RefreshPanel()
 				-- started with nobody on the panel, so the click's green
 				-- headline would otherwise stand for the whole fight over an
 				-- empty button.
+				-- Or the fight's rota went round once and the button casts nothing
+				-- now (Fight.lua): said as such, not as an empty queue.
 				self:PaintHeldInert(L["held -- a press still casts what the fight froze"],
-					L["held -- nothing armed, and the panel cannot go"])
+					self:FightRotaDone() and L["in a fight -- everybody it began with has had a press"]
+					or L["held -- nothing armed, and the panel cannot go"])
 			end
 		end
 		return
@@ -335,6 +342,9 @@ function Prompt:RefreshPanel()
 	-- BuildQueue), so the cursor's hold can tell the dead from the unseen.
 	local queue, verdicts = ns.BuildQueue(S.hovering)
 	NoteVerdicts(verdicts)
+	-- The pull's own pass arms the whole fight: nobody offered from memory
+	-- alone (Fight.lua, ForFight).
+	if ArmingForFight() then queue = ForFight(queue) end
 	local top = self:PickTop(queue, queue[1])
 	S.pickedFrom = queue
 
@@ -376,6 +386,13 @@ function Prompt:RefreshPanel()
 			-- judges the line again (Press.lua, HoldLine). Undone at once below
 			-- when the fuse has burnt out.
 			self:ApplyTarget(S.current, true)
+			-- A fight that ended with nobody left in the queue: the second
+			-- line still said where the fight's rota stood, over a panel that
+			-- is no longer in one.
+			if S.fightLine then
+				S.fightLine = nil
+				self:Paint(S.current, 0)
+			end
 			-- Nor does it burn out under the cursor (see hovering): the
 			-- player is on the way to clicking it. OnLeave repaints. Not
 			-- when the queue emptied on a verdict, theirs or your own state
@@ -469,6 +486,7 @@ function Prompt:RefreshPanel()
 	S.heldEntry = top
 
 	self:Paint(top, others)
+	S.fightLine = nil
 	R.button:Show()
 
 	if wasHidden then

@@ -10,7 +10,7 @@ M = "Prompt/Macro.lua"
 # With nothing targeted the macro hands a stale target back instead of
 # clearing.
 mutate(M,
-       "\tif Prompt.armedForFight ~= true and NoTarget() then return \"/cleartarget\" end\n",
+       "\tif NoTarget() then return \"/cleartarget\" end\n",
        "\tif false then return \"/cleartarget\" end\n",
        "hunt39-press: no target and the macro still hands back the last one",
        expect="hunt39-press: no target when armed, the hand-back clears the target",
@@ -19,8 +19,8 @@ mutate(M,
 # The macro armed at the pull clears the target in a fight, taking whatever
 # the player has picked by then.
 mutate(M,
-       "\tif Prompt.armedForFight ~= true and NoTarget() then return \"/cleartarget\" end\n",
-       "\tif NoTarget() then return \"/cleartarget\" end\n",
+       "\tif Prompt.armedForFight == true then return FIGHT_HANDBACK end\n",
+       "\tif Prompt.armedForFight == true and not NoTarget() then return FIGHT_HANDBACK end\n",
        "hunt39-press: the macro armed for a fight clears the target",
        expect="hunt39-press: the macro armed for a fight keeps handing back",
        script=S)

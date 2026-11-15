@@ -56,8 +56,20 @@ end
 -- the target is cleared instead. The macro armed for a fight keeps
 -- /targetlasttarget: it runs at every press of the fight, whatever is targeted
 -- by then, and a cleared target would take the one the player has picked.
+--
+-- In a fight it hands back only when the /target before it found somebody
+-- friendly ([help]): with the person gone from the client's view since the
+-- pull, the /target finds nobody, the mob stays targeted, and an unconditional
+-- hand-back switched you off it onto whatever was targeted before, for every
+-- press after as well (the review of 2026-11-15). A bare conditional, which
+-- asks about the target: the client's /targetlasttarget handler runs only on
+-- SecureCmdOptionParse's answer (SlashCommands.lua on every branch), and it is
+-- [@unit] alone that does not resolve on Forever. Out of a fight the scan arms
+-- it a moment before the press for what is targeted then, as before.
+local FIGHT_HANDBACK = "/targetlasttarget [help]"
 local function HandBack()
-	if Prompt.armedForFight ~= true and NoTarget() then return "/cleartarget" end
+	if Prompt.armedForFight == true then return FIGHT_HANDBACK end
+	if NoTarget() then return "/cleartarget" end
 	return "/targetlasttarget"
 end
 

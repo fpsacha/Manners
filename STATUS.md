@@ -1022,6 +1022,47 @@ Forever, that the post-body's write lands in a fight, that PostClick runs
 after it (the panel would otherwise name the person just buffed), and how it
 feels with the cooldown (a press it turns away still steps).
 
+**The fight, after the review of 2026-11-15** (`tests/scenarios/par-core2.lua`).
+Closed: a pull a few seconds after a crowd passed froze a passer-by who had
+walked off on the prompt for the whole fight and made the rota of people who
+had left. The pull's own repaint now arms from the queue less every passer-by
+offered from memory alone (`Prompt/Fight.lua` `ForFight`, Queue.lua's
+`remembered` on an `OfferPassersBy` entry); an asker and a favour owed stay.
+The fuse after a fight repaints a second line that still spoke of the rota.
+Closed: a press in a fight whose `/target` found nobody (the person gone from
+view since the pull) handed your target back anyway, taking you off the mob
+for that press and every one after. The macro armed for a fight now ends
+`/targetlasttarget [help]` (`Prompt/Macro.lua` `HandBack`; Clicks.lua's
+`Shaped` takes it as Manners' own); out of a fight the hand-back is as before.
+The mock's runner now asks `SecureCmdOptionParse` for the hand-back as the
+client's handler does, and reads `[help]`, `[harm]` and `[exists]` off its
+target. Only the live game can say: that a questing pull just after somebody
+ran past leaves the prompt down (or on whoever is still beside you); that
+Forever's parser reads a bare `[help]` as the target's friendliness (run
+`/manners selftest launch` with a friend targeted and again with a mob: the
+hand-back's line says `[help] answers "yes"`, then `"no"`); and, in a real
+fight, a press at somebody who has run off leaving your mob targeted, then
+the next press at somebody there giving the mob back.
+
+Closed: in a fight the rota went round and round, casting a half-hour buff
+again at people it had just buffed. It goes round once now (`ROTA_POST`
+writes nothing on the button past its last, and never reads a macro above
+`manners-rota-n`, which a longer rota of an earlier fight may have left);
+`SyncFightRota` empties `current` and the panel says *in a fight --
+everybody it began with has had a press*. Secure code can know no more than
+that: the restricted environment has no cooldown or aura read, and a handle
+to a frame Lua could write in a fight is refused (`RestrictedFrames.lua`
+`GetHandleFrame` on the forever branch), so a press the cooldown turned away
+still uses its turn. A rota of one is no rota, as before: its press keeps to
+the one person. The bar macro cannot step (no macro may /click a button that
+runs a macro, and none may be rewritten in a fight): it keeps to the one
+person the pull wrote, and *Put Manners on an action bar* says so in its
+tooltip. Only the live game can say: in a dungeon pull, that presses one a
+cooldown apart reach each person once and the fourth of three casts nothing
+with the panel saying so; that a press inside the cooldown passes its person
+by; and that the bar macro's tooltip reads right with *Hide the prompt in
+combat* on and off.
+
 **The credit line.** `diagnostics.aboutNote` names the author's
 character (`ns.AUTHOR`, Clicks.lua), in the options window's footer under the
 build since 1.11.18 (`Layout.lua`'s `footer.about`). It asks for nothing and must stay that

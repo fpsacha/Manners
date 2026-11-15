@@ -102,7 +102,9 @@ for _, flavour in ipairs({ "camelot", "vanilla", "tbc", "mists", "mainline" }) d
 		pull(ns)
 		local n = header:GetAttribute("manners-rota-n")
 		if n ~= 3 then fail(scenario, "the rota holds " .. tostring(n) .. " of the three people owed") return end
-		-- Six presses: everybody once, in the queue's order, and then round again.
+		-- Six presses: everybody once, in the queue's order, and then nothing:
+		-- the round goes once (par-core2.lua; until the review of 2026-11-15 it
+		-- came round again, casting at people it had just buffed).
 		Mock.protectedCalls = {}
 		local order, before = {}, #Mock.castLog
 		for i = 1, 6 do
@@ -125,11 +127,11 @@ for _, flavour in ipairs({ "camelot", "vanilla", "tbc", "mists", "mainline" }) d
 		end
 		if distinct ~= 3 then fail(scenario, "three presses reached " .. distinct .. " people: " .. table.concat(order, ", ")) end
 		for i = 4, 6 do
-			if order[i] ~= order[i - 3] then fail(scenario, "the rota does not come round in the same order: " .. table.concat(order, ", ")) end
+			if order[i] ~= nil then fail(scenario, "the rota casts again after a press for each: " .. table.concat(order, ", ", 1, i)) end
 		end
-		-- The game cast at each of them, in that order.
+		-- The game cast at each of them, in that order, and at nobody after.
 		local casts = castsSince(before)
-		if #casts ~= 6 then fail(scenario, #casts .. " casts went out for six presses") end
+		if #casts ~= 3 then fail(scenario, #casts .. " casts went out for six presses at a rota of three") end
 		for i, e in ipairs(casts) do
 			-- (The mock logs its own two-word name for whoever the macro's
 			-- /target reached by the name this client knows them under.)

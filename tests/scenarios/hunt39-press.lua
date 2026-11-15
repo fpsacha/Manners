@@ -156,7 +156,8 @@ do
 		ns.addon:PLAYER_REGEN_DISABLED()
 		Mock.inCombat = true
 		local text = macro(ns)
-		if lastLine(text) ~= "/targetlasttarget" then
+		-- Only after a /target that found somebody friendly (par-core2.lua).
+		if lastLine(text) ~= "/targetlasttarget [help]" then
 			fail(scenario, "the macro armed at the pull ends " .. flat(text))
 		end
 		-- The player picks a target mid-fight and the macro is not touched.
@@ -180,7 +181,7 @@ do
 		targeting(false)
 		Mock.protectedCalls = {}
 		ns.addon:Tick()
-		if macro(ns) ~= armed or lastLine(armed) ~= "/targetlasttarget" then
+		if macro(ns) ~= armed or lastLine(armed) ~= "/targetlasttarget [help]" then
 			fail(scenario, "armed for the fight it ends " .. flat(armed) .. ", then " .. flat(macro(ns)))
 		end
 		if #Mock.protectedCalls > 0 then
