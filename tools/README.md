@@ -1245,6 +1245,18 @@ all four, what `kit.RingArt` is told).
 After any of them: `python tools/make_look_previews.py` (the picker's card)
 and `python tools/audit_look_contrast.py --looks <key>`.
 
+## make_painted_look.py
+
+A look's painted frame (`Looks/Painted.lua`) from one painting: `art/looks/<key>/`
+holds `final-empty.jpg` and `meta.json` (not shipped). The tool keys the slate out
+to alpha with no fringe, finds the bar's core in the `stretch` run, scales the bar
+so the core is 128 texels, evens the light where an end may be cut back, darkens
+the well under the words if it is too light, cuts it into `Left`, `Middle` and
+`Right` TGAs under `Textures/Painted/<Key>/` and writes `Looks/PaintedData.lua`
+(every number as a share of the core's height). `python tools/make_painted_look.py
+<key> [--debug DIR]`, `--all`, `--check`. INTEGRATION.md is the recipe for wiring a
+look to it.
+
 ## make_minimal_textures.py
 
 The six files of `Textures/Minimal/`, what Minimal wears
