@@ -274,8 +274,8 @@ local NATIVE = {
 		title = L["Glass"], description = L["dark glass in gilt rails, the game's own action bar"] },
 	framed = { name = L["Framed -- dark panel, a tooltip's rim"], order = 11, native = true,
 		title = L["Framed"], description = L["dark panel, a tooltip's rim"] },
-	minimal = { name = L["Minimal -- text only, no panel"], order = 12, native = true,
-		title = L["Minimal"], description = L["text only, no panel"] },
+	minimal = { name = L["Minimal -- a thin rim, a soft pane"], order = 12, native = true,
+		title = L["Minimal"], description = L["a thin rim, a soft pane, one fine line"] },
 }
 -- THE CATEGORIES the picker sorts the looks into, in its order, each with
 -- its heading; and, per category, the looks in the order the picker shows them

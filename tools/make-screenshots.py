@@ -2219,7 +2219,7 @@ LOOKS = [
     ("gearworks", "Gearworks", "riveted brass, a pressure gauge and turning cogs"),
     ("warchief", "Warchief", "black iron and tusks, the Horde's crest in the forge's glow"),
     ("framed", "Framed", "dark panel, a tooltip's rim"),
-    ("minimal", "Minimal", "text only, no panel"),
+    ("minimal", "Minimal", "a thin rim, a soft pane, one fine line"),
 ]
 
 
