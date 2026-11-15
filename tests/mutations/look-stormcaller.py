@@ -284,8 +284,8 @@ mutate(LUA, IDLE,
        expect="with the prompt down, still running", script=S)
 
 mutate(LUA,
-       "\t\tif alive and self.steleOK and not self.awake[i] then\n",
-       "\t\tif alive and self.steleOK then\n",
+       "\t\tif alive and drawn and self.steleOK and not self.awake[i] then\n",
+       "\t\tif alive and drawn and self.steleOK then\n",
        "look-stormcaller: the awake sigil glimmering as if asleep",
        expect="the awake sigil glimmers as if asleep", script=S)
 
