@@ -195,6 +195,14 @@
   opens a whisper, and a right click looks them up.
 
 ### Fixes
+- **Passers-by who walked off.** Somebody still in reach now takes the prompt
+  at once from a passer-by who has gone, instead of waiting up to ten
+  seconds. Your cursor on the prompt still keeps the one it names.
+- **Out of sight is not five minutes.** A buff refused for line of sight or
+  range keeps that person off the prompt for a few seconds, half a minute at
+  most, and chat no longer says the game keeps refusing them.
+- **The list holds still under the cursor.** The name you point at stays on
+  its line until you move away, so a click buffs the person you aimed at.
 - **Greater Blessing of Kings and a Fish Bowl.** With *Don't put Kings over a
   Fish Bowl's Boosted Stats* on, the Greater Blessing no longer lands on a
   class with somebody sitting by one: the others get single Kings. Under it,

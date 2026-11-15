@@ -28,6 +28,8 @@ end
 -- The list of who is next, and the panel behind it; the preview draws it too.
 function Prompt:PaintQueue(rows)
 	local p = ns.db.profile.prompt
+	-- A line under the cursor keeps the person it named (Rows.lua, HoldRows).
+	rows = self:HoldRows(rows)
 	local shown = 0
 	for i, fs in ipairs(R.queueRows) do
 		local row = rows and rows[i]
@@ -53,6 +55,8 @@ function Prompt:PaintQueue(rows)
 			local c = ReasonColor(row.reason)
 			R.queueBars[i]:SetVertexColor(c[1], c[2], c[3], 0.9)
 			R.queueBars[i]:SetShown(not S.activeLook)
+			-- A line held blank under the cursor (Rows.lua, Blank) has no bar.
+			if row.text == "" then R.queueBars[i]:Hide() end
 			shown = shown + 1
 		else
 			fs:SetText("")

@@ -98,6 +98,9 @@ ns.WhatsNew = {
 			"|cff7cc4ffThe footer.|r Who makes Manners is larger and easier to read, and the version stands at the right.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Passers-by who walked off.|r Somebody still in reach now takes the prompt at once from a passer-by who has gone, instead of waiting up to ten seconds.",
+			"|cffff9a52Out of sight is not five minutes.|r A buff refused for line of sight or range keeps that person off the prompt for a few seconds, half a minute at most, and chat no longer says the game keeps refusing them.",
+			"|cffff9a52The list holds still under the cursor.|r The name you point at stays on its line until you move away, so a click buffs the person you aimed at.",
 			"|cffff9a52Greater Blessing of Kings and a Fish Bowl.|r With |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r on, the Greater Blessing no longer lands on a class with somebody sitting by one: the others get single Kings.",
 			"|cffff9a52A read-through of everything new.|r Some thirty faults put right in resurrection, cures, courtesies, asking for a buff, sharing a group, the group's pets and battlegrounds.",
 			"|cffff9a52Companion pet while Manners is off.|r Switched off or snoozed, Manners no longer brings a pet out of your journal.",

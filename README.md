@@ -141,6 +141,14 @@ does nothing for (Arcane Intellect is wasted on a rogue), and, while you are
 not flagged yourself, anyone flagged for PvP, since buffing them would flag
 you.
 
+A passer-by who walks off is kept on offer by name for ten seconds, in case
+they are still within reach; somebody in reach right now comes first, and
+takes the prompt from them at once unless your cursor is on it. When the game
+refuses a buff on somebody, they are left off for a while, longer each time
+in a row: for where they stand (out of sight, out of range) a few seconds,
+half a minute at most; for anything else up to five minutes, and chat says
+so. Targeting them tries again at once.
+
 **On the prompt.** Left-click (or your key) casts. **Right-click** skips that
 person for now without marking their favour repaid; on one of your own buffs
 it skips just that buff, and **Ctrl-right-click** skips all of yours.
@@ -151,6 +159,10 @@ off by default), the names under the prompt are buttons of their own, each
 with the icon of the buff that person would get: left-click buffs them and
 hands your target back, right-click skips them, shift-right-click never offers
 them again. *Click a name in the list to buff them* turns the buttons off.
+While the cursor is on a name it stays on that line: the others may move
+round it, and if that person drops off the list the line goes blank rather
+than taking the next name, so a click never lands on somebody you did not
+point at.
 
 <img src=".github/media/manners-list.png" alt="The prompt with its list: left-click a name to buff that person, right-click to skip them, shift-right-click to never offer them again" width="640">
 
