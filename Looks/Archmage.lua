@@ -79,6 +79,12 @@ local Archmage = ns.Looks.Register("archmage", {
 	-- The words stand on the crystal whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/archmage): the crystal,
+	-- its shadow, the setting's wire and prongs and the key's tag are the
+	-- painting's; the charges stay, in a ring on the socket's dark face round
+	-- a round icon, inside the painted gold hexagon.
+	paintedHides = { "shadow", "body", "bezel", "keyChip" },
+	paintedIconFill = 0.78,
 })
 
 -- MUST AGREE with tools/make_archmage_textures.py (tests/scenarios/look-archmage.lua
@@ -180,6 +186,17 @@ local ARC_FRAME, ARC_CYCLES = 0.045, 2
 -- The longest an additive flourish may stay lit, in seconds.
 local FLOURISH = 0.6
 local COMMAND = "CLICK MannersPrompt:LeftButton"
+-- The painted frame (Looks/Painted.lua). Its socket is a hexagon standing on
+-- a point, so the charges and the halo are turned a quarter onto it, and the
+-- icon is round in it (the painting's disc mask). The setting's file is drawn
+-- this many of the socket's radius across, which lays the charges' bed (its
+-- outer edge 0.392 of the file across from the middle, by
+-- tools/make_archmage_textures.py) just inside the painted gold. A fight dims
+-- the painting less than the crystal, so the keycap's letter keeps reading.
+local PAINT_BZ = 2.47
+local PAINT_COMBAT = 0.86
+local ROUND_MASK = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask"
+local ROUND_RING = "Interface\\AddOns\\Manners\\Textures\\Ring"
 
 -- The six charges, clockwise from the top: the file each is drawn from and
 -- how it is flipped (left, right, top, bottom).
@@ -337,6 +354,26 @@ local function At(t, rel, cx, cy, w, h)
 	t:ClearAllPoints()
 	t:SetPoint("CENTER", rel, "TOPLEFT", cx, -cy)
 	t:SetSize(w, h or w)
+end
+
+-- The setting's pieces as their files are cut (left, right, top, bottom), or
+-- turned a quarter clockwise for the painted socket, which stands on a point.
+local function Cut(t, l, r, top, bottom, turned)
+	if turned then
+		t:SetTexCoord(l, bottom, r, bottom, l, top, r, top)
+	else
+		t:SetTexCoord(l, r, top, bottom)
+	end
+end
+
+-- The charges, their flashes and the halo, cut either way.
+local function TurnSetting(look, turned)
+	for i, c in ipairs(CHARGES) do
+		Cut(look.charges[i], c[2], c[3], c[4], c[5], turned)
+		Cut(look.sparks[i], c[2], c[3], c[4], c[5], turned)
+	end
+	Cut(look.halo, 0, 1, 0, 1, turned)
+	Cut(look.haloHot, 0, 1, 0, 1, turned)
 end
 
 ---------------------------------------------------------------------------
@@ -923,8 +960,11 @@ function Archmage:Apply(p, above)
 	At(self.haloHot, art, cx, cy, bloom)
 	self.lightFrame:ClearAllPoints()
 	self.lightFrame:SetAllPoints(art)
+	-- The setting as its files are cut (a painted frame turns it after).
+	TurnSetting(self, false)
 	-- The icon is a hexagon whatever "Round the icon off" says.
 	local maskFile = ART .. "Mask"
+	self.mask:SetTexture(maskFile, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	self.mask:ClearAllPoints()
 	self.mask:SetAllPoints(icon)
 	if showIcon then
@@ -1047,6 +1087,11 @@ function Archmage:Apply(p, above)
 	self.keyBox:ClearAllPoints()
 	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -8, 0)
 	self.keyBox:SetSize(chipH * 1.9, chipH)
+	-- The key's letter with the words (a painted frame moves it onto its
+	-- keycap's frame); the tags' right inset and the lines' least room at the
+	-- right (a painted frame keeps them off its end).
+	self.keyText:SetParent(kit.textLayer)
+	self.chipRight, self.lineFloor, self.chipDy = 8, 12, 0
 	self.countMode, self.keyUp = nil, false
 	-- Measured again in the new font and size.
 	self.keyLabel, self.countText = nil, nil
@@ -1065,6 +1110,9 @@ function Archmage:Apply(p, above)
 		row:SetWidth(rowWidth)
 		fit.room[row] = rowWidth
 	end
+	-- The list's crystal runs the button's width, against it (a painted frame
+	-- gives it its own reach and the room under what hangs past the bar).
+	self.listX0, self.listX1, self.listGap = 0, W, 0
 	self.listShown, self.listAt = nil, nil
 
 	-- Everything shown, then what waits: the lights parked at nothing, the
@@ -1247,6 +1295,153 @@ function Archmage:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): the charges, the lights, the tags
+-- and the lines moved onto the painting. Looks/Painted.lua has laid the
+-- three pieces and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+function Archmage:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local W = self.W
+	local showIcon = p.showIcon and true or false
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	-- The setting: the charges in a ring on the socket's dark face, just
+	-- inside the painted gold, turned to stand on a point as it does; the
+	-- halo and the lightning round it.
+	local cx, cy = g.socketX, g.socketY
+	local bz = g.socketR * PAINT_BZ
+	self.cx, self.bz, self.iconSize = cx, bz, g.iconSize
+	self.settingRight = cx + g.socketR
+	for i = 1, 6 do
+		At(self.charges[i], art, cx, cy, bz)
+		At(self.sparks[i], art, cx, cy, bz)
+	end
+	for _, t in ipairs(self.arcs) do At(t, art, cx, cy, bz) end
+	At(self.halo, art, cx, cy, bz * GLOW_SCALE)
+	At(self.haloHot, art, cx, cy, bz * GLOW_SCALE)
+	TurnSetting(self, true)
+	-- The icon is round in the painted socket (the look's round rule); the
+	-- sweep and the rings with it.
+	self.mask:SetTexture(ROUND_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	if showIcon then
+		self.fx:Place(icon, self.fx.ThinPad(g.iconSize, g.socketR - g.iconSize / 2), g.iconSize)
+		self.fx:Shape(true, ROUND_RING, ROUND_RING, ROUND_MASK)
+		local limitH = math.min(g.textX - cx - kit.TEXT_MARGIN, cx - g.left - kit.EDGE_MARGIN)
+		local limitV = math.min(cy, self.H - cy) - kit.EDGE_MARGIN
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+		local cooldown = kit.cooldown
+		if cooldown and cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(ROUND_MASK) end
+	end
+
+	-- The well: the words on it, the vein along its lower edge, the lights
+	-- along its two edges, from the words to the keycap.
+	local wellMid = (g.wellTop + g.wellBottom) / 2
+	local top, bottom = g.wellTop + 1.5, g.wellBottom - 1.5
+	self.textX = g.textX
+	local spillX0 = g.textX - 0.12 * g.unit
+	local spillX1 = math.min(spillX0 + SPILL_REACH, keyL)
+	local spillUp = math.min((g.wellBottom - g.wellTop) / 2, bz * 0.25)
+	self.spillOK = showIcon and spillX1 - spillX0 >= 16
+	Box(self.spill, art, spillX0, wellMid - spillUp, spillX1, wellMid + spillUp)
+	Box(self.spillHot, art, spillX0, wellMid - spillUp, spillX1, wellMid + spillUp)
+	Box(self.ember, art, spillX0, wellMid - spillUp, spillX1, wellMid + spillUp)
+	self.spill:SetShown(self.spillOK)
+	self.spillHot:SetShown(self.spillOK)
+	local veinX0, veinX1 = g.textX - 2, keyL - 3
+	self.veinOK = veinX1 - veinX0 >= 16
+	Box(self.vein, art, veinX0, bottom - VEIN_H / 2, veinX1, bottom + VEIN_H / 2)
+	Box(self.core, art, veinX0, bottom - VEIN_H / 2, veinX1, bottom + VEIN_H / 2)
+	self.vein:SetShown(self.veinOK)
+	self.core:SetShown(self.veinOK)
+	local runW, runH = 22, 5
+	local runX0 = g.textX
+	local runX1 = keyL - runW / 2 - 3
+	local run = runX1 - runX0
+	self.runOK = run >= 24
+	At(self.runFrames[1], art, runX0, top, runW, runH)
+	At(self.runFrames[2], art, runX0, bottom, runW, runH)
+	for _, a in ipairs({ self.arriveRun, self.landRuns[1], self.landRuns[2] }) do
+		a.move:SetOffset(math.max(0, run), 0)
+	end
+	-- The star on the end's ornament.
+	local starSize = math.min(14, math.max(6, g.unit * 0.3))
+	At(self.starFrame, art, g.endX, g.endY, starSize)
+	-- The greeting and the crystal at rest, on the well's edges and the
+	-- ornament.
+	local span = math.max(0, keyL - g.textX)
+	for i, s in ipairs(SPARKLES) do
+		local x, y = g.textX + s[1] * span, s[2] == 1 and top or bottom
+		if s[2] == 2 then x, y = g.endX, g.endY end
+		At(self.twinkles[i], art, x, y, math.min(s[3], g.unit / 4))
+	end
+	local sheenW = 26
+	local sheenRun = runX1 + runW / 2 - sheenW / 2 - (runX0 + 6)
+	self.greetOK = sheenRun >= 30
+	At(self.sheen, art, runX0 + 6, top, sheenW, 3)
+	self.sheenAnim.move:SetOffset(math.max(0, sheenRun), 0)
+	local driftW = 22
+	local driftRun = runX1 + runW / 2 - driftW / 2 - runX0
+	for i, d in ipairs(DRIFTS) do
+		At(self.drifts[i], art, runX0, d[1] == 1 and top or bottom, driftW, 4)
+		self.driftAnims[i].move:SetOffset(math.max(0, driftRun), 0)
+	end
+	for i, s in ipairs(GLINTS) do
+		At(self.glints[i], art, g.textX + s[1] * span, s[2] == 1 and top or bottom, math.min(s[3], g.unit / 4))
+	end
+	self.idleOK = driftRun >= 30
+	-- The cursor's light on the band over the well.
+	Box(self.hoverFrame, art, cx + g.socketR, g.top + g.unit * 0.06, keyR, g.wellTop - 1)
+
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = self.H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap (its own tag is the painting's),
+	-- on a frame of its own: a fight's dim of the words would grey it. The
+	-- count's tag keeps left of the keycap, or takes its place with no key.
+	self.chipInset = math.ceil(W - keyL) + 3
+	self.chipRight = math.ceil(W - keyR)
+	self.chipDy = self.H / 2 - g.keyY
+	self.lineFloor = math.ceil(W - keyR) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.9) + self.chipRight + 7
+	-- The list from under the painting's one point to under the other, clear
+	-- of the socket's points that hang under (or over) the bar.
+	local deepest = (p.queueRows or 3) * self.pitch + 6
+	local listCut = math.ceil(deepest * CUT)
+	self.listX0 = g.left + 0.1 * g.unit
+	self.listX1 = math.max(self.listX0 + 2 * listCut + 40, g.right - 0.1 * g.unit)
+	self.listGap = math.max(0, (above and -g.y0 or (g.y1 - self.H)) * 0.85)
+	self.rowX = math.max(g.textX, self.listX0 + listCut + 16)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - listCut - 4)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	-- What runs at rest, started again where it now falls.
+	for _, a in ipairs(self.idle) do a:Stop() end
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter on the painted keycap, in the ink the tool chose for it.
+function Archmage:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	-- No larger than the keycap holds, so the letter stays on its face.
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1254,7 +1449,7 @@ function Archmage:PlaceLines(right)
 	local kit = self.kit
 	local name, sub, fit = kit.name, kit.sub, kit.fit
 	-- The far point takes the corner off the lines' room.
-	local inset = math.max(right, 12)
+	local inset = math.max(right, self.lineFloor or 12)
 	if self.keyUp then inset = math.max(inset, self.keyRoom or 0) end
 	if self.countMode == "pair" then inset = math.max(inset, self:PairRoom()) end
 	-- The two points never cross: the name keeps 20 units, the room at the
@@ -1334,7 +1529,7 @@ end
 -- The room the lines leave at the right for the key's tag with the count's
 -- beside it.
 function Archmage:PairRoom()
-	return (self.keyRoom or 0) + (self.kit.fit.chipRoom or 0) - 5
+	return (self.keyRoom or 0) + (self.kit.fit.chipRoom or 0) - (self.chipRight or 8) + 3
 end
 
 -- Run on every repaint. The count's tag at the right, or, with the key's tag
@@ -1355,11 +1550,17 @@ function Archmage:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.9, (kit.TextWidth(self.keyText) or self.sub) + 14)
 			self.keyW, self.keyRoom = w, math.ceil(w + 15)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1378,7 +1579,7 @@ function Archmage:Chip(on)
 			self.countText = text
 			self.countW = math.max(self.chipH * 1.9, (kit.TextWidth(count) or self.sub) + 14)
 		end
-		kit.fit.chipRoom = math.max(self.roomBase or 0, math.ceil(self.countW) + 15)
+		kit.fit.chipRoom = math.max(self.roomBase or 0, math.ceil(self.countW) + 7 + (self.chipRight or 8))
 	end
 	local mode
 	if on then
@@ -1397,7 +1598,7 @@ function Archmage:Chip(on)
 			if mode == "pair" then
 				self.chipBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
 			else
-				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -8, 0)
+				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -(self.chipRight or 8), self.chipDy or 0)
 			end
 			PlaceThree(self.chip, self.chipBox, h)
 			count:ClearAllPoints()
@@ -1491,6 +1692,9 @@ function Archmage:Dull(on)
 	local f = on and BODY_COMBAT or 1
 	Each(self.body, "SetDesaturated", on)
 	for _, t in ipairs(self.body) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	local pf = on and PAINT_COMBAT or 1
+	ns.Looks.Painted.Tone(self, pc[1] * pf, pc[2] * pf, pc[3] * pf, on)
 end
 
 -- The crystal holds; it and the wire dull, the icon greys, the words dim and
@@ -1768,18 +1972,22 @@ function Archmage:PaintQueue(rows, shown, above)
 
 	local pitch = self.pitch
 	local depth = shown * pitch + 6
-	local W, H = self.W, self.H
+	local H = self.H
+	-- Under a painted frame the list keeps clear of what the painting hangs
+	-- past the bar (the socket's points).
+	local gap = self.listGap or 0
+	local x0, x1 = self.listX0 or 0, self.listX1 or self.W
 	local y0, y1
 	if above then
-		y1 = 0
-		y0 = -depth
+		y1 = -gap
+		y0 = -gap - depth
 	else
-		y0 = H
-		y1 = H + depth
+		y0 = H + gap
+		y1 = H + gap + depth
 	end
-	PlaceBody(self.listBody, art, 0, y0, W, y1)
+	PlaceBody(self.listBody, art, x0, y0, x1, y1)
 	Each(self.listBody, "Show")
-	self:PlaceShadow({ 0, y0, W, y1 })
+	self:PlaceShadow({ x0, y0, x1, y1 })
 
 	local bead = self.sub + 3
 	for i = 1, shown do
@@ -1787,9 +1995,9 @@ function Archmage:PaintQueue(rows, shown, above)
 		-- Row centres, reading downwards either way.
 		local y
 		if above then
-			y = -(3 + (shown - i) * pitch + pitch / 2)
+			y = -(gap + 3 + (shown - i) * pitch + pitch / 2)
 		else
-			y = H + 3 + (i - 1) * pitch + pitch / 2
+			y = H + gap + 3 + (i - 1) * pitch + pitch / 2
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)
