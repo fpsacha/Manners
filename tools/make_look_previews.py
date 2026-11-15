@@ -900,6 +900,12 @@ def draw(keys, out, entries, lines):
 # The picture's text is looked for where a pixel differs by more than this (of 255)
 # between a drawing with the lines and one without.
 INK = 24
+# The looks that draw art as wide as their words: Warchief lays soot behind
+# its name and reason, sized by the text (Looks/Warchief.lua, Soot). Their
+# pictures are not held to the bare drawing inside the lines' rectangles, where
+# another machine's face moves that art; text baked into one would still show
+# as "the picture is the drawing with its text".
+FOLLOWS_TEXT = {"warchief"}
 # What the lines may leave beyond their rectangles, in pixels of the picture: the
 # glyphs' overhang and the shadow.
 OVERHANG = 4
@@ -960,6 +966,12 @@ def check_bare(keys):
             problems.append("%s: the lines draw outside their recorded rectangles (%d pixels, from x %d y %d)" % (
                 key, len(xs), xs.min(), ys.min()))
         left = np.abs(shipped - bare).max(axis=2) > INK
+        # Nor, for a look whose art follows its words, in the lines' own room:
+        # that art is as wide as the name is in this machine's face, so it is
+        # drawn elsewhere than in the Windows-made picture wherever the face
+        # is another (GitHub's runners: 155 pixels of Warchief's soot).
+        if key in FOLLOWS_TEXT:
+            left &= ~room
         # Not in the icon's tile: the renderer writes initials there in place of
         # game art, in whatever face this machine has (GitHub's runners drew them
         # 30 to 100 pixels off the Windows-made pictures), and the window lays the
