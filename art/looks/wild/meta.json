@@ -1,0 +1,11 @@
+{
+  "key": "wild",
+  "socket": {"shape": "round", "cx": 508, "cy": 508, "r": 155},
+  "name_xy": [867, 425],
+  "reason_xy": [872, 537],
+  "keycap": {"cx": 3520, "cy": 500, "w": 140, "h": 150},
+  "bar": [229, 247, 3937, 737],
+  "stretch": [950, 3380],
+  "text_colour_ok": true,
+  "notes": "Well RGB about (30,39,42): white text 15:1, gold text 5:1. Bar body (bark) runs y 320-690; the socket wreath (y 257-761) and moon end cap are the only parts that leave it. Animatable layers: the crescent-moon moonwell gem (centre about 3775,505, r about 75) can pulse a soft silver-blue glow or shimmer; the socket's dark glass disc can take a slow sheen sweep; the tiny leaves and pink blossoms at both ends could sway a few pixels; a faint drift of firefly motes near the end cap is possible but keep it rare to stay subtle."
+}
