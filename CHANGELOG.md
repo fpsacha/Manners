@@ -220,6 +220,10 @@
 - **Looks.** A cure that lands reads "cured", not "buffed"; on seven looks the
   next favour no longer cuts a landing's flourish short; Warchief's soot fades
   once under a verdict; flowing art picks up where it stopped after a fight.
+- **A fight just after a crowd passed.** A passer-by who walked off a few
+  seconds before the pull is no longer frozen on the prompt for the fight, nor
+  put in its rota; the fight over, the second line no longer says where the
+  rota stood.
 
 ## 1.11.24
 

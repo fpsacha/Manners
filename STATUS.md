@@ -939,6 +939,16 @@ Forever, that the post-body's write lands in a fight, that PostClick runs
 after it (the panel would otherwise name the person just buffed), and how it
 feels with the cooldown (a press it turns away still steps).
 
+**The fight, after the review of 2026-11-15** (`tests/scenarios/par-core2.lua`).
+Closed: a pull a few seconds after a crowd passed froze a passer-by who had
+walked off on the prompt for the whole fight and made the rota of people who
+had left. The pull's own repaint now arms from the queue less every passer-by
+offered from memory alone (`Prompt/Fight.lua` `ForFight`, Queue.lua's
+`remembered` on an `OfferPassersBy` entry); an asker and a favour owed stay.
+The fuse after a fight repaints a second line that still spoke of the rota.
+Only the live game can say: that a questing pull just after somebody ran past
+leaves the prompt down (or on whoever is still beside you).
+
 **The credit line.** `diagnostics.aboutNote` names the author's
 character (`ns.AUTHOR`, Clicks.lua), in the options window's footer under the
 build since 1.11.18 (`Layout.lua`'s `footer.about`). It asks for nothing and must stay that

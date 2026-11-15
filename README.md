@@ -194,7 +194,9 @@ Nothing shows in a fight.
 
 The game locks the prompt for as long as a fight lasts: an addon may not
 change what a button casts then. So as a fight begins Manners hands the prompt
-everybody who still needed a buff at that moment, and each press of the prompt
+everybody who still needed a buff at that moment (a passer-by who walked off
+in the seconds before is left out, though the prompt would still have offered
+them out of a fight), and each press of the prompt
 or its key casts at the next of them in turn, round and round. The second line
 says which of how many ("in a fight -- 2 of 4, a press moves on"). Nobody is
 added to that list or taken off it before the fight ends, a skip cannot take

@@ -269,8 +269,8 @@ mutate("Prompt/Hold.lua",
        expect="the cursor held somebody gone for longer than ten seconds", script=S)
 
 mutate("Prompt/Refresh.lua",
-       "\tNoteVerdicts(verdicts)\n\tlocal top = self:PickTop(",
-       "\tlocal top = self:PickTop(",
+       "\tNoteVerdicts(verdicts)\n\t-- The pull's own pass arms",
+       "\t-- The pull's own pass arms",
        "linger: the repaint notes no verdicts",
        expect="a group member turned down stayed on the panel under the cursor while", script=S)
 
@@ -281,8 +281,8 @@ mutate("Prompt/Press.lua",
        expect="a press under the cursor cast at a group member found dead", script=S)
 
 mutate("Prompt/Refresh.lua",
-       "\tlocal queue, verdicts = ns.BuildQueue(S.hovering)\n\tNoteVerdicts(verdicts)\n\tlocal top = self:PickTop(",
-       "\tlocal queue, verdicts = ns.BuildQueue()\n\tNoteVerdicts(verdicts)\n\tlocal top = self:PickTop(",
+       "\tlocal queue, verdicts = ns.BuildQueue(S.hovering)\n\tNoteVerdicts(verdicts)\n\t-- The pull's own pass arms",
+       "\tlocal queue, verdicts = ns.BuildQueue()\n\tNoteVerdicts(verdicts)\n\t-- The pull's own pass arms",
        "linger: the repaint does not watch",
        expect="linger: under the cursor a group member turned down yields the panel (dead)", script=S)
 
