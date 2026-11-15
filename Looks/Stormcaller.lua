@@ -90,6 +90,15 @@ local Storm = ns.Looks.Register("stormcaller", {
 	-- The words stand on the slate whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/stormcaller): what of
+	-- this look's own art the painting replaces. The slab and its shadow, the
+	-- carved totem and the inlay round the icon (the painting's totem face is
+	-- the socket), the standing stone and its drawn sigils (the painting's
+	-- stone has its own four), the feathers (no wings to hang from) and the
+	-- key's tag (the painted keycap). What tells the reason stays: the eyes,
+	-- each sigil's light, the channel, the count's tag and the list.
+	paintedHides = { "shadow", "body", "totem", "rim", "stele", "sigils", "shims", "feathers", "keyChip" },
+	paintedIconFill = 0.94,
 })
 
 -- MUST AGREE with tools/make_stormcaller_textures.py (tests/scenarios/
@@ -153,6 +162,24 @@ local LAY = {
 	flowTile = 8,
 	-- The stone rim of the list's tablet, which a row's pebble keeps clear of.
 	listRim = 4.5,
+}
+-- Where things stand on the painting (art/looks/stormcaller/final-empty.jpg),
+-- in units of the bar's core height: the totem face's eyes (their middle below
+-- the core's top, the pair's width and height), its crest above the core's top,
+-- its two upper copper corners either side of the socket and below the core's
+-- top; the sigil stone's middle and top, the four sigils as the stone has them
+-- (fire and water above, earth and air below: from the right end, below the
+-- core's top, in the order AIR, FIRE, WATER, EARTH) and their size; the
+-- channel's height on the well's lower rim; the totem's size the motion is
+-- scaled by; how far the list reaches into what hangs below; and a fight's
+-- dim of the painting (less than the slab's: the keycap keeps its dark letter).
+local PAINT = {
+	eyesY = 0.13, eyesW = 0.92, eyesH = 0.26, crestY = -0.06, cornerX = 0.48, cornerY = 0.02,
+	stoneX = 0.43, stoneY = 0.06, stoneW = 0.78,
+	sigils = { { 0.318, 0.628 }, { 0.619, 0.364 }, { 0.330, 0.352 }, { 0.619, 0.653 } }, sigilW = 0.26,
+	channel = 0.055, totem = 1.3, combat = 0.93,
+	-- The shade over a sleeping painted sigil, its colour and how dark.
+	sleep = 0.62, sleepInk = { 0.10, 0.10, 0.13 },
 }
 -- The slate's own luminance under the words, its darkest and its brightest
 -- (as greys), for Legible.
@@ -654,6 +681,11 @@ function Storm:Build(kit)
 		self.sigils[i]:SetTexCoord(0, 1, v0, v0 + SIGIL_STEP / 256)
 		self.shims[i]:SetTexCoord(0, 1, v0, v0 + SIGIL_STEP / 256)
 	end
+	-- Under a painted frame only: a shade over each painted sigil that
+	-- sleeps, so the awake one stands out of the stone (its light alone is
+	-- lost on the painting's pale sigils).
+	self.sleep = {}
+	for i = 1, 4 do self.sleep[i] = dark(tex(art, "ARTWORK", -3, "Glow")) end
 	-- The totem, under the icon (ARTWORK 0), and its eyes.
 	self.totem = tex(art, "ARTWORK", -7, "Totem")
 	self.eyes = tex(art, "ARTWORK", -6, "Eyes")
@@ -946,6 +978,8 @@ function Storm:Apply(p, above)
 	self.countMode, self.keyUp = nil, false
 	-- Measured again in the new font and size.
 	self.keyLabel, self.countText, self.measuredText = nil, nil, nil
+	-- With the words (a painted frame moves it to its keycap's frame).
+	self.keyText:SetParent(kit.textLayer)
 
 	local base = art:GetFrameLevel()
 	self.chipFrame:SetFrameLevel(base + 3)
@@ -975,6 +1009,8 @@ function Storm:Apply(p, above)
 	-- Everything shown, then what waits: the lights parked at nothing, the
 	-- list for PaintQueue, the chips for Chip.
 	for _, x in ipairs(self.own) do x:Show() end
+	-- The painted sigils' shades wait for PaintedPlace.
+	Each(self.sleep, "Hide")
 	PlaceBody(self.body, art, plateX, top, W, top + ph)
 	for _, t in ipairs({ self.totem, self.eyes, self.rim, self.strike, self.arc, self.crown, self.gem, self.feathers[1],
 		self.feathers[2], self.feathers[3], self.stars[1], self.stars[2] }) do
@@ -1239,6 +1275,7 @@ function Storm:Lights(held)
 		local on = self.awake[i] and not out
 		self.sigils[i]:SetAlpha(on and 1 or 0)
 		self.glows[i]:SetAlpha(on and (fight and GLOW.combat or (held and GLOW.held or GLOW.rest)) or 0)
+		self.sleep[i]:SetAlpha(on and 0 or PAINT.sleep)
 	end
 end
 
@@ -1282,8 +1319,10 @@ function Storm:Idle()
 		end
 	end
 	local totemUp = self.kit.icon:IsShown()
+	-- A painted frame has no feathers and no drawn sigils to glimmer.
+	local drawn = not ns.Looks.Painted.On(self)
 	for i, g in ipairs(self.sways) do
-		local there = (i == 4) and self.steleOK or (i < 4 and totemUp)
+		local there = drawn and ((i == 4) and self.steleOK or (i < 4 and totemUp))
 		if alive and there then
 			if not g:IsPlaying() then g:Play() end
 		else
@@ -1291,7 +1330,7 @@ function Storm:Idle()
 		end
 	end
 	for i, g in ipairs(self.shimAnims) do
-		if alive and self.steleOK and not self.awake[i] then
+		if alive and drawn and self.steleOK and not self.awake[i] then
 			if not g:IsPlaying() then g:Play() end
 		else
 			g:Stop()
@@ -1427,6 +1466,151 @@ function Storm:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): the Stormcaller's own lights,
+-- motion, tags and lines moved onto the painting. Looks/Painted.lua has laid
+-- the three pieces and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+function Storm:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local u = g.unit
+	local showIcon = p.showIcon and true or false
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	-- The socket is the totem face's: the icon in it, the eyes on the
+	-- painted slits, the crest above, the arc between the upper corners.
+	local cx, size = g.socketX, PAINT.totem * u
+	self.cx, self.cy, self.iconSize, self.totemSize, self.textX = cx, g.socketY, g.iconSize, size, g.textX
+	At(self.eyes, art, cx, g.top + PAINT.eyesY * u, PAINT.eyesW * u, PAINT.eyesH * u)
+	local wingX, wingY = PAINT.cornerX * u, g.top + PAINT.cornerY * u
+	self.wingX, self.wingY = wingX, wingY
+	local arcW = 2 * wingX * 128 / 114
+	local arcH = arcW / 4
+	Box(self.arc, art, cx - arcW / 2, wingY - arcH * 26 / 32, cx + arcW / 2, wingY + arcH * 6 / 32)
+	for i, t in ipairs(self.stars) do
+		At(t, art, cx + (i == 1 and -1 or 1) * wingX, wingY, math.max(8, size * 0.20))
+	end
+	local crestY = g.top + PAINT.crestY * u
+	self.crestY = crestY
+	At(self.gem, art, cx, crestY, math.max(8, size * 0.22))
+	At(self.crown, art, cx, crestY + size * 0.04, size * 0.95)
+	local sh = size * 0.62
+	Box(self.strike, art, cx - sh / 4, crestY - sh * 120 / 128, cx + sh / 4, crestY + sh * 8 / 128)
+	if showIcon then
+		self.fx:Place(icon, self.fx.ThinPad(g.iconSize, 2), g.iconSize)
+		-- The rings' room: to the words, to the painting's left edge, and to
+		-- the prompt's top and bottom from the socket (which sits a little
+		-- below the middle).
+		self.fx:Fit(math.min(g.textX - cx - kit.TEXT_MARGIN, cx - g.left - kit.EDGE_MARGIN),
+			math.min(g.socketY, g.H - g.socketY) - kit.EDGE_MARGIN, kit.SHAKE_LEFT)
+	end
+	-- The sigil stone: each sigil's light and flash on the painted sigil.
+	local stoneX = g.right - PAINT.stoneX * u
+	self.steleX, self.steleTop, self.steleW = stoneX, g.top + PAINT.stoneY * u, PAINT.stoneW * u
+	self.steleOK = true
+	self.sigilAt = {}
+	for i = 1, 4 do
+		local s = PAINT.sigils[i]
+		local sx, sy = g.right - s[1] * u, g.top + s[2] * u
+		At(self.glows[i], art, sx, sy, PAINT.sigilW * u * 2.1)
+		At(self.flashes[i], art, sx, sy, PAINT.sigilW * u * 2)
+		At(self.sleep[i], art, sx, sy, PAINT.sigilW * u * 1.5)
+		Colour(self.sleep[i], PAINT.sleepInk[1], PAINT.sleepInk[2], PAINT.sleepInk[3])
+		self.sleep[i]:Show()
+		self.sigilAt[i] = sy
+		self.glows[i]:Show()
+		self.flashes[i]:Show()
+	end
+	-- The channel along the well's lower rim, from the words to the keycap.
+	local x0, x1 = g.textX - 2, keyL - 2
+	local ch = math.max(2, PAINT.channel * u)
+	local y0, y1 = g.wellBottom - ch * 0.35, g.wellBottom + ch * 0.65
+	self.channelOK = x1 - x0 >= 16
+	local tile = (y1 - y0) * LAY.flowTile
+	for i, pair in ipairs(self.runs) do
+		for k, t in ipairs(pair) do
+			Box(t, art, x0, y0, x1, y1)
+			self.runScroll[i][k]:Window((x1 - x0) / tile * (k == 2 and FLOW.long or 1), k == 2 and -1 or 1)
+		end
+	end
+	Box(self.core, art, x0, y0 - ch * 0.3, x1, y1 + ch * 0.3)
+	At(self.tip, art, x0 + 2, (y0 + y1) / 2, math.max(7, (y1 - y0) * 2.6))
+	self.tipAnim.move:SetOffset(x1 - x0 - 4, 0)
+	self.chX0, self.chX1, self.chY = x0, x1, (y0 + y1) / 2
+	self.core:SetShown(self.channelOK)
+	self.tip:SetShown(self.channelOK)
+	-- The chain lightning along the bar's upper and lower edges, from the
+	-- socket's frame to the sigil stone.
+	local bx0, bx1 = cx + g.socketR, stoneX - self.steleW / 2
+	-- No taller than half the core, so a long bar's chain hugs its edges.
+	local bh = math.min((bx1 - bx0) / 8, u * 0.5)
+	self.boltOK = bx1 - bx0 >= 60
+	local up = g.top - bh * 0.10
+	Box(self.bolts[1], art, bx0, up - bh / 2, bx1, up + bh / 2)
+	local down = g.top + u + bh * 0.10
+	Box(self.bolts[2], art, bx0, down - bh / 2, bx1, down + bh / 2)
+	self.bolts[1]:SetShown(self.boltOK and not above)
+	self.bolts[2]:SetShown(self.boltOK)
+	-- The embers, the sparks and a refusal's chips of stone: the chips from
+	-- the core's lower edge.
+	self.plateX, self.top, self.bottom = g.socketX, g.top, g.top + u
+	self:PlaceMotion(showIcon, above)
+	-- The cursor's light along the bar's upper edge.
+	Box(self.hoverFrame, art, cx + g.socketR, g.top, keyR, g.top + u * 0.18)
+	-- The painting's own edges, which the list keeps clear of.
+	self.top, self.bottom, self.ph = g.y0, g.y1, g.y1 - g.y0
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = self.H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap (its own tag is the painting's);
+	-- the lines and the count's tag keep left of it.
+	self.rootX = keyR
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	-- The letter is part of the keycap: a fight's dim of the words would
+	-- leave a dark letter grey on the pale stone.
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+	-- The list from the socket to the keycap's far side.
+	local reach = 9 + (self.sub + 1) / 2 + LAY.listRim
+	self.rowX = math.max(g.textX, 24)
+	self.listX0 = math.max(2, self.rowX - reach - 4)
+	if above and showIcon then
+		self.listX0 = cx + g.socketR + 1
+		self.rowX = math.max(self.rowX, self.listX0 + reach)
+	end
+	self.listX1 = math.max(self.rowX + 30, keyR + 3)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	-- The lights where the channel and the stone now are, and what runs at
+	-- rest asked again.
+	self.lit = nil
+	self:Tint()
+	self.idleState = nil
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter is dark on the painted keycap's pale stone.
+function Storm:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	-- No larger than the keycap holds, so the letter stays on its stone.
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1548,11 +1732,17 @@ function Storm:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.chipInset + 7)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1622,6 +1812,9 @@ function Storm:Dress()
 	local k = fight and BODY_COMBAT or 1
 	Each(self.body, "SetDesaturated", fight)
 	for _, t in ipairs(self.body) do Colour(t, pc[1] * k, pc[2] * k, pc[3] * k) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	k = fight and PAINT.combat or 1
+	ns.Looks.Painted.Tone(self, pc[1] * k, pc[2] * k, pc[3] * k, fight)
 end
 
 -- What runs in the channel, in its colour: the pair of layers for `liquid`

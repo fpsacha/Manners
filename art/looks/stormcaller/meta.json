@@ -1,0 +1,12 @@
+{
+  "key": "stormcaller",
+  "socket": {"shape": "square", "cx": 470, "cy": 525, "half": 125},
+  "name_xy": [1002, 431],
+  "reason_xy": [1003, 540],
+  "keycap": {"cx": 3190, "cy": 507, "w": 140, "h": 142},
+  "bar": [217, 275, 3957, 742],
+  "stretch": [1650, 3000],
+  "text_colour_ok": true,
+  "contrast": {"white": 16.1, "gold": 10.82},
+  "notes": "Painted by the image model (r5-empty-01 from keeper r4-01). Contrast measured over the lightest tenth of x 995-1540, y 425-618 (the two text lines); the whole well run x 980-3100 gives white 16.0, gold 10.76. The socket window is a little wider than tall (about x 318-622, y 400-650); half=125 is the largest square that fits it. Could move as layers: the small lightning crack at the top-right of the right rail (x~3130-3330, y~300-470) flickering as an additive blue layer; the four end-cap sigils (x~3650-3900, y~390-640) brightening one after another; the totem face's eye slits (x~330-560, y~300-360) catching a faint blue glint when the prompt appears."
+}
