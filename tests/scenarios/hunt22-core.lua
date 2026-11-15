@@ -424,6 +424,8 @@ do
 		H.freshPrompt(ns, scenario)
 		local p = ns.db.profile.prompt
 		p.style = "toast"
+		-- Toast's own key chip, which Earlier art draws.
+		p.classicArt = true
 		ns.Prompt:ApplyStyle()
 		H.owe(ns, "Anna Aim")
 		tick()

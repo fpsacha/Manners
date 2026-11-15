@@ -78,6 +78,15 @@ local Toast = ns.Looks.Register("toast", {
 	-- The banner holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
 	classSoften = 0.35,
+	-- The painted frame (Looks/Painted.lua, art/looks/toast): what of this
+	-- look's own art the painting replaces -- the banner, its rails and shadow,
+	-- the medallion's gold, rope, seam and shade, and the key's chip (the
+	-- painting has its own keycap). The enamel, its breath, the cursor's light,
+	-- the clock, the count's chip, the list and every flourish stay, laid onto
+	-- the painting by PaintedPlace.
+	paintedHides = { "shadow", "body", "border", "medallion", "rim", "seam", "ring", "shade", "keyChip" },
+	-- The icon leaves a ring of the socket's glass for the enamel.
+	paintedIconFill = 0.86,
 })
 
 -- The discs are drawn to this fraction of their file's half-size
@@ -128,6 +137,8 @@ local OUTCOME = {
 }
 -- What a fight does: the text dims, the icon greys and dims.
 local TEXT_COMBAT, ICON_COMBAT = 0.78, 0.70
+-- A painted frame in a fight: greyed and dimmed this much.
+local PAINT_COMBAT = 0.86
 -- The owed pulse: the enamel lit to this and back, this many breaths of
 -- 3.2 s, then it settles to the dark enamel.
 local PULSE_PEAK = 0.55
@@ -770,6 +781,9 @@ function Toast:Apply(p, above)
 	self:Iron(false)
 	if held then self:Combat(true) end
 
+	-- What a painted frame (PaintedPlace) sets, cleared for the look's own.
+	self.chipInset, self.pairOverlap, self.lineInset = nil, nil, nil
+	self.listX0, self.listX1, self.listTop, self.listBottom, self.listGap = nil, nil, nil, nil, nil
 	-- The count's room: a two-digit chip and its inset. Chip widens it for a
 	-- longer count.
 	self.roomBase = math.ceil(chipH * 1.75) + 15
@@ -858,13 +872,144 @@ function Toast:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): what the toast keeps -- the enamel
+-- and its breath, the cursor's light, the flourishes, the favour clock, the
+-- count's chip, the list -- moved onto the painting. Looks/Painted.lua has
+-- laid the three pieces and put the icon in the socket; `g` is its
+-- Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The painted medallion's gold ring against its glass (meta.json's ring_r
+-- over r): how far out the medallion reaches, for its light and the list.
+local RING_OF_SOCKET = 1.49
+-- The enamel: a band of the reason's colour just inside the painted gold,
+-- round the icon (paintedIconFill leaves it room).
+local BAND_OF_SOCKET = 0.97
+
+function Toast:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local showIcon = p.showIcon and true or false
+	local unit = g.unit
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	local cx, cy, R = g.socketX, g.socketY, g.socketR
+	local reach = R * RING_OF_SOCKET
+	local M = 2 * reach
+	self.cx, self.cy, self.M, self.R = cx, cy, M, reach
+	self.textX = g.textX
+
+	-- The medallion: the enamel and its breath, the cursor's light and the
+	-- owed warmth in the ring of glass round the icon; the well under it.
+	local band = R * BAND_OF_SOCKET
+	for _, t in ipairs({ self.band, self.glow, self.ringHover, self.ringWarm }) do Disc(t, art, cx, cy, band) end
+	Disc(self.well, art, cx, cy, (g.iconSize or 2 * R) / 2 * MASK_FILL)
+	self.iconSize = g.iconSize
+	self.ringArrive:ClearAllPoints()
+	self.ringArrive:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+	self.ringArrive:SetSize(1.45 * M, 1.45 * M)
+	if showIcon then
+		local size = g.iconSize or 2 * R
+		self.fx:Place(icon, (1.45 * M - size) / 2, size)
+		local limitH = math.max(1, math.min(g.textX - cx - kit.TEXT_MARGIN, cx - g.left - kit.EDGE_MARGIN))
+		-- The painted socket sits a little off the panel's middle: the nearer
+		-- edge is the room.
+		local limitV = math.max(1, math.min(cy, self.H - cy) - kit.EDGE_MARGIN)
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+		kit.CapLock(self.gather, nil, 1.30, 1, kit.CapScale(math.min(limitH, limitV), 0.725 * M, 0.78))
+	end
+	-- With the icon off, the jewel carries the reason in the painted socket.
+	local jewel = R * 1.5
+	for _, t in ipairs({ self.jewel, self.jewelSet }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+		t:SetSize(jewel, jewel)
+	end
+
+	-- The flourishes on the painted bar: the gilding's flare round its core,
+	-- a glint down each of its rails.
+	local coreTop, coreBottom = g.top, g.top + unit
+	local x0, x1 = cx, keyR + 0.12 * unit
+	local C = Clamp(math.floor(unit * 0.24 + 0.5), 8, 16)
+	PlacePieces(self.flare, art, x0, coreTop, x1, coreBottom, C, showIcon)
+	local from = cx + reach - 4
+	local run = math.max(10, keyR - from)
+	local BH = g.wellBottom - g.wellTop
+	local rails = { (coreTop + g.wellTop) / 2, (g.wellBottom + coreBottom) / 2 }
+	for i, t in ipairs(self.glints) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", from, -rails[i])
+		t:SetSize(1.2 * BH, 0.22 * BH)
+		self.sweep[i].move:SetOffset(run, 0)
+	end
+
+	-- The favour clock along the well's lower edge, from the words to the
+	-- keycap.
+	self.clockH = math.max(1.0, 0.025 * unit)
+	self.clockX = g.textX - 2
+	self.clockY = -(g.wellBottom - 0.07 * unit)
+	self.clockLen = math.max(10, keyL - 3 - self.clockX)
+	for _, t in ipairs({ self.ember, self.ash }) do
+		t:ClearAllPoints()
+		t:SetPoint("LEFT", art, "TOPLEFT", self.clockX, self.clockY)
+		t:SetHeight(self.clockH * 16 / 11.5)
+	end
+	self.ash:SetWidth(self.clockLen)
+	local beadD = self.clockH * 2.0
+	self.bead:SetSize(beadD, beadD)
+	self.beadMin = self.clockX + beadD / 2
+	self.clockW = nil
+
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = self.H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+
+	-- The key's letter on the painted keycap; the lines and the count's chip
+	-- keep left of it.
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.pairOverlap, self.lineInset = self.chipInset, self.chipInset
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 6
+
+	-- The list's drawer out from the painted bar's edge, from the medallion's
+	-- gold to the keycap's far side, so neither is covered.
+	self.listX0 = cx + reach + 1
+	self.listX1 = math.max(self.listX0 + 40, keyR)
+	self.listTop, self.listBottom = coreTop - 3, coreBottom + 3
+	-- Each row's gem inside the drawer's left rail.
+	self.rowX = math.max(g.textX, self.listX0 + 19 + self.sub * 0.5)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	self.listShown, self.listAt = nil, nil
+	return g.textX, self.roomBase
+end
+
+-- The key's letter in the painting's own ink for its keycap, no larger than
+-- the keycap holds.
+function Toast:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
 function Toast:PlaceLines(right)
 	local kit = self.kit
 	local name, sub, fit = kit.name, kit.sub, kit.fit
-	local inset = math.max(right, 12)
+	local inset = math.max(right, self.lineInset or 12)
 	if self.keyUp then inset = math.max(inset, self.keyRoom or 0) end
 	if self.countMode == "pair" then inset = math.max(inset, self:PairRoom()) end
 	-- The two points never cross: the name keeps 20 units, the room at the
@@ -945,7 +1090,7 @@ end
 -- The room the lines leave at the right for the key's chip with the count's
 -- beside it: the key's room, a two-digit chip and the gap between them.
 function Toast:PairRoom()
-	return (self.keyRoom or 0) + (self.kit.fit.chipRoom or 0) - 5
+	return (self.keyRoom or 0) + (self.kit.fit.chipRoom or 0) - (self.pairOverlap or 5)
 end
 
 -- Run on every repaint, which is also the clock's tick. The count's chip at
@@ -969,11 +1114,18 @@ function Toast:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + 15)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a chip of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
 		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		if ns.Looks.Painted.On(self) then keyUp = true end
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -997,6 +1149,10 @@ function Toast:Chip(on)
 			self.countW = math.max(self.chipH * 1.75, (kit.TextWidth(count) or self.sub) + 10)
 		end
 		kit.fit.chipRoom = math.max(self.roomBase or 0, math.ceil(self.countW) + 15)
+		-- On a painted frame the chip stands left of the keycap.
+		if self.chipInset then
+			kit.fit.chipRoom = math.max(kit.fit.chipRoom, math.ceil(self.countW) + self.chipInset + 6)
+		end
 	end
 	local mode
 	if on then
@@ -1017,7 +1173,7 @@ function Toast:Chip(on)
 			if mode == "pair" then
 				self.chipBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
 			else
-				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -9, 0)
+				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -(self.chipInset or 9), 0)
 			end
 			PlaceThree(self.chip, self.chipBox, h)
 			count:ClearAllPoints()
@@ -1143,6 +1299,10 @@ function Toast:Iron(on)
 			Colour(t, 1, 1, 1)
 		end
 	end
+	-- The painted frame, when it is up, the same: greyed, dimmed less than the
+	-- gold, so the keycap keeps its letter.
+	local v = on and PAINT_COMBAT or 1
+	ns.Looks.Painted.Tone(self, v, v, v, on)
 end
 
 -- The banner holds; the gold goes to iron, the icon greys, the text dims and
@@ -1379,15 +1539,19 @@ function Toast:PaintQueue(rows, shown, above)
 	self.listShown, self.listAt = shown, above
 
 	local pitch = self.pitch
-	local depth = 3 + 4 + shown * pitch + 5
-	local x0 = self.M > 0 and self.cx + 4 or 5.5
-	local x1 = self.W - 5.5
+	-- Under a painted frame the drawer runs from the medallion to the keycap,
+	-- out from the painted bar's own edge (PaintedPlace).
+	local gap = self.listGap or 0
+	local depth = 3 + 4 + shown * pitch + 5 + gap
+	local x0 = self.listX0 or (self.M > 0 and self.cx + 4 or 5.5)
+	local x1 = self.listX1 or (self.W - 5.5)
+	local top, bottom = self.listTop or self.top, self.listBottom or self.bottom
 	local y0, y1
 	if above then
-		y1 = self.top + 3
+		y1 = top + 3
 		y0 = y1 - depth
 	else
-		y0 = self.bottom - 3
+		y0 = bottom - 3
 		y1 = y0 + depth
 	end
 	PlacePieces(self.drawer, art, x0, y0, x1, y1, 8)
@@ -1406,9 +1570,9 @@ function Toast:PaintQueue(rows, shown, above)
 		-- Row centres, reading downwards either way.
 		local y
 		if above then
-			y = self.top - 4 - (shown - i) * pitch - pitch / 2
+			y = top - 4 - gap - (shown - i) * pitch - pitch / 2
 		else
-			y = self.bottom + 4 + (i - 1) * pitch + pitch / 2
+			y = bottom + 4 + gap + (i - 1) * pitch + pitch / 2
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)

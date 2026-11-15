@@ -63,6 +63,9 @@ with("hunt39-actionbar: the key chip follows the controller's glyphs and the pad
 			SetBinding(key, COMMAND)
 			local p = ns.db.profile.prompt
 			p.style, p.width, p.locked, p.hideInCombat = style, 250, true, false
+			-- Toast's own key chip, which Earlier art draws: its painted keycap
+			-- (hidden as the look has it) is painted-toast.lua's.
+			p.classicArt = style == "toast"
 			ns.Prompt:ApplyStyle()
 			Mock.advance(60)
 			owe(ns, "Anna Aim")
