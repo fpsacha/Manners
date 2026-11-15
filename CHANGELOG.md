@@ -13,6 +13,10 @@
   already wears it from another paladin, or who cannot be given it, gets what
   the order would have chosen, and anybody wearing one of yours is left alone.
 
+### What I say
+- **The Forsaken have about a hundred new In character lines**, in every
+  language: Undercity, Brill, the apothecaries and loose stitching.
+
 ## 1.11.25
 
 *14 November 2026*
