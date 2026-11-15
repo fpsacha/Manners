@@ -73,6 +73,13 @@ local Forge = ns.Looks.Register("forge", {
 	-- The words stand on the iron whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/forge): what of this
+	-- look's own art the painting replaces (the plate, its straps, its shadow
+	-- and the bezel; the key's tag is laid over the keycap only for a label
+	-- too long for it, PaintedKey). The slot, the seam, the embers, the
+	-- glints, the sparks, the beads, the count's tag and the list's plate stay.
+	paintedHides = { "shadow", "plate", "strapTop", "strapBottom", "bezel" },
+	paintedIconFill = 0.97,
 })
 
 -- MUST AGREE with tools/make_forge_textures.py (tests/scenarios/look-forge.lua
@@ -131,6 +138,10 @@ local OUTCOME = {
 }
 -- What a fight does: the text dims, the icon greys and dims, the plate dims.
 local TEXT_COMBAT, ICON_COMBAT, PLATE_COMBAT = 0.78, 0.70, 0.80
+-- A painted frame is dimmed less in a fight: its keycap keeps its letter.
+local PAINT_COMBAT = 0.86
+-- The key's tag and the count's: how far in from the plate's right edge.
+local CHIP_INSET = 8
 -- The slot's alpha, its core at rest, lit, and held after its breaths; the
 -- bezel's warm copy over the same breath and held. That copy is the rounded
 -- square, bolts and mitres and all, in the slot's heat colour: past 0.12 (0.07
@@ -730,6 +741,11 @@ function Forge:Apply(p, above)
 	local round = p.roundIcon and true or false
 	self.active = true
 	self.p, self.W, self.H, self.sub, self.above = p, W, H, sub, above
+	-- What a painted frame (PaintedPlace) moves, as this look's own art has it.
+	self.slot:SetTexture(ART .. "Slot")
+	self.core:SetTexture(ART .. "SlotCore")
+	self.keyText:SetParent(kit.textLayer)
+	self.chipInset, self.lineFloor, self.listGap, self.listX0, self.listX1 = CHIP_INSET, 10, 0, 0, W
 	-- How far apart the list's rows are, which is also how tall each name's
 	-- click area is (Prompt/Rows.lua), and how far left of the text it starts.
 	self.pitch = sub + 7
@@ -932,7 +948,7 @@ function Forge:Apply(p, above)
 	self.chipH = chipH
 	PlaceThree(self.keyChip, self.keyBox, chipH)
 	self.keyBox:ClearAllPoints()
-	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -8, 0)
+	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -CHIP_INSET, 0)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
 	self.countMode, self.keyUp = nil, false
 	-- Measured again in the new font and size.
@@ -1116,13 +1132,157 @@ function Forge:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): the forge's own lights, motion,
+-- tags and lines moved onto the painting. Looks/Painted.lua has laid the
+-- three pieces and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The painted socket's iron frame, against its hole's half-width: how far out
+-- it reaches (the bloom and the fountain start there).
+local SOCKET_FRAME = 1.6
+-- The seam the painting glows along (the well's lower edge): the reason's line,
+-- the breath over it and the flicker, in parts of the bar's core height.
+local SEAM_LINE, SEAM_CORE, SEAM_FLICKER, SEAM_GLOW_UP = 0.06, 0.12, 0.12, 0.22
+
+function Forge:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local showIcon = p.showIcon and true or false
+	local W, H, unit = self.W, self.H, g.unit
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	local iconSize = g.iconSize
+	local frame = g.socketR * SOCKET_FRAME
+	self.iconSize, self.textX, self.bezelRight = iconSize, g.textX, g.socketX + frame
+
+	-- The bezel's warm breath and its landing flash round the painted socket's
+	-- frame (the bloom's band on its outer part), never the old bezel's rim.
+	local glowFile = p.roundIcon and "BezelGlowRd" or "BezelGlow"
+	local bloom = 2 * frame
+	At(self.bezelWarm, art, g.socketX, g.socketY, bloom)
+	self.bezelHot:SetTexture(ART .. glowFile)
+	At(self.bezelHot, art, g.socketX, g.socketY, bloom)
+	if showIcon then
+		-- The rings spread from the socket's hole over its frame.
+		self.fx:Place(icon, self.fx.ThinPad(iconSize, 2), iconSize)
+		local limitH = math.min(g.textX - g.socketX - kit.TEXT_MARGIN, g.socketX - kit.EDGE_MARGIN)
+		local limitV = math.min(g.socketY, H - g.socketY) - kit.EDGE_MARGIN
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+	end
+
+	-- The slot is the painting's ember seam along the well's lower edge, from
+	-- the words to the keycap: the reason's heat as a line, the owed breath
+	-- over it, the flicker and its glow at rest, the heat and the steam off it.
+	local seamY = g.wellBottom
+	local sx0, sx1 = g.textX - unit * 0.06, keyL - 2
+	local function band(t, up, down)
+		Box(t, art, sx0, seamY - unit * up, sx1, seamY + unit * down)
+	end
+	self.slot:SetTexture(ART .. "Seam")
+	self.core:SetTexture(ART .. "Seam")
+	band(self.slot, SEAM_LINE / 2, SEAM_LINE / 2)
+	band(self.core, SEAM_CORE / 2, SEAM_CORE / 2)
+	band(self.flicker, SEAM_FLICKER / 2, SEAM_FLICKER / 2)
+	band(self.seamGlow, SEAM_GLOW_UP, 0.03)
+	-- The heat a favour brings lifts off the seam, under the reason line.
+	band(self.heatFrame, 0.10, 0.03)
+	-- The steam off the seam's start at the socket, short of the words.
+	At(self.steamFrame, art, g.socketX + g.socketR, seamY, STEAM, STEAM)
+	-- The embers rise from the seam inside the well, behind the words.
+	local emberRise = math.max(2, seamY - g.wellTop - EMBER_SIZE)
+	for i, e in ipairs(EMBERS) do
+		At(self.embers[i], art, sx0 + (sx1 - sx0) * e[1], seamY, EMBER_SIZE, EMBER_SIZE)
+		self.emberAnims[i].move:SetOffset(e[2], emberRise)
+	end
+	-- The sparks along the seam, from the words' start, none past the keycap;
+	-- only where the lowest line leaves them room.
+	local fs = p.fontSize
+	local twoLine = p.showSub and H >= Forge.TwoLineHeight(fs)
+	local lowest = g.textY + (twoLine and self.block or fs) / 2
+	local sparksOK = H >= 32 and seamY - SPARK_CEIL - 2 >= lowest
+	local dys = { -1, 0, 1, 0, 1, -1 }
+	for i, f in ipairs(self.sparkFrames) do
+		local k = i - 1
+		local x = g.textX - 2 + 3 * k
+		At(f, art, x, seamY - 0.5, 3, 3)
+		local run = math.min(46 - 5 * k, sx1 - x - 1.5)
+		if run < 4 then sparksOK = false end
+		self.sparkAnims[i].move:SetOffset(math.max(0, run), dys[i])
+	end
+	self.sparksOK = sparksOK
+	-- The glint along the painted top band, from the words to the keycap's
+	-- far side; the cursor's light on the same band.
+	local bandY = (g.top + g.wellTop) / 2
+	local glintW = 22
+	local glintX0 = g.textX + glintW / 2
+	local glintRun = keyR - glintW / 2 - glintX0
+	self.idleOK = glintRun >= 30
+	At(self.strapGlint, art, glintX0, bandY, glintW, 2)
+	At(self.strapGlintOnce, art, glintX0, bandY, glintW, 2)
+	self.glintLoop.move:SetOffset(math.max(0, glintRun), 0)
+	self.greetAnim.move:SetOffset(math.max(0, glintRun), 0)
+	Box(self.hoverFrame, art, self.bezelRight, g.top, keyR, g.wellTop)
+	-- The fountain off the socket's frame, kept under the painting's top with
+	-- the list hung over it.
+	local fountY = g.socketY - g.socketR
+	local fountRise = above and math.max(2, fountY - g.y0) or FOUNT_RISE
+	for i, t in ipairs(self.fount) do
+		local k = i - (FOUNT + 1) / 2
+		At(t, art, g.socketX + k * 1.5, fountY, FOUNT_SIZE, FOUNT_SIZE)
+		self.fountAnims[i].move:SetOffset(k * 3.4, fountRise * (1 - 0.09 * k * k / 2) * (0.82 + 0.06 * (i % 3)))
+	end
+
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap (its own tag is the painting's);
+	-- the lines and the count's tag keep left of it. The letter is part of the
+	-- keycap: a fight's dim of the words would leave it grey on the steel.
+	self.chipInset = math.ceil(W - keyL) + 3
+	self.lineFloor = self.chipInset
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+	-- The list's plate from the socket's frame to the keycap's far side, hung
+	-- clear of what the painting hangs past the bar.
+	self.listX0 = math.max(0, g.socketX - frame)
+	self.listX1 = math.max(self.listX0 + 60, keyR + 3)
+	self.rowX = math.max(g.textX, self.listX0 + 17)
+	self.listGap = math.max(0, above and -g.y0 or (g.y1 - H)) + 1
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	self.listShown, self.listAt = nil, nil
+	return g.textX, self.roomBase
+end
+
+-- The key's letter on the painted keycap, in the painting's own ink for it.
+function Forge:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	local path, size, flags = self.keyText:GetFont()
+	-- As large as the name, as the keycap is a stamp of its own, and no larger
+	-- than the keycap holds, so the letter stays on its steel.
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	local want = math.min(most, math.max(size or 0, (self.p and self.p.fontSize) or 0))
+	if path and size and want ~= size then self.keyText:SetFont(path, want, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
 function Forge:PlaceLines(right)
 	local kit = self.kit
 	local name, sub, fit = kit.name, kit.sub, kit.fit
-	local inset = math.max(right, 10)
+	local inset = math.max(right, self.lineFloor or 10)
 	if self.keyUp then inset = math.max(inset, self.keyRoom or 0) end
 	if self.countMode == "pair" then inset = math.max(inset, self:PairRoom()) end
 	-- The two points never cross: the name keeps 20 units, the room at the
@@ -1202,7 +1362,31 @@ end
 -- The room the lines leave at the right for the key's tag with the count's
 -- beside it.
 function Forge:PairRoom()
+	-- On the painted keycap the count's tag stands just left of it: the room
+	-- of a tag at the right is the room of both.
+	if ns.Looks.Painted.On(self) then return (self.keyRoom or 0) + (self.kit.fit.chipRoom or 0) - self.chipInset end
 	return (self.keyRoom or 0) + (self.kit.fit.chipRoom or 0) - 5
+end
+
+-- The key on the painted keycap: a label its face holds is written on it and
+-- takes no room of the lines' own (the keycap is already left out of it); a
+-- longer one (a controller's buttons, two modifiers) gets this look's own
+-- stamped tag laid over the keycap, as wide as the label, reaching left.
+function Forge:PaintedKey(textW)
+	local g = self.paintedArt.g
+	local keyR = g.keyX + g.keyW / 2
+	self.keyBox:ClearAllPoints()
+	if textW + 4 <= g.keyW then
+		self.keyWide = nil
+		self.keyW, self.keyRoom = g.keyW, self.chipInset
+		self.keyBox:SetPoint("CENTER", self.kit.art, "TOPLEFT", g.keyX, -g.keyY)
+	else
+		self.keyWide = true
+		self.keyW = math.max(g.keyW, textW + 10)
+		self.keyRoom = math.ceil(self.W - (keyR - self.keyW)) + 3
+		self.keyBox:SetPoint("RIGHT", self.kit.art, "TOPLEFT", keyR, -g.keyY)
+	end
+	self.keyBox:SetHeight(self.keyWide and self.chipH or g.keyH)
 end
 
 -- Run on every repaint. The count's tag at the right, or, with the key's tag
@@ -1221,8 +1405,10 @@ function Forge:Chip(on)
 		if key ~= self.keyLabel then
 			self.keyLabel = key
 			self.keyText:SetText(key)
-			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
+			local textW = kit.TextWidth(self.keyText) or self.sub
+			local w = math.max(self.chipH * 1.75, textW + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + 15)
+			if ns.Looks.Painted.On(self) then self:PaintedKey(textW) end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
@@ -1234,7 +1420,9 @@ function Forge:Chip(on)
 		kit.fit.right = nil
 	end
 	if keyUp then self.keyBox:SetWidth(math.floor(self.keyW + 0.5)) end
-	for _, t in ipairs(self.keyChip) do t:SetShown(keyUp) end
+	-- Over the painted keycap the tag is laid only for a label too long for it.
+	local tag = keyUp and (self.keyWide or not ns.Looks.Painted.On(self))
+	for _, t in ipairs(self.keyChip) do t:SetShown(tag) end
 	self.keyText:SetShown(keyUp)
 
 	if on then
@@ -1246,7 +1434,7 @@ function Forge:Chip(on)
 			self.countText = text
 			self.countW = math.max(self.chipH * 1.75, (kit.TextWidth(count) or self.sub) + 10)
 		end
-		kit.fit.chipRoom = math.max(self.roomBase or 0, math.ceil(self.countW) + 15)
+		kit.fit.chipRoom = math.max(self.roomBase or 0, math.ceil(self.countW) + self.chipInset + 7)
 	end
 	local mode
 	if on then
@@ -1265,7 +1453,7 @@ function Forge:Chip(on)
 			if mode == "pair" then
 				self.chipBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
 			else
-				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -8, 0)
+				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -self.chipInset, 0)
 			end
 			PlaceThree(self.chip, self.chipBox, h)
 			count:ClearAllPoints()
@@ -1344,6 +1532,9 @@ function Forge:Dull(on)
 	local pc = self.plateColour or { 1, 1, 1 }
 	local f = on and PLATE_COMBAT or 1
 	for _, t in ipairs(self.plate) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	f = on and PAINT_COMBAT or 1
+	ns.Looks.Painted.Tone(self, pc[1] * f, pc[2] * f, pc[3] * f, on)
 end
 
 -- The plate holds; the iron dulls, the icon greys, the words dim and the
@@ -1592,22 +1783,26 @@ function Forge:PaintQueue(rows, shown, above)
 	self.listShown, self.listAt = shown, above
 
 	local pitch = self.pitch
+	-- Under a painted frame the plate hangs clear of what the painting hangs
+	-- past the bar, from its socket to its keycap (PaintedPlace); else the
+	-- whole width, flush.
+	local gap, x0, x1 = self.listGap or 0, self.listX0 or 0, self.listX1 or self.W
 	local depth = shown * pitch + 6
-	local W, H = self.W, self.H
+	local H = self.H
 	local y0, y1
 	if above then
-		y1 = 0
-		y0 = -depth
+		y1 = -gap
+		y0 = -depth - gap
 	else
-		y0 = H
-		y1 = H + depth
+		y0 = H + gap
+		y1 = H + depth + gap
 	end
-	PlacePlate(self.listPlate, art, 0, y0, W, y1)
+	PlacePlate(self.listPlate, art, x0, y0, x1, y1)
 	local strapH = self.strapH
-	PlaceStrap(self.listStrap, art, 2, above and y0 or (y1 - strapH), W - 2, strapH)
+	PlaceStrap(self.listStrap, art, x0 + 2, above and y0 or (y1 - strapH), x1 - 2, strapH)
 	Each(self.listPlate, "Show")
 	Each(self.listStrap, "Show")
-	self:PlaceShadow({ 0, y0, W, y1 })
+	self:PlaceShadow({ x0, y0, x1, y1 })
 
 	local bead = self.sub + 3
 	for i = 1, shown do
@@ -1615,9 +1810,9 @@ function Forge:PaintQueue(rows, shown, above)
 		-- Row centres, reading downwards either way.
 		local y
 		if above then
-			y = -(3 + (shown - i) * pitch + pitch / 2)
+			y = -(3 + gap + (shown - i) * pitch + pitch / 2)
 		else
-			y = H + 3 + (i - 1) * pitch + pitch / 2
+			y = H + 3 + gap + (i - 1) * pitch + pitch / 2
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)
