@@ -76,7 +76,8 @@ MIN_RATIO = 4.5
 # How far past an edge counts as past it, in UI units.
 TOL = 0.5
 STATES = ("combat", "unlocked", "snoozed", "order", "press", "folds-open", "scrolled", "modal", "search",
-          "returning", "topups", "carrying", "big", "wide", "ultrawide", "simple", "offer", "switching", "sub")
+          "returning", "topups", "carrying", "big", "wide", "ultrawide", "simple", "offer", "switching", "sub",
+          "platesoff", "firstrun")
 
 # Faces with the script of the languages Candara has no glyphs for, first in
 # the list for those languages; the Latin faces after them, for what is left.
@@ -1441,6 +1442,8 @@ def main():
                          "wide (1320 x 720: two columns), ultrawide (a 21:9 screen, 1740 x 720: three), "
                          "simple (the short list a new profile starts on), offer (the line offering it), "
                          "switching (Switch profile automatically on, with two profiles), "
+                         "platesoff (the game's friendly nameplates off, as a fresh install has them), "
+                         "firstrun (a new profile, Quick setup's two questions still asking), "
                          "sub KEY (the page's sub-division KEY chosen from the bar over it, e.g. who.myself), "
                          "or search WORDS; repeatable")
     ap.add_argument("--check", action="store_true", help="list faults and exit 1 if there are any")

@@ -115,8 +115,13 @@ Everybody who could use your buff is queued, in this order:
    tick *My group's pets too*.
 7. **Passers-by** missing your buff, seen through nameplates, your target,
    your focus and your mouseover. With the game's friendly nameplates off
-   Manners sees almost nobody outside your group: *Who to buff* and *Start
-   here* say so in red, with a button that turns them on.
+   Manners sees almost nobody outside your group, and cannot tell who a
+   stranger who buffs you is. It says so where you look: a red line under the
+   first greeting, *Who to buff* and *Start here* in red (*Start here* while
+   *Quick setup* is still asking, too), the minimap tooltip in amber, and the
+   options window's strip, each with *Show friendly nameplates* or the way to
+   it. When a stranger's buff lands with nobody to name, one line in chat says
+   why there is nobody to buff back, once a session on your first three.
 
 Ahead of all of them comes your **resurrection** for a dead member of your
 group, and a **cure** comes before any buff for the same person; a **courtesy**
@@ -1255,7 +1260,9 @@ person have mana" is read from their class instead.
 
 **There is no combat log**, as on retail. A favour is spotted by watching your
 own buffs appear and reading who cast them, which is a unit: somebody with no
-nameplate who is not your target cannot be identified at all.
+nameplate who is not your target cannot be identified at all. Turn on the
+game's friendly nameplates (*Show friendly nameplates* on *Start here*) and
+strangers can be.
 
 **Secure buttons must register for mouse down**: every secure button that
 works here registers `"AnyDown"`.

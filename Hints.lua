@@ -7,6 +7,7 @@
 -- to buff". The rule stands (nobody needs Inner Fire at the auction house);
 -- what was missing is anybody saying so. Said once a character, a little
 -- after the screen is up, and only when something of yours is in fact missing.
+-- The second, ns.UnnamedBuffHint, is below.
 
 local addonName, ns = ...
 local L = ns.L
@@ -52,6 +53,38 @@ function ns.RestingHint(now)
 	hints.resting = true
 	ns.addon:Print(L["Your own buffs wait while you rest in a city or an inn, and come up when you leave. To be reminded in town too, tick %s on %s."]:format(
 		"|cffffd100" .. L["Also in cities and inns"] .. "|r", "|cffffd100" .. L["Who to buff"] .. "|r"))
+	return true
+end
+
+-- The second: somebody's class buff landed on you and the game gave no token
+-- for the caster (Favours.lua, Sight), so there is nobody to buff back. On
+-- WoW Forever, with no combat log, a stranger is named only through a token,
+-- and with the game's friendly nameplates off, as a fresh install has them, a
+-- passer-by has none: the buff came, and nothing came up and nothing was
+-- said. Said once a session, on three sessions a character at most
+-- (`hints.unnamed` counts them), and only when the nameplates are why: out of
+-- a fight, where a caster withheld looks the same as none, and with the
+-- client saying plainly that they are off.
+local UNNAMED_SESSIONS = 3
+local unnamedSaid = false
+
+function ns.UnnamedBuffHint()
+	if unnamedSaid then return false end
+	local db = ns.db
+	if not (db and db.profile and db.char) then return false end
+	if InCombatLockdown() or db.profile.silentChat == true then return false end
+	if not ns.FriendlyPlatesOff() then return false end
+	local hints = db.char.hints
+	local told = type(hints) == "table" and type(hints.unnamed) == "number" and hints.unnamed or 0
+	unnamedSaid = true
+	if told >= UNNAMED_SESSIONS then return false end
+	if type(hints) ~= "table" then
+		hints = {}
+		db.char.hints = hints
+	end
+	hints.unnamed = told + 1
+	ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who, so Manners cannot buff them back. %s on %s (|cffffd100/manners|r) turns them on."]:format(
+		"|cffffd100" .. L["Show friendly nameplates"] .. "|r", "|cffffd100" .. L["Start here"] .. "|r"))
 	return true
 end
 

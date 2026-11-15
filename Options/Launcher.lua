@@ -208,7 +208,7 @@ end
 --
 -- An eighth, `kind`, names the branch the line came from -- off, unlocked,
 -- snoozed, ownoff, mounted, ownwatch, noclass, nothing, blocked, unlearned,
--- watching -- so the options window's status strip can show only the states
+-- plates, watching -- so the options window's status strip can show only the states
 -- that keep the prompt from doing what the player expects. The tooltip and
 -- the menu ignore it.
 local function LauncherState()
@@ -300,6 +300,13 @@ local function LauncherState()
 		-- the labels the window shows.
 		return false, L["Kept away while you are mounted -- %s, on the %s tab."]
 			:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true, nil, "mounted"
+	elseif Page.PlatesWanted and Page.PlatesWanted() then
+		-- Passers-by on and the game's friendly nameplates off, as a fresh
+		-- install has them: the group is watched, but a stranger has no token
+		-- to be seen or named by (Who.lua, Page.PlatesWanted; Favours.lua,
+		-- Sight). Amber, not green, so "watching" does not promise strangers.
+		return true, L["Watching your group -- friendly nameplates are off, so Manners sees almost no passers-by. %s on %s turns them on."]
+			:format("|cffffd100" .. L["Show friendly nameplates"] .. "|r", L["Start here"]), 1, 0.82, 0, true, nil, "plates"
 	end
 	return true, L["Watching for people to buff."], 0.4, 0.9, 0.4, nil, nil, "watching"
 end

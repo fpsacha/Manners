@@ -405,6 +405,13 @@ do
 			or false
 	end
 
+	-- A class buff that landed with nobody to name, for the full check-up's
+	-- trail and the line said once a session about it.
+	local function Unnamed(key)
+		ns.Trail("favour", ("buffed you (spell %s), the caster unnamed"):format(tostring(key)))
+		if ns.UnnamedBuffHint then ns.UnnamedBuffHint() end
+	end
+
 	-- Read the caster off a slot at the moment the slot is read, and keep it with
 	-- the class under the aura: neither can be recovered later, and the fallback
 	-- queue needs the class. A sighting with nobody in it still records that no
@@ -419,6 +426,11 @@ do
 		sighted[instanceId] = seen
 
 		local source = plain(aura.sourceUnit)
+		-- A class buff with no caster to read: a stranger the game gave no
+		-- token for, as with the friendly nameplates off. Nobody can be owed
+		-- for it, but the trail keeps it, and the player is told why once
+		-- (Hints.lua, which says it only when the nameplates are the reason).
+		if not source and ns.ALL_BUFF_IDS[key] then Unnamed(key) end
 		if not source or source == "player" then return end
 		if plain(UnitIsUnit(source, "player")) then return end
 		if plain(UnitIsPlayer(source)) ~= true then return end

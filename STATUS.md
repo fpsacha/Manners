@@ -108,6 +108,28 @@ What was built:
   Boosted Stats reads on a group member out of a fight on Forever (one
   guarded read by spell id, as the single walk's). A debt to somebody held
   this way waits out its time as Still owed.
+- **Friendly nameplates off, said where the player looks** (branch `par`,
+  2026-11-15; the weakest point six reviewers found: with the game's
+  friendly nameplates off, as a fresh install has them, a stranger's buff on
+  Forever lands with no `sourceUnit`, nothing comes up and nothing is said,
+  while the greeting promised strangers and the launcher said "Watching" in
+  green). Now: a red line under the greeting (Commands.lua `ns.Welcome`);
+  Start here's note and button while Quick setup asks too, for a pick that
+  offers to passers-by (`Quick.FirstPassersBy`; the section titled *Seeing
+  passers-by* then); the launcher's `plates` state, amber, and the options
+  window's strip with *Show friendly nameplates* beside it, except on Start
+  here and Who to buff, which carry their own (WindowChrome.lua
+  `PLATES_BUTTON`); a class buff from nobody named goes on the trail and,
+  with the nameplates plainly off and out of a fight, is said once a session
+  on three sessions a character (Favours.lua `Unnamed`, Hints.lua
+  `ns.UnnamedBuffHint`, `db.char.hints.unnamed`). `tests/scenarios/par.lua`
+  (red before), nineteen mutations in `tests/mutations/par.py` seen CAUGHT;
+  `plates-cta.lua` turned round (it held the old rule, hidden while asking)
+  and its two mutations re-aimed. `tools/render_options.py` has `platesoff`
+  and `firstrun` states. Only the game can say whether a stranger's buff on
+  Forever really reads `sourceUnit` as a plain nil out of a fight (the line
+  depends on it), and whether `SetCVar` from the strip's button is accepted
+  as the page's own is.
 
 Before that, still unreleased after 1.11.24: a pass over the fifteen looks
 there were then (branch

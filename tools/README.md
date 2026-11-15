@@ -908,6 +908,8 @@ and can be given more than once:
 | `unlocked` | the prompt unlocked before the window opens |
 | `topups` | "Offer a top-up when it runs low" chosen before the window opens, so When to offer shows the ceiling and the raid multiplier under it |
 | `snoozed` | `ns.StartSnooze(15)` before it opens |
+| `platesoff` | `GetCVar` answers "0" for the game's friendly nameplates (either client's name for them) before it opens, as a fresh install has them: the red notes, the red dot and the strip's line and button |
+| `firstrun` | the profile's `firstRun` set to `pending` before it opens, so Quick setup's two questions are asking on Start here |
 | `combat` | a fight starts once it is open, in the client's order: `PLAYER_REGEN_DISABLED` to Core and to every frame registered for it while lockdown has not begun, then lockdown and the next frame's timers |
 | `order` | a paladin's, priest's or druid's buffs put in an order of the player's own before the window opens, by `ns.MoveBuff` (Wisdom, Spirit or Thorns up a place): Who to buff then shows the Buff order list with Back to Automatic |
 | `returning` | a player who has had the window open before, before it opens: the first open of all starts the prompt's preview by itself, which turns the header's Show me the prompt into Stop preview |

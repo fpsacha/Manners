@@ -369,6 +369,14 @@ function ns.Welcome(force, offSaid)
 		end
 	else
 		addon:Print(L["|cffffd100Manners|r puts anybody who buffs you -- and any stranger nearby who is missing one of yours -- on a small prompt. Clicking the prompt buffs them."])
+		-- That promise rests on the game's friendly nameplates, off in a fresh
+		-- install: without one a stranger has no token, and a buff from them
+		-- or a passer-by missing yours never reaches the prompt (Favours.lua,
+		-- Sight). Said right under it, with the button that turns them on.
+		if ns.FriendlyPlatesOff() then
+			addon:Print(L["|cffff8080Friendly nameplates are off|r, so Manners cannot tell who a stranger is: a passer-by who buffs you, or who is missing your buff, never comes up on the prompt. %s on %s (|cffffd100/manners|r) turns them on."]
+				:format("|cffffd100" .. L["Show friendly nameplates"] .. "|r", L["Start here"]))
+		end
 	end
 	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r or |cffffd100Put Manners on an action bar|r in the options puts a macro on your cursor for your bars, or bind a key under Options > Keybindings > Manners."])
 
