@@ -976,24 +976,45 @@ cannot send it to somebody else by mistake.
 A profile holds every setting on the other pages: who is offered, when, what
 is said, how the prompt looks and where it sits. Every character starts on
 *Default*; the favour ledger, the milestones and what you are owed stay
-with the character whatever profile it is on. The page's first line
-says which profile this character uses. When another character uses the same
-one, a grey line says so, and *Give this character its own settings* copies
-the settings into a profile named after this one.
+with the character whatever profile it is on.
 
-- *New profile*: type a name and press Enter, for a profile with every
-  setting at its default. *New profile from these settings* does the same
-  with a copy of the profile in use. Either way this character switches to
-  the new one.
-- *Use profile* switches to another. That is also how a profile is edited:
+The page opens with every profile, one line each, the one in use first and
+marked: which characters are on it ("this character", "3 characters: Ann,
+Bo, Cy", or "nobody") and, with *Switch automatically* on, where it is
+chosen for this character ("Switched to in dungeons, raids"). When another
+character shares this one's profile, *Give this character its own settings*
+copies it into a profile named after this character and switches to it.
+
+***Pick a profile.*** Pick one in *Profile* (the one in use until you pick
+another), then act on it with the buttons under it:
+
+- *Use* switches this character to it. That is also how a profile is edited:
   every page shows and changes the profile in use.
-- *Rename this profile*: type the new name and press Enter. Every character
-  on it stays on it.
-- *Copy from* replaces this profile's settings with another's, *Delete*
-  removes a profile other than the one in use, and *Reset this profile* puts
-  every setting back to its default. Each asks first.
+- *Duplicate* makes a copy of it under the name typed in *Name*; nobody is
+  moved onto the copy. *Rename* gives it that name, any profile, not only the
+  one in use: every character on it stays on it, and automatic switching and
+  *New characters start on* follow the new name. A name already taken, empty
+  or over 50 letters is said under the buttons.
+- *Delete* removes it, after asking, and names the characters that go to
+  *Default*. The profile in use cannot be deleted, and the page says so.
+- *Copy into the profile in use* replaces every setting of the one in use
+  with its settings, after asking.
 
-None of them does anything in a fight.
+***Undo.*** After *Delete*, *Reset this profile*, *Copy into the profile in
+use*, *Rename* or a paste, a line under the list says what was done
+("Deleted Raid healer.") with *Undo* beside it, which puts it back exactly:
+the profile's settings, the characters that were on it and every rule of
+automatic switching that named it. One step, this session only: the next
+action, or a profile picked anywhere else, takes its place. Never in a fight.
+
+***Fresh starts.*** *New profile*: type a name and press Enter, for a profile
+with every setting at its default, which this character switches to. *New
+characters start on* (*Default*) is the profile a character takes the first
+time it logs in with Manners, for the whole account; characters that have
+logged in before keep theirs, and a profile since deleted means *Default*.
+*Reset this profile* puts every setting back to its default, after asking.
+
+Nothing on the page changes a profile in a fight.
 
 ***Switch automatically.*** *Switch profile automatically* (off) picks the
 profile by where you are, with a dropdown for each place: *In the open
@@ -1010,8 +1031,8 @@ automatically: in a raid". These choices are the character's own, so an alt
 can do otherwise, and deleting a profile puts the places that named it
 back on *Do not switch*.
 
-An example: make a profile *Raid* with *New profile from these settings*,
-untick *Passers-by* and *Say a line when I buff someone* on it, then go back to
+An example: pick *Default*, type *Raid* in *Name* and press *Duplicate*,
+*Use* it, untick *Passers-by* and *Say a line when I buff someone* on it, then go back to
 *Default* and pick *Raid* for *In a raid* and *Default* for *In the open
 world*. Out in the world Manners offers everybody and speaks; inside a raid
 it keeps to your group and says nothing.
@@ -1021,8 +1042,10 @@ it keeps to your group and says nothing.
 `/manners export`, or *Show my settings as text*, puts your settings in a box
 as one line of text to keep or hand to somebody. Paste one into *Paste
 settings here, then press Accept*, or after `/manners import`, to use it.
+*Paste into* says where it goes: over *The profile in use*, or into *A new
+profile* named in the box under it, which this character then switches to.
 Only what differs from the defaults is written, a damaged line is refused
-before anything changes, and *Put my settings back* (`/manners import undo`)
+before anything changes, and the page's *Undo* (or `/manners import undo`)
 takes it back. A pasted line never carries whether Manners is on, the lock,
 where the prompt sits or the minimap button, and it never switches speaking
 on, nor *Ask people for a buff I'm missing*, since both talk to other
