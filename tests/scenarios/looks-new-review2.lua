@@ -104,7 +104,7 @@ local function worksRunning(look)
 end
 
 withTree("looks-new-review2: Gearworks stops its works when the prompt goes down", ANNA, function(ns, scenario)
-	local _, look = upIn(ns, scenario, "gearworks", "Anna Aim", function(pp) pp.width = 260 end)
+	local _, look = upIn(ns, scenario, "gearworks", "Anna Aim", function(pp) pp.width, pp.classicArt = 260, true end)
 	if not (look and look.turns and look.bubbleRun) then
 		fail(scenario, "SKIPPED -- Gearworks is not the look in use")
 		return
@@ -133,7 +133,7 @@ end)
 -- The same call ends a breath while the prompt stays up (the flash turned
 -- off): there the works go on running.
 withTree("looks-new-review2: Gearworks keeps its works running when only the breath ends", ANNA, function(ns, scenario)
-	local p, look = upIn(ns, scenario, "gearworks", "Anna Aim", function(pp) pp.width = 260 end)
+	local p, look = upIn(ns, scenario, "gearworks", "Anna Aim", function(pp) pp.width, pp.classicArt = 260, true end)
 	if not (look and look.turns and look.bubbleRun) then
 		fail(scenario, "SKIPPED -- Gearworks is not the look in use")
 		return

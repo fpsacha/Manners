@@ -1,0 +1,12 @@
+{
+  "key": "gearworks",
+  "socket": {"shape": "round", "cx": 440, "cy": 497, "r": 182},
+  "name_xy": [876, 400],
+  "reason_xy": [877, 536],
+  "keycap": {"cx": 3493, "cy": 503, "w": 157, "h": 157},
+  "bar": [135, 192, 4005, 810],
+  "stretch": [900, 3300],
+  "text_colour_ok": true,
+  "contrast": {"white": 16.31, "gold": 10.96},
+  "notes": "Measured on final-empty.jpg (painted by Gemini from the keeper r3-01). Contrast is over the lightest tenth of the text area x 870..1540, y 390..630. Socket r is the dark glass disc; the knurled gauge bezel's outer radius is about 305, and the bezel sets the bbox top and bottom (the bar plate itself runs about y 252..752). Text well is about x 815..3595, y 355..652. Steam wisp rises above the end housing to about y 180 near x 3740, outside the bbox. The stretch run holds only evenly spaced rivets (pitch about 240 px), so tile-stretching is safer than scaling. Animatable layers: the two meshed cogs in the end housing (small brass one about x 3870,y 430; larger copper one about x 3810,y 560) turning in opposite directions; the steam wisp from the little valve at about x 3745,y 420 drifting up and fading; a slow warm glint travelling round the gauge bezel's tick ring; a soft highlight sliding across the socket's glass disc."
+}
