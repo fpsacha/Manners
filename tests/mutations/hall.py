@@ -113,8 +113,8 @@ mutate("Hall.lua",
 
 # Off with milestones.
 mutate("Hall.lua",
-       "\treturn M.On() == true\nend\n",
-       "\treturn true\nend\n",
+       "\tif M.On() ~= true then return false end\n",
+       "",
        "hall: shown with milestones switched off",
        expect=OFF, script=S)
 

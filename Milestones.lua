@@ -108,7 +108,8 @@ M.TEXT = TEXT
 -- `value(st, sum)` is how far along, `goal` where it is earned; a goal above
 -- one shows its progress. `hidden` ones read "?" until earned. `feature` says
 -- whether this character can earn it at all (a class with no resurrection is
--- not shown one); one already earned is always listed. Icons are file ids
+-- not shown one), and one without it needs a buff for somebody else (Available);
+-- one already earned is always listed. Icons are file ids
 -- that every client has (ManifestInterfaceData of all five builds).
 ---------------------------------------------------------------------------
 
@@ -725,8 +726,18 @@ function M.Waiting() return #queue end
 -- earning
 ---------------------------------------------------------------------------
 
+-- Whether this class has no buff for anybody else on this client (Buffs.lua):
+-- nothing it can press writes the ledger's rows, which every milestone
+-- without a `feature` of its own is read from.
+local function NothingToGive()
+	local class = ns.caps and ns.caps.class
+	local without = ns.CLASSES_WITHOUT_BUFFS
+	return class ~= nil and type(without) == "table" and without[class] == true
+end
+
 local function Available(def, st)
 	if st.earned[def.id] then return true end
+	if not def.feature and NothingToGive() then return false end
 	if not def.feature then return true end
 	local ok, has = pcall(def.feature)
 	return ok and has == true
@@ -828,7 +839,7 @@ local function Due()
 			local e = w.entry
 			if now and CountRow(st, e, now) and w.size then
 				if e.kind == "received" then
-					if not w.grouped then Sat(st, e.gave, { e.name }, w.size, w.clock) end
+					if not w.grouped then Sat(st, e.gave, w.names, w.size, w.clock) end
 				elseif e.to == "group" and not IsRes(e.spell) then
 					Sat(st, e.spell, w.names, w.size, w.clock)
 				end
@@ -909,6 +920,15 @@ function M.Settled(entry, pending)
 		for _, member in ipairs(type(members) == "table" and members or {}) do
 			local name = type(member) == "table" and member.name or member
 			if type(name) == "string" then w.names[#w.names + 1] = name end
+		end
+		-- And everybody else a cast with no group version reached: on Mists
+		-- and retail one cast on a member lands on the whole raid, and a shout
+		-- on everybody who hears it (Prompt/Press.lua files both with the
+		-- press, Clicks.lua settles them with it).
+		for _, list in ipairs({ pending.wideMembers or false, pending.selfCast and pending.shoutMembers or false }) do
+			for _, name in ipairs(type(list) == "table" and list or {}) do
+				if type(name) == "string" then w.names[#w.names + 1] = name end
+			end
 		end
 	end
 	waiting[#waiting + 1] = w
@@ -1021,7 +1041,8 @@ local rowById = {}
 -- The tab is there while milestones are on. Answers this table while it is
 -- the tab on show, for the window to list and paint through.
 function M.Page(window, filter)
-	local on = On()
+	-- Nor for a character with none to earn and none earned.
+	local on = On() and select(2, M.Tally()) > 0
 	for _, tab in ipairs(window and window.tabs or {}) do
 		if tab.key == "milestones" then tab:SetShown(on) end
 	end

@@ -158,9 +158,13 @@ local function Me()
 	return { name = name, realm = realm, client = client, class = class }
 end
 
--- Whether the section is there at all: only while milestones are on.
+-- Whether the section is there at all: only while milestones are on, and not
+-- for a character with no milestone to earn (a class with no buff, cure,
+-- resurrection or courtesy for anybody).
 function Hall.Shown()
-	return M.On() == true
+	if M.On() ~= true then return false end
+	local _, of = M.Tally()
+	return of > 0
 end
 
 -- How many milestones are earned, of how many this character can earn, and

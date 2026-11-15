@@ -527,6 +527,11 @@ press did. Paste whatever does not match.
       clients.
 - [ ] A debuff with under ten seconds left, and one with no timer, are left
       alone.
+- [ ] Classic Era: `/dump C_UnitAuras.GetAuraDataByIndex("party1", 1,
+      "HARMFUL")` on a party member with a timed debuff you did not cast
+      shows an `expirationTime` above 0. If it shows 0 there, every debuff
+      reads as having no timer and no cure is ever offered on that client
+      (Cures.lua, `ReadInto`).
 
 *Courtesies on request* (Forever first)
 

@@ -96,7 +96,9 @@ local SPELLS = {
 		PRIEST = CLASSIC.PRIEST,
 		PALADIN = CLASSIC.PALADIN,
 		SHAMAN = CLASSIC.SHAMAN,
-		DRUID = { single = { 437138 } },
+		-- A rune's, of one season: no druid of another realm of this client
+		-- can learn it, so it is his only once it is learned (Res.Has).
+		DRUID = { single = { 437138 }, rune = true },
 	},
 	tbc = {
 		PRIEST = { single = { 25435, 20770, 10881, 10880, 2010, 2006 } },
@@ -128,7 +130,7 @@ local EVERY = {}
 for _, set in pairs(SPELLS) do
 	for _, mine in pairs(set) do
 		for _, ids in pairs(mine) do
-			for _, id in ipairs(ids) do EVERY[id] = true end
+			for _, id in ipairs(type(ids) == "table" and ids or {}) do EVERY[id] = true end
 		end
 	end
 end
@@ -147,10 +149,16 @@ local function Mine()
 	return class and set[class] or nil
 end
 
+local Info -- below
+
 -- Whether this class has a resurrection on this client at all, learned or
--- not: what shows the two switches on Who to buff.
+-- not: what shows the two switches on Who to buff, and the milestone. One a
+-- season's rune teaches (`rune`) only once it is learned: on every other
+-- realm of that client the class has none.
 function Res.Has()
-	return Mine() ~= nil
+	local mine = Mine()
+	if mine == nil then return false end
+	return mine.rune ~= true or Info() ~= nil
 end
 
 -- What the prompt casts. Shaped as a buff is, for everything that names,
@@ -201,7 +209,7 @@ function Res.Learn()
 	return info
 end
 
-local function Info()
+function Info()
 	local info = caps.res
 	if info == nil then info = Res.Learn() end
 	return info or nil
