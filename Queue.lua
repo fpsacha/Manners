@@ -356,6 +356,23 @@ do
 	-- Core.lua's table of the buffs so held, which its Castable reads.
 	local heldOff = ns.heldOff
 
+	-- The same buff refused on the same person twice running, with nothing about
+	-- them changed between (no aura added to them or taken off), and no reason
+	-- from the game or one of these about them: held off that person as above,
+	-- whether or not they are your target (1.11.25 on Forever: five presses on
+	-- one target in a minute, each refused, each put straight back up). Range,
+	-- sight, mana and moving are about the caster or the place and hold nobody.
+	local AGAIN = { "SPELL_FAILED_BAD_TARGETS", "SPELL_FAILED_TARGET_AURASTATE" }
+	-- [name] = { key = buff key, at = when }: the first such refusal, waiting for
+	-- a second; [name] = { [buff key] = true }: the holds that rule made, which a
+	-- new aura on them lifts (ns.AuraChangedOn). A THIS_BUFF hold is the game's
+	-- own word and stays.
+	local firstRefusal, heldAgain = {}, {}
+
+	-- The newest error's string id (GetGameMessageInfo, Clicks.lua), for the
+	-- trail: its words may name somebody, its id never does.
+	local lastErrorId
+
 	-- Whether the game's words are one of these global strings.
 	local function OneOf(message, keys)
 		if type(message) ~= "string" then return false end
@@ -406,6 +423,19 @@ do
 			end
 			if next(held) == nil then heldOff[name] = nil end
 		end
+		-- A first refusal never repeated, and the holds of a second whose ten
+		-- minutes ran out above.
+		for name, first in pairs(firstRefusal) do
+			if now - first.at > FORGET_SECONDS then firstRefusal[name] = nil end
+		end
+		for name, mine in pairs(heldAgain) do
+			local held = heldOff[name]
+			for key in pairs(mine) do
+				if not (held and held[key]) then mine[key] = nil end
+			end
+			if next(mine) == nil then heldAgain[name] = nil end
+		end
+		if ns.refusalWatch and next(firstRefusal) == nil and next(heldAgain) == nil then ns.refusalWatch = nil end
 	end
 
 	-- One buff held off one person as the wrong one for them (Core.lua,
@@ -420,6 +450,128 @@ do
 			heldOff[name] = held
 		end
 		held[buffKey] = lifts
+	end
+
+	-- Said once, when the hold is made, whether or not chat lines are on: it is
+	-- the only thing that says why they left the prompt, and how to try again.
+	local function TellAgain(name, buffKey)
+		local buff = ns.FindBuff(caps.class, buffKey) or ns.FindOwnSpell(buffKey)
+		local label = buff and ns.BuffName(buff) or buffKey
+		if ns.IsPlayerName(name) then
+			addon:Print(L["|cffff8080the game refused %s on you twice running|r -- it is not offered to you for ten minutes, or until a buff on you changes. To try again now: Who to buff, Never offer, Offer held-back buffs again."]
+				:format(label))
+		else
+			addon:Print(L["|cffff8080the game refused %s on %s twice running|r, with nothing about them changed between -- it is not offered to them for ten minutes, or until a buff on them changes. To try again now: Who to buff, Never offer, Offer held-back buffs again."]
+				:format(label, name))
+		end
+	end
+
+	-- A refusal of one buff on one person that is no reason to back them off
+	-- (AGAIN, above): the first is remembered, the second holds the buff off them.
+	-- Returns true when it held.
+	local function RefusedAgain(name, buffKey, why, now)
+		if why ~= nil and not OneOf(why, AGAIN) then
+			firstRefusal[name] = nil
+			return false
+		end
+		local first = firstRefusal[name]
+		if not (first and first.key == buffKey) then
+			firstRefusal[name] = { key = buffKey, at = now }
+			ns.refusalWatch = true
+			return false
+		end
+		firstRefusal[name] = nil
+		ns.MarkAttempted(name, buffKey, THIS_BUFF_SECONDS, true)
+		HoldOff(name, buffKey, now + THIS_BUFF_SECONDS)
+		local mine = heldAgain[name] or {}
+		heldAgain[name] = mine
+		mine[buffKey] = true
+		ns.refusalWatch = true
+		ns.Trail("held", "refused twice running with nothing changed: " .. tostring(buffKey)
+			.. " held off them for ten minutes", name)
+		TellAgain(name, buffKey)
+		return true
+	end
+
+	-- One hold the rule above made, taken back.
+	local function LiftAgain(name, buffKey)
+		local mine = heldAgain[name]
+		if not (mine and mine[buffKey]) then return end
+		mine[buffKey] = nil
+		if next(mine) == nil then heldAgain[name] = nil end
+		local held = heldOff[name]
+		if held then
+			held[buffKey] = nil
+			if next(held) == nil then heldOff[name] = nil end
+		end
+		ns.MarkAttempted(name, buffKey, 0)
+	end
+
+	-- The game's reason, arriving after the refusal it explains (Forever sends
+	-- UI_ERROR_MESSAGE after UNIT_SPELLCAST_FAILED for a cast the server refused):
+	-- what the refusal would have done with it, done now. `late` is what the
+	-- refusal left (NoteRefusal): the buff, the group, the count and the block it
+	-- found, and whether it held the buff as refused twice.
+	local function LateReason(name, r, late, message, now)
+		ns.Trail("refused", "the game's reason came after the refusal: " .. tostring(lastErrorId or "an error with no id"), name)
+		if late.key and OneOf(message, THIS_BUFF) then
+			-- No count towards backing them off, as THIS_BUFF in NoteRefusal.
+			r.count, r.blockUntil = late.count, late.block
+			local what = late.members and (late.key .. ns.GROUP_HOLD) or late.key
+			ns.MarkAttempted(name, what, THIS_BUFF_SECONDS, true)
+			if not late.members then HoldOff(name, late.key, now + THIS_BUFF_SECONDS) end
+			firstRefusal[name] = nil
+			return
+		end
+		-- About the caster or the place after all: nothing about them to hold.
+		if not OneOf(message, AGAIN) then
+			firstRefusal[name] = nil
+			if late.again then LiftAgain(name, late.key) end
+		end
+	end
+
+	-- UNIT_AURA on `unit` while a refusal is remembered (Favours.lua, asked only
+	-- while ns.refusalWatch): an aura added to them or taken off is something
+	-- changed, so the first refusal is forgotten and the holds it led to lifted.
+	-- An update of an aura already there (a timer, a stack) is not.
+	function ns.AuraChangedOn(unit, info)
+		if type(info) == "table" and not (issecretvalue and issecretvalue(info)) then
+			if plain(info.isFullUpdate) ~= true and plain(info.addedAuras) == nil
+				and plain(info.removedAuraInstanceIDs) == nil then return end
+		end
+		local name = ns.UnitFullName(unit)
+		if not name then return end
+		if firstRefusal[name] then firstRefusal[name] = nil end
+		local mine = heldAgain[name]
+		if mine then
+			for key in pairs(mine) do LiftAgain(name, key) end
+			ns.Trail("held", "a buff on them changed: what was held off them is offered again", name)
+		end
+		if next(firstRefusal) == nil and next(heldAgain) == nil then ns.refusalWatch = nil end
+	end
+
+	-- Whether any buff is held off anybody, for the button that offers them again.
+	function ns.AnyHeldOff()
+		return next(heldOff) ~= nil
+	end
+
+	-- Who to buff, Never offer, Offer held-back buffs again: every buff held off
+	-- anybody (the game's "a more powerful spell", too low a level, or refused
+	-- twice running) offered again now, and the refusals behind them forgotten.
+	function ns.OfferHeldAgain()
+		for name, held in pairs(heldOff) do
+			for key in pairs(held) do
+				ns.MarkAttempted(name, key, 0)
+				if ns.GROUP_HOLD then ns.MarkAttempted(name, key .. ns.GROUP_HOLD, 0) end
+			end
+		end
+		wipe(heldOff)
+		wipe(heldAgain)
+		wipe(firstRefusal)
+		ns.refusalWatch = nil
+		ns.Trail("held", "the player offered every held-back buff again")
+		addon:Print(L["Buffs held off people are offered again."])
+		if ns.Prompt and ns.Prompt.Refresh then ns.Guard("offer held buffs again", ns.Prompt.Refresh, ns.Prompt) end
 	end
 
 	-- One person's record, room made for it first. Counted here, not tallied: a
@@ -440,14 +592,21 @@ do
 	end
 
 	-- Every error line the game raises. One arriving just after a refusal that
-	-- had no reason of its own is taken as that reason.
-	function ns.NoteGameError(message)
+	-- had no reason of its own is taken as that reason. `id` is the message's
+	-- string id where the client gives one (Clicks.lua, UI_ERROR_MESSAGE).
+	function ns.NoteGameError(message, id)
 		if type(message) ~= "string" then return end
 		local now = GetTime()
-		lastError, lastErrorAt = message, now
+		lastError, lastErrorAt, lastErrorId = message, now, type(id) == "string" and id or nil
 		local r = newest and refusals[newest]
 		if r and r.why == nil and now - r.last <= ERROR_SECONDS and not AboutTheCaster(message) then
 			r.why = message
+		end
+		-- And acted on as the refusal would have, had it come first.
+		local late = r and r.late
+		if late and now - late.at <= ERROR_SECONDS then
+			r.late = nil
+			LateReason(newest, r, late, message, now)
 		end
 	end
 
@@ -498,6 +657,12 @@ do
 		r.last = now
 		r.count = r.count + 1
 		r.why = type(why) == "string" and why or nil
+		-- What a reason arriving after this refusal acts on (LateReason): the
+		-- count and the block as they stood before it.
+		r.late = why == nil and { at = now, key = buffKey, members = members, count = r.count - 1,
+			block = r.blockUntil } or nil
+		-- The same buff refused on them twice running: held off, target or not.
+		if buffKey and not members and RefusedAgain(name, buffKey, why, now) and r.late then r.late.again = true end
 		-- Somebody the player has picked out and still has selected is not backed
 		-- off: the lift is a change of target (LiftBackoff), and selecting the
 		-- person already selected sends none, so the prompt would turn from them
@@ -558,6 +723,15 @@ do
 			elseif r.quietUntil > now then
 				out[#out + 1] = L["no spoken line for %ds more: |cffffffff%s|r -- the game refused a cast on them"]
 					:format(math.ceil(r.quietUntil - now), name)
+			end
+		end
+		-- And each buff held off one person, by the key the buff is filed under.
+		for name, held in pairs(heldOff) do
+			for key, lifts in pairs(held) do
+				if lifts > now then
+					out[#out + 1] = L["%s held off for %ds more: |cffffffff%s|r -- the game refused it on them"]
+						:format(key, math.ceil(lifts - now), name)
+				end
 			end
 		end
 		table.sort(out)

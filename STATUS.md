@@ -508,6 +508,30 @@ client. Walk through it by feature; `/manners debug` and *Run a full check-up*
 (Diagnostics) give the lines named here, and `/manners clicks` on shows what a
 press did. Paste whatever does not match.
 
+*Refusals (the owner's report on Forever 1.60.1.70938, branch `refused`)*
+
+- [ ] Arcane Intellect refused with "A more powerful spell is already active":
+      the full check-up's trail shows, after the `refused` line, an `event`
+      line `UI_ERROR_MESSAGE +0.0Xs type N (number, message string), id
+      SPELL_FAILED_AURA_BOUNCED` and a `refused` line "the game's reason came
+      after the refusal". Which of `UNIT_SPELLCAST_FAILED` and
+      `UI_ERROR_MESSAGE` comes first is read from the order of those `event`
+      lines; the code now handles either. Paste them if the reason is still
+      "no reason given".
+- [ ] One press refused that way leaves the person off the prompt for that
+      buff (ten minutes); *Offer held-back buffs again* (Who to buff, under
+      *Never offer*) brings it back; `/manners debug` lists
+      "intellect held off for ...".
+- [ ] What the person wore: the buff's name and icon on them (their buff
+      bar, or `/dump C_UnitAuras.GetAuraDataByIndex("target", i)` for each
+      `i`), and its spell id. The data of 70938 has no new aura that gives
+      Intellect but a self-only elixir (Elixir of Endless Intellect, 1327736);
+      Manners now knows three more "Arcane Intellect" auras (364161 +7, 13326
+      +10, 16876 +31) and the Incense Candle's Boosted Intellect (1229513), by
+      the wearer's level unless the aura gives its points. If it was the
+      candle, its points as the client gives them (`points` in that dump) say
+      whether its worth goes by the camper's level, not the wearer's.
+
 *The group's pets*
 
 - [ ] In a party with a hunter or a warlock, *My group's pets too* ticked:

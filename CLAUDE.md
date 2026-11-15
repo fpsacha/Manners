@@ -124,7 +124,18 @@ default everywhere in the tests and the only client anybody here plays.
   SpellEffect. On Forever the blockers also hold the camping buffs Boosted
   Stamina, Intellect and Spirit, whose worth goes by the wearer's level
   (`ns.STAT_TIERS`, `ns.CampWorth`: the aura's own points, else the tier the
-  feature's text gives; the audit holds both). `ns.LEVEL_GATED` (the vanilla
+  feature's text gives; the audit holds both), and Forever's Arcane Intellect
+  also the three other auras its data calls Arcane Intellect, outside the
+  rank chain (`ALIKE_BLOCKERS`: 364161, 13326, 16876; the audit takes the
+  buff's own name for them). A refusal the game explains only after
+  `UNIT_SPELLCAST_FAILED` (Forever) is acted on when the reason comes
+  (Queue.lua `NoteGameError`, `LateReason`; the message type's string id from
+  `GetGameMessageInfo`, Clicks.lua), and the same buff refused on the same
+  person twice running with no reason and no aura added to or taken off them
+  between is held off them as THIS_BUFF holds it, target or not
+  (`RefusedAgain`; lifted by such an aura, `ns.AuraChangedOn` from Favours.lua's
+  UNIT_AURA while `ns.refusalWatch`, or by Who to buff's `heldRetry`,
+  `ns.OfferHeldAgain`). `ns.LEVEL_GATED` (the vanilla
   set's `levelGated`, read by Forever's and Burning Crusade's) says a cast
   lands only within ten levels of its rank: a buff's `lowLevel`, worked out in
   the lookups, keeps it off anybody too low for every rank (`Castable`), and

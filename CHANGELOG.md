@@ -225,6 +225,13 @@
   opens a whisper, and a right click looks them up.
 
 ### Fixes
+- **A buff the game keeps refusing.** On WoW Forever the game's reason ("A
+  more powerful spell is already active") comes after the refusal, and was
+  missed: it now holds that buff off that person for ten minutes. Refused twice
+  running with nothing changed holds it too, your target included, and one
+  line says so; *Offer held-back buffs again*, under *Never offer*, tries now.
+  Arcane Intellect is no longer offered over another Arcane Intellect worth as
+  much. Reported in game.
 - **Greater Blessing of Kings and a Fish Bowl.** With *Don't put Kings over a
   Fish Bowl's Boosted Stats* on, the Greater Blessing no longer lands on a
   class with somebody sitting by one: the others get single Kings. Under it,

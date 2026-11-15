@@ -60,7 +60,7 @@ mutate("Queue.lua",
 
 # An error line just after the refusal not taken as its reason.
 mutate("Clicks.lua",
-       "\tns.NoteGameError(message)\n",
+       "\tns.NoteGameError(message, id)\n",
        "",
        "later error not the reason",
        expect="refusal-backoff: the line gives the game's reason (after)",

@@ -859,6 +859,11 @@ no room for. Defaults are in brackets.
     known only by name cannot be checked and is offered anyway.
 - ***Never offer***: one row per name, with an X to take it off, a box to add
   a name and *Clear the list*.
+  - *Offer held-back buffs again*: a buff the game refused on somebody ("A
+    more powerful spell is already active", too low a level, or refused twice
+    running with nothing about them changed) is not offered to them for ten
+    minutes; this offers every such buff again now. A buff added to or taken
+    off them does the same for the ones refused twice.
 
 ### When to offer
 
