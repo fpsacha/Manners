@@ -1,0 +1,11 @@
+{
+  "key": "luxe",
+  "socket": {"shape": "square", "cx": 629, "cy": 505, "half": 183},
+  "name_xy": [888, 388],
+  "reason_xy": [895, 558],
+  "keycap": {"cx": 3592, "cy": 511, "w": 240, "h": 250},
+  "bar": [269, 271, 3915, 752],
+  "stretch": [900, 3400],
+  "text_colour_ok": true,
+  "notes": "Well is near-black lacquer (about rgb 21,20,27), so white and gold text read far above 4.5:1. The well darkens very slightly left to right (mean 27 to 22 over the stretch run), invisible in game. Gold spine x 269-353, y 273-739: the game tints it, and a slow specular glint sliding down its length or a soft pulse would suit. The onyx in the right finial (about x 3890, y 512) could take a tiny glint. The long upper reflection band on the lacquer could carry a slow sheen sweep left to right on show."
+}
