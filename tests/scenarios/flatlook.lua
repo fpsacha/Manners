@@ -33,6 +33,9 @@ local function armed(ns, style, set)
 	freshPrompt(ns, "flatlook")
 	local p = ns.db.profile.prompt
 	p.style = style
+	-- Minimal's bezel is its earlier art's: its painting has a rim of its own
+	-- (painted-minimal.lua).
+	if style == "minimal" then p.classicArt = true end
 	for k, v in pairs(set or {}) do p[k] = v end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")
