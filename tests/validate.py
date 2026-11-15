@@ -743,6 +743,76 @@ fail += _ss_bad
 if not _ss_bad:
     print("  ok  CI draws the listing images strictly, and shows strict refusing")
 
+print("\n== the listings tell the moment first ==")
+# The gallery's order, titles, descriptions and alt text are GALLERY in
+# tools/make-screenshots.py, a plain literal read here without Pillow. The
+# galleries are filled by hand from .github/gallery.md and
+# .github/media/UPLOAD.md, so both have to follow it row for row; and the
+# first picture on every page a browsing player lands on (the README and the
+# two descriptions) is GALLERY's first, the moment the addon is for. The
+# 2026-11-15 review found that first picture showing only what happens after
+# the press, so the hero is held to drawing the prompt before it as well.
+import ast as _ast
+_ms = open(os.path.join(ROOT, "tools", "make-screenshots.py"), encoding="utf-8").read()
+_gallery = []
+for _node in _ast.parse(_ms).body:
+    if isinstance(_node, _ast.Assign) and getattr(_node.targets[0], "id", None) == "GALLERY":
+        _gallery = _ast.literal_eval(_node.value)
+_lf_bad = 0
+_GH = os.path.join(ROOT, ".github")
+_pages = {
+    "README.md": open(os.path.join(ROOT, "README.md"), encoding="utf-8").read(),
+    "curseforge-description.md": open(os.path.join(_GH, "curseforge-description.md"), encoding="utf-8").read(),
+    "wago-description.md": open(os.path.join(_GH, "wago-description.md"), encoding="utf-8").read(),
+}
+# Every picture a page shows, in order, with its alt text: <img src alt> on
+# the README, ![alt](url) in the descriptions.
+_PIC = re.compile(r'<img src="\.github/media/(?P<f1>[^"]+)" alt="(?P<a1>[^"]*)"'
+                  r'|!\[(?P<a2>[^\]]*)\]\([^)]*/media/(?P<f2>[^)/]+)\)')
+_shown = {_name: [(m.group("f1") or m.group("f2"),
+                   m.group("a1") if m.group("f1") else m.group("a2"))
+                  for m in _PIC.finditer(_text)]
+          for _name, _text in _pages.items()}
+if not _gallery:
+    print("  tools/make-screenshots.py has no GALLERY literal to hold the listings to")
+    _lf_bad += 1
+else:
+    _rows = [(f, t, d) for f, t, d, _ in _gallery]
+
+    def _table(path):
+        out = []
+        for line in open(path, encoding="utf-8").read().splitlines():
+            m = re.match(r"^\|\s*(?:\d+\s*\|\s*)?`([^`]+)`\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$", line)
+            if m:
+                out.append(m.groups())
+        return out
+    for _rel in ("gallery.md", os.path.join("media", "UPLOAD.md")):
+        _got = _table(os.path.join(_GH, _rel))
+        if [g[0] for g in _got] != [r[0] for r in _rows]:
+            print("  .github/%s lists the pictures as %s; GALLERY's order is %s"
+                  % (_rel.replace(os.sep, "/"), ", ".join(g[0] for g in _got), ", ".join(r[0] for r in _rows)))
+            _lf_bad += 1
+        else:
+            for _g, _r in zip(_got, _rows):
+                if tuple(_g) != tuple(_r):
+                    print("  .github/%s: %s's title or description is not GALLERY's"
+                          % (_rel.replace(os.sep, "/"), _r[0]))
+                    _lf_bad += 1
+    for _name, _pics in _shown.items():
+        if not _pics or _pics[0][0] != _gallery[0][0]:
+            print("  %s's first picture is %s, not %s, the moment the addon is for"
+                  % (_name, _pics[0][0] if _pics else "none", _gallery[0][0]))
+            _lf_bad += 1
+    _hero = re.search(r"^def picture_prompt\(.*?(?=^def )", _ms, re.M | re.S)
+    if not _hero or 'prompt_layer("shot-hero-before"' not in _hero.group(0):
+        print("  make-screenshots.py's first picture no longer draws the prompt before the press"
+              " (shot-hero-before), only what happens after it")
+        _lf_bad += 1
+fail += _lf_bad
+if not _lf_bad:
+    print("  ok  %d pictures in one order on the gallery and the upload list,"
+          " the moment first on every page" % len(_gallery))
+
 print("\n== version consistency ==")
 # Every toc carries a Version line -- the source and each generated one -- and
 # setversion.py used to write exactly one. A bump that reaches the source and

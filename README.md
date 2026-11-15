@@ -9,9 +9,7 @@ your own target is handed straight back to you.**
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-<img src=".github/media/manners-prompt.png" alt="The prompt as your buff lands: a dark panel naming the player you buffed back, rings spreading off the spell icon and a wave of light crossing the panel" width="640">
-
-<img src=".github/media/manners-moment.png" alt="Three film strips of the prompt: somebody buffed you, your buff lands, the game refuses it" width="640">
+<img src=".github/media/manners-prompt.png" alt="Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it" width="640">
 
 A priest buffs you in passing. By the time you have picked them out of a dozen
 nameplates, they are gone. Manners saw who it was, worked out what you owe them
@@ -643,6 +641,8 @@ when the game refuses it the edge flashes red, a crack runs under the words
 and the text shakes. The other looks answer in ways of their own. *Animations*
 on *Calm* stills all of it. The icon shows the global cooldown sweep, like an
 action bar, and the prompt fades out after your last buff.
+
+<img src=".github/media/manners-moment.png" alt="Three film strips of the prompt: somebody buffed you, your buff lands, the game refuses it" width="640">
 
 Pick your own colours and fonts too; LibSharedMedia is supported. Leave the
 text colour at white and it turns dark by itself on a light panel colour.

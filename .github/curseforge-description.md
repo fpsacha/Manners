@@ -1,10 +1,8 @@
 **Somebody buffed you. One click buffs them back, and your target is handed straight back.**
 
+![Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
+
 > **I read every comment here and on GitHub, and I fix bugs as fast as I can.** Found one? Please send a log with it: it takes ten seconds and turns a guess into a fix. See **Report a bug** below.
-
-![The prompt as your buff lands: a dark panel reading buffed Mort Defrette and the game confirmed it, two gold rings spreading off the spell icon and a wave of light crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
-
-![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
 
 A priest buffs you in passing. By the time you have picked them out of a dozen nameplates, they are gone. Manners saw who it was, worked out what you owe them and put one button on screen. Click it, or press your key: they get their buff, your own target comes straight back, and the favour is remembered through a reload or a disconnect.
 
@@ -18,15 +16,11 @@ Setting it up takes one page. `/manners` opens **Start here**: two numbered step
 
 ![Four more prompts: a dead member of your group offered a resurrection, a poisoned one a cure, somebody who asked for water, and a priest you could ask for Power Word: Fortitude](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-more.png)
 
+![Your own buffs on the prompt: a mage's armor, a rogue's poison for the main hand, your own Arcane Intellect](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-yourself.png)
+
 ![Click any name in the list: left-click buffs that person, right-click skips them, shift-right-click never offers them again](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-list.png)
 
 Turn on *List the next few below* (Look) and every name under the prompt is a button of its own, with the icon of the buff they would get: left-click buffs that person, right-click skips them for now, shift-right-click puts them on your never-offer list.
-
-![Your own buffs on the prompt: a mage's armor, a rogue's poison for the main hand, your own Arcane Intellect](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-yourself.png)
-
-![The options window on Start here in the Simple view: two questions, a key for the prompt, the favour ledger, with the Simple view switch and the Move the prompt button ringed](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options.png)
-
-![The options window dragged wide on Who to buff, its sections in two columns: who is offered, what to cast, the group, More than buffs and Myself](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options-wide.png)
 
 ![The nineteen looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
@@ -34,9 +28,15 @@ Turn on *List the next few below* (Look) and every name under the prompt is a bu
 
 ![The Lightbringer look as a buff lands: the sun of the Light flares round the spell](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-lightbringer.gif)
 
+![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
+
 ![The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
 
 ![The favour ledger on its Milestones tab: three earned with their dates and a Link in chat button, the others with how far along they are, and beside it the toast for Much Obliged](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-milestones.png)
+
+![The options window on Start here in the Simple view: two questions, a key for the prompt, the favour ledger, with the Simple view switch and the Move the prompt button ringed](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options.png)
+
+![The options window dragged wide on Who to buff, its sections in two columns: who is offered, what to cast, the group, More than buffs and Myself](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options-wide.png)
 
 ![The prompt and its list in German, French and Simplified Chinese](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-languages.png)
 
