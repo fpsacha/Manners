@@ -95,6 +95,19 @@ What was built:
   Ribbon's cloth kept through a landing.
 - **The looks pass** below (one alpha, the words measured), from before the
   day's build.
+- **Kings and a Fish Bowl, GitHub issue 17** (the daily feedback pass,
+  2026-11-14). With `buff.spareFishBowl` on, GroupBuffs.lua `ClassSafe` asks
+  `ns.SparesFishBowl` of everybody of the class the queue did not offer
+  Kings, you included, and one wearer keeps the Greater Blessing of Kings
+  back (the others keep their single Kings). *Never put Kings over Boosted
+  Stats* (`buff.neverFishBowl`, off, indented under the first switch and
+  greyed without it): `PickBuffFor` drops the Kings it kept for last and
+  answers "covered", except for a request by name.
+  `tests/scenarios/fishbowl.lua`, fifteen mutations seen CAUGHT by
+  `tools/prove.py`; no whole suite ran. Only the game can say whether
+  Boosted Stats reads on a group member out of a fight on Forever (one
+  guarded read by spell id, as the single walk's). A debt to somebody held
+  this way waits out its time as Still owed.
 
 Before that, still unreleased after 1.11.24: a pass over the fifteen looks
 there were then (branch

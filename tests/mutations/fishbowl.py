@@ -46,3 +46,54 @@ mutate("Options/Who.lua",
        "\t\t\t\tget = function() return false end,\n",
        "fishbowl: the switch shows off whatever is stored",
        expect="fishbowl: the switch is on Who to buff for a Forever paladin, and only there", script=S)
+
+# GitHub issue 17: the Greater Blessing of Kings, and the strict switch
+# (buff.neverFishBowl).
+
+mutate("GroupBuffs.lua",
+       "\t\t\tif bowl and not (name and offered[name]) and ByFishBowl(unit) then return false end\n",
+       "",
+       "fishbowl: a Greater Blessing of Kings over a member by a Fish Bowl",
+       expect="fishbowl: on, no Greater Blessing of Kings for a class with somebody by a Fish Bowl", script=S)
+
+mutate("GroupBuffs.lua",
+       "\t\tif buff.key == key and buff.strongest then bowl = true end\n",
+       "\t\tif buff.key == key and buff.strongest then bowl = false end\n",
+       "fishbowl: the Fish Bowl never asked about for a Greater Blessing",
+       expect="fishbowl: on, no Greater Blessing of Kings for a class with somebody by a Fish Bowl", script=S)
+
+mutate("GroupBuffs.lua",
+       "\treturn ns.SparesFishBowl(BOWL_ASK) == true\n",
+       "\treturn true\n",
+       "fishbowl: every member read as by a Fish Bowl for a Greater Blessing",
+       expect="fishbowl: the Greater Blessing of Kings is still offered with no Fish Bowl, or the switch off", script=S)
+
+mutate("Core.lua",
+       "\t\t\tif bowled then kingsLater = nil end\n",
+       "",
+       "fishbowl: the strict switch still gives Kings",
+       expect="fishbowl: never Kings, somebody by a Fish Bowl with nothing else missing is left alone", script=S)
+
+mutate("Core.lua",
+       "\t\t\tlocal bowled = kingsLater and db.buff.neverFishBowl == true and not opts.asked\n",
+       "\t\t\tlocal bowled = kingsLater and not opts.asked\n",
+       "fishbowl: strict whether its switch is on or not",
+       expect="fishbowl: on, Kings once nothing else is missing for them", script=S)
+
+mutate("Core.lua",
+       "\t\t\tneverFishBowl = false,\n",
+       "\t\t\tneverFishBowl = true,\n",
+       "fishbowl: the strict switch on by default",
+       expect="fishbowl: the strict switch sits under the first one on Who to buff", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\tdisabled = function() return B().spareFishBowl ~= true end,\n",
+       "",
+       "fishbowl: the strict switch drawn while the first is off",
+       expect="fishbowl: the strict switch sits under the first one on Who to buff", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "\titems[#items + 1] = { \"who.neverFishBowl\", indent = true }\n",
+       "\titems[#items + 1] = \"who.neverFishBowl\"\n",
+       "fishbowl: the strict switch not indented under the first",
+       expect="fishbowl: the strict switch sits under the first one on Who to buff", script=S)

@@ -55,7 +55,7 @@ Page.RESET = {
 		"buff.leaveBlessed",
 		"buff.detectPassers",
 		"buff.skipCasters",
-		"buff.spareFishBowl",
+		"buff.spareFishBowl", "buff.neverFishBowl",
 		"buff.optIn",
 		"ownBuffs.apart",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",

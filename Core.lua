@@ -300,6 +300,10 @@ local defaults = {
 			-- (Core.lua, SparesFishBowl). Asked for on GitHub (issue 12). Off,
 			-- because it takes away an offer somebody gets today.
 			spareFishBowl = false,
+			-- Under it (GitHub issue 17): never Kings while they wear it, not
+			-- even with nothing else of yours missing. A request by name still
+			-- gets it. Read only while the switch above is on.
+			neverFishBowl = false,
 			-- The order a class's buffs are tried in, set by hand (Who to buff, Buff
 			-- order): order[CLASS] = { key, key, ... }, every buff of that class the
 			-- client that wrote it has. Absent is Automatic -- the list as the buff
@@ -1828,6 +1832,9 @@ do
 		local ok, aura = pcall(read, opts.unit, FISH_BOWL)
 		return ok and not (issecretvalue and issecretvalue(aura)) and type(aura) == "table"
 	end
+	-- GroupBuffs.lua asks it of everybody a Greater Blessing of Kings would
+	-- land on (ClassSafe; GitHub issue 17).
+	ns.SparesFishBowl = SparesFishBowl
 
 	-- [name] = { [buff key] = when it lifts }: a buff the game said cannot land
 	-- on that person ("A more powerful spell is already active", "Target is too
@@ -2182,6 +2189,11 @@ do
 					end
 				end
 			end
+			-- "Never put Kings over Boosted Stats" (buff.neverFishBowl; GitHub
+			-- issue 17): not even then. They are covered for as long as they
+			-- wear it, unless they asked for Kings by name.
+			local bowled = kingsLater and db.buff.neverFishBowl == true and not opts.asked
+			if bowled then kingsLater = nil end
 			if not pick then pick = kingsLater end
 			-- A blessing of yours that is switched off on Who to buff is not in the
 			-- list, and is still yours on them: a paladin who gives Salvation by hand
@@ -2236,6 +2248,8 @@ do
 			if not pick and opts.offerAnyway and theirs then return theirs, true end
 			-- ...unless each has time to spare and the refresh is switched off.
 			if not pick and spared then return nil, true, true end
+			-- Kings alone was left for them, and the Fish Bowl keeps it off.
+			if not pick and bowled then return nil, true end
 			-- Spelled out: `allRead and false or nil` is always nil.
 			if allRead then return pick, false end
 			return pick, nil

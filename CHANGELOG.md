@@ -105,6 +105,10 @@
   opens a whisper, and a right click looks them up.
 
 ### Fixes
+- **Greater Blessing of Kings and a Fish Bowl.** With *Don't put Kings over a
+  Fish Bowl's Boosted Stats* on, the Greater Blessing no longer lands on a
+  class with somebody sitting by one: the others get single Kings. Under it,
+  *Never put Kings over Boosted Stats* (off). Reported on GitHub.
 - **A read-through of everything new.** Some thirty faults put right in
   resurrection, cures, courtesies, asking for a buff, sharing a group, the
   group's pets and battlegrounds.

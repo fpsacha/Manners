@@ -1123,6 +1123,26 @@ function Page.BuildWhoTab()
 				get = function() return B().spareFishBowl == true end,
 				set = bSet,
 			},
+			-- Asked for on GitHub (issue 17): the strict one, under it. Greyed
+			-- while the switch above is off, so the window does not draw it
+			-- (the layout's `parents`).
+			neverFishBowl = {
+				type = "toggle",
+				name = L["Never put Kings over Boosted Stats"],
+				desc = L["On: somebody wearing a Fish Bowl's Boosted Stats is not offered Blessing of Kings at all while it lasts, even with nothing else of yours missing. Somebody who asks you for Kings by name is still given it."],
+				order = 4.871,
+				width = "full",
+				hidden = function()
+					if not (ns.Flavour and ns.Flavour.flavour == "camelot") then return true end
+					for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+						if buff.strongest then return false end
+					end
+					return true
+				end,
+				disabled = function() return B().spareFishBowl ~= true end,
+				get = function() return B().neverFishBowl == true end,
+				set = bSet,
+			},
 			-- The per-spell switches (AddBuffToggles) sit at 4.1, 4.2, ... and
 			-- this one after them: all three decide what is cast. Only for a
 			-- class with a mana-only spell, which is all it holds back.

@@ -400,7 +400,7 @@ local EXPECTED = {
 		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.scrolls", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
-		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.optIn", "ownBuffs.apart",
+		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.neverFishBowl", "buff.optIn", "ownBuffs.apart",
 		"buff.tanksOutside", "buff.keptBack",
 		-- Detect Invisibility for passers-by too, under its own tick
 		-- (tests/scenarios/detect-passers.lua).

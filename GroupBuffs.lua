@@ -228,6 +228,15 @@ local function CarriesAnother(unit, key, mine)
 	return false
 end
 
+-- Whether `unit` wears a Fish Bowl's Boosted Stats while the paladin's switch
+-- for it is on (Core.lua, SparesFishBowl, which takes the walk's opts: one
+-- table kept for the question, so a scan makes none).
+local BOWL_ASK = {}
+local function ByFishBowl(unit)
+	BOWL_ASK.unit = unit
+	return ns.SparesFishBowl(BOWL_ASK) == true
+end
+
 -- Whether a Greater Blessing for everybody of `class` takes nothing of ours
 -- away. Blessings from one paladin replace one another, and the Greater one
 -- lands on the whole class, the people the queue never offered included --
@@ -238,12 +247,23 @@ local function ClassSafe(class, key, offered, inRaid)
 	local tokens = inRaid and TOKENS.raid or TOKENS.party
 	local count = math.min(inRaid and n or (n - 1), 40)
 	local mine = ns.GetClassBuffs(ns.PlayerClass()) or {}
+	-- "Don't put Kings over a Fish Bowl's Boosted Stats" (Core.lua,
+	-- SparesFishBowl; GitHub issue 17): the Greater Blessing of Kings lands on
+	-- the one sitting by the Fish Bowl too, whom the walk gave another
+	-- blessing or nothing, so one such member keeps it back and the others
+	-- keep their single Kings. Asked only for Kings, and it answers no at
+	-- once with the switch off.
+	local bowl = false
+	for _, buff in ipairs(mine) do
+		if buff.key == key and buff.strongest then bowl = true end
+	end
 	for i = 1, count do
 		local unit = tokens[i]
 		if plain(UnitExists(unit)) and plain(UnitIsUnit(unit, "player")) ~= true
 			and plain(select(2, UnitClass(unit))) == class then
 			local name = ns.UnitFullName(unit)
 			if not (name and offered[name]) and CarriesAnother(unit, key, mine) then return false end
+			if bowl and not (name and offered[name]) and ByFishBowl(unit) then return false end
 		end
 	end
 	-- You, when it is your own class: the Greater Blessing lands on the
@@ -255,6 +275,7 @@ local function ClassSafe(class, key, offered, inRaid)
 	if class == ns.PlayerClass() then
 		local name = ns.UnitFullName("player")
 		if not (name and offered[name]) and CarriesAnother("player", key, mine) then return false end
+		if bowl and not (name and offered[name]) and ByFishBowl("player") then return false end
 	end
 	return true
 end

@@ -184,6 +184,8 @@ local function CastItems()
 	items[#items + 1] = "who.leaveBlessed"
 	if not placed["who.skipCasters"] then items[#items + 1] = "who.skipCasters" end
 	items[#items + 1] = "who.spareFishBowl"
+	-- Never Kings over it at all, shown only while the switch above is on.
+	items[#items + 1] = { "who.neverFishBowl", indent = true }
 	if not placed["who.relevantOnly"] then items[#items + 1] = "who.relevantOnly" end
 	items[#items + 1] = { "who.autoNote", standIn = true }
 	items[#items + 1] = "who.pinNote"
@@ -955,6 +957,9 @@ ns.WindowLayout = {
 		["who.share"] = "who.group",
 		-- Detect Invisibility to passers-by too, shown only once the buff is ticked.
 		["who.passers_detectgroup"] = "who.offer_detectgroup",
+		-- Never Kings over Boosted Stats, shown only while Don't put Kings over
+		-- a Fish Bowl's Boosted Stats is on.
+		["who.neverFishBowl"] = "who.spareFishBowl",
 	},
 
 	-- In the model and drawn nowhere.

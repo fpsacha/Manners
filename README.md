@@ -769,7 +769,10 @@ no room for. Defaults are in brackets.
     Automatic picks Wisdom for anyone with a mana bar and Might for everyone
     else. *Don't offer Might to mages, warlocks and priests* (on); *Skip
     players another paladin has blessed* (off); *Don't put Kings over a Fish
-    Bowl's Boosted Stats* (WoW Forever, off).
+    Bowl's Boosted Stats* (WoW Forever, off), which also keeps the Greater
+    Blessing of Kings off a class with somebody sitting by one, and under it
+    *Never put Kings over Boosted Stats* (off): no Kings at all for them
+    while it lasts, unless they ask for it by name.
 - ***Buff order***, for a class with more than one buff to give: the buffs as
   a list in the order they are tried, each with an arrow up and an arrow
   down, and *Back to Automatic*. A paladin's *Blessing of Kings first* (on)
