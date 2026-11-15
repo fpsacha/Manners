@@ -151,8 +151,8 @@ mutate(LUA,
        expect="faded in, asleep", script=S)
 
 mutate(LUA,
-       "\t\tif full then\n\t\t\tself:StopLights()\n\t\t\tStopAll(self.calm)\n",
-       "\t\tif true then\n\t\t\tself:StopLights()\n\t\t\tStopAll(self.calm)\n",
+       "\t\tif full and not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n\t\t\tStopAll(self.calm)\n",
+       "\t\tif not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n\t\t\tStopAll(self.calm)\n",
        "look-stormcaller: the bolt on Calm",
        expect="on Calm the bolt came down", script=S)
 

@@ -73,8 +73,8 @@ mutate("Looks/Archmage.lua",
        expect="does not wait dark for its turn", script=S)
 
 mutate("Looks/Archmage.lua",
-       "\t\tif full and self.kit.icon:IsShown() then\n\t\t\tself:StopLights()\n",
-       "\t\tif self.kit.icon:IsShown() then\n\t\t\tself:StopLights()\n",
+       "\t\tif full and self.kit.icon:IsShown() and not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n",
+       "\t\tif self.kit.icon:IsShown() and not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n",
        "archmage: the arrival's lights on Calm",
        expect="on Calm the arrival's lights played", script=S)
 

@@ -75,8 +75,8 @@ mutate(LUA,
        expect="the arrival's sparks are not about the crest's middle", script=S)
 
 mutate(LUA,
-       "\t-- The crest may light from here on: the soot comes up under the words.\n\tself:SootUp(true)\n",
-       "\t-- The crest may light from here on: the soot comes up under the words.\n",
+       "\tif not self.kit.OutcomeLive() then self:SootUp(true) end\n",
+       "",
        "look-warchief: the crest lights with no soot under the words",
        expect="did not bring the soot up under the words", script=S)
 
@@ -239,8 +239,8 @@ mutate(LUA,
 # --- Calm ---
 
 mutate(LUA,
-       "\t\tif full and self.crestOK then\n\t\t\tself:StopLights()\n",
-       "\t\tif self.crestOK then\n\t\t\tself:StopLights()\n",
+       "\t\tif full and self.crestOK and not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n",
+       "\t\tif self.crestOK and not (self.outcomeOn or self.kit.OutcomeLive()) then\n\t\t\tself:StopLights()\n",
        "look-warchief: the crest struck on Calm",
        expect="on Calm the crest was struck", script=S)
 

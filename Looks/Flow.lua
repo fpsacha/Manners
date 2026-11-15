@@ -70,9 +70,9 @@ end
 
 function Handle:Stop()
 	if self.playing then
-		self.playing = false
 		-- A scroll rests where it stands, and goes on from there.
 		if self.kind == "scroll" then self:Speed(self.du, self.dv) end
+		self.playing = false
 		local flow = self.flow
 		flow.live = flow.live - 1
 		if flow.live <= 0 then
@@ -95,9 +95,12 @@ function Handle:Window(uSpan, vSpan)
 end
 
 function Handle:Speed(du, dv)
-	-- Kept where it stands: the offset so far is folded into the base.
+	-- Kept where it stands: the offset so far is folded into the base. Only
+	-- a scroll that is playing has run since: one at rest has not moved, and a
+	-- speed set on it (a look's StopAttention at every scan of a fight) must
+	-- not count the rest as travel.
 	local now = GetTime()
-	local t = now - (self.t0 or now)
+	local t = self.playing and now - (self.t0 or now) or 0
 	self.u0 = ((self.u0 or 0) + (self.du or 0) * t) % 1
 	self.v0 = ((self.v0 or 0) + (self.dv or 0) * t) % 1
 	self.t0 = now
@@ -129,6 +132,8 @@ end
 function Handle:Write(now)
 	local t = now - (self.t0 or now)
 	if self.kind == "scroll" then
+		-- At rest it stands at its base, whatever the clock says.
+		if not self.playing then t = 0 end
 		local u = ((self.u0 or 0) + self.du * t) % 1
 		local v = ((self.v0 or 0) + self.dv * t) % 1
 		if self.turn then

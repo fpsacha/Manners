@@ -121,6 +121,9 @@
 - **Options.** Search no longer says to turn on a switch that is on, or one
   that would show your class nothing; with *Show spell icon* off its
   sub-options are gone; a greyed-out button shows its tooltip.
+- **Looks.** A cure that lands reads "cured", not "buffed"; on seven looks the
+  next favour no longer cuts a landing's flourish short; Warchief's soot fades
+  once under a verdict; flowing art picks up where it stopped after a fight.
 
 ## 1.11.24
 

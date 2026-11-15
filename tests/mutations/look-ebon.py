@@ -129,8 +129,8 @@ mutate("Looks/Ebon.lua",
        expect="the light runs 0.0 of an edge", script=S)
 
 mutate("Looks/Ebon.lua",
-       "\tif isNew then\n\t\tself.pulseSpent, self.calmLit = nil, nil\n\t\t-- The runes kindle for a new favour, never a new face.\n\t\tif full and self.runesOK then\n",
-       "\tdo\n\t\tself.pulseSpent, self.calmLit = nil, nil\n\t\t-- The runes kindle for a new favour, never a new face.\n\t\tif full and self.runesOK then\n",
+       "\tif isNew then\n\t\tself.pulseSpent, self.calmLit = nil, nil\n\t\t-- The runes kindle for a new favour, never a new face.\n\t\tif full and self.runesOK and not (self.outcomeOn or self.kit.OutcomeLive()) then\n",
+       "\tdo\n\t\tself.pulseSpent, self.calmLit = nil, nil\n\t\t-- The runes kindle for a new favour, never a new face.\n\t\tif full and self.runesOK and not (self.outcomeOn or self.kit.OutcomeLive()) then\n",
        "look-ebon: every repaint kindles the runes again",
        expect="a repaint kindled the runes again", script=S)
 

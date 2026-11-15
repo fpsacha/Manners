@@ -1820,7 +1820,7 @@ function Storm:Attention(isNew, arrived, flashStyle)
 	if isNew then
 		self.pulseSpent, self.calmLit = nil, nil
 		-- The bolt comes for a new favour, never a new face.
-		if full then
+		if full and not (self.outcomeOn or self.kit.OutcomeLive()) then
 			self:StopLights()
 			StopAll(self.calm)
 			if self.kit.icon:IsShown() then

@@ -1870,7 +1870,7 @@ function Ebon:Attention(isNew, arrived, flashStyle)
 	if isNew then
 		self.pulseSpent, self.calmLit = nil, nil
 		-- The runes kindle for a new favour, never a new face.
-		if full and self.runesOK then
+		if full and self.runesOK and not (self.outcomeOn or self.kit.OutcomeLive()) then
 			self:StopLights()
 			StopAll(self.calm)
 			self:Breath()

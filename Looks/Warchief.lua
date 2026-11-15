@@ -1538,12 +1538,16 @@ function Warchief:Attention(isNew, arrived, flashStyle)
 		return
 	end
 	-- The crest may light from here on: the soot comes up under the words.
-	self:SootUp(true)
+	-- Not under a verdict, which took it down (PaintOutcome): raised here and
+	-- dropped there in one repaint, it would snap back to full and fade again
+	-- at every scan the verdict stands. Asked of Prompt, which ends the verdict
+	-- on time: the repaint after it raises the soot.
+	if not self.kit.OutcomeLive() then self:SootUp(true) end
 	if isNew then
 		self.pulseSpent, self.calmLit = nil, nil
 		-- The forge answers a new favour, never a new face: the crest is
 		-- struck and the sparks fly from it.
-		if full and self.crestOK then
+		if full and self.crestOK and not (self.outcomeOn or self.kit.OutcomeLive()) then
 			self:StopLights()
 			PlayAll(self.arrive)
 			self:Sparks(self.crestX, self.H / 2, self.crestSide * 1.9)
