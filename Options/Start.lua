@@ -1320,6 +1320,17 @@ function Page.BuildStartTab()
 				hidden = function() return not (ns.Hall and ns.Hall.Shown()) end,
 				name = function() return ns.Hall and ns.Hall.NoteText() or "" end,
 			},
+			-- The proof (HallProof.lua): the certificate to take a screenshot of.
+			hallCertificate = {
+				type = "execute",
+				name = L["Show my certificate"],
+				desc = L["Opens the favour ledger on its Milestones tab, with your certificate beside it."],
+				order = 66.15,
+				hidden = function()
+					return not (ns.Hall and ns.Hall.ShowCertificate and ns.Hall.Shown() and ns.Hall.Code() ~= nil)
+				end,
+				func = function() ns.Hall.ShowCertificate() end,
+			},
 			hallCode = {
 				type = "input",
 				-- On the page: the game has no way to put text on the clipboard.

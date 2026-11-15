@@ -84,8 +84,9 @@
 
 ### Hall of fame
 - **Gentlefolk of Good Manners.** Earn every milestone your character can and
-  *Start here* shows a code: post it on the addon's GitHub page to have your
-  name listed there and inside the addon. An invitation, nothing asked for it.
+  *Start here* shows a code and a certificate: post a screenshot of it with the
+  code on the addon's GitHub page to have your name listed there and inside
+  the addon. An invitation, nothing of value asked for it.
 
 ### Options window
 - **A simple view.** *Simple view*, under the search box, draws only the

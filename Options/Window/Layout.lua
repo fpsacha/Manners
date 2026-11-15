@@ -277,6 +277,7 @@ ns.WindowLayout = {
 				-- while there is no code yet.
 				{ key = "general.hall", header = "general.hallHeader", fold = true, items = {
 					{ "general.hallNote", standIn = true },
+					"general.hallCertificate",
 					"general.hallCode",
 					{ "general.hallList", standIn = true },
 				} },

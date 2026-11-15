@@ -163,6 +163,13 @@ def draw_window(snap, px=rp.ZOOM * rp.SUPER):
     wrect = tree.rect(win["id"]) if win else None
     if not wrect:
         wrect = (40, 300, 400, 740)
+    # A state may name a second frame the picture holds too (the certificate
+    # beside the window).
+    also = regions.get(snap.get("also"))
+    arect = tree.rect(also["id"]) if also else None
+    if arect:
+        wrect = (min(wrect[0], arect[0]), min(wrect[1], arect[1]),
+                 max(wrect[2], arect[2]), max(wrect[3], arect[3]))
     left, top = wrect[0] - MARGIN, wrect[3] + MARGIN
     width, height = wrect[2] - wrect[0] + 2 * MARGIN, wrect[3] - wrect[1] + 2 * MARGIN
     canvas = rp.Canvas(int(width * px), int(height * px))

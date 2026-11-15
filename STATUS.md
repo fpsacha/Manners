@@ -490,6 +490,14 @@ press did. Paste whatever does not match.
       `python tools/hall.py check <code>` reads the character's name (both
       words on Forever, accents kept), class, client and day. On a client with
       realms `GetRealmName()` is in it; that call is unseen in a client here.
+- [ ] The same character, *Show my certificate* in the fold: the ledger opens
+      on *Milestones* with the certificate beside it (on the left when the
+      window sits at the right edge of the screen). Print Screen, then open
+      the picture from the Screenshots folder: the name, class, client, date,
+      "N of N milestones", every milestone's date and the whole code are
+      legible at the game's usual UI scale, the code's lines put together are
+      the code in the box, and no line is cut with an ellipsis. Another tab,
+      and *Milestones* off: no certificate.
 - [ ] A warlock with *Detect Invisibility* ticked: *Offer Detect Invisibility
       to passers-by too* shows under it, and ticked, a passer-by without it
       comes up on the prompt and the press lands.

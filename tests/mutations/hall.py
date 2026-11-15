@@ -167,7 +167,7 @@ mutate("Options/Window/Layout.lua",
        "hall: the hall is no fold",
        expect=WINDOW, script=S)
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"general.hallNote\", standIn = true },\n\t\t\t\t\t\"general.hallCode\",\n\t\t\t\t\t{ \"general.hallList\", standIn = true },\n",
-       "\t\t\t\t\t\"general.hallNote\",\n\t\t\t\t\t\"general.hallCode\",\n\t\t\t\t\t\"general.hallList\",\n",
+       "\t\t\t\t\t{ \"general.hallNote\", standIn = true },\n\t\t\t\t\t\"general.hallCertificate\",\n\t\t\t\t\t\"general.hallCode\",\n\t\t\t\t\t{ \"general.hallList\", standIn = true },\n",
+       "\t\t\t\t\t\"general.hallNote\",\n\t\t\t\t\t\"general.hallCertificate\",\n\t\t\t\t\t\"general.hallCode\",\n\t\t\t\t\t\"general.hallList\",\n",
        "hall: the section is not drawn until there is a code",
        expect=WINDOW, script=S)
