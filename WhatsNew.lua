@@ -9,6 +9,13 @@ ns.WhatsNew = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100A blessing for each class.|r Paladins can pick the blessing each class is offered first: Wisdom for mages, say, where the order would give them Kings.",
 			"|cffffd100Profiles you can manage.|r The Profiles page lists every profile and who is on it; pick one and use, duplicate, rename, delete or copy it, with Undo.",
+			"|cffffd100Friendly nameplates, said where you look.|r With them off, as a fresh install has them, Manners cannot tell who a stranger is.",
+		} },
+		{ title = "Friendly nameplates", accent = "7cc4ff", entries = {
+			"|cff7cc4ffThe greeting says it.|r A first login with the game's friendly nameplates off adds a red line under the welcome, naming |cffffffffShow friendly nameplates|r.",
+			"|cff7cc4ffStart here asks at once.|r The note and its button show while |cffffffffQuick setup|r is still asking, for |cffffffffEveryone near me|r.",
+			"|cff7cc4ffThe minimap tooltip and the options window|r say |cffffffffWatching your group|r in amber instead of a green |cffffffffWatching for people to buff|r, and the window's strip has the button beside the line.",
+			"|cff7cc4ffA buff from somebody unnamed is explained.|r When a stranger's buff lands and the game will not say who cast it, one line says why there is nobody to buff back.",
 		} },
 		{ title = "Profiles", accent = "7cc4ff", entries = {
 			"|cff7cc4ffEvery profile at a glance.|r One line each, the one in use first: which characters are on it, and where automatic switching picks it for you.",

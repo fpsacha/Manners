@@ -9,6 +9,22 @@
   *Who to buff*, under *Buff order*. Asked for on CurseForge.
 - **Profiles you can manage.** The Profiles page lists every profile and who
   is on it; pick one and use, duplicate, rename, delete or copy it, with Undo.
+- **Friendly nameplates, said where you look.** With them off, as a fresh
+  install has them, Manners cannot tell who a stranger is. The greeting,
+  *Start here* and the minimap tooltip now say so, with the button that turns
+  them on.
+
+### Friendly nameplates
+- **The greeting says it.** A first login with the game's friendly nameplates
+  off adds a red line under the welcome, naming *Show friendly nameplates*.
+- **Start here asks at once.** The note and its button show while *Quick
+  setup* is still asking, for *Everyone near me*.
+- **The minimap tooltip and the options window** say *Watching your group*
+  in amber instead of a green *Watching for people to buff*, and the window's
+  strip has the button beside the line.
+- **A buff from somebody unnamed is explained.** When a stranger's buff lands
+  and the game will not say who cast it, one line says why there is nobody to
+  buff back. Once a session, on your first three sessions.
 
 ### Profiles
 - **Every profile at a glance.** One line each, the one in use first: which

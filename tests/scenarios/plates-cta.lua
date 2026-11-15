@@ -127,9 +127,11 @@ for _, case in ipairs(CASES) do
 		if page ~= "general" or not section or section.key ~= "general.who" or buttonSection ~= section then
 			fail(scenario, "the note and the button are not drawn under step 1 on Start here")
 		end
-		-- Not while Quick setup asks, which stands in for step 1.
+		-- While Quick setup asks too, when a new player first opens the page,
+		-- for a pick that offers to passers-by (tests/scenarios/par.lua).
 		ns.db.profile.firstRun = "pending"
-		if shown(note) ~= false or shown(button) ~= false then fail(scenario, "shown while Quick setup asks") end
+		ns.QuickSetup.SetFirstPick(ns.QuickSetup.WHO, "nearby")
+		if shown(note) ~= true or shown(button) ~= true then fail(scenario, "hidden while Quick setup asks") end
 		ns.db.profile.firstRun = "answered"
 		-- The click: refused in a fight, the setting turned on out of one.
 		Mock.inCombat = true

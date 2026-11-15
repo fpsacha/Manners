@@ -742,6 +742,15 @@ function Quick.FirstPick(list)
 	return Quick.FirstOrder(list)[1]
 end
 
+-- Whether the pick in Quick setup's first dropdown offers to passers-by.
+function Quick.FirstPassersBy()
+	local picked = Quick.FirstPick(Quick.WHO)
+	for _, entry in ipairs(Quick.WHO) do
+		if entry.key == picked then return entry.set["sources.strangers"] == true end
+	end
+	return false
+end
+
 function Quick.SetFirstPick(list, key)
 	if Quick.FirstValues(list)[key] then Quick.first[FirstSlot(list)] = key end
 end
@@ -867,6 +876,13 @@ function Page.BuildStartTab()
 	local function noPrompt() return not HasPrompt() end
 	local function grey(text) return "|cff888888" .. text .. "|r" end
 	local function notAsking() return not Quick.Asking() end
+	-- Start here's call for the friendly nameplates (startPlatesNote and
+	-- startShowPlates): Who to buff's answer, and while Quick setup asks, only
+	-- for a pick in its dropdown that offers to passers-by.
+	local function platesHidden()
+		if noPrompt() or not (Page.PlatesWanted and Page.PlatesWanted()) then return true end
+		return Quick.Asking() and not Quick.FirstPassersBy()
+	end
 
 	return {
 		type = "group",
@@ -1062,8 +1078,13 @@ function Page.BuildStartTab()
 			-- Step 1. A preset, with the sentence that says what it came to;
 			-- the switches themselves are on Who to buff.
 			-- Away while Quick setup asks the same question above it.
+			-- While Quick setup asks, step 1 is away and the section holds only
+			-- the call for the friendly nameplates: titled for that, so it does
+			-- not read as a second step 1 (the window draws a section's title
+			-- whenever anything in it shows).
 			whoHeader = {
-				type = "header", name = L["1. Who to buff"], order = 10,
+				type = "header", order = 10,
+				name = function() return Quick.Asking() and L["Seeing passers-by"] or L["1. Who to buff"] end,
 				hidden = function() return noPrompt() or Quick.Asking() end,
 			},
 			quickWho = {
@@ -1093,13 +1114,13 @@ function Page.BuildStartTab()
 			-- Passers-by on and the friendly nameplates off: Manners finds
 			-- almost none of them. Called out here as on Who to buff, with the
 			-- same button (Who.lua, Page.PlatesWanted), so a player who never
-			-- opens that page is still asked.
+			-- opens that page is still asked. While Quick setup asks too, which
+			-- is when a new player first opens this page: then by the pick in
+			-- its dropdown, not yet applied (platesHidden above).
 			startPlatesNote = {
 				type = "description",
 				order = 12.5,
-				hidden = function()
-					return noPrompt() or Quick.Asking() or not (Page.PlatesWanted and Page.PlatesWanted())
-				end,
+				hidden = platesHidden,
 				name = "|cffff8080"
 					.. L["Turn on friendly nameplates so Manners can see passers-by: without them it sees almost nobody outside your group."]
 					.. "|r",
@@ -1109,9 +1130,7 @@ function Page.BuildStartTab()
 				name = L["Show friendly nameplates"],
 				desc = L["The game's own setting, under Nameplates in its options, where you can turn it off again."],
 				order = 12.6,
-				hidden = function()
-					return noPrompt() or Quick.Asking() or not (Page.PlatesWanted and Page.PlatesWanted())
-				end,
+				hidden = platesHidden,
 				-- The client refuses the setting in a fight.
 				disabled = function() return InCombatLockdown() end,
 				func = function()

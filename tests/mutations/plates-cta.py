@@ -31,25 +31,20 @@ mutate("Options/Who.lua",
 
 # Start here never asks.
 mutate("Options/Start.lua",
-       "\t\t\t\t\treturn noPrompt() or Quick.Asking() or not (Page.PlatesWanted and Page.PlatesWanted())\n"
-       "\t\t\t\tend,\n"
+       "\t\t\t\thidden = platesHidden,\n"
        "\t\t\t\tname = \"|cffff8080\"",
-       "\t\t\t\t\treturn true\n"
-       "\t\t\t\tend,\n"
+       "\t\t\t\thidden = true,\n"
        "\t\t\t\tname = \"|cffff8080\"",
        "plates-cta: Start here's note never shown",
        expect="Start here asks for the nameplates under step 1", script=S)
 
-# ...or asks while Quick setup stands in for step 1.
+# ...or hides it while Quick setup asks, when a new player first opens the
+# page (before tests/scenarios/par.lua it was hidden then, on purpose).
 mutate("Options/Start.lua",
-       "\t\t\t\t\treturn noPrompt() or Quick.Asking() or not (Page.PlatesWanted and Page.PlatesWanted())\n"
-       "\t\t\t\tend,\n"
-       "\t\t\t\tname = \"|cffff8080\"",
-       "\t\t\t\t\treturn noPrompt() or not (Page.PlatesWanted and Page.PlatesWanted())\n"
-       "\t\t\t\tend,\n"
-       "\t\t\t\tname = \"|cffff8080\"",
-       "plates-cta: Start here asks over Quick setup",
-       expect="shown while Quick setup asks", script=S)
+       "\t\treturn Quick.Asking() and not Quick.FirstPassersBy()\n",
+       "\t\treturn Quick.Asking()\n",
+       "plates-cta: Start here hides the call while Quick setup asks",
+       expect="hidden while Quick setup asks", script=S)
 
 # Start here's button does nothing.
 mutate("Options/Start.lua",

@@ -10,7 +10,14 @@ local C = UI.C
 -- The strip says the launcher's state line only for these: the states that
 -- keep the prompt from doing what the player expects. Start here and Who to
 -- buff say the rest in full.
-local STRIP_KINDS = { off = true, unlocked = true, snoozed = true, ownoff = true, blocked = true, mounted = true }
+local STRIP_KINDS = { off = true, unlocked = true, snoozed = true, ownoff = true, blocked = true, mounted = true,
+	plates = true }
+
+-- The friendly nameplates off (the launcher's `plates`): the strip carries
+-- the same button as Start here and Who to buff, which say it themselves with
+-- that button under their passers-by, so the strip leaves those two pages be.
+local PLATES_BUTTON = "general.startShowPlates"
+local PLATES_SAID_ON = { general = true, who = true }
 
 -- When to offer's combat line is about Hand my target back afterwards, so it
 -- shows only while that is on screen, the Targeting fold open.
@@ -295,6 +302,14 @@ function UI.BuildStrip(f)
 		if strip.lockItem then ns.WindowBind.Run(strip.lockItem) end
 	end))
 	strip.lockWidth = math.ceil(UI.Measure(lockName)) + 26
+	-- Show friendly nameplates, beside the line that says they are off: Start
+	-- here's own button run from here, so the click and its fight rule are one.
+	strip.platesItem = UI.Item(PLATES_BUTTON)
+	local platesName = strip.platesItem and ns.WindowBind.Text(strip.platesItem, "name") or L["Show friendly nameplates"]
+	strip.plates = W.Button(s, platesName, UI.Guarded(function()
+		if strip.platesItem and not UI.Disabled(strip.platesItem) then ns.WindowBind.Run(strip.platesItem) end
+	end))
+	strip.platesWidth = math.ceil(UI.Measure(platesName)) + 26
 	strip.height = 0
 end
 
@@ -303,6 +318,7 @@ local function StateLine()
 	if not ns.LauncherState then return nil end
 	local _, line, r, g, b, _, heldOnly, kind = ns.LauncherState()
 	if type(line) ~= "string" or not (STRIP_KINDS[kind] or heldOnly) then return nil end
+	if kind == "plates" and PLATES_SAID_ON[UI.page] then return nil end
 	return line, r or 1, g or 0.82, b or 0, kind
 end
 
@@ -342,8 +358,18 @@ function UI.PaintStrip()
 	local y, height = 6, 0
 	-- Lock it follows its own rule: there whenever the prompt is unlocked.
 	s.lock:SetShown(lockShown)
-	if line or lockShown then
-		local room = width - (lockShown and (strip.lockWidth + 12) or 0)
+	-- Show friendly nameplates goes with its line, by the button's own rule,
+	-- greyed in a fight as the client refuses the setting there. Never beside
+	-- Lock it: an unlocked prompt is the line then.
+	local platesShown = not lockShown and strip.kind == "plates" and strip.platesItem ~= nil
+		and not UI.Hidden(strip.platesItem)
+	s.plates:SetShown(platesShown)
+	if platesShown and s.plates.SetEnabled then s.plates:SetEnabled(not UI.Disabled(strip.platesItem)) end
+	-- The one button the row holds, on its right.
+	local side = lockShown and s.lock or platesShown and s.plates or nil
+	local sideWidth = lockShown and strip.lockWidth or platesShown and strip.platesWidth or 0
+	if line or side then
+		local room = width - (side and (sideWidth + 12) or 0)
 		local lineH = 0
 		if line then
 			s.line1:SetWidth(room)
@@ -352,17 +378,17 @@ function UI.PaintStrip()
 			lineH = UI.TextHeight(s.line1)
 			-- One row with Lock it, as the mock-up has it: a line shorter
 			-- than the button sits level with its middle.
-			local drop = lockShown and math.max(0, math.floor((20 - lineH) / 2)) or 0
+			local drop = side and math.max(0, math.floor((20 - lineH) / 2)) or 0
 			s.line1:ClearAllPoints()
 			s.line1:SetPoint("TOPLEFT", s.frame, "TOPLEFT", 12, -(y + drop))
 			s.line1:Show()
 		else
 			s.line1:Hide()
 		end
-		if lockShown then
-			s.lock:SetSize(strip.lockWidth, 20)
-			s.lock:ClearAllPoints()
-			s.lock:SetPoint("TOPRIGHT", s.frame, "TOPRIGHT", -12, -(y + math.max(0, (lineH - 20) / 2)))
+		if side then
+			side:SetSize(sideWidth, 20)
+			side:ClearAllPoints()
+			side:SetPoint("TOPRIGHT", s.frame, "TOPRIGHT", -12, -(y + math.max(0, (lineH - 20) / 2)))
 			lineH = math.max(lineH, 20)
 		end
 		y = y + lineH + 3
@@ -381,7 +407,7 @@ function UI.PaintStrip()
 		s.line2:Hide()
 	end
 	strip.line, strip.combat = line, combat
-	if line or combat or lockShown then height = math.ceil(y + 3) end
+	if line or combat or side then height = math.ceil(y + 3) end
 	s.frame:SetShown(height > 0)
 	s.frame:SetHeight(math.max(height, 1))
 	strip.height = height

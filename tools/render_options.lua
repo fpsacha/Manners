@@ -370,6 +370,22 @@ function BEFORE.switching(ns)
 	if ns.Profiles and ns.Profiles.Rename then ns.Profiles.Rename("Raid team", "Raid") end
 end
 
+-- The game's friendly nameplates off, as a fresh install has them (Speech.lua,
+-- ns.FriendlyPlatesOff): either client's name for the setting answers "0".
+function BEFORE.platesoff()
+	local real = rawget(_G, "GetCVar")
+	rawset(_G, "GetCVar", function(name)
+		if name == "nameplateShowFriendlyPlayers" or name == "nameplateShowFriends" then return "0" end
+		if type(real) == "function" then return real(name) end
+	end)
+end
+
+-- A profile never set up: Quick setup's two questions are asking
+-- (Options/Start.lua, Quick.Asking).
+function BEFORE.firstrun(ns)
+	ns.db.profile.firstRun = "pending"
+end
+
 function BEFORE.offer(ns)
 	ns.db.profile.menuView = "offer"
 end
