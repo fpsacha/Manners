@@ -34,6 +34,11 @@
 ### Options window
 - **Pages in parts.** A long page has a bar of its parts over it: pick one to
   see only those settings, or *All* for the whole page.
+- **A picture for each page.** The menu's pages have painted icons of their own.
+
+### What I say
+- **The Forsaken have about a hundred new In character lines**, in every
+  language: Undercity, Brill, the apothecaries and loose stitching.
 
 ## 1.11.25
 

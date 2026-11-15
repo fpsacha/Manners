@@ -23,6 +23,10 @@ ns.WhatsNew = {
 		} },
 		{ title = "Options window", accent = "7cc4ff", entries = {
 			"|cff7cc4ffPages in parts.|r A long page has a bar of its parts over it: pick one to see only those settings, or |cffffffffAll|r for the whole page.",
+			"|cff7cc4ffA picture for each page.|r The menu's pages have painted icons of their own.",
+		} },
+		{ title = "What I say", accent = "7cc4ff", entries = {
+			"|cff7cc4ffThe Forsaken have about a hundred new In character lines|r , in every language: Undercity, Brill, the apothecaries and loose stitching.",
 		} },
 	} },
 	{ version = "1.11.25", date = "14 November 2026", sections = {
