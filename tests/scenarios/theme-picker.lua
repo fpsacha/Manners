@@ -1349,6 +1349,8 @@ do
 		ebon = { above = 24, below = 13 },
 		leather = { right = 28.5, below = 36.5 },
 		warchief = { above = 10.5, below = 6.5 },
+		-- The painted frame (Looks/Painted.lua, tools/make_look_previews.py's FRAMES).
+		frost = { above = 13, below = 20, left = 21, right = 30 },
 	}
 	Mock.reset()
 	FT.install()
