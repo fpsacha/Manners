@@ -29,8 +29,16 @@
   buff back. Once a session, on your first three sessions.
 ### Looks
 - **Painted frames.** The looks are being repainted, each from one painting:
-  Frost Mage first, the rest as they are finished. *Earlier art* (Look, under
-  *Panel style*) keeps the frames they had before.
+  Frost Mage first, the rest as they are finished. *Earlier art* keeps the
+  frames they had before, and the cards show whichever the prompt wears.
+- **Tabs for the looks.** Over the cards: *For my class* (a mage's three mage
+  looks, opened first), *All*, and one tab a shelf. Bigger cards, and a small
+  *New* on the looks new in this release.
+- **Try a look by pointing at it.** The pointer on a card puts that look on
+  the prompt at once; moving off puts yours back, a click keeps it.
+- **The chosen look's settings together.** Under the cards, headed with the
+  look's name: *Earlier art*, *Round the icon off*, *Show my key on the
+  prompt*, the gryphons and the reason's colours.
 - **Ten new looks.** For the classes: Fire Mage, Priest, Rogue, Monk, Demon
   Hunter and Evoker. And four quiet ones: Ghost (a pane of smoked glass),
   Hairline (an icon and one fine line), Pill and Slate. Ghost, Pill and Slate
@@ -40,8 +48,8 @@
   Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter and
   Warrior. Your choice is kept.
 - **Show my key on the prompt.** As the look has it (on the class and themed
-  looks, off on the calmer ones), always or never. Look, under *Style*.
-  Nothing is shown while no key is bound.
+  looks, off on the calmer ones), always or never, with the look's own
+  settings. Nothing is shown while no key is bound.
 
 ### Profiles
 - **Every profile at a glance.** One line each, the one in use first: which

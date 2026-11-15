@@ -153,7 +153,9 @@ and the toc is the one file every branch would then change.
    `python tools/prove.py --file tests/mutations/painted-<key>.py --jobs 2`.
 9. **Previews and contrast, locally**: `python tools/make_look_previews.py`
    (a painted look's view is worked out from its painting: no `FRAMES` entry,
-   no `ROOM` in theme-picker.lua), then
+   no `ROOM` in theme-picker.lua; a painted look that is not `paintedOnly` also
+   gets `Preview_<key>_earlier.tga`, its earlier art, which its card wears
+   while *Earlier art* is on), then
    `python tools/audit_look_contrast.py --looks <key> --check`. Under 4.5:1,
    lower `WELL_HI` for that painting or darken its well, never the check. Then
    `git checkout -- Looks/PaintedData.lua Looks/Previews.lua Textures/Previews`.

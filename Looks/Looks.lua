@@ -292,6 +292,22 @@ local SHELVES = {
 	class = { "frost", "archmage", "firemage", "fel", "wild", "lightbringer", "stormcaller", "ebon", "leather",
 		"forge", "priest", "rogue", "monk", "demonhunter", "evoker" },
 }
+-- THE CLASS a class look was made for, as UnitClass names it: the picker's "For
+-- my class" tab holds the player's class's, and opens first where there are any.
+-- A class with none has no such tab. Every look here is on the class shelf
+-- (tests/scenarios/lookpage.lua).
+Looks.FOR_CLASS = {
+	frost = "MAGE", archmage = "MAGE", firemage = "MAGE", fel = "WARLOCK", wild = "DRUID",
+	lightbringer = "PALADIN", stormcaller = "SHAMAN", ebon = "DEATHKNIGHT", leather = "HUNTER",
+	forge = "WARRIOR", priest = "PRIEST", rogue = "ROGUE", monk = "MONK", demonhunter = "DEMONHUNTER",
+	evoker = "EVOKER",
+}
+-- The looks first shipped in the release under way: their cards wear a small
+-- New. Emptied when the next release begins.
+Looks.NEW = {
+	firemage = true, priest = true, rogue = true, monk = true, demonhunter = true, evoker = true,
+	ghost = true, hairline = true, pill = true, slate = true,
+}
 local CATEGORY, SHELF, RANK = {}, {}, {}
 for i, cat in ipairs(Looks.CATEGORIES) do
 	RANK[cat] = i
@@ -364,6 +380,25 @@ function Looks.KeyWanted(look)
 	local art = look and look.paintedArt
 	if art and art.on then return art.data.keycap.shown ~= false end
 	return true
+end
+
+-- Whether the look for a style draws the key at all, today, whatever Show my
+-- key on the prompt says: a painted look's keycap, or a look's own key tag (its
+-- KeyLabel). Glass, Framed, Minimal and Luxe draw none.
+function Looks.DrawsKey(key)
+	local look = Looks.Get(key)
+	local data = ns.PaintedData and ns.PaintedData[key]
+	if data and (Looks.list[key] and Looks.list[key].paintedOnly or not Looks.EarlierShown(key)) then return true end
+	return look ~= nil and type(look.KeyLabel) == "function"
+end
+
+-- What "As the look has it" means for a style: shown or not (KeyWanted's own
+-- answer for the look, read before the look has been built).
+function Looks.KeyDefault(key)
+	local data = ns.PaintedData and ns.PaintedData[key]
+	local look = Looks.list[key]
+	if data and look and (look.paintedOnly or not Looks.EarlierShown(key)) then return data.keycap.shown ~= false end
+	return Looks.DrawsKey(key)
 end
 
 -- The key bound to the prompt, or nil: the client's own name for it.
@@ -457,6 +492,36 @@ function Looks.Category(key)
 	return "themed"
 end
 
+-- The looks made for a class (FOR_CLASS), in the picker's order; none for nil.
+function Looks.ForClass(class)
+	local out = {}
+	if type(class) ~= "string" then return out end
+	local _, sorting = Looks.Choices()
+	for _, key in ipairs(sorting) do
+		if Looks.FOR_CLASS[key] == class then out[#out + 1] = key end
+	end
+	return out
+end
+
+-- Whether a look's card is marked New.
+function Looks.IsNew(key)
+	return Looks.NEW[key] == true and Looks.list[key] ~= nil
+end
+
+-- Whether a look has an earlier art for *Earlier art* (prompt.classicArt) to
+-- draw: a look painted from a painting (Looks/PaintedData.lua) that is not
+-- painted only (a plain look of Looks/Plain.lua has nothing earlier).
+function Looks.HasEarlierArt(key)
+	local data, look = ns.PaintedData, Looks.list[key]
+	return look ~= nil and type(data) == "table" and data[key] ~= nil and not look.paintedOnly
+end
+
+-- Whether a look is drawn in its earlier art now: Earlier art on, and it has one.
+function Looks.EarlierShown(key)
+	local p = ns.db and ns.db.profile and ns.db.profile.prompt
+	return p ~= nil and p.classicArt == true and Looks.HasEarlierArt(key)
+end
+
 -- Every look for the dropdown, one flat list, sorted by category and then
 -- within it (the picker's shelves, then `order`), each by its label.
 function Looks.Choices()
@@ -522,15 +587,28 @@ Looks.previewIcon = {}
 -- none of this text, nor the tag: the picker writes the words there live, in the
 -- player's language, and draws the tag round them as wide as they are.
 Looks.previewText = {}
+-- The same three for a look's earlier art (HasEarlierArt): its second picture,
+-- Preview_<key>_earlier, drawn with Earlier art on, and what it records. A card
+-- wears it while the prompt draws that art (EarlierShown).
+Looks.previewsEarlier, Looks.previewIconEarlier, Looks.previewTextEarlier = {}, {}, {}
 
+-- Whether a look's card wears its earlier art's picture now.
+local function Earlier(key)
+	return Looks.previewsEarlier[key] == true and Looks.EarlierShown(key)
+end
+
+-- The picture of what the look wears now: its earlier art's while Earlier art
+-- draws it, else its own.
 function Looks.PreviewFile(key)
 	if not Looks.previews[key] then return nil end
+	if Earlier(key) then return "Interface\\AddOns\\Manners\\Textures\\Previews\\Preview_" .. key .. "_earlier" end
 	return "Interface\\AddOns\\Manners\\Textures\\Previews\\Preview_" .. key
 end
 
 -- The icon's place in a look's picture, or nil for a look without one.
 function Looks.PreviewIcon(key)
 	if not Looks.previews[key] then return nil end
+	if Earlier(key) then return Looks.previewIconEarlier[key] end
 	return Looks.previewIcon[key]
 end
 
@@ -538,5 +616,6 @@ end
 -- a picture.
 function Looks.PreviewText(key)
 	if not Looks.previews[key] then return nil end
+	if Earlier(key) then return Looks.previewTextEarlier[key] end
 	return Looks.previewText[key]
 end

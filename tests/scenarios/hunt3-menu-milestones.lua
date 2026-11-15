@@ -174,7 +174,9 @@ do
 	local scenario = P .. "with Show spell icon off, its sub-options are not drawn"
 	session(scenario, "MAGE", "appearance", function(ns, UI)
 		local prompt = ns.db.profile.prompt
-		local governed = { "appearance.iconSize", "appearance.roundIcon", "appearance.iconFrame", "appearance.showCooldown" }
+		-- Round the icon off is with the look's own settings (the look decides
+		-- it), greyed there with the icon off, saying why.
+		local governed = { "appearance.iconSize", "appearance.iconFrame", "appearance.showCooldown" }
 		local function shown(path)
 			local w = UI.Where(path)
 			return w ~= nil and UI.EntryShown(w.e)

@@ -72,8 +72,7 @@ do
 		Mock.advance(2)
 		if settle(ns, 0.3) ~= 1 then fail(scenario, "letting go of Scale left the window at " .. ns.OptionsWindow:GetAlpha()) end
 
-		-- The colours are in a fold on Look: opened, so the swatch is drawn.
-		UI.State().open["appearance.style"] = true
+		-- The colours stand with the chosen look's own settings, open.
 		UI.Refresh()
 		local colour = UI.RowFor("appearance.bgColor")
 		if not (colour and colour.hit and UI.RowShown("appearance.bgColor")) then

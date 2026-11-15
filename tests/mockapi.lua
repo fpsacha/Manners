@@ -531,6 +531,8 @@ for _, e in ipairs({
 	"PLAYER_ALIVE", "PLAYER_UNGHOST", "UNIT_SPELLCAST_SENT",
 	"UNIT_SPELLCAST_SUCCEEDED", "UNIT_SPELLCAST_FAILED", "UI_ERROR_MESSAGE",
 	"GROUP_ROSTER_UPDATE", "ADDON_LOADED",
+	-- The look picker's: a look tried under the pointer is never the one saved.
+	"PLAYER_LOGOUT",
 	-- Registered on this client by an addon's Forever build.
 	"UNIT_SPELLCAST_START", "UNIT_SPELLCAST_INTERRUPTED", "SPELL_UPDATE_COOLDOWN",
 	"UNIT_SPELLCAST_DELAYED",

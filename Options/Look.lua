@@ -217,30 +217,55 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- The window's heading over the settings that go with the look
+			-- chosen (Layout.lua, appearance.lookOwn), naming it: Earlier art,
+			-- the key, the round icon, the gryphons and the reason's colours.
+			lookHeader = {
+				type = "header",
+				name = function()
+					return L["%s: its settings"]:format((ns.Looks.Card(P().style or "glass")))
+				end,
+				order = 21.2,
+			},
 			-- The looks repainted from a painting (Looks/Painted.lua) drawn with
-			-- the art they had before, for whoever liked that better.
+			-- the art they had before, for whoever liked that better. Shown with a
+			-- look that has such an art; it draws every one of them so.
 			classicArt = {
 				type = "toggle",
 				name = L["Earlier art"],
 				desc = L["Draws every look with the art it had before it was repainted. Off, a repainted look wears its new painted frame."],
 				order = 21.5,
 				width = "full",
+				hidden = function() return not ns.Looks.HasEarlierArt(P().style) end,
 				get = pGet,
 				set = pSet,
 			},
+			-- What it does, in a line of its own under it: the tooltip alone was
+			-- not found, and the switch changes every repainted look at once.
+			classicArtNote = {
+				type = "description",
+				order = 21.55,
+				fontSize = "small",
+				hidden = function() return not ns.Looks.HasEarlierArt(P().style) end,
+				name = L["Draws every look with the art it had before it was repainted. Off, a repainted look wears its new painted frame."],
+			},
 			-- The key bound to the prompt, on the painted keycap (and on a look's
 			-- own key tag): as the look has it, or always, or never. With no key
-			-- bound nothing is shown there whatever this says.
+			-- bound nothing is shown there whatever this says. Shown with a look
+			-- that draws a key at all, its first choice saying what the look does.
 			keycap = {
 				type = "select",
 				name = L["Show my key on the prompt"],
 				desc = L["Whether the key you press for the prompt is shown on it. As the look has it: on the class and themed looks, not on the calmer ones. Nothing is shown while no key is bound."],
 				order = 21.6,
-				values = {
-					look = L["As the look has it"],
-					show = L["Always"],
-					hide = L["Never"],
-				},
+				hidden = function() return not ns.Looks.DrawsKey(P().style) end,
+				values = function()
+					return {
+						look = ns.Looks.KeyDefault(P().style) and L["As the look has it (shown)"] or L["As the look has it (hidden)"],
+						show = L["Always"],
+						hide = L["Never"],
+					}
+				end,
 				sorting = { "look", "show", "hide" },
 				get = pGet,
 				set = pSet,
@@ -742,6 +767,8 @@ function Page.BuildLookTab()
 				desc = L["A gilt gryphon at each end of the Glass look, as on the game's old action bar. Off, the bar ends at its rails."],
 				order = 53.6,
 				width = "full",
+				-- With Glass's own settings, so drawn only while Glass is chosen.
+				hidden = function() return P().style ~= "glass" end,
 				disabled = function() return P().style ~= "glass" end,
 				get = pGet,
 				set = pSet,

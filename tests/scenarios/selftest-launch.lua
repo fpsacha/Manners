@@ -1057,9 +1057,9 @@ do
 		expect(scenario, results, "launch.picker", "PASS", "the window's cards are not drawn yet")
 		ns.OpenOptions("appearance", true)
 		ns.Prompt:ExitTest()
-		-- Every shelf of the gallery open (the chosen look's alone is, at first).
+		-- Every look's card shown: the All tab (For my class, at first).
 		local shelves = ns.WindowUI.RowFor("appearance.style")
-		for _, c in ipairs(ns.Looks.CATEGORIES) do shelves.open[c] = true end
+		shelves.tab = "all"
 		ns.RefreshOptionsDisplay()
 		results = run(ns)
 		expect(scenario, results, "launch.picker", "PASS", "the window's own cards: 29 shown, 29 with the live icon")

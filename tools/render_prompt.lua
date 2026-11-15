@@ -96,6 +96,9 @@ local function boot(ns, names)
 	if key then Mock.bindings = { [key] = COMMAND } end
 	ns.addon:OnInitialize()
 	if style then ns.db.profile.prompt.style = style end
+	-- Earlier art on (prompt.classicArt), for a look's second picture on the
+	-- options window's cards (tools/make_look_previews.py sets the global).
+	if rawget(_G, "MANNERS_RENDER_EARLIER") == true then ns.db.profile.prompt.classicArt = true end
 	-- `size` "large": the top of the usual range, for a picture of how an
 	-- effect scales (a state that sets its own size keeps it).
 	-- "extreme": the narrowest prompt that holds the biggest icon (the icon is

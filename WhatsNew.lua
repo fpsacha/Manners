@@ -20,9 +20,12 @@ ns.WhatsNew = {
 		} },
 		{ title = "Looks", accent = "7cc4ff", entries = {
 			"|cff7cc4ffPainted frames.|r The looks are being repainted, each from one painting: Frost Mage first, the rest as they are finished.",
+			"|cff7cc4ffTabs for the looks.|r Over the cards: |cffffffffFor my class|r (a mage's three mage looks, opened first), |cffffffffAll|r, and one tab a shelf.",
+			"|cff7cc4ffTry a look by pointing at it.|r The pointer on a card puts that look on the prompt at once; moving off puts yours back, a click keeps it.",
+			"|cff7cc4ffThe chosen look's settings together.|r Under the cards, headed with the look's name: |cffffffffEarlier art|r, |cffffffffRound the icon off|r, |cffffffffShow my key on the prompt|r, the gryphons and the reason's colours.",
 			"|cff7cc4ffTen new looks.|r For the classes: Fire Mage, Priest, Rogue, Monk, Demon Hunter and Evoker.",
 			"|cff7cc4ffThe picker in shelves.|r The cards are sorted under Minimal, Classic, Themed and Class, and the class looks are named for their class: Frost Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter and Warrior.",
-			"|cff7cc4ffShow my key on the prompt.|r As the look has it (on the class and themed looks, off on the calmer ones), always or never.",
+			"|cff7cc4ffShow my key on the prompt.|r As the look has it (on the class and themed looks, off on the calmer ones), always or never, with the look's own settings.",
 		} },
 		{ title = "Profiles", accent = "7cc4ff", entries = {
 			"|cff7cc4ffEvery profile at a glance.|r One line each, the one in use first: which characters are on it, and where automatic switching picks it for you.",

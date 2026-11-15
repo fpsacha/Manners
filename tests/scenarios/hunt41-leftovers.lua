@@ -550,8 +550,8 @@ do
 				fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 				return
 			end
-			-- Every shelf of the gallery open (the chosen look's alone is, at first).
-			for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+			-- Every look's card shown: the All tab (For my class, at first).
+			row.tab = "all"
 			ns.RefreshOptionsDisplay()
 			body(ns, row, env)
 		end)

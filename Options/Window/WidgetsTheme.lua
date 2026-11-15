@@ -62,11 +62,38 @@
 -- horizontal three-slice in the look's colour), and the card lays those textures
 -- over the picture, under the words, as wide as the words it has just measured.
 --
--- Two or three cards to a row, as many as the page is wide enough for, every
--- row as tall as its tallest card. The looks are on shelves by category
--- (Looks.CATEGORIES: Minimal, Classic, Themed, Class, in that order), each
--- under a small heading of its own, a shelf's cards starting a row of their
--- own; the dropdown, which the fallback dialog keeps, is the same list flat.
+-- The pictures follow *Earlier art*: a look that has an earlier art (a painted
+-- look's own code, drawn as before) has a second picture of it, and its card
+-- wears that one while the switch is on (Looks.PreviewFile and the rest answer
+-- for the art the prompt draws now).
+--
+-- TABS. Over the cards, a row of tabs: For my class (the looks Looks.FOR_CLASS
+-- made for the player's class; only for a class that has some), All, and one
+-- per shelf (Looks.CATEGORIES: Minimal, Classic, Themed, Class), each with how
+-- many it holds. They are boxed, unlike the underlined sub-divisions in the
+-- bar over the page, so the two rows never read as one. The first time it opens
+-- on For my class where there is one, else All; the tab last chosen is kept
+-- for the session (row.tab: the row lives as long as the window). All lays the
+-- shelves out in order, each under a small heading. Under the tabs, one line
+-- says what pointing and clicking do, and in a fight that looks wait for its
+-- end.
+--
+-- TRYING A LOOK. The pointer on a card puts that look on the real prompt at
+-- once (the Look page starts the preview, Window.lua's LookOpened, so it is on
+-- screen), by the profile's style and Prompt:ApplyStyle, as a pick does; the
+-- pointer leaving, the card hidden (another tab, another page, the window
+-- shut), a fight starting or the game logging out puts the chosen look back.
+-- A click keeps it. Never in a fight: ApplyStyle cannot run there, so the
+-- pointer tries nothing. Each look's Hide is its contract that nothing of it
+-- stays behind; the change is the same one a click makes. Nothing of it runs
+-- per frame: the card's own OnEnter and OnLeave, and two events on a frame of
+-- its own, made the first time a look is tried.
+--
+-- Two cards to a row in the usual window, three at most, as many as the page
+-- is wide enough for, every row as tall as its tallest card; a card is a
+-- picture, the look's name with a small New for a look new in this release
+-- and the tick on the chosen one, and its line. The dropdown, which the
+-- fallback dialog keeps, is the same list flat.
 
 local _, ns = ...
 local W = ns.WindowWidgets
@@ -76,11 +103,19 @@ local LSM = LibStub("LibSharedMedia-3.0")
 
 local function Bind() return ns.WindowBind end
 
-local GAP, PAD, TEXT_GAP = 10, 6, 6
--- A category's heading: its height, and the room under it before its cards.
+local GAP, PAD, TEXT_GAP = 10, 8, 7
+-- A shelf's heading on All: its height, and the room under it before its cards.
 local HEAD_H, HEAD_GAP = 16, 4
--- The narrowest a card is drawn, and the most to a row.
-local MIN_WIDTH, MAX_COLUMNS = 150, 3
+-- The narrowest a card is drawn, and the most to a row: two in the usual
+-- window, whose page is 612 wide.
+local MIN_WIDTH, MAX_COLUMNS = 200, 3
+-- The tabs: their height, the room either side of a tab's words and between
+-- two tabs, and under the row of them and under the line that follows.
+local TAB_H, TAB_PAD, TAB_GAP, TABS_GAP, HINT_GAP = 22, 9, 6, 7, 10
+-- In their order: For my class first, then All, then a shelf each.
+local TABS = { "mine", "all", "minimal", "classic", "themed", "class" }
+-- The small New on a card: its height and the room either side of the word.
+local TAG_H, TAG_PAD = 14, 5
 -- Textures/Previews are 256 x 64.
 local SHOT_RATIO = 4
 local BADGE = 18
@@ -119,6 +154,15 @@ local SHOT_GROUND = { 0.09, 0.10, 0.13 }
 local SHOT_EDGE = { 0, 0, 0, 0.6 }
 local BADGE_RING = { 0, 0, 0, 0.7 }
 local BADGE_TICK = { 0.12, 0.09, 0.02 }
+-- New: pale green words on a dark green tag (8:1).
+local NEW_FILL = { 0.10, 0.27, 0.15, 1 }
+local NEW_INK = { 0.74, 0.95, 0.72 }
+-- A tab: the chosen one gold on a gold wash, one under the pointer lighter.
+local TAB_ON = { T.gold[1], T.gold[2], T.gold[3], 0.13 }
+local TAB_HOVER = { 1, 1, 1, 0.05 }
+-- A shelf's heading on All, and the hairline after it.
+local HEAD_INK = T.goldSoft
+local HEAD_RULE = { T.gold[1], T.gold[2], T.gold[3], 0.22 }
 
 -- Four one-pixel lines round `anchor`, `out` units outside its edge (inside,
 -- when negative).
@@ -215,6 +259,9 @@ local function Look(card)
 	W.TextColour(card.title, off and T.dim or (on and T.gold or T.ink))
 	W.TextColour(card.desc, off and T.dim or T.hint)
 	card.badge:SetShown(on and true or false)
+	-- New at the name line's right end, left of the tick where it shows.
+	card.newTag:ClearAllPoints()
+	card.newTag:SetPoint("TOPRIGHT", card.ground, "BOTTOMRIGHT", on and -(BADGE + 6) or 0, -(3 + (BADGE - TAG_H) / 2))
 	-- Greyed out, the words go to the window's dim (the one tone that keeps
 	-- its contrast) and the picture to grey; the card itself stays whole.
 	card.shot:SetDesaturated(off and true or false)
@@ -226,8 +273,69 @@ local function Look(card)
 	card:SetEnabled(not off)
 end
 
+---------------------------------------------------------------------------
+-- trying a look: the one under the pointer on the real prompt (see the header)
+---------------------------------------------------------------------------
+
+-- The look being tried, the chosen one it stands in for, and its card; nil
+-- while none is.
+local trial
+local events
+
+local function PromptSettings()
+	return ns.db and ns.db.profile and ns.db.profile.prompt
+end
+
+local function Restyle()
+	if ns.Prompt and not InCombatLockdown() then ns.Prompt:ApplyStyle() end
+end
+
+-- The chosen look back on the prompt (`redraw`: drawn now; a click about to
+-- choose another, or the game logging out, need not).
+local function EndTrial(redraw)
+	local t = trial
+	if not t then return end
+	trial = nil
+	t.card.trying = false
+	local p = PromptSettings()
+	if p and p.style == t.key then p.style = t.was end
+	if redraw then Restyle() end
+end
+
+-- A fight starting (still out of the lockdown, so the chosen look is drawn
+-- again before it), or the game logging out (so a look under the pointer is
+-- never the one saved).
+local function TrialEvent(_, event)
+	ns.Guard("options look", EndTrial, event ~= "PLAYER_LOGOUT")
+end
+
+local function Try(card)
+	local p = PromptSettings()
+	if not (p and card.key) or InCombatLockdown() or W.Off(card.row) then return end
+	local had = trial ~= nil
+	local was = had and trial.was or p.style
+	EndTrial(false)
+	if card.key == was then
+		if had then Restyle() end
+		return
+	end
+	if not events then
+		events = CreateFrame("Frame")
+		events:RegisterEvent("PLAYER_REGEN_DISABLED")
+		events:RegisterEvent("PLAYER_LOGOUT")
+		events:SetScript("OnEvent", TrialEvent)
+	end
+	trial = { key = card.key, was = was, card = card }
+	card.trying = true
+	p.style = card.key
+	Restyle()
+end
+
 local function Clicked(card)
 	local row = card.row
+	-- The look under the pointer is the one clicked: the chosen one goes back
+	-- first, so the click is the pick it would be without the trial.
+	if card.trying then EndTrial(false) end
 	if W.Off(row) or not card.key or card.selected then return end
 	W.Apply(row, card.key)
 end
@@ -235,11 +343,20 @@ end
 local function Entered(card)
 	card.hover = true
 	Look(card)
+	Try(card)
 end
 
 local function Left(card)
 	card.hover = false
 	Look(card)
+	if card.trying then EndTrial(true) end
+end
+
+-- A card put away under the pointer (another tab, another page, the window
+-- shut) has no OnLeave to wait for.
+local function CardHidden(card)
+	card.hover = false
+	if card.trying then EndTrial(true) end
 end
 
 -- The icon the cards wear: the spell of the first buff the prompt would offer
@@ -542,59 +659,195 @@ local function BuildCard(row, i)
 	W.Colour(tick, BADGE_TICK)
 	card.badge:Hide()
 
+	-- New, for a look new in this release (Looks.NEW): a small green tag on the
+	-- name's line, left of where the tick goes.
+	card.newTag = CreateFrame("Frame", nil, card)
+	local fill = W.Solid(card.newTag, "ARTWORK", 0, NEW_FILL)
+	fill:SetAllPoints(card.newTag)
+	card.newTag.text = W.Text(card.newTag, T.fonts.small, NEW_INK, "OVERLAY")
+	card.newTag.text:SetPoint("CENTER", card.newTag, "CENTER", 0, 0)
+	card.newTag.text:SetJustifyH("CENTER")
+	card.newTag.text:SetWordWrap(false)
+	card.newTag.text:SetText(L["New"])
+	card.newTag:SetSize(math.ceil(W.Measure(card.newTag.text)) + 2 * TAG_PAD, TAG_H)
+	card.newTag:SetPoint("TOPRIGHT", card.ground, "BOTTOMRIGHT", -(BADGE + 6), -(3 + (BADGE - TAG_H) / 2))
+	card.newTag:Hide()
+
 	card:SetScript("OnClick", function(self) ns.Guard("options look", Clicked, self) end)
 	card:SetScript("OnEnter", function(self) ns.Guard("options look", Entered, self) end)
 	card:SetScript("OnLeave", function(self) ns.Guard("options look", Left, self) end)
+	card:SetScript("OnHide", function(self) ns.Guard("options look", CardHidden, self) end)
 	row.cards[i] = card
 	return card
 end
 
--- The heading over a category's first card, at `y` from the row's top; returns
--- where its cards start. row.heads is kept for the tests.
--- A shelf folds: its heading, a click, opens or shuts it. The shelf holding
--- the chosen look is open when the page is first drawn, the others shut (so
--- the page stays its usual length); what the player opens stays open for the
--- session.
-local function Toggle(head)
-	local row = head.row
-	row.open[head.cat] = not row.open[head.cat]
-	for _, card in ipairs(row.cards) do
-		if card.key and card.category == head.cat then card:SetShown(row.open[head.cat] and true or false) end
+---------------------------------------------------------------------------
+-- the tabs over the cards (see the header)
+---------------------------------------------------------------------------
+
+-- The player's class as UnitClass names it, or nil.
+local function PlayerClass()
+	if type(UnitClass) ~= "function" then return nil end
+	local _, class = UnitClass("player")
+	class = ns.plain(class)
+	return type(class) == "string" and class or nil
+end
+
+local function TabTitle(tab)
+	if tab == "mine" then return L["For my class"] end
+	if tab == "all" then return L["All"] end
+	return ns.Looks.CATEGORY_TITLE[tab] or tab
+end
+
+-- Whether a look is under a tab: All holds every one, For my class the class's
+-- own (`mine`, a set of keys), a shelf's tab that shelf's.
+local function Under(tab, key, mine)
+	if tab == "all" then return true end
+	if tab == "mine" then return mine[key] == true end
+	return ns.Looks.Category(key) == tab
+end
+
+-- How many looks each tab holds.
+local function Counts(values, mine)
+	local counts = { all = #values, mine = 0 }
+	for _, c in ipairs(ns.Looks.CATEGORIES) do counts[c] = 0 end
+	for _, key in ipairs(values) do
+		if mine[key] then counts.mine = counts.mine + 1 end
+		local c = ns.Looks.Category(key)
+		counts[c] = (counts[c] or 0) + 1
 	end
+	return counts
+end
+
+-- How a tab reads: chosen (gold, on a gold wash), under the pointer (lighter),
+-- or at rest.
+local function TabLook(b)
+	local on = b.row.tab == b.tab
+	local hot = b.hover and not on
+	W.Colour(b.wash, on and TAB_ON or TAB_HOVER)
+	b.wash:SetShown((on or hot) and true or false)
+	W.BorderColour(b.edges, on and T.gold or (hot and T.edgeHi or T.fieldEdge))
+	W.TextColour(b.label, on and T.gold or (hot and T.ink or T.inkSoft))
+end
+
+-- A tab chosen: its cards shown, the others put away (a look being tried on a
+-- card put away goes back, CardHidden), and the page laid out again. Kept for
+-- the session in row.tab.
+local function TabClicked(b)
+	local row = b.row
+	if row.tab == b.tab then return end
+	row.tab = b.tab
+	row:Refresh()
 	W.Relayout(row)
 end
 
-local function HeadLook(head)
-	local open = head.row.open[head.cat]
-	W.TextColour(head.text, (open or head.hover) and T.gold or T.hint)
-	head.text:SetText(("%s %s  (%d)"):format(open and "-" or "+", ns.Looks.CATEGORY_TITLE[head.cat] or head.cat, head.n or 0))
+local function TabEntered(b)
+	b.hover = true
+	TabLook(b)
 end
 
+local function TabLeft(b)
+	b.hover = false
+	TabLook(b)
+end
+
+local function BuildTab(row, tab)
+	local b = CreateFrame("Button", nil, row.frame)
+	b:RegisterForClicks("LeftButtonUp")
+	b.row, b.tab = row, tab
+	local fill = W.Solid(b, "BACKGROUND", -2, T.field)
+	fill:SetAllPoints(b)
+	b.wash = W.Solid(b, "BACKGROUND", -1, TAB_ON)
+	b.wash:SetAllPoints(b)
+	b.edges = W.Border(b, T.fieldEdge)
+	b.label = W.Text(b, T.fonts.label, T.inkSoft)
+	b.label:SetPoint("CENTER", b, "CENTER", 0, 0)
+	b.label:SetJustifyH("CENTER")
+	b.label:SetWordWrap(false)
+	b:SetScript("OnClick", function(self) ns.Guard("options look", TabClicked, self) end)
+	b:SetScript("OnEnter", function(self) ns.Guard("options look", TabEntered, self) end)
+	b:SetScript("OnLeave", function(self) ns.Guard("options look", TabLeft, self) end)
+	row.tabs[tab] = b
+	return b
+end
+
+-- The line under the tabs: what pointing and clicking do, that the prompt has
+-- to be up to see it, and in a fight that looks wait for its end.
+local function Hint()
+	if InCombatLockdown() then
+		return "|cffffd100" .. L["In a fight a look cannot change: the one you click goes on when the fight ends."] .. "|r"
+	end
+	local text = L["Point at a look to try it on the prompt; click to keep it."]
+	local prompt = ns.Prompt
+	local button = prompt and prompt.GetButton and prompt:GetButton()
+	if prompt and not prompt:InTest() and not (button and button:IsShown()) then
+		text = text .. " " .. L["The prompt is not on screen now: Show me the prompt, at the top of this window, puts it up."]
+	end
+	return text
+end
+
+-- Every tab's words and count, shown while it holds a look (For my class only
+-- for a class with looks of its own), and the line under them.
+local function PaintTabs(row)
+	for _, tab in ipairs(TABS) do
+		local n = row.counts[tab] or 0
+		local b = row.tabs[tab] or BuildTab(row, tab)
+		b.shown = n > 0
+		b:SetShown(b.shown)
+		b.label:SetText(("%s  |cff8e8b84%d|r"):format(TabTitle(tab), n))
+		b.hover = b.hover and b:IsMouseOver() or false
+		TabLook(b)
+	end
+	row.hint:SetText(Hint())
+end
+
+-- The tabs left to right, onto another line where they run past the width, and
+-- the line under them. Answers where the cards start.
+local function PlaceTabs(row, width)
+	local x, y = 0, 0
+	for _, tab in ipairs(TABS) do
+		local b = row.tabs[tab]
+		if b and b.shown then
+			local w = math.min(width, math.ceil(W.Measure(b.label)) + 2 * TAB_PAD)
+			if x > 0 and x + w > width then x, y = 0, y + TAB_H + TAB_GAP end
+			b:ClearAllPoints()
+			b:SetPoint("TOPLEFT", row.frame, "TOPLEFT", x, -y)
+			b:SetSize(w, TAB_H)
+			b.x, b.y, b.w = x, y, w
+			x = x + w + TAB_GAP
+		end
+	end
+	y = y + TAB_H + TABS_GAP
+	row.hint:ClearAllPoints()
+	row.hint:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -y)
+	row.hint:SetWidth(width)
+	row.hint.y = y
+	return y + math.ceil(W.TextHeight(row.hint)) + HINT_GAP
+end
+
+-- A shelf's heading on All, at `y` from the row's top: its name and how many,
+-- and a hairline on to the right edge. Answers where its cards start.
+-- row.heads is kept for the tests.
 local function PlaceHead(row, cat, y, width)
 	local head = row.heads[cat]
 	if not head then
-		head = CreateFrame("Button", nil, row.frame)
-		head:RegisterForClicks("LeftButtonUp")
-		head.row, head.cat = row, cat
-		head.text = W.Text(head, T.fonts.normal, T.gold)
+		head = CreateFrame("Frame", nil, row.frame)
+		head.cat = cat
+		head.text = W.Text(head, T.fonts.normalSmall, HEAD_INK)
 		head.text:SetJustifyH("LEFT")
 		head.text:SetWordWrap(false)
 		head.text:SetPoint("LEFT", head, "LEFT", 0, 0)
-		head:SetScript("OnClick", function(self) ns.Guard("options look", Toggle, self) end)
-		head:SetScript("OnEnter", function(self) self.hover = true HeadLook(self) end)
-		head:SetScript("OnLeave", function(self) self.hover = false HeadLook(self) end)
+		head.rule = W.Solid(head, "ARTWORK", 0, HEAD_RULE)
+		head.rule:SetHeight(1)
 		row.heads[cat] = head
 	end
-	local n = 0
-	for _, card in ipairs(row.cards) do
-		if card.key and card.category == cat then n = n + 1 end
-	end
-	head.n = n
-	HeadLook(head)
+	head.text:SetText(("%s  |cff8e8b84%d|r"):format(ns.Looks.CATEGORY_TITLE[cat] or cat, row.counts[cat] or 0))
 	head:ClearAllPoints()
 	head:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -y)
 	head:SetSize(width, HEAD_H)
-	head.text:SetWidth(width)
+	head.rule:ClearAllPoints()
+	head.rule:SetPoint("LEFT", head, "LEFT", math.min(width, math.ceil(W.Measure(head.text)) + 8), 0)
+	head.rule:SetPoint("RIGHT", head, "RIGHT", 0, 0)
 	head:Show()
 	head.y = y
 	return y + HEAD_H + HEAD_GAP
@@ -602,10 +855,18 @@ end
 
 KIND.themes = {
 	Build = function(row)
-		row.heads, row.open = {}, {}
+		row.heads, row.tabs = {}, {}
 		row.cards = {}
 		row.count = 0
 		row.cols = 1
+		row.counts = {}
+		row.hint = W.Wrapping(W.Text(row.frame, T.fonts.small, T.hint))
+		-- The gallery put away (another page) or the window shut with a look
+		-- being tried: the chosen one goes back, whichever card had the pointer.
+		local function away() ns.Guard("options look", EndTrial, true) end
+		row.frame:HookScript("OnHide", away)
+		local win = row.ctx and row.ctx.Window
+		if win and win.HookScript then win:HookScript("OnHide", away) end
 	end,
 
 	Refresh = function(row)
@@ -613,10 +874,18 @@ KIND.themes = {
 		-- paint: a look registered since has a card the next time the page
 		-- is drawn.
 		local _, values = ns.Looks.Choices()
-		local now = Bind().Value(row.item)
-		-- The chosen look's shelf open the first time it is seen.
-		local mine = now and ns.Looks.list[now] and ns.Looks.Category(now)
-		if mine and row.open[mine] == nil then row.open[mine] = true end
+		-- The chosen look: while one is tried under the pointer, the one it
+		-- stands in for.
+		local now = trial and trial.was or Bind().Value(row.item)
+		local mine = {}
+		for _, key in ipairs(ns.Looks.ForClass(PlayerClass())) do mine[key] = true end
+		row.counts = Counts(values, mine)
+		-- The first time, For my class where the class has looks of its own,
+		-- else All; after that the tab chosen last, while it holds a look.
+		if not (row.tab and (row.counts[row.tab] or 0) > 0) then
+			row.tab = row.counts.mine > 0 and "mine" or "all"
+		end
+		PaintTabs(row)
 		-- One icon for every card, asked at every paint.
 		local spell = BuffIcon()
 		for i, key in ipairs(values) do
@@ -629,6 +898,10 @@ KIND.themes = {
 			local title, line = ns.Looks.Card(key)
 			card.title:SetText(W.Trim(title))
 			card.desc:SetText(W.Trim(line))
+			card.isNew = ns.Looks.IsNew(key)
+			card.newTag:SetShown(card.isNew)
+			-- The picture of the art the prompt draws now: the earlier art's
+			-- while Earlier art is on.
 			local file = ns.Looks.PreviewFile(key)
 			-- Kept for the tests: the client has no call that reads a texture's
 			-- file back.
@@ -644,51 +917,59 @@ KIND.themes = {
 			DressIcon(card, file and ns.Looks.PreviewIcon(key), spell)
 			DressText(card, file and ns.Looks.PreviewText(key))
 			Look(card)
-			card:SetShown(row.open[card.category] == true)
+			card.inTab = Under(row.tab, key, mine)
+			card:SetShown(card.inTab)
 		end
-		for i = #values + 1, #row.cards do row.cards[i]:Hide() end
+		for i = #values + 1, #row.cards do
+			row.cards[i].inTab = false
+			row.cards[i]:Hide()
+		end
 		local was = row.count
 		row.count = #values
 		if was ~= nil and was ~= row.count and was > 0 then W.Relayout(row) end
 	end,
 
 	Layout = function(row, width)
-		local count = row.count
-		if count == 0 then return 0 end
+		local y = PlaceTabs(row, width)
+		for _, head in pairs(row.heads) do head:Hide() end
+		-- The cards of the tab in view, in the registry's order.
+		local list = {}
+		for i = 1, row.count do
+			local card = row.cards[i]
+			if card.inTab then list[#list + 1] = card end
+		end
+		local count = #list
+		if count == 0 then return y end
 		local cols = math.max(1, math.min(MAX_COLUMNS, math.floor((width + GAP) / (MIN_WIDTH + GAP))))
-		cols = math.min(cols, count)
 		row.cols = cols
 		local base = math.floor((width - (cols - 1) * GAP) / cols)
 		local extra = (width - (cols - 1) * GAP) - base * cols
 		-- One height for every picture, so the names line up across a row.
 		local shotH = math.floor((base - 2 * PAD) / SHOT_RATIO + 0.5)
-		local y, i = 0, 1
-		for _, head in pairs(row.heads) do head:Hide() end
+		-- All under a heading a shelf, each shelf's cards starting a row.
+		local heads = row.tab == "all"
+		local i = 1
 		while i <= count do
-			-- A heading over each category's first card; its cards start a row.
-			local cat = row.cards[i].category
-			if i == 1 or row.cards[i - 1].category ~= cat then y = PlaceHead(row, cat, y, width) end
+			local cat = list[i].category
+			if heads and (i == 1 or list[i - 1].category ~= cat) then y = PlaceHead(row, cat, y, width) end
 			local last = math.min(count, i + cols - 1)
-			while last > i and row.cards[last].category ~= cat do last = last - 1 end
-			-- A shelf folded: only its heading, its cards passed over.
-			local open = row.open[cat] == true
-			if not open then
-				while last < count and row.cards[last + 1].category == cat do last = last + 1 end
-			end
+			while heads and last > i and list[last].category ~= cat do last = last - 1 end
 			local x, tallest = 0, 0
 			-- Every card of the row, the first few a unit wider where the
 			-- width does not divide, so the row runs the whole width.
 			local sized = {}
-			for k = i, open and last or i - 1 do
-				local card = row.cards[k]
+			for k = i, last do
+				local card = list[k]
 				local w = base + ((k - i) < extra and 1 or 0)
 				local inner = w - 2 * PAD
-				card.title:SetWidth(inner)
+				-- The name leaves room for the tick, and for New where it shows.
+				local room = inner - (BADGE + 6) - (card.isNew and math.ceil(card.newTag:GetWidth()) + 6 or 0)
+				card.title:SetWidth(math.max(20, room))
 				card.desc:SetWidth(inner)
 				local titleH = math.ceil(W.TextHeight(card.title))
 				local descH = math.ceil(W.TextHeight(card.desc))
-				local h = PAD + shotH + TEXT_GAP + titleH + (descH > 0 and 2 + descH or 0) + PAD
-				sized[#sized + 1] = { card = card, w = w, h = h, inner = inner, shotH = shotH, titleH = titleH }
+				local h = PAD + shotH + TEXT_GAP + math.max(titleH, BADGE - 3) + (descH > 0 and 2 + descH or 0) + PAD
+				sized[#sized + 1] = { card = card, w = w, h = h, inner = inner, shotH = shotH, titleH = math.max(titleH, BADGE - 3) }
 				tallest = math.max(tallest, h)
 			end
 			for _, s in ipairs(sized) do
@@ -711,7 +992,7 @@ KIND.themes = {
 				card.x, card.y, card.w, card.h = x, y, s.w, tallest
 				x = x + s.w + GAP
 			end
-			y = y + tallest + (open and GAP or (GAP - HEAD_GAP))
+			y = y + tallest + GAP
 			i = last + 1
 		end
 		return y - GAP

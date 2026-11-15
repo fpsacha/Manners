@@ -73,8 +73,8 @@ local function with(scenario, body)
 			fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 			return
 		end
-		-- Every shelf of the gallery open (the chosen look's alone is, at first).
-		for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+		-- Every look's card shown: the All tab (For my class, at first).
+		row.tab = "all"
 		ns.RefreshOptionsDisplay()
 		body(ns, UI, row)
 		noErrors(scenario, ns)
@@ -513,7 +513,8 @@ do
 	local scenario = "theme-picker: the cards fit the page, two or three to a row, and never overlap, whatever their number"
 	with(scenario, function(ns, UI, row)
 		local base = #registry(ns)
-		local function columns(width) return math.max(1, math.min(3, math.floor((width + 10) / 160))) end
+		-- Cards 200 wide at the least: two in the usual window's 612.
+		local function columns(width) return math.max(1, math.min(3, math.floor((width + 10) / 210))) end
 		for _, count in ipairs({ base, base + 1, base + 3, base + 4, base + 9 }) do
 			for i = 1, count - base do
 				register(ns, "fake" .. i, { name = "Fake " .. i .. " -- a made-up look", order = 60 + i })
@@ -548,11 +549,11 @@ do
 					if n > 3 then fail(scenario, where .. (": %d cards in the row at %d"):format(n, y)) end
 					if n > want then fail(scenario, where .. (": %d cards in a row, %d fit"):format(n, want)) end
 				end
-				if width >= 330 and want < 2 then fail(scenario, where .. ": fewer than two to a row") end
+				if width >= 410 and want < 2 then fail(scenario, where .. ": fewer than two to a row") end
 				-- The first row is under the first shelf's heading.
 				local firstY = math.huge
 				for _, c in ipairs(cards) do firstY = math.min(firstY, c.y) end
-				if width == 612 and rowsSeen[firstY] ~= math.min(3, #cards) then
+				if width == 612 and rowsSeen[firstY] ~= math.min(2, #cards) then
 					fail(scenario, where .. (": %d in the first row"):format(rowsSeen[firstY] or 0))
 				end
 				if height ~= top then fail(scenario, where .. (": the row says %d high, the cards reach %d"):format(height, top)) end
@@ -805,9 +806,9 @@ local function withCharacter(scenario, spec, body)
 		ns.Prompt:ExitTest()
 		local UI = ns.WindowUI
 		local row = UI.RowFor("appearance.style")
-		-- Every shelf of the gallery open (the chosen look's alone is, at first).
-		if row and row.open then
-			for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+		-- Every look's card shown: the All tab (For my class, at first).
+		if row and row.tabs then
+			row.tab = "all"
 			ns.RefreshOptionsDisplay()
 		end
 		if not (row and row.cards and UI.RowShown("appearance.style")) then

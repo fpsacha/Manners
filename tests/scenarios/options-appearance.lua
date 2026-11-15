@@ -61,7 +61,7 @@ end
 local ORDER = {
 	"combatNotice", "move", "locked", "posPreset", "moveInEditMode",
 	"posHeader", "scale", "alpha", "width", "height",
-	"styleHeader", "style", "classicArt", "keycap", "bgColor", "accentByReason", "reasonPalette", "accentColor",
+	"styleHeader", "style", "lookHeader", "classicArt", "classicArtNote", "keycap", "bgColor", "accentByReason", "reasonPalette", "accentColor",
 	"accentMode", "accentDead",
 	"attentionHeader", "flashStyle", "effects", "hideInFight", "fightRota", "hideInCombat", "dimInCombat", "soundEnabled", "soundFile",
 	"soundOwedOnly", "noSound", "peekOnChange",

@@ -486,20 +486,15 @@ do
 	with(scenario, { page = "appearance" }, function(ns, UI)
 		local byKey = {}
 		for _, sec in ipairs(UI.Model("appearance").sections) do byKey[sec.key] = sec end
-		for _, key in ipairs({ "appearance.hover", "appearance.window", "appearance.style" }) do
+		for _, key in ipairs({ "appearance.hover", "appearance.window" }) do
 			if not (byKey[key] and byKey[key].fold) then fail(scenario, key .. " is not a fold on Look") end
 		end
-		-- The colours, folded since the picker had nineteen cards: the dot
-		-- is how a player sees one was changed.
-		local style = byKey["appearance.style"]
-		if style and style.fold then
-			if UI.FoldChanged(style) then fail(scenario, "Style's dot is lit on a profile nobody changed") end
-			local was = ns.db.profile.prompt.bgColor
-			ns.db.profile.prompt.bgColor = { 0.5, 0.1, 0.1, 1 }
-			ns.RefreshOptionsDisplay()
-			if not UI.FoldChanged(style) then fail(scenario, "Style's dot stays dark with the panel's colour changed") end
-			ns.db.profile.prompt.bgColor = was
-			ns.RefreshOptionsDisplay()
+		-- The colours, folded while the picker was one long shelf of cards,
+		-- stand open with the chosen look's own settings under the gallery
+		-- since the picker has tabs (tests/scenarios/lookpage.lua): the page
+		-- is still held to its three screens below.
+		if not byKey["appearance.lookOwn"] or byKey["appearance.lookOwn"].fold then
+			fail(scenario, "the chosen look's own settings are folded away")
 		end
 		if not byKey["appearance.queue"] or byKey["appearance.queue"].fold then fail(scenario, "the waiting list is folded away") end
 		local hover = byKey["appearance.hover"]
