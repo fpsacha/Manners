@@ -121,10 +121,26 @@ local function HoldStillStands(now)
 	return not ns.IsBlocked(S.heldEntry.name, S.heldEntry.buff and S.heldEntry.buff.key, now)
 end
 
--- Whether `a` comes after `b` by the order inside a tier: what is missing
--- before what nobody could read before a top-up, then the buff's place in the
--- walk (Queue.lua, OfferRank, read at call time: Queue.lua loads first).
+-- The queue's range key (Queue.lua, BuildQueue's sort): measured in reach this
+-- scan, then nothing measured them (a passer-by only remembered since a token
+-- last reached them, a favour's giver no token reaches), then measured out of it.
+local function Reach(entry)
+	local ranged = entry.ranged
+	if ranged == true then return 0 end
+	if ranged == nil then return 1 end
+	return 2
+end
+
+-- Whether `a` comes after `b` by the order inside a tier: in reach before
+-- unmeasured before out of reach, as the queue sorts them, then what is
+-- missing before what nobody could read before a top-up, then the buff's place
+-- in the walk (Queue.lua, OfferRank, read at call time: Queue.lua loads first).
+-- The range first: a passer-by who walked off is kept by name for ten seconds
+-- (Queue.lua, LINGER_SECONDS), and on a tie of the tier the prompt kept them all
+-- that time while somebody beside you, sorted ahead, waited (review 2026-11-15).
 local function WorseOffer(a, b)
+	local aReach, bReach = Reach(a), Reach(b)
+	if aReach ~= bReach then return aReach > bReach end
 	local rank = ns.OfferRank
 	if not rank then return false end
 	local aReading, aPlace = rank(a)
@@ -171,6 +187,17 @@ function Prompt:PickTop(queue, fallback)
 	-- Lower is better: a strict improvement (a favour owed over a passer-by) is
 	-- never held off.
 	if top.priority < held.priority then return top end
+	-- Nor, inside the tier, somebody this scan measured in reach by somebody
+	-- it holds unmeasured or out of reach (see Reach): the hold smooths flicker,
+	-- and a passer-by who walked off is not flicker. Judged only on the queue's
+	-- own entry (a copy painted carries the range of a scan since overruled, and
+	-- somebody gone from one scan is what the hold is for), and never under the
+	-- cursor, which keeps whoever the panel names while the mouse is on its way
+	-- (CursorHolds; 1.1.1).
+	if held ~= S.heldEntry and top.priority == held.priority and Reach(top) < Reach(held)
+		and not CursorHolds(S.heldEntry, GetTime()) then
+		return top
+	end
 	return held
 end
 

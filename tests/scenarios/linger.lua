@@ -767,11 +767,17 @@ for _, case in ipairs({
 			fail(scenario, "SKIPPED -- Anna was not on the prompt once the cursor left her")
 			return
 		end
+		-- The cursor first: Bert in reach takes the panel from Anna, only
+		-- remembered, unless the cursor is already on it (par-core1.lua).
+		enter(ns)
 		if case.bert then
 			plate(ns, names, "nameplate1", "Bert", "Beside")
 			ns.addon:Tick()
+			if ns.Prompt:PanelName() ~= ANNA then
+				fail(scenario, "SKIPPED -- Bert took the panel from under the cursor")
+				return
+			end
 		end
-		enter(ns)
 		if case.skip then
 			Mock.advance(1)
 			pressButton(ns, "RightButton")

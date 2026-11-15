@@ -20,8 +20,8 @@ mutate("Prompt/Hold.lua",
 
 # ...and the copy painted kept: over a favour once the target is cleared.
 mutate("Prompt/Hold.lua",
-       "\tif top.priority < held.priority then return top end\n\treturn held\n",
-       "\tif top.priority < S.heldEntry.priority then return top end\n\treturn S.heldEntry\n",
+       "\tif top.priority < held.priority then return top end\n\t-- Nor, inside the tier,",
+       "\tif top.priority < S.heldEntry.priority then return top end\n\tdo return S.heldEntry end\n\t-- Nor, inside the tier,",
        "fix2: hold keeps the painted copy",
        expect="the favour did not get the panel once the target was cleared", script=S)
 
