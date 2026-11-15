@@ -1,0 +1,12 @@
+{
+  "key": "warchief",
+  "socket": {"shape": "square", "cx": 523, "cy": 522, "half": 150},
+  "name_xy": [816, 438],
+  "reason_xy": [819, 560],
+  "keycap": {"cx": 3480, "cy": 532, "w": 155, "h": 160},
+  "bar": [176, 263, 4034, 810],
+  "stretch": [820, 3360],
+  "text_colour_ok": true,
+  "contrast": {"white": 15.7, "gold": 10.6},
+  "notes": "Measured on final-empty.jpg (Gemini repaint of r4-02, not code-patched). Socket glass inner square x 377-670, y 366-678 (iron frame x 267-776). Bar rims x 280-3984, y 314-744; well inner y ~372-686. Tusk reaches left to x 176; banner hem hangs to y 810. Contrast: WCAG ratio against the 90th-percentile luminance of x 816-1353, y 438-644 (L 0.0167). Animation layers: forge-red ember glow in the socket seams and the end-cap seams (slow additive pulse/flicker); the crimson banner cloth in the end cap (x ~3670-3905, y ~405-810) could sway or ripple gently; a faint ember spark could drift up from the end cap's lower seam."
+}

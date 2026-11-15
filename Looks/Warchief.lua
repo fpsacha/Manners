@@ -76,6 +76,14 @@ local Warchief = ns.Looks.Register("warchief", {
 	-- The words stand on the iron whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/warchief): what of this
+	-- look's own art the painting replaces. The iron and its shadow, the
+	-- icon's frame and the tusks, the spikes, the banner (painted, still) and
+	-- the crest's paint (the well stays plain: the crest only shows lit), the
+	-- key's tag (the painted keycap). The brand, the paint, the glow, the
+	-- coals, the sparks, the soot, the count's tag and the list stay.
+	paintedHides = { "shadow", "body", "frame", "tusks", "spikes", "banner", "crest", "keyChip" },
+	paintedIconFill = 0.96,
 })
 
 -- MUST AGREE with tools/make_warchief_textures.py
@@ -173,6 +181,9 @@ local OUTCOME = {
 -- The text only a little: "held -- in combat" is grey already, and on iron
 -- dulled this far a deeper dim took the small line under 6:1.
 local TEXT_COMBAT, ICON_COMBAT, BODY_COMBAT = 0.90, 0.70, 0.78
+-- A painted frame (Looks/Painted.lua) is dimmed less: its keycap keeps its
+-- letter.
+local PAINT_COMBAT = 0.86
 -- The lights that breathe when somebody is owed, in the order the breath is
 -- built: what each rests at with nobody owed, the breath's low and its peak,
 -- and what it holds after its breaths. The crest's glow first:
@@ -698,6 +709,15 @@ function Warchief:BuildAnimations(anim)
 	-- more, and the soot is down.
 	self.beatAnim = anim(Beat(self.haloHot, 0.85, 0.60))
 	self.landing = { self.beatAnim, anim(Beat(self.brandBeat, 0.70, 0.45)), anim(Burn(self.sparks, 1, SPARK_SECONDS)) }
+	-- The sparks' film ends with their light, whether or not a frame of it was
+	-- drawn since (nothing else stops a film that played once).
+	for _, g in ipairs({ self.sparkAnim, self.landing[3] }) do
+		local park = g:GetScript("OnFinished")
+		g:SetScript("OnFinished", function(...)
+			if park then park(...) end
+			self.sparkSheet:Stop()
+		end)
+	end
 
 	-- The soot under the words: up at once as the crest lights, down slowly
 	-- when it goes out. One of the two plays at a time (SootUp).
@@ -847,7 +867,8 @@ function Warchief:Apply(p, above)
 	local bannerX1 = W + bannerW * BANNER_CLEAR * 0.5
 	local bannerY0 = plateIn - bannerH * BANNER_UP
 	Box(self.banner, art, bannerX1 - bannerW, bannerY0, bannerX1, bannerY0 + bannerH)
-	self.bannerOK = W - textX >= bannerW + 40
+	-- Under a painted frame the banner is the painting's own (PaintedPlace).
+	self.bannerOK = W - textX >= bannerW + 40 and not ns.Looks.Painted.On(self)
 	self.bannerRoom = self.bannerOK and math.ceil(W - (bannerX1 - bannerW) - bannerW * BANNER_CLEAR) or 6
 	self.chipInset = self.bannerRoom + 3
 
@@ -939,6 +960,10 @@ function Warchief:Apply(p, above)
 		fit.room[row] = rowWidth
 	end
 	self.listShown, self.listAt = nil, nil
+	-- A painted frame's list bounds (PaintedPlace) are its own; the key's
+	-- letter back on the words' layer.
+	self.listX0, self.listX1 = nil, nil
+	self.keyText:SetParent(kit.textLayer)
 
 	-- Everything shown, then what waits: the lights parked at nothing, the
 	-- list for PaintQueue, the chips for Chip.
@@ -1161,6 +1186,139 @@ function Warchief:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): Warchief's own lights, motion, tags
+-- and lines moved onto the painting. Looks/Painted.lua has laid the three
+-- pieces and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The painting's well and rims, as parts of its core from its top
+-- (art/looks/warchief/meta.json's notes: core y 312-746, well 372-686): the
+-- well's top, middle and bottom, the upper rim's middle, and how far out the
+-- iron frame round the socket reaches against the socket's own half-width.
+local P_WELL_TOP, P_WELL_MID, P_WELL_BOT, P_RIM = 0.138, 0.50, 0.862, 0.07
+local P_FRAME = 1.70
+-- The crest, lit, as a part of the core, and how thick the paint is.
+local P_CREST, P_PAINT = 0.74, 0.07
+
+function Warchief:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local showIcon = p.showIcon and true or false
+	local unit, top = g.unit, g.top
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	local wellTop, wellBot = top + P_WELL_TOP * unit, top + P_WELL_BOT * unit
+	local cy = top + P_WELL_MID * unit
+	-- The socket is the frame: the brand in its bed round the icon, the halo
+	-- behind, the rings and the sparks from it.
+	local iconSize = g.iconSize
+	local bz = iconSize / ICON_FRAME
+	local cx = g.socketX
+	local frameRight = cx + g.socketR * P_FRAME
+	self.iconSize, self.cx, self.bz, self.frameRight, self.textX = iconSize, cx, bz, frameRight, g.textX
+	At(self.brand, art, cx, g.socketY, bz)
+	At(self.brandHot, art, cx, g.socketY, bz)
+	At(self.brandBeat, art, cx, g.socketY, bz)
+	local bloom = math.min(bz * GLOW_SCALE, self.H - 2 * kit.EDGE_MARGIN)
+	At(self.halo, art, cx, g.socketY, bloom)
+	At(self.haloHot, art, cx, g.socketY, bloom)
+	if showIcon then
+		self.fx:Place(icon, self.fx.ThinPad(iconSize, bz / 2 - iconSize / 2 + 1), iconSize)
+		local limitH = math.min(g.textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN)
+		-- The socket sits a little above the middle: the rings keep inside the
+		-- nearer of the panel's top and bottom.
+		local limitV = math.min(g.socketY, self.H - g.socketY) - kit.EDGE_MARGIN
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+	end
+	-- The banner is the painting's own, and stands still: none of this look's
+	-- film over it (Apply's bannerOK said so), and no spikes.
+	self.spikesOK = false
+	-- The iron's edges, for the list's sheet and what lies on the rims.
+	self.plateIn, self.plateX, self.ph, self.su = top + 2, cx, unit, unit / DESIGN_H
+	-- The crest, lit only, in the well between the words' start and the
+	-- keycap; the embers rise from it past the upper rim.
+	local room = keyL - g.textX
+	self.crestSide = math.min(unit * P_CREST, room)
+	self.crestOK = room >= 30
+	local x = g.textX + room * CREST_AT
+	x = math.max(g.textX + self.crestSide / 2, math.min(x, keyL - self.crestSide / 2))
+	for _, t in ipairs({ self.crest, self.crestGlow, self.crestHot, self.coalA, self.coalB, self.coalMask }) do
+		At(t, art, x, cy, self.crestSide)
+	end
+	self.crestX = x
+	for i, t in ipairs(self.motes) do
+		At(t, art, x + self.crestSide * EMBERS.at[i], cy - self.crestSide * 0.10, math.max(3, unit * 0.11))
+		self.rise[i].move:SetOffset((i % 2 == 0 and 2 or -2), above and (cy - wellTop) * 0.6 or unit * EMBERS.far)
+	end
+	for _, t in ipairs({ self.crestGlow, self.crestHot, self.coalA, self.coalB }) do t:SetShown(self.crestOK) end
+	self.coalMask:SetShown(self.crestOK)
+	-- The paint along the well's lower seam, from the words to the keycap.
+	local paintH = math.max(2, math.min(unit * P_PAINT, PAINT_MAX))
+	self.paintOK = keyL - g.textX >= 16
+	Box(self.paint, art, g.textX - 2, wellBot - paintH / 2, keyL - 3, wellBot + paintH / 2)
+	self.paint:SetShown(self.paintOK)
+	-- The glint along the upper rim, from the frame to the banner.
+	local glintW = 26
+	local glintY = top + P_RIM * unit
+	local glintX0 = frameRight + glintW / 2
+	local glintRun = g.endX - glintW / 2 - glintX0
+	self.greetOK = glintRun >= 30
+	At(self.glint, art, glintX0, glintY, glintW, 3)
+	At(self.glintOnce, art, glintX0, glintY, glintW, 3)
+	self.glintLoop.move:SetOffset(math.max(0, glintRun), 0)
+	self.sheenAnim.move:SetOffset(math.max(0, glintRun), 0)
+	-- The cursor's light over the upper rim.
+	Box(self.hoverFrame, art, frameRight, top, g.endX, wellTop)
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = self.H / 2 - cy
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap (its own tag is the painting's);
+	-- the lines and the count's tag keep left of it.
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	-- The letter is part of the keycap: a fight's dim of the words leaves it.
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+	-- The list from the socket to the keycap's far side; the rows start with
+	-- the words, clear of the socket's frame.
+	self.rowX, self.listX0 = math.max(g.textX, 24), math.max(2, cx)
+	if above and showIcon then
+		self.listX0 = frameRight + 1
+		self.rowX = math.max(self.rowX, self.listX0 + 17)
+	end
+	self.listX1 = math.max(self.rowX + 30, keyR + 3)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	-- What runs at rest, asked again where it now falls.
+	self.idleState = nil
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter in the ink the painted keycap reads best in.
+function Warchief:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	if g.keyOutline then
+		self.keyText:SetShadowColor(0, 0, 0, 1)
+		self.keyText:SetShadowOffset(1, -1)
+	else
+		self.keyText:SetShadowOffset(0, 0)
+	end
+	-- No larger than the keycap holds, so the letter stays on it.
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1324,11 +1482,17 @@ function Warchief:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 12)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.chipInset + 7)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1465,6 +1629,9 @@ function Warchief:Dull(on)
 			Colour(t, 1, 1, 1)
 		end
 	end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	local f = on and PAINT_COMBAT or 1
+	ns.Looks.Painted.Tone(self, pc[1] * f, pc[2] * f, pc[3] * f, on)
 end
 
 -- The slab holds; it, the tusks and the banner dull, the banner hangs still,
@@ -1780,6 +1947,8 @@ function Warchief:PaintQueue(rows, shown, above)
 		y1 = H + depth
 		if self.bannerOK then x1 = W - self.bannerRoom - 1 end
 	end
+	-- On a painted frame: from the socket to the keycap's far side.
+	if self.listX0 then x0, x1 = self.listX0, self.listX1 end
 	PlacePieces(self.list, art, x0, y0, x1, y1, LIST_C)
 	Each(self.list, "Show")
 	self.spikes:SetShown(self.spikesOK and not above)
