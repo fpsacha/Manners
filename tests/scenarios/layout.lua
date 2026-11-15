@@ -151,6 +151,7 @@ local function CheckShape(layout, problem)
 		end
 	end
 	local keys = {}
+	local seenIcons
 	for pageId, page in pairs(pages) do
 		if not inGroups[pageId] then problem("page " .. pageId .. " is in no sidebar group") end
 		if type(page.title) ~= "string" or page.title == "" then problem("page " .. pageId .. " has no title") end
@@ -160,10 +161,24 @@ local function CheckShape(layout, problem)
 			if not ok then problem("page " .. pageId .. "'s icon threw: " .. tostring(out)) end
 			icon = ok and out or nil
 		end
+		-- The page's own picture, shipped with the addon, so no client lacks it.
 		if type(icon) == "string" then
-			if not icon:find("^Interface\\Icons\\") then problem("page " .. pageId .. "'s icon is not under Interface\\Icons: " .. icon) end
-		elseif type(icon) ~= "number" then
-			problem("page " .. pageId .. " has no icon")
+			local name = icon:match("^Interface\\AddOns\\Manners\\Textures\\Menu\\(%a+)$")
+			if not name then
+				problem("page " .. pageId .. "'s icon is not one of Textures\\Menu: " .. icon)
+			else
+				local file = io.open(dir .. "/Textures/Menu/" .. name .. ".tga", "rb")
+				if not file then
+					problem("page " .. pageId .. "'s icon has no file: Textures/Menu/" .. name .. ".tga")
+				else
+					file:close()
+				end
+				seenIcons = seenIcons or {}
+				if seenIcons[name] then problem("pages " .. seenIcons[name] .. " and " .. pageId .. " share the icon " .. name) end
+				seenIcons[name] = pageId
+			end
+		else
+			problem("page " .. pageId .. " has no icon of its own")
 		end
 		for s, section in ipairs(page.sections or {}) do
 			local where = pageId .. ", section " .. s

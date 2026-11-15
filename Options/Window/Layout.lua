@@ -69,40 +69,20 @@
 local _, ns = ...
 local L = ns.L
 
--- Only Interface\Icons: an atlas this client lacks draws as a green square.
+-- One picture a page, painted for it (Textures/Menu, tools/make_menu_icons.py):
+-- the addon's own files, so every client has them. Never an atlas: one this
+-- client lacks draws as a green square.
+local MENU = "Interface\\AddOns\\Manners\\Textures\\Menu\\"
 local ICONS = {
-	general = "Interface\\Icons\\INV_Misc_Map_01",
-	who = "Interface\\Icons\\Spell_Holy_WordFortitude",
-	skip = "Interface\\Icons\\Ability_Vanish",
-	when = "Interface\\Icons\\INV_Misc_PocketWatch_01",
-	click = "Interface\\Icons\\INV_Misc_Note_01",
-	appearance = "Interface\\Icons\\Spell_Holy_MindVision",
-	profiles = "Interface\\Icons\\INV_Misc_Head_Human_01",
-	diagnostics = "Interface\\Icons\\INV_Misc_Spyglass_03",
+	general = MENU .. "Start",
+	who = MENU .. "Who",
+	skip = MENU .. "Skip",
+	when = MENU .. "When",
+	click = MENU .. "Say",
+	appearance = MENU .. "Look",
+	profiles = MENU .. "Profiles",
+	diagnostics = MENU .. "Diagnostics",
 }
-
--- The first spell in `spells` the client has a texture for. The probe asked
--- for each with C_Spell.GetSpellTexture, as the prompt's own icon is.
-local function FirstIcon(spells)
-	for _, spell in ipairs(spells or {}) do
-		local info = ns.BuffInfo(spell)
-		local icon = info and ns.plain(info.icon)
-		if type(icon) == "number" or type(icon) == "string" then return icon end
-	end
-end
-
--- Who to buff shows the class's own first buff: Arcane Intellect for a mage,
--- Fortitude for a priest. A hunter has none for anybody else, so the first of
--- its own (an aspect); a class with neither, the fallback.
-local function WhoIcon()
-	local class = ns.caps and ns.caps.class
-	local icon = FirstIcon(ns.GetClassBuffs(class))
-	if not icon then
-		local family = (ns.GetOwnFamilies(class) or {})[1]
-		icon = family and FirstIcon(family.spells)
-	end
-	return icon or ICONS.who
-end
 
 -- The per-spell switches under Buff to offer (Who.lua's AddBuffToggles): one
 -- per buff, only for a class with two or more or a lone one flagged switchable (a
@@ -339,7 +319,7 @@ ns.WindowLayout = {
 
 		who = {
 			title = L["Who to buff"],
-			icon = WhoIcon,
+			icon = ICONS.who,
 			sections = {
 				-- Who the prompt is on right now, so a switch can be seen to work.
 				{ key = "who.now", items = { "who.rightNow" } },
