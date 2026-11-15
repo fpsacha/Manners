@@ -171,6 +171,16 @@ local function ExplainEmpty(now)
 				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff is offered. The floor is %s on the %s tab."]
 				or L["nobody to buff right now -- saving mana until you are back to %d%%, so nothing is offered. The floor is %s on the %s tab."]
 			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
+		elseif ns.PlaceHeldLine and ns.PlaceHeldLine(now) then
+			-- A place rule holding everybody back, named with its switch, as the
+			-- launcher and the options window's strip say it (Options/Launcher.lua).
+			ns.addon:Print(ns.PlaceHeldLine(now))
+		elseif ns.PassersHeld and ns.PassersHeld(now) and db.sources.strangers == true then
+			-- Out in the world with Only in cities and inns on: passers-by are
+			-- left alone, ahead of the nameplates below, which then matter to
+			-- nobody it would offer.
+			ns.addon:Print(L["nobody to buff right now -- out in the world passers-by are left alone: %s, on the %s tab."]
+				:format("|cffffd100" .. L["Only in cities and inns"] .. "|r", L["Who to buff"]))
 		elseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true
 			and #ns.CastableBuffs() > 0
 			and not ns.OnlyReachesGroup() and not (db.filters.restingOnly == true and ns.Resting() == false)

@@ -397,6 +397,22 @@ function Page.BuildDiagnosticsTab()
 				set = function(_, v) ns.db.profile.debugClicks = v end,
 			},
 
+			-- Why the prompt is empty, with no key to press on it (Launcher.lua,
+			-- Page.HoldLines): every state and rule holding it back now, each
+			-- with its switch, as the launcher and the status strip say them.
+			holdDiag = {
+				type = "description",
+				order = 5,
+				fontSize = "medium",
+				name = function()
+					local lines = Page.HoldLines and Page.HoldLines() or {}
+					if #lines == 0 then
+						return "|cff888888" .. L["Nothing is holding the prompt back right now."] .. "|r"
+					end
+					return "|cffffd100" .. L["Holding the prompt back right now:"] .. "|r\n" .. table.concat(lines, "\n")
+				end,
+			},
+
 			capsHeader = { type = "header", name = L["What Manners can see"], order = 10 },
 			diag = {
 				type = "description",

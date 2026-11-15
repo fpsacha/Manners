@@ -68,7 +68,9 @@ All three carry the same build from the same tag.
 
 **1. See the prompt.** The first login on each character says in chat what
 Manners does and shows the prompt where it sits (`/manners welcome` says it
-again). `/manners`, or a click on the minimap button, opens the options on
+again). On a brand-new character whose buff is still at the trainer it says
+only that it starts once you learn it, and greets you properly the moment
+you do. `/manners`, or a click on the minimap button, opens the options on
 **Start here**. On a new profile two questions lead the page, *Who do you want
 to buff?* and *Should your character talk?*: *Use these* sets them, *Not now*
 keeps the defaults, and they are not asked again. *Show me the prompt* at the
@@ -401,7 +403,10 @@ perk Reagent Economy you need no reagent at all.
   Feign Death does not count.
 - *Raid groups I buff*: untick the groups you were not assigned. Their
   members are offered only if they buffed you, asked, or you target or focus
-  them.
+  them. A shout cannot be aimed at a group: a warrior's ticks only choose
+  whose missing shout brings the prompt up, and the page says how far the
+  shout reaches on your client (your own party on Classic Era and Burning
+  Crusade, the raid around you on WoW Forever, Mists and retail).
 - *Save mana: stop below (% mana)* (0, off): below it, your group, your
   target and passers-by wait until your mana is 5 points above it. *Below
   it, still offer* says what still comes up meanwhile: *People who buffed me
@@ -860,7 +865,8 @@ no room for. Defaults are in brackets.
   - *Offer nothing in dungeons, raids and battlegrounds* (off): the same
     rule inside a dungeon or a raid. Your own buffs are not held back. A
     battleground or an arena goes by *Buff my team there*, which ticking this
-    one unticks.
+    one unticks; tick that one again and this switch reads *Offer nothing in
+    dungeons and raids*, which is then all it does.
   - *Hold back my target and focus too* (off).
 - ***Mounted and mana***: *Hide the prompt while I'm mounted* (off; dead, on a
   flight path or in a vehicle the prompt already stays away); *Save mana:
@@ -1270,7 +1276,12 @@ works here registers `"AnyDown"`.
 ## Troubleshooting
 
 - **Nothing comes up.** Press your key on the empty prompt and chat says why
-  it is empty. The grey line at the top of *Who to buff* says who the prompt
+  it is empty. With no key, hover the minimap button or look at the first
+  line of *Diagnostics*: both say what holds the prompt back, naming the
+  switch and its tab (a rule for cities and inns, dungeons or battlegrounds,
+  the mana floor, passers-by left alone out in the world). The strip under
+  the options window's title says it too while a rule or the mana floor
+  holds everybody back. The grey line at the top of *Who to buff* says who the prompt
   is on and why, and a red dot beside a page marks what wants looking at
   (most often the game's friendly nameplates being off).
 - **`/manners debug`** says what your class and this build allow, which of

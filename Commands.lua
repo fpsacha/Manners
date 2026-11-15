@@ -264,6 +264,11 @@ end
 -- line carry their own copy inside a longer key, kept in step by hand.
 ns.NO_CLASS_BUFFS = L["this class has no buffs to cast on other players."]
 
+-- Whether this session's greeting has said it waits for a spell to be learned:
+-- the probe's wrap below greets only then, never before the login's own delayed
+-- greeting, which is when the chat frame is there to read it.
+local waitedThisSession = false
+
 -- Returns true once it has said its piece, false while it is still waiting
 -- (for a probe answer, or a fight to end). `force` is /manners welcome;
 -- `offSaid` is the login line having just said the profile is switched off.
@@ -300,9 +305,44 @@ function ns.Welcome(force, offSaid)
 		return false
 	end
 
+	-- A brand-new character with a buff for others still to learn from the
+	-- trainer (a priest's Fortitude at level 1, a paladin's blessing at 4),
+	-- nothing of its own up and nothing else to cast: the tour would promise a
+	-- prompt that cannot come yet. One line says when it will, and the greeting
+	-- waits for the spell (`welcomeWaits`): the probe after SPELLS_CHANGED
+	-- brings it, once (the wrap below). Not for a class whose every buff is a
+	-- talent, which may never learn one and is told so further down.
+	if not force and not nothingToGive and not ownOnly and caps.hasClassBuffs and not caps.anyKnown
+		and not ns.OnlyTalentBuffs() and not ns.CanCastAnything() then
+		waitedThisSession = true
+		if not store.welcomeWaits then
+			store.welcomeWaits = true
+			-- The first the trainer has: not one ticked on by choice, nor a talent.
+			local buffs = ns.GetClassBuffs(caps.class) or {}
+			local first = buffs[1]
+			for _, buff in ipairs(buffs) do
+				if not (buff.optIn or buff.talent) then
+					first = buff
+					break
+				end
+			end
+			addon:Print(L["|cffffd100Manners|r is installed. It starts once you learn |cffffd100%s|r from your class trainer, and says hello properly then."]
+				:format(first and ns.BuffName(first) or "?"))
+		end
+		return true
+	end
+
 	-- Written down before a word is printed: a line that throws then costs a
 	-- short greeting once rather than on every login.
 	store.welcomed = true
+	-- The greeting waited for a spell: said that it is here, over the tour.
+	if store.welcomeWaits then
+		store.welcomeWaits = nil
+		local buff = ns.ResolveBuff(true)
+		if buff then
+			addon:Print(L["You have learned |cffffd100%s|r, so Manners can start returning buffs."]:format(ns.BuffName(buff)))
+		end
+	end
 
 	if nothingToGive then
 		-- No preview and no macro for a class that can never fill the prompt.
@@ -409,6 +449,22 @@ function ns.Welcome(force, offSaid)
 		addon:Print(L["That is the prompt, with a pretend name on it. |cffffd100/manners welcome|r brings this back."])
 	end
 	return true
+end
+
+-- The spellbook changed (Core.lua, SPELLS_CHANGED, through the probe): a
+-- greeting that waited for the first buff to be learned is said now, the tour
+-- and the prompt with it. Only after this session's login greeting said it
+-- waits; in a fight Welcome stands down and the fight's end tries again.
+do
+	local probe = ns.ProbeCapabilities
+	function ns.ProbeCapabilities(...)
+		local result = probe(...)
+		local store = addon.db and addon.db.char
+		if waitedThisSession and type(store) == "table" and store.welcomeWaits and not store.welcomed then
+			ns.Guard("Welcome", ns.Welcome)
+		end
+		return result
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -2025,6 +2081,10 @@ function addon:HandleSlash(rawInput)
 				or L["|cffffd100saving mana|r -- until you are back to %d%% mana, nothing is offered"])
 				:format(resume))
 		end
+		-- A place rule holding everybody back here, named with its switch: the
+		-- queue below leaves the group and the favours out while it holds.
+		local place = ns.PlaceHeldLine and ns.PlaceHeldLine(now)
+		if place then self:Print(place) end
 		if ns.ReadyCheckRunning() then
 			self:Print(L["|cffffd100ready check|r -- your party or raid comes first until the pull"])
 		end

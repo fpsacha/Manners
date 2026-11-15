@@ -9,9 +9,11 @@ local C = UI.C
 
 -- The strip says the launcher's state line only for these: the states that
 -- keep the prompt from doing what the player expects. Start here and Who to
--- buff say the rest in full.
+-- buff say the rest in full. A place rule holding everybody back and the mana
+-- floor (`placeheld`, `mana`) are among them: a prompt that stays empty in a
+-- city is the one a player without a key has no other way to ask about.
 local STRIP_KINDS = { off = true, unlocked = true, snoozed = true, ownoff = true, blocked = true, mounted = true,
-	plates = true }
+	plates = true, placeheld = true, mana = true }
 
 -- The friendly nameplates off (the launcher's `plates`): the strip carries
 -- the same button as Start here and Who to buff, which say it themselves with

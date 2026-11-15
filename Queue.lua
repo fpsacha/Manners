@@ -1576,6 +1576,36 @@ local function Inside()
 	return (inside == true or inside == 1) and type(kind) == "string" and kind ~= "none"
 end
 
+-- Which place rule is holding back offers right now, as BuildQueue reads them
+-- (its "Passers-by left alone out in the world" block): "both", "cities" or
+-- "inns" (Offer nothing in cities and inns, by its Where), "instances" (the
+-- dungeon switch), "battle" (Buff my team there off, in a battleground or an
+-- arena), "world" (Only in cities and inns: passers-by alone, out in the
+-- world), or nil. For the lines that name the rule where a player looks
+-- (Options/Launcher.lua); tests/scenarios/par-clarity.lua holds the answer to
+-- what the queue then offers, rule by rule.
+function ns.PlaceHold(now)
+	local db = addon.db and addon.db.profile
+	local f = db and db.filters
+	if type(f) ~= "table" then return nil end
+	if ns.Battle.State(now) then
+		-- There the battleground's own switch decides, whatever the others say.
+		if not ns.Battle.On("team") then return "battle" end
+	else
+		if f.quietInTowns == true and Resting() == true then
+			local where = f.quietInTownsWhere
+			if where ~= "cities" and where ~= "inns" then return "both" end
+			-- A map the client will not name holds back both.
+			local city = ns.InCity()
+			if city == nil then return "both" end
+			if city == (where == "cities") then return where end
+		end
+		if f.quietInInstances == true and Inside() then return "instances" end
+	end
+	if f.restingOnly == true and db.sources.strangers == true and Resting() == false then return "world" end
+	return nil
+end
+
 local function PvPRuleStands(db)
 	return db.filters.skipPvP == true and not YouAreFlagged()
 end

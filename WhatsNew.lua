@@ -98,6 +98,11 @@ ns.WhatsNew = {
 			"|cff7cc4ffThe footer.|r Who makes Manners is larger and easier to read, and the version stands at the right.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Why nothing comes up, without a key.|r The minimap tooltip, the options window's strip and a new first line on |cffffffffDiagnostics|r say what holds the prompt back: the mana floor, or a rule for cities and inns, dungeons or battlegrounds, named with its switch and...",
+			"|cffff9a52Passers-by left alone out in the world|r with |cffffffffOnly in cities and inns|r is said in the tooltip and on |cffffffffDiagnostics|r, and by a press on the empty prompt, instead of plain |cffffffffWatching|r.",
+			"|cffff9a52A new character's greeting.|r With its buff still at the trainer, the first login says Manners starts once you learn it, and the greeting comes when you do.",
+			"|cffff9a52A warrior's shout on WoW Forever.|r |cffffffffWho to buff|r says it reaches the raid around you, not only your party, and what |cffffffffRaid groups I buff|r does for it.",
+			"|cffff9a52The dungeon switch's name.|r Ticked with |cffffffffBuff my team there|r ticked again, it reads |cffffffffOffer nothing in dungeons and raids|r, which is what it then does.",
 			"|cffff9a52Greater Blessing of Kings and a Fish Bowl.|r With |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r on, the Greater Blessing no longer lands on a class with somebody sitting by one: the others get single Kings.",
 			"|cffff9a52A read-through of everything new.|r Some thirty faults put right in resurrection, cures, courtesies, asking for a buff, sharing a group, the group's pets and battlegrounds.",
 			"|cffff9a52Companion pet while Manners is off.|r Switched off or snoozed, Manners no longer brings a pet out of your journal.",

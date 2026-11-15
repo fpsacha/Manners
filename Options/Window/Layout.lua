@@ -372,6 +372,8 @@ ns.WindowLayout = {
 					{ "who.groupBuffsAtLeast", indent = true },
 					"who.reagentNote",
 					{ "who.skipRaidGroups", columns = 4 },
+					-- A shout cannot be aimed at a group: what the ticks do for it.
+					{ "who.skipRaidGroupsNote", indent = true },
 					-- HOME: sharing a group with other Manners users (who buffs
 					-- whom when two of you are in it) goes here. The split with
 					-- the others of your class in it (Share.lua); the model shows
@@ -888,6 +890,9 @@ ns.WindowLayout = {
 			title = L["Diagnostics"],
 			icon = ICONS.diagnostics,
 			sections = {
+				-- What holds the prompt back right now, over everything else: the
+				-- answer to "why is nothing offered?" without a key to press.
+				{ key = "diagnostics.now", items = { "diagnostics.holdDiag" } },
 				{ key = "diagnostics.see", header = "diagnostics.capsHeader", items = {
 					"diagnostics.noDiag",
 					"diagnostics.diag",
