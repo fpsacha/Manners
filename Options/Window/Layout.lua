@@ -694,10 +694,32 @@ ns.WindowLayout = {
 			icon = ICONS.appearance,
 			sections = {
 				-- The look to wear, as a gallery of cards (WidgetsTheme.lua) in
-				-- place of the model's dropdown, which the fallback dialog keeps.
+				-- place of the model's dropdown, which the fallback dialog keeps:
+				-- tabs over the cards, a look tried on the prompt under the
+				-- pointer. Across the page's whole width (spans).
 				{ key = "appearance.themes", title = L["Panel style"], items = {
 					{ "appearance.style", widget = "themes" },
+				} },
+				-- Straight under it, open, headed by the chosen look's name: what
+				-- goes with that look. Earlier art and its line only for a look
+				-- that has one, the key only for a look that draws one, the
+				-- gryphons only on Glass; the round icon greyed, with why, where
+				-- the look rounds it itself (offNotes). The reason's colours after.
+				{ key = "appearance.lookOwn", header = "appearance.lookHeader", items = {
 					"appearance.classicArt",
+					"appearance.classicArtNote",
+					"appearance.roundIcon",
+					"appearance.gryphons",
+					{ "appearance.keycap", pair = true },
+					"appearance.bgColor",
+					"appearance.accentByReason",
+					-- With Colour marker, whatever else shows: Marker colour
+					-- follows on a row of its own while Colour marker by
+					-- reason is off.
+					{ "appearance.reasonPalette", pair = true },
+					"appearance.accentMode",
+					"appearance.accentColor",
+					"appearance.accentDead",
 				} },
 				-- No header of its own in the model: the control's label is the title.
 				-- Moving the prompt leads the page: the button, big, with the
@@ -734,23 +756,6 @@ ns.WindowLayout = {
 					"appearance.showQueue",
 					{ "appearance.queueRows", indent = true },
 					{ "appearance.clickRows", indent = true },
-				} },
-				-- The pane's and the marker's colours: every look comes with its own,
-				-- so they are fine print, folded, first under the hairline. With the
-				-- gallery's nineteen cards above, this keeps Look to three screens.
-				{ key = "appearance.style", header = "appearance.styleHeader", fold = true, items = {
-					{ "appearance.bgColor", pair = true },
-					-- The key on the prompt: every look's, so with the look's
-					-- colours, in the same fold.
-					"appearance.keycap",
-					"appearance.accentByReason",
-					-- With Colour marker, whatever else shows: Marker colour
-					-- follows on a row of its own while Colour marker by
-					-- reason is off.
-					{ "appearance.reasonPalette", pair = true },
-					"appearance.accentMode",
-					"appearance.accentColor",
-					"appearance.accentDead",
 				} },
 				-- The pane's width and height with them: the numbers of where the
 				-- prompt sits and how big its pane is, fine print beside Size's
@@ -792,15 +797,14 @@ ns.WindowLayout = {
 					-- Everything Show spell icon governs stands straight under it,
 					-- with no row further out between: such a row would be taken
 					-- for their switch, and they would stay drawn with the icon
-					-- off. The gryphons and the consumables button go by other
-					-- settings, so they stand apart.
+					-- off. The consumables button goes by another setting, so it
+					-- stands apart; the round icon and the gryphons, which the
+					-- look decides, are with the look's own settings.
 					"appearance.showIcon",
 					{ "appearance.iconSize", indent = true },
 					{ "appearance.iconSizeCapped", indent = true },
-					{ "appearance.roundIcon", indent = true },
 					{ "appearance.iconFrame", indent = true },
 					{ "appearance.showCooldown", indent = true },
-					"appearance.gryphons",
 					"appearance.suppliesSize",
 				} },
 				-- Set once, if ever: folded, which keeps Look to three screens.
@@ -813,16 +817,17 @@ ns.WindowLayout = {
 					"appearance.peekOnChange",
 				} },
 			},
-			-- The folds join the section they fine-tune: the colours the look,
-			-- the numbers the position, the icon the waiting list it heads.
+			-- The folds join the section they fine-tune: the look's own settings
+			-- and the window stepping aside while one is changed the gallery, the
+			-- numbers the position, the icon the waiting list it heads.
 			subpages = {
-				{ "appearance.themes", "appearance.style" },
+				{ "appearance.themes", "appearance.lookOwn", "appearance.window" },
 				{ "appearance.where", "appearance.size", "appearance.exactPos" },
 				{ "appearance.attention" },
 				{ "appearance.fight" },
 				{ "appearance.queue", "appearance.icon" },
 				{ "appearance.text", "appearance.wording" },
-				{ "appearance.hover", "appearance.window" },
+				{ "appearance.hover" },
 			},
 		},
 
@@ -988,6 +993,9 @@ ns.WindowLayout = {
 		["who.now"] = true,
 		["skip.now"] = true,
 		["when.now"] = true,
+		-- Look's gallery, so a window dragged wide has three cards to a row
+		-- over the columns of settings.
+		["appearance.themes"] = true,
 	},
 
 	-- How a note is drawn when not in the label colour: grey (a colour code
@@ -1013,6 +1021,8 @@ ns.WindowLayout = {
 		["profiles.pickNote"] = { hint = true },
 		["profiles.editNote"] = { hint = true },
 		["profiles.switchNote"] = { hint = true },
+		-- What Earlier art does, under it.
+		["appearance.classicArtNote"] = { hint = true },
 	},
 
 	-- Why a control is greyed out, drawn under it in grey while it is, and in
@@ -1033,6 +1043,22 @@ ns.WindowLayout = {
 		end,
 		["when.battleItems"] = function() return L["Needs %s ticked."]:format(NameOf("who.ownDungeons")) end,
 		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
+		-- Greyed where the look rounds its icon itself, or with the icon off.
+		["appearance.roundIcon"] = function()
+			local p = ns.db and ns.db.profile and ns.db.profile.prompt
+			if p and ns.Looks.RoundAlways(p.style) then
+				return L["%s always rounds its icon."]:format((ns.Looks.Card(p.style)))
+			end
+			return L["Needs %s ticked."]:format(NameOf("appearance.showIcon"))
+		end,
+		-- What only the three built-in looks draw.
+		["appearance.iconFrame"] = function()
+			local p = ns.db and ns.db.profile and ns.db.profile.prompt
+			if p and p.showIcon == false then return nil end
+			return L["Only Glass, Framed and Minimal draw this."]
+		end,
+		["appearance.textShadow"] = L["Only Glass, Framed and Minimal draw this."],
+		["appearance.dimInCombat"] = L["Only Glass, Framed and Minimal draw this."],
 	},
 
 	-- Other words people search for a control by (WindowSearch.lua): ranked
@@ -1131,6 +1157,10 @@ ns.WindowLayout = {
 		-- "Icon and waiting list": the window gives the icon's fold and the
 		-- waiting list titles of their own.
 		["appearance.iconHeader"] = true,
+		-- "Style", the fallback dialog's heading over the looks: the window
+		-- heads the gallery Panel style and the look's own settings with its
+		-- name (appearance.lookHeader).
+		["appearance.styleHeader"] = true,
 		-- "Messages in chat": Log every click joined Reporting a bug.
 		["diagnostics.chatHeader"] = true,
 	},
