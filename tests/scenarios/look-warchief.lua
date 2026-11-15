@@ -79,6 +79,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "warchief"
+	-- This file holds Warchief's own art, which Earlier art draws (the painted
+	-- frame over it is painted-warchief.lua's).
+	p.classicArt = true
 	p.effects = "full"
 	p.flashStyle = "pulse"
 	p.showIcon = true
@@ -277,6 +280,7 @@ withTree("look-warchief: a favour arriving strikes the crest", ANNA, function(ns
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon = "warchief", "full", "pulse", true
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	ns.addon:Tick()
 	local look = ns.Prompt:Regions().look
@@ -490,6 +494,7 @@ withTree("look-warchief: the banner stirs at rest, on Full and out of a fight", 
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "warchief", "full", "pulse", true, false
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	local look = ns.Prompt:Regions().look
