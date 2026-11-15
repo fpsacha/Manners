@@ -73,6 +73,9 @@ local function with(scenario, body)
 			fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 			return
 		end
+		-- Every shelf of the gallery open (the chosen look's alone is, at first).
+		for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+		ns.RefreshOptionsDisplay()
 		body(ns, UI, row)
 		noErrors(scenario, ns)
 	end)
@@ -546,8 +549,11 @@ do
 					if n > want then fail(scenario, where .. (": %d cards in a row, %d fit"):format(n, want)) end
 				end
 				if width >= 330 and want < 2 then fail(scenario, where .. ": fewer than two to a row") end
-				if width == 612 and rowsSeen[0] ~= math.min(3, #cards) then
-					fail(scenario, where .. (": %d in the first row"):format(rowsSeen[0] or 0))
+				-- The first row is under the first shelf's heading.
+				local firstY = math.huge
+				for _, c in ipairs(cards) do firstY = math.min(firstY, c.y) end
+				if width == 612 and rowsSeen[firstY] ~= math.min(3, #cards) then
+					fail(scenario, where .. (": %d in the first row"):format(rowsSeen[firstY] or 0))
 				end
 				if height ~= top then fail(scenario, where .. (": the row says %d high, the cards reach %d"):format(height, top)) end
 				-- Rows run the whole width, and every card of a row is as tall as the rest.
@@ -555,7 +561,7 @@ do
 					for _, d in ipairs(cards) do
 						if c.y == d.y and c.h ~= d.h then fail(scenario, where .. ": cards of a row differ in height") end
 					end
-					if c.y == 0 and c.x + c.w > width then fail(scenario, where .. ": a card runs past the width") end
+					if c.y == firstY and c.x + c.w > width then fail(scenario, where .. ": a card runs past the width") end
 				end
 				local first = {}
 				for _, c in ipairs(cards) do
@@ -799,6 +805,11 @@ local function withCharacter(scenario, spec, body)
 		ns.Prompt:ExitTest()
 		local UI = ns.WindowUI
 		local row = UI.RowFor("appearance.style")
+		-- Every shelf of the gallery open (the chosen look's alone is, at first).
+		if row and row.open then
+			for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+			ns.RefreshOptionsDisplay()
+		end
 		if not (row and row.cards and UI.RowShown("appearance.style")) then
 			fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 			return

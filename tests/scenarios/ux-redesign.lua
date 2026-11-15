@@ -74,6 +74,9 @@ do
 			fail(scenario, "SKIPPED -- no gallery, or Luxe records no tag")
 			return
 		end
+		-- Luxe's shelf (Minimal) open: the chosen look's alone is, at first.
+		row.open.minimal = true
+		ns.RefreshOptionsDisplay()
 		local card
 		for _, c in ipairs(row.cards) do
 			if c:IsShown() and c.key == "luxe" then card = c end

@@ -499,6 +499,11 @@ for _, locale in ipairs({ "enUS", "deDE", "frFR", "esES", "ptBR", "itIT", "koKR"
 		ns.Prompt:ExitTest()
 		local UI = ns.WindowUI
 		local row = UI.RowFor("appearance.style")
+		-- Every shelf of the gallery open (the chosen look's alone is, at first).
+		if row and row.open then
+			for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+			ns.RefreshOptionsDisplay()
+		end
 		if not (row and row.cards and UI.RowShown("appearance.style")) then
 			fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 			return

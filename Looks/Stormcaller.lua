@@ -78,8 +78,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Stormcaller\\Stormcaller_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Storm = ns.Looks.Register("stormcaller", {
-	name = L["Stormcaller -- a totem, a slab of stone and the four elements"],
-	title = L["Stormcaller"],
+	name = L["Shaman -- a totem, a slab of stone and the four elements"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Shaman"],
 	description = L["a totem, a slab of stone and the four elements"],
 	order = 9.86,
 	-- The slab holds in a fight; the look dims its own parts.

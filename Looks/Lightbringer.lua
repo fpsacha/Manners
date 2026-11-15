@@ -54,8 +54,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Lightbringer\\Lightbringer_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Lightbringer = ns.Looks.Register("lightbringer", {
-	name = L["Lightbringer -- silver and blue enamel, a sun of the Light"],
-	title = L["Lightbringer"],
+	name = L["Paladin -- silver and blue enamel, a sun of the Light"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Paladin"],
 	description = L["silver and blue enamel, a sun of the Light"],
 	order = 9,
 	-- The plate holds in a fight; the look dims its own parts.

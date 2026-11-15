@@ -262,7 +262,7 @@ withTree("look-frost: it is registered, in the toc, and translated in all eight 
 	end
 	for _, code in ipairs({ "deDE", "esES", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW" }) do
 		local text = slurp(dir .. "/Locales/" .. code .. ".lua") or ""
-		for _, key in ipairs({ "Frost -- a slab of glacial ice, a frozen ring and icicles", "Frost",
+		for _, key in ipairs({ "Frost Mage -- a slab of glacial ice, a frozen ring and icicles", "Frost Mage",
 			"a slab of glacial ice, a frozen ring and icicles" }) do
 			if not text:find('L["' .. key .. '"] = ', 1, true) then
 				fail(scenario, code .. " does not translate '" .. key .. "'")

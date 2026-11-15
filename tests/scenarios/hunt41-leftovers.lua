@@ -550,6 +550,9 @@ do
 				fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 				return
 			end
+			-- Every shelf of the gallery open (the chosen look's alone is, at first).
+			for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+			ns.RefreshOptionsDisplay()
 			body(ns, row, env)
 		end)
 		FT.uninstall()

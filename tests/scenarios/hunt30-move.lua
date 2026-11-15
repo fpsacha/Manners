@@ -300,6 +300,8 @@ do
 	with(scenario, "MAGE", function(ns, UI)
 		local list = H.pagePaths(ns, "appearance") or {}
 		if list[1] == "appearance.style" then table.remove(list, 1) end
+		-- Earlier art stands with the gallery, under the cards.
+		if list[1] == "appearance.classicArt" then table.remove(list, 1) end
 		if list[1] ~= "appearance.move" or list[2] ~= "appearance.posPreset" then
 			fail(scenario, ("Look begins %s, %s"):format(tostring(list[1]), tostring(list[2])))
 		end

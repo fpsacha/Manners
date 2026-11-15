@@ -67,8 +67,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Archmage\\Archmage_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Archmage = ns.Looks.Register("archmage", {
-	name = L["Archmage -- a violet crystal, six arcane charges"],
-	title = L["Archmage"],
+	name = L["Arcane Mage -- a violet crystal, six arcane charges"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Arcane Mage"],
 	description = L["a violet crystal, six arcane charges"],
 	order = 8,
 	-- The crystal holds in a fight; the look dims its own parts.

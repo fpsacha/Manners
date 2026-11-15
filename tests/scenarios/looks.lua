@@ -655,7 +655,8 @@ withTree("every look is offered, and Glass is the default", {}, function(ns, sce
 			fail(scenario, "the Look tab does not offer " .. style)
 		end
 	end
-	if sorting[1] ~= "luxe" then fail(scenario, "Luxe is not first in the dropdown: " .. tostring(sorting[1])) end
+	-- The dropdown is in the picker's shelves: Minimal's first.
+	if sorting[1] ~= "minimal" then fail(scenario, "Minimal is not first in the dropdown: " .. tostring(sorting[1])) end
 	-- Every look offered is written now, so a stub is registered here to
 	-- keep the way a look not written yet draws as another one honest.
 	ns.Looks.Register("stub", { name = "stub", order = 99, fallback = "luxe" })

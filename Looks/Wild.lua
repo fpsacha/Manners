@@ -68,8 +68,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Wild\\Wild_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Wild = ns.Looks.Register("wild", {
-	name = L["Wild -- a bough of living wood, antlers and a moonwell"],
-	title = L["Wild"],
+	name = L["Druid -- a bough of living wood, antlers and a moonwell"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Druid"],
 	description = L["a bough of living wood, antlers and a moonwell"],
 	order = 9.7,
 	-- The bough holds in a fight; the look dims its own parts.

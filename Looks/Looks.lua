@@ -20,8 +20,10 @@
 --                   lit by the reason"]. Optional: without it the card takes what the
 --                   label says after the dash. Give both when a translation
 --                   writes the label with a dash the picker cannot split.
---   order           where it sits in the dropdown (glass 10, framed 11,
---                   minimal 12; lower comes first).
+--   order           where it sits within its category, after the looks
+--                   CATEGORIES places by name (lower comes first).
+--   category        "minimal", "classic", "themed" or "class": the picker's
+--                   shelf. Optional: CATEGORIES below files the looks by key.
 --   fallback        a key to draw as instead, until this look is written. A
 --                   look with a fallback needs nothing else.
 --   combatArtAlpha  the alpha Prompt gives `art` while the fight holds the
@@ -275,13 +277,36 @@ local NATIVE = {
 	minimal = { name = L["Minimal -- text only, no panel"], order = 12, native = true,
 		title = L["Minimal"], description = L["text only, no panel"] },
 }
+-- THE CATEGORIES the picker sorts the looks into, in its order, each with
+-- its heading; and, per category, the looks in the order the picker shows them
+-- (a look named nowhere goes after these, by its `order`). A look's own
+-- `category` wins; one with none takes it from CATEGORY here, so a look of
+-- its own Lua needs no line for it. tests/scenarios/painted.lua holds every
+-- look to exactly one.
+Looks.CATEGORIES = { "minimal", "classic", "themed", "class" }
+Looks.CATEGORY_TITLE = { minimal = L["Minimal"], classic = L["Classic"], themed = L["Themed"], class = L["Class"] }
+local SHELVES = {
+	minimal = { "minimal", "ghost", "hairline", "pill", "slate", "luxe" },
+	classic = { "glass", "framed", "toast", "arcane" },
+	themed = { "ribbon", "letter", "warchief", "gearworks" },
+	class = { "frost", "archmage", "firemage", "fel", "wild", "lightbringer", "stormcaller", "ebon", "leather",
+		"forge", "priest", "rogue", "monk", "demonhunter", "evoker" },
+}
+local CATEGORY, SHELF, RANK = {}, {}, {}
+for i, cat in ipairs(Looks.CATEGORIES) do
+	RANK[cat] = i
+	for at, key in ipairs(SHELVES[cat]) do CATEGORY[key], SHELF[key] = cat, at end
+end
+
 for key, look in pairs(NATIVE) do
 	look.key = key
+	look.category = CATEGORY[key]
 	Looks.list[key] = look
 end
 
 function Looks.Register(key, look)
 	look.key = key
+	look.category = look.category or CATEGORY[key]
 	Looks.list[key] = look
 	return look
 end
@@ -423,6 +448,17 @@ function Looks.Allowed()
 	return out
 end
 
+-- A look's category: its own, else the one CATEGORIES files it under, else
+-- themed (a look nobody filed is still on a shelf).
+function Looks.Category(key)
+	local look = Looks.list[key]
+	local cat = look and look.category or CATEGORY[key]
+	if RANK[cat] then return cat end
+	return "themed"
+end
+
+-- Every look for the dropdown, one flat list, sorted by category and then
+-- within it (the picker's shelves, then `order`), each by its label.
 function Looks.Choices()
 	local values, sorting = {}, {}
 	for key, look in pairs(Looks.list) do
@@ -430,6 +466,10 @@ function Looks.Choices()
 		sorting[#sorting + 1] = key
 	end
 	table.sort(sorting, function(a, b)
+		local ca, cb = RANK[Looks.Category(a)], RANK[Looks.Category(b)]
+		if ca ~= cb then return ca < cb end
+		local sa, sb = SHELF[a] or 100, SHELF[b] or 100
+		if sa ~= sb then return sa < sb end
 		local oa, ob = Looks.list[a].order or 50, Looks.list[b].order or 50
 		if oa ~= ob then return oa < ob end
 		return a < b

@@ -190,7 +190,7 @@ withTree("look-forge: it is registered, in the toc, and translated in all eight 
 	end
 	for _, code in ipairs({ "deDE", "esES", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW" }) do
 		local text = slurp(dir .. "/Locales/" .. code .. ".lua") or ""
-		for _, key in ipairs({ "Forge -- forged iron, a riveted band", "Forge", "forged iron, a riveted band" }) do
+		for _, key in ipairs({ "Warrior -- forged iron, a riveted band", "Warrior", "forged iron, a riveted band" }) do
 			if not text:find('L["' .. key .. '"] = ', 1, true) then
 				fail(scenario, code .. " does not translate '" .. key .. "'")
 			end

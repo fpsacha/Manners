@@ -61,8 +61,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Forge\\Forge_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Forge = ns.Looks.Register("forge", {
-	name = L["Forge -- forged iron, a riveted band"],
-	title = L["Forge"],
+	name = L["Warrior -- forged iron, a riveted band"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Warrior"],
 	description = L["forged iron, a riveted band"],
 	order = 7,
 	-- The plate holds in a fight; the look dims its own parts.

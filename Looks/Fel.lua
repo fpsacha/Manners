@@ -63,8 +63,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Fel\\Fel_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Fel = ns.Looks.Register("fel", {
-	name = L["Fel -- black felsteel and fel fire, a summoning circle"],
-	title = L["Fel"],
+	name = L["Warlock -- black felsteel and fel fire, a summoning circle"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Warlock"],
 	description = L["black felsteel and fel fire, a summoning circle"],
 	order = 9.5,
 	-- The slab holds in a fight; the look dims its own parts.

@@ -87,8 +87,10 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Ebon\\Ebon_"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local Ebon = ns.Looks.Register("ebon", {
-	name = L["Ebon -- a runeblade of saronite, a skull over the socket, runes that kindle"],
-	title = L["Ebon"],
+	name = L["Death Knight -- a runeblade of saronite, a skull over the socket, runes that kindle"],
+	-- The class it is for (the picker's Class shelf); the key, and so a saved
+	-- choice, is the look's old name.
+	title = L["Death Knight"],
 	description = L["a runeblade of saronite, a skull over the socket, runes that kindle"],
 	order = 9.9,
 	-- The blade holds in a fight; the look dims its own parts.

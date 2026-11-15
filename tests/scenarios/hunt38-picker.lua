@@ -404,6 +404,11 @@ do
 		ns.Prompt:ExitTest()
 		local UI = ns.WindowUI
 		local row = UI.RowFor("appearance.style")
+		-- Every shelf of the gallery open (the chosen look's alone is, at first).
+		if row and row.open then
+			for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+			ns.RefreshOptionsDisplay()
+		end
 		if not (row and row.cards) then fail(scenario, "SKIPPED -- the gallery is not on the Look page") return end
 		local function click(key)
 			for _, card in ipairs(row.cards) do
@@ -498,7 +503,7 @@ end
 -- got, nothing, a number, a table, another case, a key of the language's own)
 -- is the default look wherever it comes from: a saved profile, a profile
 -- switched to, an import. None of them throws, and the prompt is drawn.
-local GARBAGE = { "whisper", "heritage", "slate", "Luxe", "", "__index", "list", 7, true, 0 / 0, {} }
+local GARBAGE = { "whisper", "heritage", "shale", "Luxe", "", "__index", "list", 7, true, 0 / 0, {} }
 
 do
 	local scenario = "hunt38-picker: a style no look has is the default look, wherever it comes from"
@@ -538,7 +543,7 @@ do
 		ns.ClampSettings()
 		drawn("a style that was never saved")
 		-- A string from a build that had one of them, pasted in.
-		for _, junk in ipairs({ "whisper", "heritage", "slate" }) do
+		for _, junk in ipairs({ "whisper", "heritage", "shale" }) do
 			setStyle(ns, "letter")
 			p.style = junk
 			local text = ns.ExportSettings()
