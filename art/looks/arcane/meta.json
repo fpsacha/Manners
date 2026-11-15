@@ -1,0 +1,35 @@
+{
+ "key": "arcane",
+ "socket": {
+  "shape": "square",
+  "cx": 548,
+  "cy": 525,
+  "half": 172
+ },
+ "name_xy": [
+  887,
+  413
+ ],
+ "reason_xy": [
+  892,
+  567
+ ],
+ "keycap": {
+  "cx": 3472,
+  "cy": 527,
+  "w": 200,
+  "h": 203
+ },
+ "bar": [
+  285,
+  302,
+  3962,
+  755
+ ],
+ "stretch": [
+  2300,
+  2900
+ ],
+ "text_colour_ok": true,
+ "notes": "Well luminance ~0.015 (99th pct): white text about 16:1, gold about 5.9:1. Animatable layers: the thin arcane rim around the well (a slow light pulse or a glint travelling along it, tinted by the game), the amethyst crystal tip at the right (soft breathing glow), the four tiny corner facets of the socket (staggered twinkle), and the specular streak on the top bevel (a slow sheen sweep). Stretch run chosen right of the top-edge highlight and bottom reflection, which fade over x 800-2400."
+}

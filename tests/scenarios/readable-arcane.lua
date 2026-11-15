@@ -446,6 +446,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "arcane"
+	-- Arcane's own art, which Earlier art draws (painted-arcane.lua holds the
+	-- painted frame; tools/audit_look_contrast.py its words).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")
@@ -514,6 +517,7 @@ withTree("Arcane's arrival leaves the icon clean after half a second", ANNA, fun
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "arcane"
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	local look = ns.Prompt:Regions().look
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
@@ -701,6 +705,7 @@ end)
 withTree("Arcane's preview name is white", {}, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	ns.db.profile.prompt.style = "arcane"
+	ns.db.profile.prompt.classicArt = true
 	ns.Prompt:ApplyStyle()
 	local r = ns.Prompt:Regions()
 	local look = r.look

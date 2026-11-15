@@ -57,6 +57,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "arcane"
+	-- This file holds Arcane's own art, which Earlier art draws (the painted
+	-- frame over it is painted-arcane.lua's).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")
@@ -492,6 +495,7 @@ end)
 withTree("Arcane's preview shows the favour's clock", {}, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	ns.db.profile.prompt.style = "arcane"
+	ns.db.profile.prompt.classicArt = true
 	ns.Prompt:ApplyStyle()
 	local look = ns.Prompt:Regions().look
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
