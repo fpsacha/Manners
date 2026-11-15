@@ -356,14 +356,16 @@ end
 -- body: the sidebar and the content area, under the strip
 ---------------------------------------------------------------------------
 
--- The top of the sidebar and the content follow the strip's height.
-local function PlaceBody(top)
+-- The top of the sidebar and the content follow the strip's height; the
+-- content's also the sub-divisions bar's over it (`below`, WindowChrome.lua).
+local function PlaceBody(top, below)
 	local f = UI.frame
 	local side, view = UI.side, UI.view
 	side.frame:ClearAllPoints()
 	side.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -top)
 	side.frame:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, UI.FOOTER)
 	side.frame:SetWidth(UI.SIDEBAR)
+	top = top + (below or 0)
 	view.scroll:ClearAllPoints()
 	view.scroll:SetPoint("TOPLEFT", f, "TOPLEFT", UI.SIDEBAR + 1, -top)
 	view.scroll:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -12, UI.FOOTER)
@@ -683,6 +685,7 @@ function UI.Build()
 	UI.BuildHeader(f)
 	UI.BuildStrip(f)
 	BuildBody(f)
+	UI.BuildSubBar(f)
 	UI.BuildSidebar()
 	UI.BuildFooter(f)
 	-- What the window wears over all of it (WindowDress.lua).
@@ -783,8 +786,16 @@ local function PaintAll()
 		end
 	end
 	UI.PaintHeader()
-	PlaceBody(UI.HEADER + UI.PaintStrip())
+	local top = UI.HEADER + UI.PaintStrip()
+	PlaceBody(top, UI.PaintSubBar(top))
 	UI.PaintPage()
+	-- The page's paint judged which of its sub-divisions have something to
+	-- show; the bar over it lists them, so when that changed the bar is
+	-- painted again and the page placed under it (its rows not read again).
+	if UI.SubsStale() then
+		PlaceBody(top, UI.PaintSubBar(top))
+		UI.PaintPage("layout")
+	end
 	UI.PaintFooter()
 	-- What the page's Right now line was painted from (see below).
 	UI.rightNowPainted = RIGHT_NOW_PAGES[UI.page] and ns.OptionsPage.RightNow() or nil

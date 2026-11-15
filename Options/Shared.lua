@@ -395,3 +395,19 @@ Page.Warn = {
 		return #ns.errors > 0
 	end,
 }
+
+-- The same warnings one by one, under the control that says each: the
+-- sidebar marks the sub-division that holds it (WindowChrome.lua), only while
+-- its page's dot above shows, so the two never point at different things.
+Page.WarnAt = {
+	["who.emptyWarning"] = function() return HasClassBuffs() and NoSources() end,
+	["who.pinNote"] = function() return HasClassBuffs() and PinUnlearned() end,
+	["who.autoNote"] = function() return HasClassBuffs() and NothingCastable() end,
+	["who.strangersPlatesNote"] = function()
+		return HasClassBuffs() and Page.PlatesWanted ~= nil and Page.PlatesWanted() and true or false
+	end,
+	["when.alwaysNote"] = function() return HasClassBuffs() and F().whenBuffed == "always" end,
+	["appearance.noSound"] = function() return SND().enabled == true and SND().file == "None" end,
+	["appearance.accentDead"] = function() return Page.AccentDead() and true or false end,
+	["diagnostics.errorList"] = function() return #ns.errors > 0 end,
+}

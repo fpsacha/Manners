@@ -681,11 +681,16 @@ it too.
   nothing for your character is left out. A red dot beside a page means
   something there wants looking at; a key binding is optional, so no red dot
   asks for one.
+- Over a page of many sections (*Start here*, *Who to buff*, *When to offer*,
+  *Look*), a bar of its parts: *All* draws the whole page, and a part draws
+  only its sections, its folded ones open. The red dot is on the part that
+  wants looking at too, and the window remembers the part you last opened on
+  each page until you log out.
 - The **search box** above the pages finds a setting by its name, its
   tooltip, one of its choices or the section it is in, in every language
   Manners is translated into, and "quiet", "mute" or "spam" finds the chat
-  switches. Pick a result and the window goes there, opens the section and
-  flashes the setting; one hidden behind a switch says which to turn on
+  switches. Pick a result and the window goes there, opens the part and the
+  section and flashes the setting; one hidden behind a switch says which to turn on
   first.
 - ***Simple view***, a switch under the search box. On, each page draws only
   its short list, and says under it how many settings it leaves out, with

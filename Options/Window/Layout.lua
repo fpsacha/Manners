@@ -55,6 +55,16 @@
 -- so it is found where its kin are (other homes are a comment inside the
 -- section the setting belongs to; grep HOME). A section with nothing to show
 -- is not drawn.
+--
+-- A page of many sections names its sub-divisions in `subpages`: a list of
+-- entries, each a list of section keys of that page that go together, with
+-- an optional `title = L[...]` (else the label is the title of its first
+-- section shown). Seven at most: neighbouring small sections share one. The
+-- sidebar lists them under the open page, All first, while two or more have
+-- something to show (WindowPage.lua, UI.SubsShown); one chosen draws only its
+-- sections, at the top of the page with their folds open, and a section no
+-- entry names (the line a page opens with) is drawn with every one. Nothing
+-- moves between pages: they are only a way to look at one.
 
 local _, ns = ...
 local L = ns.L
@@ -317,6 +327,14 @@ ns.WindowLayout = {
 					{ "general.newsHead16", lead = 3 }, "general.newsNote16",
 				} },
 			},
+			-- The steps as they are numbered, the lead with the first.
+			subpages = {
+				{ "general.lead", "general.firstRun", "general.who" },
+				{ "general.key" },
+				{ "general.ledger", "general.hall" },
+				{ "general.minimap" },
+				{ "general.news" },
+			},
 		},
 
 		who = {
@@ -525,6 +543,16 @@ ns.WindowLayout = {
 					"who.revived",
 				} },
 			},
+			-- Your own buffs' four sections are one: Myself.
+			subpages = {
+				{ "who.sources" },
+				{ "who.cast", "who.order" },
+				{ "who.group" },
+				{ "who.beyond" },
+				{ "who.myself", "who.myselfWeapons", "who.myselfItems", "who.myselfWhen" },
+				{ "who.asking" },
+				{ "who.first" },
+			},
 		},
 
 		-- Every "Skip ..." switch and the never-offer list, out of Who to buff.
@@ -623,6 +651,16 @@ ns.WindowLayout = {
 					-- A warrior's: the switch is hidden, the note says why.
 					{ "advanced.noTargetNote", standIn = true },
 				} },
+			},
+			-- Hold back and Mounted and mana are one rule; the two folds of
+			-- fine print one entry.
+			subpages = {
+				{ "when.buffed" },
+				{ "when.self" },
+				{ "when.holdBack", "when.holdBack2" },
+				{ "when.battle" },
+				{ "when.favours" },
+				{ "when.timing", "when.targeting" },
 			},
 		},
 
@@ -786,6 +824,17 @@ ns.WindowLayout = {
 				{ key = "appearance.window", title = L["This window"], fold = true, items = {
 					"appearance.peekOnChange",
 				} },
+			},
+			-- The folds join the section they fine-tune: the colours the look,
+			-- the numbers the position, the icon the waiting list it heads.
+			subpages = {
+				{ "appearance.themes", "appearance.style" },
+				{ "appearance.where", "appearance.size", "appearance.exactPos" },
+				{ "appearance.attention" },
+				{ "appearance.fight" },
+				{ "appearance.queue", "appearance.icon" },
+				{ "appearance.text", "appearance.wording" },
+				{ "appearance.hover", "appearance.window" },
 			},
 		},
 
