@@ -548,14 +548,16 @@ needs all four kinds, thanks, asked, offer and group.
 ## hall.py
 
 The hall of fame's clerk ("Gentlefolk of Good Manners"). `tools/hall.json` is
-the source of truth: a list of `{name, realm, client, class, date, note}`.
+the source of truth: a list of `{name, realm, client, class, date, note,
+proof}` (`proof` is the issue the screenshot was posted in; it stays in
+`hall.json` and is in neither output).
 From it the tool writes `HallOfFame.lua` (shipped, drawn by `Hall.lua` in the
 options window) and the block between `<!-- hall:start -->` and
 `<!-- hall:end -->` in `README.md`; neither is edited by hand.
 
 ```
-python tools/hall.py check <code>           # decode a code: its fields, and whether its checksum holds
-python tools/hall.py add <code> [--note T]  # append its player to hall.json (refuses a bad checksum or a duplicate), write both outputs
+python tools/hall.py check <code>           # decode a code: its fields, whether its checksum holds, and what the screenshot must show
+python tools/hall.py add <code> [--note T] [--proof N]  # append its player to hall.json (refuses a bad checksum or a duplicate), write both outputs
 python tools/hall.py                        # write both outputs from hall.json
 python tools/hall.py --check                # exit 1 when either output is stale, or the code vectors fail
 ```
@@ -565,12 +567,17 @@ capitals, digits and dashes; name and realm as the hex of their UTF-8 bytes
 (`0` for no realm), eight hex digits of checksum over everything before the
 last dash. The checksum catches a typo or a casual edit and is no proof: the
 arithmetic is public, here and in `Hall.lua`, so the author decides who is
-listed (look the character up, or ask for a screenshot of the Milestones tab,
-when in doubt). The `VECTORS` in the file are codes both sides must agree on:
-`--check` holds the Python to them, `tests/scenarios/hall.lua` reads them out
-of this file and holds `Hall.lua` to them. To list somebody from an issue:
-`check` the code, `add` it (with the issue's optional note), commit the three
-files. Standard library only. `hall.py` is not part of `check.py`.
+listed. The proof is the screenshot the form asks for: the certificate the
+favour ledger shows beside its Milestones tab (`HallProof.lua`), whose every
+line is read back out of the code. `check` ends with a checklist of what the
+picture must show for that code: the same name, class, client, date, a full
+count and the code itself. The `VECTORS` in the file are codes both sides
+must agree on: `--check` holds the Python to them, `tests/scenarios/hall.lua`
+reads them out of this file and holds `Hall.lua` to them. To list somebody
+from an issue: `check` the code and go down the checklist with the screenshot
+open, `add` it with `--proof <issue number or URL>` (and the issue's optional
+note), commit the three files. Standard library only. `hall.py` is not part of
+`check.py`.
 
 ## maketocs.py
 

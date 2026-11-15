@@ -1712,6 +1712,8 @@ function Render()
 	-- painted by Milestones.lua in the rows of this list.
 	local page = ns.Milestones and ns.Milestones.Page(window, filter)
 	if filter == "milestones" and not page then SetFilter("all") end
+	-- The hall of fame's certificate, beside the window on that tab (HallProof.lua).
+	if ns.Hall and ns.Hall.PaintCertificate then ns.Hall.PaintCertificate(window, page ~= nil) end
 	local list = page and page.Rows() or Ledger.Entries(filter)
 	local sum = Ledger.Summary()
 
@@ -2091,8 +2093,10 @@ local function Build()
 	SetFilter(filter)
 end
 
-function Ledger.Show()
+-- `tab`, when given, is the tab it opens on (HallProof.lua: "milestones").
+function Ledger.Show(tab)
 	if not window then Build() end
+	if type(tab) == "string" and FILTERS[tab] then SetFilter(tab) end
 	local c = Accent()
 	window.accent:SetVertexColor(c[1], c[2], c[3], 0.9)
 	window.thumb:SetVertexColor(c[1], c[2], c[3], 0.8)

@@ -230,6 +230,13 @@ local function toastFrame(ns)
 	return ns.Milestones and ns.Milestones.ToastFrame()
 end
 
+-- The hall of fame's certificate (HallProof.lua), a panel beside the window:
+-- the picture is framed on both.
+local function certificateFrame(ns)
+	local window = ns.Ledger and ns.Ledger.Window()
+	return window and window.certificate
+end
+
 -- A second of the toast's own OnUpdate, so it is drawn past its fade-in.
 local function landed(ns)
 	local f = toastFrame(ns)
@@ -280,6 +287,17 @@ R.states = {
 		ns.db.char.milestones.n.strangers = 37
 		open(ns, "milestones")
 		ns.Ledger.Scroll(100)
+	end },
+	-- Every milestone earned: the hall of fame's certificate beside the window
+	-- (HallProof.lua), as the screenshot a player posts would show it.
+	{ key = "certificate", title = "Every milestone earned: the certificate", also = certificateFrame, setup = function(ns)
+		calendar()
+		busy(ns)
+		Mock.runTimers(4)
+		local st, now = ns.db.char.milestones, time()
+		local rows = ns.Milestones.Rows()
+		for i, row in ipairs(rows) do st.earned[row.id] = now - (#rows - i) * 3 * 86400 - i * 3600 end
+		open(ns, "milestones")
 	end },
 	-- The toast, a second in: for a milestone, and for a new title.
 	{ key = "toast", title = "A milestone's toast", frame = toastFrame, setup = function(ns)
@@ -344,6 +362,7 @@ function R.run(key, locale)
 	local out = {
 		tree = tree,
 		window = window and window._serial,
+		also = state.also and state.also(ns) and state.also(ns)._serial or nil,
 		now = Mock.now,
 		title = state.title,
 		screen = { width = 1600, height = Mock.screenHeight or 1000 },

@@ -56,13 +56,16 @@ local CLIENTS = {
 	mists = L["Mists of Pandaria Classic"],
 	mainline = L["Retail"],
 }
+-- For the certificate (HallProof.lua).
+Hall.CLIENTS = CLIENTS
 
 local TEXT = {
 	TITLE = L["Gentlefolk of Good Manners"],
 	-- Before every milestone is earned: how many, of how many.
-	PROGRESS = L["%d of %d milestones earned. The hall of fame opens when you have earned them all: your name can then be listed among the Gentlefolk of Good Manners, here and on the addon's GitHub page."],
+	PROGRESS = L["%d of %d milestones earned. The hall of fame opens when you have earned them all: your name can then be listed among the Gentlefolk of Good Manners, here and on the addon's GitHub page. A screenshot of your certificate, which the favour ledger shows from then on, will be the proof."],
 	-- Once they all are. An invitation: nothing is asked for a place.
-	INVITE = L["Every milestone is yours. If you would like your name listed among the Gentlefolk of Good Manners, here and on the addon's GitHub page, copy the code below and post it there with the \"Hall of fame\" form: |cffffd100github.com/fpsacha/Manners|r. It is an invitation and nothing more: nothing is asked for it."],
+	-- The proof is a screenshot of the certificate (HallProof.lua).
+	INVITE = L["Every milestone is yours. If you would like your name listed among the Gentlefolk of Good Manners, here and on the addon's GitHub page:\n1. Open your certificate with the button below.\n2. Take a screenshot of it with the game's Print Screen key. It is saved in the game's Screenshots folder.\n3. Post the screenshot and the code below with the \"Hall of fame\" form: |cffffd100github.com/fpsacha/Manners|r.\nThe screenshot is the proof. It is an invitation and nothing more: nothing of value is asked for it."],
 	LISTED = L["You are listed among the Gentlefolk of Good Manners. Thank you for your manners."],
 	-- The one chat line when the last milestone is earned.
 	OPEN = L["Every milestone earned. A place among the Gentlefolk of Good Manners is open to you: your code is on Start here (|cffffd100/manners|r)."],

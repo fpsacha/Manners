@@ -1,14 +1,19 @@
 """The hall of fame, "Gentlefolk of Good Manners": its list and its codes.
 
-    python tools/hall.py check <code>          decode a code: its fields, and whether its checksum holds
-    python tools/hall.py add <code> [--note T] add its player to tools/hall.json, then write the outputs
+    python tools/hall.py check <code>          decode a code: its fields, whether its checksum holds,
+                                               and what the screenshot posted with it must show
+    python tools/hall.py add <code> [--note T] [--proof N]
+                                               add its player to tools/hall.json, then write the outputs
     python tools/hall.py                       write HallOfFame.lua and the README section from hall.json
     python tools/hall.py --check               exit 1 when either is not what hall.json gives
 
 tools/hall.json is the source of truth: a list of entries, each
-{"name", "realm" (may be ""), "client", "class", "date" (YYYY-MM-DD) and an
-optional "note"}. HallOfFame.lua (shipped, read by Hall.lua) and the block
-between the README's hall markers are generated from it and never edited.
+{"name", "realm" (may be ""), "client", "class", "date" (YYYY-MM-DD), an
+optional "note" and an optional "proof"}. HallOfFame.lua (shipped, read by
+Hall.lua) and the block between the README's hall markers are generated from
+it and never edited. "proof" is where the player's screenshot is, an issue
+number or URL (`add --proof`): the author's own record, kept in hall.json
+alone, in neither output and never in the game.
 
 The code. A player who has earned every milestone their character can earn is
 shown one in the options window (Hall.lua, Hall.Code) and may post it with the
@@ -26,6 +31,13 @@ The checksum is not proof of anything. It catches a typo, a line cut short in
 a paste and a casual edit; anybody who reads this file can make a code that
 passes. The author decides who is listed, and `add` is only a clerk: it
 refuses a code whose checksum fails and a player already listed, nothing more.
+
+The proof is a screenshot. With every milestone earned the favour ledger shows
+a certificate beside its Milestones tab (HallProof.lua): the character's name,
+class, client, the day of the last milestone, the count, every milestone with
+its date, the code and the addon's version, all of it read back out of the
+code. The "Hall of fame" form asks for that picture with the code, and `check`
+prints what the picture must show for the code it was given.
 
 Hall.lua holds the same arithmetic in Lua, and both sides are held to the
 VECTORS below: `--check` here, tests/scenarios/hall.lua there (which reads the
@@ -131,6 +143,21 @@ def decode(code):
     return fields, None
 
 
+def checklist(fields, code):
+    """What the screenshot posted with `code` must show, a line each."""
+    name = fields["name"] + ("-" + fields["realm"] if fields["realm"] else "")
+    return [
+        "the certificate, headed Gentlefolk of Good Manners, beside the ledger's Milestones tab",
+        "the name on it: %s" % name,
+        "the class and the client under it: %s, %s (the class in the player's language)" % (
+            CLASSES.get(fields["class"], fields["class"]), CLIENTS.get(fields["client"], fields["client"])),
+        "the date every milestone was earned on: %s" % fields["date"],
+        "a full count: N of N milestones, and as many milestones listed, none dated after %s" % fields["date"],
+        "the code, its lines put together: %s" % "".join(code.split()).upper(),
+        "a Manners version at the foot, and a game window round it rather than a picture of the panel alone",
+    ]
+
+
 def load():
     with io.open(SOURCE, encoding="utf-8") as f:
         entries = json.load(f)
@@ -140,6 +167,8 @@ def load():
         for key in ("name", "realm", "client", "class", "date"):
             if not isinstance(e.get(key), str):
                 raise SystemExit("hall.json: an entry lacks %s: %r" % (key, e))
+        if not isinstance(e.get("proof", ""), str):
+            raise SystemExit("hall.json: an entry's proof is not text: %r" % (e,))
         if e["client"] not in CLIENTS or e["class"] not in CLASSES or not re.match(r"^\d{4}-\d\d-\d\d$", e["date"]):
             raise SystemExit("hall.json: an entry's client, class or date does not read: %r" % (e,))
     return entries
@@ -246,6 +275,8 @@ def main():
     ap.add_argument("command", nargs="?", choices=["check", "add"])
     ap.add_argument("code", nargs="?")
     ap.add_argument("--note", default="", help="with add: a line shown beside the name")
+    ap.add_argument("--proof", default="",
+                    help="with add: where the screenshot is, an issue number or URL (kept in hall.json only)")
     ap.add_argument("--check", action="store_true", dest="current",
                     help="exit 1 when HallOfFame.lua or the README section is not what hall.json gives")
     args = ap.parse_args()
@@ -264,6 +295,9 @@ def main():
             return 1
         print("the checksum holds (which says the code was not mistyped, and nothing more)")
         if args.command == "check":
+            print("the proof is the screenshot posted with it, which must show:")
+            for line in checklist(fields, args.code):
+                print("  [ ] " + line)
             return 0
         entries = load()
         for e in entries:
@@ -273,6 +307,13 @@ def main():
                 return 1
         if args.note.strip():
             fields["note"] = args.note.strip()
+        proof = args.proof.strip()
+        if proof:
+            # An issue number as its link; anything else as given.
+            fields["proof"] = ("https://github.com/fpsacha/Manners/issues/" + proof.lstrip("#")
+                               if proof.lstrip("#").isdigit() else proof)
+        else:
+            print("no --proof: listed with no record of the screenshot")
         entries.append(fields)
         write(SOURCE, json.dumps(entries, ensure_ascii=False, indent=2) + "\n")
         for path, text in outputs(entries):

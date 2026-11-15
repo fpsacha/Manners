@@ -55,6 +55,7 @@ Ledger.lua
 Milestones.lua
 HallOfFame.lua
 Hall.lua
+HallProof.lua
 Looks\Looks.lua
 Looks\Flow.lua
 Looks\Previews.lua
