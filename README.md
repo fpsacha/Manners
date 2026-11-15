@@ -584,20 +584,28 @@ profile reset touches them.
 
 <img src=".github/media/manners-looks.png" alt="The looks for the prompt, the same favour drawn in each" width="640">
 
-Twenty-nine looks, each a card under Look > *Panel style* that you click to
-switch, on four shelves: **Minimal**, **Classic**, **Themed** and **Class**.
+Twenty-nine looks, each a card under Look > *Panel style*. Tabs over the
+cards sort them: **For my class** (the looks made for your class, three for a
+mage; it opens first), **All**, and one tab for each shelf, **Minimal**,
+**Classic**, **Themed** and **Class**. Point at a card and the prompt wears
+that look at once; move off and yours comes back; click to keep it (not in a
+fight, where a look waits for the fight to end). A small *New* marks the
+looks new in this release.
+
+Under the cards, headed with the chosen look's name, are its own settings.
 The looks are being repainted, each from one painting (Frost Mage first);
-*Earlier art*, under the cards, keeps the frames they had before.
-*Show my key on the prompt* (under *Style*) puts the key you press on the
-prompt's keycap: as the look has it (on the class and themed looks, not on
-the calmer ones), always, or never; nothing is shown while no key is bound.
+*Earlier art* keeps the frames they had before, and the cards then show those.
+*Round the icon off* is greyed where the look always rounds it. *Show my key
+on the prompt* puts the key you press on the prompt's keycap: as the look has
+it (the choice says which), always, or never; nothing is shown while no key
+is bound. With them, *Gryphons at the ends* on Glass and the reason's colours.
 
 **Minimal** and **Classic**:
 
 - **Glass** (the default): the game's own action bar. A dark pane of glass
   in beaded gilt rails, the spell icon in a metal bezel. Light drifts inside
   the glass; while you owe somebody the border of a spell that is ready runs
-  round the icon. *Gryphons at the ends* (off, under *Icon*) sits a gilt
+  round the icon. *Gryphons at the ends* (off, with Glass's settings) sits a gilt
   gryphon at each end.
 - **Framed**: a flat dark panel in a thin rim, like the game's tooltips.
 - **Minimal**: the words alone, no panel, over one hairline of light after
@@ -670,7 +678,7 @@ action bar, and the prompt fades out after your last buff.
 Pick your own colours and fonts too; LibSharedMedia is supported. Leave the
 text colour at white and it turns dark by itself on a light panel colour.
 
-**A colour-blind palette.** *Colour set*, under Look > *Style*, swaps the
+**A colour-blind palette.** *Colour set*, with the look's own settings under Look > *Panel style*, swaps the
 reason colours for pale yellow, orange, sky blue and violet, which stay apart
 under protanopia and deuteranopia.
 
@@ -962,9 +970,14 @@ cannot send it to somebody else by mistake.
 
 ### Look
 
-- ***Panel style***: the twenty-nine cards on four shelves (Minimal, Classic,
-  Themed, Class; the one with your look open, a click on a shelf's name opens
-  another), and *Earlier art* (off) under them.
+- ***Panel style***: the twenty-nine cards under tabs (*For my class*, *All*,
+  *Minimal*, *Classic*, *Themed*, *Class*), a look tried on the prompt as you
+  point at it. Under them, headed with the chosen look's name: *Earlier art*
+  (off, for a repainted look), *Round the icon off*, *Gryphons at the ends*
+  (Glass), *Show my key on the prompt* (*As the look has it*, *Always*,
+  *Never*), *Panel colour*, *Colour by why they are offered*, *Colour set*,
+  *Where the colour shows* and *Colour when not by reason*. Folded with them,
+  ***This window***: *Fade this window while I change the look* (off).
 - ***Position***: *Move the prompt*, *Where it sits* (three ready-made
   places) and *Move it in Edit Mode* (on): while the game's Edit Mode is open
   the prompt is unlocked to be dragged with the game's own frames, casts
@@ -988,10 +1001,6 @@ cannot send it to somebody else by mistake.
   below* (off) with *How many to list* (3) and *Click a name in the list to
   buff them* (on).
 - Folded:
-  - ***Style***: *Panel colour*, *Show my key on the prompt* (*As the look
-    has it*, *Always*, *Never*), *Colour by why they are offered*, *Colour
-    set*, *Where the colour shows* and *Colour when not by reason*. Each look
-    brings its own.
   - ***Exact position***: the prompt's place in numbers, with the *Width*
     and *Height* of its pane.
   - ***Text***: *Font*, *Font size*, *Text colour*, *Colour names by class*,
@@ -999,13 +1008,12 @@ cannot send it to somebody else by mistake.
     guild under the name*.
   - ***Prompt wording***: what its two lines say, one box per reason.
   - ***Icon***: *Show spell icon*, *Icon size*, *Size of the consumables
-    button*, *Round the icon off*, *Frame round the icon*, *Gryphons at the
-    ends* and *Show the global cooldown on the icon*.
+    button*, *Frame round the icon* and *Show the global cooldown on the
+    icon*.
   - ***Tooltip***: *Tooltip on the prompt* is *Short* (the default), *Full*,
     *Only while holding Shift* or *Off*; *Tooltip position* is *Beside the
     prompt* (above or below it, on the side with more room) or *Where the
     game shows tooltips*.
-  - ***This window***: *Fade this window while I change the look* (off).
 
 ### Profiles
 
