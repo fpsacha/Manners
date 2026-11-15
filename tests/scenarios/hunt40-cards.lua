@@ -54,8 +54,8 @@ local function session(scenario, spec, body)
 			fail(scenario, "SKIPPED -- the gallery is not on the Look page")
 			return
 		end
-		-- Every shelf of the gallery open (the chosen look's alone is, at first).
-		for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+		-- Every look's card shown: the All tab (For my class, at first).
+		row.tab = "all"
 		ns.RefreshOptionsDisplay()
 		body(ns, UI, row)
 		noErrors(scenario, ns)
@@ -280,8 +280,15 @@ do
 		local src = slurp(dir .. "/Options/Window/WidgetsTheme.lua")
 		local keys = {}
 		for key in (src or ""):gmatch('L%["([^"]*)"%]') do keys[key] = true end
+		-- The words over the cards are the prompt's own; the picker's own
+		-- strings are its tabs, the line under them and New
+		-- (tests/scenarios/lookpage.lua), each translated (validate.py).
+		local own = { ["buffed you"] = true, ["For my class"] = true, ["All"] = true, ["New"] = true,
+			["Point at a look to try it on the prompt; click to keep it."] = true,
+			["The prompt is not on screen now: Show me the prompt, at the top of this window, puts it up."] = true,
+			["In a fight a look cannot change: the one you click goes on when the fight ends."] = true }
 		for key in pairs(keys) do
-			if key ~= "buffed you" then fail(scenario, ("WidgetsTheme asks for the string %q, new to every locale"):format(key)) end
+			if not own[key] then fail(scenario, ("WidgetsTheme asks for the string %q, new to every locale"):format(key)) end
 		end
 		if not keys["buffed you"] then fail(scenario, "the picker does not use the prompt's own reason string") end
 	end

@@ -499,9 +499,9 @@ for _, locale in ipairs({ "enUS", "deDE", "frFR", "esES", "ptBR", "itIT", "koKR"
 		ns.Prompt:ExitTest()
 		local UI = ns.WindowUI
 		local row = UI.RowFor("appearance.style")
-		-- Every shelf of the gallery open (the chosen look's alone is, at first).
-		if row and row.open then
-			for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
+		-- Every look's card shown: the All tab (For my class, at first).
+		if row and row.tabs then
+			row.tab = "all"
 			ns.RefreshOptionsDisplay()
 		end
 		if not (row and row.cards and UI.RowShown("appearance.style")) then

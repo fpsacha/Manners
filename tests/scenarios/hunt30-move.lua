@@ -298,10 +298,12 @@ end
 do
 	local scenario = "hunt30-move: Look leads with a big Move the prompt button, the places beside it"
 	with(scenario, "MAGE", function(ns, UI)
-		local list = H.pagePaths(ns, "appearance") or {}
+		local list, sections = H.pagePaths(ns, "appearance")
+		list = list or {}
 		if list[1] == "appearance.style" then table.remove(list, 1) end
-		-- Earlier art stands with the gallery, under the cards.
-		if list[1] == "appearance.classicArt" then table.remove(list, 1) end
+		-- The chosen look's own settings stand under the gallery, in a section
+		-- of their own (tests/scenarios/lookpage.lua).
+		while list[1] and sections[list[1]].key == "appearance.lookOwn" do table.remove(list, 1) end
 		if list[1] ~= "appearance.move" or list[2] ~= "appearance.posPreset" then
 			fail(scenario, ("Look begins %s, %s"):format(tostring(list[1]), tostring(list[2])))
 		end
@@ -317,9 +319,9 @@ do
 			fail(scenario, "the button or the places are not shown on Look")
 			return
 		end
-		-- The gallery of looks is the page's first section; the button and the
-		-- places are its second.
-		if move.sec ~= UI.Model("appearance").sections[2] or places.sec ~= move.sec then
+		-- The gallery of looks is the page's first section and the look's own
+		-- settings its second; the button and the places are its third.
+		if move.sec ~= UI.Model("appearance").sections[3] or places.sec ~= move.sec then
 			fail(scenario, "the button and the places are not the page's first section")
 		end
 		if not (places.e.x > move.e.x and math.abs(places.e.y - move.e.y) < move.e.h) then

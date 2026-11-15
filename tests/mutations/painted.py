@@ -293,19 +293,22 @@ mutate("Looks/Fel.lua",
        expect="dropdown label is", script=S)
 
 mutate("Options/Window/WidgetsTheme.lua",
-       "\t\t\tif i == 1 or row.cards[i - 1].category ~= cat then y = PlaceHead(row, cat, y, width) end\n",
+       "\t\t\tif heads and (i == 1 or list[i - 1].category ~= cat) then y = PlaceHead(row, cat, y, width) end\n",
        "",
        "painted: the gallery's categories with no heading",
        expect="no heading for", script=S)
 
+# Was "the chosen look's shelf shut", while the shelves folded: the picker
+# opens on For my class since it has tabs (tests/scenarios/lookpage.lua).
 mutate("Options/Window/WidgetsTheme.lua",
-       "\t\tif mine and row.open[mine] == nil then row.open[mine] = true end\n",
-       "",
-       "painted: the chosen look's shelf shut",
-       expect="the chosen look's shelf is shut", script=S)
+       "\t\t\trow.tab = row.counts.mine > 0 and \"mine\" or \"all\"\n",
+       "\t\t\trow.tab = \"all\"\n",
+       "painted: the picker opens a mage on All, not on the mage looks",
+       expect="not For my class", script=S)
 
+# Was "a shelf's heading opens nothing": a tab's click opens a shelf now.
 mutate("Options/Window/WidgetsTheme.lua",
-       "\trow.open[head.cat] = not row.open[head.cat]\n",
-       "",
-       "painted: a shelf's heading opens nothing",
-       expect="does not open its shelf", script=S)
+       "\trow.tab = b.tab\n\trow:Refresh()\n",
+       "\trow:Refresh()\n",
+       "painted: a tab's click opens nothing",
+       expect="lookpage: a mage's tabs", script=S)

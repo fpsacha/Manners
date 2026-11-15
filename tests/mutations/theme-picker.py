@@ -115,11 +115,11 @@ mutate(T, '\tcard.badge:SetPoint("TOPRIGHT", card.ground, "BOTTOMRIGHT", 0, -3)\
 
 # --- layout ---------------------------------------------------------------
 
-mutate(T, "local MIN_WIDTH, MAX_COLUMNS = 150, 3\n", "local MIN_WIDTH, MAX_COLUMNS = 150, 6\n",
+mutate(T, "local MIN_WIDTH, MAX_COLUMNS = 200, 3\n", "local MIN_WIDTH, MAX_COLUMNS = 200, 6\n",
        "theme-picker: up to six cards to a row",
        expect="theme-picker: the cards fit the page", script=S)
 
-mutate(T, "\t\t\ty = y + tallest + (open and GAP or (GAP - HEAD_GAP))\n", "\t\t\ty = y + tallest - 8\n",
+mutate(T, "\t\t\ty = y + tallest + GAP\n", "\t\t\ty = y + tallest - 8\n",
        "theme-picker: a row of cards starts inside the one above",
        expect="theme-picker: the cards fit the page", script=S)
 

@@ -74,8 +74,8 @@ do
 			fail(scenario, "SKIPPED -- no gallery, or Luxe records no tag")
 			return
 		end
-		-- Luxe's shelf (Minimal) open: the chosen look's alone is, at first.
-		row.open.minimal = true
+		-- Luxe's shelf (Minimal) chosen: a warrior's own looks are shown first.
+		row.tab = "minimal"
 		ns.RefreshOptionsDisplay()
 		local card
 		for _, c in ipairs(row.cards) do

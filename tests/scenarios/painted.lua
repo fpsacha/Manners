@@ -422,8 +422,10 @@ withTree("painted: Show my key is a setting on the Look page, repaired and carri
 	freshPrompt(ns, scenario)
 	local opt = H.findOption(ns.optionsTable, "keycap")
 	if not (opt and opt.type == "select") then fail(scenario, "no control on the Look page sets prompt.keycap") return end
+	-- Its first choice names what the look does, so the list is asked for.
+	local values = type(opt.values) == "function" and opt.values() or opt.values
 	for _, v in ipairs({ "look", "show", "hide" }) do
-		if not (opt.values and opt.values[v]) then fail(scenario, "the control offers no " .. v) end
+		if not (values and values[v]) then fail(scenario, "the control offers no " .. v) end
 	end
 	local p = ns.db.profile.prompt
 	p.keycap = "sometimes"
@@ -709,7 +711,7 @@ withTree("painted: a renamed look keeps its saved key and wears its class's name
 end)
 
 do
-	local scenario = "painted: the gallery draws a heading over each category, its cards under it"
+	local scenario = "painted: the gallery's All draws a heading over each category, its cards under it"
 	Mock.reset()
 	local ok, err = pcall(function()
 		local ns = load(scenario)
@@ -719,7 +721,11 @@ do
 		ns.OpenOptions("appearance", true)
 		local UI = ns.WindowUI
 		local row = UI.RowFor("appearance.style")
-		if not (row and row.cards and row.heads) then fail(scenario, "SKIPPED -- no gallery") return end
+		if not (row and row.cards and row.heads and row.tabs) then fail(scenario, "SKIPPED -- no gallery") return end
+		-- The All tab lays every shelf out, each under its heading
+		-- (tests/scenarios/lookpage.lua holds the other tabs).
+		row.tabs.all:GetScript("OnClick")(row.tabs.all, "LeftButton", false)
+		ns.RefreshOptionsDisplay()
 		local heads = {}
 		for i, c in ipairs(ns.Looks.CATEGORIES) do
 			local h = row.heads[c]
@@ -732,21 +738,6 @@ do
 				if i > 1 and heads[i - 1] and not (h.y > heads[i - 1].y) then fail(scenario, c .. "'s heading is not under the one before") end
 			end
 		end
-		-- Shelves fold: the chosen look's (Glass, Classic) open, the others shut,
-		-- and a click on a heading opens one.
-		if row.open.classic ~= true then fail(scenario, "the chosen look's shelf is shut") end
-		for _, card in ipairs(row.cards) do
-			if card.category == "class" and card:IsShown() then fail(scenario, "a shut shelf shows its cards: " .. tostring(card.key)) break end
-		end
-		local click = row.heads.class and row.heads.class:GetScript("OnClick")
-		if click then click(row.heads.class, "LeftButton") end
-		local opened = 0
-		for _, card in ipairs(row.cards) do
-			if card.category == "class" and card:IsShown() then opened = opened + 1 end
-		end
-		if opened == 0 then fail(scenario, "a click on the Class heading does not open its shelf") end
-		for _, c in ipairs(ns.Looks.CATEGORIES) do row.open[c] = true end
-		ns.RefreshOptionsDisplay()
 		local index = {}
 		for i, c in ipairs(ns.Looks.CATEGORIES) do index[c] = i end
 		for _, card in ipairs(row.cards) do
