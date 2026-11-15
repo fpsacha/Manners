@@ -1349,9 +1349,16 @@ do
 		ebon = { above = 24, below = 13 },
 		leather = { right = 28.5, below = 36.5 },
 		warchief = { above = 10.5, below = 6.5 },
-		-- The painted frame (Looks/Painted.lua, tools/make_look_previews.py's FRAMES).
-		frost = { above = 13, below = 20, left = 21, right = 30 },
 	}
+	-- A painted look (Looks/Painted.lua) needs the room its painting takes,
+	-- read from where its pieces were laid (tools/make_look_previews.py works
+	-- its view out the same way); less half a unit the picture may cut.
+	local function paintedRoom(look)
+		local g = look and look.paintedArt and look.paintedArt.on and look.paintedArt.g
+		if not g then return nil end
+		return { above = math.max(0, -g.y0 - 0.5), below = math.max(0, g.y1 - g.H - 0.5),
+			left = math.max(0, -g.left - 0.5), right = math.max(0, g.right - g.W - 0.5) }
+	end
 	Mock.reset()
 	FT.install()
 	local ok, err = pcall(function()
@@ -1385,7 +1392,7 @@ do
 					left = at.l / kx - (il - al),
 					right = (1 - at.r) / kx - (ar - ir),
 				}
-				local need = ROOM[key]
+				local need = ROOM[key] or paintedRoom(r.look)
 				if need then
 					framed = framed + 1
 					for side, least in pairs(need) do

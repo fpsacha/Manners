@@ -18,16 +18,16 @@ local _, ns = ...
 
 ns.PaintedData = {
 	frost = {
-		left = { file = "Interface\\AddOns\\Manners\\Textures\\Painted\\Frost\\Left", r = 0.7832, b = 0.8828, w = 3.1328 },
-		middle = { file = "Interface\\AddOns\\Manners\\Textures\\Painted\\Frost\\Middle", r = 0.7344, b = 0.8828, w = 1.4688 },
-		right = { file = "Interface\\AddOns\\Manners\\Textures\\Painted\\Frost\\Right", r = 0.6777, b = 0.8828, w = 2.7109 },
-		above = 0.3048, below = 0.4572, leftMin = 2.284, rightMin = 2.1134, hangLeft = 0.4796, hangRight = 1.2952,
-		socket = { shape = "round", x = 0.8327, y = 0.5112, r = 0.3532 },
-		textX = 1.684, textY = 0.5187,
-		keycap = { x = 1.6043, y = 0.5242, w = 0.4182, h = 0.4554 },
-		ornament = { x = 0.6322, y = 0.4926 },
-		well = { top = 0.2108, bottom = 0.8358 },
-		ink = { light = true, lo = 0.0322, hi = 0.0653 },
-		keyInk = { 0.022, 0.029, 0.033 },
+		left = { file = "Interface\\AddOns\\Manners\\Textures\\Painted\\Frost\\Left", r = 0.9336, b = 0.6406, w = 1.8672 },
+		middle = { file = "Interface\\AddOns\\Manners\\Textures\\Painted\\Frost\\Middle", r = 0.5381, b = 0.6406, w = 4.3047 },
+		right = { file = "Interface\\AddOns\\Manners\\Textures\\Painted\\Frost\\Right", r = 0.8828, b = 0.6406, w = 1.7656 },
+		above = 0.1606, below = 0.1244, leftMin = 1.8672, rightMin = 1.7556, hangLeft = 0.5792, hangRight = 0.9755,
+		socket = { shape = "round", x = 0.9751, y = 0.4819, r = 0.3959 },
+		textX = 1.8281, textY = 0.4995,
+		keycap = { x = 1.2656, y = 0.491, w = 0.3801, h = 0.3982 },
+		ornament = { x = 0.5378, y = 0.491 },
+		well = { top = 0.2144, bottom = 0.7847 },
+		ink = { light = true, lo = 0.0096, hi = 0.0301 },
+		keyInk = { 0.02, 0.027, 0.032 },
 	},
 }

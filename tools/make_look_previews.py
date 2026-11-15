@@ -120,11 +120,10 @@ FRAMES = {
     "ebon": (82, 0, 5.5),
     "leather": (83, 14, -17.5),
     "warchief": (62, 0, 2),
-    # Frost's painted frame (Looks/Painted.lua): its socket's crystal 13 units
-    # over the panel, its icicles 20 under, and its two ends hanging 21 left and
-    # 30 right of it where the well is short for the words.
-    "frost": (80, 4.5, -3.5),
 }
+# A painted look (Looks/Painted.lua) needs no entry: its view is worked out from
+# where its painting's pieces lie (painted_frame), so wiring one touches nothing
+# here.
 
 STUB = """local _, ns = ...
 ns.Looks.previews = {}
@@ -202,12 +201,63 @@ def registered(addon_dir=ROOT):
     return keys
 
 
+PAINTED_FILE = "Interface\\AddOns\\Manners\\Textures\\Painted\\"
+# The margin a painted look's view keeps round its painting, in units.
+PAINTED_MARGIN = 3
+_REACH = {}
+
+
+def painted_reach(snap):
+    """How far a painted look's painting (Looks/Painted.lua: its pieces, files
+    under Textures/Painted/) reaches past the button: above, below, left,
+    right, in units; None for a look without one up."""
+    if id(snap) in _REACH:
+        return _REACH[id(snap)][1]
+    tree = geometry().Tree(snap)
+    button = tree.regions.get(snap.get("button"))
+    brect = button and tree.rect(button["id"])
+    reach = None
+    if brect:
+        rects = []
+        for region in tree.regions.values():
+            if str(region.get("file") or "").startswith(PAINTED_FILE) and all(c.get("shown", True) for c in tree.chain(region)):
+                r = tree.rect(region["id"])
+                if r:
+                    rects.append(r)
+        if rects:
+            reach = (max(0.0, max(r[3] for r in rects) - brect[3]), max(0.0, brect[1] - min(r[1] for r in rects)),
+                     max(0.0, brect[0] - min(r[0] for r in rects)), max(0.0, max(r[2] for r in rects) - brect[2]))
+    _REACH[id(snap)] = (snap, reach)
+    return reach
+
+
+def painted_frame(snap):
+    """A painted look's view, worked out from its painting rather than written in
+    FRAMES: as tall as the painting and its margin need (the width four times it),
+    its middle on the painting's, and never taller than FRAME_MOST (the
+    painting is then drawn smaller). None for a look without a painting up."""
+    reach = painted_reach(snap)
+    if not reach:
+        return None
+    up, down, left, right = reach
+    tree = geometry().Tree(snap)
+    b = tree.rect(tree.regions[snap["button"]]["id"])
+    bw, bh = b[2] - b[0], b[3] - b[1]
+    tall = bh + up + down + 2 * PAINTED_MARGIN
+    wide = bw + left + right + 2 * PAINTED_MARGIN
+    height = min(FRAME_MOST, max(VIEW[1], tall, wide * VIEW[1] / VIEW[0]))
+    if height <= VIEW[1] + 0.01 and up <= (VIEW[1] - bh) / 2 and down <= (VIEW[1] - bh) / 2 \
+            and left <= (VIEW[0] - bw) / 2 and right <= (VIEW[0] - bw) / 2:
+        return None
+    return (round(height, 2), round((right - left) / 2, 2), round((up - down) / 2, 2))
+
+
 def framing(snap, brect=None):
     """The view a look's picture is cut from, and what it is centred on: (width,
     height) in units, and the button's rectangle moved to the view's middle (VIEW
     round the button itself for a look with no entry in FRAMES). With no rectangle:
     the view, and how far its middle lies right of and above the button's."""
-    height, dx, dy = FRAMES.get(snap.get("look"), (VIEW[1], 0, 0))
+    height, dx, dy = FRAMES.get(snap.get("look")) or painted_frame(snap) or (VIEW[1], 0, 0)
     if not VIEW[1] <= height <= FRAME_MOST:
         raise SystemExit("%s: a view %s units tall (FRAMES), outside %d to %d" % (snap.get("look"), height, VIEW[1], FRAME_MOST))
     view = (height * VIEW[0] / VIEW[1], height)

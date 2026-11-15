@@ -1557,7 +1557,7 @@ function Frost:PaintedPlace(g, p, above)
 	self:PlaceMotion(showIcon, above)
 	-- The vein along the well's lower edge, from the words to the keycap.
 	local veinH = math.max(2, g.unit * 0.05)
-	local veinY = g.wellBottom - veinH
+	local veinY = g.wellBottom
 	Box(self.vein, art, g.textX - 2, veinY - veinH / 2, keyL - 2, veinY + veinH / 2)
 	Box(self.core, art, g.textX - 2, veinY - veinH / 2, keyL - 2, veinY + veinH / 2)
 	self.veinOK = keyL - g.textX >= 16

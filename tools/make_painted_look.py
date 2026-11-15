@@ -66,9 +66,39 @@ GAME = "Interface\\\\AddOns\\\\Manners\\\\Textures\\\\Painted\\\\"
 
 # The core's height in texels.
 CORE_PX = 128
-# The slate's key: a pixel this near the slate's colour (RGB distance, 0..441) is
-# slate, one this far is the bar, and between is the edge.
-KEY_LO, KEY_HI = 12.0, 48.0
+# The slate's key, against the slate's own colour where the pixel is (slate_of):
+# a pixel this near it (RGB distance, 0..441) is slate, KEY_RAMP further is the
+# bar, and between is the edge. KEY_LO is the least: a grainier slate widens it
+# (2.5 times its 95th percentile of grain). The bars' darkest paint (Frost's
+# lower rim, 34 from its slate) must stay over the ramp.
+KEY_LO, KEY_RAMP = 8.0, 14.0
+# Finding the slate: the corners' squares measured (CORNER_PX), which may differ
+# by CORNER_MOST at most; what is this near their colour and joined to the border
+# is slate where it lies SAFE_PX from anything else (and SAFE_NEAR of their colour); its colour is spread over the
+# picture by a blur of SLATE_SIGMA.
+CORNER_PX, CORNER_MOST = 40, 20.0
+KEY_LOOSE, SAFE_PX, SLATE_SIGMA = 48.0, 40, 24.0
+# and no further than this from the corners' colour (Frost's lower rim is 34).
+SAFE_NEAR = 22.0
+# A piece of paint apart from the bar smaller than SPECK_PX pixels is a fleck
+# and goes; a dent in the bar's outline narrower than twice CLOSE_PX is filled.
+SPECK_PX, CLOSE_PX = 2500, 8
+# The blur (a Gaussian's sigma, in picture pixels) the key's distance is measured
+# through, and the least alpha the slate is taken back out by (below it the
+# grain would be multiplied into a light fringe).
+KEY_BLUR, UNMIX_LEAST = 2.5, 0.5
+# How far past the slate a tuned key (meta.json's keying) takes a halo, in
+# picture pixels.
+TUNE_REACH = 24
+# How far a rim is sealed, tried in turn, when the slate reaches the words.
+SEAL_PX = (2, 4, 7, 11, 16, 24)
+# A stretch run whose solid band is under this share of the painter's `bar`
+# is words on nothing (Hairline's line): the bar's own box is the core.
+BARE_BELOW = 0.4
+# The ink of words on a light ground when meta.json says only that white will
+# not do (text_colour_ok false): a near-black brown and a dark red-brown, the
+# letter's.
+DARK_INK = ("#2a1d16", "#5a1a12")
 # How far past the bar's solid paint, in picture pixels, its edge may stay soft.
 EDGE_PX = 6
 # The well's brightest (95th percentile, linear luminance) the words can stand:
@@ -116,25 +146,126 @@ def looks():
                   and os.path.isfile(os.path.join(ART, k, "meta.json")))
 
 
-def key_out(rgb):
-    """The painting's straight colour and alpha with the slate taken out."""
-    h, w, _ = rgb.shape
-    border = np.concatenate([rgb[:8].reshape(-1, 3), rgb[-8:].reshape(-1, 3),
-                             rgb[:, :8].reshape(-1, 3), rgb[:, -8:].reshape(-1, 3)])
-    slate = np.median(border, axis=0)
-    d = np.sqrt(((rgb - slate) ** 2).sum(-1))
-    lab, _ = ndimage.label(d < KEY_HI)
+def joined_to_border(mask):
+    lab, _ = ndimage.label(mask)
     edge = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
-    bg = np.isin(lab, edge[edge > 0])
+    return np.isin(lab, edge[edge > 0])
+
+
+def slate_of(rgb, key):
+    """The slate the painting was laid on, where it lies: its colour measured in
+    the four corners (the painters' slate is never quite #20222a, nor the same
+    from corner to corner), then followed across the picture, since it drifts
+    (a vignette, a soft glow, JPEG blocks) by as much as the bar's darkest paint
+    differs from it. Returns the slate's colour at every pixel, and how far its
+    own grain strays from that (the key's tolerance)."""
+    h, w, _ = rgb.shape
+    c = CORNER_PX
+    corners = np.concatenate([rgb[:c, :c].reshape(-1, 3), rgb[:c, -c:].reshape(-1, 3),
+                              rgb[-c:, :c].reshape(-1, 3), rgb[-c:, -c:].reshape(-1, 3)])
+    corner = np.median(corners, axis=0)
+    spread = np.sqrt(((corners - corner) ** 2).sum(-1))
+    if np.percentile(spread, 90) > CORNER_MOST:
+        raise SystemExit("%s: the picture's corners are not one flat slate (they differ by %.0f); "
+                         "is final-empty.jpg the bar on its slate?" % (key, np.percentile(spread, 90)))
+    # Surely slate: like the corners' colour, joined to the border, and well
+    # away from anything that is not.
+    dc = np.sqrt(((rgb - corner) ** 2).sum(-1))
+    loose = joined_to_border(dc < KEY_LOOSE)
+    safe = loose & (dc < SAFE_NEAR) & (ndimage.distance_transform_edt(loose) > SAFE_PX)
+    if safe.sum() < 1000:
+        raise SystemExit("%s: too little slate round the bar to key it out" % key)
+    # The slate's colour everywhere: the safe slate's, spread over the rest (a
+    # normalised blur, once near and once far for where it reaches nothing),
+    # worked out at an eighth of the size (the slate changes slowly) and
+    # brought back up.
+    q = 8
+    hq, wq = (h + q - 1) // q, (w + q - 1) // q
+    pad = ((0, hq * q - h), (0, wq * q - w))
+    wt = np.pad(safe.astype(np.float32), pad).reshape(hq, q, wq, q).mean((1, 3))
+    sums = [np.pad(rgb[..., i] * safe, pad).reshape(hq, q, wq, q).mean((1, 3)) for i in range(3)]
+    small = np.zeros((hq, wq, 3), np.float32)
+    far = None
+    for sigma in (SLATE_SIGMA / q, SLATE_SIGMA * 4 / q):
+        n = ndimage.gaussian_filter(wt, sigma)
+        for i in range(3):
+            v = ndimage.gaussian_filter(sums[i], sigma) / np.maximum(n, 1e-6)
+            small[..., i] = v if far is None else np.where(far, v, small[..., i])
+        if far is None:
+            far = n < 1e-3
+    local = np.stack([ndimage.zoom(small[..., i], q, order=1)[:h, :w] for i in range(3)], -1).astype(np.float32)
+    grain = np.sqrt(((rgb - local) ** 2).sum(-1))[safe]
+    return local, float(np.percentile(grain, 95)), corner
+
+
+def key_out(rgb, key="?", words=None, tune=None):
+    """The painting's straight colour and alpha with the slate taken out.
+    `words`, boxes (x0, y0, x1, y1) where the two lines go and the socket's
+    middle: never slate. A well
+    painted near the slate's own colour (Demon Hunter's, Evoker's, Priest's)
+    joins the slate through any gap in its rim, so the rim is sealed first,
+    as little as keeps the slate out of the words (SEAL_PX)."""
+    h, w, _ = rgb.shape
+    local, grain, slate = slate_of(rgb, key)
+    # Where the slate is is found at the grain's own tolerance; how soft the
+    # bar's edge is over it may be tuned (meta.json's keying: a bar's soft
+    # shadow or halo painted near the slate kept out with a higher `lo`).
+    tune = tune or {}
+    lo = max(KEY_LO, 2.5 * grain)
+    hi = lo + KEY_RAMP
+    edge_lo = tune.get("lo") or lo
+    edge_hi = edge_lo + (tune.get("ramp") or KEY_RAMP)
+    # Measured a little blurred: a soft edge painted near the slate (a shadow,
+    # Demon Hunter's leather) is then cut along one smooth line rather than
+    # wherever the brush's grain happens to cross the threshold.
+    d = ndimage.gaussian_filter(np.sqrt(((rgb - local) ** 2).sum(-1)), KEY_BLUR)
+    near = d < hi
+    bg = joined_to_border(near)
+    if words:
+        def reached(b):
+            return any(b[int(y0):int(y1), int(x0):int(x1)].any() for x0, y0, x1, y1 in words)
+        solid = ~(d < lo)
+        for r in SEAL_PX:
+            if not reached(bg):
+                break
+            # A closing of what is not plainly slate (by distance: a dilation
+            # by r, then an erosion by r), so a gap under 2r in a rim holds.
+            grown = ndimage.distance_transform_edt(~solid) <= r
+            sealed = ndimage.distance_transform_edt(grown) > r
+            bg = joined_to_border(near & ~sealed)
+        else:
+            if reached(bg):
+                raise SystemExit("%s: the slate reaches the words through the rim even sealed by %dpx; "
+                                 "check name_xy, reason_xy and keycap in meta.json" % (key, SEAL_PX[-1]))
     a0 = np.ones((h, w), np.float32)
-    a0[bg] = np.clip((d[bg] - KEY_LO) / (KEY_HI - KEY_LO), 0, 1)
+    if edge_hi > hi:
+        # The halo a tuned key takes as well: near the slate, and no further
+        # from it than TUNE_REACH.
+        bg = bg | ((d < edge_hi) & (ndimage.distance_transform_edt(~bg) <= TUNE_REACH))
+    a0[bg] = np.clip((d[bg] - edge_lo) / (edge_hi - edge_lo), 0, 1)
     # Only the bar's own edge is soft: slate that drifts in the margin (a JPEG's
     # blocks, a vignette) further than EDGE_PX from the bar is slate.
     a0[bg & (ndimage.distance_transform_edt(bg) > EDGE_PX)] = 0
-    # The colour back out of the slate it was mixed with.
+    # Specks off the bar (a shadow's flecks, a stray mark) go; then a rim
+    # painted near the slate's colour (Demon Hunter's) is made whole: the
+    # silhouette closed by CLOSE_PX, so a dent narrower than twice that is
+    # the paint it was, at full strength.
+    solid = a0 > 0.5
+    lab, n = ndimage.label(solid)
+    if n:
+        sizes = ndimage.sum(solid, lab, range(1, n + 1))
+        small = np.isin(lab, 1 + np.where(sizes < SPECK_PX)[0])
+        a0[small] = 0
+        solid &= ~small
+    grown = ndimage.distance_transform_edt(~solid) <= CLOSE_PX
+    closed = ndimage.distance_transform_edt(grown) > CLOSE_PX
+    filled = closed & (a0 < 1)
+    a0[filled] = 1
+    # The colour back out of the slate it was mixed with (a dent made whole
+    # keeps the paint it had).
     col = rgb.copy()
     part = (a0 > 0.02) & (a0 < 1)
-    col[part] = slate + (rgb[part] - slate) / a0[part][:, None]
+    col[part] = local[part] + (rgb[part] - local[part]) / np.maximum(a0[part], UNMIX_LEAST)[:, None]
     col = np.clip(col, 0, 255)
     # Under a pixel that was all slate, the nearest solid pixel's colour, so the
     # softened edge below takes no slate back in.
@@ -152,16 +283,126 @@ def resize(arr, size):
     return np.asarray(img.resize(size, Image.LANCZOS), np.float32)
 
 
+def read_meta(key, src):
+    """meta.json, as the painters wrote it, in one shape. They differ a little:
+    a square socket gives `half` (and `half_w` where it is wider than tall), a
+    round one `r`; the end ornament is `end` or `endcap`; `pane` is a box, null
+    (words on nothing) or absent; `see_through`, `contrast`, `ink` are optional.
+    Anything it cannot read stops the tool with the look's key."""
+    path = os.path.join(src, "meta.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = json.load(f)
+    except (OSError, ValueError) as e:
+        raise SystemExit("%s: meta.json cannot be read: %s" % (key, e))
+
+    def need(cond, what):
+        if not cond:
+            raise SystemExit("%s: meta.json: %s" % (key, what))
+
+    def pair(name):
+        v = raw.get(name)
+        need(isinstance(v, (list, tuple)) and len(v) == 2 and all(isinstance(n, (int, float)) for n in v),
+             "%s must be [x, y] (or [x0, x1]), has %r" % (name, v))
+        return [float(n) for n in v]
+
+    def box(name, v):
+        need(isinstance(v, (list, tuple)) and len(v) == 4 and all(isinstance(n, (int, float)) for n in v),
+             "%s must be [x0, y0, x1, y1], has %r" % (name, v))
+        need(v[2] > v[0] and v[3] > v[1], "%s is empty: %r" % (name, v))
+        return [float(n) for n in v]
+
+    def num(obj, name, field):
+        v = obj.get(field) if isinstance(obj, dict) else None
+        need(isinstance(v, (int, float)) and v > 0, "%s.%s must be a number over 0, has %r" % (name, field, v))
+        return float(v)
+
+    meta = {"key": key}
+    sock = raw.get("socket")
+    need(isinstance(sock, dict), "no socket")
+    shape = sock.get("shape", "round")
+    need(shape in ("round", "square"), "socket.shape is %r (round or square)" % shape)
+    if shape == "round":
+        r = sock.get("r") or sock.get("half")
+    else:
+        r = sock.get("half") or sock.get("r")
+    need(isinstance(r, (int, float)) and r > 0, "socket has no r (round) or half (square)")
+    meta["socket"] = {"shape": shape, "cx": num(sock, "socket", "cx"), "cy": num(sock, "socket", "cy"),
+                      "r": float(r), "rx": float(sock.get("half_w") or r)}
+    meta["name_xy"] = pair("name_xy")
+    meta["reason_xy"] = pair("reason_xy")
+    need(meta["reason_xy"][1] > meta["name_xy"][1], "reason_xy is not below name_xy")
+    cap = raw.get("keycap")
+    need(isinstance(cap, dict), "no keycap")
+    meta["keycap"] = {f: num(cap, "keycap", f) for f in ("cx", "cy", "w", "h")}
+    meta["stretch"] = [int(v) for v in pair("stretch")]
+    need(meta["stretch"][1] - meta["stretch"][0] >= 16, "stretch %r is too short" % meta["stretch"])
+    need(meta["stretch"][0] > meta["socket"]["cx"] and meta["stretch"][1] < meta["keycap"]["cx"],
+         "stretch %r must lie between the socket and the keycap" % meta["stretch"])
+    end = raw.get("end") or raw.get("endcap")
+    if end is not None:
+        meta["end"] = {"cx": num(end, "end", "cx"), "cy": num(end, "end", "cy")}
+    if raw.get("bar") is not None:
+        meta["bar"] = box("bar", raw["bar"])
+    # A pane: a box, null for words on nothing (no pane at all), or absent
+    # (the bar's own well).
+    meta["bare"] = "pane" in raw and raw["pane"] is None
+    # The key's own tolerance where a bar's edge is painted near the slate's
+    # colour (keying: { lo, ramp }), and `clip` to keep nothing outside `bar`.
+    tune = raw.get("keying") or {}
+    need(isinstance(tune, dict) and all(isinstance(tune.get(f, 1), (int, float)) and tune.get(f, 1) > 0
+                                        for f in ("lo", "ramp")), "keying must be { lo, ramp }, numbers over 0")
+    meta["tune"] = {"lo": tune.get("lo"), "ramp": tune.get("ramp")}
+    meta["clip"] = bool(raw.get("clip"))
+    need(not meta["clip"] or "bar" in meta, "clip without a bar box")
+    meta["see_through"] = bool(raw.get("see_through"))
+    if meta["see_through"]:
+        need(raw.get("pane") is not None, "see_through without a pane box")
+        meta["pane"] = box("pane", raw["pane"])
+    # The words' own ink: dark on a light ground. `ink` names the colours; a
+    # painter who said only text_colour_ok false gets the dark ink of DARK_INK.
+    ink = raw.get("ink")
+    if ink is not None:
+        need(isinstance(ink, dict) and "name" in ink and "reason" in ink, "ink must be { name, reason }")
+        meta["ink"] = {"name": hex_colour(key, ink["name"]), "reason": hex_colour(key, ink["reason"])}
+    elif raw.get("text_colour_ok") is False:
+        meta["ink"] = {"name": hex_colour(key, DARK_INK[0]), "reason": hex_colour(key, DARK_INK[1])}
+    return meta
+
+
+def hex_colour(key, v):
+    if not (isinstance(v, str) and len(v) == 7 and v[0] == "#"):
+        raise SystemExit("%s: meta.json: a colour must be \"#rrggbb\", has %r" % (key, v))
+    try:
+        return [round(int(v[i:i + 2], 16) / 255, 4) for i in (1, 3, 5)]
+    except ValueError:
+        raise SystemExit("%s: meta.json: %r is not a colour" % (key, v))
+
+
 def build(key):
     """Everything for one look: the pieces (as RGBA uint8 arrays) and its data."""
     src = os.path.join(ART, key)
-    with open(os.path.join(src, "meta.json"), encoding="utf-8") as f:
-        meta = json.load(f)
+    meta = read_meta(key, src)
     rgb = np.asarray(Image.open(os.path.join(src, "final-empty.jpg")).convert("RGB"), np.float32)
-    col, alpha, slate = key_out(rgb)
+    nx, ny = meta["name_xy"]
+    rx, ry = meta["reason_xy"]
+    key_cap = meta["keycap"]
+    line = max(1.0, ry - ny)
+    sk = meta["socket"]
+    inner = (sk["cx"] - sk["rx"] * 0.6, sk["cy"] - sk["r"] * 0.6, sk["cx"] + sk["rx"] * 0.6, sk["cy"] + sk["r"] * 0.6)
+    words = [(nx, ny, key_cap["cx"] - key_cap["w"] / 2 - 4, ry + line * 0.85), inner]
+    col, alpha, slate = key_out(rgb, key, None if meta["bare"] else words, meta["tune"])
+    if meta.get("clip"):
+        # The painter's bar is all there is: a soft shadow under it, ragged once
+        # keyed, goes.
+        bx0, by0, bx1, by1 = (int(round(v)) for v in meta["bar"])
+        keep = np.zeros(alpha.shape, bool)
+        keep[max(0, by0):by1 + 1, max(0, bx0):bx1 + 1] = True
+        alpha[~keep] = 0
     s0, s1 = meta["stretch"]
 
-    # The core: the band the stretch run fills.
+    # The core: the band the stretch run fills. A bar with no body there (a
+    # hairline under words on nothing) has the painter's own `bar` for its core.
     run = alpha[:, s0:s1] > 0.5
     tops, bots = [], []
     for c in range(run.shape[1]):
@@ -172,6 +413,10 @@ def build(key):
     if not tops:
         raise SystemExit("%s: nothing solid in the stretch run %s" % (key, meta["stretch"]))
     core_top, core_bot = float(np.median(tops)), float(np.median(bots))
+    bar = meta.get("bar")
+    if bar and core_bot - core_top < BARE_BELOW * (bar[3] - bar[1]):
+        core_top, core_bot = float(bar[1]), float(bar[3])
+        meta["bare"] = True
     core_h = core_bot - core_top
 
     # Everything that is not slate, a texel of margin round it.
@@ -195,10 +440,6 @@ def build(key):
 
     # The well where the words go: from the text's start to short of the keycap,
     # over both lines.
-    nx, ny = meta["name_xy"]
-    rx, ry = meta["reason_xy"]
-    key_cap = meta["keycap"]
-    line = max(1.0, ry - ny)
     text_top, text_bot = ny, ry + line * 0.85
     text_mid = (text_top + text_bot) / 2
     kl = key_cap["cx"] - key_cap["w"] / 2
@@ -213,6 +454,27 @@ def build(key):
     C = core_h * k
     ea, eb = int(px(nx) + LEFT_KEEP * C), int(px(kl) - RIGHT_KEEP * C)
     ry0, ry1 = max(0, int(py(core_top))), min(a.shape[0], int(np.ceil(py(core_bot))))
+    # The outline evened too, in the stretch run and a feather either side: the
+    # game stretches the run, so a fleck or a dent of the key there would be
+    # drawn as a streak. Each row's alpha is that row's median over the run;
+    # where it rises, the row's own median colour fills in.
+    r0, r1 = int(round(px(s0))), int(round(px(s1)))
+    fe = int(EVEN_FEATHER * C)
+    if r1 - r0 > 4:
+        lo_x, hi_x = max(0, r0 - fe), min(a.shape[1], r1 + fe)
+        target = np.median(a[:, r0:r1], axis=1)[:, None]
+        x = np.arange(lo_x, hi_x, dtype=np.float32)
+        ramp = np.clip(np.minimum(x - (r0 - fe), (r1 + fe) - x) / max(1, fe), 0, 1)[None, :]
+        ramp[:, (x >= r0) & (x < r1)] = 1
+        span = a[:, lo_x:hi_x]
+        new = span + (target - span) * ramp
+        held = a[:, r0:r1] > 0.5
+        fill = np.stack([np.sum(straight[:, r0:r1, i] * held, axis=1) / np.maximum(held.sum(axis=1), 1)
+                         for i in range(3)], -1)[:, None, :]
+        rising = (new > span + 0.02) & (span < 0.5)
+        straight[:, lo_x:hi_x] = np.where(rising[..., None], fill, straight[:, lo_x:hi_x])
+        a[:, lo_x:hi_x] = new
+        pre = straight * a[..., None]
     if eb - ea > 4 * EVEN_FEATHER * C:
         band = straight[ry0:ry1, ea:eb]
         solid = (a[ry0:ry1, ea:eb] > 0.97).astype(np.float32)
@@ -257,6 +519,14 @@ def build(key):
     down = cy
     while down < len(lum_col) - 1 and lum_col[down + 1] <= edge_at:
         down += 1
+
+    # Where the two lines centre: in the middle of the well as it is painted
+    # (the painters measured the lines' tops on a mock at their own size), unless
+    # the well found does not hold the painter's lines (a bar with no well).
+    well_top_px, well_bot_px = up / k + y0, (down + 1) / k + y0
+    words_mid = text_mid
+    if not meta["bare"] and well_top_px < text_mid < well_bot_px and 0.3 < (well_bot_px - well_top_px) / core_h < 0.98:
+        words_mid = (well_top_px + well_bot_px) / 2
 
     # The keycap's paint: a light one wears a dark letter.
     kx0, kx1 = int(px(key_cap["cx"] - key_cap["w"] * 0.3)), int(px(key_cap["cx"] + key_cap["w"] * 0.3))
@@ -309,7 +579,7 @@ def build(key):
         "hangLeft": max(0.0, (sock["cx"] - (sock.get("r") or sock.get("half")) - x0) / core_h),
         "hangRight": max(0.0, (right_edge - (key_cap["cx"] + key_cap["w"] / 2)) / core_h - HANG_KEEP),
         "textX": text_x,
-        "textY": (text_mid - core_top) / core_h,
+        "textY": (words_mid - core_top) / core_h,
         "keycap": {"x": key_from_right, "y": (key_cap["cy"] - core_top) / core_h,
                    "w": key_cap["w"] / core_h, "h": key_cap["h"] / core_h},
         "ornament": {"x": (right_edge - ornament["cx"]) / core_h, "y": (ornament["cy"] - core_top) / core_h},
