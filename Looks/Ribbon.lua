@@ -81,6 +81,19 @@ local Ribbon = ns.Looks.Register("ribbon", {
 	-- take them darker, which on the crimson left the list's reasons black.
 	subOnDark = true,
 	inkOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/ribbon): the painting is
+	-- the cloth, its cords and fork, the medallion's gold, its glass and the
+	-- key's tag, so this file's own of those stand down. The wave and the
+	-- fluttering fork go with the cloth they were drawn for (a code-drawn fork
+	-- over the painted one tore it); the refusal's darkening is that cloth
+	-- drawn again, and the metal's light is the old laurel's. What carries a
+	-- meaning or moves on the painting stays: the enamel ring (the reason), the
+	-- gleams on the cords and round the ring, the rays, the shine, the tips'
+	-- glints, the count's badge, the list's small ribbons and their gems.
+	paintedHides = { "drop", "shade", "cloth", "trim", "dark", "hot", "wave", "medal", "gloss", "lit", "hover", "well",
+		"keyChip" },
+	-- The spell nearly fills the painted glass; the enamel lies round it.
+	paintedIconFill = 0.94,
 })
 
 -- The figures the generator draws to (tools/make_ribbon_textures.py): the rows
@@ -145,6 +158,10 @@ local VERDICT = {
 }
 -- The gold in a fight: bronze, never grey; the cloth dims, the icon greys.
 local GOLD_COMBAT, CLOTH_COMBAT, TEXT_COMBAT, ICON_COMBAT = { 0.66, 0.62, 0.56 }, 0.62, 0.86, 0.78
+-- A painted frame in a fight: dimmed, the gold towards bronze, never grey (a
+-- greyed crimson went to soot), and less than the cloth was, so the keycap's
+-- letter and the words keep their ground.
+local PAINT_COMBAT = { 0.78, 0.70, 0.64 }
 -- The owed breath: the medal's gold lit to this and back, this many breaths of
 -- 2.6 s, then it settles.
 local PULSE_PEAK, PULSE_ENAMEL = 0.60, 0.50
@@ -285,8 +302,14 @@ function Ribbon.AccentCarriers(p)
 end
 
 -- The medallion is sized by the panel's height, so the icon is too. Options
--- says so with this.
+-- says so with this. On the painted frame (Earlier art off) it is the painted
+-- socket's, by the painting's own layout.
 function Ribbon.IconSize(p)
+	local d, Painted = ns.PaintedData and ns.PaintedData.ribbon, ns.Looks.Painted
+	if d and Painted and not p.classicArt then
+		local g = Painted.Layout(d, p.width or 220, p.height or 44, p.fontSize)
+		return math.floor(2 * g.socketR * Ribbon.paintedIconFill + 0.5)
+	end
 	return Geometry(p.width or 220, p.height or 44, true).iconSize
 end
 
@@ -1086,6 +1109,11 @@ function Ribbon:Apply(p, above)
 	if not showIcon then self.textX = math.floor(jewelX + jewel / 2 + 6 + 0.5) end
 	-- The room the name always keeps at the right: the fork's depth and a margin.
 	self.rightBase = math.ceil(g.notch + 8)
+	-- Where a tag at the right stands, the medallion's rim the count's badge
+	-- goes on, and the band the list hangs from: the ribbon's own (a painted
+	-- frame moves them onto the painting, PaintedPlace).
+	self.chipRight, self.rim = g.notch + 5, g
+	self.listTop, self.listBottom, self.rowRight = g.top, g.bottom, W - 5
 
 	local gap = g.gap or Gap(fs)
 	local block = nameSz + gap + sub
@@ -1322,6 +1350,139 @@ function Ribbon:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): what Ribbon keeps, moved onto the
+-- painting. Looks/Painted.lua has laid the three pieces and put the icon in
+-- the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The painted medallion against its glass (the socket): its gold ring reaches
+-- this many of the glass's radii (art/looks/ribbon/meta.json's notes: 225 of
+-- 152), the enamel's file is drawn this many across so its channel lines the
+-- glass inside the gold, and the gleam's so it runs round the ring's middle.
+local RING_OF_GLASS, ENAMEL_OF_GLASS, ARC_OF_GLASS = 1.48, 1.38, 1.47
+-- With the icon off, the jewel fills this much of the glass.
+local JEWEL_OF_GLASS = 0.9
+
+function Ribbon:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local showIcon = p.showIcon and true or false
+	local W, H = self.W, self.H
+	local cx, cy = g.socketX, g.socketY
+	local R = g.socketR * RING_OF_GLASS
+	local band = g.unit
+	local coreTop, coreBottom, coreMid = g.top, g.top + band, g.top + band / 2
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	self.cx, self.cy, self.R = cx, cy, R
+	-- The count's badge on the painted ring's rim.
+	self.rim = { cx = cx, cy = cy, R = R }
+	self.medalOK = showIcon and R >= MEDAL_BADGE_FROM and self.smallH <= R * 0.75
+	-- The enamel (the reason) round the spell, inside the painted gold, and the
+	-- owed breath's light on it.
+	local enamel = 2 * g.socketR * ENAMEL_OF_GLASS
+	Disc(self.enamel, art, cx, cy, enamel)
+	Disc(self.enamelLit, art, cx, cy, enamel)
+	-- The gleams round the ring, the glint on its lip, the rays behind it.
+	for _, t in ipairs({ self.arc, self.idleArc }) do Disc(t, art, cx, cy, 2 * g.socketR * ARC_OF_GLASS) end
+	Disc(self.glint, art, cx - 0.60 * R, cy - 0.60 * R, 0.85 * R)
+	Disc(self.burst, art, cx, cy, 2 * BURST_REACH * R)
+	-- The rings spread from the ring's rim, held off the words and inside the
+	-- panel, as the old medallion's were.
+	if showIcon then
+		self.fx:Place(icon, R / RING_PEAK - g.iconSize / 2, g.iconSize)
+		local limitH = math.min(g.textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN)
+		local limitV = math.min(cy, H - cy) - kit.EDGE_MARGIN
+		self.fx:Fit(math.max(1, limitH), math.max(1, limitV), kit.SHAKE_LEFT)
+	end
+	-- With the icon off, the jewel carries the reason in the empty glass.
+	local jewel = 2 * g.socketR * JEWEL_OF_GLASS
+	for _, t in ipairs({ self.jewel, self.jewelSet }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+		t:SetSize(jewel, jewel)
+	end
+	-- The two lines centred on the well.
+	self.textX = g.textX
+	local dy = H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	-- The key's letter on the painted keycap (the tag is the painting's); the
+	-- lines and the count's tag keep left of it.
+	self.chipRight = math.ceil(W - keyL) + 3
+	self.rightBase = self.chipRight
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	self.roomBase = math.ceil(self.chipH * 1.75) + 5 + self.rightBase
+	-- The shine and its shade run along the painted cloth, from the ring to the
+	-- keycap; the gleam along the cords the same, a square the bar's height
+	-- whose two streaks lie on the cords.
+	local sweepW, sweepH = band * 1.5, band * 0.78
+	local from = cx + R + sweepW * 0.25
+	local by = math.max(10, keyL - sweepW * 0.5 - from)
+	for _, t in ipairs({ self.sweep, self.wake }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", from, -coreMid)
+		t:SetSize(sweepW, sweepH)
+	end
+	self.travelMove:SetOffset(by, 0)
+	self.wakeAnim.move:SetOffset(by, 0)
+	local railFrom = showIcon and (cx + R) or (cx + g.socketR)
+	for _, t in ipairs({ self.railGleam, self.idleRail }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", railFrom, -coreMid)
+		t:SetSize(band, band)
+	end
+	local railBy = math.max(0, g.keyX - railFrom)
+	self.railAnim.move:SetOffset(railBy, 0)
+	self.idleRailAnim.move:SetOffset(railBy, 0)
+	-- The glints on the painted fork's two tips.
+	local tip = Clamp(band * 0.62, 10, 26)
+	Disc(self.tips[1], art, g.right - band * 0.04, coreTop + band * 0.04, tip)
+	Disc(self.tips[2], art, g.right - band * 0.04, coreBottom - band * 0.04, tip)
+	-- The list's small ribbons hang from the painted cloth's cord, right of the
+	-- medallion (which hangs below the cloth only near its middle), on under
+	-- the fork as far as the old ribbon's reached (never short of the keycap's
+	-- far side); drawn over the painting, they start at the cord rather than
+	-- under it.
+	self.listTop, self.listBottom = coreTop - 2, coreBottom + 2
+	self.rowLeft = showIcon and (cx + R * 0.72) or math.max(4, cx - g.socketR)
+	local gem = Clamp(self.rowH - 5, 7, 16)
+	self.rowX = math.max(g.textX, self.rowLeft + gem + 8)
+	self.rowRight = math.max(self.rowX + 40, keyR + 3, math.min(W - 5, g.right - band * 0.4))
+	local rowWidth = math.max(20, self.rowRight - self.rowNotch - 4 - self.rowX)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	self.listShown, self.listAt = nil, nil
+	-- What runs at rest, asked again on the painting.
+	self.idleState = nil
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter on the painted keycap: the look's own gold where the
+-- painting asks for a light letter, else its ink; no shadow, no larger than
+-- the keycap holds.
+function Ribbon:PaintedStyled(g)
+	-- The list's small ribbons are this look's own cloth, brighter than the
+	-- painted well: the colour codes in their rows are held to that cloth too.
+	local words = self.kit.ink
+	words.hi = math.max(words.hi or 0, CLOTH_LUM)
+	local ink = g and g.keyInk
+	if not ink then return end
+	local c = Lum(ink[1], ink[2], ink[3]) > 0.4 and GOLD_INK or ink
+	self.paintedKeyInk = c
+	self.keyText:SetTextColor(c[1], c[2], c[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.66))
+	if path and size then
+		self.keyText:SetFont(path, math.min(math.max(size, most - 2), most), g.keyOutline and "OUTLINE" or (flags or ""))
+	end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the tags
 ---------------------------------------------------------------------------
 
@@ -1460,7 +1621,38 @@ function Ribbon:Chip(on)
 
 	local key = self:KeyLabel()
 	local lane
-	if key then
+	-- On the painted keycap the key takes no lane of the lines' own (the
+	-- keycap is already left out of them): its letter is there whenever a key
+	-- is and the lines have their least room (PlaceLines' 20 units) clear of
+	-- the keycap (on a prompt too narrow for that, the painting drawn small,
+	-- the lines run over it and the letter steps aside, as the old tag did),
+	-- and the tag below stays down.
+	local painted = ns.Looks.Painted.On(self)
+	if painted then
+		if key ~= self.keyLabel then
+			self.keyLabel = key
+			self.keyText:SetText(key or "")
+			-- A label wider than the keycap (a modifier, a controller's
+			-- glyphs) runs out over the cloth to its left, the lines kept
+			-- clear of it. Measured when the key changes.
+			local g = self.paintedArt.g
+			local boxW = math.max(g.keyW, key and (kit.TextWidth(self.keyText) or 0) + 4 or 0)
+			-- Kept inside the prompt where the painting's end hangs past it.
+			local x = boxW > g.keyW and math.min(g.keyX, self.W - boxW / 2) or g.keyX
+			self.keyBox:ClearAllPoints()
+			self.keyBox:SetPoint("CENTER", self.kit.art, "TOPLEFT", x, -g.keyY)
+			self.keyBox:SetWidth(boxW)
+			self.rightBase = math.ceil(self.W - (x - boxW / 2)) + 3
+			self.chipRight = self.rightBase
+			self.roomBase = math.ceil(self.chipH * 1.75) + 5 + self.rightBase
+			fit.right = nil
+		end
+		local up = key ~= nil and self.W - self.textX - self.rightBase >= 20
+		if up ~= self.keyUp or self.keyLane then
+			self.keyLane, self.keyUp = nil, up
+			fit.right = nil
+		end
+	elseif key then
 		if key ~= self.keyLabel then
 			self.keyLabel = key
 			self.keyText:SetText(key)
@@ -1476,7 +1668,9 @@ function Ribbon:Chip(on)
 		end
 		if not lane and self:NameFits(self.keyRoom) then lane = "name" end
 	end
-	if lane ~= self.keyLane then
+	if painted then
+		self.keyText:SetShown(self.keyUp)
+	elseif lane ~= self.keyLane then
 		self.keyLane, self.keyUp = lane, lane ~= nil
 		fit.right = nil
 		if lane then
@@ -1490,9 +1684,13 @@ function Ribbon:Chip(on)
 			PlaceThree(self.keyChip, self.keyBox, h)
 		end
 	end
-	if lane then self.keyBox:SetSize(math.floor(self.keyW + 0.5), self.keyBoxH) end
-	for _, t in ipairs(self.keyChip) do t:SetShown(lane ~= nil) end
-	self.keyText:SetShown(lane ~= nil)
+	if painted then
+		for _, t in ipairs(self.keyChip) do t:Hide() end
+	else
+		if lane then self.keyBox:SetSize(math.floor(self.keyW + 0.5), self.keyBoxH) end
+		for _, t in ipairs(self.keyChip) do t:SetShown(lane ~= nil) end
+		self.keyText:SetShown(lane ~= nil)
+	end
 
 	-- The count's tag is as wide as its words need, and the room the lines keep
 	-- for it as wide too (never less than two digits', Apply's), so the name
@@ -1530,14 +1728,14 @@ function Ribbon:Chip(on)
 			if mode == "medal" then
 				-- On the rim, at the lower right: as far round as keeps the badge
 				-- off the lines, and in the panel.
-				local g = self.g
+				local g = self.rim or self.g
 				local dx = math.min(0.6 * g.R, g.R + 3 - w / 2)
 				local dy = math.min(math.sqrt(math.max(0, g.R * g.R - dx * dx)), self.H / 2 - 1 - h / 2)
 				self.chipBox:SetPoint("CENTER", kit.art, "TOPLEFT", g.cx + dx, -(g.cy + dy))
 			elseif mode == "pair" then
 				self.chipBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
 			else
-				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -(self.g.notch + 5), two and self.nameY or 0)
+				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -(self.chipRight or self.g.notch + 5), two and self.nameY or 0)
 			end
 			PlaceThree(self.chip, self.chipBox, h)
 			count:ClearAllPoints()
@@ -1590,7 +1788,15 @@ function Ribbon:Cloth()
 	Colour(self.enamelLit, math.min(1, ring[1] * 1.25 + 0.1), math.min(1, ring[2] * 1.25 + 0.1), math.min(1, ring[3] * 1.25 + 0.1))
 	Colour(self.jewel, ring[1], ring[2], ring[3])
 	local tag = self.combat and TAG_INK_COMBAT or TAG_INK
+	-- On the painted keycap the letter is the painting's ink (PaintedStyled).
+	if ns.Looks.Painted.On(self) and self.paintedKeyInk then tag = self.paintedKeyInk end
 	self.keyText:SetTextColor(tag[1], tag[2], tag[3], 1)
+	-- The painted frame: a fight dims it (PAINT_COMBAT).
+	if self.combat then
+		ns.Looks.Painted.Tone(self, PAINT_COMBAT[1], PAINT_COMBAT[2], PAINT_COMBAT[3], false)
+	else
+		ns.Looks.Painted.Tone(self, 1, 1, 1, false)
+	end
 	-- The reason line: pale peach, a little towards the dye where the cloth is
 	-- dyed by the reason, never darker than the contrast it needs.
 	local sr, sg, sb = PEACH[1], PEACH[2], PEACH[3]
@@ -1623,6 +1829,9 @@ function Ribbon:PaintReason(r, g, b, reason, mode)
 		self.dyeNow = base
 	end
 	self.dyed = clothOn
+	-- A painted cloth takes no dye (a dye over the painting is mud): the
+	-- stripe's reason is the enamel's there, and the list's small ribbons'.
+	if clothOn and ns.Looks.Painted.On(self) then ringOn = true end
 	if ringOn then
 		self.ringNow = { Fired(r, g, b) }
 	else
@@ -1685,12 +1894,17 @@ function Ribbon:Idle()
 	end
 	-- Together from the top: the wave's end at the seam where the flutter's
 	-- first frame takes it up (both are worked out from the clock, so they
-	-- stay in step for as long as they play).
-	self.waveFlow:Phase(self.wavePhase or 0, 0)
-	self.waveFlow:Play()
-	for i, h in ipairs(self.flutter) do
-		-- The left fork is drawn only with no medallion.
-		if i <= 2 or not self.showIcon then h:Play() else h:Stop() end
+	-- stay in step for as long as they play). On a painted frame neither is
+	-- drawn: nothing of them runs.
+	if ns.Looks.Painted.On(self) then
+		self.flow:StopAll()
+	else
+		self.waveFlow:Phase(self.wavePhase or 0, 0)
+		self.waveFlow:Play()
+		for i, h in ipairs(self.flutter) do
+			-- The left fork is drawn only with no medallion.
+			if i <= 2 or not self.showIcon then h:Play() else h:Stop() end
+		end
 	end
 	for _, g in ipairs(self.idle) do
 		-- The gleam starts on the medallion's laurel.
@@ -1993,9 +2207,11 @@ function Ribbon:PaintQueue(rows, shown, above)
 	if self.listShown == shown and self.listAt == above then return end
 	self.listShown, self.listAt = shown, above
 
-	local g = self.g
+	-- The band the rows hang from: the ribbon's, or a painted frame's (Apply,
+	-- PaintedPlace).
+	local g = { top = self.listTop, bottom = self.listBottom }
 	local pitch, rh = self.pitch, self.rowH
-	local x0, x1 = self.rowLeft, self.W - 5
+	local x0, x1 = self.rowLeft, self.rowRight
 	local gem = Clamp(rh - 5, 7, 16)
 	for i = 1, shown do
 		local fs = kit.rows[i]

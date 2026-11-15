@@ -111,6 +111,9 @@ local function upIn(ns, scenario, edit, arriving, who)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "ribbon"
+	-- This file holds Ribbon's own art, which Earlier art draws (the painted
+	-- frame over it is painted-ribbon.lua's).
+	p.classicArt = true
 	p.showSub, p.showIcon, p.roundIcon = true, true, false
 	-- What an earlier call chose is not the next one's.
 	for _, key in ipairs({ "bgColor", "fontColor", "accentMode", "reasonPalette", "accentByReason", "accentColor",

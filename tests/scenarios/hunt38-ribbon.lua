@@ -44,6 +44,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "ribbon"
+	-- Ribbon's own art, which Earlier art draws (painted-ribbon.lua has the
+	-- painted frame).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Anna Aim")
