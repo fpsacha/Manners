@@ -457,8 +457,8 @@ _m(LEATHER,
    expect=S_LAND)
 
 _m(LEATHER,
-   "\t\t\tif full then\n\t\t\t\tPlayAll(self.arrive)\n\t\t\telse\n",
-   "\t\t\tif true then\n\t\t\t\tPlayAll(self.arrive)\n\t\t\telse\n",
+   "\t\t\tif full then\n\t\t\t\tPlayAll(self.arrive, self:Held())\n\t\t\telse\n",
+   "\t\t\tif true then\n\t\t\t\tPlayAll(self.arrive, self:Held())\n\t\t\telse\n",
    "the tag swings in on Calm",
    expect=S_CALM)
 
