@@ -66,6 +66,16 @@ local Lightbringer = ns.Looks.Register("lightbringer", {
 	-- The words stand on the enamel whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/lightbringer): the
+	-- plate, its shadow, the bezel, the sun's rays and their warm tone (the
+	-- painting has its own sun, sixteen rays turning over it would not be its
+	-- rays), the gem (the libram's radiant core is the painting's) and the
+	-- key's tag are the painting's. The nimbus, the halo, the flashes, the
+	-- inlay, the glint, the gem's twinkle, the list's plate and the count's tag
+	-- stay, moved onto it.
+	paintedHides = { "shadow", "body", "sun", "rays", "raysWarm", "gem", "keyChip" },
+	-- The icon leaves the dark glass a ring round it, where the nimbus lies.
+	paintedIconFill = 0.74,
 })
 
 -- MUST AGREE with tools/make_lightbringer_textures.py
@@ -137,6 +147,9 @@ local OUTCOME = {
 }
 -- What a fight does: the text dims, the icon greys and dims, the plate dims.
 local TEXT_COMBAT, ICON_COMBAT, BODY_COMBAT = 0.78, 0.70, 0.78
+-- A painted frame (Looks/Painted.lua) is dimmed less: its light keycap keeps
+-- its dark letter.
+local PAINT_COMBAT = 0.86
 -- The nimbus at rest, lit and held after its breaths; the rays' warm second
 -- tone, the halo and the inlay's soft core over the same breath.
 local NIMBUS_REST, NIMBUS_PEAK, NIMBUS_HELD = 0.72, 1.00, 0.92
@@ -946,6 +959,10 @@ function Lightbringer:Apply(p, above)
 		fit.room[row] = rowWidth
 	end
 	self.listShown, self.listAt = nil, nil
+	-- The list's plate under this plate; a painted frame (PaintedPlace) moves
+	-- it, and the key's letter, which it puts on its keycap.
+	self.listX0, self.listX1, self.listGap = plateX, W, 0
+	self.keyText:SetParent(kit.textLayer)
 
 	-- Everything shown, then what waits: the lights parked at nothing, the
 	-- list for PaintQueue, the chips for Chip.
@@ -999,6 +1016,8 @@ end
 function Lightbringer:Idle()
 	local on = self.active and not self.combat and self.kit.FullEffects()
 	local sun = on and self.kit.icon:IsShown()
+	-- Under a painted frame its own rays are hidden: nothing of them turns.
+	if ns.Looks.Painted and ns.Looks.Painted.On(self) then sun = false end
 	if sun then
 		if not self.turns[1]:IsPlaying() then
 			for _, g in ipairs(self.turns) do
@@ -1124,6 +1143,146 @@ function Lightbringer:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): the look's own lights, tags and lines
+-- moved onto the painting. Looks/Painted.lua has laid the three pieces and put
+-- the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The painted sun's crown across, rays and all, in units of the bar's core
+-- (art/looks/lightbringer/meta.json: y 256-785 on a slab of 398); where the
+-- white-gold top rail runs, down from the core's top; the libram's radiant
+-- core, across, in the same units.
+local SUN_SPAN, RAIL_AT, CORE_W = 1.33, 0.07, 0.17
+-- The key's letter is at most this much of the keycap's height; a keycap
+-- whose letter would be under KEY_LEAST points is too small to hold it.
+local KEY_FILL, KEY_LEAST = 0.7, 7
+
+function Lightbringer:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, icon = kit.art, kit.icon
+	local H = self.H
+	local showIcon = p.showIcon and true or false
+	local sx, sy = g.socketX, g.socketY
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	local discRight = sx + g.socketR
+	-- The socket is the sun: the nimbus in the dark glass round the icon, the
+	-- halo over it, the flashes as large as the painted crown.
+	local iconSize = g.iconSize
+	local bz = iconSize / ICON_FRAME
+	self.iconSize, self.cx, self.bz, self.bezelRight = iconSize, sx, bz, discRight
+	self.textX = g.textX
+	At(self.nimbus, art, sx, sy, bz)
+	local bloom = math.min(bz * GLOW_SCALE, H - 2 * kit.EDGE_MARGIN)
+	At(self.halo, art, sx, sy, bloom)
+	At(self.haloHot, art, sx, sy, bloom)
+	local raysSize = g.unit * SUN_SPAN / RAY_TIP
+	self.raysSize = raysSize
+	At(self.raysHot, art, sx, sy, raysSize)
+	if showIcon then
+		self.fx:Place(icon, self.fx.ThinPad(iconSize, bz / 2 - iconSize / 2 + 1), iconSize)
+		local limitH = math.min(g.textX - sx - kit.TEXT_MARGIN, sx - kit.EDGE_MARGIN)
+		local limitV = math.min(sy, H - sy) - kit.EDGE_MARGIN
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+	end
+	-- The pillar comes down onto the socket; the wings spread from it.
+	local pillarW = bz * PILLAR_W
+	local pillarUp = above and 0 or H * PILLAR_UP
+	Box(self.pillar, art, sx - pillarW / 2, -pillarUp, sx + pillarW / 2, sy)
+	local wing = math.min(H * WING_H, WING_MAX)
+	local root = bz * WING_ROOT
+	Box(self.wings[1], art, sx + root, sy - wing, sx + root + wing, sy)
+	Box(self.wings[2], art, sx - root - wing, sy - wing, sx - root, sy)
+	-- The gem's twinkle on the libram's radiant core at the far end (the gem is
+	-- the painting's core; the inlay carries the stripe's colour alone).
+	local gemW = math.max(4, g.unit * CORE_W)
+	self.gemX = g.endX
+	local star = math.max(6, gemW * 1.8)
+	At(self.gemStar, art, g.endX, g.endY, star)
+	At(self.gemStarOnce, art, g.endX, g.endY, star)
+	-- The inlay along the well's lower edge, from the words to the keycap.
+	local inlayY = g.wellBottom
+	Box(self.inlay, art, g.textX - 2, inlayY - INLAY_H / 2, keyL - 2, inlayY + INLAY_H / 2)
+	Box(self.core, art, g.textX - 2, inlayY - INLAY_H / 2, keyL - 2, inlayY + INLAY_H / 2)
+	self.inlayOK = keyL - g.textX >= 16
+	self.inlay:SetShown(self.inlayOK)
+	self.core:SetShown(self.inlayOK)
+	-- The motes rise from the top rail, between the words' start and the keycap.
+	local span = math.max(0, keyL - g.textX)
+	local rise = above and 3 or MOTE_RISE
+	for i, t in ipairs(self.motes) do
+		At(t, art, g.textX + span * (i - 0.5) / MOTES, g.top + 1, 6)
+		self.moteAnims[i].move:SetOffset(0, rise)
+	end
+	self.motesOK = span >= 40
+	-- The glint along the white-gold top rail, from the socket to the keycap.
+	local glintW = 26
+	local glintY = g.top + g.unit * RAIL_AT
+	local glintX0 = discRight + glintW / 2
+	local glintRun = keyR - glintW / 2 - glintX0
+	self.greetOK = glintRun >= 30
+	At(self.glint, art, glintX0, glintY, glintW, 3)
+	At(self.glintOnce, art, glintX0, glintY, glintW, 3)
+	self.glintLoop.move:SetOffset(math.max(0, glintRun), 0)
+	self.sheenAnim.move:SetOffset(math.max(0, glintRun), 0)
+	-- The cursor's light along the bar's upper edge.
+	Box(self.hoverFrame, art, discRight, g.top, keyR, g.top + g.unit * 0.18)
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap (its own tag is the painting's);
+	-- the lines and the count's tag keep left of it.
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	-- The letter is part of the keycap: a fight's dim of the words (textLayer's
+	-- alpha) would leave a dark letter grey on the light metal.
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+	-- The list from the socket to the keycap's far side, clear of the rays.
+	self.rowX, self.listX0 = math.max(g.textX, 24), math.max(2, sx)
+	if above and showIcon then
+		self.listX0 = discRight + 1
+		self.rowX = math.max(self.rowX, self.listX0 + 17)
+	end
+	self.listX1 = math.max(self.rowX + 30, keyR + 3)
+	self.listGap = math.max(0, (above and -g.y0 or (g.y1 - H)) * 0.85)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	self.listShown, self.listAt = nil, nil
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter is dark on the painted keycap's light gold.
+function Lightbringer:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetShadowOffset(0, 0)
+	-- No larger than the keycap holds, so the letter stays on it.
+	local path, size = self.keyText:GetFont()
+	local most = math.floor(g.keyH * KEY_FILL)
+	-- A keycap too small for a letter (the painting's is a small one: a prompt
+	-- of the smallest sizes) has the letter spill past it onto the dark well:
+	-- there it is cream, outlined dark, which reads on either.
+	local tiny = most < KEY_LEAST
+	most = math.max(6, most)
+	if path and size then
+		self.keyText:SetFont(path, math.min(size, most), (tiny or g.keyOutline) and "OUTLINE" or "")
+	end
+	if tiny then
+		self.keyText:SetTextColor(TAG_INK[1], TAG_INK[2], TAG_INK[3], 1)
+	else
+		self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1234,11 +1393,17 @@ function Lightbringer:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.chipInset + 7)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1372,6 +1537,9 @@ function Lightbringer:Dull(on)
 	local f = on and BODY_COMBAT or 1
 	Each(self.body, "SetDesaturated", on)
 	for _, t in ipairs(self.body) do Colour(t, pc[1] * f, pc[2] * f, pc[3] * f) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	f = on and PAINT_COMBAT or 1
+	ns.Looks.Painted.Tone(self, pc[1] * f, pc[2] * f, pc[3] * f, on)
 end
 
 -- The plate holds; it and the sun dull, the icon greys, the words dim and the
@@ -1641,8 +1809,12 @@ function Lightbringer:PaintQueue(rows, shown, above)
 	self.listShown, self.listAt = shown, above
 
 	local pitch = self.pitch
-	local depth = shown * pitch + 6
-	local W, H = self.W, self.H
+	-- Under a painted frame the rows keep clear of what the painting hangs
+	-- past the bar (its sun's rays): the plate runs on under them.
+	local gap = self.listGap or 0
+	local depth = shown * pitch + 6 + gap
+	local H = self.H
+	local x0, x1 = self.listX0 or self.plateX, self.listX1 or self.W
 	local y0, y1
 	if above then
 		y1 = self.plateIn
@@ -1651,9 +1823,9 @@ function Lightbringer:PaintQueue(rows, shown, above)
 		y0 = H - self.plateIn
 		y1 = H + depth
 	end
-	PlaceBody(self.listBody, art, self.plateX, y0, W, y1)
+	PlaceBody(self.listBody, art, x0, y0, x1, y1)
 	Each(self.listBody, "Show")
-	self:PlaceShadow({ self.plateX, y0, W, y1 })
+	self:PlaceShadow({ x0, y0, x1, y1 })
 
 	local bead = self.sub + 3
 	for i = 1, shown do
@@ -1661,9 +1833,9 @@ function Lightbringer:PaintQueue(rows, shown, above)
 		-- Row centres, reading downwards either way.
 		local y
 		if above then
-			y = -(3 + (shown - i) * pitch + pitch / 2)
+			y = -(3 + gap + (shown - i) * pitch + pitch / 2)
 		else
-			y = H + 3 + (i - 1) * pitch + pitch / 2
+			y = H + 3 + gap + (i - 1) * pitch + pitch / 2
 		end
 		fs:ClearAllPoints()
 		fs:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -y)

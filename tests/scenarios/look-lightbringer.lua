@@ -72,6 +72,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "lightbringer"
+	-- This file holds Lightbringer's own art, which Earlier art draws (the
+	-- painted frame over it is painted-lightbringer.lua's).
+	p.classicArt = true
 	p.effects = "full"
 	p.flashStyle = "pulse"
 	p.showIcon = true
@@ -255,6 +258,7 @@ withTree("look-lightbringer: a favour arriving brings the pillar down", ANNA, fu
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon = "lightbringer", "full", "pulse", true
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	ns.addon:Tick()
 	local look = ns.Prompt:Regions().look
@@ -391,6 +395,7 @@ withTree("look-lightbringer: the sun turns at rest, on Full and out of a fight",
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "lightbringer", "full", "pulse", true, false
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	local look = ns.Prompt:Regions().look
