@@ -619,7 +619,12 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
 - **Examples caveat**: the first lines of the pools are the phrase box's
   examples, and a player's saved box is recognised by matching them exactly.
   Never reword or reorder the first lines of a pool; append. A reworded
-  example goes into `RP.LEGACY.reworded` as it read before. Giving a people
+  example goes into `RP.LEGACY.reworded` as it read before (the second
+  rewording, every line tied to the spell, into `reworded2`: `RP.BETWEEN` is the
+  box saved between the two, `RP.BEFORE` goes back through both; a third
+  rewording needs a third list, since a box saved between holds the last
+  one's old lines). `tools/legacy_lines.py --write-other` hashes those old
+  lines too, so such a box opens in another language. Giving a people
   its first pool changes its examples (as for the Haranir in 1.7.2). The same
   holds for TRANSLATIONS: rewording a translation of one of a pool's first lines
   in `Locales/<code>.lua` makes every box saved before it read as the player's

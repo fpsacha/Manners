@@ -65,6 +65,9 @@
 ### What I say
 - **The Forsaken have about a hundred new In character lines**, in every
   language: Undercity, Brill, the apothecaries and loose stitching.
+- **In character lines that were only local colour now speak to the favour
+  itself.** About nine hundred lines, in every language; a phrase box you saved
+  is still recognised.
 
 ## 1.11.25
 

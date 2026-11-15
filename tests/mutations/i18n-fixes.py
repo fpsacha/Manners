@@ -52,8 +52,8 @@ mutate("Phrases.lua",
 # table (what 1.6.6 did to every box before it): the digest of the examples
 # no longer matches the one the table was made for.
 mutate("Locales/koKR.lua",
-       "L[\"Ishnu-alah, {name}. Elune keeps her children close.\"] = \"이슈누 알라, {name}. 엘룬께선 자녀들을 늘 곁에 두시지요.\"",
-       "L[\"Ishnu-alah, {name}. Elune keeps her children close.\"] = \"이슈누 알라, {name}. 엘룬께서는 자녀들을 늘 곁에 두십니다.\"",
+       "L[\"Ishnu-alah, {name}. Elune keeps her children close, and so do I.\"] = \"이슈누 알라, {name}. 엘룬은 자녀들을 곁에 두시죠. 저도 그렇고요.\"",
+       "L[\"Ishnu-alah, {name}. Elune keeps her children close, and so do I.\"] = \"이슈누 알라, {name}. 엘룬께서는 자녀들을 곁에 두십니다. 저도요.\"",
        "i18n-fix an example translated again with no earlier text kept",
        expect="i18n-fix: old box: the examples read as the table of earlier translations was made for",
        script="runscenarios.py")

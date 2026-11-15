@@ -182,6 +182,18 @@ def line_hash(text):
     return h
 
 
+def reworded_keys():
+    """The English keys RP.LEGACY.reworded and reworded2 keep as the examples read
+    before: the second string of each pair."""
+    text = open(os.path.join(ROOT, "Phrases.lua"), encoding="utf-8").read()
+    i = text.find("\nRP.LEGACY = {")
+    j = text.find("\n}\n", i)
+    keys = set()
+    for m in re.finditer(r'\{ L\["((?:[^"\\]|\\.)*)"\],\s*L\["((?:[^"\\]|\\.)*)"\] \}', text[i:j]):
+        keys.add(m.group(2).replace('\\"', '"').replace("\\\\", "\\"))
+    return keys
+
+
 def other_table(races, classes):
     """(English keys, {hash: key index, 1-based}, conflicts) for every ready-made set
     line and every example line the addon has, in all its languages."""
@@ -191,16 +203,23 @@ def other_table(races, classes):
         if parts[0] == "SET":
             keys.add(parts[2])
     keys |= saved_lines(ROOT, "enUS", races, classes)
-    keys = sorted(keys)
+    current = set(keys)
+    # The example lines as they read before RP.LEGACY.reworded and reworded2:
+    # a box saved with them in one language is read on a client in another
+    # too. They only fill hashes nobody else has, so a text an old line and a
+    # current one share keeps pointing at the current one.
+    older = reworded_keys() - current
+    keys = sorted(current | older)
     index = {key: i + 1 for i, key in enumerate(keys)}
     hashes, texts, conflicts = {}, {}, []
     translated = {code: translations(ROOT, code) for code in FILES}
-    for key in keys:
+    for key in sorted(current) + sorted(older):
         readings = {key} | {tr[key] for tr in translated.values() if key in tr}
-        for text in readings:
+        for text in sorted(readings):
             h = line_hash(text)
             if h in hashes and hashes[h] != index[key]:
-                conflicts.append((text, keys[hashes[h] - 1], key))
+                if key in current:
+                    conflicts.append((text, keys[hashes[h] - 1], key))
             else:
                 hashes[h] = index[key]
                 texts[h] = text

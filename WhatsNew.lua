@@ -38,6 +38,7 @@ ns.WhatsNew = {
 		} },
 		{ title = "What I say", accent = "7cc4ff", entries = {
 			"|cff7cc4ffThe Forsaken have about a hundred new In character lines|r , in every language: Undercity, Brill, the apothecaries and loose stitching.",
+			"|cff7cc4ffIn character lines that were only local colour now speak to the favour itself.|r About nine hundred lines, in every language; a phrase box you saved is still recognised.",
 		} },
 	} },
 	{ version = "1.11.25", date = "14 November 2026", sections = {
