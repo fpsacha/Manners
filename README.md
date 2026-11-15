@@ -1227,7 +1227,9 @@ fight ends (see *In a fight*), and the bar macro keeps what it held.
 your target back: it is the only shape that reaches a passing stranger on any
 client, since `[@Name]` resolves only for somebody already in your party or
 raid. So somebody the game can no longer name for you cannot be reached, and
-a pet named as somebody in your group is left out.
+a pet named as somebody in your group is left out. In a fight your target is
+handed back only when the press found the person: with them gone, your enemy
+stays targeted.
 
 **It cannot see line of sight**, so a buff can still fail round a corner, and
 it sees passers-by mostly through the game's friendly nameplates.

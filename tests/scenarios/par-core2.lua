@@ -203,3 +203,189 @@ crowd("par-core2: the fight over with nobody left, the second line no longer spe
 		fail(scenario, "after the fight the panel still reads " .. after)
 	end
 end)
+
+-- ------------------------------------------------------------------ 2
+-- Three people owed on nameplates, Forever unless named, the prompt up on one
+-- of them (fight-rota.lua's own fixture).
+local PEOPLE = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bob", "Bright" }, nameplate3 = { "Cara", "Cole" } }
+local NAMES = { "Anna Aim", "Bob Bright", "Cara Cole" }
+
+local function owedThree(scenario, body, opts)
+	opts = opts or {}
+	Mock.reset()
+	Mock.setFlavour(opts.flavour or "camelot")
+	local restore = strangers(opts.people or PEOPLE)
+	local ok, err = true, nil
+	local ns = load(scenario)
+	if ns then
+		ok, err = pcall(function()
+			freshPrompt(ns, scenario)
+			Mock.timers = {}
+			Mock.secureActions = true
+			Mock.eventSink = ns.addon
+			if opts.edit then opts.edit(ns.db.profile, ns) end
+			ns.Prompt:ApplyStyle()
+			for _, name in ipairs(opts.owed or NAMES) do owe(ns, name) end
+			ns.addon:Tick()
+			Mock.runTimers(0)
+			body(ns, scenario)
+			guarded(ns, scenario)
+		end)
+	end
+	Mock.inCombat = false
+	restore()
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+local function press()
+	Mock.advance(2)
+	Mock.pressBinding(BINDING)
+end
+
+local BOAR = { unit = "mob", name = "Boar", hostile = true }
+local EARLIER = { unit = "nameplate9", name = "Someone Earlier" }
+
+-- The one whose turn it is has gone from the client's view since the pull:
+-- the /target finds nobody, the mob stays targeted, and the hand-back must
+-- not then switch you off it.
+owedThree("par-core2: a press in a fight whose /target finds nobody leaves your mob targeted", function(ns, scenario)
+	pull(ns)
+	local text = ns.Prompt:GetButton():GetAttribute("macrotext1") or ""
+	local first = text:match("/target ([^\n]+)")
+	if not first then fail(scenario, "SKIPPED -- nothing armed at the pull") return end
+	Mock.runTarget, Mock.runLastTarget = BOAR, EARLIER
+	for unit, n in pairs(PEOPLE) do
+		if n[1] .. " " .. n[2] == first then Mock.unitNames[unit] = nil end
+	end
+	press()
+	local now = Mock.runTarget and Mock.runTarget.name
+	if now ~= "Boar" then fail(scenario, "a press at " .. first .. ", who is gone, left you targeting " .. tostring(now) .. ", not your mob: " .. flat(text)) end
+	-- The next one is there: the press reaches them and gives the mob back.
+	local before = #Mock.castLog
+	press()
+	now = Mock.runTarget and Mock.runTarget.name
+	if now ~= "Boar" then fail(scenario, "a press that reached somebody handed back " .. tostring(now) .. ", not your mob") end
+	local casts = castsSince(before)
+	if #casts ~= 1 or casts[1].target == "Boar" then
+		fail(scenario, "the second press did not cast at the next person: " .. tostring(casts[1] and casts[1].target))
+	end
+	release(ns)
+end)
+
+-- With no rota (one person owed) the macro the pull armed runs every press:
+-- the same, and the shape is the one the client parses: a bare [help], no
+-- [@unit].
+owedThree("par-core2: the macro armed for a fight hands back only after a /target that found somebody friendly", function(ns, scenario)
+	-- Out of a fight the hand-back is as it was: the scan arms it for what is
+	-- targeted at that moment.
+	local out = ns.Prompt:GetButton():GetAttribute("macrotext1") or ""
+	local tail = out:match("([^\n]+)$")
+	if tail ~= "/targetlasttarget" and tail ~= "/cleartarget" then fail(scenario, "out of a fight the macro ends " .. tostring(tail)) end
+	pull(ns)
+	local text = ns.Prompt:GetButton():GetAttribute("macrotext1") or ""
+	local last = text:match("([^\n]+)$")
+	if last ~= "/targetlasttarget [help]" then fail(scenario, "the fight's macro ends " .. tostring(last) .. ": " .. flat(text)) end
+	if text:find("@", 1, true) then fail(scenario, "the fight's macro names a unit in a conditional: " .. flat(text)) end
+	Mock.runTarget, Mock.runLastTarget = BOAR, EARLIER
+	Mock.unitNames.nameplate1 = nil
+	press()
+	if not (Mock.runTarget and Mock.runTarget.name == "Boar") then
+		fail(scenario, "with Anna gone a press left you targeting " .. tostring(Mock.runTarget and Mock.runTarget.name))
+	end
+	release(ns)
+end, { people = { nameplate1 = { "Anna", "Aim" } }, owed = { "Anna Aim" } })
+
+-- The bar macro the pull writes carries the same hand-back, is still Manners'
+-- own (Clicks.lua, Shaped), and keeps the mob too.
+owedThree("par-core2: the bar macro in a fight keeps your mob when its /target finds nobody", function(ns, scenario)
+	ns.CreateClickMacro()
+	Mock.dropOnBar(2)
+	for _ = 1, 3 do Mock.advance(1) ns.addon:Tick() Mock.runTimers(0) end
+	pull(ns)
+	local m = Mock.macroList[GetMacroIndexByName("Manners")]
+	local body = m and m.body or ""
+	if not body:find("/targetlasttarget [help]", 1, true) then fail(scenario, "the bar macro written at the pull is " .. flat(body)) return end
+	-- Read back after the fight as Manners' own, not as lines somebody edited.
+	Mock.runTarget, Mock.runLastTarget = BOAR, EARLIER
+	Mock.unitNames.nameplate1 = nil
+	Mock.advance(2)
+	Mock.pressBar(2)
+	if not (Mock.runTarget and Mock.runTarget.name == "Boar") then
+		fail(scenario, "a bar press at somebody gone left you targeting " .. tostring(Mock.runTarget and Mock.runTarget.name))
+	end
+	release(ns)
+end, { people = { nameplate1 = { "Anna", "Aim" } }, owed = { "Anna Aim" } })
+
+-- A body a fight left in the macro (a /reload or a crash in one) is Manners'
+-- own at the next login, and written over; the same hand-back on any other
+-- conditional is the player's.
+local BAR_LINE = "/click MannersBar"
+for i, case in ipairs({
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/targetlasttarget [help]", ours = true },
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/targetlasttarget [harm]" },
+	{ BAR_LINE .. "\n/target Bob Bright\n/cast Arcane Intellect\n/cleartarget [help]" },
+}) do
+	local scenario = ("par-core2: the fight's bar macro left from a session before is Manners' own (%d)"):format(i)
+	Mock.reset()
+	Mock.setFlavour("camelot")
+	local restore = strangers({})
+	Mock.macroList[1] = { name = "Manners", icon = "INV_MISC_NOTE_03", body = case[1] }
+	local ns = load(scenario)
+	if ns then
+		local ok, err = pcall(function()
+			ns.addon:OnInitialize()
+			ns.addon:OnEnable()
+			Mock.runTimers(3)
+			local now = Mock.macroList[1] and Mock.macroList[1].body
+			local state = ns.BarMacroState()
+			if case.ours and (state ~= "ours" or now ~= BAR_LINE) then
+				fail(scenario, ("%s, a shape Manners writes, is %s and holds %s"):format(flat(case[1]), tostring(state), flat(now)))
+			elseif not case.ours and (state ~= "foreign" or now ~= case[1]) then
+				fail(scenario, ("%s, a body of the player's, is counted %s and holds %s"):format(flat(case[1]), tostring(state), flat(now)))
+			end
+			guarded(ns, scenario)
+		end)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+	restore()
+	Mock.reset()
+end
+
+-- /manners selftest launch is where the game answers whether [help] reads the
+-- target as UnitCanAssist does: said in the hand-back's check, and a client
+-- whose parser disagrees reads CHECK.
+for i, case in ipairs({
+	{ target = { unit = "nameplate1", name = "Anna Aim" }, assist = true, status = "PASS", says = '[help] answers "yes"' },
+	{ target = BOAR, assist = false, status = "PASS", says = '[help] answers "no"' },
+	{ target = BOAR, assist = true, status = "CHECK", says = "does not read the target as UnitCanAssist does" },
+}) do
+	local scenario = ("par-core2: the launch check says what [help] reads (%d)"):format(i)
+	Mock.reset()
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local exists, assist = UnitExists, UnitCanAssist
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		if not (ns.Selftest and ns.Selftest.RunLaunch) then fail(scenario, "SKIPPED -- SelftestLaunch.lua did not load") return end
+		UnitExists = function() return true end
+		UnitCanAssist = function() return case.assist end
+		Mock.runTarget = case.target
+		local results, finish = ns.Selftest.RunLaunch({ createMacro = false })
+		finish()
+		local found
+		for _, r in ipairs(results) do
+			if r.id == "launch.handback" then found = r end
+		end
+		if not found then
+			fail(scenario, "the hand-back's check reported nothing")
+		elseif found.status ~= case.status or not tostring(found.value):find(case.says, 1, true) then
+			fail(scenario, ("the hand-back's check reads %s: %s"):format(tostring(found.status), tostring(found.value)))
+		end
+	end)
+	UnitExists, UnitCanAssist = exists, assist
+	restore()
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end

@@ -1238,6 +1238,19 @@ Launch("launch.handback", "/cleartarget hand-back", function(add)
 		worse("nothing is targeted, yet the armed macro would bring an old target back")
 	end
 	parts[#parts + 1] = nothing and "nothing targeted: a press hands back with /cleartarget" or "something is targeted: a press hands it back with /targetlasttarget; clear your target and run this again to see the other"
+	-- The macro armed for a fight hands back with "/targetlasttarget [help]"
+	-- (Prompt/Macro.lua, HandBack): the client's parser must read [help] as
+	-- the target's friendliness, or a press in a fight hands nothing back.
+	local okH, help = Ask(_G.SecureCmdOptionParse, "[help] yes; no")
+	local okA, assist = Ask(_G.UnitCanAssist, "player", "target")
+	parts[#parts + 1] = ("in a fight: [help] answers %s, UnitCanAssist %s"):format(
+		okH == true and Show(help) or "an error", okA == true and Show(assist) or "n/a")
+	if okH ~= true then
+		worse("SecureCmdOptionParse cannot read [help], so a press in a fight may not hand your target back")
+	elseif okX == true and Plain(exists) == true and okA == true and type(Plain(assist)) == "boolean"
+		and (Plain(help) == "yes") ~= Plain(assist) then
+		worse("[help] does not read the target as UnitCanAssist does; target a friend, then a mob, and run this again")
+	end
 	add(status, table.concat(parts, "; ") .. (#notes > 0 and (" -- " .. table.concat(notes, "; ")) or ""))
 end)
 

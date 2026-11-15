@@ -946,8 +946,20 @@ had left. The pull's own repaint now arms from the queue less every passer-by
 offered from memory alone (`Prompt/Fight.lua` `ForFight`, Queue.lua's
 `remembered` on an `OfferPassersBy` entry); an asker and a favour owed stay.
 The fuse after a fight repaints a second line that still spoke of the rota.
-Only the live game can say: that a questing pull just after somebody ran past
-leaves the prompt down (or on whoever is still beside you).
+Closed: a press in a fight whose `/target` found nobody (the person gone from
+view since the pull) handed your target back anyway, taking you off the mob
+for that press and every one after. The macro armed for a fight now ends
+`/targetlasttarget [help]` (`Prompt/Macro.lua` `HandBack`; Clicks.lua's
+`Shaped` takes it as Manners' own); out of a fight the hand-back is as before.
+The mock's runner now asks `SecureCmdOptionParse` for the hand-back as the
+client's handler does, and reads `[help]`, `[harm]` and `[exists]` off its
+target. Only the live game can say: that a questing pull just after somebody
+ran past leaves the prompt down (or on whoever is still beside you); that
+Forever's parser reads a bare `[help]` as the target's friendliness (run
+`/manners selftest launch` with a friend targeted and again with a mob: the
+hand-back's line says `[help] answers "yes"`, then `"no"`); and, in a real
+fight, a press at somebody who has run off leaving your mob targeted, then
+the next press at somebody there giving the mob back.
 
 **The credit line.** `diagnostics.aboutNote` names the author's
 character (`ns.AUTHOR`, Clicks.lua), in the options window's footer under the

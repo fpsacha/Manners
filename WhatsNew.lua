@@ -108,6 +108,7 @@ ns.WhatsNew = {
 			"|cffff9a52Options.|r Search no longer says to turn on a switch that is on, or one that would show your class nothing; with |cffffffffShow spell icon|r off its sub-options are gone; a greyed-out button shows its tooltip.",
 			"|cffff9a52Looks.|r A cure that lands reads \"cured\", not \"buffed\"; on seven looks the next favour no longer cuts a landing's flourish short; Warchief's soot fades once under a verdict; flowing art picks up where it stopped after a fight.",
 			"|cffff9a52A fight just after a crowd passed.|r A passer-by who walked off a few seconds before the pull is no longer frozen on the prompt for the fight, nor put in its rota; the fight over, the second line no longer says where the rota stood.",
+			"|cffff9a52A press in a fight keeps your enemy targeted.|r When the person whose turn it is has gone out of sight, the press no longer switches you off the mob onto whatever you had targeted before.",
 		} },
 	} },
 	{ version = "1.11.24", date = "13 November 2026", sections = {

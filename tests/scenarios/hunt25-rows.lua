@@ -475,8 +475,9 @@ do
 		local second = named(r, 2)
 		if not second then return skipped(scenario, "no second name") end
 		for _, b in ipairs(r.rowButtons) do Mock.protect(b) end
-		local frozen = ns.Prompt:GetButton():GetAttribute("macrotext1")
 		ns.addon:PLAYER_REGEN_DISABLED()
+		-- What the pull armed (its hand-back is the fight's own: Macro.lua).
+		local frozen = ns.Prompt:GetButton():GetAttribute("macrotext1")
 		Mock.inCombat = true
 		Mock.protectedCalls = {}
 		ns.pendingClick = nil

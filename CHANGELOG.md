@@ -224,6 +224,9 @@
   seconds before the pull is no longer frozen on the prompt for the fight, nor
   put in its rota; the fight over, the second line no longer says where the
   rota stood.
+- **A press in a fight keeps your enemy targeted.** When the person whose
+  turn it is has gone out of sight, the press no longer switches you off the
+  mob onto whatever you had targeted before.
 
 ## 1.11.24
 

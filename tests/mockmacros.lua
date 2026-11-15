@@ -491,7 +491,9 @@ function Mock.execLine(line)
 	elseif command == "cleartarget" then
 		retarget(nil)
 	elseif command == "targetlasttarget" then
-		retarget(Mock.runLastTarget)
+		-- As the client's handler: SecureCmdOptionParse of the rest, and the
+		-- last target back only on an answer ("" for no conditional).
+		if SecureCmdOptionParse(rest) then retarget(Mock.runLastTarget) end
 	elseif command == "cast" then
 		castLine(rest)
 	elseif command == "use" then

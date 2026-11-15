@@ -39,6 +39,53 @@ mutate(REFRESH,
        "par-core2: the memory is left out of every repaint",
        expect="par-core2: out of a fight a passer-by who walked off is still offered", script=S)
 
+# 2. The fight's hand-back runs only after a /target that found somebody
+# friendly.
+MACRO = "Prompt/Macro.lua"
+MOB = "par-core2: a press in a fight whose /target finds nobody leaves your mob targeted"
+
+mutate(MACRO,
+       "\tif Prompt.armedForFight == true then return FIGHT_HANDBACK end\n",
+       "",
+       "par-core2: the fight's macro hands back whatever the /target found",
+       expect=MOB, script=S)
+
+mutate(MACRO,
+       "local FIGHT_HANDBACK = \"/targetlasttarget [help]\"\n",
+       "local FIGHT_HANDBACK = \"/targetlasttarget [exists]\"\n",
+       "par-core2: the fight's hand-back asks only that something is targeted",
+       expect=MOB, script=S)
+
+mutate(MACRO,
+       "local FIGHT_HANDBACK = \"/targetlasttarget [help]\"\n",
+       "local FIGHT_HANDBACK = \"/targetlasttarget [@player,help]\"\n",
+       "par-core2: the fight's hand-back names a unit",
+       expect="the fight's macro names a unit in a conditional", script=S)
+
+mutate("Clicks.lua",
+       "\t\t\telseif command == \"targetlasttarget\" and arg == \"[help]\" then\n",
+       "\t\t\telseif false then\n",
+       "par-core2: the fight's bar macro is not Manners' own shape",
+       expect="par-core2: the fight's bar macro left from a session before is Manners' own (1)", script=S)
+
+mutate("Clicks.lua",
+       "\t\t\telseif command == \"targetlasttarget\" and arg == \"[help]\" then\n",
+       "\t\t\telseif command == \"targetlasttarget\" and arg:find(\"[\", 1, true) then\n",
+       "par-core2: any conditional on the hand-back is Manners' own",
+       expect="par-core2: the fight's bar macro left from a session before is Manners' own (2)", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\t\tand (Plain(help) == \"yes\") ~= Plain(assist) then\n",
+       "\t\tand false then\n",
+       "par-core2: the launch check never says [help] reads the target wrong",
+       expect="par-core2: the launch check says what [help] reads (3)", script=S)
+
+mutate("SelftestLaunch.lua",
+       "\tlocal okH, help = Ask(_G.SecureCmdOptionParse, \"[help] yes; no\")\n",
+       "\tlocal okH, help = true, \"yes\"\n",
+       "par-core2: the launch check asks the parser nothing",
+       expect="par-core2: the launch check says what [help] reads (2)", script=S)
+
 mutate(REFRESH,
        "\t\t\tif S.fightLine then\n",
        "\t\t\tif false then\n",

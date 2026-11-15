@@ -1558,10 +1558,29 @@ end
 -- are read, from the player's combat flag (UnitAffectingCombat("player") in
 -- the client): Mock.affectingCombat when a scenario sets it apart from the
 -- lockdown, which the client's flag and its lockdown are, else the fight the
--- mock is in (Mock.inCombat). Every other word holds, as it always has here.
+-- mock is in (Mock.inCombat); and the target's (targetHolds, below). Every
+-- other word holds, as it always has here.
 local function inFight()
 	if Mock.affectingCombat ~= nil then return Mock.affectingCombat == true end
 	return Mock.inCombat == true
+end
+
+-- With no unit named, [help], [harm] and [exists] (and their no- forms) ask
+-- about the target, as the client's do: whom the mock's macros have targeted
+-- (Mock.runTarget, tests/mockmacros.lua), friendly unless a scenario marked it
+-- `hostile`. Asked only by a conditional that names nobody; one with a unit
+-- is the question below.
+local TARGET_WORDS = { help = true, harm = true, exists = true, nohelp = true, noharm = true, noexists = true }
+local function targetHolds(word)
+	local t = Mock.runTarget
+	local exists = t ~= nil
+	local hostile = exists and t.hostile == true
+	if word == "exists" then return exists end
+	if word == "noexists" then return not exists end
+	if word == "help" then return exists and not hostile end
+	if word == "nohelp" then return not (exists and not hostile) end
+	if word == "harm" then return hostile end
+	return not hostile
 end
 
 local function bracketHolds(conditional)
@@ -1569,6 +1588,7 @@ local function bracketHolds(conditional)
 	for word in (conditional .. ","):gmatch("%s*([^,]-)%s*,") do
 		if word == "combat" and not inFight() then return false end
 		if word == "nocombat" and inFight() then return false end
+		if not who and TARGET_WORDS[word] and not targetHolds(word) then return false end
 	end
 	-- No unit named, so this is an ordinary conditional and not our question.
 	if not who then return true end

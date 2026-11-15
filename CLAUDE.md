@@ -678,7 +678,11 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   is a bare `/cast`, a scroll `/use item:<id>`, and a scroll that needs a
   friendly target (Classic's stat scrolls, `STRATEGIES.allyscroll`) `/target
   <your name>`, `/use item:<id>` and the hand-back. No `[@player]` or any
-  `[@unit]` conditional: they do not resolve on Forever. Secure buttons
+  `[@unit]` conditional: they do not resolve on Forever. The one conditional
+  is bare: the macro armed for a fight hands back with `/targetlasttarget
+  [help]` (`HandBack`), so a `/target` that found nobody leaves your mob
+  targeted; `/manners selftest launch` (`launch.handback`) says whether the
+  client's `[help]` reads the target as `UnitCanAssist` does. Secure buttons
   register `"AnyDown"`. Only the left mouse button casts: every other button
   (type2..type5 and the wildcards `*type2`..`*type31`) is set to `none` in
   `Prompt/Macro.lua` `SilenceOtherButtons`, because the client looks an
@@ -697,7 +701,8 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   <name>`, one `/cast <spell>` with at most one spoken line after it, in a
   channel of `ns.CHANNEL_COMMANDS` and with no `[`, or `/use item:<id>` with at
   most one `/use 16|17` (after a `/target` of your own name for a scroll), and
-  after a `/target` at most one hand-back, in that order; `#` lines kept on
+  after a `/target` at most one hand-back, bare or the fight's `[help]`, in
+  that order; `#` lines kept on
   top; Clicks.lua `Shaped`).
   The press is filed by Press.lua's OnBarClick against `Prompt.bar`, and only
   when the macro running (`GetRunningMacro`) is the Manners one; a body a
