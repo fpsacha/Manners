@@ -1,0 +1,287 @@
+-- Manners -- painted looks: a look's frame drawn from one painting instead of
+-- the art its own code laid out.
+--
+-- THE IDEA. A painting of the whole bar (art/looks/<key>/, not shipped) is cut by
+-- tools/make_painted_look.py into three pieces -- the LEFT end with the icon's
+-- socket, the MIDDLE run the game stretches, the RIGHT end with the keycap and the
+-- end ornament -- written to Textures/Painted/<Key>/, with every number the game
+-- needs in Looks/PaintedData.lua (ns.PaintedData), all of it as fractions of the
+-- bar's core height, so any prompt size works. This file lays the three pieces
+-- behind the words of a look that has such data, and leaves everything else to
+-- the look: its Attention, Flourish, outcome, reason colouring, chips, list,
+-- fight, hover and its moving layers.
+--
+-- HOW A LOOK TAKES IT UP. Nothing is called from the look's own Build, Apply,
+-- Styled or Hide: at load this file wraps those four methods of every look
+-- ns.PaintedData names (so the look's own code reads as it did, and the diff to
+-- wire a look is a few fields and two small methods). On the look:
+--
+--   paintedHides       the names of the look's fields (a region, or a list of
+--                      them) its painted frame replaces: kept hidden while the
+--                      painting is up, whatever the look's own code shows.
+--   paintedIconFill    how much of the socket's width the icon fills (0.98).
+--   PaintedPlace(g, p, above) -> textX, chipRoom   optional. After the look's own
+--                      Apply and after this file has laid the pieces and put the
+--                      icon in the socket: move what the look keeps (its lights,
+--                      its tags, the moving layers) onto the painting, by `g`
+--                      (Painted.Layout, below). Returns where the text starts
+--                      and the room the lines keep at the right with the chip
+--                      up (nil: g.textX, and the look's own chipRoom).
+--   PaintedStyled(g)   optional. After the look's own Styled and after the ink
+--                      was set to the painted well's: colours read against it.
+--   Painted.Tone(look, r, g, b, grey)   from the look's own dressing (a fight's
+--                      dim, a refusal's grey): the pieces in that colour.
+--
+-- THE SWITCH. *Earlier art* (prompt.classicArt, on the Look page) draws every look
+-- exactly as before: with it on, the wrapped methods are the look's own and nothing
+-- of this file is on the screen (its pieces hidden, every muffled region given
+-- back its own Show).
+--
+-- The rules every look keeps hold here: the pieces are textures of `art` (never
+-- anchored to by a secure frame), coloured through Looks.Colour, laid out only in
+-- Apply (ApplyStyle, out of combat), with no pcall and no OnUpdate.
+
+local _, ns = ...
+local Looks = ns.Looks
+local Colour = Looks.Colour
+
+local Painted = {}
+Looks.Painted = Painted
+
+local PARTS = { "left", "middle", "right" }
+local ICON_FILL = 0.98
+
+-- Whether the player wants the painted frames: Earlier art is off.
+local function Wanted()
+	local p = ns.db and ns.db.profile and ns.db.profile.prompt
+	return not (p and p.classicArt)
+end
+
+-- Whether the look draws from its painting now.
+function Painted.On(look)
+	local art = look and look.paintedArt
+	return art ~= nil and art.on == true
+end
+
+---------------------------------------------------------------------------
+-- muffling: a region the painting replaces stays hidden whatever the look's
+-- own code shows, and gets its own Show back when the painting goes
+---------------------------------------------------------------------------
+
+local function Noop() end
+local function StayHidden(self) self:Hide() end
+
+local function Muffle(t)
+	if t.paintedMuffled then return end
+	-- What the region held under these names itself (nil for a method it takes
+	-- from its kind), put back as it was.
+	t.paintedMuffled = { rawget(t, "Show") or false, rawget(t, "SetShown") or false }
+	t:Hide()
+	t.Show = Noop
+	t.SetShown = StayHidden
+end
+
+local function Unmuffle(t)
+	local saved = t.paintedMuffled
+	if not saved then return end
+	t.Show = saved[1] or nil
+	t.SetShown = saved[2] or nil
+	t.paintedMuffled = nil
+end
+
+-- Every region a look names: a field holding a region, or a list of them.
+local function Each(look, fn)
+	for _, field in ipairs(look.paintedHides or {}) do
+		local v = look[field]
+		if type(v) == "table" then
+			if type(v.Hide) == "function" then
+				fn(v)
+			else
+				for _, t in ipairs(v) do
+					if type(t) == "table" and type(t.Hide) == "function" then fn(t) end
+				end
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------------
+-- layout
+---------------------------------------------------------------------------
+
+-- Where everything goes for a prompt W x H, in units from art's top left, y
+-- running down. The core fills the prompt's height; the middle takes what the
+-- two ends leave. On a prompt too short for the whole painting the ends are cut
+-- back, the left first (from its inner side: the well, never the socket nor
+-- where the text starts), then the right (never the keycap nor the ornament);
+-- shorter still, the whole bar is drawn smaller, centred in the height.
+--
+-- The words want ROOM_EMS of the font's size between the well's start and the
+-- keycap. Where the prompt is too short for that, the painting's two ends hang
+-- past its edges, as far as is wanted and no further than the data allows (the
+-- left one never past the socket's hole, the right one never past the
+-- keycap), the left first; the prompt itself (the secure button) is the size the
+-- player set. On a painting with slim ends nothing hangs.
+local ROOM_EMS = 9.5
+
+function Painted.Layout(d, W, H, fontSize)
+	local unit = math.max(1, H)
+	local keyRight = d.keycap.x + d.keycap.w / 2
+	local short = ROOM_EMS * (fontSize or 0) - (W - (d.textX + keyRight) * unit)
+	local hl, hr = 0, 0
+	if short > 0 then
+		hl = math.min(short, (d.hangLeft or 0) * unit)
+		hr = math.min(short - hl, (d.hangRight or 0) * unit)
+	end
+	local left, right = -hl, W + hr
+	local L, R = d.left.w, d.right.w
+	local lw, rw = L, R
+	local over = L + R - (right - left) / unit
+	if over > 0 then
+		local cut = math.min(over, math.max(0, L - d.leftMin))
+		lw, over = L - cut, over - cut
+		cut = math.min(over, math.max(0, R - d.rightMin))
+		rw, over = R - cut, over - cut
+		if over > 0 then
+			-- Drawn smaller: the hangs keep their share of the smaller core.
+			local hlu, hru = hl / unit, hr / unit
+			unit = W / (lw + rw - hlu - hru)
+			hl, hr = hlu * unit, hru * unit
+			left, right = -hl, W + hr
+		end
+	end
+	local top = (H - unit) / 2
+	local g = {
+		unit = unit, top = top, W = W, H = H, left = left, right = right, hangL = hl, hangR = hr,
+		y0 = top - d.above * unit, y1 = top + (1 + d.below) * unit,
+		x1 = left + lw * unit, x2 = right - rw * unit,
+		-- The texcoords of the two ends where they were cut back.
+		leftR = d.left.r * lw / L, rightL = d.right.r * (1 - rw / R),
+		socketX = left + d.socket.x * unit, socketY = top + d.socket.y * unit, socketR = d.socket.r * unit,
+		square = d.socket.shape ~= "round",
+		textX = left + d.textX * unit, textY = top + d.textY * unit,
+		keyX = right - d.keycap.x * unit, keyY = top + d.keycap.y * unit,
+		keyW = d.keycap.w * unit, keyH = d.keycap.h * unit,
+		endX = right - d.ornament.x * unit, endY = top + d.ornament.y * unit,
+		wellTop = top + d.well.top * unit, wellBottom = top + d.well.bottom * unit,
+		keyInk = d.keyInk,
+	}
+	if g.x2 < g.x1 then g.x2 = g.x1 end
+	return g
+end
+
+local function Box(t, rel, x0, y0, x1, y1)
+	t:ClearAllPoints()
+	t:SetPoint("TOPLEFT", rel, "TOPLEFT", x0, -y0)
+	t:SetPoint("BOTTOMRIGHT", rel, "TOPLEFT", x1, -y1)
+end
+
+-- The three pieces over the layout.
+local function Place(art, rel, g)
+	local d, s = art.data, art.pieces
+	Box(s[1], rel, g.left, g.y0, g.x1, g.y1)
+	s[1]:SetTexCoord(0, g.leftR, 0, d.left.b)
+	Box(s[2], rel, g.x1, g.y0, g.x2, g.y1)
+	s[2]:SetTexCoord(0, d.middle.r, 0, d.middle.b)
+	Box(s[3], rel, g.x2, g.y0, g.right, g.y1)
+	s[3]:SetTexCoord(g.rightL, d.right.r, 0, d.right.b)
+	s[1]:Show()
+	s[2]:SetShown(g.x2 - g.x1 > 0.5)
+	s[3]:Show()
+end
+
+-- The live spell icon in the socket; its shape (a mask) is the look's own, by
+-- its own rule about "Round the icon off".
+local function PlaceIcon(look, kit, g)
+	local size = 2 * g.socketR * (look.paintedIconFill or ICON_FILL)
+	g.iconSize = size
+	local icon = kit.icon
+	icon:ClearAllPoints()
+	icon:SetSize(size, size)
+	icon:SetPoint("CENTER", kit.art, "TOPLEFT", g.socketX, -g.socketY)
+end
+
+-- The painting taken down: its pieces hidden, every muffled region given back.
+local function Release(look)
+	local art = look.paintedArt
+	if not art then return end
+	art.on, art.g = false, nil
+	for _, t in ipairs(art.pieces) do t:Hide() end
+	Each(look, Unmuffle)
+end
+
+function Painted.Tone(look, r, g, b, grey)
+	local art = look.paintedArt
+	if not (art and art.on) then return end
+	for _, t in ipairs(art.pieces) do
+		t:SetDesaturated(grey and true or false)
+		Colour(t, r, g, b)
+	end
+end
+
+---------------------------------------------------------------------------
+-- the wrapping
+---------------------------------------------------------------------------
+
+function Painted.Wrap(look, d)
+	local build, apply, styled, hide = look.Build, look.Apply, look.Styled, look.Hide
+
+	function look:Build(kit)
+		build(self, kit)
+		local pieces = {}
+		for i, part in ipairs(PARTS) do
+			local t = kit.art:CreateTexture(nil, "BACKGROUND", nil, -5)
+			t:SetTexture(d[part].file)
+			t:Hide()
+			Looks.Hold(t)
+			pieces[i] = t
+		end
+		self.paintedArt = { data = d, pieces = pieces, on = false }
+	end
+
+	function look:Apply(p, above)
+		local art = self.paintedArt
+		if not (art and Wanted()) then
+			Release(self)
+			return apply(self, p, above)
+		end
+		Each(self, Muffle)
+		art.on = true
+		local textX, chipRoom = apply(self, p, above)
+		local g = Painted.Layout(d, p.width, p.height, p.fontSize)
+		g.round = Looks.roundAlways[self.key] == true or p.roundIcon == true
+		art.g = g
+		Place(art, self.kit.art, g)
+		PlaceIcon(self, self.kit, g)
+		if self.PaintedPlace then
+			local x, room = self:PaintedPlace(g, p, above)
+			return x or g.textX, room or chipRoom
+		end
+		return g.textX, chipRoom
+	end
+
+	function look:Styled(p, twoLine)
+		if styled then styled(self, p, twoLine) end
+		local art = self.paintedArt
+		if not (art and art.on) then return end
+		-- The words stand on the painted well: Legible holds them to its own
+		-- luminance at its darkest and its brightest.
+		local ink = self.kit.ink
+		ink.light, ink.lo, ink.hi = d.ink.light, d.ink.lo, d.ink.hi
+		if self.PaintedStyled then self:PaintedStyled(art.g) end
+	end
+
+	function look:Hide()
+		hide(self)
+		Release(self)
+	end
+end
+
+-- Every look the data names, wrapped once, at load (this file is loaded after
+-- every look and before Prompt/).
+for key, d in pairs(ns.PaintedData or {}) do
+	local look = Looks.list[key]
+	if look and not look.native and not look.fallback and type(look.Apply) == "function" then
+		Painted.Wrap(look, d)
+	end
+end

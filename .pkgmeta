@@ -62,6 +62,10 @@ ignore:
   - RELEASE-CHECK.md
   - README.md
   - CHANGELOG.md
+  - INTEGRATION.md
+  # The paintings the painted looks are cut from (tools/make_painted_look.py):
+  # source art, not shipped; the textures cut from them are, under Textures/Painted.
+  - art
 
 # Libraries are pulled at build time rather than committed, so the published
 # package always ships their current upstream copies under their own licences.

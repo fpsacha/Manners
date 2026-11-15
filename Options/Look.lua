@@ -217,6 +217,17 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- The looks repainted from a painting (Looks/Painted.lua) drawn with
+			-- the art they had before, for whoever liked that better.
+			classicArt = {
+				type = "toggle",
+				name = L["Earlier art"],
+				desc = L["Draws every look with the art it had before it was repainted. Off, a repainted look wears its new painted frame."],
+				order = 21.5,
+				width = "full",
+				get = pGet,
+				set = pSet,
+			},
 			bgColor = {
 				type = "color",
 				name = L["Panel colour"],

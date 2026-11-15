@@ -693,6 +693,7 @@ ns.WindowLayout = {
 				-- place of the model's dropdown, which the fallback dialog keeps.
 				{ key = "appearance.themes", title = L["Panel style"], items = {
 					{ "appearance.style", widget = "themes" },
+					"appearance.classicArt",
 				} },
 				-- No header of its own in the model: the control's label is the title.
 				-- Moving the prompt leads the page: the button, big, with the
@@ -959,7 +960,7 @@ ns.WindowLayout = {
 			["click.linesOff"] = true, ["click.preset"] = true, ["click.phrasesHelp"] = true,
 			["click.inCharacterNote"] = true, ["click.phrases"] = true,
 			-- Look.
-			["appearance.style"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
+			["appearance.style"] = true, ["appearance.classicArt"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
 			["appearance.scale"] = true, ["appearance.alpha"] = true,
 			["appearance.soundEnabled"] = true, ["appearance.soundFile"] = true,
 			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,

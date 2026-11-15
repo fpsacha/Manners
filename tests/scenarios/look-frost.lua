@@ -92,6 +92,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "frost"
+	-- This file holds Frost's own art, which Earlier art draws (the painted
+	-- frame over it is painted.lua's).
+	p.classicArt = true
 	p.effects = "full"
 	p.flashStyle = "pulse"
 	p.showIcon = true
@@ -108,6 +111,7 @@ local function atRest(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "frost", "full", "pulse", true, false
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	tick(ns)
@@ -1028,6 +1032,7 @@ withTree("look-frost: a name at its smallest is measured once, not at every scan
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.showIcon, p.width = "frost", "full", true, 150
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	owe(ns, "Bartholomewz Thistledownington")
 	tick(ns)
