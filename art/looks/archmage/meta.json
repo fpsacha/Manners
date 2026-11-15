@@ -1,0 +1,12 @@
+{
+  "key": "archmage",
+  "socket": {"shape": "round", "cx": 710, "cy": 525, "r": 150,
+             "frame": "pointy-top hexagon; dark face spans x 557-862, y ~350-700; r is the inscribed circle"},
+  "name_xy": [1015, 433],
+  "reason_xy": [1015, 553],
+  "keycap": {"cx": 3439, "cy": 526, "w": 182, "h": 182},
+  "bar": [261, 320, 3883, 742],
+  "stretch": [1000, 3250],
+  "text_colour_ok": true,
+  "notes": "Well is deep violet-black (mean RGB 28,21,40): white and warm gold text both read far above 4.5:1. Socket hex frame rises to y 270 and falls to y 766 (about 1.18x the bar height). Could animate: a slow pulse of the faint violet arcane sigils at the right tip; a soft glint travelling along the top gold moulding; a gentle twinkle on the seven sapphire studs; a faint violet glow breathing inside the empty socket glass behind the icon."
+}

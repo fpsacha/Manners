@@ -70,6 +70,9 @@ local function upIn(ns, scenario, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "archmage"
+	-- This file holds Archmage's own art, which Earlier art draws (the
+	-- painted frame over it is painted-archmage.lua's).
+	p.classicArt = true
 	p.effects = "full"
 	p.flashStyle = "pulse"
 	p.showIcon = true
@@ -273,6 +276,7 @@ withTree("look-archmage: a favour arriving lights the six charges in turn", ANNA
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon = "archmage", "full", "pulse", true
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	ns.addon:Tick()
 	local look = ns.Prompt:Regions().look
@@ -488,6 +492,7 @@ withTree("look-archmage: the crystal is alive at rest, on Full and out of a figh
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.showIcon, p.hideInCombat = "archmage", "full", "pulse", true, false
+	p.classicArt = true
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	local look = ns.Prompt:Regions().look
