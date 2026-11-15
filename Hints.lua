@@ -40,6 +40,9 @@ function ns.RestingHint(now)
 	local hints = db.char.hints
 	if type(hints) == "table" and hints.resting then return false end
 	if not db.profile.enabled or ns.SnoozeLeft(now) then return false end
+	-- Nor with Hide all Manners messages on: the line would be dropped
+	-- (Core.lua, addon:Print), and must not be counted as said.
+	if db.profile.silentChat == true then return false end
 	if ns.MyselfHeldBack(db.profile, now) ~= "resting" then return false end
 	if not SomethingOfYours(db.profile, now) then return false end
 	if type(hints) ~= "table" then

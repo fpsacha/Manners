@@ -150,7 +150,8 @@ local function PersonTooltipLines(entry, brief)
 	if entry.checked and entry.known == nil then
 		GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
 			1, 0.5, 0.5, true)
-	elseif not entry.checked then
+	elseif not entry.checked and not entry.res then
+		-- (A resurrection reads no buff, and no option made it so: Resurrect.lua.)
 		GameTooltip:AddLine(L["Not checking whether they have it -- set by your options."],
 			0.7, 0.7, 0.7, true)
 	end

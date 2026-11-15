@@ -1866,6 +1866,16 @@ function addon:HandleSlash(rawInput)
 			PrintLeads(self)
 			-- Somebody buffing you is noticed for the /thank all the same.
 			PrintFavourWatch(self, db, GetTime())
+			-- A cure, a resurrection or an ask is walked for all the same
+			-- (Queue.lua), so what the full report says of that scan is said here
+			-- too: the battleground's rules, the count, and who it held back or
+			-- left alone and why.
+			if ns.CanCastAnything() then
+				for _, line in ipairs(ns.Battle.Lines(GetTime())) do self:Print(line) end
+				self:Print((db.enabled and L["queue now: %d"] or L["queue if switched on: %d"]):format(#ns.BuildQueue()))
+				for _, line in ipairs(ns.PvPLines()) do self:Print("  " .. line) end
+				for _, line in ipairs(ns.CureLines()) do self:Print("  " .. line) end
+			end
 			-- The one state below that holds the /thank back too, said as the
 			-- full report says it, or the thank reads "on" with nothing to show.
 			if not db.enabled then

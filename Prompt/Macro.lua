@@ -596,7 +596,8 @@ local function Arm(R, S, entry, silent)
 	-- What a press now casts is what the macro's bar slot shows, set only when
 	-- it differs from what it showed (and never in a fight, where this is not
 	-- reached: ApplyTarget returns first).
-	if not S.isRow then ns.SyncMacroSlot(entry) end
+	-- A courtesy's trade is not on the bar (above), so its slot shows no spell.
+	if not S.isRow then ns.SyncMacroSlot(not (entry.courtesy and entry.courtesy.stage == "trade") and entry or nil) end
 	S.appliedKey = key
 	-- Taken whole from the strategy that built the macro: one opinion about it.
 	S.armed = record

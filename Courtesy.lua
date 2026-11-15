@@ -1076,6 +1076,11 @@ function Courtesy.TradeOpened()
 	local list = ns.standingRequests
 	if not (set and list) then return end
 	local now = GetTime()
+	-- No press came first, so this rests on the last scan's offer, and with
+	-- Manners switched off, snoozed or its prompt unlocked no scan offers
+	-- anything: what an earlier one left standing is not gone by.
+	local db = addon.db and addon.db.profile
+	if not (db and db.enabled) or ns.SnoozeLeft(now) or (db.prompt and db.prompt.locked == false) then return end
 	for i = #list, 1, -1 do
 		local request = list[i]
 		local st = state[request]

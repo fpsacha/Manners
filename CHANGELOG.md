@@ -106,6 +106,8 @@
 - **A read-through of everything new.** Some thirty faults put right in
   resurrection, cures, courtesies, asking for a buff, sharing a group, the
   group's pets and battlegrounds.
+- **Companion pet while Manners is off.** Switched off or snoozed, Manners
+  no longer brings a pet out of your journal.
 
 ## 1.11.24
 

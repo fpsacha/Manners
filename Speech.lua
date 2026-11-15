@@ -627,6 +627,8 @@ do
 		local speech = addon.db and addon.db.profile.speech
 		if not (speech and addon.db.profile.verbose) then return end
 		if not (speech and speech.enabled) or entry.reason == "self" or entry.pet or entry.cure then return end
+		-- A resurrection and a courtesy carry no line either, whatever the nameplates.
+		if entry.res or entry.courtesy then return end
 		if speech.onlyWhenReturning and entry.reason ~= "owed" then return end
 		if not ns.ChannelOpen(entry) then return end
 		if not ns.FriendlyPlatesOff() then return end
