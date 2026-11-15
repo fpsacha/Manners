@@ -49,6 +49,10 @@ local Painted = {}
 Looks.Painted = Painted
 
 local PARTS = { "left", "middle", "right" }
+-- A painting in dark ink: the contrast a class colour and a colour code are
+-- held to on it, and how far a class colour is first taken to the ink (the
+-- figures the letter's parchment wears).
+local DARK_CONTRAST, DARK_INK_SHARE = 5, 0.55
 -- The keycap is a fourth piece (art.keycap), over the right end.
 local ICON_FILL = 0.98
 
@@ -165,7 +169,7 @@ function Painted.Layout(d, W, H, fontSize)
 		keyW = d.keycap.w * unit, keyH = d.keycap.h * unit,
 		endX = right - d.ornament.x * unit, endY = top + d.ornament.y * unit,
 		wellTop = top + d.well.top * unit, wellBottom = top + d.well.bottom * unit,
-		keyInk = d.keyInk,
+		keyInk = d.keyInk, keyOutline = d.keyOutline,
 	}
 	if g.x2 < g.x1 then g.x2 = g.x1 end
 	return g
@@ -198,10 +202,12 @@ local function Place(art, rel, g)
 end
 
 -- Whether the painted keycap is up: the painting up, a key bound to the prompt,
--- and Show my key on the prompt (Looks.KeyWanted) asking for it.
+-- and Show my key on the prompt (Looks.KeyWanted) asking for it; and not over
+-- an outcome, which the look's own letter leaves too.
 function Painted.KeyShown(look)
 	local art = look and look.paintedArt
 	return art ~= nil and art.on == true and Looks.KeyWanted(look) and Looks.BoundKey() ~= nil
+		and not look.outcomeOn
 end
 
 local function ShowKeycap(look)
@@ -241,12 +247,51 @@ function Painted.Tone(look, r, g, b, grey)
 	Colour(art.keycap, r, g, b)
 end
 
+-- The player chose a font colour of their own (AceDB keeps only a change).
+local function ChosenColour(p)
+	local d = ns.defaults and ns.defaults.profile.prompt.fontColor
+	local c = p and p.fontColor
+	if type(c) ~= "table" or type(d) ~= "table" then return false end
+	for i = 1, 3 do
+		if math.abs((c[i] or 1) - (d[i] or 1)) > 0.002 then return true end
+	end
+	return false
+end
+
+-- A painting with words in ink of its own (dark on a light ground: the data's
+-- ink.name and ink.reason): the name and the reason line in it, held to the
+-- ground's contrast, and no shadow (a dark shadow under dark ink smudges it).
+-- The reason's tint and a class colour take it from there (the look's
+-- PaintReason over ink.sub; classContrast and classInk on the look).
+local function DarkInk(kit, words, p)
+	if not ChosenColour(p) then
+		local n = words.name
+		local r, g, b = kit.Legible(n[1], n[2], n[3], 4.5)
+		kit.name:SetTextColor(r, g, b, 1)
+	end
+	local c = words.reason
+	local r, g, b = kit.Legible(c[1], c[2], c[3], 4.5)
+	kit.ink.sub = { r, g, b }
+	kit.sub:SetTextColor(r, g, b, 1)
+	kit.name:SetShadowOffset(0, 0)
+	kit.sub:SetShadowOffset(0, 0)
+end
+
 ---------------------------------------------------------------------------
 -- the wrapping
 ---------------------------------------------------------------------------
 
 function Painted.Wrap(look, d)
 	local build, apply, styled, hide, chip = look.Build, look.Apply, look.Styled, look.Hide, look.Chip
+	-- Words in the painting's own dark ink on a light ground: a class-coloured
+	-- name and every colour code taken dark enough to read on it, the name
+	-- first part of the way to the ink (Looks/Looks.lua: classContrast,
+	-- classInk), unless the look says so itself (Letter's own figures).
+	if d.ink.light == false and d.ink.name and look.classContrast == nil then
+		local n = d.ink.name
+		look.classContrast, look.codeContrast = DARK_CONTRAST, DARK_CONTRAST
+		look.classInk = { n[1], n[2], n[3], DARK_INK_SHARE }
+	end
 
 	function look:Build(kit)
 		build(self, kit)
@@ -267,7 +312,9 @@ function Painted.Wrap(look, d)
 
 	function look:Apply(p, above)
 		local art = self.paintedArt
-		if not (art and Wanted()) then
+		-- A plain look (Looks/Plain.lua) has no earlier art: Earlier art leaves
+		-- it painted.
+		if not (art and (Wanted() or self.paintedOnly)) then
 			Release(self)
 			return apply(self, p, above)
 		end
@@ -295,6 +342,7 @@ function Painted.Wrap(look, d)
 		-- luminance at its darkest and its brightest.
 		local ink = self.kit.ink
 		ink.light, ink.lo, ink.hi = d.ink.light, d.ink.lo, d.ink.hi
+		if d.ink.name then DarkInk(self.kit, d.ink, p) end
 		if self.PaintedStyled then self:PaintedStyled(art.g) end
 	end
 

@@ -14,11 +14,16 @@ the keycap's centre and size, `stretch` (the uniform middle run, x0 to x1) and,
 optionally, `end` (the end ornament's centre). Neither ships (.pkgmeta ignores art/).
 
 WHAT IT DOES.
-  1. Keys the slate out to alpha: the slate's colour is the median of the picture's
-     border; everything near it and joined to the border goes, a soft ramp at the
-     edge, and the colour of every part-transparent pixel is taken back out of the
-     slate it was mixed with (so no dark fringe), the alpha then softened by half a
-     pixel with the colour of the nearest solid pixel under it (so no halo).
+  0. Reads meta.json in one shape (read_meta: the painters' variants of it, and a
+     loud stop with the look's key on anything it cannot read).
+  1. Keys the slate out to alpha: the slate's colour is measured in the four
+     corners and followed across the picture (it drifts); everything near it and
+     joined to the border goes, measured through a slight blur so a soft edge is
+     cut along one line, a soft ramp at the edge; a rim is sealed where the slate
+     would reach the words or the socket; flecks go and narrow dents are filled;
+     the colour of every part-transparent pixel is taken back out of the slate it
+     was mixed with, the alpha then softened by half a pixel. A see-through pane
+     (see_through, pane) has its inside drawn at PANE_ALPHA, its rims solid.
   2. Finds the bar's CORE: the band the stretch run fills, top and bottom (medians
      over its columns). The core is what the prompt's height maps to in the game;
      everything above and below it (an ornament, a socket, icicles) hangs over.
@@ -29,6 +34,9 @@ WHAT IT DOES.
      the middle with no step.
   5. Darkens the well where the words go when it is too light for them (its 95th
      percentile luminance over WELL_HI): a multiply, feathered at its edges.
+  5b. Cuts the blank keycap out as a piece of its own (Keycap) and fills the frame
+     under it from the well's own colour beside it, so *Show my key on the
+     prompt* can leave it off; evens the outline along the stretch run.
   6. Cuts it at the stretch run into LEFT (the socket's end), MIDDLE (the run, which
      the game stretches) and RIGHT (the keycap and the end ornament), each written to
      a power-of-two 32-bit TGA under Textures/Painted/<Key>/ with its last texels
@@ -116,16 +124,33 @@ HANG_KEEP = 0.1
 # A light keycap's letter: the keycap's own colour taken this far down, near
 # black, so it reads through a fight's dim of the words and of the painting.
 KEY_DARK = 0.04
+# A see-through pane (meta.json's see_through and pane): its inside drawn at
+# PANE_ALPHA. Chosen so the words read over a bright world: the palest pane
+# (Pill's, about 40 of 255) over white is 83 of 255 at 0.80, white words 7.7:1
+# on it and the gold reason 5:1 (tools/audit_look_contrast.py measures both
+# backdrops). A pixel within PANE_TOL of the pane's own colour is pane, PANE_RAMP
+# further is solid.
+PANE_ALPHA, PANE_TOL, PANE_RAMP = 0.80, 10.0, 18.0
+# Words on nothing (meta.json's pane null: Hairline): the look lays a soft dark
+# backing under them at this strength, so a white world under them is 76 of 255
+# (white 8.7:1, gold 5.8:1).
+BACKING = 0.70
+# A well darker than this (linear luminance, its brightest) wears light words.
+LIGHT_BELOW = 0.18
 # The keycap's piece: how much of the well round it is cut with it (of its own
 # width and height, each side), its edge feathered over that margin.
 KEYCAP_PAD = 0.08
 # The share of the cut, at its right, over which the well filled in from the
 # left meets the painting's own right of it.
 KEYCAP_BLEND = 0.15
+# How many columns either side of the cut give a row its colour.
+KEYCAP_STRIP = 6
 # The looks whose keycap is hidden unless the player shows it (Show my key on
 # the prompt, "As the look has it"): the classic and the minimal ones. A
 # meta.json may say otherwise with keycap_shown.
 KEYCAP_HIDDEN = {"glass", "framed", "toast", "arcane", "luxe", "minimal", "ghost", "hairline", "pill", "slate"}
+# The round mask's side, in texels.
+MASK_PX = 128
 # The largest texture side written.
 LARGEST = 1024
 
@@ -364,6 +389,11 @@ def read_meta(key, src):
                                         for f in ("lo", "ramp")), "keying must be { lo, ramp }, numbers over 0")
     meta["tune"] = {"lo": tune.get("lo"), "ramp": tune.get("ramp")}
     meta["clip"] = bool(raw.get("clip"))
+    # The well's brightest the words can stand, where a look's own fight dims
+    # them more than most (well_hi: under WELL_HI darkens the well further).
+    wh = raw.get("well_hi")
+    need(wh is None or (isinstance(wh, (int, float)) and 0 < wh <= 1), "well_hi must be a luminance over 0")
+    meta["well_hi"] = wh
     shown = raw.get("keycap_shown")
     need(shown is None or isinstance(shown, bool), "keycap_shown must be true or false")
     meta["keycap_shown"] = (key not in KEYCAP_HIDDEN) if shown is None else shown
@@ -412,6 +442,17 @@ def build(key):
         keep = np.zeros(alpha.shape, bool)
         keep[max(0, by0):by1 + 1, max(0, bx0):bx1 + 1] = True
         alpha[~keep] = 0
+    if meta["see_through"]:
+        # A see-through pane: its inside (what is the pane's own colour) drawn
+        # at PANE_ALPHA, so the world shows through; its rim, the socket's
+        # frame, the keycap and every highlight (all further from that colour)
+        # stay solid, with a ramp between.
+        qx0, qy0, qx1, qy1 = (int(round(v)) for v in meta["pane"])
+        inner = col[qy0 + (qy1 - qy0) // 5:qy1 - (qy1 - qy0) // 5, qx0 + (qx1 - qx0) // 10:qx1 - (qx1 - qx0) // 10]
+        pane_rgb = np.median(inner.reshape(-1, 3), axis=0)
+        dp = np.sqrt(((col[qy0:qy1, qx0:qx1] - pane_rgb) ** 2).sum(-1))
+        f = PANE_ALPHA + (1 - PANE_ALPHA) * np.clip((dp - PANE_TOL) / PANE_RAMP, 0, 1)
+        alpha[qy0:qy1, qx0:qx1] *= f
     s0, s1 = meta["stretch"]
 
     # The core: the band the stretch run fills. A bar with no body there (a
@@ -503,22 +544,40 @@ def build(key):
         pre = straight * a[..., None]
 
     def well_lum():
+        """The ground under the words at its darkest and brightest: the well
+        itself; a see-through pane over a black world and a white one; for
+        words on nothing, the backing the look lays under them (BACKING) over
+        the same two."""
+        if meta["bare"]:
+            return 0.0, float(luminance(np.full((1, 3), 1 - BACKING))[0])
         patch = straight[wy0:wy1, wx0:wx1] / 255.0
-        lum = luminance(patch)
-        return float(np.percentile(lum, 5)), float(np.percentile(lum, 95))
+        cover = a[wy0:wy1, wx0:wx1, None]
+        dark = luminance(patch * cover)
+        light = luminance(patch * cover + (1 - cover))
+        return float(np.percentile(dark, 5)), float(np.percentile(light, 95))
 
     lo, hi = well_lum()
     darkened = 1.0
-    if hi > WELL_HI:
+    well_hi = meta["well_hi"] or WELL_HI
+    # Only a dark well is darkened for light words; a light ground in dark ink
+    # (meta.json's ink) is left as painted.
+    if hi > well_hi and not (meta["see_through"] or meta["bare"] or "ink" in meta):
         # A multiply in sRGB that brings the 95th percentile to WELL_HI, feathered
         # over a tenth of the core at the well's edges.
-        darkened = float((WELL_HI / hi) ** (1 / 2.2))
+        darkened = float((well_hi / hi) ** (1 / 2.2))
         f = np.ones(a.shape, np.float32)
         f[wy0:wy1, wx0:wx1] = darkened
         f = ndimage.gaussian_filter(f, CORE_PX * 0.05)
         pre = pre * f[..., None]
         straight = pre / np.maximum(a[..., None], 1e-4)
         lo, hi = well_lum()
+
+    # The well's own colour, for the list's sheet (a look with none: a dark one).
+    held = a[wy0:wy1, wx0:wx1] > 0.5
+    if held.sum() > 16 and not meta["bare"]:
+        well_colour = [round(float(v) / 255, 3) for v in np.median(straight[wy0:wy1, wx0:wx1][held], axis=0)]
+    else:
+        well_colour = [0.05, 0.05, 0.06]
 
     # The well's own top and bottom: from the text's middle up and down while the
     # paint stays as dark as the well, in the middle of the stretch run.
@@ -544,12 +603,20 @@ def build(key):
     # The keycap's paint: a light one wears a dark letter.
     kx0, kx1 = int(px(key_cap["cx"] - key_cap["w"] * 0.3)), int(px(key_cap["cx"] + key_cap["w"] * 0.3))
     ky0, ky1 = int(py(key_cap["cy"] - key_cap["h"] * 0.3)), int(py(key_cap["cy"] + key_cap["h"] * 0.3))
-    cap_rgb = straight[ky0:ky1, kx0:kx1].reshape(-1, 3).mean(0) / 255.0
-    cap_lum = float(luminance(cap_rgb[None])[0])
-    if cap_lum > 0.18:
-        key_ink = [round(float(c) * KEY_DARK, 3) for c in cap_rgb]
-    else:
-        key_ink = [0.92, 0.95, 1.0]
+    cap_px = straight[ky0:ky1, kx0:kx1].reshape(-1, 3) / 255.0
+    cap_rgb = cap_px.mean(0)
+    # Whichever letter reads better at the keycap's worst: a pale one against
+    # its brightest tenth, a dark one (its own colour taken down) against its
+    # darkest.
+    cap_lums = luminance(np.clip(cap_px, 0, 1))
+    pale, dark = [0.92, 0.95, 1.0], [round(float(c) * KEY_DARK, 3) for c in cap_rgb]
+    on_pale = (float(luminance(np.array(pale)[None])[0]) + 0.05) / (float(np.percentile(cap_lums, 90)) + 0.05)
+    on_dark = (float(np.percentile(cap_lums, 10)) + 0.05) / (float(luminance(np.array(dark)[None])[0]) + 0.05)
+    key_ink = dark if on_dark > on_pale else pale
+    # A mid-toned keycap neither letter reads on: the pale one, outlined dark.
+    key_outline = max(on_dark, on_pale) < 4.5
+    if key_outline:
+        key_ink = pale
 
     # The cuts.
     W = size[0]
@@ -561,14 +628,16 @@ def build(key):
 
     # The keycap, a piece of its own (Show my key on the prompt hides it): cut
     # out with KEYCAP_PAD of the well round it, its edge feathered over that
-    # margin, and the frame under it filled from the well's own columns either
-    # (mirrored in from its left, met by its right's over KEYCAP_BLEND at the
-    # end), which is the painting's uniform well, cleaned, not anything new.
+    # margin, and the frame under it filled, row by row, with the well's own
+    # colour just left of it (met by what lies just right of it over
+    # KEYCAP_BLEND at the end): the painting's uniform well, cleaned, not
+    # anything new.
     kpw, kph = key_cap["w"] * (1 + 2 * KEYCAP_PAD) * k, key_cap["h"] * (1 + 2 * KEYCAP_PAD) * k
     kcx, kcy = px(key_cap["cx"]), py(key_cap["cy"])
     bx0, bx1 = int(np.floor(kcx - kpw / 2)), int(np.ceil(kcx + kpw / 2))
     by0, by1 = max(0, int(np.floor(kcy - kph / 2))), min(rgba.shape[0], int(np.ceil(kcy + kph / 2)))
-    if bx0 <= c1 or bx1 >= rgba.shape[1]:
+    bx1 = min(bx1, rgba.shape[1])
+    if bx0 <= c1 or bx1 - bx0 < 4:
         raise SystemExit("%s: the keycap (with its margin) must lie between the stretch run's end and the bar's "
                          "right; check keycap and stretch in meta.json" % key)
     cap = rgba[by0:by1, bx0:bx1].astype(np.float32)
@@ -582,11 +651,17 @@ def build(key):
     cap[..., 3] *= np.outer(fy, fx)
     keycap_piece = np.clip(np.round(cap), 0, 255).astype(np.uint8)
     j = np.arange(bw)
-    left_src = np.clip(bx0 - 1 - (j % max(1, bx0 - c1)), 0, rgba.shape[1] - 1)
-    right_src = np.clip(bx1 + ((bw - 1 - j) % max(1, rgba.shape[1] - bx1)), 0, rgba.shape[1] - 1)
+    # Each row's mean over a few columns either side (the well runs level, so
+    # a row's own colour is what goes under the keycap).
+    span = rgba[by0:by1, max(c1, bx0 - KEYCAP_STRIP):bx0].astype(np.float32)
+    left = span.mean(axis=1, keepdims=True)
+    if bx1 < rgba.shape[1]:
+        right = rgba[by0:by1, bx1:bx1 + KEYCAP_STRIP].astype(np.float32).mean(axis=1, keepdims=True)
+    else:
+        right = left
     blend = max(2.0, bw * KEYCAP_BLEND)
     t = np.clip((j - (bw - blend)) / blend, 0, 1).astype(np.float32)[None, :, None]
-    fill = rgba[by0:by1][:, left_src].astype(np.float32) * (1 - t) + rgba[by0:by1][:, right_src].astype(np.float32) * t
+    fill = left * (1 - t) + right * t
     rgba[by0:by1, bx0:bx1] = np.clip(np.round(fill), 0, 255).astype(np.uint8)
 
     pieces = {"Left": rgba[:, :c0], "Middle": rgba[:, c0:c1], "Right": rgba[:, c1:], "Keycap": keycap_piece}
@@ -631,8 +706,13 @@ def build(key):
                    "shown": meta["keycap_shown"]},
         "ornament": {"x": (right_edge - ornament["cx"]) / core_h, "y": (ornament["cy"] - core_top) / core_h},
         "well": {"top": (up / k + y0 - core_top) / core_h, "bottom": ((down + 1) / k + y0 - core_top) / core_h},
-        "ink": {"light": True, "lo": lo, "hi": hi},
+        "ink": {"light": "ink" not in meta and hi < LIGHT_BELOW, "lo": lo, "hi": hi,
+                "name": meta.get("ink", {}).get("name"), "reason": meta.get("ink", {}).get("reason")},
+        "pane": PANE_ALPHA if meta["see_through"] else None,
+        "bare": BACKING if meta["bare"] else None,
+        "wellColour": well_colour,
         "keyInk": key_ink,
+        "keyOutline": key_outline,
     }
     measured = {"slate": slate, "core": (core_top, core_bot), "crop": (x0, y0, x1, y1), "k": k,
                 "cuts": (c0, c1), "darkened": darkened, "well_px": (wx0, wy0, wx1, wy1), "rgba": rgba}
@@ -661,7 +741,11 @@ def lua_data(all_data):
            "-- letter on the keycap. keycap: the keycap's middle (x from the bar's right) and size,",
            "-- and its piece (file, texcoords r b, size pw ph, its middle dx dy off the keycap's),",
            "-- drawn over the frame, which is whole under it; shown: whether the look shows it while",
-           "-- Show my key on the prompt is \"As the look has it\".",
+           "-- Show my key on the prompt is \"As the look has it\". keyOutline: a mid-toned keycap,",
+           "-- its pale letter outlined. ink.light false, ink.name, ink.reason: words in the",
+           "-- painting's own dark ink on a light ground. wellColour: the well's own, for the list's",
+           "-- sheet. pane: a see-through pane's opacity (baked into the pieces); bare: words on",
+           "-- nothing, the strength of the backing laid under them.",
            "",
            "local _, ns = ...",
            "",
@@ -689,11 +773,35 @@ def lua_data(all_data):
         w = d["well"]
         out.append("\t\twell = { top = %s, bottom = %s }," % (num(w["top"]), num(w["bottom"])))
         i = d["ink"]
-        out.append("\t\tink = { light = %s, lo = %s, hi = %s }," % ("true" if i["light"] else "false", num(i["lo"]), num(i["hi"])))
+        words = ""
+        if i["name"]:
+            words = ", name = { %s }, reason = { %s }" % (", ".join(num(v) for v in i["name"]),
+                                                          ", ".join(num(v) for v in i["reason"]))
+        out.append("\t\tink = { light = %s, lo = %s, hi = %s%s }," % (
+            "true" if i["light"] else "false", num(i["lo"]), num(i["hi"]), words))
+        out.append("\t\twellColour = { %s }," % ", ".join(num(v) for v in d["wellColour"]))
+        if d["pane"]:
+            out.append("\t\tpane = %s," % num(d["pane"]))
+        if d["bare"]:
+            out.append("\t\tbare = %s," % num(d["bare"]))
         out.append("\t\tkeyInk = { %s }," % ", ".join(num(v) for v in d["keyInk"]))
+        if d["keyOutline"]:
+            out.append("\t\tkeyOutline = true,")
         out.append("\t},")
     out.append("}")
     return "\n".join(out) + "\n"
+
+
+def round_mask(n=MASK_PX):
+    """A white disc with a one-texel soft edge, filling n x n: the icon's mask in
+    a round socket (Looks/Plain.lua). Geometry, not art."""
+    yy, xx = np.mgrid[0:n, 0:n] + 0.5
+    r = np.hypot(xx - n / 2, yy - n / 2)
+    a = np.clip(n / 2 - 1 - r + 0.5, 0, 1)
+    out = np.zeros((n, n, 4), np.uint8)
+    out[..., :3] = 255
+    out[..., 3] = np.round(a * 255).astype(np.uint8)
+    return out
 
 
 def tga_bytes(arr):
@@ -776,6 +884,21 @@ def main():
                     f.write(body)
         if args.debug:
             debug(key, textures, data, measured, args.debug)
+    # The round socket's mask for the icon (a disc, the shape the paintings'
+    # round sockets have), shared by every painted look that cuts its icon round.
+    mask_path = os.path.join(OUT, "Mask.tga")
+    mask_body = tga_bytes(round_mask())
+    if args.check:
+        try:
+            with open(mask_path, "rb") as f:
+                if f.read() != mask_body:
+                    problems.append("Textures/Painted/Mask.tga is not the disc it should be")
+        except OSError:
+            problems.append("Textures/Painted/Mask.tga is missing")
+    else:
+        os.makedirs(OUT, exist_ok=True)
+        with open(mask_path, "wb") as f:
+            f.write(mask_body)
     text = lua_data(built)
     if args.check:
         try:
