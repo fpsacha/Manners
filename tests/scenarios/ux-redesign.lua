@@ -552,9 +552,8 @@ do
 			return
 		end
 		local L = ns.L
-		local want = { new = L["New profile"], choose = L["Use profile"], copyfrom = L["Copy from"], delete = L["Delete"],
-			reset = L["Reset this profile"],
-			choosedesc = L["Type a name to start a new profile, or pick one you already have."] }
+		local want = { new = L["New profile"], choose = L["Profile"], copyfrom = L["Copy into the profile in use"],
+			delete = L["Delete"], reset = L["Reset this profile"] }
 		for key, words in pairs(want) do
 			if tab.args[key].name ~= words then fail(scenario, key .. " reads " .. tostring(tab.args[key].name)) end
 		end
@@ -793,19 +792,29 @@ do
 end
 
 do
-	local scenario = "ux-redesign: Put my settings back shows while an import can be undone"
+	-- Since 1.12 the page's one Undo (AutoProfile.lua), beside the line that
+	-- says what was pasted.
+	local scenario = "ux-redesign: Undo shows while an import can be undone"
 	session(scenario, { page = "profiles" }, function(ns, UI)
-		local item = ns.WindowBind.Item("profiles.shareUndo")
+		local item = ns.WindowBind.Item("profiles.undo")
 		if not item then
-			fail(scenario, "there is no Put my settings back")
+			fail(scenario, "there is no Undo on Profiles")
 			return
 		end
-		if not ns.WindowBind.Hidden(item) then fail(scenario, "Put my settings back with nothing to undo") end
+		if not ns.WindowBind.Hidden(item) then fail(scenario, "Undo with nothing to undo") end
+		-- The mock's AceDB has no name for the profile in use; the game's does.
+		local named = ns.db.GetCurrentProfile
+		ns.db.GetCurrentProfile = named or function() return "Default" end
 		local text = ns.ExportSettings()
 		ns.ImportSettings(text)
-		if ns.WindowBind.Hidden(item) then fail(scenario, "after an import there is no Put my settings back") end
+		if ns.WindowBind.Hidden(item) then fail(scenario, "after an import there is no Undo") end
 		ns.WindowBind.Run(item)
 		if not ns.WindowBind.Hidden(item) then fail(scenario, "the undo was not taken, or the button stayed") end
+		-- Taken back from chat instead: the button goes with it.
+		ns.ImportSettings(text)
+		ns.addon:HandleSlash("import undo")
+		if not ns.WindowBind.Hidden(item) then fail(scenario, "Undo stayed after /manners import undo took the paste back") end
+		ns.db.GetCurrentProfile = named
 	end)
 end
 

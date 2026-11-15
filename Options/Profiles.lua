@@ -14,6 +14,13 @@ local function Copy(from)
 	return out
 end
 
+-- The new profile's name when Share as text pastes into a new profile
+-- (AutoProfile.lua, P.PasteInto), nil when it pastes over the one in use.
+local function NewInto()
+	local P = ns.Profiles
+	return P and P.PasteInto and P.PasteInto() or nil
+end
+
 -- AceDBOptions' own controls, with a line on what a profile is above them
 -- and the share boxes added under them. The library's strings and orders are
 -- its own; the intro sits at 0.5, above its `desc` (order 1), and the share
@@ -39,20 +46,15 @@ function Page.BuildProfilesTab()
 	-- The library's words are a developer's ("database", "SavedVariables"):
 	-- ours, in the player's, over the copies (never the library's own table).
 	-- Its translations no longer apply to these, so they are ours to translate.
+	-- The library's grey sentences beside its controls are about controls the
+	-- page no longer has (AutoProfile.lua puts its own in their place): gone,
+	-- here and in the fallback dialog alike.
+	for _, key in ipairs({ "choosedesc", "copydesc", "deldesc", "descreset" }) do t.args[key] = nil end
+	-- The library's words are a developer's ("database", "SavedVariables"):
+	-- ours, in the player's, over the copies (never the library's own table).
+	-- Its translations no longer apply to these, so they are ours to translate.
+	-- The rest of its controls are replaced by ours under the same keys.
 	for key, words in pairs({
-		current = { name = function(info)
-			local name = info and info.handler and info.handler.GetCurrentProfile and info.handler:GetCurrentProfile(info)
-			return L["This character uses the profile %s."]:format("|cffffd100" .. tostring(name or "") .. "|r")
-		end },
-		choosedesc = { name = L["Type a name to start a new profile, or pick one you already have."] },
-		new = { name = L["New profile"], desc = L["Type a name and press Enter: a new profile with every setting at its default."] },
-		choose = { name = L["Use profile"], desc = L["The profile this character uses."] },
-		copydesc = { name = L["Copy every setting of another profile into this one."] },
-		copyfrom = { name = L["Copy from"], desc = L["Replaces this profile's settings with the ones of the profile you pick."] },
-		deldesc = { name = L["Delete a profile no character uses any more."] },
-		delete = { name = L["Delete"], desc = L["Deletes the profile you pick. It asks first."],
-			confirmText = L["Delete this profile? This cannot be undone."] },
-		descreset = { name = L["Put every setting of this profile back to its default."] },
 		reset = { name = L["Reset this profile"], desc = L["Puts every setting of this profile back to its default."] },
 	}) do
 		local option = t.args[key]
@@ -112,8 +114,13 @@ function Page.BuildProfilesTab()
 		sharePaste = {
 			type = "input",
 			name = L["Paste settings here, then press Accept"],
-			desc = L["Replaces this profile's settings; %s puts yours back."]
-				:format("|cffffd100/manners import undo|r"),
+			desc = function()
+				if NewInto() then
+					return L["Makes a new profile from the pasted settings and switches this character to it; Undo at the top of the page takes it away again."]
+				end
+				return L["Replaces this profile's settings; %s puts yours back."]
+					:format("|cffffd100/manners import undo|r")
+			end,
 			order = 104,
 			multiline = 3,
 			width = "full",
@@ -124,27 +131,28 @@ function Page.BuildProfilesTab()
 			validate = function(_, value)
 				local parsed, err = ns.ParseSettings(value)
 				if not parsed then return err end
+				-- Into a new profile: its name first, and no fight, since this
+				-- character switches to it.
+				local into = NewInto()
+				if into then
+					if InCombatLockdown() then return L["A profile cannot be made in a fight."] end
+					return ns.Profiles.NameFault(into) or true
+				end
 				return true
 			end,
 			set = function(_, value)
+				local into = NewInto()
+				if into then
+					local _, said = ns.Profiles.PasteAsNew(into, value)
+					if said and said ~= "" then ns.addon:Reply(said) end
+					return
+				end
 				local _, message = ns.ImportSettings(value)
 				ns.addon:Reply(message)
 			end,
 		},
-		-- /manners import undo as a button, while there is an import on this
-		-- profile to take back (Commands.lua, ns.ImportUndoHeld).
-		shareUndo = {
-			type = "execute",
-			name = L["Put my settings back"],
-			desc = L["Takes back the settings you pasted, and puts back the ones this profile had before. Once, this session."],
-			order = 105,
-			hidden = function() return not (ns.ImportUndoHeld and ns.ImportUndoHeld()) end,
-			-- The command's own way, so chat says the same either way in.
-			func = function()
-				ns.addon:HandleSlash("import undo")
-				ns.RefreshOptionsDisplay()
-			end,
-		},
+		-- The undo of a paste is the page's Undo, at the top of the page
+		-- (AutoProfile.lua), where every other action's is.
 	}) do
 		t.args[key] = option
 	end

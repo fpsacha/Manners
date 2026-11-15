@@ -7,6 +7,24 @@
 - **A blessing for each class.** Paladins can pick the blessing each class is
   offered first: Wisdom for mages, say, where the order would give them Kings.
   *Who to buff*, under *Buff order*. Asked for on CurseForge.
+- **Profiles you can manage.** The Profiles page lists every profile and who
+  is on it; pick one and use, duplicate, rename, delete or copy it, with Undo.
+
+### Profiles
+- **Every profile at a glance.** One line each, the one in use first: which
+  characters are on it, and where automatic switching picks it for you.
+- **Pick, then act.** Pick a profile and *Use*, *Duplicate*, *Rename*,
+  *Delete* or *Copy into the profile in use*. Any profile can be renamed or
+  duplicated, not only the one in use.
+- **Undo.** A delete, reset, copy, rename or paste can be taken back with one
+  press: the settings, the characters on the profile and the rules that named
+  it. One step, until the next action.
+- **Delete says who it moves.** It asks first and names the characters that
+  go back to *Default*.
+- **Paste into a new profile.** *Share as text* can put pasted settings into a
+  new profile, and switch to it, instead of over the one in use.
+- **New characters start on** a profile you choose, for the whole account,
+  from their first login.
 
 ### Who gets what
 - **A blessing for each class.** Pick a class, then its blessing. Somebody who

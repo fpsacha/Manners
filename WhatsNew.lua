@@ -8,6 +8,15 @@ ns.WhatsNew = {
 	{ version = "Unreleased", date = "15 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100A blessing for each class.|r Paladins can pick the blessing each class is offered first: Wisdom for mages, say, where the order would give them Kings.",
+			"|cffffd100Profiles you can manage.|r The Profiles page lists every profile and who is on it; pick one and use, duplicate, rename, delete or copy it, with Undo.",
+		} },
+		{ title = "Profiles", accent = "7cc4ff", entries = {
+			"|cff7cc4ffEvery profile at a glance.|r One line each, the one in use first: which characters are on it, and where automatic switching picks it for you.",
+			"|cff7cc4ffPick, then act.|r Pick a profile and |cffffffffUse|r, |cffffffffDuplicate|r, |cffffffffRename|r, |cffffffffDelete|r or |cffffffffCopy into the profile in use|r.",
+			"|cff7cc4ffUndo.|r A delete, reset, copy, rename or paste can be taken back with one press: the settings, the characters on the profile and the rules that named it.",
+			"|cff7cc4ffDelete says who it moves.|r It asks first and names the characters that go back to |cffffffffDefault|r.",
+			"|cff7cc4ffPaste into a new profile.|r |cffffffffShare as text|r can put pasted settings into a new profile, and switch to it, instead of over the one in use.",
+			"|cff7cc4ffNew characters start on|r a profile you choose, for the whole account, from their first login.",
 		} },
 		{ title = "Who gets what", accent = "7cc4ff", entries = {
 			"|cff7cc4ffA blessing for each class.|r Pick a class, then its blessing.",

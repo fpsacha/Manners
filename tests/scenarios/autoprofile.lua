@@ -106,6 +106,14 @@ local function switchOn(ns, on)
 	controls(ns).autoEnabled.set(nil, on ~= false)
 end
 
+-- A profile picked in the page's dropdown, and one of the buttons under it
+-- pressed (Use, Delete, Copy into the profile in use, ...).
+local function act(ns, name, button)
+	local c = controls(ns)
+	c.choose.set(nil, name)
+	c[button].func()
+end
+
 -- Profiles made and left again, so each exists in the saved file.
 local function make(ns, ...)
 	local home = ns.db:GetCurrentProfile()
@@ -331,7 +339,7 @@ do
 		rule(ns, "raid", "Raid")
 		rule(ns, "dungeon", "Dungeon")
 		-- Deleted from the page.
-		c.delete.set(nil, "Raid")
+		act(ns, "Raid", "delete")
 		if Mock.sv.profiles.Raid ~= nil then fail(scenario, "SKIPPED -- the page did not delete the profile") end
 		if ns.db.char.autoProfile.rules.raid ~= nil then
 			fail(scenario, "the rule still names the profile deleted from the page: " .. tostring(ns.db.char.autoProfile.rules.raid))
@@ -366,15 +374,15 @@ do
 		if not tostring(c.current.name()):find("in a raid", 1, true) then
 			fail(scenario, "the page does not say why Raid is in use: " .. tostring(c.current.name()))
 		end
-		c.choose.set(nil, "Mine")
+		act(ns, "Mine", "use")
 		uses(scenario, ns, "Mine", "after picking Mine on the page")
 		if P.Why() ~= nil then fail(scenario, "the page still says automatic switching chose it: " .. tostring(P.Why())) end
 		-- Back to Raid by hand: the player's choice now, not the raid's.
-		c.choose.set(nil, "Raid")
+		act(ns, "Raid", "use")
 		if P.Why() ~= nil then
 			fail(scenario, "a profile picked by hand reads as chosen automatically: " .. tostring(P.Why()))
 		end
-		c.choose.set(nil, "Mine")
+		act(ns, "Mine", "use")
 		-- Another zone of the same raid, and a /reload inside it: no arrival.
 		arrive(true, "raid", "ZONE_CHANGED_NEW_AREA")
 		arrive(true, "raid")
@@ -512,31 +520,48 @@ do
 		if not uses(scenario, ns, "Solo", "after New profile") then return end
 		if ns.db.profile.verbose ~= true then fail(scenario, "a new profile did not start at the defaults") end
 		ns.db:SetProfile("Default")
-		c.saveAs.set(nil, "Twin")
-		if not uses(scenario, ns, "Twin", "after New profile from these settings") then return end
+		-- Duplicate: a copy of the picked profile (the one in use) under the
+		-- name typed, nobody moved onto it.
+		c.name.set(nil, "Twin")
+		c.duplicate.func()
+		if not uses(scenario, ns, "Default", "after Duplicate") then return end
+		if c.choose.get() ~= "Twin" then fail(scenario, "the copy is not the profile picked after Duplicate") end
+		ns.db:SetProfile("Twin")
 		if ns.db.profile.verbose ~= false then fail(scenario, "the copy does not have the settings that were in use") end
 		ns.db:SetProfile("Default")
 		if ns.db.profile.verbose ~= false then fail(scenario, "making a copy changed the profile copied") end
-		-- A name already taken makes nothing and switches to nothing.
-		c.saveAs.set(nil, "Solo")
+		-- A name already taken makes nothing.
+		c.name.set(nil, "Solo")
+		if c.duplicate.disabled() ~= true then fail(scenario, "Duplicate is not greyed for a name already taken") end
+		local before = 0
+		for _ in pairs(Mock.sv.profiles) do before = before + 1 end
+		c.duplicate.func()
+		local after = 0
+		for _ in pairs(Mock.sv.profiles) do after = after + 1 end
+		if after ~= before then fail(scenario, "Duplicate made a profile under a name already taken") end
 		uses(scenario, ns, "Default", "after asking for a name already taken")
-		-- Use profile lists them all and switches.
+		-- The dropdown lists them all; Use switches to the one picked.
 		local values = c.choose.values()
 		for _, name in ipairs({ "Default", "Solo", "Twin" }) do
-			if values[name] ~= name then fail(scenario, "Use profile does not list " .. name) end
+			if values[name] == nil then fail(scenario, "the dropdown does not list " .. name) end
 		end
-		if c.choose.get() ~= "Default" then fail(scenario, "Use profile does not show the one in use") end
+		if c.choose.get() ~= "Default" then fail(scenario, "the dropdown does not start on the one in use") end
+		c.choose.set(nil, "Twin")
+		if c.choose.get() ~= "Twin" then fail(scenario, "the dropdown does not keep the profile picked") end
 		c.choose.set(nil, "Solo")
-		uses(scenario, ns, "Solo", "after Use profile")
+		c.use.func()
+		uses(scenario, ns, "Solo", "after Use")
+		if c.choose.get() ~= "Solo" then fail(scenario, "the dropdown does not show the one in use") end
 		if not tostring(c.editNote.name):find("switch to it", 1, true) then
 			fail(scenario, "the page does not say how a profile is edited")
 		end
 		-- Not in a fight: a switch moves the prompt and rewrites its macro.
 		Mock.inCombat = true
 		c.choose.set(nil, "Twin")
+		c.use.func()
 		c.new.set(nil, "Fight")
 		uses(scenario, ns, "Solo", "in a fight")
-		if c.new.disabled() ~= true or c.choose.disabled() ~= true then fail(scenario, "the controls are not greyed in a fight") end
+		if c.new.disabled() ~= true or c.use.disabled() ~= true then fail(scenario, "the controls are not greyed in a fight") end
 		if Mock.sv.profiles.Fight ~= nil then fail(scenario, "a profile was made in a fight") end
 		Mock.inCombat = false
 	end)
@@ -547,33 +572,41 @@ do
 	with(scenario, function(ns, P)
 		local c = controls(ns)
 		make(ns, "Raid", "Spare")
-		if c.delete.values().Default ~= nil then fail(scenario, "Delete lists the profile in use") end
-		if c.delete.values().Raid ~= "Raid" then fail(scenario, "Delete does not list another profile") end
-		c.delete.set(nil, "Default")
+		-- The profile in use picked: Delete and Copy into are greyed, and say why.
+		c.choose.set(nil, "Default")
+		if c.delete.disabled() ~= true then fail(scenario, "Delete is not greyed for the profile in use") end
+		if c.pickNote.hidden() or not tostring(c.pickNote.name()):find("profile in use", 1, true) then
+			fail(scenario, "the page does not say why Delete is greyed: " .. tostring(c.pickNote.name()))
+		end
+		c.delete.func()
 		if P.Delete("Default") ~= false or ns.db:GetCurrentProfile() ~= "Default" then
 			fail(scenario, "the profile in use was deleted")
 		end
-		if c.delete.confirm ~= true or type(c.delete.confirmText) ~= "string" then fail(scenario, "Delete does not ask first") end
+		c.choose.set(nil, "Raid")
+		if c.delete.disabled() ~= false then fail(scenario, "Delete is greyed for another profile") end
+		local question = type(c.delete.confirm) == "function" and c.delete.confirm()
+		if not (type(question) == "string" and question:find("Raid", 1, true)) then
+			fail(scenario, "Delete does not ask first, naming the profile: " .. tostring(question))
+		end
 		if c.resetProfile.confirm ~= true or type(c.resetProfile.confirmText) ~= "string" then fail(scenario, "Reset does not ask first") end
-		local ask = type(c.copyfrom.confirm) == "function" and c.copyfrom.confirm(nil, "Raid")
+		local ask = type(c.copyfrom.confirm) == "function" and c.copyfrom.confirm()
 		if not (type(ask) == "string" and ask:find("Raid", 1, true)) then
 			fail(scenario, "Copy from does not ask first, naming the profile: " .. tostring(ask))
 		end
-		c.delete.set(nil, "Spare")
+		act(ns, "Spare", "delete")
 		if Mock.sv.profiles.Spare ~= nil then fail(scenario, "Delete did not delete the profile picked") end
-		-- Copy from: the other profile's settings over this one's.
+		-- Copy into the profile in use: the other profile's settings over this one's.
 		ns.db:SetProfile("Raid")
 		ns.db.profile.verbose = false
 		ns.db:SetProfile("Default")
-		if c.copyfrom.values().Default ~= nil then fail(scenario, "Copy from lists the profile in use") end
-		c.copyfrom.set(nil, "Raid")
+		act(ns, "Raid", "copyfrom")
 		uses(scenario, ns, "Default", "after Copy from")
 		if ns.db.profile.verbose ~= false then fail(scenario, "Copy from did not bring the other profile's settings") end
 		-- Reset: back to the defaults.
 		c.resetProfile.func()
 		if ns.db.profile.verbose ~= true then fail(scenario, "Reset left a setting off its default") end
 		-- With no other profile there is nothing to copy from or delete.
-		c.delete.set(nil, "Raid")
+		act(ns, "Raid", "delete")
 		if c.delete.disabled() ~= true or c.copyfrom.disabled() ~= true then
 			fail(scenario, "Delete and Copy from are not greyed with one profile")
 		end
@@ -597,8 +630,11 @@ do
 		Mock.sv.char = Mock.sv.char or {}
 		local alt = { autoProfile = { enabled = true, rules = { raid = "Raid", world = "Default" } } }
 		ns.db.sv.char = { ["Alt - Mockrealm"] = alt }
-		if c.rename.validate(nil, "Default") == true then fail(scenario, "a rename onto a name already taken is let through") end
-		c.rename.set(nil, "Raiding")
+		c.choose.set(nil, "Raid")
+		c.name.set(nil, "Default")
+		if c.rename.disabled() ~= true then fail(scenario, "a rename onto a name already taken is let through") end
+		c.name.set(nil, "Raiding")
+		c.rename.func()
 		if not uses(scenario, ns, "Raiding", "after the rename") then return end
 		if Mock.sv.profiles.Raid ~= nil then fail(scenario, "the old name is still a profile") end
 		if ns.db.profile.verbose ~= false then fail(scenario, "the renamed profile lost a setting") end
@@ -653,7 +689,7 @@ do
 			fail(scenario, "SKIPPED -- the options window did not open")
 			return
 		end
-		for _, path in ipairs({ "profiles.autoEnabled", "profiles.switchNote", "profiles.new", "profiles.saveAs",
+		for _, path in ipairs({ "profiles.autoEnabled", "profiles.switchNote", "profiles.new", "profiles.duplicate",
 			"profiles.rename", "profiles.choose", "profiles.delete", "profiles.resetProfile", "profiles.current" }) do
 			if not UI.RowShown(path) then fail(scenario, path .. " is not drawn on Profiles") end
 		end
