@@ -616,7 +616,7 @@ profile reset touches them.
 
 ## The prompt's look
 
-<img src=".github/media/manners-looks.png" alt="The nineteen looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal" width="640">
+<img src=".github/media/manners-looks.png" alt="Looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal" width="640">
 
 Twenty-nine looks, each a card under Look > *Panel style*. Tabs over the
 cards sort them: **For my class** (the looks made for your class, three for a
@@ -627,8 +627,8 @@ fight, where a look waits for the fight to end). A small *New* marks the
 looks new in this release.
 
 Under the cards, headed with the chosen look's name, are its own settings.
-The looks are being repainted, each from one painting (Frost Mage first);
-*Earlier art* keeps the frames they had before, and the cards then show those.
+Every look's frame is a painting; *Earlier art* keeps the frames they had
+before the repaint, and the cards then show those.
 *Round the icon off* is greyed where the look always rounds it. *Show my key
 on the prompt* puts the key you press on the prompt's keycap: as the look has
 it (the choice says which), always, or never; nothing is shown while no key

@@ -98,9 +98,9 @@ mutate("Prompt/Text.lua",
 
 # --- what stays live ---
 
-mutate(GLASS,
-       "\tlocal key = Looks.Painted.KeyShown(self) and Looks.BoundKey()\n",
-       "\tlocal key = Looks.BoundKey()\n",
+mutate("Looks/Painted.lua",
+       "\tif not up and art.on and look.keyText then look.keyText:Hide() end\n",
+       "",
        "painted-glass: the key's letter drawn with the keycap hidden",
        expect="as the look has it, the glass shows its key", script=S)
 

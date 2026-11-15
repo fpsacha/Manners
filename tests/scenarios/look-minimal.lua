@@ -56,6 +56,8 @@ local function up(ns, scenario, owed, edit)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style, p.effects, p.flashStyle, p.hideInCombat = "minimal", "full", "pulse", false
+	-- The hairline is Minimal's earlier art (painted-minimal.lua holds the painting).
+	p.classicArt = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
 	if owed then owe(ns, "Anna Aim") end

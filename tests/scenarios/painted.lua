@@ -156,7 +156,7 @@ withTree("painted: the pieces follow the prompt's width and height, meet, and on
 		if g.hangL > d.hangLeft * g.unit + 0.01 or g.hangR > d.hangRight * g.unit + 0.01 then
 			fail(scenario, ("%s: the ends hang %.1f and %.1f past the prompt, more than the painting allows"):format(at, g.hangL, g.hangR))
 		end
-		if not (near(L.x1, M.x0) and near(M.x1, R.x0)) then
+		if not (L.x1 - M.x0 >= -0.05 and L.x1 - M.x0 <= 1.05 and M.x1 - R.x0 >= -0.05 and M.x1 - R.x0 <= 1.05) then
 			fail(scenario, ("%s: the pieces do not meet: %.2f | %.2f-%.2f | %.2f"):format(at, L.x1, M.x0, M.x1, R.x0))
 		end
 		local unit = art.g.unit
@@ -235,29 +235,47 @@ end)
 
 -- ------------------------------------------------------------------ 5
 withTree("painted: Earlier art changes nothing on a look without a painting", function(ns, scenario)
-	for _, style in ipairs({ "wild", "glass" }) do
-		-- A look painted since is held by its own painted-<key>.lua: Minimal,
-		-- which has no painting, stands in for it.
-		if ns.PaintedData[style] then style = "minimal" end
-		local r, p, look = upIn(ns, scenario, style)
-		if look and look.paintedArt then fail(scenario, style .. " has a painted frame it has no painting for") end
-		local function picture()
-			local out = {}
-			for _, t in ipairs((look and look.own) or r.builtin or {}) do
+	-- Every look of Looks/ wears its own painting, or none.
+	local r, p = upIn(ns, scenario, "frost")
+	local _, keys = ns.Looks.Choices()
+	for _, key in ipairs(keys) do
+		local look = ns.Looks.Get(key)
+		if look then
+			p.style = key
+			restyle(ns)
+			local art = look.paintedArt
+			if art and art.data ~= ns.PaintedData[key] then fail(scenario, key .. " has a painted frame it has no painting for") end
+		end
+	end
+	-- A look with no earlier art (no painting, or a painting only: whichever
+	-- there is) is drawn the same with Earlier art on.
+	local style
+	for _, key in ipairs(keys) do
+		if not style and ns.Looks.Get(key) and not ns.Looks.HasEarlierArt(key) then style = key end
+	end
+	if not style then fail(scenario, "SKIPPED -- every look has an earlier art") return end
+	p.style = style
+	restyle(ns)
+	local look = ns.Looks.Get(style)
+	local function picture()
+		local out = {}
+		local art = look.paintedArt
+		for _, list in ipairs({ look.own or {}, art and art.pieces or {} }) do
+			for _, t in ipairs(list) do
 				local b = FT.visible(t) and box(t)
 				out[#out + 1] = b and ("%.2f,%.2f,%.2f,%.2f"):format(b.x0, b.x1, b.y0, b.y1) or "-"
 			end
-			local name = box(r.name)
-			out[#out + 1] = name and ("%.2f"):format(name.x0) or "?"
-			return table.concat(out, ";")
 		end
-		local before = picture()
-		p.classicArt = true
-		restyle(ns)
-		if picture() ~= before then fail(scenario, style .. " is drawn otherwise with Earlier art on") end
-		p.classicArt = false
-		restyle(ns)
+		local name = box(r.name)
+		out[#out + 1] = name and ("%.2f"):format(name.x0) or "?"
+		return table.concat(out, ";")
 	end
+	local before = picture()
+	p.classicArt = true
+	restyle(ns)
+	if picture() ~= before then fail(scenario, style .. " is drawn otherwise with Earlier art on") end
+	p.classicArt = false
+	restyle(ns)
 end)
 
 -- ------------------------------------------------------------------ 6

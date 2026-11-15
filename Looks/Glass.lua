@@ -497,11 +497,12 @@ function Glass:PaintedStyled(g)
 	self.keyText:SetShadowOffset(0, 0)
 end
 
--- The key's letter while the painted keycap is up (Painted.lua's wrap shows
--- the keycap after this, by the same rule); the count chip is Panel.lua's.
+-- The key's letter on the painting; Painted.lua's wrap then shows the keycap,
+-- or hides it and this letter with it (Painted.KeyShown). The count chip is
+-- Panel.lua's.
 function Glass:Chip(on)
 	self.outcomeOn = self.kit and self.kit.OutcomeLive() or nil
-	local key = Looks.Painted.KeyShown(self) and Looks.BoundKey()
+	local key = Looks.Painted.On(self) and Looks.BoundKey()
 	if key then
 		local text = Looks.ShortKey(key)
 		self.keyText:SetText(type(text) == "string" and text ~= "" and text or key)

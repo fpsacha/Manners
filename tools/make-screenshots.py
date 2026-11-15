@@ -33,7 +33,7 @@ moment the addon is for, who it offers, the looks, the ledger, the window.
     manners-yourself.png      three prompts for the player's own buffs
     manners-list.png          the list under the prompt, a name lit and its tooltip up
     manners-tooltip.png       the prompt's Short tooltip above it, and the Full one with Shift held
-    manners-looks.png         the same favour in each of the nineteen looks, named
+    manners-looks.png         the same favour in each of the looks, named
     manners-look-STYLE.gif    a buff landing in a look, animated (FILMS: Stormcaller, Lightbringer)
     manners-moment.png        film strips: they buffed you, it lands, it is refused
     manners-ledger.png        the favour ledger with a day of ordinary play in it
@@ -3088,7 +3088,7 @@ def picture_looks(snaps):
     hero_h = hero.size[1] + 24
     top = hero_top + hero_h + 6
     board = Board(top + sum(heights) + 10, seed=17, sun=(0.50, 0.53))
-    heading(board, "Nineteen looks to choose from",
+    heading(board, "Looks to choose from",
             "The same favour in each. Pick one from the cards under Look.")
     # Glass and its words side by side, in the middle of the page.
     _, name, words = LOOKS[0]
@@ -3450,11 +3450,11 @@ GALLERY = [
      "it shows, under Look.",
      "The prompt twice with its tooltip above it: the Short one with the name, the spell, why they are "
      "offered and Hold Shift for more; the Full one with Shift held, saying what the press and each click do"),
-    ("manners-looks.png", "Nineteen looks to choose from",
+    ("manners-looks.png", "Looks to choose from",
      "Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, "
      "Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal, the "
      "same favour drawn in each; click a card under Look to switch.",
-     "The nineteen looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, "
+     "Looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, "
      "Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, "
      "Ebon, Gearworks, Warchief, Framed and Minimal"),
     ("manners-look-stormcaller.gif", "Stormcaller, as a buff lands",

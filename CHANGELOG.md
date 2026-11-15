@@ -1,107 +1,82 @@
 # Changelog
 
 ## Unreleased
+
 *15 November 2026*
 
 ### Highlights
-- **A blessing for each class.** Paladins can pick the blessing each class is
-  offered first: Wisdom for mages, say, where the order would give them Kings.
-  *Who to buff*, under *Buff order*. Asked for on CurseForge.
-- **Profiles you can manage.** The Profiles page lists every profile and who
-  is on it; pick one and use, duplicate, rename, delete or copy it, with Undo.
-- **Friendly nameplates, said where you look.** With them off, as a fresh
-  install has them, Manners cannot tell who a stranger is. The greeting,
-  *Start here* and the minimap tooltip now say so, with the button that turns
-  them on.
-- **Painted looks, ten of them new.** Frost Mage wears a painted frame, ten
-  new looks join it, and the picker sorts them all into four shelves.
+- **Every look repainted.** Each look's frame is now a painting, with ten new
+  looks beside them. *Earlier art* (Look, under the cards) keeps the frames
+  you had before.
+- **A Look page you can browse.** Tabs for *For my class*, *All* and each
+  shelf; point at a card to try that look on the prompt, click to keep it.
+- **A blessing for each class.** Paladins pick the blessing each class is
+  offered first. *Who to buff*, under *Buff order*. Asked for on CurseForge.
+- **Profiles you can manage.** Every profile and who is on it; use, duplicate,
+  rename, delete or copy one, with *Undo*.
+- **The prompt goes to whoever is in reach.** Somebody who walked off no
+  longer holds it while another stands beside you, in a fight or out of one.
 
-### Friendly nameplates
-- **The greeting says it.** A first login with the game's friendly nameplates
-  off adds a red line under the welcome, naming *Show friendly nameplates*.
-- **Start here asks at once.** The note and its button show while *Quick
-  setup* is still asking, for *Everyone near me*.
-- **The minimap tooltip and the options window** say *Watching your group*
-  in amber instead of a green *Watching for people to buff*, and the window's
-  strip has the button beside the line.
-- **A buff from somebody unnamed is explained.** When a stranger's buff lands
-  and the game will not say who cast it, one line says why there is nobody to
-  buff back. Once a session, on your first three sessions.
 ### Looks
-- **Painted frames.** The looks are being repainted, each from one painting:
-  Frost Mage first, the rest as they are finished. *Earlier art* keeps the
-  frames they had before, and the cards show whichever the prompt wears.
-- **Tabs for the looks.** Over the cards: *For my class* (a mage's three mage
-  looks, opened first), *All*, and one tab a shelf. Bigger cards, and a small
-  *New* on the looks new in this release.
-- **Try a look by pointing at it.** The pointer on a card puts that look on
-  the prompt at once; moving off puts yours back, a click keeps it.
-- **The chosen look's settings together.** Under the cards, headed with the
-  look's name: *Earlier art*, *Round the icon off*, *Show my key on the
-  prompt*, the gryphons and the reason's colours.
-- **Ten new looks.** For the classes: Fire Mage, Priest, Rogue, Monk, Demon
-  Hunter and Evoker. And four quiet ones: Ghost (a pane of smoked glass),
-  Hairline (an icon and one fine line), Pill and Slate. Ghost, Pill and Slate
-  let a little of the world show through, never enough to lose the words.
-- **The picker in shelves.** The cards are sorted under Minimal, Classic,
-  Themed and Class, and the class looks are named for their class: Frost
-  Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter and
-  Warrior. Your choice is kept.
-- **Show my key on the prompt.** As the look has it (on the class and themed
-  looks, off on the calmer ones), always or never, with the look's own
-  settings. Nothing is shown while no key is bound.
-
-### Profiles
-- **Every profile at a glance.** One line each, the one in use first: which
-  characters are on it, and where automatic switching picks it for you.
-- **Pick, then act.** Pick a profile and *Use*, *Duplicate*, *Rename*,
-  *Delete* or *Copy into the profile in use*. Any profile can be renamed or
-  duplicated, not only the one in use.
-- **Undo.** A delete, reset, copy, rename or paste can be taken back with one
-  press: the settings, the characters on the profile and the rules that named
-  it. One step, until the next action.
-- **Delete says who it moves.** It asks first and names the characters that
-  go back to *Default*.
-- **Paste into a new profile.** *Share as text* can put pasted settings into a
-  new profile, and switch to it, instead of over the one in use.
-- **New characters start on** a profile you choose, for the whole account,
-  from their first login.
+- **Painted frames.** All nineteen earlier looks, Glass and Framed included,
+  are drawn from a painting. Glass and Framed keep their shape and stay clean.
+- **Ten new looks.** Fire Mage, Priest, Rogue, Monk, Demon Hunter and Evoker,
+  and four quiet ones: Ghost, Hairline, Pill and Slate.
+- **Four shelves.** Minimal, Classic, Themed and Class. The class looks are
+  named for their class (Fel is Warlock, Wild is Druid); your choice is kept.
+- **Try a look by pointing at it.** Moving off puts yours back.
+- **Show my key on the prompt.** As the look has it, always, or never. On a
+  prompt too narrow for it the key gives way to the name.
+- **The chosen look's settings together**, under the cards.
 
 ### Who gets what
 - **A blessing for each class.** Pick a class, then its blessing. Somebody who
-  already wears it from another paladin, or who cannot be given it, gets what
-  the order would have chosen, and anybody wearing one of yours is left alone.
+  already wears it from another paladin gets what the order would have chosen.
+- **Passers-by who walked off.** Somebody still in reach takes the prompt
+  first, and a fight no longer freezes on people who have left.
+- **The list holds still under the cursor.** The name you point at stays on
+  its line, so a click never lands on whoever slid into it.
+- **The fight's rota goes round once.** Each press reaches the next person
+  rather than the same one again.
 
 ### Your own buffs
-- **Demonic Pact keeps both.** On WoW Forever, a warlock with Demonic Pact
-  is reminded of Demonic Sacrifice and Soul Link alike, the sacrifice first,
-  each with its own switch under *Myself*. Learning or dropping the talent
-  takes effect at once. Asked for on GitHub.
-- **Make a Firestone or Spellstone.** On WoW Forever, with this turned on, a
-  warlock with no stone in his bags or on his weapon and a Soul Shard is
-  offered the spell that makes one, then the stone to put on. Off by default.
-  Asked for on GitHub.
+- **Demonic Pact keeps both.** On WoW Forever, a warlock with Demonic Pact is
+  reminded of Demonic Sacrifice and Soul Link alike. Asked for on GitHub.
+- **Make a Firestone or Spellstone.** On WoW Forever, off by default: with no
+  stone and a Soul Shard, the prompt offers to make one. Asked for on GitHub.
+
+### Profiles
+- **Every profile at a glance**, the one in use first, with who is on it.
+- **Pick, then act.** *Use*, *Duplicate*, *Rename*, *Delete*, *Copy into the
+  profile in use*, and *Undo* for the last one.
+- **Paste into a new profile**, and *New characters start on* a profile you
+  choose for the whole account.
 
 ### Options window
-- **Pages in parts.** A long page has a bar of its parts over it: pick one to
-  see only those settings, or *All* for the whole page.
-- **A picture for each page.** The menu's pages have painted icons of their own.
+- **Pages in parts.** A long page has a bar of its parts: pick one, or *All*.
+- **A picture for each page** in the menu.
+- **Why nothing comes up.** The minimap tooltip, the window's strip and
+  Diagnostics say when a place rule, your mana or the game's friendly
+  nameplates being off is holding the prompt back.
 
 ### What I say
-- **The Forsaken have about a hundred new In character lines**, in every
-  language: Undercity, Brill, the apothecaries and loose stitching.
-- **In character lines that were only local colour now speak to the favour
-  itself.** About nine hundred lines, in every language; a phrase box you saved
-  is still recognised.
+- **About a hundred new Forsaken lines**, in every language.
+- **In character lines speak to the favour itself.** About nine hundred were
+  reworded so each makes sense said with a buff; a saved phrase box is kept.
 
 ### Fixes
-- **A fault that keeps repeating is said where you look.** The minimap
-  tooltip, the broker text and the options window name it in red, with *Run
-  a full check-up*. With *Say nothing at all in chat* on, one line goes on
-  screen instead of chat, once a session.
-- **`/manners selftest launch` says what the session did.** Any action the
-  game refused Manners since login, the map the town rule reads, and whether
-  a debuff's timer is given, so one pasted report answers them.
+- **A buff the game keeps refusing.** On WoW Forever, "A more powerful spell
+  is already active" is now understood: that buff is held off that person for
+  ten minutes instead of being offered again and again. *Who to buff* has
+  *Offer held-back buffs again*.
+- **Out of sight is not five minutes.** A cast refused for range or line of
+  sight backs off for seconds, not as if the person could never be buffed.
+- **A press in a fight keeps your enemy targeted** when the person it was for
+  has gone.
+- **A new character's greeting** waits until its first buff is learned.
+- **A warrior's shout on WoW Forever** is described as reaching the raid.
+- **A fault that keeps repeating** is named in red on the minimap tooltip and
+  in the options window, with *Run a full check-up*.
 
 ## 1.11.25
 

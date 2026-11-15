@@ -27,7 +27,7 @@ Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade C
 - **Options that start short:** a simple view with the ten or so settings your class changes on each page, everything else one switch or one search away; a long page in parts you pick from a bar, and a painted icon for each page.
 - **Say something**, if you like: four sets, whispers, or **In character**, over three thousand lines picked for your race, class and the moment (about a hundred of them the Forsaken's own), with your own mixed in if you like. Off by default.
 - **Keys, action bars and controllers:** a key binding, a macro for any action bar slot that shows the spell it will cast and says your line, and the game's own controller support (bind a controller button; the prompt shows its picture).
-- **Nineteen looks** picked from cards, effects you can calm, and **Move the prompt** one click away in the options window.
+- **Twenty-nine looks**, each a painting, picked from cards on four shelves, effects you can calm, and **Move the prompt** one click away in the options window.
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.
 
 Blizzard does not let an addon cast on its own, so nothing happens until you press the key: Manners decides who deserves the buff, and the game casts when you click. Passers-by are seen through friendly nameplates, which the options can turn on.

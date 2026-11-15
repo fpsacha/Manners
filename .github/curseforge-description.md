@@ -24,7 +24,7 @@ Setting it up takes one page. `/manners` opens **Start here**: two numbered step
 
 Turn on *List the next few below* (Look) and every name under the prompt is a button of its own, with the icon of the buff they would get: left-click buffs that person, right-click skips them for now, shift-right-click puts them on your never-offer list.
 
-![The nineteen looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
+![Looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
 ![The Stormcaller look as a buff lands: chain lightning arcs from the totem to the standing stone](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-stormcaller.gif)
 
@@ -135,7 +135,7 @@ Or just `/thank` them with an emote (off by default, never in a fight, a dungeon
 
 ### Looks
 
-- **Nineteen looks**, picked from cards in the options window: from Glass, the default, after the game's own action bar, to a paladin's Lightbringer, a shaman's Stormcaller, a death knight's Ebon runeblade or the Horde's Warchief, each with its own way of greeting a favour and a landed buff (the pictures above show them all). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Twenty-nine looks**, each a painting, picked from cards on four shelves in the options window: from Glass, the default, after the game's own action bar, to a paladin's Lightbringer, a shaman's Stormcaller, a death knight's Ebon runeblade or the Horde's Warchief, each with its own way of greeting a favour and a landed buff (the pictures above show them all). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **A flat prompt, if you like:** on Glass, Framed and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go. The game's Edit Mode unlocks it too, and locks it again when it closes.
