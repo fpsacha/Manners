@@ -1,0 +1,12 @@
+{
+  "key": "ebon",
+  "socket": {"shape": "round", "cx": 617, "cy": 522, "r": 130},
+  "name_xy": [925, 440],
+  "reason_xy": [928, 541],
+  "keycap": {"cx": 3245, "cy": 512, "w": 160, "h": 170},
+  "bar": [375, 265, 3810, 770],
+  "stretch": [1000, 3080],
+  "text_colour_ok": true,
+  "contrast": {"white": 16.09, "gold": 10.82},
+  "notes": "final-empty.jpg is Gemini's emptying of the keeper r4-02 (empty-02.jpg; mean pixel difference to the keeper 5/255). Socket r is the inner dark glass disc; the outer saronite ring is r about 235, about 1.22 times the frame band (y 325..710, 385 high). Skull crest top at y 265, about 60 px (15%) above the band. Text well y 390..640, x 868..about 3330. Contrast measured over the lightest tenth of x 905..1435, y 425..625 (relative luminance 0.0152). Animate as layers: the cold-blue runes on the socket ring, beside the keycap and on the blade tip (slow pulse); the faint frost vapour hugging the ring and the tip (slow drift, small); a glint across the empty glass disc."
+}

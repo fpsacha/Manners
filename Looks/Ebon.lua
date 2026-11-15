@@ -99,6 +99,15 @@ local Ebon = ns.Looks.Register("ebon", {
 	-- The words stand on the blued steel whatever the panel colour says.
 	inkOnDark = true,
 	subOnDark = true,
+	-- The painted frame (Looks/Painted.lua, art/looks/ebon): what of this
+	-- look's own art the painting replaces. The saronite, the blade's steel and
+	-- its shadow, the guard with its skull and horns, the runes' own glyphs
+	-- (the painting has runes of its own, which the runes' lights kindle) and
+	-- the key's tag. Kept over it: the soulfire, the eyes, the light round the
+	-- icon, the runes' lights, the vapour, the sheen, the notch, the sparks,
+	-- the count's tag and the list.
+	paintedHides = { "shadow", "body", "guard", "runes", "runeLit", "keyChip" },
+	paintedIconFill = 0.80,
 })
 
 -- MUST AGREE with tools/make_ebon_textures.py (tests/scenarios/look-ebon.lua
@@ -189,6 +198,26 @@ local OUTCOME = {
 }
 -- What a fight does: the text dims, the icon greys and dims, the blade dims.
 local TEXT_COMBAT, ICON_COMBAT, BODY_COMBAT = 0.78, 0.70, 0.72
+-- A painted frame (Looks/Painted.lua) is dimmed less in a fight: its keycap's
+-- pale letter stays on a frame that reads.
+local PAINT_COMBAT = 0.86
+-- Where the painting (art/looks/ebon/final-empty.jpg) has what this look
+-- lights, in units of the bar's core height: the skull's eyes from the
+-- socket's middle (up, aside, how large), its crown and its brow; the outer
+-- edge of the ring round the socket; the three runes and the blade's point
+-- from the keycap's middle, and how large a rune is; how tall the soulfire
+-- stands on the crown. The light round the icon lies this far out in the
+-- painted glass (of the socket's radius), the breath's light on its rim; the
+-- vapour's band along each edge is this tall.
+local PAINT = {
+	eyeUp = 0.44, eyeOut = 0.068, eye = 0.09, crown = 0.60, brow = 0.556, ring = 0.59,
+	runes = { 0.406, 0.539, 1.115 }, rune = 0.15, tip = 1.40, flame = 0.30,
+	socketRing = 0.90, haloRing = 1.0, vapour = 0.24,
+}
+local ROUND_MASK = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask"
+-- The prompt's own round ring (Textures/Ring, tools/make-glow.py): the line
+-- where this look's ring file has it, round where that one has eight sides.
+local ROUND_RING = "Interface\\AddOns\\Manners\\Textures\\Ring"
 -- The light over the socket at rest, lit and held after its breaths; each
 -- rune's soft light over the same breath.
 local HALO = { rest = 0, peak = 0.66, held = 0.32 }
@@ -1025,6 +1054,12 @@ function Ebon:Apply(p, above)
 	local chipH = sub + 7
 	self.chipH = chipH
 	PlaceThree(self.keyChip, self.keyBox, chipH)
+	-- With the words, and the guard's own shapes (a painted frame moves the
+	-- letter to its keycap's frame and gives the socket round ones).
+	self.keyText:SetParent(kit.textLayer)
+	self.socket:SetTexture(ART .. "Socket")
+	self.halo:SetTexture(ART .. "Halo")
+	self.mask:SetTexture(ART .. "Mask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	self.keyBox:ClearAllPoints()
 	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -self.chipInset, 0)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
@@ -1486,6 +1521,137 @@ function Ebon:Hide()
 end
 
 ---------------------------------------------------------------------------
+-- the painted frame (Looks/Painted.lua): Ebon's own lights, motion, tags and
+-- lines moved onto the painting. Looks/Painted.lua has laid the three pieces
+-- and put the icon in the socket; `g` is its Painted.Layout.
+---------------------------------------------------------------------------
+
+-- The socket's lights on the painted glass and skull: the light round the
+-- icon and the breath's light as rings in the round socket, the icon and the
+-- rings cut round, the eyes in the painted skull, the soulfire on its crown
+-- and the glint on its brow.
+function Ebon:PaintedSocket(g, showIcon)
+	local kit = self.kit
+	local art, u = kit.art, g.unit
+	local cx, cy = g.socketX, g.socketY
+	self.socket:SetTexture(ROUND_RING)
+	self.halo:SetTexture(ROUND_RING)
+	At(self.socket, art, cx, cy, 2 * g.socketR * PAINT.socketRing / RING_PEAK)
+	At(self.halo, art, cx, cy, 2 * g.socketR * PAINT.haloRing / RING_PEAK)
+	for i, t in ipairs(self.eyes) do
+		At(t, art, cx + (i == 1 and -1 or 1) * PAINT.eyeOut * u, cy - PAINT.eyeUp * u, math.max(3, PAINT.eye * u))
+	end
+	self.flameH = math.max(8, PAINT.flame * u)
+	self.flameFoot = cy - PAINT.crown * u
+	self:Stoke()
+	At(self.glints[2], art, cx, cy - PAINT.brow * u, math.max(6, u * 0.14))
+	self.mask:SetTexture(ROUND_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	if showIcon then
+		self.fx:Shape(true, ROUND_RING, ROUND_RING, ROUND_MASK)
+		local cooldown = kit.cooldown
+		if cooldown and cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(ROUND_MASK) end
+	end
+end
+
+function Ebon:PaintedPlace(g, p, above)
+	local kit = self.kit
+	local art, u = kit.art, g.unit
+	local showIcon = p.showIcon and true or false
+	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
+	-- The guard is the painted socket: its lights, the forge, the white heat
+	-- and the rings centred on it, the forge's lance reaching the skull.
+	self.cx, self.cy, self.iconSize = g.socketX, g.socketY, g.iconSize
+	self.circle = g.iconSize / ICON_FRAME * CIRCLE_SCALE
+	self.discRight = g.socketX + PAINT.ring * u
+	self.textX = g.textX
+	self:PlaceGuard(showIcon)
+	self:PaintedSocket(g, showIcon)
+	-- The blade is the painted bar's core, from the socket's ring to the
+	-- keycap's far side.
+	self.plateIn, self.ph, self.plateX, self.su = g.top, u, 0, u / DESIGN_H
+	self.endX, self.rootX = keyR, keyR
+	-- The runes' lights on the painting's own runes, past the keycap: the
+	-- words never reach them.
+	for i = 1, #RUNE_AT do
+		local x, size = g.keyX + PAINT.runes[i] * u, math.max(5, PAINT.rune * u)
+		self.runeX[i], self.runeSize[i] = x, size
+		At(self.runes[i], art, x, g.keyY, size)
+		At(self.runeLit[i], art, x, g.keyY, size)
+		At(self.runeGlow[i], art, x, g.keyY, size * 1.5)
+		At(self.runeHot[i], art, x, g.keyY, size * 1.25)
+		for _, t in ipairs({ self.runeGlow[i], self.runeHot[i], self.wisps[i] }) do t:Show() end
+	end
+	self.runesOK = true
+	self:PlaceEdges(showIcon, above)
+	self.notch:SetShown(self.notchOK)
+	-- The vapour hugs the painted frame's two edges, nearly half over each,
+	-- in a slimmer band than the blade's: it rolls off the frame, it does not
+	-- float above it.
+	local vh = math.max(6, math.min(14, u * PAINT.vapour))
+	local vx0, vx1 = self.discRight + 2, self.W - 2
+	local yt, yb = g.top, g.top + u
+	for i, t in ipairs(self.vapour) do
+		if i <= 2 then
+			Box(t, art, vx0, yb - vh * 0.4, vx1, yb + vh * 0.6)
+		else
+			Box(t, art, vx0, yt - vh * 0.6, vx1, yt + vh * 0.4)
+		end
+		self.vapourScroll[i]:Window((vx1 - vx0) / (VAPOUR.tile * VAPOUR.long), vh / VAPOUR.tile)
+	end
+	Box(self.vapourMask[1], art, vx0, yb - vh * 0.4, vx1, yb + vh * 0.6)
+	Box(self.vapourMask[2], art, vx0, yt - vh * 0.6, vx1, yt + vh * 0.4)
+	self:PlaceMotion(showIcon, above)
+	-- The point's glint, and the greeting's, on the painted point.
+	local tip = math.max(8, u * 0.46)
+	At(self.glints[1], art, g.keyX + PAINT.tip * u, g.keyY, tip)
+	At(self.star, art, g.keyX + PAINT.tip * u, g.keyY, tip * 1.25)
+	-- The cursor's light along the bar's upper edge.
+	Box(self.hoverFrame, art, self.discRight, g.top, keyR, g.wellTop)
+	-- The two lines centred on the well, the verdict's glyph with them.
+	local dy = self.H / 2 - g.textY
+	self.nameY, self.subY = self.nameY + dy, self.subY + dy
+	self.glyph:ClearAllPoints()
+	self.glyph:SetPoint("LEFT", kit.textLayer, "LEFT", g.textX - 1, self.subY)
+	-- The key's letter on the painted keycap (its own tag is the painting's);
+	-- the lines and the count's tag keep left of it.
+	self.chipInset = math.ceil(self.W - keyL) + 3
+	self.keyBox:ClearAllPoints()
+	self.keyBox:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
+	self.keyBox:SetSize(g.keyW, g.keyH)
+	-- The letter is part of the keycap: a fight's dim of the words
+	-- (textLayer's alpha) stays off it.
+	self.keyText:SetParent(self.chipFrame)
+	self.roomBase = math.ceil(self.chipH * 1.75) + self.chipInset + 7
+	-- The list from right of the socket's ring to the keycap's far side, its
+	-- plate tucked under the painted bar.
+	self.listX0 = showIcon and (self.discRight - 1) or 2
+	self.rowX = math.max(g.textX, self.listX0 + self.bead + 5)
+	self.listX1 = math.max(self.rowX + 30, keyR + 3)
+	local rowWidth = math.max(20, self.listX1 - self.rowX - 9)
+	for _, row in ipairs(kit.rows) do
+		row:SetWidth(rowWidth)
+		kit.fit.room[row] = rowWidth
+	end
+	-- What runs at rest, asked again where it now falls.
+	self:Breath()
+	self.idleState = nil
+	self:Idle()
+	return g.textX, self.roomBase
+end
+
+-- The key's letter on the painted keycap, in the ink the painting gives it.
+function Ebon:PaintedStyled(g)
+	local ink = g and g.keyInk
+	if not ink then return end
+	self.keyText:SetTextColor(ink[1], ink[2], ink[3], 1)
+	self.keyText:SetShadowOffset(0, 0)
+	-- No larger than the keycap holds, so the letter stays on its face.
+	local path, size, flags = self.keyText:GetFont()
+	local most = math.max(6, math.floor(g.keyH * 0.7))
+	if path and size and size > most then self.keyText:SetFont(path, most, flags or "") end
+end
+
+---------------------------------------------------------------------------
 -- the lines and the chips
 ---------------------------------------------------------------------------
 
@@ -1607,11 +1773,17 @@ function Ebon:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.chipInset + 7)
+			-- On the painted keycap the key takes no room of the lines' own:
+			-- the keycap is already left out of it.
+			if ns.Looks.Painted.On(self) then
+				self.keyW, self.keyRoom = self.paintedArt.g.keyW, self.chipInset
+			end
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
 			kit.fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		-- The painted keycap is there whatever the name: its letter with it.
+		keyUp = ns.Looks.Painted.On(self) or self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
@@ -1695,6 +1867,9 @@ function Ebon:Dress()
 	end
 	Each(self.body, "SetDesaturated", fight or dead)
 	for _, t in ipairs(self.body) do Colour(t, pc[1] * fr, pc[2] * fg, pc[3] * fb) end
+	-- The painted frame, when it is up, the same, a fight dimming it less.
+	if fight then fr, fg, fb = PAINT_COMBAT, PAINT_COMBAT, PAINT_COMBAT end
+	ns.Looks.Painted.Tone(self, pc[1] * fr, pc[2] * fg, pc[3] * fb, fight or dead)
 end
 
 -- What a refusal leaves: the runes out, the soulfire snuffed, the eyes dark,
