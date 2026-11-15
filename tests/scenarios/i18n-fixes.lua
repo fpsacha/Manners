@@ -401,14 +401,14 @@ end
 -- and its new digest goes here. The same goes for new first lines in a pool,
 -- which change the examples of the people who have it.
 local EXAMPLES = {
-	deDE = { 2143979529, 359 },
-	esES = { 3871393207, 359 },
-	frFR = { 3541006690, 359 },
-	itIT = { 2183411623, 359 },
-	koKR = { 476143163, 359 },
-	ptBR = { 3295109827, 359 },
-	zhCN = { 604202887, 359 },
-	zhTW = { 1247806550, 359 },
+	deDE = { 1445941679, 359 },
+	esES = { 253034628, 359 },
+	frFR = { 3202931423, 359 },
+	itIT = { 1062310644, 359 },
+	koKR = { 3467854034, 359 },
+	ptBR = { 3047086975, 359 },
+	zhCN = { 2354354892, 359 },
+	zhTW = { 3911186025, 359 },
 }
 
 local function examplesDigest(RP)
