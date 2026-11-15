@@ -563,6 +563,8 @@ ns.WindowLayout = {
 					{ composite = "never", ids = {
 						"who.neverNote", "who.neverPick", "who.neverRemove", "who.neverAdd", "who.neverClear",
 					} },
+					-- The buffs held off somebody the game refused them on (Queue.lua).
+					"who.heldRetry",
 				} },
 			},
 		},

@@ -2221,6 +2221,16 @@ function Page.BuildWhoTab()
 					neverPicked = nil
 				end,
 			},
+			-- Beside the list: the buffs the game refused on somebody, held off
+			-- them for ten minutes (Queue.lua), offered again on purpose.
+			heldRetry = {
+				type = "execute",
+				name = L["Offer held-back buffs again"],
+				desc = L["A buff the game refused on somebody (A more powerful spell is already active, too low a level, or refused twice running with nothing changed) is not offered to them for ten minutes. This offers every such buff again now."],
+				order = 56,
+				disabled = function() return not ns.AnyHeldOff() end,
+				func = function() ns.OfferHeldAgain() end,
+			},
 		},
 	}
 	AddBuffToggles(who.args)

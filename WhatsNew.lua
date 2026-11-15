@@ -110,6 +110,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffThe footer.|r Who makes Manners is larger and easier to read, and the version stands at the right.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52A buff the game keeps refusing.|r On WoW Forever the game's reason (\"A more powerful spell is already active\") comes after the refusal, and was missed: it now holds that buff off that person for ten minutes.",
 			"|cffff9a52Greater Blessing of Kings and a Fish Bowl.|r With |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r on, the Greater Blessing no longer lands on a class with somebody sitting by one: the others get single Kings.",
 			"|cffff9a52A read-through of everything new.|r Some thirty faults put right in resurrection, cures, courtesies, asking for a buff, sharing a group, the group's pets and battlegrounds.",
 			"|cffff9a52Companion pet while Manners is off.|r Switched off or snoozed, Manners no longer brings a pet out of your journal.",

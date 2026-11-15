@@ -8,6 +8,7 @@ local addon = ns.addon
 
 local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
+local issecretvalue = _G.issecretvalue
 
 -- Core.lua's and Queue.lua's, which load first.
 local plain, safecall, caps, SpellNameFor = ns.plain, ns.safecall, ns.caps, ns.SpellNameFor
@@ -1110,8 +1111,25 @@ function addon:SPELL_UPDATE_COOLDOWN()
 	SyncSweep()
 end
 
+-- For the full check-up's trail: what the game sent in the half second after a
+-- press, each argument by its type (a secret is "secret"), never by its words,
+-- which may name somebody. One line an event, only after a press.
+local function KindOf(value)
+	if value == nil then return "nil" end
+	if issecretvalue and issecretvalue(value) then return "secret" end
+	return type(value)
+end
+local function TrailAfterPress(event, text)
+	local at = ns.lastClickTime
+	local since = at and GetTime() - at
+	if not since or since < 0 or since > 0.5 then return end
+	ns.Trail("event", ("%s +%.2fs %s"):format(event, since, text))
+end
+
 function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
+	TrailAfterPress("UNIT_SPELLCAST_FAILED", ("guid %s, spell %s, a press waiting %s"):format(
+		KindOf(castGUID), KindOf(spellId), tostring(ns.pendingClick ~= nil)))
 	-- First: a refusal after SENT has the client take back the global
 	-- cooldown the sweep is drawn from.
 	SyncSweep()
@@ -1141,8 +1159,18 @@ end
 
 -- Only errors in the moment after our own click, and printed only when asked
 -- for: this event carries everything the game raises.
-function addon:UI_ERROR_MESSAGE(_, _, message)
+function addon:UI_ERROR_MESSAGE(_, errorType, message)
+	-- The message type (Blizzard's UIErrorsFrame reads it first, then the words)
+	-- names the global string the words come from (GetGameMessageInfo): for the
+	-- trail, and for the words themselves where the client withholds them.
+	local kinds = KindOf(errorType) .. ", message " .. KindOf(message)
 	message = plain(message)
+	errorType = plain(errorType)
+	local id = type(errorType) == "number" and type(GetGameMessageInfo) == "function"
+		and plain((GetGameMessageInfo(errorType))) or nil
+	if type(id) ~= "string" then id = nil end
+	if message == nil and id and type(plain(_G[id])) == "string" then message = plain(_G[id]) end
+	TrailAfterPress("UI_ERROR_MESSAGE", ("type %s (%s), id %s"):format(tostring(errorType), kinds, tostring(id)))
 	-- A bar press the cooldown held back (Press.lua, OnBarClick) still sends
 	-- its /cast, which the game refuses in the same frame. That refusal is
 	-- about a press nothing was filed for: not a reason to doubt the press
@@ -1153,7 +1181,7 @@ function addon:UI_ERROR_MESSAGE(_, _, message)
 	local failed, failedKey = FailPendingClick(message)
 	-- After the line above, which hands its refusal the words itself; this is
 	-- for a refusal that arrived first, with none (UNIT_SPELLCAST_FAILED).
-	ns.NoteGameError(message)
+	ns.NoteGameError(message, id)
 	-- The game's own words go on the panel's sub-line: localised, and often
 	-- the only thing that says why.
 	if failed then

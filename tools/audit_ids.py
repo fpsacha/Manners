@@ -979,6 +979,9 @@ def check_favours(rep, c, d):
 # What a buff of the addon gives, as the stat a MOD_STAT aura (29) names in EffectMiscValue, and the
 # name of the spell a scroll of that stat casts: Buffs.lua's `blockers`, `statValue`.
 STAT_OF = {"intellect": (3, "Intellect"), "fortitude": (2, "Stamina"), "spirit": (4, "Spirit")}
+# The buff's own name, which a blocker outside its rank chain may carry (Forever's other Arcane
+# Intellects, Buffs.lua ALIKE_BLOCKERS).
+ALIKE_NAME = {"intellect": "Arcane Intellect", "fortitude": "Power Word: Fortitude", "spirit": "Divine Spirit"}
 MOD_STAT = 29
 
 
@@ -1070,8 +1073,13 @@ def check_stats(rep, c, d, flavour):
                 elif m != misc:
                     rep.finding(where, "blocker %d (%s) is MOD_STAT %d, the stat of %s is %d" % (
                         i, c.names.get(i), m, key, misc))
-                # A scroll's spell is named for the stat; a camping buff (statTiers) "Boosted <stat>".
-                if not name_ok(c.names.get(i), ("Boosted " + name) if i in tiers else name):
+                # A scroll's spell is named for the stat; a camping buff (statTiers) "Boosted <stat>";
+                # on Forever another cast of the buff's own name outside its rank chain (Buffs.lua,
+                # ALIKE_BLOCKERS: 364161, 13326 and 16876, Arcane Intellect), never one of its ranks.
+                own_name = ALIKE_NAME.get(key)
+                pattern = ("Boosted " + name) if i in tiers else (
+                    "(%s|%s)" % (name, re.escape(own_name)) if own_name and i not in ranks else name)
+                if not name_ok(c.names.get(i), pattern):
                     rep.finding(where, "blocker %d is %r, expected %s" % (i, c.names.get(i), name))
             # every scroll of that stat the client has is listed
             listed = set(blockers)

@@ -2436,6 +2436,14 @@ end
 -- of Wisdom), and the Fish Bowl's Boosted Stats (1230098, against Kings: Core.lua,
 -- SparesFishBowl, behind its own switch). STATUS.md has the question.
 local CAMP_BLOCKER = { fortitude = 1230124, intellect = 1229513, spirit = 1229718 }
+-- And three more auras Forever's data calls Arcane Intellect, outside the
+-- mage's rank chain (no SkillLineAbility row, no item; cast by something else):
+-- 364161 +7 for an hour, 13326 +10 and 16876 +31 for half an hour, each the
+-- MOD_STAT Intellect aura with Arcane Intellect's own icon (SpellMisc 135932,
+-- builds 1.60.1.70790 and 70938). Somebody wearing one worth as much as your
+-- rank would land is wearing Arcane Intellect, and yours is refused over it
+-- ("A more powerful spell is already active"): weighed as the scrolls are.
+local ALIKE_BLOCKERS = { intellect = { 364161, 13326, 16876 } }
 local CAMELOT = {}
 do
 	local GONE = { sanctuary = true, salvation = true, light = true }
@@ -2455,6 +2463,7 @@ do
 				if CAMP_BLOCKER[entry.key] and entry.blockers then
 					local blockers = { CAMP_BLOCKER[entry.key] }
 					for _, id in ipairs(entry.blockers) do blockers[#blockers + 1] = id end
+					for _, id in ipairs(ALIKE_BLOCKERS[entry.key] or {}) do blockers[#blockers + 1] = id end
 					entry.blockers = blockers
 				end
 				copy[#copy + 1] = entry
@@ -2523,6 +2532,11 @@ end
 -- somebody of the wearer's own level casts over it, and a caster a tier behind
 -- is refused. tools/audit_ids.py holds every number to the client.
 for id, value in pairs({ [1230124] = 56, [1229513] = 25, [1229718] = 32 }) do
+	CAMELOT_STAT[id] = value
+end
+-- The other Arcane Intellects (ALIKE_BLOCKERS, above), SpellEffect build
+-- 1.60.1.70938.
+for id, value in pairs({ [364161] = 7, [13326] = 10, [16876] = 31 }) do
 	CAMELOT_STAT[id] = value
 end
 local CAMELOT_TIERS = {

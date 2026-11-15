@@ -1287,7 +1287,7 @@ function ns.FlushOwnScan()
 	walkAfterFight = false
 end
 
-function addon:UNIT_AURA(_, unit)
+function addon:UNIT_AURA(_, unit, info)
 	-- Retail 12.1 makes the whole payload secret while auras are secret (a
 	-- fight, an encounter, a keystone, a PvP match), and a secret may be neither
 	-- compared nor handed to UnitGUID: either is a Lua error from addon code,
@@ -1325,6 +1325,9 @@ function addon:UNIT_AURA(_, unit)
 	ForgetUnitAuras(plain(UnitGUID(unit)))
 	-- And what was read of their debuffs, once anything has been (Cures.lua).
 	if ns.cureReads then ns.ForgetCureRead(unit) end
+	-- And a refusal remembered on them, while one is (Queue.lua, AuraChangedOn):
+	-- a buff added to them or taken off is something changed.
+	if ns.refusalWatch then ns.AuraChangedOn(unit, info) end
 end
 
 function addon:PLAYER_ENTERING_WORLD(_, isInitialLogin, isReloadingUi)
