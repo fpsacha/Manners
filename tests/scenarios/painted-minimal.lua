@@ -159,7 +159,7 @@ withTree("painted-minimal: the pieces follow the prompt's size and meet, and a p
 			local g = art.g
 			if not near(L.x0, a.x0 - g.hangL) then fail(scenario, ("%s: the left end starts %.2f from the prompt's left"):format(at, L.x0 - a.x0)) end
 			if not near(R.x1, a.x1 + g.hangR) then fail(scenario, ("%s: the right end stops %.2f from the prompt's right"):format(at, R.x1 - a.x1)) end
-			if not (near(L.x1, M.x0) and near(M.x1, R.x0)) then
+			if not (L.x1 - M.x0 >= -0.05 and L.x1 - M.x0 <= 1.05 and M.x1 - R.x0 >= -0.05 and M.x1 - R.x0 <= 1.05) then
 				fail(scenario, ("%s: the pieces do not meet: %.2f | %.2f-%.2f | %.2f"):format(at, L.x1, M.x0, M.x1, R.x0))
 			end
 			if not (near(L.h, g.unit * tall, 0.1) and near(M.h, L.h) and near(R.h, L.h)) then
@@ -253,10 +253,26 @@ withTree("painted-minimal: a fight greys the painting, an outcome washes the pan
 		if FT.visible(t) then fail(scenario, "under Glass, piece " .. i .. " of the painting is drawn") end
 	end
 	if FT.visible(dress.keyText) or FT.visible(art.keycap) then fail(scenario, "under Glass, Minimal's keycap is drawn") end
+	-- Glass lays the wash on its own painted well, as it does coming from
+	-- itself; under Earlier art, over its whole panel.
+	local laid = box(r.fill)
+	restyle(ns)
+	local again = box(r.fill)
+	if not (laid and again and near(laid.x0, again.x0) and near(laid.x1, again.x1) and near(laid.y0, again.y0)
+		and near(laid.y1, again.y1)) then
+		fail(scenario, "under Glass, the wash is not where Glass lays it")
+	end
+	p.style = "minimal"
+	restyle(ns)
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	tick(ns)
+	p.style, p.classicArt = "glass", true
+	restyle(ns)
 	a, wash = box(r.art), box(r.fill)
 	if not (a and wash and near(wash.x0, a.x0) and near(wash.x1, a.x1) and near(wash.y1, a.y1)) then
-		fail(scenario, "under Glass, the wash is still laid on Minimal's pane")
+		fail(scenario, "under Glass's earlier art, the wash is still laid on Minimal's pane")
 	end
+	p.classicArt = false
 	p.style = "minimal"
 	restyle(ns)
 	if not (art.on and FT.visible(art.pieces[1])) then fail(scenario, "back to Minimal, its painting is not drawn") end

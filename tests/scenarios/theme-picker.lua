@@ -1292,10 +1292,12 @@ do
 			fail(scenario, ("SKIPPED -- %d names in the serif and %d under the floor: both are needed"):format(inSerif, inPlain))
 		end
 		-- At the window's first size Ribbon's and Letter's cards show their look's
-		-- own face, larger than the name on a card in the standard face by the
-		-- fifth the looks give it. (Leather's picture is drawn smaller, to hold
-		-- its buckle and feathers: its name is under the floor there, and in the
-		-- serif on a larger card.)
+		-- own face, larger than the name on a card in the standard face. (Not by
+		-- the whole fifth the looks give it: a painting that hangs its ends past
+		-- the prompt has its picture drawn a little smaller, Ribbon's now. And
+		-- Leather's picture is drawn smaller still, to hold its buckle and
+		-- feathers: its name is under the floor there, and in the serif on a
+		-- larger card.)
 		row:Layout(612)
 		local glass = cardFor(row, "glass")
 		local standard = glass and select(2, glass.lines.name:GetFont())
@@ -1303,7 +1305,7 @@ do
 			local card = cardFor(row, key)
 			local path, size = card.lines.name:GetFont()
 			if path ~= SERIF then fail(scenario, key .. "'s card is not in its look's serif at the window's first size") end
-			if type(standard) == "number" and size < standard + 2 then
+			if type(standard) == "number" and size <= standard then
 				fail(scenario, ("%s's serif name is %s units at the window's first size, beside %s in the standard face"):format(key,
 					tostring(size), tostring(standard)))
 			end

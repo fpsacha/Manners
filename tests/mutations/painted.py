@@ -159,8 +159,8 @@ mutate("Looks/Looks.lua",
        expect="on a look whose keycap is hidden, the key is drawn", script=S)
 
 mutate("Looks/Painted.lua",
-       "\treturn art ~= nil and art.on == true and Looks.KeyWanted(look) and Looks.BoundKey() ~= nil\n",
-       "\treturn art ~= nil and art.on == true and Looks.KeyWanted(look)\n",
+       "\t\tand Looks.BoundKey() ~= nil and not look.outcomeOn\n",
+       "\t\tand not look.outcomeOn\n",
        "painted: a blank keycap with no key bound",
        expect="with no key bound", script=S)
 

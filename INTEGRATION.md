@@ -27,11 +27,18 @@ wears, in one sitting. Two kinds:
   (`Painted.Layout`: the bar's core is the prompt's height; a well too short
   for 9.5 of the font's size has the ends hang past the prompt as far as
   `hangLeft`/`hangRight` allow; a prompt too short for the whole painting has
-  the ends cut back, then the bar drawn smaller). It puts `kit.icon` in the
+  the ends cut back, then the bar drawn smaller). The middle reaches a unit
+  (`SEAM`) under each end, so no hairline of the world shows at a seam; a look
+  needs no overlap of its own. It puts `kit.icon` in the
   socket, sets `kit.ink.light/lo/hi` to the ground under the words (`Legible`
   holds the words to it), keeps the regions the look names in `paintedHides`
   hidden, and shows the keycap only while a key is bound and *Show my key on
-  the prompt* asks for it (`Painted.KeyShown`), never over an outcome.
+  the prompt* asks for it (`Painted.KeyShown`), never over an outcome, and
+  only while the words keep 4 ems of the font's size between `g.textX` and
+  the keycap (`Painted.KeyFits`): on a prompt narrower than that the keycap
+  steps aside, and the look's `keyText` with it. The framed and Minimal
+  paintings (dressings in `Prompt/Panel.lua`) lay their pieces with
+  `Painted.Place` and ask `Painted.KeyFits` in their `Ground`.
 - **Dark ink.** A painting whose words are dark on a light ground (Letter's
   parchment: `text_colour_ok: false`, or an `ink` in meta.json) has
   `ink.light = false`, `ink.name` and `ink.reason` in its data. The engine

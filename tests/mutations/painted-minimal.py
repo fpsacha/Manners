@@ -9,8 +9,8 @@ S = "runscenarios.py"
 P = "Prompt/Panel.lua"
 
 mutate(P,
-       "\t\t\tR.bezel:Hide()\n\t\t\tR.bezelHover:Hide()\n\t\t\tR.iconShade:Hide()\n\t\t\tPlace(art, g)\n",
-       "\t\t\tR.bezelHover:Hide()\n\t\t\tR.iconShade:Hide()\n\t\t\tPlace(art, g)\n",
+       "\t\t\tR.bezel:Hide()\n\t\t\tR.bezelHover:Hide()\n\t\t\tR.iconShade:Hide()\n\t\t\t-- The pieces as the engine",
+       "\t\t\tR.bezelHover:Hide()\n\t\t\tR.iconShade:Hide()\n\t\t\t-- The pieces as the engine",
        "painted-minimal: the bezel's square drawn over the painted socket",
        expect="painted-minimal: Minimal wears its painting and none of its own frame", script=S)
 

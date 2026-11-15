@@ -405,13 +405,47 @@ do
 			fail(scenario, "the key's first choice does not say what Frost Mage does: " .. tostring(values[1] and values[1][2]))
 		end
 		if UI.RowShown("appearance.gryphons") then fail(scenario, "Glass's gryphons are offered on Frost Mage") end
-		-- Glass: no earlier art, no key, its gryphons; the round icon live.
+		-- Glass: Earlier art and the key as Glass has them, its gryphons; the
+		-- round icon live.
+		local Looks = ns.Looks
 		ns.db.profile.prompt.style = "glass"
 		ns.RefreshOptionsDisplay()
 		if not title():find(L["Glass"], 1, true) then fail(scenario, "with Glass chosen the section is headed " .. title()) end
-		if UI.RowShown("appearance.classicArt") then fail(scenario, "Earlier art is offered on Glass, which has none") end
-		if UI.RowShown("appearance.keycap") then fail(scenario, "Show my key is offered on Glass, which draws no key") end
+		if UI.RowShown("appearance.classicArt") ~= Looks.HasEarlierArt("glass") then
+			fail(scenario, "Earlier art is offered on Glass as it does not have one, or not as it does")
+		end
+		if UI.RowShown("appearance.keycap") ~= Looks.DrawsKey("glass") then
+			fail(scenario, "Show my key is offered on Glass as it draws no key, or not as it does")
+		end
 		if not UI.RowShown("appearance.gryphons") then fail(scenario, "Glass's gryphons are not with its settings") end
 		if own.e.row.off then fail(scenario, "Round the icon off is greyed on Glass, which reads it") end
+		-- A look with no earlier art (one painted only, whichever there is) is
+		-- offered no Earlier art; under Earlier art, a look then drawing no key
+		-- (a built-in look's earlier art, whichever there is) no key.
+		local p = ns.db.profile.prompt
+		local _, keys = Looks.Choices()
+		local function first(test)
+			for _, key in ipairs(keys) do
+				if test(key) then return key end
+			end
+		end
+		local bare = first(function(key) return not Looks.HasEarlierArt(key) end)
+		if not bare then
+			fail(scenario, "SKIPPED -- every look has an earlier art")
+		else
+			p.style = bare
+			ns.RefreshOptionsDisplay()
+			if UI.RowShown("appearance.classicArt") then fail(scenario, "Earlier art is offered on " .. bare .. ", which has none") end
+		end
+		p.classicArt = true
+		local keyless = first(function(key) return not Looks.DrawsKey(key) end)
+		if not keyless then
+			fail(scenario, "SKIPPED -- every look draws a key under Earlier art")
+		else
+			p.style = keyless
+			ns.RefreshOptionsDisplay()
+			if UI.RowShown("appearance.keycap") then fail(scenario, "Show my key is offered on " .. keyless .. ", which draws no key") end
+		end
+		p.classicArt = nil
 	end)
 end

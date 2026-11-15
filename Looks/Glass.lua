@@ -477,14 +477,6 @@ function Glass:PaintedPlace(g, p, above)
 	self.keyText:ClearAllPoints()
 	self.keyText:SetPoint("CENTER", art, "TOPLEFT", g.keyX, -g.keyY)
 	self.keyText:SetWidth(g.keyW)
-	-- The middle piece reaches a unit under each end, so no hairline of the
-	-- world shows where the pieces meet at a fraction of a pixel.
-	local mid = self.paintedArt and self.paintedArt.pieces[2]
-	if mid and g.x2 - g.x1 > 0.5 then
-		mid:ClearAllPoints()
-		mid:SetPoint("TOPLEFT", art, "TOPLEFT", g.x1 - 1, -g.y0)
-		mid:SetPoint("BOTTOMRIGHT", art, "TOPLEFT", g.x2 + 1, -g.y1)
-	end
 	return g.textX
 end
 
@@ -505,11 +497,12 @@ function Glass:PaintedStyled(g)
 	self.keyText:SetShadowOffset(0, 0)
 end
 
--- The key's letter while the painted keycap is up (Painted.lua's wrap shows
--- the keycap after this, by the same rule); the count chip is Panel.lua's.
+-- The key's letter on the painting; Painted.lua's wrap then shows the keycap,
+-- or hides it and this letter with it (Painted.KeyShown). The count chip is
+-- Panel.lua's.
 function Glass:Chip(on)
 	self.outcomeOn = self.kit and self.kit.OutcomeLive() or nil
-	local key = Looks.Painted.KeyShown(self) and Looks.BoundKey()
+	local key = Looks.Painted.On(self) and Looks.BoundKey()
 	if key then
 		local text = Looks.ShortKey(key)
 		self.keyText:SetText(type(text) == "string" and text ~= "" and text or key)

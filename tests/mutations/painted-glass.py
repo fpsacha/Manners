@@ -54,9 +54,9 @@ mutate(GLASS,
        "painted-glass: the words start over the socket",
        expect="the name starts at", script=S)
 
-mutate(GLASS,
-       "\t\tmid:SetPoint(\"TOPLEFT\", art, \"TOPLEFT\", g.x1 - 1, -g.y0)\n",
-       "\t\tmid:SetPoint(\"TOPLEFT\", art, \"TOPLEFT\", g.x1 + 1, -g.y0)\n",
+mutate("Looks/Painted.lua",
+       "\tBox(s[2], rel, g.x1 - SEAM, g.y0, g.x2 + SEAM, g.y1)\n",
+       "\tBox(s[2], rel, g.x1 + SEAM, g.y0, g.x2 + SEAM, g.y1)\n",
        "painted-glass: a gap between the left end and the middle",
        expect="the middle meets the ends at", script=S)
 
@@ -98,9 +98,9 @@ mutate("Prompt/Text.lua",
 
 # --- what stays live ---
 
-mutate(GLASS,
-       "\tlocal key = Looks.Painted.KeyShown(self) and Looks.BoundKey()\n",
-       "\tlocal key = Looks.BoundKey()\n",
+mutate("Looks/Painted.lua",
+       "\tif not up and art.on and look.keyText then look.keyText:Hide() end\n",
+       "",
        "painted-glass: the key's letter drawn with the keycap hidden",
        expect="as the look has it, the glass shows its key", script=S)
 

@@ -119,7 +119,7 @@ mutate(LAYOUT, "\t\t\t\treturn L[\"%s always rounds its icon.\"]:format((ns.Look
 mutate(LOOK, "\t\t\t\thidden = function() return not ns.Looks.HasEarlierArt(P().style) end,\n\t\t\t\tget = pGet,\n",
        "\t\t\t\tget = pGet,\n",
        "lookpage: Earlier art offered on a look with none",
-       expect="Earlier art is offered on Glass", script=S)
+       expect="Earlier art is offered on", script=S)
 
 mutate(LOOK, "\t\t\t\t\t\tlook = ns.Looks.KeyDefault(P().style) and L[\"As the look has it (shown)\"] or L[\"As the look has it (hidden)\"],\n",
        "\t\t\t\t\t\tlook = ns.Looks.KeyDefault(P().style) and L[\"As the look has it (hidden)\"] or L[\"As the look has it (shown)\"],\n",
@@ -128,7 +128,7 @@ mutate(LOOK, "\t\t\t\t\t\tlook = ns.Looks.KeyDefault(P().style) and L[\"As the l
 
 mutate(LOOK, "\t\t\t\thidden = function() return not ns.Looks.DrawsKey(P().style) end,\n", "",
        "lookpage: Show my key offered on a look that draws none",
-       expect="Show my key is offered on Glass", script=S)
+       expect="Show my key is offered on", script=S)
 
 mutate(LOOK, "\t\t\t\thidden = function() return P().style ~= \"glass\" end,\n", "",
        "lookpage: Glass's gryphons offered on every look",

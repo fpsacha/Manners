@@ -7237,6 +7237,9 @@ if ns then
 		if not look.values.framed then
 			fail(scenario, "SKIPPED -- there is no framed look to check")
 		else
+			-- The rim is the framed look's earlier art (its painting:
+			-- tests/scenarios/painted-framed.lua).
+			db.prompt.classicArt = true
 			db.prompt.style = "framed"
 			ns.Prompt:ApplyStyle()
 			local drawn = 0
@@ -11769,6 +11772,8 @@ if ns then
 
 	local p = ns.db.profile.prompt
 	p.style = "framed"
+	-- The rim is the framed look's earlier art (its painting reads its own well).
+	p.classicArt = true
 
 	-- How far the rim's metal sits from the panel it is drawn on, in the channel
 	-- that carries most of the apparent brightness. Zero is a frame nobody can

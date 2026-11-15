@@ -181,12 +181,17 @@ local function Box(t, rel, x0, y0, x1, y1)
 	t:SetPoint("BOTTOMRIGHT", rel, "TOPLEFT", x1, -y1)
 end
 
--- The three pieces over the layout.
+-- How far the middle reaches under each end: the pieces butted edge to edge
+-- meet at a fraction of a pixel, and the game can leave a hairline of the
+-- world between them there.
+local SEAM = 1
+
+-- The three pieces over the layout (and Prompt/Panel.lua's framed painting's).
 local function Place(art, rel, g)
 	local d, s = art.data, art.pieces
 	Box(s[1], rel, g.left, g.y0, g.x1, g.y1)
 	s[1]:SetTexCoord(0, g.leftR, 0, d.left.b)
-	Box(s[2], rel, g.x1, g.y0, g.x2, g.y1)
+	Box(s[2], rel, g.x1 - SEAM, g.y0, g.x2 + SEAM, g.y1)
 	s[2]:SetTexCoord(0, d.middle.r, 0, d.middle.b)
 	Box(s[3], rel, g.x2, g.y0, g.right, g.y1)
 	s[3]:SetTexCoord(g.rightL, d.right.r, 0, d.right.b)
@@ -200,19 +205,37 @@ local function Place(art, rel, g)
 	Box(k, rel, kx - c.pw * g.unit / 2, ky - c.ph * g.unit / 2, kx + c.pw * g.unit / 2, ky + c.ph * g.unit / 2)
 	k:SetTexCoord(0, c.r, 0, c.b)
 end
+Painted.Place = Place
+
+-- The least room, in ems of the font's size, the words keep between where they
+-- start and the keycap: on a prompt too narrow for the painting (the bar drawn
+-- smaller) the keycap and its letter step aside, as the earlier art's key tag
+-- did, rather than stand where the name must go.
+local KEY_ROOM_EMS = 4
 
 -- Whether the painted keycap is up: the painting up, a key bound to the prompt,
 -- and Show my key on the prompt (Looks.KeyWanted) asking for it; and not over
 -- an outcome, which the look's own letter leaves too.
 function Painted.KeyShown(look)
 	local art = look and look.paintedArt
-	return art ~= nil and art.on == true and Looks.KeyWanted(look) and Looks.BoundKey() ~= nil
-		and not look.outcomeOn
+	return art ~= nil and art.on == true and art.keyFits ~= false and Looks.KeyWanted(look)
+		and Looks.BoundKey() ~= nil and not look.outcomeOn
 end
+
+-- Whether the words keep KEY_ROOM_EMS beside the keycap where they start at
+-- textX (art.keyFits, read by KeyShown; the framed painting asks it itself).
+local function KeyFits(g, textX, fontSize)
+	return g.keyX - g.keyW / 2 - textX >= KEY_ROOM_EMS * (fontSize or 0)
+end
+Painted.KeyFits = KeyFits
 
 local function ShowKeycap(look)
 	local art = look.paintedArt
-	if art then art.keycap:SetShown(Painted.KeyShown(look)) end
+	if not art then return end
+	local up = Painted.KeyShown(look)
+	art.keycap:SetShown(up)
+	-- The look's own letter goes with the keycap it is written on.
+	if not up and art.on and look.keyText then look.keyText:Hide() end
 end
 
 -- The live spell icon in the socket; its shape (a mask) is the look's own, by
@@ -230,7 +253,7 @@ end
 local function Release(look)
 	local art = look.paintedArt
 	if not art then return end
-	art.on, art.g = false, nil
+	art.on, art.g, art.keyFits = false, nil, nil
 	for _, t in ipairs(art.pieces) do t:Hide() end
 	art.keycap:Hide()
 	Each(look, Unmuffle)
@@ -325,6 +348,9 @@ function Painted.Wrap(look, d)
 		g.round = Looks.roundAlways[self.key] == true or p.roundIcon == true
 		art.g = g
 		Place(art, self.kit.art, g)
+		-- The keycap only where the words keep their room beside it, known
+		-- before the look places what it keeps (it may ask KeyShown).
+		art.keyFits = KeyFits(g, g.textX, p.fontSize)
 		ShowKeycap(self)
 		PlaceIcon(self, self.kit, g)
 		if self.PaintedPlace then

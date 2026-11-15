@@ -854,6 +854,11 @@ function Prompt:ApplyStyle()
 	-- start in its well and stop short of its keycap, read against its well,
 	-- and the chip stands where the keycap is painted.
 	local ground = p
+	-- Where the earlier art starts the text: the rows past the list's own are
+	-- left there whatever a painting moves (as DressPainted leaves them), so a
+	-- look of Looks/, which lays only the rows it fills, finds them where any
+	-- built-in look left them.
+	local panelX = textX
 	if dress and dress.Ground then ground, textX, chipRoom = dress:Ground(p, chipWidth, textX, chipRoom) end
 	-- Fonts, colours, shadows and the lines' anchors, from the panel colour.
 	-- The count's font is the size the chip was just sized from.
@@ -893,12 +898,13 @@ function Prompt:ApplyStyle()
 	local rowCount = math.max(1, p.queueRows or 1)
 	for i, fs in ipairs(R.queueRows) do
 		fs:ClearAllPoints()
+		local x = i <= rowCount and rowX or panelX
 		if S.queueAbove then
 			-- Counted down from the top of the block, so the list reads top to
 			-- bottom.
-			fs:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", rowX, 4 + (rowCount - i) * rowHeight)
+			fs:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", x, 4 + (rowCount - i) * rowHeight)
 		else
-			fs:SetPoint("TOPLEFT", R.art, "BOTTOMLEFT", rowX, -4 - (i - 1) * rowHeight)
+			fs:SetPoint("TOPLEFT", R.art, "BOTTOMLEFT", x, -4 - (i - 1) * rowHeight)
 		end
 		-- The font and the colour are StyleText's; the width is the room
 		-- FitLine shrinks a long row into.
@@ -1096,7 +1102,9 @@ do
 			self.keyText:SetWordWrap(false)
 			self.keyText:Hide()
 			-- The painting's outline, never drawn: what the edge's light is laid on.
+			-- Shown only with the painting, so another look finds no frame of it on.
 			self.outline = CreateFrame("Frame", nil, R.art)
+			self.outline:Hide()
 		end
 
 		-- Before the words are styled: where the painting lies at these
@@ -1113,7 +1121,10 @@ do
 			self.g = g
 			if not g then return p, textX, chipRoom end
 			local choice = p.keycap
+			-- And only where the words keep their room beside it (Painted.KeyFits).
+			self.keyFits = Painted.KeyFits(g, g.textX, p.fontSize)
 			local keyUp = (choice == "show" or (choice ~= "hide" and d.keycap.shown ~= false)) and Looks.BoundKey() ~= nil
+				and self.keyFits
 			local keyL = g.keyX - g.keyW / 2
 			-- Never further right than the framed look always had it, seven in
 			-- from the prompt's edge (a small prompt's painting hangs past it).
@@ -1125,25 +1136,6 @@ do
 			local wide = keyUp and (keyL - 4 + EDGE_ROOM) or p.width
 			local room = p.showCount and (wide - (chipRight - chipWidth) + 1) or EDGE_ROOM
 			return setmetatable({ width = wide, bgColor = self.ground }, { __index = p }), g.textX, room
-		end
-
-		-- The pieces over the layout, the keycap a piece of its own over the
-		-- right end (the frame is whole under it).
-		local function Place(art, g)
-			local s = art.pieces
-			Box(s[1], g.left, g.y0, g.x1, g.y1)
-			s[1]:SetTexCoord(0, g.leftR, 0, d.left.b)
-			Box(s[2], g.x1, g.y0, g.x2, g.y1)
-			s[2]:SetTexCoord(0, d.middle.r, 0, d.middle.b)
-			Box(s[3], g.x2, g.y0, g.right, g.y1)
-			s[3]:SetTexCoord(g.rightL, d.right.r, 0, d.right.b)
-			s[1]:Show()
-			s[2]:SetShown(g.x2 - g.x1 > 0.5)
-			s[3]:Show()
-			local c, k, u = d.keycap, art.keycap, g.unit
-			local kx, ky = g.keyX + c.dx * u, g.keyY + c.dy * u
-			Box(k, kx - c.pw * u / 2, ky - c.ph * u / 2, kx + c.pw * u / 2, ky + c.ph * u / 2)
-			k:SetTexCoord(0, c.r, 0, c.b)
 		end
 
 		-- The keycap and its letter: up while a key is bound and Show my key on
@@ -1258,14 +1250,17 @@ do
 		function Framed:Apply(p, above)
 			local g, art = self.g, self.paintedArt
 			if not g then return self:Release() end
-			art.on, art.g = true, g
+			art.on, art.g, art.keyFits = true, g, self.keyFits
 			-- What the painting replaces.
 			R.panel:Hide()
 			for _, list in ipairs({ R.tooltipRim, R.shadows }) do
 				for _, t in ipairs(list) do t:Hide() end
 			end
 			R.iconShade:Hide()
-			Place(art, g)
+			-- The pieces as the engine lays every painting (Looks/Painted.lua), the
+			-- keycap a piece of its own over the right end.
+			Painted.Place(art, R.art, g)
+			self.outline:Show()
 			if p.showIcon then self:Socket(p, g) end
 			self:Light(p, g)
 			-- The key's letter: the painting's ink for it, no shadow, no larger
@@ -1289,8 +1284,8 @@ do
 			if self.fight then self:Combat(true) else Painted.Tone(self, 1, 1, 1, false) end
 		end
 
-		-- The painting taken down, out of any fight's grey; the wash given back
-		-- the whole panel.
+		-- The painting taken down, out of any fight's grey. The wash is given back
+		-- the whole panel by ApplyStyle, for every look, before it is laid again.
 		function Framed:Release()
 			local art = self.paintedArt
 			if not art then return end
@@ -1300,8 +1295,7 @@ do
 			art.keycap:Hide()
 			self.keyText:Hide()
 			self.keyLabel = nil
-			R.resultFill:ClearAllPoints()
-			R.resultFill:SetAllPoints(R.art)
+			self.outline:Hide()
 		end
 
 		function Framed:Hide()
@@ -1368,7 +1362,7 @@ function Prompt:DressPainted(p, dress, textX, fontPath, twoLine, countSize, chip
 	-- The count chip on the keycap's place, or beside the keycap while it is up;
 	-- the lines keep clear of whichever is there.
 	local keyL, keyR = g.keyX - g.keyW / 2, g.keyX + g.keyW / 2
-	local keyUp = ns.Looks.KeyWanted(dress) and ns.Looks.BoundKey() ~= nil
+	local keyUp = ns.Looks.KeyWanted(dress) and ns.Looks.BoundKey() ~= nil and dress.paintedArt.keyFits ~= false
 	local chipRight = keyUp and (keyL - 3) or keyR
 	R.countChip:ClearAllPoints()
 	R.countChip:SetPoint("RIGHT", R.art, "TOPLEFT", chipRight, -g.keyY)
@@ -1514,7 +1508,10 @@ do
 			local g = Painted.Layout(d, p.width, p.height, p.fontSize)
 			self.g = g
 			local choice = p.keycap
+			-- And only where the words keep their room beside it (Painted.KeyFits).
+			self.keyFits = Painted.KeyFits(g, g.textX, p.fontSize)
 			local keyUp = (choice == "show" or (choice ~= "hide" and d.keycap.shown ~= false)) and Looks.BoundKey() ~= nil
+				and self.keyFits
 			local keyL = g.keyX - g.keyW / 2
 			local chipRight = math.min(keyUp and (keyL - 3) or (g.keyX + chipWidth / 2), p.width - 7)
 			R.countChip:ClearAllPoints()
@@ -1524,23 +1521,6 @@ do
 			local wide = keyUp and (keyL - 4 + EDGE_ROOM) or p.width
 			local room = p.showCount and (wide - (chipRight - chipWidth) + 1) or EDGE_ROOM
 			return setmetatable({ width = wide }, { __index = p }), g.textX, room
-		end
-
-		local function Place(art, g)
-			local s = art.pieces
-			Box(s[1], g.left, g.y0, g.x1, g.y1)
-			s[1]:SetTexCoord(0, g.leftR, 0, d.left.b)
-			Box(s[2], g.x1, g.y0, g.x2, g.y1)
-			s[2]:SetTexCoord(0, d.middle.r, 0, d.middle.b)
-			Box(s[3], g.x2, g.y0, g.right, g.y1)
-			s[3]:SetTexCoord(g.rightL, d.right.r, 0, d.right.b)
-			s[1]:Show()
-			s[2]:SetShown(g.x2 - g.x1 > 0.5)
-			s[3]:Show()
-			local c, k, u = d.keycap, art.keycap, g.unit
-			local kx, ky = g.keyX + c.dx * u, g.keyY + c.dy * u
-			Box(k, kx - c.pw * u / 2, ky - c.ph * u / 2, kx + c.pw * u / 2, ky + c.ph * u / 2)
-			k:SetTexCoord(0, c.r, 0, c.b)
 		end
 
 		-- The keycap and its letter: up while a key is bound and Show my key on
@@ -1621,12 +1601,13 @@ do
 		function Minimal:Apply(p, above)
 			local g, art = self.g, self.paintedArt
 			if not g then return self:Release() end
-			art.on, art.g = true, g
+			art.on, art.g, art.keyFits = true, g, self.keyFits
 			-- What the painting replaces: the bezel's square and the shade.
 			R.bezel:Hide()
 			R.bezelHover:Hide()
 			R.iconShade:Hide()
-			Place(art, g)
+			-- The pieces as the engine lays every painting (Looks/Painted.lua).
+			Painted.Place(art, R.art, g)
 			if p.showIcon then self:Socket(g) end
 			self:Light(p, g)
 			-- The key's letter: the painting's ink for it, no shadow, no larger
@@ -1654,8 +1635,6 @@ do
 			art.keycap:Hide()
 			self.keyText:Hide()
 			self.keyLabel = nil
-			R.resultFill:ClearAllPoints()
-			R.resultFill:SetAllPoints(R.art)
 		end
 
 		function Minimal:Hide()
