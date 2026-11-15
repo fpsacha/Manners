@@ -93,6 +93,16 @@ local function profileOptions()
 		local function current() return Mock.sv.profileName or "Default" end
 		-- The sidebar's second line under Profiles is the profile's name.
 		db.GetCurrentProfile = db.GetCurrentProfile or function() return current() end
+		-- The names, for the page's own dropdowns (AutoProfile.lua).
+		db.GetProfiles = db.GetProfiles or function(_, out)
+			out = out or {}
+			local seen = { [current()] = true }
+			out[#out + 1] = current()
+			for name in pairs(Mock.sv.profiles or {}) do
+				if not seen[name] then out[#out + 1] = name end
+			end
+			return out, #out
+		end
 		local H = { db = db }
 		function H.GetCurrentProfile() return current() end
 		function H.SetProfile(_, _, name) db:SetProfile(name) end
@@ -335,6 +345,15 @@ end
 -- chosen Show everything.
 function BEFORE.simple(ns)
 	ns.db.profile.menuView = "simple"
+end
+
+-- Switch profile automatically on (AutoProfile.lua), with a profile for the
+-- open world and one for raids, so Profiles shows the rows under the switch.
+function BEFORE.switching(ns)
+	ns.db:SetProfile("Raid")
+	ns.db:SetProfile("Default")
+	ns.db.char.autoProfile = { enabled = true, say = true, at = "world",
+		rules = { world = "Default", raid = "Raid" }, chose = { profile = "Default", at = "world" } }
 end
 
 function BEFORE.offer(ns)

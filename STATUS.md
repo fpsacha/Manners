@@ -480,6 +480,35 @@ press did. Paste whatever does not match.
       reaches the pet by its name and hands your target back.
 - [ ] A pet with the family's default name ("Cat"), two of them in one group.
 
+*Profiles and automatic switching*
+
+- [ ] *Profiles*: *New profile* (a name, Enter) makes one at the defaults and
+      the first line names it; *New profile from these settings* makes a copy
+      (change a setting first and see it carried); *Rename this profile*
+      keeps the settings and the old name is gone from *Use profile*;
+      *Delete* never lists the profile in use, and it, *Copy from* and *Reset
+      this profile* each ask in the window's own box first.
+- [ ] A second character on the renamed profile logs in on it under the new
+      name, with its settings (the rename writes AceDB's own record of who
+      uses what: seen only against the test client's stand-in for it).
+- [ ] *Switch profile automatically* on, a profile picked for *In a raid* and
+      another for *In the open world*: walking into a raid instance switches
+      a moment after the loading screen, with one line in chat ("profile X
+      (in a raid)"), the prompt in the new profile's look and place, and the
+      page's first line saying "Chosen automatically: in a raid". Walking out
+      switches back. No toast, no key reminder, no greeting with it.
+- [ ] The same in a dungeon and in a battleground; and on Mists or retail a
+      scenario counts as a dungeon (`IsInInstance`'s "scenario").
+- [ ] Zoning in while in a fight (a wipe's run back, pulled at the door): the
+      switch waits for the fight's end.
+- [ ] Picking another profile by hand inside the raid holds through a
+      `/reload` there and through the raid's own zone changes, until the next
+      instance door.
+- [ ] Typing in a box of the options window as the loading screen ends: the
+      switch waits until the box is left, and the text is not lost.
+- [ ] *Say so in chat* unticked: no line. *Hide all Manners messages* ticked
+      on the profile arrived at: no line either.
+
 *The hall of fame and Detect Invisibility for passers-by*
 
 - [ ] *Start here*, the fold *Gentlefolk of Good Manners*: the progress line

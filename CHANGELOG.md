@@ -26,6 +26,15 @@
   passers-by too*, under a warlock's Detect Invisibility on *Who to buff* once
   that is ticked. Off by default. Asked for by a player.
 
+### Profiles
+- **Switch profile automatically.** Pick a profile for the open world, a
+  dungeon, a raid and a battleground or arena, and the character switches on
+  arriving, never in a fight. Off by default, per character, on *Profiles*.
+  Asked for by a player.
+- **New from these settings, and rename.** *Profiles* can now start a profile
+  as a copy of the one in use and rename it; *Copy from* and *Reset this
+  profile* ask first.
+
 ### Battlegrounds and arenas
 - **A section of their own** on *When to offer*. After a death your own buffs
   come first, what you fight with before food. Your team is offered freely

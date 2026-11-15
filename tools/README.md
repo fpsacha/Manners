@@ -876,7 +876,10 @@ else. The client's key bindings page is there (`Settings.OpenToCategory` and
 the clock answers `date("%H:%M")` in hours and minutes, as a snooze's end is
 shown. The Profiles page gets AceDBOptions' own controls, built as the library
 builds them, in English, over the mock's database: the mock's stand-in for the
-library has only its opening paragraph.
+library has only its opening paragraph. Its dropdowns and buttons are the
+addon's own since `AutoProfile.lua`, which the renderer gives `GetProfiles`;
+`--state switching` draws the page with *Switch profile automatically* on and
+a second profile picked for raids.
 
 `--state` puts the window into a state through the addon's own entry points,
 and can be given more than once:
