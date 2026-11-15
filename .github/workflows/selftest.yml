@@ -28,7 +28,10 @@ concurrency:
 jobs:
   part:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # 240: a part with no trace kept from a run before it (a cancelled or
+    # failed part keeps none) traces its share of the suite first, and 90
+    # minutes cut every part of 1.11.25's first runs off before a verdict.
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:

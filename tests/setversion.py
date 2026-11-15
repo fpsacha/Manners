@@ -90,6 +90,16 @@ else:
           " before tagging, or the release refuses to build"
           % (version, current.group(1)))
 
+# What's new (WhatsNew.lua) names its releases as the changelog does, so a
+# heading renamed here is renamed there: tests/scenarios/whatsnew.lua holds
+# the two together, and CI would go red on the release commit otherwise.
+import subprocess
+_news = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "make_whatsnew.py")],
+                       capture_output=True, text=True)
+print((_news.stdout + _news.stderr).strip())
+if _news.returncode != 0:
+    raise SystemExit("tools/make_whatsnew.py failed: WhatsNew.lua is not current with the changelog")
+
 print("version set to %s in all %d tocs, ns.BUILD and the changelog"
       % (version, 1 + len(maketocs.FLAVOURS)))
 print("verify with: python tests/validate.py")
