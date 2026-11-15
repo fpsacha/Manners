@@ -129,8 +129,11 @@ local function with(scenario, env, body)
 			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
 		end
 	end)
-	restore()
+	-- Back in the order they went on, last first: `saved` was taken after
+	-- `strangers` put its own stand-ins up, so its restore goes last or
+	-- every later file in this process is left the world of this one.
 	for _, name in ipairs(TOUCHED) do rawset(_G, name, saved[name]) end
+	restore()
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
