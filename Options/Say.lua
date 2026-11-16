@@ -163,6 +163,30 @@ function Page.BuildSpeechTab()
 				get = spGet,
 				set = spSet,
 			},
+			-- Asked for by the author: no spoken line in a group, to anybody, a
+			-- member or a passer-by (Speech.lua, ns.GroupQuiet). The buff goes out
+			-- as before; the /thank, the whispered thank-you and an ask are not
+			-- lines said with a cast, and keep their own switches.
+			quietInParty = {
+				type = "toggle",
+				name = L["Say nothing in a party"],
+				desc = L["While you are in a party, no line goes out when you buff, to anybody. The buff is still offered and cast."],
+				order = 14.1,
+				width = "full",
+				disabled = speechOff,
+				get = spGet,
+				set = spSet,
+			},
+			quietInRaid = {
+				type = "toggle",
+				name = L["Say nothing in a raid"],
+				desc = L["While you are in a raid, no line goes out when you buff, to anybody. The buff is still offered and cast."],
+				order = 14.2,
+				width = "full",
+				disabled = speechOff,
+				get = spGet,
+				set = spSet,
+			},
 
 			-- A line goes out only to somebody a token names (Press.lua,
 			-- HoldLine), and with the game's friendly nameplates off most

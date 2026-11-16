@@ -1037,6 +1037,12 @@ Check("speech.channel", "speech", L["channel"], function(add)
 		add(PASS, "speech is off")
 		return
 	end
+	-- Say nothing in a party or a raid (Speech.lua): quiet by choice, no fault.
+	local quiet = ns.GroupQuiet()
+	if quiet then
+		add(PASS, ("%s, quiet: Say nothing in a %s is on"):format(tostring(speech.channel), quiet))
+		return
+	end
 	local current = ns.Prompt and ns.Prompt.state and ns.Prompt.state.current
 	local open = ns.ChannelOpen(current)
 	local line = ("%s, open %s%s"):format(tostring(speech.channel), Show(open),

@@ -792,6 +792,11 @@ local defaults = {
 			-- MixedIn): one a line, about one press in three while it holds any.
 			-- Asked for on CurseForge by a player on the RP server.
 			mixedLines = "",
+			-- Say nothing in a party, Say nothing in a raid (Speech.lua,
+			-- ns.GroupQuiet): no line goes out with a cast there, to anybody.
+			-- Asked for by the author.
+			quietInParty = false,
+			quietInRaid = false,
 		},
 
 		-- owedOnly, to match the flash, which only pulses for a favour owed.

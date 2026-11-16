@@ -1002,8 +1002,12 @@ Everything here is off until you turn it on.
     /thank's rules. *Stay silent* turns it off, and a pasted settings line
     never turns it on.
   - *Say a line when I buff someone*, with *Where to say it* (say, yell,
-    party, raid, emote, or *Whisper them*) and *Only when I buff someone
-    back* (off) under it.
+    party, raid, emote, or *Whisper them*), *Only when I buff someone
+    back*, *Say nothing in a party* and *Say nothing in a raid* (all off)
+    under it. While you are in a party, or in a raid, with its switch on, no
+    line goes out when you buff, to a member or a passer-by; the buff is
+    still offered and cast, and the /thank, the whispered thank-you and
+    asking for a buff keep their own switches.
 - ***Lines***: *Line set* has four sets you can edit (Azeroth (general),
   Polite, Cheeky, Just their name) and a fifth, *In character (fits your race
   and class)*: over three thousand lines, picked when you click to fit your

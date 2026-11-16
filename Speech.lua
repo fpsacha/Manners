@@ -268,10 +268,33 @@ local function InHome(fn)
 	return ns.plain(fn(home))
 end
 
+-- Say nothing in a party, Say nothing in a raid (What I say; speech.quietInParty,
+-- speech.quietInRaid, both off): "party" or "raid" while the group you are in
+-- has its switch on, else nil. A party is a group that is no raid. Asked as the
+-- scan asks (Core.lua, Queue.lua), with no home category: a dungeon finder's
+-- group is a party and a battleground's a raid. Read by ns.ChannelOpen, so the
+-- prompt, its rows and the bar macro's copy are armed with no line alike, and
+-- `speak` in the macro's key re-arms it when a group forms or ends. Never asked
+-- of an ask (Ask.lua), the whispered thank-you or /thank: none is a line said
+-- with a cast.
+function ns.GroupQuiet()
+	local db = addon.db and addon.db.profile
+	local speech = db and db.speech
+	if type(speech) ~= "table" then return nil end
+	if speech.quietInParty ~= true and speech.quietInRaid ~= true then return nil end
+	if ns.plain(IsInRaid and IsInRaid()) == true then
+		return speech.quietInRaid == true and "raid" or nil
+	end
+	if speech.quietInParty == true and ns.plain(IsInGroup and IsInGroup()) == true then return "party" end
+	return nil
+end
+
 function ns.ChannelOpen(entry)
 	-- Nothing is said in a battleground or an arena, in any channel, until Say
 	-- my line there is ticked (Battle.lua): a fight is no place for a line.
 	if ns.Battle.Quiet() then return false end
+	-- Nor in a party or a raid whose switch says nothing there, to anybody.
+	if ns.GroupQuiet() then return false end
 	local db = addon.db and addon.db.profile
 	local channel = db and db.speech.channel
 	if channel ~= "PARTY" and channel ~= "RAID" then return true end

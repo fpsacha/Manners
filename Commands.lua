@@ -877,6 +877,14 @@ do
 		["battle.speak"] = true,
 	}
 
+	-- Say nothing in a party, Say nothing in a raid (Speech.lua, ns.GroupQuiet):
+	-- a paste may switch either on, never off. A string can make the player
+	-- quieter, never louder, whatever speaking is.
+	local SHARE_QUIET = {
+		["speech.quietInParty"] = true,
+		["speech.quietInRaid"] = true,
+	}
+
 	-- How an ask is said and where (Ask.lua), kept as the player has it while
 	-- asking is on, for the same reason: a paste must not turn a whisper outside
 	-- towns into a /say in a city. With asking off they travel.
@@ -1342,6 +1350,14 @@ do
 			if value == nil then value = CopyValue(field.default) end
 			if not own and SHARE_KEEP_MINE[field.name] then
 				if value == true and holder[field.key] ~= true then kept[SHARE_KEEP_MINE[field.name]] = true end
+			elseif not own and SHARE_QUIET[field.name] then
+				-- Kept on where the player has it on; said with the words when
+				-- the string had it off for somebody who speaks.
+				if holder[field.key] == true then
+					if value ~= true and speaking then kept.words = true end
+				else
+					holder[field.key] = value == true
+				end
 			elseif not own and speaking and SHARE_SPEECH[field.name] then
 				-- Only what the string actually names counts as kept back.
 				if parsed.values[field.name] ~= nil
@@ -2120,6 +2136,16 @@ function addon:HandleSlash(rawInput)
 		-- In a battleground or an arena: which of its rules stands now, and each
 		-- of its switches that is holding something back (Battle.lua).
 		for _, line in ipairs(ns.Battle.Lines(now)) do self:Print(line) end
+		-- Say nothing in a party or a raid (Speech.lua, ns.GroupQuiet), while it
+		-- is what keeps the line out of the macro.
+		local quiet = db.speech.enabled == true and ns.GroupQuiet()
+		if quiet == "party" then
+			self:Print(L["|cffffd100party|r -- no line goes out when you buff: %s is on"]
+				:format("|cffffd100" .. L["Say nothing in a party"] .. "|r"))
+		elseif quiet == "raid" then
+			self:Print(L["|cffffd100raid|r -- no line goes out when you buff: %s is on"]
+				:format("|cffffd100" .. L["Say nothing in a raid"] .. "|r"))
+		end
 		-- Always, not only in a raid: groups unticked for last week's
 		-- assignment are what leaves somebody out next week with no sign why,
 		-- and this is where to check before the raid.

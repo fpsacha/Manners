@@ -50,6 +50,22 @@ carries). `tests/scenarios/elixir-pair.lua`, `tests/mutations/elixir-pair.py`
 5. Whether "A more powerful spell is already active" reaches the pending
    click for a `/use item:` on yourself as it does for a cast on others.
 
+**Say nothing in a party or a raid (branch `post26`, not released), asked
+for by the author.** Two switches on What I say under *Say a line when I buff
+someone*, both off: `speech.quietInParty` and `speech.quietInRaid`
+(`Speech.lua`, `ns.GroupQuiet`, read by `ns.ChannelOpen`, so the prompt, its
+rows and the bar macro's copy are armed with no line alike, and `speak` in the
+macro's key re-arms at the next repaint out of combat when a group forms or
+ends). A party is a group that is no raid, read with `IsInRaid`/`IsInGroup` as
+the scan reads them (no home category: a dungeon finder's group is a party, a
+battleground a raid). The buff, an ask, the whispered thank-you and /thank are
+untouched. A pasted settings line can switch either on, never off
+(`Commands.lua`, `SHARE_QUIET`); /manners debug and the check-up say when one
+keeps the line out. `tests/scenarios/quiet-groups.lua`,
+`tests/mutations/quiet-groups.py` (14, each CAUGHT by `prove.py`). What only
+the game can say: that the line drops on the button within a repaint of
+joining a party or raid, and comes back on leaving one.
+
 What was built:
 
 - **The group's pets** (`sources.pets`, off; Queue.lua `IterateUnits`,

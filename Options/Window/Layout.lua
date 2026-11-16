@@ -677,6 +677,9 @@ ns.WindowLayout = {
 					"click.enabled",
 					{ "click.channel", indent = true },
 					{ "click.onlyWhenReturning", indent = true },
+					-- No line in a party, or in a raid (Speech.lua, ns.GroupQuiet).
+					{ "click.quietInParty", indent = true },
+					{ "click.quietInRaid", indent = true },
 					-- While speaking with friendly nameplates off (Speech.lua).
 					{ "click.platesNote", indent = true },
 					{ "click.showPlates", indent = true },
@@ -990,6 +993,7 @@ ns.WindowLayout = {
 			["click.channel"] = true, ["click.platesNote"] = true, ["click.showPlates"] = true,
 			["click.linesOff"] = true, ["click.preset"] = true, ["click.phrasesHelp"] = true,
 			["click.inCharacterNote"] = true, ["click.phrases"] = true,
+			["click.quietInParty"] = true, ["click.quietInRaid"] = true,
 			-- Look.
 			["appearance.style"] = true, ["appearance.classicArt"] = true, ["appearance.keycap"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
 			["appearance.scale"] = true, ["appearance.alpha"] = true,
@@ -1095,6 +1099,8 @@ ns.WindowLayout = {
 		["click.phrases"] = "click.enabled",
 		["click.mixedLines"] = "click.enabled",
 		["click.roll"] = "click.enabled",
+		["click.quietInParty"] = "click.enabled",
+		["click.quietInRaid"] = "click.enabled",
 		-- My group's pets too, shown only while My party and raid is on.
 		["who.pets"] = "who.group",
 		-- A class's courtesies, shown only while People who ask me in chat is on.

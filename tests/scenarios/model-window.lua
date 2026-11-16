@@ -420,7 +420,7 @@ local EXPECTED = {
 		"battle.team", "battle.speak", "battle.thank", "battle.items",
 	},
 	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "prompt.thankEmoteMore", "speech.enabled", "speech.channel",
-		"speech.onlyWhenReturning", "prompt.thankWhisper", "prompt.thankDelay" },
+		"speech.onlyWhenReturning", "speech.quietInParty", "speech.quietInRaid", "prompt.thankWhisper", "prompt.thankDelay" },
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",

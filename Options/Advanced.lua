@@ -108,6 +108,8 @@ Page.RESET = {
 	click = {
 		"prompt.thankEmote", "prompt.thankEmoteToken", "prompt.thankEmoteMore", "speech.enabled", "speech.channel",
 		"speech.onlyWhenReturning",
+		-- Say nothing in a party, Say nothing in a raid (Speech.lua, ns.GroupQuiet).
+		"speech.quietInParty", "speech.quietInRaid",
 		"prompt.thankWhisper",
 		"prompt.thankDelay",
 		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
