@@ -36,8 +36,9 @@
   first, and a fight no longer freezes on people who have left.
 - **The list holds still under the cursor.** The name you point at stays on
   its line, so a click never lands on whoever slid into it.
-- **The fight's rota goes round once.** Each press reaches the next person
-  rather than the same one again.
+- **One press each in a fight.** Each press reaches the next person, and
+  with only one person on the prompt a second press no longer casts at them
+  again.
 
 ### Your own buffs
 - **Demonic Pact keeps both.** On WoW Forever, a warlock with Demonic Pact is

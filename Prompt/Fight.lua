@@ -136,7 +136,7 @@ local SNIPPET = [=[
 
 -- The rota's two halves, run round each click of the prompt in the restricted
 -- environment: `self` is the prompt's handle, `control` the header's. The
--- first lets the second run for a left press with a rota of two or more (the
+-- first lets the second run for a left press with a rota, of one too (the
 -- one place that is asked: the second runs only on the first's word); the
 -- second steps the button to the rota's next macro, and past its last to
 -- none: `manners-rota-i` past n, which SyncFightRota reads as the round done.
@@ -145,7 +145,7 @@ local SNIPPET = [=[
 local ROTA_PRE = [=[
 	if button ~= "LeftButton" or down == false then return end
 	local n = control:GetAttribute("manners-rota-n") or 0
-	if n < 2 then return end
+	if n < 1 then return end
 	return nil, "step"
 ]=]
 local ROTA_POST = [=[
@@ -280,7 +280,9 @@ function Prompt:ArmFightRota()
 			end
 		end
 	end
-	if #entries < 2 then return end
+	-- One person is a rota too (the owner's report of 2026-11-15: a group member
+	-- buffed in a fight, and every press after cast Arcane Intellect at him
+	-- again): one press for them, then nothing until the fight ends.
 	for i, text in ipairs(texts) do header:SetAttribute("manners-rota-" .. i, text) end
 	header:SetAttribute("manners-rota-n", #entries)
 	S.rota = { entries = entries, records = records, texts = texts, index = 1, steps = 0 }

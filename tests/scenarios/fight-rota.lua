@@ -192,16 +192,25 @@ with("fight-rota: a right press and a press with one person owed step nothing", 
 	if first == nil then fail(scenario, "SKIPPED -- nobody on the button") end
 end)
 
-with("fight-rota: one person owed is no rota, and the press keeps to them", function(ns, scenario)
+-- The owner's report of 2026-11-15: a group member buffed in a fight, and each
+-- press after it cast Arcane Intellect at him again. One person is a rota of
+-- one: a press for them, then the button casts nothing until the fight ends.
+with("fight-rota: one person owed has one press in a fight, then the button casts nothing", function(ns, scenario)
 	local header = ns.Prompt:FightHeader()
 	pull(ns)
-	if (header:GetAttribute("manners-rota-n") or 0) ~= 0 then fail(scenario, "a rota of " .. tostring(header:GetAttribute("manners-rota-n")) .. " for one person") end
+	local n = header:GetAttribute("manners-rota-n") or 0
+	if n ~= 1 then fail(scenario, "one person owed has one press in a fight: the pull made a rota of " .. tostring(n)) end
 	local first = aimed(ns)
-	press()
-	press()
-	if aimed(ns) ~= first then fail(scenario, "with one person the button moved off them") end
+	if first == nil then fail(scenario, "SKIPPED -- nobody on the button at the pull") release(ns) return end
 	local sub = tostring(ns.Prompt:Regions().sub:GetText())
-	if sub:find(" of ", 1, true) then fail(scenario, "with no rota the second line still counts: " .. sub) end
+	if sub:find(" of ", 1, true) then fail(scenario, "with one person the second line counts: " .. sub) end
+	press()
+	local after = aimed(ns)
+	if after ~= nil then
+		fail(scenario, "one person owed has one press in a fight: after it the button still casts at " .. tostring(after))
+	end
+	press()
+	if aimed(ns) ~= nil then fail(scenario, "one person owed has one press in a fight: a second press armed the button again") end
 	release(ns)
 end, { people = { nameplate1 = { "Anna", "Aim" } }, owed = { "Anna Aim" } })
 
@@ -349,5 +358,6 @@ with("fight-rota: nobody a cast in the rota already reaches is given a press of 
 	ns.Prompt:ArmFightRota()
 	n = header:GetAttribute("manners-rota-n") or 0
 	ns.WIDE_CASTS = wide
-	if n ~= 0 then fail(scenario, "one cast lands on the whole group, and the rota still holds " .. n) end
+	-- The one cast is the whole rota: a press for it, then nothing.
+	if n ~= 1 then fail(scenario, "one cast lands on the whole group, and the rota still holds " .. n) end
 end)

@@ -42,7 +42,7 @@ mutate(FIGHT,
        expect="a right press stepped the rota", script=S)
 
 mutate(FIGHT,
-       "\tif n < 2 then return end\n",
+       "\tif n < 1 then return end\n",
        "",
        "fight-rota: the first half lets the second run with no rota",
        expect="fight-rota:", script=S)
@@ -72,10 +72,10 @@ mutate(FIGHT,
        expect="over its most of", script=S)
 
 mutate(FIGHT,
-       "\tif #entries < 2 then return end\n\tfor i, text in ipairs(texts) do",
-       "\tfor i, text in ipairs(texts) do",
-       "fight-rota: a rota of one",
-       expect="for one person", script=S)
+       "\t-- again): one press for them, then nothing until the fight ends.\n\tfor i, text in ipairs(texts) do",
+       "\t-- again): one press for them, then nothing until the fight ends.\n\tif #entries < 2 then return end\n\tfor i, text in ipairs(texts) do",
+       "fight-rota: no rota for one person, every press casts at them again",
+       expect="one person owed has one press in a fight", script=S)
 
 mutate("Prompt/Press.lua",
        "\tif down ~= false and InCombatLockdown() then Prompt:SyncFightRota() end\n",

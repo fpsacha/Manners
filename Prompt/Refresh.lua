@@ -300,7 +300,7 @@ function Prompt:RefreshPanel()
 				-- (Fight.lua): which of how many the next press is for.
 				if R.subText:IsShown() then
 					local at, of = self:FightRotaAt()
-					SetLine(R.subText, "|cffb0b0b0" .. (at and L["in a fight -- %d of %d, a press moves on"]:format(at, of)
+					SetLine(R.subText, "|cffb0b0b0" .. (at and of > 1 and L["in a fight -- %d of %d, a press moves on"]:format(at, of)
 						or L["held -- in combat"]) .. "|r")
 					-- For the fuse after the fight, which keeps the panel as
 					-- it stands: this line is the fight's alone.

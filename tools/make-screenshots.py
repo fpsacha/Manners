@@ -425,6 +425,8 @@ local function keyed(ns, key)
 	rawset(_G, "GetBindingText", Mock.bindingText)
 	boot(ns, { nameplate1 = ELOWEN })
 	ns.db.profile.prompt.style = "arcane"
+	-- The key on the prompt is what this picture is of: Show my key, always.
+	ns.db.profile.prompt.keycap = "show"
 	owe(ns, "Mort Defrette")
 	settle(ns)
 	ns.ClampSettings()
@@ -724,6 +726,9 @@ for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane"
 		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
 		ns.db.profile.prompt.style = style
+		-- A little wider than a new profile: a painted look with its keycap and
+		-- the count both up has less room, and a thirteen-letter name is cut.
+		ns.db.profile.prompt.width = math.max(ns.db.profile.prompt.width, 290)
 		owe(ns, "Mort Defrette")
 		settle(ns)
 		ns.ClampSettings()

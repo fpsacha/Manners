@@ -25,7 +25,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffA blessing for each class.|r Pick a class, then its blessing.",
 			"|cff7cc4ffPassers-by who walked off.|r Somebody still in reach takes the prompt first, and a fight no longer freezes on people who have left.",
 			"|cff7cc4ffThe list holds still under the cursor.|r The name you point at stays on its line, so a click never lands on whoever slid into it.",
-			"|cff7cc4ffThe fight's rota goes round once.|r Each press reaches the next person rather than the same one again.",
+			"|cff7cc4ffOne press each in a fight.|r Each press reaches the next person, and with only one person on the prompt a second press no longer casts at them again.",
 		} },
 		{ title = "Your own buffs", accent = "7cc4ff", entries = {
 			"|cff7cc4ffDemonic Pact keeps both.|r On WoW Forever, a warlock with Demonic Pact is reminded of Demonic Sacrifice and Soul Link alike.",
