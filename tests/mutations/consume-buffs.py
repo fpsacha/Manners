@@ -107,8 +107,8 @@ mutate("Core.lua",
        expect="consume-buffs: a flask up, or a refused read, is not offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\telseif not refused and HiddenAura(id) then\n\t\t\t\trefused = true\n\t\t\tend\n\t\tend\n\t\tif refused then return nil end\n\t\treturn false\n\tend\n\tlocal function ReadConsumable",
-       "\t\t\tend\n\t\tend\n\t\tif refused then return nil end\n\t\treturn false\n\tend\n\tlocal function ReadConsumable",
+       "\t\t\telseif not refused and HiddenAura(id) then\n\t\t\t\trefused = true\n\t\t\tend\n\t\tend\n\t\tif refused then return nil end\n\t\treturn false\n\tend\n\t-- Elixirs to keep up (Buffs.lua, `keep`; ns.KeepTicks): the auras that say\n",
+       "\t\t\tend\n\t\tend\n\t\tif refused then return nil end\n\t\treturn false\n\tend\n\t-- Elixirs to keep up (Buffs.lua, `keep`; ns.KeepTicks): the auras that say\n",
        "consume-buffs: an aura the client keeps secret read as missing",
        expect="consume-buffs: a flask up, or a refused read, is not offered", script=S)
 

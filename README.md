@@ -370,10 +370,20 @@ once you carry one.
 - **Flask, Elixir** and one switch per scroll (Agility, Strength,
   Protection, Intellect, Stamina, Spirit): with none of that kind on you,
   "You" comes up with the best one you can use. A flask that works only in
-  some places comes last. On Burning Crusade and Mists a flask counts for
-  *Elixir* too. A Scroll of Intellect, Stamina or Spirit waits while the
-  class buff of the same stat is on you, unless that is a weaker rank than
-  the scroll; the other way round, somebody wearing such a scroll worth at
+  some places comes last. On Burning Crusade and Mists *Elixir* is two
+  switches, *Battle Elixir* and *Guardian Elixir*, one for each elixir slot,
+  each by the slot the elixir's own tooltip names; a flask fills both, and on
+  Mists a scroll fills the slot its tooltip says, so a Scroll of Stamina
+  stands in for a guardian elixir and a Scroll of Agility for a battle one.
+  Your *Elixir* switch carries over to both. On Classic Era and WoW Forever,
+  where elixirs have no slots, *Elixirs to keep up* under *Elixir* lists the
+  elixirs in your bags: tick the ones you want on at once, and "You" comes up
+  for each ticked one that is in your bags and not on you, one at a time.
+  With none ticked, any one elixir on you will do. Two ticked elixirs the
+  game does not let stack (one drunk takes the other off) are noticed, said
+  once in chat, and kept as one from then on. A Scroll of Intellect,
+  Stamina or Spirit waits while the class buff of the same stat is on you,
+  unless that is a weaker rank than the scroll; the other way round, somebody wearing such a scroll worth at
   least what your rank would give them is not offered your Fortitude,
   Intellect or Divine Spirit, since the game refuses the weaker of the two.
   Classic Era (Season of Discovery's too), WoW Forever, Burning Crusade and

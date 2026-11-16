@@ -522,7 +522,7 @@ end
 -- Crystal of Insanity; both fill the elixir slots.
 do
 	local scenario = "missing-buffs: mists: the Alchemist's Flask and the Crystal of Insanity"
-	stocked(scenario, { flavour = "mists", on = { "flask", "elixir" } }, function(ns, data)
+	stocked(scenario, { flavour = "mists", on = { "flask", "elixir", "guardianelixir" } }, function(ns, data)
 		if not (has(data.flask, 75525) and has(data.flask, 86569)) then
 			fail(scenario, "Mists' flasks lack the Alchemist's Flask or the Crystal of Insanity")
 			return

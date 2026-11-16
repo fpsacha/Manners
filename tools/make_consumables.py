@@ -41,6 +41,13 @@ sits in the Flask subclass) is no flask or elixir and is left out.
 On Mists a scroll counts as a Battle or a Guardian elixir, which the scroll's own
 spell says ("Counts as a Battle Elixir."): `scrollSlots` gives each stat's slot,
 read from those texts and written only where every row of a stat agrees.
+On Burning Crusade and Mists an elixir is a Battle or a Guardian elixir, which only
+its spell's own text says ("... for $d.  Battle Elixir."; no table column holds it,
+and the slot of one spell differs between the two clients): each elixir row gets a
+fourth value, "battle" or "guardian", and an elixir naming no slot, or both, stops
+the tool, except the ones in NO_SLOT, which are left out (Burning Crusade's
+Goldenmist Special Brew). On Classic Era and Forever no elixir names a slot, and
+one that ever does stops the tool: the client has grown the split.
 The spell its use casts is the aura it puts on, which is how the addon reads it.
 On Burning Crusade and Mists a flask fills both elixir slots, battle and guardian
 (the game's rule since 2.0.1, not a table's), and the file says so (`flaskFills`).
@@ -108,6 +115,11 @@ AREA_ONLY = re.compile(r"Only active in|only apply in")
 EXPERIENCE = re.compile(r"Experience gained")
 SLOT_TEXT = re.compile(r"[Cc]ounts as an? (Battle|Guardian) [Ee]lixir")
 BOTH_TEXT = re.compile(r"[Cc]ounts as both a Battle and Guardian [Ee]lixir")
+# An elixir's own slot, from its spell's text ("... for $d.  Battle Elixir."): read on the
+# clients with the two slots, where every elixir must name one.
+ELIXIR_SLOT = re.compile(r"\b(Battle|Guardian) [Ee]lixir\b")
+# Elixirs whose text names no slot, left out of the lists: { item: why }.
+NO_SLOT = {"tbc": {23444: "Goldenmist Special Brew: its text names no slot"}}
 
 
 def num(v, default=0):
@@ -204,6 +216,22 @@ def consumables(cache, client, also_elixirs=None):
         elif kind == "elixir":
             on = auras(use, 1)
             if on and not persists(use) and not any(aura in UTILITY_AURAS for aura, _ in on)                     and not EXPERIENCE.search(text.get(use, "")):
+                said = text.get(use, "")
+                if client in FLASK_FILLS:
+                    if item in NO_SLOT.get(client, {}):
+                        continue
+                    if BOTH_TEXT.search(said):
+                        raise SystemExit("make_consumables: %s elixir %d (spell %d) says it counts as both"
+                                         % (client, item, use))
+                    named = {m.group(1).lower() for m in ELIXIR_SLOT.finditer(said)}
+                    if len(named) != 1:
+                        raise SystemExit("make_consumables: %s elixir %d (spell %d) names %s, not one slot: %r"
+                                         % (client, item, use, sorted(named) or "no slot", said))
+                    entry = entry + (named.pop(),)
+                elif ELIXIR_SLOT.search(said):
+                    raise SystemExit("make_consumables: %s elixir %d (spell %d) names a slot: the client has"
+                                     " grown battle and guardian elixirs, and the elixir families must change"
+                                     % (client, item, use))
                 out["elixir"].append(entry)
         elif SCROLL_NAME.fullmatch(name):
             on = auras(use, 21)
@@ -258,8 +286,10 @@ def render(cache):
         "-- aura it puts on, read by its id, unless the row names the `auras` it becomes;",
         "-- `lapses`: a flask lost on death. `flaskFills`: a flask fills both elixir slots,",
         "-- battle and guardian; `scrollSlots`: the elixir slot each stat's scrolls",
-        "-- take, where the client says so (Mists). The tool's docstring says what",
-        "-- counts. Builds:",
+        "-- take, where the client says so (Mists). On the clients with both slots",
+        "-- (Burning Crusade, Mists) an elixir row has a fourth value, \"battle\" or",
+        "-- \"guardian\": the slot its spell's own text names. The tool's docstring says",
+        "-- what counts. Builds:",
     ]
     data = {}
     for client in CLIENTS:
@@ -274,8 +304,9 @@ def render(cache):
     lines += ["", "local _, ns = ...", "", "ns.CONSUMABLES = {"]
 
     def rows(indent, entries, extra=None):
-        for item, level, use in entries:
-            more = ""
+        for row in entries:
+            item, level, use = row[:3]
+            more = ', "%s"' % row[3] if len(row) > 3 else ""
             for key, value in sorted((extra or {}).get(item, {}).items()):
                 if value is True:
                     more += ", %s = true" % key

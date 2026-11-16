@@ -23,7 +23,7 @@ mutate("Requests.lua",
 
 # S3: a Mists scroll reads as up under a flask alone, and is offered over an elixir.
 mutate("Buffs.lua",
-       "\t\t\t\t\tfor _, spell in ipairs(elixir and elixir.spells or {}) do\n",
+       "\t\t\t\t\tfor _, spell in ipairs(mate and mate.spells or {}) do\n",
        "\t\t\t\t\tfor _, spell in ipairs({}) do\n",
        "engine-fix38: a Mists scroll offered over an elixir",
        expect=P + "mists: no scroll of agility over an elixir", script=S)

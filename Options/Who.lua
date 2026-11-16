@@ -390,8 +390,16 @@ end
 function Consumable.Desc(family)
 	if family.key == "flask" then
 		return L["Reminds you to drink a flask when none is on you and one is in your bags, the best you can use first. Off until you turn it on."]
-	elseif family.key == "elixir" and family.covers then
-		return L["Reminds you to drink an elixir when no elixir or flask is on you and an elixir is in your bags, the best you can use first. A flask fills both elixir slots. Off until you turn it on."]
+	elseif family.slot then
+		-- Burning Crusade and Mists: a family a slot (Buffs.lua, CONSUME).
+		local text = family.slot == "guardian"
+			and L["Reminds you to drink a guardian elixir when no guardian elixir or flask is on you and one is in your bags, the best you can use first. A flask fills both elixir slots. Off until you turn it on."]
+			or L["Reminds you to drink a battle elixir when no battle elixir or flask is on you and one is in your bags, the best you can use first. A flask fills both elixir slots. Off until you turn it on."]
+		-- Mists: a scroll takes one of the two slots (Buffs.lua, slotScrolls).
+		if family.slotScrolls then
+			text = text .. " " .. L["A scroll counts as a battle or a guardian elixir, as its own tooltip says."]
+		end
+		return text
 	elseif family.key == "elixir" then
 		return L["Reminds you to drink an elixir when none is on you and one is in your bags, the best you can use first. Off until you turn it on."]
 	end
@@ -637,6 +645,48 @@ local function AddOwnControls(args)
 		values = function() return LeaveChoices(true) end,
 		get = LeaveGet,
 		set = LeaveSet,
+	}
+	-- Elixirs to keep up at once (Classic Era, Forever: Buffs.lua, `keep`;
+	-- ownBuffs.elixirKeep), under the elixir switch while it is on Automatic:
+	-- those in the bags, and any already ticked.
+	local function KeepFamily()
+		for _, family in ipairs(ns.GetOwnFamilies() or {}) do
+			if family.keep then return family end
+		end
+		return nil
+	end
+	local function KeepChoices()
+		local values, family = {}, KeepFamily()
+		local ticks = ns.db.profile.ownBuffs.elixirKeep
+		for _, spell in ipairs(family and family.spells or {}) do
+			if ns.OwnSpellKnown(spell) or (type(ticks) == "table" and ticks[spell.key] == true) then
+				values[spell.key] = ns.BuffName(spell)
+			end
+		end
+		return values
+	end
+	args.own_elixirkeep = {
+		type = "multiselect",
+		name = L["Elixirs to keep up"],
+		desc = L["Tick the elixirs you want on you at once: Manners reminds you of each ticked one that is in your bags and not on you, one at a time. With none ticked, any one elixir on you will do, the best you can use first."],
+		order = 15.795,
+		hidden = function()
+			local family = KeepFamily()
+			return not family or ns.OwnPick(family) ~= "auto" or next(KeepChoices()) == nil
+		end,
+		disabled = function() return not S().self end,
+		values = function() return KeepChoices() end,
+		get = function(_, key)
+			local ticks = ns.db.profile.ownBuffs.elixirKeep
+			return type(ticks) == "table" and ticks[key] == true
+		end,
+		set = function(_, key, on)
+			local own = ns.db.profile.ownBuffs
+			if type(own.elixirKeep) ~= "table" then own.elixirKeep = {} end
+			own.elixirKeep[key] = on and true or nil
+			-- The prompt follows at once rather than at the next scan.
+			ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+		end,
 	}
 end
 

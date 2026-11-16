@@ -1728,12 +1728,19 @@ Since round 37 it also:
   text checked to say it counts as both elixirs;
 - writes `scrollSlots` (Mists: the elixir slot each stat's scrolls take, read
   from the scroll's own text);
+- writes each elixir's slot as a fourth value on Burning Crusade and Mists
+  (`"battle"` or `"guardian"`, from `(Battle|Guardian) [Ee]lixir` in the
+  spell's own text, which differs between the two clients for one spell);
+  an elixir naming no slot, or both, stops it unless `NO_SLOT` lists it
+  (Goldenmist Special Brew, 23444, left out), and on Classic Era and Forever
+  an elixir that names a slot stops it: the client would have grown the split;
 - sorts a flask that works only in some areas ("Only active in", "only apply
   in") after the rest, and leaves out experience elixirs.
 
 `tests/scenarios/consume-buffs.lua` holds the families built from it, and
 `audit_ids.py` (`check_consumables`) holds each row to the item data, with
-`auras`, `lapses`, both-slot auras and Mists' scrolls as covers.
+`auras`, `lapses`, both-slot auras and Mists' scrolls of the family's own slot
+as covers, and each slotted elixir family's spells to the slot their text names.
 
 ## audit_ids.py
 

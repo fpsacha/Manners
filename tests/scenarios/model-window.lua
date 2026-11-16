@@ -405,6 +405,8 @@ local EXPECTED = {
 		-- Detect Invisibility for passers-by too, under its own tick
 		-- (tests/scenarios/detect-passers.lua).
 		"buff.detectPassers",
+		-- Elixirs to keep up (tests/scenarios/elixir-pair.lua).
+		"ownBuffs.elixirKeep",
 	},
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
 	when = {

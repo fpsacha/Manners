@@ -242,6 +242,16 @@ local function mineC(ns)
 	return nil
 end
 
+-- The last (weakest) elixir of one slot (Consumables.lua's fourth value: Burning
+-- Crusade and Mists name one per row), or of all where no slot is named.
+local function lastElixir(data, slot)
+	local found
+	for _, row in ipairs(data.elixir) do
+		if row[4] == nil or row[4] == slot then found = row end
+	end
+	return found
+end
+
 local function wearC(ns, id)
 	cw.auras[id] = GetTime() + 1500
 	ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
@@ -259,8 +269,8 @@ do
 		end)
 	-- (b) A guardian scroll up, an elixir switch on and an elixir in the bags: the
 	-- elixir would knock the scroll off, and the scroll the elixir.
-	withConsume(scenario, { flavour = "mists", on = { "elixir", "scrollstamina" } }, function(ns, data)
-		local elixir = data.elixir[#data.elixir]
+	withConsume(scenario, { flavour = "mists", on = { "guardianelixir", "scrollstamina" } }, function(ns, data)
+		local elixir = lastElixir(data, "guardian")
 		cw.bags = { [elixir[1]] = 1 }
 		ns.addon:BAG_UPDATE_DELAYED()
 		if not mineC(ns) then
@@ -303,7 +313,7 @@ do
 		if entry then fail(scenario, "at 90, offered " .. key(entry) .. " (Enduring Elixir of Wisdom, +XP)") end
 	end)
 	withConsume(scenario, { flavour = "mists", level = 89, on = { "elixir" } }, function(ns, data)
-		local last = data.elixir[#data.elixir]
+		local last = lastElixir(data, "battle")
 		cw.bags = { [last[1]] = 1 }
 		ns.addon:BAG_UPDATE_DELAYED()
 		if not mineC(ns) then
@@ -320,7 +330,7 @@ do
 	local scenario = "newbuffs-fix: the Alchemist's Flask and the Crystal of Insanity fill both elixir slots"
 	for _, aura in ipairs({ 79639, 127230 }) do
 		withConsume(scenario, { flavour = "mists", on = { "elixir" } }, function(ns, data)
-			local last = data.elixir[#data.elixir]
+			local last = lastElixir(data, "battle")
 			cw.bags = { [last[1]] = 1 }
 			ns.addon:BAG_UPDATE_DELAYED()
 			if not mineC(ns) then

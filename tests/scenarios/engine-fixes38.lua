@@ -442,8 +442,8 @@ end
 
 -- ------------------------------------------------------------------ Mists' scrolls
 
--- #S3: on Mists a scroll takes an elixir's slot, and the elixir family cannot
--- say which slot its elixir holds: a scroll waits under any elixir.
+-- #S3: on Mists a scroll takes an elixir's slot: a scroll waits under any
+-- elixir of its own slot (each elixir row names one), and only under those.
 do
 	local CONSUME_TOUCHED = { "C_Item", "C_UnitAuras", "UnitLevel", "IsMounted", "IsSpellKnown", "IsPlayerSpell",
 		"IsResting", "IsInInstance" }
@@ -510,14 +510,31 @@ do
 				fail(scenario, "SKIPPED -- with nothing on, the scroll is not offered: " .. key(offered()))
 				return
 			end
+			-- An elixir of the scroll's own slot holds it back; one of the other
+			-- slot does not (each elixir row names its slot, Consumables.lua).
+			local slot = data.scrollSlots and data.scrollSlots[stat]
+			local other
 			for _, row in ipairs(data.elixir) do
-				cw.auras = { [row[3]] = GetTime() + 1500 }
-				local entry = offered()
-				if entry then
-					fail(scenario, "elixir " .. row[1] .. " (aura " .. row[3] .. ") on you, and the prompt offers "
-						.. key(entry) .. ", which would knock it off")
-					break
+				if row[4] == slot then
+					cw.auras = { [row[3]] = GetTime() + 1500 }
+					local entry = offered()
+					if entry then
+						fail(scenario, "elixir " .. row[1] .. " (aura " .. row[3] .. ") on you, and the prompt offers "
+							.. key(entry) .. ", which would knock it off")
+						break
+					end
+				elseif not other then
+					other = row
 				end
+			end
+			if other then
+				cw.auras = { [other[3]] = GetTime() + 1500 }
+				if key(offered()) ~= "scroll" .. scroll[1] then
+					fail(scenario, "an elixir of the other slot (" .. other[1] .. ") holds the scroll back: "
+						.. key(offered()))
+				end
+			else
+				fail(scenario, "no elixir of the other slot to try")
 			end
 			for _, e in ipairs(ns.errors or {}) do
 				fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))

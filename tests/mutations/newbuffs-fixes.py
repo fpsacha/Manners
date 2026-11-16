@@ -44,8 +44,8 @@ mutate("Consumables.lua",
 # --- an experience elixir is no flask ---
 
 mutate("Consumables.lua",
-       "\t\t\t{ 35717, 70, 46839 },\n\t\t},\n\t\telixir = {\n\t\t\t{ 76075, 85, 105681 },\n",
-       "\t\t\t{ 35717, 70, 46839 },\n\t\t\t{ 103557, 1, 146939 },\n\t\t},\n\t\telixir = {\n\t\t\t{ 76075, 85, 105681 },\n",
+       "\t\t\t{ 35717, 70, 46839 },\n\t\t},\n\t\telixir = {\n\t\t\t{ 76075, 85, 105681, \"guardian\" },\n",
+       "\t\t\t{ 35717, 70, 46839 },\n\t\t\t{ 103557, 1, 146939 },\n\t\t},\n\t\telixir = {\n\t\t\t{ 76075, 85, 105681, \"guardian\" },\n",
        "newbuffs-fixes: the experience elixir a flask",
        expect="newbuffs-fix: an experience elixir is no flask at the level cap", script=S)
 

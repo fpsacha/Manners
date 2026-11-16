@@ -1319,7 +1319,11 @@ def check_weapon_items(rep, c, d, flavour):
 
 # A consumable family's kind, by its key (Buffs.lua, CONSUME): the target its items' use puts the
 # aura on (1 the user, 21 a friendly target), and whether that aura stays on through death.
-CONSUMABLE_TARGET = {"flask": 1, "elixir": 1}
+# Burning Crusade and Mists: an elixir family a slot, `elixir` (battle) and `guardianelixir`.
+CONSUMABLE_TARGET = {"flask": 1, "elixir": 1, "guardianelixir": 1}
+ELIXIRS = ("elixir", "guardianelixir")
+# The slot an elixir spell's own text names ("... Battle Elixir."), on the clients with two.
+ELIXIR_SLOT_TEXT = re.compile(r"\b(Battle|Guardian) [Ee]lixir\b")
 DEATH_PERSISTENT = 0x100000
 # What a scroll family's aura raises: MOD_STAT (29) on that stat, or armour (22, Forever's 674) on
 # school 1 for Protection.
@@ -1333,7 +1337,9 @@ def check_consumables(rep, c, d, flavour):
     says, its use (ItemEffect, trigger 0) is the spell the addon reads, that spell puts an aura on
     the user (a scroll: on a friendly target) for half an hour or more, a flask's stays on through
     death and an elixir's does not, a scroll's raises its family's stat, and what `covers` a
-    family is a flask of this client, an aura a flask row becomes, or on Mists a scroll. A use that is no aura
+    family is a flask of this client, an aura a flask row becomes, or on Mists a scroll of the
+    family's own slot (and a scroll's, an elixir of its slot). An elixir family with a `slot`
+    (Burning Crusade, Mists) holds only elixirs whose spell's text names that slot. A use that is no aura
     (Mists' Alchemist's Flask) names the `auras` it becomes, and those are held to it in its
     place; a flask marked `lapses` (Mists' Crystal of Insanity) is one lost on death."""
     # Every class lists the same families: each copy that differs is checked, once.
@@ -1352,6 +1358,19 @@ def check_consumables(rep, c, d, flavour):
     flasks |= {i for key, f in fams if key == "flask" for s in f["spells"] for i in (s.get("auras") or [])}
     both = {i for key, f in fams if key == "flask" for i in f.get("covers") or []}
     scrolls = {s["ranks"][0] for key, f in fams if key in SCROLL_STAT for s in f["spells"]}
+    # Mists: the elixir family each scroll family's covers name (its slot's), and so each
+    # scroll's slot; a scroll family covering the elixirs of both slots, or of none while
+    # another does, is a finding.
+    elixir_of = {}
+    by_elixir = {key: {s["ranks"][0] for s in f["spells"]} for key, f in fams if key in ELIXIRS}
+    for key, f in fams:
+        if key in SCROLL_STAT:
+            named = {e for e, ids in by_elixir.items() if ids & set(f.get("covers") or [])}
+            if len(named) > 1:
+                rep.finding("consumable.%s" % key, "covers the elixirs of more than one slot: %s" % sorted(named))
+            elixir_of[key] = named.pop() if len(named) == 1 else None
+    scroll_slot = {s["ranks"][0]: elixir_of.get(key) for key, f in fams if key in SCROLL_STAT for s in f["spells"]}
+    text = c.descriptions if any(f.get("slot") for _, f in fams) else {}
     for key, f in fams:
         if not (f.get("toggle") and f.get("bagged")):
             rep.finding("consumable.%s" % key, "the family is not a bagged toggle")
@@ -1364,6 +1383,17 @@ def check_consumables(rep, c, d, flavour):
                 rep.finding("consumable.%s" % key, "covers %d (%s), which is no flask, scroll or both-slot aura the addon holds" % (i, c.names.get(i)))
             elif i in both and (i not in c.names or (c.duration_ms(i) or 0) < 1800000):
                 rep.finding("consumable.%s" % key, "covers %d, which has no SpellName or lasts under half an hour" % i)
+            # A scroll of another slot than the family's own (Mists).
+            mine = key if key in ELIXIRS else elixir_of.get(key)
+            if i in scrolls and mine and scroll_slot.get(i) not in (mine, None):
+                rep.finding("consumable.%s" % key, "covers scroll %d (%s), which takes the %s slot" % (
+                    i, c.names.get(i), scroll_slot.get(i)))
+        if key in ELIXIRS and f.get("slot"):
+            for s in f["spells"]:
+                said = {m.group(1).lower() for m in ELIXIR_SLOT_TEXT.finditer(text.get(s["ranks"][0], ""))}
+                if said != {f["slot"]}:
+                    rep.finding("consumable.%s.%d" % (key, s["item"]), "spell %d (%s) names %s, not the %s slot of its family" % (
+                        s["ranks"][0], c.names.get(s["ranks"][0]), sorted(said) or "no slot", f["slot"]))
         for s in f["spells"]:
             item, use = s["item"], s["ranks"][0]
             where = "consumable.%s.%d" % (key, item)
@@ -1399,7 +1429,7 @@ def check_consumables(rep, c, d, flavour):
                     rep.finding(where, "spell %d (%s) does not stay on through death, as a flask does" % (aura, c.names.get(aura)))
                 if key == "flask" and persists and s.get("lapses"):
                     rep.finding(where, "spell %d (%s) stays on through death, and the addon says it lapses" % (aura, c.names.get(aura)))
-                if key == "elixir" and persists:
+                if key in ELIXIRS and persists:
                     rep.finding(where, "spell %d (%s) stays on through death, as a flask does" % (aura, c.names.get(aura)))
             if scroll:
                 stat = SCROLL_STAT[key]

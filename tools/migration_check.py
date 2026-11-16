@@ -19,7 +19,9 @@ left alone) in two stages, each in a fresh Lua state on the current mock:
      release plays a little: it starts, a favour lands on the player (a
      ledger row), a profile of the player's choices is written (a pinned buff,
      a never-offer list, a phrase box, a position, a channel, filters, colours,
-     raid groups, own-buff picks), a second profile is made, one more per
+     raid groups, own-buff picks, the elixir switch on where the release
+     has it, which --flavour tbc and mists then expect carried into
+     Guardian Elixir too), a second profile is made, one more per
      ready-made phrase set holding that set's text as the release wrote it,
      one at each end of every slider, some slash commands run, a debt is owed,
      and it logs out. The

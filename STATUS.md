@@ -17,6 +17,37 @@ was tried in the game. The checklist of what only the game can settle, now
 on WoW Forever in the owner's own play sessions, is the first item under
 *Open*.
 
+**Two elixirs at once (branch `post26`, after 1.11.26, not released).**
+Burning Crusade and Mists name each elixir's slot only in its spell's own
+text ("... Battle Elixir."), so `tools/make_consumables.py` writes it as a
+fourth value on each elixir row and `Buffs.lua` builds two families there:
+`elixir` (Battle Elixir, the key kept) and `guardianelixir`, each with its
+own switch, a flask filling both; on Mists a scroll now covers, and is held
+back by, its own slot's elixirs and scrolls alone. Goldenmist Special Brew
+(23444) names no slot and is left out (`NO_SLOT`). Classic Era and Forever
+name no slot anywhere: one family, `keep`, with *Elixirs to keep up*
+(`ownBuffs.elixirKeep`, Who to buff, under *Elixir*) reminding of each ticked
+elixir in the bags in turn (Core.lua `ns.KeepTicks`, `ScanKept`,
+`KeepAnswer`); a ticked one that comes on as another ticked one goes with
+more than a minute left makes the pair one (`db.char.elixirClash`, said once),
+and one the game turns away ("A more powerful spell is already active") is
+passed over for its ten minutes (`ns.heldOff`). The one switch, a pick of a
+guardian elixir and the memory of one up last carry over once a profile
+(`ns.SplitElixirs`, stamp `ownBuffs.elixirsSplit`, which a settings string
+carries). `tests/scenarios/elixir-pair.lua`, `tests/mutations/elixir-pair.py`
+(16, each CAUGHT by `prove.py`). What only the game can say:
+1. Classic Era and Forever: whether any two elixirs refuse or overwrite each
+   other (two of one stat, Forever's 1250xxx with the classic ones, Season of
+   Discovery's 12139xx); the data shows none, and which of the two the game
+   does is unverified.
+2. Burning Crusade: which slot Goldenmist Special Brew (23444) takes.
+3. Burning Crusade: whether the Unstable Flasks of Blade's Edge (40567 to
+   40576) fill both slots; their 2.5.6 text does not say so, Mists' does.
+4. Whether drinking a second elixir of one slot overwrites the first or is
+   refused (Burning Crusade, Mists).
+5. Whether "A more powerful spell is already active" reaches the pending
+   click for a `/use item:` on yourself as it does for a cast on others.
+
 What was built:
 
 - **The group's pets** (`sources.pets`, off; Queue.lua `IterateUnits`,
@@ -1445,9 +1476,6 @@ Left for later:
   blames *Skip players it does nothing for* even when that is off. A new string.
 - ptBR and itIT word nine RP.GIFT thanks in a man's voice; they sit in
   `RP.MASCULINE` until retranslated in a form that fits both.
-- On Mists a scroll family reads as up under any flask or any elixir, even one
-  holding only the other elixir slot (a fourth Consumables.lua column would tell
-  them apart). It is wrong only by saying nothing.
 - The *Right now* line keeps up with the prompt in Manners' own window only;
   the fallback AceConfig dialog repaints it on its usual triggers.
 - `Options/Who.lua` PlatesHidden and `Options/Launcher.lua` still give a

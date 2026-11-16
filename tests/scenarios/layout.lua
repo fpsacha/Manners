@@ -40,6 +40,9 @@ local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.ow
 	["who.own_heartofthelion"] = true, ["who.own_grimoireofsacrifice"] = true,
 	["who.own_shamanimbueoff"] = true, ["who.own_rite"] = true,
 	["who.own_flask"] = true, ["who.own_elixir"] = true, ["who.own_scrollagility"] = true,
+	-- Burning Crusade's and Mists' second elixir family; Classic Era's and
+	-- Forever's elixirs to keep up (its multiselect is made everywhere).
+	["who.own_guardianelixir"] = true,
 	["who.own_scrollstrength"] = true, ["who.own_scrollprotection"] = true, ["who.own_scrollintellect"] = true,
 	["who.own_scrollstamina"] = true, ["who.own_scrollspirit"] = true,
 	-- The missing-buffs round: Tree of Life (Burning Crusade, Classic Era), Spirit

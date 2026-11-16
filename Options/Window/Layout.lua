@@ -483,7 +483,12 @@ ns.WindowLayout = {
 					-- Flasks, elixirs and a scroll of each stat, off until turned on;
 					-- shown while one is in the bags (Buffs.lua, CONSUME).
 					"who.own_flask",
+					-- Battle Elixir on Burning Crusade and Mists, Elixir elsewhere;
+					-- Guardian Elixir its own switch there, and on Classic Era and
+					-- Forever the elixirs to keep up at once, under the one switch.
 					"who.own_elixir",
+					{ "who.own_elixirkeep", indent = true },
+					"who.own_guardianelixir",
 					-- Every scroll at once, then each scroll's own switch under it, one
 					-- step further in: off, those switches are gone (Options/Who.lua,
 					-- ownScrolls).

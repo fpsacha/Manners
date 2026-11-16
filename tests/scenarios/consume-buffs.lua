@@ -151,6 +151,9 @@ do
 			tbc = { flask = 20, elixir = 40, scroll = 5 },
 			mists = { flask = 40, elixir = 75, scroll = 9 },
 		}
+		-- Burning Crusade and Mists: each elixir names its slot (the spell's
+		-- own text), and each slot has its share of them.
+		local SLOTS = { tbc = { battle = 20, guardian = 15 }, mists = { battle = 50, guardian = 20 } }
 		-- Shattrath's flasks (Tempest Keep to the Sunwell only) and Season of
 		-- Discovery's nightmare flasks work in their areas only: after the rest.
 		local AREA = { [32898] = true, [32899] = true, [32900] = true, [32901] = true, [35716] = true,
@@ -189,6 +192,20 @@ do
 			else
 				inOrder(client .. ".flask", data.flask, minimum.flask)
 				inOrder(client .. ".elixir", data.elixir, minimum.elixir)
+				local slots, count = SLOTS[client], { battle = 0, guardian = 0 }
+				for i, row in ipairs(data.elixir or {}) do
+					if slots and row[4] ~= "battle" and row[4] ~= "guardian" then
+						fail(scenario, ("%s.elixir row %d (%s) names no slot: %s"):format(client, i, tostring(row[1]), tostring(row[4])))
+					elseif not slots and row[4] ~= nil then
+						fail(scenario, ("%s.elixir row %d (%s) names a slot: %s"):format(client, i, tostring(row[1]), tostring(row[4])))
+					end
+					if row[4] then count[row[4]] = (count[row[4]] or 0) + 1 end
+				end
+				for slot, least in pairs(slots or {}) do
+					if count[slot] < least then
+						fail(scenario, ("%s has %d %s elixirs, fewer than the %d its data gives"):format(client, count[slot], slot, least))
+					end
+				end
 				for _, stat in ipairs(SCROLLS) do
 					inOrder(client .. ".scroll." .. stat, data.scroll and data.scroll[stat], minimum.scroll)
 				end
@@ -246,6 +263,8 @@ do
 					end
 				end
 				local want = { "flask", "elixir" }
+				-- A family a slot where the elixirs have one (Burning Crusade, Mists).
+				if client == "tbc" or client == "mists" then want[#want + 1] = "guardianelixir" end
 				for _, stat in ipairs(SCROLLS) do want[#want + 1] = "scroll" .. stat end
 				local all = true
 				for _, k in ipairs(want) do all = all and keys[k] ~= nil end
@@ -261,10 +280,18 @@ do
 						end
 					end
 				end
-				local elixir = keys.elixir
 				local fills = client == "tbc" or client == "mists"
-				if elixir and (elixir.covers ~= nil) ~= fills then
-					fail(scenario, client .. ": the elixir family's covers are " .. tostring(elixir.covers))
+				for _, k in ipairs({ "elixir", "guardianelixir" }) do
+					local elixir = keys[k]
+					if elixir and (elixir.covers ~= nil) ~= fills then
+						fail(scenario, client .. ": the " .. k .. " family's covers are " .. tostring(elixir.covers))
+					end
+				end
+				if not fills and keys.guardianelixir then
+					fail(scenario, client .. " has a Guardian Elixir family, with no slots in its data")
+				end
+				if keys.elixir and (keys.elixir.keep == true) == fills then
+					fail(scenario, client .. ": the elixir family's keep is " .. tostring(keys.elixir.keep))
 				end
 			end
 			if client == "mainline" then
@@ -420,22 +447,30 @@ for _, client in ipairs(CLIENTS) do
 	local fills = client == "tbc" or client == "mists"
 	local scenario = fills and "consume-buffs: a flask fills both elixir slots on Burning Crusade and Mists"
 		or "consume-buffs: a flask beside an elixir on Classic Era and Forever"
-	with(scenario, { flavour = client, on = { "elixir" } }, function(ns, data)
-		local elixir, flask = data.elixir[1], data.flask[1]
-		stock(ns, { [elixir[1]] = 1 })
-		if key(mine(ns)) ~= "elixir" .. elixir[1] then
-			fail(scenario, client .. ": an elixir in the bags, none on: offered " .. key(mine(ns)))
-			return
-		end
-		wear(ns, flask[3])
-		local entry = mine(ns)
-		if fills and entry then
-			fail(scenario, client .. ": a flask on you, and an elixir offered: " .. key(entry))
-		elseif not fills and key(entry) ~= "elixir" .. elixir[1] then
-			-- No slots there: a flask and an elixir stack.
-			fail(scenario, client .. ": a flask on you, and the elixir not offered: " .. key(entry))
-		end
-	end)
+	-- Each elixir family there in turn (battle, then guardian), each on alone.
+	for _, slot in ipairs(fills and { "battle", "guardian" } or { false }) do
+		local family = slot == "guardian" and "guardianelixir" or "elixir"
+		with(scenario, { flavour = client, on = { family } }, function(ns, data)
+			local elixir, flask
+			for _, row in ipairs(data.elixir) do
+				if not elixir and (not slot or row[4] == slot) then elixir = row end
+			end
+			flask = data.flask[1]
+			stock(ns, { [elixir[1]] = 1 })
+			if key(mine(ns)) ~= "elixir" .. elixir[1] then
+				fail(scenario, client .. ": an elixir in the bags, none on: offered " .. key(mine(ns)))
+				return
+			end
+			wear(ns, flask[3])
+			local entry = mine(ns)
+			if fills and entry then
+				fail(scenario, client .. ": a flask on you, and a " .. tostring(slot) .. " elixir offered: " .. key(entry))
+			elseif not fills and key(entry) ~= "elixir" .. elixir[1] then
+				-- No slots there: a flask and an elixir stack.
+				fail(scenario, client .. ": a flask on you, and the elixir not offered: " .. key(entry))
+			end
+		end)
+	end
 end
 
 -- ------------------------------------------------------------------ the scrolls

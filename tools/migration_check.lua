@@ -355,6 +355,18 @@ function M.old()
 			break
 		end
 	end
+	-- The elixir switch on, where the release has it (1.11.11 and later): on
+	-- Burning Crusade and Mists the current addon splits it into Battle Elixir
+	-- and Guardian Elixir (Core.lua, ns.SplitElixirs), and both must be on.
+	if type(profile.ownBuffs) == "table" and type(profile.ownBuffs.pick) == "table"
+		and ns.FindOwnFamily and ns.FindOwnFamily("elixir") then
+		profile.ownBuffs.pick.elixir = "auto"
+		report.fixture["ownBuffs.pick.elixir"] = "auto"
+		local flavour = ns.Flavour and ns.Flavour.flavour
+		if flavour == "tbc" or flavour == "mists" then
+			report.fixture["ownBuffs.pick.guardianelixir"] = "auto"
+		end
+	end
 
 	-- The slash commands an old release has (an unknown word prints help).
 	add(steps({

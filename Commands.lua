@@ -916,6 +916,9 @@ do
 							or name == "buff.keptBack"
 							or name == "buff.optIn"
 							or name == "filters.skipNearbyClasses"
+							-- Elixirs to keep up (Classic Era, Forever): spell keys
+							-- ticked. Its default is empty, so the walk found nothing.
+							or name == "ownBuffs.elixirKeep"
 							or name == "prompt.thankEmoteMore" then
 							kind = "set"
 						elseif name == "buff.forClass" then
@@ -954,6 +957,13 @@ do
 		-- walk cannot find it.
 		fields[#fields + 1] = { name = "speech.presetChoice", kind = "string",
 			path = { "speech" }, key = "presetChoice" }
+		-- Whether the elixir switch was carried into the two of Burning Crusade
+		-- and Mists (Core.lua, ns.SplitElixirs). No default either: a string made
+		-- before the split, or on a client with one family, has none, and the
+		-- copy runs when it is pasted; one made after it carries the stamp, and
+		-- a Guardian Elixir switched off stays off.
+		fields[#fields + 1] = { name = "ownBuffs.elixirsSplit", kind = "boolean",
+			path = { "ownBuffs" }, key = "elixirsSplit" }
 		table.sort(fields, function(a, b) return a.name < b.name end)
 		shareFields = fields
 		return fields

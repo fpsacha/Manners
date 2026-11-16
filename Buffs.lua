@@ -946,13 +946,16 @@ end
 -- with /use item:<id> (Prompt/Macro.lua). A flask stays on through death
 -- (SpellMisc Attributes_3 0x100000), which the reading needs nothing for.
 --
--- Elixirs are one family, up while any elixir is on you, and on Burning
--- Crusade and Mists also while a flask is (`covers`): those clients have a
--- battle and a guardian slot, and a flask fills both. One family can only be
--- wrong by saying nothing (a battle elixir on, the guardian slot empty), never
--- by asking for an elixir a flask or another elixir would turn away; two
--- families would need each elixir's slot, a rule of the game's servers with no
--- column in the client's tables.
+-- Burning Crusade and Mists have a battle and a guardian slot, and a flask
+-- fills both. The slot is the elixir spell's own text ("... Battle Elixir."),
+-- which no column holds and which differs between the two clients for one
+-- spell; tools/make_consumables.py reads it into each row's fourth value. So
+-- two families there, `elixir` (Battle Elixir, the key kept from when it was
+-- one) and `guardianelixir`, each with its own switch, each up while one of its
+-- slot or a flask is on you (`covers`). Classic Era and Forever have no slots
+-- in their data at all: one `elixir` family, up while any elixir is on you,
+-- unless the player ticked the ones to keep up together (`keep`,
+-- ownBuffs.elixirKeep; Core.lua ReadConsumable and KeepAnswer).
 --
 -- Scrolls are a family per stat: two of one stat do not stack (the greater
 -- stays), two of different stats do. Each is cast at a friendly target
@@ -987,7 +990,27 @@ do
 	for client, data in pairs(ns.CONSUMABLES or {}) do
 		local list = {}
 		local flask = Family("flask", L["Flask"], data.flask, "flask")
-		local elixir = Family("elixir", L["Elixir"], data.elixir, "elixir")
+		-- The slot each elixir row names (Consumables.lua's fourth value, on the
+		-- clients with two): a family per slot, both of the spell prefix
+		-- "elixir", so every spell's key stays "elixir<item>" as it was.
+		local slotted, battle, guard = false, {}, {}
+		for _, row in ipairs(data.elixir or {}) do
+			if row[4] ~= nil then slotted = true end
+			if row[4] == "guardian" then guard[#guard + 1] = row else battle[#battle + 1] = row end
+		end
+		local elixir, guardian
+		if slotted then
+			elixir = Family("elixir", L["Battle Elixir"], battle, "elixir")
+			guardian = Family("guardianelixir", L["Guardian Elixir"], guard, "elixir")
+			-- Which slot each fills, for the page's words (Options/Who.lua).
+			if elixir then elixir.slot = "battle" end
+			if guardian then guardian.slot = "guardian" end
+		else
+			elixir = Family("elixir", L["Elixir"], data.elixir, "elixir")
+			-- No slot to tell two apart: the player says which to keep up at once.
+			if elixir then elixir.keep = true end
+		end
+		local bySlot = { battle = elixir, guardian = guardian }
 		list[#list + 1] = flask
 		-- What fills both elixir slots: a flask (`flaskFills`), with the `auras`
 		-- a flask row becomes (Mists' Alchemist's Flask). An elixir you are
@@ -999,8 +1022,14 @@ do
 				for _, id in ipairs(spell.auras or {}) do both[#both + 1] = id end
 			end
 		end
-		if elixir and #both > 0 then elixir.covers = both end
+		for _, family in ipairs({ elixir or false, guardian or false }) do
+			if family and #both > 0 then
+				family.covers = {}
+				for i, id in ipairs(both) do family.covers[i] = id end
+			end
+		end
 		list[#list + 1] = elixir
+		list[#list + 1] = guardian
 		local scrolls = {}
 		for _, scroll in ipairs(SCROLLS) do
 			local family = Family("scroll" .. scroll[1], scroll[2], data.scroll and data.scroll[scroll[1]],
@@ -1011,32 +1040,33 @@ do
 		-- On Mists a scroll counts as a Battle or a Guardian elixir
 		-- (`scrollSlots`, from the scroll's own text): it takes that slot from
 		-- an elixir and from a flask, and from another scroll of the same slot.
-		-- So no flask or elixir held back a scroll, and a use knocked the
-		-- other family's aura off, to be offered again, round and round.
-		-- Wrong only by saying nothing, as the elixir family is: a scroll reads
-		-- as up under a flask or any elixir, whatever is on you for its own
-		-- slot (the elixir family is one, with no slot of its own to say
-		-- which); every scroll makes the elixir family read as up.
+		-- So a scroll reads as up under a flask, an elixir of its slot or a
+		-- scroll of its slot, and the elixir family of a slot reads as up under
+		-- a scroll of it; an elixir or a scroll of the other slot holds nothing
+		-- back.
 		if data.scrollSlots then
 			for _, scroll in ipairs(SCROLLS) do
 				local family = scrolls[scroll[1]]
+				local slot = data.scrollSlots[scroll[1]]
 				if family then
 					local covers = {}
 					for i, id in ipairs(both) do covers[i] = id end
-					for _, spell in ipairs(elixir and elixir.spells or {}) do
+					local mate = bySlot[slot]
+					for _, spell in ipairs(mate and mate.spells or {}) do
 						covers[#covers + 1] = spell.ranks[1]
 						for _, id in ipairs(spell.auras or {}) do covers[#covers + 1] = id end
 					end
 					for _, other in ipairs(SCROLLS) do
 						local twin = scrolls[other[1]]
-						if twin and other[1] ~= scroll[1] and data.scrollSlots[other[1]] == data.scrollSlots[scroll[1]] then
+						if twin and other[1] ~= scroll[1] and data.scrollSlots[other[1]] == slot then
 							for _, spell in ipairs(twin.spells) do covers[#covers + 1] = spell.ranks[1] end
 						end
 					end
 					family.covers = covers
-					if elixir then
-						elixir.covers = elixir.covers or {}
-						for _, spell in ipairs(family.spells) do elixir.covers[#elixir.covers + 1] = spell.ranks[1] end
+					if mate then
+						mate.slotScrolls = true
+						mate.covers = mate.covers or {}
+						for _, spell in ipairs(family.spells) do mate.covers[#mate.covers + 1] = spell.ranks[1] end
 					end
 				end
 			end

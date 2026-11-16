@@ -58,6 +58,8 @@ Page.RESET = {
 		"buff.spareFishBowl", "buff.neverFishBowl",
 		"buff.optIn",
 		"ownBuffs.apart",
+		-- Elixirs to keep up (Classic Era, Forever): none ticked again.
+		"ownBuffs.elixirKeep",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()

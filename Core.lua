@@ -483,6 +483,11 @@ local defaults = {
 			-- pick. Filled below with a false for each, so it is shared,
 			-- repaired and reset like the picks.
 			leave = {},
+			-- Elixirs to keep up (Classic Era and Forever, whose elixirs have no
+			-- slot in the data: Buffs.lua, `keep`): per spell key, true for each
+			-- elixir to keep on at once, each reminded of in turn while it is in
+			-- the bags (Core.lua, KeepAnswer). Empty: any one elixir will do.
+			elixirKeep = {},
 		},
 
 		-- The order of the queue, not who is on it.
@@ -2958,7 +2963,40 @@ do
 		return nil
 	end
 
+	-- Elixirs to keep up (ns.KeepTicks): the first ticked one, in the table's
+	-- order, that is off you (nor the one it does not stack with on), and that
+	-- you can drink now. One the game turned away on you ("A more powerful
+	-- spell is already active": Queue.lua, NoteRefusal's THIS_BUFF) is passed
+	-- over for its ten minutes, and one not in the bags is not asked for. The
+	-- one you had up last says nothing here: every ticked one is wanted.
+	local function KeepAnswer(ticks)
+		local api = C_UnitAuras
+		local byId = api and api.GetUnitAuraBySpellID
+		local me = ns.UnitFullName("player")
+		local held = me and ns.heldOff[me]
+		local now = GetTime()
+		local wait, waitWhy
+		for _, spell in ipairs(ticks) do
+			local lifts = held and held[spell.key]
+			if not LeftOut(spell) and not (type(lifts) == "number" and lifts > now) then
+				local ready, why = ScrollReady(spell)
+				if ready then
+					-- A read the client refuses is no reason to offer it.
+					local ok, on = true, false
+					if type(byId) == "function" then ok, on = pcall(ns.KeptOn, byId, spell, now) end
+					if ok and on == false then return spell, "best" end
+				elseif why ~= "bags" and not wait then
+					wait, waitWhy = spell, why
+				end
+			end
+		end
+		if wait then return nil, waitWhy, wait end
+		return nil, nil
+	end
+
 	local function AutoAnswer(family)
+		local ticks = family.keep and ns.KeepTicks(family)
+		if ticks then return KeepAnswer(ticks) end
 		if family.food then
 			local chosen = FoodByChoice(family)
 			if chosen then return chosen, "best" end
@@ -3392,10 +3430,91 @@ do
 		if refused then return nil end
 		return false
 	end
+	-- Elixirs to keep up (Buffs.lua, `keep`; ns.KeepTicks): the auras that say
+	-- one ticked elixir is on you, its own and those of the one it was found
+	-- not to stack with (ns.ElixirPartner).
+	local function KeptIds(spell)
+		local ids = { spell.ranks[1] }
+		for _, id in ipairs(spell.auras or {}) do ids[#ids + 1] = id end
+		local partner = ns.ElixirPartner(spell)
+		if partner then
+			ids[#ids + 1] = partner.ranks[1]
+			for _, id in ipairs(partner.auras or {}) do ids[#ids + 1] = id end
+		end
+		return ids
+	end
+	-- Whether one ticked elixir is on you, as ScanConsumable answers: for
+	-- KeepAnswer, which comes before these in the file.
+	function ns.KeptOn(byId, spell, now) return ScanConsumable(byId, KeptIds(spell), now) end
+
+	-- What the last reading of each ticked elixir found ([key] = when it ends,
+	-- true for no end known, or false for off), when each came on, and when
+	-- each went with time to spare: an elixir that comes on as another ticked
+	-- one goes, more than a minute before its end, put it off you, and the two
+	-- are remembered as not stacking (ns.NoteElixirClash). The game says it no
+	-- other way.
+	local keptLeft, keptCame, keptGone = {}, {}, {}
+	local CLASH_SECONDS, CLASH_SPARE = 2, 60
+
+	-- Up while every ticked elixir in the bags is on you, or the one it does not
+	-- stack with is: a ticked one with none left in the bags holds nothing.
+	-- Returns as ScanConsumable, the least time left, and a pair found not to
+	-- stack, for the caller to note outside the guard.
+	local function ScanKept(byId, ticks, now)
+		local all, least, refused, counted = true, nil, false, false
+		local came, gone
+		for _, spell in ipairs(ticks) do
+			local on, left = ScanConsumable(byId, KeptIds(spell), now)
+			if on == nil then
+				refused = true
+			else
+				local was = keptLeft[spell.key]
+				if on then
+					counted = true
+					if left and (not least or left < least) then least = left end
+					if was == false then
+						keptCame[spell.key] = now
+						came = spell
+					end
+				else
+					if Known(spell) then
+						counted = true
+						all = false
+					end
+					if was and (type(was) ~= "number" or was - now > CLASH_SPARE) then
+						keptGone[spell.key] = now
+						gone = spell
+					end
+				end
+				keptLeft[spell.key] = on and (left and now + left or true) or false
+			end
+		end
+		-- The pair: one came on now and another went within a moment of it.
+		local a, b
+		for _, spell in ipairs(ticks) do
+			if came and spell ~= came and keptGone[spell.key] and now - keptGone[spell.key] <= CLASH_SECONDS then
+				a, b = came, spell
+			elseif gone and spell ~= gone and keptCame[spell.key] and now - keptCame[spell.key] <= CLASH_SECONDS
+				and keptLeft[spell.key] then
+				a, b = spell, gone
+			end
+		end
+		if refused then return nil, nil, a, b end
+		if not counted then return false, nil, a, b end
+		return all, all and least or nil, a, b
+	end
+
 	local function ReadConsumable(family, now)
 		local api = C_UnitAuras
 		local byId = api and api.GetUnitAuraBySpellID
 		if type(byId) ~= "function" then return nil end
+		local ticks = family.keep and ns.KeepTicks(family)
+		if ticks then
+			local ok, up, left, a, b = pcall(ScanKept, byId, ticks, now)
+			if not ok then return nil end
+			if a and b then ns.Guard("elixir clash", ns.NoteElixirClash, a, b) end
+			return up, nil, left
+		end
 		local ok, up, left = pcall(ScanConsumable, byId, ns.ConsumableAuras(family), now)
 		if not ok then return nil end
 		return up, nil, left
@@ -4926,6 +5045,85 @@ function ns.SettingLeaves()
 	return leaves
 end
 
+-- Elixirs to keep up (Classic Era and Forever: Buffs.lua, `keep`;
+-- ownBuffs.elixirKeep): the ticked spells of the family, in its own order
+-- (best first). nil with none ticked, or with the family on anything but
+-- Automatic: then any one elixir on you will do, as before the ticks.
+function ns.KeepTicks(family)
+	if not (family and family.keep) then return nil end
+	local own = addon.db and addon.db.profile and addon.db.profile.ownBuffs
+	local ticks = own and own.elixirKeep
+	if type(ticks) ~= "table" or next(ticks) == nil then return nil end
+	if type(own.pick) == "table" and own.pick[family.key] ~= "auto" then return nil end
+	local list
+	for _, spell in ipairs(family.spells) do
+		if ticks[spell.key] == true then
+			list = list or {}
+			list[#list + 1] = spell
+		end
+	end
+	return list
+end
+
+-- The elixir a ticked one was found not to stack with (db.char.elixirClash,
+-- both ways, per character: the server's rule, which no client table holds):
+-- either on you counts for both.
+function ns.ElixirPartner(spell)
+	local char = addon.db and addon.db.char
+	local clash = type(char) == "table" and char.elixirClash
+	local key = type(clash) == "table" and clash[spell.key]
+	local partner = type(key) == "string" and ns.FindOwnSpell(key) or nil
+	if partner and partner.family == spell.family then return partner end
+	return nil
+end
+
+-- Two ticked elixirs found not to stack: the one just drunk took the other's
+-- aura off it (Core.lua, ScanKept). Remembered both ways, and said once.
+function ns.NoteElixirClash(a, b)
+	local char = addon.db and addon.db.char
+	if type(char) ~= "table" or a == b then return end
+	if type(char.elixirClash) ~= "table" then char.elixirClash = {} end
+	if char.elixirClash[a.key] == b.key and char.elixirClash[b.key] == a.key then return end
+	char.elixirClash[a.key] = b.key
+	char.elixirClash[b.key] = a.key
+	ns.Trail("own", "elixirs that do not stack: " .. a.key .. " and " .. b.key)
+	addon:Print(L["%s and %s do not stack: Manners now keeps whichever of the two is on you."]
+		:format(ns.BuffName(a), ns.BuffName(b)))
+end
+
+-- Burning Crusade's and Mists' elixirs are two families after 1.11.26, one a
+-- slot (Buffs.lua, CONSUME): Battle Elixir keeps the key `elixir`, Guardian
+-- Elixir is new. What the player said of the one family carries over once a
+-- profile (own.elixirsSplit, a key with no default, so AceDB keeps it): a pick
+-- of a guardian elixir moves to the new family and Battle Elixir goes back to
+-- Automatic; otherwise the new family takes the old one's switch, on or off.
+-- The memory of the one up last (db.char) moves whenever it names a guardian
+-- elixir. Nothing on a client with one family.
+function ns.SplitElixirs(own, char)
+	local guardian = ns.FindOwnFamily("guardianelixir")
+	if not guardian then return end
+	local pick = own.pick
+	if own.elixirsSplit ~= true then
+		local named = type(pick.elixir) == "string" and ns.FindOwnSpell(pick.elixir) or nil
+		if named and named.family == guardian then
+			pick.guardianelixir = pick.elixir
+			pick.elixir = "auto"
+		elseif pick.elixir == "off" then
+			pick.guardianelixir = "off"
+		elseif pick.elixir ~= nil then
+			pick.guardianelixir = "auto"
+		end
+		own.elixirsSplit = true
+	end
+	local memory = type(char) == "table" and char.ownLast
+	local last = type(memory) == "table" and type(memory.elixir) == "string"
+		and ns.FindOwnSpell(memory.elixir) or nil
+	if last and last.family == guardian then
+		if memory.guardianelixir == nil then memory.guardianelixir = memory.elixir end
+		memory.elixir = nil
+	end
+end
+
 -- Forever's Find Treasure is a family of its own, out of Tracking (Buffs.lua,
 -- FIND_TREASURE): what the player said of it on Tracking moves across, once,
 -- each source cleared as it goes. A pick of it on Tracking becomes its own
@@ -5112,6 +5310,31 @@ function ns.ClampSettings()
 	local own = profile.ownBuffs
 	if type(own.pick) ~= "table" then own.pick = {} end
 	ns.SplitFindTreasure(own, addon.db.char)
+	ns.SplitElixirs(own, addon.db.char)
+	-- Elixirs to keep up: true for a spell of a `keep` family this client has
+	-- (Classic Era, Forever), nothing else; on Burning Crusade and Mists, whose
+	-- elixirs have a family a slot, nothing at all.
+	if type(own.elixirKeep) ~= "table" then own.elixirKeep = {} end
+	for key, value in pairs(own.elixirKeep) do
+		local spell = ns.FindOwnSpell(key)
+		if value ~= true or not (spell and spell.family and spell.family.keep) then own.elixirKeep[key] = nil end
+	end
+	-- And the elixirs found not to stack (db.char): a spell key to a spell key,
+	-- both of one `keep` family.
+	do
+		local char = addon.db.char
+		local clash = type(char) == "table" and char.elixirClash
+		if clash ~= nil and clash ~= false and type(clash) ~= "table" then char.elixirClash = nil end
+		if type(clash) == "table" then
+			for key, other in pairs(clash) do
+				local spell = ns.FindOwnSpell(key)
+				local mate = type(other) == "string" and ns.FindOwnSpell(other) or nil
+				if not (spell and mate and spell.family and spell.family.keep and mate.family == spell.family) then
+					clash[key] = nil
+				end
+			end
+		end
+	end
 	for key, value in pairs(own.pick) do
 		local family = ns.FindOwnFamily(key)
 		local spell = ns.FindOwnSpell(value)
