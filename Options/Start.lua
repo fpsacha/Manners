@@ -250,6 +250,12 @@ local function OnlyVisited(own)
 		elseif key == "menuView" and type(value) == "string" then
 			-- The options window's view: stamped too, and no setting is lost
 			-- with it.
+		elseif key == "ownBuffs" and type(value) == "table" then
+			-- The two elixir slots' stamp (Core.lua, ns.SplitElixirs): no setting
+			-- either. A switch it carried over on the way is one, and counts.
+			for k, v in pairs(value) do
+				if not (k == "elixirsSplit" and v == true) then return false end
+			end
 		elseif key == "battle" and type(value) == "table" then
 			-- The battlegrounds' own stamp (Battle.lua, `carried`): no setting
 			-- either. A switch it unticked on the way is one, and counts.
