@@ -1199,7 +1199,9 @@ class Layer:
         # picture nobody wants and is refused; in a wider face it says nothing
         # about the published picture, and is noted.
         for line in dict.fromkeys(_cut):
-            if line in may_cut and not IN_PUBLISHED_FACE:
+            # Nor does any other line: a wider face (the runner's DejaVu) cuts
+            # what the published one fits, the more so in a painted look's well.
+            if not IN_PUBLISHED_FACE:
                 print("  note: %s: cut in this face, as the client would cut it: %s" % (key, line),
                       file=sys.stderr)
             else:
