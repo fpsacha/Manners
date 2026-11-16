@@ -134,8 +134,8 @@ IN_PUBLISHED_FACE = os.path.exists(LATIN_REGULAR[0])
 # picture gives it and the line under it. Named here because the states below
 # are made from them.
 FILMS = [
-    ("stormcaller", "Stormcaller", "Chain lightning arcs when your buff lands."),
-    ("lightbringer", "Lightbringer", "The sun of the Light flares when your buff lands."),
+    ("stormcaller", "Shaman", "Chain lightning arcs when your buff lands."),
+    ("lightbringer", "Paladin", "The sun of the Light flares when your buff lands."),
 ]
 
 problems = []
@@ -721,7 +721,7 @@ local added = {
 -- most players who use it have -- the looks that show the key only show it
 -- with one bound. ShotStyle is the look the profile ends up on, so a look the
 -- addon refused or put back is caught rather than drawn under another's name.
-for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather", "forge", "archmage", "lightbringer", "fel", "wild", "frost", "stormcaller", "warchief", "gearworks", "ebon" }) do
+for _, style in ipairs({ "glass", "framed", "toast", "arcane", "minimal", "ghost", "hairline", "pill", "slate", "luxe", "ribbon", "letter", "warchief", "gearworks", "frost", "firemage", "archmage", "fel", "wild", "lightbringer", "stormcaller", "ebon", "leather", "forge", "priest", "rogue", "monk", "demonhunter", "evoker" }) do
 	added[#added + 1] = { key = "shot-look-" .. style, at = 0.85, setup = function(ns)
 		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
@@ -2206,27 +2206,37 @@ LIST_ROWS = ["Mira Holt", "Tam Rook", "Rowan Lark"]
 
 # The looks the Look tab offers, each with the name and the few words its
 # card gives it: Glass, the default, first and on its own at the top of the
-# board, then the other eighteen, six rows of three.
+# board, then the others, two to a row.
 LOOKS = [
-    ("glass", "Glass", "dark cut glass, a metal bezel"),
-    ("luxe", "Luxe", "slim dark card, a spine in the reason colour"),
+    ("glass", "Glass", "dark glass in gilt rails, a gryphon at each end"),
+    ("framed", "Framed", "a riveted steel frame round dark glass"),
     ("toast", "Toast", "warm banner, gilded medallion"),
     ("arcane", "Arcane", "smoked glass, a rim lit by the reason"),
+    ("minimal", "Minimal", "a thin rim, a soft pane, one fine line"),
+    ("ghost", "Ghost", "a pane of smoked glass, a thin rim"),
+    ("hairline", "Hairline", "a framed icon and one fine line"),
+    ("pill", "Pill", "a rounded pane, a pale rim"),
+    ("slate", "Slate", "a dark pane in a steel edge"),
+    ("luxe", "Luxe", "slim dark card, a spine in the reason colour"),
     ("ribbon", "Ribbon", "a crimson ribbon and a gold medallion"),
     ("letter", "Letter", "parchment and a red wax seal"),
-    ("leather", "Leather", "a stitched leather tag with a brass ring"),
-    ("forge", "Forge", "forged iron, a riveted band"),
-    ("archmage", "Archmage", "a violet crystal, six arcane charges"),
-    ("lightbringer", "Lightbringer", "silver and blue enamel, a sun of the Light"),
-    ("fel", "Fel", "black felsteel and fel fire, a summoning circle"),
-    ("wild", "Wild", "a bough of living wood, antlers and a moonwell"),
-    ("frost", "Frost", "a slab of glacial ice, a frozen ring and icicles"),
-    ("stormcaller", "Stormcaller", "a totem, a slab of stone and the four elements"),
-    ("ebon", "Ebon", "a runeblade of saronite, a skull over the socket, runes that kindle"),
-    ("gearworks", "Gearworks", "riveted brass, a pressure gauge and turning cogs"),
-    ("warchief", "Warchief", "black iron and tusks, the Horde's crest in the forge's glow"),
-    ("framed", "Framed", "dark panel, a tooltip's rim"),
-    ("minimal", "Minimal", "a thin rim, a soft pane, one fine line"),
+    ("warchief", "Warchief", "black iron and tusks, the Horde's crest"),
+    ("gearworks", "Gearworks", "riveted brass, a pressure gauge and cogs"),
+    ("frost", "Frost Mage", "glacial ice, a frozen ring and icicles"),
+    ("firemage", "Fire Mage", "bronze and embers, a molten gem"),
+    ("archmage", "Arcane Mage", "a violet crystal, six arcane charges"),
+    ("fel", "Warlock", "felsteel and fel fire, a summoning circle"),
+    ("wild", "Druid", "living wood, a wreath and a moonwell"),
+    ("lightbringer", "Paladin", "gold and enamel, a sun of the Light"),
+    ("stormcaller", "Shaman", "a totem, stone and the four elements"),
+    ("ebon", "Death Knight", "a runeblade of saronite, a skull"),
+    ("leather", "Hunter", "tooled hide, a brass ring and feathers"),
+    ("forge", "Warrior", "forged iron, a riveted band"),
+    ("priest", "Priest", "ivory and gold, a halo round the icon"),
+    ("rogue", "Rogue", "black leather and brass, a poisoned blade"),
+    ("monk", "Monk", "red lacquer and jade, an endless knot"),
+    ("demonhunter", "Demon Hunter", "dark leather and fel steel"),
+    ("evoker", "Evoker", "scaled bronze, a dragon round the icon"),
 ]
 
 
@@ -3073,14 +3083,16 @@ def wrap_caption(text, size, width, bold=False):
 
 def picture_looks(snaps):
     """Every look, the same favour in each. Glass, the default, stands first
-    and larger at the top; the other eighteen follow three to a row, six rows,
+    and larger at the top; the others follow two to a row,
     each named over its panel. Those are all drawn at the same zoom from the
     same moment, so what differs between them is the look and nothing else."""
     hero = prompt_layer("shot-look-" + LOOKS[0][0], snaps["shot-look-" + LOOKS[0][0]], 2.0)
     rest = LOOKS[1:]
     layers = [prompt_layer("shot-look-" + style, snaps["shot-look-" + style], 1.5)
               for style, _, _ in rest]
-    cols = 3
+    # Two to a row: a painted look hangs its ends past the prompt, and three
+    # of them touched across a row.
+    cols = 2
     rows = (len(layers) + cols - 1) // cols
     cell_w = WIDTH / cols
     label_h = 78
@@ -3095,7 +3107,7 @@ def picture_looks(snaps):
     hero_h = hero.size[1] + 24
     top = hero_top + hero_h + 6
     board = Board(top + sum(heights) + 10, seed=17, sun=(0.50, 0.53))
-    heading(board, "Looks to choose from",
+    heading(board, "Twenty-nine looks to choose from",
             "The same favour in each. Pick one from the cards under Look.")
     # Glass and its words side by side, in the middle of the page.
     _, name, words = LOOKS[0]
@@ -3457,20 +3469,18 @@ GALLERY = [
      "it shows, under Look.",
      "The prompt twice with its tooltip above it: the Short one with the name, the spell, why they are "
      "offered and Hold Shift for more; the Full one with Shift held, saying what the press and each click do"),
-    ("manners-looks.png", "Looks to choose from",
-     "Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, "
-     "Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal, the "
+    ("manners-looks.png", "Twenty-nine looks to choose from",
+     "Glass, the default, then every other look on its shelf, Classic, Minimal, Themed and Class, the "
      "same favour drawn in each; click a card under Look to switch.",
-     "Looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, "
-     "Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, "
-     "Ebon, Gearworks, Warchief, Framed and Minimal"),
-    ("manners-look-stormcaller.gif", "Stormcaller, as a buff lands",
+     "The twenty-nine looks for the prompt, the same favour drawn in each: Glass, the default, then "
+     "Framed, Toast, Arcane, Minimal, Ghost, Hairline, Pill, Slate, Luxe, Ribbon, Letter, Warchief, Gearworks, Frost Mage, Fire Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter, Warrior, Priest, Rogue, Monk, Demon Hunter and Evoker"),
+    ("manners-look-stormcaller.gif", "The Shaman look, as a buff lands",
      "Animated: somebody buffed you, you press, and chain lightning arcs from the totem to the standing "
      "stone.",
-     "The Stormcaller look as a buff lands: chain lightning arcs from the totem to the standing stone"),
-    ("manners-look-lightbringer.gif", "Lightbringer, as a buff lands",
+     "The Shaman look as a buff lands: chain lightning arcs from the totem to the standing stone"),
+    ("manners-look-lightbringer.gif", "The Paladin look, as a buff lands",
      "Animated: somebody buffed you, you press, and the sun of the Light flares round your spell.",
-     "The Lightbringer look as a buff lands: the sun of the Light flares round the spell"),
+     "The Paladin look as a buff lands: the sun of the Light flares round the spell"),
     ("manners-moment.png", "Three moments",
      "Film strips of one favour, four frames each: somebody buffs you, your buff lands, the game refuses "
      "it. Frames at 0.05, 0.15, 0.30 and 0.60 seconds.",

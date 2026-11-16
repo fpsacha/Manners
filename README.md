@@ -616,7 +616,7 @@ profile reset touches them.
 
 ## The prompt's look
 
-<img src=".github/media/manners-looks.png" alt="Looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal" width="640">
+<img src=".github/media/manners-looks.png" alt="The twenty-nine looks for the prompt, the same favour drawn in each: Glass, the default, then Framed, Toast, Arcane, Minimal, Ghost, Hairline, Pill, Slate, Luxe, Ribbon, Letter, Warchief, Gearworks, Frost Mage, Fire Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter, Warrior, Priest, Rogue, Monk, Demon Hunter and Evoker" width="640">
 
 Twenty-nine looks, each a card under Look > *Panel style*. Tabs over the
 cards sort them: **For my class** (the looks made for your class, three for a

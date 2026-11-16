@@ -24,11 +24,11 @@ Setting it up takes one page. `/manners` opens **Start here**: two numbered step
 
 Turn on *List the next few below* (Look) and every name under the prompt is a button of its own, with the icon of the buff they would get: left-click buffs that person, right-click skips them for now, shift-right-click puts them on your never-offer list.
 
-![Looks for the prompt, the same favour drawn in each: Glass, the default, then Luxe, Toast, Arcane, Ribbon, Letter, Leather, Forge, Archmage, Lightbringer, Fel, Wild, Frost, Stormcaller, Ebon, Gearworks, Warchief, Framed and Minimal](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
+![The twenty-nine looks for the prompt, the same favour drawn in each: Glass, the default, then Framed, Toast, Arcane, Minimal, Ghost, Hairline, Pill, Slate, Luxe, Ribbon, Letter, Warchief, Gearworks, Frost Mage, Fire Mage, Arcane Mage, Warlock, Druid, Paladin, Shaman, Death Knight, Hunter, Warrior, Priest, Rogue, Monk, Demon Hunter and Evoker](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
-![The Stormcaller look as a buff lands: chain lightning arcs from the totem to the standing stone](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-stormcaller.gif)
+![The Shaman look as a buff lands: chain lightning arcs from the totem to the standing stone](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-stormcaller.gif)
 
-![The Lightbringer look as a buff lands: the sun of the Light flares round the spell](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-lightbringer.gif)
+![The Paladin look as a buff lands: the sun of the Light flares round the spell](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-look-lightbringer.gif)
 
 ![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
 
