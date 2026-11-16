@@ -444,7 +444,8 @@ function Mock.reset()
 	-- The player charmed, by UnitIsCharmed("player"): true, or Mock.SECRET.
 	Mock.charmed = nil
 	-- The loss of control the client reports (C_LossOfControl): a list of
-	-- { locType = "FEAR" } (a locType may be Mock.SECRET), in the shape
+	-- { locType = "FEAR" } (a locType may be Mock.SECRET, and in the "data"
+	-- shape a whole record may be Mock.SECRET itself), in the shape
 	-- Mock.lossOfControlShape names: "data" (nil, the default:
 	-- GetActiveLossOfControlDataCount and GetActiveLossOfControlData), "events"
 	-- (GetNumEvents and GetEventInfo, whose first return is the type) or
@@ -2096,6 +2097,8 @@ setmetatable(_G, { __index = function(_, key)
 			GetActiveLossOfControlData = function(i)
 				local e = at(i)
 				if not e then return nil end
+				-- A record the client hands back secret as a whole.
+				if e == SECRET then return SECRET end
 				return { locType = e.locType, spellID = e.spellID, displayText = e.text, startTime = 0,
 					timeRemaining = 5, duration = 8, priority = 5, displayType = 1 }
 			end,

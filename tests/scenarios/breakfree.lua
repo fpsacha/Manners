@@ -125,6 +125,8 @@ local function promptIcon(ns)
 			self._lastTexture = texture
 			return set(self, texture, ...)
 		end
+		-- And read back, as the client's texture answers what it shows.
+		icon.GetTexture = function(self) return self._lastTexture end
 	end
 	return icon._lastTexture
 end
@@ -290,6 +292,22 @@ with("breakfree: with no key it says to click", function(ns, scenario)
 	release(ns)
 end, { nobody = true, people = {}, key = false })
 
+-- The key moved out of a fight with nothing else changed (so no scan did any
+-- work for it): the pull reads it, and the lit button names the new one.
+with("breakfree: a key bound since the last scan's work is the one it names", function(ns, scenario)
+	Mock.bindings = { G = COMMAND }
+	for _ = 1, 3 do
+		Mock.advance(0.4)
+		ns.addon:Tick()
+	end
+	pull(ns)
+	lose("FEAR")
+	local lit, _, key = shows(ns)
+	if not lit then fail(scenario, "SKIPPED -- not lit") return end
+	if not key:find("press G to break free", 1, true) then fail(scenario, "its key line reads " .. key) end
+	release(ns)
+end, { nobody = true, people = {} })
+
 -- ------------------------------------------------------------------ 5
 with("breakfree: feared with the prompt up, the prompt names it and its key", function(ns, scenario)
 	pull(ns)
@@ -347,6 +365,20 @@ with("breakfree: a secret loss of control is no reason and throws nothing", func
 	release(ns)
 end, { nobody = true, people = {} })
 
+-- A record the client hands back secret as a whole is said as secret, not
+-- as a plain loss of control of no type.
+with("breakfree: a secret loss-of-control record is said as secret", function(ns, scenario)
+	pull(ns)
+	Mock.lossOfControl = { Mock.SECRET }
+	Mock.frameEvent("LOSS_OF_CONTROL_ADDED", 1)
+	if (shows(ns)) then fail(scenario, "lit for a secret record") end
+	local lines = table.concat(ns.BreakFreeLines(), " / ")
+	if not lines:find("last loss of control: ? (secret)", 1, true) then
+		fail(scenario, "/manners debug does not say the record came secret: " .. lines)
+	end
+	release(ns)
+end, { nobody = true, people = {} })
+
 -- ------------------------------------------------------------------ 9
 with("breakfree: its key casts the spell alone, steps no rota and files nothing", function(ns, scenario)
 	pull(ns)
@@ -393,18 +425,56 @@ with("breakfree: a prompt press then its key settles no favour", function(ns, sc
 	release(ns)
 end)
 
-with("breakfree: its key then a prompt press settles no favour", function(ns, scenario)
-	pull(ns)
-	lose("FEAR")
-	local named = ns.Prompt.state.current and ns.Prompt.state.current.name
+-- Who is on the prompt, and the id their buff's cast event carries.
+local function onPrompt(ns)
+	local current = ns.Prompt.state.current
+	if not (current and current.name and current.buff) then return nil end
+	local buff = ns.FindBuff(ns.caps.class, current.buff.key)
+	return current.name, buff and buff.ranks and buff.ranks[1]
+end
+
+-- The other order, as the client gives it: the break-free key first, its own
+-- cast event at once, then a prompt press whose cast went out. That press is
+-- the prompt's own and settles as any other (a review found it swept as
+-- "nothing was cast" for 0.6 s after a break-free press). The same with the
+-- switch off, where the key's press reaches a disarmed button.
+for _, how in ipairs({ "ready", "switched off" }) do
+	with("breakfree: its key then a prompt press settles the favour (" .. how .. ")", function(ns, scenario)
+		if how == "switched off" then
+			ns.db.profile.prompt.breakFree = false
+			ns.addon:Tick()
+		end
+		local named, ours = onPrompt(ns)
+		if not named then fail(scenario, "SKIPPED -- nobody on the prompt") return end
+		Mock.printed = {}
+		Mock.pressBinding(COMMAND)
+		-- Its own cast event, at once: no target, its own id; and the client
+		-- saying it is off the global cooldown, as Will of the Forsaken is.
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "", nil, 7744)
+		Mock.spellCooldowns = Mock.spellCooldowns or {}
+		Mock.spellCooldowns[7744] = { startTime = GetTime(), duration = 120, isActive = true, isOnGCD = false }
+		Mock.frameEvent("SPELL_UPDATE_COOLDOWN")
+		if ns.addon.SPELL_UPDATE_COOLDOWN then ns.addon:SPELL_UPDATE_COOLDOWN() end
+		Mock.advance(0.3)
+		H.pressButton(ns)
+		if not ns.pendingClick then fail(scenario, "SKIPPED -- the prompt's press filed nothing") return end
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", named, nil, ours)
+		if ns.pendingClick and ns.pendingClick.name == named then
+			fail(scenario, "the prompt's press for " .. named .. " is still waiting after its cast went out")
+		end
+		if ns.owed[named] then fail(scenario, "the favour to " .. named .. " was not settled by its own cast") end
+		if printedHas("answered that press with nothing") then fail(scenario, "the prompt's press was said as nothing cast") end
+	end)
+end
+
+-- With the control: the same press with no break-free key before it, so a
+-- red above is the guard's and not the mock's.
+with("breakfree: a prompt press alone settles the favour", function(ns, scenario)
+	local named, ours = onPrompt(ns)
 	if not named then fail(scenario, "SKIPPED -- nobody on the prompt") return end
-	Mock.pressBinding(COMMAND)
-	Mock.advance(0.1)
 	H.pressButton(ns)
-	if not ns.pendingClick then fail(scenario, "SKIPPED -- the prompt's press filed nothing") return end
-	sent()
-	if not ns.owed[named] then fail(scenario, "the favour to " .. named .. " was settled by Will of the Forsaken's cast") end
-	release(ns)
+	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", named, nil, ours)
+	if ns.owed[named] then fail(scenario, "SKIPPED -- the cast event did not settle " .. named) end
 end)
 
 -- ------------------------------------------------------------------ 11
@@ -443,6 +513,56 @@ with("breakfree: the fear ends and the prompt names the rota's person again", fu
 	name = promptLines(ns)
 	if name:find("Break free", 1, true) then fail(scenario, "the prompt still names it after the fight") end
 	if promptIcon(ns) == WOTF_ICON then fail(scenario, "the prompt kept the spell's icon after the fight") end
+end)
+
+-- The rota gone round once, so nobody is on the prompt: a fear and its end
+-- leave the icon as it was, not the spell's for the rest of the fight.
+with("breakfree: with nobody on the prompt the fear's end puts its icon back", function(ns, scenario)
+	pull(ns)
+	local header = ns.Prompt:FightHeader()
+	local n = header and header:GetAttribute("manners-rota-n") or 0
+	for _ = 1, n do
+		Mock.advance(2)
+		Mock.pressBinding(PROMPT_KEY)
+	end
+	for _ = 1, 3 do
+		Mock.advance(ns.Prompt.lib.OUTCOME_SECONDS or 4)
+		ns.addon:Tick()
+	end
+	if ns.Prompt.state.current then
+		fail(scenario, "SKIPPED -- the rota of " .. n .. " did not go round: " .. tostring(ns.Prompt.state.current.name))
+		return
+	end
+	if not ns.Prompt:GetButton():IsShown() then fail(scenario, "SKIPPED -- the prompt is not up") return end
+	local before = promptIcon(ns)
+	lose("FEAR")
+	if promptIcon(ns) ~= WOTF_ICON then fail(scenario, "SKIPPED -- the prompt never showed the spell's icon") return end
+	regain()
+	if promptIcon(ns) == WOTF_ICON then fail(scenario, "the prompt kept the spell's icon with nobody on it") end
+	if promptIcon(ns) ~= before then fail(scenario, "the prompt's icon is not the one it had: " .. tostring(promptIcon(ns))) end
+	release(ns)
+end)
+
+-- The cooldown runs out while you are still feared: the button lights up,
+-- and the prompt says the same at that moment, not only at the next change.
+with("breakfree: the cooldown ends mid-fear and the prompt names it with the button", function(ns, scenario)
+	pull(ns)
+	if not ns.Prompt:GetButton():IsShown() then fail(scenario, "SKIPPED -- the prompt was not up") return end
+	lose("FEAR")
+	Mock.pressBinding(COMMAND)
+	Mock.dispatch("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-wotf", 7744)
+	regain()
+	Mock.advance(119)
+	lose("FEAR")
+	if (shows(ns)) then fail(scenario, "SKIPPED -- lit while it cools down") return end
+	if (promptLines(ns)):find("Break free", 1, true) then fail(scenario, "SKIPPED -- named while it cools down") return end
+	for _ = 1, 3 do Mock.runTimers(1) end
+	if not (shows(ns)) then fail(scenario, "SKIPPED -- the button did not light up once ready") return end
+	local name = promptLines(ns)
+	if not name:find("Break free: " .. SPELL, 1, true) then
+		fail(scenario, "the button lit up once ready but the prompt reads " .. name)
+	end
+	release(ns)
 end)
 
 -- ------------------------------------------------------------------ 13
@@ -599,6 +719,45 @@ with("breakfree: the spell book is asked in the probe, never per scan", function
 	if not ok then error(err, 0) end
 	if asked > 0 then fail(scenario, "five scans asked the spell book " .. asked .. " times") end
 end)
+
+-- An idle scan pays nothing for it, switched on or off: no Guard, no
+-- binding read. A Forsaken is not measured by perf-budget.lua's default
+-- character, so this is where that cost is held.
+for _, on in ipairs({ true, false }) do
+	with("breakfree: an idle scan pays nothing for it (switch " .. (on and "on" or "off") .. ")", function(ns, scenario)
+		if not on then ns.db.profile.prompt.breakFree = false end
+		for _ = 1, 2 do
+			Mock.advance(0.4)
+			ns.addon:Tick()
+		end
+		local guard, realKey = ns.Guard, _G.GetBindingKey
+		local guarded, keys = 0, 0
+		ns.Guard = function(label, ...)
+			if label == "break free" then guarded = guarded + 1 end
+			return guard(label, ...)
+		end
+		rawset(_G, "GetBindingKey", function(command, ...)
+			if command == COMMAND then keys = keys + 1 end
+			return realKey(command, ...)
+		end)
+		local ok, err = pcall(function()
+			for _ = 1, 5 do
+				Mock.advance(0.4)
+				ns.addon:Tick()
+			end
+		end)
+		ns.Guard = guard
+		rawset(_G, "GetBindingKey", realKey)
+		if not ok then error(err, 0) end
+		if guarded > 0 then fail(scenario, "five idle scans paid " .. guarded .. " guarded calls for it") end
+		if keys > 0 then fail(scenario, "five idle scans read its key " .. keys .. " times") end
+		-- And a change is still seen: the switch thrown is taken up.
+		ns.db.profile.prompt.breakFree = not on
+		ns.addon:Tick()
+		local armed = ns.BreakFree:Button() and ns.BreakFree:Button():GetAttribute("macrotext1")
+		if (armed ~= nil) ~= (not on) then fail(scenario, "the switch thrown was not taken up by the next scan") end
+	end)
+end
 
 -- ------------------------------------------------------------------ 19
 -- /manners debug, the check-up and /manners selftest launch: the ability,

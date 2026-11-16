@@ -5914,7 +5914,8 @@ function addon:TickBody()
 	local supplies = ns.Supplies
 	if supplies and supplies:Wanted() then ns.Guard("consumables button", supplies.Refresh, supplies, now) end
 	-- The break-free button, for a character with the ability, out of a fight
-	-- (Prompt/BreakFree.lua): for anybody else a scan pays nothing for it.
+	-- (Prompt/BreakFree.lua), only when something about it changed: an idle
+	-- scan pays nothing for it, with the ability or without, switched on or off.
 	local breakFree = ns.BreakFree
 	if breakFree and breakFree:Wanted() then ns.Guard("break free", breakFree.Refresh, breakFree) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:

@@ -73,14 +73,21 @@ the glow pulsing, the name over it, "press <key> to break free" under it),
 dims with a sweep while it cools (our own press and UNIT_SPELLCAST_SUCCEEDED
 within a second, else the client's plain cooldown); the prompt, when up, says
 the same from Refresh.lua's combat branch (`BreakFree.PaintPrompt`, after both
-arms, no early return). A press lets the prompt's waiting press go ("you broke
-free instead", `ns.ExpirePendingClick`) and Clicks.lua's
-`SettlePendingClick` settles nothing for 0.6 s after one (`JustPressed`).
+arms, no early return), repainted when the button lights or dims while you
+stay afflicted (the cooldown running out mid-fear), and the prompt's icon put
+back after, its person's or, with nobody on it, the one it had. A press lets
+the prompt's waiting press go in its PreClick ("you broke free instead",
+`ns.ExpirePendingClick`), before its own cast event; that is the whole guard,
+so a prompt press made after it settles as any other (a review found a 0.6 s
+hold in `SettlePendingClick` that swept such a press as nothing cast; gone).
+An idle scan pays nothing for it, switch on or off (`Wanted` answers from
+plain fields; the key read at a Refresh and at every pull). A loss-of-control
+record that is itself secret is said as secret.
 `/manners debug` and the check-up print `ns.BreakFreeLines` (found, armed,
 key, driver, afflicted, ready, the last loss of control and whether it came
 plain, secret or with no API); `/manners selftest launch` has
 `launch.breakfree`. `tests/scenarios/breakfree.lua`,
-`tests/mutations/breakfree.py` (40, each CAUGHT by `prove.py`). What only the
+`tests/mutations/breakfree.py` (49, each CAUGHT by `prove.py`). What only the
 game can settle is the item *Will of the Forsaken in a real fight* under
 *Open*.
 

@@ -129,6 +129,12 @@ mutate(BF,
        "breakfree: a secret charm taken for one",
        expect="breakfree: a secret loss of control is no reason and throws nothing", script=S)
 
+mutate(BF,
+       "\t\t\tif type(plain(data)) ~= \"table\" then return data end\n",
+       "\t\t\tdata = plain(data)\n\t\t\tif type(data) ~= \"table\" then return data end\n",
+       "breakfree: a secret record said as a plain loss of control of no type",
+       expect="breakfree: a secret loss-of-control record is said as secret", script=S)
+
 # --- 9. its key casts the one spell, steps nothing, files nothing
 
 mutate(BF,
@@ -145,11 +151,22 @@ mutate(BF,
        "breakfree: the prompt's press kept waiting through a break free",
        expect="breakfree: a prompt press then its key settles no favour", script=S)
 
+# The review's fault put back: any cast event for a moment after a break-free
+# press (its spell still awaited) settles nothing, so a prompt press made then
+# is swept as nothing cast. Read off the mock's record of the frame's events.
 mutate("Clicks.lua",
-       "\tif breakFree and breakFree.JustPressed() then return end\n",
-       "",
+       "\tif not pending then return end\n\t-- No break-free test here:",
+       "\tif not pending then return end\n\tlocal bf = ns.BreakFree and ns.BreakFree.frame\n"
+       "\tif bf and bf._events and bf._events.UNIT_SPELLCAST_SUCCEEDED then return end\n\t-- No break-free test here:",
        "breakfree: its cast settles the prompt's press",
-       expect="breakfree: its key then a prompt press settles no favour", script=S)
+       expect="breakfree: its key then a prompt press settles the favour (ready)", script=S)
+
+mutate("Clicks.lua",
+       "\tif not pending then return end\n\t-- No break-free test here:",
+       "\tif not pending then return end\n\tlocal bf = ns.BreakFree and ns.BreakFree.frame\n"
+       "\tif bf and bf._events and bf._events.UNIT_SPELLCAST_SUCCEEDED then return end\n\t-- No break-free test here:",
+       "breakfree: a press of the disarmed button holds the prompt's settle",
+       expect="breakfree: its key then a prompt press settles the favour (switched off)", script=S)
 
 # --- 11. the cooldown
 
@@ -168,10 +185,22 @@ mutate(BF,
 # --- 12. the prompt given back
 
 mutate(BF,
-       "\t\tif promptPainted then\n\t\t\tpromptPainted = false\n\t\t\tif p.showIcon and R.icon and S.current then R.icon:SetTexture(EntryIcon(S.current)) end\n\t\tend\n\t\treturn false\n",
-       "\t\treturn false\n",
+       "\t\t\t\tif S.current then\n\t\t\t\t\tR.icon:SetTexture(EntryIcon(S.current))\n\t\t\t\telse\n\t\t\t\t\tR.icon:SetTexture(iconBefore)\n\t\t\t\tend\n",
+       "",
        "breakfree: the prompt keeps the spell's icon once the fear ends",
        expect="breakfree: the fear ends and the prompt names the rota's person again", script=S)
+
+mutate(BF,
+       "\t\t\t\telse\n\t\t\t\t\tR.icon:SetTexture(iconBefore)\n\t\t\t\tend\n",
+       "\t\t\t\tend\n",
+       "breakfree: with nobody on the prompt the spell's icon stays",
+       expect="breakfree: with nobody on the prompt the fear's end puts its icon back", script=S)
+
+mutate(BF,
+       "\tlocal lit = Paint()\n\tif (was ~= afflicted or lit ~= litShown) and InCombatLockdown() then\n",
+       "\tlocal lit = Paint()\n\tif was ~= afflicted and InCombatLockdown() then\n",
+       "breakfree: the prompt not told when the cooldown ends mid-fear",
+       expect="breakfree: the cooldown ends mid-fear and the prompt names it with the button", script=S)
 
 mutate("Core.lua",
        "\tif ns.BreakFree then ns.Guard(\"break free release\", ns.BreakFree.Release, ns.BreakFree) end\n",
@@ -266,6 +295,32 @@ mutate(BF,
        "\treturn caps.breakFree ~= nil and ns.SpellKnown(7744) and db ~= nil and db.enabled == true and db.prompt.breakFree ~= false\n",
        "breakfree: the spell book asked on every scan",
        expect="breakfree: the spell book is asked in the probe, never per scan", script=S)
+
+# --- what a scan pays
+
+mutate(BF,
+       "\tif dirty then return true end\n\tlocal db = Profile()\n",
+       "\tdo return true end\n\tlocal db = Profile()\n",
+       "breakfree: every idle scan refreshes it",
+       expect="breakfree: an idle scan pays nothing for it (switch on)", script=S)
+
+mutate(BF,
+       "\t-- Nobody without the ability, and no button to take down: nothing ever.\n\tif button == nil and caps.breakFree == nil then return false end\n\tif InCombatLockdown() then return false end\n\tif dirty then return true end\n",
+       "\tif InCombatLockdown() then return false end\n\tif caps.breakFree ~= nil or button ~= nil then return true end\n\tif dirty then return true end\n",
+       "breakfree: every idle scan refreshes it switched off",
+       expect="breakfree: an idle scan pays nothing for it (switch off)", script=S)
+
+mutate(BF,
+       "\tif on ~= settledOn then return true end\n",
+       "",
+       "breakfree: the switch thrown is never taken up",
+       expect="breakfree: an idle scan pays nothing for it", script=S)
+
+mutate(BF,
+       "\tif event == \"PLAYER_REGEN_DISABLED\" then\n\t\tReadKey()\n",
+       "\tif event == \"PLAYER_REGEN_DISABLED\" then\n",
+       "breakfree: the key not read at the pull",
+       expect="breakfree: a key bound since the last scan's work is the one it names", script=S)
 
 # --- 19. what /manners debug and the launch check say
 

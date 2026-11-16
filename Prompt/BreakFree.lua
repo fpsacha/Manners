@@ -41,10 +41,19 @@
 -- followed by the spell going out, else the client's own cooldown where it is
 -- plain; unknown counts as ready, since a refused cast burns nothing.
 --
--- A press here also tells Clicks.lua that the next cast is not the prompt's
--- (the pending-click guard): pressed from habit while feared, the prompt
--- files a press that never goes out, and Will of the Forsaken's cast, with no
--- target and a secret id in a fight, would otherwise settle it as landed.
+-- A press here lets the prompt's waiting press go (the pending-click guard):
+-- pressed from habit while feared, the prompt files a press that never goes
+-- out, and Will of the Forsaken's cast, with no target and a secret id in a
+-- fight, would otherwise settle it as landed. The press is let go in the
+-- PreClick, before that cast's own event; a prompt press made after it files
+-- a record of its own, which its own cast event settles as any other.
+--
+-- WHAT A SCAN PAYS
+--
+-- Nothing on an idle scan: Wanted answers from a few plain fields, and the
+-- work (the macro, the place, the key) is done only when something changed:
+-- the probe, the switch, the size, the fight's end. The key is read again at
+-- every pull, the moment it is shown.
 
 local _, ns = ...
 local L = ns.L
@@ -78,9 +87,7 @@ local STATE = "mannersbreakfree"
 local DRIVER = "[combat] fight; peace"
 -- Between the prompt's right edge and this button: a mis-click casts it.
 local GAP = 10
--- How long after a press of this button a cast event is taken for its own,
--- and how long its spell going out is waited for.
-local PRESS_SECONDS = 0.6
+-- How long after a press of this button its spell going out is waited for.
 local SUCCEED_SECONDS = 1
 -- The icon the client gives none for: Will of the Forsaken's own.
 local FALLBACK_ICON = "Interface\\Icons\\Spell_Shadow_RaiseDead"
@@ -93,12 +100,19 @@ local afflicted = false
 -- The last loss of control seen: { kind, how, at }; `how` is plain, secret or
 -- no API.
 local lastLoss
--- Our own press, and the end of the cooldown it began.
-local pressAt, waitUntil, readyAt
--- Whether the prompt carries the break-free line now.
+-- How long our own press is waited on, and the end of the cooldown it began.
+local waitUntil, readyAt
+-- Whether the prompt carries the break-free line now, the icon it had before
+-- (for a prompt with nobody on it), and whether the prompt was last refreshed
+-- for it lit.
 local promptPainted = false
+local iconBefore
+local litShown = false
 local recheckDue = false
 local keyLabel
+-- What the last Refresh settled: whether it applied, and the size it placed
+-- by. `dirty` asks for one more (the probe, a fight's end, a first scan).
+local dirty, settledOn, placedIcon, placedScale = true, nil, nil, nil
 
 local function Profile()
 	return ns.db and ns.db.profile
@@ -119,6 +133,7 @@ end
 -- spell's name and icon, or nothing.
 function BreakFree.Learn()
 	caps.breakFree = nil
+	dirty = true
 	local race = plain(select(2, UnitRace("player")))
 	if type(race) ~= "string" then return end
 	for _, row in ipairs(ABILITIES) do
@@ -150,9 +165,11 @@ local function ReadLoss(row)
 	local count, info
 	if type(api.GetActiveLossOfControlDataCount) == "function" and type(api.GetActiveLossOfControlData) == "function" then
 		count = plain(api.GetActiveLossOfControlDataCount())
+		-- A record that is itself secret is handed back as it came, so the
+		-- loop below says secret, not an empty plain loss of control.
 		info = function(i)
-			local data = plain(api.GetActiveLossOfControlData(i))
-			if type(data) ~= "table" then return data end
+			local data = api.GetActiveLossOfControlData(i)
+			if type(plain(data)) ~= "table" then return data end
 			return data.locType
 		end
 	elseif type(api.GetNumEvents) == "function" and type(api.GetEventInfo) == "function" then
@@ -232,15 +249,16 @@ end
 
 -- Its own regions and its alpha, which the client lets an addon change in a
 -- fight. Bright while afflicted and ready; dim, with the sweep while it cools.
+-- Answers whether it is lit.
 local function Paint()
-	if not button then return end
+	if not button then return false end
 	local info = Known()
 	local now = GetTime()
 	local bright = afflicted and info ~= nil and Ready(now)
 	local cooling = readyAt ~= nil and now < readyAt
 	local key = tostring(bright) .. ":" .. tostring(cooling and readyAt) .. ":" .. tostring(keyLabel)
 		.. ":" .. tostring(info and info.name)
-	if key == paintedKey then return end
+	if key == paintedKey then return bright end
 	paintedKey = key
 	button:SetAlpha(bright and 1 or 0.35)
 	if info then icon:SetTexture(info.icon) end
@@ -255,12 +273,13 @@ local function Paint()
 		nameText:SetText("")
 		keyText:SetText("")
 	end
-	if type(cooldown.SetCooldown) ~= "function" then return end
+	if type(cooldown.SetCooldown) ~= "function" then return bright end
 	if cooling and info then
 		cooldown:SetCooldown(readyAt - info.row.cooldown, info.row.cooldown)
 	elseif type(cooldown.Clear) == "function" then
 		cooldown:Clear()
 	end
+	return bright
 end
 
 local function Disarm()
@@ -288,6 +307,7 @@ end
 -- prompt's button, a frame (never a region: CLAUDE.md), which holds even
 -- while the prompt is hidden.
 local function Place(p)
+	placedIcon, placedScale = p.iconSize, p.scale
 	local size = math.floor(math.max(24, math.min(48, tonumber(p.iconSize) or 30)) * (tonumber(p.scale) or 1) + 0.5)
 	local key = tostring(size)
 	if key == placedKey then return end
@@ -300,11 +320,10 @@ end
 -- A press, by its key or a left click: in a fight too (an insecure PreClick
 -- on a secure button is the client's to allow, as the consumables button's
 -- is). The press the prompt filed is not this one's, so it is let go with its
--- own reason, and the next cast event is held from settling anything.
+-- own reason, here, before this press's own cast event can settle it.
 local function PreClick(_, mouse)
 	if mouse ~= "LeftButton" then return end
-	local now = GetTime()
-	pressAt, waitUntil = now, now + SUCCEED_SECONDS
+	waitUntil = GetTime() + SUCCEED_SECONDS
 	local pending = ns.pendingClick
 	if pending and ns.ExpirePendingClick then ns.ExpirePendingClick(pending, L["you broke free instead"]) end
 	BreakFree.frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
@@ -400,8 +419,17 @@ function BreakFree:Create()
 	end
 end
 
--- On every scan (Core.lua, TickBody) and as a fight ends (Release). Out of
--- combat only: in one the driver has it, and Lua paints its regions alone.
+-- The key it is bound to, for its own lines and the prompt's. The key cannot
+-- change in a fight (SetBinding is refused there), so it is read out of one:
+-- here, and at every pull, before the lockdown.
+local function ReadKey()
+	local key = type(GetBindingKey) == "function" and GetBindingKey(BreakFree.COMMAND) or nil
+	keyLabel = type(key) == "string" and key ~= "" and key or nil
+end
+
+-- From a scan (Core.lua, TickBody) when Wanted says something changed, and as
+-- a fight ends (Release). Out of combat only: in one the driver has it, and
+-- Lua paints its regions alone.
 function BreakFree:Refresh()
 	if InCombatLockdown() then return end
 	local db = Profile()
@@ -413,6 +441,7 @@ function BreakFree:Refresh()
 			if header and header:GetAttribute("manners-on") then header:SetAttribute("manners-on", false) end
 			if button:IsShown() then button:Hide() end
 		end
+		settledOn, dirty = false, false
 		return
 	end
 	if not button then self:Create() end
@@ -426,17 +455,28 @@ function BreakFree:Refresh()
 	end
 	-- At rest out of a fight; the driver shows it at the pull.
 	if button:IsShown() then button:Hide() end
-	-- The key cannot change in a fight (SetBinding is refused there), so it
-	-- is read here.
-	local key = type(GetBindingKey) == "function" and GetBindingKey(BreakFree.COMMAND) or nil
-	keyLabel = type(key) == "string" and key ~= "" and key or nil
+	ReadKey()
 	Paint()
+	settledOn, dirty = true, false
 end
 
--- Whether a scan has anything to do here: out of a fight, with the ability
--- or a button to take down. With neither, a scan pays nothing for it.
+-- Whether a scan has anything to do here: out of a fight, and only when
+-- something changed since the last Refresh (the probe, a fight's end, the
+-- switch, Manners itself, the prompt's size). Plain field reads, no pcall,
+-- no client call beyond the lockdown's: an idle scan pays nothing for it,
+-- with the switch on or off.
 function BreakFree:Wanted()
-	return (button ~= nil or caps.breakFree ~= nil) and not InCombatLockdown()
+	-- Nobody without the ability, and no button to take down: nothing ever.
+	if button == nil and caps.breakFree == nil then return false end
+	if InCombatLockdown() then return false end
+	if dirty then return true end
+	local db = Profile()
+	if not db then return false end
+	local on = BreakFree.Applies(db)
+	if on ~= settledOn then return true end
+	if not on then return false end
+	local p = db.prompt
+	return p.iconSize ~= placedIcon or p.scale ~= placedScale
 end
 
 -- PLAYER_REGEN_ENABLED, out of lockdown, before the combat release's repaint
@@ -445,7 +485,8 @@ end
 -- even while the client's combat flag still runs late, and armed and placed
 -- for the next fight.
 function BreakFree:Release()
-	promptPainted = false
+	promptPainted, iconBefore, litShown = false, nil, false
+	dirty = true
 	self:Refresh()
 end
 
@@ -465,9 +506,22 @@ function BreakFree.PaintPrompt(prompt, p)
 	if not want then
 		if promptPainted then
 			promptPainted = false
-			if p.showIcon and R.icon and S.current then R.icon:SetTexture(EntryIcon(S.current)) end
+			-- The person's icon when somebody is on it; with nobody (the rota
+			-- gone round once, the held panel) the icon it had before, since
+			-- neither of those paints one of its own.
+			if p.showIcon and R.icon then
+				if S.current then
+					R.icon:SetTexture(EntryIcon(S.current))
+				else
+					R.icon:SetTexture(iconBefore)
+				end
+			end
+			iconBefore = nil
 		end
 		return false
+	end
+	if not promptPainted and R.icon and type(R.icon.GetTexture) == "function" then
+		iconBefore = R.icon:GetTexture()
 	end
 	promptPainted = true
 	if p.showIcon and R.icon then R.icon:SetTexture(info.icon) end
@@ -488,9 +542,15 @@ end
 
 local Recheck
 
+-- The prompt is repainted when you become afflicted or stop, and when the
+-- button lights up or goes dim while you stay so (the cooldown running out
+-- mid-fear), so the two say the same.
 local function Changed(was)
-	Paint()
-	if was ~= afflicted and InCombatLockdown() then ns.Guard("break free", Prompt.Refresh, Prompt) end
+	local lit = Paint()
+	if (was ~= afflicted or lit ~= litShown) and InCombatLockdown() then
+		ns.Guard("break free", Prompt.Refresh, Prompt)
+	end
+	litShown = lit
 	-- Asked again each second while it lasts: an effect can end with no event
 	-- this client sends.
 	if afflicted and not recheckDue and C_Timer and C_Timer.After then
@@ -532,6 +592,12 @@ local function OnEvent(event, unit, _, spellId)
 		return
 	end
 	if not Known() then return end
+	-- The pull, before the lockdown: the key as it stands for the fight.
+	if event == "PLAYER_REGEN_DISABLED" then
+		ReadKey()
+		Paint()
+		return
+	end
 	local was = afflicted
 	local kind, how = Read()
 	if event == "LOSS_OF_CONTROL_ADDED" then
@@ -552,17 +618,12 @@ do
 	frame:SetScript("OnEvent", function(_, event, ...) ns.Guard("break free", OnEvent, event, ...) end)
 	frame:RegisterEvent("PLAYER_CONTROL_LOST")
 	frame:RegisterEvent("PLAYER_CONTROL_GAINED")
+	frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 	-- Registered only where the client has the API: an unknown event throws.
 	if type(_G.C_LossOfControl) == "table" then
 		frame:RegisterEvent("LOSS_OF_CONTROL_ADDED")
 		frame:RegisterEvent("LOSS_OF_CONTROL_UPDATE")
 	end
-end
-
--- Whether a press of this button came within the moment its own cast event
--- answers in: Clicks.lua's SettlePendingClick settles nothing then.
-function BreakFree.JustPressed(now)
-	return pressAt ~= nil and (now or GetTime()) - pressAt <= PRESS_SECONDS
 end
 
 ---------------------------------------------------------------------------
