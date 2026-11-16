@@ -9,9 +9,13 @@ ns.WhatsNew = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Quiet in a group.|r |cffffffffSay nothing in a party|r and |cffffffffSay nothing in a raid|r, on |cffffffffWhat I say|r: the buff still goes out, the line stays in.",
 			"|cffffd100Two elixirs at once.|r Keep a second elixir up beside the first.",
+			"|cffffd100Your In character, your way.|r Call people by their first name, hear your own lines as often as you like, and leave out a line you never want to say again.",
 		} },
 		{ title = "What I say", accent = "7cc4ff", entries = {
 			"|cff7cc4ffSay nothing in a party, Say nothing in a raid.|r Two switches under |cffffffffSay a line when I buff someone|r, both off.",
+			"|cff7cc4ffFirst name only.|r A line says \"Petra\", not \"Petra Stonewell\".",
+			"|cff7cc4ffHow often my own lines are said.|r Under |cffffffffMy own lines, mixed in|r: one press in three, half, two in three, or every press.",
+			"|cff7cc4ffNever say my last line again.|r Leaves the last In character line out for good; |cffffffffLines left out|r lists them, and deleting a row brings one back.",
 		} },
 		{ title = "Your own buffs", accent = "7cc4ff", entries = {
 			"|cff7cc4ffBattle Elixir and Guardian Elixir.|r On Burning Crusade and Mists, |cffffffffElixir|r is now a switch for each slot.",

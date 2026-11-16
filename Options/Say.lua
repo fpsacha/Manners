@@ -14,6 +14,11 @@ local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = 
 THANKS_ONLY.thankEmoteMore = true
 -- And the pause before either.
 THANKS_ONLY.thankDelay = true
+-- And First name only, which the whispered thank-you says too.
+THANKS_ONLY.firstNameOnly = true
+
+-- How often my own lines are said (speech.mixedShare; Speech.lua, OwnTurn).
+local MIXED_SHARES = { "third", "half", "twothirds", "always" }
 
 -- What I say: the social replies to a buff, the /thank and the line that goes
 -- out with a cast. The options window leads the page with Start here's voice
@@ -187,6 +192,20 @@ function Page.BuildSpeechTab()
 				get = spGet,
 				set = spSet,
 			},
+			-- Asked for on CurseForge by a player on a roleplay realm: {name} as
+			-- the first word only (Speech.lua, ns.SaidName), in the line said
+			-- with a cast and in the whispered thank-you alike, so live while
+			-- either is on. Who a whisper goes to keeps the whole name.
+			firstNameOnly = {
+				type = "toggle",
+				name = L["First name only"],
+				desc = L["{name} says only the first word of a name: Petra Stonewell is called Petra. A one-word name is said whole, and a whisper still goes to the whole name."],
+				order = 14.3,
+				width = "full",
+				disabled = function() return speechOff() and not P().thankWhisper end,
+				get = spGet,
+				set = spSet,
+			},
 
 			-- A line goes out only to somebody a token names (Press.lua,
 			-- HoldLine), and with the game's friendly nameplates off most
@@ -274,6 +293,79 @@ function Page.BuildSpeechTab()
 						:format(ns.InCharacter.Count()) .. "|r\n"
 				end,
 			},
+			-- Asked for on CurseForge by a player on a roleplay realm: an In
+			-- character line they would rather not hear again, left out of the
+			-- pick for good (speech.leftOut; Phrases.lua, RP.Pick). The last line
+			-- a press or a whispered thank-you carried is remembered for the
+			-- session (RP.Remember, RP.Last), so after a reload the button waits
+			-- for the next one.
+			leaveOutLast = {
+				type = "execute",
+				name = L["Never say my last line again"],
+				desc = function()
+					local last = ns.InCharacter and ns.InCharacter.Last()
+					if not last then return L["No In character line has been said yet this session."] end
+					return L["Leaves this line out of In character for good: %s"]:format(last)
+				end,
+				order = 22.6,
+				hidden = speechOff,
+				disabled = function()
+					local last = inCharacter() and ns.InCharacter.Last()
+					if not last then return true end
+					local list = SP().leftOut
+					if type(list) ~= "table" or #list >= ns.LEFT_OUT_MAX then return true end
+					for _, text in ipairs(list) do
+						if text == last then return true end
+					end
+					return false
+				end,
+				func = function()
+					local last = inCharacter() and ns.InCharacter.Last()
+					if not last then return end
+					local list = type(SP().leftOut) == "table" and SP().leftOut or {}
+					for _, text in ipairs(list) do
+						if text == last then return end
+					end
+					if #list >= ns.LEFT_OUT_MAX then return end
+					list[#list + 1] = last
+					SP().leftOut = list
+					ns.Prompt:InvalidateMacro()
+					ns.addon:Reply(L["left out: %s"]:format(last))
+				end,
+			},
+			-- The lines left out, one a row: deleting a row brings the line
+			-- back; a row typed by hand that is no line of the set leaves
+			-- nothing out. Shown while In character is the set, or while the
+			-- list holds anything.
+			leftOut = {
+				type = "input",
+				name = L["Lines left out (one per line)"],
+				desc = L["In character never says these lines. Delete a row to hear its line again."],
+				order = 22.7,
+				multiline = 4,
+				width = "full",
+				hidden = function()
+					if speechOff() then return true end
+					local list = SP().leftOut
+					return not inCharacter() and not (type(list) == "table" and #list > 0)
+				end,
+				get = function()
+					local list = SP().leftOut
+					return type(list) == "table" and table.concat(list, "\n") or ""
+				end,
+				set = function(_, value)
+					local list, seen = {}, {}
+					for row in (type(value) == "string" and value or ""):gmatch("[^\r\n]+") do
+						row = row:match("^%s*(.-)%s*$")
+						if row ~= "" and not seen[row] and #list < ns.LEFT_OUT_MAX then
+							seen[row] = true
+							list[#list + 1] = row
+						end
+					end
+					SP().leftOut = list
+					ns.Prompt:InvalidateMacro()
+				end,
+			},
 			phrases = {
 				type = "input",
 				name = L["Your lines (one per line)"],
@@ -316,7 +408,7 @@ function Page.BuildSpeechTab()
 			mixedLines = {
 				type = "input",
 				name = L["My own lines, mixed in (one per line)"],
-				desc = L["With In character as the set, about one press in three says one of these instead of an In character line. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."],
+				desc = L["With In character as the set, some presses say one of these instead of an In character line: How often my own lines are said, below, says how many. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."],
 				order = 23.2,
 				multiline = 6,
 				width = "full",
@@ -328,6 +420,25 @@ function Page.BuildSpeechTab()
 					SP().mixedLines = type(value) == "string" and value or ""
 					ns.Prompt:InvalidateMacro()
 				end,
+			},
+			-- How often the lines above are said (Speech.lua, OwnTurn): one press
+			-- in three as before, half, two in three, or every press, when In
+			-- character speaks only if none of them fits. Shown with the box.
+			mixedShare = {
+				type = "select",
+				name = L["How often my own lines are said"],
+				desc = L["How many presses say one of your own lines instead of an In character one. With Every press, In character speaks only when none of your lines fits the macro."],
+				order = 23.3,
+				hidden = function() return not inCharacter() or speechOff() end,
+				values = {
+					third = L["About one press in three"],
+					half = L["About half the presses"],
+					twothirds = L["About two presses in three"],
+					always = L["Every press"],
+				},
+				sorting = MIXED_SHARES,
+				get = spGet,
+				set = spSet,
 			},
 			-- The way back from edited lines to In character, which the
 			-- dropdown cannot give: it shows the set still chosen as blank.

@@ -110,6 +110,9 @@ Page.RESET = {
 		"speech.onlyWhenReturning",
 		-- Say nothing in a party, Say nothing in a raid (Speech.lua, ns.GroupQuiet).
 		"speech.quietInParty", "speech.quietInRaid",
+		-- First name only, and how often your own lines are said; the lines
+		-- left out are kept, as your lines are.
+		"speech.firstNameOnly", "speech.mixedShare",
 		"prompt.thankWhisper",
 		"prompt.thankDelay",
 		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()

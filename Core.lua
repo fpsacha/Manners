@@ -797,6 +797,15 @@ local defaults = {
 			-- Asked for by the author.
 			quietInParty = false,
 			quietInRaid = false,
+			-- First name only (Speech.lua, ns.SaidName): {name} says the first
+			-- word of a name with a surname. How often my own lines are said
+			-- (Speech.lua, OwnTurn): "third", "half", "twothirds" or "always".
+			-- Lines left out (Phrases.lua, RP.Pick): In character lines as
+			-- written, never chosen. Asked for on CurseForge by a player on a
+			-- roleplay realm.
+			firstNameOnly = false,
+			mixedShare = "third",
+			leftOut = {},
 		},
 
 		-- owedOnly, to match the flash, which only pulses for a favour owed.
@@ -5196,6 +5205,10 @@ function ns.SplitFindTreasure(own, char)
 	end
 end
 
+-- How many In character lines Lines left out holds (speech.leftOut): enough
+-- for a player's taste, short of a saved file that grows without end.
+ns.LEFT_OUT_MAX = 200
+
 function ns.ClampSettings()
 	local profile = addon.db and addon.db.profile
 	if not profile then return end
@@ -5277,6 +5290,24 @@ function ns.ClampSettings()
 	-- The same for "In character", whose examples differ per character, so
 	-- Phrases.lua recognises its own.
 	if type(speech.mixedLines) ~= "string" then speech.mixedLines = "" end
+	-- Lines left out: a list of lines as written, each one line of text, no
+	-- line twice, ns.LEFT_OUT_MAX at most (the first kept). Always a new table,
+	-- so Phrases.lua's set of them is made again.
+	do
+		local list, clean, seen = speech.leftOut, {}, {}
+		if type(list) == "table" then
+			for _, text in ipairs(list) do
+				if type(text) == "string" then
+					text = text:gsub("[\r\n]", " "):match("^%s*(.-)%s*$")
+					if text ~= "" and #text <= 500 and not seen[text] and #clean < ns.LEFT_OUT_MAX then
+						seen[text] = true
+						clean[#clean + 1] = text
+					end
+				end
+			end
+		end
+		speech.leftOut = clean
+	end
 	if ns.InCharacter then ns.InCharacter.Repair(speech) end
 
 	-- Everything with a fixed set of values, checked against that set: an
@@ -5313,6 +5344,8 @@ function ns.ClampSettings()
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
 	oneOf(profile.filters, "quietInTownsWhere", { both = true, cities = true, inns = true }, "both")
 	oneOf(profile.filters, "manaFloorKeeps", { asked = true, self = true, none = true }, "asked")
+	-- How often my own lines are said (Speech.lua, OwnTurn).
+	oneOf(profile.speech, "mixedShare", { third = true, half = true, twothirds = true, always = true }, "third")
 	-- Which pet: one of the three ways to choose, or a pet of the journal by
 	-- name ("pet:" and its GUID, Companion.lua).
 	do

@@ -1083,6 +1083,12 @@ Check("speech.voice", "speech", L["voice"], function(add)
 	local line = ("In character %s; race %s, people %s, %s, %s; %d lines of its own"):format(
 		active and "speaks" or "is not the set", okRace == true and Show(race) or "n/a",
 		tostring(family), tostring(faction), tostring(class), lines)
+	-- What I say's choices about the words: First name only, How often my own
+	-- lines are said, and how many lines are left out (Speech.lua, Phrases.lua).
+	local speech = Speech() or {}
+	line = line .. ("; first name only %s, own lines %s, %d left out"):format(
+		speech.firstNameOnly == true and "on" or "off", tostring(speech.mixedShare),
+		type(speech.leftOut) == "table" and #speech.leftOut or 0)
 	if not family or lines == 0 then
 		add(WARN, line .. " -- general and faction lines only")
 	else

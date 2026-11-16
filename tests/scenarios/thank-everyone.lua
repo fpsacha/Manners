@@ -631,7 +631,9 @@ for _, case in ipairs({
 			-- The whispered thank-you (1.11.15) is the /thank's too.
 			if path == "click.thankEmote" or path == "click.thankEmoteToken" or path == "click.thankEmoteMore"
 				or path == "click.thankWhisper"
-				or path == "click.thankDelay" then
+				or path == "click.thankDelay"
+				-- First name only, which the whispered thank-you says too.
+				or path == "click.firstNameOnly" then
 				if not shown then fail(scenario, "the /thank is not on " .. case.label .. "'s What I say") end
 			elseif shown then
 				fail(scenario, "a control other than the /thank shows on What I say: " .. path)

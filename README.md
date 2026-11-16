@@ -1009,13 +1009,27 @@ Everything here is off until you turn it on.
     still offered and cast, and the /thank, the whispered thank-you and
     asking for a buff keep their own switches. In a battleground or an
     arena, *Say my line there* decides instead.
+  - *First name only* (off): `{name}` says only the first word of a name, so
+    "Petra Stonewell" is called "Petra", in the line said with a cast and in
+    the whispered thank-you alike. A one-word name is said whole; a name cut
+    at a dash before (a realm, or a name like "Anne-Marie") is cut there
+    still, and an apostrophe stays in the word. A whisper still goes to the
+    whole name, and the prompt, your target and the ledger keep it too.
 - ***Lines***: *Line set* has four sets you can edit (Azeroth (general),
   Polite, Cheeky, Just their name) and a fifth, *In character (fits your race
   and class)*: over three thousand lines, picked when you click to fit your
   people, your class, your faction and the moment. *My own lines, mixed in*,
   while In character is the set, takes lines of your own (`{name}` and
-  `{buff}` as elsewhere): about one press in three says one of them. *Try a
-  few lines* shows some.
+  `{buff}` as elsewhere), and *How often my own lines are said* under it says
+  how many presses say one of them: about one in three (as before), half, two
+  in three, or every press, when In character speaks only if none of yours
+  fits the macro. *Never say my last line again*, under the In character
+  note, leaves the last In character line said this session out for good (a
+  reload forgets which line was last, not the lines left out); *Lines left
+  out* lists them, one a row: delete a row to hear its line again. A line
+  typed there that is no In character line leaves nothing out, and a pasted
+  settings line never carries the list. *Try a few lines* shows some, and
+  keeps to all of this.
 
 The line rides in the macro the button runs, because the game refuses
 addon-sent `/say` and `/yell` outside instances, which is exactly where

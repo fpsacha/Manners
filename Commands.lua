@@ -853,6 +853,14 @@ do
 		["supplies.relPoint"] = true,
 		["supplies.x"] = true,
 		["supplies.y"] = true,
+		-- Lines left out of In character (speech.leftOut): kept as the player has
+		-- it. A list could only make anybody quieter, but it is one player's
+		-- taste in their own character's voice, up to 200 lines written in the
+		-- language they play in, which would swell a string meant to be pasted
+		-- and match nothing on a client in another language. First name only and
+		-- How often my own lines are said travel as any setting does: neither
+		-- puts a word in anybody's mouth.
+		["speech.leftOut"] = true,
 	}
 
 	-- Imported only when the player already has it on: a pasted string must never
@@ -2145,6 +2153,15 @@ function addon:HandleSlash(rawInput)
 		elseif quiet == "raid" then
 			self:Print(L["|cffffd100raid|r -- no line goes out when you buff: %s is on"]
 				:format("|cffffd100" .. L["Say nothing in a raid"] .. "|r"))
+		end
+		-- First name only (Speech.lua, ns.SaidName) and the In character lines
+		-- left out (Phrases.lua, RP.Pick), which change what a line says.
+		if db.speech.firstNameOnly == true then
+			self:Print(L["|cffffd100first name only|r -- a line says only the first word of a name"])
+		end
+		local leftOut = type(db.speech.leftOut) == "table" and #db.speech.leftOut or 0
+		if leftOut > 0 then
+			self:Print(L["|cffffd100lines left out|r -- In character never says %d of its lines"]:format(leftOut))
 		end
 		-- Always, not only in a raid: groups unticked for last week's
 		-- assignment are what leaves somebody out next week with no sign why,

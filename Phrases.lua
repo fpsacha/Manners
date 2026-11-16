@@ -6303,9 +6303,14 @@ do
 	-- carries it (Prompt/Press.lua, OnPostClick), not when it is picked: the
 	-- prompt picks a line for its tooltip, and the press can leave it out.
 	local lately, latelyCount = {}, {}
+	-- The last line said, as written, for Never say my last line again (What
+	-- I say, Options/Say.lua). Kept apart from the memory above, whose length
+	-- is RP.RECENT's. Like it, for this session only: a reload forgets it.
+	local lastSaid
 
 	function RP.Remember(text)
 		if type(text) ~= "string" then return end
+		lastSaid = text
 		lately[#lately + 1] = text
 		latelyCount[text] = (latelyCount[text] or 0) + 1
 		local keep = tonumber(RP.RECENT) or 0
@@ -6314,6 +6319,29 @@ do
 			local left = latelyCount[old] - 1
 			latelyCount[old] = left > 0 and left or nil
 		end
+	end
+
+	-- The last In character line a press or a whispered thank-you carried this
+	-- session, as written ({name} and {buff} still in it), or nil.
+	function RP.Last() return lastSaid end
+
+	-- Lines left out (What I say; speech.leftOut): the lines as written that the
+	-- pick never chooses, as a set, made again only when the list changes (a
+	-- box edit writes a new table, the button adds a row). Repaired at load by
+	-- Core's ClampSettings; a row matching no line costs nothing.
+	local outList, outCount, outSet = nil, -1, {}
+	local function LeftOut()
+		local db = ns.db and ns.db.profile
+		local list = db and type(db.speech) == "table" and db.speech.leftOut
+		if type(list) ~= "table" then return nil end
+		if list ~= outList or #list ~= outCount then
+			outList, outCount, outSet = list, #list, {}
+			for _, text in ipairs(list) do
+				if type(text) == "string" then outSet[text] = true end
+			end
+		end
+		if outCount == 0 then return nil end
+		return outSet
 	end
 
 	-- One line for this person, now, with the channel command in front, and
@@ -6335,6 +6363,8 @@ do
 		-- Never a stranger's "for the road" to somebody in your own group.
 		local kind = KIND[entry.reason] or (entry.inGroup and "group") or "offer"
 		local name = entry.short or entry.name
+		-- First name only (Speech.lua, ns.SaidName): the words, never the whisper's address.
+		if ns.SaidName then name = ns.SaidName(name) end
 		local single = entry.buff and ns.BuffName(entry.buff)
 		local key = type(entry.buff) == "table" and entry.buff.key
 		-- {buff} is the spell that goes out: a group cast's own name
@@ -6353,6 +6383,10 @@ do
 		if gift ~= nil and key and entry.buff.gift and RP.GiftKey(entry) == entry.buff.gift then gift = nil end
 		local weight, spread, about = RP.WEIGHT, RP.SPREAD, RP.ABOUT
 		local leaving = Leaving()
+		-- The lines the player left out (speech.leftOut). A pool all left out
+		-- adds nothing, as a pool with nothing that fits; with nothing left in
+		-- any pool the pick answers nil, as when no line fits the macro.
+		local out = LeftOut()
 
 		local lines, weights, tags, texts, total = {}, {}, {}, {}, 0
 		local function add(pool, share, tag)
@@ -6372,6 +6406,8 @@ do
 					and (about[text] == nil or about[text] == key)
 					-- Nor a line this language gives a man's voice, for a woman.
 					and not (left and left[text])
+					-- Nor one the player left out.
+					and not (out and out[text])
 				if usable then
 					local said = ns.Swap(ns.Swap(ns.Swap(text, "{name}", name), "{buff}", buff), "{gift}", gift)
 					said = said:gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")

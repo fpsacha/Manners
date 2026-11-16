@@ -12,20 +12,20 @@ mutate("Speech.lua",
        expect="the roll came up, and the line was", script=S)
 
 mutate("Speech.lua",
-       "\t\tif #fits == 0 or math.random(MIXED_ONE_IN) ~= 1 then return nil end\n",
-       "\t\tif #fits == 0 then return nil end\n",
+       "\t\treturn math.random(MIXED_ONE_IN) == 1\n",
+       "\t\treturn true\n",
        "mixedlines: every press says an own line",
        expect="in three said an own line", script=S)
 
 mutate("Speech.lua",
-       "\t\tif #fits == 0 or math.random(MIXED_ONE_IN) ~= 1 then return nil end\n",
-       "\t\tif math.random(MIXED_ONE_IN) ~= 1 then return nil end\n",
+       "\t\tif #fits == 0 or not OwnTurn(db.speech.mixedShare) then return nil end\n",
+       "\t\tif not OwnTurn(db.speech.mixedShare) then return nil end\n",
        "mixedlines: nothing said when no own line fits",
        expect="with only a line too long, the line was", script=S)
 
 mutate("Speech.lua",
-       "\t\t\t\t\tif #line <= budget then fits[#fits + 1] = line end\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\t\tif #fits == 0 or math.random(MIXED_ONE_IN)",
-       "\t\t\t\t\tfits[#fits + 1] = line\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\t\tif #fits == 0 or math.random(MIXED_ONE_IN)",
+       "\t\t\t\t\tif #line <= budget then fits[#fits + 1] = line end\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\t\tif #fits == 0 or not OwnTurn(",
+       "\t\t\t\t\tfits[#fits + 1] = line\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\t\tif #fits == 0 or not OwnTurn(",
        "mixedlines: an own line too long for the macro is said",
        expect="with one line too long, the line was", script=S)
 

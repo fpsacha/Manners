@@ -342,6 +342,24 @@ function ns.ChannelOpen(entry)
 	return true
 end
 
+-- First name only (What I say; speech.firstNameOnly, off): the name {name}
+-- says in a spoken line, given the name the line would say otherwise (the
+-- short name, a realm already dropped by ns.ShortName). With the switch on it
+-- is the first word: "Petra Stonewell" is said as "Petra"; a one-word name is
+-- said whole (ns.FirstName answers nil for it). ns.FirstName cuts at a space or
+-- a dash, and a dash had already ended the short name, so "Anne-Marie Stone"
+-- was "Anne" before and still is; an apostrophe is part of the word ("O'Dell
+-- Brand" is "O'Dell"). Only the words said: the name a whisper goes to
+-- (WhisperName), every /target line, the prompt and the debts keep the whole
+-- name. Asked by the fixed sets and the lines mixed in (Roll, MixedIn), the In
+-- character pick (Phrases.lua) and so the whispered thank-you and Try a few.
+function ns.SaidName(name)
+	if type(name) ~= "string" then return name end
+	local db = addon.db and addon.db.profile
+	if not (db and type(db.speech) == "table" and db.speech.firstNameOnly == true) then return name end
+	return ns.FirstName(name) or name
+end
+
 ns.MACRO_LIMIT = 255
 
 -- The room a spoken line gets is whatever the cast lines leave, which differs
@@ -455,10 +473,21 @@ do
 	-- With quote (an emote), the addon's own words are quoted in it, measured
 	-- as they will go out; a line the player wrote is said as typed.
 	-- One of the player's own lines kept to be said among the In character ones
-	-- (speech.mixedLines, What I say), or nil: about one press in three while
-	-- the box holds a line that fits. Said as typed, an emote included, as the
-	-- player's lines always are.
+	-- (speech.mixedLines, What I say), or nil: as often as How often my own
+	-- lines are said asks (speech.mixedShare; about one press in three by
+	-- default) while the box holds a line that fits. Said as typed, an emote
+	-- included, as the player's lines always are.
 	local MIXED_ONE_IN = 3
+	-- Whether this press says one of them, by speech.mixedShare: "third" (and
+	-- anything unknown) rolls one in MIXED_ONE_IN as it always has, "half" one
+	-- in two, "twothirds" two in three, "always" every press, so In character
+	-- speaks only when none of the player's lines fits.
+	local function OwnTurn(share)
+		if share == "always" then return true end
+		if share == "half" then return math.random(2) == 1 end
+		if share == "twothirds" then return math.random(3) ~= 1 end
+		return math.random(MIXED_ONE_IN) == 1
+	end
 	local function MixedIn(db, entry, command, budget)
 		local text = db.speech.mixedLines
 		if type(text) ~= "string" or text == "" then return nil end
@@ -468,7 +497,7 @@ do
 		for raw in text:gmatch("[^\r\n]+") do
 			local clean = SanitizePhrase(raw)
 			if clean then
-				local phrase = ns.Swap(clean, "{name}", entry.short or entry.name)
+				local phrase = ns.Swap(clean, "{name}", ns.SaidName(entry.short or entry.name))
 				phrase = SanitizePhrase(ns.Swap(phrase, "{buff}", spell))
 				if phrase then
 					local line = "/" .. command .. " " .. phrase
@@ -476,7 +505,7 @@ do
 				end
 			end
 		end
-		if #fits == 0 or math.random(MIXED_ONE_IN) ~= 1 then return nil end
+		if #fits == 0 or not OwnTurn(db.speech.mixedShare) then return nil end
 		return fits[math.random(#fits)]
 	end
 
@@ -511,7 +540,7 @@ do
 		spell = spell or (entry.buff and ns.BuffName(entry.buff))
 		local fits = {}
 		for _, raw in ipairs(pool) do
-			local phrase = ns.Swap(raw, "{name}", entry.short or entry.name)
+			local phrase = ns.Swap(raw, "{name}", ns.SaidName(entry.short or entry.name))
 			phrase = ns.Swap(phrase, "{buff}", spell)
 			phrase = SanitizePhrase(phrase)
 			if phrase then
@@ -562,7 +591,12 @@ do
 		-- drop, says nothing: "/w Petra Cheers mate" is Petra Cheers on Camelot,
 		-- where names have surnames. Not asked of the stand-ins the Roll a few
 		-- buttons make, which carry no targetName (Queue.lua writes one for
-		-- everybody real) and a name in the reader's language.
+		-- everybody real) and a name in the reader's language. With First name
+		-- only the words may open on "Petra" while the whisper goes to "Petra
+		-- Stonewell": whisperTo is still the whole name, so "/w Petra Stonewell
+		-- Petra, take this" walks back to it and goes, and a one-word name on
+		-- Camelot ("/w Petra Cheers mate") fails as it did, since its first name
+		-- is the name itself.
 		if line and whisperTo and entry.targetName ~= nil
 			and WhisperTargetOf(line:match("^/%S+(.*)$"), RegionalNames()) ~= whisperTo then
 			return nil

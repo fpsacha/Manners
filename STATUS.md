@@ -67,6 +67,33 @@ keeps the line out. `tests/scenarios/quiet-groups.lua`,
 the game can say: that the line drops on the button within a repaint of
 joining a party or raid, and comes back on leaving one.
 
+**First name only, how often my own lines are said, lines left out (branch
+`post26`, not released), asked for on CurseForge by a player on a roleplay
+realm.** Three settings on What I say. `speech.firstNameOnly` (off;
+`Speech.lua`, `ns.SaidName`): `{name}` is the first word of the short name in
+the fixed sets (`Roll`), the lines mixed in (`MixedIn`), the In character pick
+(`Phrases.lua`, `RP.Pick`) and so the whispered thank-you and Try a few; the
+name a whisper goes to (`WhisperName`), `/target`, the prompt and the debts
+keep the whole name, and the whisper guard after the roll is asked of the
+whole name as before ("/w Munin Hugins Munin, take this." goes; Camelot's
+one-word "Solo" still gets no line). `speech.mixedShare` ("third", "half",
+"twothirds", "always"; `Speech.lua`, `OwnTurn`; repaired in `ClampSettings`):
+"third" rolls exactly as before. `speech.leftOut` (a list of In character
+lines as written, 200 at most, `ns.LEFT_OUT_MAX`, sanitised in
+`ClampSettings`): never picked (`RP.Pick`, a set made again when the list
+changes); a pool all left out adds nothing, and nothing left at all is no
+line. *Never say my last line again* takes `RP.Last()`, the last line a press
+or the whispered thank-you carried, kept for the session only (a reload
+forgets it, as it forgets `RP.RECENT`'s memory); *Lines left out* edits the
+list. First name only and the share travel in a pasted settings line; the
+list does not (`Commands.lua`, `SHARE_SKIP_NAMES`). What I say's reset puts
+back the first two and keeps the list, as it keeps your lines. /manners debug
+names the first and the list, and the check-up's `speech.voice` line all
+three. `tests/scenarios/names-own-lines.lua`,
+`tests/mutations/names-own-lines.py` (30, each CAUGHT by `prove.py`). What
+only the game can say: that the button's note shows the line just said in
+the options window, and that a left-out line is gone from the next press.
+
 What was built:
 
 - **The group's pets** (`sources.pets`, off; Queue.lua `IterateUnits`,

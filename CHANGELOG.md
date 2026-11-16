@@ -9,11 +9,20 @@
   on *What I say*: the buff still goes out, the line stays in.
 - **Two elixirs at once.** Keep a second elixir up beside the first. Asked
   for on CurseForge.
+- **Your In character, your way.** Call people by their first name, hear
+  your own lines as often as you like, and leave out a line you never want to
+  say again. Asked for on CurseForge.
 
 ### What I say
 - **Say nothing in a party, Say nothing in a raid.** Two switches under *Say
   a line when I buff someone*, both off. In a battleground or an arena, *Say
   my line there* still decides.
+- **First name only.** A line says "Petra", not "Petra Stonewell". The
+  whisper still goes to the whole name.
+- **How often my own lines are said.** Under *My own lines, mixed in*: one
+  press in three, half, two in three, or every press.
+- **Never say my last line again.** Leaves the last In character line out for
+  good; *Lines left out* lists them, and deleting a row brings one back.
 
 ### Your own buffs
 - **Battle Elixir and Guardian Elixir.** On Burning Crusade and Mists,

@@ -683,15 +683,22 @@ ns.WindowLayout = {
 					-- While speaking with friendly nameplates off (Speech.lua).
 					{ "click.platesNote", indent = true },
 					{ "click.showPlates", indent = true },
+					-- {name} as the first word, in the line and the whispered thank-you alike.
+					"click.firstNameOnly",
 					{ "click.linesOff", standIn = true },
 				} },
 				{ key = "click.lines", header = "click.phrasesHeader", items = {
 					"click.preset",
 					"click.phrasesHelp",
 					"click.inCharacterNote",
+					-- In character lines left out (speech.leftOut), while that is the set.
+					"click.leaveOutLast",
+					"click.leftOut",
 					"click.phrases",
 					-- Your own lines among the In character ones, while that is the set.
 					"click.mixedLines",
+					-- How often they are said.
+					{ "click.mixedShare", indent = true },
 					{ "click.backToInCharacter", pair = true },
 					"click.roll",
 					"click.limits",
@@ -1098,6 +1105,9 @@ ns.WindowLayout = {
 		["click.preset"] = "click.enabled",
 		["click.phrases"] = "click.enabled",
 		["click.mixedLines"] = "click.enabled",
+		["click.mixedShare"] = "click.enabled",
+		["click.leaveOutLast"] = "click.enabled",
+		["click.leftOut"] = "click.enabled",
 		["click.roll"] = "click.enabled",
 		["click.quietInParty"] = "click.enabled",
 		["click.quietInRaid"] = "click.enabled",
@@ -1140,6 +1150,19 @@ ns.WindowLayout = {
 		["who.courtesyHealthstones"] = function() return ns.Courtesy.Has("courtesyHealthstones") end,
 		["who.courtesySummons"] = function() return ns.Courtesy.Has("courtesySummons") end,
 		["click.mixedLines"] = function()
+			local db = ns.db and ns.db.profile
+			return ns.InCharacter ~= nil and ns.InCharacter.Active(db and db.speech)
+		end,
+		-- How often those lines are said, and the lines left out, the same.
+		["click.mixedShare"] = function()
+			local db = ns.db and ns.db.profile
+			return ns.InCharacter ~= nil and ns.InCharacter.Active(db and db.speech)
+		end,
+		["click.leaveOutLast"] = function()
+			local db = ns.db and ns.db.profile
+			return ns.InCharacter ~= nil and ns.InCharacter.Active(db and db.speech)
+		end,
+		["click.leftOut"] = function()
 			local db = ns.db and ns.db.profile
 			return ns.InCharacter ~= nil and ns.InCharacter.Active(db and db.speech)
 		end,
