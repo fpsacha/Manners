@@ -995,9 +995,12 @@ Everything here is off until you turn it on.
     the rest), *Or one of these, at random* ticks others, and *Wait a moment
     before thanking* sends it one to three seconds after the buff lands.
   - *Whisper a thank-you to people I can't buff back*: when somebody buffs
-    you and nothing of yours goes back to them (a warrior, a rogue, a buff
-    you have nothing to answer), you whisper them a line from the In
-    character set, naming what they gave you. Under the /thank's rules.
+    you and nothing of yours goes back to them now (a warrior, a rogue, a
+    buff you have nothing to answer, a return that waits for them to join
+    your group or for a one-target buff to come free), you whisper them a
+    line from the In character set, naming what they gave you. Under the
+    /thank's rules. *Stay silent* turns it off, and a pasted settings line
+    never turns it on.
   - *Say a line when I buff someone*, with *Where to say it* (say, yell,
     party, raid, emote, or *Whisper them*) and *Only when I buff someone
     back* (off) under it.

@@ -37,7 +37,7 @@ passed over for its ten minutes (`ns.heldOff`). The one switch, a pick of a
 guardian elixir and the memory of one up last carry over once a profile
 (`ns.SplitElixirs`, stamp `ownBuffs.elixirsSplit`, which a settings string
 carries). `tests/scenarios/elixir-pair.lua`, `tests/mutations/elixir-pair.py`
-(16, each CAUGHT by `prove.py`). What only the game can say:
+(20, each CAUGHT by `prove.py`). What only the game can say:
 1. Classic Era and Forever: whether any two elixirs refuse or overwrite each
    other (two of one stat, Forever's 1250xxx with the classic ones, Season of
    Discovery's 12139xx); the data shows none, and which of the two the game
