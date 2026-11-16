@@ -669,7 +669,7 @@ local function AddOwnControls(args)
 		type = "multiselect",
 		name = L["Elixirs to keep up"],
 		desc = L["Tick the elixirs you want on you at once: Manners reminds you of each ticked one that is in your bags and not on you, one at a time. With none ticked, any one elixir on you will do, the best you can use first."],
-		order = 15.795,
+		order = 15.797,
 		hidden = function()
 			local family = KeepFamily()
 			return not family or ns.OwnPick(family) ~= "auto" or next(KeepChoices()) == nil
