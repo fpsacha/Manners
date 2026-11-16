@@ -1007,7 +1007,8 @@ Everything here is off until you turn it on.
     under it. While you are in a party, or in a raid, with its switch on, no
     line goes out when you buff, to a member or a passer-by; the buff is
     still offered and cast, and the /thank, the whispered thank-you and
-    asking for a buff keep their own switches.
+    asking for a buff keep their own switches. In a battleground or an
+    arena, *Say my line there* decides instead.
 - ***Lines***: *Line set* has four sets you can edit (Azeroth (general),
   Polite, Cheeky, Just their name) and a fifth, *In character (fits your race
   and class)*: over three thousand lines, picked when you click to fit your

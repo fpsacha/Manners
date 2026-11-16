@@ -345,9 +345,48 @@ do
 				if speech.quietInRaid ~= true then
 					fail(scenario, label .. ": a pasted string switched off Say nothing in a raid")
 				end
+				-- Said only for somebody who speaks: the string had it off.
+				local note = tostring(said):find("is kept as you had it", 1, true) ~= nil
+				if note ~= speaking then
+					fail(scenario, ("%s: the import %s that a switch was kept: %s"):format(label,
+						speaking and "does not say" or "says", tostring(said)))
+				end
 			end
 		end
 		guarded(scenario, ns)
+	end
+end
+
+-- ----------------------------------------------------------- quiet-groups 10
+-- In a battleground (a raid) or an arena (a party), Say my line there decides
+-- (Battle.lua), not these switches: ticked, the line goes with both switches
+-- on; unticked, it stays out with both off.
+do
+	local scenario = "quiet-groups: in a battleground or an arena Say my line there decides"
+	for _, case in ipairs({ { "pvp", "raid" }, { "arena", "party" } }) do
+		local kind, shape = case[1], case[2]
+		local ns, restore = session(scenario, false, shape)
+		if ns then
+			local real = rawget(_G, "IsInInstance")
+			rawset(_G, "IsInInstance", function() return true, kind end)
+			-- Past the two seconds Battle.lua keeps where you are for.
+			Mock.advance(3)
+			ns.db.profile.battle.speak = true
+			local loud = armedWith(ns, true, true)
+			if not loud then
+				fail(scenario, "SKIPPED -- Munin is not armed in " .. kind)
+			elseif not speaks(loud) then
+				fail(scenario, kind .. ": with Say my line there ticked a party or raid switch kept the line out: " .. flat(loud))
+			end
+			ns.db.profile.battle.speak = false
+			local quiet = armedWith(ns, false, false)
+			if quiet and speaks(quiet) then
+				fail(scenario, kind .. ": with Say my line there unticked the line went out: " .. flat(quiet))
+			end
+			rawset(_G, "IsInInstance", real)
+			guarded(scenario, ns)
+			restore()
+		end
 	end
 end
 

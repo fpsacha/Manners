@@ -272,7 +272,8 @@ end
 -- speech.quietInRaid, both off): "party" or "raid" while the group you are in
 -- has its switch on, else nil. A party is a group that is no raid. Asked as the
 -- scan asks (Core.lua, Queue.lua), with no home category: a dungeon finder's
--- group is a party and a battleground's a raid. Read by ns.ChannelOpen, so the
+-- group is a party. A battleground's or an arena's team is neither: there
+-- Battle.lua's Say my line there alone decides. Read by ns.ChannelOpen, so the
 -- prompt, its rows and the bar macro's copy are armed with no line alike, and
 -- `speak` in the macro's key re-arms it when a group forms or ends. Never asked
 -- of an ask (Ask.lua), the whispered thank-you or /thank: none is a line said
@@ -282,6 +283,10 @@ function ns.GroupQuiet()
 	local speech = db and db.speech
 	if type(speech) ~= "table" then return nil end
 	if speech.quietInParty ~= true and speech.quietInRaid ~= true then return nil end
+	-- In a battleground or an arena Say my line there decides (Battle.lua,
+	-- Battle.Quiet), not these: a team there is no party or raid you chose,
+	-- and ticking that switch is asking to speak there.
+	if ns.InBattleground() then return nil end
 	if ns.plain(IsInRaid and IsInRaid()) == true then
 		return speech.quietInRaid == true and "raid" or nil
 	end

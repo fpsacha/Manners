@@ -57,12 +57,13 @@ someone*, both off: `speech.quietInParty` and `speech.quietInRaid`
 rows and the bar macro's copy are armed with no line alike, and `speak` in the
 macro's key re-arms at the next repaint out of combat when a group forms or
 ends). A party is a group that is no raid, read with `IsInRaid`/`IsInGroup` as
-the scan reads them (no home category: a dungeon finder's group is a party, a
-battleground a raid). The buff, an ask, the whispered thank-you and /thank are
+the scan reads them (no home category: a dungeon finder's group is a party).
+In a battleground or an arena neither switch is asked: *Say my line there*
+(Battle.lua) alone decides. The buff, an ask, the whispered thank-you and /thank are
 untouched. A pasted settings line can switch either on, never off
 (`Commands.lua`, `SHARE_QUIET`); /manners debug and the check-up say when one
 keeps the line out. `tests/scenarios/quiet-groups.lua`,
-`tests/mutations/quiet-groups.py` (14, each CAUGHT by `prove.py`). What only
+`tests/mutations/quiet-groups.py` (16, each CAUGHT by `prove.py`). What only
 the game can say: that the line drops on the button within a repaint of
 joining a party or raid, and comes back on leaving one.
 

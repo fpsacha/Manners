@@ -90,3 +90,15 @@ mutate("Commands.lua",
        "\t\tif false then\n",
        "quiet-groups: /manners debug silent about a quiet party",
        expect="quiet-groups: the thank-you whisper still goes, and debug says why no line", script=S)
+
+mutate("Speech.lua",
+       "\tif ns.InBattleground() then return nil end\n",
+       "",
+       "quiet-groups: a party or raid switch silences a battleground",
+       expect="quiet-groups: in a battleground or an arena Say my line there decides", script=S)
+
+mutate("Commands.lua",
+       "\t\t\t\t\tif value ~= true and speaking then kept.words = true end\n",
+       "",
+       "quiet-groups: a paste keeps a quiet group on unsaid",
+       expect="quiet-groups: a pasted string can only make you quieter", script=S)
