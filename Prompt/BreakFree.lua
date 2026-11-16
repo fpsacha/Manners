@@ -118,6 +118,14 @@ local function Profile()
 	return ns.db and ns.db.profile
 end
 
+-- The race's file name ("Scourge"), or nil where the client has no UnitRace
+-- or withholds the answer.
+local function PlayerRace()
+	local unitRace = _G.UnitRace
+	if type(unitRace) ~= "function" then return nil end
+	return plain(select(2, unitRace("player")))
+end
+
 local function Known()
 	return caps.breakFree
 end
@@ -134,7 +142,7 @@ end
 function BreakFree.Learn()
 	caps.breakFree = nil
 	dirty = true
-	local race = plain(select(2, UnitRace("player")))
+	local race = PlayerRace()
 	if type(race) ~= "string" then return end
 	for _, row in ipairs(ABILITIES) do
 		if row.race == race and ns.SpellKnown(row.spell) then
@@ -633,7 +641,7 @@ end
 function ns.BreakFreeLines()
 	local out = {}
 	local info = Known()
-	local race = plain(select(2, UnitRace("player")))
+	local race = PlayerRace()
 	if not info then
 		local row
 		for _, r in ipairs(ABILITIES) do if r.race == race then row = r end end
