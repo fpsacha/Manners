@@ -75,18 +75,16 @@ jobs:
       # `shell: bash` for -eo pipefail: without it the pipe's status is tee's.
       # --jobs 3 on the runner's four cores: four left nothing for the runner
       # itself, and parts died with "The hosted runner lost communication with
-      # the server". `ulimit -v` holds each process to 4 GB of address space
-      # (a scenario process peaks at a few hundred MB), so a mutation that
-      # turns a loop into one that allocates without end fails its own run
-      # rather than taking the runner's 16 GB down with it. The step's limit
-      # is under the job's so the trace is still saved.
+      # the server". No `ulimit -v`: at 4 GB of address space the clean
+      # tree's own scenario run was refused (exit 1 with failures: 0), so
+      # every part stopped before its first mutation. The step's limit is
+      # under the job's so the trace is still saved.
       - name: Part ${{ matrix.part }} of 16
         shell: bash
         timeout-minutes: 335
         env:
           TMPDIR: ${{ runner.temp }}
         run: |
-          ulimit -v 4194304
           python tests/selftest.py --part ${{ matrix.part }}/16 --jobs 3 | tee selftest.out
           if grep -q "^\(MISSED\|ANCHOR GONE\|WRONG CHECK\|NOT RESTORED\): " selftest.out; then
             echo "::error::a check no longer detects the fault it exists for"
