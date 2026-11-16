@@ -112,6 +112,8 @@ local function BugReport()
 		:format(tostring(db.filters.quietInTowns), tostring(db.filters.quietInTownsWhere),
 			tostring(db.filters.quietInInstances), tostring(db.filters.quietTargets),
 			tostring(db.prompt.thankWhisper), tostring(db.prompt.thankDelay))
+	-- Thank them even when I can't see who it was (Favours.lua, ThankUnseen).
+	lines[#lines + 1] = ("thankUnseen=%s"):format(tostring(db.prompt.thankUnseen))
 	-- In battlegrounds and arenas (Battle.lua): its four switches, and which
 	-- of its states stands now (nil anywhere else).
 	lines[#lines + 1] = ("battle: team=%s speak=%s thank=%s items=%s state=%s"):format(tostring(db.battle.team),

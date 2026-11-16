@@ -68,7 +68,12 @@ end
 local UNNAMED_SESSIONS = 3
 local unnamedSaid = false
 
-function ns.UnnamedBuffHint()
+-- The line names what can be done: the nameplates, and, for a player who
+-- thanks with an emote, Thank them even when I can't see who it was. With
+-- that on, and the caster plainly nobody (`unseen`, Favours.lua's Sight: not
+-- withheld), it says the emote thanks them where it may, never that nothing
+-- could be done.
+function ns.UnnamedBuffHint(unseen)
 	if unnamedSaid then return false end
 	local db = ns.db
 	if not (db and db.profile and db.char) then return false end
@@ -83,8 +88,20 @@ function ns.UnnamedBuffHint()
 		db.char.hints = hints
 	end
 	hints.unnamed = told + 1
-	ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who, so Manners cannot buff them back. %s on %s (|cffffd100/manners|r) turns them on."]:format(
-		"|cffffd100" .. L["Show friendly nameplates"] .. "|r", "|cffffd100" .. L["Start here"] .. "|r"))
+	local plates = "|cffffd100" .. L["Show friendly nameplates"] .. "|r"
+	local start = "|cffffd100" .. L["Start here"] .. "|r"
+	local prompt = type(db.profile.prompt) == "table" and db.profile.prompt or {}
+	if prompt.thankEmote == true and prompt.thankUnseen == true and unseen == true then
+		ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who. Manners thanks them with your emote where it may, but cannot buff them back: %s on %s (|cffffd100/manners|r) turns them on."]:format(
+			plates, start))
+	elseif prompt.thankEmote == true and prompt.thankUnseen ~= true then
+		ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who, so Manners cannot buff them back or thank them. %s on %s (|cffffd100/manners|r) turns them on, or %s on %s thanks them with your emote all the same."]:format(
+			plates, start, "|cffffd100" .. L["Thank them even when I can't see who it was"] .. "|r",
+			"|cffffd100" .. L["What I say"] .. "|r"))
+	else
+		ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who, so Manners cannot buff them back. %s on %s (|cffffd100/manners|r) turns them on."]:format(
+			plates, start))
+	end
 	return true
 end
 

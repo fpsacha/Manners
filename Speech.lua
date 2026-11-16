@@ -430,7 +430,9 @@ do
 			-- name goes out only if it says plainly: this name, your own realm. A debt
 			-- back from disk has no GUID and gets no line, nor has Roll a few's stand-in.
 			local debt = ns.owed and ns.owed[name]
-			local guid = debt and debt.guid
+			-- Or the GUID the entry carries: the combat log's, for a whispered
+			-- thank-you to somebody owed nothing (ns.ThankWhisper).
+			local guid = entry.guid or (debt and debt.guid)
 			if not guid then return nil end
 			local ok, _, _, _, _, _, who, realm = pcall(_G.GetPlayerInfoByGUID, guid)
 			if not (ok and ns.plain(who) == name and ns.plain(realm) == "") then return nil end
@@ -611,11 +613,16 @@ do
 	-- ThankFavour; asked for on CurseForge by a warrior). An In character thanks
 	-- line, by your people and class, and naming what they gave you where a line
 	-- does. Sent outright: a whisper needs no key press, where /say does outside
-	-- an instance. `unit` is the token Sight holds them under. True when it went.
+	-- an instance. `unit` is the token Sight holds them under, or nil for a
+	-- favour the combat log named and no token holds (Favours.lua,
+	-- ThankByName): then the name goes as WhisperName lets a tokenless one go,
+	-- a bare name only once the client says by their GUID that it is somebody
+	-- of your own realm. True when it went.
 	function ns.ThankWhisper(seen, unit)
 		local rp = ns.InCharacter
 		if not (rp and rp.Pick) then return false end
-		local to = WhisperName({ name = seen.name, unit = unit })
+		local to = WhisperName({ name = seen.name, unit = unit,
+			targetName = not unit and seen.name or nil, guid = not unit and seen.guid or nil })
 		if not to then return false end
 		local spell = type(seen.key) == "number" and seen.key or nil
 		local buff = spell and ns.BUFF_BY_ID and ns.BUFF_BY_ID[spell] or nil

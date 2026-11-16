@@ -94,14 +94,14 @@ mutate("Options/Window/WindowChrome.lua",
 # ------------------------------------------------- a buff with nobody to name
 
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] then Unnamed(key) end\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end\n",
        "",
        "par: a buff with nobody to name goes unsaid",
        expect="a Fortitude from nobody the game would name", script=S)
 
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] then Unnamed(key) end\n",
-       "\t\tif ns.ALL_BUFF_IDS[key] then Unnamed(key) end\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end\n",
+       "\t\tif ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end\n",
        "par: a named buff called unnamed",
        expect="a buff from somebody named, and the line says nobody", script=S)
 

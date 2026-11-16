@@ -14,6 +14,8 @@ local THANKS_ONLY = { speechHeader = true, thankEmote = true, thankEmoteToken = 
 THANKS_ONLY.thankEmoteMore = true
 -- And the pause before either.
 THANKS_ONLY.thankDelay = true
+-- And thanking somebody nobody could name.
+THANKS_ONLY.thankUnseen = true
 -- And First name only, which the whispered thank-you says too.
 THANKS_ONLY.firstNameOnly = true
 
@@ -131,6 +133,21 @@ function Page.BuildSpeechTab()
 				width = "full",
 				get = function() return P().thankWhisper end,
 				set = function(_, v) P().thankWhisper = v end,
+			},
+			-- Asked for on CurseForge by a player who keeps the game's friendly
+			-- nameplates off: a buff from somebody the game names to nobody is
+			-- thanked all the same, with the emote at nobody (Favours.lua,
+			-- ThankUnseen), or by name in a whisper where only the combat log
+			-- names them (ThankByName). Live while either switch above is on.
+			thankUnseen = {
+				type = "toggle",
+				name = L["Thank them even when I can't see who it was"],
+				desc = L["With friendly nameplates off the game often will not say who buffed you. Then your thank emote goes out with nobody targeted, and on clients that name them in the combat log the whispered thank-you goes by name. Never while you have somebody targeted, never for somebody who may be in your group, and once per buff every five minutes."],
+				order = 11.8,
+				width = "full",
+				disabled = function() return not P().thankEmote and not P().thankWhisper end,
+				get = function() return P().thankUnseen end,
+				set = function(_, v) P().thankUnseen = v end,
 			},
 			enabled = {
 				type = "toggle",

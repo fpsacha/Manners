@@ -16,6 +16,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffFirst name only.|r A line says \"Petra\", not \"Petra Stonewell\".",
 			"|cff7cc4ffHow often my own lines are said.|r Under |cffffffffMy own lines, mixed in|r: one press in three, half, two in three, or every press.",
 			"|cff7cc4ffNever say my last line again.|r Leaves the last In character line out for good; |cffffffffLines left out|r lists them, and deleting a row brings one back.",
+			"|cff7cc4ffThank them even when I can't see who it was.|r With friendly nameplates off, your thank emote still goes out, with nobody targeted.",
 		} },
 		{ title = "Your own buffs", accent = "7cc4ff", entries = {
 			"|cff7cc4ffBattle Elixir and Guardian Elixir.|r On Burning Crusade and Mists, |cffffffffElixir|r is now a switch for each slot.",

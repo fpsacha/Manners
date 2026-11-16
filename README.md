@@ -131,7 +131,9 @@ Everybody who could use your buff is queued, in this order:
    *Quick setup* is still asking, too), the minimap tooltip in amber, and the
    options window's strip, each with *Show friendly nameplates* or the way to
    it. When a stranger's buff lands with nobody to name, one line in chat says
-   why there is nobody to buff back, once a session on your first three.
+   why there is nobody to buff back, once a session on your first three, and
+   names *Thank them even when I can't see who it was* (under *What I say*),
+   which thanks them with your emote, nobody targeted, all the same.
 
 Ahead of all of them comes your **resurrection** for a dead member of your
 group, and a **cure** comes before any buff for the same person; a **courtesy**
@@ -1001,6 +1003,18 @@ Everything here is off until you turn it on.
     line from the In character set, naming what they gave you. Under the
     /thank's rules. *Stay silent* turns it off, and a pasted settings line
     never turns it on.
+  - *Thank them even when I can't see who it was* (off, under the two
+    above): with the game's friendly nameplates off the game often names
+    nobody as the caster of a stranger's buff, and nothing could thank them.
+    With this on, your thank emote goes out with nobody targeted, so
+    everybody near sees you thank the air rather than nobody being thanked;
+    on Classic Era, TBC and Mists, where the combat log names them, the
+    whispered thank-you goes to them by name. Never while you have somebody
+    targeted (the emote would go at them), never for a buff that may be a
+    group member's (somebody in your group of the buff's class), a shout, a
+    buff the game will not say the caster of, or one of your own; under the
+    /thank's other rules, once per buff every five minutes, and one landing
+    is one thank. A pasted settings line never turns it on.
   - *Say a line when I buff someone*, with *Where to say it* (say, yell,
     party, raid, emote, or *Whisper them*), *Only when I buff someone
     back*, *Say nothing in a party* and *Say nothing in a raid* (all off)
@@ -1375,7 +1389,9 @@ person have mana" is read from their class instead.
 own buffs appear and reading who cast them, which is a unit: somebody with no
 nameplate who is not your target cannot be identified at all. Turn on the
 game's friendly nameplates (*Show friendly nameplates* on *Start here*) and
-strangers can be.
+strangers can be. To keep them off and still thank whoever buffs you, *Thank
+them even when I can't see who it was* under *What I say* makes your thank
+emote with nobody targeted.
 
 **Secure buttons must register for mouse down**: every secure button that
 works here registers `"AnyDown"`.

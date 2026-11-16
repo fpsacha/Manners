@@ -261,7 +261,9 @@ end
 -- A /thank or a whispered thank-you for a favour there (Favours.lua, Held):
 -- nil anywhere else, which leaves the rule for an instance to answer; true
 -- when it may go; or why not, as the skip is written down. Asked afresh, a
--- thank being rare, of the place it is about to be made in.
+-- thank being rare, of the place it is about to be made in. A thank for
+-- somebody nobody could name (Favours.lua, ThankUnseen) is never of your
+-- team, who all have tokens, so it is never made there.
 function Battle.Thanks(seen)
 	local inside, kind = safecall(_G.IsInInstance)
 	if not ((inside == true or inside == 1) and (kind == "pvp" or kind == "arena")) then return nil end

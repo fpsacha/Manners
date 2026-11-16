@@ -67,6 +67,36 @@ keeps the line out. `tests/scenarios/quiet-groups.lua`,
 the game can say: that the line drops on the button within a repaint of
 joining a party or raid, and comes back on leaving one.
 
+**Thank them even when I can't see who it was (branch `post26`, not
+released), asked for on CurseForge** by a player who keeps friendly nameplates
+off. `prompt.thankUnseen` (What I say, under the whispered thank-you, live
+while either thank switch is on). Two paths in `Favours.lua`. A: `Sight` marks
+a sighting `unseen` when the aura's `sourceUnit` is plainly absent (asked by
+`type`, so a secret is "cannot tell", never "nobody"), the spell is in
+`ALL_BUFF_IDS` and `isFromPlayerOrPlayerPet` is not true; the filing pass
+(the same `IsNew` and believed-scan judgement a named favour gets) hands it to
+`ThankNobody`, which drops a shout and anything `MaybeMember` says may be the
+group's (in a group: a buff of no class, or of a class somebody in it is or
+whose class does not read; the safe side, since a member's token read a moment
+late looks like none), then `ThankUnseen`: `Held`, never with somebody
+targeted (an emote with no name goes at your target), the ten-second gap, once
+a spell in five minutes (`unseenAt`), the pause and the switches asked again
+after it; `PerformEmote(token)` with no target, written to
+`ns.thankLog.unseen` (a skip to `unseenSkipped`), shown by `/manners debug`
+and the check-up (`thankUnseen=`). No debt, no chat line. B (Classic Era, TBC,
+Mists): a combat log record nobody's token holds (`ns.UnitFor`) is whispered
+by name (`ThankByName`, `seen.byName`) with the whispered thank-you on and
+`GoesBack` false; `ns.ThankWhisper` hands `WhisperName` the log's GUID, so a
+bare name goes only once `GetPlayerInfoByGUID` says your own realm. The log is
+read for this even with People who buff me off. A whisper by name stamps
+`unseenAt` and an unseen emote holds a whisper by name for its spell a minute
+(`SAME_LANDING`), so the two sources' readings of one landing are one thank.
+The nameplates hint (`Hints.lua`) names the switch to a player who thanks, and
+with it on says the emote thanks them. A pasted line never switches it on
+(`SHARE_KEEP_MINE`). `tests/scenarios/thank-unseen.lua`,
+`tests/mutations/thank-unseen.py` (43, each CAUGHT by `prove.py`). What only
+the game can say is under *Open*, step 2.
+
 **First name only, how often my own lines are said, lines left out (branch
 `post26`, not released), asked for on CurseForge by a player on a roleplay
 realm.** Three settings on What I say. `speech.firstNameOnly` (off;
@@ -701,6 +731,16 @@ for. Paste what does not match, and the report of step 1 every time.
    back and your target comes back; the ledger (`/manners ledger`) has the
    line; the spoken line, if on, is said once; with *Thank* on, the `/thank`
    emote goes out (`C_ChatInfo.PerformEmote` from addon code has never run).
+   With *Thank them even when I can't see who it was* on and friendly
+   nameplates off, a stranger's buff with nothing targeted: what the client
+   prints for the emote with no target ("You thank everyone." or the like),
+   whether it goes at all from addon code, and whether `aura.sourceUnit` is
+   nil for a stranger with no nameplate on Forever and retail or a withheld
+   value (a secret gets no thank, so then nothing goes); on Classic Era, TBC
+   and Mists, whether it is nil there too, and that the whisper by name
+   reaches somebody of your own realm. Also, in a group, that a member's
+   buff always carries its party or raid token (the switch stays quiet for a
+   buff of a member's class either way).
 3. **Edit Mode.** Open the game's Edit Mode, drag the prompt over its
    overlay, close it, then `/reload` and open and close it once more. Look
    for: the prompt unlocks and locks with it, keeps its new place, and no

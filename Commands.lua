@@ -875,6 +875,9 @@ do
 	SHARE_KEEP_MINE["sources.ask"] = "ask"
 	-- So does the whispered thank-you (Favours.lua, NoteFavour; Speech.lua).
 	SHARE_KEEP_MINE["prompt.thankWhisper"] = "whisper"
+	-- And thanking somebody nobody could name: an emote at nobody, seen by
+	-- everybody near, or a whisper by name (Favours.lua, ThankUnseen).
+	SHARE_KEEP_MINE["prompt.thankUnseen"] = "unseen"
 
 	-- What is said and where, kept as the player has it whenever speaking is on,
 	-- so a paste cannot start yelling a stranger's words. With speaking off they
@@ -1441,6 +1444,9 @@ do
 		if kept.whisper then
 			lines[#lines + 1] = L["The string had whispering a thank-you to people you can't buff back switched on. That is left off, because it talks to other players: switch it on under What I say if you want it."]
 		end
+		if kept.unseen then
+			lines[#lines + 1] = L["The string had thanking people even when you can't see who it was switched on. That is left off, because everybody near you sees it: switch it on under What I say if you want it."]
+		end
 		if kept.ask then
 			lines[#lines + 1] = L["The string had asking people for a buff switched on. That is left off, because it talks to other players: switch it on under Who to buff if you want it."]
 		end
@@ -1691,6 +1697,23 @@ local function PrintFavourWatch(self, db, now)
 	if thanks.whispered then
 		self:Print(("    " .. L["last whispered a thank-you: |cffffffff%s|r, %ds ago"]):format(
 			thanks.whispered.name, math.floor(now - thanks.whispered.at)))
+	end
+	-- Thank them even when I can't see who it was (Favours.lua, ThankUnseen):
+	-- on, the last emote made at nobody and the last passed over, by spell.
+	if db.prompt.thankUnseen == true then
+		self:Print("  " .. L["thank them even when you can't see who it was: |cff00ff00on|r"])
+	end
+	local function spell(key)
+		local label = type(key) == "number" and ns.SpellNameFor and ns.SpellNameFor(key) or nil
+		return label and ("%s (%s)"):format(label, tostring(key)) or tostring(key)
+	end
+	if thanks.unseen then
+		self:Print(("    " .. L["last thanked somebody unseen: |cffffffff%s|r, %ds ago (the game answered %s)"]):format(
+			spell(thanks.unseen.key), math.floor(now - thanks.unseen.at), thanks.unseen.answer))
+	end
+	if thanks.unseenSkipped then
+		self:Print(("    " .. L["last not thanked somebody unseen: |cffffffff%s|r, %ds ago (%s)"]):format(
+			spell(thanks.unseenSkipped.key), math.floor(now - thanks.unseenSkipped.at), thanks.unseenSkipped.why))
 	end
 end
 

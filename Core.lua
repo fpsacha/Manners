@@ -698,6 +698,12 @@ local defaults = {
 			-- moment the buff lands (Favours.lua, ThankFavour). Off: somebody who
 			-- buffs in passing on a mount may be gone by then.
 			thankDelay = false,
+			-- The emote with nobody targeted for a class buff whose caster the
+			-- game names to nobody, and the whispered thank-you by name to
+			-- somebody only the combat log names (Favours.lua, ThankUnseen and
+			-- ThankByName; asked for on CurseForge). Off: an emote at nobody is
+			-- still seen by everybody near.
+			thankUnseen = false,
 			-- full | calm: calm is the prompt without the animations.
 			effects = "full",
 			-- The global cooldown swept over the spell icon.

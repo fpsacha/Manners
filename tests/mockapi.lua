@@ -225,6 +225,9 @@ function Mock.reset()
 	-- naming nobody, which is a stranger with no nameplate -- unidentifiable,
 	-- and a hard limit rather than an oversight.
 	Mock.extraAuraSource = "nameplate1"
+	-- The aura's isFromPlayerOrPlayerPet: nil, as the client leaves it for an
+	-- aura not of your own making; true for one the client calls yours.
+	Mock.extraAuraFromPlayer = nil
 	Mock.auraIdBase = 0
 	-- How many auras the player is carrying, in slots 1..n. Two is what every
 	-- scenario written before this knob assumed, so that is the default.
@@ -2108,6 +2111,7 @@ setmetatable(_G, { __index = function(_, key)
 						spellId = Mock.extraAuraSpell or 1459,
 						sourceUnit = Mock.extraAuraSource
 							and maybeSecret(Mock.extraAuraSource) or nil,
+						isFromPlayerOrPlayerPet = Mock.extraAuraFromPlayer,
 						expirationTime = Mock.extraAuraUntil or 2000 }
 				end
 				if i > count then return nil end

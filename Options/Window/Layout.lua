@@ -674,6 +674,8 @@ ns.WindowLayout = {
 					-- The pause before the /thank and the whisper alike.
 					{ "click.thankDelay", indent = true },
 					"click.thankWhisper",
+					-- A thank for somebody nobody could name, the emote's or the whisper's.
+					{ "click.thankUnseen", indent = true },
 					"click.enabled",
 					{ "click.channel", indent = true },
 					{ "click.onlyWhenReturning", indent = true },

@@ -23,6 +23,9 @@
   press in three, half, two in three, or every press.
 - **Never say my last line again.** Leaves the last In character line out for
   good; *Lines left out* lists them, and deleting a row brings one back.
+- **Thank them even when I can't see who it was.** With friendly nameplates
+  off, your thank emote still goes out, with nobody targeted. Asked for on
+  CurseForge.
 
 ### Your own buffs
 - **Battle Elixir and Guardian Elixir.** On Burning Crusade and Mists,

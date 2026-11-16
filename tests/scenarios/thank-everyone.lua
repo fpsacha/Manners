@@ -632,6 +632,7 @@ for _, case in ipairs({
 			if path == "click.thankEmote" or path == "click.thankEmoteToken" or path == "click.thankEmoteMore"
 				or path == "click.thankWhisper"
 				or path == "click.thankDelay"
+				or path == "click.thankUnseen"
 				-- First name only, which the whispered thank-you says too.
 				or path == "click.firstNameOnly" then
 				if not shown then fail(scenario, "the /thank is not on " .. case.label .. "'s What I say") end

@@ -39,7 +39,7 @@ local walkAfterFight = false
 -- emote rather than a guess, and a throw is swallowed.
 ---------------------------------------------------------------------------
 
-local ThankFavour
+local ThankFavour, ThankUnseen
 do
 	-- Once per person in five minutes, and once for anybody in ten seconds: a
 	-- raid buffing you on the pull is not twenty emotes. Only an emote that
@@ -139,14 +139,32 @@ do
 		ns.thankLog.skipped = { name = name, at = now, why = why }
 	end
 
+	-- When a buff from somebody nobody could name was last thanked, by its spell
+	-- (Thank them even when I can't see who it was, ThankUnseen below): three
+	-- buffs from one unseen druid are one thank, and the same buff again within
+	-- PER_PERSON none. A whisper by name for a tokenless favour (ThankByName)
+	-- writes here too, so the emote for the same landing does not follow it.
+	local unseenAt = {}
+	-- How long a whisper by name holds back the unseen emote for its buff, and
+	-- the emote that whisper: the two sources' readings of one landing, the
+	-- aura scan's able to come a little after the log's.
+	local SAME_LANDING = 60
+
 	-- Every rule a thank is held to, asked at the moment it would go: why it
 	-- may not (the reason Skip writes down), or nil and the token to thank at.
+	-- A favour the combat log named and no token holds (seen.byName) is
+	-- whispered by name and has no token: the whisper's own rules (Speech.lua,
+	-- WhisperName) decide whether the name is safe to send to.
 	local function Blocked(seen, now)
 		local name = seen.name
 		local why = Held(seen)
 		if why then return why end
 		local unit = Holding(seen)
-		if not unit then return L["no unit for them"] end
+		if not unit and not seen.byName then return L["no unit for them"] end
+		if seen.byName then
+			local at = unseenAt[seen.key]
+			if at and now - at < SAME_LANDING then return L["thanked for that buff a moment ago"] end
+		end
 		local last = thankedAt[name]
 		if last and now - last < (seen.inGroup and PER_MEMBER or PER_PERSON) then
 			return L["thanked them a moment ago"]
@@ -180,6 +198,9 @@ do
 		-- which needs no key press where /say would.
 		local whispered = whisper and ns.ThankWhisper and ns.ThankWhisper(seen, unit) == true
 		if whispered then ns.thankLog.whispered = { name = name, at = now } end
+		-- By name, for a landing the aura scan reads with nobody in it: that
+		-- reading thanks nobody after this (ThankUnseen, unseenAt).
+		if whispered and seen.byName then unseenAt[seen.key] = now end
 		local ok, answer = false, nil
 		if emote then
 			-- pcall covers both an emote call that throws and one that is not there.
@@ -232,6 +253,9 @@ do
 		if not (db and db.enabled) then return end
 		emote = emote and db.prompt.thankEmote == true
 		whisper = whisper and db.prompt.thankWhisper == true
+		-- A whisper by name goes only while Thank them even when I can't see
+		-- who it was is on (ThankByName).
+		if seen.byName and db.prompt.thankUnseen ~= true then return end
 		if not (emote or whisper) then return end
 		local now = GetTime()
 		local why, unit = Blocked(seen, now)
@@ -270,6 +294,95 @@ do
 			ns.Guard("thank after a pause", Paused, seen, emote, whisper)
 			-- Nothing went (they rode off, a fight began): the favour passed over
 			-- during the pause is thanked instead, so a burst is one thank, not none.
+			local behind = mine.behind
+			if behind and lastAt == sent then
+				ns.Guard("thank after a pause", Paused, behind.seen, behind.emote, behind.whisper)
+			end
+		end)
+	end
+
+	-- Thank them even when I can't see who it was (prompt.thankUnseen, off;
+	-- asked for on CurseForge by a player who keeps the game's friendly
+	-- nameplates off). A class buff from somebody the game gives no token for
+	-- has nobody to owe and nobody to /thank at, and a thank went nowhere. With
+	-- this on, the emote is made with no target at all, so the game says "You
+	-- thank everyone." or the like to everybody near. Every rule a thank obeys
+	-- that needs no person: Held (a fight, the walk made as one ends, hiding, an
+	-- instance, a battleground, where nobody unseen is of your team, an
+	-- encounter, chat held back), the gap between any two thanks, once a buff
+	-- in PER_PERSON (so a druid's three buffs, and the same buff again, are one
+	-- thank), the pause before thanking, the switches asked again after it. And
+	-- one of its own: never with somebody targeted, since an emote with no
+	-- name goes at your target. The scan decides what reaches here (Sight,
+	-- ThankNobody): a landing, never a refresh or the baseline, of a class buff
+	-- with plainly nobody behind it.
+	local function SkipUnseen(key, now, why)
+		ns.thankLog.unseenSkipped = { key = key, at = now, why = why }
+	end
+
+	local function UnseenLive(db)
+		return db and db.enabled and db.prompt.thankUnseen == true and db.prompt.thankEmote == true or false
+	end
+
+	local function UnseenBlocked(seen, now)
+		local why = Held(seen)
+		if why then return why end
+		if Answer(UnitExists, "target") ~= false then return L["you have somebody targeted"] end
+		local last = unseenAt[seen.key]
+		if last and now - last < PER_PERSON then return L["thanked for that buff a moment ago"] end
+		if lastAt and now - lastAt < GAP then return L["thanked somebody a moment ago"] end
+		return nil
+	end
+
+	local function SendUnseen(seen, now)
+		local prompt = ns.db and ns.db.profile and ns.db.profile.prompt
+		-- No target: the one difference from Send's emote.
+		local ok, answer = pcall(EmoteCall(), ns.ThankEmoteToken(prompt))
+		if not ok then return SkipUnseen(seen.key, now, L["the game would not do it"]) end
+		-- Armed whatever the answer, as Send arms them.
+		lastAt = now
+		for key, at in pairs(unseenAt) do
+			if now - at >= PER_PERSON then unseenAt[key] = nil end
+		end
+		unseenAt[seen.key] = now
+		answer = plain(answer)
+		if answer == true then return SkipUnseen(seen.key, now, L["the game said it was restricted"]) end
+		ns.thankLog.unseen = { key = seen.key, at = now, answer = tostring(answer) }
+		ns.Trail("thank", ("thanked somebody unseen with an emote (spell %s)"):format(tostring(seen.key)))
+	end
+
+	local function PausedUnseen(seen)
+		local db = ns.db and ns.db.profile
+		if not UnseenLive(db) then return end
+		local now = GetTime()
+		local why = UnseenBlocked(seen, now)
+		if why then return SkipUnseen(seen.key, now, why) end
+		SendUnseen(seen, now)
+	end
+
+	ThankUnseen = function(seen)
+		local db = ns.db and ns.db.profile
+		if not UnseenLive(db) then return end
+		local now = GetTime()
+		-- One thank waits out its pause at a time, a named one or this.
+		if waiting and now - waiting.at < PAUSE_MAX + 2 then
+			return SkipUnseen(seen.key, now, L["thanked somebody a moment ago"])
+		end
+		waiting = nil
+		local why = UnseenBlocked(seen, now)
+		if why then return SkipUnseen(seen.key, now, why) end
+		local timer = _G.C_Timer
+		if not (db.prompt.thankDelay == true and type(timer) == "table" and type(timer.After) == "function") then
+			return SendUnseen(seen, now)
+		end
+		-- No name: a named favour arriving meanwhile is kept behind it, as
+		-- ThankFavour keeps one behind another's.
+		local mine = { at = now }
+		waiting = mine
+		timer.After(PAUSE_MIN + math.random() * (PAUSE_MAX - PAUSE_MIN), function()
+			if waiting == mine then waiting = nil end
+			local sent = lastAt
+			ns.Guard("thank after a pause", PausedUnseen, seen)
 			local behind = mine.behind
 			if behind and lastAt == sent then
 				ns.Guard("thank after a pause", Paused, behind.seen, behind.emote, behind.whisper)
@@ -416,9 +529,11 @@ do
 
 	-- A class buff that landed with nobody to name, for the full check-up's
 	-- trail and the line said once a session about it.
-	local function Unnamed(key)
+	-- `unseen` is a caster plainly nobody (Sight), which Thank them even when I
+	-- can't see who it was thanks, and the line says so.
+	local function Unnamed(key, unseen)
 		ns.Trail("favour", ("buffed you (spell %s), the caster unnamed"):format(tostring(key)))
-		if ns.UnnamedBuffHint then ns.UnnamedBuffHint() end
+		if ns.UnnamedBuffHint then ns.UnnamedBuffHint(unseen == true) end
 	end
 
 	-- Read the caster off a slot at the moment the slot is read, and keep it with
@@ -435,11 +550,22 @@ do
 		sighted[instanceId] = seen
 
 		local source = plain(aura.sourceUnit)
+		-- Nobody behind it, as the client says plainly: no source at all, not
+		-- one withheld (a secret is "cannot tell", never "nobody"; asked by
+		-- type, since comparing a secret throws), nor an aura the client says
+		-- is your own or your pet's. Only such a class buff is thanked with no
+		-- name (Thank them even when I can't see who it was: ThankNobody, when
+		-- the scan files the landing). An NPC's has a token, so it is never
+		-- this, and is dropped below as ever.
+		if type(aura.sourceUnit) == "nil" and ns.ALL_BUFF_IDS[key]
+			and plain(aura.isFromPlayerOrPlayerPet) ~= true then
+			seen.unseen = true
+		end
 		-- A class buff with no caster to read: a stranger the game gave no
 		-- token for, as with the friendly nameplates off. Nobody can be owed
 		-- for it, but the trail keeps it, and the player is told why once
 		-- (Hints.lua, which says it only when the nameplates are the reason).
-		if not source and ns.ALL_BUFF_IDS[key] then Unnamed(key) end
+		if not source and ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end
 		if not source or source == "player" then return end
 		if plain(UnitIsUnit(source, "player")) then return end
 		if plain(UnitIsPlayer(source)) ~= true then return end
@@ -801,6 +927,64 @@ do
 		return not ns.PvPHoldsBack(seen.pvp)
 	end
 
+	-- A shout (Battle Shout, Commanding Shout, Horn of Winter) lands on the
+	-- whole party again at every pull: never thanked, named or not.
+	local function Shout(key)
+		local buff = type(key) == "number" and ns.BUFF_BY_ID[key] or nil
+		return buff and buff.selfCast and buff.partyOnly and true or false
+	end
+
+	-- Whether a buff with nobody named on it may be a group member's after
+	-- all. A member always has a token, but a token the client is a moment late
+	-- with reads like none, and an emote at nobody for a buff your own group's
+	-- priest gave is the wrong manners. So, in a group, the safe answer: a
+	-- class buff of a class somebody in the group is (or whose class does not
+	-- read), or one of no class at all (Fear Ward and the like, FAVOUR_ONLY),
+	-- is never thanked unseen. Out of a group, or a class nobody in it is,
+	-- it is a stranger's.
+	local function MaybeMember(key)
+		local n = plain(_G.GetNumGroupMembers and _G.GetNumGroupMembers()) or 0
+		if n <= 0 then return false end
+		local buff = type(key) == "number" and ns.BUFF_BY_ID[key] or nil
+		local class = buff and buff.class
+		if not class then return true end
+		local raid = plain(_G.IsInRaid and _G.IsInRaid()) == true
+		local prefix = raid and "raid" or "party"
+		for i = 1, raid and n or n - 1 do
+			local unit = prefix .. i
+			if plain(UnitExists(unit)) and not plain(UnitIsUnit(unit, "player")) then
+				local theirs = plain(select(2, UnitClass(unit)))
+				if theirs == nil or theirs == class then return true end
+			end
+		end
+		return false
+	end
+
+	-- A landing the scan filed with plainly nobody behind it (Sight's
+	-- seen.unseen): thanked with no name while Thank them even when I can't
+	-- see who it was is on (ThankUnseen, which asks the switches and every
+	-- rule). Never a shout, never what may be a group member's.
+	local function ThankNobody(seen)
+		if Shout(seen.key) or MaybeMember(seen.key) then return end
+		ns.Guard("thank unseen", ThankUnseen, seen)
+	end
+
+	-- A favour the combat log named and no token holds: with Thank them even
+	-- when I can't see who it was and the whispered thank-you both on, the
+	-- whisper goes by name (Speech.lua, ns.ThankWhisper, whose WhisperName asks
+	-- the client by the GUID that a bare name is somebody of your own realm),
+	-- under the whisper's own rules (GoesBack, ThankFavour's). Anybody a token
+	-- does hold is the aura scan's to thank, as ever, so the ordinary thank is
+	-- never doubled; and a whisper that went keeps the scan's reading of the
+	-- same landing, with nobody in it, from thanking again (unseenAt).
+	local function ThankByName(db, seen)
+		if not (db.prompt.thankUnseen == true and db.prompt.thankWhisper == true) then return end
+		if type(seen.name) ~= "string" or ns.UnitFor(seen.name) then return end
+		if Shout(seen.key) or GoesBack(seen) then return end
+		seen.byName = true
+		ns.Guard("thank emote", ThankFavour, seen, false, true)
+	end
+
 	-- One favour, filed against the person who was holding the token when the aura
 	-- was read: a debt while People who buff me is on, and a /thank while its own
 	-- switch is. Either one alone has the scan read who cast it (ScanOwnBuffs,
@@ -821,7 +1005,9 @@ do
 		-- With this source off, no debt: it could never reach a prompt.
 		if owe and db.sources.owed then OweFavour(db, seen) end
 		-- A log line, which has no token to thank at: the aura scan thanks for
-		-- the same landing when it reads it, claimed by the log or not.
+		-- the same landing when it reads it, claimed by the log or not. Only
+		-- somebody no token holds is whispered by name from here (ThankByName).
+		if not seen.unit then ThankByName(db, seen) end
 		if not seen.unit then return end
 		-- The /thank answers being buffed, not the debt, so a favour you cannot
 		-- return is thanked, and a rogue or a hunter with nothing to give back
@@ -1163,6 +1349,12 @@ do
 						if seen and seen.key == key and seen.name and not seen.filed then
 							seen.filed = true
 							NoteFavour(seen, ClaimFavour(seen.name, key))
+						elseif seen and seen.key == key and seen.unseen and not seen.filed then
+							-- Plainly nobody behind it: no debt and no line, and a
+							-- thank with no name while its switch is on. One landing,
+							-- one sighting: a later reading never names somebody here.
+							seen.filed = true
+							ThankNobody(seen)
 						end
 					end
 				end
@@ -1244,8 +1436,13 @@ do
 		-- NoteFavour's check is the gate. People who buff me alone, not the
 		-- /thank: a log line has no token to thank at, and the aura scan thanks
 		-- for every landing it reads, whichever source filed the debt.
+		-- Or the whisper by name, for somebody no token holds (ThankByName), with
+		-- Thank them even when I can't see who it was on beside it.
 		local db = addon.db and addon.db.profile
-		if not db or not db.enabled or not db.sources.owed then return end
+		if not db or not db.enabled then return end
+		if not db.sources.owed and not (db.prompt.thankUnseen == true and db.prompt.thankWhisper == true) then
+			return
+		end
 
 		spellId = plain(spellId)
 		if spellId == nil then return end
