@@ -113,3 +113,29 @@ mutate("Options/Who.lua",
        "\t\t\treturn not family or next(KeepChoices()) == nil\n",
        "elixir-pair: the box shown with the elixir switch off",
        expect=P + "camelot: the elixirs ticked are each kept up", script=S)
+
+# --- the clash memory kept honest (review after the first build) ---
+
+mutate("Core.lua",
+       "\t\tif not keptRead.walked then\n",
+       "\t\tif false then\n",
+       "elixir-pair: a gap in the readings taken for a clash",
+       expect=P + "vanilla: a gap in the readings is no clash", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\tns.ForgetElixirClash(key)\n",
+       "",
+       "elixir-pair: a pair kept as one never parted",
+       expect=P + "camelot: a tick parts a pair kept as one", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\tkeptLeft[spell.key] = nil\n\t\t\telse\n",
+       "\t\t\telse\n",
+       "elixir-pair: a refused reading taken for a clash",
+       expect=P + "camelot: a refused reading is no clash", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\tfor key in pairs(keptLeft) do keptLeft[key] = nil end\n\t\t\t\treturn nil\n",
+       "\t\t\t\treturn nil\n",
+       "elixir-pair: a read that threw taken for a clash",
+       expect=P + "camelot: a refused reading is no clash", script=S)

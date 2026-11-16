@@ -684,6 +684,9 @@ local function AddOwnControls(args)
 			local own = ns.db.profile.ownBuffs
 			if type(own.elixirKeep) ~= "table" then own.elixirKeep = {} end
 			own.elixirKeep[key] = on and true or nil
+			-- Two kept as one (db.char.elixirClash) part again with either tick:
+			-- the way back from a pair wrongly taken for not stacking.
+			ns.ForgetElixirClash(key)
 			-- The prompt follows at once rather than at the next scan.
 			ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 		end,

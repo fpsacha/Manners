@@ -3455,6 +3455,13 @@ do
 	-- other way.
 	local keptLeft, keptCame, keptGone = {}, {}, {}
 	local CLASH_SECONDS, CLASH_SPARE = 2, 60
+	-- Whether ScanKept ran in the last walk of your own families that a change
+	-- of your auras asked for (RememberOwnBuffs). A walk that read none of the
+	-- ticked elixirs (none in the bags, the switch off a while, a read that
+	-- threw) leaves keptLeft out of date: one elixir cancelled and another
+	-- drunk in that gap would read, at the next reading, as the second knocking
+	-- the first off, and the two would be kept as one for good.
+	local keptRead = { walked = false }
 
 	-- Up while every ticked elixir in the bags is on you, or the one it does not
 	-- stack with is: a ticked one with none left in the bags holds nothing.
@@ -3467,6 +3474,9 @@ do
 			local on, left = ScanConsumable(byId, KeptIds(spell), now)
 			if on == nil then
 				refused = true
+				-- Not seen (Forever hides your auras in a fight): what changed
+				-- meanwhile is no clash, so the next reading starts afresh.
+				keptLeft[spell.key] = nil
 			else
 				local was = keptLeft[spell.key]
 				if on then
@@ -3489,6 +3499,7 @@ do
 				keptLeft[spell.key] = on and (left and now + left or true) or false
 			end
 		end
+		keptRead.walked = true
 		-- The pair: one came on now and another went within a moment of it.
 		local a, b
 		for _, spell in ipairs(ticks) do
@@ -3511,7 +3522,12 @@ do
 		local ticks = family.keep and ns.KeepTicks(family)
 		if ticks then
 			local ok, up, left, a, b = pcall(ScanKept, byId, ticks, now)
-			if not ok then return nil end
+			if not ok then
+				-- A read that threw saw nothing: the next starts afresh, as for
+				-- one withheld (ScanKept).
+				for key in pairs(keptLeft) do keptLeft[key] = nil end
+				return nil
+			end
 			if a and b then ns.Guard("elixir clash", ns.NoteElixirClash, a, b) end
 			return up, nil, left
 		end
@@ -3954,7 +3970,14 @@ do
 	ns.ownAurasChanged = true
 	function ns.RememberOwnBuffs()
 		ns.ownAurasChanged = false
+		keptRead.walked = false
 		for _, family in ipairs(ns.KnownOwnFamilies()) do ns.ReadOwnFamily(family) end
+		-- The ticked elixirs went unread through a change of your auras: what
+		-- was last read of them says nothing now, and the next reading starts
+		-- afresh rather than seeing a pair that does not stack (ScanKept).
+		if not keptRead.walked then
+			for key in pairs(keptLeft) do keptLeft[key] = nil end
+		end
 	end
 end
 
@@ -5075,6 +5098,18 @@ function ns.ElixirPartner(spell)
 	local partner = type(key) == "string" and ns.FindOwnSpell(key) or nil
 	if partner and partner.family == spell.family then return partner end
 	return nil
+end
+
+-- A tick under Elixirs to keep up changed (Options/Who.lua): the elixir is
+-- no longer kept as one with the one it was found not to stack with, both
+-- ways, so a pair wrongly taken for one can be parted from the page.
+function ns.ForgetElixirClash(key)
+	local char = addon.db and addon.db.char
+	local clash = type(char) == "table" and char.elixirClash
+	if type(clash) ~= "table" then return end
+	local other = clash[key]
+	clash[key] = nil
+	if type(other) == "string" and clash[other] == key then clash[other] = nil end
 end
 
 -- Two ticked elixirs found not to stack: the one just drunk took the other's

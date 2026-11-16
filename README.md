@@ -381,7 +381,8 @@ once you carry one.
   for each ticked one that is in your bags and not on you, one at a time.
   With none ticked, any one elixir on you will do. Two ticked elixirs the
   game does not let stack (one drunk takes the other off) are noticed, said
-  once in chat, and kept as one from then on. A Scroll of Intellect,
+  once in chat, and kept as one from then on; untick and tick either again to
+  have both reminded of once more. A Scroll of Intellect,
   Stamina or Spirit waits while the class buff of the same stat is on you,
   unless that is a weaker rank than the scroll; the other way round, somebody wearing such a scroll worth at
   least what your rank would give them is not offered your Fortitude,

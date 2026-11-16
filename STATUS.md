@@ -30,7 +30,9 @@ name no slot anywhere: one family, `keep`, with *Elixirs to keep up*
 elixir in the bags in turn (Core.lua `ns.KeepTicks`, `ScanKept`,
 `KeepAnswer`); a ticked one that comes on as another ticked one goes with
 more than a minute left makes the pair one (`db.char.elixirClash`, said once),
-and one the game turns away ("A more powerful spell is already active") is
+judged only between two readings with nothing unread between (a walk of your
+families that did not read them, a reading withheld or thrown starts afresh),
+and parted again by either one's tick changing (`ns.ForgetElixirClash`); one the game turns away ("A more powerful spell is already active") is
 passed over for its ten minutes (`ns.heldOff`). The one switch, a pick of a
 guardian elixir and the memory of one up last carry over once a profile
 (`ns.SplitElixirs`, stamp `ownBuffs.elixirsSplit`, which a settings string

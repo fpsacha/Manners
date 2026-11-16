@@ -379,6 +379,119 @@ for _, client in ipairs({ "camelot", "vanilla" }) do
 	end)
 end
 
+-- A change of auras the ticked elixirs were not read through (the switch off a
+-- while): one cancelled and another drunk then is no pair that does not stack.
+for _, client in ipairs({ "camelot", "vanilla" }) do
+	local scenario = "elixir-pair: " .. client .. ": a gap in the readings is no clash"
+	with(scenario, { flavour = client, on = { "elixir" } }, function(ns, data)
+		local a, b = data.elixir[1], data.elixir[2]
+		if not (a and b) then
+			fail(scenario, "SKIPPED -- no two elixirs on " .. client)
+			return
+		end
+		local own = ns.db.profile.ownBuffs
+		local A, B = "elixir" .. a[1], "elixir" .. b[1]
+		own.elixirKeep[A] = true
+		own.elixirKeep[B] = true
+		stock(ns, { [a[1]] = 1, [b[1]] = 1 })
+		wearing(ns, { [a[3]] = 1500 })
+		if offers(ns, "elixir") ~= B then
+			fail(scenario, "SKIPPED -- the first on, the second not offered: " .. offers(ns, "elixir"))
+			return
+		end
+		-- The switch off: a change of auras walks your families, the ticked
+		-- elixirs unread. The first is cancelled, the second drunk.
+		own.pick.elixir = "off"
+		wearing(ns, { [b[3]] = 1500 })
+		ns.RememberOwnBuffs()
+		own.pick.elixir = "auto"
+		offers(ns, "elixir")
+		local clash = ns.db.char.elixirClash
+		if type(clash) == "table" and (clash[A] or clash[B]) then
+			fail(scenario, "an elixir cancelled and another drunk while unread were taken for a pair that does not stack")
+		end
+		if offers(ns, "elixir") ~= A then
+			fail(scenario, "the second on, the first not asked for again: " .. offers(ns, "elixir"))
+		end
+	end)
+end
+
+-- A reading the client refuses (Forever hides your auras in a fight): what
+-- changed behind it is no pair that does not stack either.
+do
+	local scenario = "elixir-pair: camelot: a refused reading is no clash"
+	with(scenario, { flavour = "camelot", on = { "elixir" } }, function(ns, data)
+		local a, b = data.elixir[1], data.elixir[2]
+		local A, B = "elixir" .. a[1], "elixir" .. b[1]
+		local own = ns.db.profile.ownBuffs
+		own.elixirKeep[A] = true
+		own.elixirKeep[B] = true
+		stock(ns, { [a[1]] = 1, [b[1]] = 1 })
+		wearing(ns, { [a[3]] = 1500 })
+		if offers(ns, "elixir") ~= B then
+			fail(scenario, "SKIPPED -- the first on, the second not offered: " .. offers(ns, "elixir"))
+			return
+		end
+		local api = C_UnitAuras
+		local read = api.GetUnitAuraBySpellID
+		-- Withheld as a secret, then a read that throws.
+		for _, how in ipairs({ "withheld", "thrown" }) do
+			local first, second = a, b
+			if how == "thrown" then first, second = b, a end
+			wearing(ns, { [first[3]] = 1500 })
+			offers(ns, "elixir")
+			rawset(api, "GetUnitAuraBySpellID", function()
+				if how == "thrown" then error("refused") end
+				return Mock.SECRET
+			end)
+			wearing(ns, { [second[3]] = 1500 })
+			local hidden = offers(ns, "elixir")
+			rawset(api, "GetUnitAuraBySpellID", read)
+			if hidden ~= "none" then fail(scenario, how .. ": a refused reading, and offered " .. hidden) end
+			offers(ns, "elixir")
+			local clash = ns.db.char.elixirClash
+			if type(clash) == "table" and (clash[A] or clash[B]) then
+				fail(scenario, how .. ": an elixir gone and another come behind a refused reading were taken for a pair that does not stack")
+				ns.db.char.elixirClash = nil
+			end
+			Mock.advance(10)
+		end
+	end)
+end
+
+-- Two wrongly kept as one part again from the page.
+do
+	local scenario = "elixir-pair: camelot: a tick parts a pair kept as one"
+	with(scenario, { flavour = "camelot", on = { "elixir" } }, function(ns, data)
+		local a, b = data.elixir[1], data.elixir[2]
+		local A, B = "elixir" .. a[1], "elixir" .. b[1]
+		local own = ns.db.profile.ownBuffs
+		own.elixirKeep[A] = true
+		own.elixirKeep[B] = true
+		stock(ns, { [a[1]] = 1, [b[1]] = 1 })
+		ns.db.char.elixirClash = { [A] = B, [B] = A }
+		wearing(ns, { [a[3]] = 1500 })
+		if offers(ns, "elixir") ~= "none" then
+			fail(scenario, "SKIPPED -- a pair kept as one, the first on, and offered " .. offers(ns, "elixir"))
+			return
+		end
+		local control = findOption(ns.optionsTable, "own_elixirkeep")
+		if not control then
+			fail(scenario, "Who to buff has no Elixirs to keep up")
+			return
+		end
+		control.set(nil, B, false)
+		control.set(nil, B, true)
+		local clash = ns.db.char.elixirClash
+		if type(clash) == "table" and (clash[A] or clash[B]) then
+			fail(scenario, "unticking and ticking the second left the two kept as one")
+		end
+		if offers(ns, "elixir") ~= B then
+			fail(scenario, "the pair parted, the first on, and the second not offered: " .. offers(ns, "elixir"))
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ carried over
 
 for _, client in ipairs({ "tbc", "mists" }) do
