@@ -263,6 +263,23 @@ do
 		Send(seen, emote, whisper, unit, now)
 	end
 
+	-- What a thank that waited out its pause leaves behind it when it never
+	-- went (they rode off, a fight began, the whisper by name was refused):
+	-- the newest named favour passed over meanwhile, then the newest landing
+	-- with nobody behind it (ThankUnseen), each only while nothing has gone
+	-- since `sent`, so a burst is one thank, not none, and never two.
+	local PausedUnseen
+	local function Behind(mine, sent)
+		local behind = mine.behind
+		if behind and lastAt == sent then
+			ns.Guard("thank after a pause", Paused, behind.seen, behind.emote, behind.whisper)
+		end
+		local unseen = mine.unseen
+		if unseen and lastAt == sent then
+			ns.Guard("thank after a pause", PausedUnseen, unseen)
+		end
+	end
+
 	-- Asked only with a switch on (NoteFavour): `emote` for the /thank, `whisper`
 	-- for a thank-you whispered to somebody you will not buff back. One set of
 	-- rules and limits for both, armed by whichever went.
@@ -294,10 +311,7 @@ do
 			ns.Guard("thank after a pause", Paused, seen, emote, whisper)
 			-- Nothing went (they rode off, a fight began): the favour passed over
 			-- during the pause is thanked instead, so a burst is one thank, not none.
-			local behind = mine.behind
-			if behind and lastAt == sent then
-				ns.Guard("thank after a pause", Paused, behind.seen, behind.emote, behind.whisper)
-			end
+			Behind(mine, sent)
 		end)
 	end
 
@@ -351,7 +365,7 @@ do
 		ns.Trail("thank", ("thanked somebody unseen with an emote (spell %s)"):format(tostring(seen.key)))
 	end
 
-	local function PausedUnseen(seen)
+	PausedUnseen = function(seen)
 		local db = ns.db and ns.db.profile
 		if not UnseenLive(db) then return end
 		local now = GetTime()
@@ -364,8 +378,10 @@ do
 		local db = ns.db and ns.db.profile
 		if not UnseenLive(db) then return end
 		local now = GetTime()
-		-- One thank waits out its pause at a time, a named one or this.
+		-- One thank waits out its pause at a time, a named one or this. This
+		-- landing is kept behind it (the newest), thanked if that one never goes.
 		if waiting and now - waiting.at < PAUSE_MAX + 2 then
+			waiting.unseen = seen
 			return SkipUnseen(seen.key, now, L["thanked somebody a moment ago"])
 		end
 		waiting = nil
@@ -383,10 +399,7 @@ do
 			if waiting == mine then waiting = nil end
 			local sent = lastAt
 			ns.Guard("thank after a pause", PausedUnseen, seen)
-			local behind = mine.behind
-			if behind and lastAt == sent then
-				ns.Guard("thank after a pause", Paused, behind.seen, behind.emote, behind.whisper)
-			end
+			Behind(mine, sent)
 		end)
 	end
 end
@@ -552,13 +565,17 @@ do
 		local source = plain(aura.sourceUnit)
 		-- Nobody behind it, as the client says plainly: no source at all, not
 		-- one withheld (a secret is "cannot tell", never "nobody"; asked by
-		-- type, since comparing a secret throws), nor an aura the client says
-		-- is your own or your pet's. Only such a class buff is thanked with no
-		-- name (Thank them even when I can't see who it was: ThankNobody, when
-		-- the scan files the landing). An NPC's has a token, so it is never
-		-- this, and is dropped below as ever.
+		-- type, since comparing a secret throws), and a player's cast all the
+		-- same. isFromPlayerOrPlayerPet is true for ANY player's aura, not only
+		-- yours (Core.lua's blessings read it so, and Blizzard's TargetFrame
+		-- passes it as casterIsAPlayer), so it is what tells a stranger from an
+		-- NPC no nameplate names either: false is an NPC's, and nil or a secret
+		-- cannot tell, none of them thanked. Your own and your pet's casts name
+		-- "player" or "pet" and never reach here. Only such a class buff is
+		-- thanked with no name (Thank them even when I can't see who it was:
+		-- ThankNobody, when the scan files the landing).
 		if type(aura.sourceUnit) == "nil" and ns.ALL_BUFF_IDS[key]
-			and plain(aura.isFromPlayerOrPlayerPet) ~= true then
+			and plain(aura.isFromPlayerOrPlayerPet) == true then
 			seen.unseen = true
 		end
 		-- A class buff with no caster to read: a stranger the game gave no

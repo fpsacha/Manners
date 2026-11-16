@@ -73,7 +73,12 @@ off. `prompt.thankUnseen` (What I say, under the whispered thank-you, live
 while either thank switch is on). Two paths in `Favours.lua`. A: `Sight` marks
 a sighting `unseen` when the aura's `sourceUnit` is plainly absent (asked by
 `type`, so a secret is "cannot tell", never "nobody"), the spell is in
-`ALL_BUFF_IDS` and `isFromPlayerOrPlayerPet` is not true; the filing pass
+`ALL_BUFF_IDS` and `isFromPlayerOrPlayerPet` is plainly true (the client
+sets it for ANY player's aura, a stranger's too, as Core.lua's blessings and
+Blizzard's TargetFrame read it, so it tells a stranger from an NPC with no
+token; false, nil or a secret gets no thank; your own casts name `player` and
+never reach it; the first build read it the wrong way round, which a review
+caught: the mock now sets it true by default); the filing pass
 (the same `IsNew` and believed-scan judgement a named favour gets) hands it to
 `ThankNobody`, which drops a shout and anything `MaybeMember` says may be the
 group's (in a group: a buff of no class, or of a class somebody in it is or
@@ -81,7 +86,9 @@ whose class does not read; the safe side, since a member's token read a moment
 late looks like none), then `ThankUnseen`: `Held`, never with somebody
 targeted (an emote with no name goes at your target), the ten-second gap, once
 a spell in five minutes (`unseenAt`), the pause and the switches asked again
-after it; `PerformEmote(token)` with no target, written to
+after it (a landing passed over while another thank waits out its pause is
+kept behind it, the newest, and thanked if that one never goes: `Behind`,
+which also keeps ThankFavour's named one); `PerformEmote(token)` with no target, written to
 `ns.thankLog.unseen` (a skip to `unseenSkipped`), shown by `/manners debug`
 and the check-up (`thankUnseen=`). No debt, no chat line. B (Classic Era, TBC,
 Mists): a combat log record nobody's token holds (`ns.UnitFor`) is whispered
@@ -94,7 +101,7 @@ read for this even with People who buff me off. A whisper by name stamps
 The nameplates hint (`Hints.lua`) names the switch to a player who thanks, and
 with it on says the emote thanks them. A pasted line never switches it on
 (`SHARE_KEEP_MINE`). `tests/scenarios/thank-unseen.lua`,
-`tests/mutations/thank-unseen.py` (43, each CAUGHT by `prove.py`). What only
+`tests/mutations/thank-unseen.py` (48, each CAUGHT by `prove.py`). What only
 the game can say is under *Open*, step 2.
 
 **First name only, how often my own lines are said, lines left out (branch
@@ -736,7 +743,10 @@ for. Paste what does not match, and the report of step 1 every time.
    prints for the emote with no target ("You thank everyone." or the like),
    whether it goes at all from addon code, and whether `aura.sourceUnit` is
    nil for a stranger with no nameplate on Forever and retail or a withheld
-   value (a secret gets no thank, so then nothing goes); on Classic Era, TBC
+   value (a secret gets no thank, so then nothing goes), and that such an
+   aura's `isFromPlayerOrPlayerPet` reads plainly true (nil, false or a
+   secret there, and nothing goes); a friendly NPC's buff with no nameplate,
+   that it reads false; on Classic Era, TBC
    and Mists, whether it is nil there too, and that the whisper by name
    reaches somebody of your own realm. Also, in a group, that a member's
    buff always carries its party or raid token (the switch stays quiet for a

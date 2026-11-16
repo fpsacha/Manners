@@ -49,7 +49,7 @@ mutate("Favours.lua",
        expect="thanks-hunt: a warrior whispers a stranger who buffs him", script=S)
 
 mutate("Favours.lua",
-       "\t\t\tif behind and lastAt == sent then\n",
-       "\t\t\tif false then\n",
+       "\t\tif behind and lastAt == sent then\n",
+       "\t\tif false then\n",
        "thanks-hunt: a favour during a pause that fails is dropped",
        expect="thanks-hunt: a favour during a pause whose thank never goes is still thanked", script=S)

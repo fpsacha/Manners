@@ -125,11 +125,31 @@ mutate("Favours.lua",
        expect="thank-unseen: an NPC's buff is not thanked", script=S)
 
 mutate("Favours.lua",
-       "\t\tif type(aura.sourceUnit) == \"nil\" and ns.ALL_BUFF_IDS[key]\n"
-       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) ~= true then\n",
-       "\t\tif type(aura.sourceUnit) == \"nil\" and ns.ALL_BUFF_IDS[key] then\n",
+       "\t\tif type(aura.sourceUnit) == \"nil\" and ns.ALL_BUFF_IDS[key]\n",
+       "\t\tif (type(aura.sourceUnit) == \"nil\" or source == \"player\") and ns.ALL_BUFF_IDS[key]\n",
        "thank-unseen: your own buff read as nobody's",
-       expect="thank-unseen: a buff the client calls your own is not thanked", script=S)
+       expect="thank-unseen: a buff you cast yourself is not thanked", script=S)
+
+# isFromPlayerOrPlayerPet is true for any player's aura: read the wrong way
+# round (as the first build did), a stranger's buff is never thanked.
+mutate("Favours.lua",
+       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) == true then\n",
+       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) ~= true then\n",
+       "thank-unseen: a player's cast read as your own",
+       expect="thank-unseen: a stranger's buff the client flags as a player's is thanked", script=S)
+
+mutate("Favours.lua",
+       "\t\tif type(aura.sourceUnit) == \"nil\" and ns.ALL_BUFF_IDS[key]\n"
+       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) == true then\n",
+       "\t\tif type(aura.sourceUnit) == \"nil\" and ns.ALL_BUFF_IDS[key] then\n",
+       "thank-unseen: an NPC with no token read as a stranger",
+       expect="thank-unseen: an NPC with no token is not thanked", script=S)
+
+mutate("Favours.lua",
+       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) == true then\n",
+       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) ~= false then\n",
+       "thank-unseen: a caster's kind the client will not say read as a player's",
+       expect="thank-unseen: a caster the client will not call a player or not is not thanked", script=S)
 
 mutate("Favours.lua",
        "\t\treturn db and db.enabled and db.prompt.thankUnseen == true and db.prompt.thankEmote == true or false\n",
@@ -162,6 +182,20 @@ mutate("Favours.lua",
        "\t\tif not (false and type(timer) == \"table\" and type(timer.After) == \"function\") then\n",
        "thank-unseen: the pause ignored",
        expect="thank-unseen: with the pause on, the emote waits for it", script=S)
+
+mutate("Favours.lua",
+       "\t\t\twaiting.unseen = seen\n",
+       "",
+       "thank-unseen: a landing passed over during a pause dropped",
+       expect="thank-unseen: a landing passed over while a named thank waits is thanked when that one never goes", script=S)
+
+mutate("Favours.lua",
+       "\t\tlocal unseen = mine.unseen\n"
+       "\t\tif unseen and lastAt == sent then\n",
+       "\t\tlocal unseen = nil\n"
+       "\t\tif unseen and lastAt == sent then\n",
+       "thank-unseen: classic: a landing kept behind a refused whisper never thanked",
+       expect="thank-unseen: classic: the whisper by name refused after its pause leaves the emote to the scan", script=S)
 
 mutate("Favours.lua",
        "\t\tif not UnseenLive(db) then return end\n"

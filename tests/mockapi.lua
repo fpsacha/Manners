@@ -225,9 +225,10 @@ function Mock.reset()
 	-- naming nobody, which is a stranger with no nameplate -- unidentifiable,
 	-- and a hard limit rather than an oversight.
 	Mock.extraAuraSource = "nameplate1"
-	-- The aura's isFromPlayerOrPlayerPet: nil, as the client leaves it for an
-	-- aura not of your own making; true for one the client calls yours.
-	Mock.extraAuraFromPlayer = nil
+	-- The aura's isFromPlayerOrPlayerPet: true for an aura ANY player (or a
+	-- player's pet) cast, yours or a stranger's, as the client sets it; false
+	-- for an NPC's; nil where a scenario wants the client saying nothing.
+	Mock.extraAuraFromPlayer = true
 	Mock.auraIdBase = 0
 	-- How many auras the player is carrying, in slots 1..n. Two is what every
 	-- scenario written before this knob assumed, so that is the default.

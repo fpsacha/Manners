@@ -131,9 +131,11 @@ Everybody who could use your buff is queued, in this order:
    *Quick setup* is still asking, too), the minimap tooltip in amber, and the
    options window's strip, each with *Show friendly nameplates* or the way to
    it. When a stranger's buff lands with nobody to name, one line in chat says
-   why there is nobody to buff back, once a session on your first three, and
-   names *Thank them even when I can't see who it was* (under *What I say*),
-   which thanks them with your emote, nobody targeted, all the same.
+   why there is nobody to buff back, once a session on your first three. If
+   you thank with an emote and *Thank them even when I can't see who it was*
+   (under *What I say*) is off, the line names it: it thanks them with your
+   emote, nobody targeted, all the same. With it on, the line says your emote
+   thanks them where it may.
 
 Ahead of all of them comes your **resurrection** for a dead member of your
 group, and a **cure** comes before any buff for the same person; a **courtesy**
@@ -1012,7 +1014,8 @@ Everything here is off until you turn it on.
     whispered thank-you goes to them by name. Never while you have somebody
     targeted (the emote would go at them), never for a buff that may be a
     group member's (somebody in your group of the buff's class), a shout, a
-    buff the game will not say the caster of, or one of your own; under the
+    buff the game will not say the caster of, one the game says no player
+    cast (a friendly NPC's), or one of your own; under the
     /thank's other rules, once per buff every five minutes, and one landing
     is one thank. A pasted settings line never turns it on.
   - *Say a line when I buff someone*, with *Where to say it* (say, yell,

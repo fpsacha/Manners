@@ -283,11 +283,49 @@ do
 end
 
 do
-	local scenario = "thank-unseen: a buff the client calls your own is not thanked"
+	local scenario = "thank-unseen: a buff you cast yourself is not thanked"
+	with(scenario, { unseen = true }, function(ns)
+		land(ns, "player")
+		if #emotes ~= 0 then fail(scenario, "your own buff was thanked") end
+		if ns.thankLog.unseen then fail(scenario, "your own buff was written down as unseen") end
+	end)
+end
+
+-- isFromPlayerOrPlayerPet is true for any player's aura, a stranger's too (the
+-- client sets it so; Blizzard's TargetFrame reads it as casterIsAPlayer): it is
+-- what tells a stranger with no nameplate from an NPC with none.
+do
+	local scenario = "thank-unseen: a stranger's buff the client flags as a player's is thanked"
 	with(scenario, { unseen = true }, function(ns)
 		Mock.extraAuraFromPlayer = true
 		land(ns, nil)
-		if #emotes ~= 0 then fail(scenario, "your own buff was thanked") end
+		if atNobody() ~= 1 then
+			fail(scenario, ("%d emotes for a stranger's buff flagged as a player's"):format(atNobody()))
+		end
+	end)
+end
+
+do
+	local scenario = "thank-unseen: an NPC with no token is not thanked"
+	with(scenario, { unseen = true }, function(ns)
+		-- No nameplate and not targeted: no token, as for a stranger, but the
+		-- client says no player cast it.
+		Mock.extraAuraFromPlayer = false
+		land(ns, nil)
+		if #emotes ~= 0 then fail(scenario, "an NPC's buff with no token was thanked into the air") end
+	end)
+end
+
+do
+	local scenario = "thank-unseen: a caster the client will not call a player or not is not thanked"
+	with(scenario, { unseen = true }, function(ns)
+		Mock.extraAuraFromPlayer = nil
+		land(ns, nil)
+		if #emotes ~= 0 then fail(scenario, "thanked with the client saying nothing of who cast it") return end
+		Mock.advance(400)
+		Mock.extraAuraFromPlayer = Mock.SECRET
+		land(ns, nil)
+		if #emotes ~= 0 then fail(scenario, "thanked with whose cast it was withheld") end
 	end)
 end
 
@@ -368,6 +406,52 @@ do
 		ns.db.profile.prompt.thankUnseen = false
 		Mock.runTimers(3.5)
 		if #emotes ~= 0 then fail(scenario, "thanked after the switch was turned off") end
+	end)
+end
+
+-- A class buff of another spell than Fortitude, for a second landing.
+local function another(ns)
+	for _, class in ipairs({ "MAGE", "DRUID", "PALADIN" }) do
+		for _, buff in ipairs(ns.BUFFS[class] or {}) do
+			local id = buff.ranks and buff.ranks[1]
+			if id and id ~= fortitude(ns) and ns.ALL_BUFF_IDS[id] and not (buff.selfCast and buff.partyOnly) then
+				return id
+			end
+		end
+	end
+end
+
+do
+	local scenario = "thank-unseen: a landing passed over while a named thank waits is thanked when that one never goes"
+	local names = { nameplate1 = { "Anna", "Aim" } }
+	with(scenario, { unseen = true, delay = true, names = names }, function(ns)
+		local spell = another(ns)
+		if not spell then fail(scenario, "SKIPPED -- no second class buff here") return end
+		land(ns, "nameplate1")
+		Mock.advance(0.5)
+		land(ns, nil, spell)
+		-- Anna rides off before her pause ends: her thank cannot go.
+		names.nameplate1 = nil
+		Mock.runTimers(3.5)
+		if #emotes ~= 1 or emotes[1][2] ~= nil then
+			fail(scenario, ("%d emotes, the first at %s: the unseen landing was dropped"):format(#emotes,
+				tostring(emotes[1] and emotes[1][2])))
+		end
+	end)
+end
+
+do
+	local scenario = "thank-unseen: a landing passed over while a named thank waits adds nothing when that one goes"
+	with(scenario, { unseen = true, delay = true }, function(ns)
+		local spell = another(ns)
+		if not spell then fail(scenario, "SKIPPED -- no second class buff here") return end
+		land(ns, "nameplate1")
+		Mock.advance(0.5)
+		land(ns, nil, spell)
+		Mock.runTimers(3.5)
+		if #emotes ~= 1 or emotes[1][2] ~= "nameplate1" then
+			fail(scenario, ("%d emotes for a burst, the first at %s"):format(#emotes, tostring(emotes[1] and emotes[1][2])))
+		end
 	end)
 end
 
@@ -555,5 +639,20 @@ do
 		Mock.advance(12)
 		fromTheLog(ns)
 		if #whispers ~= 0 then fail(scenario, "one landing was thanked with an emote and then whispered: " .. listed()) end
+	end)
+end
+
+do
+	local scenario = "thank-unseen: classic: the whisper by name refused after its pause leaves the emote to the scan"
+	classic(scenario, { unseen = true, whisper = true, delay = true, owed = false }, function(ns)
+		fromTheLog(ns)
+		if #whispers ~= 0 then fail(scenario, "SKIPPED -- the whisper did not wait out its pause") return end
+		Mock.advance(0.5)
+		land(ns, nil, 21562)
+		-- By the end of the pause the client will not place the name on your realm.
+		Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra" } }
+		Mock.runTimers(3.5)
+		if #whispers ~= 0 then fail(scenario, "SKIPPED -- the whisper went all the same") return end
+		if atNobody() ~= 1 then fail(scenario, ("%d emotes: one landing, and nobody thanked"):format(atNobody())) end
 	end)
 end
