@@ -228,6 +228,33 @@ withTree("painted-leather: the icon sits in the porthole, the words stay in the 
 			if FT.visible(t) then fail(scenario, at .. ": Leather's own key patch (" .. i .. ") is drawn over the painted keycap") end
 		end
 	end
+	-- A controller's buttons (their glyphs drawn at the size their markup
+	-- says) are drawn smaller until they fit the painted keycap, which cannot
+	-- grow: the label measured as the frame draws it.
+	local restoreText = Mock.withBindingText()
+	local wasCVar = rawget(_G, "GetCVar")
+	rawset(_G, "GetCVar", function(name)
+		return ({ GamePadEmulateShift = "PADLTRIGGER", GamePadEmulateCtrl = "PADLSHOULDER", GamePadEmulateAlt = "none" })[name]
+	end)
+	for _, key in ipairs({ "PAD1", "CTRL-SHIFT-PAD4", "ALT-PADLSHOULDER" }) do
+		Mock.bindings = { [key] = "CLICK MannersPrompt:LeftButton" }
+		local _, _, look = upIn(ns, scenario, function(pp) pp.width, pp.height = 220, 44 end)
+		local art = look and look.paintedArt
+		local label = look and look.keyText and look.keyText:GetText() or ""
+		if not (art and art.on and FT.visible(look.keyText)) then
+			fail(scenario, key .. ": the key's letter is not drawn on the painted keycap")
+		elseif not label:find("|A:Gamepad_", 1, true) then
+			fail(scenario, key .. ": the keycap reads " .. label .. ", no button glyph")
+		else
+			local width = look.keyText:GetUnboundedStringWidth()
+			if type(width) == "number" and width > art.g.keyW + 0.5 then
+				fail(scenario, ("%s: the keycap is %.1f wide for a label %.1f wide"):format(key, art.g.keyW, width))
+			end
+		end
+	end
+	rawset(_G, "GetCVar", wasCVar)
+	restoreText()
+	Mock.bindings = {}
 end)
 
 -- ------------------------------------------------------------------ 4

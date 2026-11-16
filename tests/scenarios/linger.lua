@@ -1423,11 +1423,16 @@ Mock.reset()
 -- or "Only buffs they can use" turned on for somebody with no mana bar, and
 -- they are let go rather than offered what the settings now rule out.
 for _, case in ipairs({
+	-- Shadow Protection switched on with it, so the walk still has a spell to
+	-- offer and runs: with none left it stops before anybody remembered is
+	-- read, and the memory's own check would never be asked.
 	{ label = "the spell is switched off", priest = true,
 		apply = function(ns)
 			local buff = ns.db.profile.buff
 			buff.skip = buff.skip or {}
 			buff.skip.fortitude = true
+			buff.optIn = buff.optIn or {}
+			buff.optIn.shadow = true
 		end },
 	{ label = "another spell is pinned", priest = true,
 		apply = function(ns) ns.db.profile.buff.choice = "shadow" end },
@@ -1454,9 +1459,10 @@ for _, case in ipairs({
 			return
 		end
 		case.apply(ns)
-		later = entriesFor(ns, ANNA)[1]
-		if later and later.buff.key == want then
-			fail(scenario, "a remembered stranger was still offered " .. want .. " after " .. case.label)
+		for _, entry in ipairs(entriesFor(ns, ANNA)) do
+			if entry.buff.key == want then
+				fail(scenario, "a remembered stranger was still offered " .. want .. " after " .. case.label)
+			end
 		end
 		noErrors(scenario, ns)
 	end)

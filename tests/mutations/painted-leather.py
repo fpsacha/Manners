@@ -67,7 +67,7 @@ mutate(LEATHER,
        "\t\tself.keyText:SetText(text)\n\tend\nend\n",
        "\tend\nend\n",
        "painted-leather: a controller's buttons drawn wider than the keycap",
-       expect="actionbar: the key chip with a controller's buttons fits in every look", script=S)
+       expect="painted-leather: the icon sits in the porthole, the words stay in the well", script=S)
 
 mutate(LEATHER,
        "\tif ns.Looks.Painted.On(self) then rim = out or mode ~= \"off\" end\n",

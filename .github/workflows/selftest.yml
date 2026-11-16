@@ -20,18 +20,23 @@ on:
     branches: [master]
   workflow_dispatch:
 
-# A newer push makes an older run of master moot.
+# One run of a ref at a time. A run of master is never cancelled: a run takes
+# hours and master is pushed more often than that, so cancelling the older one
+# left no run of master that ever finished (every run from 12 to 16 November
+# 2026 was cancelled or cut off). A newer push waits instead, and only the
+# newest one waiting runs next. A branch's older run is still moot.
 concurrency:
   group: selftest-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
   part:
     runs-on: ubuntu-24.04
-    # 240: a part with no trace kept from a run before it (a cancelled or
-    # failed part keeps none) traces its share of the suite first, and 90
-    # minutes cut every part of 1.11.25's first runs off before a verdict.
-    timeout-minutes: 240
+    # 350, ten short of a hosted runner's six hours, which leaves the step's
+    # own limit below room to keep the trace: a part with no trace kept traces
+    # its share of the suite first (35 to 45 minutes on 1.11.26), and 240 cut
+    # half the parts of 16 November's run off before a verdict.
+    timeout-minutes: 350
     strategy:
       fail-fast: false
       matrix:
@@ -55,26 +60,46 @@ jobs:
 
       # The scenario trace and the catches (which piece of the suite caught
       # each mutation last time) are kept between runs, per part: they only
-      # order the runs, so an old one costs time, never a verdict.
+      # order the runs, so an old one costs time, never a verdict. Restored
+      # here and saved by a step of its own that runs whatever the part's
+      # verdict: actions/cache saves only after a job that passed, so a part
+      # that failed or ran out of time kept nothing, and every part of every
+      # run traced the suite afresh ("Cache not found" on every runner).
       - name: The trace and catches of the last run
-        uses: actions/cache@v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ runner.temp }}/manners-selftest-trace
           key: selftest-${{ matrix.part }}-${{ github.run_id }}
           restore-keys: selftest-${{ matrix.part }}-
 
       # `shell: bash` for -eo pipefail: without it the pipe's status is tee's.
+      # --jobs 3 on the runner's four cores: four left nothing for the runner
+      # itself, and parts died with "The hosted runner lost communication with
+      # the server". `ulimit -v` holds each process to 4 GB of address space
+      # (a scenario process peaks at a few hundred MB), so a mutation that
+      # turns a loop into one that allocates without end fails its own run
+      # rather than taking the runner's 16 GB down with it. The step's limit
+      # is under the job's so the trace is still saved.
       - name: Part ${{ matrix.part }} of 16
         shell: bash
+        timeout-minutes: 335
         env:
           TMPDIR: ${{ runner.temp }}
         run: |
-          python tests/selftest.py --part ${{ matrix.part }}/16 --jobs 4 | tee selftest.out
+          ulimit -v 4194304
+          python tests/selftest.py --part ${{ matrix.part }}/16 --jobs 3 | tee selftest.out
           if grep -q "^\(MISSED\|ANCHOR GONE\|WRONG CHECK\|NOT RESTORED\): " selftest.out; then
             echo "::error::a check no longer detects the fault it exists for"
             exit 1
           fi
           tail -n 25 selftest.out >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the trace and catches for the next run
+        if: always()
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ${{ runner.temp }}/manners-selftest-trace
+          key: selftest-${{ matrix.part }}-${{ github.run_id }}
 
       # A tree that fails before any mutation is judged says only how many
       # scenarios failed: this names them, so the run can be read without
@@ -84,5 +109,5 @@ jobs:
         shell: bash
         run: |
           if grep -q "the tree is already failing" selftest.out 2>/dev/null; then
-            python tests/runscenarios.py --jobs 4 | grep -v "^===" | tail -n 60 || true
+            python tests/runscenarios.py --jobs 3 | grep -v "^===" | tail -n 60 || true
           fi

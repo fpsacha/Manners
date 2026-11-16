@@ -469,15 +469,25 @@ withTree("look-minimal: somebody owed casts the line, then it breathes and the s
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	if dress.breath._playing or dress.patrol._playing then fail(scenario, "on Flash once the owed loops run") end
-	-- Flash off: an owed line is a line at rest.
+	-- Flash off: an owed line is a line at rest, and it is not cast either
+	-- (the dressing is asked with Flash off, and answers it itself).
 	p.flashStyle = "off"
+	local offCasts, offSparks = plays(dress.fillIn), plays(dress.cast)
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	if not near(dress.fill:GetAlpha(), REST, 0.001) or (dress.glow:GetAlpha() or 1) > 0.001 then fail(scenario, "with Flash off the owed line is lit as if it flashed") end
+	if plays(dress.fillIn) ~= offCasts or plays(dress.cast) ~= offSparks then
+		fail(scenario, "with Flash off the owed line is lit as if it flashed: the line was cast")
+	end
 	p.flashStyle = "pulse"
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	if not dress.breath._playing then fail(scenario, "back on Pulse the owed line does not breathe") end
+	-- The cast over again, so the line stands lit at full before the favour
+	-- is done.
+	Mock.advance(0.6)
+	FT.settle()
+	if not near(dress.fill:GetAlpha(), OWED, 0.001) then fail(scenario, "back on Pulse, the cast over, the lit line is at " .. tostring(dress.fill:GetAlpha())) end
 
 	-- The favour done: the loops stop, the line rests, the glint comes back.
 	wipe(ns.owed)

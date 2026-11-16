@@ -235,6 +235,39 @@ for _, style in ipairs(ALL) do
 	end)
 end
 
+-- The same in a painting whose socket sits off the button's middle (Earlier
+-- art off): the rings are held to the nearer of the socket's top and bottom,
+-- not to half the button.
+for _, style in ipairs({ "wild", "gearworks" }) do
+	local name = "hunt37-effects: the rings, the echo and the halo stay in their room, painted, in " .. style
+	withTree(name, ANNA, function(ns, scenario)
+		for _, size in ipairs(SIZES) do
+			local painted = { name = size.name, p = size.p, edit = function(p)
+				p.classicArt = false
+				if size.edit then size.edit(p) end
+			end }
+			local r = upIn(ns, scenario, style, painted)
+			local art = r.look and r.look.paintedArt
+			if not (art and art.on) then fail(scenario, style .. ", " .. size.name .. ": no painted frame up") return end
+			local tag = style .. " painted, " .. size.name
+			local seen = { n = 0 }
+			sampleEvent(ns, scenario, r, tag .. " arriving", function()
+				owe(ns, "Anna Aim")
+				ns.addon:Tick()
+			end, seen)
+			sampleEvent(ns, scenario, r, tag .. " landing", function()
+				ns.Prompt:ShowOutcome("cast", "Anna Aim")
+			end, seen)
+			sampleEvent(ns, scenario, r, tag .. " refused", function()
+				ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+			end, seen)
+			if seen.n < 6 then
+				fail(scenario, tag .. ": the effects were not found at work (" .. seen.n .. " samples), so nothing was held")
+			end
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ 2
 -- The reach the code declares for each ring file is the reach the file has: the
 -- alpha over 2% of the art, as a fraction of its half-width, at most the

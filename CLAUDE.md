@@ -408,7 +408,11 @@ runscenarios (`--jobs 4`), and the listing images drawn with `--strict`.
 selftest is `selftest.yml`: sixteen runners, one `--part I/16` each, nightly, on
 every push to master and on `gh workflow run selftest.yml`; `gh workflow run
 selftest.yml --ref <branch>` proves a branch before it is merged, and the
-release tool counts that run once the branch is in master. A mutation the
+release tool counts that run once the branch is in master. Each part runs
+`--jobs 3` with every process held to 4 GB of address space, its step under
+335 minutes in a job of 350; a run of master is never cancelled by a newer
+push (that one waits, only the newest waiting runs next), and the trace is
+saved whatever the part's verdict. A mutation the
 pieces of the suite judged is remembered by the piece that caught it
 (`catches.json` beside the kept trace) and tried there first next time.
 
