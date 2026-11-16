@@ -5,6 +5,26 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "16 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Quiet in a group.|r |cffffffffSay nothing in a party|r and |cffffffffSay nothing in a raid|r, on |cffffffffWhat I say|r: the buff still goes out, the line stays in.",
+			"|cffffd100Two elixirs at once.|r Keep a second elixir up beside the first.",
+		} },
+		{ title = "What I say", accent = "7cc4ff", entries = {
+			"|cff7cc4ffSay nothing in a party, Say nothing in a raid.|r Two switches under |cffffffffSay a line when I buff someone|r, both off.",
+		} },
+		{ title = "Your own buffs", accent = "7cc4ff", entries = {
+			"|cff7cc4ffBattle Elixir and Guardian Elixir.|r On Burning Crusade and Mists, |cffffffffElixir|r is now a switch for each slot.",
+			"|cff7cc4ffElixirs to keep up.|r On Classic Era and WoW Forever, tick the elixirs you want on together; each one missing comes up in turn.",
+			"|cff7cc4ffA scroll holds its own slot.|r On Mists a scroll stands in only for an elixir of the slot it takes.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52A whispered thank-you that never went.|r A warrior, or anybody whose buff cannot reach the giver right now, whispers a stranger who buffs them.",
+			"|cffff9a52Nobody passed over while a thank-you waits.|r With |cffffffffWait a moment before thanking|r on, somebody who buffs you in the pause is thanked when the first thank-you cannot go.",
+			"|cffff9a52Stay silent is silent.|r Quick setup's |cffffffffStay silent|r also switches off the whispered thank-you, and a pasted settings line never switches it on.",
+			"|cffff9a52The check-up shows the whisper|r : that it is watching, and who it last went to.",
+		} },
+	} },
 	{ version = "1.11.26", date = "15 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Every look repainted.|r Each look's frame is now a painting, with ten new looks beside them.",
@@ -142,11 +162,6 @@ ns.WhatsNew = {
 	{ version = "1.11.24", date = "13 November 2026", sections = {
 		{ title = "Who gets what", accent = "7cc4ff", entries = {
 			"|cff7cc4ffWeapon imbues before the shield.|r A shaman's switch on |cffffffffWho to buff|r, under |cffffffffWeapon imbue|r: the imbues come up ahead of Lightning Shield, so a shield you have no mana for does not keep your imbue waiting.",
-		} },
-	} },
-	{ version = "1.11.23", date = "13 November 2026", sections = {
-		{ title = "Who gets what", accent = "7cc4ff", entries = {
-			"|cff7cc4ffWhich food.|r Under |cffffffffWell Fed|r on |cffffffffWho to buff|r: the best one you can eat (as before), the weakest first, or a food in your bags by name.",
 		} },
 	} },
 }

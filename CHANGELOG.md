@@ -1,5 +1,40 @@
 # Changelog
 
+## Unreleased
+
+*16 November 2026*
+
+### Highlights
+- **Quiet in a group.** *Say nothing in a party* and *Say nothing in a raid*,
+  on *What I say*: the buff still goes out, the line stays in.
+- **Two elixirs at once.** Keep a second elixir up beside the first. Asked
+  for on CurseForge.
+
+### What I say
+- **Say nothing in a party, Say nothing in a raid.** Two switches under *Say
+  a line when I buff someone*, both off. In a battleground or an arena, *Say
+  my line there* still decides.
+
+### Your own buffs
+- **Battle Elixir and Guardian Elixir.** On Burning Crusade and Mists,
+  *Elixir* is now a switch for each slot. A flask still fills both, and your
+  *Elixir* switch carries over to both.
+- **Elixirs to keep up.** On Classic Era and WoW Forever, tick the elixirs
+  you want on together; each one missing comes up in turn.
+- **A scroll holds its own slot.** On Mists a scroll stands in only for an
+  elixir of the slot it takes.
+
+### Fixes
+- **A whispered thank-you that never went.** A warrior, or anybody whose buff
+  cannot reach the giver right now, whispers a stranger who buffs them.
+- **Nobody passed over while a thank-you waits.** With *Wait a moment before
+  thanking* on, somebody who buffs you in the pause is thanked when the first
+  thank-you cannot go.
+- **Stay silent is silent.** Quick setup's *Stay silent* also switches off
+  the whispered thank-you, and a pasted settings line never switches it on.
+- **The check-up shows the whisper**: that it is watching, and who it last
+  went to.
+
 ## 1.11.26
 
 *15 November 2026*
