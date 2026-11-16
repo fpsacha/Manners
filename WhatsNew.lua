@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "15 November 2026", sections = {
+	{ version = "1.11.26", date = "15 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Every look repainted.|r Each look's frame is now a painting, with ten new looks beside them.",
 			"|cffffd100A Look page you can browse.|r Tabs for |cffffffffFor my class|r, |cffffffffAll|r and each shelf; point at a card to try that look on the prompt, click to keep it.",

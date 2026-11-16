@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.26
 
 *15 November 2026*
 
