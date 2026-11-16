@@ -5045,6 +5045,7 @@ L["One line is picked at random. Placeholders: {name} their name, {buff} the spe
 L["A line too long for a macro is skipped; Try a few shows what would go out."] = "超過巨集長度的台詞會被略過；「隨機試幾句」可看到實際會送出的內容。"
 L["In character picks one of its %d lines when you click, to fit your race, faction, class and the moment. The box below shows only a few examples; editing it turns In character off."] = "「入戲」會在你點擊時從%d句台詞中挑選一句，配合你的種族、陣營、職業和當下情況。下方只列出幾句範例；修改它就會關閉「入戲」。"
 L["Never say my last line again"] = "再也不說我上一句台詞"
+L["Your last line was one of your own: change it in My own lines, mixed in."] = "你最後說的是自己的台詞：請在「我自己的台詞，混入其中」裡修改。"
 L["No In character line has been said yet this session."] = "本次登入還沒有說過入戲台詞。"
 L["Leaves this line out of In character for good: %s"] = "將這句台詞永久排除出入戲：%s"
 L["left out: %s"] = "已排除：%s"

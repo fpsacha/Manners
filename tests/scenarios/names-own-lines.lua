@@ -313,6 +313,7 @@ do
 		end
 		if not placed(ns, "click.firstNameOnly") then fail(scenario, "click.firstNameOnly is not placed on What I say") end
 		speech.firstNameOnly = true
+		speech.mixedShare, speech.leftOut = "half", { "One line.", "Another line." }
 		Mock.printed = {}
 		ns.addon:HandleSlash("debug")
 		if not table.concat(Mock.printed, "\n"):find("first name only", 1, true) then
@@ -325,6 +326,14 @@ do
 		end
 		if not (said and said:find("first name only on", 1, true)) then
 			fail(scenario, "the check-up does not say it: " .. tostring(said))
+		end
+		-- The check-up lists How often my own lines are said and the lines left
+		-- out beside it.
+		if not (said and said:find("own lines half", 1, true)) then
+			fail(scenario, "the check-up does not say how often my own lines are said: " .. tostring(said))
+		end
+		if not (said and said:find("2 left out", 1, true)) then
+			fail(scenario, "the check-up does not count the lines left out: " .. tostring(said))
 		end
 		guarded(scenario, ns)
 	end
@@ -533,6 +542,21 @@ do
 			box.set(nil, table.concat(rows, "\n"))
 			if #speech.leftOut ~= ns.LEFT_OUT_MAX then fail(scenario, "the box kept " .. #speech.leftOut .. " lines") end
 			speech.leftOut = {}
+			-- A press that said one of the player's own lines: the last line said
+			-- is theirs, so the button names no older In character line.
+			ns.InCharacter.Remember(source)
+			ns.InCharacter.SaidOwn()
+			if not button.disabled() then fail(scenario, "live after one of my own lines was said") end
+			if ns.InCharacter.Last() ~= nil then
+				fail(scenario, "after my own line the last line is still " .. tostring(ns.InCharacter.Last()))
+			end
+			if tostring(button.desc()):find(source, 1, true) or not tostring(button.desc()):find("one of your own", 1, true) then
+				fail(scenario, "after my own line its note reads " .. tostring(button.desc()))
+			end
+			button.func()
+			if #speech.leftOut ~= 0 then fail(scenario, "after my own line the press left out " .. tostring(speech.leftOut[1])) end
+			ns.InCharacter.Remember(source)
+			if ns.InCharacter.Last() ~= source then fail(scenario, "the next In character line was not remembered") end
 			-- Another set loaded: In character says nothing, so nothing to leave out.
 			speech.presetChoice, speech.phrases = "polite", "Cheers, {name}."
 			if not button.disabled() then fail(scenario, "live with another set loaded") end
@@ -587,6 +611,154 @@ do
 			if speech.firstNameOnly ~= true then fail(scenario, "First name only did not travel") end
 			if speech.mixedShare ~= "half" then fail(scenario, "the share did not travel: " .. tostring(speech.mixedShare)) end
 			if speech.leftOut[1] ~= "Mine." then fail(scenario, "the paste changed the lines left out") end
+		end
+		-- A row of the list a string carries (written by hand: no export holds
+		-- one) is dropped without a word, not called a newer version's setting,
+		-- and changes nothing.
+		local body = tostring(text):match("^(.*):%x+$")
+		if not body then
+			fail(scenario, "SKIPPED -- the export has no checksum: " .. tostring(text))
+		else
+			local signed = body .. ";speech.leftOut.1=Mine."
+			local h = 0
+			for i = 1, #signed do h = (h * 31 + signed:byte(i)) % 16777213 end
+			local parsed, why = ns.ParseSettings(signed .. (":%06x"):format(h))
+			if not parsed then
+				fail(scenario, "SKIPPED -- a string with a row of the list did not parse: " .. tostring(why))
+			elseif parsed.unknown ~= 0 then
+				fail(scenario, "a row of the lines left out was called a newer version's setting: " .. parsed.unknown)
+			elseif parsed.values["speech.leftOut.1"] ~= nil or parsed.values["speech.leftOut"] ~= nil then
+				fail(scenario, "a row of the lines left out was read as a setting")
+			end
+		end
+		guarded(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------ names-own-lines 11
+-- A press that says one of the player's own lines makes it the last line said:
+-- Never say my last line again no longer names the In character line said
+-- before it, and leaves nothing out.
+do
+	local scenario = "names-own-lines: after my own line the button names no older In character line"
+	Mock.reset()
+	Mock.crossRealm = false
+	local restore = H.strangers({ nameplate1 = { "Munin", "Hugins" } })
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		local speech = ns.db.profile.speech
+		speech.enabled, speech.onlyWhenReturning, speech.channel = true, false, "SAY"
+		local preset = findOption(ns.optionsTable, "preset")
+		if preset and preset.set then preset.set({ "preset" }, "incharacter") end
+		speech.mixedLines, speech.mixedShare = "Own line, {name}.", "always"
+		H.owe(ns, "Munin Hugins")
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Tick()
+		local text = macro(ns)
+		if not ns.InCharacter.Active(speech) then
+			fail(scenario, "SKIPPED -- In character is not the set")
+		elseif spoken(text) ~= "/say Own line, Munin Hugins." then
+			fail(scenario, "SKIPPED -- the press is not armed with my own line: " .. flat(text))
+		else
+			local earlier = "An In character line said before, {name}."
+			ns.InCharacter.Remember(earlier)
+			H.pressButton(ns)
+			local button = findOption(ns.optionsTable, "leaveOutLast")
+			if ns.InCharacter.Last() ~= nil then
+				fail(scenario, "after my own line was said the last line is " .. tostring(ns.InCharacter.Last()))
+			end
+			if button then
+				if not button.disabled() then fail(scenario, "the button is live after my own line was said") end
+				button.func()
+				if #speech.leftOut ~= 0 then
+					fail(scenario, "the button left out an older line: " .. tostring(speech.leftOut[1]))
+				end
+			end
+		end
+		guarded(scenario, ns)
+	end
+	restore()
+end
+
+-- ------------------------------------------------------------ names-own-lines 12
+-- The line that asks for a buff (Ask.lua) says the first name too; its whisper
+-- still goes to the whole name.
+do
+	local scenario = "names-own-lines: first name only reaches the line that asks for a buff"
+	Mock.reset()
+	Mock.class = "WARRIOR"
+	Mock.unitClass = "PRIEST"
+	Mock.playerHeld = {}
+	-- The quiet world ask.lua hands its scenarios: the mock answers nothing
+	-- about resting or fighting, and an ask waits on both.
+	local realResting, realFighting = rawget(_G, "IsResting"), rawget(_G, "UnitAffectingCombat")
+	rawset(_G, "IsResting", function() return false end)
+	rawset(_G, "UnitAffectingCombat", function() return false end)
+	local restoreUnits = H.strangers({ nameplate1 = { "Anna", "Aim" } })
+	local function restore()
+		restoreUnits()
+		rawset(_G, "IsResting", realResting)
+		rawset(_G, "UnitAffectingCombat", realFighting)
+	end
+	local ns = load(scenario)
+	local ok, err = pcall(function()
+		if not ns then return end
+		H.freshPrompt(ns, scenario)
+		local db = ns.db.profile
+		db.sources.ask = true
+		db.ask.channel = "WHISPER"
+		local entry
+		for _, e in ipairs(ns.BuildQueue()) do
+			if e.ask then entry = e break end
+		end
+		if not entry then
+			fail(scenario, "SKIPPED -- nobody is asked")
+		else
+			local function words()
+				local line = ns.Ask.MacroFor(entry)
+				if type(line) ~= "string" or line:sub(1, 12) ~= "/w Anna Aim " then return nil, line end
+				return line:sub(13), line
+			end
+			local said, line = words()
+			if not (said and said:find("Anna Aim", 1, true)) then
+				fail(scenario, "SKIPPED -- with the switch off the ask was " .. tostring(line))
+			end
+			db.speech.firstNameOnly = true
+			said, line = words()
+			if not said then
+				fail(scenario, "with First name only the ask did not go to the whole name: " .. tostring(line))
+			elseif said:find("Anna Aim", 1, true) or not said:find("Anna", 1, true) then
+				fail(scenario, "with First name only the ask said " .. said)
+			end
+		end
+		guarded(scenario, ns)
+	end)
+	restore()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- ------------------------------------------------------------ names-own-lines 13
+-- What I say's reset puts First name only and the share back, and keeps the
+-- lines left out, as it keeps the player's own lines.
+do
+	local scenario = "names-own-lines: the reset puts the switch and the share back and keeps the lines left out"
+	Mock.reset()
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		local speech = ns.db.profile.speech
+		speech.firstNameOnly, speech.mixedShare, speech.leftOut = true, "always", { "Kept, {name}." }
+		local ok, answer = pcall(ns.OptionsPage.ResetPage, "click")
+		speech = ns.db.profile.speech
+		if not ok or answer ~= true then
+			fail(scenario, "SKIPPED -- the reset did not run: " .. tostring(answer))
+		else
+			if speech.firstNameOnly ~= false then fail(scenario, "First name only was left " .. tostring(speech.firstNameOnly)) end
+			if speech.mixedShare ~= "third" then fail(scenario, "the share was left " .. tostring(speech.mixedShare)) end
+			if type(speech.leftOut) ~= "table" or speech.leftOut[1] ~= "Kept, {name}." then
+				fail(scenario, "the reset dropped the lines left out")
+			end
 		end
 		guarded(scenario, ns)
 	end

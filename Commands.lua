@@ -854,12 +854,16 @@ do
 		["supplies.x"] = true,
 		["supplies.y"] = true,
 		-- Lines left out of In character (speech.leftOut): kept as the player has
-		-- it. A list could only make anybody quieter, but it is one player's
-		-- taste in their own character's voice, up to 200 lines written in the
-		-- language they play in, which would swell a string meant to be pasted
-		-- and match nothing on a client in another language. First name only and
-		-- How often my own lines are said travel as any setting does: neither
-		-- puts a word in anybody's mouth.
+		-- it, a decision rather than an accident. A list could only make
+		-- anybody quieter, but it is one player's taste in their own
+		-- character's voice, in the language they play in, matching nothing on
+		-- a client in another. Its default is empty, so the walk below finds
+		-- nothing in it either way; the name here keeps it out should it ever
+		-- have a default, and lets Parse drop a row of it a string carries
+		-- ("speech.leftOut.1=...", written by hand) without calling it a newer
+		-- version's setting. First name only and How often my own lines are
+		-- said travel as any setting does: neither puts a word in anybody's
+		-- mouth.
 		["speech.leftOut"] = true,
 	}
 
@@ -1275,6 +1279,9 @@ do
 					-- dropped without a word: 1.4.0 wrote verbose=0 into its
 					-- strings, and calling that a newer version's setting is
 					-- a sentence the player can do nothing about.
+				elseif SHARE_SKIP_NAMES[name:match("^(.+)%.%d+$") or ""] then
+					-- A row of a list kept out of a paste (speech.leftOut.1):
+					-- the same, dropped without a word.
 				elseif (ns.OWN_FAMILY_ANY_CLIENT or {})[name:match("^ownBuffs%.pick%.([%w_]+)$") or ""]
 					or (ns.OWN_SPELL_ANY_CLIENT or {})[name:match("^ownBuffs%.leave%.([%w_]+)$") or ""] then
 					-- Another game client's own buff (an Omen of Clarity pick

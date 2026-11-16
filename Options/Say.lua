@@ -298,12 +298,18 @@ function Page.BuildSpeechTab()
 			-- pick for good (speech.leftOut; Phrases.lua, RP.Pick). The last line
 			-- a press or a whispered thank-you carried is remembered for the
 			-- session (RP.Remember, RP.Last), so after a reload the button waits
-			-- for the next one.
+			-- for the next one; a press that said one of the player's own lines
+			-- instead greys it until the next In character line (RP.SaidOwn).
 			leaveOutLast = {
 				type = "execute",
 				name = L["Never say my last line again"],
 				desc = function()
 					local last = ns.InCharacter and ns.InCharacter.Last()
+					-- After one of the player's own lines the last line said is
+					-- theirs, not In character's (Phrases.lua, RP.SaidOwn).
+					if not last and ns.InCharacter and ns.InCharacter.LastWasOwn() then
+						return L["Your last line was one of your own: change it in My own lines, mixed in."]
+					end
 					if not last then return L["No In character line has been said yet this session."] end
 					return L["Leaves this line out of In character for good: %s"]:format(last)
 				end,

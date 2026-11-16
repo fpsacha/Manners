@@ -1010,8 +1010,8 @@ Everything here is off until you turn it on.
     asking for a buff keep their own switches. In a battleground or an
     arena, *Say my line there* decides instead.
   - *First name only* (off): `{name}` says only the first word of a name, so
-    "Petra Stonewell" is called "Petra", in the line said with a cast and in
-    the whispered thank-you alike. A one-word name is said whole; a name cut
+    "Petra Stonewell" is called "Petra", in the line said with a cast, the
+    whispered thank-you and the line that asks for a buff alike. A one-word name is said whole; a name cut
     at a dash before (a realm, or a name like "Anne-Marie") is cut there
     still, and an apostrophe stays in the word. A whisper still goes to the
     whole name, and the prompt, your target and the ledger keep it too.
@@ -1025,7 +1025,8 @@ Everything here is off until you turn it on.
   in three, or every press, when In character speaks only if none of yours
   fits the macro. *Never say my last line again*, under the In character
   note, leaves the last In character line said this session out for good (a
-  reload forgets which line was last, not the lines left out); *Lines left
+  reload forgets which line was last, not the lines left out; after a press
+  that said one of your own lines it waits for the next In character one); *Lines left
   out* lists them, one a row: delete a row to hear its line again. A line
   typed there that is no In character line leaves nothing out, and a pasted
   settings line never carries the list. *Try a few lines* shows some, and

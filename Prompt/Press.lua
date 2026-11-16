@@ -572,6 +572,11 @@ local function OnPostClick(self, mouseButton, down)
 	-- (out of reach, the cursor gone from them) was never heard.
 	if S.phraseArmed and S.phraseSource and ns.InCharacter and ns.InCharacter.Remember then
 		ns.InCharacter.Remember(S.phraseSource)
+	elseif S.phraseArmed and ns.InCharacter and ns.InCharacter.SaidOwn then
+		-- A line with nothing as written behind it: one of the player's own,
+		-- so Never say my last line again (Options/Say.lua) no longer names
+		-- the In character line said before it.
+		ns.InCharacter.SaidOwn()
 	end
 	-- ...and the person it went to has had their line for the minute.
 	if S.phraseArmed then ns.NoteLineSaid(ns.LineSpeaker(S.current).name, now) end

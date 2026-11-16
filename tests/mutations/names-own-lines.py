@@ -188,3 +188,70 @@ mutate("Commands.lua",
        "\t\tif false then\n",
        "names-own-lines: debug says nothing of the lines left out",
        expect="names-own-lines: the list is repaired at load and does not travel in a pasted string", script=S)
+
+# ------------------------------------------------ review fixes
+# A press that said one of the player's own lines is the last line said: the
+# button names no older In character line.
+mutate("Prompt/Press.lua",
+       "\t\tns.InCharacter.SaidOwn()\n",
+       "",
+       "names-own-lines: my own line leaves the button on an older line",
+       expect="names-own-lines: after my own line the button names no older In character line", script=S)
+
+mutate("Phrases.lua",
+       "\tfunction RP.SaidOwn() lastSaid = false end\n",
+       "\tfunction RP.SaidOwn() end\n",
+       "names-own-lines: my own line not taken as the last said",
+       expect="names-own-lines: after my own line the button names no older In character line", script=S)
+
+mutate("Options/Say.lua",
+       "\t\t\t\t\tif not last and ns.InCharacter and ns.InCharacter.LastWasOwn() then\n",
+       "\t\t\t\t\tif false then\n",
+       "names-own-lines: the button's note says nothing of my own line",
+       expect="names-own-lines: Never say my last line again leaves out the last line said", script=S)
+
+# The line that asks for a buff says the first name too.
+mutate("Ask.lua",
+       "\t\tlocal text = ns.Swap(template, \"{name}\", ns.SaidName(entry.short or entry.name))\n",
+       "\t\tlocal text = ns.Swap(template, \"{name}\", entry.short or entry.name)\n",
+       "names-own-lines: the ask says the whole name",
+       expect="names-own-lines: first name only reaches the line that asks for a buff", script=S)
+
+# A row of the lines left out in a pasted string is dropped without a word.
+mutate("Commands.lua",
+       "\t\t[\"speech.leftOut\"] = true,\n",
+       "",
+       "names-own-lines: a row of the lines left out called newer",
+       expect="names-own-lines: the list is repaired at load and does not travel in a pasted string", script=S)
+
+mutate("Commands.lua",
+       "\t\t\t\telseif SHARE_SKIP_NAMES[name:match(\"^(.+)%.%d+$\") or \"\"] then\n",
+       "\t\t\t\telseif false then\n",
+       "names-own-lines: a list's row in a paste called newer",
+       expect="names-own-lines: the list is repaired at load and does not travel in a pasted string", script=S)
+
+# What I say's reset puts both back (Options/Advanced.lua, Page.RESET).
+mutate("Options/Advanced.lua",
+       "\t\t\"speech.firstNameOnly\", \"speech.mixedShare\",\n",
+       "\t\t\"speech.mixedShare\",\n",
+       "names-own-lines: the reset keeps first name only",
+       expect="names-own-lines: the reset puts the switch and the share back and keeps the lines left out", script=S)
+
+mutate("Options/Advanced.lua",
+       "\t\t\"speech.firstNameOnly\", \"speech.mixedShare\",\n",
+       "\t\t\"speech.firstNameOnly\",\n",
+       "names-own-lines: the reset keeps the share",
+       expect="names-own-lines: the reset puts the switch and the share back and keeps the lines left out", script=S)
+
+# The check-up says the share and counts the lines left out.
+mutate("Selftest.lua",
+       "\t\tspeech.firstNameOnly == true and \"on\" or \"off\", tostring(speech.mixedShare),\n",
+       "\t\tspeech.firstNameOnly == true and \"on\" or \"off\", \"third\",\n",
+       "names-own-lines: the check-up says nothing of the share",
+       expect="names-own-lines: First name only is a switch on What I say, off by default", script=S)
+
+mutate("Selftest.lua",
+       "\t\ttype(speech.leftOut) == \"table\" and #speech.leftOut or 0)\n",
+       "\t\t0)\n",
+       "names-own-lines: the check-up counts no lines left out",
+       expect="names-own-lines: First name only is a switch on What I say, off by default", script=S)

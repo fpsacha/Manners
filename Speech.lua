@@ -352,7 +352,9 @@ end
 -- Brand" is "O'Dell"). Only the words said: the name a whisper goes to
 -- (WhisperName), every /target line, the prompt and the debts keep the whole
 -- name. Asked by the fixed sets and the lines mixed in (Roll, MixedIn), the In
--- character pick (Phrases.lua) and so the whispered thank-you and Try a few.
+-- character pick (Phrases.lua) and so the whispered thank-you and Try a few,
+-- and the line that asks for a buff (Ask.lua, Compose), whose whisper is
+-- checked against the whole name (ns.WhisperGoesTo) as before.
 function ns.SaidName(name)
 	if type(name) ~= "string" then return name end
 	local db = addon.db and addon.db.profile

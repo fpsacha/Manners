@@ -6306,6 +6306,8 @@ do
 	-- The last line said, as written, for Never say my last line again (What
 	-- I say, Options/Say.lua). Kept apart from the memory above, whose length
 	-- is RP.RECENT's. Like it, for this session only: a reload forgets it.
+	-- false once a press has said one of the player's own lines instead
+	-- (RP.SaidOwn): the last line said is then no In character line at all.
 	local lastSaid
 
 	function RP.Remember(text)
@@ -6322,8 +6324,18 @@ do
 	end
 
 	-- The last In character line a press or a whispered thank-you carried this
-	-- session, as written ({name} and {buff} still in it), or nil.
-	function RP.Last() return lastSaid end
+	-- session, as written ({name} and {buff} still in it), or nil: nil too when
+	-- the last line a press carried was one of the player's own (RP.SaidOwn), so
+	-- the button never leaves out an older line than the one just heard.
+	function RP.Last() return lastSaid or nil end
+
+	-- A press said a line that is no In character line (My own lines, mixed in:
+	-- Speech.lua's MixedIn hands it back with no line as written). Called by
+	-- Prompt/Press.lua, OnPostClick.
+	function RP.SaidOwn() lastSaid = false end
+
+	-- Whether the last line a press carried was one of the player's own.
+	function RP.LastWasOwn() return lastSaid == false end
 
 	-- Lines left out (What I say; speech.leftOut): the lines as written that the
 	-- pick never chooses, as a set, made again only when the list changes (a

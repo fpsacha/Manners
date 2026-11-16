@@ -352,7 +352,8 @@ end
 local function Compose(db, entry, room, avoid)
 	local spell = ns.BuffName(entry.buff)
 	local function Fill(template)
-		local text = ns.Swap(template, "{name}", entry.short or entry.name)
+		-- First name only (Speech.lua, ns.SaidName): the words, never the whisper's address.
+		local text = ns.Swap(template, "{name}", ns.SaidName(entry.short or entry.name))
 		return Sanitize(ns.Swap(text, "{buff}", spell))
 	end
 	local rp = ns.InCharacter
@@ -395,7 +396,7 @@ function Ask.MacroFor(entry, state)
 	end
 	local room = ns.MACRO_LIMIT - #command - 2
 	local identity = table.concat({ entry.name, entry.buff.key, tostring(db.ask.channel), tostring(db.ask.line),
-		tostring(db.speech and db.speech.presetChoice) }, "\1")
+		tostring(db.speech and db.speech.presetChoice), tostring(db.speech and db.speech.firstNameOnly) }, "\1")
 	local line, source
 	if state and state.askKey == identity and state.askLine and #state.askLine <= room then
 		line, source = state.askLine, state.askSource

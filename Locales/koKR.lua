@@ -5045,6 +5045,7 @@ L["One line is picked at random. Placeholders: {name} their name, {buff} the spe
 L["A line too long for a macro is skipped; Try a few shows what would go out."] = "매크로에 들어가지 않을 만큼 긴 대사는 건너뜁니다. 실제로 나갈 대사는 몇 줄 뽑아 보기로 확인하세요."
 L["In character picks one of its %d lines when you click, to fit your race, faction, class and the moment. The box below shows only a few examples; editing it turns In character off."] = "캐릭터 롤플레이는 클릭할 때 대사 %d개 중에서 내 종족, 진영, 직업, 그때 상황에 맞는 대사를 고릅니다. 아래 칸에는 예시 몇 개만 보이며, 고치면 꺼집니다."
 L["Never say my last line again"] = "마지막 대사를 다시는 말하지 않기"
+L["Your last line was one of your own: change it in My own lines, mixed in."] = "마지막 대사는 내 대사였습니다. 내 대사를 섞어서에서 바꾸세요."
 L["No In character line has been said yet this session."] = "이번 접속에서는 아직 캐릭터 롤플레이 대사를 말하지 않았습니다."
 L["Leaves this line out of In character for good: %s"] = "이 대사를 캐릭터 롤플레이에서 영구히 제외합니다: %s"
 L["left out: %s"] = "제외함: %s"

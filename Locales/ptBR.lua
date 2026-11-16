@@ -5045,6 +5045,7 @@ L["One line is picked at random. Placeholders: {name} their name, {buff} the spe
 L["A line too long for a macro is skipped; Try a few shows what would go out."] = "Uma frase longa demais para uma macro é pulada; Experimentar algumas frases mostra o que sairia."
 L["In character picks one of its %d lines when you click, to fit your race, faction, class and the moment. The box below shows only a few examples; editing it turns In character off."] = "Interpretação escolhe uma das suas %d frases quando você clica, de acordo com sua raça, facção, classe e o momento. A caixa abaixo mostra só alguns exemplos; editá-la desativa Interpretação."
 L["Never say my last line again"] = "Nunca mais dizer minha última fala"
+L["Your last line was one of your own: change it in My own lines, mixed in."] = "Sua última fala foi uma das suas: altere-a em Minhas próprias falas, misturadas."
 L["No In character line has been said yet this session."] = "Nenhuma fala de Interpretação foi dita ainda nesta sessão."
 L["Leaves this line out of In character for good: %s"] = "Deixa esta fala de fora de Interpretação para sempre: %s"
 L["left out: %s"] = "deixada de fora: %s"
