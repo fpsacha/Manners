@@ -135,7 +135,7 @@ Page.RESET = {
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
-		"supplies.size",
+		"supplies.size", "prompt.breakFree",
 		after = function()
 			-- The icon back inside the prompt's size, as the size sliders do.
 			ns.ClampSettings()

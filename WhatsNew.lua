@@ -10,6 +10,10 @@ ns.WhatsNew = {
 			"|cffffd100Quiet in a group.|r |cffffffffSay nothing in a party|r and |cffffffffSay nothing in a raid|r, on |cffffffffWhat I say|r: the buff still goes out, the line stays in.",
 			"|cffffd100Two elixirs at once.|r Keep a second elixir up beside the first.",
 			"|cffffd100Your In character, your way.|r Call people by their first name, hear your own lines as often as you like, and leave out a line you never want to say again.",
+			"|cffffd100Will of the Forsaken when you can't act.|r Feared, charmed or asleep in a fight, a Forsaken sees it light up beside the prompt, with a key of its own.",
+		} },
+		{ title = "In a fight", accent = "7cc4ff", entries = {
+			"|cff7cc4ffWill of the Forsaken on a button of its own.|r For a Forsaken, beside the prompt in every fight, even with |cffffffffHide the prompt in combat|r on.",
 		} },
 		{ title = "What I say", accent = "7cc4ff", entries = {
 			"|cff7cc4ffSay nothing in a party, Say nothing in a raid.|r Two switches under |cffffffffSay a line when I buff someone|r, both off.",

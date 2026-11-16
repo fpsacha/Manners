@@ -441,6 +441,45 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- Breaking free in a fight (Prompt/BreakFree.lua): a Forsaken's
+			-- Will of the Forsaken on a button of its own beside the prompt,
+			-- with a key of its own. Never shown to a character without the
+			-- ability (the probe's caps.breakFree). Live whatever Hide the
+			-- prompt in combat says: the button is not the prompt.
+			breakFree = {
+				type = "toggle",
+				name = L["Offer Will of the Forsaken when I am feared, charmed or asleep"],
+				desc = L["A button of its own beside the prompt, with a key of its own, there for every fight. It lights up while you are feared, charmed or asleep and the spell is ready, and stays dim while it cools down. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+				order = 32.46,
+				width = "full",
+				hidden = function() return ns.caps.breakFree == nil end,
+				get = pGet,
+				set = function(info, value)
+					pSet(info, value)
+					if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end
+				end,
+			},
+			-- Its key, the game's binding as the prompt's is (Options/Start.lua,
+			-- Setup), saved with the binding set; under the switch.
+			breakFreeKey = {
+				type = "keybinding",
+				name = L["Key for Will of the Forsaken"],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
+				order = 32.47,
+				hidden = function()
+					return ns.caps.breakFree == nil or P().breakFree == false or not ns.Setup.CanBind()
+				end,
+				-- SetBinding is refused in a fight.
+				disabled = function() return InCombatLockdown() end,
+				get = function() return ns.Setup.Key(ns.BreakFree.COMMAND) or "" end,
+				set = function(_, value)
+					local spell = ns.caps.breakFree and ns.caps.breakFree.name or ""
+					ns.Setup.SetKey(value, ns.BreakFree.COMMAND, function(key, was)
+						return L["%s was bound to %s; it now casts %s."]:format(key, was, spell)
+					end)
+					if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end
+				end,
+			},
 			-- Next to Animations, because that is what it is: the flashes of
 			-- a click in a fight, not whether anybody is offered.
 			--

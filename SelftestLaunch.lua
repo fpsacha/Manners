@@ -1402,6 +1402,65 @@ Launch("launch.fighthide", "hide in combat", function(add)
 	add(status, table.concat(parts, "; ") .. (#notes > 0 and (" -- " .. table.concat(notes, "; ")) or ""))
 end)
 
+-- Breaking free (Prompt/BreakFree.lua): for a character with the ability, the
+-- parts a fight leans on, asked out of one: the secure button made, protected
+-- and armed with the one spell; its driver reading peace; its key; the
+-- client's loss-of-control API and its shape; UnitIsCharmed answering plain.
+-- Read only: nothing is armed, shown or bound.
+Launch("launch.breakfree", "break free", function(add)
+	local BreakFree = ns.BreakFree
+	local info = ns.caps.breakFree
+	if not (BreakFree and info) then
+		local okR, _, race = Ask(_G.UnitRace, "player")
+		add(PASS, "no break-free ability for this character (race " .. (okR == true and Show(race) or "unreadable") .. ")")
+		return
+	end
+	local status, parts, notes = PASS, { "found " .. Show(info.name) .. " (spell " .. tostring(info.row.spell) .. ")" }, {}
+	local function worse(s, note)
+		if RANK[s] > RANK[status] then status = s end
+		notes[#notes + 1] = note
+	end
+	if not BreakFree.Applies() then
+		add(PASS, table.concat(parts, "; ") .. "; switched off, so nothing is armed")
+		return
+	end
+	local button, header = BreakFree:Button(), BreakFree:Header()
+	if not button then
+		worse(FAIL, "no button was made, so nothing casts it in a fight")
+	else
+		local okP, protected = Call(button, "IsProtected")
+		parts[#parts + 1] = "button protected " .. (okP == true and Show(protected) or "unreadable")
+		if okP == true and protected ~= true then worse(FAIL, "the button is not a protected frame") end
+		local _, text = Call(button, "GetAttribute", "macrotext1")
+		parts[#parts + 1] = "armed " .. Show(text)
+		if text ~= "/cast " .. info.name then worse(FAIL, "the button is not armed with the spell") end
+		local look = BreakFree:Look()
+		if not (look and look.name and look.key and look.glow) then worse(FAIL, "the button has nothing to show") end
+	end
+	if not header then
+		worse(FAIL, "no state driver was made, so the button never shows in a fight")
+	else
+		local _, state = Call(header, "GetAttribute", "state-mannersbreakfree")
+		parts[#parts + 1] = "driver " .. Show(state)
+		if state ~= "peace" then worse(FAIL, "the driver does not read peace out of a fight") end
+	end
+	local okK, key = Ask(_G.GetBindingKey, BreakFree.COMMAND)
+	parts[#parts + 1] = "key " .. (okK == true and Show(key) or "unreadable")
+	if okK ~= true or type(key) ~= "string" or key == "" then
+		worse(CHECK, "no key set: a click on the button still casts it")
+	end
+	local api = _G.C_LossOfControl
+	local shape = type(api) ~= "table" and "none"
+		or (type(api.GetActiveLossOfControlData) == "function" and "data table")
+		or (type(api.GetEventInfo) == "function" and "event info") or "none"
+	parts[#parts + 1] = "loss-of-control API " .. shape
+	if shape == "none" then worse(CHECK, "no loss-of-control API: only a charm can light it up") end
+	local okC, charmed = Ask(_G.UnitIsCharmed, "player")
+	parts[#parts + 1] = "UnitIsCharmed " .. (okC == true and Show(charmed) or "an error")
+	if okC ~= true or type(charmed) ~= "boolean" then worse(CHECK, "UnitIsCharmed does not answer plain") end
+	add(status, table.concat(parts, "; ") .. (#notes > 0 and (" -- " .. table.concat(notes, "; ")) or ""))
+end)
+
 ---------------------------------------------------------------------------
 -- what the session did: actions the game refused Manners, and where you are
 ---------------------------------------------------------------------------

@@ -12,6 +12,15 @@
 - **Your In character, your way.** Call people by their first name, hear
   your own lines as often as you like, and leave out a line you never want to
   say again. Asked for on CurseForge.
+- **Will of the Forsaken when you can't act.** Feared, charmed or asleep in
+  a fight, a Forsaken sees it light up beside the prompt, with a key of its
+  own.
+
+### In a fight
+- **Will of the Forsaken on a button of its own.** For a Forsaken, beside
+  the prompt in every fight, even with *Hide the prompt in combat* on. It
+  lights up while you are feared, charmed or asleep and the spell is ready.
+  Its switch and key are on *Look*, under *In a fight*.
 
 ### What I say
 - **Say nothing in a party, Say nothing in a raid.** Two switches under *Say

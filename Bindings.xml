@@ -5,4 +5,6 @@
 	<Binding name="CLICK MannersPrompt:LeftButton" category="Manners"/>
 	<!-- The consumables button (Prompt/Supplies.lua), when it is switched on. -->
 	<Binding name="CLICK MannersSupplies:LeftButton" category="Manners"/>
+	<!-- The break-free button (Prompt/BreakFree.lua): Will of the Forsaken, for a Forsaken. -->
+	<Binding name="CLICK MannersBreakFree:LeftButton" category="Manners"/>
 </Bindings>

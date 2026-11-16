@@ -50,6 +50,40 @@ carries). `tests/scenarios/elixir-pair.lua`, `tests/mutations/elixir-pair.py`
 5. Whether "A more powerful spell is already active" reaches the pending
    click for a `/use item:` on yourself as it does for a cast on others.
 
+**Will of the Forsaken in a fight (branch `post26`, not released), asked for
+by the author.** A Forsaken mage on Forever: "in combat, if I sleep or
+whatever, I need to be able to get the prompt for this", and nothing Manners
+chooses may lock it. `Prompt/BreakFree.lua` (`ns.BreakFree`): a table of
+break-free abilities with one row (7744, race file `Scourge`, breaking
+FEAR, CHARM and SLEEP); the probe finds it (`caps.breakFree`, a wrap of
+`ns.ProbeCapabilities`, never per scan); a secure button of its own,
+`MannersBreakFree`, right of the prompt with a gap, armed with `/cast Will of
+the Forsaken` out of combat whenever *Offer Will of the Forsaken when I am
+feared, charmed or asleep* (`prompt.breakFree`, on, Look under *In a fight*,
+hidden from anybody without the ability) is on, with its own key (Bindings.xml,
+*Key for Will of the Forsaken* under the switch, `Setup.SetKey` taking a
+command and its own line); shown and hidden by its own state driver, `[combat]
+fight; peace`, so Hide the prompt in combat, a snooze or a prompt off the
+screen at the pull never keeps it from a fight and Lua touches nothing
+protected under the lockdown. Afflicted is read on LOSS_OF_CONTROL_ADDED /
+UPDATE (registered only where `C_LossOfControl` exists; both of its shapes),
+PLAYER_CONTROL_LOST / GAINED and UnitIsCharmed, cached, asked again each
+second while it lasts; a secret is no reason. The button lights up (alpha,
+the glow pulsing, the name over it, "press <key> to break free" under it),
+dims with a sweep while it cools (our own press and UNIT_SPELLCAST_SUCCEEDED
+within a second, else the client's plain cooldown); the prompt, when up, says
+the same from Refresh.lua's combat branch (`BreakFree.PaintPrompt`, after both
+arms, no early return). A press lets the prompt's waiting press go ("you broke
+free instead", `ns.ExpirePendingClick`) and Clicks.lua's
+`SettlePendingClick` settles nothing for 0.6 s after one (`JustPressed`).
+`/manners debug` and the check-up print `ns.BreakFreeLines` (found, armed,
+key, driver, afflicted, ready, the last loss of control and whether it came
+plain, secret or with no API); `/manners selftest launch` has
+`launch.breakfree`. `tests/scenarios/breakfree.lua`,
+`tests/mutations/breakfree.py` (40, each CAUGHT by `prove.py`). What only the
+game can settle is the item *Will of the Forsaken in a real fight* under
+*Open*.
+
 **Say nothing in a party or a raid (branch `post26`, not released), asked
 for by the author.** Two switches on What I say under *Say a line when I buff
 someone*, both off: `speech.quietInParty` and `speech.quietInRaid`
@@ -672,6 +706,27 @@ permissions list, a hook that lints each edited file, and the commands
 `/check`, `/release`, `/bughunt`, `/translate` and `/phrases`.
 
 ## Open
+
+**Will of the Forsaken in a real fight (branch `post26`).** Only the game can
+settle these; the first real fear answers most of them through `/manners
+debug` (the last loss of control, and whether it came plain, secret or with
+no API) and `/manners selftest launch` (`launch.breakfree`):
+1. On Forever and retail in a fight: whether `C_LossOfControl` exists, which
+   shape it has, and whether its type is plain; whether
+   `UnitIsCharmed("player")` is plain.
+2. Which type Forever reports for each effect (Psychic Scream, Fear, Howl of
+   Terror, Seduction, Death Coil, Mind Control: CHARM or POSSESS, a mob's
+   sleep), and whether Will of the Forsaken breaks each. FEAR_MECHANIC and
+   POSSESS join the row only once the trail shows them on an effect it breaks.
+3. That it casts while feared, charmed or asleep from the CLICK binding and
+   from a click on the button.
+4. Whether UNIT_SPELLCAST_SUCCEEDED's spell id and C_Spell.GetSpellCooldown
+   are plain for 7744 in a fight on Forever (an unreadable id is taken as
+   ours within a second of a press).
+5. Whether a press of the prompt while feared files a press with no cast
+   event (the settle guard covers either answer).
+6. Where the button sits for a prompt at the screen's right edge (it is
+   clamped to the screen, and may then sit over the prompt's edge).
 
 **The other clients' lists, 2026-11-15.** `tests/baselines/*.txt` took in the
 reds of today's new scenario files off Forever (par-core1, par-core2,

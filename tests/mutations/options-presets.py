@@ -233,7 +233,7 @@ mutate("Options/Start.lua",
 # --- the key ---
 
 mutate("Options/Start.lua",
-       "\t\tfor _, old in ipairs(Setup.Keys()) do SetBinding(old) end\n",
+       "\t\tfor _, old in ipairs(Setup.Keys(command)) do SetBinding(old) end\n",
        "",
        "setup: the old key kept",
        expect="the old key still buffs as well", script=S)
@@ -245,8 +245,8 @@ mutate("Options/Start.lua",
        expect="a key was changed in combat", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\tns.addon:Print(L[\"%s was bound to %s; it now buffs the prompted player.\"]\n",
-       "\t\t\t\tlocal _ = (L[\"%s was bound to %s; it now buffs the prompted player.\"]\n",
+       "\t\t\t\tns.addon:Print(said and said(key, name) or L[\"%s was bound to %s; it now buffs the prompted player.\"]\n",
+       "\t\t\t\tlocal _ = (said and said(key, name) or L[\"%s was bound to %s; it now buffs the prompted player.\"]\n",
        "setup: a key taken silently",
        expect="taking a key from Jump said nothing", script=S)
 

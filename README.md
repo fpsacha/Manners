@@ -239,6 +239,21 @@ either way: the game does not let an addon rewrite a macro in a fight, nor a
 macro press a button that runs one, so in a fight the bar macro cannot move
 on. *Put Manners on an action bar* (Start here) says so.
 
+#### Will of the Forsaken
+
+A Forsaken gets a small button of its own just right of the prompt, with a
+key of its own, for every fight: even when the prompt is off the screen,
+hidden by *Hide the prompt in combat* or snoozed. It casts Will of the
+Forsaken and nothing else, from its key or a left click. While you are
+feared, charmed or asleep and the spell is ready it lights up, glowing, with
+the spell's name over it and "press <key> to break free" under it; the
+prompt, when it is up, says the same. It stays dim while nothing holds you
+and while the spell cools down. The prompt's own key keeps to buffs: the
+fight has locked it. *Offer Will of the Forsaken when I am feared, charmed or
+asleep* (Look, under *In a fight*, on) switches it, and *Key for Will of the
+Forsaken* under it sets the key. Only a Forsaken who has the spell sees
+either.
+
 Other players' buffs are hidden by the game in a fight, and sometimes for a
 moment after: somebody whose buffs cannot be read is offered marked
 *unverified*, and everybody is read again the moment the fight ends.
@@ -1087,6 +1102,9 @@ cannot send it to somebody else by mistake.
     macro still held a cast as the fight began, the prompt stays up for that
     fight and a line in chat says so.
   - *In a fight, each press moves on to the next person* (on).
+  - *Offer Will of the Forsaken when I am feared, charmed or asleep* (on, a
+    Forsaken only), with *Key for Will of the Forsaken* under it: see *Will
+    of the Forsaken* above.
   - *No flashes in combat*: the prompt stays on screen, its key still
     casting, with no flashes and no cooldown sweep.
   - *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at

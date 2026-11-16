@@ -437,6 +437,22 @@ function Mock.reset()
 	-- be a client that does not have a spell. nil is every id resolving, which
 	-- is what every scenario written before this assumed.
 	Mock.unknownSpells = nil
+	-- Spell ids the player knows beyond the priest's Fortitude (1459), for
+	-- IsSpellKnown and IsPlayerSpell: e.g. { [7744] = true }, a Forsaken's Will
+	-- of the Forsaken (Prompt/BreakFree.lua).
+	Mock.knownSpells = nil
+	-- The player charmed, by UnitIsCharmed("player"): true, or Mock.SECRET.
+	Mock.charmed = nil
+	-- The loss of control the client reports (C_LossOfControl): a list of
+	-- { locType = "FEAR" } (a locType may be Mock.SECRET), in the shape
+	-- Mock.lossOfControlShape names: "data" (nil, the default:
+	-- GetActiveLossOfControlDataCount and GetActiveLossOfControlData), "events"
+	-- (GetNumEvents and GetEventInfo, whose first return is the type) or
+	-- "none" (no C_LossOfControl at all). Mock.lossOfControlCount, when set,
+	-- is what the count answers instead (Mock.SECRET).
+	Mock.lossOfControl = nil
+	Mock.lossOfControlShape = nil
+	Mock.lossOfControlCount = nil
 	-- Libraries LibStub is to behave as though the user does not have, keyed by
 	-- name. One of ours is fetched with the silent flag precisely because it may
 	-- be absent, and until this existed every scenario ran with all of them
@@ -575,6 +591,10 @@ for _, e in ipairs({
 	-- 12.0 and later have it too. The classic clients do not (Core.lua only
 	-- asks where the family is modern).
 	"ADDON_RESTRICTION_STATE_CHANGED",
+	-- Losing control of your character and getting it back, and the loss of
+	-- control the client reports (Prompt/BreakFree.lua; Companion.lua the
+	-- first two): in the event lists of Ketho's BlizzardInterfaceResources.
+	"PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED", "LOSS_OF_CONTROL_ADDED", "LOSS_OF_CONTROL_UPDATE",
 }) do KNOWN_EVENTS[e] = true end
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}
@@ -753,6 +773,11 @@ local function newFrame()
 	f.CreateMaskTexture = function() return newFrame() end
 	f.RegisterEvent = function(self, event)
 		if not KNOWN_EVENTS[event] then Mock.badEvents[#Mock.badEvents + 1] = event end
+		-- A client with no loss-of-control API has none of its events either,
+		-- and refuses them as the client refuses an unknown event.
+		if Mock.lossOfControlShape == "none" and tostring(event):match("^LOSS_OF_CONTROL") then
+			error("Attempt to register unknown event \"" .. tostring(event) .. "\"", 2)
+		end
 		-- Kept on the frame, for a scenario to ask what it listens to.
 		self.events = self.events or {}
 		self.events[event] = true
@@ -1306,7 +1331,18 @@ local function pvpFlag(set, unit)
 end
 function UnitIsPVP(unit) return pvpFlag(Mock.pvp, unit) end
 function UnitIsPVPFreeForAll(unit) return pvpFlag(Mock.pvpFFA, unit) end
-function UnitIsCharmed() return false end
+-- The player charmed only where a scenario says so (Mock.charmed: true or
+-- Mock.SECRET); nobody else ever is.
+function UnitIsCharmed(unit)
+	if unit == "player" and Mock.charmed ~= nil then return Mock.charmed end
+	return false
+end
+-- Whether you have your character to yourself: not while a loss of control
+-- is reported or you are charmed.
+function HasFullControl()
+	local list = Mock.lossOfControl
+	return not ((list and #list > 0) or Mock.charmed == true)
+end
 function UnitInVehicle() return false end
 function UnitOnTaxi() return false end
 -- Everybody but the player is level 60 unless a scenario says otherwise. It was
@@ -1423,8 +1459,8 @@ function IsInGroup()
 	local n = GetNumGroupMembers and GetNumGroupMembers()
 	return type(n) == "number" and n > 0
 end
-function IsSpellKnown(id) return id == 1459 end
-function IsPlayerSpell(id) return id == 1459 end
+function IsSpellKnown(id) return id == 1459 or (Mock.knownSpells ~= nil and Mock.knownSpells[id] == true) end
+function IsPlayerSpell(id) return id == 1459 or (Mock.knownSpells ~= nil and Mock.knownSpells[id] == true) end
 function IsSpellInRange(spell, unit)
 	Mock.counts.range = Mock.counts.range + 1
 	if Mock.isRangeless(spell) then return nil end
@@ -1810,6 +1846,8 @@ local function ns_or_nil(t) if Mock.stripped then return nil end return t end
 -- out its data is wrong for this client -- one that names an id no client has
 -- would hide exactly the failure that check exists for.
 local SPELL_NAMES = {
+	-- A Forsaken's racial (Prompt/BreakFree.lua).
+	[7744] = "Will of the Forsaken",
 	[10157] = "Arcane Intellect",
 	[10938] = "Power Word: Fortitude",
 	[27841] = "Divine Spirit",
@@ -2031,14 +2069,47 @@ function Mock.isRangeless(spell)
 end
 
 setmetatable(_G, { __index = function(_, key)
-	if key == "C_Spell" then
+	if key == "C_LossOfControl" then
+		-- In the shape Mock.lossOfControlShape names (Mock.reset, above).
+		local shape = Mock.lossOfControlShape or "data"
+		if shape == "none" then return nil end
+		local function count()
+			if Mock.lossOfControlCount ~= nil then return Mock.lossOfControlCount end
+			return #(Mock.lossOfControl or {})
+		end
+		local function at(i)
+			local list = Mock.lossOfControl or {}
+			return list[i]
+		end
+		if shape == "events" then
+			return {
+				GetNumEvents = count,
+				GetEventInfo = function(i)
+					local e = at(i)
+					if not e then return nil end
+					return e.locType, e.spellID, e.text, 136183, 0, 5, 8, 0, 5, 1
+				end,
+			}
+		end
+		return {
+			GetActiveLossOfControlDataCount = count,
+			GetActiveLossOfControlData = function(i)
+				local e = at(i)
+				if not e then return nil end
+				return { locType = e.locType, spellID = e.spellID, displayText = e.text, startTime = 0,
+					timeRemaining = 5, duration = 8, priority = 5, displayType = 1 }
+			end,
+		}
+	elseif key == "C_Spell" then
 		return ns_or_nil({
 			GetSpellName = function(id)
 				if Mock.unknownSpells and Mock.unknownSpells[id] then return nil end
 				if Mock.flavour == "mainline" and RETAIL_NAMES[id] then return RETAIL_NAMES[id] end
 				return SPELL_NAMES[id] or "Arcane Intellect"
 			end,
-			GetSpellTexture = function() return 135932 end,
+			-- Will of the Forsaken's own, so its icon on the prompt can be told
+			-- from a buff's.
+			GetSpellTexture = function(id) if id == 7744 then return 136187 end return 135932 end,
 			GetSpellInfo = function() return { name = "Arcane Intellect" } end,
 			IsSpellInRange = function(spell, unit)
 				Mock.counts.range = Mock.counts.range + 1

@@ -141,7 +141,7 @@ local LOOK_RESET = {
 	{ "prompt", "reasonNearby" }, { "prompt", "reasonRefresh" }, { "prompt", "reasonUnknown" },
 	{ "prompt", "showIcon" }, { "prompt", "iconSize" }, { "prompt", "roundIcon" },
 	{ "prompt", "showCooldown" }, { "prompt", "showCount" }, { "prompt", "showQueue" },
-	{ "prompt", "queueRows" }, { "prompt", "clickRows" },
+	{ "prompt", "queueRows" }, { "prompt", "clickRows" }, { "prompt", "breakFree" },
 	{ "sound", "enabled" }, { "sound", "file" }, { "sound", "owedOnly" },
 }
 local LOOK_KEPT = {

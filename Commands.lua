@@ -2017,6 +2017,10 @@ function addon:HandleSlash(rawInput)
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
 		-- The key, and why the reminder to set one keeps quiet (Options/Start.lua).
 		if ns.Setup and ns.Setup.ReminderLine then self:Print("  " .. ns.Setup.ReminderLine()) end
+		-- Breaking free (Prompt/BreakFree.lua): whether the ability was found,
+		-- the button armed and its key, and the last loss of control seen and
+		-- how it came (plain, secret, or no API), for the first real fear.
+		for _, line in ipairs(ns.BreakFreeLines and ns.BreakFreeLines() or {}) do self:Print("  " .. line) end
 
 		-- A buff table that never arrived says so first, or the lines below
 		-- read as "this class has nothing".

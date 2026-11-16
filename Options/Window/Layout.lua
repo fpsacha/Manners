@@ -767,6 +767,9 @@ ns.WindowLayout = {
 				{ key = "appearance.fight", title = L["In a fight"], items = {
 					"appearance.hideInFight",
 					"appearance.fightRota",
+					-- A Forsaken's Will of the Forsaken (Prompt/BreakFree.lua).
+					"appearance.breakFree",
+					{ "appearance.breakFreeKey", indent = true },
 					"appearance.hideInCombat",
 					"appearance.dimInCombat",
 				} },
@@ -1008,6 +1011,7 @@ ns.WindowLayout = {
 			["appearance.scale"] = true, ["appearance.alpha"] = true,
 			["appearance.soundEnabled"] = true, ["appearance.soundFile"] = true,
 			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,
+			["appearance.breakFree"] = true, ["appearance.breakFreeKey"] = true,
 		},
 	},
 
@@ -1140,6 +1144,8 @@ ns.WindowLayout = {
 		["profiles.auto_raid"] = "profiles.autoEnabled",
 		["profiles.auto_battle"] = "profiles.autoEnabled",
 		["profiles.autoSay"] = "profiles.autoEnabled",
+		-- The break-free key, shown only while its switch is on.
+		["appearance.breakFreeKey"] = "appearance.breakFree",
 	},
 
 	-- What else a control of `parents` needs before its switch would show it:
@@ -1147,6 +1153,8 @@ ns.WindowLayout = {
 	-- nothing. A courtesy is its class's alone, and the lines mixed in belong
 	-- to the In character set.
 	parentsIf = {
+		-- Only for a character with the ability: the switch shows nothing else.
+		["appearance.breakFreeKey"] = function() return ns.caps.breakFree ~= nil end,
 		["who.courtesyRefresh"] = function() return ns.Courtesy.Has("courtesyRefresh") end,
 		["who.courtesyPortals"] = function() return ns.Courtesy.Has("courtesyPortals") end,
 		["who.courtesyHealthstones"] = function() return ns.Courtesy.Has("courtesyHealthstones") end,

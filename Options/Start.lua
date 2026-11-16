@@ -24,10 +24,13 @@ function Setup.CanBind()
 		and type(SaveBindings) == "function"
 end
 
--- Every key on the command, in the order the game lists them.
-function Setup.Keys()
+-- Every key on the command, in the order the game lists them: the prompt's,
+-- or another binding of Bindings.xml's (the break-free button's, Look's In a
+-- fight).
+function Setup.Keys(command)
 	if type(GetBindingKey) ~= "function" then return {} end
-	local ok, keys = pcall(function() return { GetBindingKey(Setup.COMMAND) } end)
+	command = command or Setup.COMMAND
+	local ok, keys = pcall(function() return { GetBindingKey(command) } end)
 	if not ok or type(keys) ~= "table" then return {} end
 	local out = {}
 	for _, key in ipairs(keys) do
@@ -36,26 +39,31 @@ function Setup.Keys()
 	return out
 end
 
--- The first key that buffs the prompted player, or nil.
-function Setup.Key()
-	return Setup.Keys()[1]
+-- The first key that buffs the prompted player (or works `command`), or nil.
+function Setup.Key(command)
+	return Setup.Keys(command)[1]
 end
 
 -- Put the command on one key, or on none for "" or nil. Key bindings are the
 -- game's, saved with its binding set rather than in the profile, so this works
 -- on every profile. SetBinding is refused in combat, so nothing happens there;
--- the control that calls this is greyed out in combat anyway.
-function Setup.SetKey(key)
+-- the control that calls this is greyed out in combat anyway. `command` is
+-- the prompt's unless named, and `said(key, was)` the line for a key taken
+-- from another binding (each command its own: the break-free key casts a
+-- spell, it buffs nobody).
+function Setup.SetKey(key, command, said)
 	if InCombatLockdown() or not Setup.CanBind() then return false end
+	command = command or Setup.COMMAND
 	return ns.Guard("key binding", function()
-		for _, old in ipairs(Setup.Keys()) do SetBinding(old) end
+		for _, old in ipairs(Setup.Keys(command)) do SetBinding(old) end
 		if type(key) == "string" and key ~= "" then
 			local was = type(GetBindingAction) == "function" and GetBindingAction(key) or ""
-			if type(was) == "string" and was ~= "" and was ~= Setup.COMMAND then
-				ns.addon:Print(L["%s was bound to %s; it now buffs the prompted player."]
-					:format(key, tostring(_G["BINDING_NAME_" .. was] or was)))
+			if type(was) == "string" and was ~= "" and was ~= command then
+				local name = tostring(_G["BINDING_NAME_" .. was] or was)
+				ns.addon:Print(said and said(key, name) or L["%s was bound to %s; it now buffs the prompted player."]
+					:format(key, name))
 			end
-			SetBinding(key, Setup.COMMAND)
+			SetBinding(key, command)
 		end
 		SaveBindings(GetCurrentBindingSet and GetCurrentBindingSet() or 1)
 		ns.RefreshOptionsDisplay()

@@ -52,6 +52,8 @@ ns.MANA = MANA
 -- identifier, so the label is set through _G.
 _G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = L["Buff the prompted player"]
 _G["BINDING_NAME_CLICK MannersSupplies:LeftButton"] = L["Use the item on the consumables button"]
+-- The break-free button (Prompt/BreakFree.lua), for a Forsaken.
+_G["BINDING_NAME_CLICK MannersBreakFree:LeftButton"] = L["Break free: Will of the Forsaken"]
 
 ---------------------------------------------------------------------------
 -- secret-safe access
@@ -661,6 +663,11 @@ local defaults = {
 			-- (Prompt/Fight.lua, the fight's rota). Off, a fight holds the
 			-- prompt on the one person, as it did before 1.11.19.
 			fightRota = true,
+			-- A Forsaken's Will of the Forsaken on a button of its own beside
+			-- the prompt, shown in every fight and lit up while feared,
+			-- charmed or asleep (Prompt/BreakFree.lua). Only a character with
+			-- the ability ever sees the switch.
+			breakFree = true,
 			-- The built-in looks (Glass, Framed, Minimal) draw the prompt at about
 			-- half strength in a fight when this is on, so it reads as held. Off by
 			-- default: a dim that stacks with a low Opacity made it vanish.
@@ -5906,6 +5913,10 @@ function addon:TickBody()
 	-- with it off and never made, a scan pays nothing for it, not even a pcall.
 	local supplies = ns.Supplies
 	if supplies and supplies:Wanted() then ns.Guard("consumables button", supplies.Refresh, supplies, now) end
+	-- The break-free button, for a character with the ability, out of a fight
+	-- (Prompt/BreakFree.lua): for anybody else a scan pays nothing for it.
+	local breakFree = ns.BreakFree
+	if breakFree and breakFree:Wanted() then ns.Guard("break free", breakFree.Refresh, breakFree) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
@@ -6151,6 +6162,9 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- repaint below, as any repaint arms and shows it (Prompt/Fight.lua).
 	if ns.Prompt then ns.Guard("fight hide release", ns.Prompt.ReleaseFightHide, ns.Prompt) end
 	if ns.Prompt then ns.Guard("fight rota release", ns.Prompt.ReleaseFightRota, ns.Prompt) end
+	-- The prompt's break-free line off before the repaint below, and the
+	-- break-free button armed for the next fight (Prompt/BreakFree.lua).
+	if ns.BreakFree then ns.Guard("break free release", ns.BreakFree.Release, ns.BreakFree) end
 	if ns.Prompt and ns.Prompt.pendingStyle then
 		ns.Prompt:ApplyStyle()
 	elseif ns.Prompt then

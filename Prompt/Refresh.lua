@@ -322,6 +322,12 @@ function Prompt:RefreshPanel()
 					or L["held -- nothing armed, and the panel cannot go"])
 			end
 		end
+		-- Feared, charmed or asleep with Will of the Forsaken ready
+		-- (Prompt/BreakFree.lua): the panel, when it is up, names it and its
+		-- key over whatever either arm above painted, and the hold's dim comes
+		-- off. Art only; the button beside the prompt says the same anyway.
+		local breakFree = ns.BreakFree
+		if breakFree then breakFree.PaintPrompt(self, p) end
 		return
 	end
 

@@ -292,6 +292,18 @@ sub-second subset for the middle of an edit.
   (mockapi.lua) reading `[combat]` from `Mock.affectingCombat`, else
   `Mock.inCombat`. Secure code's calls in a fight are not the addon's
   (`Mock.secureCode`).
+- Breaking free (`scenarios/breakfree.lua`): `Mock.knownSpells` (ids the
+  player knows beyond 1459, e.g. `{ [7744] = true }`, read by `IsSpellKnown`
+  and `IsPlayerSpell`), `Mock.playerRace = "Scourge"` (the race file name),
+  `Mock.charmed` (`UnitIsCharmed("player")`: true or `Mock.SECRET`),
+  `Mock.lossOfControl` (a list of `{ locType = "FEAR" }`, a type may be
+  `Mock.SECRET`) in the shape `Mock.lossOfControlShape` names (`"data"`, the
+  default: `GetActiveLossOfControlDataCount`/`GetActiveLossOfControlData`;
+  `"events"`: `GetNumEvents`/`GetEventInfo`; `"none"`: no `C_LossOfControl`,
+  and its events refused by `RegisterEvent`), `Mock.lossOfControlCount` (the
+  count answered instead, `Mock.SECRET`), `HasFullControl`, and the events
+  `PLAYER_CONTROL_LOST`/`GAINED` and `LOSS_OF_CONTROL_ADDED`/`UPDATE` in
+  `KNOWN_EVENTS`. All are put back by `Mock.reset`.
 - `fxgeometry.lua`: where an effect's region sits at a moment (what a playing
   group does to the frame that owns it, a Scale about the origin it names),
   dofile'd after `frametree.lua` by `scenarios/hunt37-effects.lua` and

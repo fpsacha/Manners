@@ -144,6 +144,9 @@ local function ExpirePendingClick(pending, why)
 	ns.NoteRefusal(pending.name, nil, true, pending.spoke)
 	SayStillOwed(pending.name, why or L["the game answered that press with nothing at all"])
 end
+-- For the break-free button (Prompt/BreakFree.lua), whose press lets the
+-- prompt's waiting press go with its own reason.
+ns.ExpirePendingClick = ExpirePendingClick
 
 -- A second press while the first is still waiting for the game. There is one
 -- slot, and the next cast event would be judged against the newest record, so
@@ -599,6 +602,12 @@ end
 local function SettlePendingClick(landedOn, spellId, castGUID)
 	local pending = ns.pendingClick
 	if not pending then return end
+	-- A press of the break-free button just now (Prompt/BreakFree.lua): this
+	-- cast is Will of the Forsaken's, with no target and, in a fight, a secret
+	-- id that SpellIsOurs would take for the buff's. It settles nothing; the
+	-- prompt's press is left to the sweep.
+	local breakFree = ns.BreakFree
+	if breakFree and breakFree.JustPressed() then return end
 	-- A cast with no unit to aim at (on Forever the mage's Arcane Brilliance, the
 	-- priest's Prayers and the druid's Gift of the Wild: target 56, the caster's
 	-- raid) has no name to report, and the event's target is a cstring that cannot
