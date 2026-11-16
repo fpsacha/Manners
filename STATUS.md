@@ -554,6 +554,13 @@ permissions list, a hook that lints each edited file, and the commands
 
 ## Open
 
+**The other clients' lists, 2026-11-15.** `tests/baselines/*.txt` took in the
+reds of today's new scenario files off Forever (par-core1, par-core2,
+par-clarity, refused, speech-range's hand-back): read as Forever fixtures
+(two-part names, a mage's Arcane Intellect), not read line by line. Worth a
+pass: give those files the `hasBuffs` skip, and see that the refusal hold
+(`RefusedAgain`) is exercised on Classic Era with a fixture of its own.
+
 **In the game: the checklist** (rewritten 2026-11-15 from the 74 open boxes
 of 1.11.25's list, `RELEASE-CHECK.md` and the "only the live game can say"
 notes below; WoW Forever has been playable since 5 November). One list, in

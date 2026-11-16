@@ -493,14 +493,9 @@ the options page's never box takes the person off the prompt before a fight can 
 ## hunt3-seams.lua
 hunt3-seams: /manners debug says the cure lines and the count to a class with no buff for others: SKIPPED -- the shaman has a buff for somebody else
 hunt3-seams: a trade the asker opens gets nothing while Manners is off, snoozed or unlocked: SKIPPED -- the water in the bags is not offered as a trade
-## hunt30-move.lua
-hunt30-move: Look leads with a big Move the prompt button, the places beside it: Look begins appearance.classicArt, appearance.move
-hunt30-move: Look leads with a big Move the prompt button, the places beside it: appearance.classicArt is drawn above the button
 ## hunt39-press.lua
 hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target false) was left out: /target Anna Aim / /cast Arcane Intellect / /cleartarget
 hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target true) was left out: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
-## hunt40-cards.lua
-hunt40-cards: the recorded text is current with the looks, held by the hash:   the pictures were drawn from something that has changed since
 ## hunt5-core.lua
 core: a long Cyrillic name and surname is a person: a 49-byte name and surname was not a name: \208\144\208\187\208\181\208\186\209\129\208\176\208\189\208\180\209\128\208\184\208\189\208\176
 core: a long Cyrillic name and surname is a person: a 98-byte name was let through
@@ -778,8 +773,6 @@ milestones: a title waits out the refusal of the cast that earned it: SKIPPED --
 milestones: hook: a cure nothing refused earns one, and a refused one nothing: SKIPPED -- the press on the poisoned member did not settle as a cure
 milestones: hook: a portal cast and water put in the trade earn one, and neither failing does: SKIPPED -- the party member's portal is not offered
 milestones: hook: a resurrection that was cast earns one, and an interrupted one nothing: SKIPPED -- the press on the dead member was not filed
-## model-window.lua
-model: the reset puts appearance back: appearance reset: the list reaches prompt.classicArt, which is not on this page
 ## options-presets.lua
 presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are offered one back unless they already have it. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
 ## ownbuffs.lua
@@ -795,6 +788,21 @@ ownskip: a right-click skips that buff of yours alone, and the next comes up: th
 ownskip: ctrl-right-click skips every buff of yours: ctrl-right-click did not skip every buff of yours
 ownskip: the tooltip and Not now agree: Not now did not skip intellect
 ownskip: under the flash of a press on yourself the skip is of the buff pressed: SKIPPED -- the flash is not over your next buff (frostarmor under Mort)
+## par-clarity.lua
+par-clarity: Forever's warrior is told the shout reaches the raid: the note says |cff888888Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by.|r
+par-clarity: Forever's warrior is told the shout reaches the raid: the page says the shout reaches only the party: |cff888888Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by.|r
+par-clarity: Forever's warrior is told the shout reaches the raid: the raid groups say nothing of the shout: |cff888888What you offer is cast on yourself and reaches only your own group of a raid, so the other groups' ticks change nothing.|r
+## par-core1.lua
+par-core1: a passer-by who walked off gives way to one still in reach: SKIPPED -- Anna was not on the prompt to begin with: Anna
+par-core1: alone, a passer-by who walked off is still offered: SKIPPED -- Anna was not on the prompt to begin with: Anna
+par-core1: the cursor on the panel keeps a passer-by who walked off: SKIPPED -- Anna was not on the prompt to begin with: Anna
+par-core1: the line under the cursor goes blank when its person leaves: SKIPPED -- the list did not start with Bert: Bert
+par-core1: the name under the cursor stays put while the list moves: SKIPPED -- the list did not start Bert, Cara: Bert, Cara
+par-core1: your own target out of sight is not backed off: Anna, your own target, was taken off the prompt for where she stands
+## par-core2.lua
+par-core2: a pull three seconds after a crowd walked off arms none of them: SKIPPED -- the crowd was never on the prompt: Anna
+par-core2: at a pull with one passer-by still beside you and two gone, the rota is the one beside you: the pull armed Bert, not the one still beside you: /target Bert / /cast Arcane Intellect / /targetlasttarget [help]
+par-core2: out of a fight a passer-by who walked off is still offered for a few seconds: two seconds after she walked off the prompt holds Anna
 ## people.lua
 an out-of-range friend stays behind somebody in range: SKIPPED -- Cara was not queued as an out-of-range friend
 an out-of-range friend stays behind somebody in range: expected the friend in range, the stranger in range, then the friend out of range: Bert,Anna,Cara
@@ -915,6 +923,11 @@ range-follow: the press hears it too: the press read Anna, sixty yards away, as 
 Toast draws the spell icon clean: SKIPPED -- the favour clock was not burning
 ## refusal-backoff.lua
 refusal-backoff: targeting them lifts it, the press's own targeting does not: targeting Ejp on purpose left the back-off standing
+## refused.lua
+refused: a new aura on them lifts the hold: an aura added to Ejp left Arcane Intellect held off them
+refused: an aura changed between the two refusals holds nothing: an aura taken off Ejp between the refusals, and the buff was held off anyway
+refused: each other Arcane Intellect keeps the offer from being made: SKIPPED -- Anna, wearing nothing, is not offered Arcane Intellect either
+refused: out of mana holds nothing (after): three refusals out of mana held Arcane Intellect off Ejp
 ## res.lua
 res: each client has its own spells, and none that is for a fight: a druid on Forever who knows Revive is offered nothing for the dead
 ## rp.lua
@@ -961,7 +974,7 @@ speech-range: a refusal holds the line until neither: SKIPPED -- the line was no
 speech-range: a silent press refused out of range leaves the next press its line: SKIPPED -- the line was not armed to begin with: /target Weirbeard Jenkins / /cast Arcane Intellect / /targetlasttarget
 speech-range: a silent press refused out of sight still holds the line: SKIPPED -- the line was not armed to begin with: /target Weirbeard Jenkins / /cast Arcane Intellect / /targetlasttarget
 speech-range: in a fight the press leaves the macro alone: SKIPPED -- the line was not armed to begin with: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
-speech-range: in a fight the press runs what the pull armed: SKIPPED -- the pull armed nothing for Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
+speech-range: in a fight the press runs what the pull armed: SKIPPED -- the pull armed nothing for Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget [help]
 speech-range: in character stays quiet out of range: SKIPPED -- nothing was said in range either: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-range: no line for a press that cannot see him (his range unread): SKIPPED -- the press did not cast at Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
 speech-range: no line for a press that cannot see him (the cursor left him for the prompt): SKIPPED -- the press did not cast at Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
@@ -996,10 +1009,6 @@ speech-range: the press knows him by his surname (Weirbeard Smith on a nameplate
 speech-range: the tooltip quotes no line for the held entry: SKIPPED -- Weirbeard was not armed with the line ahead of Ejp: /target Weirbeard / /cast Arcane Intellect / /say The Light already likes you, Weirbeard. Consider this a second opinion.
 speech-range: the tooltip quotes no line while the cursor holds an empty queue: SKIPPED -- the cursor did not hold Weirbeard on the panel
 speech-range: the tooltip quotes no line while the cursor holds an empty queue: SKIPPED -- the press did not go to Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
-## subpages.lua
-subpages: each page of many sections names its sub-divisions, every one its own sections, seven at most: profiles has 4 sections with a title and no sub-divisions
-## theme-picker.lua
-theme-picker: the pictures were drawn from the looks as they are now:   the pictures were drawn from something that has changed since
 ## whatif.lua
 whatif: a group member's favour, your blessing on him: SKIPPED -- a party warrior who buffed you, your Might running out, was not offered it
 whatif: a group member's lapsing shout: SKIPPED -- the shouts were never noticed

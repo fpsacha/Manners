@@ -69,8 +69,6 @@ a right-click skip holds against the next left press: a press was filed against 
 a shorter window applies to live debts (the slider): SKIPPED -- no favour was filed
 a shout at somebody measured too far away says so: SKIPPED -- the far party member was not offered as measured out of earshot
 a signal that resolves and then answers nobody: dropped somebody four yards away
-an unknown class is not told it has nothing: greeted a character it could work nothing out about: build |cffffd100VERSION|r watching for buffs. Ready to cast |cffffd100nothing -- no buff learned|r.
-an unknown class is not told it has nothing: used up the one greeting there is on a character it could not read
 cast path PRIEST/shadow: buff is not defined for this class
 one landing seen twice, log first: one courtesy was announced 2 times
 one landing seen twice, log first: one person who buffed us was filed as 2 debts
@@ -557,9 +555,6 @@ hunt3-seams: /manners debug says the cure lines and the count to a class with no
 hunt3-seams: a bar press on a courtesy's trade says to press the prompt, and the slot shows no spell: SKIPPED -- the prompt is not on the trade
 hunt3-seams: a trade the asker opens gets nothing while Manners is off, snoozed or unlocked: SKIPPED -- the water in the bags is not offered as a trade
 hunt3-seams: the resting line is not spent while Hide all Manners messages is on: with the chat back on, the line was not said
-## hunt30-move.lua
-hunt30-move: Look leads with a big Move the prompt button, the places beside it: Look begins appearance.classicArt, appearance.move
-hunt30-move: Look leads with a big Move the prompt button, the places beside it: appearance.classicArt is drawn above the button
 ## hunt33-order.lua
 hunt33-order: a buff order you set travels in an exported settings string: SKIPPED -- could not move nil up
 ## hunt33-settings.lua
@@ -567,8 +562,6 @@ hunt33-settings: the buff order travels in a settings string: SKIPPED -- the ord
 ## hunt39-press.lua
 hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target false) was left out: /target Anna Aim / /cast Arcane Intellect / /cleartarget
 hunt39-press: the spoken line gets the room the shorter hand-back leaves: the line that fits exactly (target true) was left out: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
-## hunt40-cards.lua
-hunt40-cards: the recorded text is current with the looks, held by the hash:   the pictures were drawn from something that has changed since
 ## hunt5-core.lua
 core: a long Cyrillic name and surname is a person: a 49-byte name and surname was not a name: \208\144\208\187\208\181\208\186\209\129\208\176\208\189\208\180\209\128\208\184\208\189\208\176
 core: a long Cyrillic name and surname is a person: a 98-byte name was let through
@@ -880,7 +873,6 @@ milestones: hook: a portal cast and water put in the trade earn one, and neither
 milestones: hook: a resurrection that was cast earns one, and an interrupted one nothing: SKIPPED -- the press on the dead member was not filed
 ## model-window.lua
 model: Who to buff's red dot is nothing to offer: SKIPPED -- the pin did not hold
-model: the reset puts appearance back: appearance reset: the list reaches prompt.classicArt, which is not on this page
 model: the strip names the launcher's state: SKIPPED -- the hunter has no prompt of his own
 ## options-presets.lua
 presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are offered one back unless they already have it. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
@@ -990,6 +982,17 @@ ownskip: a right-click skips that buff of yours alone, and the next comes up: th
 ownskip: ctrl-right-click skips every buff of yours: ctrl-right-click did not skip every buff of yours
 ownskip: the tooltip and Not now agree: Not now did not skip intellect
 ownskip: under the flash of a press on yourself the skip is of the buff pressed: SKIPPED -- the flash is not over your next buff (nil under Mort)
+## par-core1.lua
+par-core1: a passer-by who walked off gives way to one still in reach: SKIPPED -- Anna was not on the prompt to begin with: Anna
+par-core1: alone, a passer-by who walked off is still offered: SKIPPED -- Anna was not on the prompt to begin with: Anna
+par-core1: the cursor on the panel keeps a passer-by who walked off: SKIPPED -- Anna was not on the prompt to begin with: Anna
+par-core1: the line under the cursor goes blank when its person leaves: SKIPPED -- the list did not start with Bert: Bert
+par-core1: the name under the cursor stays put while the list moves: SKIPPED -- the list did not start Bert, Cara: Bert, Cara
+par-core1: your own target out of sight is not backed off: Anna, your own target, was taken off the prompt for where she stands
+## par-core2.lua
+par-core2: a pull three seconds after a crowd walked off arms none of them: SKIPPED -- the crowd was never on the prompt: Anna
+par-core2: at a pull with one passer-by still beside you and two gone, the rota is the one beside you: the pull armed Bert, not the one still beside you: /target Bert / /cast Arcane Intellect / /targetlasttarget [help]
+par-core2: out of a fight a passer-by who walked off is still offered for a few seconds: two seconds after she walked off the prompt holds Anna
 ## par.lua
 par: a named buff says nothing of the nameplates: the named favour was not announced
 par: a stranger's buff with nobody to name says why, once: a Fortitude from nobody the game would name, and nothing said
@@ -1131,6 +1134,17 @@ refreshfavour: a buff put back on you while it still ran is a favour: the top-up
 refreshfavour: the top-up is noticed once: SKIPPED -- the top-up was not noticed in the first place
 ## refusal-backoff.lua
 refusal-backoff: targeting them lifts it, the press's own targeting does not: targeting Ejp on purpose left the back-off standing
+## refused.lua
+refused: Offer held-back buffs again brings the buff back: SKIPPED -- two refusals held nothing
+refused: a new aura on them lifts the hold: SKIPPED -- two refusals held nothing
+refused: a target refused twice with no reason has that buff held off, said once: a third refusal said it again
+refused: a target refused twice with no reason has that buff held off, said once: chat said it 0 times, not once:
+refused: a target refused twice with no reason has that buff held off, said once: two refusals in a row on the target, nothing changed between, and Arcane Intellect is offered again within a minute (the report: five presses, five refusals)
+refused: each other Arcane Intellect keeps the offer from being made: SKIPPED -- Anna, wearing nothing, is not offered Arcane Intellect either
+refused: the game's more powerful reason holds it at once (after): one refusal with the game's 'a more powerful spell is already active' (after) and Arcane Intellect is offered to Ejp again within a minute
+refused: the game's more powerful reason holds it at once (before): one refusal with the game's 'a more powerful spell is already active' (before) and Arcane Intellect is offered to Ejp again within a minute
+refused: the game's more powerful reason holds it at once (type only): one refusal with the game's 'a more powerful spell is already active' (type only) and Arcane Intellect is offered to Ejp again within a minute
+refused: the game's more powerful reason holds it at once (type only): the trail does not name the late reason by its string id
 ## res.lua
 res: a cast that finished rests them until they live, and is in the ledger: offered again half a minute after the cast, while the question is hers to answer
 res: a cast that finished rests them until they live, and is in the ledger: the ledger holds 0 rows after the resurrection, not one
@@ -1200,7 +1214,7 @@ speech-range: a refusal holds the line until neither: SKIPPED -- the line was no
 speech-range: a silent press refused out of range leaves the next press its line: SKIPPED -- the line was not armed to begin with: /target Weirbeard Jenkins / /cast Arcane Intellect / /targetlasttarget
 speech-range: a silent press refused out of sight still holds the line: SKIPPED -- the line was not armed to begin with: /target Weirbeard Jenkins / /cast Arcane Intellect / /targetlasttarget
 speech-range: in a fight the press leaves the macro alone: SKIPPED -- the line was not armed to begin with: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
-speech-range: in a fight the press runs what the pull armed: SKIPPED -- the pull armed nothing for Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
+speech-range: in a fight the press runs what the pull armed: SKIPPED -- the pull armed nothing for Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget [help]
 speech-range: in character stays quiet out of range: SKIPPED -- nothing was said in range either: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 speech-range: no line for a press that cannot see him (his range unread): SKIPPED -- the press did not cast at Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
 speech-range: no line for a press that cannot see him (the cursor left him for the prompt): SKIPPED -- the press did not cast at Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
@@ -1237,7 +1251,6 @@ speech-range: the tooltip quotes no line while the cursor holds an empty queue: 
 speech-range: the tooltip quotes no line while the cursor holds an empty queue: SKIPPED -- the press did not go to Weirbeard: /target Weirbeard / /cast Arcane Intellect / /targetlasttarget
 ## subpages.lua
 subpages: a sub-division chosen draws only its sections, from the top, its folds open: no Myself chip on a paladin's Who to buff
-subpages: each page of many sections names its sub-divisions, every one its own sections, seven at most: profiles has 4 sections with a title and no sub-divisions
 subpages: the red dot marks the sub-division that holds the warning: a sub-division has a red dot on a fresh profile: who.cast
 subpages: the red dot marks the sub-division that holds the warning: nobody to offer to, the red dots are on who.sources,who.cast, not Offer my buff to
 subpages: the window remembers each page's sub-division for the session: back on Who to buff, Myself is forgotten
@@ -1338,7 +1351,6 @@ thankwhisper: with the /thank on too, both go: 0 whispers went
 ## theme-picker.lua
 theme-picker: a class with no buff for others wears its own learned buff, else the question mark (an aspect): SKIPPED -- the gallery is not on the Look page
 theme-picker: the icon is the player's own buff, cropped as the prompt crops it: SKIPPED -- the priest has 1 castable buffs
-theme-picker: the pictures were drawn from the looks as they are now:   the pictures were drawn from something that has changed since
 ## tracking.lua
 tracking: Find Herbs off is offered, on is not: with Find Herbs on the minimap list, tracking is not one of your own buffs
 ## ux-redesign.lua
