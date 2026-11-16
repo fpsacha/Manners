@@ -389,7 +389,12 @@ withTree("look-gearworks: a favour arriving whistles and swings the needle up", 
 	if not (back and back._degrees > 0 and back._degrees <= 9.01) then
 		fail(scenario, "the swing does not pass its mark by a little and come back: " .. tostring(back and back._degrees))
 	end
-	pass(ns, 1)
+	-- A second on, the whistle's light has ended, and its frames end with it
+	-- (the hook on its OnFinished), not at Flow's next reading of the clock.
+	Mock.advance(1)
+	FT.settle()
+	if look.whistleSheet:IsPlaying() then fail(scenario, "the whistle's light ended and its frames still play") end
+	ns.Looks.Flow.TickAll(GetTime())
 	if look.swing._playing then fail(scenario, "a second on, the needle still swings") end
 	if shownMark(look) ~= MARK.owed then fail(scenario, "its swing over, the needle is drawn at " .. tostring(shownMark(look))) end
 	if look.whistleSheet:IsPlaying() then fail(scenario, "a second on, the whistle's frames still play") end

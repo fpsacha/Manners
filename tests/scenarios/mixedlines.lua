@@ -36,11 +36,14 @@ local function person(ns)
 end
 
 -- math.random answering from a list in turn (the last one for ever after).
+-- An empty interval (n below 1) is refused as the game's Lua refuses it, so a
+-- pick from no lines at all throws here as it would there.
 local function withRolls(rolls, fn)
 	local real, at = math.random, 0
 	math.random = function(n)
 		at = at + 1
 		local v = rolls[at] or rolls[#rolls]
+		if n and n < 1 then return real(n) end
 		if n then return math.max(1, math.min(n, v)) end
 		return real()
 	end
@@ -93,8 +96,9 @@ do
 		-- Only lines too long: In character answers, never nothing.
 		speech.mixedLines = ("x"):rep(300)
 		withRolls({ 1 }, function()
-			local line = ns.PickPhrase(entry, 250)
-			if not line or line:find("xxxx", 1, true) then fail(scenario, "with only a line too long, the line was " .. tostring(line)) end
+			local ok, line = pcall(ns.PickPhrase, entry, 250)
+			if not ok then line = "an error: " .. tostring(line) end
+			if not ok or not line or line:find("xxxx", 1, true) then fail(scenario, "with only a line too long, the line was " .. tostring(line)) end
 		end)
 		-- Not while another set is loaded: the phrase box is the player's own already.
 		speech.mixedLines = "Well met, {name}!"
@@ -128,8 +132,15 @@ do
 		end
 		-- A damaged value is repaired, and a paste cannot put words in a speaker's mouth.
 		speech.mixedLines = 7
+		ns.repairLog = {}
 		ns.ClampSettings()
 		if speech.mixedLines ~= "" then fail(scenario, "a damaged box was left as " .. tostring(speech.mixedLines)) end
+		-- ...and written down with the other repairs, for /manners selftest.
+		local logged = false
+		for _, line in ipairs(ns.repairLog) do
+			if line:find("speech.mixedLines (was 7)", 1, true) then logged = true end
+		end
+		if not logged then fail(scenario, "the repair of a damaged box is not in the repair log") end
 		-- Placed on the page.
 		local placed = false
 		for _, section in ipairs(ns.WindowLayout.pages.click.sections) do

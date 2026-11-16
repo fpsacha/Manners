@@ -89,8 +89,5 @@ mutate("Looks/Gearworks.lua",
        "painted-gearworks: the rings held to the button's middle, not the socket's",
        expect="the rings, the echo and the halo stay in their room", script=S)
 
-mutate("Looks/Gearworks.lua",
-       "\tself.whistleAnim:HookScript(\"OnFinished\", function() Gearworks.whistleSheet:Stop() end)\n",
-       "",
-       "painted-gearworks: the whistle's sheet runs on after its light",
-       expect="leaves nothing behind", script=S)
+# The whistle's sheet ending with its light is look-gearworks.py's now
+# ("look-gearworks: the whistle's sheet runs on after its light").

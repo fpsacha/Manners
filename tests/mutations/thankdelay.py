@@ -116,7 +116,7 @@ mutate("Options/Advanced.lua",
        "\t\t\"prompt.thankDelay\",\n",
        "",
        "thankdelay: What I say's reset leaves the switch",
-       expect="model: the reset puts click back", script=S)
+       expect="thankdelay: What I say's reset puts the pause back", script=S)
 
 # ------------------------------------------------ what it says
 mutate("Commands.lua",

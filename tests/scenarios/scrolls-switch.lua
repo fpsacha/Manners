@@ -305,3 +305,32 @@ do
 		end
 	end)
 end
+
+-- The switch has its place on Who to buff (the window draws only what the
+-- layout places), and the page's reset puts it back on.
+do
+	local scenario = "scrolls-switch: Who to buff places the switch and its reset puts it back"
+	with(scenario, { flavour = "vanilla" }, function(ns)
+		local page = ns.WindowLayout and ns.WindowLayout.pages and ns.WindowLayout.pages.who
+		local seen = {}
+		local function placed(t)
+			if type(t) ~= "table" or seen[t] then return false end
+			seen[t] = true
+			if t[1] == "who.ownScrolls" then return true end
+			for _, v in pairs(t) do
+				if v == "who.ownScrolls" or placed(v) then return true end
+			end
+			return false
+		end
+		if not placed(page) then fail(scenario, "the Scrolls switch has no place on Who to buff") end
+		ns.db.profile.ownBuffs.scrolls = false
+		local ok, answer = pcall(ns.OptionsPage.ResetPage, "who")
+		if not ok or answer ~= true then
+			fail(scenario, "SKIPPED -- the reset did not run: " .. tostring(answer))
+			return
+		end
+		if ns.db.profile.ownBuffs.scrolls ~= true then
+			fail(scenario, "the reset left the switch " .. tostring(ns.db.profile.ownBuffs.scrolls))
+		end
+	end)
+end

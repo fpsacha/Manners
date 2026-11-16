@@ -5301,8 +5301,9 @@ function ns.ClampSettings()
 	local translatedSet = englishSet and ns.PhraseSetText(englishSet)
 	if translatedSet and translatedSet ~= speech.phrases then speech.phrases = translatedSet end
 	-- The same for "In character", whose examples differ per character, so
-	-- Phrases.lua recognises its own.
-	if type(speech.mixedLines) ~= "string" then speech.mixedLines = "" end
+	-- Phrases.lua recognises its own. (My own lines, mixed in, speech.mixedLines,
+	-- is a text among the defaults: put right, and written down, by the repair
+	-- of texts at the end.)
 	-- Lines left out: a list of lines as written, each one line of text, no
 	-- line twice, ns.LEFT_OUT_MAX at most (the first kept). Always a new table,
 	-- so Phrases.lua's set of them is made again.
