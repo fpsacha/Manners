@@ -12,13 +12,13 @@ mutate("Core.lua",
        expect="thankwhisper: off by default, nothing is whispered", script=S)
 
 mutate("Favours.lua",
-       "\t\tlocal whisper = db.prompt.thankWhisper == true and owed[seen.name] == nil\n",
+       "\t\tlocal whisper = db.prompt.thankWhisper == true and not GoesBack(seen)\n",
        "\t\tlocal whisper = owed[seen.name] == nil\n",
        "thankwhisper: the switch is not read",
        expect="thankwhisper: off by default, nothing is whispered", script=S)
 
 mutate("Favours.lua",
-       "\t\tlocal whisper = db.prompt.thankWhisper == true and owed[seen.name] == nil\n",
+       "\t\tlocal whisper = db.prompt.thankWhisper == true and not GoesBack(seen)\n",
        "\t\tlocal whisper = db.prompt.thankWhisper == true\n",
        "thankwhisper: a favour you will return is whispered too",
        expect="thankwhisper: somebody you will buff back is not whispered", script=S)

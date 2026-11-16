@@ -331,6 +331,7 @@ function ns.FullReport()
 	local thanks = ns.thankLog or {}
 	if thanks.thanked then Alias(thanks.thanked.name) end
 	if thanks.skipped then Alias(thanks.skipped.name) end
+	if thanks.whispered then Alias(thanks.whispered.name) end
 	local names = {}
 	for name in pairs(alias) do names[#names + 1] = name end
 	-- The longest first, so "Anna Aim" goes before "Anna".

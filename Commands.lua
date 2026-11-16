@@ -861,6 +861,8 @@ do
 	local SHARE_KEEP_MINE = { ["speech.enabled"] = "switch", ["prompt.thankEmote"] = "thank" }
 	-- Asking people for a buff (Ask.lua) talks to other players too.
 	SHARE_KEEP_MINE["sources.ask"] = "ask"
+	-- So does the whispered thank-you (Favours.lua, NoteFavour; Speech.lua).
+	SHARE_KEEP_MINE["prompt.thankWhisper"] = "whisper"
 
 	-- What is said and where, kept as the player has it whenever speaking is on,
 	-- so a paste cannot start yelling a stranger's words. With speaking off they
@@ -1395,6 +1397,9 @@ do
 		if kept.thank then
 			lines[#lines + 1] = L["The string had /thank people who buff me switched on. That is left off, because everybody near you sees it: switch it on under What I say if you want it."]
 		end
+		if kept.whisper then
+			lines[#lines + 1] = L["The string had whispering a thank-you to people you can't buff back switched on. That is left off, because it talks to other players: switch it on under What I say if you want it."]
+		end
 		if kept.ask then
 			lines[#lines + 1] = L["The string had asking people for a buff switched on. That is left off, because it talks to other players: switch it on under Who to buff if you want it."]
 		end
@@ -1637,6 +1642,14 @@ local function PrintFavourWatch(self, db, now)
 	if thanks.skipped then
 		self:Print(("    " .. L["last not thanked: |cffffffff%s|r, %ds ago (%s)"]):format(
 			thanks.skipped.name, math.floor(now - thanks.skipped.at), thanks.skipped.why))
+	end
+	-- The whispered thank-you (Favours.lua, Send): on, and who it last went to.
+	if db.prompt.thankWhisper == true then
+		self:Print("  " .. L["whisper a thank-you to people you can't buff back: |cff00ff00on|r"])
+	end
+	if thanks.whispered then
+		self:Print(("    " .. L["last whispered a thank-you: |cffffffff%s|r, %ds ago"]):format(
+			thanks.whispered.name, math.floor(now - thanks.whispered.at)))
 	end
 end
 
@@ -2020,7 +2033,8 @@ function addon:HandleSlash(rawInput)
 			elseif not db.sources.owed then
 				-- With the /thank on the walk still watches, for the thank alone
 				-- (Favours.lua, watching), and the thank's own lines follow.
-				self:Print("  " .. (db.prompt.thankEmote
+				-- The whispered thank-you watches the same way.
+				self:Print("  " .. ((db.prompt.thankEmote or db.prompt.thankWhisper)
 					and L["Favours are not recorded while \"People who buff me\" is off, on the Who to buff tab."]
 					or L["not watching for favours -- |cffffd100People who buff me|r is switched off."]))
 			else

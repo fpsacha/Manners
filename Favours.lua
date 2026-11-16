@@ -245,6 +245,8 @@ do
 	ThankFavour = function(seen, emote, whisper)
 		local now, name = GetTime(), seen.name
 		if waiting and now - waiting.at < PAUSE_MAX + 2 then
+			-- Somebody else's, kept (the newest) for when the waiting thank never goes.
+			if waiting.name ~= name then waiting.behind = { seen = seen, emote = emote, whisper = whisper } end
 			return Skip(name, now, waiting.name == name and L["thanked them a moment ago"]
 				or L["thanked somebody a moment ago"])
 		end
@@ -264,7 +266,14 @@ do
 			-- thank back until the guard above lapses.
 			if waiting == mine then waiting = nil end
 			if ns.thankLog.waiting == mine then ns.thankLog.waiting = nil end
+			local sent = lastAt
 			ns.Guard("thank after a pause", Paused, seen, emote, whisper)
+			-- Nothing went (they rode off, a fight began): the favour passed over
+			-- during the pause is thanked instead, so a burst is one thank, not none.
+			local behind = mine.behind
+			if behind and lastAt == sent then
+				ns.Guard("thank after a pause", Paused, behind.seen, behind.emote, behind.whisper)
+			end
 		end)
 	end
 end
@@ -776,6 +785,22 @@ do
 		SaveDebts()
 	end
 
+	-- Whether something of yours goes back to them now: a debt the queue can
+	-- offer where they stand, asked as OweFavour's line asks it. Not one kept
+	-- only for if they join your group (a warrior's shout to a stranger), held
+	-- by a buff for one target that is on somebody else, or by a PvP flag.
+	local function GoesBack(seen)
+		if owed[seen.name] == nil then return false end
+		local hasMana = seen.hasMana
+		if hasMana == nil and seen.class then hasMana = MANA_CLASSES[seen.class] == true end
+		local inParty = seen.sameParty
+		if inParty == nil then inParty = SameParty(seen.name) end
+		local inGroup = seen.inGroup
+		if inGroup == nil then inGroup = InGroup(seen.name) end
+		if not ns.CouldOffer(hasMana, inParty, inGroup, seen.tank, seen.class, seen.name) then return false end
+		return not ns.PvPHoldsBack(seen.pvp)
+	end
+
 	-- One favour, filed against the person who was holding the token when the aura
 	-- was read: a debt while People who buff me is on, and a /thank while its own
 	-- switch is. Either one alone has the scan read who cast it (ScanOwnBuffs,
@@ -809,8 +834,9 @@ do
 		if buff and buff.selfCast and buff.partyOnly then return end
 		-- A whispered thank-you, for somebody you will not buff back: nothing
 		-- of yours is owed them (a warrior, a class with nothing for them, or
-		-- People who buff me off). A favour you return is thanked by that.
-		local whisper = db.prompt.thankWhisper == true and owed[seen.name] == nil
+		-- People who buff me off), or a debt that cannot go back to them now
+		-- (GoesBack). A favour you return is thanked by that.
+		local whisper = db.prompt.thankWhisper == true and not GoesBack(seen)
 		if db.prompt.thankEmote or whisper then
 			ns.Guard("thank emote", ThankFavour, seen, db.prompt.thankEmote == true, whisper)
 		end

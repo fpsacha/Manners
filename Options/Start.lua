@@ -398,6 +398,8 @@ Quick.WHO = {
 Quick.VOICE = {
 	{ key = "silent", name = L["Stay silent"], set = {
 		["speech.enabled"] = false, ["prompt.thankEmote"] = false,
+		-- The whispered thank-you sends chat too: silence means it as well.
+		["prompt.thankWhisper"] = false,
 	} },
 	{ key = "thank", name = L["Just /thank them"], set = {
 		["speech.enabled"] = false, ["prompt.thankEmote"] = true,
@@ -663,6 +665,11 @@ function Quick.VoiceSummary()
 	-- The /thank answers somebody buffing you, whether People who buff me is
 	-- on or not (Favours.lua, NoteFavour).
 	local thankLine = thanks and L["Also /thanks people who buff you."]
+	-- The whispered thank-you (Favours.lua, NoteFavour) is chat too: never "Silent."
+	local whisperLine = P().thankWhisper == true and L["Whispers a thank-you to people you can't buff back."]
+	if not sp.enabled and whisperLine then
+		return thankLine and (whisperLine .. " " .. thankLine) or whisperLine
+	end
 	if not sp.enabled then
 		return thanks and L["Only /thank."] or L["Silent."]
 	end
@@ -686,6 +693,7 @@ function Quick.VoiceSummary()
 			or L["Says one of your own lines in %s when you buff someone."]:format(where)
 	end
 	if thankLine then text = text .. " " .. thankLine end
+	if whisperLine then text = text .. " " .. whisperLine end
 	return text
 end
 

@@ -1528,7 +1528,8 @@ Breathing (131) is the aura it says on the warlock wearing it.
 **Waiting on players (1.11.9).** Two `/thank` reports need a log: one player
 sees a /thank with *Thank people who buff me* off, another never gets one. One
 code path makes the emote (`Favours.lua`, `ThankFavour`) and it obeys the switch;
-the full check-up shows the switch and the last thank made or skipped and why.
+the full check-up shows the switch and the last thank made or skipped and why,
+and (Unreleased) the whispered thank-you's switch and who it last went to.
 Offering buffs to group pets (a hunter's, a warlock's) was asked for and is its
 own piece of work: pets have no unique name, are not players and are not in
 `UnitInParty`, so the walk, the macro (`/target` by token, not by name) and the

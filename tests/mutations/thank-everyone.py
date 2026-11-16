@@ -103,7 +103,7 @@ mutate("Commands.lua",
        "thank-everyone: debug hides that a rogue's Manners is off",
        expect="/manners debug does not say a rogue's Manners is switched off", script=S)
 mutate("Commands.lua",
-       "\t\t\t\tself:Print(\"  \" .. (db.prompt.thankEmote\n",
+       "\t\t\t\tself:Print(\"  \" .. ((db.prompt.thankEmote or db.prompt.thankWhisper)\n",
        "\t\t\t\tself:Print(\"  \" .. (false\n",
        "thank-everyone: debug says nothing watches the /thank",
        expect="debug says nothing is watched while the /thank watches", script=S)
