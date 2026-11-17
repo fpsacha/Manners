@@ -454,13 +454,15 @@ once you carry one.
   Crusade): Feed Pet with a food it eats from your bags, the lowest level
   that suits the pet, never a food that makes you Well Fed while anything
   else will do, and nothing once the pet is happy. A food the pet refuses is
-  remembered and not offered again.
+  remembered and not offered again; one the game calls too low for the pet
+  is left out until the pet's next level.
 - *Mend my pet when it is hurt after a fight*: Mend Pet below half health,
   once the pet is out of the fight too, and not while Mend Pet still heals it.
 
 None of these comes in a fight, in the few seconds after one, while you are
-mounted, on a taxi, feigning death or casting, or in a city or an inn unless
-*Also in cities and inns* is on; *Myself* off turns them all off. A
+mounted, on a taxi, feigning death or casting, without the mana to cast it,
+or in a city or an inn unless *Also in cities and inns* is on; *Myself* off
+turns them all off. A
 right-click on one is "not now": Revive and Feed come back later, Mend after
 your next fight, Call once a pet has been out. Nobody is skipped and nothing
 goes on your never-offer list.
@@ -478,7 +480,8 @@ happily." The answer goes by the pet's family. With *In character* chosen
 and your lines going in /say, you also say a line to your pet in your
 people's voice. Manners remembers each pet by name on this character: when
 it first saw it, fights shared, pats and meals, shown under the switch, with
-a small line in chat at a milestone ("100 days with Humar").
+a small line in chat at a milestone ("100 days with Humar"). A pet you
+rename keeps its memory under the new name.
 
 ## Your group
 

@@ -86,6 +86,10 @@ local K = {
 	HELLO_AFTER = 10,
 	HELLO_WINDOW = 120,
 	REFUSAL_WINDOW = 1.5,
+	-- A Feed Pet success this soon after a press is that press's food eaten.
+	FED_WINDOW = 5,
+	-- Feed Pet's two ids reported for one meal count once.
+	MEAL_GAP = 2,
 	MAX_PETS = 25,
 	FOOD_EVERY = 5,
 	READ_EVERY = 2,
@@ -170,9 +174,19 @@ local function Ask(fn, ...)
 	return plain((fn(...)))
 end
 
+-- Whether you know a spell: Core.lua's ns.SpellKnown (C_SpellBook first, since
+-- IsPlayerSpell and IsSpellKnown are only shims behind the
+-- loadDeprecationFallbacks setting), kept until the spellbook changes
+-- (SPELLS_CHANGED, a loading screen), so a scan asks the client nothing.
+local known = {}
 local function Known(id)
 	if type(id) ~= "number" then return false end
-	return Ask(_G.IsPlayerSpell, id) == true or Ask(_G.IsSpellKnown, id) == true
+	local answer = known[id]
+	if answer == nil then
+		answer = type(ns.SpellKnown) == "function" and ns.SpellKnown(id) == true
+		known[id] = answer
+	end
+	return answer
 end
 
 local function KnownAny(list)
@@ -205,6 +219,8 @@ local clock = { settleUntil = 0, afterFight = 0, quietSince = nil, loginAt = nil
 local mendHeld = false
 -- The press last made, for the game's answer to it.
 local press = {}
+-- When the last meal was counted.
+local fedAt
 -- The moment waiting (bond), or nil: { kind, at, name, shownAt, line, source }.
 local moment
 -- The last line said for each kind of words, never twice running.
@@ -260,10 +276,34 @@ local function Record(char, name, family)
 	return rec
 end
 
+-- A pet renamed: the name it had, and when, until the client gives the new
+-- one (LOCALPLAYER_PET_RENAMED may come before the name changes).
+local renamed = { from = nil, untilAt = nil }
+local RENAME_WINDOW = 10
+
+-- The record of a renamed pet moved to its new name, the memory kept whole.
+local function Rename(char, name, family, now)
+	local from, untilAt = renamed.from, renamed.untilAt
+	if not from or name == from then return end
+	renamed.from, renamed.untilAt = nil, nil
+	if not untilAt or now > untilAt then return end
+	local rec = char.beasts[from]
+	if type(rec) ~= "table" then return end
+	-- Another pet come out in the meantime is no rename.
+	if family and rec.family and rec.family ~= family then return end
+	char.beasts[name], char.beasts[from] = rec, nil
+	if char.beastDead == from then char.beastDead = name end
+end
+
 local function ReadPet(now)
 	local wasOut = st.out
 	st.dirty, st.readAt = false, now
-	st.mendOn, st.fedOn = nil, nil
+	-- What the pet wears is asked again after its auras changed, or every
+	-- READ_EVERY seconds; a health tick alone asks nothing.
+	if st.auraDirty or not st.auraAt or now - st.auraAt >= K.READ_EVERY then
+		st.mendOn, st.fedOn = nil, nil
+		st.auraDirty, st.auraAt = false, now
+	end
 	local exists = Ask(_G.UnitExists, "pet") == true
 	local dead = exists and Ask(_G.UnitIsDead, "pet") == true
 	st.exists, st.out = exists, exists and not dead
@@ -285,6 +325,7 @@ local function ReadPet(now)
 		-- is not: Dismiss Pet ends a moment before the client takes it away.)
 		if not wasOut then char.beastAway = nil end
 		if name then
+			if renamed.from then Rename(char, name, st.family, now) end
 			char.beastLast = name
 			Record(char, name, st.family)
 		end
@@ -326,6 +367,10 @@ end
 ---------------------------------------------------------------------------
 
 local food = { at = nil, item = nil, why = nil }
+-- This session's answers that are kept nowhere: what a pet of no known family
+-- ate or refused (every such pet would share one record), and the food the
+-- game called too low for the pet, by the pet's level then (the pet grows).
+local guessed, tooLow = {}, {}
 
 local function Diets()
 	local locale = ns.LOCALE or (type(_G.GetLocale) == "function" and _G.GetLocale()) or "enUS"
@@ -406,8 +451,10 @@ function Beast.Food(now)
 	local rows = ns.BEAST_FOODS and ns.BEAST_FOODS[FLAVOUR] or {}
 	local learned = addon.db and addon.db.global
 	if learned and type(learned.beastFood) ~= "table" then learned.beastFood = {} end
-	local mine = learned and learned.beastFood[tostring(st.family or "?")]
+	local mine = st.family and learned and learned.beastFood[tostring(st.family)]
+	if not st.family then mine = guessed end
 	if type(mine) ~= "table" then mine = {} end
+	local petLevel = Ask(_G.UnitLevel, "pet")
 	local info = _G.C_PetInfo
 	local canEat = type(info) == "table" and info.CanPetEatItem or nil
 	local eats = not canEat and Diets() or nil
@@ -420,6 +467,8 @@ function Beast.Food(now)
 		local level = row and row[2] or nil
 		local tier
 		if mine[item] == false then
+			tier = nil
+		elseif tooLow[item] ~= nil and tooLow[item] == (petLevel or 0) then
 			tier = nil
 		elseif canEat then
 			tier = Ask(canEat, item) == true and 1 or nil
@@ -437,7 +486,6 @@ function Beast.Food(now)
 			list[#list + 1] = { item = item, level = level }
 		end
 	end
-	local petLevel = Ask(_G.UnitLevel, "pet")
 	for tier, list in ipairs(tiers) do
 		if #list > 0 then
 			local pick = Choose(list, petLevel)
@@ -452,8 +500,14 @@ end
 local function Learn(item, eats)
 	local db = addon.db and addon.db.global
 	if not (db and type(item) == "number") then return end
+	food.at = nil
+	-- A pet of no known family: for this session only.
+	if not st.family then
+		guessed[item] = eats == true
+		return
+	end
 	if type(db.beastFood) ~= "table" then db.beastFood = {} end
-	local key = tostring(st.family or "?")
+	local key = tostring(st.family)
 	if type(db.beastFood[key]) ~= "table" then db.beastFood[key] = {} end
 	db.beastFood[key][item] = eats == true
 	food.at = nil
@@ -509,8 +563,7 @@ local function CareHeld(db, now)
 	if now < clock.afterFight then return "fight" end
 	if ns.Resting() == true and db.ownBuffs.inCities ~= true then return "resting" end
 	if ns.Battle and ns.Battle.State(now) == "fight" then return "fight" end
-	if Ask(_G.UnitIsDeadOrGhost, "player") == true then return "dead" end
-	if Ask(_G.UnitOnTaxi, "player") == true or Ask(_G.UnitInVehicle, "player") == true then return "travelling" end
+	-- Dead, on a taxi or in a vehicle never gets here (Unable, below).
 	if Ask(_G.IsMounted) == true then return "mounted" end
 	if Ask(_G.UnitIsFeignDeath, "player") == true then return "feigning" end
 	if Ask(_G.UnitCastingInfo, "player") ~= nil or Ask(_G.UnitChannelInfo, "player") ~= nil then return "casting" end
@@ -629,8 +682,7 @@ local function BondHeld(now)
 	if Ask(_G.UnitIsFeignDeath, "player") == true then return "feigning" end
 	if ns.InBattleground and ns.InBattleground() then return "battle" end
 	if Ask(_G.IsEncounterInProgress) == true then return "encounter" end
-	if Ask(_G.UnitOnTaxi, "player") == true or Ask(_G.UnitInVehicle, "player") == true then return "travelling" end
-	if Ask(_G.UnitIsDeadOrGhost, "player") == true then return "dead" end
+	-- Dead, on a taxi or in a vehicle never gets here (Unable, below).
 	return nil
 end
 
@@ -645,6 +697,9 @@ end
 local function Road(now)
 	if moment or not clock.quietSince or now - clock.quietSince < K.ROAD_AFTER then return end
 	if GapLeft() > 0 then return end
+	-- No pet out, or nothing could show it: no moment, and no trail line for
+	-- one every half minute.
+	if BondHeld(now) then return end
 	if ns.Resting() == true then return end
 	local inside = Ask(_G.IsInInstance)
 	if inside == true then return end
@@ -694,6 +749,18 @@ local function Insert(queue, entry)
 	table.insert(queue, at, entry)
 end
 
+-- Whether the game says the spell cannot be paid for now (Queue.lua's
+-- Affordable, for one spell): only a no for want of mana counts, and a client
+-- that will not say keeps it. Asked only for care about to be offered.
+local function Unpaid(id)
+	if type(id) ~= "number" then return false end
+	local check = _G.C_Spell and _G.C_Spell.IsSpellUsable
+	if type(check) ~= "function" then check = _G.IsUsableSpell end
+	if type(check) ~= "function" then return false end
+	local usable, noMana = check(id)
+	return plain(usable) == false and plain(noMana) == true
+end
+
 -- What Offer last decided, for /manners debug.
 local last = {}
 
@@ -710,16 +777,19 @@ local function Offer(queue, verdicts, now)
 	Pet(now)
 	st.dead = (st.exists and not st.out) or (not st.exists and char.beastDead ~= nil)
 	last.care, last.held = nil, nil
-	local kind, item = CareWanted(beast, char, now)
+	-- The holds first: what the pet wears and the bags are read only when
+	-- care could be offered at all.
+	local held = CareHeld(db, now)
+	last.held = held
+	local kind, item
+	if not held then kind, item = CareWanted(beast, char, now) end
 	if kind then
-		local held = CareHeld(db, now)
-		last.held = held
-		if not held then
-			local entry = CareEntry(kind, item, char)
-			if entry then
-				Insert(queue, entry)
-				last.care = kind
-			end
+		local entry = CareEntry(kind, item, char)
+		if entry and Unpaid(entry.buff.spell) then
+			last.held = "mana"
+		elseif entry then
+			Insert(queue, entry)
+			last.care = kind
 		end
 	end
 	local added = last.care ~= nil
@@ -1100,7 +1170,8 @@ end
 local REFUSED = {
 	ERR_PET_SPELL_DEAD = "dead", PETTAME_DEAD = "dead", PETTAME_NOTDEAD = "alive",
 	ERR_NO_PET = "nopet", SPELL_FAILED_NO_PET = "nopet",
-	SPELL_FAILED_WRONG_PET_FOOD = "food", SPELL_FAILED_FOOD_LOWLEVEL = "food",
+	-- Too low for the pet is the pet's level, not the food: never learned.
+	SPELL_FAILED_WRONG_PET_FOOD = "food", SPELL_FAILED_FOOD_LOWLEVEL = "lowlevel",
 	SPELL_FAILED_ALREADY_HAVE_SUMMON = "summoned", SPELL_FAILED_ALREADY_HAVE_PET = "summoned",
 }
 
@@ -1132,6 +1203,14 @@ local function Refused(errorType, message)
 		char.beastAway = "nopet"
 	elseif what == "food" and press.kind == "feed" then
 		Learn(press.item, false)
+		press.item = nil
+		ns.MarkAttempted("?pet:feed", "beast:feed", 0)
+	elseif what == "lowlevel" and press.kind == "feed" then
+		if type(press.item) == "number" then
+			tooLow[press.item] = Ask(_G.UnitLevel, "pet") or 0
+			food.at = nil
+		end
+		press.item = nil
 		ns.MarkAttempted("?pet:feed", "beast:feed", 0)
 	elseif what == "summoned" then
 		ns.MarkAttempted("?pet:call", "beast:call", 30)
@@ -1151,10 +1230,18 @@ local function Cast(event, spell)
 			char.beastDead = nil
 			Trigger("welcome", now)
 		elseif spell == K.FEED[1] or spell == K.FEED[2] then
-			local rec = Record(char, st.name, st.family)
-			if rec then rec.meals = rec.meals + 1 end
-			if press.kind == "feed" and press.item then Learn(press.item, true) end
-			Milestones(st.name)
+			-- One meal, whichever of the two ids the client reports, or both.
+			if not (fedAt and now - fedAt < K.MEAL_GAP) then
+				fedAt = now
+				local rec = Record(char, st.name, st.family)
+				if rec then rec.meals = rec.meals + 1 end
+				Milestones(st.name)
+			end
+			-- Eaten: only the food of a press just made, never one refused since.
+			if press.kind == "feed" and press.item and press.at and now - press.at < K.FED_WINDOW then
+				Learn(press.item, true)
+				press.item = nil
+			end
 		elseif K.DISMISS[spell] then
 			char.beastAway = "dismissed"
 		elseif K.CALLS[spell] then
@@ -1185,6 +1272,7 @@ local function OnEvent(event, ...)
 	local now = GetTime()
 	if event == "UNIT_PET" then
 		local was = st.out
+		st.auraDirty = true
 		ReadPet(now)
 		-- Gone: back in a moment by itself after a loading screen or a mount.
 		-- (Gone dead was heard at its last UNIT_HEALTH, below.)
@@ -1233,7 +1321,8 @@ local function OnEvent(event, ...)
 	end
 	if event == "PLAYER_ENTERING_WORLD" then
 		clock.settleUntil = now + K.SETTLE
-		st.dirty = true
+		st.dirty, st.auraDirty = true, true
+		known = {}
 		local char = Char()
 		local night = char and char.beastNight
 		if char then char.beastNight = nil end
@@ -1275,16 +1364,17 @@ local function OnEvent(event, ...)
 		return
 	end
 	if event == "LOCALPLAYER_PET_RENAMED" then
+		-- The record follows the pet to its new name, now or at the first read
+		-- that gives it (ReadPet, Rename).
 		local char = Char()
-		local old = char and char.beastLast
+		local old = st.name or (char and char.beastLast)
+		if type(old) == "string" then renamed.from, renamed.untilAt = old, now + RENAME_WINDOW end
 		ReadPet(now)
-		if char and old and st.name and st.name ~= old and char.beasts[old] and not char.beasts[st.name] then
-			char.beasts[st.name], char.beasts[old] = char.beasts[old], nil
-		end
 		return
 	end
 	if event == "SPELLS_CHANGED" then
 		st.dirty = true
+		known = {}
 	end
 end
 
@@ -1302,6 +1392,22 @@ local function Listen()
 	frame = CreateFrame("Frame")
 	for _, event in ipairs(EVENTS) do frame:RegisterEvent(event) end
 	if FEEDS[FLAVOUR] then frame:RegisterEvent("UNIT_HAPPINESS") end
+	-- The pet abandoned, from its frame's menu or the stable: the game sends
+	-- no dismiss for it, so Call waits until a pet is out again. Classic Era
+	-- and Burning Crusade call PetAbandon(); Forever, Mists and retail
+	-- C_PetInfo.PetAbandon(), with a stable slot for a pet that is not out.
+	local hook = _G.hooksecurefunc
+	if type(hook) == "function" then
+		local function Abandoned(slot)
+			if slot ~= nil then return end
+			local char = Char()
+			if char then char.beastAway = "nopet" end
+			ns.Trail("pet", "the pet was abandoned", nil)
+		end
+		if type(_G.PetAbandon) == "function" then hook("PetAbandon", Abandoned) end
+		local info = _G.C_PetInfo
+		if type(info) == "table" and type(info.PetAbandon) == "function" then hook(info, "PetAbandon", Abandoned) end
+	end
 	frame:SetScript("OnEvent", function(_, event, ...)
 		local unit = ...
 		-- Every unit's health and auras arrive here: only the pet's and your
@@ -1309,6 +1415,7 @@ local function Listen()
 		if PET_UNIT[event] then
 			if unit ~= "pet" then return end
 			st.dirty = true
+			if event == "UNIT_AURA" then st.auraDirty = true end
 			-- Its health gone: dead, before the client takes it away.
 			if event == "UNIT_HEALTH" and Ask(_G.UnitHealth, "pet") == 0 then
 				local char = Char()

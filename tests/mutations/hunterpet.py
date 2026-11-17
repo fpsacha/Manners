@@ -444,3 +444,83 @@ mutate("HunterPet.lua",
        "",
        "hunterpet: a milestone never said",
        expect="hunterpet: the memory and its milestones", script=S)
+
+# ------------------------------------------------ review fixes
+mutate("HunterPet.lua",
+       "\t\tanswer = type(ns.SpellKnown) == \"function\" and ns.SpellKnown(id) == true\n",
+       "\t\tanswer = Ask(_G.IsPlayerSpell, id) == true or Ask(_G.IsSpellKnown, id) == true\n",
+       "hunterpet: spells read only through the deprecated calls",
+       expect="hunterpet: care with the deprecation fallbacks off", script=S)
+
+mutate("HunterPet.lua",
+       "\tif event == \"SPELLS_CHANGED\" then\n\t\tst.dirty = true\n\t\tknown = {}\n",
+       "\tif event == \"SPELLS_CHANGED\" then\n\t\tst.dirty = true\n",
+       "hunterpet: the spells known kept past a change of the spellbook",
+       expect="hunterpet: care with the deprecation fallbacks off", script=S)
+
+mutate("HunterPet.lua",
+       "\tif BondHeld(now) then return end\n",
+       "",
+       "hunterpet: a road moment every half minute with no pet out",
+       expect="hunterpet: no road moment with no pet out", script=S)
+
+mutate("HunterPet.lua",
+       "\t\t\tif renamed.from then Rename(char, name, st.family, now) end\n",
+       "",
+       "hunterpet: a renamed pet starts a new memory",
+       expect="hunterpet: a renamed pet keeps its memory", script=S)
+
+mutate("HunterPet.lua",
+       "\treturn plain(usable) == false and plain(noMana) == true\n",
+       "\treturn false\n",
+       "hunterpet: care offered with no mana for it",
+       expect="hunterpet: no care the game says you cannot pay for", script=S)
+
+mutate("HunterPet.lua",
+       "SPELL_FAILED_FOOD_LOWLEVEL = \"lowlevel\",",
+       "SPELL_FAILED_FOOD_LOWLEVEL = \"food\",",
+       "hunterpet: a food too low for the pet learned as never eaten",
+       expect="hunterpet: a food too low for the pet is not learned", script=S)
+
+mutate("HunterPet.lua",
+       "\tif not st.family then\n\t\tguessed[item] = eats == true\n\t\treturn\n\tend\n"
+       "\tif type(db.beastFood) ~= \"table\" then db.beastFood = {} end\n\tlocal key = tostring(st.family)\n",
+       "\tif type(db.beastFood) ~= \"table\" then db.beastFood = {} end\n\tlocal key = tostring(st.family or \"?\")\n",
+       "hunterpet: every pet of no family shares one food record",
+       expect="hunterpet: a food too low for the pet is not learned", script=S)
+
+mutate("HunterPet.lua",
+       "\t\tLearn(press.item, false)\n\t\tpress.item = nil\n",
+       "\t\tLearn(press.item, false)\n",
+       "hunterpet: a refused food learned as eaten by the next meal",
+       expect="hunterpet: only the food of a press just made is learned as eaten", script=S)
+
+mutate("HunterPet.lua",
+       " and press.at and now - press.at < K.FED_WINDOW then\n",
+       " then\n",
+       "hunterpet: a stale press learned as eaten",
+       expect="hunterpet: only the food of a press just made is learned as eaten", script=S)
+
+mutate("HunterPet.lua",
+       "\t\t\tif not (fedAt and now - fedAt < K.MEAL_GAP) then\n",
+       "\t\t\tif true then\n",
+       "hunterpet: one feed counted as two meals",
+       expect="hunterpet: one meal counted once", script=S)
+
+mutate("HunterPet.lua",
+       "\t\t\tif char then char.beastAway = \"nopet\" end\n\t\t\tns.Trail(\"pet\", \"the pet was abandoned\", nil)\n",
+       "\t\t\tns.Trail(\"pet\", \"the pet was abandoned\", nil)\n",
+       "hunterpet: an abandoned pet called",
+       expect="hunterpet: an abandoned pet is not called", script=S)
+
+mutate("HunterPet.lua",
+       "\tif not held then kind, item = CareWanted(beast, char, now) end\n",
+       "\tkind, item = CareWanted(beast, char, now)\n\tif held then kind = nil end\n",
+       "hunterpet: the pet's auras and the bags read with care held",
+       expect="hunterpet: the pet's auras are read only when care could be offered", script=S)
+
+mutate("HunterPet.lua",
+       "\tif st.auraDirty or not st.auraAt or now - st.auraAt >= K.READ_EVERY then\n",
+       "\tif true then\n",
+       "hunterpet: the pet's auras walked at every health tick",
+       expect="hunterpet: the pet's auras are read only when care could be offered", script=S)

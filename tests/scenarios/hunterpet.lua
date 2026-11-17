@@ -12,7 +12,8 @@ local TOUCHED = { "UnitExists", "UnitIsDead", "UnitName", "UnitHealth", "UnitHea
 	"GetPetHappiness", "C_PetInfo", "UnitAffectingCombat", "IsMounted", "UnitIsFeignDeath", "UnitChannelInfo",
 	"GetUnitSpeed", "UnitIsAFK", "IsResting", "C_Container", "GetPetFoodTypes", "IsInInstance", "GetGameMessageInfo",
 	"C_Spell", "UnitOnTaxi", "C_UnitAuras", "IsShiftKeyDown", "IsControlKeyDown", "GetItemInfoInstant", "GetItemSpell",
-	"MenuUtil", "UNKNOWNOBJECT", "IsEncounterInProgress" }
+	"MenuUtil", "UNKNOWNOBJECT", "IsEncounterInProgress", "IsPlayerSpell", "IsSpellKnown", "C_SpellBook", "PetAbandon",
+	"hooksecurefunc", "UnitLevel" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
@@ -26,7 +27,8 @@ end
 
 local NAMES = { [883] = "Call Pet", [982] = "Revive Pet", [136] = "Mend Pet", [6991] = "Feed Pet", [433] = "Food",
 	[83243] = "Call Pet 3", [2641] = "Dismiss Pet" }
-local MESSAGES = { [51] = "ERR_PET_SPELL_DEAD", [52] = "ERR_NO_PET", [53] = "SPELL_FAILED_WRONG_PET_FOOD" }
+local MESSAGES = { [51] = "ERR_PET_SPELL_DEAD", [52] = "ERR_NO_PET", [53] = "SPELL_FAILED_WRONG_PET_FOOD",
+	[54] = "SPELL_FAILED_FOOD_LOWLEVEL" }
 local HUNTER = { [883] = true, [982] = true, [136] = true, [6991] = true }
 
 -- The pet's world, which every client call below answers from.
@@ -35,7 +37,7 @@ local function world()
 	P = { exists = true, dead = false, name = "Humar", health = 100, max = 100, family = { "Wolf", 1 }, happy = 3,
 		combat = false, playerCombat = false, mounted = false, feign = false, channel = nil, speed = 0, afk = false,
 		resting = false, bags = {}, diets = { "Meat" }, auras = {}, instance = false, taxi = false, shift = false,
-		ctrl = false }
+		ctrl = false, level = 60, noMana = false, noShims = false, abandoned = 0, auraReads = 0 }
 end
 
 local function install()
@@ -88,11 +90,36 @@ local function install()
 	local spell = base("C_Spell")
 	rawset(_G, "C_Spell", setmetatable({
 		GetSpellName = function(id) return NAMES[id] or (spell and spell.GetSpellName(id)) end,
+		-- The game's word on paying for a spell: no for want of mana with P.noMana.
+		IsSpellUsable = function() if P.noMana then return false, true end return true, false end,
 	}, { __index = spell }))
+	-- With loadDeprecationFallbacks off the two old calls are gone and only
+	-- C_SpellBook answers.
+	if P.noShims then
+		rawset(_G, "IsPlayerSpell", nil)
+		rawset(_G, "IsSpellKnown", nil)
+		local function knows(id) return Mock.knownSpells ~= nil and Mock.knownSpells[id] == true end
+		rawset(_G, "C_SpellBook", { IsSpellInSpellBook = knows, IsSpellKnown = knows })
+	end
+	local level = original.UnitLevel
+	rawset(_G, "UnitLevel", function(u) if u == "pet" then return P.level end return level(u) end)
+	-- The client's abandon and hooksecurefunc, as the game has them.
+	rawset(_G, "PetAbandon", function() P.abandoned = P.abandoned + 1 end)
+	rawset(_G, "hooksecurefunc", function(a, b, c)
+		local into, name, fn = _G, a, b
+		if type(a) == "table" then into, name, fn = a, b, c end
+		local was = into[name]
+		rawset(into, name, function(...)
+			local r = { was(...) }
+			fn(...)
+			return unpack(r)
+		end)
+	end)
 	local auras = base("C_UnitAuras")
 	rawset(_G, "C_UnitAuras", setmetatable({
 		GetAuraDataByIndex = function(unit, i, filter)
 			if unit == "pet" then
+				P.auraReads = P.auraReads + 1
 				local id = P.auras[i]
 				return id and { spellId = id } or nil
 			end
@@ -806,5 +833,212 @@ do
 		for _, e in ipairs(ns.BuildQueue()) do
 			if e.care or e.bond then fail(scenario, "a mage is offered care for a pet") end
 		end
+	end)
+end
+
+-- ------------------------------------------------------------------ review fixes
+local function copy(t)
+	local out = {}
+	for k, v in pairs(t) do out[k] = v end
+	return out
+end
+
+do
+	local scenario = "hunterpet: care with the deprecation fallbacks off"
+	with(scenario, { known = copy(HUNTER), world = function(p) p.noShims = true end }, function(ns)
+		if rawget(_G, "IsPlayerSpell") ~= nil or rawget(_G, "IsSpellKnown") ~= nil then
+			fail(scenario, "SKIPPED -- the old spell calls are still there")
+			return
+		end
+		if not ns.Beast.Live() then fail(scenario, "a hunter with only C_SpellBook knows no pet spell") end
+		petGone(ns)
+		if not pets(ns).call then fail(scenario, "no Call with only C_SpellBook: " .. dump(ns)) end
+		-- Lone Wolf learned: the spellbook changed, and Call is gone.
+		Mock.knownSpells[155228] = true
+		event("SPELLS_CHANGED")
+		if pets(ns).call then fail(scenario, "Call is offered after Lone Wolf was learned") end
+		Mock.knownSpells[155228] = nil
+		event("SPELLS_CHANGED")
+		P.exists, P.dead = true, true
+		event("UNIT_PET", "player")
+		Mock.advance(5)
+		if not pets(ns).revive then fail(scenario, "no Revive with only C_SpellBook: " .. dump(ns)) end
+	end)
+end
+
+do
+	local scenario = "hunterpet: no road moment with no pet out"
+	with(scenario, { world = function(p) p.exists = false end }, function(ns)
+		fight(5)
+		Mock.advance(901)
+		P.speed = 7
+		for _ = 1, 8 do
+			ns.BuildQueue()
+			Mock.advance(31)
+		end
+		local count = 0
+		for _, row in ipairs(ns.db.char.trail or {}) do
+			if tostring(row.text):find("a moment with the pet: road", 1, true) then count = count + 1 end
+		end
+		if count ~= 0 then fail(scenario, count .. " road moments put on the trail with no pet out") end
+		-- A pet out: the road moment comes.
+		P.exists = true
+		event("UNIT_PET", "player")
+		Mock.advance(5)
+		local bond = pets(ns).bond
+		if not (bond and bond.bond == "road") then fail(scenario, "no road moment once the pet is out: " .. dump(ns)) end
+	end)
+end
+
+do
+	local scenario = "hunterpet: a renamed pet keeps its memory"
+	-- The client gives the new name at the event, or only after it.
+	for _, late in ipairs({ false, true }) do
+		with(scenario, {}, function(ns)
+			fight(10)
+			if not memory(ns):find("Humar: since", 1, true) then fail(scenario, "SKIPPED -- no memory of Humar") return end
+			if not late then P.name = "Grim" end
+			event("LOCALPLAYER_PET_RENAMED")
+			if late then
+				P.name = "Grim"
+				Mock.advance(3)
+				ns.BuildQueue()
+			end
+			local text = memory(ns)
+			local how = late and " (the name given late)" or ""
+			if text:find("Humar", 1, true) then fail(scenario, "the old name is still a pet of its own" .. how .. ": " .. text) end
+			if not text:find("Grim: since", 1, true) or not text:find("1 fights", 1, true) then
+				fail(scenario, "Grim did not keep Humar's fights" .. how .. ": " .. text)
+			end
+		end)
+	end
+end
+
+do
+	local scenario = "hunterpet: no care the game says you cannot pay for"
+	with(scenario, { world = function(p) p.dead, p.noMana = true, true end }, function(ns)
+		if pets(ns).revive then fail(scenario, "Revive Pet is offered with no mana for it") end
+		P.noMana = false
+		if not pets(ns).revive then fail(scenario, "Revive Pet is not offered once it can be paid for") end
+	end)
+	with(scenario, { world = function(p) p.health, p.noMana = 30, true end }, function(ns)
+		if pets(ns).mend then fail(scenario, "Mend Pet is offered with no mana for it") end
+	end)
+end
+
+do
+	local scenario = "hunterpet: a food too low for the pet is not learned"
+	with(scenario, { flavour = "vanilla", world = function(p) p.happy, p.bags = 2, { 117, 2287 } end }, function(ns)
+		local feed = pets(ns).feed
+		if not feed then fail(scenario, "SKIPPED -- no Feed: " .. dump(ns)) return end
+		local first = feed.item
+		press(ns)
+		event("UI_ERROR_MESSAGE", 54, "That food's level is not high enough for your pet")
+		Mock.advance(6)
+		local after = pets(ns).feed
+		if after and after.item == first then fail(scenario, "the food the game called too low is offered again at once") end
+		local learned = ns.db.global.beastFood
+		for family, list in pairs(type(learned) == "table" and learned or {}) do
+			if type(list) == "table" and list[first] == false then
+				fail(scenario, "a food too low for the pet was learned as never eaten, for " .. tostring(family))
+			end
+		end
+		-- The pet grew: the food is tried again.
+		P.level = 61
+		Mock.advance(6)
+		local grown = pets(ns).feed
+		if not (grown and grown.item == first) then fail(scenario, "the food is never tried again once the pet grew") end
+	end)
+	-- A pet of no known family: what it refused is kept for this session alone.
+	with(scenario, { flavour = "vanilla", world = function(p) p.happy, p.bags, p.family = 2, { 117, 2287 }, false end }, function(ns)
+		local feed = pets(ns).feed
+		if not feed then fail(scenario, "SKIPPED -- no Feed for a pet of no family: " .. dump(ns)) return end
+		local first = feed.item
+		press(ns)
+		event("UI_ERROR_MESSAGE", 53, "Your pet doesn't like that food")
+		Mock.advance(6)
+		local after = pets(ns).feed
+		if after and after.item == first then fail(scenario, "a food refused is offered again to a pet of no family") end
+		local learned = ns.db.global.beastFood
+		if type(learned) == "table" and learned["?"] ~= nil then
+			fail(scenario, "a pet of no family wrote a food record every such pet shares")
+		end
+	end)
+end
+
+do
+	local scenario = "hunterpet: only the food of a press just made is learned as eaten"
+	-- Refused, then fed by hand at once: the refused food stays refused.
+	with(scenario, { flavour = "vanilla", world = function(p) p.happy, p.bags = 2, { 117, 2287 } end }, function(ns)
+		local feed = pets(ns).feed
+		if not feed then fail(scenario, "SKIPPED -- no Feed: " .. dump(ns)) return end
+		local first = feed.item
+		press(ns)
+		event("UI_ERROR_MESSAGE", 53, "Your pet doesn't like that food")
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-9", 6991)
+		local list = ns.db.global.beastFood and ns.db.global.beastFood["1"]
+		if type(list) == "table" and list[first] == true then fail(scenario, "a food refused was learned as eaten by the next meal") end
+	end)
+	-- Pressed, nothing heard, and fed by hand long after: nothing learned.
+	with(scenario, { flavour = "vanilla", world = function(p) p.happy, p.bags = 2, { 117, 2287 } end }, function(ns)
+		local feed = pets(ns).feed
+		if not feed then fail(scenario, "SKIPPED -- no Feed: " .. dump(ns)) return end
+		local first = feed.item
+		press(ns)
+		Mock.advance(30)
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-9", 6991)
+		local list = ns.db.global.beastFood and ns.db.global.beastFood["1"]
+		if type(list) == "table" and list[first] == true then fail(scenario, "a press half a minute old was learned as eaten") end
+	end)
+end
+
+do
+	local scenario = "hunterpet: one meal counted once"
+	with(scenario, { flavour = "vanilla", world = function(p) p.happy = 2 end }, function(ns)
+		ns.BuildQueue()
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-7", 6991)
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-8", 1584)
+		if not memory(ns):find("1 meals", 1, true) then fail(scenario, "one feed counted as " .. memory(ns)) end
+		Mock.advance(30)
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-9", 6991)
+		if not memory(ns):find("2 meals", 1, true) then fail(scenario, "a second meal not counted: " .. memory(ns)) end
+	end)
+end
+
+do
+	local scenario = "hunterpet: an abandoned pet is not called"
+	with(scenario, {}, function(ns)
+		ns.BuildQueue()
+		PetAbandon()
+		if P.abandoned ~= 1 then fail(scenario, "SKIPPED -- the game's abandon did not run") return end
+		petGone(ns)
+		if pets(ns).call then fail(scenario, "Call is offered after the pet was abandoned") end
+		-- A new pet tamed and out, then gone: Call is back.
+		P.exists, P.name = true, "Grim"
+		event("UNIT_PET", "player")
+		petGone(ns)
+		if not pets(ns).call then fail(scenario, "Call never comes back once a new pet was out") end
+	end)
+end
+
+do
+	local scenario = "hunterpet: the pet's auras are read only when care could be offered"
+	with(scenario, { world = function(p) p.health = 30 end }, function(ns)
+		if not pets(ns).mend then fail(scenario, "SKIPPED -- no Mend: " .. dump(ns)) return end
+		-- Health ticks with nothing on the pet changed: one walk at most.
+		Mock.advance(3)
+		ns.BuildQueue()
+		P.auraReads = 0
+		for _ = 1, 5 do
+			event("UNIT_HEALTH", "pet")
+			ns.BuildQueue()
+		end
+		if P.auraReads > 0 then fail(scenario, "the pet's auras walked again at every health tick: " .. P.auraReads) end
+		-- Myself off: care is held, and nothing on the pet is read for it.
+		ns.db.profile.sources.self = false
+		Mock.advance(3)
+		P.auraReads = 0
+		ns.BuildQueue()
+		if P.auraReads > 0 then fail(scenario, "the pet's auras were read with care held") end
 	end)
 end
