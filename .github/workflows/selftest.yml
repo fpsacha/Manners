@@ -2,7 +2,8 @@ name: Selftest
 
 # The full mutation selftest, the step a release used to wait hours for on the
 # author's machine. Here it runs in parts, each on a runner of its own, every
-# night, on every push to master and on demand (gh workflow run selftest.yml).
+# night and on demand (gh workflow run selftest.yml). Not on a push: a run
+# takes hours, and a release no longer waits for one (tools/release.py).
 # A branch is proven before it is merged the same way:
 #
 #   gh workflow run selftest.yml --ref <branch>
@@ -16,8 +17,6 @@ name: Selftest
 on:
   schedule:
     - cron: '17 3 * * *'
-  push:
-    branches: [master]
   workflow_dispatch:
 
 # One run of a ref at a time. A run of master is never cancelled: a run takes

@@ -32,22 +32,22 @@ afterwards — pushing it again only says it already exists.
    one, about ten minutes. Then `RELEASE-CHECK.md`: five minutes in the real
    client, `/manners selftest launch` and five things to look at, which nothing
    else here can do.
-3. **The full mutation suite runs on GitHub**: `.github/workflows/selftest.yml`
-   judges it in sixteen parts (`selftest.py --part I/16`), every night, on every
-   push to master and on demand (`gh workflow run selftest.yml`; `--ref
-   <branch>` proves a branch before it is merged). The release tool reads its
-   newest green run of a commit the release holds: on that commit nothing more
-   runs, on a later one only the mutations of the files changed since
-   (`selftest.py --changed <that commit>`, minutes). With no green run it
-   stops. A full run by hand (`python tests/selftest.py`) and
-   `--skip-selftest` remain for when GitHub cannot run it.
+3. **The long tests run at night on GitHub**, and a release does not wait
+   for them: `selftest.yml` (the full mutation suite, in sixteen parts) and
+   `nightly.yml` (`python tools/check.py --release`: each other client's
+   whole suite against its baseline, the fuzzer, the looks' contrast). A red
+   night is fixed the next day. `gh workflow run selftest.yml` or
+   `nightly.yml` runs one on demand. `python tools/release.py X.Y.Z --full`
+   is the old, long way: `check.py --release` here and a green selftest.
 4. **Release with `python tools/release.py X.Y.Z`.** Try it with `--dry-run`
    first, which makes the checks, prints the exact list of commands and changes
    nothing. It:
    - checks it is on `master` with a clean tree, that `## Unreleased` has
      notes, and that CI passed on this commit (it waits for a run still going;
      only a commit CI has not passed, unpushed or red, gets
-     `python tools/check.py --release` here instead);
+     `python tools/check.py --quick` here instead, under a minute: lint,
+     structure, the addon loading, the anchors, the locales, the looks'
+     previews and the known fault shapes);
    - sets the version with `tests/setversion.py`, which renames
      `## Unreleased` to the version;
    - commits "Manners X.Y.Z", with the Co-Authored-By line given by
@@ -60,11 +60,9 @@ afterwards — pushing it again only says it already exists.
      about a minute: the scenarios are CI's) and prints the packager's
      "Game version:" line and the upload results.
 
-   **The fast way**: push the work to master as it is finished, so CI and
-   `selftest.yml` have passed on it by the time a release is asked for. The
-   release then reads both, bumps the version and tags at once: a minute or
-   two to the uploads, where a release of unpushed work waits for CI and runs
-   the changed mutations here.
+   **How long**: under a minute of checks here, CI on the pushed commit
+   (about fifteen minutes), then the tag and the uploads (about three): twenty
+   minutes from unpushed work, three when CI has already passed on it.
 
 The same steps by hand, if the tool cannot be used. `validate` fails with "no
 notes under" if step 1 was skipped, which is the same check the release makes.

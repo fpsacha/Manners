@@ -321,6 +321,10 @@ def main(argv=None):
     parser.add_argument("--release", action="store_true",
                         help="everything a release is checked against: --lint --flavours --anchors,"
                              " the locales, the looks' previews and contrast, bughunt and the quick fuzzer")
+    parser.add_argument("--quick", action="store_true",
+                        help="what a release waits for here, in a minute or two: lint, validate, the"
+                             " harness, the anchors, the locales, the looks' previews and bughunt. No"
+                             " scenarios: CI runs them on the pushed commit, and nightly.yml the rest")
     parser.add_argument("--jobs", type=int, default=default_jobs(),
                         help="processes at once, all steps together (default: the cores less"
                              " two, fewer when memory is short, MANNERS_JOBS at most: %(default)s)")
@@ -328,6 +332,8 @@ def main(argv=None):
     jobs = max(1, args.jobs)
     if args.release:
         args.lint = args.flavours = args.anchors = args.baselines = True
+    if args.quick:
+        args.lint = args.anchors = True
 
     os.makedirs(LOGS, exist_ok=True)
     for old in glob.glob(os.path.join(LOGS, "*.txt")):
@@ -348,13 +354,18 @@ def main(argv=None):
                          why=r"^ANCHOR GONE: |Traceback|Error"))
     lint = Step("lint", ["tools/lint.py"])
     fuzz = None
-    if args.release:
+    if args.release or args.quick:
         # The short steps beside validate and harness, the anchors with them:
         # everything that answers in seconds before anything that takes minutes.
         short, fuzz, contrast = release_steps(jobs)
         first += short + [s for s in rest if s.name == "anchors"]
         rest = [contrast] + [s for s in rest if s.name != "anchors"]
-    steps = ([lint] if args.lint else []) + first + [scenarios] + ([fuzz] if fuzz else []) + rest
+    if args.quick and not args.release:
+        # The minutes are left to CI and to the nightly run.
+        fuzz, rest = None, []
+    whole = args.release or not args.quick
+    steps = (([lint] if args.lint else []) + first + ([scenarios] if whole else [])
+             + ([fuzz] if fuzz else []) + rest)
 
     def cost(step):
         # The biggest scenario files first (anchors before them all), so the
@@ -375,7 +386,8 @@ def main(argv=None):
             return 1
     with ThreadPoolExecutor(max_workers=min(jobs, len(first))) as pool:
         list(pool.map(Step.run, first))
-    scenarios.run()
+    if whole:
+        scenarios.run()
     if fuzz:
         fuzz.run()
     if rest:

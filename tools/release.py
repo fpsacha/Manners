@@ -135,7 +135,7 @@ def top_section():
 
 # ---------------------------------------------------------------- preflight
 
-def preflight(version, dry_run, skip_selftest=False):
+def preflight(version, dry_run, skip_selftest=False, full=False):
     """Every read-only check, in order. Returns (ok, resuming). A real run
     stops at the first failure; a dry run makes them all."""
     tag = "v" + version
@@ -218,20 +218,25 @@ def preflight(version, dry_run, skip_selftest=False):
                          " fuzzer, the locales and the looks -- python tools/check.py --release"
                          " (RELEASING.md, step 2)" % head_sha[:10])
         else:
-            say("  ..    python tools/check.py --release (CI %s on %s; push first and let"
-                " it pass to skip this)" % ({"failure": "is red"}.get(state, "has not run"),
+            # The quick check (a minute or two) unless --full: the scenarios are
+            # CI's, on the pushed commit, before the tag; the other clients'
+            # whole suites and the mutation selftest are the nightly run's.
+            flag = "--release" if full else "--quick"
+            say("  ..    python tools/check.py %s (CI %s on %s; push first and let"
+                " it pass to skip this)" % (flag, {"failure": "is red"}.get(state, "has not run"),
                                             head_sha[:10]))
             if state == "failure":
                 say("        (what CI said: gh run view %s --log-failed)" % ci_id)
-            did(sys.executable, "tools/check.py", "--release")
-            code = stream([sys.executable, "tools/check.py", "--release"], indent="        ")
-            result(code == 0, "tools/check.py --release passes"
+            did(sys.executable, "tools/check.py", flag)
+            code = stream([sys.executable, "tools/check.py", flag], indent="        ")
+            result(code == 0, "tools/check.py " + flag + " passes"
                    + ("" if code == 0 else " -- each red step above is followed by the command"
-                                           " that shows it alone; python tools/check.py --release"
-                                           " runs them all again"))
+                                           " that shows it alone; python tools/check.py " + flag
+                                           + " runs them all again"))
 
         if skip_selftest:
-            result(True, "the full selftest: run by hand (--skip-selftest)")
+            result(True, "the full selftest and the other clients' whole suites: the nightly runs"
+                         " (selftest.yml, nightly.yml), not waited for here; --full waits")
         else:
             green = last_green_selftest()
             did("gh", "run", "list", "--workflow", "selftest.yml", "--status", "success", "--limit", "30")
@@ -485,9 +490,12 @@ def main(argv=None):
     parser.add_argument("--coauthor", default=os.environ.get("MANNERS_COAUTHOR"),
                         help="a Co-Authored-By line (or its name and address) for the commit;"
                              " default: $MANNERS_COAUTHOR")
+    parser.add_argument("--full", action="store_true",
+                        help="the long way: tools/check.py --release here when CI has not passed on"
+                             " this commit, and a green selftest.yml run (or the changed mutations)."
+                             " Without it a release waits for the quick check and CI alone")
     parser.add_argument("--skip-selftest", action="store_true",
-                        help="the full selftest was run by hand on this commit: do not read"
-                             " selftest.yml or run the changed mutations")
+                        help="with --full: the full selftest was run by hand on this commit")
     args = parser.parse_args(argv)
     version, dry = args.version, args.dry_run
     tag = "v" + version
@@ -497,12 +505,16 @@ def main(argv=None):
         coauthor = "Co-Authored-By: " + coauthor
 
     say("Releasing %s%s." % (version, " (dry run: nothing will change)" if dry else ""))
-    say("The full mutation selftest runs on GitHub (selftest.yml, in sixteen parts); below,"
-        " its newest green run of a commit this one holds is read and only the mutations"
-        " changed since are run.")
+    if args.full:
+        say("The full mutation selftest runs on GitHub (selftest.yml, in sixteen parts); below,"
+            " its newest green run of a commit this one holds is read and only the mutations"
+            " changed since are run.")
+    else:
+        say("The quick way: the quick check here, CI on the pushed commit, then the tag. The"
+            " mutation selftest and the other clients' whole suites run at night on GitHub.")
     say()
     say("Preflight")
-    ok, resuming = preflight(version, dry, args.skip_selftest)
+    ok, resuming = preflight(version, dry, args.skip_selftest or not args.full, args.full)
     if not ok:
         say()
         say("Stopped: a check above failed%s." % ("" if dry else "; nothing was changed"))

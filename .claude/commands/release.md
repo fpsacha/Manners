@@ -16,19 +16,11 @@ at the first red:
    Top of `CHANGELOG.md` is `## Unreleased` with notes written for players (they
    are the CurseForge, Wago and GitHub text): no "untested", "mock client" or
    "not tried in game". `release.py` refuses an empty section.
-3. The full selftest runs on GitHub (`selftest.yml`, sixteen parts, nightly and on
-   every push to master); `release.py` reads its last green run of master and runs
-   only the mutations changed since (`--changed <that commit>`). Check it is green
-   or running: `gh run list --workflow selftest.yml --limit 3`. Only when GitHub
-   cannot run it, the old way, by hand, with `--skip-selftest` on the release:
-   `python tests/selftest.py --jobs N` (20 to 40 minutes, leave 2 cores free;
-   run it in the background). It must end `RESULT: every mutation was caught`.
-   Any MISSED, WRONG CHECK, ANCHOR GONE or NOT RESTORED stops the release.
-4. `python tools/check.py --release` (everything, about ten minutes), and ask
-   the user to run `RELEASE-CHECK.md` in the game (five minutes; a clean
-   `/manners selftest launch` and five things to look at). For the fastest release,
-   push master first and let CI and `selftest.yml` pass on it: the release then
-   reads them, skips its own check and the CI wait, and tags in a minute or two.
+3. No full selftest and no `check.py --release` before a release: they run
+   at night on GitHub (`selftest.yml`, `nightly.yml`). Look at last night's
+   (`gh run list --workflow nightly.yml --limit 1`, the same for
+   `selftest.yml`) and tell the user if one is red; it does not stop a release.
+4. `python tools/check.py --quick` (under a minute).
 5. Dry run, and show the user its output: `python tools/release.py $ARGUMENTS --dry-run`
 6. Ask the user to confirm the version. Only on a clear yes, run it with the
    Co-Authored-By line (`--coauthor` reads the same in bash and in PowerShell;

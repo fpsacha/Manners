@@ -1,0 +1,42 @@
+name: Nightly
+
+# Everything a release used to wait for and no longer does: the whole of
+# python tools/check.py --release (each other client's whole suite against
+# its baseline, every client's own files, the fuzzer, the locales and the
+# looks). A release waits for the quick check and CI alone (tools/release.py);
+# what goes red here is fixed the next day. The mutation selftest is
+# selftest.yml, also at night.
+
+on:
+  schedule:
+    - cron: '47 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  release-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: .github/requirements-images.txt
+
+      - run: pip install lupa -r .github/requirements-images.txt
+
+      # The looks' previews draw text, as the listing images do (ci.yml).
+      - name: Fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk fonts-dejavu-core
+
+      # Three workers on the runner's four cores, as selftest.yml.
+      - name: The whole release check
+        run: python tools/check.py --release --jobs 3
