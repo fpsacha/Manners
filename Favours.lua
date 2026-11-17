@@ -195,7 +195,8 @@ do
 		return pool[math.random(#pool)]
 	end
 
-	-- The thank itself, once Blocked has let it through.
+	-- The thank itself, once Blocked has let it through. Answers why nothing
+	-- went (written down by Skip as well), or nil: a press says it (ThankNow).
 	local function Send(seen, emote, whisper, unit, now)
 		local name = seen.name
 		-- The whisper first (Speech.lua, ns.ThankWhisper): a line to them alone,
@@ -214,7 +215,8 @@ do
 			ok, answer = pcall(EmoteCall(), token, unit)
 		end
 		if not ok and not whispered then
-			return Skip(name, now, L["the game would not do it"])
+			Skip(name, now, L["the game would not do it"])
+			return L["the game would not do it"]
 		end
 		-- The call reached the game, so both limits are armed whatever it
 		-- answered: if the answer below is read backwards, a refusal costs one
@@ -231,7 +233,10 @@ do
 		-- "success", so the raw answer goes to /manners debug to settle it.
 		answer = plain(answer)
 		if answer == true then
-			return Skip(name, now, L["the game said it was restricted"])
+			Skip(name, now, L["the game said it was restricted"])
+			-- The whisper went: something of the thanks reached them.
+			if whispered then return nil end
+			return L["the game said it was restricted"]
 		end
 		ns.thankLog.thanked = { name = name, at = now, answer = tostring(answer) }
 	end
@@ -368,7 +373,10 @@ do
 		local prompt = ns.db and ns.db.profile and ns.db.profile.prompt
 		-- No target: the one difference from Send's emote.
 		local ok, answer = pcall(EmoteCall(), ns.ThankEmoteToken(prompt))
-		if not ok then return SkipUnseen(seen.key, now, L["the game would not do it"]) end
+		if not ok then
+			SkipUnseen(seen.key, now, L["the game would not do it"])
+			return L["the game would not do it"]
+		end
 		-- Armed whatever the answer, as Send arms them.
 		lastAt = now
 		for key, at in pairs(unseenAt) do
@@ -376,7 +384,10 @@ do
 		end
 		unseenAt[seen.key] = now
 		answer = plain(answer)
-		if answer == true then return SkipUnseen(seen.key, now, L["the game said it was restricted"]) end
+		if answer == true then
+			SkipUnseen(seen.key, now, L["the game said it was restricted"])
+			return L["the game said it was restricted"]
+		end
 		ns.thankLog.unseen = { key = seen.key, at = now, answer = tostring(answer) }
 		ns.Trail("thank", ("thanked somebody unseen with an emote (spell %s)"):format(tostring(seen.key)))
 	end
@@ -439,8 +450,7 @@ do
 					SkipUnseen(seen.key, now, why)
 					return why
 				end
-				SendUnseen(seen, now)
-				return nil
+				return SendUnseen(seen, now)
 			end
 			local probe = seen
 			if not seen.byName then
@@ -453,8 +463,13 @@ do
 				Skip(seen.name, now, why)
 				return why
 			end
-			Send(probe, emote, whisper, unit, now)
-			return nil
+			return Send(probe, emote, whisper, unit, now)
+		end,
+		-- Why no thank could go out now for anybody (a fight, hiding, an
+		-- instance, an encounter, chat held back), or nil: a thank is not
+		-- offered while a press of it could send nothing.
+		Held = function(seen)
+			return Held(seen)
 		end,
 	}
 end

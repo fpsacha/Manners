@@ -855,3 +855,123 @@ do
 		if #emotes ~= 0 then fail(scenario, "Let it go sent the thank") end
 	end)
 end
+
+-- ------------------------------------------------------------------ review of 1ce7e86
+do
+	local scenario = "thankpress: a thank the prompt never showed holds back none of their next ones"
+	with(scenario, { class = "MAGE", names = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		local anna = nameOf(ns, "nameplate1")
+		favour(ns, "nameplate1")
+		if not ns.owed[anna] then fail(scenario, "SKIPPED -- no debt was filed") return end
+		-- Held behind the buff she is owed for the whole minute, never shown.
+		for _ = 1, 7 do
+			if #thanks(ns) ~= 0 then fail(scenario, "SKIPPED -- the thank is offered beside her debt") return end
+			Mock.advance(10)
+		end
+		Mock.advance(60)
+		favour(ns, "nameplate1")
+		wipe(ns.owed)
+		Mock.held = AI
+		ns.ForgetAuraCache()
+		if #thanks(ns) ~= 1 then fail(scenario, "her next buff is not offered a thank: " .. dump(ns)) end
+	end)
+end
+
+do
+	local scenario = "thankpress: the sixth giver pushes out one never shown, who may be offered again"
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bo", "Brisk" }, nameplate3 = { "Cy", "Cole" },
+		nameplate4 = { "Di", "Dune" }, nameplate5 = { "Ed", "Eve" }, nameplate6 = { "Flo", "Fen" } }
+	with(scenario, { names = names }, function(ns)
+		for i = 1, 6 do
+			favour(ns, "nameplate" .. i)
+			Mock.advance(1)
+		end
+		local list = thanks(ns)
+		if #list ~= 5 then fail(scenario, ("SKIPPED -- %d thanks for six givers"):format(#list)) return end
+		if list[1].name == nameOf(ns, "nameplate1") then fail(scenario, "SKIPPED -- the first giver was not pushed out") return end
+		favour(ns, "nameplate1")
+		local again
+		for _, e in ipairs(thanks(ns)) do
+			if e.name == nameOf(ns, "nameplate1") then again = true end
+		end
+		if not again then fail(scenario, "the giver pushed out unseen is not offered again: " .. dump(ns)) end
+	end)
+end
+
+do
+	local scenario = "thankpress: a press the game refuses says so"
+	with(scenario, {}, function(ns)
+		favour(ns, "nameplate1")
+		ns.Prompt:Refresh()
+		-- The game's answer true: the emote was restricted.
+		rawset(_G, "DoEmote", function(emote, target)
+			emotes[#emotes + 1] = { emote, target }
+			return true
+		end)
+		Mock.printed = {}
+		pressButton(ns)
+		if #emotes ~= 1 then fail(scenario, ("SKIPPED -- %d emote calls"):format(#emotes)) return end
+		local line = ns.L["not thanked: %s."]:format(ns.L["the game said it was restricted"])
+		if not said():find(line, 1, true) then fail(scenario, "the press did not say the game refused it: " .. said()) end
+	end)
+end
+
+do
+	local scenario = "thankpress: stealthed, the thank is kept off the prompt until you show yourself"
+	with(scenario, {}, function(ns)
+		favour(ns, "nameplate1")
+		if #thanks(ns) ~= 1 then fail(scenario, "SKIPPED -- no thank waits") return end
+		rawset(_G, "IsStealthed", function() return true end)
+		local hidden = #thanks(ns)
+		rawset(_G, "IsStealthed", original.IsStealthed)
+		if hidden ~= 0 then fail(scenario, "the thank is offered while stealthed") end
+		if #thanks(ns) ~= 1 then fail(scenario, "the thank is not offered again once out of stealth") end
+		if #emotes ~= 0 then fail(scenario, "an emote went") end
+	end)
+end
+
+do
+	local scenario = "thankpress: the full check-up names nobody for an unseen thank"
+	with(scenario, { unseen = true, names = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		favour(ns, nil)
+		if #thanks(ns) ~= 1 then fail(scenario, "SKIPPED -- no thank waits") return end
+		local report = ns.FullReport()
+		if not report:find(ns.L["whoever buffed you"], 1, true) then
+			fail(scenario, "the check-up turned \"" .. ns.L["whoever buffed you"] .. "\" into an alias")
+		end
+		if not report:find("(unseen) -- thank:", 1, true) then fail(scenario, "the queue's unseen thank is aliased as a person") end
+	end)
+end
+
+do
+	local scenario = "thankpress: a newer buff from the same giver starts the time on the prompt again"
+	with(scenario, {}, function(ns)
+		favour(ns, "nameplate1")
+		ns.Prompt:Refresh()
+		if not shown(ns) then fail(scenario, "SKIPPED -- the prompt did not show the thank") return end
+		Mock.runTimers(18)
+		favour(ns, "nameplate1")
+		if #thanks(ns) ~= 1 then fail(scenario, "SKIPPED -- the newer buff is not offered") return end
+		Mock.runTimers(5)
+		if #thanks(ns) ~= 1 then fail(scenario, "the thank lapsed five seconds after her newer buff") end
+	end)
+end
+
+do
+	local scenario = "thankpress: unseen, two spells let go are both held back"
+	with(scenario, { unseen = true, names = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		local fort, intellect = fortitude(ns), 10157
+		if not ns.BUFF_BY_ID[intellect] then fail(scenario, "SKIPPED -- no Arcane Intellect here") return end
+		favour(ns, nil, fort)
+		Mock.advance(1)
+		favour(ns, nil, intellect)
+		if #thanks(ns) ~= 1 then fail(scenario, "SKIPPED -- two unseen buffs are not one thank") return end
+		ns.Prompt:Refresh()
+		Mock.runTimers(21)
+		ns.BuildQueue()
+		if #thanks(ns) ~= 0 then fail(scenario, "SKIPPED -- the thank did not lapse") return end
+		Mock.advance(2)
+		favour(ns, nil, fort)
+		if #thanks(ns) ~= 0 then fail(scenario, "the first spell of the two is offered again after it lapsed") end
+	end)
+end

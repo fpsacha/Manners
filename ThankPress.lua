@@ -125,6 +125,8 @@ local function Drop(i, declined)
 			if now - at >= PER_MEMBER then declinedAt[key] = nil end
 		end
 		declinedAt[DeclineKey(item.unseen, item.seen)] = now
+		-- Every spell one unseen offer stood for, not only the newest.
+		for key in pairs(item.keys or {}) do declinedAt["?" .. tostring(key)] = now end
 	end
 	return item
 end
@@ -181,11 +183,18 @@ function ns.ThankPark(seen, emote, whisper, unseen)
 	if found then
 		-- Their newer landing: the same offer, for the newer buff.
 		found.seen, found.emote, found.whisper, found.at, found.entry = seen, emote == true, whisper == true, now, nil
+		-- Its time on the prompt starts again with it.
+		if found.shownAt then
+			found.shownAt = now
+			After(TP.EXPIRE + 0.05, RepaintNow)
+		end
+		if found.keys then found.keys[seen.key] = true end
 	else
 		seq = seq + 1
 		pending[#pending + 1] = { id = seq, seen = seen, emote = emote == true, whisper = whisper == true,
-			unseen = unseen, at = now }
-		while #pending > TP.MAX do Drop(1, true) end
+			unseen = unseen, at = now, keys = unseen and { [seen.key] = true } or nil }
+		-- The oldest pushed out: declined only if the prompt ever showed it.
+		while #pending > TP.MAX do Drop(1, pending[1].shownAt ~= nil) end
 	end
 	ns.Trail("thank", ("waiting for a press to thank (spell %s)"):format(tostring(seen.key)), seen.name)
 	After(TP.DEADLINE + 0.05, RepaintNow)
@@ -275,7 +284,10 @@ local function Offer(queue, verdicts)
 		local item = pending[i]
 		local _, _, any = ItemChannels(item, p)
 		if now - item.at >= TP.DEADLINE or (item.shownAt and now - item.shownAt >= TP.EXPIRE) then
-			Drop(i, true)
+			-- Left on the prompt is let go; one the prompt never showed (held
+			-- behind a buff they are owed, say) holds their next one back no
+			-- more than an automatic thank skipped would.
+			Drop(i, item.shownAt ~= nil)
 		elseif not any then
 			Drop(i, false)
 		end
@@ -292,6 +304,11 @@ local function Offer(queue, verdicts)
 			for _, member in ipairs(group.members) do taken[member] = true end
 		end
 	end
+	-- Favours.lua's own hold (stealth, an encounter, chat held back): kept,
+	-- not offered, as a press could send nothing. Asked of one, since every
+	-- reason but a battleground's team is the player's own.
+	local thankNow = ns.ThankNow
+	if thankNow and thankNow.Held(pending[1].seen) then return queue, verdicts end
 	for _, item in ipairs(pending) do
 		local entry = Wrap(item)
 		if not taken[entry.name] then
@@ -370,7 +387,8 @@ function TP.Pressed(S)
 	elseif why then
 		addon:Print(L["not thanked: %s."]:format(why == L["no unit for them"] and L["they are out of sight now"] or why))
 	else
-		ns.Trail("thank", "thanked at a press, from " .. (S.isRow and "the list" or "the prompt"), NameOf(item))
+		ns.Trail("thank", "thanked at a press, from " .. (S.isRow and "the list" or "the prompt"),
+			not item.unseen and item.seen.name or nil)
 	end
 	if not S.isRow then ns.Prompt:StopAttention() end
 	RepaintNow()

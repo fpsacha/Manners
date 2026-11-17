@@ -247,7 +247,9 @@ function ns.FullReport()
 		local queue = ns.BuildQueue()
 		lines[#lines + 1] = ("%d waiting"):format(#queue)
 		for i, e in ipairs(queue) do
-			lines[#lines + 1] = ("%d. %s -- %s, %s, priority %s%s%s"):format(i, tostring(Alias(e.name)),
+			-- A thank for somebody nobody could name is filed under no person.
+			local who = e.thankUnseen and "(unseen)" or Alias(e.name)
+			lines[#lines + 1] = ("%d. %s -- %s, %s, priority %s%s%s"):format(i, tostring(who),
 				tostring(e.buff and e.buff.key), tostring(e.reason), tostring(e.priority),
 				e.remaining and (", " .. math.floor(e.remaining) .. "s left") or "",
 				e.groupCast and ", a group cast" or "")
@@ -329,9 +331,13 @@ function ns.FullReport()
 	-- the ones /manners debug prints from elsewhere (somebody who asked from out
 	-- of reach, one held back for PvP or backed off, one who owes you a return
 	-- or was last thanked), each replaced by its alias wherever it was written.
+	-- "whoever buffed you" (ns.ThankPressLines) is written the way a name is, and is none.
 	local function Heard(list)
+		local nobody = L["whoever buffed you"]
 		for _, line in ipairs(list or {}) do
-			for name in tostring(line):gmatch("|cffffffff(.-)|r") do Alias(name) end
+			for name in tostring(line):gmatch("|cffffffff(.-)|r") do
+				if name ~= nobody then Alias(name) end
+			end
 		end
 	end
 	pcall(function() Heard(ns.RequestLines()) end)

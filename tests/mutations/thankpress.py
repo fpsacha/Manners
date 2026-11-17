@@ -280,3 +280,52 @@ mutate("Commands.lua",
        "",
        "thankpress: a paste sends the thanks by themselves again",
        expect="thankpress: a pasted string can hold the thanks, never send them by themselves", script=S)
+
+# ------------------------------------------------ the review of 1ce7e86
+mutate("ThankPress.lua",
+       "\t\t\tDrop(i, item.shownAt ~= nil)\n",
+       "\t\t\tDrop(i, true)\n",
+       "thankpress: a lapse nobody saw counts as let go",
+       expect="thankpress: a thank the prompt never showed holds back none of their next ones", script=S)
+
+mutate("ThankPress.lua",
+       "\t\twhile #pending > TP.MAX do Drop(1, pending[1].shownAt ~= nil) end\n",
+       "\t\twhile #pending > TP.MAX do Drop(1, true) end\n",
+       "thankpress: one pushed out unseen counts as let go",
+       expect="thankpress: the sixth giver pushes out one never shown, who may be offered again", script=S)
+
+mutate("Favours.lua",
+       "\t\t\treturn Send(probe, emote, whisper, unit, now)\n",
+       "\t\t\tSend(probe, emote, whisper, unit, now)\n",
+       "thankpress: a press the game refused reads as thanked",
+       expect="thankpress: a press the game refuses says so", script=S)
+
+mutate("ThankPress.lua",
+       "\tif thankNow and thankNow.Held(pending[1].seen) then return queue, verdicts end\n",
+       "",
+       "thankpress: a thank offered while stealthed",
+       expect="thankpress: stealthed, the thank is kept off the prompt until you show yourself", script=S)
+
+mutate("Options/Diagnostics.lua",
+       "\t\t\t\tif name ~= nobody then Alias(name) end\n",
+       "\t\t\t\tAlias(name)\n",
+       "thankpress: the check-up aliases whoever buffed you",
+       expect="thankpress: the full check-up names nobody for an unseen thank", script=S)
+
+mutate("Options/Diagnostics.lua",
+       "\t\t\tlocal who = e.thankUnseen and \"(unseen)\" or Alias(e.name)\n",
+       "\t\t\tlocal who = Alias(e.name)\n",
+       "thankpress: the check-up's queue aliases an unseen thank",
+       expect="thankpress: the full check-up names nobody for an unseen thank", script=S)
+
+mutate("ThankPress.lua",
+       "\t\t\tfound.shownAt = now\n",
+       "",
+       "thankpress: a newer buff keeps the older clock",
+       expect="thankpress: a newer buff from the same giver starts the time on the prompt again", script=S)
+
+mutate("ThankPress.lua",
+       "\t\tfor key in pairs(item.keys or {}) do declinedAt[\"?\" .. tostring(key)] = now end\n",
+       "",
+       "thankpress: two unseen spells let go, one held back",
+       expect="thankpress: unseen, two spells let go are both held back", script=S)

@@ -1026,7 +1026,8 @@ Everything here is off until you turn it on.
     when you press it, with a click or the prompt's
     key; a right-click lets it go. Left alone, the offer goes away after
     twenty seconds on the prompt (a minute after the buff, shown or not), and
-    a fight drops it; nothing is sent then. Every rule above still decides
+    a fight drops it; nothing is sent then. While you are stealthed or chat is
+    held back, it waits off the prompt. Every rule above still decides
     whether a thank is due, and is read again at the press. A favour you owe or
     a buff your group needs comes first, then the thank, then passers-by.
     Several people buffing you are one press each; with *Thank them even when
