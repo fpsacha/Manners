@@ -789,9 +789,9 @@ Luxe on Calm leaves nothing looping: the owed pulse kept going with nobody owed 
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: SKIPPED -- Spellbreak and Lesser Flame at level 50: offered nil
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: Spellbreak and Frost at level 50: offered nil
 mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more: Spellbreak, Flame and Accuracy at level 50: offered nil; /manners debug says
-mage-scrolls: Automatic takes the scroll used last: Automatic reads nil
-mage-scrolls: Automatic takes the scroll used last: before any familiar, Automatic offered nil rather than the best one
-mage-scrolls: Automatic takes the scroll used last: threw: mage-scrolls.lua:N: attempt to index field 'ownLast' (a nil value)
+mage-scrolls: Automatic takes the best, not the scroll used last: Automatic reads nil
+mage-scrolls: Automatic takes the best, not the scroll used last: before any familiar, Automatic offered nil rather than the best one
+mage-scrolls: Automatic takes the best, not the scroll used last: threw: mage-scrolls.lua:N: attempt to index field 'ownLast' (a nil value)
 mage-scrolls: Lesser Flame is told from Spellbreak, which makes the same enchant: SKIPPED -- a level-20 mage was offered nil, not Lesser Flame
 mage-scrolls: Lesser Flame is told from Spellbreak, which makes the same enchant: SKIPPED -- there is no Weapon imbue dropdown
 mage-scrolls: Lesser Flame is told from Spellbreak, which makes the same enchant: a level-50 mage with Lesser Flame alone in the bags: /manners debug says

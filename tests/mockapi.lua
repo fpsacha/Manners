@@ -596,6 +596,9 @@ for _, e in ipairs({
 	-- control the client reports (Prompt/BreakFree.lua; Companion.lua the
 	-- first two): in the event lists of Ketho's BlizzardInterfaceResources.
 	"PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED", "LOSS_OF_CONTROL_ADDED", "LOSS_OF_CONTROL_UPDATE",
+	-- Talents and specs changing (Core.lua, Best): in the event lists of all
+	-- five clients (Ketho's BlizzardInterfaceResources, every branch).
+	"CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "TRAIT_CONFIG_UPDATED",
 }) do KNOWN_EVENTS[e] = true end
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}

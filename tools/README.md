@@ -1681,6 +1681,30 @@ file to its shape (whole rows, no item twice, in order, a floor for each
 client's count) without the cache, and `tests/mutations/wellfed.py` undoes
 each rule.
 
+## make_talents.py
+
+Writes `Talents.lua`, Forever's talent trees for Automatic's pick of an item
+(Core.lua, `Best`): per class (mage, priest, druid, shaman, paladin), each
+tree's talents from `Talent.csv` by tab, each as the rank spells that have a
+`TraitDefinition` row (on Forever's C_Traits only the first rank of a talent
+has one, and only a talent with a definition can be reported taken); a
+talent with none is dropped and counted. A warlock's marks (fire: Incinerate,
+Conflagrate, Fire and Brimstone, Aftermath; shadow: Improved Shadow Bolt,
+Shadow Mastery, Pandemic, Improved Drains) are chosen by hand. Exit 1 on
+drift: a mark or a tree's deep talent with no definition, a mark whose text
+names none of its school's spells, a deep talent in another tab, a tree under
+eight talents. Reads the Forever build CLAUDE.md names (1.60.1.70790) from
+the tables `audit_ids.py` downloads.
+
+```
+python tools/make_talents.py            # write Talents.lua
+python tools/make_talents.py --check    # exit 1 when the shipped file is not what the tables give
+python tools/make_talents.py --cache DIR
+```
+
+Nothing here ships but the output. `tests/scenarios/autobest.lua` reads the
+file through what Automatic offers, without the cache.
+
 ## make_pets.py
 
 Writes `Pets.lua`, the companion pets used from the bags each time, per client

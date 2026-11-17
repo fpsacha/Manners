@@ -493,7 +493,13 @@ local function AddOwnControls(args)
 						return L["Automatic reminds you only while your group role is tank; Always reminds you whenever it is not up."]
 					end
 					if family.enhance then
-						return L["Reminds you when nothing is on the weapon in your %s and one of these in your bags fits it. Automatic takes the one you used last, else the best you can use."]
+						-- A poison keeps the kind last on its hand (Buffs.lua, byLine);
+						-- the rest take the best (Core.lua, Best).
+						if family.byLine then
+							return L["Reminds you when nothing is on the weapon in your %s and one of these in your bags fits it. Automatic takes the kind you had on that hand last, at the best rank your level allows, else the first you can use; pick one by name to keep to it."]
+								:format(ns.HandName(family.slot))
+						end
+						return L["Reminds you when nothing is on the weapon in your %s and one of these in your bags fits it. Automatic takes the best you can use now: by your level, weapon and Fishing, an oil by your group role or talents, a warlock's stone by your talents; pick one by name to keep to it."]
 							:format(ns.HandName(family.slot))
 					end
 					-- A shaman's imbues are spells, with no scroll to name (Buffs.lua, shamanimbue).
@@ -508,12 +514,12 @@ local function AddOwnControls(args)
 					end
 					-- Making a Firestone or Spellstone (Buffs.lua, makes).
 					if family.makes then
-						return L["Reminds you to make a stone when none is in your bags or on the weapon in your main hand and a Soul Shard is in your bags. Once it is made, Firestone or Spellstone offers to put it on. Automatic makes the kind you used last. Off until you turn it on."]
+						return L["Reminds you to make a stone when none is in your bags or on the weapon in your main hand and a Soul Shard is in your bags. Once it is made, Firestone or Spellstone offers to put it on. Automatic makes the kind your talents favour, else the kind you used last. Off until you turn it on."]
 					end
 					if family.imbue then
-						return L["Reminds you when nothing is on the weapon in your main hand and a scroll in your bags fits it. Automatic takes the one you used last, else the best you can use."]
+						return L["Reminds you when nothing is on the weapon in your main hand and a scroll in your bags fits it. Automatic takes the best you can use now: one of the school your talents favour, then your level and weapon; pick one by name to keep to it."]
 					elseif family.scroll then
-						return L["Reminds you when no familiar is with you and a scroll for one is in your bags. Automatic takes the one you used last, else the best your level allows."]
+						return L["Reminds you when no familiar is with you and a scroll for one is in your bags. Automatic takes the best your level allows."]
 					end
 					local text = L["Reminds you when none of these is up. Automatic takes the one you had up last."]
 					-- Demonic Sacrifice with Demonic Pact known (Buffs.lua, splitTo):

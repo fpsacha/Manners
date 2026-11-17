@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "17 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Automatic picks the best.|r Scrolls, oils, stones, lures and a warlock's stones: Automatic now takes the best for you (level, weapon, Fishing, group role, talents) rather than the one used last; a poison keeps the kind last on that hand, at its...",
+		} },
+	} },
 	{ version = "1.11.27", date = "17 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Quiet in a group.|r |cffffffffSay nothing in a party|r and |cffffffffSay nothing in a raid|r, on |cffffffffWhat I say|r: the buff still goes out, the line stays in.",
@@ -167,11 +172,6 @@ ns.WhatsNew = {
 			"|cffff9a52A fight just after a crowd passed.|r A passer-by who walked off a few seconds before the pull is no longer frozen on the prompt for the fight, nor put in its rota; the fight over, the second line no longer says where the rota stood.",
 			"|cffff9a52A press in a fight keeps your enemy targeted.|r When the person whose turn it is has gone out of sight, the press no longer switches you off the mob onto whatever you had targeted before.",
 			"|cffff9a52The fight's rota goes round once.|r Each press reaches the next person the fight began with, once each; then the prompt says everybody has had a press and casts nothing, instead of buffing them all again.",
-		} },
-	} },
-	{ version = "1.11.24", date = "13 November 2026", sections = {
-		{ title = "Who gets what", accent = "7cc4ff", entries = {
-			"|cff7cc4ffWeapon imbues before the shield.|r A shaman's switch on |cffffffffWho to buff|r, under |cffffffffWeapon imbue|r: the imbues come up ahead of Lightning Shield, so a shield you have no mana for does not keep your imbue waiting.",
 		} },
 	} },
 }

@@ -483,10 +483,11 @@ do
 end
 
 -- ------------------------------------------------------------------ 6
--- Automatic: the best you can use until you have used one, then the one you
--- used last, while there is still one of it to use.
+-- Automatic: the best you can use now, whatever was used last. The one used
+-- last is still written down (the reading of what is on needs it), and never
+-- offered over a better one.
 do
-	local scenario = "mage-scrolls: Automatic takes the scroll used last"
+	local scenario = "mage-scrolls: Automatic takes the best, not the scroll used last"
 	with(scenario, { bags = { [RAT] = 1, [FROG] = 1, [LESSER_FLAME] = 1, [FROST] = 1 }, level = 20 }, function(ns)
 		local control = findOption(ns.optionsTable, "own_familiar")
 		if key(mine(ns)) ~= "frogfamiliar" then
@@ -505,11 +506,11 @@ do
 			fail(scenario, "the Rat familiar was not remembered: " .. tostring(ns.db.char.ownLast.familiar))
 		end
 		world.held[RAT_AURA] = nil
-		if key(mine(ns)) ~= "ratfamiliar" then
-			fail(scenario, "with the Rat familiar gone, Automatic offered " .. key(mine(ns)) .. ", not the one used last")
+		if key(mine(ns)) ~= "frogfamiliar" then
+			fail(scenario, "with the Rat familiar gone, Automatic offered " .. key(mine(ns)) .. ", not the best one")
 		end
 		auto = control and control.values().auto
-		if auto ~= "Automatic (Rat Familiar, the one you had up last)" then
+		if auto ~= "Automatic (Frog Familiar, the best you can use now)" then
 			fail(scenario, "Automatic reads " .. tostring(auto))
 		end
 
@@ -519,7 +520,7 @@ do
 			fail(scenario, "with no Rat scroll left, Automatic offered " .. key(mine(ns)))
 		end
 
-		-- The imbue the same way: Frost first, then Lesser Flame once it was on.
+		-- The imbue the same way: Frost, the best, before and after Lesser Flame was on.
 		world.held[FROG_AURA] = true
 		if key(mine(ns)) ~= "imbuefrost" then
 			fail(scenario, "before any imbue, Automatic offered " .. key(mine(ns)) .. " rather than Frost")
@@ -527,12 +528,12 @@ do
 		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 1800 }
 		mine(ns)
 		world.enchant = nil
-		if key(mine(ns)) ~= "imbuelesserflame" then
-			fail(scenario, "once Lesser Flame had been on, Automatic offered " .. key(mine(ns)))
+		if key(mine(ns)) ~= "imbuefrost" then
+			fail(scenario, "once Lesser Flame had been on, Automatic offered " .. key(mine(ns)) .. " rather than Frost")
 		end
 
-		-- A dagger in hand: the one used last does not fit it, so Automatic
-		-- takes one that does.
+		-- A dagger in hand: no staff scroll fits it, so Automatic takes one
+		-- that does.
 		restock(ns, { [FROG] = 1, [LESSER_FLAME] = 1, [CHILLKNIFE] = 1 })
 		world.weapon = DAGGER
 		ns.addon:PLAYER_EQUIPMENT_CHANGED(nil, 16, true)

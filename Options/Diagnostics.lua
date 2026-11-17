@@ -68,7 +68,8 @@ local function BugReport()
 	lines[#lines + 1] = ("cures group/passers-by/seconds=%s/%s/%s"):format(tostring(db.sources.cures),
 		tostring(db.sources.curesStrangers), tostring(db.filters.cureSeconds))
 	-- "Myself": where, and per family you know its pick and the one last up
-	-- (key=pick/last), which is what Automatic reads.
+	-- (key=pick/last), which is what Automatic reads for a spell (an item
+	-- family takes the best, by the lean on the next line).
 	local picks = {}
 	local memory = type(ns.db.char) == "table" and ns.db.char.ownLast
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
@@ -77,6 +78,13 @@ local function BugReport()
 	end
 	lines[#lines + 1] = ("own inCities=%s %s"):format(tostring(db.ownBuffs.inCities),
 		#picks > 0 and table.concat(picks, " ") or "none known")
+	-- Which way Automatic reads you for an item family (Core.lua, Best): the
+	-- school your talents favour, the role an oil serves, and what was counted.
+	if ns.OwnLean then
+		local school, role, trees = ns.OwnLean()
+		lines[#lines + 1] = ("own lean school=%s role=%s trees=%s"):format(tostring(school), tostring(role),
+			tostring(trees))
+	end
 	-- Every scroll switched off at once (Who to buff, Scrolls), when it is.
 	if db.ownBuffs.scrolls == false then lines[#lines + 1] = "own scrolls=off" end
 	-- The spells ticked under Never remind me about, when there are any.

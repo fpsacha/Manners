@@ -32,6 +32,7 @@ Flavour.lua
 Foods.lua
 Consumables.lua
 Pets.lua
+Talents.lua
 Buffs.lua
 Core.lua
 Battle.lua

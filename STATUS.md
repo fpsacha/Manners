@@ -714,6 +714,35 @@ permissions list, a hook that lints each edited file, and the commands
 
 ## Open
 
+**Automatic picks the best item (after 1.11.27, not released).** A player on
+Forever: "it should be best, based on weapon, class, skill, talent etc".
+Automatic no longer takes the item used last for a scroll, an oil, a stone or
+a lure: `Core.lua`'s `Best` weighs a `ranked` family's rows (a mage's imbue and
+a warlock's stone by the school the talents favour, `Talents.lua` from
+`tools/make_talents.py`; an oil by role, from the group role, the class, else
+the tree or spec; a lure by its Fishing bonus), ties in table order; a poison
+keeps the kind last on its hand at its best rank (`byLine`); making a stone
+takes the kind the talents favour, else the kind last on the weapon. The
+memory is still written. Held to `tests/scenarios/autobest.lua` and
+`tests/mutations/autobest.py` (33, each caught by `tools/prove.py`); the
+Forever scenario suite ran green under `check.py --lint`, no other client's
+whole suite ran. Classic Era and Burning Crusade read the points spent before
+their `GetSpecialization` (Blizzard's `GetPrimaryTalentTree` there), so no
+spec role on those clients decides a tree. Only the live game can say:
+1. Whether Forever's `C_SpellBook.IsSpellKnown` (else `IsPlayerSpell`) reports
+   a taken talent by its TraitDefinition spell: the `own lean` line of
+   `/manners debug` shows the school, the role and each tree's count.
+2. The tree order of `C_SpecializationInfo.GetSpecializationInfo` on Classic
+   Era and Burning Crusade (read as ChrSpecialization's OrderIndex; the
+   points spent at its seventh return), and whether its `GetSpecialization`
+   gives an index there.
+3. Whether the group role is withheld in an instance on Forever
+   (`UnitGroupRolesAssigned` is SecretWhenUnitIdentityRestricted there); the
+   last plain one is kept while grouped.
+4. Open by choice: Precision, Accuracy, Quickening, Striking and the weapon
+   procs are of no school; Elemental against Dense stones, Frost Oil against
+   Shadow Oil and a lure's minutes are not weighed.
+
 **Will of the Forsaken in a real fight (branch `post26`).** Only the game can
 settle these; the first real fear answers most of them through `/manners
 debug` (the last loss of control, and whether it came plain, secret or with

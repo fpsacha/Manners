@@ -349,7 +349,12 @@ own. The full list for each class is under *Which buffs each class offers*.
   *Firestone or Spellstone* for the main hand. With *Make a Firestone or
   Spellstone* turned on (off by default), a warlock with no stone in his bags
   or on his weapon and a Soul Shard to hand is offered Create Firestone or
-  Create Spellstone first. Alone, a stone, oil or poison
+  Create Spellstone first. *Automatic* takes the best you can use now: an oil
+  for your group role, else your talents (wizard oil for a caster, mana oil
+  for a healer, the strongest your level allows), the strongest lure your
+  Fishing allows, a warlock's Firestone or Spellstone by his talents, and the
+  stone he makes the same way; a rogue's poison is the kind last on that
+  hand, at its best rank. Pick one by name to keep to it. Alone, a stone, oil or poison
   is offered again only once it has worn off; in a group, with top-ups on, it
   is renewed ahead of the next pull. Manners never answers the game's
   question about replacing an enchant: that is left to you.
@@ -416,8 +421,8 @@ once you carry one.
   familiar is with you and a Rat, Frog or Cat Familiar scroll is in your
   bags; *Weapon imbue* when no imbue is on the weapon in your main hand and
   you carry an imbue scroll that fits it. One press uses it from your bags.
-  *Automatic* takes the one you used last while you still have one that fits,
-  otherwise the best your level and weapon allow.
+  *Automatic* takes the best you can use now: a scroll of the school your
+  talents favour, then your level and weapon; pick one by name to keep to it.
 
 **When my own buffs come up.**
 

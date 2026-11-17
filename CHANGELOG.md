@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+*17 November 2026*
+
+### Highlights
+- **Automatic picks the best.** Scrolls, oils, stones, lures and a warlock's
+  stones: Automatic now takes the best for you (level, weapon, Fishing, group
+  role, talents) rather than the one used last; a poison keeps the kind last
+  on that hand, at its best rank. Pick one by name to keep to it.
+
 ## 1.11.27
 
 *17 November 2026*

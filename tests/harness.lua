@@ -138,6 +138,9 @@ for _, e in ipairs({
   "PLAYER_LEAVING_WORLD",
   -- Registered on this client by an addon's class-buff reminder.
   "ADDON_RESTRICTION_STATE_CHANGED",
+  -- Talents and specs changing (Core.lua, Best): in the event lists of all
+  -- five clients (Ketho's BlizzardInterfaceResources, every branch).
+  "CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "TRAIT_CONFIG_UPDATED",
 }) do KNOWN_EVENTS[e] = true end
 
 -- Ace3 stand-ins

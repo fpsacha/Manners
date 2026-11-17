@@ -419,9 +419,12 @@ end
 --   enchantKind  what the family's enchants are listed as, where the spells
 --             below do not say otherwise (the field of the same name)
 --
--- and per spell, one for each item, best first (the order Automatic tries
--- them in before you have used one; a stone made for any weapon first, then
--- by rank):
+-- and per spell, one for each item, best first (a stone made for any weapon
+-- first, then by rank): the order Automatic falls back on and breaks a tie
+-- by, since it ranks an oil, a lure and a warlock's stone by worth (Core.lua,
+-- Best; `ranked` on the family, `oilKind` and `tier`, `bonus`, `school` and
+-- `power` on the spell) and keeps a poison's kind on its hand (`byLine`,
+-- `line`):
 --
 --   item      the item id
 --   level     the level it asks to be used at (ItemSparse RequiredLevel)
@@ -501,8 +504,51 @@ do
 	}
 	local HANDS = { { slot = 16, name = "main", suffix = "m" }, { slot = 17, name = "off", suffix = "o" } }
 
+	-- What Automatic weighs (Core.lua, Best), copied onto each row by Families
+	-- below; the rows themselves stay as each client's data gives them.
+	-- An oil by the enchant it makes: { kind, tier }. A wizard oil serves a
+	-- caster (and a healer after a mana oil), a mana oil a healer, Frost and
+	-- Shadow Oil a fighter; the tier is the level of the enchant's oil, so a
+	-- stronger one wins inside its kind (Lesser Wizard Oil's two items make
+	-- the one enchant, 2626). Blessed Wizard Oil (Undead alone), Blackfathom
+	-- Mana Oil and the Weapon Coatings are untagged: last for every role.
+	local OIL = {
+		[2623] = { "wizard", 5 }, [2626] = { "wizard", 30 }, [2627] = { "wizard", 40 }, [2628] = { "wizard", 45 },
+		[2678] = { "wizard", 58 },
+		[2624] = { "mana", 20 }, [2625] = { "mana", 40 }, [2629] = { "mana", 45 }, [2677] = { "mana", 52 },
+		[3298] = { "mana", 72 },
+		[26] = { "proc", 24 }, [25] = { "proc", 24 },
+	}
+	-- A lure by its enchant: the Fishing it adds. Automatic takes the strongest
+	-- your Fishing allows, whatever its minutes.
+	local LURE = { [263] = 25, [264] = 50, [265] = 75, [266] = 100, [3868] = 100, [4225] = 150, [4264] = 15 }
+	-- A warlock's stone by item (Forever): its school and its rank's power.
+	local STONE_SCHOOL = {
+		[13701] = { "fire", 21 }, [13700] = { "fire", 17 }, [13699] = { "fire", 14 }, [1254] = { "fire", 10 },
+		[13603] = { "shadow", 21 }, [13602] = { "shadow", 17 }, [5522] = { "shadow", 14 },
+	}
+	-- A rogue's poison by item: its kind, so Automatic keeps the kind last on a
+	-- hand and takes its best rank (the rows are best first within a kind).
+	local POISON_LINE = {}
+	for line, items in pairs({
+		instant = { 21927, 8928, 8927, 8926, 6950, 6949, 6947 },
+		deadly = { 22054, 22053, 20844, 8985, 8984, 2893, 2892 },
+		wound = { 22055, 10922, 10921, 10920, 10918 },
+		crippling = { 3776, 3775 },
+		numbing = { 9186, 6951, 5237 },
+		anesthetic = { 21835 },
+		toxin = { 5654 },
+		occult = { 234444, 226374 },
+		atrophic = { 217347 },
+		numbingsod = { 217346 },
+		sebacious = { 217345 },
+	}) do
+		for _, item in ipairs(items) do POISON_LINE[item] = line end
+	end
+
 	-- One client's families from its rows: { kind = { { item, level, enchant,
-	-- use spell, fits [, since] [, enchantKind = ...] }, ... } }, best first.
+	-- use spell, fits [, since] [, enchantKind = ...] }, ... } }, best first as
+	-- a fallback and tie-break: Automatic ranks by worth (Core.lua, Best).
 	-- `kinds` is { kind = enchantKind }, for a client that lists the kind of
 	-- each enchant (Forever); a row names its own `enchantKind` where its item
 	-- is not of its family's.
@@ -520,12 +566,26 @@ do
 							enchant = row[3], ranks = { row[4] }, fits = row[5], since = row[6],
 							enchantKind = kinds and (row.enchantKind or kinds[kind.kind]) or nil }
 					end
+					-- What Automatic weighs, from the side tables above.
+					for _, spell in ipairs(spells) do
+						local oil = kind.kind == "oil" and OIL[spell.enchant]
+						if oil then spell.oilKind, spell.tier = oil[1], oil[2] end
+						if kind.kind == "lure" then spell.bonus = LURE[spell.enchant] end
+						local stone = kind.kind == "warlockstone" and STONE_SCHOOL[spell.item]
+						if stone then spell.school, spell.power = stone[1], stone[2] end
+						if kind.kind == "poison" then spell.line = POISON_LINE[spell.item] end
+					end
 					out[#out + 1] = {
 						key = kind.kind .. (kind.mainHand and "" or hand.name),
 						label = kind.label, kind = kind.kind, slot = hand.slot, only = kind.only,
 						scroll = true, enhance = true, spells = spells,
 						enchantKind = kinds and kinds[kind.kind] or nil,
 					}
+					-- Automatic ranks an oil, a lure and a warlock's stone by worth,
+					-- and keeps a poison's kind per hand (Core.lua, AutoAnswer).
+					local made = out[#out]
+					made.ranked = kind.kind == "oil" or kind.kind == "lure" or kind.kind == "warlockstone" or nil
+					made.byLine = kind.kind == "poison" or nil
 				end
 			end
 		end
@@ -714,8 +774,8 @@ do
 		-- spells that make them are SpellLevels 28, 36, 46 and 56 for the
 		-- firestones and 36, 48 and 60 for the spellstones, and only a warlock
 		-- makes them: `makestone`, below). Best first, rank by
-		-- rank, a firestone ahead of a spellstone of its rank; one in the bags is
-		-- all Automatic asks, and a warlock carries the one he made.
+		-- rank, a firestone ahead of a spellstone of its rank; Automatic takes
+		-- the kind your talents favour, else table order (STONE_SCHOOL, above).
 		warlockstone = {
 			{ 13701, 0, 1825, 17949, MELEE }, -- Major Firestone
 			{ 13603, 0, 8061, 1237159, MELEE }, -- Major Spellstone
@@ -2176,8 +2236,9 @@ local TBC_SET = setmetatable({
 -- Each family is a family as above, with:
 --   scroll    its spells are scrolls: { key, item (the item id), level (the
 --             level it asks for), ranks = { the spell its use casts } }, best
---             first, which is the order Automatic tries them in before you
---             have used one. The scroll's name is that spell's, as the client
+--             first: the order Automatic falls back on and breaks a tie by,
+--             since it ranks the imbues by the school your talents favour
+--             (IMBUE_SCHOOL, below; Core.lua, Best). The scroll's name is that spell's, as the client
 --             names it; nameFromItem takes the item's instead, and is the
 --             name until the client has loaded the item.
 --   imbue     up is the main hand carrying an enchant of the Imbue kind, a
@@ -2241,6 +2302,19 @@ do
 			{ key = "imbuechillknife", item = 275067, level = 5, ranks = { 1296225 }, enchant = 8698, weapon = DAGGER },
 		},
 	}
+	-- What Automatic weighs (Core.lua, Best): an imbue's school and the spell
+	-- damage of that school it adds, by item. Precision, Accuracy, Quickening,
+	-- Striking, Manablade, Iceknife, Spark and Chillknife are of no school:
+	-- they come after the favoured school's, ahead of the other's.
+	local IMBUE_SCHOOL = {
+		[277500] = { "fire", 20 }, [277501] = { "frost", 20 }, [277497] = { "fire", 12 }, [277485] = { "frost", 8 },
+		[274947] = { "fire", 4 }, [277503] = { "fire", 4 }, [277487] = { "fire" }, [277496] = { "frost" },
+	}
+	for _, spell in ipairs(IMBUE.spells) do
+		local school = IMBUE_SCHOOL[spell.item]
+		if school then spell.school, spell.power = school[1], school[2] end
+	end
+	IMBUE.ranked = true
 	-- Find Treasure, the dwarf's own tracking, stays on beside Find Herbs or
 	-- Find Minerals here (a dwarf on Forever, on CurseForge: "I can have both
 	-- find treasure and a profession tracking up"; all three are SpellEffect
@@ -2338,8 +2412,9 @@ end
 -- create spells and their levels (wago.tools 1.60.1.70790 and 1.60.1.70938, SpellLevels,
 -- SpellEffect 24 for the item made): Create Firestone 6366 (Lesser, 28), 17951
 -- (36), 17952 (Greater, 46), 17953 (Major, 56); Create Spellstone 2362 (36), 17727
--- (Greater, 48), 17728 (Major, 60). `items` names what each makes, so Automatic
--- takes the kind last on the weapon. A toggle: nothing to top up.
+-- (Greater, 48), 17728 (Major, 60). `items` names what each makes, and `school`
+-- the kind: Automatic makes the kind your talents favour, else the kind last on
+-- the weapon (Core.lua, AutoAnswer). A toggle: nothing to top up.
 do
 	local list = CAMELOT_OWN.WARLOCK
 	for i, family in ipairs(list) do
@@ -2352,6 +2427,9 @@ do
 					{ key = "createspellstone", ranks = { 17728, 17727, 2362 }, needsWeapon = true,
 						items = { 13603, 13602, 5522 } },
 				} })
+			for _, spell in ipairs(list[i + 1].spells) do
+				spell.school = spell.key == "createfirestone" and "fire" or "shadow"
+			end
 			break
 		end
 	end

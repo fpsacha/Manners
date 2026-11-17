@@ -398,10 +398,12 @@ mutate("Core.lua",
        "scrolls: a pick with none left reads Automatic",
        expect="a pick with none in the bags reads", script=S)
 
+# Automatic takes the best (Core.lua, Best.Pick): a scroll that does not fit
+# the weapon in hand is never it.
 mutate("Core.lua",
-       "\t\t\tand not (spell.item and not ScrollReady(spell))\n",
-       "",
-       "scrolls: the one used last that no longer fits",
+       "\t\t\t\t\t\tlocal ok, why = ScrollReady(spell)\n",
+       "\t\t\t\t\t\tlocal ok, why = true, nil\n",
+       "scrolls: Automatic's best that no longer fits",
        expect="rather than a scroll that fits it", script=S)
 
 mutate("Core.lua",

@@ -1138,6 +1138,8 @@ do
 		ns.ForgetProximity()
 		-- What was read under the last probe (ns.ForgetAuraCache).
 		if ns.ForgetAuraCache then ns.ForgetAuraCache() end
+		-- Which way your talents lean (Best, Automatic's pick of an item).
+		if ns.ForgetLean then ns.ForgetLean() end
 
 		playerClass = plain(select(2, UnitClass("player")))
 		caps.class = playerClass
@@ -2472,7 +2474,8 @@ end
 --
 -- The buffs only your class puts on itself (Buffs.lua, VANILLA_OWN), a family
 -- at a time: which you know, which to remind you of (your pick, or Automatic:
--- the one you had up last), and whether any is on you now. SelfEntry
+-- the one you had up last, the best of an item family), and whether any is on
+-- you now. SelfEntry
 -- (Queue.lua), /manners debug and the options page all ask here, so none of
 -- them can say something the queue does not do.
 ---------------------------------------------------------------------------
@@ -2874,8 +2877,10 @@ do
 	end
 
 	-- The one you had up last, per character (db.char): what one character
-	-- runs says nothing about an alt sharing the profile. A scroll only while
-	-- you can use one now: in the bags, your level, your weapon.
+	-- runs says nothing about an alt sharing the profile. Read by AutoAnswer
+	-- for a spell family and a bagged one (an item family takes the best:
+	-- Best, below). An item only while you can use one now: in the bags, your
+	-- level, your weapon.
 	local function Remembered(family)
 		local char = addon.db and addon.db.char
 		local memory = type(char) == "table" and char.ownLast
@@ -2901,6 +2906,280 @@ do
 	local function Tanking()
 		if (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return false end
 		return safecall(_G.UnitGroupRolesAssigned, "player") == "TANK"
+	end
+
+	-- Automatic's best, for the item families (Buffs.lua: a family's `ranked`
+	-- or `byLine`; a spell's school and power, oilKind and tier, bonus, line).
+	-- Which way you lean: the school your talents favour (a mage's fire or
+	-- frost, a warlock's fire or shadow), Forever alone (Talents.lua), and the
+	-- role an oil serves (caster, healer, physical) by your group role, your
+	-- class, else your talents or spec. The talents are read once, under one
+	-- pcall, and kept, a failed read with them, until the probe or a talent
+	-- event (ns.ForgetLean). Nothing here makes a table on a scan.
+	local Best = {}
+	do
+		local talentSchool, talentRole, talentTrees, talentFromSpec
+		local filled = false
+		-- The last group role read plainly while you are in a group: a read the
+		-- client withholds (an instance that hides who you are) keeps it.
+		local groupRole
+		function ns.ForgetLean() filled = false end
+
+		-- The role a tree serves, by its name (Talents.lua, and the classic
+		-- clients' tree order below). A paladin's Protection is none: its threat
+		-- comes from spell damage as much as from the weapon.
+		local TREE_ROLE = { discipline = "healer", holy = "healer", shadow = "caster", balance = "caster",
+			feral = "physical", restoration = "healer", elemental = "caster", enhancement = "physical",
+			retribution = "physical" }
+		-- The classic clients' trees by index (ChrSpecialization OrderIndex).
+		local TREE_ORDER = {
+			PRIEST = { "discipline", "holy", "shadow" }, DRUID = { "balance", "feral", "restoration" },
+			SHAMAN = { "elemental", "enhancement", "restoration" }, PALADIN = { "holy", "protection", "retribution" },
+		}
+		-- A damage spec's role by its ChrSpecialization id (Mists and retail).
+		local SPEC_ROLE = { [62] = "caster", [63] = "caster", [64] = "caster", [70] = "physical",
+			[102] = "caster", [103] = "physical", [258] = "caster", [262] = "caster", [263] = "physical",
+			[269] = "physical" }
+		-- Classes whose role does not depend on the tree.
+		local CLASS_ROLE = { WARRIOR = "physical", ROGUE = "physical", HUNTER = "physical", DEATHKNIGHT = "physical",
+			MAGE = "caster", WARLOCK = "caster" }
+
+		-- The role of the tree with the most, nil on a tie between trees of
+		-- different roles or with nothing at all.
+		local function Leading(names, counts)
+			local most, role, split = 0, nil, false
+			for i, name in ipairs(names) do
+				local n = counts[i] or 0
+				local serves = TREE_ROLE[name] or false
+				if n > most then
+					most, role, split = n, serves, false
+				elseif n == most and n > 0 and serves ~= role then
+					split = true
+				end
+			end
+			if split or most == 0 or not role then return nil end
+			return role
+		end
+
+		-- school, the role your talents or spec say, a short note of what was
+		-- counted (for /manners debug), and whether the client gave a spec role.
+		local function Fill(class)
+			local trees = ns.TALENT_TREES and ns.TALENT_TREES[class]
+			local marks = ns.TALENT_MARKS and ns.TALENT_MARKS[class]
+			if trees or marks then
+				-- Forever: a talent taken is its definition spell known.
+				local book = C_SpellBook
+				local isKnown = type(book) == "table" and book.IsSpellKnown or nil
+				if type(isKnown) ~= "function" then isKnown = nil end
+				local player = _G.IsPlayerSpell
+				local bank = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player or 0
+				local function taken(id)
+					if isKnown then return plain(isKnown(id, bank)) == true end
+					if type(player) == "function" then return plain(player(id)) == true end
+					return false
+				end
+				local names, counts, by, parts = {}, {}, {}, {}
+				for i, tree in ipairs(trees or {}) do
+					local n = 0
+					for _, id in ipairs(tree.spells) do
+						if taken(id) then n = n + 1 end
+					end
+					names[i], counts[i], by[tree.tree] = tree.tree, n, n
+					parts[#parts + 1] = tree.tree .. ":" .. n
+				end
+				for _, school in ipairs(marks and { "fire", "shadow" } or {}) do
+					local n = 0
+					for _, id in ipairs(marks[school] or {}) do
+						if taken(id) then n = n + 1 end
+					end
+					by[school] = n
+					parts[#parts + 1] = school .. ":" .. n
+				end
+				local school
+				if class == "MAGE" then
+					local fire, frost = by.fire or 0, by.frost or 0
+					if fire > frost then
+						school = "fire"
+					elseif frost > fire then
+						school = "frost"
+					elseif fire == 0 and (by.arcane or 0) > 0 then
+						school = "arcane"
+					end
+				elseif marks then
+					local fire, shadow = by.fire or 0, by.shadow or 0
+					if fire > shadow then school = "fire" elseif shadow > fire then school = "shadow" end
+				end
+				local role = TREE_ORDER[class] and Leading(names, counts) or nil
+				return school, role, table.concat(parts, " "), false
+			end
+			local spec = C_SpecializationInfo
+			local getInfo = type(spec) == "table" and spec.GetSpecializationInfo or nil
+			if type(getInfo) ~= "function" then return nil, nil, "none", false end
+			-- Classic Era and Burning Crusade: the points spent in each tree, read
+			-- first. Those clients have a GetSpecialization too (Blizzard's own
+			-- GetPrimaryTalentTree), whose spec role would read every priest as
+			-- the first tree's and a Protection paladin as a fighter.
+			local order = TREE_ORDER[class]
+			local counts, parts, spent = {}, {}, false
+			for i = 1, order and #order or 0 do
+				local points = plain(select(7, getInfo(i)))
+				counts[i] = type(points) == "number" and points or 0
+				if counts[i] > 0 then spent = true end
+				parts[#parts + 1] = order[i] .. ":" .. counts[i]
+			end
+			if spent then return nil, Leading(order, counts), table.concat(parts, " "), false end
+			-- Mists and retail, where no tree has points: the spec and the role
+			-- the client gives it.
+			local getSpec = spec.GetSpecialization
+			if type(getSpec) == "function" then
+				local index = plain(getSpec())
+				if type(index) == "number" and index > 0 then
+					local specId, _, _, _, role = getInfo(index)
+					specId, role = plain(specId), plain(role)
+					local note = "spec:" .. tostring(specId) .. ":" .. tostring(role)
+					if role == "HEALER" then return nil, "healer", note, true end
+					if role == "TANK" then return nil, "physical", note, true end
+					if role == "DAMAGER" and SPEC_ROLE[specId] then return nil, SPEC_ROLE[specId], note, true end
+				end
+			end
+			if not order then return nil, nil, "none", false end
+			return nil, nil, table.concat(parts, " "), false
+		end
+
+		local function Lean()
+			if not filled then
+				local ok, school, role, trees, fromSpec = pcall(Fill, playerClass)
+				if ok then
+					talentSchool, talentRole, talentTrees, talentFromSpec = school, role, trees, fromSpec
+				else
+					talentSchool, talentRole, talentTrees, talentFromSpec = nil, nil, "unread", false
+				end
+				filled = true
+			end
+			return talentSchool, talentRole
+		end
+
+		-- The school your talents favour, or nil.
+		function Best.School()
+			return (Lean())
+		end
+
+		-- The role an oil serves for you now, or nil.
+		function Best.Role(class)
+			local count = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
+			if count > 0 then
+				local roles = _G.UnitGroupRolesAssigned
+				local now = type(roles) == "function" and plain(roles("player")) or nil
+				if type(now) == "string" then groupRole = now end
+			else
+				groupRole = nil
+			end
+			local _, treeRole = Lean()
+			if groupRole == "HEALER" then return "healer" end
+			if groupRole == "TANK" then
+				-- A paladin tank with no spec role to say otherwise is classic
+				-- Protection, whose threat is spell damage: no lean.
+				if class == "PALADIN" and not talentFromSpec then return nil end
+				return "physical"
+			end
+			if groupRole == "DAMAGER" and class == "PRIEST" and treeRole == "healer" then return "caster" end
+			return CLASS_ROLE[class] or treeRole
+		end
+
+		-- What weighs a ranked family's rows, read only when two of them are in
+		-- the bags to be weighed: the school for an imbue or a warlock's stone,
+		-- the role for an oil, neither for a lure.
+		local function Weights(family)
+			local n = 0
+			for _, spell in ipairs(family.spells) do
+				if ScrollCount(spell) > 0 then n = n + 1 end
+			end
+			if n < 2 then return nil, nil end
+			if family.kind == "oil" then return nil, Best.Role(playerClass) end
+			if family.kind == "lure" then return nil, nil end
+			return Best.School(), nil
+		end
+
+		-- How much a row is worth to you, higher first: one of your school
+		-- (power next), none, then the other; an oil by what it serves your
+		-- role and its tier; a lure by the Fishing it adds. 0 for all with no
+		-- lean, so the table's order decides.
+		local SERVES = { wizard = { caster = 2, healer = 1 }, mana = { healer = 2 }, proc = { physical = 2 } }
+		local function Worth(spell, family, school, role)
+			if family.kind == "oil" then
+				if role == nil then return 0 end
+				local serves = spell.oilKind and SERVES[spell.oilKind][role]
+				if serves and serves > 0 then return 10 * spell.tier + serves end
+				return -1
+			end
+			if family.kind == "lure" then return spell.bonus or 0 end
+			if school == nil or spell.school == nil then return 0 end
+			if spell.school == school then return 100 + (spell.power or 0) end
+			return -1
+		end
+
+		-- A ranked family's answer: the worthiest row you can use now, the
+		-- table's order on a tie; none usable, why not and which (as AutoAnswer).
+		-- Whether a row can be used is asked only of one worth more than the
+		-- best so far.
+		function Best.Pick(family)
+			local school, role = Weights(family)
+			local best, held, heldWhy
+			local bestWorth = -math.huge
+			for _, spell in ipairs(family.spells) do
+				if not LeftOut(spell) then
+					local worth = Worth(spell, family, school, role)
+					if worth > bestWorth then
+						local ok, why = ScrollReady(spell)
+						if ok then
+							best, bestWorth = spell, worth
+						elseif why ~= "bags" and not held then
+							held, heldWhy = spell, why
+						end
+					end
+				end
+			end
+			if best then return best, "best" end
+			if held then return nil, heldWhy, held end
+			return nil, nil
+		end
+
+		-- A poison (byLine): the kind you had on that hand last, at its first row
+		-- you can use now, which is its best rank; "last" when that is the very
+		-- one. nil with no memory, or none of that kind to use.
+		function Best.Line(family)
+			local char = addon.db and addon.db.char
+			local memory = type(char) == "table" and char.ownLast
+			local last = type(memory) == "table" and ns.FindOwnSpell(memory[family.key]) or nil
+			if not (last and last.family == family and last.line) then return nil end
+			for _, spell in ipairs(family.spells) do
+				if spell.line == last.line and not LeftOut(spell) and ScrollReady(spell) then
+					return spell, spell == last and "last" or "best"
+				end
+			end
+			return nil
+		end
+
+		-- Making a stone (Buffs.lua, makes): the kind your talents favour, nil
+		-- with no lean, which leaves the kind last on the weapon.
+		function Best.Makes(family)
+			local school = Best.School()
+			if not school then return nil end
+			for _, spell in ipairs(family.spells) do
+				if spell.school == school and Known(spell) and not LeftOut(spell)
+					and not (spell.needsWeapon and HandWeapon(family.slot or 16) == false) then
+					return spell
+				end
+			end
+			return nil
+		end
+
+		-- For /manners debug (Options/Diagnostics.lua): the school, the role and
+		-- what was counted.
+		function ns.OwnLean()
+			local school = Best.School()
+			return school, Best.Role(playerClass), talentTrees
+		end
 	end
 
 	-- Whether you are swimming (Buffs.lua, `swimming`), by the client's own word,
@@ -2953,12 +3232,15 @@ do
 	-- What Automatic reminds you of in this family right now, and why:
 	--   "tank"     a family for the tank, and your group role is tank
 	--   "notank"   it is not, so nothing (the spell is nil)
-	--   "last"     the one you had up last
+	--   "last"     the one you had up last: a spell family, or a poison whose
+	--              kind last on that hand is the very row offered
 	--   "dungeon"  the family's pick for a dungeon or raid, before you have
 	--              had one up; "world" its first other spell outside one
 	--   "first"    the first you know, before you have had one up
-	--   "best"     a scroll: the first you can use now in the table's order,
-	--              which is best first, before you have used one
+	--   "best"     an item family: the worthiest you can use now (Best: your
+	--              school, role, Fishing), ties in the table's order, which is
+	--              best first; a poison at the best rank of its kind; the
+	--              stone your talents favour to make
 	--   "covered"  a shared family (Buffs.lua): the one it would pick reaches
 	--              you already from somebody else of your class, so the next
 	--              you know that does not; nil, and the one covered, for none
@@ -3031,13 +3313,31 @@ do
 			local chosen = FoodByChoice(family)
 			if chosen then return chosen, "best" end
 		end
-		local last = Remembered(family)
+		-- A poison: the kind last on that hand, at its best rank (Best.Line).
+		if family.byLine then
+			local spell, why = Best.Line(family)
+			if spell then return spell, why end
+		end
+		-- Making a stone: the kind your talents favour, else the kind last on
+		-- the weapon (the memory, below).
+		if family.makes then
+			local spell = Best.Makes(family)
+			if spell then return spell, "best" end
+		end
+		-- An item family is the best you can use now, whatever was used last
+		-- (below); the memory is still written, and still read by the poisons'
+		-- kind above, the spells and the reading of what is on.
+		local last = not family.scroll and Remembered(family) or nil
 		if last then return last, "last" end
 		-- One you have never put up yourself is not asked for (Buffs.lua,
 		-- onceUp: Forever's Find Treasure beside a gathering tracking).
 		if family.onceUp then return nil, nil end
 		if family.scroll or family.bagged then
 			local held, heldWhy
+			-- An imbue, an oil, a lure or a warlock's stone: the worthiest for
+			-- you (Best.Pick); the rest, the first you can use in the table's
+			-- order, which is best first.
+			if family.ranked then return Best.Pick(family) end
 			for _, spell in ipairs(family.spells) do
 				-- A food ticked under "Never remind me about" is passed over (the
 				-- only bagged family that can be: Buffs.lua, OwnLeaveable).
@@ -5722,6 +6022,12 @@ function addon:OnEnable()
 		-- A stone, a poison, an oil or a lure on a weapon going on or wearing
 		-- off.
 		"WEAPON_ENCHANT_CHANGED",
+		-- Talents or the spec changed: which way you lean is read again for
+		-- Automatic's pick of an item (Best). Forever's trees are C_Traits.
+		"CHARACTER_POINTS_CHANGED",
+		"PLAYER_TALENT_UPDATE",
+		"ACTIVE_TALENT_GROUP_CHANGED",
+		"TRAIT_CONFIG_UPDATED",
 		"NAME_PLATE_UNIT_ADDED",
 		"NAME_PLATE_UNIT_REMOVED",
 		-- Cooldowns the client takes back; the casts are below.
@@ -6010,6 +6316,14 @@ function addon:PLAYER_EQUIPMENT_CHANGED() ns.ForgetHands() end
 -- Automatic, rather than at the next change of anything else. Nothing is read
 -- here; the event fires for each weapon and for each change of its time.
 function addon:WEAPON_ENCHANT_CHANGED() ns.ownAurasChanged = true end
+
+-- A talent taken or given back, or another spec made active: which way you
+-- lean is read again when Automatic next weighs two items (Best). Nothing is
+-- read here.
+function addon:CHARACTER_POINTS_CHANGED() ns.ForgetLean() end
+function addon:PLAYER_TALENT_UPDATE() ns.ForgetLean() end
+function addon:ACTIVE_TALENT_GROUP_CHANGED() ns.ForgetLean() end
+function addon:TRAIT_CONFIG_UPDATED() ns.ForgetLean() end
 
 -- Putting an enhancement over the one a weapon carries makes the game ask
 -- whether to replace it (REPLACE_ENCHANT, a StaticPopup of the same name
