@@ -1364,6 +1364,9 @@ thank: only at a token that still holds them (name a secret): SKIPPED -- the def
 thank: only at a token that still holds them (somebody else by the same name): SKIPPED -- the deferred favour was not filed:
 thank: only at a token that still holds them (still theirs): SKIPPED -- the deferred favour was not filed:
 thank: the emote is the one the player chose: SKIPPED -- the favour from nameplate2 was not noticed:
+## thanks-hunt.lua
+thanks-hunt: a warrior whispers a stranger who buffs him: SKIPPED -- the favour was not noticed:
+thanks-hunt: debug shows a whisper-only setup watching, and the whisper that went: SKIPPED -- 0 whispers went
 ## thankwhisper.lua
 thankwhisper: a rogue whispers a thank-you to who buffed her: 0 whispers went
 thankwhisper: never in an instance, and once a person at a time: SKIPPED -- the first whisper outdoors did not go
