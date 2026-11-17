@@ -125,6 +125,12 @@ local function BugReport()
 	-- Ask me before thanking (ThankPress.lua), and the thanks waiting for a press.
 	lines[#lines + 1] = ("thankAsk=%s"):format(tostring(db.prompt.thankAsk))
 	for _, line in ipairs(ns.ThankPressLines and ns.ThankPressLines(GetTime()) or {}) do lines[#lines + 1] = line end
+	-- A hunter's pet (HunterPet.lua): its switches, its state, its memory.
+	if ns.Beast and ns.Beast.IsHunter() and type(db.beast) == "table" then
+		lines[#lines + 1] = ("beast: call=%s revive=%s feed=%s mend=%s bond=%s"):format(tostring(db.beast.call),
+			tostring(db.beast.revive), tostring(db.beast.feed), tostring(db.beast.mend), tostring(db.beast.bond))
+		for _, line in ipairs(ns.BeastLines(GetTime())) do lines[#lines + 1] = line end
+	end
 	-- In battlegrounds and arenas (Battle.lua): its four switches, and which
 	-- of its states stands now (nil anywhere else).
 	lines[#lines + 1] = ("battle: team=%s speak=%s thank=%s items=%s state=%s"):format(tostring(db.battle.team),
@@ -343,6 +349,8 @@ function ns.FullReport()
 	pcall(function() Heard(ns.RequestLines()) end)
 	pcall(function() Heard(ns.AskLines(GetTime())) end)
 	pcall(function() Heard(ns.ThankPressLines(GetTime())) end)
+	-- A hunter's pets go by their names, which are aliased as a person's are.
+	pcall(function() Heard(ns.BeastLines(GetTime())) end)
 	pcall(function() Heard(ns.RefusalLines(GetTime())) end)
 	pcall(function() Heard(ns.PvPLines()) end)
 	pcall(function() Heard(ns.CureLines()) end)

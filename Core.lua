@@ -433,6 +433,16 @@ local defaults = {
 			inTowns = false,
 		},
 
+		-- A hunter's pet (HunterPet.lua): care, each with its own switch under
+		-- Myself, and the moments with it (Bond with my pet). All on.
+		beast = {
+			call = true,
+			revive = true,
+			feed = true,
+			mend = true,
+			bond = true,
+		},
+
 		-- The rest of "Myself": the buffs only your class puts on itself
 		-- (Buffs.lua, VANILLA_OWN), and where you are reminded of any of it.
 		ownBuffs = {
@@ -1273,6 +1283,8 @@ function ns.CanCastAnything()
 	if ns.CuresWanted and ns.CuresWanted() then return true end
 	-- Or a thank-you waiting for a press (ThankPress.lua, Ask me before thanking).
 	if ns.ThankPending and ns.ThankPending() then return true end
+	-- Or a hunter's pet to care for (HunterPet.lua).
+	if ns.Beast and ns.Beast.Live() then return true end
 	return caps.anyKnown == true or caps.anyOwnKnown == true
 end
 
@@ -1310,6 +1322,8 @@ function ns.BuffInfo(buff)
 	if buff.askInfo then return buff.askInfo end
 	-- A thank-you waiting for a press (ThankPress.lua): the buff they gave you.
 	if buff.thankInfo then return buff.thankInfo end
+	-- Care for a hunter's pet, or a moment with it (HunterPet.lua).
+	if buff.beastInfo then return buff.beastInfo end
 	-- A cure is no buff of the set, and answers for itself (Cures.lua).
 	if buff.cure then return ns.CureInfo(buff) end
 	if buff.own then

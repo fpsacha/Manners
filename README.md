@@ -442,6 +442,44 @@ once you carry one.
 - *Never remind me about*: a box for each spell of your families you know. A
   ticked spell is skipped by *Automatic* and never offered at all.
 
+**Your pet (hunters).** Under *Myself*, in a section of its own, each on:
+
+- *Call my pet when none is out*: Call Pet when no pet is with you. On Mists
+  and retail it is the Call Pet you used last. Never after you dismissed the
+  pet yourself, abandoned it or have none (until a pet is out again), never
+  with Lone Wolf, never on a character that has never had a pet out.
+- *Revive my pet when it is dead*: Revive Pet, and Call is not offered while
+  it is dead.
+- *Feed my pet when it is not happy* (Classic Era, WoW Forever and Burning
+  Crusade): Feed Pet with a food it eats from your bags, the lowest level
+  that suits the pet, never a food that makes you Well Fed while anything
+  else will do, and nothing once the pet is happy. A food the pet refuses is
+  remembered and not offered again.
+- *Mend my pet when it is hurt after a fight*: Mend Pet below half health,
+  once the pet is out of the fight too, and not while Mend Pet still heals it.
+
+None of these comes in a fight, in the few seconds after one, while you are
+mounted, on a taxi, feigning death or casting, or in a city or an inn unless
+*Also in cities and inns* is on; *Myself* off turns them all off. A
+right-click on one is "not now": Revive and Feed come back later, Mend after
+your next fight, Call once a pet has been out. Nobody is skipped and nothing
+goes on your never-offer list.
+
+*Bond with my pet* (on) offers a moment with your pet now and then: after a
+long fight or a boss, after a fight it barely lived through, after a revive,
+at login (good morning after you logged out at an inn) and after a quiet
+stretch on the road. At most one in twenty minutes, never in a fight, a
+battleground or an arena; it stays on the prompt for 45 seconds with no
+sound, and letting it pass costs nothing. A press does the fitting emote at
+your pet (/pet, /praise, /soothe, /welcome or /greet, aimed at your pet and
+never at a name, so your target stays as it is) and an /emote everybody near
+you sees, such as "Mort scratches Humar behind the ears. Humar wags
+happily." The answer goes by the pet's family. With *In character* chosen
+and your lines going in /say, you also say a line to your pet in your
+people's voice. Manners remembers each pet by name on this character: when
+it first saw it, fights shared, pats and meals, shown under the switch, with
+a small line in chat at a milestone ("100 days with Humar").
+
 ## Your group
 
 **Group buffs.** Once you know the group version of your buff (Arcane
@@ -1341,7 +1379,7 @@ group is offered nobody. That is deliberate rather than a fault.
 | Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them; Shadowform |
 | Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out (on WoW Forever, with the Demonic Pact talent, both, each with its own switch); Unending Breath while you swim |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
-| Hunter | *Aspect*: Hawk, Monkey, Wild or Beast, and in Season of Discovery Falcon and Viper; Trueshot Aura; Heart of the Lion in Season of Discovery |
+| Hunter | *Aspect*: Hawk, Monkey, Wild or Beast, and in Season of Discovery Falcon and Viper; Trueshot Aura; Heart of the Lion in Season of Discovery; and for the pet, Call Pet, Revive Pet, Mend Pet and Feed Pet (see *Your pet*) |
 | Shaman | *Shield*: Lightning Shield or Water Shield; *Weapon imbue*; Spirit of the Alpha in Season of Discovery while your group role is tank |
 | Druid | Moonkin Form; Tree of Life in Season of Discovery; Omen of Clarity on Classic Era only (a passive on WoW Forever) |
 
@@ -1399,6 +1437,11 @@ stays targeted.
 **It cannot see line of sight**, so a buff can still fail round a corner, and
 it sees passers-by mostly through the game's friendly nameplates.
 
+**Nothing happens as you log out.** The game shows no prompt then, so a night
+at an inn is told at your next login, with a good morning for your pet. And
+where the game keeps your pet's health hidden in a fight, Mend Pet waits
+until it can read it again.
+
 ### Notes on WoW Forever
 
 This client differs from the others in ways each of which took a live test to
@@ -1426,6 +1469,11 @@ offered "unverified" in the five seconds after.
 
 **Unit power is a secret value** for players outside your group, so "does this
 person have mana" is read from their class instead.
+
+**A hunter's pet keeps vanilla's happiness and food.** Feed Pet is offered
+here as on Classic Era, and the client itself says which foods your pet eats.
+A pet's health may be hidden in a fight like anybody's, so Mend Pet and the
+comfort after a hard fight are read once the fight is over.
 
 **There is no combat log**, as on retail. A favour is spotted by watching your
 own buffs appear and reading who cast them, which is a unit: somebody with no

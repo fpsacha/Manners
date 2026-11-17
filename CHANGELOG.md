@@ -13,6 +13,16 @@
   thank-you waits on the prompt as "Thank <name>" and goes when you press it.
   Asked for on CurseForge.
 
+### Your pet
+- **Care for your pet.** Call Pet, Revive Pet and Mend Pet when your pet
+  needs them; on Classic Era, WoW Forever and Burning Crusade, Feed Pet with
+  a food it eats while it is not happy. Each has its own switch under *Who to
+  buff*, *Myself*.
+- **Bond with your pet.** Now and then a moment with your pet: a press pets,
+  praises or comforts it by name and it answers in its own way. With In
+  character on, you say a line in your people's voice. Manners remembers each
+  pet's fights, pats and meals.
+
 ## 1.11.27
 
 *17 November 2026*

@@ -95,6 +95,8 @@ function Prompt:ReasonText(entry)
 	if entry.ask then return ns.Ask.Reason(entry) end
 	-- A thank-you waiting for a press (ThankPress.lua): for what they gave you.
 	if entry.thank then return ns.ThankPress.Reason(entry) end
+	-- Care for a hunter's pet, or a moment with it (HunterPet.lua).
+	if entry.care or entry.bond then return ns.Beast.Reason(entry) end
 	-- A group cast's second line is what it is and for how many, which no
 	-- reason line the player wrote can say.
 	local group = entry.groupCast
@@ -263,6 +265,8 @@ function Prompt:MovedOn(top)
 			:format(tostring(top.short or top.name)))
 		return
 	end
+	-- A hunter's pet's care or moment (HunterPet.lua): by what it is.
+	if top.care or top.bond then return ns.Beast.MovedOn(top) end
 	ns.addon:Print(L["the prompt has moved on to |cffffffff%s|r -- press again to buff them."]
 		:format(tostring(top.short or top.name)))
 end

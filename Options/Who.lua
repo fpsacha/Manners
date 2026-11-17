@@ -866,6 +866,54 @@ local function AddCureControls(args)
 	}
 end
 
+-- A hunter's pet (HunterPet.lua): care, a switch each, held to Myself, and the
+-- moments with it under a switch of their own, with what Manners remembers of
+-- each pet under that. Shown to a hunter alone; Feed Pet only where pets eat.
+-- Added after ForOthersOnly: a hunter has no buff for anybody else.
+function Page.AddBeastControls(args)
+	local function NotHunter() return not (ns.Beast and ns.Beast.IsHunter()) end
+	local function SelfOff() return S().self ~= true end
+	local function Toggle(key, field, name, desc, order, hidden, disabled)
+		args[key] = {
+			type = "toggle",
+			name = name,
+			desc = desc,
+			order = order,
+			width = "full",
+			hidden = hidden or NotHunter,
+			disabled = disabled,
+			get = function() return ns.db.profile.beast[field] == true end,
+			set = function(_, value)
+				ns.db.profile.beast[field] = value == true
+				ns.Guard("pet repaint", ns.Prompt.Refresh, ns.Prompt)
+			end,
+		}
+	end
+	Toggle("beastCall", "call", L["Call my pet when none is out"],
+		L["Offers Call Pet when no pet is with you. Not in a fight, not while mounted, not in a city unless your own buffs are offered there, and not after you dismissed it yourself."],
+		15.981, nil, SelfOff)
+	Toggle("beastRevive", "revive", L["Revive my pet when it is dead"],
+		L["Offers Revive Pet when your pet has died."], 15.982, nil, SelfOff)
+	Toggle("beastFeed", "feed", L["Feed my pet when it is not happy"],
+		L["Offers Feed Pet with a food it eats from your bags while it is not happy, and nothing once it is. Food that makes you Well Fed is kept for you."],
+		15.983, function() return NotHunter() or not ns.Beast.Feeds() end, SelfOff)
+	Toggle("beastMend", "mend", L["Mend my pet when it is hurt after a fight"],
+		L["Offers Mend Pet when your pet is badly hurt and the fight is over."], 15.984, nil, SelfOff)
+	Toggle("beastBond", "bond", L["Bond with my pet"],
+		L["Now and then, after a hard fight, a revive, at login or on a quiet road, offers a moment with your pet: an emote for it, and a line from your people when In character is on and lines go in /say. Never in a fight; letting it pass costs nothing."],
+		15.985)
+	args.beastMemory = {
+		type = "description",
+		order = 15.986,
+		hidden = function() return NotHunter() or ns.db.profile.beast.bond ~= true end,
+		name = function()
+			local lines = ns.Beast.MemoryLines()
+			if #lines == 0 then return "|cff888888" .. L["No pet remembered yet."] .. "|r" end
+			return "|cff888888" .. table.concat(lines, "\n") .. "|r"
+		end,
+	}
+end
+
 -- Who is picked in the never-offer dropdown, waiting for Remove from list; a
 -- state of the window, like Page.reportOpen.
 local neverPicked
@@ -2369,5 +2417,7 @@ function Page.BuildWhoTab()
 	Page.AddResControls(who.args)
 	-- After it: the cures are for a class with nothing else for others too.
 	AddCureControls(who.args)
+	-- And a hunter's pet, whose page is Myself alone.
+	Page.AddBeastControls(who.args)
 	return who
 end

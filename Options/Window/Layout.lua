@@ -439,6 +439,16 @@ ns.WindowLayout = {
 					-- Forever's Find Treasure, kept on beside a gathering tracking.
 					{ "who.own_findtreasure", indent = true },
 				} },
+				-- A hunter's pet (HunterPet.lua): care, each with its own switch,
+				-- then the moments with it and what Manners remembers of each pet.
+				{ key = "who.myselfPet", title = L["Your pet"], items = {
+					"who.beastCall",
+					"who.beastRevive",
+					"who.beastFeed",
+					"who.beastMend",
+					"who.beastBond",
+					{ "who.beastMemory", indent = true },
+				} },
 				{ key = "who.myselfWeapons", title = L["Weapons"], items = {
 					-- A shaman's weapon imbues, spells: one a hand at a time.
 					"who.own_shamanimbue",
@@ -542,7 +552,7 @@ ns.WindowLayout = {
 				{ "who.cast", "who.order" },
 				{ "who.group" },
 				{ "who.beyond" },
-				{ "who.myself", "who.myselfWeapons", "who.myselfItems", "who.myselfWhen" },
+				{ "who.myself", "who.myselfPet", "who.myselfWeapons", "who.myselfItems", "who.myselfWhen" },
 				{ "who.asking" },
 				{ "who.first" },
 			},
@@ -990,6 +1000,8 @@ ns.WindowLayout = {
 			-- Also in cities and inns: the tick the line said once at an inn names
 			-- (Hints.lua), and the answer to "nothing comes up when I log in".
 			["who.ownCities"] = true,
+			-- A hunter's moments with his pet (HunterPet.lua).
+			["who.beastBond"] = true,
 			-- Scrolls: the switch each scroll's own (who.own_*, added below) is
 			-- indented under, and the only way back to them once it is off.
 			["who.ownScrolls"] = true,
@@ -1115,6 +1127,12 @@ ns.WindowLayout = {
 		["profiles.autoEnabled"] = L["auto raid dungeon instance battleground arena world normal"],
 		-- Asked for as thanking "with a mouse button press", for a personal touch.
 		["click.thankAsk"] = L["press click manual personal"],
+		-- A hunter's pet, by what a hunter calls its care.
+		["who.beastCall"] = L["hunter pet call summon"],
+		["who.beastRevive"] = L["hunter pet revive dead"],
+		["who.beastFeed"] = L["hunter pet feed food happy"],
+		["who.beastMend"] = L["hunter pet mend heal"],
+		["who.beastBond"] = L["hunter pet bond emote memory"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the
@@ -1151,6 +1169,8 @@ ns.WindowLayout = {
 		["who.neverFishBowl"] = "who.spareFishBowl",
 		-- Well-Rested's last five minutes, shown only while Well-Rested is on.
 		["who.ownRestedEarly"] = "who.own_rested",
+		-- What Manners remembers of each pet, shown only while Bond with my pet is on.
+		["who.beastMemory"] = "who.beastBond",
 		-- A situation's profile and the chat line's tick, shown only while
 		-- Switch profile automatically is on.
 		["profiles.auto_world"] = "profiles.autoEnabled",

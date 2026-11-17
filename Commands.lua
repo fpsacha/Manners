@@ -1685,6 +1685,8 @@ local function PrintFavourWatch(self, db, now)
 	end
 	-- Ask me before thanking (ThankPress.lua), and each thank waiting for a press.
 	for _, line in ipairs(ns.ThankPressLines and ns.ThankPressLines(now) or {}) do self:Print("    " .. line) end
+	-- A hunter's pet (HunterPet.lua): its state, the moment waiting, its memory.
+	for _, line in ipairs(ns.BeastLines and ns.BeastLines(now) or {}) do self:Print("    " .. line) end
 	if thanks.waiting then
 		self:Print(("    " .. L["waiting to thank: |cffffffff%s|r"]):format(thanks.waiting.name))
 	end

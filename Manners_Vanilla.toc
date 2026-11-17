@@ -30,6 +30,7 @@ Locales\Locales.xml
 
 Flavour.lua
 Foods.lua
+BeastFoods.lua
 Consumables.lua
 Pets.lua
 Talents.lua
@@ -53,6 +54,7 @@ Hints.lua
 Phrases.lua
 Ask.lua
 ThankPress.lua
+HunterPet.lua
 Ledger.lua
 Milestones.lua
 HallOfFame.lua

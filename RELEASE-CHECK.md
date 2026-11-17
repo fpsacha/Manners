@@ -50,5 +50,10 @@ caught.
 Whatever this release changed gets a fifth look of its own: do the thing the
 changelog's first line says, once, by hand.
 
+On a hunter, once: dismiss the pet and `/reload` (no Call Pet comes up); let
+the pet go hungry and press Feed Pet on the prompt (the pet eats, you do not);
+after a long fight press the moment with your pet and read chat (the emote
+names the pet, your target is unchanged).
+
 Seen all of it clean, and `/manners selftest launch` run again with
 *actions the game refused* still clean: `python tools/release.py X.Y.Z`.

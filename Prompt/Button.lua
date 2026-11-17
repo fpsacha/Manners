@@ -63,6 +63,8 @@ local function PersonTooltipLines(entry, brief)
 	if entry.ask then return GameTooltip:AddLine(ns.Ask.TooltipLine(), 0.7, 0.7, 0.7, true) end
 	-- A thank-you waiting for a press (ThankPress.lua): the same, of its own.
 	if entry.thank then return GameTooltip:AddLine(ns.ThankPress.TooltipLine(), 0.7, 0.7, 0.7, true) end
+	-- A hunter's pet's care or moment (HunterPet.lua).
+	if entry.care or entry.bond then return GameTooltip:AddLine(ns.Beast.TooltipLine(entry), 0.7, 0.7, 0.7, true) end
 	-- A top-up reads as one, and "missing it" only where it was read as
 	-- missing; "Always offer" and unreadable auras get the plain reason.
 	local left = RemainingText(entry.remaining)
@@ -389,6 +391,12 @@ do
 		-- list: its summary above says what a right-click does.
 		if S.current.thank then
 			GameTooltip:AddLine(L["Click to thank them."], 0.5, 0.5, 0.5)
+			GameTooltip:Show()
+			return
+		end
+		-- Nor is a hunter's pet's care or moment (HunterPet.lua): its right-click is "not now".
+		if S.current.care or S.current.bond then
+			for _, line in ipairs(ns.Beast.ClickLines(S.current)) do GameTooltip:AddLine(line, 0.5, 0.5, 0.5) end
 			GameTooltip:Show()
 			return
 		end

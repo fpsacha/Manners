@@ -35,6 +35,34 @@ whisper sent from the prompt's PostClick go out on retail 12.x and on Forever
 as the automatic ones do (the emote's raw answer is in `/manners debug`);
 whether twenty seconds is long enough to reach the prompt.
 
+**A hunter's pet (Unreleased, asked for by the owner).** `HunterPet.lua`
+(`ns.Beast`), two new entry kinds under pseudo-names (`?pet:<kind>`):
+`entry.care` (Call, Revive, Mend, and Feed on Forever, Classic Era and TBC;
+`db.profile.beast.call`, `revive`, `mend`, `feed`, all on, under Who to buff,
+*Myself*, section *Your pet*) and `entry.bond` (*Bond with my pet*,
+`beast.bond`, on: praise, comfort, welcome, hello, morning, road; one in
+twenty minutes, 45 s on the prompt, no sound, each expiring unseen). The
+pet's state is read on events and cached; the game's refusals are heard by
+the file's own UI_ERROR_MESSAGE within 1.5 s of its press. A per-character
+memory per pet (`db.char.beasts`) and milestones in chat; the learned diet in
+`db.global.beastFood`. `BeastFoods.lua` by `tools/make_beastfoods.py`. New
+In character kinds `pet`, `petpraise`, `petcomfort` for every people (162
+lines, eight languages). `tests/scenarios/hunterpet.lua`,
+`tests/mutations/hunterpet.py` (70, each CAUGHT by `prove.py`). What only the
+game can settle:
+- `/cast Feed Pet` then `/use item:<id>` from the prompt on each feeding
+  client (the pet eats, the hunter does not);
+- an emote with the `pet` unit token (`/pet pet`, `/praise pet`, ...) on each
+  client, and the /emote and /say lines from the same press;
+- the pet's health plain out of combat on Forever and retail;
+- UnitCreatureFamily's second return (the family id) on Classic Era and TBC,
+  and the ids in `REACT`;
+- `C_PetInfo.GetPetHappiness` and `CanPetEatItem` answering on Forever;
+- the food level rule (the lowest food at or above the pet's level less 15);
+- Outland foods learned on TBC (no diet column in its data);
+- the Call Pet N remembered on Mists and retail;
+- the night at the inn written at PLAYER_LOGOUT and read at the next login.
+
 **Two elixirs at once (branch `post26`, after 1.11.26, not released).**
 Burning Crusade and Mists name each elixir's slot only in its spell's own
 text ("... Battle Elixir."), so `tools/make_consumables.py` writes it as a

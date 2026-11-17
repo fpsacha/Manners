@@ -599,6 +599,11 @@ for _, e in ipairs({
 	-- Talents and specs changing (Core.lua, Best): in the event lists of all
 	-- five clients (Ketho's BlizzardInterfaceResources, every branch).
 	"CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "TRAIT_CONFIG_UPDATED",
+	-- A hunter's pet and what happens to it (HunterPet.lua): in the event lists
+	-- of all five clients (Ketho's BlizzardInterfaceResources, every branch),
+	-- UNIT_HAPPINESS but retail's.
+	"UNIT_PET", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_FLAGS", "UNIT_HAPPINESS", "PLAYER_MOUNT_DISPLAY_CHANGED",
+	"ENCOUNTER_END", "BOSS_KILL", "PET_DISMISS_START", "LOCALPLAYER_PET_RENAMED", "UNIT_EXITED_VEHICLE",
 }) do KNOWN_EVENTS[e] = true end
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}

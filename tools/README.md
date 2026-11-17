@@ -1727,6 +1727,23 @@ Nothing here ships but the output. `tests/scenarios/pets.lua` holds the file
 to its rules (the turtle egg in, the familiars, the hat and Forever's Cat
 Carrier out) without the cache.
 
+## make_beastfoods.py
+
+Writes `BeastFoods.lua`, what a hunter's pet eats: WoW Forever's foods (its
+`Item.ItemPetFoodID`, the only client whose data has a diet column), each
+client (Forever, Classic Era, Burning Crusade) keeping the items its own
+ItemSparse has, at that table's item level, as `[item] = { diet, level }`;
+and ItemPetFood's names per locale, which is what `GetPetFoodTypes` answers.
+The item tables are the ones `audit_ids.py` downloads; the ItemPetFood tables
+are fetched from wago.tools into the same cache the first time. A table that
+cannot be read stops it.
+
+```
+python tools/make_beastfoods.py            # write BeastFoods.lua
+python tools/make_beastfoods.py --check    # exit 1 when the shipped file is not what the tables give
+python tools/make_beastfoods.py --cache DIR
+```
+
 ## make_consumables.py
 
 Writes `Consumables.lua`, the flasks, elixirs and stat scrolls per client

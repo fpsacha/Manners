@@ -58,6 +58,8 @@ Page.RESET = {
 		"buff.spareFishBowl", "buff.neverFishBowl",
 		"buff.optIn",
 		"ownBuffs.apart",
+		-- A hunter's pet (HunterPet.lua): care and the moments, all on again.
+		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond",
 		-- Elixirs to keep up (Classic Era, Forever): none ticked again.
 		"ownBuffs.elixirKeep",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",

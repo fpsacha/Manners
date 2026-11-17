@@ -283,6 +283,8 @@ function Prompt:ClickSummary(entry, slot)
 	if entry.ask then return ns.Ask.Summary(entry, S) end
 	-- A thank-you (ThankPress.lua) casts nothing: what it sends, and to whom.
 	if entry.thank then return ns.ThankPress.Summary(entry) end
+	-- Care for a hunter's pet, or a moment with it (HunterPet.lua).
+	if entry.care or entry.bond then return ns.Beast.Summary(entry) end
 	local spell = ns.EntrySpellName(entry)
 	-- No name at all is rare, and gets sentences of its own: "them" takes a
 	-- different form in each position in plenty of languages.
@@ -452,6 +454,8 @@ local function Arm(R, S, entry, silent)
 	if entry.ask then return ns.AskArm(R, S, entry) end
 	-- A thank-you (ThankPress.lua) arms nothing: PostClick sends it.
 	if entry.thank then return ns.ThankArm(R, S, entry) end
+	-- Care for a hunter's pet, or a moment with it (HunterPet.lua): armed there.
+	if entry.care or entry.bond then return ns.BeastArm(R, S, entry) end
 
 	-- Whether a spoken line may go in. Only for somebody the scan measured in
 	-- reach: the macro runs on past a /cast that fails, and the line went out
@@ -642,6 +646,8 @@ function lib.FightMacro(entry)
 	if entry.ask then return nil end
 	-- Nor thanked (ThankPress.lua).
 	if entry.thank then return nil end
+	-- Nor a hunter's pet cared for (HunterPet.lua): out of a fight only.
+	if entry.care or entry.bond then return nil end
 	local lines, restore, record = CastLines(entry)
 	if restore then lines[#lines + 1] = HandBack() end
 	local text = table.concat(lines, "\n")

@@ -243,6 +243,11 @@ local function OnPreClick(self, mouseButton, down)
 	if not ready and not InCombatLockdown() and S.current and S.current.thank then
 		ready, askLeft = true, left
 	end
+	-- Nor a moment with a hunter's pet (HunterPet.lua): an emote. Care for it
+	-- is a cast, held back as any is (a Feed Pet refused would eat the food).
+	if not ready and not InCombatLockdown() and S.current and S.current.bond then
+		ready, askLeft = true, left
+	end
 	-- Then the combat return: in combat nothing below can change the macro,
 	-- since the attributes are frozen, so neither the target nor the spoken
 	-- line (range, a refusal) is looked at again until the fight ends.
@@ -320,6 +325,11 @@ local function OnPreClick(self, mouseButton, down)
 		Prompt:ApplyTarget(nil)
 		return
 	end
+	-- Nor for a hunter's pet's care or moment the scan has dropped (HunterPet.lua).
+	if not top and S.current and (S.current.care or S.current.bond) then
+		Prompt:ApplyTarget(nil)
+		return
+	end
 	if not top and S.current and not Retired(S.current, now) and named == S.current.name then
 		LightFuse(now)
 		pressStale = true
@@ -363,10 +373,16 @@ local function OnPreClick(self, mouseButton, down)
 		Prompt:MovedOn(top)
 		return
 	end
+	-- The same for a hunter's pet (HunterPet.lua): a moment is never a cast.
+	if S.current and top and top.name == S.current.name
+		and (top.care ~= S.current.care or (top.bond ~= nil) ~= (S.current.bond ~= nil)) then
+		Prompt:MovedOn(top)
+		return
+	end
 
 	-- Let past the cooldown as an ask, and the scan now has a cast: turned
 	-- away as any press in the cooldown is.
-	if askLeft and top and not (top.ask or top.thank) then
+	if askLeft and top and not (top.ask or top.thank or top.bond) then
 		lastPreClickAt = nil
 		cooldownPressAt, guardedEntry = now, nil
 		Prompt:ApplyTarget(nil)
@@ -378,6 +394,12 @@ local function OnPreClick(self, mouseButton, down)
 	-- A thank-you arms nothing and says no line of a cast (HoldLine is a
 	-- cast's question, and would speak of a line left out).
 	if top and top.thank then
+		Prompt:ApplyTarget(top, true)
+		pressKey = S.appliedKey
+		return
+	end
+	-- Nor a hunter's pet's care or moment (HunterPet.lua): no line of a cast.
+	if top and (top.care or top.bond) then
 		Prompt:ApplyTarget(top, true)
 		pressKey = S.appliedKey
 		return
@@ -460,12 +482,19 @@ local function OnPostClick(self, mouseButton, down)
 		if S.current and S.current.thank and (S.isRow or Prompt:PanelName() == S.current.name) then
 			return ns.ThankPress.Dismiss(S)
 		end
+		-- A hunter's pet's care or moment (HunterPet.lua), with shift, ctrl or
+		-- neither: not now, and nobody skipped, listed or switched off.
+		if S.current and (S.current.care or S.current.bond) and (S.isRow or Prompt:PanelName() == S.current.name) then
+			return ns.Beast.Dismiss(S)
+		end
 		-- Whoever the panel names, as the left press follows: under a red flash
 		-- that is the person the flash is about, not the next one armed
 		-- underneath.
 		local victim = Prompt:PanelName() or (S.current and S.current.name)
 		-- A name in the list skips that name, whoever the prompt is on.
 		if S.isRow then victim = S.name end
+		-- The panel still on the pet once the entry moved on: that one let go.
+		if type(victim) == "string" and victim:find("^%?pet:") then return ns.Beast.DismissName(victim, S) end
 		if not victim then
 			ns.addon:Print(L["nobody to skip right now."])
 			return
@@ -572,6 +601,9 @@ local function OnPostClick(self, mouseButton, down)
 	if S.current and S.current.ask then return ns.AskPressed(S, armedText) end
 	-- A press on a thank-you (ThankPress.lua) sends it from here: nothing ran.
 	if S.current and S.current.thank then return ns.ThankPress.Pressed(S) end
+	-- A press on a hunter's pet's care or moment (HunterPet.lua): filed there,
+	-- which hears the game's answer itself; nothing is parked for a settle.
+	if S.current and (S.current.care or S.current.bond) then return ns.Beast.Pressed(S, armedText) end
 
 	-- Lets the error and cast handlers tell our own outcome apart from
 	-- everything else the game is shouting about.
@@ -770,6 +802,8 @@ local function OnRowPreClick(self, mouseButton, down)
 	if entry.ask then ready = true end
 	-- And a thank-you's sends its thanks (ThankPress.lua).
 	if entry.thank then ready = true end
+	-- And a moment with a hunter's pet does an emote (HunterPet.lua).
+	if entry.bond then ready = true end
 	cooldownPressAt = (not ready) and now or nil
 	if not ready then
 		guardedEntry = nil
@@ -808,6 +842,11 @@ local function OnRowPreClick(self, mouseButton, down)
 	row.appliedKey = nil
 	-- A thank-you arms nothing, and no line of a cast is judged.
 	if fresh.thank then
+		Prompt:ArmRow(row, fresh, true)
+		return
+	end
+	-- Nor a hunter's pet's care or moment (HunterPet.lua).
+	if fresh.care or fresh.bond then
 		Prompt:ArmRow(row, fresh, true)
 		return
 	end
@@ -910,6 +949,13 @@ local function BarWaiting(now)
 	if S.current and S.current.thank then
 		if db and db.verbose then
 			ns.addon:Print(L["the prompt is on a thank-you -- press the prompt itself, or its key; the action bar macro only casts."])
+		end
+		return
+	end
+	-- Care for a hunter's pet, or a moment with it (HunterPet.lua): the prompt's own.
+	if S.current and (S.current.care or S.current.bond) then
+		if db and db.verbose then
+			ns.addon:Print(L["the prompt is on your pet -- press the prompt itself, or its key; the action bar macro only casts buffs."])
 		end
 		return
 	end

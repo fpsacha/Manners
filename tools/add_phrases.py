@@ -51,7 +51,8 @@ A new pool is also checked for sense, as rp.lua checks the names pools are
 filed under: a family RP.FAMILY maps a race to, a class token, the key of a
 buff some client's set in Buffs.lua gives to others (or, for GIFT, a favour in
 FAVOUR_KEY), and a kind the picking reads (thanks, asked, offer, group; and
-kin, night, morning and city for a people). City and outsider lines, new or
+kin, night, morning and city for a people; pet, petpraise and petcomfort, a
+hunter's words to the pet, read by HunterPet.lua). City and outsider lines, new or
 added to, are taken only for a people RP.HOME gives a city, as Phrases.lua's
 own comment above RP.RACE has it.
 
@@ -80,7 +81,8 @@ LINE_TABLES = ("RACE", "KIN", "FACTION", "GENERAL", "CLASS", "SPELL", "TRADE", "
 CLASSES = ("WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT", "SHAMAN", "MAGE",
            "WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "EVOKER")
 MOMENTS = ("thanks", "asked", "offer", "group")
-RACE_KINDS = MOMENTS + ("kin", "night", "morning", "city")
+# pet, petpraise and petcomfort are a hunter's words to the pet (HunterPet.lua).
+RACE_KINDS = MOMENTS + ("kin", "night", "morning", "city", "pet", "petpraise", "petcomfort")
 OUTSIDER_MOMENTS = MOMENTS
 TOKENS = ("{name}", "{buff}", "{gift}")
 LIMIT = 85

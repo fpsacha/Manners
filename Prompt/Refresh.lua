@@ -504,6 +504,9 @@ function Prompt:RefreshPanel()
 		self:SwapText()
 	end
 
+	-- A moment with a hunter's pet (HunterPet.lua) is skippable, and makes no sound.
+	if top.bond then isNew, becameOwed = false, false end
+
 	-- A floor under the sound as well as the name: a swapped name can be
 	-- ignored, a sound cannot. And the flash's filter: both exist to make you
 	-- look, so they agree about who is worth it -- where anybody can be owed:

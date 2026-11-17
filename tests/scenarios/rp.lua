@@ -191,6 +191,8 @@ local function everyLine(RP)
 	for _, people in pairs(RP.RACE) do
 		take(people.thanks) take(people.asked) take(people.offer) take(people.kin)
 		take(people.group) take(people.night) take(people.morning) take(people.city)
+		-- A hunter's words to the pet (HunterPet.lua).
+		take(people.pet) take(people.petpraise) take(people.petcomfort)
 		for _, pool in pairs(people.outsider or {}) do take(pool) end
 	end
 	take(RP.KIN)
@@ -1819,7 +1821,10 @@ do
 		-- A people's own hour is optional, but full when it is there, and a
 		-- people that has one keeps it: these are the hours written for, so a
 		-- batch of new lines pasted over a pool that drops one is caught.
-		local KINDS = set({ "thanks", "asked", "offer", "kin", "group", "night", "morning", "city", "outsider" })
+		-- pet, petpraise and petcomfort: a hunter's words to the pet, for every
+		-- people (HunterPet.lua), full like the moments.
+		local KINDS = set({ "thanks", "asked", "offer", "kin", "group", "night", "morning", "city", "outsider",
+			"pet", "petpraise", "petcomfort" })
 		local HOURS = {
 			dwarf = { "morning" }, nightelf = { "night", "morning" }, voidelf = { "night" },
 			gnome = { "morning" }, worgen = { "night", "morning" }, forsaken = { "night", "morning" },
@@ -1829,7 +1834,7 @@ do
 		}
 		for family in pairs(families) do
 			do
-				for _, kind in ipairs({ "thanks", "asked", "offer", "kin", "group" }) do
+				for _, kind in ipairs({ "thanks", "asked", "offer", "kin", "group", "pet", "petpraise", "petcomfort" }) do
 					has(RP.RACE[family] and RP.RACE[family][kind], family .. "." .. kind, full)
 				end
 				for _, hour in ipairs({ "night", "morning" }) do

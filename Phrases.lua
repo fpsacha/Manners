@@ -233,6 +233,21 @@ RP.RACE = {
 			L["The rams had me up at dawn, {name}. Headbutted the door till I came out. Here."],
 			L["Mornin', {name}. Ears still ringin' from last night's singin'. Here."],
 		},
+		pet = {
+			L["Steady, {name}. Ye've a better nose than any dwarf in Ironforge."],
+			L["That's the spot, {name}. Ye've earned a scratch, and a share o' me jerky."],
+			L["Easy now, {name}. The road's long, but we've stout hearts between us."],
+		},
+		petpraise = {
+			L["Well fought, {name}! Ye've the heart of a mountain, so ye have."],
+			L["Ha! Grand work, {name}. I'll tell it at the Thunderbrew with ye in it."],
+			L["That's me partner! Fine work, {name}. Not a trogg could've stood it."],
+		},
+		petcomfort = {
+			L["Easy, {name}, easy. I've got ye. Rest a while."],
+			L["There now, {name}. Ye're tougher than granite, but rest anyway."],
+			L["Shh, {name}. Nothin' gets past me while ye catch yer breath."],
+		},
 	},
 	human = {
 		thanks = {
@@ -340,6 +355,21 @@ RP.RACE = {
 			L["Take this, {name}. Everyone goes home; I promised somebody's mother. Yours."],
 			L["We look like a proper Stormwind patrol now, {name}. Shinier, even."],
 			L["Stay sharp, {name}, this'll help. Lordaeron learned: never trust the bread."],
+		},
+		pet = {
+			L["Easy there, {name}. Stormwind's finest couldn't ask for better company."],
+			L["Good to have you at my side, {name}. Truly."],
+			L["Who's the best hunting partner in the Eastern Kingdoms? You are, {name}."],
+		},
+		petpraise = {
+			L["Well done, {name}! The Light itself couldn't have timed that better."],
+			L["That's how it's done, {name}. I'd put you up against any knight."],
+			L["Brilliant, {name}. You turned that fight before I'd drawn twice."],
+		},
+		petcomfort = {
+			L["Easy, {name}. I'm here. Lie still and let me look at you."],
+			L["You're all right, {name}. I've got you. Breathe."],
+			L["Steady, {name}. Rest now; I'll keep watch for both of us."],
 		},
 	},
 	nightelf = {
@@ -466,6 +496,21 @@ RP.RACE = {
 			L["Daybreak, {name}: the one hour a night elf is easy to spot. Quick, take this."],
 			L["Up early, {name}? I'm up late. Let's meet in the middle, with this."],
 		},
+		pet = {
+			L["Elune walks with us, {name}. Breathe the forest in while it is quiet."],
+			L["The wild remembers us both, {name}. Stay close a while."],
+			L["Ten thousand years of hunters, {name}, and none had a truer friend."],
+		},
+		petpraise = {
+			L["Swift and true, {name}. Cenarius himself would be proud of you."],
+			L["Well hunted, {name}. The forest sings of that one tonight."],
+			L["That was the wild at its finest, {name}. Well done."],
+		},
+		petcomfort = {
+			L["Be still, {name}. Elune's light is on you; let it mend you."],
+			L["Hush, {name}. I am here, and the night is gentle."],
+			L["Rest, {name}. The Emerald Dream can wait a while longer for you."],
+		},
 	},
 	voidelf = {
 		thanks = {
@@ -550,6 +595,21 @@ RP.RACE = {
 			L["Late, {name}? The whispers love a late hour, and asked me to give you this."],
 			L["Midnight, {name}. My shadow and I agree on one thing tonight: you get this."],
 			L["Stars out, {name}. I've seen what's between them. This keeps that away."],
+		},
+		pet = {
+			L["The Void whispers, {name}, but you're the only voice I listen to."],
+			L["Stay near, {name}. Out here, you're the steadiest thing I have."],
+			L["You never flinch at the shadows, {name}. I could learn from you."],
+		},
+		petpraise = {
+			L["Well done, {name}. Even the Void took a step back from that."],
+			L["Perfect, {name}. Alleria herself would want you at her side."],
+			L["That's it, {name}! Darkness on our side, and you in front."],
+		},
+		petcomfort = {
+			L["Easy, {name}. I'll keep the whispers away while you rest."],
+			L["Breathe, {name}. The dark lets go of us both in time."],
+			L["Stay with me, {name}. Rest now; the shadows are mine to watch."],
 		},
 	},
 	gnome = {
@@ -670,6 +730,21 @@ RP.RACE = {
 			L["Up early, {name}? I dreamt of a better sprocket and couldn't wait. Here!"],
 			L["Morning, {name}! The sun's a bit dim today, so I made you a brighter one."],
 		},
+		pet = {
+			L["By my calculations, {name}, you are ninety percent wonderful."],
+			L["Who needs a mechanostrider with you around, {name}? Not me!"],
+			L["Remind me to build you a little hat, {name}. A sensible hat."],
+		},
+		petpraise = {
+			L["Splendid, {name}! Efficiency rating: off the charts!"],
+			L["Marvellous, {name}! I couldn't have engineered a better bite."],
+			L["Ha! Textbook, {name}. I'm writing that one down for Mekkatorque."],
+		},
+		petcomfort = {
+			L["Easy, {name}. Diagnostics say you need rest. Lots of rest."],
+			L["There, there, {name}. Nothing a little patching won't fix."],
+			L["Hold still, {name}. Bandages first, inventions later."],
+		},
 	},
 	draenei = {
 		thanks = {
@@ -745,6 +820,21 @@ RP.RACE = {
 			L["The Exodar carried thousands, {name}. I'd rather carry this little party. Here."],
 			L["Shoulder to shoulder, blessed, {name}. Mine's higher, but the principle holds."],
 			L["A short prayer for the party, {name}. The long one would take an age."],
+		},
+		pet = {
+			L["The Naaru smile on us, {name}. Rest a moment with me."],
+			L["You are a good friend, {name}. Argus never gave me better."],
+			L["Walk with me, {name}. The road is kinder with two."],
+		},
+		petpraise = {
+			L["Light be praised, {name}! You fought with a true heart."],
+			L["Well done, {name}. Velen himself would bless you for that."],
+			L["Magnificent, {name}. The crystals of the Exodar shine for you."],
+		},
+		petcomfort = {
+			L["Be at peace, {name}. The Light is with you, and so am I."],
+			L["Hush, {name}. Rest now. I will not leave your side."],
+			L["Breathe, {name}. We have outlasted worse than this together."],
 		},
 	},
 	worgen = {
@@ -837,6 +927,21 @@ RP.RACE = {
 			L["Morning, {name}. Tea, toast, a shave, and this. The shave takes longer now."],
 			L["Morning, {name}. The birds woke me, so I woke the birds. You just get this."],
 			L["Morning, {name}. The fog's lifting, as it never did in Gilneas. Take this."],
+		},
+		pet = {
+			L["We both know the wild, {name}. Stay close to me."],
+			L["Gilneas lost much, {name}. It never gave me a better friend."],
+			L["Steady, {name}. You and I don't need a wall to feel at home."],
+		},
+		petpraise = {
+			L["Ha! Well hunted, {name}! That's the Gilnean spirit."],
+			L["That's it, {name}. Not one step back. Gilneas would be proud."],
+			L["Brilliant, {name}. The Greymane Wall never held so well."],
+		},
+		petcomfort = {
+			L["Easy, {name}. The beast in me knows hurt. Rest now."],
+			L["Shh, {name}. I'm here. Let the fog roll by while you rest."],
+			L["Stay down, {name}. I'll stand watch until you're ready."],
 		},
 	},
 	orc = {
@@ -947,6 +1052,21 @@ RP.RACE = {
 			L["Tonight we feast, {name}. First we earn it, and this will help."],
 			L["Take this, {name}. If I fall, sing about it loudly in Orgrimmar. Lie a little."],
 			L["Strength and honour, {name}. The honour's yours; the strength I just gave you."],
+		},
+		pet = {
+			L["Strong and loyal, {name}. A true companion of the Horde."],
+			L["Rest a while, {name}. Even a warrior needs a moment of peace."],
+			L["The spirits chose well when they sent you to me, {name}."],
+		},
+		petpraise = {
+			L["Lok'tar, {name}! You fought with honor!"],
+			L["Well fought, {name}! You'd shame half the warriors in Orgrimmar."],
+			L["Strength and honor, {name}. That kill was yours."],
+		},
+		petcomfort = {
+			L["Easy, {name}. You bled for us both. Rest now."],
+			L["Breathe, {name}. A true warrior rises again. Take your time."],
+			L["Stay down, {name}. I'll guard you; no blade gets past me."],
 		},
 	},
 	forsaken = {
@@ -1261,6 +1381,21 @@ RP.RACE = {
 				L["Yes, {name}, I'm dead. No, it isn't catching. Here."],
 			},
 		},
+		pet = {
+			L["You don't mind the smell, {name}. That's why we get on."],
+			L["Of all the living, {name}, you're the only one I trust."],
+			L["Stay close, {name}. The dead keep poor company, but you don't."],
+		},
+		petpraise = {
+			L["Well done, {name}. Death itself stepped aside for you."],
+			L["Excellent, {name}. The Dark Lady would approve."],
+			L["Ha. Vicious, {name}. You'd make a fine Deathstalker."],
+		},
+		petcomfort = {
+			L["Still breathing, {name}? Good. Stay that way, for me."],
+			L["Easy, {name}. One of us dying was enough. Rest."],
+			L["There, {name}. I've no warmth to give, but I'm here."],
+		},
 	},
 	tauren = {
 		thanks = {
@@ -1385,6 +1520,21 @@ RP.RACE = {
 			L["Mulgore is so quiet at night you hear the grass argue, {name}. Here, quietly."],
 			L["Quiet now, {name}. At this hour, even my hooves tiptoe. And give gifts."],
 		},
+		pet = {
+			L["The Earth Mother made you well, {name}. Walk with me."],
+			L["Peace, {name}. The winds of Mulgore are gentle today."],
+			L["You and I were meant to share this road, {name}."],
+		},
+		petpraise = {
+			L["Well done, {name}! The Earth Mother watches you with pride."],
+			L["Mighty, {name}. Your strength honors the ancestors."],
+			L["That was a great hunt, {name}. The plains will sing of it."],
+		},
+		petcomfort = {
+			L["Rest, {name}. The Earth Mother will heal what I cannot."],
+			L["Be calm, {name}. The ancestors watch over you, and so do I."],
+			L["Slowly, {name}. Breathe with the land. You are safe now."],
+		},
 	},
 	troll = {
 		thanks = {
@@ -1501,6 +1651,21 @@ RP.RACE = {
 			L["This late, {name}, only trolls and trouble are up. I'm the nice one. Here."],
 			L["Stars out, {name}. Each one a loa, Granny said. They all saw me give ya this."],
 		},
+		pet = {
+			L["Ya be da best friend dis troll ever had, {name}."],
+			L["Easy, {name}. Da loa smile on us both today."],
+			L["Stay close, {name}, mon. Dis jungle be ours."],
+		},
+		petpraise = {
+			L["Dat be how we do it, {name}! Ya got da spirit of da loa!"],
+			L["Haha! Fine huntin', {name}! Ya make me proud, mon."],
+			L["Ya strike like a raptor, {name}! Dey never see ya comin'."],
+		},
+		petcomfort = {
+			L["Easy, {name}. Da spirits not be takin' ya today."],
+			L["Rest, {name}. Dis troll got ya, mon. Breathe slow."],
+			L["Shh, {name}. Ya be safe now. Da loa be watchin' over ya."],
+		},
 	},
 	bloodelf = {
 		thanks = {
@@ -1594,6 +1759,21 @@ RP.RACE = {
 			L["Dawn, {name}. Red and gold across the sky. Here's some of it, for you."],
 			L["Morning, {name}. Only Silvermoon's guardians are up this early. And me. Here."],
 		},
+		pet = {
+			L["You are a credit to Quel'Thalas, {name}. Truly."],
+			L["Even the Sunwell's light can't outshine you, {name}."],
+			L["Stay by me, {name}. Elegance suits us both."],
+		},
+		petpraise = {
+			L["Splendid, {name}! Grace and fury, perfectly balanced."],
+			L["Well done, {name}. The rangers of Silvermoon would envy you."],
+			L["Exquisite, {name}. Not a single wasted motion."],
+		},
+		petcomfort = {
+			L["Be still, {name}. Let the sun's light find you."],
+			L["Shh, {name}. Rest now; I'll stand watch."],
+			L["Easy, {name}. We're both still here, and that's enough."],
+		},
 	},
 	nightborne = {
 		thanks = {
@@ -1684,6 +1864,21 @@ RP.RACE = {
 			L["Morning, {name}. We warded Suramar against all but the sun. I've warded you."],
 			L["Dawn, {name}: when the court's gossip went to bed. Here's mine, and this."],
 		},
+		pet = {
+			L["You remind me there is more to life than arcwine, {name}."],
+			L["Stay with me, {name}. Suramar's beauty pales beside a friend."],
+			L["How fortunate I am, {name}, to walk with one so loyal."],
+		},
+		petpraise = {
+			L["Superb, {name}. Elisande's finest could not have done better."],
+			L["Well done, {name}. That was as precise as a ley line."],
+			L["Remarkable, {name}. The Nightwell would glow for you."],
+		},
+		petcomfort = {
+			L["Rest, {name}. I will not let the Withered take you."],
+			L["Calm, {name}. Breathe slowly; the worst has passed."],
+			L["Hush, {name}. Let the stars keep you while you heal."],
+		},
 	},
 	goblin = {
 		thanks = {
@@ -1770,6 +1965,21 @@ RP.RACE = {
 			L["Dawn, {name}. Rich goblins sleep in. I'm not rich yet, so I'm handing out this."],
 			L["Fresh day, fresh ledger, {name}. You're the first entry. The good column."],
 		},
+		pet = {
+			L["You're worth more than a bank vault, {name}. And you don't charge interest."],
+			L["Best investment I ever made, {name}. Zero upkeep. Mostly."],
+			L["Stick with me, {name}. Partners split everything fifty-fifty."],
+		},
+		petpraise = {
+			L["Ka-ching! Nice work, {name}! That's a bonus for you."],
+			L["Now that's what I call a return on investment, {name}!"],
+			L["Boom! Great job, {name}. I'll get you a raise."],
+		},
+		petcomfort = {
+			L["Whoa, easy, {name}. You're too valuable to lose."],
+			L["Hold together, {name}. I'm not filing an insurance claim on you."],
+			L["Rest up, {name}. Take all the time you need. On the house."],
+		},
 	},
 	vulpera = {
 		thanks = {
@@ -1851,6 +2061,21 @@ RP.RACE = {
 			L["Good hour for foxes, {name}. The ears work best when it's quiet. So does this."],
 			L["Past dark and I'm just waking up, {name}. First thing: this, for you."],
 			L["I'll curl up in my tail later, {name}. Best blanket I own. First, this."],
+		},
+		pet = {
+			L["Every caravan needs a friend like you, {name}."],
+			L["The desert's kinder with you beside me, {name}."],
+			L["You and me against the sands, {name}. Always."],
+		},
+		petpraise = {
+			L["Ha! Clever and quick, {name}! A true caravan guardian."],
+			L["Well done, {name}! The whole caravan will hear about this."],
+			L["Sharp work, {name}! Nobody messes with our camp."],
+		},
+		petcomfort = {
+			L["Easy, {name}. Curl up and rest. I'll keep watch."],
+			L["There now, {name}. Every caravan stops to tend its own."],
+			L["Breathe, {name}. The sand can wait. You come first."],
 		},
 	},
 	pandaren = {
@@ -1948,6 +2173,21 @@ RP.RACE = {
 			L["Dark already, {name}? Grandfather's stories would start now. Take this first."],
 			L["The moon is round and full tonight, {name}, as I am. Here, from both of us."],
 		},
+		pet = {
+			L["Patience and friendship, {name}. You have both."],
+			L["Sit with me a moment, {name}. The road will wait."],
+			L["Life is better with good company, {name}. And good tea."],
+		},
+		petpraise = {
+			L["Well done, {name}! Balance and strength, together."],
+			L["Wonderful, {name}! That deserves a feast. Maybe two."],
+			L["Ha! Swift as a monk's fist, {name}."],
+		},
+		petcomfort = {
+			L["Rest, {name}. Breathe deep. Find your balance again."],
+			L["Easy, {name}. The wounds will heal; the spirit endures."],
+			L["Quiet now, {name}. Let the pain drift away like mist."],
+		},
 	},
 	dracthyr = {
 		thanks = {
@@ -2025,6 +2265,21 @@ RP.RACE = {
 			L["Here, {name}. Now tell me the plan slowly. I was made for battles, not plans."],
 			L["Mortals live so briefly, {name}. This should make today a little longer."],
 		},
+		pet = {
+			L["You're a good companion, {name}. Better than most dragons."],
+			L["Stay near, {name}. I'll keep you warm when the wind turns."],
+			L["I slept for ten thousand years, {name}, and woke to find you."],
+		},
+		petpraise = {
+			L["Excellent, {name}. You fight like a true dragonflight."],
+			L["Impressive, {name}. Not even a black dragon could do better."],
+			L["Well done, {name}! The Dragon Isles have a new champion."],
+		},
+		petcomfort = {
+			L["Easy, {name}. I've weathered storms; we'll weather this."],
+			L["Rest, {name}. I'll shield you with my wings."],
+			L["Stay calm, {name}. The flames are mine to bear, not yours."],
+		},
 	},
 	haranir = {
 		thanks = {
@@ -2099,6 +2354,21 @@ RP.RACE = {
 			L["The goddess's world is worth fighting for, {name}. This bit too. Here."],
 			L["I've cleared weeds, mud skippers and fungi, {name}. You I'll just bless."],
 			L["The Zur'ashar won't paint this fight, {name}. Take this; let's win it anyway."],
+		},
+		pet = {
+			L["Easy, {name}. Back in Harandar we tend friends like roots: gently."],
+			L["You're the best thing the surface has given me, {name}."],
+			L["Stay close, {name}. Up here the sky goes on forever."],
+		},
+		petpraise = {
+			L["Well done, {name}! Aln'hara would have smiled at that."],
+			L["Protect, tend and serve, {name}. You did all three just now."],
+			L["Fierce as the Shul'ka, {name}. I'm proud of you."],
+		},
+		petcomfort = {
+			L["Rest, {name}. Let the roots hold you while you heal."],
+			L["Easy, {name}. You glow a little dimmer, but you're still here."],
+			L["Breathe, {name}. Every root grows back stronger."],
 		},
 	},
 }
