@@ -272,6 +272,9 @@ default everywhere in the tests and the only client anybody here plays.
     camelot, the Cozy Sleeping Bag): `bagged` families in `Buffs.lua` (`food`,
     `rest`), an item from the bags with one switch, off until it is turned on;
     `family.food` alone where only food is meant (the meal in progress).
+    Well-Rested is a toggle, never topped up; *Remind me before Well-Rested
+    runs out* (`ownBuffs.restedEarly`, off) has `OwnVerdict` read its last
+    five minutes as gone.
     A companion pet (`pet`, `Pets.lua`, `Companion.lua`) is a bagged family
     too, on all five clients, with no aura: whether one is out is the pet
     journal or Manners' own count of a bag pet, and where there is a journal

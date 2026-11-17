@@ -704,6 +704,7 @@ local function ForOthersOnly(args)
 			-- Which pet stands under the companion pet's switch, which is every
 			-- class's own (a retail death knight has nothing else on this page).
 			or key == "ownScrolls" or key == "ownShout" or key == "ownImbueFirst" or key == "ownPetChoice"
+			or key == "ownRestedEarly"
 			or key:find("^own_")) then
 			local was = arg.hidden
 			arg.hidden = function(...)
@@ -1995,6 +1996,28 @@ function Page.BuildWhoTab()
 				get = function() return ns.db.profile.ownBuffs.imbueFirst == true end,
 				set = function(_, value)
 					ns.db.profile.ownBuffs.imbueFirst = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
+			-- The sleeping bag before Well-Rested has gone (Core.lua, OwnVerdict),
+			-- asked for on CurseForge. Shown under Well-Rested while it is on.
+			ownRestedEarly = {
+				type = "toggle",
+				name = L["Remind me before Well-Rested runs out"],
+				desc = L["On: the sleeping bag comes up again when Well-Rested has five minutes left, so you can lie down in it and renew it before it runs out. Off: only once it has gone."],
+				order = 15.968,
+				width = "full",
+				hidden = function()
+					for _, family in ipairs(ns.KnownOwnFamilies()) do
+						if family.rest then return ns.OwnPick(family) == "off" end
+					end
+					return true
+				end,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.restedEarly == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.restedEarly = value == true
 					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 				end,
 			},

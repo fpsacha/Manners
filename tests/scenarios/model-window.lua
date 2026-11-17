@@ -397,7 +397,7 @@ local EXPECTED = {
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
 		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "filters.cureSeconds",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
-		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.scrolls", "groupBuffs.use",
+		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly", "ownBuffs.scrolls", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
 		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.neverFishBowl", "buff.optIn", "ownBuffs.apart",

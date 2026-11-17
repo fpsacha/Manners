@@ -377,7 +377,8 @@ once you carry one.
   cut short brings the reminder back at once.
 - **Well-Rested** (Classic Era and WoW Forever), for the Cozy Sleeping Bag:
   one press lays it down. Not at the level cap, nor during the hour its use
-  cools down.
+  cools down. *Remind me before Well-Rested runs out*, under it, brings the
+  bag back when five minutes are left, so you can renew it in time.
 - **Companion pet** (every client). On WoW Forever, Mists and retail Manners
   brings a pet out of your pet journal itself, with no press: *Which pet*
   picks the one you had out last, a random favourite, any pet, or one of your

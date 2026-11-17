@@ -1708,6 +1708,17 @@ reminder back), that the bag is obtainable on Forever at all (its data is
 there), and that `/use item:211527` lays it down. `/manners debug` says
 "Well-Rested: ..." with the reason in each case.
 
+**Well-Rested before it runs out (Unreleased, asked for on CurseForge).**
+*Remind me before Well-Rested runs out* (`ownBuffs.restedEarly`, off; Who to
+buff, under Well-Rested) has `OwnVerdict` read Well-Rested with five minutes
+or less left as gone, so the bag is offered while there is still time to lie
+down; the bag's own holds (in it, cooling down, the level cap, mounted) still
+apply. `tests/scenarios/wellrested.lua` (`wellrested: early:`),
+`tests/mutations/wellrested.py` (7, each CAUGHT). Only the live game can say
+that the aura's `expirationTime` reads plainly on Forever out of a fight (the
+self-test's `C_UnitAuras` line suggests it does) and that a minute in the bag
+with three stacks renews the full two hours, as the player says.
+
 **Unending Breath while swimming (Unreleased).** A warlock's own family
 (`selfbreath`, every client), reminded only while `IsSwimming()` says yes, held
 two seconds past the last stroke. Only the live game can say: that

@@ -293,3 +293,66 @@ do
 		end)
 	end
 end
+
+-- ------------------------------------------------------------------ before it runs out
+
+-- "Remind me before Well-Rested runs out" (ownBuffs.restedEarly, asked for on
+-- CurseForge): the bag comes up again in Well-Rested's last five minutes, so
+-- a minute in it renews the buff before it lapses. Off by default.
+
+local function wear(ns, left)
+	world.auras[RESTED] = left and GetTime() + left or nil
+	ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+	Mock.advance(1)
+end
+
+do
+	local scenario = "wellrested: early: off, five minutes left waits; on, it is offered"
+	with(scenario, { on = true, bags = { [BAG] = 1 } }, function(ns)
+		if ns.db.profile.ownBuffs.restedEarly ~= false then
+			fail(scenario, "a new profile's switch is " .. tostring(ns.db.profile.ownBuffs.restedEarly) .. ", not off")
+		end
+		wear(ns, 200)
+		if mine(ns) then fail(scenario, "off, with 200 s of Well-Rested left: offered " .. key(mine(ns))) end
+		ns.db.profile.ownBuffs.restedEarly = true
+		Mock.advance(1)
+		local entry = mine(ns)
+		if key(entry) ~= "rested" .. BAG then
+			fail(scenario, "on, with 200 s of Well-Rested left: offered " .. key(entry) .. ", not the bag")
+		end
+		wear(ns, 400)
+		if mine(ns) then fail(scenario, "on, with 400 s of Well-Rested left: offered " .. key(mine(ns))) end
+		wear(ns, 7000)
+		if mine(ns) then fail(scenario, "on, with two hours left: offered " .. key(mine(ns))) end
+		-- Lying in the bag with the five minutes running: nothing to press.
+		world.auras[IN_BAG] = GetTime() + 60
+		wear(ns, 200)
+		if mine(ns) then fail(scenario, "on, lying in the bag: offered " .. key(mine(ns))) end
+		world.auras[IN_BAG] = nil
+		-- Well-Rested switched off: the early switch does nothing on its own.
+		ns.db.profile.ownBuffs.pick.rested = "off"
+		Mock.advance(1)
+		if mine(ns) then fail(scenario, "Well-Rested off, the early switch on: offered " .. key(mine(ns))) end
+	end)
+end
+
+do
+	local scenario = "wellrested: early: its switch shows under Well-Rested while that is on"
+	with(scenario, { bags = { [BAG] = 1 } }, function(ns)
+		local control = findOption(ns.optionsTable, "ownRestedEarly")
+		if not control then
+			fail(scenario, "Who to buff has no switch for Well-Rested's last minutes")
+			return
+		end
+		if control.type ~= "toggle" then fail(scenario, "the switch is a " .. tostring(control.type)) end
+		if not (control.hidden and control.hidden()) then fail(scenario, "shown with Well-Rested off") end
+		ns.db.profile.ownBuffs.pick.rested = "auto"
+		ns.ForgetScrolls()
+		if control.hidden and control.hidden() then fail(scenario, "hidden with Well-Rested on") end
+		if control.get() ~= false then fail(scenario, "reads on with the profile off") end
+		control.set({ "ownRestedEarly" }, true)
+		if ns.db.profile.ownBuffs.restedEarly ~= true then fail(scenario, "turning it on wrote nothing") end
+		control.set({ "ownRestedEarly" }, false)
+		if ns.db.profile.ownBuffs.restedEarly ~= false then fail(scenario, "turning it off wrote nothing") end
+	end)
+end

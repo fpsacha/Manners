@@ -120,3 +120,47 @@ mutate("Options/Window/Layout.lua",
        "",
        "wellrested: the switch not placed on the page",
        expect="own_rested", script=S)
+
+# --- before it runs out (ownBuffs.restedEarly, asked for on CurseForge) ---
+
+mutate("Core.lua",
+       "\t\tif up and family.rest and type(left) == \"number\" and left <= 300\n",
+       "\t\tif false and family.rest and type(left) == \"number\" and left <= 300\n",
+       "wellrested: early: never offered before it runs out",
+       expect="on, with 200 s of Well-Rested left", script=S)
+
+mutate("Core.lua",
+       "\t\tif up and family.rest and type(left) == \"number\" and left <= 300\n",
+       "\t\tif up and family.rest and type(left) == \"number\" and left <= 3000\n",
+       "wellrested: early: offered with far more than five minutes left",
+       expect="on, with 400 s of Well-Rested left", script=S)
+
+mutate("Core.lua",
+       "\t\t\tand addon.db.profile.ownBuffs.restedEarly == true then\n\t\t\tup = false\n",
+       "\t\t\tthen\n\t\t\tup = false\n",
+       "wellrested: early: offered with the switch off",
+       expect="off, with 200 s of Well-Rested left", script=S)
+
+mutate("Core.lua",
+       "\t\t\trestedEarly = false,\n",
+       "\t\t\trestedEarly = true,\n",
+       "wellrested: early: on by default",
+       expect="a new profile's switch is", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\t\tns.db.profile.ownBuffs.restedEarly = value == true\n",
+       "\t\t\t\t\tns.db.profile.ownBuffs.restedEarly = true\n",
+       "wellrested: early: the switch cannot be turned off",
+       expect="turning it off wrote nothing", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\t\t\tif family.rest then return ns.OwnPick(family) == \"off\" end\n",
+       "\t\t\t\t\t\tif family.rest then return true end\n",
+       "wellrested: early: the switch always hidden",
+       expect="hidden with Well-Rested on", script=S)
+
+mutate("Options/Window/Layout.lua",
+       "\t\t\t\t\t{ \"who.ownRestedEarly\", indent = true },\n",
+       "",
+       "wellrested: early: the switch not placed",
+       expect="ownRestedEarly", script=S)

@@ -26,6 +26,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffBattle Elixir and Guardian Elixir.|r On Burning Crusade and Mists, |cffffffffElixir|r is now a switch for each slot.",
 			"|cff7cc4ffElixirs to keep up.|r On Classic Era and WoW Forever, tick the elixirs you want on together; each one missing comes up in turn.",
 			"|cff7cc4ffA scroll holds its own slot.|r On Mists a scroll stands in only for an elixir of the slot it takes.",
+			"|cff7cc4ffWell-Rested before it runs out.|r |cffffffffRemind me before Well-Rested runs out|r, under |cffffffffWell-Rested|r, brings the sleeping bag back with five minutes left, so you can lie down and renew it in time.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52A whispered thank-you that never went.|r A warrior, or anybody whose buff cannot reach the giver right now, whispers a stranger who buffs them.",

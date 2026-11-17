@@ -458,6 +458,9 @@ local defaults = {
 			-- On: a shaman's weapon imbues come ahead of his shield on the prompt
 			-- (KnownOwnFamilies), for one who is short of mana for the shield.
 			imbueFirst = false,
+			-- On: the sleeping bag comes up again in Well-Rested's last five
+			-- minutes, not only once it has gone (OwnVerdict).
+			restedEarly = false,
 			-- Off: food, flasks, elixirs, scrolls and a weapon's oils, stones and
 			-- poisons come up on the prompt as "You". On: on a button of their
 			-- own (Prompt/Supplies.lua, ns.SupplyEntry), asked for on CurseForge,
@@ -3850,6 +3853,15 @@ do
 			spell, why, held = ns.OwnAutoPick(family)
 			if why == "notank" then return nil, up, nil, "notank" end
 			heldWhy = why
+		end
+		-- Well-Rested in its last five minutes, with "Remind me before
+		-- Well-Rested runs out" on (ownBuffs.restedEarly, asked for on
+		-- CurseForge): the bag is offered as if it were gone, so a minute in it
+		-- renews the two hours before they lapse. Not a top-up: nothing of the
+		-- refresh rules (When I am already buffed) applies to it.
+		if up and family.rest and type(left) == "number" and left <= 300
+			and addon.db.profile.ownBuffs.restedEarly == true then
+			up = false
 		end
 		if up then
 			-- Down to its last charge (Lightning Shield, Shadowguard), or a

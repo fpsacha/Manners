@@ -44,6 +44,10 @@
   you want on together; each one missing comes up in turn.
 - **A scroll holds its own slot.** On Mists a scroll stands in only for an
   elixir of the slot it takes.
+- **Well-Rested before it runs out.** *Remind me before Well-Rested runs out*,
+  under *Well-Rested*, brings the sleeping bag back with five minutes left, so
+  you can lie down and renew it in time. Off by default. Asked for on
+  CurseForge.
 
 ### Fixes
 - **A whispered thank-you that never went.** A warrior, or anybody whose buff

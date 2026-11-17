@@ -474,6 +474,8 @@ ns.WindowLayout = {
 					-- The sleeping bag's Well-Rested, off until it is turned on;
 					-- shown while the bag is in the bags (Classic Era, Forever).
 					"who.own_rested",
+					-- Its last five minutes, asked for on CurseForge.
+					{ "who.ownRestedEarly", indent = true },
 					-- A companion pet, off until it is turned on; shown while one is in
 					-- the bags or (Forever) the pet journal. Which pet, under it.
 					-- HOME: companion pets (the journal's reminder on Mists and
@@ -1137,6 +1139,8 @@ ns.WindowLayout = {
 		-- Never Kings over Boosted Stats, shown only while Don't put Kings over
 		-- a Fish Bowl's Boosted Stats is on.
 		["who.neverFishBowl"] = "who.spareFishBowl",
+		-- Well-Rested's last five minutes, shown only while Well-Rested is on.
+		["who.ownRestedEarly"] = "who.own_rested",
 		-- A situation's profile and the chat line's tick, shown only while
 		-- Switch profile automatically is on.
 		["profiles.auto_world"] = "profiles.autoEnabled",
@@ -1175,6 +1179,13 @@ ns.WindowLayout = {
 		["click.leftOut"] = function()
 			local db = ns.db and ns.db.profile
 			return ns.InCharacter ~= nil and ns.InCharacter.Active(db and db.speech)
+		end,
+		-- Only on a client with the sleeping bag (Classic Era, Forever).
+		["who.ownRestedEarly"] = function()
+			for _, family in ipairs(ns.KnownOwnFamilies()) do
+				if family.rest then return true end
+			end
+			return false
 		end,
 	},
 
