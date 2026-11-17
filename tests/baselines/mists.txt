@@ -605,7 +605,7 @@ ids-online: Reagent Economy offers the group spell with no reagent (priest): a p
 ids-online: Reagent Economy: an empty bag is not running out: SKIPPED -- no group cast with one Arcane Powder
 ids-online: Reagent Economy: the options do not say group buffs are off: Start here does not say when group buffs are offered: Offering to: people who buff me, my group, passers-by within about 10 yards, myself (outside cities and inns). Already buffed: skipped. People who buff me are offered one back unless they already have it. Ready checks and the just-revived go first.
 ids-online: Reagent Economy: the options do not say group buffs are off: Who to buff does not say the reagent is not needed: |cff888888You have not learned a group version of your buffs yet.|r
-ids-online: Reagent Economy: the options do not say group buffs are off: the bug report does not say the reagent is waived: Manners VERSION / client 5.5.4 (69893), interface 50504 / class MAGE | secrets true | auras secret now false | nameplates true / buff data mists /   intellect    known=true readable=true off=false / enabled=true buff=auto sources owed/group/strangers/self=true/true/true/true pets=false whenBuffed=skip targetFirst=true keepDebts=true thank=false / cures group/passers-by/seconds=false/false/10 / own inCities=false none known / friendsFirst=true restingOnly=false skipPvP=true neverOffered=0 / quietInTowns=false where=both quietInInstances=false quietTargets=false thankWhisper=false thankDelay=false / battle: team=true speak=false thank=true items=false state=nil / groupBuffs=true atLeast=3 / share=true users=0 hellos heard=0 refused=0 own=0 other classes=0 sent=0 failed=0 / manaFloor=0 readyCheckFirst=true revivedFirst=true raidGroupsOff=none / own buffs: 2 read, baseline 2, primed=true, doubt=nil / combat log: armed=true, 0 seen, 0 filed / errors: none this session
+ids-online: Reagent Economy: the options do not say group buffs are off: the bug report does not say the reagent is waived: Manners VERSION / client 5.5.4 (69893), interface 50504 / class MAGE | secrets true | auras secret now false | nameplates true / buff data mists /   intellect    known=true readable=true off=false / enabled=true buff=auto sources owed/group/strangers/self=true/true/true/true pets=false whenBuffed=skip targetFirst=true keepDebts=true thank=false / cures group/passers-by/seconds=false/false/10 / own inCities=false none known / friendsFirst=true restingOnly=false skipPvP=true neverOffered=0 / quietInTowns=false where=both quietInInstances=false quietTargets=false thankWhisper=false thankDelay=false / thankUnseen=false / battle: team=true speak=false thank=true items=false state=nil / groupBuffs=true atLeast=3 / share=true users=0 hellos heard=0 refused=0 own=0 other classes=0 sent=0 failed=0 / manaFloor=0 readyCheckFirst=true revivedFirst=true raidGroupsOff=none / own buffs: 2 read, baseline 2, primed=true, doubt=nil / combat log: armed=true, 0 seen, 0 filed / errors: none this session
 ids-online: Reagent Economy: the tooltip says no reagent is needed: SKIPPED -- no group cast with Reagent Economy
 ids-online: without Reagent Economy a stocked bag is counted and runs out: SKIPPED -- no group cast with twenty Arcane Powder
 ## ingame-selftest.lua
@@ -728,6 +728,7 @@ look-minimal: a colour never moves a texture's alpha: with nobody owed again, te
 look-minimal: at rest a glint crosses the line on Full; not on Calm, in a fight or with the prompt down: SKIPPED -- the panel did not come down with nobody left
 look-minimal: somebody owed casts the line, then it breathes and the spark runs it: nobody owed any more, and the owed loops run on
 look-minimal: somebody owed casts the line, then it breathes and the spark runs it: nobody owed, and the glint at rest does not come back
+look-minimal: somebody owed casts the line, then it breathes and the spark runs it: nobody owed, and the line stays at 1
 look-minimal: somebody owed casts the line, then it breathes and the spark runs it: nobody owed, and the line still glows
 ## look-ribbon.lua
 look-ribbon: Elowen Thistledown with a count and a key is not cut at the default size, enUS: the count does not say +2: +3
@@ -844,6 +845,14 @@ milestones: hook: a portal cast and water put in the trade earn one, and neither
 milestones: hook: a resurrection that was cast earns one, and an interrupted one nothing: SKIPPED -- the press on the dead member was not filed
 ## model-window.lua
 model: Who to buff's red dot is nothing to offer: SKIPPED -- the pin did not hold
+## names-own-lines.lua
+names-own-lines: a one-word name is said whole, and the whisper guard still refuses a misread: a whisper the chat box would misread went out: /target Solo / /cast Arcane Intellect / /w Solo Thanks for the buff, Solo. / /targetlasttarget
+names-own-lines: after my own line the button names no older In character line: SKIPPED -- the press is not armed with my own line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+names-own-lines: first name only reaches the line that asks for a buff: SKIPPED -- with the switch off the ask was /w Anna Could I have Power Word: Fortitude when you have a moment, Anna? Thank you.
+names-own-lines: first name only reaches the line that asks for a buff: with First name only the ask did not go to the whole name: /w Anna Could I have Power Word: Fortitude when you have a moment, Anna? Thank you.
+names-own-lines: first name only says the first word, the whisper keeps the whole name: the line was said as nil, wanted /w Munin Hugins Munin, take this.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+names-own-lines: first name only says the first word, the whisper keeps the whole name: the line was said as nil, wanted /w Munin Hugins Thanks for the buff, Munin.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+names-own-lines: first name only says the first word, the whisper keeps the whole name: with the switch off the line was nil
 ## options-presets.lua
 presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are offered one back unless they already have it. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
 ## options-who.lua
@@ -1016,6 +1025,20 @@ pvp: whether you are flagged yourself (your flag withheld out in the world): SKI
 pvp: while the rule stands aside a press casts the group spell over a flagged member (the setting off): SKIPPED -- the prompt was not armed with the group cast: /target Cora / /cast Arcane Intellect / /targetlasttarget
 pvp: while the rule stands aside a press casts the group spell over a flagged member (you flagged yourself): SKIPPED -- the prompt was not armed with the group cast: /target Cora / /cast Arcane Intellect / /targetlasttarget
 pvp: with the setting off a flagged passer-by is offered: a flagged passer-by was held back with Skip players flagged for PvP off
+## quiet-groups.lua
+quiet-groups: Say nothing in a party leaves a raid speaking: SKIPPED -- no line with both switches off (raid, passer-by, party switch): /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: Say nothing in a raid leaves a party speaking: SKIPPED -- no line with both switches off (party, member, raid switch): /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: a party member hears no line with Say nothing in a party: SKIPPED -- no line with both switches off (party, member, party switch): /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: a passer-by hears no line while you are in a quiet party: SKIPPED -- no line with both switches off (party, passer-by, party switch): /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: in a battleground or an arena Say my line there decides: SKIPPED -- Munin is not armed in arena
+quiet-groups: in a battleground or an arena Say my line there decides: SKIPPED -- Munin is not armed in pvp
+quiet-groups: no line in a raid with Say nothing in a raid: SKIPPED -- no line with both switches off (raid, passer-by, raid switch): /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: solo, both switches leave the line: SKIPPED -- no line with both switches off (solo, both switches): /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: the bar macro agrees with the prompt: party, switch off: the prompt's macro lost the line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: the bar macro agrees with the prompt: solo again: the prompt's macro lost the line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: the bar macro agrees with the prompt: solo: the prompt's macro lost the line: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: the line follows a group formed and left: solo: the macro did not get back the line at the next repaint: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+quiet-groups: the line follows a group formed and left: the group left: the macro did not get back the line at the next repaint: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 ## raid.lua
 raid: a favour in an instance fight is filed quietly (a dungeon, in a fight): SKIPPED -- no favour was filed
 raid: a favour in an instance fight is filed quietly (a dungeon, out of a fight): SKIPPED -- no favour was filed
