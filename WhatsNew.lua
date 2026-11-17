@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "16 November 2026", sections = {
+	{ version = "Unreleased", date = "17 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Quiet in a group.|r |cffffffffSay nothing in a party|r and |cffffffffSay nothing in a raid|r, on |cffffffffWhat I say|r: the buff still goes out, the line stays in.",
 			"|cffffd100Two elixirs at once.|r Keep a second elixir up beside the first.",

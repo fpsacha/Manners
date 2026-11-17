@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-*16 November 2026*
+*17 November 2026*
 
 ### Highlights
 - **Quiet in a group.** *Say nothing in a party* and *Say nothing in a raid*,
