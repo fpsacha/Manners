@@ -1169,7 +1169,7 @@ end)
 local function tempDir()
 	local base = os.getenv("TEMP") or os.getenv("TMPDIR") or "/tmp"
 	local token = tostring(dir):gsub("[^%w]", ""):sub(-40)
-	return (base:gsub("\\", "/")) .. "/manners-gen-" .. token .. "-" .. tostring(os.time())
+	return (base:gsub("\\", "/")) .. "/manners-gen-" .. token .. "-" .. tostring(os.time()) .. "-" .. tostring(rawget(_G, "MANNERS_RUN_ID") or 0)
 end
 
 withTree("look-frost: the generator draws the same bytes", ANNA, function(_, scenario)

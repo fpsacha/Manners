@@ -4881,6 +4881,8 @@ for script in SUITES:
         else:
             print("  (%d pieces of it are red on their own, so a mutation judged on the whole"
                   " suite runs it in one process, as before)" % len(_red))
+            for _line in _red:
+                print("    red on its own: " + _line.strip()[:160])
             PIECES = None
         continue
     line, clean = _base[script].result()

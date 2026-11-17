@@ -40,7 +40,7 @@ end
 local function tempDir()
 	local base = os.getenv("TEMP") or os.getenv("TMPDIR") or "/tmp"
 	local token = tostring(dir):gsub("[^%w]", ""):sub(-40)
-	return (base:gsub("\\", "/")) .. "/manners-materials-" .. token .. "-" .. tostring(os.time())
+	return (base:gsub("\\", "/")) .. "/manners-materials-" .. token .. "-" .. tostring(os.time()) .. "-" .. tostring(rawget(_G, "MANNERS_RUN_ID") or 0)
 end
 
 -- The generator is run twice, once for the whole file; every scenario reads

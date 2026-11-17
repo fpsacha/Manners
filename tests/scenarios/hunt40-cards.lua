@@ -561,7 +561,7 @@ end
 local function tempLog(name)
 	local base = os.getenv("TEMP") or os.getenv("TMPDIR") or "/tmp"
 	local token = tostring(dir):gsub("[^%w]", ""):sub(-40)
-	return (base:gsub("\\", "/")) .. "/manners-" .. name .. "-" .. token .. "-" .. tostring(os.time()) .. ".log"
+	return (base:gsub("\\", "/")) .. "/manners-" .. name .. "-" .. token .. "-" .. tostring(os.time()) .. "-" .. tostring(rawget(_G, "MANNERS_RUN_ID") or 0) .. ".log"
 end
 
 -- What the tool says, run on the tree under test.

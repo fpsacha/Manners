@@ -345,6 +345,10 @@ if (JOBS > 1 or baseline) and names is None and files is None and shard is None 
     sys.exit(1 if failures or broken else 0)
 
 L = lupa.LuaRuntime(unpack_returned_tuples=True)
+# This process's own name for scratch folders: a scenario that runs a generator
+# named its folder by the second alone, and two runs of one tree started in the
+# same second (a piece and a trace shard, two clients) wrote over each other.
+L.globals().MANNERS_RUN_ID = str(os.getpid())
 out = []
 L.globals().print = lambda *a: out.append(" ".join(str(x) for x in a))
 # Read by tests/mockapi.lua's Mock.reset(); the workers above inherit it

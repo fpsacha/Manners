@@ -93,7 +93,7 @@ end
 local function tempDir(tag)
 	local base = os.getenv("TEMP") or os.getenv("TMPDIR") or "/tmp"
 	local token = tostring(dir):gsub("[^%w]", ""):sub(-40)
-	return (base:gsub("\\", "/")) .. "/manners-glowlight-" .. token .. "-" .. tostring(os.time()) .. "-" .. tag
+	return (base:gsub("\\", "/")) .. "/manners-glowlight-" .. token .. "-" .. tostring(os.time()) .. "-" .. tostring(rawget(_G, "MANNERS_RUN_ID") or 0) .. "-" .. tag
 end
 
 local function run(args, log)
