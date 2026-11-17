@@ -41,9 +41,12 @@ mutate("Core.lua",
        "mixedlines: a line in the box on a new profile",
        expect="a new profile's own lines are", script=S)
 
+# The box is a text among the defaults, repaired with every other one by
+# ClampSettings' last pass (ns.SettingLeaves): a line of its own there was
+# dead, the pass doing the same after it, and is gone.
 mutate("Core.lua",
-       "\tif type(speech.mixedLines) ~= \"string\" then speech.mixedLines = \"\" end\n",
-       "",
+       "\t-- valid value, off its default or not, is left as it is.\n\trepair(false)\n",
+       "\t-- valid value, off its default or not, is left as it is.\n",
        "mixedlines: a damaged box kept",
        expect="a damaged box was left as", script=S)
 

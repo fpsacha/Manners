@@ -130,6 +130,16 @@ mutate(LUA,
        "look-gearworks: a favour arrives and the vent says nothing",
        expect="a favour arriving did not whistle", script=S)
 
+# The whistle's frames end with its light (the hook on its OnFinished), not
+# at Flow's next reading of the clock. Moved here from painted-gearworks.py,
+# whose expect ("leaves nothing behind") named no scenario of Gearworks': it
+# sent the proof to hunt38-picker.lua, look.lua and painted-ebon.lua instead.
+mutate(LUA,
+       "\tself.whistleAnim:HookScript(\"OnFinished\", function() Gearworks.whistleSheet:Stop() end)\n",
+       "",
+       "look-gearworks: the whistle's sheet runs on after its light",
+       expect="the whistle's light ended and its frames still play", script=S)
+
 # --- owed ---
 
 mutate(LUA,

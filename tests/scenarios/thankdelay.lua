@@ -295,6 +295,26 @@ do
 	end)
 end
 
+-- What I say's reset puts the pause back to off, as it does the /thank and
+-- the whisper beside it (Options/Advanced.lua, the click page's list).
+do
+	local scenario = "thankdelay: What I say's reset puts the pause back"
+	with(scenario, {}, function(ns)
+		if ns.db.profile.prompt.thankDelay ~= true then
+			fail(scenario, "SKIPPED -- the pause was not on before the reset")
+			return
+		end
+		local ok, answer = pcall(ns.OptionsPage.ResetPage, "click")
+		if not ok or answer ~= true then
+			fail(scenario, "SKIPPED -- the reset did not run: " .. tostring(answer))
+			return
+		end
+		if ns.db.profile.prompt.thankDelay ~= false then
+			fail(scenario, "the reset left the pause " .. tostring(ns.db.profile.prompt.thankDelay))
+		end
+	end)
+end
+
 do
 	local scenario = "thankdelay: a class with nothing to give keeps the switch"
 	with(scenario, { class = "ROGUE", delay = false }, function(ns)
