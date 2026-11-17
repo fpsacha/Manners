@@ -95,8 +95,8 @@ mutate("Options/Say.lua",
        expect="thankdelay: What I say has the switch under the /thank", script=S)
 
 mutate("Options/Say.lua",
-       "\t\t\t\tdisabled = function() return not (P().thankEmote or P().thankWhisper) end,\n",
-       "\t\t\t\tdisabled = function() return not P().thankEmote end,\n",
+       "\t\t\t\tdisabled = function() return not (P().thankEmote or P().thankWhisper) or P().thankAsk == true end,\n",
+       "\t\t\t\tdisabled = function() return not P().thankEmote or P().thankAsk == true end,\n",
        "thankdelay: greyed with the whisper alone on",
        expect="thankdelay: What I say has the switch under the /thank", script=S)
 

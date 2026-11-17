@@ -133,10 +133,12 @@ local TOOLTIP_QUEUE_ROWS = 3
 -- than slotting a word for the reason into one sentence: "buffed you" slotted
 -- into three different sentences is a word a translation has to make agree
 -- with a subject it never sees.
-local function ByReason(entry, owed, group, target, nearby, asked, own, ask)
+local function ByReason(entry, owed, group, target, nearby, asked, own, ask, thank)
 	local reason = entry and entry.reason
 	-- Somebody to ask for a buff (Ask.lua), where the caller has a line for it.
 	if reason == "ask" and ask then return ask end
+	-- A thank-you waiting for a press (ThankPress.lua), likewise.
+	if reason == "thank" and thank then return thank end
 	if reason == "owed" then return owed end
 	if reason == "group" then return group end
 	if reason == "target" then return target end
@@ -456,7 +458,8 @@ local function FillLauncherTooltip(tooltip)
 					L["On the prompt: |cffffffff%s|r -- %s, a passer-by"],
 					L["On the prompt: |cffffffff%s|r -- %s, asked for it"],
 					L["On the prompt: |cffffffff%s|r -- %s, your own buff"],
-					L["On the prompt: |cffffffff%s|r -- %s, to ask for"]
+					L["On the prompt: |cffffffff%s|r -- %s, to ask for"],
+					L["On the prompt: |cffffffff%s|r -- for %s"]
 				):format(WhoIs(entry), WhatBuff(entry)), 1, 0.82, 0, true)
 			elseif i <= TOOLTIP_QUEUE_ROWS + (showing and 1 or 0) then
 				tooltip:AddLine(ByReason(entry,
@@ -466,7 +469,8 @@ local function FillLauncherTooltip(tooltip)
 					L["Next: |cffffffff%s|r -- %s, a passer-by"],
 					L["Next: |cffffffff%s|r -- %s, asked for it"],
 					L["Next: |cffffffff%s|r -- %s, your own buff"],
-					L["Next: |cffffffff%s|r -- %s, to ask for"]
+					L["Next: |cffffffff%s|r -- %s, to ask for"],
+					L["Next: |cffffffff%s|r -- for %s"]
 				):format(WhoIs(entry), WhatBuff(entry)), 0.8, 0.8, 0.8, true)
 			end
 		end
@@ -709,7 +713,8 @@ local function FillWhoIsNext(parent)
 				L["%s -- %s (a passer-by), on the prompt"],
 				L["%s -- %s (asked for it), on the prompt"],
 				L["%s -- %s (your own buff), on the prompt"],
-				L["%s -- %s (to ask for), on the prompt"])
+				L["%s -- %s (to ask for), on the prompt"],
+				L["%s -- for %s, on the prompt"])
 		else
 			label = ByReason(entry,
 				L["%s -- %s (buffed you)"],
@@ -718,25 +723,32 @@ local function FillWhoIsNext(parent)
 				L["%s -- %s (a passer-by)"],
 				L["%s -- %s (asked for it)"],
 				L["%s -- %s (your own buff)"],
-				L["%s -- %s (to ask for)"])
+				L["%s -- %s (to ask for)"],
+				L["%s -- for %s"])
 		end
 		local person = parent:CreateButton(label:format(WhoIs(entry), WhatBuff(entry)))
-		person:CreateButton(L["Skip for now"], Act(function() SkipFromMenu(entry) end))
-		-- Somebody already on the list is in the queue only because they are
-		-- owed, and for them the same act lets the favour go. The one a fight
-		-- holds on the prompt may owe nothing, so owed is asked as the queue
-		-- asks it.
-		local listed = ns.IsNeverOffered and ns.IsNeverOffered(entry.name)
-		local ok, owedNow = pcall(function()
-			local debt = ns.owed and ns.owed[entry.name]
-			return ns.db.profile.sources.owed and debt ~= nil and ns.DebtExpiry(debt) > GetTime()
-		end)
-		owedNow = ok and owedNow == true
-		if listed and not owedNow then
-			Nobody(person, L["On your never-offer list"])
+		-- A thank-you waiting for a press (ThankPress.lua): let it go, and no
+		-- more. Nobody is skipped or listed for having buffed you.
+		if entry.thank then
+			person:CreateButton(L["Let it go"], Act(function() ns.ThankPress.DismissEntry(entry) end))
 		else
-			person:CreateButton(listed and L["Let this favour go"] or L["Never offer"],
-				Act(function() NeverFromMenu(entry) end))
+			person:CreateButton(L["Skip for now"], Act(function() SkipFromMenu(entry) end))
+			-- Somebody already on the list is in the queue only because they are
+			-- owed, and for them the same act lets the favour go. The one a fight
+			-- holds on the prompt may owe nothing, so owed is asked as the queue
+			-- asks it.
+			local listed = ns.IsNeverOffered and ns.IsNeverOffered(entry.name)
+			local ok, owedNow = pcall(function()
+				local debt = ns.owed and ns.owed[entry.name]
+				return ns.db.profile.sources.owed and debt ~= nil and ns.DebtExpiry(debt) > GetTime()
+			end)
+			owedNow = ok and owedNow == true
+			if listed and not owedNow then
+				Nobody(person, L["On your never-offer list"])
+			else
+				person:CreateButton(listed and L["Let this favour go"] or L["Never offer"],
+					Act(function() NeverFromMenu(entry) end))
+			end
 		end
 	end
 	-- Unlocked or snoozed in a fight: the one the fight holds, then a line

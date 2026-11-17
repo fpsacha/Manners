@@ -675,6 +675,8 @@ ns.WindowLayout = {
 					{ "click.thankEmoteMore", indent = 2, columns = 4 },
 					-- The pause before the /thank and the whisper alike.
 					{ "click.thankDelay", indent = true },
+					-- Every thank waits for a press of the prompt (ThankPress.lua).
+					{ "click.thankAsk", indent = true },
 					"click.thankWhisper",
 					-- A thank for somebody nobody could name, the emote's or the whisper's.
 					{ "click.thankUnseen", indent = true },
@@ -1073,6 +1075,12 @@ ns.WindowLayout = {
 			return L["Needs %s ticked."]:format(NameOf("who.strangers"))
 		end,
 		["when.battleItems"] = function() return L["Needs %s ticked."]:format(NameOf("who.ownDungeons")) end,
+		-- The pause before a thank, greyed while the thanks wait for a press.
+		["click.thankDelay"] = function()
+			local p = ns.db and ns.db.profile and ns.db.profile.prompt
+			if p and p.thankAsk == true then return L["Off while %s is on."]:format(NameOf("click.thankAsk")) end
+			return nil
+		end,
 		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
 		-- Greyed where the look rounds its icon itself, or with the icon off.
 		["appearance.roundIcon"] = function()
@@ -1105,6 +1113,8 @@ ns.WindowLayout = {
 		["appearance.moveInEditMode"] = L["bar position drag place"],
 		-- Asked for as profiles that "auto switch in raid, instance, normal".
 		["profiles.autoEnabled"] = L["auto raid dungeon instance battleground arena world normal"],
+		-- Asked for as thanking "with a mouse button press", for a personal touch.
+		["click.thankAsk"] = L["press click manual personal"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the

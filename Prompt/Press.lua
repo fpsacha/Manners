@@ -239,6 +239,10 @@ local function OnPreClick(self, mouseButton, down)
 	if not ready and not InCombatLockdown() and S.current and S.current.ask then
 		ready, askLeft = true, left
 	end
+	-- Nor does a thank-you (ThankPress.lua): nothing is cast, and nothing armed.
+	if not ready and not InCombatLockdown() and S.current and S.current.thank then
+		ready, askLeft = true, left
+	end
 	-- Then the combat return: in combat nothing below can change the macro,
 	-- since the attributes are frozen, so neither the target nor the spoken
 	-- line (range, a refusal) is looked at again until the fight ends.
@@ -311,6 +315,11 @@ local function OnPreClick(self, mouseButton, down)
 		Prompt:ApplyTarget(nil)
 		return
 	end
+	-- Nor for a thank-you the scan has let lapse or go (ThankPress.lua).
+	if not top and S.current and S.current.thank then
+		Prompt:ApplyTarget(nil)
+		return
+	end
 	if not top and S.current and not Retired(S.current, now) and named == S.current.name then
 		LightFuse(now)
 		pressStale = true
@@ -347,9 +356,17 @@ local function OnPreClick(self, mouseButton, down)
 		end
 	end
 
+	-- The press follows the panel's kind as well as its name: a thank-you
+	-- shown (ThankPress.lua) is never a cast at them, nor a buff shown an
+	-- emote at them in front of everybody.
+	if S.current and top and top.name == S.current.name and (top.thank ~= nil) ~= (S.current.thank ~= nil) then
+		Prompt:MovedOn(top)
+		return
+	end
+
 	-- Let past the cooldown as an ask, and the scan now has a cast: turned
 	-- away as any press in the cooldown is.
-	if askLeft and top and not top.ask then
+	if askLeft and top and not (top.ask or top.thank) then
 		lastPreClickAt = nil
 		cooldownPressAt, guardedEntry = now, nil
 		Prompt:ApplyTarget(nil)
@@ -358,6 +375,13 @@ local function OnPreClick(self, mouseButton, down)
 	end
 
 	S.appliedKey = nil
+	-- A thank-you arms nothing and says no line of a cast (HoldLine is a
+	-- cast's question, and would speak of a line left out).
+	if top and top.thank then
+		Prompt:ApplyTarget(top, true)
+		pressKey = S.appliedKey
+		return
+	end
 	-- A held entry's range reading is from an overruled scan, and even a fresh
 	-- one is a tick old, so whether the line goes is judged once more right
 	-- before the macro runs.
@@ -431,6 +455,11 @@ local function OnPostClick(self, mouseButton, down)
 		local now = GetTime()
 		if S.skipAt and (now - S.skipAt) < 0.25 then return end
 		S.skipAt = now
+		-- A thank-you (ThankPress.lua), with shift or without: let go, nothing
+		-- sent, nobody skipped and nobody listed. Only while the panel names it.
+		if S.current and S.current.thank and (S.isRow or Prompt:PanelName() == S.current.name) then
+			return ns.ThankPress.Dismiss(S)
+		end
 		-- Whoever the panel names, as the left press follows: under a red flash
 		-- that is the person the flash is about, not the next one armed
 		-- underneath.
@@ -541,6 +570,8 @@ local function OnPostClick(self, mouseButton, down)
 	S.clickAt = now
 	-- A press on an ask (Ask.lua) said a line and cast nothing: filed there.
 	if S.current and S.current.ask then return ns.AskPressed(S, armedText) end
+	-- A press on a thank-you (ThankPress.lua) sends it from here: nothing ran.
+	if S.current and S.current.thank then return ns.ThankPress.Pressed(S) end
 
 	-- Lets the error and cast handlers tell our own outcome apart from
 	-- everything else the game is shouting about.
@@ -737,6 +768,8 @@ local function OnRowPreClick(self, mouseButton, down)
 	local ready, left = ns.CastReady()
 	-- An ask's row says a line and casts nothing: no cooldown holds it back.
 	if entry.ask then ready = true end
+	-- And a thank-you's sends its thanks (ThankPress.lua).
+	if entry.thank then ready = true end
 	cooldownPressAt = (not ready) and now or nil
 	if not ready then
 		guardedEntry = nil
@@ -773,6 +806,11 @@ local function OnRowPreClick(self, mouseButton, down)
 	row.pressing = true
 	row.armedAt = now
 	row.appliedKey = nil
+	-- A thank-you arms nothing, and no line of a cast is judged.
+	if fresh.thank then
+		Prompt:ArmRow(row, fresh, true)
+		return
+	end
 	Prompt:ArmRow(row, fresh, HoldLine(fresh, verdicts))
 end
 
@@ -865,6 +903,13 @@ local function BarWaiting(now)
 	if S.current and S.current.ask then
 		if db and db.verbose then
 			ns.addon:Print(L["the prompt is on somebody to ask for a buff -- press the prompt itself, or its key; the action bar macro only casts."])
+		end
+		return
+	end
+	-- A thank-you (ThankPress.lua) is sent by a press of the prompt alone.
+	if S.current and S.current.thank then
+		if db and db.verbose then
+			ns.addon:Print(L["the prompt is on a thank-you -- press the prompt itself, or its key; the action bar macro only casts."])
 		end
 		return
 	end

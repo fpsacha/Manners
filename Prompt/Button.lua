@@ -61,6 +61,8 @@ local function PersonTooltipLines(entry, brief)
 	-- Somebody to ask for a buff (Ask.lua): one line, and nothing about a
 	-- reading of theirs, since none was taken.
 	if entry.ask then return GameTooltip:AddLine(ns.Ask.TooltipLine(), 0.7, 0.7, 0.7, true) end
+	-- A thank-you waiting for a press (ThankPress.lua): the same, of its own.
+	if entry.thank then return GameTooltip:AddLine(ns.ThankPress.TooltipLine(), 0.7, 0.7, 0.7, true) end
 	-- A top-up reads as one, and "missing it" only where it was read as
 	-- missing; "Always offer" and unreadable auras get the plain reason.
 	local left = RemainingText(entry.remaining)
@@ -382,6 +384,13 @@ do
 				GameTooltip:AddLine("  " .. line, 0.4, 0.8, 0.4)
 			end
 			GameTooltip:AddLine(" ")
+		end
+		-- A thank-you (ThankPress.lua) is no cast, and no skip or never-offer
+		-- list: its summary above says what a right-click does.
+		if S.current.thank then
+			GameTooltip:AddLine(L["Click to thank them."], 0.5, 0.5, 0.5)
+			GameTooltip:Show()
+			return
 		end
 		-- The command goes in as an argument, as it does in PreClick's lines:
 		-- it is typed in English whatever the client's language.

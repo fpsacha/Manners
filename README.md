@@ -1018,7 +1018,21 @@ Everything here is off until you turn it on.
     buffing you on the pull is one thank. *Emote to use* picks which of
     twenty-four friendly emotes (`/thank`, `/cheer`, `/bow`, `/salute` and
     the rest), *Or one of these, at random* ticks others, and *Wait a moment
-    before thanking* sends it one to three seconds after the buff lands.
+    before thanking* sends it one to three seconds after the buff lands (not
+    with *Ask me before thanking*).
+  - *Ask me before thanking* (off, under the /thank): nothing goes out by
+    itself. When somebody buffs you, the prompt offers "Thank <name>", and the
+    thanks you have set up (your emote and the whispered thank-you) go only
+    when you press it, with a click or the prompt's
+    key; a right-click lets it go. Left alone, the offer goes away after
+    twenty seconds on the prompt (a minute after the buff, shown or not), and
+    a fight drops it; nothing is sent then. Every rule above still decides
+    whether a thank is due, and is read again at the press. A favour you owe or
+    a buff your group needs comes first, then the thank, then passers-by.
+    Several people buffing you are one press each; with *Thank them even when
+    I can't see who it was* on, a buff from somebody nobody could name is
+    offered as "Thank whoever buffed you", and the prompt asks you to clear
+    your target first. A pasted settings line can turn it on, never off.
   - *Whisper a thank-you to people I can't buff back*: when somebody buffs
     you and nothing of yours goes back to them now (a warrior, a rogue, a
     buff you have nothing to answer, a return that waits for them to join

@@ -9,6 +9,9 @@
   stones: Automatic now takes the best for you (level, weapon, Fishing, group
   role, talents) rather than the one used last; a poison keeps the kind last
   on that hand, at its best rank. Pick one by name to keep to it.
+- **Thank them with a press.** *Ask me before thanking*, on *What I say*: your
+  thank-you waits on the prompt as "Thank <name>" and goes when you press it.
+  Asked for on CurseForge.
 
 ## 1.11.27
 

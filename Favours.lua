@@ -155,7 +155,10 @@ do
 	-- A favour the combat log named and no token holds (seen.byName) is
 	-- whispered by name and has no token: the whisper's own rules (Speech.lua,
 	-- WhisperName) decide whether the name is safe to send to.
-	local function Blocked(seen, now)
+	-- `noGap` leaves the gap between two thanks out: a thank that waits for a
+	-- press (Ask me before thanking, ThankPress.lua) is the player's own, and
+	-- two presses are two thanks.
+	local function Blocked(seen, now, noGap)
 		local name = seen.name
 		local why = Held(seen)
 		if why then return why end
@@ -169,6 +172,7 @@ do
 		if last and now - last < (seen.inGroup and PER_MEMBER or PER_PERSON) then
 			return L["thanked them a moment ago"]
 		end
+		if noGap then return nil, unit end
 		if lastAt and now - lastAt < GAP then
 			return L["thanked somebody a moment ago"]
 		end
@@ -285,6 +289,15 @@ do
 	-- rules and limits for both, armed by whichever went.
 	ThankFavour = function(seen, emote, whisper)
 		local now, name = GetTime(), seen.name
+		-- Ask me before thanking (prompt.thankAsk; ThankPress.lua): a thank due
+		-- by every rule but the gap waits for a press of the prompt, which reads
+		-- them all again. No pause: the press is the moment.
+		local ask = ns.db and ns.db.profile and ns.db.profile.prompt
+		if ask and ask.thankAsk == true and ns.ThankPark then
+			local why = Blocked(seen, now, true)
+			if why then return Skip(name, now, why) end
+			return ns.ThankPark(seen, emote, whisper, false)
+		end
 		if waiting and now - waiting.at < PAUSE_MAX + 2 then
 			-- Somebody else's, kept (the newest) for when the waiting thank never goes.
 			if waiting.name ~= name then waiting.behind = { seen = seen, emote = emote, whisper = whisper } end
@@ -338,12 +351,15 @@ do
 		return db and db.enabled and db.prompt.thankUnseen == true and db.prompt.thankEmote == true or false
 	end
 
-	local function UnseenBlocked(seen, now)
+	-- `noGap` as Blocked's; `noTarget` leaves the target out, for a landing a
+	-- press will thank (ThankPress.lua): the press reads it, and says to clear it.
+	local function UnseenBlocked(seen, now, noGap, noTarget)
 		local why = Held(seen)
 		if why then return why end
-		if Answer(UnitExists, "target") ~= false then return L["you have somebody targeted"] end
+		if not noTarget and Answer(UnitExists, "target") ~= false then return L["you have somebody targeted"] end
 		local last = unseenAt[seen.key]
 		if last and now - last < PER_PERSON then return L["thanked for that buff a moment ago"] end
+		if noGap then return nil end
 		if lastAt and now - lastAt < GAP then return L["thanked somebody a moment ago"] end
 		return nil
 	end
@@ -378,6 +394,12 @@ do
 		local db = ns.db and ns.db.profile
 		if not UnseenLive(db) then return end
 		local now = GetTime()
+		-- Ask me before thanking (ThankPress.lua): parked for a press, as ThankFavour parks one.
+		if db.prompt.thankAsk == true and ns.ThankPark then
+			local why = UnseenBlocked(seen, now, true, true)
+			if why then return SkipUnseen(seen.key, now, why) end
+			return ns.ThankPark(seen, true, false, true)
+		end
 		-- One thank waits out its pause at a time, a named one or this. This
 		-- landing is kept behind it (the newest), thanked if that one never goes.
 		if waiting and now - waiting.at < PAUSE_MAX + 2 then
@@ -402,6 +424,39 @@ do
 			Behind(mine, sent)
 		end)
 	end
+
+	-- Ask me before thanking (ThankPress.lua): the thank a press sends, every
+	-- rule above read again at the press but the gap (two presses are two
+	-- thanks), and the token looked for afresh, since the one the landing was
+	-- read under may name somebody else by now. Answers why nothing went, or
+	-- nil. The switches are the caller's to read.
+	ns.ThankNow = {
+		Press = function(seen, emote, whisper, unseen)
+			local now = GetTime()
+			if unseen then
+				local why = UnseenBlocked(seen, now, true)
+				if why then
+					SkipUnseen(seen.key, now, why)
+					return why
+				end
+				SendUnseen(seen, now)
+				return nil
+			end
+			local probe = seen
+			if not seen.byName then
+				probe = {}
+				for field, value in pairs(seen) do probe[field] = value end
+				probe.unit = ns.UnitFor(seen.name, seen.unit)
+			end
+			local why, unit = Blocked(probe, now, true)
+			if why then
+				Skip(seen.name, now, why)
+				return why
+			end
+			Send(probe, emote, whisper, unit, now)
+			return nil
+		end,
+	}
 end
 
 ---------------------------------------------------------------------------

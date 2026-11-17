@@ -131,7 +131,7 @@ Or pick **In character (fits your race and class)**: over three thousand lines, 
 
 > *"Most kind, Mort. You've lifted me from 'deceased' to 'mildly deceased'."* -- a Forsaken, returning a favour
 
-Or just `/thank` them with an emote (off by default, never in a fight, a dungeon or a raid, after a moment's wait if you like), and with nothing to give back, a warrior say, whisper them a thank-you in character.
+Or just `/thank` them with an emote (off by default, never in a fight, a dungeon or a raid, after a moment's wait if you like, or only when you press the prompt), and with nothing to give back, a warrior say, whisper them a thank-you in character.
 
 ### Looks
 

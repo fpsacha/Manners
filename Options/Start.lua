@@ -673,7 +673,19 @@ end
 
 -- And one about what is said. A set is named by its own summary phrase ("a
 -- polite line"), never by the dropdown's label dropped into a sentence.
+local VoiceSummaryText
 function Quick.VoiceSummary()
+	local text = VoiceSummaryText()
+	-- Ask me before thanking (ThankPress.lua): said only while a thank is sent
+	-- at all, so it never follows "Silent.".
+	local p = P()
+	if p.thankAsk == true and (p.thankEmote == true or p.thankWhisper == true) then
+		text = text .. " " .. L["The thanks wait for a press of the prompt."]
+	end
+	return text
+end
+
+VoiceSummaryText = function()
 	local sp = SP()
 	local thanks = P().thankEmote
 	-- The /thank answers somebody buffing you, whether People who buff me is

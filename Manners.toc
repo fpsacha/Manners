@@ -59,6 +59,7 @@ Commands.lua
 Hints.lua
 Phrases.lua
 Ask.lua
+ThankPress.lua
 Ledger.lua
 Milestones.lua
 HallOfFame.lua

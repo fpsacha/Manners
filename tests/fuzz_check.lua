@@ -704,12 +704,15 @@ end
 
 local REASONS = { owed = true, group = true, nearby = true, asked = true, target = true, self = true,
 	-- Ask.lua's own: somebody asked for a buff the player lacks.
-	ask = true }
+	ask = true,
+	-- ThankPress.lua's: a thank-you waiting for a press.
+	thank = true }
 
--- A resurrection (Resurrect.lua) and a polite ask (Ask.lua) are on the queue
--- and are no buff of the player's for anybody: each is judged by what its own
--- file promises, below, and by none of a buff's rules.
-local function otherKind(e) return e.res == true or e.ask == true end
+-- A resurrection (Resurrect.lua), a polite ask (Ask.lua) and a thank-you
+-- (ThankPress.lua) are on the queue and are no buff of the player's for
+-- anybody: each is judged by what its own file promises, below, and by none
+-- of a buff's rules.
+local function otherKind(e) return e.res == true or e.ask == true or e.thank ~= nil end
 
 -- A resurrection: only with My group's dead on and something learned, never
 -- in a fight, ahead of everything that is not one, for somebody the world
@@ -784,6 +787,20 @@ local function checkAsk(W, e, i, queue)
 	end
 end
 
+-- A thank-you waiting for a press: only with Ask me before thanking on, never
+-- in a fight, at its own priority, behind the group and ahead of passers-by.
+-- The checks over every entry say it is queued once and is no member a group
+-- cast covers.
+local function checkThank(W, e)
+	local ns = W.ns
+	local db = ns.db.profile
+	W.stats.thanks = (W.stats.thanks or 0) + 1
+	if db.prompt.thankAsk ~= true then return fail(W, "forbidden", e.name .. " waits to be thanked with the switch off") end
+	if Mock.inCombat then return fail(W, "forbidden", e.name .. " waits to be thanked in a fight") end
+	if e.reason ~= "thank" then return fail(W, "queue", e.name .. "'s thank has the reason " .. tostring(e.reason)) end
+	if e.priority ~= 2.5 then return fail(W, "queue", e.name .. "'s thank has priority " .. tostring(e.priority)) end
+end
+
 local function standsPvP(W)
 	local me = W.me
 	local flagged = me.pvp or me.ffa
@@ -832,7 +849,8 @@ function X.checkQueue(W, queue)
 		if type(e.buff) ~= "table" or type(e.buff.key) ~= "string" then
 			return fail(W, "queue", e.name .. " has no buff")
 		end
-		if type(e.reason) ~= "string" or not REASONS[e.reason] or (e.reason == "ask") ~= (e.ask == true) then
+		if type(e.reason) ~= "string" or not REASONS[e.reason] or (e.reason == "ask") ~= (e.ask == true)
+			or (e.reason == "thank") ~= (e.thank ~= nil) then
 			return fail(W, "queue", e.name .. " has the reason " .. tostring(e.reason))
 		end
 		if i > 1 and e.priority < queue[i - 1].priority then
@@ -891,6 +909,7 @@ function X.checkQueue(W, queue)
 	for i, e in ipairs(whole) do
 		if e.res then checkRes(W, e, i, whole)
 		elseif e.ask then checkAsk(W, e, i, whole)
+		elseif e.thank then checkThank(W, e)
 		else queue[#queue + 1] = e end
 		if W.failure then return end
 	end

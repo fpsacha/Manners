@@ -91,7 +91,11 @@ function ns.UnnamedBuffHint(unseen)
 	local plates = "|cffffd100" .. L["Show friendly nameplates"] .. "|r"
 	local start = "|cffffd100" .. L["Start here"] .. "|r"
 	local prompt = type(db.profile.prompt) == "table" and db.profile.prompt or {}
-	if prompt.thankEmote == true and prompt.thankUnseen == true and unseen == true then
+	-- With Ask me before thanking on (ThankPress.lua) the emote waits for a press.
+	if prompt.thankEmote == true and prompt.thankUnseen == true and unseen == true and prompt.thankAsk == true then
+		ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who. The prompt offers to thank them with your emote, but Manners cannot buff them back: %s on %s (|cffffd100/manners|r) turns them on."]:format(
+			plates, start))
+	elseif prompt.thankEmote == true and prompt.thankUnseen == true and unseen == true then
 		ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who. Manners thanks them with your emote where it may, but cannot buff them back: %s on %s (|cffffd100/manners|r) turns them on."]:format(
 			plates, start))
 	elseif prompt.thankEmote == true and prompt.thankUnseen ~= true then

@@ -17,6 +17,24 @@ was tried in the game. The checklist of what only the game can settle, now
 on WoW Forever in the owner's own play sessions, is the first item under
 *Open*.
 
+**Ask me before thanking (Unreleased, asked for on CurseForge).**
+`prompt.thankAsk`, off, on What I say under the /thank: a thank Favours.lua
+finds due (Blocked, UnseenBlocked, the gap left out, an unseen one's target
+too) is parked by `ns.ThankPark` (`ThankPress.lua`) and offered on the prompt
+as its own entry kind (`entry.thank`, reason `thank`, priority 2.5: behind
+owed, asked, yourself and the group, ahead of passers-by and an ask), armed
+with nothing; a left press (mouse or key, PostClick) sends exactly what would
+have gone through `ns.ThankNow.Press`, every rule read again but the gap; a
+right-click or the launcher's *Let it go* drops it and keeps the giver from
+being offered again for the per-person limit (`declinedAt`). Twenty seconds
+once the prompt first shows it, a minute after the landing, a fight, a
+loading screen or the switch going off drops it with nothing sent.
+`tests/scenarios/thankpress.lua` (33), `tests/mutations/thankpress.py` (42,
+each CAUGHT by `prove.py`). What only the game can say: whether an emote and a
+whisper sent from the prompt's PostClick go out on retail 12.x and on Forever
+as the automatic ones do (the emote's raw answer is in `/manners debug`);
+whether twenty seconds is long enough to reach the prompt.
+
 **Two elixirs at once (branch `post26`, after 1.11.26, not released).**
 Burning Crusade and Mists name each elixir's slot only in its spell's own
 text ("... Battle Elixir."), so `tools/make_consumables.py` writes it as a

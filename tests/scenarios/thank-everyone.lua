@@ -633,6 +633,8 @@ for _, case in ipairs({
 				or path == "click.thankWhisper"
 				or path == "click.thankDelay"
 				or path == "click.thankUnseen"
+				-- Ask me before thanking (ThankPress.lua).
+				or path == "click.thankAsk"
 				-- First name only, which the whispered thank-you says too.
 				or path == "click.firstNameOnly" then
 				if not shown then fail(scenario, "the /thank is not on " .. case.label .. "'s What I say") end

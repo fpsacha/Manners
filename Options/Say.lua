@@ -16,6 +16,8 @@ THANKS_ONLY.thankEmoteMore = true
 THANKS_ONLY.thankDelay = true
 -- And thanking somebody nobody could name.
 THANKS_ONLY.thankUnseen = true
+-- And Ask me before thanking, which holds every thank for a press.
+THANKS_ONLY.thankAsk = true
 -- And First name only, which the whispered thank-you says too.
 THANKS_ONLY.firstNameOnly = true
 
@@ -118,9 +120,27 @@ function Page.BuildSpeechTab()
 				desc = L["The /thank and the whispered thank-you go out a second or three after the buff lands, so they seem less automatic. If they have gone out of sight by then, or a fight has started, nothing is sent."],
 				order = 11.6,
 				width = "full",
-				disabled = function() return not (P().thankEmote or P().thankWhisper) end,
+				-- Greyed too while the thanks wait for a press, which is no pause.
+				disabled = function() return not (P().thankEmote or P().thankWhisper) or P().thankAsk == true end,
 				get = function() return P().thankDelay end,
 				set = function(_, v) P().thankDelay = v end,
+			},
+			-- Asked for on CurseForge: a thank sent by itself does not feel
+			-- personal, and a press of your own adds that touch (ThankPress.lua).
+			-- Every thank above waits for a press of the prompt. Live while either
+			-- the /thank or the whisper is on.
+			thankAsk = {
+				type = "toggle",
+				name = L["Ask me before thanking"],
+				desc = L["Nothing goes out by itself: when somebody buffs you, the prompt offers to thank them, and your thank emote and whispered thank-you go only when you press it (a click, or the prompt's key). Left alone, the offer goes away after twenty seconds, and a fight drops it. A favour you owe or a buff your group needs comes first."],
+				order = 11.65,
+				width = "full",
+				disabled = function() return P().thankEmote ~= true and P().thankWhisper ~= true end,
+				get = function() return P().thankAsk end,
+				set = function(_, v)
+					P().thankAsk = v == true
+					ns.Guard("thank ask repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
 			},
 			-- Asked for on CurseForge by a warrior: a word of thanks to whoever
 			-- buffs him, with nothing to give back. A whisper, since /say needs

@@ -898,6 +898,9 @@ do
 	local SHARE_QUIET = {
 		["speech.quietInParty"] = true,
 		["speech.quietInRaid"] = true,
+		-- Ask me before thanking (ThankPress.lua): a paste may hold the thanks
+		-- for a press, never send them by themselves again.
+		["prompt.thankAsk"] = true,
 	}
 
 	-- How an ask is said and where (Ask.lua), kept as the player has it while
@@ -1676,9 +1679,12 @@ local function PrintFavourWatch(self, db, now)
 		or L["thank with an emote: |cffff0000off|r"]))
 	local thanks = ns.thankLog or {}
 	-- Wait a moment before thanking, and the thank waiting out its pause.
-	if db.prompt.thankDelay == true then
+	-- Not while the thanks wait for a press, which leaves the pause out.
+	if db.prompt.thankDelay == true and db.prompt.thankAsk ~= true then
 		self:Print("    " .. L["wait a moment before thanking: |cff00ff00on|r"])
 	end
+	-- Ask me before thanking (ThankPress.lua), and each thank waiting for a press.
+	for _, line in ipairs(ns.ThankPressLines and ns.ThankPressLines(now) or {}) do self:Print("    " .. line) end
 	if thanks.waiting then
 		self:Print(("    " .. L["waiting to thank: |cffffffff%s|r"]):format(thanks.waiting.name))
 	end

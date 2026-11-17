@@ -93,6 +93,8 @@ function Prompt:ReasonText(entry)
 	local p = ns.db.profile.prompt
 	-- Somebody to ask for a buff (Ask.lua): the line says so, and for what.
 	if entry.ask then return ns.Ask.Reason(entry) end
+	-- A thank-you waiting for a press (ThankPress.lua): for what they gave you.
+	if entry.thank then return ns.ThankPress.Reason(entry) end
 	-- A group cast's second line is what it is and for how many, which no
 	-- reason line the player wrote can say.
 	local group = entry.groupCast
@@ -253,6 +255,12 @@ function Prompt:MovedOn(top)
 	if top.groupCast then
 		ns.addon:Print(L["the prompt has moved on to |cffffffff%s|r -- press again to cast |cffffffff%s|r on them all."]
 			:format(top.groupCast.label or "?", ns.EntrySpellName(top)))
+		return
+	end
+	-- A thank-you (ThankPress.lua): the next press thanks them, and casts nothing.
+	if top.thank then
+		ns.addon:Print(L["the prompt has moved on to thanking |cffffffff%s|r -- press again to thank them."]
+			:format(tostring(top.short or top.name)))
 		return
 	end
 	ns.addon:Print(L["the prompt has moved on to |cffffffff%s|r -- press again to buff them."]

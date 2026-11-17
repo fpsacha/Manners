@@ -62,18 +62,18 @@ mutate("Favours.lua",
 mutate("Favours.lua",
        "\t\tlocal why = Held(seen)\n"
        "\t\tif why then return why end\n"
-       "\t\tif Answer(UnitExists, \"target\")",
-       "\t\tif Answer(UnitExists, \"target\")",
+       "\t\tif not noTarget and Answer(UnitExists, \"target\")",
+       "\t\tif not noTarget and Answer(UnitExists, \"target\")",
        "thank-unseen: held by nothing",
        expect="thank-unseen: never in a fight", script=S)
 
 mutate("Favours.lua",
        "\t\tlocal why = Held(seen)\n"
        "\t\tif why then return why end\n"
-       "\t\tif Answer(UnitExists, \"target\")",
+       "\t\tif not noTarget and Answer(UnitExists, \"target\")",
        "\t\tlocal why = InCombatLockdown() and Held(seen) or nil\n"
        "\t\tif why then return why end\n"
-       "\t\tif Answer(UnitExists, \"target\")",
+       "\t\tif not noTarget and Answer(UnitExists, \"target\")",
        "thank-unseen: held only in a fight",
        expect="thank-unseen: never in a dungeon", script=S)
 
@@ -89,7 +89,7 @@ mutate("Battle.lua",
        expect="thank-unseen: never in a battleground", script=S)
 
 mutate("Favours.lua",
-       "\t\tif Answer(UnitExists, \"target\") ~= false then return L[\"you have somebody targeted\"] end\n",
+       "\t\tif not noTarget and Answer(UnitExists, \"target\") ~= false then return L[\"you have somebody targeted\"] end\n",
        "",
        "thank-unseen: the emote goes at whoever is targeted",
        expect="thank-unseen: never with somebody targeted", script=S)

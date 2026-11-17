@@ -714,6 +714,10 @@ local defaults = {
 			-- ThankByName; asked for on CurseForge). Off: an emote at nobody is
 			-- still seen by everybody near.
 			thankUnseen = false,
+			-- Every thank above waits for a press of the prompt instead of going
+			-- out by itself (ThankPress.lua; asked for on CurseForge). Off: the
+			-- thanks go as they always have.
+			thankAsk = false,
 			-- full | calm: calm is the prompt without the animations.
 			effects = "full",
 			-- The global cooldown swept over the spell icon.
@@ -1267,6 +1271,8 @@ function ns.CanCastAnything()
 	if ns.AskLive and ns.AskLive() then return true end
 	-- Or a cure, with one of its switches on (Cures.lua).
 	if ns.CuresWanted and ns.CuresWanted() then return true end
+	-- Or a thank-you waiting for a press (ThankPress.lua, Ask me before thanking).
+	if ns.ThankPending and ns.ThankPending() then return true end
 	return caps.anyKnown == true or caps.anyOwnKnown == true
 end
 
@@ -1302,6 +1308,8 @@ function ns.BuffInfo(buff)
 	if buff.res then return buff.info end
 	-- Another class's buff you can ask for (Ask.lua) brings its own answers.
 	if buff.askInfo then return buff.askInfo end
+	-- A thank-you waiting for a press (ThankPress.lua): the buff they gave you.
+	if buff.thankInfo then return buff.thankInfo end
 	-- A cure is no buff of the set, and answers for itself (Cures.lua).
 	if buff.cure then return ns.CureInfo(buff) end
 	if buff.own then

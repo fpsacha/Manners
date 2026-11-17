@@ -140,6 +140,8 @@ do
 				-- The whispered thank-you (1.11.15) is the /thank's too.
 				local keep = key == "thankEmote" or key == "thankEmoteToken" or key == "thankEmoteMore" or key == "speechHeader"
 					or key == "thankWhisper" or key == "thankDelay" or key == "thankUnseen"
+					-- Ask me before thanking (ThankPress.lua).
+					or key == "thankAsk"
 					-- First name only, which the whispered thank-you says too.
 					or key == "firstNameOnly"
 				if keep and not shown(control) then
