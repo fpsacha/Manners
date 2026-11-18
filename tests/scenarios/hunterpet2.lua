@@ -30,7 +30,7 @@ local function base(key)
 end
 
 local NAMES = { [883] = "Call Pet", [982] = "Revive Pet", [136] = "Mend Pet", [6991] = "Feed Pet", [433] = "Food",
-	[83243] = "Call Pet 3", [2641] = "Dismiss Pet", [430] = "Drink", [1515] = "Tame Beast", [2649] = "Growl" }
+	[83243] = "Call Pet 3", [2641] = "Dismiss Pet", [430] = "Drink", [1515] = "Tame Beast", [2649] = "Growl", [75] = "Auto Shot" }
 local MESSAGES = { [51] = "ERR_PET_SPELL_DEAD", [52] = "ERR_NO_PET", [53] = "SPELL_FAILED_WRONG_PET_FOOD",
 	[54] = "SPELL_FAILED_FOOD_LOWLEVEL" }
 local HUNTER = { [883] = true, [982] = true, [136] = true, [6991] = true }
@@ -105,7 +105,7 @@ local function install()
 	})
 	local spell = base("C_Spell")
 	rawset(_G, "C_Spell", setmetatable({
-		GetSpellName = function(id) return NAMES[id] or (spell and spell.GetSpellName(id)) end,
+		GetSpellName = function(id) P.nameAsks = (P.nameAsks or 0) + 1 return NAMES[id] or (spell and spell.GetSpellName(id)) end,
 		-- The game's word on paying for a spell: no for want of mana with P.noMana.
 		IsSpellUsable = function() if P.noMana then return false, true end return true, false end,
 		IsSpellInRange = function() return P.inRange end,
@@ -986,5 +986,79 @@ do
 		again.InCity = function() return false end
 		event("PLAYER_ENTERING_WORLD", true, false)
 		if said():find("slept by the fire", 1, true) then fail(scenario, "a night at the inn told after its switch went off") end
+	end)
+end
+
+-- ------------------------------------------------------------------ review fixes
+do
+	local scenario = "hunterpet2: the memory is held by Bond with my pet"
+	with(scenario, { flavour = "vanilla" }, function(ns)
+		ns.db.profile.beast.bond = false
+		fight(50)
+		ns.db.char.beasts.Humar.fights = 99
+		Mock.advance(1201)
+		fight(50)
+		if ns.db.char.beasts.Humar.fights ~= 99 then fail(scenario, "a fight counted with Bond off: " .. memory(ns)) end
+		if said():find("fights shared", 1, true) then fail(scenario, "a milestone said with Bond off") end
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 6991)
+		if ns.db.char.beasts.Humar.meals ~= 0 then fail(scenario, "a meal counted with Bond off") end
+		if memory(ns) ~= "" and ns.BeastLines and table.concat(ns.BeastLines(), "\n"):find("fights", 1, true) then
+			fail(scenario, "the memory is in the check-up with Bond off")
+		end
+	end)
+end
+
+do
+	local scenario = "hunterpet2: Manners off says no milestone"
+	with(scenario, { flavour = "vanilla" }, function(ns)
+		ns.BuildQueue()
+		fight(50)
+		ns.db.profile.enabled = false
+		ns.db.char.beasts.Humar.meals = 24
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 6991)
+		if said():find("meals from you", 1, true) then fail(scenario, "a milestone said with Manners off") end
+		if ns.db.char.beasts.Humar.meals ~= 24 then fail(scenario, "a meal counted with Manners off") end
+	end)
+end
+
+do
+	local scenario = "hunterpet2: your casts cost no name lookup each"
+	with(scenario, { world = function(p) p.happy = 2 end }, function(ns)
+		ns.BuildQueue()
+		event("PLAYER_REGEN_DISABLED")
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-0", 75)
+		P.nameAsks = 0
+		for i = 1, 10 do event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-" .. i, 75) end
+		if P.nameAsks > 0 then fail(scenario, "10 casts of one spell asked the client " .. P.nameAsks .. " times") end
+	end)
+end
+
+do
+	local scenario = "hunterpet2: a drink is no meal to share"
+	with(scenario, { world = function(p) p.happy, p.bags = 2, { 117 } end }, function(ns)
+		ns.BuildQueue()
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 430)
+		P.playerAuras.Drink = true
+		if pets(ns).feed or pets(ns).bond then fail(scenario, "the pet is offered during the drink: " .. dump(ns)) end
+		P.playerAuras = {}
+		event("UNIT_AURA", "player")
+		local list = pets(ns)
+		if list.bond and list.bond.bond == "share" then fail(scenario, "a share offered after a drink: " .. dump(ns)) end
+	end)
+end
+
+do
+	local scenario = "hunterpet2: a not now to a share is one to Feed"
+	with(scenario, { world = function(p) p.happy, p.bags = 2, { 117 } end }, function(ns)
+		ns.BuildQueue()
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 433)
+		P.playerAuras.Food = true
+		P.playerAuras = {}
+		event("UNIT_AURA", "player")
+		local list = pets(ns)
+		if not (list.bond and list.bond.bond == "share") then fail(scenario, "no share to dismiss: " .. dump(ns)) return end
+		ns.Beast.DismissEntry(list.bond, false)
+		local after = pets(ns)
+		if after.feed or after.bond then fail(scenario, "another ask at once after the not now: " .. dump(ns)) end
 	end)
 end

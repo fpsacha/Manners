@@ -197,7 +197,12 @@ local function Pace()
 	local beast = Switches(Profile())
 	return K.PACE[beast and beast.pace] or K.PACE.sometimes
 end
-local function Remembers() return On(Switches(Profile()), "memory") end
+-- The memory is a piece of Bond with my pet: held by it, by the master and by Manners itself.
+local function Remembers()
+	local db = Profile()
+	local beast = Switches(db)
+	return db ~= nil and db.enabled == true and On(beast, "memory") and beast.bond == true
+end
 -- A pace a hand-edited or pasted profile damaged, put back (Core.lua, ClampSettings).
 function ns.BeastClamp(profile)
 	local beast = type(profile) == "table" and profile.beast
@@ -807,11 +812,19 @@ local function MealNames()
 	end
 	return mealNames
 end
-local function IsMeal(spell)
+-- What a spell id is, asked of the client once per id and kept: "food", "drink" or false.
+-- Every cast of yours comes through here, so a repeat costs a table read.
+local mealKind = {}
+local function MealKind(spell)
+	if type(spell) ~= "number" then return false end
+	local kind = mealKind[spell]
+	if kind ~= nil then return kind end
 	local names = MealNames()
 	if not names then return false end
 	local name = ns.SpellNameFor(spell)
-	return name == names[1] or name == names[2]
+	kind = (name == names[1] and "food") or (name == names[2] and "drink") or false
+	mealKind[spell] = kind
+	return kind
 end
 -- A meal on you now: a protected read of your own aura, only while a meal is waited on.
 local function Eating()
@@ -829,10 +842,11 @@ function MealCheck()
 	clock.mealUntil = nil
 	After(0, RepaintNow)
 end
-local function MealStart(now)
+local function MealStart(now, kind)
 	clock.mealUntil = now + K.MEAL_MAX
 	After(K.MEAL_MAX + 0.05, RepaintNow)
-	if not FEEDS[FLAVOUR] then return end
+	-- Drink is no meal to share: the care waits for it, but no bite is offered.
+	if kind ~= "food" or not FEEDS[FLAVOUR] then return end
 	if not On(Switches(Profile()), "share") then return end
 	Pet(now)
 	if not (st.out and (st.happy or 3) < 3 and KnownAny(K.FEED)) then return end
@@ -1273,7 +1287,11 @@ function Beast.DismissEntry(entry, fromRow)
 	elseif kind then
 		ns.MarkAttempted("?pet:" .. kind, "beast:" .. kind, K.NOT_NOW[kind] or 300)
 	elseif entry and entry.bond then
-		if moment == entry.moment then moment = nil end
+		if moment == entry.moment then
+			-- A "not now" to a shared meal is one to the feeding too, not a second ask at once.
+			if moment and moment.kind == "share" then ns.MarkAttempted("?pet:feed", "beast:feed", K.NOT_NOW.feed) end
+			moment = nil
+		end
 	end
 	local db = Profile()
 	if db and db.verbose then addon:Print(L["Right-click: not now."]) end
@@ -1290,6 +1308,7 @@ function Beast.DismissName(name, S)
 	if S and S.current and S.current.name == name then return Beast.Dismiss(S) end
 	local kind = type(name) == "string" and name:match("^%?pet:(%a+)$")
 	if kind == "bond" then
+		if moment and moment.kind == "share" then ns.MarkAttempted("?pet:feed", "beast:feed", K.NOT_NOW.feed) end
 		moment = nil
 	elseif kind then
 		return Beast.DismissEntry({ care = kind }, S and S.isRow)
@@ -1400,9 +1419,11 @@ function ns.BeastLines(now)
 		out[#out + 1] = L["food for your pet: %s (%s)"]:format(ItemName(food.item), tostring(food.why))
 	end
 	if lastRefusal then out[#out + 1] = L["last refusal for your pet: %s"]:format(lastRefusal) end
-	for _, line in ipairs(Beast.MemoryLines()) do
-		local name, rest = line:match("^(.-)(: .*)$")
-		out[#out + 1] = name and ("|cffffffff" .. name .. "|r" .. rest) or line
+	if Remembers() then
+		for _, line in ipairs(Beast.MemoryLines()) do
+			local name, rest = line:match("^(.-)(: .*)$")
+			out[#out + 1] = name and ("|cffffffff" .. name .. "|r" .. rest) or line
+		end
 	end
 	return out
 end
@@ -1494,8 +1515,9 @@ local function Cast(event, spell)
 			clock.diedInFight = nil
 		elseif spell == K.TAME then
 			clock.tamedAt = now
-		elseif IsMeal(spell) then
-			MealStart(now)
+		else
+			local meal = MealKind(spell)
+			if meal then MealStart(now, meal) end
 		end
 		st.dirty = true
 	elseif press.at and now - press.at < 30 and press.kind and press.kind ~= "bond" then

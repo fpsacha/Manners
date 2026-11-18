@@ -301,3 +301,34 @@ mutate("HunterPet.lua",
        "st.name and ns.Resting()",
        "hunterpet2: a night kept with its switch off",
        expect=H2 + "the inn line keeps to its switch", script=S)
+
+# ------------------------------------------------ review fixes
+mutate("HunterPet.lua",
+       "return db ~= nil and db.enabled == true and On(beast, \"memory\") and beast.bond == true",
+       "return On(beast, \"memory\")",
+       "hunterpet2: the memory outside Bond and Manners' own switch",
+       expect=H2 + "the memory is held by Bond with my pet", script=S)
+
+mutate("HunterPet.lua",
+       "return db ~= nil and db.enabled == true and On(beast, \"memory\") and beast.bond == true",
+       "return db ~= nil and On(beast, \"memory\") and beast.bond == true",
+       "hunterpet2: a milestone said with Manners off",
+       expect=H2 + "Manners off says no milestone", script=S)
+
+mutate("HunterPet.lua",
+       "	mealKind[spell] = kind\n",
+       "",
+       "hunterpet2: every cast asks the client its name",
+       expect=H2 + "your casts cost no name lookup each", script=S)
+
+mutate("HunterPet.lua",
+       "if kind ~= \"food\" or not FEEDS[FLAVOUR] then return end",
+       "if not FEEDS[FLAVOUR] then return end",
+       "hunterpet2: a drink offered as a meal to share",
+       expect=H2 + "a drink is no meal to share", script=S)
+
+mutate("HunterPet.lua",
+       "if moment and moment.kind == \"share\" then ns.MarkAttempted(\"?pet:feed\", \"beast:feed\", K.NOT_NOW.feed) end\n			moment = nil",
+       "moment = nil",
+       "hunterpet2: a not now to a share lets Feed ask at once",
+       expect=H2 + "a not now to a share is one to Feed", script=S)
