@@ -125,8 +125,8 @@ mutate("HunterPet.lua",
 
 # ------------------------------------------------ the new moments
 mutate("HunterPet.lua",
-       "now - clock.tamedAt <= K.TAME_WINDOW",
-       "true",
+       "if clock.tamedAt and now - clock.tamedAt <= K.TAME_WINDOW then\n\t\t\tclock.tamedAt = nil",
+       "if true then\n\t\t\tclock.tamedAt = nil",
        "hunterpet2: a pet tamed long ago welcomed",
        expect=H2 + "a newly tamed pet", script=S)
 
@@ -291,7 +291,7 @@ mutate("Options/Advanced.lua",
 
 # ------------------------------------------------ the inn line
 mutate("HunterPet.lua",
-       "if clock.morning and On(Switches(Profile()), \"morning\") and",
+       "if clock.morning and Profile() and Profile().enabled == true and On(Switches(Profile()), \"morning\") and",
        "if clock.morning and",
        "hunterpet2: the inn line said with its switch off",
        expect=H2 + "the inn line keeps to its switch", script=S)

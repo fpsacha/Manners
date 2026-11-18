@@ -221,8 +221,8 @@ mutate("HunterPet.lua",
        expect="hunterpet: a pet that died in a fight is revived, not called", script=S)
 
 mutate("HunterPet.lua",
-       "\t\t\tchar.beastDead = nil\n\t\t\tTrigger(ReviveMoment(), now)\n",
-       "\t\t\tchar.beastDead = nil\n",
+       "\t\t\tchar.beastDead = nil\n\t\t\tclock.tamedAt = nil\n\t\t\tTrigger(ReviveMoment(), now)\n",
+       "\t\t\tchar.beastDead = nil\n\t\t\tclock.tamedAt = nil\n",
        "hunterpet: no welcome after a revive",
        expect="hunterpet: revive when the pet is dead, never for a ghost", script=S)
 
@@ -257,8 +257,8 @@ mutate("HunterPet.lua",
        expect="hunterpet: mend waits for its own heal and for the pet's fight", script=S)
 
 mutate("HunterPet.lua",
-       "\t\tand open(\"mend\") and not Wears(\"mendOn\", MEND_SET) then\n",
-       "\t\tand open(\"mend\") then\n",
+       "\t\tand open(\"mend\") and not Wears(\"mendOn\", MEND_SET) and not MendOutOfRange() then\n",
+       "\t\tand open(\"mend\") and not MendOutOfRange() then\n",
        "hunterpet: Mend over its own heal",
        expect="hunterpet: mend waits for its own heal and for the pet's fight", script=S)
 

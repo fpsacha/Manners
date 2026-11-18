@@ -301,7 +301,7 @@ mutate("Favours.lua",
        expect="thankpress: a press the game refuses says so", script=S)
 
 mutate("ThankPress.lua",
-       "\tif thankNow and thankNow.Held(pending[1].seen) then return queue, verdicts end\n",
+       "\tif thankNow and thankNow.Held(pending[1].seen) then\n\t\tUnshown()\n\t\treturn queue, verdicts\n\tend\n",
        "",
        "thankpress: a thank offered while stealthed",
        expect="thankpress: stealthed, the thank is kept off the prompt until you show yourself", script=S)

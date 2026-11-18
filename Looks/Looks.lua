@@ -560,7 +560,12 @@ function Looks.RepairClassLook(p)
 		end
 	end
 	local own = p.profileStyle
-	if own ~= nil and not (type(own) == "string" and Looks.list[own]) then own = nil end
+	if own ~= nil and not (type(own) == "string" and Looks.list[own]) then
+		-- A look this build does not know: the default, as the style's own check
+		-- does, not whatever class look the last character left on style.
+		local default = ns.defaults.profile.prompt.style
+		own = Looks.list[default] and default or nil
+	end
 	if p.classLook ~= true then
 		-- Off (turned off, or by an import or a reset): the profile's own look back.
 		if own then p.style = own end

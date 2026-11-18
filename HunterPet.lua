@@ -379,6 +379,8 @@ local function ReadPet(now)
 		if name then
 			if renamed.from then Rename(char, name, st.family, now) end
 			char.beastLast = name
+			-- A pet just tamed starts a record of its own, whatever name an earlier one had.
+			if not wasOut and clock.tamedAt and now - clock.tamedAt <= K.TAME_WINDOW then char.beasts[name] = nil end
 			local rec, fresh, before = Record(char, name, st.family)
 			if not wasOut and rec and Arrived then Arrived(rec, fresh, before, now) end
 		end
@@ -653,13 +655,21 @@ local function CareHeld(db, now)
 	return nil
 end
 
+-- Mend Pet refused for range, as the in-fight button reads it (Prompt/MendPet.lua);
+-- a client that will not say still offers it.
+local function MendOutOfRange()
+	local range = _G.C_Spell and _G.C_Spell.IsSpellInRange
+	local id = KnownAny(K.MEND)
+	return type(range) == "function" and id ~= nil and plain(range(id, "pet")) == false
+end
+
 -- The care the pet wants now, by the switches, before the holds: a kind, and
 -- the food for Feed.
 local function CareWanted(beast, char, now)
 	local function open(kind) return not ns.IsBlocked("?pet:" .. kind, "beast:" .. kind, now) end
 	local dead = st.dead
 	if dead then
-		if beast.revive == true and Known(K.SPELL.revive) and open("revive") then return "revive" end
+		if beast.revive == true and Known(K.SPELL.revive) and not Known(K.LONE_WOLF) and open("revive") then return "revive" end
 		return nil
 	end
 	if not st.exists then
@@ -671,7 +681,7 @@ local function CareWanted(beast, char, now)
 	end
 	if not st.out or st.fighting then return nil end
 	if beast.mend == true and not mendHeld and st.health and st.health < K.MEND_BELOW and KnownAny(K.MEND)
-		and open("mend") and not Wears("mendOn", MEND_SET) then
+		and open("mend") and not Wears("mendOn", MEND_SET) and not MendOutOfRange() then
 		return "mend"
 	end
 	if not (moment and moment.kind == "share") and beast.feed == true and FEEDS[FLAVOUR] and st.happy and st.happy < 3 and KnownAny(K.FEED) and open("feed")
@@ -988,6 +998,11 @@ local function Offer(queue, verdicts, now)
 	Pet(now)
 	st.dead = (st.exists and not st.out) or (not st.exists and char.beastDead ~= nil)
 	last.care, last.held = nil, nil
+	-- Food fixed when the meal began may be gone from the bags since.
+	if moment and moment.kind == "share" then
+		local count = _G.C_Item and _G.C_Item.GetItemCount or _G.GetItemCount
+		if type(count) == "function" and plain(count(moment.item)) == 0 then moment = nil end
+	end
 	-- The holds first: what the pet wears and the bags are read only when
 	-- care could be offered at all.
 	local held = CareHeld(db, now)
@@ -1494,6 +1509,7 @@ local function Cast(event, spell)
 	if event == "UNIT_SPELLCAST_SUCCEEDED" then
 		if spell == K.SPELL.revive then
 			char.beastDead = nil
+			clock.tamedAt = nil
 			Trigger(ReviveMoment(), now)
 		elseif spell == K.FEED[1] or spell == K.FEED[2] then
 			-- One meal, whichever of the two ids the client reports, or both.
@@ -1513,6 +1529,7 @@ local function Cast(event, spell)
 		elseif K.CALLS[spell] then
 			char.beastCall, char.beastAway = spell, nil
 			clock.diedInFight = nil
+			clock.tamedAt = nil
 		elseif spell == K.TAME then
 			clock.tamedAt = now
 		else
@@ -1612,7 +1629,7 @@ local function OnEvent(event, ...)
 		if a == true then
 			clock.loginAt, clock.greeted, clock.quietSince = now, false, now
 			clock.morning = type(night) == "table" and type(night.name) == "string" and night.name or nil
-			if clock.morning and On(Switches(Profile()), "morning") and Switches(Profile()).bond == true then addon:Print(L["%s slept by the fire at the inn."]:format(clock.morning)) end
+			if clock.morning and Profile() and Profile().enabled == true and On(Switches(Profile()), "morning") and Switches(Profile()).bond == true then addon:Print(L["%s slept by the fire at the inn."]:format(clock.morning)) end
 			After(K.HELLO_AFTER, function()
 				ns.Guard("pet hello", function()
 					local at = GetTime()

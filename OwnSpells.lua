@@ -341,7 +341,13 @@ function OS.Repair(char)
 			local name = type(e.name) == "string" and Trim(e.name) or nil
 			if name == "" then name = nil end
 			if name and #name > 100 then name = name:sub(1, 100) end
-			out[#out + 1] = { id = e.id, name = name, seen = e.seen == true or nil }
+			-- The entry itself stays: Sync's watch holds this very table.
+			local seen = e.seen == true
+			for k in pairs(e) do
+				if k ~= "id" then e[k] = nil end
+			end
+			e.name, e.seen = name, seen or nil
+			out[#out + 1] = e
 		end
 	end
 	wipe(list)
@@ -391,6 +397,12 @@ do
 		if id == nil or watch[id] == nil then return end
 		sentTo[id] = ns.plain(target) or ""
 	end
+	-- Only a spell the client says cannot be cast on you (Mend Pet) is read from a
+	-- cast at the pet; one that can land on you waits for a cast on you.
+	local function CannotTargetMe(id)
+		local range = C_Spell and C_Spell.IsSpellInRange
+		return type(range) == "function" and ns.plain(range(id, "player")) == nil
+	end
 	local succeeded = addon.UNIT_SPELLCAST_SUCCEEDED
 	function addon:UNIT_SPELLCAST_SUCCEEDED(event, unit, castGUID, spellId, ...)
 		if succeeded then succeeded(self, event, unit, castGUID, spellId, ...) end
@@ -402,7 +414,8 @@ do
 		sentTo[id] = nil
 		if InCombatLockdown() then return end
 		local me = IsMe(target)
-		if me == false then return end
+		-- A cast the client sent to your own pet (Mend Pet) is read like one on you.
+		if me == false and not (target == ns.plain(UnitName("pet")) and CannotTargetMe(id)) then return end
 		if me == nil and ns.safecall(C_Spell and C_Spell.IsSpellHelpful, id) == true then return end
 		C_Timer.After(VERDICT_SECONDS, function() ns.Guard("own spell verdict", Judge, entry) end)
 	end

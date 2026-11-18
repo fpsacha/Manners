@@ -160,7 +160,7 @@ mutate("OwnSpells.lua",
        expect="ownspell: no verdict in a fight", script=S)
 
 mutate("OwnSpells.lua",
-       "\t\tif me == false then return end\n",
+       "\t\tif me == false and not (target == ns.plain(UnitName(\"pet\")) and CannotTargetMe(id)) then return end\n",
        "",
        "ownspell: judged after a cast on somebody else",
        expect="ownspell: cast on somebody else, no verdict", script=S)

@@ -17,6 +17,23 @@
   that Manners does not know; each is reminded like your other own buffs.
   Kept for each character. Asked for on CurseForge.
 
+### Fixes
+- **A spell for your pet is judged.** A spell of your own that only lands on
+  your pet, such as Mend Pet, is taken off the list like any that leaves no
+  aura on you, instead of being offered again and again.
+- **A look tried with the pointer stays on its own profile.** Switching
+  profile while the pointer rests on a look no longer leaves that look saved
+  on the old one or overwrites the new one's.
+- **A thank-you the prompt lost is not held against its giver.** One pushed
+  aside by a group buff no longer lapses unseen and stops the giver being
+  thanked for half an hour.
+- **A hunter's pet.** Mend Pet is not offered to a pet out of its range, nor
+  Revive Pet with Lone Wolf. A newly tamed pet with an earlier pet's name is
+  welcomed as new. A shared meal is not offered once the food is gone, and the
+  inn greeting is quiet while Manners is off.
+- **A profile's own look.** One this version no longer has falls back to Glass,
+  not to another class's look.
+
 ## 1.11.28
 
 *17 November 2026*
