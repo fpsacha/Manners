@@ -135,7 +135,7 @@ Or just `/thank` them with an emote (off by default, never in a fight, a dungeon
 
 ### Looks
 
-- **Twenty-nine looks**, each a painting, picked from cards on four shelves in the options window: from Glass, the default, after the game's own action bar, to a paladin's Lightbringer, a shaman's Stormcaller, a death knight's Ebon runeblade or the Horde's Warchief, each with its own way of greeting a favour and a landed buff (the pictures above show them all). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Twenty-nine looks**, each a painting, picked from cards on four shelves in the options window: from Glass, the default, after the game's own action bar, to a paladin's Lightbringer, a shaman's Stormcaller, a death knight's Ebon runeblade or the Horde's Warchief, each with its own way of greeting a favour and a landed buff (the pictures above show them all). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still. Turn on *Use my class's look on each character* and each character on a profile wears the look made for its class.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **A flat prompt, if you like:** on Glass, Framed and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go. The game's Edit Mode unlocks it too, and locks it again when it closes.

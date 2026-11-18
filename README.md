@@ -745,6 +745,8 @@ that look at once; move off and yours comes back; click to keep it (not in a
 fight, where a look waits for the fight to end). A small *New* marks the
 looks new in this release.
 
+*Use my class's look on each character*, over the cards, has each character on the profile wear the look made for its class: a druid the Druid look, a paladin the Paladin look. A mage wears the mage look you last clicked on a mage, else Frost Mage; any other look you click becomes the profile's own, which every character wears with the switch off. A line under the tabs says which look is in use and why.
+
 Under the cards, headed with the chosen look's name, are its own settings.
 Every look's frame is a painting; *Earlier art* keeps the frames they had
 before the repaint, and the cards then show those.
@@ -1189,6 +1191,7 @@ cannot send it to somebody else by mistake.
 
 ### Look
 
+- *Use my class's look on each character* (off): each character on the profile wears the look made for its class, a mage the mage look last clicked on a mage, else Frost Mage. Another look clicked is the profile's own, worn with it off.
 - ***Panel style***: the twenty-nine cards under tabs (*For my class*, *All*,
   *Minimal*, *Classic*, *Themed*, *Class*), a look tried on the prompt as you
   point at it. Under them, headed with the chosen look's name: *Earlier art*

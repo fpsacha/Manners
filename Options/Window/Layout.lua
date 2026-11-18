@@ -747,7 +747,9 @@ ns.WindowLayout = {
 				-- place of the model's dropdown, which the fallback dialog keeps:
 				-- tabs over the cards, a look tried on the prompt under the
 				-- pointer. Across the page's whole width (spans).
+				-- Use my class's look on each character leads it, over the tabs.
 				{ key = "appearance.themes", title = L["Panel style"], items = {
+					"appearance.classLook",
 					{ "appearance.style", widget = "themes" },
 				} },
 				-- Straight under it, open, headed by the chosen look's name: what
@@ -1041,6 +1043,7 @@ ns.WindowLayout = {
 			["click.quietInParty"] = true, ["click.quietInRaid"] = true,
 			-- Look.
 			["appearance.style"] = true, ["appearance.classicArt"] = true, ["appearance.keycap"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
+			["appearance.classLook"] = true,
 			["appearance.scale"] = true, ["appearance.alpha"] = true,
 			["appearance.soundEnabled"] = true, ["appearance.soundFile"] = true,
 			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,
@@ -1142,6 +1145,10 @@ ns.WindowLayout = {
 		["appearance.hideInFight"] = L["window frame invisible fight"],
 		-- Asked for as moving "the bar".
 		["appearance.moveInEditMode"] = L["bar position drag place"],
+		-- The gallery answers a search for look as the switch over it does.
+		["appearance.style"] = L["look skin appearance design"],
+		-- Asked for as For my class "on each character", for alts.
+		["appearance.classLook"] = L["class character alt alts each per own"],
 		-- Asked for as profiles that "auto switch in raid, instance, normal".
 		["profiles.autoEnabled"] = L["auto raid dungeon instance battleground arena world normal"],
 		-- Asked for as thanking "with a mouse button press", for a personal touch.

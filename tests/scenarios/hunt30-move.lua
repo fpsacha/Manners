@@ -300,7 +300,8 @@ do
 	with(scenario, "MAGE", function(ns, UI)
 		local list, sections = H.pagePaths(ns, "appearance")
 		list = list or {}
-		if list[1] == "appearance.style" then table.remove(list, 1) end
+		-- Panel style's section: the switch over the cards, then the gallery.
+		while list[1] == "appearance.classLook" or list[1] == "appearance.style" do table.remove(list, 1) end
 		-- The chosen look's own settings stand under the gallery, in a section
 		-- of their own (tests/scenarios/lookpage.lua).
 		while list[1] and sections[list[1]].key == "appearance.lookOwn" do table.remove(list, 1) end

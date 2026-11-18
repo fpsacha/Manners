@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+*17 November 2026*
+
+### Highlights
+- **A look for each class.** *Use my class's look on each character*, over
+  the cards on *Look*: on one profile a druid wears the Druid look and a
+  paladin the Paladin look. Asked for on CurseForge.
+
 ## 1.11.28
 
 *17 November 2026*

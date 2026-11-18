@@ -711,6 +711,12 @@ local defaults = {
 			-- equal to its default, so everybody who never picked a look is back on
 			-- Glass; a look somebody picked, Luxe included, is kept.
 			style = "glass",
+			-- Use my class's look on each character (Looks/Looks.lua, ONE LOOK A
+			-- CLASS): off. classStyles: CLASS -> the one of that class's own looks
+			-- picked; prompt.profileStyle (no default) is the profile's own look
+			-- while it is on.
+			classLook = false,
+			classStyles = {},
 			accentByReason = true,
 			-- standard | colourblind: which reason colours (Prompt/Prompt.lua).
 			reasonPalette = "standard",
@@ -5887,6 +5893,9 @@ function ns.ClampSettings()
 	-- Every look Looks/ registered, the three Prompt/Panel.lua draws among
 	-- them.
 	oneOf(p, "style", ns.Looks.Allowed(), ns.defaults.profile.prompt.style)
+	-- Use my class's look on each character (Looks/Looks.lua): the style this
+	-- character's class wears, and the profile's own look given back when it is off.
+	ns.Looks.RepairClassLook(p)
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "reasonPalette", { standard = true, colourblind = true }, "standard")
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")

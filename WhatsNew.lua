@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "17 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100A look for each class.|r |cffffffffUse my class's look on each character|r, over the cards on |cffffffffLook|r: on one profile a druid wears the Druid look and a paladin the Paladin look.",
+		} },
+	} },
 	{ version = "1.11.28", date = "17 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Automatic picks the best.|r Scrolls, oils, stones, lures and a warlock's stones: Automatic now takes the best for you (level, weapon, Fishing, group role, talents) rather than the one used last; a poison keeps the kind last on that hand, at its...",
@@ -100,91 +105,6 @@ ns.WhatsNew = {
 			"|cffff9a52A new character's greeting|r waits until its first buff is learned.",
 			"|cffff9a52A warrior's shout on WoW Forever|r is described as reaching the raid.",
 			"|cffff9a52A fault that keeps repeating|r is named in red on the minimap tooltip and in the options window, with |cffffffffRun a full check-up|r.",
-		} },
-	} },
-	{ version = "1.11.25", date = "14 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100More than buffs.|r Resurrection for your group's dead, cures, and water, food, portals, healthstones and summons for whoever asks.",
-			"|cffffd100Profiles that switch by themselves.|r One for the open world, one for dungeons, one for raids, one for battlegrounds, chosen as you arrive.",
-			"|cffffd100Battlegrounds and arenas|r have a section of their own on |cffffffffWhen to offer|r.",
-			"|cffffd100Four new looks and four redrawn.|r Stormcaller, Warchief, Gearworks and Ebon are new; Minimal, Ribbon, Letter and Leather are redrawn.",
-			"|cffffd100Milestones and a hall of fame.|r Thirteen marks of good manners on the favour ledger, and a place among the Gentlefolk of Good Manners for whoever earns them all.",
-			"|cffffd100A simpler options window.|r A short view of every page, columns when you drag it wide, a row for each buff, and |cffffffffWhat's new|r on |cffffffffStart here|r.",
-		} },
-		{ title = "Who gets what", accent = "7cc4ff", entries = {
-			"|cff7cc4ffYour group's pets.|r |cffffffffMy group's pets too|r (Who to buff, under |cffffffffMy party and raid|r): a hunter's beast or a warlock's demon missing your buff is offered it.",
-			"|cff7cc4ffResurrection.|r Out of a fight, a dead member of your group is offered your resurrection first of all.",
-			"|cff7cc4ffCures.|r |cffffffffCure my party and raid|r and |cffffffffCure passers-by|r (Who to buff, both off): a poison, disease, curse or harmful spell your class can remove is offered its cure, out of combat.",
-			"|cff7cc4ffCourtesies on request.|r Mages can hand out water, food and portals, and warlocks healthstones and summons, to whoever asks in chat.",
-			"|cff7cc4ffAsking for a buff.|r |cffffffffAsk people for a buff I'm missing|r (off): when somebody in your group or beside you could give you a buff you lack, a press whispers them one polite line.",
-			"|cff7cc4ffTwo Manners users share a group.|r Two of the same class in one party or raid are each offered their own part of it, so nobody is buffed twice.",
-			"|cff7cc4ffThorns for the tank, not for you.|r With a druid's Thorns on |cffffffffTanks only|r, your own is left alone in a group unless you are the tank.",
-			"|cff7cc4ffDetect Invisibility for passers-by.|r |cffffffffOffer Detect Invisibility to passers-by too|r, under a warlock's Detect Invisibility on |cffffffffWho to buff|r once that is ticked.",
-		} },
-		{ title = "Profiles", accent = "7cc4ff", entries = {
-			"|cff7cc4ffSwitch profile automatically.|r Pick a profile for the open world, a dungeon, a raid and a battleground or arena, and the character switches on arriving, never in a fight.",
-			"|cff7cc4ffNew from these settings, and rename.|r |cffffffffProfiles|r can now start a profile as a copy of the one in use and rename it; |cffffffffCopy from|r and |cffffffffReset this profile|r ask first.",
-		} },
-		{ title = "Battlegrounds and arenas", accent = "7cc4ff", entries = {
-			"|cff7cc4ffA section of their own|r on |cffffffffWhen to offer|r.",
-			"|cff7cc4ffNo tracking reminder there.|r Find Minerals or Find Herbs no longer comes up ahead of your class's buff after each death.",
-		} },
-		{ title = "Your own buffs", accent = "7cc4ff", entries = {
-			"|cff7cc4ffCompanion pet on Mists and retail.|r Switch it on under |cffffffffFood, flasks and scrolls|r (Who to buff) and Manners keeps a pet from your journal out, by |cffffffffWhich pet|r.",
-			"|cff7cc4ffWhy nothing comes up in town.|r Your own buffs wait while you rest in a city or an inn.",
-		} },
-		{ title = "What I say", accent = "7cc4ff", entries = {
-			"|cff7cc4ffYour own lines among the In character ones.|r With |cffffffffIn character|r as the set, |cffffffffMy own lines, mixed in|r takes lines of your own: about one press in three says one of them.",
-		} },
-		{ title = "Looks", accent = "7cc4ff", entries = {
-			"|cff7cc4ffA new look: Stormcaller.|r A shaman's, from Warcraft's totems and the four elements: a carved totem holds your spell, a standing stone wakes the sigil of air, fire, water or earth, and chain lightning arcs when your buff lands.",
-			"|cff7cc4ffA new look: Warchief.|r The Horde's, in Orgrimmar's black iron and red hide: a spiked slab between two tusks, the crest glowing like iron out of the forge, a war banner, a drum beat and sparks when your buff lands.",
-			"|cff7cc4ffA new look: Gearworks.|r An engineer's, in Gnomeregan's brass and Kezan's copper: your spell under the glass of a pressure gauge, three cogs turning, steam let off when a buff lands.",
-			"|cff7cc4ffA new look: Ebon.|r A death knight's runeblade of Icecrown's saronite: your spell in a socket under a skull, soulfire behind it, and three runes that kindle when somebody buffs you.",
-			"|cff7cc4ffMinimal redrawn.|r After the game's cast bar and ready check: a hairline under the words fills behind a spark when somebody buffs you, flashes with a tick when your buff lands, and runs out red with a cross when it is refused.",
-			"|cff7cc4ffRibbon redrawn.|r A pennant from the Argent Tournament: crimson damask, a forked end that flutters, and a laurelled medallion pinned on when your buff lands.",
-			"|cff7cc4ffLetter redrawn.|r After the game's quest parchment and sealed mail: a torn, folded sheet.",
-			"|cff7cc4ffLeather redrawn.|r Tooled hide as a leatherworker makes it: brass studs, a buckle, two feathers that stir, and a paw-print brand that smoulders while you owe somebody.",
-			"|cff7cc4ffEasier to read.|r Names in a deep class colour, the list's words and the lines on Fel, Ribbon, Leather, Forge and Letter are brighter; the serif names on Ribbon, Letter and Leather are larger.",
-			"|cff7cc4ffLights that should be faint are faint.|r Halos, flashes and glows meant to rest dark stood fully lit in the game on most looks.",
-		} },
-		{ title = "The favour ledger", accent = "7cc4ff", entries = {
-			"|cff7cc4ffMilestones.|r Thirteen marks of good manners, three of them hidden until earned, on a new |cffffffffMilestones|r tab of the ledger.",
-		} },
-		{ title = "Hall of fame", accent = "7cc4ff", entries = {
-			"|cff7cc4ffGentlefolk of Good Manners.|r Earn every milestone your character can and |cffffffffStart here|r shows a code and a certificate: post a screenshot of it with the code on the addon's GitHub page to have your name listed there and inside the addon.",
-		} },
-		{ title = "Options window", accent = "7cc4ff", entries = {
-			"|cff7cc4ffA simple view.|r |cffffffffSimple view|r, under the search box, draws only the short list of each page; |cffffffffShow everything|r brings the rest back, and search finds every setting in either.",
-			"|cff7cc4ffEach buff on a row of its own|r , with that buff's own switches under it.",
-			"|cff7cc4ffColumns.|r Drag the window wide and a page flows into two or three.",
-			"|cff7cc4ffSet a key.|r |cffffffffStart here|r says |cffffffffNo key yet|r until Manners is on a key, and one line in chat says where to set it, on three logins at most.",
-			"|cff7cc4ffLook's colours are folded|r with the rest of its fine print, and |cffffffffWidth|r and |cffffffffHeight|r are under |cffffffffExact position|r.",
-			"|cff7cc4ffWhat's new.|r A fold at the foot of |cffffffffStart here|r lists what the release you are running changed, most important first, with its date, and the three releases before it in brief.",
-			"|cff7cc4ffThe footer.|r Who makes Manners is larger and easier to read, and the version stands at the right.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52A buff the game keeps refusing.|r On WoW Forever the game's reason (\"A more powerful spell is already active\") comes after the refusal, and was missed: it now holds that buff off that person for ten minutes.",
-			"|cffff9a52Why nothing comes up, without a key.|r The minimap tooltip, the options window's strip and a new first line on |cffffffffDiagnostics|r say what holds the prompt back: the mana floor, or a rule for cities and inns, dungeons or battlegrounds, named with its switch and...",
-			"|cffff9a52Passers-by left alone out in the world|r with |cffffffffOnly in cities and inns|r is said in the tooltip and on |cffffffffDiagnostics|r, and by a press on the empty prompt, instead of plain |cffffffffWatching|r.",
-			"|cffff9a52A new character's greeting.|r With its buff still at the trainer, the first login says Manners starts once you learn it, and the greeting comes when you do.",
-			"|cffff9a52A warrior's shout on WoW Forever.|r |cffffffffWho to buff|r says it reaches the raid around you, not only your party, and what |cffffffffRaid groups I buff|r does for it.",
-			"|cffff9a52The dungeon switch's name.|r Ticked with |cffffffffBuff my team there|r ticked again, it reads |cffffffffOffer nothing in dungeons and raids|r, which is what it then does.",
-			"|cffff9a52Passers-by who walked off.|r Somebody still in reach now takes the prompt at once from a passer-by who has gone, instead of waiting up to ten seconds.",
-			"|cffff9a52Out of sight is not five minutes.|r A buff refused for line of sight or range keeps that person off the prompt for a few seconds, half a minute at most, and chat no longer says the game keeps refusing them.",
-			"|cffff9a52The list holds still under the cursor.|r The name you point at stays on its line until you move away, so a click buffs the person you aimed at.",
-			"|cffff9a52Greater Blessing of Kings and a Fish Bowl.|r With |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r on, the Greater Blessing no longer lands on a class with somebody sitting by one: the others get single Kings.",
-			"|cffff9a52A read-through of everything new.|r Some thirty faults put right in resurrection, cures, courtesies, asking for a buff, sharing a group, the group's pets and battlegrounds.",
-			"|cffff9a52Companion pet while Manners is off.|r Switched off or snoozed, Manners no longer brings a pet out of your journal.",
-			"|cffff9a52Sharing a group.|r Back from a battleground, the split with another Manners user is found again; a shout left to them is not offered on yourself; before the gates open every raid group is shared out.",
-			"|cffff9a52Asking in chat.|r A Korean or Chinese please beside \"water\" or a healthstone is read; \"need to drink\" no longer asks a mage for water.",
-			"|cffff9a52Resurrection tooltip.|r It says the person is dead.",
-			"|cffff9a52Milestones.|r |cffffffffNobody Left Out|r counts one buff whichever of its spells reached each person, and the one a group cast was aimed at; the ledger's |cffffffffClear|r no longer resets, or excuses, |cffffffffA Week Without a Debt|r; a toast moves off a...",
-			"|cffff9a52Options.|r Search no longer says to turn on a switch that is on, or one that would show your class nothing; with |cffffffffShow spell icon|r off its sub-options are gone; a greyed-out button shows its tooltip.",
-			"|cffff9a52Looks.|r A cure that lands reads \"cured\", not \"buffed\"; on seven looks the next favour no longer cuts a landing's flourish short; Warchief's soot fades once under a verdict; flowing art picks up where it stopped after a fight.",
-			"|cffff9a52A fight just after a crowd passed.|r A passer-by who walked off a few seconds before the pull is no longer frozen on the prompt for the fight, nor put in its rota; the fight over, the second line no longer says where the rota stood.",
-			"|cffff9a52A press in a fight keeps your enemy targeted.|r When the person whose turn it is has gone out of sight, the press no longer switches you off the mob onto whatever you had targeted before.",
-			"|cffff9a52The fight's rota goes round once.|r Each press reaches the next person the fight began with, once each; then the prompt says everybody has had a press and casts nothing, instead of buffing them all again.",
 		} },
 	} },
 }

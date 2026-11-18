@@ -296,6 +296,7 @@ local SHELVES = {
 -- my class" tab holds the player's class's, and opens first where there are any.
 -- A class with none has no such tab. Every look here is on the class shelf
 -- (tests/scenarios/lookpage.lua).
+-- It also feeds Use my class's look on each character (ONE LOOK A CLASS, below).
 Looks.FOR_CLASS = {
 	frost = "MAGE", archmage = "MAGE", firemage = "MAGE", fel = "WARLOCK", wild = "DRUID",
 	lightbringer = "PALADIN", stormcaller = "SHAMAN", ebon = "DEATHKNIGHT", leather = "HUNTER",
@@ -501,6 +502,111 @@ function Looks.ForClass(class)
 		if Looks.FOR_CLASS[key] == class then out[#out + 1] = key end
 	end
 	return out
+end
+
+---------------------------------------------------------------------------
+-- ONE LOOK A CLASS
+--
+-- Use my class's look on each character (prompt.classLook, off; the switch over
+-- the cards on Look). With it on, prompt.style is the look this character's
+-- class wears, so every reader of prompt.style is unchanged. RepairClassLook
+-- writes it (Core.lua's ClampSettings: every login, profile change, copy, reset
+-- and import), and so do SetClassLook and Pick (the Look page).
+-- prompt.classStyles holds, by class token, the one of that class's own looks
+-- (FOR_CLASS) last picked on a character of that class; prompt.profileStyle (no
+-- default) holds the profile's own look while the switch is on, and gives it
+-- back to prompt.style when the switch goes off. Nothing here runs on a scan:
+-- no pcall.
+---------------------------------------------------------------------------
+
+-- The player's class token as UnitClass names it (the probe reads the same at
+-- the same moment, Core.lua), or nil.
+function Looks.PlayerClass()
+	if type(UnitClass) ~= "function" then return nil end
+	local class = ns.plain((select(2, UnitClass("player"))))
+	return type(class) == "string" and class or nil
+end
+
+-- The look a class wears with the switch on, and why: "only" (the class has
+-- one look), "picked" (prompt.classStyles), "first" (the first of its looks in
+-- the picker's order); nil for no class or a class with no look.
+function Looks.ClassPick(p, class)
+	local mine = Looks.ForClass(class)
+	if #mine == 0 then return nil end
+	if #mine == 1 then return mine[1], "only" end
+	local picked = type(p.classStyles) == "table" and p.classStyles[class]
+	if type(picked) == "string" and Looks.FOR_CLASS[picked] == class and Looks.list[picked] then return picked, "picked" end
+	return mine[1], "first"
+end
+
+-- What the prompt wears and why, for the picker's line: the key, why ("off",
+-- "only", "picked", "first", "profile") and the class.
+function Looks.InUse(p)
+	if p.classLook ~= true then return p.style, "off" end
+	local class = Looks.PlayerClass()
+	local key, why = Looks.ClassPick(p, class)
+	if key then return key, why, class end
+	return p.profileStyle or p.style, "profile", class
+end
+
+-- ClampSettings' repair (Core.lua, after the style is checked), and where the
+-- style follows the class.
+function Looks.RepairClassLook(p)
+	if type(p.classStyles) ~= "table" then p.classStyles = {} end
+	-- A field already there set to nil during pairs is allowed in Lua 5.1.
+	for class, key in pairs(p.classStyles) do
+		if type(class) ~= "string" or type(key) ~= "string" or Looks.FOR_CLASS[key] ~= class or not Looks.list[key] then
+			p.classStyles[class] = nil
+		end
+	end
+	local own = p.profileStyle
+	if own ~= nil and not (type(own) == "string" and Looks.list[own]) then own = nil end
+	if p.classLook ~= true then
+		-- Off (turned off, or by an import or a reset): the profile's own look back.
+		if own then p.style = own end
+		p.profileStyle = nil
+		return
+	end
+	p.profileStyle = own or p.style
+	p.style = Looks.ClassPick(p, Looks.PlayerClass()) or p.profileStyle
+end
+
+-- The switch, from the Look page (Options/Look.lua).
+function Looks.SetClassLook(p, on)
+	on = on == true
+	if on == (p.classLook == true) then return end
+	if on then
+		p.profileStyle = p.style
+		-- A look of this character's class worn now is that class's pick:
+		-- turning it on never swaps a Fire Mage for the first mage look.
+		local class = Looks.PlayerClass()
+		if class and Looks.FOR_CLASS[p.style] == class then
+			if type(p.classStyles) ~= "table" then p.classStyles = {} end
+			p.classStyles[class] = p.style
+		end
+	end
+	p.classLook = on
+	Looks.RepairClassLook(p)
+end
+
+-- A look picked on the Look page (a card's click, the dropdown). Off, it is
+-- the style. On, one of this character's class's looks is that class's pick
+-- and worn now; any other look is the profile's own, worn now only by a
+-- character whose class has no look.
+function Looks.Pick(p, key)
+	if p.classLook ~= true then
+		p.style = key
+		return
+	end
+	local class = Looks.PlayerClass()
+	if class and Looks.FOR_CLASS[key] == class then
+		if type(p.classStyles) ~= "table" then p.classStyles = {} end
+		p.classStyles[class] = key
+		p.style = key
+	else
+		p.profileStyle = key
+		if not Looks.ClassPick(p, class) then p.style = key end
+	end
 end
 
 -- Whether a look's card is marked New.

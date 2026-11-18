@@ -17,6 +17,8 @@ was tried in the game. The checklist of what only the game can settle, now
 on WoW Forever in the owner's own play sessions, is the first item under
 *Open*.
 
+**A look for each class (Unreleased, asked for on CurseForge).** *Use my class's look on each character* (`prompt.classLook`, off, over the cards on Look): `Looks.RepairClassLook`, from ClampSettings, sets `prompt.style` to the look of the character's class at every login, profile change and import. A mage's pick among the mage's looks is in `prompt.classStyles`, and the profile's own look is in `prompt.profileStyle` while the switch is on. A line under the picker's tabs says which look is in use and why. `tests/scenarios/classlook.lua`, mutations in the file of the same name. What only the game can say: whether two characters sharing one profile, logged in one after the other, each come up in their own look; and whether the switch's label and the line under the tabs fit at the window's smallest width in German and French.
+
 **Tanks and me, and a campsite's buffs (Unreleased, asked for on
 CurseForge).** Thorns' *Offer to* has a fifth choice, *Tanks and me*
 (`buff.tanksMe` beside `buff.tanksOnly`): the group held to its tanks as
