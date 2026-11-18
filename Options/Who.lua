@@ -445,6 +445,9 @@ local function AddOwnControls(args)
 	table.sort(classes)
 	for _, class in ipairs(classes) do
 		for _, family in ipairs(ns.OWN_BUFFS[class]) do
+			-- The player's own added spells (OwnSpells.lua, `custom`), always last,
+			-- have no control of their own: their rows are Add a spell of my own's.
+			if family.custom then break end
 			-- A family of several classes (tracking, a stone) is made once for each,
 			-- and the last stands; a thousandth apiece keeps every one of them
 			-- inside 15.2x, ahead of Also in cities and inns at 15.9.
@@ -495,6 +498,8 @@ local function AddOwnControls(args)
 					if family.tank then
 						return L["Automatic reminds you only while your group role is tank; Always reminds you whenever it is not up."]
 					end
+					-- Fire Ward or Frost Ward (Buffs.lua, brief): outside a fight only.
+					if family.brief then return L["Reminds you when no ward is on you. Automatic takes the one you had up last, else the first you know. Outside a fight only: from the pull until the fight ends Manners offers none of your own buffs, so in a fight you recast it yourself. Off until you turn it on."] end
 					if family.enhance then
 						-- A poison keeps the kind last on its hand (Buffs.lua, byLine);
 						-- the rest take the best (Core.lua, Best).
@@ -583,6 +588,9 @@ local function AddOwnControls(args)
 					and L["Reminds you to bring out your companion pet when none is out and one is in your bags. Never in a fight, a dungeon, a raid, a battleground or an arena, nor while you are mounted, stealthed or flying, and a pet you put away stays away until you bring one out. Off until you turn it on."]
 					or family.rest
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
+					-- Mana Shield (Buffs.lua, brief): outside a fight only.
+					or family.brief
+					and L["Reminds you when it is not on you, outside a fight only: from the pull until the fight ends Manners offers none of your own buffs, so in a fight you recast it yourself. Off until you turn it on."]
 					or family.optIn
 					and L["Reminds you when it is not on you, whoever cast it. Off until you turn it on."]
 					-- Forever's Find Treasure (Buffs.lua, onceUp): nothing until it has been up.
@@ -2494,5 +2502,66 @@ function Page.BuildWhoTab()
 	AddCureControls(who.args)
 	-- And a hunter's pet, whose page is Myself alone.
 	Page.AddBeastControls(who.args)
+	-- And the spells of your own added under Myself (OwnSpells.lua), every class's.
+	Page.AddOwnSpellControls(who.args)
 	return who
+end
+
+-- Add a spell of my own (OwnSpells.lua), under Myself, after ForOthersOnly: a
+-- hunter's own buffs are all his page has. The line under Mana Shield and the
+-- wards (Buffs.lua, brief) is here too.
+function Page.AddOwnSpellControls(args)
+	local OS = ns.OwnSpells
+	args.ownBriefNote = {
+		type = "description",
+		fontSize = "medium",
+		order = 15.2999,
+		name = L["Mana Shield, Fire Ward and Frost Ward are reminded outside a fight only, as all your own buffs are: from the pull until the fight ends Manners offers none of them, so in a fight you recast them yourself. Each lasts a minute or less."],
+		hidden = function()
+			for _, family in ipairs(ns.KnownOwnFamilies()) do
+				if family.brief then return false end
+			end
+			return true
+		end,
+	}
+	if not OS then return end
+	args.ownSpellNote = {
+		type = "description",
+		fontSize = "medium",
+		order = 15.85,
+		name = L["A buff of yours that Manners does not know, for yourself: type its name as your spellbook shows it, or its spell id, and press Enter. Manners checks that this character knows it and that it is not passive or cast on an enemy, then reminds you when it is not on you, as it does your other own buffs: outside a fight, and in cities and inns only with Also in cities and inns. Up to ten, kept for this character."],
+	}
+	args.ownSpellAdd = {
+		type = "input",
+		name = L["Add a spell"],
+		desc = L["Its name as your spellbook shows it, or its spell id. Press Enter to add it."],
+		order = 15.851,
+		width = "full",
+		disabled = function() return InCombatLockdown() end,
+		-- Always empty, as Never offer's box: the answer is the line under it.
+		get = function() return "" end,
+		set = function(_, value) OS.Add(value) end,
+	}
+	args.ownSpellSaid = {
+		type = "description",
+		fontSize = "medium",
+		order = 15.852,
+		name = function() return OS.Said() or "" end,
+		hidden = function() return OS.Said() == nil end,
+	}
+	for i = 1, OS.MAX do
+		args["ownSpell" .. i] = {
+			type = "execute",
+			order = 15.853 + i / 10000,
+			width = "full",
+			name = function()
+				local row = OS.List()[i]
+				return row and L["Remove %s"]:format(OS.Label(row)) or ""
+			end,
+			desc = L["Stop reminding you of it and take it off the list. You can add it again."],
+			hidden = function() return OS.List()[i] == nil end,
+			disabled = function() return InCombatLockdown() end,
+			func = function() OS.Remove(i) end,
+		}
+	end
 end

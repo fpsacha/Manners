@@ -416,6 +416,12 @@ ns.WindowLayout = {
 					{ "who.own_magicmod", indent = true },
 					{ "who.ownDampenAlone", indent = 2 },
 					{ "who.ownAmplifyAlone", indent = 2 },
+					-- A mage's Mana Shield, and Fire Ward or Frost Ward, off until
+					-- turned on; the line under them says they are reminded outside a
+					-- fight only (Options/Who.lua, ownBriefNote).
+					{ "who.own_manashield", indent = true },
+					{ "who.own_ward", indent = true },
+					{ "who.ownBriefNote", indent = true },
 					{ "who.own_aura", indent = true },
 					{ "who.own_righteousfury", indent = true },
 					{ "who.own_innerfire", indent = true },
@@ -521,6 +527,15 @@ ns.WindowLayout = {
 					{ "who.own_familiar", indent = true },
 					{ "who.own_imbue", indent = true },
 				} },
+				-- A buff of your own Manners does not know (OwnSpells.lua): the box,
+				-- the answer to the last one typed, and a Remove for each spell.
+				{ key = "who.myselfCustom", title = L["Add a spell of my own"], items = {
+					"who.ownSpellNote",
+					"who.ownSpellAdd",
+					"who.ownSpellSaid",
+					"who.ownSpell1", "who.ownSpell2", "who.ownSpell3", "who.ownSpell4", "who.ownSpell5",
+					"who.ownSpell6", "who.ownSpell7", "who.ownSpell8", "who.ownSpell9", "who.ownSpell10",
+				} },
 				{ key = "who.myselfWhen", title = L["When my own buffs come up"], items = {
 					-- Where the reminders come up.
 					"who.ownCities",
@@ -567,7 +582,7 @@ ns.WindowLayout = {
 				{ "who.cast", "who.order" },
 				{ "who.group" },
 				{ "who.beyond" },
-				{ "who.myself", "who.myselfPet", "who.myselfWeapons", "who.myselfItems", "who.myselfWhen", "who.myselfPetMoments" },
+				{ "who.myself", "who.myselfPet", "who.myselfWeapons", "who.myselfItems", "who.myselfCustom", "who.myselfWhen", "who.myselfPetMoments" },
 				{ "who.asking" },
 				{ "who.first" },
 			},
@@ -1162,6 +1177,7 @@ ns.WindowLayout = {
 		["who.beastAll"] = L["hunter pet everything all off"], ["who.beastPace"] = L["hunter pet moments often rarely"],
 		["who.beastLeaveFood"] = L["hunter pet vendor food buy"], ["who.beastGrowl"] = L["hunter pet growl autocast tank"],
 		["who.beastTraining"] = L["hunter pet training points"], ["appearance.mendInFight"] = L["hunter pet mend fight button key"],
+		["who.ownSpellAdd"] = L["custom spell add new buff own"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the

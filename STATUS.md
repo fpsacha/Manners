@@ -796,7 +796,17 @@ Blizzard's UI source and lists the PTR numbers. A `.claude/` folder holds a
 permissions list, a hook that lints each edited file, and the commands
 `/check`, `/release`, `/bughunt`, `/translate` and `/phrases`.
 
+Unreleased: a mage's Mana Shield and Fire Ward or Frost Ward as own buffs (Classic Era, Forever, TBC); Add a spell of my own (OwnSpells.lua).
+
 ## Open
+
+**Mana Shield, the wards and Add a spell of my own (unreleased), for the game to settle.**
+1. Does GetSpellIDForSpellIdentifier or GetSpellInfo by name return the best rank known on Classic Era, TBC and Forever?
+2. Do IsSpellHarmful, IsSpellPassive and IsSpellHelpful answer for spellbook ids on Forever 1.60.1? A call that gives no answer counts as no.
+3. Is a self-buff's aura readable two seconds after UNIT_SPELLCAST_SUCCEEDED out of a fight on Forever and retail, and does UNIT_SPELLCAST_SENT name the player for a self press there?
+4. A helpful spell the game will not put on oneself is refused at each press, and only the existing self-refusal hold answers it.
+5. Retail's Fire Ward 320813 has TraitDefinition 122111, but the cache has no TraitNodeEntry; nothing is added on retail.
+6. Is the 30-second ward reminder after each expiry welcome? It is opt-in.
 
 **Automatic picks the best item (after 1.11.27, not released).** A player on
 Forever: "it should be best, based on weapon, class, skill, talent etc".

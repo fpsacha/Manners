@@ -1555,6 +1555,9 @@ ns.COMMANDS = {
 		help = L["check Manners against your game, and get a report to paste"] },
 	{ word = "dev", group = "trouble",
 		help = L["tools for testing the addon on this client: the click log, try, look and forms"] },
+	-- Add a spell of my own (OwnSpells.lua): the list, and adding or removing one.
+	{ word = "spell", group = "setup", args = " [add|remove <name or id>]",
+		help = L["list the spells of your own Manners reminds you of, or add or remove one"] },
 }
 
 -- The in-game diagnosis for clients and classes nobody here can play, listed by
@@ -1663,6 +1666,8 @@ local REPAINT_AFTER = {
 	-- Not a setting, but Start here says whether the macro is made, and warns
 	-- in the sidebar while there is neither a key nor a macro.
 	macro = true,
+	-- The spells of your own, drawn on Who to buff under Myself.
+	spell = true,
 }
 
 -- /manners debug's lines about somebody buffing you being noticed: the walk of
@@ -1933,6 +1938,8 @@ function addon:HandleSlash(rawInput)
 				self:Print(L["nobody called %s is on your never-offer list."]:format(rest))
 			end
 		end
+	elseif input == "spell" then
+		ns.OwnSpells.Slash(rest)
 	elseif input == "snooze" then
 		local arg = rest:lower()
 		if arg == "off" or arg == "stop" or arg == "end" then

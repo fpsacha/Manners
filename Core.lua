@@ -5757,6 +5757,8 @@ function ns.ClampSettings()
 	if type(own.pick) ~= "table" then own.pick = {} end
 	ns.SplitFindTreasure(own, addon.db.char)
 	ns.SplitElixirs(own, addon.db.char)
+	-- The spells of your own added under Myself (OwnSpells.lua), the character's.
+	if ns.OwnSpells then ns.OwnSpells.Repair(addon.db.char) end
 	-- Elixirs to keep up: true for a spell of a `keep` family this client has
 	-- (Classic Era, Forever), nothing else; on Burning Crusade and Mists, whose
 	-- elixirs have a family a slot, nothing at all.

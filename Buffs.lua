@@ -1242,6 +1242,13 @@ end
 --             Well Fed (`food`) and Well-Rested (`rest`), above.
 --   optIn     off until it is turned on, like a bagged family, but a spell:
 --             a warlock's Detect Invisibility.
+--   brief     with optIn: lasts a minute or less (a mage's Mana Shield, Fire
+--             Ward and Frost Ward); the page says it is reminded outside a
+--             fight only (Options/Who.lua). Read nowhere else.
+--   custom    on a family and its spell: a spell the player added under Add a
+--             spell of my own (OwnSpells.lua), built before each probe from
+--             db.char.ownSpells, last in the class's list, with no control of
+--             its own on the page.
 --   isScroll  a scroll: the stat scrolls (CONSUME, above) and a mage's familiar
 --             and weapon imbue on Forever (CAMELOT_OWN, below). Who to buff's
 --             Scrolls switch (ownBuffs.scrolls) turns them all off at once and
@@ -1415,6 +1422,17 @@ local VANILLA_OWN = {
 			spells = {
 				{ key = "dampenmagic", ranks = { 10174, 10173, 8451, 8450, 604 }, solo = "dampenAlone" },
 				{ key = "amplifymagic", ranks = { 10170, 10169, 8455, 1008 }, solo = "amplifyAlone" },
+			} },
+		-- Mana Shield, and Fire Ward or Frost Ward, asked for on CurseForge: off
+		-- until switched on (optIn), and short (brief: a minute, thirty seconds),
+		-- so the page says they are reminded outside a fight only. One family for
+		-- the wards, which share one cooldown (SpellCooldowns 30000).
+		{ key = "manashield", optIn = true, brief = true,
+			spells = { { key = "manashield", ranks = { 10193, 10192, 10191, 8495, 8494, 1463 } } } },
+		{ key = "ward", label = L["Fire Ward or Frost Ward"], optIn = true, brief = true,
+			spells = {
+				{ key = "fireward", ranks = { 10225, 10223, 8458, 8457, 543 } },
+				{ key = "frostward", ranks = { 28609, 10177, 8462, 8461, 6143 } },
 			} },
 	},
 
@@ -1979,6 +1997,15 @@ local TBC_OWN = {
 			spells = {
 				{ key = "dampenmagic", ranks = { 33944, 10174, 10173, 8451, 8450, 604 }, solo = "dampenAlone" },
 				{ key = "amplifymagic", ranks = { 33946, 27130, 10170, 10169, 8455, 1008 }, solo = "amplifyAlone" },
+			} },
+		-- Mana Shield, and Fire Ward or Frost Ward, as on Classic Era
+		-- (VANILLA_OWN), with the ranks Burning Crusade added.
+		{ key = "manashield", optIn = true, brief = true,
+			spells = { { key = "manashield", ranks = { 27131, 10193, 10192, 10191, 8495, 8494, 1463 } } } },
+		{ key = "ward", label = L["Fire Ward or Frost Ward"], optIn = true, brief = true,
+			spells = {
+				{ key = "fireward", ranks = { 27128, 10225, 10223, 8458, 8457, 543 } },
+				{ key = "frostward", ranks = { 32796, 28609, 10177, 8462, 8461, 6143 } },
 			} },
 	},
 
@@ -3471,6 +3498,9 @@ do
 		{ 1800, 22783, 22782, 6117 }, -- Mage Armor (30 min)
 		{ 600, 10174, 10173, 8451, 8450, 604 }, -- Dampen Magic (10 min)
 		{ 600, 10170, 10169, 8455, 1008 }, -- Amplify Magic (10 min)
+		{ 60, 10193, 10192, 10191, 8495, 8494, 1463 }, -- Mana Shield (1 min)
+		{ 30, 10225, 10223, 8458, 8457, 543 }, -- Fire Ward (30 s)
+		{ 30, 28609, 10177, 8462, 8461, 6143 }, -- Frost Ward (30 s)
 		{ 1800, 25780 }, -- Righteous Fury (30 min)
 		{ 600, 10952, 10951, 1006, 602, 7128, 588 }, -- Inner Fire (10 min)
 		{ 600, 19266, 19265, 19264, 19262, 19261, 2652 }, -- Touch of Weakness (10 min)
@@ -3533,6 +3563,9 @@ do
 		{ 600, 33946, 27130, 10170, 10169, 8455, 1008 }, -- Amplify Magic (10 min)
 		{ 1800, 27125, 22783, 22782, 6117 }, -- Mage Armor (30 min)
 		{ 1800, 30482 }, -- Molten Armor (30 min)
+		{ 60, 27131, 10193, 10192, 10191, 8495, 8494, 1463 }, -- Mana Shield (1 min)
+		{ 30, 27128, 10225, 10223, 8458, 8457, 543 }, -- Fire Ward (30 s)
+		{ 30, 32796, 28609, 10177, 8462, 8461, 6143 }, -- Frost Ward (30 s)
 		{ 1800, 25780 }, -- Righteous Fury (30 min)
 		{ 600, 25431, 10952, 10951, 1006, 602, 7128, 588 }, -- Inner Fire (10 min)
 		{ 600, 25461, 19266, 19265, 19264, 19262, 19261, 2652 }, -- Touch of Weakness (10 min)
@@ -3584,6 +3617,9 @@ do
 		{ 1800, 20906, 20905, 19506, 1299348, 1299346 }, -- Trueshot Aura (30 min)
 		{ 1800, 10220, 10219, 7320, 7302, 7301, 7300, 168 }, -- Ice Armor / Frost Armor (30 min)
 		{ 1800, 22783, 22782, 6117 }, -- Mage Armor (30 min)
+		{ 60, 10193, 10192, 10191, 8495, 8494, 1463 }, -- Mana Shield (1 min)
+		{ 30, 10225, 10223, 8458, 8457, 543 }, -- Fire Ward (30 s)
+		{ 30, 28609, 10177, 8462, 8461, 6143 }, -- Frost Ward (30 s)
 		{ 600, 10174, 10173, 8451, 8450, 604 }, -- Dampen Magic (10 min)
 		{ 600, 10170, 10169, 8455, 1008 }, -- Amplify Magic (10 min)
 		{ 3600, 1302303, 1302285, 1296202 }, -- familiar scrolls: Cat Familiar, Frog Familiar, Rat Familiar (1 h)
@@ -3884,6 +3920,8 @@ local function BuildOwnLookups()
 		end
 	end
 end
+-- For OwnSpells.lua, which rebuilds them with the player's own spells added.
+ns.BuildOwnLookups = BuildOwnLookups
 
 -- Whether `id` is a class's own aura or aspect, which reaching you is nobody's
 -- favour (Favours.lua): it lands again every time you walk back into its

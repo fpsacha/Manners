@@ -9,6 +9,10 @@ ns.WhatsNew = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100A look for each class.|r |cffffffffUse my class's look on each character|r, over the cards on |cffffffffLook|r: on one profile a druid wears the Druid look and a paladin the Paladin look.",
 		} },
+		{ title = "Who to buff", accent = "7cc4ff", entries = {
+			"|cff7cc4ffMana Shield and the wards.|r On WoW Forever, Classic Era and Burning Crusade a mage can be reminded of Mana Shield and of Fire Ward or Frost Ward, outside a fight.",
+			"|cff7cc4ffAdd a spell of my own.|r Under |cffffffffMyself|r, add up to ten buffs of yours that Manners does not know; each is reminded like your other own buffs.",
+		} },
 	} },
 	{ version = "1.11.28", date = "17 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
