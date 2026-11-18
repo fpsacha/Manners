@@ -7,4 +7,6 @@
 	<Binding name="CLICK MannersSupplies:LeftButton" category="Manners"/>
 	<!-- The break-free button (Prompt/BreakFree.lua): Will of the Forsaken, for a Forsaken. -->
 	<Binding name="CLICK MannersBreakFree:LeftButton" category="Manners"/>
+	<!-- The Mend Pet button (Prompt/MendPet.lua), for a hunter with a pet. -->
+	<Binding name="CLICK MannersMendPet:LeftButton" category="Manners"/>
 </Bindings>

@@ -31,6 +31,16 @@
   praises or comforts it by name and it answers in its own way. With In
   character on, you say a line in your people's voice. Manners remembers each
   pet's fights, pats and meals.
+- **Every piece has its own switch.** *Everything for my pet* turns it all
+  off; each moment, the answer, the line and the memory have one each. Moments
+  come *Rarely*, *Sometimes* or *Often*.
+- **New moments.** Share your meal, welcome a newly tamed pet, a hug after
+  days apart, say sorry after a fall, thanks for saving you, a new level or
+  more loyalty, your days together and a game of fetch.
+- **Mend Pet in a fight.** A button of its own with its own key, under *Look*,
+  *In a fight*.
+- **Hints.** At a vendor when your pet's food runs short, Growl's autocast in
+  groups and alone (off by default), and unspent training points.
 
 ## 1.11.27
 

@@ -876,6 +876,8 @@ end
 function Page.AddBeastControls(args)
 	local function NotHunter() return not (ns.Beast and ns.Beast.IsHunter()) end
 	local function SelfOff() return S().self ~= true end
+	local function AllOff() return ns.db.profile.beast.all == false end
+	local function BondOff() return AllOff() or ns.db.profile.beast.bond ~= true end
 	local function Toggle(key, field, name, desc, order, hidden, disabled)
 		args[key] = {
 			type = "toggle",
@@ -884,7 +886,7 @@ function Page.AddBeastControls(args)
 			order = order,
 			width = "full",
 			hidden = hidden or NotHunter,
-			disabled = disabled,
+			disabled = function() return AllOff() or (disabled ~= nil and disabled()) end,
 			get = function() return ns.db.profile.beast[field] == true end,
 			set = function(_, value)
 				ns.db.profile.beast[field] = value == true
@@ -892,6 +894,16 @@ function Page.AddBeastControls(args)
 			end,
 		}
 	end
+	-- The master, built by hand: Toggle greys a row while it is off.
+	args.beastAll = { type = "toggle", name = L["Everything for my pet"],
+		desc = L["Off, Manners leaves your pet to you: no care, no moments, no hints and no Mend Pet button in a fight. Each switch below keeps its own setting for when this is on again."],
+		order = 15.980, width = "full", hidden = NotHunter,
+		get = function() return ns.db.profile.beast.all ~= false end,
+		set = function(_, value)
+			ns.db.profile.beast.all = value == true
+			ns.Guard("pet repaint", ns.Prompt.Refresh, ns.Prompt)
+			if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+		end }
 	Toggle("beastCall", "call", L["Call my pet when none is out"],
 		L["Offers Call Pet when no pet is with you. Not in a fight, not while mounted, not in a city unless your own buffs are offered there, and not after you dismissed it yourself."],
 		15.981, nil, SelfOff)
@@ -902,13 +914,51 @@ function Page.AddBeastControls(args)
 		15.983, function() return NotHunter() or not ns.Beast.Feeds() end, SelfOff)
 	Toggle("beastMend", "mend", L["Mend my pet when it is hurt after a fight"],
 		L["Offers Mend Pet when your pet is badly hurt and the fight is over."], 15.984, nil, SelfOff)
+	Toggle("beastLeaveFood", "leaveFood", L["Tell me at a vendor when my pet is low on food"],
+		L["At a vendor who sells a food your pet eats, a line in chat when your bags hold fewer than five meals for your pet. Once a vendor each session. Manners never buys anything."],
+		15.9844, function() return NotHunter() or not ns.Beast.Feeds() end)
+	Toggle("beastGrowl", "growl", L["Remind me about Growl in groups and alone"],
+		L["A line in chat when Growl is on autocast in a dungeon or raid with a tank in your group (once a zone), or off while you are alone in the open world (once a session). Manners never changes it for you. Off by default: the game does not always say who the tank is."],
+		15.9845)
+	Toggle("beastTraining", "training", L["Tell me when my pet has training points to spend"],
+		L["A line in chat when your pet has training points left unspent: once a session, and again when there are more, at most once in fifteen minutes."],
+		15.9846, function() return NotHunter() or not ns.Beast.Trains() end)
 	Toggle("beastBond", "bond", L["Bond with my pet"],
 		L["Now and then, after a hard fight, a revive, at login or on a quiet road, offers a moment with your pet: an emote for it, and a line from your people when In character is on and lines go in /say. Never in a fight; letting it pass costs nothing."],
 		15.985)
+	args.beastPace = { type = "select", name = L["How often moments come"],
+		desc = L["The least time between two moments with your pet: an hour, twenty minutes or ten. Before one on a quiet road: half an hour, a quarter of an hour or ten minutes."],
+		order = 15.9851, hidden = NotHunter, disabled = BondOff,
+		values = { rarely = L["Rarely"], sometimes = L["Sometimes"], often = L["Often"] },
+		sorting = { "rarely", "sometimes", "often" },
+		get = function() return ns.db.profile.beast.pace end,
+		set = function(_, value) ns.db.profile.beast.pace = value ns.Guard("pet repaint", ns.Prompt.Refresh, ns.Prompt) end }
+	local function Moment(extra) return function() return NotHunter() or BondOff() or (extra ~= nil and extra()) end end
+	local feeds = function() return not ns.Beast.Feeds() end
+	local MOMENTS = {
+		{ "beastPraise", "praise", L["After a hard fight or a boss: well done"] },
+		{ "beastComfort", "comfort", L["After a fight your pet barely lived through: comfort"] },
+		{ "beastWelcome", "welcome", L["After a revive: welcome back"] },
+		{ "beastSorry", "sorry", L["After a revive, when your pet fell in a fight: say sorry"], L["Takes turns with welcome back when both are on; never both at once."] },
+		{ "beastHello", "hello", L["At login: hello"] },
+		{ "beastMorning", "morning", L["After a night at an inn: good morning"], L["With a line in chat at login that your pet slept by the fire."] },
+		{ "beastRoad", "road", L["On a quiet road: a pat"] },
+		{ "beastPlay", "play", L["On a quiet road: a game of fetch"], L["Takes turns with the pat when both are on."] },
+		{ "beastShare", "share", L["When you sit down to eat: share your meal"], L["While your pet is not happy and a food your pet eats is in your bags: offered once your meal is over, so a press never stands you up."], feeds },
+		{ "beastFamily", "family", L["A newly tamed pet: welcome to the family"], L["Right after Tame Beast. If the name is still the kind's (Wolf, Cat), the prompt suggests choosing one."] },
+		{ "beastMissed", "missed", L["Back after three days or more apart"] },
+		{ "beastSaved", "saved", L["When your pet saved you: thanks"], L["After a fight you ended alive below a fifth of your health, with your pet out from start to end."] },
+		{ "beastGrown", "grown", function() return ns.Beast.Loyal() and L["When your pet grows: a level, or more loyalty"] or L["When your pet gains a level"] end },
+		{ "beastAnniversary", "anniversary", L["Your days together: 7, 30, 100 and 365"] },
+		{ "beastAnswer", "answer", L["My pet answers"], L["After the gesture, how your pet answers, by kind: a wolf wags, an owl hoots."] },
+		{ "beastWords", "words", L["Say a line to my pet"], L["With In character on and lines going in /say, a line from your people to your pet with each moment."] },
+		{ "beastMilestones", "memory", L["Remember fights, pats and meals, with a line at milestones"], L["What Manners counts of each pet by name, and a line in chat at a milestone. Off, nothing is counted and nothing is said."] },
+	}
+	for i, row in ipairs(MOMENTS) do Toggle(row[1], row[2], row[3], row[4], 15.987 + i / 10000, Moment(row[5])) end
 	args.beastMemory = {
 		type = "description",
-		order = 15.986,
-		hidden = function() return NotHunter() or ns.db.profile.beast.bond ~= true end,
+		order = 15.9899,
+		hidden = function() return NotHunter() or BondOff() or ns.db.profile.beast.memory == false end,
 		name = function()
 			local lines = ns.Beast.MemoryLines()
 			if #lines == 0 then return "|cff888888" .. L["No pet remembered yet."] .. "|r" end

@@ -60,7 +60,7 @@ memory per pet (`db.char.beasts`) and milestones in chat; the learned diet in
 `db.global.beastFood`. `BeastFoods.lua` by `tools/make_beastfoods.py`. New
 In character kinds `pet`, `petpraise`, `petcomfort` for every people (162
 lines, eight languages). `tests/scenarios/hunterpet.lua`,
-`tests/mutations/hunterpet.py` (70, each CAUGHT by `prove.py`). What only the
+`tests/mutations/hunterpet.py` (83, each CAUGHT by `prove.py`). What only the
 game can settle:
 - `/cast Feed Pet` then `/use item:<id>` from the prompt on each feeding
   client (the pet eats, the hunter does not);
@@ -74,6 +74,30 @@ game can settle:
 - Outland foods learned on TBC (no diet column in its data);
 - the Call Pet N remembered on Mists and retail;
 - the night at the inn written at PLAYER_LOGOUT and read at the next login.
+
+**A hunter's pet, further (Unreleased).** Every piece has its own switch
+(`db.profile.beast`: `all`, the master, then `leaveFood`, `growl` (off),
+`training`, `fightMend`, `answer`, `words`, `memory`, `pace`, and one key per
+moment: `praise` `comfort` `welcome` `sorry` `hello` `morning` `road` `play`
+`share` `family` `missed` `saved` `grown` `anniversary`), the moments' pace
+(*Rarely*, *Sometimes*, *Often*: an hour, twenty and ten minutes), eight new
+moments in `HunterPet.lua`, care held while a meal runs (`clock.mealUntil`),
+`HunterPetHints.lua` (the vendor, Growl and training-point lines in chat) and
+`Prompt/MendPet.lua` (`ns.MendPet`, MannersMendPet, its own key, state driver
+and place beside the prompt or the break-free button). The only data added is
+`seen` read before it is stamped. `tests/scenarios/hunterpet2.lua`,
+`tests/mutations/hunterpet2.py` (48, each CAUGHT by `prove.py`; a share's list
+row press in the global cooldown is not held by a scenario). What only the
+game can settle:
+- a tamed pet's default name being its kind's on each client;
+- `GetPetLoyalty`'s text holding the number on Classic Era and TBC;
+- the pet's health and `C_Spell.IsSpellInRange` in a fight on Forever and retail
+  (the button stays half lit with its lines where the health is secret);
+- `/cast Mend Pet` from the button's key reaching the pet in a fight;
+- `UNIT_SPELLCAST_SUCCEEDED` for Tame Beast and for Food and Drink;
+- `UnitGroupRolesAssigned` naming a tank outside the group finder;
+- `GetMerchantItemID` answering 0.3 s after `MERCHANT_SHOW`;
+- the player's health being plain at `PLAYER_REGEN_ENABLED` on Forever.
 
 **Two elixirs at once (branch `post26`, after 1.11.26, not released).**
 Burning Crusade and Mists name each elixir's slot only in its spell's own

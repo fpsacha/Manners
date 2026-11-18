@@ -54,6 +54,9 @@ On a hunter, once: dismiss the pet and `/reload` (no Call Pet comes up); let
 the pet go hungry and press Feed Pet on the prompt (the pet eats, you do not);
 after a long fight press the moment with your pet and read chat (the emote
 names the pet, your target is unchanged).
+Then, on the same hunter: sit down to eat with the pet hungry (after the meal, "Share with" feeds it); in a
+fight with the pet hurt, press the Mend Pet button's key (it casts at the pet); turn *Everything for my
+pet* off and see nothing for the pet come up.
 
 Seen all of it clean, and `/manners selftest launch` run again with
 *actions the game refused* still clean: `python tools/release.py X.Y.Z`.

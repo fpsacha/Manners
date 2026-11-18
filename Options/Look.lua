@@ -480,6 +480,42 @@ function Page.BuildLookTab()
 					if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end
 				end,
 			},
+			-- Mend Pet in a fight (Prompt/MendPet.lua): a hunter's button of
+			-- its own, as Will of the Forsaken's is, with a key of its own.
+			-- Shown to a hunter who knows Mend Pet; held by the master under
+			-- Who to buff > Myself.
+			mendInFight = {
+				type = "toggle",
+				name = L["Offer Mend Pet in a fight when my pet is badly hurt"],
+				desc = L["A button of its own beside the prompt, with a key of its own, there for every fight. It lights up while your pet is below half health, in reach, and Mend Pet is ready; where the game hides your pet's health in a fight it stays half lit and still casts. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+				order = 32.48,
+				width = "full",
+				hidden = function() return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend()) end,
+				disabled = function() return ns.db.profile.beast.all == false end,
+				get = function() return ns.db.profile.beast.fightMend ~= false end,
+				set = function(_, value)
+					ns.db.profile.beast.fightMend = value == true
+					if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+				end,
+			},
+			mendInFightKey = {
+				type = "keybinding",
+				name = L["Key for Mend Pet"],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
+				order = 32.49,
+				hidden = function()
+					return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())
+						or ns.db.profile.beast.fightMend == false or not ns.Setup.CanBind()
+				end,
+				disabled = function() return InCombatLockdown() end,
+				get = function() return ns.Setup.Key(ns.MendPet.COMMAND) or "" end,
+				set = function(_, value)
+					ns.Setup.SetKey(value, ns.MendPet.COMMAND, function(key, was)
+						return L["%s was bound to %s; it now casts %s."]:format(key, was, ns.Beast.MendName() or "")
+					end)
+					if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+				end,
+			},
 			-- Next to Animations, because that is what it is: the flashes of
 			-- a click in a fight, not whether anybody is offered.
 			--

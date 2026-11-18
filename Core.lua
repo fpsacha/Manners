@@ -450,6 +450,12 @@ local defaults = {
 			feed = true,
 			mend = true,
 			bond = true,
+			-- All on but Growl's reminder; moments come Sometimes.
+			all = true, leaveFood = true, growl = false, training = true, fightMend = true,
+			pace = "sometimes", answer = true, words = true, memory = true,
+			praise = true, comfort = true, welcome = true, sorry = true, hello = true, morning = true,
+			road = true, play = true, share = true, family = true, missed = true, saved = true,
+			grown = true, anniversary = true,
 		},
 
 		-- The rest of "Myself": the buffs only your class puts on itself
@@ -5630,6 +5636,7 @@ function ns.ClampSettings()
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
 	-- An ask's channel and line (Ask.lua), each one of a few.
 	if ns.AskClamp then ns.AskClamp(profile) end
+	if ns.BeastClamp then ns.BeastClamp(profile) end
 
 
 	-- An empty phrase box refilled from the set the dropdown names, so the two
@@ -6272,6 +6279,8 @@ function addon:TickBody()
 	-- scan pays nothing for it, with the ability or without, switched on or off.
 	local breakFree = ns.BreakFree
 	if breakFree and breakFree:Wanted() then ns.Guard("break free", breakFree.Refresh, breakFree) end
+	local mendPet = ns.MendPet
+	if mendPet and mendPet:Wanted() then ns.Guard("mend pet", mendPet.Refresh, mendPet) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
@@ -6549,6 +6558,8 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- And the macro's slot on an action bar, for what the fight held back
 	-- (Clicks.lua): the prompt's own Refresh above arms what is owed now.
 	if ns.ResyncMacroSlot then ns.Guard("macro slot", ns.ResyncMacroSlot) end
+	-- A hunter's Mend Pet button armed for the next fight (Prompt/MendPet.lua).
+	if ns.MendPet then ns.Guard("mend pet release", ns.MendPet.Release, ns.MendPet) end
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed

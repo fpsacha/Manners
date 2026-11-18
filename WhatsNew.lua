@@ -17,6 +17,10 @@ ns.WhatsNew = {
 		{ title = "Your pet", accent = "7cc4ff", entries = {
 			"|cff7cc4ffCare for your pet.|r Call Pet, Revive Pet and Mend Pet when your pet needs them; on Classic Era, WoW Forever and Burning Crusade, Feed Pet with a food it eats while it is not happy.",
 			"|cff7cc4ffBond with your pet.|r Now and then a moment with your pet: a press pets, praises or comforts it by name and it answers in its own way.",
+			"|cff7cc4ffEvery piece has its own switch.|r |cffffffffEverything for my pet|r turns it all off; each moment, the answer, the line and the memory have one each.",
+			"|cff7cc4ffNew moments.|r Share your meal, welcome a newly tamed pet, a hug after days apart, say sorry after a fall, thanks for saving you, a new level or more loyalty, your days together and a game of fetch.",
+			"|cff7cc4ffMend Pet in a fight.|r A button of its own with its own key, under |cffffffffLook|r, |cffffffffIn a fight|r.",
+			"|cff7cc4ffHints.|r At a vendor when your pet's food runs short, Growl's autocast in groups and alone (off by default), and unspent training points.",
 		} },
 	} },
 	{ version = "1.11.27", date = "17 November 2026", sections = {

@@ -407,6 +407,9 @@ local EXPECTED = {
 		"buff.detectPassers",
 		-- Elixirs to keep up (tests/scenarios/elixir-pair.lua).
 		"ownBuffs.elixirKeep",
+		-- A hunter's pet (HunterPet.lua).
+		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond",
+		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
 	},
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
 	when = {
@@ -434,7 +437,7 @@ local EXPECTED = {
 		"prompt.iconFrame", "prompt.gryphons", "prompt.classicArt", "prompt.keycap", "prompt.textShadow",
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.clickRows", "prompt.tooltip", "prompt.tooltipPosition", "sound.enabled", "sound.file", "sound.owedOnly", "supplies.size",
-		"prompt.breakFree",
+		"prompt.breakFree", "beast.fightMend",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the
 	-- window falls back to (Register.lua). Its reset is the old one's
