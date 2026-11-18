@@ -286,7 +286,14 @@ do
 		local own = { ["buffed you"] = true, ["For my class"] = true, ["All"] = true, ["New"] = true,
 			["Point at a look to try it on the prompt; click to keep it."] = true,
 			["The prompt is not on screen now: Show me the prompt, at the top of this window, puts it up."] = true,
-			["In a fight a look cannot change: the one you click goes on when the fight ends."] = true }
+			["In a fight a look cannot change: the one you click goes on when the fight ends."] = true,
+			-- The lines of "Use my class's look on each character" (tests/scenarios/classlook.lua).
+			["In use: %s, the first of the looks made for your class."] = true,
+			["In use: %s, the look made for your class."] = true,
+			["In use: %s, the one you picked of the looks made for your class."] = true,
+			["In use: %s, this profile's own look, as no look is made for your class."] = true,
+			["Point at a look to try it on the prompt. Click one of your class's looks to wear it; click any other to make it this profile's own look."] = true,
+			["This profile's own look, which every character wears with the switch above off: %s."] = true }
 		for key in pairs(keys) do
 			if not own[key] then fail(scenario, ("WidgetsTheme asks for the string %q, new to every locale"):format(key)) end
 		end
