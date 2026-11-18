@@ -232,3 +232,10 @@ mutate("Queue.lua",
        "\t\t\tbreak\n",
        "audit-right-buff: a warrior is reminded of his shout while the group is offered it",
        expect=SHOUT, script=S)
+
+mutate("Core.lua",
+       "\t\t\t\tlocal spare = addon.db and addon.db.profile.buff.spareCamp == true\n",
+       "\t\t\t\tlocal spare = false\n",
+       "audit-right-buff: the campsite switch holds nothing off",
+       expect="audit-right-buff: Forever: Don't cast over a campsite's buffs holds even a stronger rank off",
+       script="runscenarios.py")

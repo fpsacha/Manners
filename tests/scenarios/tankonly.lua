@@ -445,7 +445,7 @@ do
 			fail(scenario, "the looser choice reads " .. tostring(values.outside))
 		end
 		local order = table.concat(control.sorting or {}, " ")
-		if order ~= "all tanks outside me" then fail(scenario, "the choices are listed " .. order) end
+		if order ~= "all tanks tanksme outside me" then fail(scenario, "the choices are listed " .. order) end
 		local desc = H.optionText(control.desc)
 		if not desc:find("so is everybody outside your group", 1, true) then
 			fail(scenario, "the description does not say Tanks only leaves out everybody outside the group: " .. desc)
@@ -591,5 +591,74 @@ do
 	session(scenario, { setup = setTanksOnly }, function(ns)
 		local key = mineWith(ns, "NONE", true)
 		if key ~= "thorns" then fail(scenario, "alone, your own Thorns was not reminded of: " .. tostring(key)) end
+	end)
+end
+
+-- Offer to: Tanks and me (asked for on CurseForge): the group held to its
+-- tanks as under Tanks only, and your own reminded of whatever your role.
+local function setTanksMe(ns)
+	ns.db.profile.buff.tanksOnly = { thorns = true }
+	ns.db.profile.buff.tanksMe = { thorns = true }
+end
+
+do
+	local scenario = "tankonly: Tanks and me reminds a healer of her own Thorns and holds the group to its tanks"
+	session(scenario, { setup = setTanksMe }, function(ns)
+		local key = mineWith(ns, "HEALER")
+		if key ~= "thorns" then fail(scenario, "a healer was not reminded of Thorns on herself under Tanks and me: " .. tostring(key)) end
+		local out = offers(ns)
+		if out[filed(PARTY.party2)] ~= "thorns" then
+			fail(scenario, "the tank was offered " .. tostring(out[filed(PARTY.party2)]) .. ", not Thorns")
+		end
+		for _, token in ipairs({ "party1", "party3" }) do
+			if out[filed(PARTY[token])] then
+				fail(scenario, token .. ", who is no tank, was offered " .. tostring(out[filed(PARTY[token])]))
+			end
+		end
+		if out[filed(STRANGER)] then
+			fail(scenario, "a passer-by outside the group was offered " .. tostring(out[filed(STRANGER)]))
+		end
+	end)
+end
+
+do
+	local scenario = "tankonly: Tanks and me is kept in both sets, and the others clear it"
+	session(scenario, {}, function(ns)
+		local control = H.findOption(ns.optionsTable, "tank_thorns")
+		if not control then
+			fail(scenario, "Who to buff has no Offer to choice for Thorns")
+			return
+		end
+		if control.values().tanksme ~= "Tanks and me" then
+			fail(scenario, "the choice reads " .. tostring(control.values().tanksme))
+		end
+		local B = ns.db.profile.buff
+		local info = { "who", "tank_thorns" }
+		control.set(info, "tanksme")
+		if control.get(info) ~= "tanksme" or B.tanksOnly.thorns ~= true or B.tanksMe.thorns ~= true
+			or B.tanksOutside.thorns ~= nil or B.meOnly.thorns ~= nil then
+			fail(scenario, "Tanks and me was not kept in both sets: " .. tostring(control.get(info)))
+		end
+		control.set(info, "tanks")
+		if control.get(info) ~= "tanks" or B.tanksMe.thorns ~= nil then fail(scenario, "Tanks only left Tanks and me behind") end
+		control.set(info, "tanksme")
+		control.set(info, "all")
+		if next(B.tanksOnly) ~= nil or next(B.tanksMe) ~= nil then fail(scenario, "Everyone left a key behind") end
+	end)
+end
+
+do
+	local scenario = "tankonly: the Tanks and me set is repaired and travels with a profile"
+	session(scenario, {}, function(ns)
+		ns.db.profile.buff.tanksMe = "yes"
+		ns.ClampSettings()
+		if type(ns.db.profile.buff.tanksMe) ~= "table" then
+			fail(scenario, "a damaged set was left as " .. tostring(ns.db.profile.buff.tanksMe))
+		end
+		setTanksMe(ns)
+		local text = ns.ExportSettings and ns.ExportSettings() or nil
+		if text and not text:find("buff.tanksMe=thorns", 1, true) then
+			fail(scenario, "the export does not carry the choice: " .. tostring(text))
+		end
 	end)
 end

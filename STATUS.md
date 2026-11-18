@@ -17,6 +17,18 @@ was tried in the game. The checklist of what only the game can settle, now
 on WoW Forever in the owner's own play sessions, is the first item under
 *Open*.
 
+**Tanks and me, and a campsite's buffs (Unreleased, asked for on
+CurseForge).** Thorns' *Offer to* has a fifth choice, *Tanks and me*
+(`buff.tanksMe` beside `buff.tanksOnly`): the group held to its tanks as
+under Tanks only, and Queue.lua's own walk handed the tank set without
+those keys, so your own is reminded of whatever your role.
+*Don't cast over a campsite's Boosted Stamina, Intellect or Spirit*
+(`buff.spareCamp`, off, WoW Forever, shown to a class with a buff a
+camping aura blocks): in `UnitHasBuff` a camping aura worn holds the buff
+off whatever `ns.CampWorth` says. `tests/scenarios/tankonly.lua` and
+`audit-right-buff.lua`, mutations in the files of the same names. What
+only the game can say: nothing new; the camping auras are read as before.
+
 **Ask me before thanking (Unreleased, asked for on CurseForge).**
 `prompt.thankAsk`, off, on What I say under the /thank: a thank Favours.lua
 finds due (Blocked, UnseenBlocked, the gap left out, an unseen one's target

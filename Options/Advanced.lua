@@ -55,7 +55,7 @@ Page.RESET = {
 		"buff.leaveBlessed",
 		"buff.detectPassers",
 		"buff.skipCasters",
-		"buff.spareFishBowl", "buff.neverFishBowl",
+		"buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe",
 		"buff.optIn",
 		"ownBuffs.apart",
 		-- A hunter's pet (HunterPet.lua): care and the moments, all on again.

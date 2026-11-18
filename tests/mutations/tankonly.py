@@ -199,8 +199,8 @@ mutate("Options/Who.lua",
        expect="tankonly: the looser tank choice is kept in both sets, and the others clear it", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\t\t\tif value == \"outside\" then B().tanksOnly[buff.key] = true end\n",
-       "",
+       "\t\t\t\t\tif value == \"outside\" or value == \"tanksme\" then B().tanksOnly[buff.key] = true end\n",
+       "\t\t\t\t\tif value == \"tanksme\" then B().tanksOnly[buff.key] = true end\n",
        "tankonly: the looser choice does not hold the group to its tanks",
        expect="tankonly: the looser tank choice is kept in both sets, and the others clear it", script=S)
 
@@ -211,8 +211,8 @@ mutate("Options/Who.lua",
        expect="tankonly: the looser tank choice is kept in both sets, and the others clear it", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\t\tsorting = { \"all\", \"tanks\", \"outside\", \"me\" },\n",
-       "\t\t\t\tsorting = { \"all\", \"outside\", \"tanks\", \"me\" },\n",
+       "\t\t\t\tsorting = { \"all\", \"tanks\", \"tanksme\", \"outside\", \"me\" },\n",
+       "\t\t\t\tsorting = { \"all\", \"outside\", \"tanks\", \"tanksme\", \"me\" },\n",
        "tankonly: the looser choice listed ahead of Tanks only",
        expect="tankonly: the looser tank choice is kept in both sets, and the others clear it", script=S)
 
@@ -223,8 +223,8 @@ mutate("Core.lua",
        expect="tankonly: the looser set is repaired and travels with a profile", script=S)
 
 mutate("Commands.lua",
-       "\t\t\t\t\t\t\tor name == \"buff.tanksOutside\"\n",
-       "",
+       "\t\t\t\t\t\t\tor name == \"buff.tanksOutside\" or name == \"buff.tanksMe\"\n",
+       "\t\t\t\t\t\t\tor name == \"buff.tanksMe\"\n",
        "tankonly: the looser choice does not travel with a profile",
        expect="tankonly: the looser set is repaired and travels with a profile", script=S)
 
@@ -251,3 +251,35 @@ mutate("Queue.lua",
        "\t\tisTank = nil,\n",
        "tankonly: the tank is not reminded of her own Thorns",
        expect="tankonly: Tanks only still reminds you of your own Thorns as the tank, and alone", script=S)
+
+# Offer to: Tanks and me (asked for on CurseForge): Tanks only, and your own
+# reminded of whatever your role.
+mutate("Queue.lua",
+       "\t\ttanksHeld = next(rest) ~= nil and rest or nil\n",
+       "",
+       "tankonly: Tanks and me leaves a healer's own Thorns alone",
+       expect="tankonly: Tanks and me reminds a healer of her own Thorns and holds the group to its tanks", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\t\tB().tanksMe[buff.key] = (value == \"tanksme\") or nil\n",
+       "",
+       "tankonly: Tanks and me is never kept",
+       expect="tankonly: Tanks and me is kept in both sets, and the others clear it", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\t\tif B().tanksOnly[buff.key] and B().tanksMe[buff.key] then return \"tanksme\" end\n",
+       "",
+       "tankonly: Tanks and me is never read back",
+       expect="tankonly: Tanks and me is kept in both sets, and the others clear it", script=S)
+
+mutate("Core.lua",
+       "\tif type(profile.buff.tanksMe) ~= \"table\" then profile.buff.tanksMe = {} end\n",
+       "",
+       "tankonly: a damaged Tanks and me set is never repaired",
+       expect="tankonly: the Tanks and me set is repaired and travels with a profile", script=S)
+
+mutate("Commands.lua",
+       "\t\t\t\t\t\t\tor name == \"buff.tanksOutside\" or name == \"buff.tanksMe\"\n",
+       "\t\t\t\t\t\t\tor name == \"buff.tanksOutside\"\n",
+       "tankonly: Tanks and me does not travel with a profile",
+       expect="tankonly: the Tanks and me set is repaired and travels with a profile", script=S)

@@ -94,7 +94,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shad
 - **Consumables on a button of their own:** food, flasks, elixirs, scrolls and weapon oils on a small button you put where you like, so the prompt stays for buffs.
 - **Classes I buff as passers-by:** untick a class on Who to skip and its passers-by are left alone; your group and anybody who buffs you are still offered.
 - **Skip players another paladin has blessed:** for paladins whose group shares out the blessings.
-- **Thorns for the tanks only, or for you alone:** *Offer to* on Who to buff, by the game's tank role or a raid's main tank mark.
+- **Thorns for the tanks only, the tanks and you, or you alone:** *Offer to* on Who to buff, by the game's tank role or a raid's main tank mark.
 - **Hide all Manners messages in my chat window:** not even the few lines the *Show what Manners is doing* switch leaves. What you type after `/manners` is still answered.
 - **A controller on:** Manners opens none of the game's own menus (the minimap right click is the switch, a drop-down opens a list Manners draws itself).
 

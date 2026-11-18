@@ -297,6 +297,7 @@ local function AddBuffToggles(args)
 					.. "\n\n" .. L["Tanks, and anyone outside my group holds only your group to its tanks: passers-by and people who buffed you are offered it as usual."]
 					.. "\n\n" .. L["Under either, anybody who asks you for it in chat is still offered it."]
 					.. "\n\n" .. L["In a group, both hold your own to the same rule: you are reminded of yours only while you are the tank. On your own you are reminded as ever."]
+					.. "\n\n" .. L["Tanks and me is Tanks only, and reminds you of yours whatever your role (Myself must be on)."]
 					.. "\n\n" .. L["Only me offers it to nobody else, and still reminds you when yours is down (Myself must be on)."],
 				order = 4 + index / 10 + 0.05,
 				width = "full",
@@ -305,24 +306,26 @@ local function AddBuffToggles(args)
 				-- was made to mean it, kept as a choice of its own: both keep the
 				-- buff's key in buff.tanksOnly, "outside" in buff.tanksOutside too.
 				values = function()
-					return { all = L["Everyone"], tanks = L["Tanks only"],
+					return { all = L["Everyone"], tanks = L["Tanks only"], tanksme = L["Tanks and me"],
 						outside = L["Tanks, and anyone outside my group"], me = L["Only me"] }
 				end,
-				sorting = { "all", "tanks", "outside", "me" },
+				sorting = { "all", "tanks", "tanksme", "outside", "me" },
 				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
 				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
 				get = function()
 					if B().meOnly[buff.key] then return "me" end
 					if B().tanksOnly[buff.key] and B().tanksOutside[buff.key] then return "outside" end
+					if B().tanksOnly[buff.key] and B().tanksMe[buff.key] then return "tanksme" end
 					return B().tanksOnly[buff.key] and "tanks" or "all"
 				end,
 				set = function(_, value)
-					-- One of the four: nil rather than false, as the switches are.
+					-- One of the five: nil rather than false, as the switches are.
 					B().tanksOnly[buff.key] = (value == "tanks") or nil
-					-- "outside" holds the group to its tanks too, and says so in
-					-- both sets.
-					if value == "outside" then B().tanksOnly[buff.key] = true end
+					-- "outside" and "tanksme" hold the group to its tanks too, and
+					-- say so in both sets.
+					if value == "outside" or value == "tanksme" then B().tanksOnly[buff.key] = true end
 					B().tanksOutside[buff.key] = (value == "outside") or nil
+					B().tanksMe[buff.key] = (value == "tanksme") or nil
 					B().meOnly[buff.key] = (value == "me") or nil
 					restyleAndMacro()
 				end,
@@ -1332,6 +1335,28 @@ function Page.BuildWhoTab()
 				end,
 				disabled = function() return B().spareFishBowl ~= true end,
 				get = function() return B().neverFishBowl == true end,
+				set = bSet,
+			},
+			-- Asked for on CurseForge: WoW Forever's campsite gives Boosted
+			-- Stamina, Intellect and Spirit, which a stronger Fortitude, Arcane
+			-- Intellect or Divine Spirit is cast over. Only for a class with a
+			-- buff a campsite's buff holds off (Buffs.lua, blockers).
+			spareCamp = {
+				type = "toggle",
+				name = L["Don't cast over a campsite's Boosted Stamina, Intellect or Spirit"],
+				desc = L["Resting at a campsite gives Boosted Stamina, Intellect or Spirit. Manners already leaves it alone when it gives as much as yours would. On: nobody wearing it, you included, is offered the buff it would replace, even a stronger one."],
+				order = 4.872,
+				width = "full",
+				hidden = function()
+					if not next(ns.STAT_TIERS or {}) then return true end
+					for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+						for _, id in ipairs(buff.blockerIds or {}) do
+							if ns.STAT_TIERS[id] then return false end
+						end
+					end
+					return true
+				end,
+				get = function() return B().spareCamp == true end,
 				set = bSet,
 			},
 			-- The per-spell switches (AddBuffToggles) sit at 4.1, 4.2, ... and

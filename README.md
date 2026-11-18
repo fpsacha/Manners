@@ -918,10 +918,16 @@ no room for. Defaults are in brackets.
     under its lowest rank) is passed over for the next one that reaches them.
   - A druid's Thorns has *Offer to*: *Everyone*; *Tanks only* (the players in
     your group with the tank role or a raid's main tank mark, and nobody
-    outside it); *Tanks, and anyone outside my group*; or *Only me*. Anybody
-    who asks you for Thorns in chat is still offered it. In a group, the two
-    tank choices leave your own Thorns alone too unless you are the tank; on
-    your own you are reminded as ever.
+    outside it); *Tanks and me* (the same, and your own Thorns whatever your
+    role); *Tanks, and anyone outside my group*; or *Only me*. Anybody
+    who asks you for Thorns in chat is still offered it. In a group, *Tanks
+    only* and *Tanks, and anyone outside my group* leave your own Thorns
+    alone too unless you are the tank; on your own you are reminded as ever.
+  - On WoW Forever, a campsite's Boosted Stamina, Intellect or Spirit is
+    left alone when it gives as much as your Fortitude, Arcane Intellect or
+    Divine Spirit would. *Don't cast over a campsite's Boosted Stamina,
+    Intellect or Spirit* (off) leaves it alone always, a stronger buff of
+    yours included.
   - A warlock's Unending Breath goes to everybody, your group and passers-by,
     with *Offer Unending Breath to everybody near me* (on) on Classic Era,
     WoW Forever and Burning Crusade. Unticked, it goes to return a favour

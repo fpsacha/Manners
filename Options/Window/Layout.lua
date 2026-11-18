@@ -177,6 +177,8 @@ local function CastItems()
 	items[#items + 1] = "who.spareFishBowl"
 	-- Never Kings over it at all, shown only while the switch above is on.
 	items[#items + 1] = { "who.neverFishBowl", indent = true }
+	-- Forever: a campsite's Boosted buffs never cast over.
+	items[#items + 1] = "who.spareCamp"
 	if not placed["who.relevantOnly"] then items[#items + 1] = "who.relevantOnly" end
 	items[#items + 1] = { "who.autoNote", standIn = true }
 	items[#items + 1] = "who.pinNote"

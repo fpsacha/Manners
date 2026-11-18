@@ -13,6 +13,15 @@
   thank-you waits on the prompt as "Thank <name>" and goes when you press it.
   Asked for on CurseForge.
 
+### Who to buff
+- **Thorns for the tanks and me.** *Offer to* has *Tanks and me*: the
+  tanks of your group get Thorns, and you are reminded of your own whatever
+  your role. Asked for on CurseForge.
+- **Leave a campsite's buffs alone.** On WoW Forever, *Don't cast over a
+  campsite's Boosted Stamina, Intellect or Spirit* keeps Fortitude, Arcane
+  Intellect and Divine Spirit off anybody wearing one, even when yours is
+  stronger. Off by default. Asked for on CurseForge.
+
 ### Your pet
 - **Care for your pet.** Call Pet, Revive Pet and Mend Pet when your pet
   needs them; on Classic Era, WoW Forever and Burning Crusade, Feed Pet with

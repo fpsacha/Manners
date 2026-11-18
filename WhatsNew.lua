@@ -10,6 +10,10 @@ ns.WhatsNew = {
 			"|cffffd100Automatic picks the best.|r Scrolls, oils, stones, lures and a warlock's stones: Automatic now takes the best for you (level, weapon, Fishing, group role, talents) rather than the one used last; a poison keeps the kind last on that hand, at its...",
 			"|cffffd100Thank them with a press.|r |cffffffffAsk me before thanking|r, on |cffffffffWhat I say|r: your thank-you waits on the prompt as \"Thank <name>\" and goes when you press it.",
 		} },
+		{ title = "Who to buff", accent = "7cc4ff", entries = {
+			"|cff7cc4ffThorns for the tanks and me.|r |cffffffffOffer to|r has |cffffffffTanks and me|r: the tanks of your group get Thorns, and you are reminded of your own whatever your role.",
+			"|cff7cc4ffLeave a campsite's buffs alone.|r On WoW Forever, |cffffffffDon't cast over a campsite's Boosted Stamina, Intellect or Spirit|r keeps Fortitude, Arcane Intellect and Divine Spirit off anybody wearing one, even when yours is stronger.",
+		} },
 		{ title = "Your pet", accent = "7cc4ff", entries = {
 			"|cff7cc4ffCare for your pet.|r Call Pet, Revive Pet and Mend Pet when your pet needs them; on Classic Era, WoW Forever and Burning Crusade, Feed Pet with a food it eats while it is not happy.",
 			"|cff7cc4ffBond with your pet.|r Now and then a moment with your pet: a press pets, praises or comforts it by name and it answers in its own way.",

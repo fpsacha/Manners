@@ -323,6 +323,10 @@ local defaults = {
 			-- until it was made to mean it): the same sparse set. Absent, Tanks
 			-- only holds a buff from everybody outside the group too.
 			tanksOutside = {},
+			-- Of the buffs held to tanks, the ones still reminded of on you
+			-- whatever your role (Offer to: Tanks and me; asked for on
+			-- CurseForge): the same sparse set, always beside tanksOnly.
+			tanksMe = {},
 			-- The buffs offered to nobody but you (Buffs.lua, tankChoice: a
 			-- druid's Thorns on herself): the same sparse set.
 			meOnly = {},
@@ -371,6 +375,11 @@ local defaults = {
 			-- even with nothing else of yours missing. A request by name still
 			-- gets it. Read only while the switch above is on.
 			neverFishBowl = false,
+			-- WoW Forever: a campsite's Boosted Stamina, Intellect or Spirit is
+			-- never cast over, whatever it is worth beside yours (Core.lua,
+			-- UnitHasBuff; Buffs.lua, statTiers). Asked for on CurseForge. Off:
+			-- the stronger buff is what somebody gets today.
+			spareCamp = false,
 			-- The order a class's buffs are tried in, set by hand (Who to buff, Buff
 			-- order): order[CLASS] = { key, key, ... }, every buff of that class the
 			-- client that wrote it has. Absent is Automatic -- the list as the buff
@@ -4821,7 +4830,10 @@ local function UnitHasBuff(unit, buff, guid)
 					landing = landed and ns.STAT_VALUE[landed] or nil
 				end
 				local worth = ns.CampWorth(tiers, ns.STAT_VALUE[id], aura, level)
-				if landing and worth and worth >= landing then
+				-- "Don't cast over a campsite's Boosted buffs" (buff.spareCamp):
+				-- worn at all, it holds yours off, whatever it is worth.
+				local spare = addon.db and addon.db.profile.buff.spareCamp == true
+				if spare or (landing and worth and worth >= landing) then
 					if not (issecretvalue and issecretvalue(aura)) and type(aura) == "table" then
 						has, over, mine = true, true, false
 						break
@@ -5822,6 +5834,7 @@ function ns.ClampSettings()
 	if type(profile.buff.tanksOnly) ~= "table" then profile.buff.tanksOnly = {} end
 	if type(profile.buff.tanksOutside) ~= "table" then profile.buff.tanksOutside = {} end
 	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
+	if type(profile.buff.tanksMe) ~= "table" then profile.buff.tanksMe = {} end
 	if type(profile.buff.keptBack) ~= "table" then profile.buff.keptBack = {} end
 	-- A class token to a buff key, and nothing else (PickBuffFor reads it per
 	-- person): a key this client does not know is simply never found.

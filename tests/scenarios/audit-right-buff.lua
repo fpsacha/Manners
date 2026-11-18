@@ -992,3 +992,37 @@ do
 		end
 	end
 end
+
+-- "Don't cast over a campsite's Boosted Stamina, Intellect or Spirit"
+-- (buff.spareCamp, off; asked for on CurseForge): worn at all, a camping buff
+-- holds yours off, even a stronger rank that would be cast over it.
+do
+	local scenario = "audit-right-buff: Forever: Don't cast over a campsite's buffs holds even a stronger rank off"
+	local BOOSTED_STAMINA = 1230124
+	local env = { class = "PRIEST", level = 60, knows = { "fortitude" }, units = {
+		party1 = { name = { "Anna", "Aim" }, class = "WARRIOR", level = 60,
+			wears = { [BOOSTED_STAMINA] = { left = 3000 } } },
+		party2 = { name = { "Bram", "Oake" }, class = "WARRIOR", level = 60 },
+	} }
+	session(scenario, env, function(ns)
+		local _, byName = queued(ns)
+		if not byName["Anna Aim"] then
+			fail(scenario, "SKIPPED -- with the switch off a priest of 60 is not offered Fortitude over Boosted Stamina")
+			return
+		end
+		local control = H.findOption(ns.optionsTable, "spareCamp")
+		if not control then
+			fail(scenario, "Who to buff has no switch for a campsite's buffs")
+		elseif control.hidden and control.hidden() then
+			fail(scenario, "the switch is hidden from a priest on WoW Forever")
+		end
+		ns.db.profile.buff.spareCamp = true
+		_, byName = queued(ns)
+		if byName["Anna Aim"] then
+			fail(scenario, "with the switch on Anna, wearing Boosted Stamina, is still offered " .. words(byName["Anna Aim"]))
+		end
+		if not byName["Bram Oake"] then
+			fail(scenario, "with the switch on Bram, who wears no camping buff, is offered nothing")
+		end
+	end)
+end

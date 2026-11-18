@@ -2483,6 +2483,17 @@ local function SelfBuff(db, mine, full, now)
 	local grouped = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0
 	local tanksHeld = grouped and db.buff.tanksOnly
 	if tanksHeld and next(tanksHeld) == nil then tanksHeld = nil end
+	-- Offer to: Tanks and me (buff.tanksMe): the group held to its tanks,
+	-- and yours reminded of whatever your role. Those keys are left out of
+	-- the set handed to your own walk.
+	local tanksMe = tanksHeld and db.buff.tanksMe
+	if tanksMe and next(tanksMe) ~= nil then
+		local rest = {}
+		for key in pairs(tanksHeld) do
+			if not tanksMe[key] then rest[key] = true end
+		end
+		tanksHeld = next(rest) ~= nil and rest or nil
+	end
 	local buff, has, remaining, seconds, lead, kind = ns.PickBuffFor(mine, {
 		-- Yours: a top-up comes earlier than for anybody else's (Core.lua, ns.LeadFor).
 		own = true,
