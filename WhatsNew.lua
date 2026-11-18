@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "17 November 2026", sections = {
+	{ version = "1.11.28", date = "17 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Automatic picks the best.|r Scrolls, oils, stones, lures and a warlock's stones: Automatic now takes the best for you (level, weapon, Fishing, group role, talents) rather than the one used last; a poison keeps the kind last on that hand, at its...",
 			"|cffffd100Thank them with a press.|r |cffffffffAsk me before thanking|r, on |cffffffffWhat I say|r: your thank-you waits on the prompt as \"Thank <name>\" and goes when you press it.",
