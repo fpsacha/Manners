@@ -24,6 +24,10 @@ local said
 local built = false
 local watch = {}
 local sentTo = {}
+-- A cast that named nobody while a friend other than you was targeted: it may be theirs.
+local sentFriend = {}
+-- The last cast of a listed spell and what became of it, for /manners debug.
+local lastVerdict
 
 local TEXT = {
 	ADDED = L["Added %s. Manners reminds you of it when it is not on you."],
@@ -227,6 +231,7 @@ local function Judge(entry)
 	local spell = ns.FindOwnSpell(PREFIX .. entry.id)
 	if not spell then return end
 	local up = OnYou(spell.ranks, entry.name or ns.BuffName(spell))
+	if lastVerdict then lastVerdict.said = up == nil and "the client would not say" or up and "seen on you" or "no aura: taken off" end
 	if up == nil then return end
 	if up then
 		entry.seen = true
@@ -396,6 +401,8 @@ do
 		local id = ns.plain(spellId)
 		if id == nil or watch[id] == nil then return end
 		sentTo[id] = ns.plain(target) or ""
+		sentFriend[id] = ns.plain(UnitExists("target")) == true and ns.plain(UnitIsUnit("target", "player")) ~= true
+			and ns.plain(UnitCanAssist("player", "target")) == true or nil
 	end
 	-- Only a spell the client says cannot be cast on you (Mend Pet) is read from a
 	-- cast at the pet; one that can land on you waits for a cast on you.
@@ -410,15 +417,36 @@ do
 		local id = ns.plain(spellId)
 		local entry = id ~= nil and watch[id] or nil
 		if not entry then return end
-		local target = sentTo[id]
-		sentTo[id] = nil
+		local target, friend = sentTo[id], sentFriend[id]
+		sentTo[id], sentFriend[id] = nil, nil
+		lastVerdict = { name = entry.name or tostring(id), target = target, friend = friend, said = "in a fight" }
 		if InCombatLockdown() then return end
+		lastVerdict.said = "another's"
 		local me = IsMe(target)
 		-- A cast the client sent to your own pet (Mend Pet) is read like one on you.
 		if me == false and not (target == ns.plain(UnitName("pet")) and CannotTargetMe(id)) then return end
-		if me == nil and ns.safecall(C_Spell and C_Spell.IsSpellHelpful, id) == true then return end
+		-- A cast that names nobody is yours (Blink; the client calls any spell that
+		-- can land on you helpful) unless a friend was your target when it went.
+		if me == nil and friend and ns.safecall(C_Spell and C_Spell.IsSpellHelpful, id) == true then return end
+		lastVerdict.said = "waiting"
 		C_Timer.After(VERDICT_SECONDS, function() ns.Guard("own spell verdict", Judge, entry) end)
 	end
+end
+
+-- /manners debug and the full check-up: the list, and the last cast judged.
+function ns.OwnSpellLines()
+	local out = {}
+	local list = Entries() or {}
+	if #list == 0 and not lastVerdict then return out end
+	local names = {}
+	for i, entry in ipairs(list) do names[i] = (entry.name or tostring(entry.id)) .. (entry.seen and "" or " (not seen yet)") end
+	out[1] = ("spells of my own: %d -- %s"):format(#list, #names > 0 and table.concat(names, ", ") or "none")
+	local v = lastVerdict
+	if v then
+		out[2] = ("  last cast: %s, sent to %s%s -- %s"):format(v.name, v.target == nil and "nobody (no SENT)" or v.target == "" and "nobody" or "a name",
+			v.friend and ", a friend targeted" or "", v.said)
+	end
+	return out
 end
 
 local probe = ns.ProbeCapabilities

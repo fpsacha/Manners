@@ -166,7 +166,7 @@ mutate("OwnSpells.lua",
        expect="ownspell: cast on somebody else, no verdict", script=S)
 
 mutate("OwnSpells.lua",
-       "\t\tif me == nil and ns.safecall(C_Spell and C_Spell.IsSpellHelpful, id) == true then return end\n",
+       "\t\tif me == nil and friend and ns.safecall(C_Spell and C_Spell.IsSpellHelpful, id) == true then return end\n",
        "",
        "ownspell: a helpful spell cast at nobody is judged",
        expect="ownspell: cast on somebody else, no verdict", script=S)
@@ -208,3 +208,9 @@ mutate("Options/Window/Layout.lua",
        "\t\t\t[\"who.ownSpellNote\"] = true,",
        "ownspell: the box to add a spell is not on the short list",
        expect="menu: Add a spell of my own is on the short list", script=S)
+
+mutate("OwnSpells.lua",
+       "if me == nil and friend and ns.safecall",
+       "if me == nil and ns.safecall",
+       "ownspell: a cast naming nobody with no friend targeted is never judged",
+       expect="ownspell: a spell cast at nobody with nobody targeted is judged", script=S)

@@ -125,6 +125,7 @@ local function BugReport()
 	-- Ask me before thanking (ThankPress.lua), and the thanks waiting for a press.
 	lines[#lines + 1] = ("thankAsk=%s"):format(tostring(db.prompt.thankAsk))
 	for _, line in ipairs(ns.ThankPressLines and ns.ThankPressLines(GetTime()) or {}) do lines[#lines + 1] = line end
+	for _, line in ipairs(ns.OwnSpellLines and ns.OwnSpellLines() or {}) do lines[#lines + 1] = line end
 	-- A hunter's pet (HunterPet.lua): its switches, its state, its memory.
 	if ns.Beast and ns.Beast.IsHunter() and type(db.beast) == "table" then
 		local parts = {}

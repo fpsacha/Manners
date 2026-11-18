@@ -476,13 +476,47 @@ do
 		add(ns, "Fear Ward")
 		cast(ns, FEAR, "Anna Aim")
 		if #list(ns) ~= 1 then fail(scenario, "taken off after a cast on another") return end
+		-- A friend other than you is the target: the cast may be theirs.
+		local same = UnitIsUnit
+		rawset(_G, "UnitIsUnit", function(a, b)
+			if a == "target" and b == "player" then return false end
+			return same(a, b)
+		end)
+		local exists, assist = UnitExists, UnitCanAssist
+		rawset(_G, "UnitExists", function(u) return u == "target" or exists(u) end)
+		rawset(_G, "UnitCanAssist", function() return true end)
 		cast(ns, FEAR, "")
+		rawset(_G, "UnitIsUnit", same)
+		rawset(_G, "UnitExists", exists)
+		rawset(_G, "UnitCanAssist", assist)
 		if #list(ns) ~= 1 then fail(scenario, "taken off after a helpful cast naming nobody") return end
 		add(ns, "Test Barrier")
 		cast(ns, 900601, "")
 		for _, e in ipairs(list(ns)) do
 			if e.name == "Test Barrier" then fail(scenario, "a spell that is not helpful, naming nobody, stayed") end
 		end
+	end)
+end
+
+do
+	-- Forever calls any spell that can land on you helpful, and a self-only cast
+	-- (Blink) names nobody: with no friend targeted it is yours, and is judged.
+	local scenario = "ownspell: a spell cast at nobody with nobody targeted is judged"
+	with(scenario, { names = { [900602] = "Test Step" }, known = { 900602 }, helpful = { [900602] = true } }, function(ns)
+		add(ns, "Test Step")
+		local exists = UnitExists
+		rawset(_G, "UnitExists", function(u)
+			if u == "target" then return false end
+			return exists(u)
+		end)
+		cast(ns, 900602, "")
+		rawset(_G, "UnitExists", exists)
+		if #list(ns) ~= 0 then fail(scenario, "still listed after a cast that left nothing on you") end
+		local told
+		for _, line in ipairs(ns.OwnSpellLines()) do
+			if line:find("taken off", 1, true) then told = true end
+		end
+		if not told then fail(scenario, "/manners debug does not say what became of the cast") end
 	end)
 end
 
