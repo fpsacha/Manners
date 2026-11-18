@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-*17 November 2026*
+*18 November 2026*
 
 ### Highlights
 - **A look for each class.** *Use my class's look on each character*, over
@@ -15,12 +15,13 @@
   Ward, outside a fight. Off until you switch them on. Asked for on CurseForge.
 - **Add a spell of my own.** Under *Myself*, add up to ten buffs of yours
   that Manners does not know; each is reminded like your other own buffs.
-  Kept for each character. Asked for on CurseForge.
+  Kept for each character. A spell that leaves no aura on you after you cast
+  it on yourself, such as Blink, is taken off with a line in chat. Asked for
+  on CurseForge.
+- **No spell on a long cooldown.** A spell still on a cooldown of more than
+  three seconds is not offered until it is ready.
 
 ### Fixes
-- **A spell for your pet is judged.** A spell of your own that only lands on
-  your pet, such as Mend Pet, is taken off the list like any that leaves no
-  aura on you, instead of being offered again and again.
 - **A look tried with the pointer stays on its own profile.** Switching
   profile while the pointer rests on a look no longer leaves that look saved
   on the old one or overwrites the new one's.
@@ -31,8 +32,7 @@
   Revive Pet with Lone Wolf. A newly tamed pet with an earlier pet's name is
   welcomed as new. A shared meal is not offered once the food is gone, and the
   inn greeting is quiet while Manners is off.
-- **A profile's own look.** One this version no longer has falls back to Glass,
-  not to another class's look.
+- **A profile's own look.** One this version no longer has falls back to Glass.
 
 ## 1.11.28
 

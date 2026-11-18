@@ -5,21 +5,23 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-**1.11.25 is the last release** (tagged on 2026-11-14); what is on master
-since is under *Unreleased* in the changelog. 1.11.25 was built that day in
-parallel worktrees and merged to master: each piece was held to
-lint, its own scenario file and `anchors_for.py --check-after`, and each new
-mutation to `tools/prove.py`. One `tools/check.py --release` ran over an
-earlier master that day; what it found red was cleared on the `integrate`
-branch, each by its own scenario file (the list is the second item under
-*Open*). No whole suite has run over the tree as it now stands, and nothing
-was tried in the game. The checklist of what only the game can settle, now
-on WoW Forever in the owner's own play sessions, is the first item under
-*Open*.
+**1.11.28 is the last release** (17 November 2026). **1.11.29 is being
+released on 18 November 2026** with five things: *Use my class's look on each
+character*; a mage's Mana Shield and Fire Ward or Frost Ward; *Add a spell of
+my own*; `Usable` in `Core.lua` refusing a spell on a cooldown of more than
+three seconds; and the bug-hunt fixes the changelog lists. Each piece was
+built in its own worktree and held to lint, its own scenario file
+(`classlook.lua`, `ownspell.lua`, `hunt-1129.lua`, `ownspell-linger.lua`) and
+`tools/prove.py` for its mutations (the files of the same names in
+`tests/mutations/`). No whole suite has run over the tree as it now stands
+beyond what the release checks run, and none of the three features has been
+tried beyond the sightings under *Open*. The checklist of what only the game
+can settle, on WoW Forever in the owner's own play sessions, is the first item
+under *Open*.
 
-**A look for each class (Unreleased, asked for on CurseForge).** *Use my class's look on each character* (`prompt.classLook`, off, over the cards on Look): `Looks.RepairClassLook`, from ClampSettings, sets `prompt.style` to the look of the character's class at every login, profile change and import. A mage's pick among the mage's looks is in `prompt.classStyles`, and the profile's own look is in `prompt.profileStyle` while the switch is on. A line under the picker's tabs says which look is in use and why. `tests/scenarios/classlook.lua`, mutations in the file of the same name. What only the game can say: whether two characters sharing one profile, logged in one after the other, each come up in their own look; and whether the switch's label and the line under the tabs fit at the window's smallest width in German and French.
+**A look for each class (1.11.29, asked for on CurseForge).** *Use my class's look on each character* (`prompt.classLook`, off, over the cards on Look): `Looks.RepairClassLook`, from ClampSettings, sets `prompt.style` to the look of the character's class at every login, profile change and import. A mage's pick among the mage's looks is in `prompt.classStyles`, and the profile's own look is in `prompt.profileStyle` while the switch is on. A line under the picker's tabs says which look is in use and why. `tests/scenarios/classlook.lua`, mutations in the file of the same name. What only the game can say: whether two characters sharing one profile, logged in one after the other, each come up in their own look; and whether the switch's label and the line under the tabs fit at the window's smallest width in German and French.
 
-**Tanks and me, and a campsite's buffs (Unreleased, asked for on
+**Tanks and me, and a campsite's buffs (1.11.28, asked for on
 CurseForge).** Thorns' *Offer to* has a fifth choice, *Tanks and me*
 (`buff.tanksMe` beside `buff.tanksOnly`): the group held to its tanks as
 under Tanks only, and Queue.lua's own walk handed the tank set without
@@ -31,7 +33,7 @@ off whatever `ns.CampWorth` says. `tests/scenarios/tankonly.lua` and
 `audit-right-buff.lua`, mutations in the files of the same names. What
 only the game can say: nothing new; the camping auras are read as before.
 
-**Ask me before thanking (Unreleased, asked for on CurseForge).**
+**Ask me before thanking (1.11.28, asked for on CurseForge).**
 `prompt.thankAsk`, off, on What I say under the /thank: a thank Favours.lua
 finds due (Blocked, UnseenBlocked, the gap left out, an unseen one's target
 too) is parked by `ns.ThankPark` (`ThankPress.lua`) and offered on the prompt
@@ -49,7 +51,7 @@ whisper sent from the prompt's PostClick go out on retail 12.x and on Forever
 as the automatic ones do (the emote's raw answer is in `/manners debug`);
 whether twenty seconds is long enough to reach the prompt.
 
-**A hunter's pet (Unreleased, asked for by the owner).** `HunterPet.lua`
+**A hunter's pet (1.11.28, asked for by the owner).** `HunterPet.lua`
 (`ns.Beast`), two new entry kinds under pseudo-names (`?pet:<kind>`):
 `entry.care` (Call, Revive, Mend, and Feed on Forever, Classic Era and TBC;
 `db.profile.beast.call`, `revive`, `mend`, `feed`, all on, under Who to buff,
@@ -77,7 +79,7 @@ game can settle:
 - the Call Pet N remembered on Mists and retail;
 - the night at the inn written at PLAYER_LOGOUT and read at the next login.
 
-**A hunter's pet, further (Unreleased).** Every piece has its own switch
+**A hunter's pet, further (1.11.28).** Every piece has its own switch
 (`db.profile.beast`: `all`, the master, then `leaveFood`, `growl` (off),
 `training`, `fightMend`, `answer`, `words`, `memory`, `pace`, and one key per
 moment: `praise` `comfort` `welcome` `sorry` `hello` `morning` `road` `play`
@@ -101,7 +103,7 @@ game can settle:
 - `GetMerchantItemID` answering 0.3 s after `MERCHANT_SHOW`;
 - the player's health being plain at `PLAYER_REGEN_ENABLED` on Forever.
 
-**Two elixirs at once (branch `post26`, after 1.11.26, not released).**
+**Two elixirs at once (1.11.27, built on branch `post26`).**
 Burning Crusade and Mists name each elixir's slot only in its spell's own
 text ("... Battle Elixir."), so `tools/make_consumables.py` writes it as a
 fourth value on each elixir row and `Buffs.lua` builds two families there:
@@ -796,19 +798,28 @@ Blizzard's UI source and lists the PTR numbers. A `.claude/` folder holds a
 permissions list, a hook that lints each edited file, and the commands
 `/check`, `/release`, `/bughunt`, `/translate` and `/phrases`.
 
-Unreleased: a mage's Mana Shield and Fire Ward or Frost Ward as own buffs (Classic Era, Forever, TBC); Add a spell of my own (OwnSpells.lua).
+1.11.29: a mage's Mana Shield and Fire Ward or Frost Ward as own buffs (Classic Era, Forever, TBC); Add a spell of my own (OwnSpells.lua).
 
 ## Open
 
-**Mana Shield, the wards and Add a spell of my own (unreleased), for the game to settle.**
+**Mana Shield, the wards and Add a spell of my own (1.11.29), for the game to settle.**
 1. Does GetSpellIDForSpellIdentifier or GetSpellInfo by name return the best rank known on Classic Era, TBC and Forever?
 2. Do IsSpellHarmful, IsSpellPassive and IsSpellHelpful answer for spellbook ids on Forever 1.60.1? A call that gives no answer counts as no.
 3. Is a self-buff's aura readable two seconds after UNIT_SPELLCAST_SUCCEEDED out of a fight on Forever and retail, and does UNIT_SPELLCAST_SENT name the player for a self press there?
 4. A helpful spell the game will not put on oneself is refused at each press, and only the existing self-refusal hold answers it.
 5. Retail's Fire Ward 320813 has TraitDefinition 122111, but the cache has no TraitNodeEntry; nothing is added on retail.
-6. Is the 30-second ward reminder after each expiry welcome? It is opt-in.
+6. Short shields are reminded early: Mana Shield with 23 seconds left, the
+   wards with 15. The owner has not decided whether to change that; both are
+   opt-in.
+7. The game is at build 70959 and the data was audited at 70790.
+8. A spell of my own that can only land on another player stays on the list:
+   the verdict reads only a cast that can have gone to you.
+9. The frFR and esES names of Fire Ward and Frost Ward are doubtful.
+10. Seen in game on WoW Forever on 18 November 2026: Mana Shield refused by
+    *Add a spell* (it is a buff Manners already knows), Blink added and then
+    taken off after its cast, and the prompt dropping it at once.
 
-**Automatic picks the best item (after 1.11.27, not released).** A player on
+**Automatic picks the best item (1.11.28).** A player on
 Forever: "it should be best, based on weapon, class, skill, talent etc".
 Automatic no longer takes the item used last for a scroll, an oil, a stone or
 a lure: `Core.lua`'s `Best` weighs a `ranked` family's rows (a mage's imbue and

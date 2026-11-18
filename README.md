@@ -425,7 +425,7 @@ once you carry one.
   *Automatic* takes the best you can use now: a scroll of the school your
   talents favour, then your level and weapon; pick one by name to keep to it.
 
-**Add a spell of my own.** A buff of yours that Manners does not know: type its name as your spellbook shows it, or its spell id, and press Enter. Manners checks that this character knows it, that it is not passive or cast on an enemy, and that Manners does not cover it already (then it says where that switch is). It shows the icon and name, with a Remove for each. Up to ten, kept for each character. Each is reminded like your other own buffs: when it is not on you (another rank of it counts), outside a fight, under *Myself* and *Also in cities and inns*, and one press casts it on you. A spell that leaves no aura on you is taken off after you first cast it on yourself, with a line saying why. `/manners spell` lists them, `/manners spell add <name or id>` and `/manners spell remove <name or id>` change the list. It is for buffs on yourself: buffs for other people come from Manners' own list under *What to cast*, and in a fight the prompt keeps what it had at the pull.
+**Add a spell of my own.** A buff of yours that Manners does not know: type its name as your spellbook shows it, or its spell id, and press Enter. Manners checks that this character knows it, that it is not passive or cast on an enemy, and that Manners does not cover it already (then it says where that switch is). It shows the icon and name, with a Remove for each. Up to ten, kept for each character. Each is reminded like your other own buffs: when it is not on you (another rank of it counts), outside a fight, under *Myself* and *Also in cities and inns*, and one press casts it on you. The first time you cast one on yourself out of a fight, Manners looks two seconds later; a spell that left no aura on you (Blink, say) is taken off the list with a line in chat saying why, and leaves the prompt at once. A spell that cannot go on you at all and went to your pet (Mend Pet) is judged the same way. A cast that may have gone to a friend you had targeted is not judged, so a spell that can only land on another player stays on the list. `/manners spell` lists them, `/manners spell add <name or id>` and `/manners spell remove <name or id>` change the list. It is for buffs on yourself: buffs for other people come from Manners' own list under *What to cast*, and in a fight the prompt keeps what it had at the pull.
 
 **When my own buffs come up.**
 
@@ -1328,7 +1328,8 @@ profiles of your own.
 
 - ***What Manners can see***: what your class has and whether the game lets
   addons read each buff, when a top-up is due for each of your buffs, and how
-  near a passer-by is measured.
+  near a passer-by is measured. The full check-up also lists your spells
+  of my own and the last cast judged.
 - ***Errors this session***: what has broken; past five, *Show every error*
   lists them all in chat.
 - ***Reporting a bug***: **Run a full check-up**, *Show a short summary*,
@@ -1345,6 +1346,7 @@ Everyday
 /manners snooze [min|off]   hide the prompt for 15 minutes, or as long as you say
 /manners test               preview the prompt, for styling
 /manners ledger             the favour ledger
+/manners spell [add|remove <name or id>]  list your own added spells, add one or remove one
 /manners never [name]       who is never offered anything, or put somebody on it
 /manners allow <name>       take somebody off that list
 
@@ -1364,7 +1366,7 @@ Sharing settings
 /manners import undo        put your own settings back
 
 When something is wrong
-/manners debug              what your class and this build allow
+/manners debug              what your class and this build allow, your added spells and the last cast judged
 /manners errors [all]       the last few things that broke, if any did (all: every one kept)
 /manners selftest [launch]  check Manners against your game, with a report to paste (also /manners check)
 /manners dev                tools for testing the addon on this client: the click log, try, look and forms
@@ -1556,8 +1558,9 @@ works here registers `"AnyDown"`.
   (most often the game's friendly nameplates being off).
 - **`/manners debug`** says what your class and this build allow, which of
   your own buffs is up or due, the requests still standing, who you share a
-  group with, the last thank, and why a resurrection, a cure or an ask is
-  held back.
+  group with, the last thank, your spells of my own and the last cast of
+  one judged ("spells of my own" and "last cast" lines), and why a
+  resurrection, a cure or an ask is held back.
 - **`/manners errors`** lists the last few things that broke, if any did.
   When one keeps breaking, the minimap tooltip, the broker text and the
   options window say so in red, with *Run a full check-up* to send; with
