@@ -512,6 +512,22 @@ do
 		cast(ns, 900602, "")
 		rawset(_G, "UnitExists", exists)
 		if #list(ns) ~= 0 then fail(scenario, "still listed after a cast that left nothing on you") end
+		-- A friend is targeted, and the spell has no range on anybody: still yours.
+		add(ns, "Test Step")
+		local same, assist, spells = UnitIsUnit, UnitCanAssist, C_Spell
+		rawset(_G, "UnitIsUnit", function(a, b)
+			if a == "target" and b == "player" then return false end
+			return same(a, b)
+		end)
+		rawset(_G, "UnitExists", function(u) return u == "target" or exists(u) end)
+		rawset(_G, "UnitCanAssist", function() return true end)
+		rawset(_G, "C_Spell", setmetatable({ IsSpellInRange = function() return nil end }, { __index = spells }))
+		cast(ns, 900602, "")
+		rawset(_G, "UnitIsUnit", same)
+		rawset(_G, "UnitExists", exists)
+		rawset(_G, "UnitCanAssist", assist)
+		rawset(_G, "C_Spell", spells)
+		if #list(ns) ~= 0 then fail(scenario, "still listed with a friend targeted whom it cannot be cast on") end
 		local told
 		for _, line in ipairs(ns.OwnSpellLines()) do
 			if line:find("taken off", 1, true) then told = true end

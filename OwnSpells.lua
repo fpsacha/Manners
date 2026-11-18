@@ -401,8 +401,11 @@ do
 		local id = ns.plain(spellId)
 		if id == nil or watch[id] == nil then return end
 		sentTo[id] = ns.plain(target) or ""
+		-- No range to speak of on that friend (Blink) means it cannot be cast on them.
+		local range = C_Spell and C_Spell.IsSpellInRange
 		sentFriend[id] = ns.plain(UnitExists("target")) == true and ns.plain(UnitIsUnit("target", "player")) ~= true
-			and ns.plain(UnitCanAssist("player", "target")) == true or nil
+			and ns.plain(UnitCanAssist("player", "target")) == true
+			and (type(range) ~= "function" or ns.plain(range(id, "target")) ~= nil) or nil
 	end
 	-- Only a spell the client says cannot be cast on you (Mend Pet) is read from a
 	-- cast at the pet; one that can land on you waits for a cast on you.

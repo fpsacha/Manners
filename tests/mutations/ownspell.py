@@ -214,3 +214,9 @@ mutate("OwnSpells.lua",
        "if me == nil and ns.safecall",
        "ownspell: a cast naming nobody with no friend targeted is never judged",
        expect="ownspell: a spell cast at nobody with nobody targeted is judged", script=S)
+
+mutate("OwnSpells.lua",
+       "and (type(range) ~= \"function\" or ns.plain(range(id, \"target\")) ~= nil) or nil",
+       "or nil",
+       "ownspell: a spell with no range held for the friend targeted",
+       expect="ownspell: a spell cast at nobody with nobody targeted is judged", script=S)
