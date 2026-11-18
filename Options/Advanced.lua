@@ -60,6 +60,7 @@ Page.RESET = {
 		"ownBuffs.apart",
 		-- A hunter's pet (HunterPet.lua): care and the moments, all on again.
 		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond",
+		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
 		-- Elixirs to keep up (Classic Era, Forever): none ticked again.
 		"ownBuffs.elixirKeep",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
@@ -138,7 +139,7 @@ Page.RESET = {
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
-		"supplies.size", "prompt.breakFree",
+		"supplies.size", "prompt.breakFree", "beast.fightMend",
 		after = function()
 			-- The icon back inside the prompt's size, as the size sliders do.
 			ns.ClampSettings()

@@ -127,8 +127,9 @@ local function BugReport()
 	for _, line in ipairs(ns.ThankPressLines and ns.ThankPressLines(GetTime()) or {}) do lines[#lines + 1] = line end
 	-- A hunter's pet (HunterPet.lua): its switches, its state, its memory.
 	if ns.Beast and ns.Beast.IsHunter() and type(db.beast) == "table" then
-		lines[#lines + 1] = ("beast: call=%s revive=%s feed=%s mend=%s bond=%s"):format(tostring(db.beast.call),
-			tostring(db.beast.revive), tostring(db.beast.feed), tostring(db.beast.mend), tostring(db.beast.bond))
+		local parts = {}
+		for _, key in ipairs(ns.Beast.SWITCHES) do parts[#parts + 1] = key .. "=" .. tostring(db.beast[key]) end
+		lines[#lines + 1] = "beast: " .. table.concat(parts, " ")
 		for _, line in ipairs(ns.BeastLines(GetTime())) do lines[#lines + 1] = line end
 	end
 	-- In battlegrounds and arenas (Battle.lua): its four switches, and which

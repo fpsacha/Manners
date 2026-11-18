@@ -442,12 +442,16 @@ ns.WindowLayout = {
 				-- A hunter's pet (HunterPet.lua): care, each with its own switch,
 				-- then the moments with it and what Manners remembers of each pet.
 				{ key = "who.myselfPet", title = L["Your pet"], items = {
-					"who.beastCall",
-					"who.beastRevive",
-					"who.beastFeed",
-					"who.beastMend",
-					"who.beastBond",
-					{ "who.beastMemory", indent = true },
+					"who.beastAll",
+					{ "who.beastCall", indent = true },
+					{ "who.beastRevive", indent = true },
+					{ "who.beastFeed", indent = true },
+					{ "who.beastMend", indent = true },
+					{ "who.beastLeaveFood", indent = true },
+					{ "who.beastGrowl", indent = true },
+					{ "who.beastTraining", indent = true },
+					{ "who.beastBond", indent = true },
+					{ "who.beastPace", indent = 2 },
 				} },
 				{ key = "who.myselfWeapons", title = L["Weapons"], items = {
 					-- A shaman's weapon imbues, spells: one a hand at a time.
@@ -539,6 +543,15 @@ ns.WindowLayout = {
 					{ "who.askLine", indent = true },
 					{ "who.askInTowns", indent = true },
 				} },
+				-- Each moment with a hunter's pet, its answer, its line and its
+				-- memory, a switch apiece (HunterPet.lua), folded away.
+				{ key = "who.myselfPetMoments", title = L["Bond with my pet, piece by piece"], fold = true, items = {
+					"who.beastPraise", "who.beastComfort", "who.beastWelcome", "who.beastSorry", "who.beastHello",
+					"who.beastMorning", "who.beastRoad", "who.beastPlay", "who.beastShare", "who.beastFamily",
+					"who.beastMissed", "who.beastSaved", "who.beastGrown", "who.beastAnniversary", "who.beastAnswer",
+					"who.beastWords", "who.beastMilestones",
+					{ "who.beastMemory", indent = true },
+				} },
 				{ key = "who.first", header = "who.firstHeader", fold = true, items = {
 					"who.target",
 					"who.friends",
@@ -552,7 +565,7 @@ ns.WindowLayout = {
 				{ "who.cast", "who.order" },
 				{ "who.group" },
 				{ "who.beyond" },
-				{ "who.myself", "who.myselfPet", "who.myselfWeapons", "who.myselfItems", "who.myselfWhen" },
+				{ "who.myself", "who.myselfPet", "who.myselfWeapons", "who.myselfItems", "who.myselfWhen", "who.myselfPetMoments" },
 				{ "who.asking" },
 				{ "who.first" },
 			},
@@ -784,6 +797,8 @@ ns.WindowLayout = {
 					-- A Forsaken's Will of the Forsaken (Prompt/BreakFree.lua).
 					"appearance.breakFree",
 					{ "appearance.breakFreeKey", indent = true },
+					"appearance.mendInFight",
+					{ "appearance.mendInFightKey", indent = true },
 					"appearance.hideInCombat",
 					"appearance.dimInCombat",
 				} },
@@ -1001,7 +1016,7 @@ ns.WindowLayout = {
 			-- (Hints.lua), and the answer to "nothing comes up when I log in".
 			["who.ownCities"] = true,
 			-- A hunter's moments with his pet (HunterPet.lua).
-			["who.beastBond"] = true,
+			["who.beastBond"] = true, ["who.beastAll"] = true,
 			-- Scrolls: the switch each scroll's own (who.own_*, added below) is
 			-- indented under, and the only way back to them once it is off.
 			["who.ownScrolls"] = true,
@@ -1028,6 +1043,7 @@ ns.WindowLayout = {
 			["appearance.soundEnabled"] = true, ["appearance.soundFile"] = true,
 			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,
 			["appearance.breakFree"] = true, ["appearance.breakFreeKey"] = true,
+			["appearance.mendInFight"] = true, ["appearance.mendInFightKey"] = true,
 		},
 	},
 
@@ -1076,6 +1092,7 @@ ns.WindowLayout = {
 	-- and names the other switch as its own label reads now.
 	offNotes = {
 		["general.verbose"] = function() return L["Off while %s is on."]:format(NameOf("general.silentChat")) end,
+		["appearance.mendInFight"] = function() return L["Needs %s ticked."]:format(NameOf("who.beastAll")) end,
 		["who.groupBuffsUse"] = function() return L["Needs %s ticked."]:format(NameOf("who.group")) end,
 		["who.skipRaidGroups"] = function() return L["Needs %s ticked."]:format(NameOf("who.group")) end,
 		["who.proximity"] = function() return L["Needs %s ticked."]:format(NameOf("who.strangers")) end,
@@ -1133,6 +1150,9 @@ ns.WindowLayout = {
 		["who.beastFeed"] = L["hunter pet feed food happy"],
 		["who.beastMend"] = L["hunter pet mend heal"],
 		["who.beastBond"] = L["hunter pet bond emote memory"],
+		["who.beastAll"] = L["hunter pet everything all off"], ["who.beastPace"] = L["hunter pet moments often rarely"],
+		["who.beastLeaveFood"] = L["hunter pet vendor food buy"], ["who.beastGrowl"] = L["hunter pet growl autocast tank"],
+		["who.beastTraining"] = L["hunter pet training points"], ["appearance.mendInFight"] = L["hunter pet mend fight button key"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the
@@ -1169,8 +1189,19 @@ ns.WindowLayout = {
 		["who.neverFishBowl"] = "who.spareFishBowl",
 		-- Well-Rested's last five minutes, shown only while Well-Rested is on.
 		["who.ownRestedEarly"] = "who.own_rested",
-		-- What Manners remembers of each pet, shown only while Bond with my pet is on.
-		["who.beastMemory"] = "who.beastBond",
+		-- A hunter's pet: every piece under the master, the moments, the answer,
+		-- the line, the memory and the pace under Bond with my pet, and what
+		-- Manners remembers under its own switch.
+		["who.beastCall"] = "who.beastAll", ["who.beastRevive"] = "who.beastAll", ["who.beastFeed"] = "who.beastAll",
+		["who.beastMend"] = "who.beastAll", ["who.beastLeaveFood"] = "who.beastAll", ["who.beastGrowl"] = "who.beastAll",
+		["who.beastTraining"] = "who.beastAll", ["who.beastBond"] = "who.beastAll",
+		["who.beastPace"] = "who.beastBond", ["who.beastPraise"] = "who.beastBond", ["who.beastComfort"] = "who.beastBond",
+		["who.beastWelcome"] = "who.beastBond", ["who.beastSorry"] = "who.beastBond", ["who.beastHello"] = "who.beastBond",
+		["who.beastMorning"] = "who.beastBond", ["who.beastRoad"] = "who.beastBond", ["who.beastPlay"] = "who.beastBond",
+		["who.beastShare"] = "who.beastBond", ["who.beastFamily"] = "who.beastBond", ["who.beastMissed"] = "who.beastBond",
+		["who.beastSaved"] = "who.beastBond", ["who.beastGrown"] = "who.beastBond", ["who.beastAnniversary"] = "who.beastBond",
+		["who.beastAnswer"] = "who.beastBond", ["who.beastWords"] = "who.beastBond", ["who.beastMilestones"] = "who.beastBond",
+		["who.beastMemory"] = "who.beastMilestones",
 		-- A situation's profile and the chat line's tick, shown only while
 		-- Switch profile automatically is on.
 		["profiles.auto_world"] = "profiles.autoEnabled",
@@ -1180,6 +1211,7 @@ ns.WindowLayout = {
 		["profiles.autoSay"] = "profiles.autoEnabled",
 		-- The break-free key, shown only while its switch is on.
 		["appearance.breakFreeKey"] = "appearance.breakFree",
+		["appearance.mendInFightKey"] = "appearance.mendInFight",
 	},
 
 	-- What else a control of `parents` needs before its switch would show it:
@@ -1189,6 +1221,10 @@ ns.WindowLayout = {
 	parentsIf = {
 		-- Only for a character with the ability: the switch shows nothing else.
 		["appearance.breakFreeKey"] = function() return ns.caps.breakFree ~= nil end,
+		["appearance.mendInFightKey"] = function() return ns.Beast.IsHunter() and ns.Beast.KnowsMend() end,
+		["who.beastShare"] = function() return ns.Beast.Feeds() end,
+		["who.beastLeaveFood"] = function() return ns.Beast.Feeds() end,
+		["who.beastTraining"] = function() return ns.Beast.Trains() end,
 		["who.courtesyRefresh"] = function() return ns.Courtesy.Has("courtesyRefresh") end,
 		["who.courtesyPortals"] = function() return ns.Courtesy.Has("courtesyPortals") end,
 		["who.courtesyHealthstones"] = function() return ns.Courtesy.Has("courtesyHealthstones") end,

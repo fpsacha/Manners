@@ -458,6 +458,32 @@ once you carry one.
   is left out until the pet's next level.
 - *Mend my pet when it is hurt after a fight*: Mend Pet below half health,
   once the pet is out of the fight too, and not while Mend Pet still heals it.
+- *Tell me at a vendor when my pet is low on food* (Classic Era, WoW Forever
+  and Burning Crusade): at a vendor that sells a food your pet eats, a line in
+  chat naming your pet and the food when your bags hold fewer than five meals
+  for it. Once a vendor each session; Manners never buys anything.
+- *Remind me about Growl in groups and alone* (off): a line in chat when
+  Growl is on autocast in a dungeon or raid with a tank in your group, once a
+  zone, or off while you are alone in the open world, once a session. Manners
+  never changes it for you.
+- *Tell me when my pet has training points to spend* (Classic Era, WoW Forever
+  and Burning Crusade): once a session for each pet, and again when there are
+  more, at most once in fifteen minutes.
+
+*Everything for my pet* is the master over all of these and over the Mend Pet
+button below: off, Manners leaves your pet to you, and every switch keeps its
+own setting for when it is on again.
+
+*Mend Pet in a fight* (under *Look*, *In a fight*, with a key of its own): a
+button of its own to the right of the prompt, or of the Will of the Forsaken
+button where a Forsaken hunter has both, shown for every fight. It lights up
+while your pet is below half health, in reach and alive, and Mend Pet is not
+still at work, and is dim otherwise; where the game hides your pet's health in
+a fight (WoW Forever and retail) it stays half lit with its two lines shown
+and still casts. The prompt's own key keeps to buffs.
+
+Care waits while you eat: a food or drink stands you up, so nothing for the
+pet is offered until the meal is over.
 
 None of these comes in a fight, in the few seconds after one, while you are
 mounted, on a taxi, feigning death or casting, without the mana to cast it,
@@ -468,11 +494,25 @@ your next fight, Call once a pet has been out. Nobody is skipped and nothing
 goes on your never-offer list.
 
 *Bond with my pet* (on) offers a moment with your pet now and then: after a
-long fight or a boss, after a fight it barely lived through, after a revive,
-at login (good morning after you logged out at an inn) and after a quiet
-stretch on the road. At most one in twenty minutes, never in a fight, a
+long fight or a boss, after a fight it barely lived through, after a revive
+(or, when it fell in a fight, an apology, taking turns with the welcome back),
+at login (good morning after you logged out at an inn), after a quiet stretch
+on the road (a pat, then a game of fetch, in turns), when you sit down to eat
+and your pet is not happy with food it eats in your bags (*Share your meal*,
+once your own meal is over, so a press never stands you up; Classic Era, WoW
+Forever and Burning Crusade), when you tame a new pet (welcome to the family,
+and a nudge to name it while it still has its kind's name), when it comes back
+after three days or more, when it was with you as you ended a fight alive
+under a fifth of your health, when it gains a level or, where pets have
+loyalty, more of it, and on the 7th, 30th, 100th and 365th day together.
+*How often moments come* sets the least time between two: *Rarely* an hour,
+*Sometimes* twenty minutes, *Often* ten; before one on a quiet road, half an
+hour, a quarter of an hour or ten minutes. Never in a fight, a
 battleground or an arena; it stays on the prompt for 45 seconds with no
-sound, and letting it pass costs nothing. A press does the fitting emote at
+sound, and letting it pass costs nothing. Every moment, the pet's answer, the
+line you say and the memory below have a switch of their own in a fold,
+*Bond with my pet, piece by piece*, under *Who to buff*, and are held by
+*Bond with my pet* and *Everything for my pet*. A press does the fitting emote at
 your pet (/pet, /praise, /soothe, /welcome or /greet, aimed at your pet and
 never at a name, so your target stays as it is) and an /emote everybody near
 you sees, such as "Mort scratches Humar behind the ears. Humar wags
@@ -480,8 +520,10 @@ happily." The answer goes by the pet's family. With *In character* chosen
 and your lines going in /say, you also say a line to your pet in your
 people's voice. Manners remembers each pet by name on this character: when
 it first saw it, fights shared, pats and meals, shown under the switch, with
-a small line in chat at a milestone ("100 days with Humar"). A pet you
-rename keeps its memory under the new name.
+a small line in chat at a milestone ("500 fights shared with Humar"; the
+days together are the anniversary moment's while that is on). A pet you
+rename keeps its memory under the new name. *Remember fights, pats and meals*
+turns the counting and its lines off.
 
 ## Your group
 

@@ -244,8 +244,9 @@ local function OnPreClick(self, mouseButton, down)
 		ready, askLeft = true, left
 	end
 	-- Nor a moment with a hunter's pet (HunterPet.lua): an emote. Care for it
-	-- is a cast, held back as any is (a Feed Pet refused would eat the food).
-	if not ready and not InCombatLockdown() and S.current and S.current.bond then
+	-- is a cast, held back as any is (a Feed Pet refused would eat the food);
+	-- a share of the meal casts Feed Pet: held back as any cast is.
+	if not ready and not InCombatLockdown() and S.current and S.current.bond and not S.current.item then
 		ready, askLeft = true, left
 	end
 	-- Then the combat return: in combat nothing below can change the macro,
@@ -802,8 +803,9 @@ local function OnRowPreClick(self, mouseButton, down)
 	if entry.ask then ready = true end
 	-- And a thank-you's sends its thanks (ThankPress.lua).
 	if entry.thank then ready = true end
-	-- And a moment with a hunter's pet does an emote (HunterPet.lua).
-	if entry.bond then ready = true end
+	-- And a moment with a hunter's pet does an emote (HunterPet.lua); a share of
+	-- the meal casts Feed Pet: held back as any cast is.
+	if entry.bond and not entry.item then ready = true end
 	cooldownPressAt = (not ready) and now or nil
 	if not ready then
 		guardedEntry = nil

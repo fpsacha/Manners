@@ -261,8 +261,8 @@ mutate("Options/Start.lua",
        expect="breakfree: its key control binds it and says what the key now does", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"supplies.size\", \"prompt.breakFree\",\n",
-       "\t\t\"supplies.size\",\n",
+       "\t\t\"supplies.size\", \"prompt.breakFree\", \"beast.fightMend\",\n",
+       "\t\t\"supplies.size\", \"beast.fightMend\",\n",
        "breakfree: Look's reset leaves the switch",
        expect="advanced: put these back to default on Look", script=S)
 

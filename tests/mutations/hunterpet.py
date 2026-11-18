@@ -75,7 +75,7 @@ mutate("Prompt/Press.lua",
        expect="hunterpet: a press on a moment does the emote and is remembered", script=S)
 
 mutate("Prompt/Press.lua",
-       "\tif not ready and not InCombatLockdown() and S.current and S.current.bond then\n",
+       "\tif not ready and not InCombatLockdown() and S.current and S.current.bond and not S.current.item then\n",
        "\tif false then\n",
        "hunterpet: a moment held back by the cooldown",
        expect="hunterpet: a press on a moment does the emote and is remembered", script=S)
@@ -221,7 +221,7 @@ mutate("HunterPet.lua",
        expect="hunterpet: a pet that died in a fight is revived, not called", script=S)
 
 mutate("HunterPet.lua",
-       "\t\t\tchar.beastDead = nil\n\t\t\tTrigger(\"welcome\", now)\n",
+       "\t\t\tchar.beastDead = nil\n\t\t\tTrigger(ReviveMoment(), now)\n",
        "\t\t\tchar.beastDead = nil\n",
        "hunterpet: no welcome after a revive",
        expect="hunterpet: revive when the pet is dead, never for a ghost", script=S)
@@ -409,8 +409,8 @@ mutate("HunterPet.lua",
        expect="hunterpet: hello at login, good morning after a night at the inn", script=S)
 
 mutate("HunterPet.lua",
-       "\t\tif char and st.out and st.name and ns.Resting() == true and ns.InCity() == false then\n",
-       "\t\tif char and st.out and st.name and ns.Resting() == true then\n",
+       "\t\tif char and st.out and st.name and On(Switches(Profile()), \"morning\") and ns.Resting() == true and ns.InCity() == false then\n",
+       "\t\tif char and st.out and st.name and On(Switches(Profile()), \"morning\") and ns.Resting() == true then\n",
        "hunterpet: a logout in a city kept as a night at the inn",
        expect="hunterpet: hello at login, good morning after a night at the inn", script=S)
 
