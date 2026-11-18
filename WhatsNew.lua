@@ -11,8 +11,8 @@ ns.WhatsNew = {
 		} },
 		{ title = "Who to buff", accent = "7cc4ff", entries = {
 			"|cff7cc4ffMana Shield and the wards.|r On WoW Forever, Classic Era and Burning Crusade a mage can be reminded of Mana Shield and of Fire Ward or Frost Ward, outside a fight.",
-			"|cff7cc4ffAdd a spell of my own.|r Under |cffffffffMyself|r, add up to ten buffs of yours that Manners does not know; each is reminded like your other own buffs.",
-			"|cff7cc4ffNo spell on a long cooldown.|r A spell still on a cooldown of more than three seconds is not offered until it is ready.",
+			"|cff7cc4ffAdd a spell of my own.|r Up to ten buffs of yours, under |cffffffffMyself|r, each reminded like your other own buffs, per character; one that leaves no aura on you (Blink) is taken off with a line in chat.",
+			"|cff7cc4ffNo own buff on a long cooldown.|r A buff of your own still on a cooldown of more than three seconds is not reminded until it is ready.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52A look tried with the pointer stays on its own profile.|r Switching profile while the pointer rests on a look no longer leaves that look saved on the old one or overwrites the new one's.",

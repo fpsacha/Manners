@@ -136,7 +136,7 @@ carries). `tests/scenarios/elixir-pair.lua`, `tests/mutations/elixir-pair.py`
 5. Whether "A more powerful spell is already active" reaches the pending
    click for a `/use item:` on yourself as it does for a cast on others.
 
-**Will of the Forsaken in a fight (branch `post26`, not released), asked for
+**Will of the Forsaken in a fight (1.11.27, built on branch `post26`), asked for
 by the author.** A Forsaken mage on Forever: "in combat, if I sleep or
 whatever, I need to be able to get the prompt for this", and nothing Manners
 chooses may lock it. `Prompt/BreakFree.lua` (`ns.BreakFree`): a table of
@@ -177,7 +177,7 @@ plain, secret or with no API); `/manners selftest launch` has
 game can settle is the item *Will of the Forsaken in a real fight* under
 *Open*.
 
-**Say nothing in a party or a raid (branch `post26`, not released), asked
+**Say nothing in a party or a raid (1.11.27, built on branch `post26`), asked
 for by the author.** Two switches on What I say under *Say a line when I buff
 someone*, both off: `speech.quietInParty` and `speech.quietInRaid`
 (`Speech.lua`, `ns.GroupQuiet`, read by `ns.ChannelOpen`, so the prompt, its
@@ -232,7 +232,7 @@ with it on says the emote thanks them. A pasted line never switches it on
 the game can say is under *Open*, step 2.
 
 **First name only, how often my own lines are said, lines left out (branch
-`post26`, not released), asked for on CurseForge by a player on a roleplay
+`post26`, released in 1.11.27), asked for on CurseForge by a player on a roleplay
 realm.** Three settings on What I say. `speech.firstNameOnly` (off;
 `Speech.lua`, `ns.SaidName`): `{name}` is the first word of the short name in
 the fixed sets (`Roll`), the lines mixed in (`MixedIn`), the In character pick
@@ -471,7 +471,7 @@ passes at 4.6 and is the nearest to the floor with Glass's and Arcane's
 colour-blind "asked"; and whether Letter's seal, whose light at the top of
 its pulse covers the icon in the renderer, does so in the game.
 
-Unreleased after 1.11.23, asked for on CurseForge: *Weapon imbues before the
+Released in 1.11.24, asked for on CurseForge: *Weapon imbues before the
 shield* (`ownBuffs.imbueFirst`, off; Who to buff, Weapons; Core.lua
 `KnownOwnFamilies` puts a shaman's imbue families ahead of the rest;
 `tests/scenarios/imbuefirst.lua`).
@@ -522,7 +522,7 @@ moved to Glass stays on Glass; the player picks the old look again. There
 were fifteen looks with Wild (a druid's) and Frost (a frost mage's) added in
 1.11.22, and there are nineteen since 1.11.25. **Only the game can say:** whether the four read as they did.
 
-**The right-buff audit (Unreleased).** A player called the addon "a buggy
+**The right-buff audit (1.11.19).** A player called the addon "a buggy
 mess": "very frequently it retargets the same person when they are buffed and
 does not notice party members that are unbuffed". Fifteen findings, each a
 scenario in `tests/scenarios/audit-right-buff.lua` and a mutation in
@@ -701,7 +701,7 @@ as before), that resting at an inn inside a capital reads as the city, and
 that the emote and whisper from a timer, with no key press, go out as the
 immediate ones do.
 
-Unreleased after 1.11.16, asked for on CurseForge: a warlock's Firestone and
+Released in 1.11.17, asked for on CurseForge: a warlock's Firestone and
 Spellstone on Forever (`warlockstone`, an Imbue kind in Buffs.lua's
 CAMELOT_ROWS, main hand only; held in the off hand on Classic Era and TBC, so
 not there; `tests/scenarios/warlockstones.lua`), and Detect Invisibility for

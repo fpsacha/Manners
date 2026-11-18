@@ -13,13 +13,11 @@
 - **Mana Shield and the wards.** On WoW Forever, Classic Era and Burning
   Crusade a mage can be reminded of Mana Shield and of Fire Ward or Frost
   Ward, outside a fight. Off until you switch them on. Asked for on CurseForge.
-- **Add a spell of my own.** Under *Myself*, add up to ten buffs of yours
-  that Manners does not know; each is reminded like your other own buffs.
-  Kept for each character. A spell that leaves no aura on you after you cast
-  it on yourself, such as Blink, is taken off with a line in chat. Asked for
-  on CurseForge.
-- **No spell on a long cooldown.** A spell still on a cooldown of more than
-  three seconds is not offered until it is ready.
+- **Add a spell of my own.** Up to ten buffs of yours, under *Myself*, each
+  reminded like your other own buffs, per character; one that leaves no aura
+  on you (Blink) is taken off with a line in chat. Asked for on CurseForge.
+- **No own buff on a long cooldown.** A buff of your own still on a cooldown of
+  more than three seconds is not reminded until it is ready.
 
 ### Fixes
 - **A look tried with the pointer stays on its own profile.** Switching
@@ -29,9 +27,9 @@
   aside by a group buff no longer lapses unseen and stops the giver being
   thanked for half an hour.
 - **A hunter's pet.** Mend Pet is not offered to a pet out of its range, nor
-  Revive Pet with Lone Wolf. A newly tamed pet with an earlier pet's name is
-  welcomed as new. A shared meal is not offered once the food is gone, and the
-  inn greeting is quiet while Manners is off.
+  Revive Pet with Lone Wolf. A new pet with an earlier one's name is welcomed,
+  no meal is shared once the food is gone, and the inn is quiet while Manners
+  is off.
 - **A profile's own look.** One this version no longer has falls back to Glass.
 
 ## 1.11.28
