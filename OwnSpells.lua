@@ -239,6 +239,8 @@ local function Judge(entry)
 		return
 	end
 	table.remove(Entries(), IndexOf(entry))
+	local char = Char()
+	if char and type(char.ownLast) == "table" then char.ownLast[PREFIX .. entry.id] = nil end
 	local line = TEXT.NO_AURA:format(entry.name or tostring(entry.id))
 	said = line
 	addon:Print(line)
