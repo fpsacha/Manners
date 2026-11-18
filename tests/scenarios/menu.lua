@@ -690,7 +690,7 @@ do
 					if now ~= was then fail(scenario, ("%s: %s draws %d controls in the simple view and %d in the full"):format(class, id, now, was)) end
 					if more then fail(scenario, class .. ": " .. id .. " says it leaves settings out") end
 				else
-					if now > 14 then fail(scenario, ("%s: the short list of %s is %d controls"):format(class, id, now)) end
+					if now > 15 then fail(scenario, ("%s: the short list of %s is %d controls"):format(class, id, now)) end
 					if was > now and now == 0 and not more then
 						fail(scenario, class .. ": " .. id .. " is empty in the simple view and does not say why")
 					end
@@ -930,5 +930,17 @@ do
 		if ns.db.profile.keyReminder ~= false then fail(scenario, "the switch does not turn the reminder off") end
 		local shared = ns.ExportSettings and ns.ExportSettings() or ""
 		if shared:find("keyReminder", 1, true) then fail(scenario, "the reminder's switch travels in a string of settings") end
+	end)
+end
+
+do
+	local scenario = "menu: Add a spell of my own is on the short list a new profile starts in"
+	with(scenario, { page = "who", newProfile = true }, function(ns, UI)
+		if ns.MenuView() ~= "simple" then fail(scenario, "the view is " .. tostring(ns.MenuView())) return end
+		local paths = { "who.ownSpellNote", "who.ownSpellAdd", "who.ownSpellSaid", "who.ownBriefNote" }
+		for i = 1, 10 do paths[#paths + 1] = "who.ownSpell" .. i end
+		for _, path in ipairs(paths) do
+			if UI.OffShortList(path) then fail(scenario, path .. " is left out of the short list") end
+		end
 	end)
 end

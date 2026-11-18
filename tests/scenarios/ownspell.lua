@@ -596,3 +596,30 @@ for _, client in ipairs({ "camelot", "vanilla", "tbc", "mists", "mainline" }) do
 		if mine(ns, "ownspell900001") then fail(scenario, "offered over its own aura") end
 	end)
 end
+
+do
+	local scenario = "ownspell: cooldown: a ward still cooling is not offered, and is once it is ready"
+	with(scenario, { class = "MAGE", known = VANILLA }, function(ns)
+		findOption(ns.optionsTable, "own_ward").set({ "own_ward" }, "auto")
+		Mock.spellCooldowns = {}
+		for _, id in ipairs(VANILLA) do
+			Mock.spellCooldowns[id] = { startTime = Mock.now, duration = 30 }
+		end
+		Mock.advance(4)
+		if mine(ns, "fireward") or mine(ns, "frostward") then fail(scenario, "a ward on a 30 second cooldown was offered") end
+		Mock.advance(30)
+		if not (mine(ns, "fireward") or mine(ns, "frostward")) then fail(scenario, "not offered once the cooldown ended") end
+	end)
+end
+
+do
+	local scenario = "ownspell: cooldown: an added spell still cooling is not offered, and is once it is ready"
+	with(scenario, { names = PRIEST_NAMES, known = { FEAR } }, function(ns)
+		add(ns, "Fear Ward")
+		Mock.spellCooldowns = { [FEAR] = { startTime = Mock.now, duration = 30 } }
+		Mock.advance(4)
+		if mine(ns, "ownspell6346") then fail(scenario, "offered during its cooldown") end
+		Mock.advance(30)
+		if not mine(ns, "ownspell6346") then fail(scenario, "not offered once the cooldown ended") end
+	end)
+end

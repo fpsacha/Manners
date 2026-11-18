@@ -1039,6 +1039,14 @@ ns.WindowLayout = {
 			-- Scrolls: the switch each scroll's own (who.own_*, added below) is
 			-- indented under, and the only way back to them once it is off.
 			["who.ownScrolls"] = true,
+			-- Add a spell of my own (OwnSpells.lua), and the note under a mage's
+			-- short shields (ownBriefNote): the section is not drawn without them.
+			["who.ownBriefNote"] = true,
+			["who.ownSpellNote"] = true, ["who.ownSpellAdd"] = true, ["who.ownSpellSaid"] = true,
+			["who.ownSpell1"] = true, ["who.ownSpell2"] = true, ["who.ownSpell3"] = true,
+			["who.ownSpell4"] = true, ["who.ownSpell5"] = true, ["who.ownSpell6"] = true,
+			["who.ownSpell7"] = true, ["who.ownSpell8"] = true, ["who.ownSpell9"] = true,
+			["who.ownSpell10"] = true,
 			-- Who to skip.
 			["who.rightNowSkip"] = true, ["who.skipPvP"] = true, ["who.skipSameClass"] = true,
 			["who.minLevel"] = true, ["who.neverAdd"] = true,

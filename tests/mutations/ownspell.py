@@ -194,3 +194,17 @@ mutate("OwnSpells.lua",
        "local char = type(db) == \"table\" and db.profile or nil",
        "ownspell: kept in the profile",
        expect="ownspell: kept per character", script=S)
+
+# A spell on a cooldown of its own is not offered.
+mutate("Core.lua",
+       "					and start + duration > GetTime() then\n					return false\n",
+       "					and start + duration > GetTime() then\n					return true\n",
+       "ownspell: offered during its cooldown",
+       expect="ownspell: cooldown:", script=S)
+
+# The section is on the short list.
+mutate("Options/Window/Layout.lua",
+       "\t\t\t[\"who.ownSpellNote\"] = true, [\"who.ownSpellAdd\"] = true,",
+       "\t\t\t[\"who.ownSpellNote\"] = true,",
+       "ownspell: the box to add a spell is not on the short list",
+       expect="menu: Add a spell of my own is on the short list", script=S)

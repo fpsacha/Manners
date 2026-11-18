@@ -333,7 +333,7 @@ own. The full list for each class is under *Which buffs each class offers*.
 - **Dampen Magic or Amplify Magic** (mages): off until you pick one, each
   only while you are in no group unless you untick *Dampen Magic only when
   I'm alone* or *Amplify Magic only when I'm alone*.
-- **Mana Shield, Fire Ward and Frost Ward** (mages; Classic Era, WoW Forever, Burning Crusade): *Mana Shield*, and *Fire Ward or Frost Ward* (Automatic takes the one you had up last), each off until you switch it on. They are reminded outside a fight only, as all your own buffs are: from the pull until the fight ends Manners offers none of them, so in a fight you recast them yourself.
+- **Mana Shield, Fire Ward and Frost Ward** (mages; Classic Era, WoW Forever, Burning Crusade): *Mana Shield*, and *Fire Ward or Frost Ward* (Automatic takes the one you had up last), each off until you switch it on. They are reminded outside a fight only: from the pull until the fight ends Manners offers none of them, so in a fight you recast them yourself. A ward or an added spell still on its own cooldown is not offered until it is ready.
 
 **Weapons.** One hand at a time.
 

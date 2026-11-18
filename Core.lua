@@ -4104,12 +4104,28 @@ do
 
 	-- The client's word on whether it can be cast now: a druid in cat form,
 	-- a priest in Shadowform or a mage out of mana is not reminded of a press
-	-- that would fail. A client that will not say is taken at its word.
+	-- that would fail. A client that will not say is taken at its word. A
+	-- spell on a cooldown of its own (longer than the global one: a ward whose
+	-- last cast broke early under damage) is not offered either: the press
+	-- would be refused as not ready.
 	local function Usable(spell)
 		local info = caps.own and caps.own[spell.key]
+		local id = info and info.topRank or spell.ranks[1]
 		local check = C_Spell and C_Spell.IsSpellUsable
 		if type(check) ~= "function" then check = _G.IsUsableSpell end
-		return safecall(check, info and info.topRank or spell.ranks[1]) ~= false
+		if safecall(check, id) == false then return false end
+		local get = C_Spell and C_Spell.GetSpellCooldown
+		if type(get) == "function" then
+			local cd = safecall(get, id)
+			if type(cd) == "table" then
+				local start, duration = plain(cd.startTime), plain(cd.duration)
+				if type(start) == "number" and type(duration) == "number" and duration > 3
+					and start + duration > GetTime() then
+					return false
+				end
+			end
+		end
+		return true
 	end
 
 	-- One family's answer, for the queue and for everything that explains it:

@@ -499,7 +499,7 @@ local function AddOwnControls(args)
 						return L["Automatic reminds you only while your group role is tank; Always reminds you whenever it is not up."]
 					end
 					-- Fire Ward or Frost Ward (Buffs.lua, brief): outside a fight only.
-					if family.brief then return L["Reminds you when no ward is on you. Automatic takes the one you had up last, else the first you know. Outside a fight only: from the pull until the fight ends Manners offers none of your own buffs, so in a fight you recast it yourself. Off until you turn it on."] end
+					if family.brief then return L["Reminds you when no ward is on you. Automatic takes the one you had up last, else the first you know. Outside a fight only: from the pull until the fight ends Manners offers no ward, so in a fight you recast it yourself. Off until you turn it on."] end
 					if family.enhance then
 						-- A poison keeps the kind last on its hand (Buffs.lua, byLine);
 						-- the rest take the best (Core.lua, Best).
@@ -590,7 +590,7 @@ local function AddOwnControls(args)
 					and L["Reminds you to lay down your Cozy Sleeping Bag when Well-Rested is not on you and the bag is in your bags. Not at the level cap, where there is no experience to gain. Off until you turn it on."]
 					-- Mana Shield (Buffs.lua, brief): outside a fight only.
 					or family.brief
-					and L["Reminds you when it is not on you, outside a fight only: from the pull until the fight ends Manners offers none of your own buffs, so in a fight you recast it yourself. Off until you turn it on."]
+					and L["Reminds you when it is not on you, outside a fight only: from the pull until the fight ends Manners does not offer it, so in a fight you recast it yourself. Off until you turn it on."]
 					or family.optIn
 					and L["Reminds you when it is not on you, whoever cast it. Off until you turn it on."]
 					-- Forever's Find Treasure (Buffs.lua, onceUp): nothing until it has been up.
@@ -2516,7 +2516,7 @@ function Page.AddOwnSpellControls(args)
 		type = "description",
 		fontSize = "medium",
 		order = 15.2999,
-		name = L["Mana Shield, Fire Ward and Frost Ward are reminded outside a fight only, as all your own buffs are: from the pull until the fight ends Manners offers none of them, so in a fight you recast them yourself. Each lasts a minute or less."],
+		name = L["Mana Shield, Fire Ward and Frost Ward are reminded outside a fight only: from the pull until the fight ends Manners offers none of them, so in a fight you recast them yourself. Each lasts a minute or less."],
 		hidden = function()
 			for _, family in ipairs(ns.KnownOwnFamilies()) do
 				if family.brief then return false end
