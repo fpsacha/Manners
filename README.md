@@ -266,8 +266,8 @@ When you are missing the buff you give others, "You" comes up on the prompt
 with "your own Arcane Intellect" under it, and a press casts it on you and
 hands your target back: nothing is said, and nothing goes in the ledger. With
 it come the buffs your class casts only on itself and what you carry in your
-bags. They sit on *Who to buff* in four sections: **Myself**, **Weapons**,
-**Food, flasks and scrolls** and **When my own buffs come up**.
+bags. They sit on *Who to buff* in five sections: **Myself**, **Weapons**,
+**Food, flasks and scrolls**, **Add a spell of my own** and **When my own buffs come up**.
 
 The rules for all of them:
 
@@ -333,6 +333,7 @@ own. The full list for each class is under *Which buffs each class offers*.
 - **Dampen Magic or Amplify Magic** (mages): off until you pick one, each
   only while you are in no group unless you untick *Dampen Magic only when
   I'm alone* or *Amplify Magic only when I'm alone*.
+- **Mana Shield, Fire Ward and Frost Ward** (mages; Classic Era, WoW Forever, Burning Crusade): *Mana Shield*, and *Fire Ward or Frost Ward* (Automatic takes the one you had up last), each off until you switch it on. They are reminded outside a fight only: from the pull until the fight ends Manners offers none of them, so in a fight you recast them yourself. A ward or an added spell still on its own cooldown is not offered until it is ready.
 
 **Weapons.** One hand at a time.
 
@@ -423,6 +424,8 @@ once you carry one.
   you carry an imbue scroll that fits it. One press uses it from your bags.
   *Automatic* takes the best you can use now: a scroll of the school your
   talents favour, then your level and weapon; pick one by name to keep to it.
+
+**Add a spell of my own.** A buff of yours that Manners does not know: type its name as your spellbook shows it, or its spell id, and press Enter. Manners checks that this character knows it, that it is not passive or cast on an enemy, and that Manners does not cover it already (then it says where that switch is). It shows the icon and name, with a Remove for each. Up to ten, kept for each character. Each is reminded like your other own buffs: when it is not on you (another rank of it counts), outside a fight, under *Myself* and *Also in cities and inns*, and one press casts it on you. A spell that leaves no aura on you is taken off after you first cast it on yourself, with a line saying why. `/manners spell` lists them, `/manners spell add <name or id>` and `/manners spell remove <name or id>` change the list. It is for buffs on yourself: buffs for other people come from Manners' own list under *What to cast*, and in a fight the prompt keeps what it had at the pull.
 
 **When my own buffs come up.**
 
@@ -744,6 +747,8 @@ mage; it opens first), **All**, and one tab for each shelf, **Minimal**,
 that look at once; move off and yours comes back; click to keep it (not in a
 fight, where a look waits for the fight to end). A small *New* marks the
 looks new in this release.
+
+*Use my class's look on each character*, over the cards, has each character on the profile wear the look made for its class: a druid the Druid look, a paladin the Paladin look. A mage wears the mage look you last clicked on a mage, else Frost Mage; any other look you click becomes the profile's own, which every character wears with the switch off. A line under the tabs says which look is in use and why.
 
 Under the cards, headed with the chosen look's name, are its own settings.
 Every look's frame is a painting; *Earlier art* keeps the frames they had
@@ -1189,6 +1194,7 @@ cannot send it to somebody else by mistake.
 
 ### Look
 
+- *Use my class's look on each character* (off): each character on the profile wears the look made for its class, a mage the mage look last clicked on a mage, else Frost Mage. Another look clicked is the profile's own, worn with it off.
 - ***Panel style***: the twenty-nine cards under tabs (*For my class*, *All*,
   *Minimal*, *Classic*, *Themed*, *Class*), a look tried on the prompt as you
   point at it. Under them, headed with the chosen look's name: *Earlier art*
@@ -1426,7 +1432,7 @@ group is offered nobody. That is deliberate rather than a fault.
 
 | Class | Your own buffs |
 |---|---|
-| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; *Dampen Magic* or Amplify Magic, off until you pick one; and on WoW Forever, from the scrolls in your bags, *Familiar* and *Weapon imbue* |
+| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; *Dampen Magic* or Amplify Magic, off until you pick one; and on WoW Forever, from the scrolls in your bags, *Familiar* and *Weapon imbue*; *Mana Shield* and *Fire Ward or Frost Ward*, off until you switch them on (Classic Era, WoW Forever, Burning Crusade) |
 | Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them; Shadowform |
 | Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out (on WoW Forever, with the Demonic Pact talent, both, each with its own switch); Unending Breath while you swim |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |

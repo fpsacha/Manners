@@ -50,7 +50,9 @@ local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.ow
 	["who.own_treeoflife"] = true, ["who.own_spiritofthealpha"] = true,
 	["who.own_demonicsacrifice"] = true,
 	-- GitHub issue 18: Forever's Soul Link of its own and its stone to make.
-	["who.own_soullink"] = true, ["who.own_makestone"] = true }
+	["who.own_soullink"] = true, ["who.own_makestone"] = true,
+	-- A mage's Mana Shield and wards (Classic Era, Forever, Burning Crusade).
+	["who.own_manashield"] = true, ["who.own_ward"] = true }
 
 local ACEDB = {
 	["profiles.current"] = true, ["profiles.choosedesc"] = true, ["profiles.new"] = true,

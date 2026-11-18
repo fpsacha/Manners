@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+*17 November 2026*
+
+### Highlights
+- **A look for each class.** *Use my class's look on each character*, over
+  the cards on *Look*: on one profile a druid wears the Druid look and a
+  paladin the Paladin look. Asked for on CurseForge.
+
+### Who to buff
+- **Mana Shield and the wards.** On WoW Forever, Classic Era and Burning
+  Crusade a mage can be reminded of Mana Shield and of Fire Ward or Frost
+  Ward, outside a fight. Off until you switch them on. Asked for on CurseForge.
+- **Add a spell of my own.** Under *Myself*, add up to ten buffs of yours
+  that Manners does not know; each is reminded like your other own buffs.
+  Kept for each character. Asked for on CurseForge.
+
 ## 1.11.28
 
 *17 November 2026*

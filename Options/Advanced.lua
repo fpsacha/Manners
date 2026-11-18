@@ -140,7 +140,12 @@ Page.RESET = {
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
 		"supplies.size", "prompt.breakFree", "beast.fightMend",
+		-- Use my class's look on each character, and each class's pick.
+		"prompt.classLook", "prompt.classStyles",
 		after = function()
+			-- The profile's own look kept while the switch was on goes too, or
+			-- the repair would put it back over Glass (Looks.RepairClassLook).
+			ns.db.profile.prompt.profileStyle = nil
 			-- The icon back inside the prompt's size, as the size sliders do.
 			ns.ClampSettings()
 			restyleAndMacro()

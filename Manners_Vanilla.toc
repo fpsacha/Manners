@@ -49,6 +49,7 @@ Favours.lua
 Clicks.lua
 Resurrect.lua
 Companion.lua
+OwnSpells.lua
 Commands.lua
 Hints.lua
 Phrases.lua

@@ -77,6 +77,7 @@
 -- shelves out in order, each under a small heading. Under the tabs, one line
 -- says what pointing and clicking do, and in a fight that looks wait for its
 -- end.
+-- With Use my class's look on each character on (Looks.lua, ONE LOOK A CLASS), the line says what a click does then, and a second line in gold under it says which look is in use and why (Looks.InUse: the class's only look, its first, the one picked, or the profile's own for a class with none), naming the profile's own look where it is another. A look tried under the pointer is never the one named.
 --
 -- TRYING A LOOK. The pointer on a card puts that look on the real prompt at
 -- once (the Look page starts the preview, Window.lua's LookOpened, so it is on
@@ -687,10 +688,7 @@ end
 
 -- The player's class as UnitClass names it, or nil.
 local function PlayerClass()
-	if type(UnitClass) ~= "function" then return nil end
-	local _, class = UnitClass("player")
-	class = ns.plain(class)
-	return type(class) == "string" and class or nil
+	return ns.Looks.PlayerClass()
 end
 
 local function TabTitle(tab)
@@ -777,13 +775,52 @@ local function Hint()
 	if InCombatLockdown() then
 		return "|cffffd100" .. L["In a fight a look cannot change: the one you click goes on when the fight ends."] .. "|r"
 	end
+	local p = PromptSettings()
 	local text = L["Point at a look to try it on the prompt; click to keep it."]
+	if p and p.classLook == true then
+		text = L["Point at a look to try it on the prompt. Click one of your class's looks to wear it; click any other to make it this profile's own look."]
+	end
 	local prompt = ns.Prompt
 	local button = prompt and prompt.GetButton and prompt:GetButton()
 	if prompt and not prompt:InTest() and not (button and button:IsShown()) then
 		text = text .. " " .. L["The prompt is not on screen now: Show me the prompt, at the top of this window, puts it up."]
 	end
 	return text
+end
+
+-- The line under the hint with Use my class's look on each character on: which
+-- look the prompt wears and why (Looks.InUse), and the profile's own look
+-- where it is another. Hidden with the switch off. row.whyKind is kept for the
+-- tests.
+local function Why(row)
+	local p = PromptSettings()
+	local key, why
+	if p then key, why = ns.Looks.InUse(p) end
+	row.whyKind = why
+	if not p or why == "off" or not key then
+		row.whyShown = false
+		row.why:SetText("")
+		row.why:Hide()
+		return
+	end
+	local name = W.Trim((ns.Looks.Card(key)))
+	local text
+	if why == "picked" then
+		text = L["In use: %s, the one you picked of the looks made for your class."]:format(name)
+	elseif why == "first" then
+		text = L["In use: %s, the first of the looks made for your class."]:format(name)
+	elseif why == "only" then
+		text = L["In use: %s, the look made for your class."]:format(name)
+	else
+		text = L["In use: %s, this profile's own look, as no look is made for your class."]:format(name)
+	end
+	local own = p.profileStyle
+	if why ~= "profile" and type(own) == "string" and own ~= key and ns.Looks.list[own] then
+		text = text .. " " .. L["This profile's own look, which every character wears with the switch above off: %s."]:format(W.Trim((ns.Looks.Card(own))))
+	end
+	row.whyShown = true
+	row.why:SetText(text)
+	row.why:Show()
 end
 
 -- Every tab's words and count, shown while it holds a look (For my class only
@@ -799,6 +836,7 @@ local function PaintTabs(row)
 		TabLook(b)
 	end
 	row.hint:SetText(Hint())
+	Why(row)
 end
 
 -- The tabs left to right, onto another line where they run past the width, and
@@ -822,7 +860,16 @@ local function PlaceTabs(row, width)
 	row.hint:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -y)
 	row.hint:SetWidth(width)
 	row.hint.y = y
-	return y + math.ceil(W.TextHeight(row.hint)) + HINT_GAP
+	y = y + math.ceil(W.TextHeight(row.hint)) + HINT_GAP
+	-- The line saying which look is in use, under the hint, while it shows.
+	if row.whyShown then
+		row.why:ClearAllPoints()
+		row.why:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -y)
+		row.why:SetWidth(width)
+		row.why.y = y
+		y = y + math.ceil(W.TextHeight(row.why)) + HINT_GAP
+	end
+	return y
 end
 
 -- A shelf's heading on All, at `y` from the row's top: its name and how many,
@@ -861,6 +908,11 @@ KIND.themes = {
 		row.cols = 1
 		row.counts = {}
 		row.hint = W.Wrapping(W.Text(row.frame, T.fonts.small, T.hint))
+		-- Which look is in use and why, with Use my class's look on each
+		-- character on (Why); hidden with it off.
+		row.why = W.Wrapping(W.Text(row.frame, T.fonts.small, T.goldSoft))
+		row.why:Hide()
+		row.whyShown = false
 		-- The gallery put away (another page) or the window shut with a look
 		-- being tried: the chosen one goes back, whichever card had the pointer.
 		local function away() ns.Guard("options look", EndTrial, true) end

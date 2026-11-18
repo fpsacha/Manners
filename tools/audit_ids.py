@@ -616,6 +616,8 @@ OWN_NAMES.update({"soullinkpact": r"Soul Link", "createfirestone": r"Create Fire
                   "createspellstone": r"Create Spellstone"})
 # A warlock's Detect Invisibility on himself (1.11.11), every rank's name as the buff for his group's.
 OWN_NAMES.update({"detectinvis": r"Detect (Lesser |Greater )?Invisibility"})
+# A mage's Mana Shield, Fire Ward and Frost Ward (asked for on CurseForge).
+OWN_NAMES.update({"manashield": r"Mana Shield", "fireward": r"Fire Ward", "frostward": r"Frost Ward"})
 # An own spell's `group` ids (Buffs.lua): another class's spell that counts as it up, by key.
 OWN_GROUP_NAMES = {"selfbreath": r"Water Breathing"}
 # What a favour-only / not-favour id is, by id: any client that has the id must call it this.

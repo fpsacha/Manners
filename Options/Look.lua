@@ -199,6 +199,20 @@ function Page.BuildLookTab()
 			},
 
 			styleHeader = { type = "header", name = L["Style"], order = 20 },
+			-- Use my class's look on each character (Looks/Looks.lua, ONE LOOK A
+			-- CLASS): drawn over the cards (Layout.lua, appearance.themes).
+			classLook = {
+				type = "toggle",
+				name = L["Use my class's look on each character"],
+				desc = L["Each character on this profile wears the look made for its class: a druid the Druid look, a paladin the Paladin look. Where a class has several, as a mage does, it wears the one you last clicked on that class, else the first. Any other look you click becomes this profile's own, which every character wears with this off."],
+				order = 20.5,
+				width = "full",
+				get = pGet,
+				set = function(_, value)
+					ns.Looks.SetClassLook(P(), value == true)
+					restyle()
+				end,
+			},
 			style = {
 				type = "select",
 				name = L["Panel style"],
@@ -215,7 +229,12 @@ function Page.BuildLookTab()
 				values = (ns.Looks.Choices()),
 				sorting = select(2, ns.Looks.Choices()),
 				get = pGet,
-				set = pSet,
+				-- With Use my class's look on each character on, a look of this
+				-- class's is its pick and any other the profile's own (Looks.Pick).
+				set = function(_, value)
+					ns.Looks.Pick(P(), value)
+					restyle()
+				end,
 			},
 			-- The window's heading over the settings that go with the look
 			-- chosen (Layout.lua, appearance.lookOwn), naming it: Earlier art,

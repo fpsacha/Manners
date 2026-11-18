@@ -70,7 +70,8 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, and Shad
 
 - **Your own buff and your class's own:** armors, auras, aspects, shields, Inner Fire, Shadowform, Moonkin Form, Demonic Sacrifice, Grimoire of Sacrifice, the Season of Discovery runes, Righteous Fury when you tank, and more.
 - **Weapons, one hand at a time:** poisons, stones, oils and fishing lures from your bags (and a warlock's Firestone or Spellstone on WoW Forever), a shaman's imbues (optionally ahead of the shield), a Lightsmith paladin's rites on retail. One press puts it on.
-- **Switched on when you want them:** Well Fed, flasks, elixirs and scrolls, a companion pet (on WoW Forever, Mists and retail brought out of your journal with no press), Well-Rested from a Cozy Sleeping Bag (and, if you like, five minutes before it runs out), a warlock's Detect Invisibility, Unending Breath while you swim, and Battle Shout for a warrior on his own. A *Scrolls* switch turns every scroll off at once.
+- **Switched on when you want them:** Well Fed, flasks, elixirs and scrolls, a companion pet (on WoW Forever, Mists and retail brought out of your journal with no press), Well-Rested from a Cozy Sleeping Bag (and, if you like, five minutes before it runs out), a warlock's Detect Invisibility, a mage's Mana Shield and Fire Ward or Frost Ward, Unending Breath while you swim, and Battle Shout for a warrior on his own. A *Scrolls* switch turns every scroll off at once.
+- **A buff of yours Manners does not know:** add up to ten under *Add a spell of my own*, by name or spell id; each is reminded on you like your other own buffs.
 - **Consumables only in dungeons and raids**, if you like.
 - **Automatic, or your choice** where a class has several of one kind; *Never remind me about* leaves any out. Only when none is up, never in a fight, and not in cities and inns unless you tick *Also in cities and inns*.
 - Hunters and rogues, who give nothing to others, get a prompt for their own buffs, and so does a shaman without Earth Shield.
@@ -135,7 +136,7 @@ Or just `/thank` them with an emote (off by default, never in a fight, a dungeon
 
 ### Looks
 
-- **Twenty-nine looks**, each a painting, picked from cards on four shelves in the options window: from Glass, the default, after the game's own action bar, to a paladin's Lightbringer, a shaman's Stormcaller, a death knight's Ebon runeblade or the Horde's Warchief, each with its own way of greeting a favour and a landed buff (the pictures above show them all). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Twenty-nine looks**, each a painting, picked from cards on four shelves in the options window: from Glass, the default, after the game's own action bar, to a paladin's Lightbringer, a shaman's Stormcaller, a death knight's Ebon runeblade or the Horde's Warchief, each with its own way of greeting a favour and a landed buff (the pictures above show them all). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still. Turn on *Use my class's look on each character* and each character on a profile wears the look made for its class.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **A flat prompt, if you like:** on Glass, Framed and Minimal, *Frame round the icon* and *Shadow and outline on the text* can each be switched off.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go. The game's Edit Mode unlocks it too, and locks it again when it closes.

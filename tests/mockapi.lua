@@ -2027,6 +2027,16 @@ for name, ids in pairs({
 	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
 end
 
+-- A mage's Mana Shield, Fire Ward and Frost Ward (Buffs.lua, manashield and
+-- ward), every rank on Classic Era, Forever and Burning Crusade.
+for name, ids in pairs({
+	["Mana Shield"] = { 27131, 10193, 10192, 10191, 8495, 8494, 1463 },
+	["Fire Ward"] = { 27128, 10225, 10223, 8458, 8457, 543 },
+	["Frost Ward"] = { 32796, 28609, 10177, 8462, 8461, 6143 },
+}) do
+	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
+end
+
 -- A rogue's poisons as spells (Buffs.lua, MISTS_OWN and MAINLINE_OWN), as the
 -- Mists and retail clients name them. Retail calls 5761 Numbing Poison where
 -- Mists calls it Mind-numbing Poison, so the one id has its retail name
