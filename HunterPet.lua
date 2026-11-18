@@ -999,7 +999,10 @@ local function Offer(queue, verdicts, now)
 	st.dead = (st.exists and not st.out) or (not st.exists and char.beastDead ~= nil)
 	last.care, last.held = nil, nil
 	-- Food fixed when the meal began may be gone from the bags since.
-	if moment and moment.kind == "share" and not Bags()[moment.item] then moment = nil end
+	if moment and moment.kind == "share" then
+		local count = _G.C_Item and _G.C_Item.GetItemCount or _G.GetItemCount
+		if type(count) == "function" and plain(count(moment.item)) == 0 then moment = nil end
+	end
 	-- The holds first: what the pet wears and the bags are read only when
 	-- care could be offered at all.
 	local held = CareHeld(db, now)
@@ -1506,6 +1509,7 @@ local function Cast(event, spell)
 	if event == "UNIT_SPELLCAST_SUCCEEDED" then
 		if spell == K.SPELL.revive then
 			char.beastDead = nil
+			clock.tamedAt = nil
 			Trigger(ReviveMoment(), now)
 		elseif spell == K.FEED[1] or spell == K.FEED[2] then
 			-- One meal, whichever of the two ids the client reports, or both.
@@ -1525,6 +1529,7 @@ local function Cast(event, spell)
 		elseif K.CALLS[spell] then
 			char.beastCall, char.beastAway = spell, nil
 			clock.diedInFight = nil
+			clock.tamedAt = nil
 		elseif spell == K.TAME then
 			clock.tamedAt = now
 		else

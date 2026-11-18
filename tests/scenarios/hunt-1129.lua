@@ -9,6 +9,9 @@ local function has(text, part) return tostring(text):find(part, 1, true) ~= nil 
 
 -- ------------------------------------------------------------ own spells
 
+-- Spell ids the client says cannot be cast on the player (Mend Pet).
+local PET_ONLY = {}
+
 local TOUCHED = { "C_UnitAuras", "C_Spell", "IsSpellKnown", "IsPlayerSpell", "IsResting" }
 
 -- A character of `class` who knows `known`, with the spell names in `names`;
@@ -43,6 +46,10 @@ local function ownWith(scenario, class, names, known, helpful, body)
 			IsSpellHarmful = function() return false end,
 			IsSpellPassive = function() return false end,
 			IsSpellHelpful = function(id) return helpful[id] == true end,
+			IsSpellInRange = function(id, unit)
+				if unit == "player" and PET_ONLY[id] then return nil end
+				return true
+			end,
 		}, { __index = baseSpell }))
 		local baseAuras = C_UnitAuras
 		rawset(_G, "C_UnitAuras", setmetatable({
@@ -76,6 +83,7 @@ end
 do
 	local scenario = "hunt-1129: a spell that can only land on the pet is judged and taken off"
 	local MEND = 136
+	PET_ONLY = { [MEND] = true }
 	ownWith(scenario, "HUNTER", { [MEND] = "Mend Pet" }, { MEND }, { [MEND] = true }, function(ns)
 		Mock.unitNames = { pet = { "Rex" } }
 		addSpell(ns, "Mend Pet")
@@ -86,6 +94,20 @@ do
 		if not has(table.concat(Mock.printed or {}, "\n"), "left no aura on you") then
 			fail(scenario, "no line saying why")
 		end
+	end)
+end
+
+do
+	local scenario = "hunt-1129: a spell that can land on you waits for a cast on you"
+	local SHIELD = 6347
+	PET_ONLY = {}
+	ownWith(scenario, "WARLOCK", { [SHIELD] = "Soul Ward" }, { SHIELD }, { [SHIELD] = true }, function(ns)
+		Mock.unitNames = { pet = { "Rex" } }
+		addSpell(ns, "Soul Ward")
+		if #(ns.db.char.ownSpells or {}) ~= 1 then fail(scenario, "Soul Ward was not taken onto the list") return end
+		Mock.printed = {}
+		cast(ns, SHIELD, "Rex")
+		if #(ns.db.char.ownSpells or {}) ~= 1 then fail(scenario, "judged by a cast at the pet") end
 	end)
 end
 
@@ -253,7 +275,7 @@ local TOUCHED = { "UnitExists", "UnitIsDead", "UnitName", "UnitHealth", "UnitHea
 	"MenuUtil", "UNKNOWNOBJECT", "IsEncounterInProgress", "IsPlayerSpell", "IsSpellKnown", "C_SpellBook", "PetAbandon",
 	"hooksecurefunc", "UnitLevel", "GetPetActionInfo", "GetMerchantNumItems", "GetMerchantItemID", "GetMerchantItemLink",
 	"GetPetTrainingPoints", "GetPetLoyalty", "UnitGUID", "IsInGroup", "IsInRaid", "GetNumGroupMembers",
-	"UnitGroupRolesAssigned", "GetRealZoneText" }
+	"UnitGroupRolesAssigned", "GetRealZoneText", "GetItemCount" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
@@ -330,6 +352,11 @@ local function install()
 	rawset(_G, "GetPetFoodTypes", function() return unpack(P.diets) end)
 	rawset(_G, "GetItemInfoInstant", function(id) return id, nil, nil, nil, nil, 0 end)
 	rawset(_G, "GetItemSpell", function(id) return P.edible and P.edible[id] and "Food" or nil end)
+	rawset(_G, "GetItemCount", function(id)
+		local n = 0
+		for _, held in ipairs(P.bags) do if held == id then n = n + 1 end end
+		return n
+	end)
 	rawset(_G, "C_Container", {
 		GetContainerNumSlots = function(bag) return bag == 0 and #P.bags or 0 end,
 		GetContainerItemID = function(bag, slot) return bag == 0 and P.bags[slot] or nil end,
@@ -596,6 +623,24 @@ do
 		Mock.advance(5)
 		local bond = pets(ns).bond
 		if not (bond and bond.bond == "family") then fail(scenario, "no welcome to the family: " .. dump(ns)) end
+	end)
+end
+
+do
+	local scenario = "hunt-1129: a tame that failed does not wipe the pet called after it"
+	with(scenario, { world = function(p) p.name = "Wolf" end }, function(ns)
+		ns.BuildQueue()
+		if not ns.db.char.beasts.Wolf then fail(scenario, "SKIPPED -- no record of the Wolf") return end
+		ns.db.char.beasts.Wolf.meals = 7
+		petGone(ns)
+		-- Tame Beast starts (the channel reports it) and breaks; the Wolf is called back.
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 1515)
+		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-2", 83243)
+		P.exists, P.name, P.family = true, "Wolf", { "Wolf", 1 }
+		event("UNIT_PET", "player")
+		Mock.advance(5)
+		local rec = ns.db.char.beasts.Wolf
+		if not (rec and rec.meals == 7) then fail(scenario, "the Wolf's record was wiped") end
 	end)
 end
 

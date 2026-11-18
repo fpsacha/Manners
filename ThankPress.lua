@@ -279,6 +279,13 @@ local function Unshown()
 	for _, item in ipairs(pending) do item.shownAt = nil end
 end
 
+-- The thank the prompt is on now; judged by the prompt, not by the thank's
+-- place in this pass, for entries added after it can still go ahead of it.
+local function OnPrompt(item)
+	local S = ns.Prompt and ns.Prompt.state
+	return S ~= nil and S.current ~= nil and S.current.thank == item.id
+end
+
 -- BuildQueue's two returns with the thanks put in at their priority.
 local function Offer(queue, verdicts)
 	local db = Profile()
@@ -289,6 +296,7 @@ local function Offer(queue, verdicts)
 	local now, p = GetTime(), db.prompt
 	for i = #pending, 1, -1 do
 		local item = pending[i]
+		if item.shownAt and not OnPrompt(item) then item.shownAt = nil end
 		local _, _, any = ItemChannels(item, p)
 		if now - item.at >= TP.DEADLINE or (item.shownAt and now - item.shownAt >= TP.EXPIRE) then
 			-- Left on the prompt is let go; one the prompt never showed (held
@@ -326,7 +334,7 @@ local function Offer(queue, verdicts)
 	for _, item in ipairs(pending) do
 		local entry = Wrap(item)
 		if taken[entry.name] then
-			item.shownAt = nil
+			if not OnPrompt(item) then item.shownAt = nil end
 		else
 			taken[entry.name] = true
 			for i = #queue, 1, -1 do
@@ -340,7 +348,7 @@ local function Offer(queue, verdicts)
 				end
 			end
 			table.insert(queue, at, entry)
-			if at ~= 1 then item.shownAt = nil end
+			if not OnPrompt(item) then item.shownAt = nil end
 			if type(verdicts) ~= "table" then verdicts = {} end
 			verdicts[entry.name] = nil
 		end

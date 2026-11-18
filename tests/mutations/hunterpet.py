@@ -221,8 +221,8 @@ mutate("HunterPet.lua",
        expect="hunterpet: a pet that died in a fight is revived, not called", script=S)
 
 mutate("HunterPet.lua",
-       "\t\t\tchar.beastDead = nil\n\t\t\tTrigger(ReviveMoment(), now)\n",
-       "\t\t\tchar.beastDead = nil\n",
+       "\t\t\tchar.beastDead = nil\n\t\t\tclock.tamedAt = nil\n\t\t\tTrigger(ReviveMoment(), now)\n",
+       "\t\t\tchar.beastDead = nil\n\t\t\tclock.tamedAt = nil\n",
        "hunterpet: no welcome after a revive",
        expect="hunterpet: revive when the pet is dead, never for a ghost", script=S)
 
