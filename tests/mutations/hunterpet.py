@@ -257,8 +257,8 @@ mutate("HunterPet.lua",
        expect="hunterpet: mend waits for its own heal and for the pet's fight", script=S)
 
 mutate("HunterPet.lua",
-       "\t\tand open(\"mend\") and not Wears(\"mendOn\", MEND_SET) then\n",
-       "\t\tand open(\"mend\") then\n",
+       "\t\tand open(\"mend\") and not Wears(\"mendOn\", MEND_SET) and not MendOutOfRange() then\n",
+       "\t\tand open(\"mend\") and not MendOutOfRange() then\n",
        "hunterpet: Mend over its own heal",
        expect="hunterpet: mend waits for its own heal and for the pet's fight", script=S)
 

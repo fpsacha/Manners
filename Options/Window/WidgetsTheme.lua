@@ -298,9 +298,10 @@ local function EndTrial(redraw)
 	if not t then return end
 	trial = nil
 	t.card.trying = false
-	local p = PromptSettings()
+	-- The table the look was tried on, which a profile switch since may have left.
+	local p = t.p
 	if p and p.style == t.key then p.style = t.was end
-	if redraw then Restyle() end
+	if redraw and p == PromptSettings() then Restyle() end
 end
 
 -- A fight starting (still out of the lockdown, so the chosen look is drawn
@@ -326,7 +327,7 @@ local function Try(card)
 		events:RegisterEvent("PLAYER_LOGOUT")
 		events:SetScript("OnEvent", TrialEvent)
 	end
-	trial = { key = card.key, was = was, card = card }
+	trial = { key = card.key, was = was, card = card, p = p }
 	card.trying = true
 	p.style = card.key
 	Restyle()
@@ -928,7 +929,7 @@ KIND.themes = {
 		local _, values = ns.Looks.Choices()
 		-- The chosen look: while one is tried under the pointer, the one it
 		-- stands in for.
-		local now = trial and trial.was or Bind().Value(row.item)
+		local now = trial and trial.p == PromptSettings() and trial.was or Bind().Value(row.item)
 		local mine = {}
 		for _, key in ipairs(ns.Looks.ForClass(PlayerClass())) do mine[key] = true end
 		row.counts = Counts(values, mine)

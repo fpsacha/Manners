@@ -13,6 +13,13 @@ ns.WhatsNew = {
 			"|cff7cc4ffMana Shield and the wards.|r On WoW Forever, Classic Era and Burning Crusade a mage can be reminded of Mana Shield and of Fire Ward or Frost Ward, outside a fight.",
 			"|cff7cc4ffAdd a spell of my own.|r Under |cffffffffMyself|r, add up to ten buffs of yours that Manners does not know; each is reminded like your other own buffs.",
 		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52A spell for your pet is judged.|r A spell of your own that only lands on your pet, such as Mend Pet, is taken off the list like any that leaves no aura on you, instead of being offered again and again.",
+			"|cffff9a52A look tried with the pointer stays on its own profile.|r Switching profile while the pointer rests on a look no longer leaves that look saved on the old one or overwrites the new one's.",
+			"|cffff9a52A thank-you the prompt lost is not held against its giver.|r One pushed aside by a group buff no longer lapses unseen and stops the giver being thanked for half an hour.",
+			"|cffff9a52A hunter's pet.|r Mend Pet is not offered to a pet out of its range, nor Revive Pet with Lone Wolf.",
+			"|cffff9a52A profile's own look.|r One this version no longer has falls back to Glass, not to another class's look.",
+		} },
 	} },
 	{ version = "1.11.28", date = "17 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {

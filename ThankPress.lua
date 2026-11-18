@@ -272,6 +272,13 @@ local function Held()
 	return ns.HiddenWhileMounted() and true or false
 end
 
+-- A thank off the panel (behind a better entry, or not offered at all) keeps no
+-- clock: its 20 seconds run only while the prompt shows it, so one the panel
+-- lost for a while is not let lapse unseen and held against its giver.
+local function Unshown()
+	for _, item in ipairs(pending) do item.shownAt = nil end
+end
+
 -- BuildQueue's two returns with the thanks put in at their priority.
 local function Offer(queue, verdicts)
 	local db = Profile()
@@ -292,7 +299,11 @@ local function Offer(queue, verdicts)
 			Drop(i, false)
 		end
 	end
-	if pending[1] == nil or type(queue) ~= "table" or Held() then return queue, verdicts end
+	if pending[1] == nil then return queue, verdicts end
+	if type(queue) ~= "table" or Held() then
+		Unshown()
+		return queue, verdicts
+	end
 
 	-- Somebody with something else on the queue is thanked once that is done;
 	-- an ask of them gives way to the thank, and comes back at the next scan.
@@ -308,10 +319,15 @@ local function Offer(queue, verdicts)
 	-- not offered, as a press could send nothing. Asked of one, since every
 	-- reason but a battleground's team is the player's own.
 	local thankNow = ns.ThankNow
-	if thankNow and thankNow.Held(pending[1].seen) then return queue, verdicts end
+	if thankNow and thankNow.Held(pending[1].seen) then
+		Unshown()
+		return queue, verdicts
+	end
 	for _, item in ipairs(pending) do
 		local entry = Wrap(item)
-		if not taken[entry.name] then
+		if taken[entry.name] then
+			item.shownAt = nil
+		else
 			taken[entry.name] = true
 			for i = #queue, 1, -1 do
 				if queue[i].ask and queue[i].name == entry.name then table.remove(queue, i) end
@@ -324,6 +340,7 @@ local function Offer(queue, verdicts)
 				end
 			end
 			table.insert(queue, at, entry)
+			if at ~= 1 then item.shownAt = nil end
 			if type(verdicts) ~= "table" then verdicts = {} end
 			verdicts[entry.name] = nil
 		end

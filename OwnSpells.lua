@@ -341,7 +341,13 @@ function OS.Repair(char)
 			local name = type(e.name) == "string" and Trim(e.name) or nil
 			if name == "" then name = nil end
 			if name and #name > 100 then name = name:sub(1, 100) end
-			out[#out + 1] = { id = e.id, name = name, seen = e.seen == true or nil }
+			-- The entry itself stays: Sync's watch holds this very table.
+			local seen = e.seen == true
+			for k in pairs(e) do
+				if k ~= "id" then e[k] = nil end
+			end
+			e.name, e.seen = name, seen or nil
+			out[#out + 1] = e
 		end
 	end
 	wipe(list)
@@ -402,7 +408,8 @@ do
 		sentTo[id] = nil
 		if InCombatLockdown() then return end
 		local me = IsMe(target)
-		if me == false then return end
+		-- A cast the client sent to your own pet (Mend Pet) is read like one on you.
+		if me == false and target ~= ns.plain(UnitName("pet")) then return end
 		if me == nil and ns.safecall(C_Spell and C_Spell.IsSpellHelpful, id) == true then return end
 		C_Timer.After(VERDICT_SECONDS, function() ns.Guard("own spell verdict", Judge, entry) end)
 	end
