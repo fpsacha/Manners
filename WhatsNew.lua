@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "18 November 2026", sections = {
+	{ version = "1.11.29", date = "18 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100A look for each class.|r |cffffffffUse my class's look on each character|r, over the cards on |cffffffffLook|r: on one profile a druid wears the Druid look and a paladin the Paladin look.",
 		} },
