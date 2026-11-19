@@ -19,6 +19,7 @@ ns.WhatsNew = {
 			"|cffff9a52A thank-you the prompt lost is not held against its giver.|r One pushed aside by a group buff no longer lapses unseen and stops the giver being thanked for half an hour.",
 			"|cffff9a52A hunter's pet.|r Mend Pet is not offered to a pet out of its range, nor Revive Pet with Lone Wolf.",
 			"|cffff9a52A profile's own look.|r One this version no longer has falls back to Glass.",
+			"|cffff9a52Bond with my pet reaches the pet.|r The emote of a moment (a pat, a wave, praise) now goes at your pet by its name instead of at nobody.",
 		} },
 	} },
 	{ version = "1.11.28", date = "17 November 2026", sections = {

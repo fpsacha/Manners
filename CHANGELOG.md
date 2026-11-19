@@ -31,6 +31,9 @@
   no meal is shared once the food is gone, and the inn is quiet while Manners
   is off.
 - **A profile's own look.** One this version no longer has falls back to Glass.
+- **Bond with my pet reaches the pet.** The emote of a moment (a pat, a
+  wave, praise) now goes at your pet by its name instead of at nobody.
+  Reported on CurseForge.
 
 ## 1.11.28
 

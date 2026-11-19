@@ -19,9 +19,11 @@
 -- nearly dead, after a revive, at login (good morning after a night at an
 -- inn), after a quiet stretch on the road -- shown at most once in twenty
 -- minutes, for forty-five seconds, with no pulse and no sound. A press does
--- the fitting emote at the pet ("/pet pet": the unit token, never the name, so
--- a wild beast or a player of the same name never gets it, and the target is
--- untouched), an /emote of the gesture and the pet's answer by its family,
+-- the fitting emote at the pet ("/pet Humar": by its name, since the chat box
+-- hands the emote's word to C_ChatInfo.PerformEmote as a target NAME and a
+-- player found "/pet pet" reached nobody; the target is untouched; a name
+-- with a space or a | falls back to the token), an /emote of the gesture and
+-- the pet's answer by its family,
 -- and, with In character on and lines going in /say, a line from the hunter's
 -- people said to the pet (RP.RACE.<family>.pet, petpraise, petcomfort).
 --
@@ -1157,7 +1159,9 @@ local function BondMacro(entry)
 	local m = entry.moment
 	local name = entry.petName
 	if not (m and type(name) == "string") then return nil end
-	local lines = { EmoteCommand(m.kind) .. " pet" }
+	-- The emote's word is a name to the client (PerformEmote's targetName).
+	local at = name:find("^[^%s|]+$") and name or "pet"
+	local lines = { EmoteCommand(m.kind) .. " " .. at }
 	-- A share of the meal: Feed Pet with the food first (the pet unit is Feed Pet's own target).
 	if m.kind == "share" then
 		local spell = ns.SpellNameFor(KnownAny(K.FEED) or K.SPELL.feed)

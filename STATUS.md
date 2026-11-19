@@ -68,7 +68,8 @@ lines, eight languages). `tests/scenarios/hunterpet.lua`,
 game can settle:
 - `/cast Feed Pet` then `/use item:<id>` from the prompt on each feeding
   client (the pet eats, the hunter does not);
-- an emote with the `pet` unit token (`/pet pet`, `/praise pet`, ...) on each
+- an emote at the pet's name (`/pet Humar`, `/praise Humar`, ...; the `pet`
+  token reached nobody for a player on CurseForge, 18 November) on each
   client, and the /emote and /say lines from the same press;
 - the pet's health plain out of combat on Forever and retail;
 - UnitCreatureFamily's second return (the family id) on Classic Era and TBC,

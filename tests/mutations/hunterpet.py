@@ -343,9 +343,9 @@ mutate("HunterPet.lua",
        expect="hunterpet: a press on a moment does the emote and is remembered", script=S)
 
 mutate("HunterPet.lua",
+       "\tlocal lines = { EmoteCommand(m.kind) .. \" \" .. at }\n",
        "\tlocal lines = { EmoteCommand(m.kind) .. \" pet\" }\n",
-       "\tlocal lines = { EmoteCommand(m.kind) .. \" \" .. name }\n",
-       "hunterpet: the emote aimed at the pet's name",
+       "hunterpet: the emote aimed at the pet token, which the chat box reads as a name",
        expect="hunterpet: a press on a moment does the emote and is remembered", script=S)
 
 mutate("HunterPet.lua",

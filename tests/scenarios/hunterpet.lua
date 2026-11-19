@@ -614,7 +614,7 @@ do
 			fail(scenario, "the second line reads |" .. tostring(ns.Prompt:ReasonText(bond)) .. "|")
 		end
 		local macro = armed(ns)
-		if macro ~= "/praise pet\n/emote gives Humar a proud nod. Humar wags happily." then
+		if macro ~= "/praise Humar\n/emote gives Humar a proud nod. Humar wags happily." then
 			fail(scenario, "the macro is |" .. tostring(macro) .. "|")
 		end
 		if #Mock.sounds ~= sounds then fail(scenario, "the moment made a sound") end
@@ -678,7 +678,7 @@ do
 		P.afk = false
 		local bond = pets(ns).bond
 		if not (bond and bond.bond == "road") then fail(scenario, "no road moment on the move: " .. dump(ns)) return end
-		if not tostring(armed(ns)):find("^/pet pet\n/emote scratches Humar behind the ears.") then
+		if not tostring(armed(ns)):find("^/pet Humar\n/emote scratches Humar behind the ears.") then
 			fail(scenario, "the macro is |" .. tostring(armed(ns)) .. "|")
 		end
 	end)
@@ -726,7 +726,7 @@ do
 		Mock.runTimers(11)
 		local bond = pets(ns).bond
 		if not (bond and bond.bond == "hello") then fail(scenario, "no hello with the pet out at login: " .. dump(ns)) return end
-		if not tostring(armed(ns)):find("^/greet pet\n") then fail(scenario, "the hello is |" .. tostring(armed(ns)) .. "|") end
+		if not tostring(armed(ns)):find("^/greet Humar\n") then fail(scenario, "the hello is |" .. tostring(armed(ns)) .. "|") end
 		-- Passing through an inn: nothing.
 		local real = ns.InCity
 		ns.InCity = function() return false end
