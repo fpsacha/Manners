@@ -455,6 +455,7 @@ ns.WindowLayout = {
 					{ "who.beastRevive", indent = true },
 					{ "who.beastFeed", indent = true },
 					{ "who.beastMend", indent = true },
+					{ "who.beastMendFight", indent = true },
 					{ "who.beastLeaveFood", indent = true },
 					{ "who.beastGrowl", indent = true },
 					{ "who.beastTraining", indent = true },
@@ -1184,6 +1185,7 @@ ns.WindowLayout = {
 		["who.beastRevive"] = L["hunter pet revive dead"],
 		["who.beastFeed"] = L["hunter pet feed food happy"],
 		["who.beastMend"] = L["hunter pet mend heal"],
+		["who.beastMendFight"] = L["hunter pet mend fight button key"],
 		["who.beastBond"] = L["hunter pet bond emote memory"],
 		["who.beastAll"] = L["hunter pet everything all off"], ["who.beastPace"] = L["hunter pet moments often rarely"],
 		["who.beastLeaveFood"] = L["hunter pet vendor food buy"], ["who.beastGrowl"] = L["hunter pet growl autocast tank"],
@@ -1230,7 +1232,7 @@ ns.WindowLayout = {
 		-- the line, the memory and the pace under Bond with my pet, and what
 		-- Manners remembers under its own switch.
 		["who.beastCall"] = "who.beastAll", ["who.beastRevive"] = "who.beastAll", ["who.beastFeed"] = "who.beastAll",
-		["who.beastMend"] = "who.beastAll", ["who.beastLeaveFood"] = "who.beastAll", ["who.beastGrowl"] = "who.beastAll",
+		["who.beastMend"] = "who.beastAll", ["who.beastMendFight"] = "who.beastAll", ["who.beastLeaveFood"] = "who.beastAll", ["who.beastGrowl"] = "who.beastAll",
 		["who.beastTraining"] = "who.beastAll", ["who.beastBond"] = "who.beastAll",
 		["who.beastPace"] = "who.beastBond", ["who.beastPraise"] = "who.beastBond", ["who.beastComfort"] = "who.beastBond",
 		["who.beastWelcome"] = "who.beastBond", ["who.beastSorry"] = "who.beastBond", ["who.beastHello"] = "who.beastBond",
@@ -1260,6 +1262,7 @@ ns.WindowLayout = {
 		["appearance.breakFreeKey"] = function() return ns.caps.breakFree ~= nil end,
 		["appearance.mendInFightKey"] = function() return ns.Beast.IsHunter() and ns.Beast.KnowsMend() end,
 		["who.beastShare"] = function() return ns.Beast.Feeds() end,
+		["who.beastMendFight"] = function() return ns.Beast.KnowsMend() end,
 		["who.beastLeaveFood"] = function() return ns.Beast.Feeds() end,
 		["who.beastTraining"] = function() return ns.Beast.Trains() end,
 		["who.courtesyRefresh"] = function() return ns.Courtesy.Has("courtesyRefresh") end,
