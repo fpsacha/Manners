@@ -40,6 +40,9 @@
 - **Bond with my pet reaches the pet.** The emote of a moment (a pat, a
   wave, praise) now goes at your pet by its name instead of at nobody.
   Reported on CurseForge.
+- **Mend Pet's fight button has its switch under Your pet too.** It was only
+  on *Look*, *In a fight*, so turning the Mend Pet reminder off seemed to do
+  nothing in a fight. Reported on CurseForge.
 
 ## 1.11.28
 

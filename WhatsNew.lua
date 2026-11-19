@@ -22,6 +22,7 @@ ns.WhatsNew = {
 			"|cffff9a52A hunter's pet.|r Mend Pet is not offered to a pet out of its range, nor Revive Pet with Lone Wolf.",
 			"|cffff9a52A profile's own look.|r One this version no longer has falls back to Glass.",
 			"|cffff9a52Bond with my pet reaches the pet.|r The emote of a moment (a pat, a wave, praise) now goes at your pet by its name instead of at nobody.",
+			"|cffff9a52Mend Pet's fight button has its switch under Your pet too.|r It was only on |cffffffffLook|r, |cffffffffIn a fight|r, so turning the Mend Pet reminder off seemed to do nothing in a fight.",
 		} },
 	} },
 	{ version = "1.11.28", date = "17 November 2026", sections = {

@@ -840,6 +840,37 @@ do
 	end)
 end
 
+-- The same switch under Your pet, beside "Mend my pet when it is hurt after a
+-- fight": a hunter who turned that one off still saw the fight's button.
+do
+	local scenario = "hunterpet2: the fight's Mend Pet switch is under Your pet too"
+	with(scenario, {}, function(ns)
+		secure(ns)
+		ns.BuildQueue()
+		ns.addon:Tick()
+		Mock.runTimers(0)
+		local control = findOption(ns.optionsTable, "beastMendFight")
+		local hidden = control and control.hidden
+		if type(hidden) == "function" then hidden = hidden() end
+		if not control or hidden then fail(scenario, "no switch for the fight's Mend Pet button under Your pet") return end
+		if control.get() ~= true then fail(scenario, "the switch does not read the fight button's setting") end
+		control.set(nil, false)
+		ns.addon:Tick()
+		Mock.runTimers(0)
+		if ns.db.profile.beast.fightMend ~= false then fail(scenario, "the switch does not turn the fight's button off") end
+		local button = ns.MendPet:Button()
+		if button and button:GetAttribute("macrotext1") then fail(scenario, "the button stays armed with the switch under Your pet off") end
+		local look = findOption(ns.optionsTable, "mendInFight")
+		if look and look.get() ~= false then fail(scenario, "Look's switch does not follow the one under Your pet") end
+	end)
+	with(scenario, { class = "PRIEST", known = { [139] = true } }, function(ns)
+		local control = findOption(ns.optionsTable, "beastMendFight")
+		local hidden = control and control.hidden
+		if type(hidden) == "function" then hidden = hidden() end
+		if control and not hidden then fail(scenario, "a priest is shown the fight's Mend Pet switch") end
+	end)
+end
+
 -- ------------------------------------------------------------------ the hints
 do
 	local scenario = "hunterpet2: vendor food line"

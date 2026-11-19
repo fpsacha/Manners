@@ -332,3 +332,9 @@ mutate("HunterPet.lua",
        "moment = nil",
        "hunterpet2: a not now to a share lets Feed ask at once",
        expect=H2 + "a not now to a share is one to Feed", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\tns.db.profile.beast.fightMend = value == true\n",
+       "\t\t\tns.db.profile.beast.mend = value == true\n",
+       "hunterpet2: the switch under Your pet leaves the fight's button on",
+       expect=H2 + "the fight's Mend Pet switch is under Your pet too", script=S)

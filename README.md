@@ -477,7 +477,9 @@ once you carry one.
 button below: off, Manners leaves your pet to you, and every switch keeps its
 own setting for when it is on again.
 
-*Mend Pet in a fight* (under *Look*, *In a fight*, with a key of its own): a
+*Mend Pet in a fight* (its switch is under *Your pet*, below the Mend Pet
+reminder, and under *Look*, *In a fight*, with a key of its own; the reminder's
+switch does not turn it off): a
 button of its own to the right of the prompt, or of the Will of the Forsaken
 button where a Forsaken hunter has both, shown for every fight. It lights up
 while your pet is below half health, in reach and alive, and Mend Pet is not

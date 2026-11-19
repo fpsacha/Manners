@@ -936,6 +936,19 @@ function Page.AddBeastControls(args)
 		15.983, function() return NotHunter() or not ns.Beast.Feeds() end, SelfOff)
 	Toggle("beastMend", "mend", L["Mend my pet when it is hurt after a fight"],
 		L["Offers Mend Pet when your pet is badly hurt and the fight is over."], 15.984, nil, SelfOff)
+	-- The fight's own Mend Pet button (Prompt/MendPet.lua) has its switch on
+	-- Look, In a fight; the same switch sits here too, under the other Mend
+	-- Pet one, where a hunter turning Mend Pet off looks for it.
+	args.beastMendFight = { type = "toggle", name = L["Offer Mend Pet in a fight when my pet is badly hurt"],
+		desc = L["A button of its own beside the prompt, with a key of its own, there for every fight. It lights up while your pet is below half health, in reach, and Mend Pet is ready; where the game hides your pet's health in a fight it stays half lit and still casts. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+		order = 15.9841, width = "full",
+		hidden = function() return NotHunter() or not ns.Beast.KnowsMend() end,
+		disabled = AllOff,
+		get = function() return ns.db.profile.beast.fightMend ~= false end,
+		set = function(_, value)
+			ns.db.profile.beast.fightMend = value == true
+			if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+		end }
 	Toggle("beastLeaveFood", "leaveFood", L["Tell me at a vendor when my pet is low on food"],
 		L["At a vendor who sells a food your pet eats, a line in chat when your bags hold fewer than five meals for your pet. Once a vendor each session. Manners never buys anything."],
 		15.9844, function() return NotHunter() or not ns.Beast.Feeds() end)
