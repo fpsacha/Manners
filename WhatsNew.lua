@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "19 November 2026", sections = {
+	{ version = "1.11.30", date = "19 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Nothing is used on the run.|r Food, stones, oils, the sleeping bag and anything else with a cast wait until you stand still, and come back a second after you stop.",
 			"|cffffd100Thorns, not on me in a dungeon or raid.|r A new switch under Thorns' |cffffffffOffer to|r.",
