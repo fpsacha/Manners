@@ -19,10 +19,10 @@
 -- nearly dead, after a revive, at login (good morning after a night at an
 -- inn), after a quiet stretch on the road -- shown at most once in twenty
 -- minutes, for forty-five seconds, with no pulse and no sound. A press does
--- the fitting emote at the pet ("/pet Humar": by its name, since the chat box
--- hands the emote's word to C_ChatInfo.PerformEmote as a target NAME and a
--- player found "/pet pet" reached nobody; the target is untouched; a name
--- with a space or a | falls back to the token), an /emote of the gesture and
+-- the fitting emote at the pet (the macro runs "/target pet", the emote with no
+-- word, which goes at the target, and "/targetlasttarget": the chat box reads
+-- an emote's word as a target NAME, and players found both "/pet pet" and
+-- "/pet Humar" reached nobody), an /emote of the gesture and
 -- the pet's answer by its family,
 -- and, with In character on and lines going in /say, a line from the hunter's
 -- people said to the pet (RP.RACE.<family>.pet, petpraise, petcomfort).
@@ -1155,13 +1155,16 @@ end
 
 -- The bond's macro, its spoken line and that line as written: the emote at
 -- the pet, the gesture and the answer, the line when it may go and fits.
+local BACK = "/targetlasttarget"
 local function BondMacro(entry)
 	local m = entry.moment
 	local name = entry.petName
 	if not (m and type(name) == "string") then return nil end
-	-- The emote's word is a name to the client (PerformEmote's targetName).
-	local at = name:find("^[^%s|]+$") and name or "pet"
-	local lines = { EmoteCommand(m.kind) .. " " .. at }
+	-- An emote's word is read by the client as a target NAME, and neither the
+	-- token nor the pet's name reached the pet on a player's client (the greet
+	-- went to "everyone"). The macro targets the pet, does the emote at the
+	-- target and puts the last target back.
+	local lines = { "/target pet", EmoteCommand(m.kind) }
 	-- A share of the meal: Feed Pet with the food first (the pet unit is Feed Pet's own target).
 	if m.kind == "share" then
 		local spell = ns.SpellNameFor(KnownAny(K.FEED) or K.SPELL.feed)
@@ -1174,7 +1177,8 @@ local function BondMacro(entry)
 	local answer = On(Switches(Profile()), "answer") and (" " .. Reaction(name)) or ""
 	local full = emote .. gesture .. answer
 	local n = #lines
-	local used = #table.concat(lines, "\n") + 1
+	-- Room kept for the line that puts your own target back.
+	local used = #table.concat(lines, "\n") + 1 + #BACK + 1
 	if used + #full <= ns.MACRO_LIMIT then
 		lines[n + 1] = full
 	elseif used + #emote + #gesture <= ns.MACRO_LIMIT then
@@ -1193,6 +1197,7 @@ local function BondMacro(entry)
 			lines[n + 2] = say .. said
 		end
 	end
+	lines[#lines + 1] = BACK
 	return table.concat(lines, "\n"), said, source
 end
 

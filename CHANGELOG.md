@@ -12,6 +12,10 @@
   *Offer to*. Asked for on CurseForge.
 
 ### Fixes
+- **Bond with my pet really reaches the pet.** The emote of a moment (a pat, a
+  wave, a greeting) now targets your pet first and puts your own target back
+  afterwards, so "You greet everyone warmly" becomes a greeting at the pet.
+  Reported on CurseForge.
 - **Mend Pet's fight switch** now shows under *Your pet* in the options window.
 
 ## 1.11.29

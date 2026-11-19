@@ -80,8 +80,10 @@ name); *My own words* for an ask (`ask.line = "own"`, the text in `ask.own`,
 pool; kept as the player has it by a pasted settings line while asking is on;
 `tests/scenarios/askown.lua`); and *Bond with my pet* emoting at the pet's
 name rather than the `pet` token, which a player found reached nobody
-(`hunterpet.lua`). What only the game can say: that `/pet Humar` from the
-prompt lands on the pet on each client; whether a player who is a passer-by
+(`hunterpet.lua`); the name did not reach it either (a player's log, 19 November:
+"You greet everyone warmly"), so the macro is now `/target pet`, the bare emote
+and `/targetlasttarget`. What only the game can say: that the emote lands on the
+pet on each client and the last target comes back; whether a player who is a passer-by
 reads `UnitAffectingCombat` plainly on Forever and retail (a secret reads as
 not fighting, so they are still offered). A lead, not acted on: the /thank
 emote passes a unit token to `C_ChatInfo.PerformEmote`, whose argument the API
@@ -136,9 +138,10 @@ lines, eight languages). `tests/scenarios/hunterpet.lua`,
 game can settle:
 - `/cast Feed Pet` then `/use item:<id>` from the prompt on each feeding
   client (the pet eats, the hunter does not);
-- an emote at the pet's name (`/pet Humar`, `/praise Humar`, ...; the `pet`
-  token reached nobody for a player on CurseForge, 18 November) on each
-  client, and the /emote and /say lines from the same press;
+- an emote at the pet (`/target pet`, `/pet`, `/praise`, ..., `/targetlasttarget`;
+  the `pet` token and the pet's name both reached nobody for a player on
+  CurseForge, 18 and 19 November) on each client, and the /emote and /say lines
+  from the same press;
 - the pet's health plain out of combat on Forever and retail;
 - UnitCreatureFamily's second return (the family id) on Classic Era and TBC,
   and the ids in `REACT`;

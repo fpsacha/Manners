@@ -458,7 +458,7 @@ do
 		if not (list.bond and list.bond.bond == "share") then fail(scenario, "no share after the meal: " .. dump(ns)) return end
 		if list.feed then fail(scenario, "Feed and a share both offered: " .. dump(ns)) end
 		local macro = tostring(armed(ns))
-		if not macro:find("^/cast Feed Pet\n/use item:117\n/pet Humar\n") then fail(scenario, "the macro is |" .. macro .. "|") end
+		if not macro:find("^/cast Feed Pet\n/use item:117\n/target pet\n/pet\n") then fail(scenario, "the macro is |" .. macro .. "|") end
 		-- Pressed in the global cooldown, the cast would fail and the use eat the food yourself.
 		Mock.spellCooldowns = { [61304] = { startTime = Mock.now - 0.3, duration = 1.5 } }
 		if ns.CastReady() then
@@ -711,7 +711,7 @@ do
 		bond = pets(ns).bond
 		if not (bond and bond.bond == "play") then fail(scenario, "the second is not a game: " .. dump(ns)) return end
 		local macro = tostring(armed(ns))
-		if not macro:find("^/beckon Humar\n/emote throws a stick for Humar%.") then fail(scenario, "the macro is |" .. macro .. "|") end
+		if not macro:find("^/target pet\n/beckon\n/emote throws a stick for Humar%.") then fail(scenario, "the macro is |" .. macro .. "|") end
 	end)
 end
 

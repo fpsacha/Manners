@@ -11,6 +11,7 @@ ns.WhatsNew = {
 			"|cffffd100Thorns, not on me in a dungeon or raid.|r A new switch under Thorns' |cffffffffOffer to|r.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Bond with my pet really reaches the pet.|r The emote of a moment (a pat, a wave, a greeting) now targets your pet first and puts your own target back afterwards, so \"You greet everyone warmly\" becomes a greeting at the pet.",
 			"|cffff9a52Mend Pet's fight switch|r now shows under |cffffffffYour pet|r in the options window.",
 		} },
 	} },

@@ -521,8 +521,8 @@ sound, and letting it pass costs nothing. Every moment, the pet's answer, the
 line you say and the memory below have a switch of their own in a fold,
 *Bond with my pet, piece by piece*, under *Who to buff*, and are held by
 *Bond with my pet* and *Everything for my pet*. A press does the fitting emote at
-your pet (/pet, /praise, /soothe, /welcome or /greet, aimed at your pet and
-never at a name, so your target stays as it is) and an /emote everybody near
+your pet (/pet, /praise, /soothe, /welcome or /greet: the button targets your
+pet, does the emote at it and puts your own target back) and an /emote everybody near
 you sees, such as "Mort scratches Humar behind the ears. Humar wags
 happily." The answer goes by the pet's family. With *In character* chosen
 and your lines going in /say, you also say a line to your pet in your

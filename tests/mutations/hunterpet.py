@@ -343,7 +343,7 @@ mutate("HunterPet.lua",
        expect="hunterpet: a press on a moment does the emote and is remembered", script=S)
 
 mutate("HunterPet.lua",
-       "\tlocal lines = { EmoteCommand(m.kind) .. \" \" .. at }\n",
+       "\tlocal lines = { \"/target pet\", EmoteCommand(m.kind) }\n",
        "\tlocal lines = { EmoteCommand(m.kind) .. \" pet\" }\n",
        "hunterpet: the emote aimed at the pet token, which the chat box reads as a name",
        expect="hunterpet: a press on a moment does the emote and is remembered", script=S)
@@ -524,3 +524,9 @@ mutate("HunterPet.lua",
        "\tif true then\n",
        "hunterpet: the pet's auras walked at every health tick",
        expect="hunterpet: the pet's auras are read only when care could be offered", script=S)
+
+mutate("HunterPet.lua",
+       "\tlines[#lines + 1] = BACK\n",
+       "",
+       "hunterpet: a moment leaves the pet targeted",
+       expect="hunterpet: a press on a moment does the emote and is remembered", script=S)
