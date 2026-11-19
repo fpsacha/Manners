@@ -1180,6 +1180,7 @@ do
 		if ns.ForgetAuraCache then ns.ForgetAuraCache() end
 		-- Which way your talents lean (Best, Automatic's pick of an item).
 		if ns.ForgetLean then ns.ForgetLean() end
+		if ns.ForgetCastTimes then ns.ForgetCastTimes() end
 
 		playerClass = plain(select(2, UnitClass("player")))
 		caps.class = playerClass
@@ -3252,6 +3253,90 @@ do
 		return swamAt ~= nil and now >= swamAt and now - swamAt < SWIM_HOLD
 	end
 
+	-- Whether you are moving, or were a moment ago (Buffs.lua, `still`; asked
+	-- for on CurseForge: food eaten on the run is thrown away, and a stone or an
+	-- oil started on the run is cut short). The client's speed when it says it
+	-- plainly: above nothing is moving, nothing is standing, whatever the events
+	-- said (so a stop the client never announced cannot hold things forever).
+	-- Kept secret (a fight, and wherever the client withholds it) or missing:
+	-- the moving events' word (ns.NoteMoving), not standing nor moving by
+	-- default. Falling (a jump) is moving. STILL_HOLD seconds past the last
+	-- movement still count, so a stop between two steps does not put the row up
+	-- and take it down again. Answered once per `now`, so a scan asks the client
+	-- once whatever the number of families.
+	local STILL_HOLD = 1
+	local movedAt, stepping
+	local askedAt, askedAnswer
+	local function Moving(now)
+		if askedAt == now then return askedAnswer end
+		local moving = false
+		local speedOf = _G.GetUnitSpeed
+		local speed = type(speedOf) == "function" and speedOf("player") or nil
+		if issecretvalue and issecretvalue(speed) then
+			moving = stepping == true
+		elseif type(speed) == "number" then
+			moving = speed > 0
+		else
+			moving = stepping == true
+		end
+		if not moving and type(_G.IsFalling) == "function" then
+			local falling = plain(_G.IsFalling())
+			if falling == true or falling == 1 then moving = true end
+		end
+		if moving then movedAt = now end
+		local answer = moving or (movedAt ~= nil and now >= movedAt and now - movedAt < STILL_HOLD)
+		askedAt, askedAnswer = now, answer
+		return answer
+	end
+
+	-- PLAYER_STARTED_MOVING (true), PLAYER_STOPPED_MOVING (false) and
+	-- PLAYER_LEAVING_WORLD (false): both stamp the moment, for the hold.
+	function ns.NoteMoving(now, on)
+		stepping = on == true
+		movedAt, askedAt = now, nil
+	end
+
+	-- Whether one of your own is cut short by moving: a family flagged for it
+	-- (Buffs.lua, `still`), else its use spell's cast time as the client gives
+	-- it. Read once a spell until the next probe (ns.ForgetCastTimes).
+	local castMs = {}
+	function ns.ForgetCastTimes() wipe(castMs) end
+	local function CastMs(id)
+		local known = castMs[id]
+		if known ~= nil then return known end
+		known = 0
+		local get = C_Spell and C_Spell.GetSpellInfo
+		if type(get) == "function" then
+			local info = get(id)
+			local ms = type(info) == "table" and plain(info.castTime) or nil
+			if type(ms) == "number" then known = ms end
+		elseif type(_G.GetSpellInfo) == "function" then
+			local _, _, _, ms = _G.GetSpellInfo(id)
+			ms = plain(ms)
+			if type(ms) == "number" then known = ms end
+		end
+		castMs[id] = known
+		return known
+	end
+	local function NeedsStill(family, spell)
+		if family.still then return true end
+		local id = spell and spell.ranks and spell.ranks[1]
+		return type(id) == "number" and CastMs(id) > 0
+	end
+	-- For OwnVerdict: one upvalue, not two.
+	local function CutByMoving(family, spell, now)
+		return NeedsStill(family, spell) and Moving(now)
+	end
+
+	-- An entry of your own that moving would cut short right now: the prompt's
+	-- hold and fuse (Prompt/Hold.lua), the consumables button and the moving
+	-- event (below).
+	function ns.StillCut(entry, now)
+		local buff = entry and entry.buff
+		if not (buff and buff.own == true and buff.family) then return false end
+		return CutByMoving(buff.family, buff, now or GetTime())
+	end
+
 	-- In a dungeon or a raid, by the game's word. A battleground is not one.
 	local function InDungeon()
 		local ok, inside, kind = pcall(_G.IsInInstance)
@@ -4164,6 +4249,7 @@ do
 	--   "dry"       one for the water alone (Unending Breath), and you are not swimming
 	--   "grouped"   Dampen or Amplify Magic with its alone switch on, held back in a party or raid
 	--   "battle"    a gathering tracking, and you are in a battleground or an arena
+	--   "moving"    one cut short by moving (Buffs.lua, still), and you are moving or just stopped
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
@@ -4326,6 +4412,10 @@ do
 				return nil, up, left, "mounted", spell
 			end
 		end
+		-- Not on the move (Buffs.lua, `still`; asked for on CurseForge): a food
+		-- eaten running is thrown away, and a stone, an oil or anything else
+		-- with a cast is cut short. It waits until you stand still.
+		if CutByMoving(family, spell, ctx.now or GetTime()) then return nil, up, left, "moving", spell end
 		if ns.IsBlocked(ctx.name, spell.key, ctx.now) then return nil, up, left, "tried", spell end
 		-- Held to when you are alone by its own switch (Buffs.lua, `solo`: the
 		-- key of it under ownBuffs), on, and you are in a group.
@@ -6102,6 +6192,10 @@ function addon:OnEnable()
 		"PLAYER_TALENT_UPDATE",
 		"ACTIVE_TALENT_GROUP_CHANGED",
 		"TRAIT_CONFIG_UPDATED",
+		-- Moving: food, a stone, an oil and the like wait until you stand
+		-- still (Buffs.lua, `still`; ns.StillCut).
+		"PLAYER_STARTED_MOVING",
+		"PLAYER_STOPPED_MOVING",
 		"NAME_PLATE_UNIT_ADDED",
 		"NAME_PLATE_UNIT_REMOVED",
 		-- Cooldowns the client takes back; the casts are below.
@@ -6401,6 +6495,21 @@ function addon:PLAYER_TALENT_UPDATE() ns.ForgetLean() end
 function addon:ACTIVE_TALENT_GROUP_CHANGED() ns.ForgetLean() end
 function addon:TRAIT_CONFIG_UPDATED() ns.ForgetLean() end
 
+-- Moving (ns.StillCut): the prompt, its bar macro and the consumables button
+-- let go of one of yours that moving cuts short at once, not at the next scan.
+function addon:PLAYER_STARTED_MOVING()
+	local now = GetTime()
+	ns.NoteMoving(now, true)
+	if InCombatLockdown() then return end
+	local Prompt = ns.Prompt
+	if Prompt and Prompt.state and ns.StillCut(Prompt.state.current, now) then ns.Guard("moving", Prompt.Refresh, Prompt) end
+	local supplies = ns.Supplies
+	if supplies and supplies:Wanted() and ns.StillCut(supplies:Current(), now) then
+		ns.Guard("moving supplies", supplies.Refresh, supplies, now)
+	end
+end
+function addon:PLAYER_STOPPED_MOVING() ns.NoteMoving(GetTime(), false) end
+
 -- Putting an enhancement over the one a weapon carries makes the game ask
 -- whether to replace it (REPLACE_ENCHANT, a StaticPopup of the same name
 -- whose YES calls C_Item.ReplaceEnchant), a top-up of one running low
@@ -6468,6 +6577,7 @@ end
 -- A loading screen or a logout (Clicks.lua, click macro); the next
 -- PLAYER_ENTERING_WORLD (Favours.lua) lets it go.
 function addon:PLAYER_LEAVING_WORLD()
+	ns.NoteMoving(GetTime(), false)
 	if ns.ParkMacroBody then ns.Guard("bar macro", ns.ParkMacroBody) end
 end
 

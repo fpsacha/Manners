@@ -5,6 +5,14 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "19 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Nothing is used on the run.|r Food, stones, oils, the sleeping bag and anything else with a cast wait until you stand still, and come back a second after you stop.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Mend Pet's fight switch|r now shows under |cffffffffYour pet|r in the options window.",
+		} },
+	} },
 	{ version = "1.11.29", date = "18 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100A look for each class.|r |cffffffffUse my class's look on each character|r, over the cards on |cffffffffLook|r: on one profile a druid wears the Druid look and a paladin the Paladin look.",
@@ -71,55 +79,6 @@ ns.WhatsNew = {
 			"|cffff9a52Nobody passed over while a thank-you waits.|r With |cffffffffWait a moment before thanking|r on, somebody who buffs you in the pause is thanked when the first thank-you cannot go.",
 			"|cffff9a52Stay silent is silent.|r Quick setup's |cffffffffStay silent|r also switches off the whispered thank-you, and a pasted settings line never switches it on.",
 			"|cffff9a52The check-up shows the whisper|r : that it is watching, and who it last went to.",
-		} },
-	} },
-	{ version = "1.11.26", date = "15 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Every look repainted.|r Each look's frame is now a painting, with ten new looks beside them.",
-			"|cffffd100A Look page you can browse.|r Tabs for |cffffffffFor my class|r, |cffffffffAll|r and each shelf; point at a card to try that look on the prompt, click to keep it.",
-			"|cffffd100A blessing for each class.|r Paladins pick the blessing each class is offered first.",
-			"|cffffd100Profiles you can manage.|r Every profile and who is on it; use, duplicate, rename, delete or copy one, with |cffffffffUndo|r.",
-			"|cffffd100The prompt goes to whoever is in reach.|r Somebody who walked off no longer holds it while another stands beside you, in a fight or out of one.",
-		} },
-		{ title = "Looks", accent = "7cc4ff", entries = {
-			"|cff7cc4ffPainted frames.|r All nineteen earlier looks, Glass and Framed included, are drawn from a painting.",
-			"|cff7cc4ffTen new looks.|r Fire Mage, Priest, Rogue, Monk, Demon Hunter and Evoker, and four quiet ones: Ghost, Hairline, Pill and Slate.",
-			"|cff7cc4ffFour shelves.|r Minimal, Classic, Themed and Class.",
-			"|cff7cc4ffTry a look by pointing at it.|r Moving off puts yours back.",
-			"|cff7cc4ffShow my key on the prompt.|r As the look has it, always, or never.",
-			"|cff7cc4ffThe chosen look's settings together|r , under the cards.",
-		} },
-		{ title = "Who gets what", accent = "7cc4ff", entries = {
-			"|cff7cc4ffA blessing for each class.|r Pick a class, then its blessing.",
-			"|cff7cc4ffPassers-by who walked off.|r Somebody still in reach takes the prompt first, and a fight no longer freezes on people who have left.",
-			"|cff7cc4ffThe list holds still under the cursor.|r The name you point at stays on its line, so a click never lands on whoever slid into it.",
-			"|cff7cc4ffOne press each in a fight.|r Each press reaches the next person, and with only one person on the prompt a second press no longer casts at them again.",
-		} },
-		{ title = "Your own buffs", accent = "7cc4ff", entries = {
-			"|cff7cc4ffDemonic Pact keeps both.|r On WoW Forever, a warlock with Demonic Pact is reminded of Demonic Sacrifice and Soul Link alike.",
-			"|cff7cc4ffMake a Firestone or Spellstone.|r On WoW Forever, off by default: with no stone and a Soul Shard, the prompt offers to make one.",
-		} },
-		{ title = "Profiles", accent = "7cc4ff", entries = {
-			"|cff7cc4ffEvery profile at a glance|r , the one in use first, with who is on it.",
-			"|cff7cc4ffPick, then act.|r |cffffffffUse|r, |cffffffffDuplicate|r, |cffffffffRename|r, |cffffffffDelete|r, |cffffffffCopy into the profile in use|r, and |cffffffffUndo|r for the last one.",
-			"|cff7cc4ffPaste into a new profile|r , and |cffffffffNew characters start on|r a profile you choose for the whole account.",
-		} },
-		{ title = "Options window", accent = "7cc4ff", entries = {
-			"|cff7cc4ffPages in parts.|r A long page has a bar of its parts: pick one, or |cffffffffAll|r.",
-			"|cff7cc4ffA picture for each page|r in the menu.",
-			"|cff7cc4ffWhy nothing comes up.|r The minimap tooltip, the window's strip and Diagnostics say when a place rule, your mana or the game's friendly nameplates being off is holding the prompt back.",
-		} },
-		{ title = "What I say", accent = "7cc4ff", entries = {
-			"|cff7cc4ffAbout a hundred new Forsaken lines|r , in every language.",
-			"|cff7cc4ffIn character lines speak to the favour itself.|r About nine hundred were reworded so each makes sense said with a buff; a saved phrase box is kept.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52A buff the game keeps refusing.|r On WoW Forever, \"A more powerful spell is already active\" is now understood: that buff is held off that person for ten minutes instead of being offered again and again.",
-			"|cffff9a52Out of sight is not five minutes.|r A cast refused for range or line of sight backs off for seconds, not as if the person could never be buffed.",
-			"|cffff9a52A press in a fight keeps your enemy targeted|r when the person it was for has gone.",
-			"|cffff9a52A new character's greeting|r waits until its first buff is learned.",
-			"|cffff9a52A warrior's shout on WoW Forever|r is described as reaching the raid.",
-			"|cffff9a52A fault that keeps repeating|r is named in red on the minimap tooltip and in the options window, with |cffffffffRun a full check-up|r.",
 		} },
 	} },
 }

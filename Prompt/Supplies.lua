@@ -103,6 +103,11 @@ end
 -- A left press: what a press on the prompt writes for one of your own.
 local function PreClick(_, mouse)
 	if InCombatLockdown() or mouse ~= "LeftButton" or not current then return end
+	-- Moving since the scan armed it (Core.lua, ns.StillCut): nothing is used.
+	if ns.StillCut(current, _G.GetTime()) then
+		Disarm()
+		return
+	end
 	ns.MarkAttempted(current.name, current.buff.key)
 	ns.NoteScrollPress(current.buff)
 	ns.Trail("press", ("pressed: %s, from the consumables button"):format(tostring(current.buff.key)), current.name)

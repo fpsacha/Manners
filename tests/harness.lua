@@ -141,6 +141,8 @@ for _, e in ipairs({
   -- Talents and specs changing (Core.lua, Best): in the event lists of all
   -- five clients (Ketho's BlizzardInterfaceResources, every branch).
   "CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED", "TRAIT_CONFIG_UPDATED",
+  -- Moving (Core.lua, ns.StillCut): in the event lists of all five clients.
+  "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING",
 }) do KNOWN_EVENTS[e] = true end
 
 -- Ace3 stand-ins

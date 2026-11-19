@@ -120,6 +120,9 @@ do
 		elseif why == "dry" then
 			-- Unending Breath on yourself, for the water alone (Buffs.lua, swimming).
 			return L["%s: you are not swimming, so it is not offered."]:format(label)
+		elseif why == "moving" then
+			-- Food, a stone, an oil or another use with a cast, on the move (Core.lua, OwnVerdict).
+			return L["%s: %s waits until you stand still."]:format(label, name or "?")
 		-- A companion pet (Companion.lua).
 		elseif why == "journal" then
 			return L["%s: none out -- Manners brings one out of your pet journal itself."]:format(label)

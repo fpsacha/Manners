@@ -76,6 +76,8 @@ end
 local function Retired(entry, now)
 	if ns.HeldForPvP(entry) then return true end
 	if OwnSpellGone(entry) then return true end
+	-- One of your own that moving would cut short (Core.lua, ns.StillCut).
+	if ns.StillCut(entry, now) then return true end
 	return entry ~= nil and entry.name ~= nil
 		and (ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)
 			or ListedWithoutDebt(entry.name, now))
@@ -123,6 +125,7 @@ end
 local function HoldStillStands(now)
 	if not (S.heldEntry and S.heldAt) then return false end
 	if OwnSpellGone(S.heldEntry) then return false end
+	if ns.StillCut(S.heldEntry, now) then return false end
 	-- Longer while the cursor is on the panel (see CursorHolds).
 	if now - S.heldAt >= HOLD_SECONDS and not CursorHolds(S.heldEntry, now) then return false end
 	if ListedWithoutDebt(S.heldEntry.name, now) then return false end

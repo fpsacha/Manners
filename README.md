@@ -358,7 +358,8 @@ own. The full list for each class is under *Which buffs each class offers*.
   hand, at its best rank. Pick one by name to keep to it. Alone, a stone, oil or poison
   is offered again only once it has worn off; in a group, with top-ups on, it
   is renewed ahead of the next pull. Manners never answers the game's
-  question about replacing an enchant: that is left to you.
+  question about replacing an enchant: that is left to you. Nothing is put
+  on while you move: the item waits until you stand still.
 - **A shaman's weapon imbue.** Rockbiter, Flametongue, Frostbrand and
   Windfury Weapon are one family, *Weapon imbue* (Classic Era, Burning
   Crusade, WoW Forever and Mists, with each client's own imbues). With none
@@ -379,20 +380,21 @@ once you carry one.
   chooses the order: *The best one I can eat* (the default), *The weakest
   first*, or one of the foods in your bags by name. *Never remind me about*,
   under it, lists the foods in your bags to leave out (a fishing food, say).
-  Nothing is offered while you are eating, mounted or in a fight, and a meal
+  Nothing is offered while you are eating, moving, mounted or in a fight, and a meal
   cut short brings the reminder back at once.
 - **Well-Rested** (Classic Era and WoW Forever), for the Cozy Sleeping Bag:
   one press lays it down. Not at the level cap, nor during the hour its use
-  cools down. *Remind me before Well-Rested runs out*, under it, brings the
-  bag back when five minutes are left, so you can renew it in time.
+  cools down, nor while you move. *Remind me before Well-Rested runs out*,
+  under it, brings the bag back when five minutes are left, so you can renew
+  it in time.
 - **Companion pet** (every client). On WoW Forever, Mists and retail Manners
   brings a pet out of your pet journal itself, with no press: *Which pet*
   picks the one you had out last, a random favourite, any pet, or one of your
   pets by name. A pet you use from your bags each time (every pet on Classic
   Era and Burning Crusade, a handful on Forever) comes up on the prompt as
   "You". Never in a fight, a dungeon, a raid, a battleground, an arena or a
-  pet battle, nor while you are mounted, stealthed, dead, flying or casting.
-  A pet you put away stays away until you bring one out yourself.
+  pet battle, nor while you are mounted, stealthed, dead, flying, casting or
+  moving. A pet you put away stays away until you bring one out yourself.
 - **Flask, Elixir** and one switch per scroll (Agility, Strength,
   Protection, Intellect, Stamina, Spirit): with none of that kind on you,
   "You" comes up with the best one you can use. A flask that works only in

@@ -578,7 +578,7 @@ do
 					out[#out + 1] = {
 						key = kind.kind .. (kind.mainHand and "" or hand.name),
 						label = kind.label, kind = kind.kind, slot = hand.slot, only = kind.only,
-						scroll = true, enhance = true, spells = spells,
+						scroll = true, enhance = true, still = true, spells = spells,
 						enchantKind = kinds and kinds[kind.kind] or nil,
 					}
 					-- Automatic ranks an oil, a lure and a warlock's stone by worth,
@@ -934,7 +934,7 @@ do
 			spells[i] = { key = "food" .. row[1], item = row[1], level = row[2], ranks = { row[3] },
 				nameFromItem = L["Well Fed"] }
 		end
-		FOOD[client] = { key = "food", label = L["Well Fed"], food = true, bagged = true, toggle = true,
+		FOOD[client] = { key = "food", label = L["Well Fed"], food = true, bagged = true, toggle = true, still = true,
 			fed = data.fed, spells = spells }
 	end
 end
@@ -952,7 +952,7 @@ end
 -- lie in it.
 local REST = {}
 for _, client in ipairs({ "camelot", "vanilla" }) do
-	REST[client] = { key = "rested", label = L["Well-Rested"], bagged = true, rest = true, toggle = true,
+	REST[client] = { key = "rested", label = L["Well-Rested"], bagged = true, rest = true, toggle = true, still = true,
 		fed = 429959, resting = 429960,
 		spells = { { key = "rested211527", item = 211527, level = 1, ranks = { 429961 },
 			nameFromItem = L["Cozy Sleeping Bag"] } } }
@@ -1259,6 +1259,14 @@ end
 --             of the same spell never offers him (neverSelf). The client's own
 --             word (IsSwimming), held a moment past the last stroke so a jump
 --             out at the surface is still swimming (Core.lua, Swimming).
+--   still     cut short by moving: offered only while you stand still, a
+--             moment past the last step (Core.lua, NeedsStill and Moving).
+--             Food (a meal on the move is thrown away), a weapon's stone,
+--             oil, poison or lure, the sleeping bag, Forever's mage scrolls
+--             and making a warlock's stone. Any other family waits the same
+--             way when the client gives its use a cast time (a companion pet
+--             from the bags, Mists' armors, a rogue's poison spells); an
+--             instant one (a flask, an elixir, a stat scroll) never does.
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
@@ -2285,6 +2293,7 @@ do
 		label = L["Familiar"],
 		scroll = true,
 		isScroll = true,
+		still = true,
 		spells = {
 			{ key = "catfamiliar", item = 277493, level = 25, ranks = { 1302303 } },
 			{ key = "frogfamiliar", item = 277483, level = 16, ranks = { 1302285 } },
@@ -2300,6 +2309,7 @@ do
 		imbue = true,
 		enchantKind = "imbue",
 		isScroll = true,
+		still = true,
 		spells = {
 			{ key = "imbuegreaterflame", item = 277500, level = 46, ranks = { 1302311 }, enchant = 8716, weapon = STAFF },
 			{ key = "imbuegreaterfrost", item = 277501, level = 46, ranks = { 1302312 }, enchant = 8717, weapon = STAFF },
@@ -2447,7 +2457,7 @@ do
 	for i, family in ipairs(list) do
 		if family.kind == "warlockstone" then
 			table.insert(list, i + 1, { key = "makestone", label = L["Make a Firestone or Spellstone"], optIn = true,
-				toggle = true, makes = "warlockstone", reagent = 6265, slot = 16,
+				toggle = true, makes = "warlockstone", reagent = 6265, slot = 16, still = true,
 				spells = {
 					{ key = "createfirestone", ranks = { 17953, 17952, 17951, 6366 }, needsWeapon = true,
 						items = { 13701, 13700, 13699, 1254 } },

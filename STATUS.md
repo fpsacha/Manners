@@ -19,6 +19,34 @@ tried beyond the sightings under *Open*. The checklist of what only the game
 can settle, on WoW Forever in the owner's own play sessions, is the first item
 under *Open*.
 
+**Nothing of your own on the run (1.11.30, asked for on CurseForge).** Food, a
+weapon's stone, oil, poison or lure, the sleeping bag, Forever's mage scrolls
+and making a warlock's stone (family flag `still`, Buffs.lua), and any other
+use the client gives a cast time (`C_Spell.GetSpellInfo`'s `castTime`, else
+`GetSpellInfo`'s fourth return: a bag pet, Mists' armors, a rogue's poison
+spells), are offered only while you stand still and for a second after
+(Core.lua: `Moving`, `NeedsStill` and `CutByMoving`, all local; `STILL_HOLD`).
+OwnVerdict answers `"moving"` after the meal, mounted, sleeping-bag, pet-hold
+and journal rules, so every reader (the queue, the consumables button,
+Battle, Hints, the Myself lines) gets it; `ns.StillCut(entry, now)` is what
+the prompt's hold and fuse (Prompt/Hold.lua), the consumables button's press
+(Prompt/Supplies.lua) and `addon:PLAYER_STARTED_MOVING` ask, so the prompt, the
+bar macro and the button let go at once; `ns.NoteMoving` (the two moving
+events and PLAYER_LEAVING_WORLD) and `ns.ForgetCastTimes` (the probe). The
+client's plain `GetUnitSpeed` always rules; a speed it keeps secret, or none,
+is read from the events; `IsFalling` counts as moving. No setting: it is a
+correctness fix, as the mounted rule is. A flask, an elixir and a stat scroll
+are instant and never held. `tests/scenarios/standstill.lua`, mutations in
+`tests/mutations/standstill.py` (14, each CAUGHT by `tools/prove.py`). Left out
+on purpose: a resurrection, a mage's conjure courtesy and Symbiosis (casts on
+others: the game refuses them and nothing is lost) and a hunter's Feed Pet (not
+an own family). What only the game can say: whether `GetUnitSpeed` and
+`IsFalling` read plainly out of a fight on Forever and retail; whether
+`GetUnitSpeed` reads 0 standing on a boat or a zeppelin; whether
+PLAYER_STARTED_MOVING and PLAYER_STOPPED_MOVING fire on each client; the
+`castTime` the client gives a bag pet; and that the bar macro is rewritten by
+the STARTED_MOVING repaint before a press on the run.
+
 **Daily feedback, 18 November (unreleased, for the next release).** Three
 pieces from CurseForge comments, each held to lint, its own scenario file and
 `tools/prove.py` (no whole suite ran): *Skip players in a fight*
@@ -820,6 +848,14 @@ permissions list, a hook that lints each edited file, and the commands
 1.11.29: a mage's Mana Shield and Fire Ward or Frost Ward as own buffs (Classic Era, Forever, TBC); Add a spell of my own (OwnSpells.lua).
 
 ## Open
+
+**Nothing of your own on the run (1.11.30), for the game to settle.**
+1. Are `GetUnitSpeed("player")` and `IsFalling()` plain out of a fight on Forever and retail? A secret speed is read from the moving events; with neither, you count as standing, as before.
+2. Does `GetUnitSpeed` read 0 standing on a boat or a zeppelin? Food and stones are held while it reads above 0.
+3. Do PLAYER_STARTED_MOVING and PLAYER_STOPPED_MOVING fire on each client, and in that order, after a loading screen too?
+4. What `castTime` does the client give a companion pet's summon spell from the bags (`C_Spell.GetSpellInfo`, or `GetSpellInfo`'s fourth return)? A pet with a cast is held on the move, an instant one is not.
+5. Is the bar macro rewritten by the STARTED_MOVING repaint before a press on the run, so a `/use item:` line is never run?
+6. On the move the row goes away and comes back a second after you stop, with its intro and (sound rules allowing) its sound, as after getting off a mount.
 
 **Mana Shield, the wards and Add a spell of my own (1.11.29), for the game to settle.**
 1. Does GetSpellIDForSpellIdentifier or GetSpellInfo by name return the best rank known on Classic Era, TBC and Forever?

@@ -335,6 +335,16 @@ default everywhere in the tests and the only client anybody here plays.
     `selfbreath`, on all five clients, first of a warlock's own, on by default): Core.lua
     `Swimming` reads `IsSwimming()` and holds it two seconds past the last
     stroke (`SWIM_HOLD`), and OwnVerdict answers `"dry"` before any aura read.
+    A family cut short by moving is `still` (food, the sleeping bag, a weapon's
+    stone, oil, poison or lure, Forever's scrolls, making a warlock's stone; any
+    other family when the client gives its use spell a cast time, so a bag pet
+    and Mists' armors go by that and a flask never does): Core.lua `Moving`
+    reads `GetUnitSpeed` (plain, it rules; secret or missing, the
+    PLAYER_STARTED/STOPPED_MOVING word kept by `ns.NoteMoving`) and `IsFalling`,
+    holds it `STILL_HOLD` (one second) past the last step, and OwnVerdict
+    answers `"moving"` after the mounted, sleeping-bag, pet-hold and journal
+    rules; `ns.StillCut(entry, now)` is what the prompt's hold (Hold.lua), the
+    consumables button's press (Supplies.lua) and the moving event ask.
     An own spell's `group` (a shaman's Water Breathing 131 for it, where the
     client has it) is matched through `auraIds` only, never cast, never in
     `OWN_BY_ID`; `tools/audit_ids.py` holds it to `OWN_GROUP_NAMES`.
