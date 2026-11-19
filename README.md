@@ -393,8 +393,9 @@ once you carry one.
   pets by name. A pet you use from your bags each time (every pet on Classic
   Era and Burning Crusade, a handful on Forever) comes up on the prompt as
   "You". Never in a fight, a dungeon, a raid, a battleground, an arena or a
-  pet battle, nor while you are mounted, stealthed, dead, flying, casting or
-  moving. A pet you put away stays away until you bring one out yourself.
+  pet battle, nor while you are mounted, stealthed, dead, flying or casting. A
+  pet you use from your bags waits until you stand still. A pet you put away
+  stays away until you bring one out yourself.
 - **Flask, Elixir** and one switch per scroll (Agility, Strength,
   Protection, Intellect, Stamina, Spirit): with none of that kind on you,
   "You" comes up with the best one you can use. A flask that works only in

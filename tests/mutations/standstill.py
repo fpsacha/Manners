@@ -30,6 +30,12 @@ mutate("Core.lua",
        expect=SECRET, script=S)
 
 mutate("Core.lua",
+       "\t\tlocal speed\n\t\tif type(speedOf) == \"function\" then speed = speedOf(\"player\") end\n",
+       "\t\tlocal speed = type(speedOf) == \"function\" and speedOf(\"player\") or nil\n",
+       "standstill: the speed is tested for truth before issecretvalue sees it",
+       expect=SECRET, script=S)
+
+mutate("Core.lua",
        "\t\t\tmoving = speed > 0\n",
        "\t\t\tmoving = stepping == true or speed > 0\n",
        "standstill: a stale moving event beats a plain standing speed",

@@ -221,6 +221,17 @@ do
 		Mock.advance(1.5)
 		if not mine(ns) then fail(scenario, "stopped, and the food is not back") end
 	end)
+	-- The game raises on a boolean test of a secret and the mock's secret is a
+	-- plain truthy table, so nothing above can see one: the source is read
+	-- instead. Whatever GetUnitSpeed answers is never the operand of `and` or
+	-- `or` in Moving; issecretvalue and type() look at it first.
+	local source = assert(io.open(dir .. "/Core.lua", "r")):read("*a")
+	local body = source:match("\n\tlocal function Moving%(now%)(.-)\n\tend\n")
+	if not body then
+		fail(scenario, "SKIPPED -- Moving could not be found in Core.lua")
+	elseif body:find('speedOf%("player"%)%s+or') or body:find('and%s+speedOf%("player"%)') then
+		fail(scenario, "Moving tests the speed for truth before asking issecretvalue: the game raises on a secret")
+	end
 end
 
 do

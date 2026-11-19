@@ -37,7 +37,11 @@ client's plain `GetUnitSpeed` always rules; a speed it keeps secret, or none,
 is read from the events; `IsFalling` counts as moving. No setting: it is a
 correctness fix, as the mounted rule is. A flask, an elixir and a stat scroll
 are instant and never held. `tests/scenarios/standstill.lua`, mutations in
-`tests/mutations/standstill.py` (14, each CAUGHT by `tools/prove.py`). Left out
+`tests/mutations/standstill.py` (15, each CAUGHT by `tools/prove.py`; `Moving`
+never tests `GetUnitSpeed`'s answer for truth, which the game raises on when it
+is secret: the mock's secret is truthy, so the scenario reads the source for
+it). A pet from the journal is not held by moving (Companion.lua summons it
+with no cast of the player's); only a bag pet with a cast time waits. Left out
 on purpose: a resurrection, a mage's conjure courtesy and Symbiosis (casts on
 others: the game refuses them and nothing is lost) and a hunter's Feed Pet (not
 an own family). What only the game can say: whether `GetUnitSpeed` and

@@ -3279,7 +3279,10 @@ do
 		if askedAt == now then return askedAnswer end
 		local moving = false
 		local speedOf = _G.GetUnitSpeed
-		local speed = type(speedOf) == "function" and speedOf("player") or nil
+		-- Never a boolean test of the answer: the game raises on one when the
+		-- speed is secret, so issecretvalue and type() are the first to see it.
+		local speed
+		if type(speedOf) == "function" then speed = speedOf("player") end
 		if issecretvalue and issecretvalue(speed) then
 			moving = stepping == true
 		elseif type(speed) == "number" then
