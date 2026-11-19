@@ -3129,6 +3129,18 @@ function ns.BuildQueue(watch)
 			end
 		end
 
+		-- In a fight (Who to skip: Skip players in a fight; a buff on somebody
+		-- fighting puts you in the fight), read only with the switch on, for
+		-- every reason alike but your target or focus, whom you picked on
+		-- purpose. A verdict for this scan, so a passer-by remembered is not
+		-- offered from memory; the fight's end offers them again, and a debt or
+		-- a request stays. The global read here: `visit` has no upvalue to spare.
+		if f.skipFighting == true and not pointed and type(_G.UnitAffectingCombat) == "function"
+			and plain(_G.UnitAffectingCombat(owner or unit)) == true then
+			rejected[full] = true
+			return
+		end
+
 		-- A passer-by has to be near, not merely castable on. The other reasons
 		-- carry their own evidence of nearness, and so does a pointed unit. Above
 		-- the aura read on purpose: in a crowd, one distance check is much

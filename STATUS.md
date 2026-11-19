@@ -19,6 +19,24 @@ tried beyond the sightings under *Open*. The checklist of what only the game
 can settle, on WoW Forever in the owner's own play sessions, is the first item
 under *Open*.
 
+**Daily feedback, 18 November (unreleased, for the next release).** Three
+pieces from CurseForge comments, each held to lint, its own scenario file and
+`tools/prove.py` (no whole suite ran): *Skip players in a fight*
+(`filters.skipFighting`, off, Who to skip; Queue.lua's `visit` reads
+`UnitAffectingCombat` on each person but your target or focus, only with the
+switch on; `tests/scenarios/fightskip.lua`, mutations in the file of the same
+name); *My own words* for an ask (`ask.line = "own"`, the text in `ask.own`,
+`Ask.CleanOwn`: one line, no `|`, 200 letters; said ahead of the In character
+pool; kept as the player has it by a pasted settings line while asking is on;
+`tests/scenarios/askown.lua`); and *Bond with my pet* emoting at the pet's
+name rather than the `pet` token, which a player found reached nobody
+(`hunterpet.lua`). What only the game can say: that `/pet Humar` from the
+prompt lands on the pet on each client; whether a player who is a passer-by
+reads `UnitAffectingCombat` plainly on Forever and retail (a secret reads as
+not fighting, so they are still offered). A lead, not acted on: the /thank
+emote passes a unit token to `C_ChatInfo.PerformEmote`, whose argument the API
+documents as a target name, as the pet's did.
+
 **A look for each class (1.11.29, asked for on CurseForge).** *Use my class's look on each character* (`prompt.classLook`, off, over the cards on Look): `Looks.RepairClassLook`, from ClampSettings, sets `prompt.style` to the look of the character's class at every login, profile change and import. A mage's pick among the mage's looks is in `prompt.classStyles`, and the profile's own look is in `prompt.profileStyle` while the switch is on. A line under the picker's tabs says which look is in use and why. `tests/scenarios/classlook.lua`, mutations in the file of the same name. What only the game can say: whether two characters sharing one profile, logged in one after the other, each come up in their own look; and whether the switch's label and the line under the tabs fit at the window's smallest width in German and French.
 
 **Tanks and me, and a campsite's buffs (1.11.28, asked for on

@@ -558,6 +558,7 @@ ns.WindowLayout = {
 					"who.ask",
 					{ "who.askChannel", indent = true },
 					{ "who.askLine", indent = true },
+					{ "who.askOwn", indent = true },
 					{ "who.askInTowns", indent = true },
 				} },
 				-- Each moment with a hunter's pet, its answer, its line and its
@@ -599,6 +600,7 @@ ns.WindowLayout = {
 					"who.skipPvP",
 					-- Who that switch holds back right now, under it.
 					{ "diagnostics.pvpDiag", indent = true },
+					"who.skipFighting",
 					"who.skipSameClass",
 					"who.skipGuilds",
 					{ "who.skipNearbyClasses", columns = 3 },
@@ -1048,7 +1050,8 @@ ns.WindowLayout = {
 			["who.ownSpell7"] = true, ["who.ownSpell8"] = true, ["who.ownSpell9"] = true,
 			["who.ownSpell10"] = true,
 			-- Who to skip.
-			["who.rightNowSkip"] = true, ["who.skipPvP"] = true, ["who.skipSameClass"] = true,
+			["who.rightNowSkip"] = true, ["who.skipPvP"] = true, ["who.skipFighting"] = true,
+			["who.skipSameClass"] = true,
 			["who.minLevel"] = true, ["who.neverAdd"] = true,
 			-- When to offer.
 			["when.rightNow"] = true, ["when.whenBuffed"] = true, ["when.alwaysNote"] = true,
@@ -1212,6 +1215,7 @@ ns.WindowLayout = {
 		-- How an ask is said, shown only while asking is on.
 		["who.askChannel"] = "who.ask",
 		["who.askLine"] = "who.ask",
+		["who.askOwn"] = "who.ask",
 		["who.askInTowns"] = "who.ask",
 		-- Share the group with other Manners users, the same.
 		["who.share"] = "who.group",

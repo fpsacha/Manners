@@ -113,15 +113,15 @@ mutate("Options/Start.lua",
 
 # A field dropped from a page's list.
 mutate("Options/Advanced.lua",
-       "\t\t\"filters.skipPvP\", \"filters.skipSameClass\", \"filters.requireInRange\", \"filters.minLevel\",\n",
-       "\t\t\"filters.skipPvP\", \"filters.skipSameClass\", \"filters.requireInRange\",\n",
+       "\t\t\"filters.skipPvP\", \"filters.skipFighting\", \"filters.skipSameClass\", \"filters.requireInRange\", \"filters.minLevel\",\n",
+       "\t\t\"filters.skipPvP\", \"filters.skipFighting\", \"filters.skipSameClass\", \"filters.requireInRange\",\n",
        "model: Who to skip's reset forgets the level",
        expect="skip reset: the list leaves out filters.minLevel", script=S)
 
 # The never-offer list swept up with Who to skip.
 mutate("Options/Advanced.lua",
-       "\t\t\"filters.skipPvP\", \"filters.skipSameClass\", \"filters.requireInRange\", \"filters.minLevel\",\n",
-       "\t\t\"filters.skipPvP\", \"filters.skipSameClass\", \"filters.requireInRange\", \"filters.minLevel\",\n"
+       "\t\t\"filters.skipPvP\", \"filters.skipFighting\", \"filters.skipSameClass\", \"filters.requireInRange\", \"filters.minLevel\",\n",
+       "\t\t\"filters.skipPvP\", \"filters.skipFighting\", \"filters.skipSameClass\", \"filters.requireInRange\", \"filters.minLevel\",\n"
        "\t\t\"never.list\",\n",
        "model: Who to skip's reset reaches the never list",
        expect="skip reset: the list reaches never.list", script=S)

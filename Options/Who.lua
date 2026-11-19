@@ -806,12 +806,26 @@ function Page.AddAskControls(args)
 			:format(TAB.click),
 		order = 14.7,
 		width = "full",
-		values = function() return ns.Ask.LINES end,
-		sorting = function() return ns.Ask.LINE_ORDER end,
+		values = function() return ns.Ask.Choices() end,
+		sorting = function() return ns.Ask.CHOICE_ORDER end,
 		hidden = off,
 		get = function() return ns.db.profile.ask.line end,
 		set = function(_, v)
 			ns.db.profile.ask.line = v
+			ns.Prompt:InvalidateMacro()
+		end,
+	}
+	-- My own words (Ask.lua, CleanOwn), shown while they are the choice.
+	args.askOwn = {
+		type = "input",
+		name = L["My own words"],
+		desc = L["What the ask says, as you write it, even with the In character set on. {name} is their name and {buff} the spell; leave {name} out and no name is said. One line; empty, the first line above is said."],
+		order = 14.75,
+		width = "full",
+		hidden = function() return off() or ns.db.profile.ask.line ~= "own" end,
+		get = function() return ns.db.profile.ask.own or "" end,
+		set = function(_, v)
+			ns.db.profile.ask.own = ns.Ask.CleanOwn(v)
 			ns.Prompt:InvalidateMacro()
 		end,
 	}
@@ -2361,6 +2375,16 @@ function Page.BuildWhoTab()
 				name = L["Skip players flagged for PvP"],
 				desc = L["Buffing somebody flagged for PvP flags you too. Ignored while you are flagged yourself, as in a battleground, but not while your own flag is running out."],
 				order = 43,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
+			-- Asked for on CurseForge: see "in a fight" in Queue.lua.
+			skipFighting = {
+				type = "toggle",
+				name = L["Skip players in a fight"],
+				desc = L["Buffing somebody in a fight pulls you into it, and what they are fighting may turn on you. They are offered again once the fight is over. Your target and focus are still offered."],
+				order = 43.2,
 				width = "full",
 				get = fGet,
 				set = fSet,

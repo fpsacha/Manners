@@ -439,6 +439,8 @@ local defaults = {
 		ask = {
 			channel = "WHISPER",
 			line = "moment",
+			-- My own words (Ask.lua, line "own"): empty until written.
+			own = "",
 			inTowns = false,
 		},
 
@@ -621,6 +623,9 @@ local defaults = {
 			-- (Queue.lua, "flagged for PvP"). On: a buff on them flags you
 			-- too, for minutes, which nobody asked for by buffing back.
 			skipPvP = true,
+			-- Nobody the game says is in a fight (Queue.lua, "in a fight"): a
+			-- buff on them pulls you in. Off: asked for on CurseForge.
+			skipFighting = false,
 			-- Off: an option a player asked for (see SelfServed in Queue.lua).
 			skipSameClass = false,
 			-- The share of your mana (0-90) kept for yourself: below it, only

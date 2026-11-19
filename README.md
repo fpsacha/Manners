@@ -642,7 +642,9 @@ whispers them one short polite line. It casts nothing and leaves your target
 alone. One ask a person for each buff in ten minutes, and one ask in all in
 two; never in a fight, a battleground or an arena; nobody on your never-offer
 or `/ignore` list, nobody dead, fighting, away or busy. *Ask in* chooses a
-whisper (the default) or `/say`, *What the ask says* one of three lines, and
+whisper (the default) or `/say`, *What the ask says* one of three lines or
+*My own words*, a line you write in the box under it (`{name}` their name,
+`{buff}` the spell, either left out; said even with In character on), and
 *Ask in cities and inns too* is off. The Manners macro on an action bar does
 not carry an ask.
 
@@ -1006,7 +1008,8 @@ no room for. Defaults are in brackets.
 - ***Myself***, ***Weapons***, ***Food, flasks and scrolls*** and ***When my own
   buffs come up***: see *Your own buffs* above.
 - ***Asking for a buff***: *Ask people for a buff I'm missing* (off), then *Ask
-  in*, *What the ask says* and *Ask in cities and inns too*.
+  in*, *What the ask says* (three lines, or *My own words* with a box for
+  them) and *Ask in cities and inns too*.
 - ***Who comes first*** (folded): *My target first*, *Friends and guildmates
   first*, *My group first at a ready check* and *Group members just revived
   first*, all on. With *My target first* off your target is ranked by why
@@ -1021,6 +1024,9 @@ no room for. Defaults are in brackets.
     are flagged yourself. A group spell or a shout that would land on
     somebody flagged is held back too. Under it, who it is holding back right
     now.
+  - *Skip players in a fight* (off): buffing somebody in a fight pulls you
+    into it, so nobody the game says is fighting is offered until the fight
+    is over. Your target and focus still are.
   - *Skip my own class when they can cast it too* (off): another mage can
     give themselves Arcane Intellect, so they are left out, unless they are
     too low a level for the rank you cast. Somebody who buffed you, asked, or

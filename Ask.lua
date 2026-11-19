@@ -56,6 +56,24 @@ Ask.LINES = {
 	mind = L["Hello {name}, would you mind casting {buff} on me? Thanks!"],
 }
 
+-- And the player's own words (ask.line "own", the text in ask.own; asked
+-- for on CurseForge): {name} and {buff} as in the lines above, either left
+-- out as the player likes. Said even with the In character set on, since
+-- the player wrote it; empty, or too long for the macro, the first line.
+Ask.OWN_MAX = 200
+Ask.CHOICE_ORDER = { "moment", "may", "mind", "own" }
+function Ask.Choices()
+	return { moment = Ask.LINES.moment, may = Ask.LINES.may, mind = Ask.LINES.mind, own = L["My own words"] }
+end
+
+-- The own words as they may go into a macro: one line, no |, trimmed.
+function Ask.CleanOwn(text)
+	if type(text) ~= "string" then return "" end
+	text = text:gsub("|", ""):gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
+	if #text > Ask.OWN_MAX then text = text:sub(1, Ask.OWN_MAX) end
+	return text
+end
+
 -- The lines said with the In character set chosen on What I say, in the style
 -- of Phrases.lua and held to its rules (tests/scenarios/ask.lua): 85 bytes at
 -- most with the tokens filled, never the word "buff", no |, [ or ]. On a
@@ -117,7 +135,8 @@ function ns.AskClamp(profile)
 	local ask = profile.ask
 	if type(ask) ~= "table" then return end
 	if ask.channel ~= "WHISPER" and ask.channel ~= "SAY" then ask.channel = "WHISPER" end
-	if Ask.LINES[ask.line] == nil then ask.line = Ask.LINE_ORDER[1] end
+	if Ask.LINES[ask.line] == nil and ask.line ~= "own" then ask.line = Ask.LINE_ORDER[1] end
+	ask.own = Ask.CleanOwn(ask.own)
 end
 
 ---------------------------------------------------------------------------
@@ -356,6 +375,12 @@ local function Compose(db, entry, room, avoid)
 		local text = ns.Swap(template, "{name}", ns.SaidName(entry.short or entry.name))
 		return Sanitize(ns.Swap(text, "{buff}", spell))
 	end
+	-- My own words, ahead of the In character set: the player wrote them.
+	if db.ask.line == "own" then
+		-- Empty, Fill gives nil and the plain line below is said.
+		local text = Fill(Ask.CleanOwn(db.ask.own))
+		if text and #text <= room then return text end
+	end
 	local rp = ns.InCharacter
 	if rp and rp.Active and rp.Active(db.speech) then
 		local fits, others = {}, {}
@@ -396,6 +421,7 @@ function Ask.MacroFor(entry, state)
 	end
 	local room = ns.MACRO_LIMIT - #command - 2
 	local identity = table.concat({ entry.name, entry.buff.key, tostring(db.ask.channel), tostring(db.ask.line),
+		tostring(db.ask.own),
 		tostring(db.speech and db.speech.presetChoice), tostring(db.speech and db.speech.firstNameOnly) }, "\1")
 	local line, source
 	if state and state.askKey == identity and state.askLine and #state.askLine <= room then

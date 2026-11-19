@@ -18,6 +18,12 @@
   on you (Blink) is taken off with a line in chat. Asked for on CurseForge.
 - **No own buff on a long cooldown.** A buff of your own still on a cooldown of
   more than three seconds is not reminded until it is ready.
+- **Skip players in a fight.** On *Who to skip*, off until you tick it: nobody
+  in a fight is offered a buff, so one press no longer drags their mobs onto
+  you. Your target and focus still are. Asked for on CurseForge.
+- **Ask in your own words.** *What the ask says* has a fourth choice, *My own
+  words*, with a box to write the line in; leave `{name}` out and no name is
+  said. Asked for on CurseForge.
 
 ### Fixes
 - **A look tried with the pointer stays on its own profile.** Switching

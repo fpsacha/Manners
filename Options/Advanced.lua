@@ -64,6 +64,7 @@ Page.RESET = {
 		-- Elixirs to keep up (Classic Era, Forever): none ticked again.
 		"ownBuffs.elixirKeep",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
+		"ask.own",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()
@@ -77,7 +78,7 @@ Page.RESET = {
 	},
 	-- The never-offer list is kept: every name on it was put there by hand.
 	skip = {
-		"filters.skipPvP", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel",
+		"filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel",
 		"filters.skipGuilds",
 		"filters.skipNearbyClasses",
 	},
