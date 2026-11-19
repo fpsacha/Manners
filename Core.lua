@@ -330,6 +330,11 @@ local defaults = {
 			-- The buffs offered to nobody but you (Buffs.lua, tankChoice: a
 			-- druid's Thorns on herself): the same sparse set.
 			meOnly = {},
+			-- Of the buffs a player may hold to tanks (Buffs.lua, tankChoice: a
+			-- druid's Thorns), the ones never reminded of on you inside a
+			-- dungeon or a raid, whatever Offer to says (asked for on CurseForge
+			-- by a druid who heals there): the same sparse set, absent is as ever.
+			notMeInside = {},
 			-- The buffs kept for a favour and a request by name (Buffs.lua,
 			-- returnOnly: Unending Breath) because the player chose that: a sparse
 			-- set, absent is offered to everybody, as it was before 1.11.19.
@@ -2078,6 +2083,9 @@ do
 		-- Held to yourself (Offer to: Only me): nobody else is offered it. Your own
 		-- is asked with no such field, so it is still reminded of.
 		if opts.meOnly and buff.tankChoice and opts.meOnly[buff.key] then return false end
+		-- Not you, inside a dungeon or a raid (Who to buff, under Offer to:
+		-- buff.notMeInside): SelfBuff hands the set only while you are in one.
+		if opts.notMeInside and buff.tankChoice and opts.notMeInside[buff.key] then return false end
 		if buff.partyOnly and not opts.inParty then return false end
 		-- Salvation: the game refuses it on anybody outside your party or raid.
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
@@ -3344,6 +3352,8 @@ do
 		inside, kind = plain(inside), plain(kind)
 		return (inside == true or inside == 1) and (kind == "party" or kind == "raid")
 	end
+	-- Read at call time by Queue.lua (SelfBuff, buff.notMeInside).
+	ns.InDungeon = InDungeon
 
 	-- The trackings nobody fights with: held back in a battleground or an
 	-- arena (OwnVerdict, "battle"). Every other one finds an enemy. On ns, to
@@ -5961,6 +5971,7 @@ function ns.ClampSettings()
 	if type(profile.buff.tanksOutside) ~= "table" then profile.buff.tanksOutside = {} end
 	if type(profile.buff.meOnly) ~= "table" then profile.buff.meOnly = {} end
 	if type(profile.buff.tanksMe) ~= "table" then profile.buff.tanksMe = {} end
+	if type(profile.buff.notMeInside) ~= "table" then profile.buff.notMeInside = {} end
 	if type(profile.buff.keptBack) ~= "table" then profile.buff.keptBack = {} end
 	-- A class token to a buff key, and nothing else (PickBuffFor reads it per
 	-- person): a key this client does not know is simply never found.

@@ -8,6 +8,8 @@
 - **Nothing is used on the run.** Food, stones, oils, the sleeping bag and
   anything else with a cast wait until you stand still, and come back a second
   after you stop. Asked for on CurseForge.
+- **Thorns, not on me in a dungeon or raid.** A new switch under Thorns'
+  *Offer to*. Asked for on CurseForge.
 
 ### Fixes
 - **Mend Pet's fight switch** now shows under *Your pet* in the options window.

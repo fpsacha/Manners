@@ -2494,6 +2494,12 @@ local function SelfBuff(db, mine, full, now)
 		end
 		tanksHeld = next(rest) ~= nil and rest or nil
 	end
+	-- Not on you in a dungeon or a raid (buff.notMeInside, asked for on
+	-- CurseForge): whatever Offer to says. Where you are is asked only while
+	-- something is ticked.
+	local notMeInside = db.buff.notMeInside
+	local inside = notMeInside and next(notMeInside) ~= nil and ns.InDungeon()
+	if not inside then notMeInside = nil end
 	local buff, has, remaining, seconds, lead, kind = ns.PickBuffFor(mine, {
 		-- Yours: a top-up comes earlier than for anybody else's (Core.lua, ns.LeadFor).
 		own = true,
@@ -2501,6 +2507,7 @@ local function SelfBuff(db, mine, full, now)
 		inGroup = grouped,
 		tanksOnly = tanksHeld or nil,
 		isTank = tanksHeld and ns.IsTankUnit("player") or nil,
+		notMeInside = notMeInside,
 		-- Your own class, for a blessing chosen for it.
 		theirClass = next(db.buff.forClass) ~= nil and ns.caps and ns.caps.class or nil,
 		-- The caster is always inside their own party.

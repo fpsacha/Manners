@@ -47,6 +47,24 @@ PLAYER_STARTED_MOVING and PLAYER_STOPPED_MOVING fire on each client; the
 `castTime` the client gives a bag pet; and that the bar macro is rewritten by
 the STARTED_MOVING repaint before a press on the run.
 
+**Thorns, not on me in a dungeon or raid (1.11.30, asked for on CurseForge).**
+A druid who heals asked to turn Thorns off on herself inside a dungeon. A
+switch under Thorns' *Offer to* (`buff.notMeInside`, a sparse set of
+`tankChoice` buff keys, off; Who to buff's `who.notMeInside_<key>`, placed
+right after `who.tank_<key>` by Layout.lua's `OfferItems`) holds the buff off
+yourself while `ns.InDungeon()` (Core.lua: party or raid instance, a
+battleground or arena is not one) says you are inside, whatever Offer to says
+and whatever your role: Queue.lua's `SelfBuff` hands the set on as
+`opts.notMeInside` only then, asking where you are only while something is
+ticked, and `Castable` turns the buff away (a pin too). The rest of the group
+is offered as Offer to says; a request in chat is unaffected; with Myself off
+nothing changes. The set is repaired in `ClampSettings`, travels in a settings
+string (Commands.lua), and is cleared by Advanced's reset of Who to buff.
+`tests/scenarios/notmeinside.lua`, mutations in `tests/mutations/notmeinside.py`
+(9, each CAUGHT by `tools/prove.py`). It asks the game only what the
+dungeon-only consumables rule already asks (`IsInInstance`); no in-game check
+is added.
+
 **Daily feedback, 18 November (unreleased, for the next release).** Three
 pieces from CurseForge comments, each held to lint, its own scenario file and
 `tools/prove.py` (no whole suite ran): *Skip players in a fight*

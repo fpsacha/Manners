@@ -330,6 +330,23 @@ local function AddBuffToggles(args)
 					restyleAndMacro()
 				end,
 			}
+			-- Under it, a switch of its own: not on yourself inside a dungeon or a
+			-- raid, whatever Offer to says (asked for on CurseForge by a druid who
+			-- heals there).
+			args["notMeInside_" .. buff.key] = {
+				type = "toggle",
+				name = L["Not on me in a dungeon or raid"],
+				desc = L["On: in a dungeon or a raid you are not reminded of your own, whatever Offer to says and whatever your role; the rest of your group is offered it as Offer to says. Out in the world, and in a battleground or an arena, you are reminded as before."],
+				order = 4 + index / 10 + 0.06,
+				width = "full",
+				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
+				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
+				get = function() return B().notMeInside[buff.key] == true end,
+				set = function(_, value)
+					B().notMeInside[buff.key] = value and true or nil
+					restyleAndMacro()
+				end,
+			}
 		end
 	end
 end

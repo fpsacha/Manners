@@ -397,6 +397,8 @@ function UI.Differs(path, item)
 	if skip then return (p.buff.skip or {})[skip] == true or (p.buff.optIn or {})[skip] == true end
 	local tanks = path:match("^who%.tank_(.+)$")
 	if tanks then return (p.buff.tanksOnly or {})[tanks] == true or (p.buff.meOnly or {})[tanks] == true end
+	local inside = path:match("^who%.notMeInside_(.+)$")
+	if inside then return (p.buff.notMeInside or {})[inside] == true end
 	local family = path:match("^who%.own_(.+)$")
 	if family then return (p.ownBuffs.pick or {})[family] ~= nil end
 	local fields = FIELDS[path]
