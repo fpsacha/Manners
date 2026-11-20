@@ -832,12 +832,23 @@ run("widgets: a box of many lines shows a bar while its text runs past it", func
 			elseif not row.bar:IsShown() then
 				fail(scenario, "sixty lines in a box of 26 show no bar")
 			else
+				-- The bar laid out as the client would: the box's height less its margins.
+				local high = row.scroll:GetHeight() - 6
+				row.bar._top, row.bar._height = 300, high
 				row.scroll.scripts.OnMouseWheel(row.scroll, -1)
 				local at = row.scroll:GetVerticalScroll()
-				if not (at > 0) or row.bar:GetValue() ~= at then
-					fail(scenario, ("the wheel took the box to %s and the bar to %s"):format(tostring(at), tostring(row.bar:GetValue())))
+				local travel = high - row.thumb:GetHeight()
+				local offset = -(row.thumb.points[1] and row.thumb.points[1][5] or 0)
+				if not (at > 0) or offset ~= math.floor(travel * at / range + 0.5) then
+					fail(scenario, ("the wheel took the box to %s and the thumb to %s"):format(tostring(at), tostring(offset)))
 				end
-				Mock.drag(row.bar, range)
+				-- A click at the bottom of the track takes the box to its end.
+				local was, held = _G.GetCursorPosition, Mock.buttonsDown.LeftButton
+				_G.GetCursorPosition = function() return 100, 301 - high end
+				Mock.buttonsDown.LeftButton = true
+				Mock.mouseDown(row.bar, "LeftButton")
+				Mock.mouseUp(row.bar, "LeftButton")
+				_G.GetCursorPosition, Mock.buttonsDown.LeftButton = was, held
 				if row.scroll:GetVerticalScroll() ~= range then
 					fail(scenario, "dragging the bar to its end left the box at " .. tostring(row.scroll:GetVerticalScroll()))
 				end

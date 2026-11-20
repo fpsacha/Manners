@@ -372,6 +372,7 @@ local function PlaceBody(top, below)
 	view.bar:ClearAllPoints()
 	view.bar:SetPoint("TOPRIGHT", f, "TOPRIGHT", -4, -(top + 4))
 	view.bar:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -4, UI.FOOTER + 4)
+	ns.WindowWidgets.PlaceThumb(view.bar)
 	view.top = top
 	view.height = UI.HEIGHT - top - UI.FOOTER
 end
@@ -400,23 +401,17 @@ local function BuildBody(f)
 	view.child:SetSize(UI.WIDTH - UI.SIDEBAR - 13, 1)
 	view.scroll:SetScrollChild(view.child)
 
-	-- A slim bar: a faint track and a gold thumb.
-	view.bar = CreateFrame("Slider", nil, f)
-	view.bar:SetOrientation("VERTICAL")
+	-- A slim bar: a faint track and a gold thumb. A plain frame dragged by the
+	-- cursor in Lua (Widgets.lua's DragBar), so a drag scrolls the way it moves
+	-- on every page.
+	view.bar = CreateFrame("Frame", nil, f)
 	view.bar:SetWidth(6)
-	view.bar:SetMinMaxValues(0, 0)
-	view.bar:SetValueStep(1)
-	view.bar:SetObeyStepOnDrag(false)
 	local track = UI.Solid(view.bar, "BACKGROUND", C.faint)
 	track:SetAllPoints()
 	view.thumb = view.bar:CreateTexture(nil, "ARTWORK")
 	view.thumb:SetColorTexture(0.29, 0.25, 0.188, 1)
 	view.thumb:SetSize(6, 40)
-	view.bar:SetThumbTexture(view.thumb)
-	view.bar:SetScript("OnValueChanged", UI.Guarded(function(_, value)
-		if UI.settingBar then return end
-		UI.ScrollTo(value)
-	end))
+	ns.WindowWidgets.DragBar(view.bar, view.thumb, function() return view.scrollY or 0, view.range or 0 end, UI.ScrollTo)
 	view.bar:EnableMouseWheel(true)
 	view.bar:SetScript("OnMouseWheel", UI.Guarded(function(_, delta) UI.ScrollBy(-(delta or 0) * 48) end))
 	view.scrollY, view.range, view.height = 0, 0, UI.HEIGHT - UI.HEADER - UI.FOOTER
@@ -429,9 +424,7 @@ function UI.ScrollTo(y)
 	y = math.max(0, math.min(tonumber(y) or 0, view.range or 0))
 	view.scrollY = y
 	view.scroll:SetVerticalScroll(y)
-	UI.settingBar = true
-	view.bar:SetValue(y)
-	UI.settingBar = false
+	ns.WindowWidgets.PlaceThumb(view.bar)
 end
 
 function UI.ScrollBy(dy)
@@ -444,9 +437,6 @@ function UI.SetContentHeight(height)
 	view.child:SetHeight(math.max(height, view.height))
 	view.range = math.max(0, height - view.height)
 	view.scroll:UpdateScrollChildRect()
-	UI.settingBar = true
-	view.bar:SetMinMaxValues(0, view.range)
-	UI.settingBar = false
 	view.bar:SetShown(view.range > 0)
 	if view.range > 0 then
 		local track = view.height - 8

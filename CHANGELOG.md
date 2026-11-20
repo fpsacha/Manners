@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+*20 November 2026*
+
+### Highlights
+- **Scroll bar.** Dragging the scroll bar on the right of the settings window
+  now moves the page the way you drag, on every page.
+
+### Fixes
+- **Scroll bar.** Dragging the scroll bar on the right of the settings window
+  now moves the page the way you drag, on every page.
+
 ## 1.11.31
 
 *20 November 2026*

@@ -19,6 +19,26 @@ tried beyond the sightings under *Open*. The checklist of what only the game
 can settle, on WoW Forever in the owner's own play sessions, is the first item
 under *Open*.
 
+**Scroll bar (unreleased, a CurseForge report: on four pages dragging the bar
+went the wrong way, the wheel was fine).** The exact cause was not provable
+from the code, which drives the bar the same way on every page and leaves only
+the client's mapping of a drag on a vertical Slider to guess at. So the bar is
+no longer a Slider: the page's bar (`Window.lua`, `BuildBody`) and a box's own
+(`WidgetsEntry.lua`, `ScrollBar`) are plain frames whose thumb Manners places
+and drags itself from the cursor (`Widgets.lua`: `W.DragBar`, `W.PlaceThumb`;
+the thumb is anchored to the bar's top by an offset, a click on the track
+centres the thumb on the cursor, an OnUpdate runs only while the button is
+held and lets go when `IsMouseButtonDown` says it is up, on OnMouseUp and on
+OnHide), so the direction comes from the cursor. No setting, no string.
+`tests/scenarios/scrollbar.lua` (the cursor stubbed, the bar's top and height
+stated, as the mock has no geometry) and five mutations in
+`tests/mutations/scrollbar.py`, each CAUGHT by `tools/prove.py`;
+`widgets.lua`'s box-bar scenario reads the thumb now, not a Slider's value.
+What only the game can say: that a drag now follows the cursor on every page,
+at any UI scale (the cursor is divided by the bar's effective scale), and that
+`GetHeight` of the bar, anchored top and bottom, reads its laid-out height
+when the window first opens (an OnSizeChanged script places the thumb again).
+
 **Nothing of your own on the run (1.11.30, asked for on CurseForge).** Food, a
 weapon's stone, oil, poison or lure, the sleeping bag, Forever's mage scrolls
 and making a warlock's stone (family flag `still`, Buffs.lua), and any other

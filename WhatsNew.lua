@@ -5,6 +5,14 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "20 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
+		} },
+	} },
 	{ version = "1.11.31", date = "20 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Fish Bowl holds Kings off you too.|r |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r now works on yourself.",
@@ -41,24 +49,6 @@ ns.WhatsNew = {
 			"|cffff9a52A profile's own look.|r One this version no longer has falls back to Glass.",
 			"|cffff9a52Bond with my pet reaches the pet.|r The emote of a moment (a pat, a wave, praise) now goes at your pet by its name instead of at nobody.",
 			"|cffff9a52Mend Pet's fight button has its switch under Your pet too.|r It was only on |cffffffffLook|r, |cffffffffIn a fight|r, so turning the Mend Pet reminder off seemed to do nothing in a fight.",
-		} },
-	} },
-	{ version = "1.11.28", date = "17 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Automatic picks the best.|r Scrolls, oils, stones, lures and a warlock's stones: Automatic now takes the best for you (level, weapon, Fishing, group role, talents) rather than the one used last; a poison keeps the kind last on that hand, at its...",
-			"|cffffd100Thank them with a press.|r |cffffffffAsk me before thanking|r, on |cffffffffWhat I say|r: your thank-you waits on the prompt as \"Thank <name>\" and goes when you press it.",
-		} },
-		{ title = "Who to buff", accent = "7cc4ff", entries = {
-			"|cff7cc4ffThorns for the tanks and me.|r |cffffffffOffer to|r has |cffffffffTanks and me|r: the tanks of your group get Thorns, and you are reminded of your own whatever your role.",
-			"|cff7cc4ffLeave a campsite's buffs alone.|r On WoW Forever, |cffffffffDon't cast over a campsite's Boosted Stamina, Intellect or Spirit|r keeps Fortitude, Arcane Intellect and Divine Spirit off anybody wearing one, even when yours is stronger.",
-		} },
-		{ title = "Your pet", accent = "7cc4ff", entries = {
-			"|cff7cc4ffCare for your pet.|r Call Pet, Revive Pet and Mend Pet when your pet needs them; on Classic Era, WoW Forever and Burning Crusade, Feed Pet with a food it eats while it is not happy.",
-			"|cff7cc4ffBond with your pet.|r Now and then a moment with your pet: a press pets, praises or comforts it by name and it answers in its own way.",
-			"|cff7cc4ffEvery piece has its own switch.|r |cffffffffEverything for my pet|r turns it all off; each moment, the answer, the line and the memory have one each.",
-			"|cff7cc4ffNew moments.|r Share your meal, welcome a newly tamed pet, a hug after days apart, say sorry after a fall, thanks for saving you, a new level or more loyalty, your days together and a game of fetch.",
-			"|cff7cc4ffMend Pet in a fight.|r A button of its own with its own key, under |cffffffffLook|r, |cffffffffIn a fight|r.",
-			"|cff7cc4ffHints.|r At a vendor when your pet's food runs short, Growl's autocast in groups and alone (off by default), and unspent training points.",
 		} },
 	} },
 }

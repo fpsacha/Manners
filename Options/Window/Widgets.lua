@@ -126,6 +126,79 @@ function W.Solid(parent, layer, sublevel, c)
 	return t
 end
 
+-- A slim scroll bar dragged by the cursor itself, not by the client's Slider:
+-- the bar is a plain Frame, its thumb a texture anchored to the bar's top, and
+-- the thumb follows the mouse in Lua, so which way a drag scrolls never rests
+-- on how a client maps a drag on a vertical Slider. `read()` answers the
+-- position and the range, `write(y)` scrolls (it keeps y within them itself).
+local function CursorY(bar)
+	local _, cy = GetCursorPosition()
+	return (tonumber(cy) or 0) / (bar:GetEffectiveScale() or 1)
+end
+
+-- How far below the bar's top the thumb sits.
+local function ThumbOffset(bar)
+	local pos, range = bar._read()
+	local travel = bar:GetHeight() - bar._thumb:GetHeight()
+	if (tonumber(range) or 0) > 0 and travel > 0 then
+		return math.floor(travel * (tonumber(pos) or 0) / range + 0.5)
+	end
+	return 0
+end
+
+-- The thumb where the position says.
+function W.PlaceThumb(bar)
+	local thumb = bar._thumb
+	if not thumb or not bar._read then return end
+	thumb:ClearAllPoints()
+	thumb:SetPoint("TOP", bar, "TOP", 0, -ThumbOffset(bar))
+end
+
+local function LetGo(bar)
+	bar._grab = nil
+	bar:SetScript("OnUpdate", nil)
+end
+
+local function BarPressed(bar, button)
+	if button ~= "LeftButton" then return end
+	local thumb = bar._thumb
+	local _, range = bar._read()
+	range = tonumber(range) or 0
+	local travel = bar:GetHeight() - thumb:GetHeight()
+	if travel <= 0 or range <= 0 then return end
+	local cy = CursorY(bar)
+	local top = bar:GetTop() - ThumbOffset(bar)
+	if cy > top or cy < top - thumb:GetHeight() then
+		-- On the track: the thumb's middle jumps to the cursor.
+		bar._write(range * ((bar:GetTop() - cy) - thumb:GetHeight() / 2) / travel)
+	end
+	bar._grab = { cy = cy, from = (bar._read()), travel = travel }
+	bar:SetScript("OnUpdate", bar._tick)
+	W.PlaceThumb(bar)
+end
+
+local function BarDragged(bar)
+	local grab = bar._grab
+	if not grab then return LetGo(bar) end
+	if type(IsMouseButtonDown) == "function" and not IsMouseButtonDown("LeftButton") then return LetGo(bar) end
+	local _, range = bar._read()
+	local cy = CursorY(bar)
+	-- Screen y grows upward: the mouse moving down makes this positive.
+	bar._write(grab.from + (grab.cy - cy) * (tonumber(range) or 0) / grab.travel)
+	W.PlaceThumb(bar)
+end
+
+function W.DragBar(bar, thumb, read, write)
+	bar._thumb, bar._read, bar._write = thumb, read, write
+	bar:EnableMouse(true)
+	bar._tick = function(self) ns.Guard("options bar", BarDragged, self) end
+	bar:SetScript("OnMouseDown", function(self, button) ns.Guard("options bar", BarPressed, self, button) end)
+	bar:SetScript("OnMouseUp", function(self) ns.Guard("options bar", LetGo, self) end)
+	bar:SetScript("OnHide", function(self) ns.Guard("options bar", LetGo, self) end)
+	-- The height is only known once the client has laid the bar out.
+	bar:SetScript("OnSizeChanged", function(self) ns.Guard("options bar", W.PlaceThumb, self) end)
+end
+
 -- A two-colour gradient, min at the bottom or left. SetGradient's signature
 -- changed between client generations, so a refusal falls back to the flat
 -- colour of `max` (Prompt/Prompt.lua's Gradient does the same).
