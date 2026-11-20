@@ -81,7 +81,7 @@ local function session(scenario, env, body)
 			if unit == "player" and carrying == nil then return base.GetUnitAuraBySpellID(unit, spellId) end
 			local source = carrying and carrying[spellId]
 			if not source then return nil end
-			return { spellId = spellId, expirationTime = Mock.now + 3600, duration = 3600,
+			return { spellId = spellId, auraInstanceID = spellId, expirationTime = Mock.now + 3600, duration = 3600,
 				sourceUnit = type(source) == "string" and source or nil }
 		end,
 	}, { __index = base }))
@@ -332,5 +332,52 @@ do
 	session(scenario, era, function(ns)
 		local option = H.findOption(ns.optionsTable, "neverFishBowl")
 		if option and not option.hidden() then fail(scenario, "it shows on Classic Era, which has no Fish Bowl") end
+	end)
+end
+
+-- ---------------------------------------------------------------------------
+-- GitHub issue 20. Your own pick carries no unit (opts.own), and on Forever
+-- Boosted Stats is hidden: a Fish Bowl shows as Camp Benefits (1229741), whose
+-- tooltip has a line "<Fish Bowl>: All stats increased by ...".
+-- ---------------------------------------------------------------------------
+
+local CAMP_BENEFITS, FEATURE = 1229741, 1307245
+
+local function campSession(scenario, lineText, body)
+	local env = { client = "camelot", classes = { party1 = "WARRIOR" } }
+	local savedTip, savedSpell = rawget(_G, "C_TooltipInfo"), rawget(_G, "C_Spell")
+	env.setup = function(ns)
+		ns.db.profile.buff.spareFishBowl = true
+		env.wears.player = { [CAMP_BENEFITS] = "player" }
+		env.wears.party1 = { [CAMP_BENEFITS] = THEIRS }
+		rawset(_G, "C_TooltipInfo", {
+			GetUnitBuffByAuraInstanceID = function()
+				return { lines = { { leftText = "Camp Benefits" }, { leftText = lineText } } }
+			end,
+		})
+		local base = savedSpell or {}
+		rawset(_G, "C_Spell", setmetatable({
+			GetSpellName = function(id) if id == FEATURE then return "Fish Bowl" end return base.GetSpellName and base.GetSpellName(id) end,
+		}, { __index = base }))
+	end
+	session(scenario, env, body)
+	rawset(_G, "C_TooltipInfo", savedTip)
+	rawset(_G, "C_Spell", savedSpell)
+end
+
+do
+	local scenario = "fishbowl: Camp Benefits naming the Fish Bowl holds Kings off you and off others"
+	campSession(scenario, "Fish Bowl: All stats increased by 8%.", function(ns)
+		if ns.SparesFishBowl({ own = true }) ~= true then fail(scenario, "your own pick was not held back at a Fish Bowl") end
+		if ns.SparesFishBowl({ unit = "party1" }) ~= true then fail(scenario, "somebody else by a Fish Bowl was not held back") end
+	end)
+end
+
+do
+	local scenario = "fishbowl: Camp Benefits without the Fish Bowl line holds nothing back"
+	campSession(scenario, "Lodestone: Might increased.", function(ns)
+		if ns.SparesFishBowl({ own = true }) == true then fail(scenario, "held back with only another camp feature on") end
+		ns.db.profile.buff.spareFishBowl = false
+		if ns.SparesFishBowl({ own = true }) == true then fail(scenario, "held back with the switch off") end
 	end)
 end

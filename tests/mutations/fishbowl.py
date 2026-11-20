@@ -12,8 +12,8 @@ mutate("Core.lua",
        expect="fishbowl: off by default, Kings goes over the Fish Bowl as before", script=S)
 
 mutate("Core.lua",
-       "\t\tif not (db and db.buff.spareFishBowl == true) or type(opts.unit) ~= \"string\" then return false end\n",
-       "\t\tif type(opts.unit) ~= \"string\" then return false end\n",
+       "\t\tif not (db and db.buff.spareFishBowl == true) or type(unit) ~= \"string\" then return false end\n",
+       "\t\tif type(unit) ~= \"string\" then return false end\n",
        "fishbowl: the switch is not read",
        expect="fishbowl: off by default, Kings goes over the Fish Bowl as before", script=S)
 
@@ -24,7 +24,7 @@ mutate("Core.lua",
        expect="fishbowl: on, somebody by a Fish Bowl gets another blessing first", script=S)
 
 mutate("Core.lua",
-       "\t\tlocal ok, aura = pcall(read, opts.unit, FISH_BOWL)\n",
+       "\t\tlocal ok, aura = pcall(read, unit, FISH_BOWL)\n",
        "\t\tlocal ok, aura = true, {}\n",
        "fishbowl: everybody read as by a Fish Bowl",
        expect="fishbowl: on, somebody by a Fish Bowl gets another blessing first", script=S)
@@ -97,3 +97,23 @@ mutate("Options/Window/Layout.lua",
        "\titems[#items + 1] = \"who.neverFishBowl\"\n",
        "fishbowl: the strict switch not indented under the first",
        expect="fishbowl: the strict switch sits under the first one on Who to buff", script=S)
+
+# GitHub issue 20: your own pick, and Camp Benefits.
+
+mutate("Core.lua",
+       "\t\tif unit == nil and opts.own then unit = \"player\" end\n",
+       "",
+       "fishbowl: your own pick read as no unit",
+       expect="fishbowl: Camp Benefits naming the Fish Bowl holds Kings off you and off others", script=S)
+
+mutate("Core.lua",
+       "\t\treturn fine and holds == true\n",
+       "\t\treturn fine\n",
+       "fishbowl: any Camp Benefits counts as a Fish Bowl",
+       expect="fishbowl: Camp Benefits without the Fish Bowl line holds nothing back", script=S)
+
+mutate("Core.lua",
+       "\t\tok, aura = pcall(read, unit, CAMP_BENEFITS)\n",
+       "\t\tok, aura = false, nil\n",
+       "fishbowl: Camp Benefits never read",
+       expect="fishbowl: Camp Benefits naming the Fish Bowl holds Kings off you and off others", script=S)

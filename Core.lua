@@ -2008,14 +2008,47 @@ do
 	-- "mutually exclusive with Blessing of Kings" (Spell 1307245's own text), so
 	-- Kings replaces it. Read only with the switch on, and only when Kings would
 	-- be the pick: one guarded read of an aura on somebody else.
+	-- Boosted Stats is a hidden aura on Forever (GitHub issue 20): what a
+	-- player sees, and what a read by id finds, is Camp Benefits (1229741), one
+	-- aura for every camping feature whose text names each that is on. So with
+	-- no Boosted Stats to read, Camp Benefits' tooltip is read for a line that
+	-- starts with the Fish Bowl's own name (Spell 1307245, in the client's
+	-- language). Your own pick (Queue.lua's SelfBuff) carries opts.own and no
+	-- unit: it is read as "player".
 	local FISH_BOWL = 1230098
+	local CAMP_BENEFITS = 1229741
+	local FISH_BOWL_FEATURE = 1307245
+	local function Plain(value)
+		return value ~= nil and not (issecretvalue and issecretvalue(value))
+	end
+	local function CampBenefitsName(unit, aura, feature)
+		local tip = C_TooltipInfo and C_TooltipInfo.GetUnitBuffByAuraInstanceID
+		local id = aura.auraInstanceID
+		if type(tip) ~= "function" or not Plain(id) then return false end
+		local name = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(feature)
+			or GetSpellInfo and GetSpellInfo(feature)
+		if type(name) ~= "string" or name == "" then return false end
+		local ok, data = pcall(tip, unit, id)
+		if not ok or not Plain(data) or type(data) ~= "table" or type(data.lines) ~= "table" then return false end
+		for _, line in ipairs(data.lines) do
+			local text = line.leftText
+			if Plain(text) and type(text) == "string" and text:find(name .. ":", 1, true) then return true end
+		end
+		return false
+	end
 	local function SparesFishBowl(opts)
 		local db = addon.db and addon.db.profile
-		if not (db and db.buff.spareFishBowl == true) or type(opts.unit) ~= "string" then return false end
+		local unit = opts.unit
+		if unit == nil and opts.own then unit = "player" end
+		if not (db and db.buff.spareFishBowl == true) or type(unit) ~= "string" then return false end
 		local read = C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID
 		if type(read) ~= "function" then return false end
-		local ok, aura = pcall(read, opts.unit, FISH_BOWL)
-		return ok and not (issecretvalue and issecretvalue(aura)) and type(aura) == "table"
+		local ok, aura = pcall(read, unit, FISH_BOWL)
+		if ok and Plain(aura) and type(aura) == "table" then return true end
+		ok, aura = pcall(read, unit, CAMP_BENEFITS)
+		if not (ok and Plain(aura) and type(aura) == "table") then return false end
+		local fine, holds = pcall(CampBenefitsName, unit, aura, FISH_BOWL_FEATURE)
+		return fine and holds == true
 	end
 	-- GroupBuffs.lua asks it of everybody a Greater Blessing of Kings would
 	-- land on (ClassSafe; GitHub issue 17).

@@ -415,6 +415,13 @@ What was built:
   Ribbon's cloth kept through a landing.
 - **The looks pass** below (one alpha, the words measured), from before the
   day's build.
+- **Fish Bowl on yourself, GitHub issue 20** (reported with a patch by
+  MitchellMarx, 2026-11-19). `SparesFishBowl` reads `"player"` when
+  `opts.own` is set (your own pick carries no unit), and, with no Boosted
+  Stats (1230098, a hidden aura) to read, looks for the Fish Bowl's name in
+  Camp Benefits' (1229741) tooltip. The reporter tried the self case in game;
+  other players and the Greater Blessing are untested. `buff.spareCamp` and
+  `CAMP_BLOCKER` likely read hidden ids the same way: not changed.
 - **Kings and a Fish Bowl, GitHub issue 17** (the daily feedback pass,
   2026-11-14). With `buff.spareFishBowl` on, GroupBuffs.lua `ClassSafe` asks
   `ns.SparesFishBowl` of everybody of the class the queue did not offer

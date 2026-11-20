@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.11.31
+
+*20 November 2026*
+
+### Highlights
+- **Fish Bowl holds Kings off you too.** *Don't put Kings over a Fish Bowl's
+  Boosted Stats* now works on yourself. Reported on GitHub.
+
+### Fixes
+- **Fish Bowl holds Kings off you too.** *Don't put Kings over a Fish Bowl's
+  Boosted Stats* now works on yourself, and on Forever it recognises the Fish
+  Bowl through Camp Benefits, the aura the game actually shows. Reported (with
+  the fix) on GitHub.
+
 ## 1.11.30
 
 *19 November 2026*
