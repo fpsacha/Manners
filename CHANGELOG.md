@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+*20 November 2026*
+
+### Highlights
+- **Fish Bowl holds Kings off you too.** *Don't put Kings over a Fish Bowl's
+  Boosted Stats* now works on yourself. Reported on GitHub.
+
 ### Fixes
 - **Fish Bowl holds Kings off you too.** *Don't put Kings over a Fish Bowl's
   Boosted Stats* now works on yourself, and on Forever it recognises the Fish

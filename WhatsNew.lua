@@ -5,6 +5,14 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "20 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Fish Bowl holds Kings off you too.|r |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r now works on yourself.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Fish Bowl holds Kings off you too.|r |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r now works on yourself, and on Forever it recognises the Fish Bowl through Camp Benefits, the aura the game actually shows.",
+		} },
+	} },
 	{ version = "1.11.30", date = "19 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Nothing is used on the run.|r Food, stones, oils, the sleeping bag and anything else with a cast wait until you stand still, and come back a second after you stop.",
@@ -51,36 +59,6 @@ ns.WhatsNew = {
 			"|cff7cc4ffNew moments.|r Share your meal, welcome a newly tamed pet, a hug after days apart, say sorry after a fall, thanks for saving you, a new level or more loyalty, your days together and a game of fetch.",
 			"|cff7cc4ffMend Pet in a fight.|r A button of its own with its own key, under |cffffffffLook|r, |cffffffffIn a fight|r.",
 			"|cff7cc4ffHints.|r At a vendor when your pet's food runs short, Growl's autocast in groups and alone (off by default), and unspent training points.",
-		} },
-	} },
-	{ version = "1.11.27", date = "17 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Quiet in a group.|r |cffffffffSay nothing in a party|r and |cffffffffSay nothing in a raid|r, on |cffffffffWhat I say|r: the buff still goes out, the line stays in.",
-			"|cffffd100Two elixirs at once.|r Keep a second elixir up beside the first.",
-			"|cffffd100Your In character, your way.|r Call people by their first name, hear your own lines as often as you like, and leave out a line you never want to say again.",
-			"|cffffd100Will of the Forsaken when you can't act.|r Feared, charmed or asleep in a fight, a Forsaken sees it light up beside the prompt, with a key of its own.",
-		} },
-		{ title = "In a fight", accent = "7cc4ff", entries = {
-			"|cff7cc4ffWill of the Forsaken on a button of its own.|r For a Forsaken, beside the prompt in every fight, even with |cffffffffHide the prompt in combat|r on.",
-		} },
-		{ title = "What I say", accent = "7cc4ff", entries = {
-			"|cff7cc4ffSay nothing in a party, Say nothing in a raid.|r Two switches under |cffffffffSay a line when I buff someone|r, both off.",
-			"|cff7cc4ffFirst name only.|r A line says \"Petra\", not \"Petra Stonewell\".",
-			"|cff7cc4ffHow often my own lines are said.|r Under |cffffffffMy own lines, mixed in|r: one press in three, half, two in three, or every press.",
-			"|cff7cc4ffNever say my last line again.|r Leaves the last In character line out for good; |cffffffffLines left out|r lists them, and deleting a row brings one back.",
-			"|cff7cc4ffThank them even when I can't see who it was.|r With friendly nameplates off, your thank emote still goes out, with nobody targeted.",
-		} },
-		{ title = "Your own buffs", accent = "7cc4ff", entries = {
-			"|cff7cc4ffBattle Elixir and Guardian Elixir.|r On Burning Crusade and Mists, |cffffffffElixir|r is now a switch for each slot.",
-			"|cff7cc4ffElixirs to keep up.|r On Classic Era and WoW Forever, tick the elixirs you want on together; each one missing comes up in turn.",
-			"|cff7cc4ffA scroll holds its own slot.|r On Mists a scroll stands in only for an elixir of the slot it takes.",
-			"|cff7cc4ffWell-Rested before it runs out.|r |cffffffffRemind me before Well-Rested runs out|r, under |cffffffffWell-Rested|r, brings the sleeping bag back with five minutes left, so you can lie down and renew it in time.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52A whispered thank-you that never went.|r A warrior, or anybody whose buff cannot reach the giver right now, whispers a stranger who buffs them.",
-			"|cffff9a52Nobody passed over while a thank-you waits.|r With |cffffffffWait a moment before thanking|r on, somebody who buffs you in the pause is thanked when the first thank-you cannot go.",
-			"|cffff9a52Stay silent is silent.|r Quick setup's |cffffffffStay silent|r also switches off the whispered thank-you, and a pasted settings line never switches it on.",
-			"|cffff9a52The check-up shows the whisper|r : that it is watching, and who it last went to.",
 		} },
 	} },
 }
