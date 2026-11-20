@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "20 November 2026", sections = {
+	{ version = "1.11.31", date = "20 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Fish Bowl holds Kings off you too.|r |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r now works on yourself.",
 		} },
