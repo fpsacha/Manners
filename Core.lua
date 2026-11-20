@@ -668,6 +668,8 @@ local defaults = {
 			-- How long a right-click on the prompt (or Not now) leaves somebody, or
 			-- your own buff, alone. Was the retry cooldown's number until 1.11.14.
 			skipSeconds = 12,
+			-- How long a right-click on one of your own buffs leaves it alone, in minutes; 0 follows skipSeconds.
+			ownSkipMinutes = 0,
 			scanInterval = 0.4,
 			graceSeconds = 45,
 			keepDebts = true,
@@ -5552,6 +5554,7 @@ local LIMITS = {
 	{ "timing", "reciprocateWindow", 15, 600 },
 	{ "timing", "retryCooldown", 3, 60 },
 	{ "timing", "skipSeconds", 3, 1800 },
+	{ "timing", "ownSkipMinutes", 0, 240 },
 	{ "timing", "graceSeconds", 10, 180 },
 	{ "filters", "minLevel", 1, ns.MaxPlayerLevel },
 	{ "filters", "refreshUnder", 1, 60 },

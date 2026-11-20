@@ -322,7 +322,7 @@ end
 -- minimap menu, and that gives him no button: the master switch only.
 do
 	local scenario = "model: a snoozed rogue gets no Snooze"
-	local ENTRIES = { "snoozeHeader", "snoozeNote", "snooze5", "snooze15", "snooze30", "snoozeStop" }
+	local ENTRIES = { "snoozeHeader", "snoozeNote", "snooze5", "snooze15", "snooze30", "snooze60", "snooze120", "snooze240", "snoozeStop" }
 	with(scenario, "ROGUE", nil, function(ns)
 		ns.addon:HandleSlash("snooze 15")
 		if not ns.SnoozeLeft() then
@@ -418,7 +418,7 @@ local EXPECTED = {
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor", "filters.manaFloorKeeps",
 		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets", "filters.quietInTownsWhere", "filters.quietShortInTowns", "filters.quietShortMinutes",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.scanInterval",
 		"filters.restoreTarget", "filters.repayCovered",
 		-- In battlegrounds and arenas.
 		"battle.team", "battle.speak", "battle.thank", "battle.items",
@@ -446,7 +446,7 @@ local EXPECTED = {
 	-- wording, and never the exact position drawn on the same tab.
 	advanced = {
 		"sources.owedClassBuffsOnly", "timing.reciprocateWindow", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.scanInterval",
 		"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
 		"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
 		"prompt.reasonRefresh", "prompt.reasonUnknown", "filters.repayCovered",

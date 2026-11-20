@@ -39,6 +39,24 @@ at any UI scale (the cursor is divided by the bar's effective scale), and that
 `GetHeight` of the bar, anchored top and bottom, reads its laid-out height
 when the window first opens (an OnSizeChanged script places the thumb again).
 
+**Longer snoozes, and a longer skip for your own buffs (unreleased, two
+CurseForge reports).** The snooze was never fixed at 15 minutes (`/manners
+snooze 2h` has always worked, up to `ns.SNOOZE_MAX` = 240); only the ways in
+without typing stopped at 30 or 60. `ns.SNOOZE_CHOICES` is now `{ 5, 15, 30, 60,
+120, 240 }` (`Options/Start.lua` has `snooze60`, `snooze120`, `snooze240`, the
+header list in `Options/Window/Layout.lua` and the minimap's `MENU_SNOOZE_MINUTES`
+follow; no new strings). `timing.ownSkipMinutes` (0 follows `skipSeconds`; 0 to
+240; *A right-click on my own buffs skips for (minutes)* in the Timing fold) is
+the length of a right-click on one of your own buffs, through
+`ns.OwnSkipSeconds` and `ns.SkipOwn` in `Queue.lua`: the prompt
+(`Prompt/Press.lua`, ctrl-right-click on yourself too), the consumables button
+and the menu's Not now. `SkipOwn` marks every food of the family, since each
+food is its own key and any gives Well Fed; the other people keep
+`skipSeconds`. Skips live in `tried`, so a /reload ends them. Scenarios
+`snooze-long.lua` and `ownskip-long.lua`, mutations in the files of the same
+names (the minimap's list re-aimed in `minimap.py`). Not tried in the game,
+which can only say how a right-click feels over an evening.
+
 **Druid names stay orange (unreleased).** On the looks that soften class
 colours (`classSoften`, 0.5 to 0.7 on most), a druid's #ff7c0a and a warrior's
 #c69b6d, which share a hue and a lightness and differ only in strength, met in

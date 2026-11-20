@@ -245,6 +245,26 @@ do
 		return (db and db.timing.skipSeconds) or (db and db.timing.retryCooldown) or 12
 	end
 
+	-- The same for one of your own buffs: its own length in minutes (a skipped
+	-- food is often skipped for the evening), and 0 follows skipSeconds.
+	function ns.OwnSkipSeconds()
+		local db = addon.db and addon.db.profile
+		local minutes = db and tonumber(db.timing.ownSkipMinutes)
+		if minutes and minutes > 0 then return minutes * 60 end
+		return ns.SkipSeconds()
+	end
+
+	-- A skip of one of your own: Well Fed comes from any food, so a skipped food is every food.
+	function ns.SkipOwn(name, key, seconds)
+		local spell = ns.FindOwnSpell(key)
+		local family = spell and spell.family
+		if family and family.food and family.spells then
+			for _, each in ipairs(family.spells) do ns.MarkAttempted(name, each.key, seconds) end
+		else
+			ns.MarkAttempted(name, key, seconds)
+		end
+	end
+
 	-- The keys one person's blocks are filed under, built once per person and
 	-- kept, since IsBlocked is asked for everybody on every scan. The
 	-- whole-person key sits under a table key no buff can have.

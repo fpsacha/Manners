@@ -7,6 +7,8 @@ local _, ns = ...
 ns.WhatsNew = {
 	{ version = "Unreleased", date = "20 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Longer snoozes.|r The Snooze button in the settings window and the minimap menu now offer an hour, two hours and four, as well as 5, 15 and 30 minutes.",
+			"|cffffd100Leave your own buffs, food included, alone for longer.|r A new setting, |cffffffffA right-click on my own buffs skips for (minutes)|r, sets how long a right-click on one of your own buffs leaves it alone.",
 			"|cffffd100Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {

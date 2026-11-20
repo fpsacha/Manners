@@ -315,6 +315,7 @@ local FIELDS = {
 	["who.revived"] = { { "priority", "revived" } },
 	["advanced.retryCooldown"] = { { "timing", "retryCooldown" } },
 	["advanced.skipSeconds"] = { { "timing", "skipSeconds" } },
+	["advanced.ownSkipMinutes"] = { { "timing", "ownSkipMinutes" } },
 	["advanced.scanInterval"] = { { "timing", "scanInterval" } },
 	["advanced.restoreTarget"] = { { "filters", "restoreTarget" } },
 	["advanced.x"] = { { "prompt", "x" }, { "prompt", "point" }, { "prompt", "relPoint" } },

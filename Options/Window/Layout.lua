@@ -195,7 +195,7 @@ ns.WindowLayout = {
 		-- prompt is unlocked. The same control leads Look (appearance.move).
 		move = "general.moveToggle",
 		enabled = "general.enabled",
-		snooze = { "general.snooze5", "general.snooze15", "general.snooze30", "general.snoozeStop" },
+		snooze = { "general.snooze5", "general.snooze15", "general.snooze30", "general.snooze60", "general.snooze120", "general.snooze240", "general.snoozeStop" },
 		snoozeTip = "general.snoozeNote",
 	},
 	strip = {
@@ -684,6 +684,7 @@ ns.WindowLayout = {
 				{ key = "when.timing", header = "advanced.timingHeader", fold = true, items = {
 					"advanced.retryCooldown",
 					"advanced.skipSeconds",
+					"advanced.ownSkipMinutes",
 					"advanced.scanInterval",
 				} },
 				{ key = "when.targeting", header = "advanced.targetingHeader", fold = true, items = {
@@ -1168,6 +1169,7 @@ ns.WindowLayout = {
 	-- translated as a whole.
 	keywords = {
 		["general.silentChat"] = L["quiet mute spam"],
+		["advanced.ownSkipMinutes"] = L["food well fed ignore pet snooze"],
 		["general.verbose"] = L["quiet mute spam"],
 		["who.ownScrolls"] = L["hide familiar imbue"],
 		-- Asked for as hiding "the window" in a fight.

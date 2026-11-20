@@ -50,6 +50,7 @@ local MODEL = {
 	{ "timingHeader", 20, "Timing" },
 	{ "retryCooldown", 21, "Don't repeat a spell on someone for (seconds)" },
 	{ "skipSeconds", 21.5, "A right-click skips for (seconds)" },
+	{ "ownSkipMinutes", 21.6, "A right-click on my own buffs skips for (minutes)" },
 	{ "scanInterval", 22, "Check for people every (seconds)" },
 	{ "targetingHeader", 30, "Targeting" },
 	{ "restoreTarget", 31, "Hand my target back afterwards" },
@@ -77,7 +78,7 @@ local PLACED = {
 		{ "advanced.reciprocateWindow" }, { "advanced.owedClassBuffsOnly" },
 		{ "advanced.repayCovered" },
 		{ "advanced.reachableOnly" }, { "advanced.graceSeconds" }, { "advanced.keepDebts" },
-		{ "advanced.retryCooldown", folded = true }, { "advanced.skipSeconds", folded = true },
+		{ "advanced.retryCooldown", folded = true }, { "advanced.skipSeconds", folded = true }, { "advanced.ownSkipMinutes", folded = true },
 		{ "advanced.scanInterval", folded = true },
 		{ "advanced.restoreTarget", folded = true }, { "advanced.noTargetNote", folded = true },
 	},
@@ -101,6 +102,7 @@ local FIELDS = {
 	{ "keepDebts", "timing", "keepDebts" },
 	{ "retryCooldown", "timing", "retryCooldown" },
 	{ "skipSeconds", "timing", "skipSeconds" },
+	{ "ownSkipMinutes", "timing", "ownSkipMinutes" },
 	{ "scanInterval", "timing", "scanInterval" },
 	{ "restoreTarget", "filters", "restoreTarget" },
 	{ "x", "prompt", "x" },
@@ -123,7 +125,7 @@ local WHEN_RESET = {
 	{ "filters", "hideMounted" }, { "filters", "manaFloor" }, { "filters", "manaFloorKeeps" },
 	{ "timing", "reciprocateWindow" }, { "sources", "owedClassBuffsOnly" },
 	{ "filters", "reachableOnly" }, { "timing", "graceSeconds" }, { "timing", "keepDebts" },
-	{ "timing", "retryCooldown" }, { "timing", "skipSeconds" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },
+	{ "timing", "retryCooldown" }, { "timing", "skipSeconds" }, { "timing", "ownSkipMinutes" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },
 	{ "filters", "repayCovered" },
 }
 

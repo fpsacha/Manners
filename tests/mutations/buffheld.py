@@ -72,8 +72,8 @@ mutate("Core.lua",
        expect="buffheld: a right-click's length is its own setting", script=S)
 
 mutate("Prompt/Press.lua",
-       "\t\tns.BlockPerson(victim, ns.SkipSeconds())\n",
-       "\t\tns.BlockPerson(victim)\n",
+       "\t\t\tns.BlockPerson(victim, own and ns.OwnSkipSeconds() or ns.SkipSeconds())\n",
+       "\t\t\tns.BlockPerson(victim)\n",
        "buffheld: a right-press skips for the retry cooldown",
        expect="buffheld: a right-click on the prompt skips for that long", script=S)
 

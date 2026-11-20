@@ -91,7 +91,7 @@ Page.RESET = {
 		-- In battlegrounds and arenas (Battle.lua).
 		"battle.team", "battle.speak", "battle.thank", "battle.items",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.scanInterval",
 		"filters.restoreTarget",
 		"filters.repayCovered",
 		after = function()
@@ -162,7 +162,7 @@ Page.RESET = {
 -- restyle covers the wording.
 Page.RESET.advanced = {
 	"sources.owedClassBuffsOnly", "timing.reciprocateWindow", "filters.reachableOnly",
-	"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.scanInterval",
+	"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.scanInterval",
 	"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
 	"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
 	"prompt.reasonRefresh", "prompt.reasonUnknown",
@@ -386,6 +386,19 @@ function Page.BuildAdvancedTab()
 				min = 3,
 				max = 1800,
 				step = 1,
+				get = tGet,
+				set = tSet,
+			},
+			ownSkipMinutes = {
+				type = "range",
+				name = L["A right-click on my own buffs skips for (minutes)"],
+				desc = L["How long right-clicking one of your own buffs, on the prompt or the consumables button, or Not now in the menu, leaves it alone. A skipped food skips every food in your bags, since any of them gives Well Fed. At 0 it follows A right-click skips for (seconds)."],
+				order = 21.6,
+				width = "double",
+				min = 0,
+				max = 240,
+				step = 1,
+				bigStep = 5,
 				get = tGet,
 				set = tSet,
 			},

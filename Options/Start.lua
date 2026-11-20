@@ -1324,10 +1324,11 @@ function Page.BuildStartTab()
 				name = function() return grey(Quick.VoiceSummary()) end,
 			},
 
-			-- The three lengths in ns.SNOOZE_CHOICES. The minimap menu
-			-- keeps its own list, with an hour added; all of them go
-			-- through ns.StartSnooze, as /manners snooze does, so every
-			-- way in says the same thing in chat.
+			-- The lengths in ns.SNOOZE_CHOICES, up to the four hours
+			-- ns.SNOOZE_MAX allows. The minimap menu keeps its own list
+			-- of the same lengths; all of them go through ns.StartSnooze,
+			-- as /manners snooze does, so every way in says the same
+			-- thing in chat.
 			snoozeHeader = {
 				type = "header", name = L["Snooze"], order = 50,
 				hidden = noPrompt,
@@ -1380,11 +1381,32 @@ function Page.BuildStartTab()
 				hidden = noPrompt,
 				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[3]) end,
 			},
+			snooze60 = {
+				type = "execute",
+				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[4])) end,
+				order = 53.1,
+				hidden = noPrompt,
+				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[4]) end,
+			},
+			snooze120 = {
+				type = "execute",
+				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[5])) end,
+				order = 53.2,
+				hidden = noPrompt,
+				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[5]) end,
+			},
+			snooze240 = {
+				type = "execute",
+				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[6])) end,
+				order = 53.3,
+				hidden = noPrompt,
+				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[6]) end,
+			},
 			snoozeStop = {
 				type = "execute",
 				name = L["Stop snoozing"],
 				order = 54,
-				-- With the other three: a snooze started from chat or the
+				-- With the other six: a snooze started from chat or the
 				-- minimap menu does not give a rogue a Snooze button.
 				hidden = function() return noPrompt() or not ns.SnoozeLeft() end,
 				func = function() ns.StopSnooze() end,

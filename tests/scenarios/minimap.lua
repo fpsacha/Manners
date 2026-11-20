@@ -289,7 +289,7 @@ do
 				if not ns.db.profile.enabled then fail(scenario, "Enable did not switch it back on") end
 
 				-- The snooze lengths, an hour among them, and the way out of one.
-				for _, length in ipairs({ "5 minutes", "15 minutes", "30 minutes", "60 minutes" }) do
+				for _, length in ipairs({ "5 minutes", "15 minutes", "30 minutes", "60 minutes", "120 minutes", "240 minutes" }) do
 					if not child(snooze, "^For " .. length .. "$") then
 						fail(scenario, "the Snooze submenu has no " .. length
 							.. (length == "60 minutes" and " -- no hour-long snooze" or ""))

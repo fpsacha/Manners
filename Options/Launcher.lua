@@ -117,10 +117,9 @@ local function HasLauncherMenu()
 		and not ns.GamepadActive()
 end
 
--- The lengths the menu offers. Its own list rather than the options page's:
--- an hour is the length a raid night wants, and a menu has room for a fourth
--- line where a row of buttons on the page does not.
-local MENU_SNOOZE_MINUTES = { 5, 15, 30, 60 }
+-- The lengths the menu offers: the options page's, and on to the four hours
+-- /manners snooze allows (ns.SNOOZE_MAX). A raid night wants an hour or two.
+local MENU_SNOOZE_MINUTES = { 5, 15, 30, 60, 120, 240 }
 
 -- How many people the menu's Who's next lists, and how many of them the
 -- tooltip names under the one on the prompt.
@@ -610,7 +609,7 @@ local function SkipFromMenu(entry)
 	-- Your own buff: just that one, so the next of yours comes up, as a
 	-- right-click on it does (Press.lua). Your own buffs honour a block on one.
 	if entry.reason == "self" and entry.buff then
-		ns.MarkAttempted(entry.name, entry.buff.key, ns.SkipSeconds())
+		ns.SkipOwn(entry.name, entry.buff.key, ns.OwnSkipSeconds())
 	else
 		ns.BlockPerson(entry.name, ns.SkipSeconds())
 	end

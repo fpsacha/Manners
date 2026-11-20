@@ -634,7 +634,7 @@ end
 -- it below its combat branch.
 ---------------------------------------------------------------------------
 
-ns.SNOOZE_CHOICES = { 5, 15, 30 }
+ns.SNOOZE_CHOICES = { 5, 15, 30, 60, 120, 240 }
 ns.SNOOZE_DEFAULT = 15
 ns.SNOOZE_MAX = 240
 

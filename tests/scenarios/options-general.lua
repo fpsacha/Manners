@@ -174,7 +174,7 @@ do
 			fail(scenario, "the switch or the preview is not in the window's header")
 		end
 		local snooze = table.concat(header.snooze or {}, " ")
-		if snooze ~= "general.snooze5 general.snooze15 general.snooze30 general.snoozeStop" then
+		if snooze ~= "general.snooze5 general.snooze15 general.snooze30 general.snooze60 general.snooze120 general.snooze240 general.snoozeStop" then
 			fail(scenario, "the header's snooze menu holds " .. snooze)
 		end
 		if not (layout.strip and layout.strip.lock == "general.lockNow") then
@@ -228,7 +228,7 @@ do
 		for _, key in ipairs({ "howItWorks", "whoHeader", "quickWho", "quickWhoSummary",
 			"keyHeader", "bindKey", "openBindings", "makeMacro", "bindStatus",
 			"previewStart", "quickVoice", "quickVoiceSummary",
-			"snoozeNote", "snooze5", "snooze15", "snooze30", "lockNow" }) do
+			"snoozeNote", "snooze5", "snooze15", "snooze30", "snooze60", "snooze120", "snooze240", "lockNow" }) do
 			if a[key] and shown(a[key]) then
 				fail(scenario, key .. " is shown to a class with nothing to cast")
 			end
@@ -478,7 +478,9 @@ do
 			fail(scenario, "the snooze buttons read " .. text(a.snooze5.name) .. " / " .. text(a.snooze30.name))
 		end
 		if not (a.snooze5.order < a.snooze15.order and a.snooze15.order < a.snooze30.order
-			and a.snooze30.order < a.snoozeStop.order and a.snoozeHeader.order < a.snoozeNote.order) then
+			and a.snooze30.order < a.snooze60.order and a.snooze60.order < a.snooze120.order
+			and a.snooze120.order < a.snooze240.order
+			and a.snooze240.order < a.snoozeStop.order and a.snoozeHeader.order < a.snoozeNote.order) then
 			fail(scenario, "the snooze controls are out of order")
 		end
 		a.snooze5.func({ "snooze5" })

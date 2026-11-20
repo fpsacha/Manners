@@ -5,6 +5,12 @@
 *20 November 2026*
 
 ### Highlights
+- **Longer snoozes.** The Snooze button in the settings window and the minimap
+  menu now offer an hour, two hours and four, as well as 5, 15 and 30 minutes.
+- **Leave your own buffs, food included, alone for longer.** A new setting,
+  *A right-click on my own buffs skips for (minutes)*, sets how long a
+  right-click on one of your own buffs leaves it alone. A skipped food now skips
+  every food in your bags, so the next one no longer pops straight up.
 - **Scroll bar.** Dragging the scroll bar on the right of the settings window
   now moves the page the way you drag, on every page.
 

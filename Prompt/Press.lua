@@ -513,11 +513,11 @@ local function OnPostClick(self, mouseButton, down)
 		local ctrl = IsControlKeyDown and ns.plain(IsControlKeyDown())
 		local ownKey = own and not ctrl and ShownBuffKey(S, victim) or nil
 		if ownKey then
-			ns.MarkAttempted(victim, ownKey, ns.SkipSeconds())
+			ns.SkipOwn(victim, ownKey, ns.OwnSkipSeconds())
 		else
 			-- The retry cooldown, not the two seconds a failed cast writes:
 			-- that would put them straight back on the prompt.
-			ns.BlockPerson(victim, ns.SkipSeconds())
+			ns.BlockPerson(victim, own and ns.OwnSkipSeconds() or ns.SkipSeconds())
 		end
 		-- A group cast on the panel: the skip is of the whole party, or the
 		-- cast re-forms around the next of them on the next scan.

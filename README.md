@@ -167,7 +167,9 @@ so. Targeting them tries again at once.
 
 **On the prompt.** Left-click (or your key) casts. **Right-click** skips that
 person for now without marking their favour repaid; on one of your own buffs
-it skips just that buff, and **Ctrl-right-click** skips all of yours.
+it skips just that buff (a food skips every food in your bags), and
+**Ctrl-right-click** skips all of yours, for as long as *A right-click on my own
+buffs skips for (minutes)* says.
 **Shift-right-click** puts them on the never-offer list.
 
 **The list.** With *List the next few below* on (Look, under *Waiting list*,
@@ -698,7 +700,8 @@ It only changes the order.
 **Snooze, and hiding while mounted.** `/manners snooze` hides the prompt for
 15 minutes; `snooze 5`, `snooze 1h` (up to four hours) or `snooze off` for
 your own. The minimap menu and the *Snooze* button at the top of the options
-window have it too. Favours are still noticed while snoozed. *Hide the prompt
+window offer 5, 15 and 30 minutes, an hour, two hours and four. Favours are
+still noticed while snoozed. *Hide the prompt
 while I'm mounted* (When to offer, under *Mounted and mana*, off) keeps the
 prompt away while you ride.
 
@@ -875,8 +878,8 @@ it too.
 **On every page.**
 
 - Along the top: *Show me the prompt*, *Move the prompt* (it reads *Lock it*
-  while the prompt is unlocked), *Snooze* (5, 15 or 30 minutes) and *Manners
-  is on*.
+  while the prompt is unlocked), *Snooze* (5 minutes up to four hours) and
+  *Manners is on*.
 - Under them, a line appears only while something keeps the prompt from
   doing what you would expect: Manners is off, the prompt is unlocked, a
   snooze is running, nothing can be offered, or the prompt is kept away while
@@ -1105,7 +1108,11 @@ no room for. Defaults are in brackets.
     are away.
 - ***Timing*** (folded): *Don't repeat a spell on someone for (seconds)* (12),
   per spell; *A right-click skips for (seconds)* (12, up to half an hour);
-  *Check for people every (seconds)* (0.4).
+  *A right-click on my own buffs skips for (minutes)* (0, which follows the
+  seconds above; up to four hours), the same for the consumables button and
+  *Not now* in the minimap menu, and a skipped food skips every food in your
+  bags, since any of them gives Well Fed; *Check for people every (seconds)*
+  (0.4).
 - ***Targeting*** (folded): *Hand my target back afterwards* (on). With it on,
   the macro ends with `/targetlasttarget`, or with `/cleartarget` when you had
   nothing targeted. A warrior, whose shout never takes the target, has a line

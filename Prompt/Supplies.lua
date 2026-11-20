@@ -116,7 +116,7 @@ end
 -- A right press: not now, for the skip time; the next due comes up.
 local function OnClick(_, mouse)
 	if mouse ~= "RightButton" or InCombatLockdown() or not current then return end
-	ns.MarkAttempted(current.name, current.buff.key, ns.SkipSeconds())
+	ns.SkipOwn(current.name, current.buff.key, ns.OwnSkipSeconds())
 	Supplies:Refresh()
 end
 

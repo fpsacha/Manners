@@ -35,8 +35,8 @@ mutate("Prompt/Supplies.lua",
        expect="supplies: a press holds the food back", script=S)
 
 mutate("Prompt/Supplies.lua",
-       "\tns.MarkAttempted(current.name, current.buff.key, ns.SkipSeconds())\n",
-       "\tns.MarkAttempted(current.name, current.buff.key, 1)\n",
+       "\tns.SkipOwn(current.name, current.buff.key, ns.OwnSkipSeconds())\n",
+       "\tns.SkipOwn(current.name, current.buff.key, 1)\n",
        "supplies: a right-click skips for a second",
        expect="supplies: a right-click skips it for the skip time", script=S)
 

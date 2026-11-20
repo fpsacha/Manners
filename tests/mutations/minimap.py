@@ -18,7 +18,13 @@ mutate("Options/Launcher.lua",
 # ------------------------------------------------------------------ menu
 
 mutate("Options/Launcher.lua",
+       "local MENU_SNOOZE_MINUTES = { 5, 15, 30, 60, 120, 240 }\n",
        "local MENU_SNOOZE_MINUTES = { 5, 15, 30, 60 }\n",
+       "minimap: no two or four hours on the snooze menu",
+       expect="snooze-long: the minimap menu snoozes for four hours", script=S)
+
+mutate("Options/Launcher.lua",
+       "local MENU_SNOOZE_MINUTES = { 5, 15, 30, 60, 120, 240 }\n",
        "local MENU_SNOOZE_MINUTES = { 5, 15, 30 }\n",
        "minimap: no hour on the snooze menu",
        expect="no hour-long snooze", script=S)
