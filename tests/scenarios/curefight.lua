@@ -392,6 +392,29 @@ with("curefight: on yourself the key line says so", {}, function(ns, world)
 	settle()
 	local _, _, _, key2 = shows(ns)
 	if key2 ~= "point at yourself and press F" then fail(scenario, "with a friend targeted its key line reads " .. key2) end
+	-- A dead friend targeted: the macro's [nodead] passes them over, so a press
+	-- lands on you.
+	world.dead.party2 = true
+	world.setTarget("party2")
+	Mock.frameEvent("PLAYER_TARGET_CHANGED")
+	settle()
+	local _, _, _, key3 = shows(ns)
+	if key3 ~= "press F to cure yourself" then fail(scenario, "with a dead friend targeted its key line reads " .. key3) end
+	release(ns)
+end)
+
+-- Forever's bare cast does go to a dead friend, so it says so.
+with("curefight: forever: a dead friend targeted still takes a bare cast", { flavour = "camelot", class = "MAGE",
+	known = { 475 } }, function(ns, world)
+	local scenario = "curefight: forever: a dead friend targeted still takes a bare cast"
+	world.dead.party1 = true
+	world.setTarget("party1")
+	world.debuffs.player = { debuff("Curse", 30) }
+	pull(ns)
+	settle()
+	local alpha, _, _, key = shows(ns)
+	if alpha ~= 1 then fail(scenario, "SKIPPED -- not shown for a curse on you") return end
+	if key ~= "target yourself and press F" then fail(scenario, "its key line reads " .. key) end
 	release(ns)
 end)
 
@@ -940,5 +963,41 @@ with("curefight: a key bound with Shift casts the first cure alone", {}, functio
 	if alpha ~= 1 then fail(scenario, "SKIPPED -- not shown for a curse") return end
 	if key:find("Shift-", 1, true) then fail(scenario, "a key line names Shift: " .. key) end
 	if name:find("Hugo", 1, true) or name:find("more", 1, true) then fail(scenario, "the poison, which the macro cannot cast, is shown: " .. name) end
+	release(ns)
+end)
+
+-- ------------------------------------------------------------------ 34
+with("curefight: only what the armed macro can cast is chosen", {}, function(ns, world)
+	local scenario = "curefight: only what the armed macro can cast is chosen"
+	-- SHIFT-F: the macro is Remove Curse alone. The poison (Cure Poison, on
+	-- Shift) lasts longer, but it is not what a press can cast.
+	Mock.bindings = { ["SHIFT-F"] = COMMAND }
+	Mock.frameEvent("UPDATE_BINDINGS")
+	ns.addon:Tick()
+	world.debuffs.party1 = { debuff("Poison", 30), debuff("Curse", 20) }
+	pull(ns)
+	settle()
+	local alpha, _, name, key = shows(ns)
+	if alpha ~= 1 then fail(scenario, "not lit for a curse beside a longer poison: alpha " .. tostring(alpha)) return end
+	if not name:find("Remove Curse", 1, true) or not name:find("Gwen", 1, true) then fail(scenario, "its name line reads " .. name) end
+	if key:find("Shift-", 1, true) then fail(scenario, "its key line names Shift: " .. key) end
+	release(ns)
+end)
+
+-- ------------------------------------------------------------------ 35
+with("curefight: a debuff never removed that goes lets the cure show", { class = "PALADIN", known = { 4987 } }, function(ns, world)
+	local scenario = "curefight: a debuff never removed that goes lets the cure show"
+	-- Cleanse would lift Unstable Affliction too: held back while it is there.
+	world.debuffs.party1 = { debuff("Magic", 30, 427717, nil, "Unstable Affliction"), debuff("Poison", 30) }
+	pull(ns)
+	settle()
+	if (shows(ns)) ~= 0 then fail(scenario, "SKIPPED -- shown with Unstable Affliction on them") return end
+	-- It ends: an event that only removes an aura.
+	world.debuffs.party1 = { debuff("Poison", 30) }
+	Mock.frameEvent("UNIT_AURA", "party1", { removedAuraInstanceIDs = { 9001 } })
+	settle()
+	local alpha, _, name = shows(ns)
+	if alpha ~= 1 then fail(scenario, "not shown once Unstable Affliction was gone: alpha " .. tostring(alpha)) return end
+	if not name:find("Cleanse", 1, true) or not name:find("Poisoned", 1, true) then fail(scenario, "its name line reads " .. name) end
 	release(ns)
 end)

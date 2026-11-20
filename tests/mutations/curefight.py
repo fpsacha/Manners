@@ -65,6 +65,24 @@ mutate(CU,
        "curefight: a cure that would lift a debuff never removed is offered",
        expect="curefight: what the cure cannot take off", script=S)
 
+mutate(CU,
+       "\t\t\tif expires and (allowed == nil or allowed[kind]) then\n",
+       "\t\t\tif expires then\n",
+       "curefight: a kind the macro cannot cast hides one it can",
+       expect="curefight: only what the armed macro can cast is chosen", script=S)
+
+mutate(CU,
+       "\t\tif not bestKind then return nil, nil, nil, secret, candidate == true end\n",
+       "\t\tif not bestKind then return nil, nil, nil, secret, false end\n",
+       "curefight: a cure held back by a debuff never removed is not remembered",
+       expect="curefight: a debuff never removed that goes lets the cure show", script=S)
+
+mutate(CF,
+       "\tif not needy[unit] and not held[unit] and type(info)",
+       "\tif not needy[unit] and type(info)",
+       "curefight: a held-back unit is read only when a debuff is added",
+       expect="curefight: a debuff never removed that goes lets the cure show", script=S)
+
 # --- 3. where the client hides debuffs, and what a fight costs
 
 mutate(CF,
@@ -162,6 +180,18 @@ mutate(CF,
        expect="curefight: a key bound with Shift casts the first cure alone", script=S)
 
 mutate(CF,
+       "local friendTarget = canAssist and not (caps.conditionalTargeting and plain(UnitIsDeadOrGhost(\"target\")) == true)\n",
+       "local friendTarget = canAssist\n",
+       "curefight: a dead friend targeted is taken for the one the press lands on",
+       expect="curefight: on yourself the key line says so", script=S)
+
+mutate(CF,
+       "canAssist and not (caps.conditionalTargeting and plain(UnitIsDeadOrGhost",
+       "canAssist and not (true and plain(UnitIsDeadOrGhost",
+       "curefight: Forever's bare cast is said to pass a dead friend by",
+       expect="curefight: forever: a dead friend targeted still takes a bare cast", script=S)
+
+mutate(CF,
        "and not (hostileTarget and spell.anyTarget and not caps.conditionalTargeting)",
        "and true",
        "curefight: a hostile target is not said to take Dispel Magic",
@@ -235,4 +265,4 @@ mutate("Options/Advanced.lua",
        "\"beast.fightMend\", \"prompt.cureFight\",",
        "\"beast.fightMend\",",
        "curefight: the reset leaves the switch on",
-       expect="model: the reset puts appearance back", script=S)
+       expect="advanced: put these back to default on Look", script="runscenarios.py")

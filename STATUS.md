@@ -69,7 +69,10 @@ for two); a key bound with Shift in it arms the first cure alone. `Cures.lua`
 gained `ns.CureFightSpells` (the spells, first kind in KINDS order plain, the
 next with Shift) and `ns.CureFightRead` (one walk of the harmful list: kind,
 name, end; Spares' rule against the deny list; a debuff about to end, one
-`canActivePlayerDispel` refuses, or a secret one is passed over). Where the
+`canActivePlayerDispel` refuses, or a secret one is passed over; chosen only
+among the kinds the armed macro can cast, `allowed`, and a fifth answer `held`
+marks somebody whose cure a debuff never removed holds back, so that debuff
+going asks for a read). Where the
 client withholds auras (Forever and retail) only you and your target are read
 and the button is expected to stay out of sight; its key still casts (your
 friendly target, else you), and so does a click on its empty place in a fight

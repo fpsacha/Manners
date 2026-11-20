@@ -54,7 +54,9 @@
 --
 -- Events only, and only between the pull and the release. UNIT_AURA is
 -- filtered by a table lookup outside the Guard; for somebody not shown, only
--- an added harmful aura asks for a read. Reads are coalesced once each 0.1 s,
+-- an added harmful aura asks for a read, and so does any change on somebody
+-- whose cure is held back by a debuff never removed (the debuff may go). Reads
+-- are coalesced once each 0.1 s,
 -- at most ten units a flush, one walk of the harmful list each. While anybody
 -- is found needing a cure, a 0.5 s recheck asks reach and time again. Nothing
 -- on the scan with the switch off and the button never made: Wanted reads one
@@ -100,12 +102,14 @@ for i = 1, 40 do RAID[i] = "raid" .. i end
 for i = 1, 4 do PARTY[i] = "party" .. i end
 
 local button, header, icon, glow, pulse, nameText, keyText, cooldown, fader
-local armedMacro, armedSpells, armedTwo, placedKey, paintedKey, keyLabel
+local armedMacro, armedSpells, armedTwo, armedKinds, placedKey, paintedKey, keyLabel
 local placedBeside = false
 local dirtyRefresh, settledOn, placedIcon, placedScale = true, nil, nil, nil
 -- In a fight: the tokens read, those waiting for a read, and who needs a cure
--- ([token] = { kind, debuff, ends, guid, name, spell }).
-local watched, dirty, needy = {}, {}, {}
+-- ([token] = { kind, debuff, ends, guid, name, spell }). `held`: tokens whose
+-- read found a kind the cure could take off, held back by a debuff never
+-- removed (or one that could not be read); that debuff going asks for a read.
+local watched, dirty, needy, held = {}, {}, {}, {}
 local flushDue, recheckDue = false, false
 local visible, fadeFrom, fadeTo, fadeAt, shownAt = false, 0, 0, 0, nil
 local waitUntil
@@ -313,22 +317,25 @@ end
 local function ReadOne(unit, now)
 	if not Eligible(unit) then
 		needy[unit] = nil
+		held[unit] = nil
 		return
 	end
-	local kind, debuff, ends, secret
+	local kind, debuff, ends, secret, back
 	if caps.secretRestrictions == true then
-		local ok, k, d, e, s = pcall(ns.CureFightRead, unit, now)
-		if ok then kind, debuff, ends, secret = k, d, e, s else secret = true end
+		local ok, k, d, e, s, h = pcall(ns.CureFightRead, unit, now, armedKinds)
+		if ok then kind, debuff, ends, secret, back = k, d, e, s, h else secret = true end
 	else
-		kind, debuff, ends, secret = ns.CureFightRead(unit, now)
+		kind, debuff, ends, secret, back = ns.CureFightRead(unit, now, armedKinds)
 	end
 	last.reads = last.reads + 1
 	if secret then last.secret = last.secret + 1 end
 	local spell = kind and ((armedSpells[1].kinds[kind] and armedSpells[1]) or (armedTwo and armedSpells[2].kinds[kind] and armedSpells[2])) or nil
 	if not spell then
 		needy[unit] = nil
+		held[unit] = back == true or nil
 		return
 	end
+	held[unit] = nil
 	local rec = needy[unit]
 	if not rec then
 		rec = {}
@@ -386,8 +393,11 @@ end
 -- What a press would do, in the player's words.
 local function KeyLine(unit, spell)
 	local shift = armedTwo and spell == armedSpells[2]
-	local friendTarget = plain(UnitCanAssist("player", "target")) == true
-	local hostileTarget = plain(UnitExists("target")) == true and not friendTarget
+	local canAssist = plain(UnitCanAssist("player", "target")) == true
+	-- Where the macro has [nodead] a dead friend is passed over and the press
+	-- lands on you; Forever's bare /cast does go to them.
+	local friendTarget = canAssist and not (caps.conditionalTargeting and plain(UnitIsDeadOrGhost("target")) == true)
+	local hostileTarget = plain(UnitExists("target")) == true and not canAssist
 	local mine = unit == "player" or plain(UnitIsUnit(unit, "player")) == true
 	local key = keyLabel and (shift and L["Shift-%s"]:format(keyLabel) or keyLabel)
 	if unit == "target" or plain(UnitIsUnit(unit, "target")) == true then
@@ -582,7 +592,7 @@ function CureFight:Refresh()
 			if header and header:GetAttribute("manners-on") then header:SetAttribute("manners-on", false) end
 			if button:IsShown() then button:Hide() end
 		end
-		armedSpells, armedTwo = nil, false
+		armedSpells, armedTwo, armedKinds = nil, false, nil
 		settledOn, dirtyRefresh = false, false
 		return
 	end
@@ -592,6 +602,12 @@ function CureFight:Refresh()
 	local list = ns.CureFightSpells()
 	local macro, two = MacroFor(list)
 	armedSpells, armedTwo = list, two
+	-- The kinds a press can cast: the second spell's only while Shift is free.
+	armedKinds = {}
+	for kind in pairs(list[1].kinds) do armedKinds[kind] = true end
+	if two then
+		for kind in pairs(list[2].kinds) do armedKinds[kind] = true end
+	end
 	Place(db.prompt)
 	Arm(macro)
 	if header then
@@ -634,6 +650,7 @@ local function Pull()
 	last.reads, last.secret, last.seen, last.shownFor = 0, 0, 0, 0
 	wipe(needy)
 	wipe(dirty)
+	wipe(held)
 	Watch()
 	for token in pairs(watched) do dirty[token] = true end
 	local frame = CureFight.frame
@@ -653,6 +670,7 @@ function CureFight:Release()
 	for _, event in ipairs(FIGHT_EVENTS) do frame:UnregisterEvent(event) end
 	wipe(needy)
 	wipe(dirty)
+	wipe(held)
 	paintedKey = nil
 	if button then
 		SetVisible(false)
@@ -665,11 +683,11 @@ function CureFight:Release()
 end
 
 -- UNIT_AURA, outside the Guard: a table lookup for anybody not watched, and
--- for somebody not shown only an added harmful aura (or a full update, or no
--- payload) asks for a read.
+-- for somebody not shown (and not held back by a debuff never removed) only an
+-- added harmful aura (or a full update, or no payload) asks for a read.
 local function OnAura(unit, info)
 	if not watched[unit] then return end
-	if not needy[unit] and type(info) == "table" and not Secret(info) and plain(info.isFullUpdate) ~= true then
+	if not needy[unit] and not held[unit] and type(info) == "table" and not Secret(info) and plain(info.isFullUpdate) ~= true then
 		local added = info.addedAuras
 		if type(added) ~= "table" or Secret(added) then return end
 		local harmful = false
@@ -701,6 +719,9 @@ local function OnEvent(event, unit)
 		Watch()
 		for token in pairs(needy) do
 			if not watched[token] then needy[token] = nil end
+		end
+		for token in pairs(held) do
+			if not watched[token] then held[token] = nil end
 		end
 		for token in pairs(watched) do dirty[token] = true end
 		Schedule()

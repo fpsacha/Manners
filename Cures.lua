@@ -659,12 +659,17 @@ do
 	-- What on `unit` the fight's button could take off now: the kind, the
 	-- debuff's name and when it ends, of the one with most time left whose
 	-- cure lifts no kind a debuff never removed is of (Spares' rule, without
-	-- a second spell to fall back on); nil when nothing. A debuff never
-	-- removed whose kind or id cannot be read keeps everything away. `secret`
-	-- true when anything came back withheld: passed over, compared with
-	-- nothing. Called directly where the client never withholds;
+	-- a second spell to fall back on); nil when nothing. `allowed` (a set of
+	-- kinds, or nil for all) is the kinds the armed macro can cast: the best
+	-- is chosen among those alone, so a kind only a second spell removes never
+	-- hides one the first can. A debuff never removed whose kind or id cannot
+	-- be read keeps everything away. `secret` true when anything came back
+	-- withheld: passed over, compared with nothing. `held` true when the unit
+	-- carries a kind that could be cured but a debuff never removed (or one
+	-- that could not be read) holds it back, so that debuff ending asks for
+	-- another read. Called directly where the client never withholds;
 	-- Prompt/CureFight.lua protects it where it may.
-	function ns.CureFightRead(unit, now)
+	function ns.CureFightRead(unit, now, allowed)
 		local auras = C_UnitAuras
 		local read = type(auras) == "table" and auras.GetAuraDataByIndex or nil
 		if type(read) ~= "function" then return nil end
@@ -696,20 +701,23 @@ do
 				end
 			end
 		end
-		if blind then return nil, nil, nil, secret end
-		local bestKind
+		if blind then return nil, nil, nil, secret, true end
+		local bestKind, candidate
 		for _, kind in ipairs(KINDS) do
 			local expires = untilOf[kind]
-			if expires and (bestKind == nil or expires > untilOf[bestKind]) then
-				local kinds, spares = lifts[byKind[kind].ranks], true
-				for denied in pairs(deniedKind) do
-					if kinds and kinds[denied] then spares = false break end
+			if expires and (allowed == nil or allowed[kind]) then
+				candidate = true
+				if bestKind == nil or expires > untilOf[bestKind] then
+					local kinds, spares = lifts[byKind[kind].ranks], true
+					for denied in pairs(deniedKind) do
+						if kinds and kinds[denied] then spares = false break end
+					end
+					if spares then bestKind = kind end
 				end
-				if spares then bestKind = kind end
 			end
 		end
-		if not bestKind then return nil, nil, nil, secret end
-		return bestKind, nameOf[bestKind], untilOf[bestKind], secret
+		if not bestKind then return nil, nil, nil, secret, candidate == true end
+		return bestKind, nameOf[bestKind], untilOf[bestKind], secret, false
 	end
 end
 
