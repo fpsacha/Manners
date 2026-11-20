@@ -10,10 +10,14 @@ ns.WhatsNew = {
 			"|cffffd100Longer snoozes.|r The Snooze button in the settings window and the minimap menu now offer an hour, two hours and four, as well as 5, 15 and 30 minutes.",
 			"|cffffd100Leave your own buffs, food included, alone for longer.|r A new setting, |cffffffffA right-click on my own buffs skips for (minutes)|r, sets how long a right-click on one of your own buffs leaves it alone.",
 			"|cffffd100Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
+			"|cffffd100Don't thank anybody while I'm in a party or a raid.|r No /thank or whispered thank-you while you're grouped.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
 			"|cffff9a52Druid names stay orange.|r On the softer looks a druid's name had faded to nearly a warrior's tan; it now keeps its orange.",
+		} },
+		{ title = "What I say", accent = "7cc4ff", entries = {
+			"|cff7cc4ffDon't thank anybody while I'm in a party or a raid.|r No /thank or whispered thank-you while you're grouped (asked for on CurseForge).",
 		} },
 	} },
 	{ version = "1.11.31", date = "20 November 2026", sections = {

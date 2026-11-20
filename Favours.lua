@@ -94,6 +94,15 @@ do
 			end
 		end
 		if inside ~= false then return L["in an instance"] end
+		-- Don't thank anybody while I'm in a party or a raid (prompt.thankNotInGroup).
+		-- Not in a battleground or an arena: Thank people there (Battle.lua)
+		-- decides there, and inside was cleared above only for that.
+		local p = addon.db and addon.db.profile and addon.db.profile.prompt
+		if p and p.thankNotInGroup == true and not ns.InBattleground()
+			and (plain(_G.IsInRaid and _G.IsInRaid()) == true
+				or plain(_G.IsInGroup and _G.IsInGroup()) == true) then
+			return L["in a party or a raid"]
+		end
 		local encounter = _G.C_InstanceEncounter
 		if Answer(encounter and encounter.IsEncounterInProgress) == true
 			or Answer(_G.IsEncounterInProgress) == true then

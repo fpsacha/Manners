@@ -723,6 +723,8 @@ ns.WindowLayout = {
 					{ "click.thankDelay", indent = true },
 					-- Every thank waits for a press of the prompt (ThankPress.lua).
 					{ "click.thankAsk", indent = true },
+					-- No thanks at all in a party or a raid (Favours.lua, Held).
+					{ "click.thankNotInGroup", indent = true },
 					"click.thankWhisper",
 					-- A thank for somebody nobody could name, the emote's or the whisper's.
 					{ "click.thankUnseen", indent = true },
@@ -1184,6 +1186,8 @@ ns.WindowLayout = {
 		["profiles.autoEnabled"] = L["auto raid dungeon instance battleground arena world normal"],
 		-- Asked for as thanking "with a mouse button press", for a personal touch.
 		["click.thankAsk"] = L["press click manual personal"],
+		-- Asked for as no thanks "in a group or raid".
+		["click.thankNotInGroup"] = L["group party raid quiet thank silent"],
 		-- A hunter's pet, by what a hunter calls its care.
 		["who.beastCall"] = L["hunter pet call summon"],
 		["who.beastRevive"] = L["hunter pet revive dead"],

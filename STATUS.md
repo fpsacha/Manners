@@ -153,6 +153,21 @@ off whatever `ns.CampWorth` says. `tests/scenarios/tankonly.lua` and
 `audit-right-buff.lua`, mutations in the files of the same names. What
 only the game can say: nothing new; the camping auras are read as before.
 
+**Don't thank anybody while I'm in a party or a raid (asked for on
+CurseForge).** `prompt.thankNotInGroup`, off, on What I say under Ask me
+before thanking (`THANKS_ONLY`, so a class with nothing to give keeps it; in
+the click page's reset and `keep`; `thankNotInGroup=` in the full check-up).
+One guard in Favours.lua's `Held`, after the instance rule: with the setting
+true, not in a battleground or an arena (`ns.InBattleground()`; Thank people
+there decides there) and `IsInRaid()` or `IsInGroup()` plainly true, the skip
+is "in a party or a raid". Every thank passes `Held`, so the emote, the
+whisper, the unseen thank, a parked offer and `ThankNow.Held` (no offer on the
+prompt) are all covered. Not `speech.quietInParty` / `quietInRaid`, which only
+silence the line said with a cast (Speech.lua, `ns.GroupQuiet`).
+`tests/scenarios/thanknogroup.lua` (9), `tests/mutations/thanknogroup.py` (7,
+each CAUGHT by `prove.py`). What only the game can say: nothing new; the
+group is read as the game answers it.
+
 **Ask me before thanking (1.11.28, asked for on CurseForge).**
 `prompt.thankAsk`, off, on What I say under the /thank: a thank Favours.lua
 finds due (Blocked, UnseenBlocked, the gap left out, an unseen one's target
@@ -404,6 +419,13 @@ What was built:
   Affliction, Vampiric Touch, Mutating Injection, Delusions of Jin'do.
   `canActivePlayerDispel` on the Classic clients is assumed from Blizzard's UI
   code. Not built: curing yourself or pets; Mass Dispel; pet dispels.
+  Curing yourself, a later feature (asked for on CurseForge): a
+  `sources.curesSelf` switch that `CureScan` and `CuresWanted` accept, and a
+  `CureFor("player", ...)` through `SelfEntry` (Queue.lua) at each of its
+  call sites, one entry per person, winning over the own-buff entry; out of
+  a fight only, with `reason = "self"` for the macro, the launcher menus and
+  the settle path (Clicks.lua). Cures in a fight stay out of reach: the
+  client withholds the auras there, and a secure snippet cannot read them.
 - **Courtesies on request** (`Courtesy.lua`; four `sources.courtesy*`, all
   off; `courtesy.lua`). Not built: Pick Lock (it needs a /click on the trade
   slot); "port pls" with no city; a trade press from the bar macro.

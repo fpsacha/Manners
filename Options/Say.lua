@@ -18,6 +18,8 @@ THANKS_ONLY.thankDelay = true
 THANKS_ONLY.thankUnseen = true
 -- And Ask me before thanking, which holds every thank for a press.
 THANKS_ONLY.thankAsk = true
+-- And Don't thank anybody while I'm in a party or a raid.
+THANKS_ONLY.thankNotInGroup = true
 -- And First name only, which the whispered thank-you says too.
 THANKS_ONLY.firstNameOnly = true
 
@@ -71,7 +73,7 @@ function Page.BuildSpeechTab()
 			thankEmote = {
 				type = "toggle",
 				name = L["/thank people who buff me"],
-				desc = L["Everyone near you sees it; never in combat, a dungeon or a raid, in a battleground or an arena only for your own team, and at most once per person every five minutes."],
+				desc = L["Everyone near you sees it; never in combat or inside a dungeon or a raid, in a battleground or an arena only for your own team, and at most once per person every five minutes."],
 				order = 11,
 				width = "full",
 				get = function() return P().thankEmote end,
@@ -140,6 +142,21 @@ function Page.BuildSpeechTab()
 				set = function(_, v)
 					P().thankAsk = v == true
 					ns.Guard("thank ask repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+			-- Asked for on CurseForge: no thanks at all while grouped
+			-- (Favours.lua, Held). Live while either thank is on.
+			thankNotInGroup = {
+				type = "toggle",
+				name = L["Don't thank anybody while I'm in a party or a raid"],
+				desc = L["While you are in a party or a raid, no /thank and no whispered thank-you go out, to group members or anybody else. In a battleground or an arena, Thank people there decides instead."],
+				order = 11.66,
+				width = "full",
+				disabled = function() return P().thankEmote ~= true and P().thankWhisper ~= true end,
+				get = function() return P().thankNotInGroup end,
+				set = function(_, v)
+					P().thankNotInGroup = v == true
+					ns.Guard("thank group repaint", ns.Prompt.Refresh, ns.Prompt)
 				end,
 			},
 			-- Asked for on CurseForge by a warrior: a word of thanks to whoever

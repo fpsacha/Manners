@@ -121,9 +121,11 @@ Page.RESET = {
 		"prompt.thankDelay",
 		"prompt.thankUnseen",
 		"prompt.thankAsk",
+		"prompt.thankNotInGroup",
 		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
 			and path ~= "prompt.thankWhisper" and path ~= "prompt.thankDelay" and path ~= "prompt.thankEmoteMore"
-			and path ~= "prompt.thankUnseen" and path ~= "prompt.thankAsk" end,
+			and path ~= "prompt.thankUnseen" and path ~= "prompt.thankAsk"
+			and path ~= "prompt.thankNotInGroup" end,
 		after = function() ns.Prompt:InvalidateMacro() end,
 	},
 	-- Where the prompt sits and its lock are kept.

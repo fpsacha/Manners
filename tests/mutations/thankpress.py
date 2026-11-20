@@ -245,7 +245,7 @@ mutate("Commands.lua",
        expect="thankpress: /manners debug says the switch is on and who waits", script=S)
 
 mutate("Options/Diagnostics.lua",
-       "\tlines[#lines + 1] = (\"thankAsk=%s\"):format(tostring(db.prompt.thankAsk))\n",
+       "\tlines[#lines + 1] = (\"thankAsk=%s thankNotInGroup=%s\"):format(tostring(db.prompt.thankAsk), tostring(db.prompt.thankNotInGroup))\n",
        "",
        "thankpress: the check-up leaves the switch out",
        expect="thankpress: /manners debug says the switch is on and who waits", script=S)

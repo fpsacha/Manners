@@ -761,6 +761,10 @@ local defaults = {
 			-- out by itself (ThankPress.lua; asked for on CurseForge). Off: the
 			-- thanks go as they always have.
 			thankAsk = false,
+			-- No /thank and no whispered thank-you while you are in a party or a
+			-- raid outside a battleground (Favours.lua, Held; asked for on
+			-- CurseForge). Off: thanks go as before.
+			thankNotInGroup = false,
 			-- full | calm: calm is the prompt without the animations.
 			effects = "full",
 			-- The global cooldown swept over the spell icon.

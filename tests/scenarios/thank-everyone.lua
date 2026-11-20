@@ -635,6 +635,8 @@ for _, case in ipairs({
 				or path == "click.thankUnseen"
 				-- Ask me before thanking (ThankPress.lua).
 				or path == "click.thankAsk"
+				-- Don't thank anybody while I'm in a party or a raid (Favours.lua, Held).
+				or path == "click.thankNotInGroup"
 				-- First name only, which the whispered thank-you says too.
 				or path == "click.firstNameOnly" then
 				if not shown then fail(scenario, "the /thank is not on " .. case.label .. "'s What I say") end

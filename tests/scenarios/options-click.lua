@@ -142,6 +142,8 @@ do
 					or key == "thankWhisper" or key == "thankDelay" or key == "thankUnseen"
 					-- Ask me before thanking (ThankPress.lua).
 					or key == "thankAsk"
+					-- Don't thank anybody while I'm in a party or a raid.
+					or key == "thankNotInGroup"
 					-- First name only, which the whispered thank-you says too.
 					or key == "firstNameOnly"
 				if keep and not shown(control) then

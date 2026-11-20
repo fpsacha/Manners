@@ -1127,8 +1127,8 @@ Everything here is off until you turn it on.
   *Whisper them a thank-you*. It sets the switches under it.
 - ***Thanks and speech***:
   - */thank people who buff me*: when somebody buffs you, you `/thank` them,
-    whether or not you could buff them back. Never in a fight, a dungeon or
-    a raid (in a battleground or an arena only somebody of your own team,
+    whether or not you could buff them back. Never in a fight, or inside a
+    dungeon or a raid (in a battleground or an arena only somebody of your own team,
     with *Thank people there* on), nor while you are stealthed or feigning
     death, at most once per
     person every five minutes and once every ten seconds in all, so a raid
@@ -1151,6 +1151,11 @@ Everything here is off until you turn it on.
     I can't see who it was* on, a buff from somebody nobody could name is
     offered as "Thank whoever buffed you", and the prompt asks you to clear
     your target first. A pasted settings line can turn it on, never off.
+  - *Don't thank anybody while I'm in a party or a raid* (off, under the
+    /thank): while you are in a party or a raid, no /thank and no whispered
+    thank-you go out, to a group member or anybody else, and no thank is
+    offered on the prompt. In a battleground or an arena, *Thank people there*
+    decides instead.
   - *Whisper a thank-you to people I can't buff back*: when somebody buffs
     you and nothing of yours goes back to them now (a warrior, a rogue, a
     buff you have nothing to answer, a return that waits for them to join
