@@ -1,5 +1,3 @@
-![Manners](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-banner.jpg)
-
 **A buff given is a favour owed. Manners repays it in one press.**
 
 A priest buffs you in passing. By the time you find them among a dozen nameplates, they are gone. Manners saw who it was and put them on one button. Press your key: they have your buff, your own target comes straight back, and the favour goes in your ledger.

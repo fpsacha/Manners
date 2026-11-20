@@ -1,7 +1,5 @@
 # Manners
 
-<img src="https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-banner.jpg" alt="Manners" width="100%">
-
 **A buff given is a favour owed. Manners, a World of Warcraft addon, repays it
 in one press.**
 
