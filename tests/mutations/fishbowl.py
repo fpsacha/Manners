@@ -12,8 +12,8 @@ mutate("Core.lua",
        expect="fishbowl: off by default, Kings goes over the Fish Bowl as before", script=S)
 
 mutate("Core.lua",
-       "\t\tif not (db and db.buff.spareFishBowl == true) or type(opts.unit) ~= \"string\" then return false end\n",
-       "\t\tif type(opts.unit) ~= \"string\" then return false end\n",
+       "\t\tif not (db and db.buff.spareFishBowl == true) or type(unit) ~= \"string\" then return false end\n",
+       "\t\tif type(unit) ~= \"string\" then return false end\n",
        "fishbowl: the switch is not read",
        expect="fishbowl: off by default, Kings goes over the Fish Bowl as before", script=S)
 
@@ -24,7 +24,7 @@ mutate("Core.lua",
        expect="fishbowl: on, somebody by a Fish Bowl gets another blessing first", script=S)
 
 mutate("Core.lua",
-       "\t\tlocal ok, aura = pcall(read, opts.unit, FISH_BOWL)\n",
+       "\t\tlocal ok, aura = pcall(read, unit, FISH_BOWL)\n",
        "\t\tlocal ok, aura = true, {}\n",
        "fishbowl: everybody read as by a Fish Bowl",
        expect="fishbowl: on, somebody by a Fish Bowl gets another blessing first", script=S)
