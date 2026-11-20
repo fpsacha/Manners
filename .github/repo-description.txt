@@ -1,6 +1,6 @@
 Description (GitHub "About", under 120 characters):
 
-A World of Warcraft addon that returns buffs: one press buffs back whoever buffed you. Five clients, nine languages.
+A World of Warcraft addon with manners: somebody buffs you, one press buffs them back. Five clients, nine languages.
 
 Topics:
 

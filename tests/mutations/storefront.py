@@ -62,6 +62,13 @@ mutate(".github/wago-description.md",
        "storefront: the Wago description opens on the film strip again",
        expect="wago-description.md's first picture is manners-moment.png", script=V)
 
+mutate(".github/curseforge-description.md",
+       "manners-prompt.png)\n",
+       "manners-prompt.png)\n\n![Manners](https://raw.githubusercontent.com/fpsacha/Manners/master/"
+       ".github/media/manners-banner.jpg)\n",
+       "storefront: the banner slips below the moment on the CurseForge page",
+       expect="curseforge-description.md shows manners-banner.jpg, which is not in GALLERY", script=V)
+
 mutate(MS,
        '    before = prompt_layer("shot-hero-before", snaps["shot-hero-before"], zoom)',
        '    before = prompt_layer("shot-landed", snaps["shot-landed"], zoom)',
@@ -71,34 +78,33 @@ mutate(MS,
 # ---- the headline features on every page a browser reads first
 
 mutate(".github/curseforge-description.md",
-       "**profiles that switch by themselves** as you arrive in the open world, a dungeon, a raid or a "
-       "battleground, ",
-       "",
+       "profiles that switch by themselves as you enter",
+       "profiles as you enter",
        "storefront: the CurseForge opening leaves out automatic profiles",
        expect="curseforge-description.md's opening does not mention profiles that switch by themselves",
        script=V)
 
 mutate(".github/curseforge-description.md",
-       " and a **hall of fame** for whoever earns them all",
+       " and a hall of fame for whoever earns them all",
        "",
        "storefront: the CurseForge opening leaves out the hall of fame",
        expect="curseforge-description.md's opening does not mention the hall of fame", script=V)
 
 mutate(".github/wago-description.md",
-       "- **Profiles that switch by themselves** as you arrive",
-       "- **Profiles** as you arrive",
+       "**profiles that switch by themselves** as you enter",
+       "**profiles** as you enter",
        "storefront: the Wago page leaves out automatic profiles",
        expect="wago-description.md does not mention profiles that switch by themselves", script=V)
 
 mutate(".github/wago-description.md",
-       " Earn them all and you join the **hall of fame**, the *Gentlefolk of Good Manners*.",
-       "",
+       ", and for whoever earns them all the **hall of fame**, the *Gentlefolk of Good Manners*.",
+       ".",
        "storefront: the Wago page leaves out the hall of fame",
        expect="wago-description.md does not mention the hall of fame", script=V)
 
 mutate(".github/wago-description.md",
-       "Blessing of Kings first, **a blessing for each class** (Wisdom for mages, say), and",
-       "Blessing of Kings first, and",
+       "Kings first, and **a blessing for each class** (Wisdom for mages, say).",
+       "Kings first.",
        "storefront: the Wago page leaves out a blessing for each class",
        expect="wago-description.md does not mention a blessing for each class", script=V)
 
@@ -115,15 +121,15 @@ mutate("README.md",
        expect="README.md's opening does not mention a blessing for each class", script=V)
 
 mutate(".github/curseforge-summary.txt",
-       "Somebody buffed you? One press buffs them back. It also",
-       "One click to buff back whoever just buffed you, and nearby players missing yours. It keeps your "
-       "own buffs up too: armors, auras, aspects, poisons, food and more. It also",
+       "Your group, passers-by and the fallen too.",
+       "Your group, passers-by missing yours, the dead of your group, and your own armors, auras, "
+       "aspects, poisons, food and more too.",
        "storefront: the summary grows past one short line",
        expect="curseforge-summary.txt is", script=V)
 
 mutate(".github/curseforge-summary.txt",
-       "Somebody buffed you? One press buffs them back.",
-       "The polite buff addon.",
+       "one press buffs them back and your target",
+       "one press settles it and your target",
        "storefront: the summary no longer says what the addon is for",
        expect="curseforge-summary.txt does not say what the addon is for", script=V)
 
@@ -136,14 +142,14 @@ mutate("README.md",
        expect="README.md describes manners-options.png", script=V)
 
 mutate(".github/curseforge-summary.txt",
-       "passers-by, resurrects",
-       "nearby players, resurrects",
+       "passers-by and the fallen",
+       "nearby players and the fallen",
        "storefront: the summary says nearby, not passer-by",
        expect="curseforge-summary.txt says", script=V)
 
 mutate(".github/curseforge-description.md",
-       "- **Twenty-nine looks**, each",
-       "- **Eighteen looks**, each",
+       "Yours to arrange: twenty-nine looks,",
+       "Yours to arrange: eighteen looks,",
        "storefront: the CurseForge page counts the looks wrong",
        expect="curseforge-description.md says Eighteen looks", script=V)
 

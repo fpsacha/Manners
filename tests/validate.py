@@ -773,6 +773,13 @@ _shown = {_name: [(m.group("f1") or m.group("f2"),
                    m.group("a1") if m.group("f1") else m.group("a2"))
                   for m in _PIC.finditer(_text)]
           for _name, _text in _pages.items()}
+# The banner is the page's title art, not a gallery picture: it may stand at
+# the very top of a page, above the moment, and nowhere else. Anywhere below
+# the first picture it is held to GALLERY like any other.
+_TITLE_ART = ("manners-banner.jpg",)
+for _name, _pics in _shown.items():
+    while _pics and _pics[0][0] in _TITLE_ART:
+        _pics.pop(0)
 if not _gallery:
     print("  tools/make-screenshots.py has no GALLERY literal to hold the listings to")
     _lf_bad += 1

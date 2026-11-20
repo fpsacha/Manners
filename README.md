@@ -1,8 +1,9 @@
 # Manners
 
-**Manners is a World of Warcraft addon that returns buffs. When somebody buffs
-you it puts one button on screen: press it and they get your buff back, and
-your own target is handed straight back to you.**
+<img src="https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-banner.jpg" alt="Manners" width="100%">
+
+**A buff given is a favour owed. Manners, a World of Warcraft addon, repays it
+in one press.**
 
 [![CI](https://github.com/fpsacha/Manners/actions/workflows/ci.yml/badge.svg)](https://github.com/fpsacha/Manners/actions/workflows/ci.yml)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Manners-f16436)](https://wow.curseforge.com/projects/1705364)
@@ -11,9 +12,10 @@ your own target is handed straight back to you.**
 
 <img src=".github/media/manners-prompt.png" alt="Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it" width="640">
 
-A priest buffs you in passing. By the time you have picked them out of a dozen
-nameplates, they are gone. Manners saw who it was, worked out what you owe them
-and put one button, *the prompt*, on screen. Click it or press your key.
+A priest buffs you in passing. By the time you find them among a dozen
+nameplates, they are gone. Manners saw who it was and put them on one button,
+*the prompt*. Press your key: they have your buff, and your own target comes
+straight back.
 
 Runs on **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists
 of Pandaria Classic** and **retail**, in nine languages.
