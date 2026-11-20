@@ -11,6 +11,7 @@ ns.WhatsNew = {
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
+			"|cffff9a52Druid names stay orange.|r On the softer looks a druid's name had faded to nearly a warrior's tan; it now keeps its orange.",
 		} },
 	} },
 	{ version = "1.11.31", date = "20 November 2026", sections = {

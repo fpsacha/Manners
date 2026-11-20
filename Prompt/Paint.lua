@@ -13,6 +13,13 @@ local Gradient, SetLine, ShowChip, FullEffects = lib.Gradient, lib.SetLine, lib.
 -- classSoften in `by`.
 local softened = {}
 
+-- A druid's orange and a warrior's tan share a hue (28 and 31 degrees) and a
+-- lightness; only the orange's strength tells them apart, and taking both
+-- towards white takes exactly that away (at 0.5 they are 27 apart in CIE76,
+-- at 0.7 15). So a druid's name is softened no further than the 0.35 looks
+-- soften it, which keeps the two over 40 apart on every look.
+local DRUID_SOFTEN = 0.35
+
 local function ClassColored(entry, text)
 	if not ns.db.profile.prompt.classColor or not entry.class then return text end
 	local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[entry.class]
@@ -47,12 +54,14 @@ local function ClassColored(entry, text)
 	if soften then
 		-- Worked out once per class and look: this runs on every repaint.
 		if softened.by ~= soften then wipe(softened) softened.by = soften end
+		local share = soften
+		if entry.class == "DRUID" and share > DRUID_SOFTEN and not S.activeLook.classTintOnly then share = DRUID_SOFTEN end
 		local code = softened[c.colorStr]
 		if not code then
 			-- From the code itself ("ffRRGGBB"), which every client fills in.
 			local function up(at)
 				local v = (tonumber(c.colorStr:sub(at, at + 1), 16) or 255) / 255
-				return math.floor((v + (1 - v) * soften) * 255 + 0.5)
+				return math.floor((v + (1 - v) * share) * 255 + 0.5)
 			end
 			code = ("|cff%02x%02x%02x"):format(up(3), up(5), up(7))
 			softened[c.colorStr] = code

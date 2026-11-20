@@ -39,6 +39,18 @@ at any UI scale (the cursor is divided by the bar's effective scale), and that
 `GetHeight` of the bar, anchored top and bottom, reads its laid-out height
 when the window first opens (an OnSizeChanged script places the thumb again).
 
+**Druid names stay orange (unreleased).** On the looks that soften class
+colours (`classSoften`, 0.5 to 0.7 on most), a druid's #ff7c0a and a warrior's
+#c69b6d, which share a hue and a lightness and differ only in strength, met in
+a peach and a cream (CIE76 27 apart at 0.5, 15 at 0.7). `ClassColored` in
+`Prompt/Paint.lua` now takes a druid no further than 0.35 (`DRUID_SOFTEN`),
+which keeps the pair over 40 apart on every look; Luxe sets `classTintOnly`
+(Looks.lua header) so its names stay a tint on white, the druid's too.
+Letter's and the dark-ink looks' `classContrast` path is unchanged. No setting,
+no string. `tests/scenarios/tint.lua` and three mutations in
+`tests/mutations/tint.py`, each CAUGHT by `tools/prove.py`. Looks only in the
+game: that the druid on Wild, Forge and Leather reads orange beside a warrior.
+
 **Nothing of your own on the run (1.11.30, asked for on CurseForge).** Food, a
 weapon's stone, oil, poison or lure, the sleeping bag, Forever's mage scrolls
 and making a warlock's stone (family flag `still`, Buffs.lua), and any other

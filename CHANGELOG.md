@@ -11,6 +11,8 @@
 ### Fixes
 - **Scroll bar.** Dragging the scroll bar on the right of the settings window
   now moves the page the way you drag, on every page.
+- **Druid names stay orange.** On the softer looks a druid's name had faded to
+  nearly a warrior's tan; it now keeps its orange.
 
 ## 1.11.31
 

@@ -50,6 +50,8 @@ local Luxe = ns.Looks.Register("luxe", {
 	-- The ground and the ink dim apart, so art itself stays whole.
 	combatArtAlpha = 1,
 	classSoften = 0.85,
+	-- names stay a tint on white, the druid's too (Prompt/Paint.lua)
+	classTintOnly = true,
 	-- The tag carries its own dark ground (PaintPill), whatever the panel.
 	subOnDark = true,
 	-- The painted frame (Looks/Painted.lua, art/looks/luxe): the card, its
