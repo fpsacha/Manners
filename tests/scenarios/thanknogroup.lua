@@ -295,3 +295,33 @@ do
 		end
 	end)
 end
+
+do
+	local scenario = "thanknogroup: a pasted string can switch it on, never off"
+	with(scenario, {}, function(ns)
+		local prompt = ns.db.profile.prompt
+		prompt.thankNotInGroup = true
+		local on = ns.ExportSettings()
+		prompt.thankNotInGroup = false
+		local off = ns.ExportSettings()
+		-- A string that has it off, onto a profile that has it on.
+		prompt.thankNotInGroup = true
+		local ok = ns.ImportSettings(off)
+		if not ok then fail(scenario, "SKIPPED -- the string did not import") return end
+		if ns.db.profile.prompt.thankNotInGroup ~= true then
+			fail(scenario, "a pasted string that has it off switched it off")
+		end
+		-- A string that does not carry the key at all, as a friend's from before it existed.
+		prompt.thankNotInGroup = true
+		local bare = off:gsub("[^\n;,%s]*thankNotInGroup[^\n;,]*[\n;,]?", "")
+		if bare ~= off and ns.ImportSettings(bare) and ns.db.profile.prompt.thankNotInGroup ~= true then
+			fail(scenario, "a pasted string without the key switched it off")
+		end
+		-- And one that has it on switches it on.
+		ns.db.profile.prompt.thankNotInGroup = false
+		ok = ns.ImportSettings(on)
+		if ok and ns.db.profile.prompt.thankNotInGroup ~= true then
+			fail(scenario, "a pasted string with it on did not carry it")
+		end
+	end)
+end

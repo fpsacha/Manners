@@ -419,6 +419,9 @@ local defaults = {
 			-- to choose. Neither waits on `group` or `strangers` above.
 			cures = false,
 			curesStrangers = false,
+			-- And on yourself (Cures.lua, ns.CureSelf), out of a fight: off, like
+			-- the rest of the cures, a switch the player turns on.
+			curesSelf = false,
 			owedClassBuffsOnly = true, -- ignore stray HoTs and procs
 			-- People who ask for your buff in chat. Off, because reading chat is
 			-- guesswork, so the player should choose it.

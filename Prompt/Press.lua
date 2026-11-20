@@ -528,7 +528,10 @@ local function OnPostClick(self, mouseButton, down)
 		-- "Never" for yourself is the switch (StopOfferingSelf): the list is
 		-- of other people, and every line it says is about somebody else.
 		if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) and own then
-			ns.StopOfferingSelf()
+			-- A cure on you switches Cure myself too off, not Myself (Cures.lua).
+			local shown = S.heldEntry
+			if not (shown and shown.name == victim) then shown = S.current end
+			ns.StopOfferingSelf(shown and shown.name == victim and shown or nil)
 			ns.Guard("own buff repaint", Prompt.Refresh, Prompt)
 			return
 		end

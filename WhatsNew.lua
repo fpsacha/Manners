@@ -11,13 +11,17 @@ ns.WhatsNew = {
 			"|cffffd100Leave your own buffs, food included, alone for longer.|r A new setting, |cffffffffA right-click on my own buffs skips for (minutes)|r, sets how long a right-click on one of your own buffs leaves it alone.",
 			"|cffffd100Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
 			"|cffffd100Don't thank anybody while I'm in a party or a raid.|r No /thank or whispered thank-you while you're grouped.",
+			"|cffffd100Cure yourself.|r A new switch, |cffffffffCure myself too|r, offers the cure for a poison, disease, curse or harmful spell on you, out of combat.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
-			"|cffff9a52Druid names stay orange.|r On the softer looks a druid's name had faded to nearly a warrior's tan; it now keeps its orange.",
+			"|cffff9a52Druid names stay orange.|r On most of the softer looks (not Luxe, where every name is a tint on white) a druid's name had faded to nearly a warrior's tan; it now keeps its orange.",
 		} },
 		{ title = "What I say", accent = "7cc4ff", entries = {
 			"|cff7cc4ffDon't thank anybody while I'm in a party or a raid.|r No /thank or whispered thank-you while you're grouped (asked for on CurseForge).",
+		} },
+		{ title = "Who gets what", accent = "7cc4ff", entries = {
+			"|cff7cc4ffCure myself too.|r Under |cffffffffMore than buffs|r, next to the cures for your party and for passers-by.",
 		} },
 	} },
 	{ version = "1.11.31", date = "20 November 2026", sections = {

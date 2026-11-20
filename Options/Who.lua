@@ -865,7 +865,7 @@ end
 -- says which spell takes off what, or that none is learned yet.
 local function AddCureControls(args)
 	local function NoCures() return not ns.ClassHasCures() end
-	local function CuresOff() return not (S().cures or S().curesStrangers) end
+	local function CuresOff() return not (S().cures or S().curesStrangers or S().curesSelf) end
 	args.curesHeader = { type = "header", name = L["Cures"], order = 14.9, hidden = NoCures }
 	args.curesNote = {
 		type = "description",
@@ -888,6 +888,16 @@ local function AddCureControls(args)
 		name = L["Cure passers-by"],
 		desc = L["The same for players near you who are not in your group, seen through nameplates, your target, focus and mouseover."],
 		order = 14.93,
+		width = "full",
+		hidden = NoCures,
+		get = sGet,
+		set = sSet,
+	}
+	args.curesSelf = {
+		type = "toggle",
+		name = L["Cure myself too"],
+		desc = L["Out of combat, offer to take a poison, a disease, a curse or a harmful spell off yourself, with the spell your class has for it. It comes before your own buffs."],
+		order = 14.935,
 		width = "full",
 		hidden = NoCures,
 		get = sGet,

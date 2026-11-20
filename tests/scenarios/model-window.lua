@@ -395,7 +395,7 @@ local EXPECTED = {
 		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "sources.self", "filters.proximity",
 		-- A class's courtesies on request, resurrection, cures and asking for a buff.
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
-		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "filters.cureSeconds",
+		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
 		"ask.own",
 		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly", "ownBuffs.scrolls", "groupBuffs.use",

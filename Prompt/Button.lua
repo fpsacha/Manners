@@ -411,7 +411,7 @@ do
 		local group = S.current.groupCast
 		-- Your own buff: a right-click skips that buff alone, ctrl-right-click
 		-- all of yours (OnPostClick).
-		local ownBuff = not group and S.current.reason == "self"
+		local ownBuff = not group and S.current.reason == "self" and not S.current.cure
 		GameTooltip:AddLine(group and L["Right-click to skip this group buff for now."]
 			or ownBuff and L["Right-click to skip this buff for now; ctrl-right-click skips all your own buffs."]
 			or L["Right-click to skip this one."], 0.5, 0.5, 0.5)
@@ -423,6 +423,9 @@ do
 		elseif group then
 			GameTooltip:AddLine(L["Shift-right-click to put %s on your never-offer list."]
 				:format(S.current.short or S.current.name or "?"), 0.5, 0.5, 0.5)
+		elseif S.current.reason == "self" and S.current.cure then
+			-- A cure on you: Cure myself too goes off (StopOfferingSelf).
+			GameTooltip:AddLine(L["Shift-right-click to stop offering to cure you."], 0.5, 0.5, 0.5)
 		elseif S.current.reason == "self" then
 			-- The switch, since the list is of other people (StopOfferingSelf).
 			GameTooltip:AddLine(L["Shift-right-click to stop offering you your own buff."], 0.5, 0.5, 0.5)

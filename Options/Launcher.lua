@@ -650,7 +650,7 @@ local function NeverFromMenu(entry)
 	if showing and showing.name == entry.name then ns.Prompt:StopAttention() end
 	-- Never for yourself is the switch, as a shift-right-press makes it.
 	if entry.reason == "self" then
-		ns.StopOfferingSelf()
+		ns.StopOfferingSelf(entry)
 		ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 		return
 	end

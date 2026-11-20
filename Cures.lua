@@ -368,7 +368,7 @@ end
 function ns.CuresWanted(db)
 	db = db or (addon.db and addon.db.profile)
 	local sources = db and db.sources
-	if not (sources and (sources.cures == true or sources.curesStrangers == true)) then return false end
+	if not (sources and (sources.cures == true or sources.curesStrangers == true or sources.curesSelf == true)) then return false end
 	return State().any
 end
 
@@ -402,12 +402,14 @@ end
 
 -- Asked by BuildQueue once a scan, before the walk: what the walk's hook needs
 -- (`group` and `strangers`, the two switches), or nil when no cure is to be
--- offered at all: both switches off, nothing learned, a fight, or a client
+-- offered at all: every switch off, nothing learned, a fight, or a client
 -- with no aura list to read. `fight` stays written for /manners debug.
+-- `self` is the third switch, curing yourself (ns.CureSelf): it asks no walk of
+-- anybody, so with it alone on the scan is live and ns.CureScanned says nil.
 function ns.CureScan(db, now)
 	scan.live = nil
 	local sources = db.sources
-	if not (sources.cures == true or sources.curesStrangers == true) then return nil end
+	if not (sources.cures == true or sources.curesStrangers == true or sources.curesSelf == true) then return nil end
 	local state = State()
 	if not state.any then return nil end
 	for i = #left.names, 1, -1 do left.names[i] = nil end
@@ -418,6 +420,7 @@ function ns.CureScan(db, now)
 	local auras = C_UnitAuras
 	if not (type(auras) == "table" and type(auras.GetAuraDataByIndex) == "function") then return nil end
 	scan.group, scan.strangers = sources.cures == true, sources.curesStrangers == true
+	scan.self = sources.curesSelf == true
 	local seconds = tonumber(db.filters.cureSeconds)
 	scan.seconds = seconds or 10
 	left.seconds = scan.seconds
@@ -435,7 +438,7 @@ end
 -- ahead of its early ways out and again for the walk: a cure learned and a
 -- switch on are no reason to walk in a fight, where none is offered.
 function ns.CureScanned()
-	return scan.live and scan or nil
+	return scan.live and (scan.group or scan.strangers) and scan or nil
 end
 
 -- Whether the cure can be cast now: true, or why not ("mana", "cooldown").
@@ -672,7 +675,8 @@ function ns.CureFor(unit, full, guid, inGroup, pointed, flag)
 			if ready ~= true then
 				Leave(full, debuff.name, ready)
 			else
-				local ranged = ns.InRange(unit, cure)
+				-- A spell on yourself is always within reach.
+				local ranged = unit == "player" or ns.InRange(unit, cure)
 				if ranged == nil then ranged = ns.PastFollowReach(unit) end
 				if not (scan.requireInRange and ranged == false) then
 					local entry = {
@@ -710,6 +714,24 @@ function ns.CureFor(unit, full, guid, inGroup, pointed, flag)
 	-- them is over, or the memory would offer the cure this reading turned down.
 	Forget(full)
 	return nil
+end
+
+-- Your own cure (Queue.lua, SelfEntry, asked once a scan with the buff for
+-- yourself): the entry for a debuff on you that your class can take off, or
+-- nil. Out of a fight only (the scan is not live in one), with *Cure myself
+-- too* on, and never while a press on yourself was skipped (CureFor asks) or your
+-- own name is on the never-offer list (SelfEntry asks). It is the person's one entry, so it comes where a
+-- buff for yourself would, and wins over it. The entry is yours as any of your
+-- own: reason "self", the name you are targeted by, a spell on you alone.
+function ns.CureSelf(full)
+	if not (scan.live and scan.self) or not full then return nil end
+	local entry = ns.CureFor("player", full, plain(UnitGUID("player")), true, true, nil)
+	if not entry then return nil end
+	entry.display = L["You"]
+	entry.reason = "self"
+	-- In a party or raid a group cast counts you among them, as for any of your own.
+	entry.inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0
+	return entry
 end
 
 -- After the walk (Queue.lua, BuildQueue): the passers-by remembered that no
@@ -796,7 +818,7 @@ function ns.CureLines()
 	end
 	local db = addon.db and addon.db.profile
 	local sources = db and db.sources
-	if not (sources and (sources.cures == true or sources.curesStrangers == true)) then
+	if not (sources and (sources.cures == true or sources.curesStrangers == true or sources.curesSelf == true)) then
 		out[1] = L["cures: switched off."]
 		return out
 	end

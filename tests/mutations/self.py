@@ -247,8 +247,8 @@ mutate("Options/Launcher.lua",
        expect="Skip for now on you reads", script=S)
 
 mutate("Options/Launcher.lua",
-       "\tif entry.reason == \"self\" then\n\t\tns.StopOfferingSelf()\n",
-       "\tif false then\n\t\tns.StopOfferingSelf()\n",
+       "\tif entry.reason == \"self\" then\n\t\tns.StopOfferingSelf(entry)\n",
+       "\tif false then\n\t\tns.StopOfferingSelf(entry)\n",
        "self: menu never lists you",
        expect="Never offer on you did not switch your own buff off", script=S)
 

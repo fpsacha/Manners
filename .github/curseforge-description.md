@@ -47,7 +47,7 @@ Out of a fight, a dead member of your group comes first with your **resurrection
 6. **Your party or raid**, and their pets if you tick *My group's pets too*.
 7. **Passers-by** missing your buff, seen through the game's friendly nameplates.
 
-A **cure** goes ahead of a buff with *Cure my party and raid* or *Cure passers-by* ticked. Everybody gets the first buff they lack before anybody gets a second. Tank buffs (Earth Shield, Beacon of Light, Oath of Light on WoW Forever, Symbiotic Relationship, Blistering Scales and the like) go to your group's tank. In a dungeon or raid, carry the reagent and one group cast covers the party. Two Manners users of one class in a group split it, so nobody is buffed twice.
+A **cure** goes ahead of a buff with *Cure my party and raid*, *Cure passers-by* or *Cure myself too* ticked. Everybody gets the first buff they lack before anybody gets a second. Tank buffs (Earth Shield, Beacon of Light, Oath of Light on WoW Forever, Symbiotic Relationship, Blistering Scales and the like) go to your group's tank. In a dungeon or raid, carry the reagent and one group cast covers the party. Two Manners users of one class in a group split it, so nobody is buffed twice.
 
 It skips the dead, the out of range, anyone a buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged, anyone flagged for PvP. A *Never offer* list keeps people off the prompt unless they buff you, since returning a favour is the point. *Offer nothing in cities and inns*, *Offer nothing in dungeons, raids and battlegrounds*, *Hide the prompt in combat* and `/manners snooze` keep it quiet when you want quiet.
 

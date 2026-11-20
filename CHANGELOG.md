@@ -15,17 +15,29 @@
   now moves the page the way you drag, on every page.
 - **Don't thank anybody while I'm in a party or a raid.** No /thank or whispered
   thank-you while you're grouped. Asked for on CurseForge.
+- **Cure yourself.** A new switch, *Cure myself too*, offers the cure for a
+  poison, disease, curse or harmful spell on you, out of combat. Asked for on
+  CurseForge.
 
 ### Fixes
 - **Scroll bar.** Dragging the scroll bar on the right of the settings window
   now moves the page the way you drag, on every page.
-- **Druid names stay orange.** On the softer looks a druid's name had faded to
-  nearly a warrior's tan; it now keeps its orange.
+- **Druid names stay orange.** On most of the softer looks (not Luxe, where
+  every name is a tint on white) a druid's name had faded to nearly a warrior's
+  tan; it now keeps its orange.
 
 ### What I say
 - **Don't thank anybody while I'm in a party or a raid.** No /thank or whispered
   thank-you while you're grouped (asked for on CurseForge). In a battleground
-  or an arena, *Thank people there* still decides.
+  or an arena, *Thank people there* still decides. A pasted settings string can
+  switch it on but never off.
+
+### Who gets what
+- **Cure myself too.** Under *More than buffs*, next to the cures for your
+  party and for passers-by. A poison, disease, curse or harmful spell on you
+  that your class can remove is offered its cure out of combat, ahead of your
+  own buffs. Right-click skips it for a while; Shift-right-click turns the
+  switch off. Off until you tick it.
 
 ## 1.11.31
 

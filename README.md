@@ -609,10 +609,12 @@ feigning death, and not while another resurrection is already on its way to
 them. Nothing is said aloud. *Dead passers-by too* (off) adds a dead player
 outside your group whom you target, focus or hover.
 
-**Cures.** *Cure my party and raid* and *Cure passers-by*, both off, for a
-class with a cure. Somebody carrying a poison, a disease, a curse or a
-harmful spell your class can remove is offered the cure, out of combat:
-before any buff for that person, after a favour you owe. *Only with more
+**Cures.** *Cure my party and raid*, *Cure passers-by* and *Cure myself too*,
+all off, for a class with a cure. Somebody carrying a poison, a disease, a
+curse or a harmful spell your class can remove is offered the cure, out of
+combat: before any buff for that person, after a favour you owe. On yourself
+the cure comes before your own buffs; a right-click skips it for a while, and
+Shift-right-click turns *Cure myself too* off. *Only with more
 than this many seconds left* (10) leaves alone what is about to run out by
 itself, and a debuff with no timer is never offered. A handful that punish
 whoever removes them (Unstable Affliction, Vampiric Touch) are never offered
@@ -1016,8 +1018,8 @@ no room for. Defaults are in brackets.
   (3), with how many reagents are in your bags; *Raid groups I buff*; *Share
   the group with other Manners users* (on).
 - ***More than buffs***: *My group's dead* (on) with *Dead passers-by too*
-  (off); *Cure my party and raid* and *Cure passers-by* (both off) with *Only
-  with more than this many seconds left* (10).
+  (off); *Cure my party and raid*, *Cure passers-by* and *Cure myself too* (all
+  off) with *Only with more than this many seconds left* (10).
 - ***Myself***, ***Weapons***, ***Food, flasks and scrolls*** and ***When my own
   buffs come up***: see *Your own buffs* above.
 - ***Asking for a buff***: *Ask people for a buff I'm missing* (off), then *Ask

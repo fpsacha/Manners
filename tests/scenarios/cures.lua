@@ -864,7 +864,7 @@ end
 -- page's reset reaches them.
 do
 	local scenario = "cures: the switches are on Who to buff, for a class with a cure"
-	local KEYS = { "curesHeader", "curesNote", "cures", "curesStrangers", "cureSeconds" }
+	local KEYS = { "curesHeader", "curesNote", "cures", "curesStrangers", "curesSelf", "cureSeconds" }
 	with(scenario, { keep = true }, function(ns)
 		local sources, filters = ns.db.profile.sources, ns.db.profile.filters
 		local options = {}

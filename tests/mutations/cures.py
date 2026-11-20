@@ -331,13 +331,16 @@ mutate("Options/Who.lua",
 
 mutate("Options/Window/Layout.lua",
        "\t\t\t\t\t\"who.curesNote\",\n\t\t\t\t\t\"who.cures\",\n\t\t\t\t\t\"who.curesStrangers\",\n"
+       "\t\t\t\t\t-- Yourself too (Cures.lua, ns.CureSelf): a switch of its own,\n"
+       "\t\t\t\t\t-- not under the party's, which it does not wait on.\n"
+       "\t\t\t\t\t\"who.curesSelf\",\n"
        "\t\t\t\t\t{ \"who.cureSeconds\", indent = true },\n",
        "",
        "cures: the window places no control",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"sources.cures\", \"sources.curesStrangers\", \"filters.cureSeconds\",\n",
+       "\t\t\"sources.cures\", \"sources.curesStrangers\", \"sources.curesSelf\", \"filters.cureSeconds\",\n",
        "",
        "cures: the page's reset leaves the settings",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)

@@ -851,7 +851,7 @@ end
 local own = {}
 function ns.ShareHoldsSelf(entry, queue, now)
 	if next(users) == nil or not me.name then return false end
-	local buff = entry and entry.reason == "self" and not entry.groupCast and entry.buff or nil
+	local buff = entry and entry.reason == "self" and not entry.groupCast and not entry.cure and entry.buff or nil
 	if buff and (buff.selfCast or buff.own or buff.alone) then buff = nil end
 	own.name, own.now = me.name, now
 	return ns.ShareHolds(own, buff, nil, nil, nil, queue)

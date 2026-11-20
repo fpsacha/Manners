@@ -19,6 +19,33 @@ tried beyond the sightings under *Open*. The checklist of what only the game
 can settle, on WoW Forever in the owner's own play sessions, is the first item
 under *Open*.
 
+**Cure myself too (unreleased, asked for on CurseForge).** `sources.curesSelf`,
+off, on Who to buff under *More than buffs*, a row of its own after *Cure
+passers-by* (it waits on neither; not in the simple view, whose Who to buff
+is held to 15 controls, as the passers-by switch is not; in the reset and the
+fallback dialog's list). `CureScan` and `CuresWanted` accept it (a class with
+nothing else to cast has a prompt for it); with it alone on, the scan is live
+but `ns.CureScanned()` says nil, so nobody else's debuffs are read and no
+walk is made for it. `ns.CureSelf(full)` (Cures.lua) is `CureFor("player", ...)`
+turned into your entry: reason `self`, `display` You, `inGroup` by the group's
+size. Queue.lua's `SelfEntry` asks it first, after the mana floor, and
+returns it ahead of any buff for yourself, so every call site (the early
+returns, the fight, the Share and PvP retries) gets the one entry; Myself's
+own switch (`sources.self`) does not hold it, the never-offer list does, and a
+skip of the cure or of you (ctrl-right-click) does through `CureFor`'s
+`IsBlocked`. Never in a fight (the scan is not live there). The press is the
+usual one on yourself (`STRATEGIES.self`); `SettleSelf` carries `cure` into
+the record (the milestone) and keeps the cure's key out of the rotation
+pointer. `LandsOnParty` and `ns.ShareHoldsSelf` leave a cure alone. Shift-right-click
+(the prompt, the launcher's Never) goes through `ns.StopOfferingSelf(entry)`,
+which switches `curesSelf` off for a cure, not Myself. Four new strings in
+all eight locales. `tests/scenarios/cures-self.lua` and fourteen mutations in
+`tests/mutations/cures-self.py`, each CAUGHT by `tools/prove.py`. The
+launcher's lines for a self cure say "your own buff" (the reason's wording is
+shared with the buffs). What only the game can say: that
+`canActivePlayerDispel` and the harmful list read true on yourself on each
+client, and that a poisoned you is offered the cure on the prompt.
+
 **Scroll bar (unreleased, a CurseForge report: on four pages dragging the bar
 went the wrong way, the wheel was fine).** The exact cause was not provable
 from the code, which drives the bar the same way on every page and leaves only
@@ -62,8 +89,10 @@ colours (`classSoften`, 0.5 to 0.7 on most), a druid's #ff7c0a and a warrior's
 #c69b6d, which share a hue and a lightness and differ only in strength, met in
 a peach and a cream (CIE76 27 apart at 0.5, 15 at 0.7). `ClassColored` in
 `Prompt/Paint.lua` now takes a druid no further than 0.35 (`DRUID_SOFTEN`),
-which keeps the pair over 40 apart on every look; Luxe sets `classTintOnly`
-(Looks.lua header) so its names stay a tint on white, the druid's too.
+which keeps the pair over 40 apart on every look but Luxe. Luxe sets
+`classTintOnly` (Looks.lua header) so its names stay a tint on white, the
+druid's too: at 0.85 a druid and a warrior are both nearly white there, by the
+look's design, and the changelog says "not Luxe".
 Letter's and the dark-ink looks' `classContrast` path is unchanged. No setting,
 no string. `tests/scenarios/tint.lua` and three mutations in
 `tests/mutations/tint.py`, each CAUGHT by `tools/prove.py`. Looks only in the
@@ -164,8 +193,9 @@ is "in a party or a raid". Every thank passes `Held`, so the emote, the
 whisper, the unseen thank, a parked offer and `ThankNow.Held` (no offer on the
 prompt) are all covered. Not `speech.quietInParty` / `quietInRaid`, which only
 silence the line said with a cast (Speech.lua, `ns.GroupQuiet`).
-`tests/scenarios/thanknogroup.lua` (9), `tests/mutations/thanknogroup.py` (7,
-each CAUGHT by `prove.py`). What only the game can say: nothing new; the
+A pasted settings string may switch it on and never off (Commands.lua,
+`SHARE_QUIET`, as `thankAsk` is). `tests/scenarios/thanknogroup.lua` (10),
+`tests/mutations/thanknogroup.py` (8, each CAUGHT by `prove.py`). What only the game can say: nothing new; the
 group is read as the game answers it.
 
 **Ask me before thanking (1.11.28, asked for on CurseForge).**
@@ -418,14 +448,10 @@ What was built:
   off; `filters.cureSeconds` 10; `cures.lua`). Deny list: Unstable
   Affliction, Vampiric Touch, Mutating Injection, Delusions of Jin'do.
   `canActivePlayerDispel` on the Classic clients is assumed from Blizzard's UI
-  code. Not built: curing yourself or pets; Mass Dispel; pet dispels.
-  Curing yourself, a later feature (asked for on CurseForge): a
-  `sources.curesSelf` switch that `CureScan` and `CuresWanted` accept, and a
-  `CureFor("player", ...)` through `SelfEntry` (Queue.lua) at each of its
-  call sites, one entry per person, winning over the own-buff entry; out of
-  a fight only, with `reason = "self"` for the macro, the launcher menus and
-  the settle path (Clicks.lua). Cures in a fight stay out of reach: the
-  client withholds the auras there, and a secure snippet cannot read them.
+  code. Not built: curing pets; Mass Dispel; pet dispels.
+  Curing yourself is built (*Cure myself too*, see the top of this file).
+  Cures in a fight stay out of reach: the client withholds the auras there,
+  and a secure snippet cannot read them.
 - **Courtesies on request** (`Courtesy.lua`; four `sources.courtesy*`, all
   off; `courtesy.lua`). Not built: Pick Lock (it needs a /click on the trade
   slot); "port pls" with no city; a trade press from the bar macro.

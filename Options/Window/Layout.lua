@@ -394,11 +394,14 @@ ns.WindowLayout = {
 					"who.res",
 					{ "who.resStrangers", indent = true },
 					-- Cures (Cures.lua), for a class with one: which spell takes off
-					-- what, the two switches, and the seconds a debuff must have
-					-- left, which either switch governs: gone while both are off.
+					-- what, the three switches, and the seconds a debuff must have
+					-- left, which any switch governs: gone while all are off.
 					"who.curesNote",
 					"who.cures",
 					"who.curesStrangers",
+					-- Yourself too (Cures.lua, ns.CureSelf): a switch of its own,
+					-- not under the party's, which it does not wait on.
+					"who.curesSelf",
 					{ "who.cureSeconds", indent = true },
 				} },
 				{ key = "who.myself", header = "who.myselfHeader", items = {

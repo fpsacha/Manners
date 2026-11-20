@@ -457,7 +457,9 @@ local function SettleSelf(pending, spellId, castGUID)
 	ShowOutcome("cast", pending.name, nil, pending.buffKey)
 	ns.MarkAttempted(pending.name, pending.buffKey)
 	-- Behind the same gate as everybody's: a paladin's walk never reads it.
-	if ns.RotatesBuffs() and pending.buffKey then ns.lastGave[pending.name] = pending.buffKey end
+	-- Not for a cure on yourself (Cures.lua): no buff of the walk's, whose key
+	-- would lose the place the rotation had reached.
+	if ns.RotatesBuffs() and pending.buffKey and not pending.cure then ns.lastGave[pending.name] = pending.buffKey end
 	-- An error inside the window told chat you were not buffed
 	-- (FailPendingClick); the cast went out after it, so that is taken back,
 	-- as it is for anybody, or chat and the panel disagree. Only with
@@ -470,7 +472,10 @@ local function SettleSelf(pending, spellId, castGUID)
 	end
 	local record = { name = pending.name, buffKey = pending.buffKey,
 		gave = pending.gave, at = GetTime(), castGUID = castGUID,
-		landed = true, onSelf = true }
+		landed = true, onSelf = true,
+		-- A cure on yourself earns its milestone once nothing refused it
+		-- (PruneSettled), as one on anybody does.
+		cure = pending.cure }
 	RememberSettled(record)
 	-- A scroll: its cast has only begun (castingScroll), and which one it is
 	-- tells two scrolls making the same imbue apart (Core.lua, ImbueScroll).

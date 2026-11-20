@@ -904,6 +904,9 @@ do
 		-- Ask me before thanking (ThankPress.lua): a paste may hold the thanks
 		-- for a press, never send them by themselves again.
 		["prompt.thankAsk"] = true,
+		-- Don't thank anybody while I'm in a party or a raid (Favours.lua, Held):
+		-- a paste may switch it on, never off.
+		["prompt.thankNotInGroup"] = true,
 	}
 
 	-- How an ask is said and where (Ask.lua), kept as the player has it while

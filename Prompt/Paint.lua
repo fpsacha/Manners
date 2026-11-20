@@ -17,7 +17,9 @@ local softened = {}
 -- lightness; only the orange's strength tells them apart, and taking both
 -- towards white takes exactly that away (at 0.5 they are 27 apart in CIE76,
 -- at 0.7 15). So a druid's name is softened no further than the 0.35 looks
--- soften it, which keeps the two over 40 apart on every look.
+-- soften it, which keeps the two over 40 apart on every look but Luxe, whose
+-- names are a tint on white for every class (classTintOnly, 0.85): there a
+-- druid and a warrior are both nearly white, by the look's design.
 local DRUID_SOFTEN = 0.35
 
 local function ClassColored(entry, text)

@@ -1895,7 +1895,8 @@ end
 -- looks.
 local function LandsOnParty(entry)
 	local buff = entry.buff
-	if not buff then return false end
+	-- A cure on yourself lands on you alone (Cures.lua).
+	if not buff or entry.cure then return false end
 	if buff.selfCast then return true end
 	return ns.WIDE_CASTS == true and entry.inGroup == true and not entry.groupCast
 		and not buff.alone and not buff.own
@@ -2650,6 +2651,16 @@ end
 -- (BuildQueue): your class's own land on you alone.
 local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	if sweep.saving and ns.ManaFloorKeeps(db) == "none" then return nil end
+	-- A debuff on you that your class can take off (Cures.lua, *Cure myself
+	-- too*) is the one entry you get, and wins over any buff for yourself. Not
+	-- held by Myself's own switch, which is about buffs; the never-offer list
+	-- holds it here, and a skip of the cure or of you (ctrl-right-click) in
+	-- Cures.lua's CureFor, which asks IsBlocked for the person as a whole too.
+	if ns.CureSelf then
+		local full = ns.UnitFullName("player")
+		local cure = full and ns.CureSelf(full) or nil
+		if cure and not ListedAs(full, verdict) then return cure end
+	end
 	local held, full = HeldBackExceptList(db, now)
 	-- In a fight nothing of your own is offered but a warrior's shout, alone
 	-- with "Remind me of my shout when I'm alone" on (CastsOnSelf): it lasts
@@ -2722,9 +2733,17 @@ end
 -- launcher's menu: the never-offer list is a list of other people, so this
 -- source goes off instead, and the line says where it comes back. Said
 -- whatever Tell me in chat is set to, as a listing is. The caller repaints.
-function ns.StopOfferingSelf()
+function ns.StopOfferingSelf(entry)
 	local db = addon.db and addon.db.profile
 	if not db then return end
+	-- A cure on you (Cures.lua): its own switch goes off, not Myself's.
+	if entry and entry.cure then
+		db.sources.curesSelf = false
+		addon:Print(L["curing you will not be offered any more -- tick %s on the %s tab to have it back."]
+			:format("|cffffd100" .. L["Cure myself too"] .. "|r", L["Who to buff"]))
+		ns.RepaintOptions()
+		return
+	end
 	db.sources.self = false
 	addon:Print(L["your own buff will not be offered to you any more -- tick %s on the %s tab to have it back."]
 		:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r", L["Who to buff"]))

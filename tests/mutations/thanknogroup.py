@@ -55,3 +55,10 @@ mutate("Options/Window/Layout.lua",
        "",
        "thanknogroup: the switch has no place on What I say",
        expect=SHOWN, script=S)
+
+# ------------------------------------------------ the settings string
+mutate("Commands.lua",
+       "\t\t[\"prompt.thankNotInGroup\"] = true,\n",
+       "",
+       "thanknogroup: a pasted string can switch it off",
+       expect="thanknogroup: a pasted string can switch it on, never off", script=S)
