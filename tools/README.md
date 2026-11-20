@@ -1505,8 +1505,11 @@ it is the one thing these tools make that ships in the zip: the
 game cannot load a PNG, and this is the icon in the addon list (`IconTexture` in
 `Manners.toc`) and on the minimap button (`ICON` in `Options/Launcher.lua`).
 
-Drawn to sit next to real WoW spell icons: bevelled gold frame lit from the
-top-left, dark saturated interior, one glowing subject, plenty of bloom.
+Nothing is drawn here: the icon is a painting, `art/icon/manners-icon.jpg`
+(a plate gauntlet tips its lit candle to light the candle in a bare hand; 2048
+square, not shipped), and the tool only crops it (`CROP`, chosen at 64 px so the
+flame and both hands read) and scales it. `--size N --out PATH` writes one more
+square PNG of that crop, such as a 1024 for a site's avatar.
 
 ## fonts.py
 

@@ -64,8 +64,10 @@ CurseForge description, which embeds them from GitHub once `master` holds them.
 
 - Open each gallery signed out and look: seventeen pictures (fifteen where the
   GIFs were left out), in this order, none cut.
-- The project's icon is `icon-512.png` (`icon-64.png` is the small one). It
-  has not changed; upload it only if a site shows none.
+- The project's icon is `icon-512.png` (`icon-64.png` is the small one; a
+  1024 one comes from `python tools/make-icon.py --size 1024 --out PATH`). It
+  is new: the candle lit from another's flame. Upload it as the avatar on
+  CurseForge and Wago.
 - The description's own pictures come from
   `https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/`:
   they show once `master` holds this folder, with nothing to upload.
