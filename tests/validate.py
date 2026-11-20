@@ -776,7 +776,7 @@ _shown = {_name: [(m.group("f1") or m.group("f2"),
 # The banner is the page's title art, not a gallery picture: it may stand at
 # the very top of a page, above the moment, and nowhere else. Anywhere below
 # the first picture it is held to GALLERY like any other.
-_TITLE_ART = ("manners-banner.jpg",)
+_TITLE_ART = ("manners-how.jpg",)
 for _name, _pics in _shown.items():
     while _pics and _pics[0][0] in _TITLE_ART:
         _pics.pop(0)

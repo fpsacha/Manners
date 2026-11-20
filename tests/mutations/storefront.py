@@ -65,9 +65,9 @@ mutate(".github/wago-description.md",
 mutate(".github/curseforge-description.md",
        "manners-prompt.png)\n",
        "manners-prompt.png)\n\n![Manners](https://raw.githubusercontent.com/fpsacha/Manners/master/"
-       ".github/media/manners-banner.jpg)\n",
-       "storefront: the banner slips below the moment on the CurseForge page",
-       expect="curseforge-description.md shows manners-banner.jpg, which is not in GALLERY", script=V)
+       ".github/media/manners-how.jpg)\n",
+       "storefront: the how-it-works strip slips below the moment on the CurseForge page",
+       expect="curseforge-description.md shows manners-how.jpg, which is not in GALLERY", script=V)
 
 mutate(MS,
        '    before = prompt_layer("shot-hero-before", snaps["shot-hero-before"], zoom)',

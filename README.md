@@ -3,6 +3,8 @@
 **A buff given is a favour owed. Manners, a World of Warcraft addon, repays it
 in one press.**
 
+<img src="https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-how.jpg" alt="How Manners works, in three pictures: it picks who is missing a buff, you press one key, the buff lands and the next person in line is already waiting" width="100%">
+
 [![CI](https://github.com/fpsacha/Manners/actions/workflows/ci.yml/badge.svg)](https://github.com/fpsacha/Manners/actions/workflows/ci.yml)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Manners-f16436)](https://wow.curseforge.com/projects/1705364)
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)

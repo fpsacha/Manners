@@ -2,6 +2,8 @@
 
 A priest buffs you in passing. By the time you find them among a dozen nameplates, they are gone. Manners saw who it was and put them on one button. Press your key: they have your buff, and your own target comes straight back.
 
+![How Manners works, in three pictures: it picks who is missing a buff, you press one key, the buff lands and the next person in line is already waiting](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-how.jpg)
+
 ![Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
 - **One press, never a hunt:** your target, whoever buffed you, people who ask in chat, you, your group and passers-by missing your buff, each in its own colour (with a colour-blind set).
