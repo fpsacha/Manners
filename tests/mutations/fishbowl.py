@@ -97,3 +97,23 @@ mutate("Options/Window/Layout.lua",
        "\titems[#items + 1] = \"who.neverFishBowl\"\n",
        "fishbowl: the strict switch not indented under the first",
        expect="fishbowl: the strict switch sits under the first one on Who to buff", script=S)
+
+# GitHub issue 20: your own pick, and Camp Benefits.
+
+mutate("Core.lua",
+       "\t\tif unit == nil and opts.own then unit = \"player\" end\n",
+       "",
+       "fishbowl: your own pick read as no unit",
+       expect="fishbowl: Camp Benefits naming the Fish Bowl holds Kings off you and off others", script=S)
+
+mutate("Core.lua",
+       "\t\treturn fine and holds == true\n",
+       "\t\treturn fine\n",
+       "fishbowl: any Camp Benefits counts as a Fish Bowl",
+       expect="fishbowl: Camp Benefits without the Fish Bowl line holds nothing back", script=S)
+
+mutate("Core.lua",
+       "\t\tok, aura = pcall(read, unit, CAMP_BENEFITS)\n",
+       "\t\tok, aura = false, nil\n",
+       "fishbowl: Camp Benefits never read",
+       expect="fishbowl: Camp Benefits naming the Fish Bowl holds Kings off you and off others", script=S)
