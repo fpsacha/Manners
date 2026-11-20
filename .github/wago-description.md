@@ -7,7 +7,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 ![Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
 - **One press, never a hunt:** your target, whoever buffed you, people who ask in chat, you, your group and passers-by missing your buff, each in its own colour (with a colour-blind set).
-- **More than buffs:** your resurrection for the group's dead, a cure for a poison, curse or disease if you tick it, and courtesies on request: a mage's water, food and portals, a warlock's healthstones and summons.
+- **More than buffs:** your resurrection for the group's dead, a cure for a poison, curse or disease if you tick it, and courtesies on request: a mage's water, food and portals, a warlock's healthstones and summons, and a polite ask for a buff you lack.
 - **Your own buffs:** armor, aura, aspect, shield and the poison or oil for each weapon come up as "You", and food, flasks and scrolls if you switch them on. Never in a fight, nothing used while you run, and up to ten spells of your own under *Add a spell of my own*.
 - **For your tank:** Earth Shield, Beacon of Light, Oath of Light and the other one-person buffs go to your group's tank.
 - **Paladins:** Kings first, and **a blessing for each class** (Wisdom for mages, say).

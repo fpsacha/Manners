@@ -7,10 +7,10 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 ![Somebody buffed you: the prompt names Mort Defrette, who buffed you, with a mouse pointer on it and a key under it; one press, and the same prompt reads buffed Mort Defrette, the game confirmed it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
 - **One press, never a hunt.** Whoever buffed you, your group, somebody who asks in chat, a passer-by missing your buff: the right person is on the prompt, in a sensible order, and your target comes back after every cast.
-- **More than buffs.** Your resurrection for the group's dead, a cure for a poison, curse or disease, and a mage's or warlock's courtesies (water, portals, healthstones, summons) for whoever asks. Your own armor, aura, poison or oil comes up as "You" when it lapses.
+- **More than buffs.** Your resurrection for the group's dead, a cure for a poison, curse or disease, and a mage's or warlock's courtesies (water, portals, healthstones, summons) for whoever asks, and a polite ask for a buff you lack, if you tick it. Your own armor, aura, poison or oil comes up as "You" when it lapses.
 - **Good manners, kept.** A favour ledger with titles, thirteen milestones and a hall of fame for whoever earns them all. If your character should speak, over three thousand In character lines, about a hundred of them the Forsaken's own.
 
-Yours to arrange: twenty-nine looks, a blessing for each class for paladins, profiles that switch by themselves as you enter a dungeon, a raid or a battleground (with *Undo* when you change your mind), and options that start short, each page under a painted icon.
+Yours to arrange: twenty-nine looks, a blessing for each class for paladins, profiles that switch by themselves as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.
 
 ### What you see
 
@@ -61,7 +61,7 @@ English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian 
 
 1. Type `/manners`. It opens on **Start here**.
 2. On a new profile, answer its two questions (who to buff, and whether your character talks), or press *Not now* to keep the defaults.
-3. Its second step, *Put it on a key*, sets one key. Or *Put Manners on an action bar* drops a macro on any slot, showing the spell a press would cast. A controller button works too.
+3. Its second step, *Put it on a key*, sets one key. Or *Put Manners on an action bar* puts a macro on your cursor for any slot, showing the spell a press would cast. A controller button works too.
 
 The *Simple view* shows only the ten or so settings your class changes on each page; the search box finds the rest.
 
