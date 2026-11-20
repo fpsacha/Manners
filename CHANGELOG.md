@@ -18,6 +18,22 @@
 - **Cure yourself.** A new switch, *Cure myself too*, offers the cure for a
   poison, disease, curse or harmful spell on you, out of combat. Asked for on
   CurseForge.
+- **Cure in a fight.** A new switch on Look, under *In a fight*: *Offer my cure
+  in a fight when somebody needs it*. A button beside the prompt, with a key of
+  its own, that stays out of sight until somebody near you carries a poison,
+  disease, curse or harmful spell your class can remove, then names them. Asked
+  for on CurseForge.
+
+### In a fight
+- **Offer my cure in a fight when somebody needs it** (off), with *Key for my
+  cure in a fight* under it; the same switch is under *Who to buff*, *Cures*.
+  The button stays out of sight until Manners sees you, your target or your
+  group carrying something your cure takes off; it then shows the spell, who and
+  why, and fades once nobody needs it. A press cures whoever is under your
+  mouse, else your target, else you (on WoW Forever, your target when it is a
+  friend, else you). A class with two cures casts the second with Shift held.
+  Where the game hides debuffs in a fight the button stays out of sight and its
+  key still casts. Out of combat, cures stay on the prompt as before.
 
 ### Fixes
 - **Scroll bar.** Dragging the scroll bar on the right of the settings window

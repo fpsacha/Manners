@@ -2997,8 +2997,8 @@ mutate("tests/mockapi.lua",
 # that got this wrong would make the strategy this addon does not ship look
 # perfectly safe.
 mutate("tests/mockapi.lua",
-       "\treturn Mock.groupNames ~= nil and Mock.groupNames[who] ~= nil\n",
-       "\treturn true\n",
+       "\treturn on and Mock.groupNames ~= nil and Mock.groupNames[who] ~= nil, false, false\n",
+       "\treturn on, false, false\n",
        "the mock resolving a stranger's conditional",
        expect="a conditional aimed at a stranger on",
        script="runscenarios.py")

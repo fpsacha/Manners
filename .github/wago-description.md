@@ -12,6 +12,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 - **For your tank:** Earth Shield, Beacon of Light, Oath of Light and the other one-person buffs go to your group's tank.
 - **Paladins:** Kings first, and **a blessing for each class** (Wisdom for mages, say).
 - **Hunters:** Call, Revive and Mend Pet when your pet needs them, *Bond with my pet*, and Mend Pet on a button of its own in a fight.
+- **Cures in a fight:** *Offer my cure in a fight when somebody needs it*, a button that shows only when somebody near you needs your cure.
 - **Good manners, kept:** a favour ledger with titles, thirteen **milestones**, and for whoever earns them all the **hall of fame**, the *Gentlefolk of Good Manners*.
 - **Something to say,** if you like: **In character**, over three thousand lines picked for your race, class and the moment (about a hundred of them the Forsaken's own), or a quiet `/thank`.
 - **Yours to arrange:** twenty-nine looks and one for your class, **profiles that switch by themselves** as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.

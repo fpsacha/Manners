@@ -711,6 +711,10 @@ local defaults = {
 			-- charmed or asleep (Prompt/BreakFree.lua). Only a character with
 			-- the ability ever sees the switch.
 			breakFree = true,
+			-- The class's cure on a button of its own beside the prompt for a
+			-- fight, out of sight until somebody near you needs it
+			-- (Prompt/CureFight.lua). Off until ticked.
+			cureFight = false,
 			-- The built-in looks (Glass, Framed, Minimal) draw the prompt at about
 			-- half strength in a fight when this is on, so it reads as held. Off by
 			-- default: a dim that stacks with a low Opacity made it vanish.
@@ -1251,7 +1255,9 @@ do
 		-- No API answers it, and [@Name] resolves only for group members, so
 		-- Camelot keeps the /target route, the only one verified in game. Only
 		-- reported, by /manners debug and the probe kept in SavedVariables
-		-- (ns.WriteProbe): no macro is built from it.
+		-- (ns.WriteProbe): no prompt macro is built from it; the one macro that
+		-- is, the fight's cure button (Prompt/CureFight.lua), is bare on a client
+		-- where this is false.
 		caps.conditionalTargeting = flavour.flavour ~= "camelot"
 
 		-- /targetexact matches the whole name where /target matches a prefix
@@ -6464,6 +6470,8 @@ function addon:TickBody()
 	if breakFree and breakFree:Wanted() then ns.Guard("break free", breakFree.Refresh, breakFree) end
 	local mendPet = ns.MendPet
 	if mendPet and mendPet:Wanted() then ns.Guard("mend pet", mendPet.Refresh, mendPet) end
+	local cureFight = ns.CureFight
+	if cureFight and cureFight:Wanted() then ns.Guard("cure in a fight", cureFight.Refresh, cureFight) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
@@ -6759,6 +6767,8 @@ function addon:PLAYER_REGEN_ENABLED()
 	if ns.ResyncMacroSlot then ns.Guard("macro slot", ns.ResyncMacroSlot) end
 	-- A hunter's Mend Pet button armed for the next fight (Prompt/MendPet.lua).
 	if ns.MendPet then ns.Guard("mend pet release", ns.MendPet.Release, ns.MendPet) end
+	-- The cure button taken down and armed for the next fight (Prompt/CureFight.lua).
+	if ns.CureFight then ns.Guard("cure fight release", ns.CureFight.Release, ns.CureFight) end
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed

@@ -293,6 +293,9 @@ function Mock.reset()
 	-- whether [@Petra,help] finds anybody. Empty by default: the person this
 	-- addon exists for is a stranger.
 	Mock.groupNames = nil
+	-- Who is under the mouse for a [@mouseover] conditional: { name, hostile,
+	-- dead }, or nil for nobody.
+	Mock.mouseover = nil
 	-- What C_Secrets.HasSecretRestrictions answers. Separate from the namespace
 	-- existing, because those are different questions: C_Secrets is present on
 	-- clients where nothing is being withheld at the moment, and an addon that
@@ -1639,39 +1642,74 @@ local function targetHolds(word)
 	return not hostile
 end
 
+-- What a unit a conditional names is, for [help], [harm] and [nodead]: whether
+-- it exists, is hostile, is dead. [@player] holds while the client parses a
+-- unit in a conditional (Mock.conditionalTargeting, on unless a scenario turns
+-- it off, as Forever does); [@mouseover] while one is under the mouse
+-- (Mock.mouseover = { name, hostile, dead }); any other name only for a group
+-- member a scenario named (Mock.groupNames).
+local function unitFacts(who)
+	local on = Mock.conditionalTargeting ~= false
+	if who == "player" then return on, false, Mock.dead == true end
+	if who == "mouseover" then
+		local m = Mock.mouseover
+		if not (on and type(m) == "table") then return false, false, false end
+		return true, m.hostile == true, m.dead == true
+	end
+	return on and Mock.groupNames ~= nil and Mock.groupNames[who] ~= nil, false, false
+end
+
+-- Whether one [...] holds, and the unit it names (nil: the target).
 local function bracketHolds(conditional)
 	local who = conditional:match("@([^,%]]+)")
+	local exists, hostile, dead = true, false, false
+	if who then
+		exists, hostile, dead = unitFacts(who)
+		if not exists then return false end
+	end
 	for word in (conditional .. ","):gmatch("%s*([^,]-)%s*,") do
 		if word == "combat" and not inFight() then return false end
 		if word == "nocombat" and inFight() then return false end
-		if not who and TARGET_WORDS[word] and not targetHolds(word) then return false end
+		if word == "mod:shift" and not (IsShiftKeyDown and IsShiftKeyDown()) then return false end
+		if who then
+			if word == "help" and hostile then return false end
+			if word == "harm" and not hostile then return false end
+			if word == "nodead" and dead then return false end
+		else
+			if TARGET_WORDS[word] and not targetHolds(word) then return false end
+			if word == "nodead" and Mock.runTarget and Mock.runTarget.dead == true then return false end
+		end
 	end
-	-- No unit named, so this is an ordinary conditional and not our question.
-	if not who then return true end
-	if Mock.conditionalTargeting == false then return false end
-	return Mock.groupNames ~= nil and Mock.groupNames[who] ~= nil
+	return true, who
 end
 
+-- One clause of a macro's conditionals: whether it holds, what follows the
+-- brackets, and the unit the first bracket that held named.
 local function clauseAnswer(clause)
 	local rest = clause:match("^%s*(.-)$")
 	if rest:sub(1, 1) ~= "[" then return true, rest end
-	local any = false
+	local any, unit = false, nil
 	while true do
 		local conditional, after = rest:match("^%[([^%]]*)%]%s*(.*)$")
 		if not conditional then break end
-		any = any or bracketHolds(conditional)
+		if not any then
+			local holds, who = bracketHolds(conditional)
+			if holds then any, unit = true, who end
+		end
 		rest = after
 	end
-	return any, rest
+	return any, rest, unit
 end
 
+-- As the client's: the text of the first clause that holds and, second, the
+-- unit its conditional named (nil for the target).
 function SecureCmdOptionParse(msg)
 	local text = tostring(msg)
 	-- One clause with no conditional: handed back as it was given.
 	if not text:find("[;%[]") then return text end
 	for clause in (text .. ";"):gmatch("([^;]*);") do
-		local holds, value = clauseAnswer(clause)
-		if holds then return (value:gsub("%s+$", "")) end
+		local holds, value, unit = clauseAnswer(clause)
+		if holds then return (value:gsub("%s+$", "")), unit end
 	end
 	return nil
 end

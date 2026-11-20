@@ -535,6 +535,45 @@ function Page.BuildLookTab()
 					if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
 				end,
 			},
+			-- Your cure in a fight (Prompt/CureFight.lua): a button of its own
+			-- that is out of sight until Manners sees somebody near you it can
+			-- cure, with a key of its own. Shown to a class with a cure.
+			cureFight = {
+				type = "toggle",
+				name = L["Offer my cure in a fight when somebody needs it"],
+				desc = function()
+					if ns.caps.conditionalTargeting then
+						return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures the player under your mouse, else your target, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs. A change made in a fight counts from the next one."]
+					end
+					return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures your target when it is a friend, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs. A change made in a fight counts from the next one."]
+				end,
+				order = 32.491,
+				width = "full",
+				hidden = function() return not ns.ClassHasCures() end,
+				get = pGet,
+				set = function(info, value)
+					pSet(info, value)
+					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+				end,
+			},
+			cureFightKey = {
+				type = "keybinding",
+				name = L["Key for my cure in a fight"],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
+				order = 32.492,
+				hidden = function()
+					return not ns.ClassHasCures() or P().cureFight ~= true or not ns.Setup.CanBind()
+				end,
+				disabled = function() return InCombatLockdown() end,
+				get = function() return ns.Setup.Key(ns.CureFight.COMMAND) or "" end,
+				set = function(_, value)
+					local list = ns.CureFightSpells()
+					ns.Setup.SetKey(value, ns.CureFight.COMMAND, function(key, was)
+						return L["%s was bound to %s; it now casts %s."]:format(key, was, list and list[1] and list[1].name or "")
+					end)
+					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+				end,
+			},
 			-- Next to Animations, because that is what it is: the flashes of
 			-- a click in a fight, not whether anybody is offered.
 			--

@@ -258,6 +258,23 @@ asleep* (Look, under *In a fight*, on) switches it, and *Key for Will of the
 Forsaken* under it sets the key. Only a Forsaken who has the spell sees
 either.
 
+#### Curing in a fight
+
+A class with a cure can tick *Offer my cure in a fight when somebody needs it*
+(Look, under *In a fight*, off; also under *Who to buff*, *Cures*). It gives a
+small button right of the prompt (or of the Will of the Forsaken button), with
+*Key for my cure in a fight* under the switch. It is never on screen for
+nothing: it appears only when Manners sees you, your target or somebody in your
+group, in reach and alive, carrying a poison, disease, curse or harmful spell
+your cure removes, with the spell's name, who it is and what they carry, and it
+fades again once nobody does. A press cures the player under your mouse, else
+your target, else you; on WoW Forever your target when it is a friend, else
+you. A class with two cures (a druid, a priest or a shaman on the older
+clients) casts the second with Shift held, and the button says which. A debuff
+Manners never removes keeps the cure that would lift it away from that person.
+Where the game hides debuffs in a fight the button stays out of sight, and its
+key still casts. The prompt's own key keeps to buffs.
+
 Other players' buffs are hidden by the game in a fight, and sometimes for a
 moment after: somebody whose buffs cannot be read is offered marked
 *unverified*, and everybody is read again the moment the fight ends.
@@ -618,7 +635,7 @@ Shift-right-click turns *Cure myself too* off. *Only with more
 than this many seconds left* (10) leaves alone what is about to run out by
 itself, and a debuff with no timer is never offered. A handful that punish
 whoever removes them (Unstable Affliction, Vampiric Touch) are never offered
-either.
+either. In a fight, see *Curing in a fight*.
 
 **People who ask me in chat.** Off by default, because reading chat is
 guesswork. Somebody who asks for your buff in `/say`, `/yell`, group chat or a
@@ -1251,6 +1268,9 @@ cannot send it to somebody else by mistake.
   - *Offer Will of the Forsaken when I am feared, charmed or asleep* (on, a
     Forsaken only), with *Key for Will of the Forsaken* under it: see *Will
     of the Forsaken* above.
+  - *Offer my cure in a fight when somebody needs it* (off, a class with a
+    cure), with *Key for my cure in a fight* under it: see *Curing in a
+    fight* above.
   - *No flashes in combat*: the prompt stays on screen, its key still
     casting, with no flashes and no cooldown sweep.
   - *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at

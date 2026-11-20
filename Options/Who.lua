@@ -916,6 +916,27 @@ local function AddCureControls(args)
 		get = fGet,
 		set = fSet,
 	}
+	-- The fight's own button (Prompt/CureFight.lua) has its switch on Look, In
+	-- a fight; the same switch sits here too, where somebody turning cures on
+	-- looks for it. It does not follow the switches above or the seconds.
+	args.curesFight = {
+		type = "toggle",
+		name = L["Offer my cure in a fight when somebody needs it"],
+		desc = function()
+			if ns.caps.conditionalTargeting then
+				return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures the player under your mouse, else your target, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs. A change made in a fight counts from the next one."]
+			end
+			return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures your target when it is a friend, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs. A change made in a fight counts from the next one."]
+		end,
+		order = 14.95,
+		width = "full",
+		hidden = NoCures,
+		get = function() return ns.db.profile.prompt.cureFight == true end,
+		set = function(_, value)
+			ns.db.profile.prompt.cureFight = value == true
+			if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+		end,
+	}
 end
 
 -- A hunter's pet (HunterPet.lua): care, a switch each, held to Myself, and the

@@ -32,6 +32,7 @@ Yours to arrange: twenty-nine looks, a blessing for each class for paladins, pro
 - **Skip players in a fight.** On *Who to skip*: no buff that drags somebody's mobs onto you.
 - **Ask in your own words.** *What the ask says* takes *My own words* and a line you write.
 - **Your pet, hunters.** Call, Revive and Mend Pet when it needs them, Feed Pet on WoW Forever, Classic Era and Burning Crusade, *Bond with my pet* for a pat or a kind word now and then, and Mend Pet on a button of its own in a fight.
+- **Your cure, in a fight.** *Offer my cure in a fight when somebody needs it* puts your class's cure on a button of its own that appears only when somebody near you carries a poison, curse, disease or harmful spell it can remove.
 
 > **I read every comment here and on GitHub.** Most of the list above was asked for in these comments, and a new version comes out most days. Found a bug? Please send a log with it: see **Report a bug** below.
 

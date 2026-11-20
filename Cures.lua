@@ -20,7 +20,9 @@
 --     any left and an area's aura comes straight back;
 --   - never a debuff on the deny list (DENY);
 --   - never in a fight, your own or the pull's repaint that arms a fight's
---     macro: the client withholds every aura there anyway;
+--     macro: the client withholds every aura there anyway. The fight's own
+--     button (Prompt/CureFight.lua) reads debuffs there, through
+--     ns.CureFightRead;
 --   - never to somebody you owe a favour, whose buff back comes first, nor to
 --     a group member's pet.
 --
@@ -608,6 +610,106 @@ function ns.ForgetCureRead(unit)
 	if guid and cache[guid] then
 		cache[guid] = nil
 		cacheCount = cacheCount - 1
+	end
+end
+
+---------------------------------------------------------------------------
+-- in a fight (Prompt/CureFight.lua)
+---------------------------------------------------------------------------
+
+do
+	-- How long a debuff must have left for the fight's button to show it.
+	local FIGHT_SECONDS = 2
+	-- A cure that may also be cast at an enemy (Dispel Magic on the older
+	-- clients, target 25): a bare /cast with a hostile target lands there.
+	local ANY_TARGET = { [988] = true }
+	-- One read's working tables: the debuff with most time left a kind, its
+	-- name, and the kinds a debuff never removed is of.
+	local untilOf, nameOf, deniedKind = {}, {}, {}
+
+	-- The spells the fight's button casts: the cure for the first kind in
+	-- KINDS order on the plain press, and the next spell with Shift; a third,
+	-- which no class has, is left off. Each is { cure, name, kinds, anyTarget }.
+	-- Kept on the probe's state, so a new probe gives a new list. nil with
+	-- nothing learned.
+	function ns.CureFightSpells()
+		local state = State()
+		if not state.any then return nil end
+		if state.fight then return state.fight end
+		local out = {}
+		for _, kind in ipairs(KINDS) do
+			local cure = state.byKind[kind]
+			if cure then
+				local found
+				for i = 1, #out do
+					if out[i].cure.ranks == cure.ranks then found = out[i] break end
+				end
+				if found then
+					found.kinds[kind] = true
+				elseif #out < 2 then
+					out[#out + 1] = { cure = cure, name = cure.info.name, kinds = { [kind] = true },
+						anyTarget = ANY_TARGET[cure.ranks[1]] == true }
+				end
+			end
+		end
+		state.fight = out
+		return out
+	end
+
+	-- What on `unit` the fight's button could take off now: the kind, the
+	-- debuff's name and when it ends, of the one with most time left whose
+	-- cure lifts no kind a debuff never removed is of (Spares' rule, without
+	-- a second spell to fall back on); nil when nothing. A debuff never
+	-- removed whose kind or id cannot be read keeps everything away. `secret`
+	-- true when anything came back withheld: passed over, compared with
+	-- nothing. Called directly where the client never withholds;
+	-- Prompt/CureFight.lua protects it where it may.
+	function ns.CureFightRead(unit, now)
+		local auras = C_UnitAuras
+		local read = type(auras) == "table" and auras.GetAuraDataByIndex or nil
+		if type(read) ~= "function" then return nil end
+		local state = State()
+		local byKind, lifts = state.byKind, state.lifts
+		wipe(untilOf)
+		wipe(nameOf)
+		wipe(deniedKind)
+		local secret, blind
+		for index = 1, 40 do
+			local aura = read(unit, index, "HARMFUL")
+			if issecretvalue and issecretvalue(aura) then
+				secret = true
+			elseif type(aura) ~= "table" then
+				break
+			else
+				local kind = plain(aura.dispelName)
+				local id, expires = plain(aura.spellId), plain(aura.expirationTime)
+				if issecretvalue and (issecretvalue(aura.dispelName) or issecretvalue(aura.spellId)) then
+					secret, blind = true, true
+				elseif type(id) == "number" and DENIED[id] then
+					if type(kind) == "string" then deniedKind[kind] = true else blind = true end
+				elseif type(kind) == "string" and byKind[kind] and plain(aura.canActivePlayerDispel) ~= false
+					and type(expires) == "number" and expires - now > FIGHT_SECONDS
+					and (untilOf[kind] == nil or expires > untilOf[kind]) then
+					local name = plain(aura.name)
+					untilOf[kind] = expires
+					nameOf[kind] = (type(name) == "string" and name ~= "") and name or KIND_LABEL[kind]
+				end
+			end
+		end
+		if blind then return nil, nil, nil, secret end
+		local bestKind
+		for _, kind in ipairs(KINDS) do
+			local expires = untilOf[kind]
+			if expires and (bestKind == nil or expires > untilOf[bestKind]) then
+				local kinds, spares = lifts[byKind[kind].ranks], true
+				for denied in pairs(deniedKind) do
+					if kinds and kinds[denied] then spares = false break end
+				end
+				if spares then bestKind = kind end
+			end
+		end
+		if not bestKind then return nil, nil, nil, secret end
+		return bestKind, nameOf[bestKind], untilOf[bestKind], secret
 	end
 end
 

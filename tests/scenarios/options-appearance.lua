@@ -63,7 +63,7 @@ local ORDER = {
 	"posHeader", "scale", "alpha", "width", "height",
 	"styleHeader", "classLook", "style", "lookHeader", "classicArt", "classicArtNote", "keycap", "bgColor", "accentByReason", "reasonPalette", "accentColor",
 	"accentMode", "accentDead",
-	"attentionHeader", "flashStyle", "effects", "hideInFight", "fightRota", "breakFree", "breakFreeKey", "mendInFight", "mendInFightKey", "hideInCombat", "dimInCombat", "soundEnabled", "soundFile",
+	"attentionHeader", "flashStyle", "effects", "hideInFight", "fightRota", "breakFree", "breakFreeKey", "mendInFight", "mendInFightKey", "cureFight", "cureFightKey", "hideInCombat", "dimInCombat", "soundEnabled", "soundFile",
 	"soundOwedOnly", "noSound", "peekOnChange",
 	"tooltipHeader", "tooltip", "tooltipPosition",
 	"textHeader", "font", "fontSize", "fontColor", "classColor", "textShadow", "showSub", "showGuild",

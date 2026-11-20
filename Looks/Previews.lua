@@ -319,4 +319,4 @@ ns.Looks.previewTextEarlier = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "569a6f1756c2fff83f32640329d127a46af4b00791e1fbfdb4f1933f3b24fd8c"
+ns.Looks.previewHash = "15031e29fb0a8b9c171c8977aa6bcadb830b381ea1be9816252149c42d346cd1"

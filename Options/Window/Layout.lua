@@ -403,6 +403,7 @@ ns.WindowLayout = {
 					-- not under the party's, which it does not wait on.
 					"who.curesSelf",
 					{ "who.cureSeconds", indent = true },
+					"who.curesFight",
 				} },
 				{ key = "who.myself", header = "who.myselfHeader", items = {
 					"who.self",
@@ -829,6 +830,8 @@ ns.WindowLayout = {
 					{ "appearance.breakFreeKey", indent = true },
 					"appearance.mendInFight",
 					{ "appearance.mendInFightKey", indent = true },
+					"appearance.cureFight",
+					{ "appearance.cureFightKey", indent = true },
 					"appearance.hideInCombat",
 					"appearance.dimInCombat",
 				} },
@@ -1084,6 +1087,7 @@ ns.WindowLayout = {
 			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,
 			["appearance.breakFree"] = true, ["appearance.breakFreeKey"] = true,
 			["appearance.mendInFight"] = true, ["appearance.mendInFightKey"] = true,
+			["appearance.cureFight"] = true, ["appearance.cureFightKey"] = true,
 		},
 	},
 
@@ -1201,6 +1205,8 @@ ns.WindowLayout = {
 		["who.beastAll"] = L["hunter pet everything all off"], ["who.beastPace"] = L["hunter pet moments often rarely"],
 		["who.beastLeaveFood"] = L["hunter pet vendor food buy"], ["who.beastGrowl"] = L["hunter pet growl autocast tank"],
 		["who.beastTraining"] = L["hunter pet training points"], ["appearance.mendInFight"] = L["hunter pet mend fight button key"],
+		["appearance.cureFight"] = L["cure dispel decurse cleanse fight combat button key"],
+		["who.curesFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["who.ownSpellAdd"] = L["custom spell add new buff own"],
 	},
 
@@ -1262,6 +1268,7 @@ ns.WindowLayout = {
 		-- The break-free key, shown only while its switch is on.
 		["appearance.breakFreeKey"] = "appearance.breakFree",
 		["appearance.mendInFightKey"] = "appearance.mendInFight",
+		["appearance.cureFightKey"] = "appearance.cureFight",
 	},
 
 	-- What else a control of `parents` needs before its switch would show it:
@@ -1272,6 +1279,7 @@ ns.WindowLayout = {
 		-- Only for a character with the ability: the switch shows nothing else.
 		["appearance.breakFreeKey"] = function() return ns.caps.breakFree ~= nil end,
 		["appearance.mendInFightKey"] = function() return ns.Beast.IsHunter() and ns.Beast.KnowsMend() end,
+		["appearance.cureFightKey"] = function() return ns.ClassHasCures() end,
 		["who.beastShare"] = function() return ns.Beast.Feeds() end,
 		["who.beastMendFight"] = function() return ns.Beast.KnowsMend() end,
 		["who.beastLeaveFood"] = function() return ns.Beast.Feeds() end,

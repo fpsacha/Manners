@@ -9,4 +9,6 @@
 	<Binding name="CLICK MannersBreakFree:LeftButton" category="Manners"/>
 	<!-- The Mend Pet button (Prompt/MendPet.lua), for a hunter with a pet. -->
 	<Binding name="CLICK MannersMendPet:LeftButton" category="Manners"/>
+	<!-- The cure button for a fight (Prompt/CureFight.lua), for a class with a cure. -->
+	<Binding name="CLICK MannersCureFight:LeftButton" category="Manners"/>
 </Bindings>

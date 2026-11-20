@@ -46,6 +46,52 @@ shared with the buffs). What only the game can say: that
 `canActivePlayerDispel` and the harmful list read true on yourself on each
 client, and that a poisoned you is offered the cure on the prompt.
 
+**Cure in a fight (unreleased, asked for on CurseForge: "Can I set up decurse
+in combat while keeping buffs out of combat?").** `prompt.cureFight`, off, on
+Look under *In a fight* after Mend Pet (with `cureFightKey` under it), and
+mirrored on Who to buff under *Cures* (`who.curesFight`, after the seconds,
+which it does not follow). `Prompt/CureFight.lua` (`ns.CureFight`,
+`MannersCureFight`, `CLICK MannersCureFight:LeftButton`, the fifth binding),
+modelled on `BreakFree.lua` and `MendPet.lua` but never on the screen for
+nothing, by the owner's rule: "only appear if we detect a user with a disease
+/ curse. Don't pop for fun". Its own state driver shows it for every fight at
+alpha 0 (no tooltip, the highlight a region of the button so it takes the
+alpha); Lua fades it in only after a UNIT_AURA read in the fight has found
+somebody in reach (you, your target and focus, your party or raid) carrying a
+debuff the armed cure removes, and out again the moment nobody needs it, a
+debuff running out with no event included (a 0.5 s recheck of reach and time
+while anybody needs a cure). Lua paints only alpha and its own regions in a
+fight; nothing protected is touched. The macro is written out of combat: off
+Forever (`caps.conditionalTargeting`) `/cast [@mouseover,help,nodead]
+[help,nodead][@player] <cure>`, the second cure of a class with two under
+`[mod:shift,...]` in front, on Forever a bare `/cast` (`[mod:shift] <b>; <a>`
+for two); a key bound with Shift in it arms the first cure alone. `Cures.lua`
+gained `ns.CureFightSpells` (the spells, first kind in KINDS order plain, the
+next with Shift) and `ns.CureFightRead` (one walk of the harmful list: kind,
+name, end; Spares' rule against the deny list; a debuff about to end, one
+`canActivePlayerDispel` refuses, or a secret one is passed over). Where the
+client withholds auras (Forever and retail) only you and your target are read
+and the button is expected to stay out of sight; its key still casts (your
+friendly target, else you), and so does a click on its empty place in a fight
+(alpha 0 takes clicks and the mouse of a protected frame cannot change in
+combat). `/manners debug` counts the reads and the withheld reads of the last
+fight. Cost: events only between the pull and the release (UNIT_AURA filtered
+by a table lookup outside the Guard, an added harmful aura asking for a read
+of somebody not shown, one flush a tenth of a second, ten units a flush),
+nothing on an idle scan with the switch off and no button made.
+`tests/scenarios/curefight.lua` (46 scenario loads) and thirty-six mutations
+in `tests/mutations/curefight.py`, each CAUGHT by `tools/prove.py` (the last,
+the reset list, by `model-window.lua`, which prove.py cannot find by its
+dynamic name). Deferred: cure entries in the fight's rota (they would cast
+blind), and a button for a support buff (Earth Shield, Beacon) on this
+engine. Not changed, and open for the owner: Mend Pet and Will of the
+Forsaken still sit dim for every fight (alpha 0.35 and 0.6), where this button
+is invisible until needed; moving them to alpha 0 is a few lines each, but Mend
+Pet's half-lit state on Forever, where a pet's health is secret, would then
+never show. Mend Pet's `Wanted` also lacks the `or nil` the new button's has,
+so for a hunter it asks `Refresh` on every scan (harmless; not touched). For
+the game to settle: the list under *Open*.
+
 **Scroll bar (unreleased, a CurseForge report: on four pages dragging the bar
 went the wrong way, the wheel was fine).** The exact cause was not provable
 from the code, which drives the bar the same way on every page and leaves only
@@ -450,8 +496,9 @@ What was built:
   `canActivePlayerDispel` on the Classic clients is assumed from Blizzard's UI
   code. Not built: curing pets; Mass Dispel; pet dispels.
   Curing yourself is built (*Cure myself too*, see the top of this file).
-  Cures in a fight stay out of reach: the client withholds the auras there,
-  and a secure snippet cannot read them.
+  Cures in a fight: see *Cure in a fight* at the top of this file (a button
+  of its own, out of sight until a debuff is detected; the prompt's own cures
+  stay out of combat).
 - **Courtesies on request** (`Courtesy.lua`; four `sources.courtesy*`, all
   off; `courtesy.lua`). Not built: Pick Lock (it needs a /click on the trade
   slot); "port pls" with no city; a trade press from the bar macro.
@@ -983,7 +1030,18 @@ permissions list, a hook that lints each edited file, and the commands
 1. The options window's scroll bar is now dragged by Manners' own code (a plain frame with a thumb, not a client Slider): does a drag down move the page down on every page and every client, at any UI scale, with the box bars too?
 2. A report that "no popup appears for me or allies in the latest version" had no client or class and no cause in the code (every suspect was clean); waiting on the player's `/manners debug` and `/manners errors`.
 3. A prose pass over the in-game English (settings, tooltips, messages) was asked for by a player on CurseForge: not started. Rewrite the stiffest lines first; each changed string drops its old key from every locale by hand.
-4. Not built: cures in a fight (the prompt is locked and debuffs are often secret there).
+4. Cures in a fight are built as a button of its own (see *Cure in a fight* at the top and the list below), not on the prompt.
+
+**Cure in a fight (unreleased), for the game to settle.**
+1. Whether Forever and retail hand back the player's own and the target's debuffs plain in a fight. `/manners debug` says "N reads, M withheld" for the last fight: after one real fight it answers.
+2. That UNIT_AURA's payload on Era, TBC and Mists carries `addedAuras` with a plain `isHarmful` in a fight. A nil payload is read in full, so this only costs.
+3. That Shift+key with SHIFT-<key> unbound reaches the plain binding with Shift held, so `[mod:shift]` sees it.
+4. `[@mouseover,help,nodead]` on raid and party frames, and `[@player]`, on Era, TBC, Mists and retail. On Forever: the bare `[mod:shift]` parse, and a bare `/cast` of a friendly-only cure with a hostile target landing on you (autoSelfCast; with it off the client asks for a target).
+5. The OnUpdate fade's `SetAlpha` on the protected button in combat (Mend Pet sets alpha in combat without a fade).
+6. An alpha-0 button shown by the driver: that nothing of it shows, and the stray click on its place.
+7. `IsSpellInRange` on group tokens in a fight, and the Mists cure's cooldown read plain for the sweep.
+8. `canActivePlayerDispel` on the Classic clients in a fight (assumed from Blizzard's UI, as for the cures out of combat).
+9. The event rate in a 40-man fight, from the debug line's read count.
 
 **Nothing of your own on the run (1.11.30), for the game to settle.**
 1. Are `GetUnitSpeed("player")` and `IsFalling()` plain out of a fight on Forever and retail? A secret speed is read from the moving events; with neither, you count as standing, as before.

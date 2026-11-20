@@ -2061,6 +2061,7 @@ function addon:HandleSlash(rawInput)
 		-- how it came (plain, secret, or no API), for the first real fear.
 		for _, line in ipairs(ns.BreakFreeLines and ns.BreakFreeLines() or {}) do self:Print("  " .. line) end
 		for _, line in ipairs(ns.MendPetLines and ns.MendPetLines() or {}) do self:Print("  " .. line) end
+		for _, line in ipairs(ns.CureFightLines and ns.CureFightLines() or {}) do self:Print("  " .. line) end
 
 		-- A buff table that never arrived says so first, or the lines below
 		-- read as "this class has nothing".

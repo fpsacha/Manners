@@ -12,6 +12,10 @@ ns.WhatsNew = {
 			"|cffffd100Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
 			"|cffffd100Don't thank anybody while I'm in a party or a raid.|r No /thank or whispered thank-you while you're grouped.",
 			"|cffffd100Cure yourself.|r A new switch, |cffffffffCure myself too|r, offers the cure for a poison, disease, curse or harmful spell on you, out of combat.",
+			"|cffffd100Cure in a fight.|r A new switch on Look, under |cffffffffIn a fight|r: |cffffffffOffer my cure in a fight when somebody needs it|r.",
+		} },
+		{ title = "In a fight", accent = "7cc4ff", entries = {
+			"|cff7cc4ffOffer my cure in a fight when somebody needs it|r (off), with |cffffffffKey for my cure in a fight|r under it; the same switch is under |cffffffffWho to buff|r, |cffffffffCures|r.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
