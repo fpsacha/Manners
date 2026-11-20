@@ -979,6 +979,12 @@ permissions list, a hook that lints each edited file, and the commands
 
 ## Open
 
+**Comments of 20 November (the scroll bar, snooze, cure yourself, thanks in a group, the druid colour), for the game to settle.**
+1. The options window's scroll bar is now dragged by Manners' own code (a plain frame with a thumb, not a client Slider): does a drag down move the page down on every page and every client, at any UI scale, with the box bars too?
+2. A report that "no popup appears for me or allies in the latest version" had no client or class and no cause in the code (every suspect was clean); waiting on the player's `/manners debug` and `/manners errors`.
+3. A prose pass over the in-game English (settings, tooltips, messages) was asked for by a player on CurseForge: not started. Rewrite the stiffest lines first; each changed string drops its old key from every locale by hand.
+4. Not built: cures in a fight (the prompt is locked and debuffs are often secret there).
+
 **Nothing of your own on the run (1.11.30), for the game to settle.**
 1. Are `GetUnitSpeed("player")` and `IsFalling()` plain out of a fight on Forever and retail? A secret speed is read from the moving events; with neither, you count as standing, as before.
 2. Does `GetUnitSpeed` read 0 standing on a boat or a zeppelin? Food and stones are held while it reads above 0.
