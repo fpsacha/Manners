@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+*21 November 2026*
+
+### Highlights
+- **Your fight key is kept for each class.** *In a fight, my key casts* used to
+  be one choice for every character on a profile, so a Flash Heal picked on a
+  priest armed a paladin's key with Flash of Light. Each class now keeps its
+  own choice; an earlier choice goes to its class when only one class has that
+  spell.
+
+### Fixes
+- **The fight cure is offered only once you know a cure.** The switch and its
+  key on Look and Who to buff stay out of sight until the class has learned one,
+  and the line said when you bind the key no longer ends on a blank spell name.
+- **Who to buff's reset puts back the fight switches it shows**, *Offer my cure
+  in a fight* and *Offer Mend Pet in a fight*.
+- **The page's scroll bar stays under the cursor** when the page grows or
+  shrinks while you drag it.
+- **Your own words for an ask are cut on a whole letter**, so a long line in
+  Chinese, Korean or an accented language no longer ends on half a character.
+- **Wording:** *Cure myself too* reads "reinigen" in German, and Fire Ward and
+  Frost Ward carry the game's own names in French and Korean.
+
 ## 1.11.34
 
 *21 November 2026*

@@ -250,7 +250,7 @@ mutate(CF,
 # --- 7. where the controls are
 
 mutate("Options/Look.lua",
-       "\t\t\t\thidden = function() return not ns.ClassHasCures() end,\n",
+       "\t\t\t\thidden = function() return not (ns.ClassHasCures() and ns.CureLearned()) end,\n",
        "",
        "curefight: the switch is shown to a class with no cure",
        expect="curefight: a class with no cure never sees it", script=S)

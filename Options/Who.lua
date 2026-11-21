@@ -930,7 +930,7 @@ local function AddCureControls(args)
 		end,
 		order = 14.95,
 		width = "full",
-		hidden = NoCures,
+		hidden = function() return NoCures() or not ns.CureLearned() end,
 		get = function() return ns.db.profile.prompt.cureFight == true end,
 		set = function(_, value)
 			ns.db.profile.prompt.cureFight = value == true

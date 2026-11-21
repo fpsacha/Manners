@@ -275,6 +275,12 @@ function ns.ClassHasCures()
 	return class ~= nil and CURES[class] ~= nil
 end
 
+-- Whether this character has learned a cure to cast: the fight's switch and
+-- key are offered for nobody else (a mage below Remove Lesser Curse).
+function ns.CureLearned()
+	return ns.CureFightSpells() ~= nil
+end
+
 local NOTHING = { byKind = {}, list = {}, any = false, live = {}, all = {}, lifts = {} }
 
 -- What this character can cure, per probe: caps is emptied by every probe

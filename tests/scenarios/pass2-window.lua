@@ -283,3 +283,110 @@ do
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
+
+-- ------------------------------------------------------------------ 8
+-- A profile saved before the fight key was kept per class: the one key goes to
+-- the class whose list alone holds it, and is dropped when two classes share it.
+do
+	local scenario = "pass2-window: an old shared fight key goes to the one class that holds it"
+	local everything = setmetatable({}, { __index = function() return true end })
+	local function login(class, legacy, body)
+		Mock.reset()
+		Mock.setFlavour("vanilla")
+		Mock.class = class
+		Mock.knownSpells = everything
+		local ok, err = pcall(function()
+			local ns = load(scenario)
+			if not ns then return end
+			freshPrompt(ns, scenario)
+			ns.Guard("probe", ns.ProbeCapabilities)
+			local p = ns.db.profile.prompt
+			p.fightKeySpells = nil
+			p.fightKeySpell = legacy
+			ns.ClampSettings()
+			body(ns, p)
+			noErrors(scenario, ns)
+		end)
+		Mock.reset()
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+	login("PRIEST", "shield", function(ns, p)
+		if p.fightKeySpell ~= nil then fail(scenario, "the old field is kept: " .. tostring(p.fightKeySpell)) end
+		if type(p.fightKeySpells) ~= "table" or p.fightKeySpells.PRIEST ~= "shield" then
+			fail(scenario, "Power Word: Shield, only a priest's, was not carried to the priest")
+		end
+		if ns.FightKey.Value() ~= "shield" then fail(scenario, "the priest's select reads " .. tostring(ns.FightKey.Value())) end
+	end)
+	login("PALADIN", "flash", function(ns, p)
+		if p.fightKeySpell ~= nil then fail(scenario, "the old field is kept: " .. tostring(p.fightKeySpell)) end
+		if next(p.fightKeySpells) ~= nil then fail(scenario, "flash, a priest's and a paladin's, was given to a class") end
+	end)
+end
+
+-- ------------------------------------------------------------------ 9
+-- The Who page's cure-in-a-fight switch follows the same rule as Look's: a cure
+-- learned, or nothing to switch.
+do
+	local scenario = "pass2-window: the cure's switch on Who to buff is offered only with a cure learned"
+	local function check(known)
+		Mock.reset()
+		Mock.setFlavour("vanilla")
+		Mock.class = "MAGE"
+		Mock.knownSpells = known
+		local ns = load(scenario)
+		if ns then
+			local ok, err = pcall(function()
+				freshPrompt(ns, scenario)
+				ns.Guard("probe", ns.ProbeCapabilities)
+				local who = findOption(ns.optionsTable, "curesFight")
+				local look = findOption(ns.optionsTable, "cureFight")
+				if not (who and look) then fail(scenario, "SKIPPED -- no cure controls") return end
+				local learned = ns.CureFightSpells() ~= nil
+				for name, control in pairs({ who = who, look = look }) do
+					if learned and control.hidden() == true then
+						fail(scenario, name .. "'s switch is hidden with a cure learned")
+					elseif not learned and control.hidden() ~= true then
+						fail(scenario, name .. "'s switch is offered with no cure learned")
+					end
+				end
+				noErrors(scenario, ns)
+			end)
+			if not ok then fail(scenario, "threw: " .. tostring(err)) end
+		end
+		Mock.reset()
+	end
+	check({})
+	check(setmetatable({}, { __index = function() return true end }))
+end
+
+-- ------------------------------------------------------------------ 10
+-- Whatever is shown, the key's chat line never says it casts nothing.
+do
+	local scenario = "pass2-window: the cure key's line never names an empty spell"
+	Mock.reset()
+	Mock.setFlavour("vanilla")
+	Mock.class = "MAGE"
+	Mock.knownSpells = {}
+	local ns = load(scenario)
+	if ns then
+		local ok, err = pcall(function()
+			freshPrompt(ns, scenario)
+			ns.Guard("probe", ns.ProbeCapabilities)
+			local keyControl = findOption(ns.optionsTable, "cureFightKey")
+			if not keyControl then fail(scenario, "SKIPPED -- no cure key") return end
+			Mock.bindings = Mock.bindings or {}
+			Mock.bindings.F = "MANNERS_SOMETHING_ELSE"
+			Mock.printed = {}
+			keyControl.set({ "cureFightKey" }, "F")
+			local said
+			for _, line in ipairs(Mock.printed) do
+				if line:find("MANNERS_SOMETHING_ELSE", 1, true) then said = line end
+			end
+			if not said then fail(scenario, "SKIPPED -- nothing was said") return end
+			if said:find("casts %.$") then fail(scenario, "chat says: " .. said) end
+			noErrors(scenario, ns)
+		end)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+	Mock.reset()
+end

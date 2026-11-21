@@ -172,7 +172,8 @@ local function BarPressed(bar, button)
 		-- On the track: the thumb's middle jumps to the cursor.
 		bar._write(range * ((bar:GetTop() - cy) - thumb:GetHeight() / 2) / travel)
 	end
-	bar._grab = { cy = cy, from = (bar._read()), travel = travel }
+	local from = bar._read()
+	bar._grab = { cy = cy, from = from, travel = travel, range = range, px = travel * (tonumber(from) or 0) / range }
 	bar:SetScript("OnUpdate", bar._tick)
 	W.PlaceThumb(bar)
 end
@@ -183,8 +184,18 @@ local function BarDragged(bar)
 	if type(IsMouseButtonDown) == "function" and not IsMouseButtonDown("LeftButton") then return LetGo(bar) end
 	local _, range = bar._read()
 	local cy = CursorY(bar)
+	-- The page grew or shrank mid-drag (a line painted again), or the thumb
+	-- changed length with it: carry on from where the thumb is under the
+	-- cursor, with no jump, instead of the press's own travel.
+	local travel = bar:GetHeight() - bar._thumb:GetHeight()
+	if (range ~= grab.range or travel ~= grab.travel) and travel > 0 and (tonumber(range) or 0) > 0 then
+		bar._write(grab.px * range / travel)
+		grab.from, grab.cy, grab.range, grab.travel = (bar._read()), cy, range, travel
+	end
 	-- Screen y grows upward: the mouse moving down makes this positive.
 	bar._write(grab.from + (grab.cy - cy) * (tonumber(range) or 0) / grab.travel)
+	local pos = bar._read()
+	if (tonumber(range) or 0) > 0 and travel > 0 then grab.px = travel * (tonumber(pos) or 0) / range end
 	W.PlaceThumb(bar)
 end
 

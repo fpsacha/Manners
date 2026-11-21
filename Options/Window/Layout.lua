@@ -1287,7 +1287,7 @@ ns.WindowLayout = {
 		-- Only for a character with the ability: the switch shows nothing else.
 		["appearance.breakFreeKey"] = function() return ns.caps.breakFree ~= nil end,
 		["appearance.mendInFightKey"] = function() return ns.Beast.IsHunter() and ns.Beast.KnowsMend() end,
-		["appearance.cureFightKey"] = function() return ns.ClassHasCures() end,
+		["appearance.cureFightKey"] = function() return ns.ClassHasCures() and ns.CureLearned() end,
 		["who.beastShare"] = function() return ns.Beast.Feeds() end,
 		["who.beastMendFight"] = function() return ns.Beast.KnowsMend() end,
 		["who.beastLeaveFood"] = function() return ns.Beast.Feeds() end,

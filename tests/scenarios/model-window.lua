@@ -395,7 +395,7 @@ local EXPECTED = {
 		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "sources.self", "filters.proximity",
 		-- A class's courtesies on request, resurrection, cures and asking for a buff.
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
-		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds",
+		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
 		"ask.own",
 		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly", "ownBuffs.scrolls", "groupBuffs.use",
@@ -409,7 +409,7 @@ local EXPECTED = {
 		-- Elixirs to keep up (tests/scenarios/elixir-pair.lua).
 		"ownBuffs.elixirKeep",
 		-- A hunter's pet (HunterPet.lua).
-		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond",
+		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
 		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
 	},
 	skip = { "filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
@@ -438,7 +438,7 @@ local EXPECTED = {
 		"prompt.iconFrame", "prompt.gryphons", "prompt.classicArt", "prompt.keycap", "prompt.textShadow",
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.clickRows", "prompt.tooltip", "prompt.tooltipPosition", "sound.enabled", "sound.file", "sound.owedOnly", "supplies.size",
-		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons", "prompt.fightKeySpell", "prompt.fightKeyOn",
+		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons", "prompt.fightKeySpells", "prompt.fightKeyOn",
 		"prompt.classLook", "prompt.classStyles",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the

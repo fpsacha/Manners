@@ -721,9 +721,12 @@ local defaults = {
 			-- (Prompt/CureFight.lua). Off until ticked.
 			cureFight = false,
 			-- The spell the prompt's own key casts in a fight, by a row key of
-			-- Prompt/FightKey.lua's list; "none" keeps the key to buffs. The key is
-			-- pointed at a button of its own for the length of the fight.
-			fightKeySpell = "none",
+			-- Prompt/FightKey.lua's list, kept per class (CLASS -> key) because
+			-- every character shares the profile; none, or "none", keeps the key
+			-- to buffs. The key is pointed at a button of its own for the length
+			-- of the fight. (Before 1.11.35 one key for all: fightKeySpell, which
+			-- ClampSettings carries over once.)
+			fightKeySpells = {},
 			-- Who that spell lands on, for a spell that can go on others, on a client
 			-- where [@unit] resolves: "friend" (the player under the mouse, else
 			-- the target, else you) or "me".
@@ -6094,6 +6097,22 @@ function ns.ClampSettings()
 	oneOf(p, "keycap", { look = true, show = true, hide = true }, "look")
 	oneOf(p, "fightButtons", { needed = true, always = true }, "needed")
 	oneOf(p, "fightKeyOn", { friend = true, me = true }, "friend")
+	-- In a fight, my key casts: one key for every class before it was kept
+	-- per class. Carried to the class whose list holds it when that is one
+	-- class alone; a key two classes share (flash) cannot be told whose it
+	-- was and is dropped.
+	if type(p.fightKeySpells) ~= "table" then p.fightKeySpells = {} end
+	for class, key in pairs(p.fightKeySpells) do
+		if type(class) ~= "string" or type(key) ~= "string" then p.fightKeySpells[class] = nil end
+	end
+	if p.fightKeySpell ~= nil then
+		local old = p.fightKeySpell
+		p.fightKeySpell = nil
+		if type(old) == "string" and old ~= "none" and ns.FightKey then
+			local classes = ns.FightKey.ClassesFor(old)
+			if #classes == 1 and p.fightKeySpells[classes[1]] == nil then p.fightKeySpells[classes[1]] = old end
+		end
+	end
 	oneOf(p, "thankEmoteToken", ns.THANK_EMOTE_SET, "THANK")
 	-- The others to pick from: a table of known tokens, each true; anything
 	-- else in it is dropped.

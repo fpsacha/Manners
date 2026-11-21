@@ -129,12 +129,54 @@ local function Profile()
 	return ns.db and ns.db.profile
 end
 
--- The setting's value, a plain field read.
-local function Spell(db)
+-- The setting's value for this character's class, a plain field read: the
+-- choice is kept per class (prompt.fightKeySpells), since every character
+-- shares the one profile and a row key such as "flash" means one spell on a
+-- priest and another on a paladin.
+local function Raw(db)
 	local p = db and db.prompt
-	local key = p and p.fightKeySpell
+	local by = p and p.fightKeySpells
+	local class = caps.class
+	return type(by) == "table" and class and by[class] or nil
+end
+
+local function Spell(db)
+	local key = Raw(db)
 	if type(key) ~= "string" or key == "none" then return nil end
 	return key
+end
+
+-- What the options window shows and keeps: this class's choice, "none" when
+-- there is none or the character no longer has it in its list.
+function FightKey.Value(db)
+	db = db or Profile()
+	local key = Raw(db)
+	if type(key) ~= "string" then return "none" end
+	if key ~= "none" and not State().byKey[key] then return "none" end
+	return key
+end
+
+function FightKey.Set(db, key)
+	db = db or Profile()
+	local p = db and db.prompt
+	local class = caps.class
+	if not (p and class) then return end
+	if type(p.fightKeySpells) ~= "table" then p.fightKeySpells = {} end
+	p.fightKeySpells[class] = key
+end
+
+-- The classes whose list holds a row key, for a profile saved before the
+-- choice was kept per class.
+function FightKey.ClassesFor(key)
+	local flavour = ns.Flavour and ns.Flavour.flavour
+	local byClass = FightKey.SPELLS[FAMILY[flavour] or "old"]
+	local out = {}
+	for class, rows in pairs(byClass) do
+		for _, row in ipairs(rows) do
+			if row.key == key then out[#out + 1] = class end
+		end
+	end
+	return out
 end
 
 -- The chosen row, only while the character still knows it. The saved value is
@@ -237,7 +279,7 @@ function FightKey:Refresh()
 	if not db then return end
 	local row = FightKey.Chosen(db)
 	local p = db.prompt
-	settledSpell, settledOn, settledState, settledEnabled, dirty = p.fightKeySpell, p.fightKeyOn, caps.fightKey, db.enabled, false
+	settledSpell, settledOn, settledState, settledEnabled, dirty = Raw(db), p.fightKeyOn, caps.fightKey, db.enabled, false
 	if not (db.enabled == true and row) then
 		if button then Disarm() end
 		return
@@ -260,7 +302,7 @@ function FightKey:Wanted()
 	local db = Profile()
 	local p = db and db.prompt
 	if not p then return false end
-	if p.fightKeySpell ~= settledSpell or p.fightKeyOn ~= settledOn or db.enabled ~= settledEnabled then return true end
+	if Raw(db) ~= settledSpell or p.fightKeyOn ~= settledOn or db.enabled ~= settledEnabled then return true end
 	if Spell(db) and caps.fightKey ~= settledState then return true end
 	return false
 end

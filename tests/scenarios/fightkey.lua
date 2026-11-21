@@ -90,7 +90,7 @@ local function with(base_, flavour, body, opts)
 			Mock.eventSink = ns.addon
 			ns.KeyNudge = nil
 			local p = ns.db.profile.prompt
-			if opts.spell then p.fightKeySpell = opts.spell end
+			if opts.spell then p.fightKeySpells = { [Mock.class] = opts.spell } end
 			if opts.edit then opts.edit(p, ns) end
 			ns.Prompt:ApplyStyle()
 			Mock.bindings = Mock.bindings or {}
@@ -175,7 +175,7 @@ end
 
 -- ------------------------------------------------------------------ 1
 each("fightkey: Nothing by default leaves the key on the prompt", function(ns, scenario, p)
-	if p.fightKeySpell ~= "none" then fail(scenario, "the setting is " .. tostring(p.fightKeySpell) .. " in a new profile") end
+	if ns.FightKey.Value() ~= "none" or next(p.fightKeySpells) ~= nil then fail(scenario, "the setting is " .. tostring(ns.FightKey.Value()) .. " in a new profile") end
 	if not armed(ns, scenario) then return end
 	if fightButton() then fail(scenario, "a button was made with nothing chosen") end
 	pull(ns)
@@ -333,7 +333,7 @@ each("fightkey: a change in a fight counts from the next one", function(ns, scen
 	local macro = button:GetAttribute("macrotext1")
 	-- The select's own set, in the fight: saved, and nothing else.
 	local select_ = findOption(ns.optionsTable, "fightKeySpell")
-	p.fightKeySpell = "renew"
+	p.fightKeySpells[Mock.class] = "renew"
 	ns.Guard("fight key", ns.FightKey.Refresh, ns.FightKey)
 	ns.addon:Tick()
 	if #Mock.protectedCalls > 0 then
@@ -455,7 +455,7 @@ each("fightkey: a spell no longer known gives the key back to the prompt", funct
 	ns.addon:Tick()
 	if ns.FightKey.Chosen() ~= nil then fail(scenario, "a spell not known is still chosen") end
 	if ns.FightKey.Applies() then fail(scenario, "the fight key applies without its spell") end
-	if p.fightKeySpell ~= "shield" then fail(scenario, "the saved choice was wiped: " .. tostring(p.fightKeySpell)) end
+	if p.fightKeySpells[Mock.class] ~= "shield" then fail(scenario, "the saved choice was wiped: " .. tostring(p.fightKeySpells[Mock.class])) end
 	if fightButton():GetAttribute("macrotext1") then fail(scenario, "the button is still armed") end
 	pull(ns)
 	if overridden() > 0 then fail(scenario, "the key was taken for a spell not known") end

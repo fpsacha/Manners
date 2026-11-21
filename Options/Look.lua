@@ -496,9 +496,10 @@ function Page.BuildLookTab()
 					for _, entry in ipairs(ns.FightKey.Choices()) do out[#out + 1] = entry.key end
 					return out
 				end,
-				get = pGet,
-				set = function(info, value)
-					pSet(info, value)
+				-- Kept per class: the profile is shared by every character.
+				get = function() return ns.FightKey.Value() end,
+				set = function(_, value)
+					ns.FightKey.Set(nil, value)
 					ns.Guard("fight key", ns.FightKey.Refresh, ns.FightKey)
 				end,
 			},
@@ -640,7 +641,7 @@ function Page.BuildLookTab()
 				end,
 				order = 32.491,
 				width = "full",
-				hidden = function() return not ns.ClassHasCures() end,
+				hidden = function() return not (ns.ClassHasCures() and ns.CureLearned()) end,
 				get = pGet,
 				set = function(info, value)
 					pSet(info, value)
@@ -653,14 +654,16 @@ function Page.BuildLookTab()
 				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 32.492,
 				hidden = function()
-					return not ns.ClassHasCures() or P().cureFight ~= true or not ns.Setup.CanBind()
+					return not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true or not ns.Setup.CanBind()
 				end,
 				disabled = function() return InCombatLockdown() end,
 				get = function() return ns.Setup.Key(ns.CureFight.COMMAND) or "" end,
 				set = function(_, value)
 					local list = ns.CureFightSpells()
 					ns.Setup.SetKey(value, ns.CureFight.COMMAND, function(key, was)
-						return L["%s was bound to %s; it now casts %s."]:format(key, was, list and list[1] and list[1].name or "")
+						local spell = list and list[1] and list[1].name
+						if not spell then return L["%s was bound to %s; it now buffs the prompted player."]:format(key, was) end
+						return L["%s was bound to %s; it now casts %s."]:format(key, was, spell)
 					end)
 					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
 				end,

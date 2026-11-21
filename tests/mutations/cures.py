@@ -340,7 +340,7 @@ mutate("Options/Window/Layout.lua",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"sources.cures\", \"sources.curesStrangers\", \"sources.curesSelf\", \"filters.cureSeconds\",\n",
+       "\t\t\"sources.cures\", \"sources.curesStrangers\", \"sources.curesSelf\", \"filters.cureSeconds\", \"prompt.cureFight\",\n",
        "",
        "cures: the page's reset leaves the settings",
        expect="cures: the switches are on Who to buff, for a class with a cure", script=S)

@@ -108,7 +108,7 @@ snippet strips it, the rota rewrites it at every press, the buff lines ahead of
 it start the global cooldown, `[@player]` is off on Forever and the bar macro
 cannot copy a conditional. Instead `Prompt/FightKey.lua` (`ns.FightKey`,
 `MannersFightKey`, never shown, no key of its own, no Bindings.xml entry):
-`prompt.fightKeySpell` (`"none"`; a row key of its list) and
+`prompt.fightKeySpells` (class -> a row key of its list, `"none"`; per class, since every character shares the profile) and
 `prompt.fightKeyOn` (`friend`, `me`), on Look under *In a fight* after the
 rota (`appearance.fightKeySpell`, `fightKeyOn`; both in the simple view and the
 appearance reset). The list is per class and per family (`old`: Classic Era,

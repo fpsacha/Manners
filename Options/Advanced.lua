@@ -49,7 +49,7 @@ Page.RESET = {
 		"sources.owed", "sources.group", "sources.pets", "sources.share", "sources.strangers", "sources.asked", "sources.self",
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
 		"sources.res", "sources.resStrangers",
-		"sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds",
+		"sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight",
 		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
 		"ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly", "ownBuffs.scrolls", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"buff.leaveBlessed",
@@ -59,7 +59,7 @@ Page.RESET = {
 		"buff.optIn",
 		"ownBuffs.apart",
 		-- A hunter's pet (HunterPet.lua): care and the moments, all on again.
-		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond",
+		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
 		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
 		-- Elixirs to keep up (Classic Era, Forever): none ticked again.
 		"ownBuffs.elixirKeep",
@@ -68,6 +68,9 @@ Page.RESET = {
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()
+			-- The fight buttons the page draws, as their own switches refresh them.
+			if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+			if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
 			-- The bags counted again for what is switched on now (Scrolls, the picks).
 			if ns.ForgetScrolls then ns.ForgetScrolls() end
 			-- An own buff's pick shows at once, as its own control does it.
@@ -143,7 +146,7 @@ Page.RESET = {
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
 		"supplies.size", "prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons",
-		"prompt.fightKeySpell", "prompt.fightKeyOn",
+		"prompt.fightKeySpells", "prompt.fightKeyOn",
 		-- Use my class's look on each character, and each class's pick.
 		"prompt.classLook", "prompt.classStyles",
 		after = function()

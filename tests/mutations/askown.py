@@ -42,7 +42,16 @@ mutate("Ask.lua",
        expect="askown: the repair keeps my own words", script=S)
 
 mutate("Ask.lua",
-       "\tif #text > Ask.OWN_MAX then text = text:sub(1, Ask.OWN_MAX) end\n",
+       "\tif #text > Ask.OWN_MAX then\n\t\ttext = text:sub(1, Ask.OWN_MAX)\n"
+       "\t\t-- Back up to a whole character: a cut in the middle of one would\n"
+       "\t\t-- go into the macro as bytes that are no letter.\n"
+       "\t\tlocal i = #text\n"
+       "\t\twhile i > 0 and text:byte(i) >= 0x80 and text:byte(i) < 0xC0 do i = i - 1 end\n"
+       "\t\tif i > 0 and text:byte(i) >= 0xC0 then\n"
+       "\t\t\tlocal need = text:byte(i) >= 0xF0 and 4 or text:byte(i) >= 0xE0 and 3 or 2\n"
+       "\t\t\tif #text - i + 1 < need then text = text:sub(1, i - 1) end\n"
+       "\t\tend\n"
+       "\tend\n",
        "",
        "askown: no length limit",
        expect="letters kept", script=S)

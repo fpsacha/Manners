@@ -792,8 +792,9 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   over, and where the client withholds them (Forever, retail) only you and
   your target are read.
   The fight key (`Prompt/FightKey.lua`, `ns.FightKey`, `MannersFightKey`) is
-  how the prompt's own key casts a spell in a fight, with `prompt.fightKeySpell`
-  (a row key of its per-class list; `"none"`) and `prompt.fightKeyOn`. It is
+  how the prompt's own key casts a spell in a fight, with `prompt.fightKeySpells`
+  (class -> a row key of that class's list; `"none"`: kept per class because every character
+  shares the profile; a pre-1.11.35 `fightKeySpell` is carried over by ClampSettings to the one class whose list holds it, else dropped) and `prompt.fightKeyOn`. It is
   not a line in the prompt's macro (nothing to put it on when nobody is owed,
   the hide snippet and the rota both rewrite the macro, the buff lines ahead of
   it start the global cooldown). At the pull (`PLAYER_REGEN_DISABLED`, still out

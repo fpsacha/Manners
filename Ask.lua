@@ -66,11 +66,24 @@ function Ask.Choices()
 	return { moment = Ask.LINES.moment, may = Ask.LINES.may, mind = Ask.LINES.mind, own = L["My own words"] }
 end
 
--- The own words as they may go into a macro: one line, no |, trimmed.
+-- The own words as they may go into a macro: one line, no |, trimmed. Only
+-- ASCII blanks count as space: a character whose last byte is 0xA0 (the
+-- Chinese for you, say) is no space, whatever a machine's locale says of
+-- that byte.
 function Ask.CleanOwn(text)
 	if type(text) ~= "string" then return "" end
-	text = text:gsub("|", ""):gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
-	if #text > Ask.OWN_MAX then text = text:sub(1, Ask.OWN_MAX) end
+	text = text:gsub("|", ""):gsub("[\r\n]", " "):gsub("[ \t\f\v]+", " "):match("^ *(.-) *$")
+	if #text > Ask.OWN_MAX then
+		text = text:sub(1, Ask.OWN_MAX)
+		-- Back up to a whole character: a cut in the middle of one would
+		-- go into the macro as bytes that are no letter.
+		local i = #text
+		while i > 0 and text:byte(i) >= 0x80 and text:byte(i) < 0xC0 do i = i - 1 end
+		if i > 0 and text:byte(i) >= 0xC0 then
+			local need = text:byte(i) >= 0xF0 and 4 or text:byte(i) >= 0xE0 and 3 or 2
+			if #text - i + 1 < need then text = text:sub(1, i - 1) end
+		end
+	end
 	return text
 end
 
