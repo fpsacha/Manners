@@ -2012,7 +2012,7 @@ function Page.BuildWhoTab()
 				type = "toggle",
 				name = L["My food, stones and oils after everybody else"],
 				desc = L["On: your own food, weapon stones and oils, flasks, elixirs and scrolls wait until nobody else needs a buff from you. In a busy place you buff other people first and keep your own for later."],
-				order = 15.951,
+				order = 15.9505,
 				width = "full",
 				hidden = NothingForSelf,
 				disabled = function() return not S().self end,
