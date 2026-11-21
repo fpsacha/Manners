@@ -17,6 +17,8 @@
 
 - **Snooze has *Until I log out*,** at the top of the options window and in the minimap menu. Search finds Snooze and the other buttons at the top.
 
+- **Each page of the options window opens with a line saying what is on it.**
+
 - **Asking for a buff is on *What I say*,** under the lines; the Fish Bowl, campsite and other paladins' blessings fold under *Other people's buffs* on *Who to buff*, and *More than buffs* is now *Resurrection and cures*.
 
 ### Fixes

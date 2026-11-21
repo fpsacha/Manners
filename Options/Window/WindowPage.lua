@@ -515,6 +515,8 @@ local function BuildFrames(m)
 	local child = UI.view.child
 	m.title = UI.Text(child, 18, C.gold)
 	m.title:Hide()
+	m.blurb = UI.Text(child, 12, C.hint)
+	m.blurb:Hide()
 	for _, sec in ipairs(m.sections) do
 		if sec.fold then sec.button = FoldButton(sec, child) end
 		-- A fold has a title too: drawn open under it in a sub-division.
@@ -546,6 +548,7 @@ function UI.HidePage(id)
 	local m = models[id]
 	if not (m and m.built) then return end
 	m.title:Hide()
+	m.blurb:Hide()
 	UI.ShowCaption(m, false)
 	for _, sec in ipairs(m.sections) do HideSection(sec) end
 end
@@ -1103,6 +1106,22 @@ local function PaintChrome(sec, y, mode)
 	return FlowSpan(sec, y)
 end
 
+-- The line under the page's title, saying what the page is for; answers the
+-- y under it.
+local function PaintBlurb(m, y)
+	if m.page.blurb then
+		m.blurb:SetText(m.page.blurb)
+		m.blurb:SetWidth(CONTENT_W)
+		m.blurb:SetWordWrap(true)
+		m.blurb:ClearAllPoints()
+		m.blurb:SetPoint("TOPLEFT", UI.view.child, "TOPLEFT", PAD_LEFT, -y)
+		m.blurb:Show()
+		return y + UI.TextHeight(m.blurb, 12) + 8
+	end
+	m.blurb:Hide()
+	return y
+end
+
 -- mode: nil reads every row again and lays the page out; "layout" places the
 -- rows again without reading them (a row changed height by itself); "reflow"
 -- also keeps which rows show as the last paint judged it, so nothing of the
@@ -1121,6 +1140,7 @@ function UI.PaintPage(mode)
 	m.title:SetPoint("TOPLEFT", UI.view.child, "TOPLEFT", PAD_LEFT, -y)
 	m.title:Show()
 	y = y + UI.TextHeight(m.title, 18) + 10
+	y = PaintBlurb(m, y)
 	local chrome = MenuSections()
 	-- Over the page: the simple view, offered once.
 	y = PaintChrome(chrome.offer, y, mode)

@@ -964,6 +964,7 @@ it too.
   *Show everything*. *Start here*, *Profiles* and *Diagnostics* are always
   drawn whole. A new profile starts in the simple view; one made before it
   existed keeps everything on screen and is offered it once.
+- Each page opens with a line under its title saying what is on it.
 - A setting that belongs to a switch sits a step in under it, and is not
   drawn while that switch is off. A greyed-out setting says under itself
   which switch greys it.

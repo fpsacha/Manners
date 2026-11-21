@@ -10,6 +10,9 @@
 -- touch ns.optionsTable or ns.db; the icons that need the character are
 -- functions the window calls when it draws the sidebar.
 --
+-- A page is { title = L[...], blurb = L[...] (the line under its title: what the
+-- page is for, 120 characters at most), icon, sections }.
+--
 -- A section is { header = "tab.key" (the model header's name is its title) or
 -- title = L[...], fold = true below the hairline (plain = true for a fold that
 -- is no fine print and wants no caption over it: the hall of fame), key =
@@ -252,6 +255,7 @@ ns.WindowLayout = {
 	pages = {
 		general = {
 			title = L["Start here"],
+			blurb = L["Set Manners up in a minute, and find your favour ledger."],
 			icon = ICONS.general,
 			sections = {
 				-- What the prompt is, first: the questions under it are about it.
@@ -352,6 +356,7 @@ ns.WindowLayout = {
 
 		who = {
 			title = L["Who to buff"],
+			blurb = L["Who gets your buffs, which buff they get, and in what order."],
 			icon = ICONS.who,
 			sections = {
 				-- Who the prompt is on right now, so a switch can be seen to work.
@@ -457,6 +462,7 @@ ns.WindowLayout = {
 		-- Its title is the old Who to skip header's string.
 		skip = {
 			title = L["Who to skip"],
+			blurb = L["People Manners leaves alone, and how long a right-click skips someone."],
 			icon = ICONS.skip,
 			sections = {
 				{ key = "skip.now", items = { "who.rightNowSkip" } },
@@ -492,6 +498,7 @@ ns.WindowLayout = {
 
 		when = {
 			title = L["When to offer"],
+			blurb = L["When a buff is offered again, and returning favours."],
 			icon = ICONS.when,
 			sections = {
 				{ key = "when.now", items = { "when.rightNow" } },
@@ -536,6 +543,7 @@ ns.WindowLayout = {
 		-- reminds you of, when, how early, and the things you carry.
 		self = {
 			title = L["My own buffs"],
+			blurb = L["Reminders for your own buffs, weapon oils, food, flasks and scrolls."],
 			icon = ICONS.self,
 			sections = {
 				{ key = "self.myself", header = "who.myselfHeader", items = {
@@ -695,6 +703,7 @@ ns.WindowLayout = {
 		-- drops the page for everybody else.
 		pet = {
 			title = L["My pet"],
+			blurb = L["Looking after your pet, and the moments you share with it."],
 			icon = ICONS.pet,
 			sections = {
 				-- A hunter's pet (HunterPet.lua): care, each with its own switch,
@@ -728,6 +737,7 @@ ns.WindowLayout = {
 		-- and being mounted or low on mana.
 		quiet = {
 			title = L["Quiet times"],
+			blurb = L["Where and when Manners holds back or says nothing. To pause it for a while, use Snooze at the top."],
 			icon = ICONS.quiet,
 			sections = {
 				-- The place rules lead Hold back: they hold back everybody, so
@@ -775,6 +785,7 @@ ns.WindowLayout = {
 
 		click = {
 			title = L["What I say"],
+			blurb = L["Your thank-yous, the line said with a buff, and asking others for one."],
 			icon = ICONS.click,
 			sections = {
 				-- The quick choice, directly above the switches it sets.
@@ -848,6 +859,7 @@ ns.WindowLayout = {
 		-- prompt does, and the buttons that are there for the fight.
 		fight = {
 			title = L["In a fight"],
+			blurb = L["What the prompt does once a fight starts, and the buttons that come up when you need them."],
 			icon = ICONS.fight,
 			sections = {
 				{ key = "fight.prompt", title = L["The prompt in a fight"], items = {
@@ -875,6 +887,7 @@ ns.WindowLayout = {
 		-- position fold here rather than living on a page of their own.
 		appearance = {
 			title = L["Look"],
+			blurb = L["How the prompt looks, where it sits, and how it gets your attention."],
 			icon = ICONS.appearance,
 			sections = {
 				-- The look to wear, as a gallery of cards (WidgetsTheme.lua) in
@@ -1011,6 +1024,7 @@ ns.WindowLayout = {
 
 		profiles = {
 			title = L["Profiles"],
+			blurb = L["Share settings between characters, or switch them by where you are."],
 			icon = ICONS.profiles,
 			sections = {
 				-- The profile manager (AutoProfile.lua), top to bottom: every
@@ -1083,6 +1097,7 @@ ns.WindowLayout = {
 
 		diagnostics = {
 			title = L["Diagnostics"],
+			blurb = L["Why nothing is offered, what Manners can see, and how to report a bug."],
 			icon = ICONS.diagnostics,
 			sections = {
 				-- What holds the prompt back right now, over everything else: the
