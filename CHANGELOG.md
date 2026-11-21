@@ -9,6 +9,8 @@
 
 - **Who to skip > After a right-click** sets how long a right-click skips someone, up to 30 minutes. The box reads 12 s or 5 min, and you can type 5m or 1h.
 
+- **Snooze has *Until I log out*,** at the top of the options window and in the minimap menu. Search finds Snooze and the other buttons at the top.
+
 ### Fixes
 - **Search puts a word at the start of a name first.** "rest" now finds Well-Rested ahead of Firestone.
 

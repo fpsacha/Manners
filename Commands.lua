@@ -637,6 +637,8 @@ end
 ns.SNOOZE_CHOICES = { 5, 15, 30, 60, 120, 240 }
 ns.SNOOZE_DEFAULT = 15
 ns.SNOOZE_MAX = 240
+-- A snooze with no length: it lasts until the player logs out or reloads.
+ns.SNOOZE_SESSION = "session"
 
 -- On GetTime's clock, like every other expiry here; the wall clock only
 -- where the player reads the answer.
@@ -647,6 +649,11 @@ function ns.SnoozeLeft(now)
 	local left = snoozeUntil - (now or GetTime())
 	if left <= 0 then return nil end
 	return left
+end
+
+-- Whether the snooze running is the one that lasts until logout.
+function ns.SnoozeSession()
+	return snoozeUntil == math.huge
 end
 
 -- Whether the player's clock is a 12-hour one, as the game clock by the
@@ -678,6 +685,8 @@ end
 function ns.SnoozeEndsAt()
 	local left = ns.SnoozeLeft()
 	if not left then return nil end
+	-- A clause read after "until", so every "until %s" line reads right.
+	if ns.SnoozeSession() then return L["you log out"] end
 	-- The minimap clock shows realm time unless the player ticked Local Time.
 	local get, realm = _G.GetCVar, _G.GetGameTime
 	local ok, useLocal = false, nil
@@ -711,6 +720,18 @@ end
 -- What every route into a snooze says (slash command, minimap, options page).
 local function SaySnoozeStarted(minutes)
 	local db = addon.db.profile
+	if minutes == ns.SNOOZE_SESSION then
+		if not db.enabled then
+			addon:Print(L["snoozed until you log out -- though Manners is switched off, so no prompt appears either way."])
+		elseif InCombatLockdown() then
+			addon:Print(L["snoozed until you log out. In a fight the prompt stays as the fight found it, and follows the snooze once this one ends. |cffffd100/manners snooze off|r ends it."])
+		elseif not db.prompt.locked then
+			addon:Print(L["snoozed until you log out. The prompt is unlocked, so it stays up to be dragged and casts nothing; once you lock it, it stays away. |cffffd100/manners snooze off|r ends it."])
+		else
+			addon:Print(L["snoozed until you log out or reload -- no prompt until then. |cffffd100/manners snooze off|r ends it."])
+		end
+		return
+	end
 	if not db.enabled then
 		-- Started anyway, and said so: the snooze outlives a /manners on.
 		addon:Print(L["snoozed for %s, until %s -- though Manners is switched off, so no prompt appears either way."]
@@ -761,6 +782,13 @@ end
 -- Start a snooze of `minutes`, replacing any snooze already running rather
 -- than adding to it: "snooze 5" means five minutes from now.
 function ns.StartSnooze(minutes)
+	if minutes == ns.SNOOZE_SESSION then
+		snoozeUntil = math.huge
+		ns.Guard("snooze", ns.Prompt.Refresh, ns.Prompt)
+		SaySnoozeStarted(minutes)
+		ns.RepaintOptions()
+		return minutes
+	end
 	minutes = math.floor(tonumber(minutes) or ns.SNOOZE_DEFAULT)
 	minutes = math.max(1, math.min(ns.SNOOZE_MAX, minutes))
 	snoozeUntil = GetTime() + minutes * 60

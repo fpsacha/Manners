@@ -1405,6 +1405,13 @@ function Page.BuildStartTab()
 				hidden = noPrompt,
 				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[6]) end,
 			},
+			snoozeSession = {
+				type = "execute",
+				name = L["Until I log out"],
+				order = 53.4,
+				hidden = noPrompt,
+				func = function() ns.StartSnooze(ns.SNOOZE_SESSION) end,
+			},
 			snoozeStop = {
 				type = "execute",
 				name = L["Stop snoozing"],

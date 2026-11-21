@@ -9,6 +9,7 @@ ns.WhatsNew = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Search finds the words people use|r (wotf, rez, reply, queue, color and more) and phrases such as \"turn off will of the forsaken\".",
 			"|cffffd100Who to skip > After a right-click|r sets how long a right-click skips someone, up to 30 minutes.",
+			"|cffffd100Snooze has Until I log out,|r at the top of the options window and in the minimap menu.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Search puts a word at the start of a name first.|r \"rest\" now finds Well-Rested ahead of Firestone.",

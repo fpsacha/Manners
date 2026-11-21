@@ -82,8 +82,44 @@ local function Add(out, item, sec, id, title)
 	}
 end
 
+-- The buttons at the top of the window, which no page holds: found first, so
+-- "snooze" lands on the header's Snooze before the page's own lengths.
+local function HeaderEntries(out)
+	local B, head = ns.WindowBind, UI.header
+	if not head then return end
+	local top = L["Top of this window"]
+	local function Put(label, desc, keywords, key)
+		out[#out + 1] = {
+			label = label or "", desc = desc, choices = {}, keywords = keywords,
+			section = "", page = top, ref = { header = key },
+		}
+	end
+	local item = head.previewItem
+	if item and not UI.Hidden(item) then
+		Put(Ask(B.Text, item, "name"), Ask(B.Text, item, "desc"), nil, "preview")
+	end
+	item = head.moveItem
+	if item and not UI.Hidden(item) then
+		Put(Ask(B.Text, item, "name"), Ask(B.Text, item, "desc"), nil, "move")
+	end
+	item = head.enabledItem
+	if item and not UI.Hidden(item) then
+		Put(Ask(B.Text, item, "name"), Ask(B.Text, item, "desc"), L["on off disable turn off stop"], "enabled")
+	end
+	local shown = false
+	for _, snooze in ipairs(head.snoozeItems or {}) do
+		if not UI.Hidden(snooze) then shown = true end
+	end
+	if shown then
+		local tip = head.snoozeTip
+		Put(head.snoozeLabel or L["Snooze"], tip and Ask(B.Text, tip, "name"),
+			L["snooze pause break hide for a while longer later mute"], "snooze")
+	end
+end
+
 local function Entries()
 	local layout, out = UI.Layout(), {}
+	HeaderEntries(out)
 	for _, group in ipairs(layout.groups) do
 		for _, id in ipairs(group) do
 			local page = layout.pages[id]
@@ -137,6 +173,10 @@ end
 function UI.Choose(ref)
 	UI.CloseResults()
 	if search.box then search.box:ClearFocus() end
+	if ref.header then
+		UI.FlashHeader(ref.header)
+		return nil
+	end
 	-- A setting found behind its switch (`via`) and not on the short list:
 	-- the full view first, or turning the switch on would show nothing.
 	if ref.via and UI.OffShortList(ref.via) then ns.SetMenuView("full") end

@@ -328,6 +328,8 @@ local function LauncherState()
 		-- held entry still listed, since a press still casts at them.
 		return true, L["Snoozed until %s -- in this fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
 			:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true, true, "snoozed"
+	elseif snoozeLeft and ns.SnoozeSession() then
+		return false, L["Snoozed until you log out -- no prompt until then."], 1, 0.82, 0, true, nil, "snoozed"
 	elseif snoozeLeft then
 		-- The clock time and the minutes both: the time is what the player
 		-- compares with a raid timer, and the minutes are what they asked for.
@@ -876,7 +878,10 @@ local function FillLauncherMenu(root)
 			ns.StartSnooze(minutes)
 		end))
 	end
-	if ends then
+	snooze:CreateButton(L["Until I log out"], Act(function()
+		ns.StartSnooze(ns.SNOOZE_SESSION)
+	end))
+	if ns.SnoozeLeft() then
 		Divider(snooze)
 		snooze:CreateButton(L["Stop snoozing"], Act(function() ns.StopSnooze() end))
 	end

@@ -13,7 +13,7 @@ mutate("Commands.lua",
        expect="snooze-long: the window's snooze offers an hour, two and four", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\"general.snooze120\", \"general.snooze240\", \"general.snoozeStop\"",
-       "\"general.snooze120\", \"general.snoozeStop\"",
+       "\"general.snooze120\", \"general.snooze240\", \"general.snoozeSession\"",
+       "\"general.snooze120\", \"general.snoozeSession\"",
        "snooze-long: the header's Snooze menu drops four hours",
        expect="snooze-long: the window's snooze offers an hour, two and four", script=S)

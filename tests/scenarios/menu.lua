@@ -745,7 +745,10 @@ do
 	with(scenario, { page = "who", class = "PRIEST" }, function(ns, UI)
 		ns.SetMenuView("simple")
 		local found = {}
-		for _, entry in ipairs(UI.SearchEntries()) do found[entry.ref.via or entry.ref.path] = true end
+		-- The header's buttons (ref.header) are no control of a page.
+		for _, entry in ipairs(UI.SearchEntries()) do
+			if not entry.ref.header then found[entry.ref.via or entry.ref.path] = true end
+		end
 		for _, path in ipairs({ "advanced.retryCooldown", "who.quietTargets", "appearance.fontSize", "who.target" }) do
 			if not found[path] then fail(scenario, path .. " is not searched in the simple view") end
 		end

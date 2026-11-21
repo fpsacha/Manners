@@ -203,7 +203,7 @@ ns.WindowLayout = {
 		-- prompt is unlocked. The same control leads Look (appearance.move).
 		move = "general.moveToggle",
 		enabled = "general.enabled",
-		snooze = { "general.snooze5", "general.snooze15", "general.snooze30", "general.snooze60", "general.snooze120", "general.snooze240", "general.snoozeStop" },
+		snooze = { "general.snooze5", "general.snooze15", "general.snooze30", "general.snooze60", "general.snooze120", "general.snooze240", "general.snoozeSession", "general.snoozeStop" },
 		snoozeTip = "general.snoozeNote",
 	},
 	strip = {

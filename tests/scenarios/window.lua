@@ -517,7 +517,9 @@ do
 		local paths = {}
 		-- By the control found: one not drawn until a switch is on (Where to
 		-- say it, under Say a line) is found with that switch as where it leads.
-		for _, e in ipairs(entries) do paths[e.ref.via or e.ref.path] = e end
+		for _, e in ipairs(entries) do
+			if not e.ref.header then paths[e.ref.via or e.ref.path] = e end
+		end
 		for _, path in ipairs({ "general.howItWorks", "diagnostics.pvpDiag", "diagnostics.ownDiag", "diagnostics.diag" }) do
 			if paths[path] then fail(scenario, "the note " .. path .. " is searched") end
 		end

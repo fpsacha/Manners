@@ -97,7 +97,39 @@ local function FillSnooze(_, root)
 	end
 end
 
-local function SnoozeClicked(button)
+local SnoozeClicked
+
+-- Where search lands on a header button: the same gold wash a row gets, and
+-- for Snooze its menu opens, since the lengths are what was looked for.
+local FLASH_SECONDS = 0.6
+local function FlashStep(frame, elapsed)
+	frame.flashLeft = frame.flashLeft - (tonumber(elapsed) or 0)
+	if frame.flashLeft <= 0 then
+		frame.flashWash:Hide()
+		frame:SetScript("OnUpdate", nil)
+		return
+	end
+	frame.flashWash:SetAlpha(frame.flashLeft / FLASH_SECONDS)
+end
+
+function UI.FlashHeader(key)
+	local target = header[key == "preview" and "preview" or key == "move" and "move"
+		or key == "enabled" and "enabled" or key == "snooze" and "snooze" or ""]
+	local frame = target and (target.frame or target)
+	if not frame or not frame.CreateTexture then return end
+	if not frame.flashWash then
+		frame.flashWash = UI.Solid(frame, "BACKGROUND", C.gold, -8)
+		frame.flashWash:SetPoint("TOPLEFT", frame, "TOPLEFT", -3, 3)
+		frame.flashWash:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 3, -3)
+	end
+	frame.flashLeft = FLASH_SECONDS
+	frame.flashWash:SetAlpha(1)
+	frame.flashWash:Show()
+	frame:SetScript("OnUpdate", function(self, elapsed) ns.Guard("options flash", FlashStep, self, elapsed) end)
+	if key == "snooze" and header.snooze:IsShown() then SnoozeClicked(header.snooze) end
+end
+
+function SnoozeClicked(button)
 	-- With a gamepad switched on there is no menu (ns.GamepadActive): the button
 	-- stops a snooze that runs, and starts the fifteen minutes' otherwise.
 	if ns.GamepadActive() then

@@ -174,7 +174,7 @@ do
 			fail(scenario, "the switch or the preview is not in the window's header")
 		end
 		local snooze = table.concat(header.snooze or {}, " ")
-		if snooze ~= "general.snooze5 general.snooze15 general.snooze30 general.snooze60 general.snooze120 general.snooze240 general.snoozeStop" then
+		if snooze ~= "general.snooze5 general.snooze15 general.snooze30 general.snooze60 general.snooze120 general.snooze240 general.snoozeSession general.snoozeStop" then
 			fail(scenario, "the header's snooze menu holds " .. snooze)
 		end
 		if not (layout.strip and layout.strip.lock == "general.lockNow") then

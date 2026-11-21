@@ -54,4 +54,7 @@ ones (`SPELLING`), and the better rank wins: Spanish and Portuguese write
 again without its filler words (`FILLER`, one whole translated string split on
 spaces, built when first used); every word left must rank.
 
+`L["you log out"]` is a clause read after "until" ("snoozed until %s" with it as %s, the
+session snooze's end): translators write it so the sentence reads on, e.g. "bis Ihr Euch abmeldet".
+
 `python tools/locale_keys.py --missing <code>` lists the gaps of one locale.

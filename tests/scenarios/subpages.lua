@@ -327,9 +327,12 @@ do
 		local sub = UI.SubInView("who")
 		if not (sub and sub.key == "who.sources") then fail(scenario, "People who buff me opened " .. tostring(sub and sub.key)) end
 		-- Every setting search finds, on every page: drawn once chosen.
+		-- (The header's buttons, ref.header, lead no page: menupass-snooze.lua.)
 		for _, entry in ipairs(UI.SearchEntries()) do
-			local found = UI.Choose(entry.ref)
-			if not (found and UI.RowShown(found.path)) then
+			local found = not entry.ref.header and UI.Choose(entry.ref)
+			if entry.ref.header then
+				UI.Choose(entry.ref)
+			elseif not (found and UI.RowShown(found.path)) then
 				fail(scenario, ("%s > %s: chosen in search, nothing is drawn"):format(tostring(entry.page), tostring(entry.ref.path)))
 			else
 				local w = UI.Where(found.path)

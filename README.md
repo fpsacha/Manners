@@ -752,7 +752,8 @@ It only changes the order.
 **Snooze, and hiding while mounted.** `/manners snooze` hides the prompt for
 15 minutes; `snooze 5`, `snooze 1h` (up to four hours) or `snooze off` for
 your own. The minimap menu and the *Snooze* button at the top of the options
-window offer 5, 15 and 30 minutes, an hour, two hours and four. Favours are
+window offer 5, 15 and 30 minutes, an hour, two hours and four, and *Until I
+log out*, which lasts until you log out or reload. Favours are
 still noticed while snoozed. *Hide the prompt
 while I'm mounted* (When to offer, under *Mounted and mana*, off) keeps the
 prompt away while you ride.
@@ -930,8 +931,8 @@ it too.
 **On every page.**
 
 - Along the top: *Show me the prompt*, *Move the prompt* (it reads *Lock it*
-  while the prompt is unlocked), *Snooze* (5 minutes up to four hours) and
-  *Manners is on*.
+  while the prompt is unlocked), *Snooze* (5 minutes up to four hours, or *Until I
+  log out*) and *Manners is on*. Search finds these buttons too.
 - Under them, a line appears only while something keeps the prompt from
   doing what you would expect: Manners is off, the prompt is unlocked, a
   snooze is running, nothing can be offered, or the prompt is kept away while
@@ -1431,6 +1432,7 @@ profiles of your own.
 Everyday
 /manners on | off           switch it on or off
 /manners snooze [min|off]   hide the prompt for 15 minutes, or as long as you say
+                            (Until I log out is in the menus)
 /manners test               preview the prompt, for styling
 /manners ledger             the favour ledger
 /manners spell [add|remove <name or id>]  list your own added spells, add one or remove one

@@ -322,7 +322,7 @@ end
 -- minimap menu, and that gives him no button: the master switch only.
 do
 	local scenario = "model: a snoozed rogue gets no Snooze"
-	local ENTRIES = { "snoozeHeader", "snoozeNote", "snooze5", "snooze15", "snooze30", "snooze60", "snooze120", "snooze240", "snoozeStop" }
+	local ENTRIES = { "snoozeHeader", "snoozeNote", "snooze5", "snooze15", "snooze30", "snooze60", "snooze120", "snooze240", "snoozeSession", "snoozeStop" }
 	with(scenario, "ROGUE", nil, function(ns)
 		ns.addon:HandleSlash("snooze 15")
 		if not ns.SnoozeLeft() then
