@@ -409,6 +409,12 @@ do
 
 	PausedUnseen = function(seen)
 		local db = ns.db and ns.db.profile
+		-- The cast watch found the caster on your ignore list: nobody is thanked.
+		seen.nobodyWaiting = nil
+		if seen.ignoredCaster or seen.nobodyCancelled then
+			seen.thankedNobody = nil
+			return
+		end
 		-- It was queued as a thank to nobody (ThankUnseen); only one that goes keeps
 		-- the mark that stops a named caster being thanked as well.
 		if not UnseenLive(db) then seen.thankedNobody = nil end
@@ -438,6 +444,7 @@ do
 		if waiting and now - waiting.at < PAUSE_MAX + 2 then
 			waiting.unseen = seen
 			seen.thankedNobody = true
+			seen.nobodyWaiting = true
 			return SkipUnseen(seen.key, now, L["thanked somebody a moment ago"])
 		end
 		waiting = nil
@@ -449,11 +456,16 @@ do
 			return
 		end
 		seen.thankedNobody = true
+		seen.nobodyWaiting = true
 		-- No name: a named favour arriving meanwhile is kept behind it, as
 		-- ThankFavour keeps one behind another's.
 		local mine = { at = now }
 		waiting = mine
-		timer.After(PAUSE_MIN + math.random() * (PAUSE_MAX - PAUSE_MIN), function()
+		-- Never before the window the cast watch judges the landing over has closed:
+		-- only then is it known whether the caster is on your ignore list.
+		local pause = PAUSE_MIN + math.random() * (PAUSE_MAX - PAUSE_MIN)
+		if seen.awaitCast and seen.high then pause = math.max(pause, seen.high + 0.2 - now) end
+		timer.After(pause, function()
 			if waiting == mine then waiting = nil end
 			local sent = lastAt
 			ns.Guard("thank after a pause", PausedUnseen, seen)
@@ -661,7 +673,7 @@ do
 	end
 
 	-- Defined after ClaimFavour, with the rest of the cast watch.
-	local NameFromCast, AwaitCaster
+	local NameFromCast, AwaitCaster, HeardIgnored
 
 	-- Reads who `source` is into the sighting `seen`: name, GUID, class and the rest, while
 	-- the token still means them. Sight reads the aura's own source with it, and the cast
@@ -1138,6 +1150,12 @@ do
 	-- rule). Never a shout, never what may be a group member's.
 	local function ThankNobody(seen)
 		if Shout(seen.key) or MaybeMember(seen.key) then return end
+		-- A cast from somebody on your ignore list is already in the ring: no thank,
+		-- not even to nobody (Decide drops one still waiting when it learns it later).
+		if seen.awaitCast and HeardIgnored and HeardIgnored(seen) then
+			seen.ignoredCaster = true
+			return
+		end
 		-- ThankUnseen marks `seen.thankedNobody` where a thank to nobody went, was
 		-- parked or was queued behind a pause, so a caster the cast watch names after
 		-- the window is not thanked a second time (NoteFavour, noThank), and is
@@ -1316,6 +1334,17 @@ do
 			return false
 		end
 
+		-- Whether a cast of this buff from somebody on your ignore list is in the ring
+		-- for this landing's window.
+		HeardIgnored = function(seen)
+			local casts = cw.casts
+			for i = 1, #casts do
+				local e = casts[i]
+				if e.ignored and e.at >= seen.low and SameBuff(e.spell, seen.key) then return true end
+			end
+			return false
+		end
+
 		local function CopyCaster(src, dst)
 			for i = 1, #COPIED do dst[COPIED[i]] = src[COPIED[i]] end
 		end
@@ -1457,7 +1486,9 @@ do
 				end
 			end
 			if hit == "ignored" then
-				-- A thank to nobody may already have gone; it named nobody.
+				-- A thank to nobody may already have gone; it named nobody. One still
+				-- waiting out its pause or for a press is let go (PausedUnseen, ThankPress).
+				seen.ignoredCaster = true
 				Remember({ name = why.seen and why.seen.name, key = seen.key }, "ignored")
 				return
 			end
@@ -1466,6 +1497,12 @@ do
 				hit.used = true
 				seen.fromCast = true
 				seen.filed = true
+				-- A thank to nobody still waiting is let go for the name (the pause ends,
+				-- PausedUnseen drops it, and the named thank behind it goes).
+				if seen.nobodyWaiting then
+					seen.nobodyCancelled = true
+					seen.thankedNobody = nil
+				end
 				seen.noThank = seen.thankedNobody
 				local stat = ns.castWatch
 				stat.named = stat.named + 1
@@ -1611,6 +1648,16 @@ do
 						local rec = {}
 						if ReadCaster(unit, rec, true, guid, full) then e.seen = rec end
 					end
+				end
+			end
+			-- A caster whose GUID is withheld cannot be told apart by it: one cast
+			-- (one cast GUID) heard under two tokens is one entry when both tokens read
+			-- the same name, else both stay and count as two people (naming nobody).
+			if guid == nil and cast ~= nil and e.seen then
+				for i = 1, #casts do
+					local x = casts[i]
+					if x.guid == nil and x.cast == cast and x.seen and x.seen.name == e.seen.name
+						and SameBuff(x.spell, id) then return end
 				end
 			end
 			casts[#casts + 1] = e

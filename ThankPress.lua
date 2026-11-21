@@ -298,7 +298,10 @@ local function Offer(queue, verdicts)
 		local item = pending[i]
 		if item.shownAt and not OnPrompt(item) then item.shownAt = nil end
 		local _, _, any = ItemChannels(item, p)
-		if now - item.at >= TP.DEADLINE or (item.shownAt and now - item.shownAt >= TP.EXPIRE) then
+		if item.unseen and item.seen.ignoredCaster then
+			-- The cast watch found the caster on your ignore list: nobody is thanked.
+			Drop(i, false)
+		elseif now - item.at >= TP.DEADLINE or (item.shownAt and now - item.shownAt >= TP.EXPIRE) then
 			-- Left on the prompt is let go; one the prompt never showed (held
 			-- behind a buff they are owed, say) holds their next one back no
 			-- more than an automatic thank skipped would.

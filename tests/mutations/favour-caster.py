@@ -295,8 +295,8 @@ mutate("Favours.lua",
        expect=N + "another class's buff with no target names the stranger once the moment has passed", script=S)
 
 mutate("Favours.lua",
-       "\t\t\tseen.thankedNobody = nil\n\t\t\treturn SkipUnseen(seen.key, now, why)\n",
-       "\t\t\treturn SkipUnseen(seen.key, now, why)\n",
+       "\t\t\t\tif seen.nobodyWaiting then\n",
+       "\t\t\t\tif false then\n",
        "favour-caster: a thank to nobody that was queued and then held keeps its mark",
        expect=N + "a queued thank to nobody that is held then does not stop the caster being thanked", script=S)
 
@@ -341,3 +341,35 @@ mutate("Favours.lua",
        "",
        "favour-caster: a landing too old to match a cast never says the nameplates line",
        expect=N + "plates off: a landing too old to match a cast says the nameplates line at once", script=S)
+
+# A cast whose caster guid is withheld, heard under two tokens, is one cast.
+mutate("Favours.lua",
+       "\t\t\tif guid == nil and cast ~= nil and e.seen then\n",
+       "\t\t\tif false then\n",
+       "favour-caster: a withheld guid keeps one cast twice",
+       expect=N + "one cast under two tokens with a withheld guid is one caster", script=S)
+
+# The ignore list holds back the thank to nobody.
+mutate("Favours.lua",
+       "\t\tif seen.awaitCast and HeardIgnored and HeardIgnored(seen) then\n",
+       "\t\tif false then\n",
+       "favour-caster: an ignored cast already heard does not stop the thank to nobody",
+       expect=N + "an ignored caster's buff is not thanked to nobody: the cast came first, no pause", script=S)
+
+mutate("Favours.lua",
+       "\t\tif seen.ignoredCaster or seen.nobodyCancelled then\n\t\t\tseen.thankedNobody = nil\n",
+       "\t\tif false then\n\t\t\tseen.thankedNobody = nil\n",
+       "favour-caster: a thank to nobody waiting out its pause goes to an ignored caster",
+       expect=N + "an ignored caster's buff is not thanked to nobody: the cast came after the landing, thanks paused", script=S)
+
+mutate("Favours.lua",
+       "\t\tif seen.awaitCast and seen.high then pause = math.max(pause, seen.high + 0.2 - now) end\n",
+       "",
+       "favour-caster: the thank to nobody can go before its window has closed",
+       expect=N + "an ignored caster's buff is not thanked to nobody: the cast came after the landing, thanks paused", script=S)
+
+mutate("ThankPress.lua",
+       "\t\tif item.unseen and item.seen.ignoredCaster then\n",
+       "\t\tif false then\n",
+       "favour-caster: a thank to nobody parked for a press stays for an ignored caster",
+       expect=N + "an ignored caster's buff is not thanked to nobody: the cast came after the landing, a press thanks", script=S)

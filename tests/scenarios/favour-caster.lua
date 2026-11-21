@@ -35,7 +35,7 @@ local aimed = {}
 -- ignored (set of tokens on your ignore list), npc (set of tokens that are no
 -- player), fromPlayer (the aura says it is a player's), thank (the emote on),
 -- unseen (Thank them even when I can't see who it was), ask (Ask me before
--- thanking), flavour, enabled (false to switch Manners off).
+-- thanking), delay (the pause before a thank), flavour, enabled (false to switch Manners off).
 local function with(scenario, opts, body)
 	Mock.reset()
 	if opts.flavour then Mock.setFlavour(opts.flavour) end
@@ -87,6 +87,7 @@ local function with(scenario, opts, body)
 		db.prompt.thankEmote = opts.thank == true
 		db.prompt.thankUnseen = opts.unseen == true
 		db.prompt.thankAsk = opts.ask == true
+		if opts.delay ~= nil then db.prompt.thankDelay = opts.delay end
 		primeAuras(ns)
 		if not ns.auraScan.primed then
 			fail(scenario, "SKIPPED -- the baseline never settled")
@@ -274,16 +275,47 @@ do
 		if text:find("buffed you", 1, true) or said():find("buffed you", 1, true) then
 			fail(scenario, "a line was said for somebody on the ignore list")
 		end
-		-- Every landing is judged over its window now, so the thank to nobody (Thank
-		-- them even when I can't see who it was) goes as the buff lands, as it always
-		-- did for a landing the cast watch could not name at that moment. It names
-		-- nobody: what must never go is an emote aimed at the ignored player.
+		-- Nobody on the ignore list is thanked, not even with the emote to nobody.
 		for _, e in ipairs(emotes) do
-			if e[2] ~= nil then fail(scenario, "an emote went at somebody on the ignore list: " .. tostring(e[2])) end
+			fail(scenario, "an emote went for somebody on the ignore list: " .. tostring(e[2]))
 		end
 		if not debugText(ns):find("on your ignore list", 1, true) then
 			fail(scenario, "/manners debug does not say they are on the ignore list")
 		end
+	end)
+end
+
+-- The thank to nobody waits out its pause (or a press) and the cast watch learns
+-- only then, after the landing, that the caster is on your ignore list: the
+-- waiting thank is let go. Also with the cast before the landing, pause or none.
+for _, v in ipairs({
+	{ "the cast came after the landing, thanks paused", true, false, true },
+	{ "the cast came first, thanks paused", true, false, false },
+	{ "the cast came first, no pause", false, false, false },
+	{ "the cast came after the landing, a press thanks", true, true, true },
+}) do
+	local scenario = "favour-caster: an ignored caster's buff is not thanked to nobody: " .. v[1]
+	with(scenario, { names = AIMED_NAMES, aimed = AIMED, ignored = { nameplate1 = true },
+		thank = true, unseen = true, fromPlayer = true, delay = v[2], ask = v[3] }, function(ns)
+		if v[4] then
+			land(ns, nil)
+			Mock.advance(0.3)
+			cast("nameplate1")
+		else
+			cast("nameplate1")
+			land(ns, nil)
+		end
+		-- In steps, so the timers fall due in the order the game would run them.
+		for _ = 1, 140 do Mock.runTimers(0.05) end
+		if ns.ThankPending and ns.ThankPending() then
+			-- A thank parked for a press must not be offered either.
+			ns.Prompt:Refresh()
+			if ns.ThankPending() then fail(scenario, "a thank to nobody is still parked for the ignored player") end
+		end
+		for _, e in ipairs(emotes) do
+			fail(scenario, "an emote went for somebody on the ignore list: " .. tostring(e[2]))
+		end
+		if next(ns.owed) then fail(scenario, "somebody on the ignore list was owed") end
 	end)
 end
 
@@ -331,6 +363,37 @@ do
 		Mock.runTimers(2)
 		rawset(_G, "UnitGUID", realGuid)
 		if not owedBy(ns, anna) then fail(scenario, "one cast under two tokens named nobody: " .. said()) end
+	end)
+end
+
+do
+	-- Anna's GUID is withheld, her name and target are readable. One cast heard under
+	-- two tokens is one entry, or the second landing would find an unused copy of
+	-- her and name her again for a buff another player gave.
+	local scenario = "favour-caster: one cast under two tokens with a withheld guid is one caster"
+	local names = { nameplate1 = { "Anna", "Aim" }, target = { "Anna", "Aim" },
+		nameplate1target = { "Me", "Myself" }, targettarget = { "Me", "Myself" } }
+	with(scenario, { names = names, aimed = { nameplate1target = "player", targettarget = "player" } }, function(ns)
+		local realGuid = _G.UnitGUID
+		rawset(_G, "UnitGUID", function(unit, ...)
+			if unit == "nameplate1" or unit == "target" then return Mock.SECRET end
+			return realGuid(unit, ...)
+		end)
+		cast("nameplate1", FORTITUDE, "Cast-hidden")
+		Mock.advance(0.6)
+		cast("target", FORTITUDE, "Cast-hidden")
+		if ns.castWatch.seen ~= 1 then
+			fail(scenario, ("one cast heard under two tokens was kept %d times"):format(ns.castWatch.seen))
+		end
+		land(ns, nil)
+		Mock.advance(0.2)
+		-- Another player's Fortitude lands in the same second, nobody seen casting it.
+		land(ns, nil)
+		Mock.runTimers(3)
+		rawset(_G, "UnitGUID", realGuid)
+		if ns.castWatch.named ~= 1 then
+			fail(scenario, ("%d landings were named from one cast"):format(ns.castWatch.named))
+		end
 	end)
 end
 
@@ -440,32 +503,24 @@ end
 
 do
 	-- The same with Wait a moment before thanking on: the thank to nobody is queued
-	-- behind its pause and then held (you target somebody meanwhile), so it never
-	-- went, and the caster named afterwards is thanked by name.
+	-- behind its pause, which never ends before the window has closed; the caster
+	-- is named at the close, the thank to nobody is let go and they are thanked by
+	-- name instead (one thank, with a name).
 	local scenario = "favour-caster: a queued thank to nobody that is held then does not stop the caster being thanked"
-	with(scenario, { thank = true, unseen = true, fromPlayer = true }, function(ns)
+	with(scenario, { names = AIMED_NAMES, aimed = AIMED, thank = true, unseen = true, fromPlayer = true }, function(ns)
 		ns.db.profile.prompt.thankDelay = true
 		local anna = ns.UnitFullName("nameplate1")
-		local targeted = false
-		local realExists = _G.UnitExists
-		rawset(_G, "UnitExists", function(unit)
-			if unit == "target" then return targeted end
-			return realExists(unit)
-		end)
-		-- The shortest pause: held at one second, before the window closes at 1.1.
+		-- The shortest pause.
 		local realRandom = math.random
 		math.random = function() return 0 end
 		land(ns, nil)
 		math.random = realRandom
-		targeted = true
 		Mock.advance(0.5)
 		cast("nameplate1")
-		Mock.runTimers(0.55)
-		targeted = false
-		Mock.runTimers(0.6)
-		Mock.runTimers(4)
+		for _ = 1, 100 do Mock.runTimers(0.05) end
 		if not owedBy(ns, anna) then fail(scenario, "SKIPPED -- the late cast named nobody: " .. said()) return end
-		if #emotes == 0 then fail(scenario, "the caster was never thanked: " .. said()) end
+		if #emotes ~= 1 then fail(scenario, ("%d thanks went, not one: %s"):format(#emotes, said())) return end
+		if emotes[1][2] == nil then fail(scenario, "the caster was thanked with no name though they were named") end
 	end)
 end
 
