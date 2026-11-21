@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "21 November 2026", sections = {
+	{ version = "1.11.34", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Will of the Forsaken and Mend Pet stay out of sight until you need them.|r The two fight buttons no longer sit dim beside the prompt for the whole fight.",
 		} },
