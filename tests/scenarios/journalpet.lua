@@ -512,6 +512,8 @@ end
 do
 	local scenario = "journalpet: Forever still reads an update with no kind, and is not held by the air or a pet battle"
 	with(scenario, "camelot", "WARRIOR", { on = true, journal = { owned = 2, out = GUID_A } }, function(ns)
+		-- The mock's player wears every aura unless told; no Familiar scroll here.
+		Mock.playerHeld = {}
 		local before = world.journal.reads
 		ns.Pet:OnEvent("COMPANION_UPDATE")
 		local kept = ns.addon.db.char.pet
