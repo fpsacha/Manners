@@ -126,7 +126,29 @@ function, switch and test named. Change both together.
   it went, check before posting again.
 - One agent at a time: queue them rather than fan out several in the background.
 - Tests go easy on RAM: `--jobs 4` at most, one suite at a time; ask before a
-  full selftest (GitHub runs it, `selftest.yml`).
+  full selftest (GitHub runs it, `selftest.yml`). An agent runs a suite in the
+  foreground with a timeout, never in the background or on a Monitor.
+- Build first, test once: while building, only `tools/lint.py` and the piece's
+  own scenario file; no suite and no push until the owner calls the test pass.
+- No other addon is ever named, hinted at or compared with: not in listings,
+  README, CHANGELOG, strings, comments, test names, commits or STATUS.md.
+- Every feature gets a control (the options window, the launcher menu); a slash
+  command is only a shortcut, and replies to players name the setting.
+- Behaviour before looks: the right buff for the situation, working in a fight.
+- Docs move with the code, before every release: README's player sections,
+  `STATUS.md`, the listing files, this file and `.claude/docs/`,
+  `tools/README.md`, `tests/README.md`. CHANGELOG notes are short: `###`
+  sections, a line or two each, the switch named.
+- An In character line is said while giving a buff: it must make sense to the
+  one who just felt it land (`.claude/docs/phrases.md`).
+- Looks start from named Warcraft art and go bold on art and animation, each
+  one unique; show animations as GIFs. All art is painted through the Gemini
+  image API, never drawn in code.
+- Releases are the owner's call (the nightly feedback task's own release
+  apart) and go out from this PC, never a cloud session; a feature asked for
+  before a release ships goes in that release.
+- Do the obvious next step and report after; ask only before a release or a
+  deletion.
 
 ## Everyday commands
 
