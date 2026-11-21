@@ -3,6 +3,27 @@
 Working notes. Not part of the shipped addon — `.pkgmeta` leaves it out. How to
 work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
+## Where I left off
+
+*21 November 2026. Last release: 1.11.35. Rewritten by `/handoff`.*
+
+- **In flight:** nothing. master holds 1.11.35 and the slimmer CLAUDE.md
+  (`.claude/docs/` has the detail), pushed. Old worktrees kept on purpose:
+  `look-fel`, `look-wild`, `relcheck` (uncommitted files in them), `logo`,
+  `ci-diag-generators` (branches not merged). Leave them unless the owner asks.
+- **Waiting on the owner:** the Wago page (issue 25: paste
+  `.github/wago-description.md`, upload `.github/media/icon-512.png`).
+- **Waiting on players:** issue 21 (no popup: their client and
+  `/manners debug`), issue 22 (the imp's Fire Shield: needs a test in the game).
+- **Next:** issue 23, plainer English in the addon's own text (a pass, the
+  stiffest lines first; each changed string drops its old key in every locale);
+  the in-game checks listed under *Open* for 1.11.33 to 1.11.35 (fight buttons
+  only when needed, the fight key, the cure in a fight, the scroll bar).
+- **Watch out:** the nightly pass answers comments at 11 PM too; check the page
+  and `gh issue list --label player` before replying (the reply helper skips a
+  player already answered). LuckyDan's reply (20 November, 201) does not show on
+  the first page of comments: it is there; never post it again.
+
 ## State
 
 **1.11.28 is the last release** (17 November 2026). **1.11.29 is being
