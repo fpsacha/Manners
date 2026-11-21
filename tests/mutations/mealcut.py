@@ -4,7 +4,7 @@
 S = "runscenarios.py"
 
 mutate("Core.lua",
-       "\t\t\t\tfor _, each in ipairs(family.spells) do ns.MarkAttempted(ctx.name, each.key, 0) end\n",
+       "\t\t\t\tfor _, each in ipairs(family.spells) do ns.ReleaseRetry(ctx.name, each.key) end\n",
        "",
        "mealcut: the block is kept after a meal cut short",
        expect="mealcut: a meal cut short brings the reminder back at once", script=S)

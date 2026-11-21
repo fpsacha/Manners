@@ -4463,7 +4463,7 @@ do
 			-- than after the cooldown (asked for on CurseForge).
 			if mealOn then
 				mealOn = false
-				for _, each in ipairs(family.spells) do ns.MarkAttempted(ctx.name, each.key, 0) end
+				for _, each in ipairs(family.spells) do ns.ReleaseRetry(ctx.name, each.key) end
 			end
 			if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then
 				return nil, up, left, "mounted", spell

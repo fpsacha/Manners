@@ -237,6 +237,18 @@ do
 		Block(name .. "\0*", seconds, keepLonger)
 	end
 
+	-- Lets go of the retry block a press wrote, and only that: a block that
+	-- stands longer (a right-click's skip of an hour) is somebody's choice and
+	-- stays.
+	function ns.ReleaseRetry(name, buffKey)
+		if not name or not buffKey then return end
+		local key = name .. "\0" .. buffKey
+		local standing = tried[key]
+		local db = addon.db and addon.db.profile
+		local retry = (db and db.timing.retryCooldown) or 12
+		if standing and standing <= GetTime() + retry then tried[key] = 0 end
+	end
+
 	-- How long a right-click on the prompt, or Not now in its menu, leaves
 	-- somebody (or your own buff) alone: its own setting, apart from the retry
 	-- cooldown, which is for a cast that failed.
@@ -2675,8 +2687,9 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	-- Hold back short buffs in cities and inns reaches you too: a group buff for
 	-- yourself that lasts no longer than that is not offered while you rest
 	-- (own buffs in cities on lets the rest through; CurseForge, Thorns at 15).
+	-- Never in cities and inns never holds you, so it does not lift this.
 	local f = db.filters
-	if not fight and #mine > 0 and f.quietShortInTowns == true and f.quietInTowns ~= true and Resting() == true then
+	if not fight and #mine > 0 and f.quietShortInTowns == true and Resting() == true then
 		local limit = (tonumber(f.quietShortMinutes) or 15) * 60
 		local kept = {}
 		for _, b in ipairs(mine) do

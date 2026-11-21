@@ -12,6 +12,11 @@
   spell.
 
 ### Fixes
+- **A meal of plain bread no longer brings back a food you skipped.** Right-click
+  a food for the evening and eat bread, and standing up used to put the
+  reminder back; now it waits out the skip.
+- **Short buffs held back in cities and inns hold your own short buffs** even
+  with *Never in cities and inns* ticked.
 - **The fight buttons' keys cast with the game's cast-on-key-down option turned
   off**, and the cure button takes no click while it is out of sight with a key
   bound, as the other fight buttons already did.

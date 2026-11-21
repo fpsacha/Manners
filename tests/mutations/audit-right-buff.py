@@ -241,7 +241,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 mutate("Queue.lua",
-       "if not fight and #mine > 0 and f.quietShortInTowns == true and f.quietInTowns ~= true and Resting() == true then",
+       "if not fight and #mine > 0 and f.quietShortInTowns == true and Resting() == true then",
        "if false then",
        "audit-right-buff: short buffs held in a city leave your own Thorns offered",
        expect="audit-right-buff: short buffs held back in a city hold your own Thorns too", script="runscenarios.py")

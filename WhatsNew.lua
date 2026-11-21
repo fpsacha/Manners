@@ -10,6 +10,8 @@ ns.WhatsNew = {
 			"|cffffd100Your fight key is kept for each class.|r |cffffffffIn a fight, my key casts|r used to be one choice for every character on a profile, so a Flash Heal picked on a priest armed a paladin's key with Flash of Light.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52A meal of plain bread no longer brings back a food you skipped.|r Right-click a food for the evening and eat bread, and standing up used to put the reminder back; now it waits out the skip.",
+			"|cffff9a52Short buffs held back in cities and inns hold your own short buffs|r even with |cffffffffNever in cities and inns|r ticked.",
 			"|cffff9a52The fight buttons' keys cast with the game's cast-on-key-down option turned off|r , and the cure button takes no click while it is out of sight with a key bound, as the other fight buttons already did.",
 			"|cffff9a52The fight cure is offered only once you know a cure.|r The switch and its key on Look and Who to buff stay out of sight until the class has learned one, and the line said when you bind the key no longer ends on a blank spell name.",
 			"|cffff9a52Who to buff's reset puts back the fight switches it shows|r , |cffffffffOffer my cure in a fight|r and |cffffffffOffer Mend Pet in a fight|r.",
