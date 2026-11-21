@@ -167,8 +167,8 @@ mutate("Queue.lua",
 
 # A buff for one target at a time given to a pet.
 mutate("Core.lua",
-       "\t\tif opts.pet and buff.oneTarget then return false end\n",
-       "",
+       "\t\tif opts.pet and (buff.oneTarget or buff.notPets) then return false end\n",
+       "\t\tif opts.pet and buff.notPets then return false end\n",
        "grouppets: a one-target buff is offered to a pet",
        expect="grouppets: a buff for one target at a time is not offered to a pet", script=S)
 
