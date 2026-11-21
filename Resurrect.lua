@@ -52,8 +52,8 @@ ns.Resurrect = Res
 ---------------------------------------------------------------------------
 -- the spells
 --
--- Each client's own, from its tables at wago.tools for the build CLAUDE.md
--- cites (SpellName, SpellEffect, SkillLineAbility, SpellLevels, SpellMisc,
+-- Each client's own, from its tables at wago.tools for the build
+-- .claude/docs/data-sources.md cites (SpellName, SpellEffect, SkillLineAbility, SpellLevels, SpellMisc,
 -- SpellCastTimes, SpellCooldowns, SpellReagents; retail's mass resurrections
 -- from SpecializationSpells): every spell a class is given whose effect brings
 -- somebody back, that cannot be cast in a fight (SpellMisc Attributes_0,

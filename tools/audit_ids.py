@@ -16,7 +16,7 @@ thing the client owns is read off the set it chose: the buffs for others (ranks,
 group versions, `alike` ids, reagents), the class's own buffs and tracking, the
 scrolls, the favour-only and not-favour lists, ns.RANK_LEVEL, the race files in
 RP.FAMILY, the class tokens, the global-cooldown spell. Each is checked against that
-client's DB2 tables from wago.tools, for the build CLAUDE.md's "Data sources" cites:
+client's DB2 tables from wago.tools, for the build .claude/docs/data-sources.md cites:
 
   SpellName          the id exists, and its name is the buff the key says (compared in
                      English; wording that differs only in case or punctuation is fine)
@@ -91,7 +91,7 @@ sys.path.insert(0, HERE)
 csv.field_size_limit(1 << 28)
 
 FLAVOURS = ("camelot", "vanilla", "tbc", "mists", "mainline")
-# The build per client comes from CLAUDE.md ("The builds cited in the code"), by
+# The build per client comes from .claude/docs/data-sources.md ("The builds cited in the code"), by
 # tools/clients_watch.py's reading of it; these stand in if that line moves.
 BUILDS = {"camelot": "1.60.1.70790", "vanilla": "1.15.9.70003", "tbc": "2.5.6.69795",
           "mists": "5.5.4.70032", "mainline": "12.1.0.69933"}
@@ -143,7 +143,7 @@ def build_number(flavour):
 
 def fetch(flavour, table, cache, offline=False, quiet=False):
     """The path of the cached CSV, downloading it first when it is not there."""
-    # Every build caches under its own name, the one CLAUDE.md cites included: a
+    # Every build caches under its own name, the one data-sources.md cites included: a
     # cache keyed by the client alone kept answering with the old build's tables
     # after the cited build moved.
     key = "%s@%s" % (flavour, build_for(flavour))
@@ -1910,7 +1910,7 @@ def main(argv=None):
                     help="change Classic Era's dump in twenty ways and check each one is caught")
     ap.add_argument("--build", action="append", default=[], metavar="CLIENT=BUILD",
                     help="audit against another build of that client (e.g. camelot=1.60.1.70338), "
-                         "for data that moved since the build CLAUDE.md cites")
+                         "for data that moved since the build .claude/docs/data-sources.md cites")
     args = ap.parse_args(argv)
     for spec in args.build:
         name, _, build = spec.partition("=")

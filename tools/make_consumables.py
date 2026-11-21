@@ -4,7 +4,7 @@
     python tools/make_consumables.py --check    say whether the shipped file is current
     python tools/make_consumables.py --cache DIR  where the wago.tools CSVs live
 
-The tables are read for the build CLAUDE.md cites for each client (the one
+The tables are read for the build .claude/docs/data-sources.md cites for each client (the one
 tools/audit_ids.py audits), from its cache (default %TEMP%/manners-audit-cache),
 and downloaded there when they are missing. What counts, from each client's own
 ItemSparse, Item, ItemEffect (ItemXItemEffect on Forever), SpellMisc,

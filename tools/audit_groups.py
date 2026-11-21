@@ -7,7 +7,7 @@
 
 For every client, Buffs.lua is run in a bare Lua 5.1 (lupa, no mock client: it
 needs only `ns` and `ns.L`) and the build of that client the code cites
-(CLAUDE.md, "Data sources") is read from wago.tools: SpellName, SpellMisc,
+(.claude/docs/data-sources.md) is read from wago.tools: SpellName, SpellMisc,
 SpellCastTimes, SpellRange, SpellRadius, SpellEffect and SpellReagents. The
 tables are kept in %TEMP%/manners-audit-groups/<build>/ and fetched once (the
 first run needs the network; a page that is not the CSV asked for is refused,
@@ -48,7 +48,7 @@ table does not have.
 
 Exit codes: 0 nothing is wrong, 1 any ERR or WARN, 2 a table could not be
 fetched or read, or the repository does not say what it needs to (a build in
-CLAUDE.md, lupa installed).
+.claude/docs/data-sources.md, lupa installed).
 """
 import argparse
 import csv
@@ -65,7 +65,7 @@ try:
 except ImportError:
     sys.exit("audit_groups.py needs lupa (pip install lupa), the same Lua 5.1 the tests run on")
 
-# (key, name, family, how CLAUDE.md names its build)
+# (key, name, family, how data-sources.md names its build)
 CLIENTS = [
     ("camelot", "WoW Forever", "modern", "Forever"),
     ("vanilla", "Classic Era", "classic", "Classic Era"),
@@ -120,9 +120,12 @@ return ns
 """
 
 
+DATA_SOURCES = os.path.join(ROOT, ".claude", "docs", "data-sources.md")
+
+
 def builds_cited():
-    """Each client's build as CLAUDE.md cites it: 'Forever 1.60.1.70178, ...'."""
-    text = open(os.path.join(ROOT, "CLAUDE.md"), encoding="utf-8").read()
+    """Each client's build as .claude/docs/data-sources.md cites it: 'Forever 1.60.1.70178, ...'."""
+    text = open(DATA_SOURCES, encoding="utf-8").read()
     out = {}
     for key, _, _, cited in CLIENTS:
         m = re.search(re.escape(cited) + r"\s+(\d+\.\d+\.\d+\.\d+)", text)
@@ -385,7 +388,7 @@ def main():
             continue
         build = cited.get(client[0])
         if not build:
-            print("%s: CLAUDE.md names no build for %s" % (client[0], client[3]))
+            print("%s: .claude/docs/data-sources.md names no build for %s" % (client[0], client[3]))
             return 2
         print("== %s (%s, build %s)" % (client[1], client[0], build))
         try:

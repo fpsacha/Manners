@@ -61,7 +61,7 @@ Battle.EXTRAS = 2.5
 
 -- The aura everybody wears while a battleground's or an arena's gates are
 -- shut, by spell id, from each client's own SpellName and SpellEffect (the
--- builds CLAUDE.md cites): it takes the whole cost off every spell (aura 72,
+-- builds .claude/docs/data-sources.md cites): it takes the whole cost off every spell (aura 72,
 -- -100). Classic Era 1.15.9.70003 and Forever 1.60.1.70790 have one,
 -- Preparation 422621; Burning Crusade 2.5.6.69795, Mists 5.5.4.70032 and
 -- retail 12.1.0.69933 have the battleground's Preparation 44521 and the

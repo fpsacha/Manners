@@ -6,7 +6,7 @@
     python tools/audit_i18n_terms.py --words 2          # phrases of at least two words (default 1)
     python tools/audit_i18n_terms.py --save DIR         # keep the fetched files (not by default)
 
-CLAUDE.md: "Game terms -- spell, item, class, race and zone names, and the
+.claude/docs/translations.md: "Game terms -- spell, item, class, race and zone names, and the
 client's own UI words (nameplates, Key Bindings) -- use that client's official
 localized name (Wowhead in that language; GlobalStrings from
 Ketho/BlizzardInterfaceResources), never a free translation."

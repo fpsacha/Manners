@@ -2,8 +2,8 @@
 description: Add In character lines (research, write, review, add_phrases.py, translate)
 argument-hint: "[pool or people, e.g. RACE.dwarf.thanks | CLASS.MONK.offer | SPELL.skyfury]"
 ---
-Target: `$ARGUMENTS`. The pools, rules and examples caveat are in CLAUDE.md's "In
-character phrases"; `Phrases.lua` holds them. Work in your worktree.
+Target: `$ARGUMENTS`. The pools, rules and examples caveat are in
+`.claude/docs/phrases.md`; `Phrases.lua` holds them. Work in your worktree.
 
 1. **Research.** Find what the people, class or spell sounds like in the game
    itself (Wowhead per client, the game's own voice lines). Look up every key:

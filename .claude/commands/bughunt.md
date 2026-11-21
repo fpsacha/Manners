@@ -49,7 +49,7 @@ made twice (a line said twice, a mutation gone MISSED). Then
 `python tools/check.py --lint --flavours --anchors`, `python tests/selftest.py
 --changed master`, and `--flavours` baselines if a fix moved a known red
 (`runscenarios.py --flavour X --baseline`). Strings in needs_strings: `/translate`.
-docs_notes: into CLAUDE.md, tools/README.md, STATUS.md. Notes for players under
+docs_notes: into CLAUDE.md or its topic file under .claude/docs/, tools/README.md, STATUS.md. Notes for players under
 `## Unreleased` in CHANGELOG.md, with no disclaimers. Run the full selftest once
 before a release (`/release`). Remove the worktrees when merged.
 

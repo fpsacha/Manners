@@ -958,7 +958,7 @@ written to `ns.thankLog.skipped`; `tests/scenarios/thankdelay.lua`), and
 *Where* under *Offer nothing in cities and inns* (`filters.quietInTownsWhere`:
 both, cities, inns; Queue.lua `inTown`, Range.lua `ns.InCity`: the player's map
 and its parents against each client's capital uiMap ids, read from wago.tools'
-UiMap at the builds in `CLAUDE.md`; `tests/scenarios/townhold.lua`). Only the
+UiMap at the builds in `.claude/docs/data-sources.md`; `tests/scenarios/townhold.lua`). Only the
 live game can say: that `C_Map.GetBestMapForUnit("player")` answers in a city
 on every client (Forever's UiMap has only 60 rows; nil there holds back both,
 as before), that resting at an inn inside a capital reads as the city, and
@@ -1050,10 +1050,10 @@ own buffs, flasks, elixirs and scrolls, and Earth Shield, Beacon of Light and th
 other one-target buffs for the tank), and bug hunt 37's 47 fixes with the
 buffs still missing (Demonic Sacrifice, Tree of Life, Spirit of the Alpha,
 Beacon of Faith, Symbiotic Relationship, retail flasks). Forever's build 1.60.1.70790 deleted Blessing of Salvation and Light
-(1.11.4); the audit reads Forever at that build (`CLAUDE.md`, "Data sources").
+(1.11.4); the audit reads Forever at that build (`.claude/docs/data-sources.md`).
 
-Working here is quicker and safer for an agent since round 33 (`CLAUDE.md`,
-"Dev tools"). `tools/lint.py` says in under a second whether every Lua and
+Working here is quicker and safer for an agent since round 33
+(`.claude/docs/checks.md`, "Dev tools"). `tools/lint.py` says in under a second whether every Lua and
 Python file compiles and the generated tocs are current (`check.py --lint` runs
 it first and stops there on a problem). `tools/anchors_for.py` lists the
 mutations on a line before it is edited and, after, the anchors that are gone.

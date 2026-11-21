@@ -33,7 +33,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "Talents.lua")
 CLIENT = "camelot"
-# The Forever build CLAUDE.md's data line names.
+# The Forever build .claude/docs/data-sources.md's data line names.
 BUILD = "1.60.1.70790"
 
 # Talent.csv's TabID per class, in the order a class's trees are listed.

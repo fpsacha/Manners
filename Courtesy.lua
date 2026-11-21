@@ -61,7 +61,7 @@ ns.Courtesy = Courtesy
 ---------------------------------------------------------------------------
 -- what each client has
 --
--- From each client's own tables (wago.tools, the builds CLAUDE.md cites):
+-- From each client's own tables (wago.tools, the builds .claude/docs/data-sources.md cites):
 -- SkillLineAbility for the class, SpellEffect's created item (effect 24) for
 -- what a conjure makes, ItemSparse for the level an item asks of whoever
 -- drinks it and for the Improved Healthstone copies (the same name, three

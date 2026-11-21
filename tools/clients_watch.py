@@ -13,8 +13,8 @@ Per client (WoW Forever, Classic Era, TBC Anniversary, Mists Classic, retail):
   repo      the interface in tools/maketocs.py FLAVOURS, in Manners.toc's
             Interface line, in the generated Manners_<Flavour>.toc and in
             tests/mockapi.lua (they must agree: one line says so or names the
-            odd one out); the build is the one CLAUDE.md cites for the data
-            (the "builds cited in the code" line)
+            odd one out); the build is the one .claude/docs/data-sources.md
+            cites for the data (the "builds cited in the code" line)
   upstream  Gethe/wow-ui-source, the client's branch (forever, classic_era,
             classic_anniversary, classic, live): version.txt is "X.Y.Z.build".
             The interface is X*10000 + Y*100 + Z (16001, 11509, 20506, 50504,
@@ -46,10 +46,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import maketocs
 
+# The agents' notes on where client data comes from: its "builds cited in the
+# code" line names the build of each client (tools/audit_ids.py reads it here).
+DATA_SOURCES = os.path.join(ROOT, ".claude", "docs", "data-sources.md")
+
 UI = "repos/Gethe/wow-ui-source"
 KETHO = "repos/Ketho/BlizzardInterfaceResources"
 
-# (flavour key, name, toc suffix, wow-ui-source branch, how CLAUDE.md names it)
+# (flavour key, name, toc suffix, wow-ui-source branch, how data-sources.md names it)
 CLIENTS = [
     ("camelot", "WoW Forever", "Camelot", "forever", "Forever"),
     ("vanilla", "Classic Era", "Vanilla", "classic_era", "Classic Era"),
@@ -129,7 +133,7 @@ def repo_side():
     for key, name, suffix, _branch, _word in CLIENTS:
         if suffix in out:
             out[suffix]["mock"] = mocked.get(key)
-    cited = re.sub(r"\s+", " ", open(os.path.join(ROOT, "CLAUDE.md"), encoding="utf-8").read())
+    cited = re.sub(r"\s+", " ", open(DATA_SOURCES, encoding="utf-8").read())
     at = cited.find("builds cited in the code")
     builds = {}
     for key, _name, _suffix, _branch, word in CLIENTS:

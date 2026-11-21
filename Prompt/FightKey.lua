@@ -37,7 +37,7 @@ local PROMPT_COMMAND = "CLICK MannersPrompt:LeftButton"
 -- for it, and /cast by plain name casts the top rank. `self` marks a spell
 -- that only lands on you. Lay on Hands, Divine Shield, Shield Wall and Ice
 -- Block are left out: too big for one key. Every id is the client's own
--- SpellName at the builds CLAUDE.md cites (1463 is Incanter's Ward on Mists,
+-- SpellName at the builds .claude/docs/data-sources.md cites (1463 is Incanter's Ward on Mists,
 -- so Mana Shield stays out of it; Cloak of Shadows is not in Classic Era's or
 -- Forever's data, so it is never known there).
 local function r(key, id, solo) return { key = key, id = id, self = solo == true } end

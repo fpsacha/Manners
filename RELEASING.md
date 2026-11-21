@@ -21,7 +21,8 @@ afterwards — pushing it again only says it already exists.
    state's version, what is open and what only the live game can say);
    `.github/curseforge-description.md`, `wago-description.md` and
    `curseforge-summary.txt` where a feature a player would look for is new (the
-   user pastes them); `CLAUDE.md`, `tools/README.md` and `tests/README.md` where a
+   user pastes them); `CLAUDE.md` and its topic files under `.claude/docs/`,
+   `tools/README.md` and `tests/README.md` where a
    file, a tool or a rule changed. A release with the changelog written and the
    README, status and listings left behind is not ready.
 2. **Check everything, here and in the game.** `python tools/check.py

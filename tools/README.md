@@ -262,8 +262,8 @@ every player on it until its toc says the new number. This reads, with `gh api`
 
 - the repository: the number in `tools/maketocs.py` `FLAVOURS`, in `Manners.toc`'s
   `## Interface:` line, in each generated `Manners_<Flavour>.toc` and in
-  `tests/mockapi.lua`'s `Mock.FLAVOURS`, and the build `CLAUDE.md` cites for the
-  data ("The builds cited in the code"); they must agree, and one line names the
+  `tests/mockapi.lua`'s `Mock.FLAVOURS`, and the build `.claude/docs/data-sources.md`
+  cites for the data ("The builds cited in the code"); they must agree, and one line names the
   odd one out if they do not;
 - upstream, per client: `version.txt` on that client's branch of
   `Gethe/wow-ui-source` (`forever`, `classic_era`, `classic_anniversary`,
@@ -1696,7 +1696,7 @@ Conflagrate, Fire and Brimstone, Aftermath; shadow: Improved Shadow Bolt,
 Shadow Mastery, Pandemic, Improved Drains) are chosen by hand. Exit 1 on
 drift: a mark or a tree's deep talent with no definition, a mark whose text
 names none of its school's spells, a deep talent in another tab, a tree under
-eight talents. Reads the Forever build CLAUDE.md names (1.60.1.70790) from
+eight talents. Reads the Forever build `.claude/docs/data-sources.md` names (1.60.1.70790) from
 the tables `audit_ids.py` downloads.
 
 ```
@@ -1751,7 +1751,7 @@ python tools/make_beastfoods.py --cache DIR
 
 Writes `Consumables.lua`, the flasks, elixirs and stat scrolls per client
 (Forever, Classic Era, Burning Crusade, Mists), best first, from the tables
-`audit_ids.py` downloads, read for the build `CLAUDE.md` cites. `-h` says what
+`audit_ids.py` downloads, read for the build `.claude/docs/data-sources.md` cites. `-h` says what
 counts as each kind (item subclass or name, the use spell's aura, its length,
 whether it stays on through death).
 

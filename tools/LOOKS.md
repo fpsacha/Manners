@@ -99,8 +99,8 @@ prompt is down. Flow handles are not animation groups: stop them yourself.
 3. `Manners.toc`: the file after the other looks, then `python
    tools/maketocs.py`.
 4. The strings in all eight locales: `python tools/locale_todo.py --out DIR`,
-   translate, `python tools/locale_add.py <code> <file>` (CLAUDE.md,
-   "Translations").
+   translate, `python tools/locale_add.py <code> <file>`
+   (`.claude/docs/translations.md`).
 5. `tests/scenarios/look-<key>.lua` and `tests/mutations/look-<key>.py` (model:
    `look-lightbringer.*`, `look-glass.*`): what this look promises beyond what
    every look does. Every scenario name starts `look-<key>:`.
@@ -113,7 +113,7 @@ prompt is down. Flow handles are not animation groups: stop them yourself.
 7. `python tools/make_look_previews.py`.
 8. Docs: `CHANGELOG.md` under `## Unreleased` (for players, naming the Warcraft
    source), the README's list of looks, `STATUS.md` (what only the game can
-   say), `CLAUDE.md`'s file map, `tools/README.md` (the generator), the
+   say), the file map (`.claude/docs/file-map.md`), `tools/README.md` (the generator), the
    listings in `.github/` (the count of looks and the new one's line).
 9. Checks, sparing the machine (`--jobs 2`, one suite at a time): the look's
    own scenario file, `looks-alpha.lua` and `looks-read.lua` (add the key to

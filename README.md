@@ -1699,8 +1699,10 @@ Manners for something.
 
 ## For developers
 
-Start with [CLAUDE.md](CLAUDE.md): the file map, the five clients, the checks
-and the hard rules (Lua 5.1, secret values, combat, the macro's shape).
+Start with [CLAUDE.md](CLAUDE.md): the five clients, the hard rules (Lua 5.1,
+secret values, combat, the macro's shape) and the everyday commands, with the
+file map, the checks and the rest in its topic files under
+[.claude/docs/](.claude/docs/).
 [tests/README.md](tests/README.md) explains the suites, the scenarios and the
 mutations that hold each fix; [tools/README.md](tools/README.md) the tools,
 the renderers and the image generators (the pictures on this page are the

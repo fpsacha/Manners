@@ -57,7 +57,7 @@ local issecretvalue = _G.issecretvalue
 -- Every id, kind and passive is the client's own spell data (wago.tools,
 -- SpellEffect: effect 38, Dispel, with the kind in EffectMiscValue and a
 -- friendly target in ImplicitTarget; SpellName; Spell for the conditions),
--- read at the builds CLAUDE.md cites: Forever 1.60.1.70790, Classic Era
+-- read at the builds .claude/docs/data-sources.md cites: Forever 1.60.1.70790, Classic Era
 -- 1.15.9.70003, Burning Crusade 2.5.6.69795, Mists 5.5.4.70032, retail
 -- 12.1.0.69933. Spells that dispel an area (Mass Dispel), that a pet casts
 -- (Singe Magic) or that sit on a minute's cooldown (Cauterizing Flame) are

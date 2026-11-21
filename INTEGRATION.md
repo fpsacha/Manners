@@ -166,7 +166,7 @@ and the toc is the one file every branch would then change.
    `python tools/audit_look_contrast.py --looks <key> --check`. Under 4.5:1,
    lower `WELL_HI` for that painting or darken its well, never the check. Then
    `git checkout -- Looks/PaintedData.lua Looks/Previews.lua Textures/Previews`.
-10. **Docs**: the look's own line in CLAUDE.md's file map if what it draws
+10. **Docs**: the look's own line in the file map (`.claude/docs/file-map.md`) if what it draws
     changed. Nothing in CHANGELOG.md (the merge writes it once).
 
 Then: its scenario files, `painted-<key>.lua`, `painted.lua`,
