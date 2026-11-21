@@ -16,9 +16,11 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 - **Waiting on players:** issue 21 (no popup: their client and
   `/manners debug`), issue 22 (the imp's Fire Shield: needs a test in the game).
 - **Next:** issue 23, plainer English in the addon's own text (a pass, the
-  stiffest lines first; each changed string drops its old key in every locale);
-  the in-game checks listed under *Open* for 1.11.33 to 1.11.35 (fight buttons
-  only when needed, the fight key, the cure in a fight, the scroll bar).
+  stiffest lines first; each changed string drops its old key in every locale).
+  No in-game checks: the owner does not test in the game (21 November); the
+  *Open* items that only the game can settle are notes for when a player
+  reports something, and a bug report's evidence comes from the player
+  (`/manners debug`, `/manners errors`, the full check-up).
 - **Watch out:** the nightly pass answers comments at 11 PM too; check the page
   and `gh issue list --label player` before replying (the reply helper skips a
   player already answered). LuckyDan's reply (20 November, 201) does not show on

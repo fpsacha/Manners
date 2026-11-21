@@ -150,6 +150,9 @@ function, switch and test named. Change both together.
   before a release ships goes in that release.
 - Do the obvious next step and report after; ask only before a release or a
   deletion.
+- No in-game testing by the owner: assume the code works once the suites pass,
+  never ask the owner to check something in the game, and let players' reports
+  find what the simulator could not (ask the player for `/manners debug`).
 
 ## Everyday commands
 
