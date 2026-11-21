@@ -19,7 +19,10 @@
 -- secret in a fight (Forever, retail) it cannot tell, so the button stays out
 -- of sight, its key still casting, unless When the fight buttons show
 -- (`prompt.fightButtons`) is at All fight: then it sits dim for the whole
--- fight, with its two lines shown where the health is secret.
+-- fight, with its two lines shown where the health is secret. An invisible
+-- button takes no click: in the default setting its mouse is off (out of a
+-- fight only, in Refresh and at the pull) and only the key casts; All fight,
+-- or no key bound, leaves the click on.
 -- Lua paints only its own regions and alpha in a fight; the shown state, the
 -- macro and the place are written out of combat only.
 
@@ -200,7 +203,7 @@ local function OnEnter(self)
 	else
 		tip:AddLine(tostring(Beast.MendName()), 1, 1, 1)
 	end
-	tip:AddLine(L["Manners: a left click here casts it, as its key does. The prompt's own key keeps to buffs."], 0.75, 0.75, 0.75, true)
+	tip:AddLine(L["Manners: a left click here casts it, as its key does."], 0.75, 0.75, 0.75, true)
 	tip:Show()
 end
 
@@ -228,6 +231,8 @@ function MendPet:Create()
 	button:SetClampedToScreen(true)
 	button:RegisterForClicks("AnyDown")
 	button:SetAlpha(0)
+	-- No click until Refresh has decided (SetMouse).
+	button:EnableMouse(false)
 	icon = button:CreateTexture(nil, "ARTWORK")
 	icon:SetAllPoints(button)
 	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -289,6 +294,14 @@ local function ReadKey()
 	keyLabel = type(key) == "string" and key ~= "" and key or nil
 end
 
+-- Whether the button takes a click: all fight, or when no key is bound (then a
+-- click is the only way to cast it). Under the lockdown the client refuses
+-- EnableMouse on a protected frame, so it is set out of one only.
+local function SetMouse()
+	if not button or InCombatLockdown() then return end
+	button:EnableMouse(Always() or keyLabel == nil)
+end
+
 -- From a scan (Core.lua, TickBody) when Wanted says something changed, and as a
 -- fight ends (Release). Out of combat only.
 function MendPet:Refresh()
@@ -315,6 +328,7 @@ function MendPet:Refresh()
 	end
 	if button:IsShown() then button:Hide() end
 	ReadKey()
+	SetMouse()
 	paintedKey = nil
 	Paint()
 	-- A fight never opens at the last fight's alpha: the button is hidden here.
@@ -363,6 +377,7 @@ end
 local function OnEvent(event, spellId)
 	if event == "PLAYER_REGEN_DISABLED" then
 		ReadKey()
+		SetMouse()
 		paintedKey = nil
 		Paint()
 		if button then

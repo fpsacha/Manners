@@ -924,9 +924,9 @@ local function AddCureControls(args)
 		name = L["Offer my cure in a fight when somebody needs it"],
 		desc = function()
 			if ns.caps.conditionalTargeting then
-				return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures the player under your mouse, else your target, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs. A change made in a fight counts from the next one."]
+				return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures the player under your mouse, else your target, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."]
 			end
-			return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures your target when it is a friend, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs. A change made in a fight counts from the next one."]
+			return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures your target when it is a friend, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."]
 		end,
 		order = 14.95,
 		width = "full",
@@ -988,7 +988,7 @@ function Page.AddBeastControls(args)
 	-- Look, In a fight; the same switch sits here too, under the other Mend
 	-- Pet one, where a hunter turning Mend Pet off looks for it.
 	args.beastMendFight = { type = "toggle", name = L["Offer Mend Pet in a fight when my pet is badly hurt"],
-		desc = L["A button of its own beside the prompt, with a key of its own. It shows while your pet is below half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight it cannot tell, so the button stays out of sight unless When the fight buttons show keeps it there for the whole fight, half lit; its key casts either way. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+		desc = L["A button of its own beside the prompt, with a key of its own. It shows while your pet is below half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight it cannot tell, so the button stays out of sight unless When the fight buttons show keeps it there for the whole fight, half lit; its key casts either way. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."],
 		order = 15.9841, width = "full",
 		hidden = function() return NotHunter() or not ns.Beast.KnowsMend() end,
 		disabled = AllOff,

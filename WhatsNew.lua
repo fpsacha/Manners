@@ -5,13 +5,17 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "1.11.33", date = "20 November 2026", sections = {
+	{ version = "Unreleased", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Will of the Forsaken and Mend Pet stay out of sight until you need them.|r The two fight buttons no longer sit dim beside the prompt for the whole fight.",
-			"|cffffd100Short buffs held back in cities and inns now covers yourself.|r With |cffffffffHold back short buffs in cities and inns|r ticked, a short buff for yourself, Thorns say, is no longer offered while you rest, even with your own buffs allowed in cities.",
 		} },
 		{ title = "New", accent = "7cc4ff", entries = {
 			"|cff7cc4ffYour key can cast a shield, or a quick heal, in a fight.|r A new setting on Look, under |cffffffffIn a fight|r: |cffffffffIn a fight, my key casts|r.",
+		} },
+	} },
+	{ version = "1.11.33", date = "20 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Short buffs held back in cities and inns now covers yourself.|r With |cffffffffHold back short buffs in cities and inns|r ticked, a short buff for yourself, Thorns say, is no longer offered while you rest, even with your own buffs allowed in cities.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Mark of the Wild is no longer offered to pets|r on WoW Forever, where it takes players alone; Thorns still is.",
@@ -47,16 +51,6 @@ ns.WhatsNew = {
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Fish Bowl holds Kings off you too.|r |cffffffffDon't put Kings over a Fish Bowl's Boosted Stats|r now works on yourself, and on Forever it recognises the Fish Bowl through Camp Benefits, the aura the game actually shows.",
-		} },
-	} },
-	{ version = "1.11.30", date = "19 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Nothing is used on the run.|r Food, stones, oils, the sleeping bag and anything else with a cast wait until you stand still, and come back a second after you stop.",
-			"|cffffd100Thorns, not on me in a dungeon or raid.|r A new switch under Thorns' |cffffffffOffer to|r.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Bond with my pet really reaches the pet.|r The emote of a moment (a pat, a wave, a greeting) now targets your pet first and puts your own target back afterwards, so \"You greet everyone warmly\" becomes a greeting at the pet.",
-			"|cffff9a52Mend Pet's fight switch|r now shows under |cffffffffYour pet|r in the options window.",
 		} },
 	} },
 }

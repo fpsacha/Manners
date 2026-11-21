@@ -248,19 +248,23 @@ on. *Put Manners on an action bar* (Start here) says so.
 A Forsaken gets a small button of its own just right of the prompt, with a
 key of its own, armed for every fight: even when the prompt is off the
 screen, hidden by *Hide the prompt in combat* or snoozed. It casts Will of the
-Forsaken and nothing else, from its key or a left click. It stays out of
+Forsaken and nothing else, from its key. A left click casts it only while it is
+dim for the whole fight (*All fight, dim until needed*) or while no key is set;
+otherwise it takes no click, so a click beside the prompt reaches the game
+behind it. It stays out of
 sight until you are feared, charmed or asleep, then fades in, and fades out
 again after. While the spell is ready it lights up, glowing, with the spell's
 name over it and "press <key> to break free" under it; the prompt, when it is
 up, says the same. While the spell cools down it shows dim. The key casts
-even while the button is out of sight. The prompt's own key keeps to buffs:
-the fight has locked it. *Offer Will of the Forsaken when I am feared,
+even while the button is out of sight. The prompt's own key keeps to buffs,
+unless *In a fight, my key casts* names a spell. *Offer Will of the Forsaken when I am feared,
 charmed or asleep* (Look, under *In a fight*, on) switches it, and *Key for
 Will of the Forsaken* under it sets the key. *When the fight buttons show*
 (Look, under *In a fight*, *Only when needed* by default) can instead keep it
 dim beside the prompt for the whole fight (*All fight, dim until needed*); it
-holds for Mend Pet's button too. Only a Forsaken who has the spell sees any
-of them.
+holds for Mend Pet's button too. Only a Forsaken who has the spell sees the
+first two; *When the fight buttons show* is there for a hunter with Mend Pet
+too.
 
 #### Curing in a fight
 
@@ -277,7 +281,8 @@ you. A class with two cures (a druid, a priest or a shaman on the older
 clients) casts the second with Shift held, and the button says which. A debuff
 Manners never removes keeps the cure that would lift it away from that person.
 Where the game hides debuffs in a fight the button stays out of sight, and its
-key still casts. The prompt's own key keeps to buffs.
+key still casts. The prompt's own key keeps to buffs, unless *In a fight, my
+key casts* names a spell.
 
 #### A spell on your key in a fight
 
@@ -534,7 +539,9 @@ out again after. Where the game hides your pet's health in a fight (WoW
 Forever and retail) Manners cannot tell, so the button stays out of sight and
 its key still casts; *When the fight buttons show* (Look, under *In a fight*)
 set to *All fight, dim until needed* keeps it there for the whole fight, half
-lit with its two lines shown. The prompt's own key keeps to buffs.
+lit with its two lines shown. Out of sight the button takes no click, only its
+key casts, unless it is dim for the whole fight or no key is set. The prompt's
+own key keeps to buffs, unless *In a fight, my key casts* names a spell.
 
 Care waits while you eat: a food or drink stands you up, so nothing for the
 pet is offered until the meal is over.

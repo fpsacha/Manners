@@ -488,7 +488,7 @@ local function OnEnter(self)
 	tip:AddLine(caps.conditionalTargeting and L["Casts at the player under your mouse, else your target, else you."]
 		or L["Casts at your target when it is a friend, else at you."], 0.75, 0.75, 0.75, true)
 	if armedTwo then tip:AddLine(L["Hold Shift for %s."]:format(tostring(armedSpells[2].name)), 0.75, 0.75, 0.75, true) end
-	tip:AddLine(L["Manners: a left click here casts it, as its key does. The prompt's own key keeps to buffs."], 0.75, 0.75, 0.75, true)
+	tip:AddLine(L["Manners: a left click here casts it, as its key does."], 0.75, 0.75, 0.75, true)
 	tip:Show()
 end
 

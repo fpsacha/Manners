@@ -1193,10 +1193,12 @@ and the first hurt pet:
    loss of control: ... (secret)" says so.
 2. That `SetAlpha` from a plain OnUpdate on a driver-shown protected button is
    allowed in combat (the cure button's open item 5 is the same question).
-3. That an alpha-0 button shows nothing, and that a stray click on its empty
-   place casts (Will of the Forsaken then goes on its two-minute cooldown). The
-   mouse of a protected frame cannot be changed in combat, as the cure button
-   already accepts.
+3. That an alpha-0 button shows nothing, and that a click on its empty place
+   reaches the world behind it: under `needed` both buttons have their mouse
+   off (`SetMouse`, set out of a fight in Refresh and at the pull, since the
+   mouse of a protected frame cannot be changed in combat), on with `always`
+   or while no key is bound to the button (then a click is its only way). The
+   cure button, shipped before, still takes a click while out of sight.
 4. That the binding fires the hidden-by-alpha button.
 
 **The other clients' lists, 2026-11-15.** `tests/baselines/*.txt` took in the

@@ -3,7 +3,7 @@
 -- every fight, but at alpha 0 (no tooltip, the highlight a region that takes
 -- the alpha, its lines empty) until Manners has seen the need, and faded in
 -- then; `prompt.fightButtons` = "always" keeps them dim for the whole fight as
--- before 1.11.33. The cure button keeps its own rule and never reads it.
+-- before 1.11.34. The cure button keeps its own rule and never reads it.
 --
 -- The alpha is read from Look().alpha, the one the fade walks to (the mock
 -- runs no OnUpdate); a scenario that needs the button's own alpha runs the
@@ -13,6 +13,12 @@
 -- whether C_LossOfControl and UnitIsCharmed are plain in a fight on Forever
 -- and retail, and whether an alpha-0 button shows nothing and still fires by
 -- its key, only a fight can say (STATUS.md).
+--
+-- Out of sight a button takes no click either: in the default setting its mouse
+-- is off, so a click beside the prompt reaches the world, and only its key
+-- casts; All fight, or no key bound to it, leaves the click on. The mouse is
+-- read from the mock's `_mouse` (EnableMouse, a protected call the lockdown
+-- refuses, so set out of a fight only).
 --
 -- Every name starts with "fightbuttons:".
 
@@ -31,7 +37,8 @@ local OWED = { "Anna Aim", "Bob Bright", "Cara Cole" }
 -- prompt up on one of them. opts.race, opts.known (false: the spell not
 -- learned), opts.shape (the loss-of-control API's), opts.key (false: none),
 -- opts.nobody (nobody owed, so the prompt is off the screen at the pull),
--- opts.edit(p, ns) before the first scan.
+-- opts.defaults(ns) before anything is initialised (the profile's defaults),
+-- opts.edit(p, ns) after the first scan.
 local function withBF(scenario, body, opts)
 	opts = opts or {}
 	Mock.reset()
@@ -45,6 +52,8 @@ local function withBF(scenario, body, opts)
 	local ns = load(scenario)
 	if ns then
 		ok, err = pcall(function()
+			-- A default changed before the first scan (a button never made).
+			if opts.defaults then opts.defaults(ns) end
 			freshPrompt(ns, scenario)
 			Mock.timers = {}
 			Mock.secureActions = true
@@ -641,3 +650,88 @@ do
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
+
+-- ------------------------------------------------------------------ no button made
+-- A Forsaken who has the spell but the switch unticked, or Manners off: Create
+-- is never reached, so there is no button and no fader, and a pull must not
+-- touch either (a throw three times running marks the label broken).
+for _, row in ipairs({
+	{ "the switch is off", function(ns) ns.defaults.profile.prompt.breakFree = false end },
+	{ "manners is off", function(ns) ns.defaults.profile.enabled = false end },
+}) do
+	withBF("fightbuttons: a pull with no button made is quiet (" .. row[1] .. ")", function(ns, scenario)
+		if ns.BreakFree:Button() ~= nil then fail(scenario, "SKIPPED -- a button was made") return end
+		for _ = 1, 3 do
+			pull(ns)
+			release(ns)
+		end
+		if ns.Broken() ~= nil then fail(scenario, "the label is marked broken: " .. tostring(ns.Broken())) end
+	end, { nobody = true, people = {}, defaults = row[2] })
+end
+
+-- ------------------------------------------------------------------ no click out of sight
+withBF("fightbuttons: out of sight it takes no click (will of the forsaken)", function(ns, scenario)
+	local button = ns.BreakFree:Button()
+	if not button then fail(scenario, "no button") return end
+	local p = ns.db.profile.prompt
+	Mock.bindings = Mock.bindings or {}
+	Mock.bindings.F = WOTF_COMMAND
+	ns.BreakFree:Refresh()
+	if button._mouse ~= false then fail(scenario, "it takes a click out of a fight with its key bound") end
+	pull(ns)
+	if button._mouse ~= false then fail(scenario, "it takes a click at the pull, out of sight") end
+	lose("FEAR")
+	if (wotf(ns)) ~= 1 then fail(scenario, "SKIPPED -- not lit") end
+	if button._mouse ~= false then fail(scenario, "it takes a click while lit under only when needed: its key casts") end
+	regain()
+	release(ns)
+	if button._mouse ~= false then fail(scenario, "it takes a click after the fight") end
+	p.fightButtons = "always"
+	ns.BreakFree:Refresh()
+	if button._mouse ~= true then fail(scenario, "all fight does not take the click") end
+	pull(ns)
+	if button._mouse ~= true then fail(scenario, "all fight takes no click in the fight") end
+	release(ns)
+	p.fightButtons = "needed"
+	ns.BreakFree:Refresh()
+	if button._mouse ~= false then fail(scenario, "going back to only when needed leaves the click on") end
+	Mock.bindings.F = nil
+	ns.BreakFree:Refresh()
+	if button._mouse ~= true then fail(scenario, "with no key bound the click is its only way and it takes none") end
+end, { nobody = true, people = {}, key = false })
+
+do
+	local scenario = "fightbuttons: out of sight it takes no click (mend pet)"
+	with(scenario, { flavour = "vanilla" }, function(ns)
+		local button = hunterReady(ns)
+		if not button then fail(scenario, "no button made") return end
+		local p = ns.db.profile.prompt
+		if button._mouse ~= false then fail(scenario, "it takes a click out of a fight with its key bound") end
+		pull(ns)
+		if button._mouse ~= false then fail(scenario, "it takes a click at the pull, out of sight") end
+		health(40)
+		if (mend(ns)) ~= 1 then fail(scenario, "SKIPPED -- not lit") end
+		if button._mouse ~= false then fail(scenario, "it takes a click while lit under only when needed: its key casts") end
+		release(ns)
+		p.fightButtons = "always"
+		ns.MendPet:Refresh()
+		if button._mouse ~= true then fail(scenario, "all fight does not take the click") end
+		pull(ns)
+		if button._mouse ~= true then fail(scenario, "all fight takes no click in the fight") end
+		release(ns)
+		p.fightButtons = "needed"
+		ns.MendPet:Refresh()
+		if button._mouse ~= false then fail(scenario, "going back to only when needed leaves the click on") end
+		Mock.bindings.F = nil
+		ns.MendPet:Refresh()
+		if button._mouse ~= true then fail(scenario, "with no key bound the click is its only way and it takes none") end
+	end)
+end
+
+-- ------------------------------------------------------------------ the Look page's reset
+withBF("fightbuttons: the Look page's reset puts the setting back", function(ns, scenario)
+	local p = ns.db.profile.prompt
+	p.fightButtons = "always"
+	ns.OptionsPage.ResetPage("appearance")
+	if p.fightButtons ~= "needed" then fail(scenario, "the reset left it at " .. tostring(p.fightButtons)) end
+end, { nobody = true, people = {} })

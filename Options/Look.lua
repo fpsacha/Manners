@@ -531,7 +531,7 @@ function Page.BuildLookTab()
 			breakFree = {
 				type = "toggle",
 				name = L["Offer Will of the Forsaken when I am feared, charmed or asleep"],
-				desc = L["A button of its own beside the prompt, with a key of its own. It shows while you are feared, charmed or asleep, lit while the spell is ready and dim while it cools down; When the fight buttons show can keep it beside the prompt, dim, for the whole fight. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+				desc = L["A button of its own beside the prompt, with a key of its own. It shows while you are feared, charmed or asleep, lit while the spell is ready and dim while it cools down; When the fight buttons show can keep it beside the prompt, dim, for the whole fight. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."],
 				order = 32.46,
 				width = "full",
 				hidden = function() return ns.caps.breakFree == nil end,
@@ -569,7 +569,7 @@ function Page.BuildLookTab()
 			mendInFight = {
 				type = "toggle",
 				name = L["Offer Mend Pet in a fight when my pet is badly hurt"],
-				desc = L["A button of its own beside the prompt, with a key of its own. It shows while your pet is below half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight it cannot tell, so the button stays out of sight unless When the fight buttons show keeps it there for the whole fight, half lit; its key casts either way. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+				desc = L["A button of its own beside the prompt, with a key of its own. It shows while your pet is below half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight it cannot tell, so the button stays out of sight unless When the fight buttons show keeps it there for the whole fight, half lit; its key casts either way. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."],
 				order = 32.48,
 				width = "full",
 				hidden = function() return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend()) end,
@@ -606,7 +606,7 @@ function Page.BuildLookTab()
 			fightButtons = {
 				type = "select",
 				name = L["When the fight buttons show"],
-				desc = L["For the Will of the Forsaken and Mend Pet buttons. Only when needed: a button stays out of sight until you are feared, charmed or asleep, or your pet is badly hurt, then fades in and out again after. All fight: it sits dim beside the prompt for the whole fight and lights up when needed. Where the game hides your pet's health in a fight, only All fight shows the Mend Pet button. Either way its key still casts."],
+				desc = L["For the Will of the Forsaken and Mend Pet buttons. Only when needed: a button stays out of sight until you are feared, charmed or asleep, or your pet is badly hurt, then fades in and out again after; its key casts it, and a click does not unless no key is set. All fight: it sits dim beside the prompt for the whole fight, lights up when needed and takes a click too. Where the game hides your pet's health in a fight, only All fight shows the Mend Pet button."],
 				order = 32.4905,
 				values = { needed = L["Only when needed"], always = L["All fight, dim until needed"] },
 				sorting = { "needed", "always" },
@@ -634,9 +634,9 @@ function Page.BuildLookTab()
 				name = L["Offer my cure in a fight when somebody needs it"],
 				desc = function()
 					if ns.caps.conditionalTargeting then
-						return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures the player under your mouse, else your target, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs. A change made in a fight counts from the next one."]
+						return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures the player under your mouse, else your target, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."]
 					end
-					return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures your target when it is a friend, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs. A change made in a fight counts from the next one."]
+					return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures your target when it is a friend, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."]
 				end,
 				order = 32.491,
 				width = "full",

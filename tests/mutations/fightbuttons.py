@@ -30,10 +30,48 @@ mutate(BF,
        expect=FB + "a new fight starts out of sight", script=S)
 
 mutate(BF,
-       "\t\tbutton:SetAlpha(fadeTo)\n\t\tfader:Hide()\n\t\treturn\n",
-       "\t\treturn\n",
+       "\t\t\tbutton:SetAlpha(fadeTo)\n\t\t\tfader:Hide()\n\t\tend\n\t\treturn\n",
+       "\t\tend\n\t\treturn\n",
        "fightbuttons: the pull leaves the last alpha on the button",
        expect=FB + "a new fight starts out of sight", script=S)
+
+mutate(BF,
+       "\t\tif button then\n\t\t\tbutton:SetAlpha(fadeTo)\n\t\t\tfader:Hide()\n\t\tend\n\t\treturn\n",
+       "\t\tbutton:SetAlpha(fadeTo)\n\t\tfader:Hide()\n\t\treturn\n",
+       "fightbuttons: the pull touches a button that was never made",
+       expect=FB + "a pull with no button made is quiet", script=S)
+
+# --- no click out of sight
+
+mutate(BF,
+       "\tbutton:EnableMouse(Always() or keyLabel == nil)\n",
+       "\tbutton:EnableMouse(true)\n",
+       "fightbuttons: will of the forsaken takes a click out of sight",
+       expect=FB + "out of sight it takes no click (will of the forsaken)", script=S)
+
+mutate(BF,
+       "\tbutton:EnableMouse(Always() or keyLabel == nil)\n",
+       "\tbutton:EnableMouse(Always())\n",
+       "fightbuttons: will of the forsaken with no key takes no click at all",
+       expect=FB + "out of sight it takes no click (will of the forsaken)", script=S)
+
+mutate(BF,
+       "\tReadKey()\n\tSetMouse()\n\tPaint()\n",
+       "\tReadKey()\n\tPaint()\n",
+       "fightbuttons: the refresh leaves will of the forsaken's click as it was",
+       expect=FB + "out of sight it takes no click (will of the forsaken)", script=S)
+
+mutate(MP,
+       "\tbutton:EnableMouse(Always() or keyLabel == nil)\n",
+       "\tbutton:EnableMouse(true)\n",
+       "fightbuttons: mend pet takes a click out of sight",
+       expect=FB + "out of sight it takes no click (mend pet)", script=S)
+
+mutate(MP,
+       "\tbutton:EnableMouse(Always() or keyLabel == nil)\n",
+       "\tbutton:EnableMouse(Always())\n",
+       "fightbuttons: mend pet with no key takes no click at all",
+       expect=FB + "out of sight it takes no click (mend pet)", script=S)
 
 # --- Mend Pet out of sight until the pet is badly hurt
 
@@ -76,3 +114,11 @@ mutate("Options/Window/Layout.lua",
        "",
        "fightbuttons: the setting has no place in the window",
        expect="every control has one place in the options window", script=S)
+
+# --- the Look page's reset
+
+mutate("Options/Advanced.lua",
+       "\"prompt.cureFight\", \"prompt.fightButtons\",\n",
+       "\"prompt.cureFight\",\n",
+       "fightbuttons: the Look page's reset leaves the setting",
+       expect=FB + "the Look page's reset puts the setting back", script=S)

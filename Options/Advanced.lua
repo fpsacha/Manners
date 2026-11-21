@@ -142,7 +142,7 @@ Page.RESET = {
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
-		"supplies.size", "prompt.breakFree", "beast.fightMend", "prompt.cureFight",
+		"supplies.size", "prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons",
 		"prompt.fightKeySpell", "prompt.fightKeyOn",
 		-- Use my class's look on each character, and each class's pick.
 		"prompt.classLook", "prompt.classStyles",

@@ -11,7 +11,8 @@
 -- A fight locks the prompt: its macro is whatever the pull left on it
 -- (CLAUDE.md, Combat), and nothing secure can learn that you are feared (a
 -- snippet reads no aura and no loss of control: Prompt/Fight.lua says what the
--- restricted environment has). So the prompt's key keeps to buffs, and Will of
+-- restricted environment has). So the prompt's key keeps to buffs (unless
+-- In a fight, my key casts names a spell: Prompt/FightKey.lua), and Will of
 -- the Forsaken gets a button that casts that one spell and nothing else,
 -- armed out of combat whenever this applies. A hidden armed button firing it
 -- from its own key casts exactly what the player bound, at nobody else.
@@ -33,9 +34,13 @@
 -- feared, charmed or asleep, lit while the spell is ready and dim (0.6) while
 -- it cools down with the sweep, and out again after. With When the fight
 -- buttons show at All fight (`prompt.fightButtons`) it sits dim (0.35) for
--- every fight, as before 1.11.33. The key casts either way: an armed button
--- fires by its binding at any alpha. The prompt, when it is on the screen,
--- says the same (PaintPrompt, from Prompt/Refresh.lua's combat branch).
+-- every fight, as before 1.11.34. The key casts either way: an armed button
+-- fires by its binding at any alpha. A click is another matter: an invisible
+-- button must not take one, so in the default setting its mouse is off (set
+-- out of a fight, in Refresh and at the pull: the client refuses it under the
+-- lockdown) and only the key casts; All fight, or no key bound, leaves the
+-- click on. The prompt, when it is on the screen, says the same (PaintPrompt,
+-- from Prompt/Refresh.lua's combat branch).
 --
 -- WHAT IT KNOWS
 --
@@ -396,7 +401,7 @@ local function OnEnter(self)
 	elseif info then
 		tip:AddLine(info.name, 1, 1, 1)
 	end
-	tip:AddLine(L["Manners: a left click here casts it, as its key does. The prompt's own key keeps to buffs."], 0.75, 0.75, 0.75, true)
+	tip:AddLine(L["Manners: a left click here casts it, as its key does."], 0.75, 0.75, 0.75, true)
 	tip:Show()
 end
 
@@ -425,6 +430,8 @@ function BreakFree:Create()
 	button:SetClampedToScreen(true)
 	button:RegisterForClicks("AnyDown")
 	button:SetAlpha(0)
+	-- No click until Refresh has decided (SetMouse).
+	button:EnableMouse(false)
 	icon = button:CreateTexture(nil, "ARTWORK")
 	icon:SetAllPoints(button)
 	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -488,6 +495,16 @@ local function ReadKey()
 	keyLabel = type(key) == "string" and key ~= "" and key or nil
 end
 
+-- Whether the button takes a click: all fight, or when no key is bound (then a
+-- click is the only way to cast it). Otherwise it is out of sight or only just
+-- in it, and a click beside the prompt must reach the world behind. The client
+-- refuses EnableMouse on a protected frame under the lockdown, so only out of
+-- one: at Refresh and at the pull, before it.
+local function SetMouse()
+	if not button or InCombatLockdown() then return end
+	button:EnableMouse(Always() or keyLabel == nil)
+end
+
 -- From a scan (Core.lua, TickBody) when Wanted says something changed, and as
 -- a fight ends (Release). Out of combat only: in one the driver has it, and
 -- Lua paints its regions alone.
@@ -517,6 +534,7 @@ function BreakFree:Refresh()
 	-- At rest out of a fight; the driver shows it at the pull.
 	if button:IsShown() then button:Hide() end
 	ReadKey()
+	SetMouse()
 	Paint()
 	-- A fight never opens at the last fight's alpha: the button is hidden here.
 	button:SetAlpha(fadeTo)
@@ -659,10 +677,14 @@ local function OnEvent(event, unit, _, spellId)
 	-- The pull, before the lockdown: the key as it stands for the fight.
 	if event == "PLAYER_REGEN_DISABLED" then
 		ReadKey()
+		SetMouse()
 		paintedKey = nil
 		Paint()
-		button:SetAlpha(fadeTo)
-		fader:Hide()
+		-- No button where the switch is off or Manners is: nothing to fade.
+		if button then
+			button:SetAlpha(fadeTo)
+			fader:Hide()
+		end
 		return
 	end
 	local was = afflicted

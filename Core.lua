@@ -714,7 +714,7 @@ local defaults = {
 			-- When the Will of the Forsaken and Mend Pet buttons show in a fight
 			-- (Prompt/BreakFree.lua, Prompt/MendPet.lua): needed, out of sight (alpha
 			-- 0) until Manners sees the need; always, dim for the whole fight as before
-			-- 1.11.33. The cure button keeps its own rule.
+			-- 1.11.34. The cure button keeps its own rule.
 			fightButtons = "needed",
 			-- The class's cure on a button of its own beside the prompt for a
 			-- fight, out of sight until somebody near you needs it
