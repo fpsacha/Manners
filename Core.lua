@@ -6395,6 +6395,11 @@ function addon:OnEnable()
 	-- ns each) to a handler that threw it away -- in a raid fight, about as much
 	-- as the whole tick. The handlers keep their unit checks for a client without
 	-- RegisterUnitEvent. The frame is made once, whatever calls OnEnable again.
+	-- Other people's casts are not heard here: Favours.lua's cast watch hears them,
+	-- and drops anything that is not a class buff with a table lookup before it
+	-- asks the client anything. Companion.lua's frame hears UNIT_SPELLCAST_SUCCEEDED
+	-- too, for the player's own casts alone (RegisterUnitEvent, and a unit check
+	-- before any protected call where that is missing).
 	for _, event in ipairs({
 		"UNIT_SPELLCAST_SENT",
 		"UNIT_SPELLCAST_SUCCEEDED",
@@ -6431,6 +6436,10 @@ function addon:OnEnable()
 			ns.logScan.armed = true
 		end)
 	end
+	-- Where there is no combat log to name who buffed you (Forever, retail, a classic
+	-- client whose log was refused) the aura may name nobody, and the casts people
+	-- make in sight are the one other witness: Favours.lua's cast watch.
+	if not ns.combatLogArmed and ns.ArmCastWatch then ns.Guard("cast watch", ns.ArmCastWatch) end
 
 	ns.Guard("StartScanner", function() self:StartScanner() end)
 	ns.Guard("ApplyStyle", function() ns.Prompt:ApplyStyle() end)

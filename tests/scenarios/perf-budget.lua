@@ -483,11 +483,13 @@ do
 end
 
 -- ------------------------------------------------------------------ budget 6
--- A cast by anybody else costs no Lua at all: the six UNIT_SPELLCAST_* events
--- are registered on a frame of the addon's own for the player alone
--- (RegisterUnitEvent), not through AceEvent, which hands every cast in sight
--- to a handler that throws it away. The frame hands each event to the addon's
--- method of the same name, as AceEvent did.
+-- A cast by anybody else reaches Favours.lua's cast watch, which drops
+-- anything that is not a class buff with one table lookup and no protected
+-- call, and Companion.lua's frame, registered for the player's casts alone
+-- (with a unit check before its protected call where that is missing): the six UNIT_SPELLCAST_* events are registered on a frame of the
+-- addon's own for the player alone (RegisterUnitEvent), not through AceEvent,
+-- which hands every cast in sight to a handler that throws it away. The frame
+-- hands each event to the addon's method of the same name, as AceEvent did.
 do
 	local scenario = "perf-budget: only the player's own casts are delivered"
 	local CASTS = { "UNIT_SPELLCAST_SENT", "UNIT_SPELLCAST_SUCCEEDED", "UNIT_SPELLCAST_FAILED",
