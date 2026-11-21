@@ -195,3 +195,6 @@ Under `.claude/docs/`, each standing alone. Open the one your task touches.
   adding or changing a line.
 - `data-sources.md`: the builds per client (the audits read them here), Wowhead,
   Blizzard's UI source, client strings. Before reading or citing client data.
+- `status-history.md`: the long notes on every feature up to 1.11.36 and the
+  questions only the game can answer. When a player reports something about
+  one of them, or a code comment says "(STATUS.md)" about a game-only question.
