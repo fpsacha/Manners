@@ -447,10 +447,10 @@ do
 		local order = table.concat(control.sorting or {}, " ")
 		if order ~= "all tanks tanksme outside me" then fail(scenario, "the choices are listed " .. order) end
 		local desc = H.optionText(control.desc)
-		if not desc:find("so is everybody outside your group", 1, true) then
+		if not desc:find("only its tanks; nobody outside it", 1, true) then
 			fail(scenario, "the description does not say Tanks only leaves out everybody outside the group: " .. desc)
 		end
-		if not desc:find("asks you for it in chat is still offered it", 1, true) then
+		if not desc:find("asks you for it in chat always gets it", 1, true) then
 			fail(scenario, "the description does not say a request is still answered: " .. desc)
 		end
 		local B = ns.db.profile.buff

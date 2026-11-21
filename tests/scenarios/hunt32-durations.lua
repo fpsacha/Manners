@@ -795,11 +795,21 @@ do
 		local name = node and H.optionText(node.name) or ""
 		if not (node and node.type == "range" and node.min == 1 and node.max == 4 and node.step == 0.5) then
 			fail(scenario, "refreshRaid is not a 1-4 range in halves")
-		elseif not name:lower():find("times", 1, true) then
-			fail(scenario, "the multiplier does not say it counts times: " .. name)
+		else
+			-- The unit is in the window's box (the layout's `units`), and the
+			-- fallback dialog, which has no box, says it in the name or the tooltip.
+			local units = ns.WindowLayout and ns.WindowLayout.units or {}
+			local desc = H.optionText(node.desc)
+			if not (units["when.refreshRaid"] and units["when.refreshRaid"].kind == "times") then
+				fail(scenario, "the multiplier has no times box in the window: " .. name)
+			elseif not ((name .. " " .. desc):lower():find("times", 1, true)) then
+				fail(scenario, "the multiplier does not say it counts times: " .. name)
+			end
 		end
 		local under = H.findOption(ns.optionsTable, "refreshUnder")
-		if not (under and H.optionText(under.name):lower():find("minute", 1, true)) then
+		local underUnit = ns.WindowLayout and ns.WindowLayout.units and ns.WindowLayout.units["when.refreshUnder"]
+		if not (under and underUnit and underUnit.kind == "minutes"
+				and (H.optionText(under.name) .. " " .. H.optionText(under.desc)):lower():find("minute", 1, true)) then
 			fail(scenario, "the ceiling no longer says minutes")
 		end
 		f.whenBuffed = "skip"

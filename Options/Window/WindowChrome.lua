@@ -833,10 +833,23 @@ function UI.BuildFooter(f)
 	footer.reset:SetSize(math.ceil(UI.Measure(label)) + 26, 22)
 	footer.reset:SetPoint("LEFT", foot, "LEFT", 10, 0)
 	-- Every setting that is not at its default, in the results panel.
+	-- A square button wearing the changed mark itself (the gold dot beside each
+	-- changed setting), its name in the tooltip: a worded button took the room
+	-- who makes Manners is written in, and the line shrank below the build.
 	local changedLabel = L["What I changed"]
-	footer.changed = W.Button(foot, changedLabel, UI.Guarded(function() UI.ShowChanged() end))
-	footer.changed:SetSize(math.ceil(UI.Measure(changedLabel)) + 26, 22)
+	footer.changed = W.Button(foot, "", UI.Guarded(function() UI.ShowChanged() end))
+	footer.changed.minWidth = 22
+	footer.changed:SetSize(22, 22)
 	footer.changed:SetPoint("LEFT", footer.reset, "RIGHT", FOOT_GAP, 0)
+	footer.changed.dot = UI.Dot(footer.changed, C.gold)
+	footer.changed.dot:SetPoint("CENTER", footer.changed, "CENTER", 0, 0)
+	footer.changed.tip = changedLabel
+	footer.changed:HookScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:AddLine(changedLabel, 1, 1, 1)
+		GameTooltip:Show()
+	end)
+	footer.changed:HookScript("OnLeave", function() GameTooltip:Hide() end)
 	footer.buildItem = UI.Item(layout.build)
 	local closeLabel = CLOSE or ""
 	footer.close = W.Button(foot, closeLabel, function() f:Hide() end)

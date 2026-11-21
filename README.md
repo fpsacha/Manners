@@ -972,7 +972,7 @@ it too.
   existed keeps everything on screen and is offered it once.
 - Each page opens with a line under its title saying what is on it.
 - A gold mark in the margin beside a setting means it is not at its default;
-  click it to put that one back. *What I changed*, in the footer, lists every
+  click it to put that one back. *What I changed*, the same gold mark in the footer, lists every
   setting you changed, eight at a time; a choice takes you to it.
 - A slider's box shows its unit (12 s, 5 min, 40%) and takes it typed: 5m is
   five minutes, 1h an hour. A bare number is read in the slider's own unit.
