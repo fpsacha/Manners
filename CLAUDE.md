@@ -122,8 +122,9 @@ function, switch and test named. Change both together.
   appears only once a read in the fight has found it wanted.
 - Never tell a player something is impossible: say what Manners does, or what
   it would take.
-- Never post a reply twice: after posting, reload and look; when unsure whether
-  it went, check before posting again.
+- Never post a reply twice: before posting, look for a reply already there (the
+  nightly pass answers comments too); a POST's 201 is the proof it went, a page
+  that lags after a reload is not. `.claude/snippets/curseforge-reply.js` does both.
 - One agent at a time: queue them rather than fan out several in the background.
 - Tests go easy on RAM: `--jobs 4` at most, one suite at a time; ask before a
   full selftest (GitHub runs it, `selftest.yml`). An agent runs a suite in the
