@@ -11,8 +11,8 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
   (`.claude/docs/` has the detail), pushed. Old worktrees kept on purpose:
   `look-fel`, `look-wild`, `relcheck` (uncommitted files in them), `logo`,
   `ci-diag-generators` (branches not merged). Leave them unless the owner asks.
-- **Waiting on the owner:** the Wago page (issue 25: paste
-  `.github/wago-description.md`, upload `.github/media/icon-512.png`).
+- **Waiting on the owner:** nothing. The Wago page is set aside by the owner
+  (issue 25 closed): leave its text and icon alone; releases still upload there.
 - **Waiting on players:** issue 21 (no popup: their client and
   `/manners debug`), issue 22 (the imp's Fire Shield: needs a test in the game).
 - **Next:** issue 23, plainer English in the addon's own text (a pass, the
