@@ -237,6 +237,9 @@ do
 	session(scenario, "0", function(ns)
 		primed(ns)
 		land(ns, 3501, nil)
+		-- The line waits for the landing's window to close (the cast watch), so that
+		-- it is said only when nobody was named.
+		Mock.runTimers(2)
 		local line = said(UNNAMED)
 		if not line then
 			fail(scenario, "a Fortitude from nobody the game would name, and nothing said")
@@ -248,6 +251,7 @@ do
 		ns.addon:UNIT_AURA(nil, "player")
 		Mock.advance(1)
 		land(ns, 3502, nil)
+		Mock.runTimers(2)
 		if said(UNNAMED) then fail(scenario, "said twice in a session") end
 		local hints = ns.db.char.hints
 		if not (type(hints) == "table" and hints.unnamed == 1) then fail(scenario, "the session is not counted") end
@@ -259,6 +263,7 @@ do
 	session(scenario, "1", function(ns)
 		primed(ns)
 		land(ns, 3501, nil)
+		Mock.runTimers(2)
 		if said(UNNAMED) then fail(scenario, "the nameplates are on, and the line blames them") end
 	end)
 end
@@ -269,6 +274,7 @@ do
 		primed(ns)
 		Mock.inCombat = true
 		land(ns, 3501, nil)
+		Mock.runTimers(2)
 		Mock.inCombat = false
 		if said(UNNAMED) then fail(scenario, "said in a fight, where a withheld caster looks the same") end
 	end)
@@ -294,6 +300,7 @@ do
 		ns.db.char.hints = { unnamed = 3 }
 		primed(ns)
 		land(ns, 3501, nil)
+		Mock.runTimers(2)
 		if said(UNNAMED) then fail(scenario, "said on a fourth session") end
 	end)
 end

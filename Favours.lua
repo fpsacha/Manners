@@ -409,6 +409,12 @@ do
 
 	PausedUnseen = function(seen)
 		local db = ns.db and ns.db.profile
+		-- The cast watch found the caster on your ignore list: nobody is thanked.
+		seen.nobodyWaiting = nil
+		if seen.ignoredCaster or seen.nobodyCancelled then
+			seen.thankedNobody = nil
+			return
+		end
 		-- It was queued as a thank to nobody (ThankUnseen); only one that goes keeps
 		-- the mark that stops a named caster being thanked as well.
 		if not UnseenLive(db) then seen.thankedNobody = nil end
@@ -438,6 +444,7 @@ do
 		if waiting and now - waiting.at < PAUSE_MAX + 2 then
 			waiting.unseen = seen
 			seen.thankedNobody = true
+			seen.nobodyWaiting = true
 			return SkipUnseen(seen.key, now, L["thanked somebody a moment ago"])
 		end
 		waiting = nil
@@ -449,11 +456,16 @@ do
 			return
 		end
 		seen.thankedNobody = true
+		seen.nobodyWaiting = true
 		-- No name: a named favour arriving meanwhile is kept behind it, as
 		-- ThankFavour keeps one behind another's.
 		local mine = { at = now }
 		waiting = mine
-		timer.After(PAUSE_MIN + math.random() * (PAUSE_MAX - PAUSE_MIN), function()
+		-- Never before the window the cast watch judges the landing over has closed:
+		-- only then is it known whether the caster is on your ignore list.
+		local pause = PAUSE_MIN + math.random() * (PAUSE_MAX - PAUSE_MIN)
+		if seen.awaitCast and seen.high then pause = math.max(pause, seen.high + 0.2 - now) end
+		timer.After(pause, function()
 			if waiting == mine then waiting = nil end
 			local sent = lastAt
 			ns.Guard("thank after a pause", PausedUnseen, seen)
@@ -661,21 +673,24 @@ do
 	end
 
 	-- Defined after ClaimFavour, with the rest of the cast watch.
-	local NameFromCast, AwaitCaster
+	local NameFromCast, AwaitCaster, HeardIgnored
 
 	-- Reads who `source` is into the sighting `seen`: name, GUID, class and the rest, while
 	-- the token still means them. Sight reads the aura's own source with it, and the cast
 	-- watch the token a cast came from; both rule yourself out first. Returns true once read;
-	-- nothing is set for a non-player or somebody on your ignore list.
-	local function ReadCaster(source, seen)
-		if plain(UnitIsPlayer(source)) ~= true then return end
-		-- Somebody on your /ignore list, the game's own "leave me alone": no
-		-- debt, no line and no /thank. Asked directly: the token and the GUID
-		-- are plain, and either call answers a plain yes or no.
-		local guid = plain(UnitGUID(source))
-		if ns.Ignored(source, guid) then return end
-
-		local full = ns.UnitFullName(source)
+	-- nothing is set for a non-player or somebody on your ignore list. The cast watch has
+	-- already asked all of that (NoteCast) and hands over the GUID and the name it read
+	-- (`asked`), so the per-cast path asks the client nothing twice.
+	local function ReadCaster(source, seen, asked, guid, full)
+		if not asked then
+			if plain(UnitIsPlayer(source)) ~= true then return end
+			-- Somebody on your /ignore list, the game's own "leave me alone": no
+			-- debt, no line and no /thank. Asked directly: the token and the GUID
+			-- are plain, and either call answers a plain yes or no.
+			guid = plain(UnitGUID(source))
+			if ns.Ignored(source, guid) then return end
+			full = ns.UnitFullName(source)
+		end
 		if not full then return end
 
 		seen.name = full
@@ -737,16 +752,20 @@ do
 		-- source of record, and not for an aura plainly an NPC's.
 		if not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed
 			and plain(aura.isFromPlayerOrPlayerPet) ~= false then
-			if NameFromCast(seen, aura) then return end
+			NameFromCast(seen, aura)
 		end
 		-- A class buff with no caster to read: a stranger the game gave no
 		-- token for, as with the friendly nameplates off. Nobody can be owed
 		-- for it, but the trail keeps it, and the player is told why once
-		-- (Hints.lua, which says it only when the nameplates are the reason).
-		if not source and ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end
+		-- (Hints.lua, which says it only when the nameplates are the reason). Not for a
+		-- landing waiting on its window: the cast watch says it from Unmatched, so it is
+		-- said only when nobody was named.
+		if not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast then Unnamed(key, seen.unseen) end
 		-- For /manners debug: a landing nobody could be named for (one waiting on its
-		-- window files its own fate, Unmatched; an NPC's is no favour).
-		if not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast and plain(aura.isFromPlayerOrPlayerPet) ~= false then
+		-- window files its own fate, Unmatched; an NPC's is no favour; and where the
+		-- combat log is the source of record nothing is known to be unnamed here).
+		if not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast
+			and plain(aura.isFromPlayerOrPlayerPet) ~= false then
 			Remember(seen, "unnamed", "none")
 			ns.lastFavour.platesOff = ns.FriendlyPlatesOff() or nil
 		end
@@ -1131,6 +1150,12 @@ do
 	-- rule). Never a shout, never what may be a group member's.
 	local function ThankNobody(seen)
 		if Shout(seen.key) or MaybeMember(seen.key) then return end
+		-- A cast from somebody on your ignore list is already in the ring: no thank,
+		-- not even to nobody (Decide drops one still waiting when it learns it later).
+		if seen.awaitCast and HeardIgnored and HeardIgnored(seen) then
+			seen.ignoredCaster = true
+			return
+		end
 		-- ThankUnseen marks `seen.thankedNobody` where a thank to nobody went, was
 		-- parked or was queued behind a pause, so a caster the cast watch names after
 		-- the window is not thanked a second time (NoteFavour, noThank), and is
@@ -1252,10 +1277,17 @@ do
 	--   * a cast by an NPC, or by somebody whose status cannot be read, or at somebody
 	--     else, or a group form of the buff, is no candidate but still counts as a
 	--     second person;
-	--   * a cast aimed at you names them at once; one with no target is a self-cast
-	--     as often as not, so it names them only once the window has closed and only
-	--     when they do not now wear a fresh one of it themselves (SelfCast).
+	--   * every landing waits for its window to close (Decide), which prefers the cast
+	--     aimed at you; one with no target is a self-cast as often as not, so it
+	--     names them only while the friendly nameplates are on (else other players may
+	--     have cast it out of sight) and when they plainly do not now wear a fresh one
+	--     of it themselves (SelfCast);
+	--   * a cast whose target cannot be read, and your own casts of a class buff, are
+	--     no candidate either, but count as somebody else.
 	---------------------------------------------------------------------------
+	-- Read at load, as ns.plain reads it: absent on a client that never had secrets.
+	local issecretvalue = _G.issecretvalue
+
 	do
 		local CAST_WINDOW = 1.0     -- either side of the landing
 		local CAST_SAME = 0.5       -- two sightings of one cast, by one person
@@ -1275,7 +1307,8 @@ do
 			group = "the cast it saw was the group form of the buff, which lands on the caster's own group",
 			["else"] = "the cast it saw was aimed at somebody else",
 			theirOwn = "the cast it saw looks like their own, on themselves",
-			busy = "other buffs were waiting to be matched",
+			unseen = "the nameplates were off or the caster could not be checked, and other players may have cast it out of sight",
+			own = "the cast it saw was your own",
 		}
 
 		local function InList(list, id)
@@ -1297,6 +1330,17 @@ do
 			if a.guid == nil and b.guid == nil then
 				local x, y = a.seen and a.seen.name, b.seen and b.seen.name
 				return x ~= nil and x == y
+			end
+			return false
+		end
+
+		-- Whether a cast of this buff from somebody on your ignore list is in the ring
+		-- for this landing's window.
+		HeardIgnored = function(seen)
+			local casts = cw.casts
+			for i = 1, #casts do
+				local e = casts[i]
+				if e.ignored and e.at >= seen.low and SameBuff(e.spell, seen.key) then return true end
 			end
 			return false
 		end
@@ -1356,16 +1400,19 @@ do
 			return best
 		end
 
-		-- Whether a cast with no target was plainly their own, or cannot be told:
-		-- somebody who now wears a fresh one of the buff, cast at the moment, cast it
-		-- on themselves. The global cooldown keeps two casts by one person at least
-		-- 1.5 s apart, so a priest who buffed herself and then you is still named.
+		-- Whether a cast with no target was their own: true when somebody who now wears
+		-- a fresh one of the buff, cast at the moment, cast it on themselves; false when
+		-- they plainly do not; nil when it cannot be told. The global cooldown keeps
+		-- two casts by one person at least 1.5 s apart, so a priest who buffed herself
+		-- and then you is still named. "Not wearing it" counts only when their auras
+		-- are shown readable in the same call: a list the client hides says nothing.
 		local function SelfCast(e)
-			if e.guid == nil or plain(UnitGUID(e.unit)) ~= e.guid then return true end
-			if not (C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID) then return true end
+			if e.guid == nil or plain(UnitGUID(e.unit)) ~= e.guid then return nil end
+			if not (C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID) then return nil end
 			-- Read straight off the caster, whatever class they are: the class buff
 			-- tables hold only your own class's buffs, and most favours are another
-			-- class's. Runs from the timer, where a protected call is allowed.
+			-- class's. Runs from Decide, which runs from a timer (or at once where the
+			-- client has none), so a protected call is allowed.
 			local buff = ns.BUFF_BY_ID[e.spell]
 			local ids = buff and buff.auraIds or { e.spell }
 			local cannotTell = false
@@ -1382,7 +1429,13 @@ do
 					end
 				end
 			end
-			return cannotTell
+			if cannotTell then return nil end
+			-- None of the ids found: not wearing it, but only if the list is readable.
+			local get = C_UnitAuras.GetAuraDataByIndex
+			if not get then return nil end
+			local ok, first = pcall(get, e.unit, 1, "HELPFUL")
+			if not ok or type(first) ~= "table" or (issecretvalue and issecretvalue(first)) then return nil end
+			return false
 		end
 
 		local function Forget(seen)
@@ -1405,6 +1458,9 @@ do
 			end
 			Remember(seen, "unnamed", why)
 			ns.lastFavour.platesOff = ns.FriendlyPlatesOff() or nil
+			-- Nobody was named, so now the trail's line and the nameplates hint (Sight
+			-- leaves both to here for a landing that waited on its window).
+			Unnamed(seen.key, seen.unseen)
 			if ns.UnmatchedBuffHint then ns.UnmatchedBuffHint(why) end
 		end
 
@@ -1414,11 +1470,25 @@ do
 			seen.decided = true
 			Forget(seen)
 			local hit, why = Judge(seen.key, seen.low, seen.high)
-			if type(hit) == "table" and hit.aim ~= "you" and SelfCast(hit) then
-				hit, why = nil, "theirOwn"
+			-- A cast not aimed at you may name its caster only while the friendly
+			-- nameplates are plainly on (off, a stranger out of sight may have cast
+			-- it, and the one seen is a bystander) and it is plainly no self-cast.
+			if type(hit) == "table" and hit.aim ~= "you" then
+				if ns.FriendlyPlatesOff() then
+					hit, why = nil, "unseen"
+				else
+					local mine = SelfCast(hit)
+					if mine == true then
+						hit, why = nil, "theirOwn"
+					elseif mine == nil then
+						hit, why = nil, "unseen"
+					end
+				end
 			end
 			if hit == "ignored" then
-				-- A thank to nobody may already have gone; it named nobody.
+				-- A thank to nobody may already have gone; it named nobody. One still
+				-- waiting out its pause or for a press is let go (PausedUnseen, ThankPress).
+				seen.ignoredCaster = true
 				Remember({ name = why.seen and why.seen.name, key = seen.key }, "ignored")
 				return
 			end
@@ -1427,6 +1497,12 @@ do
 				hit.used = true
 				seen.fromCast = true
 				seen.filed = true
+				-- A thank to nobody still waiting is let go for the name (the pause ends,
+				-- PausedUnseen drops it, and the named thank behind it goes).
+				if seen.nobodyWaiting then
+					seen.nobodyCancelled = true
+					seen.thankedNobody = nil
+				end
 				seen.noThank = seen.thankedNobody
 				local stat = ns.castWatch
 				stat.named = stat.named + 1
@@ -1443,9 +1519,10 @@ do
 			Unmatched(seen, why)
 		end
 
-		-- The landing has no caster the aura names: ask the ring now. A cast aimed at
-		-- you names them at once; anything less waits for the window to close
-		-- (AwaitCaster, from the scan's fresh loop).
+		-- The landing has no caster the aura names: fix the window its casts fall in.
+		-- Every such landing is judged once the window has closed (AwaitCaster, from
+		-- the scan's fresh loop), over every cast in it, which prefers the one aimed at
+		-- you; none is named on what the ring holds at the moment it lands.
 		NameFromCast = function(seen, aura)
 			local now = GetTime()
 			local landed, lag = LandedAt(aura, now)
@@ -1456,25 +1533,7 @@ do
 			seen.low, seen.high = landed - CAST_WINDOW - lag, landed + CAST_WINDOW
 			seen.landedAt = landed
 			seen.awaitCast = true
-			local hit, why = Judge(seen.key, seen.low, GetTime())
-			if type(hit) == "table" and hit.aim == "you" then
-				CopyCaster(hit.seen, seen)
-				hit.used = true
-				seen.fromCast = true
-				seen.unseen = nil
-				seen.awaitCast = nil
-				local stat = ns.castWatch
-				stat.named = stat.named + 1
-				return true
-			end
-			if hit == "ignored" and why.aim == "you" then
-				seen.unseen = nil
-				seen.awaitCast = nil
-				ns.Trail("favour", ("buffed you (spell %s), named from their cast: on your ignore list"):format(tostring(seen.key)))
-				Remember({ name = why.seen and why.seen.name, key = seen.key }, "ignored")
-				return true
-			end
-			return nil
+			return true
 		end
 
 		-- Park a landing until the last cast that could name it has had its moment.
@@ -1483,48 +1542,75 @@ do
 			seen.afterFight = walkAfterFight or nil
 			local waiting = cw.waiting
 			if #waiting >= AWAIT_MAX then
-				local oldest = table.remove(waiting, 1)
-				oldest.decided = true
-				Unmatched(oldest, "busy")
+				-- Judged on the casts the ring holds, not given up on.
+				Decide(table.remove(waiting, 1))
 			end
 			waiting[#waiting + 1] = seen
-			local wait = seen.high + 0.1 - GetTime()
-			if wait <= 0 or not (C_Timer and C_Timer.After) then
+			local wait = math.max(seen.high + 0.1 - GetTime(), 0)
+			if not (C_Timer and C_Timer.After) then
 				Decide(seen)
 				return
 			end
+			-- A window already closed is decided on the next frame, not from inside the
+			-- scan that is filing the landing.
 			local epoch = cw.epoch
 			C_Timer.After(wait, function()
 				if epoch == cw.epoch then ns.Guard("cast watch", Decide, seen) end
 			end)
 		end
 
-		-- One cast, past the switches: who, at whom, and what they are.
-		local function NoteCast(db, unit, cast, id)
-			if not auraScanPrimed
-				or not (db.sources.owed or ((db.prompt.thankEmote or db.prompt.thankWhisper)
-					and not InCombatLockdown())) then
-				cw.floor = GetTime()
-				return
+		-- With the ignore list empty (the client says plainly: none), nobody needs asking
+		-- about; a client that cannot say is asked as ever.
+		local function NobodyIgnored()
+			local friends = _G.C_FriendList
+			return type(friends) == "table" and type(friends.GetNumIgnores) == "function"
+				and plain(friends.GetNumIgnores()) == 0
+		end
+
+		-- Your own cast of a class buff, as a blocking entry; one cast heard under two
+		-- tokens is one entry.
+		local function OwnCast(now, unit, cast, id)
+			local casts = cw.casts
+			for i = 1, #casts do
+				local e = casts[i]
+				if e.block == "own" and SameBuff(e.spell, id)
+					and ((cast ~= nil and e.cast == cast) or now - e.at < CAST_SAME) then return end
 			end
-			if ns.IsOwnAura(id) or ns.NOT_FAVOUR_IDS[id] then return end
-			if type(cast) ~= "string" then cast = nil end
+			casts[#casts + 1] = { at = now, spell = id, cast = cast, guid = playerGUID, unit = unit, block = "own" }
+			if #casts > CAST_RING_MAX then
+				cw.floor = math.max(cw.floor, table.remove(casts, 1).at)
+			end
+		end
+
+		-- One cast, past the switches: who, at whom, and what they are. Your own casts of
+		-- a class buff go in as a blocking entry (`own`): a recast of your own buff on
+		-- yourself, the game naming nobody, must never name a stranger who cast near it.
+		local function NoteCast(unit, cast, id)
 			local now = GetTime()
 			local casts = cw.casts
 			while casts[1] and casts[1].at < now - CAST_KEEP do
 				cw.floor = math.max(cw.floor, casts[1].at)
 				table.remove(casts, 1)
 			end
+			if type(cast) ~= "string" then cast = nil end
+			if unit == "player" or unit == "pet" then return OwnCast(now, unit, cast, id) end
+			if ns.IsOwnAura(id) or ns.NOT_FAVOUR_IDS[id] then return end
 			local guid = plain(UnitGUID(unit))
 			if type(guid) ~= "string" then guid = nil end
-			if guid ~= nil and guid == playerGUID then return end
-			if plain(UnitIsUnit(unit, "player")) == true then return end
-			if plain(UnitIsUnit(unit, "pet")) == true then return end
-			-- The same cast reaches the frame once per token that means the caster.
+			-- Your own cast arriving under a token that means you (your target, say).
+			if (guid ~= nil and guid == playerGUID) or plain(UnitIsUnit(unit, "player")) == true
+				or plain(UnitIsUnit(unit, "pet")) == true then
+				return OwnCast(now, unit, cast, id)
+			end
+			-- The same cast reaches the frame once per token that means the caster: one
+			-- cast of that GUID by that caster (a shared or recycled cast GUID of another
+			-- player is another cast).
 			for i = 1, #casts do
 				local e = casts[i]
-				if cast ~= nil and e.cast == cast then return end
-				if guid ~= nil and e.guid == guid and SameBuff(e.spell, id) and now - e.at < CAST_SAME then return end
+				if guid ~= nil and e.guid == guid then
+					if cast ~= nil and e.cast == cast then return end
+					if SameBuff(e.spell, id) and now - e.at < CAST_SAME then return end
+				end
 			end
 			local e = { at = now, spell = id, cast = cast, guid = guid, unit = unit }
 			-- A group form or a shout lands on the caster's own group, whose members the
@@ -1532,22 +1618,46 @@ do
 			local buff = ns.BUFF_BY_ID[id]
 			if buff and (buff.selfCast or InList(buff.group, id)) then e.block = "group" end
 			-- An NPC, or somebody whose kind cannot be read, blocks too.
-			if plain(UnitIsPlayer(unit)) ~= true then e.block = e.block or "npc" end
+			local isPlayer = plain(UnitIsPlayer(unit)) == true
+			if not isPlayer then e.block = e.block or "npc" end
 			if not e.block then
+				-- Whom they have targeted. A withheld answer is not "nobody": only a plain
+				-- no target is unknown (a self-cast as often as not); anything unreadable
+				-- blocks.
 				local t = unit .. "target"
-				if plain(UnitExists(t)) == true then
+				local ex = plain(UnitExists(t))
+				if ex == nil then
+					e.block = "unreadable"
+				elseif ex == true then
 					local me = plain(UnitIsUnit(t, "player"))
-					e.aim = me == true and "you" or me == false and "else" or "unknown"
+					if me == nil then
+						e.block = "unreadable"
+					else
+						e.aim = me == true and "you" or "else"
+						if e.aim == "else" then e.block = "else" end
+					end
 				else
 					e.aim = "unknown"
 				end
-				if e.aim == "else" then e.block = "else" end
 			end
 			if not e.block then
-				e.ignored = ns.Ignored(unit, guid) or nil
+				e.ignored = not NobodyIgnored() and ns.Ignored(unit, guid) or nil
 				if not e.ignored then
-					local rec = {}
-					if ReadCaster(unit, rec) then e.seen = rec end
+					local full = ns.UnitFullName(unit)
+					if full then
+						local rec = {}
+						if ReadCaster(unit, rec, true, guid, full) then e.seen = rec end
+					end
+				end
+			end
+			-- A caster whose GUID is withheld cannot be told apart by it: one cast
+			-- (one cast GUID) heard under two tokens is one entry when both tokens read
+			-- the same name, else both stay and count as two people (naming nobody).
+			if guid == nil and cast ~= nil and e.seen then
+				for i = 1, #casts do
+					local x = casts[i]
+					if x.guid == nil and x.cast == cast and x.seen and x.seen.name == e.seen.name
+						and SameBuff(x.spell, id) then return end
 				end
 			end
 			casts[#casts + 1] = e
@@ -1559,15 +1669,24 @@ do
 		end
 
 		-- UNIT_SPELLCAST_SUCCEEDED for every unit, so it drops what is no class buff
-		-- with one table lookup, before any client call and with no protected call.
+		-- with one table lookup, before any client call and with no protected call, and
+		-- drops the rest too when nothing could use a named caster.
 		local function OnCast(_, _, unit, castGUID, spellID)
 			local id = plain(spellID)
 			if id == nil or not ns.ALL_BUFF_IDS[id] then return end
 			unit = plain(unit)
-			if type(unit) ~= "string" or unit == "player" or unit == "pet" then return end
+			if type(unit) ~= "string" then return end
 			local db = addon.db and addon.db.profile
 			if not (db and db.enabled) then cw.floor = GetTime() return end
-			ns.Guard("cast watch", NoteCast, db, unit, plain(castGUID), id)
+			-- Not primed, or nothing a named caster could be used for: the ring misses
+			-- this cast, so the moment is not vouched for.
+			if not auraScanPrimed
+				or not (db.sources.owed or ((db.prompt.thankEmote or db.prompt.thankWhisper)
+					and not InCombatLockdown())) then
+				cw.floor = GetTime()
+				return
+			end
+			ns.Guard("cast watch", NoteCast, unit, plain(castGUID), id)
 		end
 
 		function ns.ArmCastWatch()
@@ -1577,6 +1696,7 @@ do
 				cw.frame:SetScript("OnEvent", OnCast)
 			end
 			cw.frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+			ns.castWatch.frame = cw.frame
 			cw.floor = GetTime()
 			ns.castWatch.armed = true
 		end
@@ -1594,9 +1714,6 @@ do
 		end
 		last.endedAt = GetTime()
 	end
-
-	-- Read at load, as ns.plain reads it: absent on a client that never had secrets.
-	local issecretvalue = _G.issecretvalue
 
 	-- One slot of your own aura list: the aura, and whether the client provably
 	-- refused it. A throw or a secret is a refusal; a plain nil is an empty slot

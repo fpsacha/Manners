@@ -112,8 +112,10 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
     target, mouseover, focus and party tokens at all, with spellID and castGUID
     plain (if not, nothing is named, as before; `/manners debug`'s "casts by other
     players: N seen" tells); (2) whether `nameplateNtarget` resolves (if not,
-    every cast has an unknown aim: named only after the window, and only when the
-    caster does not freshly wear the buff); (3) the order and gap between the
+    every cast has an unknown aim: named only after the window, only with the
+    friendly nameplates on, and only when the caster plainly does not freshly wear
+    the buff; a client that withholds the answer names nobody, and every landing
+    waits for its window, your own casts of the buff counting as another player); (3) the order and gap between the
     caster's cast and UNIT_AURA on you (the 1 s window either side is an
     estimate); (4) whether `expirationTime - duration` is the landing time on
     GetTime's clock; (5) whether one cast's castGUID is the same under every

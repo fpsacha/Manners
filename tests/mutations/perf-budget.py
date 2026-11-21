@@ -103,3 +103,10 @@ mutate("tests/scenarios/perf-budget.lua",
        "perf-budget: the doubles told by a tests folder anywhere in the path",
        expect="perf-budget: the call hook tells the addon's files from the doubles wherever the checkout sits",
        script=S)
+
+# The cast watch looking at every spell in sight, not the class buffs alone.
+mutate("Favours.lua",
+       "if id == nil or not ns.ALL_BUFF_IDS[id] then return end",
+       "if id == nil then return end",
+       "perf-budget: the cast watch looks at every stranger's spell",
+       expect="perf-budget: a stranger's cast that is no buff costs the cast watch nothing", script=S)

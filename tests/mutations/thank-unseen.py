@@ -208,8 +208,8 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ what it says
 mutate("Favours.lua",
-       "then Unnamed(key, seen.unseen) end\n",
-       "then Unnamed(key) end\n",
+       "\t\t\tUnnamed(seen.key, seen.unseen)\n",
+       "\t\t\tUnnamed(seen.key)\n",
        "thank-unseen: the nameplates line not told of the thank",
        expect="thank-unseen: the nameplates line says the emote thanks them", script=S)
 
