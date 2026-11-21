@@ -190,17 +190,24 @@ end
 local function CastItems()
 	local items, placed = { "who.choice" }, {}
 	for _, item in ipairs(OfferItems(placed)) do items[#items + 1] = item end
+	if not placed["who.skipCasters"] then items[#items + 1] = "who.skipCasters" end
+	if not placed["who.relevantOnly"] then items[#items + 1] = "who.relevantOnly" end
+	items[#items + 1] = { "who.autoNote", standIn = true }
+	items[#items + 1] = "who.pinNote"
+	return items
+end
+
+-- Other people's buffs, the fine print: what is left alone because somebody
+-- else already gave it. Rare, so a fold of its own on Who to buff.
+local function FineItems()
+	local items = {}
 	-- A paladin's: nobody another paladin has blessed.
 	items[#items + 1] = "who.leaveBlessed"
-	if not placed["who.skipCasters"] then items[#items + 1] = "who.skipCasters" end
 	items[#items + 1] = "who.spareFishBowl"
 	-- Never Kings over it at all, shown only while the switch above is on.
 	items[#items + 1] = { "who.neverFishBowl", indent = true }
 	-- Forever: a campsite's Boosted buffs never cast over.
 	items[#items + 1] = "who.spareCamp"
-	if not placed["who.relevantOnly"] then items[#items + 1] = "who.relevantOnly" end
-	items[#items + 1] = { "who.autoNote", standIn = true }
-	items[#items + 1] = "who.pinNote"
 	return items
 end
 
@@ -410,7 +417,7 @@ ns.WindowLayout = {
 				-- resurrection and cures. Their switches go here, a row each
 				-- with its own sub-options indented under it. (The courtesies
 				-- on request are under People who ask me in chat, above.)
-				{ key = "who.beyond", title = L["More than buffs"], home = true, items = {
+				{ key = "who.beyond", title = L["Resurrection and cures"], home = true, items = {
 					-- Your resurrection for the group's dead (Resurrect.lua), and
 					-- for a dead passer-by under it.
 					"who.res",
@@ -427,18 +434,9 @@ ns.WindowLayout = {
 					{ "who.cureSeconds", indent = true },
 					"who.curesFight",
 				} },
-				-- HOME: asking for a buff (what you want from other people, and
-				-- how it is asked) goes here: it is about you, not about the
-				-- people you buff.
-				-- Asking, not only giving (Ask.lua): the switch, and under it how
-				-- the ask is said, gone while it is off.
-				{ key = "who.asking", title = L["Asking for a buff"], home = true, items = {
-					"who.ask",
-					{ "who.askChannel", indent = true },
-					{ "who.askLine", indent = true },
-					{ "who.askOwn", indent = true },
-					{ "who.askInTowns", indent = true },
-				} },
+				-- The fine print about buffs other people have given: Paladin's
+				-- blessed, Fish Bowl, campsite. Shut, as it is rarely touched.
+				{ key = "who.castFine", title = L["Other people's buffs"], fold = true, items = FineItems() },
 				{ key = "who.first", header = "who.firstHeader", fold = true, items = {
 					"who.target",
 					"who.friends",
@@ -448,10 +446,9 @@ ns.WindowLayout = {
 			},
 			subpages = {
 				{ "who.sources" },
-				{ "who.cast", "who.order" },
+				{ "who.cast", "who.order", "who.castFine" },
 				{ "who.group" },
 				{ "who.beyond" },
-				{ "who.asking" },
 				{ "who.first" },
 			},
 		},
@@ -827,6 +824,23 @@ ns.WindowLayout = {
 					"click.roll",
 					"click.limits",
 				} },
+				-- HOME: asking for a buff (what you want from other people, and
+				-- how it is asked) goes here: it is about you, not about the
+				-- people you buff.
+				-- Asking, not only giving (Ask.lua): the switch, and under it how
+				-- the ask is said, gone while it is off.
+				{ key = "click.asking", title = L["Asking for a buff"], home = true, items = {
+					"who.ask",
+					{ "who.askChannel", indent = true },
+					{ "who.askLine", indent = true },
+					{ "who.askOwn", indent = true },
+					{ "who.askInTowns", indent = true },
+				} },
+			},
+			subpages = {
+				{ "click.speech" },
+				{ "click.said", "click.lines" },
+				{ "click.asking" },
 			},
 		},
 
@@ -1120,7 +1134,7 @@ ns.WindowLayout = {
 			-- its resurrection, its cure for the group, and asking for a buff.
 			["who.courtesyRefresh"] = true, ["who.courtesyPortals"] = true,
 			["who.courtesyHealthstones"] = true, ["who.courtesySummons"] = true,
-			["who.res"] = true, ["who.cures"] = true, ["who.ask"] = true,
+			["who.res"] = true, ["who.cures"] = true, ["who.ask"] = true, ["who.askOwn"] = true,
 			["who.choice"] = true, ["who.autoNote"] = true, ["who.pinNote"] = true,
 			["who.self"] = true,
 			-- Also in cities and inns: the tick the line said once at an inn names
@@ -1157,7 +1171,7 @@ ns.WindowLayout = {
 			["click.thankEmote"] = true, ["click.thankWhisper"] = true, ["click.enabled"] = true,
 			["click.channel"] = true, ["click.platesNote"] = true, ["click.showPlates"] = true,
 			["click.linesOff"] = true, ["click.preset"] = true, ["click.phrasesHelp"] = true,
-			["click.inCharacterNote"] = true, ["click.phrases"] = true,
+			["click.inCharacterNote"] = true, ["click.phrases"] = true, ["click.mixedLines"] = true,
 			["click.quietInParty"] = true, ["click.quietInRaid"] = true, ["click.thankNotInGroup"] = true,
 			-- Look.
 			["appearance.style"] = true, ["appearance.classicArt"] = true, ["appearance.keycap"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
@@ -1463,7 +1477,7 @@ ns.WindowLayout = {
 		["appearance.locked"] = true,
 		-- "Cures", "Asking for buffs" and "In battlegrounds and arenas", the
 		-- fallback dialog's headings: the window has a home for each, titled
-		-- (More than buffs, Asking for a buff, Battlegrounds and arenas).
+		-- (Resurrection and cures, Asking for a buff, Battlegrounds and arenas).
 		["who.curesHeader"] = true,
 		-- "Thanks and speech": the fallback dialog's heading; the window titles
 		-- the two halves (Thank-yous, A line when I buff).

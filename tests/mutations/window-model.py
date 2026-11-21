@@ -149,8 +149,8 @@ mutate("Options/Advanced.lua",
 
 # What I say's lines put back with the macro left on the old ones.
 mutate("Options/Advanced.lua",
-       "\t\tafter = function() ns.Prompt:InvalidateMacro() end,\n",
-       "",
+       "\t\tafter = function()\n\t\t\tns.Prompt:InvalidateMacro()\n",
+       "\t\tafter = function()\n",
        "model: What I say's reset leaves the macro",
        expect="click reset: the macro hook did not run", script=S)
 

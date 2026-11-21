@@ -52,7 +52,7 @@ player reports and none has been seen in the game: whether other group buffs
 also refuse pets on Forever is for a player to say.
 
 **Cure myself too (unreleased, asked for on CurseForge).** `sources.curesSelf`,
-off, on Who to buff under *More than buffs*, a row of its own after *Cure
+off, on Who to buff under *Resurrection and cures*, a row of its own after *Cure
 passers-by* (it waits on neither; not in the simple view, whose Who to buff
 is held to 15 controls, as the passers-by switch is not; in the reset and the
 fallback dialog's list). `CureScan` and `CuresWanted` accept it (a class with
@@ -593,7 +593,7 @@ What was built:
   stamped by `ClampSettings`; the layout's `simple` list; never in a string
   of settings; the mock's player has chosen *Show everything*, a scenario
   about a new profile sets `Mock.newMenu`); homes for the day's features
-  (*More than buffs* for resurrection and cures, the group's own section for
+  (*Resurrection and cures* for resurrection and cures, the group's own section for
   *Share the group*, the courtesies under *People who ask me in chat*).
   Look's colours (*Style*) are a fold, which keeps the page inside three
   screens under nineteen cards.

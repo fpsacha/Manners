@@ -640,6 +640,9 @@ for _, case in ipairs({
 				-- First name only, which the whispered thank-you says too.
 				or path == "click.firstNameOnly" then
 				if not shown then fail(scenario, "the /thank is not on " .. case.label .. "'s What I say") end
+			elseif path:find("^who%.ask") then
+				-- Asking for a buff (every class asks) is on What I say too; a
+				-- class with nothing to give is shown it once Start here's switch is on.
 			elseif shown then
 				fail(scenario, "a control other than the /thank shows on What I say: " .. path)
 			end

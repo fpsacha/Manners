@@ -134,7 +134,7 @@ local TABLE = {
 	end },
 	-- A hunter and a rogue have What I say for the /thank alone (Options/Say.lua,
 	-- THANKS_ONLY): somebody buffing them is thanked like anybody.
-	{ "HUNTER", "general who skip when self pet quiet fight click appearance profiles diagnostics", function(scenario, ns, UI)
+	{ "HUNTER", "general skip when self pet quiet fight click appearance profiles diagnostics", function(scenario, ns, UI)
 		ns.OpenOptions("general")
 		if UI.RowShown("general.quickWho") or not UI.RowShown("general.quickWhoSummary") then
 			fail(scenario, "a hunter's step 1 is not the own-buff sentence standing in")
@@ -223,14 +223,13 @@ do
 				fail(scenario, "a hunter's My own buffs shows " .. sec.key)
 			end
 		end
-		-- Who to buff keeps only Asking for a buff, which holds a switch of its
-		-- own for every class (Ask.lua) and stays on Who to buff until What I say
-		-- takes it: the one exception to a hunter's Who to buff being empty.
-		ns.OpenOptions("who")
-		for _, sec in ipairs(UI.Model("who").sections) do
-			if sec.visible and sec.key ~= "who.asking" then
-				fail(scenario, "a hunter's Who to buff shows " .. sec.key)
-			end
+		-- Who to buff has nothing a hunter can use: no page in the sidebar, and
+		-- Asking for a buff, which every class has, is on What I say.
+		ns.OpenOptions("click")
+		if (UI.visiblePages or {}).who ~= nil then fail(scenario, "a hunter's sidebar has Who to buff") end
+		local asking = UI.Where("who.ask")
+		if not (asking and asking.sec.visible and asking.sec.key == "click.asking") then
+			fail(scenario, "a hunter's What I say does not show Asking for a buff")
 		end
 	end)
 end

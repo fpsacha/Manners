@@ -747,7 +747,7 @@ do
 		if not ns.Prompt:GetButton():IsShown() then fail(scenario, "the prompt does not come up for a rogue with somebody to ask") end
 		local showing = ns.Prompt:Showing()
 		if not (showing and showing.ask) then fail(scenario, "the prompt is not on the person to ask") end
-		-- Who to buff has the switch and how it is said, for this class too.
+		-- What I say has the switch and how it is said, for this class too.
 		for _, key in ipairs({ "ask", "askChannel", "askLine", "askInTowns" }) do
 			local control = findOption(ns.optionsTable, key)
 			if not control then
@@ -755,7 +755,10 @@ do
 			elseif type(control.hidden) == "function" and control.hidden() then
 				fail(scenario, key .. " is hidden from a rogue with asking on")
 			end
-			if H.placedOn(ns, "who." .. key) ~= "who" then fail(scenario, "who." .. key .. " is not drawn on Who to buff") end
+			local page, section = H.placedOn(ns, "who." .. key)
+			if page ~= "click" or not (section and section.key == "click.asking") then
+				fail(scenario, "who." .. key .. " is not drawn on What I say, under Asking for a buff")
+			end
 		end
 		local who = ns.optionsTable.args.who
 		if who and type(who.hidden) == "function" and who.hidden() then
@@ -805,11 +808,11 @@ do
 			if ns.db.profile.sources.ask ~= true then fail(scenario, "the switch did not turn asking on") end
 		end
 		-- And the page's reset puts every one of them back.
-		local reset = ns.OptionsPage.RESET and ns.OptionsPage.RESET.who or {}
+		local reset = ns.OptionsPage.RESET and ns.OptionsPage.RESET.click or {}
 		local listed = {}
 		for _, path in ipairs(reset) do listed[path] = true end
 		for _, path in ipairs({ "sources.ask", "ask.channel", "ask.line", "ask.inTowns" }) do
-			if not listed[path] then fail(scenario, "Who to buff's reset leaves " .. path .. " as it is") end
+			if not listed[path] then fail(scenario, "What I say's reset leaves " .. path .. " as it is") end
 		end
 		noErrors(scenario, ns)
 		restoreUnits()

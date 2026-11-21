@@ -393,11 +393,9 @@ local EXPECTED = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly", "sources.owed", "sources.group",
 		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "filters.proximity",
-		-- A class's courtesies on request, resurrection, cures and asking for a buff.
+		-- A class's courtesies on request, resurrection and cures.
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
 		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight",
-		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
-		"ask.own",
 		"filters.restingOnly", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
@@ -439,7 +437,9 @@ local EXPECTED = {
 	},
 	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "prompt.thankEmoteMore", "speech.enabled", "speech.channel",
 		"speech.onlyWhenReturning", "speech.firstNameOnly", "speech.mixedShare", "prompt.thankWhisper", "prompt.thankDelay",
-			"prompt.thankUnseen", "prompt.thankAsk" },
+			"prompt.thankUnseen", "prompt.thankAsk",
+		-- Asking for a buff moved here from Who to buff: every class asks.
+		"sources.ask", "ask.channel", "ask.line", "ask.inTowns", "ask.own" },
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",
@@ -495,7 +495,7 @@ local HOOKS = {
 	self = { "style", "macro", "refresh", "broker" },
 	pet = { "style", "macro", "refresh" },
 	quiet = { "scan", "style", "macro", "refresh" },
-	click = { "macro" },
+	click = { "macro", "broker", "refresh" },
 	appearance = { "clamp", "style", "macro" },
 	fight = { "style", "macro", "refresh" },
 	advanced = { "save", "scan", "style", "macro" },

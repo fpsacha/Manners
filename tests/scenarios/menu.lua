@@ -566,7 +566,7 @@ end
 do
 	local scenario = "menu: the homes for what is coming are in the layout, titled, and not drawn while empty"
 	with(scenario, { page = "who", class = "PRIEST" }, function(ns, UI)
-		local homes = { ["who.beyond"] = "who", ["who.asking"] = "who", ["quiet.battle"] = "quiet" }
+		local homes = { ["who.beyond"] = "who", ["click.asking"] = "click", ["quiet.battle"] = "quiet" }
 		for key, pageId in pairs(homes) do
 			local def
 			for _, section in ipairs(ns.WindowLayout.pages[pageId].sections) do

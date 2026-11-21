@@ -650,7 +650,7 @@ up about a tenth of that before it ends (a minute before a ten-minute buff,
 five before an hour's), earlier in a raid or dungeon and for your own buffs,
 and only in the last half minute for somebody outside your group.
 
-## More than buffs
+## Resurrection and cures
 
 **Resurrection.** *My group's dead* (on), for a class with a resurrection:
 out of a fight, somebody of your party or raid who is dead and within reach
@@ -1059,12 +1059,13 @@ no room for. Defaults are in brackets.
     who already wears it from another paladin, or who cannot be given it,
     gets what the order would have chosen.
     Automatic picks Wisdom for anyone with a mana bar and Might for everyone
-    else. *Don't offer Might to mages, warlocks and priests* (on); *Skip
-    players another paladin has blessed* (off); *Don't put Kings over a Fish
-    Bowl's Boosted Stats* (WoW Forever, off), which also keeps the Greater
-    Blessing of Kings off a class with somebody sitting by one, and under it
-    *Never put Kings over Boosted Stats* (off): no Kings at all for them
-    while it lasts, unless they ask for it by name.
+    else. *Don't offer Might to mages, warlocks and priests* (on). The rules
+    for buffs somebody else already gave are under *Other people's buffs*,
+    folded: *Skip players another paladin has blessed* (off); *Don't put Kings
+    over a Fish Bowl's Boosted Stats* (WoW Forever, off), which also keeps the
+    Greater Blessing of Kings off a class with somebody sitting by one, and
+    under it *Never put Kings over Boosted Stats* (off): no Kings at all for
+    them while it lasts, unless they ask for it by name.
 - ***Buff order***, for a class with more than one buff to give: the buffs as
   a list in the order they are tried, each with an arrow up and an arrow
   down, and *Back to Automatic*. A paladin's *Blessing of Kings first* (on)
@@ -1073,14 +1074,14 @@ no room for. Defaults are in brackets.
 - ***My group and raid***: *Use group buffs* (on) and *When this many need it*
   (3), with how many reagents are in your bags; *Raid groups I buff*; *Share
   the group with other Manners users* (on).
-- ***More than buffs***: *My group's dead* (on) with *Dead passers-by too*
+- ***Resurrection and cures***: *My group's dead* (on) with *Dead passers-by too*
   (off); *Cure my party and raid*, *Cure passers-by* and *Cure myself too* (all
   off) with *Only with more than this many seconds left* (10).
 - Your own buffs and a hunter's pet are not here: they have *My own buffs* and
   *My pet*, below.
-- ***Asking for a buff***: *Ask people for a buff I'm missing* (off), then *Ask
-  in*, *What the ask says* (three lines, or *My own words* with a box for
-  them) and *Ask in cities and inns too*.
+- ***Other people's buffs*** (folded): the paladin, Fish Bowl and campsite
+  rules above.
+- Asking for a buff is on *What I say*, below.
 - ***Who comes first*** (folded): *My target first*, *Friends and guildmates
   first*, *My group first at a ready check* and *Group members just revived
   first*, all on. With *My target first* off your target is ranked by why
@@ -1293,6 +1294,10 @@ Everything here is off until you turn it on.
     at a dash before (a realm, or a name like "Anne-Marie") is cut there
     still, and an apostrophe stays in the word. A whisper still goes to the
     whole name, and the prompt, your target and the ledger keep it too.
+- ***Asking for a buff***: *Ask people for a buff I'm missing* (off), then *Ask
+  in*, *What the ask says* (three lines, or *My own words* with a box for
+  them) and *Ask in cities and inns too*. Every class has it, a rogue's
+  What I say included; the page's reset puts it back.
 - ***Lines***: *Line set* has four sets you can edit (Azeroth (general),
   Polite, Cheeky, Just their name) and a fifth, *In character (fits your race
   and class)*: over three thousand lines, picked when you click to fit your

@@ -56,8 +56,6 @@ Page.RESET = {
 		"buff.skipCasters",
 		"buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe", "buff.notMeInside",
 		"buff.optIn",
-		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
-		"ask.own",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
 		after = function()
 			restyleAndMacro()
@@ -113,10 +111,21 @@ Page.RESET = {
 		"prompt.thankDelay",
 		"prompt.thankUnseen",
 		"prompt.thankAsk",
-		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
+		-- Asking for a buff (What I say): every class can ask, so these are
+		-- put back for all of them, a rogue's page included.
+		"sources.ask", "ask.channel", "ask.line", "ask.inTowns", "ask.own",
+		keep = function(path)
+			if path == "sources.ask" or path:find("^ask%.") then return false end
+			return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
 			and path ~= "prompt.thankWhisper" and path ~= "prompt.thankDelay" and path ~= "prompt.thankEmoteMore"
-			and path ~= "prompt.thankUnseen" and path ~= "prompt.thankAsk" end,
-		after = function() ns.Prompt:InvalidateMacro() end,
+			and path ~= "prompt.thankUnseen" and path ~= "prompt.thankAsk"
+		end,
+		after = function()
+			ns.Prompt:InvalidateMacro()
+			-- Asking changes what the prompt offers, and the favour count.
+			ns.Prompt:Refresh()
+			RefreshBroker()
+		end,
 	},
 	-- Where the prompt sits and its lock are kept.
 	appearance = {

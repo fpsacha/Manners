@@ -191,10 +191,10 @@ do
 		end
 		if not cast then fail(scenario, "a mage's Who to buff has no What to cast")
 		elseif cast.label ~= ns.L["What to cast"] then fail(scenario, "What to cast reads " .. tostring(cast.label)) end
-		for _, id in ipairs({ "general", "when", "self", "appearance" }) do CheckBar(scenario, ns, UI, id) end
+		for _, id in ipairs({ "general", "when", "self", "appearance", "click" }) do CheckBar(scenario, ns, UI, id) end
 		-- A page of few sections has no bar, and the page sits under the strip.
-		ns.OpenOptions("click")
-		if UI.subbar.frame:IsShown() or UI.subbar.height ~= 0 then fail(scenario, "What I say has a sub-divisions bar") end
+		ns.OpenOptions("fight")
+		if UI.subbar.frame:IsShown() or UI.subbar.height ~= 0 then fail(scenario, "In a fight has a sub-divisions bar") end
 	end)
 end
 

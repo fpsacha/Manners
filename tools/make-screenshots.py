@@ -2554,7 +2554,7 @@ def build_options(addon_dir, snaps):
     scene, lua = options_scene(addon_dir, key, "PALADIN", "who",
                                ["icons", "keybound", "order", "returning", "twocolumns"],
                                ["Who to buff", "Offer my buff to", "What to cast", "My group and raid",
-                                "More than buffs", "My group's dead", "Cure my party and raid",
+                                "Resurrection and cures", "My group's dead", "Cure my party and raid",
                                 "Blessing of Wisdom", "Blessing of Kings", "Blessing of Might"])
     if scene:
         # Two columns: a section's heading stands beside the first, not under it.
@@ -2913,7 +2913,7 @@ def picture_more(snaps):
     row = max(l.size[1] for l in layers) + 4
     top = 150
     board = Board(top + row * len(layers) + 36, seed=13, sun=(0.18, 0.52))
-    heading(board, "More than buffs",
+    heading(board, "Resurrection and cures",
             "The prompt offers what the moment needs. Each has a switch of its own.")
     lx = 96
     board.shade(lx + max(l.size[0] for l in layers) + 8, top - 6, WIDTH - 40,

@@ -191,7 +191,7 @@ do
 	-- { the class, the page, the setting, its switch, the switch's place in the profile }
 	local cases = {
 		{ nil, "appearance", "appearance.queueRows", "appearance.showQueue" },
-		{ "PRIEST", "who", "who.askChannel", "who.ask" },
+		{ "PRIEST", "click", "who.askChannel", "who.ask" },
 	}
 	for _, case in ipairs(cases) do
 		local class, page, setting, switch = case[1], case[2], case[3], case[4]

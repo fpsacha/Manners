@@ -313,14 +313,18 @@ do
 			fail(scenario, "turning it on was not stored")
 		end
 		local layout = ns.WindowLayout
-		local at, firstAt, indent
+		local at, firstAt, indent, inFold = nil, nil, nil, true
 		for _, section in ipairs(layout.pages.who.sections) do
 			for i, item in ipairs(section.items) do
 				local path = type(item) == "table" and item[1] or item
-				if path == "who.spareFishBowl" then firstAt = i end
-				if path == "who.neverFishBowl" then at, indent = i, type(item) == "table" and item.indent end
+				if path == "who.spareFishBowl" then firstAt = i; inFold = inFold and section.key == "who.castFine" end
+				if path == "who.neverFishBowl" then
+					at, indent = i, type(item) == "table" and item.indent
+					inFold = inFold and section.key == "who.castFine"
+				end
 			end
 		end
+		if not inFold then fail(scenario, "the two switches are not in the Other people's buffs fold") end
 		if not (at and firstAt and at == firstAt + 1 and indent == true) then
 			fail(scenario, "it is not placed one step in, right under the first switch")
 		end

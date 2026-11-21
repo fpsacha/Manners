@@ -313,6 +313,11 @@ local FIELDS = {
 	["who.friends"] = { { "priority", "friends" } },
 	["who.readyCheck"] = { { "priority", "readyCheck" } },
 	["who.revived"] = { { "priority", "revived" } },
+	-- Other people's buffs (Who to buff).
+	["who.leaveBlessed"] = { { "buff", "leaveBlessed" } },
+	["who.spareFishBowl"] = { { "buff", "spareFishBowl" } },
+	["who.neverFishBowl"] = { { "buff", "neverFishBowl" } },
+	["who.spareCamp"] = { { "buff", "spareCamp" } },
 	["advanced.retryCooldown"] = { { "timing", "retryCooldown" } },
 	["advanced.skipSeconds"] = { { "timing", "skipSeconds" } },
 	["advanced.ownSkipMinutes"] = { { "timing", "ownSkipMinutes" } },
