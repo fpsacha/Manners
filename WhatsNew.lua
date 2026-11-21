@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "20 November 2026", sections = {
+	{ version = "1.11.33", date = "20 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Will of the Forsaken and Mend Pet stay out of sight until you need them.|r The two fight buttons no longer sit dim beside the prompt for the whole fight.",
 			"|cffffd100Short buffs held back in cities and inns now covers yourself.|r With |cffffffffHold back short buffs in cities and inns|r ticked, a short buff for yourself, Thorns say, is no longer offered while you rest, even with your own buffs allowed in cities.",
