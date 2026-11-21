@@ -131,7 +131,7 @@ do
 		end
 		if watching ~= true then fail(scenario, "your target is still offered, and the launcher says nothing can come up") end
 		if not (r == 1 and g > 0.7 and b == 0) then fail(scenario, "the line is not amber") end
-		if not (line:find("Offer nothing in cities and inns", 1, true) and line:find("When to offer", 1, true)
+		if not (line:find("Offer nothing in cities and inns", 1, true) and line:find("Quiet times", 1, true)
 			and line:find("in cities and inns", 1, true) and line:find("but to your target or focus", 1, true)) then
 			fail(scenario, "the line does not name the rule, its tab and who is still offered: " .. line)
 		end

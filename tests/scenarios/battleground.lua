@@ -1,7 +1,7 @@
 -- Battlegrounds and arenas, a situation of their own (1.11.25, Battle.lua). A
 -- player wrote that after each death in a battleground the prompt was on the
 -- wrong thing. What a battleground or an arena changes, each behind the
--- section In battlegrounds and arenas on When to offer:
+-- section In battlegrounds and arenas on Quiet times:
 --
 --   * what you are missing of your own comes ahead of the team, the people a
 --     graveyard raised beside you included; what you fight with before the
@@ -792,10 +792,10 @@ do
 end
 
 -- ----------------------------------------------------------- battleground 16
--- The section: four switches on When to offer, with their defaults, each kept,
+-- The section: four switches on Quiet times, with their defaults, each kept,
 -- placed on the page and put back by its reset.
 do
-	local scenario = "battleground: When to offer has the section, its switches are kept and its reset puts them back"
+	local scenario = "battleground: Quiet times has the section, its switches are kept and its reset puts them back"
 	with(scenario, {}, function(ns)
 		local db = ns.db.profile
 		local defaults = ns.defaults.profile.battle
@@ -808,7 +808,7 @@ do
 		for control, field in pairs({ battleTeam = "team", battleSpeak = "speak", battleThank = "thank", battleItems = "items" }) do
 			local option = findOption(ns.optionsTable, control)
 			if not option then
-				fail(scenario, "When to offer has no " .. control)
+				fail(scenario, "Quiet times has no " .. control)
 			else
 				local info = { "when", control }
 				if option.type ~= "toggle" then fail(scenario, control .. " is a " .. tostring(option.type)) end
@@ -819,9 +819,9 @@ do
 				end
 				if H.layoutInToc() then
 					local page, section = H.placedOn(ns, "when." .. control)
-					if page ~= "when" then
-						fail(scenario, ("%s is drawn on %s, not on When to offer"):format(control, tostring(page)))
-					elseif type(section) ~= "table" or section.key ~= "when.battle" then
+					if page ~= "quiet" then
+						fail(scenario, ("%s is drawn on %s, not on Quiet times"):format(control, tostring(page)))
+					elseif type(section) ~= "table" or section.key ~= "quiet.battle" then
 						fail(scenario, control .. " is not in the section In battlegrounds and arenas")
 					end
 				end
@@ -837,12 +837,12 @@ do
 			end
 		end
 		-- The page's reset.
-		local list = ns.OptionsPage.RESET.when or {}
+		local list = ns.OptionsPage.RESET.quiet or {}
 		local listed = {}
 		for _, path in ipairs(list) do listed[path] = true end
 		for field in pairs(defaults) do
 			if not listed["battle." .. field] then
-				fail(scenario, "When to offer's reset leaves battle." .. field .. " as it is")
+				fail(scenario, "Quiet times' reset leaves battle." .. field .. " as it is")
 			end
 		end
 	end)

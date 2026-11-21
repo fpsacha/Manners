@@ -348,7 +348,7 @@ mutate("Options/Window/Layout.lua",
        "\t\t\t\t\t\"when.battleTeam\",\n\t\t\t\t\t\"when.battleSpeak\",\n\t\t\t\t\t\"when.battleThank\",\n\t\t\t\t\t\"when.battleItems\",\n",
        "",
        "battleground: the section is not on the page",
-       expect="battleground: When to offer has the section, its switches are kept and its reset puts them back", script=S)
+       expect="battleground: Quiet times has the section, its switches are kept and its reset puts them back", script=S)
 
 mutate("Options/When.lua",
        "\t\t\t\t\tns.db.profile.battle.team = value == true\n",
@@ -369,10 +369,10 @@ mutate("Options/When.lua",
        expect="Consumables there too is not greyed while consumables are held nowhere", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"battle.team\", \"battle.speak\", \"battle.thank\", \"battle.items\",\n",
+       "\t\"battle.team\", \"battle.speak\", \"battle.thank\", \"battle.items\",\n",
        "",
        "battleground: the page's reset leaves the section",
-       expect="When to offer's reset leaves battle.", script=S)
+       expect="Quiet times' reset leaves battle.", script=S)
 
 mutate("Commands.lua",
        "\t\tfor _, line in ipairs(ns.Battle.Lines(now)) do self:Print(line) end\n",

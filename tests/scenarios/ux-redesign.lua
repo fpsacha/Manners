@@ -144,14 +144,14 @@ end
 -- 4: the two place rules hold back everybody; in the list of people on Who to
 -- buff they read as a kind of person and contradicted Only in cities and inns.
 do
-	local scenario = "ux-redesign: the place rules lead Hold back on When to offer"
-	session(scenario, { page = "when" }, function(ns, UI)
+	local scenario = "ux-redesign: the place rules lead Hold back on Quiet times"
+	session(scenario, { page = "quiet" }, function(ns, UI)
 		for _, path in ipairs({ "who.quietInTowns", "who.quietInInstances" }) do
 			local page, sec = placed(UI, path)
-			if page ~= "when" or sec ~= "when.holdBack" then
-				fail(scenario, ("%s is on %s, %s, not under Hold back on When to offer"):format(path, tostring(page), tostring(sec)))
+			if page ~= "quiet" or sec ~= "quiet.holdBack" then
+				fail(scenario, ("%s is on %s, %s, not under Hold back on Quiet times"):format(path, tostring(page), tostring(sec)))
 			elseif not UI.RowShown(path) then
-				fail(scenario, path .. " is not drawn on When to offer")
+				fail(scenario, path .. " is not drawn on Quiet times")
 			end
 		end
 		before(UI, scenario, "who.quietInTowns", "who.quietInInstances")
@@ -164,8 +164,8 @@ do
 			return false
 		end
 		for _, field in ipairs({ "filters.quietInTowns", "filters.quietInInstances" }) do
-			if not has("when", field) or has("who", field) then
-				fail(scenario, field .. " is not put back by When to offer's reset alone")
+			if not has("quiet", field) or has("when", field) or has("who", field) then
+				fail(scenario, field .. " is not put back by Quiet times' reset alone")
 			end
 		end
 	end)
@@ -375,7 +375,7 @@ do
 		if not ns.WindowBind.Disabled(item) then fail(scenario, "the two contradicting switches can both be on") end
 		local quiet = ns.WindowBind.Text(ns.WindowBind.Item("who.quietInTowns"), "name")
 		local note = offNote(UI, "who.restingOnly")
-		if not (note and note:find(quiet, 1, true) and note:find(ns.L["When to offer"], 1, true)) then
+		if not (note and note:find(quiet, 1, true) and note:find(ns.L["Quiet times"], 1, true)) then
 			fail(scenario, "the greyed switch does not say which switch, on which page: " .. tostring(note))
 		end
 	end)

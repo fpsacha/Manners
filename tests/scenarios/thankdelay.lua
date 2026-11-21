@@ -283,15 +283,14 @@ do
 			for i, item in ipairs(section.items) do
 				local path = type(item) == "table" and item[1] or item
 				if path == "click.thankDelay" then
-					-- The others to pick from (1.11.20) may sit between them.
+					-- Right after the whisper, drawn at the section's own level: the
+					-- pause is live while either thank is on, so no one switch owns it.
 					local before = section.items[i - 1]
-					if type(before) == "table" and before[1] == "click.thankEmoteMore" then before = section.items[i - 2] end
-					found = type(item) == "table" and item.indent == true and type(before) == "table"
-						and before[1] == "click.thankEmoteToken"
+					found = section.key == "click.speech" and type(item) == "string" and before == "click.thankWhisper"
 				end
 			end
 		end
-		if not found then fail(scenario, "the switch is not indented under Emote to use") end
+		if not found then fail(scenario, "the switch is not right after the whisper, at the section's own level") end
 	end)
 end
 

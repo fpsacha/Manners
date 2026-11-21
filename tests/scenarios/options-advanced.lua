@@ -121,12 +121,12 @@ local FIELDS = {
 	{ "reasonUnknown", "prompt", "reasonUnknown" },
 }
 
--- When to offer's reset: its own five, the old Advanced reset's eight favour,
+-- When to offer's reset (the place rules, mounted and mana went to Quiet
+-- times, tests/scenarios/model-window.lua): its own five, the old Advanced reset's eight favour,
 -- timing and targeting fields, which now sit on this page.
 local WHEN_RESET = {
 	{ "filters", "whenBuffed" }, { "filters", "refreshUnder" }, { "filters", "refreshRaid" },
 	{ "filters", "verifiedOnly" },
-	{ "filters", "hideMounted" }, { "filters", "manaFloor" }, { "filters", "manaFloorKeeps" },
 	{ "timing", "reciprocateWindow" }, { "sources", "owedClassBuffsOnly" },
 	{ "filters", "reachableOnly" }, { "timing", "graceSeconds" }, { "timing", "keepDebts" },
 	{ "timing", "retryCooldown" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },

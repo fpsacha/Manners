@@ -198,7 +198,11 @@ do
 		UI.SetWindowSize(1320, 620)
 		-- Where each column of the sections before the folds ends, where the
 		-- folds under them begin, and the last thing on the page.
-		for _, id in ipairs({ "who", "when" }) do
+		-- When to offer is a short page now (the place rules went to Quiet
+		-- times) and fits the window whole, so Look, long and folded, takes
+		-- its place: the page must outrun the window for "the page scrolls
+		-- to its end" to mean anything.
+		for _, id in ipairs({ "who", "appearance" }) do
 			ns.OpenOptions(id)
 			local bottoms, foldTop, last = {}, nil, 0
 			for _, sec in ipairs(drawn(UI)) do
@@ -233,6 +237,7 @@ do
 		end
 		-- The folds are flowed the same way, and the page ends under the taller
 		-- of them: Timing open in the first column, Targeting shut in the second.
+		ns.OpenOptions("when")
 		UI.State().open = { ["when.timing"] = true }
 		ns.RefreshOptionsDisplay()
 		local timing, targeting = UI.Where("advanced.retryCooldown"), UI.Where("advanced.restoreTarget")
@@ -272,7 +277,7 @@ end
 
 do
 	local scenario = "menu: a drag re-flows the page at every change of size, reading and building nothing"
-	with(scenario, { page = "when" }, function(ns, UI)
+	with(scenario, { page = "quiet" }, function(ns, UI)
 		local W, B = ns.WindowWidgets, ns.WindowBind
 		local f = UI.frame
 		-- The grip held: the first change of size paints in full, the ones
@@ -415,9 +420,13 @@ do
 		if not UI.RowShown("click.thankDelay") then
 			fail(scenario, "the pause is gone with the /thank off, though the whispered thank-you still waits it out")
 		end
+		-- Not indented under either, so with both off it stays drawn, greyed.
 		db.prompt.thankWhisper = false
 		ns.RefreshOptionsDisplay()
-		if UI.RowShown("click.thankDelay") then fail(scenario, "the pause is drawn with neither the /thank nor the whisper on") end
+		local pause = UI.Where("click.thankDelay")
+		if not (pause and UI.RowShown("click.thankDelay")) then
+			fail(scenario, "the pause is not drawn, greyed, with neither the /thank nor the whisper on")
+		end
 		-- A choice under a dropdown under a switch goes with the switch too.
 		local magic = UI.Where("who.ownDampenAlone")
 		if magic and magic.e.parent and magic.e.parent.parent then
@@ -545,7 +554,7 @@ end
 do
 	local scenario = "menu: the homes for what is coming are in the layout, titled, and not drawn while empty"
 	with(scenario, { page = "who", class = "PRIEST" }, function(ns, UI)
-		local homes = { ["who.beyond"] = "who", ["who.asking"] = "who", ["when.battle"] = "when" }
+		local homes = { ["who.beyond"] = "who", ["who.asking"] = "who", ["quiet.battle"] = "quiet" }
 		for key, pageId in pairs(homes) do
 			local def
 			for _, section in ipairs(ns.WindowLayout.pages[pageId].sections) do
@@ -622,7 +631,9 @@ do
 		later.OpenOptions("when")
 		if later.MenuView() ~= "offer" then fail(scenario, "the offer reads as " .. tostring(later.MenuView())) end
 		-- Everything on screen, and the offer over it with its two buttons.
+		later.OpenOptions("quiet")
 		if not LUI.RowShown("who.quietTargets") then fail(scenario, "a profile from before lost a row to the short list unasked") end
+		later.OpenOptions("when")
 		for _, slot in ipairs({ "offer", "try", "dismiss" }) do
 			if not shownRow(LUI.MenuRow(slot)) then fail(scenario, "the offer's " .. slot .. " is not drawn") end
 		end
@@ -636,7 +647,9 @@ do
 			fail(scenario, "Not now left the view at " .. tostring(Mock.sv.profile.menuView))
 		end
 		if shownRow(LUI.MenuRow("offer")) or shownRow(LUI.MenuRow("try")) then fail(scenario, "the offer is still drawn after Not now") end
+		later.OpenOptions("quiet")
 		if not LUI.RowShown("who.quietTargets") then fail(scenario, "Not now took a row off the page") end
+		later.OpenOptions("when")
 		later.ClampSettings()
 		if Mock.sv.profile.menuView ~= "full" then fail(scenario, "the repair offered the view again") end
 		-- Try the simple view: the short list.
@@ -705,11 +718,16 @@ do
 				end
 			end
 			-- What a short list holds, and what it leaves to the full view.
-			ns.OpenOptions("when")
+			ns.OpenOptions("quiet")
 			if not UI.RowShown("when.hideMounted") then fail(scenario, class .. ": Hide the prompt while mounted is off the short list") end
-			if UI.RowShown("who.quietTargets") or UI.RowShown("advanced.reciprocateWindow") then
+			if UI.RowShown("who.quietTargets") then
+				fail(scenario, class .. ": the fine print of Quiet times is on its short list")
+			end
+			ns.OpenOptions("when")
+			if UI.RowShown("advanced.reciprocateWindow") then
 				fail(scenario, class .. ": the fine print of When to offer is on its short list")
 			end
+			ns.OpenOptions("quiet")
 			local _, note = UI.MenuRow("more")
 			local last = UI.Where("when.hideMounted")
 			if note and last and not (note.y > last.e.y) then fail(scenario, class .. ": what is left out is not said under the page") end

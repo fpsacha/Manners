@@ -53,7 +53,7 @@ mutate("Options/Window/Layout.lua",
        expect="quietInTowns", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"filters.quietInTowns\", \"filters.quietInInstances\", \"filters.quietTargets\",\n",
-       "\t\t\"filters.quietInInstances\", \"filters.quietTargets\",\n",
+       "\t\"filters.quietInTowns\", \"filters.quietInInstances\", \"filters.quietTargets\", \"filters.quietInTownsWhere\",\n",
+       "\t\"filters.quietInInstances\", \"filters.quietTargets\", \"filters.quietInTownsWhere\",\n",
        "quietintowns: the page's reset leaves the switch",
-       expect="model: the reset puts when back", script=S)
+       expect="model: the reset puts quiet back", script=S)

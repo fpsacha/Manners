@@ -83,7 +83,7 @@ local function unfold(ns, path)
 	ns.RefreshOptionsDisplay()
 end
 
-local ALL = "general who skip when fight click appearance profiles diagnostics"
+local ALL = "general who skip when quiet fight click appearance profiles diagnostics"
 
 -- ------------------------------------------------------------ class table
 local TABLE = {
@@ -134,7 +134,7 @@ local TABLE = {
 	end },
 	-- A hunter and a rogue have What I say for the /thank alone (Options/Say.lua,
 	-- THANKS_ONLY): somebody buffing them is thanked like anybody.
-	{ "HUNTER", "general who skip when fight click appearance profiles diagnostics", function(scenario, ns, UI)
+	{ "HUNTER", "general who skip when quiet fight click appearance profiles diagnostics", function(scenario, ns, UI)
 		ns.OpenOptions("general")
 		if UI.RowShown("general.quickWho") or not UI.RowShown("general.quickWhoSummary") then
 			fail(scenario, "a hunter's step 1 is not the own-buff sentence standing in")
@@ -149,7 +149,7 @@ local TABLE = {
 			fail(scenario, "a hunter's header lacks the preview or Snooze")
 		end
 	end },
-	{ "ROGUE", "general click profiles diagnostics", function(scenario, ns, UI)
+	{ "ROGUE", "general quiet click profiles diagnostics", function(scenario, ns, UI)
 		ns.OpenOptions("general")
 		if not UI.RowShown("general.noBuffs") then fail(scenario, "a rogue's Start here does not lead with noBuffs") end
 		if shown(UI.header.preview) or shown(UI.header.snooze) then fail(scenario, "a rogue has a preview or Snooze") end
@@ -161,6 +161,16 @@ local TABLE = {
 		end
 		ns.OpenOptions("diagnostics")
 		if not UI.RowShown("diagnostics.noDiag") then fail(scenario, "a rogue's Diagnostics does not show noDiag") end
+		-- Don't thank anybody in a party or a raid is the /thank's, so a rogue
+		-- has Quiet times for it alone.
+		ns.OpenOptions("quiet")
+		for _, sec in ipairs(UI.Model("quiet").sections) do
+			if sec.visible and sec.key ~= "quiet.group" then
+				fail(scenario, "a rogue's Quiet times is kept by " .. tostring(sec.key))
+			end
+		end
+		if not UI.RowShown("click.thankNotInGroup") then fail(scenario, "a rogue's Quiet times lacks the thank switch") end
+		if UI.RowShown("click.quietInParty") then fail(scenario, "a rogue has Say nothing in a party") end
 	end },
 }
 

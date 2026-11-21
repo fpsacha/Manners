@@ -90,12 +90,7 @@ Page.RESET = {
 	},
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
-		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor", "filters.manaFloorKeeps",
-		-- Who to buff's two place rules, which this page draws under Hold back.
-		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets",
-		"filters.quietInTownsWhere", "filters.quietShortInTowns", "filters.quietShortMinutes",
-		-- In battlegrounds and arenas (Battle.lua).
-		"battle.team", "battle.speak", "battle.thank", "battle.items",
+		"filters.verifiedOnly",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget",
@@ -118,8 +113,6 @@ Page.RESET = {
 	click = {
 		"prompt.thankEmote", "prompt.thankEmoteToken", "prompt.thankEmoteMore", "speech.enabled", "speech.channel",
 		"speech.onlyWhenReturning",
-		-- Say nothing in a party, Say nothing in a raid (Speech.lua, ns.GroupQuiet).
-		"speech.quietInParty", "speech.quietInRaid",
 		-- First name only, and how often your own lines are said; the lines
 		-- left out are kept, as your lines are.
 		"speech.firstNameOnly", "speech.mixedShare",
@@ -127,11 +120,9 @@ Page.RESET = {
 		"prompt.thankDelay",
 		"prompt.thankUnseen",
 		"prompt.thankAsk",
-		"prompt.thankNotInGroup",
 		keep = function(path) return path ~= "prompt.thankEmote" and path ~= "prompt.thankEmoteToken" and not HasClassBuffs()
 			and path ~= "prompt.thankWhisper" and path ~= "prompt.thankDelay" and path ~= "prompt.thankEmoteMore"
-			and path ~= "prompt.thankUnseen" and path ~= "prompt.thankAsk"
-			and path ~= "prompt.thankNotInGroup" end,
+			and path ~= "prompt.thankUnseen" and path ~= "prompt.thankAsk" end,
 		after = function() ns.Prompt:InvalidateMacro() end,
 	},
 	-- Where the prompt sits and its lock are kept.
@@ -160,6 +151,23 @@ Page.RESET = {
 			restyleAndMacro()
 		end,
 	},
+}
+
+-- Quiet times: where and when Manners holds back or says nothing. The rules
+-- for a party or a raid are a class's: the spoken line is one a class with
+-- nothing to give never says, and on a shared profile it is an alt's, so that
+-- stays; Don't thank anybody in a party or a raid is the /thank's and resets.
+Page.RESET.quiet = {
+	"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets", "filters.quietInTownsWhere",
+	"filters.quietShortInTowns", "filters.quietShortMinutes", "filters.hideMounted", "filters.manaFloor", "filters.manaFloorKeeps",
+	"battle.team", "battle.speak", "battle.thank", "battle.items",
+	"speech.quietInParty", "speech.quietInRaid", "prompt.thankNotInGroup",
+	keep = function(path) return (path == "speech.quietInParty" or path == "speech.quietInRaid") and not HasClassBuffs() end,
+	after = function()
+		rescan()
+		restyleAndMacro()
+		ns.Guard("quiet repaint", ns.Prompt.Refresh, ns.Prompt)
+	end,
 }
 
 -- In a fight: the prompt's fight behaviour and the buttons made for a fight.

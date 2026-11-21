@@ -255,10 +255,10 @@ do
 end
 
 do
-	local scenario = "thanknogroup: shown on What I say, greyed with both thank switches off"
+	local scenario = "thanknogroup: shown on Quiet times, greyed with both thank switches off"
 	with(scenario, { thank = false, whisper = false }, function(ns)
 		local control = findOption(ns.optionsTable, "thankNotInGroup")
-		if not control then fail(scenario, "What I say has no switch for it") return end
+		if not control then fail(scenario, "Quiet times has no switch for it") return end
 		if control.type ~= "toggle" then fail(scenario, "the switch is a " .. tostring(control.type)) end
 		if control.get() ~= false then fail(scenario, "the switch is on in a new profile") end
 		local hidden = control.hidden
@@ -277,19 +277,18 @@ do
 			fail(scenario, "turning it on was not kept")
 		end
 		local found
-		for _, section in ipairs(ns.WindowLayout.pages.click.sections) do
+		for _, section in ipairs(ns.WindowLayout.pages.quiet.sections) do
 			for i, item in ipairs(section.items) do
 				local path = type(item) == "table" and item[1] or item
 				if path == "click.thankNotInGroup" then
 					local before = section.items[i - 1]
-					found = type(item) == "table" and item.indent == true and type(before) == "table"
-						and before[1] == "click.thankAsk"
+					found = section.key == "quiet.group" and type(item) == "string" and before == "click.quietInRaid"
 				end
 			end
 		end
-		if not found then fail(scenario, "the switch is not indented under Ask me before thanking") end
-		-- What I say's reset puts it back off.
-		local reset, answer = pcall(ns.OptionsPage.ResetPage, "click")
+		if not found then fail(scenario, "the switch is not in In a party or a raid, right after Say nothing in a raid") end
+		-- Quiet times' reset puts it back off.
+		local reset, answer = pcall(ns.OptionsPage.ResetPage, "quiet")
 		if reset and answer == true and ns.db.profile.prompt.thankNotInGroup ~= false then
 			fail(scenario, "the page's reset left it " .. tostring(ns.db.profile.prompt.thankNotInGroup))
 		end

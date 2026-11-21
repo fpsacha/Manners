@@ -715,7 +715,7 @@ After a death your own buffs come ahead of your team's, what you fight with
 before food, flasks and the rest. While the gates are still shut your team is
 offered freely, group casts first, and *Save mana* holds nothing back; once
 they open, only while you are out of combat, and only somebody within reach.
-Four switches on *When to offer*, under *Battlegrounds and arenas*:
+Four switches on *Quiet times*, under *Battlegrounds and arenas*:
 
 - *Buff my team there* (on): off, nobody else is offered anything there but
   somebody you target or focus.
@@ -755,7 +755,7 @@ your own. The minimap menu and the *Snooze* button at the top of the options
 window offer 5, 15 and 30 minutes, an hour, two hours and four, and *Until I
 log out*, which lasts until you log out or reload. Favours are
 still noticed while snoozed. *Hide the prompt
-while I'm mounted* (When to offer, under *Mounted and mana*, off) keeps the
+while I'm mounted* (Quiet times, under *Mounted and mana*, off) keeps the
 prompt away while you ride.
 
 ## The favour ledger
@@ -938,8 +938,8 @@ it too.
   snooze is running, nothing can be offered, or the prompt is kept away while
   you are mounted.
 - On the left, the pages, each with a painted icon of its own: *Start here*;
-  *Who to buff*, *Who to skip*, *When to offer*; *In a fight*, *What I say*,
-  *Look*; *Profiles* and *Diagnostics*. When the pages do not fit the window's
+  *Who to buff*, *Who to skip*, *When to offer*; *Quiet times*, *In a fight*,
+  *What I say*, *Look*; *Profiles* and *Diagnostics*. When the pages do not fit the window's
   height they are drawn smaller. A page with
   nothing for your character is left out. A red dot beside a page means
   something there wants looking at; a key binding is optional, so no red dot
@@ -1127,25 +1127,6 @@ no room for. Defaults are in brackets.
   whichever of the three above you pick for other people. *Remind me this
   many minutes early* sets the moment itself (0 works it out from the buff's
   length); it is never more than half the buff's length ahead.
-- ***Hold back***:
-  - *Offer nothing in cities and inns* (off): while the game calls you
-    resting, nothing is offered to anybody, not passers-by, not your group,
-    not a favour you owe. Somebody you target or focus still is. *Where*,
-    under it: *Cities and inns*, *Cities only* or *Inns only*.
-  - *Hold back short buffs in cities and inns* (off): the buffs that last
-    only a few minutes (Thorns, say) are not offered while you rest, and
-    longer ones still are. *Short means this many minutes or less* (15).
-  - *Offer nothing in dungeons, raids and battlegrounds* (off): the same
-    rule inside a dungeon or a raid. Your own buffs are not held back. A
-    battleground or an arena goes by *Buff my team there*, which ticking this
-    one unticks; tick that one again and this switch reads *Offer nothing in
-    dungeons and raids*, which is then all it does.
-  - *Hold back my target and focus too* (off).
-- ***Mounted and mana***: *Hide the prompt while I'm mounted* (off; dead, on a
-  flight path or in a vehicle the prompt already stays away); *Save mana:
-  stop below (% mana)* and *Below it, still offer*. Classes without mana do
-  not see the last two.
-- ***Battlegrounds and arenas***: the four switches above.
 - ***Buffing back***: how long somebody who buffed you is offered one back.
   - *Offer a buff back for (seconds)* (120).
   - *Count only class buffs as favours* (on): only class buffs such as
@@ -1174,6 +1155,41 @@ no room for. Defaults are in brackets.
   nothing targeted. A warrior, whose shout never takes the target, has a line
   saying so instead.
 
+### Quiet times
+
+Where and when Manners holds back or says nothing, on a page of its own
+(between *When to offer* and *In a fight*). Everything here is off except
+*Buff my team there* and *Thank people there*.
+
+- ***Hold back***: the place rules.
+  - *Offer nothing in cities and inns* (off): while the game calls you
+    resting, nothing is offered to anybody, not passers-by, not your group,
+    not a favour you owe. Somebody you target or focus still is. *Where*,
+    under it: *Cities and inns*, *Cities only* or *Inns only*.
+  - *Hold back short buffs in cities and inns* (off): the buffs that last
+    only a few minutes (Thorns, say) are not offered while you rest, and
+    longer ones still are. *Short means this many minutes or less* (15).
+  - *Offer nothing in dungeons, raids and battlegrounds* (off): the same
+    rule inside a dungeon or a raid. Your own buffs are not held back. A
+    battleground or an arena goes by *Buff my team there*, which ticking this
+    one unticks; tick that one again and this switch reads *Offer nothing in
+    dungeons and raids*, which is then all it does.
+  - *Hold back my target and focus too* (off).
+- ***Mounted and mana***: *Hide the prompt while I'm mounted* (off; dead, on a
+  flight path or in a vehicle the prompt already stays away); *Save mana:
+  stop below (% mana)* and *Below it, still offer*. Classes without mana do
+  not see the last two.
+- ***In a party or a raid***: *Say nothing in a party*, *Say nothing in a
+  raid* and *Don't thank anybody while I'm in a party or a raid*, side by
+  side. The first two stop the line said with a cast, and need *Say a line
+  when I buff someone* (on *What I say*) ticked, so they grey with a note
+  saying so; the third stops every /thank and whispered thank-you, and needs
+  the /thank or the whisper. In a battleground or an arena *Say my line
+  there* and *Thank people there* decide instead.
+- ***Battlegrounds and arenas***: *Buff my team there* (on), *Say my line
+  there* (off), *Thank people there* (on) and *Consumables there too* (off);
+  see *Battlegrounds and arenas* above.
+
 ### What I say
 
 Everything here is off until you turn it on.
@@ -1181,7 +1197,7 @@ Everything here is off until you turn it on.
 - *When I buff someone*, at the top, is a quick choice: *Stay silent*, *Just
   /thank them*, *A polite line*, *In character (fits your race and class)* or
   *Whisper them a thank-you*. It sets the switches under it.
-- ***Thanks and speech***:
+- ***Thank-yous***:
   - */thank people who buff me*: when somebody buffs you, you `/thank` them,
     whether or not you could buff them back. Never in a fight, or inside a
     dungeon or a raid (in a battleground or an arena only somebody of your own team,
@@ -1207,11 +1223,11 @@ Everything here is off until you turn it on.
     I can't see who it was* on, a buff from somebody nobody could name is
     offered as "Thank whoever buffed you", and the prompt asks you to clear
     your target first. A pasted settings line can turn it on, never off.
-  - *Don't thank anybody while I'm in a party or a raid* (off, under the
-    /thank): while you are in a party or a raid, no /thank and no whispered
-    thank-you go out, to a group member or anybody else, and no thank is
-    offered on the prompt. In a battleground or an arena, *Thank people there*
-    decides instead.
+  - *Don't thank anybody while I'm in a party or a raid* (off) is on *Quiet
+    times*, in *In a party or a raid*: while you are in a party or a raid, no
+    /thank and no whispered thank-you go out, to a group member or anybody
+    else, and no thank is offered on the prompt. In a battleground or an
+    arena, *Thank people there* decides instead.
   - *Whisper a thank-you to people I can't buff back*: when somebody buffs
     you and nothing of yours goes back to them now (a warrior, a rogue, a
     buff you have nothing to answer, a return that waits for them to join
@@ -1232,14 +1248,14 @@ Everything here is off until you turn it on.
     cast (a friendly NPC's), or one of your own; under the
     /thank's other rules, once per buff every five minutes, and one landing
     is one thank. A pasted settings line never turns it on.
+- ***A line when I buff***:
   - *Say a line when I buff someone*, with *Where to say it* (say, yell,
-    party, raid, emote, or *Whisper them*), *Only when I buff someone
-    back*, *Say nothing in a party* and *Say nothing in a raid* (all off)
-    under it. While you are in a party, or in a raid, with its switch on, no
-    line goes out when you buff, to a member or a passer-by; the buff is
-    still offered and cast, and the /thank, the whispered thank-you and
-    asking for a buff keep their own switches. In a battleground or an
-    arena, *Say my line there* decides instead.
+    party, raid, emote, or *Whisper them*) and *Only when I buff someone
+    back* under it. *Say nothing in a party* and *Say nothing in a raid*
+    (all off) are on *Quiet times*: with one switched on, no line goes out
+    while you are in a party, or in a raid, to a member or a passer-by; the
+    buff is still offered and cast, and the /thank, the whispered thank-you
+    and asking for a buff keep their own switches.
   - *First name only* (off): `{name}` says only the first word of a name, so
     "Petra Stonewell" is called "Petra", in the line said with a cast, the
     whispered thank-you and the line that asks for a buff alike. A one-word name is said whole; a name cut
@@ -1278,7 +1294,7 @@ cannot send it to somebody else by mistake.
 
 ### In a fight
 
-Its own page in the options window (between *When to offer* and *What I say*),
+Its own page in the options window (between *Quiet times* and *What I say*),
 with two sections: ***The prompt in a fight*** and ***Buttons for when you need them***.
 
 ***The prompt in a fight***:

@@ -7,6 +7,8 @@
 ### Highlights
 - **New page *In a fight*:** hiding the prompt, the rota, the fight key, and the Will of the Forsaken, Mend Pet and cure buttons, all in one place. The page has its own icon, and the window's page list gets smaller to fit when there is not room.
 
+- **New page *Quiet times*:** where and when Manners holds back or says nothing. *In a party or a raid* puts the speech and thank switches side by side. The /thank and the whisper share their options.
+
 - **Search finds the words people use** (wotf, rez, reply, queue, color and more) and phrases such as "turn off will of the forsaken".
 
 - **Who to skip > After a right-click** sets how long a right-click skips someone, up to 30 minutes. The box reads 12 s or 5 min, and you can type 5m or 1h.

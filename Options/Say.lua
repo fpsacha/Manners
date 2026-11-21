@@ -66,6 +66,16 @@ function Page.BuildSpeechTab()
 				name = "|cffffd100" .. L["In combat: changes here apply once the fight ends."] .. "|r\n",
 			},
 
+			-- The same line for Quiet times (layout.lua counts a strip path as a
+			-- placement, so the page needs an entry of its own).
+			quietCombatNotice = {
+				type = "description",
+				order = 0.51,
+				fontSize = "medium",
+				hidden = function() return not InCombatLockdown() end,
+				name = "|cffffd100" .. L["In combat: changes here apply once the fight ends."] .. "|r\n",
+			},
+
 			speechHeader = { type = "header", name = L["Thanks and speech"], order = 10 },
 			-- The other answer to a favour arriving. Its own get and set:
 			-- pSet restyles the prompt, and this changes nothing on it. Live

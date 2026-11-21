@@ -226,9 +226,9 @@ do
 		f.manaFloorKeeps = "self"
 		ns.ClampSettings()
 		if f.manaFloorKeeps ~= "self" then fail(scenario, "the repair undid Only my own buff") end
-		-- Placed right under the slider, indented, on When to offer.
+		-- Placed right under the slider, indented, on Quiet times.
 		local found
-		for _, section in ipairs(ns.WindowLayout.pages.when.sections) do
+		for _, section in ipairs(ns.WindowLayout.pages.quiet.sections) do
 			for i, item in ipairs(section.items) do
 				if item == "when.manaFloor" then
 					local nextItem = section.items[i + 1]
@@ -236,7 +236,7 @@ do
 				end
 			end
 		end
-		if not found then fail(scenario, "the choice is not indented right under the slider on When to offer") end
+		if not found then fail(scenario, "the choice is not indented right under the slider on Quiet times") end
 	end)
 end
 

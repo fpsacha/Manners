@@ -27,11 +27,11 @@ mutate(LAYOUT, "\t\t\t\t\t\"who.quietInTowns\",\n"
        "\t\t\t\t\t\"who.quietShortInTowns\",\n"
        "\t\t\t\t\t{ \"who.quietShortMinutes\", indent = true },\n"
        "\t\t\t\t\t\"who.quietInInstances\",\n\t\t\t\t\t\"who.quietTargets\",\n\t\t\t\t} },\n"
-       "\t\t\t\t{ key = \"when.holdBack2\", title = L[\"Mounted and mana\"], items = {\n\t\t\t\t\t\"when.hideMounted\",\n",
+       "\t\t\t\t{ key = \"quiet.group\", title = L[\"In a party or a raid\"], items = {\n",
        "\t\t\t\t} },\n"
-       "\t\t\t\t{ key = \"when.holdBack2\", title = L[\"Mounted and mana\"], items = {\n\t\t\t\t\t\"when.hideMounted\",\n",
+       "\t\t\t\t{ key = \"quiet.group\", title = L[\"In a party or a raid\"], items = {\n",
        "ux-redesign: the place rules are not under Hold back",
-       expect="ux-redesign: the place rules lead Hold back on When to offer", script=S)
+       expect="ux-redesign: the place rules lead Hold back on Quiet times", script=S)
 
 mutate(LAYOUT, "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n"
        "\t\t\t\t\t-- The consumables on a button of their own (Prompt/Supplies.lua).\n"

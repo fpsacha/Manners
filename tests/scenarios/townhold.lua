@@ -282,9 +282,9 @@ do
 		if ns.db.profile.filters.quietInTownsWhere ~= "cities" then
 			fail(scenario, "the repair undid cities only")
 		end
-		-- Placed right under the switch, indented, on When to offer.
+		-- Placed right under the switch, indented, on Quiet times.
 		local found
-		for _, section in ipairs(ns.WindowLayout.pages.when.sections) do
+		for _, section in ipairs(ns.WindowLayout.pages.quiet.sections) do
 			for i, item in ipairs(section.items) do
 				if item == "who.quietInTowns" then
 					local nextItem = section.items[i + 1]
@@ -292,7 +292,7 @@ do
 				end
 			end
 		end
-		if not found then fail(scenario, "the choice is not indented right under the switch on When to offer") end
+		if not found then fail(scenario, "the choice is not indented right under the switch on Quiet times") end
 	end)
 end
 

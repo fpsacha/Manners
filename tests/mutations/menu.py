@@ -219,10 +219,10 @@ mutate(PAGE,
        expect="Tooltip's dot stays dark", script=S)
 
 mutate(LAYOUT,
-       "\t\t\t\t{ key = \"when.battle\", title = L[\"Battlegrounds and arenas\"], home = true, items = {\n",
-       "\t\t\t\t{ key = \"when.battle\", title = L[\"Battlegrounds and arenas\"], items = {\n",
+       "\t\t\t\t{ key = \"quiet.battle\", title = L[\"Battlegrounds and arenas\"], home = true, items = {\n",
+       "\t\t\t\t{ key = \"quiet.battle\", title = L[\"Battlegrounds and arenas\"], items = {\n",
        "menu: the home for battlegrounds not marked as one",
-       expect="when.battle is not marked as a home", script=S)
+       expect="quiet.battle is not marked as a home", script=S)
 
 mutate(LAYOUT,
        "\t\t\t\t\t-- HOME: sharing a group with other Manners users (who buffs\n",

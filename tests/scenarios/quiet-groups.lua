@@ -268,9 +268,10 @@ do
 end
 
 -- ------------------------------------------------------------ quiet-groups 7
--- The two switches on the What I say page, under Say a line, indented, on the
--- short list, and named to search with the switch to turn on; off by default,
--- and a damaged value put back.
+-- The two switches on the Quiet times page, in In a party or a raid, not
+-- indented (nothing hides them, they grey with a note: tests/scenarios/
+-- menupass-quiet.lua), on the short list; off by default, and a damaged value
+-- put back.
 do
 	local scenario = "quiet-groups: the switches sit under Say a line, off by default"
 	Mock.reset()
@@ -290,27 +291,24 @@ do
 		end
 		local layout = ns.WindowLayout
 		if type(layout) == "table" and H.layoutInToc() then
-			local list, sections = H.pagePaths(ns, "click")
-			local at = {}
-			for i, path in ipairs(list or {}) do at[path] = i end
 			for _, path in ipairs({ "click.quietInParty", "click.quietInRaid" }) do
 				local page, section, index = H.placedOn(ns, path)
-				if page ~= "click" then
-					fail(scenario, path .. " is not on What I say")
+				if page ~= "quiet" then
+					fail(scenario, path .. " is not on Quiet times")
 				else
 					local item = section.items[index]
-					if not (type(item) == "table" and item.indent == true) then
-						fail(scenario, path .. " is not indented")
+					if type(item) ~= "string" then
+						fail(scenario, path .. " is indented under a switch that does not hide it")
 					end
-					if sections[path] ~= sections["click.enabled"] or not (at[path] > at["click.enabled"]) then
-						fail(scenario, path .. " is not under Say a line when I buff someone")
+					if section.key ~= "quiet.group" then
+						fail(scenario, path .. " is in " .. tostring(section.key) .. ", not In a party or a raid")
 					end
 				end
 				if not (layout.simple and layout.simple.items[path]) then
 					fail(scenario, path .. " is left out of the short list")
 				end
-				if not (layout.parents and layout.parents[path] == "click.enabled") then
-					fail(scenario, path .. " does not name Say a line to search")
+				if layout.parents and layout.parents[path] ~= nil then
+					fail(scenario, path .. " is named to search as hidden by a switch, and nothing hides it")
 				end
 			end
 		end

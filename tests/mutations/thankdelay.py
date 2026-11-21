@@ -107,7 +107,7 @@ mutate("Options/Say.lua",
        expect="thankdelay: a class with nothing to give keeps the switch", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"click.thankDelay\", indent = true },\n",
+       "\t\t\t\t\t\"click.thankDelay\",\n",
        "",
        "thankdelay: the switch is not placed on What I say",
        expect="thankdelay: What I say has the switch under the /thank", script=S)

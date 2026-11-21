@@ -88,6 +88,7 @@ local ICONS = {
 	when = MENU .. "When",
 	click = MENU .. "Say",
 	fight = MENU .. "Fight",
+	quiet = MENU .. "Quiet",
 	appearance = MENU .. "Look",
 	profiles = MENU .. "Profiles",
 	diagnostics = MENU .. "Diagnostics",
@@ -177,6 +178,11 @@ local function NameOf(path)
 	return "|cffffd100" .. name .. "|r"
 end
 
+-- The page a control is on, as the window names it now ("" while unplaced).
+local function TabOf(path)
+	return ns.OptionsPage.TabOf(path) or ""
+end
+
 -- What to cast: the buff dropdown, each buff's switch with its own under it,
 -- then what is about all of them.
 local function CastItems()
@@ -210,7 +216,7 @@ ns.WindowLayout = {
 	strip = {
 		lock = "general.lockNow",
 		-- Line 2 in a fight: the open page's note.
-		combat = { click = "click.combatNotice", fight = "appearance.fightCombatNotice", appearance = "appearance.combatNotice", when = "advanced.advCombatNotice" },
+		combat = { click = "click.combatNotice", quiet = "click.quietCombatNotice", fight = "appearance.fightCombatNotice", appearance = "appearance.combatNotice", when = "advanced.advCombatNotice" },
 	},
 	foldCaption = "advanced.advIntro",
 	-- The simple view's own controls: the switch under the search box; over a
@@ -228,7 +234,7 @@ ns.WindowLayout = {
 	-- The sidebar, top to bottom; a hairline between groups. Page ids are the
 	-- old tab keys (bug reports and ns.OptionsTab() name them), plus skip and
 	-- fight, which are pages of the window and not tabs of the old dialog.
-	groups = { { "general" }, { "who", "skip", "when" }, { "fight", "click", "appearance" }, { "profiles", "diagnostics" } },
+	groups = { { "general" }, { "who", "skip", "when" }, { "quiet", "fight", "click", "appearance" }, { "profiles", "diagnostics" } },
 
 	pages = {
 		general = {
@@ -662,35 +668,6 @@ ns.WindowLayout = {
 					{ "when.selfLead", indent = true },
 					{ "when.selfLeadNote", indent = true },
 				} },
-				-- The place rules lead Hold back: they hold back everybody, so
-				-- they are not items of the list of people on Who to buff.
-				{ key = "when.holdBack", header = "when.wayHeader", items = {
-					"who.quietInTowns",
-					-- Cities and inns, cities only or inns only.
-					{ "who.quietInTownsWhere", indent = true },
-					-- Only the short buffs, where the rule above holds everything.
-					"who.quietShortInTowns",
-					{ "who.quietShortMinutes", indent = true },
-					"who.quietInInstances",
-					"who.quietTargets",
-				} },
-				{ key = "when.holdBack2", title = L["Mounted and mana"], items = {
-					"when.hideMounted",
-					"when.manaFloor",
-					-- What it still offers below it: favours and requests, your
-					-- own buff only, or nothing.
-					{ "when.manaFloorKeeps", indent = true },
-					"when.manaNote",
-				} },
-				-- HOME: battlegrounds and arenas (what is offered there, and to
-				-- whom) go here: a place rule, beside Hold back's. Four switches
-				-- of their own (Battle.lua), which decide there.
-				{ key = "when.battle", title = L["Battlegrounds and arenas"], home = true, items = {
-					"when.battleTeam",
-					"when.battleSpeak",
-					"when.battleThank",
-					"when.battleItems",
-				} },
 				-- Where the old note pointing at Advanced was.
 				{ key = "when.favours", header = "advanced.favoursHeader", items = {
 					"advanced.reciprocateWindow",
@@ -711,15 +688,62 @@ ns.WindowLayout = {
 					{ "advanced.noTargetNote", standIn = true },
 				} },
 			},
-			-- Hold back and Mounted and mana are one rule; the two folds of
-			-- fine print one entry.
+			-- The two folds of fine print are one entry.
 			subpages = {
 				{ "when.buffed" },
 				{ "when.self" },
-				{ "when.holdBack", "when.holdBack2" },
-				{ "when.battle" },
 				{ "when.favours" },
 				{ "when.timing", "when.targeting" },
+			},
+		},
+
+		-- Where and when Manners holds back or says nothing: the place rules,
+		-- the group rules for the spoken line and the thanks, battlegrounds,
+		-- and being mounted or low on mana.
+		quiet = {
+			title = L["Quiet times"],
+			icon = ICONS.quiet,
+			sections = {
+				-- The place rules lead Hold back: they hold back everybody, so
+				-- they are not items of the list of people on Who to buff.
+				{ key = "quiet.holdBack", header = "when.wayHeader", items = {
+					"who.quietInTowns",
+					-- Cities and inns, cities only or inns only.
+					{ "who.quietInTownsWhere", indent = true },
+					-- Only the short buffs, where the rule above holds everything.
+					"who.quietShortInTowns",
+					{ "who.quietShortMinutes", indent = true },
+					"who.quietInInstances",
+					"who.quietTargets",
+				} },
+				{ key = "quiet.group", title = L["In a party or a raid"], items = {
+					"click.quietInParty",
+					"click.quietInRaid",
+					"click.thankNotInGroup",
+				} },
+				-- HOME: battlegrounds and arenas (what is offered there, and to
+				-- whom) go here: a place rule, beside Hold back's. Four switches
+				-- of their own (Battle.lua), which decide there.
+				{ key = "quiet.battle", title = L["Battlegrounds and arenas"], home = true, items = {
+					"when.battleTeam",
+					"when.battleSpeak",
+					"when.battleThank",
+					"when.battleItems",
+				} },
+				{ key = "quiet.mounted", title = L["Mounted and mana"], items = {
+					"when.hideMounted",
+					"when.manaFloor",
+					-- What it still offers below it: favours and requests, your
+					-- own buff only, or nothing.
+					{ "when.manaFloorKeeps", indent = true },
+					"when.manaNote",
+				} },
+			},
+			subpages = {
+				{ "quiet.holdBack" },
+				{ "quiet.group" },
+				{ "quiet.battle" },
+				{ "quiet.mounted" },
 			},
 		},
 
@@ -732,26 +756,25 @@ ns.WindowLayout = {
 					"general.quickVoice",
 					"general.quickVoiceSummary",
 				} },
-				{ key = "click.speech", header = "click.speechHeader", items = {
+				{ key = "click.speech", title = L["Thank-yous"], items = {
 					"click.thankEmote",
 					{ "click.thankEmoteToken", indent = true },
 					-- Others to pick from, under the one picked.
 					{ "click.thankEmoteMore", indent = 2, columns = 4 },
-					-- The pause before the /thank and the whisper alike.
-					{ "click.thankDelay", indent = true },
-					-- Every thank waits for a press of the prompt (ThankPress.lua).
-					{ "click.thankAsk", indent = true },
-					-- No thanks at all in a party or a raid (Favours.lua, Held).
-					{ "click.thankNotInGroup", indent = true },
 					"click.thankWhisper",
+					-- The pause, the press and the nobody-could-name rule hold for
+					-- the /thank and the whisper alike: live while either is on, so
+					-- none sits under one switch.
+					"click.thankDelay",
+					-- Every thank waits for a press of the prompt (ThankPress.lua).
+					"click.thankAsk",
 					-- A thank for somebody nobody could name, the emote's or the whisper's.
-					{ "click.thankUnseen", indent = true },
+					"click.thankUnseen",
+				} },
+				{ key = "click.said", title = L["A line when I buff"], items = {
 					"click.enabled",
 					{ "click.channel", indent = true },
 					{ "click.onlyWhenReturning", indent = true },
-					-- No line in a party, or in a raid (Speech.lua, ns.GroupQuiet).
-					{ "click.quietInParty", indent = true },
-					{ "click.quietInRaid", indent = true },
 					-- While speaking with friendly nameplates off (Speech.lua).
 					{ "click.platesNote", indent = true },
 					{ "click.showPlates", indent = true },
@@ -1105,7 +1128,7 @@ ns.WindowLayout = {
 			["click.channel"] = true, ["click.platesNote"] = true, ["click.showPlates"] = true,
 			["click.linesOff"] = true, ["click.preset"] = true, ["click.phrasesHelp"] = true,
 			["click.inCharacterNote"] = true, ["click.phrases"] = true,
-			["click.quietInParty"] = true, ["click.quietInRaid"] = true,
+			["click.quietInParty"] = true, ["click.quietInRaid"] = true, ["click.thankNotInGroup"] = true,
 			-- Look.
 			["appearance.style"] = true, ["appearance.classicArt"] = true, ["appearance.keycap"] = true, ["appearance.move"] = true, ["appearance.posPreset"] = true,
 			["appearance.classLook"] = true,
@@ -1178,10 +1201,20 @@ ns.WindowLayout = {
 		end,
 		["when.battleItems"] = function() return L["Needs %s ticked."]:format(NameOf("who.ownDungeons")) end,
 		-- The pause before a thank, greyed while the thanks wait for a press.
+		-- The group rules sit on Quiet times, away from the switch they need.
+		["click.quietInParty"] = function() return L["Needs %s ticked, on %s."]:format(NameOf("click.enabled"), TabOf("click.enabled")) end,
+		["click.quietInRaid"] = function() return L["Needs %s ticked, on %s."]:format(NameOf("click.enabled"), TabOf("click.enabled")) end,
+		["click.thankNotInGroup"] = function()
+			return L["Needs %s or %s ticked, on %s."]:format(NameOf("click.thankEmote"), NameOf("click.thankWhisper"), TabOf("click.thankEmote"))
+		end,
+		["click.thankAsk"] = function() return L["Needs %s or %s ticked."]:format(NameOf("click.thankEmote"), NameOf("click.thankWhisper")) end,
+		["click.thankUnseen"] = function() return L["Needs %s or %s ticked."]:format(NameOf("click.thankEmote"), NameOf("click.thankWhisper")) end,
+		-- The pause before a thank, greyed while the thanks wait for a press,
+		-- else while both thanks are off.
 		["click.thankDelay"] = function()
 			local p = ns.db and ns.db.profile and ns.db.profile.prompt
 			if p and p.thankAsk == true then return L["Off while %s is on."]:format(NameOf("click.thankAsk")) end
-			return nil
+			return L["Needs %s or %s ticked."]:format(NameOf("click.thankEmote"), NameOf("click.thankWhisper"))
 		end,
 		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
 		["appearance.fightButtons"] = L["Needs Will of the Forsaken or Mend Pet in a fight ticked."],
@@ -1285,8 +1318,6 @@ ns.WindowLayout = {
 		["click.leaveOutLast"] = "click.enabled",
 		["click.leftOut"] = "click.enabled",
 		["click.roll"] = "click.enabled",
-		["click.quietInParty"] = "click.enabled",
-		["click.quietInRaid"] = "click.enabled",
 		-- My group's pets too, shown only while My party and raid is on.
 		["who.pets"] = "who.group",
 		-- A class's courtesies, shown only while People who ask me in chat is on.
@@ -1402,6 +1433,9 @@ ns.WindowLayout = {
 		-- fallback dialog's headings: the window has a home for each, titled
 		-- (More than buffs, Asking for a buff, Battlegrounds and arenas).
 		["who.curesHeader"] = true,
+		-- "Thanks and speech": the fallback dialog's heading; the window titles
+		-- the two halves (Thank-yous, A line when I buff).
+		["click.speechHeader"] = true,
 		["who.askHeader"] = true,
 		["when.battleHeader"] = true,
 		-- Its string is the Who to skip page's title.

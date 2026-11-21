@@ -9,7 +9,7 @@ OFF = "thanknogroup: off by default, a party member's buff is thanked"
 PARTY = "thanknogroup: on in a party outdoors, no emote and the skip says in a party or a raid"
 RAID = "thanknogroup: on in a raid outdoors, a stranger's buff gets no emote"
 BATTLE = "thanknogroup: in a battleground Thank people there still thanks your team"
-SHOWN = "thanknogroup: shown on What I say, greyed with both thank switches off"
+SHOWN = "thanknogroup: shown on Quiet times, greyed with both thank switches off"
 
 # ------------------------------------------------ the guard
 mutate("Favours.lua",
@@ -51,7 +51,7 @@ mutate("Core.lua",
 
 # ------------------------------------------------ the options window
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"click.thankNotInGroup\", indent = true },\n",
+       "\t\t\t\t\t\"click.thankNotInGroup\",\n",
        "",
        "thanknogroup: the switch has no place on What I say",
        expect=SHOWN, script=S)

@@ -239,7 +239,7 @@ do
 	local scenario = "model: only five pages can show a red dot"
 	with(scenario, nil, nil, function(ns)
 		-- Four since round 37: Start here's key is optional.
-		for _, pageId in ipairs({ "general", "skip", "click", "fight", "profiles" }) do
+		for _, pageId in ipairs({ "general", "skip", "click", "quiet", "fight", "profiles" }) do
 			if ns.OptionsPage.Warn[pageId] ~= nil then
 				fail(scenario, pageId .. " has a red-dot predicate and no warning to stand for")
 			end
@@ -416,17 +416,22 @@ local EXPECTED = {
 		"timing.skipSeconds", "timing.ownSkipMinutes" },
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
-		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor", "filters.manaFloorKeeps",
-		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets", "filters.quietInTownsWhere", "filters.quietShortInTowns", "filters.quietShortMinutes",
+		"filters.verifiedOnly",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget", "filters.repayCovered",
+	},
+	-- Quiet times: where and when Manners holds back or says nothing.
+	quiet = {
+		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets", "filters.quietInTownsWhere", "filters.quietShortInTowns", "filters.quietShortMinutes",
+		"filters.hideMounted", "filters.manaFloor", "filters.manaFloorKeeps",
 		-- In battlegrounds and arenas.
 		"battle.team", "battle.speak", "battle.thank", "battle.items",
+		"speech.quietInParty", "speech.quietInRaid", "prompt.thankNotInGroup",
 	},
 	click = { "prompt.thankEmote", "prompt.thankEmoteToken", "prompt.thankEmoteMore", "speech.enabled", "speech.channel",
-		"speech.onlyWhenReturning", "speech.quietInParty", "speech.quietInRaid", "speech.firstNameOnly", "speech.mixedShare", "prompt.thankWhisper", "prompt.thankDelay",
-			"prompt.thankUnseen", "prompt.thankAsk", "prompt.thankNotInGroup" },
+		"speech.onlyWhenReturning", "speech.firstNameOnly", "speech.mixedShare", "prompt.thankWhisper", "prompt.thankDelay",
+			"prompt.thankUnseen", "prompt.thankAsk" },
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",
@@ -464,6 +469,7 @@ local KEPT = {
 	who = { { "enabled", false } },
 	skip = { { "never", { ["Petra Stonewell"] = true } } },
 	when = { { "prompt.scale", 1.25 } },
+	quiet = { { "prompt.scale", 1.25 } },
 	click = { { "speech.phrases", "my very own line" }, { "speech.presetChoice", "polite" } },
 	appearance = { { "prompt.x", 41 }, { "prompt.y", 123 }, { "prompt.point", "TOP" },
 		{ "prompt.relPoint", "TOP" }, { "prompt.locked", false } },
@@ -476,6 +482,7 @@ local HOOKS = {
 	who = { "style", "macro", "refresh", "broker" },
 	skip = { "scan" },
 	when = { "save", "scan", "style", "macro" },
+	quiet = { "scan", "style", "macro", "refresh" },
 	click = { "macro" },
 	appearance = { "clamp", "style", "macro" },
 	fight = { "style", "macro", "refresh" },
@@ -488,7 +495,7 @@ local function field(profile, path)
 	return profile, path
 end
 
-for _, pageId in ipairs({ "who", "skip", "when", "click", "fight", "appearance", "advanced" }) do
+for _, pageId in ipairs({ "who", "skip", "when", "quiet", "click", "fight", "appearance", "advanced" }) do
 	local scenario = "model: the reset puts " .. pageId .. " back"
 	with(scenario, nil, nil, function(ns)
 		local Page = ns.OptionsPage

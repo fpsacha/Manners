@@ -78,8 +78,8 @@ mutate("Options/Window/Layout.lua",
 mutate("Options/Advanced.lua",
        "\"filters.manaFloor\", \"filters.manaFloorKeeps\",\n",
        "\"filters.manaFloor\",\n",
-       "manakeeps: When to offer's reset leaves the choice",
-       expect="model: the reset puts when back", script=S)
+       "manakeeps: Quiet times' reset leaves the choice",
+       expect="model: the reset puts quiet back", script=S)
 
 mutate("Options/When.lua",
        "\t\t\t\tdisabled = function() return not ((tonumber(F().manaFloor) or 0) > 0) end,\n",

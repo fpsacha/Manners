@@ -55,11 +55,11 @@ if ns then
 		end
 		if Page.TabOf("nothing.here") ~= nil then fail(scenario, "an unplaced path got a page name") end
 		-- A translation, or a test's override, is followed at the moment it is asked.
-		ns.L["When to offer"] = "X"
+		ns.L["Quiet times"] = "X"
 		local named = Page.TabOf("when.hideMounted")
-		ns.L["When to offer"] = nil
+		ns.L["Quiet times"] = nil
 		if named ~= "X" then fail(scenario, "TabOf kept an old name for the page: " .. tostring(named)) end
-		if Page.TabOf("when.hideMounted") ~= "When to offer" then fail(scenario, "TabOf did not give the name back") end
+		if Page.TabOf("when.hideMounted") ~= "Quiet times" then fail(scenario, "TabOf did not give the name back") end
 	end
 end
 rawset(_G, "IsSpellKnown", known)

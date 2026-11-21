@@ -68,22 +68,22 @@ mutate("Core.lua",
        expect="quiet-groups: the switches sit under Say a line, off by default", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t\t\t{ \"click.quietInParty\", indent = true },\n",
-       "\t\t\t\t\t\"click.quietInParty\",\n",
-       "quiet-groups: Say nothing in a party not indented",
+       "\t\t\t\t\t\"click.quietInParty\",\n\t\t\t\t\t\"click.quietInRaid\",\n",
+       "\t\t\t\t\t\"click.quietInRaid\",\n",
+       "quiet-groups: Say nothing in a party sits outside the section",
        expect="quiet-groups: the switches sit under Say a line, off by default", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t\t[\"click.quietInParty\"] = true, [\"click.quietInRaid\"] = true,\n",
-       "\t\t\t[\"click.quietInParty\"] = true,\n",
+       "\t\t\t[\"click.quietInParty\"] = true, [\"click.quietInRaid\"] = true, [\"click.thankNotInGroup\"] = true,\n",
+       "\t\t\t[\"click.quietInParty\"] = true, [\"click.thankNotInGroup\"] = true,\n",
        "quiet-groups: Say nothing in a raid off the short list",
        expect="quiet-groups: the switches sit under Say a line, off by default", script=S)
 
 mutate("Options/Window/Layout.lua",
-       "\t\t[\"click.quietInRaid\"] = \"click.enabled\",\n",
+       "\t\t[\"click.quietInRaid\"] = function() return L[\"Needs %s ticked, on %s.\"]:format(NameOf(\"click.enabled\"), TabOf(\"click.enabled\")) end,\n",
        "",
-       "quiet-groups: search not told Say nothing in a raid's switch",
-       expect="quiet-groups: the switches sit under Say a line, off by default", script=S)
+       "quiet-groups: the greyed Say nothing in a raid says nothing of what to tick",
+       expect="menupass-quiet: greyed group switches", script=S)
 
 mutate("Commands.lua",
        "\t\tif quiet == \"party\" then\n",
