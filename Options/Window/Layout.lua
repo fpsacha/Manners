@@ -65,6 +65,14 @@
 -- sections, at the top of the page with their folds open, and a section no
 -- entry names (the line a page opens with) is drawn with every one. Nothing
 -- moves between pages: they are only a way to look at one.
+--
+-- `units` names the sliders whose box shows a unit (WidgetsEntry.lua,
+-- RangeText and RangeParse): path -> { kind = "seconds" | "minutes" |
+-- "percent" | "times", zero = L[...] optional }. "seconds" reads 12 s,
+-- 5 min, 1 min 30 s; "minutes" reads 45 min, 2 h, 1 h 30 min; "percent" is
+-- 40%; "times" is 2x. `zero` is the word for 0. A typed 5m or 1h is
+-- converted into the setting's own unit. A slider with no entry reads as a
+-- plain number.
 
 local _, ns = ...
 local L = ns.L
@@ -603,6 +611,12 @@ ns.WindowLayout = {
 			icon = ICONS.skip,
 			sections = {
 				{ key = "skip.now", items = { "who.rightNowSkip" } },
+				-- How long a right-click leaves someone alone, in seconds and in
+				-- minutes (it was a fold on When to offer).
+				{ key = "skip.rightClick", title = L["After a right-click"], items = {
+					"advanced.skipSeconds",
+					"advanced.ownSkipMinutes",
+				} },
 				{ key = "skip.lead", title = L["Players to skip"], items = {
 					"who.skipPvP",
 					-- Who that switch holds back right now, under it.
@@ -687,8 +701,6 @@ ns.WindowLayout = {
 				} },
 				{ key = "when.timing", header = "advanced.timingHeader", fold = true, items = {
 					"advanced.retryCooldown",
-					"advanced.skipSeconds",
-					"advanced.ownSkipMinutes",
 					"advanced.scanInterval",
 				} },
 				{ key = "when.targeting", header = "advanced.targetingHeader", fold = true, items = {
@@ -1068,6 +1080,7 @@ ns.WindowLayout = {
 			["who.rightNowSkip"] = true, ["who.skipPvP"] = true, ["who.skipFighting"] = true,
 			["who.skipSameClass"] = true,
 			["who.minLevel"] = true, ["who.neverAdd"] = true,
+			["advanced.skipSeconds"] = true, ["advanced.ownSkipMinutes"] = true,
 			-- When to offer.
 			["when.rightNow"] = true, ["when.whenBuffed"] = true, ["when.alwaysNote"] = true,
 			["when.selfTopUp"] = true,
@@ -1179,12 +1192,19 @@ ns.WindowLayout = {
 		["appearance.dimInCombat"] = L["Only Glass, Framed and Minimal draw this."],
 	},
 
+	-- The unit a slider's box shows (see the header comment).
+	units = {
+		["advanced.skipSeconds"] = { kind = "seconds" },
+		["advanced.ownSkipMinutes"] = { kind = "minutes", zero = L["Same as above"] },
+	},
+
 	-- Other words people search for a control by (WindowSearch.lua): ranked
 	-- with its choices, matched at the start of a word. One string a control,
 	-- translated as a whole.
 	keywords = {
 		["general.silentChat"] = L["quiet mute spam"],
 		["advanced.ownSkipMinutes"] = L["skip longer food well fed ignore right click not now"],
+		["advanced.skipSeconds"] = L["skip longer right click not now ignore"],
 		["general.verbose"] = L["quiet mute spam"],
 		["who.ownScrolls"] = L["hide familiar imbue"],
 		-- Asked for as hiding "the window" in a fight.

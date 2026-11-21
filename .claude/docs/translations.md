@@ -34,7 +34,7 @@ refuses to drop a line.
 The options window's layout (`Options/Window/Layout.lua`, documented in its
 header) has, since round 37: `buttons` (a run of buttons left to right),
 `match` (two fields of one width), `offNotes` (path -> why a greyed row is
-greyed, drawn by `W.OffNote`), `keywords` (search words) and `parents` (a
+greyed, drawn by `W.OffNote`), `units` (path -> `{ kind, zero }`: the unit a slider's box shows and parses; `kind` is `seconds` (12 s, 5 min, 1 min 30 s), `minutes` (45 min, 2 h, 1 h 30 min), `percent` or `times`, `zero` the word for 0; a typed 5m or 1h is converted into the setting's own unit), `keywords` (search words) and `parents` (a
 hidden control found by search, with the switch to turn on first: only while
 that switch is off, and only where `parentsIf`, path -> function, does not
 say the switch would show nothing, as for a courtesy another class has). A

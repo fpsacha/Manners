@@ -84,6 +84,9 @@ Page.RESET = {
 		"filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel",
 		"filters.skipGuilds",
 		"filters.skipNearbyClasses",
+		-- How long a right-click skips (Who to skip > After a right-click).
+		"timing.skipSeconds", "timing.ownSkipMinutes",
+		after = function() rescan() end,
 	},
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
@@ -94,7 +97,7 @@ Page.RESET = {
 		-- In battlegrounds and arenas (Battle.lua).
 		"battle.team", "battle.speak", "battle.thank", "battle.items",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget",
 		"filters.repayCovered",
 		after = function()
@@ -307,9 +310,9 @@ function Page.BuildAdvancedTab()
 				get = fGet,
 				set = fSet,
 			},
-			-- Every one of these is a number of seconds. There is no suffix
-			-- field on an AceConfig range, so the unit goes in the name or it
-			-- is nowhere.
+			-- Most of these are a number of seconds. The window's box shows the
+			-- unit itself (Layout.lua, units); the dialog it falls back to has
+			-- no unit field, so each tooltip says the unit.
 			reciprocateWindow = {
 				type = "range",
 				name = L["Offer a buff back for (seconds)"],
@@ -369,12 +372,14 @@ function Page.BuildAdvancedTab()
 			timingHeader = { type = "header", name = L["Timing"], order = 20 },
 			-- Per spell, deliberately: PickBuffFor is built on it, and it
 			-- is what moves a priest off Fortitude and onto Divine Spirit
-			-- on the very next scan. A right-press blocks the whole person
-			-- for the same number.
+			-- on the very next scan. A right-click skips for its own length
+			-- (skipSeconds, below).
 			retryCooldown = {
 				type = "range",
 				name = L["Don't repeat a spell on someone for (seconds)"],
-				desc = L["In case the cast failed; right-clicking the prompt skips the person for this long."],
+				desc = function()
+					return L["In case the cast failed. How long a right-click skips someone is set on %s."]:format(Page.TabOf("advanced.skipSeconds") or "")
+				end,
 				order = 21,
 				width = "double",
 				min = 3,
@@ -385,8 +390,8 @@ function Page.BuildAdvancedTab()
 			},
 			skipSeconds = {
 				type = "range",
-				name = L["A right-click skips for (seconds)"],
-				desc = L["How long right-clicking the prompt, or Not now in its menu, leaves that person, or your own buff, alone before it is offered again."],
+				name = L["A right-click skips someone for"],
+				desc = L["In seconds: how long right-clicking the prompt, or Skip for now in its menu, leaves that person, or your own buff, alone."],
 				order = 21.5,
 				width = "double",
 				min = 3,
@@ -397,8 +402,8 @@ function Page.BuildAdvancedTab()
 			},
 			ownSkipMinutes = {
 				type = "range",
-				name = L["A right-click on my own buffs skips for (minutes)"],
-				desc = L["How long right-clicking one of your own buffs, on the prompt or the consumables button, or Not now in the menu, leaves it alone. A skipped food skips every food in your bags, since any of them gives Well Fed. At 0 it follows A right-click skips for (seconds)."],
+				name = L["A right-click skips my own buffs for"],
+				desc = L["In minutes: how long right-clicking one of your own buffs, on the prompt or the consumables button, or Skip for now in the menu, leaves it alone. Skipping a food skips every food in your bags, since any of them gives Well Fed. At 0 it follows A right-click skips someone for."],
 				order = 21.6,
 				width = "double",
 				min = 0,

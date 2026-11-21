@@ -134,7 +134,7 @@ local TABLE = {
 	end },
 	-- A hunter and a rogue have What I say for the /thank alone (Options/Say.lua,
 	-- THANKS_ONLY): somebody buffing them is thanked like anybody.
-	{ "HUNTER", "general who when click appearance profiles diagnostics", function(scenario, ns, UI)
+	{ "HUNTER", "general who skip when click appearance profiles diagnostics", function(scenario, ns, UI)
 		ns.OpenOptions("general")
 		if UI.RowShown("general.quickWho") or not UI.RowShown("general.quickWhoSummary") then
 			fail(scenario, "a hunter's step 1 is not the own-buff sentence standing in")
@@ -182,8 +182,19 @@ do
 	with(scenario, "HUNTER", nil, function(ns, UI)
 		ns.OpenOptions("general")
 		-- Start here's lead holds no controls, so its notes keep it; Who to
-		-- skip's PvP lines are attached, so a hunter has no Who to skip.
-		if (UI.visiblePages or {}).skip then fail(scenario, "Who to skip is kept for a hunter by a note") end
+		-- skip's PvP lines are attached: a hunter's Who to skip is After a
+		-- right-click alone, and no section is kept by a note.
+		ns.OpenOptions("skip")
+		for _, sec in ipairs(UI.Model("skip").sections) do
+			if sec.visible and sec.key ~= "skip.rightClick" then
+				fail(scenario, "a hunter's Who to skip is kept by " .. tostring(sec.key))
+			end
+		end
+		local lengths = UI.Where("advanced.skipSeconds")
+		if not (lengths and lengths.sec.visible and lengths.sec.key == "skip.rightClick") then
+			fail(scenario, "a hunter's Who to skip does not show After a right-click")
+		end
+		ns.OpenOptions("general")
 		local w = UI.Where("general.howItWorks")
 		if w and UI.EntryShown(w.e) and not w.sec.visible then
 			fail(scenario, "Start here's lead, which holds no controls, is gone with its sentence shown")

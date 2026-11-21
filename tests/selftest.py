@@ -2180,9 +2180,8 @@ mutate("Prompt/Refresh.lua",
 # 75. the label that promised a per-player wait over a click that blocks one
 #     spell. The wording is the bug here, so the wording is what goes back.
 mutate("Options/Advanced.lua",
-       'desc = L["In case the cast failed; right-clicking the prompt skips the person for this long."]',
-       'desc = L["How long before the same player can come back up;'
-       ' right-clicking the prompt skips the person for this long."]',
+       'return L["In case the cast failed. How long a right-click skips someone is set on %s."]:format(',
+       'return L["How long before the same player can come back up. A right-click skips someone for the length set on %s."]:format(',
        "a per-spell wait sold as a per-player one",
        expect="the same player can come back up",
        script="runscenarios.py")
@@ -2199,8 +2198,8 @@ mutate("Prompt/Press.lua",
 
 # 77. the one place the number really is per person, taken back off the page.
 mutate("Options/Advanced.lua",
-       '; right-clicking the prompt skips the person for this long."]',
-       '."]',
+       'How long a right-click skips someone is set on %s."]',
+       'How long a skip lasts is set on %s."]',
        "the per-person half left unmentioned",
        expect="is nowhere on the page",
        script="runscenarios.py")

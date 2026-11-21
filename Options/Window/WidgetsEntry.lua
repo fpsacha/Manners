@@ -135,17 +135,91 @@ local function Snap(row, v)
 	return tonumber(("%." .. Decimals(step) .. "f"):format(v))
 end
 
--- As many decimals as the step has, kept when they are zeros (1.00, 0.50),
--- as the mock-up shows them, so the box does not jump between 1 and 1.05
--- while the thumb moves.
-local function RangeText(row, v)
-	if row.item.def.isPercent then return ("%d%%"):format(math.floor(v * 100 + 0.5)) end
-	local _, _, step = Bounds(row)
+-- The slider's unit, from the layout's `units` table (Layout.lua): nil for a
+-- plain number.
+local function UnitOf(row)
+	local layout = ns.WindowLayout
+	local units = layout and layout.units
+	return units and row.item and units[row.item.path] or nil
+end
+
+-- A whole number, or the step's decimals: 12 s, 0.5 min.
+local function Plain(v, step)
 	return ("%." .. Decimals(step) .. "f"):format(v)
 end
 
+local function UnitText(unit, v, step)
+	local kind = unit.kind
+	if v == 0 and unit.zero then return unit.zero end
+	if kind == "percent" then return ("%d%%"):format(math.floor(v * 100 + 0.5)) end
+	if kind == "times" then return ("%sx"):format(Plain(v, step)) end
+	local whole = math.floor(v + 0.5)
+	local isWhole = math.abs(v - whole) < 0.0001
+	if kind == "seconds" then
+		if v < 60 then return (ns.L["%s s"]):format(Plain(v, step)) end
+		if not isWhole then return (ns.L["%s s"]):format(Plain(v, step)) end
+		if whole % 60 == 0 then return (ns.L["%d min"]):format(whole / 60) end
+		return (ns.L["%d min %d s"]):format(math.floor(whole / 60), whole % 60)
+	end
+	if kind == "minutes" then
+		if v < 60 or not isWhole then return (ns.L["%s min"]):format(Plain(v, step)) end
+		if whole % 60 == 0 then return (ns.L["%d h"]):format(whole / 60) end
+		return (ns.L["%d h %d min"]):format(math.floor(whole / 60), whole % 60)
+	end
+	return Plain(v, step)
+end
+
+-- As many decimals as the step has, kept when they are zeros (1.00, 0.50),
+-- as the mock-up shows them, so the box does not jump between 1 and 1.05
+-- while the thumb moves. A slider with a unit (Layout.lua, units) says it.
+local function RangeText(row, v)
+	if row.item.def.isPercent then return ("%d%%"):format(math.floor(v * 100 + 0.5)) end
+	local _, _, step = Bounds(row)
+	local unit = UnitOf(row)
+	if unit then return UnitText(unit, v, step) end
+	return Plain(v, step)
+end
+
+-- Letters after a number, in the unit of the seconds and minutes it names.
+local LETTERS = {
+	h = 3600, hr = 3600, hrs = 3600, hour = 3600, hours = 3600,
+	m = 60, min = 60, mins = 60, minute = 60, minutes = 60,
+	s = 1, sec = 1, secs = 1, second = 1, seconds = 1,
+}
+
+-- "90", "90s", "5m", "5 min", "1h", "1h30", "1 h 30 min": pairs of a number
+-- and letters, summed, then put into the setting's own unit. Letters it does
+-- not know (another language) leave the number in the setting's own unit.
+local function ParseTimed(row, unit, text)
+	local clean = text:lower():gsub(",", "."):gsub("%.%s*$", "")
+	local own = unit.kind == "minutes" and 60 or 1
+	local total, pos, found, last = 0, 1, false, nil
+	while true do
+		local a, b, num, letters = clean:find("^%s*(%d*%.?%d+)%s*([^%d%s%.]*)[%s%.]*", pos)
+		if not a then break end
+		local factor = LETTERS[letters]
+		if letters == "" then
+			-- A bare number after "1h" is the next smaller unit: 1h30 is 90 min.
+			if last == 3600 then factor = 60 elseif last == 60 then factor = 1 else factor = own end
+		elseif not factor then
+			factor = own
+		end
+		total = total + tonumber(num) * factor
+		last = factor
+		found = true
+		pos = b + 1
+	end
+	if not found or pos <= #clean and clean:find("%S", pos) then return nil end
+	return total / own
+end
+
 local function RangeParse(row, text)
-	local n = tonumber((text:gsub("%%", ""):gsub(",", "."):gsub("[ \t]", "")))
+	local unit = UnitOf(row)
+	if unit and (unit.kind == "seconds" or unit.kind == "minutes") then
+		local n = ParseTimed(row, unit, text)
+		return n and Snap(row, n) or nil
+	end
+	local n = tonumber((text:gsub("%%", ""):gsub(",", "."):gsub("[ 	]", "")))
 	if not n then return nil end
 	if row.item.def.isPercent then n = n / 100 end
 	return Snap(row, n)
@@ -274,13 +348,27 @@ KIND.range = {
 	Layout = function(row, width)
 		local lh = W.PlaceLabel(row.label, row.frame, width)
 		local cw = math.min(width, W.Grow(360, width))
-		local sw = math.max(40, cw - 68)
+		local boxWidth = 58
+		local unit = UnitOf(row)
+		if unit then
+			-- The box has to fit its longest word, the zero word if it has one.
+			local word = unit.zero or ""
+			local measured = 0
+			if word ~= "" then
+				local keep = row.high:GetText()
+				row.high:SetText(word)
+				measured = W.Measure(row.high)
+				row.high:SetText(keep or "")
+			end
+			boxWidth = math.min(110, math.max(72, math.ceil(measured) + 14))
+		end
+		local sw = math.max(40, cw - (boxWidth + 10))
 		row.slider:ClearAllPoints()
 		row.slider:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -(lh + 1))
 		row.slider:SetWidth(sw)
 		row.box:ClearAllPoints()
 		row.box:SetPoint("TOPLEFT", row.frame, "TOPLEFT", sw + 10, -lh)
-		row.box:SetWidth(58)
+		row.box:SetWidth(boxWidth)
 		row.low:ClearAllPoints()
 		row.low:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -(lh + 22))
 		row.high:ClearAllPoints()

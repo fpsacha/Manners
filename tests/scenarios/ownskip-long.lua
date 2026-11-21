@@ -1,6 +1,6 @@
 -- A right-click on your own buffs can skip for minutes, not seconds (asked for
 -- on CurseForge: a food fed to the pet came straight back as the next food in
--- the bags). "A right-click on my own buffs skips for (minutes)"
+-- the bags). "A right-click skips my own buffs for"
 -- (timing.ownSkipMinutes, 0 follows skipSeconds) is the length of a
 -- right-click on one of your own buffs on the prompt, the consumables button
 -- and Not now in the menu; other people keep skipSeconds. A skipped food skips

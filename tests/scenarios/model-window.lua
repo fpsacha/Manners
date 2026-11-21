@@ -412,13 +412,14 @@ local EXPECTED = {
 		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
 		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
 	},
-	skip = { "filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel" },
+	skip = { "filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel",
+		"timing.skipSeconds", "timing.ownSkipMinutes" },
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
 		"filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor", "filters.manaFloorKeeps",
 		"filters.quietInTowns", "filters.quietInInstances", "filters.quietTargets", "filters.quietInTownsWhere", "filters.quietShortInTowns", "filters.quietShortMinutes",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
-		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.skipSeconds", "timing.ownSkipMinutes", "timing.scanInterval",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget", "filters.repayCovered",
 		-- In battlegrounds and arenas.
 		"battle.team", "battle.speak", "battle.thank", "battle.items",
@@ -468,7 +469,7 @@ local KEPT = {
 -- The hooks each page's fields' own setters run, which its reset must run too.
 local HOOKS = {
 	who = { "style", "macro", "refresh", "broker" },
-	skip = {},
+	skip = { "scan" },
 	when = { "save", "scan", "style", "macro" },
 	click = { "macro" },
 	appearance = { "clamp", "style", "macro" },
