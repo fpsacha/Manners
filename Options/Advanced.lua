@@ -388,7 +388,7 @@ function Page.BuildAdvancedTab()
 			reachableOnly = {
 				type = "toggle",
 				name = L["Let them go sooner if they have probably left"],
-				desc = L["Someone who buffed you rarely can be range-checked, so they are let go after the time below."],
+				desc = L["Manners can rarely tell whether somebody who buffed you is still in range, so they are let go after the time below."],
 				order = 13,
 				width = "full",
 				hidden = NoOthers,

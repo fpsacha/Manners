@@ -2765,13 +2765,13 @@ function ns.StopOfferingSelf(entry)
 	-- A cure on you (Cures.lua): its own switch goes off, not Myself's.
 	if entry and entry.cure then
 		db.sources.curesSelf = false
-		addon:Print(L["curing you will not be offered any more -- tick %s on the %s tab to have it back."]
+		addon:Print(L["curing you will not be offered any more -- tick %s (%s) to have it back."]
 			:format("|cffffd100" .. L["Cure myself too"] .. "|r", ns.TabName("who.curesSelf")))
 		ns.RepaintOptions()
 		return
 	end
 	db.sources.self = false
-	addon:Print(L["your own buff will not be offered to you any more -- tick %s on the %s tab to have it back."]
+	addon:Print(L["your own buff will not be offered to you any more -- tick %s (%s) to have it back."]
 		:format("|cffffd100" .. L["Remind me when my own buff is missing"] .. "|r", ns.TabName("who.self")))
 	ns.RepaintOptions()
 end

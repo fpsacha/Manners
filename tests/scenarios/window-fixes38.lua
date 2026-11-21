@@ -238,7 +238,7 @@ do
 				.. table.concat(keys, " "))
 			return
 		end
-		local reason = ns.L["Needs the icon, the stripe or Full animations."]
+		local reason = ns.L["Needs the spell icon, the colour marker or Full animations."]
 		local times = 0
 		for _, line in ipairs(lines) do
 			if line == reason then times = times + 1 end
@@ -368,7 +368,7 @@ do
 	local scenario = "window-fixes38: Offer nothing in cities and inns names the page Myself is on"
 	session(scenario, {}, function(ns)
 		local desc = tostring((H.findOption(ns.optionsTable, "quietInTowns") or {}).desc)
-		if not (desc:find(ns.L["Myself"], 1, true) and desc:find(ns.L["My own buffs"], 1, true)) then
+		if not (desc:find(ns.L["Also in cities and inns"], 1, true) and desc:find(ns.L["My own buffs"], 1, true)) then
 			fail(scenario, "the tooltip, drawn on When to offer, says: " .. desc)
 		end
 	end)

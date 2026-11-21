@@ -227,18 +227,18 @@ local function PlaceHeldLine(now)
 	if key == "battle" then
 		tab = Page.TabOf("when.battleTeam") or ""
 		if always then
-			return L["Nothing is offered in a battleground or an arena, not even to your target or focus: %s is off and %s is on, on the %s tab."]
+			return L["Nothing is offered in a battleground or an arena, not even to your target or focus: %s is off and %s is on (%s)."]
 				:format(Gold(L["Buff my team there"]), Gold(L["Hold back my target and focus too"]), tab)
 		end
-		return L["Nothing is offered in a battleground or an arena but to your target or focus: %s is off, on the %s tab."]
+		return L["Nothing is offered in a battleground or an arena but to your target or focus: %s is off (%s)."]
 			:format(Gold(L["Buff my team there"]), tab)
 	end
 	local switch = key == "instances" and Page.InstancesLabel() or L["Offer nothing in cities and inns"]
 	if always then
-		return L["Nothing is offered %s, not even to your target or focus: %s and %s, on the %s tab."]
+		return L["Nothing is offered %s, not even to your target or focus: %s and %s (%s)."]
 			:format(PLACE_WORDS[key], Gold(switch), Gold(L["Hold back my target and focus too"]), tab)
 	end
-	return L["Nothing is offered %s but to your target or focus: %s, on the %s tab."]
+	return L["Nothing is offered %s but to your target or focus: %s (%s)."]
 		:format(PLACE_WORDS[key], Gold(switch), tab)
 end
 ns.PlaceHeldLine = PlaceHeldLine
@@ -255,7 +255,7 @@ ns.PassersHeld = PassersHeld
 local function SavingManaLine()
 	local _, resume = ns.SavingMana()
 	if not resume then return nil end
-	return L["Saving mana until you are back to %d%%, so less is offered: %s, on the %s tab."]
+	return L["Saving mana until you are back to %d%%, so less is offered: %s (%s)."]
 		:format(resume, Gold(L["Save mana below"]), Page.TabOf("when.manaFloor") or "")
 end
 
@@ -347,7 +347,7 @@ local function LauncherState()
 		-- the prompt is up on you; and watching, so the tooltip and the menu
 		-- list "You" and its Skip.
 		if not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then
-			return false, L["Kept away while you are mounted -- %s, on the %s tab."]
+			return false, L["Kept away while you are mounted: %s (%s)."]
 				:format(L["Hide the prompt while I'm mounted"], Page.TabOf("when.hideMounted") or ""), 1, 0.82, 0, true, nil, "mounted"
 		end
 		if ownOnly then return true, L["Watching your own buffs."], 0.4, 0.9, 0.4, nil, nil, "ownwatch" end
@@ -376,7 +376,7 @@ local function LauncherState()
 		-- not over a prompt a fight holds, which is still up and armed. The
 		-- option and its tab go in by their own keys, so a translation names
 		-- the labels the window shows.
-		return false, L["Kept away while you are mounted -- %s, on the %s tab."]
+		return false, L["Kept away while you are mounted: %s (%s)."]
 			:format(L["Hide the prompt while I'm mounted"], Page.TabOf("when.hideMounted") or ""), 1, 0.82, 0, true, nil, "mounted"
 	end
 	-- A place rule holding everybody back (Queue.lua, ns.PlaceHold), then the
@@ -390,7 +390,7 @@ local function LauncherState()
 	if PassersHeld() then
 		-- Passers-by are left alone out here by choice: green, the group watched,
 		-- and before the nameplates, which matter to nobody it would offer.
-		return true, L["Watching your group -- out in the world passers-by are left alone: %s, on the %s tab."]
+		return true, L["Watching your group -- out in the world passers-by are left alone: %s (%s)."]
 			:format(Gold(L["Only in cities and inns"]), Page.TabOf("who.restingOnly") or ""), 0.4, 0.9, 0.4, true, nil, "passersheld"
 	elseif Page.PlatesWanted and Page.PlatesWanted() then
 		-- Passers-by on and the game's friendly nameplates off, as a fresh
@@ -808,10 +808,10 @@ local function FillPromptMenu(parent, fight)
 			sound.enabled = not sound.enabled
 			ns.RepaintOptions()
 		end))
-	local effects = parent:CreateButton(L["Effects"])
+	local effects = parent:CreateButton(L["Animations"])
 	for _, choice in ipairs({
 		{ key = "full", label = L["Full"] },
-		{ key = "calm", label = L["Calm -- less movement"] },
+		{ key = "calm", label = L["Calm (less movement)"] },
 	}) do
 		Radio(effects, choice.label, function() return (ns.db.profile.prompt.effects or "full") == choice.key end,
 			Act(function()

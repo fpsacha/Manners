@@ -214,7 +214,7 @@ local function NoteFailing(label)
 		if type(screen) == "table" and type(screen.AddMessage) == "function" then
 			-- The tab and the button by their own keys, so a translation names
 			-- what the window shows; the command as it is typed.
-			pcall(screen.AddMessage, screen, L["Manners keeps failing in %s, so the prompt may stop changing. %s on the %s tab (%s) says what."]
+			pcall(screen.AddMessage, screen, L["Manners keeps failing in %s, so the prompt may stop changing. %s on %s (%s) says what."]
 				:format(label, L["Run a full check-up"], L["Diagnostics"], "/manners"), 1, 0.25, 0.25)
 		end
 	end

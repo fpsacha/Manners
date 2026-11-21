@@ -930,7 +930,7 @@ do
 				-- And the page the window draws it on, by that page's own
 				-- name: Keep favours through a /reload is on When to offer.
 				local page = second.OptionsPage.TAB.when
-				if not tip:find("(" .. page .. " tab", 1, true) then
+				if not tip:find("(" .. page .. ", under", 1, true) then
 					fail(scenario, "the row sends the player to a page the setting is not on: " .. tip)
 				end
 				if not tip:find("reload", 1, true) then

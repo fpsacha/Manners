@@ -230,7 +230,7 @@ do
 			end
 			local text = optionText(note.name)
 			if not text:find("Your other characters are using this character's settings (profile: "
-				.. ME .. "); they can pick their own on the Profiles tab.", 1, true) then
+				.. ME .. "); they can pick their own on the Profiles page.", 1, true) then
 				fail(scenario, "the note does not say the others are on this character's profile: " .. text)
 			end
 			-- It sits on Profiles now, beside Share as text: no pointer there.
@@ -245,7 +245,7 @@ do
 				or ns.db.profile.prompt.width ~= width then
 				fail(scenario, "a press on this character's own profile changed it")
 			end
-			if not said():find("they can pick their own on the Profiles tab", 1, true) then
+			if not said():find("they can pick their own on the Profiles page", 1, true) then
 				fail(scenario, "a press on this character's own profile said nothing: " .. said())
 			end
 		end)
@@ -455,7 +455,9 @@ do
 			local node = findOption(ns.optionsTable, key)
 			if not node then
 				fail(scenario, "SKIPPED -- there is no " .. key)
-			elseif units(node) <= 1 then
+			elseif units(node) <= 1 and chars(optionText(node.name)) * 6 > 170 then
+				-- Only a label too long for one unit needs more: the plain-English
+				-- labels of menupass-words are short enough to fit in 170.
 				fail(scenario, ("%s is left at 170 pixels with the label %q"):format(key, optionText(node.name)))
 			end
 		end

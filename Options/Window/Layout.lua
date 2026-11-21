@@ -1277,7 +1277,7 @@ ns.WindowLayout = {
 			if p and p.thankAsk == true then return L["Off while %s is on."]:format(NameOf("click.thankAsk")) end
 			return L["Needs %s or %s ticked."]:format(NameOf("click.thankEmote"), NameOf("click.thankWhisper"))
 		end,
-		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
+		["appearance.flashStyle"] = L["Needs the spell icon, the colour marker or Full animations."],
 		["appearance.fightButtons"] = L["Needs the Will of the Forsaken or Mend Pet button ticked."],
 		-- Greyed where the look rounds its icon itself, or with the icon off.
 		["appearance.roundIcon"] = function()

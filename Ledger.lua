@@ -81,7 +81,7 @@ local TEXT = {
 	-- keeping. The owed toggle stops favours only; buffs given still arrive.
 	EMPTY_OFF = L["Nothing is recorded while Manners is switched off."],
 	EMPTY_NOTHING = L["Nothing is recorded while the prompt has nothing to cast on this character."],
-	EMPTY_OWED_OFF = L["Favours are not recorded while \"People who buff me\" is off, on the Who to buff tab."],
+	EMPTY_OWED_OFF = L["Favours are not recorded while \"People who buff me\" is off (Who to buff)."],
 
 	CLEAR = L["Clear"],
 	CLEAR_ARMED = L["Click again to clear"],
@@ -144,13 +144,13 @@ local TEXT = {
 	-- when the tip is shown: the page's name comes from Options/Shared.lua,
 	-- which loads after this file.
 	TIP_LETGO_NOTKEPT = function()
-		return L["Let go: \"%s\" (%s tab, under %s) is off, so it was forgotten when you logged out or reloaded."]
+		return L["Let go: \"%s\" (%s, under %s) is off, so it was forgotten when you logged out or reloaded."]
 			:format(L["Keep favours through a /reload"], ns.TabName("advanced.keepDebts"), L["Favours"])
 	end,
 	TIP_LETGO_NEVER = L["Let go: you put them on your never-offer list."],
 	-- The setting's own name, through the options page's key, as above.
 	TIP_LETGO_COVERED = function()
-		return L["Let go: they already had everything you could give them, with time to spare, so there was nothing to return. \"%s\" (%s tab, under %s) refreshes it anyway."]
+		return L["Let go: they already had everything you could give them, with time to spare, so there was nothing to return. \"%s\" (%s, under %s) refreshes it anyway."]
 			:format(L["Buff them back even when they already have my buff"], ns.TabName("advanced.repayCovered"), L["Buffing back"])
 	end,
 	-- In place of TIP_OWED while the prompt cannot offer them, the rule Quiet()

@@ -2012,7 +2012,7 @@ function addon:HandleSlash(rawInput)
 	elseif input == "import" then
 		if rest == "" then
 			if ns.ShowShareBox and ns.ShowShareBox("import") then
-				self:Print(L["paste the settings string into the box under |cffffd100Share as text|r on the Profiles tab, or type |cffffd100/manners import|r followed by it."])
+				self:Print(L["paste the settings string into the box under |cffffd100Share as text|r on the Profiles page, or type |cffffd100/manners import|r followed by it."])
 			else
 				self:Print(L["type |cffffd100/manners import|r followed by a settings string."])
 			end
@@ -2174,7 +2174,7 @@ function addon:HandleSlash(rawInput)
 				-- (Favours.lua, watching), and the thank's own lines follow.
 				-- The whispered thank-you watches the same way.
 				self:Print("  " .. ((db.prompt.thankEmote or db.prompt.thankWhisper)
-					and L["Favours are not recorded while \"People who buff me\" is off, on the Who to buff tab."]
+					and L["Favours are not recorded while \"People who buff me\" is off (Who to buff)."]
 					or L["not watching for favours -- |cffffd100People who buff me|r is switched off."]))
 			else
 				self:Print("  " .. L["nobody has buffed you recently."])

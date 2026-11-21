@@ -356,7 +356,7 @@ do
 				local reset = child(prompt, "^Reset position$")
 				local quiet = child(prompt, "^No flashes in a fight$")
 				local sound = child(prompt, "^Play a sound$")
-				local effects = child(prompt, "^Effects$")
+				local effects = child(prompt, "^Animations$")
 				local full = effects and child(effects, "^Full$")
 				local calm = effects and child(effects, "^Calm")
 				if not (locked and reset and quiet and sound and full and calm) then
@@ -391,7 +391,7 @@ do
 					end
 					calm.fn()
 					if p.effects ~= "calm" then fail(scenario, "Effects Calm did not set calm") end
-					local reopened = child(child(child(rightClick(), "^Prompt$"), "^Effects$"), "^Calm")
+					local reopened = child(child(child(rightClick(), "^Prompt$"), "^Animations$"), "^Calm")
 					if not reopened or reopened.get() ~= true then
 						fail(scenario, "the Effects radios do not read the setting once it is Calm")
 					end

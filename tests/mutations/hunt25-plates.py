@@ -168,7 +168,7 @@ mutate("Prompt/Press.lua",
        "\t\t\t-- Out in the world with Only in cities and inns on: passers-by are\n"
        "\t\t\t-- left alone, ahead of the nameplates below, which then matter to\n"
        "\t\t\t-- nobody it would offer.\n"
-       "\t\t\tns.addon:Print(L[\"nobody to buff right now -- out in the world passers-by are left alone: %s, on the %s tab.\"]\n"
+       "\t\t\tns.addon:Print(L[\"nobody to buff right now -- out in the world passers-by are left alone: %s (%s).\"]\n"
        "\t\t\t\t:format(\"|cffffd100\" .. L[\"Only in cities and inns\"] .. \"|r\", ns.TabName(\"who.restingOnly\")))\n"
        "\t\telseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true\n"
        "\t\t\tand #ns.CastableBuffs() > 0\n"
@@ -245,7 +245,7 @@ mutate("Locales/deDE.lua",
        script="validate.py")
 
 mutate("Locales/frFR.lua",
-       "L[\"nobody to buff right now -- friendly nameplates are off, and passers-by are seen through them. %s on the %s tab turns them on.\"] = \"personne à buffer pour l'instant -- les barres d'info des personnages amicaux sont désactivées, et les passants sont repérés grâce à elles. %s dans l'onglet « %s » les active.\"\n",
+       "L[\"nobody to buff right now -- friendly nameplates are off, and passers-by are seen through them. %s (%s) turns them on.\"] = \"personne à buffer pour l'instant – les plaques de nom alliées sont désactivées, et les passants sont repérés grâce à elles. %s (%s) les active.\"\n",
        "",
        "plates keypress line without its French",
        expect="frFR",

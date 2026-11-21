@@ -181,7 +181,7 @@ local function OnEnter(self)
 	tip:SetOwner(self, "ANCHOR_TOP")
 	if current then
 		tip:AddLine(ns.BuffName(current.buff) or "", 1, 1, 1)
-		tip:AddLine(L["Left-click to use it, right-click for not now."], 0.75, 0.75, 0.75, true)
+		tip:AddLine(L["Left-click to use it, right-click to skip it for now."], 0.75, 0.75, 0.75, true)
 	else
 		tip:AddLine(L["Manners: consumables"], 1, 1, 1)
 		tip:AddLine(L["Drag to move it. Lock the prompt to use it."], 0.75, 0.75, 0.75, true)

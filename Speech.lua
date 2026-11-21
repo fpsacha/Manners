@@ -704,7 +704,7 @@ do
 		if not ns.ChannelOpen(entry) then return end
 		if not ns.FriendlyPlatesOff() then return end
 		said = true
-		addon:Print(L["a line was left out: with friendly nameplates off, Manners cannot tell whether a stranger is in range to hear you. %s on the %s tab turns them on."]
+		addon:Print(L["a line was left out: with friendly nameplates off, Manners cannot tell whether a stranger is in range to hear you. %s (%s) turns them on."]
 			:format("|cffffd100" .. L["Show friendly nameplates"] .. "|r", ns.TabName("click.showPlates")))
 	end
 end

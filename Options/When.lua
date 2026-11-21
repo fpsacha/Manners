@@ -75,7 +75,7 @@ function Page.BuildWhenTab()
 				-- How the moment is worked out, then the favour exception:
 				-- a timer that cannot be read holds back a top-up, never a
 				-- buff owed.
-				desc = L["In minutes."] .. " " .. L["The moment is worked out from how long the buff lasts: about a tenth of it, so ten minutes means one minute before it ends and an hour five. This is the most it will ever take."]
+				desc = L["In minutes."] .. " " .. L["Manners tops a buff up shortly before it ends: about a tenth of its length, so a minute before for a ten-minute buff and five minutes for an hour. This is the most it will ever take."]
 					.. " " .. L["Someone whose time left cannot be read is not offered a top-up, unless they buffed you."],
 				order = 3,
 				min = 1,
@@ -113,7 +113,7 @@ function Page.BuildWhenTab()
 			selfLead = {
 				type = "range",
 				name = L["Remind me this long before mine run out"],
-				desc = L["In minutes."] .. " " .. L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Set a time to be reminded exactly that long before your own buffs end, in a dungeon or raid too: 0.5 is half a minute. Never more than half the buff's length."],
+				desc = L["In minutes."] .. " " .. L["At 0, Manners works it out from how long the buff lasts: a little over a tenth of it, twice that in a dungeon or raid. Set a time to be reminded exactly that long before your own buffs end, in a dungeon or raid too (0.5 is half a minute). Never more than half the buff's length."],
 				order = 6.2,
 				min = 0,
 				max = 10,

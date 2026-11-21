@@ -36,7 +36,7 @@ mutate("Options/Start.lua",
 # The press there returning without a word, as it did.
 mutate("Options/Start.lua",
        "\t\t\tif Setup.SharedWith() > 0 then\n"
-       "\t\t\t\tns.addon:Print(L[\"Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles tab.\"]:format(mine))\n",
+       "\t\t\t\tns.addon:Print(L[\"Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles page.\"]:format(mine))\n",
        "\t\t\tif false then\n",
        "hunt13-fix3: a press on the own profile says nothing",
        expect="a press on this character's own profile said nothing", script=S)

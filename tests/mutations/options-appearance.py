@@ -201,7 +201,7 @@ mutate("Options/Look.lua",
 
 # Calm's tooltip back on the sweep that is gone.
 mutate("Options/Look.lua",
-       "L[\"Calm keeps to fades: no rules of light, rings, wave, crack or shake.\"]",
+       "L[\"Calm only fades in and out: no sweeps of light, rings, waves, cracks or shaking.\"]",
        "L[\"Calm drops the light sweep, the shake and the fade-out.\"]",
        "look: Calm's tooltip names the old sweep",
        expect="effects says", script=S)

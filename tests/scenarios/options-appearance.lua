@@ -321,8 +321,8 @@ do
 		end
 		local descs = {
 			accentMode = "Where the reason's colour is drawn.",
-			flashStyle = "Needs the icon, the stripe or Full animations.",
-			effects = "Calm keeps to fades: no rules of light, rings, wave, crack or shake.",
+			flashStyle = "Needs the spell icon, the colour marker or Full animations.",
+			effects = "Calm only fades in and out: no sweeps of light, rings, waves, cracks or shaking.",
 			soundEnabled = "When a new person appears on the prompt.",
 			soundOwedOnly = "Off, every new person makes a sound, passers-by included.",
 			-- The exact numbers are a fold on this page: no pointer.

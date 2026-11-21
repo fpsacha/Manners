@@ -114,8 +114,8 @@ mutate("Commands.lua",
        expect="window-fixes38: the quiet help names the switch as it reads", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\t\t\t:format(L[\"Myself\"], TabOf(\"who.self\")),\n",
-       "\t\t\t\t\t:format(L[\"Myself\"], L[\"Myself\"]),\n",
+       "\t\t\t\t\t:format(Page.Ref(L[\"Also in cities and inns\"], TabOf(\"who.ownCities\"))),\n",
+       "\t\t\t\t\t:format(Page.Ref(L[\"Also in cities and inns\"], L[\"Also in cities and inns\"])),\n",
        "window-fixes38: Offer nothing in cities and inns says under Myself alone",
        expect="window-fixes38: Offer nothing in cities and inns names the page Myself is on", script=S)
 

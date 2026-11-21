@@ -317,7 +317,7 @@ function Setup.OwnProfile()
 			-- so this is one left on a page drawn before a switch elsewhere,
 			-- and the redraw takes it away.
 			if Setup.SharedWith() > 0 then
-				ns.addon:Print(L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles tab."]:format(mine))
+				ns.addon:Print(L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles page."]:format(mine))
 			else
 				ns.addon:Print(L["This character now has its own settings (profile: %s)."]:format(mine))
 			end
@@ -1086,7 +1086,7 @@ function Page.BuildStartTab()
 					local name = db.GetCurrentProfile and db:GetCurrentProfile() or "Default"
 					local line = L["These settings are shared by your other characters (profile: %s)."]
 					if type(db.keys) == "table" and name == db.keys.char then
-						line = L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles tab."]
+						line = L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles page."]
 					end
 					return grey(line:format(tostring(name)))
 				end,

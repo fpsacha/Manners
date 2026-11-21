@@ -404,7 +404,7 @@ function Page.BuildLookTab()
 			flashStyle = {
 				type = "select",
 				name = L["Flash when someone buffs me"],
-				desc = L["Needs the icon, the stripe or Full animations."],
+				desc = L["Needs the spell icon, the colour marker or Full animations."],
 				order = 31,
 				hidden = function() return not HasClassBuffs() end,
 				-- The glow lives on the icon, the sweep on the stripe and
@@ -429,7 +429,7 @@ function Page.BuildLookTab()
 			effects = {
 				type = "select",
 				name = L["Animations"],
-				desc = L["Calm keeps to fades: no rules of light, rings, wave, crack or shake."],
+				desc = L["Calm only fades in and out: no sweeps of light, rings, waves, cracks or shaking."],
 				order = 32,
 				values = {
 					full = L["Full"],
@@ -854,7 +854,7 @@ function Page.BuildLookTab()
 				type = "color",
 				name = L["Text colour"],
 				-- Named without its page: the switch is on this one.
-				desc = L["Left at white, text turns dark on a light panel by itself. Other colours are used as picked, except for names while this is on:"]
+				desc = L["White turns dark by itself on a light panel; any other colour is used as you pick it, except for names while this is on:"]
 					.. " |cffffd100" .. L["Colour names by class"] .. "|r",
 				order = 43,
 				hasAlpha = true,
@@ -924,7 +924,7 @@ function Page.BuildLookTab()
 				-- live here: AceConfigRegistry types min and max as "number
 				-- or nil" and rejects the whole options table if either is a
 				-- function. ClampSettings enforces it instead.
-				desc = L["Kept inside the prompt -- make it taller or wider first for a bigger icon."],
+				desc = L["The icon stays inside the prompt: make the prompt taller or wider for a bigger one."],
 				order = 52,
 				min = 12,
 				max = 64,
@@ -1017,7 +1017,7 @@ function Page.BuildLookTab()
 				type = "toggle",
 				name = L["Show the global cooldown on the icon"],
 				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
-					.. "\n\n|cff888888" .. L["Not in a fight while this is on:"] .. "|r "
+					.. "\n\n|cff888888" .. L["Hidden in a fight while this is on:"] .. "|r "
 					.. "|cffffd100" .. L["No flashes in a fight"] .. "|r",
 				order = 54,
 				width = "full",

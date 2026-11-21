@@ -294,12 +294,12 @@ local function AddBuffToggles(args)
 			args["tank_" .. buff.key] = {
 				type = "select",
 				name = function() return L["Offer %s to"]:format(ns.BuffName(buff) or buff.key) end,
-				desc = L["Tanks only offers this buff only to players in your group whom the game gives the tank role, or marks as main tank in a raid. The rest of a dungeon or raid is left alone, and so is everybody outside your group, passers-by and people who buffed you included. A player with no role is not a tank."]
-					.. "\n\n" .. L["Tanks, and anyone outside my group holds only your group to its tanks: passers-by and people who buffed you are offered it as usual."]
-					.. "\n\n" .. L["Under either, anybody who asks you for it in chat is still offered it."]
-					.. "\n\n" .. L["In a group, both hold your own to the same rule: you are reminded of yours only while you are the tank. On your own you are reminded as ever."]
-					.. "\n\n" .. L["Tanks and me is Tanks only, and reminds you of yours whatever your role (Myself must be on)."]
-					.. "\n\n" .. L["Only me offers it to nobody else, and still reminds you when yours is down (Myself must be on)."],
+				desc = L["Who is offered it."] .. "\n\n"
+					.. L["Tanks only: in your group, only its tanks; nobody outside it. In a group you are reminded of yours only while you tank."] .. "\n"
+					.. L["Tanks, and anyone outside my group: your group's tanks, and passers-by and people who buffed you as usual."] .. "\n"
+					.. L["Tanks and me: the tanks, and you whatever your role (Myself must be on)."] .. "\n"
+					.. L["Only me: nobody else; you are still reminded when yours is down (Myself must be on)."] .. "\n\n"
+					.. L["Somebody who asks you for it in chat always gets it."],
 				order = 4 + index / 10 + 0.05,
 				width = "full",
 				-- "tanks" is Tanks only as it reads: nobody outside the group
@@ -837,7 +837,7 @@ function Page.AddAskControls(args)
 	args.askOwn = {
 		type = "input",
 		name = L["My own words"],
-		desc = L["What the ask says, as you write it, even with the In character set on. {name} is their name and {buff} the spell; leave {name} out and no name is said. One line; empty, the first line above is said."],
+		desc = L["What the ask says, in your own words, even with the In character set on. {name} is their name and {buff} the spell; leave {name} out and no name is said. One line. Left empty, the first line above is said."],
 		order = 14.75,
 		width = "full",
 		hidden = function() return off() or ns.db.profile.ask.line ~= "own" end,
@@ -850,7 +850,7 @@ function Page.AddAskControls(args)
 	args.askInTowns = {
 		type = "toggle",
 		name = L["Ask in cities and inns too"],
-		desc = L["Off: nobody is asked while the game calls you resting, in a city or an inn."],
+		desc = L["Off: nobody is asked while you are in a city or an inn."],
 		order = 14.8,
 		width = "full",
 		hidden = off,
@@ -1799,8 +1799,8 @@ function Page.BuildWhoTab()
 				type = "toggle",
 				name = L["Offer nothing in cities and inns"],
 				-- Drawn on When to offer, so the other switch's page is named.
-				desc = L["On: nothing is offered to anybody while the game calls you resting, in a city or an inn: not passers-by, not your group, not a favour you owe. Somebody you target or focus is still offered. Your own buffs have their own switch, under %s on %s."]
-					:format(L["Myself"], TabOf("who.self")),
+				desc = L["On: nothing is offered to anybody while you are in a city or an inn: not passers-by, not your group, not a favour you owe. Somebody you target or focus is still offered. Your own buffs have a switch of their own: %s."]
+					:format(Page.Ref(L["Also in cities and inns"], TabOf("who.ownCities"))),
 				order = 13.35,
 				width = "full",
 				get = fGet,
@@ -1813,7 +1813,7 @@ function Page.BuildWhoTab()
 			quietInTownsWhere = {
 				type = "select",
 				name = L["Where"],
-				desc = L["A city is a capital, such as Stormwind or Orgrimmar; an inn is anywhere else the game calls you resting. When the game will not say which map you are on, both count."],
+				desc = L["A city is a capital, such as Stormwind or Orgrimmar; an inn is anywhere else you rest. When the game will not say which map you are on, both count."],
 				order = 13.355,
 				values = {
 					both = L["Cities and inns"],
@@ -1852,7 +1852,7 @@ function Page.BuildWhoTab()
 			quietShortInTowns = {
 				type = "toggle",
 				name = L["Hold back short buffs in cities and inns"],
-				desc = L["On: while the game calls you resting, in a city or an inn, buffs that last only a few minutes (Thorns, say) are not offered, since they run out before you reach anywhere they matter; longer ones, such as Mark of the Wild, still are. Somebody who asks for a buff by name, and somebody you target or focus, is still offered it."],
+				desc = L["On: while you are in a city or an inn, buffs that last only a few minutes (Thorns, say) are not offered, since they run out before you reach anywhere they matter; longer ones, such as Mark of the Wild, still are. Somebody who asks for a buff by name, and somebody you target or focus, is still offered it."],
 				order = 13.356,
 				width = "full",
 				get = fGet,
@@ -1879,7 +1879,7 @@ function Page.BuildWhoTab()
 				-- And a battleground or an arena with its own switch off, which
 				-- is the same rule there (Queue.lua, inTown).
 				desc = function()
-					return L["On: the two switches above leave nobody out, not even somebody you target or focus. Off: they are still offered there."]
+					return L["On: the switches above hold back everybody, even somebody you target or focus. Off: somebody you target or focus is still offered."]
 						.. " " .. L["In a battleground or an arena with %s off, %s holds back somebody you target or focus too."]
 							:format("|cffffd100" .. L["Buff my team there"] .. "|r",
 								"|cffffd100" .. L["Hold back my target and focus too"] .. "|r")
@@ -1979,7 +1979,7 @@ function Page.BuildWhoTab()
 			ownCities = {
 				type = "toggle",
 				name = L["Also in cities and inns"],
-				desc = L["Off: nothing is offered to you while the game calls you resting, in a city or an inn."],
+				desc = L["Off: your own buffs are not offered while you are in a city or an inn."],
 				order = 15.9,
 				width = "full",
 				hidden = NothingForSelf,
@@ -2635,7 +2635,7 @@ function Page.AddOwnSpellControls(args)
 		type = "description",
 		fontSize = "medium",
 		order = 15.85,
-		name = L["A buff of yours that Manners does not know, for yourself: type its name as your spellbook shows it, or its spell id, and press Enter. Manners checks that this character knows it and that it is not passive or cast on an enemy, then reminds you when it is not on you, as it does your other own buffs: outside a fight, and in cities and inns only with Also in cities and inns. Up to ten, kept for this character."],
+		name = L["A buff of yours Manners does not know: type its name as your spellbook shows it, or its spell id, and press Enter. It must be one this character knows, not passive and not cast on an enemy. Manners then reminds you of it as it does your other buffs, outside a fight, and in cities and inns only with Also in cities and inns. Up to ten, kept for this character."],
 	}
 	args.ownSpellAdd = {
 		type = "input",

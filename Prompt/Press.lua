@@ -146,7 +146,7 @@ local function ExplainEmpty(now)
 			ns.addon:Print(L["Manners is snoozed until %s -- %s brings the prompt back now."]
 				:format(ns.SnoozeEndsAt(), "|cffffd100/manners snooze off|r"))
 		elseif ns.HiddenWhileMounted() then
-			ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s on the %s tab."]
+			ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s (%s)."]
 				:format("|cffffd100" .. L["Hide the prompt while I'm mounted"] .. "|r", ns.TabName("when.hideMounted")))
 		elseif not ns.CanCastAnything() then
 			local class = ns.caps.class
@@ -164,12 +164,12 @@ local function ExplainEmpty(now)
 			-- wherever it is kept (Queue.lua, SelfEntry).
 			local kept = ns.ManaFloorKept()
 			local line = kept == "askedself"
-				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff and people who buffed you or asked are offered. The floor is %s on the %s tab."]
+				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff and people who buffed you or asked are offered. The floor is %s (%s)."]
 				or kept == "asked"
-				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
+				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s (%s)."]
 				or kept == "self"
-				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff is offered. The floor is %s on the %s tab."]
-				or L["nobody to buff right now -- saving mana until you are back to %d%%, so nothing is offered. The floor is %s on the %s tab."]
+				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff is offered. The floor is %s (%s)."]
+				or L["nobody to buff right now -- saving mana until you are back to %d%%, so nothing is offered. The floor is %s (%s)."]
 			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana below"] .. "|r", ns.TabName("when.manaFloor")))
 		elseif ns.PlaceHeldLine and ns.PlaceHeldLine(now) then
 			-- A place rule holding everybody back, named with its switch, as the
@@ -179,7 +179,7 @@ local function ExplainEmpty(now)
 			-- Out in the world with Only in cities and inns on: passers-by are
 			-- left alone, ahead of the nameplates below, which then matter to
 			-- nobody it would offer.
-			ns.addon:Print(L["nobody to buff right now -- out in the world passers-by are left alone: %s, on the %s tab."]
+			ns.addon:Print(L["nobody to buff right now -- out in the world passers-by are left alone: %s (%s)."]
 				:format("|cffffd100" .. L["Only in cities and inns"] .. "|r", ns.TabName("who.restingOnly")))
 		elseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true
 			and #ns.CastableBuffs() > 0
@@ -189,7 +189,7 @@ local function ExplainEmpty(now)
 			-- nameplates the game has off. The test of Who to buff's note and
 			-- button, so the line names a button that is there, and not while
 			-- the city rule turns passers-by down whatever the nameplates say.
-			ns.addon:Print(L["nobody to buff right now -- friendly nameplates are off, and passers-by are seen through them. %s on the %s tab turns them on."]
+			ns.addon:Print(L["nobody to buff right now -- friendly nameplates are off, and passers-by are seen through them. %s (%s) turns them on."]
 				:format("|cffffd100" .. L["Show friendly nameplates"] .. "|r", ns.TabName("who.strangersShowPlates")))
 		else
 			ns.addon:Print(L["nobody to buff right now."])
