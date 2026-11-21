@@ -81,7 +81,7 @@ end
 -- 1280 x 720 at UI scale 1, the screen the window is sized for.
 local SCREEN = { width = 1365, height = 768 }
 -- Sidebar order, used when the layout cannot be asked.
-R.PAGES = { "general", "who", "skip", "when", "click", "appearance", "profiles", "diagnostics" }
+R.PAGES = { "general", "who", "skip", "when", "self", "pet", "quiet", "fight", "click", "appearance", "profiles", "diagnostics" }
 
 -- AceDBOptions' Profiles controls as the library builds them (its English
 -- words, its orders, its handler methods), over the mock's database. The

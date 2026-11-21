@@ -78,6 +78,26 @@ and named in `parents`, so search can say which switch to turn on. No page
 is over about three screens with its folds shut (`menu.lua` holds each to
 3.1): fold fine print rather than raise that.
 
+Which page a new setting goes on is the subject it is about, never the file
+it is written in: other people (*Who to buff*, *Who to skip*, *When to offer*),
+your own buffs (*My own buffs*) and your pet (*My pet*, hunters), where and
+when Manners stays quiet (*Quiet times*), a fight (*In a fight*), what you say
+or ask (*What I say*), how it looks (*Look*). The page ids are `general`,
+`who`, `skip`, `when`, `self`, `pet`, `quiet`, `fight`, `click`, `appearance`,
+`profiles` and `diagnostics`. A section key starts with its page id and changes
+when the section moves (`quiet.holdBack`); a setting key never changes. A
+saved fold's open state follows a renamed section through `renamedFolds` in
+the layout. A page added to the layout also goes in `layout.lua`'s `GROUPS`
+(the sidebar's groups, in order) and in `window-classes.lua`'s `TABLE` (the
+pages each class sees), and the page's fields in the reset lists in
+`Options/Advanced.lua` (with `model-window.lua`'s EXPECTED, KEPT and HOOKS).
+
+A control gets the gold changed mark, and a click that puts it back, when
+`DefaultOf` (`WindowPage.lua`) finds its default: a control whose `get` is a
+shared getter in `ns.OptionsPage.BOUND` (`Options/Shared.lua`), or a path with
+a single `FIELDS` entry. A control with neither shows no mark; leave it out of
+`BOUND` and say so in a comment rather than invent a default.
+
 Text that points at a control (a chat line, a tooltip, a note) names its page
 through `Page.TabOf(path)` or `Page.RefTo(label, path)` (`Options/Shared.lua`),
 never a page name written by hand: the answer follows the layout and the

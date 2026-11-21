@@ -3505,9 +3505,9 @@ GALLERY = [
      "ledger, with the Simple view switch and the Move the prompt button ringed"),
     ("manners-options-wide.png", "Drag it wide",
      "Drag the corner and a page flows into two columns, three on an ultrawide screen. Shown on Who to buff "
-     "for a paladin: who is offered, what to cast, the group, More than buffs and Myself on one screen.",
+     "for a paladin: who is offered, what to cast, the group, Resurrection and cures on one screen.",
      "The options window dragged wide on Who to buff, its sections in two columns: who is offered, what "
-     "to cast, the group, More than buffs and Myself"),
+     "to cast, the group, Resurrection and cures"),
     ("manners-languages.png", "In your language",
      "English and eight translations, chosen by your game client. Shown here in German, French and "
      "Simplified Chinese.",

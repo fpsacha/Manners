@@ -47,6 +47,20 @@ most, an optional `title`; `tests/scenarios/subpages.lua` holds the shape):
 a section named in none (the line a page opens with) is drawn with each. They live
 in the layout, not the AceConfig definition, which rejects unknown keys.
 
+The pages, in the sidebar's order: `general` (Start here); `who`, `skip`,
+`when`; `self` (My own buffs), `pet` (My pet, hunters only); `quiet`, `fight`
+(In a fight), `click` (What I say), `appearance` (Look); `profiles`,
+`diagnostics`. A section key always starts with its page id and changes when
+the section moves (`layout.lua` checks it); a setting key never does, so a
+move needs no migration. `renamedFolds` (old section key -> new) carries a
+fold's saved open state across such a move.
+
+Text that points at a control names its page through `Page.TabOf(path)` and
+`Page.RefTo(label, path)` (`Options/Shared.lua`). Both read `L` when they are
+called, never a copy made at load; a file loaded before `Options/` (the root
+files, `Prompt/`) calls them only when a line is said, and builds its tooltip
+then (`ns.TabName`, `ns.AddSettingsLine`).
+
 The window's search (`Options/Window/Search.lua`) ranks a label at the start
 of a word first, then a label with the query inside a word, a choice or a
 keyword at a word start, the tooltip at a word start, then the section or

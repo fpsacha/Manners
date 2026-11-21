@@ -7,16 +7,33 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 *21 November 2026. Last release: 1.11.35. Rewritten by `/handoff`.*
 
-- **In flight:** nothing. master holds 1.11.35 and the slimmer CLAUDE.md
-  (`.claude/docs/` has the detail), pushed. Old worktrees kept on purpose:
+- **In flight:** the menu pass, on branch `menu-pass` in the worktree
+  `Manners-wt-menu` (GitHub issues 3, 4 and 23), twelve commits, not merged.
+  The options window now has four new pages (*In a fight* `fight`, *Quiet
+  times* `quiet`, *My own buffs* `self`, *My pet* `pet`, hunters only), a line
+  under every page title, a gold changed mark with a click to put one setting
+  back and *What I changed* in the footer, better search (word starts, spelling
+  fold, filler words, the header buttons), *Until I log out* for Snooze, units
+  in slider boxes, and plain-English labels. Layout only: no setting key,
+  default or profile field changed. Section keys were renamed with their pages
+  (`quiet.holdBack`, `self.myself`, `pet.moments`, `fight.prompt`,
+  `click.asking`); `renamedFolds` carries the one saved fold. New tests:
+  `tests/scenarios/menupass-*.lua` with `tests/mutations/menupass-*.py`; the
+  tests that pinned the old placement were moved, not loosened, and the two
+  baseline lines that named a section were updated. Docs are done (README,
+  CHANGELOG under `## Unreleased`, `.claude/docs/`). Still to do before a
+  release: the owner's full pass; `make-screenshots.py --only options` stops on
+  the wide Who to buff picture (its two-column check and a grey note's contrast
+  want re-aiming at the new page), so the listing pictures of the options
+  window still show the old sidebar. Old worktrees kept on purpose:
   `look-fel`, `look-wild`, `relcheck` (uncommitted files in them), `logo`,
   `ci-diag-generators` (branches not merged). Leave them unless the owner asks.
 - **Waiting on the owner:** nothing. The Wago page is set aside by the owner
   (issue 25 closed): leave its text and icon alone; releases still upload there.
 - **Waiting on players:** issue 21 (no popup: their client and
   `/manners debug`), issue 22 (the imp's Fire Shield: needs a test in the game).
-- **Next:** issue 23, plainer English in the addon's own text (a pass, the
-  stiffest lines first; each changed string drops its old key in every locale).
+- **Next:** issue 23, plainer English in the addon's own text (done on `menu-pass`, words1 and words2; any line still stiff is a fix of its
+  own; each changed string drops its old key in every locale).
   No in-game checks: the owner does not test in the game (21 November); the
   *Open* items that only the game can settle are notes for when a player
   reports something, and a bug report's evidence comes from the player

@@ -242,6 +242,25 @@ elif "/click MannersBar" not in readme_src:
 else:
     print("  ok  README.md gives the bar macro's first line")
 
+# Every page of the options window has its own "### <title>" part in the
+# README (the page list there follows Layout.lua), and no listing names a
+# label the menu pass renamed.
+_layout_src = open(os.path.join(ROOT, "Options", "Window", "Layout.lua"), encoding="utf-8").read()
+_page_titles = re.findall(r'\n\t\t\ttitle = L\["([^"]+)"\],\n\t\t\tblurb = ', _layout_src)
+_missing = [x for x in _page_titles if "\n### %s\n" % x not in readme_src]
+if len(_page_titles) < 12 or _missing:
+    print("  README.md has no '### <page>' part for: %s (%d pages in Layout.lua)"
+          % (", ".join(_missing) or "?", len(_page_titles)))
+    fail += 1
+else:
+    print("  ok  README.md has a part for each of the %d options pages" % len(_page_titles))
+for _listing in ("curseforge-description.md", "wago-description.md"):
+    _text = open(os.path.join(ROOT, ".github", _listing), encoding="utf-8").read()
+    for _old in ("Hide the prompt in combat", "Offer my cure in a fight when somebody needs it"):
+        if _old in _text:
+            print("  .github/%s names '%s', which the menu pass renamed" % (_listing, _old))
+            fail += 1
+
 print("\n== the %d generated toc(s) are what the generator would write =="
       % len(maketocs.expected()))
 # The one line that differs from the source is the interface number, and

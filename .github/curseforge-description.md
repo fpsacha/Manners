@@ -33,7 +33,7 @@ Yours to arrange: twenty-nine looks, a blessing for each class for paladins, pro
 - **Ask in your own words.** *What the ask says* takes *My own words* and a line you write.
 - **Your pet, hunters.** Call, Revive and Mend Pet when it needs them, Feed Pet on WoW Forever, Classic Era and Burning Crusade, *Bond with my pet* for a pat or a kind word now and then, and Mend Pet on a button of its own in a fight.
 - **Your key in a fight.** *In a fight, my key casts* lets the prompt's own key cast a shield or a quick heal you know, Power Word: Shield or Ice Barrier say, for as long as the fight lasts, with nothing new on the screen.
-- **Your cure, in a fight.** *Offer my cure in a fight when somebody needs it* puts your class's cure on a button of its own that appears only when somebody near you carries a poison, curse, disease or harmful spell it can remove.
+- **Your cure, in a fight.** *Show a cure button in a fight when somebody needs it* puts your class's cure on a button of its own that appears only when somebody near you carries a poison, curse, disease or harmful spell it can remove.
 
 > **I read every comment here and on GitHub.** Most of the list above was asked for in these comments, and a new version comes out most days. Found a bug? Please send a log with it: see **Report a bug** below.
 
@@ -51,7 +51,7 @@ Out of a fight, a dead member of your group comes first with your **resurrection
 
 A **cure** goes ahead of a buff with *Cure my party and raid*, *Cure passers-by* or *Cure myself too* ticked. Everybody gets the first buff they lack before anybody gets a second. Tank buffs (Earth Shield, Beacon of Light, Oath of Light on WoW Forever, Symbiotic Relationship, Blistering Scales and the like) go to your group's tank. In a dungeon or raid, carry the reagent and one group cast covers the party. Two Manners users of one class in a group split it, so nobody is buffed twice.
 
-It skips the dead, the out of range, anyone a buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged, anyone flagged for PvP. A *Never offer* list keeps people off the prompt unless they buff you, since returning a favour is the point. *Offer nothing in cities and inns*, *Offer nothing in dungeons, raids and battlegrounds*, *Hide the prompt in combat* and `/manners snooze` keep it quiet when you want quiet.
+It skips the dead, the out of range, anyone a buff does nothing for (Arcane Intellect is wasted on a rogue) and, while you are not flagged, anyone flagged for PvP. A *Never offer* list keeps people off the prompt unless they buff you, since returning a favour is the point. *Offer nothing in cities and inns*, *Offer nothing in dungeons, raids and battlegrounds*, *Hide the prompt in a fight* and `/manners snooze` keep it quiet when you want quiet.
 
 ### Clients and languages
 

@@ -56,7 +56,7 @@ CurseForge description, which embeds them from GitHub once `master` holds them.
 | 12 | `manners-ledger.png` | The favour ledger | Who buffed you, whether you returned it, and who you buffed without being asked. Open it with /manners ledger. |
 | 13 | `manners-milestones.png` | Milestones | Small things worth doing, kept on a tab of the favour ledger: earned ones with their date and a link to show in chat, the rest with how far along you are. A toast comes up when you earn one, and earning them all puts you among the Gentlefolk of Good Manners, the hall of fame. |
 | 14 | `manners-options.png` | Set it up in one window | Open it with /manners or the minimap button. Shown on Start here in the Simple view, the short list of every page: two questions, one key, the favour ledger. Untick Simple view for everything; Move the prompt is one click away in the header. |
-| 15 | `manners-options-wide.png` | Drag it wide | Drag the corner and a page flows into two columns, three on an ultrawide screen. Shown on Who to buff for a paladin: who is offered, what to cast, the group, More than buffs and Myself on one screen. |
+| 15 | `manners-options-wide.png` | Drag it wide | Drag the corner and a page flows into two columns, three on an ultrawide screen. Shown on Who to buff for a paladin: who is offered, what to cast, the group, Resurrection and cures on one screen. |
 | 16 | `manners-languages.png` | In your language | English and eight translations, chosen by your game client. Shown here in German, French and Simplified Chinese. |
 | 17 | `manners-palette.png` | A palette for colour blindness | The five reason colours redrawn for red-green colour blindness, one setting away under Look > Style. |
 

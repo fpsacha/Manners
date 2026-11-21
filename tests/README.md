@@ -323,6 +323,12 @@ lists (`looks.lua`, `looks-alpha.lua`, `looks-read.lua`, `hunt35-effects.lua`,
 `tools/LOOKS.md` has the whole list. The four new looks are in the audit's
 list and not yet in the shared scenarios' (`STATUS.md`, Open).
 
+The menu pass has a scenario file of its own for each step, `menupass-search`,
+`-pointers`, `-skip`, `-snooze`, `-fight`, `-quiet`, `-self`, `-say`, `-blurb`,
+`-changed`, `-words` and `-words2`, with the mutation file of the same name in
+`mutations/`. A page added to the options window also goes in `layout.lua`'s
+`GROUPS` and `window-classes.lua`'s `TABLE`.
+
 The features of 1.11.25 each have a file of their own too: `res.lua`,
 `cures.lua`, `courtesy.lua`, `ask.lua`, `raidsplit.lua`, `battleground.lua`,
 `battle-tracking.lua`, `grouppets.lua`, `journalpet.lua` and

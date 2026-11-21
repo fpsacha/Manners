@@ -269,7 +269,7 @@ too.
 #### Curing in a fight
 
 A class with a cure can tick *Show a cure button in a fight when somebody needs it*
-(*In a fight*, off; also under *Who to buff*, *Cures*). It gives a
+(*In a fight*, off; also under *Who to buff*, *Resurrection and cures*). It gives a
 small button right of the prompt (or of the Will of the Forsaken button), with
 *Key for my cure in a fight* under the switch. It is never on screen for
 nothing: it appears only when Manners sees you, your target or somebody in your
@@ -946,26 +946,33 @@ it too.
   nothing for your character is left out. A red dot beside a page means
   something there wants looking at; a key binding is optional, so no red dot
   asks for one.
-- Over a page of many sections (*Start here*, *Who to buff*, *My own buffs*,
-  *When to offer*, *Look*), a bar of its parts: *All* draws the whole page, and a part draws
-  only its sections, its folded ones open. The red dot is on the part that
+- Over a page of many sections (*Start here*, *Who to buff*, *When to offer*,
+  *My own buffs*, *Quiet times*, *What I say*, *Look*, *Profiles*), a bar of
+  its parts: *All* draws the whole page, and a part draws only its sections,
+  its folded ones open. The red dot is on the part that
   wants looking at too, and the window remembers the part you last opened on
   each page until you log out.
 - The **search box** above the pages finds a setting by its name, its
   tooltip, one of its choices or the section it is in, in every language
   Manners is translated into, and "quiet", "mute" or "spam" finds the chat
-  switches. A word at the start of a name comes first, words people use
-  (wotf, rez, reply, queue, color) find their setting, and a phrase like "turn
-  off will of the forsaken" is read without its filler words. Pick a result and the window goes there, opens the part and the
-  section and flashes the setting; one hidden behind a switch says which to turn on
-  first.
+  switches. A word at the start of a name comes first. The words players use
+  find their setting too (wotf, rez, reply, custom, queue, color, combat,
+  snooze), US spellings are read as the English ones, and a phrase like "turn
+  off will of the forsaken" is read without its filler words. The buttons
+  along the top are found as well. Pick a result and the window goes there,
+  opens the part and the section and flashes the setting; one hidden behind a
+  switch says which to turn on first.
 - ***Simple view***, a switch under the search box. On, each page draws only
   its short list, and says under it how many settings it leaves out, with
   *Show everything*. *Start here*, *Profiles* and *Diagnostics* are always
   drawn whole. A new profile starts in the simple view; one made before it
   existed keeps everything on screen and is offered it once.
 - Each page opens with a line under its title saying what is on it.
-- A gold mark in the margin beside a setting means it is not at its default; click it to put that one back. *What I changed*, in the footer, lists every setting you changed, eight at a time; a choice takes you to it.
+- A gold mark in the margin beside a setting means it is not at its default;
+  click it to put that one back. *What I changed*, in the footer, lists every
+  setting you changed, eight at a time; a choice takes you to it.
+- A slider's box shows its unit (12 s, 5 min, 40%) and takes it typed: 5m is
+  five minutes, 1h an hour. A bare number is read in the slider's own unit.
 - A setting that belongs to a switch sits a step in under it, and is not
   drawn while that switch is off. A greyed-out setting says under itself
   which switch greys it.
@@ -1091,6 +1098,12 @@ no room for. Defaults are in brackets.
 
 ### Who to skip
 
+- ***After a right-click***: *A right-click skips someone for* (12 s, up to 30
+  minutes) and *A right-click skips my own buffs for* (*Same as above*, or up
+  to four hours): the same for the consumables button and *Skip for now* in
+  the minimap menu, and a skipped food skips every food in your bags, since
+  any of them gives Well Fed. The box reads 12 s or 5 min, and you can type
+  5m or 1h.
 - ***Players to skip***:
   - *Skip players flagged for PvP* (on): buffing somebody flagged flags you
     too, so while you are not flagged, nobody flagged is offered, not even a
@@ -1142,13 +1155,9 @@ no room for. Defaults are in brackets.
     buffed you.
   - *Keep favours through a /reload* (on). The clock keeps running while you
     are away.
-- ***Timing*** (folded): *Wait before trying the same spell on someone again* (12),
-  per spell; *A right-click skips for (seconds)* (12, up to half an hour);
-  *A right-click on my own buffs skips for (minutes)* (0, which follows the
-  seconds above; up to four hours), the same for the consumables button and
-  *Not now* in the minimap menu, and a skipped food skips every food in your
-  bags, since any of them gives Well Fed; *Look for people every*
-  (0.4).
+- ***Timing*** (folded): *Wait before trying the same spell on someone again*
+  (12 s), per spell, and *Look for people every* (0.4 s). How long a
+  right-click skips someone is on *Who to skip*.
 - ***Targeting*** (folded): *Hand my target back afterwards* (on). With it on,
   the macro ends with `/targetlasttarget`, or with `/cleartarget` when you had
   nothing targeted. A warrior, whose shout never takes the target, has a line
@@ -1704,8 +1713,8 @@ works here registers `"AnyDown"`.
 - **Nothing comes up.** Press your key on the empty prompt and chat says why
   it is empty. With no key, hover the minimap button or look at the first
   line of *Diagnostics*: both say what holds the prompt back, naming the
-  switch and its tab (a rule for cities and inns, dungeons or battlegrounds,
-  the mana floor, passers-by left alone out in the world). The strip under
+  switch and its page (a rule on *Quiet times* for cities and inns, dungeons
+  or battlegrounds, the mana floor, passers-by left alone out in the world). The strip under
   the options window's title says it too while a rule or the mana floor
   holds everybody back. The grey line at the top of *Who to buff* says who the prompt
   is on and why, and a red dot beside a page marks what wants looking at
