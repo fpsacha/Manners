@@ -956,9 +956,10 @@ do
 							or name == "ownBuffs.elixirKeep"
 							or name == "prompt.thankEmoteMore" then
 							kind = "set"
-						elseif name == "prompt.classStyles" then
+						elseif name == "prompt.classStyles" or name == "prompt.fightKeySpells" then
 							-- Use my class's look on each character: a class to the
-							-- one of its own looks picked (Looks/Looks.lua).
+							-- one of its own looks picked (Looks/Looks.lua). The same
+							-- shape for In a fight, my key casts: a class to a row key.
 							kind = "byclass"
 						elseif name == "buff.forClass" then
 							-- A class to one buff key (A blessing for each class).

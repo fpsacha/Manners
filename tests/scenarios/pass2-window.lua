@@ -286,7 +286,8 @@ end
 
 -- ------------------------------------------------------------------ 8
 -- A profile saved before the fight key was kept per class: the one key goes to
--- the class whose list alone holds it, and is dropped when two classes share it.
+-- the class whose list alone holds it; one two classes share goes to the class
+-- logging in when its list holds it, and is dropped otherwise.
 do
 	local scenario = "pass2-window: an old shared fight key goes to the one class that holds it"
 	local everything = setmetatable({}, { __index = function() return true end })
@@ -319,8 +320,75 @@ do
 	end)
 	login("PALADIN", "flash", function(ns, p)
 		if p.fightKeySpell ~= nil then fail(scenario, "the old field is kept: " .. tostring(p.fightKeySpell)) end
-		if next(p.fightKeySpells) ~= nil then fail(scenario, "flash, a priest's and a paladin's, was given to a class") end
+		if p.fightKeySpells.PALADIN ~= "flash" then fail(scenario, "flash, shared by two classes, was not carried to the paladin logging in") end
+		if p.fightKeySpells.PRIEST ~= nil then fail(scenario, "flash was given to a priest as well") end
 	end)
+	login("MAGE", "flash", function(ns, p)
+		if p.fightKeySpell ~= nil then fail(scenario, "the old field is kept: " .. tostring(p.fightKeySpell)) end
+		if next(p.fightKeySpells) ~= nil then fail(scenario, "flash was given to a mage, whose list lacks it") end
+	end)
+end
+
+-- ------------------------------------------------------------------ 8b
+-- The fight key travels in a settings string, class by class.
+do
+	local scenario = "pass2-window: the fight key travels in a settings string"
+	Mock.reset()
+	Mock.setFlavour("vanilla")
+	Mock.class = "PRIEST"
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		ns.Guard("probe", ns.ProbeCapabilities)
+		local p = ns.db.profile.prompt
+		p.fightKeySpells = { PRIEST = "flash" }
+		local text = ns.ExportSettings() or ""
+		if not text:find("prompt.fightKeySpells=PRIEST=flash", 1, true) then
+			fail(scenario, "the string lacks PRIEST=flash: " .. text)
+		end
+		p.fightKeySpells = {}
+		if ns.ImportSettings(text) ~= true then
+			fail(scenario, "the import was refused")
+			return
+		end
+		if p.fightKeySpells.PRIEST ~= "flash" then
+			fail(scenario, "the choice did not come back: " .. tostring(p.fightKeySpells.PRIEST))
+		end
+		noErrors(scenario, ns)
+	end)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- ------------------------------------------------------------------ 8c
+-- Hold back short buffs in cities and inns still holds your own short buffs
+-- with Never in cities and inns on, so its controls are not greyed there.
+do
+	local scenario = "pass2-window: the short-buff hold stays live beside Never in cities and inns"
+	Mock.reset()
+	Mock.setFlavour("vanilla")
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		local f = ns.db.profile.filters
+		f.quietInTowns = true
+		f.quietShortInTowns = true
+		local switch = findOption(ns.optionsTable, "quietShortInTowns")
+		local minutes = findOption(ns.optionsTable, "quietShortMinutes")
+		if not (switch and minutes) then
+			fail(scenario, "the two controls are missing")
+			return
+		end
+		if switch.disabled and switch.disabled({}) then fail(scenario, "the switch is greyed while it acts on you") end
+		if minutes.disabled and minutes.disabled({}) then fail(scenario, "the minutes are greyed while the switch is on and acts on you") end
+		f.quietShortInTowns = false
+		if not (minutes.disabled and minutes.disabled({})) then fail(scenario, "the minutes stay live with the switch off") end
+		noErrors(scenario, ns)
+	end)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
 
 -- ------------------------------------------------------------------ 9
@@ -382,8 +450,10 @@ do
 			for _, line in ipairs(Mock.printed) do
 				if line:find("MANNERS_SOMETHING_ELSE", 1, true) then said = line end
 			end
-			if not said then fail(scenario, "SKIPPED -- nothing was said") return end
-			if said:find("casts %.$") then fail(scenario, "chat says: " .. said) end
+			-- With no cure learned the button casts nothing: the line neither
+			-- names an empty spell nor says it buffs the prompted player; it
+			-- is not said at all.
+			if said then fail(scenario, "chat says: " .. said) end
 			noErrors(scenario, ns)
 		end)
 		if not ok then fail(scenario, "threw: " .. tostring(err)) end

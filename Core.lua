@@ -6099,8 +6099,8 @@ function ns.ClampSettings()
 	oneOf(p, "fightKeyOn", { friend = true, me = true }, "friend")
 	-- In a fight, my key casts: one key for every class before it was kept
 	-- per class. Carried to the class whose list holds it when that is one
-	-- class alone; a key two classes share (flash) cannot be told whose it
-	-- was and is dropped.
+	-- class alone; a key two classes share (flash) goes to the class logging
+	-- in when its list holds it, else it is dropped.
 	if type(p.fightKeySpells) ~= "table" then p.fightKeySpells = {} end
 	for class, key in pairs(p.fightKeySpells) do
 		if type(class) ~= "string" or type(key) ~= "string" then p.fightKeySpells[class] = nil end
@@ -6110,7 +6110,16 @@ function ns.ClampSettings()
 		p.fightKeySpell = nil
 		if type(old) == "string" and old ~= "none" and ns.FightKey then
 			local classes = ns.FightKey.ClassesFor(old)
-			if #classes == 1 and p.fightKeySpells[classes[1]] == nil then p.fightKeySpells[classes[1]] = old end
+			local mine = ns.caps and ns.caps.class
+			local target
+			if #classes == 1 then
+				target = classes[1]
+			else
+				for _, c in ipairs(classes) do
+					if c == mine then target = mine end
+				end
+			end
+			if target and p.fightKeySpells[target] == nil then p.fightKeySpells[target] = old end
 		end
 	end
 	oneOf(p, "thankEmoteToken", ns.THANK_EMOTE_SET, "THANK")

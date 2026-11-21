@@ -662,7 +662,9 @@ function Page.BuildLookTab()
 					local list = ns.CureFightSpells()
 					ns.Setup.SetKey(value, ns.CureFight.COMMAND, function(key, was)
 						local spell = list and list[1] and list[1].name
-						if not spell then return L["%s was bound to %s; it now buffs the prompted player."]:format(key, was) end
+						-- No cure learned: the button casts nothing, so there is no
+						-- line to say (an empty one is left unsaid by SetKey).
+						if not spell then return "" end
 						return L["%s was bound to %s; it now casts %s."]:format(key, was, spell)
 					end)
 					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end

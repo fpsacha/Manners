@@ -249,8 +249,8 @@ mutate("Options/Look.lua",
        expect="breakfree: the switch is on Look's In a fight and on by default", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\tns.addon:Print(said and said(key, name) or L[\"%s was bound to %s; it now buffs the prompted player.\"]\n",
-       "\t\t\t\tns.addon:Print(L[\"%s was bound to %s; it now buffs the prompted player.\"]\n",
+       "\t\t\t\tlocal line = said and said(key, name)\n",
+       "\t\t\t\tlocal line = nil\n",
        "breakfree: its key said to buff the prompted player",
        expect="breakfree: its key control binds it and says what the key now does", script=S)
 

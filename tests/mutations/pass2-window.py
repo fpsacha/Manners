@@ -44,10 +44,20 @@ mutate(FIGHTKEY, 'return type(by) == "table" and class and by[class] or nil',
        "pass2-window: another class's fight key lent to this one",
        expect=P + "a fight key chosen on a priest does not arm a paladin", script=S)
 
-mutate("Core.lua", "if #classes == 1 and p.fightKeySpells[classes[1]] == nil then p.fightKeySpells[classes[1]] = old end",
-       "if #classes >= 1 and p.fightKeySpells[classes[1]] == nil then p.fightKeySpells[classes[1]] = old end",
+mutate("Core.lua", "if #classes == 1 then\n\t\t\t\ttarget = classes[1]",
+       "if #classes >= 1 then\n\t\t\t\ttarget = classes[1]",
        "pass2-window: a key two classes share given to one of them",
        expect=P + "an old shared fight key", script=S)
+
+mutate("Core.lua", "if c == mine then target = mine end",
+       "if false then target = mine end",
+       "pass2-window: a key two classes share dropped for the class logging in",
+       expect=P + "an old shared fight key", script=S)
+
+mutate("Commands.lua", 'name == "prompt.classStyles" or name == "prompt.fightKeySpells" then',
+       'name == "prompt.classStyles" then',
+       "pass2-window: the fight key left out of a settings string",
+       expect=P + "the fight key travels in a settings string", script=S)
 
 mutate("Core.lua", '\t\tp.fightKeySpell = nil\n\t\tif type(old) == "string"',
        '\t\tif type(old) == "string"',
@@ -58,6 +68,13 @@ mutate(ADV, '"prompt.fightKeySpells", "prompt.fightKeyOn",',
        '"prompt.fightKeyOn",',
        "pass2-window: Look's reset leaves the fight keys",
        expect="the list leaves out prompt.fightKeySpells", script=S)
+
+# --- the short-buff hold beside Never in cities and inns -----------------------------
+
+mutate("Options/Who.lua", "disabled = function() return F().quietShortInTowns ~= true end,",
+       "disabled = function() return F().quietShortInTowns ~= true or F().quietInTowns == true end,",
+       "pass2-window: the short-buff minutes greyed while the rule acts on you",
+       expect=P + "the short-buff hold stays live", script=S)
 
 # --- own words ---------------------------------------------------------------
 
@@ -99,6 +116,11 @@ mutate(LOOK, "hidden = function() return not (ns.ClassHasCures() and ns.CureLear
        "hidden = function() return not ns.ClassHasCures() end,",
        "pass2-window: Look's cure switch offered with none learned",
        expect=P + "the cure's switch on Who to buff", script=S)
+
+mutate(LOOK, 'if not spell then return "" end',
+       'if not spell then return L["%s was bound to %s; it now buffs the prompted player."]:format(key, was) end',
+       "pass2-window: the cure key's line says it buffs the prompted player",
+       expect=P + "the cure key's line never names an empty spell", script=S)
 
 # --- the page bar --------------------------------------------------------------
 

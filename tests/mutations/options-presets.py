@@ -245,8 +245,8 @@ mutate("Options/Start.lua",
        expect="a key was changed in combat", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\tns.addon:Print(said and said(key, name) or L[\"%s was bound to %s; it now buffs the prompted player.\"]\n",
-       "\t\t\t\tlocal _ = (said and said(key, name) or L[\"%s was bound to %s; it now buffs the prompted player.\"]\n",
+       "\t\t\t\tif line ~= \"\" then ns.addon:Print(line) end\n",
+       "\t\t\t\tif line ~= \"\" then local _ = line end\n",
        "setup: a key taken silently",
        expect="taking a key from Jump said nothing", script=S)
 

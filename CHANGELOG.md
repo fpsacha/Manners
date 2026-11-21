@@ -11,25 +11,27 @@
   be one choice for every character on a profile, so a Flash Heal picked on a
   priest armed a paladin's key with Flash of Light. Each class now keeps its
   own choice; an earlier choice goes to its class when only one class has that
-  spell.
+  spell, else to the class you log in with if it has it. It also travels in
+  *Share as text*.
 
 ### Fixes
 - **A meal of plain bread no longer brings back a food you skipped.** Right-click
   a food for the evening and eat bread, and standing up used to put the
   reminder back; now it waits out the skip.
 - **Short buffs held back in cities and inns hold your own short buffs** even
-  with *Never in cities and inns* ticked.
+  with *Never in cities and inns* ticked, and its switch and minutes stay yours
+  to change there.
 - **The fight buttons' keys cast with the game's cast-on-key-down option turned
-  off**, and the cure button takes no click while it is out of sight with a key
+  off.** The cure button also takes no click while it is out of sight with a key
   bound, as the other fight buttons already did.
 - **The fight cure is offered only once you know a cure.** The switch and its
   key on Look and Who to buff stay out of sight until the class has learned one,
   and the line said when you bind the key no longer ends on a blank spell name.
-- **Who to buff's reset puts back the fight switches it shows**, *Offer my cure
-  in a fight* and *Offer Mend Pet in a fight*.
+- **Who to buff's reset puts back the fight switches it shows.** That is *Offer
+  my cure in a fight* and *Offer Mend Pet in a fight*.
 - **The page's scroll bar stays under the cursor** when the page grows or
   shrinks while you drag it.
-- **Your own words for an ask are cut on a whole letter**, so a long line in
+- **Your own words for an ask are cut on a whole letter.** A long line in
   Chinese, Korean or an accented language no longer ends on half a character.
 - **Wording:** *Cure myself too* reads "reinigen" in German, and Fire Ward and
   Frost Ward carry the game's own names in French and Korean.

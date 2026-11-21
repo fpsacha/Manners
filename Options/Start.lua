@@ -60,8 +60,10 @@ function Setup.SetKey(key, command, said)
 			local was = type(GetBindingAction) == "function" and GetBindingAction(key) or ""
 			if type(was) == "string" and was ~= "" and was ~= command then
 				local name = tostring(_G["BINDING_NAME_" .. was] or was)
-				ns.addon:Print(said and said(key, name) or L["%s was bound to %s; it now buffs the prompted player."]
-					:format(key, name))
+				-- A caller's line may be "" to say nothing.
+				local line = said and said(key, name)
+					or L["%s was bound to %s; it now buffs the prompted player."]:format(key, name)
+				if line ~= "" then ns.addon:Print(line) end
 			end
 			SetBinding(key, command)
 		end

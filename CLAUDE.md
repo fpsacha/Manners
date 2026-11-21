@@ -794,7 +794,7 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   The fight key (`Prompt/FightKey.lua`, `ns.FightKey`, `MannersFightKey`) is
   how the prompt's own key casts a spell in a fight, with `prompt.fightKeySpells`
   (class -> a row key of that class's list; `"none"`: kept per class because every character
-  shares the profile; a pre-1.11.35 `fightKeySpell` is carried over by ClampSettings to the one class whose list holds it, else dropped) and `prompt.fightKeyOn`. It is
+  shares the profile; a pre-1.11.35 `fightKeySpell` is carried over by ClampSettings to the one class whose list holds it, or, for a key two classes share, to the class logging in when its list holds it, else dropped; it travels in a settings string as `PRIEST=flash,...`) and `prompt.fightKeyOn`. It is
   not a line in the prompt's macro (nothing to put it on when nobody is owed,
   the hide snippet and the rota both rewrite the macro, the buff lines ahead of
   it start the global cooldown). At the pull (`PLAYER_REGEN_DISABLED`, still out
