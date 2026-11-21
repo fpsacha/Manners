@@ -215,7 +215,7 @@ local function ReadLoss(row)
 		if type(kind) == "string" then
 			if row.breaks[kind] then return true, kind, "plain" end
 			first, how = first or kind, how or "plain"
-		elseif raw ~= nil then
+		elseif type(raw) ~= "nil" then
 			first, how = first or "?", how or "secret"
 		end
 	end
@@ -429,6 +429,9 @@ function BreakFree:Create()
 	button:SetFrameStrata("MEDIUM")
 	button:SetClampedToScreen(true)
 	button:RegisterForClicks("AnyDown")
+	-- A key press is a down click: without this the client takes it as neither
+	-- the action nor a release while ActionButtonUseKeyDown is off (Panel.lua).
+	button:SetAttribute("pressAndHoldAction", true)
 	button:SetAlpha(0)
 	-- No click until Refresh has decided (SetMouse).
 	button:EnableMouse(false)

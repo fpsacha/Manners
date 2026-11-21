@@ -515,8 +515,13 @@ function CureFight:Create()
 	button:SetFrameStrata("MEDIUM")
 	button:SetClampedToScreen(true)
 	button:RegisterForClicks("AnyDown")
+	-- A key press is a down click: without this the client takes it as neither
+	-- the action nor a release while ActionButtonUseKeyDown is off (Panel.lua).
+	button:SetAttribute("pressAndHoldAction", true)
 	button:SetAlpha(0)
-	icon = button:CreateTexture(nil, "ARTWORK")
+	-- No click until Refresh has decided (SetMouse).
+	button:EnableMouse(false)
+	icon =button:CreateTexture(nil, "ARTWORK")
 	icon:SetAllPoints(button)
 	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 	local first = ns.CureFightSpells()
@@ -580,6 +585,16 @@ local function ReadKey()
 	keyLabel = type(key) == "string" and key ~= "" and key or nil
 end
 
+-- Whether the button takes a click: only when no key is bound (then a click is
+-- the only way to cast it). With a key it is out of sight or only just in it,
+-- and a click beside the prompt must reach the world behind. The client refuses
+-- EnableMouse on a protected frame under the lockdown, so only out of one: at
+-- Refresh and at the pull, before it.
+local function SetMouse()
+	if not button or InCombatLockdown() then return end
+	button:EnableMouse(keyLabel == nil)
+end
+
 -- From a scan (Core.lua, TickBody) when Wanted says something changed, and as a
 -- fight ends (Release). Out of combat only.
 function CureFight:Refresh()
@@ -599,6 +614,7 @@ function CureFight:Refresh()
 	if not button then self:Create() end
 	if not button then return end
 	ReadKey()
+	SetMouse()
 	local list = ns.CureFightSpells()
 	local macro, two = MacroFor(list)
 	armedSpells, armedTwo = list, two
@@ -647,6 +663,7 @@ end
 local function Pull()
 	if not (settledOn and button) then return end
 	ReadKey()
+	SetMouse()
 	last.reads, last.secret, last.seen, last.shownFor = 0, 0, 0, 0
 	wipe(needy)
 	wipe(dirty)

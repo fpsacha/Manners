@@ -230,6 +230,9 @@ function MendPet:Create()
 	button:SetFrameStrata("MEDIUM")
 	button:SetClampedToScreen(true)
 	button:RegisterForClicks("AnyDown")
+	-- A key press is a down click: without this the client takes it as neither
+	-- the action nor a release while ActionButtonUseKeyDown is off (Panel.lua).
+	button:SetAttribute("pressAndHoldAction", true)
 	button:SetAlpha(0)
 	-- No click until Refresh has decided (SetMouse).
 	button:EnableMouse(false)

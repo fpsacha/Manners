@@ -234,6 +234,9 @@ function FightKey:Create()
 	if button or InCombatLockdown() then return end
 	button = CreateFrame("Button", NAME, UIParent, "SecureActionButtonTemplate")
 	button:RegisterForClicks("AnyDown")
+	-- A key press is a down click: without this the client takes it as neither
+	-- the action nor a release while ActionButtonUseKeyDown is off (Panel.lua).
+	button:SetAttribute("pressAndHoldAction", true)
 	for index = 2, 31 do
 		if index <= 5 then button:SetAttribute("type" .. index, "none") end
 		button:SetAttribute("*type" .. index, "none")

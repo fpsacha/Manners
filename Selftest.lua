@@ -880,6 +880,17 @@ Check("button.clicks", "button", L["clicks"], function(add)
 	else
 		add(PASS, line)
 	end
+	-- The fight buttons made so far are registered the same way, with the same
+	-- rule: a key press is a down click and needs pressAndHoldAction.
+	for _, name in ipairs({ "FightKey", "CureFight", "BreakFree", "MendPet", "Supplies" }) do
+		local owner = ns[name]
+		local fb = owner and type(owner.Button) == "function" and owner:Button() or nil
+		if fb and type(fb.GetAttribute) == "function" then
+			local fhold = fb:GetAttribute("pressAndHoldAction")
+			local fline = ("%s: pressAndHoldAction=%s"):format(name, Show(fhold))
+			if fhold then add(PASS, fline) else add(FAIL, fline) end
+		end
+	end
 end)
 
 Check("button.macro", "button", L["armed macro"], function(add)

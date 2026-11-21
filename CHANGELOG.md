@@ -12,6 +12,9 @@
   spell.
 
 ### Fixes
+- **The fight buttons' keys cast with the game's cast-on-key-down option turned
+  off**, and the cure button takes no click while it is out of sight with a key
+  bound, as the other fight buttons already did.
 - **The fight cure is offered only once you know a cure.** The switch and its
   key on Look and Who to buff stay out of sight until the class has learned one,
   and the line said when you bind the key no longer ends on a blank spell name.

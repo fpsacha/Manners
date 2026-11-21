@@ -118,8 +118,8 @@ mutate(BF,
 # --- 8. a secret is never a reason
 
 mutate(BF,
-       "\t\telseif raw ~= nil then\n\t\t\tfirst, how = first or \"?\", how or \"secret\"\n",
-       "\t\telseif raw ~= nil then\n\t\t\tdo return true, \"?\", \"secret\" end\n",
+       "\t\telseif type(raw) ~= \"nil\" then\n\t\t\tfirst, how = first or \"?\", how or \"secret\"\n",
+       "\t\telseif type(raw) ~= \"nil\" then\n\t\t\tdo return true, \"?\", \"secret\" end\n",
        "breakfree: a secret type taken for a fear",
        expect="breakfree: a secret loss of control is no reason and throws nothing", script=S)
 
