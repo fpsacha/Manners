@@ -394,6 +394,47 @@ local function Same(a, b, step)
 	return a == b
 end
 
+-- The kinds of control that have a default to go back to.
+local MARKED = { toggle = true, range = true, select = true, input = true, color = true }
+
+-- The profile default of a control, and the value it holds now; nil, nil when
+-- it has none to go back to. A path with exactly one FIELDS entry, or a
+-- control whose get is a shared getter (Options/Shared.lua, BOUND) and so
+-- reads the profile table under the option's own key. A table default counts
+-- for a colour only.
+local function Locate(path, item)
+	local def = item and item.def
+	if type(def) ~= "table" or not MARKED[def.type] then return nil end
+	local p, defaults = Profile(), ns.defaults.profile
+	local fields, section, key = FIELDS[path], nil, nil
+	if fields then
+		if #fields ~= 1 then return nil end
+		section, key = fields[1][1], fields[1][2]
+	else
+		local bound = ns.OptionsPage.BOUND
+		section = bound[def.get] or bound[def.getColor]
+		key = path:match("%.([^.]+)$")
+		if not section or not key then return nil end
+	end
+	local want = (defaults[section] or {})[key]
+	if want == nil or (type(want) == "table" and def.type ~= "color") then return nil end
+	-- A clamp to the prompt's size alone is not a change.
+	if key == "iconSize" and type(want) == "number" and ns.IconCeiling then
+		want = math.min(want, ns.IconCeiling(p.prompt))
+	end
+	return want, (p[section] or {})[key]
+end
+
+function UI.DefaultOf(path, item)
+	return (Locate(path, item))
+end
+
+function UI.IsChanged(path, item)
+	local want, have = Locate(path, item)
+	if want == nil then return false end
+	return not Same(have, want, item.def.step)
+end
+
 function UI.Differs(path, item)
 	local differs = DIFFERS[path]
 	if differs then return differs() and true or false end
@@ -406,9 +447,12 @@ function UI.Differs(path, item)
 	local inside = path:match("^who%.notMeInside_(.+)$")
 	if inside then return (p.buff.notMeInside or {})[inside] == true end
 	local family = path:match("^who%.own_(.+)$")
-	if family then return (p.ownBuffs.pick or {})[family] ~= nil end
+	if family then
+		local pick = (p.ownBuffs.pick or {})[family]
+		return pick ~= nil and pick ~= ns.defaults.profile.ownBuffs.pick[family]
+	end
 	local fields = FIELDS[path]
-	if not fields then return false end
+	if not fields then return UI.IsChanged(path, item) end
 	local defaults = ns.defaults.profile
 	local step = item and item.def.step
 	for _, f in ipairs(fields) do
@@ -889,11 +933,17 @@ end
 -- Every row re-reads its label, value and greyed-out state; the widget
 -- leaves a slider being dragged and a box being typed in alone. A row that
 -- throws is named once and left out of this paint.
+local function RefreshRow(e, row)
+	row:Refresh()
+	-- The gold mark on a setting that is not at its default (W.PaintChanged).
+	if e.isControl and not e.subs then ns.WindowWidgets.PaintChanged(row, e.path) end
+end
+
 local function RefreshRows(sec)
 	for _, e in ipairs(sec.entries) do
 		local row = e.row
 		if row and e.visible then
-			local ok, err = pcall(row.Refresh, row)
+			local ok, err = pcall(RefreshRow, e, row)
 			if not ok then
 				ns.Guard("options row " .. e.path, error, err, 0)
 				e.visible = false

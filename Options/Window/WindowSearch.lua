@@ -117,9 +117,11 @@ local function HeaderEntries(out)
 	end
 end
 
-local function Entries()
+-- `withoutHeader`: the buttons at the top of the window left out, for the
+-- list of what was changed (UI.ShowChanged), which holds settings only.
+local function Entries(withoutHeader)
 	local layout, out = UI.Layout(), {}
-	HeaderEntries(out)
+	if not withoutHeader then HeaderEntries(out) end
 	for _, group in ipairs(layout.groups) do
 		for _, id in ipairs(group) do
 			local page = layout.pages[id]
@@ -157,6 +159,7 @@ end
 function UI.CloseResults()
 	if search.results then search.results:Hide() end
 	search.found = {}
+	search.changed = nil
 end
 
 -- A page shown by any other way than a result (the sidebar, a link, /manners
@@ -186,6 +189,17 @@ function UI.Choose(ref)
 	return e
 end
 
+-- One result's label and where it is, on its button.
+local function FillResult(b, hit)
+	b.ref = hit.ref
+	b.label:SetText(UI.Plain(hit.label))
+	local section = hit.section ~= "" and hit.section or nil
+	local where = UI.Plain(hit.page or "") .. (section and (" > " .. UI.Plain(section)) or "")
+	-- Hidden behind a switch: the result opens that switch.
+	if hit.first then where = where .. " -- " .. L["Turn on %s first"]:format(UI.Plain(hit.first)) end
+	b.where:SetText(where)
+end
+
 -- `found` holds one more than is shown when there are more: the last line
 -- then says to keep typing, rather than the list ending as if it were all.
 local function ShowResults(found)
@@ -195,13 +209,7 @@ local function ShowResults(found)
 		local b, hit = search.buttons[i], found[i]
 		if hit then
 			count = i
-			b.ref = hit.ref
-			b.label:SetText(UI.Plain(hit.label))
-			local section = hit.section ~= "" and hit.section or nil
-			local where = UI.Plain(hit.page or "") .. (section and (" > " .. UI.Plain(section)) or "")
-			-- Hidden behind a switch: the result opens that switch.
-			if hit.first then where = where .. " -- " .. L["Turn on %s first"]:format(UI.Plain(hit.first)) end
-			b.where:SetText(where)
+			FillResult(b, hit)
 			b:Show()
 		else
 			b:Hide()
@@ -211,6 +219,7 @@ local function ShowResults(found)
 		-- The client's own sentence for an empty search where it has one,
 		-- ours where it has not; the box goes red as well.
 		search.moreLine:Hide()
+		search.changedMore:Hide()
 		search.noneLine:SetText(search.none)
 		search.noneLine:Show()
 		panel:SetHeight(RESULT_H)
@@ -219,6 +228,7 @@ local function ShowResults(found)
 		return
 	end
 	search.noneLine:Hide()
+	search.changedMore:Hide()
 	Bad(false)
 	local more = found[MAX_RESULTS + 1] ~= nil
 	search.moreLine:SetShown(more)
@@ -239,6 +249,67 @@ function UI.RunSearch()
 	local found = ns.WindowSearch.Find(text, Entries(), MAX_RESULTS + 1) or {}
 	search.found = found
 	ShowResults(found)
+end
+
+-- The next eight changed settings, with a last line saying how many more
+-- there are when there are.
+local function ShowChangedPage()
+	local state = search.changed
+	local list, from = state.list, state.from
+	local panel = search.results
+	search.moreLine:Hide()
+	if #list == 0 then
+		for i = 1, MAX_RESULTS do search.buttons[i]:Hide() end
+		search.changedMore:Hide()
+		search.noneLine:SetText(L["Nothing changed from the defaults."])
+		search.noneLine:Show()
+		panel:SetHeight(RESULT_H)
+		panel:Show()
+		Bad(false)
+		return
+	end
+	search.noneLine:Hide()
+	Bad(false)
+	local count = 0
+	for i = 1, MAX_RESULTS do
+		local b, hit = search.buttons[i], list[from + i - 1]
+		if hit then
+			count = i
+			FillResult(b, hit)
+			b:Show()
+		else
+			b:Hide()
+		end
+	end
+	local left = #list - (from + count - 1)
+	local more = search.changedMore
+	more:SetShown(left > 0)
+	if left > 0 then
+		more.label:SetText(L["%d more"]:format(left))
+		more:ClearAllPoints()
+		more:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(4 + count * RESULT_H))
+	end
+	panel:SetHeight(count * RESULT_H + 8 + (left > 0 and 24 or 0))
+	panel:Show()
+end
+
+-- The footer's What I changed: every setting shown now that is not at its
+-- default, in the page order the window has, in the results panel. Built on
+-- the click, never on a repaint.
+function UI.ShowChanged()
+	search.token = search.token + 1
+	search.pending = false
+	local list = {}
+	for _, hit in ipairs(Entries(true)) do
+		-- The control's own path, whichever switch the result opens.
+		local own = hit.ref.via or hit.ref.path
+		local item = own and UI.Item(own)
+		if item and (UI.IsChanged(own, item) or UI.Differs(own, item)) then list[#list + 1] = hit end
+	end
+	search.found = {}
+	search.changed = { list = list, from = 1 }
+	ShowChangedPage()
+	return list
 end
 
 -- 0.15 s after typing stops.
@@ -331,6 +402,24 @@ local function BuildResults()
 	search.moreLine:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -(4 + MAX_RESULTS * RESULT_H + 4))
 	search.moreLine:SetText(L["More matches: keep typing"])
 	search.moreLine:Hide()
+	-- What I changed, when it runs past one panel: the next eight on a click.
+	local more = CreateFrame("Button", nil, panel)
+	more:SetSize(RESULT_W - 8, 24)
+	more.hover = UI.Solid(more, "BACKGROUND", C.hover)
+	more.hover:SetAllPoints()
+	more.hover:Hide()
+	more.label = UI.Text(more, GameFontHighlightSmall, C.gold)
+	more.label:SetPoint("LEFT", more, "LEFT", 8, 0)
+	more:SetScript("OnClick", UI.Guarded(function()
+		local state = search.changed
+		if not state then return end
+		state.from = state.from + MAX_RESULTS
+		ShowChangedPage()
+	end))
+	more:SetScript("OnEnter", function(self) self.hover:Show() end)
+	more:SetScript("OnLeave", function(self) self.hover:Hide() end)
+	more:Hide()
+	search.changedMore = more
 	-- Under the box, so it moves with the sidebar when the strip shows, and
 	-- level with the page list's left edge, over the open page's gold bar.
 	panel:SetPoint("TOPLEFT", search.box, "BOTTOMLEFT", -4, -4)

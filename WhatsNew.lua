@@ -14,6 +14,7 @@ ns.WhatsNew = {
 			"|cffffd100Who to skip > After a right-click|r sets how long a right-click skips someone, up to 30 minutes.",
 			"|cffffd100Snooze has Until I log out,|r at the top of the options window and in the minimap menu.",
 			"|cffffd100Each page of the options window opens with a line saying what is on it.|r",
+			"|cffffd100A gold mark shows each setting you changed; click it to put that one back.|r |cffffffffWhat I changed|r in the footer lists them all.",
 			"|cffffd100Asking for a buff is on What I say,|r under the lines; the Fish Bowl, campsite and other paladins' blessings fold under |cffffffffOther people's buffs|r on |cffffffffWho to buff|r, and |cffffffffMore than buffs|r is now |cffffffffResurrection and cures|r.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {

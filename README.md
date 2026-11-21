@@ -965,6 +965,7 @@ it too.
   drawn whole. A new profile starts in the simple view; one made before it
   existed keeps everything on screen and is offered it once.
 - Each page opens with a line under its title saying what is on it.
+- A gold mark in the margin beside a setting means it is not at its default; click it to put that one back. *What I changed*, in the footer, lists every setting you changed, eight at a time; a choice takes you to it.
 - A setting that belongs to a switch sits a step in under it, and is not
   drawn while that switch is off. A greyed-out setting says under itself
   which switch greys it.

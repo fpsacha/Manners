@@ -21,7 +21,13 @@ ns.OptionsPage = Page
 -- the field outright: moving a setting must never reset it.
 ---------------------------------------------------------------------------
 
-local function bind(pathFn, after)
+-- Which profile table a shared getter reads, by the getter itself: what the
+-- options window needs to know a control's default and whether it was changed
+-- (UI.DefaultOf). A control with a getter of its own is not in it.
+local BOUND = {}
+Page.BOUND = BOUND
+
+local function bind(pathFn, after, section)
 	local get = function(info) return pathFn()[info[#info]] end
 	local set = function(info, value)
 		pathFn()[info[#info]] = value
@@ -30,6 +36,10 @@ local function bind(pathFn, after)
 	local getColor = function(info)
 		local c = pathFn()[info[#info]] or { 1, 1, 1, 1 }
 		return c[1], c[2], c[3], c[4] == nil and 1 or c[4]
+	end
+	if section then
+		BOUND[get] = section
+		BOUND[getColor] = section
 	end
 	local setColor = function(info, r, g, b, a)
 		pathFn()[info[#info]] = { r, g, b, a }
@@ -55,22 +65,22 @@ local function SP() return ns.db.profile.speech end
 local function B() return ns.db.profile.buff end
 local function PR() return ns.db.profile.priority end
 
-local pGet, pSet, pGetColor, pSetColor = bind(P, restyle)
+local pGet, pSet, pGetColor, pSetColor = bind(P, restyle, "prompt")
 -- The launcher's "N waiting" counts favours only while "People who buffed me"
 -- is on, so throwing that switch changes the number on the bar.
 local sGet, sSet = bind(S, function()
 	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
-end)
-local fGet, fSet = bind(F)
+end, "sources")
+local fGet, fSet = bind(F, nil, "filters")
 -- The armed macro is only rebuilt when the candidate changes, so a filter that
 -- alters what the macro says -- rather than who is on the prompt -- has to say
 -- so. restoreTarget is the only one.
-local fGetMacro, fSetMacro = bind(F, remacro)
-local tGet, tSet = bind(T, rescan)
-local spGet, spSet = bind(SP, remacro)
+local fGetMacro, fSetMacro = bind(F, remacro, "filters")
+local tGet, tSet = bind(T, rescan, "timing")
+local spGet, spSet = bind(SP, remacro, "speech")
 -- The buff dropdown reads the pin through its own get, so only the setter.
 local bSet = select(2, bind(B, restyleAndMacro))
-local prGet, prSet = bind(PR)
+local prGet, prSet = bind(PR, nil, "priority")
 
 Page.restyle, Page.rescan, Page.restyleAndMacro = restyle, rescan, restyleAndMacro
 Page.P, Page.S, Page.F, Page.SND, Page.SP, Page.B, Page.PR = P, S, F, SND, SP, B, PR

@@ -832,6 +832,11 @@ function UI.BuildFooter(f)
 	end))
 	footer.reset:SetSize(math.ceil(UI.Measure(label)) + 26, 22)
 	footer.reset:SetPoint("LEFT", foot, "LEFT", 10, 0)
+	-- Every setting that is not at its default, in the results panel.
+	local changedLabel = L["What I changed"]
+	footer.changed = W.Button(foot, changedLabel, UI.Guarded(function() UI.ShowChanged() end))
+	footer.changed:SetSize(math.ceil(UI.Measure(changedLabel)) + 26, 22)
+	footer.changed:SetPoint("LEFT", footer.reset, "RIGHT", FOOT_GAP, 0)
 	footer.buildItem = UI.Item(layout.build)
 	local closeLabel = CLOSE or ""
 	footer.close = W.Button(foot, closeLabel, function() f:Hide() end)
@@ -842,7 +847,7 @@ function UI.BuildFooter(f)
 	-- window's own ink at a size to be read, in the middle of the room; and
 	-- the build, small and grey, at the right beside Close.
 	local mid = CreateFrame("Frame", nil, foot)
-	mid:SetPoint("TOPLEFT", footer.reset, "TOPRIGHT", FOOT_GAP, 0)
+	mid:SetPoint("TOPLEFT", footer.changed, "TOPRIGHT", FOOT_GAP, 0)
 	mid:SetPoint("BOTTOMRIGHT", footer.close, "BOTTOMLEFT", -FOOT_GAP, 0)
 	footer.mid = mid
 	footer.build = UI.Text(mid, GameFontDisableSmall, C.hint)
@@ -905,7 +910,8 @@ end
 -- labels' language, less the build at the right.
 function UI.FooterRoom()
 	local reset, close = footer.reset:GetWidth() or 0, footer.close:GetWidth() or 0
-	return UI.WIDTH - 34 - reset - close - 2 * FOOT_GAP - BuildRoom()
+	local changed = (footer.changed:GetWidth() or 0) + FOOT_GAP
+	return UI.WIDTH - 34 - reset - close - changed - 2 * FOOT_GAP - BuildRoom()
 end
 
 -- The reset's own hidden rule answers for the page in view (ns.OptionsTab),

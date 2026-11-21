@@ -19,6 +19,8 @@
 
 - **Each page of the options window opens with a line saying what is on it.**
 
+- **A gold mark shows each setting you changed; click it to put that one back.** *What I changed* in the footer lists them all.
+
 - **Asking for a buff is on *What I say*,** under the lines; the Fish Bowl, campsite and other paladins' blessings fold under *Other people's buffs* on *Who to buff*, and *More than buffs* is now *Resurrection and cures*.
 
 ### Fixes

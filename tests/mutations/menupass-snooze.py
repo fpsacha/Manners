@@ -25,7 +25,7 @@ mutate("Options/Launcher.lua",
        expect="menupass-snooze: the header menu and the launcher", script=S)
 
 mutate("Options/Window/WindowSearch.lua",
-       "\tHeaderEntries(out)\n",
+       "\tif not withoutHeader then HeaderEntries(out) end\n",
        "",
        "menupass-snooze: search skips the header",
        expect="menupass-snooze: search finds Snooze", script=S)

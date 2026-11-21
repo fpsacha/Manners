@@ -705,6 +705,91 @@ function Row.Flash(row)
 	row.frame:SetScript("OnUpdate", FlashUpdate)
 end
 
+---------------------------------------------------------------------------
+-- the gold mark on a changed setting
+---------------------------------------------------------------------------
+
+-- What a default reads like in the mark's tooltip: the words the control
+-- itself shows.
+local function ShownDefault(row, want)
+	local def = row.item.def
+	if def.type == "toggle" then return want == true and ns.L["On"] or ns.L["Off"] end
+	if def.type == "select" then
+		for _, pair in ipairs(Bind().Values(row.item) or {}) do
+			if pair[1] == want and type(pair[2]) == "string" then return pair[2] end
+		end
+		return tostring(want)
+	end
+	if def.type == "range" then
+		if row.show then return tostring(row.show(row, want)) end
+		return tostring(want)
+	end
+	if def.type == "color" and type(want) == "table" then
+		local function byte(v) return math.floor((tonumber(v) or 0) * 255 + 0.5) end
+		return ("|T%s:12:12:0:0:8:8:0:8:0:8:%d:%d:%d|t"):format(WHITE, byte(want[1]), byte(want[2]), byte(want[3]))
+	end
+	return tostring(want)
+end
+
+local function MarkEnter(self)
+	local row = self.row
+	local want = ns.WindowUI.DefaultOf(row.item.path, row.item)
+	if want == nil then return end
+	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+	GameTooltip:AddLine(ns.L["Changed from the default (%s). Click to put it back."]:format(ShownDefault(row, want)),
+		1, 1, 1, true)
+	GameTooltip:Show()
+end
+
+-- The row's own setter puts the default back, so its hooks and any confirm
+-- run as they do for a hand on the control; then the window repaints.
+local function MarkClick(self)
+	local row = self.row
+	local want = ns.WindowUI.DefaultOf(row.item.path, row.item)
+	if want == nil or W.Off(row) then return end
+	if type(want) == "table" then
+		W.Commit(row, want[1], want[2], want[3], want[4] == nil and 1 or want[4])
+	else
+		W.Commit(row, want)
+	end
+	if ns.RefreshOptionsDisplay then ns.RefreshOptionsDisplay() end
+end
+
+-- Built the first time a row is changed, a button in the gutter at the row's
+-- left edge: off a switch's box, level with the first line. UI.Dot is a plain
+-- frame, so the button holds one.
+function W.ChangedMark(row)
+	if row.mark then return row.mark end
+	local b = CreateFrame("Button", nil, row.frame)
+	b:SetSize(12, 12)
+	b:SetPoint("TOPLEFT", row.frame, "TOPLEFT", -14, -3)
+	b.row = row
+	local dot = ns.WindowUI.Dot(b, T.gold)
+	dot:SetPoint("CENTER", b, "CENTER", 0, 0)
+	b.dot = dot
+	b:SetScript("OnClick", function(self) ns.Guard("options changed mark", MarkClick, self) end)
+	b:SetScript("OnEnter", function(self) ns.Guard("options changed mark", MarkEnter, self) end)
+	b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	b:Hide()
+	row.mark = b
+	return b
+end
+
+-- Shown while the setting differs from its default, the row is not greyed out
+-- and it stands alone: a part of a composite is not marked.
+function W.PaintChanged(row, path)
+	local show = false
+	if not row.parentRow and not W.Off(row) then
+		local UI = ns.WindowUI
+		show = UI.IsChanged(path, row.item)
+	end
+	if show then
+		W.ChangedMark(row):Show()
+	elseif row.mark then
+		row.mark:Hide()
+	end
+end
+
 -- One row for `item`, of `kind` -- the model type, or the layout's widget
 -- ("number") or composite ("never"). Built, then read from the model once;
 -- the window calls Layout before showing it.
