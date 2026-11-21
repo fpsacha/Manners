@@ -435,6 +435,42 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------------------ 3d
+-- The same switch holds the short buffs you would cast on yourself: a druid
+-- who let her own buffs through in cities (ownBuffs.inCities) was still told
+-- to cast Thorns, ten minutes, with the hold at fifteen (CurseForge).
+do
+	local scenario = "audit-right-buff: short buffs held back in a city hold your own Thorns too"
+	local motw = 9885
+	local env = { class = "DRUID", knows = { "motw", "thorns" }, wears = { [motw] = { left = 3000 } }, units = {} }
+	session(scenario, env, function(ns)
+		local resting = false
+		local was = rawget(_G, "IsResting")
+		rawset(_G, "IsResting", function() return resting end)
+		local function selfKey()
+			local queue = queued(ns)
+			for _, entry in ipairs(queue) do
+				if entry.reason == "self" then return entry.buff and entry.buff.key or "nothing" end
+			end
+			return "nothing"
+		end
+		local db = ns.db.profile
+		db.sources.self = true
+		db.ownBuffs.inCities = true
+		resting = true
+		if selfKey() ~= "thorns" then fail(scenario, "with the switch off, in a city, you are offered " .. selfKey()) end
+		db.filters.quietShortInTowns = true
+		db.filters.quietShortMinutes = 15
+		if selfKey() == "thorns" then fail(scenario, "Thorns (ten minutes) is offered to yourself in a city with short buffs held back at 15") end
+		db.filters.quietShortMinutes = 5
+		if selfKey() ~= "thorns" then fail(scenario, "short meaning five minutes, your own Thorns is held back: " .. selfKey()) end
+		db.filters.quietShortMinutes = 15
+		resting = false
+		if selfKey() ~= "thorns" then fail(scenario, "out in the world your own Thorns waits all the same: " .. selfKey()) end
+		rawset(_G, "IsResting", was)
+	end)
+end
+
 -- ------------------------------------------------------------------------ 4
 -- A paladin with Blessing of Might and nothing else yet (levels 4 to 13), or
 -- any paladin once another's Wisdom and Kings are on them: a mage, a priest or
