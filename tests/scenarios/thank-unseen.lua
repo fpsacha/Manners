@@ -460,6 +460,9 @@ do
 	local scenario = "thank-unseen: the nameplates line says the emote thanks them"
 	with(scenario, { unseen = true, platesOff = true }, function(ns)
 		land(ns, nil)
+		-- Every landing the game names nobody for waits for its window to close before
+		-- the nameplates line is said, so that it is said only when nobody was named.
+		Mock.runTimers(2)
 		local text = said()
 		if not text:find("the game would not say who", 1, true) then fail(scenario, "SKIPPED -- no nameplates line") return end
 		if not text:find("Manners thanks them with your emote", 1, true) then
@@ -472,6 +475,7 @@ do
 	local scenario = "thank-unseen: the nameplates line names the switch to a player who thanks"
 	with(scenario, { unseen = false, platesOff = true }, function(ns)
 		land(ns, nil)
+		Mock.runTimers(2)   -- the line waits for the window to close, as above
 		local text = said()
 		if not text:find("the game would not say who", 1, true) then fail(scenario, "SKIPPED -- no nameplates line") return end
 		if not text:find("Thank them even when I can't see who it was", 1, true) then

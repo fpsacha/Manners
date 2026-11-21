@@ -11,7 +11,7 @@ mutate("Favours.lua",
        "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n",
        "\t\tif not source and ns.ALL_BUFF_IDS[key] and false\n",
        "favour-caster: the cast watch never asked",
-       expect=N + "a cast aimed at you names them as the buff lands", script=S)
+       expect=N + "a cast aimed at you names them once the moment has passed", script=S)
 
 mutate("Favours.lua",
        "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n",
@@ -19,11 +19,119 @@ mutate("Favours.lua",
        "favour-caster: a withheld source is not asked about",
        expect=N + "a withheld caster is named from their cast", script=S)
 
+# Fix 2: a landing is named at the moment it lands, on the casts the ring holds then.
 mutate("Favours.lua",
-       "if type(hit) == \"table\" and hit.aim == \"you\" then\n\t\t\t\tCopyCaster(hit.seen, seen)",
-       "if false then\n\t\t\t\tCopyCaster(hit.seen, seen)",
-       "favour-caster: a cast aimed at you waits for the window",
-       expect=N + "a cast aimed at you names them as the buff lands", script=S)
+       "\t\t\tseen.awaitCast = true\n\t\t\treturn true\n",
+       "\t\t\tseen.awaitCast = true\n\t\t\tlocal hit = Judge(seen.key, seen.low, GetTime())\n"
+       "\t\t\tif type(hit) == \"table\" and hit.aim == \"you\" then\n"
+       "\t\t\t\tCopyCaster(hit.seen, seen) hit.used = true seen.fromCast = true seen.awaitCast = nil\n"
+       "\t\t\t\treturn true\n\t\t\tend\n\t\t\treturn true\n",
+       "favour-caster: a landing is named at once from the casts seen so far",
+       expect=N + "a second cast aimed at you after the landing names nobody", script=S)
+
+# Fix 3: the nameplates rule for a cast with no target.
+mutate("Favours.lua",
+       "\t\t\t\tif ns.FriendlyPlatesOff() then\n\t\t\t\t\thit, why = nil, \"unseen\"\n",
+       "\t\t\t\tif false then\n\t\t\t\t\thit, why = nil, \"unseen\"\n",
+       "favour-caster: a cast with no target names them with the nameplates off",
+       expect=N + "plates off: a cast with no target names nobody", script=S)
+
+mutate("Favours.lua",
+       "\t\t\tif type(hit) == \"table\" and hit.aim ~= \"you\" then\n\t\t\t\tif ns.FriendlyPlatesOff() then",
+       "\t\t\tif type(hit) == \"table\" then\n\t\t\t\tif ns.FriendlyPlatesOff() then",
+       "favour-caster: the nameplates rule holds a cast aimed at you too",
+       expect=N + "plates off: a cast aimed at you still names them", script=S)
+
+# Fix 1: a withheld target blocks.
+mutate("Favours.lua",
+       "\t\t\t\tif ex == nil then\n\t\t\t\t\te.block = \"unreadable\"\n",
+       "\t\t\t\tif false then\n\t\t\t\t\te.block = \"unreadable\"\n",
+       "favour-caster: a withheld target is no target",
+       expect=N + "a cast whose target is withheld names nobody", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\t\tif me == nil then\n\t\t\t\t\t\te.block = \"unreadable\"\n",
+       "\t\t\t\t\tif me == nil then\n\t\t\t\t\t\te.aim = \"unknown\"\n",
+       "favour-caster: a withheld answer to whether the target is you is no target",
+       expect=N + "a cast at a target who may be you names nobody", script=S)
+
+# Fix 4: a list the client hides says nothing about not wearing the buff.
+mutate("Favours.lua",
+       "if not ok or type(first) ~= \"table\" or (issecretvalue and issecretvalue(first)) then return nil end\n",
+       "if false then return nil end\n",
+       "favour-caster: a hidden aura list is taken for not wearing the buff",
+       expect=N + "a caster whose auras are not shown names nobody", script=S)
+
+# Fix 5: one cast guid is one cast only for the same caster.
+mutate("Favours.lua",
+       "\t\t\t\tif guid ~= nil and e.guid == guid then\n\t\t\t\t\tif cast ~= nil and e.cast == cast then return end\n",
+       "\t\t\t\tif cast ~= nil and e.cast == cast then return end\n\t\t\t\tif guid ~= nil and e.guid == guid then\n",
+       "favour-caster: one cast guid is one cast whoever cast it",
+       expect=N + "two players under one cast guid name nobody", script=S)
+
+# Fix 6: your own casts block.
+mutate("Favours.lua",
+       "\t\t\tif unit == \"player\" or unit == \"pet\" then return OwnCast(now, unit, cast, id) end\n",
+       "\t\t\tif unit == \"player\" or unit == \"pet\" then return end\n",
+       "favour-caster: your own cast is not kept",
+       expect=N + "your own recast beside a stranger's cast names nobody", script=S)
+
+# Fixes 7 and 8: what the check-up and the hint say, and when.
+mutate("Favours.lua",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast\n",
+       "favour-caster: the cast watch files unnamed landings where the combat log does",
+       expect=N + "classic: a landing is not called unnamed where the combat log names the caster", script=S)
+
+mutate("Favours.lua",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed\n",
+       "favour-caster: a landing waiting for its window is called unnamed",
+       expect=N + "a landing waiting for its window is not yet called unnamed", script=S)
+
+mutate("Favours.lua",
+       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) ~= false then\n\t\t\tRemember(seen, \"unnamed\", \"none\")\n",
+       "\t\t\tthen\n\t\t\tRemember(seen, \"unnamed\", \"none\")\n",
+       "favour-caster: an NPC's aura is called unnamed",
+       expect=N + "a landing that is plainly an NPC's is not called unnamed", script=S)
+
+mutate("Favours.lua",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast then Unnamed(key, seen.unseen) end\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end\n",
+       "favour-caster: the nameplates line is said while the landing waits",
+       expect=N + "plates off: the nameplates line waits for the decision and is not said for a named caster", script=S)
+
+mutate("Favours.lua",
+       "\t\t\tUnnamed(seen.key, seen.unseen)\n\t\t\tif ns.UnmatchedBuffHint then",
+       "\t\t\tif ns.UnmatchedBuffHint then",
+       "favour-caster: a landing nobody named never says the nameplates line",
+       expect=N + "plates off: a landing nobody names says the nameplates line once its window closes", script=S)
+
+# Fix 9: a full queue judges the oldest landing.
+mutate("Favours.lua",
+       "\t\t\t\tDecide(table.remove(waiting, 1))\n",
+       "\t\t\t\tlocal old = table.remove(waiting, 1)\n\t\t\t\told.decided = true\n\t\t\t\tUnmatched(old, \"busy\")\n",
+       "favour-caster: a full queue gives up on the oldest landing",
+       expect=N + "a fifth landing judges the oldest waiting one on the casts seen", script=S)
+
+# Fixes 10 to 12: what a cast costs, and where a decision runs.
+mutate("Favours.lua",
+       "\t\t\tif not auraScanPrimed\n\t\t\t\tor not (db.sources.owed or ((db.prompt.thankEmote or db.prompt.thankWhisper)\n\t\t\t\t\tand not InCombatLockdown())) then\n\t\t\t\tcw.floor = GetTime()\n\t\t\t\treturn\n\t\t\tend\n",
+       "",
+       "favour-caster: a cast nothing could use is looked at",
+       expect=N + "a cast nothing could use costs the client nothing", script=S)
+
+mutate("Favours.lua",
+       "if ReadCaster(unit, rec, true, guid, full) then",
+       "if ReadCaster(unit, rec, false) then",
+       "favour-caster: the caster is asked about twice",
+       expect=N + "a cast asks the client for the caster's guid and kind once", script=S)
+
+mutate("Favours.lua",
+       "\t\t\tlocal wait = math.max(seen.high + 0.1 - GetTime(), 0)\n\t\t\tif not (C_Timer and C_Timer.After) then\n",
+       "\t\t\tlocal wait = seen.high + 0.1 - GetTime()\n\t\t\tif wait <= 0 or not (C_Timer and C_Timer.After) then\n",
+       "favour-caster: a closed window is decided inside the scan",
+       expect=N + "a window already closed is decided after the scan, not inside it", script=S)
 
 mutate("Favours.lua",
        "\t\t\t\t\t\treturn nil, \"several\"\n",
@@ -50,7 +158,7 @@ mutate("Favours.lua",
        expect=N + "a cast outside the moment names nobody", script=S)
 
 mutate("Favours.lua",
-       "e.ignored = ns.Ignored(unit, guid) or nil",
+       "e.ignored = not NobodyIgnored() and ns.Ignored(unit, guid) or nil",
        "e.ignored = nil",
        "favour-caster: an ignored caster is not noted as ignored",
        expect=N + "a cast from somebody on your ignore list names nobody", script=S)
@@ -62,8 +170,8 @@ mutate("Favours.lua",
        expect=N + "a cast of another buff names nobody", script=S)
 
 mutate("Favours.lua",
-       "e.aim = me == true and \"you\" or me == false and \"else\" or \"unknown\"",
-       "e.aim = me ~= nil and \"you\"",
+       "e.aim = me == true and \"you\" or \"else\"",
+       "e.aim = \"you\"",
        "favour-caster: a cast at somebody else counts as at you",
        expect=N + "a cast at somebody else names nobody", script=S)
 
@@ -80,7 +188,7 @@ mutate("Favours.lua",
        expect=N + "a cast by somebody who now wears a fresh one of it names nobody", script=S)
 
 mutate("Favours.lua",
-       "if plain(UnitIsPlayer(unit)) ~= true then e.block = e.block or \"npc\" end\n",
+       "if not isPlayer then e.block = e.block or \"npc\" end\n",
        "",
        "favour-caster: an NPC's cast is no block",
        expect=N + "an NPC casting it at that moment names nobody", script=S)
@@ -181,8 +289,8 @@ mutate("Options/Diagnostics.lua",
 # spell or token on a cast is no error" still pins the plain() path in the mock.
 
 mutate("Favours.lua",
-       "\t\t\treturn cannotTell\n",
-       "\t\t\treturn true\n",
+       "\t\t\treturn false\n\t\tend\n\n\t\tlocal function Forget(seen)\n",
+       "\t\t\treturn true\n\t\tend\n\n\t\tlocal function Forget(seen)\n",
        "favour-caster: a caster wearing none of the buff is taken for a self-cast",
        expect=N + "another class's buff with no target names the stranger once the moment has passed", script=S)
 
@@ -199,8 +307,8 @@ mutate("Favours.lua",
        expect=N + "a thank to nobody that never went does not stop the caster being thanked", script=S)
 
 mutate("Favours.lua",
-       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast and plain(aura.isFromPlayerOrPlayerPet) ~= false then\n",
-       "\t\tif false then\n",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast\n",
+       "\t\tif false\n",
        "favour-caster: a landing given up on at once is left out of the check-up",
        expect=N + "a buff that landed too long ago to match a cast is in /manners debug", script=S)
 
@@ -227,3 +335,9 @@ mutate("Companion.lua",
        "",
        "favour-caster: the pet's listener guards a stranger's cast",
        expect=N + "a cast by somebody else costs the pet's listener no protected call", script=S)
+
+mutate("Favours.lua",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast then Unnamed(key, seen.unseen) end\n",
+       "",
+       "favour-caster: a landing too old to match a cast never says the nameplates line",
+       expect=N + "plates off: a landing too old to match a cast says the nameplates line at once", script=S)

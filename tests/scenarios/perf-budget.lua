@@ -483,13 +483,14 @@ do
 end
 
 -- ------------------------------------------------------------------ budget 6
--- A cast by anybody else reaches Favours.lua's cast watch, which drops
--- anything that is not a class buff with one table lookup and no protected
--- call, and Companion.lua's frame, registered for the player's casts alone
--- (with a unit check before its protected call where that is missing): the six UNIT_SPELLCAST_* events are registered on a frame of the
--- addon's own for the player alone (RegisterUnitEvent), not through AceEvent,
--- which hands every cast in sight to a handler that throws it away. The frame
--- hands each event to the addon's method of the same name, as AceEvent did.
+-- A cast by anybody else reaches Favours.lua's cast watch, which drops anything
+-- that is not a class buff with one table lookup and no protected call, and
+-- Companion.lua's frame, registered for the player's casts alone (with a unit
+-- check before its protected call where that is missing). The six UNIT_SPELLCAST_*
+-- events are registered on a frame of the addon's own for the player alone
+-- (RegisterUnitEvent), not through AceEvent, which hands every cast in sight to a
+-- handler that throws it away; the frame hands each event to the addon's method of
+-- the same name, as AceEvent did.
 do
 	local scenario = "perf-budget: only the player's own casts are delivered"
 	local CASTS = { "UNIT_SPELLCAST_SENT", "UNIT_SPELLCAST_SUCCEEDED", "UNIT_SPELLCAST_FAILED",
@@ -546,6 +547,60 @@ do
 			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
 		end
 	end)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- The cast watch's own frame hears every cast in sight; a stranger's spell that
+-- is no class buff costs it nothing: no protected call and no client call (the
+-- secret-value test aside), whatever else the frame is for.
+do
+	local scenario = "perf-budget: a stranger's cast that is no buff costs the cast watch nothing"
+	Mock.reset()
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		H.drive(scenario, ns)
+		-- Primed, with People who buff me on: the state in which a cast that was a class
+		-- buff would be looked at.
+		ns.db.profile.sources.owed = true
+		if H.primeAuras then H.primeAuras(ns) end
+		if not (ns.auraScan and ns.auraScan.primed) then
+			fail(scenario, "SKIPPED -- the baseline never settled")
+			return
+		end
+		local frame = ns.castWatch and ns.castWatch.frame
+		local handler = frame and frame.scripts and frame.scripts.OnEvent
+		if type(handler) ~= "function" then
+			fail(scenario, "SKIPPED -- the cast watch has no frame on this client")
+			return
+		end
+		local FIREBALL = 133
+		if ns.ALL_BUFF_IDS[FIREBALL] then fail(scenario, "SKIPPED -- Fireball is a class buff here") return end
+		local realPcall, realXpcall = pcall, xpcall
+		local pcalls, asked = 0, 0
+		local getinfo = debug.getinfo
+		local issecret = _G.issecretvalue
+		local function onCall()
+			local info = getinfo(2, "fS")
+			if not info or info.func == issecret then return end
+			if not fromDoubles(info.source) then return end
+			local from = getinfo(3, "S")
+			if from and fromDoubles(from.source) then return end
+			asked = asked + 1
+		end
+		_G.pcall = function(fn, ...) pcalls = pcalls + 1 return realPcall(fn, ...) end
+		_G.xpcall = function(fn, h, ...) pcalls = pcalls + 1 return realXpcall(fn, h, ...) end
+		local priorHook, priorMask, priorCount = debug.gethook()
+		debug.sethook(onCall, "c")
+		local called, thrown = realPcall(handler, frame, "UNIT_SPELLCAST_SUCCEEDED", "nameplate1", "Cast-stranger", FIREBALL)
+		debug.sethook(priorHook, priorMask, priorCount)
+		_G.pcall, _G.xpcall = realPcall, realXpcall
+		if not called then fail(scenario, "threw: " .. tostring(thrown)) end
+		if pcalls ~= 0 then fail(scenario, ("a stranger's Fireball cost the cast watch %d protected calls"):format(pcalls)) end
+		if asked ~= 0 then fail(scenario, ("a stranger's Fireball cost the cast watch %d client calls"):format(asked)) end
+	end)
+	_G.pcall, _G.xpcall = pcall, xpcall
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
