@@ -18,6 +18,16 @@
   say, is no longer offered while you rest, even with your own buffs allowed in
   cities. Asked for on CurseForge.
 
+### New
+- **Your key can cast a shield, or a quick heal, in a fight.** A new setting on
+  Look, under *In a fight*: *In a fight, my key casts*. Pick a spell you know,
+  Power Word: Shield, Ice Barrier, Renew or Flash of Light say, and the
+  prompt's own key casts it for as long as the fight lasts, then goes back to
+  buffing. A spell you can cast on others lands on the player under your mouse,
+  else your target, else you; *Who it lands on* can keep it to you (on WoW
+  Forever it lands on your target when that is a friend, else on you). Nothing
+  new appears on the screen, and clicking the prompt still buffs.
+
 ### Fixes
 - **Mark of the Wild is no longer offered to pets** on WoW Forever, where it
   takes players alone; Thorns still is. Asked for on CurseForge.

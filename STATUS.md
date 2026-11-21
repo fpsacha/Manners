@@ -101,6 +101,37 @@ for every fight too (see *Fight buttons* below). Mend Pet's `Wanted` also lacks 
 so for a hunter it asks `Refresh` on every scan (harmless; not touched). For
 the game to settle: the list under *Open*.
 
+**The prompt's key in a fight (branch `fixes-b`, unreleased; asked for: a shield
+on the prompt's key in a fight).** Not a second line in the prompt's macro,
+which could not work: with nobody to buff the prompt holds no macro, the hide
+snippet strips it, the rota rewrites it at every press, the buff lines ahead of
+it start the global cooldown, `[@player]` is off on Forever and the bar macro
+cannot copy a conditional. Instead `Prompt/FightKey.lua` (`ns.FightKey`,
+`MannersFightKey`, never shown, no key of its own, no Bindings.xml entry):
+`prompt.fightKeySpell` (`"none"`; a row key of its list) and
+`prompt.fightKeyOn` (`friend`, `me`), on Look under *In a fight* after the
+rota (`appearance.fightKeySpell`, `fightKeyOn`; both in the simple view and the
+appearance reset). The list is per class and per family (`old`: Classic Era,
+Forever and TBC; Mists; retail), rank 1 of each spell, every id read against
+SpellName at the cited builds, and only a spell `ns.SpellKnown` says is known
+with a name is offered (kept on `caps.fightKey`, emptied by every probe). At
+`PLAYER_REGEN_DISABLED`, still out of the lockdown, `Take` points each key the
+prompt is bound to at the button with `SetOverrideBindingClick` (the owner is a
+plain frame); `PLAYER_REGEN_ENABLED` clears them. Nothing is set or cleared
+under the lockdown, a change made in a fight counts from the next pull, and a
+reload or login in a fight never fires the pull, so that fight's key keeps to
+buffs. The prompt, its macro, the hold, `armedForFight`, the hide snippet and
+the rota are untouched: a click on the prompt still buffs and steps the rota;
+the panel's line says "a click moves on" while the key is lent. The macro is
+`/cast <spell>` for a spell only for yourself, `/cast [@mouseover,help,nodead]
+[help,nodead][@player] <spell>` elsewhere (`[@player]` for *Me*), a bare
+`/cast` on Forever. The mock gained override bindings (`SetOverrideBindingClick`,
+`ClearOverrideBindings`, `GetBindingAction`'s override argument,
+`Mock.overrides`, `Mock.pressKey`). `tests/scenarios/fightkey.lua` (twelve
+scenarios, each on the five clients but the layout one) and ten mutations in
+`tests/mutations/fightkey.py`, each CAUGHT by `tools/prove.py`. Twelve new
+strings in all eight locales. Not seen in the game: see the list under *Open*.
+
 **Scroll bar (unreleased, a CurseForge report: on four pages dragging the bar
 went the wrong way, the wheel was fine).** The exact cause was not provable
 from the code, which drives the bar the same way on every page and leaves only
@@ -1034,6 +1065,13 @@ permissions list, a hook that lints each edited file, and the commands
 1.11.29: a mage's Mana Shield and Fire Ward or Frost Ward as own buffs (Classic Era, Forever, TBC); Add a spell of my own (OwnSpells.lua).
 
 ## Open
+
+**The prompt's key in a fight (unreleased), only the live game can say.**
+1. That the override binding takes at `PLAYER_REGEN_DISABLED` on each of the five clients: with a spell chosen, the prompt's key casts it in the first pull of a session, and gives the buff back after the fight.
+2. That a hidden, never-shown secure button still fires from an override binding on each client (the prompt's hidden state does from its own binding, which is what this rests on).
+3. Forever's bare `/cast` landing on you with a mob targeted (a friendly-only spell), and on your target when it is a friend.
+4. `[@mouseover,help,nodead]` for a heal on raid and party frames on Era, TBC, Mists and retail, and that a spell for yourself casts at once with a mob targeted.
+5. That a key bound with a modifier (SHIFT-F) is lent as written, and that a key bound to the prompt through the game's own bindings screen is found by `GetBindingKey`.
 
 **Comments of 20 November (the scroll bar, snooze, cure yourself, thanks in a group, the druid colour), for the game to settle.**
 1. The options window's scroll bar is now dragged by Manners' own code (a plain frame with a thumb, not a client Slider): does a drag down move the page down on every page and every client, at any UI scale, with the box bars too?

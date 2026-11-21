@@ -10,6 +10,9 @@ ns.WhatsNew = {
 			"|cffffd100Will of the Forsaken and Mend Pet stay out of sight until you need them.|r The two fight buttons no longer sit dim beside the prompt for the whole fight.",
 			"|cffffd100Short buffs held back in cities and inns now covers yourself.|r With |cffffffffHold back short buffs in cities and inns|r ticked, a short buff for yourself, Thorns say, is no longer offered while you rest, even with your own buffs allowed in cities.",
 		} },
+		{ title = "New", accent = "7cc4ff", entries = {
+			"|cff7cc4ffYour key can cast a shield, or a quick heal, in a fight.|r A new setting on Look, under |cffffffffIn a fight|r: |cffffffffIn a fight, my key casts|r.",
+		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Mark of the Wild is no longer offered to pets|r on WoW Forever, where it takes players alone; Thorns still is.",
 			"|cffff9a52A Familiar scroll's pet is left alone.|r Manners no longer brings a pet out of your journal over a Cat, Frog or Rat Familiar while it is up.",

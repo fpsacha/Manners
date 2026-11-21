@@ -150,6 +150,7 @@ function Mock.reset()
 	Mock.dead = false
 	Mock.inCombat = false
 	Mock.bindings = {}
+	Mock.overrides = {}
 	Mock.bindingsSaved = 0
 	Mock.bindingSet = nil
 	Mock.macros = nil
@@ -1730,8 +1731,30 @@ function GetBindingKey(command)
 	table.sort(keys)
 	return (table.unpack or unpack)(keys)
 end
-function GetBindingAction(key)
+-- With checkOverride, an override binding (SetOverrideBindingClick) answers
+-- first, as the client's does.
+function GetBindingAction(key, checkOverride)
+	if checkOverride then
+		local over = (Mock.overrides or {})[key]
+		if over then return over.command end
+	end
 	return (Mock.bindings or {})[key] or ""
+end
+-- Override bindings: a key sent to a button for as long as the owner keeps it,
+-- over the saved set. Refused in a fight, as the client refuses them, with
+-- the error the client's own protection raises. Mock.overrides is wiped by
+-- Mock.reset; Mock.pressKey (tests/mockwidgets.lua) reads it before the
+-- bindings.
+function SetOverrideBindingClick(owner, prio, key, name, mouse)
+	if InCombatLockdown() then error("ADDON_ACTION_BLOCKED: SetOverrideBindingClick()", 2) end
+	Mock.overrides = Mock.overrides or {}
+	Mock.overrides[key] = { owner = owner, command = "CLICK " .. tostring(name) .. ":" .. tostring(mouse or "LeftButton") }
+end
+function ClearOverrideBindings(owner)
+	if InCombatLockdown() then error("ADDON_ACTION_BLOCKED: ClearOverrideBindings()", 2) end
+	for key, over in pairs(Mock.overrides or {}) do
+		if over.owner == owner then Mock.overrides[key] = nil end
+	end
 end
 function SetBinding(key, command)
 	Mock.bindings = Mock.bindings or {}

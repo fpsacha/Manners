@@ -766,6 +766,15 @@ function Mock.pressBinding(command, opts)
 	return true
 end
 
+-- A key pressed as the game resolves it: an override binding first, then the
+-- saved bindings, then the command pressed. False when nothing is bound.
+function Mock.pressKey(key, opts)
+	local over = Mock.overrides and Mock.overrides[key]
+	local command = over and over.command or (Mock.bindings or {})[key]
+	if not command then return false end
+	return Mock.pressBinding(command, opts)
+end
+
 ---------------------------------------------------------------------------
 -- driving the frames as a player would
 ---------------------------------------------------------------------------

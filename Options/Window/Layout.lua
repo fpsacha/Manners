@@ -825,6 +825,8 @@ ns.WindowLayout = {
 				{ key = "appearance.fight", title = L["In a fight"], items = {
 					"appearance.hideInFight",
 					"appearance.fightRota",
+					"appearance.fightKeySpell",
+					{ "appearance.fightKeyOn", indent = true },
 					-- A Forsaken's Will of the Forsaken (Prompt/BreakFree.lua).
 					"appearance.breakFree",
 					{ "appearance.breakFreeKey", indent = true },
@@ -1090,6 +1092,7 @@ ns.WindowLayout = {
 			["appearance.mendInFight"] = true, ["appearance.mendInFightKey"] = true,
 			["appearance.fightButtons"] = true,
 			["appearance.cureFight"] = true, ["appearance.cureFightKey"] = true,
+			["appearance.fightKeySpell"] = true, ["appearance.fightKeyOn"] = true,
 		},
 	},
 
@@ -1209,6 +1212,7 @@ ns.WindowLayout = {
 		["who.beastLeaveFood"] = L["hunter pet vendor food buy"], ["who.beastGrowl"] = L["hunter pet growl autocast tank"],
 		["who.beastTraining"] = L["hunter pet training points"], ["appearance.mendInFight"] = L["hunter pet mend fight button key"],
 		["appearance.cureFight"] = L["cure dispel decurse cleanse fight combat button key"],
+		["appearance.fightKeySpell"] = L["fight combat key spell shield heal barrier"],
 		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
 		["who.curesFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["who.ownSpellAdd"] = L["custom spell add new buff own"],

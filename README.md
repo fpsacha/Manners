@@ -279,6 +279,24 @@ Manners never removes keeps the cure that would lift it away from that person.
 Where the game hides debuffs in a fight the button stays out of sight, and its
 key still casts. The prompt's own key keeps to buffs.
 
+#### A spell on your key in a fight
+
+*In a fight, my key casts* (Look, under *In a fight*; *Nothing* by default)
+lists the shields and quick heals your class knows: Power Word: Shield, Renew
+and Flash Heal for a priest, Ice Barrier for a mage, Flash of Light and Divine
+Protection for a paladin, and so on, only those you have learned. Pick one and
+the prompt's own key casts it for the length of every fight, then buffs again
+when the fight ends. Manners lends the key to a button that is never shown, at
+the pull, and takes it back at the end, so nothing new appears on the screen.
+A spell you can cast on others lands on the player under your mouse, else
+your target, else you; *Who it lands on* can make it you alone (on WoW Forever
+it lands on your target when that is a friend, else on you). A spell only for
+yourself always lands on you. Clicking the prompt still buffs and moves on to
+the next person, and the Manners macro on an action bar keeps to buffs. It
+needs a key for the prompt, and a change made in a fight counts from the next
+one. After a reload in the middle of a fight the key keeps to buffs until it
+ends.
+
 Other players' buffs are hidden by the game in a fight, and sometimes for a
 moment after: somebody whose buffs cannot be read is offered marked
 *unverified*, and everybody is read again the moment the fight ends.
@@ -1272,6 +1290,8 @@ cannot send it to somebody else by mistake.
     macro still held a cast as the fight began, the prompt stays up for that
     fight and a line in chat says so.
   - *In a fight, each press moves on to the next person* (on).
+  - *In a fight, my key casts* (*Nothing*), with *Who it lands on* under it:
+    see *A spell on your key in a fight* above.
   - *Offer Will of the Forsaken when I am feared, charmed or asleep* (on, a
     Forsaken only), with *Key for Will of the Forsaken* under it: see *Will
     of the Forsaken* above.

@@ -441,7 +441,11 @@ function Page.BuildLookTab()
 			hideInFight = {
 				type = "toggle",
 				name = L["Hide the prompt in combat"],
-				desc = L["Off the screen for the whole fight, and nothing casts from it meanwhile: not its key, not a name in its list, not the Manners macro on your bar. It comes back when the fight ends. A change made in a fight counts from the next one."],
+				desc = function()
+					local text = L["Off the screen for the whole fight, and nothing casts from it meanwhile: not its key, not a name in its list, not the Manners macro on your bar. It comes back when the fight ends. A change made in a fight counts from the next one."]
+					if ns.FightKey and ns.FightKey.Chosen() then text = text .. " " .. L["While In a fight, my key casts names a spell, the prompt's key casts that spell in a fight instead."] end
+					return text
+				end,
 				order = 32.4,
 				width = "full",
 				get = pGet,
@@ -453,12 +457,71 @@ function Page.BuildLookTab()
 			fightRota = {
 				type = "toggle",
 				name = L["In a fight, each press moves on to the next person"],
-				desc = L["A fight locks the prompt, so Manners hands it everybody who still needed a buff as the fight began, and each press of the prompt or its key casts at the next of them in turn. Off, every press in a fight casts at the one person the prompt was on. The Manners macro on an action bar keeps to that one person either way."],
+				desc = function()
+					local text = L["A fight locks the prompt, so Manners hands it everybody who still needed a buff as the fight began, and each press of the prompt or its key casts at the next of them in turn. Off, every press in a fight casts at the one person the prompt was on. The Manners macro on an action bar keeps to that one person either way."]
+					if ns.FightKey and ns.FightKey.Chosen() then text = text .. " " .. L["While In a fight, my key casts names a spell, the prompt's key casts that spell in a fight instead."] end
+					return text
+				end,
 				order = 32.45,
 				width = "full",
 				disabled = function() return P().hideInFight == true end,
 				get = pGet,
 				set = pSet,
+			},
+			-- The prompt's own key casting a spell of the player's choosing in a
+			-- fight (Prompt/FightKey.lua): an override binding taken at the pull
+			-- and given back at the end; nothing extra on the screen.
+			fightKeySpell = {
+				type = "select",
+				name = L["In a fight, my key casts"],
+				desc = function()
+					local text = L["The prompt's key buffs out of a fight. Pick a spell here and the same key casts it in a fight instead, for as long as the fight lasts; nothing extra appears on screen. Clicking the prompt still buffs. Only spells you know are listed. It needs a key for the prompt, and the Manners macro on an action bar keeps to buffs. A change made in a fight counts from the next one."]
+					if not ns.caps.conditionalTargeting then
+						text = text .. " " .. L["A spell you can cast on others lands on your target when it is a friend, else on you."]
+					end
+					return text
+				end,
+				order = 32.455,
+				width = "full",
+				hidden = function() return #ns.FightKey.Choices() <= 1 end,
+				values = function()
+					local out = {}
+					for _, entry in ipairs(ns.FightKey.Choices()) do
+						out[entry.key] = entry.key == "none" and L["Nothing (keep to buffs)"] or entry.name
+					end
+					return out
+				end,
+				sorting = function()
+					local out = {}
+					for _, entry in ipairs(ns.FightKey.Choices()) do out[#out + 1] = entry.key end
+					return out
+				end,
+				get = pGet,
+				set = function(info, value)
+					pSet(info, value)
+					ns.Guard("fight key", ns.FightKey.Refresh, ns.FightKey)
+				end,
+			},
+			fightKeyOn = {
+				type = "select",
+				name = L["Who it lands on"],
+				desc = L["For a spell you can cast on others. A spell only for yourself always lands on you."],
+				order = 32.456,
+				hidden = function()
+					if not ns.caps.conditionalTargeting then return true end
+					local row = ns.FightKey.Chosen()
+					return row == nil or row.self == true
+				end,
+				values = {
+					friend = L["The player under my mouse, else my target, else me"],
+					me = L["Me"],
+				},
+				sorting = { "friend", "me" },
+				get = pGet,
+				set = function(info, value)
+					pSet(info, value)
+					ns.Guard("fight key", ns.FightKey.Refresh, ns.FightKey)
+				end,
 			},
 			-- Breaking free in a fight (Prompt/BreakFree.lua): a Forsaken's
 			-- Will of the Forsaken on a button of its own beside the prompt,

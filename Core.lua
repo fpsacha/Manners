@@ -720,6 +720,14 @@ local defaults = {
 			-- fight, out of sight until somebody near you needs it
 			-- (Prompt/CureFight.lua). Off until ticked.
 			cureFight = false,
+			-- The spell the prompt's own key casts in a fight, by a row key of
+			-- Prompt/FightKey.lua's list; "none" keeps the key to buffs. The key is
+			-- pointed at a button of its own for the length of the fight.
+			fightKeySpell = "none",
+			-- Who that spell lands on, for a spell that can go on others, on a client
+			-- where [@unit] resolves: "friend" (the player under the mouse, else
+			-- the target, else you) or "me".
+			fightKeyOn = "friend",
 			-- The built-in looks (Glass, Framed, Minimal) draw the prompt at about
 			-- half strength in a fight when this is on, so it reads as held. Off by
 			-- default: a dim that stacks with a low Opacity made it vanish.
@@ -6085,6 +6093,7 @@ function ns.ClampSettings()
 	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
 	oneOf(p, "keycap", { look = true, show = true, hide = true }, "look")
 	oneOf(p, "fightButtons", { needed = true, always = true }, "needed")
+	oneOf(p, "fightKeyOn", { friend = true, me = true }, "friend")
 	oneOf(p, "thankEmoteToken", ns.THANK_EMOTE_SET, "THANK")
 	-- The others to pick from: a table of known tokens, each true; anything
 	-- else in it is dropped.
@@ -6478,6 +6487,8 @@ function addon:TickBody()
 	if mendPet and mendPet:Wanted() then ns.Guard("mend pet", mendPet.Refresh, mendPet) end
 	local cureFight = ns.CureFight
 	if cureFight and cureFight:Wanted() then ns.Guard("cure in a fight", cureFight.Refresh, cureFight) end
+	local fightKey = ns.FightKey
+	if fightKey and fightKey:Wanted() then ns.Guard("fight key", fightKey.Refresh, fightKey) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
 	-- off, a scan pays nothing for it.
 	local pet = ns.Pet
@@ -6700,6 +6711,9 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- And, with the prompt left up, the rota its presses step through in the
 	-- fight (Prompt/Fight.lua): the queue as that repaint built it.
 	if ns.Prompt then ns.Guard("rota for the fight", ns.Prompt.ArmFightRota, ns.Prompt) end
+	-- And the prompt's own keys pointed at the fight key's button, still out of
+	-- the lockdown (Prompt/FightKey.lua); given back at the end of the fight.
+	if ns.FightKey then ns.Guard("fight key", ns.FightKey.Take, ns.FightKey) end
 	-- Nothing of yours is used in a fight: the consumables button goes now,
 	-- before the lockdown, and its snippet makes sure of it at the lockdown.
 	if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
@@ -6747,6 +6761,7 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- repaint below, as any repaint arms and shows it (Prompt/Fight.lua).
 	if ns.Prompt then ns.Guard("fight hide release", ns.Prompt.ReleaseFightHide, ns.Prompt) end
 	if ns.Prompt then ns.Guard("fight rota release", ns.Prompt.ReleaseFightRota, ns.Prompt) end
+	if ns.FightKey then ns.Guard("fight key release", ns.FightKey.Release, ns.FightKey) end
 	-- The prompt's break-free line off before the repaint below, and the
 	-- break-free button armed for the next fight (Prompt/BreakFree.lua).
 	if ns.BreakFree then ns.Guard("break free release", ns.BreakFree.Release, ns.BreakFree) end

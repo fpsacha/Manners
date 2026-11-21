@@ -263,6 +263,7 @@ _REPAINT = ("\t-- A buff that landed after the fight's last tick, walked now so 
             "\t-- repaint below, as any repaint arms and shows it (Prompt/Fight.lua).\n"
             "\tif ns.Prompt then ns.Guard(\"fight hide release\", ns.Prompt.ReleaseFightHide, ns.Prompt) end\n"
             "\tif ns.Prompt then ns.Guard(\"fight rota release\", ns.Prompt.ReleaseFightRota, ns.Prompt) end\n"
+            "\tif ns.FightKey then ns.Guard(\"fight key release\", ns.FightKey.Release, ns.FightKey) end\n"
             "\t-- The prompt's break-free line off before the repaint below, and the\n"
             "\t-- break-free button armed for the next fight (Prompt/BreakFree.lua).\n"
             "\tif ns.BreakFree then ns.Guard(\"break free release\", ns.BreakFree.Release, ns.BreakFree) end\n"

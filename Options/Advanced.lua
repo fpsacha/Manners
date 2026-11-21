@@ -143,6 +143,7 @@ Page.RESET = {
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
 		"supplies.size", "prompt.breakFree", "beast.fightMend", "prompt.cureFight",
+		"prompt.fightKeySpell", "prompt.fightKeyOn",
 		-- Use my class's look on each character, and each class's pick.
 		"prompt.classLook", "prompt.classStyles",
 		after = function()
