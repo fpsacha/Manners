@@ -1293,7 +1293,8 @@ do
 		local CAST_SAME = 0.5       -- two sightings of one cast, by one person
 		local CAST_KEEP = 6         -- how long a cast stays in the ring
 		local CAST_RING_MAX = 32
-		local AWAIT_MAX = 4         -- landings waiting for their window to close
+		local AWAIT_MAX = 8         -- landings waiting for their window to close (a
+		                            -- buff round lands several in one second)
 		local LANDED_OLDEST = 4     -- the oldest landing a cast can explain; with the
 		                            -- window and a tick it stays inside CAST_KEEP
 		local COPIED = { "name", "guid", "class", "level", "sameParty", "inGroup",
@@ -1473,6 +1474,12 @@ do
 			-- A cast not aimed at you may name its caster only while the friendly
 			-- nameplates are plainly on (off, a stranger out of sight may have cast
 			-- it, and the one seen is a bystander) and it is plainly no self-cast.
+			-- Aimed at you is no proof either: with you targeted, the self-cast key or a
+			-- mouseover macro sends it elsewhere. A caster who plainly wears a fresh one
+			-- cast at that moment cast it on themselves; "cannot tell" still names them.
+			if type(hit) == "table" and hit.aim == "you" and SelfCast(hit) == true then
+				hit, why = nil, "theirOwn"
+			end
 			if type(hit) == "table" and hit.aim ~= "you" then
 				if ns.FriendlyPlatesOff() then
 					hit, why = nil, "unseen"
@@ -1495,6 +1502,17 @@ do
 			if type(hit) == "table" then
 				CopyCaster(hit.seen, seen)
 				hit.used = true
+				-- The same cast heard under another token (one person, one buff, the same
+				-- moment) is spent with it, even with every id withheld: one cast names one
+				-- landing.
+				local casts = cw.casts
+				for i = 1, #casts do
+					local e = casts[i]
+					if not e.used and SamePerson(hit, e) and SameBuff(e.spell, hit.spell)
+						and math.abs(e.at - hit.at) <= CAST_SAME then
+						e.used = true
+					end
+				end
 				seen.fromCast = true
 				seen.filed = true
 				-- A thank to nobody still waiting is let go for the name (the pause ends,
@@ -1517,6 +1535,14 @@ do
 				return
 			end
 			Unmatched(seen, why)
+		end
+
+		-- A landing that cannot wait for its window to close: nobody is named.
+		local function GiveUp(seen)
+			if seen.decided then return end
+			seen.decided = true
+			Forget(seen)
+			Unmatched(seen, "unreadable")
 		end
 
 		-- The landing has no caster the aura names: fix the window its casts fall in.
@@ -1542,13 +1568,17 @@ do
 			seen.afterFight = walkAfterFight or nil
 			local waiting = cw.waiting
 			if #waiting >= AWAIT_MAX then
-				-- Judged on the casts the ring holds, not given up on.
-				Decide(table.remove(waiting, 1))
+				-- The oldest is judged if its window has closed; judged early, a second
+				-- player's cast still to come in it could not make it "several", so one
+				-- still open is given up on, naming nobody.
+				local old = table.remove(waiting, 1)
+				if GetTime() > old.high then Decide(old) else GiveUp(old) end
 			end
 			waiting[#waiting + 1] = seen
 			local wait = math.max(seen.high + 0.1 - GetTime(), 0)
 			if not (C_Timer and C_Timer.After) then
-				Decide(seen)
+				-- No timer to wait on: decided only once the window has closed.
+				if wait > 0 then GiveUp(seen) else Decide(seen) end
 				return
 			end
 			-- A window already closed is decided on the next frame, not from inside the

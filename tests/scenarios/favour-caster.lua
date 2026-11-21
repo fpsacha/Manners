@@ -908,16 +908,83 @@ do
 end
 
 do
-	-- Four landings wait at most: a fifth judges the oldest on the casts the ring holds
-	-- (Anna's, aimed at you) rather than giving up on it.
-	local scenario = "favour-caster: a fifth landing judges the oldest waiting one on the casts seen"
+	-- Eight landings wait at most. A ninth gives up on the oldest while its window is
+	-- still open (judged early, a second player's cast still to come could not make
+	-- it "several"), and the cast it would have taken names the next landing once
+	-- that one's window closes.
+	local scenario = "favour-caster: a full queue gives up on the oldest landing while its window is open"
 	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
 		local anna = ns.UnitFullName("nameplate1")
 		cast("nameplate1")
-		for _ = 1, 4 do land(ns, nil) end
+		for _ = 1, 8 do land(ns, nil) end
 		if owedBy(ns, anna) then fail(scenario, "SKIPPED -- named before the queue was full") return end
 		land(ns, nil)
-		if not owedBy(ns, anna) then fail(scenario, "the oldest landing was given up on, not judged: " .. said()) end
+		if owedBy(ns, anna) then fail(scenario, "the oldest landing was judged before its window closed: " .. said()) end
+		Mock.runTimers(2)
+		if ns.castWatch.named ~= 1 then
+			fail(scenario, ("one cast named %d landings once the windows closed"):format(ns.castWatch.named))
+		end
+	end)
+end
+
+do
+	-- Once its window has closed, the oldest is judged as ever when the queue fills.
+	local scenario = "favour-caster: a full queue judges the oldest landing once its window has closed"
+	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
+		local anna = ns.UnitFullName("nameplate1")
+		local realAfter = C_Timer.After
+		-- Timers that never fire, so only the full queue can decide.
+		rawset(C_Timer, "After", function() end)
+		local ok, err = pcall(function()
+			cast("nameplate1")
+			land(ns, nil)
+			Mock.advance(1.5)
+			for _ = 1, 8 do land(ns, nil) end
+		end)
+		rawset(C_Timer, "After", realAfter)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) return end
+		if not owedBy(ns, anna) then fail(scenario, "the oldest landing, its window closed, was given up on: " .. said()) end
+	end)
+end
+
+do
+	-- Anna has you targeted but casts it on herself (the self-cast key, a mouseover
+	-- macro): she wears a fresh one begun as she cast. An unseen player buffed you.
+	local scenario = "favour-caster: a cast aimed at you that was their own names nobody"
+	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
+		Mock.held = { [FORTITUDE] = true }
+		Mock.heldDuration = 1800
+		Mock.heldFor = 1800 - 1.8
+		cast("nameplate1")
+		land(ns, nil)
+		Mock.runTimers(2)
+		if next(ns.owed) then fail(scenario, "a self-cast with you targeted was taken for a favour: " .. tostring(next(ns.owed))) end
+	end)
+end
+
+do
+	-- Anna's GUID and her cast's GUID are both withheld; one cast heard under two
+	-- tokens. Her cast names one landing; a second landing in the same second, from
+	-- a player nobody saw, finds the other copy spent.
+	local scenario = "favour-caster: one cast under two tokens with every id withheld names one landing"
+	local names = { nameplate1 = { "Anna", "Aim" }, target = { "Anna", "Aim" },
+		nameplate1target = { "Me", "Myself" }, targettarget = { "Me", "Myself" } }
+	with(scenario, { names = names, aimed = { nameplate1target = "player", targettarget = "player" } }, function(ns)
+		local realGuid = _G.UnitGUID
+		rawset(_G, "UnitGUID", function(unit, ...)
+			if unit == "nameplate1" or unit == "target" then return Mock.SECRET end
+			return realGuid(unit, ...)
+		end)
+		Mock.frameEvent("UNIT_SPELLCAST_SUCCEEDED", "nameplate1", Mock.SECRET, FORTITUDE)
+		Mock.frameEvent("UNIT_SPELLCAST_SUCCEEDED", "target", Mock.SECRET, FORTITUDE)
+		land(ns, nil)
+		Mock.advance(0.3)
+		land(ns, nil)
+		Mock.runTimers(3)
+		rawset(_G, "UnitGUID", realGuid)
+		if ns.castWatch.named ~= 1 then
+			fail(scenario, ("%d landings were named from one cast"):format(ns.castWatch.named))
+		end
 	end)
 end
 

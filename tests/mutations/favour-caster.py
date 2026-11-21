@@ -107,12 +107,19 @@ mutate("Favours.lua",
        "favour-caster: a landing nobody named never says the nameplates line",
        expect=N + "plates off: a landing nobody names says the nameplates line once its window closes", script=S)
 
-# Fix 9: a full queue judges the oldest landing.
+# Fix 9, and the third review: a full queue judges the oldest landing once its
+# window has closed, and gives it up (naming nobody) while it is still open.
 mutate("Favours.lua",
-       "\t\t\t\tDecide(table.remove(waiting, 1))\n",
-       "\t\t\t\tlocal old = table.remove(waiting, 1)\n\t\t\t\told.decided = true\n\t\t\t\tUnmatched(old, \"busy\")\n",
+       "\t\t\t\tif GetTime() > old.high then Decide(old) else GiveUp(old) end\n",
+       "\t\t\t\tGiveUp(old)\n",
        "favour-caster: a full queue gives up on the oldest landing",
-       expect=N + "a fifth landing judges the oldest waiting one on the casts seen", script=S)
+       expect=N + "a full queue judges the oldest landing once its window has closed", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\tif GetTime() > old.high then Decide(old) else GiveUp(old) end\n",
+       "\t\t\t\tDecide(old)\n",
+       "favour-caster: a full queue judges the oldest before its window closes",
+       expect=N + "a full queue gives up on the oldest landing while its window is open", script=S)
 
 # Fixes 10 to 12: what a cast costs, and where a decision runs.
 mutate("Favours.lua",
@@ -373,3 +380,17 @@ mutate("ThankPress.lua",
        "\t\tif false then\n",
        "favour-caster: a thank to nobody parked for a press stays for an ignored caster",
        expect=N + "an ignored caster's buff is not thanked to nobody: the cast came after the landing, a press thanks", script=S)
+
+# The third review: an aimed-at-you cast that was a self-cast, and one cast heard
+# under two tokens with every id withheld.
+mutate("Favours.lua",
+       "\t\t\tif type(hit) == \"table\" and hit.aim == \"you\" and SelfCast(hit) == true then\n",
+       "\t\t\tif false then\n",
+       "favour-caster: a cast aimed at you is never asked whether it was their own",
+       expect=N + "a cast aimed at you that was their own names nobody", script=S)
+
+mutate("Favours.lua",
+       "\t\t\t\t\t\tand math.abs(e.at - hit.at) <= CAST_SAME then\n\t\t\t\t\t\te.used = true\n",
+       "\t\t\t\t\t\tand math.abs(e.at - hit.at) <= CAST_SAME then\n",
+       "favour-caster: the other hearings of a cast are not spent with it",
+       expect=N + "one cast under two tokens with every id withheld names one landing", script=S)
