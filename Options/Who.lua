@@ -760,7 +760,7 @@ function Page.AddResControls(args)
 	-- shown while the first is off (the layout's `parents`).
 	args.res = {
 		type = "toggle",
-		name = L["My group's dead"],
+		name = L["Resurrect my group's dead"],
 		desc = L["Offer your resurrection for somebody of your party or raid who is dead and within reach, ahead of everything else. Never in a fight, never for somebody who has released their spirit, and not while another resurrection is already on its way to them."],
 		order = 12.7,
 		width = "full",
@@ -906,8 +906,8 @@ local function AddCureControls(args)
 	}
 	args.cureSeconds = {
 		type = "range",
-		name = L["Only with more than this many seconds left"],
-		desc = L["A poison, disease, curse or spell about to run out on its own is left alone. One with no timer is never offered."],
+		name = L["Only when it has at least this long left"],
+		desc = L["In seconds."] .. " " .. L["A poison, disease, curse or spell about to run out on its own is left alone. One with no timer is never offered."],
 		order = 14.94,
 		min = 0,
 		max = 120,
@@ -922,12 +922,12 @@ local function AddCureControls(args)
 	-- looks for it. It does not follow the switches above or the seconds.
 	args.curesFight = {
 		type = "toggle",
-		name = L["Offer my cure in a fight when somebody needs it"],
+		name = L["Show a cure button in a fight when somebody needs it"],
 		desc = function()
 			if ns.caps.conditionalTargeting then
-				return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures the player under your mouse, else your target, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."]
+				return L["A button of its own beside the prompt, with its own key. It shows when somebody near you has a poison, disease, curse or harmful magic your class can remove, and says who. A press cures whoever is under your mouse, else your target, else you; Shift casts your second cure. Where the game hides debuffs in a fight it stays hidden, but its key still works. A change made in a fight counts from the next one."]
 			end
-			return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures your target when it is a friend, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."]
+			return L["A button of its own beside the prompt, with its own key. It shows when somebody near you has a poison, disease, curse or harmful magic your class can remove, and says who. A press cures your target when it is a friend, else you; Shift casts your second cure. Where the game hides debuffs in a fight it stays hidden, but its key still works. A change made in a fight counts from the next one."]
 		end,
 		order = 14.95,
 		width = "full",
@@ -988,8 +988,8 @@ function Page.AddBeastControls(args)
 	-- The fight's own Mend Pet button (Prompt/MendPet.lua) has its switch on
 	-- Look, In a fight; the same switch sits here too, under the other Mend
 	-- Pet one, where a hunter turning Mend Pet off looks for it.
-	args.beastMendFight = { type = "toggle", name = L["Offer Mend Pet in a fight when my pet is badly hurt"],
-		desc = L["A button of its own beside the prompt, with a key of its own. It shows while your pet is below half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight it cannot tell, so the button stays out of sight unless When the fight buttons show keeps it there for the whole fight, half lit; its key casts either way. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."],
+	args.beastMendFight = { type = "toggle", name = L["Show a Mend Pet button in a fight when my pet is badly hurt"],
+		desc = L["A button of its own beside the prompt, with its own key. It shows while your pet is under half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight, it shows only with Show the fight buttons set to All fight; its key works either way. A change made in a fight counts from the next one."],
 		order = 15.9841, width = "full",
 		hidden = function() return NotHunter() or not ns.Beast.KnowsMend() end,
 		disabled = AllOff,
@@ -1437,7 +1437,7 @@ function Page.BuildWhoTab()
 			-- whose strongest blessing is the one at stake.
 			spareFishBowl = {
 				type = "toggle",
-				name = L["Don't put Kings over a Fish Bowl's Boosted Stats"],
+				name = L["Offer Kings last to someone with a Fish Bowl's Boosted Stats"],
 				desc = L["Sitting by a Fish Bowl gives Boosted Stats, 8% to all stats, and Blessing of Kings replaces it. On: somebody wearing it is offered your other blessings first, and Kings only when nothing else of yours is missing for them."],
 				order = 4.87,
 				width = "full",
@@ -1456,7 +1456,7 @@ function Page.BuildWhoTab()
 			-- (the layout's `parents`).
 			neverFishBowl = {
 				type = "toggle",
-				name = L["Never put Kings over Boosted Stats"],
+				name = L["Never offer them Kings while it lasts"],
 				desc = L["On: somebody wearing a Fish Bowl's Boosted Stats is not offered Blessing of Kings at all while it lasts, even with nothing else of yours missing. Somebody who asks you for Kings by name is still given it."],
 				order = 4.871,
 				width = "full",
@@ -1477,7 +1477,7 @@ function Page.BuildWhoTab()
 			-- buff a campsite's buff holds off (Buffs.lua, blockers).
 			spareCamp = {
 				type = "toggle",
-				name = L["Don't cast over a campsite's Boosted Stamina, Intellect or Spirit"],
+				name = L["Leave a campsite's Boosted Stamina, Intellect or Spirit alone"],
 				desc = L["Resting at a campsite gives Boosted Stamina, Intellect or Spirit. Manners already leaves it alone when it gives as much as yours would. On: nobody wearing it, you included, is offered the buff it would replace, even a stronger one."],
 				order = 4.872,
 				width = "full",
@@ -1698,7 +1698,7 @@ function Page.BuildWhoTab()
 			-- it (the layout's `parents`).
 			share = {
 				type = "toggle",
-				name = L["Share the group with other Manners users"],
+				name = L["Split the group with others of my class who use Manners"],
 				desc = L["When somebody else of your class in your party or raid uses Manners too, the group is split between you, so you are not both sent to buff the same person. A favour owed, a request, your target and your focus are never held back, and anybody still missing the buff after 45 seconds is offered anyway."],
 				order = 12.6,
 				width = "full",
@@ -1708,7 +1708,7 @@ function Page.BuildWhoTab()
 			},
 			strangers = {
 				type = "toggle",
-				name = L["Passers-by (players near me, not in my group)"],
+				name = L["Passers-by: players near me who are not in my group"],
 				-- IterateUnits asks target, mouseover and focus before it
 				-- touches a single nameplate.
 				desc = L["Seen through nameplates, your target, focus and mouseover."],
@@ -1860,8 +1860,8 @@ function Page.BuildWhoTab()
 			},
 			quietShortMinutes = {
 				type = "range",
-				name = L["Short means this many minutes or less"],
-				desc = L["Buffs that last up to this long are held back in a city or an inn."],
+				name = L["A buff counts as short up to"],
+				desc = L["In minutes."] .. " " .. L["Buffs that last up to this long are held back in a city or an inn."],
 				order = 13.357,
 				min = 5,
 				max = 60,
@@ -1958,7 +1958,7 @@ function Page.BuildWhoTab()
 			myselfHeader = { type = "header", name = L["Myself"], order = 15, hidden = NothingForSelf },
 			self = {
 				type = "toggle",
-				name = L["Myself, when I'm missing my own buff"],
+				name = L["Remind me when my own buff is missing"],
 				desc = function()
 					-- A hunter gives nobody anything, so his are the ones
 					-- below alone.
@@ -2474,7 +2474,7 @@ function Page.BuildWhoTab()
 			-- Asked for by a player: see SelfServed in Queue.lua.
 			skipSameClass = {
 				type = "toggle",
-				name = L["Skip my own class when they can cast it too"],
+				name = L["Skip players of my class, who can buff themselves"],
 				desc = L["Somebody of your class can give themselves your buff, so they are left out -- unless they are too low a level for the rank you cast, and then they still get yours. People who buffed you, asked or you targeted are always offered."],
 				order = 43.5,
 				width = "full",
@@ -2486,8 +2486,8 @@ function Page.BuildWhoTab()
 			-- name a line; your own guild's name works too.
 			skipGuilds = {
 				type = "input",
-				name = L["Leave out these guilds (one per line)"],
-				desc = L["People in these guilds are not offered anything, in your group or as passers-by. Type a guild's name as it shows under a player, with or without the < >. Somebody who buffed you or asked, and your target and focus, are still offered. |cffffd100Show their guild under the name|r (%s) shows whose guild it is."]:format(TabOf("appearance.showGuild")),
+				name = L["Skip these guilds"],
+				desc = L["One guild a line."] .. " " .. L["People in these guilds are not offered anything, in your group or as passers-by. Type a guild's name as it shows under a player, with or without the < >. Somebody who buffed you or asked, and your target and focus, are still offered. |cffffd100Show their guild under the name|r (%s) shows whose guild it is."]:format(TabOf("appearance.showGuild")),
 				order = 43.6,
 				multiline = 4,
 				width = "full",

@@ -1089,7 +1089,7 @@ function D.kinds(scrolled)
 	rows:note("You offer Arcane Intellect (mana users only).")
 	rows:section("Offer my buff to")
 	rows:toggle("People who buff me", true)
-	rows:toggle("Passers-by (players near me, not in my group)", true)
+	rows:toggle("Passers-by: players near me who are not in my group", true)
 	rows:labelled("Passers-by within", function(f) return D.select(f, "Nearby (about 10 yards)") end, 16)
 	rows:toggle("Only in cities and inns", false, 16, true)
 	-- A row hidden where the first row is: neither drawn nor checked.

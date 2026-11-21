@@ -5014,7 +5014,7 @@ if ns then
 		-- default since 1.10.4: turned on here, so it is held to it.
 		db.prompt.dimInCombat = true
 		-- Held on the one person, as a fight held it before the rota: with
-		-- "In a fight, each press moves on to the next person" on, the line
+		-- "In a fight, each press buffs the next person in line" on, the line
 		-- says where the rota stands instead (tests/scenarios/fight-rota.lua).
 		db.prompt.fightRota = false
 

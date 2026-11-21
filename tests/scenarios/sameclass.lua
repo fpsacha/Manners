@@ -1,4 +1,4 @@
--- "Skip my own class when they can cast it too" (asked for by a player): a
+-- "Skip players of my class, who can buff themselves" (asked for by a player): a
 -- stranger of your class who could give themselves your buff is left out, one
 -- too low a level for your rank still gets yours, and somebody who buffed you
 -- is offered whatever their class.

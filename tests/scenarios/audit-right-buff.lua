@@ -1049,7 +1049,7 @@ do
 	end
 end
 
--- "Don't cast over a campsite's Boosted Stamina, Intellect or Spirit"
+-- "Leave a campsite's Boosted Stamina, Intellect or Spirit alone"
 -- (buff.spareCamp, off; asked for on CurseForge): worn at all, a camping buff
 -- holds yours off, even a stronger rank that would be cast over it.
 do

@@ -614,7 +614,7 @@ function ns.ResurrectLines(rescan)
 	local info = Info()
 	if not info then return out end
 	if db.sources.res ~= true then
-		out[1] = L["resurrection: not offered -- %s is switched off."]:format("|cffffd100" .. L["My group's dead"] .. "|r")
+		out[1] = L["resurrection: not offered -- %s is switched off."]:format("|cffffd100" .. L["Resurrect my group's dead"] .. "|r")
 		return out
 	end
 	if rescan then ns.Guard("resurrection lines", ns.BuildQueue) end

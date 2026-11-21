@@ -120,7 +120,7 @@ mutate("Options/Who.lua",
        expect="window-fixes38: Offer nothing in cities and inns names the page Myself is on", script=S)
 
 mutate("Options/Look.lua",
-       "\t\t\t\t\t\t:format(L[\"Where the colour shows\"]) .. \"|r\"\n",
+       "\t\t\t\t\t\t:format(L[\"Put the colour on\"]) .. \"|r\"\n",
        "\t\t\t\t\t\t:format(\"the marker\") .. \"|r\"\n",
        "window-fixes38: the colour-left note names a marker",
        expect="window-fixes38: the colour-left note names the setting, not a marker", script=S)

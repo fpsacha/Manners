@@ -164,7 +164,7 @@ mutate(START, "name = L[\"Hide all Manners messages in my chat window\"],",
        "ux-redesign: the silence switch reads as the character's speech",
        expect=WORDS, script=S)
 
-mutate("Options/When.lua", "name = L[\"Don't offer when the game hides their buffs (fights)\"],",
+mutate("Options/When.lua", "name = L[\"Don't offer when the game hides their buffs\"],",
        "name = L[\"Only offer people whose buffs can be read\"],",
        "ux-redesign: the hidden-buffs switch in jargon",
        expect=WORDS, script=S)

@@ -263,7 +263,7 @@ mutate("Ledger.lua",
 
 # The tooltip names a setting that is not there.
 mutate("Ledger.lua",
-       ":format(L[\"Refresh a buff they already have, to return a favour\"], ns.TabName(\"advanced.repayCovered\"), L[\"Buffing back\"])",
+       ":format(L[\"Buff them back even when they already have my buff\"], ns.TabName(\"advanced.repayCovered\"), L[\"Buffing back\"])",
        ":format(L[\"Refresh what they already have\"], ns.TabName(\"advanced.repayCovered\"), L[\"Buffing back\"])",
        "covered: the ledger's tooltip names a missing setting",
        expect=ARRIVES, script=S)

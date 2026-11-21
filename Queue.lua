@@ -1542,7 +1542,7 @@ end
 -- back from the dead, which costs every buff. And two limits on offers nobody
 -- asked for: the mana you keep for yourself, and the raid groups you were
 -- given. A favour owed and a request from chat are held back by neither, but
--- for the floor's "Below it, still offer" set to your own buff or nothing.
+-- for the floor's "While saving mana, still offer" set to your own buff or nothing.
 ---------------------------------------------------------------------------
 
 -- How long a ready check counts as running when the client names no time, or
@@ -1721,7 +1721,7 @@ function ns.SavingMana()
 	return nil
 end
 
--- What the floor still offers while it holds back ("Below it, still offer",
+-- What the floor still offers while it holds back ("While saving mana, still offer",
 -- filters.manaFloorKeeps; asked for on CurseForge, where on WoW Forever most
 -- offers are favours and a floor that let them all through kept no mana):
 --   "asked"  people who buffed you or asked, and your own buff (as it always did)
@@ -2215,7 +2215,7 @@ end
 -- Favours whose giver the walk has just read as covered (BuildQueue marks the
 -- debt, `covered`: their GUID, or true where the client gave none): they wear
 -- everything you could give them with more than the top-up lead left, whoever
--- cast it, and "Refresh a buff they already have, to return a favour" is off.
+-- cast it, and "Buff them back even when they already have my buff" is off.
 -- Nothing is left to return, so the favour is let go at once rather than
 -- sitting as Still owed with nothing on the prompt: the ledger files it with
 -- its own reason, and the line follows only a "buffed you" line that promised
@@ -2260,7 +2260,7 @@ end
 
 -- PickBuffFor's callbacks for the queue, at file level so that no person
 -- costs a closure. The tokenless path has no aura to read, hence NoReading.
--- "Skip my own class when they can cast it too": somebody of your class,
+-- "Skip players of my class, who can buff themselves": somebody of your class,
 -- offered unasked, whose level is at or past the one your best rank of this
 -- buff is learned at (Buffs.lua, RANK_LEVEL), could give themselves the same.
 -- One below it is still offered: yours is better than theirs. A talent buff,
@@ -2654,7 +2654,7 @@ end
 -- sees you missing, and the class's own follow in Buffs.lua's order.
 --
 -- Not held back while saving mana, unlike the group: a buff on yourself is
--- what the floor keeps mana for -- unless "Below it, still offer" is Nothing
+-- what the floor keeps mana for -- unless "While saving mana, still offer" is Nothing
 -- (ns.ManaFloorKeeps), read off the scan's own answer to SavingMana, which
 -- BuildQueue asks before it asks this. Nor by the raid groups, which are about whom
 -- you buff. Your own name on the never-offer list is honoured, though "never"
@@ -2772,7 +2772,7 @@ function ns.StopOfferingSelf(entry)
 	end
 	db.sources.self = false
 	addon:Print(L["your own buff will not be offered to you any more -- tick %s on the %s tab to have it back."]
-		:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r", ns.TabName("who.self")))
+		:format("|cffffd100" .. L["Remind me when my own buff is missing"] .. "|r", ns.TabName("who.self")))
 	ns.RepaintOptions()
 end
 
@@ -3133,7 +3133,7 @@ function ns.BuildQueue(watch)
 
 		-- Nobody asked for these, so they wait while you keep your mana. A
 		-- favour owed or a request never reaches here as group or nearby, and
-		-- waits too only when "Below it, still offer" says so (manaHoldsAsked):
+		-- waits too only when "While saving mana, still offer" says so (manaHoldsAsked):
 		-- the debt and the request stay. Written down as a verdict: your own
 		-- mana, not a token lost.
 		if savingMana and (reason == "group" or reason == "nearby" or manaHoldsAsked) then
@@ -3332,7 +3332,7 @@ function ns.BuildQueue(watch)
 		opts.offerAnyway = isOwed
 		opts.paidUp = isOwed and checked or nil
 		-- Nor, by default, somebody who wears it from anybody else with that
-		-- much left ("Refresh a buff they already have, to return a favour",
+		-- much left ("Buff them back even when they already have my buff",
 		-- filters.repayCovered, off): a priest was asked for a Fortitude on top
 		-- of the Fortitude they wore, and a thank-you is enough. Only what is
 		-- missing or due a top-up returns the favour; covered, it is let go

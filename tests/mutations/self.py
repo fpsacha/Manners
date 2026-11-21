@@ -352,8 +352,8 @@ mutate("Prompt/Press.lua",
        expect="an empty press while saving mana leaves your own buff out", script=S)
 
 mutate("Options/When.lua",
-       "\t\t\t\t\tif kept == \"askedself\" then\n\t\t\t\t\t\treturn L[\"Below this, only your own buff",
-       "\t\t\t\t\tif false then\n\t\t\t\t\t\treturn L[\"Below this, only your own buff",
+       "\t\t\t\t\tif kept == \"askedself\" then\n\t\t\t\t\t\treturn says .. L[\"Below this, only your own buff",
+       "\t\t\t\t\tif false then\n\t\t\t\t\t\treturn says .. L[\"Below this, only your own buff",
        "self: mana floor description leaves you out",
        expect="the mana floor's description leaves your own buff out", script=S)
 

@@ -60,7 +60,7 @@ function, switch and test named. Change both together.
   on the prompt when a fight starts stays until it ends, and Lua writes nothing
   on the button in a fight. The exceptions are secure code or bindings set at
   the pull (`PLAYER_REGEN_DISABLED`, before the lockdown), never under it:
-  *Hide the prompt in combat* (`Prompt/Fight.lua`: the snippet disarms the
+  *Hide the prompt in a fight* (`Prompt/Fight.lua`: the snippet disarms the
   prompt and its rows, then hides it, only when the bar macro holds no cast);
   the fight's rota (the header steps the button once round the queue the fight
   began with, then casts nothing; never armed from a passer-by offered from

@@ -159,7 +159,7 @@ local function ExplainEmpty(now)
 			-- The option goes in by its own key, so a translation names the
 			-- label the window shows.
 			local _, resume = ns.SavingMana()
-			-- What is still offered while saving, as "Below it, still offer"
+			-- What is still offered while saving, as "While saving mana, still offer"
 			-- and "Myself" have it (ns.ManaFloorKept): your own buff is named
 			-- wherever it is kept (Queue.lua, SelfEntry).
 			local kept = ns.ManaFloorKept()
@@ -170,7 +170,7 @@ local function ExplainEmpty(now)
 				or kept == "self"
 				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff is offered. The floor is %s on the %s tab."]
 				or L["nobody to buff right now -- saving mana until you are back to %d%%, so nothing is offered. The floor is %s on the %s tab."]
-			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", ns.TabName("when.manaFloor")))
+			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana below"] .. "|r", ns.TabName("when.manaFloor")))
 		elseif ns.PlaceHeldLine and ns.PlaceHeldLine(now) then
 			-- A place rule holding everybody back, named with its switch, as the
 			-- launcher and the options window's strip say it (Options/Launcher.lua).

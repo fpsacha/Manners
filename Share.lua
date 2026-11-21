@@ -926,7 +926,7 @@ function ns.ShareLines(scan)
 	if next(users) == nil then return out end
 	if db.sources.share ~= true then
 		out[1] = L["other Manners users are in your group, but %s is switched off, so you may both be offered the same person"]
-			:format("|cffffd100" .. L["Share the group with other Manners users"] .. "|r")
+			:format("|cffffd100" .. L["Split the group with others of my class who use Manners"] .. "|r")
 		return out
 	end
 	local keys = {}

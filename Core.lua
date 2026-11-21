@@ -1977,7 +1977,7 @@ do
 		return yes
 	end
 
-	-- "Remind me this many minutes early" (filters.selfLead, minutes in halves;
+	-- "Remind me this long before mine run out" (filters.selfLead, minutes in halves;
 	-- 0 is the moment worked out above): that moment exactly, for yours alone,
 	-- earlier or later than the worked-out one and the same in a dungeon or a
 	-- raid. Until 1.11.15 it could only move the moment earlier, and a player
@@ -1996,7 +1996,7 @@ do
 	-- For the diagnostics, which print the moment the queue works to.
 	ns.SelfEarlier = SelfEarlier
 
-	-- What "If they already have it" means for your own buffs and the ones you
+	-- What "When they already have my buff" means for your own buffs and the ones you
 	-- put on yourself: with "Top up my own buffs before they run out" on, a
 	-- top-up whatever it says for other people.
 	function ns.SelfWhenBuffed(filters)
@@ -2050,7 +2050,7 @@ do
 	-- spell for this person" holds for the scan, "tried a moment ago" is a
 	-- cooldown. inParty, not inGroup: a shout reaches only the caster's
 	-- subgroup (see SameParty).
-	-- "Don't put Kings over a Fish Bowl's Boosted Stats" (buff.spareFishBowl;
+	-- "Offer Kings last to someone with a Fish Bowl's Boosted Stats" (buff.spareFishBowl;
 	-- GitHub issue 12): whether this person wears it. WoW Forever's camping
 	-- Fish Bowl gives everybody sitting near it Boosted Stats, 8% to all stats,
 	-- "mutually exclusive with Blessing of Kings" (Spell 1307245's own text), so
@@ -2482,7 +2482,7 @@ do
 					end
 				end
 			end
-			-- "Never put Kings over Boosted Stats" (buff.neverFishBowl; GitHub
+			-- "Never offer them Kings while it lasts" (buff.neverFishBowl; GitHub
 			-- issue 17): not even then. They are covered for as long as they
 			-- wear it, unless they asked for Kings by name.
 			local bowled = kingsLater and db.buff.neverFishBowl == true and not opts.asked

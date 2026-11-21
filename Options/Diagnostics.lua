@@ -708,7 +708,7 @@ function Page.BuildDiagnosticsTab()
 			-- same box. Out of combat: it puts looks on the real prompt.
 			launchCheck = {
 				type = "execute",
-				name = L["Check how Manners draws in this game"],
+				name = L["Test how Manners looks in this game"],
 				desc = L["Puts every look on the real prompt, tries the action bar slot and the tooltip, and puts everything back: the report opens in the box below. Nothing is cast or said."],
 				order = 32.7,
 				disabled = function() return InCombatLockdown() end,

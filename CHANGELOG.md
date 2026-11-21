@@ -23,6 +23,8 @@
 
 - **Asking for a buff is on *What I say*,** under the lines; the Fish Bowl, campsite and other paladins' blessings fold under *Other people's buffs* on *Who to buff*, and *More than buffs* is now *Resurrection and cures*.
 
+- **Settings are reworded in plain English,** with units in the slider boxes instead of in brackets (GitHub issue 23).
+
 ### Fixes
 - **Search puts a word at the start of a name first.** "rest" now finds Well-Rested ahead of Firestone.
 

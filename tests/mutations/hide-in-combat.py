@@ -175,7 +175,7 @@ mutate("Core.lua",
 
 # No flashes in combat no longer names the switch that hides the prompt.
 mutate("Options/Look.lua",
-       "\t\t\t\t\t\t:format(L[\"Hide the prompt in combat\"])\n",
+       "\t\t\t\t\t\t:format(L[\"Hide the prompt in a fight\"])\n",
        "\t\t\t\t\t\t:format(\"\")\n",
        "hide-in-combat: the flashes switch does not point to it",
        expect="does not point to the switch that hides the prompt",

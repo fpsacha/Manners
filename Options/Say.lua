@@ -409,8 +409,8 @@ function Page.BuildSpeechTab()
 			-- list holds anything.
 			leftOut = {
 				type = "input",
-				name = L["Lines left out (one per line)"],
-				desc = L["In character never says these lines. Delete a row to hear its line again."],
+				name = L["Lines left out"],
+				desc = L["One a line."] .. " " .. L["In character never says these lines. Delete a row to hear its line again."],
 				order = 22.7,
 				multiline = 4,
 				width = "full",
@@ -438,7 +438,8 @@ function Page.BuildSpeechTab()
 			},
 			phrases = {
 				type = "input",
-				name = L["Your lines (one per line)"],
+				name = L["Your lines"],
+				desc = L["One a line."],
 				order = 23,
 				-- Tall enough for In character's examples, about 25 lines, to
 				-- read without scrolling: at 10 rows a player saw a handful and
@@ -477,8 +478,8 @@ function Page.BuildSpeechTab()
 			-- character off. Shown while In character is the set.
 			mixedLines = {
 				type = "input",
-				name = L["My own lines, mixed in (one per line)"],
-				desc = L["With In character as the set, some presses say one of these instead of an In character line: How often my own lines are said, below, says how many. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."],
+				name = L["My own lines, mixed in with In character"],
+				desc = L["One a line."] .. " " .. L["With In character as the set, some presses say one of these instead of an In character line: How often my own lines are said, below, says how many. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."],
 				order = 23.2,
 				multiline = 6,
 				width = "full",

@@ -354,7 +354,7 @@ do
 				-- The prompt's own settings.
 				local locked = child(prompt, "^Locked$")
 				local reset = child(prompt, "^Reset position$")
-				local quiet = child(prompt, "^No flashes in combat$")
+				local quiet = child(prompt, "^No flashes in a fight$")
 				local sound = child(prompt, "^Play a sound$")
 				local effects = child(prompt, "^Effects$")
 				local full = effects and child(effects, "^Full$")
@@ -529,7 +529,7 @@ do
 						fail(scenario, pattern .. " is greyed out in a fight, where it is safe")
 					end
 				end
-				local quiet = prompt and child(prompt, "^No flashes in combat$")
+				local quiet = prompt and child(prompt, "^No flashes in a fight$")
 				if not quiet or quiet.enabled == false then
 					fail(scenario, "Stay quiet in combat is held back in a fight, where it is only drawing")
 				end

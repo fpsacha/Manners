@@ -399,7 +399,7 @@ do
 		if not who:find("Already buffed: skipped. People who buff me are offered one back unless they already have it.", 1, true) then
 			fail(scenario, "with the group on, the summary does not say favours are returned unless covered: " .. who)
 		end
-		-- Always, with "Refresh a buff they already have, to return a favour" on.
+		-- Always, with "Buff them back even when they already have my buff" on.
 		db.filters.repayCovered = true
 		who = quick.WhoSummary()
 		if not who:find("Already buffed: skipped. People who buff me are always offered one back.", 1, true) then

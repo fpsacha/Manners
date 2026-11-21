@@ -72,10 +72,12 @@
 -- `units` names the sliders whose box shows a unit (WidgetsEntry.lua,
 -- RangeText and RangeParse): path -> { kind = "seconds" | "minutes" |
 -- "percent" | "times", zero = L[...] optional }. "seconds" reads 12 s,
--- 5 min, 1 min 30 s; "minutes" reads 45 min, 2 h, 1 h 30 min; "percent" is
--- 40%; "times" is 2x. `zero` is the word for 0. A typed 5m or 1h is
--- converted into the setting's own unit. A slider with no entry reads as a
--- plain number.
+-- 5 min, 1 min 30 s (0.5 s where the step is a tenth); "minutes" reads 45 min,
+-- 2 h, 1 h 30 min (0.5 min where the step is a half); "percent" is the
+-- number as it is, 40%; "times" is 2x or 2.5x. `zero` is the word for 0. A
+-- typed 5m or 1h is converted into the setting's own unit. A slider with no
+-- entry reads as a plain number. The fallback dialog has no unit field, so a
+-- label that leaves its unit to the box says it in its tooltip.
 
 local _, ns = ...
 local L = ns.L
@@ -1056,7 +1058,7 @@ ns.WindowLayout = {
 				} },
 				-- A new profile from the defaults, where a new character starts,
 				-- and the profile in use back to the defaults.
-				{ key = "profiles.start", title = L["Fresh starts"], items = {
+				{ key = "profiles.start", title = L["Start afresh"], items = {
 					{ "profiles.new", pair = true },
 					"profiles.newCharacters",
 					"profiles.resetProfile",
@@ -1276,7 +1278,7 @@ ns.WindowLayout = {
 			return L["Needs %s or %s ticked."]:format(NameOf("click.thankEmote"), NameOf("click.thankWhisper"))
 		end,
 		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
-		["appearance.fightButtons"] = L["Needs Will of the Forsaken or Mend Pet in a fight ticked."],
+		["appearance.fightButtons"] = L["Needs the Will of the Forsaken or Mend Pet button ticked."],
 		-- Greyed where the look rounds its icon itself, or with the icon off.
 		["appearance.roundIcon"] = function()
 			local p = ns.db and ns.db.profile and ns.db.profile.prompt
@@ -1299,6 +1301,16 @@ ns.WindowLayout = {
 	units = {
 		["advanced.skipSeconds"] = { kind = "seconds" },
 		["advanced.ownSkipMinutes"] = { kind = "minutes", zero = L["Same as above"] },
+		["advanced.reciprocateWindow"] = { kind = "seconds" },
+		["advanced.graceSeconds"] = { kind = "seconds" },
+		["advanced.retryCooldown"] = { kind = "seconds" },
+		["advanced.scanInterval"] = { kind = "seconds" },
+		["who.cureSeconds"] = { kind = "seconds" },
+		["when.refreshUnder"] = { kind = "minutes" },
+		["who.quietShortMinutes"] = { kind = "minutes" },
+		["when.selfLead"] = { kind = "minutes", zero = L["Automatic"] },
+		["when.refreshRaid"] = { kind = "times" },
+		["when.manaFloor"] = { kind = "percent", zero = L["Off"] },
 	},
 
 	-- Other words people search for a control by (WindowSearch.lua): ranked

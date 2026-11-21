@@ -381,7 +381,7 @@ do
 		p.accentMode, p.showIcon = "icon", false
 		local note = H.findOption(ns.optionsTable, "accentDead")
 		local said = note and note.name and note.name() or ""
-		if said:find("marker", 1, true) or not said:find(ns.L["Where the colour shows"], 1, true) then
+		if said:find("marker", 1, true) or not said:find(ns.L["Put the colour on"], 1, true) then
 			fail(scenario, "the note says: " .. said)
 		end
 	end)

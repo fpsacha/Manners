@@ -116,9 +116,9 @@ do
 		local names = {
 			locked = "Lock position", posPreset = "Where it sits", alpha = "Opacity",
 			style = "Panel style", bgColor = "Panel colour", accentByReason = "Colour by why they are offered",
-			reasonPalette = "Colour set", accentColor = "Colour when not by reason", accentMode = "Where the colour shows",
+			reasonPalette = "Colour set", accentColor = "Colour to use otherwise", accentMode = "Put the colour on",
 			flashStyle = "Flash when someone buffs me", effects = "Animations",
-			hideInCombat = "No flashes in combat",
+			hideInCombat = "No flashes in a fight",
 			soundEnabled = "Play a sound", soundFile = "Sound", soundOwedOnly = "Only for people who buff me",
 			fontColor = "Text colour", classColor = "Colour names by class", showSub = "Show a second line",
 			showCount = "Show how many are waiting", showQueue = "List the next few below",
@@ -299,7 +299,7 @@ do
 	local ns, _, args = session(scenario)
 	if ns then
 		local cases = {
-			{ "accentMode", "Where the colour shows", { "icon", "stripe", "both", "off" },
+			{ "accentMode", "Put the colour on", { "icon", "stripe", "both", "off" },
 				{ icon = "Ring around the icon", stripe = "Stripe on the left edge", both = "Both", off = "None" } },
 			{ "flashStyle", "Flash when someone buffs me", { "pulse", "once", "off" },
 				{ pulse = "Pulse until I buff them back", once = "Flash once", off = "None" } },
@@ -408,7 +408,7 @@ do
 		end
 		desc = text(args.showCooldown.desc)
 		-- On this tab now, so named without a tab.
-		if not desc:find("|cffffd100No flashes in combat|r", 1, true)
+		if not desc:find("|cffffd100No flashes in a fight|r", 1, true)
 			or desc:find("(When to offer)", 1, true) then
 			fail(scenario, "Show the global cooldown does not point at Keep the prompt still: " .. desc)
 		end

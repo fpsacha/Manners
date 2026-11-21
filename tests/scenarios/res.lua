@@ -519,7 +519,7 @@ do
 			fail(scenario, "the options hold no My group's dead, or no Dead passers-by too")
 			return
 		end
-		if res.type ~= "toggle" or H.optionText(res.name) ~= "My group's dead" then
+		if res.type ~= "toggle" or H.optionText(res.name) ~= "Resurrect my group's dead" then
 			fail(scenario, "the control is a " .. tostring(res.type) .. " called " .. H.optionText(res.name))
 		end
 		if not H.optionText(res.desc):find("Never in a fight", 1, true) then

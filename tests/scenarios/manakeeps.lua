@@ -1,4 +1,4 @@
--- "Below it, still offer" (filters.manaFloorKeeps), asked for on CurseForge:
+-- "While saving mana, still offer" (filters.manaFloorKeeps), asked for on CurseForge:
 -- under the mana floor Manners still offered favours owed, requests and your
 -- own buff, and on WoW Forever most offers are favours, so a player with the
 -- floor at 70% cast until out of mana all the same. The choice under the

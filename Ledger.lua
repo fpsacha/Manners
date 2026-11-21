@@ -151,7 +151,7 @@ local TEXT = {
 	-- The setting's own name, through the options page's key, as above.
 	TIP_LETGO_COVERED = function()
 		return L["Let go: they already had everything you could give them, with time to spare, so there was nothing to return. \"%s\" (%s tab, under %s) refreshes it anyway."]
-			:format(L["Refresh a buff they already have, to return a favour"], ns.TabName("advanced.repayCovered"), L["Buffing back"])
+			:format(L["Buff them back even when they already have my buff"], ns.TabName("advanced.repayCovered"), L["Buffing back"])
 	end,
 	-- In place of TIP_OWED while the prompt cannot offer them, the rule Quiet()
 	-- below keeps for the empty list: the window never promises what cannot

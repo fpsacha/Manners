@@ -102,7 +102,7 @@ local TEXT = {
 	LINE_OFF = L["milestones: switched off -- nothing is counted for them, and what was earned is kept."],
 	LINE_COUNT = L["milestones: %d of %d earned."],
 	-- The switch by the name it has on the options page.
-	LINE_TOAST_OFF = L["milestones: \"%s\" is off, so a new one is said in chat only."]:format(L["Show a toast"]),
+	LINE_TOAST_OFF = L["milestones: \"%s\" is off, so a new one is said in chat only."]:format(L["Show it on screen too"]),
 	LINE_HELD_FIGHT = L["milestones: %d toast(s) waiting for the fight to end."],
 	LINE_HELD_MINUTE = L["milestones: %d toast(s) waiting -- at most one a minute."],
 	LINE_HELD_SHOWING = L["milestones: %d toast(s) waiting for the one on screen."],

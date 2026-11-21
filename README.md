@@ -247,7 +247,7 @@ on. *Put Manners on an action bar* (Start here) says so.
 
 A Forsaken gets a small button of its own just right of the prompt, with a
 key of its own, armed for every fight: even when the prompt is off the
-screen, hidden by *Hide the prompt in combat* or snoozed. It casts Will of the
+screen, hidden by *Hide the prompt in a fight* or snoozed. It casts Will of the
 Forsaken and nothing else, from its key. A left click casts it only while it is
 dim for the whole fight (*All fight, dim until needed*) or while no key is set;
 otherwise it takes no click, so a click beside the prompt reaches the game
@@ -259,16 +259,16 @@ up, says the same. While the spell cools down it shows dim. The key casts
 even while the button is out of sight. The prompt's own key keeps to buffs,
 unless *In a fight, my key casts* names a spell. *Offer Will of the Forsaken when I am feared,
 charmed or asleep* (*In a fight*, on) switches it, and *Key for
-Will of the Forsaken* under it sets the key. *When the fight buttons show*
+Will of the Forsaken* under it sets the key. *Show the fight buttons*
 (*In a fight*, *Only when needed* by default) can instead keep it
 dim beside the prompt for the whole fight (*All fight, dim until needed*); it
 holds for Mend Pet's button too. Only a Forsaken who has the spell sees the
-first two; *When the fight buttons show* is there for a hunter with Mend Pet
+first two; *Show the fight buttons* is there for a hunter with Mend Pet
 too.
 
 #### Curing in a fight
 
-A class with a cure can tick *Offer my cure in a fight when somebody needs it*
+A class with a cure can tick *Show a cure button in a fight when somebody needs it*
 (*In a fight*, off; also under *Who to buff*, *Cures*). It gives a
 small button right of the prompt (or of the Will of the Forsaken button), with
 *Key for my cure in a fight* under the switch. It is never on screen for
@@ -294,7 +294,7 @@ the prompt's own key casts it for the length of every fight, then buffs again
 when the fight ends. Manners lends the key to a button that is never shown, at
 the pull, and takes it back at the end, so nothing new appears on the screen.
 A spell you can cast on others lands on the player under your mouse, else
-your target, else you; *Who it lands on* can make it you alone (on WoW Forever
+your target, else you; *Cast it on* can make it you alone (on WoW Forever
 it lands on your target when that is a friend, else on you). A spell only for
 yourself always lands on you. Clicking the prompt still buffs and moves on to
 the next person, and the Manners macro on an action bar keeps to buffs. It
@@ -352,7 +352,7 @@ The rules for all of them:
   up*, say which of your own buffs is up, which is due, and why one is not
   being offered.
 
-**Myself.** *Myself, when I'm missing my own buff* (on) switches everything on
+**Myself.** *Remind me when my own buff is missing* (on) switches everything on
 yourself on or off. Under it, one control for each of your class's own buffs
 you have learned: a drop-down where there is a choice (a mage's *Armor*, a
 paladin's *Aura*, a hunter's *Aspect*, a shaman's *Shield*) with *Automatic*,
@@ -539,7 +539,7 @@ sight until it is wanted. It fades in and lights up while your pet is below
 half health, in reach and alive, and Mend Pet is not still at work, and fades
 out again after. Where the game hides your pet's health in a fight (WoW
 Forever and retail) Manners cannot tell, so the button stays out of sight and
-its key still casts; *When the fight buttons show* (*In a fight*)
+its key still casts; *Show the fight buttons* (*In a fight*)
 set to *All fight, dim until needed* keeps it there for the whole fight, half
 lit with its two lines shown. Out of sight the button takes no click, only its
 key casts, unless it is dim for the whole fight or no key is set. The prompt's
@@ -621,7 +621,7 @@ perk Reagent Economy you need no reagent at all.
   whose missing shout brings the prompt up, and the page says how far the
   shout reaches on your client (your own party on Classic Era and Burning
   Crusade, the raid around you on WoW Forever, Mists and retail).
-- *Save mana: stop below (% mana)* (0, off): below it, your group, your
+- *Save mana below* (0, off): below it, your group, your
   target and passers-by wait until your mana is 5 points above it. *Below
   it, still offer* says what still comes up meanwhile: *People who buffed me
   or asked* (the default), *Only my own buff*, or *Nothing*. A favour held
@@ -644,7 +644,7 @@ owed, a request, your target and your focus are never held back, and anybody
 still missing the buff after 45 seconds is offered anyway. A group cast is
 left to one of you. `/manners debug` says who you share with.
 
-**Topping up.** With *If they already have it* on *Offer a top-up when it
+**Topping up.** With *When they already have my buff* on *Offer a top-up when it
 runs low*, Manners knows how long each buff lasts on your client and tops it
 up about a tenth of that before it ends (a minute before a ten-minute buff,
 five before an hour's), earlier in a raid or dungeon and for your own buffs,
@@ -652,7 +652,7 @@ and only in the last half minute for somebody outside your group.
 
 ## Resurrection and cures
 
-**Resurrection.** *My group's dead* (on), for a class with a resurrection:
+**Resurrection.** *Resurrect my group's dead* (on), for a class with a resurrection:
 out of a fight, somebody of your party or raid who is dead and within reach
 comes up first of everything, and a press targets them, casts and hands your
 target back. Never somebody who has released their spirit, never a hunter
@@ -798,7 +798,7 @@ your chat window: never in a fight, never over the prompt, at most one a
 minute, and a click sends it away. Nothing counts presses: the same stranger
 counts again only once the buff you gave would have run out, and the same
 person once a day. *Milestones* on Start here, under *Favour ledger*,
-switches all of it off (what was earned is kept); *Show a toast* and *Play the
+switches all of it off (what was earned is kept); *Show it on screen too* and *Play the
 sound* sit under it. They are kept per character, and neither *Clear* nor a
 profile reset touches them.
 
@@ -1002,7 +1002,7 @@ no room for. Defaults are in brackets.
   in, never in a fight, on three logins at most for a character, and not at
   all once a key is set or the Manners macro is made.
 - ***Favour ledger***: today's count, *Open the ledger*, and *Milestones* (on)
-  with *Show a toast* and *Play the sound* under it.
+  with *Show it on screen too* and *Play the sound* under it.
 - ***Minimap and chat window***: *Show minimap button*; *Show what Manners is
   doing in my chat window* (on), a line in your own chat when somebody buffs
   you, when a favour is repaid, and when a click fails, never said to anybody
@@ -1066,7 +1066,7 @@ no room for. Defaults are in brackets.
     folded: *Skip players another paladin has blessed* (off); *Don't put Kings
     over a Fish Bowl's Boosted Stats* (WoW Forever, off), which also keeps the
     Greater Blessing of Kings off a class with somebody sitting by one, and
-    under it *Never put Kings over Boosted Stats* (off): no Kings at all for
+    under it *Never offer them Kings while it lasts* (off): no Kings at all for
     them while it lasts, unless they ask for it by name.
 - ***Buff order***, for a class with more than one buff to give: the buffs as
   a list in the order they are tried, each with an arrow up and an arrow
@@ -1076,9 +1076,9 @@ no room for. Defaults are in brackets.
 - ***My group and raid***: *Use group buffs* (on) and *When this many need it*
   (3), with how many reagents are in your bags; *Raid groups I buff*; *Share
   the group with other Manners users* (on).
-- ***Resurrection and cures***: *My group's dead* (on) with *Dead passers-by too*
+- ***Resurrection and cures***: *Resurrect my group's dead* (on) with *Dead passers-by too*
   (off); *Cure my party and raid*, *Cure passers-by* and *Cure myself too* (all
-  off) with *Only with more than this many seconds left* (10).
+  off) with *Only when it has at least this long left* (10).
 - Your own buffs and a hunter's pet are not here: they have *My own buffs* and
   *My pet*, below.
 - ***Other people's buffs*** (folded): the paladin, Fish Bowl and campsite
@@ -1101,7 +1101,7 @@ no room for. Defaults are in brackets.
   - *Skip players in a fight* (off): buffing somebody in a fight pulls you
     into it, so nobody the game says is fighting is offered until the fight
     is over. Your target and focus still are.
-  - *Skip my own class when they can cast it too* (off): another mage can
+  - *Skip players of my class, who can buff themselves* (off): another mage can
     give themselves Arcane Intellect, so they are left out, unless they are
     too low a level for the rank you cast. Somebody who buffed you, asked, or
     you targeted is always offered.
@@ -1122,34 +1122,32 @@ no room for. Defaults are in brackets.
 
 ### When to offer
 
-- ***Other people already buffed***: *If they already have it*: *Skip them*
+- ***Other people already buffed***: *When they already have my buff*: *Skip them*
   (the default), *Offer a top-up when it runs low* (then *Top up at most this
-  many minutes early* and *In a raid or dungeon, top up this many times
-  earlier*), or *Always offer*, which reads nobody's buffs. *Don't offer when
-  the game hides their buffs (fights)* (off): with it on, nobody is offered
+  early* and *Earlier in a raid or dungeon*), or *Always offer*, which reads nobody's buffs. *Don't offer when
+  the game hides their buffs* (off): with it on, nobody is offered
   *unverified*; somebody who buffed you or asked still is.
 - ***Buffing back***: how long somebody who buffed you is offered one back.
-  - *Offer a buff back for (seconds)* (120).
-  - *Count only class buffs as favours* (on): only class buffs such as
+  - *How long a favour stays on offer* (120).
+  - *Only class buffs count as favours* (on): only class buffs such as
     Fortitude, a Fear Ward or a Soulstone count as a favour to return, or to
     `/thank`. A paladin's aura or a hunter's aspect reaching you never
     counts.
-  - *Refresh a buff they already have, to return a favour* (off): somebody
+  - *Buff them back even when they already have my buff* (off): somebody
     who buffs you and already wears everything you could give them, with
     time to spare, is offered nothing; the favour is let go at once, and the
     ledger says why. On, the buff they already have is offered again.
-  - *Stop sooner if they are probably gone* (on) and *Let them go after
-    (seconds)* (45): somebody who buffed you is rarely your target or on a
+  - *Let them go sooner if they have probably left* (on) and *Let them go after* (45): somebody who buffed you is rarely your target or on a
     nameplate, so all that is known is that they were in range when they
     buffed you.
   - *Keep favours through a /reload* (on). The clock keeps running while you
     are away.
-- ***Timing*** (folded): *Don't repeat a spell on someone for (seconds)* (12),
+- ***Timing*** (folded): *Wait before trying the same spell on someone again* (12),
   per spell; *A right-click skips for (seconds)* (12, up to half an hour);
   *A right-click on my own buffs skips for (minutes)* (0, which follows the
   seconds above; up to four hours), the same for the consumables button and
   *Not now* in the minimap menu, and a skipped food skips every food in your
-  bags, since any of them gives Well Fed; *Check for people every (seconds)*
+  bags, since any of them gives Well Fed; *Look for people every*
   (0.4).
 - ***Targeting*** (folded): *Hand my target back afterwards* (on). With it on,
   the macro ends with `/targetlasttarget`, or with `/cleartarget` when you had
@@ -1161,7 +1159,7 @@ no room for. Defaults are in brackets.
 What Manners reminds you of for yourself: see *Your own buffs* above for the
 rules. Sections, top to bottom:
 
-- ***Myself***: *Myself, when I'm missing my own buff* (on), and under it one
+- ***Myself***: *Remind me when my own buff is missing* (on), and under it one
   control for each of your class's own buffs you have learned.
 - ***When my own buffs come up***: *Also in cities and inns*,
   *Consumables only in dungeons and raids*, *Put consumables on a button of
@@ -1171,7 +1169,7 @@ rules. Sections, top to bottom:
   foot say why one of your buffs is not being offered.
 - ***Topping up early***: *Top up my own buffs before they run out* (on),
   whichever of the three choices on *When to offer* you pick for other people.
-  *Remind me this many minutes early* sets the moment itself (0 works it out
+  *Remind me this long before mine run out* sets the moment itself (0 works it out
   from the buff's length); it is never more than half the buff's length
   ahead.
 - ***Weapons***, ***Food, flasks and scrolls*** and ***Add a spell of my
@@ -1202,7 +1200,7 @@ Where and when Manners holds back or says nothing, on a page of its own
     under it: *Cities and inns*, *Cities only* or *Inns only*.
   - *Hold back short buffs in cities and inns* (off): the buffs that last
     only a few minutes (Thorns, say) are not offered while you rest, and
-    longer ones still are. *Short means this many minutes or less* (15).
+    longer ones still are. *A buff counts as short up to* (15).
   - *Offer nothing in dungeons, raids and battlegrounds* (off): the same
     rule inside a dungeon or a raid. Your own buffs are not held back. A
     battleground or an arena goes by *Buff my team there*, which ticking this
@@ -1210,8 +1208,8 @@ Where and when Manners holds back or says nothing, on a page of its own
     dungeons and raids*, which is then all it does.
   - *Hold back my target and focus too* (off).
 - ***Mounted and mana***: *Hide the prompt while I'm mounted* (off; dead, on a
-  flight path or in a vehicle the prompt already stays away); *Save mana:
-  stop below (% mana)* and *Below it, still offer*. Classes without mana do
+  flight path or in a vehicle the prompt already stays away); *Save mana
+  below* and *While saving mana, still offer*. Classes without mana do
   not see the last two.
 - ***In a party or a raid***: *Say nothing in a party*, *Say nothing in a
   raid* and *Don't thank anybody while I'm in a party or a raid*, side by
@@ -1336,28 +1334,28 @@ Its own page in the options window (between *Quiet times* and *What I say*),
 with two sections: ***The prompt in a fight*** and ***Buttons for when you need them***.
 
 ***The prompt in a fight***:
-- *Hide the prompt in combat* (off): the prompt and its list are off the
+- *Hide the prompt in a fight* (off): the prompt and its list are off the
   screen for the whole fight, and its key, a name in the list and the
   Manners macro on your bar cast nothing until it ends. If the Manners
   macro still held a cast as the fight began, the prompt stays up for that
   fight and a line in chat says so.
-- *In a fight, each press moves on to the next person* (on).
-- *In a fight, my key casts* (*Nothing*), with *Who it lands on* under it:
+- *In a fight, each press buffs the next person in line* (on).
+- *In a fight, my key casts* (*Nothing*), with *Cast it on* under it:
   see *A spell on your key in a fight* above.
-- *No flashes in combat*: the prompt stays on screen, its key still
+- *No flashes in a fight*: the prompt stays on screen, its key still
   casting, with no flashes and no cooldown sweep.
 - *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at
   about half strength in a fight.
 
 ***Buttons for when you need them***:
-- *Offer Will of the Forsaken when I am feared, charmed or asleep* (on, a
+- *Show a Will of the Forsaken button when I am feared, charmed or asleep* (on, a
   Forsaken only), with *Key for Will of the Forsaken* under it: see *Will
   of the Forsaken* above.
 - *Offer Mend Pet in a fight* (a hunter, needs the pet switch on *Who to
   buff*), with its key under it: see *Mend Pet in a fight* above.
-- *When the fight buttons show*: only when needed, or dim for the whole
+- *Show the fight buttons*: only when needed, or dim for the whole
   fight.
-- *Offer my cure in a fight when somebody needs it* (off, a class with a
+- *Show a cure button in a fight when somebody needs it* (off, a class with a
   cure), with *Key for my cure in a fight* under it: see *Curing in a
   fight* above.
 
@@ -1370,7 +1368,7 @@ with two sections: ***The prompt in a fight*** and ***Buttons for when you need 
   (off, for a repainted look), *Round the icon off*, *Gryphons at the ends*
   (Glass), *Show my key on the prompt* (*As the look has it*, *Always*,
   *Never*), *Panel colour*, *Colour by why they are offered*, *Colour set*,
-  *Where the colour shows* and *Colour when not by reason*. Folded with them,
+  *Put the colour on* and *Colour to use otherwise*. Folded with them,
   ***This window***: *Fade this window while I change the look* (off).
 - ***Position***: *Move the prompt*, *Where it sits* (three ready-made
   places) and *Move it in Edit Mode* (on): while the game's Edit Mode is open
@@ -1434,7 +1432,7 @@ the profile's settings, the characters that were on it and every rule of
 automatic switching that named it. One step, this session only: the next
 action, or a profile picked anywhere else, takes its place. Never in a fight.
 
-***Fresh starts.*** *New profile*: type a name and press Enter, for a profile
+***Start afresh.*** *New profile*: type a name and press Enter, for a profile
 with every setting at its default, which this character switches to. *New
 characters start on* (*Default*) is the profile a character takes the first
 time it logs in with Manners, for the whole account; characters that have
@@ -1488,7 +1486,7 @@ profiles of your own.
 - ***Errors this session***: what has broken; past five, *Show every error*
   lists them all in chat.
 - ***Reporting a bug***: **Run a full check-up**, *Show a short summary*,
-  *Check how Manners draws in this game* and *Log every click (noisy)*. See
+  *Test how Manners looks in this game* and *Log every click (noisy)*. See
   *Troubleshooting* below.
 
 ## Commands
@@ -1753,7 +1751,7 @@ the options window, and the errors of this session. The report opens in a box
 under *Reporting a bug* on Diagnostics, ready to copy. Target a friendly
 player first, and the range checks have somebody to measure.
 
-`/manners selftest launch` (*Check how Manners draws in this game* on
+`/manners selftest launch` (*Test how Manners looks in this game* on
 Diagnostics) adds the **launch checks**, for a new client or a new build. Out
 of a fight it asks the game, in a blink, about what the looks, the action bar
 slot and the controller keys lean on, and puts everything back: every look is

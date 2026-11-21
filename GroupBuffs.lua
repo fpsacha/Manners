@@ -247,7 +247,7 @@ local function ClassSafe(class, key, offered, inRaid)
 	local tokens = inRaid and TOKENS.raid or TOKENS.party
 	local count = math.min(inRaid and n or (n - 1), 40)
 	local mine = ns.GetClassBuffs(ns.PlayerClass()) or {}
-	-- "Don't put Kings over a Fish Bowl's Boosted Stats" (Core.lua,
+	-- "Offer Kings last to someone with a Fish Bowl's Boosted Stats" (Core.lua,
 	-- SparesFishBowl; GitHub issue 17): the Greater Blessing of Kings lands on
 	-- the one sitting by the Fish Bowl too, whom the walk gave another
 	-- blessing or nothing, so one such member keeps it back and the others

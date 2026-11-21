@@ -1,4 +1,4 @@
--- Buff myself (1.2.0): "Myself, when I'm missing my own buff" puts you on the
+-- Buff myself (1.2.0): "Remind me when my own buff is missing" puts you on the
 -- prompt when you are missing one of your own buffs, or with top-ups on it is
 -- running low. Queue.lua's SelfEntry makes the offer, Prompt/Macro.lua casts it
 -- with a /cast aimed at you by name and nothing said, Clicks.lua settles it
@@ -808,7 +808,7 @@ do
 		if not (toggle.order > a.sourcesHeader.order and toggle.order < a.groupHeader.order) then
 			fail(scenario, "the switch is not under Offer my buff to")
 		end
-		if toggle.name ~= "Myself, when I'm missing my own buff" then
+		if toggle.name ~= "Remind me when my own buff is missing" then
 			fail(scenario, "the switch reads " .. tostring(toggle.name))
 		end
 		if toggle.hidden and toggle.hidden() then fail(scenario, "the switch is hidden from a mage") end

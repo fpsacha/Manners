@@ -843,7 +843,7 @@ do
 			if f:IsShown() then fail(scenario, "the toast stayed up when a fight began") end
 			Mock.inCombat = false
 		end
-		-- "Show a toast" off: the line in chat, and no toast.
+		-- "Show it on screen too" off: the line in chat, and no toast.
 		ns.db.profile.milestones.toast = false
 		Mock.advance(M.TOAST_GAP + 1)
 		Mock.printed = {}
@@ -851,7 +851,7 @@ do
 		settle(ns)
 		if not earned(ns, "asked") then fail(scenario, "answering a request earned nothing") end
 		if #lines(M.TEXT.EARNED) ~= 1 then fail(scenario, "no line in chat with the toast off") end
-		if (f and f:IsShown()) or M.Waiting() ~= 0 then fail(scenario, "a toast with \"Show a toast\" off") end
+		if (f and f:IsShown()) or M.Waiting() ~= 0 then fail(scenario, "a toast with \"Show it on screen too\" off") end
 		guarded(ns, scenario)
 	end
 end

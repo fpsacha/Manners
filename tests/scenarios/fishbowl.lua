@@ -1,7 +1,7 @@
 -- Kings and a Fish Bowl (GitHub issue 12). On WoW Forever a camp's Fish Bowl
 -- gives everybody sitting near it Boosted Stats (spell 1230098, 8% to all
 -- stats), "mutually exclusive with Blessing of Kings": Kings replaces it. With
--- "Don't put Kings over a Fish Bowl's Boosted Stats" (buff.spareFishBowl, off
+-- "Offer Kings last to someone with a Fish Bowl's Boosted Stats" (buff.spareFishBowl, off
 -- by default), somebody wearing it is offered the paladin's other blessings
 -- first, and Kings only when nothing else of his is missing for them.
 --

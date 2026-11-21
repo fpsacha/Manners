@@ -2554,7 +2554,7 @@ def build_options(addon_dir, snaps):
     scene, lua = options_scene(addon_dir, key, "PALADIN", "who",
                                ["icons", "keybound", "order", "returning", "twocolumns"],
                                ["Who to buff", "Offer my buff to", "What to cast", "My group and raid",
-                                "Resurrection and cures", "My group's dead", "Cure my party and raid",
+                                "Resurrection and cures", "Resurrect my group's dead", "Cure my party and raid",
                                 "Blessing of Wisdom", "Blessing of Kings", "Blessing of Might"])
     if scene:
         # Two columns: a section's heading stands beside the first, not under it.

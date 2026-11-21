@@ -1,4 +1,4 @@
-# Mutations for "Below it, still offer" (filters.manaFloorKeeps: Queue.lua
+# Mutations for "While saving mana, still offer" (filters.manaFloorKeeps: Queue.lua
 # ns.ManaFloorKeeps, ns.ManaFloorKept, BuildQueue's manaHoldsAsked and
 # SelfEntry; Core.lua's default and repair; Options/When.lua; the layout; the
 # page's reset; every line that says what the floor keeps). Each is caught by
@@ -101,8 +101,8 @@ mutate("Queue.lua",
        expect="manakeeps: the lines say what is kept (self)", script=S)
 
 mutate("Options/When.lua",
-       "\t\t\t\t\telseif kept == \"self\" then\n\t\t\t\t\t\treturn L[",
-       "\t\t\t\t\telseif false then\n\t\t\t\t\t\treturn L[",
+       "\t\t\t\t\telseif kept == \"self\" then\n\t\t\t\t\t\treturn says .. L[",
+       "\t\t\t\t\telseif false then\n\t\t\t\t\t\treturn says .. L[",
        "manakeeps: the slider's description leaves the choice out",
        expect="the slider's description says", script=S)
 

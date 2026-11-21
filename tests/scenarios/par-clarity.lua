@@ -348,7 +348,7 @@ do
 			fail(scenario, "under the mana floor the launcher reads " .. tostring(kind) .. ": " .. tostring(line))
 			return
 		end
-		if not (line:find("Save mana: stop below (% mana)", 1, true) and line:find("35%", 1, true)) then
+		if not (line:find("Save mana below", 1, true) and line:find("35%", 1, true)) then
 			fail(scenario, "the line names neither the floor nor where it ends: " .. line)
 		end
 		ns.OpenOptions("who")
@@ -375,7 +375,7 @@ do
 		ns.db.profile.filters.manaFloor = 30
 		state.mana = 100
 		local text = note.name()
-		if not (text:find("Offer nothing in cities and inns", 1, true) and text:find("Save mana: stop below", 1, true)) then
+		if not (text:find("Offer nothing in cities and inns", 1, true) and text:find("Save mana below", 1, true)) then
 			fail(scenario, "a city rule and the mana floor at once, and it says " .. text)
 		end
 		ns.db.profile.enabled = false

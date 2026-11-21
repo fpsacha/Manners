@@ -151,8 +151,8 @@ end
 local function UnitText(unit, v, step)
 	local kind = unit.kind
 	if v == 0 and unit.zero then return unit.zero end
-	if kind == "percent" then return ("%d%%"):format(math.floor(v * 100 + 0.5)) end
-	if kind == "times" then return ("%sx"):format(Plain(v, step)) end
+	if kind == "percent" then return ("%d%%"):format(math.floor(v + 0.5)) end
+	if kind == "times" then return ("%gx"):format(v) end
 	local whole = math.floor(v + 0.5)
 	local isWhole = math.abs(v - whole) < 0.0001
 	if kind == "seconds" then

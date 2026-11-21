@@ -744,7 +744,7 @@ end)
 -- ------------------------------------------------------------------ bytes
 -- Trimming takes ASCII white space only. Lua's %s follows the C library's
 -- locale, and under a Western one (this runner's, and perhaps the client's)
--- it takes 0xA0, the last byte of the Chinese "Reason text: top-up" (...加),
+-- it takes 0xA0, the last byte of the Chinese "For a top-up" (...加),
 -- of the Korean (...신) and of "à": trimmed with it, a label held half a
 -- character, and the renderer stopped at the first page that had one.
 local ENDS_IN_A0 = {
@@ -783,7 +783,7 @@ run("widgets: a trim leaves the last byte of a character alone", function(scenar
 			zh.Prompt:ExitTest()
 			local item = zh.WindowBind.Item("advanced.reasonRefresh", {}, ctx)
 			local row = item and zh.WindowWidgets.Build("input", ctx.Window, item)
-			local want = zh.L["Reason text: top-up"]
+			local want = zh.L["For a top-up"]
 			if not row then
 				fail(scenario, "SKIPPED -- no reason box for a top-up")
 			elseif row.label:GetText() ~= want then

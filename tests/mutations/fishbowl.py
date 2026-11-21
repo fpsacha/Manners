@@ -1,4 +1,4 @@
-# Mutations for "Don't put Kings over a Fish Bowl's Boosted Stats"
+# Mutations for "Offer Kings last to someone with a Fish Bowl's Boosted Stats"
 # (buff.spareFishBowl: Core.lua, SparesFishBowl and PickBuffFor's exclusive
 # branch; GitHub issue 12). Each is caught by the scenario in
 # tests/scenarios/fishbowl.lua that names it.

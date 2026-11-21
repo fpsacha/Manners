@@ -2105,7 +2105,7 @@ function addon:HandleSlash(rawInput)
 			-- A hunter or a shaman still has a prompt, for his own buffs.
 			if (caps.anyOwnKnown or ns.OwnItemsHeld()) and not db.sources.self then
 				self:Print("  " .. L["your own buff: not offered -- %s is switched off."]
-					:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
+					:format("|cffffd100" .. L["Remind me when my own buff is missing"] .. "|r"))
 			end
 			for _, line in ipairs(ns.MyselfLines(GetTime())) do self:Print("  " .. line) end
 			for _, line in ipairs(ns.ResurrectLines and ns.ResurrectLines(true) or {}) do self:Print("  " .. line) end
@@ -2189,7 +2189,7 @@ function addon:HandleSlash(rawInput)
 			-- The switch by its own key, so a translation names the label
 			-- the window shows.
 			self:Print("  " .. L["your own buff: not offered -- %s is switched off."]
-				:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
+				:format("|cffffd100" .. L["Remind me when my own buff is missing"] .. "|r"))
 		elseif #ns.SelfBuffs() > 0 then
 			self:Print("  " .. L["your own buff: offered to you when you are missing it."])
 		elseif #ns.KnownOwnFamilies() == 0 then
@@ -2228,7 +2228,7 @@ function addon:HandleSlash(rawInput)
 		if resume then
 			-- Your own buff is kept too (Queue.lua, SelfEntry), where "Myself"
 			-- is on, and a line leaving it out would contradict the queue; and
-			-- what is kept is "Below it, still offer"'s (ns.ManaFloorKept).
+			-- what is kept is "While saving mana, still offer"'s (ns.ManaFloorKept).
 			local kept = ns.ManaFloorKept()
 			self:Print((kept == "askedself"
 				and L["|cffffd100saving mana|r -- until you are back to %d%% mana, only your own buff and people who buffed you or asked are offered"]

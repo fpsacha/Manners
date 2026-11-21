@@ -340,7 +340,7 @@ function Page.BuildAdvancedTab()
 			favoursHeader = { type = "header", name = L["Buffing back"], order = 10, hidden = NoOthers },
 			owedClassBuffsOnly = {
 				type = "toggle",
-				name = L["Count only class buffs as favours"],
+				name = L["Only class buffs count as favours"],
 				desc = L["Only class buffs such as Fortitude count as a favour to return."]
 					.. " " .. L["The same goes for /thank people who buff me."],
 				order = 11,
@@ -358,7 +358,7 @@ function Page.BuildAdvancedTab()
 			-- refreshed to return it, as it was before a priest asked.
 			repayCovered = {
 				type = "toggle",
-				name = L["Refresh a buff they already have, to return a favour"],
+				name = L["Buff them back even when they already have my buff"],
 				desc = L["Off, somebody who buffs you and already has everything you could give them, with time to spare, is offered nothing, whoever cast it: a thank-you is enough, and the favour is let go. A buff they are missing, or one about to run out, is still offered back."]
 					.. "\n\n" .. L["On, the buff they already have is offered again to return the favour."],
 				order = 11.5,
@@ -369,12 +369,13 @@ function Page.BuildAdvancedTab()
 				set = fSet,
 			},
 			-- Most of these are a number of seconds. The window's box shows the
-			-- unit itself (Layout.lua, units); the dialog it falls back to has
-			-- no unit field, so each tooltip says the unit.
+			-- unit itself (Layout.lua, units), and the label no longer says it;
+			-- the dialog the window falls back to has no unit field, so each
+			-- tooltip starts with the unit.
 			reciprocateWindow = {
 				type = "range",
-				name = L["Offer a buff back for (seconds)"],
-				desc = L["How long someone who buffed you stays on offer."],
+				name = L["How long a favour stays on offer"],
+				desc = L["In seconds."] .. " " .. L["How long someone who buffed you stays on offer."],
 				order = 12,
 				width = "double",
 				hidden = NoOthers,
@@ -386,7 +387,7 @@ function Page.BuildAdvancedTab()
 			},
 			reachableOnly = {
 				type = "toggle",
-				name = L["Stop sooner if they are probably gone"],
+				name = L["Let them go sooner if they have probably left"],
 				desc = L["Someone who buffed you rarely can be range-checked, so they are let go after the time below."],
 				order = 13,
 				width = "full",
@@ -399,8 +400,8 @@ function Page.BuildAdvancedTab()
 				-- instant they were provably in range; nothing notices a player
 				-- walking off.
 				type = "range",
-				name = L["Let them go after (seconds)"],
-				desc = L["Counted from their buff, not from when they walked off."],
+				name = L["Let them go after"],
+				desc = L["In seconds."] .. " " .. L["Counted from their buff, not from when they walked off."],
 				order = 14,
 				min = 10,
 				max = 180,
@@ -434,9 +435,9 @@ function Page.BuildAdvancedTab()
 			-- (skipSeconds, below).
 			retryCooldown = {
 				type = "range",
-				name = L["Don't repeat a spell on someone for (seconds)"],
+				name = L["Wait before trying the same spell on someone again"],
 				desc = function()
-					return L["In case the cast failed. How long a right-click skips someone is set on %s."]:format(Page.TabOf("advanced.skipSeconds") or "")
+					return L["In seconds."] .. " " .. L["In case the cast failed. How long a right-click skips someone is set on %s."]:format(Page.TabOf("advanced.skipSeconds") or "")
 				end,
 				order = 21,
 				width = "double",
@@ -473,8 +474,8 @@ function Page.BuildAdvancedTab()
 			},
 			scanInterval = {
 				type = "range",
-				name = L["Check for people every (seconds)"],
-				desc = L["Lower reacts faster and uses a little more CPU."],
+				name = L["Look for people every"],
+				desc = L["In seconds."] .. " " .. L["Lower reacts faster and uses a little more CPU."],
 				order = 22,
 				width = "double",
 				min = 0.1,
@@ -542,17 +543,17 @@ function Page.BuildAdvancedTab()
 			-- The second line, in the order the queue ranks people.
 			reasonTarget = {
 				type = "input",
-				name = L["Reason text: my target"],
+				name = L["For my target"],
 				desc = L["Shown when your target is first in line."],
 				order = 53,
 				hidden = NoOthers,
 				get = pGet,
 				set = pSet,
 			},
-			reasonOwed = { type = "input", name = L["Reason text: buffed me"], order = 54, hidden = NoOthers, get = pGet, set = pSet },
+			reasonOwed = { type = "input", name = L["For someone who buffed me"], order = 54, hidden = NoOthers, get = pGet, set = pSet },
 			reasonAsked = {
 				type = "input",
-				name = L["Reason text: asked in chat"],
+				name = L["For someone who asked in chat"],
 				desc = L["Shown for someone who asked in chat."],
 				order = 55,
 				hidden = NoOthers,
@@ -562,17 +563,17 @@ function Page.BuildAdvancedTab()
 			-- Between the two it sits between in the queue.
 			reasonSelf = {
 				type = "input",
-				name = L["Reason text: my own buff"],
+				name = L["For my own buff"],
 				desc = L["Shown when the prompt offers you your own buff."],
 				order = 55.5,
 				get = pGet,
 				set = pSet,
 			},
-			reasonGroup = { type = "input", name = L["Reason text: my group"], order = 56, hidden = NoOthers, get = pGet, set = pSet },
-			reasonNearby = { type = "input", name = L["Reason text: passer-by"], order = 57, hidden = NoOthers, get = pGet, set = pSet },
+			reasonGroup = { type = "input", name = L["For my group"], order = 56, hidden = NoOthers, get = pGet, set = pSet },
+			reasonNearby = { type = "input", name = L["For a passer-by"], order = 57, hidden = NoOthers, get = pGet, set = pSet },
 			reasonRefresh = {
 				type = "input",
-				name = L["Reason text: top-up"],
+				name = L["For a top-up"],
 				desc = L["{time} is how long theirs has left."],
 				order = 58,
 				get = pGet,
@@ -580,7 +581,7 @@ function Page.BuildAdvancedTab()
 			},
 			reasonUnknown = {
 				type = "input",
-				name = L["Reason text: buffs hidden"],
+				name = L["When the game hides their buffs"],
 				desc = L["Shown when the game hides whether they already have it."],
 				order = 59,
 				-- Your own buffs are never offered on a reading the game

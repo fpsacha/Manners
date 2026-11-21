@@ -610,7 +610,7 @@ function Quick.OwnOnlySummary()
 	end
 	if not S().self then
 		return L["Your class has no buffs for other players, and %s is off, so the prompt never appears."]
-			:format(RefTo(L["Myself, when I'm missing my own buff"], "who.self"))
+			:format(RefTo(L["Remind me when my own buff is missing"], "who.self"))
 	end
 	local names = {}
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
@@ -1183,7 +1183,7 @@ function Page.BuildStartTab()
 			},
 			bindKey = {
 				type = "keybinding",
-				name = L["Key that casts what the prompt shows"],
+				name = L["The prompt's key"],
 				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 21,
 				hidden = function() return not HasPrompt() or not Setup.CanBind() end,
@@ -1450,7 +1450,7 @@ function Page.BuildStartTab()
 			-- it the toast and its sound, which have no say while it is off.
 			milestones = {
 				type = "toggle",
-				name = L["Milestones"],
+				name = L["Tell me when I reach a milestone"],
 				desc = L["A dozen or so marks of good manners, earned by what your ledger records: listed on the ledger's Milestones tab, with a toast and one line in your chat window when you earn one or a new title."]
 					.. "\n\n"
 					.. L["Off: no toast, no tab, no line for a milestone, and nothing is counted. A new title keeps its one line in chat. What you have earned is kept for when you switch it back on."],
@@ -1465,7 +1465,7 @@ function Page.BuildStartTab()
 			},
 			milestoneToast = {
 				type = "toggle",
-				name = L["Show a toast"],
+				name = L["Show it on screen too"],
 				desc = L["A small plate on screen for a few seconds when you earn a milestone or a title. Never in a fight, never over the prompt, and at most one a minute; a click sends it away."],
 				order = 64,
 				width = "full",

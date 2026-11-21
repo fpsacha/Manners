@@ -703,7 +703,7 @@ do
 end
 
 -- ------------------------------------------------------------------ skip my own class
--- "Skip my own class when they can cast it too" reads the level Mists
+-- "Skip players of my class, who can buff themselves" reads the level Mists
 -- teaches the buff at: a level-40 mage cannot cast Arcane Brilliance (58)
 -- and is offered yours; a level-70 mage can and is skipped. A monk who is
 -- not Windwalker has no White Tiger of his own, so it is never skipped.

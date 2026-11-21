@@ -40,7 +40,7 @@ function Page.BuildWhenTab()
 			},
 			whenBuffed = {
 				type = "select",
-				name = L["If they already have it"],
+				name = L["When they already have my buff"],
 				-- The favour exception is said here because none of the
 				-- three choices touches it: BuildQueue offers a debt
 				-- regardless of this setting. For a class with nothing for
@@ -71,11 +71,11 @@ function Page.BuildWhenTab()
 			},
 			refreshUnder = {
 				type = "range",
-				name = L["Top up at most this many minutes early"],
+				name = L["Top up at most this early"],
 				-- How the moment is worked out, then the favour exception:
 				-- a timer that cannot be read holds back a top-up, never a
 				-- buff owed.
-				desc = L["The moment is worked out from how long the buff lasts: about a tenth of it, so ten minutes means one minute before it ends and an hour five. This is the most it will ever take."]
+				desc = L["In minutes."] .. " " .. L["The moment is worked out from how long the buff lasts: about a tenth of it, so ten minutes means one minute before it ends and an hour five. This is the most it will ever take."]
 					.. " " .. L["Someone whose time left cannot be read is not offered a top-up, unless they buffed you."],
 				order = 3,
 				min = 1,
@@ -87,8 +87,8 @@ function Page.BuildWhenTab()
 			},
 			refreshRaid = {
 				type = "range",
-				name = L["In a raid or dungeon, top up this many times earlier"],
-				desc = L["A fight and the drinking after it take minutes, so in a raid or a dungeon a top-up is offered this many times earlier. Your own buffs are offered half as early again, and people outside your group only in the last half minute."],
+				name = L["Earlier in a raid or dungeon"],
+				desc = L["A fight and the drinking after it take minutes, so in a raid or a dungeon a top-up is offered this many times as early. Your own buffs are offered half as early again, and people outside your group only in the last half minute."],
 				order = 3.5,
 				min = 1,
 				max = 4,
@@ -104,7 +104,7 @@ function Page.BuildWhenTab()
 			selfTopUp = {
 				type = "toggle",
 				name = L["Top up my own buffs before they run out"],
-				desc = L["Your own buffs, and the ones you put on yourself, are offered again shortly before they end, whatever If they already have it says for other people."],
+				desc = L["Your own buffs, and the ones you put on yourself, are offered again shortly before they end, whatever When they already have my buff says for other people."],
 				order = 6.1,
 				width = "full",
 				get = fGet,
@@ -112,8 +112,8 @@ function Page.BuildWhenTab()
 			},
 			selfLead = {
 				type = "range",
-				name = L["Remind me this many minutes early"],
-				desc = L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Set a time to be reminded exactly that long before your own buffs end, in a dungeon or raid too: 0.5 is half a minute. Never more than half the buff's length."],
+				name = L["Remind me this long before mine run out"],
+				desc = L["In minutes."] .. " " .. L["0 works it out from how long the buff lasts: a little more than a tenth of it, and twice that in a dungeon or raid. Set a time to be reminded exactly that long before your own buffs end, in a dungeon or raid too: 0.5 is half a minute. Never more than half the buff's length."],
 				order = 6.2,
 				min = 0,
 				max = 10,
@@ -152,7 +152,7 @@ function Page.BuildWhenTab()
 			-- own buffs, which are always read.
 			verifiedOnly = {
 				type = "toggle",
-				name = L["Don't offer when the game hides their buffs (fights)"],
+				name = L["Don't offer when the game hides their buffs"],
 				desc = L["In a fight, and sometimes just after, the game hides other players' buffs: Manners cannot tell then whether they already have yours, and offers it marked \"unverified\". Tick this to never offer it then. Someone who buffed you or asked for a buff is still offered."],
 				order = 5,
 				width = "full",
@@ -245,21 +245,22 @@ function Page.BuildWhenTab()
 			},
 			manaFloor = {
 				type = "range",
-				name = L["Save mana: stop below (% mana)"],
+				name = L["Save mana below"],
 				-- What is still offered under it, by the choice below it
 				-- (ns.ManaFloorKept): the two kinds that asked, and your own
 				-- buff (Queue.lua, SelfEntry) wherever "Myself" is on; your own
 				-- buff alone; or nothing.
 				desc = function()
 					local kept = ns.ManaFloorKept()
+					local says = L["In percent of your mana."] .. " "
 					if kept == "askedself" then
-						return L["Below this, only your own buff and people who buffed you or asked are offered."]
+						return says .. L["Below this, only your own buff and people who buffed you or asked are offered."]
 					elseif kept == "asked" then
-						return L["Below this, only people who buffed you or asked are offered."]
+						return says .. L["Below this, only people who buffed you or asked are offered."]
 					elseif kept == "self" then
-						return L["Below this, only your own buff is offered."]
+						return says .. L["Below this, only your own buff is offered."]
 					end
-					return L["Below this, nothing is offered."]
+					return says .. L["Below this, nothing is offered."]
 				end,
 				order = 13,
 				min = 0,
@@ -276,7 +277,7 @@ function Page.BuildWhenTab()
 			-- Greyed while the floor is off, as Where is under its switch.
 			manaFloorKeeps = {
 				type = "select",
-				name = L["Below it, still offer"],
+				name = L["While saving mana, still offer"],
 				desc = L["Who is still offered while you are under the floor. Someone who buffed you and is held back stays owed, and is offered once your mana is back."],
 				order = 13.2,
 				values = {

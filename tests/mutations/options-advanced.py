@@ -156,8 +156,8 @@ mutate("Options/Advanced.lua",
 
 # A moved control writing somewhere new.
 mutate("Options/Advanced.lua",
-       "\t\t\t\tname = L[\"Offer a buff back for (seconds)\"],\n"
-       "\t\t\t\tdesc = L[\"How long someone who buffed you stays on offer.\"],\n"
+       "\t\t\t\tname = L[\"How long a favour stays on offer\"],\n"
+       "\t\t\t\tdesc = L[\"In seconds.\"] .. \" \" .. L[\"How long someone who buffed you stays on offer.\"],\n"
        "\t\t\t\torder = 12,\n"
        "\t\t\t\twidth = \"double\",\n"
        "\t\t\t\thidden = NoOthers,\n"
@@ -166,8 +166,8 @@ mutate("Options/Advanced.lua",
        "\t\t\t\tstep = 5,\n"
        "\t\t\t\tget = tGet,\n"
        "\t\t\t\tset = tSet,\n",
-       "\t\t\t\tname = L[\"Offer a buff back for (seconds)\"],\n"
-       "\t\t\t\tdesc = L[\"How long someone who buffed you stays on offer.\"],\n"
+       "\t\t\t\tname = L[\"How long a favour stays on offer\"],\n"
+       "\t\t\t\tdesc = L[\"In seconds.\"] .. \" \" .. L[\"How long someone who buffed you stays on offer.\"],\n"
        "\t\t\t\torder = 12,\n"
        "\t\t\t\twidth = \"double\",\n"
        "\t\t\t\thidden = NoOthers,\n"

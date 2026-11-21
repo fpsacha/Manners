@@ -1,4 +1,4 @@
-# Mutations for "Remind me this many minutes early" (filters.selfLead), exact
+# Mutations for "Remind me this long before mine run out" (filters.selfLead), exact
 # from 1.11.15 (Core.lua, SelfEarlier). Each is caught by the scenario in
 # tests/scenarios/selflead.lua that names it.
 

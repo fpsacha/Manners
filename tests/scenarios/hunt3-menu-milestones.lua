@@ -102,7 +102,7 @@ do
 			return
 		end
 		local speech = ns.db.profile.speech
-		local words = ns.L["My own lines, mixed in (one per line)"]
+		local words = ns.L["My own lines, mixed in with In character"]
 		speech.enabled = true
 		if ns.InCharacter.Active(speech) then speech.presetChoice = "plain" end
 		if ns.InCharacter.Active(speech) then

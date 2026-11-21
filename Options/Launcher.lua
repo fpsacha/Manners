@@ -251,12 +251,12 @@ end
 ns.PassersHeld = PassersHeld
 
 -- Saving mana under the floor (Queue.lua, ns.SavingMana): what is still
--- offered is "Below it, still offer"'s, and the line names the floor.
+-- offered is "While saving mana, still offer"'s, and the line names the floor.
 local function SavingManaLine()
 	local _, resume = ns.SavingMana()
 	if not resume then return nil end
 	return L["Saving mana until you are back to %d%%, so less is offered: %s, on the %s tab."]
-		:format(resume, Gold(L["Save mana: stop below (% mana)"]), Page.TabOf("when.manaFloor") or "")
+		:format(resume, Gold(L["Save mana below"]), Page.TabOf("when.manaFloor") or "")
 end
 
 -- Whether a prompt can appear at all right now, and the line that says so:
@@ -795,7 +795,7 @@ local function FillPromptMenu(parent, fight)
 	-- These three are drawing and sound, never where the button is or what it
 	-- casts: the style is put back after the fight by ApplyStyle itself, so
 	-- they stay open in one.
-	Check(parent, L["No flashes in combat"], function() return ns.db.profile.prompt.hideInCombat end,
+	Check(parent, L["No flashes in a fight"], function() return ns.db.profile.prompt.hideInCombat end,
 		Act(function()
 			local now = ns.db.profile.prompt
 			now.hideInCombat = not now.hideInCombat

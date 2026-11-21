@@ -353,7 +353,7 @@ function Page.BuildLookTab()
 			-- this picker has no say at all.
 			accentColor = {
 				type = "color",
-				name = L["Colour when not by reason"],
+				name = L["Colour to use otherwise"],
 				desc = L["Used when Colour by why they are offered is off."],
 				order = 25,
 				hasAlpha = true,
@@ -363,7 +363,7 @@ function Page.BuildLookTab()
 			},
 			accentMode = {
 				type = "select",
-				name = L["Where the colour shows"],
+				name = L["Put the colour on"],
 				desc = L["Where the reason's colour is drawn."],
 				order = 26,
 				values = {
@@ -390,7 +390,7 @@ function Page.BuildLookTab()
 					local mode = p.accentMode or "icon"
 					if (mode == "icon" or mode == "both") and not p.showIcon then
 						return "|cffffd100" .. L["There is nothing left to colour: %s puts it on the icon, which is switched off."]
-							:format(L["Where the colour shows"]) .. "|r"
+							:format(L["Put the colour on"]) .. "|r"
 					end
 					-- Nothing was lost, so the notice is hidden and has
 					-- nothing to say.
@@ -449,7 +449,7 @@ function Page.BuildLookTab()
 			-- them for everybody who set it.
 			hideInFight = {
 				type = "toggle",
-				name = L["Hide the prompt in combat"],
+				name = L["Hide the prompt in a fight"],
 				desc = function()
 					local text = L["Off the screen for the whole fight, and nothing casts from it meanwhile: not its key, not a name in its list, not the Manners macro on your bar. It comes back when the fight ends. A change made in a fight counts from the next one."]
 					if ns.FightKey and ns.FightKey.Chosen() then text = text .. " " .. L["While In a fight, my key casts names a spell, the prompt's key casts that spell in a fight instead."] end
@@ -465,7 +465,7 @@ function Page.BuildLookTab()
 			-- step with the prompt hidden for the fight.
 			fightRota = {
 				type = "toggle",
-				name = L["In a fight, each press moves on to the next person"],
+				name = L["In a fight, each press buffs the next person in line"],
 				desc = function()
 					local text = L["A fight locks the prompt, so Manners hands it everybody who still needed a buff as the fight began, and each press of the prompt or its key casts at the next of them in turn. Off, every press in a fight casts at the one person the prompt was on. The Manners macro on an action bar keeps to that one person either way."]
 					if ns.FightKey and ns.FightKey.Chosen() then text = text .. " " .. L["While In a fight, my key casts names a spell, the prompt's key casts that spell in a fight instead."] end
@@ -514,7 +514,7 @@ function Page.BuildLookTab()
 			},
 			fightKeyOn = {
 				type = "select",
-				name = L["Who it lands on"],
+				name = L["Cast it on"],
 				desc = L["For a spell you can cast on others. A spell only for yourself always lands on you."],
 				order = 32.456,
 				hidden = function()
@@ -523,7 +523,7 @@ function Page.BuildLookTab()
 					return row == nil or row.self == true
 				end,
 				values = {
-					friend = L["The player under my mouse, else my target, else me"],
+					friend = L["Whoever is under my mouse, else my target, else me"],
 					me = L["Me"],
 				},
 				sorting = { "friend", "me" },
@@ -540,8 +540,8 @@ function Page.BuildLookTab()
 			-- prompt in combat says: the button is not the prompt.
 			breakFree = {
 				type = "toggle",
-				name = L["Offer Will of the Forsaken when I am feared, charmed or asleep"],
-				desc = L["A button of its own beside the prompt, with a key of its own. It shows while you are feared, charmed or asleep, lit while the spell is ready and dim while it cools down; When the fight buttons show can keep it beside the prompt, dim, for the whole fight. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."],
+				name = L["Show a Will of the Forsaken button when I am feared, charmed or asleep"],
+				desc = L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."],
 				order = 32.46,
 				width = "full",
 				hidden = function() return ns.caps.breakFree == nil end,
@@ -578,8 +578,8 @@ function Page.BuildLookTab()
 			-- Who to buff > Myself.
 			mendInFight = {
 				type = "toggle",
-				name = L["Offer Mend Pet in a fight when my pet is badly hurt"],
-				desc = L["A button of its own beside the prompt, with a key of its own. It shows while your pet is below half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight it cannot tell, so the button stays out of sight unless When the fight buttons show keeps it there for the whole fight, half lit; its key casts either way. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."],
+				name = L["Show a Mend Pet button in a fight when my pet is badly hurt"],
+				desc = L["A button of its own beside the prompt, with its own key. It shows while your pet is under half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight, it shows only with Show the fight buttons set to All fight; its key works either way. A change made in a fight counts from the next one."],
 				order = 32.48,
 				width = "full",
 				hidden = function() return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend()) end,
@@ -615,8 +615,8 @@ function Page.BuildLookTab()
 			-- The cure button below keeps its own rule.
 			fightButtons = {
 				type = "select",
-				name = L["When the fight buttons show"],
-				desc = L["For the Will of the Forsaken and Mend Pet buttons. Only when needed: a button stays out of sight until you are feared, charmed or asleep, or your pet is badly hurt, then fades in and out again after; its key casts it, and a click does not unless no key is set. All fight: it sits dim beside the prompt for the whole fight, lights up when needed and takes a click too. Where the game hides your pet's health in a fight, only All fight shows the Mend Pet button."],
+				name = L["Show the fight buttons"],
+				desc = L["For the Will of the Forsaken and Mend Pet buttons. Only when needed: a button appears when you need it and fades after; its key casts it, and a click too when no key is set. All fight: it sits dim beside the prompt for the whole fight, lights up when needed and takes a click. Where the game hides your pet's health in a fight, only All fight shows the Mend Pet button."],
 				order = 32.4905,
 				values = { needed = L["Only when needed"], always = L["All fight, dim until needed"] },
 				sorting = { "needed", "always" },
@@ -641,12 +641,12 @@ function Page.BuildLookTab()
 			-- cure, with a key of its own. Shown to a class with a cure.
 			cureFight = {
 				type = "toggle",
-				name = L["Offer my cure in a fight when somebody needs it"],
+				name = L["Show a cure button in a fight when somebody needs it"],
 				desc = function()
 					if ns.caps.conditionalTargeting then
-						return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures the player under your mouse, else your target, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."]
+						return L["A button of its own beside the prompt, with its own key. It shows when somebody near you has a poison, disease, curse or harmful magic your class can remove, and says who. A press cures whoever is under your mouse, else your target, else you; Shift casts your second cure. Where the game hides debuffs in a fight it stays hidden, but its key still works. A change made in a fight counts from the next one."]
 					end
-					return L["A button of its own beside the prompt, with a key of its own. It stays out of sight until somebody near you carries a poison, disease, curse or harmful spell your class can remove, then shows who and fades again once nobody does. A press cures your target when it is a friend, else you; a class with two cures casts the second with Shift held. Where the game hides debuffs in a fight it stays out of sight, and its key still casts. The prompt's own key keeps to buffs unless In a fight, my key casts names a spell. A change made in a fight counts from the next one."]
+					return L["A button of its own beside the prompt, with its own key. It shows when somebody near you has a poison, disease, curse or harmful magic your class can remove, and says who. A press cures your target when it is a friend, else you; Shift casts your second cure. Where the game hides debuffs in a fight it stays hidden, but its key still works. A change made in a fight counts from the next one."]
 				end,
 				order = 32.491,
 				width = "full",
@@ -689,10 +689,10 @@ function Page.BuildLookTab()
 			-- pGet/pSet (restyle).
 			hideInCombat = {
 				type = "toggle",
-				name = L["No flashes in combat"],
+				name = L["No flashes in a fight"],
 				desc = function()
 					return L["The prompt stays up in a fight, its key binding still casting, unless %s is on; this stops only the flashes that say what a click did, red if it failed."]
-						:format(L["Hide the prompt in combat"])
+						:format(L["Hide the prompt in a fight"])
 				end,
 				order = 32.5,
 				width = "full",
@@ -1018,7 +1018,7 @@ function Page.BuildLookTab()
 				name = L["Show the global cooldown on the icon"],
 				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
 					.. "\n\n|cff888888" .. L["Not in a fight while this is on:"] .. "|r "
-					.. "|cffffd100" .. L["No flashes in combat"] .. "|r",
+					.. "|cffffd100" .. L["No flashes in a fight"] .. "|r",
 				order = 54,
 				width = "full",
 				disabled = function() return not P().showIcon end,

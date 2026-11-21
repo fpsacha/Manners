@@ -10,7 +10,7 @@
 -- CoveredAlready), else by the first scan that does (Queue.lua, LetGoCovered).
 -- A buff that is missing, or due a top-up, still returns the favour; a reading
 -- the client withholds, or keeps from before a fight, is not "covered"; and
--- "Refresh a buff they already have, to return a favour" (filters.repayCovered,
+-- "Buff them back even when they already have my buff" (filters.repayCovered,
 -- When to offer, Buffing back) puts the old behaviour back.
 --
 -- Forever names nobody as the caster of a buff on another player; retail names
@@ -141,7 +141,7 @@ local function filedCovered(scenario, ns, anna)
 			or not tip:find("they already had everything you could give them", 1, true) then
 			fail(scenario, "the row's tooltip says " .. tip)
 		end
-		if not tip:find("Refresh a buff they already have, to return a favour", 1, true) then
+		if not tip:find("Buff them back even when they already have my buff", 1, true) then
 			fail(scenario, "the row's tooltip does not name the switch that refreshes it anyway: " .. tip)
 		end
 	end

@@ -68,7 +68,7 @@ do
 			{ "preset", 21, "Line set" },
 			{ "phrasesHelp", 22 },
 			{ "inCharacterNote", 22.5 },
-			{ "phrases", 23, "Your lines (one per line)" },
+			{ "phrases", 23, "Your lines" },
 			{ "backToInCharacter", 23.5, "Go back to In character" },
 			{ "roll", 24, "Try a few lines" },
 			{ "limits", 25 },

@@ -1648,7 +1648,7 @@ mutate("Options/Look.lua",
 #     kind of number. Anchored on the slider's own name line: When to offer
 #     names it too, in the pointer to it, and that comes first in the file.
 mutate("Options/Advanced.lua",
-       "\t\t\t\tname = L[\"Offer a buff back for (seconds)\"],\n",
+       "\t\t\t\tname = L[\"How long a favour stays on offer\"],\n",
        "\t\t\t\tname = L[\"Offer a buff back for\"],\n",
        "a time slider showing a bare number",
        expect="the time sliders say what they are counting",
@@ -2180,8 +2180,8 @@ mutate("Prompt/Refresh.lua",
 # 75. the label that promised a per-player wait over a click that blocks one
 #     spell. The wording is the bug here, so the wording is what goes back.
 mutate("Options/Advanced.lua",
-       'return L["In case the cast failed. How long a right-click skips someone is set on %s."]:format(',
-       'return L["How long before the same player can come back up. A right-click skips someone for the length set on %s."]:format(',
+       'L["In case the cast failed. How long a right-click skips someone is set on %s."]:format(',
+       'L["How long before the same player can come back up. A right-click skips someone for the length set on %s."]:format(',
        "a per-spell wait sold as a per-player one",
        expect="the same player can come back up",
        script="runscenarios.py")
@@ -2272,7 +2272,7 @@ mutate("Options/Advanced.lua",
 # 83. "Hide in combat" over a panel that cannot be hidden. The call that read
 #     it was protected and refused every time it ran, and it is gone.
 mutate("Options/Look.lua",
-       'name = L["No flashes in combat"],',
+       'name = L["No flashes in a fight"],',
        'name = L["Hide in combat"],',
        "a switch named for something it cannot do",
        expect="is still called",
@@ -2309,7 +2309,7 @@ mutate("Options/Start.lua",
 #     somebody, which is a thing nothing in the addon can notice. It runs from
 #     their buff -- the one instant they were provably in range.
 mutate("Options/Advanced.lua",
-       'desc = L["Counted from their buff, not from when they walked off."],',
+       'desc = L["In seconds."] .. " " .. L["Counted from their buff, not from when they walked off."],',
        'desc = "How long a favour stays offerable once we can no longer see them.",',
        "a window timed from an event nothing sees",
        expect="the page does not say so",

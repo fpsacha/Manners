@@ -25,7 +25,7 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   `pcall`.
 - **Combat.** The secure button's attributes cannot change in combat: what is
   on the prompt when a fight starts stays until it ends. The one exception is
-  secure code: with *Hide the prompt in combat* on, `Prompt/Fight.lua`'s
+  secure code: with *Hide the prompt in a fight* on, `Prompt/Fight.lua`'s
   snippet takes the macro off the prompt and its rows and only then hides the
   prompt, and only when the pull (`PLAYER_REGEN_DISABLED`, before the
   lockdown) has left the bar macro holding no cast (`ns.BarMacroDisarmed`).
@@ -44,7 +44,7 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   The break-free button (`Prompt/BreakFree.lua`, MannersBreakFree) casts
   only Will of the Forsaken, from its own key or a left click: armed out of
   combat whenever it applies, shown and hidden by its own state driver for
-  every fight, whatever Hide the prompt in combat, a snooze or the prompt's
+  every fight, whatever Hide the prompt in a fight, a snooze or the prompt's
   place at the pull say, but at alpha 0 (no tooltip, its highlight a region so
   it takes the alpha) and faded in by Lua (a plain OnUpdate, as the cure's)
   only while you are afflicted; in a fight Lua paints only its regions and
