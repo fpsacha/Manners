@@ -18,7 +18,7 @@ local fail, load = H.fail, H.load
 local strangers, freshPrompt, primeAuras, favourFrom = H.strangers, H.freshPrompt, H.primeAuras, H.favourFrom
 
 local TOUCHED = { "IsInInstance", "DoEmote", "C_ChatInfo", "GetCVar", "UnitIsUnit", "UnitIsPlayer",
-	"C_FriendList", "UnitGUID", "UnitName" }
+	"C_FriendList", "UnitGUID", "UnitName", "UnitExists" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
@@ -44,6 +44,7 @@ local function with(scenario, opts, body)
 	table.sort(plates, function(a, b) return tonumber(a:match("%d+")) < tonumber(b:match("%d+")) end)
 	Mock.nameplates = plates
 	Mock.class = opts.class or "PRIEST"
+	if Mock.class == "DRUID" then Mock.knownSpells = { [1126] = true, [5232] = true, [8907] = true, [9885] = true } end
 	if Mock.class == "PRIEST" then
 		Mock.knownSpells = { [10938] = true, [10937] = true, [2791] = true, [1245] = true,
 			[1244] = true, [1243] = true, [21564] = true, [21562] = true }
@@ -168,7 +169,6 @@ end
 do
 	local scenario = "favour-caster: a cast with no target names them once the moment has passed"
 	with(scenario, {}, function(ns)
-		ns.UnitHasBuff = function() return false end
 		local anna = ns.UnitFullName("nameplate1")
 		cast("nameplate1")
 		land(ns, nil)
@@ -201,7 +201,6 @@ do
 	local scenario = "favour-caster: a second caster just after the landing still names nobody"
 	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" } }
 	with(scenario, { names = names }, function(ns)
-		ns.UnitHasBuff = function() return false end
 		cast("nameplate1")
 		land(ns, nil)
 		Mock.advance(0.5)
@@ -227,7 +226,6 @@ end
 do
 	local scenario = "favour-caster: a cast outside the moment names nobody"
 	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
-		ns.UnitHasBuff = function() return false end
 		land(ns, nil)
 		Mock.advance(1.5)
 		cast("nameplate1")
@@ -257,7 +255,6 @@ end
 do
 	local scenario = "favour-caster: a cast of another buff names nobody"
 	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
-		ns.UnitHasBuff = function() return false end
 		cast("nameplate1", INTELLECT)
 		land(ns, nil, FORTITUDE)
 		Mock.runTimers(2)
@@ -269,7 +266,6 @@ do
 	local scenario = "favour-caster: a cast at somebody else names nobody"
 	local names = { nameplate1 = { "Anna", "Aim" }, nameplate1target = { "Cora", "Else" } }
 	with(scenario, { names = names }, function(ns)
-		ns.UnitHasBuff = function() return false end
 		cast("nameplate1")
 		land(ns, nil)
 		Mock.runTimers(2)
@@ -293,19 +289,37 @@ end
 do
 	local scenario = "favour-caster: a cast by somebody who now wears a fresh one of it names nobody"
 	with(scenario, {}, function(ns)
-		local at
 		-- They wear one that began just after they cast: their own, on themselves.
-		-- Said only to the cast watch's own question: asked the same later, the favour
-		-- would be let go as already covered, which is another matter.
-		ns.UnitHasBuff = function()
-			if not debug.traceback():find("SelfCast", 1, true) then return false end
-			return true, 1800 - (GetTime() - at - 0.2), false, false, 1800
-		end
-		at = GetTime()
+		-- Read straight off the caster by the cast watch's own question; the mock
+		-- gives every other unit a Fortitude that ends heldFor seconds after the read,
+		-- which puts its start just after the cast, with the timers run two seconds on.
+		Mock.held = { [FORTITUDE] = true }
+		Mock.heldDuration = 1800
+		Mock.heldFor = 1800 - 1.8
 		cast("nameplate1")
 		land(ns, nil)
 		Mock.runTimers(2)
 		if next(ns.owed) then fail(scenario, "a self-cast was taken for a favour: " .. tostring(next(ns.owed))) end
+		-- A cast WAS seen, so neither the chat hint nor /manners debug may say that none was.
+		if said():find("saw no player in sight", 1, true) then fail(scenario, "the hint says no cast was seen: " .. said()) end
+		if not said():find("saw a cast at that moment", 1, true) then fail(scenario, "the hint does not say a cast was seen: " .. said()) end
+		local text = debugText(ns)
+		if text:find("no player in sight was seen casting", 1, true) then fail(scenario, "/manners debug says no cast was seen") end
+		if not text:find("a cast was seen at that moment", 1, true) then fail(scenario, "/manners debug does not say a cast was seen: " .. text) end
+	end)
+end
+
+do
+	-- The reported case: a druid, and a priest's Fortitude, which is no buff of the
+	-- druid's own class. Nothing is stubbed: the cast watch reads the caster's aura
+	-- itself, and a caster who wears none is no self-cast.
+	local scenario = "favour-caster: another class's buff with no target names the stranger once the moment has passed"
+	with(scenario, { class = "DRUID" }, function(ns)
+		local anna = ns.UnitFullName("nameplate1")
+		cast("nameplate1")
+		land(ns, nil)
+		Mock.runTimers(2)
+		if not owedBy(ns, anna) then fail(scenario, "a stranger's Fortitude on a druid named nobody: " .. said()) end
 	end)
 end
 
@@ -335,7 +349,6 @@ do
 	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bea", "Bold" }, nameplate1target = { "Me", "Myself" } }
 	for i = 3, 34 do names["nameplate" .. i] = { "Crowd" .. i, "Member" } end
 	with(scenario, { names = names, aimed = AIMED }, function(ns)
-		ns.UnitHasBuff = function() return false end
 		cast("nameplate2")
 		for i = 3, 34 do cast("nameplate" .. i, INTELLECT) end
 		cast("nameplate1")
@@ -357,6 +370,95 @@ do
 		if not owedBy(ns, anna) then fail(scenario, "SKIPPED -- the late cast named nobody: " .. said()) return end
 		local waiting = trailHas(ns, "waiting for a press to thank")
 		if waiting ~= 1 then fail(scenario, ("%d thanks were left waiting for a press, not one"):format(waiting)) end
+	end)
+end
+
+do
+	-- Thank them even when I can't see who it was is on, but that thank is held (you
+	-- have somebody targeted): nothing went to nobody, so the caster the cast watch
+	-- names afterwards is still thanked by name.
+	local scenario = "favour-caster: a thank to nobody that never went does not stop the caster being thanked"
+	local names = { nameplate1 = { "Anna", "Aim" }, target = { "Tara", "Target" } }
+	with(scenario, { names = names, thank = true, unseen = true, fromPlayer = true }, function(ns)
+		local anna = ns.UnitFullName("nameplate1")
+		land(ns, nil)
+		Mock.advance(0.5)
+		cast("nameplate1")
+		Mock.runTimers(3)
+		if not owedBy(ns, anna) then fail(scenario, "SKIPPED -- the late cast named nobody: " .. said()) return end
+		if #emotes == 0 then fail(scenario, "the caster was never thanked: " .. said()) end
+	end)
+end
+
+do
+	-- The same with Wait a moment before thanking on: the thank to nobody is queued
+	-- behind its pause and then held (you target somebody meanwhile), so it never
+	-- went, and the caster named afterwards is thanked by name.
+	local scenario = "favour-caster: a queued thank to nobody that is held then does not stop the caster being thanked"
+	with(scenario, { thank = true, unseen = true, fromPlayer = true }, function(ns)
+		ns.db.profile.prompt.thankDelay = true
+		local anna = ns.UnitFullName("nameplate1")
+		local targeted = false
+		local realExists = _G.UnitExists
+		rawset(_G, "UnitExists", function(unit)
+			if unit == "target" then return targeted end
+			return realExists(unit)
+		end)
+		-- The shortest pause: held at one second, before the window closes at 1.1.
+		local realRandom = math.random
+		math.random = function() return 0 end
+		land(ns, nil)
+		math.random = realRandom
+		targeted = true
+		Mock.advance(0.5)
+		cast("nameplate1")
+		Mock.runTimers(0.55)
+		targeted = false
+		Mock.runTimers(0.6)
+		Mock.runTimers(4)
+		if not owedBy(ns, anna) then fail(scenario, "SKIPPED -- the late cast named nobody: " .. said()) return end
+		if #emotes == 0 then fail(scenario, "the caster was never thanked: " .. said()) end
+	end)
+end
+
+do
+	local scenario = "favour-caster: a buff that landed too long ago to match a cast is in /manners debug"
+	with(scenario, {}, function(ns)
+		Mock.extraAuraDuration = 1800
+		Mock.extraAuraUntil = GetTime() + 1800 - 20
+		land(ns, nil)
+		if not debugText(ns):find("nobody to buff back", 1, true) then
+			fail(scenario, "/manners debug still says nobody buffed you: " .. said())
+		end
+	end)
+end
+
+do
+	-- Companion.lua's frame hears UNIT_SPELLCAST_SUCCEEDED too: for the player's casts
+	-- alone, and a cast by anybody else costs it no protected call.
+	local scenario = "favour-caster: a cast by somebody else costs the pet's listener no protected call"
+	with(scenario, {}, function(ns)
+		local frame = ns.Pet and ns.Pet.frame
+		if not (frame and frame.scripts and frame.scripts.OnEvent) then
+			fail(scenario, "SKIPPED -- the pet's frame is not there")
+			return
+		end
+		local heard = frame.unitEvents and frame.unitEvents.UNIT_SPELLCAST_SUCCEEDED
+		if not (type(heard) == "table" and heard[1] == "player" and #heard == 1) then
+			fail(scenario, "the pet's frame is not registered for the player's casts alone")
+		end
+		local count = 0
+		local real = { pcall = _G.pcall, xpcall = _G.xpcall }
+		for name, fn in pairs(real) do
+			rawset(_G, name, function(...)
+				if debug.traceback():find("Companion.lua", 1, true) then count = count + 1 end
+				return fn(...)
+			end)
+		end
+		local ok, err = real.pcall(frame.scripts.OnEvent, frame, "UNIT_SPELLCAST_SUCCEEDED", "nameplate1", "Cast-pet", FIREBALL)
+		for name, fn in pairs(real) do rawset(_G, name, fn) end
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+		if count ~= 0 then fail(scenario, ("somebody else's cast cost the pet's listener %d protected calls"):format(count)) end
 	end)
 end
 

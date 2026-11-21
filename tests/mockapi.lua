@@ -222,6 +222,7 @@ function Mock.reset()
 	-- number to a different spell, or to the same spell as a later cast.
 	Mock.extraAuraSpell = nil   -- defaults to the same 1459 the rest carry
 	Mock.extraAuraUntil = nil   -- defaults to the same 2000 the rest carry
+	Mock.extraAuraDuration = nil -- the aura says no length of its own unless a scenario gives one
 	-- The unit token the extra aura names as its caster. `nil` is the client
 	-- naming nobody, which is a stranger with no nameplate -- unidentifiable,
 	-- and a hard limit rather than an oversight.
@@ -2271,6 +2272,7 @@ setmetatable(_G, { __index = function(_, key)
 						sourceUnit = Mock.extraAuraSource
 							and maybeSecret(Mock.extraAuraSource) or nil,
 						isFromPlayerOrPlayerPet = Mock.extraAuraFromPlayer,
+						duration = Mock.extraAuraDuration,
 						expirationTime = Mock.extraAuraUntil or 2000 }
 				end
 				if i > count then return nil end

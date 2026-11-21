@@ -1751,6 +1751,8 @@ local function LastFavourLine(now)
 			text = L["nobody to buff back: the game did not say who cast it, and more than one player in sight cast it at that moment"]
 		elseif last.platesOff then
 			text = L["nobody to buff back: the game did not say who cast it, with friendly nameplates off"]
+		elseif last.why ~= nil and last.why ~= "none" and last.why ~= "else" then
+			text = L["nobody to buff back: the game did not say who cast it, and a cast was seen at that moment, but Manners could not be sure whose buff it was"]
 		else
 			text = L["nobody to buff back: the game did not say who cast it, and no player in sight was seen casting it on you"]
 		end

@@ -476,13 +476,23 @@ end
 do
 	local frame = CreateFrame("Frame")
 	Pet.frame = frame
-	frame:SetScript("OnEvent", function(_, event, ...) ns.Guard("companion pet", Pet.OnEvent, Pet, event, ...) end)
+	-- A cast by anybody else costs nothing here: no protected call for it (the
+	-- frame is registered for the player's casts alone where the client allows).
+	frame:SetScript("OnEvent", function(_, event, unit, ...)
+		if event == "UNIT_SPELLCAST_SUCCEEDED" and plain(unit) ~= "player" then return end
+		ns.Guard("companion pet", Pet.OnEvent, Pet, event, unit, ...)
+	end)
 	local data = ns.PETS and ns.Flavour and ns.PETS[ns.Flavour.flavour]
 	if data then
 		for _, event in ipairs({ "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_ENTERING_WORLD", "PLAYER_DEAD", "PLAYER_ALIVE",
 			"PLAYER_UNGHOST", "PLAYER_CONTROL_GAINED", "PLAYER_CONTROL_LOST", "ADDON_ACTION_FORBIDDEN",
 			"ADDON_ACTION_BLOCKED" }) do
-			pcall(frame.RegisterEvent, frame, event)
+			if event == "UNIT_SPELLCAST_SUCCEEDED" and type(frame.RegisterUnitEvent) == "function"
+				and pcall(frame.RegisterUnitEvent, frame, event, "player") then
+				-- the player's casts alone
+			else
+				pcall(frame.RegisterEvent, frame, event)
+			end
 		end
 		if ns.Flavour.flavour == "camelot" then
 			pcall(frame.RegisterEvent, frame, "COMPANION_UPDATE")

@@ -409,11 +409,17 @@ do
 
 	PausedUnseen = function(seen)
 		local db = ns.db and ns.db.profile
+		-- It was queued as a thank to nobody (ThankUnseen); only one that goes keeps
+		-- the mark that stops a named caster being thanked as well.
+		if not UnseenLive(db) then seen.thankedNobody = nil end
 		if not UnseenLive(db) then return end
 		local now = GetTime()
 		local why = UnseenBlocked(seen, now)
-		if why then return SkipUnseen(seen.key, now, why) end
-		SendUnseen(seen, now)
+		if why then
+			seen.thankedNobody = nil
+			return SkipUnseen(seen.key, now, why)
+		end
+		if SendUnseen(seen, now) ~= nil then seen.thankedNobody = nil end
 	end
 
 	ThankUnseen = function(seen)
@@ -424,12 +430,14 @@ do
 		if db.prompt.thankAsk == true and ns.ThankPark then
 			local why = UnseenBlocked(seen, now, true, true)
 			if why then return SkipUnseen(seen.key, now, why) end
+			seen.thankedNobody = true
 			return ns.ThankPark(seen, true, false, true)
 		end
 		-- One thank waits out its pause at a time, a named one or this. This
 		-- landing is kept behind it (the newest), thanked if that one never goes.
 		if waiting and now - waiting.at < PAUSE_MAX + 2 then
 			waiting.unseen = seen
+			seen.thankedNobody = true
 			return SkipUnseen(seen.key, now, L["thanked somebody a moment ago"])
 		end
 		waiting = nil
@@ -437,8 +445,10 @@ do
 		if why then return SkipUnseen(seen.key, now, why) end
 		local timer = _G.C_Timer
 		if not (db.prompt.thankDelay == true and type(timer) == "table" and type(timer.After) == "function") then
-			return SendUnseen(seen, now)
+			if SendUnseen(seen, now) == nil then seen.thankedNobody = true end
+			return
 		end
+		seen.thankedNobody = true
 		-- No name: a named favour arriving meanwhile is kept behind it, as
 		-- ThankFavour keeps one behind another's.
 		local mine = { at = now }
@@ -734,6 +744,12 @@ do
 		-- for it, but the trail keeps it, and the player is told why once
 		-- (Hints.lua, which says it only when the nameplates are the reason).
 		if not source and ns.ALL_BUFF_IDS[key] then Unnamed(key, seen.unseen) end
+		-- For /manners debug: a landing nobody could be named for (one waiting on its
+		-- window files its own fate, Unmatched; an NPC's is no favour).
+		if not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast and plain(aura.isFromPlayerOrPlayerPet) ~= false then
+			Remember(seen, "unnamed", "none")
+			ns.lastFavour.platesOff = ns.FriendlyPlatesOff() or nil
+		end
 		if not source or source == "player" then return end
 		if plain(UnitIsUnit(source, "player")) then return end
 		ReadCaster(source, seen)
@@ -1115,10 +1131,10 @@ do
 	-- rule). Never a shout, never what may be a group member's.
 	local function ThankNobody(seen)
 		if Shout(seen.key) or MaybeMember(seen.key) then return end
-		-- Whether a thank to nobody is about to go, so a caster the cast watch names
-		-- after the window is not thanked a second time (NoteFavour, noThank).
-		local p = addon.db and addon.db.profile and addon.db.profile.prompt
-		seen.thankedNobody = (p and p.thankUnseen == true and p.thankEmote == true) or nil
+		-- ThankUnseen marks `seen.thankedNobody` where a thank to nobody went, was
+		-- parked or was queued behind a pause, so a caster the cast watch names after
+		-- the window is not thanked a second time (NoteFavour, noThank), and is
+		-- thanked when none was sent.
 		ns.Guard("thank unseen", ThankUnseen, seen)
 	end
 
@@ -1346,12 +1362,27 @@ do
 		-- 1.5 s apart, so a priest who buffed herself and then you is still named.
 		local function SelfCast(e)
 			if e.guid == nil or plain(UnitGUID(e.unit)) ~= e.guid then return true end
+			if not (C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID) then return true end
+			-- Read straight off the caster, whatever class they are: the class buff
+			-- tables hold only your own class's buffs, and most favours are another
+			-- class's. Runs from the timer, where a protected call is allowed.
 			local buff = ns.BUFF_BY_ID[e.spell]
-			if not buff then return true end
-			local has, remaining, _, _, seconds = ns.UnitHasBuff(e.unit, buff, e.guid)
-			if has == false then return false end
-			if has ~= true or type(remaining) ~= "number" or type(seconds) ~= "number" then return true end
-			return math.abs((GetTime() - (seconds - remaining)) - e.at) <= 0.75
+			local ids = buff and buff.auraIds or { e.spell }
+			local cannotTell = false
+			for i = 1, #ids do
+				local ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, e.unit, ids[i])
+				if not ok or (issecretvalue and issecretvalue(aura)) then
+					cannotTell = true
+				elseif type(aura) == "table" then
+					local ends, length = plain(aura.expirationTime), plain(aura.duration)
+					if type(ends) ~= "number" or type(length) ~= "number" or ends <= 0 or length <= 0 then
+						cannotTell = true
+					elseif math.abs((ends - length) - e.at) <= 0.75 then
+						return true
+					end
+				end
+			end
+			return cannotTell
 		end
 
 		local function Forget(seen)

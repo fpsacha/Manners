@@ -74,8 +74,8 @@ mutate("Favours.lua",
        expect=N + "one cast seen under two tokens is one caster", script=S)
 
 mutate("Favours.lua",
-       "return math.abs((GetTime() - (seconds - remaining)) - e.at) <= 0.75",
-       "return false",
+       "\t\t\t\t\telseif math.abs((ends - length) - e.at) <= 0.75 then\n",
+       "\t\t\t\t\telseif false then\n",
        "favour-caster: a self-cast is never recognised",
        expect=N + "a cast by somebody who now wears a fresh one of it names nobody", script=S)
 
@@ -179,3 +179,51 @@ mutate("Options/Diagnostics.lua",
 # secret is a table that does not throw when used as a key, so the mutant behaves the
 # same here (proved MISSED); the real client's secret does throw. The scenario "a secret
 # spell or token on a cast is no error" still pins the plain() path in the mock.
+
+mutate("Favours.lua",
+       "\t\t\treturn cannotTell\n",
+       "\t\t\treturn true\n",
+       "favour-caster: a caster wearing none of the buff is taken for a self-cast",
+       expect=N + "another class's buff with no target names the stranger once the moment has passed", script=S)
+
+mutate("Favours.lua",
+       "\t\t\tseen.thankedNobody = nil\n\t\t\treturn SkipUnseen(seen.key, now, why)\n",
+       "\t\t\treturn SkipUnseen(seen.key, now, why)\n",
+       "favour-caster: a thank to nobody that was queued and then held keeps its mark",
+       expect=N + "a queued thank to nobody that is held then does not stop the caster being thanked", script=S)
+
+mutate("Favours.lua",
+       "\t\tns.Guard(\"thank unseen\", ThankUnseen, seen)\n",
+       "\t\tseen.thankedNobody = true\n\t\tns.Guard(\"thank unseen\", ThankUnseen, seen)\n",
+       "favour-caster: a thank to nobody is counted as sent before it is",
+       expect=N + "a thank to nobody that never went does not stop the caster being thanked", script=S)
+
+mutate("Favours.lua",
+       "\t\tif not source and ns.ALL_BUFF_IDS[key] and not seen.awaitCast and plain(aura.isFromPlayerOrPlayerPet) ~= false then\n",
+       "\t\tif false then\n",
+       "favour-caster: a landing given up on at once is left out of the check-up",
+       expect=N + "a buff that landed too long ago to match a cast is in /manners debug", script=S)
+
+mutate("Hints.lua",
+       "\telseif why ~= nil and why ~= \"none\" and why ~= \"else\" then\n",
+       "\telseif false then\n",
+       "favour-caster: the hint says no cast was seen when one was",
+       expect=N + "a cast by somebody who now wears a fresh one of it names nobody", script=S)
+
+mutate("Commands.lua",
+       "\t\telseif last.why ~= nil and last.why ~= \"none\" and last.why ~= \"else\" then\n",
+       "\t\telseif false then\n",
+       "favour-caster: the check-up says no cast was seen when one was",
+       expect=N + "a cast by somebody who now wears a fresh one of it names nobody", script=S)
+
+mutate("Companion.lua",
+       "and pcall(frame.RegisterUnitEvent, frame, event, \"player\") then",
+       "and false then",
+       "favour-caster: the pet's frame hears every cast in sight",
+       expect=N + "a cast by somebody else costs the pet's listener no protected call", script=S)
+
+mutate("Companion.lua",
+       "if event == \"UNIT_SPELLCAST_SUCCEEDED\" and plain(unit) ~= \"player\" then return end\n",
+       "",
+       "favour-caster: the pet's listener guards a stranger's cast",
+       expect=N + "a cast by somebody else costs the pet's listener no protected call", script=S)

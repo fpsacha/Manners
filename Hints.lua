@@ -139,6 +139,8 @@ function ns.UnmatchedBuffHint(why)
 	local tab = "|cffffd100" .. ns.TabName("diagnostics.fullReport") .. "|r"
 	if why == "several" then
 		ns.addon:Print(L["Somebody just put a buff on you, but the game did not say who, and more than one player in sight cast it at that moment, so Manners did not guess whom to buff back. %s on %s keeps it under What happened lately."]:format(check, tab))
+	elseif why ~= nil and why ~= "none" and why ~= "else" then
+		ns.addon:Print(L["Somebody just put a buff on you, but the game did not say who. Manners saw a cast at that moment, but could not be sure whose buff it was, so there is nobody to buff back this time. %s on %s keeps it under What happened lately."]:format(check, tab))
 	else
 		ns.addon:Print(L["Somebody just put a buff on you, but the game did not say who, and Manners saw no player in sight cast it on you, so there is nobody to buff back this time. It sees the casts of people on a nameplate, your target, your focus, your mouseover and your group. %s on %s keeps it under What happened lately."]:format(check, tab))
 	end
