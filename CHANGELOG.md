@@ -5,35 +5,45 @@
 *21 November 2026*
 
 ### Highlights
-- **New page *In a fight*:** hiding the prompt, the rota, the fight key, and the Will of the Forsaken, Mend Pet and cure buttons, all in one place. The page has its own icon, and the window's page list gets smaller to fit when there is not room.
-
-- **New page *Quiet times*:** where and when Manners holds back or says nothing. *In a party or a raid* puts the speech and thank switches side by side. The /thank and the whisper share their options.
-
-- **New pages *My own buffs* and, for hunters, *My pet*;** *Who to buff* is about other people again. The consumables button's key can be set in the window.
-
-- **Search finds the words people use** (wotf, rez, reply, queue, color and more) and phrases such as "turn off will of the forsaken".
-
-- **Who to skip > After a right-click** sets how long a right-click skips someone, up to 30 minutes. The box reads 12 s or 5 min, and you can type 5m or 1h.
-
-- **Snooze has *Until I log out*,** at the top of the options window and in the minimap menu. Search finds Snooze and the other buttons at the top.
-
+- **New page *In a fight*:** hiding the prompt, the rota, the fight key, and the
+  Will of the Forsaken, Mend Pet and cure buttons, all in one place. The page
+  has its own icon, and the window's page list gets smaller to fit when there is
+  not room.
+- **New page *Quiet times*:** where and when Manners holds back or says nothing.
+  *In a party or a raid* puts the speech and thank switches side by side. The
+  /thank and the whisper share their options.
+- **New pages *My own buffs* and, for hunters, *My pet*;** *Who to buff* is
+  about other people again. The consumables button's key can be set in the
+  window.
+- **Search finds the words people use** (wotf, rez, reply, queue, color and
+  more) and phrases such as "turn off will of the forsaken".
+- **Who to skip > After a right-click** sets how long a right-click skips
+  someone, up to 30 minutes. The box reads 12 s or 5 min, and you can type 5m or
+  1h.
+- **Snooze has *Until I log out*,** at the top of the options window and in the
+  minimap menu. Search finds Snooze and the other buttons at the top.
 - **Each page of the options window opens with a line saying what is on it.**
-
-- **A gold mark shows each setting you changed; click it to put that one back.** The same mark in the footer, *What I changed*, lists them all.
-
-- **Asking for a buff is on *What I say*,** under the lines; the Fish Bowl, campsite and other paladins' blessings fold under *Other people's buffs* on *Who to buff*, and *More than buffs* is now *Resurrection and cures*.
-
-- **Settings and tooltips are reworded in plain English,** with units in the slider boxes instead of in brackets, and chat lines name a page in brackets instead of calling it a tab (GitHub issue 23).
+- **A gold mark shows each setting you changed; click it to put that one back.**
+  The same mark in the footer, *What I changed*, lists them all.
+- **Asking for a buff is on *What I say*,** under the lines; the Fish Bowl,
+  campsite and other paladins' blessings fold under *Other people's buffs* on
+  *Who to buff*, and *More than buffs* is now *Resurrection and cures*.
+- **Settings and tooltips are reworded in plain English,** with units in the
+  slider boxes instead of in brackets, and chat lines name a page in brackets
+  instead of calling it a tab (GitHub issue 23).
 
 ### Fixes
-- **A stranger's buff is noticed when the game leaves out who cast it** (WoW Forever and retail): Manners names them from the cast it saw at that moment, so *People who buff me* offers to buff them back, and `/manners debug` says what became of the last favour (GitHub issue 26).
-
-- **Search puts a word at the start of a name first.** "rest" now finds Well-Rested ahead of Firestone.
-
-- **A slider's box takes back what it shows.** Type 3x over 2x, or Off or Automatic where the box says so, and the value is kept.
-
-- **The Will of the Forsaken switch can be reached with no prompt.** *In a fight* stays open for a Forsaken character with nothing else to offer, and a button's tooltip names a page only while its setting is shown.
-
+- **A stranger's buff is noticed when the game leaves out who cast it** (WoW
+  Forever and retail): Manners names them from the cast it saw at that moment,
+  so *People who buff me* offers to buff them back, and `/manners debug` says
+  what became of the last favour (GitHub issue 26).
+- **Search puts a word at the start of a name first.** "rest" now finds
+  Well-Rested ahead of Firestone.
+- **A slider's box takes back what it shows.** Type 3x over 2x, or Off or
+  Automatic where the box says so, and the value is kept.
+- **The Will of the Forsaken switch can be reached with no prompt.** *In a
+  fight* stays open for a Forsaken character with nothing else to offer, and a
+  button's tooltip names a page only while its setting is shown.
 - **Snoozed until I log out reads right in Spanish and Italian.**
 
 ## 1.11.36
