@@ -189,3 +189,17 @@ mutate("Options/Window/WindowPage.lua",
        "\treturn INDENT\n",
        "wellfed: two steps in drawn as one",
        expect="a row two steps in starts at", script=S)
+
+# --- My food, stones and oils after everybody else (issue 27) ---
+
+mutate("Queue.lua",
+       "\t\tentry.priority = PRIORITY.selfLast\n",
+       "",
+       "wellfed: the switch leaves my food first",
+       expect="wellfed: my food goes after everybody else", script=S)
+
+mutate("Options/Who.lua",
+       "\t\t\t\t\tns.db.profile.ownBuffs.itemsLast = value == true\n",
+       "",
+       "wellfed: the last-of-all switch writes nothing",
+       expect="wellfed: my food goes after everybody else", script=S)

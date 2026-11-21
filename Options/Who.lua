@@ -2005,6 +2005,24 @@ function Page.BuildWhoTab()
 				end,
 			},
 
+			-- Your own consumables after everybody else (Queue.lua, PRIORITY.selfLast):
+			-- asked for on CurseForge by a player who buffs others in a busy place
+			-- and keeps the food and stones for later.
+			ownItemsLast = {
+				type = "toggle",
+				name = L["My food, stones and oils after everybody else"],
+				desc = L["On: your own food, weapon stones and oils, flasks, elixirs and scrolls wait until nobody else needs a buff from you. In a busy place you buff other people first and keep your own for later."],
+				order = 15.951,
+				width = "full",
+				hidden = NothingForSelf,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.itemsLast == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.itemsLast = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
 			-- Which pet the journal brings out (Companion.lua): Forever, with the
 			-- companion pet switched on.
 			ownPetChoice = {

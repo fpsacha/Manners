@@ -1358,6 +1358,10 @@ PRIORITY.sweep = 0.5
 -- you will not; ahead of your group and passers-by, since what you carry is
 -- what you fight with.
 PRIORITY.self = 1.75
+-- What you carry in the bags, with *My food, stones and oils after everybody
+-- else* (ownBuffs.itemsLast): behind passers-by, so a busy place offers other
+-- people first and your own food and stones wait for a quiet moment.
+PRIORITY.selfLast = 3.5
 -- For Share.lua, which keeps a group member for the fold as the walk does.
 ns.PRIORITY = PRIORITY
 
@@ -2743,6 +2747,12 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	}
 	-- A top-up says how long the buff lasts and when it was due (the tooltip).
 	if remaining then entry.duration, entry.lead, entry.leadKind = seconds, lead, kind end
+	-- *My food, stones and oils after everybody else*: the bag items that
+	-- Consumables only in dungeons and raids would hold back go last instead.
+	local own = db.ownBuffs
+	if own and own.itemsLast == true and ns.OwnItemsHeldToDungeons(buff.family) then
+		entry.priority = PRIORITY.selfLast
+	end
 	-- A top-up of what you still wear ranks with your group, where the order
 	-- inside a tier puts it behind everybody missing something (OfferRank):
 	-- your Fortitude with minutes to run came ahead of a party member with

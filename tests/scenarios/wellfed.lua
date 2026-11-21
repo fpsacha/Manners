@@ -563,3 +563,32 @@ do
 		if not (pet and pet[2] == true) then fail(scenario, "Which pet is not one step further in than Companion pet") end
 	end)
 end
+
+-- My food, stones and oils after everybody else (ownBuffs.itemsLast), asked for
+-- on CurseForge (GitHub issue 27): your bag items step behind passers-by, so a
+-- busy place offers other people first.
+do
+	local scenario = "wellfed: my food goes after everybody else with the switch on"
+	with(scenario, { on = true }, function(ns, data)
+		stock(ns, { [data[1][1]] = 1 })
+		local entry = mine(ns)
+		if not entry then fail(scenario, "food in the bags and no Well Fed: nothing offered") return end
+		if entry.priority ~= ns.PRIORITY.self then
+			fail(scenario, "with the switch off the food stands at " .. tostring(entry.priority) .. ", not with your own buffs")
+		end
+		local control = findOption(ns.optionsTable, "ownItemsLast")
+		if not control then fail(scenario, "Who to buff has no switch to put my food last") return end
+		if control.hidden and control.hidden() then fail(scenario, "the switch is hidden from a warrior with food") end
+		if control.get() ~= false then fail(scenario, "the switch reads on with a new profile") end
+		control.set({ "ownItemsLast" }, true)
+		if ns.db.profile.ownBuffs.itemsLast ~= true then fail(scenario, "switching it on wrote nothing") end
+		entry = mine(ns)
+		if not entry then fail(scenario, "switched on: the food is no longer offered at all") return end
+		if not (entry.priority > ns.PRIORITY.nearby) then
+			fail(scenario, "switched on, the food stands at " .. tostring(entry.priority) .. ", ahead of passers-by")
+		end
+		control.set({ "ownItemsLast" }, false)
+		entry = mine(ns)
+		if not (entry and entry.priority == ns.PRIORITY.self) then fail(scenario, "switched off again, the food did not come back first") end
+	end)
+end

@@ -480,6 +480,11 @@ local defaults = {
 			-- stone for the weapon, food -- come up only in a dungeon or a
 			-- raid. A rogue's poisons and a fishing lure are not held to it.
 			itemsInDungeons = false,
+			-- On: your own food, a stone or an oil for the weapon, a flask, an elixir
+			-- and a scroll wait behind everybody else on the prompt (Queue.lua,
+			-- PRIORITY.selfLast), so a busy place offers other people first.
+			-- Asked for on CurseForge (GitHub issue 27).
+			itemsLast = false,
 			-- Off: a warrior's Battle Shout is never offered to you (it covers you
 			-- when it goes on your party). On: with nobody in your group, a missing
 			-- or running-out shout is offered to you too (CastsOnSelf).

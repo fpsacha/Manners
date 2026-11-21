@@ -547,6 +547,7 @@ ns.WindowLayout = {
 					-- Where the reminders come up.
 					"who.ownCities",
 					"who.ownDungeons",
+					"who.ownItemsLast",
 					-- The consumables on a button of their own (Prompt/Supplies.lua).
 					"who.ownApart",
 					-- A warrior's shout for himself, alone (shown to a warrior only).

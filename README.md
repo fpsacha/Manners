@@ -484,6 +484,9 @@ once you carry one.
 - *Consumables only in dungeons and raids* (off) keeps the oils, stones,
   food, flasks, elixirs and scrolls out of the open world; poisons and lures
   are not held back.
+- *My food, stones and oils after everybody else* (off): those same items
+  wait behind your group and passers-by, so in a busy place you buff other
+  people first and keep your own for later.
 - *Put consumables on a button of their own* (off): food, flasks, elixirs,
   scrolls and your weapon's oils, stones and poisons leave the prompt for a
   small button of their own, which you drag where you want it while the

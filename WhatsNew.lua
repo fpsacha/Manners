@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "21 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Buff other people first, eat later.|r A new switch under |cffffffffMyself|r, |cffffffffMy food, stones and oils after everybody else|r: your own food, weapon stones and oils, flasks, elixirs and scrolls wait until nobody else needs a buff from you.",
+		} },
+	} },
 	{ version = "1.11.35", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100The consumables button wears your prompt's look.|r It now wears the frame of the look you picked for the prompt, and changes with it.",
@@ -36,29 +41,6 @@ ns.WhatsNew = {
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Mark of the Wild is no longer offered to pets|r on WoW Forever, where it takes players alone; Thorns still is.",
 			"|cffff9a52A Familiar scroll's pet is left alone.|r Manners no longer brings a pet out of your journal over a Cat, Frog or Rat Familiar while it is up.",
-		} },
-	} },
-	{ version = "1.11.32", date = "20 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Longer snoozes.|r The Snooze button in the settings window and the minimap menu now offer an hour, two hours and four, as well as 5, 15 and 30 minutes.",
-			"|cffffd100Leave your own buffs, food included, alone for longer.|r A new setting, |cffffffffA right-click on my own buffs skips for (minutes)|r, sets how long a right-click on one of your own buffs leaves it alone.",
-			"|cffffd100Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
-			"|cffffd100Don't thank anybody while I'm in a party or a raid.|r No /thank or whispered thank-you while you're grouped.",
-			"|cffffd100Cure yourself.|r A new switch, |cffffffffCure myself too|r, offers the cure for a poison, disease, curse or harmful spell on you, out of combat.",
-			"|cffffd100Cure in a fight.|r A new switch on Look, under |cffffffffIn a fight|r: |cffffffffOffer my cure in a fight when somebody needs it|r.",
-		} },
-		{ title = "In a fight", accent = "7cc4ff", entries = {
-			"|cff7cc4ffOffer my cure in a fight when somebody needs it|r (off), with |cffffffffKey for my cure in a fight|r under it; the same switch is under |cffffffffWho to buff|r, |cffffffffCures|r.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Scroll bar.|r Dragging the scroll bar on the right of the settings window now moves the page the way you drag, on every page.",
-			"|cffff9a52Druid names stay orange.|r On most of the softer looks (not Luxe, where every name is a tint on white) a druid's name had faded to nearly a warrior's tan; it now keeps its orange.",
-		} },
-		{ title = "What I say", accent = "7cc4ff", entries = {
-			"|cff7cc4ffDon't thank anybody while I'm in a party or a raid.|r No /thank or whispered thank-you while you're grouped (asked for on CurseForge).",
-		} },
-		{ title = "Who gets what", accent = "7cc4ff", entries = {
-			"|cff7cc4ffCure myself too.|r Under |cffffffffMore than buffs|r, next to the cures for your party and for passers-by.",
 		} },
 	} },
 }

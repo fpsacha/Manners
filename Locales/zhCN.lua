@@ -5314,6 +5314,8 @@ L["Offer your own buff to you too, when you are missing it or, with top-ups on, 
 L["Off: nothing is offered to you while the game calls you resting, in a city or an inn."] = "关闭：游戏显示你处于休息状态（在城市或旅店中）时，不会向你推荐任何增益。"
 L["Consumables only in dungeons and raids"] = "仅在地下城和团队副本中提示消耗品"
 L["On: the reminder for an oil or a stone for your weapon, for food, and for a flask, an elixir or a scroll comes up only in a dungeon or a raid, not out in the world. Poisons and fishing lures are not held back."] = "开启：武器用的油或磨刀石、食物，以及合剂、药剂或卷轴的提醒只会在地下城或团队副本中出现，野外不会。毒药和鱼饵不受影响。"
+L["My food, stones and oils after everybody else"] = "我的食物、磨刀石和油放在所有人之后"
+L["On: your own food, weapon stones and oils, flasks, elixirs and scrolls wait until nobody else needs a buff from you. In a busy place you buff other people first and keep your own for later."] = "开启：你自己的食物、武器磨刀石和油、合剂、药剂和卷轴会等到没有其他人需要你的增益时再提示。在热闹的地方先为别人施放增益，把自己的留到以后。"
 L["Which pet"] = "召唤哪只宠物"
 L["The pet Manners brings out of your pet journal: the one you had out last, a random favourite, any pet, or one of your pets by name. With none out last, a favourite; with no favourites, any pet."] = "Manners 从你的宠物手册中召唤的宠物：你上次召唤的那只、随机一只偏好宠物、任意宠物，或按名字选定的一只宠物。没有上次召唤的，则为偏好宠物；没有偏好宠物，则为任意宠物。"
 L["The one I had out last"] = "我上次召唤的那只"

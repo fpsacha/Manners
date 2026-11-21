@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+*21 November 2026*
+
+### Highlights
+- **Buff other people first, eat later.** A new switch under *Myself*, *My food,
+  stones and oils after everybody else*: your own food, weapon stones and oils,
+  flasks, elixirs and scrolls wait until nobody else needs a buff from you.
+  Asked for on CurseForge.
+
 ## 1.11.35
 
 *21 November 2026*
