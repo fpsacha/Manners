@@ -438,7 +438,7 @@ local EXPECTED = {
 		"prompt.iconFrame", "prompt.gryphons", "prompt.classicArt", "prompt.keycap", "prompt.textShadow",
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.clickRows", "prompt.tooltip", "prompt.tooltipPosition", "sound.enabled", "sound.file", "sound.owedOnly", "supplies.size",
-		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightKeySpell", "prompt.fightKeyOn",
+		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons", "prompt.fightKeySpell", "prompt.fightKeyOn",
 		"prompt.classLook", "prompt.classStyles",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the
