@@ -26,6 +26,8 @@
 - **Settings and tooltips are reworded in plain English,** with units in the slider boxes instead of in brackets, and chat lines name a page in brackets instead of calling it a tab (GitHub issue 23).
 
 ### Fixes
+- **A stranger's buff is noticed when the game leaves out who cast it** (WoW Forever and retail): Manners names them from the cast it saw at that moment, so *People who buff me* offers to buff them back, and `/manners debug` says what became of the last favour (GitHub issue 26).
+
 - **Search puts a word at the start of a name first.** "rest" now finds Well-Rested ahead of Firestone.
 
 - **A slider's box takes back what it shows.** Type 3x over 2x, or Off or Automatic where the box says so, and the value is kept.

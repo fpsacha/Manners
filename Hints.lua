@@ -7,7 +7,7 @@
 -- to buff". The rule stands (nobody needs Inner Fire at the auction house);
 -- what was missing is anybody saying so. Said once a character, a little
 -- after the screen is up, and only when something of yours is in fact missing.
--- The second, ns.UnnamedBuffHint, is below.
+-- The second and third, ns.UnnamedBuffHint and ns.UnmatchedBuffHint, are below.
 
 local addonName, ns = ...
 local L = ns.L
@@ -105,6 +105,42 @@ function ns.UnnamedBuffHint(unseen)
 	else
 		ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who, so Manners cannot buff them back. %s on %s (|cffffd100/manners|r) turns them on."]:format(
 			plates, start))
+	end
+	return true
+end
+
+-- The third: the friendly nameplates are on, a class buff from another player
+-- landed on you, the game named nobody, and the casts Manners saw at that moment
+-- (Favours.lua, the cast watch) named nobody either. Said once a session, on three
+-- sessions a character at most (`hints.unmatched` counts them), out of a fight,
+-- and never for a caster on your ignore list. It says what happened and where the
+-- full check-up keeps the detail, never that nothing could be done.
+local UNMATCHED_SESSIONS = 3
+local unmatchedSaid = false
+
+function ns.UnmatchedBuffHint(why)
+	if unmatchedSaid then return false end
+	local db = ns.db
+	if not (db and db.profile and db.char) then return false end
+	if InCombatLockdown() or db.profile.silentChat == true or db.profile.enabled == false then return false end
+	local _, v = ns.FriendlyPlatesCVar()
+	if not (v == "1" or v == 1 or v == true) then return false end
+	if why == "ignored" then return false end
+	local hints = db.char.hints
+	local told = type(hints) == "table" and type(hints.unmatched) == "number" and hints.unmatched or 0
+	unmatchedSaid = true
+	if told >= UNMATCHED_SESSIONS then return false end
+	if type(hints) ~= "table" then
+		hints = {}
+		db.char.hints = hints
+	end
+	hints.unmatched = told + 1
+	local check = "|cffffd100" .. L["Run a full check-up"] .. "|r"
+	local tab = "|cffffd100" .. ns.TabName("diagnostics.fullReport") .. "|r"
+	if why == "several" then
+		ns.addon:Print(L["Somebody just put a buff on you, but the game did not say who, and more than one player in sight cast it at that moment, so Manners did not guess whom to buff back. %s on %s keeps it under What happened lately."]:format(check, tab))
+	else
+		ns.addon:Print(L["Somebody just put a buff on you, but the game did not say who, and Manners saw no player in sight cast it on you, so there is nobody to buff back this time. It sees the casts of people on a nameplate, your target, your focus, your mouseover and your group. %s on %s keeps it under What happened lately."]:format(check, tab))
 	end
 	return true
 end

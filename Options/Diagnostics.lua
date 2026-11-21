@@ -166,6 +166,12 @@ local function BugReport()
 		lines[#lines + 1] = ("combat log: armed=%s, %s seen, %s filed"):format(
 			tostring(log.armed), tostring(log.applied), tostring(log.noted))
 	end
+	-- Where there is no log, the casts other players made are the other witness.
+	if ns.castWatch and ns.castWatch.armed then
+		local cast = ns.castWatch
+		lines[#lines + 1] = ("cast watch: %s seen, %s named, %s late, %s several, %s none"):format(
+			tostring(cast.seen), tostring(cast.named), tostring(cast.late), tostring(cast.several), tostring(cast.none))
+	end
 
 	if #ns.errors == 0 then
 		lines[#lines + 1] = "errors: none this session"
@@ -358,6 +364,7 @@ function ns.FullReport()
 	pcall(function() Heard(ns.CureLines()) end)
 	pcall(function() Heard(ns.ShareReport()) end)
 	for name in pairs(ns.owed or {}) do Alias(name) end
+	if ns.lastFavour then Alias(ns.lastFavour.name) end
 	local thanks = ns.thankLog or {}
 	if thanks.thanked then Alias(thanks.thanked.name) end
 	if thanks.skipped then Alias(thanks.skipped.name) end

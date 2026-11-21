@@ -1720,6 +1720,48 @@ local REPAINT_AFTER = {
 	spell = true,
 }
 
+-- A spell as /manners debug names it: its name and number where the client knows it.
+local function SpellLabel(key)
+	local label = type(key) == "number" and ns.SpellNameFor and ns.SpellNameFor(key) or nil
+	return label and ("%s (%s)"):format(label, tostring(key)) or tostring(key)
+end
+
+-- What became of the last favour Manners saw (Favours.lua, ns.lastFavour), in plain
+-- English, so a favour let go on purpose is not read as "nobody has buffed you".
+-- nil when there has been none.
+local function LastFavourLine(now)
+	local last = ns.lastFavour
+	if not last then return nil end
+	local db = ns.addon and ns.addon.db and ns.addon.db.profile
+	local fate = last.fate
+	local text
+	if fate == "owed" then text = L["owed: returning it is offered while it lasts"]
+	elseif fate == "returned" then text = L["you returned it"]
+	elseif fate == "buffedFirst" then text = L["let go: you had buffed them first, so nothing was owed"]
+	elseif fate == "covered" then text = L["let go: they already had your buff, so there was nothing to return"]
+	elseif fate == "useless" then text = L["let go: nothing you cast is any use to them"]
+	elseif fate == "nothing" then text = L["let go: you have nothing to cast for anybody"]
+	elseif fate == "expired" then
+		text = L["let go: it was not returned in time (%s is %d seconds)"]:format(
+			L["How long a favour stays on offer"], db and db.timing and db.timing.reciprocateWindow or 120)
+	elseif fate == "never" then text = L["let go: they are on your never-offer list"]
+	elseif fate == "ignored" then text = L["let go: they are on your ignore list"]
+	elseif fate == "unnamed" then
+		if last.why == "several" then
+			text = L["nobody to buff back: the game did not say who cast it, and more than one player in sight cast it at that moment"]
+		elseif last.platesOff then
+			text = L["nobody to buff back: the game did not say who cast it, with friendly nameplates off"]
+		else
+			text = L["nobody to buff back: the game did not say who cast it, and no player in sight was seen casting it on you"]
+		end
+	else
+		return nil
+	end
+	return L["last favour: |cffffffff%s|r, %s, %ds ago -- %s"]:format(
+		last.name or L["somebody Manners could not name"], SpellLabel(last.key),
+		math.floor(now - last.at), text)
+end
+
 -- /manners debug's lines about somebody buffing you being noticed: the walk of
 -- your own buffs, and the /thank it ends in. Said for every class, since a
 -- rogue thanks too and has nothing else here to show it never came.
@@ -1781,10 +1823,7 @@ local function PrintFavourWatch(self, db, now)
 	if db.prompt.thankUnseen == true then
 		self:Print("  " .. L["thank them even when you can't see who it was: |cff00ff00on|r"])
 	end
-	local function spell(key)
-		local label = type(key) == "number" and ns.SpellNameFor and ns.SpellNameFor(key) or nil
-		return label and ("%s (%s)"):format(label, tostring(key)) or tostring(key)
-	end
+	local spell = SpellLabel
 	if thanks.unseen then
 		self:Print(("    " .. L["last thanked somebody unseen: |cffffffff%s|r, %ds ago (the game answered %s)"]):format(
 			spell(thanks.unseen.key), math.floor(now - thanks.unseen.at), thanks.unseen.answer))
@@ -2094,6 +2133,12 @@ function addon:HandleSlash(rawInput)
 			self:Print(("  combat log favours: armed=%s, %d seen, %d filed"):format(
 				tostring(ns.logScan.armed), ns.logScan.applied, ns.logScan.noted))
 		end
+		-- Where there is none, the casts other players make are the other witness.
+		if ns.castWatch.armed then
+			local cast = ns.castWatch
+			self:Print(("  casts by other players: %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters"):format(
+				cast.seen, cast.named, cast.late, cast.several))
+		end
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
 		-- The key, and why the reminder to set one keeps quiet (Options/Start.lua).
 		if ns.Setup and ns.Setup.ReminderLine then self:Print("  " .. ns.Setup.ReminderLine()) end
@@ -2126,6 +2171,8 @@ function addon:HandleSlash(rawInput)
 			PrintLeads(self)
 			-- Somebody buffing you is noticed for the /thank all the same.
 			PrintFavourWatch(self, db, GetTime())
+			local lastLine = LastFavourLine(GetTime())
+			if lastLine then self:Print("  " .. lastLine) end
 			-- A cure, a resurrection or an ask is walked for all the same
 			-- (Queue.lua), so what the full report says of that scan is said here
 			-- too: the battleground's rules, the count, and who it held back or
@@ -2177,6 +2224,11 @@ function addon:HandleSlash(rawInput)
 					name, math.floor(expires - now), math.floor(now - entry.at)))
 			end
 		end
+		-- The last favour and what became of it, beside the debts still owed.
+		if pending > 0 then
+			local lastLine = LastFavourLine(now)
+			if lastLine and ns.lastFavour.fate ~= "owed" then self:Print("  " .. lastLine) end
+		end
 		-- "Nobody has buffed you" only while something is looking.
 		if pending == 0 then
 			if not db.enabled then
@@ -2189,7 +2241,7 @@ function addon:HandleSlash(rawInput)
 					and L["Favours are not recorded while \"People who buff me\" is off (%s)."]:format(ns.TabName("who.owed"))
 					or L["not watching for favours -- |cffffd100People who buff me|r is switched off."]))
 			else
-				self:Print("  " .. L["nobody has buffed you recently."])
+				self:Print("  " .. (LastFavourLine(now) or L["nobody has buffed you recently."]))
 			end
 		end
 		for _, line in ipairs(ns.RequestLines()) do self:Print("  " .. line) end

@@ -1706,7 +1706,11 @@ nameplate who is not your target cannot be identified at all. Turn on the
 game's friendly nameplates (*Show friendly nameplates* on *Start here*) and
 strangers can be. To keep them off and still thank whoever buffs you, *Thank
 them even when I can't see who it was* under *What I say* makes your thank
-emote with nobody targeted.
+emote with nobody targeted. When the game leaves the caster out even with
+the nameplates on, Manners looks at the casts it saw at that moment from the
+players it can see (nameplates, your target, your focus, your mouseover and
+your group): exactly one player casting that buff names them, and two or more,
+or none, name nobody.
 
 **Secure buttons must register for mouse down**: every secure button that
 works here registers `"AnyDown"`.
@@ -1724,7 +1728,7 @@ works here registers `"AnyDown"`.
   (most often the game's friendly nameplates being off).
 - **`/manners debug`** says what your class and this build allow, which of
   your own buffs is up or due, the requests still standing, who you share a
-  group with, the last thank, your spells of my own and the last cast of
+  group with, the last favour seen and what became of it, the last thank, your spells of my own and the last cast of
   one judged ("spells of my own" and "last cast" lines), and why a
   resurrection, a cure or an ask is held back.
 - **`/manners errors`** lists the last few things that broke, if any did.

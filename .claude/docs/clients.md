@@ -104,6 +104,22 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   - classic family (vanilla, tbc, mists): the combat log is read in addition
     to the aura scan (`ns.combatLogArmed`); never registered on modern clients
     (registration is refused there).
+  - modern family, and a classic client whose log was refused: the cast watch
+    (`ns.castWatch.armed`, Favours.lua) listens to every unit's
+    `UNIT_SPELLCAST_SUCCEEDED`, filtered by a table lookup, to name a favour's
+    caster when the aura names nobody (GitHub issue 26). Questions only the game
+    can settle: (1) whether Forever 1.60.1 fires it for other players' nameplateN,
+    target, mouseover, focus and party tokens at all, with spellID and castGUID
+    plain (if not, nothing is named, as before; `/manners debug`'s "casts by other
+    players: N seen" tells); (2) whether `nameplateNtarget` resolves (if not,
+    every cast has an unknown aim: named only after the window, and only when the
+    caster does not freshly wear the buff); (3) the order and gap between the
+    caster's cast and UNIT_AURA on you (the 1 s window either side is an
+    estimate); (4) whether `expirationTime - duration` is the landing time on
+    GetTime's clock; (5) whether one cast's castGUID is the same under every
+    token; (6) why Forever's `sourceUnit` is nil with a nameplate up at all (the
+    trail lines and the last-favour line show which case); (7) retail 12.x:
+    whether a stranger's spellID or GUID is secret in the open world.
   - mists and mainline: a single buff on a group member lands party-wide
     (`wideCasts`), shouts reach 100 yards, their own `rankLevel`; mists' raid
     buff kinds do not stack (`alike`); mainline's own buffs are a rogue's

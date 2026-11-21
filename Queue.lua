@@ -1334,6 +1334,7 @@ end
 -- so it never changes who is offered what, and guarded. Assigns the local
 -- declared above the never-offer list.
 function TellLedger(event, ...)
+	if ns.FavourFate then ns.FavourFate(event, ...) end
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
 	if type(fn) == "function" then ns.Guard("ledger " .. event, fn, ...) end
