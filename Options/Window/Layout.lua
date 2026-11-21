@@ -1148,7 +1148,7 @@ ns.WindowLayout = {
 		["who.restingOnly"] = function()
 			local db = ns.db and ns.db.profile
 			if db and db.filters.quietInTowns == true then
-				return L["Off while %s is on (%s)."]:format(NameOf("who.quietInTowns"), L["When to offer"])
+				return L["Off while %s is on (%s)."]:format(NameOf("who.quietInTowns"), ns.OptionsPage.TabOf("who.quietInTowns") or "")
 			end
 			return L["Needs %s ticked."]:format(NameOf("who.strangers"))
 		end,

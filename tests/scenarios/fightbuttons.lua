@@ -383,6 +383,13 @@ withBF("fightbuttons: will of the forsaken is out of sight until you are feared"
 	if button:GetAlpha() ~= 1 then fail(scenario, "the fade never reached the button: " .. tostring(button:GetAlpha())) end
 	button.scripts.OnEnter(button)
 	if Mock.tooltipOwner ~= button then fail(scenario, "no tooltip while it is lit") end
+	do
+		local where = ns.OptionsPage.TabOf("appearance.breakFree")
+		if not (where and table.concat(Mock.tooltip, "\n"):find(where, 1, true)) then
+			fail("menupass-pointers: the fight buttons say where their settings are",
+				"Will of the Forsaken: its tooltip does not name " .. tostring(where) .. ": " .. table.concat(Mock.tooltip, " | "))
+		end
+	end
 	regain()
 	alpha, glow, name = wotf(ns)
 	if alpha ~= 0 then fail(scenario, "still there once the fear ended: " .. tostring(alpha)) end
@@ -475,6 +482,13 @@ do
 		if button:GetAlpha() ~= 1 then fail(scenario, "the fade never reached the button: " .. tostring(button:GetAlpha())) end
 		button.scripts.OnEnter(button)
 		if Mock.tooltipOwner ~= button then fail(scenario, "no tooltip while it is lit") end
+		do
+			local where = ns.OptionsPage.TabOf("appearance.mendInFight")
+			if not (where and table.concat(Mock.tooltip, "\n"):find(where, 1, true)) then
+				fail("menupass-pointers: the fight buttons say where their settings are",
+					"Mend Pet: its tooltip does not name " .. tostring(where) .. ": " .. table.concat(Mock.tooltip, " | "))
+			end
+		end
 		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-3", 136)
 		if (mend(ns)) ~= 0 then fail(scenario, "still there straight after Mend Pet: " .. tostring((mend(ns)))) end
 		Mock.runTimers(5.1)

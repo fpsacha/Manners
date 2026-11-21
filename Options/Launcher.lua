@@ -223,8 +223,9 @@ local function PlaceHeldLine(now)
 	local key = ns.PlaceHold and ns.PlaceHold(now)
 	if not key or key == "world" then return nil end
 	local always = ns.db.profile.filters.quietTargets == true
-	local tab = L["When to offer"]
+	local tab = Page.TabOf("who.quietInTowns") or ""
 	if key == "battle" then
+		tab = Page.TabOf("when.battleTeam") or ""
 		if always then
 			return L["Nothing is offered in a battleground or an arena, not even to your target or focus: %s is off and %s is on, on the %s tab."]
 				:format(Gold(L["Buff my team there"]), Gold(L["Hold back my target and focus too"]), tab)
@@ -255,7 +256,7 @@ local function SavingManaLine()
 	local _, resume = ns.SavingMana()
 	if not resume then return nil end
 	return L["Saving mana until you are back to %d%%, so less is offered: %s, on the %s tab."]
-		:format(resume, Gold(L["Save mana: stop below (% mana)"]), L["When to offer"])
+		:format(resume, Gold(L["Save mana: stop below (% mana)"]), Page.TabOf("when.manaFloor") or "")
 end
 
 -- Whether a prompt can appear at all right now, and the line that says so:
@@ -345,7 +346,7 @@ local function LauncherState()
 		-- list "You" and its Skip.
 		if not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then
 			return false, L["Kept away while you are mounted -- %s, on the %s tab."]
-				:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true, nil, "mounted"
+				:format(L["Hide the prompt while I'm mounted"], Page.TabOf("when.hideMounted") or ""), 1, 0.82, 0, true, nil, "mounted"
 		end
 		if ownOnly then return true, L["Watching your own buffs."], 0.4, 0.9, 0.4, nil, nil, "ownwatch" end
 		return true, L["Watching your own buffs; nothing is offered to anybody else: %s."]
@@ -374,7 +375,7 @@ local function LauncherState()
 		-- option and its tab go in by their own keys, so a translation names
 		-- the labels the window shows.
 		return false, L["Kept away while you are mounted -- %s, on the %s tab."]
-			:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true, nil, "mounted"
+			:format(L["Hide the prompt while I'm mounted"], Page.TabOf("when.hideMounted") or ""), 1, 0.82, 0, true, nil, "mounted"
 	end
 	-- A place rule holding everybody back (Queue.lua, ns.PlaceHold), then the
 	-- mana floor: amber, and still watching, since your target or focus and
@@ -388,14 +389,14 @@ local function LauncherState()
 		-- Passers-by are left alone out here by choice: green, the group watched,
 		-- and before the nameplates, which matter to nobody it would offer.
 		return true, L["Watching your group -- out in the world passers-by are left alone: %s, on the %s tab."]
-			:format(Gold(L["Only in cities and inns"]), L["Who to buff"]), 0.4, 0.9, 0.4, true, nil, "passersheld"
+			:format(Gold(L["Only in cities and inns"]), Page.TabOf("who.restingOnly") or ""), 0.4, 0.9, 0.4, true, nil, "passersheld"
 	elseif Page.PlatesWanted and Page.PlatesWanted() then
 		-- Passers-by on and the game's friendly nameplates off, as a fresh
 		-- install has them: the group is watched, but a stranger has no token
 		-- to be seen or named by (Who.lua, Page.PlatesWanted; Favours.lua,
 		-- Sight). Amber, not green, so "watching" does not promise strangers.
 		return true, L["Watching your group -- friendly nameplates are off, so Manners sees almost no passers-by. %s on %s turns them on."]
-			:format("|cffffd100" .. L["Show friendly nameplates"] .. "|r", L["Start here"]), 1, 0.82, 0, true, nil, "plates"
+			:format("|cffffd100" .. L["Show friendly nameplates"] .. "|r", Page.TabOf("general.startShowPlates") or ""), 1, 0.82, 0, true, nil, "plates"
 	end
 	return true, L["Watching for people to buff."], 0.4, 0.9, 0.4, nil, nil, "watching"
 end

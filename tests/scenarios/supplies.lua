@@ -172,6 +172,15 @@ do
 		local text = tostring(macro(ns))
 		if not text:find("/use item:" .. data[1][1], 1, true) then fail(scenario, "the button's macro is " .. text) end
 		if ns.Supplies:Current() == nil then fail(scenario, "the button names nothing") end
+		local b = button(ns)
+		b.scripts.OnEnter(b)
+		do
+			local where = ns.OptionsPage.TabOf("who.ownApart")
+			if not (where and table.concat(Mock.tooltip, "\n"):find(where, 1, true)) then
+				fail("menupass-pointers: the fight buttons say where their settings are",
+					"consumables, an item up: its tooltip does not name " .. tostring(where) .. ": " .. table.concat(Mock.tooltip, " | "))
+			end
+		end
 		-- Switched off again: the button goes, and food is back on the prompt.
 		ns.db.profile.ownBuffs.apart = false
 		tick(ns)
@@ -219,6 +228,14 @@ do
 		local b = button(ns)
 		if not shown(ns) then fail(scenario, "unlocked, the button is not shown to be dragged") return end
 		if macro(ns) ~= nil then fail(scenario, "unlocked, the button still holds a macro") end
+		b.scripts.OnEnter(b)
+		do
+			local where = ns.OptionsPage.TabOf("who.ownApart")
+			if not (where and table.concat(Mock.tooltip, "\n"):find(where, 1, true)) then
+				fail("menupass-pointers: the fight buttons say where their settings are",
+					"consumables, the drag placeholder: its tooltip does not name " .. tostring(where) .. ": " .. table.concat(Mock.tooltip, " | "))
+			end
+		end
 		-- The anchor the client hands back after a drag.
 		Mock.geometry = true
 		b:ClearAllPoints()

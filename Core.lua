@@ -288,6 +288,23 @@ function ns.RepaintOptions()
 	end
 end
 
+-- The options page a control is on, by name as the window shows it, for text
+-- that tells a player where to find a switch (Options/Shared.lua, Page.TabOf).
+-- Files that load before Options/ call this only when a line is said, never
+-- at load. "" while the window's layout is not there.
+function ns.TabName(path)
+	local page = ns.OptionsPage
+	return page and page.TabOf and page.TabOf(path) or ""
+end
+
+-- The last grey line of a button's tooltip: where its settings are. A tooltip
+-- is not protected, so this is fine in a fight.
+function ns.AddSettingsLine(tip, path)
+	local where = ns.TabName(path)
+	if where == "" then return end
+	tip:AddLine(L["Its settings are in Manners' options, on %s."]:format(where), 0.75, 0.75, 0.75, true)
+end
+
 ---------------------------------------------------------------------------
 -- defaults
 ---------------------------------------------------------------------------

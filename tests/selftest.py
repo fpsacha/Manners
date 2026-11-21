@@ -4211,7 +4211,7 @@ mutate("Options/Who.lua",
 mutate("Options/When.lua",
        "even with a fresh buff.\"]\n"
        "\t\t\t\t\t\t.. \"|r\\n\\n|cff888888\"\n"
-       "\t\t\t\t\t\t.. L[\"%s does nothing in this mode.\"]:format(Ref(L[\"My target first\"], TAB.who))\n"
+       "\t\t\t\t\t\t.. L[\"%s does nothing in this mode.\"]:format(RefTo(L[\"My target first\"], \"who.target\"))\n"
        "\t\t\t\t\t\t.. \"|r\"\n",
        "even with a fresh buff.\"]\n"
        "\t\t\t\t\t\t.. \"|r\"\n",

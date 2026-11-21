@@ -154,14 +154,14 @@ mutate("Ledger.lua",
 
 # The row forgotten at a reload names the setting as the options name it.
 mutate("Ledger.lua",
-       ":format(L[\"Keep favours through a /reload\"], L[\"When to offer\"], L[\"Favours\"])",
-       ":format(L[\"Keep favours across a reload\"], L[\"When to offer\"], L[\"Favours\"])",
+       ":format(L[\"Keep favours through a /reload\"], ns.TabName(\"advanced.keepDebts\"), L[\"Favours\"])",
+       ":format(L[\"Keep favours across a reload\"], ns.TabName(\"advanced.keepDebts\"), L[\"Favours\"])",
        "ledger: not-kept row names a missing setting",
        expect="a favour forgotten at a reload names the setting", script=S)
 
 # ...and the page it is on: Advanced is no longer a page.
 mutate("Ledger.lua",
-       ":format(L[\"Keep favours through a /reload\"], L[\"When to offer\"], L[\"Favours\"])",
+       ":format(L[\"Keep favours through a /reload\"], ns.TabName(\"advanced.keepDebts\"), L[\"Favours\"])",
        ":format(L[\"Keep favours through a /reload\"], L[\"Advanced\"], L[\"Favours\"])",
        "ledger: not-kept row names a page that is gone",
        expect="the row sends the player to a page the setting is not on", script=S)

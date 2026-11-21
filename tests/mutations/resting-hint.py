@@ -34,7 +34,7 @@ mutate("Hints.lua",
        expect="said a second time to the same character", script=S)
 
 mutate("Hints.lua",
-       "\t\t\"|cffffd100\" .. L[\"Also in cities and inns\"] .. \"|r\", \"|cffffd100\" .. L[\"Who to buff\"] .. \"|r\"))\n",
+       "\t\t\"|cffffd100\" .. L[\"Also in cities and inns\"] .. \"|r\", \"|cffffd100\" .. ns.TabName(\"who.ownCities\") .. \"|r\"))\n",
        "\t\t\"|cffffd100\" .. L[\"Also in cities and inns\"] .. \"|r\", \"\"))\n",
        "resting-hint: the page not named",
        expect="the line does not say which page the switch is on", script=S)

@@ -7,6 +7,7 @@ local restyleAndMacro, S, F, B = Page.restyleAndMacro, Page.S, Page.F, Page.B
 local sGet, sSet, fGet, fSet = Page.sGet, Page.sSet, Page.fGet, Page.fSet
 local bSet, prGet, prSet, HasClassBuffs = Page.bSet, Page.prGet, Page.prSet, Page.HasClassBuffs
 local OnlyReachesGroup, HasPrompt, TAB = Page.OnlyReachesGroup, Page.HasPrompt, Page.TAB
+local function TabOf(path) return Page.TabOf(path) or "" end
 
 local function BuffChoices()
 	local values = { auto = L["Automatic (whatever they are missing)"] }
@@ -820,7 +821,7 @@ function Page.AddAskControls(args)
 		type = "select",
 		name = L["What the ask says"],
 		desc = L["{name} is their name and {buff} the spell. With the In character set chosen on %s, a line in character is said instead."]
-			:format(TAB.click),
+			:format(TabOf("click.preset")),
 		order = 14.7,
 		width = "full",
 		values = function() return ns.Ask.Choices() end,
@@ -1799,7 +1800,7 @@ function Page.BuildWhoTab()
 				name = L["Offer nothing in cities and inns"],
 				-- Drawn on When to offer, so the other switch's page is named.
 				desc = L["On: nothing is offered to anybody while the game calls you resting, in a city or an inn: not passers-by, not your group, not a favour you owe. Somebody you target or focus is still offered. Your own buffs have their own switch, under %s on %s."]
-					:format(L["Myself"], TAB.who),
+					:format(L["Myself"], TabOf("who.self")),
 				order = 13.35,
 				width = "full",
 				get = fGet,
@@ -2353,7 +2354,7 @@ function Page.BuildWhoTab()
 					local text = L["Your target goes ahead of everyone when the game can see they lack the buff."]
 					if F().whenBuffed == "always" then
 						text = text .. "\n\n"
-							.. L["Greyed out while |cffffd100Always offer|r is chosen on %s: nothing is read then."]:format(TAB.when)
+							.. L["Greyed out while |cffffd100Always offer|r is chosen on %s: nothing is read then."]:format(TabOf("when.whenBuffed"))
 					end
 					return text
 				end,
@@ -2465,7 +2466,7 @@ function Page.BuildWhoTab()
 			skipGuilds = {
 				type = "input",
 				name = L["Leave out these guilds (one per line)"],
-				desc = L["People in these guilds are not offered anything, in your group or as passers-by. Type a guild's name as it shows under a player, with or without the < >. Somebody who buffed you or asked, and your target and focus, are still offered. |cffffd100Show their guild under the name|r (%s) shows whose guild it is."]:format(TAB.appearance),
+				desc = L["People in these guilds are not offered anything, in your group or as passers-by. Type a guild's name as it shows under a player, with or without the < >. Somebody who buffed you or asked, and your target and focus, are still offered. |cffffd100Show their guild under the name|r (%s) shows whose guild it is."]:format(TabOf("appearance.showGuild")),
 				order = 43.6,
 				multiline = 4,
 				width = "full",

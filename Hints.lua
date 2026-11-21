@@ -52,7 +52,7 @@ function ns.RestingHint(now)
 	end
 	hints.resting = true
 	ns.addon:Print(L["Your own buffs wait while you rest in a city or an inn, and come up when you leave. To be reminded in town too, tick %s on %s."]:format(
-		"|cffffd100" .. L["Also in cities and inns"] .. "|r", "|cffffd100" .. L["Who to buff"] .. "|r"))
+		"|cffffd100" .. L["Also in cities and inns"] .. "|r", "|cffffd100" .. ns.TabName("who.ownCities") .. "|r"))
 	return true
 end
 
@@ -101,7 +101,7 @@ function ns.UnnamedBuffHint(unseen)
 	elseif prompt.thankEmote == true and prompt.thankUnseen ~= true then
 		ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who, so Manners cannot buff them back or thank them. %s on %s (|cffffd100/manners|r) turns them on, or %s on %s thanks them with your emote all the same."]:format(
 			plates, start, "|cffffd100" .. L["Thank them even when I can't see who it was"] .. "|r",
-			"|cffffd100" .. L["What I say"] .. "|r"))
+			"|cffffd100" .. ns.TabName("click.thankUnseen") .. "|r"))
 	else
 		ns.addon:Print(L["Somebody just buffed you, but with friendly nameplates off the game would not say who, so Manners cannot buff them back. %s on %s (|cffffd100/manners|r) turns them on."]:format(
 			plates, start))

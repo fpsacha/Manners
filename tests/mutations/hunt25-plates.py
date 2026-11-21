@@ -169,7 +169,7 @@ mutate("Prompt/Press.lua",
        "\t\t\t-- left alone, ahead of the nameplates below, which then matter to\n"
        "\t\t\t-- nobody it would offer.\n"
        "\t\t\tns.addon:Print(L[\"nobody to buff right now -- out in the world passers-by are left alone: %s, on the %s tab.\"]\n"
-       "\t\t\t\t:format(\"|cffffd100\" .. L[\"Only in cities and inns\"] .. \"|r\", L[\"Who to buff\"]))\n"
+       "\t\t\t\t:format(\"|cffffd100\" .. L[\"Only in cities and inns\"] .. \"|r\", ns.TabName(\"who.restingOnly\")))\n"
        "\t\telseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true\n"
        "\t\t\tand #ns.CastableBuffs() > 0\n"
        "\t\t\tand not ns.OnlyReachesGroup() and not (db.filters.restingOnly == true and ns.Resting() == false)\n",
@@ -190,7 +190,7 @@ mutate("Prompt/Press.lua",
 
 # The line naming another tab for the button.
 mutate("Prompt/Press.lua",
-       "\"|r\", L[\"Who to buff\"]))\n\t\telse\n",
+       "\"|r\", ns.TabName(\"who.strangersShowPlates\")))\n\t\telse\n",
        "\"|r\", L[\"What I say\"]))\n\t\telse\n",
        "plates line names the wrong tab",
        expect=NAMED,
@@ -198,8 +198,8 @@ mutate("Prompt/Press.lua",
 
 # The line not naming the button.
 mutate("Prompt/Press.lua",
-       "\t\t\t\t:format(\"|cffffd100\" .. L[\"Show friendly nameplates\"] .. \"|r\", L[\"Who to buff\"]))\n",
-       "\t\t\t\t:format(\"|cffffd100\" .. L[\"Who to buff\"] .. \"|r\", L[\"Who to buff\"]))\n",
+       "\t\t\t\t:format(\"|cffffd100\" .. L[\"Show friendly nameplates\"] .. \"|r\", ns.TabName(\"who.strangersShowPlates\")))\n",
+       "\t\t\t\t:format(\"|cffffd100\" .. L[\"Who to buff\"] .. \"|r\", ns.TabName(\"who.strangersShowPlates\")))\n",
        "plates line does not name the button",
        expect=NAMED,
        script="runscenarios.py")

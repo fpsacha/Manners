@@ -402,6 +402,7 @@ local function OnEnter(self)
 		tip:AddLine(info.name, 1, 1, 1)
 	end
 	tip:AddLine(L["Manners: a left click here casts it, as its key does."], 0.75, 0.75, 0.75, true)
+	ns.AddSettingsLine(tip, "appearance.breakFree")
 	tip:Show()
 end
 

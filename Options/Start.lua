@@ -5,7 +5,8 @@ local L = ns.L
 local Page = ns.OptionsPage
 local P, S, F, SP, PR = Page.P, Page.S, Page.F, Page.SP, Page.PR
 local HasClassBuffs, HasPrompt, OffersSelf, TAB = Page.HasClassBuffs, Page.HasPrompt, Page.OffersSelf, Page.TAB
-local Ref, HasMinimapButton, CompartmentShown, DragPanelUp = Page.Ref, Page.HasMinimapButton, Page.CompartmentShown, Page.DragPanelUp
+local RefTo, TabOf = Page.RefTo, function(path) return Page.TabOf(path) or "" end
+local HasMinimapButton, CompartmentShown, DragPanelUp = Page.HasMinimapButton, Page.CompartmentShown, Page.DragPanelUp
 
 local LDBIcon = LibStub("LibDBIcon-1.0", true)
 
@@ -609,7 +610,7 @@ function Quick.OwnOnlySummary()
 	end
 	if not S().self then
 		return L["Your class has no buffs for other players, and %s is off, so the prompt never appears."]
-			:format(Ref(L["Myself, when I'm missing my own buff"], TAB.who))
+			:format(RefTo(L["Myself, when I'm missing my own buff"], "who.self"))
 	end
 	local names = {}
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
@@ -619,7 +620,7 @@ function Quick.OwnOnlySummary()
 	end
 	if #names == 0 then
 		return L["Your class has no buffs for other players, and your own are all switched off on %s, so the prompt never appears."]
-			:format(TAB.who)
+			:format(TabOf("who.self"))
 	end
 	local text = L["Your class has no buffs for other players, so the prompt reminds you of your own: %s."]
 		:format(table.concat(names, ", "))
@@ -1007,13 +1008,13 @@ function Page.BuildStartTab()
 						local bags = ""
 						if Page.OwnSwitchWaiting() then
 							bags = "\n\n" .. L["It can also remind you to use what is in your bags on yourself: %s."]
-								:format(Ref(L["Myself"], TAB.who))
+								:format(RefTo(L["Myself"], "who.self"))
 						end
 						return "\n|cffff8080"
 							.. L["Your class has no buffs it can cast on another player."]
 							.. "|r\n\n"
 							.. L["Manners can still answer a buff with a /thank: %s. And it is worth keeping installed on an alt that has buffs."]
-								:format(Ref(L["/thank people who buff me"], TAB.click))
+								:format(RefTo(L["/thank people who buff me"], "click.thankEmote"))
 							.. bags
 							.. "\n"
 					end
@@ -1023,7 +1024,7 @@ function Page.BuildStartTab()
 					return "\n|cffff8080" .. L["Manners could not work out what you can cast."]
 						.. "|r\n\n"
 						.. L["Either your class has nothing for other players, or the spell probe came back empty -- %s says which."]
-							:format(Ref(L["What Manners can see"], TAB.diagnostics))
+							:format(RefTo(L["What Manners can see"], "diagnostics.diag"))
 						.. "\n"
 				end,
 			},
@@ -1035,7 +1036,7 @@ function Page.BuildStartTab()
 				type = "toggle",
 				name = L["Ask people for a buff I'm missing"],
 				desc = L["Your class has nothing to cast on other players, so this is what the prompt can do with them: ask for theirs, one short polite line at a press. How it is said, and where, is on %s."]
-					:format(TAB.who),
+					:format(TabOf("who.askChannel")),
 				order = 2.5,
 				width = "full",
 				hidden = HasClassBuffs,

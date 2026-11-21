@@ -2766,13 +2766,13 @@ function ns.StopOfferingSelf(entry)
 	if entry and entry.cure then
 		db.sources.curesSelf = false
 		addon:Print(L["curing you will not be offered any more -- tick %s on the %s tab to have it back."]
-			:format("|cffffd100" .. L["Cure myself too"] .. "|r", L["Who to buff"]))
+			:format("|cffffd100" .. L["Cure myself too"] .. "|r", ns.TabName("who.curesSelf")))
 		ns.RepaintOptions()
 		return
 	end
 	db.sources.self = false
 	addon:Print(L["your own buff will not be offered to you any more -- tick %s on the %s tab to have it back."]
-		:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r", L["Who to buff"]))
+		:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r", ns.TabName("who.self")))
 	ns.RepaintOptions()
 end
 

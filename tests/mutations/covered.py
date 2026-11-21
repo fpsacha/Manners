@@ -256,15 +256,15 @@ mutate("Ledger.lua",
        expect=ARRIVES, script=S)
 
 mutate("Ledger.lua",
-       "\t\t\t\tor e.why == \"covered\" and TEXT.TIP_LETGO_COVERED or TEXT.TIP_LETGO_EXPIRED,\n",
+       "\t\t\t\tor e.why == \"covered\" and TEXT.TIP_LETGO_COVERED() or TEXT.TIP_LETGO_EXPIRED,\n",
        "\t\t\t\tor TEXT.TIP_LETGO_EXPIRED,\n",
        "covered: the ledger's tooltip says the time ran out",
        expect=ARRIVES, script=S)
 
 # The tooltip names a setting that is not there.
 mutate("Ledger.lua",
-       ":format(L[\"Refresh a buff they already have, to return a favour\"], L[\"When to offer\"], L[\"Buffing back\"])",
-       ":format(L[\"Refresh what they already have\"], L[\"When to offer\"], L[\"Buffing back\"])",
+       ":format(L[\"Refresh a buff they already have, to return a favour\"], ns.TabName(\"advanced.repayCovered\"), L[\"Buffing back\"])",
+       ":format(L[\"Refresh what they already have\"], ns.TabName(\"advanced.repayCovered\"), L[\"Buffing back\"])",
        "covered: the ledger's tooltip names a missing setting",
        expect=ARRIVES, script=S)
 

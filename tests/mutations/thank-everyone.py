@@ -79,8 +79,8 @@ mutate("Options/Start.lua",
        "thank-everyone: the voice choice with nothing to give",
        expect="a control other than the /thank shows on What I say", script=S)
 mutate("Options/Start.lua",
-       "\t\t\t\t\t\t\t\t:format(Ref(L[\"/thank people who buff me\"], TAB.click))\n",
-       "\t\t\t\t\t\t\t\t:format(Ref(L[\"/thank people who buff me\"], TAB.who))\n",
+       "\t\t\t\t\t\t\t\t:format(RefTo(L[\"/thank people who buff me\"], \"click.thankEmote\"))\n",
+       "\t\t\t\t\t\t\t\t:format(RefTo(L[\"/thank people who buff me\"], \"who.self\"))\n",
        "thank-everyone: Start here points at the wrong page",
        expect="a rogue's Start here does not point at the /thank", script=S)
 

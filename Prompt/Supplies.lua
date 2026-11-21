@@ -182,6 +182,7 @@ local function OnEnter(self)
 		tip:AddLine(L["Manners: consumables"], 1, 1, 1)
 		tip:AddLine(L["Drag to move it. Lock the prompt to use it."], 0.75, 0.75, 0.75, true)
 	end
+	ns.AddSettingsLine(tip, "who.ownApart")
 	tip:Show()
 end
 

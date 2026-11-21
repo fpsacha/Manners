@@ -77,3 +77,12 @@ simple view leaves it out; one that belongs to a switch is indented under it
 and named in `parents`, so search can say which switch to turn on. No page
 is over about three screens with its folds shut (`menu.lua` holds each to
 3.1): fold fine print rather than raise that.
+
+Text that points at a control (a chat line, a tooltip, a note) names its page
+through `Page.TabOf(path)` or `Page.RefTo(label, path)` (`Options/Shared.lua`),
+never a page name written by hand: the answer follows the layout and the
+translation, so a control that moves takes its sentences with it. Files that
+load before `Options/` (the root files, `Prompt/`) call `ns.TabName(path)`
+(`Core.lua`) only when a line is said, never at load. A fight button's tooltip
+ends with `ns.AddSettingsLine(tip, path)`. `menupass-pointers.lua` fails a page
+named by hand.

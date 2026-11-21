@@ -254,6 +254,63 @@ end
 
 Page.TAB, Page.Ref = TAB, Ref
 
+-- The page's name by page id, read when asked so a translation is followed. A page not listed here is read by its layout title.
+local TITLE = {
+	general = function() return L["Start here"] end,
+	who = function() return L["Who to buff"] end,
+	skip = function() return L["Who to skip"] end,
+	when = function() return L["When to offer"] end,
+	click = function() return L["What I say"] end,
+	appearance = function() return L["Look"] end,
+	profiles = function() return L["Profiles"] end,
+	diagnostics = function() return L["Diagnostics"] end,
+}
+
+-- Which page each placed control is on, made on first use from the window's
+-- layout (it loads after this file): a plain item, a {path} item, a composite's
+-- ids and a section's header.
+local pageOfPath
+
+local function MakePageOf()
+	local out = {}
+	local layout = ns.WindowLayout
+	for id, page in pairs(layout and layout.pages or {}) do
+		for _, sec in ipairs(page.sections or {}) do
+			if sec.header then out[sec.header] = out[sec.header] or id end
+			for _, raw in ipairs(sec.items or {}) do
+				if type(raw) == "string" then
+					out[raw] = out[raw] or id
+				elseif type(raw) == "table" then
+					if type(raw[1]) == "string" then out[raw[1]] = out[raw[1]] or id end
+					for _, path in ipairs(raw.ids or {}) do out[path] = out[path] or id end
+				end
+			end
+		end
+	end
+	return out
+end
+
+-- The name of the page a control is on, as the window shows it now (so a
+-- translation, or a control that moves, is followed). nil for a control that
+-- is not placed. Text that tells a player where a control is calls this and
+-- never writes a page name by hand.
+function Page.TabOf(path)
+	if not pageOfPath then
+		pageOfPath = MakePageOf()
+		if next(pageOfPath) == nil then pageOfPath = nil return nil end
+	end
+	local id = pageOfPath[path]
+	if not id then return nil end
+	if TITLE[id] then return TITLE[id]() end
+	local page = ns.WindowLayout.pages[id]
+	return page and page.title or nil
+end
+
+-- A control's name in gold and the page it is on, for text beside it.
+function Page.RefTo(label, path)
+	return Ref(label, Page.TabOf(path) or "")
+end
+
 ---------------------------------------------------------------------------
 -- the options window's view: the short list, or everything
 --

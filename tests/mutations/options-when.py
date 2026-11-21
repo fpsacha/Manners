@@ -48,7 +48,7 @@ mutate("Options/When.lua",
 
 # The note naming the control but not the tab it is on.
 mutate("Options/When.lua",
-       ":format(Ref(L[\"My target first\"], TAB.who))\n",
+       ":format(RefTo(L[\"My target first\"], \"who.target\"))\n",
        ":format(L[\"My target first\"])\n",
        "when tab: Always note without its tab",
        expect="the Always note does not name My target first and its tab", script=S)

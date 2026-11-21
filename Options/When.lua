@@ -5,7 +5,7 @@ local L = ns.L
 local Page = ns.OptionsPage
 local F, fGet, fSet = Page.F, Page.fGet, Page.fSet
 local HasClassBuffs, HasPrompt, OffersSelf, TAB = Page.HasClassBuffs, Page.HasPrompt, Page.OffersSelf, Page.TAB
-local Ref = Page.Ref
+local RefTo, TabOf = Page.RefTo, function(path) return Page.TabOf(path) or "" end
 
 -- When to offer, and when the prompt holds back. The favour, timing and
 -- targeting controls are defined in Advanced.lua; the options window draws
@@ -141,7 +141,7 @@ function Page.BuildWhenTab()
 					return "|cffff8080"
 						.. L["Everyone you offer to is offered again and again, even with a fresh buff."]
 						.. "|r\n\n|cff888888"
-						.. L["%s does nothing in this mode."]:format(Ref(L["My target first"], TAB.who))
+						.. L["%s does nothing in this mode."]:format(RefTo(L["My target first"], "who.target"))
 						.. "|r"
 				end,
 			},
@@ -190,7 +190,7 @@ function Page.BuildWhenTab()
 				name = L["Say my line there"],
 				desc = function()
 					return L["Off: nothing is said when you buff somebody in a battleground or an arena, whatever %s is set to. On: your line is said there as it is anywhere else."]
-						:format(TAB.click)
+						:format(TabOf("click.enabled"))
 				end,
 				order = 14.3,
 				width = "full",

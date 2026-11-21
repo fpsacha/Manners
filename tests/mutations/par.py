@@ -54,8 +54,8 @@ mutate("Options/Launcher.lua",
        expect="nameplates off reads as", script=S)
 
 mutate("Options/Launcher.lua",
-       "L[\"Start here\"]), 1, 0.82, 0, true, nil, \"plates\"\n",
-       "L[\"Start here\"]), 0.4, 0.9, 0.4, true, nil, \"plates\"\n",
+       "or \"\"), 1, 0.82, 0, true, nil, \"plates\"\n",
+       "or \"\"), 0.4, 0.9, 0.4, true, nil, \"plates\"\n",
        "par: the launcher's nameplates line green",
        expect="the line is not amber", script=S)
 

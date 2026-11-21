@@ -789,6 +789,13 @@ with("curefight: no tooltip while it is out of sight", {}, function(ns, world)
 	if (shows(ns)) ~= 1 then fail(scenario, "SKIPPED -- not lit") return end
 	button.scripts.OnEnter(button)
 	if Mock.tooltipOwner ~= button then fail(scenario, "no tooltip while it is lit") end
+	do
+		local where = ns.OptionsPage.TabOf("appearance.cureFight")
+		if not (where and table.concat(Mock.tooltip, "\n"):find(where, 1, true)) then
+			fail("menupass-pointers: the fight buttons say where their settings are",
+				"the cure button: its tooltip does not name " .. tostring(where) .. ": " .. table.concat(Mock.tooltip, " | "))
+		end
+	end
 	release(ns)
 end)
 

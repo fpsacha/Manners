@@ -140,13 +140,19 @@ local TEXT = {
 	TIP_LETGO_USELESS = L["Let go: nothing you can cast is any use to them."],
 	-- The setting's own name and place, through the options page's keys, so a
 	-- translation names what the player will find there; a scenario holds it to.
-	-- Keep favours through a /reload is on When to offer, under Favours.
-	TIP_LETGO_NOTKEPT = L["Let go: \"%s\" (%s tab, under %s) is off, so it was forgotten when you logged out or reloaded."]
-		:format(L["Keep favours through a /reload"], L["When to offer"], L["Favours"]),
+	-- Keep favours through a /reload is on When to offer, under Favours. Built
+	-- when the tip is shown: the page's name comes from Options/Shared.lua,
+	-- which loads after this file.
+	TIP_LETGO_NOTKEPT = function()
+		return L["Let go: \"%s\" (%s tab, under %s) is off, so it was forgotten when you logged out or reloaded."]
+			:format(L["Keep favours through a /reload"], ns.TabName("advanced.keepDebts"), L["Favours"])
+	end,
 	TIP_LETGO_NEVER = L["Let go: you put them on your never-offer list."],
 	-- The setting's own name, through the options page's key, as above.
-	TIP_LETGO_COVERED = L["Let go: they already had everything you could give them, with time to spare, so there was nothing to return. \"%s\" (%s tab, under %s) refreshes it anyway."]
-		:format(L["Refresh a buff they already have, to return a favour"], L["When to offer"], L["Buffing back"]),
+	TIP_LETGO_COVERED = function()
+		return L["Let go: they already had everything you could give them, with time to spare, so there was nothing to return. \"%s\" (%s tab, under %s) refreshes it anyway."]
+			:format(L["Refresh a buff they already have, to return a favour"], ns.TabName("advanced.repayCovered"), L["Buffing back"])
+	end,
 	-- In place of TIP_OWED while the prompt cannot offer them, the rule Quiet()
 	-- below keeps for the empty list: the window never promises what cannot
 	-- come. The toggle is quoted by the name it has on the Who to buff tab, and
@@ -1530,9 +1536,9 @@ local function RowTooltip(row)
 				or TEXT.TIP_RETURNED:format(took), c[1], c[2], c[3], true)
 		else
 			GameTooltip:AddLine(e.why == "useless" and TEXT.TIP_LETGO_USELESS
-				or e.why == "notkept" and TEXT.TIP_LETGO_NOTKEPT
+				or e.why == "notkept" and TEXT.TIP_LETGO_NOTKEPT()
 				or e.why == "never" and TEXT.TIP_LETGO_NEVER
-				or e.why == "covered" and TEXT.TIP_LETGO_COVERED or TEXT.TIP_LETGO_EXPIRED,
+				or e.why == "covered" and TEXT.TIP_LETGO_COVERED() or TEXT.TIP_LETGO_EXPIRED,
 				c[1], c[2], c[3], true)
 		end
 	end

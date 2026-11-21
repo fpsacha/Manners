@@ -113,7 +113,7 @@ mutate("Options/Launcher.lua",
 
 # ------------------------------------------------------------------ review-4
 mutate("Options/Launcher.lua",
-       "L[\"Kept away while you are mounted -- %s, on the %s tab.\"]\n\t\t\t:format(L[\"Hide the prompt while I'm mounted\"], L[\"When to offer\"])",
+       "L[\"Kept away while you are mounted -- %s, on the %s tab.\"]\n\t\t\t:format(L[\"Hide the prompt while I'm mounted\"], Page.TabOf(\"when.hideMounted\") or \"\")",
        "L[\"Kept away while you are mounted -- Hide the prompt while I'm mounted, on the When to offer tab.\"]",
        "hunt3-options: the mount line hard-codes labels",
        expect="the mount line does not take the option and tab names from their own keys", script=S)
