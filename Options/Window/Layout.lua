@@ -1184,7 +1184,7 @@ ns.WindowLayout = {
 	-- translated as a whole.
 	keywords = {
 		["general.silentChat"] = L["quiet mute spam"],
-		["advanced.ownSkipMinutes"] = L["food well fed ignore pet snooze"],
+		["advanced.ownSkipMinutes"] = L["skip longer food well fed ignore right click not now"],
 		["general.verbose"] = L["quiet mute spam"],
 		["who.ownScrolls"] = L["hide familiar imbue"],
 		-- Asked for as hiding "the window" in a fight.
@@ -1216,6 +1216,32 @@ ns.WindowLayout = {
 		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
 		["who.curesFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["who.ownSpellAdd"] = L["custom spell add new buff own"],
+
+		-- The words players typed for a control: wotf, rez, reply, queue, color.
+		["appearance.breakFree"] = L["wotf forsaken break free fear charm sleep fight button turn off hide"],
+		["appearance.breakFreeKey"] = L["wotf forsaken key bind"],
+		["appearance.hideInCombat"] = L["flash flashes red combat fight"],
+		["appearance.dimInCombat"] = L["dim fade combat fight"],
+		["appearance.showQueue"] = L["queue list waiting next"],
+		["who.res"] = L["resurrect rez res dead revive"],
+		["who.resStrangers"] = L["resurrect rez res dead revive"],
+		["click.thankDelay"] = L["delay wait pause seconds later"],
+		["click.phrases"] = L["custom own reply replies message messages phrase phrases rp roleplay text words"],
+		["click.mixedLines"] = L["custom own reply replies message messages phrase phrases rp roleplay text words"],
+		["who.askOwn"] = L["custom own reply message words text"],
+		["advanced.format"] = L["custom own words text message wording"],
+		["who.neverAdd"] = L["blacklist ignore never block"],
+		["who.target"] = L["priority first target order"],
+		["when.whenBuffed"] = L["refresh top up expire duration timer"],
+		["who.quietInTowns"] = L["quiet city town inn capital silent hide"],
+		["who.quietInInstances"] = L["quiet dungeon raid instance silent hide"],
+		["click.quietInParty"] = L["quiet silent group party raid mute"],
+		["click.quietInRaid"] = L["quiet silent group party raid mute"],
+		["when.hideMounted"] = L["mount mounted riding hide"],
+		["who.own_aspect"] = L["aspect pick choose one hawk monkey cheetah pack"],
+		["who.own_tracking"] = L["tracking track pick choose one herbs minerals"],
+		["who.own_pet"] = L["companion pet critter vanity"],
+		["general.minimap"] = L["minimap icon button hide"],
 	},
 
 	-- A control hidden until a switch is on, and that switch: search finds the
@@ -1373,6 +1399,11 @@ do
 				if type(path) == "string" and (path:find("^who%.offer_")
 					or (path:find("^who%.own_") and not path:find("^who%.own_leave"))) then
 					keep[path] = true
+				end
+				-- "Keep thorns to myself": only me is already one of the choices.
+				if type(path) == "string" and path:find("^who%.tank_") then
+					local words = ns.WindowLayout.keywords
+					if words[path] == nil then words[path] = L["only me myself tank tanks keep"] end
 				end
 			end
 		end

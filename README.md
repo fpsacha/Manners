@@ -950,7 +950,9 @@ it too.
 - The **search box** above the pages finds a setting by its name, its
   tooltip, one of its choices or the section it is in, in every language
   Manners is translated into, and "quiet", "mute" or "spam" finds the chat
-  switches. Pick a result and the window goes there, opens the part and the
+  switches. A word at the start of a name comes first, words people use
+  (wotf, rez, reply, queue, color) find their setting, and a phrase like "turn
+  off will of the forsaken" is read without its filler words. Pick a result and the window goes there, opens the part and the
   section and flashes the setting; one hidden behind a switch says which to turn on
   first.
 - ***Simple view***, a switch under the search box. On, each page draws only

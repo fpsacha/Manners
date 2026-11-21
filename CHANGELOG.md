@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+*21 November 2026*
+
+### Highlights
+- **Search finds the words people use** (wotf, rez, reply, queue, color and more) and phrases such as "turn off will of the forsaken".
+
+### Fixes
+- **Search puts a word at the start of a name first.** "rest" now finds Well-Rested ahead of Firestone.
+
 ## 1.11.35
 
 *21 November 2026*

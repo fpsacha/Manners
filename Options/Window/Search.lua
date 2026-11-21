@@ -115,13 +115,15 @@ local function AtWordStart(text, query)
 end
 Search.AtWordStart = AtWordStart
 
--- How well an entry matches, 0 best: its label, a choice's label or one of
--- its keywords (other words people use for it, the layout's `keywords`), its
--- tooltip at the start of a word, then the section or page it is on. nil when
--- nothing does.
+-- How well an entry matches, 0 best: its label at the start of a word, then
+-- anywhere in the label, a choice's label or one of its keywords (other words
+-- people use for it, the layout's `keywords`) at the start of a word, its
+-- tooltip at the start of a word, then the section or page. nil when nothing
+-- does.
 local function Rank(entry, query)
 	if type(entry) ~= "table" then return nil end
-	if Has(entry.label, query) then return 0 end
+	if AtWordStart(entry.label, query) then return 0 end
+	if Has(entry.label, query) then return 1 end
 	if type(entry.choices) == "table" then
 		for _, choice in pairs(entry.choices) do
 			if Has(choice, query) then return 1 end
@@ -133,17 +135,52 @@ local function Rank(entry, query)
 	return nil
 end
 
--- At most `limit` entries (8 when not given), best rank first and, within a
--- rank, in the order they were given: page order, so the list reads as the
--- window does. A plain substring match, so "whisp" finds Where to say it.
-function Search.Find(query, entries, limit)
-	local found = {}
-	query = Search.Normalise(query)
-	limit = tonumber(limit) or 8
-	if query == "" or type(entries) ~= "table" or limit < 1 then return found end
-	local ranks = { {}, {}, {}, {} }
+-- The US spellings the addon's English uses the UK way. A query is ranked as
+-- typed and folded, the better rank wins: Spanish and Portuguese write
+-- "color" and "favor" for real. Not armor: the game spells its spells Armor.
+local SPELLING = { color = "colour", gray = "grey", favor = "favour", center = "centre", behavior = "behaviour" }
+
+local function Folded(query)
+	return (gsub(query, "%S+", function(word) return SPELLING[word] end))
+end
+
+-- Words a phrase can lose ("how do I turn off ..."): one whole string a
+-- translator gets, split on spaces, built when first asked.
+local FILLER
+local function Filler()
+	if not FILLER then
+		FILLER = {}
+		local text = Search.Normalise(ns.L["how do i to turn off on stop disable enable the a an my me of in for is can"])
+		for word in text:gmatch("%S+") do FILLER[word] = true end
+	end
+	return FILLER
+end
+
+local function Best(entry, query, folded)
+	local rank = Rank(entry, query)
+	if folded ~= query then
+		local other = Rank(entry, folded)
+		if other and (not rank or other < rank) then rank = other end
+	end
+	return rank
+end
+
+-- A phrase with its filler words dropped: every word left must rank, the
+-- entry's rank its worst word's.
+local function PhraseRank(entry, words)
+	local worst
+	for _, word in ipairs(words) do
+		local rank = Best(entry, word, Folded(word))
+		if not rank then return nil end
+		if not worst or rank > worst then worst = rank end
+	end
+	return worst
+end
+
+local function Collect(entries, rankOf, limit)
+	local ranks, found = { {}, {}, {}, {} }, {}
 	for _, entry in ipairs(entries) do
-		local rank = Rank(entry, query)
+		local rank = rankOf(entry)
 		if rank then
 			local list = ranks[rank + 1]
 			list[#list + 1] = entry
@@ -156,4 +193,24 @@ function Search.Find(query, entries, limit)
 		end
 	end
 	return found
+end
+
+-- At most `limit` entries (8 when not given), best rank first and, within a
+-- rank, in the order they were given: page order, so the list reads as the
+-- window does. A plain substring match, so "whisp" finds Where to say it.
+-- When the whole query finds nothing and holds a space, it is tried again
+-- without its filler words.
+function Search.Find(query, entries, limit)
+	query = Search.Normalise(query)
+	limit = tonumber(limit) or 8
+	if query == "" or type(entries) ~= "table" or limit < 1 then return {} end
+	local folded = Folded(query)
+	local found = Collect(entries, function(entry) return Best(entry, query, folded) end, limit)
+	if #found > 0 or not find(query, " ", 1, true) then return found end
+	local words, filler = {}, Filler()
+	for word in query:gmatch("%S+") do
+		if not filler[word] then words[#words + 1] = word end
+	end
+	if #words == 0 then return found end
+	return Collect(entries, function(entry) return PhraseRank(entry, words) end, limit)
 end

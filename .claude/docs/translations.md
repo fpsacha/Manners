@@ -45,4 +45,13 @@ most, an optional `title`; `tests/scenarios/subpages.lua` holds the shape):
 a section named in none (the line a page opens with) is drawn with each. They live
 in the layout, not the AceConfig definition, which rejects unknown keys.
 
+The window's search (`Options/Window/Search.lua`) ranks a label at the start
+of a word first, then a label with the query inside a word, a choice or a
+keyword at a word start, the tooltip at a word start, then the section or
+page. The query is ranked as typed and with US spellings folded to the UK
+ones (`SPELLING`), and the better rank wins: Spanish and Portuguese write
+"color" and "favor". A query that finds nothing and holds a space is tried
+again without its filler words (`FILLER`, one whole translated string split on
+spaces, built when first used); every word left must rank.
+
 `python tools/locale_keys.py --missing <code>` lists the gaps of one locale.
