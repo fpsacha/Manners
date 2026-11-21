@@ -1066,6 +1066,10 @@ permissions list, a hook that lints each edited file, and the commands
 
 ## Open
 
+**The consumables button wears its look (unreleased), only the live game can say.** `Wear` in `Prompt/Supplies.lua` puts the prompt's look's painted socket (`Painted.Socket`, `Looks/Painted.lua`) behind the button, the icon inset into its hole and rounded by `Textures/Painted/Mask` where the socket is round; plain under *Earlier art* for a look with earlier art. No setting.
+1. How it looks on each look, at the default size and at the slider's smallest and largest: the icon sits in the hole, the rim shows (`SOCKET_RIM` 1.45 of the hole's radius), the highlight lies on the icon, and a round mask fits the round sockets. For RELEASE-CHECK.
+2. That the mask on a secure button's icon draws as on the prompt, and that nothing of it shows in a fight (it is cut only out of combat).
+
 **The prompt's key in a fight (unreleased), only the live game can say.**
 1. That the override binding takes at `PLAYER_REGEN_DISABLED` on each of the five clients: with a spell chosen, the prompt's key casts it in the first pull of a session, and gives the buff back after the fight.
 2. That a hidden, never-shown secure button still fires from an override binding on each client (the prompt's hidden state does from its own binding, which is what this rests on).

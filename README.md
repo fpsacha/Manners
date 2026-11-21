@@ -489,7 +489,8 @@ once you carry one.
   small button of their own, which you drag where you want it while the
   prompt is unlocked. It has its own key under Key Bindings and its size on
   *Look*; a left-click uses the item, a right-click skips it for your skip
-  time, and it never shows in a fight.
+  time, and it never shows in a fight. It wears the frame of the look you
+  picked for the prompt, and changes with it.
 - *Remind me of my shout when I'm alone* (warriors, off): with nobody in your
   group, or nobody of it near enough, Battle Shout is offered to you when it
   is missing or running low, in a fight as well.

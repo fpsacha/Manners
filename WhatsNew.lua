@@ -7,6 +7,7 @@ local _, ns = ...
 ns.WhatsNew = {
 	{ version = "Unreleased", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100The consumables button wears your prompt's look.|r It now wears the frame of the look you picked for the prompt, and changes with it.",
 			"|cffffd100Your fight key is kept for each class.|r |cffffffffIn a fight, my key casts|r used to be one choice for every character on a profile, so a Flash Heal picked on a priest armed a paladin's key with Flash of Light.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {

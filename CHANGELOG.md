@@ -5,6 +5,8 @@
 *21 November 2026*
 
 ### Highlights
+- **The consumables button wears your prompt's look.** It now wears the frame of the
+  look you picked for the prompt, and changes with it.
 - **Your fight key is kept for each class.** *In a fight, my key casts* used to
   be one choice for every character on a profile, so a Flash Heal picked on a
   priest armed a paladin's key with Flash of Light. Each class now keeps its

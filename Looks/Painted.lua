@@ -37,6 +37,9 @@
 -- of this file is on the screen (its pieces hidden, every muffled region given
 -- back its own Show).
 --
+-- Painted.Socket cuts a painting's icon socket out alone, for the small consumables
+-- button (Prompt/Supplies.lua) to wear.
+--
 -- The rules every look keeps hold here: the pieces are textures of `art` (never
 -- anchored to by a secure frame), coloured through Looks.Colour, laid out only in
 -- Apply (ApplyStyle, out of combat), with no pcall and no OnUpdate.
@@ -206,6 +209,15 @@ local function Place(art, rel, g)
 	k:SetTexCoord(0, c.r, 0, c.b)
 end
 Painted.Place = Place
+
+-- A painting's socket cut out on its own, for a small button in the look's own art (Prompt/Supplies.lua): the left piece's texcoords of a square round the icon's hole, as far as the rim reaches (SOCKET_RIM times the hole's radius) and never past the piece, the share of that square the icon fills, and whether the socket is round.
+local SOCKET_RIM = 1.45
+function Painted.Socket(d)
+	local s, l = d.socket, d.left
+	local tall = d.above + 1 + d.below
+	local h = math.min(s.r * SOCKET_RIM, s.x, l.w - s.x, s.y + d.above, 1 + d.below - s.y)
+	return (s.x - h) / l.w * l.r, (s.x + h) / l.w * l.r, (d.above + s.y - h) / tall * l.b, (d.above + s.y + h) / tall * l.b, s.r * ICON_FILL / h, s.shape == "round"
+end
 
 -- The least room, in ems of the font's size, the words keep between where they
 -- start and the keycap: on a prompt too narrow for the painting (the bar drawn

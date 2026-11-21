@@ -13,6 +13,11 @@
 -- prompt in combat uses (Prompt/Fight.lua, which says why a driver alone is
 -- not enough), takes the macro off and only then hides it, in the restricted
 -- environment, at the pull. The next repaint after the fight arms it afresh.
+-- The button wears the socket of the prompt's look (Painted.Socket, Looks/
+-- Painted.lua): the painting's frame round the icon's hole, the icon in it, and
+-- round where the socket is round. Plain under Earlier art for a look that has
+-- earlier art. One texture and a cached check (Wear), out of combat, no setting:
+-- it follows the look.
 -- A press writes what a press on the prompt writes for one of your own: the
 -- retry block, the hand an oil goes on busy, the scroll last used (Core.lua,
 -- NoteScrollPress). A right-click skips the item for the skip time.
@@ -30,13 +35,18 @@ local STATE = "mannerssupplies"
 local DRIVER = "[combat] fight; peace"
 -- Shown while the prompt is unlocked, for dragging: a bag.
 local PLACEHOLDER = "Interface\\Icons\\INV_Misc_Bag_08"
+-- The icon's round mask, the one the painted looks use.
+local ROUND_MASK = "Interface\\AddOns\\Manners\\Textures\\Painted\\Mask"
 
-local button, icon, header
+local button, icon, header, socket, mask
 -- The entry the macro is armed for, and the macro itself, written only when
 -- it changes.
 local current, armedMacro
 -- Where it was last put, so it is placed again only when that changes.
 local placedKey
+-- What it wears: the look, Earlier art and the size it was last dressed for, so
+-- the socket is cut again only when one of them changes.
+local woreStyle, woreEarlier, woreSize, masked
 
 -- Runs in the restricted environment: disarmed first, then hidden, so a
 -- snippet stopped half way leaves a button that uses nothing.
@@ -87,6 +97,47 @@ local function Place(db)
 	button:ClearAllPoints()
 	button:SetPoint(s.point or "BOTTOM", UIParent, s.relPoint or "BOTTOM", tonumber(s.x) or 0, tonumber(s.y) or 0)
 	button:SetSize(s.size, s.size)
+end
+
+-- The socket of the prompt's look round the icon (Painted.Socket), the icon in
+-- its hole and rounded where the socket is. The whole button stays the size the
+-- player set; a look with no socket, or Earlier art, leaves the icon on all of it.
+local function Wear(db)
+	local p = db.prompt
+	local style, earlier, size = p.style, p.classicArt == true, db.supplies.size
+	if style == woreStyle and earlier == woreEarlier and size == woreSize then return end
+	woreStyle, woreEarlier, woreSize = style, earlier, size
+	local Looks = ns.Looks
+	local look = Looks and style and Looks.list[style]
+	local key = (look and look.fallback) or style
+	if look and look.fallback then look = Looks.list[key] end
+	local d = ns.PaintedData and key and ns.PaintedData[key]
+	local Painted = Looks and Looks.Painted
+	local round, fill = false, nil
+	if d and Painted and Painted.Socket and (not earlier or (look and look.paintedOnly)) then
+		local u0, u1, v0, v1, share, isRound = Painted.Socket(d)
+		socket:SetTexture(d.left.file)
+		socket:SetTexCoord(u0, u1, v0, v1)
+		Looks.Colour(socket, 1, 1, 1)
+		socket:Show()
+		fill, round = share, isRound
+	else
+		socket:Hide()
+	end
+	icon:ClearAllPoints()
+	if fill then
+		local inset = size * (1 - fill) / 2
+		icon:SetPoint("TOPLEFT", button, "TOPLEFT", inset, -inset)
+		icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
+	else
+		icon:SetAllPoints(button)
+	end
+	if round and mask then
+		if not masked then icon:AddMaskTexture(mask); masked = true end
+		mask:Show()
+	elseif masked then
+		icon:RemoveMaskTexture(mask); masked = nil; mask:Hide()
+	end
 end
 
 -- Where a drag left it, in whole pixels.
@@ -151,10 +202,23 @@ function Supplies:Create()
 	-- the action nor a release while ActionButtonUseKeyDown is off (Panel.lua).
 	button:SetAttribute("pressAndHoldAction", true)
 	button:RegisterForDrag("LeftButton")
+	socket = button:CreateTexture(nil, "BACKGROUND")
+	socket:SetAllPoints(button)
+	socket:Hide()
 	icon = button:CreateTexture(nil, "ARTWORK")
 	icon:SetAllPoints(button)
 	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	if button.CreateMaskTexture and icon.AddMaskTexture then
+		mask = button:CreateMaskTexture()
+		mask:SetTexture(ROUND_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		mask:SetAllPoints(icon)
+		mask:Hide()
+	end
 	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+	local hl = button:GetHighlightTexture()
+	if hl then hl:SetAllPoints(icon) end
+	-- On the frame, for the scenarios to read.
+	button.socket, button.socketMask = socket, mask
 	-- Only the left button uses the item: every other one is told to do
 	-- nothing, the modifier-prefixed lookups too (Prompt/Macro.lua says why).
 	for index = 2, 31 do
@@ -204,6 +268,8 @@ function Supplies:Refresh(now)
 		header:SetAttribute("state-" .. STATE, "peace")
 	end
 	Place(db)
+	-- Before the unlocked branch: the drag placeholder wears the look too.
+	Wear(db)
 	-- Unlocked: shown, holding nothing, to be dragged where it goes.
 	if not db.prompt.locked then
 		Disarm()
