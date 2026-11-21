@@ -246,7 +246,7 @@ on. *Put Manners on an action bar* (Start here) says so.
 #### Will of the Forsaken
 
 A Forsaken gets a small button of its own just right of the prompt, with a
-key of its own, ready for every fight: even when the prompt is off the
+key of its own, armed for every fight: even when the prompt is off the
 screen, hidden by *Hide the prompt in combat* or snoozed. It casts Will of the
 Forsaken and nothing else, from its key or a left click. It stays out of
 sight until you are feared, charmed or asleep, then fades in, and fades out
@@ -509,7 +509,7 @@ own setting for when it is on again.
 reminder, and under *Look*, *In a fight*, with a key of its own; the reminder's
 switch does not turn it off): a
 button of its own to the right of the prompt, or of the Will of the Forsaken
-button where a Forsaken hunter has both, ready for every fight and out of
+button where a Forsaken hunter has both, armed for every fight and out of
 sight until it is wanted. It fades in and lights up while your pet is below
 half health, in reach and alive, and Mend Pet is not still at work, and fades
 out again after. Where the game hides your pet's health in a fight (WoW
