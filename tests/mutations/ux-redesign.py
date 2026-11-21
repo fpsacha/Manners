@@ -33,7 +33,7 @@ mutate(LAYOUT, "\t\t\t\t\t\"who.quietInTowns\",\n"
        "ux-redesign: the place rules are not under Hold back",
        expect="ux-redesign: the place rules lead Hold back on Quiet times", script=S)
 
-mutate(LAYOUT, "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n"
+mutate(LAYOUT, "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n\t\t\t\t\t\"who.ownItemsLast\",\n"
        "\t\t\t\t\t-- The consumables on a button of their own (Prompt/Supplies.lua).\n"
        "\t\t\t\t\t\"who.ownApart\",\n"
        "\t\t\t\t\t-- Its key, set here rather than only under Key Bindings.\n"
@@ -43,7 +43,7 @@ mutate(LAYOUT, "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n"
        "\t\t\t\t\t-- The spells of those families you know, to leave out one by one.\n"
        "\t\t\t\t\t\"who.own_leave\",\n",
        "\t\t\t\t\t\"who.own_leave\",\n"
-       "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n"
+       "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n\t\t\t\t\t\"who.ownItemsLast\",\n"
        "\t\t\t\t\t\"who.ownApart\",\n"
        "\t\t\t\t\t{ \"who.ownApartKey\", indent = true },\n"
        "\t\t\t\t\t\"who.ownShout\",\n",

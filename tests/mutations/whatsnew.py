@@ -69,7 +69,7 @@ mutate("Options/Window/Layout.lua",
 
 mutate("WhatsNew.lua",
        "\t\t{ title = \"New\", accent",
-       "\t\t{ title = \"Ne\", accent",
+       "\t\t{ title = \"Nwe\", accent",
        "whatsnew: a section's title that is not the changelog's",
        expect="and the changelog says New", script=S)
 

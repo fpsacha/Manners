@@ -61,7 +61,7 @@ mutate("Prompt/Press.lua",
 
 # The launcher's text knowing nothing about a snooze.
 mutate("Options/Launcher.lua",
-       "\tif ends then return L[\"%s |cffffd100snoozed until %s|r\"]:format(\"Manners\", ends) end\n",
+       "\tif ends then return L[\"%s |cffffd100snoozed %s|r\"]:format(\"Manners\", ends) end\n",
        "",
        "a launcher that never mentions the snooze",
        expect="the launcher's text does not say a snooze is running",

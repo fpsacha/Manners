@@ -141,6 +141,35 @@ with(scenario, "MAGE", function(ns)
 	reads("when.manaFloor", "filters", "manaFloor", 0, "Off")
 end)
 
+-- ------------------------------------------------------------------ 3b
+scenario = "menupass-words: a box takes back what it shows (2x, Off, Automatic)"
+with(scenario, "MAGE", function(ns)
+	local UI = ns.WindowUI
+	local function typed(path, store, field, start, text, want)
+		ns.OpenOptions(UI.PageOf(path))
+		ns.Prompt:ExitTest()
+		ns.db.profile[store][field] = start
+		UI.Refresh()
+		local row = UI.RowFor(path)
+		if not (row and row.box) then
+			fail(scenario, path .. " has no slider box on its page")
+			return
+		end
+		row.box:SetFocus()
+		row.box:SetText(text)
+		row.box:ClearFocus()
+		if ns.db.profile[store][field] ~= want then
+			fail(scenario, ("%q typed into %s gave %s, not %s"):format(text, path, tostring(ns.db.profile[store][field]), tostring(want)))
+		end
+	end
+	typed("when.refreshRaid", "filters", "refreshRaid", 2, "3x", 3)
+	typed("when.refreshRaid", "filters", "refreshRaid", 2, "3", 3)
+	typed("when.refreshRaid", "filters", "refreshRaid", 2, "2.5 X", 2.5)
+	typed("when.manaFloor", "filters", "manaFloor", 30, "Off", 0)
+	typed("when.selfLead", "filters", "selfLead", 0.5, "Automatic", 0)
+	typed("when.selfLead", "filters", "selfLead", 0.5, "automatic", 0)
+end)
+
 -- ------------------------------------------------------------------ 4
 scenario = "menupass-words: a label that lost its unit has it in the tooltip"
 for _, class in ipairs({ "MAGE", "HUNTER" }) do

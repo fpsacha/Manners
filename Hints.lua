@@ -89,7 +89,7 @@ function ns.UnnamedBuffHint(unseen)
 	end
 	hints.unnamed = told + 1
 	local plates = "|cffffd100" .. L["Show friendly nameplates"] .. "|r"
-	local start = "|cffffd100" .. L["Start here"] .. "|r"
+	local start = "|cffffd100" .. ns.TabName("general.startShowPlates") .. "|r"
 	local prompt = type(db.profile.prompt) == "table" and db.profile.prompt or {}
 	-- With Ask me before thanking on (ThankPress.lua) the emote waits for a press.
 	if prompt.thankEmote == true and prompt.thankUnseen == true and unseen == true and prompt.thankAsk == true then

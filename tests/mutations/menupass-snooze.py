@@ -13,7 +13,7 @@ mutate("Commands.lua",
        expect="menupass-snooze: Until I log out keeps", script=S)
 
 mutate("Commands.lua",
-       "\tif ns.SnoozeSession() then return L[\"you log out\"] end\n",
+       "\tif ns.SnoozeSession() then return L[\"until you log out\"] end\n",
        "\tif ns.SnoozeSession() then return nil end\n",
        "menupass-snooze: a session snooze has no end to name",
        expect="menupass-snooze: every line says", script=S)
@@ -29,3 +29,9 @@ mutate("Options/Window/WindowSearch.lua",
        "",
        "menupass-snooze: search skips the header",
        expect="menupass-snooze: search finds Snooze", script=S)
+
+mutate("Commands.lua",
+       "\tif ns.SnoozeSession() then return L[\"until you log out\"] end\n",
+       "\tif ns.SnoozeSession() then return L[\"until %s\"]:format(L[\"you log out\"]) end\n",
+       "menupass-snooze: a session snooze goes back to a clause after until",
+       expect="menupass-snooze: the snooze reads right in", script=S)

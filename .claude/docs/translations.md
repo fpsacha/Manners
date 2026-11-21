@@ -70,7 +70,8 @@ ones (`SPELLING`), and the better rank wins: Spanish and Portuguese write
 again without its filler words (`FILLER`, one whole translated string split on
 spaces, built when first used); every word left must rank.
 
-`L["you log out"]` is a clause read after "until" ("snoozed until %s" with it as %s, the
-session snooze's end): translators write it so the sentence reads on, e.g. "bis Ihr Euch abmeldet".
+`ns.SnoozeEndsAt()` answers a whole phrase, `L["until %s"]` with the clock time or `L["until you log out"]`
+for the session snooze, and every snooze line drops it in as it is ("Snoozed %s"): no frame holds an "until"
+of its own, so each language words both phrases in its own grammar ("hasta las %s" and "hasta que cierres sesión").
 
 `python tools/locale_keys.py --missing <code>` lists the gaps of one locale.

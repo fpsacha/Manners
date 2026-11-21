@@ -317,7 +317,7 @@ function Setup.OwnProfile()
 			-- so this is one left on a page drawn before a switch elsewhere,
 			-- and the redraw takes it away.
 			if Setup.SharedWith() > 0 then
-				ns.addon:Print(L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles page."]:format(mine))
+				ns.addon:Print(L["Your other characters are using this character's settings (profile: %s); they can pick their own on %s."]:format(mine, ns.TabName("profiles.choose")))
 			else
 				ns.addon:Print(L["This character now has its own settings (profile: %s)."]:format(mine))
 			end
@@ -1086,9 +1086,9 @@ function Page.BuildStartTab()
 					local name = db.GetCurrentProfile and db:GetCurrentProfile() or "Default"
 					local line = L["These settings are shared by your other characters (profile: %s)."]
 					if type(db.keys) == "table" and name == db.keys.char then
-						line = L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles page."]
+						line = L["Your other characters are using this character's settings (profile: %s); they can pick their own on %s."]
 					end
-					return grey(line:format(tostring(name)))
+					return grey(line:format(tostring(name), ns.TabName("profiles.choose")))
 				end,
 			},
 			-- Offered only where it does something (Setup.CanOwnProfile). A
@@ -1347,17 +1347,17 @@ function Page.BuildStartTab()
 					-- is only shown while it is true. Worded for a snooze
 					-- started in the fight and one started before it.
 					if ends and InCombatLockdown() then
-						return L["|cffffd100Snoozed until %s.|r In a fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
+						return L["|cffffd100Snoozed %s.|r In a fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
 							:format(ends)
 					elseif ends and DragPanelUp() then
 						-- The lock is read before the snooze, so an unlocked
 						-- prompt stays on screen for the whole snooze.
-						return L["|cffffd100Snoozed until %s.|r The prompt is unlocked, so it stays up to be dragged, casting nothing, until you lock it."]
+						return L["|cffffd100Snoozed %s.|r The prompt is unlocked, so it stays up to be dragged, casting nothing, until you lock it."]
 							:format(ends)
 					elseif ends then
 						-- Not "offered when it ends": a favour is remembered for
 						-- as long as the When tab says, usually less than a snooze.
-						return L["|cffffd100Snoozed until %s.|r No prompt until then, though who buffs you is still noticed."]
+						return L["|cffffd100Snoozed %s.|r No prompt until then, though who buffs you is still noticed."]
 							:format(ends)
 					end
 					return L["Hide the prompt for a while without turning Manners off."]

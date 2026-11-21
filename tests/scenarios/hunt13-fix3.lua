@@ -230,7 +230,7 @@ do
 			end
 			local text = optionText(note.name)
 			if not text:find("Your other characters are using this character's settings (profile: "
-				.. ME .. "); they can pick their own on the Profiles page.", 1, true) then
+				.. ME .. "); they can pick their own on Profiles.", 1, true) then
 				fail(scenario, "the note does not say the others are on this character's profile: " .. text)
 			end
 			-- It sits on Profiles now, beside Share as text: no pointer there.
@@ -245,7 +245,7 @@ do
 				or ns.db.profile.prompt.width ~= width then
 				fail(scenario, "a press on this character's own profile changed it")
 			end
-			if not said():find("they can pick their own on the Profiles page", 1, true) then
+			if not said():find("they can pick their own on Profiles", 1, true) then
 				fail(scenario, "a press on this character's own profile said nothing: " .. said())
 			end
 		end)

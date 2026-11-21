@@ -681,12 +681,8 @@ local function TwelveHourText(hour, minute)
 	return ("%d:%02d %s"):format(twelve, minute, late and "PM" or "AM")
 end
 
--- When the snooze ends, on the clock on the player's screen.
-function ns.SnoozeEndsAt()
-	local left = ns.SnoozeLeft()
-	if not left then return nil end
-	-- A clause read after "until", so every "until %s" line reads right.
-	if ns.SnoozeSession() then return L["you log out"] end
+-- The clock time a timed snooze ends at, on the clock on the player's screen.
+local function SnoozeClock(left)
 	-- The minimap clock shows realm time unless the player ticked Local Time.
 	local get, realm = _G.GetCVar, _G.GetGameTime
 	local ok, useLocal = false, nil
@@ -709,6 +705,16 @@ function ns.SnoozeEndsAt()
 		end
 	end
 	return date("%H:%M", at)
+end
+
+-- When the snooze ends, as a whole phrase ("until 3:45 PM", "until you log
+-- out") that every snooze line drops in as it is. Each language words both
+-- phrases itself, so the lines around them hold no "until" of their own.
+function ns.SnoozeEndsAt()
+	local left = ns.SnoozeLeft()
+	if not left then return nil end
+	if ns.SnoozeSession() then return L["until you log out"] end
+	return L["until %s"]:format(SnoozeClock(left))
 end
 
 -- Translators: "1 minute" is a whole string of its own, not an "s" glued on.
@@ -734,18 +740,18 @@ local function SaySnoozeStarted(minutes)
 	end
 	if not db.enabled then
 		-- Started anyway, and said so: the snooze outlives a /manners on.
-		addon:Print(L["snoozed for %s, until %s -- though Manners is switched off, so no prompt appears either way."]
+		addon:Print(L["snoozed for %s, %s -- though Manners is switched off, so no prompt appears either way."]
 			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	elseif InCombatLockdown() then
 		-- Not "it goes when the fight ends": a panel the fight found up stays.
-		addon:Print(L["snoozed for %s, until %s. In a fight the prompt stays as the fight found it, and follows the snooze once this one ends. |cffffd100/manners snooze off|r ends it early."]
+		addon:Print(L["snoozed for %s, %s. In a fight the prompt stays as the fight found it, and follows the snooze once this one ends. |cffffd100/manners snooze off|r ends it early."]
 			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	elseif not db.prompt.locked then
 		-- An unlocked prompt stays up through a snooze as something to drag.
-		addon:Print(L["snoozed for %s, until %s. The prompt is unlocked, so it stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends. |cffffd100/manners snooze off|r ends it early."]
+		addon:Print(L["snoozed for %s, %s. The prompt is unlocked, so it stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends. |cffffd100/manners snooze off|r ends it early."]
 			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	else
-		addon:Print(L["snoozed for %s -- no prompt until %s. |cffffd100/manners snooze off|r ends it early."]
+		addon:Print(L["snoozed for %s -- no prompt %s. |cffffd100/manners snooze off|r ends it early."]
 			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	end
 end
@@ -1288,10 +1294,16 @@ do
 		notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
 		tooLong = L["that is far longer than any Manners settings string, so it was not read."],
 		newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
-		incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share as text on the Profiles tab of the options."],
+		incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share as text (%s)."],
 		malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
 		badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
 	}
+
+	-- The page of the share box is named when the line is said, by the page's
+	-- own title, not by a name written here.
+	local function Incomplete()
+		return ns.SHARE_ERRORS.incomplete:format(ns.TabName("profiles.shareText"))
+	end
 
 	-- Read a settings string without touching anything. Returns the values keyed
 	-- by field name and how many names this version does not know, or nil and the
@@ -1307,7 +1319,7 @@ do
 
 		local version, body, sum = text:match("^MNR(%d+):(.*):(%x+)$")
 		if not version then
-			if text:sub(1, 3) == "MNR" then return nil, ns.SHARE_ERRORS.incomplete end
+			if text:sub(1, 3) == "MNR" then return nil, Incomplete() end
 			return nil, ns.SHARE_ERRORS.notOurs
 		end
 		if tonumber(version) ~= SHARE_VERSION then
@@ -1315,7 +1327,7 @@ do
 			return nil, ns.SHARE_ERRORS.notOurs
 		end
 		if Checksum("MNR" .. version .. ":" .. body) ~= sum:lower() then
-			return nil, ns.SHARE_ERRORS.incomplete
+			return nil, Incomplete()
 		end
 
 		local byName = {}
@@ -1999,7 +2011,7 @@ function addon:HandleSlash(rawInput)
 		-- Into a box, since chat text cannot be copied; printed only when there
 		-- is no box.
 		if ns.ShowShareBox and ns.ShowShareBox("export") then
-			self:Print(L["your settings are in the box under |cffffd100Share as text|r on the Profiles tab of the options -- click in it, select all and copy."])
+			self:Print(L["your settings are in the box under |cffffd100Share as text|r (%s) -- click in it, select all and copy."]:format(ns.TabName("profiles.shareText")))
 		else
 			self:Print(tostring(ns.ExportSettings()))
 		end
@@ -2012,7 +2024,7 @@ function addon:HandleSlash(rawInput)
 	elseif input == "import" then
 		if rest == "" then
 			if ns.ShowShareBox and ns.ShowShareBox("import") then
-				self:Print(L["paste the settings string into the box under |cffffd100Share as text|r on the Profiles page, or type |cffffd100/manners import|r followed by it."])
+				self:Print(L["paste the settings string into the box under |cffffd100Share as text|r (%s), or type |cffffd100/manners import|r followed by it."]:format(ns.TabName("profiles.shareText")))
 			else
 				self:Print(L["type |cffffd100/manners import|r followed by a settings string."])
 			end
@@ -2174,7 +2186,7 @@ function addon:HandleSlash(rawInput)
 				-- (Favours.lua, watching), and the thank's own lines follow.
 				-- The whispered thank-you watches the same way.
 				self:Print("  " .. ((db.prompt.thankEmote or db.prompt.thankWhisper)
-					and L["Favours are not recorded while \"People who buff me\" is off (Who to buff)."]
+					and L["Favours are not recorded while \"People who buff me\" is off (%s)."]:format(ns.TabName("who.owed"))
 					or L["not watching for favours -- |cffffd100People who buff me|r is switched off."]))
 			else
 				self:Print("  " .. L["nobody has buffed you recently."])
@@ -2216,7 +2228,7 @@ function addon:HandleSlash(rawInput)
 			self:Print("|cffff8080" .. L["prompt is UNLOCKED -- it will not buff anyone until you /manners lock"] .. "|r")
 		end
 		if ns.SnoozeLeft() then
-			self:Print(L["|cffffd100snoozed until %s|r -- no prompt until then; /manners snooze off ends it"]
+			self:Print(L["|cffffd100snoozed %s|r -- no prompt until then; /manners snooze off ends it"]
 				:format(ns.SnoozeEndsAt()))
 		end
 		if ns.HiddenWhileMounted() then

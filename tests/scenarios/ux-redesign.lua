@@ -633,7 +633,8 @@ do
 			return
 		end
 		local text = ns.WindowBind.Text(item, "name") or ""
-		if text:find(ns.L["Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by."], 1, true) then
+		-- Either wording: on mists the party is a raid's reach, not a subgroup's.
+		if text:find("cast on yourself", 1, true) then
 			fail(scenario, "a shaman whose Earth Shield goes on a tank is told it is cast on herself")
 		end
 	end)

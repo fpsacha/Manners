@@ -636,7 +636,7 @@ for _, case in ipairs(CLOCKS) do
 		local hour = at.hour % 12
 		if hour == 0 then hour = 12 end
 		local want = (at.hour < 12 and am or pm):format(hour, at.min)
-		if got ~= want then
+		if got ~= ns.L["until %s"]:format(want) then
 			fail(scenario, ("the snooze is said to end at %s where the client's clock writes %s"):format(
 				ascii(got), ascii(want)))
 		end
@@ -660,7 +660,7 @@ for _, case in ipairs({
 	if ns then
 		_G.GetGameTime = function() return hour, minute end
 		local got = tostring(ns.SnoozeEndsAt())
-		if got ~= want then
+		if got ~= ns.L["until %s"]:format(want) then
 			fail(scenario, ("the snooze is said to end at %s, not %s"):format(ascii(got), ascii(want)))
 		end
 	end
@@ -674,7 +674,7 @@ do
 	if ns then
 		_G.GetGameTime = function() return 21, 40 end
 		local got = tostring(ns.SnoozeEndsAt())
-		if got ~= "9:55 PM" then fail(scenario, "the snooze is said to end at " .. ascii(got)) end
+		if got ~= ns.L["until %s"]:format("9:55 PM") then fail(scenario, "the snooze is said to end at " .. ascii(got)) end
 	end
 	clockDone(ns)
 end

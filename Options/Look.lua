@@ -65,15 +65,21 @@ end
 
 -- How the prompt looks, where it sits and how it gets your attention.
 function Page.BuildLookTab()
-	return {
+	local tab = {
 		type = "group",
 		name = TAB.appearance,
 		order = 5,
 		-- Who to buff, Who to skip and When to offer already go for a
 		-- character with no prompt; a rogue has nothing here to look at or
 		-- preview either. Someone styling a shared profile does it from a
-		-- character that has one.
-		hidden = function() return not HasPrompt() end,
+		-- character that has one. The Will of the Forsaken and Mend Pet
+		-- switches and their keys are the exception, kept below: a Forsaken
+		-- rogue, or a hunter who knows Mend Pet, gets those buttons with no
+		-- prompt, so their switches must be reachable.
+		hidden = function()
+			return not HasPrompt() and ns.caps.breakFree == nil
+				and not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())
+		end,
 		args = {
 			-- Everything on this tab is a secure attribute or a texture
 			-- on a secure frame, and ApplyStyle returns at once in combat;
@@ -86,12 +92,14 @@ function Page.BuildLookTab()
 				name = "|cffffd100" .. L["In combat: changes here show once the fight ends."] .. "|r\n",
 			},
 			-- The same line for In a fight (layout.lua counts a strip path as a
-			-- placement, so the page needs an entry of its own).
+			-- placement, so the page needs an entry of its own). Only the
+			-- window reads it, from the strip: the fallback dialog already has
+			-- the line above, so this copy stays out of it.
 			fightCombatNotice = {
 				type = "description",
 				order = 0.51,
 				fontSize = "medium",
-				hidden = function() return not InCombatLockdown() end,
+				hidden = function() return not InCombatLockdown() or not (ns.WindowUI and ns.WindowUI.Shown and ns.WindowUI.Shown()) end,
 				name = "|cffffd100" .. L["In combat: changes here show once the fight ends."] .. "|r\n",
 			},
 			-- The preview is general.previewStart, which the options window
@@ -1051,4 +1059,18 @@ function Page.BuildLookTab()
 			},
 		},
 	}
+	-- With the group open for the one button's sake, every other control
+	-- keeps the rule the group had: gone for a character with no prompt.
+	local function NoPrompt() return not HasPrompt() end
+	for key, def in pairs(tab.args) do
+		if key ~= "breakFree" and key ~= "breakFreeKey" and key ~= "mendInFight" and key ~= "mendInFightKey" then
+			local own = def.hidden
+			if own == nil then
+				def.hidden = NoPrompt
+			elseif type(own) == "function" then
+				def.hidden = function(...) return NoPrompt() or own(...) end
+			end
+		end
+	end
+	return tab
 end

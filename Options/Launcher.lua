@@ -83,7 +83,7 @@ local function BrokerText()
 	if Enabled() and ns.Broken and ns.Broken() then return L["%s |cffff4040something broke|r"]:format("Manners") end
 	-- Off outranks a snooze, since a snooze ending brings nothing back while off.
 	local ends = Enabled() and ns.SnoozeEndsAt and ns.SnoozeEndsAt()
-	if ends then return L["%s |cffffd100snoozed until %s|r"]:format("Manners", ends) end
+	if ends then return L["%s |cffffd100snoozed %s|r"]:format("Manners", ends) end
 	if not Enabled() then return L["%s |cffff8080off|r"]:format("Manners") end
 	-- Then the favours still to return; with none, just the name.
 	local waiting = WaitingCount()
@@ -297,7 +297,7 @@ local function LauncherState()
 		-- button that writes the bug report. Said here for the player who has
 		-- chat silenced, whose chat line about it never went out.
 		return false, L["Something keeps failing in %s, so the prompt may stop changing. %s on %s says what, for a bug report."]
-			:format(ns.Broken(), "|cffffd100" .. L["Run a full check-up"] .. "|r", L["Diagnostics"]),
+			:format(ns.Broken(), "|cffffd100" .. L["Run a full check-up"] .. "|r", ns.TabName("diagnostics.fullReport")),
 			1, 0.35, 0.35, true, nil, "broken"
 	elseif DragPanelUp() then
 		-- Ahead of the snooze, as the prompt reads them: an unlocked prompt is
@@ -315,7 +315,7 @@ local function LauncherState()
 				1, 0.82, 0, true, nil, "unlocked"
 		end
 		if snoozeLeft then
-			return false, L["Unlocked, and snoozed until %s -- the prompt stays up to be dragged, casting nothing, until you lock it."]
+			return false, L["Unlocked, and snoozed %s -- the prompt stays up to be dragged, casting nothing, until you lock it."]
 				:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true, nil, "unlocked"
 		end
 		-- The button that locks it is named: the strip's and the header's
@@ -326,14 +326,14 @@ local function LauncherState()
 		-- A snooze started in the fight: the panel stays as the fight found it,
 		-- armed, and follows the snooze once it ends. Said as that, and with the
 		-- held entry still listed, since a press still casts at them.
-		return true, L["Snoozed until %s -- in this fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
+		return true, L["Snoozed %s -- in this fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
 			:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true, true, "snoozed"
 	elseif snoozeLeft and ns.SnoozeSession() then
 		return false, L["Snoozed until you log out -- no prompt until then."], 1, 0.82, 0, true, nil, "snoozed"
 	elseif snoozeLeft then
 		-- The clock time and the minutes both: the time is what the player
 		-- compares with a raid timer, and the minutes are what they asked for.
-		return false, L["Snoozed until %s, %s from now -- no prompt until then."]
+		return false, L["Snoozed %s, %s from now -- no prompt until then."]
 			:format(ns.SnoozeEndsAt(), ns.MinutesText(math.ceil(snoozeLeft / 60))), 1, 0.82, 0, true, nil, "snoozed"
 	elseif ownOnly and not ns.OffersSelf() then
 		-- A hunter with "Myself" or every one of his own buffs switched off:
@@ -363,7 +363,7 @@ local function LauncherState()
 	elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 		return false, L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0, nil, nil, "noclass"
 	elseif not HasClassBuffs() then
-		return false, L["Nothing to cast on this character -- %s on %s says why."]:format(L["What Manners can see"], L["Diagnostics"]), 1, 0.82, 0,
+		return false, L["Nothing to cast on this character -- %s on %s says why."]:format(L["What Manners can see"], ns.TabName("diagnostics.diag")), 1, 0.82, 0,
 			nil, nil, "nothing"
 	elseif not ns.ResolveBuff(true) then
 		if ns.caps.anyKnown then
@@ -685,7 +685,7 @@ local function FillWhoIsNext(parent)
 	end
 	local ends = ns.SnoozeEndsAt and ns.SnoozeEndsAt()
 	if ends and not heldOnly then
-		Nobody(parent, L["Nobody -- snoozed until %s"]:format(ends))
+		Nobody(parent, L["Nobody -- snoozed %s"]:format(ends))
 		return
 	end
 	if not watching then
@@ -770,7 +770,7 @@ local function FillWhoIsNext(parent)
 	if heldOnly and DragPanelUp() then
 		Nobody(parent, L["Nobody else -- the prompt is unlocked"])
 	elseif heldOnly and ends then
-		Nobody(parent, L["Nobody else -- snoozed until %s"]:format(ends))
+		Nobody(parent, L["Nobody else -- snoozed %s"]:format(ends))
 	end
 end
 
@@ -872,7 +872,7 @@ local function FillLauncherMenu(root)
 
 	-- The snooze, with its end on the entry itself while one is running.
 	local ends = ns.SnoozeEndsAt()
-	local snooze = root:CreateButton(ends and L["Snoozed until %s"]:format(ends) or L["Snooze"])
+	local snooze = root:CreateButton(ends and L["Snoozed %s"]:format(ends) or L["Snooze"])
 	for _, minutes in ipairs(MENU_SNOOZE_MINUTES) do
 		snooze:CreateButton(L["For %s"]:format(ns.MinutesText(minutes)), Act(function()
 			ns.StartSnooze(minutes)

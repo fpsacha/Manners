@@ -447,7 +447,7 @@ do
 		end
 		ns.db.profile.timing.scanInterval = 0.5
 		if not UI.Differs("advanced.scanInterval", item(ns, "advanced.scanInterval")) then
-			fail(scenario, "Check for people every 0.5 s does not count as changed")
+			fail(scenario, "Look for people every 0.5 s does not count as changed")
 		end
 		ns.db.profile.timing.scanInterval = 0.4
 		ns.db.profile.prompt.fontColor = { 1, 1, 1 }
@@ -467,7 +467,7 @@ do
 		local row = UI.RowFor("advanced.scanInterval")
 		local w = UI.Where("advanced.scanInterval")
 		if not (row and w and w.sec.fold) then
-			fail(scenario, "SKIPPED -- Check for people every is not in a fold on When to offer")
+			fail(scenario, "SKIPPED -- Look for people every is not in a fold on When to offer")
 			return
 		end
 		local flashed = 0
@@ -477,12 +477,12 @@ do
 			if realFlash then return realFlash(r) end
 		end
 		local box = UI.search.box
-		box:SetText("check for PEOPLE")
+		box:SetText("look for PEOPLE")
 		box:GetScript("OnTextChanged")(box, true)
 		Mock.runTimers(0.2)
 		local first = UI.search.found[1]
 		if not (first and first.ref.path == "advanced.scanInterval") then
-			fail(scenario, "the first result for \"check for PEOPLE\" is " .. tostring(first and first.ref.path))
+			fail(scenario, "the first result for \"look for PEOPLE\" is " .. tostring(first and first.ref.path))
 		end
 		if not shown(UI.search.results) then fail(scenario, "the results are not on screen") end
 		box:GetScript("OnEnterPressed")(box)
@@ -576,7 +576,7 @@ do
 		if ns.db.profile.timing.scanInterval ~= 1.5 then fail(scenario, "the reset ran before YES") end
 		asked.yes()
 		if ns.db.profile.timing.scanInterval ~= ns.defaults.profile.timing.scanInterval then
-			fail(scenario, "YES left Check for people every at " .. tostring(ns.db.profile.timing.scanInterval))
+			fail(scenario, "YES left Look for people every at " .. tostring(ns.db.profile.timing.scanInterval))
 		end
 	end)
 end
@@ -757,7 +757,7 @@ do
 		end
 		entries[1].fn()
 		if not ns.SnoozeLeft() then fail(scenario, "the first entry did not snooze") end
-		if UI.header.snoozeLabel ~= ns.L["Snoozed until %s"]:format(ns.SnoozeEndsAt()) then
+		if UI.header.snoozeLabel ~= ns.L["Snoozed %s"]:format(ns.SnoozeEndsAt()) then
 			fail(scenario, "snoozed, the button reads " .. tostring(UI.header.snoozeLabel))
 		end
 		press(UI.header.snooze)

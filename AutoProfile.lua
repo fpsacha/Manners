@@ -513,7 +513,7 @@ function P.PasteAsNew(name, text)
 	local offer = L["|cffffd100/manners import undo|r puts your old settings back."]
 	local at = message:find(offer, 1, true)
 	if at then message = Trim(message:sub(1, at - 1) .. message:sub(at + #offer)) end
-	return ok, Trim(message .. " " .. L["This character is on %s now; Undo on the Profiles page takes it away again."]:format(name))
+	return ok, Trim(message .. " " .. L["This character is on %s now; Undo on %s takes it away again."]:format(name, ns.TabName("profiles.undo")))
 end
 
 -- Where the Share section's paste goes: the new profile's name when it goes

@@ -804,8 +804,8 @@ do
 			p.enabled = true
 
 			p.sources.owed = false
-			expect("all", T.EMPTY_OWED_OFF, "with favours not watched for")
-			expect("favours", T.EMPTY_OWED_OFF, "with favours not watched for")
+			expect("all", T.EMPTY_OWED_OFF:format(ns.TabName("who.owed")), "with favours not watched for")
+			expect("favours", T.EMPTY_OWED_OFF:format(ns.TabName("who.owed")), "with favours not watched for")
 			expect("given", T.EMPTY_GIVEN, "with favours not watched for")
 			p.sources.owed = true
 

@@ -159,7 +159,7 @@ Page.RESET = {
 -- The picks and the lists of what to leave out go back too: Who to buff's reset
 -- no longer reaches them. Your own spells (db.char) are kept.
 Page.RESET.self = {
-	"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
+	"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.itemsLast",
 	"ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst",
 	"ownBuffs.restedEarly", "ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart",
 	"filters.selfTopUp", "filters.selfLead",

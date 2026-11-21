@@ -215,6 +215,13 @@ end
 
 local function RangeParse(row, text)
 	local unit = UnitOf(row)
+	-- The word the box shows for 0 (Off, Automatic) is taken back as 0.
+	local search = ns.WindowSearch
+	if unit and unit.zero and search and search.Normalise(text) == search.Normalise(unit.zero) then
+		return Snap(row, 0)
+	end
+	-- 2x reads as 2: the box shows the unit, so a player may leave it on.
+	if unit and unit.kind == "times" then text = text:gsub("[xX]%s*$", ""):gsub("\195\151%s*$", "") end
 	if unit and (unit.kind == "seconds" or unit.kind == "minutes") then
 		local n = ParseTimed(row, unit, text)
 		return n and Snap(row, n) or nil

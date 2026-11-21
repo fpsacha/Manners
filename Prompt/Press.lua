@@ -143,7 +143,7 @@ local function ExplainEmpty(now)
 			ns.addon:Print(L["Manners is |cffff8080switched off|r -- %s to start again."]
 				:format("|cffffd100/manners on|r"))
 		elseif ns.SnoozeLeft(now) then
-			ns.addon:Print(L["Manners is snoozed until %s -- %s brings the prompt back now."]
+			ns.addon:Print(L["Manners is snoozed %s -- %s brings the prompt back now."]
 				:format(ns.SnoozeEndsAt(), "|cffffd100/manners snooze off|r"))
 		elseif ns.HiddenWhileMounted() then
 			ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s (%s)."]

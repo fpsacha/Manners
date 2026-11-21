@@ -39,7 +39,11 @@ local function with(scenario, opts, body)
 	if not ns then return end
 	local savedKnown, savedPlayer = rawget(_G, "IsSpellKnown"), rawget(_G, "IsPlayerSpell")
 	local ok, err = pcall(function()
-		if opts.class == "HUNTER" then
+		if opts.known then
+			local set = opts.known
+			IsSpellKnown = function(id) return set[id] == true end
+			IsPlayerSpell = IsSpellKnown
+		elseif opts.class == "HUNTER" then
 			local set = { [HAWK] = true, [MONKEY] = true, [WOTF] = true }
 			IsSpellKnown = function(id) return set[id] == true end
 			IsPlayerSpell = IsSpellKnown
@@ -158,6 +162,74 @@ do
 		Mock.inCombat = false
 		ns.RefreshOptionsDisplay()
 		if UI.strip.combat then fail(scenario, "the line stays after the fight") end
+	end)
+end
+
+-- The fallback dialog has the line on Look already: the copy the strip reads
+-- for In a fight must stay out of it, or a fight shows the same line twice.
+do
+	local scenario = "menupass-fight: the dialog shows the combat line once"
+	with(scenario, nil, function(ns, UI)
+		ns.OpenOptions("fight")
+		Mock.inCombat = true
+		for _, page in ipairs({ "fight", "quiet" }) do
+			local copy = UI.Item(ns.WindowLayout.strip.combat[page])
+			if not copy then
+				fail(scenario, page .. " has no combat line in the layout")
+			elseif UI.Hidden(copy) then
+				fail(scenario, "the window's own strip does not read the copy on " .. page)
+			end
+		end
+		ns.CloseOptions()
+		for _, page in ipairs({ "fight", "quiet" }) do
+			local copy = UI.Item(ns.WindowLayout.strip.combat[page])
+			if copy and not UI.Hidden(copy) then fail(scenario, "with the window shut the dialog would show the line twice on " .. page) end
+		end
+		Mock.inCombat = false
+	end)
+end
+
+-- ------------------------------------------------------------------ no prompt
+-- A Forsaken rogue with nothing to offer still gets the Will of the Forsaken
+-- button (the spell is racial), so its switch must be on In a fight even
+-- though Look, for a character with no prompt, shows nothing else. The
+-- button's tooltip points at a page only while the control is shown.
+do
+	local scenario = "menupass-fight: a Forsaken rogue with no prompt can reach the Will of the Forsaken switch"
+	with(scenario, { class = "ROGUE", race = "Scourge" }, function(ns, UI)
+		ns.OpenOptions("fight")
+		if not (UI.visiblePages or {}).fight then fail(scenario, "In a fight is not in the sidebar") end
+		if (UI.visiblePages or {}).appearance then fail(scenario, "Look is in the sidebar for a character with no prompt") end
+		if not UI.RowShown("appearance.breakFree") then fail(scenario, "the Will of the Forsaken switch is not shown") end
+		for _, path in ipairs({ "appearance.hideInFight", "appearance.fightButtons", "appearance.fightRota" }) do
+			if UI.RowShown(path) then fail(scenario, path .. " is shown with no prompt") end
+		end
+		local lines = {}
+		local tip = { AddLine = function(_, text) lines[#lines + 1] = text end }
+		ns.AddSettingsLine(tip, "appearance.breakFree")
+		if #lines ~= 1 then fail(scenario, "the button's tooltip has " .. #lines .. " settings lines") end
+	end)
+	-- The same for a hunter who knows Mend Pet and has no aspect to offer.
+	scenario = "menupass-fight: a hunter with no prompt can reach the Mend Pet switch"
+	-- (The mock has no pet calls: a dead pet keeps the button from reading its health.)
+	local realDead = rawget(_G, "UnitIsDead")
+	rawset(_G, "UnitIsDead", function() return true end)
+	with(scenario, { class = "HUNTER", race = "Human", known = { [883] = true, [982] = true, [136] = true } }, function(ns, UI)
+		ns.OpenOptions("fight")
+		if not UI.RowShown("appearance.mendInFight") then fail(scenario, "the Mend Pet switch is not shown") end
+		if UI.RowShown("appearance.hideInFight") then fail(scenario, "Hide the prompt is shown with no prompt") end
+		local lines = {}
+		local tip = { AddLine = function(_, text) lines[#lines + 1] = text end }
+		ns.AddSettingsLine(tip, "appearance.mendInFight")
+		if #lines ~= 1 then fail(scenario, "the Mend Pet tooltip has " .. #lines .. " settings lines") end
+	end)
+	rawset(_G, "UnitIsDead", realDead)
+	scenario = "menupass-fight: a tooltip points only at a control that is shown"
+	with(scenario, { class = "ROGUE", race = "Human" }, function(ns, UI)
+		local lines = {}
+		local tip = { AddLine = function(_, text) lines[#lines + 1] = text end }
+		ns.AddSettingsLine(tip, "appearance.breakFree")
+		if #lines ~= 0 then fail(scenario, "a human's tooltip points at " .. tostring(lines[1])) end
 	end)
 end
 

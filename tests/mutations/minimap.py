@@ -201,7 +201,7 @@ mutate("Options/Launcher.lua",
        expect="does not say why Anna is there", script=S)
 
 mutate("Options/Launcher.lua",
-       "\tif ends and not heldOnly then\n\t\tNobody(parent, L[\"Nobody -- snoozed until %s\"]:format(ends))\n\t\treturn\n\tend\n",
+       "\tif ends and not heldOnly then\n\t\tNobody(parent, L[\"Nobody -- snoozed %s\"]:format(ends))\n\t\treturn\n\tend\n",
        "",
        "minimap: who's next listing people while snoozed",
        expect="while snoozed, who's next lists people no prompt will offer", script=S)

@@ -215,7 +215,7 @@ local function NoteFailing(label)
 			-- The tab and the button by their own keys, so a translation names
 			-- what the window shows; the command as it is typed.
 			pcall(screen.AddMessage, screen, L["Manners keeps failing in %s, so the prompt may stop changing. %s on %s (%s) says what."]
-				:format(label, L["Run a full check-up"], L["Diagnostics"], "/manners"), 1, 0.25, 0.25)
+				:format(label, L["Run a full check-up"], ns.TabName("diagnostics.fullReport"), "/manners"), 1, 0.25, 0.25)
 		end
 	end
 	if ns.RepaintOptions and label ~= "options repaint" and label ~= "broker text" then ns.RepaintOptions() end
@@ -302,6 +302,12 @@ end
 function ns.AddSettingsLine(tip, path)
 	local where = ns.TabName(path)
 	if where == "" then return end
+	-- Nothing to point at while the control is not shown to this character
+	-- (a page or group of its own that is hidden): the line would send the
+	-- player to a page their sidebar does not have.
+	local UI = ns.WindowUI
+	local item = UI and UI.Item and UI.Item(path)
+	if item and UI.Hidden(item) then return end
 	tip:AddLine(L["Its settings are in Manners' options, on %s."]:format(where), 0.75, 0.75, 0.75, true)
 end
 
@@ -497,6 +503,11 @@ local defaults = {
 			-- stone for the weapon, food -- come up only in a dungeon or a
 			-- raid. A rogue's poisons and a fishing lure are not held to it.
 			itemsInDungeons = false,
+			-- On: your own food, a stone or an oil for the weapon, a flask, an elixir
+			-- and a scroll wait behind everybody else on the prompt (Queue.lua,
+			-- PRIORITY.selfLast), so a busy place offers other people first.
+			-- Asked for on CurseForge (GitHub issue 27).
+			itemsLast = false,
 			-- Off: a warrior's Battle Shout is never offered to you (it covers you
 			-- when it goes on your party). On: with nobody in your group, a missing
 			-- or running-out shout is offered to you too (CastsOnSelf).

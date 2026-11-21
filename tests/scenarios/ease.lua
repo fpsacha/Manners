@@ -292,17 +292,17 @@ do
 		ns.StartSnooze(15)
 
 		military = "0"
-		local twelve = tostring(ns.SnoozeEndsAt())
+		local twelve = tostring(ns.SnoozeEndsAt()):gsub("^until ", "")
 		if not twelve:match("^[1-9]%d?:%d%d [AP]M$") then
 			fail(scenario, "a 12-hour clock was told the snooze ends at " .. twelve)
 		end
 		military = "1"
-		local full = tostring(ns.SnoozeEndsAt())
+		local full = tostring(ns.SnoozeEndsAt()):gsub("^until ", "")
 		if not full:match("^%d%d:%d%d$") then
 			fail(scenario, "a 24-hour clock was told the snooze ends at " .. full)
 		end
 		_G.GetCVar = function() error("no", 0) end
-		local unknown = tostring(ns.SnoozeEndsAt())
+		local unknown = tostring(ns.SnoozeEndsAt()):gsub("^until ", "")
 		if not unknown:match("^%d%d:%d%d$") then
 			fail(scenario, "a client with no clock setting was told " .. unknown)
 		end

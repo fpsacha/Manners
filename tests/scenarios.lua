@@ -5605,20 +5605,28 @@ if ns then
 	local scenario = "the time sliders say what they are counting"
 	drive(scenario, ns)
 
+	-- The unit is in the window's box (the layout's `units`), and the
+	-- fallback dialog, which has no box, says it in the name or the tooltip.
 	local wanted = {
-		{ key = "reciprocateWindow", unit = "second" },
-		{ key = "retryCooldown", unit = "second" },
-		{ key = "scanInterval", unit = "second" },
-		{ key = "refreshUnder", unit = "minute" },
-		{ key = "graceSeconds", unit = "second" },
+		{ key = "reciprocateWindow", unit = "second", path = "advanced.reciprocateWindow" },
+		{ key = "retryCooldown", unit = "second", path = "advanced.retryCooldown" },
+		{ key = "scanInterval", unit = "second", path = "advanced.scanInterval" },
+		{ key = "refreshUnder", unit = "minute", path = "when.refreshUnder" },
+		{ key = "graceSeconds", unit = "second", path = "advanced.graceSeconds" },
 	}
 	for _, want in ipairs(wanted) do
 		local option = findOption(ns.optionsTable, want.key)
 		local name = option and (type(option.name) == "function" and option.name() or option.name)
+		local desc = option and (type(option.desc) == "function" and option.desc() or option.desc)
+		local units = ns.WindowLayout and ns.WindowLayout.units
+		local kind = units and units[want.path] and units[want.path].kind
 		if type(name) ~= "string" then
 			fail(scenario, "no slider called " .. want.key .. " on the page")
-		elseif not name:lower():find(want.unit, 1, true) then
-			fail(scenario, ("%s reads \"%s\", which does not say it is in %ss"):format(
+		elseif kind ~= want.unit .. "s" then
+			fail(scenario, ("%s has no %s box in the window"):format(want.key, want.unit))
+		elseif not (name:lower():find(want.unit, 1, true)
+				or (type(desc) == "string" and desc:lower():find(want.unit, 1, true))) then
+			fail(scenario, ("%s reads \"%s\", and its tooltip does not say it is in %ss"):format(
 				want.key, name, want.unit))
 		end
 	end

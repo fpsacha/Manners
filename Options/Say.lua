@@ -67,12 +67,14 @@ function Page.BuildSpeechTab()
 			},
 
 			-- The same line for Quiet times (layout.lua counts a strip path as a
-			-- placement, so the page needs an entry of its own).
+			-- placement, so the page needs an entry of its own). Only the
+			-- window reads it, from the strip: the fallback dialog already has
+			-- the line above, so this copy stays out of it.
 			quietCombatNotice = {
 				type = "description",
 				order = 0.51,
 				fontSize = "medium",
-				hidden = function() return not InCombatLockdown() end,
+				hidden = function() return not InCombatLockdown() or not (ns.WindowUI and ns.WindowUI.Shown and ns.WindowUI.Shown()) end,
 				name = "|cffffd100" .. L["In combat: changes here apply once the fight ends."] .. "|r\n",
 			},
 
@@ -410,7 +412,7 @@ function Page.BuildSpeechTab()
 			leftOut = {
 				type = "input",
 				name = L["Lines left out"],
-				desc = L["One a line."] .. " " .. L["In character never says these lines. Delete a row to hear its line again."],
+				desc = L["One per line."] .. " " .. L["In character never says these lines. Delete a row to hear its line again."],
 				order = 22.7,
 				multiline = 4,
 				width = "full",
@@ -439,7 +441,7 @@ function Page.BuildSpeechTab()
 			phrases = {
 				type = "input",
 				name = L["Your lines"],
-				desc = L["One a line."],
+				desc = L["One per line."],
 				order = 23,
 				-- Tall enough for In character's examples, about 25 lines, to
 				-- read without scrolling: at 10 rows a player saw a handful and
@@ -479,7 +481,7 @@ function Page.BuildSpeechTab()
 			mixedLines = {
 				type = "input",
 				name = L["My own lines, mixed in with In character"],
-				desc = L["One a line."] .. " " .. L["With In character as the set, some presses say one of these instead of an In character line: How often my own lines are said, below, says how many. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."],
+				desc = L["One per line."] .. " " .. L["With In character as the set, some presses say one of these instead of an In character line: How often my own lines are said, below, says how many. {name} is their name and {buff} is the spell. Leave it empty to hear In character alone."],
 				order = 23.2,
 				multiline = 6,
 				width = "full",

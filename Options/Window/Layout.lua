@@ -600,6 +600,7 @@ ns.WindowLayout = {
 					-- Where the reminders come up.
 					"who.ownCities",
 					"who.ownDungeons",
+					"who.ownItemsLast",
 					-- The consumables on a button of their own (Prompt/Supplies.lua).
 					"who.ownApart",
 					-- Its key, set here rather than only under Key Bindings.

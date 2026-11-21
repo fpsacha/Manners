@@ -20,6 +20,14 @@ ns.WhatsNew = {
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Search puts a word at the start of a name first.|r \"rest\" now finds Well-Rested ahead of Firestone.",
+			"|cffff9a52A slider's box takes back what it shows.|r Type 3x over 2x, or Off or Automatic where the box says so, and the value is kept.",
+			"|cffff9a52The Will of the Forsaken switch can be reached with no prompt.|r |cffffffffIn a fight|r stays open for a Forsaken character with nothing else to offer, and a button's tooltip names a page only while its setting is shown.",
+			"|cffff9a52Snoozed until I log out reads right in Spanish and Italian.|r",
+		} },
+	} },
+	{ version = "1.11.36", date = "21 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Buff other people first, eat later.|r A new switch under |cffffffffMyself|r, |cffffffffMy food, stones and oils after everybody else|r: your own food, weapon stones and oils, flasks, elixirs and scrolls wait until nobody else needs a buff from you.",
 		} },
 	} },
 	{ version = "1.11.35", date = "21 November 2026", sections = {
@@ -44,15 +52,6 @@ ns.WhatsNew = {
 		} },
 		{ title = "New", accent = "7cc4ff", entries = {
 			"|cff7cc4ffYour key can cast a shield, or a quick heal, in a fight.|r A new setting on Look, under |cffffffffIn a fight|r: |cffffffffIn a fight, my key casts|r.",
-		} },
-	} },
-	{ version = "1.11.33", date = "20 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Short buffs held back in cities and inns now covers yourself.|r With |cffffffffHold back short buffs in cities and inns|r ticked, a short buff for yourself, Thorns say, is no longer offered while you rest, even with your own buffs allowed in cities.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Mark of the Wild is no longer offered to pets|r on WoW Forever, where it takes players alone; Thorns still is.",
-			"|cffff9a52A Familiar scroll's pet is left alone.|r Manners no longer brings a pet out of your journal over a Cat, Frog or Rat Familiar while it is up.",
 		} },
 	} },
 }

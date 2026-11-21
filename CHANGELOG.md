@@ -28,6 +28,22 @@
 ### Fixes
 - **Search puts a word at the start of a name first.** "rest" now finds Well-Rested ahead of Firestone.
 
+- **A slider's box takes back what it shows.** Type 3x over 2x, or Off or Automatic where the box says so, and the value is kept.
+
+- **The Will of the Forsaken switch can be reached with no prompt.** *In a fight* stays open for a Forsaken character with nothing else to offer, and a button's tooltip names a page only while its setting is shown.
+
+- **Snoozed until I log out reads right in Spanish and Italian.**
+
+## 1.11.36
+
+*21 November 2026*
+
+### Highlights
+- **Buff other people first, eat later.** A new switch under *Myself*, *My food,
+  stones and oils after everybody else*: your own food, weapon stones and oils,
+  flasks, elixirs and scrolls wait until nobody else needs a buff from you.
+  Asked for on CurseForge.
+
 ## 1.11.35
 
 *21 November 2026*

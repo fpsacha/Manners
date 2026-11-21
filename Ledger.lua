@@ -81,7 +81,7 @@ local TEXT = {
 	-- keeping. The owed toggle stops favours only; buffs given still arrive.
 	EMPTY_OFF = L["Nothing is recorded while Manners is switched off."],
 	EMPTY_NOTHING = L["Nothing is recorded while the prompt has nothing to cast on this character."],
-	EMPTY_OWED_OFF = L["Favours are not recorded while \"People who buff me\" is off (Who to buff)."],
+	EMPTY_OWED_OFF = L["Favours are not recorded while \"People who buff me\" is off (%s)."],
 
 	CLEAR = L["Clear"],
 	CLEAR_ARMED = L["Click again to clear"],
@@ -164,15 +164,15 @@ local TEXT = {
 	-- holds them back (Queue.lua, "flagged for PvP"). Worded as the snooze
 	-- line is: a flag often outlasts the favour.
 	TIP_OWED_PVP = L["Still owed. They are flagged for PvP, and buffing them would flag you, so the prompt offers them only if their flag drops before the time to return it runs out."],
-	TIP_OWED_SNOOZED = L["Still owed. The prompt is snoozed until %s, so it offers them only if the snooze ends before the time to return it runs out."],
+	TIP_OWED_SNOOZED = L["Still owed. The prompt is snoozed %s, so it offers them only if the snooze ends before the time to return it runs out."],
 	TIP_OWED_MOUNTED = L["Still owed. The prompt stays away while you are mounted, and offers them once you get off, until the time to return it runs out."],
 	-- The same two for a favour only your party can return: the snooze or the
 	-- ride ending is not enough while they are outside your party.
-	TIP_OWED_SNOOZED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
-	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
+	TIP_OWED_SNOOZED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it is snoozed %s, so only if time is left then."],
+	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed %s, so only if time is left then."],
 	TIP_OWED_MOUNTED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
 	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
-	TIP_OWED_SNOOZED_GROUP = L["Still owed. What you cast reaches only your own party or raid, so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
+	TIP_OWED_SNOOZED_GROUP = L["Still owed. What you cast reaches only your own party or raid, so the prompt offers them only while they are in it, and it is snoozed %s, so only if time is left then."],
 	TIP_OWED_MOUNTED_GROUP = L["Still owed. What you cast reaches only your own party or raid, so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
 	-- Under TIP_BUFFED on a "Buffed back" row.
 	TIP_BACK = L["You had buffed them first, and this was their buff back, so nothing is owed."],
@@ -1700,7 +1700,7 @@ local function EmptyText(key)
 	if quiet == "off" then return TEXT.EMPTY_OFF end
 	if quiet == "nothing" then return TEXT.EMPTY_NOTHING end
 	if key == "given" then return TEXT.EMPTY_GIVEN end
-	if quiet == "owedoff" then return TEXT.EMPTY_OWED_OFF end
+	if quiet == "owedoff" then return TEXT.EMPTY_OWED_OFF:format(ns.TabName("who.owed")) end
 	return key == "favours" and TEXT.EMPTY_FAVOURS or TEXT.EMPTY_ALL
 end
 

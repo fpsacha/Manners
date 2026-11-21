@@ -36,7 +36,7 @@ mutate("Options/Start.lua",
 # The press there returning without a word, as it did.
 mutate("Options/Start.lua",
        "\t\t\tif Setup.SharedWith() > 0 then\n"
-       "\t\t\t\tns.addon:Print(L[\"Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles page.\"]:format(mine))\n",
+       "\t\t\t\tns.addon:Print(L[\"Your other characters are using this character's settings (profile: %s); they can pick their own on %s.\"]:format(mine, ns.TabName(\"profiles.choose\")))\n",
        "\t\t\tif false then\n",
        "hunt13-fix3: a press on the own profile says nothing",
        expect="a press on this character's own profile said nothing", script=S)
@@ -90,7 +90,7 @@ mutate("Options/Advanced.lua",
 # Re-anchored: posPreset's pointer at Advanced is gone (the exact numbers are
 # a fold on Look), so the fault is now a rogue given the Look page itself.
 mutate("Options/Look.lua",
-       "\t\thidden = function() return not HasPrompt() end,\n\t\targs = {\n",
+       "\t\thidden = function()\n\t\t\treturn not HasPrompt() and ns.caps.breakFree == nil\n\t\t\t\tand not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())\n\t\tend,\n\t\targs = {\n",
        "\t\targs = {\n",
        "hunt13-fix3: Look shown to a rogue",
        expect="a rogue has a Look page", script=S)
@@ -128,21 +128,20 @@ mutate("Options/Register.lua",
        "\t\t\t\tkind = \"range\"\n",
        "\t\t\t\tkind = false\n",
        "hunt13-fix3: sliders not fitted",
-       expect="refreshUnder is left at 170 pixels", script=S)
+       expect="every fitted slider and key binding holds its label", script=S)
 
 # Key bindings left at 170 pixels.
 mutate("Options/Register.lua",
        "\t\t\t\tkind = \"keybinding\"\n",
        "\t\t\t\tkind = false\n",
        "hunt13-fix3: key bindings not fitted",
-       expect="bindKey is left at 170 pixels", script=S)
+       expect="every fitted slider and key binding holds its label", script=S)
 
 # Measured without the label's room: a width a whole unit short.
 mutate("Options/Register.lua",
        "\t\treturn ControlWidth(LabelWidth(option and Asked(option.name, info), font), 6)\n",
        "\t\treturn ControlWidth(LabelWidth(option and Asked(option.name, info), font), -170)\n",
        "hunt13-fix3: sliders fitted a unit short",
-       # Caught by the three long labels left at one unit; the ellipsis check
-       # does not fire for it (the same on master), which selftest reported
-       # as WRONG CHECK.
-       expect="is left at 170 pixels", script=S)
+       # Caught by the check that every fitted label is held whole; the labels
+       # are short now, so the 170-pixel check no longer fires for it.
+       expect="every fitted slider and key binding holds its label", script=S)

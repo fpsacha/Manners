@@ -270,7 +270,7 @@ function UI.PaintHeader()
 	snooze:SetShown(anySnooze)
 	if anySnooze then
 		local ends = ns.SnoozeEndsAt and ns.SnoozeEndsAt()
-		header.snoozeLabel = ends and L["Snoozed until %s"]:format(ends) or L["Snooze"]
+		header.snoozeLabel = ends and L["Snoozed %s"]:format(ends) or L["Snooze"]
 		UI.SetButtonText(snooze, header.snoozeLabel)
 		local w = math.ceil(UI.Measure(header.snoozeLabel)) + 26 + CHEVRON_ROOM
 		snooze:SetSize(w, 22)

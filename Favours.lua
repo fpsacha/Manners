@@ -978,7 +978,7 @@ do
 				addon:Print(L["|cff80ff80%s buffed you|r -- they are flagged for PvP, and buffing them would flag you, so returning it is offered only if their flag drops before the favour runs out"]
 					:format(seen.name))
 			elseif snoozeEnds then
-				addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]
+				addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed %s, so returning it is offered only if the snooze ends before the favour runs out"]
 					:format(seen.name, snoozeEnds))
 			elseif reachable and not db.prompt.locked then
 				-- An unlocked prompt arms nobody. Ahead of the mount, since locking

@@ -462,7 +462,7 @@ for _, case in ipairs({
 		Mock.printed = {}
 		ns.StartSnooze(15)
 		local at = ns.SnoozeEndsAt()
-		if at ~= case.want then
+		if at ~= ns.L["until %s"]:format(case.want) then
 			fail(scenario, "the snooze ends at " .. tostring(at) .. ", not " .. case.want)
 		end
 		if not said():find(case.want, 1, true) then

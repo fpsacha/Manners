@@ -63,7 +63,7 @@ do
 			Mock.advance(10 * 3600)
 			ns.addon:Tick()
 			if not ns.SnoozeLeft() then fail(scenario, "the snooze ended within ten hours") end
-			if ns.SnoozeEndsAt() ~= ns.L["you log out"] then
+			if ns.SnoozeEndsAt() ~= ns.L["until you log out"] then
 				fail(scenario, "the snooze ends at " .. tostring(ns.SnoozeEndsAt()))
 			end
 			if button:IsShown() then fail(scenario, "the prompt was up ten hours into the snooze") end
@@ -270,4 +270,37 @@ do
 	end)
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- ------------------------------------------------------------------ 5
+-- The end of a snooze is a whole phrase, so a language that says "until the
+-- hour" with an article reads on for a logout too ("hasta las" a time, "hasta
+-- que cierres sesion" an event): no line holds an "until" of its own.
+do
+	local WANT = {
+		esES = { "En pausa hasta que cierres sesi\195\179n", "En pausa hasta las " },
+		itIT = { "In pausa finch\195\169 non ti disconnetti", "In pausa fino alle " },
+	}
+	for code, want in pairs(WANT) do
+		local scenario = "menupass-snooze: the snooze reads right in " .. code
+		Mock.reset()
+		Mock.locale = code
+		local ns = load(scenario)
+		if ns then
+			freshPrompt(ns, scenario)
+			ns.Prompt:ExitTest()
+			ns.StartSnooze(ns.SNOOZE_SESSION)
+			local line = ns.L["Snoozed %s"]:format(ns.SnoozeEndsAt())
+			if line ~= want[1] then fail(scenario, "a session snooze reads " .. line) end
+			ns.StopSnooze(true)
+			ns.StartSnooze(15)
+			line = ns.L["Snoozed %s"]:format(ns.SnoozeEndsAt())
+			if line:sub(1, #want[2]) ~= want[2] or not line:find("%d:%d%d", #want[2]) then
+				fail(scenario, "a timed snooze reads " .. line)
+			end
+			ns.StopSnooze(true)
+			noErrors(scenario, ns)
+		end
+		Mock.reset()
+	end
 end

@@ -409,7 +409,7 @@ local EXPECTED = {
 	-- they come up, the consumables button and the top-up (the elixirs to keep
 	-- up are tests/scenarios/elixir-pair.lua's).
 	self = {
-		"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone",
+		"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.itemsLast", "ownBuffs.shoutAlone",
 		"ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly",
 		"ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart", "filters.selfTopUp", "filters.selfLead",
 	},
@@ -640,7 +640,7 @@ do
 		ns.OpenOptions("appearance")
 		press(box.yes)
 		if timing.scanInterval ~= defaults.timing.scanInterval then
-			fail(scenario, "asked on When to offer, YES with Look opened under the box left Check for people every at "
+			fail(scenario, "asked on When to offer, YES with Look opened under the box left Look for people every at "
 				.. tostring(timing.scanInterval))
 		end
 		if prompt.scale ~= 2 then
