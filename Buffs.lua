@@ -2636,6 +2636,12 @@ do
 		end
 		if #list == 0 then CAMELOT[class] = nil end
 	end
+	-- Forever's Mark of the Wild takes players alone: only Thorns of a druid's
+	-- buffs can go on a group member's pet (a player's report; notPets,
+	-- Core.lua Castable).
+	for _, buff in ipairs(CAMELOT.DRUID or {}) do
+		if buff.key == "motw" then buff.notPets = true end
+	end
 	CAMELOT.PALADIN[#CAMELOT.PALADIN + 1] = { key = "oathoflight", ranks = { 1328548 }, oneTarget = true,
 		neverSelf = true, talent = true }
 end

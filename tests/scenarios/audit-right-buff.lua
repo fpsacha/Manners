@@ -471,6 +471,26 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------------------ 3e
+-- A mage's Familiar scroll is a pet of its own: Manners does not bring a
+-- journal pet out over it (CurseForge: the deployer put the Rat away).
+do
+	local scenario = "audit-right-buff: no journal pet is brought out over a Familiar scroll's pet"
+	local rat = 1296202
+	local function holdWith(wears)
+		local answer
+		session(scenario, { class = "MAGE", wears = wears, units = {} }, function(ns)
+			Mock.advance(30)
+			answer = ns.PetHold(GetTime())
+		end)
+		return answer
+	end
+	local with = holdWith({ [rat] = { left = 3000 } })
+	if with ~= "petbusy" then fail(scenario, "with the Rat Familiar up PetHold says " .. tostring(with)) end
+	local without = holdWith({})
+	if without ~= nil then fail(scenario, "with no familiar up PetHold says " .. tostring(without)) end
+end
+
 -- ------------------------------------------------------------------------ 4
 -- A paladin with Blessing of Might and nothing else yet (levels 4 to 13), or
 -- any paladin once another's Wisdom and Kings are on them: a mage, a priest or
