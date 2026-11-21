@@ -139,7 +139,7 @@ local LOOK_RESET = {
 	{ "prompt", "scale" }, { "prompt", "alpha" }, { "prompt", "width" }, { "prompt", "height" },
 	{ "prompt", "style" }, { "prompt", "bgColor" }, { "prompt", "accentByReason" },
 	{ "prompt", "reasonPalette" }, { "prompt", "accentColor" }, { "prompt", "accentMode" },
-	{ "prompt", "flashStyle" }, { "prompt", "effects" }, { "prompt", "hideInCombat" }, { "prompt", "hideInFight" }, { "prompt", "fightRota" },
+	{ "prompt", "flashStyle" }, { "prompt", "effects" },
 	{ "prompt", "font" }, { "prompt", "fontSize" }, { "prompt", "fontColor" },
 	{ "prompt", "classColor" }, { "prompt", "showSub" },
 	{ "prompt", "format" }, { "prompt", "reasonTarget" }, { "prompt", "reasonOwed" },
@@ -147,8 +147,15 @@ local LOOK_RESET = {
 	{ "prompt", "reasonNearby" }, { "prompt", "reasonRefresh" }, { "prompt", "reasonUnknown" },
 	{ "prompt", "showIcon" }, { "prompt", "iconSize" }, { "prompt", "roundIcon" },
 	{ "prompt", "showCooldown" }, { "prompt", "showCount" }, { "prompt", "showQueue" },
-	{ "prompt", "queueRows" }, { "prompt", "clickRows" }, { "prompt", "breakFree" }, { "prompt", "cureFight" },
+	{ "prompt", "queueRows" }, { "prompt", "clickRows" },
 	{ "sound", "enabled" }, { "sound", "file" }, { "sound", "owedOnly" },
+}
+-- In a fight's reset: what the prompt does when a fight starts and the
+-- buttons made for one. They moved off Look with the page.
+local FIGHT_RESET = {
+	{ "prompt", "hideInCombat" }, { "prompt", "hideInFight" }, { "prompt", "fightRota" },
+	{ "prompt", "breakFree" }, { "prompt", "cureFight" }, { "prompt", "dimInCombat" },
+	{ "prompt", "fightKeySpells" }, { "prompt", "fightKeyOn" },
 }
 local LOOK_KEPT = {
 	{ "prompt", "x" }, { "prompt", "y" }, { "prompt", "point" }, { "prompt", "relPoint" },
@@ -556,6 +563,42 @@ do
 		end
 		if calls.redraw == 0 then
 			fail(scenario, "look reset: the page still shows the old values")
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ 6b2
+-- On In a fight: the fight's own switches, and never the prompt's look or place.
+do
+	local scenario = "advanced: put these back to default on In a fight"
+	local ns = session(scenario)
+	local reset = ns and findOption(ns.optionsTable, "resetAdvanced")
+	if ns and not (reset and reset.func) then
+		fail(scenario, "there is no Put these back to default button")
+	elseif ns then
+		local profile, defaults = ns.db.profile, ns.defaults.profile
+		for _, f in ipairs(FIGHT_RESET) do
+			profile[f[1]][f[2]] = other(defaults[f[1]][f[2]], f[2])
+		end
+		profile.prompt.scale = defaults.prompt.scale + 0.25
+		local calls = { scan = 0, save = 0, style = 0, macro = 0, redraw = 0, clamp = 0 }
+		local ok, err = pressReset(ns, "fight", calls)
+		if not ok then fail(scenario, "the reset threw -> " .. tostring(err)) end
+		for _, f in ipairs(FIGHT_RESET) do
+			if not same(profile[f[1]][f[2]], defaults[f[1]][f[2]]) then
+				fail(scenario, ("fight reset: %s.%s was not put back (%s, default %s)")
+					:format(f[1], f[2], show(profile[f[1]][f[2]]), show(defaults[f[1]][f[2]])))
+			end
+		end
+		if profile.prompt.scale == defaults.prompt.scale then
+			fail(scenario, "fight reset: put back a setting from another page")
+		end
+		if calls.style == 0 or calls.macro == 0 then
+			fail(scenario, "fight reset: the prompt was not restyled")
+		end
+		if calls.redraw == 0 then
+			fail(scenario, "fight reset: the page still shows the old values")
 		end
 		noErrors(scenario, ns)
 	end

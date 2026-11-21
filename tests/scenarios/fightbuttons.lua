@@ -742,10 +742,10 @@ do
 	end)
 end
 
--- ------------------------------------------------------------------ the Look page's reset
-withBF("fightbuttons: the Look page's reset puts the setting back", function(ns, scenario)
+-- ------------------------------------------------------------------ the In a fight page's reset
+withBF("fightbuttons: the In a fight page's reset puts the setting back", function(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.fightButtons = "always"
-	ns.OptionsPage.ResetPage("appearance")
+	ns.OptionsPage.ResetPage("fight")
 	if p.fightButtons ~= "needed" then fail(scenario, "the reset left it at " .. tostring(p.fightButtons)) end
 end, { nobody = true, people = {} })

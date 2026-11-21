@@ -75,7 +75,7 @@ local STAND_IN = {
 	["profiles.current"] = true,
 }
 
-local GROUPS = { { "general" }, { "who", "skip", "when", "click", "appearance" }, { "profiles", "diagnostics" } }
+local GROUPS = { { "general" }, { "who", "skip", "when" }, { "fight", "click", "appearance" }, { "profiles", "diagnostics" } }
 local FLAGS = { indent = true, pair = true, standIn = true, lead = true, columns = true, widget = true, big = true,
 	buttons = true, match = true }
 

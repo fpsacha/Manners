@@ -239,7 +239,7 @@ do
 	local scenario = "model: only five pages can show a red dot"
 	with(scenario, nil, nil, function(ns)
 		-- Four since round 37: Start here's key is optional.
-		for _, pageId in ipairs({ "general", "skip", "click", "profiles" }) do
+		for _, pageId in ipairs({ "general", "skip", "click", "fight", "profiles" }) do
 			if ns.OptionsPage.Warn[pageId] ~= nil then
 				fail(scenario, pageId .. " has a red-dot predicate and no warning to stand for")
 			end
@@ -430,8 +430,8 @@ local EXPECTED = {
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",
-		"prompt.accentMode", "prompt.peekOnChange", "prompt.flashStyle", "prompt.effects", "prompt.hideInCombat", "prompt.dimInCombat",
-		"prompt.hideInFight", "prompt.fightRota", "prompt.font", "prompt.fontSize", "prompt.fontColor", "prompt.classColor", "prompt.showSub",
+		"prompt.accentMode", "prompt.peekOnChange", "prompt.flashStyle", "prompt.effects",
+		"prompt.font", "prompt.fontSize", "prompt.fontColor", "prompt.classColor", "prompt.showSub",
 		"prompt.showGuild",
 		"prompt.format", "prompt.reasonTarget", "prompt.reasonOwed", "prompt.reasonAsked",
 		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
@@ -439,8 +439,12 @@ local EXPECTED = {
 		"prompt.iconFrame", "prompt.gryphons", "prompt.classicArt", "prompt.keycap", "prompt.textShadow",
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.clickRows", "prompt.tooltip", "prompt.tooltipPosition", "sound.enabled", "sound.file", "sound.owedOnly", "supplies.size",
-		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons", "prompt.fightKeySpells", "prompt.fightKeyOn",
 		"prompt.classLook", "prompt.classStyles",
+	},
+	-- In a fight: what the prompt does when a fight starts, and the buttons made for one.
+	fight = {
+		"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
+		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the
 	-- window falls back to (Register.lua). Its reset is the old one's
@@ -463,6 +467,7 @@ local KEPT = {
 	click = { { "speech.phrases", "my very own line" }, { "speech.presetChoice", "polite" } },
 	appearance = { { "prompt.x", 41 }, { "prompt.y", 123 }, { "prompt.point", "TOP" },
 		{ "prompt.relPoint", "TOP" }, { "prompt.locked", false } },
+	fight = { { "prompt.x", 41 }, { "prompt.locked", false } },
 	advanced = { { "prompt.x", 41 }, { "prompt.y", 123 }, { "prompt.point", "TOP" },
 		{ "prompt.relPoint", "TOP" }, { "prompt.scale", 1.25 }, { "filters.whenBuffed", "always" } },
 }
@@ -473,6 +478,7 @@ local HOOKS = {
 	when = { "save", "scan", "style", "macro" },
 	click = { "macro" },
 	appearance = { "clamp", "style", "macro" },
+	fight = { "style", "macro", "refresh" },
 	advanced = { "save", "scan", "style", "macro" },
 }
 
@@ -482,7 +488,7 @@ local function field(profile, path)
 	return profile, path
 end
 
-for _, pageId in ipairs({ "who", "skip", "when", "click", "appearance", "advanced" }) do
+for _, pageId in ipairs({ "who", "skip", "when", "click", "fight", "appearance", "advanced" }) do
 	local scenario = "model: the reset puts " .. pageId .. " back"
 	with(scenario, nil, nil, function(ns)
 		local Page = ns.OptionsPage

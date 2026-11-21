@@ -690,7 +690,9 @@ local function Warned(id)
 end
 UI.PageWarned = Warned
 
-local function PaintPageButton(b, page, y)
+-- `compact`: the sidebar did not fit at its normal size (UI.PaintSidebar), so
+-- the button is drawn smaller.
+local function PaintPageButton(b, page, y, compact)
 	local icon = page.icon
 	if type(icon) == "function" then icon = icon() end
 	b.icon:SetTexture(icon or UI.ICON)
@@ -701,7 +703,19 @@ local function PaintPageButton(b, page, y)
 	UI.Dress.PageSelected(b, selected)
 	b.name:SetTextColor(selected and 1 or C.nav[1], selected and 1 or C.nav[2], selected and 1 or C.nav[3], 1)
 	b.dot:SetShown(Warned(b.id))
-	local height = math.max(20, UI.TextHeight(b.name)) + 10
+	b.compact = compact or nil
+	b.icon:ClearAllPoints()
+	b.name:ClearAllPoints()
+	if compact then
+		b.icon:SetSize(16, 16)
+		b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 8, -3)
+		b.name:SetPoint("TOPLEFT", b, "TOPLEFT", 30, -4)
+	else
+		b.icon:SetSize(20, 20)
+		b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 8, -5)
+		b.name:SetPoint("TOPLEFT", b, "TOPLEFT", 36, -8)
+	end
+	local height = compact and (math.max(16, UI.TextHeight(b.name)) + 6) or (math.max(20, UI.TextHeight(b.name)) + 10)
 	local profile = b.id == "profiles" and ProfileName() or nil
 	if profile then
 		b.sub:SetText(profile)
@@ -736,11 +750,11 @@ local function PaintView(side)
 	return height + 8
 end
 
--- Pages with no control for this character leave the sidebar; a hairline
--- separates the groups that still have one.
-function UI.PaintSidebar()
-	local side, layout = UI.side, UI.Layout()
+-- The page buttons and the hairlines between the groups, top to bottom, at the
+-- usual size or `compact`; answers the y under the last button.
+local function LaySidebar(side, layout, compact)
 	local y, placed = side.top + PaintView(side) + 4, false
+	local gap, lineAt = compact and 7 or 11, compact and 3 or 5
 	UI.visiblePages = {}
 	for gi, group in ipairs(layout.groups) do
 		local line, any = side.lines[gi], false
@@ -749,20 +763,42 @@ function UI.PaintSidebar()
 			if page and UI.PageVisible(id) then
 				if not any and placed and line then
 					line:ClearAllPoints()
-					line:SetPoint("TOPLEFT", side.frame, "TOPLEFT", 8, -(y + 5))
-					line:SetPoint("TOPRIGHT", side.frame, "TOPRIGHT", -8, -(y + 5))
+					line:SetPoint("TOPLEFT", side.frame, "TOPLEFT", 8, -(y + lineAt))
+					line:SetPoint("TOPRIGHT", side.frame, "TOPRIGHT", -8, -(y + lineAt))
 					line:Show()
-					y = y + 11
+					y = y + gap
 				end
 				any = true
 				UI.visiblePages[id] = true
-				y = y + PaintPageButton(b, page, y) + 1
+				y = y + PaintPageButton(b, page, y, compact) + 1
 			elseif b then
 				b:Hide()
 			end
 		end
 		if line and not (any and placed) then line:Hide() end
 		placed = placed or any
+	end
+	return y
+end
+
+-- Pages with no control for this character leave the sidebar; a hairline
+-- separates the groups that still have one. Laid out at the usual size, and
+-- its bottom kept for UI.FitSidebar.
+function UI.PaintSidebar()
+	local side = UI.side
+	side.bottom = LaySidebar(side, UI.Layout(), false) - 1
+end
+
+-- The sidebar does not scroll, so a list that runs past the room under the
+-- strip (a long strip above it, a longer language, the smallest window) is
+-- laid out again smaller. Asked after the strip is painted, which is what
+-- decides the room (`top`: the sidebar's top edge); only on that paint,
+-- nothing per frame.
+function UI.FitSidebar(top)
+	local side = UI.side
+	local room = UI.HEIGHT - UI.FOOTER - top
+	if side.bottom and side.bottom > room then
+		side.bottom = LaySidebar(side, UI.Layout(), true) - 1
 	end
 end
 

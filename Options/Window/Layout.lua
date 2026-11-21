@@ -87,6 +87,7 @@ local ICONS = {
 	skip = MENU .. "Skip",
 	when = MENU .. "When",
 	click = MENU .. "Say",
+	fight = MENU .. "Fight",
 	appearance = MENU .. "Look",
 	profiles = MENU .. "Profiles",
 	diagnostics = MENU .. "Diagnostics",
@@ -209,7 +210,7 @@ ns.WindowLayout = {
 	strip = {
 		lock = "general.lockNow",
 		-- Line 2 in a fight: the open page's note.
-		combat = { click = "click.combatNotice", appearance = "appearance.combatNotice", when = "advanced.advCombatNotice" },
+		combat = { click = "click.combatNotice", fight = "appearance.fightCombatNotice", appearance = "appearance.combatNotice", when = "advanced.advCombatNotice" },
 	},
 	foldCaption = "advanced.advIntro",
 	-- The simple view's own controls: the switch under the search box; over a
@@ -225,8 +226,9 @@ ns.WindowLayout = {
 	footer = { reset = "advanced.resetAdvanced", build = "diagnostics.buildNote", about = "diagnostics.aboutNote" },
 
 	-- The sidebar, top to bottom; a hairline between groups. Page ids are the
-	-- old tab keys (bug reports and ns.OptionsTab() name them), plus skip.
-	groups = { { "general" }, { "who", "skip", "when", "click", "appearance" }, { "profiles", "diagnostics" } },
+	-- old tab keys (bug reports and ns.OptionsTab() name them), plus skip and
+	-- fight, which are pages of the window and not tabs of the old dialog.
+	groups = { { "general" }, { "who", "skip", "when" }, { "fight", "click", "appearance" }, { "profiles", "diagnostics" } },
 
 	pages = {
 		general = {
@@ -776,6 +778,33 @@ ns.WindowLayout = {
 			},
 		},
 
+		-- Everything that changes when a fight starts, together: what the
+		-- prompt does, and the buttons that are there for the fight.
+		fight = {
+			title = L["In a fight"],
+			icon = ICONS.fight,
+			sections = {
+				{ key = "fight.prompt", title = L["The prompt in a fight"], items = {
+					"appearance.hideInFight",
+					"appearance.fightRota",
+					"appearance.fightKeySpell",
+					{ "appearance.fightKeyOn", indent = true },
+					"appearance.hideInCombat",
+					"appearance.dimInCombat",
+				} },
+				{ key = "fight.buttons", title = L["Buttons for when you need them"], items = {
+					-- A Forsaken's Will of the Forsaken (Prompt/BreakFree.lua).
+					"appearance.breakFree",
+					{ "appearance.breakFreeKey", indent = true },
+					"appearance.mendInFight",
+					{ "appearance.mendInFightKey", indent = true },
+					"appearance.fightButtons",
+					"appearance.cureFight",
+					{ "appearance.cureFightKey", indent = true },
+				} },
+			},
+		},
+
 		-- Everything about the prompt itself; the wording and the exact
 		-- position fold here rather than living on a page of their own.
 		appearance = {
@@ -832,23 +861,6 @@ ns.WindowLayout = {
 					{ "appearance.soundFile", indent = true },
 					{ "appearance.soundOwedOnly", indent = true },
 					"appearance.noSound",
-				} },
-				-- What the prompt does when a fight starts, together.
-				{ key = "appearance.fight", title = L["In a fight"], items = {
-					"appearance.hideInFight",
-					"appearance.fightRota",
-					"appearance.fightKeySpell",
-					{ "appearance.fightKeyOn", indent = true },
-					-- A Forsaken's Will of the Forsaken (Prompt/BreakFree.lua).
-					"appearance.breakFree",
-					{ "appearance.breakFreeKey", indent = true },
-					"appearance.mendInFight",
-					{ "appearance.mendInFightKey", indent = true },
-					"appearance.fightButtons",
-					"appearance.cureFight",
-					{ "appearance.cureFightKey", indent = true },
-					"appearance.hideInCombat",
-					"appearance.dimInCombat",
 				} },
 				-- The names waiting after the first, out of the icon's fold: the
 				-- clickable list is a feature people look for, not a fine-tune.
@@ -925,7 +937,6 @@ ns.WindowLayout = {
 				{ "appearance.themes", "appearance.lookOwn", "appearance.window" },
 				{ "appearance.where", "appearance.size", "appearance.exactPos" },
 				{ "appearance.attention" },
-				{ "appearance.fight" },
 				{ "appearance.queue", "appearance.icon" },
 				{ "appearance.text", "appearance.wording" },
 				{ "appearance.hover" },
@@ -1154,7 +1165,7 @@ ns.WindowLayout = {
 	-- and names the other switch as its own label reads now.
 	offNotes = {
 		["general.verbose"] = function() return L["Off while %s is on."]:format(NameOf("general.silentChat")) end,
-		["appearance.mendInFight"] = function() return L["Needs %s ticked."]:format(NameOf("who.beastAll")) end,
+		["appearance.mendInFight"] = function() return L["Needs %s ticked, on %s."]:format(NameOf("who.beastAll"), ns.OptionsPage.TabOf("who.beastAll") or "") end,
 		["who.groupBuffsUse"] = function() return L["Needs %s ticked."]:format(NameOf("who.group")) end,
 		["who.skipRaidGroups"] = function() return L["Needs %s ticked."]:format(NameOf("who.group")) end,
 		["who.proximity"] = function() return L["Needs %s ticked."]:format(NameOf("who.strangers")) end,

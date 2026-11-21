@@ -234,19 +234,19 @@ mutate("Core.lua",
        "\t\t\tbreakFree = true,\n",
        "\t\t\tbreakFree = false,\n",
        "breakfree: off out of the box",
-       expect="breakfree: the switch is on Look's In a fight and on by default", script=S)
+       expect="breakfree: the switch is on In a fight and on by default", script=S)
 
 mutate("Options/Window/Layout.lua",
        "\t\t[\"appearance.breakFreeKey\"] = \"appearance.breakFree\",\n",
        "",
        "breakfree: search does not know the key's switch",
-       expect="breakfree: the switch is on Look's In a fight and on by default", script=S)
+       expect="breakfree: the switch is on In a fight and on by default", script=S)
 
 mutate("Options/Look.lua",
        "\t\t\t\t\treturn ns.caps.breakFree == nil or P().breakFree == false or not ns.Setup.CanBind()\n",
        "\t\t\t\t\treturn ns.caps.breakFree == nil or not ns.Setup.CanBind()\n",
        "breakfree: its key shown with the switch off",
-       expect="breakfree: the switch is on Look's In a fight and on by default", script=S)
+       expect="breakfree: the switch is on In a fight and on by default", script=S)
 
 mutate("Options/Start.lua",
        "\t\t\t\tlocal line = said and said(key, name)\n",
@@ -261,10 +261,10 @@ mutate("Options/Start.lua",
        expect="breakfree: its key control binds it and says what the key now does", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"supplies.size\", \"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.fightButtons\",\n",
-       "\t\t\"supplies.size\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.fightButtons\",\n",
-       "breakfree: Look's reset leaves the switch",
-       expect="advanced: put these back to default on Look", script=S)
+       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.fightButtons\",\n",
+       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.fightButtons\",\n",
+       "breakfree: In a fight's reset leaves the switch",
+       expect="advanced: put these back to default on In a fight", script=S)
 
 # --- 16. no macro of the prompt's carries it
 

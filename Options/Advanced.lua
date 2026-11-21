@@ -138,8 +138,8 @@ Page.RESET = {
 	appearance = {
 		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
 		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",
-		"prompt.accentMode", "prompt.peekOnChange", "prompt.flashStyle", "prompt.effects", "prompt.hideInCombat", "prompt.dimInCombat",
-		"prompt.hideInFight", "prompt.font", "prompt.fightRota", "prompt.fontSize", "prompt.fontColor", "prompt.classColor", "prompt.showSub",
+		"prompt.accentMode", "prompt.peekOnChange", "prompt.flashStyle", "prompt.effects",
+		"prompt.font", "prompt.fontSize", "prompt.fontColor", "prompt.classColor", "prompt.showSub",
 		"prompt.showGuild",
 		"prompt.format", "prompt.reasonTarget", "prompt.reasonOwed", "prompt.reasonAsked",
 		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
@@ -148,8 +148,7 @@ Page.RESET = {
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"prompt.tooltip", "prompt.tooltipPosition",
 		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
-		"supplies.size", "prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons",
-		"prompt.fightKeySpells", "prompt.fightKeyOn",
+		"supplies.size",
 		-- Use my class's look on each character, and each class's pick.
 		"prompt.classLook", "prompt.classStyles",
 		after = function()
@@ -161,6 +160,22 @@ Page.RESET = {
 			restyleAndMacro()
 		end,
 	},
+}
+
+-- In a fight: the prompt's fight behaviour and the buttons made for a fight.
+-- The cure in a fight is also on Who to buff's list (the same field, drawn
+-- twice on purpose), so that page's reset puts it back too.
+Page.RESET.fight = {
+	"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
+	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons",
+	after = function()
+		restyleAndMacro()
+		if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end
+		if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+		if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+		if ns.FightKey then ns.Guard("fight key", ns.FightKey.Refresh, ns.FightKey) end
+		ns.Prompt:Refresh()
+	end,
 }
 
 -- Not a page of the window. The old dialog, which the window falls back to

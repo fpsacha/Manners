@@ -115,10 +115,10 @@ mutate("Options/Window/Layout.lua",
        "fightbuttons: the setting has no place in the window",
        expect="every control has one place in the options window", script=S)
 
-# --- the Look page's reset
+# --- the In a fight page's reset
 
 mutate("Options/Advanced.lua",
        "\"prompt.cureFight\", \"prompt.fightButtons\",\n",
        "\"prompt.cureFight\",\n",
-       "fightbuttons: the Look page's reset leaves the setting",
-       expect=FB + "the Look page's reset puts the setting back", script=S)
+       "fightbuttons: the In a fight page's reset leaves the setting",
+       expect=FB + "the In a fight page's reset puts the setting back", script=S)

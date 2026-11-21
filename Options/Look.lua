@@ -85,6 +85,15 @@ function Page.BuildLookTab()
 				hidden = function() return not InCombatLockdown() end,
 				name = "|cffffd100" .. L["In combat: changes here show once the fight ends."] .. "|r\n",
 			},
+			-- The same line for In a fight (layout.lua counts a strip path as a
+			-- placement, so the page needs an entry of its own).
+			fightCombatNotice = {
+				type = "description",
+				order = 0.51,
+				fontSize = "medium",
+				hidden = function() return not InCombatLockdown() end,
+				name = "|cffffd100" .. L["In combat: changes here show once the fight ends."] .. "|r\n",
+			},
 			-- The preview is general.previewStart, which the options window
 			-- draws in its header, so it is one press from every page.
 			-- Moving the prompt leads the page as a button, the same one the

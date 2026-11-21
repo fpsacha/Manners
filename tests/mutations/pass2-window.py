@@ -66,8 +66,8 @@ mutate("Core.lua", '\t\tp.fightKeySpell = nil\n\t\tif type(old) == "string"',
 
 mutate(ADV, '"prompt.fightKeySpells", "prompt.fightKeyOn",',
        '"prompt.fightKeyOn",',
-       "pass2-window: Look's reset leaves the fight keys",
-       expect="the list leaves out prompt.fightKeySpells", script=S)
+       "pass2-window: In a fight's reset leaves the fight keys",
+       expect="advanced: put these back to default on In a fight", script=S)
 
 # --- the short-buff hold beside Never in cities and inns -----------------------------
 

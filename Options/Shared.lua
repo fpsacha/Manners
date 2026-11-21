@@ -241,6 +241,7 @@ local TAB = {
 	skip = L["Who to skip"],
 	when = L["When to offer"],
 	click = L["What I say"],
+	fight = L["In a fight"],
 	appearance = L["Look"],
 	diagnostics = L["Diagnostics"],
 }
@@ -261,6 +262,7 @@ local TITLE = {
 	skip = function() return L["Who to skip"] end,
 	when = function() return L["When to offer"] end,
 	click = function() return L["What I say"] end,
+	fight = function() return L["In a fight"] end,
 	appearance = function() return L["Look"] end,
 	profiles = function() return L["Profiles"] end,
 	diagnostics = function() return L["Diagnostics"] end,

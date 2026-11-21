@@ -236,7 +236,7 @@ cooldown turned away still moves on: whoever it passed over is offered again
 when the fight ends. Nobody is
 added to that list or taken off it before the fight ends, a skip cannot take
 somebody off it (chat says so), and names in the list cannot be clicked. *In a
-fight, each press moves on to the next person* (Look, under *In a fight*, on)
+fight, each press moves on to the next person* (*In a fight*, on)
 switches the round off, and every press then casts at the one person the
 prompt was on. The Manners macro on an action bar keeps to that one person
 either way: the game does not let an addon rewrite a macro in a fight, nor a
@@ -258,9 +258,9 @@ name over it and "press <key> to break free" under it; the prompt, when it is
 up, says the same. While the spell cools down it shows dim. The key casts
 even while the button is out of sight. The prompt's own key keeps to buffs,
 unless *In a fight, my key casts* names a spell. *Offer Will of the Forsaken when I am feared,
-charmed or asleep* (Look, under *In a fight*, on) switches it, and *Key for
+charmed or asleep* (*In a fight*, on) switches it, and *Key for
 Will of the Forsaken* under it sets the key. *When the fight buttons show*
-(Look, under *In a fight*, *Only when needed* by default) can instead keep it
+(*In a fight*, *Only when needed* by default) can instead keep it
 dim beside the prompt for the whole fight (*All fight, dim until needed*); it
 holds for Mend Pet's button too. Only a Forsaken who has the spell sees the
 first two; *When the fight buttons show* is there for a hunter with Mend Pet
@@ -269,7 +269,7 @@ too.
 #### Curing in a fight
 
 A class with a cure can tick *Offer my cure in a fight when somebody needs it*
-(Look, under *In a fight*, off; also under *Who to buff*, *Cures*). It gives a
+(*In a fight*, off; also under *Who to buff*, *Cures*). It gives a
 small button right of the prompt (or of the Will of the Forsaken button), with
 *Key for my cure in a fight* under the switch. It is never on screen for
 nothing: it appears only when Manners sees you, your target or somebody in your
@@ -286,7 +286,7 @@ key casts* names a spell.
 
 #### A spell on your key in a fight
 
-*In a fight, my key casts* (Look, under *In a fight*; *Nothing* by default)
+*In a fight, my key casts* (*In a fight*; *Nothing* by default)
 lists the shields and quick heals your class knows: Power Word: Shield, Renew
 and Flash Heal for a priest, Ice Barrier for a mage, Flash of Light and Divine
 Protection for a paladin, and so on, only those you have learned. Pick one and
@@ -530,7 +530,7 @@ button below: off, Manners leaves your pet to you, and every switch keeps its
 own setting for when it is on again.
 
 *Mend Pet in a fight* (its switch is under *Your pet*, below the Mend Pet
-reminder, and under *Look*, *In a fight*, with a key of its own; the reminder's
+reminder, and on *In a fight*, with a key of its own; the reminder's
 switch does not turn it off): a
 button of its own to the right of the prompt, or of the Will of the Forsaken
 button where a Forsaken hunter has both, armed for every fight and out of
@@ -538,7 +538,7 @@ sight until it is wanted. It fades in and lights up while your pet is below
 half health, in reach and alive, and Mend Pet is not still at work, and fades
 out again after. Where the game hides your pet's health in a fight (WoW
 Forever and retail) Manners cannot tell, so the button stays out of sight and
-its key still casts; *When the fight buttons show* (Look, under *In a fight*)
+its key still casts; *When the fight buttons show* (*In a fight*)
 set to *All fight, dim until needed* keeps it there for the whole fight, half
 lit with its two lines shown. Out of sight the button takes no click, only its
 key casts, unless it is dim for the whole fight or no key is set. The prompt's
@@ -938,8 +938,9 @@ it too.
   snooze is running, nothing can be offered, or the prompt is kept away while
   you are mounted.
 - On the left, the pages, each with a painted icon of its own: *Start here*;
-  *Who to buff*, *Who to skip*, *When to offer*, *What I say*, *Look*;
-  *Profiles* and *Diagnostics*. A page with
+  *Who to buff*, *Who to skip*, *When to offer*; *In a fight*, *What I say*,
+  *Look*; *Profiles* and *Diagnostics*. When the pages do not fit the window's
+  height they are drawn smaller. A page with
   nothing for your character is left out. A red dot beside a page means
   something there wants looking at; a key binding is optional, so no red dot
   asks for one.
@@ -1275,6 +1276,37 @@ nameplates*. One line per person a minute. Line of sight cannot be checked.
 On WoW Forever a whisper goes only to a two-word name, where the chat box
 cannot send it to somebody else by mistake.
 
+### In a fight
+
+Its own page in the options window (between *When to offer* and *What I say*),
+with two sections: ***The prompt in a fight*** and ***Buttons for when you need them***.
+
+***The prompt in a fight***:
+- *Hide the prompt in combat* (off): the prompt and its list are off the
+  screen for the whole fight, and its key, a name in the list and the
+  Manners macro on your bar cast nothing until it ends. If the Manners
+  macro still held a cast as the fight began, the prompt stays up for that
+  fight and a line in chat says so.
+- *In a fight, each press moves on to the next person* (on).
+- *In a fight, my key casts* (*Nothing*), with *Who it lands on* under it:
+  see *A spell on your key in a fight* above.
+- *No flashes in combat*: the prompt stays on screen, its key still
+  casting, with no flashes and no cooldown sweep.
+- *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at
+  about half strength in a fight.
+
+***Buttons for when you need them***:
+- *Offer Will of the Forsaken when I am feared, charmed or asleep* (on, a
+  Forsaken only), with *Key for Will of the Forsaken* under it: see *Will
+  of the Forsaken* above.
+- *Offer Mend Pet in a fight* (a hunter, needs the pet switch on *Who to
+  buff*), with its key under it: see *Mend Pet in a fight* above.
+- *When the fight buttons show*: only when needed, or dim for the whole
+  fight.
+- *Offer my cure in a fight when somebody needs it* (off, a class with a
+  cure), with *Key for my cure in a fight* under it: see *Curing in a
+  fight* above.
+
 ### Look
 
 - *Use my class's look on each character* (off): each character on the profile wears the look made for its class, a mage the mage look last clicked on a mage, else Frost Mage. Another look clicked is the profile's own, worn with it off.
@@ -1294,25 +1326,6 @@ cannot send it to somebody else by mistake.
 - ***Getting my attention***: *Flash when someone buffs me*, *Animations*
   (*Full* or *Calm*), *Play a sound* (off) with *Sound* and *Only for people
   who buff me* under it.
-- ***In a fight***:
-  - *Hide the prompt in combat* (off): the prompt and its list are off the
-    screen for the whole fight, and its key, a name in the list and the
-    Manners macro on your bar cast nothing until it ends. If the Manners
-    macro still held a cast as the fight began, the prompt stays up for that
-    fight and a line in chat says so.
-  - *In a fight, each press moves on to the next person* (on).
-  - *In a fight, my key casts* (*Nothing*), with *Who it lands on* under it:
-    see *A spell on your key in a fight* above.
-  - *Offer Will of the Forsaken when I am feared, charmed or asleep* (on, a
-    Forsaken only), with *Key for Will of the Forsaken* under it: see *Will
-    of the Forsaken* above.
-  - *Offer my cure in a fight when somebody needs it* (off, a class with a
-    cure), with *Key for my cure in a fight* under it: see *Curing in a
-    fight* above.
-  - *No flashes in combat*: the prompt stays on screen, its key still
-    casting, with no flashes and no cooldown sweep.
-  - *Dim the prompt in combat* (off): Glass, Framed and Minimal are drawn at
-    about half strength in a fight.
 - ***Waiting list***: *Show how many are waiting* (on), *List the next few
   below* (off) with *How many to list* (3) and *Click a name in the list to
   buff them* (on).

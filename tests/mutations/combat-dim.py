@@ -18,8 +18,8 @@ mutate("Core.lua",
 mutate("Options/Advanced.lua",
        "\"prompt.hideInCombat\", \"prompt.dimInCombat\",",
        "\"prompt.hideInCombat\",",
-       "combat-dim: Look's reset leaves the dim",
-       expect="appearance reset: the list leaves out prompt.dimInCombat", script=S)
+       "combat-dim: In a fight's reset leaves the dim",
+       expect="advanced: put these back to default on In a fight", script=S)
 
 # A switch on a look it cannot reach, open as if it did something.
 mutate("Options/Look.lua",

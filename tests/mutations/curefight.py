@@ -265,4 +265,4 @@ mutate("Options/Advanced.lua",
        "\"beast.fightMend\", \"prompt.cureFight\",",
        "\"beast.fightMend\",",
        "curefight: the reset leaves the switch on",
-       expect="advanced: put these back to default on Look", script="runscenarios.py")
+       expect="advanced: put these back to default on In a fight", script="runscenarios.py")

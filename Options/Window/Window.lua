@@ -777,6 +777,7 @@ local function PaintAll()
 	end
 	UI.PaintHeader()
 	local top = UI.HEADER + UI.PaintStrip()
+	UI.FitSidebar(top)
 	PlaceBody(top, UI.PaintSubBar(top))
 	UI.PaintPage()
 	-- The page's paint judged which of its sub-divisions have something to

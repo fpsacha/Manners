@@ -286,7 +286,7 @@ mutate("Options/Advanced.lua",
 mutate("Options/Advanced.lua",
        "\"prompt.breakFree\", \"beast.fightMend\",",
        "\"prompt.breakFree\",",
-       "hunterpet2: Look's reset leaves Mend Pet's switch",
+       "hunterpet2: In a fight's reset leaves Mend Pet's switch",
        expect="reset: the list leaves out", script=S)
 
 # ------------------------------------------------ the inn line

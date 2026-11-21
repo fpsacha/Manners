@@ -181,10 +181,10 @@ mutate("Options/Look.lua",
        expect="does not point to the switch that hides the prompt",
        script=S)
 
-# Left out of Look's reset.
+# Left out of In a fight's reset.
 mutate("Options/Advanced.lua",
-       "\t\t\"prompt.hideInFight\", \"prompt.font\",",
-       "\t\t\"prompt.font\",",
-       "hide-in-combat: Look's reset leaves it",
-       expect="look reset: prompt.hideInFight was not put back",
+       "\t\"prompt.hideInFight\", \"prompt.fightRota\",",
+       "\t\"prompt.fightRota\",",
+       "hide-in-combat: In a fight's reset leaves it",
+       expect="advanced: put these back to default on In a fight",
        script=S)

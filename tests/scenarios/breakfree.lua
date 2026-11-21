@@ -612,17 +612,17 @@ with("breakfree: a snooze of the prompt leaves it", function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 15
-with("breakfree: the switch is on Look's In a fight and on by default", function(ns, scenario)
+with("breakfree: the switch is on In a fight and on by default", function(ns, scenario)
 	if ns.defaults.profile.prompt.breakFree ~= true then fail(scenario, "not on out of the box") end
 	local switch, key = option(ns, "breakFree"), option(ns, "breakFreeKey")
 	if not (switch and key) then fail(scenario, "no switch or no key on Look") return end
 	if hidden(switch) or hidden(key) then fail(scenario, "hidden from a Forsaken who has it") end
 	if key.type ~= "keybinding" then fail(scenario, "its key is a " .. tostring(key.type)) end
-	-- In the In a fight section, the key indented under the switch.
+	-- In the buttons section of In a fight, the key indented under the switch.
 	local found
 	local function walk(t)
 		if type(t) ~= "table" or found then return end
-		if t.key == "appearance.fight" and type(t.items) == "table" then found = t return end
+		if t.key == "fight.buttons" and type(t.items) == "table" then found = t return end
 		for _, v in pairs(t) do walk(v) end
 	end
 	walk(ns.WindowLayout)
@@ -631,7 +631,7 @@ with("breakfree: the switch is on Look's In a fight and on by default", function
 		if item == "appearance.breakFree" then hasSwitch = true end
 		if type(item) == "table" and item[1] == "appearance.breakFreeKey" and item.indent then hasKey = true end
 	end
-	if not (hasSwitch and hasKey) then fail(scenario, "not in Look's In a fight section with its key under it") end
+	if not (hasSwitch and hasKey) then fail(scenario, "not in the In a fight page's buttons section with its key under it") end
 	if ns.WindowLayout.parents["appearance.breakFreeKey"] ~= "appearance.breakFree" then
 		fail(scenario, "search does not know the key's switch")
 	end
