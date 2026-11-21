@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "21 November 2026", sections = {
+	{ version = "1.11.36", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Buff other people first, eat later.|r A new switch under |cffffffffMyself|r, |cffffffffMy food, stones and oils after everybody else|r: your own food, weapon stones and oils, flasks, elixirs and scrolls wait until nobody else needs a buff from you.",
 		} },
