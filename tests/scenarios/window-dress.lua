@@ -100,10 +100,14 @@ do
 	with(scenario, "general", function(ns, UI)
 		local function marks(want)
 			for id, b in pairs(UI.side.buttons) do
-				local on = b.band and b.band:IsShown() and b.stud and b.stud:IsShown()
-				if id == want and not on then fail(scenario, "the open page, " .. id .. ", has no band or no stud") end
-				if id ~= want and (b.band and b.band:IsShown() or b.stud and b.stud:IsShown()) then
-					fail(scenario, id .. " is marked as open while " .. want .. " is")
+				-- A button the sidebar has left out (a mage's My pet) is hidden
+				-- with everything on it, whatever its pieces say.
+				if b:IsShown() or id == want then
+					local on = b.band and b.band:IsShown() and b.stud and b.stud:IsShown()
+					if id == want and not on then fail(scenario, "the open page, " .. id .. ", has no band or no stud") end
+					if id ~= want and (b.band and b.band:IsShown() or b.stud and b.stud:IsShown()) then
+						fail(scenario, id .. " is marked as open while " .. want .. " is")
+					end
 				end
 			end
 		end

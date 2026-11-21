@@ -313,12 +313,12 @@ do
 		if not text:find(ns.L["Myself"], 1, true) then
 			fail(scenario, "Start here does not say where the switch is: " .. text)
 		end
-		if not UI.PageVisible("who") then
-			fail(scenario, "Who to buff is hidden, and the flask's switch with it")
+		if not UI.PageVisible("self") then
+			fail(scenario, "My own buffs is hidden, and the flask's switch with it")
 			return
 		end
-		UI.ShowPage("who")
-		if not UI.RowShown("who.own_flask") then fail(scenario, "Who to buff has no flask switch") end
+		UI.ShowPage("self")
+		if not UI.RowShown("who.own_flask") then fail(scenario, "My own buffs has no flask switch") end
 		-- Switched on, the flask gives him a prompt.
 		ns.db.profile.ownBuffs.pick.flask = "auto"
 		ns.ForgetScrolls()
@@ -336,13 +336,13 @@ do
 		rawset(_G, "IsPlayerSpell", function() return false end)
 		ns.Guard("probe", ns.ProbeCapabilities)
 		if ns.ForgetScrolls then ns.ForgetScrolls() end
-	end, page = "who" }, function(ns, UI)
-		if not (UI.PageVisible("who") and #ns.SelfBuffs() == 0 and #ns.KnownOwnFamilies() == 0) then
-			fail(scenario, "SKIPPED -- the paladin has no Who to buff, or something of his own")
+	end, page = "self" }, function(ns, UI)
+		if not (UI.PageVisible("self") and #ns.SelfBuffs() == 0 and #ns.KnownOwnFamilies() == 0) then
+			fail(scenario, "SKIPPED -- the paladin has no My own buffs, or something of his own")
 			return
 		end
-		UI.ShowPage("who")
-		if not UI.RowShown("who.own_flask") then fail(scenario, "Who to buff has no flask switch for the paladin") end
+		UI.ShowPage("self")
+		if not UI.RowShown("who.own_flask") then fail(scenario, "My own buffs has no flask switch for the paladin") end
 		if not UI.RowShown("who.self") then
 			fail(scenario, "the flask switch is drawn without the Myself switch it hangs from")
 		end
@@ -368,7 +368,7 @@ do
 	local scenario = "window-fixes38: Offer nothing in cities and inns names the page Myself is on"
 	session(scenario, {}, function(ns)
 		local desc = tostring((H.findOption(ns.optionsTable, "quietInTowns") or {}).desc)
-		if not (desc:find(ns.L["Myself"], 1, true) and desc:find(ns.L["Who to buff"], 1, true)) then
+		if not (desc:find(ns.L["Myself"], 1, true) and desc:find(ns.L["My own buffs"], 1, true)) then
 			fail(scenario, "the tooltip, drawn on When to offer, says: " .. desc)
 		end
 	end)

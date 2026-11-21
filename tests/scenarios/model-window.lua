@@ -239,7 +239,7 @@ do
 	local scenario = "model: only five pages can show a red dot"
 	with(scenario, nil, nil, function(ns)
 		-- Four since round 37: Start here's key is optional.
-		for _, pageId in ipairs({ "general", "skip", "click", "quiet", "fight", "profiles" }) do
+		for _, pageId in ipairs({ "general", "skip", "self", "pet", "click", "quiet", "fight", "profiles" }) do
 			if ns.OptionsPage.Warn[pageId] ~= nil then
 				fail(scenario, pageId .. " has a red-dot predicate and no warning to stand for")
 			end
@@ -392,30 +392,38 @@ end
 local EXPECTED = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly", "sources.owed", "sources.group",
-		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "sources.self", "filters.proximity",
+		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "filters.proximity",
 		-- A class's courtesies on request, resurrection, cures and asking for a buff.
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
 		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
 		"ask.own",
-		"filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly", "ownBuffs.scrolls", "groupBuffs.use",
+		"filters.restingOnly", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
-		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe", "buff.notMeInside", "buff.optIn", "ownBuffs.apart",
+		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe", "buff.notMeInside", "buff.optIn",
 		"buff.tanksOutside", "buff.keptBack", "buff.forClass",
 		-- Detect Invisibility for passers-by too, under its own tick
 		-- (tests/scenarios/detect-passers.lua).
 		"buff.detectPassers",
-		-- Elixirs to keep up (tests/scenarios/elixir-pair.lua).
-		"ownBuffs.elixirKeep",
-		-- A hunter's pet (HunterPet.lua).
+	},
+	-- My own buffs: the picks, the lists of what to leave out, where and when
+	-- they come up, the consumables button and the top-up (the elixirs to keep
+	-- up are tests/scenarios/elixir-pair.lua's).
+	self = {
+		"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.shoutAlone",
+		"ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly",
+		"ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart", "filters.selfTopUp", "filters.selfLead",
+	},
+	-- A hunter's pet (HunterPet.lua).
+	pet = {
 		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
 		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
 	},
 	skip = { "filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel",
 		"timing.skipSeconds", "timing.ownSkipMinutes" },
 	when = {
-		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
+		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid",
 		"filters.verifiedOnly",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
@@ -469,6 +477,8 @@ local KEPT = {
 	who = { { "enabled", false } },
 	skip = { { "never", { ["Petra Stonewell"] = true } } },
 	when = { { "prompt.scale", 1.25 } },
+	self = { { "enabled", false } },
+	pet = { { "enabled", false } },
 	quiet = { { "prompt.scale", 1.25 } },
 	click = { { "speech.phrases", "my very own line" }, { "speech.presetChoice", "polite" } },
 	appearance = { { "prompt.x", 41 }, { "prompt.y", 123 }, { "prompt.point", "TOP" },
@@ -482,6 +492,8 @@ local HOOKS = {
 	who = { "style", "macro", "refresh", "broker" },
 	skip = { "scan" },
 	when = { "save", "scan", "style", "macro" },
+	self = { "style", "macro", "refresh", "broker" },
+	pet = { "style", "macro", "refresh" },
 	quiet = { "scan", "style", "macro", "refresh" },
 	click = { "macro" },
 	appearance = { "clamp", "style", "macro" },
@@ -495,7 +507,7 @@ local function field(profile, path)
 	return profile, path
 end
 
-for _, pageId in ipairs({ "who", "skip", "when", "quiet", "click", "fight", "appearance", "advanced" }) do
+for _, pageId in ipairs({ "who", "skip", "when", "self", "pet", "quiet", "click", "fight", "appearance", "advanced" }) do
 	local scenario = "model: the reset puts " .. pageId .. " back"
 	with(scenario, nil, nil, function(ns)
 		local Page = ns.OptionsPage
@@ -541,7 +553,7 @@ for _, pageId in ipairs({ "who", "skip", "when", "quiet", "click", "fight", "app
 		-- Who to buff's in a fight: ApplyStyle holds off there, so only the
 		-- reset's own Refresh puts an own buff's pick on the prompt at once,
 		-- as the pick's control does.
-		Mock.inCombat = pageId == "who"
+		Mock.inCombat = pageId == "who" or pageId == "self"
 		local ok, answer = pcall(Page.ResetPage, pageId)
 		Mock.inCombat = false
 		ns.Prompt.ApplyStyle, ns.Prompt.InvalidateMacro = real.style, real.macro

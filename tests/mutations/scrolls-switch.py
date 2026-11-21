@@ -89,7 +89,7 @@ mutate("Options/Window/Layout.lua",
        "\t\t\t\t\t\"who.ownScrolls\",\n",
        "",
        "scrolls-switch: the switch not placed on the page",
-       expect="scrolls-switch: Who to buff places the switch and its reset puts it back", script=S)
+       expect="scrolls-switch: My own buffs places the switch and its reset puts it back", script=S)
 
 mutate("Options/Window/Layout.lua",
        "\t\t[\"who.ownScrolls\"] = L[\"hide familiar imbue\"],\n",
@@ -98,10 +98,10 @@ mutate("Options/Window/Layout.lua",
        expect="scrolls-switch: the switch shows only with a scroll about", script=S)
 
 mutate("Options/Advanced.lua",
-       "\"ownBuffs.scrolls\", \"groupBuffs.use\",",
-       "\"groupBuffs.use\",",
+       "\"ownBuffs.scrolls\", \"ownBuffs.elixirKeep\",",
+       "\"ownBuffs.elixirKeep\",",
        "scrolls-switch: the page's reset leaves the switch",
-       expect="scrolls-switch: Who to buff places the switch and its reset puts it back", script=S)
+       expect="scrolls-switch: My own buffs places the switch and its reset puts it back", script=S)
 
 # --- /manners debug -------------------------------------------------------------------
 

@@ -191,7 +191,7 @@ do
 		end
 		if not cast then fail(scenario, "a mage's Who to buff has no What to cast")
 		elseif cast.label ~= ns.L["What to cast"] then fail(scenario, "What to cast reads " .. tostring(cast.label)) end
-		for _, id in ipairs({ "general", "when", "appearance" }) do CheckBar(scenario, ns, UI, id) end
+		for _, id in ipairs({ "general", "when", "self", "appearance" }) do CheckBar(scenario, ns, UI, id) end
 		-- A page of few sections has no bar, and the page sits under the strip.
 		ns.OpenOptions("click")
 		if UI.subbar.frame:IsShown() or UI.subbar.height ~= 0 then fail(scenario, "What I say has a sub-divisions bar") end
@@ -206,7 +206,7 @@ do
 		if not (order and order.sec.sub and order.sec.sub.key == "who.cast") then
 			fail(scenario, "Buff order is not in What to cast's sub-division")
 		end
-		for _, id in ipairs({ "general", "when", "appearance" }) do CheckBar(scenario, ns, UI, id) end
+		for _, id in ipairs({ "general", "when", "self", "appearance" }) do CheckBar(scenario, ns, UI, id) end
 	end)
 end
 
@@ -238,15 +238,19 @@ end
 do
 	local scenario = "subpages: a sub-division chosen draws only its sections, from the top, its folds open"
 	with(scenario, { class = "PALADIN" }, function(ns, UI)
+		ns.OpenOptions("self")
 		UI.ScrollTo(200)
-		if not choose(UI, "who.myself") then fail(scenario, "no Myself chip on a paladin's Who to buff") return end
-		if UI.view.scrollY ~= 0 then fail(scenario, "Myself opened scrolled " .. tostring(UI.view.scrollY) .. " down") end
-		local sub = UI.SubInView("who")
-		if not (sub and sub.key == "who.myself") then fail(scenario, "Myself chosen, the page shows " .. tostring(sub and sub.key)) end
+		if not choose(UI, "self.items") then fail(scenario, "no Food chip on a paladin's My own buffs") return end
+		if UI.view.scrollY ~= 0 then fail(scenario, "Food opened scrolled " .. tostring(UI.view.scrollY) .. " down") end
+		local sub = UI.SubInView("self")
+		if not (sub and sub.key == "self.items") then fail(scenario, "Food chosen, the page shows " .. tostring(sub and sub.key)) end
+		-- Myself's own sub-division, the first, with its switch.
+		if not choose(UI, "self.myself") then fail(scenario, "no Myself chip on a paladin's My own buffs") return end
+		sub = UI.SubInView("self")
+		if not (sub and sub.key == "self.myself") then fail(scenario, "Myself chosen, the page shows " .. tostring(sub and sub.key)) end
 		for key, sec in pairs(drawnSections(UI)) do
 			if sec.sub and sec.sub ~= sub then fail(scenario, key .. " is drawn with Myself chosen") end
 		end
-		if UI.RowShown("who.owed") then fail(scenario, "People who buff me is drawn with Myself chosen") end
 		if not UI.RowShown("who.self") then fail(scenario, "Myself's own switch is not drawn with Myself chosen") end
 		-- Its first row right under the page's title, where the page's first
 		-- section stands on All.
@@ -254,6 +258,7 @@ do
 		if not (self.y and self.y < 120) then fail(scenario, "Myself's first row is " .. tostring(self.y) .. " down the page") end
 		-- A fold of fine print, chosen: its rows drawn with the fold never
 		-- opened, under its title, with no fold button and no caption.
+		ns.OpenOptions("who")
 		UI.State().open["who.first"] = nil
 		if not choose(UI, "who.first") then fail(scenario, "no Who comes first chip") return end
 		if not UI.RowShown("who.target") then fail(scenario, "Who comes first chosen, its rows are not drawn") end
@@ -294,13 +299,14 @@ end
 do
 	local scenario = "subpages: the window remembers each page's sub-division for the session"
 	with(scenario, { class = "PALADIN" }, function(ns, UI)
-		choose(UI, "who.myself")
+		ns.OpenOptions("self")
+		choose(UI, "self.items")
 		ns.OpenOptions("when")
 		if UI.SubInView("when") ~= nil then fail(scenario, "When to offer opened on a sub-division nobody chose") end
 		choose(UI, "when.favours")
-		ns.OpenOptions("who")
-		local sub = UI.SubInView("who")
-		if not (sub and sub.key == "who.myself") then fail(scenario, "back on Who to buff, Myself is forgotten") end
+		ns.OpenOptions("self")
+		local sub = UI.SubInView("self")
+		if not (sub and sub.key == "self.items") then fail(scenario, "back on My own buffs, Food is forgotten") end
 		ns.CloseOptions()
 		ns.OpenOptions("when")
 		sub = UI.SubInView("when")
@@ -320,7 +326,10 @@ end
 do
 	local scenario = "subpages: search opens the sub-division that holds the setting"
 	with(scenario, { class = "PALADIN" }, function(ns, UI)
-		choose(UI, "who.myself")
+		ns.OpenOptions("self")
+		choose(UI, "self.myself")
+		ns.OpenOptions("who")
+		choose(UI, "who.cast")
 		-- On another sub-division of the same page.
 		local e = UI.Choose({ path = "who.owed", page = "who" })
 		if not (e and UI.RowShown("who.owed")) then fail(scenario, "searched for People who buff me from Myself, it is not drawn") end

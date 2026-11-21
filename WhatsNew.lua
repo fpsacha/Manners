@@ -9,6 +9,7 @@ ns.WhatsNew = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100New page In a fight:|r hiding the prompt, the rota, the fight key, and the Will of the Forsaken, Mend Pet and cure buttons, all in one place.",
 			"|cffffd100New page Quiet times:|r where and when Manners holds back or says nothing.",
+			"|cffffd100New pages My own buffs and, for hunters, My pet;|r |cffffffffWho to buff|r is about other people again.",
 			"|cffffd100Search finds the words people use|r (wotf, rez, reply, queue, color and more) and phrases such as \"turn off will of the forsaken\".",
 			"|cffffd100Who to skip > After a right-click|r sets how long a right-click skips someone, up to 30 minutes.",
 			"|cffffd100Snooze has Until I log out,|r at the top of the options window and in the minimap menu.",

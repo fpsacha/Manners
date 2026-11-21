@@ -125,7 +125,7 @@ for _, flavour in ipairs({ "camelot", "vanilla" }) do
 		end
 		local control = findOption(ns.optionsTable, "ownScrolls")
 		if not control or control.type ~= "toggle" then
-			fail(scenario, "Who to buff has no Scrolls switch")
+			fail(scenario, "the model has no Scrolls switch")
 		elseif control.get() ~= true then
 			fail(scenario, "the switch reads off on a new profile")
 		end
@@ -306,12 +306,12 @@ do
 	end)
 end
 
--- The switch has its place on Who to buff (the window draws only what the
+-- The switch has its place on My own buffs (the window draws only what the
 -- layout places), and the page's reset puts it back on.
 do
-	local scenario = "scrolls-switch: Who to buff places the switch and its reset puts it back"
+	local scenario = "scrolls-switch: My own buffs places the switch and its reset puts it back"
 	with(scenario, { flavour = "vanilla" }, function(ns)
-		local page = ns.WindowLayout and ns.WindowLayout.pages and ns.WindowLayout.pages.who
+		local page = ns.WindowLayout and ns.WindowLayout.pages and ns.WindowLayout.pages.self
 		local seen = {}
 		local function placed(t)
 			if type(t) ~= "table" or seen[t] then return false end
@@ -322,9 +322,9 @@ do
 			end
 			return false
 		end
-		if not placed(page) then fail(scenario, "the Scrolls switch has no place on Who to buff") end
+		if not placed(page) then fail(scenario, "the Scrolls switch has no place on My own buffs") end
 		ns.db.profile.ownBuffs.scrolls = false
-		local ok, answer = pcall(ns.OptionsPage.ResetPage, "who")
+		local ok, answer = pcall(ns.OptionsPage.ResetPage, "self")
 		if not ok or answer ~= true then
 			fail(scenario, "SKIPPED -- the reset did not run: " .. tostring(answer))
 			return

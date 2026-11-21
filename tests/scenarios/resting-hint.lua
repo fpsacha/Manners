@@ -1,7 +1,7 @@
 -- The line said once when resting holds your own buffs back (Hints.lua,
 -- 1.11.25). A warlock wrote on CurseForge that with no Demon Armor at login
 -- "the addon dont pop up to buff": he logs in at an inn, where your own buffs
--- wait by default (Who to buff, Also in cities and inns). The rule stands; the
+-- wait by default (My own buffs, Also in cities and inns). The rule stands; the
 -- line says so, once a character, and only when something of yours is missing.
 --
 -- Every scenario name starts with "resting-hint:" so the mutations in
@@ -92,7 +92,7 @@ do
 			local line = said()
 			if not (was and line) then
 				fail(scenario, "resting with tracking off, the line was not said")
-			elseif not line:find("Who to buff", 1, true) then
+			elseif not line:find("My own buffs", 1, true) then
 				fail(scenario, "the line does not say which page the switch is on: " .. line)
 			end
 			-- And never again for this character.

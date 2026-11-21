@@ -84,6 +84,8 @@ local MENU = "Interface\\AddOns\\Manners\\Textures\\Menu\\"
 local ICONS = {
 	general = MENU .. "Start",
 	who = MENU .. "Who",
+	self = MENU .. "Self",
+	pet = MENU .. "Pet",
 	skip = MENU .. "Skip",
 	when = MENU .. "When",
 	click = MENU .. "Say",
@@ -234,7 +236,11 @@ ns.WindowLayout = {
 	-- The sidebar, top to bottom; a hairline between groups. Page ids are the
 	-- old tab keys (bug reports and ns.OptionsTab() name them), plus skip and
 	-- fight, which are pages of the window and not tabs of the old dialog.
-	groups = { { "general" }, { "who", "skip", "when" }, { "quiet", "fight", "click", "appearance" }, { "profiles", "diagnostics" } },
+	groups = { { "general" }, { "who", "skip", "when" }, { "self", "pet" }, { "quiet", "fight", "click", "appearance" }, { "profiles", "diagnostics" } },
+
+	-- A fold moved to another page keeps the open state it was saved under
+	-- (UI.State copies it once): old section key -> new.
+	renamedFolds = { ["who.myselfPetMoments"] = "pet.moments" },
 
 	pages = {
 		general = {
@@ -344,8 +350,8 @@ ns.WindowLayout = {
 				-- Who the prompt is on right now, so a switch can be seen to work.
 				{ key = "who.now", items = { "who.rightNow" } },
 				-- Who first: the page is called Who to buff. Then what they get,
-				-- the order it is tried in, and the group's own casts; your own
-				-- buffs after everybody else's, in four sections that go together.
+				-- the order it is tried in, and the group's own casts. Your own buffs
+				-- are on My own buffs, and a hunter's pet on My pet.
 				{ key = "who.sources", header = "who.sourcesHeader", items = {
 					"who.emptyWarning",
 					"who.owed",
@@ -421,160 +427,9 @@ ns.WindowLayout = {
 					{ "who.cureSeconds", indent = true },
 					"who.curesFight",
 				} },
-				{ key = "who.myself", header = "who.myselfHeader", items = {
-					"who.self",
-					-- Only the families this character knows are shown (their own rule).
-					{ "who.own_omen", indent = true },
-					-- A druid's Moonkin Form, never asked for in another form.
-					{ "who.own_moonkinform", indent = true },
-					-- A druid's Tree of Life (Burning Crusade, Season of Discovery).
-					{ "who.own_treeoflife", indent = true },
-					{ "who.own_aspect", indent = true },
-					{ "who.own_trueshot", indent = true },
-					-- Season of Discovery's Heart of the Lion (Classic Era).
-					{ "who.own_heartofthelion", indent = true },
-					{ "who.own_armor", indent = true },
-					-- A mage's Dampen Magic or Amplify Magic, off until picked.
-					{ "who.own_magicmod", indent = true },
-					{ "who.ownDampenAlone", indent = 2 },
-					{ "who.ownAmplifyAlone", indent = 2 },
-					-- A mage's Mana Shield, and Fire Ward or Frost Ward, off until
-					-- turned on; the line under them says they are reminded outside a
-					-- fight only (Options/Who.lua, ownBriefNote).
-					{ "who.own_manashield", indent = true },
-					{ "who.own_ward", indent = true },
-					{ "who.ownBriefNote", indent = true },
-					{ "who.own_aura", indent = true },
-					{ "who.own_righteousfury", indent = true },
-					{ "who.own_innerfire", indent = true },
-					{ "who.own_touchofweakness", indent = true },
-					{ "who.own_shadowguard", indent = true },
-					{ "who.own_shadowform", indent = true },
-					{ "who.own_shield", indent = true },
-					-- Season of Discovery's Spirit of the Alpha on a shaman who tanks.
-					{ "who.own_spiritofthealpha", indent = true },
-					{ "who.own_demonarmor", indent = true },
-					-- A warlock's Grimoire of Sacrifice (Mists, retail).
-					{ "who.own_grimoireofsacrifice", indent = true },
-					-- A warlock's Demonic Sacrifice and Soul Link (Classic Era, Forever,
-					-- Burning Crusade).
-					{ "who.own_demonicsacrifice", indent = true },
-					-- Forever's Soul Link of its own, with Demonic Pact known.
-					{ "who.own_soullink", indent = true },
-					-- A warlock's Detect Invisibility, off until it is turned on.
-					{ "who.own_detectinvis", indent = true },
-					-- A warlock's Unending Breath on himself, only while he swims.
-					{ "who.own_selfbreath", indent = true },
-					{ "who.own_tracking", indent = true },
-					-- Forever's Find Treasure, kept on beside a gathering tracking.
-					{ "who.own_findtreasure", indent = true },
-				} },
-				-- A hunter's pet (HunterPet.lua): care, each with its own switch,
-				-- then the moments with it and what Manners remembers of each pet.
-				{ key = "who.myselfPet", title = L["Your pet"], items = {
-					"who.beastAll",
-					{ "who.beastCall", indent = true },
-					{ "who.beastRevive", indent = true },
-					{ "who.beastFeed", indent = true },
-					{ "who.beastMend", indent = true },
-					{ "who.beastMendFight", indent = true },
-					{ "who.beastLeaveFood", indent = true },
-					{ "who.beastGrowl", indent = true },
-					{ "who.beastTraining", indent = true },
-					{ "who.beastBond", indent = true },
-					{ "who.beastPace", indent = 2 },
-				} },
-				{ key = "who.myselfWeapons", title = L["Weapons"], items = {
-					-- A shaman's weapon imbues, spells: one a hand at a time.
-					"who.own_shamanimbue",
-					-- Retail's off hand: Flametongue beside Windfury, or a shield's ward.
-					"who.own_shamanimbueoff",
-					-- Imbues ahead of the shield, for a shaman short of mana.
-					{ "who.ownImbueFirst", indent = 2 },
-					-- A Lightsmith paladin's rites on the weapon (retail).
-					"who.own_rite",
-					-- What goes on a weapon from the bags, per hand, while there is
-					-- one in them; a rogue's poisons as spells on Mists and retail.
-					"who.own_poisonmain",
-					"who.own_poisonoff",
-					"who.own_lethal",
-					"who.own_nonlethal",
-					"who.own_stonemain",
-					"who.own_stoneoff",
-					"who.own_oilmain",
-					"who.own_oiloff",
-					-- A warlock's Firestone or Spellstone on the main hand (Forever).
-					"who.own_warlockstone",
-					-- Making one when none is in the bags (Forever), off until turned on.
-					{ "who.own_makestone", indent = true },
-					"who.own_lure",
-				} },
-				{ key = "who.myselfItems", title = L["Food, flasks and scrolls"], items = {
-					-- Food that gives Well Fed, off until it is turned on; every class has it.
-					-- The foods to leave out right under it.
-					"who.own_food",
-					-- Which food, asked for on CurseForge: the best, the weakest, or one by name.
-					{ "who.ownFoodChoice", indent = true },
-					{ "who.own_leave_food", indent = true },
-					-- The sleeping bag's Well-Rested, off until it is turned on;
-					-- shown while the bag is in the bags (Classic Era, Forever).
-					"who.own_rested",
-					-- Its last five minutes, asked for on CurseForge.
-					{ "who.ownRestedEarly", indent = true },
-					-- A companion pet, off until it is turned on; shown while one is in
-					-- the bags or (Forever) the pet journal. Which pet, under it.
-					-- HOME: companion pets (the journal's reminder on Mists and
-					-- retail, and anything more about them) go here, with these two.
-					"who.own_pet",
-					{ "who.ownPetChoice", indent = true },
-					-- Flasks, elixirs and a scroll of each stat, off until turned on;
-					-- shown while one is in the bags (Buffs.lua, CONSUME).
-					"who.own_flask",
-					-- Battle Elixir on Burning Crusade and Mists, Elixir elsewhere;
-					-- Guardian Elixir its own switch there, and on Classic Era and
-					-- Forever the elixirs to keep up at once, under the one switch.
-					"who.own_elixir",
-					{ "who.own_elixirkeep", indent = true },
-					"who.own_guardianelixir",
-					-- Every scroll at once, then each scroll's own switch under it, one
-					-- step further in: off, those switches are gone (Options/Who.lua,
-					-- ownScrolls).
-					"who.ownScrolls",
-					{ "who.own_scrollagility", indent = true },
-					{ "who.own_scrollstrength", indent = true },
-					{ "who.own_scrollprotection", indent = true },
-					{ "who.own_scrollintellect", indent = true },
-					{ "who.own_scrollstamina", indent = true },
-					{ "who.own_scrollspirit", indent = true },
-					-- A mage's scrolls on Forever, while there is one in the bags.
-					{ "who.own_familiar", indent = true },
-					{ "who.own_imbue", indent = true },
-				} },
-				-- A buff of your own Manners does not know (OwnSpells.lua): the box,
-				-- the answer to the last one typed, and a Remove for each spell.
-				{ key = "who.myselfCustom", title = L["Add a spell of my own"], items = {
-					"who.ownSpellNote",
-					"who.ownSpellAdd",
-					"who.ownSpellSaid",
-					"who.ownSpell1", "who.ownSpell2", "who.ownSpell3", "who.ownSpell4", "who.ownSpell5",
-					"who.ownSpell6", "who.ownSpell7", "who.ownSpell8", "who.ownSpell9", "who.ownSpell10",
-				} },
-				{ key = "who.myselfWhen", title = L["When my own buffs come up"], items = {
-					-- Where the reminders come up.
-					"who.ownCities",
-					"who.ownDungeons",
-					-- The consumables on a button of their own (Prompt/Supplies.lua).
-					"who.ownApart",
-					-- A warrior's shout for himself, alone (shown to a warrior only).
-					"who.ownShout",
-					-- The spells of those families you know, to leave out one by one.
-					"who.own_leave",
-					-- Why a buff of your own is not being offered, under the switches.
-					"diagnostics.ownDiag",
-				} },
 				-- HOME: asking for a buff (what you want from other people, and
-				-- how it is asked) goes here: it is about you, like the four
-				-- sections above it.
+				-- how it is asked) goes here: it is about you, not about the
+				-- people you buff.
 				-- Asking, not only giving (Ask.lua): the switch, and under it how
 				-- the ask is said, gone while it is off.
 				{ key = "who.asking", title = L["Asking for a buff"], home = true, items = {
@@ -584,15 +439,6 @@ ns.WindowLayout = {
 					{ "who.askOwn", indent = true },
 					{ "who.askInTowns", indent = true },
 				} },
-				-- Each moment with a hunter's pet, its answer, its line and its
-				-- memory, a switch apiece (HunterPet.lua), folded away.
-				{ key = "who.myselfPetMoments", title = L["Bond with my pet, piece by piece"], fold = true, items = {
-					"who.beastPraise", "who.beastComfort", "who.beastWelcome", "who.beastSorry", "who.beastHello",
-					"who.beastMorning", "who.beastRoad", "who.beastPlay", "who.beastShare", "who.beastFamily",
-					"who.beastMissed", "who.beastSaved", "who.beastGrown", "who.beastAnniversary", "who.beastAnswer",
-					"who.beastWords", "who.beastMilestones",
-					{ "who.beastMemory", indent = true },
-				} },
 				{ key = "who.first", header = "who.firstHeader", fold = true, items = {
 					"who.target",
 					"who.friends",
@@ -600,13 +446,11 @@ ns.WindowLayout = {
 					"who.revived",
 				} },
 			},
-			-- Your own buffs' four sections are one: Myself.
 			subpages = {
 				{ "who.sources" },
 				{ "who.cast", "who.order" },
 				{ "who.group" },
 				{ "who.beyond" },
-				{ "who.myself", "who.myselfPet", "who.myselfWeapons", "who.myselfItems", "who.myselfCustom", "who.myselfWhen", "who.myselfPetMoments" },
 				{ "who.asking" },
 				{ "who.first" },
 			},
@@ -663,11 +507,6 @@ ns.WindowLayout = {
 					"when.alwaysNote",
 					"when.verifiedOnly",
 				} },
-				{ key = "when.self", header = "when.selfHeader", items = {
-					"when.selfTopUp",
-					{ "when.selfLead", indent = true },
-					{ "when.selfLeadNote", indent = true },
-				} },
 				-- Where the old note pointing at Advanced was.
 				{ key = "when.favours", header = "advanced.favoursHeader", items = {
 					"advanced.reciprocateWindow",
@@ -691,12 +530,202 @@ ns.WindowLayout = {
 			-- The two folds of fine print are one entry.
 			subpages = {
 				{ "when.buffed" },
-				{ "when.self" },
 				{ "when.favours" },
 				{ "when.timing", "when.targeting" },
 			},
 		},
 
+		-- Your own buffs, apart from the ones you give other people: what Manners
+		-- reminds you of, when, how early, and the things you carry.
+		self = {
+			title = L["My own buffs"],
+			icon = ICONS.self,
+			sections = {
+				{ key = "self.myself", header = "who.myselfHeader", items = {
+					"who.self",
+					-- Only the families this character knows are shown (their own rule).
+					{ "who.own_omen", indent = true },
+					-- A druid's Moonkin Form, never asked for in another form.
+					{ "who.own_moonkinform", indent = true },
+					-- A druid's Tree of Life (Burning Crusade, Season of Discovery).
+					{ "who.own_treeoflife", indent = true },
+					{ "who.own_aspect", indent = true },
+					{ "who.own_trueshot", indent = true },
+					-- Season of Discovery's Heart of the Lion (Classic Era).
+					{ "who.own_heartofthelion", indent = true },
+					{ "who.own_armor", indent = true },
+					-- A mage's Dampen Magic or Amplify Magic, off until picked.
+					{ "who.own_magicmod", indent = true },
+					{ "who.ownDampenAlone", indent = 2 },
+					{ "who.ownAmplifyAlone", indent = 2 },
+					-- A mage's Mana Shield, and Fire Ward or Frost Ward, off until
+					-- turned on; the line under them says they are reminded outside a
+					-- fight only (Options/Who.lua, ownBriefNote).
+					{ "who.own_manashield", indent = true },
+					{ "who.own_ward", indent = true },
+					{ "who.ownBriefNote", indent = true },
+					{ "who.own_aura", indent = true },
+					{ "who.own_righteousfury", indent = true },
+					{ "who.own_innerfire", indent = true },
+					{ "who.own_touchofweakness", indent = true },
+					{ "who.own_shadowguard", indent = true },
+					{ "who.own_shadowform", indent = true },
+					{ "who.own_shield", indent = true },
+					-- Season of Discovery's Spirit of the Alpha on a shaman who tanks.
+					{ "who.own_spiritofthealpha", indent = true },
+					{ "who.own_demonarmor", indent = true },
+					-- A warlock's Grimoire of Sacrifice (Mists, retail).
+					{ "who.own_grimoireofsacrifice", indent = true },
+					-- A warlock's Demonic Sacrifice and Soul Link (Classic Era, Forever,
+					-- Burning Crusade).
+					{ "who.own_demonicsacrifice", indent = true },
+					-- Forever's Soul Link of its own, with Demonic Pact known.
+					{ "who.own_soullink", indent = true },
+					-- A warlock's Detect Invisibility, off until it is turned on.
+					{ "who.own_detectinvis", indent = true },
+					-- A warlock's Unending Breath on himself, only while he swims.
+					{ "who.own_selfbreath", indent = true },
+					{ "who.own_tracking", indent = true },
+					-- Forever's Find Treasure, kept on beside a gathering tracking.
+					{ "who.own_findtreasure", indent = true },
+				} },
+				{ key = "self.when", title = L["When my own buffs come up"], items = {
+					-- Where the reminders come up.
+					"who.ownCities",
+					"who.ownDungeons",
+					-- The consumables on a button of their own (Prompt/Supplies.lua).
+					"who.ownApart",
+					-- Its key, set here rather than only under Key Bindings.
+					{ "who.ownApartKey", indent = true },
+					-- A warrior's shout for himself, alone (shown to a warrior only).
+					"who.ownShout",
+					-- The spells of those families you know, to leave out one by one.
+					"who.own_leave",
+					-- Why a buff of your own is not being offered, under the switches.
+					"diagnostics.ownDiag",
+				} },
+				{ key = "self.topUp", header = "when.selfHeader", items = {
+					"when.selfTopUp",
+					{ "when.selfLead", indent = true },
+					{ "when.selfLeadNote", indent = true },
+				} },
+				{ key = "self.weapons", title = L["Weapons"], items = {
+					-- A shaman's weapon imbues, spells: one a hand at a time.
+					"who.own_shamanimbue",
+					-- Retail's off hand: Flametongue beside Windfury, or a shield's ward.
+					"who.own_shamanimbueoff",
+					-- Imbues ahead of the shield, for a shaman short of mana.
+					{ "who.ownImbueFirst", indent = 2 },
+					-- A Lightsmith paladin's rites on the weapon (retail).
+					"who.own_rite",
+					-- What goes on a weapon from the bags, per hand, while there is
+					-- one in them; a rogue's poisons as spells on Mists and retail.
+					"who.own_poisonmain",
+					"who.own_poisonoff",
+					"who.own_lethal",
+					"who.own_nonlethal",
+					"who.own_stonemain",
+					"who.own_stoneoff",
+					"who.own_oilmain",
+					"who.own_oiloff",
+					-- A warlock's Firestone or Spellstone on the main hand (Forever).
+					"who.own_warlockstone",
+					-- Making one when none is in the bags (Forever), off until turned on.
+					{ "who.own_makestone", indent = true },
+					"who.own_lure",
+				} },
+				{ key = "self.items", title = L["Food, flasks and scrolls"], items = {
+					-- Food that gives Well Fed, off until it is turned on; every class has it.
+					-- The foods to leave out right under it.
+					"who.own_food",
+					-- Which food, asked for on CurseForge: the best, the weakest, or one by name.
+					{ "who.ownFoodChoice", indent = true },
+					{ "who.own_leave_food", indent = true },
+					-- The sleeping bag's Well-Rested, off until it is turned on;
+					-- shown while the bag is in the bags (Classic Era, Forever).
+					"who.own_rested",
+					-- Its last five minutes, asked for on CurseForge.
+					{ "who.ownRestedEarly", indent = true },
+					-- A companion pet, off until it is turned on; shown while one is in
+					-- the bags or (Forever) the pet journal. Which pet, under it.
+					-- HOME: companion pets (the journal's reminder on Mists and
+					-- retail, and anything more about them) go here, with these two.
+					"who.own_pet",
+					{ "who.ownPetChoice", indent = true },
+					-- Flasks, elixirs and a scroll of each stat, off until turned on;
+					-- shown while one is in the bags (Buffs.lua, CONSUME).
+					"who.own_flask",
+					-- Battle Elixir on Burning Crusade and Mists, Elixir elsewhere;
+					-- Guardian Elixir its own switch there, and on Classic Era and
+					-- Forever the elixirs to keep up at once, under the one switch.
+					"who.own_elixir",
+					{ "who.own_elixirkeep", indent = true },
+					"who.own_guardianelixir",
+					-- Every scroll at once, then each scroll's own switch under it, one
+					-- step further in: off, those switches are gone (Options/Who.lua,
+					-- ownScrolls).
+					"who.ownScrolls",
+					{ "who.own_scrollagility", indent = true },
+					{ "who.own_scrollstrength", indent = true },
+					{ "who.own_scrollprotection", indent = true },
+					{ "who.own_scrollintellect", indent = true },
+					{ "who.own_scrollstamina", indent = true },
+					{ "who.own_scrollspirit", indent = true },
+					-- A mage's scrolls on Forever, while there is one in the bags.
+					{ "who.own_familiar", indent = true },
+					{ "who.own_imbue", indent = true },
+				} },
+				-- A buff of your own Manners does not know (OwnSpells.lua): the box,
+				-- the answer to the last one typed, and a Remove for each spell.
+				{ key = "self.custom", title = L["Add a spell of my own"], items = {
+					"who.ownSpellNote",
+					"who.ownSpellAdd",
+					"who.ownSpellSaid",
+					"who.ownSpell1", "who.ownSpell2", "who.ownSpell3", "who.ownSpell4", "who.ownSpell5",
+					"who.ownSpell6", "who.ownSpell7", "who.ownSpell8", "who.ownSpell9", "who.ownSpell10",
+				} },
+			},
+			subpages = {
+				{ "self.myself", "self.when", "self.topUp" },
+				{ "self.weapons" },
+				{ "self.items" },
+				{ "self.custom" },
+			},
+		},
+
+		-- A hunter's pet (HunterPet.lua): the care, each with its own switch, and
+		-- the moments with it. Only a hunter has a control here, so the sidebar
+		-- drops the page for everybody else.
+		pet = {
+			title = L["My pet"],
+			icon = ICONS.pet,
+			sections = {
+				-- A hunter's pet (HunterPet.lua): care, each with its own switch,
+				-- then the moments with it and what Manners remembers of each pet.
+				{ key = "pet.care", title = L["Looking after my pet"], items = {
+					"who.beastAll",
+					{ "who.beastCall", indent = true },
+					{ "who.beastRevive", indent = true },
+					{ "who.beastFeed", indent = true },
+					{ "who.beastMend", indent = true },
+					{ "who.beastMendFight", indent = true },
+					{ "who.beastLeaveFood", indent = true },
+					{ "who.beastGrowl", indent = true },
+					{ "who.beastTraining", indent = true },
+					{ "who.beastBond", indent = true },
+					{ "who.beastPace", indent = 2 },
+				} },
+				-- Each moment with a hunter's pet, its answer, its line and its
+				-- memory, a switch apiece (HunterPet.lua), folded away.
+				{ key = "pet.moments", title = L["Each moment with my pet"], fold = true, items = {
+					"who.beastPraise", "who.beastComfort", "who.beastWelcome", "who.beastSorry", "who.beastHello",
+					"who.beastMorning", "who.beastRoad", "who.beastPlay", "who.beastShare", "who.beastFamily",
+					"who.beastMissed", "who.beastSaved", "who.beastGrown", "who.beastAnniversary", "who.beastAnswer",
+					"who.beastWords", "who.beastMilestones",
+					{ "who.beastMemory", indent = true },
+				} },
+			},
+		},
 		-- Where and when Manners holds back or says nothing: the place rules,
 		-- the group rules for the spoken line and the thanks, battlegrounds,
 		-- and being mounted or low on mana.
@@ -1099,6 +1128,7 @@ ns.WindowLayout = {
 			["who.ownCities"] = true,
 			-- A hunter's moments with his pet (HunterPet.lua).
 			["who.beastBond"] = true, ["who.beastAll"] = true,
+			["who.beastMend"] = true, ["who.beastMendFight"] = true,
 			-- Scrolls: the switch each scroll's own (who.own_*, added below) is
 			-- indented under, and the only way back to them once it is off.
 			["who.ownScrolls"] = true,
@@ -1280,6 +1310,8 @@ ns.WindowLayout = {
 		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
 		["who.curesFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["who.ownSpellAdd"] = L["custom spell add new buff own"],
+		-- The consumables button: asked for as the food and flask key.
+		["who.ownApart"] = L["consumables button food flask scroll key"],
 
 		-- The words players typed for a control: wotf, rez, reply, queue, color.
 		["appearance.breakFree"] = L["wotf forsaken break free fear charm sleep fight button turn off hide"],

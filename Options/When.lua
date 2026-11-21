@@ -100,7 +100,7 @@ function Page.BuildWhenTab()
 			-- Yours are topped up whatever the choice above says for other
 			-- people (ns.SelfWhenBuffed), so these two are never hidden by it,
 			-- and sit under a heading of their own.
-			selfHeader = { type = "header", name = L["My own buffs"], order = 6 },
+			selfHeader = { type = "header", name = L["Topping up early"], order = 6 },
 			selfTopUp = {
 				type = "toggle",
 				name = L["Top up my own buffs before they run out"],

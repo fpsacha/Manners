@@ -97,7 +97,8 @@ local function contentWidth(UI) return UI.WIDTH - UI.SIDEBAR - 13 - PAD_LEFT - 1
 
 do
 	local scenario = "menu: a window dragged wide flows a page's sections into two columns, and three when very wide"
-	with(scenario, { screen = 1792, page = "when" }, function(ns, UI)
+	-- Who to buff: When to offer is short now, too short to fill three columns.
+	with(scenario, { screen = 1792, page = "who", class = "PRIEST" }, function(ns, UI)
 		if UI.Columns() ~= 1 then fail(scenario, "the usual window has " .. tostring(UI.Columns()) .. " columns") end
 		for _, sec in ipairs(drawn(UI)) do
 			if sec.column ~= 1 then fail(scenario, sec.key .. " is in column " .. tostring(sec.column) .. " of the usual window") end
@@ -470,13 +471,24 @@ do
 	with(scenario, { page = "who", class = "PRIEST" }, function(ns, UI)
 		local at = {}
 		for i, sec in ipairs(UI.Model("who").sections) do at[sec.key] = i end
-		local order = { "who.now", "who.sources", "who.cast", "who.order", "who.group", "who.myself", "who.first" }
+		local order = { "who.now", "who.sources", "who.cast", "who.order", "who.group", "who.beyond", "who.first" }
 		for i = 2, #order do
 			local a, b = at[order[i - 1]], at[order[i]]
 			if not (a and b) then
 				fail(scenario, "Who to buff has no section " .. (a and order[i] or order[i - 1]))
 			elseif a > b then
 				fail(scenario, order[i] .. " comes before " .. order[i - 1] .. " on Who to buff")
+			end
+		end
+		-- My own buffs: who the buffs are for, when they come up, how early, then
+		-- what is carried, weapons first.
+		local own = {}
+		for i, sec in ipairs(UI.Model("self").sections) do own[sec.key] = i end
+		local want = { "self.myself", "self.when", "self.topUp", "self.weapons", "self.items", "self.custom" }
+		for i = 1, #want do
+			if not own[want[i]] then fail(scenario, "My own buffs has no section " .. want[i])
+			elseif i > 1 and own[want[i - 1]] and own[want[i - 1]] > own[want[i]] then
+				fail(scenario, want[i] .. " comes before " .. want[i - 1] .. " on My own buffs")
 			end
 		end
 		-- A heading on every section; the one a page opens with may go without.
@@ -742,8 +754,9 @@ do
 			if class == "PRIEST" then
 				ns.OpenOptions("who")
 				if not UI.RowShown("who.offer_spirit") then fail(scenario, "a priest's Divine Spirit is off the short list") end
-				if not UI.RowShown("who.own_food") then fail(scenario, "Well Fed is off the short list") end
 				if UI.RowShown("who.relevantOnly") then fail(scenario, "Only to players with mana is on the short list") end
+				ns.OpenOptions("self")
+				if not UI.RowShown("who.own_food") then fail(scenario, "Well Fed is off the short list") end
 			end
 			-- Show everything.
 			ns.OpenOptions("when")

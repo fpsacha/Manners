@@ -46,23 +46,16 @@ Page.RESET = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
 		"buff.tanksOutside", "buff.keptBack", "buff.forClass",
-		"sources.owed", "sources.group", "sources.pets", "sources.share", "sources.strangers", "sources.asked", "sources.self",
+		"sources.owed", "sources.group", "sources.pets", "sources.share", "sources.strangers", "sources.asked",
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
 		"sources.res", "sources.resStrangers",
 		"sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight",
-		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
-		"ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly", "ownBuffs.scrolls", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
+		"filters.proximity", "filters.restingOnly", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"buff.leaveBlessed",
 		"buff.detectPassers",
 		"buff.skipCasters",
 		"buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe", "buff.notMeInside",
 		"buff.optIn",
-		"ownBuffs.apart",
-		-- A hunter's pet (HunterPet.lua): care and the moments, all on again.
-		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
-		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
-		-- Elixirs to keep up (Classic Era, Forever): none ticked again.
-		"ownBuffs.elixirKeep",
 		"sources.ask", "ask.channel", "ask.line", "ask.inTowns",
 		"ask.own",
 		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
@@ -89,7 +82,7 @@ Page.RESET = {
 		after = function() rescan() end,
 	},
 	when = {
-		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid", "filters.selfTopUp", "filters.selfLead",
+		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid",
 		"filters.verifiedOnly",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
@@ -151,6 +144,39 @@ Page.RESET = {
 			restyleAndMacro()
 		end,
 	},
+}
+
+-- My own buffs: what Manners reminds you of for yourself, when, and how early.
+-- The picks and the lists of what to leave out go back too: Who to buff's reset
+-- no longer reaches them. Your own spells (db.char) are kept.
+Page.RESET.self = {
+	"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons",
+	"ownBuffs.shoutAlone", "ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst",
+	"ownBuffs.restedEarly", "ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart",
+	"filters.selfTopUp", "filters.selfLead",
+	after = function()
+		rescan()
+		restyleAndMacro()
+		-- The bags counted again for what is switched on now (Scrolls, the picks).
+		if ns.ForgetScrolls then ns.ForgetScrolls() end
+		-- The consumables button follows its switch.
+		if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
+		-- An own buff's pick shows at once, as its own control does it.
+		ns.Prompt:Refresh()
+		RefreshBroker()
+	end,
+}
+
+-- My pet (HunterPet.lua): care and the moments, all on again. Mend Pet in a
+-- fight is also on In a fight (the same field, drawn twice on purpose).
+Page.RESET.pet = {
+	"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
+	"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
+	after = function()
+		restyleAndMacro()
+		if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+		ns.Prompt:Refresh()
+	end,
 }
 
 -- Quiet times: where and when Manners holds back or says nothing. The rules

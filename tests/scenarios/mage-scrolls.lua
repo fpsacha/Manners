@@ -667,23 +667,23 @@ do
 		-- Placed under Myself, and drawn there.
 		for _, path in ipairs({ "who.own_familiar", "who.own_imbue" }) do
 			local page, section = H.placedOn(ns, path)
-			if page ~= "who" or not (section and tostring(section.key):find("^who%.myself")) then
+			if page ~= "self" or not (section and tostring(section.key):find("^self%.")) then
 				fail(scenario, path .. " is not placed under Myself: " .. tostring(page))
 			end
 		end
-		ns.OpenOptions("who")
+		ns.OpenOptions("self")
 		ns.Prompt:ExitTest()
 		local UI = ns.WindowUI
 		if not (UI and UI.RowShown("who.own_familiar") and UI.RowShown("who.own_imbue")) then
 			fail(scenario, "the window does not show the Familiar and Weapon imbue rows")
 		end
 
-		-- Who to buff's reset.
+		-- My own buffs' reset.
 		familiar.set({ "own_familiar" }, "off")
 		imbue.set({ "own_imbue" }, "imbuechillknife")
-		if ns.OptionsPage.ResetPage("who") ~= true then fail(scenario, "SKIPPED -- the reset did not run") end
+		if ns.OptionsPage.ResetPage("self") ~= true then fail(scenario, "SKIPPED -- the reset did not run") end
 		if familiar.get() ~= "auto" or imbue.get() ~= "auto" then
-			fail(scenario, ("after Who to buff's reset the picks are %s and %s"):format(tostring(familiar.get()),
+			fail(scenario, ("after My own buffs' reset the picks are %s and %s"):format(tostring(familiar.get()),
 				tostring(imbue.get())))
 		end
 

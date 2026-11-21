@@ -36,6 +36,8 @@ mutate(LAYOUT, "\t\t\t\t\t\"who.quietInTowns\",\n"
 mutate(LAYOUT, "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n"
        "\t\t\t\t\t-- The consumables on a button of their own (Prompt/Supplies.lua).\n"
        "\t\t\t\t\t\"who.ownApart\",\n"
+       "\t\t\t\t\t-- Its key, set here rather than only under Key Bindings.\n"
+       "\t\t\t\t\t{ \"who.ownApartKey\", indent = true },\n"
        "\t\t\t\t\t-- A warrior's shout for himself, alone (shown to a warrior only).\n"
        "\t\t\t\t\t\"who.ownShout\",\n"
        "\t\t\t\t\t-- The spells of those families you know, to leave out one by one.\n"
@@ -43,12 +45,13 @@ mutate(LAYOUT, "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n"
        "\t\t\t\t\t\"who.own_leave\",\n"
        "\t\t\t\t\t\"who.ownCities\",\n\t\t\t\t\t\"who.ownDungeons\",\n"
        "\t\t\t\t\t\"who.ownApart\",\n"
+       "\t\t\t\t\t{ \"who.ownApartKey\", indent = true },\n"
        "\t\t\t\t\t\"who.ownShout\",\n",
        "ux-redesign: the place switches read as items of Never remind me about",
        expect="ux-redesign: the Myself place switches come before Never remind me about", script=S)
 
-mutate(LAYOUT, "\t\t\t\t\t\"when.verifiedOnly\",\n\t\t\t\t} },\n\t\t\t\t{ key = \"when.self\", header = \"when.selfHeader\", items = {\n",
-       "\t\t\t\t\t\"when.verifiedOnly\",\n",
+mutate(LAYOUT, "{ key = \"self.topUp\", header = \"when.selfHeader\", items = {",
+       "{ key = \"self.topUp\", header = \"when.buffedHeader\", items = {",
        "ux-redesign: your own top-ups back under other people's",
        expect="ux-redesign: your own top-ups have a section of their own", script=S)
 
@@ -57,9 +60,9 @@ mutate("Options/When.lua", "hidden = function() return (tonumber(F().selfLead) o
        "ux-redesign: the slider's 0 never explained",
        expect="ux-redesign: your own top-ups have a section of their own", script=S)
 
-mutate("Options/When.lua", "selfHeader = { type = \"header\", name = L[\"My own buffs\"], order = 6 },",
-       "selfHeader = { type = \"header\", name = L[\"My own buffs\"], order = 3.55 },",
-       "ux-redesign: the old dialog's My own buffs heading over other people's notes",
+mutate("Options/When.lua", "selfHeader = { type = \"header\", name = L[\"Topping up early\"], order = 6 },",
+       "selfHeader = { type = \"header\", name = L[\"Topping up early\"], order = 3.55 },",
+       "ux-redesign: the old dialog's Topping up early heading over other people's notes",
        expect="ux-redesign: your own top-ups have a section of their own", script=S)
 
 mutate(LAYOUT, "\t\t\t\t\t\"who.kingsFirst\",\n\t\t\t\t\t{ composite = \"order\"",

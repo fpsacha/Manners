@@ -1325,7 +1325,7 @@ theme-picker: the icon is the player's own buff, cropped as the prompt crops it:
 tracking: Find Herbs off is offered, on is not: with Find Herbs on the minimap list, tracking is not one of your own buffs
 ## ux-redesign.lua
 ux-redesign: a greyed control says which switch greys it: SKIPPED -- no group buffs row for this character
-ux-redesign: the Myself place switches come before Never remind me about: who.own_tracking does not come before who.ownCities (nil nil nil / who who.myselfWhen 1)
+ux-redesign: the Myself place switches come before Never remind me about: who.own_tracking does not come before who.ownCities (nil nil nil / self self.when 1)
 ux-redesign: the switches say what they do: the mana switch does not name Arcane Intellect: Only give mana buffs to players with mana
 ## whatif.lua
 whatif: a group member's favour, your blessing on him: a party warrior who buffed you, wearing your Might with forty minutes left, was offered might
@@ -1364,4 +1364,4 @@ window: the class table (WARRIOR): a warrior with one buff is offered a choice
 ## window-polish.lua
 window: each move of the colour picker is committed once: the colour came out 0.2 0.3 0.4 0.4
 ## window.lua
-window: a spell learned mid-session adds its row without a reload: learning Frost Armor did not add Armor to Who to buff
+window: a spell learned mid-session adds its row without a reload: learning Frost Armor did not add Armor to My own buffs

@@ -348,9 +348,9 @@ do
 		end
 		leave.senseundead = true
 		if UI and not UI.Differs("who.own_leave") then
-			fail(scenario, "a tick does not mark Who to buff as changed from its defaults")
+			fail(scenario, "a tick does not mark My own buffs as changed from its defaults")
 		end
-		if ns.OptionsPage.ResetPage("who") ~= true then
+		if ns.OptionsPage.ResetPage("self") ~= true then
 			fail(scenario, "SKIPPED -- the reset did not run")
 			return
 		end

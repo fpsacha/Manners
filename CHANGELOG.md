@@ -9,6 +9,8 @@
 
 - **New page *Quiet times*:** where and when Manners holds back or says nothing. *In a party or a raid* puts the speech and thank switches side by side. The /thank and the whisper share their options.
 
+- **New pages *My own buffs* and, for hunters, *My pet*;** *Who to buff* is about other people again. The consumables button's key can be set in the window.
+
 - **Search finds the words people use** (wotf, rez, reply, queue, color and more) and phrases such as "turn off will of the forsaken".
 
 - **Who to skip > After a right-click** sets how long a right-click skips someone, up to 30 minutes. The box reads 12 s or 5 min, and you can type 5m or 1h.

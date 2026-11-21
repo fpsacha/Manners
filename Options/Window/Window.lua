@@ -196,6 +196,14 @@ function UI.State()
 		s = loose
 	end
 	if type(s.open) ~= "table" then s.open = {} end
+	-- A fold that moved to another page keeps what the player left it at.
+	local renamed = ns.WindowLayout and ns.WindowLayout.renamedFolds
+	if renamed then
+		for old, new in pairs(renamed) do
+			if s.open[old] ~= nil and s.open[new] == nil then s.open[new] = s.open[old] end
+			s.open[old] = nil
+		end
+	end
 	return s
 end
 

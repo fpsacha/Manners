@@ -153,7 +153,7 @@ end
 
 -- ------------------------------------------------------------------ 5
 do
-	local scenario = "pass2-window: Who to buff's reset puts back the fight switches it draws"
+	local scenario = "pass2-window: Who to buff's and My pet's resets put back the fight switches they draw"
 	Mock.reset()
 	Mock.class = "HUNTER"
 	local ns = load(scenario)
@@ -173,8 +173,10 @@ do
 			if p.prompt.cureFight ~= false then
 				fail(scenario, "Offer my cure in a fight stays " .. tostring(p.prompt.cureFight) .. " after the page's reset")
 			end
+			-- Mend Pet's is a hunter's pet's: My pet's reset puts it back.
+			Page.ResetPage("pet")
 			if p.beast.fightMend == false then
-				fail(scenario, "Offer Mend Pet in a fight stays off after the page's reset")
+				fail(scenario, "Offer Mend Pet in a fight stays off after My pet's reset")
 			end
 			noErrors(scenario, ns)
 		end)

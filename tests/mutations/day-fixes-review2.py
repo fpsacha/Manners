@@ -5,7 +5,7 @@
 
 S = "runscenarios.py"
 
-TICK = "day-fixes-review2: the tick the resting line names is on the simple view's Who to buff"
+TICK = "day-fixes-review2: the tick the resting line names is on the simple view's My own buffs"
 
 # The simple view draws the tick the line names.
 mutate("Options/Window/Layout.lua",

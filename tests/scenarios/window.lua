@@ -192,7 +192,7 @@ do
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do ids[#ids + 1] = id end
 		end
-		if table.concat(ids, " ") ~= "general who skip when fight click appearance profiles diagnostics" then
+		if table.concat(ids, " ") ~= "general who skip when self pet quiet fight click appearance profiles diagnostics" then
 			fail(scenario, "the page ids are " .. table.concat(ids, " "))
 		end
 
@@ -541,12 +541,15 @@ end
 do
 	local scenario = "window: the reset button is hidden on Start here, Profiles and Diagnostics"
 	with(scenario, {}, function(ns, UI)
-		local want = { general = false, who = true, skip = true, when = true, fight = true, click = true, appearance = true,
+		local want = { general = false, who = true, skip = true, when = true, self = true, pet = true, quiet = true, fight = true, click = true, appearance = true,
 			profiles = false, diagnostics = false }
 		for _, group in ipairs(ns.WindowLayout.groups) do
 			for _, id in ipairs(group) do
 				ns.OpenOptions(id)
-				if ns.OptionsTab() ~= id then
+				if id == "pet" and ns.OptionsTab() ~= id then
+					-- Only a hunter has My pet: a mage's sidebar leaves it out.
+					if UI.visiblePages.pet then fail(scenario, "a mage's sidebar lists My pet") end
+				elseif ns.OptionsTab() ~= id then
 					fail(scenario, "SKIPPED -- a mage cannot open " .. id)
 				elseif shown(UI.footer.reset) ~= want[id] then
 					fail(scenario, ("the reset button is %s on %s"):format(shown(UI.footer.reset) and "shown" or "hidden", id))
@@ -898,7 +901,7 @@ end
 do
 	local scenario = "window: a spell learned mid-session adds its row without a reload"
 	with(scenario, { known = { 1459 } }, function(ns, UI)
-		ns.OpenOptions("who")
+		ns.OpenOptions("self")
 		ns.Prompt:ExitTest()
 		if UI.RowShown("who.own_armor") then
 			fail(scenario, "SKIPPED -- Armor is shown before any armor is learned")
@@ -909,7 +912,7 @@ do
 		Mock.advance(10)
 		ns.addon:SPELLS_CHANGED()
 		Mock.runTimers(6)
-		if not UI.RowShown("who.own_armor") then fail(scenario, "learning Frost Armor did not add Armor to Who to buff") end
+		if not UI.RowShown("who.own_armor") then fail(scenario, "learning Frost Armor did not add Armor to My own buffs") end
 	end)
 end
 

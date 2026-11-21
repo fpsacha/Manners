@@ -233,10 +233,10 @@ do
 		if not has(tostring(text):lower(), "outside a fight") then fail(scenario, "the ward's text does not say outside a fight") end
 		local note = findOption(ns.optionsTable, "ownBriefNote")
 		if not note or note.hidden() then fail(scenario, "the line under them is hidden from a mage who knows them") end
-		local sections = ns.WindowLayout.pages.who.sections
+		local sections = ns.WindowLayout.pages.self.sections
 		local ok = false
 		for _, section in ipairs(sections) do
-			if section.key == "who.myself" then
+			if section.key == "self.myself" then
 				local at
 				for i, item in ipairs(section.items) do
 					local k = type(item) == "table" and item[1] or item
@@ -628,11 +628,13 @@ do
 end
 
 do
-	local scenario = "ownspell: the Who to buff reset keeps the list"
+	local scenario = "ownspell: the Who to buff and My own buffs resets keep the list"
 	with(scenario, { names = PRIEST_NAMES, known = { FEAR } }, function(ns)
 		add(ns, "Fear Ward")
 		ns.OptionsPage.ResetPage("who")
 		if not (list(ns)[1] and list(ns)[1].id == FEAR) then fail(scenario, "the reset took the list") end
+		ns.OptionsPage.ResetPage("self")
+		if not (list(ns)[1] and list(ns)[1].id == FEAR) then fail(scenario, "My own buffs' reset took the list") end
 	end)
 end
 

@@ -266,8 +266,8 @@ mutate("Core.lua",
 
 # ...and not reset with its page.
 mutate("Options/Advanced.lua",
-       "\"filters.refreshUnder\", \"filters.refreshRaid\", ",
-       "\"filters.refreshUnder\", ",
+       "\"filters.refreshUnder\", \"filters.refreshRaid\",\n",
+       "\"filters.refreshUnder\",\n",
        "hunt32-durations: the raid setting not reset",
        expect=NAMES + "the raid setting is repaired, reset and on the page",
        script=S)

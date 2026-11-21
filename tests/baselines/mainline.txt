@@ -1382,7 +1382,7 @@ tracking: Find Herbs off is offered, on is not: with Find Herbs on the minimap l
 ## ux-redesign.lua
 ux-redesign: a class with nothing for others has Consumables only in dungeons and raids: SKIPPED -- the hunter has no Myself
 ux-redesign: a greyed control says which switch greys it: SKIPPED -- no group buffs row for this character
-ux-redesign: the Myself place switches come before Never remind me about: who.own_tracking does not come before who.ownCities (nil nil nil / who who.myselfWhen 1)
+ux-redesign: the Myself place switches come before Never remind me about: who.own_tracking does not come before who.ownCities (nil nil nil / self self.when 1)
 ## whatif.lua
 whatif: a group member's favour, your blessing on him: threw: whatif.lua:N: attempt to index local 'might' (a nil value)
 whatif: a group member's lapsing shout: SKIPPED -- the shouts were never noticed
@@ -1422,4 +1422,4 @@ window: the class table (PRIEST): a priest has no switch for fortitude
 window: the class table (PRIEST): a priest has no switch for shadow
 window: the class table (PRIEST): a priest has no switch for spirit
 ## window.lua
-window: a spell learned mid-session adds its row without a reload: learning Frost Armor did not add Armor to Who to buff
+window: a spell learned mid-session adds its row without a reload: learning Frost Armor did not add Armor to My own buffs

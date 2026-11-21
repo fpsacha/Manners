@@ -2,7 +2,7 @@
 -- inn; Core.lua, tracking held back in a battleground or an arena).
 --
 --   * the tick the resting line names, Also in cities and inns, is on the
---     simple view's short list, where a new profile reads Who to buff;
+--     simple view's short list, where a new profile reads My own buffs;
 --   * the line is not said, and its once not spent, while Manners is switched
 --     off or snoozed: nothing would come up on leaving;
 --   * the buff you give everybody, missing on yourself, is something of yours
@@ -65,7 +65,7 @@ end
 ---------------------------------------------------------------------------
 
 do
-	local scenario = "day-fixes-review2: the tick the resting line names is on the simple view's Who to buff"
+	local scenario = "day-fixes-review2: the tick the resting line names is on the simple view's My own buffs"
 	Mock.reset()
 	FT.install()
 	local ok, err = pcall(function()
@@ -75,11 +75,11 @@ do
 		ns.Prompt:ExitTest()
 		ns.db.profile.sources.self = true
 		ns.SetMenuView("simple")
-		ns.OpenOptions("who")
+		ns.OpenOptions("self")
 		ns.Prompt:ExitTest()
 		local UI = ns.WindowUI
 		if not UI.Where("who.ownCities") then
-			fail(scenario, "SKIPPED -- Also in cities and inns is not on Who to buff at all")
+			fail(scenario, "SKIPPED -- Also in cities and inns is not on My own buffs at all")
 			return
 		end
 		if UI.OffShortList("who.self") then

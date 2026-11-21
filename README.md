@@ -314,8 +314,9 @@ When you are missing the buff you give others, "You" comes up on the prompt
 with "your own Arcane Intellect" under it, and a press casts it on you and
 hands your target back: nothing is said, and nothing goes in the ledger. With
 it come the buffs your class casts only on itself and what you carry in your
-bags. They sit on *Who to buff* in five sections: **Myself**, **Weapons**,
-**Food, flasks and scrolls**, **Add a spell of my own** and **When my own buffs come up**.
+bags. They sit on their own page, *My own buffs*, in sections: **Myself**,
+**When my own buffs come up**, **Topping up early**, **Weapons**, **Food,
+flasks and scrolls** and **Add a spell of my own**.
 
 The rules for all of them:
 
@@ -340,8 +341,8 @@ The rules for all of them:
   character, and names the switch. Nothing is offered while the game says the
   spell cannot be cast (a druid in cat form, a priest in Shadowform, a mage
   out of mana).
-- *Top up my own buffs before they run out* (When to offer, under *My own
-  buffs*, on) offers a buff with a timer again shortly before it ends; an
+- *Top up my own buffs before they run out* (*My own buffs*, under *Topping
+  up early*, on) offers a buff with a timer again shortly before it ends; an
   aura or an aspect never is. So is Lightning Shield or Shadowguard down to
   its last charge, and Inner Fire down to its last five, after a fight.
 - Right-click "You" to skip that buff for now; Ctrl-right-click skips all of
@@ -497,7 +498,7 @@ once you carry one.
 - *Never remind me about*: a box for each spell of your families you know. A
   ticked spell is skipped by *Automatic* and never offered at all.
 
-**Your pet (hunters).** Under *Myself*, in a section of its own, each on:
+**Your pet (hunters).** On *My pet*, under *Looking after my pet*, each on:
 
 - *Call my pet when none is out*: Call Pet when no pet is with you. On Mists
   and retail it is the Call Pet you used last. Never after you dismissed the
@@ -529,7 +530,7 @@ once you carry one.
 button below: off, Manners leaves your pet to you, and every switch keeps its
 own setting for when it is on again.
 
-*Mend Pet in a fight* (its switch is under *Your pet*, below the Mend Pet
+*Mend Pet in a fight* (its switch is on *My pet*, right beside the Mend Pet
 reminder, and on *In a fight*, with a key of its own; the reminder's
 switch does not turn it off): a
 button of its own to the right of the prompt, or of the Will of the Forsaken
@@ -573,7 +574,7 @@ hour, a quarter of an hour or ten minutes. Never in a fight, a
 battleground or an arena; it stays on the prompt for 45 seconds with no
 sound, and letting it pass costs nothing. Every moment, the pet's answer, the
 line you say and the memory below have a switch of their own in a fold,
-*Bond with my pet, piece by piece*, under *Who to buff*, and are held by
+*Each moment with my pet*, on *My pet*, and are held by
 *Bond with my pet* and *Everything for my pet*. A press does the fitting emote at
 your pet (/pet, /praise, /soothe, /welcome or /greet: the button targets your
 pet, does the emote at it and puts your own target back) and an /emote everybody near
@@ -938,14 +939,15 @@ it too.
   snooze is running, nothing can be offered, or the prompt is kept away while
   you are mounted.
 - On the left, the pages, each with a painted icon of its own: *Start here*;
-  *Who to buff*, *Who to skip*, *When to offer*; *Quiet times*, *In a fight*,
-  *What I say*, *Look*; *Profiles* and *Diagnostics*. When the pages do not fit the window's
+  *Who to buff*, *Who to skip*, *When to offer*; *My own buffs* and, for
+  hunters, *My pet*; *Quiet times*, *In a fight*, *What I say*, *Look*;
+  *Profiles* and *Diagnostics*. When the pages do not fit the window's
   height they are drawn smaller. A page with
   nothing for your character is left out. A red dot beside a page means
   something there wants looking at; a key binding is optional, so no red dot
   asks for one.
-- Over a page of many sections (*Start here*, *Who to buff*, *When to offer*,
-  *Look*), a bar of its parts: *All* draws the whole page, and a part draws
+- Over a page of many sections (*Start here*, *Who to buff*, *My own buffs*,
+  *When to offer*, *Look*), a bar of its parts: *All* draws the whole page, and a part draws
   only its sections, its folded ones open. The red dot is on the part that
   wants looking at too, and the window remembers the part you last opened on
   each page until you log out.
@@ -1074,8 +1076,8 @@ no room for. Defaults are in brackets.
 - ***More than buffs***: *My group's dead* (on) with *Dead passers-by too*
   (off); *Cure my party and raid*, *Cure passers-by* and *Cure myself too* (all
   off) with *Only with more than this many seconds left* (10).
-- ***Myself***, ***Weapons***, ***Food, flasks and scrolls*** and ***When my own
-  buffs come up***: see *Your own buffs* above.
+- Your own buffs and a hunter's pet are not here: they have *My own buffs* and
+  *My pet*, below.
 - ***Asking for a buff***: *Ask people for a buff I'm missing* (off), then *Ask
   in*, *What the ask says* (three lines, or *My own words* with a box for
   them) and *Ask in cities and inns too*.
@@ -1123,10 +1125,6 @@ no room for. Defaults are in brackets.
   earlier*), or *Always offer*, which reads nobody's buffs. *Don't offer when
   the game hides their buffs (fights)* (off): with it on, nobody is offered
   *unverified*; somebody who buffed you or asked still is.
-- ***My own buffs***: *Top up my own buffs before they run out* (on),
-  whichever of the three above you pick for other people. *Remind me this
-  many minutes early* sets the moment itself (0 works it out from the buff's
-  length); it is never more than half the buff's length ahead.
 - ***Buffing back***: how long somebody who buffed you is offered one back.
   - *Offer a buff back for (seconds)* (120).
   - *Count only class buffs as favours* (on): only class buffs such as
@@ -1154,6 +1152,39 @@ no room for. Defaults are in brackets.
   the macro ends with `/targetlasttarget`, or with `/cleartarget` when you had
   nothing targeted. A warrior, whose shout never takes the target, has a line
   saying so instead.
+
+### My own buffs
+
+What Manners reminds you of for yourself: see *Your own buffs* above for the
+rules. Sections, top to bottom:
+
+- ***Myself***: *Myself, when I'm missing my own buff* (on), and under it one
+  control for each of your class's own buffs you have learned.
+- ***When my own buffs come up***: *Also in cities and inns*,
+  *Consumables only in dungeons and raids*, *Put consumables on a button of
+  their own* with *Key for the consumables button* right under it (the same
+  key as under Key Bindings, set here and saved with your key bindings), a
+  warrior's shout when alone, and *Never remind me about*. The lines at the
+  foot say why one of your buffs is not being offered.
+- ***Topping up early***: *Top up my own buffs before they run out* (on),
+  whichever of the three choices on *When to offer* you pick for other people.
+  *Remind me this many minutes early* sets the moment itself (0 works it out
+  from the buff's length); it is never more than half the buff's length
+  ahead.
+- ***Weapons***, ***Food, flasks and scrolls*** and ***Add a spell of my
+  own***, each a page part of its own.
+
+*Reset this page* here puts all of it back, which *Who to buff*'s reset leaves
+alone. Your own spells are kept.
+
+### My pet
+
+For hunters; every other class has no such page. *Looking after my pet* has
+*Everything for my pet* and, under it, a switch for each piece of care. *Mend
+Pet* and *Mend Pet in a fight* stand side by side: the first reminds you, the
+second is the button for a fight, and *In a fight* has it too. *Each moment
+with my pet* is folded: a switch for every moment, the pet's answer, your line
+and the memory. *Reset this page* puts them all back on.
 
 ### Quiet times
 

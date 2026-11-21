@@ -83,7 +83,7 @@ local function unfold(ns, path)
 	ns.RefreshOptionsDisplay()
 end
 
-local ALL = "general who skip when quiet fight click appearance profiles diagnostics"
+local ALL = "general who skip when self quiet fight click appearance profiles diagnostics"
 
 -- ------------------------------------------------------------ class table
 local TABLE = {
@@ -134,7 +134,7 @@ local TABLE = {
 	end },
 	-- A hunter and a rogue have What I say for the /thank alone (Options/Say.lua,
 	-- THANKS_ONLY): somebody buffing them is thanked like anybody.
-	{ "HUNTER", "general who skip when quiet fight click appearance profiles diagnostics", function(scenario, ns, UI)
+	{ "HUNTER", "general who skip when self pet quiet fight click appearance profiles diagnostics", function(scenario, ns, UI)
 		ns.OpenOptions("general")
 		if UI.RowShown("general.quickWho") or not UI.RowShown("general.quickWhoSummary") then
 			fail(scenario, "a hunter's step 1 is not the own-buff sentence standing in")
@@ -212,17 +212,24 @@ do
 		ns.OpenOptions("diagnostics")
 		local see = UI.Where("diagnostics.diag")
 		if see and not see.sec.visible then fail(scenario, "What Manners can see is gone though it holds only notes") end
-		-- Who to buff is Myself alone: no other section is kept on screen by
-		-- a note attached to controls the hunter does not have.
-		ns.OpenOptions("who")
+		-- Myself is on My own buffs, and no other section there is kept on
+		-- screen by a note attached to controls the hunter does not have.
+		ns.OpenOptions("self")
 		local mine = UI.Where("who.self")
-		if mine and not mine.sec.visible then fail(scenario, "a hunter's Myself is gone") end
+		if not (mine and mine.sec.visible) then fail(scenario, "a hunter's Myself is gone") end
+		for _, sec in ipairs(UI.Model("self").sections) do
+			-- Myself's own groups (food, weapons, when they come up, topping up).
+			if sec.visible and not tostring(sec.key):find("^self%.") then
+				fail(scenario, "a hunter's My own buffs shows " .. sec.key)
+			end
+		end
+		-- Who to buff keeps only Asking for a buff, which holds a switch of its
+		-- own for every class (Ask.lua) and stays on Who to buff until What I say
+		-- takes it: the one exception to a hunter's Who to buff being empty.
+		ns.OpenOptions("who")
 		for _, sec in ipairs(UI.Model("who").sections) do
-			-- Myself's own groups (food, weapons, when they come up) are Myself;
-			-- Asking for a buff holds a switch of its own, for every class (Ask.lua).
-			if sec.visible and sec ~= (mine and mine.sec) and not tostring(sec.key):find("^who%.myself")
-				and sec.key ~= "who.asking" then
-				fail(scenario, "a hunter's Who to buff shows " .. sec.key .. " beside Myself")
+			if sec.visible and sec.key ~= "who.asking" then
+				fail(scenario, "a hunter's Who to buff shows " .. sec.key)
 			end
 		end
 	end)
@@ -344,6 +351,7 @@ do
 		local T = ns.WindowWidgets.Theme
 		ns.OpenOptions("general")
 		ns.OpenOptions("who")
+		ns.OpenOptions("self")
 		ns.OpenOptions("skip")
 		local function colour(path)
 			local row = UI.RowFor(path)

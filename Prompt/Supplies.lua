@@ -31,6 +31,10 @@ local InCombatLockdown = _G.InCombatLockdown
 local Supplies = {}
 ns.Supplies = Supplies
 
+-- The key binding that presses the button (Bindings.xml), which the options
+-- window sets from My own buffs.
+Supplies.COMMAND = "CLICK MannersSupplies:LeftButton"
+
 local STATE = "mannerssupplies"
 local DRIVER = "[combat] fight; peace"
 -- Shown while the prompt is unlocked, for dragging: a bag.

@@ -547,7 +547,7 @@ local function AddOwnControls(args)
 					elseif family.scroll then
 						return L["Reminds you when no familiar is with you and a scroll for one is in your bags. Automatic takes the best your level allows."]
 					end
-					local text = L["Reminds you when none of these is up. Automatic takes the one you had up last."]
+					local text = L["Reminds you when none of these is up. Automatic takes the one you had up last; pick one to always be reminded of that one."]
 					-- Demonic Sacrifice with Demonic Pact known (Buffs.lua, splitTo):
 					-- Soul Link has moved to a switch of its own.
 					local split = family.splitTo and ns.OWN_FAMILY_BY_KEY[family.splitTo]
@@ -2112,7 +2112,7 @@ function Page.BuildWhoTab()
 			ownApart = {
 				type = "toggle",
 				name = L["Put consumables on a button of their own"],
-				desc = L["Food, flasks, elixirs, scrolls and your weapon's oils, stones and poisons come up on a small button of their own instead of on the prompt. Unlock the prompt to drag it where you want it; it has its own key under Key Bindings, and a right-click skips that item for now. It is never shown in a fight."],
+				desc = L["Food, flasks, elixirs, scrolls and your weapon's oils, stones and poisons come up on a small button of their own instead of on the prompt. Unlock the prompt to drag it where you want it; its key is set just below, and a right-click skips that item for now. It is never shown in a fight."],
 				order = 15.955,
 				width = "full",
 				hidden = NothingForSelf,
@@ -2121,6 +2121,27 @@ function Page.BuildWhoTab()
 				set = function(_, value)
 					ns.db.profile.ownBuffs.apart = value == true
 					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+					if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
+				end,
+			},
+			-- Its key, the game's binding as the prompt's is (Options/Start.lua,
+			-- Setup), saved with the binding set; under the switch. Shown only
+			-- while the button is on.
+			ownApartKey = {
+				type = "keybinding",
+				name = L["Key for the consumables button"],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
+				order = 15.956,
+				hidden = function()
+					return NothingForSelf() or ns.db.profile.ownBuffs.apart ~= true or not ns.Setup.CanBind()
+				end,
+				-- SetBinding is refused in a fight.
+				disabled = function() return InCombatLockdown() end,
+				get = function() return ns.Setup.Key(ns.Supplies.COMMAND) or "" end,
+				set = function(_, value)
+					ns.Setup.SetKey(value, ns.Supplies.COMMAND, function(key, was)
+						return L["%s was bound to %s; it now uses the consumables button."]:format(key, was)
+					end)
 					if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
 				end,
 			},

@@ -175,7 +175,7 @@ end
 -- remind me about, so they do not read as items of that list.
 do
 	local scenario = "ux-redesign: the Myself place switches come before Never remind me about"
-	session(scenario, { page = "who" }, function(ns, UI)
+	session(scenario, { page = "self" }, function(ns, UI)
 		before(UI, scenario, "who.own_tracking", "who.ownCities")
 		before(UI, scenario, "who.ownCities", "who.ownDungeons")
 		before(UI, scenario, "who.ownDungeons", "who.own_leave")
@@ -187,10 +187,10 @@ end
 -- 0 on your own lead said in words.
 do
 	local scenario = "ux-redesign: your own top-ups have a section of their own and their 0 explained"
-	session(scenario, { page = "when" }, function(ns, UI)
+	session(scenario, { page = "self" }, function(ns, UI)
 		local page, sec, _, s = placed(UI, "when.selfTopUp")
-		if page ~= "when" or sec ~= "when.self" or not (s and s.def.header == "when.selfHeader") then
-			fail(scenario, "Top up my own buffs is not under My own buffs (" .. tostring(sec) .. ")")
+		if page ~= "self" or sec ~= "self.topUp" or not (s and s.def.header == "when.selfHeader") then
+			fail(scenario, "Top up my own buffs is not under Topping up early (" .. tostring(sec) .. ")")
 		end
 		before(UI, scenario, "when.selfTopUp", "when.selfLead")
 		before(UI, scenario, "when.selfLead", "when.selfLeadNote")
@@ -198,8 +198,8 @@ do
 		if other ~= "when.buffed" then fail(scenario, "If they already have it left its section") end
 		local args = ns.optionsTable.args.when.args
 		local head = args.selfHeader
-		if not (head and head.type == "header" and head.name == ns.L["My own buffs"]) then
-			fail(scenario, "the model has no My own buffs header")
+		if not (head and head.type == "header" and head.name == ns.L["Topping up early"]) then
+			fail(scenario, "the model has no Topping up early header")
 		end
 		local name = args.buffedHeader and args.buffedHeader.name
 		if type(name) == "function" then name = name({}) end
@@ -658,7 +658,7 @@ end
 
 do
 	local scenario = "ux-redesign: a class with nothing for others has Consumables only in dungeons and raids"
-	session(scenario, { class = "HUNTER", known = { 13165, 13163 }, page = "who" }, function(ns, UI)
+	session(scenario, { class = "HUNTER", known = { 13165, 13163 }, page = "self" }, function(ns, UI)
 		if not UI.RowShown("who.self") then
 			fail(scenario, "SKIPPED -- the hunter has no Myself")
 		elseif not UI.RowShown("who.ownDungeons") then
