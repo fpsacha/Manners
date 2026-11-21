@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "20 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Will of the Forsaken and Mend Pet stay out of sight until you need them.|r The two fight buttons no longer sit dim beside the prompt for the whole fight.",
+		} },
+	} },
 	{ version = "1.11.32", date = "20 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Longer snoozes.|r The Snooze button in the settings window and the minimap menu now offer an hour, two hours and four, as well as 5, 15 and 30 minutes.",
@@ -44,26 +49,6 @@ ns.WhatsNew = {
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Bond with my pet really reaches the pet.|r The emote of a moment (a pat, a wave, a greeting) now targets your pet first and puts your own target back afterwards, so \"You greet everyone warmly\" becomes a greeting at the pet.",
 			"|cffff9a52Mend Pet's fight switch|r now shows under |cffffffffYour pet|r in the options window.",
-		} },
-	} },
-	{ version = "1.11.29", date = "18 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100A look for each class.|r |cffffffffUse my class's look on each character|r, over the cards on |cffffffffLook|r: on one profile a druid wears the Druid look and a paladin the Paladin look.",
-		} },
-		{ title = "Who to buff", accent = "7cc4ff", entries = {
-			"|cff7cc4ffMana Shield and the wards.|r On WoW Forever, Classic Era and Burning Crusade a mage can be reminded of Mana Shield and of Fire Ward or Frost Ward, outside a fight.",
-			"|cff7cc4ffAdd a spell of my own.|r Up to ten buffs of yours, under |cffffffffMyself|r, each reminded like your other own buffs, per character; one that leaves no aura on you (Blink) is taken off with a line in chat.",
-			"|cff7cc4ffNo own buff on a long cooldown.|r A buff of your own still on a cooldown of more than three seconds is not reminded until it is ready.",
-			"|cff7cc4ffSkip players in a fight.|r On |cffffffffWho to skip|r, off until you tick it: nobody in a fight is offered a buff, so one press no longer drags their mobs onto you.",
-			"|cff7cc4ffAsk in your own words.|r |cffffffffWhat the ask says|r has a fourth choice, |cffffffffMy own words|r, with a box to write the line in; leave {name} out and no name is said.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52A look tried with the pointer stays on its own profile.|r Switching profile while the pointer rests on a look no longer leaves that look saved on the old one or overwrites the new one's.",
-			"|cffff9a52A thank-you the prompt lost is not held against its giver.|r One pushed aside by a group buff no longer lapses unseen and stops the giver being thanked for half an hour.",
-			"|cffff9a52A hunter's pet.|r Mend Pet is not offered to a pet out of its range, nor Revive Pet with Lone Wolf.",
-			"|cffff9a52A profile's own look.|r One this version no longer has falls back to Glass.",
-			"|cffff9a52Bond with my pet reaches the pet.|r The emote of a moment (a pat, a wave, praise) now goes at your pet by its name instead of at nobody.",
-			"|cffff9a52Mend Pet's fight button has its switch under Your pet too.|r It was only on |cffffffffLook|r, |cffffffffIn a fight|r, so turning the Mend Pet reminder off seemed to do nothing in a fight.",
 		} },
 	} },
 }

@@ -711,6 +711,11 @@ local defaults = {
 			-- charmed or asleep (Prompt/BreakFree.lua). Only a character with
 			-- the ability ever sees the switch.
 			breakFree = true,
+			-- When the Will of the Forsaken and Mend Pet buttons show in a fight
+			-- (Prompt/BreakFree.lua, Prompt/MendPet.lua): needed, out of sight (alpha
+			-- 0) until Manners sees the need; always, dim for the whole fight as before
+			-- 1.11.33. The cure button keeps its own rule.
+			fightButtons = "needed",
 			-- The class's cure on a button of its own beside the prompt for a
 			-- fight, out of sight until somebody near you needs it
 			-- (Prompt/CureFight.lua). Off until ticked.
@@ -6079,6 +6084,7 @@ function ns.ClampSettings()
 	oneOf(p, "tooltip", { full = true, short = true, shift = true, off = true }, "short")
 	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
 	oneOf(p, "keycap", { look = true, show = true, hide = true }, "look")
+	oneOf(p, "fightButtons", { needed = true, always = true }, "needed")
 	oneOf(p, "thankEmoteToken", ns.THANK_EMOTE_SET, "THANK")
 	-- The others to pick from: a table of known tokens, each true; anything
 	-- else in it is dropped.

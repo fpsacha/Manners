@@ -87,11 +87,8 @@ in `tests/mutations/curefight.py`, each CAUGHT by `tools/prove.py` (the last,
 the reset list, by `model-window.lua`, which prove.py cannot find by its
 dynamic name). Deferred: cure entries in the fight's rota (they would cast
 blind), and a button for a support buff (Earth Shield, Beacon) on this
-engine. Not changed, and open for the owner: Mend Pet and Will of the
-Forsaken still sit dim for every fight (alpha 0.35 and 0.6), where this button
-is invisible until needed; moving them to alpha 0 is a few lines each, but Mend
-Pet's half-lit state on Forever, where a pet's health is secret, would then
-never show. Mend Pet's `Wanted` also lacks the `or nil` the new button's has,
+engine. Closed since: Mend Pet and Will of the Forsaken now sit out of sight
+for every fight too (see *Fight buttons* below). Mend Pet's `Wanted` also lacks the `or nil` the new button's has,
 so for a hunter it asks `Refresh` on every scan (harmless; not touched). For
 the game to settle: the list under *Open*.
 
@@ -1120,6 +1117,40 @@ no API) and `/manners selftest launch` (`launch.breakfree`):
    event (the settle guard covers either answer).
 6. Where the button sits for a prompt at the screen's right edge (it is
    clamped to the screen, and may then sit over the prompt's edge).
+
+**Fight buttons (branch `fixes-b`, unreleased; a CurseForge report: a "Will of
+the Forsaken" icon sits over the buff bar in every fight).** The cause was a
+design choice that broke the standing rule (a control in a fight appears only
+when Manners has seen a real need): Will of the Forsaken and Mend Pet sat dim
+(alpha 0.35, Mend Pet 0.6 where a pet's health is secret) for the whole of
+every fight. Both buttons are still shown by their own state drivers at the
+pull, but now at alpha 0 with no tooltip (the highlight is a region, so it
+takes the alpha), and Lua fades them in with a plain OnUpdate, as the cure
+button's: Will of the Forsaken while `afflicted` (1 lit, 0.6 while the spell
+cools down), Mend Pet while the pet is below half health and in reach.
+`Refresh` and the pull snap the alpha so a fight never opens at the last
+fight's. One setting for both, `prompt.fightButtons` (`needed`, the default;
+`always`, the old dim 0.35 for the whole fight), Look, under *In a fight*,
+*When the fight buttons show*, greyed when neither switch is on; the cure
+button keeps its own rule and never reads it. Where a pet's health is secret
+(Forever, retail) Mend Pet cannot tell and stays out of sight under `needed`,
+its key still casting. `tests/scenarios/fightbuttons.lua` and ten mutations in
+`tests/mutations/fightbuttons.py`, each CAUGHT by `tools/prove.py`. The one
+mutation named in the design that cannot be caught is dropping Create's own
+`SetAlpha(0)`: the first Refresh sets the same alpha straight after, so the
+two are the same behaviour. For the game to settle, at the first real fear
+and the first hurt pet:
+1. Whether `C_LossOfControl`'s type (either shape) and `UnitIsCharmed` are
+   plain in a fight on Forever and retail. If they are not, Will of the
+   Forsaken never shows under *Only when needed*, and `/manners debug`'s "last
+   loss of control: ... (secret)" says so.
+2. That `SetAlpha` from a plain OnUpdate on a driver-shown protected button is
+   allowed in combat (the cure button's open item 5 is the same question).
+3. That an alpha-0 button shows nothing, and that a stray click on its empty
+   place casts (Will of the Forsaken then goes on its two-minute cooldown). The
+   mouse of a protected frame cannot be changed in combat, as the cure button
+   already accepts.
+4. That the binding fires the hidden-by-alpha button.
 
 **The other clients' lists, 2026-11-15.** `tests/baselines/*.txt` took in the
 reds of today's new scenario files off Forever (par-core1, par-core2,

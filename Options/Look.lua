@@ -468,7 +468,7 @@ function Page.BuildLookTab()
 			breakFree = {
 				type = "toggle",
 				name = L["Offer Will of the Forsaken when I am feared, charmed or asleep"],
-				desc = L["A button of its own beside the prompt, with a key of its own, there for every fight. It lights up while you are feared, charmed or asleep and the spell is ready, and stays dim while it cools down. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+				desc = L["A button of its own beside the prompt, with a key of its own. It shows while you are feared, charmed or asleep, lit while the spell is ready and dim while it cools down; When the fight buttons show can keep it beside the prompt, dim, for the whole fight. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
 				order = 32.46,
 				width = "full",
 				hidden = function() return ns.caps.breakFree == nil end,
@@ -506,7 +506,7 @@ function Page.BuildLookTab()
 			mendInFight = {
 				type = "toggle",
 				name = L["Offer Mend Pet in a fight when my pet is badly hurt"],
-				desc = L["A button of its own beside the prompt, with a key of its own, there for every fight. It lights up while your pet is below half health, in reach, and Mend Pet is ready; where the game hides your pet's health in a fight it stays half lit and still casts. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+				desc = L["A button of its own beside the prompt, with a key of its own. It shows while your pet is below half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight it cannot tell, so the button stays out of sight unless When the fight buttons show keeps it there for the whole fight, half lit; its key casts either way. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
 				order = 32.48,
 				width = "full",
 				hidden = function() return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend()) end,
@@ -532,6 +532,34 @@ function Page.BuildLookTab()
 					ns.Setup.SetKey(value, ns.MendPet.COMMAND, function(key, was)
 						return L["%s was bound to %s; it now casts %s."]:format(key, was, ns.Beast.MendName() or "")
 					end)
+					if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
+				end,
+			},
+			-- When the Will of the Forsaken and Mend Pet buttons show in a fight
+			-- (Prompt/BreakFree.lua, Prompt/MendPet.lua): out of sight until
+			-- there is a need, or dim for the whole fight. One setting for both;
+			-- each switch above still decides whether its button exists at all.
+			-- The cure button below keeps its own rule.
+			fightButtons = {
+				type = "select",
+				name = L["When the fight buttons show"],
+				desc = L["For the Will of the Forsaken and Mend Pet buttons. Only when needed: a button stays out of sight until you are feared, charmed or asleep, or your pet is badly hurt, then fades in and out again after. All fight: it sits dim beside the prompt for the whole fight and lights up when needed. Where the game hides your pet's health in a fight, only All fight shows the Mend Pet button. Either way its key still casts."],
+				order = 32.4905,
+				values = { needed = L["Only when needed"], always = L["All fight, dim until needed"] },
+				sorting = { "needed", "always" },
+				hidden = function()
+					return ns.caps.breakFree == nil and not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())
+				end,
+				disabled = function()
+					local bf = ns.caps.breakFree ~= nil and P().breakFree ~= false
+					local mp = ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend()
+						and ns.db.profile.beast.all ~= false and ns.db.profile.beast.fightMend ~= false
+					return not (bf or mp)
+				end,
+				get = pGet,
+				set = function(info, value)
+					pSet(info, value)
+					if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end
 					if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
 				end,
 			},

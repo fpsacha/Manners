@@ -74,8 +74,8 @@ mutate(BF,
 # --- 4. the button carries its own display
 
 mutate(BF,
-       "\tbutton:SetAlpha(bright and 1 or 0.35)\n",
-       "\tbutton:SetAlpha(0.35)\n",
+       "\tSetTo(to)\n",
+       "\tSetTo(0.35)\n",
        "breakfree: the button never lights up",
        expect="breakfree: feared with the prompt off the screen, the button lights up", script=S)
 

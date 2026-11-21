@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+*20 November 2026*
+
+### Highlights
+- **Will of the Forsaken and Mend Pet stay out of sight until you need them.**
+  The two fight buttons no longer sit dim beside the prompt for the whole
+  fight. Will of the Forsaken fades in only while you are feared, charmed or
+  asleep, and Mend Pet only while your pet is badly hurt; where the game hides
+  your pet's health in a fight, Mend Pet stays out of sight. Their keys cast
+  either way. A new setting on Look, under *In a fight*, *When the fight
+  buttons show*, brings the dim buttons back (*All fight, dim until needed*).
+  Reported on CurseForge.
+
 ## 1.11.32
 
 *20 November 2026*

@@ -304,11 +304,12 @@ local function release(ns)
 	Mock.runTimers(0)
 end
 
--- What the Mend Pet button shows: lit, its alpha, its name line and its key line.
+-- What the Mend Pet button shows: lit, its alpha (the one the fade walks to), its
+-- name line and its key line.
 local function mendShows(ns)
 	local button, look = ns.MendPet:Button(), ns.MendPet:Look()
 	if not (button and look) then return nil, "", "" end
-	return button:GetAlpha(), tostring(look.name:GetText() or ""), tostring(look.key:GetText() or "")
+	return look.alpha, tostring(look.name:GetText() or ""), tostring(look.key:GetText() or "")
 end
 
 local function secure(ns)
@@ -745,7 +746,7 @@ do
 		event("UNIT_HEALTH", "pet")
 		Mock.runTimers(0.2)
 		alpha = mendShows(ns)
-		if alpha ~= 0.35 then fail(scenario, "not dim at 80%: alpha " .. tostring(alpha)) end
+		if alpha ~= 0 then fail(scenario, "not out of sight at 80%: alpha " .. tostring(alpha)) end
 		if #Mock.protectedCalls ~= 0 then fail(scenario, "painted through a protected call: " .. table.concat(Mock.protectedCalls, ", ")) end
 		release(ns)
 		if button:IsShown() then fail(scenario, "the button stays after the fight") end
@@ -756,6 +757,7 @@ do
 	local scenario = "hunterpet2: mend button half lit with a secret health"
 	with(scenario, {}, function(ns)
 		secure(ns)
+		ns.db.profile.prompt.fightButtons = "always"
 		ns.BuildQueue()
 		ns.addon:Tick()
 		Mock.runTimers(0)
@@ -785,7 +787,7 @@ do
 		Mock.runTimers(0.2)
 		if mendShows(ns) ~= 1 then fail(scenario, "not lit at 40%") return end
 		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-3", 136)
-		if mendShows(ns) ~= 0.35 then fail(scenario, "lit again straight after Mend Pet, whose heal runs on") end
+		if mendShows(ns) ~= 0 then fail(scenario, "lit again straight after Mend Pet, whose heal runs on") end
 		Mock.runTimers(15.1)
 		if mendShows(ns) ~= 1 then fail(scenario, "not lit again once the heal is over") end
 		release(ns)

@@ -1,10 +1,10 @@
 -- Manners -- a hunter's Mend Pet in a fight: a small secure button of its own,
 -- to the right of the prompt (or of the break-free button, where a Forsaken
--- hunter has both), with a key of its own, shown for the length of every fight
--- and lit while the pet is below half its health, in reach, alive, and Mend Pet
--- is not still at work. Modelled on Prompt/BreakFree.lua, whose header says why
--- a fight needs a button of its own: the prompt is locked by the lockdown and
--- its key keeps to buffs.
+-- hunter has both), with a key of its own, out of sight until the pet is below
+-- half its health, in reach, alive, and Mend Pet is not still at work, and
+-- then faded in and lit. Modelled on Prompt/BreakFree.lua, whose header says
+-- why a fight needs a button of its own: the prompt is locked by the lockdown
+-- and its key keeps to buffs.
 --
 -- WHAT IT KNOWS
 --
@@ -13,8 +13,13 @@
 -- and the master `beast.all`). Whether it is lit: the pet's health where the
 -- client says it in a fight, and our own record of Mend Pet at work (a cast of
 -- yours, the bar's included, starts a wait as long as the spell channels or
--- heals on that client). Where the pet's health is secret in a fight (Forever,
--- retail) the button stays half lit with its two lines shown, and still casts.
+-- heals on that client). The driver shows it at the pull at alpha 0 (no
+-- tooltip, the highlight a region that takes the alpha); Lua fades it in by a
+-- plain OnUpdate, as Prompt/CureFight.lua does. Where the pet's health is
+-- secret in a fight (Forever, retail) it cannot tell, so the button stays out
+-- of sight, its key still casting, unless When the fight buttons show
+-- (`prompt.fightButtons`) is at All fight: then it sits dim for the whole
+-- fight, with its two lines shown where the health is secret.
 -- Lua paints only its own regions and alpha in a fight; the shown state, the
 -- macro and the place are written out of combat only.
 
@@ -48,10 +53,14 @@ local GLOW = "Interface\\AddOns\\Manners\\Textures\\RingSq"
 -- Forever and Classic Era, a heal over time of fifteen on Burning Crusade and ten
 -- on Mists, a ten-second cooldown on retail.
 local BUSY = { camelot = 5, vanilla = 5, tbc = 15, mists = 10, mainline = 10 }
+-- How long the fade in and out takes.
+local FADE = 0.2
 local FLAVOUR = ns.Flavour and ns.Flavour.flavour
 
-local button, header, icon, glow, pulse, nameText, keyText
+local button, header, icon, glow, pulse, nameText, keyText, fader
 local armedMacro, placedKey, paintedKey, keyLabel
+-- The alpha it is walking to (0: out of sight), where from and since when.
+local fadeFrom, fadeTo, fadeAt = 0, 0, 0
 local placedBeside = false
 local waitUntil, readyAt
 local paintDue = false
@@ -59,6 +68,12 @@ local dirty, settledOn, placedIcon, placedScale = true, nil, nil, nil
 
 local function Profile()
 	return ns.db and ns.db.profile
+end
+
+-- Whether the setting keeps the button dim in every fight (a plain field).
+local function Always()
+	local db = Profile()
+	return db ~= nil and db.prompt.fightButtons == "always"
 end
 
 -- Whether this character has a hunter's Mend Pet to offer and the switch is on.
@@ -82,14 +97,33 @@ local function Lit(now)
 	return true, true
 end
 
--- Its own regions and its alpha, which the client lets an addon change in a fight.
+-- The alpha walked to: out of sight (0), or the fade begun from where it is.
+local function SetTo(to)
+	if to == fadeTo then return end
+	fadeFrom, fadeTo, fadeAt = button:GetAlpha(), to, GetTime()
+	fader:Show()
+end
+
+local function Fade(self)
+	local t = (GetTime() - fadeAt) / FADE
+	if t >= 1 then
+		button:SetAlpha(fadeTo)
+		self:Hide()
+	else
+		button:SetAlpha(fadeFrom + (fadeTo - fadeFrom) * t)
+	end
+end
+
+-- Its own regions and its alpha, which the client lets an addon change in a
+-- fight. Out of sight unless lit (or All fight, which keeps it dim).
 local function Paint()
 	if not button then return false end
 	local lit, known = Lit(GetTime())
-	local key = tostring(lit) .. ":" .. tostring(known) .. ":" .. tostring(keyLabel)
+	local always = Always()
+	local key = tostring(lit) .. ":" .. tostring(known) .. ":" .. tostring(keyLabel) .. ":" .. tostring(always)
 	if key == paintedKey then return lit end
 	paintedKey = key
-	button:SetAlpha(lit and 1 or (known and 0.35 or 0.6))
+	SetTo(lit and 1 or (always and (known and 0.35 or 0.6) or 0))
 	if lit then
 		glow:Show()
 		if pulse and not pulse:IsPlaying() then pulse:Play() end
@@ -97,7 +131,7 @@ local function Paint()
 		if pulse then pulse:Stop() end
 		glow:Hide()
 	end
-	if lit or not known then
+	if lit or (always and not known) then
 		nameText:SetText("|cffffd100" .. tostring(Beast.MendName()) .. "|r")
 		keyText:SetText(keyLabel and L["press %s to mend your pet"]:format(keyLabel) or L["click to mend your pet"])
 	else
@@ -155,6 +189,8 @@ local function PreClick(_, mouse)
 end
 
 local function OnEnter(self)
+	-- Out of sight: nothing to say.
+	if fadeTo == 0 then return end
 	local tip = _G.GameTooltip
 	if not tip then return end
 	tip:SetOwner(self, "ANCHOR_TOP")
@@ -191,6 +227,7 @@ function MendPet:Create()
 	button:SetFrameStrata("MEDIUM")
 	button:SetClampedToScreen(true)
 	button:RegisterForClicks("AnyDown")
+	button:SetAlpha(0)
 	icon = button:CreateTexture(nil, "ARTWORK")
 	icon:SetAllPoints(button)
 	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -215,6 +252,8 @@ function MendPet:Create()
 	keyText = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	keyText:SetPoint("TOPLEFT", button, "RIGHT", 4, -1)
 	keyText:SetText("")
+	-- The highlight is a region of the button: it takes the button's alpha, so
+	-- at alpha 0 nothing of it shows.
 	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 	for index = 2, 31 do
 		if index <= 5 then button:SetAttribute("type" .. index, "none") end
@@ -224,6 +263,10 @@ function MendPet:Create()
 	button:SetScript("OnEnter", OnEnter)
 	button:SetScript("OnLeave", OnLeave)
 	button:Hide()
+	fader = CreateFrame("Frame")
+	fader:Hide()
+	fader:SetScript("OnUpdate", Fade)
+	fadeTo = 0
 	if type(_G.RegisterStateDriver) == "function" then
 		local ok, made = pcall(CreateFrame, "Frame", nil, UIParent, "SecureHandlerStateTemplate")
 		if ok and type(made) == "table" and type(made.SetFrameRef) == "function" then
@@ -274,6 +317,9 @@ function MendPet:Refresh()
 	ReadKey()
 	paintedKey = nil
 	Paint()
+	-- A fight never opens at the last fight's alpha: the button is hidden here.
+	button:SetAlpha(fadeTo)
+	fader:Hide()
 	settledOn, dirty = true, false
 end
 
@@ -319,6 +365,10 @@ local function OnEvent(event, spellId)
 		ReadKey()
 		paintedKey = nil
 		Paint()
+		if button then
+			button:SetAlpha(fadeTo)
+			fader:Hide()
+		end
 	elseif event == "UNIT_PET" then
 		paintedKey = nil
 		if InCombatLockdown() then Paint() end
@@ -374,5 +424,5 @@ function MendPet:Header() return header end
 -- What it shows: the spell's name and the key beside it, the glow.
 function MendPet:Look()
 	if not button then return nil end
-	return { name = nameText, key = keyText, glow = glow, icon = icon }
+	return { name = nameText, key = keyText, glow = glow, icon = icon, alpha = fadeTo, fader = fader }
 end

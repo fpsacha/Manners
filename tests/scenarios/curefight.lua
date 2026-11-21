@@ -883,7 +883,11 @@ with("curefight: the switch and its key sit under In a fight, after Mend Pet", {
 	local function pathOf(item) return type(item) == "table" and item[1] or item end
 	local items, at = holder(layout, "appearance.cureFight")
 	if not items then fail(scenario, "appearance.cureFight is not placed") return end
-	if pathOf(items[at - 1]) ~= "appearance.mendInFightKey" then fail(scenario, "the switch does not follow Mend Pet's key") end
+	-- The one setting for the two fight buttons (When the fight buttons show) sits
+	-- between Mend Pet's key and this switch.
+	if pathOf(items[at - 1]) ~= "appearance.fightButtons" or pathOf(items[at - 2]) ~= "appearance.mendInFightKey" then
+		fail(scenario, "the switch does not follow Mend Pet's key and the fight buttons' setting")
+	end
 	local keyItem = items[at + 1]
 	if pathOf(keyItem) ~= "appearance.cureFightKey" or not (type(keyItem) == "table" and keyItem.indent == true) then
 		fail(scenario, "its key is not the next row, indented")

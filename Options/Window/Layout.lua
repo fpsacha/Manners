@@ -830,6 +830,7 @@ ns.WindowLayout = {
 					{ "appearance.breakFreeKey", indent = true },
 					"appearance.mendInFight",
 					{ "appearance.mendInFightKey", indent = true },
+					"appearance.fightButtons",
 					"appearance.cureFight",
 					{ "appearance.cureFightKey", indent = true },
 					"appearance.hideInCombat",
@@ -1087,6 +1088,7 @@ ns.WindowLayout = {
 			["appearance.hideInFight"] = true, ["appearance.showQueue"] = true,
 			["appearance.breakFree"] = true, ["appearance.breakFreeKey"] = true,
 			["appearance.mendInFight"] = true, ["appearance.mendInFightKey"] = true,
+			["appearance.fightButtons"] = true,
 			["appearance.cureFight"] = true, ["appearance.cureFightKey"] = true,
 		},
 	},
@@ -1155,6 +1157,7 @@ ns.WindowLayout = {
 			return nil
 		end,
 		["appearance.flashStyle"] = L["Needs the icon, the stripe or Full animations."],
+		["appearance.fightButtons"] = L["Needs Will of the Forsaken or Mend Pet in a fight ticked."],
 		-- Greyed where the look rounds its icon itself, or with the icon off.
 		["appearance.roundIcon"] = function()
 			local p = ns.db and ns.db.profile and ns.db.profile.prompt
@@ -1206,6 +1209,7 @@ ns.WindowLayout = {
 		["who.beastLeaveFood"] = L["hunter pet vendor food buy"], ["who.beastGrowl"] = L["hunter pet growl autocast tank"],
 		["who.beastTraining"] = L["hunter pet training points"], ["appearance.mendInFight"] = L["hunter pet mend fight button key"],
 		["appearance.cureFight"] = L["cure dispel decurse cleanse fight combat button key"],
+		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
 		["who.curesFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["who.ownSpellAdd"] = L["custom spell add new buff own"],
 	},

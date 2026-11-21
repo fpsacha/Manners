@@ -988,7 +988,7 @@ function Page.AddBeastControls(args)
 	-- Look, In a fight; the same switch sits here too, under the other Mend
 	-- Pet one, where a hunter turning Mend Pet off looks for it.
 	args.beastMendFight = { type = "toggle", name = L["Offer Mend Pet in a fight when my pet is badly hurt"],
-		desc = L["A button of its own beside the prompt, with a key of its own, there for every fight. It lights up while your pet is below half health, in reach, and Mend Pet is ready; where the game hides your pet's health in a fight it stays half lit and still casts. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
+		desc = L["A button of its own beside the prompt, with a key of its own. It shows while your pet is below half health, in reach, and Mend Pet is ready. Where the game hides your pet's health in a fight it cannot tell, so the button stays out of sight unless When the fight buttons show keeps it there for the whole fight, half lit; its key casts either way. The prompt's own key keeps to buffs: a fight locks it. A change made in a fight counts from the next one."],
 		order = 15.9841, width = "full",
 		hidden = function() return NotHunter() or not ns.Beast.KnowsMend() end,
 		disabled = AllOff,

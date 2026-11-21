@@ -1,7 +1,7 @@
 -- Manners -- breaking free in a fight: a Forsaken's Will of the Forsaken on a
 -- small secure button of its own beside the prompt, with a key of its own,
--- shown for the length of every fight and lit up while you are feared,
--- charmed or asleep and the spell is ready. Asked for by the author, a
+-- out of sight until you are feared, charmed or asleep and lit while the
+-- spell is ready. Asked for by the author, a
 -- Forsaken mage on Forever: "in combat, if I sleep or whatever, I need to be
 -- able to get the prompt for this", and "it should not lock the prompt if
 -- it's a debuff or buff that needs to happen in a fight".
@@ -27,8 +27,14 @@
 -- so nothing Manners itself chooses (Hide the prompt in combat, a snooze, the
 -- prompt off the screen at the pull) keeps it from being seen and pressed.
 -- In a fight Lua paints only its own regions and its alpha, which the client
--- allows: bright while you are afflicted and it is ready, dim otherwise, a
--- cooldown sweep while it cools down. The prompt, when it is on the screen,
+-- allows. The driver shows the button at the pull, but it is out of sight
+-- there: alpha 0, no tooltip, the highlight a region that takes the alpha. It
+-- is faded in (a plain OnUpdate, as Prompt/CureFight.lua's is) when you are
+-- feared, charmed or asleep, lit while the spell is ready and dim (0.6) while
+-- it cools down with the sweep, and out again after. With When the fight
+-- buttons show at All fight (`prompt.fightButtons`) it sits dim (0.35) for
+-- every fight, as before 1.11.33. The key casts either way: an armed button
+-- fires by its binding at any alpha. The prompt, when it is on the screen,
 -- says the same (PaintPrompt, from Prompt/Refresh.lua's combat branch).
 --
 -- WHAT IT KNOWS
@@ -84,6 +90,8 @@ local ABILITIES = {
 }
 
 local STATE = "mannersbreakfree"
+-- How long the fade in and out takes.
+local FADE = 0.2
 local DRIVER = "[combat] fight; peace"
 -- Between the prompt's right edge and this button: a mis-click casts it.
 local GAP = 10
@@ -93,8 +101,10 @@ local SUCCEED_SECONDS = 1
 local FALLBACK_ICON = "Interface\\Icons\\Spell_Shadow_RaiseDead"
 local GLOW = "Interface\\AddOns\\Manners\\Textures\\RingSq"
 
-local button, header, icon, glow, pulse, nameText, keyText, cooldown
+local button, header, icon, glow, pulse, nameText, keyText, cooldown, fader
 local armedMacro, placedKey, paintedKey
+-- The alpha it is walking to (0: out of sight), where from and since when.
+local fadeFrom, fadeTo, fadeAt = 0, 0, 0
 -- Afflicted now (a type this breaks, or charmed), from the client's events.
 local afflicted = false
 -- The last loss of control seen: { kind, how, at }; `how` is plain, secret or
@@ -116,6 +126,12 @@ local dirty, settledOn, placedIcon, placedScale = true, nil, nil, nil
 
 local function Profile()
 	return ns.db and ns.db.profile
+end
+
+-- Whether the setting keeps the button dim in every fight (a plain field).
+local function Always()
+	local db = Profile()
+	return db ~= nil and db.prompt.fightButtons == "always"
 end
 
 -- The race's file name ("Scourge"), or nil where the client has no UnitRace
@@ -255,21 +271,49 @@ end
 -- the button
 ---------------------------------------------------------------------------
 
+-- The alpha walked to: out of sight (0), or the fade begun from where it is.
+local function SetTo(to)
+	if to == fadeTo then return end
+	fadeFrom, fadeTo, fadeAt = button:GetAlpha(), to, GetTime()
+	fader:Show()
+end
+
+local function Fade(self)
+	local t = (GetTime() - fadeAt) / FADE
+	if t >= 1 then
+		button:SetAlpha(fadeTo)
+		self:Hide()
+	else
+		button:SetAlpha(fadeFrom + (fadeTo - fadeFrom) * t)
+	end
+end
+
 -- Its own regions and its alpha, which the client lets an addon change in a
--- fight. Bright while afflicted and ready; dim, with the sweep while it cools.
--- Answers whether it is lit.
+-- fight. Out of sight unless afflicted (or All fight): bright while afflicted
+-- and ready; dim, with the sweep while it cools. Answers whether it is lit.
 local function Paint()
 	if not button then return false end
 	local info = Known()
 	local now = GetTime()
 	local bright = afflicted and info ~= nil and Ready(now)
 	local cooling = readyAt ~= nil and now < readyAt
+	local always = Always()
+	local shown = always or afflicted
+	local to = bright and 1 or (shown and (always and 0.35 or 0.6) or 0)
 	local key = tostring(bright) .. ":" .. tostring(cooling and readyAt) .. ":" .. tostring(keyLabel)
-		.. ":" .. tostring(info and info.name)
+		.. ":" .. tostring(info and info.name) .. ":" .. tostring(always) .. ":" .. tostring(to)
 	if key == paintedKey then return bright end
 	paintedKey = key
-	button:SetAlpha(bright and 1 or 0.35)
+	SetTo(to)
 	if info then icon:SetTexture(info.icon) end
+	if to == 0 then
+		if pulse then pulse:Stop() end
+		glow:Hide()
+		nameText:SetText("")
+		keyText:SetText("")
+		if type(cooldown.Clear) == "function" then cooldown:Clear() end
+		return bright
+	end
 	if bright then
 		glow:Show()
 		if pulse and not pulse:IsPlaying() then pulse:Play() end
@@ -341,6 +385,8 @@ local function PreClick(_, mouse)
 end
 
 local function OnEnter(self)
+	-- Out of sight: nothing to say.
+	if fadeTo == 0 then return end
 	local tip = _G.GameTooltip
 	if not tip then return end
 	tip:SetOwner(self, "ANCHOR_TOP")
@@ -378,6 +424,7 @@ function BreakFree:Create()
 	button:SetFrameStrata("MEDIUM")
 	button:SetClampedToScreen(true)
 	button:RegisterForClicks("AnyDown")
+	button:SetAlpha(0)
 	icon = button:CreateTexture(nil, "ARTWORK")
 	icon:SetAllPoints(button)
 	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -404,6 +451,8 @@ function BreakFree:Create()
 	local okC, made = pcall(CreateFrame, "Cooldown", nil, button, "CooldownFrameTemplate")
 	cooldown = okC and made or { SetCooldown = function() end }
 	if okC then cooldown:SetAllPoints(button) end
+	-- The highlight is a region of the button: it takes the button's alpha, so
+	-- at alpha 0 nothing of it shows.
 	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 	-- Only the left button casts: every other one is told to do nothing, the
 	-- modifier-prefixed lookups too (Prompt/Macro.lua says why).
@@ -415,6 +464,10 @@ function BreakFree:Create()
 	button:SetScript("OnEnter", OnEnter)
 	button:SetScript("OnLeave", OnLeave)
 	button:Hide()
+	fader = CreateFrame("Frame")
+	fader:Hide()
+	fader:SetScript("OnUpdate", Fade)
+	fadeTo = 0
 	if type(_G.RegisterStateDriver) == "function" then
 		local ok, made2 = pcall(CreateFrame, "Frame", nil, UIParent, "SecureHandlerStateTemplate")
 		if ok and type(made2) == "table" and type(made2.SetFrameRef) == "function" then
@@ -465,6 +518,9 @@ function BreakFree:Refresh()
 	if button:IsShown() then button:Hide() end
 	ReadKey()
 	Paint()
+	-- A fight never opens at the last fight's alpha: the button is hidden here.
+	button:SetAlpha(fadeTo)
+	fader:Hide()
 	settledOn, dirty = true, false
 end
 
@@ -603,7 +659,10 @@ local function OnEvent(event, unit, _, spellId)
 	-- The pull, before the lockdown: the key as it stands for the fight.
 	if event == "PLAYER_REGEN_DISABLED" then
 		ReadKey()
+		paintedKey = nil
 		Paint()
+		button:SetAlpha(fadeTo)
+		fader:Hide()
 		return
 	end
 	local was = afflicted
@@ -681,7 +740,7 @@ function BreakFree:Header() return header end
 -- What it shows: the spell's name over it, the key under it, the glow.
 function BreakFree:Look()
 	if not button then return nil end
-	return { name = nameText, key = keyText, glow = glow, icon = icon }
+	return { name = nameText, key = keyText, glow = glow, icon = icon, alpha = fadeTo, fader = fader }
 end
 
 -- The probe, and what it learns of breaking free, before anything asks.

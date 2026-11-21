@@ -246,17 +246,21 @@ on. *Put Manners on an action bar* (Start here) says so.
 #### Will of the Forsaken
 
 A Forsaken gets a small button of its own just right of the prompt, with a
-key of its own, for every fight: even when the prompt is off the screen,
-hidden by *Hide the prompt in combat* or snoozed. It casts Will of the
-Forsaken and nothing else, from its key or a left click. While you are
-feared, charmed or asleep and the spell is ready it lights up, glowing, with
-the spell's name over it and "press <key> to break free" under it; the
-prompt, when it is up, says the same. It stays dim while nothing holds you
-and while the spell cools down. The prompt's own key keeps to buffs: the
-fight has locked it. *Offer Will of the Forsaken when I am feared, charmed or
-asleep* (Look, under *In a fight*, on) switches it, and *Key for Will of the
-Forsaken* under it sets the key. Only a Forsaken who has the spell sees
-either.
+key of its own, ready for every fight: even when the prompt is off the
+screen, hidden by *Hide the prompt in combat* or snoozed. It casts Will of the
+Forsaken and nothing else, from its key or a left click. It stays out of
+sight until you are feared, charmed or asleep, then fades in, and fades out
+again after. While the spell is ready it lights up, glowing, with the spell's
+name over it and "press <key> to break free" under it; the prompt, when it is
+up, says the same. While the spell cools down it shows dim. The key casts
+even while the button is out of sight. The prompt's own key keeps to buffs:
+the fight has locked it. *Offer Will of the Forsaken when I am feared,
+charmed or asleep* (Look, under *In a fight*, on) switches it, and *Key for
+Will of the Forsaken* under it sets the key. *When the fight buttons show*
+(Look, under *In a fight*, *Only when needed* by default) can instead keep it
+dim beside the prompt for the whole fight (*All fight, dim until needed*); it
+holds for Mend Pet's button too. Only a Forsaken who has the spell sees any
+of them.
 
 #### Curing in a fight
 
@@ -505,11 +509,14 @@ own setting for when it is on again.
 reminder, and under *Look*, *In a fight*, with a key of its own; the reminder's
 switch does not turn it off): a
 button of its own to the right of the prompt, or of the Will of the Forsaken
-button where a Forsaken hunter has both, shown for every fight. It lights up
-while your pet is below half health, in reach and alive, and Mend Pet is not
-still at work, and is dim otherwise; where the game hides your pet's health in
-a fight (WoW Forever and retail) it stays half lit with its two lines shown
-and still casts. The prompt's own key keeps to buffs.
+button where a Forsaken hunter has both, ready for every fight and out of
+sight until it is wanted. It fades in and lights up while your pet is below
+half health, in reach and alive, and Mend Pet is not still at work, and fades
+out again after. Where the game hides your pet's health in a fight (WoW
+Forever and retail) Manners cannot tell, so the button stays out of sight and
+its key still casts; *When the fight buttons show* (Look, under *In a fight*)
+set to *All fight, dim until needed* keeps it there for the whole fight, half
+lit with its two lines shown. The prompt's own key keeps to buffs.
 
 Care waits while you eat: a food or drink stands you up, so nothing for the
 pet is offered until the meal is over.

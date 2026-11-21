@@ -101,11 +101,12 @@ local function regain()
 	Mock.frameEvent("PLAYER_CONTROL_GAINED")
 end
 
--- What the button shows: lit, its name line and its key line.
+-- What the button shows: lit (the alpha the fade walks to is 1), its name line
+-- and its key line.
 local function shows(ns)
 	local button, look = ns.BreakFree:Button(), ns.BreakFree:Look()
 	if not (button and look) then return false, "", "" end
-	return button:GetAlpha() == 1, tostring(look.name:GetText() or ""), tostring(look.key:GetText() or "")
+	return look.alpha == 1, tostring(look.name:GetText() or ""), tostring(look.key:GetText() or "")
 end
 
 local function promptLines(ns)
