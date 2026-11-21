@@ -703,3 +703,24 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------ grouppets 9
+-- A druid's Mark of the Wild is not offered to a pet on Forever (it takes
+-- players alone there; a CurseForge report), while Thorns still is.
+do
+	local scenario = "grouppets: Mark of the Wild is not offered to a group member's pet"
+	local DRUID_IDS = { 1126, 5232, 6756, 5234, 8907, 9884, 9885, 26990, 467, 782, 1075, 8914, 9756, 9910, 26992 }
+	with(scenario, { class = "DRUID", known = DRUID_IDS }, function(ns)
+		local _, list = queue(ns)
+		local seen = false
+		for _, entry in ipairs(list) do
+			if entry.pet then
+				seen = true
+				if entry.buff and entry.buff.key == "motw" then
+					fail(scenario, "the pet " .. tostring(entry.name) .. " is offered Mark of the Wild")
+				end
+			end
+		end
+		if not seen then fail(scenario, "no pet is offered anything (Thorns should still go): " .. #list .. " entries") end
+	end)
+end

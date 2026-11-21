@@ -216,3 +216,9 @@ mutate("Prompt/Press.lua",
        "",
        "grouppets: the press forgets it was a pet's",
        expect="grouppets: a buff on a pet is not filed in the ledger", script=S)
+
+mutate("Core.lua",
+       "if opts.pet and (buff.oneTarget or buff.notPets) then return false end",
+       "if opts.pet and buff.oneTarget then return false end",
+       "grouppets: a pet is offered Mark of the Wild",
+       expect="grouppets: Mark of the Wild is not offered to a group member's pet", script=S)

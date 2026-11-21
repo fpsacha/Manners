@@ -435,6 +435,62 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------------------ 3d
+-- The same switch holds the short buffs you would cast on yourself: a druid
+-- who let her own buffs through in cities (ownBuffs.inCities) was still told
+-- to cast Thorns, ten minutes, with the hold at fifteen (CurseForge).
+do
+	local scenario = "audit-right-buff: short buffs held back in a city hold your own Thorns too"
+	local motw = 9885
+	local env = { class = "DRUID", knows = { "motw", "thorns" }, wears = { [motw] = { left = 3000 } }, units = {} }
+	session(scenario, env, function(ns)
+		local resting = false
+		local was = rawget(_G, "IsResting")
+		rawset(_G, "IsResting", function() return resting end)
+		local function selfKey()
+			local queue = queued(ns)
+			for _, entry in ipairs(queue) do
+				if entry.reason == "self" then return entry.buff and entry.buff.key or "nothing" end
+			end
+			return "nothing"
+		end
+		local db = ns.db.profile
+		db.sources.self = true
+		db.ownBuffs.inCities = true
+		resting = true
+		if selfKey() ~= "thorns" then fail(scenario, "with the switch off, in a city, you are offered " .. selfKey()) end
+		db.filters.quietShortInTowns = true
+		db.filters.quietShortMinutes = 15
+		if selfKey() == "thorns" then fail(scenario, "Thorns (ten minutes) is offered to yourself in a city with short buffs held back at 15") end
+		db.filters.quietShortMinutes = 5
+		if selfKey() ~= "thorns" then fail(scenario, "short meaning five minutes, your own Thorns is held back: " .. selfKey()) end
+		db.filters.quietShortMinutes = 15
+		resting = false
+		if selfKey() ~= "thorns" then fail(scenario, "out in the world your own Thorns waits all the same: " .. selfKey()) end
+		rawset(_G, "IsResting", was)
+	end)
+end
+
+-- ------------------------------------------------------------------------ 3e
+-- A mage's Familiar scroll is a pet of its own: Manners does not bring a
+-- journal pet out over it (CurseForge: the deployer put the Rat away).
+do
+	local scenario = "audit-right-buff: no journal pet is brought out over a Familiar scroll's pet"
+	local rat = 1296202
+	local function holdWith(wears)
+		local answer
+		session(scenario, { class = "MAGE", wears = wears, units = {} }, function(ns)
+			Mock.advance(30)
+			answer = ns.PetHold(GetTime())
+		end)
+		return answer
+	end
+	local with = holdWith({ [rat] = { left = 3000 } })
+	if with ~= "petbusy" then fail(scenario, "with the Rat Familiar up PetHold says " .. tostring(with)) end
+	local without = holdWith({})
+	if without ~= nil then fail(scenario, "with no familiar up PetHold says " .. tostring(without)) end
+end
+
 -- ------------------------------------------------------------------------ 4
 -- A paladin with Blessing of Might and nothing else yet (levels 4 to 13), or
 -- any paladin once another's Wisdom and Kings are on them: a mage, a priest or

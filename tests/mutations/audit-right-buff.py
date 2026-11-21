@@ -239,3 +239,15 @@ mutate("Core.lua",
        "audit-right-buff: the campsite switch holds nothing off",
        expect="audit-right-buff: Forever: Don't cast over a campsite's buffs holds even a stronger rank off",
        script="runscenarios.py")
+
+mutate("Queue.lua",
+       "if not fight and #mine > 0 and f.quietShortInTowns == true and f.quietInTowns ~= true and Resting() == true then",
+       "if false then",
+       "audit-right-buff: short buffs held in a city leave your own Thorns offered",
+       expect="audit-right-buff: short buffs held back in a city hold your own Thorns too", script="runscenarios.py")
+
+mutate("Companion.lua",
+       "if ns.Flavour.flavour == \"camelot\" and FamiliarUp() then return \"petbusy\" end",
+       "if false then return \"petbusy\" end",
+       "audit-right-buff: a journal pet comes out over a Familiar scroll's pet",
+       expect="audit-right-buff: no journal pet is brought out over a Familiar scroll's pet", script="runscenarios.py")

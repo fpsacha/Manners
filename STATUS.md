@@ -19,6 +19,15 @@ tried beyond the sightings under *Open*. The checklist of what only the game
 can settle, on WoW Forever in the owner's own play sessions, is the first item
 under *Open*.
 
+**Feedback pass of 20 November 2026 (unreleased).** *Hold back short buffs in
+cities and inns* now also holds a short group buff cast on yourself
+(`SelfEntry` in `Queue.lua`; own buffs in cities on no longer lets Thorns
+through); Forever's Mark of the Wild carries `notPets` (`Buffs.lua`, read in
+`Castable`) so a group member's pet is not offered it; `ns.PetHold` answers
+`petbusy` while a Familiar scroll's aura is up on Forever. All three go by
+player reports and none has been seen in the game: whether other group buffs
+also refuse pets on Forever is for a player to say.
+
 **Cure myself too (unreleased, asked for on CurseForge).** `sources.curesSelf`,
 off, on Who to buff under *More than buffs*, a row of its own after *Cure
 passers-by* (it waits on neither; not in the simple view, whose Who to buff

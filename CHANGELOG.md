@@ -13,6 +13,17 @@
   either way. A new setting on Look, under *In a fight*, *When the fight
   buttons show*, brings the dim buttons back (*All fight, dim until needed*).
   Reported on CurseForge.
+- **Short buffs held back in cities and inns now covers yourself.** With *Hold
+  back short buffs in cities and inns* ticked, a short buff for yourself, Thorns
+  say, is no longer offered while you rest, even with your own buffs allowed in
+  cities. Asked for on CurseForge.
+
+### Fixes
+- **Mark of the Wild is no longer offered to pets** on WoW Forever, where it
+  takes players alone; Thorns still is. Asked for on CurseForge.
+- **A Familiar scroll's pet is left alone.** Manners no longer brings a pet out
+  of your journal over a Cat, Frog or Rat Familiar while it is up. Asked for on
+  CurseForge.
 
 ## 1.11.32
 

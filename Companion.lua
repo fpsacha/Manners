@@ -166,6 +166,19 @@ local function InPetBattle()
 	return type(battles) == "table" and Yes(battles.IsInBattle)
 end
 
+-- A mage's Familiar scroll on Forever (Buffs.lua, the familiar family) is a
+-- pet of its own that a journal pet would replace: its auras, the Cat, Frog
+-- and Rat (a player's report: the deployer put the Rat away).
+local FAMILIAR_AURAS = { 1302303, 1302285, 1296202 }
+local function FamiliarUp()
+	local read = _G.C_UnitAuras and _G.C_UnitAuras.GetUnitAuraBySpellID
+	if type(read) ~= "function" then return false end
+	for _, id in ipairs(FAMILIAR_AURAS) do
+		if plain(read("player", id)) ~= nil then return true end
+	end
+	return false
+end
+
 -- Why no pet is brought out or offered just now, or nil (Core.lua,
 -- OwnVerdict): "dismissed" (the player put it away), "instance", "mounted",
 -- "petbusy" (dead, flying, in a vehicle, stealthed, casting, or a moment after
@@ -176,6 +189,7 @@ function ns.PetHold(now)
 	if Instanced() then return "instance" end
 	if Yes(_G.IsMounted) then return "mounted" end
 	if (now or GetTime()) < session.quietUntil then return "petbusy" end
+	if ns.Flavour.flavour == "camelot" and FamiliarUp() then return "petbusy" end
 	if Yes(_G.UnitIsDeadOrGhost, "player") or Yes(_G.UnitOnTaxi, "player") or Yes(_G.UnitInVehicle, "player")
 		or Yes(_G.IsStealthed) then
 		return "petbusy"

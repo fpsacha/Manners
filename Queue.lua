@@ -2672,6 +2672,19 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	if held then return nil end
 	-- A shout already covers you, and a few spells refuse the caster.
 	local mine = fight or (ownOnly and {} or ns.SelfBuffs(candidates))
+	-- Hold back short buffs in cities and inns reaches you too: a group buff for
+	-- yourself that lasts no longer than that is not offered while you rest
+	-- (own buffs in cities on lets the rest through; CurseForge, Thorns at 15).
+	local f = db.filters
+	if not fight and #mine > 0 and f.quietShortInTowns == true and f.quietInTowns ~= true and Resting() == true then
+		local limit = (tonumber(f.quietShortMinutes) or 15) * 60
+		local kept = {}
+		for _, b in ipairs(mine) do
+			local single = ns.BuffSeconds(b)
+			if not (single and single > 0 and single <= limit) then kept[#kept + 1] = b end
+		end
+		mine = kept
+	end
 	local buff, has, remaining, charges, seconds, lead, kind
 	if #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end
 	if not buff and fight then return nil end

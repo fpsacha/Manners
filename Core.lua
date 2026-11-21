@@ -2151,7 +2151,7 @@ do
 		-- pets too" on) is in the group and is nobody in it: never a buff for
 		-- one target at a time, which is for its people. One held to the
 		-- tanks is kept off it above: the walk reads no role for a pet.
-		if opts.pet and buff.oneTarget then return false end
+		if opts.pet and (buff.oneTarget or buff.notPets) then return false end
 		-- One target at a time (Buffs.lua, oneTarget): a cast on somebody takes
 		-- yours off the last. Your group alone, never a passer-by. There, while
 		-- one of yours is on somebody (opts.oneHeld, the scan's own reading of
