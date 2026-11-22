@@ -41,7 +41,7 @@ mutate("Core.lua",
        expect="wellfed: the best food you can use is the one offered", script=S)
 
 mutate("Core.lua",
-       "\t\tif family.food then return ReadWellFed(family, GetTime()) end\n",
+       "\t\tif family.food then local up, spell, left = ReadWellFed(family, GetTime()) if up == nil and ns.GoneWithDeath(\"own:\" .. family.key, family.throughDeath) then return false end return up, spell, left end\n",
        "",
        "wellfed: the aura never read",
        expect="wellfed: Well Fed up", script=S)

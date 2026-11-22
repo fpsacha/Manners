@@ -95,7 +95,7 @@ mutate("Options/Who.lua",
 # --- the reading ---
 
 mutate("Core.lua",
-       "\t\tif family.consumable then return ReadConsumable(family, GetTime()) end\n",
+       "\t\tif family.consumable then local up, spell, left = ReadConsumable(family, GetTime()) if up == nil and ns.GoneWithDeath(\"own:\" .. family.key, family.throughDeath) then return false end return up, spell, left end\n",
        "",
        "consume-buffs: read as a spell of yours",
        expect="consume-buffs: a flask fills both elixir slots on Burning Crusade and Mists", script=S)

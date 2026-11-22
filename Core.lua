@@ -4290,11 +4290,11 @@ do
 			end
 			return false
 		end
-		if family.food then return ReadWellFed(family, GetTime()) end
+		if family.food then local up, spell, left = ReadWellFed(family, GetTime()) if up == nil and ns.GoneWithDeath("own:" .. family.key, family.throughDeath) then return false end return up, spell, left end
 		if family.rest then return ReadRested(family, GetTime()) end
 		-- A companion pet: no aura, the journal's word or Manners' count (Companion.lua).
 		if family.pet then return ns.ReadPet(family) end
-		if family.consumable then return ReadConsumable(family, GetTime()) end
+		if family.consumable then local up, spell, left = ReadConsumable(family, GetTime()) if up == nil and ns.GoneWithDeath("own:" .. family.key, family.throughDeath) then return false end return up, spell, left end
 		if family.makes then return ReadMakes(family) end
 		-- A healthstone to make: up while one is in the bags (no spell, no time).
 		if family.holds then return ns.OwnHeldFirst(family) ~= nil end
