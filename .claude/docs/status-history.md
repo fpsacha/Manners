@@ -995,7 +995,7 @@ GitHub issue 13: "Myself" held everything back in a fight, so the prompt
 emptied on the pull), Kings kept last over Forever's Fish Bowl
 (`buff.spareFishBowl`, `SparesFishBowl` in Core.lua reading Boosted Stats,
 spell 1230098, which Spell 1307245 calls mutually exclusive with Kings; GitHub
-issue 12), and 24 thank emotes (`ns.THANK_EMOTES`, each checked against every
+issue 12), and 24 thank emotes (25 since 1.11.39 with /moo; `ns.THANK_EMOTES`, each checked against every
 client's ChatEmoteConstants.lua; CurseForge). And the consumables button
 (`ownBuffs.apart`, `db.supplies`, Prompt/Supplies.lua: a second secure button,
 MannersSupplies, with its own binding; `ns.SupplyEntry` and `ns.ItemFamily` in

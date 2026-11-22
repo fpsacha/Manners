@@ -11,6 +11,8 @@
   buffs*.
 
 ### Fixes
+- **/moo to thank with.** *Emote to use* (What I say) now offers /moo, last on
+  the list, for any race. Asked for on CurseForge.
 - **Will of the Forsaken shows when you lose control in a fight** even where the
   game will not say what took it, and for fears by mechanic (*In a fight > Show
   a Will of the Forsaken button...*, GitHub issue 33).

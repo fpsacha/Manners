@@ -4,7 +4,7 @@
 S = "runscenarios.py"
 
 mutate("Core.lua",
-       "\t\"KISS\", \"KNEEL\", \"LOVE\", \"PRAISE\", \"PROUD\", \"WELCOME\" }\n",
+       "\t\"KISS\", \"KNEEL\", \"LOVE\", \"PRAISE\", \"PROUD\", \"WELCOME\",\n\t\"MOO\" }\n",
        "}\n",
        "thankemotes: the last six dropped",
        expect="thankemotes: Emote to use offers the longer list", script=S)
@@ -14,3 +14,9 @@ mutate("Core.lua",
        "\t\"APPLAUD\", \"BLUSH\", \"CURTSEY\", \"FLEX\", \"GREET\", \"GRIN\", \"HAIL\", \"HAPPY\", \"HUG\",\n",
        "thankemotes: /highfive left out",
        expect="thankemotes: Emote to use offers the longer list", script=S)
+
+mutate("Core.lua",
+       "\t\"MOO\" }\n",
+       "}\n",
+       "thankemotes: /moo left out",
+       expect="thankemotes: /moo is offered last and kept", script=S)

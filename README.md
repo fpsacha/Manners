@@ -1280,7 +1280,7 @@ Everything here is off until you turn it on.
     death, at most once per
     person every five minutes and once every ten seconds in all, so a raid
     buffing you on the pull is one thank. *Emote to use* picks which of
-    twenty-four friendly emotes (`/thank`, `/cheer`, `/bow`, `/salute` and
+    twenty-five emotes (`/thank`, `/cheer`, `/bow`, `/moo` and
     the rest), *Or one of these, at random* ticks others, and *Wait a moment
     before thanking* sends it one to three seconds after the buff lands (not
     with *Ask me before thanking*).

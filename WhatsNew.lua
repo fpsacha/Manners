@@ -10,6 +10,7 @@ ns.WhatsNew = {
 			"|cffffd100Make a healthstone.|r A warlock with no healthstone in the bags is offered Create Healthstone on the prompt, outside a fight and standing still (GitHub issue 32).",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52/moo to thank with.|r |cffffffffEmote to use|r (What I say) now offers /moo, last on the list, for any race.",
 			"|cffff9a52Will of the Forsaken shows when you lose control in a fight|r even where the game will not say what took it, and for fears by mechanic (|cffffffffIn a fight > Show a Will of the Forsaken button...|r, GitHub issue 33).",
 		} },
 	} },

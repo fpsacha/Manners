@@ -640,6 +640,20 @@ do
 	end)
 end
 
+-- /moo (1.11.39): the same path, the same aim.
+do
+	local scenario = "thank: a thank-you can be a /moo"
+	with(scenario, {}, function(ns)
+		ns.db.profile.prompt.thankEmoteToken = "MOO"
+		local text = favour(ns, "nameplate2")
+		if not noticed(scenario, ns, "nameplate2", text) then return end
+		if #emotes ~= 1 or emotes[1][1] ~= "MOO" or emotes[1][2] ~= "nameplate2" then
+			fail(scenario, "the emote made was " .. tostring(emotes[1] and emotes[1][1])
+				.. " at " .. tostring(emotes[1] and emotes[1][2]) .. ", not MOO at the caster")
+		end
+	end)
+end
+
 -- Others ticked to pick from (1.11.20): the thank-you made is the one drawn.
 do
 	local scenario = "thank: a thank-you makes the emote drawn from the ones ticked"
