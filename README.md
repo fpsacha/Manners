@@ -270,7 +270,7 @@ too.
 #### Curing in a fight
 
 A class with a cure can tick *Show a cure button in a fight when somebody needs it*
-(*In a fight*, off; also under *Who to buff*, *Resurrection and cures*). It gives a
+(*In a fight*, on; also under *Who to buff*, *Resurrection and cures*). It gives a
 small button right of the prompt (or of the Will of the Forsaken button), with
 *Key for my cure in a fight* under the switch. It is never on screen for
 nothing: it appears only when Manners sees you, your target or somebody in your
@@ -1390,7 +1390,7 @@ with two sections: ***The prompt in a fight*** and ***Buttons for when you need 
   buff*), with its key under it: see *Mend Pet in a fight* above.
 - *Show the fight buttons*: only when needed, or dim for the whole
   fight.
-- *Show a cure button in a fight when somebody needs it* (off, a class with a
+- *Show a cure button in a fight when somebody needs it* (on, a class with a
   cure), with *Key for my cure in a fight* under it: see *Curing in a
   fight* above.
 

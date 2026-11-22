@@ -28,10 +28,10 @@ mutate(CF,
        expect=ARMED, script=S)
 
 mutate("Core.lua",
-       "\t\t\tcureFight = false,\n",
        "\t\t\tcureFight = true,\n",
-       "curefight: on out of the box",
-       expect="curefight: off out of the box", script=S)
+       "\t\t\tcureFight = false,\n",
+       "curefight: off out of the box",
+       expect="curefight: on out of the box, nothing shown until needed", script=S)
 
 mutate(CF,
        "db.prompt.cureFight == true) then return false end",

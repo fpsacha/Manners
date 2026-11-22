@@ -10,6 +10,7 @@ ns.WhatsNew = {
 			"|cffffd100Food, stones and oils on the run, your call.|r |cffffffffMy own buffs > Hold my food, stones and oils while I move|r (on) can be turned off, and they then stay on the prompt while you move (GitHub issue 31).",
 			"|cffffd100Who to skip > Paste a list of names|r puts a pasted list on the never-offer list, one name a line or with commas between.",
 			"|cffffd100Skip the players and guilds OlympusMute mutes|r (off, shown when OlympusMute is loaded): |cffffffffWho to skip|r leaves out the players and guilds it mutes, like the never-offer list; a favour owed is still returned.",
+			"|cffffd100Offer my cure in a fight is on for everybody:|r the cure button still shows only when somebody near you carries a curse, poison or disease you can remove.",
 			"|cffffd100A controller button in the key boxes.|r The prompt's key on |cffffffffStart here|r (and every other key box) takes a controller button: click the box and press it.",
 		} },
 		{ title = "Battlegrounds", accent = "7cc4ff", entries = {

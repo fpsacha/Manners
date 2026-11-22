@@ -88,12 +88,12 @@ mutate("Ask.lua", "\t\t\tif #text - i + 1 < need then text = text:sub(1, i - 1) 
 mutate(ADV, '"filters.cureSeconds", "prompt.cureFight",',
        '"filters.cureSeconds",',
        "pass2-window: Who's reset leaves the cure in a fight",
-       expect=P + "Who to buff's reset puts back the fight switches", script=S)
+       expect=P + "Who to buff's and My pet's resets put back the fight switches they draw", script=S)
 
 mutate(ADV, '"beast.bond", "beast.fightMend",\n',
        '"beast.bond",\n',
        "pass2-window: Who's reset leaves Mend Pet in a fight",
-       expect=P + "Who to buff's reset puts back the fight switches", script=S)
+       expect=P + "Who to buff's and My pet's resets put back the fight switches they draw", script=S)
 
 # --- the cure in a fight needs a cure -------------------------------------------
 

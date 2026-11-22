@@ -60,7 +60,7 @@ shared with the buffs). What only the game can say: that
 client, and that a poisoned you is offered the cure on the prompt.
 
 **Cure in a fight (unreleased, asked for on CurseForge: "Can I set up decurse
-in combat while keeping buffs out of combat?").** `prompt.cureFight`, off, on
+in combat while keeping buffs out of combat?").** `prompt.cureFight`, off then (on by default since 2026-11-21), on
 Look under *In a fight* after Mend Pet (with `cureFightKey` under it), and
 mirrored on Who to buff under *Cures* (`who.curesFight`, after the seconds,
 which it does not follow). `Prompt/CureFight.lua` (`ns.CureFight`,

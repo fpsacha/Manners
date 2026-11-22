@@ -148,13 +148,17 @@ local function with(scenario, env, body)
 		end)
 		local ns = load(scenario)
 		if not ns then return end
+		-- A profile that switched it off from the start: the default the load
+		-- reads is false, so nothing is made at login.
+		if env.off then ns.defaults.profile.prompt.cureFight = false end
 		freshPrompt(ns, scenario)
 		Mock.timers = {}
 		Mock.secureActions = true
 		Mock.eventSink = ns.addon
 		ns.KeyNudge = nil
 		ns.db.profile.verbose = true
-		if not env.keep then ns.db.profile.prompt.cureFight = true end
+		if env.off then ns.db.profile.prompt.cureFight = false
+		elseif not env.keep then ns.db.profile.prompt.cureFight = true end
 		ns.Guard("probe", ns.ProbeCapabilities)
 		Mock.bindings = Mock.bindings or {}
 		if env.key ~= false then Mock.bindings[env.key or "F"] = COMMAND end
@@ -247,9 +251,23 @@ local DRUID_MACRO = "/cast [mod:shift,@mouseover,help,nodead][mod:shift,help,nod
 	.. "[@mouseover,help,nodead][help,nodead][@player] Remove Curse"
 
 -- ------------------------------------------------------------------ 1
-with("curefight: off out of the box, and nothing is made", { keep = true }, function(ns)
-	local scenario = "curefight: off out of the box, and nothing is made"
-	if ns.db.profile.prompt.cureFight ~= false then fail(scenario, "the switch is " .. tostring(ns.db.profile.prompt.cureFight) .. " in a new profile") end
+with("curefight: on out of the box, nothing shown until needed", { keep = true }, function(ns)
+	local scenario = "curefight: on out of the box, nothing shown until needed"
+	if ns.db.profile.prompt.cureFight ~= true then fail(scenario, "the switch is " .. tostring(ns.db.profile.prompt.cureFight) .. " in a new profile") end
+	local button = ns.CureFight:Button()
+	if not button then fail(scenario, "no button for a druid in a new profile") return end
+	if button:IsShown() then fail(scenario, "shown out of a fight with nobody in need") end
+	pull(ns)
+	drain()
+	local alpha = shows(ns)
+	if alpha ~= nil and alpha > 0 then fail(scenario, "visible (alpha " .. tostring(alpha) .. ") in a fight with nobody needing a cure") end
+	if button:GetAlpha() > 0 then fail(scenario, "the button's alpha is " .. tostring(button:GetAlpha()) .. " with nobody in need") end
+end)
+
+-- ------------------------------------------------------------------ 1b
+with("curefight: switched off in the profile, nothing is made", { keep = true, off = true }, function(ns)
+	local scenario = "curefight: switched off in the profile, nothing is made"
+	if ns.db.profile.prompt.cureFight ~= false then fail(scenario, "the switch is " .. tostring(ns.db.profile.prompt.cureFight)) end
 	ns.addon:Tick()
 	if rawget(_G, "MannersCureFight") ~= nil or (Mock.namedFrames and Mock.namedFrames.MannersCureFight) then
 		fail(scenario, "a frame was made with the switch off")
@@ -721,7 +739,7 @@ with("curefight: out of a fight it listens to nothing", {}, function(ns, world)
 end)
 
 -- ------------------------------------------------------------------ 22
-with("curefight: switched off, a scan pays nothing for it", { keep = true, class = "MAGE", known = { 475 } }, function(ns)
+with("curefight: switched off, a scan pays nothing for it", { keep = true, off = true, class = "MAGE", known = { 475 } }, function(ns)
 	local scenario = "curefight: switched off, a scan pays nothing for it"
 	local asked = {}
 	debug.sethook(function()

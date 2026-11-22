@@ -167,10 +167,10 @@ do
 					fail(scenario, "SKIPPED -- " .. path .. " is drawn on no page")
 				end
 			end
-			p.prompt.cureFight = true
+			p.prompt.cureFight = false
 			p.beast.fightMend = false
 			Page.ResetPage("who")
-			if p.prompt.cureFight ~= false then
+			if p.prompt.cureFight ~= true then
 				fail(scenario, "Offer my cure in a fight stays " .. tostring(p.prompt.cureFight) .. " after the page's reset")
 			end
 			-- Mend Pet's is a hunter's pet's: My pet's reset puts it back.

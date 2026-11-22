@@ -754,8 +754,9 @@ local defaults = {
 			fightButtons = "needed",
 			-- The class's cure on a button of its own beside the prompt for a
 			-- fight, out of sight until somebody near you needs it
-			-- (Prompt/CureFight.lua). Off until ticked.
-			cureFight = false,
+			-- (Prompt/CureFight.lua). On for everybody: it stays out of sight (alpha 0)
+			-- until a read in the fight finds somebody near with a debuff the cure removes.
+			cureFight = true,
 			-- The spell the prompt's own key casts in a fight, by a row key of
 			-- Prompt/FightKey.lua's list, kept per class (CLASS -> key) because
 			-- every character shares the profile; none, or "none", keeps the key
