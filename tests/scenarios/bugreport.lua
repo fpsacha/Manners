@@ -132,6 +132,35 @@ do
 end
 
 do
+	-- The full report cannot run in a fight, but a name typed in the words is
+	-- still no part of the link or the summary: the group's names are read from
+	-- the unit tokens.
+	local scenario = "bugreport: in a fight a group member's name leaves the link and the summary"
+	with(scenario, function(ns)
+		Mock.groupSize = 2
+		Mock.unitNames = { party1 = { "Petra", "Stonewell" } }
+		local window = open(ns)
+		choose(window, 1)
+		window.words:SetText("Petra Stonewell never got Fortitude")
+		Mock.inCombat = true
+		window.make:Click()
+		window.shortBtn:Click()
+		local url = window.boxA:GetText()
+		local text = window.boxB:GetText()
+		if url:find("Petra", 1, true) or url:find("Stonewell", 1, true) then
+			fail(scenario, "a group member's name is in the link: " .. url)
+		end
+		if not decode(url):find("Person", 1, true) then fail(scenario, "the link has no alias: " .. decode(url)) end
+		local line = text:match("In their words: ([^\n]*)") or ""
+		if line:find("Petra", 1, true) or line:find("Stonewell", 1, true) then
+			fail(scenario, "a group member's name is in the summary's words: " .. line)
+		end
+		Mock.groupSize = 0
+		Mock.unitNames = nil
+	end)
+end
+
+do
 	local scenario = "bugreport: the link stays under 2000 characters"
 	with(scenario, function(ns)
 		local words = string.rep("\195\169", 300)

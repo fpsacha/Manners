@@ -19,6 +19,16 @@ ns.WhatsNew = {
 			"|cffff9a52Battlegrounds:|r buffs after a death are read right for you and your team.",
 			"|cffff9a52Healthstones and stones|r whose name ends in a bracket cast again.",
 		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Cure button.|r It no longer blinks or says nil, shows \"Somebody\" when the game withholds a name, and a Shift key on either binding is read right.",
+			"|cffff9a52Break free.|r A second fear keeps the button lit.",
+			"|cffff9a52Healthstone.|r One whose name ends in a bracket is cast with ().",
+			"|cffff9a52Battleground food and elixirs.|r They read as gone after a death.",
+			"|cffff9a52Greater Blessing on another class.|r It no longer counts as yours.",
+			"|cffff9a52Slider boxes.|r Each reads its own unit words, in every language.",
+			"|cffff9a52Who to buff.|r Your own-buff controls show for a class with nothing for others.",
+			"|cffff9a52/manners debug.|r The dungeon line leaves food out while |cffffffffFood still offered outside dungeons and raids|r is on.",
+		} },
 	} },
 	{ version = "1.11.40", date = "22 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {

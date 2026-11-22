@@ -115,6 +115,22 @@ do
 end
 
 do
+	-- A class with a cure on this client, none learned yet, the switch on (its
+	-- default): no button is made for it, and that is no fault.
+	local scenario = "selftest-fight: a cure not learned yet is no warning"
+	with(scenario, function(ns)
+		ns.CureFightSpells = function() return nil end
+		local list = results(ns, "fight.cure")
+		if not any(list, "PASS", "no cure learned yet") then
+			fail(scenario, "a cure not learned is not a pass: " .. show(list))
+		end
+		for _, r in ipairs(list) do
+			if r.status == "WARN" then fail(scenario, "a cure not learned warns: " .. r.value) end
+		end
+	end, { edit = function(p) p.cureFight, p.cureFightEach = true, false end })
+end
+
+do
 	local scenario = "selftest-fight: a cure switched on and never made warns"
 	with(scenario, function(ns)
 		ns.CureFight.Button = function() return nil end

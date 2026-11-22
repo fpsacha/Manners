@@ -174,3 +174,11 @@ mutate("Options/BugReport.lua",
        "bugreport: a game the form does not list",
        expect=FORM,
        script=S)
+
+# In a fight the link and the summary are scrubbed of your name only, not the group's.
+mutate("Options/BugReport.lua",
+       "\tlocal aliases = FightAliases()\n",
+       "\tlocal aliases = nil\n",
+       "bugreport: a fight's link keeps a group member's name",
+       expect="bugreport: in a fight a group member's name leaves the link and the summary",
+       script=S)

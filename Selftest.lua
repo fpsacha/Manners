@@ -1236,6 +1236,11 @@ Check("fight.cure", "fight", L["cure in a fight"], function(add)
 		add(PASS, "switched off")
 		return
 	end
+	if not CF.Applies(db) then
+		-- A cure on this client, none learned yet: no button is made for it.
+		add(PASS, "no cure learned yet")
+		return
+	end
 	local function One(index, command, name)
 		local button = CF:Button(index)
 		if not button then

@@ -23,6 +23,9 @@ stands now. Keep it short: what ships goes to the history file or away.
   summary line, the trail at 300, the self-test's *Fight buttons and keys*
   group, `tools/read_report.py`, the issue form's category and game fields. Its
   own scenarios: `bugreport.lua`, `trail-mark.lua`, `selftest-fight.lua`.
+  The branch also carries the unreleased r39 fixes (cure button, break free on a
+  second fear, healthstone "()", battleground food after a death, Greater
+  Blessing, slider unit words, own-buff controls, the debug dungeon line).
   No workflow runs.
   Old worktrees kept on purpose (uncommitted files or unmerged): `look-fel`,
   `look-wild`, `relcheck`, `logo`, `ci-diag-generators`.
