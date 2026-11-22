@@ -319,8 +319,10 @@ do
 			fail(scenario, "SKIPPED -- Anna is offered again before she died")
 			return
 		end
+		-- Seen dead by the walk alone, not the tick's death watch, which notes
+		-- it too (favours-fixes.lua): this one is the walk's note.
 		dead.party1 = true
-		ns.addon:Tick()
+		ns.BuildQueue()
 		dead.party1 = nil
 		Mock.advance(1)
 		ns.addon:Tick()

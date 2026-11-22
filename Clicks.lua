@@ -1085,6 +1085,28 @@ local function IsGroupId(buff, id)
 	return false
 end
 
+-- Whether a group form that goes by class (a paladin's Greater Blessing,
+-- Buffs.lua groupByClass), sent at `to`, reaches you: it lands on the target's
+-- class alone. False only when every group member the name finds is of another
+-- class; a name no group token holds, or a class withheld, reaches you as before.
+local function ClassReachesYou(to)
+	local mine = ns.PlayerClass()
+	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
+	if not mine or n <= 0 or type(to) ~= "string" then return true end
+	local inRaid = plain(IsInRaid and IsInRaid()) == true
+	local prefix = inRaid and "raid" or "party"
+	local other = false
+	for i = 1, math.min(inRaid and n or (n - 1), 40) do
+		local unit = prefix .. i
+		if plain(UnitName(unit)) == to or ns.UnitFullName(unit) == to then
+			local class = plain(select(2, UnitClass(unit)))
+			if class == nil or class == mine then return true end
+			other = true
+		end
+	end
+	return not other
+end
+
 -- Whether the cast event's target names you: nobody named ("" or no SENT seen), your
 -- name alone, your filed name (on Forever with the surname, ns.IsPlayerName), or your
 -- name joined to your own realm. A team-mate on another realm who shares your first
@@ -1108,7 +1130,10 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 		local buff = ns.BUFF_BY_ID[id]
 		-- Only a cast that reached you: one on somebody else leaves your own reading as it was.
 		local to = sentTarget[plain(castGUID)]
-		if buff and (NamesYou(to) or IsGroupId(buff, id)) then ns.NoteCastSinceDeath(buff.key) end
+		-- A group form reaches you, but one that goes by class only on your own class.
+		local group = buff and IsGroupId(buff, id)
+		if group and ns.GROUP_BY_CLASS[ns.PlayerClass()] == true then group = ClassReachesYou(to) end
+		if buff and (NamesYou(to) or group) then ns.NoteCastSinceDeath(buff.key) end
 	end
 	-- A scroll's cast done: the scroll is used, and nothing can stop it now.
 	local done = castingScroll and ScrollCast(plain(castGUID), plain(spellId))
