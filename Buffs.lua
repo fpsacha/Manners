@@ -1269,7 +1269,9 @@ end
 --             instant one (a flask, an elixir, a stat scroll) never does.
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
---   tank      Automatic reminds you only while your group role is tank.
+--   tank      Automatic reminds you while your group role is tank, or, alone
+--             with no role to read, while your talents are a tank's (most in
+--             Protection, or a spec whose role is tank: Core.lua, Tanking).
 --   onceUp    Automatic reminds you only of the one you had up last: nothing
 --             before Manners has seen you put one up yourself (Forever's Find
 --             Treasure, a family of its own beside Tracking there). A pick

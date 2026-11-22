@@ -118,11 +118,29 @@ mutate("Core.lua",
        expect="a damage-dealing paladin was offered", script=S)
 
 mutate("Core.lua",
-       "\t\tif (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return false end\n"
+       "\t\tif (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return ns.TalentsSayTank() end\n"
        "\t\treturn safecall(_G.UnitGroupRolesAssigned",
        "\t\treturn safecall(_G.UnitGroupRolesAssigned",
        "own: a tank alone",
        expect="a paladin alone was offered", script=S)
+
+mutate("Core.lua",
+       "<= 0 then return ns.TalentsSayTank() end\n",
+       "<= 0 then return false end\n",
+       "own: the talents not read alone",
+       expect="a Protection paladin alone was not offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\treturn protection > other\n",
+       "\t\t\treturn protection >= other\n",
+       "own: a tie read as Protection",
+       expect="a paladin with tied talents alone was offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\tif name == \"protection\" then\n",
+       "\t\t\t\tif name == \"retribution\" then\n",
+       "own: the wrong tree read as a tank's",
+       expect="a Protection paladin alone was not offered", script=S)
 
 mutate("Core.lua",
        "\t\tif spell and spell.family == family and (spell.item or Known(spell)) then return spell.key, spell end\n",

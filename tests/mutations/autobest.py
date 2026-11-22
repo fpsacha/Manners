@@ -107,8 +107,8 @@ mutate("Core.lua",
        expect="autobest: mists: a healing spec takes a mana oil", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif spent then return nil, Leading(order, counts), table.concat(parts, \" \"), false end\n",
-       "\t\t\tif false then return nil, Leading(order, counts), table.concat(parts, \" \"), false end\n",
+       "\t\t\tif spent then\n\t\t\t\ttalentTank = ProtectionLeads(order, counts)\n",
+       "\t\t\tif false then\n\t\t\t\ttalentTank = ProtectionLeads(order, counts)\n",
        "autobest: classic's spec index read before the points spent",
        expect="autobest: vanilla: a Shadow priest by his points, not the spec's role", script=S)
 
