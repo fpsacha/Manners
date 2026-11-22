@@ -48,7 +48,7 @@ local function with(scenario, opts, body)
 			for _, id in ipairs(opts.known) do set[id] = true end
 			IsSpellKnown = function(id) return set[id] == true end
 			IsPlayerSpell = IsSpellKnown
-		elseif opts.fortitude then
+		elseif opts.fortitude and not (ns.OWN_FAMILY_BY_KEY and ns.OWN_FAMILY_BY_KEY.food) then
 			-- A priest who has learned his Fortitude: on a client without Well
 			-- Fed, that is what gives Myself something to offer.
 			local set = {}

@@ -515,7 +515,6 @@ end
 
 do
 	local frame = CreateFrame("Frame")
-	TP.resetFrame = frame -- held, so a test mock's weak table cannot collect it
 	frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 	frame:SetScript("OnEvent", function()

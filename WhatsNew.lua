@@ -19,6 +19,7 @@ ns.WhatsNew = {
 			"|cffffd100Settings and tooltips are reworded in plain English,|r with units in the slider boxes instead of in brackets, and chat lines name a page in brackets instead of calling it a tab (GitHub issue 23).",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Retail:|r a hunter's options window shows |cffffffffMy pet|r, |cffffffffWho to skip|r, |cffffffffWhen to offer|r, |cffffffffIn a fight|r and |cffffffffLook|r again.",
 			"|cffff9a52A stranger's buff is noticed when the game leaves out who cast it|r (WoW Forever and retail): Manners names them from the cast it saw at that moment, so |cffffffffPeople who buff me|r offers to buff them back, and /manners debug says what became of the last favour (GitHub issue 26).",
 			"|cffff9a52Search puts a word at the start of a name first.|r \"rest\" now finds Well-Rested ahead of Firestone.",
 			"|cffff9a52A slider's box takes back what it shows.|r Type 3x over 2x, or Off or Automatic where the box says so, and the value is kept.",
