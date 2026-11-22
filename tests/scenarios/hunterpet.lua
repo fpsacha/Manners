@@ -802,7 +802,7 @@ end
 -- ------------------------------------------------------------------ the options
 do
 	local scenario = "hunterpet: the switches are under Myself, for a hunter alone"
-	with(scenario, {}, function(ns)
+	with(scenario, { flavour = "camelot" }, function(ns)
 		for _, key in ipairs({ "beastCall", "beastRevive", "beastFeed", "beastMend", "beastBond" }) do
 			local control = findOption(ns.optionsTable, key)
 			if not control then fail(scenario, "no " .. key) return end

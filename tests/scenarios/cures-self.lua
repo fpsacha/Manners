@@ -274,7 +274,9 @@ do
 		if (queue(ns)[me(ns)] or {}).cure then fail(scenario, "a poison with 8 seconds left was offered, with 10 set") end
 		world.debuffs.player = { debuff("Poison", nil) }
 		if (queue(ns)[me(ns)] or {}).cure then fail(scenario, "a poison with no timer was offered") end
-		world.debuffs.player = { debuff("Poison", 60, 427717, nil, "Unstable Affliction") }
+		-- A poison on this client's own deny list (Cures.lua DENY).
+		local denied = ({ tbc = 30108, mists = 30108, mainline = 1259790 })[Mock.flavour] or 427717
+		world.debuffs.player = { debuff("Poison", 60, denied, nil, "Unstable Affliction") }
 		if (queue(ns)[me(ns)] or {}).cure then fail(scenario, "a poison on the deny list was offered") end
 		world.debuffs.player = { debuff("Poison", 60, nil, false, "Stuck Venom") }
 		if (queue(ns)[me(ns)] or {}).cure then fail(scenario, "a poison the client says you cannot remove was offered") end
@@ -363,7 +365,10 @@ end
 -- ------------------------------------------------------------ not a druid's alone
 do
 	local scenario = "cures-self: a class with a cure and no buff for others has a prompt for it"
-	with(scenario, { class = "SHAMAN", known = { 526 }, solo = true }, function(ns, world)
+	-- Forever, Classic Era and TBC: a shaman with Cure Poison. Retail: a monk
+	-- with Detox, who has no buff for others there. Mists has no such class.
+	local retail = Mock.flavour == "mainline"
+	with(scenario, { class = retail and "MONK" or "SHAMAN", known = { retail and 218164 or 526 }, solo = true }, function(ns, world)
 		if ns.caps.hasClassBuffs or #ns.CastableBuffs() ~= 0 then
 			fail(scenario, "SKIPPED -- the shaman has a buff for somebody else in hand")
 			return

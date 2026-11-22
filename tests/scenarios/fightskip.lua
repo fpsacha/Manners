@@ -40,6 +40,9 @@ end
 
 -- One scan: this person's entry (or nil) and whether the scan wrote a verdict.
 local function look(ns, name)
+	-- Off Forever the second return of UnitName is a realm, so the queue files
+	-- the passer-by under her first name alone.
+	if not Mock.surnames then name = name:match("^%S+") end
 	local queue, rejected = ns.BuildQueue()
 	local found
 	for _, entry in ipairs(queue) do

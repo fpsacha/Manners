@@ -14,7 +14,8 @@ local dir, H = ...
 local fail, load = H.fail, H.load
 local strangers, freshPrompt, findOption = H.strangers, H.freshPrompt, H.findOption
 
-local ME = "Mort Defrette"
+-- The player as the addon files him: a two-part name on Forever, one name off it.
+local function me(ns) return ns.UnitFullName("player") end
 local ANNA = "Anna Aim"
 -- Arcane Intellect, and the armor family.
 local KNOWN = { 1459, 168, 7300, 7301, 7302, 6117 }
@@ -83,9 +84,9 @@ do
 		if not first then fail(scenario, "SKIPPED -- the prompt is not on your own buff") return end
 		H.pressButton(ns, "RightButton")
 		Mock.advance(11)
-		if not ns.IsBlocked(ME, first) then fail(scenario, first .. " was offered again after 11 seconds") end
+		if not ns.IsBlocked(me(ns), first) then fail(scenario, first .. " was offered again after 11 seconds") end
 		Mock.advance(2)
-		if ns.IsBlocked(ME, first) then fail(scenario, first .. " was still skipped after 13 seconds") end
+		if ns.IsBlocked(me(ns), first) then fail(scenario, first .. " was still skipped after 13 seconds") end
 	end)
 end
 
@@ -97,9 +98,9 @@ do
 		if not first then fail(scenario, "SKIPPED -- the prompt is not on your own buff") return end
 		H.pressButton(ns, "RightButton")
 		Mock.advance(14 * 60)
-		if not ns.IsBlocked(ME, first) then fail(scenario, first .. " came back after 14 minutes of a 15 minute skip") end
+		if not ns.IsBlocked(me(ns), first) then fail(scenario, first .. " came back after 14 minutes of a 15 minute skip") end
 		Mock.advance(2 * 60)
-		if ns.IsBlocked(ME, first) then fail(scenario, first .. " was still skipped after 16 minutes") end
+		if ns.IsBlocked(me(ns), first) then fail(scenario, first .. " was still skipped after 16 minutes") end
 	end)
 end
 
@@ -112,9 +113,9 @@ do
 		H.pressButton(ns, "RightButton")
 		Mock.modifiers.ctrl = nil
 		Mock.advance(14 * 60)
-		if not ns.IsBlocked(ME, nil) then fail(scenario, "your own buffs came back after 14 minutes of a 15 minute skip") end
+		if not ns.IsBlocked(me(ns), nil) then fail(scenario, "your own buffs came back after 14 minutes of a 15 minute skip") end
 		Mock.advance(2 * 60)
-		if ns.IsBlocked(ME, nil) then fail(scenario, "your own buffs were still skipped after 16 minutes") end
+		if ns.IsBlocked(me(ns), nil) then fail(scenario, "your own buffs were still skipped after 16 minutes") end
 		Mock.modifiers = {}
 	end)
 end

@@ -46,11 +46,13 @@ end
 --   env.class   the player's class (MAGE)
 --   env.known   spell ids known, or a function of ns that lists them
 --   env.bags    item counts by id
+--   env.flavour the client to stand in for (Forever)
 --   env.keep    leave the switch as a new profile has it
 -- body(ns, asked): `asked` is every pet token the client was asked about
 -- since the session was made ready.
 local function with(scenario, env, body)
 	Mock.reset()
+	if env.flavour then Mock.setFlavour(env.flavour) end
 	Mock.class = env.class or "MAGE"
 	if env.raid then
 		Mock.raid = env.raid
@@ -710,7 +712,7 @@ end
 do
 	local scenario = "grouppets: Mark of the Wild is not offered to a group member's pet"
 	local DRUID_IDS = { 1126, 5232, 6756, 5234, 8907, 9884, 9885, 26990, 467, 782, 1075, 8914, 9756, 9910, 26992 }
-	with(scenario, { class = "DRUID", known = DRUID_IDS }, function(ns)
+	with(scenario, { class = "DRUID", known = DRUID_IDS, flavour = "camelot" }, function(ns)
 		local _, list = queue(ns)
 		local seen = false
 		for _, entry in ipairs(list) do

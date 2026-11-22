@@ -646,7 +646,7 @@ end
 
 do
 	local scenario = "hunt-1129: a share is not offered with food that is gone"
-	with(scenario, { world = function(p) p.happy, p.bags = 2, { 117 } end }, function(ns)
+	with(scenario, { flavour = "camelot", world = function(p) p.happy, p.bags = 2, { 117 } end }, function(ns)
 		ns.BuildQueue()
 		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 433)
 		P.playerAuras.Food = true
