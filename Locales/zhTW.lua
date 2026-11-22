@@ -5622,7 +5622,7 @@ L["For a spell you can cast on others. A spell only for yourself always lands on
 L["Whoever is under my mouse, else my target, else me"] = "滑鼠下的玩家，否則是我的目標，否則是我"
 L["Me"] = "我"
 L["Show a Will of the Forsaken button when I am feared, charmed or asleep"] = "我被恐懼、魅惑或沉睡時顯示不死意志按鈕"
-L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."] = "提示框旁邊一個獨立的按鈕，有自己的按鍵。當你被恐懼、魅惑或沉睡時顯示：法術就緒時亮起，冷卻期間保持黯淡。「顯示戰鬥按鈕」可以讓它在整場戰鬥中黯淡地留在那裡。戰鬥中所做的更改從下一場戰鬥起生效。"
+L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep, and whenever you lose control of your character in a fight where the game will not say what took it: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."] = "提示框旁邊一個獨立的按鈕，有自己的按鍵。當你被恐懼、魅惑或沉睡時顯示；在戰鬥中失去對角色的控制、而遊戲又沒有說明原因時也會顯示：法術就緒時亮起，冷卻期間保持黯淡。「顯示戰鬥按鈕」可以讓它在整場戰鬥中黯淡地留在那裡。戰鬥中所做的更改從下一場戰鬥起生效。"
 L["Key for Will of the Forsaken"] = "不死意志的按鍵"
 L["%s was bound to %s; it now casts %s."] = "%s 原本綁定「%s」；現在改為施放%s。"
 L["Key for Mend Pet"] = "治療寵物的按鍵"

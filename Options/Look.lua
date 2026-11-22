@@ -549,7 +549,7 @@ function Page.BuildLookTab()
 			breakFree = {
 				type = "toggle",
 				name = L["Show a Will of the Forsaken button when I am feared, charmed or asleep"],
-				desc = L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."],
+				desc = L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep, and whenever you lose control of your character in a fight where the game will not say what took it: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."],
 				order = 32.46,
 				width = "full",
 				hidden = function() return ns.caps.breakFree == nil end,

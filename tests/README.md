@@ -292,7 +292,7 @@ sub-second subset for the middle of an edit.
   (mockapi.lua) reading `[combat]` from `Mock.affectingCombat`, else
   `Mock.inCombat`. Secure code's calls in a fight are not the addon's
   (`Mock.secureCode`).
-- Breaking free (`scenarios/breakfree.lua`): `Mock.knownSpells` (ids the
+- Breaking free (`scenarios/breakfree.lua`, and `scenarios/wotfneed.lua` for the need where the game withholds the type; it overrides `HasFullControl` with `rawset`): `Mock.knownSpells` (ids the
   player knows beyond 1459, e.g. `{ [7744] = true }`, read by `IsSpellKnown`
   and `IsPlayerSpell`), `Mock.playerRace = "Scourge"` (the race file name),
   `Mock.charmed` (`UnitIsCharmed("player")`: true or `Mock.SECRET`),

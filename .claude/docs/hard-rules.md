@@ -48,7 +48,13 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   place at the pull say, but at alpha 0 (no tooltip, its highlight a region so
   it takes the alpha) and faded in by Lua (a plain OnUpdate, as the cure's)
   only while you are afflicted; in a fight Lua paints only its regions and
-  alpha. `prompt.fightButtons` = `always` keeps it dim (0.35) for the whole
+  alpha. Afflicted is a plain read of the loss of control (FEAR, FEAR_MECHANIC,
+  CHARM, SLEEP) or of UnitIsCharmed; where the game withholds the read (secret)
+  or has no API, losing control of your character in the fight (PLAYER_CONTROL_LOST,
+  or a LOSS_OF_CONTROL_ADDED with a secret type) is the need, ended by
+  PLAYER_CONTROL_GAINED, HasFullControl plainly true, the release, or ten
+  seconds with HasFullControl unreadable; a plain read always wins, so a plain
+  stun is no reason (`tests/scenarios/wotfneed.lua`). `prompt.fightButtons` = `always` keeps it dim (0.35) for the whole
   fight instead, and covers Mend Pet's button the same way; the cure button
   never reads it. Nothing Manners itself chooses may keep it from showing when
   it is needed and from being pressed, and the prompt's own key keeps to

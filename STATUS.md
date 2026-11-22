@@ -23,6 +23,9 @@ stands now. Keep it short: what ships goes to the history file or away.
   by default for every warlock: Create Healthstone is offered when no stone of any
   rank is in the bags (`holds` family `makehealthstone`, `tests/scenarios/healthstone.lua`),
   outside a fight, standing still, with a Soul Shard where the spell uses one.
+- **Also unreleased:** Will of the Forsaken shows on control lost in a fight where
+  the game withholds the type or has no loss-of-control API (GitHub issue 33),
+  and FEAR_MECHANIC is in its row (`tests/scenarios/wotfneed.lua`).
 - **Waiting to post:** four CurseForge replies (KestrelWild, vladsnz, zeekro,
   and Cloud2668's thread for ZachrielCl). Chrome dropped before they went up;
   the drafts are in the nightly's `state.json` under `pending`. Check the page

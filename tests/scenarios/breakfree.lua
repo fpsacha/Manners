@@ -325,7 +325,7 @@ with("breakfree: feared with the prompt up, the prompt names it and its key", fu
 end)
 
 -- ------------------------------------------------------------------ 6
-for _, kind in ipairs({ "STUN", "ROOT", "FEAR_MECHANIC", "PACIFYSILENCE" }) do
+for _, kind in ipairs({ "STUN", "ROOT", "PACIFYSILENCE" }) do
 	with("breakfree: " .. kind .. " is no reason", function(ns, scenario)
 		pull(ns)
 		lose(kind)
@@ -350,17 +350,14 @@ with("breakfree: charmed by UnitIsCharmed alone", function(ns, scenario)
 end, { nobody = true, people = {} })
 
 -- ------------------------------------------------------------------ 8
-with("breakfree: a secret loss of control is no reason and throws nothing", function(ns, scenario)
+with("breakfree: a secret loss of control throws nothing and is said as secret", function(ns, scenario)
 	pull(ns)
 	Mock.lossOfControl = { { locType = Mock.SECRET } }
 	Mock.frameEvent("LOSS_OF_CONTROL_ADDED", 1)
-	if (shows(ns)) then fail(scenario, "lit for a secret type") end
 	Mock.lossOfControlCount = Mock.SECRET
 	Mock.frameEvent("LOSS_OF_CONTROL_UPDATE")
-	if (shows(ns)) then fail(scenario, "lit for a secret count") end
 	Mock.charmed = Mock.SECRET
 	Mock.frameEvent("PLAYER_CONTROL_LOST")
-	if (shows(ns)) then fail(scenario, "lit for a secret charm") end
 	local lines = table.concat(ns.BreakFreeLines(), " / ")
 	if not lines:find("(secret)", 1, true) then fail(scenario, "/manners debug does not say it came secret: " .. lines) end
 	release(ns)
@@ -372,7 +369,6 @@ with("breakfree: a secret loss-of-control record is said as secret", function(ns
 	pull(ns)
 	Mock.lossOfControl = { Mock.SECRET }
 	Mock.frameEvent("LOSS_OF_CONTROL_ADDED", 1)
-	if (shows(ns)) then fail(scenario, "lit for a secret record") end
 	local lines = table.concat(ns.BreakFreeLines(), " / ")
 	if not lines:find("last loss of control: ? (secret)", 1, true) then
 		fail(scenario, "/manners debug does not say the record came secret: " .. lines)
@@ -686,8 +682,7 @@ for _, flavour in ipairs(FLAVOURS) do
 			pull(ns)
 			lose("FEAR")
 			local lit = shows(ns)
-			if shape == "none" and lit then fail(scenario, "lit for a fear with no API to report one") end
-			if shape ~= "none" and not lit then fail(scenario, "not lit while feared") end
+			if not lit then fail(scenario, "not lit while feared") end
 			regain()
 			Mock.charmed = true
 			Mock.frameEvent("PLAYER_CONTROL_LOST")

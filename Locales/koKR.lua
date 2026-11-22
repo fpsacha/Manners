@@ -5622,7 +5622,7 @@ L["For a spell you can cast on others. A spell only for yourself always lands on
 L["Whoever is under my mouse, else my target, else me"] = "마우스 아래의 플레이어, 없으면 내 대상, 없으면 나"
 L["Me"] = "나"
 L["Show a Will of the Forsaken button when I am feared, charmed or asleep"] = "공포, 현혹, 수면 상태일 때 포세이큰의 의지 버튼 표시"
-L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."] = "알림창 옆에 따로 있는 버튼으로, 자체 단축키가 있습니다. 공포, 현혹, 수면 상태인 동안 나타나며, 주문이 준비되어 있으면 밝게, 재사용 대기 중에는 흐리게 보입니다. '전투 버튼 표시'로 전투 내내 흐리게 둘 수도 있습니다. 전투 중 바꾼 설정은 다음 전투부터 적용됩니다."
+L["A button of its own beside the prompt, with its own key. It shows while you are feared, charmed or asleep, and whenever you lose control of your character in a fight where the game will not say what took it: lit when the spell is ready, dim while it cools down. Show the fight buttons can keep it there, dim, all fight. A change made in a fight counts from the next one."] = "알림창 옆에 따로 있는 버튼으로, 자체 단축키가 있습니다. 공포, 현혹, 수면 상태인 동안, 그리고 전투 중 게임이 원인을 알려 주지 않는 상황에서 캐릭터의 조작을 잃을 때마다 나타나며, 주문이 준비되어 있으면 밝게, 재사용 대기 중에는 흐리게 보입니다. '전투 버튼 표시'로 전투 내내 흐리게 둘 수도 있습니다. 전투 중 바꾼 설정은 다음 전투부터 적용됩니다."
 L["Key for Will of the Forsaken"] = "포세이큰의 의지 단축키"
 L["%s was bound to %s; it now casts %s."] = "%s 키는 %s에 지정되어 있었지만, 이제 %s 주문을 시전합니다."
 L["Key for Mend Pet"] = "동물 치료 단축키"

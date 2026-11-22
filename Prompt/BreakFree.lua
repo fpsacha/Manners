@@ -47,10 +47,17 @@
 -- Whether you can break free: the probe's (caps.breakFree: the race by its
 -- file name, the spell known), never asked per scan. Whether you need to: the
 -- loss of control the client reports (C_LossOfControl, in either of its two
--- shapes), or UnitIsCharmed, read on the client's events and cached; a secret
--- or a missing answer is never a reason. Whether it is ready: our own press
--- followed by the spell going out, else the client's own cooldown where it is
--- plain; unknown counts as ready, since a refused cast burns nothing.
+-- shapes), or UnitIsCharmed, read on the client's events and cached. A plain
+-- read stays the authority (a plain stun with control lost is no reason). Where
+-- the game withholds the answer (a secret type, record or count) or has no API
+-- to ask, losing control of your character in the fight is the need itself:
+-- PLAYER_CONTROL_LOST, or a LOSS_OF_CONTROL_ADDED whose type is secret, lights
+-- it. That guess ends on PLAYER_CONTROL_GAINED, HasFullControl plainly true,
+-- the fight's release, or UNSURE_SECONDS after the last such event where
+-- HasFullControl cannot be read (GitHub issue 33). Whether it is ready: our
+-- own press followed by the spell going out, else the client's own cooldown
+-- where it is plain; unknown counts as ready, since a refused cast burns
+-- nothing.
 --
 -- A press here lets the prompt's waiting press go (the pending-click guard):
 -- pressed from habit while feared, the prompt files a press that never goes
@@ -84,14 +91,15 @@ BreakFree.COMMAND = "CLICK MannersBreakFree:LeftButton"
 
 -- The abilities that break a loss of control, one row each. `race` is the
 -- client's race file name (ChrRaces.ClientFileString: Scourge is the
--- Forsaken); `breaks` the loss-of-control types it ends. Fear, charm and sleep
+-- Forsaken); `breaks` the loss-of-control types it ends. Fear (by effect and
+-- by mechanic, which the client reports under FEAR_MECHANIC), charm and sleep
 -- only: a Horror (Death Coil) or a possession reported under another type
 -- would light a two-minute cooldown up for nothing, so another type joins only
 -- once the trail shows it on an effect this breaks. Later rows may carry a
 -- class or an item instead of a race.
 local ABILITIES = {
 	{ key = "willoftheforsaken", spell = 7744, race = "Scourge",
-		breaks = { FEAR = true, CHARM = true, SLEEP = true }, cooldown = 120 },
+		breaks = { FEAR = true, FEAR_MECHANIC = true, CHARM = true, SLEEP = true }, cooldown = 120 },
 }
 
 local STATE = "mannersbreakfree"
@@ -102,6 +110,9 @@ local DRIVER = "[combat] fight; peace"
 local GAP = 10
 -- How long after a press of this button its spell going out is waited for.
 local SUCCEED_SECONDS = 1
+-- How long a loss of control the game would not name is taken as one, from the
+-- last event that said control was lost, when HasFullControl cannot say.
+local UNSURE_SECONDS = 10
 -- The icon the client gives none for: Will of the Forsaken's own.
 local FALLBACK_ICON = "Interface\\Icons\\Spell_Shadow_RaiseDead"
 local GLOW = "Interface\\AddOns\\Manners\\Textures\\RingSq"
@@ -112,6 +123,11 @@ local armedMacro, placedKey, paintedKey
 local fadeFrom, fadeTo, fadeAt = 0, 0, 0
 -- Afflicted now (a type this breaks, or charmed), from the client's events.
 local afflicted = false
+-- When control was last lost (PLAYER_CONTROL_LOST, or a LOSS_OF_CONTROL_ADDED
+-- whose type was secret), and whether `afflicted` is that guess alone: the
+-- game withheld the type, or has no loss-of-control API, and control is gone.
+local lostAt
+local guessed = false
 -- The last loss of control seen: { kind, how, at }; `how` is plain, secret or
 -- no API.
 local lastLoss
@@ -228,14 +244,28 @@ end
 local function Read()
 	local info = Known()
 	if not info then
-		afflicted = false
+		afflicted, guessed = false, false
 		return nil, nil
 	end
 	local hit, kind, how = ReadLoss(info.row)
 	if not hit and info.row.breaks.CHARM and plain(UnitIsCharmed("player")) == true then
 		hit = true
 	end
-	afflicted = hit == true
+	-- A plain read stays the authority. Only where the game withholds the type
+	-- or has no API to ask, losing control of your character in the fight is
+	-- the need: until control is plainly back, or nothing says it ended for
+	-- UNSURE_SECONDS.
+	guessed = false
+	if not hit and lostAt and (how == "secret" or how == "no API") then
+		local full
+		if type(_G.HasFullControl) == "function" then full = plain(_G.HasFullControl()) end
+		if full == false or (full == nil and GetTime() - lostAt <= UNSURE_SECONDS) then
+			guessed = true
+		else
+			lostAt = nil
+		end
+	end
+	afflicted = hit == true or guessed
 	return kind, how
 end
 
@@ -572,6 +602,9 @@ end
 -- for the next fight.
 function BreakFree:Release()
 	promptPainted, iconBefore, litShown = false, nil, false
+	-- A guess ends with the fight.
+	lostAt, guessed = nil, false
+	Read()
 	dirty = true
 	self:Refresh()
 end
@@ -691,16 +724,27 @@ local function OnEvent(event, unit, _, spellId)
 		end
 		return
 	end
+	if event == "PLAYER_CONTROL_LOST" then
+		lostAt = GetTime()
+	elseif event == "PLAYER_CONTROL_GAINED" then
+		lostAt = nil
+	end
 	local was = afflicted
 	local kind, how = Read()
+	if event == "LOSS_OF_CONTROL_ADDED" and how == "secret" and not afflicted then
+		lostAt = GetTime()
+		kind, how = Read()
+	end
 	if event == "LOSS_OF_CONTROL_ADDED" then
 		lastLoss = { kind = kind or "none", how = how or "plain", at = GetTime() }
-		ns.Trail("fight", ("loss of control: %s (%s)%s"):format(tostring(kind or "none"), tostring(how or "plain"),
-			afflicted and ", break free lights up" or ""))
+		ns.Trail("fight", ("loss of control: %s (%s)%s%s"):format(tostring(kind or "none"), tostring(how or "plain"),
+			afflicted and ", break free lights up" or "",
+			guessed and ", by a loss of control the game would not name" or ""))
 	elseif event == "PLAYER_CONTROL_LOST" and how == "no API" then
 		lastLoss = { kind = "control lost", how = "no API", at = GetTime() }
 		ns.Trail("fight", "control lost (no loss-of-control API on this client)"
-			.. (afflicted and ", charmed: break free lights up" or ""))
+			.. (afflicted and ", charmed: break free lights up" or "")
+			.. (guessed and ", by a loss of control the game would not name" or ""))
 	end
 	Changed(was)
 end
@@ -750,8 +794,8 @@ function ns.BreakFreeLines()
 		tostring(header and header:GetAttribute("state-" .. STATE) or "none"),
 		tostring(button ~= nil and button:IsShown()))
 	local full = type(_G.HasFullControl) == "function" and plain(_G.HasFullControl()) or nil
-	out[#out + 1] = ("break free now: afflicted %s; ready %s; full control %s"):format(tostring(afflicted),
-		tostring(Ready(GetTime())), tostring(full))
+	out[#out + 1] = ("break free now: afflicted %s%s; ready %s; full control %s"):format(tostring(afflicted),
+		guessed and " (a loss of control the game would not name)" or "", tostring(Ready(GetTime())), tostring(full))
 	if lastLoss then
 		out[#out + 1] = ("last loss of control: %s (%s), %d s ago"):format(tostring(lastLoss.kind),
 			tostring(lastLoss.how), math.floor(GetTime() - lastLoss.at))

@@ -10,6 +10,11 @@
   issue 32). On by default; the switch is *Make a healthstone*, on *My own
   buffs*.
 
+### Fixes
+- **Will of the Forsaken shows when you lose control in a fight** even where the
+  game will not say what took it, and for fears by mechanic (*In a fight > Show
+  a Will of the Forsaken button...*, GitHub issue 33).
+
 ## 1.11.38
 
 *21 November 2026*

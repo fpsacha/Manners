@@ -93,19 +93,13 @@ mutate("Prompt/Refresh.lua",
        "breakfree: the prompt never names it",
        expect="breakfree: feared with the prompt up, the prompt names it and its key", script=S)
 
-# --- 6. a stun, a root or a fear mechanic is no reason
+# --- 6. a stun or a root is no reason (a fear by mechanic is one: wotfneed.py)
 
 mutate(BF,
-       "\t\tbreaks = { FEAR = true, CHARM = true, SLEEP = true }, cooldown = 120 },\n",
-       "\t\tbreaks = { FEAR = true, CHARM = true, SLEEP = true, STUN = true }, cooldown = 120 },\n",
+       "\t\tbreaks = { FEAR = true, FEAR_MECHANIC = true, CHARM = true, SLEEP = true }, cooldown = 120 },\n",
+       "\t\tbreaks = { FEAR = true, FEAR_MECHANIC = true, CHARM = true, SLEEP = true, STUN = true }, cooldown = 120 },\n",
        "breakfree: a stun lights it",
        expect="breakfree: STUN is no reason", script=S)
-
-mutate(BF,
-       "\t\tbreaks = { FEAR = true, CHARM = true, SLEEP = true }, cooldown = 120 },\n",
-       "\t\tbreaks = { FEAR = true, CHARM = true, SLEEP = true, FEAR_MECHANIC = true }, cooldown = 120 },\n",
-       "breakfree: a fear mechanic lights it",
-       expect="breakfree: FEAR_MECHANIC is no reason", script=S)
 
 # --- 7. charmed by UnitIsCharmed alone
 
@@ -121,13 +115,13 @@ mutate(BF,
        "\t\telseif type(raw) ~= \"nil\" then\n\t\t\tfirst, how = first or \"?\", how or \"secret\"\n",
        "\t\telseif type(raw) ~= \"nil\" then\n\t\t\tdo return true, \"?\", \"secret\" end\n",
        "breakfree: a secret type taken for a fear",
-       expect="breakfree: a secret loss of control is no reason and throws nothing", script=S)
+       expect="wotfneed: a secret report while you plainly have control is no reason", script=S)
 
 mutate(BF,
        "\tif not hit and info.row.breaks.CHARM and plain(UnitIsCharmed(\"player\")) == true then\n",
        "\tif not hit and info.row.breaks.CHARM and UnitIsCharmed(\"player\") then\n",
        "breakfree: a secret charm taken for one",
-       expect="breakfree: a secret loss of control is no reason and throws nothing", script=S)
+       expect="wotfneed: a plain empty report and a secret charm are no reason", script=S)
 
 mutate(BF,
        "\t\t\tif type(plain(data)) ~= \"table\" then return data end\n",
@@ -286,7 +280,7 @@ mutate(BF,
        "\telseif type(api.GetNumEvents) == \"function\" and type(api.GetEventInfo) == \"function\" then\n",
        "\telseif false then\n",
        "breakfree: the older loss-of-control API unread",
-       expect="breakfree: feared and charmed on camelot, loss of control as events", script=S)
+       expect="wotfneed: a plain stun is read as one in the events shape", script=S)
 
 # --- 18. the probe's, never per scan
 

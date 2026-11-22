@@ -1196,9 +1196,12 @@ mutation named in the design that cannot be caught is dropping Create's own
 two are the same behaviour. For the game to settle, at the first real fear
 and the first hurt pet:
 1. Whether `C_LossOfControl`'s type (either shape) and `UnitIsCharmed` are
-   plain in a fight on Forever and retail. If they are not, Will of the
-   Forsaken never shows under *Only when needed*, and `/manners debug`'s "last
-   loss of control: ... (secret)" says so.
+   plain in a fight on Forever and retail. If they are not, the button comes up
+   on control lost (PLAYER_CONTROL_LOST, or a secret LOSS_OF_CONTROL_ADDED) and
+   goes on control gained, `HasFullControl` plainly true, the release or ten
+   seconds with nothing readable; `/manners debug` says "(a loss of control the
+   game would not name)" and its "last loss of control: ... (secret)" says what
+   came (GitHub issue 33, `tests/scenarios/wotfneed.lua`).
 2. That `SetAlpha` from a plain OnUpdate on a driver-shown protected button is
    allowed in combat (the cure button's open item 5 is the same question).
 3. That an alpha-0 button shows nothing, and that a click on its empty place

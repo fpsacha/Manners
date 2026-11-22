@@ -254,7 +254,9 @@ dim for the whole fight (*All fight, dim until needed*) or while no key is set;
 otherwise it takes no click, so a click beside the prompt reaches the game
 behind it. It stays out of
 sight until you are feared, charmed or asleep, then fades in, and fades out
-again after. While the spell is ready it lights up, glowing, with the spell's
+again after. Where the game will not say what took your control (it hides the
+reason in some fights, and some clients have no way to ask), losing control of
+your character in a fight shows it all the same, until control is back. While the spell is ready it lights up, glowing, with the spell's
 name over it and "press <key> to break free" under it; the prompt, when it is
 up, says the same. While the spell cools down it shows dim. The key casts
 even while the button is out of sight. The prompt's own key keeps to buffs,
