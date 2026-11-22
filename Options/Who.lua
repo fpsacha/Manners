@@ -1320,7 +1320,7 @@ function Page.BuildWhoTab()
 			end
 		end
 		if #lines == 0 then
-			return "|cff888888" .. L["You have not learned a group version of your buffs yet."] .. "|r"
+			return "|cff9d9d9d" .. L["You have not learned a group version of your buffs yet."] .. "|r"
 		end
 		return table.concat(lines, "\n")
 	end
