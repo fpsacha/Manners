@@ -188,8 +188,7 @@ end
 local function MacroFor(list)
 	local one = "/cast " .. Clause(list[1].name, false)
 	if not list[2] then return one, false end
-	local label = slots[1].keyLabel
-	if label and label:upper():find("SHIFT%-") then return one, false end
+	if slots[1].shiftKey then return one, false end
 	local both = "/cast " .. Clause(list[2].name, true) .. "; " .. Clause(list[1].name, false)
 	if #both > ns.MACRO_LIMIT then return one, false end
 	return both, true
@@ -460,10 +459,13 @@ local function Pick(now, slot)
 	for unit, rec in pairs(needy) do
 		local key = rec.guid or unit
 		if rec.ends - now <= 0 then
-			needy[unit] = nil
 			dirty[unit] = true
 			expired = true
-		elseif (rec.spell == nil or slot.spells[rec.spell]) and not seenGuid[key]
+			-- Somebody shown from the game's list alone stays until that read:
+			-- the list, not a time, says whether the debuff is still on.
+			if rec.spell ~= nil or not watched[unit] then needy[unit] = nil end
+		end
+		if needy[unit] == rec and (rec.spell == nil or slot.spells[rec.spell]) and not seenGuid[key]
 			and (unit == "player" or ns.InRange(unit, rec.spell and rec.spell.cure or slot.list[1].cure) ~= false) then
 			seenGuid[key] = true
 			count = count + 1
@@ -478,6 +480,12 @@ local function Pick(now, slot)
 	end
 	if expired then Schedule() end
 	return best, count
+end
+
+-- The name shown for somebody; the client may withhold it.
+local function NameOf(rec)
+	if rec.name == nil then return L["Somebody"] end
+	return ns.ShortName(tostring(rec.name))
 end
 
 -- What a press would do, in the player's words.
@@ -501,7 +509,7 @@ local function KeyLine(slot, unit, spell)
 		if key then return L["press %s to cure yourself"]:format(key) end
 		return shift and L["shift-click to cure yourself"] or L["click to cure yourself"]
 	end
-	local who = mine and L["yourself"] or ns.ShortName(tostring(needy[unit].name))
+	local who = mine and L["yourself"] or NameOf(needy[unit])
 	if caps.conditionalTargeting then
 		if key then return L["point at %s and press %s"]:format(who, key) end
 		return (shift and L["point at %s and shift-click"] or L["point at %s and click"]):format(who)
@@ -531,7 +539,7 @@ local function PaintSlot(slot, fighting, now)
 	if key ~= slot.paintedKey then
 		slot.paintedKey = key
 		slot.icon:SetTexture(spell.cure.info and spell.cure.info.icon or FALLBACK_ICON)
-		local who = unit == "player" and L["You"] or ns.ShortName(tostring(rec.name))
+		local who = unit == "player" and L["You"] or NameOf(rec)
 		if count > 1 then who = L["%s, and %d more"]:format(who, count - 1) end
 		local reason = L["a debuff you can remove"]
 		if rec.kind then
@@ -711,8 +719,14 @@ end
 -- The key each button is bound to; read out of a fight and at every pull,
 -- before the lockdown.
 local function ReadKey(slot)
-	local key = type(GetBindingKey) == "function" and GetBindingKey(slot.command) or nil
+	local keys = type(GetBindingKey) == "function" and { GetBindingKey(slot.command) } or {}
+	local key = keys[1]
 	slot.keyLabel = type(key) == "string" and key ~= "" and key or nil
+	-- Any of the command's keys with Shift in it (the Key Bindings allow two).
+	slot.shiftKey = false
+	for i = 1, #keys do
+		if type(keys[i]) == "string" and keys[i]:upper():find("SHIFT%-") then slot.shiftKey = true end
+	end
 end
 
 -- Whether a button takes a click: only when no key is bound (then a click is

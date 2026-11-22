@@ -174,7 +174,7 @@ mutate(CF,
        expect="curefight: the key line names Shift for the second cure", script=S)
 
 mutate(CF,
-       "\tif label and label:upper():find(\"SHIFT%-\") then return one, false end\n",
+       "\tif slots[1].shiftKey then return one, false end\n",
        "",
        "curefight: a key bound with Shift casts the second cure",
        expect="curefight: a key bound with Shift casts the first cure alone", script=S)
@@ -316,8 +316,8 @@ mutate(CU,
 EACH = "curefight: a druid's poison shows the second button alone"
 
 mutate(CF,
-       "elseif (rec.spell == nil or slot.spells[rec.spell]) and not seenGuid[key]\n",
-       "elseif not seenGuid[key]\n",
+       "if needy[unit] == rec and (rec.spell == nil or slot.spells[rec.spell]) and not seenGuid[key]\n",
+       "if needy[unit] == rec and not seenGuid[key]\n",
        "curefight: a button shows for a cure that is not its own",
        expect=EACH, script=S)
 
