@@ -751,10 +751,10 @@ Four switches on *Quiet times*, under *Battlegrounds and arenas*:
   raids* holds back comes up there as it does in a dungeon.
 
 The game hides auras during a match. After a death, Manners takes your own
-buffs as gone until you cast them again (those that outlast death excepted),
-and a team-mate you just buffed is not offered the same buff again while the
-game hides theirs, until it would have run out or they die. Whenever the game
-does give a reading, the reading decides.
+buffs as gone until you cast them again or the game says a stronger one is on
+you (those that outlast death excepted), and a team-mate you just buffed is not
+offered the same buff again while the game hides theirs, until it would have run
+out or they die. Whenever the game does give a reading, the reading decides.
 
 ## Leaving people out
 

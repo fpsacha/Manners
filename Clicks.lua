@@ -1085,6 +1085,15 @@ local function IsGroupId(buff, id)
 	return false
 end
 
+-- Whether the cast event's target names you: nobody named ("" or no SENT seen), your
+-- name alone, or your filed name (on Forever with the surname, ns.IsPlayerName), and
+-- elsewhere without a realm suffix. As OwnSpells.lua's IsMe reads it.
+local function NamesYou(to)
+	if to == nil or to == "" then return true end
+	local first = plain(UnitName("player"))
+	return to == first or ns.IsPlayerName(to) or (first ~= nil and ns.ShortName(to) == first)
+end
+
 function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
 	-- A cast of yours ends what a death let Manners infer of that buff (Core.lua, GoneWithDeath).
@@ -1095,7 +1104,7 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 		local buff = ns.BUFF_BY_ID[id]
 		-- Only a cast that reached you: one on somebody else leaves your own reading as it was.
 		local to = sentTarget[plain(castGUID)]
-		if buff and (to == nil or to == "" or to == plain(UnitName("player")) or IsGroupId(buff, id)) then ns.NoteCastSinceDeath(buff.key) end
+		if buff and (NamesYou(to) or IsGroupId(buff, id)) then ns.NoteCastSinceDeath(buff.key) end
 	end
 	-- A scroll's cast done: the scroll is used, and nothing can stop it now.
 	local done = castingScroll and ScrollCast(plain(castGUID), plain(spellId))

@@ -26,8 +26,8 @@ mutate("Queue.lua",
 
 # Re-aimed by the right-buff audit, which rewrote the branch (the same faults).
 mutate("Queue.lua",
-       "\t\t\tif not members then HoldOff(name, buffKey, now + THIS_BUFF_SECONDS) end\n\t\t\treturn\n",
-       "\t\t\tif not members then HoldOff(name, buffKey, now + THIS_BUFF_SECONDS) end\n",
+       "ns.NoteCastSinceDeath(buffKey) end\n\t\t\treturn\n",
+       "ns.NoteCastSinceDeath(buffKey) end\n",
        "buffheld: it counts towards backing the person off",
        expect="buffheld: it does not count towards backing the person off", script=S)
 

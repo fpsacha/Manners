@@ -42,6 +42,12 @@ stands now. Keep it short: what ships goes to the history file or away.
   (GitHub issue 35; `tests/scenarios/thankemotes.lua`). Will of the Forsaken
   shows on control lost in a fight where the game withholds the type or has no loss-of-control API (GitHub issue 33),
   and FEAR_MECHANIC is in its row (`tests/scenarios/wotfneed.lua`).
+- **Also unreleased:** your own buffs in a battleground after a death (GitHub issue 38).
+  `NamesYou` (Clicks.lua) reads the cast event's target as you in every spelling
+  (the filed name with the surname, the first name alone, a name without a
+  realm), so a Mark of the Wild or Thorns you cast on yourself is noted;
+  NoteRefusal (Queue.lua) notes a bounce on you ("a stronger one is on you")
+  the same way (`tests/scenarios/bg-selfname.lua`).
 - **Waiting to post:** four CurseForge replies (KestrelWild, vladsnz, zeekro,
   and Cloud2668's thread for ZachrielCl). Chrome dropped before they went up;
   the drafts are in the nightly's `state.json` under `pending`. Check the page
@@ -52,7 +58,8 @@ stands now. Keep it short: what ships goes to the history file or away.
   still need writing in: `python tests/runscenarios.py --flavour mainline
   --update-baseline --jobs 4`, then `--flavour mists`, read before committing.
 - **Waiting on players:** issue 21 (no popup: their client and
-  `/manners debug`) and issue 22 (the imp's Fire Shield).
+  `/manners debug`), issue 22 (the imp's Fire Shield) and issue 38 (which game,
+  and `/manners debug` for the "battleground" lines).
 - **Old worktrees kept on purpose:** `look-fel`, `look-wild` and `relcheck`
   (uncommitted files in them), plus `logo` and `ci-diag-generators` (branches
   not merged). Leave them unless the owner asks.

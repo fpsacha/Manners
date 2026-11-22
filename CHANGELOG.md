@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+*22 November 2026*
+
+### Highlights
+- **Your own buffs in a battleground.** After a death there, Mark of the Wild
+  and Thorns are no longer asked for while they are on you.
+
+### Fixes
+- **Your own buffs in a battleground.** After a death there, a buff you cast on
+  yourself again is noticed, so Mark of the Wild or Thorns is no longer asked for
+  while it is on, and your team gets its turn (GitHub issue 38).
+
 ## 1.11.39
 
 *22 November 2026*

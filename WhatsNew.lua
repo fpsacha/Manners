@@ -5,6 +5,14 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "22 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Your own buffs in a battleground.|r After a death there, Mark of the Wild and Thorns are no longer asked for while they are on you.",
+		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Your own buffs in a battleground.|r After a death there, a buff you cast on yourself again is noticed, so Mark of the Wild or Thorns is no longer asked for while it is on, and your team gets its turn (GitHub issue 38).",
+		} },
+	} },
 	{ version = "1.11.39", date = "22 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Make a healthstone.|r A warlock with no healthstone in the bags is offered Create Healthstone on the prompt, outside a fight and standing still (GitHub issue 32).",
@@ -52,11 +60,6 @@ ns.WhatsNew = {
 			"|cffff9a52A slider's box takes back what it shows.|r Type 3x over 2x, or Off or Automatic where the box says so, and the value is kept.",
 			"|cffff9a52The Will of the Forsaken switch can be reached with no prompt.|r |cffffffffIn a fight|r stays open for a Forsaken character with nothing else to offer, and a button's tooltip names a page only while its setting is shown.",
 			"|cffff9a52Snoozed until I log out reads right in Spanish and Italian.|r",
-		} },
-	} },
-	{ version = "1.11.36", date = "21 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Buff other people first, eat later.|r A new switch under |cffffffffMyself|r, |cffffffffMy food, stones and oils after everybody else|r: your own food, weapon stones and oils, flasks, elixirs and scrolls wait until nobody else needs a buff from you.",
 		} },
 	} },
 }

@@ -439,6 +439,7 @@ do
 	-- minute, never helps: the buff is held off that person for ten minutes and
 	-- everything else about them stays as it was.
 	local THIS_BUFF = { "SPELL_FAILED_AURA_BOUNCED", "SPELL_FAILED_LOWLEVEL" }
+	local BOUNCED = { "SPELL_FAILED_AURA_BOUNCED" }
 	local THIS_BUFF_SECONDS = 600
 	-- Core.lua's table of the buffs so held, which its Castable reads.
 	local heldOff = ns.heldOff
@@ -772,6 +773,8 @@ do
 			-- wait out (Core.lua, Castable): a paladin's walk goes on to the
 			-- next blessing.
 			if not members then HoldOff(name, buffKey, now + THIS_BUFF_SECONDS) end
+			-- The game says a stronger one is on you: a death no longer leaves it guessed gone (Core.lua, GoneWithDeath), a team druid's Gift you could not see.
+			if not members and ns.IsPlayerName(name) and OneOf(why, BOUNCED) then ns.NoteCastSinceDeath(buffKey) end
 			return
 		end
 		-- A run long over was swept (SweepRefusals), so this starts again at one.

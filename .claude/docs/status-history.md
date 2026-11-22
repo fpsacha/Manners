@@ -1109,7 +1109,7 @@ permissions list, a hook that lints each edited file, and the commands
 **Mana Shield, the wards and Add a spell of my own (1.11.29), for the game to settle.**
 1. Does GetSpellIDForSpellIdentifier or GetSpellInfo by name return the best rank known on Classic Era, TBC and Forever?
 2. Do IsSpellHarmful, IsSpellPassive and IsSpellHelpful answer for spellbook ids on Forever 1.60.1? A call that gives no answer counts as no.
-3. Is a self-buff's aura readable two seconds after UNIT_SPELLCAST_SUCCEEDED out of a fight on Forever and retail, and does UNIT_SPELLCAST_SENT name the player for a self press there?
+3. Is a self-buff's aura readable two seconds after UNIT_SPELLCAST_SUCCEEDED out of a fight on Forever and retail, and does UNIT_SPELLCAST_SENT name the player for a self press there? (Since issue 38 Clicks.lua's `NamesYou` takes the name in every spelling for the battleground death note, so that note no longer depends on the answer.)
 4. A helpful spell the game will not put on oneself is refused at each press, and only the existing self-refusal hold answers it.
 5. Retail's Fire Ward 320813 has TraitDefinition 122111, but the cache has no TraitNodeEntry; nothing is added on retail.
 6. Short shields are reminded early: Mana Shield with 23 seconds left, the
