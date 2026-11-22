@@ -131,6 +131,12 @@ than code; do not undo them.
   Friends-first orders people *within* a kind of offer (group, passers-by)
   and never across one, and below the range key: a friend known to be out of
   range never leads over somebody in range.
+- **The mute list (Who to skip, `filters.skipMuted`, off) follows the never-offer
+  list**: a favour owed and its thank are excepted, and, as with the other skip
+  switches, your target and focus are still offered (a resurrection included;
+  an ask holds a muted player regardless). Read live, never copied or written;
+  its own muting switched off skips nobody. Shown only while its saved table is
+  there (GitHub issue 30).
 - **The combat log is an addition, never a replacement.** It is registered only
   on Classic Era, Burning Crusade and Mists — Forever and retail refuse it — and
   it exists for the one thing the aura scan cannot do anywhere: name a stranger

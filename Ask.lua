@@ -490,6 +490,8 @@ local function Consider(unit, grouped, pointed, taken, db, now)
 	-- The never-offer list and the /ignore list.
 	if ns.IsNeverOffered(full) then return nil end
 	if ns.Ignored(unit, plain(UnitGUID(unit))) then return nil end
+	-- The mute list (Who to skip): nobody muted is asked, your target included.
+	if ns.MuteListed(full, unit, now) then return nil end
 
 	-- A member of your group found through your target or a nameplate is a
 	-- member still, and held to the same reach.

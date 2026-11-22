@@ -2343,6 +2343,8 @@ function addon:HandleSlash(rawInput)
 		elseif groups == false then
 			self:Print(L["|cffffd100raid groups|r -- every group is unticked, so in a raid nobody is offered unasked"])
 		end
+		-- The mute list Who to skip can leave out (Queue.lua, ns.MuteLines).
+		for _, line in ipairs(ns.MuteLines()) do self:Print(line) end
 		self:Print(("  build |cffffffff%s|r"):format(tostring(ns.BUILD)))
 		if ns.tryMacro then
 			self:Print(("  " .. L["|cffff8080/manners try is armed:|r %s -- clear it with a bare /manners try"]):format(

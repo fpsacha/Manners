@@ -831,6 +831,8 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 			st.verdict = "skipped"
 		elseif ns.IsNeverOffered(full) then
 			st.verdict = "never"
+		elseif not st.pointed and ns.MuteListed(full, unit, now) then
+			st.verdict = "muted"
 		else
 			local inGroup = (plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit)))
 				and true or false
@@ -1239,6 +1241,8 @@ function Courtesy.Lines(lines)
 				why = L["pressed or skipped a moment ago"]
 			elseif verdict == "never" then
 				why = L["they are on your never-offer or ignore list"]
+			elseif verdict == "muted" then
+				why = L["they are muted, and Who to skip leaves them out"]
 			else
 				why = L["not looked at yet"]
 			end

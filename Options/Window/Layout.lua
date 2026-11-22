@@ -481,6 +481,7 @@ ns.WindowLayout = {
 					"who.skipFighting",
 					"who.skipSameClass",
 					"who.skipGuilds",
+					"who.skipMuted",
 					{ "who.skipNearbyClasses", columns = 3 },
 					"who.requireInRange",
 					"who.minLevel",
@@ -1176,7 +1177,7 @@ ns.WindowLayout = {
 			["who.ownSpell10"] = true,
 			-- Who to skip.
 			["who.rightNowSkip"] = true, ["who.skipPvP"] = true, ["who.skipFighting"] = true,
-			["who.skipSameClass"] = true,
+			["who.skipSameClass"] = true, ["who.skipMuted"] = true,
 			["who.minLevel"] = true, ["who.neverAdd"] = true,
 			["advanced.skipSeconds"] = true, ["advanced.ownSkipMinutes"] = true,
 			-- When to offer.
@@ -1321,6 +1322,7 @@ ns.WindowLayout = {
 	-- translated as a whole.
 	keywords = {
 		["general.silentChat"] = L["quiet mute spam"],
+		["who.skipMuted"] = L["mute muted ignore olympus"],
 		["advanced.ownSkipMinutes"] = L["skip longer food well fed ignore right click not now"],
 		["advanced.skipSeconds"] = L["skip longer right click not now ignore"],
 		["general.verbose"] = L["quiet mute spam"],

@@ -11,6 +11,9 @@
 - **Who to skip > Paste a list of names** puts a pasted list on the
   never-offer list, one name a line or with commas between. *Skip these guilds*
   reads commas too, and Accept drops blank lines and repeats (GitHub issue 30).
+- **Skip the players and guilds OlympusMute mutes** (off, shown when OlympusMute
+  is loaded): *Who to skip* leaves out the players and guilds it mutes, like the
+  never-offer list; a favour owed is still returned.
 - **A controller button in the key boxes.** The prompt's key on *Start here* (and
   every other key box) takes a controller button: click the box and press it.
 

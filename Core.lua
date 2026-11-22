@@ -622,6 +622,9 @@ local defaults = {
 			-- Guilds nobody is offered anything from, one name a line (Queue.lua,
 			-- SkippedGuilds): asked for on CurseForge.
 			skipGuilds = "",
+			-- The players and guilds the mute list mutes, read live (Queue.lua,
+			-- Mute): asked for on GitHub (issue 30). Off, as every new skip.
+			skipMuted = false,
 			-- Classes left out as passers-by, as a sparse set of class tokens
 			-- (absent = offered): asked for on CurseForge. Your group, a favour,
 			-- a request and your target or focus are not held to it.

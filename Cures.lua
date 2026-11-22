@@ -870,6 +870,7 @@ function ns.CuresRemembered(queue, seen, rejected, now, drop)
 			or memo.expires - now <= scan.seconds
 			or ns.IsBlocked(name, cure.key, now)
 			or ns.IsNeverOffered(name)
+			or ns.MuteListed(name, nil, now)
 			or ns.Ignored(name, memo.guid)
 			or ns.PvPHoldsBack(memo.pvp)
 			or not ns.SafeForMacro(name) then
