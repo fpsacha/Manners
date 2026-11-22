@@ -926,12 +926,12 @@ local function AddCureControls(args)
 	-- looks for it. It does not follow the switches above or the seconds.
 	args.curesFight = {
 		type = "toggle",
-		name = L["Show a cure button in a fight when somebody needs it"],
+		name = L["Show my cure on a button in a fight, only while somebody needs it"],
 		desc = function()
 			if ns.caps.conditionalTargeting then
-				return L["A button of its own beside the prompt, with its own key. It shows when somebody near you has a poison, disease, curse or harmful magic your class can remove, and says who. A press cures whoever is under your mouse, else your target, else you; Shift casts your second cure. Where the game hides debuffs in a fight it stays hidden, but its key still works. A change made in a fight counts from the next one."]
+				return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures whoever is under your mouse, else your target, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
 			end
-			return L["A button of its own beside the prompt, with its own key. It shows when somebody near you has a poison, disease, curse or harmful magic your class can remove, and says who. A press cures your target when it is a friend, else you; Shift casts your second cure. Where the game hides debuffs in a fight it stays hidden, but its key still works. A change made in a fight counts from the next one."]
+			return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures your target when it is a friend, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
 		end,
 		order = 14.95,
 		width = "full",

@@ -16,8 +16,8 @@ mutate(CF,
        expect="curefight: nothing shows until somebody needs a cure", script=S)
 
 mutate(CF,
-       "\tif newstate == \"fight\" and self:GetAttribute(\"manners-on\") then\n\t\tcure:Show(true)\n",
-       "\tif newstate == \"fight\" and self:GetAttribute(\"manners-on\") then\n",
+       "\tif on then\n\t\tcure:Show(true)\n",
+       "\tif on then\n",
        "curefight: the snippet never shows it",
        expect=ARMED, script=S)
 
@@ -72,8 +72,8 @@ mutate(CU,
        expect="curefight: only what the armed macro can cast is chosen", script=S)
 
 mutate(CU,
-       "\t\tif not bestKind then return nil, nil, nil, secret, candidate == true end\n",
-       "\t\tif not bestKind then return nil, nil, nil, secret, false end\n",
+       "\t\tif not bestKind then return nil, nil, nil, secret, candidate == true, listed end\n",
+       "\t\tif not bestKind then return nil, nil, nil, secret, false, listed end\n",
        "curefight: a cure held back by a debuff never removed is not remembered",
        expect="curefight: a debuff never removed that goes lets the cure show", script=S)
 
@@ -92,7 +92,7 @@ mutate(CF,
        expect="curefight: forever: the game hides debuffs", script=S)
 
 mutate(CF,
-       "\tif caps.secretRestrictions == true then\n\t\twatched.focus = nil\n\t\treturn\n\tend\n",
+       "\tif caps.secretRestrictions == true and not CanList() then\n\t\twatched.focus = nil\n\t\treturn\n\tend\n",
        "",
        "curefight: the group is read where the client withholds auras",
        expect="curefight: forever: the game hides debuffs", script=S)
@@ -130,7 +130,7 @@ mutate(CF,
        expect="curefight: it fades when the debuff runs out with no event", script=S)
 
 mutate(CF,
-       "\t\t\tand (unit == \"player\" or ns.InRange(unit, rec.spell.cure) ~= false) then\n",
+       "\t\t\tand (unit == \"player\" or ns.InRange(unit, rec.spell and rec.spell.cure or slot.list[1].cure) ~= false) then\n",
        "\t\t\tthen\n",
        "curefight: somebody out of reach is shown",
        expect="curefight: somebody out of reach is not shown", script=S)
@@ -168,13 +168,13 @@ mutate(CF,
        expect="curefight: a druid's second cure is on Shift", script=S)
 
 mutate(CF,
-       "\tlocal shift = armedTwo and spell == armedSpells[2]\n",
+       "\tlocal shift = slot.index == 1 and armedTwo and spell == armedList[2]\n",
        "\tlocal shift = false\n",
        "curefight: the key line never names Shift",
        expect="curefight: the key line names Shift for the second cure", script=S)
 
 mutate(CF,
-       "\tif keyLabel and keyLabel:upper():find(\"SHIFT%-\") then return one, false end\n",
+       "\tif label and label:upper():find(\"SHIFT%-\") then return one, false end\n",
        "",
        "curefight: a key bound with Shift casts the second cure",
        expect="curefight: a key bound with Shift casts the first cure alone", script=S)
@@ -200,7 +200,7 @@ mutate(CF,
 # --- 6. the button's own behaviour
 
 mutate(CF,
-       "\tif not visible then return end\n\tlocal tip = _G.GameTooltip\n",
+       "\tif not slot.visible then return end\n\tlocal tip = _G.GameTooltip\n",
        "\tlocal tip = _G.GameTooltip\n",
        "curefight: a tooltip for a button nobody can see",
        expect="curefight: no tooltip while it is out of sight", script=S)
@@ -218,7 +218,7 @@ mutate(CF,
        expect="curefight: out of a fight it listens to nothing", script=S)
 
 mutate(CF,
-       "\tif button == nil and (db.prompt.cureFight ~= true or not ns.ClassHasCures() or ns.CureFightSpells() == nil) then\n\t\treturn false\n\tend\n",
+       "\tif slots[1].button == nil and (db.prompt.cureFight ~= true or not ns.ClassHasCures() or ns.CureFightSpells() == nil) then\n\t\treturn false\n\tend\n",
        "",
        "curefight: a scan asks the client with the switch off",
        expect="curefight: switched off, a scan pays nothing for it", script=S)
@@ -235,13 +235,13 @@ mutate(CF,
        "curefight: a settled scan asks the lockdown first",
        expect="curefight: out of a fight it listens to nothing", script=S)
 
-mutate(CF, "button:EnableMouse(keyLabel == nil)",
-       "button:EnableMouse(false)",
+mutate(CF, "slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)",
+       "slot.button:EnableMouse(false)",
        "curefight: mouse off with no key",
        expect="curefight: with no key the button takes a click, with a key it takes none", script=S)
 
-mutate(CF, "button:EnableMouse(keyLabel == nil)",
-       "button:EnableMouse(true)",
+mutate(CF, "slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)",
+       "slot.button:EnableMouse(true)",
        "curefight: the button takes a click with its key bound",
        expect="curefight: with a key bound the button takes no click", script=S)
 
@@ -288,3 +288,53 @@ mutate("Options/Advanced.lua",
        "\"beast.fightMend\",",
        "curefight: the reset leaves the switch on",
        expect="advanced: put these back to default on In a fight", script="runscenarios.py")
+
+# --- 8. where the game hides debuffs and lists the ones you can remove
+
+LIST = "curefight: forever: the game hides debuffs, its list of what you can remove shows the button"
+
+mutate(CF,
+       "if not (secret and type(listed) == \"number\" and listed > 0) then\n",
+       "if not (secret and type(listed) == \"number\" and false) then\n",
+       "curefight: the game's list never shows the button",
+       expect=LIST, script=S)
+
+mutate(CF,
+       "\tif caps.secretRestrictions == true and not CanList() then\n",
+       "\tif caps.secretRestrictions == true then\n",
+       "curefight: the group is kept out under secrecy with the game's list there",
+       expect=LIST, script=S)
+
+mutate(CU,
+       "\t\t\tif listed == 0 then return nil, nil, nil, false, false, 0 end\n",
+       "",
+       "curefight: an empty list is walked all the same",
+       expect="curefight: forever: an empty list asks nothing more", script=S)
+
+# --- 9. a button for each cure
+
+EACH = "curefight: a druid's poison shows the second button alone"
+
+mutate(CF,
+       "elseif (rec.spell == nil or slot.spells[rec.spell]) and not seenGuid[key]\n",
+       "elseif not seenGuid[key]\n",
+       "curefight: a button shows for a cure that is not its own",
+       expect=EACH, script=S)
+
+mutate(CF,
+       "\t\tArm(second, \"/cast \" .. Clause(list[2].name, false))\n",
+       "\t\tArm(second, \"/cast \" .. Clause(list[1].name, false))\n",
+       "curefight: the second button casts the first cure",
+       expect="curefight: each cure's key casts its own cure", script=S)
+
+mutate(CF,
+       "\t\t\ttwo:Show(true)\n",
+       "",
+       "curefight: the snippet never shows the second button",
+       expect="curefight: the second button sits below the first", script=S)
+
+mutate(CF,
+       "\t\tlocal harmful = Secret(added)\n",
+       "\t\tlocal harmful = false\n",
+       "curefight: a withheld payload of a landing debuff is passed over",
+       expect="curefight: forever: a withheld payload of a debuff landing", script=S)

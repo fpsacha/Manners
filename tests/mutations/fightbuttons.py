@@ -118,7 +118,7 @@ mutate("Options/Window/Layout.lua",
 # --- the In a fight page's reset
 
 mutate("Options/Advanced.lua",
-       "\"prompt.cureFight\", \"prompt.fightButtons\",\n",
-       "\"prompt.cureFight\",\n",
+       "\"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
+       "\"prompt.cureFightEach\",\n",
        "fightbuttons: the In a fight page's reset leaves the setting",
        expect=FB + "the In a fight page's reset puts the setting back", script=S)

@@ -49,7 +49,7 @@ Page.RESET = {
 		"sources.owed", "sources.group", "sources.pets", "sources.share", "sources.strangers", "sources.asked",
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
 		"sources.res", "sources.resStrangers",
-		"sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight",
+		"sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight", "prompt.cureFightEach",
 		"filters.proximity", "filters.restingOnly", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
 		"buff.leaveBlessed",
 		"buff.detectPassers",
@@ -211,7 +211,7 @@ Page.RESET.quiet = {
 -- twice on purpose), so that page's reset puts it back too.
 Page.RESET.fight = {
 	"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
-	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons",
+	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
 	after = function()
 		restyleAndMacro()
 		if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end

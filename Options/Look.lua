@@ -649,16 +649,35 @@ function Page.BuildLookTab()
 			-- cure, with a key of its own. Shown to a class with a cure.
 			cureFight = {
 				type = "toggle",
-				name = L["Show a cure button in a fight when somebody needs it"],
+				name = L["Show my cure on a button in a fight, only while somebody needs it"],
 				desc = function()
 					if ns.caps.conditionalTargeting then
-						return L["A button of its own beside the prompt, with its own key. It shows when somebody near you has a poison, disease, curse or harmful magic your class can remove, and says who. A press cures whoever is under your mouse, else your target, else you; Shift casts your second cure. Where the game hides debuffs in a fight it stays hidden, but its key still works. A change made in a fight counts from the next one."]
+						return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures whoever is under your mouse, else your target, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
 					end
-					return L["A button of its own beside the prompt, with its own key. It shows when somebody near you has a poison, disease, curse or harmful magic your class can remove, and says who. A press cures your target when it is a friend, else you; Shift casts your second cure. Where the game hides debuffs in a fight it stays hidden, but its key still works. A change made in a fight counts from the next one."]
+					return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures your target when it is a friend, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
 				end,
 				order = 32.491,
 				width = "full",
 				hidden = function() return not (ns.ClassHasCures() and ns.CureLearned()) end,
+				get = pGet,
+				set = function(info, value)
+					pSet(info, value)
+					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+				end,
+			},
+			-- A class with two cures: a button and a key for each
+			-- (Prompt/CureFight.lua). Off: one button, Shift casts the second.
+			cureFightEach = {
+				type = "toggle",
+				name = L["A button for each cure"],
+				desc = L["For a class with two cures, such as a druid's Remove Curse and Cure Poison: each cure gets a button and a key of its own, and appears only for the debuff it removes. Off: one button, and Shift casts the second cure."],
+				order = 32.4915,
+				width = "full",
+				hidden = function()
+					if not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true then return true end
+					local list = ns.CureFightSpells()
+					return not (list and list[2])
+				end,
 				get = pGet,
 				set = function(info, value)
 					pSet(info, value)
@@ -681,6 +700,28 @@ function Page.BuildLookTab()
 						local spell = list and list[1] and list[1].name
 						-- No cure learned: the button casts nothing, so there is no
 						-- line to say (an empty one is left unsaid by SetKey).
+						if not spell then return "" end
+						return L["%s was bound to %s; it now casts %s."]:format(key, was, spell)
+					end)
+					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+				end,
+			},
+			cureFightKey2 = {
+				type = "keybinding",
+				name = L["Key for my second cure in a fight"],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
+				order = 32.4925,
+				hidden = function()
+					local list = ns.CureFightSpells()
+					return not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true
+						or P().cureFightEach ~= true or not (list and list[2]) or not ns.Setup.CanBind()
+				end,
+				disabled = function() return InCombatLockdown() end,
+				get = function() return ns.Setup.Key(ns.CureFight.COMMAND2) or "" end,
+				set = function(_, value)
+					local list = ns.CureFightSpells()
+					ns.Setup.SetKey(value, ns.CureFight.COMMAND2, function(key, was)
+						local spell = list and list[2] and list[2].name
 						if not spell then return "" end
 						return L["%s was bound to %s; it now casts %s."]:format(key, was, spell)
 					end)

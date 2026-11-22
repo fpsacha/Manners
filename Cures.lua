@@ -629,6 +629,12 @@ do
 	-- A cure that may also be cast at an enemy (Dispel Magic on the older
 	-- clients, target 25): a bare /cast with a hostile target lands there.
 	local ANY_TARGET = { [988] = true }
+	-- The game's own list of the harmful auras on a unit that you can remove
+	-- (AuraUtil.AuraFilters.Raid, "harmful auras the player can dispel";
+	-- Blizzard's own dispel debuff frames use the same filter). Where the
+	-- auras themselves come back secret, the length of this list is still
+	-- plain and says somebody carries a debuff you can lift.
+	local REMOVABLE = "HARMFUL|RAID"
 	-- One read's working tables: the debuff with most time left a kind, its
 	-- name, and the kinds a debuff never removed is of.
 	local untilOf, nameOf, deniedKind = {}, {}, {}
@@ -673,12 +679,26 @@ do
 	-- withheld: passed over, compared with nothing. `held` true when the unit
 	-- carries a kind that could be cured but a debuff never removed (or one
 	-- that could not be read) holds it back, so that debuff ending asks for
-	-- another read. Called directly where the client never withholds;
+	-- another read. `listed` (the sixth) is the length of the game's own list of
+	-- the debuffs you can remove, where the client withholds auras and gives it
+	-- (else nil). Called directly where the client never withholds;
 	-- Prompt/CureFight.lua protects it where it may.
 	function ns.CureFightRead(unit, now, allowed)
 		local auras = C_UnitAuras
 		local read = type(auras) == "table" and auras.GetAuraDataByIndex or nil
 		if type(read) ~= "function" then return nil end
+		-- `listed`: how many debuffs the game's own list says you can remove on
+		-- this unit, or nil where it gives none or hides it. An empty list ends
+		-- the read: nothing to walk.
+		local listed
+		if caps.secretRestrictions == true and type(auras.GetUnitAuraInstanceIDs) == "function" then
+			local ids = auras.GetUnitAuraInstanceIDs(unit, REMOVABLE)
+			if not (issecretvalue and issecretvalue(ids)) and type(ids) == "table" then
+				local n = #ids
+				if not (issecretvalue and issecretvalue(n)) then listed = n end
+			end
+			if listed == 0 then return nil, nil, nil, false, false, 0 end
+		end
 		local state = State()
 		local byKind, lifts = state.byKind, state.lifts
 		wipe(untilOf)
@@ -707,7 +727,7 @@ do
 				end
 			end
 		end
-		if blind then return nil, nil, nil, secret, true end
+		if blind then return nil, nil, nil, secret, true, listed end
 		local bestKind, candidate
 		for _, kind in ipairs(KINDS) do
 			local expires = untilOf[kind]
@@ -722,8 +742,8 @@ do
 				end
 			end
 		end
-		if not bestKind then return nil, nil, nil, secret, candidate == true end
-		return bestKind, nameOf[bestKind], untilOf[bestKind], secret, false
+		if not bestKind then return nil, nil, nil, secret, candidate == true, listed end
+		return bestKind, nameOf[bestKind], untilOf[bestKind], secret, false, listed
 	end
 end
 

@@ -23,6 +23,15 @@ stands now. Keep it short: what ships goes to the history file or away.
   by default for every warlock: Create Healthstone is offered when no stone of any
   rank is in the bags (`holds` family `makehealthstone`, `tests/scenarios/healthstone.lua`),
   outside a fight, standing still, with a Soul Shard where the spell uses one.
+- **Also unreleased:** the cure button where the game hides debuffs (GitHub
+  issue 36): `ns.CureFightRead` reads `GetUnitAuraInstanceIDs(unit,
+  "HARMFUL|RAID")` under secrecy, the group is watched through it and somebody
+  on the list with every aura withheld shows as "a debuff you can remove"; and
+  *A button for each cure* (`prompt.cureFightEach`, on): MannersCureFight2 below
+  the first, `CLICK MannersCureFight2:LeftButton`, one header
+  (`tests/scenarios/curefight.lua`). Noted, not built: Abolish Poison for a
+  druid, and naming the kind under secrecy through `GetAuraDispelTypeColor`
+  with a curve (the dispel-type ids are not documented).
 - **Also unreleased:** /moo joins the thank emotes, last on the list for any race
   (GitHub issue 34; `tests/scenarios/thankemotes.lua`). Will of the Forsaken
   shows on control lost in a fight where the game withholds the type or has no loss-of-control API (GitHub issue 33),

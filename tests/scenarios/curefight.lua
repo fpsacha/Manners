@@ -25,6 +25,7 @@ local fail, load = H.fail, H.load
 local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 
 local COMMAND = "CLICK MannersCureFight:LeftButton"
+local COMMAND2 = "CLICK MannersCureFight2:LeftButton"
 local PROMPT_KEY = "CLICK MannersPrompt:LeftButton"
 
 -- Two others in a party of three.
@@ -63,6 +64,10 @@ end
 --                   and in the first scan
 --   env.owe         a person on a nameplate the prompt owes a buff
 --   env.raid        { size, names } a raid of that many, in place of the party
+--   env.single      "A button for each cure" off: one button, Shift for the second
+--   env.dispelList  the stub C_UnitAuras has the game's own list of the debuffs
+--                   you can remove (GetUnitAuraInstanceIDs, "HARMFUL|RAID"):
+--                   world.listSecret withholds it, world.listReads counts it
 -- body(ns, world): world.debuffs[unit] is that unit's harmful auras, in the
 -- client's order; world.reads counts the harmful reads asked of the client, in
 -- all (`n`) and by unit; world.setTarget(token, hostile) puts your target on a
@@ -86,7 +91,7 @@ local function with(scenario, env, body)
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
 	local callsReal = InCombatLockdown
 	local world = { debuffs = {}, reads = { n = 0 }, known = {}, names = names, dead = {}, offline = {},
-		spellNames = {}, ids = {}, loadAsked = {} }
+		spellNames = {}, ids = {}, loadAsked = {}, listReads = {} }
 	for id, name in pairs(NAMES) do world.spellNames[id] = name end
 	for id, name in pairs(env.spellNames or {}) do world.spellNames[id] = name end
 	for _, id in ipairs(env.known or DRUID) do world.known[id] = true end
@@ -109,7 +114,7 @@ local function with(scenario, env, body)
 			return type(unit) == "string" and unit:find("^party%d+$") ~= nil
 		end)
 		local baseAuras, baseSpell = C_UnitAuras, C_Spell
-		rawset(_G, "C_UnitAuras", setmetatable({
+		local stub = {
 			GetAuraDataByIndex = function(unit, index, filter)
 				if filter ~= "HARMFUL" then return baseAuras.GetAuraDataByIndex(unit, index, filter) end
 				local reads = world.reads
@@ -124,7 +129,20 @@ local function with(scenario, env, body)
 					duration = 60, canActivePlayerDispel = d.can, isHarmful = true, auraInstanceID = 9000 + index,
 				}
 			end,
-		}, { __index = baseAuras }))
+		}
+		if env.dispelList then
+			stub.GetUnitAuraInstanceIDs = function(unit, filter)
+				world.listReads[unit] = (world.listReads[unit] or 0) + 1
+				world.listFilter = filter
+				if world.listSecret then return Mock.SECRET end
+				local out = {}
+				for i, d in ipairs(world.debuffs[canon(unit)] or {}) do
+					if d.kind and d.can ~= false then out[#out + 1] = 9000 + i end
+				end
+				return out
+			end
+		end
+		rawset(_G, "C_UnitAuras", setmetatable(stub, { __index = baseAuras }))
 		rawset(_G, "C_Spell", setmetatable({
 			GetSpellName = function(id) return world.spellNames[id] or baseSpell.GetSpellName(id) end,
 			IsSpellUsable = function()
@@ -173,6 +191,7 @@ local function with(scenario, env, body)
 		ns.db.profile.verbose = true
 		if env.off then ns.db.profile.prompt.cureFight = false
 		elseif not env.keep then ns.db.profile.prompt.cureFight = true end
+		if env.single then ns.db.profile.prompt.cureFightEach = false end
 		ns.Guard("probe", ns.ProbeCapabilities)
 		Mock.bindings = Mock.bindings or {}
 		if env.key ~= false then Mock.bindings[env.key or "F"] = COMMAND end
@@ -229,10 +248,10 @@ local function landed(unit)
 	settle()
 end
 
--- What the button shows: its alpha (the fade's target), its glow, and its two
--- lines.
-local function shows(ns)
-	local look = ns.CureFight:Look()
+-- What a button shows (the first, or `index`): its alpha (the fade's target),
+-- its glow, and its two lines.
+local function shows(ns, index)
+	local look = ns.CureFight:Look(index)
 	if not look then return nil, false, "", "" end
 	return look.alpha, look.glow:IsShown() == true, tostring(look.name:GetText() or ""), tostring(look.key:GetText() or "")
 end
@@ -292,7 +311,7 @@ with("curefight: switched off in the profile, nothing is made", { keep = true, o
 end)
 
 -- ------------------------------------------------------------------ 2
-with("curefight: armed out of combat, shown by its own driver at alpha 0, nothing protected from Lua", {}, function(ns, world)
+with("curefight: armed out of combat, shown by its own driver at alpha 0, nothing protected from Lua", { single = true }, function(ns, world)
 	local scenario = "curefight: armed out of combat, shown by its own driver at alpha 0, nothing protected from Lua"
 	local button = ns.CureFight:Button()
 	if not button then fail(scenario, "no button for a druid with the switch on") return end
@@ -347,7 +366,7 @@ with("curefight: nothing shows until somebody needs a cure", {}, function(ns)
 end)
 
 -- ------------------------------------------------------------------ 4
-with("curefight: somebody poisoned at the pull shows at once", {}, function(ns, world)
+with("curefight: somebody poisoned at the pull shows at once", { single = true }, function(ns, world)
 	local scenario = "curefight: somebody poisoned at the pull shows at once"
 	world.debuffs.party1 = { debuff("Poison", 30) }
 	pull(ns)
@@ -470,7 +489,7 @@ do
 	never("(d) one the client says you cannot remove", {}, function() return { debuff("Curse", 30, nil, false) } end)
 	never("(e) Cleanse would lift Unstable Affliction too", { class = "PALADIN", known = { 4987 } },
 		function() return { debuff("Magic", 30, 427717, nil, "Unstable Affliction"), debuff("Poison", 30) } end)
-	with(scenario, {}, function(ns, world)
+	with(scenario, { single = true }, function(ns, world)
 		world.debuffs.party1 = { debuff("Curse", 30, 24306), debuff("Poison", 30) }
 		pull(ns)
 		settle()
@@ -513,12 +532,12 @@ with("curefight: a dead or offline member is not shown", {}, function(ns, world)
 end)
 
 -- ------------------------------------------------------------------ 12
-with("curefight: a druid's second cure is on Shift", {}, function(ns)
+with("curefight: a druid's second cure is on Shift", { single = true }, function(ns)
 	local scenario = "curefight: a druid's second cure is on Shift"
 	local macro = ns.CureFight:Button():GetAttribute("macrotext1")
 	if macro ~= DRUID_MACRO then fail(scenario, "the druid's macro reads " .. tostring(macro)) end
 end)
-with("curefight: a druid's second cure is on Shift", { class = "PRIEST", known = { 988, 528 } }, function(ns)
+with("curefight: a druid's second cure is on Shift", { single = true, class = "PRIEST", known = { 988, 528 } }, function(ns)
 	local scenario = "curefight: a druid's second cure is on Shift"
 	local macro = ns.CureFight:Button():GetAttribute("macrotext1")
 	local want = "/cast [mod:shift,@mouseover,help,nodead][mod:shift,help,nodead][mod:shift,@player] Cure Disease; "
@@ -527,7 +546,7 @@ with("curefight: a druid's second cure is on Shift", { class = "PRIEST", known =
 end)
 
 -- ------------------------------------------------------------------ 13
-with("curefight: the key line names Shift for the second cure", {}, function(ns, world)
+with("curefight: the key line names Shift for the second cure", { single = true }, function(ns, world)
 	local scenario = "curefight: the key line names Shift for the second cure"
 	world.debuffs.party1 = { debuff("Poison", 30) }
 	pull(ns)
@@ -540,7 +559,7 @@ with("curefight: the key line names Shift for the second cure", {}, function(ns,
 	if curse ~= "point at Gwen and press F" then fail(scenario, "for a curse the key line reads " .. curse) end
 	release(ns)
 end)
-with("curefight: the key line names Shift for the second cure", { key = false }, function(ns, world)
+with("curefight: the key line names Shift for the second cure", { single = true, key = false }, function(ns, world)
 	local scenario = "curefight: the key line names Shift for the second cure"
 	world.debuffs.party1 = { debuff("Poison", 30) }
 	pull(ns)
@@ -556,7 +575,7 @@ end)
 
 -- ------------------------------------------------------------------ 14
 for _, flavour in ipairs({ "vanilla", "tbc", "mists", "mainline" }) do
-	local env = { flavour = flavour }
+	local env = { flavour = flavour, single = true }
 	if flavour == "mists" then
 		env.known = { 88423, 2782 }
 		env.spellNames = { [88423] = "Nature's Cure", [2782] = "Remove Corruption" }
@@ -597,7 +616,7 @@ for _, flavour in ipairs({ "vanilla", "tbc", "mists", "mainline" }) do
 end
 
 -- ------------------------------------------------------------------ 15
-with("curefight: forever: the macro is a bare cast", { flavour = "camelot" }, function(ns)
+with("curefight: forever: the macro is a bare cast", { single = true, flavour = "camelot" }, function(ns)
 	local scenario = "curefight: forever: the macro is a bare cast"
 	local macro = ns.CureFight:Button():GetAttribute("macrotext1")
 	if macro ~= "/cast [mod:shift] Cure Poison; Remove Curse" then fail(scenario, "the druid's macro reads " .. tostring(macro)) end
@@ -870,7 +889,7 @@ with("curefight: its key casts the cure alone, steps no rota and files nothing",
 end)
 
 -- ------------------------------------------------------------------ 25
-with("curefight: no tooltip while it is out of sight", {}, function(ns, world)
+with("curefight: no tooltip while it is out of sight", { single = true }, function(ns, world)
 	local scenario = "curefight: no tooltip while it is out of sight"
 	local button = ns.CureFight:Button()
 	pull(ns)
@@ -894,7 +913,7 @@ with("curefight: no tooltip while it is out of sight", {}, function(ns, world)
 end)
 
 -- ------------------------------------------------------------------ 26
-with("curefight: one person under two tokens is counted once", {}, function(ns, world)
+with("curefight: one person under two tokens is counted once", { single = true }, function(ns, world)
 	local scenario = "curefight: one person under two tokens is counted once"
 	world.setTarget("party1")
 	world.debuffs.party1 = { debuff("Poison", 30) }
@@ -907,7 +926,7 @@ with("curefight: one person under two tokens is counted once", {}, function(ns, 
 end)
 
 -- ------------------------------------------------------------------ 27
-with("curefight: switched off, nothing is shown or armed", {}, function(ns)
+with("curefight: switched off, nothing is shown or armed", { single = true }, function(ns)
 	local scenario = "curefight: switched off, nothing is shown or armed"
 	local button, header = ns.CureFight:Button(), ns.CureFight:Header()
 	local switch = option(ns, "cureFight")
@@ -1051,7 +1070,7 @@ with("curefight: forever: a priest's own cure with a hostile target says to targ
 end)
 
 -- ------------------------------------------------------------------ 33
-with("curefight: a key bound with Shift casts the first cure alone", {}, function(ns, world)
+with("curefight: a key bound with Shift casts the first cure alone", { single = true }, function(ns, world)
 	local scenario = "curefight: a key bound with Shift casts the first cure alone"
 	Mock.bindings = { ["SHIFT-F"] = COMMAND }
 	Mock.frameEvent("UPDATE_BINDINGS")
@@ -1072,7 +1091,7 @@ with("curefight: a key bound with Shift casts the first cure alone", {}, functio
 end)
 
 -- ------------------------------------------------------------------ 34
-with("curefight: only what the armed macro can cast is chosen", {}, function(ns, world)
+with("curefight: only what the armed macro can cast is chosen", { single = true }, function(ns, world)
 	local scenario = "curefight: only what the armed macro can cast is chosen"
 	-- SHIFT-F: the macro is Remove Curse alone. The poison (Cure Poison, on
 	-- Shift) lasts longer, but it is not what a press can cast.
@@ -1104,5 +1123,280 @@ with("curefight: a debuff never removed that goes lets the cure show", { class =
 	local alpha, _, name = shows(ns)
 	if alpha ~= 1 then fail(scenario, "not shown once Unstable Affliction was gone: alpha " .. tostring(alpha)) return end
 	if not name:find("Cleanse", 1, true) or not name:find("Poisoned", 1, true) then fail(scenario, "its name line reads " .. name) end
+	release(ns)
+end)
+
+-- ------------------------------------------------------------------ 36
+-- Where the game hides every aura but lists the ones you can remove
+-- (C_UnitAuras.GetUnitAuraInstanceIDs with "HARMFUL|RAID"), the group is read
+-- through that list: the button shows for a debuff you can remove, the kind
+-- unnamed.
+local FOREVER_MAGE = { flavour = "camelot", class = "MAGE", known = { 475 }, dispelList = true }
+
+with("curefight: forever: the game hides debuffs, its list of what you can remove shows the button", FOREVER_MAGE, function(ns, world)
+	local scenario = "curefight: forever: the game hides debuffs, its list of what you can remove shows the button"
+	world.secret = true
+	world.debuffs.party1 = { debuff("Curse", 30) }
+	pull(ns)
+	drain(2)
+	if (world.listReads.party1 or 0) < 1 then fail(scenario, "the group was not read through the game's list") end
+	if world.listFilter ~= "HARMFUL|RAID" then fail(scenario, "the list was asked for " .. tostring(world.listFilter)) end
+	local alpha, glow, name = shows(ns)
+	if alpha ~= 1 or not glow then fail(scenario, ("not lit: alpha %s, glow %s"):format(tostring(alpha), tostring(glow))) end
+	if not name:find("Remove Lesser Curse|r: Gwen", 1, true) or not name:find("(a debuff you can remove)", 1, true) then
+		fail(scenario, "its name line reads " .. name)
+	end
+	local line = ns.CureFightLines()[2] or ""
+	if not line:find("[1-9]%d* from the game's list", 1) then fail(scenario, "the debug line does not count the list: " .. line) end
+	local before = #Mock.castLog
+	Mock.pressBinding(COMMAND)
+	local casts = castsSince(before)
+	if #casts ~= 1 or casts[1].spell ~= "Remove Lesser Curse" then
+		fail(scenario, "its key did not cast: " .. #casts .. " casts")
+	end
+	-- Nobody in need any more: the list is empty and the button goes.
+	world.debuffs.party1 = nil
+	Mock.frameEvent("UNIT_AURA", "party1", { removedAuraInstanceIDs = { 9001 } })
+	settle()
+	if (shows(ns)) ~= 0 then fail(scenario, "still shown once the list was empty") end
+	release(ns)
+end)
+
+with("curefight: forever: an empty list asks nothing more and shows nothing", FOREVER_MAGE, function(ns, world)
+	local scenario = "curefight: forever: an empty list asks nothing more and shows nothing"
+	world.secret = true
+	pull(ns)
+	drain(2)
+	if (world.listReads.party1 or 0) < 1 then fail(scenario, "SKIPPED -- the list was not read") end
+	if (world.reads.party1 or 0) ~= 0 then fail(scenario, "an empty list was still walked " .. tostring(world.reads.party1) .. " times") end
+	local alpha, glow, name = shows(ns)
+	if alpha ~= 0 or glow or name ~= "" then fail(scenario, "shown for an empty list: " .. tostring(alpha) .. " " .. name) end
+	release(ns)
+end)
+
+with("curefight: forever: a withheld list is passed over", FOREVER_MAGE, function(ns, world)
+	local scenario = "curefight: forever: a withheld list is passed over"
+	world.secret = true
+	world.listSecret = true
+	world.debuffs.party1 = { debuff("Curse", 30) }
+	pull(ns)
+	drain(2)
+	local alpha, glow, name = shows(ns)
+	if alpha ~= 0 or glow or name ~= "" then fail(scenario, "shown with the list and every aura withheld: " .. tostring(alpha) .. " " .. name) end
+	release(ns)
+end)
+
+-- A plain read that finds nothing wins over the list: a curse with a second
+-- left, on a client that gives plain auras and a list, is not shown.
+with("curefight: forever: a plain read that finds nothing wins over the list", FOREVER_MAGE, function(ns, world)
+	local scenario = "curefight: forever: a plain read that finds nothing wins over the list"
+	world.debuffs.party1 = { debuff("Curse", 1) }
+	pull(ns)
+	drain(2)
+	local alpha, _, name = shows(ns)
+	if alpha ~= 0 or name ~= "" then fail(scenario, "shown for a curse with a second left: " .. tostring(alpha) .. " " .. name) end
+	release(ns)
+end)
+
+-- ------------------------------------------------------------------ 37
+-- A button for each cure (prompt.cureFightEach, on by default): a druid on the
+-- older clients has Remove Curse and Cure Poison. Each has a button and a key,
+-- and shows only for its own kinds.
+with("curefight: a druid's poison shows the second button alone", {}, function(ns, world)
+	local scenario = "curefight: a druid's poison shows the second button alone"
+	Mock.bindings["G"] = COMMAND2
+	Mock.frameEvent("UPDATE_BINDINGS")
+	ns.addon:Tick()
+	if not ns.CureFight:Button(2) then fail(scenario, "no second button for a druid") return end
+	world.debuffs.party1 = { debuff("Poison", 30) }
+	pull(ns)
+	settle()
+	local a1, g1, n1 = shows(ns, 1)
+	local a2, g2, n2, k2 = shows(ns, 2)
+	if a2 ~= 1 or not g2 then fail(scenario, ("the second button is not lit: alpha %s, glow %s"):format(tostring(a2), tostring(g2))) end
+	for _, word in ipairs({ "Cure Poison", "Gwen", "Poisoned" }) do
+		if not n2:find(word, 1, true) then fail(scenario, "its name line lacks " .. word .. ": " .. n2) end
+	end
+	if k2 ~= "point at Gwen and press G" then fail(scenario, "its key line reads " .. k2) end
+	if a1 ~= 0 or g1 or n1 ~= "" then fail(scenario, "the first button shows for a poison: " .. tostring(a1) .. " " .. n1) end
+	release(ns)
+end)
+
+with("curefight: a druid's curse shows the first button alone", {}, function(ns, world)
+	local scenario = "curefight: a druid's curse shows the first button alone"
+	world.debuffs.party1 = { debuff("Curse", 30) }
+	pull(ns)
+	settle()
+	local a1, _, n1, k1 = shows(ns, 1)
+	local a2, g2, n2 = shows(ns, 2)
+	if a1 ~= 1 or not n1:find("Remove Curse", 1, true) or not n1:find("Gwen", 1, true) then
+		fail(scenario, "the first button is not lit for the curse: " .. tostring(a1) .. " " .. n1)
+	end
+	if k1 ~= "point at Gwen and press F" then fail(scenario, "its key line reads " .. k1) end
+	if a2 ~= 0 or g2 or n2 ~= "" then fail(scenario, "the second button shows for a curse: " .. tostring(a2) .. " " .. n2) end
+	-- Both kinds on two people: each button names its own.
+	world.debuffs.party2 = { debuff("Poison", 30) }
+	landed("party2")
+	local _, _, m1 = shows(ns, 1)
+	local b2, _, m2 = shows(ns, 2)
+	if b2 ~= 1 or not m2:find("Hugo", 1, true) or not m1:find("Gwen", 1, true) then
+		fail(scenario, "with a curse and a poison, the buttons read '" .. m1 .. "' and '" .. m2 .. "'")
+	end
+	release(ns)
+end)
+
+with("curefight: each cure's key casts its own cure", {}, function(ns)
+	local scenario = "curefight: each cure's key casts its own cure"
+	local first, second = ns.CureFight:Button(1), ns.CureFight:Button(2)
+	if not (first and second) then fail(scenario, "SKIPPED -- two buttons are not made") return end
+	local m1, m2 = first:GetAttribute("macrotext1") or "", second:GetAttribute("macrotext1") or ""
+	if m1:find("mod:shift", 1, true) or m2:find("mod:shift", 1, true) then fail(scenario, "a macro names Shift: " .. m1 .. " / " .. m2) end
+	if m1 ~= "/cast [@mouseover,help,nodead][help,nodead][@player] Remove Curse" then fail(scenario, "the first macro reads " .. m1) end
+	if m2 ~= "/cast [@mouseover,help,nodead][help,nodead][@player] Cure Poison" then fail(scenario, "the second macro reads " .. m2) end
+	local before = #Mock.castLog
+	Mock.pressBinding(COMMAND)
+	local casts = castsSince(before)
+	if #casts ~= 1 or casts[1].spell ~= "Remove Curse" then fail(scenario, "the first key cast " .. tostring(casts[1] and casts[1].spell)) end
+	before = #Mock.castLog
+	Mock.pressBinding(COMMAND2)
+	casts = castsSince(before)
+	if #casts ~= 1 or casts[1].spell ~= "Cure Poison" then fail(scenario, "the second key cast " .. tostring(casts[1] and casts[1].spell)) end
+	-- Shift held changes nothing: there is no Shift cure.
+	Mock.modifiers.shift = true
+	before = #Mock.castLog
+	Mock.pressBinding(COMMAND)
+	casts = castsSince(before)
+	if #casts ~= 1 or casts[1].spell ~= "Remove Curse" then fail(scenario, "with Shift the first key cast " .. tostring(casts[1] and casts[1].spell)) end
+	Mock.modifiers.shift = false
+end)
+
+with("curefight: forever: the kind hidden, a druid sees both buttons, each naming its cure", { flavour = "camelot", dispelList = true }, function(ns, world)
+	local scenario = "curefight: forever: the kind hidden, a druid sees both buttons, each naming its cure"
+	world.secret = true
+	world.debuffs.party1 = { debuff("Poison", 30) }
+	pull(ns)
+	drain(2)
+	local a1, _, n1 = shows(ns, 1)
+	local a2, _, n2 = shows(ns, 2)
+	if a1 ~= 1 or a2 ~= 1 then fail(scenario, "not both lit: " .. tostring(a1) .. " / " .. tostring(a2)) return end
+	if not n1:find("Remove Curse", 1, true) or not n1:find("(a debuff you can remove)", 1, true) then fail(scenario, "the first reads " .. n1) end
+	if not n2:find("Cure Poison", 1, true) or not n2:find("(a debuff you can remove)", 1, true) then fail(scenario, "the second reads " .. n2) end
+	release(ns)
+end)
+
+with("curefight: a class with one cure makes no second button", { class = "MAGE", known = { 475 } }, function(ns, world)
+	local scenario = "curefight: a class with one cure makes no second button"
+	if not ns.CureFight:Button(1) then fail(scenario, "SKIPPED -- no first button") return end
+	if rawget(_G, "MannersCureFight2") ~= nil or ns.CureFight:Button(2) ~= nil
+		or (Mock.namedFrames and Mock.namedFrames.MannersCureFight2) then
+		fail(scenario, "a second button was made for a mage")
+	end
+	world.debuffs.party1 = { debuff("Curse", 30) }
+	pull(ns)
+	settle()
+	if (shows(ns)) ~= 1 then fail(scenario, "the one button does not show for a curse") end
+	release(ns)
+end)
+
+with("curefight: A button for each cure off keeps one button and Shift", {}, function(ns, world)
+	local scenario = "curefight: A button for each cure off keeps one button and Shift"
+	local second = ns.CureFight:Button(2)
+	local first = ns.CureFight:Button(1)
+	if not (first and second) then fail(scenario, "SKIPPED -- two buttons are not made") return end
+	local each = option(ns, "cureFightEach")
+	local key2 = option(ns, "cureFightKey2")
+	if not (each and key2) then fail(scenario, "no switch or no second key on Look") return end
+	if hidden(each) or hidden(key2) then fail(scenario, "the switch or the second key is hidden for a druid") end
+	each.set({ "appearance", "cureFightEach" }, false)
+	ns.addon:Tick()
+	if second:GetAttribute("macrotext1") ~= nil then fail(scenario, "the second button is still armed") end
+	if first:GetAttribute("macrotext1") ~= DRUID_MACRO then fail(scenario, "the first macro reads " .. tostring(first:GetAttribute("macrotext1"))) end
+	if not hidden(key2) then fail(scenario, "the second key is shown with the switch off") end
+	local header = ns.CureFight:Header()
+	if header and header:GetAttribute("manners-two") ~= false then fail(scenario, "the header still wants the second button") end
+	world.debuffs.party1 = { debuff("Poison", 30) }
+	pull(ns)
+	settle()
+	if second:IsShown() then fail(scenario, "the second button is shown in a fight with the switch off") end
+	local a1, _, n1, k1 = shows(ns, 1)
+	local a2 = shows(ns, 2)
+	if a1 ~= 1 or not n1:find("Cure Poison", 1, true) then fail(scenario, "the one button is not lit for a poison: " .. tostring(a1) .. " " .. n1) end
+	if k1 ~= "point at Gwen and press Shift-F" then fail(scenario, "its key line reads " .. k1) end
+	if a2 ~= 0 then fail(scenario, "the second button is lit with the switch off") end
+	release(ns)
+	-- On again, the second button is armed again.
+	each.set({ "appearance", "cureFightEach" }, true)
+	ns.addon:Tick()
+	if second:GetAttribute("macrotext1") ~= "/cast [@mouseover,help,nodead][help,nodead][@player] Cure Poison" then
+		fail(scenario, "not armed again once switched on: " .. tostring(second:GetAttribute("macrotext1")))
+	end
+	if first:GetAttribute("macrotext1") ~= "/cast [@mouseover,help,nodead][help,nodead][@player] Remove Curse" then
+		fail(scenario, "the first button keeps Shift: " .. tostring(first:GetAttribute("macrotext1")))
+	end
+end)
+
+with("curefight: the second button sits below the first, on a frame, and no protected call in a fight", {}, function(ns, world)
+	local scenario = "curefight: the second button sits below the first, on a frame, and no protected call in a fight"
+	local first, second = ns.CureFight:Button(1), ns.CureFight:Button(2)
+	if not (first and second) then fail(scenario, "SKIPPED -- two buttons are not made") return end
+	local at = second.points and second.points[#second.points]
+	if not at or at[1] ~= "TOP" or at[2] ~= first or at[3] ~= "BOTTOM" then
+		fail(scenario, "the second button is not anchored TOP to the first's BOTTOM")
+	end
+	if at and type(at[2]) == "table" and (at[2]._frameType == "FontString" or at[2]._frameType == "Texture") then
+		fail(scenario, "the second button is anchored to a region")
+	end
+	if first:GetWidth() ~= second:GetWidth() or first:GetHeight() ~= second:GetHeight() then
+		fail(scenario, "the buttons are not the same size")
+	end
+	Mock.protect(first)
+	Mock.protect(second)
+	pull(ns)
+	if not (first:IsShown() and second:IsShown()) then fail(scenario, "its driver did not show both at the pull") end
+	if first:GetAlpha() ~= 0 or second:GetAlpha() ~= 0 then fail(scenario, "shown at the pull with alpha") end
+	Mock.protectedCalls = {}
+	world.debuffs.party1 = { debuff("Poison", 30) }
+	landed("party1")
+	world.debuffs.party2 = { debuff("Curse", 30) }
+	landed("party2")
+	if (shows(ns, 2)) ~= 1 or (shows(ns, 1)) ~= 1 then fail(scenario, "SKIPPED -- not both lit") end
+	world.debuffs.party1, world.debuffs.party2 = nil, nil
+	Mock.frameEvent("UNIT_AURA", "party1", { removedAuraInstanceIDs = { 1 } })
+	Mock.frameEvent("UNIT_AURA", "party2", { removedAuraInstanceIDs = { 1 } })
+	settle()
+	for _ = 1, 3 do
+		Mock.advance(0.4)
+		ns.addon:Tick()
+		Mock.runTimers(1)
+	end
+	local each = option(ns, "cureFightEach")
+	if each then
+		each.set({ "appearance", "cureFightEach" }, false)
+		each.set({ "appearance", "cureFightEach" }, true)
+	end
+	ns.Prompt:Refresh()
+	if #Mock.protectedCalls > 0 then
+		fail(scenario, "Lua called " .. table.concat(Mock.protectedCalls, ", ") .. " on a cure button in the fight")
+	end
+	if not (first:IsShown() and second:IsShown()) then fail(scenario, "the fight left one hidden") end
+	release(ns)
+	if first:IsShown() or second:IsShown() then fail(scenario, "still shown after the fight") end
+end)
+
+-- A debuff lands on somebody in the group while the game withholds what it
+-- added: the read still happens, and the game's list says it is removable.
+with("curefight: forever: a withheld payload of a debuff landing is read through the list", FOREVER_MAGE, function(ns, world)
+	local scenario = "curefight: forever: a withheld payload of a debuff landing is read through the list"
+	world.secret = true
+	pull(ns)
+	drain(2)
+	if (shows(ns)) ~= 0 then fail(scenario, "SKIPPED -- lit before any debuff") return end
+	world.debuffs.party1 = { debuff("Curse", 30) }
+	Mock.frameEvent("UNIT_AURA", "party1", { addedAuras = Mock.SECRET })
+	settle()
+	local alpha, _, name = shows(ns)
+	if alpha ~= 1 or not name:find("(a debuff you can remove)", 1, true) then
+		fail(scenario, "not shown for a debuff landing with the payload withheld: " .. tostring(alpha) .. " " .. name)
+	end
 	release(ns)
 end)

@@ -13,7 +13,7 @@ A priest buffs you in passing. By the time you find them among a dozen nameplate
 - **Paladins:** Kings first, and **a blessing for each class** (Wisdom for mages, say).
 - **Hunters:** Call, Revive and Mend Pet when your pet needs them, *Bond with my pet*, and Mend Pet on a button of its own in a fight.
 - **Your key in a fight:** *In a fight, my key casts*, a shield or a quick heal you know on the prompt's own key for the length of the fight, nothing new on the screen.
-- **Cures in a fight:** *Show a cure button in a fight when somebody needs it*, a button that shows only when somebody near you needs your cure.
+- **Cures in a fight:** *Show my cure on a button in a fight, only while somebody needs it*, a button that shows only when somebody near you needs your cure.
 - **Good manners, kept:** a favour ledger with titles, thirteen **milestones**, and for whoever earns them all the **hall of fame**, the *Gentlefolk of Good Manners*.
 - **Something to say,** if you like: **In character**, over three thousand lines picked for your race, class and the moment (about a hundred of them the Forsaken's own), or a quiet `/thank`.
 - **Yours to arrange:** twenty-nine looks and one for your class, **profiles that switch by themselves** as you enter a dungeon, a raid or a battleground, a profile manager with *Undo*, and options that start short, each page under a painted icon.

@@ -12,8 +12,8 @@ mutate("Options/Window/Layout.lua",
        expect="menupass-fight: in combat the page says", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.fightButtons\",\n",
-       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.fightButtons\",\n",
+       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
+       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
        "menupass-fight: RESET.fight loses prompt.breakFree",
        expect="menupass-fight: In a fight's reset", script=S)
 

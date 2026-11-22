@@ -255,8 +255,8 @@ mutate("Options/Start.lua",
        expect="breakfree: its key control binds it and says what the key now does", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.fightButtons\",\n",
-       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.fightButtons\",\n",
+       "\t\"prompt.breakFree\", \"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
+       "\t\"beast.fightMend\", \"prompt.cureFight\", \"prompt.cureFightEach\", \"prompt.fightButtons\",\n",
        "breakfree: In a fight's reset leaves the switch",
        expect="advanced: put these back to default on In a fight", script=S)
 

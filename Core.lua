@@ -757,6 +757,11 @@ local defaults = {
 			-- (Prompt/CureFight.lua). On for everybody: it stays out of sight (alpha 0)
 			-- until a read in the fight finds somebody near with a debuff the cure removes.
 			cureFight = true,
+			-- A class with two cures (a druid, a priest or a shaman on the older
+			-- clients) gets a button and a key for each, the second below the
+			-- first, each shown only for the kinds its cure takes off. Off: one
+			-- button, the second cure on Shift (Prompt/CureFight.lua).
+			cureFightEach = true,
 			-- The spell the prompt's own key casts in a fight, by a row key of
 			-- Prompt/FightKey.lua's list, kept per class (CLASS -> key) because
 			-- every character shares the profile; none, or "none", keeps the key

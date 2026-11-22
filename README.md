@@ -271,21 +271,26 @@ too.
 
 #### Curing in a fight
 
-A class with a cure can tick *Show a cure button in a fight when somebody needs it*
-(*In a fight*, on; also under *Who to buff*, *Resurrection and cures*). It gives a
-small button right of the prompt (or of the Will of the Forsaken button), with
-*Key for my cure in a fight* under the switch. It is never on screen for
-nothing: it appears only when Manners sees you, your target or somebody in your
-group, in reach and alive, carrying a poison, disease, curse or harmful spell
-your cure removes, with the spell's name, who it is and what they carry, and it
-fades again once nobody does. A press cures the player under your mouse, else
-your target, else you; on WoW Forever your target when it is a friend, else
-you. A class with two cures (a druid, a priest or a shaman on the older
-clients) casts the second with Shift held, and the button says which. A debuff
-Manners never removes keeps the cure that would lift it away from that person.
-Where the game hides debuffs in a fight the button stays out of sight, and its
-key still casts. The prompt's own key keeps to buffs, unless *In a fight, my
-key casts* names a spell.
+A class with a cure can tick *Show my cure on a button in a fight, only while
+somebody needs it* (*In a fight*, on; also under *Who to buff*, *Resurrection
+and cures*). It gives a small button right of the prompt (or of the Will of the
+Forsaken button), with *Key for my cure in a fight* under the switch. It is
+never on screen for nothing: it appears only while Manners sees you, your
+target or somebody in your group, in reach and alive, carrying a poison,
+disease, curse or harmful spell your cure removes, with the spell's name, who it
+is and what they carry, and it fades again once nobody does. A press cures the
+player under your mouse, else your target, else you; on WoW Forever your target
+when it is a friend, else you. A class with two cures (a druid, a priest or a
+shaman on the older clients) gets *A button for each cure* (on): the second
+button sits below the first, with *Key for my second cure in a fight*, and each
+shows only for the debuffs its cure removes. With it off there is one button and
+Shift casts the second cure. A debuff Manners never removes keeps the cure that
+would lift it away from that person. Where the game hides debuffs in a fight
+(WoW Forever, retail) the button still appears when the game says you can
+remove one, in your group, on your target or on you, without naming the kind:
+it reads "a debuff you can remove", and with two buttons both show and you pick
+the cure. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
+names a spell.
 
 #### A spell on your key in a fight
 
@@ -1398,9 +1403,10 @@ with two sections: ***The prompt in a fight*** and ***Buttons for when you need 
   buff*), with its key under it: see *Mend Pet in a fight* above.
 - *Show the fight buttons*: only when needed, or dim for the whole
   fight.
-- *Show a cure button in a fight when somebody needs it* (on, a class with a
-  cure), with *Key for my cure in a fight* under it: see *Curing in a
-  fight* above.
+- *Show my cure on a button in a fight, only while somebody needs it* (on, a
+  class with a cure), with *Key for my cure in a fight* under it; *A button for
+  each cure* (on, a class with two cures) and *Key for my second cure in a
+  fight*: see *Curing in a fight* above.
 
 ### Look
 

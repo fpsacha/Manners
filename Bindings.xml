@@ -11,4 +11,6 @@
 	<Binding name="CLICK MannersMendPet:LeftButton" category="Manners"/>
 	<!-- The cure button for a fight (Prompt/CureFight.lua), for a class with a cure. -->
 	<Binding name="CLICK MannersCureFight:LeftButton" category="Manners"/>
+	<!-- The second cure's button, for a class with two cures (A button for each cure). -->
+	<Binding name="CLICK MannersCureFight2:LeftButton" category="Manners"/>
 </Bindings>

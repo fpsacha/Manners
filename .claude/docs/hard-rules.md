@@ -65,13 +65,32 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   (no tooltip, its highlight a region so it takes the alpha); Lua paints only
   its alpha and its own text and textures in a fight, fading it in once a read
   in the fight has found somebody in reach it can cure, and out again when
-  nobody needs it. Its events (UNIT_AURA and the rest) are registered at the
+  nobody needs it. A class with two cures gets two buttons while
+  `prompt.cureFightEach` is on (the default): MannersCureFight casts the first
+  cure and MannersCureFight2 the second, below it, with
+  `CLICK MannersCureFight2:LeftButton` for a key. They are two slots of one
+  file and one header drives both (`SetFrameRef("cure2", ...)` and the
+  attribute `manners-two`, written out of combat in Refresh; the snippet shows
+  or hides the second by the same newstate test); each shows only for the
+  kinds its own cure removes, and Lua shows, hides, moves or arms neither in a
+  fight. With the switch off, or one cure, there is one button and the second
+  cure is on Shift. Where the client withholds auras (Forever, retail) the
+  contents of every aura are passed over, but the game's own list of the
+  harmful auras you can remove (`C_UnitAuras.GetUnitAuraInstanceIDs(unit,
+  "HARMFUL|RAID")`, plain: `AuraUtil.AuraFilters.Raid`) says somebody carries
+  one: the group and focus are then read as on a plain client, and somebody on
+  the list whose auras are all withheld is shown with the kind unnamed ("a
+  debuff you can remove"), on both buttons. An empty list ends the read at
+  once. A plain read that found nothing (deny list, under two seconds, the
+  client's no) still wins. Naming the kind under secrecy through
+  `GetAuraDispelTypeColor` and a color curve is noted, not built (the
+  dispel-type ids are not documented). Its events (UNIT_AURA and the rest) are registered at the
   pull and dropped at the release, UNIT_AURA filtered by a table lookup
   outside the Guard, and a scan with the switch off and no button made pays
   one profile field and no question to the client. A value the client
   withholds is never compared or boolean-tested: a withheld debuff is passed
-  over, and where the client withholds them (Forever, retail) only you and
-  your target are read.
+  over, and where the client withholds them (Forever, retail) with no list of
+  what you can remove, only you and your target are read.
   The fight key (`Prompt/FightKey.lua`, `ns.FightKey`, `MannersFightKey`) is
   how the prompt's own key casts a spell in a fight, with `prompt.fightKeySpells`
   (class -> a row key of that class's list; `"none"`: kept per class because every character

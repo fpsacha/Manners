@@ -33,7 +33,7 @@ Yours to arrange: twenty-nine looks, a blessing for each class for paladins, pro
 - **Ask in your own words.** *What the ask says* takes *My own words* and a line you write.
 - **Your pet, hunters.** Call, Revive and Mend Pet when it needs them, Feed Pet on WoW Forever, Classic Era and Burning Crusade, *Bond with my pet* for a pat or a kind word now and then, and Mend Pet on a button of its own in a fight.
 - **Your key in a fight.** *In a fight, my key casts* lets the prompt's own key cast a shield or a quick heal you know, Power Word: Shield or Ice Barrier say, for as long as the fight lasts, with nothing new on the screen.
-- **Your cure, in a fight.** *Show a cure button in a fight when somebody needs it* puts your class's cure on a button of its own that appears only when somebody near you carries a poison, curse, disease or harmful spell it can remove.
+- **Your cure, in a fight.** *Show my cure on a button in a fight, only while somebody needs it* puts your class's cure on a button of its own that appears only when somebody near you carries a poison, curse, disease or harmful spell it can remove.
 
 > **I read every comment here and on GitHub.** Most of the list above was asked for in these comments, and a new version comes out most days. Found a bug? Please send a log with it: see **Report a bug** below.
 

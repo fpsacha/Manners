@@ -395,7 +395,7 @@ local EXPECTED = {
 		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "filters.proximity",
 		-- A class's courtesies on request, resurrection and cures.
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
-		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight",
+		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight", "prompt.cureFightEach",
 		"filters.restingOnly", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
@@ -457,7 +457,7 @@ local EXPECTED = {
 	-- In a fight: what the prompt does when a fight starts, and the buttons made for one.
 	fight = {
 		"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
-		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.fightButtons",
+		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the
 	-- window falls back to (Register.lua). Its reset is the old one's

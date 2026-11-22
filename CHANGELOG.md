@@ -11,6 +11,16 @@
   buffs*.
 
 ### Fixes
+- **The cure button shows where the game hides debuffs.** On WoW Forever and
+  retail the button now also reads the game's own list of what you can remove,
+  for you, your target and your group, and appears for "a debuff you can
+  remove" when that list is not empty (GitHub issue 36). *Show my cure on a
+  button in a fight, only while somebody needs it* says what it does and where
+  it sits.
+- **A button for each cure.** A druid, a priest or a shaman on the older clients
+  gets a button and a key for each cure, the second below the first, each shown
+  only for its own debuffs (*A button for each cure*, on; *Key for my second
+  cure in a fight*). Off: one button, and Shift casts the second cure.
 - **/moo to thank with.** *Emote to use* (What I say) now offers /moo, last on
   the list, for any race. Asked for on CurseForge.
 - **Will of the Forsaken shows when you lose control in a fight** even where the
