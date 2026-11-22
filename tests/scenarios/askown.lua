@@ -12,6 +12,10 @@ local strangers, freshPrompt, findOption = H.strangers, H.freshPrompt, H.findOpt
 
 local TOUCHED = { "IsResting", "UnitAffectingCombat" }
 
+-- The passer-by as the queue files her: a two-part name on Forever, one name
+-- off it (the second return of UnitName is a realm there).
+local function anna() return Mock.surnames and "Anna Aim" or "Anna" end
+
 local function with(scenario, body)
 	local saved = {}
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
@@ -58,7 +62,7 @@ do
 		if ns.defaults.profile.ask.own ~= "" then fail(scenario, "own words are not empty out of the box") end
 		ask.line = "own"
 		ask.own = "Hey, could I get {buff}? Cheers!"
-		local want = "/w Anna Aim Hey, could I get " .. spell .. "? Cheers!"
+		local want = "/w " .. anna() .. " Hey, could I get " .. spell .. "? Cheers!"
 		local got = macroFor(ns)
 		if got ~= want then fail(scenario, "the ask is |" .. tostring(got) .. "|, not |" .. want .. "|") end
 		-- The In character set does not talk over what the player wrote.
@@ -77,7 +81,7 @@ do
 		local ask = ns.db.profile.ask
 		ask.line = "own"
 		ask.own = ""
-		local want = "/w Anna Aim " .. ns.Ask.LINES.moment:gsub("{name}", "Anna Aim"):gsub("{buff}", spell)
+		local want = "/w " .. anna() .. " " .. ns.Ask.LINES.moment:gsub("{name}", anna()):gsub("{buff}", spell)
 		local got = macroFor(ns)
 		if got ~= want then fail(scenario, "the ask is |" .. tostring(got) .. "|, not |" .. want .. "|") end
 	end)

@@ -232,7 +232,11 @@ do
 			end
 			local total = UI.view.range + UI.view.height
 			-- The last thing drawn, the gap under it, the padding under the page.
-			if total < last + PAD_BOTTOM or total > last + PAD_BOTTOM + 40 then
+			if UI.view.range == 0 then
+				-- A page that fits the window whole has no end to scroll to
+				-- (Mists and retail: no Myself sections on Who to buff).
+				fail(scenario, "SKIPPED -- " .. id .. " fits the window on this client")
+			elseif total < last + PAD_BOTTOM or total > last + PAD_BOTTOM + 40 then
 				fail(scenario, ("%s is %s tall and the last thing on it ends at %s"):format(id, tostring(total), tostring(last)))
 			end
 		end

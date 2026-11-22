@@ -15,6 +15,7 @@ local fail, load, drive = H.fail, H.load, H.drive
 local TOUCHED = { "IsSpellKnown", "IsPlayerSpell" }
 
 local HAWK, MONKEY = 13165, 13163
+local CALL_PET, REVIVE_PET = 883, 982
 
 local function noErrors(scenario, ns)
 	for _, e in ipairs(ns.errors or {}) do
@@ -28,7 +29,7 @@ local CLASSES = {
 	PRIEST = { buffs = { "fortitude", "spirit", "shadow" } },
 	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light" } },
 	WARRIOR = { buffs = { "battleshout" } },
-	HUNTER = { known = { HAWK, MONKEY } },
+	HUNTER = { known = { HAWK, MONKEY, CALL_PET, REVIVE_PET } },
 	ROGUE = {},
 }
 

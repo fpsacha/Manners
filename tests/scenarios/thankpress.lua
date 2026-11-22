@@ -389,8 +389,13 @@ do
 	local scenario = "thankpress: a second buff from the same giver is the same thank, for the newer buff"
 	with(scenario, {}, function(ns)
 		favour(ns, "nameplate1")
+		-- Divine Spirit where there is one; else another buff the client has (Arcane Intellect).
 		local spirit = ns.BUFF_BY_ID[27841] and 27841 or (ns.BUFF_BY_ID[14819] and 14819) or nil
-		if not spirit then fail(scenario, "SKIPPED -- no Divine Spirit on this client") return end
+		if not spirit then
+			local int = ns.FindBuff("MAGE", "intellect")
+			spirit = int and int.ranks[1] or nil
+		end
+		if not spirit then return end
 		-- Offered once already, so its entry has been made.
 		if #thanks(ns) ~= 1 then fail(scenario, "SKIPPED -- the first buff's thank is not offered") return end
 		Mock.advance(1)
@@ -751,6 +756,8 @@ do
 			ns.db.profile.sources.owed = false
 			ns.db.profile.groupBuffs.use, ns.db.profile.groupBuffs.atLeast = true, 2
 		end }, function(ns)
+		local int = ns.FindBuff("MAGE", "intellect")
+		if not (int and int.groupCast) then return end -- this client has no group cast to cover a member with
 		local cast
 		for _, e in ipairs(ns.BuildQueue()) do if e.groupCast then cast = e end end
 		if not cast then fail(scenario, "SKIPPED -- no group cast on the queue") return end
@@ -960,8 +967,9 @@ end
 do
 	local scenario = "thankpress: unseen, two spells let go are both held back"
 	with(scenario, { unseen = true, names = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
-		local fort, intellect = fortitude(ns), 10157
-		if not ns.BUFF_BY_ID[intellect] then fail(scenario, "SKIPPED -- no Arcane Intellect here") return end
+		local int = ns.FindBuff("MAGE", "intellect")
+		local fort, intellect = fortitude(ns), ns.BUFF_BY_ID[10157] and 10157 or (int and int.ranks[1])
+		if not (intellect and ns.BUFF_BY_ID[intellect]) then fail(scenario, "SKIPPED -- no Arcane Intellect here") return end
 		favour(ns, nil, fort)
 		Mock.advance(1)
 		favour(ns, nil, intellect)

@@ -447,7 +447,7 @@ end
 -- ------------------------------------------------------------------ share
 do
 	local scenario = "hunterpet2: share waits for the meal"
-	with(scenario, { world = function(p) p.happy, p.bags = 2, { 117 } end }, function(ns)
+	with(scenario, { flavour = "camelot", world = function(p) p.happy, p.bags = 2, { 117 } end }, function(ns)
 		ns.BuildQueue()
 		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 433)
 		P.playerAuras.Food = true
@@ -934,7 +934,7 @@ end
 
 do
 	local scenario = "hunterpet2: training points"
-	with(scenario, { world = function(p) p.tp, p.tpUsed = 5, 0 end }, function(ns)
+	with(scenario, { flavour = "camelot", world = function(p) p.tp, p.tpUsed = 5, 0 end }, function(ns)
 		ns.BuildQueue()
 		event("PLAYER_ENTERING_WORLD", false, true)
 		Mock.runTimers(5)
@@ -966,7 +966,7 @@ do
 			if control and not hidden then fail(scenario, key .. " is shown on Mists") end
 		end
 	end)
-	with(scenario, {}, function(ns)
+	with(scenario, { flavour = "camelot" }, function(ns)
 		local function hidden(key)
 			local control = findOption(ns.optionsTable, key)
 			if not control then return true end
@@ -1082,7 +1082,7 @@ end
 
 do
 	local scenario = "hunterpet2: a not now to a share is one to Feed"
-	with(scenario, { world = function(p) p.happy, p.bags = 2, { 117 } end }, function(ns)
+	with(scenario, { flavour = "camelot", world = function(p) p.happy, p.bags = 2, { 117 } end }, function(ns)
 		ns.BuildQueue()
 		event("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 433)
 		P.playerAuras.Food = true

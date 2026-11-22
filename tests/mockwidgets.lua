@@ -113,7 +113,7 @@ end
 local widen
 
 -- The frames that registered for an event, for Mock.frameEvent.
-local eventFrames = setmetatable({}, { __mode = "k" })
+local eventFrames = {}
 
 -- A box of many lines grows to hold its text, as the client's does, so the
 -- scroll frame it sits in has something to scroll: the height it was given is

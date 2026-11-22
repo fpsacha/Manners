@@ -1082,6 +1082,14 @@ Beast.SWITCHES = { "call", "revive", "feed", "mend", "bond", "all", "leaveFood",
 
 function Beast.Feeds() return FEEDS[FLAVOUR] == true end
 
+-- A hunter who has learned Call or Revive Pet, whatever the switches say: the
+-- options keep the pet's pages for him, so "Everything for my pet" can be put
+-- back on (Beast.Live goes false with it off).
+function Beast.KnowsCare()
+	if not IsHunter() then return false end
+	return Known(K.SPELL.call) or Known(K.SPELL.revive)
+end
+
 function Beast.Live()
 	if not IsHunter() then return false end
 	local beast = Switches(Profile())

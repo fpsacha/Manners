@@ -240,7 +240,11 @@ do
 	with(scenario, { class = "PALADIN" }, function(ns, UI)
 		ns.OpenOptions("self")
 		UI.ScrollTo(200)
-		if not choose(UI, "self.items") then fail(scenario, "no Food chip on a paladin's My own buffs") return end
+		if not choose(UI, "self.items") then
+			-- Retail has no Well Fed: Food and scrolls are drawn only with a flask at hand.
+			fail(scenario, "SKIPPED -- no Food chip on a paladin's My own buffs on this client")
+			return
+		end
 		if UI.view.scrollY ~= 0 then fail(scenario, "Food opened scrolled " .. tostring(UI.view.scrollY) .. " down") end
 		local sub = UI.SubInView("self")
 		if not (sub and sub.key == "self.items") then fail(scenario, "Food chosen, the page shows " .. tostring(sub and sub.key)) end
@@ -300,7 +304,10 @@ do
 	local scenario = "subpages: the window remembers each page's sub-division for the session"
 	with(scenario, { class = "PALADIN" }, function(ns, UI)
 		ns.OpenOptions("self")
-		choose(UI, "self.items")
+		if not choose(UI, "self.items") then
+			fail(scenario, "SKIPPED -- no Food chip on a paladin's My own buffs on this client")
+			return
+		end
 		ns.OpenOptions("when")
 		if UI.SubInView("when") ~= nil then fail(scenario, "When to offer opened on a sub-division nobody chose") end
 		choose(UI, "when.favours")

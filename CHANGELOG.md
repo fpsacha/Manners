@@ -52,6 +52,8 @@
   instead of calling it a tab (GitHub issue 23).
 
 ### Fixes
+- **Retail:** a hunter's options window shows *My pet*, *Who to skip*, *When to
+  offer*, *In a fight* and *Look* again.
 - **A stranger's buff is noticed when the game leaves out who cast it** (WoW
   Forever and retail): Manners names them from the cast it saw at that moment,
   so *People who buff me* offers to buff them back, and `/manners debug` says
