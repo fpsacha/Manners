@@ -218,10 +218,32 @@ mutate(CF,
        expect="curefight: out of a fight it listens to nothing", script=S)
 
 mutate(CF,
-       "\tif button == nil and db.prompt.cureFight ~= true then return false end\n",
+       "\tif button == nil and (db.prompt.cureFight ~= true or not ns.ClassHasCures() or ns.CureFightSpells() == nil) then\n\t\treturn false\n\tend\n",
        "",
        "curefight: a scan asks the client with the switch off",
        expect="curefight: switched off, a scan pays nothing for it", script=S)
+
+mutate(CF,
+       "or not ns.ClassHasCures() or ns.CureFightSpells() == nil) then\n\t\treturn false",
+       ") then\n\t\treturn false",
+       "curefight: a class with no cure pays a scan the cure's questions",
+       expect="curefight: on by default, a scan costs a warrior nothing", script=S)
+
+mutate(CF,
+       "\treturn changed and not InCombatLockdown()\n",
+       "\treturn not InCombatLockdown() and changed\n",
+       "curefight: a settled scan asks the lockdown first",
+       expect="curefight: out of a fight it listens to nothing", script=S)
+
+mutate(CF, "button:EnableMouse(keyLabel == nil and Always())",
+       "button:EnableMouse(keyLabel == nil)",
+       "curefight: the button takes a click out of sight with no key by default",
+       expect="curefight: with no key the button takes no click out of sight, and a line says what to set", script=S)
+
+mutate(CF, "\tSetVisible(true, ready)\n\tNudge()\n",
+       "\tSetVisible(true, ready)\n",
+       "curefight: nothing says a key is missing",
+       expect="curefight: with no key the button takes no click out of sight, and a line says what to set", script=S)
 
 mutate(CF,
        "\tfor token in pairs(watched) do dirty[token] = true end\n\tlocal frame = CureFight.frame\n",

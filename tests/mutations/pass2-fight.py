@@ -27,7 +27,7 @@ mutate("Prompt/MendPet.lua", HOLD, "-- " + HOLD,
 
 # --- the cure button takes no click out of sight ------------------------------
 
-mutate("Prompt/CureFight.lua", "button:EnableMouse(keyLabel == nil)",
+mutate("Prompt/CureFight.lua", "button:EnableMouse(keyLabel == nil and Always())",
        "button:EnableMouse(true)",
        "pass2-fight: the cure button takes clicks with its key bound",
        expect=P + "out of sight with its key bound the cure button takes no click", script=S)

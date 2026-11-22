@@ -60,9 +60,6 @@ local PLACES = { "idle", "city", "dungeon", "raid", "citynever", "raidgc" }
 -- and this file counts them, plus a quarter (see above). The raid with group
 -- casts is every client's but Mists' and retail's, whose one cast lands
 -- party-wide and has no group version to fold a party into.
--- Mists and retail idle at 44, not 40: the fight's cure button is on for
--- everybody now, so a scan for a class with a cure asks the client its
--- InCombatLockdown and which cures it knows (Prompt/CureFight.lua Wanted).
 local BUDGET = {
 	camelot  = { idle = { 10, 40, 5 }, city = { 13, 448, 8 }, dungeon = { 12, 150, 8 },
 	             raid = { 18, 1039, 21 }, citynever = { 13, 448, 8 }, raidgc = { 20, 1242, 27 } },
@@ -70,9 +67,9 @@ local BUDGET = {
 	             raid = { 18, 1039, 21 }, citynever = { 13, 448, 8 }, raidgc = { 20, 1667, 40 } },
 	tbc      = { idle = { 10, 40, 5 }, city = { 13, 449, 8 }, dungeon = { 12, 152, 8 },
 	             raid = { 18, 1049, 21 }, citynever = { 13, 449, 8 }, raidgc = { 20, 1679, 41 } },
-	mists    = { idle = { 10, 44, 5 }, city = { 13, 449, 9 }, dungeon = { 12, 177, 9 },
+	mists    = { idle = { 10, 40, 5 }, city = { 13, 449, 9 }, dungeon = { 12, 177, 9 },
 	             raid = { 20, 1258, 29 }, citynever = { 13, 449, 9 } },
-	mainline = { idle = { 10, 44, 5 }, city = { 13, 444, 8 }, dungeon = { 12, 170, 8 },
+	mainline = { idle = { 10, 40, 5 }, city = { 13, 444, 8 }, dungeon = { 12, 170, 8 },
 	             raid = { 18, 1215, 22 }, citynever = { 13, 444, 8 } },
 }
 

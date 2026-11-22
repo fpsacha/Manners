@@ -16,6 +16,8 @@
   never-offer list; a favour owed is still returned.
 - **Offer my cure in a fight is on for everybody:** the cure button still shows
   only when somebody near you carries a curse, poison or disease you can remove.
+  With no key set it takes no click while out of sight, and a line says once
+  to set *Key for my cure in a fight*.
 - **A controller button in the key boxes.** The prompt's key on *Start here* (and
   every other key box) takes a controller button: click the box and press it.
 

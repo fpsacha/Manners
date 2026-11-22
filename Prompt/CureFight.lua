@@ -116,7 +116,7 @@ local waitUntil
 -- The last fight, for /manners debug.
 local last = { reads = 0, secret = 0, seen = 0, shownFor = 0 }
 local reasonOf, seenGuid = {}, {}
-local Paint, Flush
+local Paint, Flush, Nudge
 
 local function Profile()
 	return ns.db and ns.db.profile
@@ -459,6 +459,7 @@ Paint = function()
 		if left > 0 and type(cooldown.SetCooldown) == "function" then cooldown:SetCooldown(now + left - length, length) end
 	end
 	SetVisible(true, ready)
+	Nudge()
 	return true
 end
 
@@ -586,14 +587,37 @@ local function ReadKey()
 	keyLabel = type(key) == "string" and key ~= "" and key or nil
 end
 
--- Whether the button takes a click: only when no key is bound (then a click is
--- the only way to cast it). With a key it is out of sight or only just in it,
--- and a click beside the prompt must reach the world behind. The client refuses
--- EnableMouse on a protected frame under the lockdown, so only out of one: at
--- Refresh and at the pull, before it.
+-- Whether the button takes a click: with no key bound and the fight's buttons
+-- at All fight, the player's own choice of a button to click. The switch is on
+-- for everybody, so a button that is out of sight (alpha 0) beside the prompt
+-- must not swallow a click meant for the prompt or the world behind it: with
+-- the default, a key is what casts it (a line says so, the first time it shows
+-- with none: Nudge). The client refuses EnableMouse on a protected frame under
+-- the lockdown, so only out of one: at Refresh and at the pull, before it.
+local function Always()
+	local db = Profile()
+	return db ~= nil and db.prompt.fightButtons == "always"
+end
+
 local function SetMouse()
 	if not button or InCombatLockdown() then return end
-	button:EnableMouse(keyLabel == nil)
+	button:EnableMouse(keyLabel == nil and Always())
+end
+
+-- The first time the button shows with no key and no click to make: said once
+-- for the character (char.cureKeyNudged), where the chat shows it.
+local nudged = false
+function Nudge()
+	if nudged or keyLabel ~= nil or Always() then return end
+	local db = ns.db
+	local char = db and db.char
+	if type(char) ~= "table" or char.cureKeyNudged == true then nudged = true return end
+	if db.profile.silentChat == true then return end
+	if ns.Setup and ns.Setup.CanBind and not ns.Setup.CanBind() then return end
+	nudged = true
+	char.cureKeyNudged = true
+	ns.addon:Print(L["Your cure button is showing, but it has no key, so it takes no click: set |cffffd100%s|r under %s in /manners to cast it."]
+		:format(L["Key for my cure in a fight"], L["In a fight"]))
 end
 
 -- From a scan (Core.lua, TickBody) when Wanted says something changed, and as a
@@ -640,24 +664,34 @@ function CureFight:Refresh()
 	settledOn, dirtyRefresh = true, false
 end
 
--- Whether a scan has anything to do here. With the switch off and nothing
--- made, one field of the profile and no question to the client.
+-- Whether a scan has anything to do here. With nothing made, one field of the
+-- profile and the class's cached cures and no question to the client (a switch
+-- off, a class with no cure, a mage below Remove Lesser Curse); once made, the
+-- comparisons come first and the lockdown is asked only when one changed.
 function CureFight:Wanted()
 	local db = Profile()
 	if not db then return false end
-	if button == nil and db.prompt.cureFight ~= true then return false end
-	if InCombatLockdown() then return false end
-	if dirtyRefresh then return true end
-	local on = CureFight.Applies(db) and true or false
-	if on ~= settledOn then return true end
-	if not on then return false end
-	if ns.CureFightSpells() ~= armedSpells then return true end
-	local p = db.prompt
-	if p.iconSize ~= placedIcon or p.scale ~= placedScale then return true end
-	-- `or nil`: Applies answers false, which is not nil.
-	local bf = ns.BreakFree
-	local beside = bf and bf.Applies() and bf:Button() or nil
-	return (beside ~= nil) ~= placedBeside
+	if button == nil and (db.prompt.cureFight ~= true or not ns.ClassHasCures() or ns.CureFightSpells() == nil) then
+		return false
+	end
+	local changed = dirtyRefresh
+	if not changed then
+		local on = CureFight.Applies(db) and true or false
+		if on ~= settledOn then
+			changed = true
+		elseif on then
+			local p = db.prompt
+			if ns.CureFightSpells() ~= armedSpells or p.iconSize ~= placedIcon or p.scale ~= placedScale then
+				changed = true
+			else
+				-- `or nil`: Applies answers false, which is not nil.
+				local bf = ns.BreakFree
+				local beside = bf and bf.Applies() and bf:Button() or nil
+				changed = (beside ~= nil) ~= placedBeside
+			end
+		end
+	end
+	return changed and not InCombatLockdown()
 end
 
 -- The pull, before the lockdown: who is read, and the fight's events.

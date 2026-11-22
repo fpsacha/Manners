@@ -58,7 +58,9 @@ end
 --   env.names       the units that exist, by token (PARTY)
 --   env.spellNames  spell names that replace NAMES
 --   env.key         the key bound to the button ("F"; false: none)
---   env.keep        leave the switch as a new profile has it (off)
+--   env.keep        leave the switch as a new profile has it (on)
+--   env.watchLoad   world.loadAsked lists what CureFight asked the client up to
+--                   and in the first scan
 --   env.owe         a person on a nameplate the prompt owes a buff
 --   env.raid        { size, names } a raid of that many, in place of the party
 -- body(ns, world): world.debuffs[unit] is that unit's harmful auras, in the
@@ -84,7 +86,7 @@ local function with(scenario, env, body)
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
 	local callsReal = InCombatLockdown
 	local world = { debuffs = {}, reads = { n = 0 }, known = {}, names = names, dead = {}, offline = {},
-		spellNames = {}, ids = {} }
+		spellNames = {}, ids = {}, loadAsked = {} }
 	for id, name in pairs(NAMES) do world.spellNames[id] = name end
 	for id, name in pairs(env.spellNames or {}) do world.spellNames[id] = name end
 	for _, id in ipairs(env.known or DRUID) do world.known[id] = true end
@@ -146,8 +148,20 @@ local function with(scenario, env, body)
 			if world.offline[canon(unit)] then return false end
 			return realConn(unit)
 		end)
+		-- The first scans (the load's, the one below): what the fight's cure asked
+		-- the client in them (a call to a mock made by its Wanted or Refresh).
+		if env.watchLoad then
+			debug.sethook(function()
+				local callee, caller = debug.getinfo(2, "nS"), debug.getinfo(3, "nS")
+				if callee and caller and tostring(callee.source):find("tests[/\]mock")
+					and tostring(caller.source):find("Prompt[/\]CureFight")
+					and (caller.name == "Wanted" or caller.name == "Refresh") and callee.name ~= "issecretvalue" then
+					world.loadAsked[#world.loadAsked + 1] = tostring(callee.name)
+				end
+			end, "c")
+		end
 		local ns = load(scenario)
-		if not ns then return end
+		if not ns then debug.sethook() return end
 		-- A profile that switched it off from the start: the default the load
 		-- reads is false, so nothing is made at login.
 		if env.off then ns.defaults.profile.prompt.cureFight = false end
@@ -165,6 +179,7 @@ local function with(scenario, env, body)
 		if env.owe then owe(ns, "Anna Aim") end
 		ns.addon:Tick()
 		Mock.runTimers(0)
+		debug.sethook()
 		world.resetReads()
 		body(ns, world)
 		for _, e in ipairs(ns.errors or {}) do
@@ -721,7 +736,8 @@ with("curefight: out of a fight it listens to nothing", {}, function(ns, world)
 	end
 	settle()
 	if world.reads.n ~= 0 then fail(scenario, "an aura after the fight asked for " .. world.reads.n .. " reads") end
-	-- A settled scan: the lockdown is the one question it asks the client.
+	-- A settled scan asks the client nothing: what changed is worked out first,
+	-- and the lockdown is asked only when something did.
 	ns.addon:Tick()
 	local asked = {}
 	debug.sethook(function()
@@ -732,15 +748,14 @@ with("curefight: out of a fight it listens to nothing", {}, function(ns, world)
 	end, "c")
 	local wanted = ns.CureFight:Wanted()
 	debug.sethook()
-	for _, name in ipairs(asked) do
-		if name ~= "InCombatLockdown" then fail(scenario, "a settled scan asked the client " .. name) end
-	end
+	if #asked > 0 then fail(scenario, "a settled scan asked the client " .. table.concat(asked, ", ")) end
 	if wanted then fail(scenario, "a settled scan wants work") end
 end)
 
 -- ------------------------------------------------------------------ 22
-with("curefight: switched off, a scan pays nothing for it", { keep = true, off = true, class = "MAGE", known = { 475 } }, function(ns)
+with("curefight: switched off, a scan pays nothing for it", { keep = true, off = true, watchLoad = true, class = "MAGE", known = { 475 } }, function(ns, world)
 	local scenario = "curefight: switched off, a scan pays nothing for it"
+	if #world.loadAsked > 0 then fail(scenario, "the login scans asked the client " .. table.concat(world.loadAsked, ", ") .. " with the switch off") end
 	local asked = {}
 	debug.sethook(function()
 		local info = debug.getinfo(2, "nS")
@@ -754,6 +769,71 @@ with("curefight: switched off, a scan pays nothing for it", { keep = true, off =
 	if #asked > 0 then fail(scenario, "asked the client " .. table.concat(asked, ", ") .. " with the switch off") end
 	ns.addon:Tick()
 	if ns.CureFight:Button() or (Mock.namedFrames and Mock.namedFrames.MannersCureFight) then fail(scenario, "made a frame with the switch off") end
+end)
+
+-- ------------------------------------------------------------------ 22b
+-- The switch is on for everybody: a class with no cure to offer (a warrior, a
+-- mage below Remove Lesser Curse) must still pay a scan nothing, and make no
+-- frame.
+for _, row in ipairs({
+	{ "a warrior", { keep = true, watchLoad = true, class = "WARRIOR", known = {} } },
+	{ "a mage with no cure known", { keep = true, watchLoad = true, class = "MAGE", known = {} } },
+}) do
+	local scenario = "curefight: on by default, a scan costs " .. row[1] .. " nothing"
+	with(scenario, row[2], function(ns, world)
+		if ns.db.profile.prompt.cureFight ~= true then fail(scenario, "the switch is not on out of the box") end
+		if #world.loadAsked > 0 then fail(scenario, "the login scans asked the client " .. table.concat(world.loadAsked, ", ")) end
+		-- What the class can cure is worked out once per probe and kept.
+		ns.CureFightSpells()
+		local asked = {}
+		debug.sethook(function()
+			local info = debug.getinfo(2, "nS")
+			if info and tostring(info.source):find("tests[/\]mock") and info.name ~= "issecretvalue" then
+				asked[#asked + 1] = tostring(info.name)
+			end
+		end, "c")
+		local wanted = ns.CureFight:Wanted()
+		debug.sethook()
+		if wanted then fail(scenario, "wants work with no cure to offer") end
+		if #asked > 0 then fail(scenario, "asked the client " .. table.concat(asked, ", ")) end
+		ns.addon:Tick()
+		if ns.CureFight:Button() or (Mock.namedFrames and Mock.namedFrames.MannersCureFight) then
+			fail(scenario, "made a frame with no cure to offer")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 22c
+-- The button sits at alpha 0 at every pull, for everybody, beside the prompt:
+-- with no key it takes no click (a click meant for the prompt or the world
+-- must not cast a cure), and says once, when it first shows, what key to set.
+-- A player who set the fight's buttons to All fight chose a button to click.
+with("curefight: with no key the button takes no click out of sight, and a line says what to set", { keep = true, key = false }, function(ns, world)
+	local scenario = "curefight: with no key the button takes no click out of sight, and a line says what to set"
+	local button = ns.CureFight:Button()
+	if not button then fail(scenario, "no button for a druid") return end
+	if button._mouse ~= false then fail(scenario, "out of a fight with no key it takes a click (mouse " .. tostring(button._mouse) .. ")") end
+	pull(ns)
+	drain()
+	if button._mouse ~= false then fail(scenario, "at alpha 0 in a fight with no key it takes a click (mouse " .. tostring(button._mouse) .. ")") end
+	if button:GetAlpha() ~= 0 then fail(scenario, "SKIPPED -- lit with nobody in need") end
+	if printedHas("has no key") then fail(scenario, "the key line was said with nobody in need") end
+	Mock.printed = {}
+	world.debuffs.party1 = { debuff("Poison", 30) }
+	landed("party1")
+	if (shows(ns)) ~= 1 then fail(scenario, "SKIPPED -- not lit for a poison") return end
+	if not printedHas("has no key") then fail(scenario, "no line told the player to set a key when the button first showed") end
+	Mock.printed = {}
+	world.debuffs.party1 = nil
+	Mock.frameEvent("UNIT_AURA", "party1", { removedAuraInstanceIDs = { 1 } })
+	settle()
+	world.debuffs.party1 = { debuff("Poison", 30) }
+	landed("party1")
+	if printedHas("has no key") then fail(scenario, "the key line was said twice") end
+	release(ns)
+	ns.db.profile.prompt.fightButtons = "always"
+	ns.CureFight:Refresh()
+	if button._mouse ~= true then fail(scenario, "with the buttons at All fight and no key it takes no click (mouse " .. tostring(button._mouse) .. ")") end
 end)
 
 -- ------------------------------------------------------------------ 23
