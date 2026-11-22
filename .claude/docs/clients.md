@@ -291,7 +291,8 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   (Resurrect.lua: a dead member of the group, priority -1, ahead of your
   target), `entry.cure` (Cures.lua: the kind removed, in the person's one
   place in the queue at 1.25), `entry.courtesy` (Courtesy.lua: a plan with its
-  `stage`, conjure or trade, under the reason "asked"), `entry.ask` (Ask.lua:
+  `stage`, conjure or trade, under the reason "asked", or "target" for the water
+  and food offered to your target unasked, `sources.courtesyTarget`), `entry.ask` (Ask.lua:
   last of everything at 9, a spoken line and no cast) and `entry.pet` with
   `entry.owner` (Queue.lua: a group member's pet, with `sources.pets`,
   targeted by its own name). A sixth, `entry.thank` (ThankPress.lua: a

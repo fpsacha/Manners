@@ -1961,6 +1961,31 @@ function Page.BuildWhoTab()
 				get = sGet,
 				set = sSet,
 			},
+			-- Water and food for your target (Courtesy.lua): no chat needed, so it
+			-- stands on its own, and how much goes in the trade beside it.
+			courtesyTarget = {
+				type = "toggle",
+				name = L["Offer water and food to my target"],
+				desc = L["Out of a fight, a friendly player you target is offered water and food that suits their level, or food alone for a class without mana. With none in your bags the first press conjures it; the next opens a trade with it in the window. Accepting the trade stays yours. Once traded or skipped, they are left alone for ten minutes."],
+				order = 14.45,
+				width = "full",
+				hidden = function() return not ns.Courtesy.Has("courtesyRefresh") end,
+				get = sGet,
+				set = sSet,
+			},
+			courtesyAmount = {
+				type = "select",
+				name = L["How much to trade"],
+				desc = L["What goes in the trade window for water and food, your target's or somebody who asked: one stack of each, or as many stacks as the window and your bags hold that suit them, water and food in turn."],
+				order = 14.46,
+				values = { fill = L["Fill the trade window"], one = L["One stack"] },
+				sorting = { "fill", "one" },
+				hidden = function()
+					return not (ns.Courtesy.Has("courtesyRefresh") and (S().courtesyTarget or (S().asked and S().courtesyRefresh)))
+				end,
+				get = sGet,
+				set = sSet,
+			},
 			-------------------------------------------------- myself
 			-- You, last, as the queue ranks you: behind favours and requests,
 			-- ahead of your group. Its own heading, with everything about you

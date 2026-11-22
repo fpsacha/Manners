@@ -715,6 +715,14 @@ rules. Never in a fight.
   prompt. With none in your bags that suits their level, the first press
   conjures it; the next targets them and opens a trade with it already in
   the window. Accepting the trade stays yours.
+- *Offer water and food to my target* (mages, needs no chat): out of a
+  fight, a friendly player you target is offered what suits their level, or
+  food alone for a class without mana. The same two steps, conjure then trade;
+  who was traded with or skipped is left alone for ten minutes.
+- *How much to trade* (mages): *Fill the trade window* (the default) puts in
+  as many stacks of what suits them as the window and your bags hold, water and
+  food in turn, for your target and for somebody who asked alike; *One stack*
+  puts one of each.
 - *Portals, when my group asks* (mages): a member of your party or raid who
   names a city ("port to Orgrimmar pls") is offered that portal.
 - *Healthstones, when they ask* (warlocks): as water, with a trade. On Mists

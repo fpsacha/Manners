@@ -267,7 +267,7 @@ mutate("Courtesy.lua",
 
 # The request still stands once the trade has opened.
 mutate("Courtesy.lua",
-       "\tServe(request, key)\n\tlocal placed = Place(item)\n",
-       "\tlocal placed = Place(item)\n",
+       "\t\tfor each in pairs(served) do Serve(request, each) end\n",
+       "\t\tfor each in pairs(served) do end\n",
        "courtesy: the trade opening does not answer the request",
        expect=WATER, script=S)

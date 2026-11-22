@@ -29,6 +29,10 @@ stands now. Keep it short: what ships goes to the history file or away.
   No workflow runs.
   Old worktrees kept on purpose (uncommitted files or unmerged): `look-fel`,
   `look-wild`, `relcheck`, `logo`, `ci-diag-generators`.
+- **Water and food for your target,** on branch `water-target` (worktree
+  `Manners-wt-water`), not yet merged: *Offer water and food to my target*,
+  *How much to trade* (Fill by default, asked water and food fill too),
+  scenarios `water-target.lua`, mutations `water-target.py`.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option

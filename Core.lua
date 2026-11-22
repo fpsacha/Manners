@@ -477,6 +477,10 @@ local defaults = {
 			courtesyPortals = false,
 			courtesyHealthstones = false,
 			courtesySummons = false,
+			-- Water and food for your target, out of a fight (Courtesy.lua), and
+			-- how much goes in the trade: a stack of each, or "fill" it.
+			courtesyTarget = false,
+			courtesyAmount = "fill",
 			-- Yourself, missing your own buff. On: it costs nobody anything and reads
 			-- your own auras, which the game does not hide.
 			self = true,
@@ -6025,6 +6029,7 @@ function ns.ClampSettings()
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
 	oneOf(profile.filters, "quietInTownsWhere", { both = true, cities = true, inns = true }, "both")
+	oneOf(profile.sources, "courtesyAmount", { fill = true, one = true }, "fill")
 	oneOf(profile.filters, "manaFloorKeeps", { asked = true, self = true, none = true }, "asked")
 	-- How often my own lines are said (Speech.lua, OwnTurn).
 	oneOf(profile.speech, "mixedShare", { third = true, half = true, twothirds = true, always = true }, "third")

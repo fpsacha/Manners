@@ -389,6 +389,9 @@ ns.WindowLayout = {
 					{ "who.courtesyPortals", indent = true },
 					{ "who.courtesyHealthstones", indent = true },
 					{ "who.courtesySummons", indent = true },
+					-- Your target needs no chat: not indented under it.
+					"who.courtesyTarget",
+					{ "who.courtesyAmount", indent = true },
 				} },
 				{ key = "who.cast", header = "who.buffsHeader", items = CastItems() },
 				-- The class's buffs as a list in the order they are tried, each with an
@@ -1164,6 +1167,7 @@ ns.WindowLayout = {
 			-- its resurrection, its cure for the group, and asking for a buff.
 			["who.courtesyRefresh"] = true, ["who.courtesyPortals"] = true,
 			["who.courtesyHealthstones"] = true, ["who.courtesySummons"] = true,
+			["who.courtesyTarget"] = true, ["who.courtesyAmount"] = true,
 			["who.res"] = true, ["who.cures"] = true, ["who.ask"] = true, ["who.askOwn"] = true,
 			["who.choice"] = true, ["who.autoNote"] = true, ["who.pinNote"] = true,
 			["who.self"] = true,
@@ -1338,6 +1342,7 @@ ns.WindowLayout = {
 		["advanced.skipSeconds"] = L["skip longer right click not now ignore"],
 		["general.verbose"] = L["quiet mute spam"],
 		["who.ownScrolls"] = L["hide familiar imbue"],
+		["who.courtesyTarget"] = L["water food conjure mage trade target"],
 		["who.ownFoodOutside"] = L["food well fed outside world leveling levelling experience"],
 		["who.ownHoldMoving"] = L["moving move running run walking jump still hold"],
 		-- Asked for as hiding "the window" in a fight.
@@ -1418,6 +1423,8 @@ ns.WindowLayout = {
 		["who.courtesyPortals"] = "who.asked",
 		["who.courtesyHealthstones"] = "who.asked",
 		["who.courtesySummons"] = "who.asked",
+		-- How much to trade, shown only while the target's offer is on.
+		["who.courtesyAmount"] = "who.courtesyTarget",
 		-- Dead passers-by too, shown only while My group's dead is on.
 		["who.resStrangers"] = "who.res",
 		-- How an ask is said, shown only while asking is on.
@@ -1481,6 +1488,8 @@ ns.WindowLayout = {
 		["who.courtesyPortals"] = function() return ns.Courtesy.Has("courtesyPortals") end,
 		["who.courtesyHealthstones"] = function() return ns.Courtesy.Has("courtesyHealthstones") end,
 		["who.courtesySummons"] = function() return ns.Courtesy.Has("courtesySummons") end,
+		["who.courtesyTarget"] = function() return ns.Courtesy.Has("courtesyRefresh") end,
+		["who.courtesyAmount"] = function() return ns.Courtesy.Has("courtesyRefresh") end,
 		["click.mixedLines"] = function()
 			local db = ns.db and ns.db.profile
 			return ns.InCharacter ~= nil and ns.InCharacter.Active(db and db.speech)

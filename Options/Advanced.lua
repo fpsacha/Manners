@@ -48,6 +48,7 @@ Page.RESET = {
 		"buff.tanksOutside", "buff.keptBack", "buff.forClass",
 		"sources.owed", "sources.group", "sources.pets", "sources.share", "sources.strangers", "sources.asked",
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
+		"sources.courtesyTarget", "sources.courtesyAmount",
 		"sources.res", "sources.resStrangers",
 		"sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight", "prompt.cureFightEach",
 		"filters.proximity", "filters.restingOnly", "groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",

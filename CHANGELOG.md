@@ -11,6 +11,13 @@
 - **Mark this moment.** Press a key the second something goes wrong, even in a
   fight, and the report shows what Manners saw then.
 
+### Water and food for your target
+- **Offer water and food to my target** (mages). Out of a fight, a friendly
+  player you target is offered water and food that suits their level, or food
+  alone for a class without mana.
+- **How much to trade.** *Fill the trade window* is the default, for your target
+  and for water and food somebody asked for; *One stack* puts one of each.
+
 ### Report a bug
 - **One window.** Choose what went wrong, press **Make the report**, open the
   link and paste the report. Your name, realm and guild never go in the link,

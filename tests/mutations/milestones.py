@@ -348,12 +348,12 @@ mutate("Courtesy.lua",
        "milestones: a portal cast tells nobody",
        expect=HOOK + "a portal cast and water put in the trade earn one", script=S)
 mutate("Courtesy.lua",
-       "\tif placed and ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
+       "\tif count > 0 and ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
        "\tif false and ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
        "milestones: water put in the trade tells nobody",
        expect=HOOK + "a portal cast and water put in the trade earn one", script=S)
 mutate("Courtesy.lua",
-       "\tif placed and ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
+       "\tif count > 0 and ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
        "\tif ns.Milestones then ns.Milestones.Note(\"courtesy\") end\n",
        "milestones: an empty trade counts as a courtesy",
        expect=HOOK + "a portal cast and water put in the trade earn one", script=S)

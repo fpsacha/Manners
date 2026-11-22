@@ -664,6 +664,10 @@ do
 		local lines = {}
 		if not (db and db.sources.asked) then
 			lines[1] = L["not listening for requests -- %s is switched off."]:format("|cffffd100" .. L["People who ask me in chat"] .. "|r")
+			-- Your target's water and food needs no chat: its line still stands.
+			if ns.Courtesy and db and db.sources.courtesyTarget == true then
+				ns.Guard("courtesy lines", ns.Courtesy.Lines, lines)
+			end
 			return lines
 		end
 		local now = GetTime()
