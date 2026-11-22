@@ -13,9 +13,10 @@
 
 ### Report a bug
 - **One window.** Choose what went wrong, press **Make the report**, open the
-  link and paste the report. No name goes in the link. In a fight the short
-  summary and the link work at once; the full report waits. An error now says so
-  in chat once a session, with a **Report it** link.
+  link and paste the report. Your name, realm and guild never go in the link,
+  nor anybody the report names. In a fight the short summary and the link work
+  at once; the full report waits. An error now says so in chat once a session,
+  with a **Report it** link.
 
 ### Mark this moment and a fuller trail
 - **Mark this moment.** A key (*Key for Mark this moment* on Diagnostics), the
@@ -23,6 +24,19 @@
   buttons. The trail keeps 300 lines, adds a line for each fight's end and notes
   a change in why the prompt is held back. The self-test has a *Fight buttons and
   keys* group.
+
+### Fixes
+- **Cure button.** It no longer blinks or says nil, shows "Somebody" when the
+  game withholds a name, and a Shift key on either binding is read right.
+- **Break free.** A second fear keeps the button lit.
+- **Healthstone.** One whose name ends in a bracket is cast with `()`.
+- **Battleground food and elixirs.** They read as gone after a death.
+- **Greater Blessing on another class.** It no longer counts as yours.
+- **Slider boxes.** Each reads its own unit words, in every language.
+- **Who to buff.** Your own-buff controls show for a class with nothing for
+  others.
+- **`/manners debug`.** The dungeon line leaves food out while *Food still
+  offered outside dungeons and raids* is on.
 
 ## 1.11.40
 

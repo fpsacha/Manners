@@ -554,7 +554,7 @@ local function Build()
 	end
 
 	window.boxA = Copier(part, 0, L["1. Open this link in your browser"], 26, false)
-	window.boxB = Copier(part, 58, L["2. Copy the report and paste it into the issue's report box"], 140, true)
+	window.boxB = Copier(part, 58, L["2. Copy the report and paste it into the box called The full check-up"], 140, true)
 	window.cfNote = Label(part, L["No GitHub account? A comment on the Manners page on CurseForge works too."], 0, 232, INNER,
 		T.fonts.small, T.hint)
 	window.marksNote = Label(part, "", 0, 252, INNER, T.fonts.small, T.ink)
@@ -601,13 +601,51 @@ function BR.Make()
 	window.part:Show()
 end
 
+-- The names to scrub from a player's words when the full report cannot run (a
+-- fight): the group's, the passers-by's with a nameplate, and the ones the
+-- ledger and the thanks remember, each "Person N". Read straight from the
+-- unit tokens, no queue scan.
+local function FightAliases()
+	local alias, count = {}, 0
+	local function Add(name)
+		if type(name) ~= "string" or name == "" or alias[name] then return end
+		count = count + 1
+		alias[name] = "Person " .. count
+	end
+	local function AddUnit(unit)
+		local name = ns.plain((_G.UnitName(unit)))
+		if type(name) == "string" and name ~= "" then
+			Add(name)
+			Add(ns.UnitFullName(unit))
+		end
+	end
+	if type(_G.UnitName) == "function" then
+		local n = ns.plain(_G.GetNumGroupMembers and _G.GetNumGroupMembers()) or 0
+		if type(n) == "number" and n > 0 then
+			local inRaid = ns.plain(_G.IsInRaid and _G.IsInRaid()) == true
+			for i = 1, inRaid and n or (n - 1) do AddUnit((inRaid and "raid" or "party") .. i) end
+		end
+		for token in pairs(ns.nameplateUnits or {}) do AddUnit(token) end
+		AddUnit("target")
+	end
+	for name in pairs(ns.owed or {}) do Add(name) end
+	if ns.lastFavour then Add(ns.lastFavour.name) end
+	local thanks = ns.thankLog or {}
+	for _, key in ipairs({ "thanked", "skipped", "whispered" }) do
+		if type(thanks[key]) == "table" then Add(thanks[key].name) end
+	end
+	return alias
+end
+
 -- In a fight: the short summary in the report box, and the link as usual.
 function BR.ShowShort()
 	if not window or not window.chosen then return end
 	local c = CategoryOf(window.chosen)
 	local words = window.words:GetText() or ""
-	local text = "What went wrong: " .. c.en .. "\nIn their words: " .. InTheirWords(words) .. "\n" .. ns.ShortReport()
-	Fill(window.boxA, BR.URL(window.chosen, words, nil))
+	local aliases = FightAliases()
+	local scrubbed = BR.Scrub(words, aliases)
+	local text = "What went wrong: " .. c.en .. "\nIn their words: " .. (scrubbed ~= "" and scrubbed or "(none)") .. "\n" .. ns.ShortReport()
+	Fill(window.boxA, BR.URL(window.chosen, words, aliases))
 	Fill(window.boxB, text)
 	window.boxA.hint:Hide()
 	window.boxB.hint:Hide()
