@@ -4204,6 +4204,20 @@ do
 		return false
 	end
 
+	-- A battleground match on Forever and retail hides your own auras, and a
+	-- death takes every buff with it, so until you cast one of a family again, a
+	-- refusal of it is read as missing (GitHub issue 29). `keeps` is a buff that
+	-- outlasts death (throughDeath). Keys: "own:" .. family.key, or a class
+	-- buff's key.
+	do
+		local death = { at = nil, cast = {} }
+		function ns.NoteDeath(now) death.at = now; wipe(death.cast) end
+		function ns.NoteCastSinceDeath(key) if death.at and key then death.cast[key] = true end end
+		function ns.GoneWithDeath(key, keeps)
+			return death.at ~= nil and not keeps and key ~= nil and not death.cast[key]
+		end
+	end
+
 	-- Whether any of the family is up on you, and yours: true with the spell,
 	-- its time left and the charges it has left (the aura's applications, for
 	-- a charge shield), false for definitely none, nil for the client would not say
@@ -4293,7 +4307,10 @@ do
 				end
 			end
 		end
-		if refused or nameRefused then return nil end
+		if refused or nameRefused then
+			if ns.GoneWithDeath("own:" .. family.key, family.throughDeath) then return false end
+			return nil
+		end
 		return false
 	end
 
@@ -5239,7 +5256,10 @@ local function IsBuffableUnit(unit, f, pet)
 	end
 	if plain(UnitIsDeadOrGhost(unit)) == true then
 		-- Their buffs went with them: what was last read worn says nothing now.
-		ForgetAllWorn(plain(UnitGUID(unit)))
+		local guid = plain(UnitGUID(unit))
+		ForgetAllWorn(guid)
+		-- And a cast of yours noted before this no longer covers a hidden reading.
+		if ns.NoteSeenDead then ns.NoteSeenDead(guid, GetTime()) end
 		-- And the scan's dead are Resurrect.lua's to look at, while it is listening.
 		if ns.deadSeen then ns.deadSeen[#ns.deadSeen + 1] = unit end
 		return false, true
@@ -6742,7 +6762,12 @@ function addon:UI_SCALE_CHANGED()
 end
 addon.DISPLAY_SIZE_CHANGED = addon.UI_SCALE_CHANGED
 
-function addon:PLAYER_DEAD() if ns.Prompt then ns.Prompt:Refresh() end end
+function addon:PLAYER_DEAD()
+	-- A death takes your buffs: see ns.GoneWithDeath.
+	ns.NoteDeath(GetTime())
+	ForgetAllWorn(plain(UnitGUID("player")))
+	if ns.Prompt then ns.Prompt:Refresh() end
+end
 function addon:PLAYER_ALIVE() if ns.Prompt then ns.Prompt:Refresh() end end
 function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 

@@ -1318,6 +1318,10 @@ end
 --             `group` above, never cast and never what makes it known (a
 --             shaman's Water Breathing for Unending Breath). Matched through
 --             auraIds alone; with anyCaster, from whoever put it on you.
+--   throughDeath  on a buff or an own family: it outlasts death (SpellMisc
+--             Attributes_3 0x100000), so Core.lua's GoneWithDeath never reads
+--             a refusal of it as gone (a battleground match hides your
+--             auras; any other buff a death took).
 --   byPet     on a spell: its aura on you is put there by your demon, and the
 --             client names your pet as its caster: yours all the same (Burning
 --             Crusade's Soul Link).
@@ -2854,7 +2858,7 @@ do
 	-- 110309 is the rank. Without them no member ever read as linked, and one
 	-- another druid had linked was offered it.
 	MISTS.DRUID[#MISTS.DRUID + 1] = { key = "symbiosis", ranks = { 110309 }, oneTarget = true, notOwnClass = true,
-		notSelf = true, alone = true,
+		notSelf = true, alone = true, throughDeath = true,
 		group = { 110478, 110479, 110482, 110483, 110484, 110485, 110486, 110488, 110490, 110491 } }
 end
 
@@ -3201,7 +3205,7 @@ do
 	-- whose shield on you is 383648, another id): one other target. After
 	-- Skyfury, so Automatic gives that first.
 	MAINLINE.SHAMAN[#MAINLINE.SHAMAN + 1] = { key = "earthshieldtank", ranks = { 974 }, oneTarget = true,
-		neverSelf = true, talent = true, alone = true }
+		neverSelf = true, talent = true, alone = true, throughDeath = true }
 	-- Beacon of Light (53563): Holy's (SpecializationSpells, spec 65), level 16,
 	-- on target 21, with no timer (SpellDuration -1) and lost on death
 	-- (Attributes_3 0x4000000, no 0x100000). "Wrap a single ally." A paladin's
@@ -3258,12 +3262,14 @@ end
 -- it is. Not every rogue knows every one (Deadly, Numbing, Amplifying and
 -- Atrophic Poison are talents here, TraitDefinition); a spell not known is
 -- never offered, so a rogue is asked for what hers can cast. Build
--- 12.1.0.69933.
+-- 12.1.0.69933. Both families outlast death (SpellMisc Attributes_3
+-- 0x100000 on every id above, same build): throughDeath.
 local MAINLINE_OWN = {
 	ROGUE = {
 		{
 			key = "lethal",
 			label = L["Lethal poison"],
+			throughDeath = true,
 			spells = {
 				{ key = "deadlypoison", ranks = { 2823 }, talent = true },
 				{ key = "instantpoison", ranks = { 315584 } },
@@ -3274,6 +3280,7 @@ local MAINLINE_OWN = {
 		{
 			key = "nonlethal",
 			label = L["Non-lethal poison"],
+			throughDeath = true,
 			spells = {
 				{ key = "cripplingpoison", ranks = { 3408 } },
 				{ key = "numbingpoison", ranks = { 5761 }, talent = true },

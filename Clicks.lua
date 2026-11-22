@@ -349,6 +349,8 @@ local function SettleMembers(names, pending, covered, spellId)
 	for _, name in ipairs(names) do
 		local debt = owed[name]
 		ns.MarkAttempted(name, pending.buffKey)
+		-- Reached by it: covers a reading the game hides (ns.CoveredByCast).
+		ns.NoteCover(name, pending.buffKey, GetTime())
 		if debt then
 			ns.SettleFavour(name)
 			TellLedger("Settled", name, debt, covered, spellId)
@@ -420,6 +422,7 @@ local function UnsettleGroup(settled)
 	-- The cast's own given row, where it was filed under one of them.
 	if settled.givenAs then TellLedger("Refused", settled.givenAs, settled.at) end
 	for _, member in ipairs(settled.members or {}) do
+		ns.DropCover(member.name, settled.buffKey, settled.at)
 		-- A shout's members were put on the retry cooldown by its settle, not
 		-- by the press, so RewindClick (which knows a group cast's) misses them.
 		if not settled.group then ns.MarkAttempted(member.name, settled.buffKey, 2) end
@@ -745,6 +748,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- A gift, not a favour returned, is the ledger's "Gave": a buff from them
 	-- in its time is their buff back (Favours.lua, BuffedBack).
 	if not unheard then ns.NoteGave(pending.name, pending.buffKey, not wasOwed) end
+	if not unheard and not pending.cure then ns.NoteCover(pending.name, pending.buffKey, GetTime()) end
 
 	if not unheard then ns.SettleFavour(pending.name) end
 	if not unheard then ns.ServeRequest(pending.name, pending.buffKey) end
@@ -789,6 +793,7 @@ local function UnsettleLateRefusal(castGUID)
 	-- Consumed before anything is undone with it: one refusal, one cast. A
 	-- scroll's cast is over with it, and so is the press it noted.
 	local settled = table.remove(settledRecent, index)
+	ns.DropCover(settled.name, settled.buffKey, settled.at)
 	if castingScroll and castingScroll.record == settled then
 		ns.UndoScrollPress(castingScroll.spell, castingScroll.before)
 		castingScroll = nil
@@ -1065,6 +1070,14 @@ end
 
 function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
+	-- A cast of yours ends what a death let Manners infer of that buff (Core.lua, GoneWithDeath).
+	local id = plain(spellId)
+	if id then
+		local own = ns.OWN_BY_ID[id]
+		if own and own.family then ns.NoteCastSinceDeath("own:" .. own.family.key) end
+		local buff = ns.BUFF_BY_ID[id]
+		if buff then ns.NoteCastSinceDeath(buff.key) end
+	end
 	-- A scroll's cast done: the scroll is used, and nothing can stop it now.
 	local done = castingScroll and ScrollCast(plain(castGUID), plain(spellId))
 	if done then

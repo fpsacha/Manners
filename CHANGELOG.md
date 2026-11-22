@@ -48,6 +48,11 @@
   button's tooltip names a page only while its setting is shown.
 - **Snoozed until I log out reads right in Spanish and Italian.**
 
+### Battlegrounds
+- **Your own buffs come back after a death there,** though the game hides your
+  auras in a match. People you just buffed are not offered again every twelve
+  seconds while the game hides their buffs (GitHub issue 29).
+
 ## 1.11.36
 
 *21 November 2026*

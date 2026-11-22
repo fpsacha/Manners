@@ -38,8 +38,8 @@ mutate("Requests.lua",
 
 # Symbiosis's partner aura not known.
 mutate("Buffs.lua",
-       "\t\tnotSelf = true, alone = true,\n\t\tgroup = { 110478, 110479, 110482, 110483, 110484, 110485, 110486, 110488, 110490, 110491 } }\n",
-       "\t\tnotSelf = true, alone = true }\n",
+       "\t\tnotSelf = true, alone = true, throughDeath = true,\n\t\tgroup = { 110478, 110479, 110482, 110483, 110484, 110485, 110486, 110488, 110490, 110491 } }\n",
+       "\t\tnotSelf = true, alone = true, throughDeath = true }\n",
        "engine-fix: Symbiosis partner's aura unknown",
        expect=P + "Symbiosis read where the game puts it", script=S)
 

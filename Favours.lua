@@ -1196,6 +1196,10 @@ do
 		-- the setting can change between the sighting and here.
 		if not db.enabled then return end
 
+		-- Their buff landed on you: it ends what a death let Manners infer (GoneWithDeath).
+		local landed = type(seen.key) == "number" and ns.BUFF_BY_ID[seen.key] or nil
+		if landed then ns.NoteCastSinceDeath(landed.key) end
+
 		-- With this source off, no debt: it could never reach a prompt.
 		if owe and db.sources.owed then OweFavour(db, seen) end
 		-- A log line, which has no token to thank at: the aura scan thanks for

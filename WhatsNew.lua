@@ -26,6 +26,9 @@ ns.WhatsNew = {
 			"|cffff9a52The Will of the Forsaken switch can be reached with no prompt.|r |cffffffffIn a fight|r stays open for a Forsaken character with nothing else to offer, and a button's tooltip names a page only while its setting is shown.",
 			"|cffff9a52Snoozed until I log out reads right in Spanish and Italian.|r",
 		} },
+		{ title = "Battlegrounds", accent = "7cc4ff", entries = {
+			"|cff7cc4ffYour own buffs come back after a death there,|r though the game hides your auras in a match.",
+		} },
 	} },
 	{ version = "1.11.36", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {

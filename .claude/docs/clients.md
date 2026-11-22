@@ -83,6 +83,16 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   `ns.OnlyReachesGroup` and the buff's label); a `returnOnly` buff (Unending Breath there) goes only to a favour's
   giver (`opts.owed`) and to a request by name (`opts.asked`, which a plain
   "buff pls" is not); `buff.skipCasters` is on.
+- **A refused reading in a battleground match** (Forever and retail keep auras
+  secret there, even out of a fight; GitHub issue 29): a refusal says nothing,
+  so the walk offers nothing on it. Two things stand in for the reading, both
+  only on a refusal and never over a reading the client gives. After your
+  death a refusal of your own buff is read as missing until you cast one of
+  that family again, or somebody's cast of it lands on you (`ns.GoneWithDeath`;
+  `throughDeath` buffs, those that outlast death, are exempt). A cast of yours
+  that landed on a team-mate covers a refusal of theirs for the buff's single
+  length (`ns.CoveredByCast`, its own clock, no top-up), until they are seen
+  dead or the game takes the cast back.
 - **Client-specific behaviour** (grep `ns.Flavour.flavour` / `.family`):
   - Forever only: surnames joined with a space (`caps.unitNameIsSurname`);
     the mage's scrolls (Familiar, Weapon imbue: `CAMELOT_OWN`, used with

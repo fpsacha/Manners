@@ -163,7 +163,7 @@ mutate("Core.lua",
        expect="read without the buff she wore, was not offered", script=S)
 
 mutate("Core.lua",
-       "\t\tForgetAllWorn(plain(UnitGUID(unit)))\n",
+       "\t\tForgetAllWorn(guid)\n",
        "",
        "unverified: the last reading outlives a death",
        expect="was taken for wearing the buff she died with", script=S)

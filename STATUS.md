@@ -20,6 +20,11 @@ stands now. Keep it short: what ships goes to the history file or away.
   pictures of the options window still show the old sidebar:
   `make-screenshots.py --only options` stops on the wide Who to buff picture,
   and its checks need re-aiming at the new pages.
+- **Issue 29 (battlegrounds)** is fixed on branch `reports-1121`, not merged:
+  after a death a refused reading of your own buff counts as missing until you
+  cast it again (`ns.GoneWithDeath`), and a cast that landed covers a refusal
+  of a team-mate for the buff's length (`ns.CoveredByCast`). Scenarios in
+  `tests/scenarios/bg-hidden.lua`.
 - **Old worktrees kept on purpose:** `look-fel`, `look-wild` and `relcheck`
   (uncommitted files in them), plus `logo` and `ci-diag-generators` (branches
   not merged). Leave them unless the owner asks.

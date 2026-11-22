@@ -331,7 +331,7 @@ The menu pass has a scenario file of its own for each step, `menupass-search`,
 
 The features of 1.11.25 each have a file of their own too: `res.lua`,
 `cures.lua`, `courtesy.lua`, `ask.lua`, `raidsplit.lua`, `battleground.lua`,
-`battle-tracking.lua`, `grouppets.lua`, `journalpet.lua` and
+`battle-tracking.lua`, `bg-hidden.lua`, `grouppets.lua`, `journalpet.lua` and
 `resting-hint.lua`, with the mutation file of the same name.
 
 ## `bughunt.py` — patterns

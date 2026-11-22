@@ -181,7 +181,7 @@ mutate("Core.lua",
        expect="with Retribution Aura's form active", script=S)
 
 mutate("Core.lua",
-       "\t\tif refused or nameRefused then return nil end\n",
+       "\t\tif refused or nameRefused then\n\t\t\tif ns.GoneWithDeath(\"own:\" .. family.key, family.throughDeath) then return false end\n\t\t\treturn nil\n\t\tend\n",
        "",
        "own: offered on a withheld reading",
        expect="the client will not read your armor", script=S)

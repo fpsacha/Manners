@@ -89,6 +89,48 @@ do
 		return at + length + 5 >= GetTime() + remaining
 	end
 
+	-- coverAt: a cast that landed on `name` (a press settled, or a group cast
+	-- that reached them), which covers a reading the game hides for the buff's
+	-- single length (the shorter of its two). Kept apart from gaveAt so the
+	-- ledger's gift reading (GaveLately) does not change. diedAt: when a scan
+	-- last saw a GUID dead, which ends a cover noted before it.
+	local coverAt, diedAt, coverCount = {}, {}, 0
+
+	function ns.NoteCover(name, buffKey, at)
+		if not name or not buffKey then return end
+		local entry = coverAt[name]
+		if not entry then
+			if coverCount >= 300 then
+				wipe(coverAt)
+				wipe(diedAt)
+				coverCount = 0
+			end
+			coverCount = coverCount + 1
+			entry = {}
+			coverAt[name] = entry
+		end
+		entry[buffKey] = at
+	end
+
+	-- Takes a cover back, only the one written at `at` (a later cast stays).
+	function ns.DropCover(name, buffKey, at)
+		local entry = name and coverAt[name]
+		if entry and buffKey and entry[buffKey] == at then entry[buffKey] = nil end
+	end
+
+	function ns.NoteSeenDead(guid, now)
+		if guid then diedAt[guid] = now end
+	end
+
+	function ns.CoveredByCast(name, buff, now, guid)
+		local at = name and coverAt[name] and coverAt[name][buff.key]
+		if not at then return false end
+		local died = guid and diedAt[guid]
+		if died and died >= at then return false end
+		local single = ns.BuffSeconds(buff)
+		return type(single) == "number" and single > 0 and type(now) == "number" and at + single > now
+	end
+
 	-- A buff Manners saw land on `name` as a gift that still has more than its
 	-- top-up lead to run, by the cast's own time (no aura read): its key, or
 	-- nil. `leadOf(length)` is the lead for a buff that long. The longer of a
@@ -2294,7 +2336,10 @@ end
 -- false, since the walk stops at the first definite gap.
 local function ReadAura(buff, opts)
 	if not opts.checked then return nil end
-	return UnitHasBuff(opts.unit, buff, opts.guid)
+	local has, remaining, mine, over, seconds = UnitHasBuff(opts.unit, buff, opts.guid)
+	-- The game hides their buffs and our cast landed: it stands, no timer.
+	if has == nil and ns.CoveredByCast(opts.name, buff, opts.now, opts.guid) then return true, nil, true end
+	return has, remaining, mine, over, seconds
 end
 
 local function NoReading()
@@ -2510,7 +2555,10 @@ local function SelfBuff(db, mine, full, now)
 	-- The setting still asks for a top-up, which is all PickBuffFor reads it
 	-- for.
 	local function reading(buff)
-		return UnitHasBuff("player", buff, guid)
+		local has, remaining, mine, over, seconds = UnitHasBuff("player", buff, guid)
+		-- A death took it and the game hides your auras (a battleground match).
+		if has == nil and ns.GoneWithDeath(buff.key, buff.throughDeath) then return false end
+		return has, remaining, mine, over, seconds
 	end
 	-- The same walk everybody gets: the switches, the pin, a paladin's one
 	-- blessing at a time, and the per-buff retry cooldown.
