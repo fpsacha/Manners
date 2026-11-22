@@ -1607,6 +1607,9 @@ ns.COMMANDS = {
 	{ word = "import", group = "share", args = " <text|undo>",
 		help = L["use settings somebody exported, or undo the last import"] },
 	{ word = "debug", group = "trouble", help = L["what your class and this build allow"] },
+	{ word = "bug", group = "trouble",
+		help = L["open Report a bug: what went wrong, a link to GitHub and the report to paste"] },
+	{ word = "mark", group = "trouble", help = L["mark this moment for a bug report, even in a fight"] },
 	-- "all" is Diagnostics' Show every error: every one the session still holds.
 	{ word = "errors", group = "trouble", args = " [all]", help = L["the last few things that broke"] },
 	{ word = "selftest", group = "trouble", args = " [launch]",
@@ -1632,7 +1635,7 @@ ns.DEV_COMMANDS = {
 -- what an unknown word falls through to, which is how the scenario that walks
 -- the list tells a missing branch.
 ns.COMMAND_ALIASES = { config = "options", help = "help", ["?"] = "help", log = "ledger",
-	check = "selftest" }
+	check = "selftest", report = "bug" }
 
 -- The whole list, one line per command under its group's heading. The first
 -- line is the marker a scenario looks for.
@@ -2091,6 +2094,11 @@ function addon:HandleSlash(rawInput)
 		else
 			self:Print(L["the self-test did not load -- reinstalling Manners should bring it back."])
 		end
+	elseif input == "bug" or input == "report" then
+		-- Options/BugReport.lua: the window that walks a player through a report.
+		ns.Guard("report a bug", ns.BugReport.Show)
+	elseif input == "mark" then
+		ns.Guard("mark this moment", ns.MarkMoment)
 	elseif input == "dev" then
 		self:Print("|cffffd100" .. L["Tools for testing Manners on this client:"] .. "|r")
 		for _, command in ipairs(ns.DEV_COMMANDS) do

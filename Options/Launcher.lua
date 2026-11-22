@@ -922,6 +922,8 @@ local function FillLauncherMenu(root)
 	AddProfiles(root, fight)
 
 	Divider(root)
+	root:CreateButton(L["Report a bug"], Act(function() ns.BugReport.Show() end))
+	root:CreateButton(L["Mark this moment"], Act(function() ns.MarkMoment() end))
 	root:CreateButton(L["Options"], Act(function() ns.OpenOptions() end))
 end
 

@@ -295,6 +295,7 @@ def release_steps(jobs):
         Step("locales", ["tools/locale_keys.py"], verdict=locales_line),
         Step("previews", ["tools/make_look_previews.py", "--check"]),
         Step("bughunt", ["tests/bughunt.py"], verdict=bughunt_counts),
+        Step("read_report", ["tools/read_report.py", "--selftest"]),
     ]
     fuzz = Step("fuzz (quick, five clients)", ["tools/fuzz.py", "--quick", "--jobs", str(jobs)],
                 why=r"^FAILURE|^  replay: |Traceback")

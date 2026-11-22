@@ -547,6 +547,27 @@ python tools/check.py
 What rp.lua checks and this cannot is left to it: a class that gives buffs
 needs all four kinds, thanks, asked, offer and group.
 
+## read_report.py
+
+Reads a Manners full check-up (the report the in-game *Report a bug* window
+makes, `Options/BugReport.lua`) the way a triager needs it.
+
+```
+python tools/read_report.py 41            # GitHub issue 41 (runs gh issue view)
+python tools/read_report.py report.txt    # a saved report
+python tools/read_report.py -             # a report on stdin
+python tools/read_report.py --selftest    # on tests/fixtures/report-sample.txt
+```
+
+It prints the version, the client line and the class, the category and the
+player's words, the errors grouped by where they came from with a count, the
+self-test's FAIL and WARN lines, the settings that differ from the defaults (the
+`MNR1:` string split on `;`), the five trail lines before and after each Mark
+this moment, and the last three fight summaries. `--selftest` asserts every part
+of that on a hand-written sample with every section, two marks and two errors,
+and exits 1 on a miss; `check.py --quick` and `--release` run it. Standard
+library only.
+
 ## make_whatsnew.py
 
 Writes `WhatsNew.lua`, the notes behind the *What's new* fold at the foot of

@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+*22 November 2026*
+
+### Highlights
+- **Report a bug.** One window takes you from what went wrong to a link that
+  opens the issue on GitHub filled in and the report to paste, from Diagnostics,
+  the footer of the options window, the minimap menu or `/manners bug`.
+- **Mark this moment.** Press a key the second something goes wrong, even in a
+  fight, and the report shows what Manners saw then.
+
+### Report a bug
+- **One window.** Choose what went wrong, press **Make the report**, open the
+  link and paste the report. No name goes in the link. In a fight the short
+  summary and the link work at once; the full report waits. An error now says so
+  in chat once a session, with a **Report it** link.
+
+### Mark this moment and a fuller trail
+- **Mark this moment.** A key (*Key for Mark this moment* on Diagnostics), the
+  minimap menu and `/manners mark` note the prompt, the queue and the fight
+  buttons. The trail keeps 300 lines, adds a line for each fight's end and notes
+  a change in why the prompt is held back. The self-test has a *Fight buttons and
+  keys* group.
+
 ## 1.11.40
 
 *22 November 2026*

@@ -1128,6 +1128,8 @@ ns.WindowLayout = {
 					{ "diagnostics.noErrors", standIn = true },
 				} },
 				{ key = "diagnostics.report", header = "diagnostics.reportHeader", items = {
+					-- Report a bug (Options/BugReport.lua): the walk-through.
+					{ "diagnostics.reportBug", big = true },
 					-- Which of the two buttons a player asked for a report wants.
 					"diagnostics.reportHint",
 					-- The one press a player asked for a report needs.
@@ -1135,6 +1137,8 @@ ns.WindowLayout = {
 					{ "diagnostics.copyReport", buttons = true },
 					-- /manners selftest launch, beside the short summary.
 					{ "diagnostics.launchCheck", buttons = true },
+					-- The key for Mark this moment, a game key binding.
+					"diagnostics.markKey",
 					"diagnostics.report",
 					"diagnostics.selftest",
 					-- For working out a failed cast: under the buttons.

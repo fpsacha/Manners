@@ -5,6 +5,18 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "22 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Report a bug.|r One window takes you from what went wrong to a link that opens the issue on GitHub filled in and the report to paste, from Diagnostics, the footer of the options window, the minimap menu or /manners bug.",
+			"|cffffd100Mark this moment.|r Press a key the second something goes wrong, even in a fight, and the report shows what Manners saw then.",
+		} },
+		{ title = "Report a bug", accent = "7cc4ff", entries = {
+			"|cff7cc4ffOne window.|r Choose what went wrong, press |cffffffffMake the report|r, open the link and paste the report.",
+		} },
+		{ title = "Mark this moment and a fuller trail", accent = "7cc4ff", entries = {
+			"|cff7cc4ffMark this moment.|r A key (|cffffffffKey for Mark this moment|r on Diagnostics), the minimap menu and /manners mark note the prompt, the queue and the fight buttons.",
+		} },
+	} },
 	{ version = "1.11.40", date = "22 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Your own buffs in a battleground.|r After a death there, Mark of the Wild and Thorns are no longer asked for while they are on you.",
@@ -38,28 +50,6 @@ ns.WhatsNew = {
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52Retail: a hunter's options window is whole again.|r |cffffffffMy pet|r, |cffffffffWho to skip|r, |cffffffffWhen to offer|r, |cffffffffIn a fight|r and |cffffffffLook|r were hidden from a retail hunter.",
-		} },
-	} },
-	{ version = "1.11.37", date = "21 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100New page In a fight:|r hiding the prompt, the rota, the fight key, and the Will of the Forsaken, Mend Pet and cure buttons, all in one place.",
-			"|cffffd100New page Quiet times:|r where and when Manners holds back or says nothing.",
-			"|cffffd100New pages My own buffs and, for hunters, My pet;|r |cffffffffWho to buff|r is about other people again.",
-			"|cffffd100Search finds the words people use|r (wotf, rez, reply, queue, color and more) and phrases such as \"turn off will of the forsaken\".",
-			"|cffffd100Who to skip > After a right-click|r sets how long a right-click skips someone, up to 30 minutes.",
-			"|cffffd100Snooze has Until I log out,|r at the top of the options window and in the minimap menu.",
-			"|cffffd100Each page of the options window opens with a line saying what is on it.|r",
-			"|cffffd100A gold mark shows each setting you changed; click it to put that one back.|r The same mark in the footer, |cffffffffWhat I changed|r, lists them all.",
-			"|cffffd100Asking for a buff is on What I say,|r under the lines; the Fish Bowl, campsite and other paladins' blessings fold under |cffffffffOther people's buffs|r on |cffffffffWho to buff|r, and |cffffffffMore than buffs|r is now |cffffffffResurrection and cures|r.",
-			"|cffffd100Settings and tooltips are reworded in plain English,|r with units in the slider boxes instead of in brackets, and chat lines name a page in brackets instead of calling it a tab (GitHub issue 23).",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52Retail:|r a hunter's options window shows |cffffffffMy pet|r, |cffffffffWho to skip|r, |cffffffffWhen to offer|r, |cffffffffIn a fight|r and |cffffffffLook|r again.",
-			"|cffff9a52A stranger's buff is noticed when the game leaves out who cast it|r (WoW Forever and retail): Manners names them from the cast it saw at that moment, so |cffffffffPeople who buff me|r offers to buff them back, and /manners debug says what became of the last favour (GitHub issue 26).",
-			"|cffff9a52Search puts a word at the start of a name first.|r \"rest\" now finds Well-Rested ahead of Firestone.",
-			"|cffff9a52A slider's box takes back what it shows.|r Type 3x over 2x, or Off or Automatic where the box says so, and the value is kept.",
-			"|cffff9a52The Will of the Forsaken switch can be reached with no prompt.|r |cffffffffIn a fight|r stays open for a Forsaken character with nothing else to offer, and a button's tooltip names a page only while its setting is shown.",
-			"|cffff9a52Snoozed until I log out reads right in Spanish and Italian.|r",
 		} },
 	} },
 }

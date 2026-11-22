@@ -195,6 +195,7 @@ local GROUPS = {
 	{ key = "range", label = L["Range"] },
 	{ key = "speech", label = L["Speech"] },
 	{ key = "window", label = L["Options window"] },
+	{ key = "fight", label = L["Fight buttons and keys"] },
 	{ key = "errors", label = L["Errors"] },
 }
 Selftest.GROUPS = GROUPS
@@ -1192,6 +1193,184 @@ Check("window.fade", "window", L["fade"], function(add)
 	local line = ("fades to %s with nothing held%s"):format(tostring(target),
 		alpha and (", now " .. tostring(alpha)) or "")
 	add(target == 1 and PASS or FAIL, target == 1 and line or (line .. " -- the window would stay see-through"))
+end)
+
+---------------------------------------------------------------------------
+-- fight buttons and keys
+--
+-- Reads only: what is made, what is bound, what the client answers in a
+-- fight's calls. Every line here is a PASS or a WARN, never a FAIL: a missing
+-- call is a fact about the client, not a fault. Counts and types only for what
+-- another addon's saved table holds, never a name or a word.
+---------------------------------------------------------------------------
+
+local function KeyOf(command)
+	local setup = ns.Setup
+	return setup and setup.Key and setup.Key(command) or nil
+end
+
+local function KeyWord(command)
+	local key = KeyOf(command)
+	return key and ("key " .. key) or "no key: a click on it casts"
+end
+
+-- Whether the cure has a button of its own for each cure (the switch, and a
+-- second cure to give it).
+local function CureEach(db)
+	local list = ns.CureFightSpells and ns.CureFightSpells() or nil
+	return db.prompt.cureFightEach == true and list ~= nil and list[2] ~= nil
+end
+
+Check("fight.cure", "fight", L["cure in a fight"], function(add)
+	local db = ns.db and ns.db.profile
+	local CF = ns.CureFight
+	if not (db and CF) then
+		add(WARN, "the cure button's file did not load")
+		return
+	end
+	if not (ns.ClassHasCures and ns.ClassHasCures()) then
+		add(PASS, "no cure for this class")
+		return
+	end
+	if not (db.enabled == true and db.prompt.cureFight == true) then
+		add(PASS, "switched off")
+		return
+	end
+	local function One(index, command, name)
+		local button = CF:Button(index)
+		if not button then
+			add(WARN, name .. ": switched on, but the button was never made")
+			return
+		end
+		local header = CF:Header()
+		local state = header and header:GetAttribute("state-mannerscurefight")
+		if state ~= "peace" then
+			add(WARN, ("%s: button made, but its header says %s, not peace"):format(name, tostring(state)))
+			return
+		end
+		add(PASS, ("%s: button made, header peace, %s"):format(name, KeyWord(command)))
+	end
+	One(1, CF.COMMAND, "cure")
+	if CureEach(db) then One(2, CF.COMMAND2, "second cure") end
+end)
+
+Check("fight.apis", "fight", L["what the game says in a fight"], function(add)
+	local auras = _G.C_UnitAuras
+	local lists = type(auras) == "table" and type(auras.GetUnitAuraInstanceIDs) == "function"
+	add(PASS, "the game's list of debuffs you can remove: " .. (lists and "yes" or "no"))
+	local api = _G.C_LossOfControl
+	local shape = type(api) ~= "table" and "none"
+		or (type(api.GetActiveLossOfControlData) == "function" and "data table")
+		or (type(api.GetEventInfo) == "function" and "event info") or "none"
+	add(PASS, "loss of control: " .. shape)
+	local charmed = "n/a"
+	if type(_G.UnitIsCharmed) == "function" then
+		local ok, value = pcall(_G.UnitIsCharmed, "player")
+		charmed = ok and (Secret(value) and "secret" or (value and "yes" or "no")) or "threw"
+	end
+	add(PASS, "charmed: " .. charmed)
+end)
+
+Check("fight.healthstone", "fight", L["Make a healthstone"], function(add)
+	if Class() ~= "WARLOCK" then
+		add(PASS, "not a warlock")
+		return
+	end
+	local family = ns.FindOwnFamily and ns.FindOwnFamily("makehealthstone")
+	if not family then
+		add(PASS, "no such reminder on this client")
+		return
+	end
+	local spell = family.spells[1]
+	local info = ns.BuffInfo and ns.BuffInfo(spell)
+	local stones = 0
+	for _, item in ipairs(spell.items or {}) do stones = stones + (ns.ReagentCount and ns.ReagentCount(item) or 0) end
+	local shards = "none needed"
+	if family.reagent then shards = tostring(ns.ReagentCount and ns.ReagentCount(family.reagent) or "unreadable") end
+	add(PASS, ("spell known %s; stones in bags %d; Soul Shards %s; reminder %s"):format(
+		(info and info.known) and "yes" or "no", stones, shards, tostring(ns.OwnPick and ns.OwnPick(family) or "?")))
+end)
+
+Check("fight.mutelist", "fight", L["mute list"], function(add)
+	local m = rawget(_G, "OlympusMuteDB")
+	if type(m) ~= "table" then
+		add(PASS, "not loaded")
+		return
+	end
+	local function Count(t)
+		if type(t) ~= "table" then return type(t) end
+		local n = 0
+		for _ in pairs(t) do n = n + 1 end
+		return "table (" .. n .. ")"
+	end
+	local enabled = m.enabled
+	add(PASS, ("enabled %s, names %s, keywords %s, allow/partyPass/guildAllow %s/%s/%s"):format(
+		type(enabled) == "boolean" and tostring(enabled) or type(enabled), Count(m.names), Count(m.keywords),
+		type(m.allow), type(m.partyPass), type(m.guildAllow)))
+	local db = ns.db and ns.db.profile
+	if db and db.filters and db.filters.skipMuted == true and type(m.names) ~= "table" then
+		add(WARN, "its list has a shape Manners does not read, so nobody is skipped")
+	end
+end)
+
+-- The command a key is bound to among Manners' own, by the key.
+local function ShiftOf(key)
+	local mods = ""
+	while true do
+		local prefix = key:match("^(%u+%-)")
+		if prefix == "ALT-" or prefix == "CTRL-" then
+			mods, key = mods .. prefix, key:sub(#prefix + 1)
+		else
+			break
+		end
+	end
+	return mods .. "SHIFT-" .. key
+end
+
+Check("fight.keys", "fight", L["keys"], function(add)
+	local db = ns.db and ns.db.profile
+	if not db then
+		add(WARN, "no settings loaded")
+		return
+	end
+	local rows = {}
+	local function Row(name, command) rows[#rows + 1] = { name = name, command = command, key = KeyOf(command) } end
+	Row("prompt", ns.Setup.COMMAND)
+	if ns.Supplies and ns.Supplies.Wanted and ns.Supplies:Wanted() then Row("consumables", ns.Supplies.COMMAND) end
+	if ns.BreakFree and ns.BreakFree.Applies(db) then Row("break free", ns.BreakFree.COMMAND) end
+	if ns.MendPet and ns.MendPet.Applies(db) then Row("Mend Pet", ns.MendPet.COMMAND) end
+	local cures = ns.CureFight and ns.CureFight.Applies(db)
+	if cures then
+		Row("cure", ns.CureFight.COMMAND)
+		if CureEach(db) then Row("second cure", ns.CureFight.COMMAND2) end
+	end
+	Row("mark", ns.BugReport and ns.BugReport.MARK_COMMAND or "CLICK MannersMark:LeftButton")
+
+	local byKey, names = {}, {}
+	for _, row in ipairs(rows) do
+		add(PASS, row.name .. "=" .. (row.key or "click"))
+		names[row.command] = row.name
+		if row.key then
+			if byKey[row.key] then
+				add(WARN, ("%s is the key for both %s and %s"):format(row.key, byKey[row.key], row.name))
+			else
+				byKey[row.key] = row.name
+			end
+		end
+	end
+	-- Shift on the cure key chooses the second cure, so a Shift key of its own
+	-- under another Manners command is one it can never reach.
+	local cureKey = KeyOf(ns.CureFight and ns.CureFight.COMMAND or "")
+	if cures and cureKey and ns.CureFight.ShiftClause and ns.CureFight.ShiftClause() then
+		local shifted = ShiftOf(cureKey)
+		if byKey[shifted] then
+			add(WARN, ("Shift+%s is the key for %s, so Shift on the cure key never casts the second cure"):format(
+				cureKey, byKey[shifted]))
+		end
+	end
+	if ns.FightKey and ns.FightKey.Applies(db) and not KeyOf(ns.Setup.COMMAND) then
+		add(WARN, "the fight key spell rides the prompt's key, and the prompt has none")
+	end
 end)
 
 ---------------------------------------------------------------------------

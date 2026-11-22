@@ -119,6 +119,9 @@ local GLOW = "Interface\\AddOns\\Manners\\Textures\\RingSq"
 
 local button, header, icon, glow, pulse, nameText, keyText, cooldown, fader
 local armedMacro, placedKey, paintedKey
+-- Whether the last paint was bright, and how often it turned bright this fight
+-- (the fight summary on the trail).
+local lit, litCount = false, 0
 -- The alpha it is walking to (0: out of sight), where from and since when.
 local fadeFrom, fadeTo, fadeAt = 0, 0, 0
 -- Afflicted now (a type this breaks, or charmed), from the client's events.
@@ -339,6 +342,8 @@ local function Paint()
 		.. ":" .. tostring(info and info.name) .. ":" .. tostring(always) .. ":" .. tostring(to)
 	if key == paintedKey then return bright end
 	paintedKey = key
+	if bright and not lit then litCount = litCount + 1 end
+	lit = bright
 	SetTo(to)
 	if info then icon:SetTexture(info.icon) end
 	if to == 0 then
@@ -715,6 +720,7 @@ local function OnEvent(event, unit, _, spellId)
 	if event == "PLAYER_REGEN_DISABLED" then
 		ReadKey()
 		SetMouse()
+		lit, litCount = false, 0
 		paintedKey = nil
 		Paint()
 		-- No button where the switch is off or Manners is: nothing to fade.
@@ -805,6 +811,13 @@ function ns.BreakFreeLines()
 		out[#out + 1] = "last loss of control: none seen this session"
 	end
 	return out
+end
+
+-- How often the button turned bright in the last fight, and what it stands on
+-- now, for the fight summary and the Mark this moment line.
+function BreakFree.FightLit() return litCount end
+function BreakFree.State()
+	return { lit = lit, afflicted = afflicted, guessed = guessed, always = Always() }
 end
 
 function BreakFree:Button() return button end
