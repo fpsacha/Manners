@@ -391,7 +391,7 @@ mutate("Options/Who.lua",
        expect="is shown to a hunter", script=S)
 
 mutate("Options/Who.lua",
-       "\t\thidden = function() return not HasPrompt() and not Page.OwnSwitchWaiting() end,\n",
+       "\t\thidden = function() return not HasPrompt() and not Page.OwnSwitchWaiting() and not ResLearned() end,\n",
        "\t\thidden = function() return not HasClassBuffs() end,\n",
        "own: Who to buff hidden from a hunter",
        expect="Who to buff is hidden from a hunter", script=S)

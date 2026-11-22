@@ -316,6 +316,7 @@ local FIELDS = {
 	-- Other people's buffs (Who to buff).
 	["who.leaveBlessed"] = { { "buff", "leaveBlessed" } },
 	["who.ownHoldMoving"] = { { "ownBuffs", "holdMoving" } },
+	["who.ownFoodOutside"] = { { "ownBuffs", "foodOutside" } },
 	["who.spareFishBowl"] = { { "buff", "spareFishBowl" } },
 	["who.neverFishBowl"] = { { "buff", "neverFishBowl" } },
 	["who.spareCamp"] = { { "buff", "spareCamp" } },
@@ -348,6 +349,25 @@ end
 
 local function Profile() return ns.db.profile end
 
+-- The food family's spell keys: ownBuffs.leave holds the ticks of both Never
+-- remind me about lists, the food's (who.own_leave_food) and the rest's.
+local function FoodKeys()
+	local keys = {}
+	for _, family in ipairs(ns.GetOwnFamilies and ns.GetOwnFamilies() or {}) do
+		if family.food then
+			for _, spell in ipairs(family.spells or {}) do keys[spell.key] = true end
+		end
+	end
+	return keys
+end
+
+local function AnyTicked(ticks, only)
+	for key, on in pairs(type(ticks) == "table" and ticks or {}) do
+		if on == true and (only == nil or only[key]) then return true end
+	end
+	return false
+end
+
 -- The line set, by its definition rather than what the box shows: a set
 -- other than Role-play, or the box no longer holding the set's own lines.
 local function LinesChanged()
@@ -367,11 +387,16 @@ local DIFFERS = {
 	["who.skipRaidGroups"] = function() return next(Profile().filters.skipRaidGroups or {}) ~= nil end,
 	["who.skipNearbyClasses"] = function() return next(Profile().filters.skipNearbyClasses or {}) ~= nil end,
 	["who.own_leave"] = function()
-		for _, on in pairs(Profile().ownBuffs.leave or {}) do
+		local foods = FoodKeys()
+		for key, on in pairs(Profile().ownBuffs.leave or {}) do
+			-- A food's tick is the food list's change, not this one's.
+			if foods[key] then on = false end
 			if on == true then return true end
 		end
 		return false
 	end,
+	["who.own_leave_food"] = function() return AnyTicked(Profile().ownBuffs.leave, FoodKeys()) end,
+	["who.own_elixirkeep"] = function() return AnyTicked(Profile().ownBuffs.elixirKeep) end,
 	["appearance.reasonPalette"] = function() return Profile().prompt.reasonPalette == "colourblind" end,
 	["general.minimap"] = function() return Profile().minimap.hide == true end,
 	["click.preset"] = LinesChanged,

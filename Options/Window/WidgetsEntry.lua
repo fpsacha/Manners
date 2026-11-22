@@ -187,10 +187,39 @@ local LETTERS = {
 	s = 1, sec = 1, secs = 1, second = 1, seconds = 1,
 }
 
+-- The unit words the box itself shows (UnitText) in the client's language:
+-- zhCN 分钟 and 秒, koKR 분 and 초, deDE Std., so the box's own text reads back
+-- as the value it showed. Each word follows a %d or %s in its format string.
+local localeLearnt = false
+
+local function LearnLocaleLetters()
+	if localeLearnt then return end
+	localeLearnt = true
+	local L = ns.L
+	if not L then return end
+	local units = {
+		{ L["%s s"], 1 }, { L["%s min"], 60 }, { L["%d min"], 60 }, { L["%d h"], 3600 },
+		{ L["%d min %d s"], 60, 1 }, { L["%d h %d min"], 3600, 60 },
+	}
+	for _, unit in ipairs(units) do
+		local format = unit[1]
+		if type(format) == "string" then
+			local n = 1
+			for word in format:gmatch("%%[ds]([^%%]*)") do
+				n = n + 1
+				local factor = unit[n]
+				word = word:lower():gsub("[%s%.]", "")
+				if factor and word ~= "" and not word:find("%d") then LETTERS[word] = factor end
+			end
+		end
+	end
+end
+
 -- "90", "90s", "5m", "5 min", "1h", "1h30", "1 h 30 min": pairs of a number
 -- and letters, summed, then put into the setting's own unit. Letters it does
 -- not know (another language) leave the number in the setting's own unit.
 local function ParseTimed(row, unit, text)
+	LearnLocaleLetters()
 	local clean = text:lower():gsub(",", "."):gsub("%.%s*$", "")
 	local own = unit.kind == "minutes" and 60 or 1
 	local total, pos, found, last = 0, 1, false, nil

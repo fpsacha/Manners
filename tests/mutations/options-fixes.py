@@ -87,3 +87,61 @@ mutate("Options/Diagnostics.lua",
        "options-fixes: a name inside a longer word is aliased",
        expect="options-fix: a player named Intel leaves the word Intellect alone",
        script=S)
+
+# A slider box reads only the English unit letters back.
+mutate("Options/Window/WidgetsEntry.lua",
+       "\tLearnLocaleLetters()\n\tlocal clean = ",
+       "\tlocal clean = ",
+       "options-fixes: a slider box misreads its own unit words",
+       expect="options-fix: a slider box left untouched keeps its value in the client's language",
+       script=S)
+
+# Food still offered outside has no default to be marked against.
+mutate("Options/Window/WindowPage.lua",
+       "\t[\"who.ownFoodOutside\"] = { { \"ownBuffs\", \"foodOutside\" } },\n",
+       "",
+       "options-fixes: Food still offered outside never marked as changed",
+       expect="options-fix: Food still offered outside dungeons and raids, changed, is marked and listed",
+       script=S)
+
+# The consumables button, its key, Which food and own items last hidden from
+# a class with nothing for others.
+mutate("Options/Who.lua",
+       "\t\t\tor key == \"ownApart\" or key == \"ownApartKey\" or key == \"ownFoodChoice\" or key == \"ownItemsLast\"\n",
+       "",
+       "options-fixes: own consumable controls hidden with nothing for others",
+       expect="options-fix: a class with nothing for others still sees the consumables button",
+       script=S)
+
+# Who to buff leaves the sidebar once a res-only class turns its res off.
+mutate("Options/Who.lua",
+       " and not Page.OwnSwitchWaiting() and not ResLearned() end,\n",
+       " and not Page.OwnSwitchWaiting() end,\n",
+       "options-fixes: Who to buff hidden with the res switch off",
+       expect="options-fix: a class with only its resurrection keeps Who to buff",
+       script=S)
+
+# My own buffs' reset leaves Which pet alone.
+mutate("Options/Advanced.lua",
+       "\t\"ownBuffs.petChoice\",\n",
+       "",
+       "options-fixes: the self reset leaves Which pet",
+       expect="options-fix: My own buffs' reset puts Which pet back",
+       script=S)
+
+# The food and elixir lists never count as changed.
+mutate("Options/Window/WindowPage.lua",
+       "\t[\"who.own_leave_food\"] = function() return AnyTicked(Profile().ownBuffs.leave, FoodKeys()) end,\n"
+       "\t[\"who.own_elixirkeep\"] = function() return AnyTicked(Profile().ownBuffs.elixirKeep) end,\n",
+       "",
+       "options-fixes: the food and elixir lists never marked",
+       expect="options-fix: What I changed names the food and elixir lists a tick is in",
+       script=S)
+
+# A food tick counts the other Never remind me about as changed.
+mutate("Options/Window/WindowPage.lua",
+       "\t\t\tif foods[key] then on = false end\n",
+       "",
+       "options-fixes: a food tick marks the other list",
+       expect="options-fix: What I changed names the food and elixir lists a tick is in",
+       script=S)

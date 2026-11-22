@@ -440,3 +440,327 @@ do
 		end
 	end)
 end
+
+-- A slider box read back in the client's own language: zhCN shows 120 s as
+-- 2分钟, koKR 90 s as 1분 30초, deDE 60 min as 1 Std. Clicking into the box
+-- and out again, typing nothing, must leave the setting where it was.
+do
+	local scenario = "options-fix: a slider box left untouched keeps its value in the client's language"
+	local CASES = {
+		{ "zhCN", "advanced.reciprocateWindow", "timing", "reciprocateWindow", 120 },
+		{ "koKR", "advanced.reciprocateWindow", "timing", "reciprocateWindow", 90 },
+		{ "deDE", "when.refreshUnder", "filters", "refreshUnder", 60 },
+	}
+	for _, case in ipairs(CASES) do
+		local locale, path, store, field, start = case[1], case[2], case[3], case[4], case[5]
+		Mock.reset()
+		Mock.class = "MAGE"
+		Mock.locale = locale
+		Mock.knownSpells = setmetatable({}, { __index = function() return true end })
+		local ok, err = pcall(function()
+			local ns = load(scenario)
+			if not ns then return end
+			H.drive(scenario, ns)
+			ns.Guard("probe", ns.ProbeCapabilities)
+			ns.Prompt:ExitTest()
+			ns.db.profile.filters.whenBuffed = "refresh"
+			local UI = ns.WindowUI
+			ns.OpenOptions(UI.PageOf(path))
+			ns.Prompt:ExitTest()
+			ns.db.profile[store][field] = start
+			UI.Refresh()
+			local row = UI.RowFor(path)
+			if not (row and row.box) then
+				fail(scenario, locale .. ": " .. path .. " has no slider box on its page")
+				return
+			end
+			if row.Refresh then row:Refresh() end
+			local shown = row.box:GetText()
+			row.box:SetFocus()
+			row.box:ClearFocus()
+			local now = ns.db.profile[store][field]
+			if now ~= start then
+				fail(scenario, ("%s: %s at %s showed %q; clicking in and out made it %s"):format(
+					locale, path, tostring(start), tostring(shown), tostring(now)))
+			end
+			noErrors(scenario, ns)
+			ns.CloseOptions()
+			ns.Prompt:ExitTest()
+		end)
+		Mock.reset()
+		if not ok then fail(scenario, locale .. " threw: " .. tostring(err)) end
+	end
+end
+
+-- Food still offered outside dungeons and raids has its own getter: without a
+-- FIELDS entry no default is found for it, so it never carries a gold mark and
+-- What I changed never lists it (who.ownHoldMoving got its entry in 1.11.38).
+do
+	local scenario = "options-fix: Food still offered outside dungeons and raids, changed, is marked and listed"
+	Mock.reset()
+	Mock.class = "MAGE"
+	Mock.knownSpells = setmetatable({}, { __index = function() return true end })
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		H.drive(scenario, ns)
+		ns.Guard("probe", ns.ProbeCapabilities)
+		ns.Prompt:ExitTest()
+		ns.db.profile.menuView = "full"
+		local UI = ns.WindowUI
+		local path = "who.ownFoodOutside"
+		ns.OpenOptions(UI.PageOf(path))
+		ns.Prompt:ExitTest()
+		local own = ns.db.profile.ownBuffs
+		if own.foodOutside ~= false or own.itemsInDungeons == true then
+			fail(scenario, "SKIPPED -- the defaults are foodOutside " .. tostring(own.foodOutside)
+				.. ", itemsInDungeons " .. tostring(own.itemsInDungeons))
+			return
+		end
+		own.itemsInDungeons = true
+		own.foodOutside = true
+		UI.ShowPage(UI.PageOf(path))
+		local at = UI.Where(path)
+		if at and at.sec.fold then UI.State().open[at.sec.key] = true end
+		ns.RefreshOptionsDisplay()
+		if not UI.RowShown(path) then
+			fail(scenario, "SKIPPED -- " .. path .. " is not drawn on " .. tostring(UI.PageOf(path)))
+			return
+		end
+		local item = UI.Item(path)
+		local row = UI.RowFor(path)
+		local marked = row and row.mark and row.mark:IsShown() or false
+		if not marked then
+			fail(scenario, "Food still offered outside ticked (default off) carries no gold mark; DefaultOf answers "
+				.. tostring(UI.DefaultOf(path, item)) .. ", IsChanged " .. tostring(UI.IsChanged(path, item)))
+		end
+		local listed = false
+		for _, hit in ipairs(UI.ShowChanged()) do
+			if (hit.ref.via or hit.ref.path) == path then listed = true end
+		end
+		if not listed then fail(scenario, "What I changed does not list Food still offered outside dungeons and raids") end
+		UI.CloseResults()
+		noErrors(scenario, ns)
+		ns.CloseOptions()
+		ns.Prompt:ExitTest()
+	end)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- A class with no buff for anybody else (a Forever rogue, hunter or shaman):
+-- ForOthersOnly hides every control on Who to buff but those under Myself.
+-- The consumables button, its key, Which food and own items after everybody
+-- else are all Myself settings and must show as their siblings do.
+do
+	local scenario = "options-fix: a class with nothing for others still sees the consumables button, its key, Which food and own items last"
+	for _, class in ipairs({ "ROGUE", "HUNTER", "SHAMAN" }) do
+		Mock.reset()
+		Mock.setFlavour("camelot")
+		Mock.class = class
+		local undo = strangers({})
+		local savedItem = rawget(_G, "C_Item")
+		local ok, err = pcall(function()
+			local ns = load(scenario)
+			if not ns then return end
+			freshPrompt(ns, scenario)
+			-- Food in the bags, Well Fed ticked: Which food stands under it.
+			local data = ns.FOODS and ns.FOODS.camelot
+			local food = data and data[1] and data[1][1]
+			if not food then
+				fail(scenario, "SKIPPED -- no Forever food in ns.FOODS")
+				return
+			end
+			rawset(_G, "C_Item", setmetatable({
+				GetItemCount = function(id) return id == food and 3 or 0 end,
+				GetItemNameByID = function(id) return "Food " .. id end,
+				RequestLoadItemDataByID = function() end,
+				GetItemIconByID = function(id) return 7100000 + id end,
+				GetItemInfoInstant = function(id) return id, "Consumable", "", "", 7100000 + id, 0, 5 end,
+			}, { __index = savedItem or {} }))
+			ns.db.profile.ownBuffs.pick.food = "auto"
+			ns.ForgetScrolls()
+			ns.addon:BAG_UPDATE_DELAYED()
+			local function shown(name)
+				local option = findOption(ns.optionsTable, name)
+				if not option then return nil end
+				local hidden = option.hidden
+				if type(hidden) == "function" then hidden = hidden({}) end
+				return not hidden
+			end
+			if ns.Page and ns.Page.HasClassBuffs and ns.Page.HasClassBuffs() then
+				fail(scenario, "SKIPPED -- a " .. class .. " has a class buff for others here")
+				return
+			end
+			if not shown("ownHoldMoving") then
+				fail(scenario, "SKIPPED -- a " .. class .. " does not see Hold my food either (nothing for self?)")
+				return
+			end
+			for _, name in ipairs({ "ownApart", "ownItemsLast", "ownFoodChoice" }) do
+				local s = shown(name)
+				if s == nil then
+					fail(scenario, class .. ": no control " .. name)
+				elseif not s then
+					fail(scenario, class .. ": " .. name .. " is hidden, though its sibling ownHoldMoving shows")
+				end
+			end
+			ns.db.profile.ownBuffs.apart = true
+			if ns.Setup and ns.Setup.CanBind and ns.Setup.CanBind() and not shown("ownApartKey") then
+				fail(scenario, class .. ": ownApartKey is hidden with the consumables button on")
+			end
+			noErrors(scenario, ns)
+		end)
+		undo()
+		rawset(_G, "C_Item", savedItem)
+		Mock.reset()
+		if not ok then fail(scenario, class .. " threw: " .. tostring(err)) end
+	end
+end
+
+-- A retail monk whose only cast is Resuscitate (res.lua's "res 15"), with no
+-- food in the bags and asking off. Unticking Resurrect my group's dead must
+-- not take Who to buff out of the sidebar: that page holds the switch that
+-- turns it back on (and the cure switches), as a hunter's My pet stays with
+-- its switch off (menupass-self.lua).
+do
+	local scenario = "options-fix: a class with only its resurrection keeps Who to buff with the res switch off"
+	Mock.reset()
+	Mock.setFlavour("mainline")
+	Mock.class = "MONK"
+	local undo = strangers({})
+	local savedKnown, savedPlayer = rawget(_G, "IsSpellKnown"), rawget(_G, "IsPlayerSpell")
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		local known = { [115178] = true }
+		rawset(_G, "IsSpellKnown", function(id) return known[id] == true end)
+		rawset(_G, "IsPlayerSpell", function(id) return known[id] == true end)
+		H.drive(scenario, ns)
+		ns.Guard("probe", ns.ProbeCapabilities)
+		ns.Prompt:ExitTest()
+		if ns.caps.anyKnown or ns.caps.anyOwnKnown then
+			fail(scenario, "SKIPPED -- the monk has something else to cast")
+			return
+		end
+		if not (ns.Resurrect and ns.Resurrect.Has()) then
+			fail(scenario, "SKIPPED -- the monk is not taken to know Resuscitate")
+			return
+		end
+		if ns.AskLive and ns.AskLive() then
+			fail(scenario, "SKIPPED -- asking is live for the monk")
+			return
+		end
+		ns.OpenOptions()
+		if not ns.WindowUI.visiblePages.who then
+			fail(scenario, "SKIPPED -- Who to buff is not shown even with the res switch on")
+			return
+		end
+		ns.CloseOptions()
+		ns.db.profile.sources.res = false
+		ns.RefreshOptionsDisplay()
+		ns.OpenOptions()
+		local UI = ns.WindowUI
+		if not UI.visiblePages.who then
+			fail(scenario, "with Resurrect my group's dead off Who to buff leaves the sidebar, and the switch with it")
+		end
+		local res = findOption(ns.optionsTable, "res")
+		local hidden = res and res.hidden
+		if type(hidden) == "function" then hidden = hidden({}) end
+		if res and hidden then fail(scenario, "the res switch itself is hidden once unticked") end
+		noErrors(scenario, ns)
+		ns.CloseOptions()
+		ns.Prompt:ExitTest()
+	end)
+	undo()
+	rawset(_G, "IsSpellKnown", savedKnown)
+	rawset(_G, "IsPlayerSpell", savedPlayer)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- My own buffs' Reset this page puts Which pet (who.ownPetChoice, drawn on
+-- that page) back to The one I had out last, as every other setting there.
+do
+	local scenario = "options-fix: My own buffs' reset puts Which pet back to the one I had out last"
+	Mock.reset()
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		H.drive(scenario, ns)
+		local own = ns.db.profile.ownBuffs
+		if own.petChoice ~= "last" then
+			fail(scenario, "SKIPPED -- Which pet does not start on the last one: " .. tostring(own.petChoice))
+			return
+		end
+		own.petChoice = "random"
+		own.itemsLast = not own.itemsLast
+		if ns.OptionsPage.ResetPage("self") ~= true then
+			fail(scenario, "SKIPPED -- the reset did not run")
+			return
+		end
+		own = ns.db.profile.ownBuffs
+		if own.petChoice ~= "last" then
+			fail(scenario, "after My own buffs' reset Which pet is still " .. tostring(own.petChoice))
+		end
+		noErrors(scenario, ns)
+		ns.Prompt:ExitTest()
+	end)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- What I changed (UI.ShowChanged) asks UI.Differs of each control shown. A
+-- Forever rogue's tick under the food's Never remind me about
+-- (who.own_leave_food) and under Elixirs to keep up (who.own_elixirkeep) are
+-- changes of their own lists; the other Never remind me about (who.own_leave)
+-- holds the non-food ticks only, so a food tick alone does not mark it.
+do
+	local scenario = "options-fix: What I changed names the food and elixir lists a tick is in, not the other list"
+	Mock.reset()
+	Mock.setFlavour("camelot")
+	Mock.class = "ROGUE"
+	local ok, err = pcall(function()
+		local ns = load(scenario)
+		if not ns then return end
+		H.drive(scenario, ns)
+		local UI = ns.WindowUI
+		if not (UI and UI.Differs) then
+			fail(scenario, "SKIPPED -- no UI.Differs")
+			return
+		end
+		local food, keep
+		for _, family in ipairs(ns.GetOwnFamilies() or {}) do
+			if family.food then food = family end
+			if family.keep then keep = family end
+		end
+		local meal = food and food.spells and food.spells[1]
+		local elixir = keep and keep.spells and keep.spells[1]
+		if not (meal and elixir) then
+			fail(scenario, "SKIPPED -- no Forever food or elixir family to tick")
+			return
+		end
+		local own = ns.db.profile.ownBuffs
+		if UI.Differs("who.own_leave_food") or UI.Differs("who.own_elixirkeep") or UI.Differs("who.own_leave") then
+			fail(scenario, "SKIPPED -- a list counts as changed on a new profile")
+			return
+		end
+		own.leave[meal.key] = true
+		if type(own.elixirKeep) ~= "table" then own.elixirKeep = {} end
+		own.elixirKeep[elixir.key] = true
+		if not UI.Differs("who.own_leave_food") then
+			fail(scenario, "a food ticked under Never remind me about (" .. tostring(meal.key)
+				.. ") does not count the food's list as changed")
+		end
+		if not UI.Differs("who.own_elixirkeep") then
+			fail(scenario, "an elixir ticked under Elixirs to keep up (" .. tostring(elixir.key)
+				.. ") does not count that list as changed")
+		end
+		if UI.Differs("who.own_leave") then
+			fail(scenario, "a food tick alone counts the other Never remind me about, whose boxes show none, as changed")
+		end
+		noErrors(scenario, ns)
+		ns.Prompt:ExitTest()
+	end)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end

@@ -88,8 +88,8 @@ mutate("Options/Diagnostics.lua",
 # --- B2: the flask switch -----------------------------------------------------
 
 mutate("Options/Who.lua",
-       "\t\thidden = function() return not HasPrompt() and not Page.OwnSwitchWaiting() end,\n",
-       "\t\thidden = function() return not HasPrompt() end,\n",
+       "\t\thidden = function() return not HasPrompt() and not Page.OwnSwitchWaiting() and not ResLearned() end,\n",
+       "\t\thidden = function() return not HasPrompt() and not ResLearned() end,\n",
        "window-fixes38: Who to buff hidden from a death knight with a flask",
        expect="window-fixes38: a retail death knight reaches the flask switch", script=S)
 

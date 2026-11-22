@@ -8,6 +8,8 @@ local sGet, sSet, fGet, fSet = Page.sGet, Page.sSet, Page.fGet, Page.fSet
 local bSet, prGet, prSet, HasClassBuffs = Page.bSet, Page.prGet, Page.prSet, Page.HasClassBuffs
 local OnlyReachesGroup, HasPrompt, TAB = Page.OnlyReachesGroup, Page.HasPrompt, Page.TAB
 local function TabOf(path) return Page.TabOf(path) or "" end
+-- A resurrection this class has on this client (Resurrect.lua), on or off.
+local function ResLearned() return ns.Resurrect ~= nil and ns.Resurrect.Has() and true or false end
 
 local function BuffChoices()
 	local values = { auto = L["Automatic (whatever they are missing)"] }
@@ -746,6 +748,9 @@ local function ForOthersOnly(args)
 			-- class's own (a retail death knight has nothing else on this page).
 			or key == "ownScrolls" or key == "ownShout" or key == "ownImbueFirst" or key == "ownPetChoice"
 			or key == "ownRestedEarly" or key == "ownHoldMoving"
+			-- The consumables button and its key, Which food and own items last
+			-- are your own buffs too: a rogue's poisons and food.
+			or key == "ownApart" or key == "ownApartKey" or key == "ownFoodChoice" or key == "ownItemsLast"
 			or key:find("^own_")) then
 			local was = arg.hidden
 			arg.hidden = function(...)
@@ -1337,8 +1342,10 @@ function Page.BuildWhoTab()
 		order = 2,
 		-- A hunter has "Myself" here and nothing else (ForOthersOnly); so
 		-- does a class whose only prompt waits on a switch here (a retail
-		-- death knight's flask), or that switch could never be reached.
-		hidden = function() return not HasPrompt() and not Page.OwnSwitchWaiting() end,
+		-- death knight's flask), or that switch could never be reached. A
+		-- resurrection learned keeps it too: its switch (and the cures') is
+		-- here, and a retail monk with it off would have no way back.
+		hidden = function() return not HasPrompt() and not Page.OwnSwitchWaiting() and not ResLearned() end,
 		args = {
 			-- Who the prompt is on right now, over this page and Who to skip.
 			rightNow = Page.RightNowNote(0.5),
