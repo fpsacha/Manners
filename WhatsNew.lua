@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "21 November 2026", sections = {
+	{ version = "1.11.38", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Food, stones and oils on the run, your call.|r |cffffffffMy own buffs > Hold my food, stones and oils while I move|r (on) can be turned off, and they then stay on the prompt while you move (GitHub issue 31).",
 			"|cffffd100Who to skip > Paste a list of names|r puts a pasted list on the never-offer list, one name a line or with commas between.",
