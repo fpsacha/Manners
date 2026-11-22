@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "22 November 2026", sections = {
+	{ version = "1.11.40", date = "22 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Your own buffs in a battleground.|r After a death there, Mark of the Wild and Thorns are no longer asked for while they are on you.",
 		} },
