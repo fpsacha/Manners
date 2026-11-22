@@ -1832,7 +1832,7 @@ public. Nothing is said to anybody and nothing is changed. *Show a short
 summary* is the short version.
 
 When the game does not say who buffed you, the check-up also counts the casts
-Manners heard from other players and how many of them the game kept back, and
+Manners heard from others (players and mobs alike) and how many of them the game kept back, and
 says when a buff was read too long after it landed to match a cast. Each loss of
 control is one line on the trail, with whether the break-free button lit, and
 the cure button's line says whether the game's list of debuffs you can remove is

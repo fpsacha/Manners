@@ -169,7 +169,7 @@ local function BugReport()
 	-- Where there is no log, the casts other players made are the other witness.
 	if ns.castWatch and ns.castWatch.armed then
 		local cast = ns.castWatch
-		lines[#lines + 1] = ("cast watch: %s heard, %s spell withheld, %s caster withheld, %s cast id withheld, %s from the cast id, %s seen, %s named, %s late, %s several, %s none, %s read too late"):format(
+		lines[#lines + 1] = ("cast watch (casts from players and mobs, once per token): %s heard, %s spell withheld, %s caster withheld, %s cast id withheld, %s from the cast id, %s seen, %s named, %s late, %s several, %s none, %s read too late"):format(
 			tostring(cast.heard), tostring(cast.noSpell), tostring(cast.noUnit), tostring(cast.noGuid), tostring(cast.fromGuid),
 			tostring(cast.seen), tostring(cast.named), tostring(cast.late), tostring(cast.several), tostring(cast.none), tostring(cast.old))
 	end

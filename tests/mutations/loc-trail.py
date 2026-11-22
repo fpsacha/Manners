@@ -27,3 +27,9 @@ mutate(BF,
        "if false then return \"lit\" end",
        "loc-trail: the line never says the button lit",
        expect="loc-trail: the line says break free was lit", script=S)
+
+mutate(BF,
+       "if not button or not BreakFree.Applies() then return",
+       "if not button then return",
+       "loc-trail: the line ignores the switch being off",
+       expect="loc-trail: with the switch off the line says not shown", script=S)

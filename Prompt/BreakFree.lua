@@ -697,7 +697,7 @@ end
 
 -- Whether the button lit for the loss of control just read, for the trail.
 local function LitWord()
-	if not button then return "not shown: no button (its switch is off, or Manners is)" end
+	if not button or not BreakFree.Applies() then return "not shown: no button (its switch is off, or Manners is)" end
 	if lit then return "lit" end
 	if afflicted then return "shown dim: it is cooling down" end
 	return "not lit: not a loss of control it breaks"

@@ -608,7 +608,7 @@ end
 
 -- A stranger's cast with its spell withheld: the cast watch counts it, tries the
 -- cast id, and marks the moment unvouched, with no protected call and no client
--- call but the clock.
+-- call but the clock and the one that tells a mob from a player.
 do
 	local scenario = "perf-budget: a stranger's cast with its spell withheld costs the cast watch no protected call"
 	Mock.reset()
@@ -651,7 +651,7 @@ do
 		if not called then fail(scenario, "threw: " .. tostring(thrown)) end
 		if ns.castWatch.noSpell ~= 1 then fail(scenario, "SKIPPED -- the cast was not counted withheld") end
 		if pcalls ~= 0 then fail(scenario, ("a withheld spell cost the cast watch %d protected calls"):format(pcalls)) end
-		if asked ~= 0 then fail(scenario, ("a withheld spell cost the cast watch %d client calls"):format(asked)) end
+		if asked > 1 then fail(scenario, ("a withheld spell cost the cast watch %d client calls, one allowed (is the caster one to fight?)"):format(asked)) end
 	end)
 	_G.pcall, _G.xpcall = pcall, xpcall
 	Mock.reset()

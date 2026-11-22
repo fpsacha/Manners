@@ -24,12 +24,13 @@ can settle, on WoW Forever in the owner's own play sessions, is the first item
 under *Open*.
 
 **Who buffed you, the cast watch's counts (issue 26, branch `castwatch-diag`,
-unreleased).** `ns.castWatch` also counts `heard` (every cast by another player
-the event brings), `noSpell`, `noUnit`, `noGuid` (those with the spell, the
+unreleased).** `ns.castWatch` also counts `heard` (every cast by another unit,
+players and mobs, once per token that names its caster), `noSpell`, `noUnit`, `noGuid` (those with the spell, the
 caster or the cast id withheld), `fromGuid` (spells read out of a plain cast id,
 `SpellOfCast`) and `old` (buffs first read more than `LANDED_OLDEST` after they
 landed, said as "read too late" rather than "no player in sight"). A cast whose
-spell or caster is withheld moves `cw.floor`, so the one-person rule cannot name
+spell or caster is withheld moves `cw.floor` (not when the unit is plainly one you can
+attack, a mob), so the one-person rule cannot name
 a lone caster beside an unreadable one. The check-up and `/manners debug` show
 the counts and the game's own rule for the last buff's spell
 (`C_Secrets.GetSpellCastSecrecy`). Also in this branch: one trail line per loss

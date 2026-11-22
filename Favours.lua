@@ -30,7 +30,8 @@ local walkAfterFight = false
 -- below, after ClaimFavour): `armed` where it listens at all, `seen` casts kept,
 -- `named` landings named from a cast, `late` of them after the window, `several`
 -- landings with two or more casters, `none` with nobody to name, `heard` every
--- cast by another player the event brought (`noSpell`, `noUnit`, `noGuid`: those
+-- cast by another unit the event brought, players and mobs alike, once for each
+-- token that names its caster (`noSpell`, `noUnit`, `noGuid`: those
 -- with the spell, the caster or the cast id withheld; `fromGuid`: buff spells read
 -- out of a plain cast id), `old` landings read too long after they landed.
 ns.castWatch = { armed = false, seen = 0, named = 0, late = 0, several = 0, none = 0, heard = 0, noSpell = 0, noUnit = 0, noGuid = 0, fromGuid = 0, old = 0 }
@@ -1744,8 +1745,13 @@ do
 						if id ~= nil and ns.ALL_BUFF_IDS[id] then stat.fromGuid = stat.fromGuid + 1 end
 					end
 				end
-				-- A cast nobody can read (spell or caster withheld) may be a second player's buff: the moment is not vouched for.
-				if id == nil or (who == nil and ns.ALL_BUFF_IDS[id]) then cw.floor = GetTime() return end
+				-- A cast nobody can read (spell or caster withheld) may be a second player's buff: the moment is not vouched for. A unit plainly out to fight you (a mob) cannot have put a buff on you, and does not count.
+				if id == nil or (who == nil and ns.ALL_BUFF_IDS[id]) then
+					if who == nil or type(UnitCanAttack) ~= "function" or plain(UnitCanAttack("player", who)) ~= true then
+						cw.floor = GetTime()
+					end
+					return
+				end
 			end
 			if id == nil or not ns.ALL_BUFF_IDS[id] then return end
 			unit = who

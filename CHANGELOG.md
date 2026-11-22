@@ -33,8 +33,10 @@
   keys* group.
 
 ### Fixes
-- **Who buffed you.** The full check-up counts the casts Manners hears from other
-  players, and a buff read late says so instead of "no player in sight".
+- **Who buffed you.** The full check-up counts the casts Manners hears from
+  others (players and mobs alike), and a buff read late says so instead of "no
+  player in sight". A cast the game hides near the moment a buff lands now keeps
+  Manners from guessing who it was.
 - **Break free.** Each loss of control is one line on the trail, with whether the
   button lit.
 - **Cure button (check-up).** `/manners debug` says whether the game's list of

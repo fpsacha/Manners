@@ -2156,7 +2156,7 @@ function addon:HandleSlash(rawInput)
 		-- Where there is none, the casts other players make are the other witness.
 		if ns.castWatch.armed then
 			local cast = ns.castWatch
-			self:Print(("  casts by other players: %d heard (%d with the spell withheld, %d with the caster withheld, %d with the cast id withheld, %d spells read from the cast id), %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters, %d read too late to match a cast"):format(
+			self:Print(("  casts heard from others (players and mobs, once per token): %d heard (%d with the spell withheld, %d with the caster withheld, %d with the cast id withheld, %d spells read from the cast id), %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters, %d read too late to match a cast"):format(
 				cast.heard, cast.noSpell, cast.noUnit, cast.noGuid, cast.fromGuid, cast.seen, cast.named, cast.late, cast.several, cast.old))
 			local fav = ns.lastFavour
 			if fav and type(fav.key) == "number" then

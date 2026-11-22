@@ -15,7 +15,7 @@ local fail, load = H.fail, H.load
 local strangers, freshPrompt, primeAuras, favourFrom = H.strangers, H.freshPrompt, H.primeAuras, H.favourFrom
 
 local TOUCHED = { "IsInInstance", "DoEmote", "C_ChatInfo", "GetCVar", "UnitIsUnit", "UnitIsPlayer",
-	"C_FriendList", "UnitGUID", "UnitName", "UnitExists" }
+	"C_FriendList", "UnitGUID", "UnitName", "UnitExists", "UnitCanAttack" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
@@ -33,6 +33,7 @@ end
 local emotes = {}
 local npc = {}
 local aimed = {}
+local hostile = {}
 
 -- One session. opts: class (PRIEST), names (unit -> name; the units that exist
 -- besides you, nameplate1 by default), aimed (unit -> the unit it targets, as
@@ -58,7 +59,8 @@ local function with(scenario, opts, body)
 			[1244] = true, [1243] = true, [21564] = true, [21562] = true }
 	end
 	Mock.extraAuraFromPlayer = opts.fromPlayer
-	emotes, npc, aimed = {}, opts.npc or {}, opts.aimed or {}
+	emotes, npc, aimed, hostile = {}, opts.npc or {}, opts.aimed or {}, opts.hostile or {}
+	rawset(_G, "UnitCanAttack", function(_, unit) return hostile[unit] == true end)
 	rawset(_G, "IsInInstance", function() return false, "none" end)
 	rawset(_G, "DoEmote", function(emote, target) emotes[#emotes + 1] = { emote, target } end)
 	rawset(_G, "C_ChatInfo", nil)
@@ -217,6 +219,19 @@ do
 end
 
 do
+	local scenario = "castwatch-heard: a withheld cast from a mob does not stop a stranger being named"
+	local names = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Gnarl", "Grim" } }
+	with(scenario, { names = names, hostile = { nameplate2 = true } }, function(ns)
+		local anna = ns.UnitFullName("nameplate1")
+		cast("nameplate1")
+		cast("nameplate2", Mock.SECRET, Mock.SECRET)
+		land(ns, nil)
+		Mock.runTimers(2)
+		if ns.owed[anna] == nil then fail(scenario, "Anna was not owed beside a mob's hidden cast: " .. said()) end
+	end)
+end
+
+do
 	local scenario = "castwatch-heard: /manners debug and the bug report carry what was heard"
 	with(scenario, {}, function(ns)
 		cast("nameplate1", Mock.SECRET, Mock.SECRET)
@@ -224,7 +239,7 @@ do
 		local text = debugText(ns)
 		if not text:find("2 heard (2 with the spell withheld", 1, true) then fail(scenario, "/manners debug does not count what was heard: " .. text) end
 		local report = ns.FullReport()
-		if not report:find("cast watch: 2 heard, 2 spell withheld", 1, true) then
+		if not report:find("cast watch (casts from players and mobs, once per token): 2 heard, 2 spell withheld", 1, true) then
 			fail(scenario, "the check-up does not carry the count")
 		end
 		-- A favour on file: the game's own rule for its spell has a line.

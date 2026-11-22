@@ -172,3 +172,19 @@ with("loc-trail: a loss of control on another unit writes nothing and lights not
 	if not away(ns) then fail(scenario, "lit for another unit's loss of control") end
 	release(ns)
 end, { nobody = true, people = {} })
+
+with("loc-trail: with the switch off the line says not shown", function(ns, scenario)
+	-- The button was made while the switch was on; then the switch goes off.
+	ns.db.profile.prompt.breakFree = false
+	ns.addon:Tick()
+	Mock.runTimers(0)
+	pull(ns)
+	told()
+	Mock.lossOfControl = { { locType = "STUN", spellID = 5782 } }
+	Mock.frameEvent("LOSS_OF_CONTROL_ADDED", "player", 1)
+	local lines = trailLines(ns, "loss of control: STUN")
+	if #lines ~= 1 then fail(scenario, "SKIPPED -- " .. #lines .. " trail lines: " .. table.concat(lines, " | ")) return end
+	if not lines[1]:find("not shown", 1, true) then fail(scenario, "the line does not say not shown: " .. lines[1]) end
+	if lines[1]:find("break free lit", 1, true) then fail(scenario, "the line says it lit with the switch off: " .. lines[1]) end
+	release(ns)
+end, { nobody = true, people = {} })

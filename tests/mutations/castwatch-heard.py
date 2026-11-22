@@ -5,7 +5,7 @@
 
 S = "runscenarios.py"
 N = "castwatch-heard: "
-HEAD = "\t\t\t\tif id == nil or (who == nil and ns.ALL_BUFF_IDS[id]) then cw.floor = GetTime() return end\n"
+HEAD = "if who == nil or type(UnitCanAttack) ~= \"function\" or plain(UnitCanAttack(\"player\", who)) ~= true then"
 
 mutate("Favours.lua",
        "stat.heard = stat.heard + 1",
@@ -27,7 +27,7 @@ mutate("Favours.lua",
 
 mutate("Favours.lua",
        HEAD,
-       HEAD.replace("then cw.floor = GetTime() return end", "then return end"),
+       "if false then",
        "castwatch-heard: a cast nobody can read does not block the moment",
        expect=N + "a withheld cast in the window names nobody", script=S)
 
@@ -66,3 +66,9 @@ mutate("Favours.lua",
        "id = ns.safecall(SpellOfCast, castGUID)",
        "castwatch-heard: the cast id is read through a protected call",
        expect="perf-budget: a stranger's cast with its spell withheld costs the cast watch no protected call", script=S)
+
+mutate("Favours.lua",
+       "or plain(UnitCanAttack(\"player\", who)) ~= true then",
+       "or true then",
+       "castwatch-heard: a mob's hidden cast blocks the moment",
+       expect=N + "a withheld cast from a mob does not stop a stranger being named", script=S)
