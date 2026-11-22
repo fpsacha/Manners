@@ -614,6 +614,8 @@ do
 			local what = late.members and (late.key .. ns.GROUP_HOLD) or late.key
 			ns.MarkAttempted(name, what, THIS_BUFF_SECONDS, true)
 			if not late.members then HoldOff(name, late.key, now + THIS_BUFF_SECONDS) end
+			-- A stronger one on you ends the death's guess here too (NoteRefusal).
+			if not late.members and ns.IsPlayerName(name) and OneOf(message, BOUNCED) then ns.NoteCastSinceDeath(late.key) end
 			firstRefusal[name] = nil
 			return
 		end
