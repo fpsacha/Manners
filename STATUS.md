@@ -8,39 +8,35 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*21 November 2026. Last release: 1.11.36.*
+*21 November 2026, late. Last release: 1.11.38.*
 
-- **In flight:** the menu pass (issues 3, 4 and 23) on branch `menu-pass`
-  (worktree `Manners-wt-menu`), master merged in, for 1.11.37. The window has
-  four new pages: *In a fight* (`fight`), *Quiet times* (`quiet`), *My own buffs*
-  (`self`) and *My pet* (`pet`, hunters only). It also has a line under each page
-  title, a gold changed mark with *What I changed*, better search, *Until I log
-  out* for Snooze, units in the slider boxes and plain-English labels. Only the
-  layout moved: no setting key, default or profile field changed. The listing
-  pictures of the options window still show the old sidebar:
-  `make-screenshots.py --only options` stops on the wide Who to buff picture,
-  and its checks need re-aiming at the new pages.
-- **Issue 29 (battlegrounds)** is fixed on branch `reports-1121`, not merged:
-  after a death a refused reading of your own buff counts as missing until you
-  cast it again (`ns.GoneWithDeath`), and a cast that landed covers a refusal
-  of a team-mate for the buff's length (`ns.CoveredByCast`). Scenarios in
-  `tests/scenarios/bg-hidden.lua`.
-- **Issue 30 (paste a list)** is on branch `reports-1121`, not merged: *Paste a
-  list of names* under *Never offer* (`ns.NeverOfferList`) and commas in *Skip
-  these guilds* (`ns.TidyGuildList`). Scenarios in `tests/scenarios/skiplist.lua`.
-- **Issue 31 (food on the run)** is on branch `reports-1121`, not merged: *Hold my
-  food, stones and oils while I move* (`ownBuffs.holdMoving`, on) gates
-  `CutByMoving`. Scenarios in `tests/scenarios/movehold.lua`.
+- **Released today:** 1.11.37 (the menu pass: pages *In a fight*, *Quiet
+  times*, *My own buffs*, *My pet*; the changed marks; plain English; issue 26's
+  cast watch, which names the caster of a buff on you from the cast seen at that
+  moment, exactly one player or nobody) and 1.11.38 (issues 28 to 31: controller
+  buttons in every key box, battlegrounds after a death, *Paste a list of
+  names*, *Skip the players and guilds OlympusMute mutes* (the owner asked for
+  it by name), *Hold my food, stones and oils while I move*; the retail
+  hunter's options window; *Offer my cure in a fight* on by default, its button
+  still taking a click with no key because the owner clicks on screen).
+- **Waiting to post:** four CurseForge replies (KestrelWild, vladsnz, zeekro,
+  and Cloud2668's thread for ZachrielCl). Chrome dropped before they went up;
+  the drafts are in the nightly's `state.json` under `pending`. Check the page
+  first; post each once.
+- **Baselines:** the retail and Mists runs showed about 150 and 110 reds beyond
+  their baselines; the real one (the retail hunter) is fixed and the Forever-only
+  fixtures adapt. The RENAMED reds (old lines whose text the menu pass changed)
+  still need writing in: `python tests/runscenarios.py --flavour mainline
+  --update-baseline --jobs 4`, then `--flavour mists`, read before committing.
+- **Waiting on players:** issue 21 (no popup: their client and
+  `/manners debug`) and issue 22 (the imp's Fire Shield).
 - **Old worktrees kept on purpose:** `look-fel`, `look-wild` and `relcheck`
   (uncommitted files in them), plus `logo` and `ci-diag-generators` (branches
   not merged). Leave them unless the owner asks.
-- **Waiting on players:** issue 21 (no popup: their client and
-  `/manners debug`) and issue 22 (the imp's Fire Shield).
 - **Watch out:** the nightly pass (11 PM) answers comments and can release on
   its own. Before replying, check the page and `gh issue list --label player`.
-  Before merging, check `git branch --list "feedback-*"`. LuckyDan's reply of
-  20 November is posted, even though the first page of comments does not show
-  it. Never post it again.
+  Before merging, check `git branch --list "feedback-*"`. Releases go out
+  without asking the owner once the whole suite is green on the exact commit.
 
 ## State
 
