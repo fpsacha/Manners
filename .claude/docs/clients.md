@@ -273,7 +273,7 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
     holds it `STILL_HOLD` (one second) past the last step, and OwnVerdict
     answers `"moving"` after the mounted, sleeping-bag, pet-hold and journal
     rules; `ns.StillCut(entry, now)` is what the prompt's hold (Hold.lua), the
-    consumables button's press (Supplies.lua) and the moving event ask.
+    consumables button's press (Supplies.lua) and the moving event ask. Off (`ownBuffs.holdMoving`, My own buffs), CutByMoving answers false and nothing is held.
     An own spell's `group` (a shaman's Water Breathing 131 for it, where the
     client has it) is matched through `auraIds` only, never cast, never in
     `OWN_BY_ID`; `tools/audit_ids.py` holds it to `OWN_GROUP_NAMES`.

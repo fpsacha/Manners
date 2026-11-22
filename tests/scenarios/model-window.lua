@@ -411,7 +411,7 @@ local EXPECTED = {
 	self = {
 		"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.itemsLast", "ownBuffs.shoutAlone",
 		"ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly",
-		"ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart", "filters.selfTopUp", "filters.selfLead",
+		"ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart", "ownBuffs.holdMoving", "filters.selfTopUp", "filters.selfLead",
 	},
 	-- A hunter's pet (HunterPet.lua).
 	pet = {

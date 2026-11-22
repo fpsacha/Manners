@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "21 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Food, stones and oils on the run, your call.|r |cffffffffMy own buffs > Hold my food, stones and oils while I move|r (on) can be turned off, and they then stay on the prompt while you move (GitHub issue 31).",
+		} },
+	} },
 	{ version = "1.11.37", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100New page In a fight:|r hiding the prompt, the rota, the fight key, and the Will of the Forsaken, Mend Pet and cure buttons, all in one place.",
@@ -16,7 +21,7 @@ ns.WhatsNew = {
 			"|cffffd100Each page of the options window opens with a line saying what is on it.|r",
 			"|cffffd100A gold mark shows each setting you changed; click it to put that one back.|r The same mark in the footer, |cffffffffWhat I changed|r, lists them all.",
 			"|cffffd100Asking for a buff is on What I say,|r under the lines; the Fish Bowl, campsite and other paladins' blessings fold under |cffffffffOther people's buffs|r on |cffffffffWho to buff|r, and |cffffffffMore than buffs|r is now |cffffffffResurrection and cures|r.",
-			"|cffffd100Who to skip > Paste a list of names|r * puts a pasted list on the never-offer list, one name a line or with commas between.",
+			"|cffffd100Who to skip > Paste a list of names|r puts a pasted list on the never-offer list, one name a line or with commas between.",
 			"|cffffd100A controller button in the key boxes.|r The prompt's key on |cffffffffStart here|r (and every other key box) takes a controller button: click the box and press it.",
 			"|cffffd100Settings and tooltips are reworded in plain English,|r with units in the slider boxes instead of in brackets, and chat lines name a page in brackets instead of calling it a tab (GitHub issue 23).",
 		} },
@@ -50,14 +55,6 @@ ns.WhatsNew = {
 			"|cffff9a52The page's scroll bar stays under the cursor|r when the page grows or shrinks while you drag it.",
 			"|cffff9a52Your own words for an ask are cut on a whole letter.|r A long line in Chinese, Korean or an accented language no longer ends on half a character.",
 			"|cffff9a52Wording:|r |cffffffffCure myself too|r reads \"reinigen\" in German, and Fire Ward and Frost Ward carry the game's own names in French and Korean.",
-		} },
-	} },
-	{ version = "1.11.34", date = "21 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Will of the Forsaken and Mend Pet stay out of sight until you need them.|r The two fight buttons no longer sit dim beside the prompt for the whole fight.",
-		} },
-		{ title = "New", accent = "7cc4ff", entries = {
-			"|cff7cc4ffYour key can cast a shield, or a quick heal, in a fight.|r A new setting on Look, under |cffffffffIn a fight|r: |cffffffffIn a fight, my key casts|r.",
 		} },
 	} },
 }

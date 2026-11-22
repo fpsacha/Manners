@@ -739,7 +739,7 @@ local function ForOthersOnly(args)
 			-- Which pet stands under the companion pet's switch, which is every
 			-- class's own (a retail death knight has nothing else on this page).
 			or key == "ownScrolls" or key == "ownShout" or key == "ownImbueFirst" or key == "ownPetChoice"
-			or key == "ownRestedEarly"
+			or key == "ownRestedEarly" or key == "ownHoldMoving"
 			or key:find("^own_")) then
 			local was = arg.hidden
 			arg.hidden = function(...)
@@ -2021,6 +2021,24 @@ function Page.BuildWhoTab()
 				set = function(_, value)
 					ns.db.profile.ownBuffs.itemsLast = value == true
 					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
+			-- Your own uses with a cast held while you move (Core.lua, CutByMoving), asked
+			-- for on GitHub (issue 31): off, they stay on the prompt on the run.
+			ownHoldMoving = {
+				type = "toggle",
+				name = L["Hold my food, stones and oils while I move"],
+				desc = L["On: food, a weapon stone or oil, and anything else of your own that takes a cast leave the prompt while you move, and come back a moment after you stand still. Off: they stay on the prompt while you move, but the game may refuse a press on the run or cut it short, and food may be used up for nothing."],
+				order = 15.9506,
+				width = "full",
+				hidden = NothingForSelf,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.holdMoving ~= false end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.holdMoving = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+					if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
 				end,
 			},
 

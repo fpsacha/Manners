@@ -602,6 +602,7 @@ ns.WindowLayout = {
 					"who.ownCities",
 					"who.ownDungeons",
 					"who.ownItemsLast",
+					"who.ownHoldMoving",
 					-- The consumables on a button of their own (Prompt/Supplies.lua).
 					"who.ownApart",
 					-- Its key, set here rather than only under Key Bindings.
@@ -1324,6 +1325,7 @@ ns.WindowLayout = {
 		["advanced.skipSeconds"] = L["skip longer right click not now ignore"],
 		["general.verbose"] = L["quiet mute spam"],
 		["who.ownScrolls"] = L["hide familiar imbue"],
+		["who.ownHoldMoving"] = L["moving move running run walking jump still hold"],
 		-- Asked for as hiding "the window" in a fight.
 		["appearance.hideInFight"] = L["window frame invisible fight"],
 		-- Asked for as moving "the bar".

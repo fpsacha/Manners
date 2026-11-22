@@ -508,6 +508,11 @@ local defaults = {
 			-- PRIORITY.selfLast), so a busy place offers other people first.
 			-- Asked for on CurseForge (GitHub issue 27).
 			itemsLast = false,
+			-- On: food, a weapon's stone, oil or poison and any other use of your own with a cast
+			-- wait until you stand still (Moving, CutByMoving: used on the run they are cut short
+			-- or wasted). Off: they stay on the prompt while you move, and the game may refuse the
+			-- press. Asked for on GitHub (issue 31).
+			holdMoving = true,
 			-- Off: a warrior's Battle Shout is never offered to you (it covers you
 			-- when it goes on your party). On: with nobody in your group, a missing
 			-- or running-out shout is offered to you too (CastsOnSelf).
@@ -3426,8 +3431,11 @@ do
 		local id = spell and spell.ranks and spell.ranks[1]
 		return type(id) == "number" and CastMs(id) > 0
 	end
-	-- For OwnVerdict: one upvalue, not two.
+	-- For OwnVerdict: one upvalue, not two. Off (ownBuffs.holdMoving; My own
+	-- buffs, GitHub issue 31): nothing is held on the move, the press is the game's.
 	local function CutByMoving(family, spell, now)
+		local db = addon.db
+		if db and db.profile.ownBuffs.holdMoving == false then return false end
 		return NeedsStill(family, spell) and Moving(now)
 	end
 

@@ -315,6 +315,7 @@ local FIELDS = {
 	["who.revived"] = { { "priority", "revived" } },
 	-- Other people's buffs (Who to buff).
 	["who.leaveBlessed"] = { { "buff", "leaveBlessed" } },
+	["who.ownHoldMoving"] = { { "ownBuffs", "holdMoving" } },
 	["who.spareFishBowl"] = { { "buff", "spareFishBowl" } },
 	["who.neverFishBowl"] = { { "buff", "neverFishBowl" } },
 	["who.spareCamp"] = { { "buff", "spareCamp" } },

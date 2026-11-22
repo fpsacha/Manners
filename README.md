@@ -409,7 +409,8 @@ own. The full list for each class is under *Which buffs each class offers*.
   is offered again only once it has worn off; in a group, with top-ups on, it
   is renewed ahead of the next pull. Manners never answers the game's
   question about replacing an enchant: that is left to you. Nothing is put
-  on while you move: the item waits until you stand still.
+  on while you move: the item waits until you stand still (*Hold my food,
+  stones and oils while I move*, on).
 - **A shaman's weapon imbue.** Rockbiter, Flametongue, Frostbrand and
   Windfury Weapon are one family, *Weapon imbue* (Classic Era, Burning
   Crusade, WoW Forever and Mists, with each client's own imbues). With none
@@ -489,6 +490,9 @@ once you carry one.
 - *My food, stones and oils after everybody else* (off): those same items
   wait behind your group and passers-by, so in a busy place you buff other
   people first and keep your own for later.
+- *Hold my food, stones and oils while I move* (on): food, a weapon stone or oil,
+  and anything else of yours that takes a cast wait until you stand still. Off,
+  they stay on the prompt while you move, and the game may refuse a press on the run.
 - *Put consumables on a button of their own* (off): food, flasks, elixirs,
   scrolls and your weapon's oils, stones and poisons leave the prompt for a
   small button of their own, which you drag where you want it while the
@@ -1186,7 +1190,8 @@ rules. Sections, top to bottom:
 - ***Myself***: *Remind me when my own buff is missing* (on), and under it one
   control for each of your class's own buffs you have learned.
 - ***When my own buffs come up***: *Also in cities and inns*,
-  *Consumables only in dungeons and raids*, *Put consumables on a button of
+  *Consumables only in dungeons and raids*, *Hold my food, stones and oils
+  while I move*, *Put consumables on a button of
   their own* with *Key for the consumables button* right under it (the same
   key as under Key Bindings, set here and saved with your key bindings), a
   warrior's shout when alone, and *Never remind me about*. The lines at the

@@ -28,6 +28,9 @@ stands now. Keep it short: what ships goes to the history file or away.
 - **Issue 30 (paste a list)** is on branch `reports-1121`, not merged: *Paste a
   list of names* under *Never offer* (`ns.NeverOfferList`) and commas in *Skip
   these guilds* (`ns.TidyGuildList`). Scenarios in `tests/scenarios/skiplist.lua`.
+- **Issue 31 (food on the run)** is on branch `reports-1121`, not merged: *Hold my
+  food, stones and oils while I move* (`ownBuffs.holdMoving`, on) gates
+  `CutByMoving`. Scenarios in `tests/scenarios/movehold.lua`.
 - **Old worktrees kept on purpose:** `look-fel`, `look-wild` and `relcheck`
   (uncommitted files in them), plus `logo` and `ci-diag-generators` (branches
   not merged). Leave them unless the owner asks.
