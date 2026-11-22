@@ -25,6 +25,17 @@ local TOUCHED = { "IsInInstance", "DoEmote", "C_ChatInfo", "GetCVar", "UnitIsUni
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
+-- Fortitude, Arcane Intellect and the group form of Fortitude as this client numbers
+-- them (set in with(), once the addon has loaded); Forever keeps 10938, 10157, 21562.
+local FORTITUDE, INTELLECT, PRAYER_FORTITUDE = 10938, 10157, 21562
+local function numberBuffs(ns)
+	local fort = ns.FindBuff("PRIEST", "fortitude")
+	local int = ns.FindBuff("MAGE", "intellect")
+	FORTITUDE = ns.BUFF_BY_ID[10938] and 10938 or (fort and fort.ranks[1]) or 10938
+	INTELLECT = ns.BUFF_BY_ID[10157] and 10157 or (int and int.ranks[1]) or 10157
+	PRAYER_FORTITUDE = fort and fort.group and fort.group[#fort.group] or nil
+end
+
 local emotes = {}
 local npc = {}
 local aimed = {}
@@ -81,6 +92,7 @@ local function with(scenario, opts, body)
 	local ok, err = pcall(function()
 		local ns = load(scenario)
 		if not ns then return end
+		numberBuffs(ns)
 		freshPrompt(ns, scenario)
 		local db = ns.db.profile
 		db.sources.owed = true
@@ -93,6 +105,8 @@ local function with(scenario, opts, body)
 			fail(scenario, "SKIPPED -- the baseline never settled")
 			return
 		end
+		-- A classic client with its combat log armed has the log name the caster itself.
+		if opts.flavour ~= "vanilla" and ns.combatLogArmed and not ns.castWatch.armed then return end
 		if opts.flavour ~= "vanilla" and not ns.castWatch.armed then
 			fail(scenario, "SKIPPED -- the cast watch was not armed")
 			return
@@ -110,7 +124,7 @@ local function with(scenario, opts, body)
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
 
-local FORTITUDE, INTELLECT, PRAYER_FORTITUDE, RENEW, FIREBALL = 10938, 10157, 21562, 139, 133
+local RENEW, FIREBALL = 139, 133
 
 local nextId, nextCast = 9800, 0
 -- A buff landing with `source` as its caster (nil: nobody; Mock.SECRET: withheld).
@@ -448,6 +462,7 @@ end
 do
 	local scenario = "favour-caster: a group form of the buff names nobody"
 	with(scenario, { names = AIMED_NAMES, aimed = AIMED }, function(ns)
+		if not PRAYER_FORTITUDE then return end -- no group form of the buff on this client
 		cast("nameplate1", PRAYER_FORTITUDE)
 		land(ns, nil, FORTITUDE)
 		Mock.runTimers(2)
@@ -547,6 +562,14 @@ do
 			return
 		end
 		local heard = frame.unitEvents and frame.unitEvents.UNIT_SPELLCAST_SUCCEEDED
+		if heard == nil and ns.Pet.journalOnly then
+			-- A journal-only pet listens to no cast at all: nothing of a stranger's reaches it,
+			-- unless the frame took the event for everybody.
+			if frame._events and frame._events.UNIT_SPELLCAST_SUCCEEDED then
+				fail(scenario, "the pet's frame hears every unit's casts")
+			end
+			return
+		end
 		if not (type(heard) == "table" and heard[1] == "player" and #heard == 1) then
 			fail(scenario, "the pet's frame is not registered for the player's casts alone")
 		end

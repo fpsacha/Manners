@@ -571,6 +571,7 @@ do
 		end
 		local frame = ns.castWatch and ns.castWatch.frame
 		local handler = frame and frame.scripts and frame.scripts.OnEvent
+		if type(handler) ~= "function" and ns.combatLogArmed then return end -- the log names the caster here
 		if type(handler) ~= "function" then
 			fail(scenario, "SKIPPED -- the cast watch has no frame on this client")
 			return
