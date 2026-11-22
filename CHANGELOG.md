@@ -19,6 +19,10 @@
   auras in a match. People you just buffed are not offered again every twelve
   seconds while the game hides their buffs (GitHub issue 29).
 
+### Fixes
+- **Retail: a hunter's options window is whole again.** *My pet*, *Who to skip*,
+  *When to offer*, *In a fight* and *Look* were hidden from a retail hunter.
+
 ## 1.11.37
 
 *21 November 2026*

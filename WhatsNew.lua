@@ -14,6 +14,9 @@ ns.WhatsNew = {
 		{ title = "Battlegrounds", accent = "7cc4ff", entries = {
 			"|cff7cc4ffYour own buffs come back after a death there,|r though the game hides your auras in a match.",
 		} },
+		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Retail: a hunter's options window is whole again.|r |cffffffffMy pet|r, |cffffffffWho to skip|r, |cffffffffWhen to offer|r, |cffffffffIn a fight|r and |cffffffffLook|r were hidden from a retail hunter.",
+		} },
 	} },
 	{ version = "1.11.37", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
