@@ -12,8 +12,8 @@ mutate("Core.lua",
        expect="itemsdungeon: on, food waits for a dungeon or a raid", script=S)
 
 mutate("Core.lua",
-       "ns.OwnItemsHeldToDungeons(family) and addon.db.profile.ownBuffs.itemsInDungeons == true\n",
-       "ns.OwnItemsHeldToDungeons(family)\n",
+       "\t\tif not (own and own.itemsInDungeons == true) then return false end\n",
+       "",
        "itemsdungeon: held whatever the switch says",
        expect="itemsdungeon: with it off, food is offered in the world as it was", script=S)
 
@@ -57,4 +57,4 @@ mutate("Options/Advanced.lua",
        "\"ownBuffs.inCities\", \"ownBuffs.itemsInDungeons\",",
        "\"ownBuffs.inCities\",",
        "itemsdungeon: the page's reset leaves the switch",
-       expect="model: the reset puts who back", script=S)
+       expect="model: the reset puts self back", script=S)

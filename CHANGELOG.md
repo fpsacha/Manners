@@ -11,6 +11,11 @@
   buffs*.
 
 ### Fixes
+- **Food still offered outside dungeons and raids.** With *Consumables only in
+  dungeons and raids* ticked, food for Well Fed can still come up out in the
+  world: tick *Food still offered outside dungeons and raids* under it. Stones,
+  oils, flasks, elixirs and scrolls keep waiting for a dungeon or a raid (GitHub
+  issue 37). Off by default, so nothing changes until you tick it.
 - **The cure button shows where the game hides debuffs.** On WoW Forever and
   retail the button now also reads the game's own list of what you can remove,
   for you, your target and your group, and appears for "a debuff you can

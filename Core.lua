@@ -503,6 +503,10 @@ local defaults = {
 			-- stone for the weapon, food -- come up only in a dungeon or a
 			-- raid. A rogue's poisons and a fishing lure are not held to it.
 			itemsInDungeons = false,
+			-- With the switch above on, food (Well Fed) still comes up out in the
+			-- world; stones, oils, flasks, elixirs and scrolls keep waiting for a
+			-- dungeon or a raid (GitHub issue 37). Off: food waits as well.
+			foodOutside = false,
 			-- On: your own food, a stone or an oil for the weapon, a flask, an elixir
 			-- and a scroll wait behind everybody else on the prompt (Queue.lua,
 			-- PRIORITY.selfLast), so a busy place offers other people first.
@@ -2922,6 +2926,19 @@ do
 		return family.enhance == true and family.kind ~= "poison" and family.kind ~= "lure"
 	end
 
+	-- Whether this family waits for a dungeon or a raid now: held to them
+	-- (above), "Consumables only in dungeons and raids" ticked, and not food
+	-- while "Food still offered outside dungeons and raids" is ticked (GitHub
+	-- issue 37). ns.OwnItemsHeldToDungeons stays the plain classifier the
+	-- ordering (itemsLast) and the battleground extras read.
+	function ns.OwnItemsWaitForDungeon(family)
+		local own = addon.db and addon.db.profile and addon.db.profile.ownBuffs
+		if not (own and own.itemsInDungeons == true) then return false end
+		if not ns.OwnItemsHeldToDungeons(family) then return false end
+		if family.food and own.foodOutside == true then return false end
+		return true
+	end
+
 	-- The first spell of the family you know, in table order; `auto` passes
 	-- over the ones Automatic never picks.
 	local function FirstKnown(family, auto)
@@ -4433,7 +4450,7 @@ do
 		end
 		-- Held to dungeons and raids by the player (Who to buff): out in the
 		-- world there is nothing to say about it, up or not.
-		if ns.OwnItemsHeldToDungeons(family) and addon.db.profile.ownBuffs.itemsInDungeons == true
+		if ns.OwnItemsWaitForDungeon(family)
 			-- A battleground or an arena counts as one with Consumables there
 			-- too ticked (Battle.lua); without it they wait there as well.
 			and not ns.Battle.ItemsThere()

@@ -740,6 +740,8 @@ local function ForOthersOnly(args)
 		-- Consumables only in dungeons and raids is about your own buffs too:
 		-- a hunter's or a shaman's food and flasks.
 		if not (key == "myselfHeader" or key == "self" or key == "ownCities" or key == "ownDungeons"
+			-- Food outside is the same switch's sub-choice.
+			or key == "ownFoodOutside"
 			-- Which pet stands under the companion pet's switch, which is every
 			-- class's own (a retail death knight has nothing else on this page).
 			or key == "ownScrolls" or key == "ownShout" or key == "ownImbueFirst" or key == "ownPetChoice"
@@ -2007,6 +2009,24 @@ function Page.BuildWhoTab()
 				set = function(_, value)
 					ns.db.profile.ownBuffs.itemsInDungeons = value
 					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
+			},
+
+			-- Food still comes up out in the world while the rest waits for a
+			-- dungeon (GitHub issue 37). Greyed while the switch above is off.
+			ownFoodOutside = {
+				type = "toggle",
+				name = L["Food still offered outside dungeons and raids"],
+				desc = L["On: food for Well Fed still comes up out in the world, while weapon stones and oils, flasks, elixirs and scrolls keep waiting for a dungeon or a raid. Only matters while Consumables only in dungeons and raids is on."],
+				order = 15.9502,
+				width = "full",
+				hidden = NothingForSelf,
+				disabled = function() return not S().self or ns.db.profile.ownBuffs.itemsInDungeons ~= true end,
+				get = function() return ns.db.profile.ownBuffs.foodOutside == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.foodOutside = value == true
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+					if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
 				end,
 			},
 

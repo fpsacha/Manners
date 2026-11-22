@@ -32,6 +32,12 @@ stands now. Keep it short: what ships goes to the history file or away.
   (`tests/scenarios/curefight.lua`). Noted, not built: Abolish Poison for a
   druid, and naming the kind under secrecy through `GetAuraDispelTypeColor`
   with a curve (the dispel-type ids are not documented).
+- **Also unreleased:** *Food still offered outside dungeons and raids*
+  (`ownBuffs.foodOutside`, off; GitHub issue 37): with *Consumables only in
+  dungeons and raids* ticked, food (Well Fed) still comes up out in the world.
+  `ns.OwnItemsWaitForDungeon` (Core.lua) is the hold `OwnVerdict` reads;
+  `ns.OwnItemsHeldToDungeons` stays the plain classifier itemsLast and the
+  battleground extras read (`tests/scenarios/foodoutside.lua`).
 - **Also unreleased:** /moo joins the thank emotes, last on the list for any race
   (GitHub issue 34; `tests/scenarios/thankemotes.lua`). Will of the Forsaken
   shows on control lost in a fight where the game withholds the type or has no loss-of-control API (GitHub issue 33),

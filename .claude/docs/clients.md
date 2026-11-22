@@ -259,7 +259,8 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
     flask lost on death (the Crystal of Insanity). Retail has the flask family alone, for every class.
     `Core.lua` reads each with `ReadConsumable` (one pcall per family). *Consumables only in dungeons and raids*
     (`ownBuffs.itemsInDungeons`, the key kept from its old name) holds back
-    oils, stones, food and these. A spell family off
+    oils, stones, food and these (`ns.OwnItemsWaitForDungeon`; `ownBuffs.foodOutside` lets
+    food out, GitHub issue 37). A spell family off
     until it is turned on is `optIn` (a warlock's Detect Invisibility: vanilla,
     camelot and tbc; Mists and retail have no such spell). `isScroll` marks
     every scroll (the stat scrolls, Forever's Familiar and Weapon imbue): the

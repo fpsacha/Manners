@@ -2117,6 +2117,8 @@ local function personality(W, rng)
 	db.buff.tanksOutside = (not plain and mix % 10 == 1) and { thorns = true } or {}
 	db.buff.meOnly = (not plain and mix % 5 == 2) and { thorns = true } or {}
 	db.ownBuffs.itemsInDungeons = not plain and mix % 4 == 1
+	-- With a half of those, food still comes up out in the world (GitHub issue 37).
+	db.ownBuffs.foodOutside = not plain and mix % 8 == 5
 	db.silentChat = not plain and mix % 10 == 7
 	db.prompt.iconFrame, db.prompt.textShadow = mix % 6 ~= 5, mix % 9 ~= 4
 	ns.Guard("clamp", ns.ClampSettings)

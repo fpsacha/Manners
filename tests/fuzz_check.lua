@@ -977,6 +977,7 @@ function X.checkQueue(W, queue)
 		end
 		-- An oil, a stone or food held to dungeons and raids, offered outside one.
 		if buff.own and db.ownBuffs.itemsInDungeons == true and ns.OwnItemsHeldToDungeons(buff.family)
+			and not (buff.family and buff.family.food and db.ownBuffs.foodOutside == true)
 			and not (W.inInstance == "party" or W.inInstance == "raid")
 			-- A battleground or an arena counts as one with Consumables there too
 			-- ticked (Battle.lua).

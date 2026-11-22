@@ -409,7 +409,7 @@ local EXPECTED = {
 	-- they come up, the consumables button and the top-up (the elixirs to keep
 	-- up are tests/scenarios/elixir-pair.lua's).
 	self = {
-		"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.itemsLast", "ownBuffs.shoutAlone",
+		"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.foodOutside", "ownBuffs.itemsLast", "ownBuffs.shoutAlone",
 		"ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly",
 		"ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart", "ownBuffs.holdMoving", "filters.selfTopUp", "filters.selfLead",
 	},

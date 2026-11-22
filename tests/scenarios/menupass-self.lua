@@ -100,7 +100,7 @@ do
 	local scenario = "menupass-self: your own buffs are all on My own buffs"
 	with(scenario, { fortitude = true }, function(ns, UI)
 		local own = placed(ns, "self")
-		local want = { "who.self", "who.ownCities", "who.ownDungeons", "who.ownApart", "who.ownApartKey", "who.ownShout",
+		local want = { "who.self", "who.ownCities", "who.ownDungeons", "who.ownFoodOutside", "who.ownApart", "who.ownApartKey", "who.ownShout",
 			"who.ownScrolls", "who.ownSpellAdd", "diagnostics.ownDiag", "when.selfTopUp", "when.selfLead" }
 		-- Every own-buff family the layout places at all.
 		for id in pairs(ns.WindowLayout.pages) do

@@ -500,6 +500,10 @@ once you carry one.
 - *Consumables only in dungeons and raids* (off) keeps the oils, stones,
   food, flasks, elixirs and scrolls out of the open world; poisons and lures
   are not held back.
+- *Food still offered outside dungeons and raids* (off), under it and grey
+  until it is ticked: food for Well Fed still comes up out in the world, while
+  the stones, oils, flasks, elixirs and scrolls keep waiting for a dungeon or
+  a raid.
 - *My food, stones and oils after everybody else* (off): those same items
   wait behind your group and passers-by, so in a busy place you buff other
   people first and keep your own for later.
@@ -1209,7 +1213,8 @@ rules. Sections, top to bottom:
 - ***Myself***: *Remind me when my own buff is missing* (on), and under it one
   control for each of your class's own buffs you have learned.
 - ***When my own buffs come up***: *Also in cities and inns*,
-  *Consumables only in dungeons and raids*, *Hold my food, stones and oils
+  *Consumables only in dungeons and raids* with *Food still offered outside
+  dungeons and raids* under it, *Hold my food, stones and oils
   while I move*, *Put consumables on a button of
   their own* with *Key for the consumables button* right under it (the same
   key as under Key Bindings, set here and saved with your key bindings), a

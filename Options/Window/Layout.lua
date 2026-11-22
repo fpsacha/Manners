@@ -604,6 +604,7 @@ ns.WindowLayout = {
 					-- Where the reminders come up.
 					"who.ownCities",
 					"who.ownDungeons",
+					{ "who.ownFoodOutside", indent = true },
 					"who.ownItemsLast",
 					"who.ownHoldMoving",
 					-- The consumables on a button of their own (Prompt/Supplies.lua).
@@ -1270,6 +1271,7 @@ ns.WindowLayout = {
 			return L["Needs %s ticked."]:format(NameOf("who.strangers"))
 		end,
 		["when.battleItems"] = function() return L["Needs %s ticked."]:format(NameOf("who.ownDungeons")) end,
+		["who.ownFoodOutside"] = function() return L["Needs %s ticked."]:format(NameOf("who.ownDungeons")) end,
 		-- The pause before a thank, greyed while the thanks wait for a press.
 		-- The group rules sit on Quiet times, away from the switch they need.
 		["click.quietInParty"] = function() return L["Needs %s ticked, on %s."]:format(NameOf("click.enabled"), TabOf("click.enabled")) end,
@@ -1332,6 +1334,7 @@ ns.WindowLayout = {
 		["advanced.skipSeconds"] = L["skip longer right click not now ignore"],
 		["general.verbose"] = L["quiet mute spam"],
 		["who.ownScrolls"] = L["hide familiar imbue"],
+		["who.ownFoodOutside"] = L["food well fed outside world leveling levelling experience"],
 		["who.ownHoldMoving"] = L["moving move running run walking jump still hold"],
 		-- Asked for as hiding "the window" in a fight.
 		["appearance.hideInFight"] = L["window frame invisible fight"],
