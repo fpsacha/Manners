@@ -394,7 +394,7 @@ do
 			for class, families in pairs(ns.OWN_BUFFS or {}) do
 				for _, family in ipairs(families) do
 					local must = family.food or family.rest or family.enhance or family.key == "familiar"
-						or family.key == "makestone" or (family.key == "imbue" and family.scroll)
+						or family.key == "makestone" or family.key == "makehealthstone" or (family.key == "imbue" and family.scroll)
 					if must then
 						needs = needs + 1
 						if family.still ~= true then

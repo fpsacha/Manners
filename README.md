@@ -377,6 +377,12 @@ own. The full list for each class is under *Which buffs each class offers*.
   Ticked, *Offer Detect Invisibility to passers-by too* appears under it,
   off by default: with it on, passers-by missing it are offered it as well,
   and so is one who asks for it in chat.
+- **Make a healthstone** (warlocks, every client): on by default. When no
+  healthstone is in your bags (and, on Classic Era, WoW Forever and Burning
+  Crusade, a Soul Shard is), the prompt offers Create Healthstone, outside a
+  fight and while you stand still. A stone of any rank, an Improved copy or
+  retail's Demonic Healthstone counts as one in the bags. Untick *Make a
+  healthstone* to turn it off.
 - **Unending Breath while swimming** (warlocks, every client): on by
   default. Only while you swim with no water breathing on you; a fight in the
   water holds it until the fight ends.
@@ -1625,7 +1631,7 @@ group is offered nobody. That is deliberate rather than a fault.
 |---|---|
 | Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; *Dampen Magic* or Amplify Magic, off until you pick one; and on WoW Forever, from the scrolls in your bags, *Familiar* and *Weapon imbue*; *Mana Shield* and *Fire Ward or Frost Ward*, off until you switch them on (Classic Era, WoW Forever, Burning Crusade) |
 | Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them; Shadowform |
-| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out (on WoW Forever, with the Demonic Pact talent, both, each with its own switch); Unending Breath while you swim |
+| Warlock | Demon Skin (Demon Armor from level 20), and Molten Armor in Season of Discovery; Demonic Sacrifice, or Soul Link if you have it, while your demon is out (on WoW Forever, with the Demonic Pact talent, both, each with its own switch); Unending Breath while you swim; *Make a healthstone* when none is in your bags |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
 | Hunter | *Aspect*: Hawk, Monkey, Wild or Beast, and in Season of Discovery Falcon and Viper; Trueshot Aura; Heart of the Lion in Season of Discovery; and for the pet, Call Pet, Revive Pet, Mend Pet and Feed Pet (see *Your pet*) |
 | Shaman | *Shield*: Lightning Shield or Water Shield; *Weapon imbue*; Spirit of the Alpha in Season of Discovery while your group role is tank |

@@ -477,7 +477,7 @@ local function AddOwnControls(args)
 				-- its switch is on.
 				if family.bagged and ns.ForgetScrolls then ns.ForgetScrolls() end
 				-- Nor a reagent (a Soul Shard for a stone to make).
-				if family.reagent and ns.ForgetScrolls then ns.ForgetScrolls() end
+				if (family.reagent or family.holds) and ns.ForgetScrolls then ns.ForgetScrolls() end
 				-- The prompt follows at once rather than at the next scan.
 				ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
 			end
@@ -609,6 +609,10 @@ local function AddOwnControls(args)
 					-- Mana Shield (Buffs.lua, brief): outside a fight only.
 					or family.brief
 					and L["Reminds you when it is not on you, outside a fight only: from the pull until the fight ends Manners does not offer it, so in a fight you recast it yourself. Off until you turn it on."]
+					-- A healthstone to make (Buffs.lua, holds): on until it is unticked.
+					or family.holds and (family.reagent
+						and L["Reminds you to make a healthstone when none is in your bags and a Soul Shard is. Outside a fight only. Uncheck it if you would rather not be reminded."]
+						or L["Reminds you to make a healthstone when none is in your bags. Outside a fight only. Uncheck it if you would rather not be reminded."])
 					or family.optIn
 					and L["Reminds you when it is not on you, whoever cast it. Off until you turn it on."]
 					-- Forever's Find Treasure (Buffs.lua, onceUp): nothing until it has been up.

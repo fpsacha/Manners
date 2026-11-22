@@ -55,6 +55,9 @@ do
 		elseif why == "up" and family.makes then
 			-- A stone to make (Buffs.lua, makes): one is in the bags or on the weapon.
 			return L["%s: a stone is in your bags or on your weapon already."]:format(label)
+		elseif why == "up" and family.holds then
+			-- A healthstone to make (Buffs.lua, holds): one is in the bags.
+			return L["%s: a healthstone is in your bags already."]:format(label)
 		elseif why == "reagent" then
 			return L["%s: %s needs a Soul Shard, and your bags hold none."]:format(label, name or "?")
 		elseif why == "up" and not name and family.enhance then

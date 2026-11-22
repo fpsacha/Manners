@@ -1263,7 +1263,7 @@ end
 --             moment past the last step (Core.lua, NeedsStill and Moving).
 --             Food (a meal on the move is thrown away), a weapon's stone,
 --             oil, poison or lure, the sleeping bag, Forever's mage scrolls
---             and making a warlock's stone. Any other family waits the same
+--             making a warlock's stone and making a healthstone. Any other family waits the same
 --             way when the client gives its use a cast time (a companion pet
 --             from the bags, Mists' armors, a rogue's poison spells); an
 --             instant one (a flask, an elixir, a stat scroll) never does.
@@ -1336,8 +1336,10 @@ end
 --             (by key), and counts as up while one is in the bags or on the
 --             weapon (Core.lua, ReadOwnFamily); its spells' `items` say which
 --             items each makes. Forever's Create Firestone and Create Spellstone.
---   reagent   with makes: an item the cast uses up, offered only with one in
---             the bags (a Soul Shard).
+--   holds     on a family: up while any of its spells' `items` is in the bags
+--             (Core.lua, ReadOwnFamily); a warlock's Create Healthstone.
+--   reagent   with makes or holds: an item the cast uses up, offered only with
+--             one in the bags (a Soul Shard).
 --   castOnOthers on a spell: also cast on somebody else, at a target rather
 --             than as an area aura (Earth Shield, on the tank above all). One
 --             on you from another player is a favour like any shield, where
@@ -3362,6 +3364,52 @@ do
 			},
 		},
 	}
+end
+
+-- Make a healthstone (GitHub issue 32): a warlock with no healthstone in the bags
+-- is offered Create Healthstone (6201), outside a fight and standing still. A
+-- family of its own, on by default (no `optIn`), `holds`: up while any item of its
+-- spell's `items` is in the bags (Core.lua, ReadOwnFamily), so a stone with
+-- charges left, of any rank or Improved copy, is never made over. Create
+-- Healthstone is on all five clients (wago.tools, Forever 1.60.1.70790, Classic
+-- Era 1.15.9.70003, TBC 2.5.6.69795, Mists 5.5.4.70032, retail 12.1.0.69933),
+-- CastingTimeIndex 14, a 3 second cast (`still`). SkillLineAbility 354 on the
+-- Classic clients, 849 (the class line, learned with level) on Mists and retail.
+-- SpellReagents: a Soul Shard (6265) on Forever and Burning Crusade (and Classic
+-- Era, where the ranks are the same), nothing on Mists or retail (`reagent`). The
+-- items are each rank's stone and its Improved Healthstone copies (Courtesy.lua
+-- has the same ids); Mists makes 5512 only, retail 5512 and 224464, the Demonic
+-- Healthstone of the Pact of Gluttony talent. ItemEffect gives 5512 -1 charges on
+-- Forever (one use, then the item is gone) and -3 on Mists and retail, with a 120
+-- s (retail 60 s) category cooldown: the stone stays in the bags until used up and
+-- the cooldown only stops the use, never the cast, so it holds nothing back. Ahead
+-- of the stones, food and tracking, behind the armor, the sacrifice and the rest.
+do
+	local function MakeHealthstone(ranks, items, reagent)
+		return { key = "makehealthstone", label = L["Make a healthstone"], toggle = true, holds = true, still = true,
+			reagent = reagent, spells = { { key = "createhealthstone", ranks = ranks, items = items } } }
+	end
+	local function Place(list, family)
+		for i, each in ipairs(list) do
+			if each.tracking or each.enhance or each.bagged or each.consumable or each.food or each.rest then
+				table.insert(list, i, family)
+				return
+			end
+		end
+		list[#list + 1] = family
+	end
+	local CLASSIC_RANKS = { 11730, 11729, 5699, 6202, 6201 }
+	local CLASSIC_ITEMS = { 9421, 19012, 19013, 5510, 19010, 19011, 5509, 19008, 19009, 5511, 19006, 19007,
+		5512, 19004, 19005 }
+	local TBC_ITEMS = { 22103, 22104, 22105 }
+	for _, item in ipairs(CLASSIC_ITEMS) do TBC_ITEMS[#TBC_ITEMS + 1] = item end
+	local TBC_RANKS = { 27230 }
+	for _, rank in ipairs(CLASSIC_RANKS) do TBC_RANKS[#TBC_RANKS + 1] = rank end
+	Place(VANILLA_OWN.WARLOCK, MakeHealthstone(CLASSIC_RANKS, CLASSIC_ITEMS, 6265))
+	Place(CAMELOT_OWN.WARLOCK, MakeHealthstone(CLASSIC_RANKS, CLASSIC_ITEMS, 6265))
+	Place(TBC_OWN.WARLOCK, MakeHealthstone(TBC_RANKS, TBC_ITEMS, 6265))
+	Place(MISTS_OWN.WARLOCK, MakeHealthstone({ 6201 }, { 5512 }))
+	Place(MAINLINE_OWN.WARLOCK, MakeHealthstone({ 6201 }, { 5512, 224464 }))
 end
 
 -- Retail's flasks (1.11.11), every class's: Midnight's four (Thalassian

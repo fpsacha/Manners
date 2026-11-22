@@ -200,8 +200,9 @@ do
 		-- spells, the lethal ones and the non-lethal ones; since 1.11.11 a shadow
 		-- priest's form, a warlock's sacrifice, a shaman's imbues a hand and a
 		-- paladin's rites (tests/scenarios/self-buffs.lua); since 1.11.13 a
-		-- warlock's Unending Breath while he swims (tests/scenarios/self-breath.lua).
-		local OWN = { PRIEST = "shadowform", WARLOCK = "selfbreath, grimoireofsacrifice",
+		-- warlock's Unending Breath while he swims (tests/scenarios/self-breath.lua); and, from GitHub issue 32,
+		-- his Create Healthstone (tests/scenarios/healthstone.lua).
+		local OWN = { PRIEST = "shadowform", WARLOCK = "selfbreath, grimoireofsacrifice, makehealthstone",
 			SHAMAN = "shamanimbue, shamanimbueoff", PALADIN = "rite" }
 		for _, class in ipairs(ALL_CLASSES) do
 			-- Every class's flasks (1.11.11) aside: tests/scenarios/missing-buffs.lua.

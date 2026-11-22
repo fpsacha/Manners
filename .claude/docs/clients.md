@@ -192,7 +192,12 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
     OwnVerdict answers `"reagent"` without one): Forever's `makestone`,
     Create Firestone or Spellstone, `optIn`, under `warlockstone`; each spell's
     `school` (`fire`, `shadow`) is the kind Automatic makes when the talents
-    favour one (`Best.Makes`), else the kind last on the weapon.
+    favour one (`Best.Makes`), else the kind last on the weapon. `holds`
+    (GitHub issue 32): up while any item of its spells' `items` is in the bags
+    (`ReadOwnFamily` through `ns.OwnHeldFirst`; never `anyHeld`, a stone is no
+    buff to use), with `reagent` for a Soul Shard: `makehealthstone`, Create
+    Healthstone on every client (a shard on Classic Era, Forever and TBC only),
+    on by default (no `optIn`), `still`.
   - weapon enhancements (poisons, sharpening stones and weightstones, wizard
     and mana oils, fishing lures), vanilla, tbc, camelot and mists: items from
     the bags, one family per kind and hand (`slot` 16 or 17), the rows in

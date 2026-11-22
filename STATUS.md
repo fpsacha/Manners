@@ -19,6 +19,10 @@ stands now. Keep it short: what ships goes to the history file or away.
   it by name), *Hold my food, stones and oils while I move*; the retail
   hunter's options window; *Offer my cure in a fight* on by default, its button
   still taking a click with no key because the owner clicks on screen).
+- **In the next release (unreleased):** *Make a healthstone* (GitHub issue 32), on
+  by default for every warlock: Create Healthstone is offered when no stone of any
+  rank is in the bags (`holds` family `makehealthstone`, `tests/scenarios/healthstone.lua`),
+  outside a fight, standing still, with a Soul Shard where the spell uses one.
 - **Waiting to post:** four CurseForge replies (KestrelWild, vladsnz, zeekro,
   and Cloud2668's thread for ZachrielCl). Chrome dropped before they went up;
   the drafts are in the nightly's `state.json` under `pending`. Check the page

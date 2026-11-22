@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "22 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Make a healthstone.|r A warlock with no healthstone in the bags is offered Create Healthstone on the prompt, outside a fight and standing still (GitHub issue 32).",
+		} },
+	} },
 	{ version = "1.11.38", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Food, stones and oils on the run, your call.|r |cffffffffMy own buffs > Hold my food, stones and oils while I move|r (on) can be turned off, and they then stay on the prompt while you move (GitHub issue 31).",
@@ -45,22 +50,6 @@ ns.WhatsNew = {
 	{ version = "1.11.36", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Buff other people first, eat later.|r A new switch under |cffffffffMyself|r, |cffffffffMy food, stones and oils after everybody else|r: your own food, weapon stones and oils, flasks, elixirs and scrolls wait until nobody else needs a buff from you.",
-		} },
-	} },
-	{ version = "1.11.35", date = "21 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100The consumables button wears your prompt's look.|r It now wears the frame of the look you picked for the prompt, and changes with it.",
-			"|cffffd100Your fight key is kept for each class.|r |cffffffffIn a fight, my key casts|r used to be one choice for every character on a profile, so a Flash Heal picked on a priest armed a paladin's key with Flash of Light.",
-		} },
-		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52A meal of plain bread no longer brings back a food you skipped.|r Right-click a food for the evening and eat bread, and standing up used to put the reminder back; now it waits out the skip.",
-			"|cffff9a52Short buffs held back in cities and inns hold your own short buffs|r even with |cffffffffNever in cities and inns|r ticked, and its switch and minutes stay yours to change there.",
-			"|cffff9a52The fight buttons' keys cast with the game's cast-on-key-down option turned off.|r The cure button also takes no click while it is out of sight with a key bound, as the other fight buttons already did.",
-			"|cffff9a52The fight cure is offered only once you know a cure.|r The switch and its key on Look and Who to buff stay out of sight until the class has learned one, and the line said when you bind the key no longer ends on a blank spell name.",
-			"|cffff9a52Who to buff's reset puts back the fight switches it shows.|r That is |cffffffffOffer my cure in a fight|r and |cffffffffOffer Mend Pet in a fight|r.",
-			"|cffff9a52The page's scroll bar stays under the cursor|r when the page grows or shrinks while you drag it.",
-			"|cffff9a52Your own words for an ask are cut on a whole letter.|r A long line in Chinese, Korean or an accented language no longer ends on half a character.",
-			"|cffff9a52Wording:|r |cffffffffCure myself too|r reads \"reinigen\" in German, and Fire Ward and Frost Ward carry the game's own names in French and Korean.",
 		} },
 	} },
 }

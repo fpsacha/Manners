@@ -76,6 +76,8 @@ local NAMES = {
 	[15473] = "Shadowform",
 	[24858] = "Moonkin Form",
 	[108503] = "Grimoire of Sacrifice",
+	-- GitHub issue 32: a warlock's healthstone to make (tests/scenarios/healthstone.lua).
+	[6201] = "Create Healthstone",
 	[8232] = "Windfury Weapon",
 	[51730] = "Earthliving Weapon",
 	[8024] = "Flametongue Weapon",

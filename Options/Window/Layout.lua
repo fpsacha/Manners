@@ -592,6 +592,8 @@ ns.WindowLayout = {
 					{ "who.own_soullink", indent = true },
 					-- A warlock's Detect Invisibility, off until it is turned on.
 					{ "who.own_detectinvis", indent = true },
+					-- A warlock's healthstone to make, when none is in the bags (every client).
+					{ "who.own_makehealthstone", indent = true },
 					-- A warlock's Unending Breath on himself, only while he swims.
 					{ "who.own_selfbreath", indent = true },
 					{ "who.own_tracking", indent = true },

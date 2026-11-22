@@ -74,7 +74,7 @@ The *Simple view* shows only the ten or so settings your class changes on each p
 - **Druid:** Mark of the Wild, Thorns for everyone, the tanks, the tanks and you, or you alone, Moonkin Form for you, Symbiosis on Mists.
 - **Paladin:** Kings first, then Wisdom or Might, a blessing for each class and Greater Blessings by class; Beacon of Light (Oath of Light on WoW Forever) for the tank; your aura and Righteous Fury.
 - **Shaman:** Earth Shield for the tank, your shield and weapon imbues, Skyfury on retail.
-- **Warlock:** Unending Breath and Detect Invisibility where your game has them, Dark Intent on Mists, your armor and Demonic Sacrifice, a Firestone or Spellstone on WoW Forever, healthstones and summons for whoever asks.
+- **Warlock:** Unending Breath and Detect Invisibility where your game has them, Dark Intent on Mists, your armor and Demonic Sacrifice, a Firestone or Spellstone on WoW Forever, a healthstone for yourself when you have none, healthstones and summons for whoever asks.
 - **Warrior:** Battle Shout for the people it reaches (your whole raid on WoW Forever), Commanding Shout where it exists.
 - **Hunter:** your aspect and Trueshot Aura, and your pet looked after.
 - **Rogue:** a poison for each hand, from your bags or your spellbook.

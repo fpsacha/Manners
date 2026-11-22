@@ -2700,6 +2700,18 @@ do
 						local n = plain(count(reagent))
 						scrollCounts[reagent] = type(n) == "number" and n or 0
 					end
+					-- A healthstone to make (Buffs.lua, holds): any of its items in
+					-- the bags, counted while it is switched on. Not `anyHeld`: a
+					-- healthstone is no buff to use (CanCastAnything).
+					if family.holds and ns.OwnPick(family) ~= "off" then
+						for _, spell in ipairs(family.spells) do
+							for _, item in ipairs(spell.items or {}) do
+								local n = scrollCounts[item] or plain(count(item))
+								scrollCounts[item] = type(n) == "number" and n or 0
+								if scrollCounts[item] > 0 then heldFirst[family] = heldFirst[family] or spell end
+							end
+						end
+					end
 				end
 			end
 		end
@@ -4259,6 +4271,8 @@ do
 		if family.pet then return ns.ReadPet(family) end
 		if family.consumable then return ReadConsumable(family, GetTime()) end
 		if family.makes then return ReadMakes(family) end
+		-- A healthstone to make: up while one is in the bags (no spell, no time).
+		if family.holds then return ns.OwnHeldFirst(family) ~= nil end
 		if family.imbue then return ReadImbue(family) end
 		-- A stone, a poison, an oil or a lure: its hand carries an enchant or not.
 		if family.enhance then return ReadImbue(family) end

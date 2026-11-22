@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+*22 November 2026*
+
+### Highlights
+- **Make a healthstone.** A warlock with no healthstone in the bags is offered
+  Create Healthstone on the prompt, outside a fight and standing still (GitHub
+  issue 32). On by default; the switch is *Make a healthstone*, on *My own
+  buffs*.
+
 ## 1.11.38
 
 *21 November 2026*
