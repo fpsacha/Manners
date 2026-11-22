@@ -81,7 +81,7 @@ do
 		if text:find("Anna Aim", 1, true) or text:find("Anna", 1, true) then
 			fail(scenario, "a player's name is left in the check-up")
 		end
-		for _ = 1, 300 do ns.Trail("test", "filler") end
-		if #ns.db.char.trail ~= 200 then fail(scenario, ("the trail holds %d lines, not 200"):format(#ns.db.char.trail)) end
+		for _ = 1, 400 do ns.Trail("test", "filler") end
+		if #ns.db.char.trail ~= 300 then fail(scenario, ("the trail holds %d lines, not 300"):format(#ns.db.char.trail)) end
 	end)
 end

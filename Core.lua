@@ -150,7 +150,26 @@ end
 -- event, never per scan; `who` is the person's name, which the report replaces
 -- with an alias.
 do
-local TRAIL_MAX = 200
+local TRAIL_MAX = 300
+-- What one fight did, counted on the fight's own paths (never the scan) and
+-- written as one trail line when it ends.
+ns.fightTally = { started = nil, keyPresses = 0 }
+function ns.FightSummary()
+	local tally = ns.fightTally
+	if not tally.started then return end
+	local took = math.max(0, math.floor(GetTime() - tally.started))
+	tally.started = nil
+	local prompt = ns.Prompt
+	local hidden = prompt and prompt.FightHideArmed and prompt:FightHideArmed()
+	local steps, of
+	if prompt and prompt.FightRotaSteps then steps, of = prompt:FightRotaSteps() end
+	local rota = steps and ("%d steps of %d"):format(steps, of or 0) or "none"
+	local cure = ns.CureFight and ns.CureFight.LastFight and ns.CureFight.LastFight() or {}
+	local lit = ns.BreakFree and ns.BreakFree.FightLit and ns.BreakFree.FightLit() or 0
+	ns.Trail("fight", ("fight summary: %ds; prompt %s; rota %s; fight key %d presses; cure shown %d times, %d reads, %d withheld; break free lit %d times")
+		:format(took, hidden and "hidden" or "up", rota, tally.keyPresses or 0,
+			cure.shows or 0, cure.reads or 0, cure.secret or 0, lit))
+end
 function ns.Trail(kind, text, who)
 	local db = ns.addon and ns.addon.db
 	local char = db and db.char
@@ -260,6 +279,8 @@ function ns.Guard(label, fn, ...)
 			ns.addon:Print(L["|cffff4040something broke in %s|r -- %s |cff808080(%s for the rest)|r"]
 				:format(label, err, "/manners errors"))
 		end
+		-- A link to the Report a bug window, once a session (Options/BugReport.lua).
+		if ns.OfferReport then pcall(ns.OfferReport) end
 		-- Repaint Diagnostics once per new failure, but not for a failure of
 		-- the repaint itself, which would only fail again.
 		if ns.RepaintOptions and label ~= "options repaint" and label ~= "broker text" then
@@ -6884,6 +6905,8 @@ function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 -- under lockdown, paints the hold.
 function addon:PLAYER_REGEN_DISABLED()
 	ns.Trail("fight", "a fight started")
+	ns.fightTally.started = GetTime()
+	ns.fightTally.keyPresses = 0
 	-- First, while the button can still be touched: a drag held into the pull
 	-- is let go of and its position kept, rather than released in the fight.
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
@@ -6922,6 +6945,8 @@ end
 
 function addon:PLAYER_REGEN_ENABLED()
 	ns.Trail("fight", "the fight ended")
+	-- Before any release below: what the fight did is still readable.
+	ns.Guard("fight summary", ns.FightSummary)
 	-- First, so everything below reads the buffs as the probe now has them.
 	ns.Guard("restriction ended", self.ADDON_RESTRICTION_STATE_CHANGED, self)
 	-- What the fight withheld is asked again on the next scan rather than three

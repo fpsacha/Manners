@@ -17,7 +17,13 @@ stands now. Keep it short: what ships goes to the history file or away.
   raids*) and 1.11.40 (own buffs asked again after a death in a battleground:
   the cast on yourself went unnoticed under Forever's surname spelling, issue
   38). All issues from 32 to 38 are closed.
-- **In flight:** nothing. No worktree of this session is open; no workflow runs.
+- **In flight:** the Report a bug flow, on branch `report-flow` (worktree
+  `Manners-wt-report`), not yet merged: `Options/BugReport.lua` (window, link,
+  Mark this moment, the hold-back watch, the "Report it" chat link), a fight
+  summary line, the trail at 300, the self-test's *Fight buttons and keys*
+  group, `tools/read_report.py`, the issue form's category and game fields. Its
+  own scenarios: `bugreport.lua`, `trail-mark.lua`, `selftest-fight.lua`.
+  No workflow runs.
   Old worktrees kept on purpose (uncommitted files or unmerged): `look-fel`,
   `look-wild`, `relcheck`, `logo`, `ci-diag-generators`.
 - **Waiting on the owner:** nothing.

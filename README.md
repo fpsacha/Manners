@@ -1543,9 +1543,9 @@ profiles of your own.
   of my own and the last cast judged.
 - ***Errors this session***: what has broken; past five, *Show every error*
   lists them all in chat.
-- ***Reporting a bug***: **Run a full check-up**, *Show a short summary*,
-  *Test how Manners looks in this game* and *Log every click (noisy)*. See
-  *Troubleshooting* below.
+- ***Reporting a bug***: **Report a bug**, **Run a full check-up**, *Show a
+  short summary*, *Key for Mark this moment*, *Test how Manners looks in this
+  game* and *Log every click (noisy)*. See *Troubleshooting* below.
 
 ## Commands
 
@@ -1580,6 +1580,8 @@ Sharing settings
 When something is wrong
 /manners debug              what your class and this build allow, your added spells and the last cast judged
 /manners errors [all]       the last few things that broke, if any did (all: every one kept)
+/manners bug                open Report a bug: what went wrong, a link to GitHub and the report to paste
+/manners mark               mark this moment for a bug report, even in a fight
 /manners selftest [launch]  check Manners against your game, with a report to paste (also /manners check)
 /manners dev                tools for testing the addon on this client: the click log, try, look and forms
 /manners help               this list, grouped the same way
@@ -1784,18 +1786,42 @@ works here registers `"AnyDown"`.
 
 ### Reporting a bug
 
-Please send a log with it: it turns a guess into a fix. Open the options
-(`/manners`), go to **Diagnostics**, press **Run a full check-up**, click in the
-box, press Ctrl+A then Ctrl+C, and paste it into a comment on CurseForge or an
-issue from [the templates](https://github.com/fpsacha/Manners/issues/new/choose)
-(*Something misbehaved* for a bug, *A class cast, or did not* for how a class
-went), with a few words on what went wrong. Run it right after the bug if you
-can.
+Press **Report a bug**: on Diagnostics, as the button with the Diagnostics icon
+at the foot of the options window, in the minimap menu, or with `/manners bug`.
+It opens one window that walks you through it:
+
+1. Choose what went wrong (the prompt never showed up, the wrong buff or
+   person, a fight button, the options window, an error message, something
+   else) and add a few words if you like.
+2. Press **Make the report**. Two boxes appear, each with a **Select all**
+   button: press Ctrl+C after it.
+3. Open the first, a link, in your browser: it opens the issue form on GitHub
+   with the category, your class, the game and the version already filled in.
+   Paste the second, the report, into the form's check-up box. No GitHub
+   account? A comment on the Manners page on CurseForge works too.
+
+The link holds no names: yours, your realm and your guild are left out of it,
+and so is everybody else the report knows. In a fight the full report waits for
+the fight to end; the short summary, and the link, work at once. When Manners
+hits an error it says so in chat once a session, with a **Report it** link that
+opens the same window.
+
+**Mark this moment** is for the second something goes wrong, in a fight too:
+press its key (set it on Diagnostics, *Key for Mark this moment*), or use the
+minimap menu, or `/manners mark`. The report then shows what Manners saw at that
+instant: what the prompt held, or what kept it back, the first of the queue, and
+which fight buttons were up. Each fight's end adds one line of what it did, and
+a change in the reason the prompt is held back is noted as it happens.
+
+By hand it still works: **Run a full check-up** on Diagnostics puts the same
+report in a box; click in it, press Ctrl+A then Ctrl+C, and paste it into a
+comment on CurseForge or an issue from
+[the templates](https://github.com/fpsacha/Manners/issues/new/choose).
 
 The check-up holds the build and what this client allows, the self-test
 below, what `/manners debug` and `/manners errors` say, your own buffs'
 reasons, the queue with each person's reason, where you are, the bar macro,
-the other addons loaded, your settings, and a trail of the last 200 things
+the other addons loaded, your settings, and a trail of the last 300 things
 Manners saw and did, kept through a `/reload`. Other players are named
 "Person 1", "Person 2" and so on throughout, so it is safe to paste in
 public. Nothing is said to anybody and nothing is changed. *Show a short

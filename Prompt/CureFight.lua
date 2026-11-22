@@ -143,7 +143,7 @@ local watched, dirty, needy, held = {}, {}, {}, {}
 local flushDue, recheckDue = false, false
 local waitUntil
 -- The last fight, for /manners debug.
-local last = { reads = 0, secret = 0, seen = 0, shownFor = 0, listed = 0 }
+local last = { reads = 0, secret = 0, seen = 0, shownFor = 0, listed = 0, shows = 0 }
 local reasonOf, seenGuid = {}, {}
 local Paint, Flush
 
@@ -156,6 +156,11 @@ local function Secret(value)
 end
 
 -- Whether this character has a cure to offer in a fight and the switch is on.
+-- The last fight's counts, for the fight summary and the Mark this moment line.
+function CureFight.LastFight() return last end
+-- Whether the first button's macro holds the Shift clause (two cures, one button).
+function CureFight.ShiftClause() return armedTwo == true end
+
 function CureFight.Applies(db)
 	db = db or Profile()
 	if not (db ~= nil and db.enabled == true and db.prompt.cureFight == true) then return false end
@@ -246,7 +251,10 @@ end
 -- it is shown dim.
 local function SetVisible(slot, on, ready)
 	local to = on and (ready and 1 or 0.6) or 0
-	if on and not slot.visible then slot.shownAt = GetTime() end
+	if on and not slot.visible then
+		slot.shownAt = GetTime()
+		last.shows = last.shows + 1
+	end
 	if not on and slot.visible and slot.shownAt then
 		last.shownFor = last.shownFor + (GetTime() - slot.shownAt)
 		slot.shownAt = nil
@@ -868,7 +876,7 @@ local function Pull()
 			SetMouse(slot, slot.list ~= nil)
 		end
 	end
-	last.reads, last.secret, last.seen, last.shownFor, last.listed = 0, 0, 0, 0, 0
+	last.reads, last.secret, last.seen, last.shownFor, last.listed, last.shows = 0, 0, 0, 0, 0, 0
 	wipe(needy)
 	wipe(dirty)
 	wipe(held)

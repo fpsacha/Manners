@@ -5,11 +5,46 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for reporting it. The log below is what makes a bug fixable:
-        open the options (`/manners`), go to **Diagnostics**, press
-        **Run a full check-up**, click in the box, Ctrl+A, Ctrl+C, and paste it
-        into the first box. If you can, run it right after the bug happens: it
-        keeps what happened over the last few minutes, even through a /reload.
+        Thank you for reporting it. The easy way: in the game, press
+        **Report a bug** (Diagnostics, the button with the Diagnostics icon at
+        the bottom of the options window, the minimap menu, or `/manners bug`).
+        It opens a link to this form with the category, your class, the game and
+        the version filled in, and gives you the report to paste into **The full
+        check-up** below. If you press **Mark this moment** the second something
+        goes wrong, the report shows what Manners saw then.
+
+        By hand instead: open the options (`/manners`), go to **Diagnostics**,
+        press **Run a full check-up**, click in the box, Ctrl+A, Ctrl+C, and
+        paste it into the check-up box. If you can, run it right after the bug
+        happens: it keeps what happened over the last few minutes, even through
+        a /reload.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: What went wrong
+      options:
+        - The prompt never showed up
+        - It offered the wrong buff or person
+        - A fight button (cure, Will of the Forsaken, Mend Pet)
+        - The options window
+        - An error message
+        - Something else
+    validations:
+      required: true
+
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - WoW Forever
+        - Classic Era
+        - Burning Crusade Classic
+        - Mists of Pandaria Classic
+        - Retail
+    validations:
+      required: true
 
   - type: textarea
     id: what
@@ -51,7 +86,7 @@ body:
       description: >
         The last line of /manners debug, or the version on the CurseForge file
         you installed.
-      placeholder: 0.9.6
+      placeholder: Filled in by the Report a bug button
     validations:
       required: true
 

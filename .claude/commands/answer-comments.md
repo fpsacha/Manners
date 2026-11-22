@@ -19,7 +19,9 @@ the session).
 3. **One issue per report**, so both sessions see it:
    `gh issue create --label player --label <bug|enhancement|question> --title
    "<short>" --body "<the comment verbatim, the author, the date, a link>"`.
-   A question answered from the settings needs no issue.
+   A question answered from the settings needs no issue. A pasted check-up (the
+   Report a bug window makes one) is triaged with `python tools/read_report.py
+   <issue>`.
 4. **Investigate and build** with the saved workflow:
    `git worktree add D:/Projects/WOW_Addons/Manners-wt-<name> -b <name> master`,
    then the Workflow tool with `name: "player-reports"` and `args: { worktree,
