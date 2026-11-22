@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "21 November 2026", sections = {
+	{ version = "1.11.37", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100New page In a fight:|r hiding the prompt, the rota, the fight key, and the Will of the Forsaken, Mend Pet and cure buttons, all in one place.",
 			"|cffffd100New page Quiet times:|r where and when Manners holds back or says nothing.",
