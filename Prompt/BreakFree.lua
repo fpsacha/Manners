@@ -731,7 +731,9 @@ local function OnEvent(event, unit, _, spellId)
 	end
 	local was = afflicted
 	local kind, how = Read()
-	if event == "LOSS_OF_CONTROL_ADDED" and how == "secret" and not afflicted then
+	-- A fresh report the game would not name starts the guess again, also while
+	-- one is running: a second fear inside the first guess.
+	if event == "LOSS_OF_CONTROL_ADDED" and how == "secret" and (not afflicted or guessed) then
 		lostAt = GetTime()
 		kind, how = Read()
 	end
