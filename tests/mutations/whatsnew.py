@@ -68,10 +68,10 @@ mutate("Options/Window/Layout.lua",
        expect="general.newsNote1 is not folded", script=S)
 
 mutate("WhatsNew.lua",
-       "\t\t{ title = \"New\", accent",
-       "\t\t{ title = \"Nwe\", accent",
+       "\"21 November 2026\", sections = {\n\t\t{ title = \"Highlights\", accent",
+       "\"21 November 2026\", sections = {\n\t\t{ title = \"Highlihgts\", accent",
        "whatsnew: a section's title that is not the changelog's",
-       expect="and the changelog says New", script=S)
+       expect="and the changelog says Highlights", script=S)
 
 mutate("CHANGELOG.md",
        "### Highlights\n",

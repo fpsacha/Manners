@@ -2512,6 +2512,18 @@ function Page.BuildWhoTab()
 				get = fGet,
 				set = fSet,
 			},
+			-- Asked for on GitHub (issue 30): see Mute in Queue.lua. Shown only
+			-- while the mute list's saved table is there.
+			skipMuted = {
+				type = "toggle",
+				name = L["Skip the players and guilds OlympusMute mutes"],
+				desc = L["Players OlympusMute mutes, by name or by a word in their guild's name, are not offered anything: in your group, as passers-by or when they ask, and are never asked for a buff. Somebody who buffed you is still offered the favour back, and your target and focus are still offered. Its lists are read as they stand and never changed; while its muting is switched off, nobody is skipped."],
+				order = 43.65,
+				width = "full",
+				hidden = function() return type(rawget(_G, "OlympusMuteDB")) ~= "table" end,
+				get = fGet,
+				set = fSet,
+			},
 			-- Asked for on CurseForge: some classes left out as passers-by.
 			-- Stored as the classes switched off, so a new profile offers all
 			-- of them and the boxes show them ticked.

@@ -1123,6 +1123,12 @@ no room for. Defaults are in brackets.
     you targeted is always offered.
   - *Leave out these guilds* and *Classes I buff as passers-by*: see *Leaving
     people out* above.
+  - *Skip the players and guilds OlympusMute mutes* (off; shown only while
+    OlympusMute is loaded): the players it mutes, by name or by a word in their
+    guild's name, are not offered anything and never asked for a buff; somebody
+    who buffed you is still offered the favour back, and your target and focus
+    still are. Nothing in OlympusMute is changed, and while its muting is off
+    nobody is skipped.
   - *Skip players out of range* (on): where the spell's own range check has
     nothing to say, the game's follow distance (about 28 yards) is asked
     instead. Where nothing can tell, they are still offered.

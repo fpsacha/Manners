@@ -1330,6 +1330,119 @@ do
 	end
 end
 
+---------------------------------------------------------------------------
+-- Skip the players and guilds the mute list mutes (filters.skipMuted, off;
+-- GitHub issue 30). Read from its saved table at the moment of deciding,
+-- never copied or written; nil while the switch is off, the table missing or
+-- its own muting switched off. Keyed as it keys a player: "name-realm" in
+-- lower case, the realm without spaces or dashes, your own when there is none
+-- (a Forever surname is part of the name: "bacon eggz-realm").
+---------------------------------------------------------------------------
+local Mute = {}
+do
+	local keys, keyCount, ownRealm = {}, 0, nil
+	local function OwnRealm()
+		if ownRealm then return ownRealm end
+		local fn = _G.GetNormalizedRealmName
+		local r = type(fn) == "function" and plain(fn()) or nil
+		if type(r) ~= "string" or r == "" then
+			fn = _G.GetRealmName
+			r = type(fn) == "function" and plain(fn()) or nil
+			if type(r) == "string" then r = r:gsub("[%s%-]", "") end
+		end
+		if type(r) == "string" and r ~= "" then ownRealm = r end
+		return ownRealm
+	end
+	local function KeysOf(full)
+		local got = keys[full]
+		if got then return got end
+		local name, dash = full, full:find("-", 1, true)
+		local settled = true
+		if not dash then
+			local realm = OwnRealm()
+			if realm then name = name .. "-" .. realm else settled = false end
+		elseif name:find("[%s%-]", dash + 1) then
+			name = name:sub(1, dash) .. (name:sub(dash + 1):gsub("[%s%-]", ""))
+		end
+		got = { name:lower() }
+		if caps.unitNameIsSurname then
+			local first, last = full:match("^(%S+) (%S+)$")
+			if first then got[2] = (first .. "-" .. last):lower() end
+		end
+		if settled then
+			if keyCount >= 500 then wipe(keys); keyCount = 0 end
+			keys[full] = got
+			keyCount = keyCount + 1
+		end
+		return got
+	end
+	local function Through(m, key)
+		local allow, pass = m.allow, m.partyPass
+		return (type(allow) == "table" and allow[key]) or (type(pass) == "table" and pass[key] ~= nil) or false
+	end
+	function Mute.Source(db)
+		if not (db and db.filters.skipMuted == true) then return nil end
+		local m = rawget(_G, "OlympusMuteDB")
+		if type(m) ~= "table" or m.enabled ~= true or type(m.names) ~= "table" then return nil end
+		return m
+	end
+	-- `unit` reads the guild (GuildOf); without one, `guild` if the caller has it.
+	function Mute.Listed(m, full, unit, now, guild)
+		if type(full) ~= "string" then return false end
+		local k = KeysOf(full)
+		local key = k[1]
+		if Through(m, key) then return false end
+		local names = m.names
+		if names[key] ~= nil then return true end
+		local old = k[2]
+		if old and names[old] ~= nil and not Through(m, old) then return true end
+		local words = m.keywords
+		if type(words) ~= "table" or words[1] == nil then return false end
+		if unit then guild = GuildOf(unit, full, now) end
+		if type(guild) ~= "string" or guild == "" then return false end
+		local g = guild:lower()
+		local open = m.guildAllow
+		if type(open) == "table" and open[g] then return false end
+		for i = 1, #words do
+			local w = words[i]
+			if type(w) == "string" and w ~= "" and g:find(w, 1, true) then return true end
+		end
+		return false
+	end
+	-- For the files outside the walk (Ask, Courtesy, Cures, Resurrect).
+	function ns.MuteListed(full, unit, now)
+		local m = Mute.Source(addon.db and addon.db.profile)
+		return m ~= nil and Mute.Listed(m, full, unit, now or GetTime())
+	end
+	-- One line for /manners debug: only while the table is there or the switch is on.
+	function ns.MuteLines()
+		local db = addon.db and addon.db.profile
+		if not db then return {} end
+		local on = db.filters.skipMuted == true
+		local m = rawget(_G, "OlympusMuteDB")
+		local switch = "|cffffd100" .. L["Skip the players and guilds OlympusMute mutes"] .. "|r"
+		if type(m) ~= "table" then
+			if not on then return {} end
+			return { L["|cffffd100mute list|r -- %s is on, but OlympusMute's list is not loaded: nobody is skipped for it"]:format(switch) }
+		end
+		local players, words = 0, 0
+		if type(m.names) == "table" then
+			for key in pairs(m.names) do
+				if not Through(m, key) then players = players + 1 end
+			end
+		end
+		if type(m.keywords) == "table" then
+			for _, w in ipairs(m.keywords) do if type(w) == "string" and w ~= "" then words = words + 1 end end
+		end
+		if not on then
+			return { L["|cffffd100mute list|r -- %s is off: %d muted players and %d guild words are offered as anybody is"]:format(switch, players, words) }
+		elseif m.enabled ~= true then
+			return { L["|cffffd100mute list|r -- %s is on, but OlympusMute's muting is switched off: nobody is skipped for it"]:format(switch) }
+		end
+		return { L["|cffffd100mute list|r -- %s is on: %d muted players and %d guild words are skipped"]:format(switch, players, words) }
+	end
+end
+
 -- Tell the favour ledger (Ledger.lua) what happened to a favour: one way only,
 -- so it never changes who is offered what, and guarded. Assigns the local
 -- declared above the never-offer list.
@@ -2152,6 +2265,7 @@ end
 -- remembered, and the group may be gone by the time the memory is read.
 local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop, ignoring, dropAsked)
 	local skipClasses = SkippedClasses(db.filters)
+	local mute = Mute.Source(db)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
 		local nearby = memo.reason == "nearby"
@@ -2177,6 +2291,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 			or ns.IsBlocked(name, memo.buff.key, now)
 			or (db.filters.verifiedOnly and nearby and memo.checked and memo.known == nil)
 			or ListedAs(name, verdict) ~= nil
+			or (mute and not debt and Mute.Listed(mute, name, nil, now, memo.guild))
 			or (ignoring and ns.Ignored(name, memo.guid))
 			or not SafeForMacro(name) then
 			passing[name] = nil
@@ -3013,6 +3128,9 @@ function ns.BuildQueue(watch)
 	-- reach is offered one, whatever Only in range says (Battle.lua, Reach):
 	-- so the walk keeps them for a group cast's fold there as that switch does.
 	opts.reachOnly = battle and true or nil
+	-- Skip the players and guilds the mute list mutes: the table once a scan, nil with nothing to skip.
+	opts.mute = Mute.Source(db)
+	opts.muteListed = Mute.Listed
 
 	-- `unasked` walks somebody as if they had made no request (see below).
 	-- `owner` is given for a pet of the group ("My group's pets too",
@@ -3077,6 +3195,16 @@ function ns.BuildQueue(watch)
 		-- Your /ignore list, for everybody outside your group, a favour
 		-- included (ns.Ignored).
 		if ignoring and not inGroup and ns.Ignored(unit) then
+			rejected[full] = true
+			return
+		end
+
+		-- The mute list (filters.skipMuted): as the never-offer list, for
+		-- everybody but a favour owed, a request included; as the other skip
+		-- switches, not your target or focus. A pet is nobody's there. A verdict,
+		-- so a passer-by remembered is not offered from memory.
+		if opts.mute and not isOwed and not pointed and not owner
+			and opts.muteListed(opts.mute, full, unit, now) then
 			rejected[full] = true
 			return
 		end

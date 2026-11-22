@@ -74,6 +74,7 @@ Page.RESET = {
 	skip = {
 		"filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel",
 		"filters.skipGuilds",
+		"filters.skipMuted",
 		"filters.skipNearbyClasses",
 		-- How long a right-click skips (Who to skip > After a right-click).
 		"timing.skipSeconds", "timing.ownSkipMinutes",

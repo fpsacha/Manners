@@ -345,6 +345,8 @@ local function Consider(unit, db, now, strangers, single)
 	-- /ignore outside your group is offered anything either (ns.Ignored).
 	if ns.IsNeverOffered(name) then return nil end
 	if not inGroup and ns.Ignored(unit) then return nil end
+	-- The mute list (Who to skip), as the never-offer list.
+	if ns.MuteListed(name, unit, now) then return nil end
 
 	-- Released: the spirit is what the client reads, and the body is elsewhere.
 	local ghost = Client("UnitIsGhost")

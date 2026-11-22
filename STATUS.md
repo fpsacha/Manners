@@ -113,6 +113,11 @@ than code; do not undo them.
   the point of the addon; the options page says so. Shift-right-clicking an
   owed person lets that one favour go too, or they would come straight back
   when the skip ran out -- including somebody who was already on the list.
+- **The mute list (Who to skip, `filters.skipMuted`, off) follows the never-offer
+  list**: a favour owed and its thank are excepted, and, as with the other skip
+  switches, your target and focus are still offered (an ask and a
+  resurrection hold a muted player regardless). Read live, never copied or written; its own muting switched
+  off skips nobody. Shown only while its saved table is there (GitHub issue 30).
   Friends-first orders people *within* a kind of offer (group, passers-by)
   and never across one, and below the range key: a friend known to be out of
   range never leads over somebody in range.

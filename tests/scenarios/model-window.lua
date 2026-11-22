@@ -418,7 +418,7 @@ local EXPECTED = {
 		"beast.call", "beast.revive", "beast.feed", "beast.mend", "beast.bond", "beast.fightMend",
 		"beast.all", "beast.leaveFood", "beast.growl", "beast.training", "beast.pace", "beast.answer", "beast.words", "beast.memory", "beast.praise", "beast.comfort", "beast.welcome", "beast.sorry", "beast.hello", "beast.morning", "beast.road", "beast.play", "beast.share", "beast.family", "beast.missed", "beast.saved", "beast.grown", "beast.anniversary",
 	},
-	skip = { "filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.skipGuilds", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel",
+	skip = { "filters.skipPvP", "filters.skipFighting", "filters.skipSameClass", "filters.skipGuilds", "filters.skipMuted", "filters.skipNearbyClasses", "filters.requireInRange", "filters.minLevel",
 		"timing.skipSeconds", "timing.ownSkipMinutes" },
 	when = {
 		"filters.whenBuffed", "filters.refreshUnder", "filters.refreshRaid",

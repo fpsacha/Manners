@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WhatsNew = {
+	{ version = "Unreleased", date = "21 November 2026", sections = {
+		{ title = "Highlights", accent = "ffd100", entries = {
+			"|cffffd100Skip the players and guilds OlympusMute mutes|r (off, shown when OlympusMute is loaded): the players and guilds it mutes are left out like the never-offer list; a favour owed is still returned.",
+		} },
+	} },
 	{ version = "1.11.37", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100New page In a fight:|r hiding the prompt, the rota, the fight key, and the Will of the Forsaken, Mend Pet and cure buttons, all in one place.",
@@ -45,14 +50,6 @@ ns.WhatsNew = {
 			"|cffff9a52The page's scroll bar stays under the cursor|r when the page grows or shrinks while you drag it.",
 			"|cffff9a52Your own words for an ask are cut on a whole letter.|r A long line in Chinese, Korean or an accented language no longer ends on half a character.",
 			"|cffff9a52Wording:|r |cffffffffCure myself too|r reads \"reinigen\" in German, and Fire Ward and Frost Ward carry the game's own names in French and Korean.",
-		} },
-	} },
-	{ version = "1.11.34", date = "21 November 2026", sections = {
-		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Will of the Forsaken and Mend Pet stay out of sight until you need them.|r The two fight buttons no longer sit dim beside the prompt for the whole fight.",
-		} },
-		{ title = "New", accent = "7cc4ff", entries = {
-			"|cff7cc4ffYour key can cast a shield, or a quick heal, in a fight.|r A new setting on Look, under |cffffffffIn a fight|r: |cffffffffIn a fight, my key casts|r.",
 		} },
 	} },
 }

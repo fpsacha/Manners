@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+*21 November 2026*
+
+### Highlights
+- **Skip the players and guilds OlympusMute mutes** (off, shown when OlympusMute
+  is loaded): the players and guilds it mutes are left out like the never-offer
+  list; a favour owed is still returned. GitHub issue 30.
+
 ## 1.11.37
 
 *21 November 2026*
