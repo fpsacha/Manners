@@ -8,65 +8,37 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Where I left off
 
-*21 November 2026, late. Last release: 1.11.38.*
+*22 November 2026. Last release: 1.11.40.*
 
-- **Released today:** 1.11.37 (the menu pass: pages *In a fight*, *Quiet
-  times*, *My own buffs*, *My pet*; the changed marks; plain English; issue 26's
-  cast watch, which names the caster of a buff on you from the cast seen at that
-  moment, exactly one player or nobody) and 1.11.38 (issues 28 to 31: controller
-  buttons in every key box, battlegrounds after a death, *Paste a list of
-  names*, *Skip the players and guilds OlympusMute mutes* (the owner asked for
-  it by name), *Hold my food, stones and oils while I move*; the retail
-  hunter's options window; *Offer my cure in a fight* on by default, its button
-  still taking a click with no key because the owner clicks on screen).
-- **In the next release (unreleased):** *Make a healthstone* (GitHub issue 32), on
-  by default for every warlock: Create Healthstone is offered when no stone of any
-  rank is in the bags (`holds` family `makehealthstone`, `tests/scenarios/healthstone.lua`),
-  outside a fight, standing still, with a Soul Shard where the spell uses one.
-- **Also unreleased:** the cure button where the game hides debuffs (GitHub
-  issue 36): `ns.CureFightRead` reads `GetUnitAuraInstanceIDs(unit,
-  "HARMFUL|RAID")` under secrecy, the group is watched through it and somebody
-  on the list with every aura withheld shows as "a debuff you can remove"; and
-  *A button for each cure* (`prompt.cureFightEach`, on): MannersCureFight2 below
-  the first, `CLICK MannersCureFight2:LeftButton`, one header
-  (`tests/scenarios/curefight.lua`). Noted, not built: Abolish Poison for a
-  druid, and naming the kind under secrecy through `GetAuraDispelTypeColor`
-  with a curve (the dispel-type ids are not documented).
-- **Also unreleased:** *Food still offered outside dungeons and raids*
-  (`ownBuffs.foodOutside`, off; GitHub issue 37): with *Consumables only in
-  dungeons and raids* ticked, food (Well Fed) still comes up out in the world.
-  `ns.OwnItemsWaitForDungeon` (Core.lua) is the hold `OwnVerdict` reads;
-  `ns.OwnItemsHeldToDungeons` stays the plain classifier itemsLast and the
-  battleground extras read (`tests/scenarios/foodoutside.lua`).
-- **Also unreleased:** /moo joins the thank emotes, last on the list for any race
-  (GitHub issue 35; `tests/scenarios/thankemotes.lua`). Will of the Forsaken
-  shows on control lost in a fight where the game withholds the type or has no loss-of-control API (GitHub issue 33),
-  and FEAR_MECHANIC is in its row (`tests/scenarios/wotfneed.lua`).
-- **Also unreleased:** your own buffs in a battleground after a death (GitHub issue 38).
-  `NamesYou` (Clicks.lua) reads the cast event's target as you in every spelling
-  (the filed name with the surname, the first name alone, the first name
-  joined to your own realm; a namesake from another realm is not you), so a Mark of the Wild or Thorns you cast on yourself is noted;
-  NoteRefusal (Queue.lua) notes a bounce on you ("a stronger one is on you")
-  the same way (`tests/scenarios/bg-selfname.lua`).
-- **Waiting to post:** four CurseForge replies (KestrelWild, vladsnz, zeekro,
-  and Cloud2668's thread for ZachrielCl). Chrome dropped before they went up;
-  the drafts are in the nightly's `state.json` under `pending`. Check the page
-  first; post each once.
-- **Baselines:** the retail and Mists runs showed about 150 and 110 reds beyond
-  their baselines; the real one (the retail hunter) is fixed and the Forever-only
-  fixtures adapt. The RENAMED reds (old lines whose text the menu pass changed)
-  still need writing in: `python tests/runscenarios.py --flavour mainline
-  --update-baseline --jobs 4`, then `--flavour mists`, read before committing.
-- **Waiting on players:** issue 21 (no popup: their client and
-  `/manners debug`), issue 22 (the imp's Fire Shield) and issue 38 (which game,
-  and `/manners debug` for the "battleground" lines).
-- **Old worktrees kept on purpose:** `look-fel`, `look-wild` and `relcheck`
-  (uncommitted files in them), plus `logo` and `ci-diag-generators` (branches
-  not merged). Leave them unless the owner asks.
+- **Released today:** 1.11.38 (controller buttons in key boxes, battlegrounds
+  after a death, mute list, hold food while moving), 1.11.39 (healthstone
+  reminder, Will of the Forsaken on loss of control, /moo, cure button for
+  secret auras and a button per cure, *Food still offered outside dungeons and
+  raids*) and 1.11.40 (own buffs asked again after a death in a battleground:
+  the cast on yourself went unnoticed under Forever's surname spelling, issue
+  38). All issues from 32 to 38 are closed.
+- **In flight:** nothing. No worktree of this session is open; no workflow runs.
+  Old worktrees kept on purpose (uncommitted files or unmerged): `look-fel`,
+  `look-wild`, `relcheck`, `logo`, `ci-diag-generators`.
+- **Waiting on the owner:** nothing.
+- **Waiting on players:** issue 33 (which game, the Will of the Forsaken
+  button), issue 39 (nonpromqueen: which "special, longer thank-you" option
+  went missing; nothing was found removed), issue 22 (the imp's Fire Shield),
+  issue 21 (no popup: their client and `/manners debug`). The cure button on
+  Forever under secret auras is only proven in the simulator: user_fer3yhwuvuz52jwg
+  and LuckyDan were asked for `/manners debug` if it still does not show.
+- **Next:** (1) rewrite the retail and Mists baselines: `python
+  tests/runscenarios.py --flavour mainline --update-baseline --jobs 4`, then
+  `--flavour mists`, read the diff, commit. (2) Read new CurseForge comments
+  and `gh issue list --label player`; build, whole suite, release, no asking.
+  (3) If nonpromqueen names an option, find where it went.
 - **Watch out:** the nightly pass (11 PM) answers comments and can release on
-  its own. Before replying, check the page and `gh issue list --label player`.
-  Before merging, check `git branch --list "feedback-*"`. Releases go out
-  without asking the owner once the whole suite is green on the exact commit.
+  its own: check the page and `git branch --list "feedback-*"` first. All of
+  today's CurseForge replies are posted (201); its `state.json` lists them. I
+  once dropped its `pending` notes by mistake and rewrote them condensed. A
+  reply to a comment never goes up twice (`.claude/snippets/curseforge-reply.js`).
+  Releases go out without asking once the whole suite is green on the exact
+  commit.
 
 ## State
 
