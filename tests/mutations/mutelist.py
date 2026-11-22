@@ -105,10 +105,16 @@ mutate("Options/Who.lua",
        expect="mutelist: with no mute list the switch is hidden and nothing breaks", script=S)
 
 mutate("Queue.lua",
-       "\t\t\tor (mute and not debt and Mute.Listed(mute, name, nil, now, memo.guild))\n",
+       "\t\t\tor (mute and not (debt and LiveExpiry(debt) > now) and Mute.Listed(mute, name, nil, now, memo.guild))\n",
        "",
        "mutelist: a muted passer-by is offered from memory",
        expect="mutelist: a passer-by remembered is not offered from memory once muted", script=S)
+
+mutate("Queue.lua",
+       "\t\t\tor (mute and not (debt and LiveExpiry(debt) > now) and Mute.Listed(mute, name, nil, now, memo.guild))\n",
+       "\t\t\tor (mute and not debt and Mute.Listed(mute, name, nil, now, memo.guild))\n",
+       "mutelist: a lapsed favour exempts a muted passer-by from memory",
+       expect="mutelist: a favour that has lapsed no longer lets somebody muted through from memory", script=S)
 
 mutate("Ask.lua",
        "\tif ns.MuteListed(full, unit, now) then return nil end\n",
@@ -117,7 +123,7 @@ mutate("Ask.lua",
        expect="mutelist: nobody muted is asked for a buff", script=S)
 
 mutate("Resurrect.lua",
-       "\tif ns.MuteListed(name, unit, now) then return nil end\n",
+       "\tif ns.MuteListed(name, unit, now)\n\t\tand not (plain(UnitIsUnit(unit, \"target\")) or plain(UnitIsUnit(unit, \"focus\"))) then return nil end\n",
        "",
        "mutelist: a muted player is offered a resurrection",
        expect="mutelist: nobody muted is offered a resurrection", script=S)

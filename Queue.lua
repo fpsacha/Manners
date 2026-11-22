@@ -2291,7 +2291,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 			or ns.IsBlocked(name, memo.buff.key, now)
 			or (db.filters.verifiedOnly and nearby and memo.checked and memo.known == nil)
 			or ListedAs(name, verdict) ~= nil
-			or (mute and not debt and Mute.Listed(mute, name, nil, now, memo.guild))
+			or (mute and not (debt and LiveExpiry(debt) > now) and Mute.Listed(mute, name, nil, now, memo.guild))
 			or (ignoring and ns.Ignored(name, memo.guid))
 			or not SafeForMacro(name) then
 			passing[name] = nil

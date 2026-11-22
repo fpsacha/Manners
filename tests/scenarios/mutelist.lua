@@ -244,6 +244,31 @@ do
 	end)
 end
 
+do
+	local scenario = "mutelist: a favour that has lapsed no longer lets somebody muted through from memory"
+	with(scenario, function(ns, db, world)
+		ns.db.profile.filters.skipMuted = false
+		queue(ns)
+		H.owe(ns, ANNA)
+		world.names.nameplate1 = nil
+		Mock.advance(2)
+		local kept = false
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.name == ANNA then kept = true end
+		end
+		if not kept then
+			fail(scenario, "SKIPPED -- she is not offered with nobody in reach")
+			return
+		end
+		ns.owed[ANNA].expires = GetTime() - 1
+		ns.db.profile.filters.skipMuted = true
+		db.names[key(ANNA)] = "x"
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.name == ANNA then fail(scenario, "a muted passer-by whose favour lapsed was offered from memory") end
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ 9
 do
 	local scenario = "mutelist: your target is still offered"
