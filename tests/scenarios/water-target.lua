@@ -342,6 +342,9 @@ scene("water-target: One stack puts one of each",
 	end
 	local lines = table.concat(ns.Prompt:ClickSummary(tess, ns.Prompt.state), "\n")
 	if lines:find("fills the trade window", 1, true) then fail(scenario, "the tooltip says the window is filled: " .. lines) end
+	if ns.Prompt:ReasonText(tess) ~= "trade water and food to your target" then
+		fail(scenario, "one stack of each is not worded as water and food: " .. tostring(ns.Prompt:ReasonText(tess)))
+	end
 	ns.Prompt:Refresh()
 	pressButton(ns)
 	openTrade(ns, w, names)
@@ -576,16 +579,53 @@ scene("water-target: a target past trade range is not offered the trade",
 end)
 
 -- --------------------------------------------------------- water-target 16
-scene("water-target: a target who opens the trade themselves gets the fill",
+scene("water-target: a target who opens the trade themselves gets nothing put in",
 	{ bags = { { WATER_TOP, 20 }, { FOOD_TOP, 20 } } }, function(ns, w, names)
-	local scenario = "water-target: a target who opens the trade themselves gets the fill"
+	local scenario = "water-target: a target who opens the trade themselves gets nothing put in"
 	if not entryFor(ns, TESS) then
 		fail(scenario, "SKIPPED -- the target is not offered a trade")
 		return
 	end
 	openTrade(ns, w, names)
-	if w.trade[1] ~= WATER_TOP or w.trade[2] ~= FOOD_TOP then fail(scenario, "the window holds " .. tradeText(w)) end
+	if w.trade[1] ~= nil or w.clicks ~= 0 then fail(scenario, "the window holds " .. tradeText(w)) end
 	if w.accepted then fail(scenario, "Manners accepted the trade") end
+end)
+
+-- The full tooltip of a target offer holds no "unreadable" line, and the mana
+-- floor holds the offer back whatever it keeps.
+scene("water-target: no unreadable-buff line on the target's tooltip, and the mana floor holds the offer",
+	{ levels = { target = 30 } }, function(ns, w)
+	local scenario = "water-target: no unreadable-buff line on the target's tooltip, and the mana floor holds the offer"
+	local tess = entryFor(ns, TESS)
+	if not (tess and tess.courtesy) then
+		fail(scenario, "SKIPPED -- the target is not offered water")
+		return
+	end
+	local lines = {}
+	local realAdd = GameTooltip.AddLine
+	GameTooltip.AddLine = function(_, text) lines[#lines + 1] = tostring(text) end
+	ns.Prompt:ApplyTarget(tess)
+	ns.db.profile.prompt.tooltip = "full"
+	local onEnter = ns.Prompt:GetButton().scripts.OnEnter
+	if onEnter then pcall(onEnter, ns.Prompt:GetButton()) end
+	GameTooltip.AddLine = realAdd
+	if table.concat(lines, "\n"):find("unreadable", 1, true) then
+		fail(scenario, "the target's tooltip warns of an unreadable buff")
+	end
+	local db = ns.db.profile
+	db.filters.manaFloor = 30
+	db.filters.manaFloorKeeps = "asked"
+	local realPower = _G.UnitPower
+	_G.UnitPower = function() return 200 end
+	Mock.advance(1)
+	local saving = ns.SavingMana() ~= nil
+	local offered = entryFor(ns, TESS)
+	_G.UnitPower = realPower
+	if not saving then
+		fail(scenario, "SKIPPED -- the floor is not saving mana at 20%")
+	elseif offered then
+		fail(scenario, "the target is offered below the mana floor")
+	end
 end)
 
 -- --------------------------------------------------------- water-target 17

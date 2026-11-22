@@ -901,6 +901,11 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 	end
 	-- Your target, after those who asked: theirs wins for the same person.
 	local aim = Aimed(now)
+	-- Nobody asked for it: held back while you save mana, whatever the floor keeps.
+	if aim and ns.SavingMana and ns.SavingMana() ~= nil then
+		State(aim).verdict = "mana"
+		aim = nil
+	end
 	if aim then
 		local st = State(aim)
 		st.keys, st.unit, st.pointed, st.verdict, st.detail = KeysOf(aim), "target", true, nil, nil
@@ -1003,7 +1008,7 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 								local other = each == "courtesy:water" and "courtesy:food" or "courtesy:water"
 								if Both(set) then
 									plan.noun = L["water and food"]
-								elseif plan.stage == "trade" and Filling(each) and tries[other]
+								elseif plan.stage == "trade" and tries[other]
 									and tries[other][1] and tries[other][1].stage == "trade" then
 									plan.noun = L["water and food"]
 								end
@@ -1023,7 +1028,7 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 					for i, entry in ipairs(queue) do
 						if entry.name == full then
 							at = i
-							waits = entry.groupCast ~= nil or (entry.priority or 9) <= asked
+							waits = entry.groupCast ~= nil or st.targeted == true or (entry.priority or 9) <= asked
 							break
 						end
 					end
@@ -1407,10 +1412,10 @@ function Courtesy.TradeOpened()
 	-- anything: what an earlier one left standing is not gone by.
 	local db = addon.db and addon.db.profile
 	if not (db and db.enabled) or ns.SnoozeLeft(now) or (db.prompt and db.prompt.locked == false) then return end
-	-- Those who asked, and your target who was on offer.
+	-- Those who asked. Your target who opens a trade unasked gets nothing put in:
+	-- only a press of the prompt (above) fills for them.
 	local requests = {}
 	for i = #(list or {}), 1, -1 do requests[#requests + 1] = list[i] end
-	if aimed.request and db.sources.courtesyTarget == true then requests[#requests + 1] = aimed.request end
 	for _, request in ipairs(requests) do
 		local st = state[request]
 		-- Only what the last scan had on the prompt for them, or would have

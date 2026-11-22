@@ -16,7 +16,7 @@ ONLY = P + "nothing but conjured water and food goes in the trade"
 CURSOR = P + "the cursor holding something, nothing goes in and nothing is dropped"
 REST = P + "once traded or skipped they are left alone for ten minutes"
 FAR = P + "a target past trade range is not offered the trade"
-THEIRS = P + "a target who opens the trade themselves gets the fill"
+THEIRS = P + "a target who opens the trade themselves gets nothing put in"
 OPTIONS = P + "the switch shows for a mage alone, How much to trade beside it, and both reset"
 RESET = "model: the reset puts who back"
 
@@ -114,9 +114,10 @@ mutate("Courtesy.lua",
 
 # The target who opens the trade is not looked at.
 mutate("Courtesy.lua",
-       "\tif aimed.request and db.sources.courtesyTarget == true then requests[#requests + 1] = aimed.request end\n",
-       "\tif false then requests[#requests + 1] = aimed.request end\n",
-       "water-target: a trade the target opened is left empty",
+       "\tfor i = #(list or {}), 1, -1 do requests[#requests + 1] = list[i] end\n",
+       "\tfor i = #(list or {}), 1, -1 do requests[#requests + 1] = list[i] end\n"
+       "\tif aimed.request then requests[#requests + 1] = aimed.request end\n",
+       "water-target: a trade the target opened is filled",
        expect=THEIRS, script=S)
 
 # The control shows for every class.
@@ -132,3 +133,17 @@ mutate("Options/Advanced.lua",
        "",
        "water-target: the page's reset leaves the target's water and food",
        expect=RESET, script=S)
+
+# The mana floor holds the unasked target offer.
+mutate("Courtesy.lua",
+       "\tif aim and ns.SavingMana and ns.SavingMana() ~= nil then\n",
+       "\tif false then\n",
+       "water-target: the target is offered below the mana floor",
+       expect=P + "no unreadable-buff line on the target's tooltip, and the mana floor holds the offer", script=S)
+
+# The full tooltip of a target's offer warns of nothing unreadable.
+mutate("Prompt/Button.lua",
+       "\tif entry.checked and entry.known == nil and not entry.courtesy then\n",
+       "\tif entry.checked and entry.known == nil then\n",
+       "water-target: the target's tooltip warns of an unreadable buff",
+       expect=P + "no unreadable-buff line on the target's tooltip, and the mana floor holds the offer", script=S)

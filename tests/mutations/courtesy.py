@@ -124,7 +124,7 @@ mutate("Courtesy.lua",
 
 # A favour owed is pushed out by the water they asked for.
 mutate("Courtesy.lua",
-       "\t\t\t\t\t\t\twaits = entry.groupCast ~= nil or (entry.priority or 9) <= asked\n",
+       "\t\t\t\t\t\t\twaits = entry.groupCast ~= nil or st.targeted == true or (entry.priority or 9) <= asked\n",
        "\t\t\t\t\t\t\twaits = false\n",
        "courtesy: a courtesy takes a favour's place",
        expect=FAVOUR, script=S)
