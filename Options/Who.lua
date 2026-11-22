@@ -516,7 +516,7 @@ local function AddOwnControls(args)
 				control.name = function() return ns.OwnFamilyLabel(family) end
 				control.desc = function()
 					if family.tank then
-						return L["Automatic reminds you only while your group role is tank; Always reminds you whenever it is not up."]
+						return L["Automatic reminds you while your group role is tank, or, when you are alone, while your talents are a tank's; Always reminds you whenever it is not up."]
 					end
 					-- Fire Ward or Frost Ward (Buffs.lua, brief): outside a fight only.
 					if family.brief then return L["Reminds you when no ward is on you. Automatic takes the one you had up last, else the first you know. Outside a fight only: from the pull until the fight ends Manners offers no ward, so in a fight you recast it yourself. Off until you turn it on."] end
