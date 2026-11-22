@@ -103,6 +103,11 @@ do
 		elseif why == "none" then
 			return L["%s: Automatic has nothing it would pick."]:format(label)
 		elseif why == "dungeon" then
+			-- Food still offered outside dungeons and raids leaves food out of the hold.
+			local profile = ns.addon.db and ns.addon.db.profile
+			if profile and profile.ownBuffs.foodOutside == true then
+				return L["%s: oils, stones, flasks, elixirs and scrolls are only offered in a dungeon or a raid."]:format(label)
+			end
 			return L["%s: oils, stones, food, flasks, elixirs and scrolls are only offered in a dungeon or a raid."]:format(label)
 		elseif why == "maxlevel" then
 			return L["%s: you are at the level cap, with no experience left to gain."]:format(label)

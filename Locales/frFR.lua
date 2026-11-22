@@ -439,6 +439,7 @@ L["%s: the game says %s cannot be cast right now."] = "%s : selon le jeu, le sor
 L["%s: %s waits until you dismount."] = "%s : %s attend que vous descendiez de monture."
 L["%s: Automatic has nothing it would pick."] = "%s : le mode Automatique n'a rien à choisir."
 L["%s: oils, stones, food, flasks, elixirs and scrolls are only offered in a dungeon or a raid."] = "%s : huiles, pierres, nourriture, flacons, elixirs et parchemins ne sont proposés qu'en donjon ou en raid."
+L["%s: oils, stones, flasks, elixirs and scrolls are only offered in a dungeon or a raid."] = "%s : huiles, pierres, flacons, elixirs et parchemins ne sont proposés qu'en donjon ou en raid."
 L["%s: you are at the level cap, with no experience left to gain."] = "%s : vous êtes au niveau maximum, sans plus d'expérience à gagner."
 L["%s: you are resting in the bag, or it is cooling down."] = "%s : vous vous reposez dans le sac, ou il est en temps de recharge."
 L["%s: %s is ticked under Never remind me about."] = "%s : %s est coché dans « Ne jamais me rappeler »."

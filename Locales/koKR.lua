@@ -439,6 +439,7 @@ L["%s: the game says %s cannot be cast right now."] = "%s: 게임에 따르면 �
 L["%s: %s waits until you dismount."] = "%s: 탈것에서 내릴 때까지 %s을(를) 기다립니다."
 L["%s: Automatic has nothing it would pick."] = "%s: 자동으로 고를 주문이 없습니다."
 L["%s: oils, stones, food, flasks, elixirs and scrolls are only offered in a dungeon or a raid."] = "%s: 오일, 숫돌, 음식, 영약, 비약, 두루마리는 던전이나 공격대에서만 제안합니다."
+L["%s: oils, stones, flasks, elixirs and scrolls are only offered in a dungeon or a raid."] = "%s: 오일, 숫돌, 영약, 비약, 두루마리는 던전이나 공격대에서만 제안합니다."
 L["%s: you are at the level cap, with no experience left to gain."] = "%s: 최고 레벨이라 더 얻을 경험치가 없습니다."
 L["%s: you are resting in the bag, or it is cooling down."] = "%s: 침낭에서 쉬는 중이거나 재사용 대기시간입니다."
 L["%s: %s is ticked under Never remind me about."] = "%s: %s 주문은 '알림 제외 주문'에서 선택되어 있습니다."

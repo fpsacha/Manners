@@ -439,6 +439,7 @@ L["%s: the game says %s cannot be cast right now."] = "%s：游戏提示%s现在
 L["%s: %s waits until you dismount."] = "%s：%s会等你下坐骑后再提示。"
 L["%s: Automatic has nothing it would pick."] = "%s：“自动”没有可选的法术。"
 L["%s: oils, stones, food, flasks, elixirs and scrolls are only offered in a dungeon or a raid."] = "%s：只有在地下城或团队副本中才会提示使用油、磨刀石、食物、合剂、药剂和卷轴。"
+L["%s: oils, stones, flasks, elixirs and scrolls are only offered in a dungeon or a raid."] = "%s：只有在地下城或团队副本中才会提示使用油、磨刀石、合剂、药剂和卷轴。"
 L["%s: you are at the level cap, with no experience left to gain."] = "%s：你已达到等级上限，没有经验可以获得。"
 L["%s: you are resting in the bag, or it is cooling down."] = "%s：你正在睡袋里休息，或它还在冷却中。"
 L["%s: %s is ticked under Never remind me about."] = "%s：%s 已在“永不提醒的法术”中勾选。"
