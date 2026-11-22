@@ -2557,14 +2557,15 @@ def build_options(addon_dir, snaps):
                                 "Resurrection and cures", "Resurrect my group's dead", "Cure my party and raid",
                                 "Blessing of Wisdom", "Blessing of Kings", "Blessing of Might"])
     if scene:
-        # Two columns: a section's heading stands beside the first, not under it.
-        first, second = find_text(scene, "Offer my buff to"), find_text(scene, "My group and raid")
+        # Two columns: a section's heading stands beside the first, not under it
+        # (since the menu pass, Buff order heads the second column).
+        first, second = find_text(scene, "Offer my buff to"), find_text(scene, "Buff order")
         if first is None or second is None:
             problem("%s: the page's sections are not all there" % key)
             return
         a, b = scene.geo.rect(first), scene.geo.rect(second)
         if not (b[0] > a[0] + 300 and abs(b[3] - a[3]) < 4):
-            problem("%s: the page is not in two columns: My group and raid is not beside Offer my buff to" % key)
+            problem("%s: the page is not in two columns: Buff order is not beside Offer my buff to" % key)
         snaps[key] = {"scene": scene}
 
 
