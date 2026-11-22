@@ -1050,6 +1050,11 @@ do
 	for client, data in pairs(ns.CONSUMABLES or {}) do
 		local list = {}
 		local flask = Family("flask", L["Flask"], data.flask, "flask")
+		-- A flask stays on through death (above), so a battleground's hidden
+		-- reading of one is never taken as gone with it (Core.lua,
+		-- GoneWithDeath). Mists' Crystal of Insanity (`lapses`) keeps the
+		-- unread answer it had.
+		if flask then flask.throughDeath = true end
 		-- The slot each elixir row names (Consumables.lua's fourth value, on the
 		-- clients with two): a family per slot, both of the spell prefix
 		-- "elixir", so every spell's key stays "elixir<item>" as it was.

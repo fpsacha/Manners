@@ -221,6 +221,11 @@ do
 	function ns.CastName(entry)
 		local name = ns.EntrySpellName(entry)
 		local buff = entry and entry.buff
+		-- A name that ends in a bracket of its own ("Create Healthstone
+		-- (Major)" on Forever and the Classic clients) is read by the macro as
+		-- a rank of a spell that does not exist: "()" after it, as Courtesy.lua
+		-- writes it (CastText).
+		if type(name) == "string" and name:sub(-1) == ")" and not (buff and buff.item) then return name .. "()" end
 		local ranks = buff and buff.ranks
 		if not ranks or #ranks < 2 or buff.item or entry.groupCast then return name end
 		if StrategyFor(entry) ~= "target" then return name end
