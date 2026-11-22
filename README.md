@@ -195,7 +195,8 @@ Nothing shows in a fight.
 
 1. **A key.** Bound on Start here or under **Options > Keybindings >
    Manners**. It is saved with your game key bindings, so it follows every
-   profile. A press does what a click on the prompt does.
+   profile. A press does what a click on the prompt does. The key boxes in the
+   options window take a controller button too: click the box and press it.
 2. **An action bar.** *Put Manners on an action bar* makes the Manners macro
    (or puts it right, if it is there) and puts it on your cursor. A press of
    the slot, by mouse or by key, casts what a press of the prompt would, at

@@ -52,6 +52,10 @@ stands now. Keep it short: what ships goes to the history file or away.
 
 ## Open
 
+- **GitHub issue 28 (first press of a CLICK bind errors).** Nothing in the press
+  path fails on a first press: the mock casts once on it. Waiting on the
+  player's error text or a `/manners clicks` log. Meanwhile the key boxes take a
+  controller button (`WidgetsChoice.lua`, `tests/scenarios/gamepad-key.lua`).
 - **Classic Era, TBC, Mists and retail get less care than Forever.** Their
   baselines took in about 900 to 1,250 known reds each on 15 November. Most of
   those are Forever fixtures (two-part names, Forever's scrolls and group

@@ -498,7 +498,7 @@ KIND.color = {
 
 ---------------------------------------------------------------------------
 -- keybinding: a capture button. Click it, then press the key, a mouse button
--- other than the two that work it, or turn the wheel; Escape cancels, a
+-- other than the two that work it, a controller button, or turn the wheel; Escape cancels, a
 -- right-click clears it. Written through the definition's set
 -- (Setup.SetKey), which refuses in a fight; the control is greyed out there
 -- by its own disabled anyway.
@@ -524,6 +524,7 @@ local function StopCapture(row)
 	capturing = nil
 	row.button:EnableKeyboard(false)
 	row.button:EnableMouseWheel(false)
+	if row.button.EnableGamePadButton then row.button:EnableGamePadButton(false) end
 	KeyLook(row)
 end
 
@@ -541,6 +542,8 @@ local function StartCapture(row)
 	row.button:EnableKeyboard(true)
 	row.button:SetPropagateKeyboardInput(false)
 	row.button:EnableMouseWheel(true)
+	-- A controller button is a key to bind too, only while one is waited for.
+	if row.button.EnableGamePadButton then row.button:EnableGamePadButton(true) end
 	KeyLook(row)
 end
 
@@ -572,6 +575,26 @@ local function KeyPressed(button, key)
 	end
 	-- A modifier on its own is the start of a chord, not the key.
 	if MODIFIER_KEYS[key] then return end
+	Take(row, key)
+end
+
+-- The controller's triggers or bumpers can be set to act as Shift, Ctrl or
+-- Alt; one of those on its own starts a chord, as a modifier key does.
+local PAD_MODIFIER_CVARS = { "GamePadEmulateShift", "GamePadEmulateCtrl", "GamePadEmulateAlt" }
+
+local function PadModifier(key)
+	if type(GetCVar) ~= "function" then return false end
+	for _, name in ipairs(PAD_MODIFIER_CVARS) do
+		if GetCVar(name) == key then return true end
+	end
+	return false
+end
+
+-- A controller button (PAD1, PADDUP, PADLSHOULDER, ...) is bound as a key is.
+local function PadPressed(button, key)
+	local row = button.row
+	if capturing ~= row or type(key) ~= "string" or key == "" then return end
+	if PadModifier(key) then return end
 	Take(row, key)
 end
 
@@ -629,6 +652,9 @@ KIND.keybinding = {
 		b:SetScript("OnClick", function(self, mouse) ns.Guard("options key", KeyClicked, self, mouse) end)
 		b:SetScript("OnKeyDown", function(self, key) ns.Guard("options key", KeyPressed, self, key) end)
 		b:SetScript("OnMouseWheel", function(self, delta) ns.Guard("options key", KeyWheel, self, delta) end)
+		if b.EnableGamePadButton then
+			b:SetScript("OnGamePadButtonDown", function(self, key) ns.Guard("options key", PadPressed, self, key) end)
+		end
 		b:SetScript("OnHide", function(self) ns.Guard("options key", StopCapture, self.row) end)
 		W.Tip(b, row, KeyHover)
 		row.button = b

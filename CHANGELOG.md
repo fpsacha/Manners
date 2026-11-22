@@ -28,6 +28,8 @@
 - **Asking for a buff is on *What I say*,** under the lines; the Fish Bowl,
   campsite and other paladins' blessings fold under *Other people's buffs* on
   *Who to buff*, and *More than buffs* is now *Resurrection and cures*.
+- **A controller button in the key boxes.** The prompt's key on *Start here* (and
+  every other key box) takes a controller button: click the box and press it.
 - **Settings and tooltips are reworded in plain English,** with units in the
   slider boxes instead of in brackets, and chat lines name a page in brackets
   instead of calling it a tab (GitHub issue 23).

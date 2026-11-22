@@ -129,6 +129,7 @@ local function addGeometry(f)
 	f.Raise = function(self) self._raised = (self._raised or 0) + 1 end
 	f.Lower = function(self) self._lowered = (self._lowered or 0) + 1 end
 	f.EnableKeyboard = function(self, on) self._keyboard = on and true or false end
+	f.EnableGamePadButton = function(self, on) self._gamepad = on and true or false end
 	f.IsKeyboardEnabled = function(self) return self._keyboard == true end
 	f.SetPropagateKeyboardInput = function(self, on) self._propagate = on and true or false end
 	f.SetHitRectInsets = function(self, l, r, t, b) self._hitRect = { l, r, t, b } end
@@ -819,6 +820,13 @@ end
 function Mock.keyDown(frame, key)
 	if frame._keyboard ~= true then return false end
 	fire(frame, "OnKeyDown", key)
+	return true
+end
+
+-- A controller button reaching a frame that took it; false when it did not.
+function Mock.padDown(frame, key)
+	if frame._gamepad ~= true then return false end
+	fire(frame, "OnGamePadButtonDown", key)
 	return true
 end
 
