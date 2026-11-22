@@ -4819,7 +4819,6 @@ L["you cured somebody instead"] = "대신 누군가의 효과를 해제했습니
 L["Casts at the player under your mouse, else your target, else you."] = "마우스 아래의 플레이어에게, 없으면 대상에게, 그것도 없으면 나에게 시전합니다."
 L["Casts at your target when it is a friend, else at you."] = "대상이 아군이면 대상에게, 아니면 나에게 시전합니다."
 L["Hold Shift for %s."] = "Shift를 누르고 있으면 %s."
-L["Your cure button is showing, but it has no key, so it takes no click: set |cffffd100%s|r under %s in /manners to cast it."] = "치료 버튼이 표시되지만 단축키가 없어 클릭할 수 없습니다. /manners에서 |cffffd100%s|r을(를) %s 아래에서 설정해 사용하세요."
 L["Key for my cure in a fight"] = "전투 중 해제 단축키"
 L["In a fight"] = "전투 중"
 L["you used your fight key instead"] = "대신 전투용 단축키를 썼습니다"

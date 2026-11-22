@@ -804,36 +804,32 @@ for _, row in ipairs({
 end
 
 -- ------------------------------------------------------------------ 22c
--- The button sits at alpha 0 at every pull, for everybody, beside the prompt:
--- with no key it takes no click (a click meant for the prompt or the world
--- must not cast a cure), and says once, when it first shows, what key to set.
--- A player who set the fight's buttons to All fight chose a button to click.
-with("curefight: with no key the button takes no click out of sight, and a line says what to set", { keep = true, key = false }, function(ns, world)
-	local scenario = "curefight: with no key the button takes no click out of sight, and a line says what to set"
+-- With no key bound (the default profile) the button takes a click out of a
+-- fight, the only way to cast it; with a key bound it takes none, so a click
+-- beside the prompt reaches the world behind. Nothing is printed either way.
+with("curefight: with no key the button takes a click, with a key it takes none", { keep = true, key = false }, function(ns, world)
+	local scenario = "curefight: with no key the button takes a click, with a key it takes none"
 	local button = ns.CureFight:Button()
 	if not button then fail(scenario, "no button for a druid") return end
-	if button._mouse ~= false then fail(scenario, "out of a fight with no key it takes a click (mouse " .. tostring(button._mouse) .. ")") end
+	if button._mouse ~= true then fail(scenario, "out of a fight with no key it takes no click (mouse " .. tostring(button._mouse) .. ")") end
+	if printedHas("has no key") then fail(scenario, "a line was printed about the missing key") end
 	pull(ns)
 	drain()
-	if button._mouse ~= false then fail(scenario, "at alpha 0 in a fight with no key it takes a click (mouse " .. tostring(button._mouse) .. ")") end
-	if button:GetAlpha() ~= 0 then fail(scenario, "SKIPPED -- lit with nobody in need") end
-	if printedHas("has no key") then fail(scenario, "the key line was said with nobody in need") end
-	Mock.printed = {}
 	world.debuffs.party1 = { debuff("Poison", 30) }
 	landed("party1")
-	if (shows(ns)) ~= 1 then fail(scenario, "SKIPPED -- not lit for a poison") return end
-	if not printedHas("has no key") then fail(scenario, "no line told the player to set a key when the button first showed") end
-	Mock.printed = {}
-	world.debuffs.party1 = nil
-	Mock.frameEvent("UNIT_AURA", "party1", { removedAuraInstanceIDs = { 1 } })
-	settle()
-	world.debuffs.party1 = { debuff("Poison", 30) }
-	landed("party1")
-	if printedHas("has no key") then fail(scenario, "the key line was said twice") end
+	if printedHas("has no key") then fail(scenario, "a line was printed about the missing key in a fight") end
 	release(ns)
 	ns.db.profile.prompt.fightButtons = "always"
 	ns.CureFight:Refresh()
-	if button._mouse ~= true then fail(scenario, "with the buttons at All fight and no key it takes no click (mouse " .. tostring(button._mouse) .. ")") end
+	if button._mouse ~= true then fail(scenario, "with no key and All fight it takes no click (mouse " .. tostring(button._mouse) .. ")") end
+end)
+
+with("curefight: with a key bound the button takes no click", { keep = true }, function(ns)
+	local scenario = "curefight: with a key bound the button takes no click"
+	local button = ns.CureFight:Button()
+	if not button then fail(scenario, "no button for a druid") return end
+	if button._mouse ~= false then fail(scenario, "out of a fight with a key it takes a click (mouse " .. tostring(button._mouse) .. ")") end
+	if printedHas("has no key") then fail(scenario, "a line was printed about a key") end
 end)
 
 -- ------------------------------------------------------------------ 23

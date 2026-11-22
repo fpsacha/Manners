@@ -116,7 +116,7 @@ local waitUntil
 -- The last fight, for /manners debug.
 local last = { reads = 0, secret = 0, seen = 0, shownFor = 0 }
 local reasonOf, seenGuid = {}, {}
-local Paint, Flush, Nudge
+local Paint, Flush
 
 local function Profile()
 	return ns.db and ns.db.profile
@@ -459,7 +459,6 @@ Paint = function()
 		if left > 0 and type(cooldown.SetCooldown) == "function" then cooldown:SetCooldown(now + left - length, length) end
 	end
 	SetVisible(true, ready)
-	Nudge()
 	return true
 end
 
@@ -587,37 +586,14 @@ local function ReadKey()
 	keyLabel = type(key) == "string" and key ~= "" and key or nil
 end
 
--- Whether the button takes a click: with no key bound and the fight's buttons
--- at All fight, the player's own choice of a button to click. The switch is on
--- for everybody, so a button that is out of sight (alpha 0) beside the prompt
--- must not swallow a click meant for the prompt or the world behind it: with
--- the default, a key is what casts it (a line says so, the first time it shows
--- with none: Nudge). The client refuses EnableMouse on a protected frame under
--- the lockdown, so only out of one: at Refresh and at the pull, before it.
-local function Always()
-	local db = Profile()
-	return db ~= nil and db.prompt.fightButtons == "always"
-end
-
+-- Whether the button takes a click: only when no key is bound (then a click is
+-- the only way to cast it). With a key it is out of sight or only just in it,
+-- and a click beside the prompt must reach the world behind. The client refuses
+-- EnableMouse on a protected frame under the lockdown, so only out of one: at
+-- Refresh and at the pull, before it.
 local function SetMouse()
 	if not button or InCombatLockdown() then return end
-	button:EnableMouse(keyLabel == nil and Always())
-end
-
--- The first time the button shows with no key and no click to make: said once
--- for the character (char.cureKeyNudged), where the chat shows it.
-local nudged = false
-function Nudge()
-	if nudged or keyLabel ~= nil or Always() then return end
-	local db = ns.db
-	local char = db and db.char
-	if type(char) ~= "table" or char.cureKeyNudged == true then nudged = true return end
-	if db.profile.silentChat == true then return end
-	if ns.Setup and ns.Setup.CanBind and not ns.Setup.CanBind() then return end
-	nudged = true
-	char.cureKeyNudged = true
-	ns.addon:Print(L["Your cure button is showing, but it has no key, so it takes no click: set |cffffd100%s|r under %s in /manners to cast it."]
-		:format(L["Key for my cure in a fight"], L["In a fight"]))
+	button:EnableMouse(keyLabel == nil)
 end
 
 -- From a scan (Core.lua, TickBody) when Wanted says something changed, and as a

@@ -4819,7 +4819,6 @@ L["you cured somebody instead"] = "vous avez dissipé sur quelqu'un d'autre à l
 L["Casts at the player under your mouse, else your target, else you."] = "Lance le sort sur le joueur sous votre souris, sinon sur votre cible, sinon sur vous."
 L["Casts at your target when it is a friend, else at you."] = "Lance le sort sur votre cible si c'est un ami, sinon sur vous."
 L["Hold Shift for %s."] = "Maintenez Maj pour %s."
-L["Your cure button is showing, but it has no key, so it takes no click: set |cffffd100%s|r under %s in /manners to cast it."] = "Votre bouton de soin s'affiche, mais il n'a pas de touche et n'accepte aucun clic : définissez |cffffd100%s|r sous %s dans /manners pour le lancer."
 L["Key for my cure in a fight"] = "Raccourci pour ma dissipation en combat"
 L["In a fight"] = "En combat"
 L["you used your fight key instead"] = "vous avez utilisé votre raccourci de combat à la place"

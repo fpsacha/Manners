@@ -235,15 +235,15 @@ mutate(CF,
        "curefight: a settled scan asks the lockdown first",
        expect="curefight: out of a fight it listens to nothing", script=S)
 
-mutate(CF, "button:EnableMouse(keyLabel == nil and Always())",
-       "button:EnableMouse(keyLabel == nil)",
-       "curefight: the button takes a click out of sight with no key by default",
-       expect="curefight: with no key the button takes no click out of sight, and a line says what to set", script=S)
+mutate(CF, "button:EnableMouse(keyLabel == nil)",
+       "button:EnableMouse(false)",
+       "curefight: mouse off with no key",
+       expect="curefight: with no key the button takes a click, with a key it takes none", script=S)
 
-mutate(CF, "\tSetVisible(true, ready)\n\tNudge()\n",
-       "\tSetVisible(true, ready)\n",
-       "curefight: nothing says a key is missing",
-       expect="curefight: with no key the button takes no click out of sight, and a line says what to set", script=S)
+mutate(CF, "button:EnableMouse(keyLabel == nil)",
+       "button:EnableMouse(true)",
+       "curefight: the button takes a click with its key bound",
+       expect="curefight: with a key bound the button takes no click", script=S)
 
 mutate(CF,
        "\tfor token in pairs(watched) do dirty[token] = true end\n\tlocal frame = CureFight.frame\n",
