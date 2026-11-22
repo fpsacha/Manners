@@ -1760,6 +1760,8 @@ local function LastFavourLine(now)
 	elseif fate == "unnamed" then
 		if last.why == "several" then
 			text = L["nobody to buff back: the game did not say who cast it, and more than one player in sight cast it at that moment"]
+		elseif last.why == "old" then
+			text = L["nobody to buff back: the game did not say who cast it, and Manners first read it %d seconds after it landed, too late to match a cast"]:format(math.floor((last.readLate or 0) + 0.5))
 		elseif last.platesOff then
 			text = L["nobody to buff back: the game did not say who cast it, with friendly nameplates off"]
 		elseif last.why ~= nil and last.why ~= "none" and last.why ~= "else" then
@@ -2154,8 +2156,12 @@ function addon:HandleSlash(rawInput)
 		-- Where there is none, the casts other players make are the other witness.
 		if ns.castWatch.armed then
 			local cast = ns.castWatch
-			self:Print(("  casts by other players: %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters"):format(
-				cast.seen, cast.named, cast.late, cast.several))
+			self:Print(("  casts by other players: %d heard (%d with the spell withheld, %d with the caster withheld, %d with the cast id withheld, %d spells read from the cast id), %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters, %d read too late to match a cast"):format(
+				cast.heard, cast.noSpell, cast.noUnit, cast.noGuid, cast.fromGuid, cast.seen, cast.named, cast.late, cast.several, cast.old))
+			local fav = ns.lastFavour
+			if fav and type(fav.key) == "number" then
+				self:Print(("  casts by other players, the game's rule for spell %d: %s"):format(fav.key, ns.CastSecrecyWord(fav.key)))
+			end
 		end
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
 		-- The key, and why the reminder to set one keeps quiet (Options/Start.lua).

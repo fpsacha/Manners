@@ -23,6 +23,24 @@ tried beyond the sightings under *Open*. The checklist of what only the game
 can settle, on WoW Forever in the owner's own play sessions, is the first item
 under *Open*.
 
+**Who buffed you, the cast watch's counts (issue 26, branch `castwatch-diag`,
+unreleased).** `ns.castWatch` also counts `heard` (every cast by another player
+the event brings), `noSpell`, `noUnit`, `noGuid` (those with the spell, the
+caster or the cast id withheld), `fromGuid` (spells read out of a plain cast id,
+`SpellOfCast`) and `old` (buffs first read more than `LANDED_OLDEST` after they
+landed, said as "read too late" rather than "no player in sight"). A cast whose
+spell or caster is withheld moves `cw.floor`, so the one-person rule cannot name
+a lone caster beside an unreadable one. The check-up and `/manners debug` show
+the counts and the game's own rule for the last buff's spell
+(`C_Secrets.GetSpellCastSecrecy`). Also in this branch: one trail line per loss
+of control (`SAME_LOSS`), saying whether break free lit, for the player's own
+unit only; the cure line counts the game's list of removable debuffs (asked,
+withheld, empty, threw) and the self-test asks it once. What only the game can
+say: Blizzard's API notes flag UNIT_SPELLCAST_SUCCEEDED
+`SecretWhenUnitSpellCastRestricted`, so another player's cast may arrive with
+spell, caster and cast id all withheld on Forever and retail, and the cast watch
+may never name a stranger there. The next check-up's heard counts settle it.
+
 **Feedback pass of 20 November 2026 (unreleased).** *Hold back short buffs in
 cities and inns* now also holds a short group buff cast on yourself
 (`SelfEntry` in `Queue.lua`; own buffs in cities on no longer lets Thorns

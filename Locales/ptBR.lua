@@ -595,6 +595,7 @@ L["How long a favour stays on offer"] = "Por quanto tempo um favor fica oferecid
 L["let go: they are on your never-offer list"] = "dispensado: eles estão na sua lista de nunca oferecer"
 L["let go: they are on your ignore list"] = "dispensado: eles estão na sua lista de ignorados"
 L["nobody to buff back: the game did not say who cast it, and more than one player in sight cast it at that moment"] = "ninguém para retribuir: o jogo não disse quem lançou, e mais de um jogador à vista o lançou naquele momento"
+L["nobody to buff back: the game did not say who cast it, and Manners first read it %d seconds after it landed, too late to match a cast"] = "ninguém para retribuir: o jogo não disse quem lançou, e o Manners só o leu %d segundos depois de ele chegar, tarde demais para ligá-lo a um lançamento"
 L["nobody to buff back: the game did not say who cast it, with friendly nameplates off"] = "ninguém para retribuir: o jogo não disse quem lançou, com as placas de identificação de aliados desligadas"
 L["nobody to buff back: the game did not say who cast it, and a cast was seen at that moment, but Manners could not be sure whose buff it was"] = "ninguém para retribuir: o jogo não disse quem lançou, e um lançamento foi visto naquele momento, mas o Manners não teve certeza de quem era o bônus"
 L["nobody to buff back: the game did not say who cast it, and no player in sight was seen casting it on you"] = "ninguém para retribuir: o jogo não disse quem lançou, e nenhum jogador à vista foi visto lançando em você"

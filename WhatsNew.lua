@@ -21,6 +21,9 @@ ns.WhatsNew = {
 			"|cff7cc4ffMark this moment.|r A key (|cffffffffKey for Mark this moment|r on Diagnostics), the minimap menu and /manners mark note the prompt, the queue and the fight buttons.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Who buffed you.|r The full check-up counts the casts Manners hears from other players, and a buff read late says so instead of \"no player in sight\".",
+			"|cffff9a52Break free.|r Each loss of control is one line on the trail, with whether the button lit.",
+			"|cffff9a52Cure button (check-up).|r /manners debug says whether the game's list of debuffs you can remove is there and what it answered.",
 			"|cffff9a52Cure button.|r It no longer blinks or says nil, shows \"Somebody\" when the game withholds a name, and a Shift key on either binding is read right.",
 			"|cffff9a52Break free.|r A second fear keeps the button lit.",
 			"|cffff9a52Healthstone.|r One whose name ends in a bracket is cast with ().",

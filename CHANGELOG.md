@@ -33,6 +33,12 @@
   keys* group.
 
 ### Fixes
+- **Who buffed you.** The full check-up counts the casts Manners hears from other
+  players, and a buff read late says so instead of "no player in sight".
+- **Break free.** Each loss of control is one line on the trail, with whether the
+  button lit.
+- **Cure button (check-up).** `/manners debug` says whether the game's list of
+  debuffs you can remove is there and what it answered.
 - **Cure button.** It no longer blinks or says nil, shows "Somebody" when the
   game withholds a name, and a Shift key on either binding is read right.
 - **Break free.** A second fear keeps the button lit.

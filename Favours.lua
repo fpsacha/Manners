@@ -29,8 +29,22 @@ local walkAfterFight = false
 -- The cast watch's counters, for /manners debug and the full check-up (the code is
 -- below, after ClaimFavour): `armed` where it listens at all, `seen` casts kept,
 -- `named` landings named from a cast, `late` of them after the window, `several`
--- landings with two or more casters, `none` with nobody to name.
-ns.castWatch = { armed = false, seen = 0, named = 0, late = 0, several = 0, none = 0 }
+-- landings with two or more casters, `none` with nobody to name, `heard` every
+-- cast by another player the event brought (`noSpell`, `noUnit`, `noGuid`: those
+-- with the spell, the caster or the cast id withheld; `fromGuid`: buff spells read
+-- out of a plain cast id), `old` landings read too long after they landed.
+ns.castWatch = { armed = false, seen = 0, named = 0, late = 0, several = 0, none = 0, heard = 0, noSpell = 0, noUnit = 0, noGuid = 0, fromGuid = 0, old = 0 }
+
+-- The game's own rule for a spell's cast being withheld when another player casts
+-- it (C_Secrets.GetSpellCastSecrecy: 0 never, 1 always, 2 contextually), in words
+-- for the check-up.
+function ns.CastSecrecyWord(id)
+	local v = ns.safecall(C_Secrets and C_Secrets.GetSpellCastSecrecy, id)
+	if v == 0 then return "never withheld" end
+	if v == 1 then return "always withheld" end
+	if v == 2 then return "withheld when another player casts it" end
+	return "the game does not say"
+end
 
 ---------------------------------------------------------------------------
 -- thanking them with an emote
@@ -766,7 +780,8 @@ do
 		-- combat log is the source of record nothing is known to be unnamed here).
 		if not source and ns.ALL_BUFF_IDS[key] and ns.castWatch.armed and not seen.awaitCast
 			and plain(aura.isFromPlayerOrPlayerPet) ~= false then
-			Remember(seen, "unnamed", "none")
+			Remember(seen, "unnamed", seen.readLate and "old" or "none")
+			ns.lastFavour.readLate = seen.readLate
 			ns.lastFavour.platesOff = ns.FriendlyPlatesOff() or nil
 		end
 		if not source or source == "player" then return end
@@ -1357,13 +1372,13 @@ do
 		-- When the aura landed, on GetTime's clock, and how late the reading may be:
 		-- from the aura's own timer where it gives both end and length; else the time
 		-- of the reading, which a walk can make up to one tick after the event.
-		-- nil: it landed too long ago to be explained by a cast.
+		-- nil and how long ago: it landed too long ago to be explained by a cast.
 		local function LandedAt(aura, now)
 			local ends, length = plain(aura.expirationTime), plain(aura.duration)
 			if type(ends) == "number" and type(length) == "number" and ends > 0 and length > 0 then
 				local t = ends - length
 				if t > now + 0.5 then return now, 0 end
-				if t < now - LANDED_OLDEST then return nil end
+				if t < now - LANDED_OLDEST then return nil, now - t end
 				return t, 0
 			end
 			local db = addon.db and addon.db.profile
@@ -1557,7 +1572,9 @@ do
 			local now = GetTime()
 			local landed, lag = LandedAt(aura, now)
 			if landed == nil then
-				ns.Trail("favour", ("buffed you (spell %s): it landed too long ago by its own timer to match a cast"):format(tostring(seen.key)))
+				seen.readLate = lag
+				ns.castWatch.old = ns.castWatch.old + 1
+				ns.Trail("favour", ("buffed you (spell %s): Manners first read it %d s after it landed, by its own timer, too long ago to match a cast"):format(tostring(seen.key), math.floor(lag + 0.5)))
 				return nil
 			end
 			seen.low, seen.high = landed - CAST_WINDOW - lag, landed + CAST_WINDOW
@@ -1702,13 +1719,36 @@ do
 			ns.castWatch.seen = ns.castWatch.seen + 1
 		end
 
+		-- The spell a cast id carries, "Cast-<type>-<server>-<instance>-<zone>-<spell>-<cast>"; nil for any other shape. Only ever handed a plain string.
+		local function SpellOfCast(guid)
+			local id = guid:match("^Cast%-%d+%-%d+%-%d+%-%d+%-(%d+)%-%x+$")
+			return id and tonumber(id) or nil
+		end
+
 		-- UNIT_SPELLCAST_SUCCEEDED for every unit, so it drops what is no class buff
 		-- with one table lookup, before any client call and with no protected call, and
 		-- drops the rest too when nothing could use a named caster.
 		local function OnCast(_, _, unit, castGUID, spellID)
 			local id = plain(spellID)
+			local who = plain(unit)
+			if who ~= "player" and who ~= "pet" then
+				local stat = ns.castWatch
+				stat.heard = stat.heard + 1
+				if who == nil then stat.noUnit = stat.noUnit + 1 end
+				local secretGuid = issecretvalue ~= nil and issecretvalue(castGUID) == true
+				if secretGuid then stat.noGuid = stat.noGuid + 1 end
+				if id == nil then
+					stat.noSpell = stat.noSpell + 1
+					if not secretGuid and type(castGUID) == "string" then
+						id = SpellOfCast(castGUID)
+						if id ~= nil and ns.ALL_BUFF_IDS[id] then stat.fromGuid = stat.fromGuid + 1 end
+					end
+				end
+				-- A cast nobody can read (spell or caster withheld) may be a second player's buff: the moment is not vouched for.
+				if id == nil or (who == nil and ns.ALL_BUFF_IDS[id]) then cw.floor = GetTime() return end
+			end
 			if id == nil or not ns.ALL_BUFF_IDS[id] then return end
-			unit = plain(unit)
+			unit = who
 			if type(unit) ~= "string" then return end
 			local db = addon.db and addon.db.profile
 			if not (db and db.enabled) then cw.floor = GetTime() return end

@@ -33,6 +33,17 @@ stands now. Keep it short: what ships goes to the history file or away.
   `Manners-wt-water`), not yet merged: *Offer water and food to my target*,
   *How much to trade* (Fill by default, asked water and food fill too),
   scenarios `water-target.lua`, mutations `water-target.py`.
+- **Cast watch check-up,** on branch `castwatch-diag` (worktree
+  `Manners-wt-castwatch`), not yet merged: the cast watch counts every cast it
+  hears from other players and how much of it the game withheld, reads a spell
+  out of a plain cast id, blocks the one-person rule on a cast nobody can read,
+  and says when a buff was read too long after it landed; one trail line per loss
+  of control, with whether break free lit; the cure line says whether the game's
+  list of removable debuffs is there and what it answered. Scenarios
+  `castwatch-heard.lua`, `loc-trail.lua`, `curefight-list.lua`. Game-only
+  question: Blizzard's notes say other players' casts are secret on Forever and
+  retail (`SecretWhenUnitSpellCastRestricted`), so the cast watch may never name
+  a stranger there; the next check-up's heard counts settle it.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option

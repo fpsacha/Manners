@@ -319,7 +319,7 @@ mutate(BF,
 # --- 19. what /manners debug and the launch check say
 
 mutate(BF,
-       "\t\tlastLoss = { kind = kind or \"none\", how = how or \"plain\", at = GetTime() }\n",
+       "\t\t\tlastLoss = { kind = k, how = h, at = GetTime() }\n",
        "",
        "breakfree: the last loss of control forgotten",
        expect="breakfree: /manners debug and the launch check say what they found", script=S)

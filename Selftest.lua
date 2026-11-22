@@ -1262,7 +1262,21 @@ end)
 Check("fight.apis", "fight", L["what the game says in a fight"], function(add)
 	local auras = _G.C_UnitAuras
 	local lists = type(auras) == "table" and type(auras.GetUnitAuraInstanceIDs) == "function"
-	add(PASS, "the game's list of debuffs you can remove: " .. (lists and "yes" or "no"))
+	-- Asked once, out of a fight, what it answers now.
+	local suffix = ""
+	if lists and not InCombatLockdown() then
+		local ok, ids = pcall(auras.GetUnitAuraInstanceIDs, "player", "HARMFUL|RAID")
+		if not ok then
+			suffix = "; asked now: it threw"
+		elseif Secret(ids) then
+			suffix = "; asked now: withheld"
+		elseif type(ids) == "table" then
+			suffix = ("; asked now: a list of %d"):format(#ids)
+		else
+			suffix = "; asked now: no answer"
+		end
+	end
+	add(PASS, "the game's list of debuffs you can remove: " .. (lists and "yes" or "no") .. suffix)
 	local api = _G.C_LossOfControl
 	local shape = type(api) ~= "table" and "none"
 		or (type(api.GetActiveLossOfControlData) == "function" and "data table")

@@ -143,7 +143,11 @@ local watched, dirty, needy, held = {}, {}, {}, {}
 local flushDue, recheckDue = false, false
 local waitUntil
 -- The last fight, for /manners debug.
-local last = { reads = 0, secret = 0, seen = 0, shownFor = 0, listed = 0, shows = 0 }
+-- `listAsked` reads that asked the game's list of removable debuffs, `listWithheld`
+-- of them with no count back (withheld, or no table), `listEmpty` with an empty list,
+-- `threw` reads that threw.
+local last = { reads = 0, secret = 0, seen = 0, shownFor = 0, listed = 0, shows = 0,
+	listAsked = 0, listWithheld = 0, listEmpty = 0, threw = 0 }
 local reasonOf, seenGuid = {}, {}
 local Paint, Flush
 
@@ -405,15 +409,29 @@ local function ReadOne(unit, now)
 		held[unit] = nil
 		return
 	end
-	local kind, debuff, ends, secret, back, listed
+	local kind, debuff, ends, secret, back, listed, threw
+	local asked = caps.secretRestrictions == true and CanList()
 	if caps.secretRestrictions == true then
 		local ok, k, d, e, s, h, n = pcall(ns.CureFightRead, unit, now, armedKinds)
-		if ok then kind, debuff, ends, secret, back, listed = k, d, e, s, h, n else secret = true end
+		if ok then
+			kind, debuff, ends, secret, back, listed = k, d, e, s, h, n
+		else
+			secret, threw = true, true
+			last.threw = last.threw + 1
+		end
 	else
 		kind, debuff, ends, secret, back, listed = ns.CureFightRead(unit, now, armedKinds)
 	end
 	last.reads = last.reads + 1
 	if secret then last.secret = last.secret + 1 end
+	if asked and not threw then
+		last.listAsked = last.listAsked + 1
+		if listed == nil then
+			last.listWithheld = last.listWithheld + 1
+		elseif listed == 0 then
+			last.listEmpty = last.listEmpty + 1
+		end
+	end
 	local spell = kind and SpellFor(kind) or nil
 	if not spell then
 		-- Nothing readable, but the game's own list says this one carries a
@@ -877,6 +895,7 @@ local function Pull()
 		end
 	end
 	last.reads, last.secret, last.seen, last.shownFor, last.listed, last.shows = 0, 0, 0, 0, 0, 0
+	last.listAsked, last.listWithheld, last.listEmpty, last.threw = 0, 0, 0, 0
 	wipe(needy)
 	wipe(dirty)
 	wipe(held)
@@ -989,8 +1008,10 @@ function ns.CureFightLines()
 		out[1] = out[1] .. ("; second %s key %s"):format(tostring(second.list and second.list[1] and second.list[1].name),
 			tostring(second.keyLabel or (type(GetBindingKey) == "function" and GetBindingKey(CureFight.COMMAND2)) or "none"))
 	end
-	out[2] = ("cure in a fight, last fight: %d reads, %d withheld, %d needing a cure, seen for %d s, %d from the game's list"):format(
-		last.reads, last.secret, last.seen, math.floor(last.shownFor), last.listed)
+	out[2] = ("cure in a fight, last fight: %d reads, %d withheld, %d needing a cure, seen for %d s, %d from the game's list; the game's list of debuffs you can remove: %s, asked %d times, %d withheld, %d empty; %d reads threw"):format(
+		last.reads, last.secret, last.seen, math.floor(last.shownFor), last.listed,
+		CanList() and (caps.secretRestrictions == true and "yes" or "yes, not needed here") or "no",
+		last.listAsked, last.listWithheld, last.listEmpty, last.threw)
 	return out
 end
 
