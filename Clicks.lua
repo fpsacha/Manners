@@ -1086,12 +1086,16 @@ local function IsGroupId(buff, id)
 end
 
 -- Whether the cast event's target names you: nobody named ("" or no SENT seen), your
--- name alone, or your filed name (on Forever with the surname, ns.IsPlayerName), and
--- elsewhere without a realm suffix. As OwnSpells.lua's IsMe reads it.
+-- name alone, your filed name (on Forever with the surname, ns.IsPlayerName), or your
+-- name joined to your own realm. A team-mate on another realm who shares your first
+-- name carries that realm, so he is not you. IsMe (OwnSpells.lua) reads the first two.
 local function NamesYou(to)
 	if to == nil or to == "" then return true end
 	local first = plain(UnitName("player"))
-	return to == first or ns.IsPlayerName(to) or (first ~= nil and ns.ShortName(to) == first)
+	local getRealm = _G.GetNormalizedRealmName
+	local realm = type(getRealm) == "function" and plain(getRealm()) or nil
+	local joined = (first ~= nil and type(realm) == "string" and realm ~= "") and (first .. "-" .. realm) or nil
+	return to == first or ns.IsPlayerName(to) or to == joined
 end
 
 function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)

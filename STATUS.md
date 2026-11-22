@@ -44,8 +44,8 @@ stands now. Keep it short: what ships goes to the history file or away.
   and FEAR_MECHANIC is in its row (`tests/scenarios/wotfneed.lua`).
 - **Also unreleased:** your own buffs in a battleground after a death (GitHub issue 38).
   `NamesYou` (Clicks.lua) reads the cast event's target as you in every spelling
-  (the filed name with the surname, the first name alone, a name without a
-  realm), so a Mark of the Wild or Thorns you cast on yourself is noted;
+  (the filed name with the surname, the first name alone, the first name
+  joined to your own realm; a namesake from another realm is not you), so a Mark of the Wild or Thorns you cast on yourself is noted;
   NoteRefusal (Queue.lua) notes a bounce on you ("a stronger one is on you")
   the same way (`tests/scenarios/bg-selfname.lua`).
 - **Waiting to post:** four CurseForge replies (KestrelWild, vladsnz, zeekro,

@@ -157,6 +157,34 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------- bg-selfname 3b
+-- Your own realm joined to your name is you; a namesake on another realm is not.
+do
+	local had = rawget(_G, "GetNormalizedRealmName")
+	rawset(_G, "GetNormalizedRealmName", function() return "Mockrealm" end)
+	local scenario = "bg-selfname: a cast on yourself named with your own realm counts"
+	with(scenario, {}, function(ns)
+		hide({ MOTW, THORNS })
+		die(ns)
+		if not offered(ns, scenario) then return end
+		local first = ns.plain(UnitName("player"))
+		castOn(ns, first .. "-Mockrealm", "Cast-sn-5", MOTW)
+		if mine(ns, "motw") then fail(scenario, "Mark of the Wild is offered after you cast it on " .. first .. "-Mockrealm") end
+	end)
+	scenario = "bg-selfname: a cast on a namesake from another realm leaves your reading as it was"
+	with(scenario, {}, function(ns)
+		hide({ MOTW, THORNS })
+		die(ns)
+		if not offered(ns, scenario) then return end
+		local first = ns.plain(UnitName("player"))
+		castOn(ns, first .. "-Elsewhere", "Cast-sn-6", MOTW)
+		if not mine(ns, "motw") then
+			fail(scenario, "Mark of the Wild is no longer offered after a cast on " .. first .. "-Elsewhere")
+		end
+	end)
+	rawset(_G, "GetNormalizedRealmName", had)
+end
+
 -- ------------------------------------------------------------- bg-selfname 4
 -- Run `body` with the game's words for a stronger one on the target set.
 local STRONGER = "A more powerful spell is already active"
