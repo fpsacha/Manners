@@ -122,6 +122,12 @@ do
 		if guid then diedAt[guid] = now end
 	end
 
+	-- Whether any cast was ever noted as a cover: the tick's death watch
+	-- (WatchGroupDeaths) asks the group's dead for their GUID only then.
+	function ns.AnyCover()
+		return next(coverAt) ~= nil
+	end
+
 	function ns.CoveredByCast(name, buff, now, guid)
 		local at = name and coverAt[name] and coverAt[name][buff.key]
 		if not at then return false end
@@ -1830,6 +1836,15 @@ function ns.WatchGroupDeaths(now)
 		sweep.prefix = nil
 		if next(down) then wipe(down) end
 		if next(revived) then wipe(revived) end
+		-- With the switch off the group's dead are still looked for while a
+		-- cast of yours covers a hidden reading (the note below).
+		if n > 0 and ns.AnyCover() then
+			local inRaid = plain(IsInRaid and IsInRaid()) == true
+			local tokens = GROUP_TOKENS[inRaid and "raid" or "party"]
+			for i = 1, math.min(inRaid and n or (n - 1), 40) do
+				if plain(UnitIsDeadOrGhost(tokens[i])) == true then ns.NoteSeenDead(plain(UnitGUID(tokens[i])), now) end
+			end
+		end
 		return
 	end
 
@@ -1862,6 +1877,10 @@ function ns.WatchGroupDeaths(now)
 		end
 		if dead == true then
 			if down[unit] == nil then down[unit] = ns.UnitFullName(unit) or false end
+			-- Their death took the buff a cast of yours covered (ns.CoveredByCast).
+			-- The walk notes it too, but no walk runs while you are dead, mounted
+			-- with Not while mounted on, or fighting in a battleground.
+			if ns.AnyCover() then ns.NoteSeenDead(plain(UnitGUID(unit)), now) end
 		elseif dead == false and down[unit] ~= nil then
 			local was = down[unit]
 			down[unit] = nil
