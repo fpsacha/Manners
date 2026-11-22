@@ -16,6 +16,7 @@ ns.WhatsNew = {
 			"|cffffd100Each page of the options window opens with a line saying what is on it.|r",
 			"|cffffd100A gold mark shows each setting you changed; click it to put that one back.|r The same mark in the footer, |cffffffffWhat I changed|r, lists them all.",
 			"|cffffd100Asking for a buff is on What I say,|r under the lines; the Fish Bowl, campsite and other paladins' blessings fold under |cffffffffOther people's buffs|r on |cffffffffWho to buff|r, and |cffffffffMore than buffs|r is now |cffffffffResurrection and cures|r.",
+			"|cffffd100Who to skip > Paste a list of names|r * puts a pasted list on the never-offer list, one name a line or with commas between.",
 			"|cffffd100A controller button in the key boxes.|r The prompt's key on |cffffffffStart here|r (and every other key box) takes a controller button: click the box and press it.",
 			"|cffffd100Settings and tooltips are reworded in plain English,|r with units in the slider boxes instead of in brackets, and chat lines name a page in brackets instead of calling it a tab (GitHub issue 23).",
 		} },

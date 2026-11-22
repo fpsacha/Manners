@@ -1186,6 +1186,40 @@ function ns.PutOnNeverList(name, typed)
 	return listed
 end
 
+-- Who to skip > Paste a list of names: a list copied from anywhere, one name a
+-- line or with commas between. Each goes on as if typed (so it answers to the
+-- same name from another realm too). Blanks, and names already on the list or
+-- twice in the paste, are passed over, and one line says how many went on.
+-- Unlike a shift-right-click, a favour owed is kept: the list's exception for
+-- favours stands (STATUS.md).
+function ns.NeverOfferList(text)
+	if type(text) ~= "string" then return 0, 0 end
+	local added, already = 0, 0
+	for piece in text:gmatch("[^\r\n,]+") do
+		local listed, was = ns.NeverOffer(piece, true)
+		if listed then
+			if was then already = already + 1 else added = added + 1 end
+		end
+	end
+	if added == 0 and already == 0 then
+		addon:Print(L["No names to add: the list was empty."])
+	elseif already == 0 then
+		addon:Print(L["%d added to your never-offer list."]:format(added))
+	else
+		addon:Print(L["%d added to your never-offer list, %d already on it."]:format(added, already))
+	end
+	if added > 0 and InCombatLockdown() and ns.Prompt and ns.Prompt.Showing then
+		ns.Guard("never-offer paste prompt check", function()
+			local showing = ns.Prompt:Showing()
+			if type(showing) == "table" and type(showing.name) == "string" and ListedAs(showing.name) then
+				addon:Print(L["The prompt cannot move off |cffffffff%s|r in this fight, and a press still casts at them."]:format(showing.name))
+			end
+		end)
+	end
+	ns.RepaintOptions()
+	return added, already
+end
+
 ---------------------------------------------------------------------------
 -- friends and guildmates
 --
@@ -1351,7 +1385,7 @@ do
 		if text ~= parsedText then
 			parsedText = text
 			wipe(parsed)
-			for line in text:gmatch("[^\r\n]+") do
+			for line in text:gmatch("[^\r\n,]+") do
 				local name = line:match("^%s*(.-)%s*$")
 				-- <Name> as the game writes a guild under a player
 				name = name:match("^<(.*)>$") or name
@@ -1360,6 +1394,24 @@ do
 			end
 		end
 		return next(parsed) and parsed or nil
+	end
+
+	-- The box's text as it is kept: one guild a line, < > taken off, blanks and
+	-- names already in it (in any case) dropped, first spelling kept.
+	function ns.TidyGuildList(text)
+		if type(text) ~= "string" then return "" end
+		local out, seen = {}, {}
+		for piece in text:gmatch("[^\r\n,]+") do
+			local name = piece:match("^%s*(.-)%s*$")
+			name = name:match("^<(.*)>$") or name
+			name = name:match("^%s*(.-)%s*$")
+			local key = name:lower()
+			if name ~= "" and not seen[key] then
+				seen[key] = true
+				out[#out + 1] = name
+			end
+		end
+		return table.concat(out, "\n")
 	end
 
 	-- "Classes I buff as passers-by" (filters.skipNearbyClasses): the classes

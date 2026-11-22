@@ -25,6 +25,9 @@ stands now. Keep it short: what ships goes to the history file or away.
   cast it again (`ns.GoneWithDeath`), and a cast that landed covers a refusal
   of a team-mate for the buff's length (`ns.CoveredByCast`). Scenarios in
   `tests/scenarios/bg-hidden.lua`.
+- **Issue 30 (paste a list)** is on branch `reports-1121`, not merged: *Paste a
+  list of names* under *Never offer* (`ns.NeverOfferList`) and commas in *Skip
+  these guilds* (`ns.TidyGuildList`). Scenarios in `tests/scenarios/skiplist.lua`.
 - **Old worktrees kept on purpose:** `look-fel`, `look-wild` and `relcheck`
   (uncommitted files in them), plus `logo` and `ci-diag-generators` (branches
   not merged). Leave them unless the owner asks.

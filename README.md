@@ -744,9 +744,14 @@ to let that favour go. Your `/ignore` list goes further: nobody on it is
 thanked, offered a favour back or offered as a passer-by, though a group
 member on it still is. `/manners never` and `/manners allow <name>` work from
 chat.
+*Paste a list of names* (under *Never offer*) takes a whole list at once, one
+name a line or with commas between: press Accept and every name goes on the
+list, with one chat line saying how many. Blank lines and names already on it
+are passed over.
 
-**Guilds.** *Leave out these guilds* takes guild names, one a line, as the
-game shows a guild under a player. Nobody in those guilds is offered
+**Guilds.** *Skip these guilds* takes guild names, one a line or with commas
+between, as the game shows a guild under a player. Accept tidies the box:
+blank lines and repeats go. Nobody in those guilds is offered
 anything; people who buffed you or asked, and your target and focus, still
 are. *Show their guild under the name* (Look, under *Text*) writes the guild
 on the prompt's second line, which is a quick way to see which name to type.
@@ -1128,7 +1133,7 @@ no room for. Defaults are in brackets.
     give themselves Arcane Intellect, so they are left out, unless they are
     too low a level for the rank you cast. Somebody who buffed you, asked, or
     you targeted is always offered.
-  - *Leave out these guilds* and *Classes I buff as passers-by*: see *Leaving
+  - *Skip these guilds* and *Classes I buff as passers-by*: see *Leaving
     people out* above.
   - *Skip players out of range* (on): where the spell's own range check has
     nothing to say, the game's follow distance (about 28 yards) is asked

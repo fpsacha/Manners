@@ -2505,12 +2505,12 @@ function Page.BuildWhoTab()
 			skipGuilds = {
 				type = "input",
 				name = L["Skip these guilds"],
-				desc = L["One guild per line."] .. " " .. L["People in these guilds are not offered anything, in your group or as passers-by. Type a guild's name as it shows under a player, with or without the < >. Somebody who buffed you or asked, and your target and focus, are still offered. |cffffd100Show their guild under the name|r (%s) shows whose guild it is."]:format(TabOf("appearance.showGuild")),
+				desc = L["One guild per line, or several with commas between. Blank lines and repeats are dropped when you press Accept."] .. " " .. L["People in these guilds are not offered anything, in your group or as passers-by. Type a guild's name as it shows under a player, with or without the < >. Somebody who buffed you or asked, and your target and focus, are still offered. |cffffd100Show their guild under the name|r (%s) shows whose guild it is."]:format(TabOf("appearance.showGuild")),
 				order = 43.6,
 				multiline = 4,
 				width = "full",
 				get = fGet,
-				set = fSet,
+				set = function(info, value) fSet(info, ns.TidyGuildList(value)) end,
 			},
 			-- Asked for on CurseForge: some classes left out as passers-by.
 			-- Stored as the classes switched off, so a new profile offers all
@@ -2558,6 +2558,16 @@ function Page.BuildWhoTab()
 				-- value to show back.
 				get = function() return "" end,
 				set = function(_, value) ns.PutOnNeverList(value, true) end,
+			},
+			neverPaste = {
+				type = "input",
+				name = L["Paste a list of names"],
+				desc = L["One name per line, or several with commas between, as the prompt shows them. Press Accept to put them all on the list. Blank lines and names already on it are passed over."],
+				order = 52.5,
+				multiline = 4,
+				width = "full",
+				get = function() return "" end,
+				set = function(_, value) ns.NeverOfferList(value) end,
 			},
 			neverPick = {
 				type = "select",

@@ -492,6 +492,7 @@ ns.WindowLayout = {
 					{ composite = "never", ids = {
 						"who.neverNote", "who.neverPick", "who.neverRemove", "who.neverAdd", "who.neverClear",
 					} },
+					"who.neverPaste",
 					-- The buffs held off somebody the game refused them on (Queue.lua).
 					"who.heldRetry",
 				} },
@@ -1369,6 +1370,7 @@ ns.WindowLayout = {
 		["who.askOwn"] = L["custom own reply message words text"],
 		["advanced.format"] = L["custom own words text message wording"],
 		["who.neverAdd"] = L["blacklist ignore never block"],
+		["who.neverPaste"] = L["paste import copy list names"],
 		["who.target"] = L["priority first target order"],
 		["when.whenBuffed"] = L["refresh top up expire duration timer"],
 		["who.quietInTowns"] = L["quiet city town inn capital silent hide"],
