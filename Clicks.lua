@@ -1051,8 +1051,18 @@ function ns.CastReady(spell)
 	return false, left
 end
 
+-- Who each class-buff cast was sent at, by cast, for UNIT_SPELLCAST_SUCCEEDED:
+-- a cast on a team-mate says nothing of your own aura. Wiped past 30 entries.
+local sentTarget, sentCount = {}, 0
+
 function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 	if unit ~= "player" then return end
+	local sid, guid = plain(spellId), plain(castGUID)
+	if sid and guid and ns.BUFF_BY_ID[sid] then
+		if sentCount >= 30 then sentTarget, sentCount = {}, 0 end
+		sentTarget[guid] = plain(target) or ""
+		sentCount = sentCount + 1
+	end
 	NoteCastWentOut(plain(spellId))
 	-- The sweep over the prompt's icon starts with the cooldown this cast
 	-- began, whichever button sent it.
@@ -1068,6 +1078,13 @@ function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 		tostring(plain(spellId)), tostring(plain(target))))
 end
 
+local function IsGroupId(buff, id)
+	for _, g in ipairs(buff.group or {}) do
+		if g == id then return true end
+	end
+	return false
+end
+
 function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
 	-- A cast of yours ends what a death let Manners infer of that buff (Core.lua, GoneWithDeath).
@@ -1076,7 +1093,9 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 		local own = ns.OWN_BY_ID[id]
 		if own and own.family then ns.NoteCastSinceDeath("own:" .. own.family.key) end
 		local buff = ns.BUFF_BY_ID[id]
-		if buff then ns.NoteCastSinceDeath(buff.key) end
+		-- Only a cast that reached you: one on somebody else leaves your own reading as it was.
+		local to = sentTarget[plain(castGUID)]
+		if buff and (to == nil or to == "" or to == plain(UnitName("player")) or IsGroupId(buff, id)) then ns.NoteCastSinceDeath(buff.key) end
 	end
 	-- A scroll's cast done: the scroll is used, and nothing can stop it now.
 	local done = castingScroll and ScrollCast(plain(castGUID), plain(spellId))

@@ -8,6 +8,16 @@
 - **Food, stones and oils on the run, your call.** *My own buffs > Hold my food,
   stones and oils while I move* (on) can be turned off, and they then stay on
   the prompt while you move (GitHub issue 31).
+- **Who to skip > Paste a list of names** puts a pasted list on the
+  never-offer list, one name a line or with commas between. *Skip these guilds*
+  reads commas too, and Accept drops blank lines and repeats (GitHub issue 30).
+- **A controller button in the key boxes.** The prompt's key on *Start here* (and
+  every other key box) takes a controller button: click the box and press it.
+
+### Battlegrounds
+- **Your own buffs come back after a death there,** though the game hides your
+  auras in a match. People you just buffed are not offered again every twelve
+  seconds while the game hides their buffs (GitHub issue 29).
 
 ## 1.11.37
 
@@ -37,11 +47,6 @@
 - **Asking for a buff is on *What I say*,** under the lines; the Fish Bowl,
   campsite and other paladins' blessings fold under *Other people's buffs* on
   *Who to buff*, and *More than buffs* is now *Resurrection and cures*.
-- **Who to skip > Paste a list of names** puts a pasted list on the
-  never-offer list, one name a line or with commas between. *Skip these guilds*
-  reads commas too, and Accept drops blank lines and repeats (GitHub issue 30).
-- **A controller button in the key boxes.** The prompt's key on *Start here* (and
-  every other key box) takes a controller button: click the box and press it.
 - **Settings and tooltips are reworded in plain English,** with units in the
   slider boxes instead of in brackets, and chat lines name a page in brackets
   instead of calling it a tab (GitHub issue 23).
@@ -59,11 +64,6 @@
   fight* stays open for a Forsaken character with nothing else to offer, and a
   button's tooltip names a page only while its setting is shown.
 - **Snoozed until I log out reads right in Spanish and Italian.**
-
-### Battlegrounds
-- **Your own buffs come back after a death there,** though the game hides your
-  auras in a match. People you just buffed are not offered again every twelve
-  seconds while the game hides their buffs (GitHub issue 29).
 
 ## 1.11.36
 

@@ -28,7 +28,7 @@ mutate("Core.lua",
        expect="bg-hidden: after a death your own buff is offered though the game hides your auras", script=S)
 
 mutate("Clicks.lua",
-       "\t\tlocal buff = ns.BUFF_BY_ID[id]\n\t\tif buff then ns.NoteCastSinceDeath(buff.key) end\n",
+       "\t\tif buff and (to == nil or to == \"\" or to == plain(UnitName(\"player\")) or IsGroupId(buff, id)) then ns.NoteCastSinceDeath(buff.key) end\n",
        "",
        "bg-hidden: a cast of yours since the death is not noted",
        expect="bg-hidden: a cast of your own since the death lets the hidden reading stand", script=S)
@@ -38,6 +38,12 @@ mutate("Core.lua",
        "return death.at ~= nil and key ~= nil",
        "bg-hidden: a buff that outlasts death is guessed gone",
        expect="bg-hidden: a buff that outlasts death is not offered on a hidden reading", script=S)
+
+mutate("Clicks.lua",
+       "if buff and (to == nil or to == \"\" or to == plain(UnitName(\"player\")) or IsGroupId(buff, id)) then",
+       "if buff then",
+       "bg-hidden: a cast on a team-mate is noted as your own",
+       expect="bg-hidden: a cast on a team-mate leaves your own reading as it was", script=S)
 
 # --- a team-mate you buffed ---
 

@@ -186,6 +186,25 @@ do
 	end)
 end
 
+-- A cast on a team-mate is not you having the buff again.
+do
+	local scenario = "bg-hidden: a cast on a team-mate leaves your own reading as it was"
+	with(scenario, {}, function(ns)
+		hide({ INTELLECT })
+		die(ns)
+		if not mine(ns) then
+			fail(scenario, "SKIPPED -- nothing of your own offered after the death")
+			return
+		end
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Teammate", "Cast-bg-mate", INTELLECT)
+		ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", "Cast-bg-mate", INTELLECT)
+		Mock.advance(1)
+		if not mine(ns) then
+			fail(scenario, "Arcane Intellect is no longer offered after a cast on a team-mate")
+		end
+	end)
+end
+
 -- ------------------------------------------------------------- bg-hidden 3
 -- A family of a class's own (a mage's armor) reads the same way.
 do

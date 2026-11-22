@@ -8,6 +8,11 @@ ns.WhatsNew = {
 	{ version = "Unreleased", date = "21 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Food, stones and oils on the run, your call.|r |cffffffffMy own buffs > Hold my food, stones and oils while I move|r (on) can be turned off, and they then stay on the prompt while you move (GitHub issue 31).",
+			"|cffffd100Who to skip > Paste a list of names|r puts a pasted list on the never-offer list, one name a line or with commas between.",
+			"|cffffd100A controller button in the key boxes.|r The prompt's key on |cffffffffStart here|r (and every other key box) takes a controller button: click the box and press it.",
+		} },
+		{ title = "Battlegrounds", accent = "7cc4ff", entries = {
+			"|cff7cc4ffYour own buffs come back after a death there,|r though the game hides your auras in a match.",
 		} },
 	} },
 	{ version = "1.11.37", date = "21 November 2026", sections = {
@@ -21,8 +26,6 @@ ns.WhatsNew = {
 			"|cffffd100Each page of the options window opens with a line saying what is on it.|r",
 			"|cffffd100A gold mark shows each setting you changed; click it to put that one back.|r The same mark in the footer, |cffffffffWhat I changed|r, lists them all.",
 			"|cffffd100Asking for a buff is on What I say,|r under the lines; the Fish Bowl, campsite and other paladins' blessings fold under |cffffffffOther people's buffs|r on |cffffffffWho to buff|r, and |cffffffffMore than buffs|r is now |cffffffffResurrection and cures|r.",
-			"|cffffd100Who to skip > Paste a list of names|r puts a pasted list on the never-offer list, one name a line or with commas between.",
-			"|cffffd100A controller button in the key boxes.|r The prompt's key on |cffffffffStart here|r (and every other key box) takes a controller button: click the box and press it.",
 			"|cffffd100Settings and tooltips are reworded in plain English,|r with units in the slider boxes instead of in brackets, and chat lines name a page in brackets instead of calling it a tab (GitHub issue 23).",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
@@ -31,9 +34,6 @@ ns.WhatsNew = {
 			"|cffff9a52A slider's box takes back what it shows.|r Type 3x over 2x, or Off or Automatic where the box says so, and the value is kept.",
 			"|cffff9a52The Will of the Forsaken switch can be reached with no prompt.|r |cffffffffIn a fight|r stays open for a Forsaken character with nothing else to offer, and a button's tooltip names a page only while its setting is shown.",
 			"|cffff9a52Snoozed until I log out reads right in Spanish and Italian.|r",
-		} },
-		{ title = "Battlegrounds", accent = "7cc4ff", entries = {
-			"|cff7cc4ffYour own buffs come back after a death there,|r though the game hides your auras in a match.",
 		} },
 	} },
 	{ version = "1.11.36", date = "21 November 2026", sections = {
