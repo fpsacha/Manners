@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "22 November 2026", sections = {
+	{ version = "1.11.39", date = "22 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Make a healthstone.|r A warlock with no healthstone in the bags is offered Create Healthstone on the prompt, outside a fight and standing still (GitHub issue 32).",
 		} },
