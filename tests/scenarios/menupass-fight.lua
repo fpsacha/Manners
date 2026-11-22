@@ -217,7 +217,10 @@ do
 	with(scenario, { class = "HUNTER", race = "Human", known = { [883] = true, [982] = true, [136] = true } }, function(ns, UI)
 		ns.OpenOptions("fight")
 		if not UI.RowShown("appearance.mendInFight") then fail(scenario, "the Mend Pet switch is not shown") end
-		if UI.RowShown("appearance.hideInFight") then fail(scenario, "Hide the prompt is shown with no prompt") end
+		-- Call, Revive and Mend Pet are on the prompt (Options/Shared.lua's HasPrompt
+		-- counts pet care since the retail hunter's window was found cut down), so
+		-- hiding the prompt in a fight is a real choice for this hunter.
+		if not UI.RowShown("appearance.hideInFight") then fail(scenario, "Hide the prompt is not shown for a hunter whose prompt is pet care") end
 		local lines = {}
 		local tip = { AddLine = function(_, text) lines[#lines + 1] = text end }
 		ns.AddSettingsLine(tip, "appearance.mendInFight")
