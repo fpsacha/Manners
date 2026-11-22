@@ -965,7 +965,7 @@ ns.defaults = defaults
 -- Every one a token of each client's own emote list (Blizzard_ChatFrameBase,
 -- ChatEmoteConstants.lua on the live, forever, classic, classic_anniversary and
 -- classic_era branches), and every one friendly.
--- /moo since 1.11.39, asked for on CurseForge by a tauren (issue 34); a token on
+-- /moo since 1.11.39, asked for on CurseForge by a tauren (issue 35); a token on
 -- every client's list, any race may use it.
 ns.THANK_EMOTES = { "THANK", "CHEER", "BOW", "CLAP", "SALUTE", "WAVE", "NOD", "SMILE",
 	"APPLAUD", "BLUSH", "CURTSEY", "FLEX", "GREET", "GRIN", "HAIL", "HAPPY", "HIGHFIVE", "HUG",

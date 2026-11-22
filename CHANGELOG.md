@@ -17,17 +17,17 @@
   oils, flasks, elixirs and scrolls keep waiting for a dungeon or a raid (GitHub
   issue 37). Off by default, so nothing changes until you tick it.
 - **The cure button shows where the game hides debuffs.** On WoW Forever and
-  retail the button now also reads the game's own list of what you can remove,
-  for you, your target and your group, and appears for "a debuff you can
-  remove" when that list is not empty (GitHub issue 36). *Show my cure on a
-  button in a fight, only while somebody needs it* says what it does and where
-  it sits.
+  retail it now reads the game's own list of what you can remove (GitHub issue
+  36). It appears for "a debuff you can remove" when that list is not empty,
+  for you, your target and your group. *Show my cure on a button in a fight,
+  only while somebody needs it* says what it does and where it sits.
 - **A button for each cure.** A druid, a priest or a shaman on the older clients
-  gets a button and a key for each cure, the second below the first, each shown
-  only for its own debuffs (*A button for each cure*, on; *Key for my second
-  cure in a fight*). Off: one button, and Shift casts the second cure.
+  gets a button and a key for each, shown only for its own debuffs (*A button
+  for each cure*, on). The second sits below the first, with its own key, *Key
+  for my second cure in a fight*. Off: one button, and Shift casts the second
+  cure.
 - **/moo to thank with.** *Emote to use* (What I say) now offers /moo, last on
-  the list, for any race. Asked for on CurseForge.
+  the list, for any race (GitHub issue 35).
 - **Will of the Forsaken shows when you lose control in a fight** even where the
   game will not say what took it, and for fears by mechanic (*In a fight > Show
   a Will of the Forsaken button...*, GitHub issue 33).

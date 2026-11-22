@@ -40,7 +40,7 @@ do
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
 
--- /moo (1.11.39, issue 34): any race may use it, so it is on the one list, last.
+-- /moo (1.11.39, issue 35): any race may use it, so it is on the one list, last.
 do
 	local scenario = "thankemotes: /moo is offered last and kept, and a thank-you makes it"
 	Mock.reset()

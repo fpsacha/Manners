@@ -67,7 +67,8 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   in the fight has found somebody in reach it can cure, and out again when
   nobody needs it. A class with two cures gets two buttons while
   `prompt.cureFightEach` is on (the default): MannersCureFight casts the first
-  cure and MannersCureFight2 the second, below it, with
+  cure (its macro still holds the second behind Shift, so a key bound for the
+  one cure keeps casting the second on Shift) and MannersCureFight2 the second, below it, with
   `CLICK MannersCureFight2:LeftButton` for a key. They are two slots of one
   file and one header drives both (`SetFrameRef("cure2", ...)` and the
   attribute `manners-two`, written out of combat in Refresh; the snippet shows

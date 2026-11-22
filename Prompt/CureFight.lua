@@ -759,7 +759,10 @@ function CureFight:Refresh()
 	local macro, two
 	if each then
 		ReadKey(second)
-		macro, two = "/cast " .. Clause(list[1].name, false), false
+		-- The first button keeps the old two-cure macro, so Shift on its key
+		-- still casts the second cure; it advertises and shows only its own.
+		macro = MacroFor(list)
+		two = false
 		first.list, second.list = { list[1] }, { list[2] }
 	else
 		macro, two = MacroFor(list)

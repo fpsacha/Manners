@@ -39,7 +39,7 @@ stands now. Keep it short: what ships goes to the history file or away.
   `ns.OwnItemsHeldToDungeons` stays the plain classifier itemsLast and the
   battleground extras read (`tests/scenarios/foodoutside.lua`).
 - **Also unreleased:** /moo joins the thank emotes, last on the list for any race
-  (GitHub issue 34; `tests/scenarios/thankemotes.lua`). Will of the Forsaken
+  (GitHub issue 35; `tests/scenarios/thankemotes.lua`). Will of the Forsaken
   shows on control lost in a fight where the game withholds the type or has no loss-of-control API (GitHub issue 33),
   and FEAR_MECHANIC is in its row (`tests/scenarios/wotfneed.lua`).
 - **Waiting to post:** four CurseForge replies (KestrelWild, vladsnz, zeekro,

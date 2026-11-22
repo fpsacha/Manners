@@ -1250,8 +1250,10 @@ with("curefight: each cure's key casts its own cure", {}, function(ns)
 	local first, second = ns.CureFight:Button(1), ns.CureFight:Button(2)
 	if not (first and second) then fail(scenario, "SKIPPED -- two buttons are not made") return end
 	local m1, m2 = first:GetAttribute("macrotext1") or "", second:GetAttribute("macrotext1") or ""
-	if m1:find("mod:shift", 1, true) or m2:find("mod:shift", 1, true) then fail(scenario, "a macro names Shift: " .. m1 .. " / " .. m2) end
-	if m1 ~= "/cast [@mouseover,help,nodead][help,nodead][@player] Remove Curse" then fail(scenario, "the first macro reads " .. m1) end
+	if m2:find("mod:shift", 1, true) then fail(scenario, "the second macro names Shift: " .. m2) end
+	-- The first keeps the old two-cure macro: a player who bound a key for the
+	-- cure and pressed Shift-key for the second cure keeps doing so.
+	if m1 ~= DRUID_MACRO then fail(scenario, "the first macro reads " .. m1) end
 	if m2 ~= "/cast [@mouseover,help,nodead][help,nodead][@player] Cure Poison" then fail(scenario, "the second macro reads " .. m2) end
 	local before = #Mock.castLog
 	Mock.pressBinding(COMMAND)
@@ -1261,12 +1263,13 @@ with("curefight: each cure's key casts its own cure", {}, function(ns)
 	Mock.pressBinding(COMMAND2)
 	casts = castsSince(before)
 	if #casts ~= 1 or casts[1].spell ~= "Cure Poison" then fail(scenario, "the second key cast " .. tostring(casts[1] and casts[1].spell)) end
-	-- Shift held changes nothing: there is no Shift cure.
+	-- Shift on the first key still casts the second cure, as it did before there
+	-- was a button for each.
 	Mock.modifiers.shift = true
 	before = #Mock.castLog
 	Mock.pressBinding(COMMAND)
 	casts = castsSince(before)
-	if #casts ~= 1 or casts[1].spell ~= "Remove Curse" then fail(scenario, "with Shift the first key cast " .. tostring(casts[1] and casts[1].spell)) end
+	if #casts ~= 1 or casts[1].spell ~= "Cure Poison" then fail(scenario, "with Shift the first key cast " .. tostring(casts[1] and casts[1].spell)) end
 	Mock.modifiers.shift = false
 end)
 
@@ -1330,8 +1333,8 @@ with("curefight: A button for each cure off keeps one button and Shift", {}, fun
 	if second:GetAttribute("macrotext1") ~= "/cast [@mouseover,help,nodead][help,nodead][@player] Cure Poison" then
 		fail(scenario, "not armed again once switched on: " .. tostring(second:GetAttribute("macrotext1")))
 	end
-	if first:GetAttribute("macrotext1") ~= "/cast [@mouseover,help,nodead][help,nodead][@player] Remove Curse" then
-		fail(scenario, "the first button keeps Shift: " .. tostring(first:GetAttribute("macrotext1")))
+	if first:GetAttribute("macrotext1") ~= DRUID_MACRO then
+		fail(scenario, "the first button lost its Shift clause: " .. tostring(first:GetAttribute("macrotext1")))
 	end
 end)
 

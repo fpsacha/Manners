@@ -328,6 +328,12 @@ mutate(CF,
        expect="curefight: each cure's key casts its own cure", script=S)
 
 mutate(CF,
+       "\t\tmacro = MacroFor(list)\n\t\ttwo = false\n",
+       "\t\tmacro = \"/cast \" .. Clause(list[1].name, false)\n\t\ttwo = false\n",
+       "curefight: the first button of two loses Shift for the second cure",
+       expect="curefight: each cure's key casts its own cure", script=S)
+
+mutate(CF,
        "\t\t\ttwo:Show(true)\n",
        "",
        "curefight: the snippet never shows the second button",
