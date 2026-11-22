@@ -131,10 +131,20 @@ do
 			end
 		end
 		if UI.FoldChanged(fine) then fail(scenario, "the fold's dot is lit on a profile nobody changed") end
-		ns.db.profile.buff.spareFishBowl = true
+		-- The Fish Bowl switch is drawn on Forever only (Boosted Stats); off it
+		-- the fold's other switch stands in for it.
+		local key, what = "spareFishBowl", "the Fish Bowl switch"
+		if not (ns.Flavour and ns.Flavour.flavour == "camelot") then
+			if not (ns.EXCLUSIVE_BUFFS and ns.EXCLUSIVE_BUFFS[ns.caps.class]) then
+				fail(scenario, "SKIPPED -- no switch of the fine print is shown on this client")
+				return
+			end
+			key, what = "leaveBlessed", "Skip players another paladin has blessed"
+		end
+		ns.db.profile.buff[key] = true
 		ns.RefreshOptionsDisplay()
-		if not UI.FoldChanged(fine) then fail(scenario, "the fold's dot stays dark with the Fish Bowl switch on") end
-		ns.db.profile.buff.spareFishBowl = ns.defaults.profile.buff.spareFishBowl
+		if not UI.FoldChanged(fine) then fail(scenario, "the fold's dot stays dark with " .. what .. " on") end
+		ns.db.profile.buff[key] = ns.defaults.profile.buff[key]
 	end)
 end
 

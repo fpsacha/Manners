@@ -16,6 +16,7 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local HAWK, MONKEY = 13165, 13163
+local CALL_PET, REVIVE_PET = 883, 982
 local SUPPLIES = "CLICK MannersSupplies:LeftButton"
 
 local function noErrors(scenario, ns)
@@ -24,7 +25,8 @@ local function noErrors(scenario, ns)
 	end
 end
 
--- opts.class (default PRIEST), opts.all (every spell known), opts.frames (the
+-- opts.class (default PRIEST), opts.all (every spell known), opts.fortitude
+-- (a priest knowing only his Fortitude), opts.known (these spell ids only), opts.frames (the
 -- frame tree, for measuring), opts.before(ns) (after the load, before the
 -- window opens).
 local function with(scenario, opts, body)
@@ -41,8 +43,21 @@ local function with(scenario, opts, body)
 	local ok, err = pcall(function()
 		if opts.all then
 			Mock.knownSpells = setmetatable({}, { __index = function() return true end })
+		elseif opts.known then
+			local set = {}
+			for _, id in ipairs(opts.known) do set[id] = true end
+			IsSpellKnown = function(id) return set[id] == true end
+			IsPlayerSpell = IsSpellKnown
+		elseif opts.fortitude then
+			-- A priest who has learned his Fortitude: on a client without Well
+			-- Fed, that is what gives Myself something to offer.
+			local set = {}
+			local buff = ns.FindBuff("PRIEST", "fortitude")
+			for _, id in ipairs(buff and buff.ranks or {}) do set[id] = true end
+			IsSpellKnown = function(id) return set[id] == true end
+			IsPlayerSpell = IsSpellKnown
 		elseif opts.class == "HUNTER" then
-			local set = { [HAWK] = true, [MONKEY] = true }
+			local set = { [HAWK] = true, [MONKEY] = true, [CALL_PET] = true, [REVIVE_PET] = true }
 			IsSpellKnown = function(id) return set[id] == true end
 			IsPlayerSpell = IsSpellKnown
 		end
@@ -83,7 +98,7 @@ end
 -- ------------------------------------------------------------------ the page
 do
 	local scenario = "menupass-self: your own buffs are all on My own buffs"
-	with(scenario, nil, function(ns, UI)
+	with(scenario, { fortitude = true }, function(ns, UI)
 		local own = placed(ns, "self")
 		local want = { "who.self", "who.ownCities", "who.ownDungeons", "who.ownApart", "who.ownApartKey", "who.ownShout",
 			"who.ownScrolls", "who.ownSpellAdd", "diagnostics.ownDiag", "when.selfTopUp", "when.selfLead" }
@@ -157,6 +172,27 @@ do
 	end)
 end
 
+-- A hunter who has learned Call and Revive Pet and nothing else (a retail
+-- hunter has no aspect): the pet's pages are his, on every client.
+do
+	local scenario = "menupass-self: a hunter who knows only Call and Revive Pet is shown the pet's pages"
+	with(scenario, { class = "HUNTER", known = { CALL_PET, REVIVE_PET } }, function(ns, UI)
+		if not ns.Beast.KnowsCare() then fail(scenario, "Beast.KnowsCare is false for a hunter who knows Call Pet") end
+		if not ns.OptionsPage.HasPrompt() then fail(scenario, "the options say a hunter with Call and Revive Pet has no prompt") end
+		ns.OpenOptions()
+		for _, id in ipairs({ "pet", "skip", "appearance" }) do
+			if not UI.visiblePages[id] then fail(scenario, "the sidebar has no " .. id .. " page for him") end
+		end
+	end)
+	-- With the pet's switch off the pages stay: it is turned back on there.
+	with(scenario, { class = "HUNTER", known = { CALL_PET, REVIVE_PET } }, function(ns, UI)
+		ns.db.profile.beast.all = false
+		ns.RefreshOptionsDisplay()
+		ns.OpenOptions()
+		if not UI.visiblePages.pet then fail(scenario, "Everything for my pet off hides My pet, which turns it back on") end
+	end)
+end
+
 -- ------------------------------------------------------------------ Mend Pet
 do
 	local scenario = "menupass-self: Mend Pet's two switches stand together"
@@ -183,7 +219,7 @@ end
 -- ------------------------------------------------------------------ the key
 do
 	local scenario = "menupass-self: the consumables button's key is set in the window"
-	with(scenario, nil, function(ns, UI)
+	with(scenario, { fortitude = true }, function(ns, UI)
 		local profile = ns.db.profile
 		profile.ownBuffs.apart = true
 		ns.OpenOptions("self")

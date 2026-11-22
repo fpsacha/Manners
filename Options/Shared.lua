@@ -113,6 +113,8 @@ local function HasPrompt()
 	-- Or a resurrection learned, with My group's dead on (Resurrect.lua): a
 	-- monk on retail has nothing else, and its switches are on Who to buff.
 	if ns.caps.res and ns.Resurrect and ns.Resurrect.Wanted() then return true end
+	-- Or a hunter's pet care: Call and Revive Pet are all a retail hunter has.
+	if ns.Beast and ns.Beast.KnowsCare and ns.Beast.KnowsCare() then return true end
 	return ns.caps.hasClassBuffs == true or ns.OwnBuffsOnly()
 end
 

@@ -134,6 +134,10 @@ do
 		if not ok then fail(scenario, class .. " threw: " .. tostring(err)) end
 	end
 	as("DRUID", function(ns, UI)
+		if not ns.FindBuff("DRUID", "thorns") then
+			fail(scenario, "SKIPPED -- no Thorns for others on this client")
+			return
+		end
 		ns.OpenOptions("who")
 		local tank = UI.Where("who.tank_thorns")
 		if not tank then
@@ -149,6 +153,14 @@ do
 	end)
 	-- A hunter who has Find Herbs: the minimap's tracking list says so.
 	as("HUNTER", function(ns, UI)
+		local family = false
+		for _, fam in ipairs(ns.OWN_BUFFS.HUNTER or {}) do
+			if fam.key == "tracking" then family = true end
+		end
+		if not family then
+			fail(scenario, "SKIPPED -- no tracking family for a hunter on this client")
+			return
+		end
 		ns.OpenOptions("who")
 		local entries, has = UI.SearchEntries(), false
 		for _, e in ipairs(entries) do
