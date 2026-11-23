@@ -277,7 +277,7 @@ do
 			fail(scenario, "SKIPPED -- clicking the key button did not start waiting for a key")
 			return
 		end
-		if Mock.focus ~= nil then
+		if Mock.focus == box then
 			fail(scenario, "waiting for a key, the search box kept the keyboard: the key would be typed into it")
 		end
 		Mock.keyDown(row.button, "F")

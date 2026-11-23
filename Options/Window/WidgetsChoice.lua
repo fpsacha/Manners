@@ -512,6 +512,7 @@ local MODIFIER_KEYS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true
 local MOUSE_KEYS = { MiddleButton = "BUTTON3", Button4 = "BUTTON4", Button5 = "BUTTON5" }
 
 local capturing
+local StopCapture
 
 local function KeyLook(row, hover)
 	local c = T.fieldEdge
@@ -519,9 +520,42 @@ local function KeyLook(row, hover)
 	W.BorderColour(row.button.look.edges, c)
 end
 
-local function StopCapture(row)
+local KeyPressed
+
+-- A hidden text field that takes the keyboard focus while a key is waited for:
+-- the client hands every key to the focused box before any frame, so a key
+-- reaches the capture even where another frame on screen takes the keyboard
+-- first (on WoW Forever a click on the box lit it and no key ever arrived, while
+-- a mouse button, which comes through the click, was taken). Unprotected and
+-- written out of a fight only (the control is greyed in one).
+local function Grabber(row)
+	local grab = row.grab
+	if grab then return grab end
+	grab = CreateFrame("EditBox", nil, row.button)
+	grab:SetSize(1, 1)
+	grab:SetPoint("TOPLEFT", row.button, "TOPLEFT", 0, 0)
+	grab:SetAlpha(0)
+	grab:SetAutoFocus(false)
+	grab.row = row
+	grab:SetScript("OnKeyDown", function(self, key) ns.Guard("options key", KeyPressed, self, key) end)
+	grab:SetScript("OnEscapePressed", function(self) ns.Guard("options key", KeyPressed, self, "ESCAPE") end)
+	grab:SetScript("OnEnterPressed", function(self) ns.Guard("options key", KeyPressed, self, "ENTER") end)
+	grab:SetScript("OnTabPressed", function(self) ns.Guard("options key", KeyPressed, self, "TAB") end)
+	grab:SetScript("OnSpacePressed", function(self) ns.Guard("options key", KeyPressed, self, "SPACE") end)
+	-- Typed characters never stay in it.
+	grab:SetScript("OnTextChanged", function(self) if self:GetText() ~= "" then self:SetText("") end end)
+	-- The focus going elsewhere (a click on the world, another box) ends the wait.
+	grab:SetScript("OnEditFocusLost", function(self) ns.Guard("options key", function()
+		if capturing == self.row then StopCapture(self.row) end
+	end) end)
+	row.grab = grab
+	return grab
+end
+
+function StopCapture(row)
 	if not row or capturing ~= row then return end
 	capturing = nil
+	if row.grab and row.grab:HasFocus() then row.grab:ClearFocus() end
 	row.button:EnableKeyboard(false)
 	row.button:EnableMouseWheel(false)
 	if row.button.EnableGamePadButton then row.button:EnableGamePadButton(false) end
@@ -531,19 +565,18 @@ end
 -- The keyboard and the wheel are the button's only while it waits, so
 -- nothing else the player types is taken from the game, and the wheel
 -- scrolls the page over it the rest of the time. A box with the focus (the
--- search box, clicked into just before) lets go of it first: the client hands
--- keys to the focused box ahead of any frame, and a click elsewhere does not
--- take its focus away.
+-- search box, clicked into just before) lets go of it, as the capture's own
+-- hidden text field takes the focus (Grabber): the client hands keys to the
+-- focused box ahead of any frame.
 local function StartCapture(row)
 	if capturing and capturing ~= row then StopCapture(capturing) end
-	local focused = GetCurrentKeyBoardFocus and GetCurrentKeyBoardFocus()
-	if focused and focused.ClearFocus then focused:ClearFocus() end
 	capturing = row
 	row.button:EnableKeyboard(true)
 	row.button:SetPropagateKeyboardInput(false)
 	row.button:EnableMouseWheel(true)
 	-- A controller button is a key to bind too, only while one is waited for.
 	if row.button.EnableGamePadButton then row.button:EnableGamePadButton(true) end
+	Grabber(row):SetFocus()
 	KeyLook(row)
 end
 
@@ -566,7 +599,7 @@ local function Take(row, key)
 	W.Apply(row, Chord(key))
 end
 
-local function KeyPressed(button, key)
+function KeyPressed(button, key)
 	local row = button.row
 	if capturing ~= row then return end
 	if key == "ESCAPE" then
