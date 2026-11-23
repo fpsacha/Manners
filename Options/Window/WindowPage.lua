@@ -390,7 +390,7 @@ end
 local DIFFERS = {
 	["appearance.posPreset"] = function() return ns.CurrentPositionPreset() ~= "bars" end,
 	["general.quickWho"] = function() return ns.QuickSetup.Match(ns.QuickSetup.WHO) ~= "nearby" end,
-	["general.quickVoice"] = function() return ns.QuickSetup.Match(ns.QuickSetup.VOICE) ~= "silent" end,
+	["general.quickVoice"] = function() return ns.QuickSetup.Match(ns.QuickSetup.VoiceList()) ~= "silent" end,
 	["who.choice"] = function() return Profile().buff.choice ~= "auto" end,
 	["who.skipRaidGroups"] = function() return next(Profile().filters.skipRaidGroups or {}) ~= nil end,
 	["who.skipNearbyClasses"] = function() return next(Profile().filters.skipNearbyClasses or {}) ~= nil end,

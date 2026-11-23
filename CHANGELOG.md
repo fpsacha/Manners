@@ -66,6 +66,9 @@
   keys* group.
 
 ### Fixes
+- **In character thank-yous for a hunter or a rogue.** *When someone buffs me*, at the
+  top of What I say and on Start here, offers *In character (fits your race and
+  class)*, which turns on *Whisper a thank-you to people I can't buff back*.
 - **Thank people who buff me, with a pause.** *Wait a moment before thanking* looks for
   the giver again when the pause ends, so a nameplate that changed hands no longer
   drops the thank. It never thanks somebody else.

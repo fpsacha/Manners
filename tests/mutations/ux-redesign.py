@@ -201,8 +201,8 @@ mutate("Options/Profiles.lua", "\t\tif type(option) == \"table\" then\n\t\t\tfor
        "ux-redesign: Profiles in the library's developer English",
        expect="ux-redesign: Profiles speaks the player's words", script=S)
 
-mutate(START, "hidden = function() return noClassBuffs() or Quick.Match(Quick.VOICE) == \"silent\" end,",
-       "hidden = noClassBuffs,",
+mutate(START, "hidden = function() return Quick.Match(Quick.VoiceList()) == \"silent\" end,",
+       "hidden = function() return true end,",
        "ux-redesign: Stay silent then Silent.",
        expect="ux-redesign: Stay silent is not followed by Silent.", script=S)
 

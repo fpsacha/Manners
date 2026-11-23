@@ -1328,7 +1328,11 @@ Everything here is off until you turn it on.
 
 - *When I buff someone*, at the top, is a quick choice: *Stay silent*, *Just
   /thank them*, *A polite line*, *In character (fits your race and class)* or
-  *Whisper them a thank-you*. It sets the switches under it.
+  *Whisper them a thank-you*. It sets the switches under it. A class with
+  nothing to give others (a hunter, a rogue) has it too, as *When someone buffs
+  me*, with *Stay silent*, *Just /thank them* and *In character (fits your race
+  and class)*: the last loads the In character set and turns on the whispered
+  thank-you below, and none of them touches the line said with a cast.
 - ***Thank-yous***:
   - */thank people who buff me*: when somebody buffs you, you `/thank` them,
     whether or not you could buff them back. Never in a fight, or inside a

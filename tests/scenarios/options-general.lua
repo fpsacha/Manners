@@ -227,7 +227,7 @@ do
 		ns.caps.hasClassBuffs = false
 		for _, key in ipairs({ "howItWorks", "whoHeader", "quickWho", "quickWhoSummary",
 			"keyHeader", "bindKey", "openBindings", "makeMacro", "bindStatus",
-			"previewStart", "quickVoice", "quickVoiceSummary",
+			"previewStart",
 			"snoozeNote", "snooze5", "snooze15", "snooze30", "snooze60", "snooze120", "snooze240", "lockNow" }) do
 			if a[key] and shown(a[key]) then
 				fail(scenario, key .. " is shown to a class with nothing to cast")
@@ -235,6 +235,10 @@ do
 		end
 		if not shown(a.noBuffs) then
 			fail(scenario, "the class with nothing to cast is not told so")
+		end
+		-- The thanks are the one thing it has to say (GitHub issue 39).
+		if not shown(a.quickVoice) then
+			fail(scenario, "the voice choice is hidden from a class with nothing to cast")
 		end
 		ns.caps.hasClassBuffs = true
 		noErrors(scenario, ns)
