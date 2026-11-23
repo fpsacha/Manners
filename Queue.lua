@@ -2303,6 +2303,12 @@ local function RememberPasserBy(entry, now, within, hasMana, guid)
 	memo.known, memo.checked, memo.close = entry.known, entry.checked, entry.close
 	memo.withheld = entry.withheld
 	memo.guild = entry.guild
+	-- Their level while a token still says it, for the rank the macro names
+	-- once none does (Prompt/Macro.lua, ns.CastName): without it a low
+	-- passer-by remembered was cast at your best rank, and refused (GitHub
+	-- issue 42). A level withheld or a skull is none.
+	local level = entry.unit and plain(UnitLevel(entry.unit))
+	memo.level = type(level) == "number" and level >= 1 and level or nil
 	memo.expires = entry.remaining and (now + entry.remaining) or nil
 	memo.seconds, memo.lead, memo.leadKind = entry.duration, entry.lead, entry.leadKind
 end
@@ -2446,6 +2452,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 			}
 			-- Written after the table is built, as in the scan's own entry.
 			if memo.guild then queue[#queue].guild = memo.guild end
+			if memo.level then queue[#queue].level = memo.level end
 		end
 	end
 end

@@ -29,7 +29,12 @@ mutate("Prompt/Macro.lua",
        expect="downrank: a skull keeps the plain name", script=S)
 
 mutate("Prompt/Macro.lua",
-       "\t\tlocal level = ns.plain(_G.UnitLevel(unit))\n\t\tif type(level) ~= \"number\" or level < 1 then return name end\n",
+       "\t\tlocal level = ns.plain(_G.UnitLevel(unit))\n"
+       "\t\t-- Withheld: no rank can be named, and a lower one guessed would do\n"
+       "\t\t-- less for anybody your best reaches. The plain name, and the reason in\n"
+       "\t\t-- /manners debug. A skull (-1) is above you, never too low.\n"
+       "\t\tif type(level) ~= \"number\" then Unnamed(entry, name, \"level\") end\n"
+       "\t\tif type(level) ~= \"number\" or level < 1 then return name end\n",
        "\t\tlocal level = _G.UnitLevel(unit)\n\t\tif level == nil or level < 1 then return name end\n",
        "downrank: a secret level is not set aside",
        expect="downrank: a level the client will not say keeps the plain name", script=S)

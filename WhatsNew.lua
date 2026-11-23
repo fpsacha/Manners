@@ -38,6 +38,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffMark this moment.|r A key (|cffffffffKey for Mark this moment|r on Diagnostics), the minimap menu and /manners mark note the prompt, the queue and the fight buttons.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52The right rank for a low-level player.|r The prompt casts the best rank of Fortitude (or any ranked buff) that player can take, as your action bar does: never a rank you skipped at the trainer, also for a passer-by after your cursor leaves them, and right from...",
 			"|cffff9a52Righteous Fury alone.|r Righteous Fury on Automatic now reminds a Protection paladin playing alone, by talents.",
 			"|cffff9a52Unending Breath only while you swim.|r |cffffffffOffer Unending Breath to others only while I am swimming|r, under its switch on Who to buff, off by default.",
 			"|cffff9a52In character thank-yous for a hunter or a rogue.|r |cffffffffWhen someone buffs me|r, at the top of What I say and on Start here, offers |cffffffffIn character (fits your race and class)|r, which turns on |cffffffffWhisper a thank-you to people I can't buff back|r.",

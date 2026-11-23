@@ -76,6 +76,10 @@
   keys* group.
 
 ### Fixes
+- **The right rank for a low-level player.** The prompt casts the best rank of
+  Fortitude (or any ranked buff) that player can take, as your action bar does:
+  never a rank you skipped at the trainer, also for a passer-by after your cursor
+  leaves them, and right from the first offer. `/manners debug` says when it could not.
 - **Righteous Fury alone.** Righteous Fury on Automatic now reminds a Protection
   paladin playing alone, by talents. (A contributed fix.)
 - **Unending Breath only while you swim.** *Offer Unending Breath to others only
