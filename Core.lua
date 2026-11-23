@@ -988,7 +988,7 @@ local defaults = {
 		-- signal is approximate; health and mana are the shares under which the
 		-- buttons for low health and low mana light, in percent.
 		moments = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
-			evocation = true, managem = true, slowfall = true, fireward = false, frostward = false,
+			evocation = true, managem = true, slowfall = true, fireward = true, frostward = true,
 			health = 20, mana = 20 },
 	},
 }

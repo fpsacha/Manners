@@ -38,18 +38,6 @@ mutate(SENSE,
        "moments-wards: a heal counts as a hit",
        expect="moments-wards: only a wound counts", script=S)
 
-mutate(SENSE,
-       '\tif plain(rawAimed) == false then return "no", "not aimed at you" end\n',
-       '',
-       "moments-wards: a cast at somebody else lights it",
-       expect="moments-wards: aimed: plain false is dark", script=S)
-
-mutate(SENSE,
-       '\t\tif CanPaint("is") then\n',
-       '\t\tif false then\n',
-       "moments-wards: a hidden aim is not handed to the game",
-       expect="moments-wards: aimed: a hidden answer is handed to the game", script=S)
-
 mutate(M,
        '\tif slot.row.shares == other.row.key then other.readyAt = slot.readyAt end\n',
        '',

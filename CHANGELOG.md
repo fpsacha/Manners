@@ -21,7 +21,8 @@
   switch and key.
 - **Spellsteal** lights while your target carries a buff you can steal
   (Burning Crusade and later).
-- **Fire Ward and Frost Ward** are there too, switched off until you tick them.
+- **Fire Ward and Frost Ward** light as soon as your target hits you with fire
+  or frost.
 
 ### Water and food for your target
 - **Offer water and food to my target** (mages). Out of a fight, a friendly

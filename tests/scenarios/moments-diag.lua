@@ -279,7 +279,11 @@ do
 		for _, id in ipairs(K.WARD_SPELLS) do out[#out + 1] = id end
 		for _, id in ipairs(K.GEM_SPELLS) do out[#out + 1] = id end
 		return out
-	end)() })
+	end)(), preload = function(ns)
+		-- The wards ship on; switched off here, so their line says so.
+		ns.defaults.profile.moments.fireward = false
+		ns.defaults.profile.moments.frostward = false
+	end })
 end
 
 do

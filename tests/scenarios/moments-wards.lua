@@ -1,10 +1,11 @@
 -- Fire Ward and Frost Ward for the moment (Prompt/Moments.lua; Forever, Classic
 -- Era and Burning Crusade): the game shows addons no school for a cast in flight,
--- so they light on what has just landed. Lit in a fight while the ward is ready
--- and affordable, a hostile target is casting, damage of its school hit you in
--- the last ten seconds (UNIT_COMBAT's school, plain), and the cast is aimed at
--- you where the game says. Of the two only the school that hit last lights; a
--- cast of either starts both clocks. They ship switched off.
+-- so they light on what has just landed, as the owner asked: your target attacks
+-- you with fire or frost. Lit in a fight while the ward is ready and affordable,
+-- your target is hostile, and damage of its school hit you in the last ten
+-- seconds (UNIT_COMBAT's school, plain). No cast need be going on. Of the two
+-- only the school that hit last lights; a cast of either starts both clocks.
+-- They ship switched on.
 --
 -- Held to the mock's model of the client (tests/momentskit.lua), not to the
 -- client (STATUS.md).
@@ -26,10 +27,6 @@ local function with(name, body, opts)
 	opts = opts or {}
 	opts.known = opts.known or KNOWN
 	K.withMage(H, "moments-wards: " .. name, function(ns, ...)
-		-- Off by default: the scenario switches them on.
-		ns.db.profile.moments.fireward = true
-		ns.db.profile.moments.frostward = true
-		ns.addon:Tick()
 		K.protect(ns)
 		body(ns, ...)
 	end, opts)
@@ -52,11 +49,18 @@ local function wards(spell)
 end
 
 do
-	local s = name("off by default")
+	local s = name("on by default")
 	K.withMage(H, s, function(ns)
-		if ns.db.profile.moments.fireward ~= false or ns.db.profile.moments.frostward ~= false then fail(s, "a ward ships on") end
-		if ns.Moments:Button(FIRE) or ns.Moments:Button(FROST) then fail(s, "a ward button was made while off") end
+		if ns.db.profile.moments.fireward ~= true or ns.db.profile.moments.frostward ~= true then fail(s, "a ward ships off") end
+		if not (ns.Moments:Button(FIRE) and ns.Moments:Button(FROST)) then fail(s, "no ward button made") end
 	end, { known = KNOWN })
+	s = name("switched off: no button made")
+	K.withMage(H, s, function(ns)
+		if ns.Moments:Button(FIRE) or ns.Moments:Button(FROST) then fail(s, "a ward button was made while off") end
+	end, { known = KNOWN, preload = function(ns)
+		ns.defaults.profile.moments.fireward = false
+		ns.defaults.profile.moments.frostward = false
+	end })
 end
 
 do
@@ -72,26 +76,28 @@ do
 end
 
 do
-	local s = name("a fire hit then a cast lights Fire Ward only")
+	local s = name("a fire hit lights Fire Ward only, with nobody casting")
 	with(s, function(ns)
 		K.pull(ns)
 		hit(ns, 4)
-		if state(ns, FIRE) ~= "dark" then fail(s, "lit with nobody casting") end
-		K.cast(ns, {})
-		K.tick(ns, 0.3)
 		if state(ns, FIRE) ~= "lit" then fail(s, "Fire Ward not lit: " .. state(ns, FIRE) .. " " .. tostring(slot(ns, FIRE).why)) end
 		if state(ns, FROST) ~= "dark" then fail(s, "Frost Ward lit by a fire hit") end
 		local click = K.click(ns, FIRE)
 		if click ~= ns.Moments:Button(FIRE) or wards("Fire Ward") ~= 1 then fail(s, "a click did not cast Fire Ward: " .. wards("Fire Ward")) end
 		if K.macro(ns, FIRE) ~= "/stopcasting\n/cast Fire Ward" then fail(s, "the macro: " .. tostring(K.macro(ns, FIRE))) end
+	end)
+	s = name("a fire hit while your target casts stays lit when the cast ends")
+	with(s, function(ns)
+		K.pull(ns)
+		K.cast(ns, {})
+		hit(ns, 4)
 		K.endCast(ns)
 		K.tick(ns, 0.3)
-		if state(ns, FIRE) ~= "dark" then fail(s, "still lit when the cast ended") end
+		if state(ns, FIRE) ~= "lit" then fail(s, "dark once the cast ended: " .. state(ns, FIRE) .. " " .. tostring(slot(ns, FIRE).why)) end
 	end)
 	s = name("a frost hit lights Frost Ward")
 	with(s, function(ns)
 		K.pull(ns)
-		K.cast(ns, {})
 		hit(ns, 16)
 		if state(ns, FROST) ~= "lit" or state(ns, FIRE) ~= "dark" then fail(s, "frost " .. state(ns, FROST) .. ", fire " .. state(ns, FIRE)) end
 	end)
@@ -146,55 +152,6 @@ do
 		K.event(ns, "UNIT_COMBAT", "player", "HEAL", "", 40, 4)
 		K.tick(ns, 0.3)
 		if state(ns, FIRE) ~= "dark" then fail(s, "lit by a heal") end
-	end)
-end
-
-do
-	local s = name("aimed: plain false is dark, plain true is lit")
-	with(s, function(ns)
-		K.pull(ns)
-		hit(ns, 4)
-		Mock.aimedAtMe = false
-		K.cast(ns, {})
-		K.tick(ns, 0.3)
-		if state(ns, FIRE) ~= "dark" or slot(ns, FIRE).why ~= "not aimed at you" then fail(s, "lit on a cast at somebody else: " .. state(ns, FIRE)) end
-		Mock.aimedAtMe = true
-		K.cast(ns, {})
-		K.tick(ns, 0.3)
-		if state(ns, FIRE) ~= "lit" then fail(s, "not lit on a cast at you: " .. state(ns, FIRE)) end
-	end)
-	s = name("aimed: a hidden answer is handed to the game")
-	with(s, function(ns)
-		K.pull(ns)
-		hit(ns, 4)
-		Mock.aimedAtMe = Mock.secret(true)
-		K.cast(ns, {})
-		K.tick(ns, 0.3)
-		if state(ns, FIRE) ~= "game" or K.shown(ns, FIRE) ~= 1 then fail(s, "not shown for a hidden yes: " .. state(ns, FIRE)) end
-		Mock.aimedAtMe = Mock.secret(false)
-		K.cast(ns, {})
-		K.tick(ns, 0.3)
-		if K.shown(ns, FIRE) ~= 0 then fail(s, "shown for a hidden no") end
-		if #Mock.secretOnSecure > 0 or Mock.secureAlphaWrites ~= 0 then fail(s, "a hidden value reached a secure frame") end
-	end)
-	s = name("aimed: no call to ask passes it over")
-	with(s, function(ns)
-		_G.PlayerIsSpellTarget = nil
-		K.pull(ns)
-		hit(ns, 4)
-		K.cast(ns, {})
-		K.tick(ns, 0.3)
-		if state(ns, FIRE) ~= "lit" then fail(s, "not lit with the aim unknown: " .. state(ns, FIRE)) end
-	end)
-	s = name("aimed: hidden with no boolean call passes it over")
-	with(s, function(ns)
-		ns.Sense.can.bool = false
-		Mock.aimedAtMe = Mock.secret(false)
-		K.pull(ns)
-		hit(ns, 4)
-		K.cast(ns, {})
-		K.tick(ns, 0.3)
-		if state(ns, FIRE) ~= "lit" then fail(s, "not lit weakly: " .. state(ns, FIRE)) end
 	end)
 end
 

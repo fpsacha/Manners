@@ -567,24 +567,6 @@ function Sense.schoolhit(slot, now)
 	return "yes"
 end
 
--- The cast is aimed at you, where the game says: a hidden boolean is handed to
--- the game to paint ("is"); a client with no such call, or a value of another
--- shape, passes it over.
-function Sense.aimed(slot)
-	if type(_G.PlayerIsSpellTarget) ~= "function" then return "yes" end
-	local rawAimed = _G.PlayerIsSpellTarget("target")
-	if type(rawAimed) ~= "boolean" then return "yes" end
-	if issecretvalue(rawAimed) then
-		if CanPaint("is") then
-			slot.game = { "is", rawAimed }
-			return "game", "whether the cast is aimed at you"
-		end
-		return "yes"
-	end
-	if plain(rawAimed) == false then return "no", "not aimed at you" end
-	return "yes"
-end
-
 ---------------------------------------------------------------------------
 -- Spellsteal and Cold Snap
 ---------------------------------------------------------------------------
@@ -680,7 +662,7 @@ Sense.WORDS = {
 	lowhealth = "your health is low", lowmana = "your mana is low", stuck = "you are stunned or rooted",
 	nolockout = "no Hypothermia", itemready = "a gem in your bags, ready", falling = "you have been falling for a second",
 	partnercooling = "the spell it brings back is cooling down", stealable = "a buff you can steal",
-	schoolhit = "that kind of damage just hit you", aimed = "aimed at you",
+	schoolhit = "that kind of damage just hit you",
 }
 
 -- "lit", "game" or "dark" and, for dark, why; the third answer names what was

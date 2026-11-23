@@ -1178,11 +1178,11 @@ function Page.AddMomentControls(args)
 				return text .. " " .. tail
 			end },
 		{ key = "fireward",
-			name = function() return L["Show %s when my target is casting and fire has just hit me"]:format(Spell("fireward")) end,
-			desc = function() return L["Lights in a fight while a hostile target is casting and fire damage reached you in the last ten seconds. Manners goes by what has just landed on you: that is what the game shows of a spell's kind."] .. " " .. tail end },
+			name = function() return L["Show %s when my target hits me with fire"]:format(Spell("fireward")) end,
+			desc = function() return L["Lights in a fight as soon as fire damage hits you while your target is hostile, and stays lit for ten seconds or until you cast a ward."] .. " " .. tail end },
 		{ key = "frostward",
-			name = function() return L["Show %s when my target is casting and frost has just hit me"]:format(Spell("frostward")) end,
-			desc = function() return L["Lights in a fight while a hostile target is casting and frost damage reached you in the last ten seconds. Manners goes by what has just landed on you: that is what the game shows of a spell's kind."] .. " " .. tail end },
+			name = function() return L["Show %s when my target hits me with frost"]:format(Spell("frostward")) end,
+			desc = function() return L["Lights in a fight as soon as frost damage hits you while your target is hostile, and stays lit for ten seconds or until you cast a ward."] .. " " .. tail end },
 	}
 	local order = 32.4931
 	local function Slider(field, name, desc, a, b)

@@ -175,7 +175,8 @@ do
 			if m[key] ~= want then fail(s, "moments." .. key .. " was not put back") end
 		end
 		if not K.macro(ns, 1) then fail(s, "the reset did not re-arm the buttons") end
-		if ns.Moments:Slot(9) and ns.Moments:Slot(9).armed then fail(s, "Fire Ward is armed after the reset to off") end
+		-- The wards ship on: switched off before the reset, armed again after it.
+		if not (ns.Moments:Slot(9) and ns.Moments:Slot(9).armed) then fail(s, "Fire Ward is not armed after the reset to on") end
 	end, { known = ALL })
 end
 

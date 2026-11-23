@@ -302,8 +302,8 @@ later), Blink when you are stunned or rooted, Ice Block when your health drops
 under *Health below*, Cold Snap when you need Ice Block and it is cooling down,
 Evocation and your mana gem when your mana drops under *Mana below*, Slow Fall
 once you have been falling for a second (in a fight or out of one), and Fire
-Ward and Frost Ward, switched off until you tick them, while your target casts
-and that kind of damage has just hit you. Each has a switch and a key of its own
+Ward and Frost Ward as soon as fire or frost damage hits you while your target
+is hostile. Each has a switch and a key of its own
 under *Buttons for the moment* on *In a fight*; a spell you have not learned
 shows nothing, and a button is out of sight while its spell cools down. A press
 stops your own cast first where that helps, so it fires at once. With no key

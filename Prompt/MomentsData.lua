@@ -54,10 +54,10 @@ local OLD = {
 			needs = { "fight", "ready", "partnercooling", "lowhealth" } },
 		Row { key = "fireward", slot = 9, ranks = { 10225, 10223, 8458, 8457, 543 }, school = 4, shares = "frostward",
 			stop = true, cooldown = 30,
-			needs = { "fight", "ready", "usable", "enemy", "casting", "schoolhit", "aimed" } },
+			needs = { "fight", "ready", "usable", "enemy", "schoolhit" } },
 		Row { key = "frostward", slot = 10, ranks = { 28609, 10177, 8462, 8461, 6143 }, school = 16, shares = "fireward",
 			stop = true, cooldown = 30,
-			needs = { "fight", "ready", "usable", "enemy", "casting", "schoolhit", "aimed" } },
+			needs = { "fight", "ready", "usable", "enemy", "schoolhit" } },
 	},
 }
 
@@ -85,10 +85,10 @@ local TBC = {
 			needs = { "fight", "ready", "usable", "enemy", "inrange", "stealable" } },
 		Row { key = "fireward", slot = 9, ranks = { 27128, 10225, 10223, 8458, 8457, 543 }, school = 4, shares = "frostward",
 			stop = true, cooldown = 30,
-			needs = { "fight", "ready", "usable", "enemy", "casting", "schoolhit", "aimed" } },
+			needs = { "fight", "ready", "usable", "enemy", "schoolhit" } },
 		Row { key = "frostward", slot = 10, ranks = { 32796, 28609, 10177, 8462, 8461, 6143 }, school = 16, shares = "fireward",
 			stop = true, cooldown = 30,
-			needs = { "fight", "ready", "usable", "enemy", "casting", "schoolhit", "aimed" } },
+			needs = { "fight", "ready", "usable", "enemy", "schoolhit" } },
 	},
 }
 
@@ -143,7 +143,7 @@ local SETS = { camelot = OLD, vanilla = OLD, tbc = TBC, mists = MISTS, mainline 
 -- The profile's defaults for every key any set may name (Core.lua repeats
 -- them in defaults.profile.moments; a scenario holds the two together).
 ns.MOMENT_DEFAULTS = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
-	evocation = true, managem = true, slowfall = true, fireward = false, frostward = false }
+	evocation = true, managem = true, slowfall = true, fireward = true, frostward = true }
 
 -- The keys of every row, in the order the options page lists them, for the
 -- scenarios and the reset list.
