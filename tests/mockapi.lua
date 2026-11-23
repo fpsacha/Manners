@@ -598,6 +598,8 @@ for _, e in ipairs({
 	"MINIMAP_UPDATE_TRACKING",
 	"NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED", "PLAYER_DEAD",
 	"PLAYER_ALIVE", "PLAYER_UNGHOST", "UNIT_SPELLCAST_SENT",
+	-- Your level changing (every client; the drink's pick is read against it).
+	"PLAYER_LEVEL_UP",
 	"UNIT_SPELLCAST_SUCCEEDED", "UNIT_SPELLCAST_FAILED", "UI_ERROR_MESSAGE",
 	-- The cast events of a unit that is not you (the moment buttons).
 	"UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP",

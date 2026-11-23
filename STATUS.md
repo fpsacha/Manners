@@ -59,7 +59,8 @@ stands now. Keep it short: what ships goes to the history file or away.
   button on the trail, in the fight summary, in Mark this moment, in
   `/manners debug` and in the self-test), the options and the eight locales.
   The drink (slot 11, `moments.drink`, for every class with mana, on by default;
-  scenarios `moments-drink.lua`, mutations `moments-drink.py`, all CAUGHT): out of
+  scenarios `moments-drink.lua` and `moments-drink-edges.lua`, mutations `moments-drink.py` and
+  `moments-drink-edges.py`, all CAUGHT): out of
   a fight only, lit by the same low-mana route as Evocation (a plain compare, or
   UnitPowerPercent and a curve where the client hides the mana, as Forever does
   even out of a fight), with a drink in the bags, standing still, not drinking;
@@ -70,7 +71,12 @@ stands now. Keep it short: what ships goes to the history file or away.
   would put two more hidden-route buttons, invisible but clickable, on the screen
   all the time. One honest cost: on Forever, where the mana is hidden, the
   drink's icon-sized spot takes the mouse (its cover swallows the first click)
-  out of a fight while a drink is in the bags and you stand still.
+  out of a fight while a drink is in the bags and you stand still (only for the
+  left button: the right and middle buttons go through to the world, so the camera
+  still turns there). The drink's own clock ends on a plain absence of its aura only
+  once that aura has been seen (read by the Drink name and by the id of the cast that
+  began it, so a conjured refreshment counts); a press ends the first-of-two opening;
+  the pick is recounted on a level-up and on rising, not only on bag events.
   More game-only questions: does UNIT_POWER_UPDATE fire for you out of a fight on
   Forever while your mana is hidden (if not, the drink lights at the next bag,
   movement or own-cast event instead of a tick); is the Drink aura plain out of a

@@ -97,7 +97,8 @@ local CAST_STOP = { UNIT_SPELLCAST_STOP = true, UNIT_SPELLCAST_CHANNEL_STOP = tr
 local ALL_EVENTS = { "PLAYER_TARGET_CHANGED", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_POWER_UPDATE", "UNIT_MAXPOWER",
 	"LOSS_OF_CONTROL_ADDED", "LOSS_OF_CONTROL_UPDATE", "SPELL_UPDATE_COOLDOWN", "PLAYER_CONTROL_LOST",
 	"PLAYER_CONTROL_GAINED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING",
-	"BAG_UPDATE_DELAYED", "UNIT_COMBAT", "UNIT_AURA", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST" }
+	"BAG_UPDATE_DELAYED", "UNIT_COMBAT", "UNIT_AURA", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST",
+	"PLAYER_LEVEL_UP" }
 for _, name in ipairs(TARGET_CAST) do ALL_EVENTS[#ALL_EVENTS + 1] = name end
 
 -- Made slots by number, the ones armed now, and what the last Refresh settled.
@@ -374,7 +375,10 @@ local function Apply(slot, state)
 end
 
 -- A swallowed click, or the first of two.
-local function CoverDown(slot)
+local function CoverDown(slot, mouse)
+	-- Only the left button counts: a right or middle press is the player's camera
+	-- or a click on the world, never the first of two.
+	if mouse ~= "LeftButton" then return end
 	local now = GetTime()
 	if slot.state == "game" and slot.row.guard == "twice" then
 		slot.openUntil = now + OPEN_SECONDS
@@ -513,6 +517,13 @@ local function PreClick(slot, mouse)
 		if db then db.momentCoverLeaks = (db.momentCoverLeaks or 0) + 1 end
 		Trail(slot, "the cover let a click through", true)
 	end
+	-- One press of a drink is one press: the opening the first of two clicks made
+	-- ends here and the cover goes back, so a third click inside the window cannot drink again.
+	if slot.row.calm then
+		slot.openUntil = nil
+		slot.ring:Hide()
+		slot.cover:SetShown(CoverWanted(slot, now))
+	end
 	if state == "lit" then
 		tally.pressedLit = tally.pressedLit + 1
 		Trail(slot, "pressed: lit", true)
@@ -606,6 +617,11 @@ local function Create(n)
 	button:SetFrameStrata("MEDIUM")
 	button:SetClampedToScreen(false)
 	button:RegisterForClicks("AnyDown")
+	-- Only the left button casts; the others go through the button (and its cover)
+	-- to the world, so the camera turns under an invisible one. Out of combat here.
+	if type(button.SetPassThroughButtons) == "function" then
+		button:SetPassThroughButtons("RightButton", "MiddleButton", "Button4", "Button5")
+	end
 	-- A key press is a down click (Prompt/Panel.lua explains).
 	button:SetAttribute("pressAndHoldAction", true)
 	button:EnableMouse(false)
@@ -656,7 +672,12 @@ local function Create(n)
 	cover:SetAllPoints(button)
 	cover:SetFrameLevel(level + 10)
 	cover:EnableMouse(true)
-	cover:SetScript("OnMouseDown", function() ns.Guard("moments", CoverDown, slot) end)
+	cover:SetScript("OnMouseDown", function(_, mouse) ns.Guard("moments", CoverDown, slot, mouse) end)
+	-- The other buttons reach the world (the camera turns under the invisible
+	-- cover); written here, out of combat, on an unprotected frame.
+	if type(cover.SetPassThroughButtons) == "function" then
+		cover:SetPassThroughButtons("RightButton", "MiddleButton", "Button4", "Button5")
+	end
 	cover:Hide()
 	button:SetScript("PreClick", function(_, mouse) ns.Guard("moments", PreClick, slot, mouse) end)
 	button:SetScript("OnEnter", function(self) OnEnter(slot, self) end)
@@ -979,8 +1000,13 @@ local function SetRegistered(on)
 	PeaceSet("UNIT_POWER_UPDATE", mana, "player")
 	PeaceSet("UNIT_MAXPOWER", mana, "player")
 	PeaceSet("PLAYER_DEAD", mana)
-	PeaceSet("PLAYER_ALIVE", mana)
-	PeaceSet("PLAYER_UNGHOST", mana)
+	-- The pick's own inputs: your level and being alive (an item the game calls
+	-- unusable while you are dead). Heard with no pick too, so a level-up or a
+	-- rising lights a drink the bags already hold.
+	local pickInputs = wantCalm and peace
+	PeaceSet("PLAYER_ALIVE", pickInputs)
+	PeaceSet("PLAYER_UNGHOST", pickInputs)
+	PeaceSet("PLAYER_LEVEL_UP", pickInputs)
 end
 
 -- The out-of-a-fight pass, coalesced like the fight's flush: the bags recounted
@@ -1378,7 +1404,11 @@ local function OwnCast(spellId)
 		local calm = slots[n]
 		if calm and calm.armed and calm.row.drink then
 			local went = Went(calm)
-			if went or Sense.DrinkSpell(calm, id) then calm.castAt = now end
+			if went or Sense.DrinkSpell(calm, id) then
+				-- The clock begins; the aura of this drink is not yet seen, and its
+				-- spell is read by id too (a conjured refreshment is no "Drink").
+				calm.castAt, calm.drinkCast, calm.auraSeen = now, id, nil
+			end
 		end
 	end
 	-- Mounting and shapeshifting are own casts too: the calm buttons look again.
@@ -1427,7 +1457,15 @@ function Moments.OnEvent(event, unit, a, b, c, d)
 			if type(kind) == "string" and kind ~= "MANA" then return end
 			return SchedulePeace()
 		end
-		if event == "UNIT_MAXPOWER" or event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
+		if event == "PLAYER_LEVEL_UP" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
+			-- Level and life are inputs of the pick: the bags are counted again.
+			for n = 1, MAX do
+				local slot = slots[n]
+				if slot and slot.armed and slot.row.calm then slot.bagsDirty = true end
+			end
+			return SchedulePeace()
+		end
+		if event == "UNIT_MAXPOWER" or event == "PLAYER_DEAD" then
 			return SchedulePeace()
 		end
 		return

@@ -93,7 +93,8 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   out of a fight Lua shows and hides it, writes its macro (`/use item:<best drink>`)
   whenever the bags change (`BAG_UPDATE_DELAYED`, registered out of a fight only,
   dropped at the pull) and hears the mana, movement and death events only while a
-  drink is in the bags. One click where Lua knows the mana, two where only the game
+  drink is in the bags (the level-up and the rising, which are inputs of the pick, are
+  heard always, and recount the bags). One click where Lua knows the mana, two where only the game
   does (Forever hides it out of a fight too). The cure button takes
   the same cover (`CureFight:Cover`, up while it is out of sight in a fight, down
   while it is on the screen, counted in `db.global.cureCoverLeaks` when a click

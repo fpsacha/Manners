@@ -69,7 +69,7 @@ mutate(SENSE,
        expect="moments-drink: dark while mounted", script=S)
 
 mutate(SENSE,
-       '\t\t\tif type(rawAura) == "table" then return "no", "you are drinking" end\n',
+       '\t\t\t\tif type(rawAura) == "table" then slot.auraSeen = true return "no", "you are drinking" end\n',
        '',
        "moments-drink: the Drink aura on you is no reason",
        expect="moments-drink: dark while drinking: the aura read plainly", script=S)

@@ -667,14 +667,27 @@ end
 function Sense.notdrinking(slot, now)
 	local name = Sense.DrinkName(slot)
 	local auras = _G.C_UnitAuras
-	if name and type(auras) == "table" and type(auras.GetAuraDataBySpellName) == "function" then
-		-- A restricted read: a throw is told from a plain nil, so only a plain
-		-- absence ends the clock.
-		local ok, rawAura = pcall(auras.GetAuraDataBySpellName, "player", name, "HELPFUL")
-		if ok and not issecretvalue(rawAura) then
-			if type(rawAura) == "table" then return "no", "you are drinking" end
-			slot.castAt = nil
+	if type(auras) == "table" then
+		-- Restricted reads: a throw is told from a plain nil. A plain absence ends the
+		-- clock only once this drink's aura has been seen (the cast comes before the
+		-- aura lands, and a conjured refreshment has an aura of its own name), read by
+		-- the name of the Drink spell and by the id of the cast that began the clock.
+		local absent = false
+		if name and type(auras.GetAuraDataBySpellName) == "function" then
+			local ok, rawAura = pcall(auras.GetAuraDataBySpellName, "player", name, "HELPFUL")
+			if ok and not issecretvalue(rawAura) then
+				if type(rawAura) == "table" then slot.auraSeen = true return "no", "you are drinking" end
+				absent = true
+			end
 		end
+		if slot.drinkCast and type(auras.GetPlayerAuraBySpellID) == "function" then
+			local ok, rawById = pcall(auras.GetPlayerAuraBySpellID, slot.drinkCast)
+			if ok and not issecretvalue(rawById) then
+				if type(rawById) == "table" then slot.auraSeen = true return "no", "you are drinking" end
+				absent = true
+			end
+		end
+		if absent and slot.auraSeen then slot.castAt, slot.auraSeen = nil, nil end
 	end
 	if slot.castAt and now - slot.castAt < (slot.row.seconds or 0) then return "no", "you are drinking" end
 	return "yes"

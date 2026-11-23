@@ -126,6 +126,11 @@ end
 local function addGeometry(f)
 	f.SetClipsChildren = function(self, on) self._clips = on and true or false end
 	f.SetToplevel = function(self, on) self._toplevel = on and true or false end
+	-- The buttons that go through a frame to what is under it.
+	f.SetPassThroughButtons = function(self, ...)
+		self._pass = {}
+		for _, b in ipairs({ ... }) do self._pass[b] = true end
+	end
 	f.Raise = function(self) self._raised = (self._raised or 0) + 1 end
 	f.Lower = function(self) self._lowered = (self._lowered or 0) + 1 end
 	f.EnableKeyboard = function(self, on) self._keyboard = on and true or false end
@@ -773,6 +778,7 @@ function Mock.clickAt(button, which)
 	which = which or "LeftButton"
 	local top, topLevel
 	local function consider(f)
+		if f._pass and f._pass[which] then return end
 		if f._mouse == true and f:IsVisible() then
 			local level = f._level or 1
 			if f == button then level = level - 0.5 end
