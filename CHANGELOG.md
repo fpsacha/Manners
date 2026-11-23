@@ -33,8 +33,10 @@
   your mana, a dim icon shows the button is there and it takes two quick clicks.
 - **Fire Ward and Frost Ward** light when your target casts a fire or frost
   spell, and as soon as it hits you with fire or frost.
-- **Cards in your look.** Each button is a small prompt in your look, above the
-  prompt, with the spell, its name and why; *Card size* makes them bigger.
+- **Cards in your look.** Each button is a small prompt in your look, as big as
+  the prompt itself, above it, with the spell, its name and why; *Card size* (80
+  to 150, 100 by default) changes it. A card takes clicks over its icon alone, so
+  the rest of it lets them through to the world.
 - **At once.** Blink, Counterspell, Ice Block and Cold Snap light under the
   global cooldown with no fade, then pulse.
 - **Show where the buttons for the moment sit.** On the In a fight page and in

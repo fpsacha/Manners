@@ -702,10 +702,15 @@ Looks.previewIcon = {}
 -- none of this text, nor the tag: the picker writes the words there live, in the
 -- player's language, and draws the tag round them as wide as they are.
 Looks.previewText = {}
+-- How tall, in units, the view each picture is cut from is (the width is four times
+-- it): the fractions above are of it, so a card drawn that high shows the look as
+-- big as the prompt draws it (the buttons for the moment, Prompt/Moments.lua).
+Looks.previewView = {}
 -- The same three for a look's earlier art (HasEarlierArt): its second picture,
 -- Preview_<key>_earlier, drawn with Earlier art on, and what it records. A card
 -- wears it while the prompt draws that art (EarlierShown).
 Looks.previewsEarlier, Looks.previewIconEarlier, Looks.previewTextEarlier = {}, {}, {}
+Looks.previewViewEarlier = {}
 
 -- Whether a look's card wears its earlier art's picture now.
 local function Earlier(key)
@@ -733,4 +738,14 @@ function Looks.PreviewText(key)
 	if not Looks.previews[key] then return nil end
 	if Earlier(key) then return Looks.previewTextEarlier[key] end
 	return Looks.previewText[key]
+end
+
+-- The height in units of the view the look's picture (the one it wears now) is cut
+-- from, or the standard view's 62 for a look without a picture (which wears framed's).
+function Looks.PreviewView(key)
+	local view
+	if Looks.previews[key] then
+		view = Earlier(key) and Looks.previewViewEarlier[key] or Looks.previewView[key]
+	end
+	return type(view) == "number" and view > 0 and view or 62
 end

@@ -980,7 +980,8 @@ end
 -- ward school hit more recently. Or your target is casting now, its school is
 -- not given by this client (`guess`) and, this fight, the last ward school to
 -- hit you was this one: the guess the owner asked for while the enemy casts.
--- Nothing hit yet: dark.
+-- Nothing hit yet: dark. The third answer says which branch said yes: a hit
+-- within HIT_SECONDS (true), or the guess alone (false).
 local function ByHit(slot, now, guess)
 	local school = slot.row.school
 	local at = school and Sense.lastHit[school]
@@ -991,8 +992,8 @@ local function ByHit(slot, now, guess)
 			return "no", "another kind hit you more recently"
 		end
 	end
-	if recent then return "yes" end
-	if guess then return "yes" end
+	if recent then return "yes", nil, true end
+	if guess then return "yes", nil, false end
 	return "no", "your target is not casting and nothing of that kind hit you lately"
 end
 
@@ -1005,8 +1006,10 @@ function Sense.schoolhit(slot, now)
 	-- Which route lit it, for the card's reason line: the cast itself, or the hit.
 	slot.wardRoute = "cast"
 	if route == "exact" and HasSchool(mask, bit) then return "yes" end
-	local verdict, why = ByHit(slot, now, route == "unknown")
-	slot.wardRoute = verdict == "yes" and "hit" or "cast"
+	local verdict, why, recent = ByHit(slot, now, route == "unknown")
+	-- "Just hit you" only for a hit within the last HIT_SECONDS: what lit a ward on
+	-- the guess is the target's cast, whenever the last hit was.
+	slot.wardRoute = (verdict == "yes" and recent == true) and "hit" or "cast"
 	if verdict == "yes" then return "yes" end
 	if route == "game" then
 		slot.game = slot.castLit

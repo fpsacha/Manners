@@ -17,7 +17,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffSpellsteal|r lights while your target carries a buff you can steal (Burning Crusade and later).",
 			"|cff7cc4ffA drink when your mana is low.|r Out of a fight, for every class with mana: a button lights while your mana is under |cffffffffMana below|r and a drink is in your bags; a press drinks your best conjured water, else another drink.",
 			"|cff7cc4ffFire Ward and Frost Ward|r light when your target casts a fire or frost spell, and as soon as it hits you with fire or frost.",
-			"|cff7cc4ffCards in your look.|r Each button is a small prompt in your look, above the prompt, with the spell, its name and why; |cffffffffCard size|r makes them bigger.",
+			"|cff7cc4ffCards in your look.|r Each button is a small prompt in your look, as big as the prompt itself, above it, with the spell, its name and why; |cffffffffCard size|r (80 to 150, 100 by default) changes it.",
 			"|cff7cc4ffAt once.|r Blink, Counterspell, Ice Block and Cold Snap light under the global cooldown with no fade, then pulse.",
 			"|cff7cc4ffShow where the buttons for the moment sit.|r On the In a fight page and in the minimap menu: a few seconds, out of a fight, nothing casts.",
 			"|cff7cc4ffKey boxes say how:|r click, then press a key or a controller button.",

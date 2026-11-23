@@ -93,14 +93,26 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   flare, hover and key label are its regions) and `mark` (Lua's: the ring and the
   PREVIEW tag). The reason comes from plain facts only, a general one where only
   the game knows ("low health"). A card's size is the setting `moments.cardSize`
-  (percent of the picture, 60 to 150, 80 by default) times the prompt's scale,
-  four to one; `Moments.Place` stacks the cards above the prompt, nearest first
-  (`PLACE_ORDER`), clear of the list, the painted art over the bar (`S.artAbove`,
-  `S.artBelow`) and the buttons beside the prompt, below it where there is no room
-  above, wrapping into columns; the drink shares the first place. Place, `Card.Dress`
+  (percent of the look's view, 80 to 150, 100 by default) times the prompt's
+  scale, four to one: the view is the height the look's picture is cut from
+  (`Looks.PreviewView`, `ns.Looks.previewView`, written by
+  `tools/make_look_previews.py`: 62 units, taller for a look whose art stands past
+  its panel), so at 100 the look is as big on a card as on the prompt itself.
+  A card takes the mouse over its icon's rectangle alone (`SetHitRectInsets` on the
+  button and the cover anchored to the same rectangle, both set by `Card.Dress`
+  out of a fight): a dark card is invisible through a fight and must not swallow
+  clicks meant for the world. `Moments.Place` stacks the cards above the prompt,
+  nearest first (`PLACE_ORDER`), clear of the list, the painted art over the bar
+  (`S.artAbove`, `S.artBelow`, set by `DressPainted` for the looks drawn in
+  `Prompt/Panel.lua` and by `ApplyLook` from `paintedArt.g` for the looks of
+  `Looks/`, with `S.queueGap` the look's own `listGap`) and the buttons beside the
+  prompt, below it where there is no room above, wrapping into columns; the drink
+  shares the first place. Place, `Card.Dress`
   and `Card.SetIcon` run out of a fight only; in a fight Lua shows and hides
   `hint`, ring, flare, hover and tag, plays and stops the flare, writes the
-  reason's text (no refit) and sets the alpha of `face` and `inner`. The urgent
+  reason's text (no refit; Judge writes it again at every look of a card that
+  stays lit, so "you are rooted" becomes "you are stunned" with the facts) and
+  sets the alpha of `face` and `inner`. The urgent
   rows (`fast`: Blink, Counterspell, Ice Block, Cold Snap) count a spell whose
   only wait is the global cooldown as ready (`Sense.OnlyGcd`, the spell 61304; a
   cooldown of our own clock or a plain longer one still holds them dark), appear at

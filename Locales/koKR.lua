@@ -5746,7 +5746,7 @@ L["Where the game keeps that from addons in a fight, the game itself lights the 
 L["Buttons drawn as small prompts in your look, stacked above the prompt, that stay out of sight until their moment comes, then light up with the spell and the reason. Each has a switch here and a key of its own."] = "내 모양을 입힌 작은 알림 형태로 알림 위에 쌓여 있다가, 때가 올 때까지 보이지 않고 때가 되면 주문과 이유와 함께 켜지는 버튼입니다. 버튼마다 여기에 스위치와 고유한 단축키가 있습니다."
 L["Lights every button for the moment that is switched on, for a few seconds and marked as a preview, so you can see where each one sits and what it says. Nothing casts from it. Not in a fight."] = "켜져 있는 모든 '그때를 위한 버튼'을 몇 초 동안 미리보기로 표시해 켜서, 각 버튼이 어디에 있고 무엇이라고 말하는지 볼 수 있게 합니다. 여기서는 아무것도 시전되지 않습니다. 전투 중에는 쓸 수 없습니다."
 L["Card size"] = "카드 크기"
-L["How big the buttons for the moment are drawn, in percent: at 100 a card is the size of its look's own picture, a little bigger than the prompt."] = "'그때를 위한 버튼'을 얼마나 크게 그릴지 퍼센트로 정합니다. 100이면 카드는 해당 모양의 그림 크기로, 알림보다 조금 큽니다."
+L["How big the buttons for the moment are drawn, in percent: at 100 a card shows your look as big as the prompt itself."] = "'그때를 위한 버튼'을 얼마나 크게 그릴지 퍼센트로 정합니다. 100이면 카드가 모양을 알림과 같은 크기로 보여 줍니다."
 L["Show %s when my target starts a cast"] = "내 대상이 시전을 시작하면 %s 표시"
 L["Lights while a hostile target within reach is casting or channelling something you can interrupt, and goes dark the moment the cast ends. A press stops your own cast first, so it fires at once. Out of sight while it cools down."] = "사정거리 안의 적대적 대상이 차단할 수 있는 주문을 시전하거나 정신 집중하는 동안 불이 켜지고, 시전이 끝나는 즉시 꺼집니다. 누르면 내 시전을 먼저 멈추므로 바로 발동합니다. 재사용 대기 중에는 보이지 않습니다."
 L["Show %s when my target has a buff I can steal"] = "내 대상에게 훔칠 수 있는 강화 효과가 있으면 %s 표시"

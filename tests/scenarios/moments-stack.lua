@@ -281,10 +281,10 @@ do
 		ns.Moments:Refresh()
 		if ns.Moments:Wanted() then fail(s, "still wanted after the refresh") end
 		-- A new card size.
-		ns.db.profile.moments.cardSize = 100
+		ns.db.profile.moments.cardSize = 120
 		if not ns.Moments:Wanted() then fail(s, "a new card size is not noticed") end
 		ns.Moments:Refresh()
-		if blink.button:GetHeight() ~= 62 then fail(s, "the cards are not placed at the new size: " .. tostring(blink.button:GetHeight())) end
+		if blink.button:GetHeight() ~= 74 then fail(s, "the cards are not placed at the new size: " .. tostring(blink.button:GetHeight())) end
 		-- The list switched on, which restyles the prompt.
 		p.showQueue = not p.showQueue
 		ns.Prompt.state.queueAbove = true

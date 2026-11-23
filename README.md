@@ -327,7 +327,9 @@ with the spell's icon, its name and the reason written over it in the look's own
 fonts and colours, above the prompt, nearest first, clear of the list of names and
 of the buttons beside the prompt; below it where there is no room above. A look
 keeps its moving art on the one prompt, so a card does not move; it pulses.
-*Card size* (60 to 150 percent, 80 by default) makes them bigger. *Show where the
+*Card size* (80 to 150 percent; at the default 100 a card shows your look as big
+as the prompt itself) makes them bigger. A card takes clicks over its icon alone,
+so the rest of it, dark or lit, lets them through to the world. *Show where the
 buttons for the moment sit*, on the same page and in the minimap menu, lights
 every one that is switched on for a few seconds, marked as a preview, out of a
 fight, so you can see where each sits; nothing casts from it. Blink, Counterspell,

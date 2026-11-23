@@ -1481,6 +1481,10 @@ loads the addon on the mock client in that style, takes `render_prompt.lua`'s
 "owed" state (somebody buffed you), draws it with `render_prompt.py` and cuts a
 248 x 62 unit view out to 256 x 64, 32 bit, uncompressed. Needs lupa, numpy and
 Pillow; the font is the machine's, so the bytes are the same on one machine only.
+`Looks/Previews.lua` also says how tall each look's view is (`ns.Looks.previewView`
+and `previewViewEarlier`, units; taller than 62 for a look whose art stands past its
+panel: `FRAMES`, `painted_frame`), which the moment buttons' cards take for their
+height at Card size 100; `--check` holds it to the views as they are now.
 
 ```
 python tools/make_look_previews.py              # write the pictures and Looks/Previews.lua

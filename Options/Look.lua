@@ -1155,9 +1155,9 @@ function Page.AddMomentControls(args)
 	args.momentCardSize = {
 		type = "range",
 		name = L["Card size"],
-		desc = L["How big the buttons for the moment are drawn, in percent: at 100 a card is the size of its look's own picture, a little bigger than the prompt."],
+		desc = L["How big the buttons for the moment are drawn, in percent: at 100 a card shows your look as big as the prompt itself."],
 		order = 32.49304,
-		min = 60, max = 150, step = 10,
+		min = 80, max = 150, step = 10,
 		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
 		get = function() return ns.db.profile.moments.cardSize end,
 		set = function(_, value)

@@ -64,8 +64,8 @@ mutate(CARD,
        expect="moments-card: the drink at rest on Forever shows only its dim icon", script=S)
 
 mutate(M,
-       '\tlocal h = math.floor(62 * percent / 100 * scale + 0.5)\n',
-       '\tlocal h = math.floor(62 * percent / 100 + 0.5)\n',
+       '\tlocal h = math.floor(ns.Looks.PreviewView(p.style or "glass") * percent / 100 * scale + 0.5)\n',
+       '\tlocal h = math.floor(ns.Looks.PreviewView(p.style or "glass") * percent / 100 + 0.5)\n',
        "moments-card: the prompt's scale is not in the card's size",
        expect="moments-card: the button is a card four to one", script=S)
 
@@ -82,7 +82,7 @@ mutate(CARD,
        expect="moments-card: the wards say whether the cast or the hit lit them", script=S)
 
 mutate(M,
-       '\tCard.Hint(slot, nil)\n\t\tCard.ShowReason(slot, "lit")\n',
-       '\tCard.Hint(slot, nil)\n',
+       '\tif state ~= "dark" then Card.ShowReason(slot, state) end\n',
+       '',
        "moments-card: a lit card never writes its reason",
        expect="moments-card: Blink's reasons", script=S)

@@ -431,7 +431,6 @@ local function Apply(slot, state)
 		slot.inner:SetAlpha(1)
 		slot.state = "lit"
 		Card.Hint(slot, nil)
-		Card.ShowReason(slot, "lit")
 		Appear(slot)
 		GlowOn(slot, true)
 		slot.cover:SetShown(CoverWanted(slot, now))
@@ -445,7 +444,6 @@ local function Apply(slot, state)
 		return Apply(slot, "dark")
 	end
 	slot.state = "game"
-	Card.ShowReason(slot, "game")
 	Appear(slot)
 	GlowOn(slot, true)
 	PaintHint(slot)
@@ -532,12 +530,24 @@ local function Judge(slot, now)
 	if slot.row.fast and state == "dark" and PENDING[why] and Sense.fighting then
 		if slot.heldWhy ~= why then
 			slot.heldWhy = why
-			Trail(slot, ("held dark: %s; global cooldown %s; onGCD %s"):format(tostring(why), Sense.GcdWord(),
-				tostring(slot.onGCD)))
+			-- Not under the trail's gap of two seconds, which a held row that lights a
+			-- moment later would hand to this line and take from its own lit line: one
+			-- line a reason, and a count of its own.
+			if (slot.heldCount or 0) < TRAIL_MAX then
+				slot.heldCount = (slot.heldCount or 0) + 1
+				Trail(slot, ("held dark: %s; global cooldown %s; onGCD %s"):format(tostring(why), Sense.GcdWord(),
+					tostring(slot.onGCD)), true)
+			end
 		end
 	else
 		slot.heldWhy = nil
 	end
+	-- The words of a card that is lit or left to the game, written at every look: they
+	-- stay true to the facts under them (Blink's kind of loss of control and a ward's
+	-- route are read again each time, so a root that becomes a stun is said so), and
+	-- only the text of a font string is written, when the words have changed
+	-- (ShowReason), which a fight allows.
+	if state ~= "dark" then Card.ShowReason(slot, state) end
 	if state == was then return end
 	if state == "lit" then
 		slot.tally.lit = slot.tally.lit + 1
@@ -923,13 +933,15 @@ for i, key in ipairs(PLACE_ORDER) do ORDER[key] = i end
 local MARGIN, GAP = 6, 6
 
 -- The size of a card from the setting and the prompt's scale: the picture is 4 to 1
--- and 62 units high at 100 %, and the buttons are on UIParent at scale 1, so the
--- prompt's scale goes into the numbers.
+-- and as high at 100 % as the view the look's picture is cut from (62 units for
+-- most, taller for a look whose art stands past its panel: Looks.PreviewView), so
+-- at 100 the look is as big on a card as on the prompt itself. The buttons are on
+-- UIParent at scale 1, so the prompt's scale goes into the numbers.
 function Moments.CardSize(p)
 	local db = Profile()
-	local percent = db and type(db.moments) == "table" and tonumber(db.moments.cardSize) or 80
+	local percent = db and type(db.moments) == "table" and tonumber(db.moments.cardSize) or 100
 	local scale = tonumber(p.scale) or 1
-	local h = math.floor(62 * percent / 100 * scale + 0.5)
+	local h = math.floor(ns.Looks.PreviewView(p.style or "glass") * percent / 100 * scale + 0.5)
 	return 4 * h, h, scale
 end
 
@@ -1590,7 +1602,7 @@ local function Pull()
 			ReadKey(slot)
 			SetMouse(slot)
 			slot.tally = NewTally()
-			slot.trailAt, slot.trailCount = nil, 0
+			slot.trailAt, slot.trailCount, slot.heldCount = nil, 0, 0
 			slot.onGCD, slot.flip, slot.castOn, slot.castInfo = nil, nil, nil, nil
 			slot.state, slot.why, slot.openUntil, slot.heldWhy = "dark", nil, nil, nil
 			slot.ring:Hide()

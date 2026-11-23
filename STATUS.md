@@ -151,6 +151,19 @@ stands now. Keep it short: what ships goes to the history file or away.
   same names, all CAUGHT. Game-only questions: does 61304 answer isActive plainly
   on Forever (`/manners debug` says "global cooldown: unreadable" if not, and the
   old rule stands), and what the "held dark" line says in his next check-up.
+  A review of the cards then found and fixed, in `moments-review.lua` (mutations
+  of the same name, CAUGHT): a look of `Looks/` told Place nothing of its art or
+  its list (`ApplyLook` now sets `artAbove`, `artBelow`, `queueGap`); the held-dark
+  line took the gap from the lit line (own count, `always`); a dark card swallowed
+  clicks over the whole card (now the icon's rectangle alone: `SetHitRectInsets`
+  and the cover); a card was 74 percent of the prompt on a taller view (the tool
+  writes each look's view, `Looks.PreviewView`, so Card size 100, the new default,
+  is the prompt's own size; the slider runs 80 to 150); a ward said "just hit you"
+  for a hit forty seconds old (`ByHit`'s third answer); a lit card kept stale words
+  (Judge writes the reason again). Not done, a choice: the card is still the
+  look's 256 x 64 picture, which is soft above the 1.5 times it is drawn at; live
+  painted pieces would repeat the layout of every look (each has its own
+  `PaintedPlace`) and a larger picture needs `render_prompt.py` drawn at four times.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option

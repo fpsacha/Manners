@@ -254,6 +254,24 @@ function Card.Dress(slot, key, w, h)
 		ring:SetTexture(RING_SQUARE)
 		ring:SetAllPoints(mark)
 	end
+	-- The mouse takes the icon's rectangle (with the ring's room round it) and no more:
+	-- a card is dark and invisible through most of a fight, and a block of cards over
+	-- the world would swallow every click meant for it. The button's hit area and the
+	-- cover that stands over it shrink together; the rest of the card reaches the world.
+	-- A key bound for the button takes the mouse off it altogether.
+	local button, cover = slot.button, slot.cover
+	cover:ClearAllPoints()
+	if at then
+		local out = 3 * k
+		local x0, y0 = math.max(0, at.l * w - out), math.max(0, at.t * h - out)
+		local x1, y1 = math.min(w, at.r * w + out), math.min(h, at.b * h + out)
+		button:SetHitRectInsets(x0, w - x1, y0, h - y1)
+		cover:SetPoint("TOPLEFT", button, "TOPLEFT", x0, -y0)
+		cover:SetPoint("BOTTOMRIGHT", button, "TOPLEFT", x1, -y1)
+	else
+		button:SetHitRectInsets(0, 0, 0, 0)
+		cover:SetAllPoints(button)
+	end
 end
 
 ---------------------------------------------------------------------------

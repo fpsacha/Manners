@@ -196,6 +196,40 @@ ns.Looks.previewText = {
 		reason = { l = 0.32072, t = 0.55683, r = 0.7335, b = 0.69463, h = "LEFT", v = "MIDDLE", size = 0.1378, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01378, y = -0.01378, color = { 0, 0, 0, 0.8 } } },
 	},
 }
+-- The height in units of the view each picture is cut from (the width is four times it):
+-- the picture's icon and lines are fractions of it, so a card as high as this shows the
+-- look at the size of the prompt itself (Prompt/Moments.lua, Card size 100).
+ns.Looks.previewView = {
+	arcane = 62,
+	archmage = 66.44,
+	demonhunter = 72.97,
+	ebon = 82,
+	evoker = 68.07,
+	fel = 67.71,
+	firemage = 72,
+	forge = 62.33,
+	framed = 62,
+	frost = 66.74,
+	gearworks = 62,
+	ghost = 62,
+	glass = 62,
+	hairline = 62,
+	leather = 83,
+	letter = 66.56,
+	lightbringer = 74.24,
+	luxe = 62,
+	minimal = 62,
+	monk = 62,
+	pill = 62,
+	priest = 62,
+	ribbon = 68.95,
+	rogue = 62,
+	slate = 62,
+	stormcaller = 83,
+	toast = 65.68,
+	warchief = 62,
+	wild = 72.57,
+}
 -- The looks with an earlier art (Looks.HasEarlierArt), each with a second picture,
 -- Preview_<key>_earlier, drawn with Earlier art on, and its icon and text as above:
 -- a card wears them while the prompt draws that art.
@@ -319,4 +353,25 @@ ns.Looks.previewTextEarlier = {
 		reason = { l = 0.30242, t = 0.53226, r = 0.77823, b = 0.69355, h = "LEFT", v = "MIDDLE", size = 0.16129, color = { 0.944, 0.812, 0.484, 1 }, shadow = { x = 0.01613, y = -0.01613, color = { 0, 0, 0, 0.8 } } },
 	},
 }
-ns.Looks.previewHash = "d2e04a7cff3c35dfa658cdca3ad7834fbdda742669bcb711921654ccce931786"
+ns.Looks.previewViewEarlier = {
+	arcane = 62,
+	archmage = 62,
+	ebon = 82,
+	fel = 62,
+	forge = 62,
+	framed = 62,
+	frost = 62,
+	gearworks = 62,
+	glass = 62,
+	leather = 83,
+	letter = 62,
+	lightbringer = 62,
+	luxe = 62,
+	minimal = 62,
+	ribbon = 62,
+	stormcaller = 83,
+	toast = 62,
+	warchief = 62,
+	wild = 62,
+}
+ns.Looks.previewHash = "1ef735653036eef3e8f18755c4bfd96937808a7f1de146f979b103951fc0e4f4"

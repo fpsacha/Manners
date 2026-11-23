@@ -58,8 +58,8 @@ mutate(SENSE,
        expect="moments-cast-school: exact, Classic Era: a Fireball lights Fire Ward", script=S)
 
 mutate(SENSE,
-       "\tlocal verdict, why = ByHit(slot, now, route == \"unknown\")\n",
-       "\tlocal verdict, why = ByHit(slot, now, route ~= \"none\")\n",
+       "\tlocal verdict, why, recent = ByHit(slot, now, route == \"unknown\")\n",
+       "\tlocal verdict, why, recent = ByHit(slot, now, route ~= \"none\")\n",
        "moments-cast-school: a cast of a named school is guessed at from an earlier hit",
        expect="moments-cast-school: exact: a cast of another school is not guessed at", script=S)
 

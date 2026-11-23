@@ -5746,7 +5746,7 @@ L["Where the game keeps that from addons in a fight, the game itself lights the 
 L["Buttons drawn as small prompts in your look, stacked above the prompt, that stay out of sight until their moment comes, then light up with the spell and the reason. Each has a switch here and a key of its own."] = "按鈕以你的外觀畫成小提示，疊放在提示上方，到了該用的時刻之前一直看不見，隨後連同法術和原因一起亮起。每個按鈕在這裡都有自己的開關和按鍵。"
 L["Lights every button for the moment that is switched on, for a few seconds and marked as a preview, so you can see where each one sits and what it says. Nothing casts from it. Not in a fight."] = "讓每個已開啟的即時按鈕亮起幾秒鐘，並標明是預覽，方便你看到每個按鈕在哪裡、寫了什麼。不會從中施放任何法術。戰鬥中不可用。"
 L["Card size"] = "卡片大小"
-L["How big the buttons for the moment are drawn, in percent: at 100 a card is the size of its look's own picture, a little bigger than the prompt."] = "即時按鈕畫多大，以百分比計：100 時卡片和其外觀的圖片一樣大，比提示略大。"
+L["How big the buttons for the moment are drawn, in percent: at 100 a card shows your look as big as the prompt itself."] = "即時按鈕畫多大，以百分比計：100 時卡片顯示的外觀和提示本身一樣大。"
 L["Show %s when my target starts a cast"] = "我的目標開始施法時顯示%s"
 L["Lights while a hostile target within reach is casting or channelling something you can interrupt, and goes dark the moment the cast ends. A press stops your own cast first, so it fires at once. Out of sight while it cools down."] = "當範圍內的敵對目標正在施放或引導一個可以打斷的法術時亮起，施法一結束就熄滅。按下時會先停止你自己的施法，所以立刻生效。冷卻期間不可見。"
 L["Show %s when my target has a buff I can steal"] = "我的目標有可竊取的增益時顯示%s"

@@ -994,7 +994,7 @@ local defaults = {
 		-- mana light, in percent.
 		moments = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
 			evocation = true, managem = true, drink = true, slowfall = true, fireward = true, frostward = true,
-			health = 20, mana = 20, cardSize = 80 },
+			health = 20, mana = 20, cardSize = 100 },
 	},
 }
 ns.defaults = defaults
@@ -5790,7 +5790,7 @@ local LIMITS = {
 	{ "supplies", "size", 24, 80 },
 	{ "moments", "health", 5, 50 },
 	{ "moments", "mana", 5, 50 },
-	{ "moments", "cardSize", 60, 150 },
+	{ "moments", "cardSize", 80, 150 },
 	-- Two is the least a group cast can beat, five a whole party.
 	{ "groupBuffs", "atLeast", 2, 5 },
 }
@@ -6031,12 +6031,12 @@ function ns.ClampSettings()
 			local v = moments[field]
 			if type(v) == "number" and v % 5 ~= 0 then moments[field] = math.max(5, math.min(50, math.floor(v / 5 + 0.5) * 5)) end
 		end
-		-- The size of a card, in tens, from 60 to 150; anything else is the default.
+		-- The size of a card, in tens, from 80 to 150; anything else is the default.
 		local size = moments.cardSize
 		if type(size) ~= "number" or size ~= size then
-			moments.cardSize = 80
+			moments.cardSize = 100
 		else
-			moments.cardSize = math.max(60, math.min(150, math.floor(size / 10 + 0.5) * 10))
+			moments.cardSize = math.max(80, math.min(150, math.floor(size / 10 + 0.5) * 10))
 		end
 	end
 	-- An ask's channel and line (Ask.lua), each one of a few.

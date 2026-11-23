@@ -90,7 +90,7 @@ do
 end
 
 do
-	for _, case in ipairs({ { 80, 1, 50 }, { 100, 1, 62 }, { 150, 1, 93 }, { 80, 1.2, 60 }, { 60, 1, 37 } }) do
+	for _, case in ipairs({ { 80, 1, 50 }, { 100, 1, 62 }, { 150, 1, 93 }, { 80, 1.2, 60 }, { 120, 1, 74 } }) do
 		local percent, scale, high = case[1], case[2], case[3]
 		local s = name(("the button is a card four to one: Card size %d at the prompt's scale %s is %d high"):format(percent, tostring(scale), high))
 		with(s, function(ns)

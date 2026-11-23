@@ -1006,6 +1006,16 @@ function Prompt:ApplyLook(p, look)
 	local above = QueueGoesAbove()
 	S.queueAbove = above
 	local textX, chipRoom = look:Apply(p, above)
+	-- What a painted look hangs over and under the bar, and how far it pushes its
+	-- list off the bar (its own listGap, which its PaintQueue adds to the depth), for
+	-- what sits clear of them (Prompt/Moments.lua), as DressPainted says for the
+	-- three looks drawn here.
+	local painted = look.paintedArt
+	if ns.Looks.Painted.On(look) and painted.g then
+		local g = painted.g
+		S.artAbove, S.artBelow = math.ceil(math.max(0, -g.y0)), math.ceil(math.max(0, g.y1 - p.height))
+	end
+	if type(look.listGap) == "number" and look.listGap > 0 then S.queueGap = math.ceil(look.listGap) end
 	-- The look lays the rows out itself (PaintQueue); each name's click area
 	-- hangs off the row's own text.
 	self:PlaceRows(p, look)
