@@ -229,8 +229,8 @@ mutate("Commands.lua",
        expect="tankonly: the looser set is repaired and travels with a profile", script=S)
 
 mutate("Options/Advanced.lua",
-       "\t\t\"buff.tanksOutside\", \"buff.keptBack\", \"buff.forClass\",\n",
-       "\t\t\"buff.keptBack\", \"buff.forClass\",\n",
+       "\t\t\"buff.tanksOutside\", \"buff.keptBack\", \"buff.swimOnly\", \"buff.forClass\",\n",
+       "\t\t\"buff.keptBack\", \"buff.swimOnly\", \"buff.forClass\",\n",
        "tankonly: the page's reset leaves the looser choice",
        expect="model: the reset puts who back", script=S)
 

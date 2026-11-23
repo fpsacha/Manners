@@ -56,7 +56,7 @@ mutate("Core.lua",
        expect="forclass: a class whose buffs stack has no such choice", script=S)
 
 mutate("Options/Advanced.lua",
-       "\"buff.keptBack\", \"buff.forClass\",\n",
-       "\"buff.keptBack\",\n",
+       "\"buff.keptBack\", \"buff.swimOnly\", \"buff.forClass\",\n",
+       "\"buff.keptBack\", \"buff.swimOnly\",\n",
        "forclass: the page's reset leaves a class's blessing",
        expect=" reset: the list leaves out ", script=S)

@@ -1143,7 +1143,11 @@ no room for. Defaults are in brackets.
   - A warlock's Unending Breath goes to everybody, your group and passers-by,
     with *Offer Unending Breath to everybody near me* (on) on Classic Era,
     WoW Forever and Burning Crusade. Unticked, it goes to return a favour
-    and to whoever asks for it by name.
+    and to whoever asks for it by name. *Offer Unending Breath to others only
+    while I am swimming* (off), under it on every client, holds it to the
+    water: your group and passers-by are offered it only while you swim and for
+    a moment after, a favour you return with it and a request by name still go,
+    and your own reminder is unchanged.
   - **Paladins.** Blessings overwrite one another, so anybody already
     carrying one of yours is left alone rather than handed a different one.
     *A blessing for each class*, under *Buff order*: pick a class, then the

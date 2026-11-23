@@ -66,6 +66,9 @@
   keys* group.
 
 ### Fixes
+- **Unending Breath only while you swim.** *Offer Unending Breath to others only
+  while I am swimming*, under its switch on Who to buff, off by default. A favour
+  you return with it and a request by name still go; your own reminder is as it was.
 - **In character thank-yous for a hunter or a rogue.** *When someone buffs me*, at the
   top of What I say and on Start here, offers *In character (fits your race and
   class)*, which turns on *Whisper a thank-you to people I can't buff back*.

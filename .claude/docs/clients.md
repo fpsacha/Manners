@@ -280,6 +280,10 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
     `selfbreath`, on all five clients, first of a warlock's own, on by default): Core.lua
     `Swimming` reads `IsSwimming()` and holds it two seconds past the last
     stroke (`SWIM_HOLD`), and OwnVerdict answers `"dry"` before any aura read.
+    The buff for others is `swimGate` (Unending Breath on every client): with
+    `buff.swimOnly[key]` set (*Offer Unending Breath to others only while I am
+    swimming*, off by default) `Castable` offers it only while `ns.Swimming`, a
+    favour returned (`opts.owed`) and a request by name (`opts.asked`) still going.
     A family cut short by moving is `still` (food, the sleeping bag, a weapon's
     stone, oil, poison or lure, Forever's scrolls, making a warlock's stone; any
     other family when the client gives its use spell a cast time, so a bag pet

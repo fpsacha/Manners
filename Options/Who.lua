@@ -261,6 +261,26 @@ local function AddBuffToggles(args)
 				end,
 			}
 		end
+		-- And one for the water (Buffs.lua, swimGate: Unending Breath; asked for on
+		-- CurseForge, issue 41): offered to others only while you swim, as your own
+		-- is reminded of only there. Off by default. No changed mark: a sparse set
+		-- per buff has no single default to find (WindowPage DefaultOf).
+		if buff.swimGate then
+			args["swim_" .. buff.key] = {
+				type = "toggle",
+				name = function() return L["Offer %s to others only while I am swimming"]:format(ns.BuffName(buff) or buff.key) end,
+				desc = L["On: it is offered to your group and to passers-by only while you swim, and for a moment after. A favour you return with it, and somebody who asks you for it by name, still get it. Your own reminder to put it on yourself is not changed."],
+				order = 4 + index / 10 + 0.07,
+				width = "full",
+				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
+				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
+				get = function() return B().swimOnly[buff.key] == true end,
+				set = function(_, value)
+					B().swimOnly[buff.key] = value and true or nil
+					restyleAndMacro()
+				end,
+			}
+		end
 		-- And a switch under one Manners holds to your group by choice (Buffs.lua,
 		-- membersOnly: a warlock's Detect Invisibility), asked for by a player:
 		-- on, passers-by are offered it too. Off by default, there only where the
@@ -1967,7 +1987,7 @@ function Page.BuildWhoTab()
 				type = "toggle",
 				name = L["Offer water and food to my target"],
 				desc = L["Out of a fight, a friendly player you target is offered water and food that suits their level, or food alone for a class without mana. With none in your bags the first press conjures it; the next opens a trade with it in the window. Accepting the trade stays yours. Once traded or skipped, they are left alone for ten minutes."],
-				order = 14.45,
+				order = 14.41,
 				width = "full",
 				hidden = function() return not ns.Courtesy.Has("courtesyRefresh") end,
 				get = sGet,
@@ -1977,7 +1997,7 @@ function Page.BuildWhoTab()
 				type = "select",
 				name = L["How much to trade"],
 				desc = L["What goes in the trade window for water and food, your target's or somebody who asked: one stack of each, or as many stacks as the window and your bags hold that suit them, water and food in turn."],
-				order = 14.46,
+				order = 14.42,
 				values = { fill = L["Fill the trade window"], one = L["One stack"] },
 				sorting = { "fill", "one" },
 				hidden = function()

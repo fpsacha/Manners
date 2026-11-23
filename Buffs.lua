@@ -69,6 +69,12 @@
 --             one buff for others and so cannot be neverAuto as on Mists:
 --             water breathing is little use on dry land, but taking it from a
 --             warlock left him with nothing to offer anybody else (a report).
+--   swimGate  may be held to the water by the player (Who to buff, "Offer ... to
+--             others only while I am swimming": buff.swimOnly; Core.lua,
+--             Castable and Swimming): offered to others only while you swim,
+--             a favour returned and a request by name still going. Unending
+--             Breath on every client; a shaman's Water Breathing is not a buff
+--             Manners offers, so nothing of the kind is there for a shaman.
 --   lowLevel  not written in a set: worked out when the lookups are built, the
 --             level the buff's lowest rank is learned at where that is above 11
 --             (so somebody of level 1 is out of its reach), on the sets where a
@@ -308,6 +314,8 @@ local VANILLA = {
 			-- for whoever asks for it by name. Until the right-buff audit it was
 			-- walked for every party member and passer-by, every ten minutes.
 			returnOnly = true,
+			-- And, if the player says so, only while swimming (issue 41).
+			swimGate = true,
 		},
 		-- Detect Invisibility for your group (asked for on CurseForge by a player
 		-- on Forever): Lesser at 26, plain at 38, Greater at 50 (SpellLevels and
@@ -1935,6 +1943,7 @@ local TBC = {
 			switchable = true,
 			-- For a favour returned and a request by name alone, as on vanilla.
 			returnOnly = true,
+			swimGate = true,
 		},
 		-- Vanilla's Detect Invisibility for your group, with the one rank this
 		-- client kept (132, level 26; SpellEffect target 21, any friendly target).
@@ -2812,7 +2821,7 @@ local MISTS = {
 		-- A shaman's Water Breathing (131), its group id on vanilla, is gone
 		-- from this client. Its effects have no radius (Wowhead MoP Classic):
 		-- the one buff here that lands on its target alone.
-		{ key = "breath", ranks = { 5697 }, neverAuto = true, neverSelf = true, alone = true, switchable = true },
+		{ key = "breath", ranks = { 5697 }, neverAuto = true, neverSelf = true, alone = true, switchable = true, swimGate = true },
 	},
 
 	WARRIOR = {

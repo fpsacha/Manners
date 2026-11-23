@@ -33,6 +33,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffMark this moment.|r A key (|cffffffffKey for Mark this moment|r on Diagnostics), the minimap menu and /manners mark note the prompt, the queue and the fight buttons.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Unending Breath only while you swim.|r |cffffffffOffer Unending Breath to others only while I am swimming|r, under its switch on Who to buff, off by default.",
 			"|cffff9a52In character thank-yous for a hunter or a rogue.|r |cffffffffWhen someone buffs me|r, at the top of What I say and on Start here, offers |cffffffffIn character (fits your race and class)|r, which turns on |cffffffffWhisper a thank-you to people I can't buff back|r.",
 			"|cffff9a52Thank people who buff me, with a pause.|r |cffffffffWait a moment before thanking|r looks for the giver again when the pause ends, so a nameplate that changed hands no longer drops the thank.",
 			"|cffff9a52The cure button takes no click while it is out of sight.|r A click casts only while it is lit.",

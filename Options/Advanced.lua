@@ -45,7 +45,7 @@ end
 Page.RESET = {
 	who = {
 		"buff.choice", "buff.skip", "buff.tanksOnly", "buff.meOnly", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
-		"buff.tanksOutside", "buff.keptBack", "buff.forClass",
+		"buff.tanksOutside", "buff.keptBack", "buff.swimOnly", "buff.forClass",
 		"sources.owed", "sources.group", "sources.pets", "sources.share", "sources.strangers", "sources.asked",
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
 		"sources.courtesyTarget", "sources.courtesyAmount",

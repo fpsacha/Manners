@@ -122,8 +122,8 @@ mutate("Courtesy.lua",
 
 # The control shows for every class.
 mutate("Options/Who.lua",
-       "\t\t\t\torder = 14.45,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = function() return not ns.Courtesy.Has(\"courtesyRefresh\") end,\n",
-       "\t\t\t\torder = 14.45,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = function() return false end,\n",
+       "\t\t\t\torder = 14.41,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = function() return not ns.Courtesy.Has(\"courtesyRefresh\") end,\n",
+       "\t\t\t\torder = 14.41,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = function() return false end,\n",
        "water-target: a warlock is shown the water and food switch",
        expect=OPTIONS, script=S)
 

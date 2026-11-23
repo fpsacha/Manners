@@ -386,6 +386,11 @@ local defaults = {
 			-- returnOnly: Unending Breath) because the player chose that: a sparse
 			-- set, absent is offered to everybody, as it was before 1.11.19.
 			keptBack = {},
+			-- The buffs for others offered only while you swim (Buffs.lua,
+			-- swimGate: Unending Breath; asked for on CurseForge, issue 41): a
+			-- sparse set, absent is offered as ever. A favour returned and a
+			-- request by name still go.
+			swimOnly = {},
 			-- A blessing for each class (Who to buff, under the buff order; a
 			-- paladin's ask on CurseForge: Wisdom for mages rather than Kings):
 			-- CLASS -> the key of the buff of yours tried first for somebody of
@@ -2203,6 +2208,15 @@ do
 			local kept = db and db.buff.keptBack
 			if kept and kept[buff.key] then return false end
 		end
+		-- Only while you swim (Who to buff, buff.swimOnly; Buffs.lua, swimGate:
+		-- Unending Breath), as your own is reminded of only in the water: read
+		-- only for a buff with the switch on, and a favour returned or a request
+		-- by name goes all the same. Called directly, as Swimming is.
+		if buff.swimGate and not (opts.owed or opts.asked) then
+			local db = addon.db and addon.db.profile
+			local only = db and db.buff.swimOnly
+			if only and only[buff.key] and not ns.Swimming(opts.now or GetTime()) then return false end
+		end
 		-- Nobody too low for every rank of it (Buffs.lua, lowLevel): the game
 		-- refuses a cast on somebody more than ten levels under the rank, so
 		-- Kings (20) on a warrior of 8 was a press that failed, held Kings off
@@ -3433,6 +3447,8 @@ do
 		end
 		return swamAt ~= nil and now >= swamAt and now - swamAt < SWIM_HOLD
 	end
+	-- Castable (Who to buff's swim-only switch) asks it too.
+	ns.Swimming = Swimming
 
 	-- Whether you are moving, or were a moment ago (Buffs.lua, `still`; asked
 	-- for on CurseForge: food eaten on the run is thrown away, and a stone or an
@@ -6190,6 +6206,7 @@ function ns.ClampSettings()
 	if type(profile.buff.tanksMe) ~= "table" then profile.buff.tanksMe = {} end
 	if type(profile.buff.notMeInside) ~= "table" then profile.buff.notMeInside = {} end
 	if type(profile.buff.keptBack) ~= "table" then profile.buff.keptBack = {} end
+	if type(profile.buff.swimOnly) ~= "table" then profile.buff.swimOnly = {} end
 	-- A class token to a buff key, and nothing else (PickBuffFor reads it per
 	-- person): a key this client does not know is simply never found.
 	if type(profile.buff.forClass) ~= "table" then profile.buff.forClass = {} end

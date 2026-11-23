@@ -155,6 +155,8 @@ local function OfferItems(placed)
 				if buff.tankChoice then items[#items + 1] = { "who.notMeInside_" .. tostring(buff.key), indent = true } end
 				-- A buff kept for favours and requests (Buffs.lua, returnOnly), to everybody.
 				if buff.returnOnly then items[#items + 1] = { "who.everyone_" .. tostring(buff.key), indent = true } end
+				-- And one held to the water (Buffs.lua, swimGate).
+				if buff.swimGate then items[#items + 1] = { "who.swim_" .. tostring(buff.key), indent = true } end
 				-- A buff held to your group by choice (Buffs.lua, membersOnly), to passers-by too.
 				if buff.membersOnly and not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then
 					items[#items + 1] = { "who.passers_" .. tostring(buff.key), indent = true }
@@ -1654,7 +1656,7 @@ do
 		for _, section in ipairs(page.sections) do
 			for _, item in ipairs(section.items) do
 				local path = type(item) == "table" and item[1] or item
-				if type(path) == "string" and (path:find("^who%.offer_")
+				if type(path) == "string" and (path:find("^who%.offer_") or path:find("^who%.swim_")
 					or (path:find("^who%.own_") and not path:find("^who%.own_leave"))) then
 					keep[path] = true
 				end
