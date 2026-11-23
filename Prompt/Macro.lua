@@ -210,12 +210,43 @@ STRATEGIES.courtesy = function(entry) return ns.Courtesy.Macro(entry, STRATEGIES
 -- client says now; a stranger's level it will not say, a skull, a tokenless
 -- favour and a spell of one rank all keep the plain name.
 do
+	-- When each rank's words were last asked of the client from here: again
+	-- after ASK_AGAIN seconds while it still has none, never at every repaint.
+	local asked, ASK_AGAIN = {}, 3
+	-- The last time a rank could not be named for somebody low, for /manners
+	-- debug (ns.RankLines): who, the spell, and why.
+	local unnamed
+
 	local function RankText(id)
 		local get = _G.C_Spell and _G.C_Spell.GetSpellSubtext or _G.GetSpellSubtext
 		if type(get) ~= "function" then return nil end
 		local text = ns.plain(get(id))
 		if type(text) == "string" and text ~= "" then return text end
+		-- Empty until the client has loaded the spell's data (its
+		-- documentation): asked for, so the next scan's macro names it. The
+		-- probe asked already (Core.lua, ProbeBuff); this is for a client that
+		-- let it go since.
+		local load = _G.C_Spell and _G.C_Spell.RequestLoadSpellData
+		local now = GetTime()
+		if type(load) == "function" and now - (asked[id] or -ASK_AGAIN) >= ASK_AGAIN then
+			asked[id] = now
+			load(id)
+		end
 		return nil
+	end
+
+	local function Unnamed(entry, name, why)
+		unnamed = { who = entry.name, spell = name, why = why, at = GetTime() }
+	end
+
+	-- For /manners debug (Commands.lua).
+	function ns.RankLines()
+		if not unnamed then return { "rank for low levels: every cast named the rank that lands" } end
+		local why = unnamed.why == "level"
+			and "the game would not say their level, so the plain name (your best rank) went out"
+			or "the client had not loaded the rank's words yet, so the plain name (your best rank) went out; asked for them"
+		return { ("rank for low levels: last unnamed %ds ago, %s for %s: %s"):format(
+			math.floor(GetTime() - unnamed.at), tostring(unnamed.spell), tostring(unnamed.who), why) }
 	end
 
 	function ns.CastName(entry)
@@ -231,6 +262,10 @@ do
 		if StrategyFor(entry) ~= "target" then return name end
 		local unit = entry.unit
 		local levels = ns.RANK_LEVEL
+		-- A token that names somebody else by now is no token of theirs: the
+		-- level they were last read at (a passer-by remembered with none,
+		-- Queue.lua) names the rank, as for a favour by name below.
+		if unit and ns.UnitFullName(unit) ~= entry.name then unit = nil end
 		-- A favour returned by name alone has no token to ask, and carries the
 		-- level one last read of them (Queue.lua, the owed fallback's
 		-- entry.level): the same rank by it, or the plain name landed the top
@@ -240,6 +275,7 @@ do
 			local best = known and known.topRank
 			local landed = best and ns.LandingRank(buff, known, entry.level)
 			local words = landed and landed ~= best and RankText(landed)
+			if landed and landed ~= best and not words then Unnamed(entry, name, "text") end
 			return words and (name .. "(" .. words .. ")") or name
 		end
 		if not unit or not levels or ns.UnitFullName(unit) ~= entry.name then return name end
@@ -247,12 +283,17 @@ do
 		local top = info and info.topRank
 		if not top then return name end
 		local level = ns.plain(_G.UnitLevel(unit))
+		-- Withheld: no rank can be named, and a lower one guessed would do
+		-- less for anybody your best reaches. The plain name, and the reason in
+		-- /manners debug. A skull (-1) is above you, never too low.
+		if type(level) ~= "number" then Unnamed(entry, name, "level") end
 		if type(level) ~= "number" or level < 1 then return name end
 		-- The rank the game would land on them (Core.lua): the top one, or a
 		-- lower one for somebody under it.
 		local id = ns.LandingRank(buff, info, level)
 		if not id or id == top then return name end
 		local text = RankText(id)
+		if not text then Unnamed(entry, name, "text") end
 		return text and (name .. "(" .. text .. ")") or name
 	end
 end

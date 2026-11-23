@@ -827,7 +827,14 @@ scenario in `tests/scenarios/audit-right-buff.lua` and a mutation in
 - *A favour by name keeps its rank*: the giver's level goes on the debt
   (Favours.lua `seen.level`, the walk, saved with the debts) and on the
   tokenless entry (`entry.level`), and `ns.CastName` names the rank by it. A
-  remembered passer-by (the ten-second memory) still casts the plain name.
+  remembered passer-by (the ten-second memory) carries the level last read
+  (`memo.level`, Queue.lua) and is named the same way since 1.11.41 (GitHub
+  issue 42). Only ranks you know are named (`info.ranksKnown`, ProbeBuff), the
+  probe asks the client to load every known rank's words
+  (`C_Spell.RequestLoadSpellData`; `GetSpellSubtext` is empty until then) and
+  the macro asks again every three seconds while one is missing; `/manners
+  debug`'s "rank for low levels" line says the last time no rank could be named
+  (the level withheld, or the words not loaded) and the plain name went out.
 - *The ten-minute hold* ("A more powerful spell is already active", "Target
   is too low level") is told to the walk through `ns.heldOff` (Core.lua,
   read by `Castable`) beside the block in `ns.tried`, so a paladin's walk

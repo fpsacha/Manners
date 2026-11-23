@@ -1080,6 +1080,18 @@ do
 			if SpellKnown(id) then
 				info.known = true
 				info.topRank = info.topRank or id
+				-- Which ranks you know, for the rank a macro names for somebody
+				-- low (LandingRank): a priest who skipped Fortitude's fourth at
+				-- the trainer has none to cast (GitHub issue 42). And the
+				-- client's words for each ("Rank 3", "Rang 3"), which it may
+				-- not have loaded yet (C_Spell.GetSpellSubtext "may be empty if
+				-- spell's data isn't loaded yet"): asked for now, at the probe,
+				-- so they are there by the first offer.
+				if #buff.ranks > 1 then
+					info.ranksKnown = info.ranksKnown or {}
+					info.ranksKnown[id] = true
+					safecall(C_Spell and C_Spell.RequestLoadSpellData, id)
+				end
 				-- For your own buffs, every name a rank you know goes by: the
 				-- reading on yourself matches by them too (ReadOwnFamily), so
 				-- a rank missing from the table cannot read as never up.
@@ -4899,13 +4911,17 @@ end
 -- The best rank of `buff` you know that your cast lands on somebody of `level`
 -- (the game lands the best rank you know up to ten levels above theirs): its
 -- id, or nil when none is known or none is within reach. The test UnitHasBuff
--- makes of a rank worn, below, asks the same of the same ranks.
+-- makes of a rank worn, below, asks the same of the same ranks. Only a rank
+-- you know (ProbeBuff, ranksKnown): one skipped at the trainer is no rank to
+-- name, and "/cast Power Word: Fortitude(Rank 4)" without it casts nothing
+-- (GitHub issue 42). An answer with no list says nothing against any rank.
 local function LandingRank(buff, info, level)
 	local best = ns.RankLevel(info.topRank)
 	if not best then return nil end
 	local reach, landing, landed = math.min(best, level + 10), nil, nil
+	local known = info.ranksKnown
 	for _, rank in ipairs(buff.ranks) do
-		local at = ns.RankLevel(rank)
+		local at = (not known or known[rank]) and ns.RankLevel(rank)
 		if at and at <= reach and (not landing or at > landing) then landing, landed = at, rank end
 	end
 	return landed

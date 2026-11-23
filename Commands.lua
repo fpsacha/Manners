@@ -2150,6 +2150,8 @@ function addon:HandleSlash(rawInput)
 				cast.seen, cast.named, cast.late, cast.several))
 		end
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
+		-- Whether a rank for somebody low went unnamed, and why (Prompt/Macro.lua).
+		for _, line in ipairs(ns.RankLines and ns.RankLines() or {}) do self:Print("  " .. line) end
 		-- The key, and why the reminder to set one keeps quiet (Options/Start.lua).
 		if ns.Setup and ns.Setup.ReminderLine then self:Print("  " .. ns.Setup.ReminderLine()) end
 		-- Breaking free (Prompt/BreakFree.lua): whether the ability was found,
