@@ -15,8 +15,8 @@ mutate(M,
        expect="moments: no key: the cover is up while dark", script=S)
 
 mutate(M,
-       '\t\treturn not (slot.openUntil and now < slot.openUntil)\n\tend\n\treturn false\nend\n',
-       '\t\treturn not (slot.openUntil and now < slot.openUntil)\n\tend\n\treturn true\nend\n',
+       '\t\treturn true\n\tend\n\treturn false\nend\n\n-- The icon of a button',
+       '\t\treturn true\n\tend\n\treturn true\nend\n\n-- The icon of a button',
        "moments: the cover is left up while lit",
        expect="moments: no key: lit, the click reaches the button and casts", script=S)
 

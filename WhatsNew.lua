@@ -10,10 +10,12 @@ ns.WhatsNew = {
 			"|cffffd100Report a bug.|r One window takes you from what went wrong to a link that opens the issue on GitHub filled in and the report to paste, from Diagnostics, the footer of the options window, the minimap menu or /manners bug.",
 			"|cffffd100Mark this moment.|r Press a key the second something goes wrong, even in a fight, and the report shows what Manners saw then.",
 		} },
-		{ title = "Buttons for the moment (mages)", accent = "7cc4ff", entries = {
+		{ title = "Buttons for the moment", accent = "7cc4ff", entries = {
 			"|cff7cc4ffCounterspell when your target casts.|r A small button left of the prompt lights while a hostile target in reach is casting, and a press stops your own cast first.",
 			"|cff7cc4ffBlink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.|r Each lights at its moment: stunned or rooted, low health (|cffffffffHealth below|r, 20 by default), low mana (|cffffffffMana below|r), a second into a fall.",
+			"|cff7cc4ffTwo quick clicks.|r Where only the game knows whether a button is lit, the first click shows a ring and the spell's icon, and the second, a third of a second or more later, casts: a stray click or a double click never does.",
 			"|cff7cc4ffSpellsteal|r lights while your target carries a buff you can steal (Burning Crusade and later).",
+			"|cff7cc4ffA drink when your mana is low.|r Out of a fight, for every class with mana: a button lights while your mana is under |cffffffffMana below|r and a drink is in your bags; a press drinks your best conjured water, else another drink.",
 			"|cff7cc4ffFire Ward and Frost Ward|r light as soon as your target hits you with fire or frost, and again each time it casts after that.",
 		} },
 		{ title = "Water and food for your target", accent = "7cc4ff", entries = {
@@ -28,6 +30,9 @@ ns.WhatsNew = {
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
 			"|cffff9a52The cure button takes no click while it is out of sight.|r A click casts only while it is lit.",
+			"|cffff9a52/manners debug.|r The Slow Fall line leaves your character's name out.",
+			"|cffff9a52Check-up.|r It no longer stops for a class whose only button is the drink, and a click that got past a cover is counted for the session only.",
+			"|cffff9a52Slow Fall in French, German, Spanish, Italian and Portuguese.|r The Light Feather line reads right whatever the name's gender.",
 			"|cffff9a52Who buffed you.|r The full check-up counts the casts Manners hears from others (players and mobs alike), and a buff read late says so instead of \"no player in sight\".",
 			"|cffff9a52Break free.|r Each loss of control is one line on the trail, with whether the button lit.",
 			"|cffff9a52Cure button (check-up).|r /manners debug says whether the game's list of debuffs you can remove is there and what it answered.",

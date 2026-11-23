@@ -310,9 +310,12 @@ shows nothing, and a button is out of sight while its spell cools down. A press
 stops your own cast first where that helps, so it fires at once. With no key
 set you click the lit button, and a click where a button is out of sight does
 nothing. Where the game hides your health or mana from addons in a fight, the
-game itself lights Ice Block, Cold Snap, Evocation and the gem, and they then
-take two quick clicks, so one stray click never casts. A key always casts at
-once. *Show the fight buttons* does not change them: none is ever on the screen
+game itself lights Ice Block, Cold Snap, Evocation and the gem, and where it
+hides whether your target's cast can be interrupted or a buff can be stolen it
+lights Counterspell and Spellsteal: they then take two quick clicks, so one
+stray click never casts. The first click shows a ring and the spell's icon, the
+second, a third of a second or more later, casts; a double click does not. A key
+always casts at once. *Show the fight buttons* does not change them: none is ever on the screen
 without its moment.
 
 Every class with mana also gets a drink button, for out of a fight: it lights
@@ -321,7 +324,8 @@ swimming or in a form) and a drink is in your bags, and is out of sight in a
 fight and while you are drinking already. A press drinks the best one you carry:
 a mage's conjured water first, the best your level allows, then any other drink.
 Where the game keeps your mana from addons, the game itself lights it, and it
-takes two quick clicks; a key always drinks at once. *Show a drink when my mana
+takes two quick clicks, with a dim icon on the screen so you can see the
+button is there; a key always drinks at once. *Show a drink when my mana
 is low out of a fight*, with its key, sits under *Buttons for the moment*. Your
 own Evocation and mana gem stay for fights, where their long cooldowns count.
 

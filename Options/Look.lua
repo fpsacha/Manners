@@ -1147,10 +1147,10 @@ function Page.AddMomentControls(args)
 	local rows = {
 		{ key = "counterspell",
 			name = function() return L["Show %s when my target starts a cast"]:format(Spell("counterspell")) end,
-			desc = function() return L["Lights while a hostile target within reach is casting or channelling something you can interrupt, and goes dark the moment the cast ends. A press stops your own cast first, so it fires at once. Out of sight while it cools down."] .. " " .. tail end },
+			desc = function() return L["Lights while a hostile target within reach is casting or channelling something you can interrupt, and goes dark the moment the cast ends. A press stops your own cast first, so it fires at once. Out of sight while it cools down."] .. " " .. twice .. " " .. tail end },
 		{ key = "spellsteal",
 			name = function() return L["Show %s when my target has a buff I can steal"]:format(Spell("spellsteal")) end,
-			desc = function() return L["Lights while a hostile target within reach carries a buff the game marks as stealable. Out of sight while it cools down."] .. " " .. tail end },
+			desc = function() return L["Lights while a hostile target within reach carries a buff the game marks as stealable. Out of sight while it cools down."] .. " " .. twice .. " " .. tail end },
 		{ key = "blink",
 			name = function() return L["Show %s when I am stunned or rooted"]:format(Spell("blink")) end,
 			desc = function() return L["Lights while you are stunned or rooted and the spell is ready. Where the game does not say what took control of your character, it lights for any loss of control."] .. " " .. tail end },

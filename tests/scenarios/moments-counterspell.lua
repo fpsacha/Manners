@@ -13,6 +13,8 @@
 local dir, H = ...
 local fail, load = H.fail, H.load
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local SLOT = 1
 
@@ -127,7 +129,8 @@ do
 		K.tick(ns, 0.3)
 		if state(ns) ~= "game" then fail(s, "not left to the game: " .. state(ns)) end
 		if K.shown(ns, SLOT) ~= 1 then fail(s, "interruptible: shown alpha " .. tostring(K.shown(ns, SLOT))) end
-		if ns.Moments:Slot(SLOT).cover:IsShown() then fail(s, "the cover is up on a game-painted Counterspell: an interrupt cannot wait for two clicks") end
+		-- Where only the game knows whether it is lit, the click that cast it by mistake costs a cooldown.
+		if not ns.Moments:Slot(SLOT).cover:IsShown() then fail(s, "no cover on a game-painted Counterspell: it takes two clicks") end
 		K.endCast(ns)
 		K.tick(ns, 0.3)
 		K.cast(ns, { secret = true, notInterruptible = true })
@@ -219,6 +222,8 @@ do
 		fight(ns)
 		K.cast(ns)
 		K.event(ns, "UNIT_SPELLCAST_FAILED", "target")
+		-- At the event itself: the flush a cast start now schedules would put it right a tenth of a second on.
+		if state(ns) ~= "lit" then fail(s, "dark at once after a failed cast of something else: " .. state(ns)) end
 		expectLit(s, ns, "after a failed cast of something else")
 	end)
 end

@@ -15,6 +15,8 @@
 local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local FIRE, FROST = 9, 10
 local FIRE_ID, FROST_ID = 543, 6143
@@ -204,6 +206,8 @@ do
 		K.tick(ns, 11)
 		if state(ns, FIRE) ~= "dark" then fail(s, "still lit eleven seconds after the hit with nobody casting") end
 		K.cast(ns, {})
+		-- At the start event itself, not a tenth of a second on when the flush it schedules runs.
+		if state(ns, FIRE) ~= "lit" then fail(s, "not lit at the start of the target's next cast: " .. state(ns, FIRE)) end
 		K.tick(ns, 0.3)
 		if state(ns, FIRE) ~= "lit" then fail(s, "not lit when the target cast again: " .. state(ns, FIRE) .. " " .. tostring(slot(ns, FIRE).why)) end
 		if state(ns, FROST) ~= "dark" then fail(s, "Frost Ward lit though only fire hit") end

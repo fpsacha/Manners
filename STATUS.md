@@ -91,11 +91,13 @@ stands now. Keep it short: what ships goes to the history file or away.
   held to the mock's data only where it has them (`tools/audit_ids.py` has no
   hook for them); the keys of a class other than the mage's.
   What only a fight tells: whether your own health and mana are hidden (then
-  Ice Block takes two clicks), whether the target's cast events arrive, whether
+  Ice Block takes two clicks, and whether the target's cast flag is hidden, so
+  Counterspell does), whether the target's cast events arrive, whether
   the cooldown flag isActive is filled, whether the per-spell lock flag tells a
   stun from a fear, whether IsFalling is readable in a fight, whether a gem's
   cooldown is, whether a buff's stealable flag is, and the covers' leak counters
-  (`momentCoverLeaks`, `cureCoverLeaks`).
+  (a moment row's count is the session's, kept on its slot; the cure button's is
+  `cureCoverLeaks`).
   Later ideas: Polymorph on a second attacker (a button cannot change its target
   in a fight); a cover sized by the game from the hidden value, lifting the
   two-click rule; the break-free cover (up between control gained with

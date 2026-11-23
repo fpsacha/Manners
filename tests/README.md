@@ -311,7 +311,12 @@ sub-second subset for the middle of an edit.
   Drink aura `Mock.drinkAura` = true, `"secret"` or `"throw"`) from `Mock` fields
   listed at its top,
   and drives a fight: `K.withMage`, `K.pull`, `K.release`, `K.event`, `K.cast`,
-  `K.cooldownEvent`, `K.fallTick`, `K.relearn`, `K.click`.
+  `K.cooldownEvent`, `K.fallTick`, `K.relearn`, `K.click`. On Forever the kit
+  hides health, mana and the target's cast flag, as the owner's check-up says
+  his client does (`Mock.hiddenValues`), unless a scenario passes `plain = true`
+  or its file says `K.plain = true` at the top (the older files, written for
+  plain values; `plain = false` takes the hidden ones back). Its
+  `GetSpellCooldown` throws on a nil spell id, as the client does.
 - Breaking free (`scenarios/breakfree.lua`, and `scenarios/wotfneed.lua` for the need where the game withholds the type; it overrides `HasFullControl` with `rawset`): `Mock.knownSpells` (ids the
   player knows beyond 1459, e.g. `{ [7744] = true }`, read by `IsSpellKnown`
   and `IsPlayerSpell`), `Mock.playerRace = "Scourge"` (the race file name),

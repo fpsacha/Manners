@@ -25,8 +25,8 @@ mutate(SENSE,
        expect="moments-spellsteal: withheld: a hidden nil flag is skipped", script=S)
 
 mutate("Prompt/MomentsData.lua",
-       '\t\tRow { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true,\n',
        '\t\tRow { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true, guard = "twice",\n',
+       '\t\tRow { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true,\n',
        "moments-spellsteal: a game-painted Spellsteal takes two clicks",
        expect="moments-spellsteal: withheld: the hidden flags are ORed by the game", script=S)
 

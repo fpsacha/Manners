@@ -13,6 +13,8 @@
 local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local SLOT = 8
 local STEAL = 30449
@@ -101,9 +103,12 @@ do
 		look(ns, { { steal = false }, { steal = true } })
 		if K.shown(ns, SLOT) ~= 1 then fail(s, "not shown with a stealable buff: " .. tostring(K.shown(ns, SLOT))) end
 		if #Mock.secretOnSecure > 0 or Mock.secureAlphaWrites ~= 0 then fail(s, "a hidden value reached a secure frame") end
-		-- No guard on this one: a click on a game-painted Spellsteal reaches the button.
+		-- Two clicks where only the game knows: the first is swallowed, a later second reaches the button.
 		local hit = K.click(ns, SLOT)
-		if hit ~= ns.Moments:Button(SLOT) then fail(s, "the cover stood over a game-painted Spellsteal") end
+		if hit == ns.Moments:Button(SLOT) then fail(s, "one click reached a game-painted Spellsteal") end
+		Mock.runTimers(0.5)
+		hit = K.click(ns, SLOT)
+		if hit ~= ns.Moments:Button(SLOT) then fail(s, "the second click did not reach a game-painted Spellsteal") end
 	end, TBC)
 	s = name("withheld: a hidden nil flag is skipped, and a list of nothing else stays dark")
 	with(s, function(ns)

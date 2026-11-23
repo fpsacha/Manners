@@ -17,7 +17,8 @@
 --              the spells that conjure one)
 --   needs      the signals that must all be true, cheapest and plainest first
 --              (Prompt/MomentsSense.lua names them)
---   stop       "/stopcasting" before the cast, so the press fires at once
+--   stop       "/stopcasting" before the cast or the use of an item, so the press
+--              fires at once (a cast under way refuses a channel and an item)
 --   self       the cast must land on you
 --   peace      works out of a fight too
 --   calm       the reverse: out of a fight only (the driver hides it at the
@@ -27,8 +28,9 @@
 --   forms      not while shapeshifted (a druid, a shaman's Ghost Wolf)
 --   blind      "weak" or "dark": what a needed value the game hides and no call
 --              takes does to the button (default dark)
---   guard      "twice": while only the game knows whether it is lit, it takes
---              two quick clicks
+--   guard      "twice": while only the game knows whether it is lit (a hidden
+--              health, mana, interrupt flag or stealable flag), it takes two
+--              quick clicks, at least a third of a second apart
 --   cooldown   seconds, for Manners' own clock; shares, resets, partner,
 --              school, breaks, lockout, reagent, seconds: see Sense
 --
@@ -42,17 +44,17 @@ local function Row(fields) return fields end
 -- talents there, learned or not by the spell book.
 local OLD = {
 	MAGE = {
-		Row { key = "counterspell", slot = 1, ranks = { 2139 }, stop = true, blind = "weak", cooldown = 30,
+		Row { key = "counterspell", slot = 1, ranks = { 2139 }, stop = true, guard = "twice", blind = "weak", cooldown = 30,
 			needs = { "fight", "ready", "enemy", "casting", "interruptible", "inrange", "usable" } },
 		Row { key = "iceblock", slot = 2, ranks = { 11958 }, stop = true, guard = "twice", cooldown = 300,
 			needs = { "fight", "ready", "usable", "lowhealth" } },
 		Row { key = "blink", slot = 3, ranks = { 1953 }, stop = true, blind = "weak", cooldown = 15,
 			breaks = { STUN = true, STUN_MECHANIC = true, ROOT = true },
 			needs = { "fight", "stuck", "ready", "usable" } },
-		Row { key = "evocation", slot = 4, ranks = { 12051 }, guard = "twice", cooldown = 480,
+		Row { key = "evocation", slot = 4, ranks = { 12051 }, stop = true, guard = "twice", cooldown = 480,
 			needs = { "fight", "ready", "lowmana" } },
 		Row { key = "managem", slot = 5, items = { 8008, 8007, 5513, 5514 }, makes = { 10054, 10053, 3552, 759 },
-			guard = "twice", cooldown = 120, needs = { "fight", "itemready", "lowmana" } },
+			stop = true, guard = "twice", cooldown = 120, needs = { "fight", "itemready", "lowmana" } },
 		Row { key = "slowfall", slot = 6, ranks = { 130 }, peace = true, self = true, reagent = 17056, seconds = 30,
 			needs = { "falling", "usable" } },
 		Row { key = "coldsnap", slot = 7, ranks = { 12472 }, partner = "iceblock", resets = { "iceblock", "frostward" },
@@ -69,7 +71,7 @@ local OLD = {
 
 local TBC = {
 	MAGE = {
-		Row { key = "counterspell", slot = 1, ranks = { 2139 }, stop = true, blind = "weak", cooldown = 24,
+		Row { key = "counterspell", slot = 1, ranks = { 2139 }, stop = true, guard = "twice", blind = "weak", cooldown = 24,
 			needs = { "fight", "ready", "enemy", "casting", "interruptible", "inrange", "usable" } },
 		Row { key = "iceblock", slot = 2, ranks = { 45438 }, stop = true, guard = "twice", cooldown = 300,
 			lockout = { aura = 41425, seconds = 30 },
@@ -77,17 +79,17 @@ local TBC = {
 		Row { key = "blink", slot = 3, ranks = { 1953 }, stop = true, blind = "weak", cooldown = 15,
 			breaks = { STUN = true, STUN_MECHANIC = true, ROOT = true },
 			needs = { "fight", "stuck", "ready", "usable" } },
-		Row { key = "evocation", slot = 4, ranks = { 12051 }, guard = "twice", cooldown = 480,
+		Row { key = "evocation", slot = 4, ranks = { 12051 }, stop = true, guard = "twice", cooldown = 480,
 			needs = { "fight", "ready", "lowmana" } },
 		Row { key = "managem", slot = 5, items = { 22044, 8008, 8007, 5513, 5514 },
 			makes = { 27101, 10054, 10053, 3552, 759 },
-			guard = "twice", cooldown = 120, needs = { "fight", "itemready", "lowmana" } },
+			stop = true, guard = "twice", cooldown = 120, needs = { "fight", "itemready", "lowmana" } },
 		Row { key = "slowfall", slot = 6, ranks = { 130 }, peace = true, self = true, reagent = 17056, seconds = 30,
 			needs = { "falling", "usable" } },
 		Row { key = "coldsnap", slot = 7, ranks = { 11958 }, partner = "iceblock", resets = { "iceblock", "frostward" },
 			stop = true, guard = "twice", cooldown = 480,
 			needs = { "fight", "ready", "partnercooling", "lowhealth" } },
-		Row { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true,
+		Row { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true, guard = "twice",
 			needs = { "fight", "ready", "usable", "enemy", "inrange", "stealable" } },
 		Row { key = "fireward", slot = 9, ranks = { 27128, 10225, 10223, 8458, 8457, 543 }, school = 4, shares = "frostward",
 			stop = true, cooldown = 30,
@@ -100,7 +102,7 @@ local TBC = {
 
 local MISTS = {
 	MAGE = {
-		Row { key = "counterspell", slot = 1, ranks = { 2139 }, stop = true, blind = "weak", cooldown = 24,
+		Row { key = "counterspell", slot = 1, ranks = { 2139 }, stop = true, guard = "twice", blind = "weak", cooldown = 24,
 			needs = { "fight", "ready", "enemy", "casting", "interruptible", "inrange", "usable" } },
 		Row { key = "iceblock", slot = 2, ranks = { 45438 }, stop = true, guard = "twice", cooldown = 300,
 			lockout = { aura = 41425, seconds = 30 },
@@ -108,23 +110,23 @@ local MISTS = {
 		Row { key = "blink", slot = 3, ranks = { 1953 }, stop = true, blind = "weak", cooldown = 15,
 			breaks = { STUN = true, STUN_MECHANIC = true, ROOT = true },
 			needs = { "fight", "stuck", "ready", "usable" } },
-		Row { key = "evocation", slot = 4, ranks = { 12051 }, guard = "twice", cooldown = 120,
+		Row { key = "evocation", slot = 4, ranks = { 12051 }, stop = true, guard = "twice", cooldown = 120,
 			needs = { "fight", "ready", "lowmana" } },
 		Row { key = "managem", slot = 5, items = { 36799 }, makes = { 759 },
-			guard = "twice", cooldown = 120, needs = { "fight", "itemready", "lowmana" } },
+			stop = true, guard = "twice", cooldown = 120, needs = { "fight", "itemready", "lowmana" } },
 		Row { key = "slowfall", slot = 6, ranks = { 130 }, peace = true, self = true, seconds = 30,
 			needs = { "falling", "usable" } },
 		Row { key = "coldsnap", slot = 7, ranks = { 11958 }, partner = "iceblock", resets = { "iceblock" },
 			stop = true, guard = "twice", cooldown = 180,
 			needs = { "fight", "ready", "partnercooling", "lowhealth" } },
-		Row { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true,
+		Row { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true, guard = "twice",
 			needs = { "fight", "ready", "usable", "enemy", "inrange", "stealable" } },
 	},
 }
 
 local MAINLINE = {
 	MAGE = {
-		Row { key = "counterspell", slot = 1, ranks = { 2139 }, stop = true, blind = "weak", cooldown = 24,
+		Row { key = "counterspell", slot = 1, ranks = { 2139 }, stop = true, guard = "twice", blind = "weak", cooldown = 24,
 			needs = { "fight", "ready", "enemy", "casting", "interruptible", "inrange", "usable" } },
 		-- Blink 1953 only: 212653 (Shimmer) does not free you from a stun, and a
 		-- mage who took it does not know 1953 and gets no Blink button.
@@ -139,7 +141,7 @@ local MAINLINE = {
 		Row { key = "coldsnap", slot = 7, ranks = { 235219 }, partner = "iceblock", resets = { "iceblock" },
 			stop = true, guard = "twice", cooldown = 300,
 			needs = { "fight", "ready", "partnercooling", "lowhealth" } },
-		Row { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true,
+		Row { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true, guard = "twice",
 			needs = { "fight", "ready", "usable", "enemy", "inrange", "stealable" } },
 	},
 }

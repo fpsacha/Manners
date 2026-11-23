@@ -18,6 +18,8 @@
 local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local SLOT = 11
 local WATER = 3772
@@ -114,12 +116,13 @@ do
 		if K.shown(ns, SLOT) ~= 1 then fail(s, "under the line: " .. tostring(K.shown(ns, SLOT))) end
 		mana(ns, 60)
 		if K.shown(ns, SLOT) ~= 0 then fail(s, "over the line: " .. tostring(K.shown(ns, SLOT))) end
-		-- Invisible to the player yet clickable: the first click is swallowed and
-		-- shows no ring over an empty spot.
+		-- Clickable though painted away: the first click is swallowed, and the ring and the
+		-- icon it opens with are on the layers Lua owns, so the player sees what a second does.
 		local first = K.click(ns, SLOT)
 		if first == button(ns) or drinks() ~= 0 then fail(s, "the first click over the line was not swallowed") end
-		if Mock.shownAlpha(ns.Moments:Look(SLOT).inner) ~= 0 then fail(s, "something shows over the line") end
-		if ns.Moments:Look(SLOT).ring:GetParent() ~= slot(ns).inner then fail(s, "the ring is not a child of the layer the game paints") end
+		if Mock.shownAlpha(ns.Moments:Look(SLOT).inner) ~= 0 then fail(s, "the layer the game paints shows over the line") end
+		if ns.Moments:Look(SLOT).ring:GetParent() == slot(ns).inner then fail(s, "the ring is on the layer the game paints") end
+		if Mock.shownAlpha(ns.Moments:Look(SLOT).ring) <= 0 then fail(s, "the first click shows no ring over the line") end
 		Mock.runTimers(2)
 		mana(ns, 10)
 		local one = K.click(ns, SLOT)

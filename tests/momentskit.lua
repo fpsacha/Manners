@@ -2,7 +2,7 @@
 -- loaded with dofile(dir .. "/tests/momentskit.lua"); not a scenario itself.
 --
 -- It installs the stand-ins for the client calls the mock does not model (health
--- and power in the shapes of Forever, a target's cast with the client's return
+-- and power, a target's cast with the client's return
 -- positions, curves, a spell's cooldown with isOnGCD filled only inside the
 -- cooldown event, the per-spell loss-of-control flag, ...), each reading a Mock
 -- field, and hands back the helpers a scenario drives a fight with. Everything
@@ -18,6 +18,8 @@
 --   Mock.lockFlag[id] = true | false
 --   Mock.playerAuras[id] = true
 --   Mock.noAlphaFromBoolean, Mock.noCurves, Mock.noHealthPercent
+--   Mock.hiddenValues (set by withMage on Forever unless plain: health, mana and the target's cast flag come
+--   back hidden, as the owner's check-up says his client gives them, in and out of a fight)
 --   Mock.bags[itemId] = count, Mock.itemCooldown[itemId] = { isActive, startTime, duration, secretNumbers }
 --   Mock.targetBuffs = { { steal = true | false | "nil" }, ... }; Mock.buffsWithheld (the records'
 --   flags come back as hidden values and the index read as a hidden record), Mock.buffsHidden (whole)
@@ -141,10 +143,12 @@ function K.install()
 		if not c or (c.channel == true) ~= want then return nil end
 		local name = c.name or "Frostbolt"
 		local ni
+		local hidden = c.secret
+		if hidden == nil then hidden = Mock.hiddenValues == true end
 		if c.notIntNil then ni = Mock.secret(nil)
-		elseif c.secret then ni = Mock.secret(c.notInterruptible == true)
+		elseif hidden then ni = Mock.secret(c.notInterruptible == true)
 		else ni = c.notInterruptible == true end
-		if c.secret then name = Mock.secret(name) end
+		if hidden then name = Mock.secret(name) end
 		return name, ni
 	end
 	put("UnitCastingInfo", function(unit)
@@ -199,6 +203,8 @@ function K.install()
 		GetSpellName = function(id) return names()[id] or "Arcane Intellect" end,
 		GetSpellTexture = function() return 135932 end,
 		GetSpellCooldown = function(id)
+			-- The client's spellIdentifier is never nil: a call with none throws.
+			if id == nil then error("bad argument #1 to 'GetSpellCooldown' (a spell is needed)", 2) end
 			local entry = Mock.cooldown and Mock.cooldown[id]
 			if not entry then return nil end
 			local rec = { isActive = entry.isActive, startTime = entry.startTime or 0, duration = entry.duration or 0 }
@@ -339,7 +345,7 @@ local FIELDS = { "health", "healthMax", "healthSecret", "percentScale", "mana", 
 	"lockFlag", "playerAuras", "noCurves", "noHealthPercent", "inCooldownEvent", "falling", "aimedAtMe",
 	"coverLeaks", "refuseAlphaFromBoolean", "lossOfControl", "lossOfControlShape", "asked", "bags", "bagsSecret",
 	"itemCooldown", "targetBuffs", "buffsWithheld", "buffsHidden", "flying", "onTaxi", "dead", "fallingSecret", "indexHidden",
-	"playerLevel", "itemMinLevel", "itemUnusable", "mounted", "swimming", "shapeshift", "drinkAura" }
+	"playerLevel", "itemMinLevel", "itemUnusable", "mounted", "swimming", "shapeshift", "drinkAura", "hiddenValues" }
 function K.clear()
 	for _, field in ipairs(FIELDS) do Mock[field] = nil end
 end
@@ -351,6 +357,14 @@ function K.restore()
 	saved = {}
 	K.clear()
 end
+
+-- What the client gives of your health, mana and the target's cast flag. On Forever
+-- the owner's check-up says all three are hidden, in a fight and out of one, so a
+-- scenario there gets hidden values unless it asks for plain ones (opts.plain =
+-- true), or its file says K.plain = true at the top (an older file whose scenarios
+-- were written for plain values; opts.plain = false takes the hidden ones back).
+-- Every other client gives plain values.
+K.plain = nil
 
 -- Forever unless opts.flavour: a mage who knows the spells (opts.known: a set,
 -- or false for none), the profile edited by opts.edit(profile, ns), a binding
@@ -385,6 +399,12 @@ function K.withMage(H, scenario, body, opts)
 	end
 	Mock.bindings = opts.bindings
 	Mock.health, Mock.healthMax, Mock.mana, Mock.manaMax = 100, 100, 100, 100
+	local plain = opts.plain
+	if plain == nil then plain = K.plain == true end
+	if Mock.flavour == "camelot" and not plain then
+		Mock.hiddenValues = true
+		Mock.healthSecret, Mock.manaSecret = true, true
+	end
 	local ok, err = true, nil
 	local ns = H.load(scenario)
 	if ns then
@@ -405,6 +425,9 @@ function K.withMage(H, scenario, body, opts)
 			local button = ns.Prompt:GetButton()
 			button._left, button._bottom = 600, 400
 			if not opts.noBuild then
+				-- Placed where the prompt now stands: a scan that finds nothing new learned
+				-- does not place the buttons again.
+				ns.Moments:Refresh()
 				ns.addon:Tick()
 				Mock.runTimers(0)
 				K.protect(ns)

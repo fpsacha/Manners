@@ -25,15 +25,22 @@
 --            the button is lit. A frame that is not protected can be shown and
 --            hidden in a fight. Where only the game knows whether the button is
 --            lit (a hidden health or mana), the cover stays up and the button
---            takes two quick clicks: the first opens it for a moment (a thin ring
---            answers), the second casts, so one stray click never casts.
+--            takes two quick clicks: the first opens it for a moment (a ring and the
+--            spell's icon answer, on layers Lua owns, so they show where the game has
+--            painted the button away), the second, at least a third of a second
+--            later, casts: one stray click, or a double click, never casts.
+--   mark     a plain frame on face above inner: the ring of the first of two clicks.
+--   hint     the spell's icon on face below inner, dim: shown for the first of two
+--            clicks and, for the drink (out of a fight), whenever only the game knows
+--            whether it is lit, so an armed button is never an invisible square.
 --
 -- THE DRINK is the one row that works out of a fight only (row.calm): lit while
 -- your mana is under Mana below, you stand still and a drink is in your bags. The
 -- driver hides it at the pull and the pull clears its macro, so a press in a
 -- fight does nothing; out of a fight Lua writes its macro whenever the bags change
 -- and shows and hides the button itself. Where the game alone knows the mana
--- (Forever hides it even out of a fight) it takes two quick clicks.
+-- (Forever hides it even out of a fight) it takes two quick clicks, and a dim
+-- icon from Lua shows that a button sits there.
 --
 -- With a key bound the button takes no mouse at all (clicks go to the world, no
 -- cover) and the key casts always. Moments never read prompt.fightButtons: they
@@ -66,6 +73,8 @@ local FADE = 0.2
 local FLUSH = 0.1
 local RECHECK = 0.25
 local OPEN_SECONDS = 1.5
+-- A second mouse-down this soon after the first is a double click, not a choice.
+local OPEN_GAP = 0.3
 local PRESS_WINDOW = 1
 local SILENT_SECONDS = 1.2
 local TRAIL_GAP = 2
@@ -105,6 +114,7 @@ for _, name in ipairs(TARGET_CAST) do ALL_EVENTS[#ALL_EVENTS + 1] = name end
 local slots, byId = {}, {}
 local header, ev, fader
 local dirtyRefresh, settledEnabled, settledCaps, settledOn = true, nil, nil, {}
+local lastLearned
 local placedIcon, placedScale, placedQueue, placedSig
 local fightEvents, peaceEvents = {}, {}
 local controlOn, ownCastOn, moveOn, fallOn = false, false, false, false
@@ -162,12 +172,31 @@ local function LearnItem(row)
 	return { row = row, id = nil, name = name, icon = icon or FALLBACK_ICON, byBags = byBags }
 end
 
+-- Whether two learned lists name the same rows, spells, names and icons: a probe
+-- that learned nothing new must not make the next scan refresh the buttons (a
+-- refresh hides every button that is not lit and closes the first of two clicks).
+local function SameList(a, b)
+	if a.n ~= b.n then return false end
+	for i, x in ipairs(a.list) do
+		local y = b.list[i]
+		if not y or x.row ~= y.row or x.id ~= y.id or x.name ~= y.name or x.icon ~= y.icon or x.byBags ~= y.byBags then
+			return false
+		end
+	end
+	return true
+end
+
 -- A name from the client, never typed. Rows whose first known rank has a name.
 function Moments.Learn()
+	-- The probe wipes caps first, so the last list is kept here.
+	local before = lastLearned
+	lastLearned = nil
 	caps.moments = nil
-	dirtyRefresh = true
 	local set = ns.MOMENTS[caps.class]
-	if not set then return end
+	if not set then
+		if before then dirtyRefresh = true end
+		return
+	end
 	local out = { list = {}, byKey = {}, n = 0 }
 	for _, row in ipairs(set) do
 		if BUILT[row.key] and row.items and not out.byKey[row.key] then
@@ -209,7 +238,12 @@ function Moments.Learn()
 			end
 		end
 	end
-	if out.n > 0 then caps.moments = out end
+	if out.n > 0 and before and SameList(before, out) then
+		caps.moments, lastLearned = before, before
+		return
+	end
+	if out.n > 0 then caps.moments, lastLearned = out, out end
+	if out.n > 0 or before then dirtyRefresh = true end
 end
 
 -- Whether this character has a moment row learned (the options page asks).
@@ -289,9 +323,23 @@ local function CoverWanted(slot, now)
 	if not slot.mouseOn then return false end
 	if slot.state == "dark" then return true end
 	if slot.state == "game" and slot.row.guard == "twice" then
-		return not (slot.openUntil and now < slot.openUntil)
+		-- Open from a third of a second after the first click until the window ends;
+		-- before that the cover stays up and swallows a double click.
+		if slot.openUntil and now < slot.openUntil then return now < slot.openFrom end
+		return true
 	end
 	return false
+end
+
+-- The icon of a button, on the layer the game paints and on the dim one Lua owns.
+local function SetIcon(slot, texture)
+	slot.iconTex:SetTexture(texture)
+	slot.hintTex:SetTexture(texture)
+end
+
+-- The dim icon: for the first of two clicks, and for a calm button the game paints.
+local function PaintHint(slot)
+	slot.hintTex:SetShown(slot.state == "game" and (slot.openUntil ~= nil or slot.row.calm == true))
 end
 
 local function FadeTo(slot, to)
@@ -344,6 +392,7 @@ local function Apply(slot, state)
 		slot.cover:SetShown(CoverWanted(slot, now))
 		GlowOn(slot, false)
 		slot.ring:Hide()
+		slot.hintTex:Hide()
 		if was == "game" then
 			-- Lua does not know whether anything was visible: nothing may linger.
 			slot.face:SetAlpha(0)
@@ -356,6 +405,7 @@ local function Apply(slot, state)
 	if state == "lit" then
 		slot.inner:SetAlpha(1)
 		slot.state = "lit"
+		slot.hintTex:Hide()
 		FadeTo(slot, 1)
 		GlowOn(slot, true)
 		slot.cover:SetShown(CoverWanted(slot, now))
@@ -371,6 +421,7 @@ local function Apply(slot, state)
 	slot.state = "game"
 	FadeTo(slot, 1)
 	GlowOn(slot, true)
+	PaintHint(slot)
 	slot.cover:SetShown(CoverWanted(slot, now))
 end
 
@@ -381,17 +432,31 @@ local function CoverDown(slot, mouse)
 	if mouse ~= "LeftButton" then return end
 	local now = GetTime()
 	if slot.state == "game" and slot.row.guard == "twice" then
-		slot.openUntil = now + OPEN_SECONDS
-		slot.cover:Hide()
+		-- Inside the gap after a first click the cover is still up: this is a double
+		-- click, which opens nothing and casts nothing.
+		if slot.openUntil and now < slot.openUntil then
+			slot.tally.cover = slot.tally.cover + 1
+			Trail(slot, "a second click too soon after the first, swallowed")
+			return
+		end
+		slot.openUntil, slot.openFrom = now + OPEN_SECONDS, now + OPEN_GAP
 		slot.ring:Show()
+		slot.hintTex:Show()
 		slot.tally.opened = slot.tally.opened + 1
 		Trail(slot, "first of two clicks")
 		local timer = _G.C_Timer
 		if type(timer) == "table" and type(timer.After) == "function" then
+			-- The cover comes down once the gap is over, and goes back up with the window.
+			timer.After(OPEN_GAP, function()
+				if slot.openUntil and GetTime() >= slot.openFrom then
+					slot.cover:SetShown(CoverWanted(slot, GetTime()))
+				end
+			end)
 			timer.After(OPEN_SECONDS, function()
 				if slot.openUntil and GetTime() >= slot.openUntil then
 					slot.openUntil = nil
 					slot.ring:Hide()
+					PaintHint(slot)
 					slot.cover:SetShown(CoverWanted(slot, GetTime()))
 				end
 			end)
@@ -513,8 +578,8 @@ local function PreClick(slot, mouse)
 	local tally, state = slot.tally, slot.state
 	if slot.keyLabel == nil and slot.cover:IsShown() then
 		tally.leak = tally.leak + 1
-		local db = ns.db and ns.db.global
-		if db then db.momentCoverLeaks = (db.momentCoverLeaks or 0) + 1 end
+		-- Counted for this session: a leak long ago is not this session's fault.
+		slot.leakTotal = (slot.leakTotal or 0) + 1
 		Trail(slot, "the cover let a click through", true)
 	end
 	-- One press of a drink is one press: the opening the first of two clicks made
@@ -522,6 +587,7 @@ local function PreClick(slot, mouse)
 	if slot.row.calm then
 		slot.openUntil = nil
 		slot.ring:Hide()
+		PaintHint(slot)
 		slot.cover:SetShown(CoverWanted(slot, now))
 	end
 	if state == "lit" then
@@ -634,6 +700,12 @@ local function Create(n)
 	face:SetAllPoints(button)
 	face:SetFrameLevel(level + 1)
 	face:SetAlpha(0)
+	-- Under inner: a dim copy of the icon Lua shows where the game has painted inner away.
+	local hint = face:CreateTexture(nil, "BACKGROUND")
+	hint:SetAllPoints(face)
+	hint:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	hint:SetVertexColor(1, 1, 1, 0.4)
+	hint:Hide()
 	local inner = CreateFrame("Frame", nil, face)
 	inner:SetAllPoints(face)
 	inner:SetFrameLevel(level + 2)
@@ -662,11 +734,15 @@ local function Create(n)
 	local keyText = inner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	keyText:SetPoint("BOTTOMRIGHT", inner, "BOTTOMRIGHT", -2, 2)
 	keyText:SetText("")
-	-- On inner, so where the game paints inner away an invisible button shows no ring.
-	local ring = inner:CreateTexture(nil, "OVERLAY")
+	-- On a frame of Lua's own above inner, not on inner: where the game paints inner
+	-- away the first of two clicks still shows, so the second is a choice the player sees.
+	local mark = CreateFrame("Frame", nil, face)
+	mark:SetAllPoints(face)
+	mark:SetFrameLevel(level + 3)
+	local ring = mark:CreateTexture(nil, "OVERLAY")
 	ring:SetTexture(RING)
-	ring:SetAllPoints(inner)
-	ring:SetVertexColor(1, 1, 1, 0.6)
+	ring:SetAllPoints(mark)
+	ring:SetVertexColor(1, 0.82, 0.2, 0.95)
 	ring:Hide()
 	local cover = CreateFrame("Frame", nil, button)
 	cover:SetAllPoints(button)
@@ -685,6 +761,7 @@ local function Create(n)
 	button:Hide()
 	slot.button, slot.face, slot.inner, slot.cover, slot.ring = button, face, inner, cover, ring
 	slot.iconTex, slot.glow, slot.pulse, slot.hover, slot.keyText = icon, glow, pulse, hover, keyText
+	slot.hintTex = hint
 	slots[n] = slot
 	if not fader then
 		fader = CreateFrame("Frame")
@@ -746,7 +823,8 @@ local function MacroFor(slot)
 			end
 		end
 		if #lines == 0 then return nil end
-		return table.concat(lines, "\n")
+		-- A cast under way refuses an item's use: the press stops it first, as a spell's does.
+		return (row.stop and "/stopcasting\n" or "") .. table.concat(lines, "\n")
 	end
 	if row.self then
 		if caps.conditionalTargeting then
@@ -1023,7 +1101,7 @@ local function PeaceFlush()
 				slot.bagsDirty = false
 				if Sense.CountDrinks(slot) then
 					Arm(slot)
-					if slot.drinkIcon then slot.iconTex:SetTexture(slot.drinkIcon) end
+					if slot.drinkIcon then SetIcon(slot, slot.drinkIcon) end
 					SetRegistered()
 				end
 			end
@@ -1072,14 +1150,14 @@ function Moments:Refresh(keepLit)
 				slot.row, slot.id, slot.name, slot.entry = entry.row, entry.id, entry.name, entry
 				slot.needs = Sense.NeedSet(entry.row)
 				slot.armed = true
-				slot.iconTex:SetTexture(entry.icon)
+				SetIcon(slot, entry.icon)
 				if entry.id then byId[entry.id] = slot end
 				ReadKey(slot)
 				SetMouse(slot)
 				if entry.row.items then Sense.CountItems(slot) end
 				if entry.row.drink then
 					Sense.CountDrinks(slot)
-					if slot.drinkIcon then slot.iconTex:SetTexture(slot.drinkIcon) end
+					if slot.drinkIcon then SetIcon(slot, slot.drinkIcon) end
 				end
 				Arm(slot)
 				Seed(slot, now)
@@ -1153,6 +1231,7 @@ function Moments:Refresh(keepLit)
 				slot.fading, slot.fadeTo, slot.openUntil = false, 0, nil
 				slot.cover:Hide()
 				slot.ring:Hide()
+				slot.hintTex:Hide()
 				slot.hover:Hide()
 				GlowOn(slot, false)
 				-- The driver hides what it showed for a fight but leaves a keep button to
@@ -1285,6 +1364,8 @@ local function Pull()
 			slot.trailAt, slot.trailCount = nil, 0
 			slot.onGCD, slot.flip, slot.castOn, slot.castInfo = nil, nil, nil, nil
 			slot.state, slot.why, slot.openUntil = "dark", nil, nil
+			slot.ring:Hide()
+			slot.hintTex:Hide()
 			Seed(slot, now)
 			slot.cover:SetShown(slot.mouseOn == true)
 		end
@@ -1322,6 +1403,7 @@ function Moments:Release()
 			lastFight[n] = { key = slot.row and slot.row.key, tally = slot.tally, why = slot.why, state = slot.state, armed = slot.armed }
 			slot.cover:Hide()
 			slot.ring:Hide()
+			slot.hintTex:Hide()
 			slot.openUntil = nil
 			if slot.armed and slot.row.peace == true and slot.state == "lit" then
 				-- A fight ending mid-fall: the button stays up until a read says you landed.
@@ -1495,7 +1577,9 @@ function Moments.OnEvent(event, unit, a, b, c, d)
 			local slot = slots[n]
 			if slot and slot.armed then slot.castOn, slot.flip = nil, nil end
 		end
-		return JudgeAll()
+		JudgeAll()
+		-- A caster out of range or a spell cooling down is waited on by the flush.
+		return Schedule()
 	end
 	if event == "SPELL_UPDATE_COOLDOWN" then
 		-- The only place isOnGCD is read: the game says not to trust it anywhere else.
@@ -1533,7 +1617,8 @@ function Moments.OnEvent(event, unit, a, b, c, d)
 			if slot and slot.armed then slot.castOn, slot.flip = nil, nil end
 		end
 		JudgeAll("schoolhit")
-		return JudgeAll("casting")
+		JudgeAll("casting")
+		return Schedule()
 	elseif CAST_STOP[event] then
 		for n = 1, MAX do
 			local slot = slots[n]
@@ -1610,7 +1695,10 @@ function ns.MomentLines()
 	local can = Sense.can
 	local db = Profile()
 	local m = db and db.moments or {}
-	local leaks = ns.db and ns.db.global and ns.db.global.momentCoverLeaks or 0
+	local leaks = 0
+	for n = 1, MAX do
+		if slots[n] then leaks = leaks + (slots[n].leakTotal or 0) end
+	end
 	local refused = {}
 	for kind, why in pairs(Sense.refused) do refused[#refused + 1] = kind .. " (" .. tostring(why) .. ")" end
 	table.sort(refused)
@@ -1618,7 +1706,7 @@ function ns.MomentLines()
 		:format(tostring(caps.class), #rows, mine and mine.n or 0, Yes(can.bool), Yes(can.eval), Yes(can.curve),
 			Yes(can.health), Yes(can.power), tostring(Sense.scale), #refused > 0 and table.concat(refused, ", ") or "none",
 			#Sense.lacking > 0 and table.concat(Sense.lacking, ", ") or "none", Yes(Sense.lockProven),
-			leaks > 0 and (leaks .. " times (or a macro of yours clicked it)") or "never")
+			leaks > 0 and (leaks .. " times this session (or a macro of yours clicked it)") or "not this session")
 	for _, row in ipairs(rows) do
 		local entry = mine and mine.byKey[row.key]
 		local slot = slots[row.slot]
@@ -1629,6 +1717,8 @@ function ns.MomentLines()
 			out[#out + 1] = ("moment %s: not learned"):format(row.key)
 		else
 			local armed = slot and slot.armed and slot.armedMacro
+			-- Pasted into public issues: the self-cast line holds the character's name.
+			if armed then armed = tostring(armed):gsub("^/target [^\n]*", "/target <you>") end
 			local what = entry.id and "spell" or "items"
 			local ident = tostring(entry.id or table.concat(row.items or {}, "/"))
 			if row.drink then
@@ -1689,9 +1779,10 @@ function Moments.SelfRows()
 			else
 				text = ("button made, header %s, %s"):format(tostring(state), key)
 			end
-			local leaks = ns.db and ns.db.global and ns.db.global.momentCoverLeaks or 0
+			-- This session's, on the row that leaked: a leak long ago says nothing of now.
+			local leaks = slot.leakTotal or 0
 			if leaks > 0 then
-				text = text .. ("; the cover let a click through %d times (or a macro of yours clicked it)"):format(leaks)
+				text = text .. ("; the cover let a click through %d times this session (or a macro of yours clicked it)"):format(leaks)
 				warn = true
 			end
 		end
@@ -1711,7 +1802,7 @@ function Moments:Look(n)
 	local slot = slots[n]
 	if not slot then return nil end
 	return { icon = slot.iconTex, glow = slot.glow, key = slot.keyText, face = slot.face, inner = slot.inner,
-		ring = slot.ring, alpha = slot.fadeTo, fader = fader }
+		ring = slot.ring, hint = slot.hintTex, alpha = slot.fadeTo, fader = fader }
 end
 function Moments:Slot(n) return slots[n] end
 function Moments:Header() return header end

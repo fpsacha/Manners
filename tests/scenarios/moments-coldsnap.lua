@@ -13,6 +13,8 @@
 local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local ICE_SLOT, SNAP_SLOT = 2, 7
 local ICE, SNAP = 11958, 12472

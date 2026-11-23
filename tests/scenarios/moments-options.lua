@@ -13,6 +13,8 @@
 local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local KEYS = { "counterspell", "spellsteal", "blink", "iceblock", "coldsnap", "evocation", "managem", "drink", "slowfall",
 	"fireward", "frostward" }

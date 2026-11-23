@@ -13,6 +13,8 @@
 local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local function with(name, body, opts) K.withMage(H, "moments: " .. name, body, opts) end
 local function name(s) return "moments: " .. s end
@@ -427,7 +429,8 @@ do
 		K.click(ns, 1)
 		local slot = ns.Moments:Slot(1)
 		if slot.tally.leak ~= 2 then fail(s, "the leaks counted: " .. slot.tally.leak) end
-		if (ns.db.global.momentCoverLeaks or 0) ~= 2 then fail(s, "the account's count: " .. tostring(ns.db.global.momentCoverLeaks)) end
+		if slot.leakTotal ~= 2 then fail(s, "the session's count: " .. tostring(slot.leakTotal)) end
+		if ns.db.global.momentCoverLeaks ~= nil then fail(s, "a count is kept on the account: " .. tostring(ns.db.global.momentCoverLeaks)) end
 		if not trailHas(ns, "the cover let a click through") then fail(s, "no trail line") end
 		local said = 0
 		local real = ns.addon.Print

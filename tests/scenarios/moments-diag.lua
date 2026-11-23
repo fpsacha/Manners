@@ -8,6 +8,8 @@
 local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local function with(name, body, opts) K.withMage(H, "moments-diag: " .. name, body, opts) end
 local function name(s) return "moments-diag: " .. s end
@@ -160,13 +162,13 @@ do
 		local head = printed("moments: class MAGE")
 		if not head then fail(s, "no first line") return end
 		for _, part in ipairs({ "3 learned", "alpha from a boolean yes", "percent scale 1", "refused calls: none", "events this client lacks: ",
-			"lock flag proven: no", "the cover let a click through: never" }) do
+			"lock flag proven: no", "the cover let a click through: not this session" }) do
 			if not head:find(part, 1, true) then fail(s, "the first line lacks '" .. part .. "': " .. head) end
 		end
 		local counter = printed("moment counterspell: spell 2139 Counterspell")
 		if not counter then fail(s, "no Counterspell line") return end
 		for _, part in ipairs({ "learned yes", "switch on", "armed (/stopcasting | /cast Counterspell)", "key none", "slot 1",
-			"one click", "last fight lit 1" }) do
+			"two clicks where the game alone knows", "last fight lit 1" }) do
 			if not counter:find(part, 1, true) then fail(s, "the Counterspell line lacks '" .. part .. "': " .. counter) end
 		end
 		if not printed("moment blink: not learned") then fail(s, "Blink is not said to be unlearned") end
@@ -201,10 +203,10 @@ do
 		list = results(ns, "fight.moments")
 		if not any(list, "WARN", "header says fight, not peace") then fail(s, "a wrong header state is not a warning: " .. show(list)) end
 		ns.Moments:Header():SetAttribute("state-mannersmoments", "peace")
-		ns.db.global.momentCoverLeaks = 3
+		ns.Moments:Slot(1).leakTotal = 3
 		list = results(ns, "fight.moments")
-		if not any(list, "WARN", "the cover let a click through 3 times") then fail(s, "leaks are not a warning: " .. show(list)) end
-		ns.db.global.momentCoverLeaks = nil
+		if not any(list, "WARN", "the cover let a click through 3 times this session") then fail(s, "leaks are not a warning: " .. show(list)) end
+		ns.Moments:Slot(1).leakTotal = nil
 		-- The calls this client has, and the events it lacks.
 		local apis = results(ns, "fight.apis")
 		if not any(apis, "PASS", "SetAlphaFromBoolean: yes") then fail(s, "no SetAlphaFromBoolean line: " .. show(apis)) end
@@ -266,7 +268,7 @@ do
 		Mock.printed = {}
 		ns.addon:HandleSlash("debug")
 		local gem = printed("moment managem: items 8008/8007/5513/5514")
-		if not gem or not gem:find("armed (/use item:5514)", 1, true) then fail(s, "the gem line: " .. tostring(gem)) end
+		if not gem or not gem:find("armed (/stopcasting | /use item:5514)", 1, true) then fail(s, "the gem line: " .. tostring(gem)) end
 		local fall = printed("moment slowfall: spell 130 Slow Fall")
 		if not fall or not fall:find("[target yourself by name, cast, hand the target back]", 1, true) then fail(s, "the Slow Fall line: " .. tostring(fall)) end
 		local ward = printed("moment fireward: spell 543 Fire Ward")

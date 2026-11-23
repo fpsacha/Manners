@@ -48,8 +48,8 @@ mutate("Prompt/Moments.lua",
        expect="moments-counterspell: dark the instant the cast stops", script=S)
 
 mutate("Prompt/Moments.lua",
-       "\t\t\tif slot and slot.armed then slot.castOn, slot.flip = nil, nil end\n\t\tend\n\t\tJudgeAll(\"schoolhit\")\n\t\treturn JudgeAll(\"casting\")\n\telseif CAST_STOP[event] then",
-       "\t\t\tif slot and slot.armed then slot.castOn = nil end\n\t\tend\n\t\tJudgeAll(\"schoolhit\")\n\t\treturn JudgeAll(\"casting\")\n\telseif CAST_STOP[event] then",
+       "\t\t\tif slot and slot.armed then slot.castOn, slot.flip = nil, nil end\n\t\tend\n\t\tJudgeAll(\"schoolhit\")\n\t\tJudgeAll(\"casting\")\n\t\treturn Schedule()\n\telseif CAST_STOP[event] then",
+       "\t\t\tif slot and slot.armed then slot.castOn = nil end\n\t\tend\n\t\tJudgeAll(\"schoolhit\")\n\t\tJudgeAll(\"casting\")\n\t\treturn Schedule()\n\telseif CAST_STOP[event] then",
        "moments-counterspell: the flip is not cleared at a new cast",
        expect="moments-counterspell: NOT_INTERRUPTIBLE mid-cast", script=S)
 
@@ -90,8 +90,8 @@ mutate("Prompt/MomentsSense.lua",
        expect="moments-counterspell: dark: a dead target", script=S)
 
 mutate("Prompt/MomentsData.lua",
-       "ranks = { 2139 }, stop = true, blind = \"weak\", cooldown = 30,",
-       "ranks = { 2139 }, stop = true, cooldown = 30,",
+       "ranks = { 2139 }, stop = true, guard = \"twice\", blind = \"weak\", cooldown = 30,",
+       "ranks = { 2139 }, stop = true, guard = \"twice\", cooldown = 30,",
        "moments-counterspell: Counterspell is not weak when the flag has no route",
        expect="moments-counterspell: hidden with no boolean call", script=S)
 

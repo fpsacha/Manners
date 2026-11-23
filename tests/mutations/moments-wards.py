@@ -57,7 +57,7 @@ mutate(SENSE,
        expect="moments-wards: your target casting lights the ward of the school that hit you", script=S)
 
 mutate(M,
-       '\t\tJudgeAll("schoolhit")\n\t\treturn JudgeAll("casting")\n',
-       '\t\treturn JudgeAll("casting")\n',
+       '\t\tJudgeAll("schoolhit")\n\t\tJudgeAll("casting")\n\t\treturn Schedule()\n',
+       '\t\tJudgeAll("casting")\n\t\treturn Schedule()\n',
        "moments-wards: a cast's start is not judged for the wards",
        expect="moments-wards: your target casting lights the ward of the school that hit you", script=S)

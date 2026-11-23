@@ -80,8 +80,11 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   `SetAlphaFromBoolean`, an evaluated curve of `UnitHealthPercent` or
   `UnitPowerPercent`), and shows or hides an unprotected `cover` that swallows
   clicks while the button is dark, so a click casts only while it is lit.
-  Where only the game knows (a hidden health), the cover stays up and the button
-  takes two quick clicks. Nothing is lit without a detected need, and they
+  Where only the game knows (a hidden health, mana, interrupt flag or stealable
+  flag: rows with `guard = "twice"`), the cover stays up and the button takes two
+  quick clicks at least 0.3 s apart; the first shows a ring (`mark`, a frame of
+  Lua's above `inner`) and the icon (`hint`, under `inner`), which the game does
+  not paint away. The drink keeps the dim `hint` whenever the game paints it. Nothing is lit without a detected need, and they
   never read `prompt.fightButtons`. What a button must be given while the lockdown
   is not yet on (keys, the mouse, the gem's macro from the bags) is written by
   `Moments:Take`, which Core's `PLAYER_REGEN_DISABLED` handler calls; the frame's

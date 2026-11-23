@@ -15,16 +15,22 @@
 - **Counterspell when your target casts.** A small button left of the prompt
   lights while a hostile target in reach is casting, and a press stops your own
   cast first. *Show Counterspell when my target starts a cast*, In a fight.
+  Where the game hides whether the cast can be interrupted, it takes two quick
+  clicks, as Spellsteal does where it hides the stealable flag.
 - **Blink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.** Each
   lights at its moment: stunned or rooted, low health (*Health below*, 20 by
   default), low mana (*Mana below*), a second into a fall. Each has its own
-  switch and key.
+  switch and key. Evocation and the gem stop your cast first.
+- **Two quick clicks.** Where only the game knows whether a button is lit, the
+  first click shows a ring and the spell's icon, and the second, a third of a
+  second or more later, casts: a stray click or a double click never does.
 - **Spellsteal** lights while your target carries a buff you can steal
   (Burning Crusade and later).
 - **A drink when your mana is low.** Out of a fight, for every class with mana:
   a button lights while your mana is under *Mana below* and a drink is in your
   bags; a press drinks your best conjured water, else another drink. *Show a
-  drink when my mana is low out of a fight*, In a fight.
+  drink when my mana is low out of a fight*, In a fight. Where the game hides
+  your mana, a dim icon shows the button is there and it takes two quick clicks.
 - **Fire Ward and Frost Ward** light as soon as your target hits you with fire
   or frost, and again each time it casts after that.
 
@@ -52,6 +58,11 @@
 ### Fixes
 - **The cure button takes no click while it is out of sight.** A click casts only
   while it is lit.
+- **/manners debug.** The Slow Fall line leaves your character's name out.
+- **Check-up.** It no longer stops for a class whose only button is the drink,
+  and a click that got past a cover is counted for the session only.
+- **Slow Fall in French, German, Spanish, Italian and Portuguese.** The Light
+  Feather line reads right whatever the name's gender.
 - **Who buffed you.** The full check-up counts the casts Manners hears from
   others (players and mobs alike), and a buff read late says so instead of "no
   player in sight". A cast the game hides near the moment a buff lands now keeps

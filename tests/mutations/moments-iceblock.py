@@ -20,8 +20,8 @@ mutate(SENSE,
        expect="moments-iceblock: hidden health is handed to the game", script=S)
 
 mutate(M,
-       '\tif slot.state == "game" and slot.row.guard == "twice" then\n\t\treturn not',
-       '\tif false then\n\t\treturn not',
+       '\tif slot.state == "game" and slot.row.guard == "twice" then\n\t\t-- Open from a third',
+       '\tif false then\n\t\t-- Open from a third',
        "moments-iceblock: the cover is dropped in game for a two-click row",
        expect="moments-iceblock: hidden health: one click casts nothing and opens it", script=S)
 
@@ -104,7 +104,7 @@ mutate(SENSE,
        expect="moments-iceblock: isActive true with the numbers hidden", script=S)
 
 mutate(M,
-       '\tif slot.state == "game" and slot.row.guard == "twice" then\n\t\tslot.openUntil',
-       '\tif false then\n\t\tslot.openUntil',
+       '\tif slot.state == "game" and slot.row.guard == "twice" then\n\t\t-- Inside the gap',
+       '\tif false then\n\t\t-- Inside the gap',
        "moments-iceblock: the first click is not counted as opening it",
        expect="moments-iceblock: hidden health: one click casts nothing and opens it", script=S)

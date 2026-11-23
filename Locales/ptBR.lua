@@ -5742,7 +5742,7 @@ L["Out of a fight only. Lights while your mana is under Mana below, you stand st
 L["Where the game keeps your mana from addons, the game itself lights the button, and it then takes two quick clicks, so one stray click never drinks."] = "Onde o jogo esconde o seu mana dos addons, é o próprio jogo que acende o botão, e então são precisos dois cliques rápidos, para que um clique perdido nunca beba nada."
 L["Show %s when I have been falling for a second"] = "Mostrar %s quando estou caindo há um segundo"
 L["In a fight or out of one. Lights once you have been falling for a second, and goes dark when you land. It lands on you whoever you have targeted."] = "Em combate ou fora dele. Acende quando você cai há um segundo e apaga quando você pousa. Ela recai sobre você, seja quem for o seu alvo."
-L["It needs a %s in your bags."] = "Precisa de um %s nas suas bolsas."
+L["It needs a %s in your bags."] = "Requer %s nas suas bolsas."
 L["Show %s when my target hits me with fire"] = "Mostrar %s quando meu alvo me atinge com fogo"
 L["Lights in a fight as soon as fire damage hits you while your target is hostile, for ten seconds or until you cast a ward. Once fire has hit you in a fight, it lights again whenever your target casts. The game does not show what a spell is before it lands, so the first fire hit has to land."] = "Acende em combate assim que dano de fogo te atinge com um alvo hostil, por dez segundos ou até você lançar uma proteção. Depois que o fogo te atingir em um combate, acende de novo sempre que seu alvo lançar um feitiço. O jogo não mostra o que é um feitiço antes de ele acertar, então o primeiro golpe de fogo precisa chegar."
 L["Show %s when my target hits me with frost"] = "Mostrar %s quando meu alvo me atinge com gelo"

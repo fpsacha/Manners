@@ -15,6 +15,8 @@
 local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
+-- Written for plain values: Forever's hidden ones are asked for by name (Mock.healthSecret, ...).
+K.plain = true
 
 local EVO, GEM = 4, 5
 local EVOCATION = 12051
@@ -85,7 +87,7 @@ do
 		if state(ns, EVO) ~= "lit" then fail(s, "not lit again") end
 		local hit = K.click(ns, EVO)
 		if hit ~= ns.Moments:Button(EVO) or evocations() ~= 1 then fail(s, "one click did not cast: " .. evocations()) end
-		if K.macro(ns, EVO) ~= "/cast Evocation" then fail(s, "the macro: " .. tostring(K.macro(ns, EVO))) end
+		if K.macro(ns, EVO) ~= "/stopcasting\n/cast Evocation" then fail(s, "the macro: " .. tostring(K.macro(ns, EVO))) end
 	end)
 	s = name("Evocation: a click while dark casts nothing; out of a fight it asks nothing and is dark")
 	with(s, function(ns)
@@ -211,11 +213,11 @@ do
 	local s = name("the macro lists the gems in the bags best first, and refreshes at the pull")
 	with(s, function(ns)
 		gems(ns, { [5514] = 2, [8008] = 1 })
-		if K.macro(ns, GEM) ~= "/use item:8008\n/use item:5514" then fail(s, "the macro: " .. tostring(K.macro(ns, GEM))) end
+		if K.macro(ns, GEM) ~= "/stopcasting\n/use item:8008\n/use item:5514" then fail(s, "the macro: " .. tostring(K.macro(ns, GEM))) end
 		-- A gem picked up since: the pull counts again and arms again.
 		Mock.bags = { [5514] = 2, [8008] = 1, [5513] = 1 }
 		K.pull(ns)
-		if K.macro(ns, GEM) ~= "/use item:8008\n/use item:5513\n/use item:5514" then
+		if K.macro(ns, GEM) ~= "/stopcasting\n/use item:8008\n/use item:5513\n/use item:5514" then
 			fail(s, "the macro at the pull: " .. tostring(K.macro(ns, GEM)))
 		end
 	end, { known = KNOWN })
@@ -225,7 +227,7 @@ do
 		K.relearn(ns)
 		if not ns.Moments.Has("managem") then fail(s, "not learned from the conjure spells") end
 		-- The mage knows all four conjures in this list: every kind, best first.
-		if K.macro(ns, GEM) ~= "/use item:8008\n/use item:8007\n/use item:5513\n/use item:5514" then
+		if K.macro(ns, GEM) ~= "/stopcasting\n/use item:8008\n/use item:8007\n/use item:5513\n/use item:5514" then
 			fail(s, "the macro: " .. tostring(K.macro(ns, GEM)))
 		end
 	end, { known = KNOWN })

@@ -1337,8 +1337,17 @@ Check("fight.apis", "fight", L["what the game says in a fight"], function(add)
 			add(PASS, "falling: " .. (Secret(_G.IsFalling()) and "hidden" or "plain"))
 		end
 		local rows = ns.Moments and ns.Moments.Rows and ns.Moments.Rows() or {}
-		if rows[1] and type(spellApi) == "table" and type(spellApi.GetSpellCooldown) == "function" and not InCombatLockdown() then
-			local rec = spellApi.GetSpellCooldown(rows[1].id)
+		-- The first row that is a spell: a drink and a gem are learned with no spell id, and
+		-- the game's call takes none that is nil.
+		local first
+		for _, r in ipairs(rows) do
+			if r.id then
+				first = r
+				break
+			end
+		end
+		if first and type(spellApi) == "table" and type(spellApi.GetSpellCooldown) == "function" and not InCombatLockdown() then
+			local rec = spellApi.GetSpellCooldown(first.id)
 			local active = type(rec) == "table" and rec.isActive
 			add(PASS, "cooldown flag isActive: " .. Yes(type(active) == "boolean"))
 		end
