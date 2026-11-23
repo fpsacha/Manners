@@ -56,8 +56,8 @@ mutate("Options/Window/WidgetsEntry.lua",
 
 # The key button waits while the search box keeps the keyboard.
 mutate("Options/Window/WidgetsChoice.lua",
-       "\tif focused and focused.ClearFocus then focused:ClearFocus() end\n",
-       "",
+       "\tGrabber(row):SetFocus()\n",
+       "\tGrabber(row)\n",
        "hunt19-options: the key capture leaves the keyboard with a box",
        expect="waiting for a key, the search box kept the keyboard", script=S)
 
