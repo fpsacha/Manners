@@ -995,11 +995,13 @@ local defaults = {
 		-- spot, above the action bars) and its size in pixels.
 		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 40 },
 		-- Buttons for the moment (Prompt/Moments.lua): a switch for each, all on
-		-- by default (the drink only has a row for a class with mana); health and
+		-- by default but Shield Slam, which a warrior presses anyway (the drink
+		-- only has a row for a class with mana); health and
 		-- mana are the shares under which the buttons for low health and low
 		-- mana light, in percent.
 		moments = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
 			evocation = true, managem = true, drink = true, slowfall = true, fireward = true, frostward = true,
+			purge = true, dispel = true, tranq = true, shieldslam = false,
 			health = 20, mana = 20 },
 	},
 }

@@ -22,7 +22,7 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   Forever and Classic Era, Hypothermia from Burning Crusade), a mana gem on the
   clients that have one, Spellsteal from Burning Crusade, the wards on Forever,
   Classic Era and Burning Crusade, Slow Fall's feather where the client asks for
-  one. Nothing branches on a client's name; a signal the client cannot give
+  one. The other classes' slot 8 (Purge, Dispel Magic 988/527 or 528, Tranquilizing Shot taking magic too on Mists and retail, Shield Slam on all but retail) is data too (`Strip` in MomentsData.lua). Nothing branches on a client's name; a signal the client cannot give
   answers "blind" and the row's `blind` field decides.
 - **Buffs.lua** has one set per flavour (`SETS`); an unrecognised flavour gets
   its family's (classic -> vanilla, modern -> mainline). The chosen set fills

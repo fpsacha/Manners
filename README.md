@@ -330,6 +330,18 @@ second, a third of a second or more later, casts; a double click does not. A key
 always casts at once. *Show the fight buttons* does not change them: none is ever on the screen
 without its moment.
 
+A shaman, a priest, a hunter and a warrior get the same kind of button for the
+spell that strips a buff from a hostile target: Purge, Dispel Magic,
+Tranquilizing Shot and Shield Slam (*Show Purge when my target has a buff I can
+remove*, and so on, under *Buttons for the moment*). It lights while your target
+is in reach, the spell is ready and the target carries a buff that spell
+removes: a magic one for Purge, Dispel Magic and Shield Slam, an enrage for
+Tranquilizing Shot (and a magic buff too on Mists of Pandaria and retail, where
+the shot takes those). Where the game hides the buffs in a fight, the game
+itself lights it from its own word on what you can remove, and it then takes two
+quick clicks. Shield Slam's switch starts off, since a warrior presses it anyway;
+retail's Shield Slam no longer dispels and has no button.
+
 Every class with mana also gets a drink button, for out of a fight: it lights
 while your mana is under *Mana below*, you stand still (not moving, mounted,
 swimming or in a form) and a drink is in your bags, and is out of sight in a

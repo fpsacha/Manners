@@ -72,7 +72,7 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   buffs (unless *In a fight, my key casts* names a spell: below).
   The buttons for the moment (`Prompt/Moments.lua`, MannersMoment1..11, a
   mage's Counterspell, Spellsteal, Blink, Ice Block, Cold Snap, Evocation, mana
-  gem, Slow Fall and the two wards, and for every class with mana the drink; `Prompt/MomentsData.lua` holds the rows,
+  gem, Slow Fall and the two wards, a shaman's Purge, a priest's Dispel Magic, a hunter's Tranquilizing Shot and a warrior's Shield Slam, and for every class with mana the drink; `Prompt/MomentsData.lua` holds the rows,
   `Prompt/MomentsSense.lua` the signals) are armed out of combat and shown by one header's own state driver
   (`mannersmoments`). The secure button has no region of its own and its alpha
   is never written; Lua paints only the unprotected frames over it (a plain gate

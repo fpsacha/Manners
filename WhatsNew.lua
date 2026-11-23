@@ -15,6 +15,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffBlink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.|r Each lights at its moment: stunned or rooted, low health (|cffffffffHealth below|r, 20 by default), low mana (|cffffffffMana below|r), a second into a fall.",
 			"|cff7cc4ffTwo quick clicks.|r Where only the game knows whether a button is lit, the first click shows a ring and the spell's icon, and the second, a third of a second or more later, casts: a stray click or a double click never does.",
 			"|cff7cc4ffSpellsteal|r lights while your target carries a buff you can steal (Burning Crusade and later).",
+			"|cff7cc4ffPurge, Dispel Magic, Tranquilizing Shot, Shield Slam.|r A shaman, priest, hunter or warrior gets a button that lights while a hostile target in reach carries a buff the spell removes (an enrage, for Tranquilizing Shot).",
 			"|cff7cc4ffA drink when your mana is low.|r Out of a fight, for every class with mana: a button lights while your mana is under |cffffffffMana below|r and a drink is in your bags; a press drinks your best conjured water, else another drink.",
 			"|cff7cc4ffFire Ward and Frost Ward|r light when your target casts a fire or frost spell, and as soon as it hits you with fire or frost.",
 		} },

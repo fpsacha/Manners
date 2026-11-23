@@ -31,7 +31,12 @@ for word; `CLAUDE.md` is the index, read first.
   130 (reagent item 17056 on Forever, Classic Era and Burning Crusade), Spellsteal
   30449, the wards (Fire 543 .. 10225, 27128; Frost 6143 .. 28609, 32796), the
   gems (Mana Agate 5514 through Mana Ruby 8008, Mana Emerald 22044, Mana Gem 36799)
-  and the spells that conjure them. The names in the options come from the client,
+  and the spells that conjure them; the other classes' slot 8 with each spell's
+  dispel effect (SpellEffect 38, misc 1 Magic, 9 Enrage): Purge 8012/370, Dispel
+  Magic 988/527 (528 on Mists and retail, where 527 is Purify), Tranquilizing
+  Shot 19801 (Enrage; Enrage and Magic on Mists and retail), Shield Slam
+  23922..23925, 25258 and 30356 on Burning Crusade (Magic; none on retail). The
+  names in the options come from the client,
   never from this table; the spell names in the translated search words were read
   from Wowhead's tooltip data in each language.
 - **The fire and frost casts of the wards** (`CastSchools.lua`, written by

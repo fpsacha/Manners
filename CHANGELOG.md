@@ -26,6 +26,11 @@
   second or more later, casts: a stray click or a double click never does.
 - **Spellsteal** lights while your target carries a buff you can steal
   (Burning Crusade and later).
+- **Purge, Dispel Magic, Tranquilizing Shot, Shield Slam.** A shaman, priest,
+  hunter or warrior gets a button that lights while a hostile target in reach
+  carries a buff the spell removes (an enrage, for Tranquilizing Shot). *Show
+  Purge when my target has a buff I can remove*, In a fight; Shield Slam's is
+  off at first.
 - **A drink when your mana is low.** Out of a fight, for every class with mana:
   a button lights while your mana is under *Mana below* and a drink is in your
   bags; a press drinks your best conjured water, else another drink. *Show a

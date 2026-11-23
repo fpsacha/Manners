@@ -464,6 +464,7 @@ local EXPECTED = {
 		"prompt.cureFightMods",
 		"moments.counterspell", "moments.spellsteal", "moments.blink", "moments.evocation", "moments.managem", "moments.drink",
 		"moments.slowfall", "moments.iceblock", "moments.coldsnap", "moments.fireward", "moments.frostward",
+		"moments.purge", "moments.dispel", "moments.tranq", "moments.shieldslam",
 		"moments.health", "moments.mana",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the

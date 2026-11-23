@@ -312,7 +312,9 @@ sub-second subset for the middle of an edit.
   player would see. The kit stands in the calls the mock lacks (health, power,
   the target's cast in the client's return positions, curves, a cooldown whose
   isOnGCD is filled only inside the cooldown event, the bags and an item's
-  cooldown, the target's buffs, falling, and for the drink the bags walked by
+  cooldown, the target's buffs (with each one's `kind`, hidden by
+  `Mock.kindsHidden`, and the game's dispellable filter: `dispel = true`,
+  `Mock.filterThrows`), falling, and for the drink the bags walked by
   `C_Container` (`Mock.bags`), `Mock.playerLevel`, `Mock.itemMinLevel`,
   `Mock.itemUnusable`, `Mock.mounted`, `Mock.swimming`, `Mock.shapeshift` and the
   Drink aura `Mock.drinkAura` = true, `"secret"` or `"throw"`) from `Mock` fields

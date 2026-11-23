@@ -1217,6 +1217,7 @@ end
 function Page.AddMomentControls(args)
 	local tail = L["Its key is the box under this switch, also in the game's Key Bindings under Manners. With no key set, a click on the lit button casts it. A change made in a fight counts from the next one."]
 	local twice = L["Where the game keeps that from addons in a fight, the game itself lights the button, and it then takes two quick clicks, so one stray click never casts it."]
+	local magic = L["Lights while a hostile target within reach carries a magic buff you can remove. Out of sight while it cools down."]
 	local function Has(key) return ns.Moments ~= nil and ns.Moments.Has(key) end
 	-- The name the client gives the spell: the learned one, or for a spell this
 	-- character may not know yet (Ice Block, which Cold Snap brings back) the
@@ -1243,6 +1244,19 @@ function Page.AddMomentControls(args)
 		{ key = "spellsteal",
 			name = function() return L["Show %s when my target has a buff I can steal"]:format(Spell("spellsteal")) end,
 			desc = function() return L["Lights while a hostile target within reach carries a buff the game marks as stealable. Out of sight while it cools down."] .. " " .. twice .. " " .. tail end },
+		-- The other classes' spells that strip a buff (slot 8, Prompt/MomentsData.lua).
+		{ key = "purge",
+			name = function() return L["Show %s when my target has a buff I can remove"]:format(Spell("purge")) end,
+			desc = function() return magic .. " " .. twice .. " " .. tail end },
+		{ key = "dispel",
+			name = function() return L["Show %s when my target has a buff I can remove"]:format(Spell("dispel")) end,
+			desc = function() return magic .. " " .. twice .. " " .. tail end },
+		{ key = "tranq",
+			name = function() return L["Show %s when my target has a buff I can remove"]:format(Spell("tranq")) end,
+			desc = function() return L["Lights while a hostile target within reach carries an enrage you can remove (and, where the spell takes magic too, a magic buff). Out of sight while it cools down."] .. " " .. twice .. " " .. tail end },
+		{ key = "shieldslam",
+			name = function() return L["Show %s when my target has a buff I can remove"]:format(Spell("shieldslam")) end,
+			desc = function() return magic .. " " .. L["Off at first: a warrior presses it anyway."] .. " " .. twice .. " " .. tail end },
 		{ key = "blink",
 			name = function() return L["Show %s when I am stunned or rooted"]:format(Spell("blink")) end,
 			desc = function() return L["Lights while you are stunned or rooted and the spell is ready. Where the game does not say what took control of your character, it lights for any loss of control."] .. " " .. tail end },

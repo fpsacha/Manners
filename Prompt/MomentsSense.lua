@@ -956,15 +956,65 @@ function Sense.schoolhit(slot, now)
 end
 
 ---------------------------------------------------------------------------
--- Spellsteal and Cold Snap
+-- Spellsteal, the spells that strip a buff, and Cold Snap
 ---------------------------------------------------------------------------
 
 local STEAL_MAX = 8
+-- The game's own filter: the buffs somebody in your group could remove,
+-- enrages on an enemy included (Blizzard's AuraUtil.AuraFilters, forever branch).
+local DISPELLABLE = "HELPFUL|RAID_PLAYER_DISPELLABLE"
+local listTried, listRefused = false, nil
+Sense.listRefused = nil
 
--- A buff on the target the game marks as stealable. Plain where the auras are
--- readable; where they are withheld, the plain list of buff ids is walked and
--- each record's hidden flag is handed to the game, ORed ("any").
-function Sense.stealable(slot)
+-- A readable record's kind (its dispelName: "Magic", or "" or "Enrage" for an
+-- enrage) against the kinds the row's spell removes: "fits", "plain" (readable,
+-- and not one of them, or none) or "hidden"; nil for a row that names no kinds.
+local function KindOf(rec, kinds)
+	if not kinds then return nil end
+	local rawKind = rec.dispelName
+	if issecretvalue(rawKind) then return "hidden" end
+	local kind = plain(rawKind)
+	if type(kind) == "string" and kinds[kind] then return "fits" end
+	return "plain"
+end
+
+-- The game's list of the target's buffs somebody in your group could remove: a
+-- plain table of ids, or nil. Its first call goes through one pcall (a client that
+-- does not know the filter throws); refused, it is never asked again this session.
+local function DispellableList(listed)
+	if listRefused then return nil end
+	if listTried then return listed("target", DISPELLABLE) end
+	local ok, ids = pcall(listed, "target", DISPELLABLE)
+	listTried = true
+	if not ok then
+		listRefused = tostring(ids)
+		Sense.listRefused = listRefused
+		ns.Trail("fight", "the game refused the dispellable filter: " .. listRefused)
+		return nil
+	end
+	return ids
+end
+
+-- Where the kinds came back hidden: the game's own filter decides. An empty list
+-- says nothing of the target's can be removed by anybody. A list with something
+-- in it says you can remove it only while you are on your own (in a group it may
+-- be a buff only somebody else removes): "yes" then, nil otherwise.
+local function ByFilter(listed)
+	local ids = DispellableList(listed)
+	if type(ids) ~= "table" or issecretvalue(ids) then return nil end
+	if #ids == 0 then return "no" end
+	if type(_G.IsInGroup) == "function" and plain(_G.IsInGroup()) == false then return "yes" end
+	return nil
+end
+
+-- A buff on a hostile target that the row's spell takes away. `kinds` is the
+-- set of aura kinds the spell removes (nil: none counted); `purge` counts the
+-- game's isStealable flag, which marks a buff you can steal or purge (Blizzard's
+-- target frame reads it as canStealOrPurge). Plain where the auras are readable;
+-- where they are withheld, the plain list of buff ids is walked and each record's
+-- hidden flag is handed to the game, ORed ("any"); where only the kinds are
+-- hidden, the game's own filter of what can be removed decides (ByFilter).
+local function BuffWalk(slot, kinds, purge, words)
 	local auras = _G.C_UnitAuras
 	if type(auras) ~= "table" then return "blind", "your target's buffs" end
 	local byIndex = auras.GetAuraDataByIndex
@@ -980,29 +1030,42 @@ function Sense.stealable(slot)
 				withheld = true
 				break
 			end
-			local rawFlag = rec.isStealable
-			if issecretvalue(rawFlag) then
+			local kind = KindOf(rec, kinds)
+			if kind == "fits" then return "yes" end
+			if kind == "hidden" then
 				withheld = true
 				break
 			end
-			if plain(rawFlag) == true then return "yes" end
+			if purge then
+				local rawFlag = rec.isStealable
+				if issecretvalue(rawFlag) then
+					withheld = true
+					break
+				end
+				if plain(rawFlag) == true then return "yes" end
+			end
 		end
 	end
 	local listed = auras.GetUnitAuraInstanceIDs
 	if type(listed) ~= "function" then
 		if withheld then return "blind", "your target's buffs" end
-		return "no", "nothing to steal"
+		return "no", words.none
 	end
 	local ids = listed("target", "HELPFUL")
 	if type(ids) ~= "table" or issecretvalue(ids) then return "blind", "your target's buffs" end
 	if #ids == 0 then return "no", "your target has no buffs" end
 	local byId = auras.GetAuraDataByAuraInstanceID
 	if type(byId) ~= "function" then return "blind", "your target's buffs" end
-	local held, count, sawPlain = {}, 0, false
+	local held, count, sawPlain, sawHidden = {}, 0, false, false
 	for i = 1, math.min(#ids, STEAL_MAX) do
 		local rec = byId("target", ids[i])
 		if type(rec) == "table" and not issecretvalue(rec) then
-			local rawSteal = rec.isStealable
+			local kind = KindOf(rec, kinds)
+			if kind == "fits" then return "yes" end
+			if kind == "plain" then sawPlain = true end
+			if kind == "hidden" then sawHidden = true end
+			local rawSteal
+			if purge then rawSteal = rec.isStealable end
 			if type(rawSteal) == "boolean" then
 				if issecretvalue(rawSteal) then
 					count = count + 1
@@ -1012,17 +1075,40 @@ function Sense.stealable(slot)
 					if plain(rawSteal) == true then return "yes" end
 				end
 			end
+		elseif kinds then
+			sawHidden = true
 		end
+	end
+	if kinds and (sawHidden or not sawPlain) then
+		local verdict = ByFilter(listed)
+		if verdict == "yes" then return "yes" end
+		if verdict == "no" then return "no", words.none end
 	end
 	if count > 0 then
 		if CanPaint("any") then
 			slot.game = { "any", nil, held, count }
-			return "game", "whether a buff of your target can be stolen"
+			return "game", words.game
 		end
-		return "blind", "whether a buff of your target can be stolen"
+		return "blind", words.game
 	end
-	if sawPlain then return "no", "nothing to steal" end
+	if sawPlain and not sawHidden then return "no", words.none end
 	return "blind", "your target's buffs"
+end
+
+local STEAL_WORDS = { none = "nothing to steal", game = "whether a buff of your target can be stolen" }
+local REMOVE_WORDS = { none = "nothing you can remove", game = "whether a buff of your target can be removed" }
+
+-- A buff on the target the game marks as stealable (Spellsteal).
+function Sense.stealable(slot)
+	return BuffWalk(slot, nil, true, STEAL_WORDS)
+end
+
+-- A buff on the target the row's spell removes (Purge, an offensive Dispel Magic,
+-- Shield Slam, Tranquilizing Shot): by the kinds of the row (row.kinds) and, for a
+-- spell that removes magic, the game's own flag (row.purge).
+function Sense.removable(slot)
+	local row = slot.row
+	return BuffWalk(slot, row.kinds, row.purge == true, REMOVE_WORDS)
 end
 
 -- Cold Snap brings back the partner spell: lit only while that one is plainly on
@@ -1050,6 +1136,7 @@ Sense.WORDS = {
 	lowhealth = "your health is low", lowmana = "your mana is low", stuck = "you are stunned or rooted",
 	nolockout = "no Hypothermia", itemready = "a gem in your bags, ready", falling = "you have been falling for a second",
 	partnercooling = "the spell it brings back is cooling down", stealable = "a buff you can steal",
+	removable = "a buff you can remove",
 	schoolhit = "your target casts that kind, or that kind of damage just hit you", calm = "out of a fight", drinkheld = "a drink in your bags",
 	still = "standing still", notdrinking = "not drinking already",
 }
