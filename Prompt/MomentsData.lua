@@ -5,12 +5,13 @@
 -- nothing else here branches on a client. A client with no set gets none.
 --
 -- ns.MOMENTS is the chosen set: CLASS -> rows in the order the buttons sit.
--- Only the mage's set ships now; another class adds its own rows to each set
--- (Kick, Pummel, Earth Shock ...) and the same code builds them.
+-- The mage's rows are in the sets; every class with mana also gets the drink
+-- row (AddDrinks below). Another class adds its own rows to each set (Kick,
+-- Pummel, Earth Shock ...) and the same code builds them.
 --
 -- One row:
 --   key        the profile field moments.<key> and the options key's suffix
---   slot       1..10, the frame MannersMoment<slot> and its key binding; a role
+--   slot       1..11, the frame MannersMoment<slot> and its key binding; a role
 --              keeps its number in every class's set (1 is the interrupt)
 --   ranks      spell ids, highest rank first; or items + makes (a mana gem and
 --              the spells that conjure one)
@@ -19,6 +20,11 @@
 --   stop       "/stopcasting" before the cast, so the press fires at once
 --   self       the cast must land on you
 --   peace      works out of a fight too
+--   calm       the reverse: out of a fight only (the driver hides it at the
+--              pull and the pull clears its macro)
+--   drink      the client's "Drink" spell id: its name is how a drink item, a
+--              drink cast and the Drink aura are recognised (the drink row)
+--   forms      not while shapeshifted (a druid, a shaman's Ghost Wolf)
 --   blind      "weak" or "dark": what a needed value the game hides and no call
 --              takes does to the button (default dark)
 --   guard      "twice": while only the game knows whether it is lit, it takes
@@ -138,17 +144,43 @@ local MAINLINE = {
 	},
 }
 
+-- The drink, out of a fight, for every class that keeps a mana bar (a hunter
+-- uses focus on Mists and retail, a warrior or a rogue has none). `forms` is
+-- true only where a shapeshift stops you drinking (a druid, a shaman's Ghost
+-- Wolf): on Mists a paladin's seal, shadowform and a monk's stance also report
+-- as forms, so those must not get the flag. The press is /use item:<best drink
+-- in the bags> (Prompt/Moments.lua); slot 11.
+local function Drink(forms)
+	return Row { key = "drink", slot = 11, drink = 430, peace = true, calm = true, forms = forms, guard = "twice",
+		seconds = 30, needs = { "calm", "drinkheld", "still", "notdrinking", "lowmana" } }
+end
+local function AddDrinks(set, classes)
+	for class, forms in pairs(classes) do
+		local rows = set[class] or {}
+		set[class] = rows
+		rows[#rows + 1] = Drink(forms)
+	end
+end
+local WITH_MANA_OLD = { DRUID = true, HUNTER = false, MAGE = false, PALADIN = false, PRIEST = false, SHAMAN = true,
+	WARLOCK = false }
+AddDrinks(OLD, WITH_MANA_OLD)
+AddDrinks(TBC, WITH_MANA_OLD)
+AddDrinks(MISTS, { DRUID = true, MAGE = false, MONK = false, PALADIN = false, PRIEST = false, SHAMAN = true,
+	WARLOCK = false })
+AddDrinks(MAINLINE, { DRUID = true, EVOKER = false, MAGE = false, MONK = false, PALADIN = false, PRIEST = false,
+	SHAMAN = true, WARLOCK = false })
+
 local SETS = { camelot = OLD, vanilla = OLD, tbc = TBC, mists = MISTS, mainline = MAINLINE }
 
 -- The profile's defaults for every key any set may name (Core.lua repeats
 -- them in defaults.profile.moments; a scenario holds the two together).
 ns.MOMENT_DEFAULTS = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
-	evocation = true, managem = true, slowfall = true, fireward = true, frostward = true }
+	evocation = true, managem = true, drink = true, slowfall = true, fireward = true, frostward = true }
 
 -- The keys of every row, in the order the options page lists them, for the
 -- scenarios and the reset list.
 ns.MOMENT_KEYS = { "counterspell", "spellsteal", "blink", "iceblock", "coldsnap", "evocation", "managem",
-	"slowfall", "fireward", "frostward" }
+	"drink", "slowfall", "fireward", "frostward" }
 
 local flavour = ns.Flavour and ns.Flavour.flavour
 ns.MOMENTS = SETS[flavour] or {}

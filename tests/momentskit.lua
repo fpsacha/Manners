@@ -23,6 +23,10 @@
 --   flags come back as hidden values and the index read as a hidden record), Mock.buffsHidden (whole)
 --   Mock.indexHidden (only the index read is hidden: the id list and the records stay plain)
 --   Mock.falling, Mock.flying, Mock.onTaxi, Mock.aimedAtMe (true, false, Mock.secret(...), nil)
+--   The drink (Prompt/MomentsSense.lua): Mock.bags[itemId] = count again (C_Container walks it, the
+--   ids in order), Mock.playerLevel (UnitLevel, else the mock's 12), Mock.itemMinLevel[itemId],
+--   Mock.itemUnusable[itemId] = true, Mock.mounted, Mock.swimming, Mock.shapeshift (a form number),
+--   Mock.drinkAura = true | "secret" | "throw" (the Drink aura on you; else the mock's own answer)
 
 local K = {}
 local saved = {}
@@ -50,6 +54,7 @@ local function names()
 		[10177] = "Frost Ward", [28609] = "Frost Ward", [32796] = "Frost Ward",
 		[759] = "Conjure Mana Agate", [3552] = "Conjure Mana Jade", [10053] = "Conjure Mana Citrine",
 		[10054] = "Conjure Mana Ruby", [27101] = "Conjure Mana Emerald",
+		[430] = "Drink", [1137] = "Drink", [433] = "Food",
 	}
 end
 
@@ -161,6 +166,14 @@ function K.install()
 		return Mock.falling == true
 	end)
 	put("IsFlying", function() return Mock.flying == true end)
+	put("IsMounted", function() return Mock.mounted == true end)
+	put("IsSwimming", function() return Mock.swimming == true end)
+	put("GetShapeshiftForm", function() return Mock.shapeshift or 0 end)
+	local level = rawget(_G, "UnitLevel")
+	put("UnitLevel", function(unit)
+		if unit == "player" and Mock.playerLevel then return Mock.playerLevel end
+		return level(unit)
+	end)
 	put("UnitOnTaxi", function() return Mock.onTaxi == true end)
 	put("PlayerIsSpellTarget", function() return Mock.aimedAtMe end)
 	put("Enum", rawget(_G, "Enum") or {})
@@ -227,6 +240,16 @@ function K.install()
 		return rec
 	end
 	local aurasOut = setmetatable({
+		GetAuraDataBySpellName = function(unit, name, filter)
+			if unit == "player" and name == "Drink" then
+				local mode = Mock.drinkAura
+				if mode == "throw" then error("restricted", 0) end
+				if mode == "secret" then return Mock.secret({ name = "Drink" }) end
+				if mode == true then return { name = "Drink", spellId = 430 } end
+			end
+			local pass = auras.GetAuraDataBySpellName
+			return pass and pass(unit, name, filter) or nil
+		end,
 		GetPlayerAuraBySpellID = function(id)
 			if Mock.playerAuras and Mock.playerAuras[id] then return { spellId = id } end
 			return nil
@@ -255,7 +278,13 @@ function K.install()
 	put("C_UnitAuras", aurasOut)
 	-- Items: the bags (Mock.bags), their names, and a cooldown by C_Container.
 	local itemNames = { [8008] = "Mana Ruby", [8007] = "Mana Citrine", [5513] = "Mana Jade", [5514] = "Mana Agate",
-		[22044] = "Mana Emerald", [36799] = "Mana Gem", [17056] = "Light Feather" }
+		[22044] = "Mana Emerald", [36799] = "Mana Gem", [17056] = "Light Feather",
+		[2288] = "Conjured Fresh Water", [2136] = "Conjured Purified Water", [3772] = "Conjured Spring Water",
+		[8077] = "Conjured Mineral Water", [1179] = "Ice Cold Milk", [1645] = "Moonberry Juice",
+		[1113] = "Conjured Bread" }
+	-- What an item's use casts: the waters and the milk "Drink", the bread "Food".
+	local itemSpells = { [2288] = 430, [2136] = 430, [3772] = 430, [8077] = 430, [1179] = 430, [1645] = 430,
+		[1113] = 433 }
 	local function count(id)
 		local n = Mock.bags and Mock.bags[id] or 0
 		if Mock.bagsSecret then return Mock.secret(n) end
@@ -266,15 +295,41 @@ function K.install()
 		GetItemCount = count,
 		GetItemNameByID = function(id) return itemNames[id] end,
 		GetItemIconByID = function() return 134000 end,
+		GetItemSpell = function(id)
+			local spell = itemSpells[id]
+			if not spell then return nil end
+			return names()[spell], spell
+		end,
+		IsUsableItem = function(id)
+			if Mock.itemUnusable and Mock.itemUnusable[id] then return false, false end
+			return true, false
+		end,
+		GetItemInfo = function(id)
+			local name = itemNames[id]
+			if not name then return nil end
+			return name, "|Hitem:" .. id .. "|h[" .. name .. "]|h", 1, 1, Mock.itemMinLevel and Mock.itemMinLevel[id] or 0
+		end,
 	}, { __index = itemBase }))
 	put("GetItemCount", count)
-	put("C_Container", { GetItemCooldown = function(id)
-		local entry = Mock.itemCooldown and Mock.itemCooldown[id]
-		if not entry then return 0, 0, 1 end
-		local start, duration = entry.startTime or 0, entry.duration or 0
-		if entry.secretNumbers then return Mock.secret(start), Mock.secret(duration), 1 end
-		return start, duration, 1
-	end })
+	put("C_Container", {
+		GetContainerNumSlots = function() return 20 end,
+		GetContainerItemID = function(bag, i)
+			if bag ~= 0 then return nil end
+			local ids = {}
+			for id, n in pairs(Mock.bags or {}) do
+				if n > 0 then ids[#ids + 1] = id end
+			end
+			table.sort(ids)
+			return ids[i]
+		end,
+		GetItemCooldown = function(id)
+			local entry = Mock.itemCooldown and Mock.itemCooldown[id]
+			if not entry then return 0, 0, 1 end
+			local start, duration = entry.startTime or 0, entry.duration or 0
+			if entry.secretNumbers then return Mock.secret(start), Mock.secret(duration), 1 end
+			return start, duration, 1
+		end,
+	})
 end
 
 -- Mock.reset() leaves a field it does not know alone, so a scenario's own
@@ -283,7 +338,8 @@ local FIELDS = { "health", "healthMax", "healthSecret", "percentScale", "mana", 
 	"targetCast", "noTarget", "targetFriendly", "targetDead", "targetOutOfRange", "cooldown", "usable",
 	"lockFlag", "playerAuras", "noCurves", "noHealthPercent", "inCooldownEvent", "falling", "aimedAtMe",
 	"coverLeaks", "refuseAlphaFromBoolean", "lossOfControl", "lossOfControlShape", "asked", "bags", "bagsSecret",
-	"itemCooldown", "targetBuffs", "buffsWithheld", "buffsHidden", "flying", "onTaxi", "dead", "fallingSecret", "indexHidden" }
+	"itemCooldown", "targetBuffs", "buffsWithheld", "buffsHidden", "flying", "onTaxi", "dead", "fallingSecret", "indexHidden",
+	"playerLevel", "itemMinLevel", "itemUnusable", "mounted", "swimming", "shapeshift", "drinkAura" }
 function K.clear()
 	for _, field in ipairs(FIELDS) do Mock[field] = nil end
 end
@@ -337,6 +393,9 @@ function K.withMage(H, scenario, body, opts)
 			-- profile's defaults can be changed before any button is made.
 			if opts.preload then opts.preload(ns) end
 			H.freshPrompt(ns, scenario)
+			-- The flush the first refresh scheduled runs before the timers are dropped, or
+			-- its "due" flag would stay set for the whole scenario.
+			Mock.runTimers(0.2)
 			Mock.timers = {}
 			Mock.secureActions = true
 			Mock.eventSink = ns.addon
@@ -365,7 +424,7 @@ end
 -- The moment buttons are the secure ones: the mock watches what is called on
 -- them under the lockdown.
 function K.protect(ns)
-	for n = 1, 10 do
+	for n = 1, 11 do
 		local b = ns.Moments:Button(n)
 		if b then Mock.protect(b) end
 	end

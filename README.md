@@ -293,7 +293,7 @@ the cure. A click where the button is out of sight does nothing, so a stray clic
 never casts it. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
 names a spell.
 
-#### Buttons for the moment (mages)
+#### Buttons for the moment
 
 A mage gets small buttons left of the prompt that stay out of sight until their
 moment comes: Counterspell while your target is casting something you can
@@ -314,6 +314,16 @@ game itself lights Ice Block, Cold Snap, Evocation and the gem, and they then
 take two quick clicks, so one stray click never casts. A key always casts at
 once. *Show the fight buttons* does not change them: none is ever on the screen
 without its moment.
+
+Every class with mana also gets a drink button, for out of a fight: it lights
+while your mana is under *Mana below*, you stand still (not moving, mounted,
+swimming or in a form) and a drink is in your bags, and is out of sight in a
+fight and while you are drinking already. A press drinks the best one you carry:
+a mage's conjured water first, the best your level allows, then any other drink.
+Where the game keeps your mana from addons, the game itself lights it, and it
+takes two quick clicks; a key always drinks at once. *Show a drink when my mana
+is low out of a fight*, with its key, sits under *Buttons for the moment*. Your
+own Evocation and mana gem stay for fights, where their long cooldowns count.
 
 #### A spell on your key in a fight
 

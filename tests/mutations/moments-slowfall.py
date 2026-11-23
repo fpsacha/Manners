@@ -32,7 +32,7 @@ mutate(M,
        expect="moments-slowfall: in a fight a second lights it with nothing protected called", script=S)
 
 mutate(M,
-       '\tif not (falling or moving or Sense.fighting or now < watchHold) then watch:Hide() end\n',
+       '\tif not (falling or Sense.moving or Sense.fighting or now < watchHold) then watch:Hide() end\n',
        '',
        "moments-slowfall: the watch never goes quiet",
        expect="moments-slowfall: the watch is hidden standing still", script=S)

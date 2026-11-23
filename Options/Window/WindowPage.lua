@@ -341,7 +341,7 @@ end
 -- The buttons for the moment: a switch each and the shares of health and mana. Their
 -- key boxes have no default and so no mark.
 for _, key in ipairs({ "counterspell", "spellsteal", "blink", "iceblock", "coldsnap", "evocation", "managem",
-	"slowfall", "fireward", "frostward" }) do
+	"drink", "slowfall", "fireward", "frostward" }) do
 	FIELDS["appearance.moment" .. key:sub(1, 1):upper() .. key:sub(2)] = { { "moments", key } }
 end
 FIELDS["appearance.momentHealth"] = { { "moments", "health" } }

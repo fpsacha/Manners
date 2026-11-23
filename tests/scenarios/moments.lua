@@ -39,7 +39,7 @@ end
 do
 	local s = name("every switch off: no frame made, no event registered, a scan asks the client nothing")
 	with(s, function(ns)
-		for n = 1, 10 do
+		for n = 1, 11 do
 			if ns.Moments:Button(n) then fail(s, "a button was made for slot " .. n) end
 		end
 		if ns.Moments:Frame() and count(ns.Moments:Frame().events) + count(ns.Moments:Frame().unitEvents) > 0 then
@@ -100,13 +100,13 @@ do
 end
 
 do
-	local s = name("every slot number is unique in a class's set and at most ten")
+	local s = name("every slot number is unique in a class's set and at most eleven")
 	with(s, function(ns)
 		for _, set in pairs(ns.Moments.Sets) do
 			for class, rows in pairs(set) do
 				local seen = {}
 				for _, r in ipairs(rows) do
-					if type(r.slot) ~= "number" or r.slot < 1 or r.slot > 10 then fail(s, class .. " " .. r.key .. ": slot " .. tostring(r.slot)) end
+					if type(r.slot) ~= "number" or r.slot < 1 or r.slot > 11 then fail(s, class .. " " .. r.key .. ": slot " .. tostring(r.slot)) end
 					if seen[r.slot] then fail(s, class .. ": slot " .. tostring(r.slot) .. " twice") end
 					seen[r.slot] = true
 				end

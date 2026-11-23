@@ -159,7 +159,7 @@ do
 		ns.addon:HandleSlash("debug")
 		local head = printed("moments: class MAGE")
 		if not head then fail(s, "no first line") return end
-		for _, part in ipairs({ "2 learned", "alpha from a boolean yes", "percent scale 1", "refused calls: none", "events this client lacks: ",
+		for _, part in ipairs({ "3 learned", "alpha from a boolean yes", "percent scale 1", "refused calls: none", "events this client lacks: ",
 			"lock flag proven: no", "the cover let a click through: never" }) do
 			if not head:find(part, 1, true) then fail(s, "the first line lacks '" .. part .. "': " .. head) end
 		end

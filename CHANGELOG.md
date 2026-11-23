@@ -11,7 +11,7 @@
 - **Mark this moment.** Press a key the second something goes wrong, even in a
   fight, and the report shows what Manners saw then.
 
-### Buttons for the moment (mages)
+### Buttons for the moment
 - **Counterspell when your target casts.** A small button left of the prompt
   lights while a hostile target in reach is casting, and a press stops your own
   cast first. *Show Counterspell when my target starts a cast*, In a fight.
@@ -21,6 +21,10 @@
   switch and key.
 - **Spellsteal** lights while your target carries a buff you can steal
   (Burning Crusade and later).
+- **A drink when your mana is low.** Out of a fight, for every class with mana:
+  a button lights while your mana is under *Mana below* and a drink is in your
+  bags; a press drinks your best conjured water, else another drink. *Show a
+  drink when my mana is low out of a fight*, In a fight.
 - **Fire Ward and Frost Ward** light as soon as your target hits you with fire
   or frost, and again each time it casts after that.
 

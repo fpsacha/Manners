@@ -70,9 +70,9 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   never reads it. Nothing Manners itself chooses may keep it from showing when
   it is needed and from being pressed, and the prompt's own key keeps to
   buffs (unless *In a fight, my key casts* names a spell: below).
-  The buttons for the moment (`Prompt/Moments.lua`, MannersMoment1..10, a
+  The buttons for the moment (`Prompt/Moments.lua`, MannersMoment1..11, a
   mage's Counterspell, Spellsteal, Blink, Ice Block, Cold Snap, Evocation, mana
-  gem, Slow Fall and the two wards; `Prompt/MomentsData.lua` holds the rows,
+  gem, Slow Fall and the two wards, and for every class with mana the drink; `Prompt/MomentsData.lua` holds the rows,
   `Prompt/MomentsSense.lua` the signals) are armed out of combat and shown by one header's own state driver
   (`mannersmoments`). The secure button has no region of its own and its alpha
   is never written; Lua paints only the unprotected frames over it (a plain gate
@@ -87,7 +87,14 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   `Moments:Take`, which Core's `PLAYER_REGEN_DISABLED` handler calls; the frame's
   own pull handler runs after the lockdown and paints only. Slow Fall (a keep
   button) is shown and hidden by Lua out of a fight and left to its driver in
-  one; the release hides every keep button that is not lit. The cure button takes
+  one; the release hides every keep button that is not lit. The drink (slot 11,
+  `calm = true`) is the reverse of a fight button: the driver hides it for the fight
+  (`manners-calm-<n>`), `Moments:Take` clears its macro before the lockdown, and
+  out of a fight Lua shows and hides it, writes its macro (`/use item:<best drink>`)
+  whenever the bags change (`BAG_UPDATE_DELAYED`, registered out of a fight only,
+  dropped at the pull) and hears the mana, movement and death events only while a
+  drink is in the bags. One click where Lua knows the mana, two where only the game
+  does (Forever hides it out of a fight too). The cure button takes
   the same cover (`CureFight:Cover`, up while it is out of sight in a fight, down
   while it is on the screen, counted in `db.global.cureCoverLeaks` when a click
   gets past it); the break-free button must not (a cover raised on Lua's belief

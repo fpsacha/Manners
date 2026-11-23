@@ -205,13 +205,25 @@ SETS.mainline = {
 
 -- This client's set for this class, or nil: an unrecognised client gets its
 -- family's, as Buffs.lua's sets do.
-local function MySet()
+local function ClientSet()
 	local flavour = ns.Flavour and ns.Flavour.flavour
 	local set = SETS[flavour]
 	if not set then
 		set = (ns.Flavour and ns.Flavour.family) == "classic" and SETS.vanilla or SETS.mainline
 	end
-	return set[ns.PlayerClass() or ""]
+	return set
+end
+
+local function MySet()
+	return ClientSet()[ns.PlayerClass() or ""]
+end
+
+-- The mage's water rows on this client, best first, whatever the player's class:
+-- what the drink button for the moment picks conjured water from
+-- (Prompt/MomentsSense.lua). Read when asked, so load order does not matter.
+function Courtesy.WaterRows()
+	local mage = ClientSet().MAGE
+	return mage and mage.water and mage.water.rows or {}
 end
 
 ---------------------------------------------------------------------------

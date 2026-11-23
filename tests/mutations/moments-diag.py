@@ -76,7 +76,7 @@ mutate(M,
        expect="moments-diag: the gem's line names its items and its macro", script=S)
 
 mutate(M,
-       '\t\t\t\trow.key, entry.id and "spell" or "items", tostring(entry.id or table.concat(row.items or {}, "/")), tostring(entry.name),\n',
+       '\t\t\t\trow.key, what, ident, tostring(entry.name),\n',
        '\t\t\t\trow.key, "spell", tostring(entry.id), tostring(entry.name),\n',
        "moments-diag: the gem's debug line names a spell it does not have",
        expect="moments-diag: the gem's line names its items and its macro", script=S)

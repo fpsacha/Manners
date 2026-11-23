@@ -50,6 +50,9 @@ Sense.lostAt = nil
 -- The fight, as Moments.lua knows it: set at the pull (when the lockdown may
 -- not yet answer true) and cleared at the release.
 Sense.fighting = false
+-- Whether you are moving, kept by the two movement events while a row wants
+-- them (Prompt/Moments.lua).
+Sense.moving = false
 -- 1, or 100 where UnitHealthPercent answers in percent.
 Sense.scale = 1
 
@@ -194,6 +197,13 @@ function Sense.fight()
 	return "no", "not in a fight"
 end
 
+-- Out of a fight only (Moments.lua says so at the pull, before the lockdown
+-- answers): the reverse of `fight`, for the drink.
+function Sense.calm()
+	if Sense.fighting or InCombatLockdown() then return "no", "in a fight" end
+	return "yes"
+end
+
 -- A spell's cooldown, by the client's own figures: isActive (a plain boolean or
 -- nil), start, duration. Where C_Spell has none, the older call's numbers.
 local function Cool(id)
@@ -322,6 +332,8 @@ local function Low(slot, which)
 		cur, max = UnitPower("player", MANA), UnitPowerMax("player", MANA)
 	end
 	cur, max = plain(cur), plain(max)
+	-- A bar of zero is no low bar (a monk outside the healing spec has no mana).
+	if type(max) == "number" and max == 0 then return "no", "you have no mana" end
 	if type(cur) == "number" and type(max) == "number" and max > 0 then
 		if cur / max * 100 < threshold then return "yes" end
 		return "no", which == "health" and "your health is not low" or "your mana is not low"
@@ -487,6 +499,185 @@ function Sense.itemready(slot, now)
 		return "yes"
 	end
 	return "no", "the gem is cooling down"
+end
+
+---------------------------------------------------------------------------
+-- the drink: out of a fight only, so every call here may be a plain one
+---------------------------------------------------------------------------
+
+local drinkNames, drinkSpell, drinkItem = {}, {}, {}
+
+-- The client's name for the row's drink spell ("Drink"), kept; a name the client
+-- has not loaded yet is not kept.
+function Sense.DrinkName(slot)
+	local id = slot.row.drink
+	local name = drinkNames[id]
+	if name == nil then
+		name = ns.SpellNameFor(id)
+		if type(name) ~= "string" or name == "" then return nil end
+		drinkNames[id] = name
+	end
+	return name
+end
+
+-- Whether an own cast's spell id is a drink (a drink item casts its own spell
+-- of the same name), kept per id like the pet's meals are.
+function Sense.DrinkSpell(slot, id)
+	if type(id) ~= "number" then return false end
+	local known = drinkSpell[id]
+	if known ~= nil then return known end
+	local drink = Sense.DrinkName(slot)
+	if not drink then return false end
+	local name = ns.SpellNameFor(id)
+	if type(name) ~= "string" then return false end
+	known = name == drink
+	drinkSpell[id] = known
+	return known
+end
+
+local function Usable(id)
+	local api = _G.C_Item
+	local call = type(api) == "table" and api.IsUsableItem or _G.IsUsableItem
+	if type(call) ~= "function" then return true end
+	return plain(call(id)) ~= false
+end
+
+-- Whether the item's use spell is a drink: its use spell's name against the
+-- client's "Drink". A name the client has not loaded is not kept, so the next
+-- count asks again. Food's use spell is "Food", never a drink. Honest limit: on
+-- Mists and retail a drink whose spell is "Refreshment" or "Food & Drink" is not
+-- recognised here (a conjured one still is, from the mage's own list).
+local function IsDrinkItem(slot, id)
+	local known = drinkItem[id]
+	if known ~= nil then return known end
+	local api = _G.C_Item
+	local call = type(api) == "table" and api.GetItemSpell or _G.GetItemSpell
+	local drink = Sense.DrinkName(slot)
+	if type(call) ~= "function" or not drink then return false end
+	local name = plain(call(id))
+	if type(name) ~= "string" or name == "" then return false end
+	known = name == drink
+	drinkItem[id] = known
+	return known
+end
+
+-- The level an item asks of whoever uses it.
+local function MinLevel(id)
+	local api = _G.C_Item
+	local call = type(api) == "table" and api.GetItemInfo or _G.GetItemInfo
+	if type(call) ~= "function" then return 0 end
+	local level = plain((select(5, call(id))))
+	return type(level) == "number" and level or 0
+end
+
+-- Walks the bags once, out of a fight (a refresh, or the flush after a bag
+-- event; never at the pull, never in a fight, never per mana event): the best
+-- drink there. Your conjured water first, the best your level allows (the
+-- mage's own list, best first), then any other drink the bags hold, the highest
+-- level it asks first. An item the client calls unusable is passed over. Direct
+-- calls after type() checks, no pcall. True when the pick changed.
+function Sense.CountDrinks(slot)
+	local held = {}
+	local container = _G.C_Container
+	local slotsIn = type(container) == "table" and container.GetContainerNumSlots or _G.GetContainerNumSlots
+	local itemIn = type(container) == "table" and container.GetContainerItemID or _G.GetContainerItemID
+	if type(slotsIn) == "function" and type(itemIn) == "function" then
+		for bag = 0, 4 do
+			local n = plain(slotsIn(bag))
+			if type(n) == "number" then
+				for i = 1, n do
+					local id = plain(itemIn(bag, i))
+					if type(id) == "number" then held[id] = true end
+				end
+			end
+		end
+	end
+	local level = type(_G.UnitLevel) == "function" and plain(_G.UnitLevel("player")) or nil
+	if type(level) ~= "number" then level = nil end
+	local pick
+	local conjured = {}
+	local courtesy = ns.Courtesy
+	local rows = courtesy and courtesy.WaterRows and courtesy.WaterRows() or {}
+	for _, row in ipairs(rows) do
+		for _, item in ipairs(row.items) do conjured[item] = true end
+	end
+	for _, row in ipairs(rows) do
+		if not pick and (row.level == nil or level == nil or row.level <= level) then
+			for _, item in ipairs(row.items) do
+				if held[item] and (level == nil or ((row.needs and row.needs[item]) or 0) <= level) and Usable(item) then
+					pick = item
+					break
+				end
+			end
+		end
+	end
+	if not pick then
+		local best
+		for id in pairs(held) do
+			if not conjured[id] and IsDrinkItem(slot, id) then
+				local need = MinLevel(id)
+				if (level == nil or need <= level) and Usable(id)
+					and (not best or need > best.need or (need == best.need and id < best.id)) then
+					best = { id = id, need = need }
+				end
+			end
+		end
+		pick = best and best.id
+	end
+	local changed = slot.drinkPick ~= pick
+	slot.drinkPick = pick
+	slot.drinkIcon = nil
+	if pick then
+		local api = _G.C_Item
+		local icon = type(api) == "table" and type(api.GetItemIconByID) == "function" and api.GetItemIconByID(pick)
+		if not icon and type(_G.GetItemIcon) == "function" then icon = _G.GetItemIcon(pick) end
+		slot.drinkIcon = icon or nil
+	end
+	return changed
+end
+
+-- A drink is in the bags (a field: the bags are walked by CountDrinks, never here).
+function Sense.drinkheld(slot)
+	if not slot.drinkPick then return "no", "no drink in your bags" end
+	return "yes"
+end
+
+-- Standing still, alive, on your feet: a few plain calls, an unreadable answer
+-- counts as "not".
+function Sense.still(slot)
+	if plain(UnitIsDeadOrGhost("player")) == true then return "no", "you are dead" end
+	if Sense.moving then return "no", "you are moving" end
+	if type(_G.IsMounted) == "function" and plain(_G.IsMounted()) == true then return "no", "you are mounted" end
+	if type(_G.IsSwimming) == "function" and plain(_G.IsSwimming()) == true then return "no", "you are swimming" end
+	if (type(_G.UnitOnTaxi) == "function" and plain(_G.UnitOnTaxi("player")) == true)
+		or (type(_G.IsFlying) == "function" and plain(_G.IsFlying()) == true) then
+		return "no", "you are on a taxi"
+	end
+	if slot.row.forms and type(_G.GetShapeshiftForm) == "function" then
+		local form = plain(_G.GetShapeshiftForm())
+		if type(form) == "number" and form > 0 then return "no", "you are shapeshifted" end
+	end
+	return "yes"
+end
+
+-- Not drinking already, whichever shape the Drink aura comes back in. Plain: a
+-- table says you are drinking, and a plain absence ends the clock early (you
+-- drank to full). Hidden or thrown: the clock of your own drink (a cast of the
+-- drink spell, a press of the button), ended by moving.
+function Sense.notdrinking(slot, now)
+	local name = Sense.DrinkName(slot)
+	local auras = _G.C_UnitAuras
+	if name and type(auras) == "table" and type(auras.GetAuraDataBySpellName) == "function" then
+		-- A restricted read: a throw is told from a plain nil, so only a plain
+		-- absence ends the clock.
+		local ok, rawAura = pcall(auras.GetAuraDataBySpellName, "player", name, "HELPFUL")
+		if ok and not issecretvalue(rawAura) then
+			if type(rawAura) == "table" then return "no", "you are drinking" end
+			slot.castAt = nil
+		end
+	end
+	if slot.castAt and now - slot.castAt < (slot.row.seconds or 0) then return "no", "you are drinking" end
+	return "yes"
 end
 
 ---------------------------------------------------------------------------
@@ -668,7 +859,8 @@ Sense.WORDS = {
 	lowhealth = "your health is low", lowmana = "your mana is low", stuck = "you are stunned or rooted",
 	nolockout = "no Hypothermia", itemready = "a gem in your bags, ready", falling = "you have been falling for a second",
 	partnercooling = "the spell it brings back is cooling down", stealable = "a buff you can steal",
-	schoolhit = "that kind of damage just hit you",
+	schoolhit = "that kind of damage just hit you", calm = "out of a fight", drinkheld = "a drink in your bags",
+	still = "standing still", notdrinking = "not drinking already",
 }
 
 -- "lit", "game" or "dark" and, for dark, why; the third answer names what was

@@ -2,7 +2,7 @@
 -- pull, out of sight until their moment, each with its own switch and key on
 -- the In a fight page. Counterspell when your target casts, Ice Block when your
 -- health is low, Blink when you are stunned or rooted (and, later, the rest of a
--- mage's set). Asked for on CurseForge; modelled on Prompt/CureFight.lua and
+-- mage's set, and, for every class with mana, a drink out of a fight). Asked for on CurseForge; modelled on Prompt/CureFight.lua and
 -- Prompt/BreakFree.lua, whose headers say why a fight needs buttons of its own.
 -- What each waits for is data (Prompt/MomentsData.lua); what is true of the
 -- situation is read by Prompt/MomentsSense.lua; this file is the buttons.
@@ -28,6 +28,13 @@
 --            takes two quick clicks: the first opens it for a moment (a thin ring
 --            answers), the second casts, so one stray click never casts.
 --
+-- THE DRINK is the one row that works out of a fight only (row.calm): lit while
+-- your mana is under Mana below, you stand still and a drink is in your bags. The
+-- driver hides it at the pull and the pull clears its macro, so a press in a
+-- fight does nothing; out of a fight Lua writes its macro whenever the bags change
+-- and shows and hides the button itself. Where the game alone knows the mana
+-- (Forever hides it even out of a fight) it takes two quick clicks.
+--
 -- With a key bound the button takes no mouse at all (clicks go to the world, no
 -- cover) and the key casts always. Moments never read prompt.fightButtons: they
 -- are never on the screen without their moment.
@@ -52,7 +59,7 @@ ns.Moments = Moments
 -- Every client's rows, for what holds them to the rules.
 Moments.Sets = ns.MOMENT_SETS
 
-local MAX = 10
+local MAX = 11
 local STATE = "mannersmoments"
 local DRIVER = "[combat] fight; peace"
 local FADE = 0.2
@@ -72,9 +79,9 @@ local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 -- so it has no button, no switch and no binding name of a spell (a class's new
 -- row stays out of sight until its signals are written).
 local BUILT = { counterspell = true, iceblock = true, blink = true, evocation = true, managem = true,
-	slowfall = true, coldsnap = true, spellsteal = true, fireward = true, frostward = true }
+	slowfall = true, coldsnap = true, spellsteal = true, fireward = true, frostward = true, drink = true }
 
--- What Bindings.xml declares: ten bindings, one a slot.
+-- What Bindings.xml declares: eleven bindings, one a slot.
 for i = 1, MAX do
 	_G["BINDING_NAME_CLICK MannersMoment" .. i .. ":LeftButton"] = L["Button for the moment %d"]:format(i)
 end
@@ -90,7 +97,7 @@ local CAST_STOP = { UNIT_SPELLCAST_STOP = true, UNIT_SPELLCAST_CHANNEL_STOP = tr
 local ALL_EVENTS = { "PLAYER_TARGET_CHANGED", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_POWER_UPDATE", "UNIT_MAXPOWER",
 	"LOSS_OF_CONTROL_ADDED", "LOSS_OF_CONTROL_UPDATE", "SPELL_UPDATE_COOLDOWN", "PLAYER_CONTROL_LOST",
 	"PLAYER_CONTROL_GAINED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING",
-	"BAG_UPDATE_DELAYED", "UNIT_COMBAT", "UNIT_AURA" }
+	"BAG_UPDATE_DELAYED", "UNIT_COMBAT", "UNIT_AURA", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST" }
 for _, name in ipairs(TARGET_CAST) do ALL_EVENTS[#ALL_EVENTS + 1] = name end
 
 -- Made slots by number, the ones armed now, and what the last Refresh settled.
@@ -98,14 +105,14 @@ local slots, byId = {}, {}
 local header, ev, fader
 local dirtyRefresh, settledEnabled, settledCaps, settledOn = true, nil, nil, {}
 local placedIcon, placedScale, placedQueue, placedSig
-local fightEvents = {}
-local controlOn, ownCastOn, moveOn = false, false, false
+local fightEvents, peaceEvents = {}, {}
+local controlOn, ownCastOn, moveOn, fallOn = false, false, false, false
 -- Clocks kept for a spell no armed button of its own holds (Ice Block for Cold
 -- Snap when its switch is off), the watch of a fall, and whether you move.
 local shadows = {}
-local watch, watchWait, watchHold, moving = nil, 0, 0, false
+local watch, watchWait, watchHold = nil, 0, 0
 local WATCH_STEP, WATCH_HOLD = 0.2, 3
-local flushDue, recheckDue = false, false
+local flushDue, recheckDue, peaceDue = false, false, false
 local told = false
 local lastFight = {}
 
@@ -169,6 +176,19 @@ function Moments.Learn()
 				out.byKey[row.key] = entry
 				out.n = out.n + 1
 				_G["BINDING_NAME_CLICK MannersMoment" .. row.slot .. ":LeftButton"] = entry.name
+			end
+		elseif BUILT[row.key] and row.drink and not out.byKey[row.key] then
+			-- The drink: named by the client's own "Drink" spell. No `items`, no id
+			-- (the gem's paths and the spell lookup key on those).
+			local name = ns.SpellNameFor(row.drink)
+			if type(name) == "string" and name ~= "" then
+				local icon = ns.safecall(C_Spell and C_Spell.GetSpellTexture, row.drink)
+					or ns.safecall(_G.GetSpellTexture, row.drink) or "Interface\\Icons\\INV_Drink_07"
+				local entry = { row = row, id = nil, name = name, icon = icon }
+				out.list[#out.list + 1] = entry
+				out.byKey[row.key] = entry
+				out.n = out.n + 1
+				_G["BINDING_NAME_CLICK MannersMoment" .. row.slot .. ":LeftButton"] = name
 			end
 		elseif BUILT[row.key] and row.ranks and not out.byKey[row.key] then
 			for _, rank in ipairs(row.ranks) do
@@ -532,7 +552,9 @@ local function OnEnter(slot, self)
 			break
 		end
 	end
-	if slot.id and type(tip.SetSpellByID) == "function" then
+	if slot.row.drink and slot.drinkPick and type(tip.SetItemByID) == "function" then
+		tip:SetItemByID(slot.drinkPick)
+	elseif slot.id and type(tip.SetSpellByID) == "function" then
 		tip:SetSpellByID(slot.id)
 	elseif held and type(tip.SetItemByID) == "function" then
 		tip:SetItemByID(held)
@@ -540,7 +562,11 @@ local function OnEnter(slot, self)
 		tip:AddLine(tostring(slot.name), 1, 1, 1)
 	end
 	tip:AddLine(Why(slot), 0.75, 0.75, 0.75, true)
-	tip:AddLine(L["Manners: a left click here casts it, as its key does."], 0.75, 0.75, 0.75, true)
+	if slot.row.drink then
+		tip:AddLine(L["Manners: a left click here drinks it, as its key does."], 0.75, 0.75, 0.75, true)
+	else
+		tip:AddLine(L["Manners: a left click here casts it, as its key does."], 0.75, 0.75, 0.75, true)
+	end
 	local key = slot.row.key
 	ns.AddSettingsLine(tip, "appearance.moment" .. key:sub(1, 1):upper() .. key:sub(2))
 	slot.tipShown = true
@@ -557,14 +583,15 @@ local function OnLeave(slot)
 end
 
 -- Runs in the restricted environment: every armed button shown for the fight,
--- hidden after, except a button that keeps its own show out of a fight.
+-- hidden after, except a button that keeps its own show out of a fight. A calm
+-- button (the drink) is hidden for the fight too.
 local SNIPPET = [=[
-	for i = 1, 10 do
+	for i = 1, 11 do
 		local b = self:GetFrameRef("m" .. i)
 		if b then
 			local on = self:GetAttribute("manners-on-" .. i)
 			if newstate == "fight" then
-				if on then b:Show(true) else b:Hide(true) end
+				if on and not self:GetAttribute("manners-calm-" .. i) then b:Show(true) else b:Hide(true) end
 			elseif not (on and self:GetAttribute("manners-keep-" .. i)) then
 				b:Hide(true)
 			end
@@ -619,9 +646,10 @@ local function Create(n)
 	local keyText = inner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	keyText:SetPoint("BOTTOMRIGHT", inner, "BOTTOMRIGHT", -2, 2)
 	keyText:SetText("")
-	local ring = face:CreateTexture(nil, "OVERLAY")
+	-- On inner, so where the game paints inner away an invisible button shows no ring.
+	local ring = inner:CreateTexture(nil, "OVERLAY")
 	ring:SetTexture(RING)
-	ring:SetAllPoints(face)
+	ring:SetAllPoints(inner)
 	ring:SetVertexColor(1, 1, 1, 0.6)
 	ring:Hide()
 	local cover = CreateFrame("Frame", nil, button)
@@ -678,6 +706,13 @@ end
 -- asking for a target, and no /cleartarget, which would drop a friend for good.
 local function MacroFor(slot)
 	local row = slot.row
+	-- The drink: one line (two would drink twice), the best drink in the bags,
+	-- no conditional. Written out of a fight, so it is rewritten whenever the
+	-- bags change.
+	if row.drink then
+		if not slot.drinkPick then return nil end
+		return "/use item:" .. slot.drinkPick
+	end
 	if row.items then
 		local lines, counts = {}, slot.count or {}
 		for _, id in ipairs(row.items) do
@@ -827,23 +862,36 @@ end
 local function JudgeKeep(now)
 	for n = 1, MAX do
 		local slot = slots[n]
-		if slot and slot.armed and slot.row.peace == true then Judge(slot, now) end
+		if slot and slot.armed and slot.needs.falling then Judge(slot, now) end
 	end
 end
 
 local function WatchRead()
 	local now = GetTime()
 	local falling = Sense.ReadFall(now)
-	if falling or moving or Sense.fighting then watchHold = now + WATCH_HOLD end
+	if falling or Sense.moving or Sense.fighting then watchHold = now + WATCH_HOLD end
 	JudgeKeep(now)
-	if not (falling or moving or Sense.fighting or now < watchHold) then watch:Hide() end
+	if not (falling or Sense.moving or Sense.fighting or now < watchHold) then watch:Hide() end
 end
 
 local function WatchShow(now)
-	if not watch then return end
+	if not watch or not fallOn then return end
 	watchHold = now + WATCH_HOLD
 	watchWait = WATCH_STEP
 	watch:Show()
+end
+
+-- One event of the out-of-a-fight set, registered or dropped.
+local function PeaceSet(name, want, unit)
+	if want then
+		if not peaceEvents[name] and Sense.accepted[name] then
+			if unit then ev:RegisterUnitEvent(name, unit) else ev:RegisterEvent(name) end
+			peaceEvents[name] = true
+		end
+	elseif peaceEvents[name] then
+		ev:UnregisterEvent(name)
+		peaceEvents[name] = nil
+	end
 end
 
 local function SetRegistered(on)
@@ -853,15 +901,28 @@ local function SetRegistered(on)
 	local wantOwn = false
 	local wantControl = false
 	local wantMove = false
+	local wantStill, wantCalm, wantCalmMana = false, false, false
 	for n = 1, MAX do
 		local slot = slots[n]
 		if slot and slot.armed then
 			wantOwn = true
 			if slot.needs.stuck then wantControl = true end
 			if slot.needs.falling then wantMove = true end
+			if slot.row.calm then
+				-- The drink hears the bags always; the mana, movement and death events only
+				-- while a drink is in the bags (with none it is dark whatever they say).
+				wantCalm = true
+				if slot.drinkPick then
+					wantCalmMana = true
+					if slot.needs.still then wantStill = true end
+				end
+			end
 		end
 	end
-	if wantMove then
+	-- The fall watch is for a fall alone; the movement events also serve the drink.
+	local wantFall = wantMove
+	wantMove = wantMove or wantStill
+	if wantFall then
 		if not watch then
 			watch = CreateFrame("Frame")
 			watch:Hide()
@@ -872,18 +933,26 @@ local function SetRegistered(on)
 				ns.Guard("moments", WatchRead)
 			end)
 		end
+		fallOn = true
+	elseif fallOn then
+		fallOn = false
+		Sense.fallSince, Sense.fallSecret = nil, false
+		if watch then watch:Hide() end
+	end
+	if wantMove then
 		if not moveOn then
 			for _, name in ipairs({ "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING" }) do
 				if Sense.accepted[name] then ev:RegisterEvent(name) end
 			end
 			moveOn = true
+			-- Moving already as the events begin to be heard.
+			local speed = type(_G.GetUnitSpeed) == "function" and plain(_G.GetUnitSpeed("player")) or nil
+			Sense.moving = type(speed) == "number" and speed > 0
 		end
 	elseif moveOn then
 		ev:UnregisterEvent("PLAYER_STARTED_MOVING")
 		ev:UnregisterEvent("PLAYER_STOPPED_MOVING")
-		moveOn, moving = false, false
-		Sense.fallSince, Sense.fallSecret = nil, false
-		if watch then watch:Hide() end
+		moveOn, Sense.moving = false, false
 	end
 	if wantOwn and not ownCastOn and Sense.accepted.UNIT_SPELLCAST_SUCCEEDED then
 		ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
@@ -903,6 +972,46 @@ local function SetRegistered(on)
 		controlOn = false
 		Sense.lostAt = nil
 	end
+	-- The out-of-a-fight set: never in a fight (the pull drops it).
+	local peace = not Sense.fighting
+	PeaceSet("BAG_UPDATE_DELAYED", wantCalm and peace)
+	local mana = wantCalmMana and peace
+	PeaceSet("UNIT_POWER_UPDATE", mana, "player")
+	PeaceSet("UNIT_MAXPOWER", mana, "player")
+	PeaceSet("PLAYER_DEAD", mana)
+	PeaceSet("PLAYER_ALIVE", mana)
+	PeaceSet("PLAYER_UNGHOST", mana)
+end
+
+-- The out-of-a-fight pass, coalesced like the fight's flush: the bags recounted
+-- if a bag event came (a new pick re-arms the macro, the icon and the events),
+-- then every calm button judged. Never in a fight, never under the lockdown.
+local function PeaceFlush()
+	peaceDue = false
+	if Sense.fighting or InCombatLockdown() then return end
+	local now = GetTime()
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.armed and slot.row.calm then
+			if slot.bagsDirty then
+				slot.bagsDirty = false
+				if Sense.CountDrinks(slot) then
+					Arm(slot)
+					if slot.drinkIcon then slot.iconTex:SetTexture(slot.drinkIcon) end
+					SetRegistered()
+				end
+			end
+			Judge(slot, now)
+		end
+	end
+end
+
+local function SchedulePeace()
+	if peaceDue then return end
+	local timer = _G.C_Timer
+	if type(timer) ~= "table" or type(timer.After) ~= "function" then return end
+	peaceDue = true
+	timer.After(FLUSH, function() ns.Guard("moments", PeaceFlush) end)
 end
 
 -- From a scan (Core.lua's TickBody) when Wanted says something changed, and as
@@ -942,17 +1051,25 @@ function Moments:Refresh(keepLit)
 				ReadKey(slot)
 				SetMouse(slot)
 				if entry.row.items then Sense.CountItems(slot) end
+				if entry.row.drink then
+					Sense.CountDrinks(slot)
+					if slot.drinkIcon then slot.iconTex:SetTexture(slot.drinkIcon) end
+				end
 				Arm(slot)
 				Seed(slot, now)
 				if header then
 					header:SetFrameRef("m" .. n, slot.button)
 					header:SetAttribute("manners-on-" .. n, true)
 					header:SetAttribute("manners-keep-" .. n, entry.row.peace == true)
+					header:SetAttribute("manners-calm-" .. n, entry.row.calm == true)
 				end
 			else
 				slot.armed = false
 				Disarm(slot)
-				if header then header:SetAttribute("manners-on-" .. n, false) end
+				if header then
+					header:SetAttribute("manners-on-" .. n, false)
+					header:SetAttribute("manners-calm-" .. n, false)
+				end
 				if slot.button:IsShown() then slot.button:Hide() end
 			end
 		end
@@ -1020,6 +1137,14 @@ function Moments:Refresh(keepLit)
 	end
 	SetRegistered()
 	settledEnabled, settledCaps, dirtyRefresh = on, mine, false
+	-- A drink lights at once after a fight, a reload or a change in the options,
+	-- without waiting for a mana tick.
+	for n = 1, MAX do
+		if slots[n] and slots[n].armed and slots[n].row.calm then
+			SchedulePeace()
+			break
+		end
+	end
 end
 
 -- Whether a scan has anything to do here. With nothing learned and nothing ever
@@ -1065,7 +1190,8 @@ end
 local function RegisterFight()
 	for n = 1, MAX do
 		local slot = slots[n]
-		if slot and slot.armed then
+		-- A calm button (the drink) is dark in a fight and wants nothing from it.
+		if slot and slot.armed and not slot.row.calm then
 			local needs = slot.needs
 			if needs.casting or needs.interruptible then
 				for _, name in ipairs(TARGET_CAST) do Register(name, "target") end
@@ -1110,6 +1236,8 @@ function Moments:Take()
 				Sense.CountItems(slot)
 				Arm(slot)
 			end
+			-- A calm button has no macro in a fight, so a key bound to it does nothing.
+			if slot.row.calm then Disarm(slot) end
 		end
 	end
 end
@@ -1142,6 +1270,9 @@ local function Pull()
 	end
 	wipe(Sense.lastHit)
 	Sense.fighting = true
+	-- The out-of-a-fight events are dropped for the fight.
+	for name in pairs(peaceEvents) do ev:UnregisterEvent(name) end
+	wipe(peaceEvents)
 	RegisterFight()
 	if moveOn then WatchShow(now) end
 	JudgeAll()
@@ -1241,6 +1372,17 @@ local function OwnCast(spellId)
 	end
 	if Sense.fighting then Schedule() end
 	if slot and slot.row.peace == true then Judge(slot, now) end
+	-- A drink's own clock begins with a cast of the drink spell, or with any cast
+	-- inside the window of a press (which also covers a "Refreshment").
+	for n = 1, MAX do
+		local calm = slots[n]
+		if calm and calm.armed and calm.row.drink then
+			local went = Went(calm)
+			if went or Sense.DrinkSpell(calm, id) then calm.castAt = now end
+		end
+	end
+	-- Mounting and shapeshifting are own casts too: the calm buttons look again.
+	if not Sense.fighting then JudgeAll("calm") end
 end
 
 function Moments.OnEvent(event, unit, a, b, c, d)
@@ -1251,12 +1393,18 @@ function Moments.OnEvent(event, unit, a, b, c, d)
 	end
 	if event == "UNIT_SPELLCAST_SUCCEEDED" then return OwnCast(b) end
 	if event == "PLAYER_STARTED_MOVING" then
-		moving = true
+		Sense.moving = true
+		-- Moving stands you up: a drink's own clock ends.
+		for n = 1, MAX do
+			local slot = slots[n]
+			if slot and slot.armed and slot.row.calm then slot.castAt = nil end
+		end
+		JudgeAll("still")
 		return WatchShow(GetTime())
 	elseif event == "PLAYER_STOPPED_MOVING" then
-		moving = false
+		Sense.moving = false
 		watchHold = GetTime() + WATCH_HOLD
-		return
+		return JudgeAll("still")
 	end
 	if event == "PLAYER_CONTROL_LOST" then
 		Sense.lostAt = GetTime()
@@ -1265,7 +1413,25 @@ function Moments.OnEvent(event, unit, a, b, c, d)
 		Sense.lostAt = nil
 		return JudgeAll("stuck")
 	end
-	if not Sense.fighting then return end
+	if not Sense.fighting then
+		-- Out of a fight: the calm buttons' events, each only a nudge to the flush.
+		if event == "BAG_UPDATE_DELAYED" then
+			for n = 1, MAX do
+				local slot = slots[n]
+				if slot and slot.armed and slot.row.calm then slot.bagsDirty = true end
+			end
+			return SchedulePeace()
+		end
+		if event == "UNIT_POWER_UPDATE" then
+			local kind = plain(a)
+			if type(kind) == "string" and kind ~= "MANA" then return end
+			return SchedulePeace()
+		end
+		if event == "UNIT_MAXPOWER" or event == "PLAYER_DEAD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
+			return SchedulePeace()
+		end
+		return
+	end
 	if event == "UNIT_AURA" then return Schedule() end
 	if event == "UNIT_COMBAT" then
 		-- UNIT_COMBAT: unit, action, flag, amount, school.
@@ -1374,7 +1540,11 @@ function Moments.FightWords()
 	local armed = Armed()
 	if #armed == 0 then return nil end
 	local parts = {}
-	for _, slot in ipairs(armed) do parts[#parts + 1] = TallyWords(slot, slot.tally) end
+	-- A calm button is dark in every fight: it would only say so.
+	for _, slot in ipairs(armed) do
+		if not slot.row.calm then parts[#parts + 1] = TallyWords(slot, slot.tally) end
+	end
+	if #parts == 0 then return nil end
 	return table.concat(parts, "; ")
 end
 
@@ -1421,9 +1591,15 @@ function ns.MomentLines()
 			out[#out + 1] = ("moment %s: not learned"):format(row.key)
 		else
 			local armed = slot and slot.armed and slot.armedMacro
+			local what = entry.id and "spell" or "items"
+			local ident = tostring(entry.id or table.concat(row.items or {}, "/"))
+			if row.drink then
+				what = "drink"
+				ident = slot and slot.drinkPick and ("item:" .. slot.drinkPick) or "no drink in your bags"
+			end
 			local shape = slot and slot.armed and slot.shape and (" [" .. slot.shape .. "]") or ""
 			out[#out + 1] = ("moment %s: %s %s %s, learned yes, switch %s, %s, key %s, slot %d, %s, now %s; last fight lit %d, game %d, pressed %d, out %d, silent %d"):format(
-				row.key, entry.id and "spell" or "items", tostring(entry.id or table.concat(row.items or {}, "/")), tostring(entry.name),
+				row.key, what, ident, tostring(entry.name),
 				m[row.key] == true and "on" or "off",
 				armed and ("armed (" .. tostring(armed):gsub("\n", " | ") .. ")" .. shape) or (slot and slot.tooLong and "macro too long, not armed" or "not armed"),
 				tostring(slot and slot.keyLabel or (type(GetBindingKey) == "function" and (GetBindingKey("CLICK MannersMoment" .. row.slot .. ":LeftButton")) or "none")),
@@ -1461,6 +1637,10 @@ function Moments.SelfRows()
 			text, warn = "switched on, but the button was never made", true
 		elseif slot.tooLong then
 			text, warn = "the armed macro does not fit in 255 characters", true
+		elseif row.drink and not slot.armedMacro and not slot.drinkPick then
+			text = "switched on; no drink in your bags"
+		elseif row.drink and not slot.armedMacro and (Sense.fighting or InCombatLockdown()) then
+			text = "switched on; a fight clears its macro until the fight ends"
 		elseif not slot.armedMacro then
 			text, warn = "the button has no macro armed", true
 		else

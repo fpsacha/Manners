@@ -44,7 +44,7 @@ stands now. Keep it short: what ships goes to the history file or away.
   question: Blizzard's notes say other players' casts are secret on Forever and
   retail (`SecretWhenUnitSpellCastRestricted`), so the cast watch may never name
   a stranger there; the next check-up's heard counts, taken with no mobs about, settle it.
-- **Buttons for the moment (mages),** on branch `mage-moments` (worktree
+- **Buttons for the moment,** on branch `mage-moments` (worktree
   `Manners-wt-moments`, cut from `castwatch-diag`), BUILT in two commits, not
   merged: the framework (`Prompt/MomentsData.lua`, `MomentsSense.lua`,
   `Moments.lua`: one secure button a slot, a plain gate and a game-painted layer
@@ -58,6 +58,27 @@ stands now. Keep it short: what ships goes to the history file or away.
   cure button's cover (`db.global.cureCoverLeaks`), the diagnostics (a line per
   button on the trail, in the fight summary, in Mark this moment, in
   `/manners debug` and in the self-test), the options and the eight locales.
+  The drink (slot 11, `moments.drink`, for every class with mana, on by default;
+  scenarios `moments-drink.lua`, mutations `moments-drink.py`, all CAUGHT): out of
+  a fight only, lit by the same low-mana route as Evocation (a plain compare, or
+  UnitPowerPercent and a curve where the client hides the mana, as Forever does
+  even out of a fight), with a drink in the bags, standing still, not drinking;
+  the press is `/use item:<best>` (conjured water first, then any other drink by
+  its use spell), rewritten on bag events. Added after the owner saw no prompt at
+  29 / 2592 mana out of a fight. Evocation and the mana gem stay fight-only on
+  purpose: long cooldowns worth keeping for the pull, and lit out of a fight they
+  would put two more hidden-route buttons, invisible but clickable, on the screen
+  all the time. One honest cost: on Forever, where the mana is hidden, the
+  drink's icon-sized spot takes the mouse (its cover swallows the first click)
+  out of a fight while a drink is in the bags and you stand still.
+  More game-only questions: does UNIT_POWER_UPDATE fire for you out of a fight on
+  Forever while your mana is hidden (if not, the drink lights at the next bag,
+  movement or own-cast event instead of a tick); is the Drink aura plain out of a
+  fight (hidden, the clock of your own drink stands in, ended by moving); do
+  GetItemSpell and IsUsableItem answer plainly (a drink Manners cannot name is
+  not picked, except conjured water, which comes from its own list); on Mists and
+  retail a drink whose use spell is Refreshment or Food & Drink is not
+  recognised unless it is conjured.
   Scenarios `moments*.lua` and `curefight-cover.lua`, mutations of the same
   names, every one proven CAUGHT. The whole suite, the other clients' baselines
   and a full self-test are the owner's test pass. Open: the rows' spell ids are

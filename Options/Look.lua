@@ -1166,9 +1166,15 @@ function Page.AddMomentControls(args)
 		{ key = "evocation",
 			name = function() return L["Show %s when my mana is low in a fight"]:format(Spell("evocation")) end,
 			desc = function() return L["Lights in a fight while your mana is under Mana below and the spell is ready."] .. " " .. twice .. " " .. tail end },
-		{ key = "managem", after = "mana",
+		{ key = "managem",
 			name = function() return L["Show my mana gem when my mana is low in a fight"] end,
 			desc = function() return L["Lights in a fight while your mana is under Mana below and a mana gem in your bags is ready. A press uses the best one you carry."] .. " " .. twice .. " " .. tail end },
+		{ key = "drink", after = "mana",
+			name = function() return L["Show a drink when my mana is low out of a fight"] end,
+			desc = function()
+				return L["Out of a fight only. Lights while your mana is under Mana below, you stand still, you are not drinking already, and a drink is in your bags. A press drinks the best one you carry: your conjured water first, the best your level allows, then any other drink."]
+					.. " " .. L["Where the game keeps your mana from addons, the game itself lights the button, and it then takes two quick clicks, so one stray click never drinks."] .. " " .. tail
+			end },
 		{ key = "slowfall",
 			name = function() return L["Show %s when I have been falling for a second"]:format(Spell("slowfall")) end,
 			desc = function()
@@ -1185,15 +1191,27 @@ function Page.AddMomentControls(args)
 			desc = function() return L["Lights in a fight as soon as frost damage hits you while your target is hostile, for ten seconds or until you cast a ward. Once frost has hit you in a fight, it lights again whenever your target casts. The game does not show what a spell is before it lands, so the first frost hit has to land."] .. " " .. tail end },
 	}
 	local order = 32.4931
-	local function Slider(field, name, desc, a, b)
+	-- A share's slider is shown while the character has any of the rows that use
+	-- it, and enabled while any of them is on.
+	local function Slider(field, name, desc, keys)
 		args["moment" .. Cap(field)] = {
 			type = "range",
 			name = name,
 			desc = desc,
 			order = order,
 			min = 5, max = 50, step = 5,
-			hidden = function() return not (Has(a) or Has(b)) end,
-			disabled = function() return not (On(a) or On(b)) end,
+			hidden = function()
+				for _, key in ipairs(keys) do
+					if Has(key) then return false end
+				end
+				return true
+			end,
+			disabled = function()
+				for _, key in ipairs(keys) do
+					if Has(key) and On(key) then return false end
+				end
+				return true
+			end,
 			get = function() return ns.db.profile.moments[field] end,
 			set = function(_, value) ns.db.profile.moments[field] = value end,
 		}
@@ -1202,10 +1220,10 @@ function Page.AddMomentControls(args)
 	local function Share(after)
 		if after == "health" then
 			Slider("health", L["Health below"], L["The share of your health under which the health buttons light, in percent."],
-				"iceblock", "coldsnap")
+				{ "iceblock", "coldsnap" })
 		else
 			Slider("mana", L["Mana below"], L["The share of your mana under which the mana buttons light, in percent."],
-				"evocation", "managem")
+				{ "evocation", "managem", "drink" })
 		end
 	end
 	for _, def in ipairs(rows) do

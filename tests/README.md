@@ -305,7 +305,11 @@ sub-second subset for the middle of an edit.
   player would see. The kit stands in the calls the mock lacks (health, power,
   the target's cast in the client's return positions, curves, a cooldown whose
   isOnGCD is filled only inside the cooldown event, the bags and an item's
-  cooldown, the target's buffs, falling) from `Mock` fields listed at its top,
+  cooldown, the target's buffs, falling, and for the drink the bags walked by
+  `C_Container` (`Mock.bags`), `Mock.playerLevel`, `Mock.itemMinLevel`,
+  `Mock.itemUnusable`, `Mock.mounted`, `Mock.swimming`, `Mock.shapeshift` and the
+  Drink aura `Mock.drinkAura` = true, `"secret"` or `"throw"`) from `Mock` fields
+  listed at its top,
   and drives a fight: `K.withMage`, `K.pull`, `K.release`, `K.event`, `K.cast`,
   `K.cooldownEvent`, `K.fallTick`, `K.relearn`, `K.click`.
 - Breaking free (`scenarios/breakfree.lua`, and `scenarios/wotfneed.lua` for the need where the game withholds the type; it overrides `HasFullControl` with `rawset`): `Mock.knownSpells` (ids the

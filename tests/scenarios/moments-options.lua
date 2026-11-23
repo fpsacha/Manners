@@ -14,7 +14,7 @@ local dir, H = ...
 local fail = H.fail
 local K = dofile(dir .. "/tests/momentskit.lua")
 
-local KEYS = { "counterspell", "spellsteal", "blink", "iceblock", "coldsnap", "evocation", "managem", "slowfall",
+local KEYS = { "counterspell", "spellsteal", "blink", "iceblock", "coldsnap", "evocation", "managem", "drink", "slowfall",
 	"fireward", "frostward" }
 
 local function with(name, body, opts) K.withMage(H, "moments-options: " .. name, body, opts) end
@@ -95,12 +95,13 @@ do
 		for _, key in ipairs(KEYS) do
 			local node = option(ns, "moment" .. cap(key))
 			if not node then fail(s, key .. " has no control") else
-				local want = key == "counterspell"
+				local want = key == "counterspell" or key == "drink"
 				if hidden(node) == want then fail(s, key .. (want and " is hidden for a known spell" or " is shown for an unknown one")) end
 			end
 		end
 		if not hidden(option(ns, "momentHealth")) then fail(s, "the health slider shows with no health spell") end
-		if not hidden(option(ns, "momentMana")) then fail(s, "the mana slider shows with no mana spell") end
+		-- The drink uses the share too: a mage with no mana spell still has it.
+		if hidden(option(ns, "momentMana")) then fail(s, "the mana slider is hidden though the drink uses it") end
 		if hidden(option(ns, "momentsNote")) then fail(s, "the note is hidden for a mage with a button") end
 	end, { known = { 2139 } })
 	s = name("the sliders show for the spells they serve")
@@ -122,6 +123,26 @@ do
 		if not fall:find("It needs a ", 1, true) then fail(s, "Slow Fall's text does not say what it needs: " .. fall) end
 		if text(option(ns, "momentManagem").name) ~= "Show my mana gem when my mana is low in a fight" then fail(s, "the gem's name") end
 	end, { known = ALL })
+end
+
+do
+	local s = name("the drink's switch and key say the drink; a priest sees them and the mana slider and nothing else")
+	with(s, function(ns)
+		local function text(v) return type(v) == "function" and v() or v end
+		if text(option(ns, "momentDrink").name) ~= "Show a drink when my mana is low out of a fight" then
+			fail(s, "the switch's name: " .. tostring(text(option(ns, "momentDrink").name)))
+		end
+		local desc = text(option(ns, "momentDrink").desc)
+		if not desc:find("Out of a fight only.", 1, true) or not desc:find("two quick clicks", 1, true) then fail(s, "the drink's words: " .. desc) end
+		if text(option(ns, "momentDrinkKey").name) ~= "Key for Drink" then fail(s, "the key's name: " .. tostring(text(option(ns, "momentDrinkKey").name))) end
+		if hidden(option(ns, "momentDrink")) or hidden(option(ns, "momentMana")) then fail(s, "a priest does not see the drink or the mana slider") end
+		for _, key in ipairs({ "momentCounterspell", "momentEvocation", "momentManagem", "momentHealth" }) do
+			if not hidden(option(ns, key)) then fail(s, "a priest sees " .. key) end
+		end
+		if option(ns, "momentMana").disabled() then fail(s, "the mana slider is greyed with the drink on") end
+		ns.db.profile.moments.drink = false
+		if not option(ns, "momentMana").disabled() then fail(s, "the mana slider stays enabled with the drink off") end
+	end, { class = "PRIEST" })
 end
 
 do
