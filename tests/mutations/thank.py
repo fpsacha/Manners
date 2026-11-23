@@ -53,7 +53,7 @@ mutate("Favours.lua",
 # ------------------------------------------------ the emote and its target
 mutate("Favours.lua",
        "\t\tseen.unit = source\n",
-       "\t\tseen.unit = \"target\"\n",
+       "\t\tseen.unit = \"target\"\n\t\tseen.guid = \"Player-9-nobody\"\n",
        "thank: the token is not the one the buff came from",
        expect="thank: a favour is thanked at the token it came from", script=S)
 mutate("Favours.lua",
@@ -184,17 +184,17 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ the token
 mutate("Favours.lua",
-       "\t\tif Answer(UnitExists, unit) ~= true then return nil end\n",
+       "\t\tif Answer(UnitExists, unit) ~= true then return false end\n",
        "",
        "thank: a token that may not exist",
        expect="thank: only at a token that still holds them (existence a secret)", script=S)
 mutate("Favours.lua",
-       "\t\tif Answer(ns.UnitFullName, unit) ~= seen.name then return nil end\n",
+       "\t\tif Answer(ns.UnitFullName, unit) ~= seen.name then return false end\n",
        "",
        "thank: a token handed to somebody else",
        expect="thank: only at a token that still holds them (handed to somebody else)", script=S)
 mutate("Favours.lua",
-       "\t\tif seen.guid ~= nil and Answer(UnitGUID, unit) ~= seen.guid then return nil end\n",
+       "\t\tif seen.guid ~= nil and Answer(UnitGUID, unit) ~= seen.guid then return false end\n",
        "",
        "thank: a token holding somebody by the same name",
        expect="thank: only at a token that still holds them (somebody else by the same name)",

@@ -129,16 +129,25 @@ do
 		return nil
 	end
 
-	-- The token Sight read them under, while it still holds them: it may be
-	-- a nameplate handed to a bystander since. Never a name, which /thank
-	-- could match to somebody else.
+	-- The token that names them now: the one Sight read them under while it still
+	-- holds them, else the one ns.UnitFor (Queue.lua) finds by the full name (a
+	-- nameplate token is handed on as people walk by: a thank that waits a
+	-- moment, thankDelay, must look for them again). Only a token whose full
+	-- name, and GUID where one was read, is theirs: never a name alone, which
+	-- /thank could match to somebody else, and nil when nobody holds them.
+	local function Holds(seen, unit)
+		if type(unit) ~= "string" or unit == "" then return false end
+		if Answer(UnitExists, unit) ~= true then return false end
+		if Answer(ns.UnitFullName, unit) ~= seen.name then return false end
+		if seen.guid ~= nil and Answer(UnitGUID, unit) ~= seen.guid then return false end
+		return true
+	end
 	local function Holding(seen)
-		local unit = seen.unit
-		if type(unit) ~= "string" or unit == "" then return nil end
-		if Answer(UnitExists, unit) ~= true then return nil end
-		if Answer(ns.UnitFullName, unit) ~= seen.name then return nil end
-		if seen.guid ~= nil and Answer(UnitGUID, unit) ~= seen.guid then return nil end
-		return unit
+		if Holds(seen, seen.unit) then return seen.unit end
+		if type(seen.name) ~= "string" or type(ns.UnitFor) ~= "function" then return nil end
+		local unit = ns.UnitFor(seen.name, seen.unit)
+		if Holds(seen, unit) then return unit end
+		return nil
 	end
 
 	-- C_ChatInfo.PerformEmote, which Blizzard's own chat box calls. The global
