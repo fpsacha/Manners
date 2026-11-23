@@ -48,8 +48,8 @@ mutate("Prompt/Moments.lua",
        expect="moments-counterspell: dark the instant the cast stops", script=S)
 
 mutate("Prompt/Moments.lua",
-       "\t\t\tif slot and slot.armed then slot.castOn, slot.flip = nil, nil end\n\t\tend\n\t\treturn JudgeAll(\"casting\")\n\telseif CAST_STOP[event] then",
-       "\t\t\tif slot and slot.armed then slot.castOn = nil end\n\t\tend\n\t\treturn JudgeAll(\"casting\")\n\telseif CAST_STOP[event] then",
+       "\t\t\tif slot and slot.armed then slot.castOn, slot.flip = nil, nil end\n\t\tend\n\t\tJudgeAll(\"schoolhit\")\n\t\treturn JudgeAll(\"casting\")\n\telseif CAST_STOP[event] then",
+       "\t\t\tif slot and slot.armed then slot.castOn = nil end\n\t\tend\n\t\tJudgeAll(\"schoolhit\")\n\t\treturn JudgeAll(\"casting\")\n\telseif CAST_STOP[event] then",
        "moments-counterspell: the flip is not cleared at a new cast",
        expect="moments-counterspell: NOT_INTERRUPTIBLE mid-cast", script=S)
 

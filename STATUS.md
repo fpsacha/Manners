@@ -53,7 +53,8 @@ stands now. Keep it short: what ships goes to the history file or away.
   gem (counted at the pull, `Moments:Take`, and on bag events), Slow Fall (a
   watch asks IsFalling while you move or fight; Lua shows and hides its button
   out of a fight), Spellsteal, Fire Ward and Frost Ward (on, lit by a fire or frost hit while the
-  target is hostile, no cast needed), the
+  target is hostile; then on each cast of the target once that school has hit
+  you in the fight), the
   cure button's cover (`db.global.cureCoverLeaks`), the diagnostics (a line per
   button on the trail, in the fight summary, in Mark this moment, in
   `/manners debug` and in the self-test), the options and the eight locales.

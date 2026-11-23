@@ -1086,6 +1086,10 @@ local function RegisterFight()
 			if needs.ready or needs.itemready then Register("SPELL_UPDATE_COOLDOWN") end
 			if needs.itemready then Register("BAG_UPDATE_DELAYED") end
 			if needs.schoolhit then Register("UNIT_COMBAT", "player") end
+			-- A ward lights on the target's cast too, once the fight has shown its school.
+			if needs.schoolhit then
+				for _, name in ipairs(TARGET_CAST) do Register(name, "target") end
+			end
 			if needs.stealable then Register("UNIT_AURA", "target") end
 		end
 	end
@@ -1324,6 +1328,7 @@ function Moments.OnEvent(event, unit, a, b, c, d)
 			local slot = slots[n]
 			if slot and slot.armed then slot.castOn, slot.flip = nil, nil end
 		end
+		JudgeAll("schoolhit")
 		return JudgeAll("casting")
 	elseif CAST_STOP[event] then
 		for n = 1, MAX do

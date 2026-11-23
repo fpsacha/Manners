@@ -14,7 +14,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffCounterspell when your target casts.|r A small button left of the prompt lights while a hostile target in reach is casting, and a press stops your own cast first.",
 			"|cff7cc4ffBlink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.|r Each lights at its moment: stunned or rooted, low health (|cffffffffHealth below|r, 20 by default), low mana (|cffffffffMana below|r), a second into a fall.",
 			"|cff7cc4ffSpellsteal|r lights while your target carries a buff you can steal (Burning Crusade and later).",
-			"|cff7cc4ffFire Ward and Frost Ward|r light as soon as your target hits you with fire or frost.",
+			"|cff7cc4ffFire Ward and Frost Ward|r light as soon as your target hits you with fire or frost, and again each time it casts after that.",
 		} },
 		{ title = "Water and food for your target", accent = "7cc4ff", entries = {
 			"|cff7cc4ffOffer water and food to my target|r (mages).",

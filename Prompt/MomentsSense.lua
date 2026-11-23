@@ -554,17 +554,23 @@ function Sense.Hit(action, rawMask, now)
 end
 
 -- Damage of the row's school hit you in the last ten seconds, and no other
--- ward school hit more recently.
+-- ward school hit more recently. Or your target is casting now and, this
+-- fight, the last ward school to hit you was this one: the game never shows a
+-- cast's own school, so what the fight has thrown at you is the guess (the
+-- owner asked for the ward while the enemy casts). Nothing hit yet: dark.
 function Sense.schoolhit(slot, now)
 	local school = slot.row.school
 	local at = school and Sense.lastHit[school]
-	if not at or now - at > HIT_SECONDS then return "no", "nothing of that kind has hit you" end
+	if not at then return "no", "nothing of that kind has hit you" end
+	local recent = now - at <= HIT_SECONDS
 	for other, when in pairs(Sense.lastHit) do
-		if other ~= school and when > at and now - when <= HIT_SECONDS then
+		if other ~= school and when > at and (not recent or now - when <= HIT_SECONDS) then
 			return "no", "another kind hit you more recently"
 		end
 	end
-	return "yes"
+	if recent then return "yes" end
+	if Sense.casting(slot) == "yes" then return "yes" end
+	return "no", "your target is not casting and nothing of that kind hit you lately"
 end
 
 ---------------------------------------------------------------------------

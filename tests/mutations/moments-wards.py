@@ -9,13 +9,13 @@ M = "Prompt/Moments.lua"
 SENSE = "Prompt/MomentsSense.lua"
 
 mutate(SENSE,
-       '\t\tif other ~= school and when > at and now - when <= HIT_SECONDS then\n',
+       '\t\tif other ~= school and when > at and (not recent or now - when <= HIT_SECONDS) then\n',
        '\t\tif false then\n',
        "moments-wards: the later school rule is dropped",
        expect="moments-wards: the later school wins", script=S)
 
 mutate(SENSE,
-       '\tif not at or now - at > HIT_SECONDS then return "no", "nothing of that kind has hit you" end\n',
+       '\tif not at then return "no", "nothing of that kind has hit you" end\n',
        '',
        "moments-wards: a ward lit with no hit",
        expect="moments-wards: no hit: dark, with the reason", script=S)
@@ -49,3 +49,15 @@ mutate(M,
        '',
        "moments-wards: the combat event is not registered at the pull",
        expect="moments-wards: the hits are heard only in a fight", script=S)
+
+mutate(SENSE,
+       '\tif Sense.casting(slot) == "yes" then return "yes" end\n',
+       '',
+       "moments-wards: the target's cast does not light the ward",
+       expect="moments-wards: your target casting lights the ward of the school that hit you", script=S)
+
+mutate(M,
+       '\t\tJudgeAll("schoolhit")\n\t\treturn JudgeAll("casting")\n',
+       '\t\treturn JudgeAll("casting")\n',
+       "moments-wards: a cast's start is not judged for the wards",
+       expect="moments-wards: your target casting lights the ward of the school that hit you", script=S)

@@ -132,6 +132,7 @@ do
 		K.cast(ns, {})
 		hit(ns, 4)
 		if state(ns, FIRE) ~= "lit" then fail(s, "not lit first") end
+		K.endCast(ns)
 		K.tick(ns, 11)
 		if state(ns, FIRE) ~= "dark" then fail(s, "still lit eleven seconds after the hit: " .. state(ns, FIRE)) end
 	end)
@@ -188,5 +189,43 @@ do
 		if not K.event(ns, "UNIT_COMBAT", "player", "WOUND", "", 40, 4) then fail(s, "not registered at the pull") end
 		K.release(ns)
 		if K.event(ns, "UNIT_COMBAT", "player", "WOUND", "", 40, 4) then fail(s, "still registered after the release") end
+	end)
+end
+
+do
+	local s = name("your target casting lights the ward of the school that hit you")
+	with(s, function(ns)
+		K.pull(ns)
+		K.cast(ns, {})
+		K.tick(ns, 0.3)
+		if state(ns, FIRE) ~= "dark" then fail(s, "lit on a cast before anything hit you") end
+		K.endCast(ns)
+		hit(ns, 4)
+		K.tick(ns, 11)
+		if state(ns, FIRE) ~= "dark" then fail(s, "still lit eleven seconds after the hit with nobody casting") end
+		K.cast(ns, {})
+		K.tick(ns, 0.3)
+		if state(ns, FIRE) ~= "lit" then fail(s, "not lit when the target cast again: " .. state(ns, FIRE) .. " " .. tostring(slot(ns, FIRE).why)) end
+		if state(ns, FROST) ~= "dark" then fail(s, "Frost Ward lit though only fire hit") end
+		K.endCast(ns)
+		K.tick(ns, 0.3)
+		if state(ns, FIRE) ~= "dark" then fail(s, "still lit once the cast ended: " .. state(ns, FIRE)) end
+		hit(ns, 16)
+		K.tick(ns, 11)
+		K.cast(ns, {})
+		K.tick(ns, 0.3)
+		if state(ns, FROST) ~= "lit" or state(ns, FIRE) ~= "dark" then
+			fail(s, "after a later frost hit: frost " .. state(ns, FROST) .. ", fire " .. state(ns, FIRE))
+		end
+	end)
+	s = name("a new fight forgets what hit you")
+	with(s, function(ns)
+		K.pull(ns)
+		hit(ns, 4)
+		K.release(ns)
+		K.pull(ns)
+		K.cast(ns, {})
+		K.tick(ns, 0.3)
+		if state(ns, FIRE) ~= "dark" then fail(s, "lit by the last fight's fire") end
 	end)
 end

@@ -22,7 +22,7 @@
 - **Spellsteal** lights while your target carries a buff you can steal
   (Burning Crusade and later).
 - **Fire Ward and Frost Ward** light as soon as your target hits you with fire
-  or frost.
+  or frost, and again each time it casts after that.
 
 ### Water and food for your target
 - **Offer water and food to my target** (mages). Out of a fight, a friendly
