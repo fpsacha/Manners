@@ -291,7 +291,19 @@ sub-second subset for the middle of an edit.
   environment of its own with frame handles, and `SecureCmdOptionParse`
   (mockapi.lua) reading `[combat]` from `Mock.affectingCombat`, else
   `Mock.inCombat`. Secure code's calls in a fight are not the addon's
-  (`Mock.secureCode`).
+  (`Mock.secureCode`). It models the game's aura container too
+  (`CreateFrame("AuraContainer", ..., "CustomAuraContainerTemplate")`, refused
+  unless `Mock.auraContainer`): one aura slot that shows when
+  `Mock.hiddenFor(unit)` (or `Mock.hiddenDebuffs[unit]`) holds a removable debuff
+  of its `includeDispelTypes`, a slot frame that throws when asked what it shows
+  in a fight, `Mock.auraShows(box)` and `Mock.auraShowing()` for what the client
+  would draw (`scenarios/curefight-container.lua`). A box draws what its unit
+  carried when it last redrew, as the game's does: on `SetUnit`,
+  `UpdateAllAuras`, its OnShow and OnHide (`Mock.auraSweep`, after every Show and
+  Hide) and `UNIT_AURA` for its unit (`Mock.frameEvent`, `Mock.auraEvent`), never
+  on a target or roster change by itself (`scenarios/curefight-redraw.lua`). An
+  empty clause that holds (`[mod:ctrl] ;`) casts nothing. `SecureCmdOptionParse` reads
+  `[mod:shift]` and `[mod:ctrl]` from `Mock.modifiers`.
 - The buttons for the moment (`scenarios/moments*.lua`, helper `momentskit.lua`,
   `scenarios/curefight-cover.lua`): `Mock.cooldown[61304]` stands in for the global cooldown (the urgent rows
   read it, `moments-fast.lua`); `moments-card.lua` and `moments-stack.lua` read each
@@ -308,7 +320,9 @@ sub-second subset for the middle of an edit.
   player would see. The kit stands in the calls the mock lacks (health, power,
   the target's cast in the client's return positions, curves, a cooldown whose
   isOnGCD is filled only inside the cooldown event, the bags and an item's
-  cooldown, the target's buffs, falling, and for the drink the bags walked by
+  cooldown, the target's buffs (with each one's `kind`, hidden by
+  `Mock.kindsHidden`, and the game's dispellable filter: `dispel = true`,
+  `Mock.filterThrows`), falling, and for the drink the bags walked by
   `C_Container` (`Mock.bags`), `Mock.playerLevel`, `Mock.itemMinLevel`,
   `Mock.itemUnusable`, `Mock.mounted`, `Mock.swimming`, `Mock.shapeshift` and the
   Drink aura `Mock.drinkAura` = true, `"secret"` or `"throw"`) from `Mock` fields

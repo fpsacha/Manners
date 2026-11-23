@@ -341,7 +341,7 @@ end
 -- The buttons for the moment: a switch each and the shares of health and mana. Their
 -- key boxes have no default and so no mark.
 for _, key in ipairs({ "counterspell", "spellsteal", "blink", "iceblock", "coldsnap", "evocation", "managem",
-	"drink", "slowfall", "fireward", "frostward" }) do
+	"drink", "slowfall", "fireward", "frostward", "purge", "dispel", "tranq", "shieldslam" }) do
 	FIELDS["appearance.moment" .. key:sub(1, 1):upper() .. key:sub(2)] = { { "moments", key } }
 end
 FIELDS["appearance.momentHealth"] = { { "moments", "health" } }
@@ -388,6 +388,13 @@ end
 
 -- Controls whose shown value is computed: a later layout that folds one
 -- must use these, never the value the control displays.
+-- Whether this class has a cure saved on a modifier (prompt.cureFightMods).
+local function CureModSaved(mod)
+	local by = Profile().prompt.cureFightMods
+	local mine = type(by) == "table" and ns.caps.class and by[ns.caps.class] or nil
+	return type(mine) == "table" and mine[mod] ~= nil
+end
+
 local DIFFERS = {
 	["appearance.posPreset"] = function() return ns.CurrentPositionPreset() ~= "bars" end,
 	["general.quickWho"] = function() return ns.QuickSetup.Match(ns.QuickSetup.WHO) ~= "nearby" end,
@@ -407,6 +414,10 @@ local DIFFERS = {
 	["who.own_leave_food"] = function() return AnyTicked(Profile().ownBuffs.leave, FoodKeys()) end,
 	["who.own_elixirkeep"] = function() return AnyTicked(Profile().ownBuffs.elixirKeep) end,
 	["appearance.reasonPalette"] = function() return Profile().prompt.reasonPalette == "colourblind" end,
+	-- The cure button's modifiers, kept per class: a choice saved is a change.
+	["appearance.cureFightPlain"] = function() return CureModSaved("plain") end,
+	["appearance.cureFightShift"] = function() return CureModSaved("shift") end,
+	["appearance.cureFightCtrl"] = function() return CureModSaved("ctrl") end,
 	["general.minimap"] = function() return Profile().minimap.hide == true end,
 	["click.preset"] = LinesChanged,
 	["click.phrases"] = LinesChanged,

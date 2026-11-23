@@ -1771,6 +1771,7 @@ local function bracketHolds(conditional)
 		if word == "combat" and not inFight() then return false end
 		if word == "nocombat" and inFight() then return false end
 		if word == "mod:shift" and not (IsShiftKeyDown and IsShiftKeyDown()) then return false end
+		if word == "mod:ctrl" and not (IsControlKeyDown and IsControlKeyDown()) then return false end
 		if who then
 			if word == "help" and hostile then return false end
 			if word == "harm" and not hostile then return false end
@@ -2023,6 +2024,9 @@ local SPELL_NAMES = {
 	-- A Forsaken's racial (Prompt/BreakFree.lua).
 	[7744] = "Will of the Forsaken",
 	[10157] = "Arcane Intellect",
+	-- The imp's Fire Shield, every rank (Buffs.lua, fireshield; tests/scenarios/fireshield.lua).
+	[11771] = "Fire Shield", [11770] = "Fire Shield", [8317] = "Fire Shield", [8316] = "Fire Shield",
+	[2947] = "Fire Shield", [27269] = "Fire Shield",
 	[10938] = "Power Word: Fortitude",
 	[27841] = "Divine Spirit",
 	[10958] = "Shadow Protection",

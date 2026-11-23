@@ -1217,8 +1217,9 @@ end
 -- Whether the cure has a button of its own for each cure (the switch, and a
 -- second cure to give it).
 local function CureEach(db)
-	local list = ns.CureFightSpells and ns.CureFightSpells() or nil
-	return db.prompt.cureFightEach == true and list ~= nil and list[2] ~= nil
+	if db.prompt.cureFightEach ~= true or not (ns.CureFight and ns.CureFight.Chosen) then return false end
+	local plainCure, shiftCure = ns.CureFight.Chosen(db)
+	return plainCure ~= nil and shiftCure ~= nil and plainCure ~= shiftCure
 end
 
 Check("fight.cure", "fight", L["cure in a fight"], function(add)
@@ -1257,6 +1258,8 @@ Check("fight.cure", "fight", L["cure in a fight"], function(add)
 	end
 	One(1, CF.COMMAND, "cure")
 	if CureEach(db) then One(2, CF.COMMAND2, "second cure") end
+	-- Where the button learns who needs a cure in a fight (Prompt/CureNeed.lua).
+	add(PASS, "cure need: " .. (ns.CureNeed and ns.CureNeed.Words() or "from the auras"))
 end)
 
 Check("fight.moments", "fight", L["buttons for the moment"], function(add)

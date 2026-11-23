@@ -668,6 +668,34 @@ do
 		return out
 	end
 
+	-- Every cure this character can cast in a fight, one entry a spell: the
+	-- spells of CureFightSpells first (the same tables), then each other cure
+	-- known (a druid's Abolish Poison beside Cure Poison), in the rows' order,
+	-- with the kinds it takes off. What the plain press, Shift and Ctrl may be
+	-- given (Prompt/CureFight.lua, Chosen). nil with nothing learned.
+	function ns.CureFightKnown()
+		local first = ns.CureFightSpells()
+		if not first then return nil end
+		local state = State()
+		if state.known then return state.known end
+		local out = {}
+		for i = 1, #first do out[i] = first[i] end
+		for _, cure in ipairs(state.all) do
+			local found = false
+			for i = 1, #out do
+				if out[i].cure.ranks == cure.ranks then found = true break end
+			end
+			if not found then
+				local kinds = {}
+				for kind in pairs(state.lifts[cure.ranks] or {}) do kinds[kind] = true end
+				out[#out + 1] = { cure = cure, name = cure.info.name, kinds = kinds,
+					anyTarget = ANY_TARGET[cure.ranks[1]] == true }
+			end
+		end
+		state.known = out
+		return out
+	end
+
 	-- What on `unit` the fight's button could take off now: the kind, the
 	-- debuff's name and when it ends, of the one with most time left whose
 	-- cure lifts no kind a debuff never removed is of (Spares' rule, without

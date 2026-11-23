@@ -2303,6 +2303,12 @@ local function RememberPasserBy(entry, now, within, hasMana, guid)
 	memo.known, memo.checked, memo.close = entry.known, entry.checked, entry.close
 	memo.withheld = entry.withheld
 	memo.guild = entry.guild
+	-- Their level while a token still says it, for the rank the macro names
+	-- once none does (Prompt/Macro.lua, ns.CastName): without it a low
+	-- passer-by remembered was cast at your best rank, and refused (GitHub
+	-- issue 42). A level withheld or a skull is none.
+	local level = entry.unit and plain(UnitLevel(entry.unit))
+	memo.level = type(level) == "number" and level >= 1 and level or nil
 	memo.expires = entry.remaining and (now + entry.remaining) or nil
 	memo.seconds, memo.lead, memo.leadKind = entry.duration, entry.lead, entry.leadKind
 end
@@ -2446,6 +2452,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 			}
 			-- Written after the table is built, as in the scan's own entry.
 			if memo.guild then queue[#queue].guild = memo.guild end
+			if memo.level then queue[#queue].level = memo.level end
 		end
 	end
 end
@@ -3245,6 +3252,11 @@ function ns.BuildQueue(watch)
 	-- everybody the walk reaches.
 	-- tanksOutside is the scan's, the same for everybody, so written once here.
 	local opts = { unpaid = UNPAID, tanksOutside = tanksOutside }
+	-- A buff for the party's tank alone in hand (Buffs.lua, forTank: the imp's
+	-- Fire Shield): the walk reads the role of everybody in the group for it.
+	for _, buff in ipairs(candidates) do
+		if buff.forTank then opts.forTank = true end
+	end
 	-- Cures (Cures.lua): the two switches as this scan has them, or nil with
 	-- none to offer (both off, nothing learned, a fight). The scan's too.
 	opts.cures = ns.CureScanned()
@@ -3557,6 +3569,8 @@ function ns.BuildQueue(watch)
 		local tanksOnly = not asked and tanksHeld or nil
 		opts.tanksOnly = tanksOnly
 		opts.isTank = tanksOnly and inGroup and ns.IsTankUnit(unit) or nil
+		-- And for the party's tank alone (opts.forTank, the scan's): never a pet.
+		if opts.isTank == nil and opts.forTank and inGroup and not owner then opts.isTank = ns.IsTankUnit(unit) end
 		-- And for a buff for one target at a time (Core.lua, Castable): who
 		-- wears yours, whether they tank, and their class (Symbiosis).
 		opts.oneHeld = oneHeld

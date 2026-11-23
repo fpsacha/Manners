@@ -17,7 +17,7 @@ local K = dofile(dir .. "/tests/momentskit.lua")
 K.plain = true
 
 local KEYS = { "counterspell", "spellsteal", "blink", "iceblock", "coldsnap", "evocation", "managem", "drink", "slowfall",
-	"fireward", "frostward" }
+	"fireward", "frostward", "purge", "dispel", "tranq", "shieldslam" }
 
 local function with(name, body, opts) K.withMage(H, "moments-options: " .. name, body, opts) end
 local function name(s) return "moments-options: " .. s end

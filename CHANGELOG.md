@@ -26,6 +26,11 @@
   second or more later, casts: a stray click or a double click never does.
 - **Spellsteal** lights while your target carries a buff you can steal
   (Burning Crusade and later).
+- **Purge, Dispel Magic, Tranquilizing Shot, Shield Slam.** A shaman, priest,
+  hunter or warrior gets a button that lights while a hostile target in reach
+  carries a buff the spell removes (an enrage, for Tranquilizing Shot). *Show
+  Purge when my target has a buff I can remove*, In a fight; Shield Slam's is
+  off at first.
 - **A drink when your mana is low.** Out of a fight, for every class with mana:
   a button lights while your mana is under *Mana below* and a drink is in your
   bags; a press drinks your best conjured water, else another drink. *Show a
@@ -60,6 +65,23 @@
 - **How much to trade.** *Fill the trade window* is the default, for your target
   and for water and food somebody asked for; *One stack* puts one of each.
 
+### Fire Shield from your imp on the tank
+- **Warlocks on Classic Era, WoW Forever and Burning Crusade.** Tick *Fire
+  Shield from my imp on the tank* on Who to buff: while your imp is out and
+  knows it, your party's tank is offered Fire Shield, and a press has the imp
+  cast it on them. Off by default; the tank is whoever has the tank role.
+
+### Curing in a fight
+- **The game shows who needs your cure.** On WoW Forever, where the game hides
+  debuffs from addons in a fight, the game itself now shows the debuff on the
+  cure button's place; a click there casts as the second of two quick clicks,
+  the key at once. It follows a new target or a reshuffled group at once.
+- **Shift and Ctrl for each cure.** *Plain press*, *With Shift* and *With Ctrl*
+  under the cure switch pick the cure each casts (a druid: Remove Curse, Cure
+  Poison, Abolish Poison). The key's tooltip names them. *Nothing* on Shift or
+  Ctrl casts nothing with that key held.
+- **One cure switch.** It is set on In a fight; Who to buff points there.
+
 ### Report a bug
 - **One window.** Choose what went wrong, press **Make the report**, open the
   link and paste the report. Your name, realm and guild never go in the link,
@@ -75,6 +97,10 @@
   keys* group.
 
 ### Fixes
+- **The right rank for a low-level player.** The prompt casts the best rank of
+  Fortitude (or any ranked buff) that player can take, as your action bar does:
+  never a rank you skipped at the trainer, also for a passer-by after your cursor
+  leaves them, and right from the first offer. `/manners debug` says when it could not.
 - **Righteous Fury alone.** Righteous Fury on Automatic now reminds a Protection
   paladin playing alone, by talents. (A contributed fix.)
 - **Unending Breath only while you swim.** *Offer Unending Breath to others only

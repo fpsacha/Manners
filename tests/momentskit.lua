@@ -28,6 +28,9 @@
 --   Mock.targetBuffs = { { steal = true | false | "nil" }, ... }; Mock.buffsWithheld (the records'
 --   flags come back as hidden values and the index read as a hidden record), Mock.buffsHidden (whole)
 --   Mock.indexHidden (only the index read is hidden: the id list and the records stay plain)
+--   An entry's `kind` is its dispelName ("Magic", "" for an enrage), hidden with Mock.buffsWithheld or
+--   Mock.kindsHidden; `dispel = true` puts it in the game's filter of what your group could remove
+--   ("HELPFUL|RAID_PLAYER_DISPELLABLE"; Mock.filterThrows: the client refuses the filter; Mock.filterAsked counts)
 --   Mock.falling, Mock.flying, Mock.onTaxi, Mock.aimedAtMe (true, false, Mock.secret(...), nil)
 --   The drink (Prompt/MomentsSense.lua): Mock.bags[itemId] = count again (C_Container walks it, the
 --   ids in order), Mock.playerLevel (UnitLevel, else the mock's 12), Mock.itemMinLevel[itemId],
@@ -51,6 +54,7 @@ K.MAGE_SPELLS = MAGE_SPELLS
 
 local function names()
 	local later = Mock.flavour == "tbc" or Mock.flavour == "mists" or Mock.flavour == "mainline"
+	local mists = Mock.flavour == "mists" or Mock.flavour == "mainline"
 	return {
 		[2139] = "Counterspell", [1953] = "Blink", [12051] = "Evocation", [130] = "Slow Fall",
 		[11958] = later and "Cold Snap" or "Ice Block", [12472] = "Cold Snap", [45438] = "Ice Block",
@@ -61,6 +65,11 @@ local function names()
 		[759] = "Conjure Mana Agate", [3552] = "Conjure Mana Jade", [10053] = "Conjure Mana Citrine",
 		[10054] = "Conjure Mana Ruby", [27101] = "Conjure Mana Emerald",
 		[430] = "Drink", [1137] = "Drink", [433] = "Food",
+		-- The other classes' spells that strip a buff.
+		[370] = "Purge", [8012] = "Purge", [988] = "Dispel Magic", [19801] = "Tranquilizing Shot",
+		[527] = mists and "Purify" or "Dispel Magic", [528] = mists and "Dispel Magic" or "Cure Disease",
+		[23922] = "Shield Slam", [23923] = "Shield Slam", [23924] = "Shield Slam", [23925] = "Shield Slam",
+		[25258] = "Shield Slam", [30356] = "Shield Slam",
 	}
 end
 
@@ -264,6 +273,10 @@ function K.install()
 		elseif flag ~= "nil" then
 			rec.isStealable = flag == true
 		end
+		-- The kind (dispelName): plain, or hidden with the flags (Mock.buffsWithheld) or
+		-- alone (Mock.kindsHidden).
+		if Mock.buffsWithheld or Mock.kindsHidden then rec.dispelName = Mock.secret(entry.kind)
+		else rec.dispelName = entry.kind end
 		return rec
 	end
 	local aurasOut = setmetatable({
@@ -291,6 +304,16 @@ function K.install()
 		GetUnitAuraInstanceIDs = function(unit, filter)
 			if unit ~= "target" then return {} end
 			local list = {}
+			-- The game's filter of what somebody in your group could remove: the entries
+			-- marked `dispel`; refused where Mock.filterThrows says the client does not know it.
+			if type(filter) == "string" and filter:find("RAID_PLAYER_DISPELLABLE", 1, true) then
+				if Mock.filterThrows then error("bad filter", 2) end
+				Mock.filterAsked = (Mock.filterAsked or 0) + 1
+				for i, entry in ipairs(Mock.targetBuffs or {}) do
+					if entry.dispel then list[#list + 1] = 100 + i end
+				end
+				return list
+			end
 			for i = 1, #(Mock.targetBuffs or {}) do list[i] = 100 + i end
 			return list
 		end,
@@ -366,7 +389,8 @@ local FIELDS = { "health", "healthMax", "healthSecret", "percentScale", "mana", 
 	"lockFlag", "playerAuras", "noCurves", "noHealthPercent", "inCooldownEvent", "falling", "aimedAtMe",
 	"coverLeaks", "refuseAlphaFromBoolean", "lossOfControl", "lossOfControlShape", "asked", "bags", "bagsSecret",
 	"itemCooldown", "targetBuffs", "buffsWithheld", "buffsHidden", "flying", "onTaxi", "dead", "fallingSecret", "indexHidden",
-	"playerLevel", "itemMinLevel", "itemUnusable", "mounted", "swimming", "shapeshift", "drinkAura", "hiddenValues" }
+	"playerLevel", "itemMinLevel", "itemUnusable", "mounted", "swimming", "shapeshift", "drinkAura", "hiddenValues",
+	"kindsHidden", "filterThrows", "filterAsked" }
 function K.clear()
 	for _, field in ipairs(FIELDS) do Mock[field] = nil end
 end

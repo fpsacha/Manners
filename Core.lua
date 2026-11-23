@@ -799,6 +799,12 @@ local defaults = {
 			-- first, each shown only for the kinds its cure takes off. Off: one
 			-- button, the second cure on Shift (Prompt/CureFight.lua).
 			cureFightEach = true,
+			-- Which cure the cure button's plain press, Shift and Ctrl cast, kept per
+			-- class (CLASS -> { plain =, shift =, ctrl = }, each a spell's first rank
+			-- id, 0 for nothing), since every character shares the profile. Empty:
+			-- the class's first cure plain, its second on Shift, its third on Ctrl
+			-- (Prompt/CureFight.lua, Chosen).
+			cureFightMods = {},
 			-- The spell the prompt's own key casts in a fight, by a row key of
 			-- Prompt/FightKey.lua's list, kept per class (CLASS -> key) because
 			-- every character shares the profile; none, or "none", keeps the key
@@ -989,11 +995,13 @@ local defaults = {
 		-- spot, above the action bars) and its size in pixels.
 		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 40 },
 		-- Buttons for the moment (Prompt/Moments.lua): a switch for each, all on
-		-- by default (the drink only has a row for a class with mana); health and
+		-- by default but Shield Slam, which a warrior presses anyway (the drink
+		-- only has a row for a class with mana); health and
 		-- mana are the shares under which the buttons for low health and low
 		-- mana light, in percent.
 		moments = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
 			evocation = true, managem = true, drink = true, slowfall = true, fireward = true, frostward = true,
+			purge = true, dispel = true, tranq = true, shieldslam = false,
 			health = 20, mana = 20, cardSize = 100 },
 	},
 }
@@ -1120,6 +1128,18 @@ do
 			if SpellKnown(id) then
 				info.known = true
 				info.topRank = info.topRank or id
+				-- Which ranks you know, for the rank a macro names for somebody
+				-- low (LandingRank): a priest who skipped Fortitude's fourth at
+				-- the trainer has none to cast (GitHub issue 42). And the
+				-- client's words for each ("Rank 3", "Rang 3"), which it may
+				-- not have loaded yet (C_Spell.GetSpellSubtext "may be empty if
+				-- spell's data isn't loaded yet"): asked for now, at the probe,
+				-- so they are there by the first offer.
+				if #buff.ranks > 1 then
+					info.ranksKnown = info.ranksKnown or {}
+					info.ranksKnown[id] = true
+					safecall(C_Spell and C_Spell.RequestLoadSpellData, id)
+				end
 				-- For your own buffs, every name a rank you know goes by: the
 				-- reading on yourself matches by them too (ReadOwnFamily), so
 				-- a rank missing from the table cannot read as never up.
@@ -1146,6 +1166,15 @@ do
 				info.groupIcon = safecall(C_Spell and C_Spell.GetSpellTexture, rank.id)
 				break
 			end
+		end
+
+		-- Your pet's spell (Buffs.lua, `pet`: the imp's Fire Shield): yours to switch
+		-- on once you know the summon, whatever pet is out; the ranks are the pet's
+		-- and never in your own spellbook, so no rank of it is yours to name. What
+		-- the pet out knows is asked at the scan (ns.PetCasts).
+		if buff.pet then
+			info.known = SpellKnown(buff.pet) or nil
+			info.topRank, info.ranksKnown = nil, nil
 		end
 
 		-- The macro casts by name and the game picks the best rank of it, so the name
@@ -1729,6 +1758,66 @@ do
 	end
 end
 
+-- Whether your pet can cast a buff of its own (Buffs.lua, `pet`: the imp's Fire
+-- Shield) right now: a pet out, not dead, that knows a rank of it in the pet's
+-- spellbook (C_SpellBook's pet bank where the client has it, IsSpellKnown's
+-- isPet otherwise). Kept until the pet or the spellbook changes (UNIT_PET,
+-- SPELLS_CHANGED: ns.ForgetPetSpells), so a scan asks the client nothing. In a
+-- block of its own for the main chunk's 200 locals.
+do
+	local petKnows = {}
+	local function PetSpellKnown(id)
+		local book = C_SpellBook
+		local bank = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet
+		if type(book) == "table" and bank ~= nil then
+			if safecall(book.IsSpellKnown, id, bank) == true or safecall(book.IsSpellInSpellBook, id, bank, false) == true then
+				return true
+			end
+		end
+		return safecall(_G.IsSpellKnown, id, true) == true
+	end
+	function ns.PetCasts(buff)
+		local key = buff and buff.key
+		if key == nil then return false end
+		local answer = petKnows[key]
+		if answer == nil then
+			answer = false
+			local exists, dead = _G.UnitExists, _G.UnitIsDead
+			if type(exists) == "function" and plain(exists("pet")) == true
+				and not (type(dead) == "function" and plain(dead("pet")) == true) then
+				for _, id in ipairs(buff.ranks or {}) do
+					if PetSpellKnown(id) then
+						answer = true
+						break
+					end
+				end
+			end
+			petKnows[key] = answer
+		end
+		return answer
+	end
+	function ns.ForgetPetSpells()
+		for key in pairs(petKnows) do petKnows[key] = nil end
+	end
+	-- `list` without your pet's buffs that no pet out can cast now: the same
+	-- table when there is none to leave out (every class but a warlock), else a
+	-- new one, so a list kept by its maker is never changed.
+	function ns.PetReady(list)
+		local out
+		for i, buff in ipairs(list) do
+			if buff.pet and not ns.PetCasts(buff) then
+				if not out then
+					out = {}
+					for j = 1, i - 1 do out[j] = list[j] end
+				end
+			elseif out then
+				out[#out + 1] = buff
+			end
+		end
+		return out or list
+	end
+end
+
 -- Everything of this class the player can actually cast, in list order (the
 -- player's own, when one is set: ns.WalkBuffs), once per scan. A neverAuto buff
 -- (Unending Breath) and a switched-off one are left out unless pinned: a pin is
@@ -1753,6 +1842,8 @@ function ns.CastableBuffs()
 	local walk, custom = ns.WalkBuffs()
 	if custom then strongestFirst = false end
 	local out = {}
+	-- Your pet's (Buffs.lua, `pet`: the imp's Fire Shield) only while a pet out knows it.
+	walk = ns.PetReady(walk)
 	for _, buff in ipairs(walk) do
 		if ns.IsBuffKnown(buff)
 			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
@@ -2249,6 +2340,10 @@ do
 		-- buff.notMeInside): SelfBuff hands the set only while you are in one.
 		if opts.notMeInside and buff.tankChoice and opts.notMeInside[buff.key] then return false end
 		if buff.partyOnly and not opts.inParty then return false end
+		-- The party's tank alone (Buffs.lua, forTank: the imp's Fire Shield): a
+		-- member the game calls one (opts.isTank, read by the walk while such a
+		-- buff is in hand), or anybody who asked for it by name.
+		if buff.forTank and not (opts.isTank or opts.asked) then return false end
 		-- Salvation: the game refuses it on anybody outside your party or raid.
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
 		-- Held to your group by Manners' choice, where the game would take any
@@ -4988,13 +5083,17 @@ end
 -- The best rank of `buff` you know that your cast lands on somebody of `level`
 -- (the game lands the best rank you know up to ten levels above theirs): its
 -- id, or nil when none is known or none is within reach. The test UnitHasBuff
--- makes of a rank worn, below, asks the same of the same ranks.
+-- makes of a rank worn, below, asks the same of the same ranks. Only a rank
+-- you know (ProbeBuff, ranksKnown): one skipped at the trainer is no rank to
+-- name, and "/cast Power Word: Fortitude(Rank 4)" without it casts nothing
+-- (GitHub issue 42). An answer with no list says nothing against any rank.
 local function LandingRank(buff, info, level)
 	local best = ns.RankLevel(info.topRank)
 	if not best then return nil end
 	local reach, landing, landed = math.min(best, level + 10), nil, nil
+	local known = info.ranksKnown
 	for _, rank in ipairs(buff.ranks) do
-		local at = ns.RankLevel(rank)
+		local at = (not known or known[rank]) and ns.RankLevel(rank)
 		if at and at <= reach and (not landing or at > landing) then landing, landed = at, rank end
 	end
 	return landed
@@ -5100,6 +5199,8 @@ local function UnitHasBuff(unit, buff, guid)
 					-- Direct: a client-written token, which UnitIsUnit never throws on.
 					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
+					-- Your pet's buff (Buffs.lua, `pet`) names your pet as its caster.
+					if same == false and buff.pet and plain(UnitIsUnit(source, "pet")) == true then mine = true end
 					-- Named as the caster on somebody else: this client says so
 					-- for your casts, as WoW Forever does.
 					if same == true and plain(UnitIsUnit(unit, "player")) == false then ns.namesYourCasts = true end
@@ -6313,6 +6414,17 @@ function ns.ClampSettings()
 	-- per class. Carried to the class whose list holds it when that is one
 	-- class alone; a key two classes share (flash) goes to the class logging
 	-- in when its list holds it, else it is dropped.
+	-- The cure button's spells per modifier, per class: a table of numbers.
+	if type(p.cureFightMods) ~= "table" then p.cureFightMods = {} end
+	for class, mods in pairs(p.cureFightMods) do
+		if type(class) ~= "string" or type(mods) ~= "table" then
+			p.cureFightMods[class] = nil
+		else
+			for mod, id in pairs(mods) do
+				if (mod ~= "plain" and mod ~= "shift" and mod ~= "ctrl") or type(id) ~= "number" then mods[mod] = nil end
+			end
+		end
+	end
 	if type(p.fightKeySpells) ~= "table" then p.fightKeySpells = {} end
 	for class, key in pairs(p.fightKeySpells) do
 		if type(class) ~= "string" or type(key) ~= "string" then p.fightKeySpells[class] = nil end
@@ -6609,6 +6721,18 @@ function addon:OnEnable()
 		end)
 	end
 
+	-- Your pet's buff for others (Buffs.lua, `pet`: the imp's Fire Shield), for a
+	-- class that has one: the pet coming and going (UNIT_PET) says what it can
+	-- cast (ns.PetCasts), and its casts answer a press (Clicks.lua, HearPetCasts).
+	local _, class = UnitClass("player")
+	for _, buff in ipairs(ns.GetClassBuffs(plain(class)) or {}) do
+		if buff.pet then
+			ns.Guard("RegisterEvent UNIT_PET", function() self:RegisterEvent("UNIT_PET") end)
+			ns.Guard("pet casts", ns.HearPetCasts)
+			break
+		end
+	end
+
 	-- The combat log only where the client is believed to have one: Forever
 	-- and retail 12.0+ forbid the registration, and asking there would print
 	-- a red line on every login. Armed only once the call went through, and
@@ -6853,7 +6977,15 @@ function addon:PLAYER_STOPPED_MOVING() ns.NoteMoving(GetTime(), false) end
 -- popup. Nothing shows that a call from an event handler is allowed, and a
 -- Blizzard popup hidden from addon code risks taint.
 
+-- Your pet out, dismissed or another summoned: what it can cast is asked again
+-- at the next scan (ns.PetCasts). Registered only for a class with a pet's buff.
+function addon:UNIT_PET(_, unit)
+	if unit ~= "player" then return end
+	ns.ForgetPetSpells()
+end
+
 function addon:SPELLS_CHANGED()
+	ns.ForgetPetSpells()
 	local now = GetTime()
 	if now - lastProbe < 5 then
 		if not probeQueued and C_Timer and C_Timer.After then

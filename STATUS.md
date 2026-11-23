@@ -52,7 +52,7 @@ stands now. Keep it short: what ships goes to the history file or away.
   the prompt), Counterspell, Blink, Ice Block, Cold Snap, Evocation, the mana
   gem (counted at the pull, `Moments:Take`, and on bag events), Slow Fall (a
   watch asks IsFalling while you move or fight; Lua shows and hides its button
-  out of a fight), Spellsteal, Fire Ward and Frost Ward (on, lit by a fire or frost hit while the
+  out of a fight), Spellsteal (and slot 8 for the other classes: Purge, Dispel Magic, Tranquilizing Shot, Shield Slam off by default; the `removable` signal), Fire Ward and Frost Ward (on, lit by a fire or frost hit while the
   target is hostile; and by the school of the target's own cast, three routes,
   below), the
   cure button's cover (`db.global.cureCoverLeaks`), the diagnostics (a line per
@@ -164,11 +164,49 @@ stands now. Keep it short: what ships goes to the history file or away.
   look's 256 x 64 picture, which is soft above the 1.5 times it is drawn at; live
   painted pieces would repeat the layout of every look (each has its own
   `PaintedPlace`) and a larger picture needs `render_prompt.py` drawn at four times.
+- **Cure button from the game's aura display (issue 43),** on branch
+  `feedback-1123` (worktree `Manners-wt-feedback`, cut from `mage-moments`), not
+  merged: on Forever 1.60.1 the game's list of removable debuffs throws for an
+  addon in a fight, so every cure read was withheld. `Prompt/CureNeed.lua` puts
+  the game's own `CustomAuraContainerTemplate` (one aura slot, `HARMFUL|RAID`,
+  narrowed to each button's kinds by `includeDispelTypes`) under each cure
+  button for you, target, focus, party and raid; the button stays dark and takes
+  two quick clicks there. Shift and Ctrl per cure (`prompt.cureFightMods`, per
+  class; *Plain press*, *With Shift*, *With Ctrl*), the key's tooltip naming
+  them, and Who to buff's cure switch replaced by a pointer to In a fight.
+  Scenarios `curefight-container.lua`, `curefight-mods.lua`, mutations of the
+  same names, all CAUGHT. The offensive dispels the issue also asks for (Purge,
+  Tranquilizing Shot, Shield Slam, offensive Dispel Magic) are not built.
+  Game-only questions: whether an addon's `CreateFrame("AuraContainer", ...,
+  "CustomAuraContainerTemplate")` is allowed on Forever (the check-up's *cure
+  need* line says "from the game's aura display" or "withheld (... refused: why)");
+  whether its slot frame then shows a curse in a fight (the player's eyes); whether
+  `includeDispelTypes` filters a secret dispel type (else a button shows every
+  removable kind); whether `EnableMouse(false)` is allowed on the slot frame
+  (else its tooltip shows under the cover); whether Ctrl on the cure key reaches
+  it when Ctrl plus that key is bound to something else in the game.
+- **Fire Shield from the imp on the tank (issue 22),** on branch `feedback-1123`,
+  not merged: a warlock's buff for others cast by his pet (`Buffs.lua`
+  `fireshield`, new flags `pet` = 688 Summon Imp and `forTank`; Classic Era,
+  Forever, Burning Crusade; three minutes, target 35 so `partyOnly`; `optIn`,
+  `neverSelf`). Known once Summon Imp is; offered only while a pet out knows a
+  rank in the pet's spellbook (`ns.PetCasts`, kept until `UNIT_PET` or
+  `SPELLS_CHANGED`; `ns.PetReady` in `CastableBuffs`), only to the party member
+  `ns.IsTankUnit` calls a tank or one who asks by name (`Castable`; the walk reads
+  roles while such a buff is in hand, `opts.forTank`). The press is the usual
+  `/target` and `/cast Fire Shield`; the pet's `UNIT_SPELLCAST_SUCCEEDED` (a frame
+  of its own, `ns.HearPetCasts`) settles it, since no SENT comes for a pet. Your
+  imp's aura on the tank reads as yours. Switch *Fire Shield from my imp on the
+  tank*, Who to buff. Scenarios `fireshield.lua`, mutations `fireshield.py`, all
+  CAUGHT. Game-only question: does `/cast Fire Shield` from the prompt's press
+  have the imp cast it on the target the `/target` line picked, on each client
+  (Forever has no `[@unit]`), and does the pet's cast event arrive within half a
+  second (else the press reads "nothing was cast" after two seconds, and the
+  tank is offered it again only until the aura shows).
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option
-  went missing; nothing was found removed), issue 22 (the imp's Fire Shield),
-  issue 21 (no popup: their client and `/manners debug`). The cure button on
+  went missing; nothing was found removed), issue 21 (no popup: their client and `/manners debug`). The cure button on
   Forever under secret auras is only proven in the simulator: user_fer3yhwuvuz52jwg
   and LuckyDan were asked for `/manners debug` if it still does not show.
 - **Next:** (1) rewrite the retail and Mists baselines: `python

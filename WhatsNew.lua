@@ -15,6 +15,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffBlink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.|r Each lights at its moment: stunned or rooted, low health (|cffffffffHealth below|r, 20 by default), low mana (|cffffffffMana below|r), a second into a fall.",
 			"|cff7cc4ffTwo quick clicks.|r Where only the game knows whether a button is lit, the first click shows a ring and the spell's icon, and the second, a third of a second or more later, casts: a stray click or a double click never does.",
 			"|cff7cc4ffSpellsteal|r lights while your target carries a buff you can steal (Burning Crusade and later).",
+			"|cff7cc4ffPurge, Dispel Magic, Tranquilizing Shot, Shield Slam.|r A shaman, priest, hunter or warrior gets a button that lights while a hostile target in reach carries a buff the spell removes (an enrage, for Tranquilizing Shot).",
 			"|cff7cc4ffA drink when your mana is low.|r Out of a fight, for every class with mana: a button lights while your mana is under |cffffffffMana below|r and a drink is in your bags; a press drinks your best conjured water, else another drink.",
 			"|cff7cc4ffFire Ward and Frost Ward|r light when your target casts a fire or frost spell, and as soon as it hits you with fire or frost.",
 			"|cff7cc4ffCards in your look.|r Each button is a small prompt in your look, as big as the prompt itself, above it, with the spell, its name and why; |cffffffffCard size|r (80 to 150, 100 by default) changes it.",
@@ -30,6 +31,14 @@ ns.WhatsNew = {
 			"|cff7cc4ffOffer water and food to my target|r (mages).",
 			"|cff7cc4ffHow much to trade.|r |cffffffffFill the trade window|r is the default, for your target and for water and food somebody asked for; |cffffffffOne stack|r puts one of each.",
 		} },
+		{ title = "Fire Shield from your imp on the tank", accent = "7cc4ff", entries = {
+			"|cff7cc4ffWarlocks on Classic Era, WoW Forever and Burning Crusade.|r Tick |cffffffffFire Shield from my imp on the tank|r on Who to buff: while your imp is out and knows it, your party's tank is offered Fire Shield, and a press has the imp cast it on them.",
+		} },
+		{ title = "Curing in a fight", accent = "7cc4ff", entries = {
+			"|cff7cc4ffThe game shows who needs your cure.|r On WoW Forever, where the game hides debuffs from addons in a fight, the game itself now shows the debuff on the cure button's place; a click there casts as the second of two quick clicks, the key at once.",
+			"|cff7cc4ffShift and Ctrl for each cure.|r |cffffffffPlain press|r, |cffffffffWith Shift|r and |cffffffffWith Ctrl|r under the cure switch pick the cure each casts (a druid: Remove Curse, Cure Poison, Abolish Poison).",
+			"|cff7cc4ffOne cure switch.|r It is set on In a fight; Who to buff points there.",
+		} },
 		{ title = "Report a bug", accent = "7cc4ff", entries = {
 			"|cff7cc4ffOne window.|r Choose what went wrong, press |cffffffffMake the report|r, open the link and paste the report.",
 		} },
@@ -37,6 +46,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffMark this moment.|r A key (|cffffffffKey for Mark this moment|r on Diagnostics), the minimap menu and /manners mark note the prompt, the queue and the fight buttons.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52The right rank for a low-level player.|r The prompt casts the best rank of Fortitude (or any ranked buff) that player can take, as your action bar does: never a rank you skipped at the trainer, also for a passer-by after your cursor leaves them, and right from...",
 			"|cffff9a52Righteous Fury alone.|r Righteous Fury on Automatic now reminds a Protection paladin playing alone, by talents.",
 			"|cffff9a52Unending Breath only while you swim.|r |cffffffffOffer Unending Breath to others only while I am swimming|r, under its switch on Who to buff, off by default.",
 			"|cffff9a52In character thank-yous for a hunter or a rogue.|r |cffffffffWhen someone buffs me|r, at the top of What I say and on Start here, offers |cffffffffIn character (fits your race and class)|r, which turns on |cffffffffWhisper a thank-you to people I can't buff back|r.",

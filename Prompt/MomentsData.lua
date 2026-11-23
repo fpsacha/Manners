@@ -36,12 +36,41 @@
 --              cast), it takes two quick clicks, at least a third of a second apart
 --   cooldown   seconds, for Manners' own clock; shares, resets, partner,
 --              school, breaks, lockout, reagent, seconds: see Sense
+--   kinds      the aura kinds (dispelName) the spell strips from a hostile target,
+--              for `removable`: "Magic", and "" and "Enrage" for an enrage
+--   purge      the spell removes magic: the game's isStealable flag (stolen or
+--              purged by you) counts too, and carries the hidden route
 --
 -- The ids are the ones each client's spell book names (data-sources.md).
 
 local _, ns = ...
 
 local function Row(fields) return fields end
+
+-- Slot 8 strips a buff from a hostile target: the mage's Spellsteal, and the
+-- spells of the other classes that remove one (the dispel effect of each, read
+-- from SpellEffect at the builds data-sources.md cites: kind 1 Magic, 9 Enrage).
+local MAGIC = { Magic = true }
+local ENRAGE = { [""] = true, Enrage = true }
+local ENRAGE_MAGIC = { [""] = true, Enrage = true, Magic = true }
+local STRIP = { "fight", "ready", "usable", "enemy", "inrange", "removable" }
+local function Strip(key, ranks, kinds, extra)
+	local row = Row { key = key, slot = 8, ranks = ranks, kinds = kinds, purge = kinds.Magic == true, stop = true,
+		guard = "twice", needs = STRIP }
+	for field, value in pairs(extra or {}) do row[field] = value end
+	return row
+end
+-- A warrior's Shield Slam: no "/stopcasting" (it would cancel a Slam under way).
+local function Slam(ranks)
+	return Strip("shieldslam", ranks, MAGIC, { stop = false, cooldown = 6 })
+end
+local function AddStrips(set, rows)
+	for class, row in pairs(rows) do
+		local list = set[class] or {}
+		set[class] = list
+		list[#list + 1] = row
+	end
+end
 
 -- Forever (camelot) and Classic Era (vanilla): Ice Block and Cold Snap are
 -- talents there, learned or not by the spell book.
@@ -149,6 +178,21 @@ local MAINLINE = {
 	},
 }
 
+-- The other classes' strips, slot 8 like Spellsteal: Purge 8012/370, Dispel Magic
+-- 988/527 (528 on Mists and retail, where 527 is Purify), Tranquilizing Shot 19801
+-- (an enrage on Forever, Classic Era and Burning Crusade; an enrage or magic on
+-- Mists and retail), Shield Slam 23922.. (magic; retail's no longer dispels).
+local SLAM_OLD = { 23925, 23924, 23923, 23922 }
+AddStrips(OLD, { SHAMAN = Strip("purge", { 8012, 370 }, MAGIC), PRIEST = Strip("dispel", { 988, 527 }, MAGIC),
+	HUNTER = Strip("tranq", { 19801 }, ENRAGE, { cooldown = 20 }), WARRIOR = Slam(SLAM_OLD) })
+AddStrips(TBC, { SHAMAN = Strip("purge", { 8012, 370 }, MAGIC), PRIEST = Strip("dispel", { 988, 527 }, MAGIC),
+	HUNTER = Strip("tranq", { 19801 }, ENRAGE, { cooldown = 20 }),
+	WARRIOR = Slam({ 30356, 25258, 23925, 23924, 23923, 23922 }) })
+AddStrips(MISTS, { SHAMAN = Strip("purge", { 370 }, MAGIC), PRIEST = Strip("dispel", { 528 }, MAGIC),
+	HUNTER = Strip("tranq", { 19801 }, ENRAGE_MAGIC), WARRIOR = Slam({ 23922 }) })
+AddStrips(MAINLINE, { SHAMAN = Strip("purge", { 370 }, MAGIC), PRIEST = Strip("dispel", { 528 }, MAGIC),
+	HUNTER = Strip("tranq", { 19801 }, ENRAGE_MAGIC, { cooldown = 10 }) })
+
 -- The drink, out of a fight, for every class that keeps a mana bar (a hunter
 -- uses focus on Mists and retail, a warrior or a rogue has none). `forms` is
 -- true only where a shapeshift stops you drinking (a druid, a shaman's Ghost
@@ -180,12 +224,14 @@ local SETS = { camelot = OLD, vanilla = OLD, tbc = TBC, mists = MISTS, mainline 
 -- The profile's defaults for every key any set may name (Core.lua repeats
 -- them in defaults.profile.moments; a scenario holds the two together).
 ns.MOMENT_DEFAULTS = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
-	evocation = true, managem = true, drink = true, slowfall = true, fireward = true, frostward = true }
+	evocation = true, managem = true, drink = true, slowfall = true, fireward = true, frostward = true,
+	-- A warrior presses Shield Slam anyway: its button waits to be asked for.
+	purge = true, dispel = true, tranq = true, shieldslam = false }
 
 -- The keys of every row, in the order the options page lists them, for the
 -- scenarios and the reset list.
-ns.MOMENT_KEYS = { "counterspell", "spellsteal", "blink", "iceblock", "coldsnap", "evocation", "managem",
-	"drink", "slowfall", "fireward", "frostward" }
+ns.MOMENT_KEYS = { "counterspell", "spellsteal", "purge", "dispel", "tranq", "shieldslam", "blink", "iceblock",
+	"coldsnap", "evocation", "managem", "drink", "slowfall", "fireward", "frostward" }
 
 local flavour = ns.Flavour and ns.Flavour.flavour
 ns.MOMENTS = SETS[flavour] or {}

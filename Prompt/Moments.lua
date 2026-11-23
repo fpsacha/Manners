@@ -98,7 +98,8 @@ local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 -- so it has no button, no switch and no binding name of a spell (a class's new
 -- row stays out of sight until its signals are written).
 local BUILT = { counterspell = true, iceblock = true, blink = true, evocation = true, managem = true,
-	slowfall = true, coldsnap = true, spellsteal = true, fireward = true, frostward = true, drink = true }
+	slowfall = true, coldsnap = true, spellsteal = true, fireward = true, frostward = true, drink = true,
+	purge = true, dispel = true, tranq = true, shieldslam = true }
 
 -- What Bindings.xml declares: eleven bindings, one a slot.
 for i = 1, MAX do
@@ -1539,7 +1540,9 @@ local function RegisterFight()
 			if needs.casting or needs.interruptible then
 				for _, name in ipairs(TARGET_CAST) do Register(name, "target") end
 			end
-			if needs.casting or needs.enemy or needs.inrange or needs.stealable then Register("PLAYER_TARGET_CHANGED") end
+			if needs.casting or needs.enemy or needs.inrange or needs.stealable or needs.removable then
+				Register("PLAYER_TARGET_CHANGED")
+			end
 			if needs.lowhealth then
 				Register("UNIT_HEALTH", "player")
 				Register("UNIT_MAXHEALTH", "player")
@@ -1559,7 +1562,7 @@ local function RegisterFight()
 			if needs.schoolhit then
 				for _, name in ipairs(TARGET_CAST) do Register(name, "target") end
 			end
-			if needs.stealable then Register("UNIT_AURA", "target") end
+			if needs.stealable or needs.removable then Register("UNIT_AURA", "target") end
 		end
 	end
 end
