@@ -3145,10 +3145,13 @@ do
 		char.ownLast[family.key] = spell.key
 	end
 
-	-- Whether you are the tank: only a role the game names, in a group. Solo,
-	-- or with no role set, nobody is.
+	-- Whether you are the tank. In a group, only the role the game names: with
+	-- no role set, nobody is. Solo, where there is no role to read, your
+	-- talents say it: most of them in Protection, or a spec whose role is tank
+	-- (ns.TalentsSayTank, Best below), so a Protection paladin questing alone
+	-- is reminded of Righteous Fury and a Retribution one is not.
 	local function Tanking()
-		if (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return false end
+		if (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return ns.TalentsSayTank() end
 		return safecall(_G.UnitGroupRolesAssigned, "player") == "TANK"
 	end
 
@@ -3162,7 +3165,7 @@ do
 	-- event (ns.ForgetLean). Nothing here makes a table on a scan.
 	local Best = {}
 	do
-		local talentSchool, talentRole, talentTrees, talentFromSpec
+		local talentSchool, talentRole, talentTrees, talentFromSpec, talentTank
 		local filled = false
 		-- The last group role read plainly while you are in a group: a read the
 		-- client withholds (an instance that hides who you are) keeps it.
@@ -3205,8 +3208,26 @@ do
 			return role
 		end
 
+		-- Whether Protection has more talents than every other tree: a tank's
+		-- talents, for Tanking alone (Righteous Fury under Automatic). A tie, or
+		-- nothing spent, is not.
+		local function ProtectionLeads(names, counts)
+			local protection, other = 0, 0
+			for i, name in ipairs(names) do
+				local n = counts[i] or 0
+				if name == "protection" then
+					protection = n
+				elseif n > other then
+					other = n
+				end
+			end
+			return protection > other
+		end
+
 		-- school, the role your talents or spec say, a short note of what was
 		-- counted (for /manners debug), and whether the client gave a spec role.
+		-- Whether they make you a tank it writes to talentTank, which Lean
+		-- clears first.
 		local function Fill(class)
 			local trees = ns.TALENT_TREES and ns.TALENT_TREES[class]
 			local marks = ns.TALENT_MARKS and ns.TALENT_MARKS[class]
@@ -3254,6 +3275,7 @@ do
 					if fire > shadow then school = "fire" elseif shadow > fire then school = "shadow" end
 				end
 				local role = TREE_ORDER[class] and Leading(names, counts) or nil
+				talentTank = ProtectionLeads(names, counts)
 				return school, role, table.concat(parts, " "), false
 			end
 			local spec = C_SpecializationInfo
@@ -3271,7 +3293,10 @@ do
 				if counts[i] > 0 then spent = true end
 				parts[#parts + 1] = order[i] .. ":" .. counts[i]
 			end
-			if spent then return nil, Leading(order, counts), table.concat(parts, " "), false end
+			if spent then
+				talentTank = ProtectionLeads(order, counts)
+				return nil, Leading(order, counts), table.concat(parts, " "), false
+			end
 			-- Mists and retail, where no tree has points: the spec and the role
 			-- the client gives it.
 			local getSpec = spec.GetSpecialization
@@ -3282,7 +3307,10 @@ do
 					specId, role = plain(specId), plain(role)
 					local note = "spec:" .. tostring(specId) .. ":" .. tostring(role)
 					if role == "HEALER" then return nil, "healer", note, true end
-					if role == "TANK" then return nil, "physical", note, true end
+					if role == "TANK" then
+						talentTank = true
+						return nil, "physical", note, true
+					end
 					if role == "DAMAGER" and SPEC_ROLE[specId] then return nil, SPEC_ROLE[specId], note, true end
 				end
 			end
@@ -3292,15 +3320,25 @@ do
 
 		local function Lean()
 			if not filled then
+				talentTank = false
 				local ok, school, role, trees, fromSpec = pcall(Fill, playerClass)
 				if ok then
 					talentSchool, talentRole, talentTrees, talentFromSpec = school, role, trees, fromSpec
 				else
 					talentSchool, talentRole, talentTrees, talentFromSpec = nil, nil, "unread", false
+					talentTank = false
 				end
 				filled = true
 			end
 			return talentSchool, talentRole
+		end
+
+		-- Whether your talents make you a tank: most of them in Protection, or
+		-- a spec the client gives the tank's role. Read by Tanking when you are
+		-- alone, where no group role says it.
+		function ns.TalentsSayTank()
+			Lean()
+			return talentTank == true
 		end
 
 		-- The school your talents favour, or nil.
