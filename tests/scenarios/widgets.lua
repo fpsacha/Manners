@@ -434,6 +434,35 @@ run("widgets: a refused value says why in red and keeps what was typed", functio
 end)
 
 -- ------------------------------------------------------------------ keybinding
+run("widgets: a key reaches the box through the focus when no frame gets the keyboard", function(scenario)
+	-- On WoW Forever a click lit the box and no keyboard key ever arrived (a
+	-- mouse button did): the key comes in through a focused hidden text field.
+	local ns, ctx = session(scenario)
+	local row = ns and build(scenario, ns, ctx, "keybinding", "general.bindKey")
+	if row then
+		local W, Setup = ns.WindowWidgets, ns.Setup
+		row.button:Click("LeftButton")
+		local grab = row.grab
+		if W.Capturing() ~= row or not grab or Mock.focus ~= grab then
+			fail(scenario, "a click did not give the keyboard focus to the capture")
+			return
+		end
+		Mock.modifiers.shift = true
+		grab.scripts.OnKeyDown(grab, "LSHIFT")
+		grab.scripts.OnKeyDown(grab, "G")
+		Mock.modifiers.shift = false
+		if Setup.Key() ~= "SHIFT-G" then fail(scenario, "the focused key was not bound: " .. tostring(Setup.Key())) end
+		if W.Capturing() or Mock.focus == grab then fail(scenario, "the capture kept the focus") end
+		row.button:Click("LeftButton")
+		grab.scripts.OnEscapePressed(grab)
+		if W.Capturing() or Setup.Key() ~= "SHIFT-G" then fail(scenario, "Escape through the focus did not cancel") end
+		row.button:Click("LeftButton")
+		grab:ClearFocus()
+		if W.Capturing() then fail(scenario, "losing the focus did not end the wait") end
+		noErrors(scenario, ns)
+	end
+end)
+
 run("widgets: a captured key reaches Setup.SetKey", function(scenario)
 	local ns, ctx = session(scenario)
 	local row = ns and build(scenario, ns, ctx, "keybinding", "general.bindKey")
