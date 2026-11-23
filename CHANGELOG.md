@@ -66,6 +66,8 @@
   keys* group.
 
 ### Fixes
+- **Righteous Fury alone.** Righteous Fury on Automatic now reminds a Protection
+  paladin playing alone, by talents. (A contributed fix.)
 - **Unending Breath only while you swim.** *Offer Unending Breath to others only
   while I am swimming*, under its switch on Who to buff, off by default. A favour
   you return with it and a request by name still go; your own reminder is as it was.
