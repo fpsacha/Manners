@@ -56,6 +56,10 @@ function, switch and test named. Change both together.
   `Core.lua`'s secret-safe section; `tests/scenarios/perf-budget.lua` caps
   pcalls, client calls and KB per scan on each client. No file keeps its own
   copy of `pcall`.
+- **Hidden values (moment buttons).** A local or field that may hold a hidden
+  value is named `raw<Something>` in `Prompt/MomentsSense.lua` and
+  `Prompt/Moments.lua`, and only assigned, listed, tabled or handed on as a bare
+  call argument; `tests/validate.py` checks it.
 - **Combat.** The secure button's attributes cannot change in combat: what is
   on the prompt when a fight starts stays until it ends, and Lua writes nothing
   on the button in a fight. The exceptions are secure code or bindings set at
@@ -68,7 +72,13 @@ function, switch and test named. Change both together.
   the prompt's key at a button armed with the chosen spell, never shown,
   cleared at the release). The break-free, Mend Pet and cure buttons have
   their own state drivers and sit at alpha 0; in a fight Lua paints only their
-  regions and alpha. Nothing Manners chooses may keep break-free from showing
+  regions and alpha. The moment buttons (`Prompt/Moments.lua`, MannersMoment1..10:
+  one header and state driver, no region and no alpha written on the secure
+  button; Lua paints only its unprotected children, the game paints `inner` from a
+  hidden value, nothing lit without a detected need, `prompt.fightButtons` never
+  read) have an unprotected cover that swallows clicks while dark, shown and
+  hidden by Lua on plain knowledge only, two clicks where the game alone knows;
+  the break-free button must not get one. Nothing Manners chooses may keep break-free from showing
   and being pressed when needed; the cure button is the other way round,
   nothing of it on screen for nothing. Never hide the prompt by any route that
   leaves it, a row or the bar macro able to cast: a hidden secure button still

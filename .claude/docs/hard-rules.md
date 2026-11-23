@@ -23,6 +23,17 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   tests/runscenarios.py --file perf-budget.lua` prints what each measures
   (Forever: idle 10, city 13, raid 18 pcalls). No file keeps its own copy of
   `pcall`.
+- **Hidden values in the moment buttons.** In `Prompt/MomentsSense.lua` and
+  `Prompt/Moments.lua` every local or field that may hold a value the client
+  hides is named `raw<Something>`, and a raw name is only assigned, listed in a
+  `local` or `return`, put in a table constructor or handed on as a bare call
+  argument (`type(rawX)`, `issecretvalue(rawX)`, `plain(rawX)`, a widget or
+  curve call): never next to `==`, `~=`, `<`, `>`, `and`, `or`, `not`, `if`, a
+  dot or an index. The direct returns of `UnitCastingInfo`, `UnitChannelInfo`,
+  `PlayerIsSpellTarget`, `UnitHealthPercent` and `UnitPowerPercent` go only to
+  raw names or `_`. `tests/validate.py` reads both files for it and proves the
+  rule on failing samples (the test client cannot make a truth test of a hidden
+  value throw).
 - **Combat.** The secure button's attributes cannot change in combat: what is
   on the prompt when a fight starts stays until it ends. The one exception is
   secure code: with *Hide the prompt in a fight* on, `Prompt/Fight.lua`'s
@@ -59,6 +70,22 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   never reads it. Nothing Manners itself chooses may keep it from showing when
   it is needed and from being pressed, and the prompt's own key keeps to
   buffs (unless *In a fight, my key casts* names a spell: below).
+  The buttons for the moment (`Prompt/Moments.lua`, MannersMoment1..10, a
+  mage's Counterspell, Blink, Ice Block and, in the next part, the rest;
+  `Prompt/MomentsData.lua` holds the rows, `Prompt/MomentsSense.lua` the
+  signals) are armed out of combat and shown by one header's own state driver
+  (`mannersmoments`). The secure button has no region of its own and its alpha
+  is never written; Lua paints only the unprotected frames over it (a plain gate
+  `face`, and `inner`, whose alpha the game paints from a hidden value through
+  `SetAlphaFromBoolean`, an evaluated curve of `UnitHealthPercent` or
+  `UnitPowerPercent`), and shows or hides an unprotected `cover` that swallows
+  clicks while the button is dark, so a click casts only while it is lit.
+  Where only the game knows (a hidden health), the cover stays up and the button
+  takes two quick clicks. Nothing is lit without a detected need, and they
+  never read `prompt.fightButtons`. The cure button takes the same cover in the
+  next part; the break-free button must not (a cover raised on Lua's belief
+  could eat the one click that mattered). Never `Show`, `Hide`, `SetPoint`,
+  `SetSize`, `EnableMouse` or `SetAttribute` on one under the lockdown.
   The cure button (`Prompt/CureFight.lua`, MannersCureFight) is the other
   way round: nothing of it may be on the screen for nothing. It is armed out
   of combat and shown by its own state driver for every fight, but at alpha 0

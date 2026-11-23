@@ -154,7 +154,8 @@ do
 	for _, flavour in ipairs(FLAVOURS) do
 		with(scenario .. " (" .. flavour .. ")", function(ns)
 			local list = results(ns, "fight.apis")
-			if #list ~= 3 then fail(scenario .. " (" .. flavour .. ")", #list .. " lines: " .. show(list)) end
+			-- The cure and break-free lines, then the calls the buttons for the moment lean on.
+			if #list < 3 then fail(scenario .. " (" .. flavour .. ")", #list .. " lines: " .. show(list)) end
 			for _, r in ipairs(list) do
 				if r.status ~= "PASS" then fail(scenario .. " (" .. flavour .. ")", "not data only: " .. r.status .. " " .. r.value) end
 			end

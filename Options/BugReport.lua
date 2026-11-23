@@ -266,6 +266,10 @@ function ns.MarkMoment()
 	end
 
 	ns.Trail("MARK", ButtonLine())
+	-- What each button for the moment saw and shows (Prompt/Moments.lua).
+	if ns.Moments and ns.Moments.MarkWords then
+		for _, line in ipairs(ns.Moments.MarkWords()) do ns.Trail("MARK", line) end
+	end
 	if ns.addon and ns.addon.Print then
 		ns.addon:Print(L["Marked this moment. Report a bug will show what Manners saw then."])
 	end

@@ -241,8 +241,10 @@ local function ReadLoss(row)
 			first, how = first or "?", how or "secret"
 		end
 	end
-	return false, first, how
+	return false, first, how, count
 end
+-- The moment buttons (Prompt/Moments.lua) ask the same question of a row of their own.
+BreakFree.ReadLoss = ReadLoss
 
 -- Afflicted by something the row breaks: a loss of control of its types, or
 -- charmed by UnitIsCharmed alone (a charm the client reports nowhere else).

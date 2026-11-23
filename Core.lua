@@ -169,6 +169,9 @@ function ns.FightSummary()
 	ns.Trail("fight", ("fight summary: %ds; prompt %s; rota %s; fight key %d presses; cure shown %d times, %d reads, %d withheld; break free lit %d times")
 		:format(took, hidden and "hidden" or "up", rota, tally.keyPresses or 0,
 			cure.shows or 0, cure.reads or 0, cure.secret or 0, lit))
+	-- What each button for the moment saw, when any was armed.
+	local words = ns.Moments and ns.Moments.FightWords and ns.Moments.FightWords()
+	if words then ns.Trail("fight", "fight summary, buttons for the moment: " .. words) end
 end
 function ns.Trail(kind, text, who)
 	local db = ns.addon and ns.addon.db
@@ -980,6 +983,13 @@ local defaults = {
 		-- ownBuffs.apart on: where it sits (left of the prompt's default
 		-- spot, above the action bars) and its size in pixels.
 		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 40 },
+		-- Buttons for the moment (Prompt/Moments.lua): a switch for each, on for
+		-- everything whose stray press is guarded and off for the wards, whose
+		-- signal is approximate; health and mana are the shares under which the
+		-- buttons for low health and low mana light, in percent.
+		moments = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
+			evocation = true, managem = true, slowfall = true, fireward = false, frostward = false,
+			health = 20, mana = 20 },
 	},
 }
 ns.defaults = defaults
@@ -5724,6 +5734,8 @@ local LIMITS = {
 	{ "prompt", "queueRows", 1, 5 },
 	{ "filters", "selfLead", 0, 10 },
 	{ "supplies", "size", 24, 80 },
+	{ "moments", "health", 5, 50 },
+	{ "moments", "mana", 5, 50 },
 	-- Two is the least a group cast can beat, five a whole party.
 	{ "groupBuffs", "atLeast", 2, 5 },
 }
@@ -5953,6 +5965,18 @@ function ns.ClampSettings()
 	local iconMax = ns.IconCeiling(p)
 	if p.iconSize > iconMax then p.iconSize = iconMax end
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
+	-- The moment buttons' shares go in fives, as their sliders do.
+	do
+		local moments = profile.moments
+		-- A switch is a boolean: anything else goes back to its default.
+		for _, key in ipairs(ns.MOMENT_KEYS or {}) do
+			if type(moments[key]) ~= "boolean" then moments[key] = ns.MOMENT_DEFAULTS[key] end
+		end
+		for _, field in ipairs({ "health", "mana" }) do
+			local v = moments[field]
+			if type(v) == "number" and v % 5 ~= 0 then moments[field] = math.max(5, math.min(50, math.floor(v / 5 + 0.5) * 5)) end
+		end
+	end
 	-- An ask's channel and line (Ask.lua), each one of a few.
 	if ns.AskClamp then ns.AskClamp(profile) end
 	if ns.BeastClamp then ns.BeastClamp(profile) end
@@ -6649,6 +6673,10 @@ function addon:TickBody()
 	if mendPet and mendPet:Wanted() then ns.Guard("mend pet", mendPet.Refresh, mendPet) end
 	local cureFight = ns.CureFight
 	if cureFight and cureFight:Wanted() then ns.Guard("cure in a fight", cureFight.Refresh, cureFight) end
+	-- The buttons for the moment (Prompt/Moments.lua), with their switches off or
+	-- no spell learned: one field read.
+	local moments = ns.Moments
+	if moments and moments:Wanted() then ns.Guard("moments", moments.Refresh, moments) end
 	local fightKey = ns.FightKey
 	if fightKey and fightKey:Wanted() then ns.Guard("fight key", fightKey.Refresh, fightKey) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
@@ -6961,6 +6989,8 @@ function addon:PLAYER_REGEN_ENABLED()
 	if ns.MendPet then ns.Guard("mend pet release", ns.MendPet.Release, ns.MendPet) end
 	-- The cure button taken down and armed for the next fight (Prompt/CureFight.lua).
 	if ns.CureFight then ns.Guard("cure fight release", ns.CureFight.Release, ns.CureFight) end
+	-- The buttons for the moment taken down and armed again (Prompt/Moments.lua).
+	if ns.Moments then ns.Guard("moments release", ns.Moments.Release, ns.Moments) end
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed

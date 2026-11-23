@@ -509,6 +509,12 @@ function Mock.execLine(line)
 		Mock.castLog[#Mock.castLog + 1] = { use = rest, at = Mock.now, depth = Mock.macroDepth }
 	elseif CHANNELS[command] then
 		Mock.saidLog[#Mock.saidLog + 1] = { channel = command, text = rest, at = Mock.now }
+	elseif command == "stopcasting" then
+		-- With an optional conditional, as the client's handler runs it.
+		if rest == "" or SecureCmdOptionParse(rest) then
+			Mock.stopCasts = (Mock.stopCasts or 0) + 1
+			Mock.castLog[#Mock.castLog + 1] = { stop = true, at = Mock.now, depth = Mock.macroDepth }
+		end
 	elseif command == "cancelqueuedspell" then
 		return
 	else

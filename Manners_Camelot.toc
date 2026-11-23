@@ -106,6 +106,9 @@ Prompt\BreakFree.lua
 Prompt\MendPet.lua
 Prompt\CureFight.lua
 Prompt\FightKey.lua
+Prompt\MomentsData.lua
+Prompt\MomentsSense.lua
+Prompt\Moments.lua
 Options\Shared.lua
 Options\Launcher.lua
 Options\Start.lua

@@ -1113,5 +1113,92 @@ function Page.BuildLookTab()
 			end
 		end
 	end
+	Page.AddMomentControls(tab.args)
 	return tab
+end
+
+-- The buttons for the moment (Prompt/Moments.lua): a switch and a key for each
+-- button a character has learned, and the two shares under which the health and
+-- mana buttons light. Added AFTER the loop above, so none of them inherits "gone
+-- for a character with no prompt": a class with a moment row and no prompt still
+-- sees its switch and key. %s is always the name the client gives the spell.
+function Page.AddMomentControls(args)
+	local tail = L["Its key is the box under this switch, also in the game's Key Bindings under Manners. With no key set, a click on the lit button casts it. A change made in a fight counts from the next one."]
+	local twice = L["Where the game keeps that from addons in a fight, the game itself lights the button, and it then takes two quick clicks, so one stray click never casts it."]
+	local function Has(key) return ns.Moments ~= nil and ns.Moments.Has(key) end
+	local function Entry(key)
+		local mine = ns.caps.moments
+		return mine and mine.byKey[key]
+	end
+	local function Spell(key)
+		local entry = Entry(key)
+		return entry and entry.name or ""
+	end
+	local function On(key) return ns.db.profile.moments[key] == true end
+	local function Refresh() if ns.Moments then ns.Guard("moments", ns.Moments.Refresh, ns.Moments) end end
+	local function Cap(key) return key:sub(1, 1):upper() .. key:sub(2) end
+	args.momentsNote = {
+		type = "description",
+		name = L["Small buttons left of the prompt that stay out of sight until their moment comes, then light up. Each has a switch here and a key of its own."],
+		order = 32.493,
+		fontSize = "medium",
+		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
+	}
+	-- Each switch with its words; the order is the page's.
+	local rows = {
+		{ key = "counterspell",
+			name = function() return L["Show %s when my target starts a cast"]:format(Spell("counterspell")) end,
+			desc = function() return L["Lights while a hostile target within reach is casting or channelling something you can interrupt, and goes dark the moment the cast ends. A press stops your own cast first, so it fires at once. Out of sight while it cools down."] .. " " .. tail end },
+		{ key = "blink",
+			name = function() return L["Show %s when I am stunned or rooted"]:format(Spell("blink")) end,
+			desc = function() return L["Lights while you are stunned or rooted and the spell is ready. Where the game does not say what took control of your character, it lights for any loss of control."] .. " " .. tail end },
+		{ key = "iceblock",
+			name = function() return L["Show %s when my health is low"]:format(Spell("iceblock")) end,
+			desc = function() return L["Lights in a fight while your health is under Health below and the spell is ready."] .. " " .. twice .. " " .. tail end },
+	}
+	local order = 32.4931
+	for _, def in ipairs(rows) do
+		local key = def.key
+		args["moment" .. Cap(key)] = {
+			type = "toggle",
+			name = def.name,
+			desc = def.desc,
+			order = order,
+			width = "full",
+			hidden = function() return not Has(key) end,
+			get = function() return On(key) end,
+			set = function(_, value)
+				ns.db.profile.moments[key] = value == true
+				Refresh()
+			end,
+		}
+		args["moment" .. Cap(key) .. "Key"] = {
+			type = "keybinding",
+			name = function() return L["Key for %s"]:format(Spell(key)) end,
+			desc = L["Saved with your game key bindings, so it works on every profile."],
+			order = order + 0.00005,
+			hidden = function() return not Has(key) or not On(key) or not ns.Setup.CanBind() end,
+			disabled = function() return InCombatLockdown() end,
+			get = function() return ns.Setup.Key(ns.Moments.Command(key)) or "" end,
+			set = function(_, value)
+				ns.Setup.SetKey(value, ns.Moments.Command(key), function(bound, was)
+					return L["%s was bound to %s; it now casts %s."]:format(bound, was, Spell(key))
+				end)
+				Refresh()
+			end,
+		}
+		order = order + 0.0001
+	end
+	-- The share under which the health buttons light.
+	args.momentHealth = {
+		type = "range",
+		name = L["Health below"],
+		desc = L["The share of your health under which the health buttons light, in percent."],
+		order = order,
+		min = 5, max = 50, step = 5,
+		hidden = function() return not (Has("iceblock") or Has("coldsnap")) end,
+		disabled = function() return not (On("iceblock") or On("coldsnap")) end,
+		get = function() return ns.db.profile.moments.health end,
+		set = function(_, value) ns.db.profile.moments.health = value end,
+	}
 end

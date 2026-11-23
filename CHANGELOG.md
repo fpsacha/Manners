@@ -11,6 +11,14 @@
 - **Mark this moment.** Press a key the second something goes wrong, even in a
   fight, and the report shows what Manners saw then.
 
+### Buttons for the moment (mages)
+- **Counterspell when your target casts.** A small button left of the prompt
+  lights while a hostile target in reach is casting, and a press stops your own
+  cast first. *Show Counterspell when my target starts a cast*, In a fight.
+- **Blink and Ice Block.** Blink lights when you are stunned or rooted, Ice Block
+  when your health is low (*Health below*, 20 by default). Each has its own
+  switch and key.
+
 ### Water and food for your target
 - **Offer water and food to my target** (mages). Out of a fight, a friendly
   player you target is offered water and food that suits their level, or food

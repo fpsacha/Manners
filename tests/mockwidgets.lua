@@ -386,11 +386,18 @@ widen = function(f, frameType, parent)
 	f._widened = true
 	f._frameType = f._frameType or frameType
 	f._parentFrame = f._parentFrame or parent
+	-- The children, for Mock.clickAt: the highest of them takes a click.
+	if parent and parent ~= f then
+		parent._kids = parent._kids or {}
+		parent._kids[#parent._kids + 1] = f
+	end
 	addGeometry(f)
 	addVisibility(f)
 	addText(f)
 	addEditBox(f)
 	addButton(f)
+	-- Kept: a button that draws a highlight of its own would show at its own alpha.
+	f.SetHighlightTexture = function(self, texture) self._highlightTexture = texture or true return self end
 	addSlider(f)
 	addScroll(f)
 	-- The client refuses to anchor a protected frame (one made from a secure
@@ -756,6 +763,37 @@ function Mock.mouseClickOn(frame, which)
 	if registered("Up") then frame:Click(which, false) end
 end
 
+-- A click at a button's place with the mouse, as the game picks who takes it:
+-- among the button and its children that are shown and take the mouse, the
+-- highest frame level. An unprotected child (the cover) runs its OnMouseDown and
+-- is returned; the button itself gets the click and is returned; nothing taking
+-- it answers "world" (a hidden button, or one with its mouse off).
+-- Mock.coverLeaks models a client where the cover does not swallow it.
+function Mock.clickAt(button, which)
+	which = which or "LeftButton"
+	local top, topLevel
+	local function consider(f)
+		if f._mouse == true and f:IsVisible() then
+			local level = f._level or 1
+			if f == button then level = level - 0.5 end
+			if not topLevel or level >= topLevel then top, topLevel = f, level end
+		end
+	end
+	consider(button)
+	for _, kid in ipairs(button._kids or {}) do
+		if kid._frameType ~= "Texture" and kid._frameType ~= "FontString" then consider(kid) end
+	end
+	if not top then return "world" end
+	if top == button then
+		Mock.mouseClickOn(button, which)
+		return button
+	end
+	local down = top.scripts and top.scripts.OnMouseDown
+	if down then down(top, which) end
+	if Mock.coverLeaks and button._mouse == true and button:IsVisible() then Mock.mouseClickOn(button, which) end
+	return top
+end
+
 -- A key bound to "CLICK Name:Button" pressed: the down click, and with
 -- `opts.release` the up click the key's release sends.
 function Mock.pressBinding(command, opts)
@@ -805,6 +843,38 @@ function Mock.frameEvent(event, ...)
 		end
 	end
 	return heard
+end
+
+-- One event to one frame, as the client delivers it: only when the frame
+-- registered for it and, for a unit registration, only for one of its units.
+-- Answers whether it was delivered.
+function Mock.deliver(frame, event, unit, ...)
+	local plainReg = frame.events and frame.events[event]
+	local units = frame.unitEvents and frame.unitEvents[event]
+	if not (plainReg or units) then return false end
+	if units and not plainReg then
+		local hit = false
+		for _, u in ipairs(units) do if u == unit then hit = true end end
+		if not hit then return false end
+	end
+	local fn = frame.scripts and frame.scripts.OnEvent
+	if not fn then return false end
+	fn(frame, event, unit, ...)
+	return true
+end
+
+-- The product of the revealed alphas up the parent chain: what the player sees
+-- of a frame (0 when it or a parent is hidden).
+function Mock.shownAlpha(frame)
+	local product, f = 1, frame
+	while f do
+		if f._shown == false then return 0 end
+		local a = f._alpha
+		if a == nil then a = 1 end
+		product = product * Mock.reveal(a)
+		f = f._parentFrame
+	end
+	return product
 end
 
 -- A key pressed in a focused box: "ENTER", "ESCAPE", "TAB", or an arrow

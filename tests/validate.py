@@ -1106,6 +1106,85 @@ finally:
 if fail == _before:
     print("  clean")
 
+print("\n== hidden values in the moment buttons ==")
+# Prompt/MomentsSense.lua and Prompt/Moments.lua name every local or field that
+# may hold a value the client hides raw<Something>, and a raw name may only be
+# assigned, listed in a local or return, put in a table constructor or handed
+# on as a bare call argument: never next to ==, ~=, <, >, and, or, not, if,
+# while, a dot, an index or arithmetic. The test client cannot make a truth
+# test or an equality on a hidden value throw, so this reads the source. The
+# direct returns of the calls that hand back hidden values (a unit's cast, whom
+# a cast aims at, a health or power percent) may only be assigned to raw names
+# or _. Each rule is proven below on a sample that must fail.
+_RAW_FILES = ["Prompt/MomentsSense.lua", "Prompt/Moments.lua"]
+_RAW_CALLS = ("UnitCastingInfo", "UnitChannelInfo", "PlayerIsSpellTarget", "UnitHealthPercent", "UnitPowerPercent")
+_STATEMENT_WORDS = ("local", "return", "then", "do", "else", "end")
+
+
+def _lua_code_only(src):
+    """The source with comments and the insides of strings blanked, line for line."""
+    out = []
+    for line in src.splitlines():
+        res, i, quote = [], 0, None
+        while i < len(line):
+            c = line[i]
+            if quote:
+                if c == "\\":
+                    res.append("  ")
+                    i += 2
+                    continue
+                res.append('"' if c == quote else " ")
+                if c == quote:
+                    quote = None
+            elif c in "\"'":
+                quote = c
+                res.append('"')
+            elif line.startswith("--", i):
+                break
+            else:
+                res.append(c)
+            i += 1
+        out.append("".join(res))
+    return out
+
+
+def raw_problems(src):
+    found = []
+    for number, line in enumerate(_lua_code_only(src), 1):
+        for m in re.finditer(r"\braw[A-Z]\w*", line):
+            before, after = line[:m.start()].rstrip(), line[m.end():].lstrip()
+            ok_before = before == "" or before[-1] in "(,{" or (before[-1] == "=" and before[-2:-1] not in ("=", "~", "<", ">")) \
+                or any(re.search(r"\b" + w + r"$", before) for w in _STATEMENT_WORDS)
+            ok_after = after == "" or after[0] in ",)}" or (after[0] == "=" and after[1:2] != "=")
+            if not (ok_before and ok_after):
+                found.append((number, "hidden value %s used as a value: %s" % (m.group(0), line.strip())))
+        for m in re.finditer(r"\b(?:_G\.)?(" + "|".join(_RAW_CALLS) + r")\(", line):
+            head = line[:m.start()]
+            names = re.match(r"^\s*(?:.*\bthen\s+)?(?:local\s+)?([\w,\s]+?)\s*=\s*$", head)
+            if not names or any(not (n == "_" or re.match(r"raw[A-Z]", n)) for n in re.split(r"\s*,\s*", names.group(1))):
+                found.append((number, "%s returns hidden values: assign them to raw names: %s" % (m.group(1), line.strip())))
+    return found
+
+
+for _f in _RAW_FILES:
+    _src = open(os.path.join(ROOT, _f), encoding="utf-8").read()
+    for _n, _what in raw_problems(_src):
+        print("  %s:%d %s" % (_f, _n, _what))
+        fail += 1
+for _bad in ("if rawName then", "local ok = rawName ~= nil", "x = rawA and 1", 'local name = UnitCastingInfo("target")',
+             'if UnitHealthPercent("player") then', "y = rawA.field"):
+    if not raw_problems(_bad):
+        print("  the hidden-value rule no longer bites on: %s" % _bad)
+        fail += 1
+for _good in ('local rawName, _, _, _, _, _, _, rawNotInt = UnitCastingInfo("target")',
+              "inner:SetAlphaFromBoolean(rawA, 0, 1)", 'slot.game = { "not", rawNotInt }',
+              'if type(rawName) == "nil" then rawName, _, _ = UnitChannelInfo("target") end',
+              "-- if rawName then", 'x = "if rawName then"'):
+    if raw_problems(_good):
+        print("  the hidden-value rule refuses a sound line: %s" % _good)
+        fail += 1
+print("  clean" if not fail else "")
+
 print("\n== stale names ==")
 allsrc = "\n".join(open(os.path.join(ROOT, f), encoding="utf-8").read() for f in OURS) + toc
 for bad_name in ["ArcaneManners", "ArcaneMannersDB", "ARCANEMANNERS"]:

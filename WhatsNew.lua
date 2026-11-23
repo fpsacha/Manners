@@ -10,6 +10,10 @@ ns.WhatsNew = {
 			"|cffffd100Report a bug.|r One window takes you from what went wrong to a link that opens the issue on GitHub filled in and the report to paste, from Diagnostics, the footer of the options window, the minimap menu or /manners bug.",
 			"|cffffd100Mark this moment.|r Press a key the second something goes wrong, even in a fight, and the report shows what Manners saw then.",
 		} },
+		{ title = "Buttons for the moment (mages)", accent = "7cc4ff", entries = {
+			"|cff7cc4ffCounterspell when your target casts.|r A small button left of the prompt lights while a hostile target in reach is casting, and a press stops your own cast first.",
+			"|cff7cc4ffBlink and Ice Block.|r Blink lights when you are stunned or rooted, Ice Block when your health is low (|cffffffffHealth below|r, 20 by default).",
+		} },
 		{ title = "Water and food for your target", accent = "7cc4ff", entries = {
 			"|cff7cc4ffOffer water and food to my target|r (mages).",
 			"|cff7cc4ffHow much to trade.|r |cffffffffFill the trade window|r is the default, for your target and for water and food somebody asked for; |cffffffffOne stack|r puts one of each.",

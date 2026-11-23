@@ -215,12 +215,14 @@ Page.RESET.quiet = {
 Page.RESET.fight = {
 	"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
 	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
+	"moments.counterspell", "moments.blink", "moments.iceblock", "moments.health",
 	after = function()
 		restyleAndMacro()
 		if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end
 		if ns.MendPet then ns.Guard("mend pet", ns.MendPet.Refresh, ns.MendPet) end
 		if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
 		if ns.FightKey then ns.Guard("fight key", ns.FightKey.Refresh, ns.FightKey) end
+		if ns.Moments then ns.Guard("moments", ns.Moments.Refresh, ns.Moments) end
 		ns.Prompt:Refresh()
 	end,
 }

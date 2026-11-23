@@ -894,6 +894,20 @@ ns.WindowLayout = {
 					{ "appearance.cureFightEach", indent = true },
 					{ "appearance.cureFightKey2", indent = true },
 				} },
+				-- Small buttons that light for a moment (Prompt/Moments.lua): a
+				-- mage's Counterspell, Blink, Ice Block and the rest.
+				{ key = "fight.moments", title = L["Buttons for the moment"], items = {
+					{ "appearance.momentsNote", standIn = true },
+					"appearance.momentCounterspell", { "appearance.momentCounterspellKey", indent = true },
+					"appearance.momentBlink", { "appearance.momentBlinkKey", indent = true },
+					"appearance.momentIceblock", { "appearance.momentIceblockKey", indent = true },
+					"appearance.momentHealth",
+				} },
+			},
+			subpages = {
+				{ "fight.prompt" },
+				{ "fight.buttons" },
+				{ "fight.moments" },
 			},
 		},
 
@@ -1219,6 +1233,11 @@ ns.WindowLayout = {
 			["appearance.cureFight"] = true, ["appearance.cureFightKey"] = true,
 			["appearance.cureFightEach"] = true, ["appearance.cureFightKey2"] = true,
 			["appearance.fightKeySpell"] = true, ["appearance.fightKeyOn"] = true,
+			-- The buttons for the moment, each key under its switch.
+			["appearance.momentCounterspell"] = true, ["appearance.momentCounterspellKey"] = true,
+			["appearance.momentBlink"] = true, ["appearance.momentBlinkKey"] = true,
+			["appearance.momentIceblock"] = true, ["appearance.momentIceblockKey"] = true,
+			["appearance.momentHealth"] = true, ["appearance.momentsNote"] = true,
 		},
 	},
 
@@ -1330,6 +1349,7 @@ ns.WindowLayout = {
 		["when.selfLead"] = { kind = "minutes", zero = L["Automatic"] },
 		["when.refreshRaid"] = { kind = "times" },
 		["when.manaFloor"] = { kind = "percent", zero = L["Off"] },
+		["appearance.momentHealth"] = { kind = "percent" },
 	},
 
 	-- Other words people search for a control by (WindowSearch.lua): ranked
@@ -1373,6 +1393,9 @@ ns.WindowLayout = {
 		["appearance.cureFightEach"] = L["cure each second button druid poison curse fight"],
 		["appearance.fightKeySpell"] = L["fight combat key spell shield heal barrier"],
 		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
+		["appearance.momentCounterspell"] = L["counterspell interrupt kick cast target fight button moment"],
+		["appearance.momentIceblock"] = L["ice block health low fight button moment"],
+		["appearance.momentBlink"] = L["blink stun root fight button moment"],
 		["who.curesFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["who.ownSpellAdd"] = L["custom spell add new buff own"],
 		-- The consumables button: asked for as the food and flask key.
@@ -1467,6 +1490,10 @@ ns.WindowLayout = {
 		["appearance.cureFightKey"] = "appearance.cureFight",
 		["appearance.cureFightEach"] = "appearance.cureFight",
 		["appearance.cureFightKey2"] = "appearance.cureFightEach",
+		-- The keys of the buttons for the moment, each shown only while its switch is on.
+		["appearance.momentCounterspellKey"] = "appearance.momentCounterspell",
+		["appearance.momentBlinkKey"] = "appearance.momentBlink",
+		["appearance.momentIceblockKey"] = "appearance.momentIceblock",
 	},
 
 	-- What else a control of `parents` needs before its switch would show it:
@@ -1480,6 +1507,13 @@ ns.WindowLayout = {
 		["appearance.cureFightKey"] = function() return ns.ClassHasCures() and ns.CureLearned() end,
 		["appearance.cureFightEach"] = function() local l = ns.CureFightSpells() return l ~= nil and l[2] ~= nil end,
 		["appearance.cureFightKey2"] = function() local l = ns.CureFightSpells() return l ~= nil and l[2] ~= nil end,
+		["appearance.momentCounterspell"] = function() return ns.Moments.Has("counterspell") end,
+		["appearance.momentCounterspellKey"] = function() return ns.Moments.Has("counterspell") end,
+		["appearance.momentBlink"] = function() return ns.Moments.Has("blink") end,
+		["appearance.momentBlinkKey"] = function() return ns.Moments.Has("blink") end,
+		["appearance.momentIceblock"] = function() return ns.Moments.Has("iceblock") end,
+		["appearance.momentIceblockKey"] = function() return ns.Moments.Has("iceblock") end,
+		["appearance.momentHealth"] = function() return ns.Moments.Has("iceblock") end,
 		["who.beastShare"] = function() return ns.Beast.Feeds() end,
 		["who.beastMendFight"] = function() return ns.Beast.KnowsMend() end,
 		["who.beastLeaveFood"] = function() return ns.Beast.Feeds() end,

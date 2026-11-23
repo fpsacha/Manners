@@ -1259,6 +1259,19 @@ Check("fight.cure", "fight", L["cure in a fight"], function(add)
 	if CureEach(db) then One(2, CF.COMMAND2, "second cure") end
 end)
 
+Check("fight.moments", "fight", L["buttons for the moment"], function(add)
+	if not (ns.Moments and ns.Moments.SelfRows) then
+		add(WARN, "the moment buttons' file did not load")
+		return
+	end
+	local rows = ns.Moments.SelfRows()
+	if #rows == 0 then
+		add(PASS, "no buttons for this class")
+		return
+	end
+	for _, row in ipairs(rows) do add(row.warn and WARN or PASS, row.text) end
+end)
+
 Check("fight.apis", "fight", L["what the game says in a fight"], function(add)
 	local auras = _G.C_UnitAuras
 	local lists = type(auras) == "table" and type(auras.GetUnitAuraInstanceIDs) == "function"
@@ -1288,6 +1301,59 @@ Check("fight.apis", "fight", L["what the game says in a fight"], function(add)
 		charmed = ok and (Secret(value) and "secret" or (value and "yes" or "no")) or "threw"
 	end
 	add(PASS, "charmed: " .. charmed)
+	-- What the buttons for the moment lean on (Prompt/Moments.lua).
+	local can = ns.Sense and ns.Sense.can
+	if can then
+		local function Yes(v) return v and "yes" or "no" end
+		add(PASS, "SetAlphaFromBoolean: " .. Yes(can.bool))
+		add(PASS, "EvaluateColorValueFromBoolean: " .. Yes(can.eval))
+		add(PASS, "curves: " .. Yes(can.curve))
+		add(PASS, "UnitHealthPercent: " .. Yes(can.health))
+		add(PASS, "UnitPowerPercent: " .. Yes(can.power))
+		if not InCombatLockdown() then
+			local hp, mp = _G.UnitHealth and _G.UnitHealth("player"), _G.UnitPower and _G.UnitPower("player", 0)
+			add(PASS, "your health now: " .. (Secret(hp) and "hidden" or "plain"))
+			local says = "will not say"
+			local secrets = _G.C_Secrets
+			if type(secrets) == "table" and type(secrets.ShouldUnitPowerBeSecret) == "function" then
+				local ok, value = pcall(secrets.ShouldUnitPowerBeSecret, "player", 0)
+				if ok and type(value) == "boolean" then says = value and "yes" or "no" end
+			end
+			add(PASS, "your mana now: " .. (Secret(mp) and "hidden" or "plain") .. "; the game says mana is hidden: " .. says)
+			local cast = "will not say"
+			if type(secrets) == "table" and type(secrets.ShouldUnitSpellCastingBeSecret) == "function" then
+				local ok, value = pcall(secrets.ShouldUnitSpellCastingBeSecret, "target")
+				if ok and type(value) == "boolean" then cast = value and "hidden" or "plain" end
+			end
+			add(PASS, "a target's cast: " .. cast)
+		end
+		local lacking = ns.Sense.lacking
+		add(PASS, "events this client lacks: " .. (lacking and #lacking > 0 and table.concat(lacking, ", ") or "none"))
+		local spellApi = _G.C_Spell
+		add(PASS, "per-spell loss-of-control flag: " .. Yes(type(spellApi) == "table"
+			and type(spellApi.GetSpellLossOfControlCooldownInfo) == "function"))
+		local rows = ns.Moments and ns.Moments.Rows and ns.Moments.Rows() or {}
+		if rows[1] and type(spellApi) == "table" and type(spellApi.GetSpellCooldown) == "function" and not InCombatLockdown() then
+			local rec = spellApi.GetSpellCooldown(rows[1].id)
+			local active = type(rec) == "table" and rec.isActive
+			add(PASS, "cooldown flag isActive: " .. Yes(type(active) == "boolean"))
+		end
+		-- The prompt's hand-back in a fight rests on [help]: the parser's answer
+		-- is held to the game's own, with a target and out of a fight.
+		if not InCombatLockdown() and _G.SecureCmdOptionParse and _G.UnitExists and not Secret(_G.UnitExists("target"))
+			and _G.UnitExists("target") then
+			local help = _G.SecureCmdOptionParse("[help] yes; no")
+			local harm = _G.SecureCmdOptionParse("[harm,nodead] yes; no")
+			local canAttack = _G.UnitCanAttack("player", "target")
+			local dead = _G.UnitIsDead and _G.UnitIsDead("target")
+			if not (Secret(canAttack) or Secret(dead)) then
+				local line = ("the parser on your target: [help] %s, [harm,nodead] %s; the game's own answer: can attack %s, dead %s")
+					:format(tostring(help), tostring(harm), tostring(canAttack), tostring(dead))
+				local agrees = (harm == "yes") == (canAttack == true and dead ~= true) and (help == "yes") == (canAttack ~= true)
+				add(agrees and PASS or WARN, line)
+			end
+		end
+	end
 end)
 
 Check("fight.healthstone", "fight", L["Make a healthstone"], function(add)
@@ -1362,6 +1428,12 @@ Check("fight.keys", "fight", L["keys"], function(add)
 	if cures then
 		Row("cure", ns.CureFight.COMMAND)
 		if CureEach(db) then Row("second cure", ns.CureFight.COMMAND2) end
+	end
+	-- A row for each button for the moment that is armed (Prompt/Moments.lua).
+	if ns.Moments and ns.Moments.SelfRows then
+		for _, row in ipairs(ns.Moments.SelfRows()) do
+			if row.armed and row.command then Row(row.key, row.command) end
+		end
 	end
 	Row("mark", ns.BugReport and ns.BugReport.MARK_COMMAND or "CLICK MannersMark:LeftButton")
 

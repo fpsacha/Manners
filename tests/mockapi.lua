@@ -435,6 +435,11 @@ function Mock.reset()
 	-- secure while the fight was on. In the game each of these is a refusal
 	-- nothing reports; here they are a list.
 	Mock.protectedCalls = {}
+	-- Secret alphas written to a protected frame, and every SetAlpha on one in a
+	-- fight (the moment buttons never write their own alpha).
+	Mock.secretOnSecure = {}
+	Mock.secureAlphaWrites = 0
+	Mock.refuseAlphaFromBoolean = nil
 	-- Spell ids this client has never heard of, e.g. { [462854] = true }. A
 	-- name that will not resolve is the only evidence an addon has that its own
 	-- data is wrong for the client it is running on, and four of the five
@@ -512,6 +517,44 @@ local SECRET = setmetatable({}, { __tostring = function() return "<secret>" end 
 -- unit is then rejected before the code under test is ever reached.
 Mock.SECRET = SECRET
 
+-- A secret value that has a payload, as the client hands one back for a unit's
+-- cast or health in a fight: issecretvalue says true, arithmetic and ordering
+-- throw, and type() answers the payload's own type (the client's type() does:
+-- it is how an addon tells a hidden boolean from a hidden nil). Mock.reveal
+-- gives the payload back to the test (v itself when plain).
+local secrets = setmetatable({}, { __mode = "k" })
+local realType = type
+local function secretError() error("attempt to perform arithmetic or comparison on a secret value", 2) end
+local SECRET_META = {
+	__tostring = function() return "<secret>" end,
+	__add = secretError, __sub = secretError, __mul = secretError, __div = secretError,
+	__mod = secretError, __pow = secretError, __unm = secretError, __concat = secretError,
+	__lt = secretError, __le = secretError, __len = secretError,
+}
+function Mock.secret(payload)
+	local s = setmetatable({}, SECRET_META)
+	secrets[s] = { payload = payload }
+	return s
+end
+function Mock.reveal(v)
+	local rec = secrets[v]
+	if rec then return rec.payload end
+	return v
+end
+function Mock.secretType(v) return realType(Mock.reveal(v)) end
+function Mock.isSecret(v) return v == SECRET or secrets[v] ~= nil end
+-- The client's type() tells what a hidden value holds. Built from a chunk of its
+-- own, so the counters of client calls (which count the functions the doubles
+-- define, by their source file) do not take it for a call of the game's.
+type = assert(loadstring([[
+	local secrets, realType = ...
+	return function(v)
+		local rec = secrets[v]
+		if rec then return realType(rec.payload) end
+		return realType(v)
+	end
+]], "=secret-aware type"))(secrets, realType)
+
 -- A secret value is returned in place of the real one; the addon is expected
 -- to route everything it branches on through its own plain() first.
 local function maybeSecret(value)
@@ -556,6 +599,10 @@ for _, e in ipairs({
 	"NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED", "PLAYER_DEAD",
 	"PLAYER_ALIVE", "PLAYER_UNGHOST", "UNIT_SPELLCAST_SENT",
 	"UNIT_SPELLCAST_SUCCEEDED", "UNIT_SPELLCAST_FAILED", "UI_ERROR_MESSAGE",
+	-- The cast events of a unit that is not you (the moment buttons).
+	"UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP",
+	"UNIT_SPELLCAST_INTERRUPTIBLE", "UNIT_SPELLCAST_NOT_INTERRUPTIBLE", "UNIT_POWER_UPDATE",
+	"UNIT_MAXPOWER", "UNIT_COMBAT", "SPELL_UPDATE_USABLE", "UPDATE_BINDINGS",
 	"GROUP_ROSTER_UPDATE", "ADDON_LOADED",
 	-- The look picker's: a look tried under the pointer is never the one saved.
 	"PLAYER_LOGOUT",
@@ -616,6 +663,11 @@ for _, e in ipairs({
 	"UNIT_LEVEL", "MERCHANT_SHOW", "MERCHANT_CLOSED", "UNIT_PET_TRAINING_POINTS", "ZONE_CHANGED_NEW_AREA",
 }) do KNOWN_EVENTS[e] = true end
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
+-- The two empowered-cast events exist only on some clients: a scenario turns
+-- them on with Mock.empowerEvents, and the default client lacks them.
+setmetatable(KNOWN_EVENTS, { __index = function(_, e)
+	if Mock.empowerEvents and (e == "UNIT_SPELLCAST_EMPOWER_START" or e == "UNIT_SPELLCAST_EMPOWER_STOP") then return true end
+end })
 Mock.badEvents = {}
 
 -- The methods Blizzard refuses on a protected frame while the player is in
@@ -691,8 +743,47 @@ local function newFrame()
 		return self
 	end
 	f.GetText = function(self) return self._text end
-	f.SetAlpha = function(self, alpha) self._alpha = alpha return self end
-	f.GetAlpha = function(self) return self._alpha or 1 end
+	-- A secret alpha sticks (Mock.secretWidgets): once the game has painted it
+	-- from a hidden value the frame's alpha is hidden too, and GetAlpha hands a
+	-- secret back. A protected frame handed one is written down.
+	f.SetAlpha = function(self, alpha)
+		if Mock.inCombat and self._protected and not Mock.secureCode then
+			Mock.secureAlphaWrites = (Mock.secureAlphaWrites or 0) + 1
+		end
+		if Mock.isSecret(alpha) then
+			self._alphaSecret = true
+			if self._protected then Mock.secretOnSecure[#Mock.secretOnSecure + 1] = "SetAlpha" end
+		else
+			self._alphaSecret = nil
+		end
+		self._alpha = alpha
+		return self
+	end
+	f.GetAlpha = function(self)
+		local a = self._alpha
+		if a == nil then a = 1 end
+		if self._alphaSecret and not Mock.isSecret(a) then return Mock.secret(a) end
+		return a
+	end
+	-- Frame:SetAlphaFromBoolean(value, alphaIfTrue, alphaIfFalse): value is a
+	-- boolean the client may hide; a nil (plain or hidden) is refused, as the
+	-- typed client call refuses it.
+	f.SetAlphaFromBoolean = function(self, value, ifTrue, ifFalse)
+		if Mock.refuseAlphaFromBoolean then error("SetAlphaFromBoolean refused", 2) end
+		local plainValue = Mock.reveal(value)
+		if realType(plainValue) ~= "boolean" then error("Usage: SetAlphaFromBoolean(boolean, alphaIfTrue, alphaIfFalse): not a boolean", 2) end
+		if Mock.inCombat and self._protected and not Mock.secureCode then
+			Mock.secureAlphaWrites = (Mock.secureAlphaWrites or 0) + 1
+		end
+		self._alpha = plainValue and (ifTrue or 1) or (ifFalse or 0)
+		if Mock.isSecret(value) then
+			self._alphaSecret = true
+			if self._protected then Mock.secretOnSecure[#Mock.secretOnSecure + 1] = "SetAlphaFromBoolean" end
+		else
+			self._alphaSecret = nil
+		end
+		return self
+	end
 	-- Kept, like the alpha: a fight greys the icon and has to give it back.
 	f.SetDesaturated = function(self, on) self._desaturated = on and true or false return self end
 	f.IsDesaturated = function(self) return self._desaturated == true end
@@ -822,7 +913,10 @@ local function newFrame()
 		self.unitEvents = self.unitEvents or {}
 		self.unitEvents[event] = { ... }
 	end
-	f.UnregisterEvent = function() end
+	f.UnregisterEvent = function(self, event)
+		if self.events then self.events[event] = nil end
+		if self.unitEvents then self.unitEvents[event] = nil end
+	end
 
 	-- Last, so it wraps whatever the two loops above left behind rather than
 	-- being overwritten by them. A call made by secure code (a state driver, a
@@ -1248,7 +1342,7 @@ LibStub = setmetatable({ libs = libs, minors = {}, minor = 2 }, {
 function LibStub:GetLibrary(name, silent) return getLibrary(name, silent) end
 function LibStub:IterateLibraries() return pairs(libs) end
 
-function issecretvalue(v) return v == SECRET end
+function issecretvalue(v) return v == SECRET or secrets[v] ~= nil end
 function InCombatLockdown() return Mock.inCombat end
 -- A frozen clock silently broke several scenarios: PostClick puts a candidate
 -- into the retry cooldown, and with time standing still that cooldown never

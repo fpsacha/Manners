@@ -338,6 +338,12 @@ for _, key in ipairs({ "font", "fontSize", "fontColor", "classColor", "showSub",
 	"tooltip", "tooltipPosition", "peekOnChange" }) do
 	FIELDS["appearance." .. key] = { { "prompt", key } }
 end
+-- The buttons for the moment: a switch each and the share of health. Their
+-- key boxes have no default and so no mark.
+for _, key in ipairs({ "counterspell", "blink", "iceblock" }) do
+	FIELDS["appearance.moment" .. key:sub(1, 1):upper() .. key:sub(2)] = { { "moments", key } }
+end
+FIELDS["appearance.momentHealth"] = { { "moments", "health" } }
 -- Look's colours (Style), a fold too: its dot says a colour is not the look's own.
 for _, key in ipairs({ "bgColor", "accentByReason", "accentMode", "accentColor" }) do
 	FIELDS["appearance." .. key] = { { "prompt", key } }

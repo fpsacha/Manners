@@ -44,6 +44,29 @@ stands now. Keep it short: what ships goes to the history file or away.
   question: Blizzard's notes say other players' casts are secret on Forever and
   retail (`SecretWhenUnitSpellCastRestricted`), so the cast watch may never name
   a stranger there; the next check-up's heard counts, taken with no mobs about, settle it.
+- **Buttons for the moment (mages),** on branch `mage-moments` (worktree
+  `Manners-wt-moments`, cut from `castwatch-diag`), PART 1 committed, not merged:
+  the framework (`Prompt/MomentsData.lua`, `MomentsSense.lua`, `Moments.lua`:
+  one secure button a slot, a plain gate and a game-painted layer over it, an
+  unprotected cover that swallows clicks while dark, a row left of the prompt),
+  Counterspell, Blink and Ice Block, the diagnostics (a line per button on the
+  trail, in the fight summary, in Mark this moment, in `/manners debug` and in
+  the self-test), the options and the eight locales. Scenarios `moments.lua`,
+  `moments-counterspell.lua`, `moments-iceblock.lua`, `moments-blink.lua`,
+  `moments-diag.lua`, mutations of the same names. PART 2 (Evocation, the mana
+  gem, Slow Fall, Cold Snap, Spellsteal, the wards, the cure button's cover, the
+  README and the final changelog) is next; the branch merges only after it.
+  What only a fight tells: whether your own health and mana are hidden (then
+  Ice Block takes two clicks), whether the target's cast events arrive, whether
+  the cooldown flag isActive is filled, whether the per-spell lock flag tells a
+  stun from a fear, and the cover's leak counter (`momentCoverLeaks`).
+  Later ideas: Polymorph on a second attacker (a button cannot change its target
+  in a fight); a cover sized by the game from the hidden value, lifting the
+  two-click rule; the break-free cover (up between control gained with
+  HasFullControl plainly true and the next loss, dropped in the handler before
+  any read); Mend Pet lit from the pet's hidden health by the same curve; the
+  wards by the combat log's school on Classic Era and TBC; range by
+  SPELL_RANGE_CHECK_UPDATE; an always-visible mode with its own switch.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option
