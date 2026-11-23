@@ -51,7 +51,7 @@ mutate(M,
        expect="moments-wards: the hits are heard only in a fight", script=S)
 
 mutate(SENSE,
-       '\tif Sense.casting(slot) == "yes" then return "yes" end\n',
+       '\tif guess then return "yes" end\n',
        '',
        "moments-wards: the target's cast does not light the ward",
        expect="moments-wards: your target casting lights the ward of the school that hit you", script=S)

@@ -31,8 +31,18 @@
   bags; a press drinks your best conjured water, else another drink. *Show a
   drink when my mana is low out of a fight*, In a fight. Where the game hides
   your mana, a dim icon shows the button is there and it takes two quick clicks.
-- **Fire Ward and Frost Ward** light as soon as your target hits you with fire
-  or frost, and again each time it casts after that.
+- **Fire Ward and Frost Ward** light when your target casts a fire or frost
+  spell, and as soon as it hits you with fire or frost.
+
+### Wards by the spell your target casts
+- **Before the hit, where the game names the spell.** On Classic Era and
+  Burning Crusade the ward of the school being cast lights at the start of the
+  cast, from a list of every fire and frost spell with a cast bar, made from the
+  game's own data. A spell of another school never lights it.
+- **On WoW Forever** Manners asks the game to light the ward from the spell the
+  game hides; if the game does, it lights before the hit and takes two quick
+  clicks, and if not, the wards work as before. /manners debug and the self-test
+  say which: *cast school: exact*, *from the game* or *by what hit you*.
 
 ### Water and food for your target
 - **Offer water and food to my target** (mages). Out of a fight, a friendly

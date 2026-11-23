@@ -1133,6 +1133,8 @@ function Moments:Refresh(keepLit)
 			if switches[entry.row.key] == true then
 				wanted[entry.row.slot] = entry
 				if not slots[entry.row.slot] then Create(entry.row.slot) end
+				-- The wards' route to a cast's school is tried once, with the first ward.
+				if entry.row.school and not Sense.castRoute.probed then Sense.ProbeSchool() end
 			end
 		end
 	end
@@ -1707,6 +1709,9 @@ function ns.MomentLines()
 			Yes(can.health), Yes(can.power), tostring(Sense.scale), #refused > 0 and table.concat(refused, ", ") or "none",
 			#Sense.lacking > 0 and table.concat(Sense.lacking, ", ") or "none", Yes(Sense.lockProven),
 			leaks > 0 and (leaks .. " times this session (or a macro of yours clicked it)") or "not this session")
+	-- The wards' route to the school of a cast (Sense.CastSchool).
+	local route, routeWhy = Sense.SchoolRoute()
+	out[#out + 1] = ("moments: cast school: %s (%s)"):format(route, routeWhy)
 	for _, row in ipairs(rows) do
 		local entry = mine and mine.byKey[row.key]
 		local slot = slots[row.slot]

@@ -1326,6 +1326,11 @@ Check("fight.apis", "fight", L["what the game says in a fight"], function(add)
 				if ok and type(value) == "boolean" then cast = value and "hidden" or "plain" end
 			end
 			add(PASS, "a target's cast: " .. cast)
+			-- Which route the wards take to the school of a cast (Prompt/MomentsSense.lua).
+			if ns.Sense.SchoolRoute then
+				local route, why = ns.Sense.SchoolRoute()
+				add(PASS, ("cast school: %s (%s)"):format(route, why))
+			end
 		end
 		local lacking = ns.Sense.lacking
 		add(PASS, "events this client lacks: " .. (lacking and #lacking > 0 and table.concat(lacking, ", ") or "none"))

@@ -16,7 +16,11 @@ ns.WhatsNew = {
 			"|cff7cc4ffTwo quick clicks.|r Where only the game knows whether a button is lit, the first click shows a ring and the spell's icon, and the second, a third of a second or more later, casts: a stray click or a double click never does.",
 			"|cff7cc4ffSpellsteal|r lights while your target carries a buff you can steal (Burning Crusade and later).",
 			"|cff7cc4ffA drink when your mana is low.|r Out of a fight, for every class with mana: a button lights while your mana is under |cffffffffMana below|r and a drink is in your bags; a press drinks your best conjured water, else another drink.",
-			"|cff7cc4ffFire Ward and Frost Ward|r light as soon as your target hits you with fire or frost, and again each time it casts after that.",
+			"|cff7cc4ffFire Ward and Frost Ward|r light when your target casts a fire or frost spell, and as soon as it hits you with fire or frost.",
+		} },
+		{ title = "Wards by the spell your target casts", accent = "7cc4ff", entries = {
+			"|cff7cc4ffBefore the hit, where the game names the spell.|r On Classic Era and Burning Crusade the ward of the school being cast lights at the start of the cast, from a list of every fire and frost spell with a cast bar, made from the game's own data.",
+			"|cff7cc4ffOn WoW Forever|r Manners asks the game to light the ward from the spell the game hides; if the game does, it lights before the hit and takes two quick clicks, and if not, the wards work as before.",
 		} },
 		{ title = "Water and food for your target", accent = "7cc4ff", entries = {
 			"|cff7cc4ffOffer water and food to my target|r (mages).",

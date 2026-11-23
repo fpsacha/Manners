@@ -34,6 +34,14 @@ for word; `CLAUDE.md` is the index, read first.
   and the spells that conjure them. The names in the options come from the client,
   never from this table; the spell names in the translated search words were read
   from Wowhead's tooltip data in each language.
+- **The fire and frost casts of the wards** (`CastSchools.lua`, written by
+  `tools/make_cast_schools.py`) were read at the same builds as the lines above
+  (Forever, Classic Era, TBC, Mists): `SpellMisc.SchoolMask`, `SpellCastTimes`,
+  `SpellEffect`, `SpellName`. The curve over spell ids that Forever's route
+  evaluates is built from Forever's table
+  (`Curve:Evaluate` is documented `SecretArguments = "AllowedWhenUntainted"` in
+  the forever branch of Blizzard's UI source, so the game may refuse an addon: the
+  route is tried once and falls back).
 - **Wowhead** per client (Classic, TBC Classic, MoP Classic, retail, and a
   Forever database) for tooltips, levels and "Requires" lines.
 - **Blizzard's own UI code**: `Gethe/wow-ui-source`, one branch per client

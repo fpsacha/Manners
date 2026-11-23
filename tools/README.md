@@ -1751,6 +1751,37 @@ Nothing here ships but the output. `tests/scenarios/pets.lua` holds the file
 to its rules (the turtle egg in, the familiars, the hat and Forever's Cat
 Carrier out) without the cache.
 
+## make_cast_schools.py
+
+Writes `CastSchools.lua`, the spells with a cast bar that burn or freeze, per
+client (Forever, Classic Era, TBC, Mists): `[spell id] = 4` (fire), `16`
+(frost) or `20` (both), with the spell's name in a comment. A spell is listed
+when `SpellMisc.SchoolMask` holds fire or frost, it shows a cast bar (a cast
+time over zero in `SpellCastTimes`, or a channel: `Attributes_1` bit `0x4` or
+`0x40`), and it deals or applies harm (a School Damage effect, or an Apply Aura
+or Persistent Area Aura effect that is periodic damage, a periodic trigger,
+periodic damage percent, a slow, a root or a stun). Buffs, summons, conjures and
+dummies of the school are left out. Read at the builds `.claude/docs/data-sources.md`
+cites (through `audit_ids.build_for`), from the tables `audit_ids.py`
+downloads; `--fetch` downloads the four this tool reads. Retail is not read: it
+hides the id and offers no wards. About 550 to 1,700 spells per client, one file
+for all five tocs; `Prompt/MomentsData.lua` keeps the running client's table as
+`ns.CAST_SCHOOLS` and lets the rest go.
+
+```
+python tools/make_cast_schools.py            # write CastSchools.lua
+python tools/make_cast_schools.py --check    # exit 1 when the shipped file is not what the tables give at the builds its header names
+python tools/make_cast_schools.py --fetch    # download the tables first
+python tools/make_cast_schools.py --cache DIR
+```
+
+Nothing here ships but the output. `tests/scenarios/moments-cast-school.lua`
+holds the file to its shape (a table per client, only masks 4, 16 and 20,
+Fireball and Frostbolt named for their school, no Blink, a size between a few
+hundred and three thousand) without the cache, and
+`tests/mutations/moments-cast-school.py` undoes each rule of the wards that
+read it.
+
 ## make_beastfoods.py
 
 Writes `BeastFoods.lua`, what a hunter's pet eats: WoW Forever's foods (its

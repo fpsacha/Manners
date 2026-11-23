@@ -145,6 +145,12 @@ local function PaintCall(inner, kind, rawA, held, count)
 	elseif kind == "num" then
 		if type(rawA) ~= "number" then error("not a number", 0) end
 		inner:SetAlpha(rawA)
+	elseif kind == "school" then
+		-- A curve over spell ids evaluated at a hidden id (Sense.CastSchool): 1 at a
+		-- spell of the ward's school. Its own kind, so a game that refuses it leaves
+		-- the health and mana paints alone.
+		if type(rawA) ~= "number" then error("not a number", 0) end
+		inner:SetAlpha(rawA)
 	elseif kind == "any" then
 		local acc = 0
 		for i = 1, count or 0 do
@@ -735,8 +741,30 @@ function Sense.falling(slot, now)
 end
 
 ---------------------------------------------------------------------------
--- the wards: what has just hit you, by school
+-- the wards: what the target casts, and what has just hit you, by school
 ---------------------------------------------------------------------------
+
+-- What the target's cast tells of its school, by the route this client has
+-- (asked once at setup, Sense.ProbeSchool, and shown by /manners debug and the
+-- self-test as "cast school: ..."):
+--   exact            the spell id is plain: CastSchools.lua (generated from the
+--                    client's own spell data) says whether it burns or freezes
+--   from the game    the id is hidden, and the game takes it: a curve over spell
+--                    ids is evaluated at the hidden id and the hidden answer
+--                    paints the ward's art ("school"), so the game itself lights
+--                    the ward and Lua never learns the id
+--   by what hit you  neither: the rule further down, the last school to hit you
+-- On the first two routes a ward is only ever lit from the id itself, never from
+-- a guess. Where the game refuses a route (a pcall at setup, or at the first use
+-- when nothing hidden was at hand to try) the fallback takes over silently.
+local castRoute = { size = 0, exact = false, evaluated = false, refused = nil, probed = false }
+Sense.castRoute = castRoute
+
+-- Whether a value the client hides is this one (a client without hidden values
+-- has no issecretvalue, and nothing there is hidden).
+local function Hidden(raw)
+	return issecretvalue ~= nil and issecretvalue(raw) == true
+end
 
 local HIT_SECONDS = 10
 -- The schools a ward answers (Fire 4, Frost 16), when each last hit you.
@@ -744,7 +772,85 @@ Sense.lastHit = {}
 local WARD_SCHOOLS = { 4, 16 }
 
 -- Whether a school mask holds a school (the schools are powers of two).
-local function HasSchool(mask, school) return mask % (school * 2) >= school end
+local function HasSchool(mask, bit) return mask % (bit * 2) >= bit end
+
+-- A curve over spell ids that answers 1 at a spell of the school and 0 at any
+-- other id: a Linear curve with a narrow triangle round each id, so nothing
+-- depends on how the client's Step type snaps.
+local function BuildSchoolCurve(bit)
+	local ids = {}
+	for id, mask in pairs(ns.CAST_SCHOOLS or {}) do
+		if HasSchool(mask, bit) then ids[#ids + 1] = id end
+	end
+	if #ids == 0 then return nil end
+	table.sort(ids)
+	local curve = _G.C_CurveUtil.CreateCurve()
+	curve:SetType(Enum.LuaCurveType.Linear)
+	for _, id in ipairs(ids) do
+		curve:AddPoint(id - 0.25, 0)
+		curve:AddPoint(id, 1)
+		curve:AddPoint(id + 0.25, 0)
+	end
+	return curve
+end
+
+-- Setup, out of a fight, once (Prompt/Moments.lua, with Sense.Probe): sizes the
+-- client's table and, where the client keeps values from addons and has curves,
+-- builds the two curves and tries them on a hidden number if one is at hand
+-- (your own mana, hidden on Forever even out of a fight): the curve evaluated
+-- at it, the answer painted on a frame of the probe's own. Whatever refuses is
+-- written down and the fallback takes over; nothing here runs per event.
+function Sense.ProbeSchool()
+	castRoute.size, castRoute.exact, castRoute.evaluated, castRoute.refused, castRoute.curves = 0, false, false, nil, nil
+	castRoute.probed = true
+	for _ in pairs(ns.CAST_SCHOOLS or {}) do castRoute.size = castRoute.size + 1 end
+	if castRoute.size == 0 then
+		castRoute.refused = "no table of spells for this client"
+		return
+	end
+	if issecretvalue == nil then return end
+	if not can.curve then
+		castRoute.refused = "this client has no curves"
+		return
+	end
+	local ok, fire, frost = pcall(function() return BuildSchoolCurve(4), BuildSchoolCurve(16) end)
+	if not ok or not fire or not frost then
+		castRoute.refused = ok and "no spells of one school" or ("the game would not build the curve: " .. tostring(fire))
+		return
+	end
+	castRoute.curves = { [4] = fire, [16] = frost }
+	local rawProbe
+	if type(_G.UnitPower) == "function" then rawProbe = _G.UnitPower("player", MANA) end
+	if not (type(rawProbe) == "number" and Hidden(rawProbe)) then return end
+	local rawLit
+	ok, rawLit = pcall(fire.Evaluate, fire, rawProbe)
+	if not ok then
+		castRoute.refused = "Curve:Evaluate refused a hidden number: " .. tostring(rawLit)
+		ns.Trail("fight", "the game refused a hidden spell id in a curve: " .. tostring(rawLit))
+		return
+	end
+	castRoute.evaluated = true
+	local scratch = _G.CreateFrame("Frame")
+	if not Sense.Paint(scratch, "school", rawLit) then
+		castRoute.refused = "the game would not paint from the curve's answer: " .. tostring(refused.school)
+	end
+end
+
+-- How this client names a cast's school, for /manners debug and the self-test:
+-- the route and, where it is the fallback or not yet settled, why.
+function Sense.SchoolRoute()
+	if castRoute.exact then
+		return "exact", ("the game names the spell and CastSchools.lua knows %d"):format(castRoute.size)
+	end
+	if castRoute.refused or refused.school then
+		return "by what hit you", castRoute.refused or ("the game would not paint from it: " .. tostring(refused.school))
+	end
+	if castRoute.evaluated and tried.school then
+		return "from the game", "a curve over spell ids, evaluated at the hidden id by the game"
+	end
+	return "not settled yet",
+		"the first cast settles it: exact when its spell id is plain, from the game when the id is hidden and the game takes it"
+end
 
 -- UNIT_COMBAT on you: a wound of a school the game states plainly. A hidden
 -- mask is ignored.
@@ -752,17 +858,72 @@ function Sense.Hit(action, rawMask, now)
 	if plain(action) ~= "WOUND" then return end
 	local mask = plain(rawMask)
 	if type(mask) ~= "number" or mask <= 0 then return end
-	for _, school in ipairs(WARD_SCHOOLS) do
-		if HasSchool(mask, school) then Sense.lastHit[school] = now end
+	for _, bit in ipairs(WARD_SCHOOLS) do
+		if HasSchool(mask, bit) then Sense.lastHit[bit] = now end
 	end
 end
 
+-- The target's cast and what the route says of it, the spell id read in one
+-- place (a cast's returns put the id eighth on Classic Era and ninth elsewhere;
+-- a channel's seventh or eighth):
+--   "none"          nothing is being cast
+--   "exact", mask   a plain id, and the table's mask of it (0: not fire or frost)
+--   "game"          a hidden id the game takes: slot.castLit holds the hidden
+--                   answer for this ward's school, for the game to paint
+--   "unknown"       a cast whose school this client does not give
+function Sense.CastSchool(slot, bit)
+	if slot.castOn == false then return "none" end
+	local rawName, _, _, _, _, _, _, rawEighth, rawNinth = UnitCastingInfo("target")
+	local rawId
+	if type(rawName) == "nil" then
+		local rawSeventh
+		rawName, _, _, _, _, _, rawSeventh, rawEighth = UnitChannelInfo("target")
+		if type(rawEighth) == "number" then
+			rawId = rawEighth
+		elseif type(rawSeventh) == "number" then
+			rawId = rawSeventh
+		end
+	elseif type(rawNinth) == "number" then
+		rawId = rawNinth
+	elseif type(rawEighth) == "number" then
+		rawId = rawEighth
+	end
+	if type(rawName) == "nil" then return "none" end
+	if type(rawId) ~= "number" then return "unknown" end
+	if not Hidden(rawId) then
+		local id = plain(rawId)
+		local known = ns.CAST_SCHOOLS
+		if type(id) ~= "number" or not known or castRoute.size == 0 then return "unknown" end
+		castRoute.exact = true
+		return "exact", known[id] or 0
+	end
+	local curve = castRoute.curves and castRoute.curves[bit]
+	if not curve or castRoute.refused or refused.school then return "unknown" end
+	local rawLit
+	if castRoute.evaluated then
+		rawLit = curve:Evaluate(rawId)
+	else
+		-- Nothing hidden was at hand at setup: the first hidden id is the trial.
+		local ok
+		ok, rawLit = pcall(curve.Evaluate, curve, rawId)
+		if not ok then
+			castRoute.refused = "Curve:Evaluate refused a hidden spell id: " .. tostring(rawLit)
+			ns.Trail("fight", "the game refused a hidden spell id in a curve: " .. tostring(rawLit))
+			return "unknown"
+		end
+		castRoute.evaluated = true
+	end
+	if type(rawLit) ~= "number" then return "unknown" end
+	slot.castLit = { "school", rawLit }
+	return "game"
+end
+
 -- Damage of the row's school hit you in the last ten seconds, and no other
--- ward school hit more recently. Or your target is casting now and, this
--- fight, the last ward school to hit you was this one: the game never shows a
--- cast's own school, so what the fight has thrown at you is the guess (the
--- owner asked for the ward while the enemy casts). Nothing hit yet: dark.
-function Sense.schoolhit(slot, now)
+-- ward school hit more recently. Or your target is casting now, its school is
+-- not given by this client (`guess`) and, this fight, the last ward school to
+-- hit you was this one: the guess the owner asked for while the enemy casts.
+-- Nothing hit yet: dark.
+local function ByHit(slot, now, guess)
 	local school = slot.row.school
 	local at = school and Sense.lastHit[school]
 	if not at then return "no", "nothing of that kind has hit you" end
@@ -773,8 +934,25 @@ function Sense.schoolhit(slot, now)
 		end
 	end
 	if recent then return "yes" end
-	if Sense.casting(slot) == "yes" then return "yes" end
+	if guess then return "yes" end
 	return "no", "your target is not casting and nothing of that kind hit you lately"
+end
+
+-- A ward lights when the cast itself is of its school (exact; or from the game,
+-- before the hit lands), or by what hit you.
+function Sense.schoolhit(slot, now)
+	local bit = slot.row.school
+	if not bit then return "no", "nothing of that kind has hit you" end
+	local route, mask = Sense.CastSchool(slot, bit)
+	if route == "exact" and HasSchool(mask, bit) then return "yes" end
+	local verdict, why = ByHit(slot, now, route == "unknown")
+	if verdict == "yes" then return "yes" end
+	if route == "game" then
+		slot.game = slot.castLit
+		return "game", "whether your target casts a spell of that kind"
+	end
+	if route == "exact" then return "no", "your target is casting something that is not of that kind" end
+	return verdict, why
 end
 
 ---------------------------------------------------------------------------
@@ -872,7 +1050,7 @@ Sense.WORDS = {
 	lowhealth = "your health is low", lowmana = "your mana is low", stuck = "you are stunned or rooted",
 	nolockout = "no Hypothermia", itemready = "a gem in your bags, ready", falling = "you have been falling for a second",
 	partnercooling = "the spell it brings back is cooling down", stealable = "a buff you can steal",
-	schoolhit = "that kind of damage just hit you", calm = "out of a fight", drinkheld = "a drink in your bags",
+	schoolhit = "your target casts that kind, or that kind of damage just hit you", calm = "out of a fight", drinkheld = "a drink in your bags",
 	still = "standing still", notdrinking = "not drinking already",
 }
 

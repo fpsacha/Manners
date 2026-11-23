@@ -11,7 +11,11 @@
 -- Mock fields it reads:
 --   Mock.health, Mock.healthMax, Mock.healthSecret, Mock.percentScale
 --   Mock.mana, Mock.manaMax, Mock.manaSecret
---   Mock.targetCast = { channel, notInterruptible, secret, notIntNil, name }
+--   Mock.targetCast = { channel, notInterruptible, secret, notIntNil, name, spell, spellHidden, eraShape }
+--   (spell: the cast's spell id, none by default; spellHidden: it comes back hidden; eraShape: Classic
+--   Era's returns, the id eighth)
+--   Mock.curveRefusesSecret (a curve's Evaluate throws on a hidden number), Mock.refuseSecretAlpha
+--   (SetAlpha throws on a hidden number)
 --   Mock.noTarget, Mock.targetFriendly, Mock.targetDead, Mock.targetOutOfRange
 --   Mock.cooldown[id] = { isActive, isOnGCD, startTime, duration, secretNumbers }
 --   Mock.usable[id] = { usable, noMana }
@@ -66,6 +70,12 @@ local function makeCurve()
 	function curve:SetType(kind) self.kind = kind end
 	function curve:AddPoint(x, y) self.points[#self.points + 1] = { x, y } end
 	function curve:Evaluate(x)
+		-- A hidden x: refused where the scenario says the client does (Mock.curveRefusesSecret),
+		-- else the answer comes back hidden too, as the documentation's ConstSecretAccessor says.
+		if Mock.isSecret(x) then
+			if Mock.curveRefusesSecret then error("Curve:Evaluate: a secret number is not accepted here", 2) end
+			return Mock.secret(self:Evaluate(Mock.reveal(x)))
+		end
 		local pts = self.points
 		if #pts == 0 then return 0 end
 		if x <= pts[1][1] then return pts[1][2] end
@@ -151,19 +161,30 @@ function K.install()
 		if hidden then name = Mock.secret(name) end
 		return name, ni
 	end
+	-- The cast's spell id as the client hands it: none unless the scenario names one
+	-- (opts.spell), hidden when opts.spellHidden, as the owner's check-up found it on
+	-- Forever (the id and the cast id withheld).
+	local function spellOf(c)
+		if c.spell == nil then return nil end
+		if c.spellHidden then return Mock.secret(c.spell) end
+		return c.spell
+	end
 	put("UnitCastingInfo", function(unit)
 		if unit ~= "target" then return casting(unit) end
 		local name, ni = targetCast(false)
 		if name == nil then return nil end
 		-- name, displayName, textureID, startMs, endMs, isTradeskill, castID, notInterruptible, spellID
-		return name, "", 135812, 0, 3000, false, "Cast-mock", ni, 116
+		-- (Classic Era: no notInterruptible, the spell id eighth: opts.eraShape)
+		if Mock.targetCast.eraShape then return name, "", 135812, 0, 3000, false, "Cast-mock", spellOf(Mock.targetCast) end
+		return name, "", 135812, 0, 3000, false, "Cast-mock", ni, spellOf(Mock.targetCast)
 	end)
 	put("UnitChannelInfo", function(unit)
 		if unit ~= "target" then return channel and channel(unit) end
 		local name, ni = targetCast(true)
 		if name == nil then return nil end
 		-- name, displayName, textureID, startMs, endMs, isTradeskill, notInterruptible, spellID
-		return name, "", 135812, 0, 3000, false, ni, 5143
+		if Mock.targetCast.eraShape then return name, "", 135812, 0, 3000, false, spellOf(Mock.targetCast) end
+		return name, "", 135812, 0, 3000, false, ni, spellOf(Mock.targetCast)
 	end)
 	put("IsFalling", function()
 		if Mock.fallingSecret then return Mock.secret(Mock.falling == true) end

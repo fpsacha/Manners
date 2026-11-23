@@ -440,6 +440,7 @@ function Mock.reset()
 	Mock.secretOnSecure = {}
 	Mock.secureAlphaWrites = 0
 	Mock.refuseAlphaFromBoolean = nil
+	Mock.refuseSecretAlpha, Mock.curveRefusesSecret = nil, nil
 	-- Spell ids this client has never heard of, e.g. { [462854] = true }. A
 	-- name that will not resolve is the only evidence an addon has that its own
 	-- data is wrong for the client it is running on, and four of the five
@@ -753,6 +754,7 @@ local function newFrame()
 			Mock.secureAlphaWrites = (Mock.secureAlphaWrites or 0) + 1
 		end
 		if Mock.isSecret(alpha) then
+			if Mock.refuseSecretAlpha then error("SetAlpha: a secret number is not accepted here", 2) end
 			self._alphaSecret = true
 			if self._protected then Mock.secretOnSecure[#Mock.secretOnSecure + 1] = "SetAlpha" end
 		else

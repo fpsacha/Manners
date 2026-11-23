@@ -80,11 +80,17 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   `SetAlphaFromBoolean`, an evaluated curve of `UnitHealthPercent` or
   `UnitPowerPercent`), and shows or hides an unprotected `cover` that swallows
   clicks while the button is dark, so a click casts only while it is lit.
-  Where only the game knows (a hidden health, mana, interrupt flag or stealable
-  flag: rows with `guard = "twice"`), the cover stays up and the button takes two
+  Where only the game knows (a hidden health, mana, interrupt flag, stealable
+  flag or the school of a cast: rows with `guard = "twice"`), the cover stays up and the button takes two
   quick clicks at least 0.3 s apart; the first shows a ring (`mark`, a frame of
   Lua's above `inner`) and the icon (`hint`, under `inner`), which the game does
-  not paint away. The drink keeps the dim `hint` whenever the game paints it. Nothing is lit without a detected need, and they
+  not paint away. The wards read the school of the target's cast by the first route
+  the client has: a plain spell id against `ns.CAST_SCHOOLS` ("exact"), or a hidden
+  id evaluated by the game through a curve over spell ids and painted on `inner`
+  (paint kind `school`; the hidden id and its answer are raw names, never
+  compared), or what hit you; the hidden route is tried once at setup
+  (`Sense.ProbeSchool`) or at the first hidden id, never per event, and a refusal
+  falls back silently. A ward is never lit from a guess on the first two routes. The drink keeps the dim `hint` whenever the game paints it. Nothing is lit without a detected need, and they
   never read `prompt.fightButtons`. What a button must be given while the lockdown
   is not yet on (keys, the mouse, the gem's macro from the bags) is written by
   `Moments:Take`, which Core's `PLAYER_REGEN_DISABLED` handler calls; the frame's

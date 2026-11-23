@@ -53,8 +53,8 @@ stands now. Keep it short: what ships goes to the history file or away.
   gem (counted at the pull, `Moments:Take`, and on bag events), Slow Fall (a
   watch asks IsFalling while you move or fight; Lua shows and hides its button
   out of a fight), Spellsteal, Fire Ward and Frost Ward (on, lit by a fire or frost hit while the
-  target is hostile; then on each cast of the target once that school has hit
-  you in the fight), the
+  target is hostile; and by the school of the target's own cast, three routes,
+  below), the
   cure button's cover (`db.global.cureCoverLeaks`), the diagnostics (a line per
   button on the trail, in the fight summary, in Mark this moment, in
   `/manners debug` and in the self-test), the options and the eight locales.
@@ -85,6 +85,30 @@ stands now. Keep it short: what ships goes to the history file or away.
   not picked, except conjured water, which comes from its own list); on Mists and
   retail a drink whose use spell is Refreshment or Food & Drink is not
   recognised unless it is conjured.
+  **The wards by the cast's school** (`CastSchools.lua`, `tools/make_cast_schools.py`,
+  `Sense.CastSchool`, `Sense.ProbeSchool`, scenario `moments-cast-school.lua`,
+  mutations `moments-cast-school.py`): where `UnitCastingInfo("target")` gives a
+  plain spell id (Classic Era, TBC; Mists has no wards), the table says whether it
+  burns or freezes and the ward lights at the start of the cast ("cast school:
+  exact"). On Forever the id is hidden (the check-up: 10 casts heard, the spell id
+  and the cast id withheld), so Manners builds a curve over Forever's fire and frost
+  spell ids and asks `Curve:Evaluate` for the hidden id, painting the ward's art
+  from the hidden answer ("cast school: from the game"), two quick clicks as with
+  the other hidden routes. If the client refuses (pcall once, at setup with your
+  hidden mana as the test number, or at the first hidden id when none was at
+  hand), the wards keep today's rule ("by what hit you"). Game-only questions:
+  the forever branch documents `Curve:Evaluate` as `SecretArguments =
+  "AllowedWhenUntainted"`, which suggests an addon is refused: the check-up's
+  *cast school* line (self-test, *What the game says in a fight*, and
+  /manners debug) will read "from the game" or "by what hit you (Curve:Evaluate
+  refused a hidden number ...)". If it reads "from the game", whether a Linear
+  curve with a 0.25 triangle round each id answers 1 exactly at an id on the real
+  client's curve (float spacing is 0.125 at the largest id, 1.3 million); whether
+  the answer paints (SetAlpha of an evaluated hidden number: the first paint is
+  tried once, `refused school` in the debug line). If it reads "exact": whether
+  the id is eighth or ninth (both are read). The fire and frost list leaves out
+  buffs, summons and dummies, and a fire spell the list misses falls back to the
+  hit rule (never a guess under a named spell).
   Scenarios `moments*.lua` and `curefight-cover.lua`, mutations of the same
   names, every one proven CAUGHT. The whole suite, the other clients' baselines
   and a full self-test are the owner's test pass. Open: the rows' spell ids are

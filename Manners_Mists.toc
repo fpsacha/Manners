@@ -30,6 +30,7 @@ Locales\Locales.xml
 
 Flavour.lua
 Foods.lua
+CastSchools.lua
 BeastFoods.lua
 Consumables.lua
 Pets.lua

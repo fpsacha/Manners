@@ -29,8 +29,8 @@
 --   blind      "weak" or "dark": what a needed value the game hides and no call
 --              takes does to the button (default dark)
 --   guard      "twice": while only the game knows whether it is lit (a hidden
---              health, mana, interrupt flag or stealable flag), it takes two
---              quick clicks, at least a third of a second apart
+--              health, mana, interrupt flag, stealable flag or the school of a
+--              cast), it takes two quick clicks, at least a third of a second apart
 --   cooldown   seconds, for Manners' own clock; shares, resets, partner,
 --              school, breaks, lockout, reagent, seconds: see Sense
 --
@@ -61,10 +61,10 @@ local OLD = {
 			stop = true, guard = "twice", cooldown = 600,
 			needs = { "fight", "ready", "partnercooling", "lowhealth" } },
 		Row { key = "fireward", slot = 9, ranks = { 10225, 10223, 8458, 8457, 543 }, school = 4, shares = "frostward",
-			stop = true, cooldown = 30,
+			stop = true, guard = "twice", cooldown = 30,
 			needs = { "fight", "ready", "usable", "enemy", "schoolhit" } },
 		Row { key = "frostward", slot = 10, ranks = { 28609, 10177, 8462, 8461, 6143 }, school = 16, shares = "fireward",
-			stop = true, cooldown = 30,
+			stop = true, guard = "twice", cooldown = 30,
 			needs = { "fight", "ready", "usable", "enemy", "schoolhit" } },
 	},
 }
@@ -92,10 +92,10 @@ local TBC = {
 		Row { key = "spellsteal", slot = 8, ranks = { 30449 }, stop = true, guard = "twice",
 			needs = { "fight", "ready", "usable", "enemy", "inrange", "stealable" } },
 		Row { key = "fireward", slot = 9, ranks = { 27128, 10225, 10223, 8458, 8457, 543 }, school = 4, shares = "frostward",
-			stop = true, cooldown = 30,
+			stop = true, guard = "twice", cooldown = 30,
 			needs = { "fight", "ready", "usable", "enemy", "schoolhit" } },
 		Row { key = "frostward", slot = 10, ranks = { 32796, 28609, 10177, 8462, 8461, 6143 }, school = 16, shares = "fireward",
-			stop = true, cooldown = 30,
+			stop = true, guard = "twice", cooldown = 30,
 			needs = { "fight", "ready", "usable", "enemy", "schoolhit" } },
 	},
 }
@@ -186,5 +186,10 @@ ns.MOMENT_KEYS = { "counterspell", "spellsteal", "blink", "iceblock", "coldsnap"
 
 local flavour = ns.Flavour and ns.Flavour.flavour
 ns.MOMENTS = SETS[flavour] or {}
+-- The spells of this client with a cast bar that burn (4) or freeze (16), or
+-- both (20): CastSchools.lua, generated from the client's own spell data. The
+-- wards read it (Prompt/MomentsSense.lua); the other clients' tables are let go.
+ns.CAST_SCHOOLS = (ns.CAST_SCHOOLS_BY_CLIENT or {})[flavour] or {}
+ns.CAST_SCHOOLS_BY_CLIENT = nil
 -- The sets, for a scenario that holds each client's rows to the rules.
 ns.MOMENT_SETS = SETS
