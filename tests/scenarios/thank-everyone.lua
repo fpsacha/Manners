@@ -601,7 +601,7 @@ end
 -- What I say holds the /thank and nothing else for a class with nothing to
 -- give, and is in the sidebar for it; the switch is live with People who buff
 -- me off. Start here's voice choice, which the window draws at the top of
--- What I say, stays hidden with the rest.
+-- What I say, is there too, with the thanks to choose from alone.
 for _, case in ipairs({
 	{ class = "HUNTER", label = "a hunter", known = { HAWK, MONKEY } },
 	{ class = "ROGUE", label = "a rogue" },
@@ -628,8 +628,15 @@ for _, case in ipairs({
 		end
 		for _, path in ipairs(paths) do
 			local shown = UI.RowShown(path)
+			-- Start here's voice choice, at the top of What I say, is the thanks'
+			-- own for a class with nothing to give (GitHub issue 39): its
+			-- sentence under it follows the choice (Stay silent has none).
+			if path == "general.quickVoiceSummary" then
+				-- either way
+			elseif path == "general.quickVoice" then
+				if not shown then fail(scenario, "the voice choice is not on " .. case.label .. "'s What I say") end
 			-- The whispered thank-you (1.11.15) is the /thank's too.
-			if path == "click.thankEmote" or path == "click.thankEmoteToken" or path == "click.thankEmoteMore"
+			elseif path == "click.thankEmote" or path == "click.thankEmoteToken" or path == "click.thankEmoteMore"
 				or path == "click.thankWhisper"
 				or path == "click.thankDelay"
 				or path == "click.thankUnseen"

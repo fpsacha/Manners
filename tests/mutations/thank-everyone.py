@@ -74,10 +74,10 @@ mutate("Options/Say.lua",
        "thank-everyone: a control's own rule dropped",
        expect="a mage's Lines section does not follow Say a line", script=S)
 mutate("Options/Start.lua",
-       "\t\t\t\torder = 41,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = noClassBuffs,\n",
-       "\t\t\t\torder = 41,\n\t\t\t\twidth = \"full\",\n",
+       "\t\t\t\torder = 41,\n\t\t\t\twidth = \"full\",\n\t\t\t\tvalues = function() return Quick.Values(Quick.VoiceList()) end,\n",
+       "\t\t\t\torder = 41,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = noClassBuffs,\n\t\t\t\tvalues = function() return Quick.Values(Quick.VoiceList()) end,\n",
        "thank-everyone: the voice choice with nothing to give",
-       expect="a control other than the /thank shows on What I say", script=S)
+       expect="the voice choice is not on", script=S)
 mutate("Options/Start.lua",
        "\t\t\t\t\t\t\t\t:format(RefTo(L[\"/thank people who buff me\"], \"click.thankEmote\"))\n",
        "\t\t\t\t\t\t\t\t:format(RefTo(L[\"/thank people who buff me\"], \"who.self\"))\n",

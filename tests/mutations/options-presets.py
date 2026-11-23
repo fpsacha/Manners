@@ -297,10 +297,9 @@ mutate("Options/Start.lua",
 
 # The choice's tooltip back, pointing at the page it now leads.
 mutate("Options/Start.lua",
-       "\t\t\t\tname = L[\"When I buff someone\"],\n\t\t\t\torder = 41,\n",
-       "\t\t\t\tname = L[\"When I buff someone\"],\n"
+       "\t\t\t\torder = 41,\n\t\t\t\twidth = \"full\",\n\t\t\t\tvalues = function() return Quick.Values(Quick.VoiceList()) end,\n",
        "\t\t\t\tdesc = \"Change the words and channel on What I say.\",\n"
-       "\t\t\t\torder = 41,\n",
+       "\t\t\t\torder = 41,\n\t\t\t\twidth = \"full\",\n\t\t\t\tvalues = function() return Quick.Values(Quick.VoiceList()) end,\n",
        "presets: the voice choice points at What I say",
        expect="When I buff someone still points at What I say",
        script="runscenarios.py")

@@ -444,6 +444,30 @@ if ns.InCharacter then
 		}, applyOnly = { ["speech.onlyWhenReturning"] = true } })
 end
 
+-- What a class with nothing to give others can choose for its voice: only the
+-- thanks, which a rogue or a hunter is given as much as anybody (GitHub issue
+-- 39: the In character thank-you was there for a warlock and not a hunter).
+-- None of these touches the line said with a cast (speech.*), which on a
+-- shared profile is another character's. The In character one loads that set,
+-- so the whispered thank-you is said in the lines of your race and class.
+Quick.THANKS = {
+	{ key = "silent", name = L["Stay silent"], set = {
+		["prompt.thankEmote"] = false, ["prompt.thankWhisper"] = false,
+	} },
+	{ key = "thank", name = L["Just /thank them"], set = {
+		["prompt.thankEmote"] = true, ["prompt.thankWhisper"] = false,
+	} },
+}
+if ns.InCharacter then
+	Quick.THANKS[#Quick.THANKS + 1] = { key = "incharacter", name = L["In character (fits your race and class)"],
+		lines = "incharacter", set = { ["prompt.thankWhisper"] = true }, applyOnly = {} }
+end
+
+-- The voice list this character chooses from.
+function Quick.VoiceList()
+	return HasClassBuffs() and Quick.VOICE or Quick.THANKS
+end
+
 function Quick.Find(list, key)
 	for _, entry in ipairs(list) do
 		if entry.key == key then return entry end
@@ -690,6 +714,16 @@ end
 
 VoiceSummaryText = function()
 	local sp = SP()
+	-- A class with nothing to give says no line with a cast, whatever a shared
+	-- profile holds: only the thanks (Quick.THANKS).
+	if not HasClassBuffs() then
+		local emote, whisper = P().thankEmote == true, P().thankWhisper == true
+		if whisper then
+			local line = L["Whispers a thank-you to people you can't buff back."]
+			return emote and (line .. " " .. L["Also /thanks people who buff you."]) or line
+		end
+		return emote and L["Only /thank."] or L["Silent."]
+	end
 	local thanks = P().thankEmote
 	-- The /thank answers somebody buffing you, whether People who buff me is
 	-- on or not (Favours.lua, NoteFavour).
@@ -1304,26 +1338,28 @@ function Page.BuildStartTab()
 			-- Step 4. What is said, as a preset; the words are on What I say.
 			voiceHeader = {
 				type = "header", name = L["4. Say thanks (optional)"], order = 40,
-				hidden = noClassBuffs,
 			},
 			quickVoice = {
 				type = "select",
 				-- No tooltip: it leads What I say, above the switches it sets.
-				name = L["When I buff someone"],
+				-- A class with nothing to give is thanked, and thanks, all the
+				-- same (Quick.THANKS): its choice is about who buffs it.
+				name = function()
+					return HasClassBuffs() and L["When I buff someone"] or L["When someone buffs me"]
+				end,
 				order = 41,
 				width = "full",
-				hidden = noClassBuffs,
-				values = function() return Quick.Values(Quick.VOICE) end,
-				sorting = function() return Quick.Order(Quick.VOICE) end,
-				get = function() return Quick.Match(Quick.VOICE) end,
-				set = function(_, v) Quick.Apply(Quick.VOICE, v) end,
-				confirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,
+				values = function() return Quick.Values(Quick.VoiceList()) end,
+				sorting = function() return Quick.Order(Quick.VoiceList()) end,
+				get = function() return Quick.Match(Quick.VoiceList()) end,
+				set = function(_, v) Quick.Apply(Quick.VoiceList(), v) end,
+				confirm = function(_, v) return Quick.Confirm(Quick.VoiceList(), v) end,
 			},
 			-- Not under Stay silent, whose summary ("Silent.") says it again.
 			quickVoiceSummary = {
 				type = "description",
 				order = 42,
-				hidden = function() return noClassBuffs() or Quick.Match(Quick.VOICE) == "silent" end,
+				hidden = function() return Quick.Match(Quick.VoiceList()) == "silent" end,
 				name = function() return grey(Quick.VoiceSummary()) end,
 			},
 

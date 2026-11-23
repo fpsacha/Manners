@@ -16,8 +16,8 @@ mutate("Options/Register.lua",
 
 # A key the registry does not know, on a control every class sees.
 mutate("Options/Start.lua",
-       "\t\t\t\tconfirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,\n",
-       "\t\t\t\tconfirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,\n"
+       "\t\t\t\tconfirm = function(_, v) return Quick.Confirm(Quick.VoiceList(), v) end,\n",
+       "\t\t\t\tconfirm = function(_, v) return Quick.Confirm(Quick.VoiceList(), v) end,\n"
        "\t\t\t\ttooltip = \"not a key AceConfig knows\",\n",
        "aceconfig: an unknown key on an option",
        expect="unknown parameter",

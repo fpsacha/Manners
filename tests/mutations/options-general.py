@@ -71,7 +71,7 @@ mutate("Options/Start.lua",
        expect="asks nothing first", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\tset = function(_, v) Quick.Apply(Quick.VOICE, v) end,\n",
+       "\t\t\t\tset = function(_, v) Quick.Apply(Quick.VoiceList(), v) end,\n",
        "\t\t\t\tset = function() end,\n",
        "start here: When I buff someone back sets nothing",
        expect="picking Just /thank them did not set it up", script=S)
