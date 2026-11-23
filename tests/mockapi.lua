@@ -2024,6 +2024,9 @@ local SPELL_NAMES = {
 	-- A Forsaken's racial (Prompt/BreakFree.lua).
 	[7744] = "Will of the Forsaken",
 	[10157] = "Arcane Intellect",
+	-- The imp's Fire Shield, every rank (Buffs.lua, fireshield; tests/scenarios/fireshield.lua).
+	[11771] = "Fire Shield", [11770] = "Fire Shield", [8317] = "Fire Shield", [8316] = "Fire Shield",
+	[2947] = "Fire Shield", [27269] = "Fire Shield",
 	[10938] = "Power Word: Fortitude",
 	[27841] = "Divine Spirit",
 	[10958] = "Shadow Protection",

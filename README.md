@@ -1133,6 +1133,11 @@ no room for. Defaults are in brackets.
   Intellect." instead.
   - Shadow Protection (Classic Era, WoW Forever, Burning Crusade) and a
     warlock's *Detect Invisibility (your group only)* start unticked.
+  - A warlock's *Fire Shield from my imp on the tank* (Classic Era, WoW
+    Forever, Burning Crusade) starts unticked too. Ticked, while your imp is
+    out and knows Fire Shield, the tank of your party (whoever the game gives
+    the tank role) is offered it, and a press has your imp cast it on them.
+    Somebody in your party who asks for it by name gets it as well.
   - A buff the game would refuse for somebody's level (more than ten levels
     under its lowest rank) is passed over for the next one that reaches them.
   - A druid's Thorns has *Offer to*: *Everyone*; *Tanks only* (the players in
@@ -1684,7 +1689,7 @@ On WoW Forever and Classic Era:
 | Druid | Mark of the Wild, Thorns |
 | Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade; Beacon of Light (Season of Discovery) or Oath of Light (WoW Forever), for your tank |
 | Shaman | Earth Shield and Spirit of the Alpha (Season of Discovery), for your tank |
-| Warlock | Unending Breath (or, with its switch unticked, only to return a favour and to whoever asks for it by name); Detect Invisibility for your party or raid, off until you tick it |
+| Warlock | Unending Breath (or, with its switch unticked, only to return a favour and to whoever asks for it by name); Detect Invisibility for your party or raid, off until you tick it; Fire Shield from your imp on your party's tank, off until you tick it |
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever); Commanding Shout too in Season of Discovery |
 
 Mages, priests, druids and paladins also cast the group version of a buff

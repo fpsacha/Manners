@@ -133,6 +133,17 @@
 --             Discovery's Commanding Shout, 30 yards against Battle Shout's 20):
 --             data for tools/audit_ids.py. ShoutReach (Core.lua) already says
 --             yes out to 28 or 30 yards for every shout.
+--   pet       cast by your pet, not by you: the id of the summon that brings the
+--             pet (the imp's Fire Shield, 688 Summon Imp). The summon known is
+--             what makes it yours to switch on (Core.lua, ProbeBuff); the ranks
+--             are the pet's, read in the pet's spellbook, and it is offered only
+--             while a pet out knows one (ns.PetCasts, asked by CastableBuffs).
+--             The macro is the same /target and /cast: "/cast <name>" of a pet
+--             spell has the pet cast it on your target (GitHub issue 22).
+--   forTank   offered only to a member of your party the game calls a tank
+--             (ns.IsTankUnit, as Thorns' Tanks only reads it), with no choice
+--             to widen it; anybody in the party who asks for it by name still
+--             gets it (Core.lua, Castable).
 --
 -- How long each lasts is no field of a buff: it is a table of ids per client, below
 -- ("how long each lasts"), which a top-up's lead is worked out from (Core.lua).
@@ -391,6 +402,21 @@ end
 do
 	VANILLA.SHAMAN[#VANILLA.SHAMAN + 1] = { key = "spiritofthealpha", ranks = { 408696 }, oneTarget = true,
 		neverSelf = true, talent = true }
+end
+
+-- Fire Shield from a warlock's imp on the tank (GitHub issue 22, asked for on
+-- CurseForge). The imp's own spell (SkillLineAbility 188, the imp's line; ranks
+-- 2947, 8316, 8317, 11770, 11771 at pet levels 14, 24, 34, 44 and 54), three
+-- minutes (SpellMisc DurationIndex: 180000 ms) of fire damage dealt to whoever
+-- strikes the wearer (aura 15), on target 35, a member of the caster's party:
+-- the imp reaches its master's party and nobody else (partyOnly). Read at
+-- Classic Era 1.15.9.70003 and Forever 1.60.1.70790, which agree; Forever's copy
+-- comes from this one. Off until it is ticked (optIn): three minutes comes round
+-- often, and many warlocks keep the imp's own autocast for it. Never offered to
+-- you through it (neverSelf), and only to the party's tank (forTank).
+do
+	VANILLA.WARLOCK[#VANILLA.WARLOCK + 1] = { key = "fireshield", ranks = { 11771, 11770, 8317, 8316, 2947 },
+		pet = 688, forTank = true, partyOnly = true, optIn = true, neverSelf = true }
 end
 
 ---------------------------------------------------------------------------
@@ -1408,6 +1434,9 @@ ns.RANK_LEVEL = {
 	-- Detect Invisibility for your group (SpellLevels, Classic Era 1.15.9.70003,
 	-- Forever 1.60.1.70790 and, for 132, Burning Crusade 2.5.6.69795).
 	[132] = 26, [2970] = 38, [11743] = 50,
+	-- The imp's Fire Shield, the pet's own levels (SpellLevels, Classic Era
+	-- 1.15.9.70003 and Forever 1.60.1.70790; 27269, Burning Crusade's, below).
+	[2947] = 14, [8316] = 24, [8317] = 34, [11770] = 44, [11771] = 54,
 	-- The group versions (a buff's `group`), since the right-buff audit, each
 	-- its own SpellLevels (Classic Era 1.15.9.70003; Forever 1.60.1.70790 has
 	-- the same for the ones it kept): Arcane Brilliance; Prayer of Fortitude 1
@@ -1957,6 +1986,17 @@ local TBC = {
 			neverSelf = true,
 			gift = "detectinvis",
 		},
+		-- The imp's Fire Shield on the tank, as on vanilla, with Burning
+		-- Crusade's sixth rank (27269, pet level 64; three minutes, target 35).
+		{
+			key = "fireshield",
+			ranks = { 27269, 11771, 11770, 8317, 8316, 2947 },
+			pet = 688,
+			forTank = true,
+			partyOnly = true,
+			optIn = true,
+			neverSelf = true,
+		},
 	},
 
 	WARRIOR = {
@@ -1995,6 +2035,8 @@ TBC.SHAMAN = {
 for id, level in pairs({
 	[27126] = 70, [25389] = 70, [25433] = 68, [26990] = 70, [26992] = 64,
 	[27142] = 65, [27140] = 70, [27144] = 69, [25312] = 70,
+	-- The imp's sixth Fire Shield (SpellLevels, build 2.5.6.69795).
+	[27269] = 64,
 	[27168] = 70,
 	-- And Burning Crusade's ranks of the group versions (see vanilla's).
 	[27127] = 70, [25392] = 70, [32999] = 70, [39374] = 70, [26991] = 70,
@@ -3834,6 +3876,18 @@ do
 		{ 0, 156910 }, -- Beacon of Faith (no timer)
 		{ 3600, 474750, 474754 }, -- Symbiotic Relationship (1 h)
 	})
+end
+
+-- The imp's Fire Shield (GitHub issue 22): three minutes on every rank
+-- (SpellMisc DurationIndex, 180000 ms), Classic Era 1.15.9.70003, Forever
+-- 1.60.1.70790 and Burning Crusade 2.5.6.69795.
+do
+	local function Add(set, rows)
+		for id, seconds in pairs(Seconds(rows)) do SECONDS_FOR[set][id] = seconds end
+	end
+	Add(VANILLA_SET, { { 180, 11771, 11770, 8317, 8316, 2947 } }) -- Fire Shield (3 min)
+	Add(CAMELOT_SET, { { 180, 11771, 11770, 8317, 8316, 2947 } }) -- Fire Shield (3 min)
+	Add(TBC_SET, { { 180, 27269, 11771, 11770, 8317, 8316, 2947 } }) -- Fire Shield (3 min)
 end
 
 ---------------------------------------------------------------------------

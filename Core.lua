@@ -1166,6 +1166,15 @@ do
 			end
 		end
 
+		-- Your pet's spell (Buffs.lua, `pet`: the imp's Fire Shield): yours to switch
+		-- on once you know the summon, whatever pet is out; the ranks are the pet's
+		-- and never in your own spellbook, so no rank of it is yours to name. What
+		-- the pet out knows is asked at the scan (ns.PetCasts).
+		if buff.pet then
+			info.known = SpellKnown(buff.pet) or nil
+			info.topRank, info.ranksKnown = nil, nil
+		end
+
 		-- The macro casts by name and the game picks the best rank of it, so the name
 		-- is the best rank's you know: a spell line can change its name on the way up
 		-- (Frost Armor is Ice Armor from 30), and "/cast Frost Armor" would cast rank
@@ -1747,6 +1756,66 @@ do
 	end
 end
 
+-- Whether your pet can cast a buff of its own (Buffs.lua, `pet`: the imp's Fire
+-- Shield) right now: a pet out, not dead, that knows a rank of it in the pet's
+-- spellbook (C_SpellBook's pet bank where the client has it, IsSpellKnown's
+-- isPet otherwise). Kept until the pet or the spellbook changes (UNIT_PET,
+-- SPELLS_CHANGED: ns.ForgetPetSpells), so a scan asks the client nothing. In a
+-- block of its own for the main chunk's 200 locals.
+do
+	local petKnows = {}
+	local function PetSpellKnown(id)
+		local book = C_SpellBook
+		local bank = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet
+		if type(book) == "table" and bank ~= nil then
+			if safecall(book.IsSpellKnown, id, bank) == true or safecall(book.IsSpellInSpellBook, id, bank, false) == true then
+				return true
+			end
+		end
+		return safecall(_G.IsSpellKnown, id, true) == true
+	end
+	function ns.PetCasts(buff)
+		local key = buff and buff.key
+		if key == nil then return false end
+		local answer = petKnows[key]
+		if answer == nil then
+			answer = false
+			local exists, dead = _G.UnitExists, _G.UnitIsDead
+			if type(exists) == "function" and plain(exists("pet")) == true
+				and not (type(dead) == "function" and plain(dead("pet")) == true) then
+				for _, id in ipairs(buff.ranks or {}) do
+					if PetSpellKnown(id) then
+						answer = true
+						break
+					end
+				end
+			end
+			petKnows[key] = answer
+		end
+		return answer
+	end
+	function ns.ForgetPetSpells()
+		for key in pairs(petKnows) do petKnows[key] = nil end
+	end
+	-- `list` without your pet's buffs that no pet out can cast now: the same
+	-- table when there is none to leave out (every class but a warlock), else a
+	-- new one, so a list kept by its maker is never changed.
+	function ns.PetReady(list)
+		local out
+		for i, buff in ipairs(list) do
+			if buff.pet and not ns.PetCasts(buff) then
+				if not out then
+					out = {}
+					for j = 1, i - 1 do out[j] = list[j] end
+				end
+			elseif out then
+				out[#out + 1] = buff
+			end
+		end
+		return out or list
+	end
+end
+
 -- Everything of this class the player can actually cast, in list order (the
 -- player's own, when one is set: ns.WalkBuffs), once per scan. A neverAuto buff
 -- (Unending Breath) and a switched-off one are left out unless pinned: a pin is
@@ -1771,6 +1840,8 @@ function ns.CastableBuffs()
 	local walk, custom = ns.WalkBuffs()
 	if custom then strongestFirst = false end
 	local out = {}
+	-- Your pet's (Buffs.lua, `pet`: the imp's Fire Shield) only while a pet out knows it.
+	walk = ns.PetReady(walk)
 	for _, buff in ipairs(walk) do
 		if ns.IsBuffKnown(buff)
 			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
@@ -2267,6 +2338,10 @@ do
 		-- buff.notMeInside): SelfBuff hands the set only while you are in one.
 		if opts.notMeInside and buff.tankChoice and opts.notMeInside[buff.key] then return false end
 		if buff.partyOnly and not opts.inParty then return false end
+		-- The party's tank alone (Buffs.lua, forTank: the imp's Fire Shield): a
+		-- member the game calls one (opts.isTank, read by the walk while such a
+		-- buff is in hand), or anybody who asked for it by name.
+		if buff.forTank and not (opts.isTank or opts.asked) then return false end
 		-- Salvation: the game refuses it on anybody outside your party or raid.
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
 		-- Held to your group by Manners' choice, where the game would take any
@@ -5122,6 +5197,8 @@ local function UnitHasBuff(unit, buff, guid)
 					-- Direct: a client-written token, which UnitIsUnit never throws on.
 					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
+					-- Your pet's buff (Buffs.lua, `pet`) names your pet as its caster.
+					if same == false and buff.pet and plain(UnitIsUnit(source, "pet")) == true then mine = true end
 					-- Named as the caster on somebody else: this client says so
 					-- for your casts, as WoW Forever does.
 					if same == true and plain(UnitIsUnit(unit, "player")) == false then ns.namesYourCasts = true end
@@ -6634,6 +6711,18 @@ function addon:OnEnable()
 		end)
 	end
 
+	-- Your pet's buff for others (Buffs.lua, `pet`: the imp's Fire Shield), for a
+	-- class that has one: the pet coming and going (UNIT_PET) says what it can
+	-- cast (ns.PetCasts), and its casts answer a press (Clicks.lua, HearPetCasts).
+	local _, class = UnitClass("player")
+	for _, buff in ipairs(ns.GetClassBuffs(plain(class)) or {}) do
+		if buff.pet then
+			ns.Guard("RegisterEvent UNIT_PET", function() self:RegisterEvent("UNIT_PET") end)
+			ns.Guard("pet casts", ns.HearPetCasts)
+			break
+		end
+	end
+
 	-- The combat log only where the client is believed to have one: Forever
 	-- and retail 12.0+ forbid the registration, and asking there would print
 	-- a red line on every login. Armed only once the call went through, and
@@ -6878,7 +6967,15 @@ function addon:PLAYER_STOPPED_MOVING() ns.NoteMoving(GetTime(), false) end
 -- popup. Nothing shows that a call from an event handler is allowed, and a
 -- Blizzard popup hidden from addon code risks taint.
 
+-- Your pet out, dismissed or another summoned: what it can cast is asked again
+-- at the next scan (ns.PetCasts). Registered only for a class with a pet's buff.
+function addon:UNIT_PET(_, unit)
+	if unit ~= "player" then return end
+	ns.ForgetPetSpells()
+end
+
 function addon:SPELLS_CHANGED()
+	ns.ForgetPetSpells()
 	local now = GetTime()
 	if now - lastProbe < 5 then
 		if not probeQueued and C_Timer and C_Timer.After then

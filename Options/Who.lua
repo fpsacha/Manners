@@ -49,6 +49,9 @@ end
 -- on, since that filter is what holds a mana-only spell back.
 local function BuffLabel(buff)
 	local label = ns.BuffName(buff)
+	-- Your pet's, for the party's tank (Buffs.lua, pet and forTank: the imp's Fire
+	-- Shield), says both and nothing more: the tank is in your party.
+	if buff.pet and buff.forTank then return L["%s from my imp on the tank"]:format(label) end
 	if buff.manaOnly and F().relevantOnly then
 		label = L["%s |cff808080(mana users only)|r"]:format(label)
 	end
@@ -241,6 +244,10 @@ local function AddBuffToggles(args)
 		-- One that is off until it is ticked says so (Buffs.lua, optIn).
 		if buff.optIn then
 			args["offer_" .. buff.key].desc = L["Off until you tick it. Tick to offer this buff."]
+		end
+		-- Your imp's (Buffs.lua, pet): who it goes to, and when it is there to give.
+		if buff.pet and buff.forTank then
+			args["offer_" .. buff.key].desc = L["Off until you tick it. On: while your imp is out and knows it, the tank of your party is offered it; a press has your imp cast it on them. The tank is whoever the game gives the tank role. Somebody in your party who asks you for it by name gets it too."]
 		end
 		-- And a switch under one that may be kept for a favour returned and a
 		-- request by name (Buffs.lua, returnOnly: Unending Breath, a warlock's

@@ -32,7 +32,7 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   `ns.NOT_FAVOUR_IDS`, `ns.RANK_LEVEL`, `ns.STAT_VALUE`, `ns.STAT_TIERS`,
   `ns.LEVEL_GATED`. Branch on those fields
   and the per-buff flags (`partyOnly`, `groupOnly`, `selfCast`, `alone`, `alike`,
-  `blockers`, `neverAuto`, `optIn`, `returnOnly`, ... documented at the top of
+  `blockers`, `neverAuto`, `optIn`, `returnOnly`, `pet`, `forTank`, ... documented at the top of
   the file) rather than on
   flavour names. `blockers` and `ns.STAT_VALUE` are the flat-stat scrolls that
   hold a weaker rank of Arcane Intellect, Fortitude or Divine Spirit off
@@ -92,7 +92,10 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   (`buff.detectPassers`, off; `ns.PassersToo`, asked by `Castable`,
   `ns.OnlyReachesGroup` and the buff's label); a `returnOnly` buff (Unending Breath there) goes only to a favour's
   giver (`opts.owed`) and to a request by name (`opts.asked`, which a plain
-  "buff pls" is not); `buff.skipCasters` is on.
+  "buff pls" is not); `buff.skipCasters` is on. A warlock's *Fire Shield from my
+  imp on the tank* (`fireshield`: `pet`, `forTank`, `partyOnly`, `optIn`) is off
+  too; ticked, it goes only to the party's tank, and only while a pet out knows
+  it (`ns.PetCasts`).
 - **A refused reading in a battleground match** (Forever and retail keep auras
   secret there, even out of a fight; GitHub issue 29): a refusal says nothing,
   so the walk offers nothing on it. Two things stand in for the reading, both

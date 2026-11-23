@@ -26,6 +26,9 @@ ns.WhatsNew = {
 			"|cff7cc4ffOffer water and food to my target|r (mages).",
 			"|cff7cc4ffHow much to trade.|r |cffffffffFill the trade window|r is the default, for your target and for water and food somebody asked for; |cffffffffOne stack|r puts one of each.",
 		} },
+		{ title = "Fire Shield from your imp on the tank", accent = "7cc4ff", entries = {
+			"|cff7cc4ffWarlocks on Classic Era, WoW Forever and Burning Crusade.|r Tick |cffffffffFire Shield from my imp on the tank|r on Who to buff: while your imp is out and knows it, your party's tank is offered Fire Shield, and a press has the imp cast it on them.",
+		} },
 		{ title = "Curing in a fight", accent = "7cc4ff", entries = {
 			"|cff7cc4ffThe game shows who needs your cure.|r On WoW Forever, where the game hides debuffs from addons in a fight, the game itself now shows the debuff on the cure button's place; a click there casts as the second of two quick clicks, the key at once.",
 			"|cff7cc4ffShift and Ctrl for each cure.|r |cffffffffPlain press|r, |cffffffffWith Shift|r and |cffffffffWith Ctrl|r under the cure switch pick the cure each casts (a druid: Remove Curse, Cure Poison, Abolish Poison).",

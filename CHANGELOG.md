@@ -51,6 +51,12 @@
 - **How much to trade.** *Fill the trade window* is the default, for your target
   and for water and food somebody asked for; *One stack* puts one of each.
 
+### Fire Shield from your imp on the tank
+- **Warlocks on Classic Era, WoW Forever and Burning Crusade.** Tick *Fire
+  Shield from my imp on the tank* on Who to buff: while your imp is out and
+  knows it, your party's tank is offered Fire Shield, and a press has the imp
+  cast it on them. Off by default; the tank is whoever has the tank role.
+
 ### Curing in a fight
 - **The game shows who needs your cure.** On WoW Forever, where the game hides
   debuffs from addons in a fight, the game itself now shows the debuff on the

@@ -151,11 +151,28 @@ stands now. Keep it short: what ships goes to the history file or away.
   removable kind); whether `EnableMouse(false)` is allowed on the slot frame
   (else its tooltip shows under the cover); whether Ctrl on the cure key reaches
   it when Ctrl plus that key is bound to something else in the game.
+- **Fire Shield from the imp on the tank (issue 22),** on branch `feedback-1123`,
+  not merged: a warlock's buff for others cast by his pet (`Buffs.lua`
+  `fireshield`, new flags `pet` = 688 Summon Imp and `forTank`; Classic Era,
+  Forever, Burning Crusade; three minutes, target 35 so `partyOnly`; `optIn`,
+  `neverSelf`). Known once Summon Imp is; offered only while a pet out knows a
+  rank in the pet's spellbook (`ns.PetCasts`, kept until `UNIT_PET` or
+  `SPELLS_CHANGED`; `ns.PetReady` in `CastableBuffs`), only to the party member
+  `ns.IsTankUnit` calls a tank or one who asks by name (`Castable`; the walk reads
+  roles while such a buff is in hand, `opts.forTank`). The press is the usual
+  `/target` and `/cast Fire Shield`; the pet's `UNIT_SPELLCAST_SUCCEEDED` (a frame
+  of its own, `ns.HearPetCasts`) settles it, since no SENT comes for a pet. Your
+  imp's aura on the tank reads as yours. Switch *Fire Shield from my imp on the
+  tank*, Who to buff. Scenarios `fireshield.lua`, mutations `fireshield.py`, all
+  CAUGHT. Game-only question: does `/cast Fire Shield` from the prompt's press
+  have the imp cast it on the target the `/target` line picked, on each client
+  (Forever has no `[@unit]`), and does the pet's cast event arrive within half a
+  second (else the press reads "nothing was cast" after two seconds, and the
+  tank is offered it again only until the aura shows).
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option
-  went missing; nothing was found removed), issue 22 (the imp's Fire Shield),
-  issue 21 (no popup: their client and `/manners debug`). The cure button on
+  went missing; nothing was found removed), issue 21 (no popup: their client and `/manners debug`). The cure button on
   Forever under secret auras is only proven in the simulator: user_fer3yhwuvuz52jwg
   and LuckyDan were asked for `/manners debug` if it still does not show.
 - **Next:** (1) rewrite the retail and Mists baselines: `python
