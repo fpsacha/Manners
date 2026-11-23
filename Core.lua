@@ -799,6 +799,12 @@ local defaults = {
 			-- first, each shown only for the kinds its cure takes off. Off: one
 			-- button, the second cure on Shift (Prompt/CureFight.lua).
 			cureFightEach = true,
+			-- Which cure the cure button's plain press, Shift and Ctrl cast, kept per
+			-- class (CLASS -> { plain =, shift =, ctrl = }, each a spell's first rank
+			-- id, 0 for nothing), since every character shares the profile. Empty:
+			-- the class's first cure plain, its second on Shift, its third on Ctrl
+			-- (Prompt/CureFight.lua, Chosen).
+			cureFightMods = {},
 			-- The spell the prompt's own key casts in a fight, by a row key of
 			-- Prompt/FightKey.lua's list, kept per class (CLASS -> key) because
 			-- every character shares the profile; none, or "none", keeps the key
@@ -6305,6 +6311,17 @@ function ns.ClampSettings()
 	-- per class. Carried to the class whose list holds it when that is one
 	-- class alone; a key two classes share (flash) goes to the class logging
 	-- in when its list holds it, else it is dropped.
+	-- The cure button's spells per modifier, per class: a table of numbers.
+	if type(p.cureFightMods) ~= "table" then p.cureFightMods = {} end
+	for class, mods in pairs(p.cureFightMods) do
+		if type(class) ~= "string" or type(mods) ~= "table" then
+			p.cureFightMods[class] = nil
+		else
+			for mod, id in pairs(mods) do
+				if (mod ~= "plain" and mod ~= "shift" and mod ~= "ctrl") or type(id) ~= "number" then mods[mod] = nil end
+			end
+		end
+	end
 	if type(p.fightKeySpells) ~= "table" then p.fightKeySpells = {} end
 	for class, key in pairs(p.fightKeySpells) do
 		if type(class) ~= "string" or type(key) ~= "string" then p.fightKeySpells[class] = nil end

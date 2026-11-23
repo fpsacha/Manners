@@ -51,6 +51,16 @@
 - **How much to trade.** *Fill the trade window* is the default, for your target
   and for water and food somebody asked for; *One stack* puts one of each.
 
+### Curing in a fight
+- **The game shows who needs your cure.** On WoW Forever, where the game hides
+  debuffs from addons in a fight, the game itself now shows the debuff on the
+  cure button's place; a click there casts as the second of two quick clicks,
+  the key at once.
+- **Shift and Ctrl for each cure.** *Plain press*, *With Shift* and *With Ctrl*
+  under the cure switch pick the cure each casts (a druid: Remove Curse, Cure
+  Poison, Abolish Poison). The key's tooltip names them.
+- **One cure switch.** It is set on In a fight; Who to buff points there.
+
 ### Report a bug
 - **One window.** Choose what went wrong, press **Make the report**, open the
   link and paste the report. Your name, realm and guild never go in the link,

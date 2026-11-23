@@ -136,7 +136,21 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   once. A plain read that found nothing (deny list, under two seconds, the
   client's no) still wins. Naming the kind under secrecy through
   `GetAuraDispelTypeColor` and a color curve is noted, not built (the
-  dispel-type ids are not documented). Its events (UNIT_AURA and the rest) are registered at the
+  dispel-type ids are not documented). On Forever 1.60.1 that list throws
+  for an addon in a fight (issue 43), so `Prompt/CureNeed.lua` puts the game's
+  own aura display under each cure button: a plain holder of Lua's own over the
+  button (not its child, so the button's alpha 0 does not take it), a plain
+  wrap per unit Lua shows and hides (a target or focus only while a friend), and
+  in each the game's `CustomAuraContainerTemplate` with one aura slot
+  (`HARMFUL|RAID`, `includeDispelTypes` of the button's kinds), whose frame the
+  game shows and Lua never asks (in a fight it may not:
+  `DenyTaintedAccessWhenAurasAreSecret`). Probed once with pcall when the first
+  button is made; refused, nothing is made. With it the button stays dark, the
+  cover up, and a click casts only as the second of two (`FirstOfTwo`, the
+  moment buttons' guard "twice"): a key casts at once. The plain press, Shift
+  and Ctrl cast the cures of `prompt.cureFightMods[class]` (`CureFight.Chosen`;
+  none saved: the class's first, second and third cure, `ns.CureFightKnown`),
+  Ctrl's clause first, each dropped while a key bound with that modifier holds it. Its events (UNIT_AURA and the rest) are registered at the
   pull and dropped at the release, UNIT_AURA filtered by a table lookup
   outside the Guard, and a scan with the switch off and no button made pays
   one profile field and no question to the client. A value the client

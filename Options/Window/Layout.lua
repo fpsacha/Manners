@@ -895,6 +895,10 @@ ns.WindowLayout = {
 					{ "appearance.cureFightKey", indent = true },
 					{ "appearance.cureFightEach", indent = true },
 					{ "appearance.cureFightKey2", indent = true },
+					-- Which cure the plain press, Shift and Ctrl cast.
+					{ "appearance.cureFightPlain", indent = true },
+					{ "appearance.cureFightShift", indent = true },
+					{ "appearance.cureFightCtrl", indent = true },
 				} },
 				-- Small buttons that light for a moment (Prompt/Moments.lua): a
 				-- mage's Counterspell, Blink, Ice Block and the rest.
@@ -1243,6 +1247,7 @@ ns.WindowLayout = {
 			["appearance.fightButtons"] = true,
 			["appearance.cureFight"] = true, ["appearance.cureFightKey"] = true,
 			["appearance.cureFightEach"] = true, ["appearance.cureFightKey2"] = true,
+			["appearance.cureFightPlain"] = true, ["appearance.cureFightShift"] = true, ["appearance.cureFightCtrl"] = true,
 			["appearance.fightKeySpell"] = true, ["appearance.fightKeyOn"] = true,
 			-- The buttons for the moment, each key under its switch.
 			["appearance.momentCounterspell"] = true, ["appearance.momentCounterspellKey"] = true,
@@ -1411,6 +1416,9 @@ ns.WindowLayout = {
 		["who.beastTraining"] = L["hunter pet training points"], ["appearance.mendInFight"] = L["hunter pet mend fight button key"],
 		["appearance.cureFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["appearance.cureFightEach"] = L["cure each second button druid poison curse fight"],
+		["appearance.cureFightPlain"] = L["cure plain press modifier spell fight"],
+		["appearance.cureFightShift"] = L["cure shift modifier second spell fight"],
+		["appearance.cureFightCtrl"] = L["cure ctrl control modifier third spell abolish fight"],
 		["appearance.fightKeySpell"] = L["fight combat key spell shield heal barrier"],
 		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
 		["appearance.momentCounterspell"] = L["counterspell interrupt kick cast target fight button moment"],
@@ -1518,6 +1526,9 @@ ns.WindowLayout = {
 		["appearance.cureFightKey"] = "appearance.cureFight",
 		["appearance.cureFightEach"] = "appearance.cureFight",
 		["appearance.cureFightKey2"] = "appearance.cureFightEach",
+		["appearance.cureFightPlain"] = "appearance.cureFight",
+		["appearance.cureFightShift"] = "appearance.cureFight",
+		["appearance.cureFightCtrl"] = "appearance.cureFight",
 		-- The keys of the buttons for the moment, each shown only while its switch is on.
 		["appearance.momentCounterspellKey"] = "appearance.momentCounterspell",
 		["appearance.momentBlinkKey"] = "appearance.momentBlink",
@@ -1543,6 +1554,9 @@ ns.WindowLayout = {
 		["appearance.cureFightKey"] = function() return ns.ClassHasCures() and ns.CureLearned() end,
 		["appearance.cureFightEach"] = function() local l = ns.CureFightSpells() return l ~= nil and l[2] ~= nil end,
 		["appearance.cureFightKey2"] = function() local l = ns.CureFightSpells() return l ~= nil and l[2] ~= nil end,
+		["appearance.cureFightPlain"] = function() local l = ns.CureFightKnown() return l ~= nil and l[2] ~= nil end,
+		["appearance.cureFightShift"] = function() local l = ns.CureFightKnown() return l ~= nil and l[2] ~= nil end,
+		["appearance.cureFightCtrl"] = function() local l = ns.CureFightKnown() return l ~= nil and l[2] ~= nil end,
 		["appearance.momentCounterspell"] = function() return ns.Moments.Has("counterspell") end,
 		["appearance.momentCounterspellKey"] = function() return ns.Moments.Has("counterspell") end,
 		["appearance.momentBlink"] = function() return ns.Moments.Has("blink") end,

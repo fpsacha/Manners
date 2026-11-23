@@ -162,19 +162,19 @@ mutate(CF,
        expect="curefight: forever: the macro is a bare cast", script=S)
 
 mutate(CF,
-       "Clause(list[2].name, true) .. \"; \" .. Clause(list[1].name, false)",
-       "Clause(list[1].name, true) .. \"; \" .. Clause(list[2].name, false)",
+       "\tlocal plainSpell, shiftSpell, ctrlSpell = CureFight.Chosen(db)\n",
+       "\tlocal shiftSpell, plainSpell, ctrlSpell = CureFight.Chosen(db)\n",
        "curefight: the cures are the wrong way round",
        expect="curefight: a druid's second cure is on Shift", script=S)
 
 mutate(CF,
-       "\tlocal shift = slot.index == 1 and armedTwo and spell == armedList[2]\n",
-       "\tlocal shift = false\n",
+       "\tlocal mod = slot.index == 1 and modOf[spell] or nil\n",
+       "\tlocal mod = nil\n",
        "curefight: the key line never names Shift",
        expect="curefight: the key line names Shift for the second cure", script=S)
 
 mutate(CF,
-       "\tif slots[1].shiftKey then return one, false end\n",
+       "\tif slots[1].shiftKey then shiftSpell = nil end\n",
        "",
        "curefight: a key bound with Shift casts the second cure",
        expect="curefight: a key bound with Shift casts the first cure alone", script=S)
@@ -322,14 +322,14 @@ mutate(CF,
        expect=EACH, script=S)
 
 mutate(CF,
-       "\t\tArm(second, \"/cast \" .. Clause(list[2].name, false))\n",
-       "\t\tArm(second, \"/cast \" .. Clause(list[1].name, false))\n",
+       "\t\tArm(second, \"/cast \" .. Clause(shiftSpell.name, false))\n",
+       "\t\tArm(second, \"/cast \" .. Clause(plainSpell.name, false))\n",
        "curefight: the second button casts the first cure",
        expect="curefight: each cure's key casts its own cure", script=S)
 
 mutate(CF,
-       "\t\tmacro = MacroFor(list)\n\t\ttwo = false\n",
-       "\t\tmacro = \"/cast \" .. Clause(list[1].name, false)\n\t\ttwo = false\n",
+       "\tlocal macro, shiftOn, ctrlOn = MacroFor(plainSpell, shiftSpell, ctrlSpell)\n",
+       "\tlocal macro, shiftOn, ctrlOn = MacroFor(plainSpell, not each and shiftSpell or nil, ctrlSpell)\n",
        "curefight: the first button of two loses Shift for the second cure",
        expect="curefight: each cure's key casts its own cure", script=S)
 

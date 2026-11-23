@@ -55,6 +55,61 @@ local function AccentDead()
 end
 Page.AccentDead = AccentDead
 
+-- The cure button's modifiers (Prompt/CureFight.lua, Chosen): which of the
+-- class's cures the plain press, Shift and Ctrl cast, kept per class
+-- (prompt.cureFightMods), a spell by its first rank id, "none" for nothing. A
+-- choice that is the place's own default is stored as no choice, so the window
+-- marks only a real change.
+local CureMods = {}
+do
+	local INDEX = { plain = 1, shift = 2, ctrl = 3 }
+	local function Known() return ns.CureFightKnown and ns.CureFightKnown() or nil end
+	local function Id(spell) return spell and tostring(spell.cure.ranks[1]) or "none" end
+	-- Offered to a class that has two cures or more to share out.
+	function CureMods.Hidden()
+		if not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true then return true end
+		local known = Known()
+		return not (known and known[2])
+	end
+	function CureMods.Values()
+		local out = { none = L["Nothing"] }
+		for _, spell in ipairs(Known() or {}) do out[Id(spell)] = tostring(spell.name) end
+		return out
+	end
+	function CureMods.Sorting()
+		local out = {}
+		for _, spell in ipairs(Known() or {}) do out[#out + 1] = Id(spell) end
+		out[#out + 1] = "none"
+		return out
+	end
+	function CureMods.Get(mod)
+		local picks = { ns.CureFight.Chosen() }
+		return Id(picks[INDEX[mod]])
+	end
+	function CureMods.Set(mod, value)
+		local p, class = P(), ns.caps.class
+		if not class then return end
+		if type(p.cureFightMods) ~= "table" then p.cureFightMods = {} end
+		local mine = type(p.cureFightMods[class]) == "table" and p.cureFightMods[class] or {}
+		local known = Known() or {}
+		if value == Id(known[INDEX[mod]]) then
+			mine[mod] = nil
+		else
+			mine[mod] = value == "none" and 0 or tonumber(value)
+		end
+		p.cureFightMods[class] = next(mine) ~= nil and mine or nil
+		if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+	end
+	-- What the key's tooltip adds: the cures Shift and Ctrl cast on it.
+	function CureMods.KeyLine()
+		local _, shift, ctrl = ns.CureFight.Chosen()
+		if shift and ctrl then return " " .. L["Hold Shift for %s, Ctrl for %s."]:format(tostring(shift.name), tostring(ctrl.name)) end
+		if shift then return " " .. L["Hold Shift for %s."]:format(tostring(shift.name)) end
+		if ctrl then return " " .. L["Hold Ctrl for %s."]:format(tostring(ctrl.name)) end
+		return ""
+	end
+end
+
 -- The icon's size on a look that sizes it itself (Toast, from the height), or
 -- nil where the slider sets it.
 local function LookIconSize()
@@ -652,9 +707,9 @@ function Page.BuildLookTab()
 				name = L["Show my cure on a button in a fight, only while somebody needs it"],
 				desc = function()
 					if ns.caps.conditionalTargeting then
-						return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures whoever is under your mouse, else your target, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
+						return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners; Plain press, With Shift and With Ctrl choose which cure it casts. A press cures whoever is under your mouse, else your target, else you. Where the game hides debuffs from addons in a fight, the game itself shows the debuff on the button's place, and a click casts only as the second of two quick clicks; the key casts at once. A change made in a fight counts from the next one."]
 					end
-					return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures your target when it is a friend, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
+					return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners; Plain press, With Shift and With Ctrl choose which cure it casts. A press cures your target when it is a friend, else you. Where the game hides debuffs from addons in a fight, the game itself shows the debuff on the button's place, and a click casts only as the second of two quick clicks; the key casts at once. A change made in a fight counts from the next one."]
 				end,
 				order = 32.491,
 				width = "full",
@@ -687,7 +742,8 @@ function Page.BuildLookTab()
 			cureFightKey = {
 				type = "keybinding",
 				name = L["Key for my cure in a fight"],
-				desc = L["Saved with your game key bindings, so it works on every profile."],
+				-- Names what Shift and Ctrl cast on it (CureMods.KeyLine).
+				desc = function() return L["Saved with your game key bindings, so it works on every profile."] .. CureMods.KeyLine() end,
 				order = 32.492,
 				hidden = function()
 					return not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true or not ns.Setup.CanBind()
@@ -727,6 +783,42 @@ function Page.BuildLookTab()
 					end)
 					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
 				end,
+			},
+			-- Which cure the cure button casts on a plain press, with Shift and with
+			-- Ctrl (Prompt/CureFight.lua, Chosen): only the class's own cures, and
+			-- Nothing. Kept per class, as the fight key's spell is.
+			cureFightPlain = {
+				type = "select",
+				name = L["Plain press"],
+				desc = L["Which cure the cure button and its key cast with no key held. Only cures your class knows are listed. A change made in a fight counts from the next one."],
+				order = 32.4926,
+				hidden = CureMods.Hidden,
+				values = CureMods.Values,
+				sorting = CureMods.Sorting,
+				get = function() return CureMods.Get("plain") end,
+				set = function(_, value) CureMods.Set("plain", value) end,
+			},
+			cureFightShift = {
+				type = "select",
+				name = L["With Shift"],
+				desc = L["Which cure the cure button and its key cast while you hold Shift. With A button for each cure on, this cure also gets the second button. A change made in a fight counts from the next one."],
+				order = 32.4927,
+				hidden = CureMods.Hidden,
+				values = CureMods.Values,
+				sorting = CureMods.Sorting,
+				get = function() return CureMods.Get("shift") end,
+				set = function(_, value) CureMods.Set("shift", value) end,
+			},
+			cureFightCtrl = {
+				type = "select",
+				name = L["With Ctrl"],
+				desc = L["Which cure the cure button and its key cast while you hold Ctrl. A change made in a fight counts from the next one."],
+				order = 32.4928,
+				hidden = CureMods.Hidden,
+				values = CureMods.Values,
+				sorting = CureMods.Sorting,
+				get = function() return CureMods.Get("ctrl") end,
+				set = function(_, value) CureMods.Set("ctrl", value) end,
 			},
 			-- Next to Animations, because that is what it is: the flashes of
 			-- a click in a fight, not whether anybody is offered.

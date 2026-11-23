@@ -1771,6 +1771,7 @@ local function bracketHolds(conditional)
 		if word == "combat" and not inFight() then return false end
 		if word == "nocombat" and inFight() then return false end
 		if word == "mod:shift" and not (IsShiftKeyDown and IsShiftKeyDown()) then return false end
+		if word == "mod:ctrl" and not (IsControlKeyDown and IsControlKeyDown()) then return false end
 		if who then
 			if word == "help" and hostile then return false end
 			if word == "harm" and not hostile then return false end

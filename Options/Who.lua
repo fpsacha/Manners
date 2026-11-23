@@ -948,26 +948,18 @@ local function AddCureControls(args)
 		get = fGet,
 		set = fSet,
 	}
-	-- The fight's own button (Prompt/CureFight.lua) has its switch on Look, In
-	-- a fight; the same switch sits here too, where somebody turning cures on
-	-- looks for it. It does not follow the switches above or the seconds.
+	-- The fight's own button (Prompt/CureFight.lua) has its switch, key and
+	-- modifiers on In a fight, the one place it is set; here, where somebody
+	-- turning cures on looks for it, a line pointing there.
 	args.curesFight = {
-		type = "toggle",
-		name = L["Show my cure on a button in a fight, only while somebody needs it"],
-		desc = function()
-			if ns.caps.conditionalTargeting then
-				return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures whoever is under your mouse, else your target, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
-			end
-			return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures your target when it is a friend, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
+		type = "description",
+		name = function()
+			return L["The cure button for a fight is set on its own page: %s, with its key and which cure Shift and Ctrl cast."]
+				:format(Page.RefTo(L["Show my cure on a button in a fight, only while somebody needs it"], "appearance.cureFight"))
 		end,
 		order = 14.95,
 		width = "full",
 		hidden = function() return NoCures() or not ns.CureLearned() end,
-		get = function() return ns.db.profile.prompt.cureFight == true end,
-		set = function(_, value)
-			ns.db.profile.prompt.cureFight = value == true
-			if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
-		end,
 	}
 end
 

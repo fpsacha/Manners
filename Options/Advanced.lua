@@ -215,6 +215,7 @@ Page.RESET.quiet = {
 Page.RESET.fight = {
 	"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
 	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
+	"prompt.cureFightMods",
 	"moments.counterspell", "moments.spellsteal", "moments.blink", "moments.evocation", "moments.managem", "moments.drink",
 	"moments.slowfall", "moments.iceblock", "moments.coldsnap", "moments.fireward", "moments.frostward",
 	"moments.health", "moments.mana",

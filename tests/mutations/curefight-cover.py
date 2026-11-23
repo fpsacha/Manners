@@ -7,14 +7,14 @@ S = "runscenarios.py"
 CF = "Prompt/CureFight.lua"
 
 mutate(CF,
-       '\tif slot.cover then slot.cover:SetShown(fightOn and not on and slot.mouseOn == true) end\n',
+       '\tif slot.cover then slot.cover:SetShown(fightOn and not on and slot.mouseOn == true and not Open(slot, GetTime())) end\n',
        '\tif slot.cover then slot.cover:SetShown(false) end\n',
        "curefight-cover: the cover is not shown when the cure is out of sight",
        expect="curefight-cover: no key: a click while nobody needs a cure casts nothing", script=S)
 
 mutate(CF,
-       '\tif slot.cover then slot.cover:SetShown(fightOn and not on and slot.mouseOn == true) end\n',
-       '\tif slot.cover then slot.cover:SetShown(fightOn and slot.mouseOn == true) end\n',
+       '\tif slot.cover then slot.cover:SetShown(fightOn and not on and slot.mouseOn == true and not Open(slot, GetTime())) end\n',
+       '\tif slot.cover then slot.cover:SetShown(fightOn and slot.mouseOn == true and not Open(slot, GetTime())) end\n',
        "curefight-cover: the cover is left up over a lit cure",
        expect="curefight-cover: no key: while somebody needs a cure the cover is down", script=S)
 

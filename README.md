@@ -272,8 +272,8 @@ too.
 #### Curing in a fight
 
 A class with a cure can tick *Show my cure on a button in a fight, only while
-somebody needs it* (*In a fight*, on; also under *Who to buff*, *Resurrection
-and cures*). It gives a small button right of the prompt (or of the Will of the
+somebody needs it* (*In a fight*, on; *Who to buff*, *Resurrection and cures*,
+points there). It gives a small button right of the prompt (or of the Will of the
 Forsaken button), with *Key for my cure in a fight* under the switch. It is
 never on screen for nothing: it appears only while Manners sees you, your
 target or somebody in your group, in reach and alive, carrying a poison,
@@ -283,14 +283,24 @@ player under your mouse, else your target, else you; on WoW Forever your target
 when it is a friend, else you. A class with two cures (a druid, a priest or a
 shaman on the older clients) gets *A button for each cure* (on): the second
 button sits below the first, with *Key for my second cure in a fight*, and each
-shows only for the debuffs its cure removes. With it off there is one button and
-Shift casts the second cure. A debuff Manners never removes keeps the cure that
-would lift it away from that person. Where the game hides debuffs in a fight
-(WoW Forever, retail) the button still appears when the game says you can
-remove one, in your group, on your target or on you, without naming the kind:
-it reads "a debuff you can remove", and with two buttons both show and you pick
-the cure. A click where the button is out of sight does nothing, so a stray click
-never casts it. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
+shows only for the debuffs its cure removes. With it off there is one button.
+*Plain press*, *With Shift* and *With Ctrl* under the switch choose which cure
+the button and its key cast with no key held, with Shift and with Ctrl, from
+your class's own cures or *Nothing*: by default the first cure plain, the
+second on Shift, the third on Ctrl (a druid: Remove Curse, Cure Poison, Abolish
+Poison), and the key's tooltip names them. With a button for each cure, the
+Shift cure is the second button's. A debuff Manners never removes keeps the cure
+that would lift it away from that person. Where the game hides debuffs from
+addons in a fight (WoW Forever, retail), the game itself shows the debuff's icon
+on the cure button's place, with a border in its kind's colour, for you, your
+target or focus when a friend, and your group: Manners asks the game's own aura
+display for the debuffs your cures remove, of each button's kinds. Manners cannot
+see it, so there a click casts only as the second of two quick clicks (the
+first shows a ring and the cure's icon); the key casts at once. Where the game
+does hand the debuffs back, the button shows as above and one click casts. A
+click where the button is out of sight does nothing, so a stray click never
+casts it. `/manners debug` and the check-up say where the button learns who
+needs a cure: *from the game's aura display*, *from the auras* or *withheld*. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
 names a spell.
 
 #### Buttons for the moment
@@ -1172,7 +1182,8 @@ no room for. Defaults are in brackets.
   the group with other Manners users* (on).
 - ***Resurrection and cures***: *Resurrect my group's dead* (on) with *Dead passers-by too*
   (off); *Cure my party and raid*, *Cure passers-by* and *Cure myself too* (all
-  off) with *Only when it has at least this long left* (10).
+  off) with *Only when it has at least this long left* (10). The cure button for
+  a fight is set on *In a fight*; a line here points there.
 - Your own buffs and a hunter's pet are not here: they have *My own buffs* and
   *My pet*, below.
 - ***Other people's buffs*** (folded): the paladin, Fish Bowl and campsite
@@ -1466,7 +1477,8 @@ with two sections: ***The prompt in a fight*** and ***Buttons for when you need 
 - *Show my cure on a button in a fight, only while somebody needs it* (on, a
   class with a cure), with *Key for my cure in a fight* under it; *A button for
   each cure* (on, a class with two cures) and *Key for my second cure in a
-  fight*: see *Curing in a fight* above.
+  fight*; *Plain press*, *With Shift* and *With Ctrl* (a class with two cures
+  or more): see *Curing in a fight* above.
 
 ### Look
 

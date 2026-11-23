@@ -80,7 +80,8 @@ function, switch and test named. Change both together.
   hidden by Lua on plain knowledge only, two clicks where the game alone knows;
   the drink (slot 11) is a calm row: hidden by the driver in a fight, its macro
   cleared by `Moments:Take`, shown and hidden by Lua out of a fight;
-  the cure button has the same cover; the break-free button must not get one. Nothing Manners chooses may keep break-free from showing
+  the cure button has the same cover, and takes two clicks where only the game's
+  aura display under it knows the need (`Prompt/CureNeed.lua`); the break-free button must not get one. Nothing Manners chooses may keep break-free from showing
   and being pressed when needed; the cure button is the other way round,
   nothing of it on screen for nothing. Never hide the prompt by any route that
   leaves it, a row or the bar macro able to cast: a hidden secure button still

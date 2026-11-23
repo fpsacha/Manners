@@ -291,7 +291,14 @@ sub-second subset for the middle of an edit.
   environment of its own with frame handles, and `SecureCmdOptionParse`
   (mockapi.lua) reading `[combat]` from `Mock.affectingCombat`, else
   `Mock.inCombat`. Secure code's calls in a fight are not the addon's
-  (`Mock.secureCode`).
+  (`Mock.secureCode`). It models the game's aura container too
+  (`CreateFrame("AuraContainer", ..., "CustomAuraContainerTemplate")`, refused
+  unless `Mock.auraContainer`): one aura slot that shows when
+  `Mock.hiddenFor(unit)` (or `Mock.hiddenDebuffs[unit]`) holds a removable debuff
+  of its `includeDispelTypes`, a slot frame that throws when asked what it shows
+  in a fight, `Mock.auraShows(box)` and `Mock.auraShowing()` for what the client
+  would draw (`scenarios/curefight-container.lua`). `SecureCmdOptionParse` reads
+  `[mod:shift]` and `[mod:ctrl]` from `Mock.modifiers`.
 - The buttons for the moment (`scenarios/moments*.lua`, helper `momentskit.lua`,
   `scenarios/curefight-cover.lua`): `Mock.secret(payload)` is a hidden value
   (`Mock.reveal`, `Mock.secretType`, `issecretvalue` and a secret-aware `type()`;

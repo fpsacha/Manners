@@ -130,6 +130,27 @@ stands now. Keep it short: what ships goes to the history file or away.
   wards by the combat log's school on Classic Era and TBC; range by
   SPELL_RANGE_CHECK_UPDATE; an always-visible mode with its own switch; a
   Slow Fall that does not hand your target back when you target nobody.
+- **Cure button from the game's aura display (issue 43),** on branch
+  `feedback-1123` (worktree `Manners-wt-feedback`, cut from `mage-moments`), not
+  merged: on Forever 1.60.1 the game's list of removable debuffs throws for an
+  addon in a fight, so every cure read was withheld. `Prompt/CureNeed.lua` puts
+  the game's own `CustomAuraContainerTemplate` (one aura slot, `HARMFUL|RAID`,
+  narrowed to each button's kinds by `includeDispelTypes`) under each cure
+  button for you, target, focus, party and raid; the button stays dark and takes
+  two quick clicks there. Shift and Ctrl per cure (`prompt.cureFightMods`, per
+  class; *Plain press*, *With Shift*, *With Ctrl*), the key's tooltip naming
+  them, and Who to buff's cure switch replaced by a pointer to In a fight.
+  Scenarios `curefight-container.lua`, `curefight-mods.lua`, mutations of the
+  same names, all CAUGHT. The offensive dispels the issue also asks for (Purge,
+  Tranquilizing Shot, Shield Slam, offensive Dispel Magic) are not built.
+  Game-only questions: whether an addon's `CreateFrame("AuraContainer", ...,
+  "CustomAuraContainerTemplate")` is allowed on Forever (the check-up's *cure
+  need* line says "from the game's aura display" or "withheld (... refused: why)");
+  whether its slot frame then shows a curse in a fight (the player's eyes); whether
+  `includeDispelTypes` filters a secret dispel type (else a button shows every
+  removable kind); whether `EnableMouse(false)` is allowed on the slot frame
+  (else its tooltip shows under the cover); whether Ctrl on the cure key reaches
+  it when Ctrl plus that key is bound to something else in the game.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option

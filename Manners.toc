@@ -112,6 +112,7 @@ Prompt\Refresh.lua
 Prompt\Supplies.lua
 Prompt\BreakFree.lua
 Prompt\MendPet.lua
+Prompt\CureNeed.lua
 Prompt\CureFight.lua
 Prompt\FightKey.lua
 Prompt\MomentsData.lua
