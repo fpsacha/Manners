@@ -235,12 +235,12 @@ mutate(CF,
        "curefight: a settled scan asks the lockdown first",
        expect="curefight: out of a fight it listens to nothing", script=S)
 
-mutate(CF, "slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)",
+mutate(CF, "slot.button:EnableMouse(slot.mouseOn)",
        "slot.button:EnableMouse(false)",
        "curefight: mouse off with no key",
        expect="curefight: with no key the button takes a click, with a key it takes none", script=S)
 
-mutate(CF, "slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)",
+mutate(CF, "slot.button:EnableMouse(slot.mouseOn)",
        "slot.button:EnableMouse(true)",
        "curefight: the button takes a click with its key bound",
        expect="curefight: with a key bound the button takes no click", script=S)

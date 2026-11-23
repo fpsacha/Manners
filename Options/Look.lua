@@ -1126,13 +1126,11 @@ function Page.AddMomentControls(args)
 	local tail = L["Its key is the box under this switch, also in the game's Key Bindings under Manners. With no key set, a click on the lit button casts it. A change made in a fight counts from the next one."]
 	local twice = L["Where the game keeps that from addons in a fight, the game itself lights the button, and it then takes two quick clicks, so one stray click never casts it."]
 	local function Has(key) return ns.Moments ~= nil and ns.Moments.Has(key) end
-	local function Entry(key)
-		local mine = ns.caps.moments
-		return mine and mine.byKey[key]
-	end
+	-- The name the client gives the spell: the learned one, or for a spell this
+	-- character may not know yet (Ice Block, which Cold Snap brings back) the
+	-- client's name for the row's first rank.
 	local function Spell(key)
-		local entry = Entry(key)
-		return entry and entry.name or ""
+		return ns.Moments and ns.Moments.NameOf(key) or ""
 	end
 	local function On(key) return ns.db.profile.moments[key] == true end
 	local function Refresh() if ns.Moments then ns.Guard("moments", ns.Moments.Refresh, ns.Moments) end end
@@ -1144,19 +1142,72 @@ function Page.AddMomentControls(args)
 		fontSize = "medium",
 		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
 	}
-	-- Each switch with its words; the order is the page's.
+	-- Each switch with its words; the order is the page's. The slider for the
+	-- share of health comes after Cold Snap, the one for mana after the gem.
 	local rows = {
 		{ key = "counterspell",
 			name = function() return L["Show %s when my target starts a cast"]:format(Spell("counterspell")) end,
 			desc = function() return L["Lights while a hostile target within reach is casting or channelling something you can interrupt, and goes dark the moment the cast ends. A press stops your own cast first, so it fires at once. Out of sight while it cools down."] .. " " .. tail end },
+		{ key = "spellsteal",
+			name = function() return L["Show %s when my target has a buff I can steal"]:format(Spell("spellsteal")) end,
+			desc = function() return L["Lights while a hostile target within reach carries a buff the game marks as stealable. Out of sight while it cools down."] .. " " .. tail end },
 		{ key = "blink",
 			name = function() return L["Show %s when I am stunned or rooted"]:format(Spell("blink")) end,
 			desc = function() return L["Lights while you are stunned or rooted and the spell is ready. Where the game does not say what took control of your character, it lights for any loss of control."] .. " " .. tail end },
 		{ key = "iceblock",
 			name = function() return L["Show %s when my health is low"]:format(Spell("iceblock")) end,
 			desc = function() return L["Lights in a fight while your health is under Health below and the spell is ready."] .. " " .. twice .. " " .. tail end },
+		{ key = "coldsnap", after = "health",
+			name = function() return L["Show %s when I need %s and it is cooling down"]:format(Spell("coldsnap"), Spell("iceblock")) end,
+			desc = function()
+				return L["Lights in a fight while your health is under Health below and %s is still on cooldown. It brings that spell back: press it next."]:format(Spell("iceblock"))
+					.. " " .. twice .. " " .. tail
+			end },
+		{ key = "evocation",
+			name = function() return L["Show %s when my mana is low in a fight"]:format(Spell("evocation")) end,
+			desc = function() return L["Lights in a fight while your mana is under Mana below and the spell is ready."] .. " " .. twice .. " " .. tail end },
+		{ key = "managem", after = "mana",
+			name = function() return L["Show my mana gem when my mana is low in a fight"] end,
+			desc = function() return L["Lights in a fight while your mana is under Mana below and a mana gem in your bags is ready. A press uses the best one you carry."] .. " " .. twice .. " " .. tail end },
+		{ key = "slowfall",
+			name = function() return L["Show %s when I have been falling for a second"]:format(Spell("slowfall")) end,
+			desc = function()
+				local text = L["In a fight or out of one. Lights once you have been falling for a second, and goes dark when you land. It lands on you whoever you have targeted."]
+				local reagent = ns.Moments and ns.Moments.ReagentName("slowfall")
+				if reagent then text = text .. " " .. L["It needs a %s in your bags."]:format(reagent) end
+				return text .. " " .. tail
+			end },
+		{ key = "fireward",
+			name = function() return L["Show %s when my target is casting and fire has just hit me"]:format(Spell("fireward")) end,
+			desc = function() return L["Lights in a fight while a hostile target is casting and fire damage reached you in the last ten seconds. Manners goes by what has just landed on you: that is what the game shows of a spell's kind."] .. " " .. tail end },
+		{ key = "frostward",
+			name = function() return L["Show %s when my target is casting and frost has just hit me"]:format(Spell("frostward")) end,
+			desc = function() return L["Lights in a fight while a hostile target is casting and frost damage reached you in the last ten seconds. Manners goes by what has just landed on you: that is what the game shows of a spell's kind."] .. " " .. tail end },
 	}
 	local order = 32.4931
+	local function Slider(field, name, desc, a, b)
+		args["moment" .. Cap(field)] = {
+			type = "range",
+			name = name,
+			desc = desc,
+			order = order,
+			min = 5, max = 50, step = 5,
+			hidden = function() return not (Has(a) or Has(b)) end,
+			disabled = function() return not (On(a) or On(b)) end,
+			get = function() return ns.db.profile.moments[field] end,
+			set = function(_, value) ns.db.profile.moments[field] = value end,
+		}
+		order = order + 0.0001
+	end
+	local function Share(after)
+		if after == "health" then
+			Slider("health", L["Health below"], L["The share of your health under which the health buttons light, in percent."],
+				"iceblock", "coldsnap")
+		else
+			Slider("mana", L["Mana below"], L["The share of your mana under which the mana buttons light, in percent."],
+				"evocation", "managem")
+		end
+	end
 	for _, def in ipairs(rows) do
 		local key = def.key
 		args["moment" .. Cap(key)] = {
@@ -1188,17 +1239,6 @@ function Page.AddMomentControls(args)
 			end,
 		}
 		order = order + 0.0001
+		if def.after then Share(def.after) end
 	end
-	-- The share under which the health buttons light.
-	args.momentHealth = {
-		type = "range",
-		name = L["Health below"],
-		desc = L["The share of your health under which the health buttons light, in percent."],
-		order = order,
-		min = 5, max = 50, step = 5,
-		hidden = function() return not (Has("iceblock") or Has("coldsnap")) end,
-		disabled = function() return not (On("iceblock") or On("coldsnap")) end,
-		get = function() return ns.db.profile.moments.health end,
-		set = function(_, value) ns.db.profile.moments.health = value end,
-	}
 end

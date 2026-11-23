@@ -173,7 +173,7 @@ do
 		if not printed("moment iceblock: spell 11958") or not printed("two clicks where the game alone knows") then
 			fail(s, "Ice Block's two-click rule is not said")
 		end
-		if not printed("moment evocation: not built yet") then fail(s, "a row of the next part is not marked not built") end
+		if not printed("moment evocation: not learned") then fail(s, "Evocation is not said to be unlearned") end
 	end, { known = { 2139, 11958 } })
 end
 
@@ -237,5 +237,80 @@ do
 			end
 		end
 		if printed("Marrowgnaw") then fail(s, "/manners debug names the mob") end
+	end)
+end
+
+----------------------------------------------------------------------------
+-- the rest of a mage's set: every row is named in every line
+----------------------------------------------------------------------------
+
+do
+	local s = name("/manners debug names every row of each client's set, none 'not built'")
+	for _, flavour in ipairs({ "camelot", "vanilla", "tbc", "mists", "mainline" }) do
+		with(s .. " (" .. flavour .. ")", function(ns)
+			Mock.printed = {}
+			ns.addon:HandleSlash("debug")
+			for _, row in ipairs(ns.MOMENTS.MAGE) do
+				if not printed("moment " .. row.key .. ":") then fail(s, row.key .. " has no line on " .. flavour) end
+			end
+			if printed("not built yet") then fail(s, "a row is said to be not built on " .. flavour) end
+		end, { flavour = flavour })
+	end
+end
+
+do
+	local s = name("the gem's line names its items and its macro; Slow Fall's names the shape; the wards say switched off")
+	with(s, function(ns)
+		Mock.bags = { [5514] = 1 }
+		K.relearn(ns)
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		local gem = printed("moment managem: items 8008/8007/5513/5514")
+		if not gem or not gem:find("armed (/use item:5514)", 1, true) then fail(s, "the gem line: " .. tostring(gem)) end
+		local fall = printed("moment slowfall: spell 130 Slow Fall")
+		if not fall or not fall:find("[target yourself by name, cast, hand the target back]", 1, true) then fail(s, "the Slow Fall line: " .. tostring(fall)) end
+		local ward = printed("moment fireward: spell 543 Fire Ward")
+		if not ward or not ward:find("switch off", 1, true) or not ward:find("not armed", 1, true) then fail(s, "the Fire Ward line: " .. tostring(ward)) end
+		local snap = printed("moment coldsnap: spell 12472")
+		if not snap or not snap:find("two clicks where the game alone knows", 1, true) then fail(s, "the Cold Snap line: " .. tostring(snap)) end
+	end, { known = (function()
+		local out = {}
+		for _, id in ipairs(K.MAGE_SPELLS) do out[#out + 1] = id end
+		for _, id in ipairs(K.WARD_SPELLS) do out[#out + 1] = id end
+		for _, id in ipairs(K.GEM_SPELLS) do out[#out + 1] = id end
+		return out
+	end)() })
+end
+
+do
+	local s = name("the fight summary, the mark and the self-test cover the rest of the set")
+	with(s, function(ns)
+		K.pull(ns)
+		Mock.mana = 10
+		K.event(ns, "UNIT_POWER_UPDATE", "player")
+		K.tick(ns, 0.3)
+		Mock.falling = true
+		K.fallTick(ns, 1.6)
+		ns.MarkMoment()
+		local mark = false
+		for _, e in ipairs(ns.addon.db.char.trail or {}) do
+			if tostring(e.text):find("moment evocation lit", 1, true) then mark = true end
+		end
+		if not mark then fail(s, "the mark does not say Evocation lit") end
+		K.release(ns)
+		local summary = lines(ns, "fight summary, buttons for the moment")
+		if #summary ~= 1 then fail(s, "summary lines: " .. #summary) return end
+		for _, part in ipairs({ "evocation lit 1", "slowfall lit 1", "coldsnap dark" }) do
+			if not summary[1].text:find(part, 1, true) then fail(s, "the summary lacks '" .. part .. "': " .. summary[1].text) end
+		end
+		local list = results(ns, "fight.moments")
+		for _, key in ipairs({ "evocation", "slowfall", "coldsnap" }) do
+			if not any(list, "PASS", key .. ": button made, header peace") then fail(s, key .. " is not a pass: " .. show(list)) end
+		end
+		if not any(list, "PASS", "managem: not learned") then fail(s, "the gem is not 'not learned': " .. show(list)) end
+		local apis = results(ns, "fight.apis")
+		if not any(apis, "PASS", "falling: ") then fail(s, "no falling line: " .. show(apis)) end
+		local keys = results(ns, "fight.keys")
+		if not any(keys, "PASS", "slowfall=click") then fail(s, "no key row for Slow Fall: " .. show(keys)) end
 	end)
 end

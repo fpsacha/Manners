@@ -18,6 +18,11 @@
 --   Mock.lockFlag[id] = true | false
 --   Mock.playerAuras[id] = true
 --   Mock.noAlphaFromBoolean, Mock.noCurves, Mock.noHealthPercent
+--   Mock.bags[itemId] = count, Mock.itemCooldown[itemId] = { isActive, startTime, duration, secretNumbers }
+--   Mock.targetBuffs = { { steal = true | false | "nil" }, ... }; Mock.buffsWithheld (the records'
+--   flags come back as hidden values and the index read as a hidden record), Mock.buffsHidden (whole)
+--   Mock.indexHidden (only the index read is hidden: the id list and the records stay plain)
+--   Mock.falling, Mock.flying, Mock.onTaxi, Mock.aimedAtMe (true, false, Mock.secret(...), nil)
 
 local K = {}
 local saved = {}
@@ -29,6 +34,9 @@ local function put(name, value)
 end
 
 local MAGE_SPELLS = { 2139, 11958, 1953, 12051, 130, 12472, 45438, 235219, 30449 }
+-- The spells that conjure a mana gem, best first on Forever's set.
+K.GEM_SPELLS = { 10054, 10053, 3552, 759 }
+K.WARD_SPELLS = { 543, 6143 }
 K.MAGE_SPELLS = MAGE_SPELLS
 
 local function names()
@@ -37,6 +45,11 @@ local function names()
 		[2139] = "Counterspell", [1953] = "Blink", [12051] = "Evocation", [130] = "Slow Fall",
 		[11958] = later and "Cold Snap" or "Ice Block", [12472] = "Cold Snap", [45438] = "Ice Block",
 		[235219] = "Cold Snap", [30449] = "Spellsteal",
+		[543] = "Fire Ward", [8457] = "Fire Ward", [8458] = "Fire Ward", [10223] = "Fire Ward", [10225] = "Fire Ward",
+		[27128] = "Fire Ward", [6143] = "Frost Ward", [8461] = "Frost Ward", [8462] = "Frost Ward",
+		[10177] = "Frost Ward", [28609] = "Frost Ward", [32796] = "Frost Ward",
+		[759] = "Conjure Mana Agate", [3552] = "Conjure Mana Jade", [10053] = "Conjure Mana Citrine",
+		[10054] = "Conjure Mana Ruby", [27101] = "Conjure Mana Emerald",
 	}
 end
 
@@ -143,8 +156,12 @@ function K.install()
 		-- name, displayName, textureID, startMs, endMs, isTradeskill, notInterruptible, spellID
 		return name, "", 135812, 0, 3000, false, ni, 5143
 	end)
-	put("IsFalling", function() return Mock.falling == true end)
-	put("IsFlying", function() return false end)
+	put("IsFalling", function()
+		if Mock.fallingSecret then return Mock.secret(Mock.falling == true) end
+		return Mock.falling == true
+	end)
+	put("IsFlying", function() return Mock.flying == true end)
+	put("UnitOnTaxi", function() return Mock.onTaxi == true end)
 	put("PlayerIsSpellTarget", function() return Mock.aimedAtMe end)
 	put("Enum", rawget(_G, "Enum") or {})
 	Enum = rawget(_G, "Enum")
@@ -196,13 +213,68 @@ function K.install()
 	}, { __index = base })
 	put("C_Spell", spells)
 	local auras = rawget(_G, "C_UnitAuras") or _G.C_UnitAuras
+	-- The target's buffs, as Mock.targetBuffs lists them: plain records; with
+	-- Mock.buffsWithheld the index read comes back as a hidden record and each
+	-- record's flag as a hidden value; with Mock.buffsHidden the records are hidden whole.
+	local function buffRecord(i, entry)
+		local flag = entry.steal
+		local rec = { auraInstanceID = 100 + i, isHelpful = true }
+		if Mock.buffsWithheld then
+			if flag == "nil" then rec.isStealable = Mock.secret(nil) else rec.isStealable = Mock.secret(flag == true) end
+		elseif flag ~= "nil" then
+			rec.isStealable = flag == true
+		end
+		return rec
+	end
 	local aurasOut = setmetatable({
 		GetPlayerAuraBySpellID = function(id)
 			if Mock.playerAuras and Mock.playerAuras[id] then return { spellId = id } end
 			return nil
 		end,
+		GetAuraDataByIndex = function(unit, i, filter)
+			if unit ~= "target" then return auras.GetAuraDataByIndex(unit, i, filter) end
+			local entry = Mock.targetBuffs and Mock.targetBuffs[i]
+			if not entry then return nil end
+			if Mock.buffsHidden or Mock.buffsWithheld or Mock.indexHidden then return Mock.secret({}) end
+			return buffRecord(i, entry)
+		end,
+		GetUnitAuraInstanceIDs = function(unit, filter)
+			if unit ~= "target" then return {} end
+			local list = {}
+			for i = 1, #(Mock.targetBuffs or {}) do list[i] = 100 + i end
+			return list
+		end,
+		GetAuraDataByAuraInstanceID = function(unit, id)
+			local i = id - 100
+			local entry = unit == "target" and Mock.targetBuffs and Mock.targetBuffs[i]
+			if not entry then return nil end
+			if Mock.buffsHidden then return Mock.secret({}) end
+			return buffRecord(i, entry)
+		end,
 	}, { __index = auras })
 	put("C_UnitAuras", aurasOut)
+	-- Items: the bags (Mock.bags), their names, and a cooldown by C_Container.
+	local itemNames = { [8008] = "Mana Ruby", [8007] = "Mana Citrine", [5513] = "Mana Jade", [5514] = "Mana Agate",
+		[22044] = "Mana Emerald", [36799] = "Mana Gem", [17056] = "Light Feather" }
+	local function count(id)
+		local n = Mock.bags and Mock.bags[id] or 0
+		if Mock.bagsSecret then return Mock.secret(n) end
+		return n
+	end
+	local itemBase = rawget(_G, "C_Item") or _G.C_Item
+	put("C_Item", setmetatable({
+		GetItemCount = count,
+		GetItemNameByID = function(id) return itemNames[id] end,
+		GetItemIconByID = function() return 134000 end,
+	}, { __index = itemBase }))
+	put("GetItemCount", count)
+	put("C_Container", { GetItemCooldown = function(id)
+		local entry = Mock.itemCooldown and Mock.itemCooldown[id]
+		if not entry then return 0, 0, 1 end
+		local start, duration = entry.startTime or 0, entry.duration or 0
+		if entry.secretNumbers then return Mock.secret(start), Mock.secret(duration), 1 end
+		return start, duration, 1
+	end })
 end
 
 -- Mock.reset() leaves a field it does not know alone, so a scenario's own
@@ -210,7 +282,8 @@ end
 local FIELDS = { "health", "healthMax", "healthSecret", "percentScale", "mana", "manaMax", "manaSecret",
 	"targetCast", "noTarget", "targetFriendly", "targetDead", "targetOutOfRange", "cooldown", "usable",
 	"lockFlag", "playerAuras", "noCurves", "noHealthPercent", "inCooldownEvent", "falling", "aimedAtMe",
-	"coverLeaks", "refuseAlphaFromBoolean", "lossOfControl", "lossOfControlShape", "asked" }
+	"coverLeaks", "refuseAlphaFromBoolean", "lossOfControl", "lossOfControlShape", "asked", "bags", "bagsSecret",
+	"itemCooldown", "targetBuffs", "buffsWithheld", "buffsHidden", "flying", "onTaxi", "dead", "fallingSecret", "indexHidden" }
 function K.clear()
 	for _, field in ipairs(FIELDS) do Mock[field] = nil end
 end
@@ -314,6 +387,15 @@ function K.release(ns)
 	K.protect(ns)
 end
 
+-- Bags, spells or switches changed after the addon started: learned again and
+-- the scan run, the way a probe and the next tick do it.
+function K.relearn(ns)
+	ns.Moments.Learn()
+	ns.addon:Tick()
+	Mock.runTimers(0)
+	K.protect(ns)
+end
+
 -- An event to the moments frame only, as the client delivers it.
 function K.event(ns, name, unit, ...)
 	local frame = ns.Moments:Frame()
@@ -334,6 +416,17 @@ end
 function K.endCast(ns, event, stale)
 	if not stale then Mock.targetCast = nil end
 	return K.event(ns, event or "UNIT_SPELLCAST_STOP", "target")
+end
+
+-- Time passes with the fall watch running: its OnUpdate by hand, each 0.2 s, for
+-- as long as it is shown (hidden, it asks the client nothing).
+function K.fallTick(ns, seconds)
+	local watch = ns.Moments:Watch()
+	local steps = math.max(1, math.floor((seconds or 0.2) / 0.2 + 0.5))
+	for _ = 1, steps do
+		Mock.runTimers(0.2)
+		if watch and watch:IsShown() then watch.scripts.OnUpdate(watch, 0.2) end
+	end
 end
 
 function K.cooldownEvent(ns)

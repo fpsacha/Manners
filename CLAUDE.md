@@ -78,7 +78,7 @@ function, switch and test named. Change both together.
   hidden value, nothing lit without a detected need, `prompt.fightButtons` never
   read) have an unprotected cover that swallows clicks while dark, shown and
   hidden by Lua on plain knowledge only, two clicks where the game alone knows;
-  the break-free button must not get one. Nothing Manners chooses may keep break-free from showing
+  the cure button has the same cover; the break-free button must not get one. Nothing Manners chooses may keep break-free from showing
   and being pressed when needed; the cure button is the other way round,
   nothing of it on screen for nothing. Never hide the prompt by any route that
   leaves it, a row or the bar macro able to cast: a hidden secure button still

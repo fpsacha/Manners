@@ -45,28 +45,36 @@ stands now. Keep it short: what ships goes to the history file or away.
   retail (`SecretWhenUnitSpellCastRestricted`), so the cast watch may never name
   a stranger there; the next check-up's heard counts, taken with no mobs about, settle it.
 - **Buttons for the moment (mages),** on branch `mage-moments` (worktree
-  `Manners-wt-moments`, cut from `castwatch-diag`), PART 1 committed, not merged:
-  the framework (`Prompt/MomentsData.lua`, `MomentsSense.lua`, `Moments.lua`:
-  one secure button a slot, a plain gate and a game-painted layer over it, an
-  unprotected cover that swallows clicks while dark, a row left of the prompt),
-  Counterspell, Blink and Ice Block, the diagnostics (a line per button on the
-  trail, in the fight summary, in Mark this moment, in `/manners debug` and in
-  the self-test), the options and the eight locales. Scenarios `moments.lua`,
-  `moments-counterspell.lua`, `moments-iceblock.lua`, `moments-blink.lua`,
-  `moments-diag.lua`, mutations of the same names. PART 2 (Evocation, the mana
-  gem, Slow Fall, Cold Snap, Spellsteal, the wards, the cure button's cover, the
-  README and the final changelog) is next; the branch merges only after it.
+  `Manners-wt-moments`, cut from `castwatch-diag`), BUILT in two commits, not
+  merged: the framework (`Prompt/MomentsData.lua`, `MomentsSense.lua`,
+  `Moments.lua`: one secure button a slot, a plain gate and a game-painted layer
+  over it, an unprotected cover that swallows clicks while dark, a row left of
+  the prompt), Counterspell, Blink, Ice Block, Cold Snap, Evocation, the mana
+  gem (counted at the pull, `Moments:Take`, and on bag events), Slow Fall (a
+  watch asks IsFalling while you move or fight; Lua shows and hides its button
+  out of a fight), Spellsteal, Fire Ward and Frost Ward (off by default), the
+  cure button's cover (`db.global.cureCoverLeaks`), the diagnostics (a line per
+  button on the trail, in the fight summary, in Mark this moment, in
+  `/manners debug` and in the self-test), the options and the eight locales.
+  Scenarios `moments*.lua` and `curefight-cover.lua`, mutations of the same
+  names, every one proven CAUGHT. The whole suite, the other clients' baselines
+  and a full self-test are the owner's test pass. Open: the rows' spell ids are
+  held to the mock's data only where it has them (`tools/audit_ids.py` has no
+  hook for them); the keys of a class other than the mage's.
   What only a fight tells: whether your own health and mana are hidden (then
   Ice Block takes two clicks), whether the target's cast events arrive, whether
   the cooldown flag isActive is filled, whether the per-spell lock flag tells a
-  stun from a fear, and the cover's leak counter (`momentCoverLeaks`).
+  stun from a fear, whether IsFalling is readable in a fight, whether a gem's
+  cooldown is, whether a buff's stealable flag is, and the covers' leak counters
+  (`momentCoverLeaks`, `cureCoverLeaks`).
   Later ideas: Polymorph on a second attacker (a button cannot change its target
   in a fight); a cover sized by the game from the hidden value, lifting the
   two-click rule; the break-free cover (up between control gained with
   HasFullControl plainly true and the next loss, dropped in the handler before
   any read); Mend Pet lit from the pet's hidden health by the same curve; the
   wards by the combat log's school on Classic Era and TBC; range by
-  SPELL_RANGE_CHECK_UPDATE; an always-visible mode with its own switch.
+  SPELL_RANGE_CHECK_UPDATE; an always-visible mode with its own switch; a
+  Slow Fall that does not hand your target back when you target nobody.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option

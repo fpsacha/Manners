@@ -14,6 +14,16 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   names one client and wins where the interface number has no band or
   another client's (`tests/scenarios/flavour-project.lua`). An unknown
   interface falls back to the project id's family, else `modern`.
+- **MomentsData.lua** (the buttons for the moment, `Prompt/Moments.lua`) has one
+  set per data set as `Cures.lua` does (`SETS`: Forever and Classic Era share
+  one, Burning Crusade, Mists and retail each have their own): rows per class,
+  and a flavour with no entry gets none. A mage's rows differ by data only:
+  Counterspell's cooldown, Ice Block and Cold Snap's spell ids (talents on
+  Forever and Classic Era, Hypothermia from Burning Crusade), a mana gem on the
+  clients that have one, Spellsteal from Burning Crusade, the wards on Forever,
+  Classic Era and Burning Crusade, Slow Fall's feather where the client asks for
+  one. Nothing branches on a client's name; a signal the client cannot give
+  answers "blind" and the row's `blind` field decides.
 - **Buffs.lua** has one set per flavour (`SETS`); an unrecognised flavour gets
   its family's (classic -> vanilla, modern -> mainline). The chosen set fills
   `ns.BUFFS`, `ns.OWN_BUFFS`, `ns.EXCLUSIVE_BUFFS`, `ns.CLASS_AUTO`,

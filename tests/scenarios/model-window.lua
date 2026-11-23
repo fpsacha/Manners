@@ -461,7 +461,9 @@ local EXPECTED = {
 	fight = {
 		"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
 		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
-		"moments.counterspell", "moments.blink", "moments.iceblock", "moments.health",
+		"moments.counterspell", "moments.spellsteal", "moments.blink", "moments.evocation", "moments.managem",
+		"moments.slowfall", "moments.iceblock", "moments.coldsnap", "moments.fireward", "moments.frostward",
+		"moments.health", "moments.mana",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the
 	-- window falls back to (Register.lua). Its reset is the old one's

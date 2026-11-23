@@ -215,7 +215,9 @@ Page.RESET.quiet = {
 Page.RESET.fight = {
 	"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
 	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
-	"moments.counterspell", "moments.blink", "moments.iceblock", "moments.health",
+	"moments.counterspell", "moments.spellsteal", "moments.blink", "moments.evocation", "moments.managem",
+	"moments.slowfall", "moments.iceblock", "moments.coldsnap", "moments.fireward", "moments.frostward",
+	"moments.health", "moments.mana",
 	after = function()
 		restyleAndMacro()
 		if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end

@@ -1332,6 +1332,10 @@ Check("fight.apis", "fight", L["what the game says in a fight"], function(add)
 		local spellApi = _G.C_Spell
 		add(PASS, "per-spell loss-of-control flag: " .. Yes(type(spellApi) == "table"
 			and type(spellApi.GetSpellLossOfControlCooldownInfo) == "function"))
+		-- Slow Fall's button leans on IsFalling: plain or hidden out of a fight.
+		if type(_G.IsFalling) == "function" and not InCombatLockdown() then
+			add(PASS, "falling: " .. (Secret(_G.IsFalling()) and "hidden" or "plain"))
+		end
 		local rows = ns.Moments and ns.Moments.Rows and ns.Moments.Rows() or {}
 		if rows[1] and type(spellApi) == "table" and type(spellApi.GetSpellCooldown) == "function" and not InCombatLockdown() then
 			local rec = spellApi.GetSpellCooldown(rows[1].id)

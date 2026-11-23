@@ -15,9 +15,13 @@
 - **Counterspell when your target casts.** A small button left of the prompt
   lights while a hostile target in reach is casting, and a press stops your own
   cast first. *Show Counterspell when my target starts a cast*, In a fight.
-- **Blink and Ice Block.** Blink lights when you are stunned or rooted, Ice Block
-  when your health is low (*Health below*, 20 by default). Each has its own
+- **Blink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.** Each
+  lights at its moment: stunned or rooted, low health (*Health below*, 20 by
+  default), low mana (*Mana below*), a second into a fall. Each has its own
   switch and key.
+- **Spellsteal** lights while your target carries a buff you can steal
+  (Burning Crusade and later).
+- **Fire Ward and Frost Ward** are there too, switched off until you tick them.
 
 ### Water and food for your target
 - **Offer water and food to my target** (mages). Out of a fight, a friendly
@@ -41,6 +45,8 @@
   keys* group.
 
 ### Fixes
+- **The cure button takes no click while it is out of sight.** A click casts only
+  while it is lit.
 - **Who buffed you.** The full check-up counts the casts Manners hears from
   others (players and mobs alike), and a buff read late says so instead of "no
   player in sight". A cast the game hides near the moment a buff lands now keeps

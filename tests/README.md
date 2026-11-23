@@ -292,6 +292,22 @@ sub-second subset for the middle of an edit.
   (mockapi.lua) reading `[combat]` from `Mock.affectingCombat`, else
   `Mock.inCombat`. Secure code's calls in a fight are not the addon's
   (`Mock.secureCode`).
+- The buttons for the moment (`scenarios/moments*.lua`, helper `momentskit.lua`,
+  `scenarios/curefight-cover.lua`): `Mock.secret(payload)` is a hidden value
+  (`Mock.reveal`, `Mock.secretType`, `issecretvalue` and a secret-aware `type()`;
+  `Mock.secretWidgets` makes `SetAlphaFromBoolean` and `SetAlpha` take one and
+  refuse a non-boolean as the client does); each frame keeps its own event
+  registrations (`UnregisterEvent` really clears; `Mock.deliver(frame, event,
+  unit, ...)` runs the handler only for a registered event and unit);
+  `Mock.clickAt(button)` gives the click to the highest mouse-enabled frame over
+  the button (`"world"` when nothing takes it; `Mock.coverLeaks` models a client
+  where a cover does not swallow it); `Mock.shownAlpha(frame)` is what the
+  player would see. The kit stands in the calls the mock lacks (health, power,
+  the target's cast in the client's return positions, curves, a cooldown whose
+  isOnGCD is filled only inside the cooldown event, the bags and an item's
+  cooldown, the target's buffs, falling) from `Mock` fields listed at its top,
+  and drives a fight: `K.withMage`, `K.pull`, `K.release`, `K.event`, `K.cast`,
+  `K.cooldownEvent`, `K.fallTick`, `K.relearn`, `K.click`.
 - Breaking free (`scenarios/breakfree.lua`, and `scenarios/wotfneed.lua` for the need where the game withholds the type; it overrides `HasFullControl` with `rawset`): `Mock.knownSpells` (ids the
   player knows beyond 1459, e.g. `{ [7744] = true }`, read by `IsSpellKnown`
   and `IsPlayerSpell`), `Mock.playerRace = "Scourge"` (the race file name),

@@ -24,6 +24,16 @@ for word; `CLAUDE.md` is the index, read first.
   Forever's paladin has Wisdom, Might and Kings only (`GONE` in `Buffs.lua`);
   Classic Era and Burning Crusade keep both, and the audit reads Forever at 70790. The audits
   read the build per client from this line.
+- **The buttons for the moment's spell and item ids** (`Prompt/MomentsData.lua`)
+  were read at the builds above: Counterspell 2139, Blink 1953, Ice Block 11958
+  (Forever and Classic Era) or 45438, Cold Snap 12472 (Forever, Classic Era),
+  11958 (Burning Crusade, Mists) or 235219 (retail), Evocation 12051, Slow Fall
+  130 (reagent item 17056 on Forever, Classic Era and Burning Crusade), Spellsteal
+  30449, the wards (Fire 543 .. 10225, 27128; Frost 6143 .. 28609, 32796), the
+  gems (Mana Agate 5514 through Mana Ruby 8008, Mana Emerald 22044, Mana Gem 36799)
+  and the spells that conjure them. The names in the options come from the client,
+  never from this table; the spell names in the translated search words were read
+  from Wowhead's tooltip data in each language.
 - **Wowhead** per client (Classic, TBC Classic, MoP Classic, retail, and a
   Forever database) for tooltips, levels and "Requires" lines.
 - **Blizzard's own UI code**: `Gethe/wow-ui-source`, one branch per client

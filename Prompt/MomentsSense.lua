@@ -419,6 +419,257 @@ function Sense.nolockout(slot, now)
 end
 
 ---------------------------------------------------------------------------
+-- the gem: bags counted at the pull and on the fight's bag events, never per flush
+---------------------------------------------------------------------------
+
+-- How many of each of the row's items the bags hold, by a direct call after a
+-- type() check (no pcall, no safecall: this runs in a fight on a bag event); a
+-- count the client will not give counts as none.
+function Sense.CountItems(slot)
+	local counts = slot.count or {}
+	slot.count = counts
+	local api = _G.C_Item
+	local call = type(api) == "table" and type(api.GetItemCount) == "function" and api.GetItemCount or _G.GetItemCount
+	for _, id in ipairs(slot.row.items or {}) do
+		local n
+		if type(call) == "function" then n = plain(call(id)) end
+		counts[id] = type(n) == "number" and n or 0
+	end
+	return counts
+end
+
+-- An item's cooldown by the client's own figures: true running, false over or
+-- never begun, nil where the figures say nothing (hidden in a fight).
+local function ItemCooling(id, now)
+	local active, start, duration
+	local spellApi = _G.C_Spell
+	if type(spellApi) == "table" and type(spellApi.GetItemCooldown) == "function" then
+		local rec = plain(spellApi.GetItemCooldown(id))
+		if type(rec) == "table" then
+			active, start, duration = plain(rec.isActive), plain(rec.startTime), plain(rec.duration)
+		end
+	end
+	if active == nil and start == nil then
+		local container, itemApi = _G.C_Container, _G.C_Item
+		local call = type(container) == "table" and container.GetItemCooldown
+			or type(itemApi) == "table" and itemApi.GetItemCooldown or _G.GetItemCooldown
+		if type(call) == "function" then
+			local a, b = call(id)
+			start, duration = plain(a), plain(b)
+		end
+	end
+	if active == true then return true end
+	if active == false then return false end
+	if type(start) == "number" and type(duration) == "number" then
+		if duration > 1.5 and start + duration > now then return true end
+		return false
+	end
+	return nil
+end
+
+-- A gem of a kind this client names is in the bags and off its cooldown.
+function Sense.itemready(slot, now)
+	local counts = slot.count
+	local anyCount, plainReady, unknown = false, false, false
+	for _, id in ipairs(slot.row.items or {}) do
+		if counts and (counts[id] or 0) > 0 then
+			anyCount = true
+			local cooling = ItemCooling(id, now)
+			if cooling == false then plainReady = true
+			elseif cooling == nil then unknown = true end
+		end
+	end
+	if not anyCount then return "no", "no gem in your bags" end
+	if plainReady then return "yes" end
+	if unknown then
+		-- Nothing readable: Manners' own clock, begun by your own use of it.
+		if slot.readyAt and now < slot.readyAt then return "no", "the gem is cooling down" end
+		return "yes"
+	end
+	return "no", "the gem is cooling down"
+end
+
+---------------------------------------------------------------------------
+-- falling: no event says so on any client, so a watch asks IsFalling (Moments.lua)
+---------------------------------------------------------------------------
+
+local FALL_SECONDS = 1.0
+-- Since when the watch has read "falling" without a break, and whether the
+-- game hid the answer at the last read.
+Sense.fallSince, Sense.fallSecret = nil, false
+
+-- One read of IsFalling, for the watch: keeps fallSince and fallSecret. Answers
+-- whether you are falling plainly.
+function Sense.ReadFall(now)
+	if type(_G.IsFalling) ~= "function" then
+		Sense.fallSince, Sense.fallSecret = nil, false
+		return false
+	end
+	local rawFall = _G.IsFalling()
+	if issecretvalue(rawFall) then
+		Sense.fallSince, Sense.fallSecret = nil, true
+		return false
+	end
+	Sense.fallSecret = false
+	if plain(rawFall) == true then
+		if not Sense.fallSince then Sense.fallSince = now end
+		return true
+	end
+	Sense.fallSince = nil
+	return false
+end
+
+function Sense.falling(slot, now)
+	if Sense.fallSecret then return "no", "the game would not say whether you fall" end
+	local since = Sense.fallSince
+	if not since or now - since < FALL_SECONDS then return "no", "you are not falling" end
+	if type(_G.IsFlying) == "function" and plain(_G.IsFlying()) == true then return "no", "you are flying" end
+	if type(_G.UnitOnTaxi) == "function" and plain(_G.UnitOnTaxi("player")) == true then return "no", "you are on a taxi" end
+	if plain(UnitIsDeadOrGhost("player")) == true then return "no", "you are dead" end
+	if slot.castAt and now - slot.castAt < (slot.row.seconds or 0) then return "no", "it is on you" end
+	return "yes"
+end
+
+---------------------------------------------------------------------------
+-- the wards: what has just hit you, by school
+---------------------------------------------------------------------------
+
+local HIT_SECONDS = 10
+-- The schools a ward answers (Fire 4, Frost 16), when each last hit you.
+Sense.lastHit = {}
+local WARD_SCHOOLS = { 4, 16 }
+
+-- Whether a school mask holds a school (the schools are powers of two).
+local function HasSchool(mask, school) return mask % (school * 2) >= school end
+
+-- UNIT_COMBAT on you: a wound of a school the game states plainly. A hidden
+-- mask is ignored.
+function Sense.Hit(action, rawMask, now)
+	if plain(action) ~= "WOUND" then return end
+	local mask = plain(rawMask)
+	if type(mask) ~= "number" or mask <= 0 then return end
+	for _, school in ipairs(WARD_SCHOOLS) do
+		if HasSchool(mask, school) then Sense.lastHit[school] = now end
+	end
+end
+
+-- Damage of the row's school hit you in the last ten seconds, and no other
+-- ward school hit more recently.
+function Sense.schoolhit(slot, now)
+	local school = slot.row.school
+	local at = school and Sense.lastHit[school]
+	if not at or now - at > HIT_SECONDS then return "no", "nothing of that kind has hit you" end
+	for other, when in pairs(Sense.lastHit) do
+		if other ~= school and when > at and now - when <= HIT_SECONDS then
+			return "no", "another kind hit you more recently"
+		end
+	end
+	return "yes"
+end
+
+-- The cast is aimed at you, where the game says: a hidden boolean is handed to
+-- the game to paint ("is"); a client with no such call, or a value of another
+-- shape, passes it over.
+function Sense.aimed(slot)
+	if type(_G.PlayerIsSpellTarget) ~= "function" then return "yes" end
+	local rawAimed = _G.PlayerIsSpellTarget("target")
+	if type(rawAimed) ~= "boolean" then return "yes" end
+	if issecretvalue(rawAimed) then
+		if CanPaint("is") then
+			slot.game = { "is", rawAimed }
+			return "game", "whether the cast is aimed at you"
+		end
+		return "yes"
+	end
+	if plain(rawAimed) == false then return "no", "not aimed at you" end
+	return "yes"
+end
+
+---------------------------------------------------------------------------
+-- Spellsteal and Cold Snap
+---------------------------------------------------------------------------
+
+local STEAL_MAX = 8
+
+-- A buff on the target the game marks as stealable. Plain where the auras are
+-- readable; where they are withheld, the plain list of buff ids is walked and
+-- each record's hidden flag is handed to the game, ORed ("any").
+function Sense.stealable(slot)
+	local auras = _G.C_UnitAuras
+	if type(auras) ~= "table" then return "blind", "your target's buffs" end
+	local byIndex = auras.GetAuraDataByIndex
+	local withheld = false
+	if type(byIndex) == "function" then
+		for i = 1, 40 do
+			local rec = byIndex("target", i, "HELPFUL")
+			if type(rec) ~= "table" then
+				if issecretvalue(rec) then withheld = true end
+				break
+			end
+			if issecretvalue(rec) then
+				withheld = true
+				break
+			end
+			local rawFlag = rec.isStealable
+			if issecretvalue(rawFlag) then
+				withheld = true
+				break
+			end
+			if plain(rawFlag) == true then return "yes" end
+		end
+	end
+	local listed = auras.GetUnitAuraInstanceIDs
+	if type(listed) ~= "function" then
+		if withheld then return "blind", "your target's buffs" end
+		return "no", "nothing to steal"
+	end
+	local ids = listed("target", "HELPFUL")
+	if type(ids) ~= "table" or issecretvalue(ids) then return "blind", "your target's buffs" end
+	if #ids == 0 then return "no", "your target has no buffs" end
+	local byId = auras.GetAuraDataByAuraInstanceID
+	if type(byId) ~= "function" then return "blind", "your target's buffs" end
+	local held, count, sawPlain = {}, 0, false
+	for i = 1, math.min(#ids, STEAL_MAX) do
+		local rec = byId("target", ids[i])
+		if type(rec) == "table" and not issecretvalue(rec) then
+			local rawSteal = rec.isStealable
+			if type(rawSteal) == "boolean" then
+				if issecretvalue(rawSteal) then
+					count = count + 1
+					held[count] = rawSteal
+				else
+					sawPlain = true
+					if plain(rawSteal) == true then return "yes" end
+				end
+			end
+		end
+	end
+	if count > 0 then
+		if CanPaint("any") then
+			slot.game = { "any", nil, held, count }
+			return "game", "whether a buff of your target can be stolen"
+		end
+		return "blind", "whether a buff of your target can be stolen"
+	end
+	if sawPlain then return "no", "nothing to steal" end
+	return "blind", "your target's buffs"
+end
+
+-- Cold Snap brings back the partner spell: lit only while that one is plainly on
+-- cooldown, by the game's own figures or Manners' own clock for it. A partner
+-- that is ready, or whose cooldown the fight hides and no clock of ours knows,
+-- keeps it dark.
+function Sense.partnercooling(slot, now)
+	local partner = slot.partner
+	if not partner then return "no", "the spell it brings back is not known" end
+	local cooling = Cooling(partner, partner.id, now)
+	if cooling == true then return "yes" end
+	if cooling == false then return "no", "the spell it brings back is ready" end
+	if partner.readyAt and now < partner.readyAt then return "yes" end
+	return "no", "the spell it brings back is ready, or its cooldown is hidden"
+end
+
+---------------------------------------------------------------------------
 -- evaluating a row
 ---------------------------------------------------------------------------
 
@@ -427,7 +678,9 @@ Sense.WORDS = {
 	fight = "in a fight", ready = "ready", usable = "castable", enemy = "a hostile target",
 	casting = "your target is casting", interruptible = "it can be interrupted", inrange = "in range",
 	lowhealth = "your health is low", lowmana = "your mana is low", stuck = "you are stunned or rooted",
-	nolockout = "no Hypothermia",
+	nolockout = "no Hypothermia", itemready = "a gem in your bags, ready", falling = "you have been falling for a second",
+	partnercooling = "the spell it brings back is cooling down", stealable = "a buff you can steal",
+	schoolhit = "that kind of damage just hit you", aimed = "aimed at you",
 }
 
 -- "lit", "game" or "dark" and, for dark, why; the third answer names what was

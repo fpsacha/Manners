@@ -68,9 +68,11 @@ local RING = "Interface\\AddOns\\Manners\\Textures\\RingSq"
 local HOVER = "Interface\\Buttons\\ButtonHilight-Square"
 local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 
--- The keys PART 1 serves: a row whose signals are not built yet is skipped by
--- Learn, so it has no button, no switch and no binding name of a spell.
-local BUILT = { counterspell = true, iceblock = true, blink = true }
+-- The keys whose signals are built: a row not listed here is skipped by Learn,
+-- so it has no button, no switch and no binding name of a spell (a class's new
+-- row stays out of sight until its signals are written).
+local BUILT = { counterspell = true, iceblock = true, blink = true, evocation = true, managem = true,
+	slowfall = true, coldsnap = true, spellsteal = true, fireward = true, frostward = true }
 
 -- What Bindings.xml declares: ten bindings, one a slot.
 for i = 1, MAX do
@@ -87,7 +89,8 @@ local CAST_STOP = { UNIT_SPELLCAST_STOP = true, UNIT_SPELLCAST_CHANNEL_STOP = tr
 -- Every name the module may register, probed once.
 local ALL_EVENTS = { "PLAYER_TARGET_CHANGED", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_POWER_UPDATE", "UNIT_MAXPOWER",
 	"LOSS_OF_CONTROL_ADDED", "LOSS_OF_CONTROL_UPDATE", "SPELL_UPDATE_COOLDOWN", "PLAYER_CONTROL_LOST",
-	"PLAYER_CONTROL_GAINED", "UNIT_SPELLCAST_SUCCEEDED" }
+	"PLAYER_CONTROL_GAINED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING",
+	"BAG_UPDATE_DELAYED", "UNIT_COMBAT", "UNIT_AURA" }
 for _, name in ipairs(TARGET_CAST) do ALL_EVENTS[#ALL_EVENTS + 1] = name end
 
 -- Made slots by number, the ones armed now, and what the last Refresh settled.
@@ -96,7 +99,12 @@ local header, ev, fader
 local dirtyRefresh, settledEnabled, settledCaps, settledOn = true, nil, nil, {}
 local placedIcon, placedScale, placedQueue, placedSig
 local fightEvents = {}
-local controlOn, ownCastOn = false, false
+local controlOn, ownCastOn, moveOn = false, false, false
+-- Clocks kept for a spell no armed button of its own holds (Ice Block for Cold
+-- Snap when its switch is off), the watch of a fall, and whether you move.
+local shadows = {}
+local watch, watchWait, watchHold, moving = nil, 0, 0, false
+local WATCH_STEP, WATCH_HOLD = 0.2, 3
 local flushDue, recheckDue = false, false
 local told = false
 local lastFight = {}
@@ -113,6 +121,39 @@ end
 -- ns.ProbeCapabilities at the end of the file
 ---------------------------------------------------------------------------
 
+-- A row of items (a mana gem): learned when a gem of the set is in the bags or a
+-- spell that conjures one is known, and named by the client for the best gem
+-- the character carries, else the best it can conjure. Setup path: the counts
+-- here may use the older helpers; a count the client will not give is none.
+local function LearnItem(row)
+	local pick, byBags
+	for i, item in ipairs(row.items) do
+		local count = ns.ReagentCount and ns.ReagentCount(item)
+		if type(count) == "number" and count > 0 then
+			pick, byBags = i, true
+			break
+		end
+	end
+	if not pick then
+		for i, make in ipairs(row.makes or {}) do
+			if ns.SpellKnown(make) then
+				pick = i
+				break
+			end
+		end
+	end
+	if not pick then return nil end
+	local item, make = row.items[pick], row.makes and row.makes[pick]
+	local name = ns.ReagentName and ns.ReagentName(item)
+	if (type(name) ~= "string" or name == "") and make and ns.SpellKnown(make) then name = ns.SpellNameFor(make) end
+	if type(name) ~= "string" or name == "" then return nil end
+	local icon = (C_Item and ns.safecall(C_Item.GetItemIconByID, item)) or ns.safecall(_G.GetItemIcon, item)
+	if not icon and make then
+		icon = ns.safecall(C_Spell and C_Spell.GetSpellTexture, make) or ns.safecall(_G.GetSpellTexture, make)
+	end
+	return { row = row, id = nil, name = name, icon = icon or FALLBACK_ICON, byBags = byBags }
+end
+
 -- A name from the client, never typed. Rows whose first known rank has a name.
 function Moments.Learn()
 	caps.moments = nil
@@ -121,7 +162,15 @@ function Moments.Learn()
 	if not set then return end
 	local out = { list = {}, byKey = {}, n = 0 }
 	for _, row in ipairs(set) do
-		if BUILT[row.key] and row.ranks and not out.byKey[row.key] then
+		if BUILT[row.key] and row.items and not out.byKey[row.key] then
+			local entry = LearnItem(row)
+			if entry then
+				out.list[#out.list + 1] = entry
+				out.byKey[row.key] = entry
+				out.n = out.n + 1
+				_G["BINDING_NAME_CLICK MannersMoment" .. row.slot .. ":LeftButton"] = entry.name
+			end
+		elseif BUILT[row.key] and row.ranks and not out.byKey[row.key] then
 			for _, rank in ipairs(row.ranks) do
 				if ns.SpellKnown(rank) then
 					local name = ns.SpellNameFor(rank)
@@ -146,6 +195,30 @@ end
 function Moments.Has(key)
 	local mine = caps.moments
 	return mine ~= nil and mine.byKey[key] ~= nil
+end
+
+-- The name the client gives a row's spell, for the options page: the learned
+-- one, or the client's name for the row's first rank (Ice Block, for the switch
+-- of Cold Snap, which brings it back, whether or not Ice Block is known).
+function Moments.NameOf(key)
+	local mine = caps.moments
+	local entry = mine and mine.byKey[key]
+	if entry then return entry.name end
+	for _, row in ipairs(ns.MOMENTS[caps.class] or {}) do
+		if row.key == key and row.ranks then
+			local name = ns.SpellNameFor(row.ranks[1])
+			if type(name) == "string" and name ~= "" then return name end
+		end
+	end
+	return nil
+end
+
+-- The name of the reagent a row's spell asks for, where the client has it loaded.
+function Moments.ReagentName(key)
+	for _, row in ipairs(ns.MOMENTS[caps.class] or {}) do
+		if row.key == key and row.reagent then return ns.ReagentName and ns.ReagentName(row.reagent) end
+	end
+	return nil
 end
 
 -- What Bindings.xml declares for a row's slot.
@@ -309,6 +382,17 @@ end
 -- judging a slot
 ---------------------------------------------------------------------------
 
+-- A button that works out of a fight too is on the screen out of one only while
+-- it is lit: the driver leaves it alone at peace. Never under the lockdown.
+local function PeaceShow(slot, state)
+	local button = slot.button
+	if state == "dark" then
+		if button:IsShown() then button:Hide() end
+	elseif not button:IsShown() then
+		button:Show()
+	end
+end
+
 local function Judge(slot, now)
 	local state, why, note = Sense.Evaluate(slot, now)
 	local was = slot.state
@@ -316,6 +400,7 @@ local function Judge(slot, now)
 	if state == "game" or state ~= was then
 		Apply(slot, state)
 		state = slot.state
+		if state ~= was and slot.row.peace == true and not InCombatLockdown() then PeaceShow(slot, state) end
 	end
 	if state == was then return end
 	if state == "lit" then
@@ -440,8 +525,17 @@ local function OnEnter(slot, self)
 	local tip = _G.GameTooltip
 	if not tip then return end
 	tip:SetOwner(self, "ANCHOR_TOP")
-	if type(tip.SetSpellByID) == "function" then
+	local held
+	for _, item in ipairs(slot.row.items or {}) do
+		if slot.count and (slot.count[item] or 0) > 0 then
+			held = item
+			break
+		end
+	end
+	if slot.id and type(tip.SetSpellByID) == "function" then
 		tip:SetSpellByID(slot.id)
+	elseif held and type(tip.SetItemByID) == "function" then
+		tip:SetItemByID(held)
 	else
 		tip:AddLine(tostring(slot.name), 1, 1, 1)
 	end
@@ -575,8 +669,42 @@ end
 -- the macro, keys, mouse and place: out of combat only
 ---------------------------------------------------------------------------
 
+-- A gem row: one /use line for each kind in the bags, best first; with none in
+-- the bags, a line for every gem the mage can conjure, so a gem made in the
+-- fight still serves. Slow Fall lands on you: [@player] where the client parses
+-- a unit in a conditional, else the one self-cast shape known to work on Forever
+-- (Prompt/Macro.lua, STRATEGIES.self: you targeted by name, the cast, your target
+-- handed back). No bare cast, which a client with auto self-cast off answers by
+-- asking for a target, and no /cleartarget, which would drop a friend for good.
 local function MacroFor(slot)
 	local row = slot.row
+	if row.items then
+		local lines, counts = {}, slot.count or {}
+		for _, id in ipairs(row.items) do
+			if (counts[id] or 0) > 0 then lines[#lines + 1] = "/use item:" .. id end
+		end
+		if #lines == 0 then
+			for i, id in ipairs(row.items) do
+				local make = row.makes and row.makes[i]
+				if make and ns.SpellKnown(make) then lines[#lines + 1] = "/use item:" .. id end
+			end
+		end
+		if #lines == 0 then return nil end
+		return table.concat(lines, "\n")
+	end
+	if row.self then
+		if caps.conditionalTargeting then
+			slot.shape = "[@player]"
+			return "/cast [@player] " .. slot.name
+		end
+		local line = Prompt.SelfTargetLine and Prompt.SelfTargetLine()
+		if not line then
+			slot.shape = "no name for you"
+			return nil
+		end
+		slot.shape = "target yourself by name, cast, hand the target back"
+		return line .. "\n/cast " .. slot.name .. "\n/targetlasttarget"
+	end
 	return (row.stop and "/stopcasting\n" or "") .. "/cast " .. slot.name
 end
 
@@ -592,7 +720,13 @@ local function Disarm(slot)
 end
 
 local function Arm(slot)
+	if InCombatLockdown() then return end
 	local macro = MacroFor(slot)
+	if macro == nil then
+		Disarm(slot)
+		slot.tooLong = false
+		return
+	end
 	if #macro > ns.MACRO_LIMIT then
 		Disarm(slot)
 		slot.tooLong = true
@@ -677,6 +811,7 @@ Moments.Place = Place
 -- Where a cooldown already running before the pull is known from: plain start
 -- and length say it, and Manners' own clock keeps it where the fight hides them.
 local function Seed(slot, now)
+	if not slot.id then return end
 	local _, start, duration = Sense.Cool(slot.id)
 	if type(start) == "number" and type(duration) == "number" and duration > 1.5 then
 		local left = start + duration - now
@@ -684,17 +819,71 @@ local function Seed(slot, now)
 	end
 end
 
+-- The fall watch: no event says you are falling on any client, so a plain frame
+-- asks IsFalling every 0.2 s, and only while it can matter: you move (the two
+-- movement events), you are in a fight (a knock-back), you are falling, or for
+-- three seconds after the last of those. Standing still out of a fight it is
+-- hidden and costs nothing.
+local function JudgeKeep(now)
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.armed and slot.row.peace == true then Judge(slot, now) end
+	end
+end
+
+local function WatchRead()
+	local now = GetTime()
+	local falling = Sense.ReadFall(now)
+	if falling or moving or Sense.fighting then watchHold = now + WATCH_HOLD end
+	JudgeKeep(now)
+	if not (falling or moving or Sense.fighting or now < watchHold) then watch:Hide() end
+end
+
+local function WatchShow(now)
+	if not watch then return end
+	watchHold = now + WATCH_HOLD
+	watchWait = WATCH_STEP
+	watch:Show()
+end
+
 local function SetRegistered(on)
 	if ev == nil then return end
-	-- Own casts and the control events, kept while an armed row needs them.
+	-- Own casts, the control events and the movement events, kept while an armed
+	-- row needs them.
 	local wantOwn = false
 	local wantControl = false
+	local wantMove = false
 	for n = 1, MAX do
 		local slot = slots[n]
 		if slot and slot.armed then
 			wantOwn = true
 			if slot.needs.stuck then wantControl = true end
+			if slot.needs.falling then wantMove = true end
 		end
+	end
+	if wantMove then
+		if not watch then
+			watch = CreateFrame("Frame")
+			watch:Hide()
+			watch:SetScript("OnUpdate", function(_, elapsed)
+				watchWait = watchWait + elapsed
+				if watchWait < WATCH_STEP then return end
+				watchWait = 0
+				ns.Guard("moments", WatchRead)
+			end)
+		end
+		if not moveOn then
+			for _, name in ipairs({ "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING" }) do
+				if Sense.accepted[name] then ev:RegisterEvent(name) end
+			end
+			moveOn = true
+		end
+	elseif moveOn then
+		ev:UnregisterEvent("PLAYER_STARTED_MOVING")
+		ev:UnregisterEvent("PLAYER_STOPPED_MOVING")
+		moveOn, moving = false, false
+		Sense.fallSince, Sense.fallSecret = nil, false
+		if watch then watch:Hide() end
 	end
 	if wantOwn and not ownCastOn and Sense.accepted.UNIT_SPELLCAST_SUCCEEDED then
 		ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
@@ -718,7 +907,7 @@ end
 
 -- From a scan (Core.lua's TickBody) when Wanted says something changed, and as
 -- a fight ends (Release). Out of combat only.
-function Moments:Refresh()
+function Moments:Refresh(keepLit)
 	if InCombatLockdown() then return end
 	local db = Profile()
 	if not db then return end
@@ -749,9 +938,10 @@ function Moments:Refresh()
 				slot.needs = Sense.NeedSet(entry.row)
 				slot.armed = true
 				slot.iconTex:SetTexture(entry.icon)
-				byId[entry.id] = slot
+				if entry.id then byId[entry.id] = slot end
 				ReadKey(slot)
 				SetMouse(slot)
+				if entry.row.items then Sense.CountItems(slot) end
 				Arm(slot)
 				Seed(slot, now)
 				if header then
@@ -771,6 +961,33 @@ function Moments:Refresh()
 	for n = 1, MAX do
 		if slots[n] and slots[n].armed then any = true end
 	end
+	-- The spell a row brings back (Cold Snap's Ice Block): its own button's clock
+	-- where that button is armed, else a clock kept just for it.
+	local kept = {}
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.armed then
+			slot.partner = nil
+			local key = slot.row.partner
+			if key then
+				local holder
+				for m = 1, MAX do
+					if slots[m] and slots[m].armed and slots[m].row.key == key then holder = slots[m] end
+				end
+				local entry = mine and mine.byKey[key]
+				if not holder and entry and entry.id then
+					holder = shadows[key]
+					if not holder or holder.id ~= entry.id then holder = { row = entry.row, id = entry.id, shadow = true } end
+					kept[key] = holder
+					byId[entry.id] = holder
+					Seed(holder, now)
+				end
+				slot.partner = holder
+			end
+		end
+	end
+	wipe(shadows)
+	for key, holder in pairs(kept) do shadows[key] = holder end
 	if any then
 		Place(db.prompt)
 		Sense.ReadScale()
@@ -785,14 +1002,20 @@ function Moments:Refresh()
 	for n = 1, MAX do
 		local slot = slots[n]
 		if slot then
-			slot.state, slot.why = "dark", "not in a fight"
-			slot.face:SetAlpha(0)
-			slot.fading, slot.fadeTo, slot.openUntil = false, 0, nil
-			slot.cover:Hide()
-			slot.ring:Hide()
-			slot.hover:Hide()
-			GlowOn(slot, false)
-			if slot.armed and slot.row.peace ~= true and slot.button:IsShown() then slot.button:Hide() end
+			-- A button for a fall that a fight ended in the middle of stays up, lit.
+			local stays = keepLit and slot.armed and slot.row.peace == true and slot.state == "lit"
+			if not stays then
+				slot.state, slot.why = "dark", (slot.row and slot.row.peace == true) and "no need yet" or "not in a fight"
+				slot.face:SetAlpha(0)
+				slot.fading, slot.fadeTo, slot.openUntil = false, 0, nil
+				slot.cover:Hide()
+				slot.ring:Hide()
+				slot.hover:Hide()
+				GlowOn(slot, false)
+				-- The driver hides what it showed for a fight but leaves a keep button to
+				-- Lua: every armed button that is not lit goes down here.
+				if slot.armed and slot.button:IsShown() then slot.button:Hide() end
+			end
 		end
 	end
 	SetRegistered()
@@ -860,12 +1083,34 @@ local function RegisterFight()
 				Register("LOSS_OF_CONTROL_ADDED")
 				Register("LOSS_OF_CONTROL_UPDATE")
 			end
-			if needs.ready then Register("SPELL_UPDATE_COOLDOWN") end
+			if needs.ready or needs.itemready then Register("SPELL_UPDATE_COOLDOWN") end
+			if needs.itemready then Register("BAG_UPDATE_DELAYED") end
+			if needs.schoolhit then Register("UNIT_COMBAT", "player") end
+			if needs.stealable then Register("UNIT_AURA", "target") end
 		end
 	end
 end
 
--- The pull, before the lockdown: keys, mouse, clocks, the fight's events, every
+-- The pull as the addon's own handler gets it (Core.lua), while the lockdown is
+-- not yet on: what a secure button may only be given out of a fight. Keys and
+-- the mouse as bound now, and the gems counted once, the macro of the gem button
+-- listing the kinds in the bags at this moment; a flush never counts.
+function Moments:Take()
+	if InCombatLockdown() then return end
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.armed then
+			ReadKey(slot)
+			SetMouse(slot)
+			if slot.row.items then
+				Sense.CountItems(slot)
+				Arm(slot)
+			end
+		end
+	end
+end
+
+-- The pull, as the frame gets it: keys, mouse, clocks, the fight's events, every
 -- armed button dark with its cover up, and ONE look at the situation at once, so
 -- a stun, a cast or a low bar that began before the pull is seen without waiting
 -- for an event.
@@ -887,8 +1132,14 @@ local function Pull()
 		end
 	end
 	if not any then return end
+	for _, holder in pairs(shadows) do
+		holder.onGCD = nil
+		Seed(holder, now)
+	end
+	wipe(Sense.lastHit)
 	Sense.fighting = true
 	RegisterFight()
+	if moveOn then WatchShow(now) end
 	JudgeAll()
 	Schedule()
 end
@@ -898,6 +1149,7 @@ end
 function Moments:Release()
 	if next(slots) == nil then return end
 	Sense.fighting = false
+	local keepLit = false
 	for name in pairs(fightEvents) do
 		if ev then ev:UnregisterEvent(name) end
 		fightEvents[name] = nil
@@ -910,9 +1162,14 @@ function Moments:Release()
 			slot.cover:Hide()
 			slot.ring:Hide()
 			slot.openUntil = nil
-			if slot.state ~= "dark" then Apply(slot, "dark") end
-			slot.face:SetAlpha(0)
-			slot.fading = false
+			if slot.armed and slot.row.peace == true and slot.state == "lit" then
+				-- A fight ending mid-fall: the button stays up until a read says you landed.
+				keepLit = true
+			else
+				if slot.state ~= "dark" then Apply(slot, "dark") end
+				slot.face:SetAlpha(0)
+				slot.fading = false
+			end
 		end
 	end
 	for n = 1, MAX do
@@ -925,46 +1182,78 @@ function Moments:Release()
 		end
 	end
 	dirtyRefresh = true
-	self:Refresh()
+	self:Refresh(keepLit)
+	if watch and moveOn then WatchShow(GetTime()) end
 end
 
 -- Your own cast went out: Manners' own clock for it, the clocks it starts or
 -- clears in the other rows, and the answer to a press.
-local function OwnCast(spellId)
-	local id = plain(spellId)
-	if type(id) ~= "number" then return end
-	local slot = byId[id]
-	if not slot then return end
-	local now = GetTime()
-	local _, start, duration = Sense.Cool(id)
-	local left = (type(start) == "number" and type(duration) == "number" and duration > 1.5) and (start + duration - now) or nil
-	slot.readyAt = now + ((left and left > 1.5) and left or (slot.row.cooldown or 0))
-	slot.castAt = now
-	for n = 1, MAX do
-		local other = slots[n]
-		if other and other.armed and other ~= slot then
-			if slot.row.shares == other.row.key then other.readyAt = slot.readyAt end
-			for _, key in ipairs(slot.row.resets or {}) do
-				if other.row.key == key then other.readyAt = nil end
-			end
-		end
+-- What a cast of one row does to another's clock: a ward starts its twin's, Cold
+-- Snap clears the clocks of the spells it brings back.
+local function Cross(slot, other)
+	if slot.row.shares == other.row.key then other.readyAt = slot.readyAt end
+	for _, key in ipairs(slot.row.resets or {}) do
+		if other.row.key == key then other.readyAt = nil end
 	end
-	if slot.waitUntil and now <= slot.waitUntil then
+end
+
+local function Went(slot)
+	if slot.waitUntil and GetTime() <= slot.waitUntil then
 		slot.waitUntil = nil
 		slot.went = true
 		slot.tally.out = slot.tally.out + 1
 		Trail(slot, "went out", true)
+		return true
 	end
-	if Sense.fighting then Schedule() end
+	return false
 end
 
-function Moments.OnEvent(event, unit, castGuid, spellId)
+local function OwnCast(spellId)
+	local id = plain(spellId)
+	if type(id) ~= "number" then return end
+	local now = GetTime()
+	local slot = byId[id]
+	if slot then
+		local _, start, duration = Sense.Cool(id)
+		local left = (type(start) == "number" and type(duration) == "number" and duration > 1.5) and (start + duration - now) or nil
+		slot.readyAt = now + ((left and left > 1.5) and left or (slot.row.cooldown or 0))
+		slot.castAt = now
+		for n = 1, MAX do
+			local other = slots[n]
+			if other and other.armed and other ~= slot then Cross(slot, other) end
+		end
+		for _, holder in pairs(shadows) do
+			if holder ~= slot then Cross(slot, holder) end
+		end
+		if not slot.shadow then Went(slot) end
+	end
+	-- A gem's use casts a spell of its own: any own cast inside the press window
+	-- answers a press of the gem, and its own clock begins.
+	for n = 1, MAX do
+		local gem = slots[n]
+		if gem and gem.armed and gem.row.items and gem ~= slot and Went(gem) then
+			gem.readyAt = now + (gem.row.cooldown or 0)
+		end
+	end
+	if Sense.fighting then Schedule() end
+	if slot and slot.row.peace == true then Judge(slot, now) end
+end
+
+function Moments.OnEvent(event, unit, a, b, c, d)
 	if event == "PLAYER_REGEN_DISABLED" then return Pull() end
 	if event == "UPDATE_BINDINGS" then
 		if not InCombatLockdown() then dirtyRefresh = true end
 		return
 	end
-	if event == "UNIT_SPELLCAST_SUCCEEDED" then return OwnCast(spellId) end
+	if event == "UNIT_SPELLCAST_SUCCEEDED" then return OwnCast(b) end
+	if event == "PLAYER_STARTED_MOVING" then
+		moving = true
+		return WatchShow(GetTime())
+	elseif event == "PLAYER_STOPPED_MOVING" then
+		moving = false
+		watchHold = GetTime() + WATCH_HOLD
+		return
+	end
 	if event == "PLAYER_CONTROL_LOST" then
 		Sense.lostAt = GetTime()
 		return JudgeAll("stuck")
@@ -973,6 +1262,20 @@ function Moments.OnEvent(event, unit, castGuid, spellId)
 		return JudgeAll("stuck")
 	end
 	if not Sense.fighting then return end
+	if event == "UNIT_AURA" then return Schedule() end
+	if event == "UNIT_COMBAT" then
+		-- UNIT_COMBAT: unit, action, flag, amount, school.
+		Sense.Hit(a, d, GetTime())
+		return Schedule()
+	end
+	if event == "BAG_UPDATE_DELAYED" then
+		-- The gems, counted on the bag event and never per flush.
+		for n = 1, MAX do
+			local slot = slots[n]
+			if slot and slot.armed and slot.row.items then Sense.CountItems(slot) end
+		end
+		return Schedule()
+	end
 	if event == "LOSS_OF_CONTROL_ADDED" or event == "LOSS_OF_CONTROL_UPDATE" then
 		-- Only your own: the client may tell of another unit's loss of control.
 		local who = plain(unit)
@@ -989,14 +1292,23 @@ function Moments.OnEvent(event, unit, castGuid, spellId)
 	if event == "SPELL_UPDATE_COOLDOWN" then
 		-- The only place isOnGCD is read: the game says not to trust it anywhere else.
 		local api = _G.C_Spell
-		for n = 1, MAX do
-			local slot = slots[n]
-			if slot and slot.armed and type(api) == "table" and type(api.GetSpellCooldown) == "function" then
-				local rec = plain(api.GetSpellCooldown(slot.id))
-				-- (not `and ... or nil`: a plain false is the answer that matters)
+		if type(api) == "table" and type(api.GetSpellCooldown) == "function" then
+			for n = 1, MAX do
+				local slot = slots[n]
+				if slot and slot.armed and slot.id then
+					local rec = plain(api.GetSpellCooldown(slot.id))
+					-- (not `and ... or nil`: a plain false is the answer that matters)
+					local flag
+					if type(rec) == "table" then flag = plain(rec.isOnGCD) end
+					slot.onGCD = flag
+				end
+			end
+			-- The spell a row brings back keeps its flag too, though it has no button.
+			for _, holder in pairs(shadows) do
+				local rec = plain(api.GetSpellCooldown(holder.id))
 				local flag
 				if type(rec) == "table" then flag = plain(rec.isOnGCD) end
-				slot.onGCD = flag
+				holder.onGCD = flag
 			end
 		end
 		return Schedule()
@@ -1104,9 +1416,11 @@ function ns.MomentLines()
 			out[#out + 1] = ("moment %s: not learned"):format(row.key)
 		else
 			local armed = slot and slot.armed and slot.armedMacro
-			out[#out + 1] = ("moment %s: spell %d %s, learned yes, switch %s, %s, key %s, slot %d, %s, now %s; last fight lit %d, game %d, pressed %d, out %d, silent %d"):format(
-				row.key, entry.id, tostring(entry.name), m[row.key] == true and "on" or "off",
-				armed and ("armed (" .. tostring(armed):gsub("\n", " | ") .. ")") or (slot and slot.tooLong and "macro too long, not armed" or "not armed"),
+			local shape = slot and slot.armed and slot.shape and (" [" .. slot.shape .. "]") or ""
+			out[#out + 1] = ("moment %s: %s %s %s, learned yes, switch %s, %s, key %s, slot %d, %s, now %s; last fight lit %d, game %d, pressed %d, out %d, silent %d"):format(
+				row.key, entry.id and "spell" or "items", tostring(entry.id or table.concat(row.items or {}, "/")), tostring(entry.name),
+				m[row.key] == true and "on" or "off",
+				armed and ("armed (" .. tostring(armed):gsub("\n", " | ") .. ")" .. shape) or (slot and slot.tooLong and "macro too long, not armed" or "not armed"),
 				tostring(slot and slot.keyLabel or (type(GetBindingKey) == "function" and (GetBindingKey("CLICK MannersMoment" .. row.slot .. ":LeftButton")) or "none")),
 				row.slot, row.guard == "twice" and "two clicks where the game alone knows" or "one click",
 				slot and (slot.state == "dark" and ("dark: " .. tostring(slot.why or "no need")) or slot.state) or "dark",
@@ -1165,6 +1479,17 @@ function Moments.SelfRows()
 end
 
 function Moments:Button(n) return slots[n] and slots[n].button end
+-- The fall watch, and the clock kept for a spell with no button of its own.
+function Moments:Watch() return watch end
+function Moments:Shadow(key) return shadows[key] end
+-- What a button shows: its art and where it is fading to (face is the plain
+-- gate, inner the layer the game paints).
+function Moments:Look(n)
+	local slot = slots[n]
+	if not slot then return nil end
+	return { icon = slot.iconTex, glow = slot.glow, key = slot.keyText, face = slot.face, inner = slot.inner,
+		ring = slot.ring, alpha = slot.fadeTo, fader = fader }
+end
 function Moments:Slot(n) return slots[n] end
 function Moments:Header() return header end
 function Moments:Frame() return ev end

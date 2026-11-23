@@ -38,10 +38,15 @@
 -- first button (and the second, when manners-two is set) at the pull at alpha
 -- 0 for every fight, and hides them after. Lua never shows, hides, moves or
 -- arms either under the lockdown; it paints only their own alpha, text and
--- textures, which the client allows in a fight. A click on an empty place in a
--- fight still casts, since alpha 0 takes clicks and the mouse of a protected
--- frame cannot be changed in combat; a key casts whether its button is shown
--- or not.
+-- textures, which the client allows in a fight. A click casts only while the
+-- button is on the screen: while it is out of sight an unprotected COVER frame
+-- over it swallows the click (a frame that is not protected can be shown and
+-- hidden in a fight, and a mouse-enabled frame above takes the click instead of
+-- the one below), and it comes down when somebody needs a cure, dim or bright:
+-- visible means clickable. With a key bound the button takes no mouse and no
+-- cover is used. A key casts whether its button is shown or not. If a click
+-- ever reaches the button with the cover standing over it and no key bound, it
+-- is counted (db.global.cureCoverLeaks) and /manners debug says so.
 --
 -- WHAT IT KNOWS, AND WHERE IT CANNOT
 --
@@ -142,12 +147,14 @@ local dirtyRefresh, settledOn, placedIcon, placedScale = true, nil, nil, nil
 local watched, dirty, needy, held = {}, {}, {}, {}
 local flushDue, recheckDue = false, false
 local waitUntil
+-- Whether a fight is on (the pull to the release): the covers stand only then.
+local fightOn = false
 -- The last fight, for /manners debug.
 -- `listAsked` reads that asked the game's list of removable debuffs, `listWithheld`
 -- of them with no count back (withheld, or no table), `listEmpty` with an empty list,
 -- `threw` reads that threw.
 local last = { reads = 0, secret = 0, seen = 0, shownFor = 0, listed = 0, shows = 0,
-	listAsked = 0, listWithheld = 0, listEmpty = 0, threw = 0 }
+	listAsked = 0, listWithheld = 0, listEmpty = 0, threw = 0, covered = 0, leaks = 0 }
 local reasonOf, seenGuid = {}, {}
 local Paint, Flush
 
@@ -264,6 +271,8 @@ local function SetVisible(slot, on, ready)
 		slot.shownAt = nil
 	end
 	slot.visible = on
+	-- Out of sight, the cover stands over a button that takes a click.
+	if slot.cover then slot.cover:SetShown(fightOn and not on and slot.mouseOn == true) end
 	if on and ready then
 		slot.glow:Show()
 		if slot.pulse and not slot.pulse:IsPlaying() then slot.pulse:Play() end
@@ -605,9 +614,17 @@ end
 
 -- A press, by its key or a left click: in a fight too. The press the prompt
 -- filed is not this one's, so it is let go with its own reason.
-local function PreClick(_, mouse)
+local function PreClick(slot, mouse)
 	if mouse ~= "LeftButton" then return end
 	waitUntil = GetTime() + SUCCEED_SECONDS
+	-- A click that reached the button while the cover stood over it, with no key
+	-- bound (so no key can have pressed it): the cover let it through.
+	if slot.keyLabel == nil and slot.cover and slot.cover:IsShown() then
+		last.leaks = last.leaks + 1
+		local db = ns.db and ns.db.global
+		if db then db.cureCoverLeaks = (db.cureCoverLeaks or 0) + 1 end
+		ns.Trail("fight", "cure in a fight: the cover let a click through")
+	end
 	local pending = ns.pendingClick
 	if pending and ns.ExpirePendingClick then ns.ExpirePendingClick(pending, L["you cured somebody instead"]) end
 	ns.Trail("press", "pressed: cure in a fight")
@@ -713,7 +730,24 @@ function CureFight:Create(index)
 		if i <= 5 then button:SetAttribute("type" .. i, "none") end
 		button:SetAttribute("*type" .. i, "none")
 	end
-	button:SetScript("PreClick", PreClick)
+	-- The cover: no art, mouse on, above the button. Shown while the button is out of
+	-- sight (SetVisible), it swallows the click; it is a frame that is not protected,
+	-- so a fight may show and hide it.
+	local cover = CreateFrame("Frame", nil, button)
+	cover:SetAllPoints(button)
+	cover:SetFrameLevel(button:GetFrameLevel() + 10)
+	cover:EnableMouse(true)
+	cover:SetScript("OnMouseDown", function()
+		last.covered = last.covered + 1
+		local now = GetTime()
+		if not slot.coverAt or now - slot.coverAt >= 2 then
+			slot.coverAt = now
+			ns.Trail("fight", "cure in a fight: the cover took a click (nobody needs a cure)")
+		end
+	end)
+	cover:Hide()
+	slot.cover = cover
+	button:SetScript("PreClick", function(_, mouse) PreClick(slot, mouse) end)
 	button:SetScript("OnEnter", function(self) OnEnter(slot, self) end)
 	button:SetScript("OnLeave", OnLeave)
 	button:Hide()
@@ -762,7 +796,8 @@ end
 -- Refresh and at the pull, before it. `used`: the button is one of this fight's.
 local function SetMouse(slot, used)
 	if not slot.button or InCombatLockdown() then return end
-	slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)
+	slot.mouseOn = used ~= false and slot.keyLabel == nil
+	slot.button:EnableMouse(slot.mouseOn)
 end
 
 -- From a scan (Core.lua, TickBody) when Wanted says something changed, and as a
@@ -895,6 +930,8 @@ local function Pull()
 		end
 	end
 	last.reads, last.secret, last.seen, last.shownFor, last.listed, last.shows = 0, 0, 0, 0, 0, 0
+	last.covered, last.leaks = 0, 0
+	fightOn = true
 	last.listAsked, last.listWithheld, last.listEmpty, last.threw = 0, 0, 0, 0
 	wipe(needy)
 	wipe(dirty)
@@ -911,6 +948,7 @@ end
 -- PLAYER_REGEN_ENABLED, out of lockdown: the events dropped, the buttons taken
 -- down and armed again.
 function CureFight:Release()
+	fightOn = false
 	local frame = CureFight.frame
 	for _, event in ipairs(FIGHT_EVENTS) do frame:UnregisterEvent(event) end
 	wipe(needy)
@@ -1012,11 +1050,16 @@ function ns.CureFightLines()
 		last.reads, last.secret, last.seen, math.floor(last.shownFor), last.listed,
 		CanList() and (caps.secretRestrictions == true and "yes" or "yes, not needed here") or "no",
 		last.listAsked, last.listWithheld, last.listEmpty, last.threw)
+	local leaks = ns.db and ns.db.global and ns.db.global.cureCoverLeaks or 0
+	out[3] = ("cure in a fight, the cover: took %d clicks last fight, let %d through; let a click through on this account: %s"):format(
+		last.covered, last.leaks, leaks > 0 and (leaks .. " times (or a macro of yours clicked it)") or "never")
 	return out
 end
 
 function CureFight:Button(index) return slots[index or 1].button end
 function CureFight:Header() return header end
+-- The cover over a button (shown while it is out of sight in a fight).
+function CureFight:Cover(index) return slots[index or 1].cover end
 -- What it shows: the spell's name and the key line, the glow, and where it is
 -- fading to (alpha is the target; the fader walks the button there).
 function CureFight:Look(index)

@@ -12,7 +12,9 @@ ns.WhatsNew = {
 		} },
 		{ title = "Buttons for the moment (mages)", accent = "7cc4ff", entries = {
 			"|cff7cc4ffCounterspell when your target casts.|r A small button left of the prompt lights while a hostile target in reach is casting, and a press stops your own cast first.",
-			"|cff7cc4ffBlink and Ice Block.|r Blink lights when you are stunned or rooted, Ice Block when your health is low (|cffffffffHealth below|r, 20 by default).",
+			"|cff7cc4ffBlink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.|r Each lights at its moment: stunned or rooted, low health (|cffffffffHealth below|r, 20 by default), low mana (|cffffffffMana below|r), a second into a fall.",
+			"|cff7cc4ffSpellsteal|r lights while your target carries a buff you can steal (Burning Crusade and later).",
+			"|cff7cc4ffFire Ward and Frost Ward|r are there too, switched off until you tick them.",
 		} },
 		{ title = "Water and food for your target", accent = "7cc4ff", entries = {
 			"|cff7cc4ffOffer water and food to my target|r (mages).",
@@ -25,6 +27,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffMark this moment.|r A key (|cffffffffKey for Mark this moment|r on Diagnostics), the minimap menu and /manners mark note the prompt, the queue and the fight buttons.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52The cure button takes no click while it is out of sight.|r A click casts only while it is lit.",
 			"|cffff9a52Who buffed you.|r The full check-up counts the casts Manners hears from others (players and mobs alike), and a buff read late says so instead of \"no player in sight\".",
 			"|cffff9a52Break free.|r Each loss of control is one line on the trail, with whether the button lit.",
 			"|cffff9a52Cure button (check-up).|r /manners debug says whether the game's list of debuffs you can remove is there and what it answered.",

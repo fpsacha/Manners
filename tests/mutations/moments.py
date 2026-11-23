@@ -21,8 +21,8 @@ mutate(M,
        expect="moments: no key: lit, the click reaches the button and casts", script=S)
 
 mutate(M,
-       '\t\t\tslot.face:SetAlpha(0)\n\t\t\tslot.fading, slot.fadeTo, slot.openUntil = false, 0, nil\n',
-       '\t\t\tslot.face:SetAlpha(db.prompt.fightButtons == "always" and 1 or 0)\n\t\t\tslot.fading, slot.fadeTo, slot.openUntil = false, 0, nil\n',
+       '\t\t\t\tslot.face:SetAlpha(0)\n\t\t\t\tslot.fading, slot.fadeTo, slot.openUntil = false, 0, nil\n',
+       '\t\t\t\tslot.face:SetAlpha(db.prompt.fightButtons == "always" and 1 or 0)\n\t\t\t\tslot.fading, slot.fadeTo, slot.openUntil = false, 0, nil\n',
        "moments: Show the fight buttons is read and a button sits there all fight",
        expect="moments: Show the fight buttons at All fight changes nothing", script=S)
 

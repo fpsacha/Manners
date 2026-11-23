@@ -289,8 +289,30 @@ would lift it away from that person. Where the game hides debuffs in a fight
 (WoW Forever, retail) the button still appears when the game says you can
 remove one, in your group, on your target or on you, without naming the kind:
 it reads "a debuff you can remove", and with two buttons both show and you pick
-the cure. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
+the cure. A click where the button is out of sight does nothing, so a stray click
+never casts it. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
 names a spell.
+
+#### Buttons for the moment (mages)
+
+A mage gets small buttons left of the prompt that stay out of sight until their
+moment comes: Counterspell while your target is casting something you can
+interrupt, Spellsteal while it carries a buff you can steal (Burning Crusade and
+later), Blink when you are stunned or rooted, Ice Block when your health drops
+under *Health below*, Cold Snap when you need Ice Block and it is cooling down,
+Evocation and your mana gem when your mana drops under *Mana below*, Slow Fall
+once you have been falling for a second (in a fight or out of one), and Fire
+Ward and Frost Ward, switched off until you tick them, while your target casts
+and that kind of damage has just hit you. Each has a switch and a key of its own
+under *Buttons for the moment* on *In a fight*; a spell you have not learned
+shows nothing, and a button is out of sight while its spell cools down. A press
+stops your own cast first where that helps, so it fires at once. With no key
+set you click the lit button, and a click where a button is out of sight does
+nothing. Where the game hides your health or mana from addons in a fight, the
+game itself lights Ice Block, Cold Snap, Evocation and the gem, and they then
+take two quick clicks, so one stray click never casts. A key always casts at
+once. *Show the fight buttons* does not change them: none is ever on the screen
+without its moment.
 
 #### A spell on your key in a fight
 

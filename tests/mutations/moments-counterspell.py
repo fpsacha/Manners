@@ -54,8 +54,8 @@ mutate("Prompt/Moments.lua",
        expect="moments-counterspell: NOT_INTERRUPTIBLE mid-cast", script=S)
 
 mutate("Prompt/Moments.lua",
-       "\tRegisterFight()\n\tJudgeAll()\n\tSchedule()\n",
-       "\tRegisterFight()\n\tSchedule()\n",
+       "\tRegisterFight()\n\tif moveOn then WatchShow(now) end\n\tJudgeAll()\n\tSchedule()\n",
+       "\tRegisterFight()\n\tif moveOn then WatchShow(now) end\n\tSchedule()\n",
        "moments-counterspell: the pull's first look is removed",
        expect="moments-counterspell: a cast under way at the pull lights it with no START", script=S)
 

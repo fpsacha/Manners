@@ -6911,6 +6911,9 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- And the prompt's own keys pointed at the fight key's button, still out of
 	-- the lockdown (Prompt/FightKey.lua); given back at the end of the fight.
 	if ns.FightKey then ns.Guard("fight key", ns.FightKey.Take, ns.FightKey) end
+	-- The buttons for the moment: keys, mouse and the gem's macro, written while
+	-- the lockdown is not yet on (Prompt/Moments.lua).
+	if ns.Moments then ns.Guard("moments at fight start", ns.Moments.Take, ns.Moments) end
 	-- Nothing of yours is used in a fight: the consumables button goes now,
 	-- before the lockdown, and its snippet makes sure of it at the lockdown.
 	if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end

@@ -212,11 +212,23 @@ do
 	end, { known = { 2139, 1953, 11958 } })
 	s = name("a sixth button starts a second row")
 	with(s, function(ns)
-		ns.db.profile.moments.evocation = true
-		-- The row count is the learned buttons, three here: the second row starts at six.
-		local one = ns.Moments:Button(1)
-		if not one then fail(s, "no first button") end
-	end, { known = { 2139, 1953, 11958 } })
+		-- Counterspell, Ice Block, Blink, Evocation, Slow Fall and Cold Snap are armed: the
+		-- sixth, in slot order, starts the second row.
+		local armed = {}
+		for n = 1, 10 do
+			local slot = ns.Moments:Slot(n)
+			if slot and slot.armed then armed[#armed + 1] = n end
+		end
+		if #armed ~= 6 then fail(s, "armed buttons: " .. #armed) return end
+		for i, n in ipairs(armed) do
+			local p = lastPoint(ns.Moments:Button(n))
+			local want = i <= 5 and 0 or ns.Moments:Button(n):GetHeight() + 8
+			if p[5] ~= want then fail(s, "button " .. i .. " (slot " .. n .. ") sits at y " .. tostring(p[5]) .. ", wanted " .. tostring(want)) end
+		end
+		if lastPoint(ns.Moments:Button(armed[6]))[4] ~= lastPoint(ns.Moments:Button(armed[1]))[4] then
+			fail(s, "the second row does not start under the first button")
+		end
+	end)
 end
 
 do

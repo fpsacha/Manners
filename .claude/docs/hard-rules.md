@@ -71,9 +71,9 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   it is needed and from being pressed, and the prompt's own key keeps to
   buffs (unless *In a fight, my key casts* names a spell: below).
   The buttons for the moment (`Prompt/Moments.lua`, MannersMoment1..10, a
-  mage's Counterspell, Blink, Ice Block and, in the next part, the rest;
-  `Prompt/MomentsData.lua` holds the rows, `Prompt/MomentsSense.lua` the
-  signals) are armed out of combat and shown by one header's own state driver
+  mage's Counterspell, Spellsteal, Blink, Ice Block, Cold Snap, Evocation, mana
+  gem, Slow Fall and the two wards; `Prompt/MomentsData.lua` holds the rows,
+  `Prompt/MomentsSense.lua` the signals) are armed out of combat and shown by one header's own state driver
   (`mannersmoments`). The secure button has no region of its own and its alpha
   is never written; Lua paints only the unprotected frames over it (a plain gate
   `face`, and `inner`, whose alpha the game paints from a hidden value through
@@ -82,8 +82,15 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   clicks while the button is dark, so a click casts only while it is lit.
   Where only the game knows (a hidden health), the cover stays up and the button
   takes two quick clicks. Nothing is lit without a detected need, and they
-  never read `prompt.fightButtons`. The cure button takes the same cover in the
-  next part; the break-free button must not (a cover raised on Lua's belief
+  never read `prompt.fightButtons`. What a button must be given while the lockdown
+  is not yet on (keys, the mouse, the gem's macro from the bags) is written by
+  `Moments:Take`, which Core's `PLAYER_REGEN_DISABLED` handler calls; the frame's
+  own pull handler runs after the lockdown and paints only. Slow Fall (a keep
+  button) is shown and hidden by Lua out of a fight and left to its driver in
+  one; the release hides every keep button that is not lit. The cure button takes
+  the same cover (`CureFight:Cover`, up while it is out of sight in a fight, down
+  while it is on the screen, counted in `db.global.cureCoverLeaks` when a click
+  gets past it); the break-free button must not (a cover raised on Lua's belief
   could eat the one click that mattered). Never `Show`, `Hide`, `SetPoint`,
   `SetSize`, `EnableMouse` or `SetAttribute` on one under the lockdown.
   The cure button (`Prompt/CureFight.lua`, MannersCureFight) is the other
