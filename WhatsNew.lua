@@ -33,6 +33,7 @@ ns.WhatsNew = {
 			"|cff7cc4ffMark this moment.|r A key (|cffffffffKey for Mark this moment|r on Diagnostics), the minimap menu and /manners mark note the prompt, the queue and the fight buttons.",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
+			"|cffff9a52Thank people who buff me, with a pause.|r |cffffffffWait a moment before thanking|r looks for the giver again when the pause ends, so a nameplate that changed hands no longer drops the thank.",
 			"|cffff9a52The cure button takes no click while it is out of sight.|r A click casts only while it is lit.",
 			"|cffff9a52/manners debug.|r The Slow Fall line leaves your character's name out.",
 			"|cffff9a52Check-up.|r It no longer stops for a class whose only button is the drink, and a click that got past a cover is counted for the session only.",

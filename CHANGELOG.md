@@ -66,6 +66,9 @@
   keys* group.
 
 ### Fixes
+- **Thank people who buff me, with a pause.** *Wait a moment before thanking* looks for
+  the giver again when the pause ends, so a nameplate that changed hands no longer
+  drops the thank. It never thanks somebody else.
 - **The cure button takes no click while it is out of sight.** A click casts only
   while it is lit.
 - **/manners debug.** The Slow Fall line leaves your character's name out.
