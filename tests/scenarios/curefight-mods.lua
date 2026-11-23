@@ -147,7 +147,7 @@ do
 		pick(ns, "cureFightPlain", CURE_POISON)
 		pick(ns, "cureFightShift", nil)
 		pick(ns, "cureFightCtrl", REMOVE_CURSE)
-		if macro(ns) ~= "/cast [mod:ctrl] Remove Curse; Cure Poison" then fail(s, "the macro reads " .. macro(ns)) end
+		if macro(ns) ~= "/cast [mod:ctrl] Remove Curse; [mod:shift] ; Cure Poison" then fail(s, "the macro reads " .. macro(ns)) end
 		if option(ns, "cureFightShift").get() ~= "none" then fail(s, "With Shift reads " .. tostring(option(ns, "cureFightShift").get())) end
 		-- Kept for this class alone: the profile is every character's.
 		local mods = ns.db.profile.prompt.cureFightMods

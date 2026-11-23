@@ -192,18 +192,21 @@ local function addVisibility(f)
 		local was = self._shown ~= false
 		show(self, ...)
 		if not was then fire(self, "OnShow") end
+		if Mock.auraBoxes then Mock.auraSweep() end
 		return self
 	end
 	f.Hide = function(self, ...)
 		local was = self._shown ~= false
 		hide(self, ...)
 		if was then fire(self, "OnHide") end
+		if Mock.auraBoxes then Mock.auraSweep() end
 		return self
 	end
 	f.SetShown = function(self, on, ...)
 		local was = self._shown ~= false
 		shown(self, on, ...)
 		if was and not on then fire(self, "OnHide") elseif on and not was then fire(self, "OnShow") end
+		if Mock.auraBoxes then Mock.auraSweep() end
 		return self
 	end
 end
@@ -455,17 +458,58 @@ local makeHeader
 --   Mock.auraBoxes lists every container made; Mock.auraShows(box) answers
 --   what the client would draw (the slot frame visible with an aura in it), and
 --   Mock.auraShowing() the units whose box shows now.
+--   What a box draws is what the unit carried when it last redrew, as
+--   Blizzard_AuraContainer does: on SetUnit to another token, on UpdateAllAuras,
+--   on its OnShow and OnHide (itself or a parent of Lua's going up or down:
+--   Mock.auraSweep, run after every Show, Hide and SetShown) and on UNIT_AURA
+--   for its unit while visible (Mock.frameEvent("UNIT_AURA", unit), or
+--   Mock.auraEvent(unit)). It does not follow a token that names somebody else
+--   now (a new target, party2 after a reshuffle) until one of those comes.
 
 local function hiddenFor(unit)
 	if Mock.hiddenFor then return Mock.hiddenFor(unit) end
 	return Mock.hiddenDebuffs and Mock.hiddenDebuffs[unit] or nil
 end
 
+-- The box's picture taken again: a copy of what its unit carries now.
+local function redraw(box)
+	local drawn = {}
+	for i, d in ipairs(hiddenFor(box._unit) or {}) do drawn[i] = d end
+	box._drawn = drawn
+end
+
+local function boxVisible(box)
+	local r = box
+	while r do
+		if r._shown == false then return false end
+		r = r._parentFrame
+	end
+	return true
+end
+
+-- OnShow and OnHide of every box whose visibility changed: the box redraws.
+function Mock.auraSweep()
+	for _, box in ipairs(Mock.auraBoxes or {}) do
+		local vis = boxVisible(box)
+		if vis ~= box._visible then
+			box._visible = vis
+			redraw(box)
+		end
+	end
+end
+
+-- UNIT_AURA for `unit`: the visible boxes of that token redraw.
+function Mock.auraEvent(unit)
+	for _, box in ipairs(Mock.auraBoxes or {}) do
+		if box._unit == unit and boxVisible(box) then redraw(box) end
+	end
+end
+
 -- The aura the slot would hold: the first removable one of the slot's kinds.
 local function slotAura(box, slot)
 	if box._filter ~= "HARMFUL|RAID" then return nil end
 	local include = slot.filters and slot.filters.includeDispelTypes
-	for _, d in ipairs(hiddenFor(box._unit) or {}) do
+	for _, d in ipairs(box._drawn or {}) do
 		if d.can ~= false and (include == nil or include[d.kind]) then return d end
 	end
 	return nil
@@ -496,9 +540,13 @@ local function makeAuraContainer(f)
 	Mock.auraBoxes[#Mock.auraBoxes + 1] = f
 	f.SetUnit = function(self, unit)
 		assert(type(unit) == "string", "unitToken must be a string")
-		self._unit = unit
+		if self._unit ~= unit then
+			self._unit = unit
+			redraw(self)
+		end
 	end
 	f.GetUnit = function(self) return self._unit end
+	f.UpdateAllAuras = function(self) redraw(self) end
 	f.AddAuraSlot = function(self, key, filter, options)
 		assert(type(key) == "string" and key ~= "", "slotKey must be a non-empty string.")
 		assert(self._slot == nil, "aura slot already exists with this key.")
@@ -937,6 +985,8 @@ end
 function Mock.frameEvent(event, ...)
 	-- The state driver manager listens too: its next frame answers at once.
 	if DRIVER_EVENTS[event] then driverTimer = 0 end
+	-- The game's aura containers hear their unit's UNIT_AURA too.
+	if event == "UNIT_AURA" and Mock.auraBoxes then Mock.auraEvent((...)) end
 	local heard = 0
 	for f in pairs(eventFrames) do
 		local fn = f._events and f._events[event] and f.scripts and f.scripts.OnEvent

@@ -8,8 +8,8 @@ CF = "Prompt/CureFight.lua"
 P = "curefight-container: "
 
 mutate(CN,
-       "\t\tneed.wraps[unit]:SetShown(WrapWanted(unit, watched))\n",
-       "\t\tneed.wraps[unit]:SetShown(false)\n",
+       "\t\tRedraw(need.wraps[unit], WrapWanted(unit, watched))\n",
+       "\t\tRedraw(need.wraps[unit], false)\n",
        P + "the game's display shows nobody in a fight",
        expect=P + "forever: the game shows the debuff on the cure button in a fight", script=S)
 

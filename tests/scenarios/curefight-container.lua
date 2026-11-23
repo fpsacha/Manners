@@ -8,8 +8,9 @@
 -- the second of two.
 --
 -- The mock's container (tests/mockwidgets.lua) shows when the unit's hidden
--- debuff list (Mock.hiddenFor) holds one the player can remove, of the slot's
--- kinds, and throws when Lua asks its slot frame what it shows in a fight.
+-- debuff list (Mock.hiddenFor), as it was when the box last redrew, holds one
+-- the player can remove, of the slot's kinds, and throws when Lua asks its slot
+-- frame what it shows in a fight.
 --
 -- Every name starts with "curefight-container:".
 
@@ -175,6 +176,7 @@ do
 		local look = ns.CureFight:Look()
 		if look.alpha ~= 0 then fail(s, "the button was lit from nothing Lua read: " .. tostring(look.alpha)) end
 		world.debuffs.party1 = nil
+		Mock.frameEvent("UNIT_AURA", "party1")
 		if showingOn(ns, 1) ~= "" then fail(s, "still shown once the curse is gone") end
 		world.debuffs.party1 = { { kind = "Curse" } }
 		release(ns)

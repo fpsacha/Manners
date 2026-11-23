@@ -297,7 +297,12 @@ sub-second subset for the middle of an edit.
   `Mock.hiddenFor(unit)` (or `Mock.hiddenDebuffs[unit]`) holds a removable debuff
   of its `includeDispelTypes`, a slot frame that throws when asked what it shows
   in a fight, `Mock.auraShows(box)` and `Mock.auraShowing()` for what the client
-  would draw (`scenarios/curefight-container.lua`). `SecureCmdOptionParse` reads
+  would draw (`scenarios/curefight-container.lua`). A box draws what its unit
+  carried when it last redrew, as the game's does: on `SetUnit`,
+  `UpdateAllAuras`, its OnShow and OnHide (`Mock.auraSweep`, after every Show and
+  Hide) and `UNIT_AURA` for its unit (`Mock.frameEvent`, `Mock.auraEvent`), never
+  on a target or roster change by itself (`scenarios/curefight-redraw.lua`). An
+  empty clause that holds (`[mod:ctrl] ;`) casts nothing. `SecureCmdOptionParse` reads
   `[mod:shift]` and `[mod:ctrl]` from `Mock.modifiers`.
 - The buttons for the moment (`scenarios/moments*.lua`, helper `momentskit.lua`,
   `scenarios/curefight-cover.lua`): `Mock.secret(payload)` is a hidden value

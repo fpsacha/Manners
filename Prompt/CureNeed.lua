@@ -199,13 +199,23 @@ local function WrapWanted(unit, watched)
 	return true
 end
 
+-- A wrap put up or down, hidden first: the game's box does not follow a token
+-- that now names somebody else (a new target or focus, party2 after a reshuffle;
+-- Blizzard_AuraContainer listens for UNIT_AURA alone and leaves "target changes"
+-- to whoever holds it), but redraws on its OnShow. A wrap already up is taken
+-- down and put back, so the box draws the one the token names now.
+local function Redraw(wrap, on)
+	wrap:Hide()
+	wrap:SetShown(on)
+end
+
 -- The pull, and the group changing in a fight: the holder up, a box for each
 -- unit watched. Lua's own frames only. Answers whether the game shows the need.
 function CureNeed.Begin(index, watched)
 	local need = needs[index]
 	if not need or probed ~= true then return false end
 	for _, unit in ipairs(UNITS) do
-		need.wraps[unit]:SetShown(WrapWanted(unit, watched))
+		Redraw(need.wraps[unit], WrapWanted(unit, watched))
 	end
 	need.holder:Show()
 	return true
@@ -216,7 +226,7 @@ function CureNeed.Retarget(index, unit, watched)
 	local need = needs[index]
 	if not need or probed ~= true then return end
 	local wrap = need.wraps[unit]
-	if wrap then wrap:SetShown(WrapWanted(unit, watched)) end
+	if wrap then Redraw(wrap, WrapWanted(unit, watched)) end
 end
 
 -- The release: every box down.

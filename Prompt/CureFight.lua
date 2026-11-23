@@ -238,11 +238,22 @@ function CureFight.Chosen(db)
 	return out[1], out[2], out[3]
 end
 
+-- Shift and Ctrl set to Nothing by the player (a saved 0), not merely without
+-- a cure of their place: the macro gives each an empty clause, so the press
+-- casts nothing rather than falling through to the plain cure.
+local function ChoseNothing(db)
+	local by = db and db.prompt.cureFightMods
+	local saved = type(by) == "table" and caps.class and by[caps.class] or nil
+	if type(saved) ~= "table" then return {} end
+	return { shift = saved.shift == 0, ctrl = saved.ctrl == 0 }
+end
+
 -- The choice as one line, to tell a scan that it changed.
 local function ChoiceKey(db)
 	local a, b, c = CureFight.Chosen(db)
 	local function id(spell) return spell and spell.cure.ranks[1] or 0 end
-	return id(a) .. ":" .. id(b) .. ":" .. id(c)
+	local none = ChoseNothing(db)
+	return id(a) .. ":" .. id(b) .. ":" .. id(c) .. (none.shift and ":s" or "") .. (none.ctrl and ":c" or "")
 end
 
 function CureFight.Applies(db)
@@ -279,10 +290,15 @@ local function Clause(name, mod)
 	return (mod and ("[mod:" .. mod .. "] ") or "") .. name
 end
 
-local function Build(plainSpell, shiftSpell, ctrlSpell)
+-- `none.shift` and `none.ctrl`: an empty clause for a modifier set to Nothing,
+-- while a clause after it would otherwise take the press.
+local function Build(plainSpell, shiftSpell, ctrlSpell, none)
+	none = none or {}
 	local parts = {}
 	if ctrlSpell then parts[#parts + 1] = Clause(ctrlSpell.name, "ctrl") end
+	if not ctrlSpell and none.ctrl and (shiftSpell or plainSpell) then parts[#parts + 1] = "[mod:ctrl] " end
 	if shiftSpell then parts[#parts + 1] = Clause(shiftSpell.name, "shift") end
+	if not shiftSpell and none.shift and plainSpell then parts[#parts + 1] = "[mod:shift] " end
 	if plainSpell then parts[#parts + 1] = Clause(plainSpell.name, false) end
 	if not parts[1] then return nil end
 	return "/cast " .. table.concat(parts, "; ")
@@ -291,14 +307,18 @@ end
 -- The first button's macro, and the spells it holds on Shift and on Ctrl. A
 -- modifier's clause only while it is free to choose: a key bound with Shift (or
 -- Ctrl) in it holds it on every press. Ctrl's clause goes first, then Shift's,
--- when the macro would pass 255 characters.
+-- when the macro would pass 255 characters. A modifier set to Nothing gets an
+-- empty clause on the same terms (ChoseNothing).
 local function MacroFor(plainSpell, shiftSpell, ctrlSpell)
+	local none = ChoseNothing(Profile())
 	if slots[1].shiftKey then shiftSpell = nil end
 	if slots[1].ctrlKey then ctrlSpell = nil end
-	local macro = Build(plainSpell, shiftSpell, ctrlSpell)
+	none.shift = none.shift and not slots[1].shiftKey
+	none.ctrl = none.ctrl and not slots[1].ctrlKey
+	local macro = Build(plainSpell, shiftSpell, ctrlSpell, none)
 	if macro and #macro > ns.MACRO_LIMIT then
-		ctrlSpell = nil
-		macro = Build(plainSpell, shiftSpell, nil)
+		ctrlSpell, none.ctrl = nil, false
+		macro = Build(plainSpell, shiftSpell, nil, none)
 	end
 	if macro and #macro > ns.MACRO_LIMIT then
 		shiftSpell = nil

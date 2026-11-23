@@ -66,10 +66,11 @@
 - **The game shows who needs your cure.** On WoW Forever, where the game hides
   debuffs from addons in a fight, the game itself now shows the debuff on the
   cure button's place; a click there casts as the second of two quick clicks,
-  the key at once.
+  the key at once. It follows a new target or a reshuffled group at once.
 - **Shift and Ctrl for each cure.** *Plain press*, *With Shift* and *With Ctrl*
   under the cure switch pick the cure each casts (a druid: Remove Curse, Cure
-  Poison, Abolish Poison). The key's tooltip names them.
+  Poison, Abolish Poison). The key's tooltip names them. *Nothing* on Shift or
+  Ctrl casts nothing with that key held.
 - **One cure switch.** It is set on In a fight; Who to buff points there.
 
 ### Report a bug

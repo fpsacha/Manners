@@ -449,10 +449,12 @@ local function castLine(spell)
 	-- A line with conditionals or clauses is run through the parser as the
 	-- client's /cast does: no clause holding casts nothing, and the unit the
 	-- one that held named (else the target) is kept on the entry as `onto`.
+	-- An empty clause that holds ("[mod:ctrl] ;") answers "": the client's
+	-- CastSpellByName("") casts nothing.
 	local onto
 	if spell:find("[%[;]") then
 		local answer, unit = SecureCmdOptionParse(spell)
-		if not answer then return end
+		if not answer or answer == "" then return end
 		spell, onto = answer, unit or "target"
 	end
 	local cd = Mock.spellCooldowns and Mock.spellCooldowns[GCD_ID]
