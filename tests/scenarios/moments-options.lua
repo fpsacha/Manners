@@ -81,7 +81,7 @@ do
 			if not (ns.WindowLayout.units[path] and ns.WindowLayout.units[path].kind == "percent") then fail(s, path .. " has no percent unit") end
 			if not ns.WindowLayout.simple.items[path] then fail(s, path .. " is not in the simple view") end
 		end
-		if #found.items ~= 1 + 2 * #KEYS + 2 then fail(s, "the section holds " .. #found.items .. " items") end
+		if #found.items ~= 1 + 2 * #KEYS + 2 + 2 then fail(s, "the section holds " .. #found.items .. " items") end
 		-- The page holds three sections.
 		local fightPage
 		for _, page in ipairs(ns.WindowLayout.pages or {}) do

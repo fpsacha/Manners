@@ -68,6 +68,7 @@ WhatsNew.lua
 Looks\Looks.lua
 Looks\Flow.lua
 Looks\Previews.lua
+Looks\CardArt.lua
 Looks\Luxe.lua
 Looks\Toast.lua
 Looks\Arcane.lua
@@ -109,6 +110,7 @@ Prompt\CureFight.lua
 Prompt\FightKey.lua
 Prompt\MomentsData.lua
 Prompt\MomentsSense.lua
+Prompt\MomentsCard.lua
 Prompt\Moments.lua
 Options\Shared.lua
 Options\Launcher.lua

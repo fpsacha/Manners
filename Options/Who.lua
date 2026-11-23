@@ -2242,7 +2242,7 @@ function Page.BuildWhoTab()
 			ownApartKey = {
 				type = "keybinding",
 				name = L["Key for the consumables button"],
-				desc = L["Saved with your game key bindings, so it works on every profile."],
+				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
 				order = 15.956,
 				hidden = function()
 					return NothingForSelf() or ns.db.profile.ownBuffs.apart ~= true or not ns.Setup.CanBind()

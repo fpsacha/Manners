@@ -743,7 +743,7 @@ function Page.BuildDiagnosticsTab()
 			markKey = {
 				type = "keybinding",
 				name = L["Key for Mark this moment"],
-				desc = L["Press it the moment something goes wrong, even in a fight: the report then shows what Manners saw at that instant. Saved with your game key bindings, so it works on every profile."],
+				desc = L["Press it the moment something goes wrong, even in a fight: the report then shows what Manners saw at that instant."] .. " " .. L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
 				order = 32.8,
 				hidden = function() return not ns.Setup.CanBind() end,
 				disabled = InCombatLockdown,

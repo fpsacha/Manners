@@ -23,48 +23,48 @@ BARE = "hunt40-cards: the pictures carry no text, which the cards write live"
 
 # --- the picker: where the tag is drawn ------------------------------------
 
-mutate(T, "\tlocal right = spec.l * w + math.min(W.Measure(fs), room) + pill.tail * h\n",
-       "\tlocal was = fs:GetText()\n\tfs:SetText(\"buffed you\")\n\tlocal english = W.Measure(fs)\n\tfs:SetText(was)\n"
+mutate("Looks/CardArt.lua", "\tlocal right = spec.l * w + math.min(Measure(fs), room) + pill.tail * h\n",
+       "\tlocal was = fs:GetText()\n\tfs:SetText(\"buffed you\")\n\tlocal english = Measure(fs)\n\tfs:SetText(was)\n"
        "\tlocal right = spec.l * w + math.min(english, room) + pill.tail * h\n",
        "hunt41-cards: the tag is the English words' width, whatever the words say",
        expect=WORDS, script=S)
 
-mutate(T, "\tlocal right = spec.l * w + math.min(W.Measure(fs), room) + pill.tail * h\n",
+mutate("Looks/CardArt.lua", "\tlocal right = spec.l * w + math.min(Measure(fs), room) + pill.tail * h\n",
        "\tlocal right = spec.l * w + 50 * h / 62 + pill.tail * h\n",
        "hunt41-cards: the tag is the width the prompt's words have, not the card's",
        expect=HUG, script=S)
 
-mutate(T, "\tlocal left = spec.l * w - pill.lead * h\n",
+mutate("Looks/CardArt.lua", "\tlocal left = spec.l * w - pill.lead * h\n",
        "\tlocal left = spec.l * w\n",
        "hunt41-cards: the tag starts at the words, with no lead",
        expect=HUG, script=S)
 
-mutate(T, "\tlocal right = spec.l * w + math.min(W.Measure(fs), room) + pill.tail * h\n",
-       "\tlocal right = spec.l * w + math.min(W.Measure(fs), room)\n",
+mutate("Looks/CardArt.lua", "\tlocal right = spec.l * w + math.min(Measure(fs), room) + pill.tail * h\n",
+       "\tlocal right = spec.l * w + math.min(Measure(fs), room)\n",
        "hunt41-cards: the tag ends at the words, with no tail",
        expect=HUG, script=S)
 
-mutate(T, "\tlocal top, bottom = pill.t * h, pill.b * h\n",
+mutate("Looks/CardArt.lua", "\tlocal top, bottom = pill.t * h, pill.b * h\n",
        "\tlocal top, bottom = pill.t * w, pill.b * w\n",
        "hunt41-cards: the tag's edges scale with the picture's width",
        expect=HUG, script=S)
 
-mutate(T, "\tlocal cap = (pill.cap or 0.5) * height\n",
+mutate("Looks/CardArt.lua", "\tlocal cap = (pill.cap or 0.5) * height\n",
        "\tlocal cap = (pill.cap or 0.5) * height * 2\n",
        "hunt41-cards: the caps are the tag's whole height wide",
        expect=HUG, script=S)
 
-mutate(T, "\tif name == \"reason\" then PlacePill(card, spec, fs, room) end\n",
+mutate("Looks/CardArt.lua", "\tif name == \"reason\" then PlacePill(card, spec, fs, room) end\n",
        "",
        "hunt41-cards: the tag is never drawn",
        expect=HUG, script=S)
 
-mutate(T, "\t\tt:SetTexCoord(CUTS[j][1], CUTS[j][2], 0, 1)\n",
+mutate("Looks/CardArt.lua", "\t\tt:SetTexCoord(CUTS[j][1], CUTS[j][2], 0, 1)\n",
        "\t\tt:SetTexCoord(0, 1, 0, 1)\n",
        "hunt41-cards: every slice is the whole file",
        expect=HUG, script=S)
 
-mutate(T, "\t\t\tt:SetTexture(layer.file)\n",
+mutate("Looks/CardArt.lua", "\t\t\tt:SetTexture(layer.file)\n",
        "\t\t\tt:SetTexture(pill.layers[1].file)\n",
        "hunt41-cards: every layer is drawn with the first layer's file",
        expect=HUG, script=S)
@@ -74,14 +74,14 @@ mutate(T, "\t\t\t\t\tt:SetVertexColor(c[1], c[2], c[3], c[4])\n",
        "hunt41-cards: the tag is white",
        expect=HUG, script=S)
 
-mutate(T, "\t\tlocal t = card:CreateTexture(nil, \"ARTWORK\", nil, math.min(7, PILL_LEVEL + i - 1))\n",
-       "\t\tlocal t = card:CreateTexture(nil, \"ARTWORK\", nil, 2)\n",
+mutate("Looks/CardArt.lua", "\t\tlocal t = card.owner:CreateTexture(nil, \"ARTWORK\", nil, math.min(7, PILL_LEVEL + i - 1))\n",
+       "\t\tlocal t = card.owner:CreateTexture(nil, \"ARTWORK\", nil, 2)\n",
        "hunt41-cards: the tag is drawn under the icon",
        expect=HUG, script=S)
 
 # --- the picker: which looks, and greyed out --------------------------------
 
-mutate(T, "\tlocal pill = spec.pill\n\tif not pill then\n\t\tHidePill(card)\n\t\treturn\n\tend\n",
+mutate("Looks/CardArt.lua", "\tlocal pill = spec.pill\n\tif not pill then\n\t\tHidePill(card)\n\t\treturn\n\tend\n",
        "\tlocal pill = spec.pill or ns.Looks.previewText.luxe.reason.pill\n",
        "hunt41-cards: every look wears Luxe's tag",
        expect=OWN, script=S)

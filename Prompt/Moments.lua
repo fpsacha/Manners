@@ -7,32 +7,44 @@
 -- What each waits for is data (Prompt/MomentsData.lua); what is true of the
 -- situation is read by Prompt/MomentsSense.lua; this file is the buttons.
 --
--- ONE SLOT = ONE SECURE BUTTON AND THREE UNPROTECTED CHILDREN
+-- ONE SLOT = ONE SECURE BUTTON, DRAWN AS A CARD ON FOUR UNPROTECTED CHILDREN
+--
+-- A lit button is a small prompt card in the player's own look: the look's picture,
+-- the spell's icon, its name and the reason ("you are stunned") written over it, in
+-- the look's own fonts and colours (Prompt/MomentsCard.lua, Looks/CardArt.lua).
+-- A look keeps its regions on the one secure prompt, so the card is the look's
+-- picture, not a live second copy of it; its motion is a pulse of that picture.
 --
 --   button   MannersMoment<slot>, a SecureActionButtonTemplate with the macro,
 --            shown and hidden by one state driver ("[combat] fight; peace"),
 --            never written in a fight. It has NO region of its own and its own
---            alpha is never changed.
---   face     a plain frame over it, alpha 0 at rest. Lua fades it (0.2 s): the
---            plain gate, never handed a hidden value.
---   inner    a frame on face. THE GAME paints its alpha from a hidden value
+--            alpha is never changed. Place sizes it to the card and sets its point.
+--   face     a plain frame over it, alpha 0 at rest. Lua fades it (0.2 s), or sets
+--            it at once for a fast row: the plain gate, never handed a hidden value.
+--   hint     on face, dim, under inner: Lua's dim card, the picture, icon and name
+--            for the first of two clicks, the icon alone for the drink out of a
+--            fight while only the game knows, so an armed button is never invisible.
+--   inner    on face. THE GAME paints its alpha from a hidden value
 --            (SetAlphaFromBoolean, a curve evaluated by UnitHealthPercent): where
 --            the client hides a value from Lua in a fight the button still lights
---            from it. The icon, glow, hover and key are regions of inner, so what
---            shows is face x inner.
+--            from it. The card, the flare, the hover and the key are regions of
+--            inner, so what shows is face x inner.
+--   mark     on face above inner, Lua's own: the ring of the first of two clicks
+--            and the PREVIEW tag, which the game never paints away.
 --   cover    an unprotected, mouse-enabled frame over the button. While the
 --            button is dark it swallows the click, so a click casts only while
 --            the button is lit. A frame that is not protected can be shown and
 --            hidden in a fight. Where only the game knows whether the button is
 --            lit (a hidden health or mana), the cover stays up and the button
 --            takes two quick clicks: the first opens it for a moment (a ring and the
---            spell's icon answer, on layers Lua owns, so they show where the game has
+--            dim card answer, on layers Lua owns, so they show where the game has
 --            painted the button away), the second, at least a third of a second
 --            later, casts: one stray click, or a double click, never casts.
---   mark     a plain frame on face above inner: the ring of the first of two clicks.
---   hint     the spell's icon on face below inner, dim: shown for the first of two
---            clicks and, for the drink (out of a fight), whenever only the game knows
---            whether it is lit, so an armed button is never an invisible square.
+--
+-- WHERE THE CARDS SIT: stacked above the prompt, nearest first (Place), clear of
+-- the list, the painted art over the bar and the buttons beside the prompt; below
+-- it where there is no room above. A secure button cannot move in a fight, so each
+-- card has a place of its own, set out of a fight.
 --
 -- THE DRINK is the one row that works out of a fight only (row.calm): lit while
 -- your mana is under Mana below, you stand still and a drink is in your bags. The
@@ -57,6 +69,7 @@ local L = ns.L
 local Prompt = ns.Prompt
 local R = Prompt.regions
 local Sense = ns.Sense
+local Card = ns.MomentCard
 local plain, caps = ns.plain, ns.caps
 local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
@@ -79,9 +92,6 @@ local PRESS_WINDOW = 1
 local SILENT_SECONDS = 1.2
 local TRAIL_GAP = 2
 local TRAIL_MAX = 12
-local GLOW = "Interface\\AddOns\\Manners\\Textures\\RingSq"
-local RING = "Interface\\AddOns\\Manners\\Textures\\RingSq"
-local HOVER = "Interface\\Buttons\\ButtonHilight-Square"
 local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 -- The keys whose signals are built: a row not listed here is skipped by Learn,
@@ -115,7 +125,9 @@ local slots, byId = {}, {}
 local header, ev, fader
 local dirtyRefresh, settledEnabled, settledCaps, settledOn = true, nil, nil, {}
 local lastLearned
-local placedIcon, placedScale, placedQueue, placedSig
+-- What Wanted compares: the prompt's shape (Panel.lua's styleSerial) and the card size.
+local placedSerial, placedSize
+local previewing, previewSerial = false, 0
 local fightEvents, peaceEvents = {}, {}
 local controlOn, ownCastOn, moveOn, fallOn = false, false, false, false
 -- Clocks kept for a spell no armed button of its own holds (Ice Block for Cold
@@ -333,13 +345,21 @@ end
 
 -- The icon of a button, on the layer the game paints and on the dim one Lua owns.
 local function SetIcon(slot, texture)
-	slot.iconTex:SetTexture(texture)
-	slot.hintTex:SetTexture(texture)
+	Card.SetIcon(slot, texture)
 end
 
--- The dim icon: for the first of two clicks, and for a calm button the game paints.
+-- The dim card: the whole of it for the first of two clicks, the icon alone for a
+-- calm button the game paints, and nothing otherwise.
 local function PaintHint(slot)
-	slot.hintTex:SetShown(slot.state == "game" and (slot.openUntil ~= nil or slot.row.calm == true))
+	local mode
+	if slot.state == "game" then
+		if slot.openUntil ~= nil then
+			mode = "full"
+		elseif slot.row.calm == true then
+			mode = "icon"
+		end
+	end
+	Card.Hint(slot, mode)
 end
 
 local function FadeTo(slot, to)
@@ -370,14 +390,19 @@ local function FadeTick()
 	if not any then fader:Hide() end
 end
 
-local function GlowOn(slot, on)
-	if on then
-		slot.glow:Show()
-		if slot.pulse and not slot.pulse:IsPlaying() then slot.pulse:Play() end
+-- A card arriving: the fast rows (Blink, Counterspell, Ice Block, Cold Snap) are on
+-- the screen in the same frame, the others fade in over a fifth of a second.
+local function Appear(slot)
+	if slot.row.fast then
+		slot.face:SetAlpha(1)
+		slot.fading, slot.fadeTo = false, 1
 	else
-		if slot.pulse then slot.pulse:Stop() end
-		slot.glow:Hide()
+		FadeTo(slot, 1)
 	end
+end
+
+local function GlowOn(slot, on)
+	Card.Pulse(slot, on)
 end
 
 -- Applies a verdict to the art and the cover only: regions and unprotected
@@ -392,7 +417,7 @@ local function Apply(slot, state)
 		slot.cover:SetShown(CoverWanted(slot, now))
 		GlowOn(slot, false)
 		slot.ring:Hide()
-		slot.hintTex:Hide()
+		Card.Hint(slot, nil)
 		if was == "game" then
 			-- Lua does not know whether anything was visible: nothing may linger.
 			slot.face:SetAlpha(0)
@@ -405,8 +430,9 @@ local function Apply(slot, state)
 	if state == "lit" then
 		slot.inner:SetAlpha(1)
 		slot.state = "lit"
-		slot.hintTex:Hide()
-		FadeTo(slot, 1)
+		Card.Hint(slot, nil)
+		Card.ShowReason(slot, "lit")
+		Appear(slot)
 		GlowOn(slot, true)
 		slot.cover:SetShown(CoverWanted(slot, now))
 		return
@@ -419,7 +445,8 @@ local function Apply(slot, state)
 		return Apply(slot, "dark")
 	end
 	slot.state = "game"
-	FadeTo(slot, 1)
+	Card.ShowReason(slot, "game")
+	Appear(slot)
 	GlowOn(slot, true)
 	PaintHint(slot)
 	slot.cover:SetShown(CoverWanted(slot, now))
@@ -441,7 +468,7 @@ local function CoverDown(slot, mouse)
 		end
 		slot.openUntil, slot.openFrom = now + OPEN_SECONDS, now + OPEN_GAP
 		slot.ring:Show()
-		slot.hintTex:Show()
+		Card.Hint(slot, "full")
 		slot.tally.opened = slot.tally.opened + 1
 		Trail(slot, "first of two clicks")
 		local timer = _G.C_Timer
@@ -482,7 +509,15 @@ local function PeaceShow(slot, state)
 	end
 end
 
+-- Whether a dark slot is waiting on something that changes with no event: a
+-- cooldown ending, a mob walking into range, a spell the game will call castable
+-- in a moment.
+local PENDING = { ["cooling down"] = true, ["out of range"] = true, ["not enough mana"] = true,
+	["the game says it cannot be cast now"] = true }
+
 local function Judge(slot, now)
+	-- The preview shows every card lit with nothing armed: a verdict would take it down.
+	if previewing then return end
 	local state, why, note = Sense.Evaluate(slot, now)
 	local was = slot.state
 	slot.why, slot.note = why, note
@@ -490,6 +525,18 @@ local function Judge(slot, now)
 		Apply(slot, state)
 		state = slot.state
 		if state ~= was and slot.row.peace == true and not InCombatLockdown() then PeaceShow(slot, state) end
+	end
+	-- An urgent card held dark for a reason that passes by itself: one line for the
+	-- episode, so a check-up says what it waited on (the global cooldown, a cooldown
+	-- the game gave no flag for, a spell the game would not call castable).
+	if slot.row.fast and state == "dark" and PENDING[why] and Sense.fighting then
+		if slot.heldWhy ~= why then
+			slot.heldWhy = why
+			Trail(slot, ("held dark: %s; global cooldown %s; onGCD %s"):format(tostring(why), Sense.GcdWord(),
+				tostring(slot.onGCD)))
+		end
+	else
+		slot.heldWhy = nil
 	end
 	if state == was then return end
 	if state == "lit" then
@@ -502,9 +549,6 @@ local function Judge(slot, now)
 	end
 end
 
--- Whether a dark slot is waiting on something that changes with no event: a
--- cooldown ending, a mob walking into range.
-local PENDING = { ["cooling down"] = true, ["out of range"] = true, ["not enough mana"] = true }
 
 local function Flush()
 	flushDue = false
@@ -700,50 +744,21 @@ local function Create(n)
 	face:SetAllPoints(button)
 	face:SetFrameLevel(level + 1)
 	face:SetAlpha(0)
-	-- Under inner: a dim copy of the icon Lua shows where the game has painted inner away.
-	local hint = face:CreateTexture(nil, "BACKGROUND")
+	-- Under inner: the dim card Lua shows where the game has painted inner away.
+	local hint = CreateFrame("Frame", nil, face)
 	hint:SetAllPoints(face)
-	hint:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-	hint:SetVertexColor(1, 1, 1, 0.4)
+	hint:SetFrameLevel(level + 2)
+	hint:SetAlpha(0.4)
 	hint:Hide()
 	local inner = CreateFrame("Frame", nil, face)
 	inner:SetAllPoints(face)
-	inner:SetFrameLevel(level + 2)
+	inner:SetFrameLevel(level + 3)
 	inner:SetAlpha(1)
-	local icon = inner:CreateTexture(nil, "ARTWORK")
-	icon:SetAllPoints(inner)
-	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-	local glow = inner:CreateTexture(nil, "OVERLAY")
-	glow:SetTexture(GLOW)
-	glow:SetBlendMode("ADD")
-	glow:SetPoint("TOPLEFT", inner, "TOPLEFT", -8, 8)
-	glow:SetPoint("BOTTOMRIGHT", inner, "BOTTOMRIGHT", 8, -8)
-	glow:SetVertexColor(1, 0.82, 0.2)
-	glow:Hide()
-	local pulse = glow:CreateAnimationGroup()
-	if type(pulse.SetLooping) == "function" then pulse:SetLooping("BOUNCE") end
-	local fade = pulse:CreateAnimation("Alpha")
-	fade:SetFromAlpha(1)
-	fade:SetToAlpha(0.25)
-	fade:SetDuration(0.45)
-	local hover = inner:CreateTexture(nil, "OVERLAY")
-	hover:SetTexture(HOVER)
-	hover:SetBlendMode("ADD")
-	hover:SetAllPoints(inner)
-	hover:Hide()
-	local keyText = inner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	keyText:SetPoint("BOTTOMRIGHT", inner, "BOTTOMRIGHT", -2, 2)
-	keyText:SetText("")
 	-- On a frame of Lua's own above inner, not on inner: where the game paints inner
 	-- away the first of two clicks still shows, so the second is a choice the player sees.
 	local mark = CreateFrame("Frame", nil, face)
 	mark:SetAllPoints(face)
-	mark:SetFrameLevel(level + 3)
-	local ring = mark:CreateTexture(nil, "OVERLAY")
-	ring:SetTexture(RING)
-	ring:SetAllPoints(mark)
-	ring:SetVertexColor(1, 0.82, 0.2, 0.95)
-	ring:Hide()
+	mark:SetFrameLevel(level + 4)
 	local cover = CreateFrame("Frame", nil, button)
 	cover:SetAllPoints(button)
 	cover:SetFrameLevel(level + 10)
@@ -759,9 +774,10 @@ local function Create(n)
 	button:SetScript("OnEnter", function(self) OnEnter(slot, self) end)
 	button:SetScript("OnLeave", function() OnLeave(slot) end)
 	button:Hide()
-	slot.button, slot.face, slot.inner, slot.cover, slot.ring = button, face, inner, cover, ring
-	slot.iconTex, slot.glow, slot.pulse, slot.hover, slot.keyText = icon, glow, pulse, hover, keyText
-	slot.hintTex = hint
+	slot.button, slot.face, slot.hint, slot.inner, slot.mark, slot.cover = button, face, hint, inner, mark, cover
+	-- The card's regions (the picture, the icon, the lines, the flare, the ring) are on
+	-- these frames, made out of a fight here.
+	Card.Build(slot)
 	slots[n] = slot
 	if not fader then
 		fader = CreateFrame("Frame")
@@ -895,50 +911,128 @@ local function SetMouse(slot)
 	slot.mouseOn = on
 end
 
--- Left of the prompt, five to a row, anchored to the prompt's secure button (a
--- frame, never a region). With no room there, the side the list of names does
--- not use.
-local function Place(p)
-	local size = math.floor(math.max(24, math.min(48, tonumber(p.iconSize) or 30)) * (tonumber(p.scale) or 1) + 0.5)
-	local step = size + 8
-	local list = {}
-	for n = 1, MAX do
-		if slots[n] and slots[n].armed then list[#list + 1] = slots[n] end
+-- The cards in the order they sit, nearest the prompt first. A card only takes a
+-- place while its row is armed; the drink (a calm card, never shown with a fight
+-- card) takes the first place too, and Slow Fall (a keep button, dark all fight)
+-- has one of its own, the last.
+local PLACE_ORDER = { "blink", "counterspell", "iceblock", "coldsnap", "spellsteal", "fireward", "frostward",
+	"evocation", "managem", "slowfall" }
+local ORDER = {}
+for i, key in ipairs(PLACE_ORDER) do ORDER[key] = i end
+-- Apart from the prompt and from each other, in prompt units.
+local MARGIN, GAP = 6, 6
+
+-- The size of a card from the setting and the prompt's scale: the picture is 4 to 1
+-- and 62 units high at 100 %, and the buttons are on UIParent at scale 1, so the
+-- prompt's scale goes into the numbers.
+function Moments.CardSize(p)
+	local db = Profile()
+	local percent = db and type(db.moments) == "table" and tonumber(db.moments.cardSize) or 80
+	local scale = tonumber(p.scale) or 1
+	local h = math.floor(62 * percent / 100 * scale + 0.5)
+	return 4 * h, h, scale
+end
+
+-- How far past the prompt's top and bottom the buttons beside it reach (Will of the
+-- Forsaken, Mend Pet, the cures, each centred on the prompt to its right, the
+-- second cure below the first), in UIParent units; none where the card does not
+-- reach past the prompt's right edge.
+local function SideReach(p, scale, ph)
+	local bf = ns.BreakFree and ns.BreakFree.Applies and ns.BreakFree.Applies()
+	local mend = ns.MendPet and ns.MendPet.Applies and ns.MendPet.Applies()
+	local cure, two = false, false
+	if ns.CureFight and ns.CureFight.Applies and ns.CureFight.Applies() then
+		cure = true
+		local list = ns.CureFightSpells and ns.CureFightSpells()
+		two = p.cureFightEach == true and type(list) == "table" and list[2] ~= nil
 	end
-	local count = #list
-	local queueAbove = Prompt.state and Prompt.state.queueAbove and true or false
-	local side = "left"
-	local anchor = R.button
-	local scale = type(anchor.GetEffectiveScale) == "function" and tonumber(anchor:GetEffectiveScale()) or 1
-	local left = anchor:GetLeft()
-	if type(left) == "number" and left * scale < 10 + math.min(count, 5) * step then
-		side = queueAbove and "below" or "above"
-		local bottom = anchor:GetBottom()
-		local rows = math.max(1, math.ceil(count / 5))
-		if side == "below" and type(bottom) == "number" and bottom * scale < 10 + rows * step then
-			side = "past"
+	if not (bf or mend or cure) then return 0, 0 end
+	local s = math.max(24, math.min(48, tonumber(p.iconSize) or 30)) * scale
+	local above = math.max(0, s / 2 + 16 - ph / 2)
+	local below = two and (1.5 * s + 10 + 14 - ph / 2) or (s / 2 + 14 - ph / 2)
+	return above, math.max(0, below)
+end
+
+-- Stacked above the prompt, anchored to the prompt's secure button (a frame, never
+-- a region): nearest first, clear of the list of names, of the painted art over
+-- and under the bar and of the buttons beside the prompt. Where there is no room
+-- above, below it; a column that does not fit wraps to the next, leftwards where
+-- the screen has room. Out of a fight only.
+local function Place(p)
+	local W, H, scale = Moments.CardSize(p)
+	local fight, calm = {}, {}
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.armed then
+			if slot.row.calm then calm[#calm + 1] = slot else fight[#fight + 1] = slot end
 		end
 	end
-	local sig = size .. ":" .. count .. ":" .. side
-	for i, slot in ipairs(list) do
-		sig = sig .. ":" .. slot.n
-		local col, rowN = (i - 1) % 5, math.floor((i - 1) / 5)
+	table.sort(fight, function(a, b)
+		return (ORDER[a.row.key] or 50) + a.n / 100 < (ORDER[b.row.key] or 50) + b.n / 100
+	end)
+	local anchor = R.button
+	local state = Prompt.state or {}
+	local ratio = scale
+	local own = type(anchor.GetEffectiveScale) == "function" and tonumber(anchor:GetEffectiveScale())
+	local parent = type(UIParent.GetEffectiveScale) == "function" and tonumber(UIParent:GetEffectiveScale())
+	if own and parent and parent > 0 then ratio = own / parent end
+	local pw, ph = (tonumber(p.width) or 220) * scale, (tonumber(p.height) or 44) * scale
+	local margin, gap = MARGIN * scale, GAP * scale
+	-- What hangs over and under the prompt, in UIParent units.
+	local listAbove, listBelow = 0, 0
+	if p.showQueue then
+		local rows = math.max(1, tonumber(p.queueRows) or 1)
+		local pitch = math.max((tonumber(p.fontSize) or 12) + 4, tonumber(state.rowPitch) or 0)
+		local painted = state.queueAbove and (state.queueGap or 0) or (state.artBelow or 0)
+		local reach = (4 + painted + rows * pitch + 4) * scale
+		if state.queueAbove then listAbove = reach else listBelow = reach end
+	end
+	local sideAbove, sideBelow = 0, 0
+	if W > pw then sideAbove, sideBelow = SideReach(p, scale, ph) end
+	local baseAbove = math.max(listAbove, (state.artAbove or 0) * scale, sideAbove) + margin
+	local baseBelow = math.max(listBelow, (state.artBelow or 0) * scale, sideBelow) + margin
+	local top, bottom, left = anchor:GetTop(), anchor:GetBottom(), anchor:GetLeft()
+	local screen = UIParent:GetHeight()
+	local roomAbove = (type(top) == "number" and type(screen) == "number") and screen - top * ratio or math.huge
+	local roomBelow = type(bottom) == "number" and bottom * ratio or math.huge
+	local above = true
+	if baseAbove + H > roomAbove and baseBelow + H <= roomBelow then above = false end
+	local base, room = baseAbove, roomAbove
+	if not above then base, room = baseBelow, roomBelow end
+	local perCol = math.max(1, math.min(MAX, math.floor((room - base + gap) / (H + gap))))
+	local lefts = type(left) == "number" and left * ratio >= W + gap + 10
+	local list = {}
+	for _, slot in ipairs(fight) do list[#list + 1] = slot end
+	-- The drink shares the first place: it is never shown with a fight card.
+	local slotsOf = {}
+	for i, slot in ipairs(list) do slotsOf[slot] = i - 1 end
+	for _, slot in ipairs(calm) do slotsOf[slot] = 0 end
+	local placedN, cols = 0, 1
+	for slot, i in pairs(slotsOf) do
+		local col, row = math.floor(i / perCol), i % perCol
+		local x = (lefts and -col or col) * (W + gap)
+		local y = base + row * (H + gap)
 		local b = slot.button
 		b:ClearAllPoints()
-		if side == "left" then
-			b:SetPoint("RIGHT", anchor, "LEFT", -(10 + col * step), rowN * step)
-		elseif side == "below" then
-			b:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", col * step, -(10 + rowN * step))
-		elseif side == "above" then
-			b:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", col * step, 10 + rowN * step)
+		if above then
+			b:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", x, y)
 		else
-			local past = 10 + (p.showQueue and (math.max(1, tonumber(p.queueRows) or 1) * ((tonumber(p.fontSize) or 12) + 4) + 8) or 0)
-			b:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", col * step, past + rowN * step)
+			b:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", x, -y)
 		end
-		b:SetSize(size, size)
+		b:SetSize(W, H)
+		placedN = placedN + 1
+		cols = math.max(cols, col + 1)
+		-- The card in the player's look at this size, made again only when it changed.
+		local key = p.style or "glass"
+		local sig = Card.Signature(slot, key, W, H)
+		if sig ~= slot.dressSig then
+			Card.Dress(slot, key, W, H)
+			slot.dressSig = sig
+		end
 	end
-	placedSig, placedIcon, placedScale, placedQueue = sig, p.iconSize, p.scale, queueAbove
-	return side
+	Moments.placed = { side = above and "above" or "below", w = W, h = H, cols = cols, perCol = perCol,
+		n = placedN, rightwards = not lefts }
+	return above and "above" or "below"
 end
 Moments.Place = Place
 
@@ -1069,7 +1163,7 @@ local function SetRegistered(on)
 		ev:UnregisterEvent("PLAYER_CONTROL_LOST")
 		ev:UnregisterEvent("PLAYER_CONTROL_GAINED")
 		controlOn = false
-		Sense.lostAt = nil
+		Sense.lostAt, Sense.locAt = nil, nil
 	end
 	-- The out-of-a-fight set: never in a fight (the pull drops it).
 	local peace = not Sense.fighting
@@ -1092,7 +1186,7 @@ end
 -- then every calm button judged. Never in a fight, never under the lockdown.
 local function PeaceFlush()
 	peaceDue = false
-	if Sense.fighting or InCombatLockdown() then return end
+	if Sense.fighting or InCombatLockdown() or previewing then return end
 	local now = GetTime()
 	for n = 1, MAX do
 		local slot = slots[n]
@@ -1124,6 +1218,18 @@ function Moments:Refresh(keepLit)
 	if InCombatLockdown() then return end
 	local db = Profile()
 	if not db then return end
+	-- A refresh re-arms every macro and darkens every card: it ends a preview.
+	if previewing then
+		previewing = false
+		previewSerial = previewSerial + 1
+		for n = 1, MAX do
+			local slot = slots[n]
+			if slot and slot.tag then
+				Card.Tag(slot, false)
+				Card.Pulse(slot, false)
+			end
+		end
+	end
 	local mine = caps.moments
 	local switches = type(db.moments) == "table" and db.moments or {}
 	local wanted = {}
@@ -1217,8 +1323,8 @@ function Moments:Refresh(keepLit)
 	end
 	-- What Wanted compares against, kept even with nothing armed so an idle scan
 	-- sees no change.
-	placedIcon, placedScale = db.prompt.iconSize, db.prompt.scale
-	placedQueue = Prompt.state and Prompt.state.queueAbove and true or false
+	placedSerial = Prompt.state and Prompt.state.styleSerial
+	placedSize = type(db.moments) == "table" and db.moments.cardSize or nil
 	if header and header:GetAttribute("state-" .. STATE) ~= "peace" then
 		header:SetAttribute("state-" .. STATE, "peace")
 	end
@@ -1233,7 +1339,8 @@ function Moments:Refresh(keepLit)
 				slot.fading, slot.fadeTo, slot.openUntil = false, 0, nil
 				slot.cover:Hide()
 				slot.ring:Hide()
-				slot.hintTex:Hide()
+				Card.Hint(slot, nil)
+				Card.Tag(slot, false)
 				slot.hover:Hide()
 				GlowOn(slot, false)
 				-- The driver hides what it showed for a fight but leaves a keep button to
@@ -1267,9 +1374,11 @@ function Moments:Wanted()
 		if (db.enabled == true) ~= (settledEnabled == true) or mine ~= settledCaps then
 			changed = true
 		else
-			local p, m = db.prompt, db.moments
-			if p.iconSize ~= placedIcon or p.scale ~= placedScale
-				or (Prompt.state and Prompt.state.queueAbove and true or false) ~= placedQueue then
+			local m = db.moments
+			-- The prompt's shape (a drag, a look, the font, the scale, the list: all end
+			-- in ApplyStyle, which moves the serial) and the card size.
+			if (Prompt.state and Prompt.state.styleSerial) ~= placedSerial
+				or (type(m) == "table" and m.cardSize or nil) ~= placedSize then
 				changed = true
 			elseif mine and type(m) == "table" then
 				for _, entry in ipairs(mine.list) do
@@ -1282,6 +1391,121 @@ function Moments:Wanted()
 		end
 	end
 	return changed and not InCombatLockdown()
+end
+
+---------------------------------------------------------------------------
+-- the preview: where the buttons sit, shown out of a fight
+---------------------------------------------------------------------------
+
+local PREVIEW_SECONDS, PREVIEW_CALM_SECONDS = 5, 3
+
+local function Say(text)
+	if ns.addon and ns.addon.Print then ns.addon:Print(text) end
+end
+
+-- The armed slots, calm ones (the drink) or fight ones.
+local function ArmedGroup(calm)
+	local out = {}
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.armed and (slot.row.calm == true) == calm then out[#out + 1] = slot end
+	end
+	return out
+end
+
+-- Whether any button for the moment is armed (the launcher and the options ask).
+function Moments.AnyArmed()
+	for n = 1, MAX do
+		if slots[n] and slots[n].armed then return true end
+	end
+	return false
+end
+
+-- One group of cards lit, marked and pulsing, the others put away. Out of a fight.
+local function PreviewShow(group)
+	local shown = {}
+	for _, slot in ipairs(group) do shown[slot] = true end
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.armed then
+			if shown[slot] then
+				slot.button:Show()
+				slot.inner:SetAlpha(1)
+				slot.face:SetAlpha(1)
+				slot.fading, slot.fadeTo = false, 1
+				Card.ShowReason(slot, "lit")
+				Card.Tag(slot, true)
+				Card.Pulse(slot, true)
+			else
+				if slot.button:IsShown() then slot.button:Hide() end
+				slot.face:SetAlpha(0)
+				Card.Tag(slot, false)
+				Card.Pulse(slot, false)
+			end
+		end
+	end
+end
+
+local function EndPreview()
+	if not previewing then return end
+	previewing = false
+	previewSerial = previewSerial + 1
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.tag then
+			Card.Tag(slot, false)
+			Card.Pulse(slot, false)
+		end
+	end
+	-- Every macro armed again, every card dark and out of sight, the drink judged.
+	Moments:Refresh()
+end
+
+-- Lights every armed card for a few seconds, marked as a preview, so the player
+-- sees where each one sits and that it draws. Nothing casts from it: every macro is
+-- taken off the buttons and every cover is up, whatever the mouse says. Out of a
+-- fight only; a fight that begins ends it before the lockdown (Take).
+function Moments.Preview()
+	if InCombatLockdown() or Sense.fighting then
+		Say(L["|cffff8080not during a fight|r -- the preview can be shown once it ends."])
+		return false
+	end
+	if previewing then EndPreview() end
+	if Moments:Wanted() then Moments:Refresh() end
+	local fightCards, calmCards = ArmedGroup(false), ArmedGroup(true)
+	if #fightCards + #calmCards == 0 then
+		Say(L["No button for the moment is switched on for this character, so there is nothing to show."])
+		return false
+	end
+	Say(L["Showing where each button for the moment sits for a few seconds; nothing casts from them."])
+	previewing = true
+	previewSerial = previewSerial + 1
+	local serial = previewSerial
+	for n = 1, MAX do
+		local slot = slots[n]
+		if slot and slot.armed then
+			Disarm(slot)
+			slot.cover:Show()
+		end
+	end
+	PreviewShow(#fightCards > 0 and fightCards or calmCards)
+	local timer = _G.C_Timer
+	if type(timer) ~= "table" or type(timer.After) ~= "function" then
+		EndPreview()
+		return true
+	end
+	timer.After(PREVIEW_SECONDS, function()
+		if serial ~= previewSerial or not previewing then return end
+		if #fightCards > 0 and #calmCards > 0 then
+			PreviewShow(calmCards)
+			timer.After(PREVIEW_CALM_SECONDS, function()
+				if serial == previewSerial and previewing then ns.Guard("moments", EndPreview) end
+			end)
+		else
+			ns.Guard("moments", EndPreview)
+		end
+	end)
+	return true
 end
 
 ---------------------------------------------------------------------------
@@ -1334,6 +1558,9 @@ end
 -- listing the kinds in the bags at this moment; a flush never counts.
 function Moments:Take()
 	if InCombatLockdown() then return end
+	-- A fight starting in the middle of a preview: every macro is armed again and every
+	-- card dark before the lockdown, which would leave them as the preview left them.
+	if previewing then Moments:Refresh() end
 	for n = 1, MAX do
 		local slot = slots[n]
 		if slot and slot.armed then
@@ -1365,9 +1592,9 @@ local function Pull()
 			slot.tally = NewTally()
 			slot.trailAt, slot.trailCount = nil, 0
 			slot.onGCD, slot.flip, slot.castOn, slot.castInfo = nil, nil, nil, nil
-			slot.state, slot.why, slot.openUntil = "dark", nil, nil
+			slot.state, slot.why, slot.openUntil, slot.heldWhy = "dark", nil, nil, nil
 			slot.ring:Hide()
-			slot.hintTex:Hide()
+			Card.Hint(slot, nil)
 			Seed(slot, now)
 			slot.cover:SetShown(slot.mouseOn == true)
 		end
@@ -1393,6 +1620,7 @@ end
 function Moments:Release()
 	if next(slots) == nil then return end
 	Sense.fighting = false
+	Sense.locAt = nil
 	local keepLit = false
 	for name in pairs(fightEvents) do
 		if ev then ev:UnregisterEvent(name) end
@@ -1405,7 +1633,7 @@ function Moments:Release()
 			lastFight[n] = { key = slot.row and slot.row.key, tally = slot.tally, why = slot.why, state = slot.state, armed = slot.armed }
 			slot.cover:Hide()
 			slot.ring:Hide()
-			slot.hintTex:Hide()
+			Card.Hint(slot, nil)
 			slot.openUntil = nil
 			if slot.armed and slot.row.peace == true and slot.state == "lit" then
 				-- A fight ending mid-fall: the button stays up until a read says you landed.
@@ -1522,10 +1750,12 @@ function Moments.OnEvent(event, unit, a, b, c, d)
 	end
 	if event == "PLAYER_CONTROL_LOST" then
 		Sense.lostAt = GetTime()
-		return JudgeAll("stuck")
+		JudgeAll("stuck")
+		return Schedule()
 	elseif event == "PLAYER_CONTROL_GAINED" then
-		Sense.lostAt = nil
-		return JudgeAll("stuck")
+		Sense.lostAt, Sense.locAt = nil, nil
+		JudgeAll("stuck")
+		return Schedule()
 	end
 	if not Sense.fighting then
 		-- Out of a fight: the calm buttons' events, each only a nudge to the flush.
@@ -1572,7 +1802,12 @@ function Moments.OnEvent(event, unit, a, b, c, d)
 		-- Only your own: the client may tell of another unit's loss of control.
 		local who = plain(unit)
 		if type(who) == "string" and who ~= "player" then return end
-		return JudgeAll("stuck")
+		-- A fresh report of a loss of control the game would not name starts the guess at
+		-- once (the control events may come late or not at all), as the break-free button's
+		-- does; and the read is repeated, not left to the next event.
+		if event == "LOSS_OF_CONTROL_ADDED" then Sense.locAt = GetTime() end
+		JudgeAll("stuck")
+		return Schedule()
 	end
 	if event == "PLAYER_TARGET_CHANGED" then
 		for n = 1, MAX do
@@ -1681,8 +1916,10 @@ function Moments.MarkWords()
 	for _, slot in ipairs(armed) do
 		local verdict = slot.state == "lit" and "lit" or (slot.state == "game" and ("left to the game: " .. tostring(slot.why)))
 			or ("dark: " .. tostring(slot.why or "no need"))
-		out[#out + 1] = ("moment %s %s, shown %s, cover %s, key %s"):format(slot.row.key, verdict,
-			slot.button:IsShown() and "yes" or "no", slot.cover:IsShown() and "up" or "down", tostring(slot.keyLabel or "none"))
+		out[#out + 1] = ("moment %s %s, shown %s, cover %s, key %s%s%s"):format(slot.row.key, verdict,
+			slot.button:IsShown() and "yes" or "no", slot.cover:IsShown() and "up" or "down", tostring(slot.keyLabel or "none"),
+			slot.state ~= "dark" and (", says: " .. tostring(slot.reasonText)) or "",
+			slot.heldWhy and (", held dark: " .. slot.heldWhy) or "")
 	end
 	return out
 end
@@ -1709,6 +1946,22 @@ function ns.MomentLines()
 			Yes(can.health), Yes(can.power), tostring(Sense.scale), #refused > 0 and table.concat(refused, ", ") or "none",
 			#Sense.lacking > 0 and table.concat(Sense.lacking, ", ") or "none", Yes(Sense.lockProven),
 			leaks > 0 and (leaks .. " times this session (or a macro of yours clicked it)") or "not this session")
+	-- Where the cards sit and what they wear, and whether the global cooldown can be read.
+	do
+		local placed = Moments.placed
+		local lookKey, picture
+		for n = 1, MAX do
+			local slot = slots[n]
+			if slot and slot.armed and slot.cardLook then
+				lookKey, picture = slot.cardLook, slot.picture
+				break
+			end
+		end
+		out[1] = out[1] .. ("; cards: %s of the prompt, %sx%s, %s placed, %s columns, look %s (picture: %s); global cooldown: %s")
+			:format(placed and placed.side or "none", tostring(placed and placed.w), tostring(placed and placed.h),
+				tostring(placed and placed.n or 0), tostring(placed and placed.cols or 0), tostring(lookKey or "none"),
+				tostring(picture or "none"), Sense.GcdWord())
+	end
 	-- The wards' route to the school of a cast (Sense.CastSchool).
 	local route, routeWhy = Sense.SchoolRoute()
 	out[#out + 1] = ("moments: cast school: %s (%s)"):format(route, routeWhy)
@@ -1806,8 +2059,10 @@ function Moments:Shadow(key) return shadows[key] end
 function Moments:Look(n)
 	local slot = slots[n]
 	if not slot then return nil end
-	return { icon = slot.iconTex, glow = slot.glow, key = slot.keyText, face = slot.face, inner = slot.inner,
-		ring = slot.ring, hint = slot.hintTex, alpha = slot.fadeTo, fader = fader }
+	return { icon = slot.card.icon, glow = slot.flare, key = slot.keyText, face = slot.face, inner = slot.inner,
+		ring = slot.ring, hint = slot.hint, alpha = slot.fadeTo, fader = fader, card = slot.card,
+		hintCard = slot.hintCard, flare = slot.flare, tag = slot.tag, mark = slot.mark, hover = slot.hover,
+		reason = slot.card.lines.reason, name = slot.card.lines.name, w = slot.cardW, h = slot.cardH }
 end
 function Moments:Slot(n) return slots[n] end
 function Moments:Header() return header end

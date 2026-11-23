@@ -18,7 +18,7 @@ mutate("Prompt/MomentsData.lua",
        "moments-bugpass2: Spellsteal loses its two clicks where the game paints it",
        expect="moments-bugpass2: Spellsteal painted by the game", script=S)
 
-mutate("Prompt/Moments.lua",
+mutate("Prompt/MomentsCard.lua",
        "\tlocal ring = mark:CreateTexture(nil, \"OVERLAY\")\n",
        "\tlocal ring = inner:CreateTexture(nil, \"OVERLAY\")\n",
        "moments-bugpass2: the ring goes back on the layer the game paints",
@@ -31,8 +31,8 @@ mutate("Prompt/Moments.lua",
        expect="moments-bugpass2: a second click inside a third of a second", script=S)
 
 mutate("Prompt/Moments.lua",
-       "\tslot.hintTex:SetShown(slot.state == \"game\" and (slot.openUntil ~= nil or slot.row.calm == true))\n",
-       "\tslot.hintTex:Hide()\n",
+       "\tCard.Hint(slot, mode)\n",
+       "\tCard.Hint(slot, nil)\n",
        "moments-bugpass2: the dim icon is never shown",
        expect="moments-bugpass2: a drink the game paints shows a dim icon", script=S)
 

@@ -900,6 +900,8 @@ ns.WindowLayout = {
 				-- mage's Counterspell, Blink, Ice Block and the rest.
 				{ key = "fight.moments", title = L["Buttons for the moment"], items = {
 					{ "appearance.momentsNote", standIn = true },
+					{ "appearance.momentPreview", buttons = true },
+					"appearance.momentCardSize",
 					"appearance.momentCounterspell", { "appearance.momentCounterspellKey", indent = true },
 					"appearance.momentSpellsteal", { "appearance.momentSpellstealKey", indent = true },
 					"appearance.momentBlink", { "appearance.momentBlinkKey", indent = true },
@@ -1257,6 +1259,7 @@ ns.WindowLayout = {
 			["appearance.momentFireward"] = true, ["appearance.momentFirewardKey"] = true,
 			["appearance.momentFrostward"] = true, ["appearance.momentFrostwardKey"] = true,
 			["appearance.momentHealth"] = true, ["appearance.momentMana"] = true, ["appearance.momentsNote"] = true,
+			["appearance.momentPreview"] = true, ["appearance.momentCardSize"] = true,
 		},
 	},
 
@@ -1370,6 +1373,7 @@ ns.WindowLayout = {
 		["when.manaFloor"] = { kind = "percent", zero = L["Off"] },
 		["appearance.momentHealth"] = { kind = "percent" },
 		["appearance.momentMana"] = { kind = "percent" },
+		["appearance.momentCardSize"] = { kind = "percent" },
 	},
 
 	-- Other words people search for a control by (WindowSearch.lua): ranked
@@ -1413,6 +1417,8 @@ ns.WindowLayout = {
 		["appearance.cureFightEach"] = L["cure each second button druid poison curse fight"],
 		["appearance.fightKeySpell"] = L["fight combat key spell shield heal barrier"],
 		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
+		["appearance.momentPreview"] = L["preview test where see show card"],
+		["appearance.momentCardSize"] = L["bigger smaller scale size card"],
 		["appearance.momentCounterspell"] = L["counterspell interrupt kick cast target fight button moment"],
 		["appearance.momentIceblock"] = L["ice block health low fight button moment"],
 		["appearance.momentBlink"] = L["blink stun root fight button moment"],

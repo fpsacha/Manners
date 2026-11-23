@@ -47,6 +47,9 @@ Sense.lockProven = false
 -- When control was last lost (PLAYER_CONTROL_LOST), for a client that cannot
 -- say what took it. Set by Moments.lua's events.
 Sense.lostAt = nil
+-- When the game last reported a loss of control on you (LOSS_OF_CONTROL_ADDED), for
+-- the same guess where it has not said PLAYER_CONTROL_LOST yet.
+Sense.locAt = nil
 -- The fight, as Moments.lua knows it: set at the pull (when the lockdown may
 -- not yet answer true) and cleared at the release.
 Sense.fighting = false
@@ -251,9 +254,60 @@ end
 Sense.Cooling = Cooling
 Sense.Cool = Cool
 
+-- The global cooldown has a spell of its own whose cooldown record is the
+-- global one's (61304): read by the same plain calls as any cooldown.
+local GCD_SPELL = 61304
+-- The longest the global cooldown lasts.
+local GCD_MAX = 1.5
+
+-- Whether the global cooldown is running now: true (and its plain end where the
+-- game gives the figures), false, or nil where the game says nothing readable.
+local function GcdRunning(now)
+	local active, start, duration = Cool(GCD_SPELL)
+	local stop
+	if type(start) == "number" and type(duration) == "number" then stop = start + duration end
+	if active == true then return true, stop end
+	if stop then
+		if duration > 0 and duration <= GCD_MAX and stop > now then return true, stop end
+		return false
+	end
+	if active == false then return false end
+	return nil
+end
+
+-- Whether a spell's only wait is the global cooldown: Manners' own clock for it
+-- (a cast of ours, or a cooldown seen running at the pull) says a real cooldown
+-- runs; else the global cooldown must be running and the spell's own wait, where
+-- its figures are plain, must end with it. Where the figures are hidden the
+-- global cooldown running is the answer.
+local function OnlyGcd(slot, now)
+	if slot.readyAt and now < slot.readyAt then return false end
+	local running, gcdEnd = GcdRunning(now)
+	if running ~= true then return false end
+	local _, start, duration = Cool(slot.id)
+	if type(start) == "number" and type(duration) == "number" then
+		if gcdEnd then return start + duration <= gcdEnd + 0.05 end
+		return duration <= GCD_MAX
+	end
+	return true
+end
+Sense.OnlyGcd = OnlyGcd
+
+-- For /manners debug: whether the global cooldown can be read, and is running.
+function Sense.GcdWord()
+	local running = GcdRunning(_G.GetTime())
+	if running == nil then return "unreadable" end
+	return running and "running" or "not running"
+end
+
 function Sense.ready(slot, now)
 	local cooling = Cooling(slot, slot.id, now)
-	if cooling == true then return "no", "cooling down" end
+	if cooling == true then
+		-- Blink, Counterspell, Ice Block and Cold Snap light under the global cooldown:
+		-- a wait of a second and a half is no reason to hold back one of those.
+		if slot.row.fast and OnlyGcd(slot, now) then return "yes" end
+		return "no", "cooling down"
+	end
 	if cooling == false then return "yes" end
 	-- Nothing readable: Manners' own clock, begun by your own cast.
 	if slot.readyAt and now < slot.readyAt then return "no", "cooling down" end
@@ -390,6 +444,8 @@ function Sense.stuck(slot, now)
 	if not read then return "blind", "a loss of control" end
 	local hit, kind, how, count = read(slot.row)
 	slot.lossHow, slot.lockFlag = how, nil
+	-- The kind the game named plainly, for the card's reason line ("you are stunned").
+	slot.lossKind = (type(kind) == "string" and kind ~= "?") and kind or nil
 	if hit then
 		slot.lockFlag = LockFlag(slot)
 		return "yes"
@@ -409,12 +465,14 @@ function Sense.stuck(slot, now)
 	if how == nil and kind == nil then return "no", "you have control" end
 	-- The count itself is hidden, or the client has no such API: only a control
 	-- lost event says control is gone.
-	local lostAt = Sense.lostAt
+	-- Control lost (PLAYER_CONTROL_LOST), or a loss of control reported by the game
+	-- that it would not name (LOSS_OF_CONTROL_ADDED, Sense.locAt): either starts the guess.
+	local lostAt = Sense.lostAt or Sense.locAt
 	if lostAt then
 		local full
 		if type(_G.HasFullControl) == "function" then full = plain(_G.HasFullControl()) end
 		if full == true or now - lostAt > UNSURE_SECONDS then
-			Sense.lostAt = nil
+			Sense.lostAt, Sense.locAt = nil, nil
 			return "no", "you have control"
 		end
 		return "blind", "a loss of control the game would not name"
@@ -944,8 +1002,11 @@ function Sense.schoolhit(slot, now)
 	local bit = slot.row.school
 	if not bit then return "no", "nothing of that kind has hit you" end
 	local route, mask = Sense.CastSchool(slot, bit)
+	-- Which route lit it, for the card's reason line: the cast itself, or the hit.
+	slot.wardRoute = "cast"
 	if route == "exact" and HasSchool(mask, bit) then return "yes" end
 	local verdict, why = ByHit(slot, now, route == "unknown")
+	slot.wardRoute = verdict == "yes" and "hit" or "cast"
 	if verdict == "yes" then return "yes" end
 	if route == "game" then
 		slot.game = slot.castLit
@@ -1033,6 +1094,9 @@ function Sense.partnercooling(slot, now)
 	local partner = slot.partner
 	if not partner then return "no", "the spell it brings back is not known" end
 	local cooling = Cooling(partner, partner.id, now)
+	-- A partner held only by the global cooldown (an Ice Block that was just cast, or
+	-- any other spell's global cooldown) is ready, or Cold Snap would light for nothing.
+	if cooling == true and OnlyGcd(partner, now) then return "no", "the spell it brings back is ready" end
 	if cooling == true then return "yes" end
 	if cooling == false then return "no", "the spell it brings back is ready" end
 	if partner.readyAt and now < partner.readyAt then return "yes" end

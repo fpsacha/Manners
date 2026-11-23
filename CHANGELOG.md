@@ -12,7 +12,7 @@
   fight, and the report shows what Manners saw then.
 
 ### Buttons for the moment
-- **Counterspell when your target casts.** A small button left of the prompt
+- **Counterspell when your target casts.** A card above the prompt
   lights while a hostile target in reach is casting, and a press stops your own
   cast first. *Show Counterspell when my target starts a cast*, In a fight.
   Where the game hides whether the cast can be interrupted, it takes two quick
@@ -33,6 +33,13 @@
   your mana, a dim icon shows the button is there and it takes two quick clicks.
 - **Fire Ward and Frost Ward** light when your target casts a fire or frost
   spell, and as soon as it hits you with fire or frost.
+- **Cards in your look.** Each button is a small prompt in your look, above the
+  prompt, with the spell, its name and why; *Card size* makes them bigger.
+- **At once.** Blink, Counterspell, Ice Block and Cold Snap light under the
+  global cooldown with no fade, then pulse.
+- **Show where the buttons for the moment sit.** On the In a fight page and in
+  the minimap menu: a few seconds, out of a fight, nothing casts.
+- **Key boxes say how:** click, then press a key or a controller button.
 
 ### Wards by the spell your target casts
 - **Before the hit, where the game names the spell.** On Classic Era and

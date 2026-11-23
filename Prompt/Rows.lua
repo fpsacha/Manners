@@ -130,6 +130,8 @@ local placedReach, placedPitch, placedFont = ROW_REACH, 16, 12
 function Prompt:PlaceRows(p, look, reach)
 	if not R.rowSlots then return end
 	placedPitch = look and look.pitch or (p.fontSize + 4)
+	-- How far apart the names are, for what sits clear of the list (Prompt/Moments.lua).
+	S.rowPitch = placedPitch
 	placedReach = reach or (look and look.rowReach) or ROW_REACH
 	placedFont = p.fontSize
 	for _, row in ipairs(R.rowSlots) do row.laid = nil end

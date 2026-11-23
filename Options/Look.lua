@@ -564,7 +564,7 @@ function Page.BuildLookTab()
 			breakFreeKey = {
 				type = "keybinding",
 				name = L["Key for Will of the Forsaken"],
-				desc = L["Saved with your game key bindings, so it works on every profile."],
+				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
 				order = 32.47,
 				hidden = function()
 					return ns.caps.breakFree == nil or P().breakFree == false or not ns.Setup.CanBind()
@@ -601,7 +601,7 @@ function Page.BuildLookTab()
 			mendInFightKey = {
 				type = "keybinding",
 				name = L["Key for Mend Pet"],
-				desc = L["Saved with your game key bindings, so it works on every profile."],
+				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
 				order = 32.49,
 				hidden = function()
 					return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())
@@ -687,7 +687,7 @@ function Page.BuildLookTab()
 			cureFightKey = {
 				type = "keybinding",
 				name = L["Key for my cure in a fight"],
-				desc = L["Saved with your game key bindings, so it works on every profile."],
+				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
 				order = 32.492,
 				hidden = function()
 					return not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true or not ns.Setup.CanBind()
@@ -709,7 +709,7 @@ function Page.BuildLookTab()
 			cureFightKey2 = {
 				type = "keybinding",
 				name = L["Key for my second cure in a fight"],
-				desc = L["Saved with your game key bindings, so it works on every profile."],
+				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
 				order = 32.4925,
 				hidden = function()
 					local list = ns.CureFightSpells()
@@ -1137,10 +1137,33 @@ function Page.AddMomentControls(args)
 	local function Cap(key) return key:sub(1, 1):upper() .. key:sub(2) end
 	args.momentsNote = {
 		type = "description",
-		name = L["Small buttons left of the prompt that stay out of sight until their moment comes, then light up. Each has a switch here and a key of its own."],
+		name = L["Buttons drawn as small prompts in your look, stacked above the prompt, that stay out of sight until their moment comes, then light up with the spell and the reason. Each has a switch here and a key of its own."],
 		order = 32.493,
 		fontSize = "medium",
 		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
+	}
+	-- Where the cards sit, shown out of a fight for a few seconds, and how big they are.
+	args.momentPreview = {
+		type = "execute",
+		name = L["Show where the buttons for the moment sit"],
+		desc = L["Lights every button for the moment that is switched on, for a few seconds and marked as a preview, so you can see where each one sits and what it says. Nothing casts from it. Not in a fight."],
+		order = 32.49302,
+		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
+		disabled = function() return InCombatLockdown() or not (ns.Moments and ns.Moments.AnyArmed()) end,
+		func = function() if ns.Moments then ns.Guard("moments preview", ns.Moments.Preview) end end,
+	}
+	args.momentCardSize = {
+		type = "range",
+		name = L["Card size"],
+		desc = L["How big the buttons for the moment are drawn, in percent: at 100 a card is the size of its look's own picture, a little bigger than the prompt."],
+		order = 32.49304,
+		min = 60, max = 150, step = 10,
+		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
+		get = function() return ns.db.profile.moments.cardSize end,
+		set = function(_, value)
+			ns.db.profile.moments.cardSize = value
+			Refresh()
+		end,
 	}
 	-- Each switch with its words; the order is the page's. The slider for the
 	-- share of health comes after Cold Snap, the one for mana after the gem.
@@ -1244,7 +1267,7 @@ function Page.AddMomentControls(args)
 		args["moment" .. Cap(key) .. "Key"] = {
 			type = "keybinding",
 			name = function() return L["Key for %s"]:format(Spell(key)) end,
-			desc = L["Saved with your game key bindings, so it works on every profile."],
+			desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
 			order = order + 0.00005,
 			hidden = function() return not Has(key) or not On(key) or not ns.Setup.CanBind() end,
 			disabled = function() return InCombatLockdown() end,

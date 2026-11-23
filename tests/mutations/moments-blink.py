@@ -56,7 +56,7 @@ mutate("Prompt/MomentsData.lua",
        expect="moments-blink: dark on cooldown", script=S)
 
 mutate(M,
-       '\t\tSense.lostAt = nil\n\t\treturn JudgeAll("stuck")\n',
-       '\t\treturn JudgeAll("stuck")\n',
+       '\t\tSense.lostAt, Sense.locAt = nil, nil\n\t\tJudgeAll("stuck")\n\t\treturn Schedule()\n',
+       '\t\tJudgeAll("stuck")\n\t\treturn Schedule()\n',
        "moments-blink: control gained does not end the guess",
        expect="moments-blink: no loss-of-control API: control lost before the pull lights it, control gained ends it", script=S)

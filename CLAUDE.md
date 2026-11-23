@@ -78,6 +78,9 @@ function, switch and test named. Change both together.
   hidden value, nothing lit without a detected need, `prompt.fightButtons` never
   read) have an unprotected cover that swallows clicks while dark, shown and
   hidden by Lua on plain knowledge only, two clicks where the game alone knows;
+  each is drawn as a card of the look's picture (`Looks/CardArt.lua`), in a place of
+  its own above the prompt set out of a fight; the preview disarms every macro and
+  `Moments:Take` ends it before the lockdown;
   the drink (slot 11) is a calm row: hidden by the driver in a fight, its macro
   cleared by `Moments:Take`, shown and hidden by Lua out of a fight;
   the cure button has the same cover; the break-free button must not get one. Nothing Manners chooses may keep break-free from showing

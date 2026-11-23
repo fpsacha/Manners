@@ -913,6 +913,13 @@ local function FillLauncherMenu(root)
 		end))
 	end
 	if fight and not inTest then HeldForFight(preview) end
+	-- Where the buttons for the moment sit, shown for a few seconds: only for a character
+	-- that has one switched on, held for the fight like the preview above.
+	if ns.Moments and ns.Moments.AnyArmed() then
+		local where = root:CreateButton(FightLabel(L["Show where the buttons for the moment sit"], fight),
+			Act(function() ns.Moments.Preview() end))
+		if fight then HeldForFight(where) end
+	end
 	FillPromptMenu(root:CreateButton(L["Prompt"]), fight)
 	Check(root, L["Show what Manners is doing in my chat window"], function() return ns.db.profile.verbose end,
 		Act(function() ns.addon:HandleSlash("verbose") end))

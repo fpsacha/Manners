@@ -80,6 +80,36 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   `SetAlphaFromBoolean`, an evaluated curve of `UnitHealthPercent` or
   `UnitPowerPercent`), and shows or hides an unprotected `cover` that swallows
   clicks while the button is dark, so a click casts only while it is lit.
+  Each button is drawn as a card of the player's look (`Prompt/MomentsCard.lua`,
+  `Looks/CardArt.lua`, which the look picker's cards share): the look's picture
+  (`Textures/Previews/Preview_<key>.tga`, made from the look's own art; a look with
+  none wears framed's), the spell's icon at the look's icon rectangle with its
+  mask, and the spell's name and a reason line ("you are stunned") written live in
+  the look's own face, size, colour and shadow. A look keeps its regions on the one
+  secure prompt, so a card is the picture and not a live second copy of it; its
+  motion is a pulse of an ADD copy of the picture (steady under Calm effects and in
+  a quiet fight). The frames over the button are `face` (a plain gate), `hint`
+  (Lua's dim card under `inner`), `inner` (the game paints its alpha; the card,
+  flare, hover and key label are its regions) and `mark` (Lua's: the ring and the
+  PREVIEW tag). The reason comes from plain facts only, a general one where only
+  the game knows ("low health"). A card's size is the setting `moments.cardSize`
+  (percent of the picture, 60 to 150, 80 by default) times the prompt's scale,
+  four to one; `Moments.Place` stacks the cards above the prompt, nearest first
+  (`PLACE_ORDER`), clear of the list, the painted art over the bar (`S.artAbove`,
+  `S.artBelow`) and the buttons beside the prompt, below it where there is no room
+  above, wrapping into columns; the drink shares the first place. Place, `Card.Dress`
+  and `Card.SetIcon` run out of a fight only; in a fight Lua shows and hides
+  `hint`, ring, flare, hover and tag, plays and stops the flare, writes the
+  reason's text (no refit) and sets the alpha of `face` and `inner`. The urgent
+  rows (`fast`: Blink, Counterspell, Ice Block, Cold Snap) count a spell whose
+  only wait is the global cooldown as ready (`Sense.OnlyGcd`, the spell 61304; a
+  cooldown of our own clock or a plain longer one still holds them dark), appear at
+  once with no fade, and read a loss of control the game would not name from the
+  event itself (`Sense.locAt`) with a second look a quarter second later. The
+  preview (`Moments.Preview`, out of a fight only) disarms every macro, puts every
+  cover up and lights the armed cards for five seconds, the drink after them for
+  three; `Moments:Take` ends it before the lockdown so a pull mid-preview arms
+  every macro.
   Where only the game knows (a hidden health, mana, interrupt flag, stealable
   flag or the school of a cast: rows with `guard = "twice"`), the cover stays up and the button takes two
   quick clicks at least 0.3 s apart; the first shows a ring (`mark`, a frame of

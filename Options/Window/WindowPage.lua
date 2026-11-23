@@ -346,6 +346,7 @@ for _, key in ipairs({ "counterspell", "spellsteal", "blink", "iceblock", "colds
 end
 FIELDS["appearance.momentHealth"] = { { "moments", "health" } }
 FIELDS["appearance.momentMana"] = { { "moments", "mana" } }
+FIELDS["appearance.momentCardSize"] = { { "moments", "cardSize" } }
 -- Look's colours (Style), a fold too: its dot says a colour is not the look's own.
 for _, key in ipairs({ "bgColor", "accentByReason", "accentMode", "accentColor" }) do
 	FIELDS["appearance." .. key] = { { "prompt", key } }

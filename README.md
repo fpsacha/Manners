@@ -295,8 +295,10 @@ names a spell.
 
 #### Buttons for the moment
 
-A mage gets small buttons left of the prompt that stay out of sight until their
-moment comes: Counterspell while your target is casting something you can
+A mage gets buttons, drawn as small prompts in your look and stacked above the
+prompt, that stay out of sight until their moment comes and then light with the
+spell, its name and the reason ("you are stunned", "your target is casting"):
+Counterspell while your target is casting something you can
 interrupt, Spellsteal while it carries a buff you can steal (Burning Crusade and
 later), Blink when you are stunned or rooted, Ice Block when your health drops
 under *Health below*, Cold Snap when you need Ice Block and it is cooling down,
@@ -319,6 +321,18 @@ stray click never casts. The first click shows a ring and the spell's icon, the
 second, a third of a second or more later, casts; a double click does not. A key
 always casts at once. *Show the fight buttons* does not change them: none is ever on the screen
 without its moment.
+
+Each button is a card of your look: its own picture (the one on the Look page),
+with the spell's icon, its name and the reason written over it in the look's own
+fonts and colours, above the prompt, nearest first, clear of the list of names and
+of the buttons beside the prompt; below it where there is no room above. A look
+keeps its moving art on the one prompt, so a card does not move; it pulses.
+*Card size* (60 to 150 percent, 80 by default) makes them bigger. *Show where the
+buttons for the moment sit*, on the same page and in the minimap menu, lights
+every one that is switched on for a few seconds, marked as a preview, out of a
+fight, so you can see where each sits; nothing casts from it. Blink, Counterspell,
+Ice Block and Cold Snap light the moment the need is seen, even while the global
+cooldown runs (a real cooldown still holds them dark), with no fade.
 
 Every class with mana also gets a drink button, for out of a fight: it lights
 while your mana is under *Mana below*, you stand still (not moving, mounted,

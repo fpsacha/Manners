@@ -130,6 +130,27 @@ stands now. Keep it short: what ships goes to the history file or away.
   wards by the combat log's school on Classic Era and TBC; range by
   SPELL_RANGE_CHECK_UPDATE; an always-visible mode with its own switch; a
   Slow Fall that does not hand your target back when you target nobody.
+  Then the owner's first look in game (23 November) changed it, on the same branch:
+  each button is a CARD of his look (`Prompt/MomentsCard.lua`, `Looks/CardArt.lua`
+  moved out of the picker): the look's picture with the spell's icon, name and a
+  reason line over it, stacked above the prompt by `Moments.Place` (nearest first,
+  clear of the list, the painted art, the buttons beside the prompt; below where
+  there is no room), *Card size* (`moments.cardSize`), and *Show where the buttons
+  for the moment sit* (`Moments.Preview`, on the page and in the minimap menu). A
+  card is the look's picture and does not move; its life is a pulse of that picture.
+  The reasons are lowercase, as the prompt's own, so "Low mana" is "low mana". His
+  Blink came a second late: the trail ("loss of control: ? (secret)" at :05,
+  "moment blink: lit" at :06) fits two paths and cannot say which, so both are
+  fixed and proven: the global cooldown (a flag read at the last cooldown event
+  kept Blink "cooling down", now `Sense.OnlyGcd` over the spell 61304 for the
+  `fast` rows) and a loss of control whose count is hidden (nothing started the
+  guess before PLAYER_CONTROL_LOST, now `Sense.locAt` at LOSS_OF_CONTROL_ADDED);
+  the urgent rows appear with no fade, and a held row says why on the trail
+  ("held dark: ..."). Scenarios `moments-fast.lua`, `moments-card.lua`,
+  `moments-stack.lua`, `moments-preview.lua`, `keybox-words.lua`, mutations of the
+  same names, all CAUGHT. Game-only questions: does 61304 answer isActive plainly
+  on Forever (`/manners debug` says "global cooldown: unreadable" if not, and the
+  old rule stands), and what the "held dark" line says in his next check-up.
 - **Waiting on the owner:** nothing.
 - **Waiting on players:** issue 33 (which game, the Will of the Forsaken
   button), issue 39 (nonpromqueen: which "special, longer thank-you" option

@@ -217,7 +217,7 @@ Page.RESET.fight = {
 	"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
 	"moments.counterspell", "moments.spellsteal", "moments.blink", "moments.evocation", "moments.managem", "moments.drink",
 	"moments.slowfall", "moments.iceblock", "moments.coldsnap", "moments.fireward", "moments.frostward",
-	"moments.health", "moments.mana",
+	"moments.health", "moments.mana", "moments.cardSize",
 	after = function()
 		restyleAndMacro()
 		if ns.BreakFree then ns.Guard("break free", ns.BreakFree.Refresh, ns.BreakFree) end

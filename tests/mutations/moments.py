@@ -111,16 +111,16 @@ mutate(SENSE,
        expect="moments: a paint call the game refuses is tried once", script=S)
 
 mutate(M,
-       'b:SetPoint("RIGHT", anchor, "LEFT", -(10 + col * step), rowN * step)',
-       'b:SetPoint("LEFT", anchor, "RIGHT", 10 + col * step, rowN * step)',
+       'b:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", x, y)',
+       'b:SetPoint("BOTTOMLEFT", anchor, "BOTTOMRIGHT", y, x)',
        "moments: the row sits right of the prompt",
-       expect="moments: the row sits left of the prompt", script=S)
+       expect="moments: the cards stack above the prompt", script=S)
 
 mutate(M,
-       '\t\tside = queueAbove and "below" or "above"\n',
-       '\t\tside = queueAbove and "above" or "below"\n',
+       '\tif baseAbove + H > roomAbove and baseBelow + H <= roomBelow then above = false end\n',
+       '\tabove = true\n',
        "moments: the row goes over the list of names",
-       expect="moments: no room on the left with the list above puts the row below the prompt", script=S)
+       expect="moments: no room above the prompt puts the cards below it", script=S)
 
 mutate(M,
        '\tlocal on = slot.keyLabel == nil\n',
@@ -129,8 +129,8 @@ mutate(M,
        expect="moments: a key bound turns the mouse off", script=S)
 
 mutate("Prompt/MomentsData.lua",
-       'Row { key = "blink", slot = 3, ranks = { 1953 }, stop = true, blind = "weak", cooldown = 15,',
-       'Row { key = "blink", slot = 2, ranks = { 1953 }, stop = true, blind = "weak", cooldown = 15,',
+       'Row { key = "blink", slot = 3, fast = true, ranks = { 1953 }, stop = true, blind = "weak", cooldown = 15,',
+       'Row { key = "blink", slot = 2, fast = true, ranks = { 1953 }, stop = true, blind = "weak", cooldown = 15,',
        "moments: two rows share a slot",
        expect="moments: every slot number is unique", script=S)
 

@@ -203,54 +203,30 @@ end
 local function lastPoint(b) return b.points[#b.points] end
 
 do
-	local s = name("the row sits left of the prompt, five to a row, and clear of the fight buttons on its right")
+	local s = name("the cards stack above the prompt, nearest first: Blink, Counterspell, Ice Block, in one column")
 	with(s, function(ns)
 		local prompt = ns.Prompt:GetButton()
-		local one, two, three = ns.Moments:Button(1), ns.Moments:Button(2), ns.Moments:Button(3)
-		local p1, p2 = lastPoint(one), lastPoint(two)
-		if p1[1] ~= "RIGHT" or p1[2] ~= prompt or p1[3] ~= "LEFT" then fail(s, "the first is not right-to-left of the prompt: " .. tostring(p1[1]) .. "/" .. tostring(p1[3])) end
-		if not (p1[4] < 0 and p2[4] < p1[4]) then fail(s, "the second is not further left: " .. tostring(p1[4]) .. " then " .. tostring(p2[4])) end
-		if lastPoint(three)[5] ~= 0 then fail(s, "three buttons made a second row") end
+		local counter, ice, blink = ns.Moments:Button(1), ns.Moments:Button(2), ns.Moments:Button(3)
+		local pc, pi, pb = lastPoint(counter), lastPoint(ice), lastPoint(blink)
+		if pb[1] ~= "BOTTOMLEFT" or pb[2] ~= prompt or pb[3] ~= "TOPLEFT" then
+			fail(s, "Blink is not above the prompt: " .. tostring(pb[1]) .. "/" .. tostring(pb[3]))
+		end
+		if not (pb[5] > 0 and pc[5] > pb[5] and pi[5] > pc[5]) then
+			fail(s, "not nearest first: Blink " .. tostring(pb[5]) .. ", Counterspell " .. tostring(pc[5]) .. ", Ice Block " .. tostring(pi[5]))
+		end
+		if pb[4] ~= 0 or pc[4] ~= 0 or pi[4] ~= 0 then fail(s, "three cards made a second column") end
+		if blink:GetWidth() ~= 4 * blink:GetHeight() then fail(s, "a card is not four to one: " .. blink:GetWidth() .. " x " .. blink:GetHeight()) end
 	end, { known = { 2139, 1953, 11958 } })
-	s = name("a sixth button starts a second row")
-	with(s, function(ns)
-		-- Counterspell, Ice Block, Blink, Evocation, Slow Fall and Cold Snap are armed: the
-		-- sixth, in slot order, starts the second row.
-		local armed = {}
-		for n = 1, 10 do
-			local slot = ns.Moments:Slot(n)
-			if slot and slot.armed then armed[#armed + 1] = n end
-		end
-		if #armed ~= 6 then fail(s, "armed buttons: " .. #armed) return end
-		for i, n in ipairs(armed) do
-			local p = lastPoint(ns.Moments:Button(n))
-			local want = i <= 5 and 0 or ns.Moments:Button(n):GetHeight() + 8
-			if p[5] ~= want then fail(s, "button " .. i .. " (slot " .. n .. ") sits at y " .. tostring(p[5]) .. ", wanted " .. tostring(want)) end
-		end
-		if lastPoint(ns.Moments:Button(armed[6]))[4] ~= lastPoint(ns.Moments:Button(armed[1]))[4] then
-			fail(s, "the second row does not start under the first button")
-		end
-	end)
 end
 
 do
-	local s = name("no room on the left with the list above puts the row below the prompt")
+	local s = name("no room above the prompt puts the cards below it")
 	with(s, function(ns)
-		ns.Prompt.state.queueAbove = true
 		local prompt = ns.Prompt:GetButton()
-		prompt._left = 20
+		prompt._top, prompt._bottom = 990, 946
 		ns.Moments.Place(ns.db.profile.prompt)
 		local p = lastPoint(ns.Moments:Button(1))
-		if p[1] ~= "TOPLEFT" or p[3] ~= "BOTTOMLEFT" then fail(s, "not below: " .. tostring(p[1]) .. "/" .. tostring(p[3])) end
-	end)
-	s = name("no room on the left with the list below puts the row above the prompt")
-	with(s, function(ns)
-		ns.Prompt.state.queueAbove = false
-		local prompt = ns.Prompt:GetButton()
-		prompt._left = 20
-		ns.Moments.Place(ns.db.profile.prompt)
-		local p = lastPoint(ns.Moments:Button(1))
-		if p[1] ~= "BOTTOMLEFT" or p[3] ~= "TOPLEFT" then fail(s, "not above: " .. tostring(p[1]) .. "/" .. tostring(p[3])) end
+		if p[1] ~= "TOPLEFT" or p[3] ~= "BOTTOMLEFT" or p[5] >= 0 then fail(s, "not below: " .. tostring(p[1]) .. "/" .. tostring(p[3]) .. "/" .. tostring(p[5])) end
 	end)
 end
 

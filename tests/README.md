@@ -293,7 +293,10 @@ sub-second subset for the middle of an edit.
   `Mock.inCombat`. Secure code's calls in a fight are not the addon's
   (`Mock.secureCode`).
 - The buttons for the moment (`scenarios/moments*.lua`, helper `momentskit.lua`,
-  `scenarios/curefight-cover.lua`): `Mock.secret(payload)` is a hidden value
+  `scenarios/curefight-cover.lua`): `Mock.cooldown[61304]` stands in for the global cooldown (the urgent rows
+  read it, `moments-fast.lua`); `moments-card.lua` and `moments-stack.lua` read each
+  card's regions and the rectangles worked out from its points (the scenario writes
+  the prompt's own `_left`, `_bottom`, `_right` and `_top`); `Mock.secret(payload)` is a hidden value
   (`Mock.reveal`, `Mock.secretType`, `issecretvalue` and a secret-aware `type()`;
   `Mock.secretWidgets` makes `SetAlphaFromBoolean` and `SetAlpha` take one and
   refuse a non-boolean as the client does); each frame keeps its own event

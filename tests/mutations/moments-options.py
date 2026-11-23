@@ -13,8 +13,8 @@ mutate("Options/Window/WindowPage.lua",
        expect="moments-options: the changed marks follow each field", script=S)
 
 mutate("Options/Advanced.lua",
-       '\t"moments.health", "moments.mana",\n',
-       '\t"moments.health",\n',
+       '\t"moments.health", "moments.mana", "moments.cardSize",\n',
+       '\t"moments.health", "moments.cardSize",\n',
        "moments-options: the reset leaves the mana share out",
        expect="moments-options: the reset puts the twelve fields back", script=S)
 
