@@ -991,7 +991,6 @@ do
 							or name == "buff.tanksOutside" or name == "buff.tanksMe"
 							or name == "buff.notMeInside"
 							or name == "buff.keptBack"
-							or name == "buff.swimOnly"
 							or name == "buff.optIn"
 							or name == "filters.skipNearbyClasses"
 							-- Elixirs to keep up (Classic Era, Forever): spell keys
@@ -1608,9 +1607,6 @@ ns.COMMANDS = {
 	{ word = "import", group = "share", args = " <text|undo>",
 		help = L["use settings somebody exported, or undo the last import"] },
 	{ word = "debug", group = "trouble", help = L["what your class and this build allow"] },
-	{ word = "bug", group = "trouble",
-		help = L["open Report a bug: what went wrong, a link to GitHub and the report to paste"] },
-	{ word = "mark", group = "trouble", help = L["mark this moment for a bug report, even in a fight"] },
 	-- "all" is Diagnostics' Show every error: every one the session still holds.
 	{ word = "errors", group = "trouble", args = " [all]", help = L["the last few things that broke"] },
 	{ word = "selftest", group = "trouble", args = " [launch]",
@@ -1636,7 +1632,7 @@ ns.DEV_COMMANDS = {
 -- what an unknown word falls through to, which is how the scenario that walks
 -- the list tells a missing branch.
 ns.COMMAND_ALIASES = { config = "options", help = "help", ["?"] = "help", log = "ledger",
-	check = "selftest", report = "bug" }
+	check = "selftest" }
 
 -- The whole list, one line per command under its group's heading. The first
 -- line is the marker a scenario looks for.
@@ -1761,8 +1757,6 @@ local function LastFavourLine(now)
 	elseif fate == "unnamed" then
 		if last.why == "several" then
 			text = L["nobody to buff back: the game did not say who cast it, and more than one player in sight cast it at that moment"]
-		elseif last.why == "old" then
-			text = L["nobody to buff back: the game did not say who cast it, and Manners first read it %d seconds after it landed, too late to match a cast"]:format(math.floor((last.readLate or 0) + 0.5))
 		elseif last.platesOff then
 			text = L["nobody to buff back: the game did not say who cast it, with friendly nameplates off"]
 		elseif last.why ~= nil and last.why ~= "none" and last.why ~= "else" then
@@ -2097,11 +2091,6 @@ function addon:HandleSlash(rawInput)
 		else
 			self:Print(L["the self-test did not load -- reinstalling Manners should bring it back."])
 		end
-	elseif input == "bug" or input == "report" then
-		-- Options/BugReport.lua: the window that walks a player through a report.
-		ns.Guard("report a bug", ns.BugReport.Show)
-	elseif input == "mark" then
-		ns.Guard("mark this moment", ns.MarkMoment)
 	elseif input == "dev" then
 		self:Print("|cffffd100" .. L["Tools for testing Manners on this client:"] .. "|r")
 		for _, command in ipairs(ns.DEV_COMMANDS) do
@@ -2157,12 +2146,8 @@ function addon:HandleSlash(rawInput)
 		-- Where there is none, the casts other players make are the other witness.
 		if ns.castWatch.armed then
 			local cast = ns.castWatch
-			self:Print(("  casts heard from others (players and mobs, once per token): %d heard (%d with the spell withheld, %d with the caster withheld, %d with the cast id withheld, %d spells read from the cast id), %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters, %d read too late to match a cast"):format(
-				cast.heard, cast.noSpell, cast.noUnit, cast.noGuid, cast.fromGuid, cast.seen, cast.named, cast.late, cast.several, cast.old))
-			local fav = ns.lastFavour
-			if fav and type(fav.key) == "number" then
-				self:Print(("  casts by other players, the game's rule for spell %d: %s"):format(fav.key, ns.CastSecrecyWord(fav.key)))
-			end
+			self:Print(("  casts by other players: %d buff casts seen, %d named who buffed you (%d after the buff landed), %d with two or more casters"):format(
+				cast.seen, cast.named, cast.late, cast.several))
 		end
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
 		-- Whether a rank for somebody low went unnamed, and why (Prompt/Macro.lua).
@@ -2176,7 +2161,6 @@ function addon:HandleSlash(rawInput)
 		for _, line in ipairs(ns.MendPetLines and ns.MendPetLines() or {}) do self:Print("  " .. line) end
 		for _, line in ipairs(ns.CureFightLines and ns.CureFightLines() or {}) do self:Print("  " .. line) end
 		for _, line in ipairs(ns.FightKeyLines and ns.FightKeyLines() or {}) do self:Print("  " .. line) end
-		for _, line in ipairs(ns.MomentLines and ns.MomentLines() or {}) do self:Print("  " .. line) end
 
 		-- A buff table that never arrived says so first, or the lines below
 		-- read as "this class has nothing".

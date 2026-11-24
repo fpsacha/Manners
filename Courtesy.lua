@@ -30,15 +30,6 @@
 --   a healthstone on Mists and retail, where a warlock makes them for the
 --       group at a Soulwell: /cast Create Soulwell, for a member of the group.
 --
--- A mage's water and food are also offered to your target, with nobody having
--- asked (sources.courtesyTarget, Aimed below): a friendly player you target out
--- of a fight, who is not a mage, gets what suits their level, or food alone
--- where they have no mana. The entry is filed under the reason "target" at the
--- tier of a request. Once they were traded with or skipped they are left alone
--- for TARGET_REST. Water and food trades are filled (sources.courtesyAmount):
--- the trade window takes as many stacks of what suits them as it has free
--- slots and the bags hold, water and food in turn, or one stack of each.
---
 -- Nothing here is offered or armed in a fight: the queue gets no courtesy
 -- from the pull's own repaint on (Prompt.armedForFight), so none is frozen on
 -- the button or handed to the fight's rota.
@@ -205,25 +196,13 @@ SETS.mainline = {
 
 -- This client's set for this class, or nil: an unrecognised client gets its
 -- family's, as Buffs.lua's sets do.
-local function ClientSet()
+local function MySet()
 	local flavour = ns.Flavour and ns.Flavour.flavour
 	local set = SETS[flavour]
 	if not set then
 		set = (ns.Flavour and ns.Flavour.family) == "classic" and SETS.vanilla or SETS.mainline
 	end
-	return set
-end
-
-local function MySet()
-	return ClientSet()[ns.PlayerClass() or ""]
-end
-
--- The mage's water rows on this client, best first, whatever the player's class:
--- what the drink button for the moment picks conjured water from
--- (Prompt/MomentsSense.lua). Read when asked, so load order does not matter.
-function Courtesy.WaterRows()
-	local mage = ClientSet().MAGE
-	return mage and mage.water and mage.water.rows or {}
+	return set[ns.PlayerClass() or ""]
 end
 
 ---------------------------------------------------------------------------
@@ -626,87 +605,7 @@ local function Both(set)
 	return set ~= nil and set.water ~= nil and set.food ~= nil and set.water.rows == set.food.rows
 end
 
--- Your target, offered water and food unasked (sources.courtesyTarget).
--- `rest` is who was traded with or skipped lately (their GUID, else their full
--- name) and until when; `aimed` is the synthetic request and the answer of the
--- scan it was worked out in, which Standing and Queue both ask for.
-local TARGET_REST = 600
-local rest = {}
-local aimed = { request = nil, at = nil, answer = nil }
-
-local function Rest(who, now)
-	if who == nil then return end
-	for each, until_ in pairs(rest) do
-		if until_ <= now then rest[each] = nil end
-	end
-	rest[who] = now + TARGET_REST
-	aimed.at = nil
-end
-
-local function Aimed(now)
-	local db = addon.db and addon.db.profile
-	if not (db and db.sources.courtesyTarget == true) then return nil end
-	if aimed.at == now then return aimed.answer end
-	aimed.at, aimed.answer = now, nil
-	if InCombatLockdown() or (ns.Prompt and ns.Prompt.armedForFight == true) then return nil end
-	local set = MySet()
-	if not (set and set.water and set.food and (KindKnown(set.water) or KindKnown(set.food))) then return nil end
-	if plain(UnitExists("target")) ~= true or plain(UnitIsPlayer("target")) ~= true
-		or plain(UnitCanAssist("player", "target")) ~= true then
-		return nil
-	end
-	if plain(UnitIsDeadOrGhost("target")) == true or plain(UnitIsConnected("target")) == false then return nil end
-	local full = ns.UnitFullName("target")
-	if not full or ns.IsPlayerName(full) then return nil end
-	-- Another mage conjures their own.
-	if plain(select(2, UnitClass("target"))) == "MAGE" then return nil end
-	local guid = plain(UnitGUID("target"))
-	if type(guid) ~= "string" then guid = nil end
-	local who = guid or full
-	local until_ = rest[who]
-	if until_ and until_ > now then return nil end
-	if ns.Ignored("target", guid) then return nil end
-	local request = aimed.request
-	if not (request and request.who == who) then
-		request = { name = full, short = ShortName(full), guid = guid, who = who, targeted = true }
-	end
-	-- Water where they have mana (or it cannot be told, with food only: food
-	-- helps everybody, water is offered where it is known to be wanted).
-	local mana = ns.UnitHasMana("target")
-	local keys = {}
-	if Both(set) then
-		keys[mana == true and "courtesy:water" or "courtesy:food"] = true
-	else
-		keys["courtesy:food"] = true
-		if mana == true then keys["courtesy:water"] = true end
-	end
-	request.keys = keys
-	request.expires = now + 30
-	if next(keys) == nil then return nil end
-	aimed.request, aimed.answer = request, request
-	return request
-end
-
--- A right-click on somebody's offer (Prompt/Press.lua): your target they were
--- is left alone for a while.
--- Whether the trade for this key is filled (water and food, Fill the trade
--- window) rather than one stack; a healthstone is always one item.
-local function Filling(key)
-	local db = addon.db and addon.db.profile
-	return (key == "courtesy:water" or key == "courtesy:food") and db ~= nil
-		and db.sources.courtesyAmount ~= "one"
-end
-
-function Courtesy.Skipped(name)
-	local request = aimed.request
-	if request and SameName(request.name, name) then
-		Rest(request.who, GetTime())
-		aimed.request = nil
-	end
-end
-
 local function Standing(now)
-	if Aimed(now) ~= nil then return true end
 	local list = ns.standingRequests
 	if not list or #list == 0 then return false end
 	for _, request in ipairs(list) do
@@ -802,11 +701,7 @@ end
 local function Plan(key, set, unit, inGroup, st)
 	local name, id = key:match("^courtesy:(%a+):?(%d*)$")
 	local kind = name and set[name]
-	local db = addon.db and addon.db.profile
-	if not kind or not ((st.targeted and (name == "water" or name == "food") and db ~= nil
-		and db.sources.courtesyTarget == true) or Switched(name)) then
-		return nil, "off"
-	end
+	if not kind or not Switched(name) then return nil, "off" end
 	local sighted = plain(UnitIsVisible and UnitIsVisible(unit)) ~= false
 
 	if kind.spells or kind.cast then
@@ -832,18 +727,11 @@ local function Plan(key, set, unit, inGroup, st)
 	-- drink what a level 60 mage conjures by default.
 	local level = plain(UnitLevel(unit))
 	if type(level) ~= "number" or level < 1 then level = nil end
-	-- Never offered to somebody who has not asked, what they might not be able
-	-- to use: with their level withheld, only where no item asks one (retail).
-	if st.targeted and level == nil then
-		for _, row in ipairs(kind.rows) do
-			if row.level or row.needs then return nil, "nolevel" end
-		end
-	end
 	local function suits(row) return not (level and row.level) or row.level <= level end
 	for _, row in ipairs(kind.rows) do
 		if suits(row) then
 			local count, item = Held(row, level)
-			if count > 0 then return { stage = "trade", spell = row.spell, item = item, level = level } end
+			if count > 0 then return { stage = "trade", spell = row.spell, item = item } end
 		end
 	end
 	-- One spell that makes what suits your own level (Mists): with nothing in
@@ -865,8 +753,8 @@ local function Plan(key, set, unit, inGroup, st)
 	-- bags hold is what there is, rather than a conjure asked for again.
 	if st.conjured then
 		for _, row in ipairs(kind.rows) do
-			local count, item = Held(row, st.targeted and level or nil)
-			if count > 0 then return { stage = "trade", spell = row.spell, item = item, level = level } end
+			local count, item = Held(row)
+			if count > 0 then return { stage = "trade", spell = row.spell, item = item } end
 		end
 	end
 	local conjure, lowest
@@ -876,13 +764,11 @@ local function Plan(key, set, unit, inGroup, st)
 			if not conjure and suits(row) then conjure = row end
 		end
 	end
-	-- A target below every rank learned gets none, rather than the lowest.
-	if st.targeted and not conjure and lowest then return nil, "level" end
 	conjure = conjure or lowest
 	if not conjure then return nil, "off" end
 	if Lacks(kind.reagent, conjure.spell) then return nil, "reagent", kind.reagent end
 	if Cooling(conjure.spell) then return nil, "cooldown" end
-	return { stage = "conjure", spell = conjure.spell, text = CastText(conjure.spell, kind.rows), level = level }
+	return { stage = "conjure", spell = conjure.spell, text = CastText(conjure.spell, kind.rows) }
 end
 
 -- The queue's hook: one entry for each person with a courtesy standing whom a
@@ -894,36 +780,20 @@ end
 function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 	local list = ns.standingRequests
 	local db = addon.db and addon.db.profile
+	if not (list and db and db.sources.asked) then return end
 	local set = MySet()
-	if not (db and set) then return end
+	if not set then return end
 	local wanted
-	if list and db.sources.asked then
-		for _, request in ipairs(list) do
-			if request.fight or request.expires > now then
-				local keys = KeysOf(request)
-				if keys then
-					local st = State(request)
-					st.keys, st.unit, st.pointed, st.verdict, st.detail = keys, nil, nil, nil, nil
-					st.targeted = nil
-					wanted = wanted or {}
-					wanted[#wanted + 1] = request
-				end
+	for _, request in ipairs(list) do
+		if request.fight or request.expires > now then
+			local keys = KeysOf(request)
+			if keys then
+				local st = State(request)
+				st.keys, st.unit, st.pointed, st.verdict, st.detail = keys, nil, nil, nil, nil
+				wanted = wanted or {}
+				wanted[#wanted + 1] = request
 			end
 		end
-	end
-	-- Your target, after those who asked: theirs wins for the same person.
-	local aim = Aimed(now)
-	-- Nobody asked for it: held back while you save mana, whatever the floor keeps.
-	if aim and ns.SavingMana and ns.SavingMana() ~= nil then
-		State(aim).verdict = "mana"
-		aim = nil
-	end
-	if aim then
-		local st = State(aim)
-		st.keys, st.unit, st.pointed, st.verdict, st.detail = KeysOf(aim), "target", true, nil, nil
-		st.targeted = true
-		wanted = wanted or {}
-		wanted[#wanted + 1] = aim
 	end
 	if not wanted then return end
 	-- Never in a fight, nor from the pull's own repaint, which arms what the
@@ -935,8 +805,7 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 		return
 	end
 
-	-- Your target alone is no walk: its token is known.
-	if #wanted > (aim and 1 or 0) then ns.IterateUnits(function(unit, pointed)
+	ns.IterateUnits(function(unit, pointed)
 		if plain(UnitExists(unit)) ~= true or plain(UnitIsPlayer(unit)) ~= true then return end
 		-- Nobody dead, offline or beyond your help, as the walk has it
 		-- (IsBuffableUnit): a trade with a corpse fails at every press, and the
@@ -947,7 +816,7 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 			local st = State(request)
 			if not st.unit and Matches(request, unit) then st.unit, st.pointed = unit, pointed == true end
 		end
-	end) end
+	end)
 
 	local asked = ns.PRIORITY and ns.PRIORITY.asked or 1.5
 	for _, request in ipairs(wanted) do
@@ -972,37 +841,8 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 			else
 				-- The first thing they asked for that can be given now.
 				local plan, key, why, detail
-				local order, tries = st.keys, nil
-				if st.targeted then
-					-- Water and food are both conjured before a single trade.
-					tries = {}
-					for _, each in ipairs(order) do
-						local made, whyNot, what = Plan(each, set, unit, inGroup, st)
-						-- Out of reach, a trade is held: only a definite no counts.
-						if made and made.stage == "trade" and not InCombatLockdown()
-							and type(_G.CheckInteractDistance) == "function"
-							and plain(_G.CheckInteractDistance(unit, 2)) == false then
-							made, whyNot = nil, "far"
-						end
-						tries[each] = { made, whyNot, what }
-					end
-					order = {}
-					for _, stage in ipairs({ "conjure", "trade" }) do
-						for _, each in ipairs(st.keys) do
-							if tries[each][1] and tries[each][1].stage == stage then order[#order + 1] = each end
-						end
-					end
-					for _, each in ipairs(st.keys) do
-						if not tries[each][1] then order[#order + 1] = each end
-					end
-				end
-				for _, each in ipairs(order) do
-					local made, whyNot, what
-					if tries then
-						made, whyNot, what = tries[each][1], tries[each][2], tries[each][3]
-					else
-						made, whyNot, what = Plan(each, set, unit, inGroup, st)
-					end
+				for _, each in ipairs(st.keys) do
+					local made, whyNot, what = Plan(each, set, unit, inGroup, st)
 					if made then
 						local buffKey = each .. ":" .. made.stage .. (made.stage == "conjure" and (":" .. made.spell) or "")
 						if ns.IsBlocked(full, buffKey, now) then
@@ -1014,17 +854,6 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 						else
 							plan, key = made, each
 							plan.key, plan.buffKey, plan.request = each, buffKey, request
-							if st.targeted then
-								request.level = plan.level
-								-- What a filled trade will hold, in words.
-								local other = each == "courtesy:water" and "courtesy:food" or "courtesy:water"
-								if Both(set) then
-									plan.noun = L["water and food"]
-								elseif plan.stage == "trade" and tries[other]
-									and tries[other][1] and tries[other][1].stage == "trade" then
-									plan.noun = L["water and food"]
-								end
-							end
 							break
 						end
 					elseif not why or why == "off" then
@@ -1040,7 +869,7 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 					for i, entry in ipairs(queue) do
 						if entry.name == full then
 							at = i
-							waits = entry.groupCast ~= nil or st.targeted == true or (entry.priority or 9) <= asked
+							waits = entry.groupCast ~= nil or (entry.priority or 9) <= asked
 							break
 						end
 					end
@@ -1057,15 +886,13 @@ function Courtesy.Queue(queue, rejected, now, inTown, manaHeld)
 							unit = unit,
 							class = plain(select(2, UnitClass(unit))),
 							buff = BuffFor(plan.buffKey, plan.spell),
-							reason = st.targeted and "target" or "asked",
+							reason = "asked",
 							inGroup = inGroup,
 							priority = asked,
 							known = false,
 							checked = true,
 							courtesy = plan,
 						}
-						-- Your target is no buff anybody lacks, as the reason line says.
-						if st.targeted then queue[#queue].known = nil end
 					end
 				end
 			end
@@ -1112,16 +939,6 @@ end
 function Courtesy.Reason(entry)
 	local plan = entry.courtesy
 	local key = plan.key
-	if plan.request and plan.request.targeted then
-		local noun = plan.noun or Noun(key)
-		if plan.stage == "conjure" then
-			if type(plan.level) == "number" then
-				return L["conjure %s for your target (level %d)"]:format(noun, plan.level)
-			end
-			return L["conjure %s for your target"]:format(noun)
-		end
-		return L["trade %s to your target"]:format(noun)
-	end
 	if plan.stage == "conjure" then
 		if key == "courtesy:water" then return L["asked for water -- conjure it first"] end
 		if key == "courtesy:food" then return L["asked for food -- conjure it first"] end
@@ -1141,11 +958,7 @@ function Courtesy.Summary(entry, out)
 	local spell = ns.EntrySpellName(entry)
 	if plan.stage == "trade" then
 		out[#out + 1] = L["Targets |cffffffff%s|r and opens a trade."]:format(who)
-		if Filling(plan.key) then
-			out[#out + 1] = L["Manners fills the trade window with what suits them; accepting the trade is yours."]
-		else
-			out[#out + 1] = L["Manners puts it in the trade window; accepting the trade is yours."]
-		end
+		out[#out + 1] = L["Manners puts it in the trade window; accepting the trade is yours."]
 	elseif plan.stage == "summon" then
 		out[#out + 1] = L["Targets |cffffffff%s|r, casts |cffffffff%s|r, and leaves them targeted for the summoning."]
 			:format(who, spell)
@@ -1264,133 +1077,18 @@ local function Place(item)
 	return true
 end
 
--- One bag slot onto one trade slot: picked up, set down, the cursor never
--- left holding it. Answers whether it went in.
-local function Put(spot, index)
-	if type(_G.GetCursorInfo) == "function" and _G.GetCursorInfo() then return false end
-	_G.C_Container.PickupContainerItem(spot.bag, spot.slot)
-	if not _G.CursorHasItem() then
-		if type(_G.ClearCursor) == "function" then _G.ClearCursor() end
-		return false
-	end
-	_G.ClickTradeButton(index)
-	if _G.CursorHasItem() then
-		_G.ClearCursor()
-		return false
-	end
-	return true
-end
-
--- Fills the open trade with what the bags hold of this request's water and
--- food that somebody of `level` can use: the free slots read once, the bags
--- read once, water and food taking a slot in turn, `perKind` slots to each at
--- most. Only the items the rows list (what a conjure makes) are ever picked
--- up. Answers how many went in, which keys had one, and the first item.
-local function Fill(request, level, perKind)
-	local served, placed, first = {}, 0, nil
-	if InCombatLockdown() or type(request) ~= "table" or type(request.keys) ~= "table" then return 0, served end
-	local bags = _G.C_Container
-	local click, link = _G.ClickTradeButton, _G.GetTradePlayerItemLink
-	if type(bags) ~= "table" or type(bags.PickupContainerItem) ~= "function"
-		or type(bags.GetContainerNumSlots) ~= "function" or type(bags.GetContainerItemID) ~= "function"
-		or type(click) ~= "function" or type(link) ~= "function" or type(_G.CursorHasItem) ~= "function" then
-		return 0, served
-	end
-	local set = MySet()
-	if not set then return 0, served end
-	-- Free slots: the ones the player filled are left alone, and so is the
-	-- seventh, which holds what is being traded for.
-	local free = {}
-	for i = 1, _G.MAX_TRADABLE_ITEMS or 6 do
-		if not link(i) then free[#free + 1] = i end
-	end
-	if #free == 0 then return 0, served end
-	local held = {}
-	for bag = 0, 4 do
-		local slots = plain(bags.GetContainerNumSlots(bag))
-		for slot = 1, type(slots) == "number" and slots or 0 do
-			local item = plain(bags.GetContainerItemID(bag, slot))
-			if type(item) == "number" then
-				local info = type(bags.GetContainerItemInfo) == "function" and bags.GetContainerItemInfo(bag, slot)
-				if not (type(info) == "table" and plain(info.isLocked) == true) then
-					held[item] = held[item] or {}
-					held[item][#held[item] + 1] = { bag = bag, slot = slot, item = item }
-				end
-			end
-		end
-	end
-	local lists = {}
-	for _, name in ipairs({ "water", "food" }) do
-		local key = "courtesy:" .. name
-		local kind = set[name]
-		if kind and request.keys[key] and not (Both(set) and #lists > 0) then
-			local slots = {}
-			for _, row in ipairs(kind.rows or {}) do
-				if not (level and row.level and row.level > level) then
-					for _, item in ipairs(row.items) do
-						if not (level and row.needs and (row.needs[item] or 0) > level) then
-							for _, spot in ipairs(held[item] or {}) do slots[#slots + 1] = spot end
-						end
-					end
-				end
-			end
-			lists[#lists + 1] = { key = key, slots = slots, at = 1, put = 0 }
-		end
-	end
-	local nextFree, moved = 1, true
-	while moved and nextFree <= #free do
-		moved = false
-		for _, list in ipairs(lists) do
-			local spot = list.slots[list.at]
-			if nextFree <= #free and list.put < perKind and spot then
-				list.at = list.at + 1
-				if not Put(spot, free[nextFree]) then return placed, served, first end
-				nextFree, list.put, placed = nextFree + 1, list.put + 1, placed + 1
-				served[list.key], first, moved = true, first or spot.item, true
-			end
-		end
-	end
-	return placed, served, first
-end
-
 -- The request is answered; the item goes into the open trade where it can,
--- and accepting stays the player's. Water and food are filled in (Fill), a
--- healthstone is one item.
+-- and accepting stays the player's.
 function Hand(request, key, item, name)
-	local count, first = 0, item
-	if key == "courtesy:water" or key == "courtesy:food" then
-		local level = plain(UnitLevel("NPC"))
-		if type(level) ~= "number" or level < 1 then level = type(request) == "table" and request.level or nil end
-		local served, one
-		count, served, one = Fill(request, level, Filling(key) and 6 or 1)
-		for each in pairs(served) do Serve(request, each) end
-		first = one or item
-		-- Chat's request is answered as it always was; a target offered
-		-- unasked stays on offer after a trade with nothing in it.
-		if count == 0 and not (type(request) == "table" and request.targeted) then Serve(request, key) end
-	else
-		Serve(request, key)
-		if Place(item) then count = 1 end
-	end
-	-- A trade with something in it: they are left alone for a while, a chat
-	-- request's person as well.
-	local who = type(request) == "table" and (request.who or request.guid) or nil
-	if count > 0 then
-		Rest(who or plain(UnitGUID("NPC")) or (type(request) == "table" and request.name) or name, GetTime())
-	end
-	if count > 0 and type(request) == "table" and aimed.request == request then aimed.request = nil end
+	Serve(request, key)
+	local placed = Place(item)
 	-- In the window, which is as far as Manners goes: a milestone's worth
 	-- (Milestones.lua). A trade that opened with nothing put in it is none.
-	if count > 0 and ns.Milestones then ns.Milestones.Note("courtesy") end
+	if placed and ns.Milestones then ns.Milestones.Note("courtesy") end
 	local db = addon.db and addon.db.profile
-	if count > 0 and db and db.verbose then
-		if count == 1 then
-			addon:Print(L["%s is in the trade with |cffffffff%s|r -- accept it when you are ready."]
-				:format(ns.ReagentName(first) or Noun(key), ShortName(name) or name))
-		else
-			addon:Print(L["%d stacks are in the trade with |cffffffff%s|r -- accept it when you are ready."]
-				:format(count, ShortName(name) or name))
-		end
+	if placed and db and db.verbose then
+		addon:Print(L["%s is in the trade with |cffffffff%s|r -- accept it when you are ready."]
+			:format(ns.ReagentName(item) or Noun(key), ShortName(name) or name))
 	end
 end
 
@@ -1417,18 +1115,15 @@ function Courtesy.TradeOpened()
 	end
 	local set = MySet()
 	local list = ns.standingRequests
-	if not set then return end
+	if not (set and list) then return end
 	local now = GetTime()
 	-- No press came first, so this rests on the last scan's offer, and with
 	-- Manners switched off, snoozed or its prompt unlocked no scan offers
 	-- anything: what an earlier one left standing is not gone by.
 	local db = addon.db and addon.db.profile
 	if not (db and db.enabled) or ns.SnoozeLeft(now) or (db.prompt and db.prompt.locked == false) then return end
-	-- Those who asked. Your target who opens a trade unasked gets nothing put in:
-	-- only a press of the prompt (above) fills for them.
-	local requests = {}
-	for i = #(list or {}), 1, -1 do requests[#requests + 1] = list[i] end
-	for _, request in ipairs(requests) do
+	for i = #list, 1, -1 do
+		local request = list[i]
 		local st = state[request]
 		-- Only what the last scan had on the prompt for them, or would have
 		-- but for a press a moment ago: a city's quiet, a skip and the
@@ -1511,10 +1206,6 @@ function Courtesy.Lines(lines)
 			on[#on + 1] = name == "portal" and L["portals"] or Noun("courtesy:" .. name)
 		end
 	end
-	local db = addon.db and addon.db.profile
-	if db and db.sources.courtesyTarget == true and set.water and KindKnown(set.water) then
-		on[#on + 1] = L["water and food for your target"]
-	end
 	lines[#lines + 1] = #on > 0 and L["courtesies answered: %s"]:format(table.concat(on, ", "))
 		or L["courtesies answered: none (each has a switch under %s)."]:format("|cffffd100" .. L["People who ask me in chat"] .. "|r")
 	local now = GetTime()
@@ -1542,10 +1233,6 @@ function Courtesy.Lines(lines)
 				why = L["no %s in your bags"]:format(ns.ReagentName(st.detail) or tostring(st.detail))
 			elseif verdict == "cooldown" then
 				why = L["the spell is cooling down"]
-			elseif verdict == "nolevel" then
-				why = L["their level cannot be read"]
-			elseif verdict == "far" then
-				why = L["they are too far away to trade"]
 			elseif verdict == "level" then
 				why = L["they are too low in level for what you can conjure"]
 			elseif verdict == "behind" then
@@ -1564,28 +1251,5 @@ function Courtesy.Lines(lines)
 			if not (key and request.keys[key]) then key = keys[1] end
 			lines[#lines + 1] = L["courtesy: |cffffffff%s|r asked for %s -- %s"]:format(request.name, Noun(key), why)
 		end
-	end
-	local aim = aimed.answer
-	if aim and aim.keys then
-		local st = State(aim)
-		local why = st.verdict == "offered" and L["on the prompt"] or nil
-		local verdict = st.verdict
-		if not why then
-			if verdict == "town" then why = L["held back in a city or an inn"]
-			elseif verdict == "mana" then why = L["held back while you save mana"]
-			elseif verdict == "nolevel" then why = L["their level cannot be read"]
-			elseif verdict == "far" then why = L["they are too far away to trade"]
-			elseif verdict == "level" then why = L["they are too low in level for what you can conjure"]
-			elseif verdict == "behind" then why = L["after the buff you have for them"]
-			elseif verdict == "skipped" or verdict == "pressed" then why = L["pressed or skipped a moment ago"]
-			elseif verdict == "never" then why = L["they are on your never-offer or ignore list"]
-			elseif verdict == "reagent" then
-				why = L["no %s in your bags"]:format(ns.ReagentName(st.detail) or tostring(st.detail))
-			elseif verdict == "cooldown" then why = L["the spell is cooling down"]
-			else why = L["not looked at yet"] end
-		end
-		local key = st.key
-		if not (key and aim.keys[key]) then key = KeysOf(aim) and KeysOf(aim)[1] or "courtesy:food" end
-		lines[#lines + 1] = L["courtesy: |cffffffff%s|r, your target, is offered %s -- %s"]:format(aim.name, Noun(key), why)
 	end
 end

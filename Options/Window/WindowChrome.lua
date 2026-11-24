@@ -850,37 +850,17 @@ function UI.BuildFooter(f)
 		GameTooltip:Show()
 	end)
 	footer.changed:HookScript("OnLeave", function() GameTooltip:Hide() end)
-	-- Report a bug (Options/BugReport.lua): the Diagnostics mark, a square
-	-- button like the one before it.
-	local bugLabel = L["Report a bug"]
-	footer.bug = W.Button(foot, "", UI.Guarded(function() ns.BugReport.Show() end))
-	footer.bug.minWidth = 22
-	footer.bug:SetSize(22, 22)
-	footer.bug:SetPoint("LEFT", footer.changed, "RIGHT", FOOT_GAP, 0)
-	footer.bug.icon = footer.bug:CreateTexture(nil, "OVERLAY")
-	footer.bug.icon:SetTexture("Interface\\AddOns\\Manners\\Textures\\Menu\\Diagnostics")
-	footer.bug.icon:SetPoint("TOPLEFT", footer.bug, "TOPLEFT", 3, -3)
-	footer.bug.icon:SetPoint("BOTTOMRIGHT", footer.bug, "BOTTOMRIGHT", -3, 3)
-	footer.bug.tip = bugLabel
-	footer.bug:HookScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:AddLine(bugLabel, 1, 1, 1)
-		GameTooltip:AddLine(L["A link to GitHub and the report to paste, in one window."], 0.8, 0.8, 0.8, true)
-		GameTooltip:Show()
-	end)
-	footer.bug:HookScript("OnLeave", function() GameTooltip:Hide() end)
 	footer.buildItem = UI.Item(layout.build)
 	local closeLabel = CLOSE or ""
 	footer.close = W.Button(foot, closeLabel, function() f:Hide() end)
-	-- 64 at least: the Report a bug button beside the other square one took the room.
-	footer.close:SetSize(math.max(64, math.ceil(UI.Measure(closeLabel)) + 26), 22)
+	footer.close:SetSize(math.max(80, math.ceil(UI.Measure(closeLabel)) + 26), 22)
 	-- Clear of the resize grip in the corner (Window.lua, BuildGrip).
 	footer.close:SetPoint("RIGHT", foot, "RIGHT", -24, 0)
 	-- Between the two buttons, on every page: who makes Manners, in the
 	-- window's own ink at a size to be read, in the middle of the room; and
 	-- the build, small and grey, at the right beside Close.
 	local mid = CreateFrame("Frame", nil, foot)
-	mid:SetPoint("TOPLEFT", footer.bug, "TOPRIGHT", FOOT_GAP, 0)
+	mid:SetPoint("TOPLEFT", footer.changed, "TOPRIGHT", FOOT_GAP, 0)
 	mid:SetPoint("BOTTOMRIGHT", footer.close, "BOTTOMLEFT", -FOOT_GAP, 0)
 	footer.mid = mid
 	footer.build = UI.Text(mid, GameFontDisableSmall, C.hint)
@@ -944,8 +924,7 @@ end
 function UI.FooterRoom()
 	local reset, close = footer.reset:GetWidth() or 0, footer.close:GetWidth() or 0
 	local changed = (footer.changed:GetWidth() or 0) + FOOT_GAP
-	local bug = (footer.bug:GetWidth() or 0) + FOOT_GAP
-	return UI.WIDTH - 34 - reset - close - changed - bug - 2 * FOOT_GAP - BuildRoom()
+	return UI.WIDTH - 34 - reset - close - changed - 2 * FOOT_GAP - BuildRoom()
 end
 
 -- The reset's own hidden rule answers for the page in view (ns.OptionsTab),

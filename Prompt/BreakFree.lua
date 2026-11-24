@@ -113,18 +113,12 @@ local SUCCEED_SECONDS = 1
 -- How long a loss of control the game would not name is taken as one, from the
 -- last event that said control was lost, when HasFullControl cannot say.
 local UNSURE_SECONDS = 10
--- Two reports of one loss of control (the same kind, told the same way) this
--- close are one line on the trail.
-local SAME_LOSS = 0.5
 -- The icon the client gives none for: Will of the Forsaken's own.
 local FALLBACK_ICON = "Interface\\Icons\\Spell_Shadow_RaiseDead"
 local GLOW = "Interface\\AddOns\\Manners\\Textures\\RingSq"
 
 local button, header, icon, glow, pulse, nameText, keyText, cooldown, fader
 local armedMacro, placedKey, paintedKey
--- Whether the last paint was bright, and how often it turned bright this fight
--- (the fight summary on the trail).
-local lit, litCount = false, 0
 -- The alpha it is walking to (0: out of sight), where from and since when.
 local fadeFrom, fadeTo, fadeAt = 0, 0, 0
 -- Afflicted now (a type this breaks, or charmed), from the client's events.
@@ -241,10 +235,8 @@ local function ReadLoss(row)
 			first, how = first or "?", how or "secret"
 		end
 	end
-	return false, first, how, count
+	return false, first, how
 end
--- The moment buttons (Prompt/Moments.lua) ask the same question of a row of their own.
-BreakFree.ReadLoss = ReadLoss
 
 -- Afflicted by something the row breaks: a loss of control of its types, or
 -- charmed by UnitIsCharmed alone (a charm the client reports nowhere else).
@@ -347,8 +339,6 @@ local function Paint()
 		.. ":" .. tostring(info and info.name) .. ":" .. tostring(always) .. ":" .. tostring(to)
 	if key == paintedKey then return bright end
 	paintedKey = key
-	if bright and not lit then litCount = litCount + 1 end
-	lit = bright
 	SetTo(to)
 	if info then icon:SetTexture(info.icon) end
 	if to == 0 then
@@ -697,20 +687,7 @@ Recheck = function()
 	end)
 end
 
--- Whether the button lit for the loss of control just read, for the trail.
-local function LitWord()
-	if not button or not BreakFree.Applies() then return "not shown: no button (its switch is off, or Manners is)" end
-	if lit then return "lit" end
-	if afflicted then return "shown dim: it is cooling down" end
-	return "not lit: not a loss of control it breaks"
-end
-
 local function OnEvent(event, unit, _, spellId)
-	-- Only your own: the client may tell of another unit's loss of control.
-	if event == "LOSS_OF_CONTROL_ADDED" or event == "LOSS_OF_CONTROL_UPDATE" then
-		local who = plain(unit)
-		if type(who) == "string" and who ~= "player" then return end
-	end
 	if event == "UNIT_SPELLCAST_SUCCEEDED" then
 		if unit ~= "player" then return end
 		local now = GetTime()
@@ -738,7 +715,6 @@ local function OnEvent(event, unit, _, spellId)
 	if event == "PLAYER_REGEN_DISABLED" then
 		ReadKey()
 		SetMouse()
-		lit, litCount = false, 0
 		paintedKey = nil
 		Paint()
 		-- No button where the switch is off or Manners is: nothing to fade.
@@ -761,19 +737,18 @@ local function OnEvent(event, unit, _, spellId)
 		lostAt = GetTime()
 		kind, how = Read()
 	end
-	Changed(was)
 	if event == "LOSS_OF_CONTROL_ADDED" then
-		local k, h = kind or "none", how or "plain"
-		if not (lastLoss and lastLoss.kind == k and lastLoss.how == h and GetTime() - lastLoss.at < SAME_LOSS) then
-			lastLoss = { kind = k, how = h, at = GetTime() }
-			ns.Trail("fight", ("loss of control: %s (%s)%s; break free %s"):format(k, h,
-				guessed and ", by a loss of control the game would not name" or "", LitWord()))
-		end
+		lastLoss = { kind = kind or "none", how = how or "plain", at = GetTime() }
+		ns.Trail("fight", ("loss of control: %s (%s)%s%s"):format(tostring(kind or "none"), tostring(how or "plain"),
+			afflicted and ", break free lights up" or "",
+			guessed and ", by a loss of control the game would not name" or ""))
 	elseif event == "PLAYER_CONTROL_LOST" and how == "no API" then
 		lastLoss = { kind = "control lost", how = "no API", at = GetTime() }
 		ns.Trail("fight", "control lost (no loss-of-control API on this client)"
-			.. (guessed and ", by a loss of control the game would not name" or "") .. "; break free " .. LitWord())
+			.. (afflicted and ", charmed: break free lights up" or "")
+			.. (guessed and ", by a loss of control the game would not name" or ""))
 	end
+	Changed(was)
 end
 
 do
@@ -830,13 +805,6 @@ function ns.BreakFreeLines()
 		out[#out + 1] = "last loss of control: none seen this session"
 	end
 	return out
-end
-
--- How often the button turned bright in the last fight, and what it stands on
--- now, for the fight summary and the Mark this moment line.
-function BreakFree.FightLit() return litCount end
-function BreakFree.State()
-	return { lit = lit, afflicted = afflicted, guessed = guessed, always = Always() }
 end
 
 function BreakFree:Button() return button end

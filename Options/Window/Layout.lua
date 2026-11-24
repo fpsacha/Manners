@@ -155,8 +155,6 @@ local function OfferItems(placed)
 				if buff.tankChoice then items[#items + 1] = { "who.notMeInside_" .. tostring(buff.key), indent = true } end
 				-- A buff kept for favours and requests (Buffs.lua, returnOnly), to everybody.
 				if buff.returnOnly then items[#items + 1] = { "who.everyone_" .. tostring(buff.key), indent = true } end
-				-- And one held to the water (Buffs.lua, swimGate).
-				if buff.swimGate then items[#items + 1] = { "who.swim_" .. tostring(buff.key), indent = true } end
 				-- A buff held to your group by choice (Buffs.lua, membersOnly), to passers-by too.
 				if buff.membersOnly and not (buff.partyOnly or buff.groupOnly or buff.oneTarget) then
 					items[#items + 1] = { "who.passers_" .. tostring(buff.key), indent = true }
@@ -391,9 +389,6 @@ ns.WindowLayout = {
 					{ "who.courtesyPortals", indent = true },
 					{ "who.courtesyHealthstones", indent = true },
 					{ "who.courtesySummons", indent = true },
-					-- Your target needs no chat: not indented under it.
-					"who.courtesyTarget",
-					{ "who.courtesyAmount", indent = true },
 				} },
 				{ key = "who.cast", header = "who.buffsHeader", items = CastItems() },
 				-- The class's buffs as a list in the order they are tried, each with an
@@ -895,41 +890,7 @@ ns.WindowLayout = {
 					{ "appearance.cureFightKey", indent = true },
 					{ "appearance.cureFightEach", indent = true },
 					{ "appearance.cureFightKey2", indent = true },
-					-- Which cure the plain press, Shift and Ctrl cast.
-					{ "appearance.cureFightPlain", indent = true },
-					{ "appearance.cureFightShift", indent = true },
-					{ "appearance.cureFightCtrl", indent = true },
 				} },
-				-- Small buttons that light for a moment (Prompt/Moments.lua): a
-				-- mage's Counterspell, Blink, Ice Block and the rest.
-				{ key = "fight.moments", title = L["Buttons for the moment"], items = {
-					{ "appearance.momentsNote", standIn = true },
-					{ "appearance.momentPreview", buttons = true },
-					"appearance.momentCardSize",
-					"appearance.momentCounterspell", { "appearance.momentCounterspellKey", indent = true },
-					"appearance.momentSpellsteal", { "appearance.momentSpellstealKey", indent = true },
-				-- The other classes' spells that strip a buff from a hostile target.
-				"appearance.momentPurge", { "appearance.momentPurgeKey", indent = true },
-				"appearance.momentDispel", { "appearance.momentDispelKey", indent = true },
-				"appearance.momentTranq", { "appearance.momentTranqKey", indent = true },
-				"appearance.momentShieldslam", { "appearance.momentShieldslamKey", indent = true },
-					"appearance.momentBlink", { "appearance.momentBlinkKey", indent = true },
-					"appearance.momentIceblock", { "appearance.momentIceblockKey", indent = true },
-					"appearance.momentColdsnap", { "appearance.momentColdsnapKey", indent = true },
-					"appearance.momentHealth",
-					"appearance.momentEvocation", { "appearance.momentEvocationKey", indent = true },
-					"appearance.momentManagem", { "appearance.momentManagemKey", indent = true },
-					"appearance.momentDrink", { "appearance.momentDrinkKey", indent = true },
-					"appearance.momentMana",
-					"appearance.momentSlowfall", { "appearance.momentSlowfallKey", indent = true },
-					"appearance.momentFireward", { "appearance.momentFirewardKey", indent = true },
-					"appearance.momentFrostward", { "appearance.momentFrostwardKey", indent = true },
-				} },
-			},
-			subpages = {
-				{ "fight.prompt" },
-				{ "fight.buttons" },
-				{ "fight.moments" },
 			},
 		},
 
@@ -1167,8 +1128,6 @@ ns.WindowLayout = {
 					{ "diagnostics.noErrors", standIn = true },
 				} },
 				{ key = "diagnostics.report", header = "diagnostics.reportHeader", items = {
-					-- Report a bug (Options/BugReport.lua): the walk-through.
-					{ "diagnostics.reportBug", big = true },
 					-- Which of the two buttons a player asked for a report wants.
 					"diagnostics.reportHint",
 					-- The one press a player asked for a report needs.
@@ -1176,8 +1135,6 @@ ns.WindowLayout = {
 					{ "diagnostics.copyReport", buttons = true },
 					-- /manners selftest launch, beside the short summary.
 					{ "diagnostics.launchCheck", buttons = true },
-					-- The key for Mark this moment, a game key binding.
-					"diagnostics.markKey",
 					"diagnostics.report",
 					"diagnostics.selftest",
 					-- For working out a failed cast: under the buttons.
@@ -1203,7 +1160,6 @@ ns.WindowLayout = {
 			-- its resurrection, its cure for the group, and asking for a buff.
 			["who.courtesyRefresh"] = true, ["who.courtesyPortals"] = true,
 			["who.courtesyHealthstones"] = true, ["who.courtesySummons"] = true,
-			["who.courtesyTarget"] = true, ["who.courtesyAmount"] = true,
 			["who.res"] = true, ["who.cures"] = true, ["who.ask"] = true, ["who.askOwn"] = true,
 			["who.choice"] = true, ["who.autoNote"] = true, ["who.pinNote"] = true,
 			["who.self"] = true,
@@ -1254,26 +1210,7 @@ ns.WindowLayout = {
 			["appearance.fightButtons"] = true,
 			["appearance.cureFight"] = true, ["appearance.cureFightKey"] = true,
 			["appearance.cureFightEach"] = true, ["appearance.cureFightKey2"] = true,
-			["appearance.cureFightPlain"] = true, ["appearance.cureFightShift"] = true, ["appearance.cureFightCtrl"] = true,
 			["appearance.fightKeySpell"] = true, ["appearance.fightKeyOn"] = true,
-			-- The buttons for the moment, each key under its switch.
-			["appearance.momentCounterspell"] = true, ["appearance.momentCounterspellKey"] = true,
-			["appearance.momentSpellsteal"] = true, ["appearance.momentSpellstealKey"] = true,
-			["appearance.momentPurge"] = true, ["appearance.momentPurgeKey"] = true,
-			["appearance.momentDispel"] = true, ["appearance.momentDispelKey"] = true,
-			["appearance.momentTranq"] = true, ["appearance.momentTranqKey"] = true,
-			["appearance.momentShieldslam"] = true, ["appearance.momentShieldslamKey"] = true,
-			["appearance.momentBlink"] = true, ["appearance.momentBlinkKey"] = true,
-			["appearance.momentIceblock"] = true, ["appearance.momentIceblockKey"] = true,
-			["appearance.momentColdsnap"] = true, ["appearance.momentColdsnapKey"] = true,
-			["appearance.momentEvocation"] = true, ["appearance.momentEvocationKey"] = true,
-			["appearance.momentManagem"] = true, ["appearance.momentManagemKey"] = true,
-			["appearance.momentDrink"] = true, ["appearance.momentDrinkKey"] = true,
-			["appearance.momentSlowfall"] = true, ["appearance.momentSlowfallKey"] = true,
-			["appearance.momentFireward"] = true, ["appearance.momentFirewardKey"] = true,
-			["appearance.momentFrostward"] = true, ["appearance.momentFrostwardKey"] = true,
-			["appearance.momentHealth"] = true, ["appearance.momentMana"] = true, ["appearance.momentsNote"] = true,
-			["appearance.momentPreview"] = true, ["appearance.momentCardSize"] = true,
 		},
 	},
 
@@ -1385,9 +1322,6 @@ ns.WindowLayout = {
 		["when.selfLead"] = { kind = "minutes", zero = L["Automatic"] },
 		["when.refreshRaid"] = { kind = "times" },
 		["when.manaFloor"] = { kind = "percent", zero = L["Off"] },
-		["appearance.momentHealth"] = { kind = "percent" },
-		["appearance.momentMana"] = { kind = "percent" },
-		["appearance.momentCardSize"] = { kind = "percent" },
 	},
 
 	-- Other words people search for a control by (WindowSearch.lua): ranked
@@ -1400,7 +1334,6 @@ ns.WindowLayout = {
 		["advanced.skipSeconds"] = L["skip longer right click not now ignore"],
 		["general.verbose"] = L["quiet mute spam"],
 		["who.ownScrolls"] = L["hide familiar imbue"],
-		["who.courtesyTarget"] = L["water food conjure mage trade target"],
 		["who.ownFoodOutside"] = L["food well fed outside world leveling levelling experience"],
 		["who.ownHoldMoving"] = L["moving move running run walking jump still hold"],
 		-- Asked for as hiding "the window" in a fight.
@@ -1429,28 +1362,8 @@ ns.WindowLayout = {
 		["who.beastTraining"] = L["hunter pet training points"], ["appearance.mendInFight"] = L["hunter pet mend fight button key"],
 		["appearance.cureFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["appearance.cureFightEach"] = L["cure each second button druid poison curse fight"],
-		["appearance.cureFightPlain"] = L["cure plain press modifier spell fight"],
-		["appearance.cureFightShift"] = L["cure shift modifier second spell fight"],
-		["appearance.cureFightCtrl"] = L["cure ctrl control modifier third spell abolish fight"],
 		["appearance.fightKeySpell"] = L["fight combat key spell shield heal barrier"],
 		["appearance.fightButtons"] = L["fight button hide show dim invisible will forsaken mend pet"],
-		["appearance.momentPreview"] = L["preview test where see show card"],
-		["appearance.momentCardSize"] = L["bigger smaller scale size card"],
-		["appearance.momentCounterspell"] = L["counterspell interrupt kick cast target fight button moment"],
-		["appearance.momentIceblock"] = L["ice block health low fight button moment"],
-		["appearance.momentBlink"] = L["blink stun root fight button moment"],
-		["appearance.momentSpellsteal"] = L["spellsteal steal buff target fight button moment"],
-		["appearance.momentPurge"] = L["purge remove magic buff target fight button moment"],
-		["appearance.momentDispel"] = L["dispel magic purge remove buff target fight button moment"],
-		["appearance.momentTranq"] = L["tranquilizing shot enrage frenzy remove buff target fight button moment"],
-		["appearance.momentShieldslam"] = L["shield slam dispel magic buff target fight button moment"],
-		["appearance.momentColdsnap"] = L["cold snap ice block cooldown fight button moment"],
-		["appearance.momentEvocation"] = L["evocation mana low fight button moment"],
-		["appearance.momentManagem"] = L["mana gem agate jade citrine ruby low fight button moment"],
-		["appearance.momentDrink"] = L["drink water conjured mana low rest out of fight button moment"],
-		["appearance.momentSlowfall"] = L["slow fall falling feather button moment"],
-		["appearance.momentFireward"] = L["fire ward frost ward fight button moment"],
-		["appearance.momentFrostward"] = L["fire ward frost ward fight button moment"],
 		["who.curesFight"] = L["cure dispel decurse cleanse fight combat button key"],
 		["who.ownSpellAdd"] = L["custom spell add new buff own"],
 		-- The consumables button: asked for as the food and flask key.
@@ -1501,8 +1414,6 @@ ns.WindowLayout = {
 		["who.courtesyPortals"] = "who.asked",
 		["who.courtesyHealthstones"] = "who.asked",
 		["who.courtesySummons"] = "who.asked",
-		-- How much to trade, shown only while the target's offer is on.
-		["who.courtesyAmount"] = "who.courtesyTarget",
 		-- Dead passers-by too, shown only while My group's dead is on.
 		["who.resStrangers"] = "who.res",
 		-- How an ask is said, shown only while asking is on.
@@ -1545,26 +1456,7 @@ ns.WindowLayout = {
 		["appearance.cureFightKey"] = "appearance.cureFight",
 		["appearance.cureFightEach"] = "appearance.cureFight",
 		["appearance.cureFightKey2"] = "appearance.cureFightEach",
-		["appearance.cureFightPlain"] = "appearance.cureFight",
-		["appearance.cureFightShift"] = "appearance.cureFight",
-		["appearance.cureFightCtrl"] = "appearance.cureFight",
-		-- The keys of the buttons for the moment, each shown only while its switch is on.
-		["appearance.momentCounterspellKey"] = "appearance.momentCounterspell",
-		["appearance.momentBlinkKey"] = "appearance.momentBlink",
-		["appearance.momentIceblockKey"] = "appearance.momentIceblock",
-		["appearance.momentSpellstealKey"] = "appearance.momentSpellsteal",
-		["appearance.momentPurgeKey"] = "appearance.momentPurge",
-		["appearance.momentDispelKey"] = "appearance.momentDispel",
-		["appearance.momentTranqKey"] = "appearance.momentTranq",
-		["appearance.momentShieldslamKey"] = "appearance.momentShieldslam",
-		["appearance.momentColdsnapKey"] = "appearance.momentColdsnap",
-		["appearance.momentEvocationKey"] = "appearance.momentEvocation",
-		["appearance.momentManagemKey"] = "appearance.momentManagem",
-		["appearance.momentDrinkKey"] = "appearance.momentDrink",
-		["appearance.momentSlowfallKey"] = "appearance.momentSlowfall",
-		["appearance.momentFirewardKey"] = "appearance.momentFireward",
-		["appearance.momentFrostwardKey"] = "appearance.momentFrostward",
-		},
+	},
 
 	-- What else a control of `parents` needs before its switch would show it:
 	-- asked by search, which does not say "turn on" a switch that would show
@@ -1577,43 +1469,6 @@ ns.WindowLayout = {
 		["appearance.cureFightKey"] = function() return ns.ClassHasCures() and ns.CureLearned() end,
 		["appearance.cureFightEach"] = function() local l = ns.CureFightSpells() return l ~= nil and l[2] ~= nil end,
 		["appearance.cureFightKey2"] = function() local l = ns.CureFightSpells() return l ~= nil and l[2] ~= nil end,
-		["appearance.cureFightPlain"] = function() local l = ns.CureFightKnown() return l ~= nil and l[2] ~= nil end,
-		["appearance.cureFightShift"] = function() local l = ns.CureFightKnown() return l ~= nil and l[2] ~= nil end,
-		["appearance.cureFightCtrl"] = function() local l = ns.CureFightKnown() return l ~= nil and l[2] ~= nil end,
-		["appearance.momentCounterspell"] = function() return ns.Moments.Has("counterspell") end,
-		["appearance.momentCounterspellKey"] = function() return ns.Moments.Has("counterspell") end,
-		["appearance.momentBlink"] = function() return ns.Moments.Has("blink") end,
-		["appearance.momentBlinkKey"] = function() return ns.Moments.Has("blink") end,
-		["appearance.momentIceblock"] = function() return ns.Moments.Has("iceblock") end,
-		["appearance.momentIceblockKey"] = function() return ns.Moments.Has("iceblock") end,
-		["appearance.momentSpellsteal"] = function() return ns.Moments.Has("spellsteal") end,
-		["appearance.momentSpellstealKey"] = function() return ns.Moments.Has("spellsteal") end,
-		["appearance.momentPurge"] = function() return ns.Moments.Has("purge") end,
-		["appearance.momentPurgeKey"] = function() return ns.Moments.Has("purge") end,
-		["appearance.momentDispel"] = function() return ns.Moments.Has("dispel") end,
-		["appearance.momentDispelKey"] = function() return ns.Moments.Has("dispel") end,
-		["appearance.momentTranq"] = function() return ns.Moments.Has("tranq") end,
-		["appearance.momentTranqKey"] = function() return ns.Moments.Has("tranq") end,
-		["appearance.momentShieldslam"] = function() return ns.Moments.Has("shieldslam") end,
-		["appearance.momentShieldslamKey"] = function() return ns.Moments.Has("shieldslam") end,
-		["appearance.momentColdsnap"] = function() return ns.Moments.Has("coldsnap") end,
-		["appearance.momentColdsnapKey"] = function() return ns.Moments.Has("coldsnap") end,
-		["appearance.momentEvocation"] = function() return ns.Moments.Has("evocation") end,
-		["appearance.momentEvocationKey"] = function() return ns.Moments.Has("evocation") end,
-		["appearance.momentManagem"] = function() return ns.Moments.Has("managem") end,
-		["appearance.momentManagemKey"] = function() return ns.Moments.Has("managem") end,
-		["appearance.momentDrink"] = function() return ns.Moments.Has("drink") end,
-		["appearance.momentDrinkKey"] = function() return ns.Moments.Has("drink") end,
-		["appearance.momentSlowfall"] = function() return ns.Moments.Has("slowfall") end,
-		["appearance.momentSlowfallKey"] = function() return ns.Moments.Has("slowfall") end,
-		["appearance.momentFireward"] = function() return ns.Moments.Has("fireward") end,
-		["appearance.momentFirewardKey"] = function() return ns.Moments.Has("fireward") end,
-		["appearance.momentFrostward"] = function() return ns.Moments.Has("frostward") end,
-		["appearance.momentFrostwardKey"] = function() return ns.Moments.Has("frostward") end,
-		["appearance.momentHealth"] = function() return ns.Moments.Has("iceblock") or ns.Moments.Has("coldsnap") end,
-		["appearance.momentMana"] = function()
-			return ns.Moments.Has("evocation") or ns.Moments.Has("managem") or ns.Moments.Has("drink")
-		end,
 		["who.beastShare"] = function() return ns.Beast.Feeds() end,
 		["who.beastMendFight"] = function() return ns.Beast.KnowsMend() end,
 		["who.beastLeaveFood"] = function() return ns.Beast.Feeds() end,
@@ -1622,8 +1477,6 @@ ns.WindowLayout = {
 		["who.courtesyPortals"] = function() return ns.Courtesy.Has("courtesyPortals") end,
 		["who.courtesyHealthstones"] = function() return ns.Courtesy.Has("courtesyHealthstones") end,
 		["who.courtesySummons"] = function() return ns.Courtesy.Has("courtesySummons") end,
-		["who.courtesyTarget"] = function() return ns.Courtesy.Has("courtesyRefresh") end,
-		["who.courtesyAmount"] = function() return ns.Courtesy.Has("courtesyRefresh") end,
 		["click.mixedLines"] = function()
 			local db = ns.db and ns.db.profile
 			return ns.InCharacter ~= nil and ns.InCharacter.Active(db and db.speech)
@@ -1701,7 +1554,7 @@ do
 		for _, section in ipairs(page.sections) do
 			for _, item in ipairs(section.items) do
 				local path = type(item) == "table" and item[1] or item
-				if type(path) == "string" and (path:find("^who%.offer_") or path:find("^who%.swim_")
+				if type(path) == "string" and (path:find("^who%.offer_")
 					or (path:find("^who%.own_") and not path:find("^who%.own_leave"))) then
 					keep[path] = true
 				end

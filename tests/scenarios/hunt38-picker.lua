@@ -35,9 +35,7 @@ end
 -- Every region and frame under the prompt, with everything the recording tree
 -- remembers about it, as text; and each function the region carries of its own
 -- (a wrapped method shows as another function).
--- _kids is the mock's own list of children for Mock.clickAt, the tree's
--- _children by another name.
-local VOLATILE = { _children = true, _kids = true, _groups = true, _serial = true, _ft = true, _startedAt = true,
+local VOLATILE = { _children = true, _groups = true, _serial = true, _ft = true, _startedAt = true,
 	_name = true, _template = true }
 
 local function ser(v, depth)
@@ -360,19 +358,14 @@ local PAIR_RUNS = {
 	{ variant = VARIANTS[1], moment = MOMENTS[2], label = "outcome, fight, pick" },
 }
 
--- Only the fresh start in use is kept: each dump holds every region of a whole
--- session, and the pairs ask for one look's at a time, so keeping all
--- seventy-six of them kept seventy-six sessions alive.
 local BASES = {}
 local function baseOf(a, run, scenario)
 	local key = a .. "/" .. run.label
-	if BASES.key == key and BASES.dump then return BASES.dump end
-	BASES.key, BASES.dump = key, nil
-	-- A scenario the run left out loads nothing: the next one asks again.
+	if BASES[key] then return BASES[key] end
 	withTree(scenario, CROWD, function(ns)
-		BASES.dump = play(ns, scenario, run.variant, run.moment, a, nil)
+		BASES[key] = play(ns, scenario, run.variant, run.moment, a, nil)
 	end)
-	return BASES.dump
+	return BASES[key]
 end
 
 for _, run in ipairs(PAIR_RUNS) do

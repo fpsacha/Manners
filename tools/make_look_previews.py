@@ -25,13 +25,6 @@ against the look's own view, so the window lays its live icon and words where
 the smaller picture has them. A look not in FRAMES is cut as it always was, and
 its picture is the same bytes.
 
-The view. Every picture is 256 x 64, but the view it was cut from is as tall as its
-look's framing (62 units, 82 or 83 for a look in FRAMES, a painted look's own
-height), so the same picture shows a taller view smaller. Looks/Previews.lua
-records each view's height (ns.Looks.previewView, previewViewEarlier), and the
-cards of the buttons for the moment (Prompt/Moments.lua) are that high at Card
-size 100, so a look is as big on a card as on the prompt itself.
-
 The icon. The picture holds a tile where the look draws the spell icon, because
 the renderer has no game art; the options window lays the real icon over it
 live (the client draws it, nothing of Blizzard's is in a file here). So for each
@@ -146,11 +139,9 @@ STUB = """local _, ns = ...
 ns.Looks.previews = {}
 ns.Looks.previewIcon = {}
 ns.Looks.previewText = {}
-ns.Looks.previewView = {}
 ns.Looks.previewsEarlier = {}
 ns.Looks.previewIconEarlier = {}
 ns.Looks.previewTextEarlier = {}
-ns.Looks.previewViewEarlier = {}
 """
 # A look's second picture, of its earlier art, is Preview_<key> and this.
 EARLIER = "_earlier"
@@ -380,13 +371,6 @@ def icon_entry(snap):
             entry["round"] = True
             entry["mask"] = str(mask["file"])
     return entry
-
-
-def views(snaps):
-    """The height in units of the view every look's picture is cut from (framing),
-    for the cards of the moment buttons: a card's height at 100 percent is this, so
-    the look is as big on it as it is on the prompt."""
-    return {key: round(framing(snap)[0][1], 2) for key, snap in snaps.items()}
 
 
 def icons(snaps):
@@ -732,9 +716,8 @@ def text_table(name, written):
     return lines
 
 
-def manifest_text(keys, digest, entries, written, second=None, high=None):
-    """Looks/Previews.lua. `second`: the earlier art's (keys, entries, written).
-    `high`: the views' heights (views), the earlier art's second."""
+def manifest_text(keys, digest, entries, written, second=None):
+    """Looks/Previews.lua. `second`: the earlier art's (keys, entries, written)."""
     lines = [
         "-- Manners -- the looks that have a picture on the options window's cards.",
         "--",
@@ -773,15 +756,6 @@ def manifest_text(keys, digest, entries, written, second=None, high=None):
                 lines.append("\t\t%s = %s," % (name, lua_value(written[key][name])))
         lines.append("\t},")
     lines.append("}")
-    v1, v2 = high or ({}, {})
-    lines += [
-        "-- The height in units of the view each picture is cut from (the width is four times it):",
-        "-- the picture's icon and lines are fractions of it, so a card as high as this shows the",
-        "-- look at the size of the prompt itself (Prompt/Moments.lua, Card size 100).",
-        "ns.Looks.previewView = {",
-    ]
-    lines += ["	%s = %s," % (key, lua_value(v1[key])) for key in sorted(v1)]
-    lines.append("}")
     k2, e2, w2 = second or ([], {}, {})
     lines += [
         "-- The looks with an earlier art (Looks.HasEarlierArt), each with a second picture,",
@@ -794,9 +768,6 @@ def manifest_text(keys, digest, entries, written, second=None, high=None):
     lines += ["\t%s = %s," % (key, lua_entry(e2[key])) for key in sorted(e2)]
     lines.append("}")
     lines += text_table("previewTextEarlier", w2)
-    lines += ["ns.Looks.previewViewEarlier = {"]
-    lines += ["	%s = %s," % (key, lua_value(v2[key])) for key in sorted(v2)]
-    lines.append("}")
     lines += ['ns.Looks.previewHash = "%s"' % digest, ""]
     return "\n".join(lines)
 
@@ -917,7 +888,6 @@ def check():
         entries2 = icons(snaps2)
         held2 = read_icons("previewIconEarlier")
         held_text2 = read_icons("previewTextEarlier")
-        held_view, held_view2 = read_icons("previewView"), read_icons("previewViewEarlier")
         # Where a line's text sits is measured in a face, which needs Pillow and
         # the faces of the machine that drew the pictures: without it (CI's test
         # job) the text is taken as recorded, and the rest is still held to it.
@@ -938,8 +908,6 @@ def check():
         elif held_text2 is None or not same_icons(held_text2, lines2):
             problems.append("Looks/Previews.lua does not say where the looks' earlier art writes its name and "
                             "reason and how, as it does now")
-        elif held_view is None or not same_icons(held_view, views(snaps))                 or held_view2 is None or not same_icons(held_view2, views(snaps2)):
-            problems.append("Looks/Previews.lua does not say how tall the views of the pictures are, as they are now")
         elif digest != fingerprint(keys, snaps, entries, lines, (earlier, snaps2, entries2, lines2)):
             problems.append("the pictures were drawn from something that has changed since")
     for p in problems:
@@ -1227,7 +1195,7 @@ def main():
     digest = fingerprint(keys, snaps, entries, lines, (earlier, snaps2, entries2, lines2))
     target = os.path.join(out, "Previews.lua") if args.out else MANIFEST
     with open(target, "w", encoding="utf-8", newline="") as f:
-        f.write(manifest_text(keys, digest, entries, lines, (earlier, entries2, lines2), (views(snaps), views(snaps2))))
+        f.write(manifest_text(keys, digest, entries, lines, (earlier, entries2, lines2)))
     print("  %s" % os.path.relpath(target, ROOT) if not args.out else "  " + target)
 
 

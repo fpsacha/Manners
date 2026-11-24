@@ -263,17 +263,14 @@ do
 					return
 				end
 
-				-- In groups: the state, the people, the prompt, the options. Where
-				-- the buttons for the moment sit is a preview too, beside the
-				-- prompt's, for a character with one switched on (a mage, here).
+				-- In groups: the state, the people, the prompt, the options.
 				local shape = {}
 				for _, item in ipairs(menu.items) do
 					shape[#shape + 1] = item.divider and "|" or tostring(item.text)
 				end
 				shape = table.concat(shape, " / ")
-				local where = ns.Moments and ns.Moments.AnyArmed() and "Show where the buttons for the moment sit / " or ""
 				local want = "Manners / Enable / Snooze / | / Who's next / Open the ledger / | / "
-					.. "Preview the prompt / " .. where .. "Prompt / Show what Manners is doing in my chat window / Hide all Manners messages in my chat window / Profiles / | / Report a bug / Mark this moment / Options"
+					.. "Preview the prompt / Prompt / Show what Manners is doing in my chat window / Hide all Manners messages in my chat window / Profiles / | / Options"
 				if shape ~= want then
 					fail(scenario, "the menu is not grouped as it should be: " .. shape)
 				end

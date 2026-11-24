@@ -272,8 +272,8 @@ too.
 #### Curing in a fight
 
 A class with a cure can tick *Show my cure on a button in a fight, only while
-somebody needs it* (*In a fight*, on; *Who to buff*, *Resurrection and cures*,
-points there). It gives a small button right of the prompt (or of the Will of the
+somebody needs it* (*In a fight*, on; also under *Who to buff*, *Resurrection
+and cures*). It gives a small button right of the prompt (or of the Will of the
 Forsaken button), with *Key for my cure in a fight* under the switch. It is
 never on screen for nothing: it appears only while Manners sees you, your
 target or somebody in your group, in reach and alive, carrying a poison,
@@ -283,90 +283,14 @@ player under your mouse, else your target, else you; on WoW Forever your target
 when it is a friend, else you. A class with two cures (a druid, a priest or a
 shaman on the older clients) gets *A button for each cure* (on): the second
 button sits below the first, with *Key for my second cure in a fight*, and each
-shows only for the debuffs its cure removes. With it off there is one button.
-*Plain press*, *With Shift* and *With Ctrl* under the switch choose which cure
-the button and its key cast with no key held, with Shift and with Ctrl, from
-your class's own cures or *Nothing*: by default the first cure plain, the
-second on Shift, the third on Ctrl (a druid: Remove Curse, Cure Poison, Abolish
-Poison), and the key's tooltip names them. With a button for each cure, the
-Shift cure is the second button's. A debuff Manners never removes keeps the cure
-that would lift it away from that person. Where the game hides debuffs from
-addons in a fight (WoW Forever, retail), the game itself shows the debuff's icon
-on the cure button's place, with a border in its kind's colour, for you, your
-target or focus when a friend, and your group: Manners asks the game's own aura
-display for the debuffs your cures remove, of each button's kinds. Manners cannot
-see it, so there a click casts only as the second of two quick clicks (the
-first shows a ring and the cure's icon); the key casts at once. Where the game
-does hand the debuffs back, the button shows as above and one click casts. A
-click where the button is out of sight does nothing, so a stray click never
-casts it. `/manners debug` and the check-up say where the button learns who
-needs a cure: *from the game's aura display*, *from the auras* or *withheld*. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
+shows only for the debuffs its cure removes. With it off there is one button and
+Shift casts the second cure. A debuff Manners never removes keeps the cure that
+would lift it away from that person. Where the game hides debuffs in a fight
+(WoW Forever, retail) the button still appears when the game says you can
+remove one, in your group, on your target or on you, without naming the kind:
+it reads "a debuff you can remove", and with two buttons both show and you pick
+the cure. The prompt's own key keeps to buffs, unless *In a fight, my key casts*
 names a spell.
-
-#### Buttons for the moment
-
-A mage gets buttons, drawn as small prompts in your look and stacked above the
-prompt, that stay out of sight until their moment comes and then light with the
-spell, its name and the reason ("you are stunned", "your target is casting"):
-Counterspell while your target is casting something you can
-interrupt, Spellsteal while it carries a buff you can steal (Burning Crusade and
-later), Blink when you are stunned or rooted, Ice Block when your health drops
-under *Health below*, Cold Snap when you need Ice Block and it is cooling down,
-Evocation and your mana gem when your mana drops under *Mana below*, Slow Fall
-once you have been falling for a second (in a fight or out of one), and Fire
-Ward and Frost Ward when your target casts a fire or frost spell (where the game
-names the spell, as Classic Era and Burning Crusade do; on WoW Forever Manners
-asks the game to light the ward from the spell it hides, and it then takes two
-quick clicks), and as soon as fire or frost damage hits you while your target is
-hostile. Each has a switch and a key of its own
-under *Buttons for the moment* on *In a fight*; a spell you have not learned
-shows nothing, and a button is out of sight while its spell cools down. A press
-stops your own cast first where that helps, so it fires at once. With no key
-set you click the lit button, and a click where a button is out of sight does
-nothing. Where the game hides your health or mana from addons in a fight, the
-game itself lights Ice Block, Cold Snap, Evocation and the gem, and where it
-hides whether your target's cast can be interrupted or a buff can be stolen it
-lights Counterspell and Spellsteal: they then take two quick clicks, so one
-stray click never casts. The first click shows a ring and the spell's icon, the
-second, a third of a second or more later, casts; a double click does not. A key
-always casts at once. *Show the fight buttons* does not change them: none is ever on the screen
-without its moment.
-
-Each button is a card of your look: its own picture (the one on the Look page),
-with the spell's icon, its name and the reason written over it in the look's own
-fonts and colours, above the prompt, nearest first, clear of the list of names and
-of the buttons beside the prompt; below it where there is no room above. A look
-keeps its moving art on the one prompt, so a card does not move; it pulses.
-*Card size* (80 to 150 percent; at the default 100 a card shows your look as big
-as the prompt itself) makes them bigger. A card takes clicks over its icon alone,
-so the rest of it, dark or lit, lets them through to the world. *Show where the
-buttons for the moment sit*, on the same page and in the minimap menu, lights
-every one that is switched on for a few seconds, marked as a preview, out of a
-fight, so you can see where each sits; nothing casts from it. Blink, Counterspell,
-Ice Block and Cold Snap light the moment the need is seen, even while the global
-cooldown runs (a real cooldown still holds them dark), with no fade.
-A shaman, a priest, a hunter and a warrior get the same kind of button for the
-spell that strips a buff from a hostile target: Purge, Dispel Magic,
-Tranquilizing Shot and Shield Slam (*Show Purge when my target has a buff I can
-remove*, and so on, under *Buttons for the moment*). It lights while your target
-is in reach, the spell is ready and the target carries a buff that spell
-removes: a magic one for Purge, Dispel Magic and Shield Slam, an enrage for
-Tranquilizing Shot (and a magic buff too on Mists of Pandaria and retail, where
-the shot takes those). Where the game hides the buffs in a fight, the game
-itself lights it from its own word on what you can remove, and it then takes two
-quick clicks. Shield Slam's switch starts off, since a warrior presses it anyway;
-retail's Shield Slam no longer dispels and has no button.
-
-Every class with mana also gets a drink button, for out of a fight: it lights
-while your mana is under *Mana below*, you stand still (not moving, mounted,
-swimming or in a form) and a drink is in your bags, and is out of sight in a
-fight and while you are drinking already. A press drinks the best one you carry:
-a mage's conjured water first, the best your level allows, then any other drink.
-Where the game keeps your mana from addons, the game itself lights it, and it
-takes two quick clicks, with a dim icon on the screen so you can see the
-button is there; a key always drinks at once. *Show a drink when my mana
-is low out of a fight*, with its key, sits under *Buttons for the moment*. Your
-own Evocation and mana gem stay for fights, where their long cooldowns count.
 
 #### A spell on your key in a fight
 
@@ -791,14 +715,6 @@ rules. Never in a fight.
   prompt. With none in your bags that suits their level, the first press
   conjures it; the next targets them and opens a trade with it already in
   the window. Accepting the trade stays yours.
-- *Offer water and food to my target* (mages, needs no chat): out of a
-  fight, a friendly player you target is offered what suits their level, or
-  food alone for a class without mana. The same two steps, conjure then trade;
-  who was traded with or skipped is left alone for ten minutes.
-- *How much to trade* (mages): *Fill the trade window* (the default) puts in
-  as many stacks of what suits them as the window and your bags hold, water and
-  food in turn, for your target and for somebody who asked alike; *One stack*
-  puts one of each.
 - *Portals, when my group asks* (mages): a member of your party or raid who
   names a city ("port to Orgrimmar pls") is offered that portal.
 - *Healthstones, when they ask* (warlocks): as water, with a trade. On Mists
@@ -1160,11 +1076,6 @@ no room for. Defaults are in brackets.
   Intellect." instead.
   - Shadow Protection (Classic Era, WoW Forever, Burning Crusade) and a
     warlock's *Detect Invisibility (your group only)* start unticked.
-  - A warlock's *Fire Shield from my imp on the tank* (Classic Era, WoW
-    Forever, Burning Crusade) starts unticked too. Ticked, while your imp is
-    out and knows Fire Shield, the tank of your party (whoever the game gives
-    the tank role) is offered it, and a press has your imp cast it on them.
-    Somebody in your party who asks for it by name gets it as well.
   - A buff the game would refuse for somebody's level (more than ten levels
     under its lowest rank) is passed over for the next one that reaches them.
   - A druid's Thorns has *Offer to*: *Everyone*; *Tanks only* (the players in
@@ -1185,11 +1096,7 @@ no room for. Defaults are in brackets.
   - A warlock's Unending Breath goes to everybody, your group and passers-by,
     with *Offer Unending Breath to everybody near me* (on) on Classic Era,
     WoW Forever and Burning Crusade. Unticked, it goes to return a favour
-    and to whoever asks for it by name. *Offer Unending Breath to others only
-    while I am swimming* (off), under it on every client, holds it to the
-    water: your group and passers-by are offered it only while you swim and for
-    a moment after, a favour you return with it and a request by name still go,
-    and your own reminder is unchanged.
+    and to whoever asks for it by name.
   - **Paladins.** Blessings overwrite one another, so anybody already
     carrying one of yours is left alone rather than handed a different one.
     *A blessing for each class*, under *Buff order*: pick a class, then the
@@ -1214,8 +1121,7 @@ no room for. Defaults are in brackets.
   the group with other Manners users* (on).
 - ***Resurrection and cures***: *Resurrect my group's dead* (on) with *Dead passers-by too*
   (off); *Cure my party and raid*, *Cure passers-by* and *Cure myself too* (all
-  off) with *Only when it has at least this long left* (10). The cure button for
-  a fight is set on *In a fight*; a line here points there.
+  off) with *Only when it has at least this long left* (10).
 - Your own buffs and a hunter's pet are not here: they have *My own buffs* and
   *My pet*, below.
 - ***Other people's buffs*** (folded): the paladin, Fish Bowl and campsite
@@ -1509,8 +1415,7 @@ with two sections: ***The prompt in a fight*** and ***Buttons for when you need 
 - *Show my cure on a button in a fight, only while somebody needs it* (on, a
   class with a cure), with *Key for my cure in a fight* under it; *A button for
   each cure* (on, a class with two cures) and *Key for my second cure in a
-  fight*; *Plain press*, *With Shift* and *With Ctrl* (a class with two cures
-  or more): see *Curing in a fight* above.
+  fight*: see *Curing in a fight* above.
 
 ### Look
 
@@ -1638,9 +1543,9 @@ profiles of your own.
   of my own and the last cast judged.
 - ***Errors this session***: what has broken; past five, *Show every error*
   lists them all in chat.
-- ***Reporting a bug***: **Report a bug**, **Run a full check-up**, *Show a
-  short summary*, *Key for Mark this moment*, *Test how Manners looks in this
-  game* and *Log every click (noisy)*. See *Troubleshooting* below.
+- ***Reporting a bug***: **Run a full check-up**, *Show a short summary*,
+  *Test how Manners looks in this game* and *Log every click (noisy)*. See
+  *Troubleshooting* below.
 
 ## Commands
 
@@ -1675,8 +1580,6 @@ Sharing settings
 When something is wrong
 /manners debug              what your class and this build allow, your added spells and the last cast judged
 /manners errors [all]       the last few things that broke, if any did (all: every one kept)
-/manners bug                open Report a bug: what went wrong, a link to GitHub and the report to paste
-/manners mark               mark this moment for a bug report, even in a fight
 /manners selftest [launch]  check Manners against your game, with a report to paste (also /manners check)
 /manners dev                tools for testing the addon on this client: the click log, try, look and forms
 /manners help               this list, grouped the same way
@@ -1716,7 +1619,7 @@ On WoW Forever and Classic Era:
 | Druid | Mark of the Wild, Thorns |
 | Paladin | Wisdom, Might, Kings; Salvation (your party or raid only), Light and Sanctuary on Classic Era and Burning Crusade; Beacon of Light (Season of Discovery) or Oath of Light (WoW Forever), for your tank |
 | Shaman | Earth Shield and Spirit of the Alpha (Season of Discovery), for your tank |
-| Warlock | Unending Breath (or, with its switch unticked, only to return a favour and to whoever asks for it by name); Detect Invisibility for your party or raid, off until you tick it; Fire Shield from your imp on your party's tank, off until you tick it |
+| Warlock | Unending Breath (or, with its switch unticked, only to return a favour and to whoever asks for it by name); Detect Invisibility for your party or raid, off until you tick it |
 | Warrior | Battle Shout (your own party; your whole raid on WoW Forever); Commanding Shout too in Season of Discovery |
 
 Mages, priests, druids and paladins also cast the group version of a buff
@@ -1881,53 +1784,22 @@ works here registers `"AnyDown"`.
 
 ### Reporting a bug
 
-Press **Report a bug**: on Diagnostics, as the button with the Diagnostics icon
-at the foot of the options window, in the minimap menu, or with `/manners bug`.
-It opens one window that walks you through it:
-
-1. Choose what went wrong (the prompt never showed up, the wrong buff or
-   person, a fight button, the options window, an error message, something
-   else) and add a few words if you like.
-2. Press **Make the report**. Two boxes appear, each with a **Select all**
-   button: press Ctrl+C after it.
-3. Open the first, a link, in your browser: it opens the issue form on GitHub
-   with the category, your class, the game and the version already filled in.
-   Paste the second, the report, into the form's check-up box. No GitHub
-   account? A comment on the Manners page on CurseForge works too.
-
-The link holds no names: yours, your realm and your guild are left out of it,
-and so is everybody else the report knows. In a fight the full report waits for
-the fight to end; the short summary, and the link, work at once. When Manners
-hits an error it says so in chat once a session, with a **Report it** link that
-opens the same window.
-
-**Mark this moment** is for the second something goes wrong, in a fight too:
-press its key (set it on Diagnostics, *Key for Mark this moment*), or use the
-minimap menu, or `/manners mark`. The report then shows what Manners saw at that
-instant: what the prompt held, or what kept it back, the first of the queue, and
-which fight buttons were up. Each fight's end adds one line of what it did, and
-a change in the reason the prompt is held back is noted as it happens.
-
-By hand it still works: **Run a full check-up** on Diagnostics puts the same
-report in a box; click in it, press Ctrl+A then Ctrl+C, and paste it into a
-comment on CurseForge or an issue from
-[the templates](https://github.com/fpsacha/Manners/issues/new/choose).
+Please send a log with it: it turns a guess into a fix. Open the options
+(`/manners`), go to **Diagnostics**, press **Run a full check-up**, click in the
+box, press Ctrl+A then Ctrl+C, and paste it into a comment on CurseForge or an
+issue from [the templates](https://github.com/fpsacha/Manners/issues/new/choose)
+(*Something misbehaved* for a bug, *A class cast, or did not* for how a class
+went), with a few words on what went wrong. Run it right after the bug if you
+can.
 
 The check-up holds the build and what this client allows, the self-test
 below, what `/manners debug` and `/manners errors` say, your own buffs'
 reasons, the queue with each person's reason, where you are, the bar macro,
-the other addons loaded, your settings, and a trail of the last 300 things
+the other addons loaded, your settings, and a trail of the last 200 things
 Manners saw and did, kept through a `/reload`. Other players are named
 "Person 1", "Person 2" and so on throughout, so it is safe to paste in
 public. Nothing is said to anybody and nothing is changed. *Show a short
 summary* is the short version.
-
-When the game does not say who buffed you, the check-up also counts the casts
-Manners heard from others (players and mobs alike) and how many of them the game kept back, and
-says when a buff was read too long after it landed to match a cast. Each loss of
-control is one line on the trail, with whether the break-free button lit, and
-the cure button's line says whether the game's list of debuffs you can remove is
-there and what it answered.
 
 ### Checking Manners against your game
 

@@ -72,7 +72,7 @@ mutate("Courtesy.lua",
 # A trade no press asked for is left alone: nothing goes into the one they
 # opened themselves.
 mutate("Courtesy.lua",
-       "\tif not set then return end\n\tlocal now = GetTime()\n\t-- No press came first",
+       "\tif not (set and list) then return end\n\tlocal now = GetTime()\n\t-- No press came first",
        "\tif true then return end\n\tlocal now = GetTime()\n\t-- No press came first",
        "courtesy-review: a trade the asker opened gets nothing",
        expect=THEIRS, script=S)

@@ -195,13 +195,13 @@ GREY = "theme-picker: a greyed-out control greys the icons too, and a look with 
 DATA = "theme-picker: the icon data covers every registered look, and is held current by the hash"
 HASH = "theme-picker: the pictures were drawn from the looks as they are now"
 
-mutate("Looks/CardArt.lua", '\ticon:SetPoint("TOPLEFT", card.anchor, "TOPLEFT", at.l * w, -at.t * h)\n',
-       '\ticon:SetPoint("TOPLEFT", card.anchor, "TOPLEFT", at.l * w, -at.t * w)\n',
+mutate(T, '\ticon:SetPoint("TOPLEFT", card.ground, "TOPLEFT", at.l * w, -at.t * h)\n',
+       '\ticon:SetPoint("TOPLEFT", card.ground, "TOPLEFT", at.l * w, -at.t * w)\n',
        "theme-picker: the icon's top edge is measured in the picture's width",
        expect=PLACE, script=S)
 
-mutate("Looks/CardArt.lua", '\ticon:SetPoint("BOTTOMRIGHT", card.anchor, "TOPLEFT", at.r * w, -at.b * h)\n',
-       '\ticon:SetPoint("BOTTOMRIGHT", card.anchor, "TOPLEFT", at.r * w, -at.t * h)\n',
+mutate(T, '\ticon:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", at.r * w, -at.b * h)\n',
+       '\ticon:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", at.r * w, -at.t * h)\n',
        "theme-picker: the icon is as short as its top edge",
        expect=PLACE, script=S)
 
@@ -210,7 +210,7 @@ mutate(T, "\t\t\t\tcard.picW, card.picH = s.inner, s.shotH\n\t\t\t\tPlaceIcon(ca
        "theme-picker: the icon is not placed again when the cards are laid out at another width",
        expect=PLACE, script=S)
 
-mutate("Looks/CardArt.lua", "\tcard.iconFile = file\n\ticon:SetTexture(file)\n\tlocal crop = at.crop or CROP\n"
+mutate(T, "\tcard.iconFile = file\n\ticon:SetTexture(file)\n\tlocal crop = at.crop or CROP\n"
           "\ticon:SetTexCoord(crop[1], crop[2], crop[3], crop[4])\n\tShapeIcon(card, at)\n\tPlaceIcon(card)\n",
        "\tcard.iconFile = file\n\ticon:SetTexture(file)\n\tlocal crop = at.crop or CROP\n"
        "\ticon:SetTexCoord(crop[1], crop[2], crop[3], crop[4])\n\tShapeIcon(card, at)\n",
@@ -235,29 +235,29 @@ mutate(T, "\treturn UNKNOWN\nend\n", "\treturn 135932\nend\n",
        "theme-picker: a character with no buff wears a mage's spell",
        expect=NONE, script=S)
 
-mutate("Looks/CardArt.lua", "\tlocal crop = at.crop or CROP\n", "\tlocal crop = { 0, 1, 0, 1 }\n",
+mutate(T, "\tlocal crop = at.crop or CROP\n", "\tlocal crop = { 0, 1, 0, 1 }\n",
        "theme-picker: the icon is not cropped as the prompt crops it",
        expect=OWN, script=S)
 
-mutate("Looks/CardArt.lua", "\ticon:SetTexCoord(crop[1], crop[2], crop[3], crop[4])\n", "",
+mutate(T, "\ticon:SetTexCoord(crop[1], crop[2], crop[3], crop[4])\n", "",
        "theme-picker: the icon is not cropped at all",
        expect=OWN, script=S)
 
-mutate("Looks/CardArt.lua", "\tlocal round = at and at.round and at.mask and card.owner.CreateMaskTexture and icon.AddMaskTexture\n",
+mutate(T, "\tlocal round = at and at.round and at.mask and card.CreateMaskTexture and icon.AddMaskTexture\n",
        "\tlocal round = nil\n",
        "theme-picker: a round look's icon is left square",
        expect=MASK, script=S)
 
-mutate("Looks/CardArt.lua", "\tlocal round = at and at.round and at.mask and card.owner.CreateMaskTexture and icon.AddMaskTexture\n",
-       "\tlocal round = at and card.owner.CreateMaskTexture and icon.AddMaskTexture\n",
+mutate(T, "\tlocal round = at and at.round and at.mask and card.CreateMaskTexture and icon.AddMaskTexture\n",
+       "\tlocal round = at and card.CreateMaskTexture and icon.AddMaskTexture\n",
        "theme-picker: a square look's icon is masked as well",
        expect=MASK, script=S)
 
-mutate("Looks/CardArt.lua", "\telseif card.masked then\n", "\telseif false then\n",
+mutate(T, "\telseif card.masked then\n", "\telseif false then\n",
        "theme-picker: a card that stops being round keeps its mask",
        expect=MASK, script=S)
 
-mutate("Looks/CardArt.lua", "\t\tcard.mask:SetAllPoints(icon)\n", "\t\tcard.mask:SetAllPoints(card)\n",
+mutate(T, "\t\tcard.mask:SetAllPoints(icon)\n", "\t\tcard.mask:SetAllPoints(card)\n",
        "theme-picker: the mask covers the card and not the icon",
        expect=MASK, script=S)
 
@@ -269,7 +269,7 @@ mutate(T, "\tcard.icon:SetAlpha(off and 0.5 or 1)\n", "\tcard.icon:SetAlpha(1)\n
        "theme-picker: a greyed-out card's icon is not dimmed",
        expect=GREY, script=S)
 
-mutate("Looks/CardArt.lua", "\t\tcard.iconFile = nil\n\t\ticon:Hide()\n", "\t\tcard.iconFile = nil\n",
+mutate(T, "\t\tcard.iconFile = nil\n\t\ticon:Hide()\n", "\t\tcard.iconFile = nil\n",
        "theme-picker: a look with no picture has an icon over its placeholder",
        expect=GREY, script=S)
 
@@ -277,12 +277,12 @@ mutate(T, "\t\tlocal spell = BuffIcon()\n", "\t\tlocal spell = row.spell or Buff
        "theme-picker: the icon is worked out once and never again",
        expect=SET, script=S)
 
-mutate("Looks/CardArt.lua", "\tcard.iconFile = file\n\ticon:SetTexture(file)\n",
+mutate(T, "\tcard.iconFile = file\n\ticon:SetTexture(file)\n",
        "\tcard.iconFile = file\n\ticon:SetTexture(file)\n\tC_Timer.After(1, function() end)\n",
        "theme-picker: painting a card parks a timer",
        expect=SET, script=S)
 
-mutate("Looks/CardArt.lua", '\ticon:SetPoint("TOPLEFT", card.anchor, "TOPLEFT", at.l * w, -at.t * h)\n',
+mutate(T, '\ticon:SetPoint("TOPLEFT", card.ground, "TOPLEFT", at.l * w, -at.t * h)\n',
        '\ticon:SetPoint("TOPLEFT", ns.Prompt:GetButton(), "TOPLEFT", at.l * w, -at.t * h)\n',
        "theme-picker: the icon is anchored to the prompt",
        expect="theme-picker: nothing in the picker is secure, runs on a timer, or hangs off the prompt", script=S)
@@ -332,25 +332,25 @@ mutate("tools/make_look_previews.py", "    cx, cy = (brect[0] + brect[2]) / 2, (
 # --- the serif on a card ------------------------------------------------------
 SERIF = "theme-picker: a card writes a look's serif only at twelve units or more"
 
-mutate("Looks/CardArt.lua",
+mutate("Options/Window/WidgetsTheme.lua",
        "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) else least = math.max(least, SERIF_MIN) end\n",
        "\t\tleast = math.max(least, 0)\n",
        "theme-picker: a look's serif is written on a card however small the card's picture makes it",
        expect=SERIF, script=S)
 
-mutate("Looks/CardArt.lua",
+mutate("Options/Window/WidgetsTheme.lua",
        "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) else least = math.max(least, SERIF_MIN) end\n",
        "\t\tif base < SERIF_MIN then path = LineFace(PLAIN) end\n",
        "theme-picker: a serif line too wide for its rectangle is fitted under the size it reads at",
        expect=SERIF, script=S)
 
-mutate("Looks/CardArt.lua",
+mutate("Options/Window/WidgetsTheme.lua",
        "local SERIF_MIN = 12\n",
        "local SERIF_MIN = 14\n",
        "theme-picker: the cards drop their look's serif at the window's first size",
        expect=SERIF, script=S)
 
-mutate("Looks/CardArt.lua",
+mutate("Options/Window/WidgetsTheme.lua",
        "local SERIF_MIN = 12\n",
        "local SERIF_MIN = 9\n",
        "theme-picker: the serif is written on a card at nine units, where nobody reads it",

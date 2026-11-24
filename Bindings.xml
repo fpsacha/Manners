@@ -13,18 +13,4 @@
 	<Binding name="CLICK MannersCureFight:LeftButton" category="Manners"/>
 	<!-- The second cure's button, for a class with two cures (A button for each cure). -->
 	<Binding name="CLICK MannersCureFight2:LeftButton" category="Manners"/>
-	<!-- Mark this moment (Options/BugReport.lua): a plain button, so it works in a fight. -->
-	<Binding name="CLICK MannersMark:LeftButton" category="Manners"/>
-	<!-- The buttons for the moment (Prompt/Moments.lua): eleven slots, named for the spell each holds. -->
-	<Binding name="CLICK MannersMoment1:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment2:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment3:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment4:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment5:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment6:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment7:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment8:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment9:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment10:LeftButton" category="Manners"/>
-	<Binding name="CLICK MannersMoment11:LeftButton" category="Manners"/>
 </Bindings>

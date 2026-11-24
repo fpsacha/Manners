@@ -21,22 +21,14 @@
 -- friendly target, else on you. No /target, no spoken line, no hand-back; only
 -- the left button casts.
 --
--- WHICH CURE ON WHICH MODIFIER. The first button's macro casts one cure on the
--- plain press, one with Shift and one with Ctrl, each the player's choice
--- (prompt.cureFightMods, per class: Plain press, With Shift, With Ctrl under the
--- switch on In a fight; "Nothing" allowed). Unchosen, the class's first cure is
--- plain, its second on Shift, its third on Ctrl (a druid: Remove Curse, Cure
--- Poison, Abolish Poison; ns.CureFightKnown). The clauses go Ctrl first:
---     /cast [mod:ctrl] Abolish Poison; [mod:shift] Cure Poison; Remove Curse
--- A clause is left off while a key bound with that modifier in it would always
--- hold it down, and Ctrl's, then Shift's, when the macro would pass 255.
---
--- A class with two cures gets, with prompt.cureFightEach on (the default), a
--- button for each: MannersCureFight casts the plain press's cure (Shift and
--- Ctrl still on its macro), MannersCureFight2 the Shift cure, below it, with a
--- key of its own, and each shows only for the kinds its cure takes off. With the
--- switch off, or a class with one cure, there is one button. Both are SLOTS
--- below: one table each, one header drives both.
+-- A class with two cures (a druid, a priest or a shaman on the older clients,
+-- a retail restoration druid) gets, with prompt.cureFightEach on (the default),
+-- a button for each: MannersCureFight casts the first cure, MannersCureFight2
+-- the second, below it, with a key of its own, and each shows only for the kinds
+-- its cure takes off. With the switch off, or a class with one cure, there is
+-- one button and the second cure is on Shift, the same clause under
+-- [mod:shift,...] in front. Both are SLOTS below: one table each, one header
+-- drives both.
 --
 -- WHAT MOVES IN A FIGHT, AND WHAT DOES IT
 --
@@ -46,15 +38,10 @@
 -- first button (and the second, when manners-two is set) at the pull at alpha
 -- 0 for every fight, and hides them after. Lua never shows, hides, moves or
 -- arms either under the lockdown; it paints only their own alpha, text and
--- textures, which the client allows in a fight. A click casts only while the
--- button is on the screen: while it is out of sight an unprotected COVER frame
--- over it swallows the click (a frame that is not protected can be shown and
--- hidden in a fight, and a mouse-enabled frame above takes the click instead of
--- the one below), and it comes down when somebody needs a cure, dim or bright:
--- visible means clickable. With a key bound the button takes no mouse and no
--- cover is used. A key casts whether its button is shown or not. If a click
--- ever reaches the button with the cover standing over it and no key bound, it
--- is counted (db.global.cureCoverLeaks) and /manners debug says so.
+-- textures, which the client allows in a fight. A click on an empty place in a
+-- fight still casts, since alpha 0 takes clicks and the mouse of a protected
+-- frame cannot be changed in combat; a key casts whether its button is shown
+-- or not.
 --
 -- WHAT IT KNOWS, AND WHERE IT CANNOT
 --
@@ -74,21 +61,6 @@
 -- the client's name: if the client hands the debuffs back plain, the kind is
 -- read as on any client. /manners debug counts the reads, the withheld reads
 -- and those seen from the game's list in the last fight.
---
--- WHERE ONLY THE GAME KNOWS. On Forever 1.60.1 the game's list throws for an
--- addon in a fight too, so every read is withheld. There each button gets the
--- game's own aura display under it (Prompt/CureNeed.lua): containers of the
--- game's that show, on the button's place, the icon of a debuff you can remove
--- on you, your target, focus or your group, of the button's kinds. Lua does not
--- know whether one shows, so the button stays out of sight and its cover up, and
--- a click casts only as the second of two (as the moment buttons do,
--- Prompt/Moments.lua, guard "twice"): the first opens it for a moment and a ring
--- and the cure's icon answer; the second, at least a third of a second later and
--- within a second and a half, casts. One stray click, or a double click, never
--- casts. A key casts always. Where a read does find somebody, the button shows
--- and takes one click as anywhere else. Probed once when the first button is
--- made; /manners debug and the self-test say "cure need: from the game's aura
--- display", "from the auras" or "withheld".
 --
 -- WHAT IT COSTS
 --
@@ -113,7 +85,6 @@ local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 local plain, caps = ns.plain, ns.caps
 local issecretvalue = _G.issecretvalue
-local CureNeed = ns.CureNeed
 
 local CureFight = {}
 ns.CureFight = CureFight
@@ -140,10 +111,6 @@ local MAX_READS = 10
 local UNKNOWN_SECONDS = 3
 -- How long after a press of this button its spell going out is waited for.
 local SUCCEED_SECONDS = 1
--- Where only the game knows: how long the first of two clicks keeps the button
--- open, and the gap that swallows a double click (Prompt/Moments.lua's own).
-local OPEN_SECONDS = 1.5
-local OPEN_GAP = 0.3
 local GLOW = "Interface\\AddOns\\Manners\\Textures\\RingSq"
 local FALLBACK_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 local FIGHT_EVENTS = { "UNIT_AURA", "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED", "GROUP_ROSTER_UPDATE", "UNIT_SPELLCAST_SUCCEEDED" }
@@ -165,11 +132,6 @@ for index = 1, 2 do
 end
 
 local header, armedList, armedTwo, armedKinds
--- The spells the first button's macro holds on Shift and on Ctrl (nil: none),
--- the modifier of each spell of its list ([spell] = "shift", "ctrl" or false),
--- and the choice they were armed from.
-local armedShift, armedCtrl, placedChoice
-local modOf = {}
 local placedBeside, placedEach = false, false
 local dirtyRefresh, settledOn, placedIcon, placedScale = true, nil, nil, nil
 -- In a fight: the tokens read, those waiting for a read, and who needs a cure
@@ -180,16 +142,8 @@ local dirtyRefresh, settledOn, placedIcon, placedScale = true, nil, nil, nil
 local watched, dirty, needy, held = {}, {}, {}, {}
 local flushDue, recheckDue = false, false
 local waitUntil
--- Whether a fight is on (the pull to the release): the covers stand only then.
-local fightOn = false
 -- The last fight, for /manners debug.
--- `listAsked` reads that asked the game's list of removable debuffs, `listWithheld`
--- of them with no count back (withheld, or no table), `listEmpty` with an empty list,
--- `threw` reads that threw.
-local last = { reads = 0, secret = 0, seen = 0, shownFor = 0, listed = 0, shows = 0,
-	listAsked = 0, listWithheld = 0, listEmpty = 0, threw = 0, covered = 0, leaks = 0,
-	-- Where only the game knows: first of two clicks, casts by the second, double clicks.
-	opened = 0, gameCasts = 0, doubled = 0 }
+local last = { reads = 0, secret = 0, seen = 0, shownFor = 0, listed = 0 }
 local reasonOf, seenGuid = {}, {}
 local Paint, Flush
 
@@ -202,77 +156,17 @@ local function Secret(value)
 end
 
 -- Whether this character has a cure to offer in a fight and the switch is on.
--- The last fight's counts, for the fight summary and the Mark this moment line.
-function CureFight.LastFight() return last end
--- Whether the first button's macro holds the Shift clause (two cures, one button).
-function CureFight.ShiftClause() return armedTwo == true end
-
--- The modifiers, in the order a choice is read and a default is given.
-local MODS = { "plain", "shift", "ctrl" }
-
--- The cures the plain press, Shift and Ctrl cast: the player's choice for this
--- class (prompt.cureFightMods[class][mod], a spell's first rank id, 0 for
--- nothing), else the class's cure of that place (ns.CureFightKnown: first
--- plain, second Shift, third Ctrl). A choice no longer known falls back to the
--- place's own. Three nils with nothing learned.
-function CureFight.Chosen(db)
-	db = db or Profile()
-	local known = ns.CureFightKnown and ns.CureFightKnown()
-	if not (db and known) then return nil, nil, nil end
-	local by = db.prompt.cureFightMods
-	local saved = type(by) == "table" and caps.class and by[caps.class] or nil
-	local out = {}
-	for i, mod in ipairs(MODS) do
-		local want = type(saved) == "table" and saved[mod] or nil
-		local pick
-		if want ~= 0 then
-			if type(want) == "number" then
-				for _, spell in ipairs(known) do
-					if spell.cure.ranks[1] == want then pick = spell break end
-				end
-			end
-			if not pick then pick = known[i] end
-		end
-		out[i] = pick
-	end
-	return out[1], out[2], out[3]
-end
-
--- Shift and Ctrl set to Nothing by the player (a saved 0), not merely without
--- a cure of their place: the macro gives each an empty clause, so the press
--- casts nothing rather than falling through to the plain cure.
-local function ChoseNothing(db)
-	local by = db and db.prompt.cureFightMods
-	local saved = type(by) == "table" and caps.class and by[caps.class] or nil
-	if type(saved) ~= "table" then return {} end
-	return { shift = saved.shift == 0, ctrl = saved.ctrl == 0 }
-end
-
--- The choice as one line, to tell a scan that it changed.
-local function ChoiceKey(db)
-	local a, b, c = CureFight.Chosen(db)
-	local function id(spell) return spell and spell.cure.ranks[1] or 0 end
-	local none = ChoseNothing(db)
-	return id(a) .. ":" .. id(b) .. ":" .. id(c) .. (none.shift and ":s" or "") .. (none.ctrl and ":c" or "")
-end
-
 function CureFight.Applies(db)
 	db = db or Profile()
 	if not (db ~= nil and db.enabled == true and db.prompt.cureFight == true) then return false end
 	if not ns.ClassHasCures() then return false end
 	local list = ns.CureFightSpells()
-	if not (list ~= nil and list[1] ~= nil) then return false end
-	-- Every modifier set to Nothing: no cure to cast.
-	local a, b, c = CureFight.Chosen(db)
-	return (a or b or c) ~= nil
+	return list ~= nil and list[1] ~= nil
 end
 
--- A button for each cure: the switch is on and Shift has a cure of its own,
--- other than the plain press's.
-local function EachCure(db)
-	if db.prompt.cureFightEach ~= true then return false end
-	local a, b = CureFight.Chosen(db)
-	return a ~= nil and b ~= nil and a ~= b
+-- A button for each cure: the switch is on and there is a second cure.
+local function EachCure(db, list)
+	return db.prompt.cureFightEach == true and list ~= nil and list[2] ~= nil
 end
 
 -- Whether the game lists the harmful auras you can remove (Cures.lua reads it).
@@ -281,50 +175,23 @@ local function CanList()
 	return type(auras) == "table" and type(auras.GetUnitAuraInstanceIDs) == "function"
 end
 
--- One spell's clause; `mod` is "shift", "ctrl" or nothing.
-local function Clause(name, mod)
-	local m = mod and ("mod:" .. mod .. ",") or ""
+local function Clause(name, shift)
+	local m = shift and "mod:shift," or ""
 	if caps.conditionalTargeting then
 		return ("[%s@mouseover,help,nodead][%shelp,nodead][%s@player] %s"):format(m, m, m, name)
 	end
-	return (mod and ("[mod:" .. mod .. "] ") or "") .. name
+	return (shift and "[mod:shift] " or "") .. name
 end
 
--- `none.shift` and `none.ctrl`: an empty clause for a modifier set to Nothing,
--- while a clause after it would otherwise take the press.
-local function Build(plainSpell, shiftSpell, ctrlSpell, none)
-	none = none or {}
-	local parts = {}
-	if ctrlSpell then parts[#parts + 1] = Clause(ctrlSpell.name, "ctrl") end
-	if not ctrlSpell and none.ctrl and (shiftSpell or plainSpell) then parts[#parts + 1] = "[mod:ctrl] " end
-	if shiftSpell then parts[#parts + 1] = Clause(shiftSpell.name, "shift") end
-	if not shiftSpell and none.shift and plainSpell then parts[#parts + 1] = "[mod:shift] " end
-	if plainSpell then parts[#parts + 1] = Clause(plainSpell.name, false) end
-	if not parts[1] then return nil end
-	return "/cast " .. table.concat(parts, "; ")
-end
-
--- The first button's macro, and the spells it holds on Shift and on Ctrl. A
--- modifier's clause only while it is free to choose: a key bound with Shift (or
--- Ctrl) in it holds it on every press. Ctrl's clause goes first, then Shift's,
--- when the macro would pass 255 characters. A modifier set to Nothing gets an
--- empty clause on the same terms (ChoseNothing).
-local function MacroFor(plainSpell, shiftSpell, ctrlSpell)
-	local none = ChoseNothing(Profile())
-	if slots[1].shiftKey then shiftSpell = nil end
-	if slots[1].ctrlKey then ctrlSpell = nil end
-	none.shift = none.shift and not slots[1].shiftKey
-	none.ctrl = none.ctrl and not slots[1].ctrlKey
-	local macro = Build(plainSpell, shiftSpell, ctrlSpell, none)
-	if macro and #macro > ns.MACRO_LIMIT then
-		ctrlSpell, none.ctrl = nil, false
-		macro = Build(plainSpell, shiftSpell, nil, none)
-	end
-	if macro and #macro > ns.MACRO_LIMIT then
-		shiftSpell = nil
-		macro = Build(plainSpell, nil, nil)
-	end
-	return macro, shiftSpell, ctrlSpell
+-- Two spells only while Shift is free to choose between them: a key bound
+-- with Shift in it would always cast the second.
+local function MacroFor(list)
+	local one = "/cast " .. Clause(list[1].name, false)
+	if not list[2] then return one, false end
+	if slots[1].shiftKey then return one, false end
+	local both = "/cast " .. Clause(list[2].name, true) .. "; " .. Clause(list[1].name, false)
+	if #both > ns.MACRO_LIMIT then return one, false end
+	return both, true
 end
 
 local function Disarm(slot)
@@ -374,41 +241,17 @@ local function Place(p)
 	end
 end
 
--- Where only the game knows (slot.gameOn): inside the moment the first of two
--- clicks opened, past the gap that swallows a double click.
-local function Open(slot, now)
-	return slot.openUntil ~= nil and now >= slot.openFrom and now < slot.openUntil
-end
-
--- The cover over a button out of sight: up in a fight while it takes a click,
--- down only in the moment after the first of two.
-local function CoverUp(slot)
-	if slot.cover then slot.cover:SetShown(fightOn and not slot.visible and slot.mouseOn == true and not Open(slot, GetTime())) end
-end
-
--- The first of two clicks closed: the ring and the dim icon go, the cover goes back.
-local function Close(slot)
-	slot.openUntil, slot.openFrom = nil, nil
-	if CureNeed then CureNeed.Mark(slot.index, false) end
-	CoverUp(slot)
-end
-
 -- Out of sight or shown, by alpha and its own regions alone (the client lets
 -- an addon change both in a fight). `ready`: the cure can be cast now, else
 -- it is shown dim.
 local function SetVisible(slot, on, ready)
 	local to = on and (ready and 1 or 0.6) or 0
-	if on and not slot.visible then
-		slot.shownAt = GetTime()
-		last.shows = last.shows + 1
-	end
+	if on and not slot.visible then slot.shownAt = GetTime() end
 	if not on and slot.visible and slot.shownAt then
 		last.shownFor = last.shownFor + (GetTime() - slot.shownAt)
 		slot.shownAt = nil
 	end
 	slot.visible = on
-	-- Out of sight, the cover stands over a button that takes a click.
-	if slot.cover then slot.cover:SetShown(fightOn and not on and slot.mouseOn == true and not Open(slot, GetTime())) end
 	if on and ready then
 		slot.glow:Show()
 		if slot.pulse and not slot.pulse:IsPlaying() then slot.pulse:Play() end
@@ -441,8 +284,6 @@ end
 local function Hush(slot)
 	if not slot.button then return end
 	slot.paintedKey = nil
-	slot.openUntil, slot.openFrom = nil, nil
-	if CureNeed then CureNeed.Mark(slot.index, false) end
 	SetVisible(slot, false)
 	slot.button:SetAlpha(0)
 	slot.fadeTo = 0
@@ -556,29 +397,15 @@ local function ReadOne(unit, now)
 		held[unit] = nil
 		return
 	end
-	local kind, debuff, ends, secret, back, listed, threw
-	local asked = caps.secretRestrictions == true and CanList()
+	local kind, debuff, ends, secret, back, listed
 	if caps.secretRestrictions == true then
 		local ok, k, d, e, s, h, n = pcall(ns.CureFightRead, unit, now, armedKinds)
-		if ok then
-			kind, debuff, ends, secret, back, listed = k, d, e, s, h, n
-		else
-			secret, threw = true, true
-			last.threw = last.threw + 1
-		end
+		if ok then kind, debuff, ends, secret, back, listed = k, d, e, s, h, n else secret = true end
 	else
 		kind, debuff, ends, secret, back, listed = ns.CureFightRead(unit, now, armedKinds)
 	end
 	last.reads = last.reads + 1
 	if secret then last.secret = last.secret + 1 end
-	if asked and not threw then
-		last.listAsked = last.listAsked + 1
-		if listed == nil then
-			last.listWithheld = last.listWithheld + 1
-		elseif listed == 0 then
-			last.listEmpty = last.listEmpty + 1
-		end
-	end
 	local spell = kind and SpellFor(kind) or nil
 	if not spell then
 		-- Nothing readable, but the game's own list says this one carries a
@@ -663,8 +490,7 @@ end
 
 -- What a press would do, in the player's words.
 local function KeyLine(slot, unit, spell)
-	local mod = slot.index == 1 and modOf[spell] or nil
-	local shift, ctrl = mod == "shift", mod == "ctrl"
+	local shift = slot.index == 1 and armedTwo and spell == armedList[2]
 	local canAssist = plain(UnitCanAssist("player", "target")) == true
 	-- Where the macro has [nodead] a dead friend is passed over and the press
 	-- lands on you; Forever's bare /cast does go to them.
@@ -672,24 +498,24 @@ local function KeyLine(slot, unit, spell)
 	local hostileTarget = plain(UnitExists("target")) == true and not canAssist
 	local mine = unit == "player" or plain(UnitIsUnit(unit, "player")) == true
 	local keyLabel = slot.keyLabel
-	local key = keyLabel and (ctrl and L["Ctrl-%s"]:format(keyLabel) or shift and L["Shift-%s"]:format(keyLabel) or keyLabel)
+	local key = keyLabel and (shift and L["Shift-%s"]:format(keyLabel) or keyLabel)
 	if unit == "target" or plain(UnitIsUnit(unit, "target")) == true then
 		if key then return L["press %s to cure your target"]:format(key) end
-		return ctrl and L["ctrl-click to cure your target"] or shift and L["shift-click to cure your target"] or L["click to cure your target"]
+		return shift and L["shift-click to cure your target"] or L["click to cure your target"]
 	end
 	-- On Forever a bare cast of a spell that also hits enemies goes to a hostile target.
 	local selfLands = not friendTarget and not (hostileTarget and spell.anyTarget and not caps.conditionalTargeting)
 	if mine and selfLands then
 		if key then return L["press %s to cure yourself"]:format(key) end
-		return ctrl and L["ctrl-click to cure yourself"] or shift and L["shift-click to cure yourself"] or L["click to cure yourself"]
+		return shift and L["shift-click to cure yourself"] or L["click to cure yourself"]
 	end
 	local who = mine and L["yourself"] or NameOf(needy[unit])
 	if caps.conditionalTargeting then
 		if key then return L["point at %s and press %s"]:format(who, key) end
-		return (ctrl and L["point at %s and ctrl-click"] or shift and L["point at %s and shift-click"] or L["point at %s and click"]):format(who)
+		return (shift and L["point at %s and shift-click"] or L["point at %s and click"]):format(who)
 	end
 	if key then return L["target %s and press %s"]:format(who, key) end
-	return (ctrl and L["target %s and ctrl-click"] or shift and L["target %s and shift-click"] or L["target %s and click"]):format(who)
+	return (shift and L["target %s and shift-click"] or L["target %s and click"]):format(who)
 end
 
 -- One button's own regions and its alpha. Answers whether somebody needs its cure.
@@ -753,23 +579,9 @@ end
 
 -- A press, by its key or a left click: in a fight too. The press the prompt
 -- filed is not this one's, so it is let go with its own reason.
-local function PreClick(slot, mouse)
+local function PreClick(_, mouse)
 	if mouse ~= "LeftButton" then return end
 	waitUntil = GetTime() + SUCCEED_SECONDS
-	-- A click that reached the button while the cover stood over it, with no key
-	-- bound (so no key can have pressed it): the cover let it through.
-	if slot.keyLabel == nil and slot.cover and slot.cover:IsShown() then
-		last.leaks = last.leaks + 1
-		local db = ns.db and ns.db.global
-		if db then db.cureCoverLeaks = (db.cureCoverLeaks or 0) + 1 end
-		ns.Trail("fight", "cure in a fight: the cover let a click through")
-	end
-	-- Where only the game knows: the second of two clicks casts, and closes it.
-	if slot.gameOn and not slot.visible and slot.openUntil ~= nil then
-		last.gameCasts = last.gameCasts + 1
-		ns.Trail("fight", "cure in a fight: the second of two clicks (only the game knows who needs it)")
-		Close(slot)
-	end
 	local pending = ns.pendingClick
 	if pending and ns.ExpirePendingClick then ns.ExpirePendingClick(pending, L["you cured somebody instead"]) end
 	ns.Trail("press", "pressed: cure in a fight")
@@ -790,8 +602,7 @@ local function OnEnter(slot, self)
 	end
 	tip:AddLine(caps.conditionalTargeting and L["Casts at the player under your mouse, else your target, else you."]
 		or L["Casts at your target when it is a friend, else at you."], 0.75, 0.75, 0.75, true)
-	if slot.index == 1 and armedShift then tip:AddLine(L["Hold Shift for %s."]:format(tostring(armedShift.name)), 0.75, 0.75, 0.75, true) end
-	if slot.index == 1 and armedCtrl then tip:AddLine(L["Hold Ctrl for %s."]:format(tostring(armedCtrl.name)), 0.75, 0.75, 0.75, true) end
+	if slot.index == 1 and armedTwo then tip:AddLine(L["Hold Shift for %s."]:format(tostring(armedList[2].name)), 0.75, 0.75, 0.75, true) end
 	tip:AddLine(L["Manners: a left click here casts it, as its key does."], 0.75, 0.75, 0.75, true)
 	ns.AddSettingsLine(tip, "appearance.cureFight")
 	tip:Show()
@@ -800,38 +611,6 @@ end
 local function OnLeave()
 	local tip = _G.GameTooltip
 	if tip then tip:Hide() end
-end
-
--- A click on the cover where only the game knows who needs a cure: the first
--- of two opens the button for a moment (the cover comes down after the gap, a
--- ring and the cure's icon answer on the game's display), a second inside the
--- gap is a double click and is swallowed. Answers whether it was one of these;
--- elsewhere the cover only swallows the click.
-local function FirstOfTwo(slot, mouse)
-	if not (slot.gameOn and not slot.visible) then return false end
-	-- A right or middle press is the player's camera, never the first of two.
-	if mouse ~= nil and mouse ~= "LeftButton" then return true end
-	local now = GetTime()
-	if slot.openUntil and now < slot.openUntil then
-		last.doubled = last.doubled + 1
-		return true
-	end
-	slot.openUntil, slot.openFrom = now + OPEN_SECONDS, now + OPEN_GAP
-	last.opened = last.opened + 1
-	local first = slot.list and slot.list[1]
-	CureNeed.Mark(slot.index, true, first and first.cure.info and first.cure.info.icon or FALLBACK_ICON)
-	ns.Trail("fight", "cure in a fight: first of two clicks (only the game knows who needs it)")
-	local timer = _G.C_Timer
-	if type(timer) == "table" and type(timer.After) == "function" then
-		local opened = slot.openUntil
-		timer.After(OPEN_GAP, function()
-			if slot.openUntil == opened then ns.Guard("cure in a fight", CoverUp, slot) end
-		end)
-		timer.After(OPEN_SECONDS, function()
-			if slot.openUntil == opened then ns.Guard("cure in a fight", Close, slot) end
-		end)
-	end
-	return true
 end
 
 -- Runs in the restricted environment: shown for the fight, hidden after. The
@@ -908,25 +687,7 @@ function CureFight:Create(index)
 		if i <= 5 then button:SetAttribute("type" .. i, "none") end
 		button:SetAttribute("*type" .. i, "none")
 	end
-	-- The cover: no art, mouse on, above the button. Shown while the button is out of
-	-- sight (SetVisible), it swallows the click; it is a frame that is not protected,
-	-- so a fight may show and hide it.
-	local cover = CreateFrame("Frame", nil, button)
-	cover:SetAllPoints(button)
-	cover:SetFrameLevel(button:GetFrameLevel() + 10)
-	cover:EnableMouse(true)
-	cover:SetScript("OnMouseDown", function(_, mouse)
-		if FirstOfTwo(slot, mouse) then return end
-		last.covered = last.covered + 1
-		local now = GetTime()
-		if not slot.coverAt or now - slot.coverAt >= 2 then
-			slot.coverAt = now
-			ns.Trail("fight", "cure in a fight: the cover took a click (nobody needs a cure)")
-		end
-	end)
-	cover:Hide()
-	slot.cover = cover
-	button:SetScript("PreClick", function(_, mouse) PreClick(slot, mouse) end)
+	button:SetScript("PreClick", PreClick)
 	button:SetScript("OnEnter", function(self) OnEnter(slot, self) end)
 	button:SetScript("OnLeave", OnLeave)
 	button:Hide()
@@ -963,11 +724,8 @@ local function ReadKey(slot)
 	slot.keyLabel = type(key) == "string" and key ~= "" and key or nil
 	-- Any of the command's keys with Shift in it (the Key Bindings allow two).
 	slot.shiftKey = false
-	-- And with Ctrl in it: such a key always casts the Ctrl cure.
-	slot.ctrlKey = false
 	for i = 1, #keys do
 		if type(keys[i]) == "string" and keys[i]:upper():find("SHIFT%-") then slot.shiftKey = true end
-		if type(keys[i]) == "string" and keys[i]:upper():find("CTRL%-") then slot.ctrlKey = true end
 	end
 end
 
@@ -978,8 +736,7 @@ end
 -- Refresh and at the pull, before it. `used`: the button is one of this fight's.
 local function SetMouse(slot, used)
 	if not slot.button or InCombatLockdown() then return end
-	slot.mouseOn = used ~= false and slot.keyLabel == nil
-	slot.button:EnableMouse(slot.mouseOn)
+	slot.button:EnableMouse(used ~= false and slot.keyLabel == nil)
 end
 
 -- From a scan (Core.lua, TickBody) when Wanted says something changed, and as a
@@ -1003,38 +760,29 @@ function CureFight:Refresh()
 			if header:GetAttribute("manners-two") then header:SetAttribute("manners-two", false) end
 		end
 		armedList, armedTwo, armedKinds, placedEach = nil, false, nil, false
-		armedShift, armedCtrl, placedChoice = nil, nil, nil
 		settledOn, dirtyRefresh = false, false
 		return
 	end
 	if not first.button then self:Create() end
 	if not first.button then return end
 	local list = ns.CureFightSpells()
-	local plainSpell, shiftSpell, ctrlSpell = CureFight.Chosen(db)
-	local each = EachCure(db)
+	local each = EachCure(db, list)
 	if each and not second.button then self:Create(2) end
 	if each and not second.button then each = false end
 	ReadKey(first)
-	if each then ReadKey(second) end
-	-- The first button's macro holds Shift and Ctrl in either case, so they still
-	-- cast theirs on its key; with a button each it advertises and shows only its own.
-	local macro, shiftOn, ctrlOn = MacroFor(plainSpell, shiftSpell, ctrlSpell)
-	wipe(modOf)
+	local macro, two
 	if each then
-		first.list, second.list = { plainSpell }, { shiftSpell }
+		ReadKey(second)
+		-- The first button keeps the old two-cure macro, so Shift on its key
+		-- still casts the second cure; it advertises and shows only its own.
+		macro = MacroFor(list)
+		two = false
+		first.list, second.list = { list[1] }, { list[2] }
 	else
-		first.list, second.list = {}, nil
-		for _, pick in ipairs({ { plainSpell, false }, { shiftOn, "shift" }, { ctrlOn, "ctrl" } }) do
-			local spell = pick[1]
-			if spell and modOf[spell] == nil then
-				first.list[#first.list + 1] = spell
-				modOf[spell] = pick[2]
-			end
-		end
+		macro, two = MacroFor(list)
+		first.list = two and { list[1], list[2] } or { list[1] }
+		second.list = nil
 	end
-	-- Nothing left to cast (the one modifier chosen held down by the key itself).
-	if first.list and first.list[1] == nil then first.list = nil end
-	local two = not each and shiftOn ~= nil
 	for index = 1, 2 do
 		local slot = slots[index]
 		slot.spells = nil
@@ -1046,29 +794,21 @@ function CureFight:Refresh()
 	SetMouse(first)
 	if second.button then SetMouse(second, each) end
 	armedList, armedTwo, placedEach = list, two, each
-	armedShift, armedCtrl, placedChoice = shiftOn, ctrlOn, ChoiceKey(db)
-	-- The kinds a press can cast: Shift's and Ctrl's only while they are free,
-	-- or while Shift's cure has a button of its own.
+	-- The kinds a press can cast: the second spell's only while Shift is free,
+	-- or while it has a button of its own.
 	armedKinds = {}
 	for index = 1, 2 do
-		local slot = slots[index]
-		local kinds = {}
-		if slot.list then
-			for _, spell in ipairs(slot.list) do
-				for kind in pairs(spell.kinds) do
-					armedKinds[kind] = true
-					kinds[kind] = true
-				end
+		local slotList = slots[index].list
+		if slotList then
+			for _, spell in ipairs(slotList) do
+				for kind in pairs(spell.kinds) do armedKinds[kind] = true end
 			end
-			-- The game's own display under the button, where only it knows
-			-- (Prompt/CureNeed.lua): asked once, then told the button's kinds.
-			if slot.button and CureNeed and CureNeed.Attach(index, slot.button) then CureNeed.SetKinds(index, kinds) end
 		end
 	end
 	Place(db.prompt)
-	if macro then Arm(first, macro) else Disarm(first) end
+	Arm(first, macro)
 	if each then
-		Arm(second, "/cast " .. Clause(shiftSpell.name, false))
+		Arm(second, "/cast " .. Clause(list[2].name, false))
 	elseif second.button then
 		Disarm(second)
 	end
@@ -1105,7 +845,7 @@ function CureFight:Wanted()
 		elseif on then
 			local p = db.prompt
 			if ns.CureFightSpells() ~= armedList or p.iconSize ~= placedIcon or p.scale ~= placedScale
-				or EachCure(db) ~= placedEach or ChoiceKey(db) ~= placedChoice then
+				or EachCure(db, armedList) ~= placedEach then
 				changed = true
 			else
 				-- `or nil`: Applies answers false, which is not nil.
@@ -1128,11 +868,7 @@ local function Pull()
 			SetMouse(slot, slot.list ~= nil)
 		end
 	end
-	last.reads, last.secret, last.seen, last.shownFor, last.listed, last.shows = 0, 0, 0, 0, 0, 0
-	last.covered, last.leaks = 0, 0
-	fightOn = true
-	last.listAsked, last.listWithheld, last.listEmpty, last.threw = 0, 0, 0, 0
-	last.opened, last.gameCasts, last.doubled = 0, 0, 0
+	last.reads, last.secret, last.seen, last.shownFor, last.listed = 0, 0, 0, 0, 0
 	wipe(needy)
 	wipe(dirty)
 	wipe(held)
@@ -1140,36 +876,19 @@ local function Pull()
 	for token in pairs(watched) do dirty[token] = true end
 	local frame = CureFight.frame
 	for _, event in ipairs(FIGHT_EVENTS) do frame:RegisterEvent(event) end
-	-- The game's own display under each button that has one (Lua's frames only).
-	for index = 1, 2 do
-		local slot = slots[index]
-		slot.gameOn = slot.button ~= nil and slot.list ~= nil and CureNeed ~= nil and CureNeed.Begin(index, watched)
-	end
 	Hush(slots[1])
 	Hush(slots[2])
 	Schedule()
 end
 
--- The game's display follows the units watched (the group changing in a fight).
-local function Rewatch()
-	for index = 1, 2 do
-		if slots[index].gameOn then CureNeed.Begin(index, watched) end
-	end
-end
-
 -- PLAYER_REGEN_ENABLED, out of lockdown: the events dropped, the buttons taken
 -- down and armed again.
 function CureFight:Release()
-	fightOn = false
 	local frame = CureFight.frame
 	for _, event in ipairs(FIGHT_EVENTS) do frame:UnregisterEvent(event) end
 	wipe(needy)
 	wipe(dirty)
 	wipe(held)
-	for index = 1, 2 do
-		slots[index].gameOn = false
-		if CureNeed then CureNeed.End(index) end
-	end
 	Hush(slots[1])
 	Hush(slots[2])
 	dirtyRefresh = true
@@ -1209,18 +928,11 @@ local function OnEvent(event, unit)
 	elseif event == "PLAYER_TARGET_CHANGED" then
 		dirty.target = true
 		slots[1].paintedKey, slots[2].paintedKey = nil, nil
-		for index = 1, 2 do
-			if slots[index].gameOn then CureNeed.Retarget(index, "target", watched) end
-		end
 		Schedule()
 	elseif event == "PLAYER_FOCUS_CHANGED" then
-		for index = 1, 2 do
-			if slots[index].gameOn then CureNeed.Retarget(index, "focus", watched) end
-		end
 		if watched.focus then dirty.focus = true Schedule() end
 	elseif event == "GROUP_ROSTER_UPDATE" then
 		Watch()
-		Rewatch()
 		for token in pairs(needy) do
 			if not watched[token] then needy[token] = nil end
 		end
@@ -1256,12 +968,8 @@ function ns.CureFightLines()
 	local db = Profile()
 	local list = ns.CureFightSpells()
 	local first, second = slots[1], slots[2]
-	local spells = "none learned"
-	if list and list[1] then
-		local a, b, c = CureFight.Chosen(db)
-		spells = ("plain %s, Shift %s, Ctrl %s"):format(tostring(a and a.name or "nothing"),
-			tostring(b and b.name or "nothing"), tostring(c and c.name or "nothing"))
-	end
+	local joiner = (second.armedMacro ~= nil) and ", " or ", Shift "
+	local spells = (list and list[1]) and (tostring(list[1].name) .. (list[2] and (joiner .. tostring(list[2].name)) or "")) or "none learned"
 	local armed = first.button and first.button:GetAttribute("macrotext1")
 	out[1] = ("cure in a fight: switch %s; spells %s; %s; key %s; driver %s; shown %s"):format(
 		(db and db.prompt.cureFight == true) and "on" or "off", spells,
@@ -1273,27 +981,13 @@ function ns.CureFightLines()
 		out[1] = out[1] .. ("; second %s key %s"):format(tostring(second.list and second.list[1] and second.list[1].name),
 			tostring(second.keyLabel or (type(GetBindingKey) == "function" and GetBindingKey(CureFight.COMMAND2)) or "none"))
 	end
-	out[2] = ("cure in a fight, last fight: %d reads, %d withheld, %d needing a cure, seen for %d s, %d from the game's list; the game's list of debuffs you can remove: %s, asked %d times, %d withheld, %d empty; %d reads threw"):format(
-		last.reads, last.secret, last.seen, math.floor(last.shownFor), last.listed,
-		CanList() and (caps.secretRestrictions == true and "yes" or "yes, not needed here") or "no",
-		last.listAsked, last.listWithheld, last.listEmpty, last.threw)
-	local leaks = ns.db and ns.db.global and ns.db.global.cureCoverLeaks or 0
-	out[3] = ("cure in a fight, the cover: took %d clicks last fight, let %d through; let a click through on this account: %s"):format(
-		last.covered, last.leaks, leaks > 0 and (leaks .. " times (or a macro of yours clicked it)") or "never")
-	local under = {}
-	for index = 1, 2 do
-		if CureNeed and CureNeed.Has(index) then under[#under + 1] = index == 1 and "first button" or "second button" end
-	end
-	out[4] = ("cure need: %s; the game's display under: %s; two clicks last fight: %d opened, %d cast by the second, %d double clicks swallowed"):format(
-		CureNeed and CureNeed.Words() or "from the auras", under[1] and table.concat(under, ", ") or "none",
-		last.opened, last.gameCasts, last.doubled)
+	out[2] = ("cure in a fight, last fight: %d reads, %d withheld, %d needing a cure, seen for %d s, %d from the game's list"):format(
+		last.reads, last.secret, last.seen, math.floor(last.shownFor), last.listed)
 	return out
 end
 
 function CureFight:Button(index) return slots[index or 1].button end
 function CureFight:Header() return header end
--- The cover over a button (shown while it is out of sight in a fight).
-function CureFight:Cover(index) return slots[index or 1].cover end
 -- What it shows: the spell's name and the key line, the glow, and where it is
 -- fading to (alpha is the target; the fader walks the button there).
 function CureFight:Look(index)

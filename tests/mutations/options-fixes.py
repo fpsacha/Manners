@@ -82,8 +82,8 @@ mutate("Options/Diagnostics.lua",
 
 # A name inside a longer word is aliased too.
 mutate("Options/Diagnostics.lua",
-       "local function Part(c) return c ~= \"\" and c:find(\"[%w_\\128-\\255]\") ~= nil end\n",
-       "local function Part(c) return false end\n",
+       "\tlocal function Part(c) return c ~= \"\" and c:find(\"[%w_\\128-\\255]\") ~= nil end\n",
+       "\tlocal function Part(c) return false end\n",
        "options-fixes: a name inside a longer word is aliased",
        expect="options-fix: a player named Intel leaves the word Intellect alone",
        script=S)

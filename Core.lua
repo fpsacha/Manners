@@ -150,29 +150,7 @@ end
 -- event, never per scan; `who` is the person's name, which the report replaces
 -- with an alias.
 do
-local TRAIL_MAX = 300
--- What one fight did, counted on the fight's own paths (never the scan) and
--- written as one trail line when it ends.
-ns.fightTally = { started = nil, keyPresses = 0 }
-function ns.FightSummary()
-	local tally = ns.fightTally
-	if not tally.started then return end
-	local took = math.max(0, math.floor(GetTime() - tally.started))
-	tally.started = nil
-	local prompt = ns.Prompt
-	local hidden = prompt and prompt.FightHideArmed and prompt:FightHideArmed()
-	local steps, of
-	if prompt and prompt.FightRotaSteps then steps, of = prompt:FightRotaSteps() end
-	local rota = steps and ("%d steps of %d"):format(steps, of or 0) or "none"
-	local cure = ns.CureFight and ns.CureFight.LastFight and ns.CureFight.LastFight() or {}
-	local lit = ns.BreakFree and ns.BreakFree.FightLit and ns.BreakFree.FightLit() or 0
-	ns.Trail("fight", ("fight summary: %ds; prompt %s; rota %s; fight key %d presses; cure shown %d times, %d reads, %d withheld; break free lit %d times")
-		:format(took, hidden and "hidden" or "up", rota, tally.keyPresses or 0,
-			cure.shows or 0, cure.reads or 0, cure.secret or 0, lit))
-	-- What each button for the moment saw, when any was armed.
-	local words = ns.Moments and ns.Moments.FightWords and ns.Moments.FightWords()
-	if words then ns.Trail("fight", "fight summary, buttons for the moment: " .. words) end
-end
+local TRAIL_MAX = 200
 function ns.Trail(kind, text, who)
 	local db = ns.addon and ns.addon.db
 	local char = db and db.char
@@ -282,8 +260,6 @@ function ns.Guard(label, fn, ...)
 			ns.addon:Print(L["|cffff4040something broke in %s|r -- %s |cff808080(%s for the rest)|r"]
 				:format(label, err, "/manners errors"))
 		end
-		-- A link to the Report a bug window, once a session (Options/BugReport.lua).
-		if ns.OfferReport then pcall(ns.OfferReport) end
 		-- Repaint Diagnostics once per new failure, but not for a failure of
 		-- the repaint itself, which would only fail again.
 		if ns.RepaintOptions and label ~= "options repaint" and label ~= "broker text" then
@@ -386,11 +362,6 @@ local defaults = {
 			-- returnOnly: Unending Breath) because the player chose that: a sparse
 			-- set, absent is offered to everybody, as it was before 1.11.19.
 			keptBack = {},
-			-- The buffs for others offered only while you swim (Buffs.lua,
-			-- swimGate: Unending Breath; asked for on CurseForge, issue 41): a
-			-- sparse set, absent is offered as ever. A favour returned and a
-			-- request by name still go.
-			swimOnly = {},
 			-- A blessing for each class (Who to buff, under the buff order; a
 			-- paladin's ask on CurseForge: Wisdom for mages rather than Kings):
 			-- CLASS -> the key of the buff of yours tried first for somebody of
@@ -485,10 +456,6 @@ local defaults = {
 			courtesyPortals = false,
 			courtesyHealthstones = false,
 			courtesySummons = false,
-			-- Water and food for your target, out of a fight (Courtesy.lua), and
-			-- how much goes in the trade: a stack of each, or "fill" it.
-			courtesyTarget = false,
-			courtesyAmount = "fill",
 			-- Yourself, missing your own buff. On: it costs nobody anything and reads
 			-- your own auras, which the game does not hide.
 			self = true,
@@ -799,12 +766,6 @@ local defaults = {
 			-- first, each shown only for the kinds its cure takes off. Off: one
 			-- button, the second cure on Shift (Prompt/CureFight.lua).
 			cureFightEach = true,
-			-- Which cure the cure button's plain press, Shift and Ctrl cast, kept per
-			-- class (CLASS -> { plain =, shift =, ctrl = }, each a spell's first rank
-			-- id, 0 for nothing), since every character shares the profile. Empty:
-			-- the class's first cure plain, its second on Shift, its third on Ctrl
-			-- (Prompt/CureFight.lua, Chosen).
-			cureFightMods = {},
 			-- The spell the prompt's own key casts in a fight, by a row key of
 			-- Prompt/FightKey.lua's list, kept per class (CLASS -> key) because
 			-- every character shares the profile; none, or "none", keeps the key
@@ -994,15 +955,6 @@ local defaults = {
 		-- ownBuffs.apart on: where it sits (left of the prompt's default
 		-- spot, above the action bars) and its size in pixels.
 		supplies = { point = "BOTTOM", relPoint = "BOTTOM", x = -170, y = 300, size = 40 },
-		-- Buttons for the moment (Prompt/Moments.lua): a switch for each, all on
-		-- by default but Shield Slam, which a warrior presses anyway (the drink
-		-- only has a row for a class with mana); health and
-		-- mana are the shares under which the buttons for low health and low
-		-- mana light, in percent.
-		moments = { counterspell = true, spellsteal = true, blink = true, iceblock = true, coldsnap = true,
-			evocation = true, managem = true, drink = true, slowfall = true, fireward = true, frostward = true,
-			purge = true, dispel = true, tranq = true, shieldslam = false,
-			health = 20, mana = 20, cardSize = 100 },
 	},
 }
 ns.defaults = defaults
@@ -1166,15 +1118,6 @@ do
 				info.groupIcon = safecall(C_Spell and C_Spell.GetSpellTexture, rank.id)
 				break
 			end
-		end
-
-		-- Your pet's spell (Buffs.lua, `pet`: the imp's Fire Shield): yours to switch
-		-- on once you know the summon, whatever pet is out; the ranks are the pet's
-		-- and never in your own spellbook, so no rank of it is yours to name. What
-		-- the pet out knows is asked at the scan (ns.PetCasts).
-		if buff.pet then
-			info.known = SpellKnown(buff.pet) or nil
-			info.topRank, info.ranksKnown = nil, nil
 		end
 
 		-- The macro casts by name and the game picks the best rank of it, so the name
@@ -1758,66 +1701,6 @@ do
 	end
 end
 
--- Whether your pet can cast a buff of its own (Buffs.lua, `pet`: the imp's Fire
--- Shield) right now: a pet out, not dead, that knows a rank of it in the pet's
--- spellbook (C_SpellBook's pet bank where the client has it, IsSpellKnown's
--- isPet otherwise). Kept until the pet or the spellbook changes (UNIT_PET,
--- SPELLS_CHANGED: ns.ForgetPetSpells), so a scan asks the client nothing. In a
--- block of its own for the main chunk's 200 locals.
-do
-	local petKnows = {}
-	local function PetSpellKnown(id)
-		local book = C_SpellBook
-		local bank = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet
-		if type(book) == "table" and bank ~= nil then
-			if safecall(book.IsSpellKnown, id, bank) == true or safecall(book.IsSpellInSpellBook, id, bank, false) == true then
-				return true
-			end
-		end
-		return safecall(_G.IsSpellKnown, id, true) == true
-	end
-	function ns.PetCasts(buff)
-		local key = buff and buff.key
-		if key == nil then return false end
-		local answer = petKnows[key]
-		if answer == nil then
-			answer = false
-			local exists, dead = _G.UnitExists, _G.UnitIsDead
-			if type(exists) == "function" and plain(exists("pet")) == true
-				and not (type(dead) == "function" and plain(dead("pet")) == true) then
-				for _, id in ipairs(buff.ranks or {}) do
-					if PetSpellKnown(id) then
-						answer = true
-						break
-					end
-				end
-			end
-			petKnows[key] = answer
-		end
-		return answer
-	end
-	function ns.ForgetPetSpells()
-		for key in pairs(petKnows) do petKnows[key] = nil end
-	end
-	-- `list` without your pet's buffs that no pet out can cast now: the same
-	-- table when there is none to leave out (every class but a warlock), else a
-	-- new one, so a list kept by its maker is never changed.
-	function ns.PetReady(list)
-		local out
-		for i, buff in ipairs(list) do
-			if buff.pet and not ns.PetCasts(buff) then
-				if not out then
-					out = {}
-					for j = 1, i - 1 do out[j] = list[j] end
-				end
-			elseif out then
-				out[#out + 1] = buff
-			end
-		end
-		return out or list
-	end
-end
-
 -- Everything of this class the player can actually cast, in list order (the
 -- player's own, when one is set: ns.WalkBuffs), once per scan. A neverAuto buff
 -- (Unending Breath) and a switched-off one are left out unless pinned: a pin is
@@ -1842,8 +1725,6 @@ function ns.CastableBuffs()
 	local walk, custom = ns.WalkBuffs()
 	if custom then strongestFirst = false end
 	local out = {}
-	-- Your pet's (Buffs.lua, `pet`: the imp's Fire Shield) only while a pet out knows it.
-	walk = ns.PetReady(walk)
 	for _, buff in ipairs(walk) do
 		if ns.IsBuffKnown(buff)
 			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
@@ -2299,15 +2180,6 @@ do
 			local kept = db and db.buff.keptBack
 			if kept and kept[buff.key] then return false end
 		end
-		-- Only while you swim (Who to buff, buff.swimOnly; Buffs.lua, swimGate:
-		-- Unending Breath), as your own is reminded of only in the water: read
-		-- only for a buff with the switch on, and a favour returned or a request
-		-- by name goes all the same. Called directly, as Swimming is.
-		if buff.swimGate and not (opts.owed or opts.asked) then
-			local db = addon.db and addon.db.profile
-			local only = db and db.buff.swimOnly
-			if only and only[buff.key] and not ns.Swimming(opts.now or GetTime()) then return false end
-		end
 		-- Nobody too low for every rank of it (Buffs.lua, lowLevel): the game
 		-- refuses a cast on somebody more than ten levels under the rank, so
 		-- Kings (20) on a warrior of 8 was a press that failed, held Kings off
@@ -2340,10 +2212,6 @@ do
 		-- buff.notMeInside): SelfBuff hands the set only while you are in one.
 		if opts.notMeInside and buff.tankChoice and opts.notMeInside[buff.key] then return false end
 		if buff.partyOnly and not opts.inParty then return false end
-		-- The party's tank alone (Buffs.lua, forTank: the imp's Fire Shield): a
-		-- member the game calls one (opts.isTank, read by the walk while such a
-		-- buff is in hand), or anybody who asked for it by name.
-		if buff.forTank and not (opts.isTank or opts.asked) then return false end
 		-- Salvation: the game refuses it on anybody outside your party or raid.
 		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
 		-- Held to your group by Manners' choice, where the game would take any
@@ -3240,13 +3108,10 @@ do
 		char.ownLast[family.key] = spell.key
 	end
 
-	-- Whether you are the tank. In a group, only the role the game names: with
-	-- no role set, nobody is. Solo, where there is no role to read, your
-	-- talents say it: most of them in Protection, or a spec whose role is tank
-	-- (ns.TalentsSayTank, Best below), so a Protection paladin questing alone
-	-- is reminded of Righteous Fury and a Retribution one is not.
+	-- Whether you are the tank: only a role the game names, in a group. Solo,
+	-- or with no role set, nobody is.
 	local function Tanking()
-		if (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return ns.TalentsSayTank() end
+		if (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return false end
 		return safecall(_G.UnitGroupRolesAssigned, "player") == "TANK"
 	end
 
@@ -3260,7 +3125,7 @@ do
 	-- event (ns.ForgetLean). Nothing here makes a table on a scan.
 	local Best = {}
 	do
-		local talentSchool, talentRole, talentTrees, talentFromSpec, talentTank
+		local talentSchool, talentRole, talentTrees, talentFromSpec
 		local filled = false
 		-- The last group role read plainly while you are in a group: a read the
 		-- client withholds (an instance that hides who you are) keeps it.
@@ -3303,26 +3168,8 @@ do
 			return role
 		end
 
-		-- Whether Protection has more talents than every other tree: a tank's
-		-- talents, for Tanking alone (Righteous Fury under Automatic). A tie, or
-		-- nothing spent, is not.
-		local function ProtectionLeads(names, counts)
-			local protection, other = 0, 0
-			for i, name in ipairs(names) do
-				local n = counts[i] or 0
-				if name == "protection" then
-					protection = n
-				elseif n > other then
-					other = n
-				end
-			end
-			return protection > other
-		end
-
 		-- school, the role your talents or spec say, a short note of what was
 		-- counted (for /manners debug), and whether the client gave a spec role.
-		-- Whether they make you a tank it writes to talentTank, which Lean
-		-- clears first.
 		local function Fill(class)
 			local trees = ns.TALENT_TREES and ns.TALENT_TREES[class]
 			local marks = ns.TALENT_MARKS and ns.TALENT_MARKS[class]
@@ -3370,7 +3217,6 @@ do
 					if fire > shadow then school = "fire" elseif shadow > fire then school = "shadow" end
 				end
 				local role = TREE_ORDER[class] and Leading(names, counts) or nil
-				talentTank = ProtectionLeads(names, counts)
 				return school, role, table.concat(parts, " "), false
 			end
 			local spec = C_SpecializationInfo
@@ -3388,10 +3234,7 @@ do
 				if counts[i] > 0 then spent = true end
 				parts[#parts + 1] = order[i] .. ":" .. counts[i]
 			end
-			if spent then
-				talentTank = ProtectionLeads(order, counts)
-				return nil, Leading(order, counts), table.concat(parts, " "), false
-			end
+			if spent then return nil, Leading(order, counts), table.concat(parts, " "), false end
 			-- Mists and retail, where no tree has points: the spec and the role
 			-- the client gives it.
 			local getSpec = spec.GetSpecialization
@@ -3402,10 +3245,7 @@ do
 					specId, role = plain(specId), plain(role)
 					local note = "spec:" .. tostring(specId) .. ":" .. tostring(role)
 					if role == "HEALER" then return nil, "healer", note, true end
-					if role == "TANK" then
-						talentTank = true
-						return nil, "physical", note, true
-					end
+					if role == "TANK" then return nil, "physical", note, true end
 					if role == "DAMAGER" and SPEC_ROLE[specId] then return nil, SPEC_ROLE[specId], note, true end
 				end
 			end
@@ -3415,25 +3255,15 @@ do
 
 		local function Lean()
 			if not filled then
-				talentTank = false
 				local ok, school, role, trees, fromSpec = pcall(Fill, playerClass)
 				if ok then
 					talentSchool, talentRole, talentTrees, talentFromSpec = school, role, trees, fromSpec
 				else
 					talentSchool, talentRole, talentTrees, talentFromSpec = nil, nil, "unread", false
-					talentTank = false
 				end
 				filled = true
 			end
 			return talentSchool, talentRole
-		end
-
-		-- Whether your talents make you a tank: most of them in Protection, or
-		-- a spec the client gives the tank's role. Read by Tanking when you are
-		-- alone, where no group role says it.
-		function ns.TalentsSayTank()
-			Lean()
-			return talentTank == true
 		end
 
 		-- The school your talents favour, or nil.
@@ -3580,8 +3410,6 @@ do
 		end
 		return swamAt ~= nil and now >= swamAt and now - swamAt < SWIM_HOLD
 	end
-	-- Castable (Who to buff's swim-only switch) asks it too.
-	ns.Swimming = Swimming
 
 	-- Whether you are moving, or were a moment ago (Buffs.lua, `still`; asked
 	-- for on CurseForge: food eaten on the run is thrown away, and a stone or an
@@ -5199,8 +5027,6 @@ local function UnitHasBuff(unit, buff, guid)
 					-- Direct: a client-written token, which UnitIsUnit never throws on.
 					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
-					-- Your pet's buff (Buffs.lua, `pet`) names your pet as its caster.
-					if same == false and buff.pet and plain(UnitIsUnit(source, "pet")) == true then mine = true end
 					-- Named as the caster on somebody else: this client says so
 					-- for your casts, as WoW Forever does.
 					if same == true and plain(UnitIsUnit(unit, "player")) == false then ns.namesYourCasts = true end
@@ -5889,9 +5715,6 @@ local LIMITS = {
 	{ "prompt", "queueRows", 1, 5 },
 	{ "filters", "selfLead", 0, 10 },
 	{ "supplies", "size", 24, 80 },
-	{ "moments", "health", 5, 50 },
-	{ "moments", "mana", 5, 50 },
-	{ "moments", "cardSize", 80, 150 },
 	-- Two is the least a group cast can beat, five a whole party.
 	{ "groupBuffs", "atLeast", 2, 5 },
 }
@@ -6121,25 +5944,6 @@ function ns.ClampSettings()
 	local iconMax = ns.IconCeiling(p)
 	if p.iconSize > iconMax then p.iconSize = iconMax end
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
-	-- The moment buttons' shares go in fives, as their sliders do.
-	do
-		local moments = profile.moments
-		-- A switch is a boolean: anything else goes back to its default.
-		for _, key in ipairs(ns.MOMENT_KEYS or {}) do
-			if type(moments[key]) ~= "boolean" then moments[key] = ns.MOMENT_DEFAULTS[key] end
-		end
-		for _, field in ipairs({ "health", "mana" }) do
-			local v = moments[field]
-			if type(v) == "number" and v % 5 ~= 0 then moments[field] = math.max(5, math.min(50, math.floor(v / 5 + 0.5) * 5)) end
-		end
-		-- The size of a card, in tens, from 80 to 150; anything else is the default.
-		local size = moments.cardSize
-		if type(size) ~= "number" or size ~= size then
-			moments.cardSize = 100
-		else
-			moments.cardSize = math.max(80, math.min(150, math.floor(size / 10 + 0.5) * 10))
-		end
-	end
 	-- An ask's channel and line (Ask.lua), each one of a few.
 	if ns.AskClamp then ns.AskClamp(profile) end
 	if ns.BeastClamp then ns.BeastClamp(profile) end
@@ -6216,7 +6020,6 @@ function ns.ClampSettings()
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
 	oneOf(profile.filters, "quietInTownsWhere", { both = true, cities = true, inns = true }, "both")
-	oneOf(profile.sources, "courtesyAmount", { fill = true, one = true }, "fill")
 	oneOf(profile.filters, "manaFloorKeeps", { asked = true, self = true, none = true }, "asked")
 	-- How often my own lines are said (Speech.lua, OwnTurn).
 	oneOf(profile.speech, "mixedShare", { third = true, half = true, twothirds = true, always = true }, "third")
@@ -6353,7 +6156,6 @@ function ns.ClampSettings()
 	if type(profile.buff.tanksMe) ~= "table" then profile.buff.tanksMe = {} end
 	if type(profile.buff.notMeInside) ~= "table" then profile.buff.notMeInside = {} end
 	if type(profile.buff.keptBack) ~= "table" then profile.buff.keptBack = {} end
-	if type(profile.buff.swimOnly) ~= "table" then profile.buff.swimOnly = {} end
 	-- A class token to a buff key, and nothing else (PickBuffFor reads it per
 	-- person): a key this client does not know is simply never found.
 	if type(profile.buff.forClass) ~= "table" then profile.buff.forClass = {} end
@@ -6414,17 +6216,6 @@ function ns.ClampSettings()
 	-- per class. Carried to the class whose list holds it when that is one
 	-- class alone; a key two classes share (flash) goes to the class logging
 	-- in when its list holds it, else it is dropped.
-	-- The cure button's spells per modifier, per class: a table of numbers.
-	if type(p.cureFightMods) ~= "table" then p.cureFightMods = {} end
-	for class, mods in pairs(p.cureFightMods) do
-		if type(class) ~= "string" or type(mods) ~= "table" then
-			p.cureFightMods[class] = nil
-		else
-			for mod, id in pairs(mods) do
-				if (mod ~= "plain" and mod ~= "shift" and mod ~= "ctrl") or type(id) ~= "number" then mods[mod] = nil end
-			end
-		end
-	end
 	if type(p.fightKeySpells) ~= "table" then p.fightKeySpells = {} end
 	for class, key in pairs(p.fightKeySpells) do
 		if type(class) ~= "string" or type(key) ~= "string" then p.fightKeySpells[class] = nil end
@@ -6721,18 +6512,6 @@ function addon:OnEnable()
 		end)
 	end
 
-	-- Your pet's buff for others (Buffs.lua, `pet`: the imp's Fire Shield), for a
-	-- class that has one: the pet coming and going (UNIT_PET) says what it can
-	-- cast (ns.PetCasts), and its casts answer a press (Clicks.lua, HearPetCasts).
-	local _, class = UnitClass("player")
-	for _, buff in ipairs(ns.GetClassBuffs(plain(class)) or {}) do
-		if buff.pet then
-			ns.Guard("RegisterEvent UNIT_PET", function() self:RegisterEvent("UNIT_PET") end)
-			ns.Guard("pet casts", ns.HearPetCasts)
-			break
-		end
-	end
-
 	-- The combat log only where the client is believed to have one: Forever
 	-- and retail 12.0+ forbid the registration, and asking there would print
 	-- a red line on every login. Armed only once the call went through, and
@@ -6860,10 +6639,6 @@ function addon:TickBody()
 	if mendPet and mendPet:Wanted() then ns.Guard("mend pet", mendPet.Refresh, mendPet) end
 	local cureFight = ns.CureFight
 	if cureFight and cureFight:Wanted() then ns.Guard("cure in a fight", cureFight.Refresh, cureFight) end
-	-- The buttons for the moment (Prompt/Moments.lua), with their switches off or
-	-- no spell learned: one field read.
-	local moments = ns.Moments
-	if moments and moments:Wanted() then ns.Guard("moments", moments.Refresh, moments) end
 	local fightKey = ns.FightKey
 	if fightKey and fightKey:Wanted() then ns.Guard("fight key", fightKey.Refresh, fightKey) end
 	-- A companion pet out of the journal (Companion.lua), with its switch on:
@@ -6977,15 +6752,7 @@ function addon:PLAYER_STOPPED_MOVING() ns.NoteMoving(GetTime(), false) end
 -- popup. Nothing shows that a call from an event handler is allowed, and a
 -- Blizzard popup hidden from addon code risks taint.
 
--- Your pet out, dismissed or another summoned: what it can cast is asked again
--- at the next scan (ns.PetCasts). Registered only for a class with a pet's buff.
-function addon:UNIT_PET(_, unit)
-	if unit ~= "player" then return end
-	ns.ForgetPetSpells()
-end
-
 function addon:SPELLS_CHANGED()
-	ns.ForgetPetSpells()
 	local now = GetTime()
 	if now - lastProbe < 5 then
 		if not probeQueued and C_Timer and C_Timer.After then
@@ -7079,8 +6846,6 @@ function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 -- under lockdown, paints the hold.
 function addon:PLAYER_REGEN_DISABLED()
 	ns.Trail("fight", "a fight started")
-	ns.fightTally.started = GetTime()
-	ns.fightTally.keyPresses = 0
 	-- First, while the button can still be touched: a drag held into the pull
 	-- is let go of and its position kept, rather than released in the fight.
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
@@ -7106,9 +6871,6 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- And the prompt's own keys pointed at the fight key's button, still out of
 	-- the lockdown (Prompt/FightKey.lua); given back at the end of the fight.
 	if ns.FightKey then ns.Guard("fight key", ns.FightKey.Take, ns.FightKey) end
-	-- The buttons for the moment: keys, mouse and the gem's macro, written while
-	-- the lockdown is not yet on (Prompt/Moments.lua).
-	if ns.Moments then ns.Guard("moments at fight start", ns.Moments.Take, ns.Moments) end
 	-- Nothing of yours is used in a fight: the consumables button goes now,
 	-- before the lockdown, and its snippet makes sure of it at the lockdown.
 	if ns.Supplies then ns.Guard("consumables button", ns.Supplies.Refresh, ns.Supplies) end
@@ -7122,8 +6884,6 @@ end
 
 function addon:PLAYER_REGEN_ENABLED()
 	ns.Trail("fight", "the fight ended")
-	-- Before any release below: what the fight did is still readable.
-	ns.Guard("fight summary", ns.FightSummary)
 	-- First, so everything below reads the buffs as the probe now has them.
 	ns.Guard("restriction ended", self.ADDON_RESTRICTION_STATE_CHANGED, self)
 	-- What the fight withheld is asked again on the next scan rather than three
@@ -7187,8 +6947,6 @@ function addon:PLAYER_REGEN_ENABLED()
 	if ns.MendPet then ns.Guard("mend pet release", ns.MendPet.Release, ns.MendPet) end
 	-- The cure button taken down and armed for the next fight (Prompt/CureFight.lua).
 	if ns.CureFight then ns.Guard("cure fight release", ns.CureFight.Release, ns.CureFight) end
-	-- The buttons for the moment taken down and armed again (Prompt/Moments.lua).
-	if ns.Moments then ns.Guard("moments release", ns.Moments.Release, ns.Moments) end
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed

@@ -169,9 +169,8 @@ local function BugReport()
 	-- Where there is no log, the casts other players made are the other witness.
 	if ns.castWatch and ns.castWatch.armed then
 		local cast = ns.castWatch
-		lines[#lines + 1] = ("cast watch (casts from players and mobs, once per token): %s heard, %s spell withheld, %s caster withheld, %s cast id withheld, %s from the cast id, %s seen, %s named, %s late, %s several, %s none, %s read too late"):format(
-			tostring(cast.heard), tostring(cast.noSpell), tostring(cast.noUnit), tostring(cast.noGuid), tostring(cast.fromGuid),
-			tostring(cast.seen), tostring(cast.named), tostring(cast.late), tostring(cast.several), tostring(cast.none), tostring(cast.old))
+		lines[#lines + 1] = ("cast watch: %s seen, %s named, %s late, %s several, %s none"):format(
+			tostring(cast.seen), tostring(cast.named), tostring(cast.late), tostring(cast.several), tostring(cast.none))
 	end
 
 	if #ns.errors == 0 then
@@ -201,37 +200,10 @@ local function Plain(text)
 	return (tostring(text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("||", "|"))
 end
 
--- A name is a whole word: a letter, digit or underscore on either side
--- (accented letters included) means it is part of something longer. Shared by
--- the full check-up's aliases and the Report a bug window's scrub.
-local function Part(c) return c ~= "" and c:find("[%w_\128-\255]") ~= nil end
-function ns.SwapName(line, name, to)
-	local out, at = {}, 1
-	while true do
-		local s, e = line:find(name, at, true)
-		if not s then break end
-		if (s > 1 and Part(line:sub(s - 1, s - 1))) or Part(line:sub(e + 1, e + 1)) then
-			out[#out + 1] = line:sub(at, e)
-		else
-			out[#out + 1] = line:sub(at, s - 1) .. to
-		end
-		at = e + 1
-	end
-	out[#out + 1] = line:sub(at)
-	return table.concat(out)
-end
-
-ns.PlainText = Plain
-ns.ShortReport = BugReport
-
-function ns.FullReport(opts)
-	opts = type(opts) == "table" and opts or {}
+function ns.FullReport()
 	local lines = {
 		L["Manners full check-up. Copy all of it (click in the box, Ctrl+A, Ctrl+C) and paste it into a comment on CurseForge or an issue at github.com/fpsacha/Manners/issues, with a few words on what went wrong."],
 	}
-	-- Lines put at the top by the Report a bug window (what went wrong, the
-	-- player's own words): aliased like any other line, never fixed.
-	for _, line in ipairs(opts.top or {}) do lines[#lines + 1] = tostring(line) end
 	local addon = ns.addon
 	-- Lines the aliasing leaves alone: the opening paragraph, the headings and
 	-- the settings string, which are the report's own words.
@@ -341,17 +313,10 @@ function ns.FullReport(opts)
 			lines[#lines + 1] = "(nothing yet this session)"
 			return
 		end
-		local skip = tonumber(opts.trailSkip) or 0
-		if skip > 0 then
-			lines[#lines + 1] = ("(the oldest %d lines of what happened lately were left out to fit GitHub's limit)"):format(skip)
-			fixed[#lines] = true
-		end
-		for i, t in ipairs(trail) do
-			if i > skip then
-				local when = (type(t.at) == "number" and date("%H:%M:%S", t.at)) or "?"
-				local who = t.who and (" [" .. tostring(Alias(t.who)) .. "]") or ""
-				lines[#lines + 1] = ("%s %s%s %s"):format(when, tostring(t.kind), who, Plain(t.text))
-			end
+		for _, t in ipairs(trail) do
+			local when = (type(t.at) == "number" and date("%H:%M:%S", t.at)) or "?"
+			local who = t.who and (" [" .. tostring(Alias(t.who)) .. "]") or ""
+			lines[#lines + 1] = ("%s %s%s %s"):format(when, tostring(t.kind), who, Plain(t.text))
 		end
 	end)
 	Section("Other addons loaded", function()
@@ -408,13 +373,31 @@ function ns.FullReport(opts)
 	for name in pairs(alias) do names[#names + 1] = name end
 	-- The longest first, so "Anna Aim" goes before "Anna".
 	table.sort(names, function(a, b) return #a > #b end)
+	-- A name is a whole word: a letter, digit or underscore on either side
+	-- (accented letters included) means it is part of something longer.
+	local function Part(c) return c ~= "" and c:find("[%w_\128-\255]") ~= nil end
+	local function Swap(line, name, to)
+		local out, at = {}, 1
+		while true do
+			local s, e = line:find(name, at, true)
+			if not s then break end
+			if (s > 1 and Part(line:sub(s - 1, s - 1))) or Part(line:sub(e + 1, e + 1)) then
+				out[#out + 1] = line:sub(at, e)
+			else
+				out[#out + 1] = line:sub(at, s - 1) .. to
+			end
+			at = e + 1
+		end
+		out[#out + 1] = line:sub(at)
+		return table.concat(out)
+	end
 	for i, line in ipairs(lines) do
 		if not fixed[i] then
-			for _, name in ipairs(names) do line = ns.SwapName(line, name, alias[name]) end
+			for _, name in ipairs(names) do line = Swap(line, name, alias[name]) end
 			lines[i] = line
 		end
 	end
-	return table.concat(lines, "\n"), alias
+	return table.concat(lines, "\n")
 end
 
 -- What this client allows, what has broken, and a bug report.
@@ -692,14 +675,6 @@ function Page.BuildDiagnosticsTab()
 						:format("|cffffd100" .. tostring(ns.AUTHOR) .. "|r")
 				end,
 			},
-			-- The whole walk-through in one window (Options/BugReport.lua).
-			reportBug = {
-				type = "execute",
-				name = L["Report a bug"],
-				desc = L["Opens a window that walks you through it: what went wrong, a link that opens the issue on GitHub filled in, and the report to paste."],
-				order = 31.4,
-				func = function() ns.BugReport.Show() end,
-			},
 			-- Which of the two buttons below somebody asked for a report wants.
 			reportHint = {
 				type = "description",
@@ -738,22 +713,6 @@ function Page.BuildDiagnosticsTab()
 			-- /manners selftest launch as a button: the checks of how the
 			-- looks, the bar slot and the tooltip draw on this client, into the
 			-- same box. Out of combat: it puts looks on the real prompt.
-			-- A key for Mark this moment (Options/BugReport.lua): a binding of
-			-- the game's, saved with its key bindings like the other Manners keys.
-			markKey = {
-				type = "keybinding",
-				name = L["Key for Mark this moment"],
-				desc = L["Press it the moment something goes wrong, even in a fight: the report then shows what Manners saw at that instant."] .. " " .. L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
-				order = 32.8,
-				hidden = function() return not ns.Setup.CanBind() end,
-				disabled = InCombatLockdown,
-				get = function() return ns.Setup.Key(ns.BugReport.MARK_COMMAND) or "" end,
-				set = function(_, v)
-					ns.Setup.SetKey(v, ns.BugReport.MARK_COMMAND, function(key, was)
-						return L["%s was bound to %s; it now marks this moment."]:format(key, was)
-					end)
-				end,
-			},
 			launchCheck = {
 				type = "execute",
 				name = L["Test how Manners looks in this game"],

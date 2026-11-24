@@ -449,12 +449,10 @@ local function castLine(spell)
 	-- A line with conditionals or clauses is run through the parser as the
 	-- client's /cast does: no clause holding casts nothing, and the unit the
 	-- one that held named (else the target) is kept on the entry as `onto`.
-	-- An empty clause that holds ("[mod:ctrl] ;") answers "": the client's
-	-- CastSpellByName("") casts nothing.
 	local onto
 	if spell:find("[%[;]") then
 		local answer, unit = SecureCmdOptionParse(spell)
-		if not answer or answer == "" then return end
+		if not answer then return end
 		spell, onto = answer, unit or "target"
 	end
 	local cd = Mock.spellCooldowns and Mock.spellCooldowns[GCD_ID]
@@ -511,12 +509,6 @@ function Mock.execLine(line)
 		Mock.castLog[#Mock.castLog + 1] = { use = rest, at = Mock.now, depth = Mock.macroDepth }
 	elseif CHANNELS[command] then
 		Mock.saidLog[#Mock.saidLog + 1] = { channel = command, text = rest, at = Mock.now }
-	elseif command == "stopcasting" then
-		-- With an optional conditional, as the client's handler runs it.
-		if rest == "" or SecureCmdOptionParse(rest) then
-			Mock.stopCasts = (Mock.stopCasts or 0) + 1
-			Mock.castLog[#Mock.castLog + 1] = { stop = true, at = Mock.now, depth = Mock.macroDepth }
-		end
 	elseif command == "cancelqueuedspell" then
 		return
 	else

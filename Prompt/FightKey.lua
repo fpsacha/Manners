@@ -226,8 +226,6 @@ local function PreClick(_, mouse)
 	local pending = ns.pendingClick
 	if pending and ns.ExpirePendingClick then ns.ExpirePendingClick(pending, L["you used your fight key instead"]) end
 	ns.Trail("press", "pressed: fight key")
-	local tally = ns.fightTally
-	if tally then tally.keyPresses = (tally.keyPresses or 0) + 1 end
 end
 
 -- Made the first time it is wanted, out of combat. Never shown: it has no key

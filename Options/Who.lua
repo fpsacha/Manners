@@ -49,9 +49,6 @@ end
 -- on, since that filter is what holds a mana-only spell back.
 local function BuffLabel(buff)
 	local label = ns.BuffName(buff)
-	-- Your pet's, for the party's tank (Buffs.lua, pet and forTank: the imp's Fire
-	-- Shield), says both and nothing more: the tank is in your party.
-	if buff.pet and buff.forTank then return L["%s from my imp on the tank"]:format(label) end
 	if buff.manaOnly and F().relevantOnly then
 		label = L["%s |cff808080(mana users only)|r"]:format(label)
 	end
@@ -245,10 +242,6 @@ local function AddBuffToggles(args)
 		if buff.optIn then
 			args["offer_" .. buff.key].desc = L["Off until you tick it. Tick to offer this buff."]
 		end
-		-- Your imp's (Buffs.lua, pet): who it goes to, and when it is there to give.
-		if buff.pet and buff.forTank then
-			args["offer_" .. buff.key].desc = L["Off until you tick it. On: while your imp is out and knows it, the tank of your party is offered it; a press has your imp cast it on them. The tank is whoever the game gives the tank role. Somebody in your party who asks you for it by name gets it too."]
-		end
 		-- And a switch under one that may be kept for a favour returned and a
 		-- request by name (Buffs.lua, returnOnly: Unending Breath, a warlock's
 		-- only buff for others): on, it goes to everybody as before 1.11.19.
@@ -264,26 +257,6 @@ local function AddBuffToggles(args)
 				get = function() return B().keptBack[buff.key] ~= true end,
 				set = function(_, value)
 					B().keptBack[buff.key] = (not value) or nil
-					restyleAndMacro()
-				end,
-			}
-		end
-		-- And one for the water (Buffs.lua, swimGate: Unending Breath; asked for on
-		-- CurseForge, issue 41): offered to others only while you swim, as your own
-		-- is reminded of only there. Off by default. No changed mark: a sparse set
-		-- per buff has no single default to find (WindowPage DefaultOf).
-		if buff.swimGate then
-			args["swim_" .. buff.key] = {
-				type = "toggle",
-				name = function() return L["Offer %s to others only while I am swimming"]:format(ns.BuffName(buff) or buff.key) end,
-				desc = L["On: it is offered to your group and to passers-by only while you swim, and for a moment after. A favour you return with it, and somebody who asks you for it by name, still get it. Your own reminder to put it on yourself is not changed."],
-				order = 4 + index / 10 + 0.07,
-				width = "full",
-				hidden = function() return ns.PinnedBuff() ~= nil and ns.PinnedBuff().key ~= buff.key end,
-				disabled = function() return not ns.IsBuffKnown(buff) or B().skip[buff.key] == true end,
-				get = function() return B().swimOnly[buff.key] == true end,
-				set = function(_, value)
-					B().swimOnly[buff.key] = value and true or nil
 					restyleAndMacro()
 				end,
 			}
@@ -543,7 +516,7 @@ local function AddOwnControls(args)
 				control.name = function() return ns.OwnFamilyLabel(family) end
 				control.desc = function()
 					if family.tank then
-						return L["Automatic reminds you while your group role is tank, or, when you are alone, while your talents are a tank's; Always reminds you whenever it is not up."]
+						return L["Automatic reminds you only while your group role is tank; Always reminds you whenever it is not up."]
 					end
 					-- Fire Ward or Frost Ward (Buffs.lua, brief): outside a fight only.
 					if family.brief then return L["Reminds you when no ward is on you. Automatic takes the one you had up last, else the first you know. Outside a fight only: from the pull until the fight ends Manners offers no ward, so in a fight you recast it yourself. Off until you turn it on."] end
@@ -955,18 +928,26 @@ local function AddCureControls(args)
 		get = fGet,
 		set = fSet,
 	}
-	-- The fight's own button (Prompt/CureFight.lua) has its switch, key and
-	-- modifiers on In a fight, the one place it is set; here, where somebody
-	-- turning cures on looks for it, a line pointing there.
+	-- The fight's own button (Prompt/CureFight.lua) has its switch on Look, In
+	-- a fight; the same switch sits here too, where somebody turning cures on
+	-- looks for it. It does not follow the switches above or the seconds.
 	args.curesFight = {
-		type = "description",
-		name = function()
-			return L["The cure button for a fight is set on its own page: %s, with its key and which cure Shift and Ctrl cast."]
-				:format(Page.RefTo(L["Show my cure on a button in a fight, only while somebody needs it"], "appearance.cureFight"))
+		type = "toggle",
+		name = L["Show my cure on a button in a fight, only while somebody needs it"],
+		desc = function()
+			if ns.caps.conditionalTargeting then
+				return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures whoever is under your mouse, else your target, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
+			end
+			return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures your target when it is a friend, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
 		end,
 		order = 14.95,
 		width = "full",
 		hidden = function() return NoCures() or not ns.CureLearned() end,
+		get = function() return ns.db.profile.prompt.cureFight == true end,
+		set = function(_, value)
+			ns.db.profile.prompt.cureFight = value == true
+			if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
+		end,
 	}
 end
 
@@ -1980,31 +1961,6 @@ function Page.BuildWhoTab()
 				get = sGet,
 				set = sSet,
 			},
-			-- Water and food for your target (Courtesy.lua): no chat needed, so it
-			-- stands on its own, and how much goes in the trade beside it.
-			courtesyTarget = {
-				type = "toggle",
-				name = L["Offer water and food to my target"],
-				desc = L["Out of a fight, a friendly player you target is offered water and food that suits their level, or food alone for a class without mana. With none in your bags the first press conjures it; the next opens a trade with it in the window. Accepting the trade stays yours. Once traded or skipped, they are left alone for ten minutes."],
-				order = 14.41,
-				width = "full",
-				hidden = function() return not ns.Courtesy.Has("courtesyRefresh") end,
-				get = sGet,
-				set = sSet,
-			},
-			courtesyAmount = {
-				type = "select",
-				name = L["How much to trade"],
-				desc = L["What goes in the trade window for water and food, your target's or somebody who asked: one stack of each, or as many stacks as the window and your bags hold that suit them, water and food in turn."],
-				order = 14.42,
-				values = { fill = L["Fill the trade window"], one = L["One stack"] },
-				sorting = { "fill", "one" },
-				hidden = function()
-					return not (ns.Courtesy.Has("courtesyRefresh") and (S().courtesyTarget or (S().asked and S().courtesyRefresh)))
-				end,
-				get = sGet,
-				set = sSet,
-			},
 			-------------------------------------------------- myself
 			-- You, last, as the queue ranks you: behind favours and requests,
 			-- ahead of your group. Its own heading, with everything about you
@@ -2241,7 +2197,7 @@ function Page.BuildWhoTab()
 			ownApartKey = {
 				type = "keybinding",
 				name = L["Key for the consumables button"],
-				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 15.956,
 				hidden = function()
 					return NothingForSelf() or ns.db.profile.ownBuffs.apart ~= true or not ns.Setup.CanBind()

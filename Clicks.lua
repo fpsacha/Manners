@@ -1152,33 +1152,6 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 	end
 end
 
--- Your pet's cast of a buff of its own (Buffs.lua, `pet`: the imp's Fire Shield,
--- GitHub issue 22). The press's /cast has the pet cast it, and the client sends
--- no UNIT_SPELLCAST_SENT for a pet: the pet's UNIT_SPELLCAST_SUCCEEDED is the
--- answer, settled as a cast the macro aimed at them (the client names nobody).
--- On a frame of its own, for the pet alone, made only for a class with such a
--- buff (Core.lua, OnEnable): the player's cast frame stays the player's.
-function ns.PetCastLanded(unit, castGUID, spellId)
-	if unit ~= "pet" then return end
-	local id = plain(spellId)
-	local buff = id and ns.BUFF_BY_ID[id]
-	if not (buff and buff.pet) then return end
-	SettlePendingClick(nil, id, plain(castGUID))
-end
-function ns.HearPetCasts()
-	if ns.petCastEvents then return end
-	local frame = CreateFrame("Frame")
-	frame:SetScript("OnEvent", function(_, _, unit, castGUID, spellId)
-		ns.Guard("pet cast", ns.PetCastLanded, unit, castGUID, spellId)
-	end)
-	if type(frame.RegisterUnitEvent) == "function" then
-		frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "pet")
-	else
-		frame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-	end
-	ns.petCastEvents = frame
-end
-
 -- The sweep read again, for the three moments the global cooldown or the
 -- player's cast changes without a cast going out; and the bar macro's hold
 -- with it (the click macro section, below).

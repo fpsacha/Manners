@@ -39,17 +39,6 @@ end
 -- rather than a second, hand-maintained opinion about it.
 ns.TargetCommand = TargetCommand
 
--- The line that targets yourself by name, spelled exactly as STRATEGIES.target
--- spells anybody's (the buttons for the moment, Prompt/Moments.lua, cast Slow
--- Fall on yourself with it where [@player] does not resolve); nil while the
--- client gives no name for you.
-function Prompt.SelfTargetLine()
-	local full = ns.UnitFullName and ns.UnitFullName("player")
-	local who = full and ns.TargetName(full)
-	if type(who) ~= "string" or who == "" then return nil end
-	return TargetCommand() .. " " .. who
-end
-
 -- Whether the client says plainly that nothing is targeted: no GUID for the
 -- target token, which is nil without a unit. A secret answer is not a no.
 local function NoTarget()

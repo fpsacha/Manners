@@ -55,61 +55,6 @@ local function AccentDead()
 end
 Page.AccentDead = AccentDead
 
--- The cure button's modifiers (Prompt/CureFight.lua, Chosen): which of the
--- class's cures the plain press, Shift and Ctrl cast, kept per class
--- (prompt.cureFightMods), a spell by its first rank id, "none" for nothing. A
--- choice that is the place's own default is stored as no choice, so the window
--- marks only a real change.
-local CureMods = {}
-do
-	local INDEX = { plain = 1, shift = 2, ctrl = 3 }
-	local function Known() return ns.CureFightKnown and ns.CureFightKnown() or nil end
-	local function Id(spell) return spell and tostring(spell.cure.ranks[1]) or "none" end
-	-- Offered to a class that has two cures or more to share out.
-	function CureMods.Hidden()
-		if not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true then return true end
-		local known = Known()
-		return not (known and known[2])
-	end
-	function CureMods.Values()
-		local out = { none = L["Nothing"] }
-		for _, spell in ipairs(Known() or {}) do out[Id(spell)] = tostring(spell.name) end
-		return out
-	end
-	function CureMods.Sorting()
-		local out = {}
-		for _, spell in ipairs(Known() or {}) do out[#out + 1] = Id(spell) end
-		out[#out + 1] = "none"
-		return out
-	end
-	function CureMods.Get(mod)
-		local picks = { ns.CureFight.Chosen() }
-		return Id(picks[INDEX[mod]])
-	end
-	function CureMods.Set(mod, value)
-		local p, class = P(), ns.caps.class
-		if not class then return end
-		if type(p.cureFightMods) ~= "table" then p.cureFightMods = {} end
-		local mine = type(p.cureFightMods[class]) == "table" and p.cureFightMods[class] or {}
-		local known = Known() or {}
-		if value == Id(known[INDEX[mod]]) then
-			mine[mod] = nil
-		else
-			mine[mod] = value == "none" and 0 or tonumber(value)
-		end
-		p.cureFightMods[class] = next(mine) ~= nil and mine or nil
-		if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
-	end
-	-- What the key's tooltip adds: the cures Shift and Ctrl cast on it.
-	function CureMods.KeyLine()
-		local _, shift, ctrl = ns.CureFight.Chosen()
-		if shift and ctrl then return " " .. L["Hold Shift for %s, Ctrl for %s."]:format(tostring(shift.name), tostring(ctrl.name)) end
-		if shift then return " " .. L["Hold Shift for %s."]:format(tostring(shift.name)) end
-		if ctrl then return " " .. L["Hold Ctrl for %s."]:format(tostring(ctrl.name)) end
-		return ""
-	end
-end
-
 -- The icon's size on a look that sizes it itself (Toast, from the height), or
 -- nil where the slider sets it.
 local function LookIconSize()
@@ -619,7 +564,7 @@ function Page.BuildLookTab()
 			breakFreeKey = {
 				type = "keybinding",
 				name = L["Key for Will of the Forsaken"],
-				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 32.47,
 				hidden = function()
 					return ns.caps.breakFree == nil or P().breakFree == false or not ns.Setup.CanBind()
@@ -656,7 +601,7 @@ function Page.BuildLookTab()
 			mendInFightKey = {
 				type = "keybinding",
 				name = L["Key for Mend Pet"],
-				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 32.49,
 				hidden = function()
 					return not (ns.Beast and ns.Beast.IsHunter() and ns.Beast.KnowsMend())
@@ -707,9 +652,9 @@ function Page.BuildLookTab()
 				name = L["Show my cure on a button in a fight, only while somebody needs it"],
 				desc = function()
 					if ns.caps.conditionalTargeting then
-						return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners; Plain press, With Shift and With Ctrl choose which cure it casts. A press cures whoever is under your mouse, else your target, else you. Where the game hides debuffs from addons in a fight, the game itself shows the debuff on the button's place, and a click casts only as the second of two quick clicks; the key casts at once. A change made in a fight counts from the next one."]
+						return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures whoever is under your mouse, else your target, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
 					end
-					return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners; Plain press, With Shift and With Ctrl choose which cure it casts. A press cures your target when it is a friend, else you. Where the game hides debuffs from addons in a fight, the game itself shows the debuff on the button's place, and a click casts only as the second of two quick clicks; the key casts at once. A change made in a fight counts from the next one."]
+					return L["A button of its own, right of the prompt, that appears only while you, your target or somebody in your group carries a poison, disease, curse or harmful magic your class can remove, and says who. Its key is Key for my cure in a fight, below, also in the game's Key Bindings under Manners. A press cures your target when it is a friend, else you. Where the game hides debuffs in a fight, it still appears when the game says you can remove one, without naming the kind. A change made in a fight counts from the next one."]
 				end,
 				order = 32.491,
 				width = "full",
@@ -742,8 +687,7 @@ function Page.BuildLookTab()
 			cureFightKey = {
 				type = "keybinding",
 				name = L["Key for my cure in a fight"],
-				-- Names what Shift and Ctrl cast on it (CureMods.KeyLine).
-				desc = function() return L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."] .. CureMods.KeyLine() end,
+				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 32.492,
 				hidden = function()
 					return not (ns.ClassHasCures() and ns.CureLearned()) or P().cureFight ~= true or not ns.Setup.CanBind()
@@ -765,7 +709,7 @@ function Page.BuildLookTab()
 			cureFightKey2 = {
 				type = "keybinding",
 				name = L["Key for my second cure in a fight"],
-				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 32.4925,
 				hidden = function()
 					local list = ns.CureFightSpells()
@@ -783,42 +727,6 @@ function Page.BuildLookTab()
 					end)
 					if ns.CureFight then ns.Guard("cure in a fight", ns.CureFight.Refresh, ns.CureFight) end
 				end,
-			},
-			-- Which cure the cure button casts on a plain press, with Shift and with
-			-- Ctrl (Prompt/CureFight.lua, Chosen): only the class's own cures, and
-			-- Nothing. Kept per class, as the fight key's spell is.
-			cureFightPlain = {
-				type = "select",
-				name = L["Plain press"],
-				desc = L["Which cure the cure button and its key cast with no key held. Only cures your class knows are listed. A change made in a fight counts from the next one."],
-				order = 32.4926,
-				hidden = CureMods.Hidden,
-				values = CureMods.Values,
-				sorting = CureMods.Sorting,
-				get = function() return CureMods.Get("plain") end,
-				set = function(_, value) CureMods.Set("plain", value) end,
-			},
-			cureFightShift = {
-				type = "select",
-				name = L["With Shift"],
-				desc = L["Which cure the cure button and its key cast while you hold Shift. With A button for each cure on, this cure also gets the second button. A change made in a fight counts from the next one."],
-				order = 32.4927,
-				hidden = CureMods.Hidden,
-				values = CureMods.Values,
-				sorting = CureMods.Sorting,
-				get = function() return CureMods.Get("shift") end,
-				set = function(_, value) CureMods.Set("shift", value) end,
-			},
-			cureFightCtrl = {
-				type = "select",
-				name = L["With Ctrl"],
-				desc = L["Which cure the cure button and its key cast while you hold Ctrl. A change made in a fight counts from the next one."],
-				order = 32.4928,
-				hidden = CureMods.Hidden,
-				values = CureMods.Values,
-				sorting = CureMods.Sorting,
-				get = function() return CureMods.Get("ctrl") end,
-				set = function(_, value) CureMods.Set("ctrl", value) end,
 			},
 			-- Next to Animations, because that is what it is: the flashes of
 			-- a click in a fight, not whether anybody is offered.
@@ -1205,187 +1113,5 @@ function Page.BuildLookTab()
 			end
 		end
 	end
-	Page.AddMomentControls(tab.args)
 	return tab
-end
-
--- The buttons for the moment (Prompt/Moments.lua): a switch and a key for each
--- button a character has learned, and the two shares under which the health and
--- mana buttons light. Added AFTER the loop above, so none of them inherits "gone
--- for a character with no prompt": a class with a moment row and no prompt still
--- sees its switch and key. %s is always the name the client gives the spell.
-function Page.AddMomentControls(args)
-	local tail = L["Its key is the box under this switch, also in the game's Key Bindings under Manners. With no key set, a click on the lit button casts it. A change made in a fight counts from the next one."]
-	local twice = L["Where the game keeps that from addons in a fight, the game itself lights the button, and it then takes two quick clicks, so one stray click never casts it."]
-	local magic = L["Lights while a hostile target within reach carries a magic buff you can remove. Out of sight while it cools down."]
-	local function Has(key) return ns.Moments ~= nil and ns.Moments.Has(key) end
-	-- The name the client gives the spell: the learned one, or for a spell this
-	-- character may not know yet (Ice Block, which Cold Snap brings back) the
-	-- client's name for the row's first rank.
-	local function Spell(key)
-		return ns.Moments and ns.Moments.NameOf(key) or ""
-	end
-	local function On(key) return ns.db.profile.moments[key] == true end
-	local function Refresh() if ns.Moments then ns.Guard("moments", ns.Moments.Refresh, ns.Moments) end end
-	local function Cap(key) return key:sub(1, 1):upper() .. key:sub(2) end
-	args.momentsNote = {
-		type = "description",
-		name = L["Buttons drawn as small prompts in your look, stacked above the prompt, that stay out of sight until their moment comes, then light up with the spell and the reason. Each has a switch here and a key of its own."],
-		order = 32.493,
-		fontSize = "medium",
-		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
-	}
-	-- Where the cards sit, shown out of a fight for a few seconds, and how big they are.
-	args.momentPreview = {
-		type = "execute",
-		name = L["Show where the buttons for the moment sit"],
-		desc = L["Lights every button for the moment that is switched on, for a few seconds and marked as a preview, so you can see where each one sits and what it says. Nothing casts from it. Not in a fight."],
-		order = 32.49302,
-		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
-		disabled = function() return InCombatLockdown() or not (ns.Moments and ns.Moments.AnyArmed()) end,
-		func = function() if ns.Moments then ns.Guard("moments preview", ns.Moments.Preview) end end,
-	}
-	args.momentCardSize = {
-		type = "range",
-		name = L["Card size"],
-		desc = L["How big the buttons for the moment are drawn, in percent: at 100 a card shows your look as big as the prompt itself."],
-		order = 32.49304,
-		min = 80, max = 150, step = 10,
-		hidden = function() return not (ns.caps.moments and ns.caps.moments.n > 0) end,
-		get = function() return ns.db.profile.moments.cardSize end,
-		set = function(_, value)
-			ns.db.profile.moments.cardSize = value
-			Refresh()
-		end,
-	}
-	-- Each switch with its words; the order is the page's. The slider for the
-	-- share of health comes after Cold Snap, the one for mana after the gem.
-	local rows = {
-		{ key = "counterspell",
-			name = function() return L["Show %s when my target starts a cast"]:format(Spell("counterspell")) end,
-			desc = function() return L["Lights while a hostile target within reach is casting or channelling something you can interrupt, and goes dark the moment the cast ends. A press stops your own cast first, so it fires at once. Out of sight while it cools down."] .. " " .. twice .. " " .. tail end },
-		{ key = "spellsteal",
-			name = function() return L["Show %s when my target has a buff I can steal"]:format(Spell("spellsteal")) end,
-			desc = function() return L["Lights while a hostile target within reach carries a buff the game marks as stealable. Out of sight while it cools down."] .. " " .. twice .. " " .. tail end },
-		-- The other classes' spells that strip a buff (slot 8, Prompt/MomentsData.lua).
-		{ key = "purge",
-			name = function() return L["Show %s when my target has a buff I can remove"]:format(Spell("purge")) end,
-			desc = function() return magic .. " " .. twice .. " " .. tail end },
-		{ key = "dispel",
-			name = function() return L["Show %s when my target has a buff I can remove"]:format(Spell("dispel")) end,
-			desc = function() return magic .. " " .. twice .. " " .. tail end },
-		{ key = "tranq",
-			name = function() return L["Show %s when my target has a buff I can remove"]:format(Spell("tranq")) end,
-			desc = function() return L["Lights while a hostile target within reach carries an enrage you can remove (and, where the spell takes magic too, a magic buff). Out of sight while it cools down."] .. " " .. twice .. " " .. tail end },
-		{ key = "shieldslam",
-			name = function() return L["Show %s when my target has a buff I can remove"]:format(Spell("shieldslam")) end,
-			desc = function() return magic .. " " .. L["Off at first: a warrior presses it anyway."] .. " " .. twice .. " " .. tail end },
-		{ key = "blink",
-			name = function() return L["Show %s when I am stunned or rooted"]:format(Spell("blink")) end,
-			desc = function() return L["Lights while you are stunned or rooted and the spell is ready. Where the game does not say what took control of your character, it lights for any loss of control."] .. " " .. tail end },
-		{ key = "iceblock",
-			name = function() return L["Show %s when my health is low"]:format(Spell("iceblock")) end,
-			desc = function() return L["Lights in a fight while your health is under Health below and the spell is ready."] .. " " .. twice .. " " .. tail end },
-		{ key = "coldsnap", after = "health",
-			name = function() return L["Show %s when I need %s and it is cooling down"]:format(Spell("coldsnap"), Spell("iceblock")) end,
-			desc = function()
-				return L["Lights in a fight while your health is under Health below and %s is still on cooldown. It brings that spell back: press it next."]:format(Spell("iceblock"))
-					.. " " .. twice .. " " .. tail
-			end },
-		{ key = "evocation",
-			name = function() return L["Show %s when my mana is low in a fight"]:format(Spell("evocation")) end,
-			desc = function() return L["Lights in a fight while your mana is under Mana below and the spell is ready."] .. " " .. twice .. " " .. tail end },
-		{ key = "managem",
-			name = function() return L["Show my mana gem when my mana is low in a fight"] end,
-			desc = function() return L["Lights in a fight while your mana is under Mana below and a mana gem in your bags is ready. A press uses the best one you carry."] .. " " .. twice .. " " .. tail end },
-		{ key = "drink", after = "mana",
-			name = function() return L["Show a drink when my mana is low out of a fight"] end,
-			desc = function()
-				return L["Out of a fight only. Lights while your mana is under Mana below, you stand still, you are not drinking already, and a drink is in your bags. A press drinks the best one you carry: your conjured water first, the best your level allows, then any other drink."]
-					.. " " .. L["Where the game keeps your mana from addons, the game itself lights the button, and it then takes two quick clicks, so one stray click never drinks."] .. " " .. tail
-			end },
-		{ key = "slowfall",
-			name = function() return L["Show %s when I have been falling for a second"]:format(Spell("slowfall")) end,
-			desc = function()
-				local text = L["In a fight or out of one. Lights once you have been falling for a second, and goes dark when you land. It lands on you whoever you have targeted."]
-				local reagent = ns.Moments and ns.Moments.ReagentName("slowfall")
-				if reagent then text = text .. " " .. L["It needs a %s in your bags."]:format(reagent) end
-				return text .. " " .. tail
-			end },
-		{ key = "fireward",
-			name = function() return L["Show %s when my target hits me with fire"]:format(Spell("fireward")) end,
-			desc = function() return L["Lights in a fight when your target casts a fire spell, where the game names the spell. Where the game hides the spell (WoW Forever), Manners asks the game to light it from the hidden spell, and it then takes two quick clicks. It also lights as soon as fire damage hits you while your target is hostile, for ten seconds or until you cast a ward. Where the game gives no school for a cast, it lights again whenever your target casts once fire has hit you in the fight."] .. " " .. tail end },
-		{ key = "frostward",
-			name = function() return L["Show %s when my target hits me with frost"]:format(Spell("frostward")) end,
-			desc = function() return L["Lights in a fight when your target casts a frost spell, where the game names the spell. Where the game hides the spell (WoW Forever), Manners asks the game to light it from the hidden spell, and it then takes two quick clicks. It also lights as soon as frost damage hits you while your target is hostile, for ten seconds or until you cast a ward. Where the game gives no school for a cast, it lights again whenever your target casts once frost has hit you in the fight."] .. " " .. tail end },
-	}
-	local order = 32.4931
-	-- A share's slider is shown while the character has any of the rows that use
-	-- it, and enabled while any of them is on.
-	local function Slider(field, name, desc, keys)
-		args["moment" .. Cap(field)] = {
-			type = "range",
-			name = name,
-			desc = desc,
-			order = order,
-			min = 5, max = 50, step = 5,
-			hidden = function()
-				for _, key in ipairs(keys) do
-					if Has(key) then return false end
-				end
-				return true
-			end,
-			disabled = function()
-				for _, key in ipairs(keys) do
-					if Has(key) and On(key) then return false end
-				end
-				return true
-			end,
-			get = function() return ns.db.profile.moments[field] end,
-			set = function(_, value) ns.db.profile.moments[field] = value end,
-		}
-		order = order + 0.0001
-	end
-	local function Share(after)
-		if after == "health" then
-			Slider("health", L["Health below"], L["The share of your health under which the health buttons light, in percent."],
-				{ "iceblock", "coldsnap" })
-		else
-			Slider("mana", L["Mana below"], L["The share of your mana under which the mana buttons light, in percent."],
-				{ "evocation", "managem", "drink" })
-		end
-	end
-	for _, def in ipairs(rows) do
-		local key = def.key
-		args["moment" .. Cap(key)] = {
-			type = "toggle",
-			name = def.name,
-			desc = def.desc,
-			order = order,
-			width = "full",
-			hidden = function() return not Has(key) end,
-			get = function() return On(key) end,
-			set = function(_, value)
-				ns.db.profile.moments[key] = value == true
-				Refresh()
-			end,
-		}
-		args["moment" .. Cap(key) .. "Key"] = {
-			type = "keybinding",
-			name = function() return L["Key for %s"]:format(Spell(key)) end,
-			desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
-			order = order + 0.00005,
-			hidden = function() return not Has(key) or not On(key) or not ns.Setup.CanBind() end,
-			disabled = function() return InCombatLockdown() end,
-			get = function() return ns.Setup.Key(ns.Moments.Command(key)) or "" end,
-			set = function(_, value)
-				ns.Setup.SetKey(value, ns.Moments.Command(key), function(bound, was)
-					return L["%s was bound to %s; it now casts %s."]:format(bound, was, Spell(key))
-				end)
-				Refresh()
-			end,
-		}
-		order = order + 0.0001
-		if def.after then Share(def.after) end
-	end
 end

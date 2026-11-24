@@ -73,8 +73,6 @@ local STAND_IN = {
 	["general.hallNote"] = true, ["general.hallList"] = true,
 	-- Profiles' overview, while Undo and the button under it are away.
 	["profiles.current"] = true,
-	-- The buttons for the moment: the note heads the section for a character who has one.
-	["appearance.momentsNote"] = true,
 }
 
 local GROUPS = { { "general" }, { "who", "skip", "when" }, { "self", "pet" }, { "quiet", "fight", "click", "appearance" }, { "profiles", "diagnostics" } }

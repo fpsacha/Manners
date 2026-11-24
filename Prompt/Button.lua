@@ -152,7 +152,7 @@ local function PersonTooltipLines(entry, brief)
 			or L["Saving mana: until you are back to %d%% mana, nothing is offered."])
 			:format(resume), 1, 0.82, 0, true)
 	end
-	if entry.checked and entry.known == nil and not entry.courtesy then
+	if entry.checked and entry.known == nil then
 		GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
 			1, 0.5, 0.5, true)
 	elseif not entry.checked and not entry.res then

@@ -90,8 +90,8 @@ mutate("Favours.lua",
        expect=N + "a landing waiting for its window is not yet called unnamed", script=S)
 
 mutate("Favours.lua",
-       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) ~= false then\n\t\t\tRemember(seen, \"unnamed\", seen.readLate and \"old\" or \"none\")\n",
-       "\t\t\tthen\n\t\t\tRemember(seen, \"unnamed\", seen.readLate and \"old\" or \"none\")\n",
+       "\t\t\tand plain(aura.isFromPlayerOrPlayerPet) ~= false then\n\t\t\tRemember(seen, \"unnamed\", \"none\")\n",
+       "\t\t\tthen\n\t\t\tRemember(seen, \"unnamed\", \"none\")\n",
        "favour-caster: an NPC's aura is called unnamed",
        expect=N + "a landing that is plainly an NPC's is not called unnamed", script=S)
 

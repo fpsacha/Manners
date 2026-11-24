@@ -13,7 +13,7 @@
 ## Notes-zhCN: 有人给你加了增益，一键回敬对方，你原来的目标也会马上恢复。
 ## Notes-zhTW: 有人替你加了增益，一鍵回敬對方，你原本的目標也會馬上恢復。
 ## Author: Sacha
-## Version: 1.11.41
+## Version: 1.11.40
 ## SavedVariables: MannersDB
 ## X-Compatible-With: forever
 ## X-License: MIT
@@ -30,7 +30,6 @@ Locales\Locales.xml
 
 Flavour.lua
 Foods.lua
-CastSchools.lua
 BeastFoods.lua
 Consumables.lua
 Pets.lua
@@ -68,7 +67,6 @@ WhatsNew.lua
 Looks\Looks.lua
 Looks\Flow.lua
 Looks\Previews.lua
-Looks\CardArt.lua
 Looks\Luxe.lua
 Looks\Toast.lua
 Looks\Arcane.lua
@@ -106,13 +104,8 @@ Prompt\Refresh.lua
 Prompt\Supplies.lua
 Prompt\BreakFree.lua
 Prompt\MendPet.lua
-Prompt\CureNeed.lua
 Prompt\CureFight.lua
 Prompt\FightKey.lua
-Prompt\MomentsData.lua
-Prompt\MomentsSense.lua
-Prompt\MomentsCard.lua
-Prompt\Moments.lua
 Options\Shared.lua
 Options\Launcher.lua
 Options\Start.lua
@@ -137,6 +130,5 @@ Options\Window\WindowChrome.lua
 Options\Window\WindowPage.lua
 Options\Window\WindowSearch.lua
 Options\Register.lua
-Options\BugReport.lua
 Selftest.lua
 SelftestLaunch.lua

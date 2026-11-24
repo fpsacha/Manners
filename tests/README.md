@@ -181,14 +181,6 @@ local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
 ```
 
-A whole-suite run puts many of these files in one process, so after each one
-the extras loop puts back every global function and every `C_` name (and the
-fields of each `C_` table) as the first file found them, then calls
-`Mock.reset()`: a file that leaves one replaced cannot change the client the
-next file sees. A file still puts back what it replaces itself, by the list
-of names it touched (a `pairs()` over saved values skips the ones that were
-nil).
-
 Their mutations go in `tests/mutations/<topic>.py`, which `selftest.py` runs
 with `mutate()` in scope.
 
@@ -299,49 +291,7 @@ sub-second subset for the middle of an edit.
   environment of its own with frame handles, and `SecureCmdOptionParse`
   (mockapi.lua) reading `[combat]` from `Mock.affectingCombat`, else
   `Mock.inCombat`. Secure code's calls in a fight are not the addon's
-  (`Mock.secureCode`). It models the game's aura container too
-  (`CreateFrame("AuraContainer", ..., "CustomAuraContainerTemplate")`, refused
-  unless `Mock.auraContainer`): one aura slot that shows when
-  `Mock.hiddenFor(unit)` (or `Mock.hiddenDebuffs[unit]`) holds a removable debuff
-  of its `includeDispelTypes`, a slot frame that throws when asked what it shows
-  in a fight, `Mock.auraShows(box)` and `Mock.auraShowing()` for what the client
-  would draw (`scenarios/curefight-container.lua`). A box draws what its unit
-  carried when it last redrew, as the game's does: on `SetUnit`,
-  `UpdateAllAuras`, its OnShow and OnHide (`Mock.auraSweep`, after every Show and
-  Hide) and `UNIT_AURA` for its unit (`Mock.frameEvent`, `Mock.auraEvent`), never
-  on a target or roster change by itself (`scenarios/curefight-redraw.lua`). An
-  empty clause that holds (`[mod:ctrl] ;`) casts nothing. `SecureCmdOptionParse` reads
-  `[mod:shift]` and `[mod:ctrl]` from `Mock.modifiers`.
-- The buttons for the moment (`scenarios/moments*.lua`, helper `momentskit.lua`,
-  `scenarios/curefight-cover.lua`): `Mock.cooldown[61304]` stands in for the global cooldown (the urgent rows
-  read it, `moments-fast.lua`); `moments-card.lua` and `moments-stack.lua` read each
-  card's regions and the rectangles worked out from its points (the scenario writes
-  the prompt's own `_left`, `_bottom`, `_right` and `_top`); `Mock.secret(payload)` is a hidden value
-  (`Mock.reveal`, `Mock.secretType`, `issecretvalue` and a secret-aware `type()`;
-  `Mock.secretWidgets` makes `SetAlphaFromBoolean` and `SetAlpha` take one and
-  refuse a non-boolean as the client does); each frame keeps its own event
-  registrations (`UnregisterEvent` really clears; `Mock.deliver(frame, event,
-  unit, ...)` runs the handler only for a registered event and unit);
-  `Mock.clickAt(button)` gives the click to the highest mouse-enabled frame over
-  the button (`"world"` when nothing takes it; `Mock.coverLeaks` models a client
-  where a cover does not swallow it); `Mock.shownAlpha(frame)` is what the
-  player would see. The kit stands in the calls the mock lacks (health, power,
-  the target's cast in the client's return positions, curves, a cooldown whose
-  isOnGCD is filled only inside the cooldown event, the bags and an item's
-  cooldown, the target's buffs (with each one's `kind`, hidden by
-  `Mock.kindsHidden`, and the game's dispellable filter: `dispel = true`,
-  `Mock.filterThrows`), falling, and for the drink the bags walked by
-  `C_Container` (`Mock.bags`), `Mock.playerLevel`, `Mock.itemMinLevel`,
-  `Mock.itemUnusable`, `Mock.mounted`, `Mock.swimming`, `Mock.shapeshift` and the
-  Drink aura `Mock.drinkAura` = true, `"secret"` or `"throw"`) from `Mock` fields
-  listed at its top,
-  and drives a fight: `K.withMage`, `K.pull`, `K.release`, `K.event`, `K.cast`,
-  `K.cooldownEvent`, `K.fallTick`, `K.relearn`, `K.click`. On Forever the kit
-  hides health, mana and the target's cast flag, as the owner's check-up says
-  his client does (`Mock.hiddenValues`), unless a scenario passes `plain = true`
-  or its file says `K.plain = true` at the top (the older files, written for
-  plain values; `plain = false` takes the hidden ones back). Its
-  `GetSpellCooldown` throws on a nil spell id, as the client does.
+  (`Mock.secureCode`).
 - Breaking free (`scenarios/breakfree.lua`, and `scenarios/wotfneed.lua` for the need where the game withholds the type; it overrides `HasFullControl` with `rawset`): `Mock.knownSpells` (ids the
   player knows beyond 1459, e.g. `{ [7744] = true }`, read by `IsSpellKnown`
   and `IsPlayerSpell`), `Mock.playerRace = "Scourge"` (the race file name),

@@ -335,20 +335,6 @@ function Prompt:FightRotaDone()
 	return rota ~= nil and rota.done == true and InCombatLockdown()
 end
 
--- For the fight summary line (Core.lua): how many steps the rota took and of
--- how many; nil with no rota. Reads Lua state only.
-function Prompt:FightRotaSteps()
-	local rota = S.rota
-	if not rota then return nil end
-	return rota.steps, #rota.entries
-end
-
--- Whether this fight's pull armed the hide verdict. Read at the end of the
--- fight, before the release.
-function Prompt:FightHideArmed()
-	return R.fight ~= nil and R.fight:GetAttribute("manners-hide") == true
-end
-
 -- PLAYER_REGEN_ENABLED, out of lockdown, before its repaint (Core.lua): the
 -- snippet steps nothing outside a fight, and the repaint arms the prompt
 -- afresh.

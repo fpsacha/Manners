@@ -516,7 +516,6 @@ function Prompt:ApplyStyle()
 	-- until it says so again; and a painting put away for Earlier art taken down
 	-- before the panel is laid, so the pane it hid is shown below.
 	S.queueGap, fit.edgeRoom, fit.lineTop, fit.lineBottom, fit.lineMid = nil, nil, nil, nil, nil
-	S.artAbove, S.artBelow = nil, nil
 	R.resultFill:ClearAllPoints()
 	R.resultFill:SetAllPoints(R.art)
 	if dress and p.classicArt and ns.Looks.Painted.On(dress) then dress:Hide() end
@@ -1006,16 +1005,6 @@ function Prompt:ApplyLook(p, look)
 	local above = QueueGoesAbove()
 	S.queueAbove = above
 	local textX, chipRoom = look:Apply(p, above)
-	-- What a painted look hangs over and under the bar, and how far it pushes its
-	-- list off the bar (its own listGap, which its PaintQueue adds to the depth), for
-	-- what sits clear of them (Prompt/Moments.lua), as DressPainted says for the
-	-- three looks drawn here.
-	local painted = look.paintedArt
-	if ns.Looks.Painted.On(look) and painted.g then
-		local g = painted.g
-		S.artAbove, S.artBelow = math.ceil(math.max(0, -g.y0)), math.ceil(math.max(0, g.y1 - p.height))
-	end
-	if type(look.listGap) == "number" and look.listGap > 0 then S.queueGap = math.ceil(look.listGap) end
 	-- The look lays the rows out itself (PaintQueue); each name's click area
 	-- hangs off the row's own text.
 	self:PlaceRows(p, look)
@@ -1408,8 +1397,6 @@ function Prompt:DressPainted(p, dress, textX, fontPath, twoLine, countSize, chip
 	local x0, x1 = math.max(g.left, g.socketX - g.socketR * 1.35), wellEnd + 0.15 * u
 	local below, above = math.max(0, g.y1 - g.H), math.max(0, -g.y0)
 	S.queueGap = math.ceil(above)
-	-- What the painted bar hangs over and under it, for what sits clear of it (Prompt/Moments.lua).
-	S.artAbove, S.artBelow = math.ceil(above), math.ceil(below)
 	local gap = S.queueAbove and S.queueGap or math.ceil(below)
 	local rowHeight = p.fontSize + 4
 	local rowCount = math.max(1, p.queueRows or 1)
@@ -1836,18 +1823,4 @@ end
 do
 	local data, dress = ns.PaintedData and ns.PaintedData.glass, ns.Looks.Dress("glass")
 	if data and dress and ns.Looks.Painted and ns.Looks.Painted.Wrap then ns.Looks.Painted.Wrap(dress, data) end
-end
-
--- Every way the prompt's look, size, font, list or place changes ends in
--- ApplyStyle (a drag, a style, the font, the scale, the list, Earlier art, a look
--- tried on the picker): one number that moves each time, for what is laid out
--- by the prompt's shape (the buttons for the moment, Prompt/Moments.lua) to
--- compare in place of a dozen fields.
-do
-	local applyStyle = Prompt.ApplyStyle
-	function Prompt:ApplyStyle(...)
-		local done = applyStyle(self, ...)
-		S.styleSerial = (S.styleSerial or 0) + 1
-		return done
-	end
 end

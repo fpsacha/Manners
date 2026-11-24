@@ -24,29 +24,6 @@ for word; `CLAUDE.md` is the index, read first.
   Forever's paladin has Wisdom, Might and Kings only (`GONE` in `Buffs.lua`);
   Classic Era and Burning Crusade keep both, and the audit reads Forever at 70790. The audits
   read the build per client from this line.
-- **The buttons for the moment's spell and item ids** (`Prompt/MomentsData.lua`)
-  were read at the builds above: Counterspell 2139, Blink 1953, Ice Block 11958
-  (Forever and Classic Era) or 45438, Cold Snap 12472 (Forever, Classic Era),
-  11958 (Burning Crusade, Mists) or 235219 (retail), Evocation 12051, Slow Fall
-  130 (reagent item 17056 on Forever, Classic Era and Burning Crusade), Spellsteal
-  30449, the wards (Fire 543 .. 10225, 27128; Frost 6143 .. 28609, 32796), the
-  gems (Mana Agate 5514 through Mana Ruby 8008, Mana Emerald 22044, Mana Gem 36799)
-  and the spells that conjure them; the other classes' slot 8 with each spell's
-  dispel effect (SpellEffect 38, misc 1 Magic, 9 Enrage): Purge 8012/370, Dispel
-  Magic 988/527 (528 on Mists and retail, where 527 is Purify), Tranquilizing
-  Shot 19801 (Enrage; Enrage and Magic on Mists and retail), Shield Slam
-  23922..23925, 25258 and 30356 on Burning Crusade (Magic; none on retail). The
-  names in the options come from the client,
-  never from this table; the spell names in the translated search words were read
-  from Wowhead's tooltip data in each language.
-- **The fire and frost casts of the wards** (`CastSchools.lua`, written by
-  `tools/make_cast_schools.py`) were read at the same builds as the lines above
-  (Forever, Classic Era, TBC, Mists): `SpellMisc.SchoolMask`, `SpellCastTimes`,
-  `SpellEffect`, `SpellName`. The curve over spell ids that Forever's route
-  evaluates is built from Forever's table
-  (`Curve:Evaluate` is documented `SecretArguments = "AllowedWhenUntainted"` in
-  the forever branch of Blizzard's UI source, so the game may refuse an addon: the
-  route is tried once and falls back).
 - **Wowhead** per client (Classic, TBC Classic, MoP Classic, retail, and a
   Forever database) for tooltips, levels and "Requires" lines.
 - **Blizzard's own UI code**: `Gethe/wow-ui-source`, one branch per client

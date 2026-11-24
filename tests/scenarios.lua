@@ -4205,9 +4205,7 @@ if ns then
 	Mock.printed = {}
 	ns.addon:HandleSlash("debug")
 	local said = table.concat(Mock.printed, "\n")
-	-- The own-buff lines only: the moment buttons' cast school is "not settled
-	-- yet" too until a first cast, and says nothing about the scanner.
-	if said:find("own buffs: last scan not believed", 1, true) or said:find("own buffs: baseline not settled", 1, true) then
+	if said:find("not believed", 1, true) or said:find("not settled", 1, true) then
 		fail(scenario, "a scanner that is reading the list fine was reported as broken: " .. said)
 	end
 	if not said:find("own buffs: 2 read, baseline 2", 1, true) then
@@ -18062,18 +18060,6 @@ local H = {
 	knowShout = knowShout, primeAuras = primeAuras, favourFrom = favourFrom,
 	pressAndSend = pressAndSend, findOption = findOption, optionsByKey = optionsByKey, namedSpell = namedSpell,
 	savedProfile = savedProfile, tryAgainst = tryAgainst, optionText = optionText,
-	-- For a scenario that loads no addon (a helper held to its word): whether
-	-- the run asked for it, counted as load() counts what it lets through, so
-	-- a narrowed run of its file alone is not a run that admitted nothing.
-	admit = function(scenario)
-		if run.loaded then run.loaded(scenario, run.file) end
-		if run.admit and not run.admit(scenario, run.file) then
-			run.left[scenario] = true
-			return false
-		end
-		run.ran[scenario] = true
-		return true
-	end,
 	-- Whether the toc loads the options window's layout (Options/Window/
 	-- Layout.lua), so a scenario about where a control is drawn can tell a
 	-- checkout without the window from a layout that failed to load.
@@ -18121,51 +18107,7 @@ local H = {
 		return list, sections
 	end,
 }
--- The client's functions as the first file finds them, and the fields of its
--- C_ tables, put back after every file: a file that replaced one and did not
--- put it back (fireshield.lua kept H.strangers' UnitExists, which knows no
--- target; selftest-fight.lua left C_LossOfControl false, so the mock's
--- metatable never answered it again) would hand the next file in the same worker a different client
--- than the one it gets alone, and a whole-suite bin failed in files that pass
--- alone. What a file leaves is the mock's to undo, whatever order they run in.
-do
-	local clean, fields = {}, {}
-	local function kept(k, v)
-		return type(v) == "function" or (type(k) == "string" and k:find("^C_") ~= nil)
-	end
-	run.snapshot = function()
-		for k, v in pairs(_G) do
-			if kept(k, v) then
-				clean[k] = v
-				if type(v) == "table" then
-					local copy = {}
-					for f, x in pairs(v) do copy[f] = x end
-					fields[k] = copy
-				end
-			end
-		end
-	end
-	run.restore = function()
-		for k, v in pairs(_G) do
-			if kept(k, v) and clean[k] == nil then rawset(_G, k, nil) end
-		end
-		for k, v in pairs(clean) do
-			if rawget(_G, k) ~= v then rawset(_G, k, v) end
-			local copy = fields[k]
-			if copy then
-				for f in pairs(v) do
-					if copy[f] == nil then v[f] = nil end
-				end
-				for f, x in pairs(copy) do
-					if v[f] ~= x then v[f] = x end
-				end
-			end
-		end
-	end
-end
 if extras then
-	Mock.reset()
-	run.snapshot()
 	for i = 1, #extras do
 		local path = extras[i]
 		local name = tostring(path):match("[^/\\]+$") or tostring(path)
@@ -18177,7 +18119,6 @@ if extras then
 			local ok, runErr = pcall(chunk, dir, H)
 			if not ok then fail(name, "threw: " .. tostring(runErr)) end
 		end
-		run.restore()
 		Mock.reset()
 	end
 end

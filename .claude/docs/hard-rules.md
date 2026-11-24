@@ -23,17 +23,6 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   tests/runscenarios.py --file perf-budget.lua` prints what each measures
   (Forever: idle 10, city 13, raid 18 pcalls). No file keeps its own copy of
   `pcall`.
-- **Hidden values in the moment buttons.** In `Prompt/MomentsSense.lua` and
-  `Prompt/Moments.lua` every local or field that may hold a value the client
-  hides is named `raw<Something>`, and a raw name is only assigned, listed in a
-  `local` or `return`, put in a table constructor or handed on as a bare call
-  argument (`type(rawX)`, `issecretvalue(rawX)`, `plain(rawX)`, a widget or
-  curve call): never next to `==`, `~=`, `<`, `>`, `and`, `or`, `not`, `if`, a
-  dot or an index. The direct returns of `UnitCastingInfo`, `UnitChannelInfo`,
-  `PlayerIsSpellTarget`, `UnitHealthPercent` and `UnitPowerPercent` go only to
-  raw names or `_`. `tests/validate.py` reads both files for it and proves the
-  rule on failing samples (the test client cannot make a truth test of a hidden
-  value throw).
 - **Combat.** The secure button's attributes cannot change in combat: what is
   on the prompt when a fight starts stays until it ends. The one exception is
   secure code: with *Hide the prompt in a fight* on, `Prompt/Fight.lua`'s
@@ -70,88 +59,6 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   never reads it. Nothing Manners itself chooses may keep it from showing when
   it is needed and from being pressed, and the prompt's own key keeps to
   buffs (unless *In a fight, my key casts* names a spell: below).
-  The buttons for the moment (`Prompt/Moments.lua`, MannersMoment1..11, a
-  mage's Counterspell, Spellsteal, Blink, Ice Block, Cold Snap, Evocation, mana
-  gem, Slow Fall and the two wards, a shaman's Purge, a priest's Dispel Magic, a hunter's Tranquilizing Shot and a warrior's Shield Slam, and for every class with mana the drink; `Prompt/MomentsData.lua` holds the rows,
-  `Prompt/MomentsSense.lua` the signals) are armed out of combat and shown by one header's own state driver
-  (`mannersmoments`). The secure button has no region of its own and its alpha
-  is never written; Lua paints only the unprotected frames over it (a plain gate
-  `face`, and `inner`, whose alpha the game paints from a hidden value through
-  `SetAlphaFromBoolean`, an evaluated curve of `UnitHealthPercent` or
-  `UnitPowerPercent`), and shows or hides an unprotected `cover` that swallows
-  clicks while the button is dark, so a click casts only while it is lit.
-  Each button is drawn as a card of the player's look (`Prompt/MomentsCard.lua`,
-  `Looks/CardArt.lua`, which the look picker's cards share): the look's picture
-  (`Textures/Previews/Preview_<key>.tga`, made from the look's own art; a look with
-  none wears framed's), the spell's icon at the look's icon rectangle with its
-  mask, and the spell's name and a reason line ("you are stunned") written live in
-  the look's own face, size, colour and shadow. A look keeps its regions on the one
-  secure prompt, so a card is the picture and not a live second copy of it; its
-  motion is a pulse of an ADD copy of the picture (steady under Calm effects and in
-  a quiet fight). The frames over the button are `face` (a plain gate), `hint`
-  (Lua's dim card under `inner`), `inner` (the game paints its alpha; the card,
-  flare, hover and key label are its regions) and `mark` (Lua's: the ring and the
-  PREVIEW tag). The reason comes from plain facts only, a general one where only
-  the game knows ("low health"). A card's size is the setting `moments.cardSize`
-  (percent of the look's view, 80 to 150, 100 by default) times the prompt's
-  scale, four to one: the view is the height the look's picture is cut from
-  (`Looks.PreviewView`, `ns.Looks.previewView`, written by
-  `tools/make_look_previews.py`: 62 units, taller for a look whose art stands past
-  its panel), so at 100 the look is as big on a card as on the prompt itself.
-  A card takes the mouse over its icon's rectangle alone (`SetHitRectInsets` on the
-  button and the cover anchored to the same rectangle, both set by `Card.Dress`
-  out of a fight): a dark card is invisible through a fight and must not swallow
-  clicks meant for the world. `Moments.Place` stacks the cards above the prompt,
-  nearest first (`PLACE_ORDER`), clear of the list, the painted art over the bar
-  (`S.artAbove`, `S.artBelow`, set by `DressPainted` for the looks drawn in
-  `Prompt/Panel.lua` and by `ApplyLook` from `paintedArt.g` for the looks of
-  `Looks/`, with `S.queueGap` the look's own `listGap`) and the buttons beside the
-  prompt, below it where there is no room above, wrapping into columns; the drink
-  shares the first place. Place, `Card.Dress`
-  and `Card.SetIcon` run out of a fight only; in a fight Lua shows and hides
-  `hint`, ring, flare, hover and tag, plays and stops the flare, writes the
-  reason's text (no refit; Judge writes it again at every look of a card that
-  stays lit, so "you are rooted" becomes "you are stunned" with the facts) and
-  sets the alpha of `face` and `inner`. The urgent
-  rows (`fast`: Blink, Counterspell, Ice Block, Cold Snap) count a spell whose
-  only wait is the global cooldown as ready (`Sense.OnlyGcd`, the spell 61304; a
-  cooldown of our own clock or a plain longer one still holds them dark), appear at
-  once with no fade, and read a loss of control the game would not name from the
-  event itself (`Sense.locAt`) with a second look a quarter second later. The
-  preview (`Moments.Preview`, out of a fight only) disarms every macro, puts every
-  cover up and lights the armed cards for five seconds, the drink after them for
-  three; `Moments:Take` ends it before the lockdown so a pull mid-preview arms
-  every macro.
-  Where only the game knows (a hidden health, mana, interrupt flag, stealable
-  flag or the school of a cast: rows with `guard = "twice"`), the cover stays up and the button takes two
-  quick clicks at least 0.3 s apart; the first shows a ring (`mark`, a frame of
-  Lua's above `inner`) and the icon (`hint`, under `inner`), which the game does
-  not paint away. The wards read the school of the target's cast by the first route
-  the client has: a plain spell id against `ns.CAST_SCHOOLS` ("exact"), or a hidden
-  id evaluated by the game through a curve over spell ids and painted on `inner`
-  (paint kind `school`; the hidden id and its answer are raw names, never
-  compared), or what hit you; the hidden route is tried once at setup
-  (`Sense.ProbeSchool`) or at the first hidden id, never per event, and a refusal
-  falls back silently. A ward is never lit from a guess on the first two routes. The drink keeps the dim `hint` whenever the game paints it. Nothing is lit without a detected need, and they
-  never read `prompt.fightButtons`. What a button must be given while the lockdown
-  is not yet on (keys, the mouse, the gem's macro from the bags) is written by
-  `Moments:Take`, which Core's `PLAYER_REGEN_DISABLED` handler calls; the frame's
-  own pull handler runs after the lockdown and paints only. Slow Fall (a keep
-  button) is shown and hidden by Lua out of a fight and left to its driver in
-  one; the release hides every keep button that is not lit. The drink (slot 11,
-  `calm = true`) is the reverse of a fight button: the driver hides it for the fight
-  (`manners-calm-<n>`), `Moments:Take` clears its macro before the lockdown, and
-  out of a fight Lua shows and hides it, writes its macro (`/use item:<best drink>`)
-  whenever the bags change (`BAG_UPDATE_DELAYED`, registered out of a fight only,
-  dropped at the pull) and hears the mana, movement and death events only while a
-  drink is in the bags (the level-up and the rising, which are inputs of the pick, are
-  heard always, and recount the bags). One click where Lua knows the mana, two where only the game
-  does (Forever hides it out of a fight too). The cure button takes
-  the same cover (`CureFight:Cover`, up while it is out of sight in a fight, down
-  while it is on the screen, counted in `db.global.cureCoverLeaks` when a click
-  gets past it); the break-free button must not (a cover raised on Lua's belief
-  could eat the one click that mattered). Never `Show`, `Hide`, `SetPoint`,
-  `SetSize`, `EnableMouse` or `SetAttribute` on one under the lockdown.
   The cure button (`Prompt/CureFight.lua`, MannersCureFight) is the other
   way round: nothing of it may be on the screen for nothing. It is armed out
   of combat and shown by its own state driver for every fight, but at alpha 0
@@ -178,21 +85,7 @@ out of `CLAUDE.md`, word for word; `CLAUDE.md` is the index, read first.
   once. A plain read that found nothing (deny list, under two seconds, the
   client's no) still wins. Naming the kind under secrecy through
   `GetAuraDispelTypeColor` and a color curve is noted, not built (the
-  dispel-type ids are not documented). On Forever 1.60.1 that list throws
-  for an addon in a fight (issue 43), so `Prompt/CureNeed.lua` puts the game's
-  own aura display under each cure button: a plain holder of Lua's own over the
-  button (not its child, so the button's alpha 0 does not take it), a plain
-  wrap per unit Lua shows and hides (a target or focus only while a friend), and
-  in each the game's `CustomAuraContainerTemplate` with one aura slot
-  (`HARMFUL|RAID`, `includeDispelTypes` of the button's kinds), whose frame the
-  game shows and Lua never asks (in a fight it may not:
-  `DenyTaintedAccessWhenAurasAreSecret`). Probed once with pcall when the first
-  button is made; refused, nothing is made. With it the button stays dark, the
-  cover up, and a click casts only as the second of two (`FirstOfTwo`, the
-  moment buttons' guard "twice"): a key casts at once. The plain press, Shift
-  and Ctrl cast the cures of `prompt.cureFightMods[class]` (`CureFight.Chosen`;
-  none saved: the class's first, second and third cure, `ns.CureFightKnown`),
-  Ctrl's clause first, each dropped while a key bound with that modifier holds it. Its events (UNIT_AURA and the rest) are registered at the
+  dispel-type ids are not documented). Its events (UNIT_AURA and the rest) are registered at the
   pull and dropped at the release, UNIT_AURA filtered by a table lookup
   outside the Guard, and a scan with the switch off and no button made pays
   one profile field and no question to the client. A value the client

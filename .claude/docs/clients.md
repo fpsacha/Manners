@@ -14,16 +14,6 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   names one client and wins where the interface number has no band or
   another client's (`tests/scenarios/flavour-project.lua`). An unknown
   interface falls back to the project id's family, else `modern`.
-- **MomentsData.lua** (the buttons for the moment, `Prompt/Moments.lua`) has one
-  set per data set as `Cures.lua` does (`SETS`: Forever and Classic Era share
-  one, Burning Crusade, Mists and retail each have their own): rows per class,
-  and a flavour with no entry gets none. A mage's rows differ by data only:
-  Counterspell's cooldown, Ice Block and Cold Snap's spell ids (talents on
-  Forever and Classic Era, Hypothermia from Burning Crusade), a mana gem on the
-  clients that have one, Spellsteal from Burning Crusade, the wards on Forever,
-  Classic Era and Burning Crusade, Slow Fall's feather where the client asks for
-  one. The other classes' slot 8 (Purge, Dispel Magic 988/527 or 528, Tranquilizing Shot taking magic too on Mists and retail, Shield Slam on all but retail) is data too (`Strip` in MomentsData.lua). Nothing branches on a client's name; a signal the client cannot give
-  answers "blind" and the row's `blind` field decides.
 - **Buffs.lua** has one set per flavour (`SETS`); an unrecognised flavour gets
   its family's (classic -> vanilla, modern -> mainline). The chosen set fills
   `ns.BUFFS`, `ns.OWN_BUFFS`, `ns.EXCLUSIVE_BUFFS`, `ns.CLASS_AUTO`,
@@ -32,7 +22,7 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   `ns.NOT_FAVOUR_IDS`, `ns.RANK_LEVEL`, `ns.STAT_VALUE`, `ns.STAT_TIERS`,
   `ns.LEVEL_GATED`. Branch on those fields
   and the per-buff flags (`partyOnly`, `groupOnly`, `selfCast`, `alone`, `alike`,
-  `blockers`, `neverAuto`, `optIn`, `returnOnly`, `pet`, `forTank`, ... documented at the top of
+  `blockers`, `neverAuto`, `optIn`, `returnOnly`, ... documented at the top of
   the file) rather than on
   flavour names. `blockers` and `ns.STAT_VALUE` are the flat-stat scrolls that
   hold a weaker rank of Arcane Intellect, Fortitude or Divine Spirit off
@@ -92,10 +82,7 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   (`buff.detectPassers`, off; `ns.PassersToo`, asked by `Castable`,
   `ns.OnlyReachesGroup` and the buff's label); a `returnOnly` buff (Unending Breath there) goes only to a favour's
   giver (`opts.owed`) and to a request by name (`opts.asked`, which a plain
-  "buff pls" is not); `buff.skipCasters` is on. A warlock's *Fire Shield from my
-  imp on the tank* (`fireshield`: `pet`, `forTank`, `partyOnly`, `optIn`) is off
-  too; ticked, it goes only to the party's tank, and only while a pet out knows
-  it (`ns.PetCasts`).
+  "buff pls" is not); `buff.skipCasters` is on.
 - **A refused reading in a battleground match** (Forever and retail keep auras
   secret there, even out of a fight; GitHub issue 29): a refusal says nothing,
   so the walk offers nothing on it. Two things stand in for the reading, both
@@ -283,10 +270,6 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
     `selfbreath`, on all five clients, first of a warlock's own, on by default): Core.lua
     `Swimming` reads `IsSwimming()` and holds it two seconds past the last
     stroke (`SWIM_HOLD`), and OwnVerdict answers `"dry"` before any aura read.
-    The buff for others is `swimGate` (Unending Breath on every client): with
-    `buff.swimOnly[key]` set (*Offer Unending Breath to others only while I am
-    swimming*, off by default) `Castable` offers it only while `ns.Swimming`, a
-    favour returned (`opts.owed`) and a request by name (`opts.asked`) still going.
     A family cut short by moving is `still` (food, the sleeping bag, a weapon's
     stone, oil, poison or lure, Forever's scrolls, making a warlock's stone; any
     other family when the client gives its use spell a cast time, so a bag pet
@@ -308,8 +291,7 @@ and the entry kinds on the prompt. Moved out of `CLAUDE.md`, word for word;
   (Resurrect.lua: a dead member of the group, priority -1, ahead of your
   target), `entry.cure` (Cures.lua: the kind removed, in the person's one
   place in the queue at 1.25), `entry.courtesy` (Courtesy.lua: a plan with its
-  `stage`, conjure or trade, under the reason "asked", or "target" for the water
-  and food offered to your target unasked, `sources.courtesyTarget`), `entry.ask` (Ask.lua:
+  `stage`, conjure or trade, under the reason "asked"), `entry.ask` (Ask.lua:
   last of everything at 9, a spoken line and no cast) and `entry.pet` with
   `entry.owner` (Queue.lua: a group member's pet, with `sources.pets`,
   targeted by its own name). A sixth, `entry.thank` (ThankPress.lua: a

@@ -395,13 +395,12 @@ local EXPECTED = {
 		"sources.pets", "sources.share", "sources.strangers", "sources.asked", "filters.proximity",
 		-- A class's courtesies on request, resurrection and cures.
 		"sources.courtesyRefresh", "sources.courtesyPortals", "sources.courtesyHealthstones", "sources.courtesySummons",
-		"sources.courtesyTarget", "sources.courtesyAmount",
 		"sources.res", "sources.resStrangers", "sources.cures", "sources.curesStrangers", "sources.curesSelf", "filters.cureSeconds", "prompt.cureFight", "prompt.cureFightEach",
 		"filters.restingOnly", "groupBuffs.use",
 		"groupBuffs.atLeast", "filters.skipRaidGroups", "priority.target", "priority.friends",
 		"priority.readyCheck", "priority.revived",
 		"buff.leaveBlessed", "buff.skipCasters", "buff.spareFishBowl", "buff.neverFishBowl", "buff.spareCamp", "buff.tanksMe", "buff.notMeInside", "buff.optIn",
-		"buff.tanksOutside", "buff.keptBack", "buff.swimOnly", "buff.forClass",
+		"buff.tanksOutside", "buff.keptBack", "buff.forClass",
 		-- Detect Invisibility for passers-by too, under its own tick
 		-- (tests/scenarios/detect-passers.lua).
 		"buff.detectPassers",
@@ -413,8 +412,6 @@ local EXPECTED = {
 		"sources.self", "ownBuffs.pick", "ownBuffs.leave", "ownBuffs.inCities", "ownBuffs.itemsInDungeons", "ownBuffs.foodOutside", "ownBuffs.itemsLast", "ownBuffs.shoutAlone",
 		"ownBuffs.foodOrder", "ownBuffs.dampenAlone", "ownBuffs.amplifyAlone", "ownBuffs.imbueFirst", "ownBuffs.restedEarly",
 		"ownBuffs.scrolls", "ownBuffs.elixirKeep", "ownBuffs.apart", "ownBuffs.holdMoving", "filters.selfTopUp", "filters.selfLead",
-		-- Which pet, under the companion pet's switch (Layout.lua self.items).
-		"ownBuffs.petChoice",
 	},
 	-- A hunter's pet (HunterPet.lua).
 	pet = {
@@ -461,11 +458,6 @@ local EXPECTED = {
 	fight = {
 		"prompt.hideInFight", "prompt.fightRota", "prompt.fightKeySpells", "prompt.fightKeyOn", "prompt.hideInCombat", "prompt.dimInCombat",
 		"prompt.breakFree", "beast.fightMend", "prompt.cureFight", "prompt.cureFightEach", "prompt.fightButtons",
-		"prompt.cureFightMods",
-		"moments.counterspell", "moments.spellsteal", "moments.blink", "moments.evocation", "moments.managem", "moments.drink",
-		"moments.slowfall", "moments.iceblock", "moments.coldsnap", "moments.fireward", "moments.frostward",
-		"moments.purge", "moments.dispel", "moments.tranq", "moments.shieldslam",
-		"moments.health", "moments.mana", "moments.cardSize",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the
 	-- window falls back to (Register.lua). Its reset is the old one's

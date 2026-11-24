@@ -123,9 +123,6 @@ end
 -- everything is put back, whether it finished or threw.
 local function with(scenario, opts, body)
 	Mock.reset()
-	-- A client of its own (Mock.setFlavour), for a scenario that reads one
-	-- client's data: Forever's talent trees.
-	if opts.flavour then Mock.setFlavour(opts.flavour) end
 	if opts.class then Mock.class = opts.class end
 	if opts.groupSize then Mock.groupSize = opts.groupSize end
 	if opts.character then Mock.character = opts.character end
@@ -447,9 +444,8 @@ do
 end
 
 -- ------------------------------------------------------------------ own 6
--- Righteous Fury under Automatic only while your group role is tank -- solo
--- with no talents (own 6b has them), or with another role or none, never.
--- Always offers it whenever it is off;
+-- Righteous Fury under Automatic only while your group role is tank -- solo,
+-- or with another role or none, never. Always offers it whenever it is off;
 -- Don't remind me never.
 Mock.reset()
 do
@@ -483,48 +479,6 @@ do
 		if key(mine(ns)) ~= "righteousfury" then
 			fail(scenario, "Always did not offer Righteous Fury to a paladin alone")
 		end
-	end)
-end
-
--- ------------------------------------------------------------------ own 6b
--- Alone, with no group role to read, Automatic goes by the talents: most of
--- them in Protection is a tank, and is reminded of Righteous Fury; most in
--- Retribution, or a tie, is not. In a group the role still decides, whatever
--- the talents say.
-Mock.reset()
-do
-	local scenario = "own: Righteous Fury alone by the talents"
-	-- Two Protection talents and two Retribution ones (Talents.lua, PALADIN).
-	local PROT = { 20127, 20143 }
-	local RET = { 20049, 20060 }
-	local function talents(ns, prot, ret)
-		local ids = { 19740, DEVOTION, RIGHTEOUS_FURY }
-		for i = 1, prot do ids[#ids + 1] = PROT[i] end
-		for i = 1, ret do ids[#ids + 1] = RET[i] end
-		know(ids)
-		ns.ForgetLean()
-	end
-	-- Forever's trees (Talents.lua); the other clients count points per tree.
-	with(scenario, { flavour = "camelot", class = "PALADIN", known = { 19740, DEVOTION, RIGHTEOUS_FURY },
-		wearing = { { id = DEVOTION } } }, function(ns)
-		UnitGroupRolesAssigned = function(unit) return unit == "player" and "DAMAGER" or "NONE" end
-		talents(ns, 2, 1)
-		if key(mine(ns)) ~= "righteousfury" then
-			fail(scenario, "a Protection paladin alone was not offered Righteous Fury: " .. key(mine(ns)))
-		end
-		talents(ns, 1, 2)
-		if mine(ns) then fail(scenario, "a Retribution paladin alone was offered " .. key(mine(ns))) end
-		talents(ns, 1, 1)
-		if mine(ns) then fail(scenario, "a paladin with tied talents alone was offered " .. key(mine(ns))) end
-		-- In a group, a damage role keeps a Protection paladin from it.
-		talents(ns, 2, 0)
-		Mock.groupSize = 5
-		if mine(ns) then
-			fail(scenario, "a Protection paladin in a group as a damage dealer was offered " .. key(mine(ns)))
-		end
-		Mock.groupSize = 0
-		wear(ns, { { id = DEVOTION }, { id = RIGHTEOUS_FURY } })
-		if mine(ns) then fail(scenario, "with Righteous Fury up, offered " .. key(mine(ns))) end
 	end)
 end
 

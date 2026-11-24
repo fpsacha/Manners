@@ -544,8 +544,6 @@ BUFF_NAMES = {
     # Classic Era names its first and last ranks for what they see; Forever and Burning Crusade
     # call every rank Detect Invisibility.
     "detectgroup": r"Detect (Lesser |Greater )?Invisibility",
-    # The imp's (Buffs.lua, pet): every rank is called Fire Shield.
-    "fireshield": r"Fire Shield",
     "battleshout": r"Battle Shout",
     "commandingshout": r"Commanding Shout",
     "emperor": r"Legacy of the Emperor",
@@ -1610,11 +1608,6 @@ def check_reach(rep, c, d, flavour):
                             "refuses" % (top, first["t0"], "groupOnly" if b.get("groupOnly") else "not"))
             if b.get("membersOnly") and first["t0"] != 21:
                 rep.note(where, "membersOnly, and %d targets %d, not 21 (any friendly target)" % (top, first["t0"]))
-            # Target 35 is a member of the caster's party (the imp's Fire Shield): partyOnly says so.
-            if first["t0"] == 35 and not b.get("partyOnly"):
-                rep.finding(where, "%d targets 35 (a member of the caster's party) but the buff is not partyOnly" % top)
-            if b.get("partyOnly") and first["t0"] != 35:
-                rep.finding(where, "partyOnly and aimed at a target, but %d targets %d, not 35 (the caster's party)" % (top, first["t0"]))
             if wide and not b.get("alone") and first["t0"] not in (118,):
                 rep.note(where, "wideCasts client, but %d (%s) targets %d, not 118 (the target, or the whole group when it is in it)" % (
                     top, c.names.get(top), first["t0"]))

@@ -29,17 +29,17 @@ mutate(T, "\t\t\t\tPlaceIcon(card)\n\t\t\t\tPlaceText(card)\n",
        "hunt40-cards: the text is not placed again when the cards are laid out at another width",
        expect=RECT, script=S)
 
-mutate("Looks/CardArt.lua", "\tfs:SetPoint(\"TOPLEFT\", card.anchor, \"TOPLEFT\", spec.l * w, -spec.t * h)\n",
-       "\tfs:SetPoint(\"TOPLEFT\", card.anchor, \"TOPLEFT\", spec.l * w, -spec.b * h)\n",
+mutate(T, "\tfs:SetPoint(\"TOPLEFT\", card.ground, \"TOPLEFT\", spec.l * w, -spec.t * h)\n",
+       "\tfs:SetPoint(\"TOPLEFT\", card.ground, \"TOPLEFT\", spec.l * w, -spec.b * h)\n",
        "hunt40-cards: a line's top edge is taken from the rectangle's bottom",
        expect=RECT, script=S)
 
-mutate("Looks/CardArt.lua", "\tfs:SetPoint(\"BOTTOMRIGHT\", card.anchor, \"TOPLEFT\", spec.r * w, -spec.b * h)\n",
-       "\tfs:SetPoint(\"BOTTOMRIGHT\", card.anchor, \"TOPLEFT\", spec.r * w + 12, -spec.b * h)\n",
+mutate(T, "\tfs:SetPoint(\"BOTTOMRIGHT\", card.ground, \"TOPLEFT\", spec.r * w, -spec.b * h)\n",
+       "\tfs:SetPoint(\"BOTTOMRIGHT\", card.ground, \"TOPLEFT\", spec.r * w + 12, -spec.b * h)\n",
        "hunt40-cards: a line runs twelve units past its rectangle",
        expect=RECT, script=S)
 
-mutate("Looks/CardArt.lua", "math.floor(spec.size * h + 0.5))\n\tlocal least",
+mutate(T, "math.floor(spec.size * h + 0.5))\n\tlocal least",
        "math.floor(spec.size * 62 + 0.5))\n\tlocal least",
        "hunt40-cards: the letters are the size of the prompt's, not scaled with the picture",
        expect=RECT, script=S)
@@ -49,22 +49,22 @@ mutate(T, "\t\t\t\tfs:SetTextColor(c[1], c[2], c[3], c[4])\n",
        "hunt40-cards: every line is white, whatever the look writes it in",
        expect=RECT, script=S)
 
-mutate("Looks/CardArt.lua", "\t\tfs:SetShadowOffset(Offset(shadow.x * h), Offset(shadow.y * h))\n",
+mutate(T, "\t\tfs:SetShadowOffset(Offset(shadow.x * h), Offset(shadow.y * h))\n",
        "\t\tfs:SetShadowOffset(0, 0)\n",
        "hunt40-cards: the shadow has no offset",
        expect=RECT, script=S)
 
-mutate("Looks/CardArt.lua", "\tlocal path, flags = LineFace(spec), spec.flags or \"\"\n",
+mutate(T, "\tlocal path, flags = LineFace(spec), spec.flags or \"\"\n",
        "\tlocal path, flags = LineFace(spec), \"\"\n",
        "hunt40-cards: the outline is dropped",
        expect=RECT, script=S)
 
-mutate("Looks/CardArt.lua", "\tfs:SetWordWrap(false)\n\tlocal shadow",
+mutate(T, "\tfs:SetWordWrap(false)\n\tlocal shadow",
        "\tfs:SetWordWrap(true)\n\tlocal shadow",
        "hunt40-cards: a line too long wraps over the next one instead of being cut",
        expect=RECT, script=S)
 
-mutate("Looks/CardArt.lua", "\tfs:SetJustifyH(spec.h or \"LEFT\")\n",
+mutate(T, "\tfs:SetJustifyH(spec.h or \"LEFT\")\n",
        "\tfs:SetJustifyH(\"CENTER\")\n",
        "hunt40-cards: every line is centred",
        expect=RECT, script=S)
@@ -87,43 +87,43 @@ mutate(T, "local SAMPLE_NAME = \"Anna Aim\"", "local SAMPLE_NAME = L[\"Anna Aim\
 
 # --- the face --------------------------------------------------------------
 
-mutate("Looks/CardArt.lua", "if not chosen and (not spec.latin or LATIN[ns.LOCALE or \"enUS\"]) then return spec.font end",
+mutate(T, "if not chosen and (not spec.latin or LATIN[ns.LOCALE or \"enUS\"]) then return spec.font end",
        "if not chosen then return spec.font end",
        "hunt40-cards: the look's own face is used on a client whose alphabet lacks it",
        expect=FACE, script=S)
 
-mutate("Looks/CardArt.lua", "if not chosen and (not spec.latin or LATIN[ns.LOCALE or \"enUS\"]) then return spec.font end",
+mutate(T, "if not chosen and (not spec.latin or LATIN[ns.LOCALE or \"enUS\"]) then return spec.font end",
        "if (not spec.latin or LATIN[ns.LOCALE or \"enUS\"]) then return spec.font end",
        "hunt40-cards: the player's own font is overridden by the look's face",
        expect=CHOSEN, script=S)
 
-mutate("Looks/CardArt.lua", "\tif spec.font then\n\t\tlocal own",
+mutate(T, "\tif spec.font then\n\t\tlocal own",
        "\tif false then\n\t\tlocal own",
        "hunt40-cards: no look's own face is ever used",
        expect=FACE, script=S)
 
-mutate("Looks/CardArt.lua", "\tif not fs:SetFont(path, size, flags) or not fs:GetFont() then\n\t\tfs:SetFont(STANDARD_TEXT_FONT, size, flags)",
+mutate(T, "\tif not fs:SetFont(path, size, flags) or not fs:GetFont() then\n\t\tfs:SetFont(STANDARD_TEXT_FONT, size, flags)",
        "\tif not fs:SetFont(path, size, flags) or not fs:GetFont() then\n\t\tsize = size",
        "hunt40-cards: a face that will not load leaves the line with no font",
        expect=BAD, script=S)
 
 # --- fit -------------------------------------------------------------------
 
-mutate("Looks/CardArt.lua", "\twhile size > least and Measure(fs) > room + 0.5 do\n",
-       "\twhile false and size > least and Measure(fs) > room + 0.5 do\n",
+mutate(T, "\twhile size > least and W.Measure(fs) > room + 0.5 do\n",
+       "\twhile false and size > least and W.Measure(fs) > room + 0.5 do\n",
        "hunt40-cards: a line wider than its rectangle is never drawn smaller",
        expect=FIT, script=S)
 
-mutate("Looks/CardArt.lua", "local MIN_SIZE, MIN_SHRINK = 5, 0.8", "local MIN_SIZE, MIN_SHRINK = 5, 0.3",
+mutate(T, "local MIN_SIZE, MIN_SHRINK = 5, 0.8", "local MIN_SIZE, MIN_SHRINK = 5, 0.3",
        "hunt40-cards: a line may shrink to a third of its size",
        expect=FIT, script=S)
 
-mutate("Looks/CardArt.lua", "\twhile size > least and Measure(fs) > room + 0.5 do\n\t\tsize = size - 1\n",
-       "\twhile size > least and Measure(fs) > room + 0.5 do\n\t\tsize = size - 2\n",
+mutate(T, "\twhile size > least and W.Measure(fs) > room + 0.5 do\n\t\tsize = size - 1\n",
+       "\twhile size > least and W.Measure(fs) > room + 0.5 do\n\t\tsize = size - 2\n",
        "hunt40-cards: a line is drawn two units smaller than it has to be",
        expect=FIT, script=S)
 
-mutate("Looks/CardArt.lua", "\tlocal room = (spec.r - spec.l) * w\n",
+mutate(T, "\tlocal room = (spec.r - spec.l) * w\n",
        "\tlocal room = w\n",
        "hunt40-cards: a line is fitted to the whole picture, not its rectangle",
        expect=FIT, script=S)

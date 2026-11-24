@@ -1,143 +1,30 @@
 # Changelog
 
-## 1.11.41
+## Unreleased
 
-*22 November 2026*
+*24 November 2026*
 
 ### Highlights
-- **Report a bug.** One window takes you from what went wrong to a link that
-  opens the issue on GitHub filled in and the report to paste, from Diagnostics,
-  the footer of the options window, the minimap menu or `/manners bug`.
-- **Mark this moment.** Press a key the second something goes wrong, even in a
-  fight, and the report shows what Manners saw then.
-
-### Buttons for the moment
-- **Counterspell when your target casts.** A card above the prompt
-  lights while a hostile target in reach is casting, and a press stops your own
-  cast first. *Show Counterspell when my target starts a cast*, In a fight.
-  Where the game hides whether the cast can be interrupted, it takes two quick
-  clicks, as Spellsteal does where it hides the stealable flag.
-- **Blink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.** Each
-  lights at its moment: stunned or rooted, low health (*Health below*, 20 by
-  default), low mana (*Mana below*), a second into a fall. Each has its own
-  switch and key. Evocation and the gem stop your cast first.
-- **Two quick clicks.** Where only the game knows whether a button is lit, the
-  first click shows a ring and the spell's icon, and the second, a third of a
-  second or more later, casts: a stray click or a double click never does.
-- **Spellsteal** lights while your target carries a buff you can steal
-  (Burning Crusade and later).
-- **Purge, Dispel Magic, Tranquilizing Shot, Shield Slam.** A shaman, priest,
-  hunter or warrior gets a button that lights while a hostile target in reach
-  carries a buff the spell removes (an enrage, for Tranquilizing Shot). *Show
-  Purge when my target has a buff I can remove*, In a fight; Shield Slam's is
-  off at first.
-- **A drink when your mana is low.** Out of a fight, for every class with mana:
-  a button lights while your mana is under *Mana below* and a drink is in your
-  bags; a press drinks your best conjured water, else another drink. *Show a
-  drink when my mana is low out of a fight*, In a fight. Where the game hides
-  your mana, a dim icon shows the button is there and it takes two quick clicks.
-- **Fire Ward and Frost Ward** light when your target casts a fire or frost
-  spell, and as soon as it hits you with fire or frost.
-- **Cards in your look.** Each button is a small prompt in your look, as big as
-  the prompt itself, above it, with the spell, its name and why; *Card size* (80
-  to 150, 100 by default) changes it. A card takes clicks over its icon alone, so
-  the rest of it lets them through to the world.
-- **At once.** Blink, Counterspell, Ice Block and Cold Snap light under the
-  global cooldown with no fade, then pulse.
-- **Show where the buttons for the moment sit.** On the In a fight page and in
-  the minimap menu: a few seconds, out of a fight, nothing casts.
-- **Key boxes say how:** click, then press a key or a controller button.
-
-### Wards by the spell your target casts
-- **Before the hit, where the game names the spell.** On Classic Era and
-  Burning Crusade the ward of the school being cast lights at the start of the
-  cast, from a list of every fire and frost spell with a cast bar, made from the
-  game's own data. A spell of another school never lights it.
-- **On WoW Forever** Manners asks the game to light the ward from the spell the
-  game hides; if the game does, it lights before the hit and takes two quick
-  clicks, and if not, the wards work as before. /manners debug and the self-test
-  say which: *cast school: exact*, *from the game* or *by what hit you*.
-
-### Water and food for your target
-- **Offer water and food to my target** (mages). Out of a fight, a friendly
-  player you target is offered water and food that suits their level, or food
-  alone for a class without mana.
-- **How much to trade.** *Fill the trade window* is the default, for your target
-  and for water and food somebody asked for; *One stack* puts one of each.
-
-### Fire Shield from your imp on the tank
-- **Warlocks on Classic Era, WoW Forever and Burning Crusade.** Tick *Fire
-  Shield from my imp on the tank* on Who to buff: while your imp is out and
-  knows it, your party's tank is offered Fire Shield, and a press has the imp
-  cast it on them. Off by default; the tank is whoever has the tank role.
-
-### Curing in a fight
-- **The game shows who needs your cure.** On WoW Forever, where the game hides
-  debuffs from addons in a fight, the game itself now shows the debuff on the
-  cure button's place; a click there casts as the second of two quick clicks,
-  the key at once. It follows a new target or a reshuffled group at once.
-- **Shift and Ctrl for each cure.** *Plain press*, *With Shift* and *With Ctrl*
-  under the cure switch pick the cure each casts (a druid: Remove Curse, Cure
-  Poison, Abolish Poison). The key's tooltip names them. *Nothing* on Shift or
-  Ctrl casts nothing with that key held.
-- **One cure switch.** It is set on In a fight; Who to buff points there.
-
-### Report a bug
-- **One window.** Choose what went wrong, press **Make the report**, open the
-  link and paste the report. Your name, realm and guild never go in the link,
-  nor anybody the report names. In a fight the short summary and the link work
-  at once; the full report waits. An error now says so in chat once a session,
-  with a **Report it** link.
-
-### Mark this moment and a fuller trail
-- **Mark this moment.** A key (*Key for Mark this moment* on Diagnostics), the
-  minimap menu and `/manners mark` note the prompt, the queue and the fight
-  buttons. The trail keeps 300 lines, adds a line for each fight's end and notes
-  a change in why the prompt is held back. The self-test has a *Fight buttons and
-  keys* group.
+- **Back to what Manners is for.** 1.11.41's extras are gone: the buttons for
+  the moment (Counterspell, Blink, the drink and the rest), the falling and
+  low-mana prompts, Report a bug, Mark this moment, water and food for your
+  target, Fire Shield and the new cure display. Thank you for saying so. The
+  fixes stay.
 
 ### Fixes
-- **The right rank for a low-level player.** The prompt casts the best rank of
-  Fortitude (or any ranked buff) that player can take, as your action bar does:
-  never a rank you skipped at the trainer, also for a passer-by after your cursor
-  leaves them, and right from the first offer. `/manners debug` says when it could not.
-- **Righteous Fury alone.** Righteous Fury on Automatic now reminds a Protection
-  paladin playing alone, by talents. (A contributed fix.)
-- **Unending Breath only while you swim.** *Offer Unending Breath to others only
-  while I am swimming*, under its switch on Who to buff, off by default. A favour
-  you return with it and a request by name still go; your own reminder is as it was.
-- **In character thank-yous for a hunter or a rogue.** *When someone buffs me*, at the
-  top of What I say and on Start here, offers *In character (fits your race and
-  class)*, which turns on *Whisper a thank-you to people I can't buff back*.
-- **Thank people who buff me, with a pause.** *Wait a moment before thanking* looks for
-  the giver again when the pause ends, so a nameplate that changed hands no longer
-  drops the thank. It never thanks somebody else.
-- **The cure button takes no click while it is out of sight.** A click casts only
-  while it is lit.
-- **/manners debug.** The Slow Fall line leaves your character's name out.
-- **Check-up.** It no longer stops for a class whose only button is the drink,
-  and a click that got past a cover is counted for the session only.
-- **Slow Fall in French, German, Spanish, Italian and Portuguese.** The Light
-  Feather line reads right whatever the name's gender.
-- **Who buffed you.** The full check-up counts the casts Manners hears from
-  others (players and mobs alike), and a buff read late says so instead of "no
-  player in sight". A cast the game hides near the moment a buff lands now keeps
-  Manners from guessing who it was.
-- **Break free.** Each loss of control is one line on the trail, with whether the
-  button lit.
-- **Cure button (check-up).** `/manners debug` says whether the game's list of
-  debuffs you can remove is there and what it answered.
-- **Cure button.** It no longer blinks or says nil, shows "Somebody" when the
-  game withholds a name, and a Shift key on either binding is read right.
-- **Break free.** A second fear keeps the button lit.
-- **Healthstone.** One whose name ends in a bracket is cast with `()`.
-- **Battleground food and elixirs.** They read as gone after a death.
-- **Greater Blessing on another class.** It no longer counts as yours.
-- **Slider boxes.** Each reads its own unit words, in every language.
-- **Who to buff.** Your own-buff controls show for a class with nothing for
-  others.
-- **`/manners debug`.** The dungeon line leaves food out while *Food still
-  offered outside dungeons and raids* is on.
+- **Thank-you after a pause.** With *Wait a moment before thanking* on, the
+  thank-you no longer gets lost when the giver's nameplate changes hands.
+- **In character for every class.** A hunter or a rogue can pick *In character*
+  again for the thank-you (*When someone buffs me*, on *What I say*).
+- **Key boxes take keyboard keys.** Click a key box, then press the key.
+- **Fortitude's rank for low-level players.** The prompt casts the best rank
+  they can take, as the action bar does.
+- **Options in Chinese, Korean and German.** A time slider's box no longer
+  changes its setting when you click in and out of it.
+- **Will of the Forsaken** stays lit through a second fear; the cure button no
+  longer blinks or says nil.
+- **Battlegrounds:** buffs after a death are read right for you and your team.
+- **Healthstones and stones** whose name ends in a bracket cast again.
 
 ## 1.11.40
 

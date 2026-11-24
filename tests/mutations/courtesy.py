@@ -124,7 +124,7 @@ mutate("Courtesy.lua",
 
 # A favour owed is pushed out by the water they asked for.
 mutate("Courtesy.lua",
-       "\t\t\t\t\t\t\twaits = entry.groupCast ~= nil or st.targeted == true or (entry.priority or 9) <= asked\n",
+       "\t\t\t\t\t\t\twaits = entry.groupCast ~= nil or (entry.priority or 9) <= asked\n",
        "\t\t\t\t\t\t\twaits = false\n",
        "courtesy: a courtesy takes a favour's place",
        expect=FAVOUR, script=S)
@@ -267,7 +267,7 @@ mutate("Courtesy.lua",
 
 # The request still stands once the trade has opened.
 mutate("Courtesy.lua",
-       "\t\tfor each in pairs(served) do Serve(request, each) end\n",
-       "\t\tfor each in pairs(served) do end\n",
+       "\tServe(request, key)\n\tlocal placed = Place(item)\n",
+       "\tlocal placed = Place(item)\n",
        "courtesy: the trade opening does not answer the request",
        expect=WATER, script=S)

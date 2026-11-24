@@ -1218,7 +1218,7 @@ function Page.BuildStartTab()
 			bindKey = {
 				type = "keybinding",
 				name = L["The prompt's key"],
-				desc = L["Click, then press a key or a controller button. Esc cancels, a right-click clears it. Saved with your game key bindings, so it works on every profile."],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 21,
 				hidden = function() return not HasPrompt() or not Setup.CanBind() end,
 				-- SetBinding is refused in a fight.

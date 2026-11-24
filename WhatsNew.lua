@@ -5,67 +5,19 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "1.11.41", date = "22 November 2026", sections = {
+	{ version = "Unreleased", date = "24 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
-			"|cffffd100Report a bug.|r One window takes you from what went wrong to a link that opens the issue on GitHub filled in and the report to paste, from Diagnostics, the footer of the options window, the minimap menu or /manners bug.",
-			"|cffffd100Mark this moment.|r Press a key the second something goes wrong, even in a fight, and the report shows what Manners saw then.",
-		} },
-		{ title = "Buttons for the moment", accent = "7cc4ff", entries = {
-			"|cff7cc4ffCounterspell when your target casts.|r A card above the prompt lights while a hostile target in reach is casting, and a press stops your own cast first.",
-			"|cff7cc4ffBlink, Ice Block, Cold Snap, Evocation, your mana gem, Slow Fall.|r Each lights at its moment: stunned or rooted, low health (|cffffffffHealth below|r, 20 by default), low mana (|cffffffffMana below|r), a second into a fall.",
-			"|cff7cc4ffTwo quick clicks.|r Where only the game knows whether a button is lit, the first click shows a ring and the spell's icon, and the second, a third of a second or more later, casts: a stray click or a double click never does.",
-			"|cff7cc4ffSpellsteal|r lights while your target carries a buff you can steal (Burning Crusade and later).",
-			"|cff7cc4ffPurge, Dispel Magic, Tranquilizing Shot, Shield Slam.|r A shaman, priest, hunter or warrior gets a button that lights while a hostile target in reach carries a buff the spell removes (an enrage, for Tranquilizing Shot).",
-			"|cff7cc4ffA drink when your mana is low.|r Out of a fight, for every class with mana: a button lights while your mana is under |cffffffffMana below|r and a drink is in your bags; a press drinks your best conjured water, else another drink.",
-			"|cff7cc4ffFire Ward and Frost Ward|r light when your target casts a fire or frost spell, and as soon as it hits you with fire or frost.",
-			"|cff7cc4ffCards in your look.|r Each button is a small prompt in your look, as big as the prompt itself, above it, with the spell, its name and why; |cffffffffCard size|r (80 to 150, 100 by default) changes it.",
-			"|cff7cc4ffAt once.|r Blink, Counterspell, Ice Block and Cold Snap light under the global cooldown with no fade, then pulse.",
-			"|cff7cc4ffShow where the buttons for the moment sit.|r On the In a fight page and in the minimap menu: a few seconds, out of a fight, nothing casts.",
-			"|cff7cc4ffKey boxes say how:|r click, then press a key or a controller button.",
-		} },
-		{ title = "Wards by the spell your target casts", accent = "7cc4ff", entries = {
-			"|cff7cc4ffBefore the hit, where the game names the spell.|r On Classic Era and Burning Crusade the ward of the school being cast lights at the start of the cast, from a list of every fire and frost spell with a cast bar, made from the game's own data.",
-			"|cff7cc4ffOn WoW Forever|r Manners asks the game to light the ward from the spell the game hides; if the game does, it lights before the hit and takes two quick clicks, and if not, the wards work as before.",
-		} },
-		{ title = "Water and food for your target", accent = "7cc4ff", entries = {
-			"|cff7cc4ffOffer water and food to my target|r (mages).",
-			"|cff7cc4ffHow much to trade.|r |cffffffffFill the trade window|r is the default, for your target and for water and food somebody asked for; |cffffffffOne stack|r puts one of each.",
-		} },
-		{ title = "Fire Shield from your imp on the tank", accent = "7cc4ff", entries = {
-			"|cff7cc4ffWarlocks on Classic Era, WoW Forever and Burning Crusade.|r Tick |cffffffffFire Shield from my imp on the tank|r on Who to buff: while your imp is out and knows it, your party's tank is offered Fire Shield, and a press has the imp cast it on them.",
-		} },
-		{ title = "Curing in a fight", accent = "7cc4ff", entries = {
-			"|cff7cc4ffThe game shows who needs your cure.|r On WoW Forever, where the game hides debuffs from addons in a fight, the game itself now shows the debuff on the cure button's place; a click there casts as the second of two quick clicks, the key at once.",
-			"|cff7cc4ffShift and Ctrl for each cure.|r |cffffffffPlain press|r, |cffffffffWith Shift|r and |cffffffffWith Ctrl|r under the cure switch pick the cure each casts (a druid: Remove Curse, Cure Poison, Abolish Poison).",
-			"|cff7cc4ffOne cure switch.|r It is set on In a fight; Who to buff points there.",
-		} },
-		{ title = "Report a bug", accent = "7cc4ff", entries = {
-			"|cff7cc4ffOne window.|r Choose what went wrong, press |cffffffffMake the report|r, open the link and paste the report.",
-		} },
-		{ title = "Mark this moment and a fuller trail", accent = "7cc4ff", entries = {
-			"|cff7cc4ffMark this moment.|r A key (|cffffffffKey for Mark this moment|r on Diagnostics), the minimap menu and /manners mark note the prompt, the queue and the fight buttons.",
+			"|cffffd100Back to what Manners is for.|r 1.11.41's extras are gone: the buttons for the moment (Counterspell, Blink, the drink and the rest), the falling and low-mana prompts, Report a bug, Mark this moment, water and food for your target, Fire Shield and the...",
 		} },
 		{ title = "Fixes", accent = "ff9a52", entries = {
-			"|cffff9a52The right rank for a low-level player.|r The prompt casts the best rank of Fortitude (or any ranked buff) that player can take, as your action bar does: never a rank you skipped at the trainer, also for a passer-by after your cursor leaves them, and right from...",
-			"|cffff9a52Righteous Fury alone.|r Righteous Fury on Automatic now reminds a Protection paladin playing alone, by talents.",
-			"|cffff9a52Unending Breath only while you swim.|r |cffffffffOffer Unending Breath to others only while I am swimming|r, under its switch on Who to buff, off by default.",
-			"|cffff9a52In character thank-yous for a hunter or a rogue.|r |cffffffffWhen someone buffs me|r, at the top of What I say and on Start here, offers |cffffffffIn character (fits your race and class)|r, which turns on |cffffffffWhisper a thank-you to people I can't buff back|r.",
-			"|cffff9a52Thank people who buff me, with a pause.|r |cffffffffWait a moment before thanking|r looks for the giver again when the pause ends, so a nameplate that changed hands no longer drops the thank.",
-			"|cffff9a52The cure button takes no click while it is out of sight.|r A click casts only while it is lit.",
-			"|cffff9a52/manners debug.|r The Slow Fall line leaves your character's name out.",
-			"|cffff9a52Check-up.|r It no longer stops for a class whose only button is the drink, and a click that got past a cover is counted for the session only.",
-			"|cffff9a52Slow Fall in French, German, Spanish, Italian and Portuguese.|r The Light Feather line reads right whatever the name's gender.",
-			"|cffff9a52Who buffed you.|r The full check-up counts the casts Manners hears from others (players and mobs alike), and a buff read late says so instead of \"no player in sight\".",
-			"|cffff9a52Break free.|r Each loss of control is one line on the trail, with whether the button lit.",
-			"|cffff9a52Cure button (check-up).|r /manners debug says whether the game's list of debuffs you can remove is there and what it answered.",
-			"|cffff9a52Cure button.|r It no longer blinks or says nil, shows \"Somebody\" when the game withholds a name, and a Shift key on either binding is read right.",
-			"|cffff9a52Break free.|r A second fear keeps the button lit.",
-			"|cffff9a52Healthstone.|r One whose name ends in a bracket is cast with ().",
-			"|cffff9a52Battleground food and elixirs.|r They read as gone after a death.",
-			"|cffff9a52Greater Blessing on another class.|r It no longer counts as yours.",
-			"|cffff9a52Slider boxes.|r Each reads its own unit words, in every language.",
-			"|cffff9a52Who to buff.|r Your own-buff controls show for a class with nothing for others.",
-			"|cffff9a52/manners debug.|r The dungeon line leaves food out while |cffffffffFood still offered outside dungeons and raids|r is on.",
+			"|cffff9a52Thank-you after a pause.|r With |cffffffffWait a moment before thanking|r on, the thank-you no longer gets lost when the giver's nameplate changes hands.",
+			"|cffff9a52In character for every class.|r A hunter or a rogue can pick |cffffffffIn character|r again for the thank-you (|cffffffffWhen someone buffs me|r, on |cffffffffWhat I say|r).",
+			"|cffff9a52Key boxes take keyboard keys.|r Click a key box, then press the key.",
+			"|cffff9a52Fortitude's rank for low-level players.|r The prompt casts the best rank they can take, as the action bar does.",
+			"|cffff9a52Options in Chinese, Korean and German.|r A time slider's box no longer changes its setting when you click in and out of it.",
+			"|cffff9a52Will of the Forsaken|r stays lit through a second fear; the cure button no longer blinks or says nil.",
+			"|cffff9a52Battlegrounds:|r buffs after a death are read right for you and your team.",
+			"|cffff9a52Healthstones and stones|r whose name ends in a bracket cast again.",
 		} },
 	} },
 	{ version = "1.11.40", date = "22 November 2026", sections = {

@@ -965,12 +965,6 @@ function FT.template(f, template)
 	if type(template) == "string" and template:find("SecureHandlerStateTemplate", 1, true) and Mock.makeSecureHeader then
 		Mock.makeSecureHeader(f)
 	end
-	-- A secure action button is protected, as the mock's own CreateFrame marks
-	-- it: a snippet's handle on it holds in a fight (a moment button made while
-	-- the recording CreateFrame was in, the drink, read as unprotected).
-	if type(template) == "string" and template:find("SecureActionButtonTemplate", 1, true) then
-		f._secureTemplate = true
-	end
 	if type(template) ~= "string" or not template:find("UIPanelCloseButton", 1, true) then return end
 	f._width, f._height = f._width or 24, f._height or 24
 	if not f.scripts.OnClick then

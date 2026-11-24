@@ -3483,12 +3483,6 @@ RP.SPELL = {
 		L["A warlock's sight, {name}, lent for a while. Some shadows stare back."],
 		L["Eyes open, {name}. Whatever hides near us is about to be found."],
 	},
-	fireshield = {
-		L["My imp lends you its flames, {name}. Whatever strikes you gets burnt fingers."],
-		L["Wrapped in imp fire, {name}. Let them hit you; they'll regret the touch."],
-		L["The imp grumbled, {name}, but you're cloaked in flame. Go and stand in front."],
-		L["A little of the Nether's fire on you, {name}. Every blow they land singes them."],
-	},
 }
 
 -- Thanks only, and only when the spell they gave you is known: {gift} is
@@ -3783,10 +3777,6 @@ RP.GIFT = {
 	symbioticrelationship = {
 		L["Thank you, {name}. Whatever I mend in myself, I'll send your way."],
 		L["{gift}! Bonded, then, {name}. I'll take good care of us both."],
-	},
-	fireshield = {
-		L["Flames on my shoulders, {name}. Tell your imp thank you, from a safe distance."],
-		L["{gift}, {name}! Whatever swings at me now gets burnt. Thanks."],
 	},
 }
 
