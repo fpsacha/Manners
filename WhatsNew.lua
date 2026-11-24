@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WhatsNew = {
-	{ version = "Unreleased", date = "24 November 2026", sections = {
+	{ version = "1.12.0", date = "24 November 2026", sections = {
 		{ title = "Highlights", accent = "ffd100", entries = {
 			"|cffffd100Back to the essentials.|r Manners now starts with only what it is for: returning favours, buffing your group and passers-by, and saying thanks.",
 			"|cffffd100Report a bug.|r A window that walks you through a report and opens the GitHub form already filled in (launcher menu, or /manners bug).",
