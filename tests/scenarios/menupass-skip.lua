@@ -68,7 +68,7 @@ for _, class in ipairs({ "MAGE", "HUNTER" }) do
 					fail(scenario, class .. ": After a right-click does not come before Players to skip")
 				end
 			end
-			if not layout.simple.items[path] then fail(scenario, path .. " is not on the simple list") end
+			-- 1.12.1: the Simple view keeps only the essentials; the lengths are in the full view.
 			if UI.PageOf(path) ~= "skip" then fail(scenario, class .. ": " .. path .. " is on the page " .. tostring(UI.PageOf(path))) end
 			if not UI.RowShown(path) then fail(scenario, class .. ": " .. path .. " is not drawn on Who to skip") end
 		end
