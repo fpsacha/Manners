@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+*24 November 2026*
+
+### Highlights
+- **Back to what Manners is for.** 1.11.41's extras are gone: the buttons for
+  the moment (Counterspell, Blink, the drink and the rest), the falling and
+  low-mana prompts, Report a bug, Mark this moment, water and food for your
+  target, Fire Shield and the new cure display. Thank you for saying so. The
+  fixes stay.
+
+### Fixes
+- **Thank-you after a pause.** With *Wait a moment before thanking* on, the
+  thank-you no longer gets lost when the giver's nameplate changes hands.
+- **In character for every class.** A hunter or a rogue can pick *In character*
+  again for the thank-you (*When someone buffs me*, on *What I say*).
+- **Key boxes take keyboard keys.** Click a key box, then press the key.
+- **Fortitude's rank for low-level players.** The prompt casts the best rank
+  they can take, as the action bar does.
+- **Options in Chinese, Korean and German.** A time slider's box no longer
+  changes its setting when you click in and out of it.
+- **Will of the Forsaken** stays lit through a second fear; the cure button no
+  longer blinks or says nil.
+- **Battlegrounds:** buffs after a death are read right for you and your team.
+- **Healthstones and stones** whose name ends in a bracket cast again.
+
 ## 1.11.40
 
 *22 November 2026*
