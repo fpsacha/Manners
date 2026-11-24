@@ -379,6 +379,7 @@ function Mock.reset()
 	Mock.sounds = {}
 	Mock.stoppedSounds = {}
 	Mock.printed = {}
+	Mock.printedTo = {}
 	-- Every line the tooltip put up since it was last owned. The tooltip is the
 	-- most detailed thing the prompt says and none of it was testable.
 	Mock.tooltip = {}
@@ -995,10 +996,20 @@ local function getLibrary(name, silent)
 			-- Several guarantees are about what the addon says, not what it
 			-- does: a prompt with nobody on it has to be told apart from a
 			-- keybinding that never worked.
+			-- As AceConsole does, a chat frame handed first is where the line
+			-- goes, not part of it: Mock.printedTo says which, nil for the
+			-- default window.
 			a.Print = function(_, ...)
+				local first, skip = ..., 0
+				local frame
+				if type(first) == "table" and type(first.AddMessage) == "function" then
+					frame, skip = first, 1
+				end
 				local parts = {}
-				for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+				for i = 1 + skip, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
 				Mock.printed[#Mock.printed + 1] = table.concat(parts, " ")
+				Mock.printedTo = Mock.printedTo or {}
+				Mock.printedTo[#Mock.printed] = frame or false
 			end
 			a.ScheduleRepeatingTimer = function() return {} end
 			a.CancelTimer = function() end

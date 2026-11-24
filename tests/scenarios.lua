@@ -35,6 +35,10 @@ dofile(dir .. "/tests/mockapi.lua")
 -- What the toc loads, in its order -- see tests/addonfiles.lua.
 ADDON_FILES = dofile(dir .. "/tests/addonfiles.lua")(dir)
 
+-- Defaults as the addon ships them, where load() changes them for the
+-- scenarios (below).
+local SHIPPED = {}
+
 local function load(scenario)
 	if run.loaded then run.loaded(scenario, run.file) end
 	-- A scenario left out gets nil back, which every scenario already reads as
@@ -63,6 +67,13 @@ local function load(scenario)
 	-- names the look it is about.
 	if ns.defaults and ns.defaults.profile and ns.defaults.profile.prompt then
 		ns.defaults.profile.prompt.style = "glass"
+	end
+	-- And with the chat lines on (verbose), the default until 1.12.1: they go
+	-- on reading the lines they were written about. What ships is kept in
+	-- SHIPPED for tests/scenarios/chatframe.lua, which holds it to off.
+	if ns.defaults and ns.defaults.profile and ns.defaults.profile.verbose ~= nil then
+		SHIPPED.verbose = ns.defaults.profile.verbose
+		ns.defaults.profile.verbose = true
 	end
 	return ns
 end
@@ -17861,6 +17872,7 @@ local H = {
 	knowShout = knowShout, primeAuras = primeAuras, favourFrom = favourFrom,
 	pressAndSend = pressAndSend, findOption = findOption, optionsByKey = optionsByKey, namedSpell = namedSpell,
 	savedProfile = savedProfile, tryAgainst = tryAgainst, optionText = optionText,
+	shipped = SHIPPED,
 	-- Whether the toc loads the options window's layout (Options/Window/
 	-- Layout.lua), so a scenario about where a control is drawn can tell a
 	-- checkout without the window from a layout that failed to load.

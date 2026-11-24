@@ -306,6 +306,8 @@ ns.WindowLayout = {
 					"general.minimap",
 					"general.verbose",
 					"general.silentChat",
+					-- And which chat window they go to (chat.frame).
+					"general.chatFrame",
 					-- What /manners welcome says, again in the chat window, for
 					-- somebody who skipped it: with the chat lines, under their heading.
 					"general.welcomeAgain",
@@ -1283,6 +1285,7 @@ ns.WindowLayout = {
 		["advanced.ownSkipMinutes"] = L["skip longer food well fed ignore right click not now"],
 		["advanced.skipSeconds"] = L["skip longer right click not now ignore"],
 		["general.verbose"] = L["quiet mute spam"],
+		["general.chatFrame"] = L["chat tab window frame redirect spam"],
 		["who.ownScrolls"] = L["hide familiar imbue"],
 		["who.ownFoodOutside"] = L["food well fed outside world leveling levelling experience"],
 		["who.ownHoldMoving"] = L["moving move running run walking jump still hold"],

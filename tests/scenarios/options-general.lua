@@ -137,6 +137,8 @@ local START_PAGE = {
 	"general.bindStatus", "general.bindKey", "general.makeMacro", "general.openBindings", "general.keyReminder",
 	"general.ledgerSummary", "general.ledgerOpen",
 	"general.minimap", "general.verbose", "general.silentChat",
+	-- Which chat window the lines go to (tests/scenarios/chatframe.lua).
+	"general.chatFrame",
 	"general.welcomeAgain",
 	-- What's new, folded (tests/scenarios/whatsnew.lua).
 	"general.newsHead1", "general.newsNote1", "general.newsHead2", "general.newsNote2", "general.newsHead3", "general.newsNote3", "general.newsHead4", "general.newsNote4", "general.newsHead5", "general.newsNote5", "general.newsHead6", "general.newsNote6", "general.newsHead7", "general.newsNote7", "general.newsHead8", "general.newsNote8", "general.newsHead9", "general.newsNote9", "general.newsHead10", "general.newsNote10", "general.newsHead11", "general.newsNote11", "general.newsHead12", "general.newsNote12", "general.newsHead13", "general.newsNote13", "general.newsHead14", "general.newsNote14", "general.newsHead15", "general.newsNote15", "general.newsHead16", "general.newsNote16",

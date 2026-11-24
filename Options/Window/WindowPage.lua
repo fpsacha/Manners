@@ -327,6 +327,8 @@ local FIELDS = {
 	["who.spareFishBowl"] = { { "buff", "spareFishBowl" } },
 	["who.neverFishBowl"] = { { "buff", "neverFishBowl" } },
 	["who.spareCamp"] = { { "buff", "spareCamp" } },
+	-- Start here: the chat window Manners' lines go to.
+	["general.chatFrame"] = { { "chat", "frame" } },
 	["advanced.retryCooldown"] = { { "timing", "retryCooldown" } },
 	["advanced.skipSeconds"] = { { "timing", "skipSeconds" } },
 	["advanced.ownSkipMinutes"] = { { "timing", "ownSkipMinutes" } },

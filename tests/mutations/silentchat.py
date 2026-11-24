@@ -23,8 +23,8 @@ mutate("Core.lua",
        expect="silentchat: off by default, and then every line is printed, the chat switch off or on", script=S)
 
 mutate("Core.lua",
-       "\tfunction addon:Reply(...) return acePrint(self, ...) end\n",
-       "\tfunction addon:Reply(...) return self:Print(...) end\n",
+       "\tfunction addon:Reply(...)\n",
+       "\tfunction addon:Reply(...)\n\t\tdo return self:Print(...) end\n",
        "silentchat: a reply is silenced too",
        expect="silentchat: on, what pasting settings or loading a set says is still said", script=S)
 

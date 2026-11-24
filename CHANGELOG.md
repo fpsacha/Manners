@@ -18,6 +18,9 @@
 - **Thorns on your target.** *Also offer Thorns to my target* (Who to buff,
   under Offer to) offers it to whoever you target, whatever Offer to says
   (thanks to tcurse).
+- **Quieter chat.** *Show what Manners is doing in my chat window* is now off
+  by default, and *Send Manners messages to* (Start here) puts the lines in a
+  chat tab of your own (thanks to YourSin).
 
 ## 1.12.0
 

@@ -880,7 +880,8 @@ do
 	-- decision rather than an accident.
 	-- keyReminder too: the reminder to set a key is a line in the player's own
 	-- chat, like the others.
-	local SHARE_SKIP = { keyReminder = true, enabled = true, debugClicks = true, never = true, minimap = true, verbose = true }
+	-- And the chat window the lines go to (chat.frame): a tab on this screen.
+	local SHARE_SKIP = { keyReminder = true, enabled = true, debugClicks = true, never = true, minimap = true, verbose = true, chat = true }
 
 	-- The same further down. The lock is a state, and a string copied while the
 	-- prompt was unlocked would unlock everybody's, and an unlocked prompt never

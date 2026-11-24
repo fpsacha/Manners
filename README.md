@@ -1004,11 +1004,13 @@ no room for. Defaults are in brackets.
   all once a key is set or the Manners macro is made.
 - ***Favour ledger***: today's count and *Open the ledger*.
 - ***Minimap and chat window***: *Show minimap button*; *Show what Manners is
-  doing in my chat window* (on), a line in your own chat when somebody buffs
+  doing in my chat window* (off), a line in your own chat when somebody buffs
   you, when a favour is repaid, and when a click fails, never said to anybody
   else; *Hide all Manners messages in my chat window* (off), which silences
   even the few lines the first leaves (what you type after `/manners` is
-  still answered); and *Show the welcome again*.
+  still answered); *Send Manners messages to* (*Default chat window*), any
+  of your open chat tabs by name, back to the default window if that tab is
+  closed; and *Show the welcome again*.
 - ***What's new in*** *the version you run*, folded at the foot of the page:
   that release's date and what it changed, in short, the highlights first and
   the fixes last, then the three releases before it in brief. In English, as

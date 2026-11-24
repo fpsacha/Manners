@@ -34,14 +34,55 @@ ns.addon = addon
 -- person or a skip in a fight -- except the answer to a command you typed
 -- (ns.answering, Commands.lua) and what addon:Reply says: the result of
 -- pasting settings, the lines of a set you loaded or tried.
+-- Both go to the chat window "Send Manners messages to" names (chat.frame,
+-- ns.ChatFrame), or the default one.
 do
 	local acePrint = addon.Print
 	function addon:Print(...)
 		local db = self.db and self.db.profile
 		if db and db.silentChat == true and not ns.answering then return end
+		local frame = ns.ChatFrame(db)
+		if frame then return acePrint(self, frame, ...) end
 		return acePrint(self, ...)
 	end
-	function addon:Reply(...) return acePrint(self, ...) end
+	function addon:Reply(...)
+		local frame = ns.ChatFrame(self.db and self.db.profile)
+		if frame then return acePrint(self, frame, ...) end
+		return acePrint(self, ...)
+	end
+end
+
+-- The chat windows a line may be sent to: { index, name } for each tab with a
+-- name that is open (shown, or docked beside the others), the combat log left
+-- out. Read when the options list them and when a line is printed, never in
+-- a scan.
+function ns.ChatWindows()
+	local out = {}
+	local info = _G.GetChatWindowInfo
+	if type(info) ~= "function" then return out end
+	local count = tonumber(_G.NUM_CHAT_WINDOWS) or 0
+	for i = 1, count do
+		local name, _, _, _, _, _, shown, _, docked = info(i)
+		if type(name) == "string" and name ~= "" and (shown or docked)
+			and name ~= _G.COMBAT_LOG then
+			local frame = _G["ChatFrame" .. i]
+			if type(frame) == "table" and type(frame.AddMessage) == "function" then
+				out[#out + 1] = { index = i, name = name, frame = frame }
+			end
+		end
+	end
+	return out
+end
+
+-- The frame chat.frame names, or nil for the default window: nil too when
+-- that tab is closed or renamed, so a line still lands in the default one.
+function ns.ChatFrame(db)
+	local want = db and type(db.chat) == "table" and db.chat.frame
+	if type(want) ~= "string" or want == "" then return nil end
+	for _, tab in ipairs(ns.ChatWindows()) do
+		if tab.name == want then return tab.frame end
+	end
+	return nil
 end
 
 local MANA = (Enum and Enum.PowerType and Enum.PowerType.Mana) or 0
@@ -342,9 +383,14 @@ ns.SOUND_FILE = 567458
 local defaults = {
 	profile = {
 		enabled = true,
-		verbose = true, -- "X buffed you", and why a cast failed
+		-- "X buffed you", and why a cast failed. Off by default since 1.12.1: a
+		-- player's chat filled up running past a crowd (asked for on CurseForge).
+		verbose = false,
 		-- Stronger than verbose: not one line of its own in chat (addon:Print).
 		silentChat = false,
+		-- Which chat window the lines go to ("Send Manners messages to"): a
+		-- tab's name, "" for the default one (ns.ChatFrame).
+		chat = { frame = "" },
 		-- One line in chat a while after login while Manners has no key
 		-- (Options/Start.lua, ns.KeyNudge): three logins at most.
 		keyReminder = true,

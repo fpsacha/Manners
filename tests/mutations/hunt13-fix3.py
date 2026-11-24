@@ -102,8 +102,8 @@ mutate("Options/Look.lua",
 
 # Shared again: a paste resets it.
 mutate("Commands.lua",
-       "minimap = true, verbose = true }",
-       "minimap = true }",
+       "minimap = true, verbose = true, chat = true }",
+       "minimap = true, chat = true }",
        "hunt13-fix3: a paste resets Tell me in chat",
        expect="a paste changed Tell me in chat back on", script=S)
 

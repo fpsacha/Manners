@@ -1508,9 +1508,10 @@ function Page.BuildStartTab()
 					end
 				end,
 			},
-			-- Lines printed to your own chat frame, never said aloud. On by
-			-- default, and the switch people look for when the lines annoy
-			-- them, so here rather than on Diagnostics.
+			-- Lines printed to your own chat frame, never said aloud. Off by
+			-- default since 1.12.1 (a crowd filled a player's chat), and the
+			-- switch people look for when the lines annoy them, so here rather
+			-- than on Diagnostics.
 			verbose = {
 				type = "toggle",
 				-- A cast that worked prints nothing unless it repaid a
@@ -1540,6 +1541,39 @@ function Page.BuildStartTab()
 				width = "full",
 				get = function() return ns.db.profile.silentChat == true end,
 				set = function(_, v) ns.db.profile.silentChat = v end,
+			},
+			-- Which chat window the lines go to (chat.frame; Core.lua,
+			-- ns.ChatFrame): the default one, or an open tab by name. A tab
+			-- since closed is still listed, so the choice reads as made, and
+			-- the lines go to the default window meanwhile.
+			chatFrame = {
+				type = "select",
+				name = L["Send Manners messages to"],
+				desc = L["The chat window Manners' own lines go to: the default one, or one of your chat tabs. If that tab is closed or renamed, they go to the default window."],
+				order = 73,
+				width = "full",
+				values = function()
+					local out = { [""] = L["Default chat window"] }
+					for _, tab in ipairs(ns.ChatWindows()) do out[tab.name] = tab.name end
+					local saved = ns.db.profile.chat.frame
+					if type(saved) == "string" and saved ~= "" and not out[saved] then out[saved] = saved end
+					return out
+				end,
+				sorting = function()
+					local order, seen = { "" }, { [""] = true }
+					for _, tab in ipairs(ns.ChatWindows()) do
+						if not seen[tab.name] then
+							seen[tab.name] = true
+							order[#order + 1] = tab.name
+						end
+					end
+					local saved = ns.db.profile.chat.frame
+					if type(saved) == "string" and not seen[saved] then order[#order + 1] = saved end
+					return order
+				end,
+				disabled = function() return ns.db.profile.silentChat == true end,
+				get = function() return ns.db.profile.chat.frame or "" end,
+				set = function(_, v) ns.db.profile.chat.frame = type(v) == "string" and v or "" end,
 			},
 			-- The options window's view (Shared.lua, ns.MenuView): the
 			-- essentials, or everything. The window draws the switch under its
